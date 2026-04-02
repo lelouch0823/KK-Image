@@ -10,15 +10,6 @@
 import { parseJsonObject } from '../../api/utils/json.js';
 import { projectOrderLineStatus } from '../../services/OrderStatusProjectionService.js';
 
-/**
- * 安全解析 JSON 字符串
- * @param {string|null} jsonStr - JSON 字符串
- * @returns {Object} 解析后的对象，失败返回空对象
- */
-export function parseJson(jsonStr) {
-    return parseJsonObject(jsonStr, {});
-}
-
 export function mapOrderLine(line) {
     return {
         id: line.id,
@@ -65,7 +56,7 @@ export function aggregateOrderDisplayStatus(lines = []) {
  * @returns {Object} 格式化的列表项
  */
 export function mapOrderListItem(order) {
-    const currentData = parseJson(order.current_data);
+    const currentData = parseJsonObject(order.current_data, {});
     const procurementStatus = order.procurement_status || 'none';
     const displayStatus = order.display_status || procurementStatus;
     return {
@@ -92,8 +83,8 @@ export function mapOrderListItem(order) {
  * @returns {Object} 格式化的详情对象
  */
 export function mapOrderDetail(order) {
-    const originalData = parseJson(order.original_data);
-    const currentData = parseJson(order.current_data);
+    const originalData = parseJsonObject(order.original_data, {});
+    const currentData = parseJsonObject(order.current_data, {});
     const procurementStatus = order.procurement_status || 'none';
     const lines = Array.isArray(order.lines) ? order.lines.map(mapOrderLine) : [];
     const displayStatus = order.display_status || aggregateOrderDisplayStatus(lines) || procurementStatus;
