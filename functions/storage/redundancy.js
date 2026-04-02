@@ -216,10 +216,10 @@ export class RedundancyManager {
  * @returns {Promise<Response>}
  */
 export async function getFileWithFallback(env, fileId, request, metadata) {
-  const { getFallbackChain, isFallbackEnabled, getFallbackTimeout } = await import('./router.js');
+  const { getFallbackChain } = await import('./router.js');
 
   // 如果未启用回退，使用默认提供者
-  if (!isFallbackEnabled(env)) {
+  if (env.STORAGE_FALLBACK_ENABLED === 'false') {
     const provider = getStorageProvider(env);
     return provider.getFile(fileId, request);
   }
@@ -236,7 +236,7 @@ export async function getFileWithFallback(env, fileId, request, metadata) {
   }
 
   const chain = getFallbackChain(env, metadata);
-  const timeout = getFallbackTimeout(env);
+  const timeout = parseInt(env.STORAGE_FALLBACK_TIMEOUT || '3000', 10);
 
   for (const providerName of chain) {
     try {

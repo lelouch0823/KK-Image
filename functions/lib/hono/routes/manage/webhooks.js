@@ -6,6 +6,7 @@ import { NotFoundError, BadRequestError } from '../../errors.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { requireEntity } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 
@@ -65,12 +66,6 @@ function validateEvents(events = []) {
   }
 }
 
-async function requireWebhook(repo, id) {
-  const webhook = await repo.getById(id);
-  if (!webhook) throw new NotFoundError(MSG.WEBHOOK.NOT_FOUND);
-  return webhook;
-}
-
 function buildTestPayload(webhook, user) {
   return {
     event_id: `test_${Date.now()}`,
@@ -102,7 +97,10 @@ app.get('/', requirePermission('webhooks:read'), async (c) => {
 
 app.get('/:id', requirePermission('webhooks:read'), async (c) => {
   const repo = new WebhookRepository(c.env.DB);
-  const webhook = await requireWebhook(repo, c.req.param('id'));
+  const webhook = await requireEntity(
+    repo.getById(c.req.param('id')),
+    () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND)
+  );
   return c.json({ success: true, data: webhook });
 });
 
@@ -143,7 +141,7 @@ app.put('/:id', requirePermission('webhooks:write'), async (c) => {
   const body = await c.req.json();
   const user = c.get('user') || {};
 
-  await requireWebhook(repo, id);
+  await requireEntity(repo.getById(id), () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND));
   validateEvents(body.events || []);
 
   const updated = await repo.update(id, {
@@ -171,7 +169,10 @@ app.put('/:id', requirePermission('webhooks:write'), async (c) => {
 
 app.delete('/:id', requirePermission('webhooks:write'), async (c) => {
   const repo = new WebhookRepository(c.env.DB);
-  const webhook = await requireWebhook(repo, c.req.param('id'));
+  const webhook = await requireEntity(
+    repo.getById(c.req.param('id')),
+    () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND)
+  );
 
   await repo.delete(webhook.id);
 
@@ -195,7 +196,10 @@ app.delete('/:id', requirePermission('webhooks:write'), async (c) => {
 app.post('/:id/test', requirePermission('webhooks:write'), async (c) => {
   const repo = new WebhookRepository(c.env.DB);
   const user = c.get('user') || {};
-  const webhook = await requireWebhook(repo, c.req.param('id'));
+  const webhook = await requireEntity(
+    repo.getById(c.req.param('id')),
+    () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND)
+  );
   const payload = buildTestPayload(webhook, user);
   const headers = {
     'Content-Type': 'application/json',

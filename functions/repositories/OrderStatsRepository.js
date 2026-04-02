@@ -5,7 +5,7 @@
  * 负责订单相关的统计查询，将统计逻辑从主 OrderRepository 中分离。
  */
 
-import { parseJson } from './order/helpers.js';
+import { parseJsonObject } from '../api/utils/json.js';
 
 export class OrderStatsRepository {
   constructor(db) {
@@ -32,7 +32,7 @@ export class OrderStatsRepository {
       .all();
 
     return result.results.map((order) => {
-      const data = parseJson(order.current_data);
+      const data = parseJsonObject(order.current_data, {});
       return {
         id: order.id,
         orderNo: order.order_no,

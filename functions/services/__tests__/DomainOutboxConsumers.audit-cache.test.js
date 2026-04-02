@@ -113,6 +113,37 @@ describe('DomainOutboxConsumers audit and cache', () => {
     );
   });
 
+  it('falls back to an empty payload object when purchase receipt payload_json is invalid', async () => {
+    await DOMAIN_OUTBOX_CONSUMERS.audit({
+      db: { prepare: vi.fn() },
+      event: {
+        id: 'evt-invalid-1',
+        event_type: 'purchase_receipt_recorded',
+        aggregate_type: 'purchase_order',
+        aggregate_id: 'po-invalid-1',
+        correlation_id: 'cmd-invalid-1',
+        payload_json: '{',
+      },
+    });
+
+    expect(mocks.recordAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        targetId: 'po-invalid-1',
+        metadata: expect.objectContaining({
+          purchaseOrderItemId: null,
+          orderId: null,
+          orderLineId: null,
+          receiptId: null,
+          originalReceiptId: null,
+          reversalId: null,
+          receivedQty: null,
+          reversalQty: null,
+        }),
+      })
+    );
+  });
+
   it('invalidates purchase-order, order, and goods-overview caches idempotently', async () => {
     await DOMAIN_OUTBOX_CONSUMERS.cache({
       event: {
@@ -286,6 +317,31 @@ describe('DomainOutboxConsumers audit and cache', () => {
       'https://kk.example.com/api/v1/folders/folder-1',
       'https://kk.example.com/api/v1/folders/folder-2',
       'https://kk.example.com/api/v1/files/file-1',
+    ]));
+  });
+
+  it('invalidates v1 folder caches together with share caches for v1 folder events', async () => {
+    await DOMAIN_OUTBOX_CONSUMERS.cache({
+      db: {},
+      event: {
+        id: 'evt-v1-folder-1',
+        event_type: 'v1_folder_updated',
+        aggregate_type: 'folder',
+        aggregate_id: 'folder-1',
+        payload_json: JSON.stringify({
+          folder_id: 'folder-1',
+          parent_ids: ['folder-parent-1'],
+        }),
+      },
+      baseUrl: 'https://kk.example.com',
+    });
+
+    expect(mocks.invalidateCache).toHaveBeenCalledWith(expect.arrayContaining([
+      'https://kk.example.com/api/v1/folders',
+      'https://kk.example.com/api/v1/folders?parentId=null',
+      'https://kk.example.com/api/v1/folders/folder-parent-1',
+      'https://kk.example.com/api/manage/shares',
+      'https://kk.example.com/api/manage/shares?limit=20&page=1',
     ]));
   });
 

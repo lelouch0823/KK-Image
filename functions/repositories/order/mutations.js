@@ -9,11 +9,11 @@
 
 import { generateId, now } from '../../api/utils/id.js';
 import { assertOrderStatusTransition } from '../../api/utils/order-state-machine.js';
+import { chunkArray, executeBatchChunks } from '../../lib/db/batch.js';
 import { InventoryService } from '../../services/InventoryService.js';
 import { projectOrderLineStatus } from '../../services/OrderStatusProjectionService.js';
 
 export const INSUFFICIENT_VARIANT_STOCK_ERROR = 'insufficient variant stock for delivery';
-const D1_MAX_BATCH_SIZE = 100;
 
 function getDeliveryStockDelta(oldStatus, newStatus, quantity) {
     const safeQty = Math.max(0, Number(quantity) || 0);
@@ -21,33 +21,6 @@ function getDeliveryStockDelta(oldStatus, newStatus, quantity) {
     if (oldStatus !== 'delivered' && newStatus === 'delivered') return -safeQty;
     if (oldStatus === 'delivered' && newStatus !== 'delivered') return safeQty;
     return 0;
-}
-
-function resolveInventoryService(db, options = {}) {
-    return options.inventoryService || new InventoryService(db);
-}
-
-function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
-    if (!Array.isArray(items) || items.length === 0) return [];
-
-    const chunks = [];
-    for (let index = 0; index < items.length; index += chunkSize) {
-        chunks.push(items.slice(index, index + chunkSize));
-    }
-    return chunks;
-}
-
-async function executeBatchChunks(db, statements = []) {
-    const results = [];
-
-    for (const chunk of chunkArray(statements)) {
-        const chunkResults = await db.batch(chunk);
-        if (Array.isArray(chunkResults)) {
-            results.push(...chunkResults);
-        }
-    }
-
-    return results;
 }
 
 async function assertBatchDeliveryStockSufficient(inventoryService, requirementsByVariant) {
@@ -591,7 +564,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
     const { forceStatusTransition = false } = options;
     const timestamp = now();
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
-    const inventoryService = resolveInventoryService(db, options);
+    const inventoryService = options.inventoryService || new InventoryService(db);
     const currentOrder = await db
         .prepare('SELECT status, variant_id, quantity FROM orders WHERE id = ?')
         .bind(id)
@@ -700,7 +673,7 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
     const { forceStatusTransition = false } = options;
     const timestamp = now();
     const batchStatements = [];
-    const inventoryService = resolveInventoryService(db, options);
+    const inventoryService = options.inventoryService || new InventoryService(db);
     const existingOrders = [];
     for (const idChunk of chunkArray(ids)) {
         const placeholders = idChunk.map(() => '?').join(',');

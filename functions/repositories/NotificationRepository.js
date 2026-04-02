@@ -14,8 +14,7 @@
 
 import { generateId, now } from '../api/utils/id.js';
 import { parseJsonObject } from '../api/utils/json.js';
-
-const D1_MAX_BATCH_SIZE = 100;
+import { executeBatchChunks } from '../lib/db/batch.js';
 
 function isMissingColumnError(error, columns = []) {
     const message = String(error?.message || error || '').toLowerCase();
@@ -27,26 +26,6 @@ function isMissingColumnError(error, columns = []) {
 function isUniqueConstraintError(error) {
     const message = String(error?.message || error || '').toLowerCase();
     return message.includes('unique constraint failed') || message.includes('constraint failed');
-}
-
-function parseMetadata(metadata) {
-    return parseJsonObject(metadata, null);
-}
-
-function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
-    if (!Array.isArray(items) || items.length === 0) return [];
-
-    const chunks = [];
-    for (let index = 0; index < items.length; index += chunkSize) {
-        chunks.push(items.slice(index, index + chunkSize));
-    }
-    return chunks;
-}
-
-async function executeBatchChunks(db, statements = []) {
-    for (const chunk of chunkArray(statements)) {
-        await db.batch(chunk);
-    }
 }
 
 export class NotificationRepository {
@@ -507,7 +486,7 @@ export class NotificationRepository {
             is_read: n.is_read,
             receiver: n.receiver || 'admin',
             orderId: n.order_id,
-            metadata: parseMetadata(n.metadata),
+            metadata: parseJsonObject(n.metadata, null),
             created_at: n.created_at,
         };
     }

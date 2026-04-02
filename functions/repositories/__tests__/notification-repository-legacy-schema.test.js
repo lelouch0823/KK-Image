@@ -110,6 +110,48 @@ describe('NotificationRepository legacy schema compatibility', () => {
     expect(result.list[0].id).toBe('n-1');
   });
 
+  it('maps invalid legacy notification metadata to null', async () => {
+    const db = createLegacySchemaDbStub();
+    const repo = new NotificationRepository({
+      ...db,
+      prepare(sql) {
+        const statement = db.prepare(sql);
+        if (String(sql || '').includes('SELECT * FROM notifications')) {
+          return {
+            ...statement,
+            bind(...params) {
+              const bound = statement.bind(...params);
+              return {
+                ...bound,
+                all: async () => ({
+                  results: [
+                    {
+                      id: 'n-invalid-1',
+                      type: 'order',
+                      title: '{"key":"notification.order.updated"}',
+                      content: '{}',
+                      link: '/admin/orders?id=o-1',
+                      is_read: 0,
+                      metadata: '{',
+                      created_at: 1730000000000,
+                    },
+                  ],
+                }),
+                first: bound.first,
+                run: bound.run,
+              };
+            },
+          };
+        }
+        return statement;
+      },
+    });
+
+    const result = await repo.listForAdmin({ unreadOnly: true, limit: 20 });
+
+    expect(result.list[0].metadata).toBeNull();
+  });
+
   it('falls back to legacy insert when salesperson_id/order_id columns are missing', async () => {
     const db = createLegacySchemaDbStub();
     const repo = new NotificationRepository(db);

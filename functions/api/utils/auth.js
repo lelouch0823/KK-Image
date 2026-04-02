@@ -208,18 +208,6 @@ export async function generateJWT(user, env, expiresIn = 3600) {
   return await SimpleJWT.encode(payload, env.JWT_SECRET);
 }
 
-// 生成 API Key（使用加密安全的随机数）
-export function generateApiKey() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const randomBytes = new Uint8Array(32);
-  crypto.getRandomValues(randomBytes);
-  let result = 'tk_';
-  for (let i = 0; i < 32; i++) {
-    result += chars.charAt(randomBytes[i] % chars.length);
-  }
-  return result;
-}
-
 // 获取有效的 API Keys (带内存缓存)
 async function getValidApiKeys(env) {
   // 1. 检查内存缓存

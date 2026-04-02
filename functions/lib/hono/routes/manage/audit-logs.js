@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { safeJsonParse } from '../../../../api/utils/json.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 
@@ -11,16 +12,6 @@ function parseIntParam(value, fallback, { min = 1, max = 100 } = {}) {
     return Math.min(max, Math.max(min, parsed));
 }
 
-function parseJsonField(value) {
-    if (!value) return null;
-    if (typeof value === 'object') return value;
-    try {
-        return JSON.parse(value);
-    } catch {
-        return null;
-    }
-}
-
 function normalizeRow(row) {
     return {
         ...row,
@@ -28,8 +19,8 @@ function normalizeRow(row) {
         severity: row.severity || 'normal',
         actor_display: row.actor_name || row.actor_id || row.user_id || '-',
         summary_display: row.summary || `${row.actor_name || row.actor_id || row.user_id || 'Unknown'} ${row.action || 'unknown'} ${row.target_label || row.target_id || row.target_type || ''}`.trim(),
-        changes_json: parseJsonField(row.changes_json),
-        metadata_json: parseJsonField(row.metadata_json || row.payload),
+        changes_json: safeJsonParse(row.changes_json || null, null),
+        metadata_json: safeJsonParse((row.metadata_json || row.payload) || null, null),
     };
 }
 

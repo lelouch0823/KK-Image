@@ -48,10 +48,6 @@ function toFileDetail(file) {
   };
 }
 
-async function requireFile(repo, fileId) {
-  return requireEntity(repo.findById(fileId), () => new NotFoundError(MSG.FILE.NOT_FOUND));
-}
-
 async function assertTargetFolderExists(db, targetFolderId) {
   if (!targetFolderId || targetFolderId === 'root') return;
   const folderRepo = new FolderRepository(db);
@@ -104,7 +100,10 @@ app.get('/:id', async (c) => {
   const fileId = c.req.param('id');
 
   const repo = new FileRepository(env.DB);
-  const file = await requireFile(repo, fileId);
+  const file = await requireEntity(
+    repo.findById(fileId),
+    () => new NotFoundError(MSG.FILE.NOT_FOUND)
+  );
 
   return c.json({
     success: true,
@@ -125,7 +124,10 @@ app.put(
     const { name } = c.req.valid('json');
 
     const repo = new FileRepository(env.DB);
-    const file = await requireFile(repo, fileId);
+    const file = await requireEntity(
+      repo.findById(fileId),
+      () => new NotFoundError(MSG.FILE.NOT_FOUND)
+    );
 
     if (name.trim() !== file.name) {
       const hasConflict = await repo.checkNameConflict(file.folder_id, name.trim(), fileId);
@@ -165,7 +167,10 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
   const fileId = c.req.param('id');
 
   const repo = new FileRepository(env.DB);
-  const file = await requireFile(repo, fileId);
+  const file = await requireEntity(
+    repo.findById(fileId),
+    () => new NotFoundError(MSG.FILE.NOT_FOUND)
+  );
 
   // 软删除
   await repo.softDelete(fileId);

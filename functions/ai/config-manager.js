@@ -246,12 +246,3 @@ export class AIConfigManager {
     return value;
   }
 }
-
-/**
- * 创建AI配置管理器实例（便捷函数）
- * @param {Object} env - 环境变量对象，包含DB和配置
- * @returns {AIConfigManager}
- */
-export function createAIConfigManager(env) {
-  return new AIConfigManager(env.DB, env);
-}

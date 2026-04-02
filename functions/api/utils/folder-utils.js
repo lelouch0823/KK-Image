@@ -45,17 +45,10 @@ export async function ensureFolder(env, name, parentId = null, isSystem = false)
 }
 
 /**
- * 确保系统根目录 _System 存在
- */
-export async function ensureSystemRoot(env) {
-  return await ensureFolder(env, '_System', null, true);
-}
-
-/**
  * 确保商品图片目录存在 _System/Products
  */
 export async function ensureProductFolder(env) {
-  const rootId = await ensureSystemRoot(env);
+  const rootId = await ensureFolder(env, '_System', null, true);
   return await ensureFolder(env, 'Products', rootId, true);
 }
 
@@ -103,7 +96,7 @@ export async function moveFilesToFolder(env, fileIds, folderId) {
  */
 export async function ensureOrderFolder(env, orderNoOrId) {
   try {
-    const rootId = await ensureSystemRoot(env);
+    const rootId = await ensureFolder(env, '_System', null, true);
     const subId = await ensureFolder(env, 'Orders', rootId, true);
     return await ensureFolder(env, orderNoOrId, subId, false); // 订单文件夹本身不是系统文件夹（用户可见/可编辑? 暂定false或根据需求）
   } catch (e) {
@@ -121,7 +114,7 @@ export async function ensureOrderFolder(env, orderNoOrId) {
  */
 export async function ensureSpaceFolder(env, spaceName) {
   try {
-    const rootId = await ensureSystemRoot(env);
+    const rootId = await ensureFolder(env, '_System', null, true);
     const subId = await ensureFolder(env, 'Spaces', rootId, true);
     return await ensureFolder(env, spaceName, subId, false);
   } catch (e) {

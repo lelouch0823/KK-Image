@@ -101,7 +101,7 @@ export function transformSpaceDetail(space, files = []) {
  * @param {Object} file - 数据库文件记录
  * @returns {Object} API 响应格式
  */
-export function transformFile(file) {
+function transformFile(file) {
   return {
     id: file.id,
     name: file.name,
@@ -111,24 +111,5 @@ export function transformFile(file) {
     url: getFileUrl(file.storage_key),
     blurhash: file.blurhash,
     createdAt: file.created_at,
-  };
-}
-
-/**
- * 转换空间统计数据
- * @param {Object} space - 空间记录
- * @param {Object} fileStats - 文件统计
- * @param {Array} trend - 趋势数据
- * @returns {Object} API 响应格式
- */
-export function transformSpaceStats(space, fileStats, trend = []) {
-  return {
-    total: {
-      view_count: space?.view_count || 0,
-      download_count: space?.download_count || 0,
-    },
-    fileCount: fileStats?.file_count || 0,
-    totalSize: fileStats?.total_size || 0,
-    trend,
   };
 }

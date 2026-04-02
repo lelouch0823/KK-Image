@@ -210,21 +210,3 @@ export function getFallbackChain(env, metadata) {
 
   return chain;
 }
-
-/**
- * 检查是否启用回退
- * @param {Object} env
- * @returns {boolean}
- */
-export function isFallbackEnabled(env) {
-  return env.STORAGE_FALLBACK_ENABLED !== 'false';
-}
-
-/**
- * 获取回退超时时间
- * @param {Object} env
- * @returns {number} 毫秒
- */
-export function getFallbackTimeout(env) {
-  return parseInt(env.STORAGE_FALLBACK_TIMEOUT || '3000', 10);
-}

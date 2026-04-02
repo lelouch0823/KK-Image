@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { OrderLineFulfillmentService } from '../../../../../services/OrderLineFulfillmentService.js';
+import { parsePositiveLineCommandQuantity } from '../../../../../services/order-line-shared.js';
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
-import { BadRequestError } from '../../../errors.js';
 
 const app = new Hono();
 
@@ -12,14 +12,6 @@ export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'POST', path: '/:id/lines/:lineId/release', domain: 'orders', action: 'order.line.release', severity: 'high', targetType: 'order' },
   { method: 'POST', path: '/:id/lines/:lineId/ship', domain: 'orders', action: 'order.line.ship', severity: 'high', targetType: 'order' },
 ]);
-
-function normalizeQuantity(body = {}) {
-  const quantity = Number(body.quantity ?? body.qty ?? body.amount);
-  if (!Number.isFinite(quantity) || quantity <= 0) {
-    throw new BadRequestError('quantity must be a positive number');
-  }
-  return Math.floor(quantity);
-}
 
 function scheduleOutboxProcessing(c, workerId) {
   c.executionCtx.waitUntil(runOutboxPoller({
@@ -34,7 +26,7 @@ async function handleLineCommand(c, action, executor) {
   const lineId = c.req.param('lineId');
   const user = c.get('user');
   const body = await c.req.json();
-  const quantity = normalizeQuantity(body);
+  const quantity = parsePositiveLineCommandQuantity(body);
   const service = new OrderLineFulfillmentService(c.env.DB);
 
   const data = await executor(service, orderId, lineId, {
