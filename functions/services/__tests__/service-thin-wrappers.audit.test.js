@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { DemandService } from '../DemandService.js';
 import { OrderLineFulfillmentService } from '../OrderLineFulfillmentService.js';
 import { OrderProcurementDomainService } from '../OrderProcurementDomainService.js';
 import { OrderProcurementReceiptReversalService } from '../OrderProcurementReceiptReversalService.js';
@@ -63,5 +64,7 @@ describe('service thin wrappers audit', () => {
     expect(OrderLineFulfillmentService.prototype).not.toHaveProperty(
       'buildOrderLineUpdateStatement'
     );
+
+    expect(DemandService.prototype).not.toHaveProperty('projectOrderLineStatus');
   });
 });

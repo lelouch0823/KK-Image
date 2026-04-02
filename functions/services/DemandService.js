@@ -1,6 +1,5 @@
 import { generateId } from '../api/utils/id.js';
 import { BadRequestError } from '../lib/hono/errors.js';
-import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 
 const DEMAND_ACTIVE_STATUSES = new Set(['confirmed', 'production', 'shipping', 'arrived']);
 const DEMAND_RELEASE_STATUSES = new Set(['void', 'rejected', 'cancelled']);
@@ -63,11 +62,6 @@ export class DemandService {
 
     return null;
   }
-
-  projectOrderLineStatus(payload = {}) {
-    return projectOrderLineStatus(payload);
-  }
-
   getTransitionEffect({ fromStatus = null, toStatus }) {
     const normalizedTo = String(toStatus || '').trim();
     if (!normalizedTo) {
