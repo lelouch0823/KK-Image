@@ -58,7 +58,7 @@ App<IAppOption>({
       getCurrentUser: fetchCurrentSalesUser,
     });
 
-    if (!restored.ok) {
+    if (!restored.ok && restored.expired) {
       clearSalesSession({ redirectToLogin: true });
     }
   },

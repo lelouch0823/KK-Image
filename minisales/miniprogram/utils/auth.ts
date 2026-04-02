@@ -36,6 +36,20 @@ function normalizeUser(payload: AuthUserResponse): SalesUser {
   };
 }
 
+function isAuthInvalidError(error?: string): boolean {
+  if (!error) {
+    return false;
+  }
+
+  const normalized = error.toLowerCase();
+  return (
+    normalized.includes('expired') ||
+    normalized.includes('unauthorized') ||
+    normalized.includes('invalid_token') ||
+    normalized.includes('登录已过期')
+  );
+}
+
 /**
  * 微信一键登录
  * 流程: wx.login -> 获取 code -> 发送到后端 -> 获取 JWT
@@ -76,19 +90,18 @@ export async function wxLogin(): Promise<LoginResult> {
       };
     }
 
-    if (data.token) {
-      setToken(data.token);
-      store.set(KEYS.TOKEN, data.token);
+    if (!data.token || !data.accessToken || !data.user) {
+      return {
+        success: false,
+        message: '微信登录信息不完整，请改用账号密码登录',
+      };
     }
 
-    if (data.accessToken) {
-      setAccessToken(data.accessToken);
-    }
-
-    if (data.user) {
-      persistSalesUser(data.user);
-      persistLoginMethod('wechat');
-    }
+    setToken(data.token);
+    store.set(KEYS.TOKEN, data.token);
+    setAccessToken(data.accessToken);
+    persistSalesUser(data.user);
+    persistLoginMethod('wechat');
 
     return {
       success: true,
@@ -173,6 +186,7 @@ export async function fetchCurrentSalesUser(accessToken: string): Promise<{
   success: boolean;
   data?: SalesUser;
   error?: string;
+  isAuthInvalid?: boolean;
 }> {
   try {
     const response = await post<AuthUserResponse>(API.SALES_AUTH(accessToken), {});
@@ -186,11 +200,14 @@ export async function fetchCurrentSalesUser(accessToken: string): Promise<{
     return {
       success: false,
       error: response.error || response.message || 'expired',
+      isAuthInvalid: isAuthInvalidError(response.error || response.message || 'expired'),
     };
   } catch (error: any) {
+    const errorMessage = error?.message || 'network_error';
     return {
       success: false,
-      error: error?.message || 'expired',
+      error: errorMessage,
+      isAuthInvalid: isAuthInvalidError(errorMessage),
     };
   }
 }

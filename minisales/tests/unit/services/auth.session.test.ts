@@ -29,10 +29,32 @@ describe('restoreSalesSession', () => {
       getCurrentUser: vi.fn().mockResolvedValue({
         success: false,
         error: 'expired',
+        isAuthInvalid: true,
       }),
     });
 
-    expect(result).toEqual({ ok: false, reason: 'expired' });
+    expect(result).toEqual({ ok: false, reason: 'expired', expired: true });
+  });
+
+  it('keeps session state when restore fails due to transient errors', async () => {
+    const removeStorageSync = vi.fn();
+    (globalThis as any).wx = {
+      removeStorageSync,
+      setStorageSync: vi.fn(),
+      reLaunch: vi.fn(),
+    };
+
+    const result = await restoreSalesSession({
+      accessToken: 'sales-token',
+      getCurrentUser: vi.fn().mockResolvedValue({
+        success: false,
+        error: 'network_error',
+        isAuthInvalid: false,
+      }),
+    });
+
+    expect(result).toEqual({ ok: false, reason: 'network_error', expired: false });
+    expect(removeStorageSync).not.toHaveBeenCalled();
   });
 });
 

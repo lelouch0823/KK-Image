@@ -1,4 +1,4 @@
-import { get, getAccessToken, getFileUrl } from '../../utils/api';
+import { get, getAccessToken, getFileUrl, getToken } from '../../utils/api';
 import { calculateNavBarHeight, getNavbarVisibility, initTabBar } from '../../utils/ui-helpers';
 import { getCurrentUser, logout } from '../../utils/auth';
 import { API, STATUS_CONFIG, OrderStatus } from '../../utils/constants';
@@ -126,6 +126,17 @@ Page({
   checkAuth() {
     const user = getCurrentUser();
     if (!user) {
+      const token = getToken();
+      const accessToken = getAccessToken();
+      if (token && accessToken) {
+        return;
+      }
+
+      if (!accessToken) {
+        handleMissingAccessToken();
+        return;
+      }
+
       handleSalesSessionExpired();
       return;
     }

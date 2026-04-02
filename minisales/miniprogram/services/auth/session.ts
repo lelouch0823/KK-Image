@@ -13,6 +13,7 @@ interface SessionUserResult {
   success: boolean;
   data?: SalesUser;
   error?: string;
+  isAuthInvalid?: boolean;
 }
 
 interface ClearSalesSessionOptions {
@@ -67,13 +68,17 @@ export async function restoreSalesSession({
   getCurrentUser,
 }: RestoreSessionOptions) {
   if (!accessToken) {
-    return { ok: false, reason: 'missing_access_token' } as const;
+    return { ok: false, reason: 'missing_access_token', expired: true } as const;
   }
 
   const result = await getCurrentUser(accessToken);
   if (!result.success || !result.data) {
-    clearSalesSession();
-    return { ok: false, reason: result.error || 'expired' } as const;
+    if (result.isAuthInvalid) {
+      clearSalesSession();
+      return { ok: false, reason: result.error || 'expired', expired: true } as const;
+    }
+
+    return { ok: false, reason: result.error || 'network_error', expired: false } as const;
   }
 
   persistSalesUser(result.data);

@@ -43,14 +43,21 @@ Page({
 
     const config = getAuthConfig();
     const loginMethod = getLoginMethod();
+    const canWechatLogin = config.wechatLoginEnabled !== false;
+    const activeMethod = loginMethod === 'wechat' && !canWechatLogin
+      ? 'password'
+      : (loginMethod || 'password');
     this.setData({
-      canWechatLogin: config.wechatLoginEnabled !== false,
-      activeMethod: loginMethod || 'password',
+      canWechatLogin,
+      activeMethod,
     });
   },
 
   onSelectMethod(e: WechatMiniprogram.TouchEvent) {
     const method = String(e.currentTarget.dataset.method || 'password');
+    if (method === 'wechat' && !this.data.canWechatLogin) {
+      return;
+    }
     this.setData({ activeMethod: method, error: '' });
   },
 
