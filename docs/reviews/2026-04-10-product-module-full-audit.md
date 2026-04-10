@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 29 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 30 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -75,6 +75,7 @@
   - `32705af`: 商品统计弹窗全量口径修复
   - `e64649a`: 商品详情关联空间切换修复
   - `3883e69`: 商品详情关联空间投影字段对齐
+  - `7c229b5`: 商品移动端库存口径对齐
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -95,6 +96,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 15 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 5 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 5 个测试，全部通过。
+  - 2026-04-10 运行 3 个回归测试文件，共 6 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -133,6 +135,7 @@
 - 商品统计弹窗 `ProductStats` 没有接收父级数据，也不会自行拉取商品列表，却直接从一份全新的 `useProducts()` 状态里读取统计值。结果是统计概览默认显示全 0；即使未来改成读取当前页数据，`库存预警/库存总值` 也会继续被错误限定在当前分页，而不是完整筛选结果。[src/components/product/ProductStats.vue](/home/bjw/Code/KK-Image/src/components/product/ProductStats.vue#L1) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L91)
 - 商品详情里的关联分享空间只在 `onMounted()` 时加载一次。`ProductWorkflowModal` 或其它父组件复用同一 `ProductDetail` 实例查看第二件商品时，右侧“关联分享空间”仍保留上一件商品的数据，形成跨商品串视图；快速切换时还会有旧请求回写新详情的竞态风险。[src/components/product/ProductDetail.vue](/home/bjw/Code/KK-Image/src/components/product/ProductDetail.vue#L357)
 - 商品详情的关联空间展示仍混用了后端原始字段名 `view_count/is_public/share_token`，但管理端空间接口投影给前端的是 `viewCount/isPublic/shareToken`。结果是详情右侧的浏览量与 Public 徽标长期不显示，复制分享链接逻辑也继续依赖兼容回退字段，和当前前端数据契约不一致。[src/components/product/ProductDetail.vue](/home/bjw/Code/KK-Image/src/components/product/ProductDetail.vue#L85)
+- 商品移动端列表 `ProductGrid` 仍用 `stock_quantity` 显示库存和低库存标记，而桌面 `ProductTable` 已经统一改用投影后的 `available_quantity`。结果是同一商品在移动端和桌面端会显示两套库存数字，低库存标记也会在移动端错判。[src/components/product/ProductGrid.vue](/home/bjw/Code/KK-Image/src/components/product/ProductGrid.vue#L39) [src/components/product/ProductTable.vue](/home/bjw/Code/KK-Image/src/components/product/ProductTable.vue#L183)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -525,3 +528,20 @@
   - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
   - `src/components/product/__tests__/product-inventory-projection-consumers.test.js`
 - 对应修复提交: `3883e69 fix: align product detail space projection fields`
+
+### 2026-04-10 轮次 47
+
+- 继续复查商品列表展示契约，新增 1 个低风险问题:
+  - 移动端商品卡片仍读取 `stock_quantity`，和桌面端基于 `available_quantity` 的库存口径不一致
+- 下一步把移动端库存展示与低库存标记统一切到可用库存投影，消除跨端数字分叉。
+
+### 2026-04-10 轮次 48
+
+- 已完成轮次 47 新增问题修复:
+  - `ProductGrid` 现在与桌面端一致，统一按 `available_quantity -> available -> stock_quantity` 展示库存
+  - 移动端低库存标记也已同步切换到可用库存口径，不再与桌面端出现不同判定
+- 增量回归:
+  - `src/components/product/__tests__/ProductGrid.available-stock.test.js`
+  - `src/components/product/__tests__/ProductFilters.desktop-layout.test.js`
+  - `src/components/product/__tests__/product-inventory-projection-consumers.test.js`
+- 对应修复提交: `7c229b5 fix: align mobile product stock display`
