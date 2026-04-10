@@ -335,7 +335,7 @@ export function useOrders() {
   /**
    * 销售端: 加载订单列表
    */
-  const loadSalesOrders = async (token, page = 1, append = false) => {
+  const loadSalesOrders = async (token, page = 1, append = false, search = '') => {
     if (!token) return;
     const requestId = ++salesListRequestId;
     if (!append) {
@@ -346,7 +346,11 @@ export function useOrders() {
 
     const MAX_ITEMS = 100; // 限制列表最大长度，防止 OOM
 
-    const result = await salesOrderApi.list(token, { page, limit: SALES_ORDER_PAGE_SIZE });
+    const result = await salesOrderApi.list(token, {
+      page,
+      limit: SALES_ORDER_PAGE_SIZE,
+      search,
+    });
     if (requestId !== salesListRequestId) {
       return false;
     }

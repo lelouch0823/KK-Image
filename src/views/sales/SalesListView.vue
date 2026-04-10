@@ -30,7 +30,7 @@
     </div>
 
     <OrderList
-      :orders="filteredOrders"
+      :orders="displayedOrders"
       :loading="loading"
       :error="listError"
       :is-pulling="isPulling"
@@ -42,7 +42,7 @@
     <!-- Infinite Scroll Trigger -->
     <div class="pb-20">
       <div 
-        v-if="infiniteScroll.canLoadMore.value && filteredOrders.length === orders.length"
+        v-if="infiniteScroll.canLoadMore.value"
         :ref="(el) => infiniteScroll.triggerRef.value = el"
         class="h-10 w-full"
       ></div>
@@ -80,19 +80,7 @@ const {
 const salesOrderEntry = computed(() => salesOrderMode.value || 'legacy');
 const listError = computed(() => salesOrderStateMachine?.error?.value || '');
 
-// Local Filtering
-const filteredOrders = computed(() => {
-  if (!searchQuery.value.trim()) return orders.value;
-  
-  const query = searchQuery.value.toLowerCase();
-  return orders.value.filter(order => {
-    return (
-      order.orderNo?.toLowerCase().includes(query) ||
-      order.productName?.toLowerCase().includes(query) ||
-      order.customer?.name?.toLowerCase().includes(query)
-    );
-  });
-});
+const displayedOrders = computed(() => orders.value);
 
 // Pull to Refresh
 const { isPulling, pullDistance, handleTouchStart, handleTouchMove, handleTouchEnd } = usePullToRefresh(
@@ -113,25 +101,17 @@ const handleViewOrder = (order) => {
 
 // Infinite Scroll using composable
 const infiniteScroll = useInfiniteScroll(async () => {
-  // Don't load more while searching
-  if (filteredOrders.value.length !== orders.value.length) {
-    infiniteScroll.setCanLoadMore(false);
-    return;
-  }
   if (!pagination || pagination.page >= pagination.totalPages) {
     infiniteScroll.setCanLoadMore(false);
     return;
   }
-  await loadOrders(pagination.page + 1, true);
+  await loadOrders(pagination.page + 1, true, searchQuery.value.trim());
   infiniteScroll.setCanLoadMore(pagination.page < pagination.totalPages);
 }, { rootMargin: '200px' });
 
-// Watch for search changes to reset infinite scroll
-watch(searchQuery, () => {
-  if (searchQuery.value.trim()) {
-    infiniteScroll.setCanLoadMore(false);
-  } else {
-    infiniteScroll.setCanLoadMore(pagination?.page < pagination?.totalPages);
-  }
+// Search goes through the server so later pages are still reachable for the current query.
+watch(searchQuery, async () => {
+  await loadOrders(1, false, searchQuery.value.trim());
+  infiniteScroll.setCanLoadMore(pagination?.page < pagination?.totalPages);
 });
 </script>

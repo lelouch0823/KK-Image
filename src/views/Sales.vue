@@ -223,8 +223,8 @@ const salesOrderEntry = computed(() => (salesOrderV2Enabled.value ? resolveSales
 
 const salesOrderStateMachine = useSalesOrderStateMachine({
   loadOrders: async (payload = {}) => {
-    const { page = 1, append = false } = payload;
-    await loadSalesOrders(accessToken.value, page, append);
+    const { page = 1, append = false, search = searchQuery.value } = payload;
+    await loadSalesOrders(accessToken.value, page, append, search);
     return { ok: true, data: { orders: orders.value } };
   },
   createOrder: async (payload) => {
@@ -260,7 +260,7 @@ provide('salesContext', {
     loading: ordersLoading,
     salesperson,
     accessToken,
-    loadOrders: (page, append) => salesOrderStateMachine.loadOrders({ page, append }),
+    loadOrders: (page, append, search = searchQuery.value) => salesOrderStateMachine.loadOrders({ page, append, search }),
     pagination: ordersPagination,
     prefillData,
     setPrefillData: (data) => { prefillData.value = data },
