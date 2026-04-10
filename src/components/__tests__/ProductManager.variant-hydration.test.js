@@ -193,6 +193,31 @@ describe('ProductManager variant hydration', () => {
     });
   });
 
+  it('does not reopen query.edit modal after user closes it during pending hydration', async () => {
+    mocks.routeQuery = { edit: 'p-close-race' };
+    let resolveProduct;
+    mocks.loadProduct.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveProduct = resolve;
+        })
+    );
+
+    const wrapper = createWrapper();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.showCreateModal).toBe(true);
+
+    wrapper.vm.showCreateModal = false;
+    await wrapper.vm.$nextTick();
+
+    resolveProduct({ id: 'p-close-race', name: 'Late Product' });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(wrapper.vm.showCreateModal).toBe(false);
+  });
+
   it('opens create modal when clicking create button', async () => {
     const wrapper = createWrapper();
 

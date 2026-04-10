@@ -257,6 +257,7 @@ const sharingProduct = ref(null);
 const queryEditInitializing = ref(false);
 const queryEditError = ref('');
 let stopProductsRefreshSubscription = null;
+let queryEditRequestId = 0;
 
 const filters = reactive({
     search: '',
@@ -327,6 +328,7 @@ const handleEdit = (product) => {
 
 const handleQueryEditOpen = async (productId) => {
     if (!productId) return;
+    const requestId = ++queryEditRequestId;
     isEditMode.value = true;
     showCreateModal.value = true;
     queryEditInitializing.value = true;
@@ -335,6 +337,9 @@ const handleQueryEditOpen = async (productId) => {
 
     try {
         const product = await loadProduct(productId);
+        if (requestId !== queryEditRequestId || !showCreateModal.value) {
+            return;
+        }
         if (product) {
             handleEdit(product);
             const query = { ...route.query };
@@ -344,9 +349,14 @@ const handleQueryEditOpen = async (productId) => {
         }
         queryEditError.value = t('product.workflow.edit_load_failed', 'Failed to load the editor. Please try again.');
     } catch (error) {
+        if (requestId !== queryEditRequestId || !showCreateModal.value) {
+            return;
+        }
         queryEditError.value = error?.message || t('product.workflow.edit_load_failed', 'Failed to load the editor. Please try again.');
     } finally {
-        queryEditInitializing.value = false;
+        if (requestId === queryEditRequestId) {
+            queryEditInitializing.value = false;
+        }
     }
 };
 
@@ -457,6 +467,7 @@ watch([showDetailModal, viewingProduct], ([isOpen, product]) => {
 
 watch(showCreateModal, (isOpen) => {
     if (!isOpen) {
+        queryEditRequestId += 1;
         queryEditInitializing.value = false;
         queryEditError.value = '';
         editingProduct.value = null;
