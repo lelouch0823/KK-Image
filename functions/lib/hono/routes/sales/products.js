@@ -30,6 +30,7 @@ app.get('/', withCache(20), async (c) => {
   const result = await repo.search({
     search: String(search || '').trim(),
     status: 'active',
+    hasStock: 'in_stock',
     page,
     limit,
   });

@@ -252,6 +252,34 @@ describe('sales routes resilience', () => {
     expect(mocks.orderCreate).not.toHaveBeenCalled();
   });
 
+  it('filters sales product list by in-stock availability', async () => {
+    mocks.productSearch.mockResolvedValue({
+      items: [
+        { id: 'p-1', name: 'In Stock Tee', brand: 'ACME', series: 'S1', images: [] },
+      ],
+      total: 1,
+      page: 1,
+      limit: 12,
+    });
+
+    const app = createProductsTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/products?search=tee&page=1&limit=12',
+      {},
+      { DB: createDbMock() },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.productSearch).toHaveBeenCalledWith({
+      search: 'tee',
+      status: 'active',
+      hasStock: 'in_stock',
+      page: 1,
+      limit: 12,
+    });
+  });
+
   it('rejects order creation when bound variant is out of stock under sales policy', async () => {
     mocks.productVariantFindByIdAndProductId.mockResolvedValue({
       id: 'v-1',
