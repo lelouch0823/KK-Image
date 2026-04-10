@@ -197,6 +197,7 @@ const editHydrationError = ref('');
 const detailHydrationPending = ref(false);
 const detailHydrationPromise = ref(null);
 const ignoreNextEmbeddedClose = ref(false);
+let detailHydrationRequestId = 0;
 
 const modalTitle = computed(() => {
   if (mode.value === 'edit') return t('product.modal.edit_title');
@@ -234,14 +235,21 @@ const ensureProductHydrated = async () => {
   if (hasRichProductData(currentProduct.value)) return normalizeProduct(currentProduct.value);
   if (detailHydrationPromise.value) return detailHydrationPromise.value;
 
+  const requestId = ++detailHydrationRequestId;
   detailHydrationPending.value = true;
   detailHydrationPromise.value = loadProduct(currentProduct.value.id)
     .then((full) => {
+      if (requestId !== detailHydrationRequestId) {
+        return normalizeProduct(currentProduct.value);
+      }
       const hydrated = normalizeProduct(full || currentProduct.value);
       currentProduct.value = hydrated;
       return hydrated;
     })
     .finally(() => {
+      if (requestId !== detailHydrationRequestId) {
+        return;
+      }
       detailHydrationPending.value = false;
       detailHydrationPromise.value = null;
     });
@@ -300,12 +308,16 @@ watch(
       mode.value = 'detail';
       editDraft.value = null;
       editHydrationError.value = '';
+      detailHydrationRequestId += 1;
       detailHydrationPending.value = false;
       detailHydrationPromise.value = null;
       ignoreNextEmbeddedClose.value = false;
       return;
     }
 
+    detailHydrationRequestId += 1;
+    detailHydrationPending.value = false;
+    detailHydrationPromise.value = null;
     currentProduct.value = normalizeProduct(product);
     if (mode.value !== 'edit_loading' && mode.value !== 'edit') {
       mode.value = 'detail';

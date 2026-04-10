@@ -127,4 +127,38 @@ describe('ProductWorkflowModal', () => {
     expect(wrapper.get('[data-testid="edit-error"]').text()).toContain('network down');
     expect(wrapper.get('[data-testid="retry-edit"]').exists()).toBe(true);
   });
+
+  it('ignores stale detail hydration results after switching to another product', async () => {
+    let resolveFirst;
+    mocks.loadProduct.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirst = resolve;
+        })
+    );
+
+    const wrapper = createWrapper();
+
+    await wrapper.setProps({
+      product: {
+        id: 'p-2',
+        name: 'Second Product',
+        variants: [{ id: 'v-2', sku: 'SKU-2' }],
+      },
+    });
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="product-detail"]').text()).toContain('Second Product');
+
+    resolveFirst({
+      id: 'p-1',
+      name: 'Stale Product',
+      variants: [{ id: 'v-1', sku: 'SKU-1' }],
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="product-detail"]').text()).toContain('Second Product');
+    expect(wrapper.get('[data-testid="product-detail"]').text()).not.toContain('Stale Product');
+  });
 });
