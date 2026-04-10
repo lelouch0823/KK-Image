@@ -237,7 +237,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppImage from '@/components/ui/AppImage.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -367,18 +367,38 @@ const { loadProductSpaces } = useSpaces();
 const { addToast } = useToast();
 const associatedSpaces = ref([]);
 const loadingSpaces = ref(true);
+let associatedSpacesRequestId = 0;
 
-onMounted(async () => {
+const loadAssociatedSpaces = async (productId) => {
+    if (!productId) {
+        associatedSpaces.value = [];
+        loadingSpaces.value = false;
+        return;
+    }
+
+    const requestId = ++associatedSpacesRequestId;
     loadingSpaces.value = true;
     try {
-        const spaces = await loadProductSpaces(props.product.id);
+        const spaces = await loadProductSpaces(productId);
+        if (requestId !== associatedSpacesRequestId) return;
         associatedSpaces.value = spaces || [];
     } catch (e) {
+        if (requestId !== associatedSpacesRequestId) return;
         console.error('Failed to load associated spaces:', e);
+        associatedSpaces.value = [];
     } finally {
+        if (requestId !== associatedSpacesRequestId) return;
         loadingSpaces.value = false;
     }
-});
+};
+
+watch(
+    () => props.product?.id,
+    (productId) => {
+        void loadAssociatedSpaces(productId);
+    },
+    { immediate: true }
+);
 
 const copyShareLink = async (space) => {
     try {
