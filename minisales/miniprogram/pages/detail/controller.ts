@@ -95,6 +95,8 @@ export interface DuplicatePrefill {
   size: string;
   color: string;
   material: string;
+  variantLabel?: string;
+  primaryImage?: string;
   remark: string;
   deadline: string;
   quantity: number;
@@ -337,6 +339,7 @@ export function buildOrderDetailViewModel(detail: unknown): OrderDetailViewModel
 export function buildDuplicatePrefill(detail: unknown): DuplicatePrefill {
   const record = asRecord(detail);
   const currentData = safeParseObject<UnknownRecord>(record.currentData ?? record.current_data, {});
+  const header = asRecord(record.header);
   const files = asArray(record.files)
     .map(normalizeFile)
     .filter((item) => item.url)
@@ -357,6 +360,16 @@ export function buildDuplicatePrefill(detail: unknown): DuplicatePrefill {
     size: pickRecordString(currentData, ['size']),
     color: pickRecordString(currentData, ['color']),
     material: pickRecordString(currentData, ['material']),
+    variantLabel: [
+      pickRecordString(currentData, ['color']),
+      pickRecordString(currentData, ['material']),
+      pickRecordString(currentData, ['size']),
+    ].filter(Boolean).join(' / '),
+    primaryImage: pickFirstString([
+      header.mainImage,
+      header.main_image,
+      files[0]?.url,
+    ]),
     remark: pickRecordString(currentData, ['remark']),
     deadline: pickRecordString(currentData, ['deadline']),
     quantity: toPositiveNumber(record.quantity ?? currentData.quantity, 1),

@@ -33,6 +33,8 @@ interface BuildCreatePayloadInput {
 
 interface FormPrefillInput extends OrderFormValue, BoundSalesProductValue {
   files?: OrderFormUpload[];
+  variantLabel?: string;
+  primaryImage?: string;
 }
 
 function toQuantity(value: unknown): number {
@@ -79,6 +81,8 @@ export function buildFormPrefillState(form: OrderFormValue, prefill: FormPrefill
         brand: prefill.brand || '',
         series: prefill.series || '',
         sku: prefill.sku || '',
+        variantLabel: prefill.variantLabel || '',
+        primaryImage: prefill.primaryImage || '',
       }
     : null;
 
