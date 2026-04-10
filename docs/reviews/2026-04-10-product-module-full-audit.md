@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 25 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 26 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -71,6 +71,7 @@
   - `8fbc9e2`: 子空间商品绑定持久化与校验闭环
   - `37b6649`: 空间创建可见性设置持久化闭环
   - `e837c63`: 商品导出规格列映射闭环
+  - `566f737`: 商品导入零成功批次假成功修复
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -87,6 +88,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 15 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 8 个测试，全部通过。
+  - 2026-04-10 运行 1 个回归测试文件，共 13 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -121,6 +123,7 @@
 - 子空间创建链路前端虽然允许携带 `productId/variantId`，但 `POST /api/manage/spaces/:id/subspaces` 的 schema、校验和仓储插入都没有把 `productId` 当正式字段处理。结果是商品型子空间创建后只留下孤立 `variant_id` 或直接丢失整组商品绑定，后续空间列表、详情和按商品聚合的分享空间都无法正确命中子空间记录。[src/components/SpaceCreateModal.vue](/home/bjw/Code/KK-Image/src/components/SpaceCreateModal.vue#L247) [functions/lib/hono/routes/manage/spaces/subspaces.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/subspaces.js#L32) [functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js#L362)
 - `SpaceCreateModal` 在创建顶级空间和子空间时都允许设置 `shareMode/sharedSalespersonIds`，但两个创建接口的 schema 与仓储插入都没有接住这组字段。结果是用户首提时看到“创建成功”，实际空间统一回退成默认不可见范围，选择性分享给销售员的设置会整组丢失，必须再进编辑页补一次才能生效。[src/components/SpaceCreateModal.vue](/home/bjw/Code/KK-Image/src/components/SpaceCreateModal.vue#L102) [functions/lib/hono/routes/manage/spaces/crud.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/crud.js#L42) [functions/lib/hono/routes/manage/spaces/subspaces.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/subspaces.js#L32) [functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js#L194)
 - 商品导出工具只从 `options_values.color/size/material` 这几个固定键提取 `Color/Size/Material` 三列，但当前规格值常常以维度 ID 或中文维度名存储。结果是变体明明有完整规格，`options_json` 也带值，导出的固定规格列却会大面积空白，破坏采购/选品表格的可读性，而且前端导出和后端 CSV 导出都会中招。[src/components/product/export/export-utils.js](/home/bjw/Code/KK-Image/src/components/product/export/export-utils.js#L1) [functions/lib/hono/routes/manage/products/export.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/export.js#L1)
+- 商品导入弹窗把后端返回的 `count` 用 `result.count || chunk.length` 计入成功数，导致 `count: 0` 这种“整批零成功”的合法返回被错误回退成整批成功。结果是只要某批次全部失败但接口仍返回 `success: true` 以承载错误明细，前端就会把该批记成成功、触发 `emit('success')` 并刷新列表，形成可复现的假成功导入。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L831)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -448,3 +451,18 @@
   - `src/components/product/__tests__/ProductExportModal.filters.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/export-route.test.js`
 - 对应修复提交: `e837c63 fix: map export spec columns from dimension labels`
+
+### 2026-04-10 轮次 39
+
+- 继续复查商品导入状态聚合逻辑，新增 1 个中风险问题:
+  - 导入弹窗会把后端返回的 `count: 0` 错算成整批成功数量，导致零成功批次也可能触发“导入成功”后续流程
+- 下一步把导入结果聚合中的数值读取统一改成“显式保留 0”，消除零值被 `||` 吃掉的假成功。
+
+### 2026-04-10 轮次 40
+
+- 已完成轮次 39 新增问题修复:
+  - 导入弹窗现已统一按显式数值累加 `count/created/updated/conflicts/failedProducts`，合法的 `0` 不再回退成默认整批值
+  - 整批零成功时 `importResult.success` 将保持失败态，也不会再错误触发父级 `success` 事件
+- 增量回归:
+  - `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
+- 对应修复提交: `566f737 fix: avoid false success on zero-count imports`
