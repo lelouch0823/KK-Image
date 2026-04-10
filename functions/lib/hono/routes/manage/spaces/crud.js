@@ -51,6 +51,8 @@ const CreateSpaceSchema = z.object({
   coverFileId: z.string().optional().nullable(),
   productId: z.string().optional().nullable(),
   variantId: z.string().optional().nullable(),
+  shareMode: z.enum(['none', 'all', 'selected']).optional().default('none'),
+  sharedSalespersonIds: z.array(z.string()).optional().default([]),
 });
 
 const UpdateSpaceSchema = CreateSpaceSchema.partial().extend({
@@ -165,7 +167,19 @@ crud.post(
   zValidator('json', CreateSpaceSchema),
   async (c) => {
     const { env } = c;
-    const { name, description, isPublic, password, expiresAt, template, templateData, productId, variantId } =
+    const {
+      name,
+      description,
+      isPublic,
+      password,
+      expiresAt,
+      template,
+      templateData,
+      productId,
+      variantId,
+      shareMode,
+      sharedSalespersonIds,
+    } =
       c.req.valid('json');
     const repo = new SpaceRepository(env.DB);
     const { name: normalizedName, description: normalizedDescription } = normalizeSpaceCreateFields(name, description);
@@ -186,6 +200,7 @@ crud.post(
       templateData: JSON.stringify(templateData),
       productId,
       variantId: variantId || null,
+      shareMode,
       createdAt: nowMs,
       updatedAt: nowMs,
     };
@@ -193,6 +208,9 @@ crud.post(
     await validateProductVariantBinding(env.DB, newSpace.productId, newSpace.variantId);
 
     await repo.create(newSpace);
+    if (Array.isArray(sharedSalespersonIds) && sharedSalespersonIds.length > 0) {
+      await repo.updateSharedSalespersons(spaceId, sharedSalespersonIds);
+    }
     await invalidateSpaceCaches(c, {
       ...buildSpaceInvalidatePayload({ spaceId, productIds: [newSpace.productId] }),
       eventType: 'space_created',
@@ -206,7 +224,11 @@ crud.post(
       targetId: spaceId,
       target_label: normalizedName,
       summary: `Created space ${normalizedName}`,
-      metadata: { productId: newSpace.productId, variantId: newSpace.variantId },
+      metadata: {
+        productId: newSpace.productId,
+        variantId: newSpace.variantId,
+        shareMode: newSpace.shareMode,
+      },
     });
 
     return c.json(
@@ -221,6 +243,7 @@ crud.post(
           shareUrl: getShareUrl(shareToken, 'space'),
           expiresAt,
           template,
+          shareMode: newSpace.shareMode,
           createdAt: nowMs,
         },
       },

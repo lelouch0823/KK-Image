@@ -42,6 +42,8 @@ const CreateSubspaceSchema = z.object({
   templateData: z.record(z.any()).optional().default({}),
   productId: z.string().optional().nullable(),
   variantId: z.string().optional().nullable(),
+  shareMode: z.enum(['none', 'all', 'selected']).optional().default('none'),
+  sharedSalespersonIds: z.array(z.string()).optional().default([]),
 });
 
 /**
@@ -69,7 +71,19 @@ subspaces.post(
   async (c) => {
     const { env } = c;
     const parentId = c.req.param('id');
-    const { name, description, isPublic, password, expiresAt, template, templateData, productId, variantId } =
+    const {
+      name,
+      description,
+      isPublic,
+      password,
+      expiresAt,
+      template,
+      templateData,
+      productId,
+      variantId,
+      shareMode,
+      sharedSalespersonIds,
+    } =
       c.req.valid('json');
     const repo = new SpaceRepository(env.DB);
     const { name: normalizedName, description: normalizedDescription } = normalizeSpaceCreateFields(name, description);
@@ -93,6 +107,7 @@ subspaces.post(
       expiresAt: expiresAt || null,
       template,
       templateData: JSON.stringify(templateData),
+      shareMode,
       productId: binding.normalizedProductId,
       variantId: binding.normalizedVariantId,
       createdAt: nowMs,
@@ -100,6 +115,9 @@ subspaces.post(
     };
 
     await repo.createSubspace(newSubspace);
+    if (Array.isArray(sharedSalespersonIds) && sharedSalespersonIds.length > 0) {
+      await repo.updateSharedSalespersons(spaceId, sharedSalespersonIds);
+    }
     await invalidateSpaceCaches(c, {
       ...buildSpaceInvalidatePayload({
         spaceId: parentId,
@@ -121,6 +139,7 @@ subspaces.post(
         parentId,
         productId: newSubspace.productId,
         variantId: newSubspace.variantId,
+        shareMode: newSubspace.shareMode,
       },
     });
 
@@ -136,6 +155,7 @@ subspaces.post(
           shareToken,
           shareUrl: getShareUrl(shareToken, 'space'),
           template,
+          shareMode: newSubspace.shareMode,
           productId: newSubspace.productId,
           variantId: newSubspace.variantId,
           createdAt: nowMs,

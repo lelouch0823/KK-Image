@@ -2,6 +2,55 @@ import { describe, it, expect, vi } from 'vitest';
 import { SpaceRepository } from '../SpaceRepository.js';
 
 describe('SpaceRepository', () => {
+    describe('create', () => {
+        it('persists share_mode for newly created spaces', async () => {
+            const mockRun = vi.fn().mockResolvedValue({ success: true });
+            const mockBind = vi.fn().mockReturnValue({ run: mockRun });
+            const mockPrepare = vi.fn().mockReturnValue({ bind: mockBind });
+            const mockDb = { prepare: mockPrepare };
+
+            const repo = new SpaceRepository(mockDb);
+
+            await repo.create({
+                id: 'space-1',
+                name: 'Shared Space',
+                description: '',
+                isPublic: false,
+                password: null,
+                shareToken: 'share-space',
+                expiresAt: null,
+                template: 'gallery',
+                templateData: '{}',
+                shareMode: 'selected',
+                productId: null,
+                variantId: null,
+                createdAt: 100,
+                updatedAt: 100,
+            });
+
+            expect(mockPrepare).toHaveBeenCalledWith(
+                expect.stringContaining('share_mode')
+            );
+            expect(mockBind).toHaveBeenCalledWith(
+                'space-1',
+                'Shared Space',
+                '',
+                0,
+                null,
+                'share-space',
+                null,
+                'gallery',
+                '{}',
+                'selected',
+                null,
+                null,
+                100,
+                100
+            );
+            expect(mockRun).toHaveBeenCalled();
+        });
+    });
+
     describe('findByProductId', () => {
         it('should return spaces linked to a specific product ID', async () => {
             // Setup mock DB
@@ -166,6 +215,7 @@ describe('SpaceRepository', () => {
                 expiresAt: null,
                 template: 'product',
                 templateData: '{}',
+                shareMode: 'selected',
                 productId: 'product-2',
                 variantId: 'variant-2',
                 createdAt: 100,
@@ -186,6 +236,7 @@ describe('SpaceRepository', () => {
                 null,
                 'product',
                 '{}',
+                'selected',
                 'product-2',
                 'variant-2',
                 100,

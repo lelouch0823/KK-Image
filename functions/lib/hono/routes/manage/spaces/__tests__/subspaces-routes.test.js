@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 const mocks = vi.hoisted(() => ({
   findById: vi.fn(),
   createSubspace: vi.fn(),
+  updateSharedSalespersons: vi.fn(),
   invalidateSpaceCaches: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   validateProductVariantBinding: vi.fn(),
@@ -14,6 +15,7 @@ vi.mock('../../../../../../repositories/SpaceRepository.js', () => ({
     findById: mocks.findById,
     findSubspaces: vi.fn(async () => []),
     createSubspace: mocks.createSubspace,
+    updateSharedSalespersons: mocks.updateSharedSalespersons,
   })),
 }));
 
@@ -66,6 +68,7 @@ describe('manage subspaces routes', () => {
     vi.clearAllMocks();
     mocks.findById.mockResolvedValue({ id: 'space-parent-1', product_id: 'product-1' });
     mocks.createSubspace.mockResolvedValue(undefined);
+    mocks.updateSharedSalespersons.mockResolvedValue(undefined);
     mocks.invalidateSpaceCaches.mockImplementation(() => {});
     mocks.validateProductVariantBinding.mockImplementation(async (_db, productId, variantId) => {
       if (productId && !variantId) {
@@ -149,11 +152,11 @@ describe('manage subspaces routes', () => {
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        metadata: {
+        metadata: expect.objectContaining({
           parentId: 'space-parent-1',
           productId: 'product-2',
           variantId: 'variant-2',
-        },
+        }),
       })
     );
   });
@@ -178,5 +181,33 @@ describe('manage subspaces routes', () => {
 
     expect(res.status).toBe(400);
     expect(mocks.createSubspace).not.toHaveBeenCalled();
+  });
+
+  it('persists share mode and selected salespersons on subspace create', async () => {
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/spaces/space-parent-1/subspaces',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Visible Child Space',
+          shareMode: 'selected',
+          sharedSalespersonIds: ['sp-a', 'sp-b'],
+          templateData: {},
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.createSubspace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shareMode: 'selected',
+      })
+    );
+    expect(mocks.updateSharedSalespersons).toHaveBeenCalledWith('space-child-1', ['sp-a', 'sp-b']);
   });
 });

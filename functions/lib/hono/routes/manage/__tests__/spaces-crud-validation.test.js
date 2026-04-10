@@ -5,6 +5,9 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   findById: vi.fn(),
   update: vi.fn(),
+  updateSharedSalespersons: vi.fn(),
+  invalidateSpaceCaches: vi.fn(),
+  scheduleAuditEvent: vi.fn(),
   productFindById: vi.fn(),
   variantFindByIdAndProductId: vi.fn(),
 }));
@@ -14,6 +17,7 @@ vi.mock('../../../../../repositories/SpaceRepository.js', () => ({
     create: mocks.create,
     findById: mocks.findById,
     update: mocks.update,
+    updateSharedSalespersons: mocks.updateSharedSalespersons,
   })),
 }));
 
@@ -37,6 +41,18 @@ vi.mock('../../../middleware/cache.js', () => ({
   withCache: () => async (_c, next) => await next(),
   invalidateCache: vi.fn(async () => {}),
 }));
+
+vi.mock('../spaces/cache-helpers.js', () => ({
+  invalidateSpaceCaches: mocks.invalidateSpaceCaches,
+}));
+
+vi.mock('../../../_shared/audit-helpers.js', async () => {
+  const actual = await vi.importActual('../../../_shared/audit-helpers.js');
+  return {
+    ...actual,
+    scheduleAuditEvent: mocks.scheduleAuditEvent,
+  };
+});
 
 vi.mock('../../../_shared/route-helpers.js', async (importOriginal) => {
   const actual = await importOriginal();
@@ -77,6 +93,9 @@ describe('manage spaces crud validation', () => {
       is_public: 0,
       password: null,
     });
+    mocks.updateSharedSalespersons.mockResolvedValue(undefined);
+    mocks.invalidateSpaceCaches.mockResolvedValue(undefined);
+    mocks.scheduleAuditEvent.mockImplementation(() => {});
     mocks.productFindById.mockResolvedValue({ id: 'p-1', status: 'active' });
     mocks.variantFindByIdAndProductId.mockResolvedValue({ id: 'v-1', product_id: 'p-1', status: 'active' });
   });
@@ -171,5 +190,31 @@ describe('manage spaces crud validation', () => {
     const body = await res.json();
     expect(body.error).toContain('variantId does not belong to productId');
     expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it('persists share mode and selected salespersons on create', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/spaces',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Space A',
+          shareMode: 'selected',
+          sharedSalespersonIds: ['sp-a', 'sp-b'],
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shareMode: 'selected',
+      })
+    );
+    expect(mocks.updateSharedSalespersons).toHaveBeenCalledWith(expect.any(String), ['sp-a', 'sp-b']);
   });
 });
