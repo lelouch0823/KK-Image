@@ -158,6 +158,7 @@ async function validatePreOrderBinding(db, items = []) {
   const linkedItems = items.filter((item) => item.pre_order_id);
   if (linkedItems.length === 0) return;
 
+  const poRepo = new PurchaseOrderRepository(db);
   const orderIds = [...new Set(linkedItems.map((item) => item.pre_order_id))];
   const orderMap = new Map();
   for (const orderIdChunk of chunkArray(orderIds, D1_MAX_IN_CLAUSE_SIZE)) {
@@ -172,6 +173,9 @@ async function validatePreOrderBinding(db, items = []) {
     }
   }
 
+  const activeBindings = await poRepo.findActiveBindingsByPreOrderIds(orderIds);
+  const bindingMap = new Map(activeBindings.map((binding) => [binding.pre_order_id, binding]));
+
   for (const item of linkedItems) {
     const order = orderMap.get(item.pre_order_id);
     if (!order) {
@@ -182,6 +186,10 @@ async function validatePreOrderBinding(db, items = []) {
     }
     if (order.product_id !== item.product_id || order.variant_id !== item.variant_id) {
       throw new BadRequestError('pre_order_id 与商品/变体不匹配');
+    }
+    const binding = bindingMap.get(item.pre_order_id);
+    if (binding) {
+      throw new BadRequestError(`${order.order_no || item.pre_order_id} 已在采购单 ${binding.po_no || binding.po_id} 中`);
     }
   }
 }

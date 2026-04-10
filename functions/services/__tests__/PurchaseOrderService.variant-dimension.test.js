@@ -125,6 +125,41 @@ describe('PurchaseOrderService variant dimension', () => {
     );
   });
 
+  it('createFromOrders rejects orders already linked to another active purchase order', async () => {
+    const stmt = {
+      bind: vi.fn(() => stmt),
+      all: vi.fn(async () => ({
+        results: [{
+          id: 'o-1',
+          order_no: 'SO-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          quantity: 2,
+          name: 'Tee',
+          sku: 'TEE-YELLOW-S',
+          cost_price: 11,
+        }],
+      })),
+    };
+    const db = { prepare: vi.fn(() => stmt) };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      create: vi.fn(async () => ({ id: 'po-1' })),
+      addItems: vi.fn(async () => []),
+      findById: vi.fn(async () => ({ id: 'po-1', items: [] })),
+      findActiveBindingsByPreOrderIds: vi.fn(async () => [{
+        pre_order_id: 'o-1',
+        po_id: 'po-existing',
+        po_no: 'PO-EXISTING',
+        po_status: 'draft',
+      }]),
+    };
+
+    await expect(service.createFromOrders(['o-1'])).rejects.toThrow('SO-1 已在采购单 PO-EXISTING 中');
+    expect(service.repo.create).not.toHaveBeenCalled();
+    expect(service.repo.addItems).not.toHaveBeenCalled();
+  });
+
   it('_updateInventory should reject items without variant_id', async () => {
     const db = {
       prepare: vi.fn(() => ({ bind: vi.fn() })),

@@ -514,6 +514,33 @@ export class PurchaseOrderRepository {
     return results.map(r => r.pre_order_id);
   }
 
+  async findActiveBindingsByPreOrderIds(preOrderIds = []) {
+    const normalizedIds = [...new Set((preOrderIds || []).filter(Boolean))];
+    if (normalizedIds.length === 0) return [];
+
+    const bindings = [];
+    for (const orderIdChunk of chunkArray(normalizedIds, D1_MAX_IN_CLAUSE_SIZE)) {
+      const placeholders = orderIdChunk.map(() => '?').join(',');
+      const { results } = await this.db
+        .prepare(`
+          SELECT
+            poi.pre_order_id,
+            poi.po_id,
+            po.po_no,
+            po.status AS po_status
+          FROM purchase_order_items poi
+          JOIN purchase_orders po ON po.id = poi.po_id
+          WHERE poi.pre_order_id IN (${placeholders})
+            AND po.status != 'cancelled'
+        `)
+        .bind(...orderIdChunk)
+        .all();
+      bindings.push(...(results || []));
+    }
+
+    return bindings;
+  }
+
   /**
    * 获取采购单明细 (含商品信息，用于成本分摊计算)
    */

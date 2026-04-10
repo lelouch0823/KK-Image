@@ -264,6 +264,16 @@ const handleComment = async (comment) => {
   }
 };
 
+const normalizeOrderProgressStatus = (order) =>
+  String(order?.displayStatus || order?.display_status || order?.procurementStatus || order?.procurement_status || 'none')
+    .trim()
+    .toLowerCase();
+
+const isOrderAvailableForProcurement = (order) => {
+  const progressStatus = normalizeOrderProgressStatus(order);
+  return !progressStatus || progressStatus === 'none';
+};
+
 // ─── 前端过滤 ────────────────────────────────────────
 const filteredOrders = computed(() => {
   let list = orders.value || [];
@@ -276,6 +286,9 @@ const filteredOrders = computed(() => {
 
   // 严格过滤仅已确认状态
   list = list.filter(o => o.status === 'confirmed');
+
+  // 在有进度字段时，隐藏已进入采购流程的订单
+  list = list.filter(isOrderAvailableForProcurement);
 
   // 搜索过滤
   if (searchQuery.value.trim()) {

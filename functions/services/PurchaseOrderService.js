@@ -399,6 +399,18 @@ export class PurchaseOrderService {
       throw new NotFoundError('未找到符合条件的已确认订单 (需为已确认状态且已绑定变体)');
     }
 
+    const activeBindings = typeof this.repo.findActiveBindingsByPreOrderIds === 'function'
+      ? await this.repo.findActiveBindingsByPreOrderIds(orders.map((order) => order.id))
+      : [];
+    if (activeBindings.length > 0) {
+      const bindingByOrderId = new Map(activeBindings.map((binding) => [binding.pre_order_id, binding]));
+      const firstConflictOrder = orders.find((order) => bindingByOrderId.has(order.id));
+      const conflict = firstConflictOrder ? bindingByOrderId.get(firstConflictOrder.id) : activeBindings[0];
+      const orderLabel = firstConflictOrder?.order_no || conflict?.pre_order_id;
+      const poLabel = conflict?.po_no || conflict?.po_id;
+      throw new BadRequestError(`${orderLabel} 已在采购单 ${poLabel} 中`);
+    }
+
     // 2. 创建采购单
     const po = await this.repo.create(poData);
 

@@ -154,4 +154,34 @@ describe('PurchaseOrderRepository safety guards', () => {
     expect(db.batch.mock.calls[0][0]).toHaveLength(100);
     expect(db.batch.mock.calls[1][0]).toHaveLength(5);
   });
+
+  it('findActiveBindingsByPreOrderIds returns non-cancelled purchase-order bindings', async () => {
+    const all = vi.fn(async () => ({
+      results: [
+        {
+          pre_order_id: 'o-1',
+          po_id: 'po-1',
+          po_no: 'PO-001',
+          po_status: 'draft',
+        },
+      ],
+    }));
+    const db = {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({ all })),
+      })),
+    };
+    const repo = new PurchaseOrderRepository(db);
+
+    const bindings = await repo.findActiveBindingsByPreOrderIds(['o-1', 'o-2']);
+
+    expect(bindings).toEqual([
+      expect.objectContaining({
+        pre_order_id: 'o-1',
+        po_id: 'po-1',
+        po_status: 'draft',
+      }),
+    ]);
+    expect(db.prepare.mock.calls[0][0]).toContain("po.status != 'cancelled'");
+  });
 });

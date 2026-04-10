@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   repoCreate: vi.fn(),
   repoUpdate: vi.fn(),
   repoAddItems: vi.fn(),
+  repoFindActiveBindingsByPreOrderIds: vi.fn(),
   repoUpdateItem: vi.fn(),
   repoRemoveItem: vi.fn(),
   serviceUpdateStatus: vi.fn(),
@@ -30,6 +31,7 @@ vi.mock('../../../../../repositories/PurchaseOrderRepository.js', () => ({
     create: mocks.repoCreate,
     update: mocks.repoUpdate,
     addItems: mocks.repoAddItems,
+    findActiveBindingsByPreOrderIds: mocks.repoFindActiveBindingsByPreOrderIds,
     updateItem: mocks.repoUpdateItem,
     removeItem: mocks.repoRemoveItem,
     list: vi.fn(async () => ({ items: [], total: 0, page: 1, limit: 20 })),
@@ -106,13 +108,14 @@ vi.mock('../../../../../api/cron/outbox.js', () => ({
 
 import purchaseOrdersApp from '../purchase-orders.js';
 
-function createDb({ variantRows = [], orderRows = [] } = {}) {
+function createDb({ variantRows = [], orderRows = [], poBindingRows = [] } = {}) {
   return {
     prepare: vi.fn((sql) => ({
       bind: vi.fn(() => ({
         all: vi.fn(async () => {
           if (sql.includes('FROM product_variants')) return { results: variantRows };
           if (sql.includes('FROM orders')) return { results: orderRows };
+          if (sql.includes('FROM purchase_order_items poi')) return { results: poBindingRows };
           return { results: [] };
         }),
         first: vi.fn(async () => null),
@@ -153,6 +156,7 @@ describe('manage purchase-orders routes', () => {
     mocks.repoCreate.mockResolvedValue({ id: 'po-1', po_no: 'PO-1', status: 'draft' });
     mocks.repoUpdate.mockResolvedValue(true);
     mocks.repoAddItems.mockResolvedValue(['poi-1']);
+    mocks.repoFindActiveBindingsByPreOrderIds.mockResolvedValue([]);
     mocks.repoUpdateItem.mockResolvedValue(true);
     mocks.repoRemoveItem.mockResolvedValue(true);
     mocks.serviceUpdateStatus.mockResolvedValue({
@@ -306,6 +310,41 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(400);
+  });
+
+  it('rejects adding item when pre_order_id is already linked to another active purchase order', async () => {
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+      orderRows: [{ id: 'o-1', order_no: 'SO-1', product_id: 'prod-1', variant_id: 'var-1', status: 'confirmed' }],
+    });
+    mocks.repoFindActiveBindingsByPreOrderIds.mockResolvedValueOnce([
+      { pre_order_id: 'o-1', po_id: 'po-9', po_no: 'PO-009', po_status: 'draft' },
+    ]);
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            pre_order_id: 'o-1',
+            quantity: 1,
+            unit_cost: 10,
+          }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain('SO-1 已在采购单 PO-009 中');
+    expect(mocks.repoAddItems).not.toHaveBeenCalled();
   });
 
   it('rejects updating item outside current po scope', async () => {
