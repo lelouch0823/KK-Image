@@ -33,6 +33,7 @@ export function usePurchaseOrders() {
   const suggestions = ref([]);
   const suggestionsLoading = ref(false);
   const stats = ref(null);
+  let detailRequestId = 0;
 
   const filters = reactive({
     status: '',
@@ -102,12 +103,16 @@ export function usePurchaseOrders() {
   // ─── 详情 ────────────────────────────────────────────
 
   const loadDetail = async (id, { forceRefresh = false } = {}) => {
+    const requestId = ++detailRequestId;
     detailLoading.value = true;
     try {
       const res = await authFetch(
         appendPurchaseOrderCacheBust(API.MANAGE_PURCHASE_ORDER_BY_ID(id), { forceRefresh })
       );
       const json = await res.json();
+      if (requestId !== detailRequestId) {
+        return false;
+      }
 
       if (json.success) {
         detail.value = json.data;
@@ -117,10 +122,15 @@ export function usePurchaseOrders() {
         return false;
       }
     } catch (e) {
+      if (requestId !== detailRequestId) {
+        return false;
+      }
       console.error('loadPurchaseOrderDetail failed:', e);
       return false;
     } finally {
-      detailLoading.value = false;
+      if (requestId === detailRequestId) {
+        detailLoading.value = false;
+      }
     }
   };
 
