@@ -12,6 +12,7 @@ const permissionDenied = ref(false);
 const permissionDeniedReason = ref('');
 const lastNotificationTime = ref(Date.now()); // SOTA: Signal for auto-refresh
 let pollInterval = null;
+let notificationRequestId = 0;
 
 // 模式和 token 配置
 let currentMode = 'admin'; // 'admin' | 'sales'
@@ -30,6 +31,7 @@ export function useNotifications() {
    * @param {string} token - 销售端访问 token
    */
   const setSalesMode = (token) => {
+    notificationRequestId += 1;
     currentMode = 'sales';
     salesToken = token;
     // 重置状态
@@ -44,6 +46,7 @@ export function useNotifications() {
    * 设置管理端模式
    */
   const setAdminMode = () => {
+    notificationRequestId += 1;
     currentMode = 'admin';
     salesToken = null;
     permissionDenied.value = false;
@@ -71,10 +74,15 @@ export function useNotifications() {
   };
 
   const fetchNotifications = async () => {
+    const requestId = ++notificationRequestId;
+    const mode = currentMode;
     loading.value = true;
     try {
       const res = await authFetch(getApiUrl());
       const result = await res.json();
+      if (requestId !== notificationRequestId) {
+        return false;
+      }
       if (result.success) {
         permissionDenied.value = false;
         permissionDeniedReason.value = '';
@@ -84,7 +92,7 @@ export function useNotifications() {
         if (newUnreadCount > unreadCount.value) {
           lastNotificationTime.value = Date.now();
           publishRefresh({
-            module: currentMode === 'sales' ? 'salesOrders' : 'orders',
+            module: mode === 'sales' ? 'salesOrders' : 'orders',
             reason: 'notification',
           });
         }
@@ -92,8 +100,12 @@ export function useNotifications() {
         notifications.value = result.data.list;
         unreadCount.value = newUnreadCount;
         initialized.value = true;
+        return true;
       }
     } catch (e) {
+      if (requestId !== notificationRequestId) {
+        return false;
+      }
       if (Number(e?.status) === 403) {
         permissionDenied.value = true;
         permissionDeniedReason.value = e?.data?.error || e?.message || '权限不足';
@@ -102,8 +114,11 @@ export function useNotifications() {
       }
       console.error('Failed to fetch notifications', e);
     } finally {
-      loading.value = false;
+      if (requestId === notificationRequestId) {
+        loading.value = false;
+      }
     }
+    return false;
   };
 
   /**
@@ -186,4 +201,3 @@ export function useNotifications() {
     setAdminMode,
   };
 }
-

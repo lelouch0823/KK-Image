@@ -46,4 +46,59 @@ describe('useNotifications authz handling', () => {
     expect(store.permissionDenied.value).toBe(false);
     expect(store.permissionDeniedReason.value).toBe('');
   });
+
+  it('keeps the latest sales notification result when earlier token requests resolve late', async () => {
+    let resolveFirst;
+    let resolveSecond;
+    mockAuthFetch
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = resolve;
+          })
+      );
+
+    const store = useNotifications();
+    store.setSalesMode('sales-token-a');
+    const firstPending = store.fetchNotifications();
+
+    store.setSalesMode('sales-token-b');
+    const secondPending = store.fetchNotifications();
+
+    resolveSecond({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: {
+            list: [{ id: 'n-b', is_read: 0 }],
+            unreadCount: 1,
+          },
+        }),
+    });
+    await secondPending;
+
+    expect(store.notifications.value).toEqual([{ id: 'n-b', is_read: 0 }]);
+    expect(store.unreadCount.value).toBe(1);
+
+    resolveFirst({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: {
+            list: [{ id: 'n-a', is_read: 0 }],
+            unreadCount: 3,
+          },
+        }),
+    });
+    await firstPending;
+
+    expect(store.notifications.value).toEqual([{ id: 'n-b', is_read: 0 }]);
+    expect(store.unreadCount.value).toBe(1);
+  });
 });

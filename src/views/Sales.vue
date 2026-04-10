@@ -292,9 +292,16 @@ const handleBoundaryRecover = async () => {
   await salesOrderStateMachine.retry('loadOrders');
 };
 
+const activateSalesNotificationMode = () => {
+  if (!accessToken.value) return;
+  setSalesMode(accessToken.value);
+  startNotificationPolling();
+};
+
 // Auth & Init
 const checkAuth = async () => {
   if (!accessToken.value) {
+    stopNotificationPolling();
     loading.value = false;
     return;
   }
@@ -303,6 +310,7 @@ const checkAuth = async () => {
     isAuthenticated.value = true;
     salesperson.value = data;
     await salesOrderStateMachine.loadOrders();
+    activateSalesNotificationMode();
   }
   loading.value = false;
 };
@@ -314,6 +322,7 @@ const handleLogin = async (password) => {
     isAuthenticated.value = true;
     salesperson.value = result.data;
     await salesOrderStateMachine.loadOrders();
+    activateSalesNotificationMode();
   } else {
     loginError.value = result.message;
   }
@@ -323,6 +332,7 @@ watch(accessToken, () => {
   loading.value = true;
   isAuthenticated.value = false;
   salesperson.value = null;
+  stopNotificationPolling();
   checkAuth();
 });
 
@@ -345,8 +355,6 @@ onMounted(async () => {
   await checkAuth();
   if (isAuthenticated.value) {
     requestPermission();
-    setSalesMode(accessToken.value);
-    startNotificationPolling();
   }
 });
 
