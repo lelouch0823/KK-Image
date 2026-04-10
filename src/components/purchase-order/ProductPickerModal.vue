@@ -174,6 +174,12 @@ const variants = ref([]);
 const loading = ref(false);
 const errorMessage = ref('');
 const selectedVariantIds = ref([]);
+let variantsRequestId = 0;
+
+const invalidateVariantLoads = () => {
+  variantsRequestId += 1;
+  loading.value = false;
+};
 
 const initialSelectedSet = computed(() => new Set(props.initialSelectedVariantIds || []));
 const selectedSet = computed(() => new Set(selectedVariantIds.value || []));
@@ -212,6 +218,7 @@ const toggleSelect = (variant) => {
 };
 
 const loadVariants = async () => {
+  const requestId = ++variantsRequestId;
   loading.value = true;
   errorMessage.value = '';
   try {
@@ -220,12 +227,16 @@ const loadVariants = async () => {
       page: 1,
       limit: 80,
     });
+    if (requestId !== variantsRequestId || !props.visible) return;
     variants.value = result.items || [];
   } catch {
+    if (requestId !== variantsRequestId || !props.visible) return;
     variants.value = [];
     errorMessage.value = t('common.error.network_error', '加载变体失败，请稍后重试');
   } finally {
-    loading.value = false;
+    if (requestId === variantsRequestId) {
+      loading.value = false;
+    }
   }
 };
 
@@ -252,7 +263,10 @@ const confirm = () => {
 watch(
   () => props.visible,
   async (isVisible) => {
-    if (!isVisible) return;
+    if (!isVisible) {
+      invalidateVariantLoads();
+      return;
+    }
     searchQuery.value = '';
     selectedVariantIds.value = [...(props.initialSelectedVariantIds || [])];
     await loadVariants();
