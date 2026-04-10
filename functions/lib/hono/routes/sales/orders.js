@@ -331,13 +331,14 @@ app.patch('/:id', async (c) => {
     const nextStatus = ['rejected', 'void'].includes(order.status)
         ? 'pending'
         : (updates?.status ?? order.status);
+    const demandVariantId = hasVariantIdPayload ? normalizedVariantId : order.variantId;
     const demandService = new DemandService(env.DB);
     await demandService.syncOrderTransition({
         orderId,
         fromStatus: order.status,
         toStatus: nextStatus,
         quantity: updates?.quantity ?? order.quantity,
-        variantId: normalizedVariantId ?? order.variantId,
+        variantId: demandVariantId,
     });
 
     if (['rejected', 'void'].includes(order.status)) {

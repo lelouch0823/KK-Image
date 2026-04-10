@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   scheduleAuditEvent: vi.fn(),
   publish: vi.fn(async () => []),
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
+  demandSyncOrderTransition: vi.fn(async () => {}),
 }));
 
 vi.mock('../../../middleware/cache.js', () => ({
@@ -83,6 +84,12 @@ vi.mock('../../../../../api/utils/order-utils.js', () => ({
 vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
   DomainOutboxPublisher: vi.fn(() => ({
     publish: mocks.publish,
+  })),
+}));
+
+vi.mock('../../../../../services/DemandService.js', () => ({
+  DemandService: vi.fn(() => ({
+    syncOrderTransition: mocks.demandSyncOrderTransition,
   })),
 }));
 
@@ -156,6 +163,7 @@ describe('sales routes resilience', () => {
         },
       ],
     });
+    mocks.demandSyncOrderTransition.mockResolvedValue(undefined);
   });
 
   it('returns consistent error payload for variant validation failure', async () => {
@@ -646,6 +654,44 @@ describe('sales routes resilience', () => {
     const payload = await res.json();
     expect(payload.error).toContain('variant must be in stock');
     expect(mocks.processOrderUpdate).not.toHaveBeenCalled();
+  });
+
+  it('passes null variantId to demand sync when salesperson unbinds a product', async () => {
+    mocks.orderFindByIdAndSalesperson.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      quantity: 1,
+      variantId: 'v-old',
+      productId: 'p-1',
+      salespersonId: 'sp-1',
+      currentData: { name: 'A' },
+    });
+
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders/o-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: 'unbind',
+          productId: null,
+          variantId: null,
+          updates: { remark: 'manual order now' },
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.demandSyncOrderTransition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: 'o-1',
+        variantId: null,
+      })
+    );
   });
 
   it('enqueues order status change through outbox for salesperson void', async () => {

@@ -1,0 +1,146 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Hono } from 'hono';
+
+const mocks = vi.hoisted(() => ({
+  orderFindById: vi.fn(),
+  validateProductVariantBinding: vi.fn(),
+  processOrderUpdate: vi.fn(),
+  demandSyncOrderTransition: vi.fn(async () => {}),
+  scheduleAuditEvent: vi.fn(),
+  publish: vi.fn(async () => []),
+  runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
+}));
+
+vi.mock('../../../../../../repositories/OrderRepository.js', () => ({
+  OrderRepository: vi.fn(() => ({
+    findById: mocks.orderFindById,
+  })),
+}));
+
+vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
+  ProductRepository: vi.fn(() => ({
+    findById: vi.fn(),
+  })),
+}));
+
+vi.mock('../../../../../../api/utils/validation.js', () => ({
+  validateProductVariantBinding: mocks.validateProductVariantBinding,
+}));
+
+vi.mock('../../../../../../api/utils/order-state-machine.js', () => ({
+  canTransitionOrderStatus: vi.fn(() => true),
+}));
+
+vi.mock('../authz-helpers.js', () => ({
+  assertAdminFull: vi.fn(async () => {}),
+  assertForceStatusTransitionAllowed: vi.fn(async () => {}),
+}));
+
+vi.mock('../error-helpers.js', () => ({
+  isInsufficientStockError: vi.fn(() => false),
+  isInvalidStatusTransitionError: vi.fn(() => false),
+}));
+
+vi.mock('../../../../../../services/DemandService.js', () => ({
+  DemandService: vi.fn(() => ({
+    syncOrderTransition: mocks.demandSyncOrderTransition,
+  })),
+}));
+
+vi.mock('../../../../_shared/audit-helpers.js', async () => {
+  const actual = await vi.importActual('../../../../_shared/audit-helpers.js');
+  return {
+    ...actual,
+    scheduleAuditEvent: mocks.scheduleAuditEvent,
+  };
+});
+
+vi.mock('../../../../../../services/DomainOutboxPublisher.js', () => ({
+  DomainOutboxPublisher: vi.fn(() => ({
+    publish: mocks.publish,
+  })),
+}));
+
+vi.mock('../../../../../../api/cron/outbox.js', () => ({
+  runOutboxPoller: mocks.runOutboxPoller,
+}));
+
+vi.mock('../../../../../../api/utils/order-utils.js', () => ({
+  processOrderUpdate: mocks.processOrderUpdate,
+}));
+
+import detailRoutesApp from '../detail.js';
+
+function createApp() {
+  const app = new Hono();
+  app.onError((err, c) =>
+    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+  );
+  app.use('/api/manage/orders/*', async (c, next) => {
+    c.set('user', { id: 'admin-1', name: 'Admin' });
+    await next();
+  });
+  app.route('/api/manage/orders', detailRoutesApp);
+  return app;
+}
+
+describe('manage order detail update demand sync', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.orderFindById.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      quantity: 1,
+      variantId: 'v-old',
+      productId: 'p-1',
+      salespersonId: 'sp-1',
+      currentData: { name: 'A' },
+    });
+    mocks.validateProductVariantBinding.mockResolvedValue({
+      product: null,
+      variant: null,
+      normalizedProductId: null,
+      normalizedVariantId: null,
+    });
+    mocks.processOrderUpdate.mockResolvedValue({
+      success: true,
+      hasChanges: true,
+      outboxEvents: [
+        {
+          event_type: 'order_updated_by_admin',
+          aggregate_type: 'order',
+          aggregate_id: 'o-1',
+          payload: { order_id: 'o-1' },
+        },
+      ],
+    });
+  });
+
+  it('passes null variantId to demand sync when admin unbinds a product', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/o-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: 'unbind',
+          productId: null,
+          variantId: null,
+          updates: { remark: 'manual order now' },
+        }),
+      },
+      { DB: { prepare: vi.fn() }, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.demandSyncOrderTransition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: 'o-1',
+        variantId: null,
+      })
+    );
+  });
+});

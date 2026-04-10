@@ -196,13 +196,14 @@ app.patch('/:id', async (c) => {
     }
 
     const nextStatus = finalUpdates?.status ?? order.status;
+    const demandVariantId = hasVariantIdPayload ? normalizedVariantId : order.variantId;
     const demandService = new DemandService(env.DB);
     await demandService.syncOrderTransition({
         orderId: id,
         fromStatus: order.status,
         toStatus: nextStatus,
         quantity: finalUpdates?.quantity ?? order.quantity,
-        variantId: normalizedVariantId ?? order.variantId,
+        variantId: demandVariantId,
     });
 
     const updatedOrder = await orderRepo.findById(id);
