@@ -373,6 +373,50 @@ describe('usePurchaseOrders authz handling', () => {
     expect(detail.value).toEqual({ id: 'po-2', status: 'ordered' });
   });
 
+  it('keeps the latest purchase suggestions when earlier suggestion loads resolve late', async () => {
+    let resolveFirst;
+    let resolveSecond;
+    mockAuthFetch
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = resolve;
+          })
+      );
+
+    const { loadSuggestions, suggestions } = usePurchaseOrders();
+    const firstPending = loadSuggestions();
+    const secondPending = loadSuggestions();
+
+    resolveSecond({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: [{ variant_id: 'variant-new', shortage: 2 }],
+        }),
+    });
+    await secondPending;
+
+    expect(suggestions.value).toEqual([{ variant_id: 'variant-new', shortage: 2 }]);
+
+    resolveFirst({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: [{ variant_id: 'variant-old', shortage: 5 }],
+        }),
+    });
+    await firstPending;
+
+    expect(suggestions.value).toEqual([{ variant_id: 'variant-new', shortage: 2 }]);
+  });
+
   it('submits purchase-order shortage closures through the managed auth client', async () => {
     mockAuthFetch.mockResolvedValueOnce({
       json: () => Promise.resolve({

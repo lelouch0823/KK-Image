@@ -34,6 +34,7 @@ export function usePurchaseOrders() {
   const suggestionsLoading = ref(false);
   const stats = ref(null);
   let detailRequestId = 0;
+  let suggestionsRequestId = 0;
 
   const filters = reactive({
     status: '',
@@ -413,19 +414,30 @@ export function usePurchaseOrders() {
   // ─── 智能建议 ────────────────────────────────────────
 
   const loadSuggestions = async () => {
+    const requestId = ++suggestionsRequestId;
     suggestionsLoading.value = true;
     try {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_SUGGESTIONS);
       const json = await res.json();
+      if (requestId !== suggestionsRequestId) {
+        return false;
+      }
 
       if (json.success) {
         suggestions.value = json.data;
+        return true;
       }
     } catch (e) {
+      if (requestId !== suggestionsRequestId) {
+        return false;
+      }
       console.error('loadSuggestions failed:', e);
     } finally {
-      suggestionsLoading.value = false;
+      if (requestId === suggestionsRequestId) {
+        suggestionsLoading.value = false;
+      }
     }
+    return false;
   };
 
   // ─── 统计 ────────────────────────────────────────────
