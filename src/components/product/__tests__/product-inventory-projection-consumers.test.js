@@ -23,5 +23,9 @@ describe('product inventory projection consumers', () => {
 
     expect(source).toContain('space.createdAt');
     expect(source).not.toContain('space.created_at');
+    expect(source).toContain('space.viewCount');
+    expect(source).not.toContain('space.view_count');
+    expect(source).toContain('space.isPublic');
+    expect(source).not.toContain('space.is_public');
   });
 });

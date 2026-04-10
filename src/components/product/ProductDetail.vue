@@ -83,8 +83,8 @@
                             <h4 class="group-hover:text-primary truncate text-sm font-medium text-(--text-main) transition-colors">{{ space.name }}</h4>
                             <div class="mt-0.5 flex items-center gap-2 text-xs text-(--text-secondary)">
                                 <span>{{ new Date(space.createdAt).toLocaleDateString() }}</span>
-                                <span v-if="space.view_count !== undefined">&bull; {{ space.view_count }} views</span>
-                                <StatusBadge v-if="space.is_public" variant="success" class="px-1.5! py-0!">Public</StatusBadge>
+                                <span v-if="space.viewCount !== undefined">&bull; {{ space.viewCount }} views</span>
+                                <StatusBadge v-if="space.isPublic" variant="success" class="px-1.5! py-0!">Public</StatusBadge>
                             </div>
                         </div>
                     </div>
@@ -402,7 +402,7 @@ watch(
 
 const copyShareLink = async (space) => {
     try {
-        const url = `${window.location.origin}/space/${space.share_token || space.shareToken}`;
+        const url = `${window.location.origin}/space/${space.shareToken || space.share_token}`;
         await navigator.clipboard.writeText(url);
         addToast({ message: t('spaces.copyUrlSuccess') || 'Link copied to clipboard!', type: 'success' });
     } catch (_e) {

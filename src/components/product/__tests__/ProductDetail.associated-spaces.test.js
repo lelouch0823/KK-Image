@@ -79,4 +79,44 @@ describe('ProductDetail associated spaces', () => {
     expect(wrapper.text()).toContain('Space Two');
     expect(wrapper.text()).not.toContain('Space One');
   });
+
+  it('renders associated space metadata from camelCase fields', async () => {
+    mocks.loadProductSpaces.mockReset();
+    mocks.loadProductSpaces.mockResolvedValueOnce([
+      {
+        id: 'space-1',
+        name: 'Space One',
+        createdAt: 1700000000000,
+        shareToken: 's1',
+        viewCount: 12,
+        isPublic: true,
+      },
+    ]);
+
+    const wrapper = mount(ProductDetail, {
+      props: {
+        product: {
+          id: 'prod-1',
+          name: 'Chair',
+          price: 100,
+          currency: 'CNY',
+          variants: [],
+        },
+      },
+      global: {
+        stubs: {
+          AppImage: { template: '<img />' },
+          StatusBadge: { template: '<span><slot /></span>' },
+          AppTable: { template: '<table />' },
+          AppIcon: { template: '<i />' },
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('12 views');
+    expect(wrapper.text()).toContain('Public');
+  });
 });
