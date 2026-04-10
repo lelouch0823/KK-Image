@@ -127,6 +127,7 @@ const currentStep = ref(-1);
 const statusText = ref('');
 const generatedBlob = ref(null);
 const generatedFileName = ref('');
+let generationRequestId = 0;
 
 const resetState = () => {
   isGenerating.value = false;
@@ -138,8 +139,15 @@ const resetState = () => {
   generatedFileName.value = '';
 };
 
+const invalidateGeneration = () => {
+  generationRequestId += 1;
+};
+
 watch(() => props.modelValue, (visible) => {
-  if (!visible) resetState();
+  if (!visible) {
+    invalidateGeneration();
+    resetState();
+  }
 });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -173,12 +181,15 @@ const fetchAllProducts = async () => {
   return all;
 };
 
-const hydrateProducts = async (products) => {
+const isGenerationActive = (requestId) => requestId === generationRequestId && props.modelValue;
+
+const hydrateProducts = async (products, requestId) => {
   const result = [];
   const total = products.length || 1;
   for (let i = 0; i < products.length; i += 1) {
     const base = products[i];
     const detail = await loadProduct(base.id);
+    if (!isGenerationActive(requestId)) return null;
     result.push(detail || base);
     progress.value = 15 + Math.round(((i + 1) / total) * 55);
     statusText.value = t('product.exportModal.loading_rows', { current: i + 1, total });
@@ -190,8 +201,10 @@ const createBlobFromRows = async (rows) => {
   const date = new Date().toISOString().slice(0, 10);
   if (form.format === 'csv') {
     const csv = buildCsvContent(rows, EXPORT_COLUMNS);
-    generatedFileName.value = `products_variants_${date}.csv`;
-    return new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    return {
+      blob: new Blob([csv], { type: 'text/csv;charset=utf-8;' }),
+      fileName: `products_variants_${date}.csv`,
+    };
   }
   const wb = buildExcelWorkbook(rows, EXPORT_COLUMNS, {
     generatedAt: new Date().toISOString(),
@@ -203,14 +216,17 @@ const createBlobFromRows = async (rows) => {
       : '-',
   });
   const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
-  generatedFileName.value = `products_variants_${date}.xlsx`;
-  return new Blob([buffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  });
+  return {
+    blob: new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    }),
+    fileName: `products_variants_${date}.xlsx`,
+  };
 };
 
 const handleGenerate = async () => {
   if (isGenerating.value) return;
+  const requestId = ++generationRequestId;
   isGenerating.value = true;
   readyToDownload.value = false;
   generatedBlob.value = null;
@@ -220,27 +236,37 @@ const handleGenerate = async () => {
     progress.value = 5;
     statusText.value = t('product.exportModal.step_prepare_detail', '正在拉取商品数据...');
     await sleep(120);
+    if (!isGenerationActive(requestId)) return;
     const products = await fetchAllProducts();
+    if (!isGenerationActive(requestId)) return;
 
     currentStep.value = 1;
     statusText.value = t('product.exportModal.step_build_detail', '正在加载变体详情...');
-    const detailProducts = await hydrateProducts(products);
+    const detailProducts = await hydrateProducts(products, requestId);
+    if (!isGenerationActive(requestId) || !detailProducts) return;
     const rows = flattenProductsToVariantRows(detailProducts);
 
     statusText.value = t('product.exportModal.step_render_detail', '正在生成文件...');
     progress.value = 85;
     await sleep(120);
-    generatedBlob.value = await createBlobFromRows(rows);
+    if (!isGenerationActive(requestId)) return;
+    const generatedFile = await createBlobFromRows(rows);
+    if (!isGenerationActive(requestId)) return;
+    generatedBlob.value = generatedFile.blob;
+    generatedFileName.value = generatedFile.fileName;
 
     currentStep.value = 2;
     progress.value = 100;
     statusText.value = t('product.exportModal.ready_desc', { count: rows.length });
     readyToDownload.value = true;
   } catch (error) {
+    if (!isGenerationActive(requestId)) return;
     statusText.value = error.message || t('common.error', '生成失败');
     addToast({ type: 'error', message: statusText.value });
   } finally {
-    isGenerating.value = false;
+    if (requestId === generationRequestId) {
+      isGenerating.value = false;
+    }
   }
 };
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import ProductExportModal from '../ProductExportModal.vue';
 
 const mocks = vi.hoisted(() => ({
@@ -70,5 +70,56 @@ describe('ProductExportModal filter forwarding', () => {
       page: 1,
       limit: 100,
     });
+  });
+
+  it('discards pending export results after modal closes', async () => {
+    let resolveDetail;
+    mocks.listProductsForExport.mockResolvedValue({
+      success: true,
+      data: [{ id: 'p-1', name: 'Lite Product' }],
+    });
+    mocks.loadProduct.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveDetail = resolve;
+        })
+    );
+
+    const wrapper = mount(ProductExportModal, {
+      props: {
+        modelValue: true,
+        filters: {},
+      },
+      global: {
+        stubs: {
+          Modal: {
+            props: ['modelValue', 'title', 'size'],
+            template: '<div><slot /><slot name="footer" /></div>',
+          },
+          AppIcon: true,
+        },
+      },
+    });
+
+    wrapper.vm.form.format = 'csv';
+    await wrapper.find('button.btn.btn-primary').trigger('click');
+    await vi.advanceTimersByTimeAsync(150);
+
+    expect(wrapper.vm.isGenerating).toBe(true);
+
+    await wrapper.setProps({ modelValue: false });
+    await wrapper.vm.$nextTick();
+
+    resolveDetail({
+      id: 'p-1',
+      name: 'Full Product',
+      variants: [{ id: 'v-1', sku: 'SKU-1' }],
+    });
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(200);
+    await flushPromises();
+
+    expect(wrapper.vm.readyToDownload).toBe(false);
+    expect(wrapper.vm.generatedBlob).toBe(null);
   });
 });
