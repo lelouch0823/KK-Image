@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 15 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 16 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -61,12 +61,14 @@
   - `adb3fee`: `PUT` 全量替换规格边界与 `PATCH/PUT` 审计变更计数对齐
   - `75d9b7b`: 销售商品列表可售库存过滤对齐
   - `1f2a4b6`: 小程序销售商品绑定字段映射对齐
+  - `ede9100`: 小程序复制下单预填绑定卡片信息回填
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
   - 2026-04-10 运行 3 个回归测试文件，共 7 个测试，全部通过。
   - 2026-04-10 运行 1 个回归测试文件，共 15 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 3 个测试，全部通过。
+  - 2026-04-10 运行 3 个回归测试文件，共 4 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -98,6 +100,7 @@
 ### Low
 
 - `PATCH /api/manage/products/:id` 与 `PUT /api/manage/products/:id` 路由写审计时，把服务层返回的数字型 `result.changes` 当成数组读取，导致 `metadata.changeCount` 长期为 `undefined`，后台无法直接从审计记录看到这次商品更新声明变更了多少主数据字段。[functions/lib/hono/routes/manage/products/[id].js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/[id].js#L452)
+- 小程序销售订单详情页走“复制下单”时，`buildDuplicatePrefill()` 和 `buildFormPrefillState()` 只回填了 `productId/variantId/name/sku` 等基础字段，没有把商品主图和规格摘要带回绑定卡片。结果是复制后虽然仍保持商品绑定关系，但绑定区会退化成无图、无规格标签的半残状态，用户难以快速确认复制的是否还是原规格。[minisales/miniprogram/pages/detail/controller.ts](/home/bjw/Code/KK-Image/minisales/miniprogram/pages/detail/controller.ts#L337) [minisales/miniprogram/pages/form/controller.ts](/home/bjw/Code/KK-Image/minisales/miniprogram/pages/form/controller.ts#L67) [minisales/miniprogram/components/sales/product-binding/index.wxml](/home/bjw/Code/KK-Image/minisales/miniprogram/components/sales/product-binding/index.wxml#L10)
 - `SpaceCreateModal.unbindProduct()` 只清空了 `productId`，没有同步清空 `variantId`。用户在创建商品型空间时若先绑定再解绑，表单会残留失效的 `variantId`，提交时被后端以“`productId is required when variantId is provided`”拒绝，形成可复现的创建阻塞。[src/components/SpaceCreateModal.vue](/home/bjw/Code/KK-Image/src/components/SpaceCreateModal.vue#L226)
 - 销售模式的 `ProductSelect` 直接把 `primaryImage` 拼成 `/file/${primaryImage}`，而销售商品列表接口返回的 `primaryImage` 可能已经是完整 URL 或以 `/` 开头的路径。对这类商品，选择器缩略图会被拼成错误地址（如 `/file/https://...`），与项目里其它图片解析工具的容错行为不一致。[src/components/product/ProductSelect.vue](/home/bjw/Code/KK-Image/src/components/product/ProductSelect.vue#L194) [functions/lib/hono/routes/sales/products.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/sales/products.js#L37)
 
@@ -248,3 +251,20 @@
   - `test/minisales-product-binding.test.js`
   - `test/minisales-product-binding-component.test.js`
 - 对应修复提交: `1f2a4b6 fix: align minisales product binding fields`
+
+### 2026-04-10 轮次 19
+
+- 继续增量复查小程序订单详情复制预填与商品绑定卡片回显。
+- 新增 1 个低风险问题:
+  - 复制下单预填没有回填绑定卡片所需的主图和规格摘要，导致绑定关系虽保留但确认信息缺失
+- 下一步补纯函数测试并对齐预填字段。
+
+### 2026-04-10 轮次 20
+
+- 已完成轮次 19 新增问题修复:
+  - 小程序复制下单预填现在会把绑定卡片需要的 `primaryImage` 和 `variantLabel` 一并回填
+- 增量回归:
+  - `test/minisales-product-binding.test.js`
+  - `test/minisales-product-binding-component.test.js`
+  - `test/minisales-form-prefill.test.js`
+- 对应修复提交: `ede9100 fix: restore minisales duplicate binding context`
