@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 38 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 39 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -84,6 +84,7 @@
   - `40d4889`: 商品导入弹窗关闭后的旧任务回写修复
   - `a814e4a`: 商品导入图片上传步骤关闭后的旧任务回写修复
   - `1a0cfd1`: 订单商品绑定组件仅认最新详情加载结果
+  - `2259aa6`: 空间商品编辑器仅认最新刷新结果
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -113,6 +114,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 28 个测试，全部通过。
   - 2026-04-10 运行 4 个回归测试文件，共 33 个测试，全部通过。
   - 2026-04-10 运行 4 个回归测试文件，共 45 个测试，全部通过。
+  - 2026-04-10 运行 5 个回归测试文件，共 49 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -160,6 +162,7 @@
 - `ProductImportModal` 允许在导入进行中通过模态框默认关闭动作直接关掉弹窗，但关闭后既不会重置导入步骤，也不会废弃当前 `importProducts()` 请求。旧导入结果返回后仍会回写 `importResult` 并触发成功事件，重新打开弹窗还会停留在上一轮残留状态，形成导入链路的旧结果串写。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L134)
 - `ProductImportModal` 的图片上传步骤同样没有绑定生命周期。用户在第 3 步匹配图片后，如果关闭弹窗，旧的 `authFetch(...upload...)` 循环完成后仍会继续给 `parsedItems` 注入图片 ID、弹成功提示并把流程推进到预览页，形成图片上传阶段的旧结果串写。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L671)
 - `ProductBindingSection.handleProductSelect()` 在订单绑定链路里直接串行拉商品详情，但没有隔离请求先后。用户快速切换两件商品时，先点商品的旧请求如果后返回，会把后点商品的规格集、默认选中变体和 `select/product-fetch-success` 事件一起覆盖掉，导致订单绑定到错误商品。[src/components/order/ProductBindingSection.vue](/home/bjw/Code/KK-Image/src/components/order/ProductBindingSection.vue#L600)
+- `SpaceProductEditor.initData()` 会在首屏、文件刷新和文件增删后多次重跑，但没有隔离请求先后。旧的 `loadSpace()/loadProduct()` 调用如果后返回，会把刚刷新得到的新空间名、商品绑定和模板字段覆盖成旧值，导致空间商品编辑器出现可复现的回跳。[src/components/SpaceProductEditor.vue](/home/bjw/Code/KK-Image/src/components/SpaceProductEditor.vue#L452)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -708,3 +711,22 @@
   - `src/components/product/__tests__/ProductExportModal.filters.test.js`
   - `src/components/__tests__/ProductManager.variant-hydration.test.js`
 - 对应修复提交: `1a0cfd1 fix: isolate product binding detail loads`
+
+### 2026-04-10 轮次 65
+
+- 继续复查空间商品编辑器刷新链路，新增 1 个中风险问题:
+  - `initData()` 多次并发刷新时，旧空间详情/商品详情结果会覆盖最新刷新状态
+- 下一步给空间商品编辑器的初始化刷新链路增加请求序号隔离，并在卸载时废弃旧请求。
+
+### 2026-04-10 轮次 66
+
+- 已完成轮次 65 新增问题修复:
+  - `SpaceProductEditor` 现在只认最新一次 `initData()` 结果，旧的空间详情/商品详情刷新不会再覆盖当前状态
+  - 组件卸载时会同步废弃旧刷新请求，避免离场后继续回写空间编辑器状态
+- 增量回归:
+  - `src/components/__tests__/SpaceProductEditor.contract.test.js`
+  - `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
+  - `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
+  - `src/components/product/__tests__/ProductExportModal.filters.test.js`
+  - `src/components/__tests__/ProductManager.variant-hydration.test.js`
+- 对应修复提交: `2259aa6 fix: isolate space product editor refreshes`
