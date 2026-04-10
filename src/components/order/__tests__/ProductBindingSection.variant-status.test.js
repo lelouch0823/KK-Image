@@ -102,6 +102,68 @@ describe('ProductBindingSection variant status and dimensions', () => {
     expect(silkButton.find('input').element.disabled).toBe(true);
   });
 
+  it('keeps the latest product detail when selections race', async () => {
+    let resolveFirst;
+    let resolveSecond;
+    mocks.loadProduct
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = resolve;
+          })
+      );
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null },
+      global: { stubs: { ProductSelect: pickStub, AppImage: true } },
+    });
+
+    const first = wrapper.vm.handleProductSelect({ id: 'p1' });
+    const second = wrapper.vm.handleProductSelect({ id: 'p2' });
+
+    resolveSecond({
+      id: 'p2',
+      name: 'Second Product',
+      variants: [
+        {
+          id: 'v2',
+          sku: 'SKU-2',
+          status: 'active',
+          stock_quantity: 8,
+          alert_threshold: 2,
+          options_values: { color: 'Blue' },
+        },
+      ],
+    });
+    await second;
+
+    resolveFirst({
+      id: 'p1',
+      name: 'Stale Product',
+      variants: [
+        {
+          id: 'v1',
+          sku: 'SKU-1',
+          status: 'active',
+          stock_quantity: 8,
+          alert_threshold: 2,
+          options_values: { color: 'Red' },
+        },
+      ],
+    });
+    await first;
+
+    const emitted = wrapper.emitted('select') || [];
+    expect(emitted.at(-1)?.[0]?.id).toBe('p2');
+    expect(wrapper.vm.fullProductData.id).toBe('p2');
+  });
+
   it('adapts to 2D variants (no material)', async () => {
     mocks.loadProduct.mockResolvedValueOnce({
       id: 'p1',

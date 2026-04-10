@@ -305,6 +305,7 @@ const isLoadingDetails = ref(false);
 const variants = ref([]);
 const selectedVariantId = ref(null);
 const fullProductData = ref(null);
+let productDetailRequestId = 0;
 const selectedOptions = reactive({});
 const normalizedVariantSelectPolicy = computed(() =>
   String(props.variantSelectPolicy || 'allow_out_of_stock')
@@ -599,6 +600,7 @@ const initSelectionFromVariants = () => {
 };
 
 const handleProductSelect = async (product) => {
+  const requestId = ++productDetailRequestId;
   isLoadingDetails.value = true;
   variants.value = [];
   selectedVariantId.value = null;
@@ -609,6 +611,7 @@ const handleProductSelect = async (product) => {
     const fullProduct = isSalesMode.value
       ? await loadSalesProduct(props.salesToken, productId)
       : await loadProduct(productId);
+    if (requestId !== productDetailRequestId) return;
     fullProductData.value = fullProduct;
     if (fullProduct && fullProduct.variants && fullProduct.variants.length > 0) {
       variants.value = fullProduct.variants;
@@ -624,11 +627,14 @@ const handleProductSelect = async (product) => {
       emit('product-fetch-error', t('order.binding.variantRequired'));
     }
   } catch {
+    if (requestId !== productDetailRequestId) return;
     variants.value = [];
     selectedVariantId.value = null;
     emit('product-fetch-error', t('common.loadFailed'));
   } finally {
-    isLoadingDetails.value = false;
+    if (requestId === productDetailRequestId) {
+      isLoadingDetails.value = false;
+    }
   }
 };
 
@@ -640,6 +646,7 @@ watch(
   () => props.boundProduct,
   (newVal) => {
     if (!newVal) {
+      productDetailRequestId += 1;
       variants.value = [];
       selectedVariantId.value = null;
       fullProductData.value = null;
