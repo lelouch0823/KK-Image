@@ -161,6 +161,7 @@ const loading = ref(false);
 const importError = ref(null);
 const importResult = ref(null);
 let importRequestId = 0;
+let imageUploadRequestId = 0;
 
 // -- state for mapping --
 const currentStep = ref(1); // 1: Upload, 3: Mapping, 4: Preview
@@ -357,9 +358,11 @@ const resetFile = () => {
 
 const invalidateImportRequest = () => {
     importRequestId += 1;
+    imageUploadRequestId += 1;
 };
 
 const isImportRequestActive = (requestId) => requestId === importRequestId && props.modelValue;
+const isImageUploadActive = (requestId) => requestId === imageUploadRequestId && props.modelValue;
 
 watch(() => props.modelValue, (visible) => {
     if (!visible) {
@@ -675,6 +678,7 @@ const handleUploadImagesAndNext = async () => {
         return;
     }
 
+    const requestId = ++imageUploadRequestId;
     loading.value = true;
     try {
         // Upload matched images
@@ -691,7 +695,9 @@ const handleUploadImagesAndNext = async () => {
                 method: 'POST',
                 body: formData
             });
+            if (!isImageUploadActive(requestId)) return;
             const data = await res.json();
+            if (!isImageUploadActive(requestId)) return;
             
             if (data.success) {
                 // Update item with returned ID (or URL if needed, but CreateModal uses ID)
@@ -706,15 +712,19 @@ const handleUploadImagesAndNext = async () => {
                 uploadedCount++;
             }
         }
-        
+
+        if (!isImageUploadActive(requestId)) return;
         addToast({ message: t('product.import.upload_success', { count: uploadedCount }), type: 'success' });
         currentStep.value = 4; // To Preview
         
     } catch (e) {
+        if (!isImageUploadActive(requestId)) return;
         console.error(e);
         addToast({ message: t('product.import.upload_failed', { message: e.message }), type: 'error' });
     } finally {
-        loading.value = false;
+        if (requestId === imageUploadRequestId) {
+            loading.value = false;
+        }
     }
 };
 

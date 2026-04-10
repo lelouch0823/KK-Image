@@ -4,6 +4,7 @@ import ProductImportModal from '../ProductImportModal.vue';
 
 const mocks = vi.hoisted(() => ({
     importProducts: vi.fn(),
+    authFetch: vi.fn(),
     addToast: vi.fn(),
 }));
 
@@ -17,6 +18,10 @@ vi.mock('@/composables/useToast', () => ({
     useToast: () => ({ addToast: mocks.addToast }),
 }));
 
+vi.mock('@/composables/useAuth', () => ({
+    useAuth: () => ({ authFetch: mocks.authFetch }),
+}));
+
 vi.mock('@/composables/useI18n', () => ({
     useI18n: () => ({ t: (k) => k }),
 }));
@@ -25,6 +30,9 @@ describe('ProductImportModal Variant-First Payload', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mocks.importProducts.mockResolvedValue({ success: true, count: 1 });
+        mocks.authFetch.mockResolvedValue({
+            json: async () => ({ success: true, result: { id: 'img-uploaded' } }),
+        });
     });
 
     it('groups rows by spu and sends variant-first payload', async () => {
@@ -152,6 +160,56 @@ describe('ProductImportModal Variant-First Payload', () => {
         expect(wrapper.emitted('success')).toBeUndefined();
         expect(wrapper.vm.importResult).toBe(null);
         expect(wrapper.vm.currentStep).toBe(1);
+    });
+
+    it('discards pending image upload results after modal closes', async () => {
+        let resolveUpload;
+        mocks.authFetch.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolveUpload = resolve;
+                })
+        );
+
+        const wrapper = mount(ProductImportModal, {
+            global: {
+                stubs: {
+                    Modal: { template: '<div><slot></slot><slot name="footer"></slot></div>' },
+                    AppIcon: true,
+                    ImportUploadStep: true,
+                    ImportMappingStep: true,
+                    ImportImageMatchStep: true,
+                    ImportPreviewStep: true
+                }
+            },
+            props: {
+                modelValue: true
+            }
+        });
+
+        wrapper.vm.currentStep = 5;
+        wrapper.vm.parsedItems = [
+            { name: 'T恤', spu: 'SPU-1001', sku: 'SKU-RED', image_url: 'a.jpg' }
+        ];
+        wrapper.vm.imageMatches = new Map([
+            ['spu:SPU-1001', new File(['a'], 'a.jpg', { type: 'image/jpeg' })]
+        ]);
+
+        const pending = wrapper.vm.handleUploadImagesAndNext();
+        await Promise.resolve();
+        expect(wrapper.vm.loading).toBe(true);
+
+        await wrapper.setProps({ modelValue: false });
+        await wrapper.vm.$nextTick();
+
+        resolveUpload({
+            json: async () => ({ success: true, result: { id: 'img-late' } }),
+        });
+        await pending;
+
+        expect(wrapper.vm.currentStep).toBe(1);
+        expect(wrapper.vm.parsedItems).toEqual([]);
+        expect(wrapper.vm.loading).toBe(false);
     });
 
     it('builds grouped product payload with currency and derived dimensions', async () => {
