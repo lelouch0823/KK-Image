@@ -35,6 +35,7 @@ export function usePurchaseOrders() {
   const stats = ref(null);
   let detailRequestId = 0;
   let suggestionsRequestId = 0;
+  let statsRequestId = 0;
 
   const filters = reactive({
     status: '',
@@ -443,11 +444,15 @@ export function usePurchaseOrders() {
   // ─── 统计 ────────────────────────────────────────────
 
   const loadStats = async ({ forceRefresh = false } = {}) => {
+    const requestId = ++statsRequestId;
     try {
       const res = await authFetch(
         appendPurchaseOrderCacheBust(API.MANAGE_PURCHASE_ORDER_STATS, { forceRefresh })
       );
       const json = await res.json();
+      if (requestId !== statsRequestId) {
+        return false;
+      }
       if (json.success) {
         stats.value = json.data;
         return true;
@@ -455,6 +460,9 @@ export function usePurchaseOrders() {
 
       return false;
     } catch (e) {
+      if (requestId !== statsRequestId) {
+        return false;
+      }
       console.error('loadStats failed:', e);
       const status = Number(e?.status || 0);
       // 统计接口权限应只影响统计模块，不应覆盖列表权限态（避免整页误封）
