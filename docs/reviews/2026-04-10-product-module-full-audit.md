@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 41 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 42 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -87,6 +87,7 @@
   - `2259aa6`: 空间商品编辑器仅认最新刷新结果
   - `bd4a758`: 商品表单规格归档向导仅认当前弹窗上下文的异步结果
   - `28e0735`: 商品表单保存提交仅认当前弹窗上下文的异步结果
+  - `8dc71e6`: 销售商品查询状态改为实例隔离并只认最新搜索结果
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -119,6 +120,7 @@
   - 2026-04-10 运行 5 个回归测试文件，共 49 个测试，全部通过。
   - 2026-04-10 运行 4 个回归测试文件，共 28 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 12 个测试，全部通过。
+  - 2026-04-10 运行 3 个回归测试文件，共 19 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -169,6 +171,7 @@
 - `SpaceProductEditor.initData()` 会在首屏、文件刷新和文件增删后多次重跑，但没有隔离请求先后。旧的 `loadSpace()/loadProduct()` 调用如果后返回，会把刚刷新得到的新空间名、商品绑定和模板字段覆盖成旧值，导致空间商品编辑器出现可复现的回跳。[src/components/SpaceProductEditor.vue](/home/bjw/Code/KK-Image/src/components/SpaceProductEditor.vue#L452)
 - `useProductForm` 的规格维度/规格值归档相关异步动作没有绑定弹窗生命周期。编辑商品时如果在 `previewDimensionImpact/archiveDimension/archiveDimensionValue/restoreDimensionValue` 未完成前关闭弹窗或切到另一件商品，旧请求返回后仍会把当前表单重新打开到旧归档向导，甚至继续改写新商品的规格表单状态。[src/composables/useProductForm.js](/home/bjw/Code/KK-Image/src/composables/useProductForm.js#L357) [src/components/product/ProductCreateModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductCreateModal.vue#L387)
 - `ProductCreateModal/useProductForm` 的保存提交同样没有绑定弹窗生命周期。用户在保存商品时仍然可以关闭弹窗或切到另一件商品，旧的 `createProduct/updateProduct` 请求返回后会继续弹成功提示、向父级发出 `success` 并再次 `emit('update:modelValue', false)`，从而把当前新开的商品弹窗也一起关掉，形成商品保存链路的假成功和串上下文关闭。[src/composables/useProductForm.js](/home/bjw/Code/KK-Image/src/composables/useProductForm.js#L373) [src/composables/useProductForm.js](/home/bjw/Code/KK-Image/src/composables/useProductForm.js#L925)
+- `useSalesProducts` 把 `products/loading/error/meta/lastQuery` 做成了模块级单例，同时销售商品列表请求也没有先后隔离。结果是多个销售商品选择器或商品绑定场景会共用同一份查询状态，彼此搜索会互相覆盖；同一个选择器里快速连续搜索时，旧关键字的慢请求也可能在后返回后覆盖新结果，把下拉列表回跳到过期商品集。[src/composables/useSalesProducts.js](/home/bjw/Code/KK-Image/src/composables/useSalesProducts.js#L1) [src/components/product/ProductSelect.vue](/home/bjw/Code/KK-Image/src/components/product/ProductSelect.vue#L148) [src/components/order/ProductBindingSection.vue](/home/bjw/Code/KK-Image/src/components/order/ProductBindingSection.vue#L287)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -773,3 +776,21 @@
   - `src/components/product/__tests__/ProductCreateModal.dimension-archive.test.js`
   - `src/components/product/__tests__/ProductCreateModal.value-archive.test.js`
 - 对应修复提交: `28e0735 fix: discard stale product form submit results`
+
+### 2026-04-10 轮次 71
+
+- 继续复查销售商品选择链路，新增 1 个中风险问题:
+  - `useSalesProducts` 共享模块级查询状态，且同实例连续搜索时旧请求仍可能覆盖最新结果
+- 下一步把销售商品查询状态收回实例内，并给列表查询增加“只认最新搜索”的请求隔离。
+
+### 2026-04-10 轮次 72
+
+- 已完成轮次 71 新增问题修复:
+  - `useSalesProducts` 现在为每个调用方创建独立的 `products/loading/error/meta/lastQuery` 状态，销售商品选择器之间不再互相串结果
+  - 销售商品列表查询新增请求序号，旧搜索无论成功还是失败都不会再覆盖当前最新关键字的结果
+  - 商品选择器重试逻辑保持不变，但只会操作当前实例最近一次查询上下文
+- 增量回归:
+  - `src/composables/__tests__/useSalesProducts.test.js`
+  - `src/components/product/__tests__/ProductSelect.sales-image.test.js`
+  - `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
+- 对应修复提交: `8dc71e6 fix: isolate sales product query state`
