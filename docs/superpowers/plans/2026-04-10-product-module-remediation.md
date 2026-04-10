@@ -1,6 +1,19 @@
 # Product Module Remediation Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
+
+## Execution Status
+
+- Completed on 2026-04-10.
+- All 7 remediation tasks were implemented and committed in sequence.
+- Final regression sweep passed: 23 test files, 128 tests.
+- Final remediation commits:
+  - `a849ceb` / `c4272f7` variant image invariant hardening
+  - `4895358` sales variant availability enforcement
+  - `38d0279` duplicate procurement guardrails
+  - `c6bc3c3` space binding validation hardening
+  - `3f70954` export semantics alignment
+  - `4c3099b` product selector image normalization
 
 **Goal:** Close all confirmed product-module audit findings in a safe order, starting with data integrity and order/procurement correctness, then UI/error-semantics, then lower-risk cleanup.
 
@@ -27,27 +40,27 @@
 - Modify: `functions/repositories/VariantImageRepository.js`
 - Test: `functions/repositories/__tests__/variant-image-repository.test.js`
 
-- [ ] **Step 1: Add failing repository tests for duplicate image insertion**
-- [ ] **Step 2: Add failing repository tests for primary-image uniqueness on insert**
-- [ ] **Step 3: Add failing repository test for `setPrimary()` with nonexistent `imageId`**
-- [ ] **Step 4: Update `addImage()` so duplicate `image_id` under the same variant is rejected or no-op with explicit behavior**
-- [ ] **Step 5: Update `addImage()` so `isPrimary=true` clears previous primaries atomically before insert**
-- [ ] **Step 6: Update `setPrimary()` to verify the target image exists before demoting existing primaries**
-- [ ] **Step 7: Run targeted tests**
+- [x] **Step 1: Add failing repository tests for duplicate image insertion**
+- [x] **Step 2: Add failing repository tests for primary-image uniqueness on insert**
+- [x] **Step 3: Add failing repository test for `setPrimary()` with nonexistent `imageId`**
+- [x] **Step 4: Update `addImage()` so duplicate `image_id` under the same variant is rejected or no-op with explicit behavior**
+- [x] **Step 5: Update `addImage()` so `isPrimary=true` clears previous primaries atomically before insert**
+- [x] **Step 6: Update `setPrimary()` to verify the target image exists before demoting existing primaries**
+- [x] **Step 7: Run targeted tests**
 
 Run:
 ```bash
 pnpm vitest run functions/repositories/__tests__/variant-image-repository.test.js
 ```
 
-- [ ] **Step 8: Run product image related regression tests**
+- [x] **Step 8: Run product image related regression tests**
 
 Run:
 ```bash
 pnpm vitest run src/components/product/__tests__/VariantImageManagerModal.test.js src/utils/__tests__/product-image.test.js
 ```
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add functions/repositories/VariantImageRepository.js functions/repositories/__tests__/variant-image-repository.test.js src/components/product/__tests__/VariantImageManagerModal.test.js src/utils/__tests__/product-image.test.js
@@ -66,21 +79,21 @@ git commit -m "fix: enforce variant image invariants"
 - Test: `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
 - Test: `src/views/sales/__tests__/SalesFormView.resilience.test.js`
 
-- [ ] **Step 1: Add failing backend tests for rejecting out-of-stock variants in sales create/update flows**
-- [ ] **Step 2: Extend validation helper to support policy-aware checks**
-- [ ] **Step 3: Use strict sales policy in sales create/update routes**
-- [ ] **Step 4: Update `ProductBindingSection` so success is emitted only when a selectable variant is actually resolved**
-- [ ] **Step 5: Emit a concrete “variant required / no selectable variant” error when all variants are filtered out**
-- [ ] **Step 6: Mirror the same empty-selectable handling in mini-program sales binding**
-- [ ] **Step 7: Add/adjust component tests for false-success regression**
-- [ ] **Step 8: Run targeted tests**
+- [x] **Step 1: Add failing backend tests for rejecting out-of-stock variants in sales create/update flows**
+- [x] **Step 2: Extend validation helper to support policy-aware checks**
+- [x] **Step 3: Use strict sales policy in sales create/update routes**
+- [x] **Step 4: Update `ProductBindingSection` so success is emitted only when a selectable variant is actually resolved**
+- [x] **Step 5: Emit a concrete “variant required / no selectable variant” error when all variants are filtered out**
+- [x] **Step 6: Mirror the same empty-selectable handling in mini-program sales binding**
+- [x] **Step 7: Add/adjust component tests for false-success regression**
+- [x] **Step 8: Run targeted tests**
 
 Run:
 ```bash
 pnpm vitest run functions/api/utils/__tests__/validation.test.js src/components/order/__tests__/ProductBindingSection.variant-status.test.js src/views/sales/__tests__/SalesFormView.resilience.test.js src/components/order/__tests__/sales-order-flow-contract.test.js
 ```
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add functions/api/utils/validation.js functions/lib/hono/routes/sales/orders.js src/components/order/ProductBindingSection.vue src/views/sales/SalesFormView.vue minisales/miniprogram/components/sales/product-binding/index.ts functions/api/utils/__tests__/validation.test.js src/components/order/__tests__/ProductBindingSection.variant-status.test.js src/views/sales/__tests__/SalesFormView.resilience.test.js src/components/order/__tests__/sales-order-flow-contract.test.js
@@ -98,20 +111,20 @@ git commit -m "fix: enforce sales variant availability policy"
 - Test: `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
 - Test: `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
 
-- [ ] **Step 1: Add failing route/service tests for reusing the same `pre_order_id` in another active purchase order**
-- [ ] **Step 2: Add repository query/helper to detect active purchase-order bindings for pre-orders**
-- [ ] **Step 3: Harden `validatePreOrderBinding()` to reject already-procured or already-linked pre-orders**
-- [ ] **Step 4: Harden `createFromOrders()` to filter/reject orders already in procurement**
-- [ ] **Step 5: Update `OrderPickerModal` filtering to hide orders already linked or already in procurement when the data is available**
-- [ ] **Step 6: Ensure error messages are explicit enough for operators to resolve duplicates**
-- [ ] **Step 7: Run targeted tests**
+- [x] **Step 1: Add failing route/service tests for reusing the same `pre_order_id` in another active purchase order**
+- [x] **Step 2: Add repository query/helper to detect active purchase-order bindings for pre-orders**
+- [x] **Step 3: Harden `validatePreOrderBinding()` to reject already-procured or already-linked pre-orders**
+- [x] **Step 4: Harden `createFromOrders()` to filter/reject orders already in procurement**
+- [x] **Step 5: Update `OrderPickerModal` filtering to hide orders already linked or already in procurement when the data is available**
+- [x] **Step 6: Ensure error messages are explicit enough for operators to resolve duplicates**
+- [x] **Step 7: Run targeted tests**
 
 Run:
 ```bash
 pnpm vitest run functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js functions/repositories/__tests__/purchase-order-repository-safety.test.js src/components/purchase-order/__tests__/OrderPickerModal.detail-workflow.test.js
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add functions/lib/hono/routes/manage/purchase-orders.js functions/services/PurchaseOrderService.js functions/repositories/PurchaseOrderRepository.js src/components/purchase-order/OrderPickerModal.vue functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js functions/repositories/__tests__/purchase-order-repository-safety.test.js src/components/purchase-order/__tests__/OrderPickerModal.detail-workflow.test.js
@@ -128,19 +141,19 @@ git commit -m "fix: block duplicate procurement bindings"
 - Test: `functions/lib/hono/routes/manage/spaces/__tests__/transformers.test.js`
 - Test: `src/components/__tests__/SpaceProductEditor.contract.test.js`
 
-- [ ] **Step 1: Add failing tests for rejecting nonexistent product/variant bindings on create/update**
-- [ ] **Step 2: Change space create/update to use existence validation instead of pair-only validation**
-- [ ] **Step 3: Decide and document whether archived products/variants are allowed for existing spaces; implement the chosen rule consistently**
-- [ ] **Step 4: Fix `SpaceCreateModal.unbindProduct()` to clear both `productId` and `variantId`**
-- [ ] **Step 5: Verify space edit/create flows still preserve valid bound-product state**
-- [ ] **Step 6: Run targeted tests**
+- [x] **Step 1: Add failing tests for rejecting nonexistent product/variant bindings on create/update**
+- [x] **Step 2: Change space create/update to use existence validation instead of pair-only validation**
+- [x] **Step 3: Decide and document whether archived products/variants are allowed for existing spaces; implement the chosen rule consistently**
+- [x] **Step 4: Fix `SpaceCreateModal.unbindProduct()` to clear both `productId` and `variantId`**
+- [x] **Step 5: Verify space edit/create flows still preserve valid bound-product state**
+- [x] **Step 6: Run targeted tests**
 
 Run:
 ```bash
 pnpm vitest run functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js functions/lib/hono/routes/manage/spaces/__tests__/transformers.test.js src/components/__tests__/SpaceProductEditor.contract.test.js
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add functions/lib/hono/routes/manage/spaces/crud.js functions/api/utils/validation.js src/components/SpaceCreateModal.vue functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js functions/lib/hono/routes/manage/spaces/__tests__/transformers.test.js src/components/__tests__/SpaceProductEditor.contract.test.js
@@ -156,18 +169,18 @@ git commit -m "fix: validate space product bindings"
 - Test: `src/components/product/__tests__/ProductExportModal.filters.test.js`
 - Test: `src/components/product/export/__tests__/export-utils.test.js`
 
-- [ ] **Step 1: Add failing tests for export filter propagation and non-200 failure handling**
-- [ ] **Step 2: Decide whether legacy route should be upgraded or deprecated behind frontend-only flow; prefer one canonical export path**
-- [ ] **Step 3: Update route to return proper HTTP failure semantics instead of CSV-embedded error text**
-- [ ] **Step 4: Ensure route output matches the frontend’s expected variant-level export contract, or remove the stale call path entirely**
-- [ ] **Step 5: Run targeted tests**
+- [x] **Step 1: Add failing tests for export filter propagation and non-200 failure handling**
+- [x] **Step 2: Decide whether legacy route should be upgraded or deprecated behind frontend-only flow; prefer one canonical export path**
+- [x] **Step 3: Update route to return proper HTTP failure semantics instead of CSV-embedded error text**
+- [x] **Step 4: Ensure route output matches the frontend’s expected variant-level export contract, or remove the stale call path entirely**
+- [x] **Step 5: Run targeted tests**
 
 Run:
 ```bash
 pnpm vitest run src/components/product/__tests__/ProductExportModal.filters.test.js src/components/product/export/__tests__/export-utils.test.js
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add functions/lib/hono/routes/manage/products/export.js src/components/product/ProductExportModal.vue src/components/product/export/export-utils.js src/components/product/__tests__/ProductExportModal.filters.test.js src/components/product/export/__tests__/export-utils.test.js
@@ -183,16 +196,16 @@ git commit -m "fix: align product export semantics"
 - Test: `src/composables/__tests__/useProducts.cache.test.js`
 - Test: `src/utils/__tests__/product-image.test.js`
 
-- [ ] **Step 1: Add failing test for sales product selector handling absolute image URLs**
-- [ ] **Step 2: Route sales selector image rendering through shared image normalization instead of raw `/file/` concatenation**
-- [ ] **Step 3: Run targeted tests**
+- [x] **Step 1: Add failing test for sales product selector handling absolute image URLs**
+- [x] **Step 2: Route sales selector image rendering through shared image normalization instead of raw `/file/` concatenation**
+- [x] **Step 3: Run targeted tests**
 
 Run:
 ```bash
 pnpm vitest run src/utils/__tests__/product-image.test.js src/composables/__tests__/useProducts.cache.test.js src/components/order/__tests__/ProductBindingSection.variant-status.test.js
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/components/product/ProductSelect.vue src/utils/product-image.js src/utils/__tests__/product-image.test.js src/composables/__tests__/useProducts.cache.test.js src/components/order/__tests__/ProductBindingSection.variant-status.test.js
@@ -204,22 +217,22 @@ git commit -m "fix: normalize sales product picker images"
 **Files:**
 - Verify only
 
-- [ ] **Step 1: Run backend and frontend product/order/procurement/space regression suites**
+- [x] **Step 1: Run backend and frontend product/order/procurement/space regression suites**
 
 Run:
 ```bash
 pnpm vitest run functions/api/utils/__tests__/validation.test.js functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js src/components/order/__tests__/ProductBindingSection.variant-status.test.js src/components/order/__tests__/sales-order-flow-contract.test.js src/views/sales/__tests__/SalesFormView.resilience.test.js src/components/purchase-order/__tests__/OrderPickerModal.detail-workflow.test.js src/components/__tests__/SpaceProductEditor.contract.test.js src/components/product/__tests__/ProductExportModal.filters.test.js src/components/product/export/__tests__/export-utils.test.js src/utils/__tests__/product-image.test.js
 ```
 
-- [ ] **Step 2: Run broader product manager/UI regressions**
+- [x] **Step 2: Run broader product manager/UI regressions**
 
 Run:
 ```bash
 pnpm vitest run src/components/__tests__/ProductManager.variant-hydration.test.js src/components/__tests__/ProductManager.create-success-ux.test.js src/components/product/__tests__/ProductCreateModal.variant-images.test.js src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js
 ```
 
-- [ ] **Step 3: Update the audit document with fixed status and residual risks**
-- [ ] **Step 4: Commit final verification/documentation pass**
+- [x] **Step 3: Update the audit document with fixed status and residual risks**
+- [x] **Step 4: Commit final verification/documentation pass**
 
 ```bash
 git add docs/reviews/2026-04-10-product-module-full-audit.md

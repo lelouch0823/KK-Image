@@ -35,6 +35,7 @@ const createApp = () => {
 describe('manage product export route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     mocks.search.mockResolvedValue({
       items: [
         {
