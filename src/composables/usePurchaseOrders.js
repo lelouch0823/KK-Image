@@ -33,6 +33,7 @@ export function usePurchaseOrders() {
   const suggestions = ref([]);
   const suggestionsLoading = ref(false);
   const stats = ref(null);
+  let listRequestId = 0;
   let detailRequestId = 0;
   let suggestionsRequestId = 0;
   let statsRequestId = 0;
@@ -57,6 +58,7 @@ export function usePurchaseOrders() {
   // ─── 列表 ────────────────────────────────────────────
 
   const loadList = async ({ forceRefresh = false } = {}) => {
+    const requestId = ++listRequestId;
     loading.value = true;
     error.value = null;
     errorCode.value = null;
@@ -70,6 +72,9 @@ export function usePurchaseOrders() {
         appendPurchaseOrderCacheBust(`${API.MANAGE_PURCHASE_ORDERS}?${params}`, { forceRefresh })
       );
       const json = await res.json();
+      if (requestId !== listRequestId) {
+        return false;
+      }
 
       if (json.success) {
         list.value = json.data.items;
@@ -81,6 +86,9 @@ export function usePurchaseOrders() {
       addToast({ message: error.value, type: 'error' });
       return false;
     } catch (e) {
+      if (requestId !== listRequestId) {
+        return false;
+      }
       console.error('loadPurchaseOrders failed:', e);
       const status = Number(e?.status || 0);
       if (status === 403) {
@@ -98,7 +106,9 @@ export function usePurchaseOrders() {
       addToast({ message: t('purchaseOrder.error.loadFailed'), type: 'error' });
       return false;
     } finally {
-      loading.value = false;
+      if (requestId === listRequestId) {
+        loading.value = false;
+      }
     }
   };
 

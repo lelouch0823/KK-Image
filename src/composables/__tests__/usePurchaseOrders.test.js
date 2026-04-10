@@ -98,6 +98,53 @@ describe('usePurchaseOrders authz handling', () => {
     expect(error.value).toContain('purchase_orders:read');
   });
 
+  it('keeps the latest purchase-order list when earlier list loads resolve late', async () => {
+    let resolveFirst;
+    let resolveSecond;
+    mockAuthFetch
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = resolve;
+          })
+      );
+
+    const purchaseOrders = usePurchaseOrders();
+    purchaseOrders.filters.status = 'draft';
+    const firstPending = purchaseOrders.loadList({ forceRefresh: true });
+
+    purchaseOrders.filters.status = 'ordered';
+    const secondPending = purchaseOrders.loadList({ forceRefresh: true });
+
+    resolveSecond({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { items: [{ id: 'po-new', status: 'ordered' }], total: 1 },
+        }),
+    });
+    await secondPending;
+
+    expect(purchaseOrders.list.value).toEqual([{ id: 'po-new', status: 'ordered' }]);
+
+    resolveFirst({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { items: [{ id: 'po-old', status: 'draft' }], total: 1 },
+        }),
+    });
+    await firstPending;
+
+    expect(purchaseOrders.list.value).toEqual([{ id: 'po-new', status: 'ordered' }]);
+  });
+
   it('uses backend status-update message when present', async () => {
     mockAuthFetch.mockResolvedValueOnce({
       json: () => Promise.resolve({
