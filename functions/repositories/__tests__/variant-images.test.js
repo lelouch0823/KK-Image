@@ -244,17 +244,15 @@ describe('VariantImageRepository', () => {
             imageIds: ['file_2', 'file_1', 'file_3'],
         });
 
-        expect(db.batch).not.toHaveBeenCalled();
-        const updateStatement = statements.find((stmt) => stmt.sql.includes('CASE image_id'));
-        expect(updateStatement).toBeTruthy();
-        expect(updateStatement.params).toEqual([
-            'file_2', 0,
-            'file_1', 1,
-            'file_3', 2,
-            expect.any(Number),
-            'variant_1',
-            'file_2', 'file_1', 'file_3',
-        ]);
+        expect(db.batch).toHaveBeenCalledTimes(1);
+        const updates = db.batch.mock.calls[0][0];
+        expect(updates).toHaveLength(6);
+        expect(updates[0].params.slice(0, 2)).toEqual([6, expect.any(Number)]);
+        expect(updates[1].params.slice(0, 2)).toEqual([7, expect.any(Number)]);
+        expect(updates[2].params.slice(0, 2)).toEqual([8, expect.any(Number)]);
+        expect(updates[3].params.slice(0, 2)).toEqual([0, expect.any(Number)]);
+        expect(updates[4].params.slice(0, 2)).toEqual([1, expect.any(Number)]);
+        expect(updates[5].params.slice(0, 2)).toEqual([2, expect.any(Number)]);
     });
 
     it('rejects sortImages when the requested ids are not a full unique match for the variant', async () => {
@@ -365,13 +363,13 @@ describe('VariantImageRepository', () => {
 
         expect(db.batch).toHaveBeenCalledTimes(1);
         const batched = db.batch.mock.calls[0][0];
-        expect(batched.length).toBe(2);
+        expect(batched.length).toBe(4);
         expect(batched[1].params.slice(1, 5)).toEqual(['variant_1', 'img-1', 0, 0]);
-        expect(batched[1].params.slice(8, 12)).toEqual(['variant_1', 'img-2', 1, 1]);
-        expect(batched[1].params.slice(15, 19)).toEqual(['variant_1', 'img-3', 2, 0]);
+        expect(batched[2].params.slice(1, 5)).toEqual(['variant_1', 'img-2', 1, 1]);
+        expect(batched[3].params.slice(1, 5)).toEqual(['variant_1', 'img-3', 2, 0]);
     });
 
-    it('syncImages keeps delete and bulk insert in a single batch for large payloads', async () => {
+    it('chunks large syncImages writes into D1-safe batches', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);
             if (sql.includes('FROM product_variants')) {
@@ -388,15 +386,11 @@ describe('VariantImageRepository', () => {
             Array.from({ length: 205 }, (_, index) => ({ image_id: `img-${index}` }))
         );
 
-        expect(db.batch).toHaveBeenCalledTimes(1);
-        const [batch] = db.batch.mock.calls[0];
-        expect(batch).toHaveLength(2);
-        expect(batch[0].sql).toContain('DELETE FROM variant_images');
-        expect(batch[1].sql).toContain('INSERT INTO variant_images');
-        expect(batch[1].params).toHaveLength(205 * 7);
+        expect(db.batch).toHaveBeenCalledTimes(3);
+        expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 100, 6]);
     });
 
-    it('sortImages reorders large image sets in a single update statement', async () => {
+    it('chunks large sortImages reorder writes into D1-safe batches', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);
             if (sql.includes('FROM product_variants')) {
@@ -420,9 +414,7 @@ describe('VariantImageRepository', () => {
             imageIds: Array.from({ length: 60 }, (_, index) => `file_${index}`),
         });
 
-        expect(db.batch).not.toHaveBeenCalled();
-        const updateStatement = statements.find((stmt) => stmt.sql.includes('CASE image_id'));
-        expect(updateStatement).toBeTruthy();
-        expect(updateStatement.params).toHaveLength(60 * 3 + 2);
+        expect(db.batch).toHaveBeenCalledTimes(2);
+        expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 20]);
     });
 });

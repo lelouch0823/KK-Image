@@ -111,29 +111,27 @@ export class VariantImageRepository {
         await this.productVariantRepository.assertBelongsToProduct(variantId, productId);
         const timestamp = now();
         const normalizedImages = this.normalizeIncomingImages(images);
-        const deleteStatement = this.db.prepare('DELETE FROM variant_images WHERE variant_id = ?').bind(variantId);
+        const statements = [];
 
-        if (normalizedImages.length === 0) {
-            await deleteStatement.run();
-            return;
+        statements.push(
+            this.db.prepare('DELETE FROM variant_images WHERE variant_id = ?').bind(variantId)
+        );
+
+        normalizedImages.forEach((image) => {
+            const id = generateId();
+            statements.push(
+                this.db.prepare(
+                    `INSERT INTO variant_images (id, variant_id, image_id, sort_order, is_primary, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)`
+                ).bind(
+                    id, variantId, image.image_id, image.sort_order, image.is_primary, timestamp, timestamp
+                )
+            );
+        });
+
+        if (statements.length > 0) {
+            await executeBatchChunks(this.db, statements);
         }
-
-        const valuesSql = normalizedImages.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
-        const insertParams = normalizedImages.flatMap((image) => [
-            generateId(),
-            variantId,
-            image.image_id,
-            image.sort_order,
-            image.is_primary,
-            timestamp,
-            timestamp,
-        ]);
-        const insertStatement = this.db.prepare(
-            `INSERT INTO variant_images (id, variant_id, image_id, sort_order, is_primary, created_at, updated_at)
-             VALUES ${valuesSql}`
-        ).bind(...insertParams);
-
-        await this.db.batch([deleteStatement, insertStatement]);
     }
 
     async setPrimary({ productId, variantId, imageId }) {
@@ -185,20 +183,32 @@ export class VariantImageRepository {
         }
 
         const timestamp = now();
-        const caseSql = requestedImageIds.map(() => 'WHEN ? THEN ?').join(' ');
-        const inSql = requestedImageIds.map(() => '?').join(', ');
-        const params = requestedImageIds.flatMap((imageId, index) => [imageId, index]);
+        const sortRow = await this.db
+            .prepare('SELECT MAX(sort_order) as max_sort_order FROM variant_images WHERE variant_id = ?')
+            .bind(variantId)
+            .first();
+        const tempBase = Number(sortRow?.max_sort_order ?? -1) + imageIds.length + 1;
 
-        await this.db
-            .prepare(
-                `UPDATE variant_images
-                 SET sort_order = CASE image_id ${caseSql} END,
-                     updated_at = ?
-                 WHERE variant_id = ?
-                   AND image_id IN (${inSql})`
-            )
-            .bind(...params, timestamp, variantId, ...requestedImageIds)
-            .run();
+        const statements = imageIds.map((imageId, index) =>
+            this.db
+                .prepare(
+                    `UPDATE variant_images
+                     SET sort_order = ?, updated_at = ?
+                     WHERE variant_id = ? AND image_id = ?`
+                )
+                .bind(tempBase + index, timestamp, variantId, imageId)
+        );
+
+        statements.push(...imageIds.map((imageId, index) =>
+            this.db
+                .prepare(
+                    `UPDATE variant_images
+                     SET sort_order = ?, updated_at = ?
+                     WHERE variant_id = ? AND image_id = ?`
+                )
+                .bind(index, timestamp, variantId, imageId)
+        ));
+        await executeBatchChunks(this.db, statements);
     }
 
     async deleteImage({ productId, variantId, imageId }) {
