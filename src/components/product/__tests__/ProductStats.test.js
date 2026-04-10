@@ -121,4 +121,74 @@ describe('ProductStats', () => {
     expect(text).toContain('2');
     expect(text).toContain('57');
   });
+
+  it('keeps latest filter stats when earlier load resolves late', async () => {
+    let resolveOldFilter;
+    mocks.loadProducts.mockImplementation((params) => {
+      if (params.brand === 'Legacy') {
+        return new Promise((resolve) => {
+          resolveOldFilter = () => {
+            state.products.value = [
+              { id: 'p-old', cost_price: 9, stock_quantity: 1, alert_threshold: 3 },
+            ];
+            state.pagination.page = 1;
+            state.pagination.limit = 1;
+            state.pagination.total = 1;
+            state.pagination.totalPages = 1;
+            resolve(true);
+          };
+        });
+      }
+
+      state.products.value = [
+        { id: 'p-new', cost_price: 5, stock_quantity: 4, alert_threshold: 2 },
+      ];
+      state.pagination.page = 1;
+      state.pagination.limit = 1;
+      state.pagination.total = 1;
+      state.pagination.totalPages = 1;
+      return Promise.resolve(true);
+    });
+
+    const wrapper = mount(ProductStats, {
+      props: {
+        active: true,
+        filters: {
+          brand: 'Legacy',
+        },
+      },
+      global: {
+        stubs: {
+          MetricTile: {
+            props: ['label', 'value', 'meta'],
+            template: `
+              <div class="metric">
+                <div class="label">{{ label }}</div>
+                <div class="value"><slot name="value">{{ value }}</slot></div>
+                <div class="meta">{{ meta }}</div>
+              </div>
+            `,
+          },
+        },
+      },
+    });
+
+    await wrapper.setProps({
+      filters: {
+        brand: 'Current',
+      },
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('20');
+    expect(wrapper.text()).toContain('0');
+
+    resolveOldFilter();
+    await flushPromises();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('20');
+    expect(wrapper.text()).not.toContain('9');
+  });
 });

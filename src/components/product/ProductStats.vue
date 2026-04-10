@@ -53,6 +53,7 @@ const { t } = useI18n();
 const { products, pagination, loadProducts } = useProducts();
 const statsProducts = ref([]);
 const statsTotal = ref(0);
+let statsRequestId = 0;
 
 const STATS_PAGE_LIMIT = 100;
 
@@ -68,30 +69,30 @@ const buildStatsQuery = (page) => ({
   limit: STATS_PAGE_LIMIT,
 });
 
-const loadAllStatsProducts = async () => {
+const loadAllStatsProducts = async (requestId) => {
   const collected = [];
   let page = 1;
+  let nextTotal = 0;
 
   while (true) {
     const ok = await loadProducts(buildStatsQuery(page), true);
-    if (!ok) return;
+    if (requestId !== statsRequestId || !ok) return;
 
     const pageItems = Array.isArray(products.value) ? [...products.value] : [];
     collected.push(...pageItems);
-    statsTotal.value = Number(pagination.total || 0);
+    nextTotal = Number(pagination.total || 0);
     const totalPages = Math.max(1, Number(pagination.totalPages || 1));
 
-    if (page >= totalPages || (statsTotal.value > 0 && collected.length >= statsTotal.value)) {
+    if (page >= totalPages || (nextTotal > 0 && collected.length >= nextTotal)) {
       break;
     }
 
     page += 1;
   }
 
+  if (requestId !== statsRequestId) return;
   statsProducts.value = collected;
-  if (statsTotal.value <= 0) {
-    statsTotal.value = collected.length;
-  }
+  statsTotal.value = nextTotal > 0 ? nextTotal : collected.length;
 };
 
 const totalFormatted = computed(() => {
@@ -119,8 +120,9 @@ watch(
     props.filters?.sortOrder,
   ],
   ([active]) => {
+    const requestId = ++statsRequestId;
     if (!active) return;
-    void loadAllStatsProducts();
+    void loadAllStatsProducts(requestId);
   },
   { immediate: true }
 );
