@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 18 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 19 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -64,6 +64,7 @@
   - `ede9100`: 小程序复制下单预填绑定卡片信息回填
   - `75d4e0e`: 订单解绑后的需求投影释放对齐
   - `4ce3e3d`: 活跃订单改单时的需求投影重平衡
+  - `4b07d31`: 管理端活跃订单商品绑定编辑边界收紧
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -73,6 +74,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 4 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 17 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 19 个测试，全部通过。
+  - 2026-04-10 运行 3 个回归测试文件，共 25 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -90,6 +92,7 @@
 - 销售端商品列表路由注释声明“只返回可售商品”，但实际只按 `status: 'active'` 检索，未附带 `hasStock: 'in_stock'`。结果是销售页和小程序商品选择器会持续展示没有任何可下单规格的商品，用户点进详情后才在二次过滤时收到“暂无可下单规格”，形成可复现的死胡同选择链路。[functions/lib/hono/routes/sales/products.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/sales/products.js#L22) [src/components/product/ProductSelect.vue](/home/bjw/Code/KK-Image/src/components/product/ProductSelect.vue#L142) [minisales/miniprogram/components/sales/product-binding/index.ts](/home/bjw/Code/KK-Image/minisales/miniprogram/components/sales/product-binding/index.ts#L87)
 - 订单解绑商品时，销售端和管理端都会把顶级 `productId/variantId` 更新为 `null`，但随后调用 `DemandService.syncOrderTransition()` 时仍用 `normalizedVariantId ?? order.variantId` 回退旧规格 ID。结果是订单已经解绑，需求/预留投影却继续挂在旧变体上，库存需求无法真正释放，造成订单主记录与需求投影分叉。[functions/lib/hono/routes/sales/orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/sales/orders.js#L335) [functions/lib/hono/routes/manage/orders/detail.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/orders/detail.js#L198)
 - 管理端允许在 `confirmed/production/shipping/arrived` 等需求活跃状态下继续改单，但订单详情更新路由只调用一次 `DemandService.syncOrderTransition()`，而该服务只根据状态迁移决定预留增减。结果是同状态下换绑/解绑规格或改数量时，旧规格预留不会释放、新规格或新数量也不会补齐，`inventory_balances.reserved` 会和订单当前绑定/数量持续漂移。[functions/lib/hono/routes/manage/orders/detail.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/orders/detail.js#L201) [functions/services/DemandService.js](/home/bjw/Code/KK-Image/functions/services/DemandService.js#L86)
+- 管理端订单编辑弹窗和 `PATCH /api/manage/orders/:id` 仍允许对 `confirmed/production/shipping/arrived` 这类活跃订单直接改商品绑定。即便需求投影已经能重平衡，采购进度、收货事实、发货扣减和订单行兼容快照也无法无损迁移到另一商品/规格，最终会让订单头、订单行和履约事实分叉。[src/components/OrderEditModal.vue](/home/bjw/Code/KK-Image/src/components/OrderEditModal.vue#L30) [functions/lib/hono/routes/manage/orders/detail.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/orders/detail.js#L127)
 - 采购链路没有阻止同一个预订单被重复采购。无论是手工 `POST /purchase-orders/:id/items`、前端 `OrderPickerModal`，还是 `createFromOrders()`，都只检查订单 `status === 'confirmed'` 与商品/变体匹配，却没有校验 `procurement_status`、也没有校验该 `pre_order_id` 是否已存在于其他未完成采购单中，导致同一订单可被多个采购单重复拉起，直接放大补货量与在途量。[functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js#L156) [src/components/purchase-order/OrderPickerModal.vue](/home/bjw/Code/KK-Image/src/components/purchase-order/OrderPickerModal.vue#L268) [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js#L373)
 - 批量导入的 `import_mode` 兜底策略不安全。`normalizeImportMode()` 只接受精确的 `safe_merge`，其它任何值都会静默降级成 `replace`；而 `batchImport()` 后续会据此走 `replaceMissing` 和“排除未匹配旧变体”的覆盖分支。结果是只要请求方传错枚举值、大小写或脏数据，就会从预期的安全合并直接切到全覆盖导入，造成已有规格/变体被覆盖或归档。[functions/services/ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L105) [functions/services/ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L733)
 
@@ -308,3 +311,20 @@
   - `functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js`
   - `functions/lib/hono/routes/manage/orders/__tests__/detail-update-demand-sync.test.js`
 - 对应修复提交: `4ce3e3d fix: rebalance demand sync on active order edits`
+
+### 2026-04-10 轮次 25
+
+- 继续深挖管理端活跃订单改单链路，新增 1 个高风险问题:
+  - 管理端仍允许对活跃订单直接改商品绑定；需求投影虽可重平衡，但采购/收货/发货事实和订单行快照无法安全迁移到新绑定
+- 下一步不再继续堆叠迁移补丁，而是把商品绑定编辑边界收紧到非活跃订单。
+
+### 2026-04-10 轮次 26
+
+- 已完成轮次 25 新增问题修复:
+  - 管理端订单更新路由现在只允许 `pending/rejected/void` 订单改商品绑定，活跃订单会直接拒绝绑定编辑请求
+  - 管理端订单编辑弹窗对同类活跃订单也会忽略绑定/解绑操作，避免用户在前端进入无效流程
+- 增量回归:
+  - `functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js`
+  - `functions/lib/hono/routes/manage/orders/__tests__/detail-update-demand-sync.test.js`
+  - `src/components/order/__tests__/OrderEditModal.variant-lock.test.js`
+- 对应修复提交: `4b07d31 fix: restrict active order binding edits`
