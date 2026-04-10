@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 44 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 45 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -90,6 +90,7 @@
   - `8dc71e6`: 销售商品查询状态改为实例隔离并只认最新搜索结果
   - `2014b42`: 商品统计弹窗仅认当前筛选轮次的全量统计结果
   - `1fcdcfc`: 采购商品选择器仅认当前打开轮次与当前搜索结果
+  - `7094210`: 采购订单选择器仅认当前订单详情预览请求
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -125,6 +126,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 19 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 19 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 19 个测试，全部通过。
+  - 2026-04-10 运行 2 个回归测试文件，共 20 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -178,6 +180,7 @@
 - `useSalesProducts` 把 `products/loading/error/meta/lastQuery` 做成了模块级单例，同时销售商品列表请求也没有先后隔离。结果是多个销售商品选择器或商品绑定场景会共用同一份查询状态，彼此搜索会互相覆盖；同一个选择器里快速连续搜索时，旧关键字的慢请求也可能在后返回后覆盖新结果，把下拉列表回跳到过期商品集。[src/composables/useSalesProducts.js](/home/bjw/Code/KK-Image/src/composables/useSalesProducts.js#L1) [src/components/product/ProductSelect.vue](/home/bjw/Code/KK-Image/src/components/product/ProductSelect.vue#L148) [src/components/order/ProductBindingSection.vue](/home/bjw/Code/KK-Image/src/components/order/ProductBindingSection.vue#L287)
 - `ProductStats` 会在统计弹窗打开后随筛选条件反复重跑全量分页统计，但没有隔离整轮统计请求。用户快速切换筛选条件时，旧筛选的慢请求在后返回后仍会把 `statsProducts/statsTotal` 覆盖成过期结果，导致统计弹窗显示上一组筛选的商品总数、低库存数量和库存总值。[src/components/product/ProductStats.vue](/home/bjw/Code/KK-Image/src/components/product/ProductStats.vue#L53) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L92)
 - `ProductPickerModal` 在采购商品选择链路里会随打开弹窗和搜索关键字反复请求 `loadActiveVariants()`，但缺少请求先后与弹窗生命周期隔离。旧搜索或上一次打开弹窗的慢请求在后返回后，仍会把当前变体列表覆盖成过期结果，导致采购选择器显示错批商品并污染当前勾选上下文。[src/components/purchase-order/ProductPickerModal.vue](/home/bjw/Code/KK-Image/src/components/purchase-order/ProductPickerModal.vue#L170) [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue#L975)
+- `OrderPickerModal` 的订单详情预览没有隔离 `getOrder()` 请求先后。用户在采购建单时连续查看两张预订单，或在详情预览中途关闭抽屉后重开另一张订单，旧详情请求返回后仍会覆盖当前 `viewingOrder/detailError/loadingDetail`，导致采购侧看到错误订单详情。[src/components/purchase-order/OrderPickerModal.vue](/home/bjw/Code/KK-Image/src/components/purchase-order/OrderPickerModal.vue#L170) [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue#L2338)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -833,3 +836,19 @@
   - `src/components/purchase-order/__tests__/ProductPickerModal.lifecycle.test.js`
   - `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
 - 对应修复提交: `1fcdcfc fix: isolate purchase product picker loads`
+
+### 2026-04-10 轮次 77
+
+- 继续复查采购订单选择器的详情预览链路，新增 1 个中风险问题:
+  - `OrderPickerModal` 连续切换订单或关闭后重开时，旧的订单详情请求仍会覆盖当前预览抽屉
+- 下一步给订单详情预览和刷新逻辑增加请求序号，并在关闭详情抽屉时废弃旧请求。
+
+### 2026-04-10 轮次 78
+
+- 已完成轮次 77 新增问题修复:
+  - `OrderPickerModal` 现在只认当前订单详情预览请求，连续切换订单时旧详情不会再覆盖当前抽屉
+  - 关闭订单详情抽屉时会同步废弃旧请求，旧详情失败或成功都不会再回写当前状态
+- 增量回归:
+  - `src/components/purchase-order/__tests__/OrderPickerModal.detail-workflow.test.js`
+  - `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
+- 对应修复提交: `7094210 fix: isolate purchase order picker detail loads`
