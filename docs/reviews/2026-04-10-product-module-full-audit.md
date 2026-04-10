@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 21 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 22 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -67,6 +67,7 @@
   - `4b07d31`: 管理端活跃订单商品绑定编辑边界收紧
   - `f6e79f0`: 管理端执行态订单数量编辑边界收紧
   - `76e51ee`: 订单绑定规格镜像字段后端兜底对齐
+  - `41d5e35`: 管理端订单销售员改派闭环
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -79,6 +80,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 25 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 27 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 22 个测试，全部通过。
+  - 2026-04-10 运行 4 个回归测试文件，共 44 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -106,6 +108,7 @@
 - `PUT /api/manage/products/:id` 标记为“Full Update / product.replace”，但当请求同时替换变体而省略 `dimensions` 时，服务层会静默回退到现有规格定义，不会执行缺失规格归档，也不会要求调用方显式声明“保留还是清空规格”。结果是 `PUT` 在规格维度上退化成部分更新，和同接口已实现的“全量替换会归档缺失规格/规格值”语义不一致，外部调用方容易在无感知下保留旧规格数据。[functions/services/ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L595) [functions/lib/hono/routes/manage/products/[id].js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/[id].js#L475)
 - 小程序销售商品绑定组件在构造已绑定商品字段时，只从 `options.color/material` 这两个固定键取值；而销售商品详情返回的 `optionsValues` 常常使用维度 id 或原始维度名。结果是绑定带颜色/材质规格的商品后，小程序表单里的 `color/material` 经常保持为空，同时 `size` 又把所有规格值混在一起，和 PC 销售端按维度标签拆分字段的行为不一致，导致订单镜像字段质量下降。[minisales/miniprogram/components/sales/product-binding/index.ts](/home/bjw/Code/KK-Image/minisales/miniprogram/components/sales/product-binding/index.ts#L35) [src/views/sales/SalesFormView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesFormView.vue#L118)
 - 管理端/销售端后端在创建或改绑订单商品时，没有根据已校验的 `variantId` 反推 `size/color/material` 等镜像字段，而是直接信任请求体。结果是只要绕过 PC/小程序前端，订单可以绑定到正确规格，却同时写入空白或错误的规格摘要，造成订单详情、打印单和人工履约视图展示错规格。[functions/lib/hono/routes/sales/orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/sales/orders.js#L82) [functions/lib/hono/routes/manage/orders/detail.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/orders/detail.js#L148) [functions/lib/hono/routes/manage/orders/create-order.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/orders/create-order.js#L20)
+- 管理端订单编辑弹窗允许改派销售员，但 `PATCH /api/manage/orders/:id` 只把 `salespersonId` 留在 `updates` 里，既没有把它当成顶级列变更传入 `processOrderUpdate()`，仓储层 `updateComposite()` 也不会写回 `orders.salesperson_id`。结果是前端显示“保存成功”，实际订单仍留在旧销售员名下，形成可复现的假成功改派。[src/components/OrderEditModal.vue](/home/bjw/Code/KK-Image/src/components/OrderEditModal.vue#L527) [functions/lib/hono/routes/manage/orders/detail.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/orders/detail.js#L190) [functions/repositories/order/mutations.js](/home/bjw/Code/KK-Image/functions/repositories/order/mutations.js#L482)
 - 管理端 `/api/manage/products/export` 路由实现与当前前端导出链路语义不一致：它始终忽略筛选条件、仅导出商品汇总字段、不导出变体级字段，并在后台异常时把错误文本直接写进 CSV 流返回 `200`，不利于调用方准确识别失败。[functions/lib/hono/routes/manage/products/export.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/export.js#L7)
 - `ProductBindingSection.handleProductSelect()` 只要商品详情里存在任意变体就直接发出 `product-fetch-success`，即使在当前策略下所有变体都不可选、`initSelectionFromVariants()` 已经把 `selectedVariantId` 留空。销售页收到这个成功事件后会清空错误提示，但并未真正绑定商品，最终形成“选了商品却没有可售变体、页面也不报错”的假成功状态。[src/components/order/ProductBindingSection.vue](/home/bjw/Code/KK-Image/src/components/order/ProductBindingSection.vue#L601) [src/views/sales/SalesFormView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesFormView.vue#L9)
 - 空间商品绑定接口在创建和更新时调用 `validateProductVariantBinding(..., { checkExistence: false })`，只校验 `productId/variantId` 是否成对出现，不校验商品是否存在、变体是否属于商品，也不校验是否仍然有效。结果是后台可以写入任意伪造的商品/变体关联，后续空间列表、详情和销售端空间消费只能得到空 JOIN 或陈旧映射。[functions/lib/hono/routes/manage/spaces/crud.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/crud.js#L162) [functions/lib/hono/routes/manage/spaces/crud.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/crud.js#L250) [functions/api/utils/validation.js](/home/bjw/Code/KK-Image/functions/api/utils/validation.js#L25)
@@ -367,3 +370,21 @@
   - `functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js`
   - `functions/lib/hono/routes/manage/orders/__tests__/detail-update-demand-sync.test.js`
 - 对应修复提交: `76e51ee fix: sync order binding snapshot fields`
+
+### 2026-04-10 轮次 31
+
+- 继续复查管理端订单编辑契约，新增 1 个中风险问题:
+  - 管理端弹窗允许改派销售员，但后端更新流程没有真正持久化 `salesperson_id`，导致改派“假成功”
+- 下一步把销售员改派纳入订单顶级列变更闭环，并补仓储层回归。
+
+### 2026-04-10 轮次 32
+
+- 已完成轮次 31 新增问题修复:
+  - 管理端订单更新路由现在会把 `salespersonId` 作为独立顶级列变更传入更新流程
+  - `processOrderUpdate()` 与 `updateComposite()` 现已支持 `salesperson_id` 持久化，改派后的域事件也会携带新销售员
+- 增量回归:
+  - `functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js`
+  - `functions/lib/hono/routes/manage/orders/__tests__/detail-update-demand-sync.test.js`
+  - `functions/repositories/__tests__/order-mutations.test.js`
+  - `src/components/order/__tests__/OrderEditModal.variant-lock.test.js`
+- 对应修复提交: `41d5e35 fix: persist order salesperson reassignment`
