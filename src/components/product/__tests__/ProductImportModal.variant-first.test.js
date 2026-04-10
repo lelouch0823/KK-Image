@@ -104,6 +104,56 @@ describe('ProductImportModal Variant-First Payload', () => {
         expect(emptySpuProducts[1].variants).toHaveLength(1);
     });
 
+    it('discards pending import results after modal closes', async () => {
+        let resolveImport;
+        mocks.importProducts.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolveImport = resolve;
+                })
+        );
+
+        const wrapper = mount(ProductImportModal, {
+            global: {
+                stubs: {
+                    Modal: { template: '<div><slot></slot><slot name="footer"></slot></div>' },
+                    AppIcon: true,
+                    ImportUploadStep: true,
+                    ImportMappingStep: true,
+                    ImportImageMatchStep: true,
+                    ImportPreviewStep: true
+                }
+            },
+            props: {
+                modelValue: true
+            }
+        });
+
+        wrapper.vm.currentStep = 4;
+        wrapper.vm.parsedItems = [
+            {
+                name: 'T恤',
+                spu: 'SPU-1001',
+                sku: 'SKU-RED',
+                price: 100
+            }
+        ];
+
+        const pending = wrapper.vm.handleImport();
+        await Promise.resolve();
+        expect(wrapper.vm.loading).toBe(true);
+
+        await wrapper.setProps({ modelValue: false });
+        await wrapper.vm.$nextTick();
+
+        resolveImport({ success: true, count: 1 });
+        await pending;
+
+        expect(wrapper.emitted('success')).toBeUndefined();
+        expect(wrapper.vm.importResult).toBe(null);
+        expect(wrapper.vm.currentStep).toBe(1);
+    });
+
     it('builds grouped product payload with currency and derived dimensions', async () => {
         const wrapper = mount(ProductImportModal, {
             global: {

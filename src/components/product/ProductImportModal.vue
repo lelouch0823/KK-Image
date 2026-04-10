@@ -117,7 +117,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
 import * as XLSX from 'xlsx';
@@ -134,7 +134,7 @@ import ImportImageMatchStep from '@/components/product/import/ImportImageMatchSt
 import ImportPreviewStep from '@/components/product/import/ImportPreviewStep.vue';
 import { extractInternalCodes, getItemMatchKey } from '@/components/product/import/match-keys.js';
 
-defineProps({
+const props = defineProps({
     modelValue: {
         type: Boolean,
         default: false
@@ -160,6 +160,7 @@ const mappingValidationReport = ref(null);
 const loading = ref(false);
 const importError = ref(null);
 const importResult = ref(null);
+let importRequestId = 0;
 
 // -- state for mapping --
 const currentStep = ref(1); // 1: Upload, 3: Mapping, 4: Preview
@@ -339,6 +340,7 @@ const isMeaningfulRow = (item) => {
 
 const resetFile = () => {
     fileName.value = '';
+    fileSize.value = '';
     parsedItems.value = [];
     preprocessStats.value = createPreprocessStats();
     mappingValidationReport.value = null;
@@ -349,8 +351,22 @@ const resetFile = () => {
     importMode.value = 'safe_merge';
     importError.value = null;
     importResult.value = null;
+    loading.value = false;
     currentStep.value = 1;
 };
+
+const invalidateImportRequest = () => {
+    importRequestId += 1;
+};
+
+const isImportRequestActive = (requestId) => requestId === importRequestId && props.modelValue;
+
+watch(() => props.modelValue, (visible) => {
+    if (!visible) {
+        invalidateImportRequest();
+        resetFile();
+    }
+});
 
 // --- Parsers ---
 const processFile = async (file) => {
@@ -740,6 +756,7 @@ const _importStats = ref({
 
 const handleImport = async () => {
     if (!parsedItems.value.length) return;
+    const requestId = ++importRequestId;
     
     loading.value = true;
     importError.value = null;
@@ -832,6 +849,7 @@ const handleImport = async () => {
             
             try {
                 const result = await importProducts(chunk, { importMode: importMode.value });
+                if (!isImportRequestActive(requestId)) return;
                 if (result.success) {
                     _importStats.value.success += toFiniteCount(result.count, chunk.length);
                     if (result.summary) {
@@ -856,6 +874,7 @@ const handleImport = async () => {
                     console.error(errorMsg, result);
                 }
             } catch (e) {
+                if (!isImportRequestActive(requestId)) return;
                 _importStats.value.failed += chunk.length;
                 const errorMsg = `Batch ${i+1} Exception: ${e.message}`;
                 _importStats.value.errors.push(errorMsg);
@@ -866,6 +885,7 @@ const handleImport = async () => {
         }
 
         // Final result construction
+        if (!isImportRequestActive(requestId)) return;
         const hasSuccess = _importStats.value.success > 0;
         importResult.value = {
             success: hasSuccess,
@@ -899,9 +919,12 @@ const handleImport = async () => {
         }
 
     } catch (e) {
+        if (!isImportRequestActive(requestId)) return;
         importError.value = e.message;
     } finally {
-        loading.value = false;
+        if (requestId === importRequestId) {
+            loading.value = false;
+        }
     }
 };
 </script>
