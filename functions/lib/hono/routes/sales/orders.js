@@ -14,6 +14,7 @@ import { DomainOutboxPublisher } from '../../../../services/DomainOutboxPublishe
 import { runOutboxPoller } from '../../../../api/cron/outbox.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 import { syncOrderDemandTransitions } from '../../../../api/utils/order-demand-sync.js';
+import { buildOrderBindingSnapshot } from '../../../../api/utils/order-binding-snapshot.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -82,9 +83,22 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
     const orderNo = generateOrderNo();
     const variantId = data.variantId ?? null;
 
-    await validateProductVariantBinding(env.DB, data.productId || null, variantId, {
+    const binding = await validateProductVariantBinding(env.DB, data.productId || null, variantId, {
         checkActive: true,
         variantSelectPolicy: 'in_stock_only',
+    });
+    const boundSnapshot = buildOrderBindingSnapshot({
+        product: binding.product,
+        variant: binding.variant,
+        fallback: {
+            name: data.name,
+            brand: data.brand,
+            series: data.series,
+            sku: data.sku,
+            size: data.size,
+            color: data.color,
+            material: data.material,
+        },
     });
 
     // 1. 创建订单（事务）
@@ -93,15 +107,15 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
         orderNo,
         salespersonId: salesperson.id,
         data: {
-            name: data.name,
-            size: data.size,
-            color: data.color,
-            material: data.material,
+            name: boundSnapshot.name,
+            size: boundSnapshot.size,
+            color: boundSnapshot.color,
+            material: boundSnapshot.material,
             remark: data.remark,
             deadline: data.deadline,
-            brand: data.brand,
-            series: data.series,
-            sku: data.sku,
+            brand: boundSnapshot.brand,
+            series: boundSnapshot.series,
+            sku: boundSnapshot.sku,
         },
         quantity: data.quantity,
         mainImageId: data.fileIds[0] || null,
@@ -298,6 +312,18 @@ app.patch('/:id', async (c) => {
             variantSelectPolicy: 'in_stock_only',
         });
         normalizedVariantId = binding.normalizedVariantId;
+        const boundSnapshot = buildOrderBindingSnapshot({
+            product: binding.product,
+            variant: binding.variant,
+            fallback: updates,
+        });
+        updates.name = boundSnapshot.name;
+        updates.brand = boundSnapshot.brand;
+        updates.series = boundSnapshot.series;
+        updates.sku = boundSnapshot.sku;
+        updates.size = boundSnapshot.size;
+        updates.color = boundSnapshot.color;
+        updates.material = boundSnapshot.material;
     }
 
     // 销售端允许修改的字段

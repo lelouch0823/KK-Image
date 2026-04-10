@@ -18,6 +18,7 @@ import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPubli
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { publishSingleDomainEventAndPoll } from '../../../_shared/domain-outbox.js';
 import { syncOrderDemandTransitions } from '../../../../../api/utils/order-demand-sync.js';
+import { buildOrderBindingSnapshot } from '../../../../../api/utils/order-binding-snapshot.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -147,9 +148,18 @@ app.patch('/:id', async (c) => {
     if (hasBindingMutation) {
         validatedBinding = await validateProductVariantBinding(env.DB, effectiveProductId, normalizedVariantId, { checkActive: true });
         normalizedVariantId = validatedBinding.normalizedVariantId;
-        if (validatedBinding.variant) {
-            finalUpdates.sku = validatedBinding.variant.sku;
-        }
+        const boundSnapshot = buildOrderBindingSnapshot({
+            product: validatedBinding.product,
+            variant: validatedBinding.variant,
+            fallback: finalUpdates,
+        });
+        finalUpdates.name = boundSnapshot.name;
+        finalUpdates.brand = boundSnapshot.brand;
+        finalUpdates.series = boundSnapshot.series;
+        finalUpdates.sku = boundSnapshot.sku;
+        finalUpdates.size = boundSnapshot.size;
+        finalUpdates.color = boundSnapshot.color;
+        finalUpdates.material = boundSnapshot.material;
     }
 
     if (effectiveProductId) {
@@ -164,10 +174,6 @@ app.patch('/:id', async (c) => {
             finalUpdates.name = product.name;
             finalUpdates.brand = product.brand;
             finalUpdates.series = product.series;
-            // 可以在此同步更多字段，如 material
-            if (product.specifications?.material) {
-                finalUpdates.material = product.specifications.material;
-            }
         }
     }
 

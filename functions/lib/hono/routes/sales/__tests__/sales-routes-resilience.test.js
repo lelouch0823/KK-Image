@@ -324,6 +324,64 @@ describe('sales routes resilience', () => {
     expect(mocks.orderCreate).not.toHaveBeenCalled();
   });
 
+  it('hydrates binding snapshot fields from variant options during salesperson create', async () => {
+    mocks.productVariantFindByIdAndProductId.mockResolvedValue({
+      id: 'v-1',
+      product_id: 'p-1',
+      status: 'active',
+      sku: 'SKU-RED-M',
+      available_quantity: 8,
+      options_values: {
+        'dim-color': 'Red',
+        'dim-material': 'Cotton',
+        'dim-size': 'M',
+      },
+    });
+    mocks.productFindById.mockResolvedValue({
+      id: 'p-1',
+      status: 'active',
+      name: 'Hydrated Tee',
+      brand: 'ACME',
+      series: 'S1',
+      images: '[]',
+      dimension_map: {
+        'dim-color': 'Color',
+        'dim-material': 'Material',
+        'dim-size': 'Size',
+      },
+    });
+
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Placeholder',
+          quantity: 1,
+          productId: 'p-1',
+          variantId: 'v-1',
+          fileIds: [],
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.orderCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sku: 'SKU-RED-M',
+          color: 'Red',
+          material: 'Cotton',
+          size: 'Size: M',
+        }),
+      })
+    );
+  });
+
   it('sales products endpoints return stable schema under empty/error', async () => {
     const app = createProductsTestApp();
 

@@ -260,4 +260,71 @@ describe('manage order detail update demand sync', () => {
     expect(mocks.processOrderUpdate).not.toHaveBeenCalled();
     expect(mocks.demandSyncOrderTransition).not.toHaveBeenCalled();
   });
+
+  it('hydrates binding snapshot fields from variant options during admin rebind', async () => {
+    mocks.orderFindById.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      quantity: 1,
+      variantId: null,
+      productId: null,
+      salespersonId: 'sp-1',
+      currentData: { name: 'A' },
+    });
+    mocks.validateProductVariantBinding.mockResolvedValue({
+      product: {
+        id: 'p-1',
+        status: 'active',
+        name: 'Hydrated Tee',
+        brand: 'ACME',
+        series: 'S1',
+        dimension_map: {
+          'dim-color': 'Color',
+          'dim-material': 'Material',
+          'dim-size': 'Size',
+        },
+      },
+      variant: {
+        id: 'v-1',
+        sku: 'SKU-RED-M',
+        options_values: {
+          'dim-color': 'Red',
+          'dim-material': 'Cotton',
+          'dim-size': 'M',
+        },
+      },
+      normalizedProductId: 'p-1',
+      normalizedVariantId: 'v-1',
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/o-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: 'bind hydrated variant',
+          productId: 'p-1',
+          variantId: 'v-1',
+          updates: { remark: 'manual order now' },
+        }),
+      },
+      { DB: { prepare: vi.fn() }, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.processOrderUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        updates: expect.objectContaining({
+          sku: 'SKU-RED-M',
+          color: 'Red',
+          material: 'Cotton',
+          size: 'Size: M',
+        }),
+      })
+    );
+  });
 });

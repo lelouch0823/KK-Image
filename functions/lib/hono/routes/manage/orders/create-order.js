@@ -7,6 +7,7 @@ import { BadRequestError } from '../../../errors.js';
 import { DemandService } from '../../../../../services/DemandService.js';
 import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
+import { buildOrderBindingSnapshot } from '../../../../../api/utils/order-binding-snapshot.js';
 
 export async function createManagedOrder(c, body, user = c.get('user')) {
   const { env } = c;
@@ -19,7 +20,20 @@ export async function createManagedOrder(c, body, user = c.get('user')) {
   const orderId = generateId();
   const orderNo = generateOrderNo();
   const variantId = body.variantId ?? null;
-  await validateProductVariantBinding(env.DB, body.productId || null, variantId, { checkActive: true });
+  const binding = await validateProductVariantBinding(env.DB, body.productId || null, variantId, { checkActive: true });
+  const boundSnapshot = buildOrderBindingSnapshot({
+    product: binding.product,
+    variant: binding.variant,
+    fallback: {
+      name: body.productName,
+      brand: body.brand,
+      series: body.series,
+      sku: body.sku,
+      size: body.size,
+      color: body.color,
+      material: body.material,
+    },
+  });
 
   if (body.status && !ORDER_STATUSES.includes(body.status)) {
     throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
@@ -30,13 +44,13 @@ export async function createManagedOrder(c, body, user = c.get('user')) {
     orderNo,
     salespersonId: body.salespersonId,
     data: {
-      name: body.productName,
-      brand: body.brand || '',
-      series: body.series || '',
-      sku: body.sku || '',
-      size: body.size || '',
-      color: body.color || '',
-      material: body.material || '',
+      name: boundSnapshot.name,
+      brand: boundSnapshot.brand,
+      series: boundSnapshot.series,
+      sku: boundSnapshot.sku,
+      size: boundSnapshot.size,
+      color: boundSnapshot.color,
+      material: boundSnapshot.material,
       remark: body.remark || '',
       deadline: body.deadline || '',
     },
