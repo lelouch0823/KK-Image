@@ -387,6 +387,7 @@ const {
 } = useProductForm({
   editMode: toRef(props, 'editMode'),
   initialData: toRef(props, 'initialData'),
+  modelValue: toRef(props, 'modelValue'),
   emit,
 });
 

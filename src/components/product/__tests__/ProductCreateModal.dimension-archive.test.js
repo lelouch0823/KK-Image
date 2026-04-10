@@ -177,4 +177,31 @@ describe('ProductCreateModal dimension archive mode', () => {
             }),
         ]);
     });
+
+    it('does not open dimension archive wizard after modal closes during impact preview', async () => {
+        let resolveImpact;
+        mocks.previewDimensionImpact.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveImpact = resolve;
+                })
+        );
+
+        const wrapper = createWrapper();
+        wrapper.vm.form.options = [{ id: 'dim-color', name: 'Color', values: ['Red'], inputValue: '' }];
+
+        const pending = wrapper.vm.removeOption(0);
+        await Promise.resolve();
+
+        await wrapper.setProps({ modelValue: false });
+        await wrapper.vm.$nextTick();
+
+        resolveImpact({
+            success: true,
+            data: { affectedVariantsCount: 3, sampleVariants: [] },
+        });
+        await pending;
+
+        expect(wrapper.vm.dimensionArchiveWizard.open).toBe(false);
+    });
 });

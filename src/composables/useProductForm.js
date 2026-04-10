@@ -1,5 +1,5 @@
 // useProductForm — ProductCreateModal 的表单状态与逻辑层
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
@@ -231,8 +231,9 @@ function normalizeVariantOptionKeysToNames(variant, dimensionNameLookup = {}) {
  * @param {import('vue').Ref<boolean>} options.editMode - 是否为编辑模式
  * @param {import('vue').Ref<object>} options.initialData - 初始数据（编辑时使用）
  * @param {function} options.emit - 父组件 emit 函数
+ * @param {import('vue').Ref<boolean>} [options.modelValue] - 弹窗打开状态
  */
-export function useProductForm({ editMode, initialData, emit }) {
+export function useProductForm({ editMode, initialData, modelValue = null, emit }) {
   const { t } = useI18n();
   const { addToast } = useToast();
   const {
@@ -277,6 +278,7 @@ export function useProductForm({ editMode, initialData, emit }) {
     sampleVariants: [],
     loading: false,
   });
+  let asyncActionRequestId = 0;
 
   // ——— 图片与变体 key 种子 ———
   const imageObjects = ref([]);
@@ -351,6 +353,48 @@ export function useProductForm({ editMode, initialData, emit }) {
       `There are ${incompleteVariantCount.value} legacy variants that no longer match the current specs. Remove/archive them before saving.`
     )
   );
+
+  const resetArchiveWizards = () => {
+    dimensionArchiveWizard.open = false;
+    dimensionArchiveWizard.step = 1;
+    dimensionArchiveWizard.optionIndex = -1;
+    dimensionArchiveWizard.optionId = '';
+    dimensionArchiveWizard.affectedVariantsCount = 0;
+    dimensionArchiveWizard.sampleVariants = [];
+    dimensionArchiveWizard.mode = 'archive_variants';
+    dimensionArchiveWizard.loading = false;
+
+    valueArchiveWizard.open = false;
+    valueArchiveWizard.optionIndex = -1;
+    valueArchiveWizard.valueIndex = -1;
+    valueArchiveWizard.valueId = '';
+    valueArchiveWizard.valueLabel = '';
+    valueArchiveWizard.affectedVariantsCount = 0;
+    valueArchiveWizard.sampleVariants = [];
+    valueArchiveWizard.loading = false;
+  };
+
+  const invalidateAsyncActions = () => {
+    asyncActionRequestId += 1;
+    resetArchiveWizards();
+  };
+
+  const isAsyncActionActive = (requestId) =>
+    requestId === asyncActionRequestId && (!modelValue || modelValue.value !== false);
+
+  if (modelValue) {
+    watch(
+      [modelValue, () => initialData.value?.id],
+      ([isOpen]) => {
+        if (!isOpen) {
+          invalidateAsyncActions();
+          return;
+        }
+        asyncActionRequestId += 1;
+      },
+      { immediate: true }
+    );
+  }
 
   // ——— 表单初始化 ———
   function fillFormFromData(data) {
@@ -537,10 +581,12 @@ export function useProductForm({ editMode, initialData, emit }) {
     const option = form.options[idx];
     if (!option) return;
     if (editMode.value && option.id && initialData.value?.id) {
+      const requestId = ++asyncActionRequestId;
       const impact = await previewDimensionImpact(initialData.value.id, {
         action: 'archive_dimension',
         dimensionId: option.id,
       });
+      if (!isAsyncActionActive(requestId)) return;
       dimensionArchiveWizard.open = true;
       dimensionArchiveWizard.optionIndex = idx;
       dimensionArchiveWizard.optionId = option.id;
@@ -596,10 +642,12 @@ export function useProductForm({ editMode, initialData, emit }) {
     if (editMode.value && opt.id && initialData.value?.id && value) {
       const valueMeta = findTrackedValueMeta(opt.id, value);
       if (valueMeta?.id) {
+        const requestId = ++asyncActionRequestId;
         const impact = await previewDimensionImpact(initialData.value.id, {
           action: 'archive_value',
           valueId: valueMeta.id,
         });
+        if (!isAsyncActionActive(requestId)) return;
         valueArchiveWizard.open = true;
         valueArchiveWizard.optionIndex = form.options.indexOf(opt);
         valueArchiveWizard.valueIndex = vIdx;
@@ -622,7 +670,9 @@ export function useProductForm({ editMode, initialData, emit }) {
     if (!value) return;
 
     if (editMode.value && opt.id && initialData.value?.id && valueId) {
+      const requestId = ++asyncActionRequestId;
       const response = await restoreDimensionValue(initialData.value.id, valueId);
+      if (!isAsyncActionActive(requestId)) return;
       if (!response?.success) {
         addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
         return;
@@ -656,11 +706,13 @@ export function useProductForm({ editMode, initialData, emit }) {
 
   const confirmDimensionArchive = async () => {
     if (!initialData.value?.id || !dimensionArchiveWizard.optionId) return;
+    const requestId = ++asyncActionRequestId;
     dimensionArchiveWizard.loading = true;
     try {
       const response = await archiveDimension(initialData.value.id, dimensionArchiveWizard.optionId, {
         mode: dimensionArchiveWizard.mode,
       });
+      if (!isAsyncActionActive(requestId)) return;
       if (!response?.success) {
         addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
         return;
@@ -694,7 +746,9 @@ export function useProductForm({ editMode, initialData, emit }) {
       }
       closeDimensionArchiveWizard(true);
     } finally {
-      dimensionArchiveWizard.loading = false;
+      if (requestId === asyncActionRequestId) {
+        dimensionArchiveWizard.loading = false;
+      }
     }
   };
 
@@ -712,9 +766,11 @@ export function useProductForm({ editMode, initialData, emit }) {
 
   const confirmValueArchive = async () => {
     if (!initialData.value?.id || !valueArchiveWizard.valueId) return;
+    const requestId = ++asyncActionRequestId;
     valueArchiveWizard.loading = true;
     try {
       const response = await archiveDimensionValue(initialData.value.id, valueArchiveWizard.valueId);
+      if (!isAsyncActionActive(requestId)) return;
       if (!response?.success) {
         addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
         return;
@@ -742,7 +798,9 @@ export function useProductForm({ editMode, initialData, emit }) {
       }
       closeValueArchiveWizard(true);
     } finally {
-      valueArchiveWizard.loading = false;
+      if (requestId === asyncActionRequestId) {
+        valueArchiveWizard.loading = false;
+      }
     }
   };
 
