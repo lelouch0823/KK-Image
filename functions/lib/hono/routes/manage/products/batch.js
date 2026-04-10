@@ -20,14 +20,21 @@ app.post('/', async (c) => {
     const service = new ProductCatalogService(c.env.DB);
     const body = await c.req.json();
     const result = await service.batchImport(c, body);
+    const summary = result?.summary || {};
     scheduleAuditEvent(c, {
         domain: 'products',
         action: 'product.batch_import',
-        result: 'success',
+        result: result?.success ? 'success' : 'failure',
         severity: 'high',
         targetType: 'product',
         summary: 'Batch imported products',
-        metadata: { imported: result?.imported ?? null, created: result?.created ?? null, updated: result?.updated ?? null },
+        metadata: {
+            imported: result?.count ?? 0,
+            created: summary.createdProducts ?? 0,
+            updated: summary.updatedProducts ?? 0,
+            failed: summary.failedProducts ?? 0,
+            conflicts: summary.conflicts ?? 0,
+        },
     });
     return c.json(result);
 });
