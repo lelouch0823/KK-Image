@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 58 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 59 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -104,6 +104,7 @@
   - `c07defb`: 销售通知模式会跟随最新 token 切换，并阻断旧通知请求回写
   - `629bb8f`: 销售入口页认证只认当前 token 的最新认证结果
   - `b1f09a2`: 管理端挂载时会重置通知模式回 admin，并清空旧销售通知状态
+  - `4e936a8`: 销售订单列表搜索改为走服务端查询并支持当前搜索结果分页
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -134,6 +135,7 @@
   - 2026-04-10 运行 7 个回归测试文件，共 10 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 10 个测试，全部通过。
   - 2026-04-10 运行 5 个回归测试文件，共 9 个测试，全部通过。
+  - 2026-04-10 运行 6 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -220,6 +222,7 @@
 - 销售端通知链路同时存在两个生命周期空洞：`Sales.vue` 只在首次挂载后调用一次 `setSalesMode(accessToken)`，route token 切换后不会把通知模式切到新 token；同时 `useNotifications.fetchNotifications()` 也没有隔离请求先后，旧 token/旧模式的慢请求会在后返回后覆盖当前通知列表与未读数。[src/views/Sales.vue](/home/bjw/Code/KK-Image/src/views/Sales.vue#L292) [src/composables/useNotifications.js](/home/bjw/Code/KK-Image/src/composables/useNotifications.js#L66)
 - `Sales.vue` 的 `checkAuth()/handleLogin()` 也没有隔离 token 维度的认证请求先后。销售入口页如果在旧 token 的认证尚未完成时切到新 token，旧认证结果返回后仍会把当前页面的 `isAuthenticated/salesperson` 写成上一位销售，造成销售身份和当前 token 对不上。[src/views/Sales.vue](/home/bjw/Code/KK-Image/src/views/Sales.vue#L292)
 - 通知中心的管理端回切链路也不完整：`Header` 挂载时没有显式调用 `setAdminMode()`，而 `useNotifications.setAdminMode()` 本身也不会清空旧销售通知状态。结果是从销售端回到管理端时，Header 首轮轮询仍可能继续打旧销售 token，页面也会短暂显示旧销售通知与未读数。[src/components/layout/Header.vue](/home/bjw/Code/KK-Image/src/components/layout/Header.vue#L183) [src/composables/useNotifications.js](/home/bjw/Code/KK-Image/src/composables/useNotifications.js#L42)
+- 销售订单列表页的搜索没有接入后端查询。`SalesListView` 只是对当前已加载订单做本地过滤，并在搜索时直接禁用无限滚动；而销售端订单 API 与 `useOrders.loadSalesOrders()` 本身都支持 `search`。结果是未加载到本地的历史订单永远搜不到，销售搜索链路在业务上不闭环。[src/views/sales/SalesListView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesListView.vue#L67) [src/views/Sales.vue](/home/bjw/Code/KK-Image/src/views/Sales.vue#L222) [src/composables/useOrders.js](/home/bjw/Code/KK-Image/src/composables/useOrders.js#L338)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -1131,3 +1134,23 @@
   - `src/views/__tests__/Sales.notification-mode.test.js`
   - `src/components/order/__tests__/SalesNotificationList.error-state.test.js`
 - 对应修复提交: `b1f09a2 fix: reset admin notification mode`
+
+### 2026-04-10 轮次 105
+
+- 继续复查销售订单列表搜索链路，新增 1 个中风险问题:
+  - `SalesListView` 搜索只在前端过滤当前已加载页，并在搜索时禁用后续分页，导致未加载到本地的历史订单永远搜不到
+- 下一步把搜索词透传到销售订单 API，并让当前搜索结果继续支持分页加载。
+
+### 2026-04-10 轮次 106
+
+- 已完成轮次 105 新增问题修复:
+  - 销售订单列表搜索现在会透传到 `Sales.vue -> useOrders -> sales API` 链路，搜索结果改为走服务端查询
+  - 当前搜索结果仍支持后续分页加载，销售端历史订单不再因为“未先滚到那一页”而搜不到
+- 增量回归:
+  - `src/views/sales/__tests__/SalesListView.search-contract.test.js`
+  - `src/components/order/__tests__/sales-a11y.test.js`
+  - `src/views/__tests__/Sales.notification-mode.test.js`
+  - `src/views/sales/__tests__/SalesSpacesView.lifecycle.test.js`
+  - `src/components/order/__tests__/SalesStats.lifecycle.test.js`
+  - `src/views/__tests__/SalesDetailView.lifecycle.test.js`
+- 对应修复提交: `4e936a8 fix: route sales list search through api`
