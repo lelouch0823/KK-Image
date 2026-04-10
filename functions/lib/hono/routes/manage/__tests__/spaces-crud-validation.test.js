@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   findById: vi.fn(),
   update: vi.fn(),
+  productFindById: vi.fn(),
+  variantFindByIdAndProductId: vi.fn(),
 }));
 
 vi.mock('../../../../../repositories/SpaceRepository.js', () => ({
@@ -12,6 +14,18 @@ vi.mock('../../../../../repositories/SpaceRepository.js', () => ({
     create: mocks.create,
     findById: mocks.findById,
     update: mocks.update,
+  })),
+}));
+
+vi.mock('../../../../../repositories/ProductRepository.js', () => ({
+  ProductRepository: vi.fn(() => ({
+    findById: mocks.productFindById,
+  })),
+}));
+
+vi.mock('../../../../../repositories/ProductVariantRepository.js', () => ({
+  ProductVariantRepository: vi.fn(() => ({
+    findByIdAndProductId: mocks.variantFindByIdAndProductId,
   })),
 }));
 
@@ -63,6 +77,8 @@ describe('manage spaces crud validation', () => {
       is_public: 0,
       password: null,
     });
+    mocks.productFindById.mockResolvedValue({ id: 'p-1', status: 'active' });
+    mocks.variantFindByIdAndProductId.mockResolvedValue({ id: 'v-1', product_id: 'p-1', status: 'active' });
   });
 
   it('rejects create when productId is provided without variantId', async () => {
@@ -101,6 +117,59 @@ describe('manage spaces crud validation', () => {
     );
 
     expect(res.status).toBe(400);
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects create when bound product does not exist', async () => {
+    mocks.productFindById.mockResolvedValueOnce(null);
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/spaces',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Space A',
+          productId: 'p-missing',
+          variantId: 'v-1',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain('productId does not exist');
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects patch when variant does not belong to bound product', async () => {
+    mocks.variantFindByIdAndProductId.mockResolvedValueOnce(null);
+    mocks.findById.mockResolvedValueOnce({
+      id: 'sp-1',
+      parent_id: null,
+      product_id: 'p-1',
+      variant_id: 'v-1',
+    });
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/spaces/sp-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: 'p-1',
+          variantId: 'v-missing',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain('variantId does not belong to productId');
     expect(mocks.update).not.toHaveBeenCalled();
   });
 });

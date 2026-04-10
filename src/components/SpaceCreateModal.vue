@@ -157,6 +157,7 @@ const form = ref({
   description: '',
   template: props.initialProduct ? 'product' : 'gallery',
   productId: props.initialProduct ? props.initialProduct.id : null,
+  variantId: null,
   shareMode: 'none',
   sharedSalespersonIds: [],
   templateData: {
@@ -232,6 +233,7 @@ const handleProductSelect = (product) => {
 const unbindProduct = () => {
   boundProduct.value = null;
   form.value.productId = null;
+  form.value.variantId = null;
 };
 
 const handleSubmit = async () => {

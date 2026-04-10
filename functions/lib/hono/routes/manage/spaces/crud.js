@@ -189,7 +189,8 @@ crud.post(
       createdAt: nowMs,
       updatedAt: nowMs,
     };
-    await validateProductVariantBinding(env.DB, newSpace.productId, newSpace.variantId, { checkExistence: false });
+    // Spaces may keep referencing archived catalog entries, but new writes must still point to real entities.
+    await validateProductVariantBinding(env.DB, newSpace.productId, newSpace.variantId);
 
     await repo.create(newSpace);
     await invalidateSpaceCaches(c, {
@@ -259,7 +260,8 @@ crud.on(
     appendOptionalUpdate(updates, values, 'variant_id = ?', data.variantId, (value) => value || null);
     const nextProductId = data.productId !== undefined ? (data.productId || null) : (space.product_id || null);
     const nextVariantId = data.variantId !== undefined ? (data.variantId || null) : (space.variant_id || null);
-    await validateProductVariantBinding(env.DB, nextProductId, nextVariantId, { checkExistence: false });
+    // Preserve historical archived bindings by validating existence without requiring active status.
+    await validateProductVariantBinding(env.DB, nextProductId, nextVariantId);
     // 处理新的分享模式
     appendOptionalUpdate(updates, values, 'share_mode = ?', data.shareMode);
 
