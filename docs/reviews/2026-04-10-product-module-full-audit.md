@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计确认的 11 个问题已全部完成修复，以下原始问题清单作为审计基线保留。
+- 截至 2026-04-10，本次审计累计确认的 13 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -58,8 +58,11 @@
   - `4c3099b`: 销售商品选择器图片地址规范
   - `662837a`: 导入模式安全兜底与部分成功后的列表刷新闭环
   - `13fb7ee`: 批量导入审计结果与统计字段对齐
-- 最终验证:
+  - `adb3fee`: `PUT` 全量替换规格边界与 `PATCH/PUT` 审计变更计数对齐
+- 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
+- 增量验证:
+  - 2026-04-10 运行 3 个回归测试文件，共 7 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -79,6 +82,7 @@
 
 ### Medium
 
+- `PUT /api/manage/products/:id` 标记为“Full Update / product.replace”，但当请求同时替换变体而省略 `dimensions` 时，服务层会静默回退到现有规格定义，不会执行缺失规格归档，也不会要求调用方显式声明“保留还是清空规格”。结果是 `PUT` 在规格维度上退化成部分更新，和同接口已实现的“全量替换会归档缺失规格/规格值”语义不一致，外部调用方容易在无感知下保留旧规格数据。[functions/services/ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L595) [functions/lib/hono/routes/manage/products/[id].js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/[id].js#L475)
 - 管理端 `/api/manage/products/export` 路由实现与当前前端导出链路语义不一致：它始终忽略筛选条件、仅导出商品汇总字段、不导出变体级字段，并在后台异常时把错误文本直接写进 CSV 流返回 `200`，不利于调用方准确识别失败。[functions/lib/hono/routes/manage/products/export.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/export.js#L7)
 - `ProductBindingSection.handleProductSelect()` 只要商品详情里存在任意变体就直接发出 `product-fetch-success`，即使在当前策略下所有变体都不可选、`initSelectionFromVariants()` 已经把 `selectedVariantId` 留空。销售页收到这个成功事件后会清空错误提示，但并未真正绑定商品，最终形成“选了商品却没有可售变体、页面也不报错”的假成功状态。[src/components/order/ProductBindingSection.vue](/home/bjw/Code/KK-Image/src/components/order/ProductBindingSection.vue#L601) [src/views/sales/SalesFormView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesFormView.vue#L9)
 - 空间商品绑定接口在创建和更新时调用 `validateProductVariantBinding(..., { checkExistence: false })`，只校验 `productId/variantId` 是否成对出现，不校验商品是否存在、变体是否属于商品，也不校验是否仍然有效。结果是后台可以写入任意伪造的商品/变体关联，后续空间列表、详情和销售端空间消费只能得到空 JOIN 或陈旧映射。[functions/lib/hono/routes/manage/spaces/crud.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/crud.js#L162) [functions/lib/hono/routes/manage/spaces/crud.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/crud.js#L250) [functions/api/utils/validation.js](/home/bjw/Code/KK-Image/functions/api/utils/validation.js#L25)
@@ -87,6 +91,7 @@
 
 ### Low
 
+- `PATCH /api/manage/products/:id` 与 `PUT /api/manage/products/:id` 路由写审计时，把服务层返回的数字型 `result.changes` 当成数组读取，导致 `metadata.changeCount` 长期为 `undefined`，后台无法直接从审计记录看到这次商品更新声明变更了多少主数据字段。[functions/lib/hono/routes/manage/products/[id].js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/[id].js#L452)
 - `SpaceCreateModal.unbindProduct()` 只清空了 `productId`，没有同步清空 `variantId`。用户在创建商品型空间时若先绑定再解绑，表单会残留失效的 `variantId`，提交时被后端以“`productId is required when variantId is provided`”拒绝，形成可复现的创建阻塞。[src/components/SpaceCreateModal.vue](/home/bjw/Code/KK-Image/src/components/SpaceCreateModal.vue#L226)
 - 销售模式的 `ProductSelect` 直接把 `primaryImage` 拼成 `/file/${primaryImage}`，而销售商品列表接口返回的 `primaryImage` 可能已经是完整 URL 或以 `/` 开头的路径。对这类商品，选择器缩略图会被拼成错误地址（如 `/file/https://...`），与项目里其它图片解析工具的容错行为不一致。[src/components/product/ProductSelect.vue](/home/bjw/Code/KK-Image/src/components/product/ProductSelect.vue#L194) [functions/lib/hono/routes/sales/products.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/sales/products.js#L37)
 
@@ -182,3 +187,27 @@
   - 批量导入审计 `result` 现在根据 `batchImport().success` 写入
   - 审计 `metadata` 现在使用服务层真实返回的 `count` 与 `summary` 字段，不再写失效字段
 - 对应修复提交: `13fb7ee fix: align product batch import audit semantics`
+
+### 2026-04-10 轮次 12
+
+- 继续增量复查 `PUT /api/manage/products/:id` 与 `PATCH /api/manage/products/:id` 之间的语义边界。
+- 新增 1 个中风险问题:
+  - `PUT` 在替换变体时若省略 `dimensions`，会静默保留旧规格，导致“全量替换”在规格维度退化成部分更新
+- 下一步通过失败测试明确边界，再决定采用显式拒绝还是自动清空的修复策略。
+
+### 2026-04-10 轮次 13
+
+- 继续复查商品更新路由与审计契约对齐情况。
+- 新增 1 个低风险问题:
+  - `PATCH/PUT` 更新路由把数字型 `changes` 当数组读取，导致商品更新审计里的 `changeCount` 长期缺失
+
+### 2026-04-10 轮次 14
+
+- 已完成轮次 12 与轮次 13 新增问题修复:
+  - `PUT` 在替换变体且存在规格数据时，若未显式提交 `dimensions`，现在会直接拒绝歧义请求；无规格商品的简单全量替换不受影响
+  - `PATCH/PUT` 商品更新审计现在会正确写入数字型 `changeCount`
+- 增量回归:
+  - `functions/services/__tests__/ProductCatalogService.put-boundaries.test.js`
+  - `functions/services/__tests__/ProductCatalogService.import-mode.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-update-audit-metadata.test.js`
+- 对应修复提交: `adb3fee fix: tighten product replace boundaries and audit metadata`
