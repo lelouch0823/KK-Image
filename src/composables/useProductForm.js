@@ -279,6 +279,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     loading: false,
   });
   let asyncActionRequestId = 0;
+  let submitRequestId = 0;
 
   // ——— 图片与变体 key 种子 ———
   const imageObjects = ref([]);
@@ -382,15 +383,25 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
   const isAsyncActionActive = (requestId) =>
     requestId === asyncActionRequestId && (!modelValue || modelValue.value !== false);
 
+  const invalidateSubmitActions = () => {
+    submitRequestId += 1;
+    submitting.value = false;
+  };
+
+  const isSubmitActionActive = (requestId) =>
+    requestId === submitRequestId && (!modelValue || modelValue.value !== false);
+
   if (modelValue) {
     watch(
       [modelValue, () => initialData.value?.id],
       ([isOpen]) => {
         if (!isOpen) {
           invalidateAsyncActions();
+          invalidateSubmitActions();
           return;
         }
         asyncActionRequestId += 1;
+        submitRequestId += 1;
       },
       { immediate: true }
     );
@@ -917,6 +928,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
       return;
     }
 
+    const requestId = ++submitRequestId;
     submitting.value = true;
     try {
       // 从图片上传器中提取 ID
@@ -971,6 +983,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
       }
 
       const normalized = normalizeMutationResult(response);
+      if (!isSubmitActionActive(requestId)) return;
       if (!normalized.success) {
         addToast({
           message: normalized.error || normalized.message || t('common.operationFailed'),
@@ -996,7 +1009,9 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
         emit('update:modelValue', false);
       }
     } finally {
-      submitting.value = false;
+      if (requestId === submitRequestId) {
+        submitting.value = false;
+      }
     }
   };
 

@@ -112,4 +112,70 @@ describe('ProductCreateModal variant-first payload', () => {
 
         expect(wrapper.vm.form.name).toBe('Late Product');
     });
+
+    it('discards pending submit result after modal closes and switches product', async () => {
+        let resolveUpdate;
+        mocks.updateProduct.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveUpdate = resolve;
+                })
+        );
+
+        const wrapper = mount(ProductCreateModal, {
+            props: {
+                modelValue: true,
+                editMode: true,
+                initialData: {
+                    id: 'prod-1',
+                    name: 'Product A',
+                    currency: 'CNY',
+                    variants: [],
+                },
+            },
+            global: {
+                stubs: {
+                    Teleport: true,
+                    ImageUploader: true,
+                    AppInput: true,
+                    AppButton: true,
+                    Select: true,
+                    VariantImageManagerModal: true,
+                },
+            },
+        });
+
+        wrapper.vm.form.name = 'Product A';
+        wrapper.vm.form.options = [{ id: 'dim-color', name: 'Color', values: ['Blue'], inputValue: '' }];
+        wrapper.vm.form.variants = [{
+            id: 'variant-a',
+            sku: 'SKU-A',
+            price: 100,
+            cost_price: 60,
+            stock_quantity: 5,
+            alert_threshold: 1,
+            status: 'active',
+            options_values: { Color: 'Blue' },
+        }];
+
+        const pending = wrapper.vm.handleSubmit();
+        await Promise.resolve();
+
+        await wrapper.setProps({ modelValue: false });
+        await wrapper.setProps({
+            modelValue: true,
+            initialData: {
+                id: 'prod-2',
+                name: 'Product B',
+                currency: 'CNY',
+                variants: [],
+            },
+        });
+
+        resolveUpdate({ success: true, data: { id: 'prod-1' } });
+        await pending;
+
+        expect(wrapper.emitted('success')).toBeUndefined();
+        expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+    });
 });
