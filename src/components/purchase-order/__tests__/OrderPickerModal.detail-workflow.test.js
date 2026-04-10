@@ -85,4 +85,53 @@ describe('OrderPickerModal detail workflow', () => {
     expect(wrapper.text()).not.toContain('SO-2');
     expect(wrapper.text()).not.toContain('SO-3');
   });
+
+  it('keeps the latest order detail when earlier detail hydration resolves late', async () => {
+    let resolveFirst;
+    let resolveSecond;
+    mocks.getOrder
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = resolve;
+          })
+      );
+
+    const wrapper = mount(OrderPickerModal, {
+      props: {
+        visible: true,
+      },
+      global: {
+        stubs: {
+          Teleport: true,
+          Transition: false,
+          OrderWorkflowModal: { template: '<div />', props: ['show', 'order', 'hydrating', 'hydrationError'] },
+          AppIcon: { template: '<i />' },
+          SearchInput: {
+            props: ['modelValue'],
+            template: '<input />',
+          },
+        },
+      },
+    });
+
+    const firstPending = wrapper.vm.viewOrder({ id: 'o-1', orderNo: 'SO-1' });
+    const secondPending = wrapper.vm.viewOrder({ id: 'o-2', orderNo: 'SO-2' });
+
+    resolveSecond({ id: 'o-2', orderNo: 'SO-2', productName: 'Second' });
+    await secondPending;
+
+    expect(wrapper.vm.viewingOrder).toEqual(expect.objectContaining({ id: 'o-2' }));
+
+    resolveFirst({ id: 'o-1', orderNo: 'SO-1', productName: 'First' });
+    await firstPending;
+
+    expect(wrapper.vm.viewingOrder).toEqual(expect.objectContaining({ id: 'o-2' }));
+  });
 });

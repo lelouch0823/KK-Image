@@ -204,8 +204,15 @@ const loadingDetail = ref(false);
 const viewingOrder = ref(null);
 const commenting = ref(false);
 const detailError = ref('');
+let detailRequestId = 0;
+
+const invalidateDetailRequests = () => {
+  detailRequestId += 1;
+  loadingDetail.value = false;
+};
 
 const viewOrder = async (order) => {
+  const requestId = ++detailRequestId;
   showDetailModal.value = true;
   loadingDetail.value = true;
   detailError.value = '';
@@ -213,40 +220,49 @@ const viewOrder = async (order) => {
   
   try {
     const fullOrder = await getOrder(order.id);
+    if (requestId !== detailRequestId || !showDetailModal.value) return;
     if (fullOrder) {
       viewingOrder.value = fullOrder;
     } else {
       detailError.value = t('common.loadFailed');
     }
   } catch (_e) {
+    if (requestId !== detailRequestId || !showDetailModal.value) return;
     detailError.value = t('common.networkError');
   } finally {
-    loadingDetail.value = false;
+    if (requestId === detailRequestId) {
+      loadingDetail.value = false;
+    }
   }
 };
 
 const refreshOrderDetail = async () => {
   if (viewingOrder.value) {
+    const requestId = ++detailRequestId;
     loadingDetail.value = true;
     detailError.value = '';
     try {
       const fullOrder = await getOrder(viewingOrder.value.id);
+      if (requestId !== detailRequestId || !showDetailModal.value) return;
       if (fullOrder) {
         viewingOrder.value = fullOrder;
       } else {
         detailError.value = t('common.loadFailed');
       }
     } catch (_e) {
+      if (requestId !== detailRequestId || !showDetailModal.value) return;
       detailError.value = t('common.networkError');
     } finally {
-      loadingDetail.value = false;
+      if (requestId === detailRequestId) {
+        loadingDetail.value = false;
+      }
     }
   }
 };
 
 const closeDetail = () => {
+  invalidateDetailRequests();
   showDetailModal.value = false;
-  loadingDetail.value = false;
   detailError.value = '';
   viewingOrder.value = null;
 };
