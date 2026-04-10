@@ -114,6 +114,7 @@ const stats = ref({
   monthOrders: 0,
   monthlyTrend: [],
 });
+let statsRequestId = 0;
 
 const maxCount = computed(() => {
   if (!stats.value.monthlyTrend.length) return 1;
@@ -128,22 +129,33 @@ const isEmptyStats = computed(() =>
 );
 
 const loadStats = async () => {
-  if (!props.token) return;
+  const requestId = ++statsRequestId;
+  if (!props.token) {
+    loading.value = false;
+    return false;
+  }
 
   loading.value = true;
   error.value = '';
   try {
     const res = await fetch(API.SALES_STATS(props.token));
     const result = await res.json();
+    if (requestId !== statsRequestId) return false;
     if (result.success) {
       stats.value = result.data;
+      return true;
     } else {
       error.value = result.error || result.message || t('common.loadFailed');
+      return false;
     }
   } catch (e) {
+    if (requestId !== statsRequestId) return false;
     error.value = e?.message || t('common.networkError');
+    return false;
   } finally {
-    loading.value = false;
+    if (requestId === statsRequestId) {
+      loading.value = false;
+    }
   }
 };
 
