@@ -2,14 +2,35 @@ import { generateId, now } from '../api/utils/id.js';
 import { executeBatchChunks } from '../lib/db/batch.js';
 import { ProductVariantRepository } from './ProductVariantRepository.js';
 
+const isVariantImageLinkConflictError = (error) => {
+    const message = String(error?.message || error || '').toLowerCase();
+    return (
+        message.includes('unique constraint failed')
+        && message.includes('variant_images.variant_id')
+        && message.includes('variant_images.image_id')
+    );
+};
+
 export class VariantImageRepository {
     constructor(db, productVariantRepository = null) {
         this.db = db;
         this.productVariantRepository = productVariantRepository || new ProductVariantRepository(db);
     }
 
+    async findVariantImage(variantId, imageId) {
+        return await this.db
+            .prepare('SELECT * FROM variant_images WHERE variant_id = ? AND image_id = ?')
+            .bind(variantId, imageId)
+            .first();
+    }
+
     async addImage({ productId, variantId, imageId, isPrimary = false }) {
         await this.productVariantRepository.assertBelongsToProduct(variantId, productId);
+
+        const existingImage = await this.findVariantImage(variantId, imageId);
+        if (existingImage) {
+            throw new Error('Image already linked to variant');
+        }
 
         const timestamp = now();
         const sortRow = await this.db
@@ -19,13 +40,30 @@ export class VariantImageRepository {
         const sortOrder = Number(sortRow?.max_sort_order ?? -1) + 1;
         const id = generateId();
 
-        await this.db
+        const insertStatement = this.db
             .prepare(
                 `INSERT INTO variant_images (id, variant_id, image_id, sort_order, is_primary, created_at, updated_at)
                  VALUES (?, ?, ?, ?, ?, ?, ?)`
             )
-            .bind(id, variantId, imageId, sortOrder, isPrimary ? 1 : 0, timestamp, timestamp)
-            .run();
+            .bind(id, variantId, imageId, sortOrder, isPrimary ? 1 : 0, timestamp, timestamp);
+
+        try {
+            if (isPrimary) {
+                await executeBatchChunks(this.db, [
+                    this.db
+                        .prepare('UPDATE variant_images SET is_primary = 0, updated_at = ? WHERE variant_id = ?')
+                        .bind(timestamp, variantId),
+                    insertStatement,
+                ]);
+            } else {
+                await insertStatement.run();
+            }
+        } catch (error) {
+            if (isVariantImageLinkConflictError(error)) {
+                throw new Error('Image already linked to variant');
+            }
+            throw error;
+        }
 
         return await this.db
             .prepare('SELECT * FROM variant_images WHERE id = ?')
@@ -72,32 +110,43 @@ export class VariantImageRepository {
     async syncImages(productId, variantId, images = []) {
         await this.productVariantRepository.assertBelongsToProduct(variantId, productId);
         const timestamp = now();
-        const statements = [];
         const normalizedImages = this.normalizeIncomingImages(images);
+        const deleteStatement = this.db.prepare('DELETE FROM variant_images WHERE variant_id = ?').bind(variantId);
 
-        statements.push(
-            this.db.prepare('DELETE FROM variant_images WHERE variant_id = ?').bind(variantId)
-        );
-
-        normalizedImages.forEach((image) => {
-            const id = generateId();
-            statements.push(
-                this.db.prepare(
-                    `INSERT INTO variant_images (id, variant_id, image_id, sort_order, is_primary, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)`
-                ).bind(
-                    id, variantId, image.image_id, image.sort_order, image.is_primary, timestamp, timestamp
-                )
-            );
-        });
-
-        if (statements.length > 0) {
-            await executeBatchChunks(this.db, statements);
+        if (normalizedImages.length === 0) {
+            await deleteStatement.run();
+            return;
         }
+
+        const valuesSql = normalizedImages.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
+        const insertParams = normalizedImages.flatMap((image) => [
+            generateId(),
+            variantId,
+            image.image_id,
+            image.sort_order,
+            image.is_primary,
+            timestamp,
+            timestamp,
+        ]);
+        const insertStatement = this.db.prepare(
+            `INSERT INTO variant_images (id, variant_id, image_id, sort_order, is_primary, created_at, updated_at)
+             VALUES ${valuesSql}`
+        ).bind(...insertParams);
+
+        await this.db.batch([deleteStatement, insertStatement]);
     }
 
     async setPrimary({ productId, variantId, imageId }) {
         await this.productVariantRepository.assertBelongsToProduct(variantId, productId);
+        const existingImage = await this.db
+            .prepare('SELECT 1 FROM variant_images WHERE variant_id = ? AND image_id = ?')
+            .bind(variantId, imageId)
+            .first();
+
+        if (!existingImage) {
+            throw new Error('Variant image does not exist');
+        }
+
         const timestamp = now();
 
         const statements = [
@@ -118,33 +167,38 @@ export class VariantImageRepository {
 
     async sortImages({ productId, variantId, imageIds }) {
         await this.productVariantRepository.assertBelongsToProduct(variantId, productId);
-        const timestamp = now();
-        const sortRow = await this.db
-            .prepare('SELECT MAX(sort_order) as max_sort_order FROM variant_images WHERE variant_id = ?')
+        const { results } = await this.db
+            .prepare('SELECT image_id FROM variant_images WHERE variant_id = ?')
             .bind(variantId)
-            .first();
-        const tempBase = Number(sortRow?.max_sort_order ?? -1) + imageIds.length + 1;
-
-        const statements = imageIds.map((imageId, index) =>
-            this.db
-                .prepare(
-                    `UPDATE variant_images
-                     SET sort_order = ?, updated_at = ?
-                     WHERE variant_id = ? AND image_id = ?`
-                )
-                .bind(tempBase + index, timestamp, variantId, imageId)
+            .all();
+        const currentImageIds = (results || []).map((row) => row.image_id);
+        const requestedImageIds = imageIds.map((imageId) => String(imageId));
+        const requestedImageSet = new Set(requestedImageIds);
+        const isCompleteUniqueMatch = (
+            requestedImageIds.length === currentImageIds.length
+            && requestedImageSet.size === requestedImageIds.length
+            && currentImageIds.every((imageId) => requestedImageSet.has(imageId))
         );
 
-        statements.push(...imageIds.map((imageId, index) =>
-            this.db
-                .prepare(
-                    `UPDATE variant_images
-                     SET sort_order = ?, updated_at = ?
-                     WHERE variant_id = ? AND image_id = ?`
-                )
-                .bind(index, timestamp, variantId, imageId)
-        ));
-        await executeBatchChunks(this.db, statements);
+        if (!isCompleteUniqueMatch) {
+            throw new Error('imageIds must include each variant image exactly once');
+        }
+
+        const timestamp = now();
+        const caseSql = requestedImageIds.map(() => 'WHEN ? THEN ?').join(' ');
+        const inSql = requestedImageIds.map(() => '?').join(', ');
+        const params = requestedImageIds.flatMap((imageId, index) => [imageId, index]);
+
+        await this.db
+            .prepare(
+                `UPDATE variant_images
+                 SET sort_order = CASE image_id ${caseSql} END,
+                     updated_at = ?
+                 WHERE variant_id = ?
+                   AND image_id IN (${inSql})`
+            )
+            .bind(...params, timestamp, variantId, ...requestedImageIds)
+            .run();
     }
 
     async deleteImage({ productId, variantId, imageId }) {

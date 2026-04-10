@@ -44,6 +44,8 @@ describe('VariantImageRepository', () => {
             const stmt = createPreparedStatement(sql);
             if (sql.includes('FROM product_variants')) {
                 stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('WHERE variant_id = ? AND image_id = ?')) {
+                stmt.first.mockResolvedValue(null);
             } else if (sql.includes('MAX(sort_order)')) {
                 stmt.first.mockResolvedValue({ max_sort_order: 4 });
             } else if (sql.includes('INSERT INTO variant_images')) {
@@ -72,11 +74,107 @@ describe('VariantImageRepository', () => {
         expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO variant_images'));
     });
 
+    it('rejects duplicate image links for the same variant', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('FROM product_variants')) {
+                stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('WHERE variant_id = ? AND image_id = ?')) {
+                stmt.first.mockResolvedValue({
+                    id: 'vi_existing',
+                    variant_id: 'variant_1',
+                    image_id: 'file_1',
+                    is_primary: 0,
+                });
+            }
+            statements.push(stmt);
+            return stmt;
+        });
+
+        await expect(
+            repo.addImage({
+                productId: 'product_1',
+                variantId: 'variant_1',
+                imageId: 'file_1',
+            })
+        ).rejects.toThrow('Image already linked to variant');
+
+        expect(db.prepare).not.toHaveBeenCalledWith(expect.stringContaining('INSERT INTO variant_images'));
+    });
+
+    it('clears previous primaries before inserting a new primary image', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('FROM product_variants')) {
+                stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('WHERE variant_id = ? AND image_id = ?')) {
+                stmt.first.mockResolvedValue(null);
+            } else if (sql.includes('MAX(sort_order)')) {
+                stmt.first.mockResolvedValue({ max_sort_order: 2 });
+            } else if (sql.includes('INSERT INTO variant_images')) {
+                stmt.run.mockResolvedValue({ meta: { changes: 1 } });
+            } else if (sql.includes('SELECT * FROM variant_images WHERE id = ?')) {
+                stmt.first.mockResolvedValue({
+                    id: 'vi_3',
+                    variant_id: 'variant_1',
+                    image_id: 'file_3',
+                    sort_order: 3,
+                    is_primary: 1,
+                });
+            }
+            return stmt;
+        });
+
+        const created = await repo.addImage({
+            productId: 'product_1',
+            variantId: 'variant_1',
+            imageId: 'file_3',
+            isPrimary: true,
+        });
+
+        expect(created.is_primary).toBe(1);
+        expect(db.batch).toHaveBeenCalledTimes(1);
+        const batched = db.batch.mock.calls[0][0];
+        expect(batched).toHaveLength(2);
+        expect(batched[0].sql).toContain('UPDATE variant_images SET is_primary = 0');
+        expect(batched[0].params.slice(1)).toEqual(['variant_1']);
+        expect(batched[1].sql).toContain('INSERT INTO variant_images');
+        expect(batched[1].params[4]).toBe(1);
+    });
+
+    it('normalizes database uniqueness conflicts into duplicate-link errors', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('FROM product_variants')) {
+                stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('WHERE variant_id = ? AND image_id = ?')) {
+                stmt.first.mockResolvedValue(null);
+            } else if (sql.includes('MAX(sort_order)')) {
+                stmt.first.mockResolvedValue({ max_sort_order: 4 });
+            } else if (sql.includes('INSERT INTO variant_images')) {
+                stmt.run.mockRejectedValue(
+                    new Error('D1_ERROR: UNIQUE constraint failed: variant_images.variant_id, variant_images.image_id')
+                );
+            }
+            return stmt;
+        });
+
+        await expect(
+            repo.addImage({
+                productId: 'product_1',
+                variantId: 'variant_1',
+                imageId: 'file_1',
+            })
+        ).rejects.toThrow('Image already linked to variant');
+    });
+
     it('sets primary image atomically', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);
             if (sql.includes('FROM product_variants')) {
                 stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('SELECT 1 FROM variant_images')) {
+                stmt.first.mockResolvedValue({ exists: 1 });
             } else if (sql.includes('UPDATE variant_images')) {
                 stmt.run.mockResolvedValue({ meta: { changes: 1 } });
             }
@@ -96,16 +194,47 @@ describe('VariantImageRepository', () => {
         expect(sqlBatch).toContain('is_primary = 1');
     });
 
+    it('rejects setPrimary when the target image does not exist', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('FROM product_variants')) {
+                stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('SELECT 1 FROM variant_images')) {
+                stmt.first.mockResolvedValue(null);
+            }
+            return stmt;
+        });
+
+        await expect(
+            repo.setPrimary({
+                productId: 'product_1',
+                variantId: 'variant_1',
+                imageId: 'file_missing',
+            })
+        ).rejects.toThrow('Variant image does not exist');
+
+        expect(db.batch).not.toHaveBeenCalled();
+    });
+
     it('sorts variant images with provided order', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);
             if (sql.includes('FROM product_variants')) {
                 stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('SELECT image_id FROM variant_images')) {
+                stmt.all.mockResolvedValue({
+                    results: [
+                        { image_id: 'file_1' },
+                        { image_id: 'file_2' },
+                        { image_id: 'file_3' },
+                    ],
+                });
             } else if (sql.includes('MAX(sort_order)')) {
                 stmt.first.mockResolvedValue({ max_sort_order: 2 });
             } else if (sql.includes('UPDATE variant_images')) {
                 stmt.run.mockResolvedValue({ meta: { changes: 1 } });
             }
+            statements.push(stmt);
             return stmt;
         });
 
@@ -115,15 +244,45 @@ describe('VariantImageRepository', () => {
             imageIds: ['file_2', 'file_1', 'file_3'],
         });
 
-        expect(db.batch).toHaveBeenCalledTimes(1);
-        const updates = db.batch.mock.calls[0][0];
-        expect(updates).toHaveLength(6);
-        expect(updates[0].params.slice(0, 2)).toEqual([6, expect.any(Number)]);
-        expect(updates[1].params.slice(0, 2)).toEqual([7, expect.any(Number)]);
-        expect(updates[2].params.slice(0, 2)).toEqual([8, expect.any(Number)]);
-        expect(updates[3].params.slice(0, 2)).toEqual([0, expect.any(Number)]);
-        expect(updates[4].params.slice(0, 2)).toEqual([1, expect.any(Number)]);
-        expect(updates[5].params.slice(0, 2)).toEqual([2, expect.any(Number)]);
+        expect(db.batch).not.toHaveBeenCalled();
+        const updateStatement = statements.find((stmt) => stmt.sql.includes('CASE image_id'));
+        expect(updateStatement).toBeTruthy();
+        expect(updateStatement.params).toEqual([
+            'file_2', 0,
+            'file_1', 1,
+            'file_3', 2,
+            expect.any(Number),
+            'variant_1',
+            'file_2', 'file_1', 'file_3',
+        ]);
+    });
+
+    it('rejects sortImages when the requested ids are not a full unique match for the variant', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('FROM product_variants')) {
+                stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('SELECT image_id FROM variant_images')) {
+                stmt.all.mockResolvedValue({
+                    results: [
+                        { image_id: 'file_1' },
+                        { image_id: 'file_2' },
+                        { image_id: 'file_3' },
+                    ],
+                });
+            }
+            return stmt;
+        });
+
+        await expect(
+            repo.sortImages({
+                productId: 'product_1',
+                variantId: 'variant_1',
+                imageIds: ['file_2', 'file_2', 'file_3'],
+            })
+        ).rejects.toThrow('imageIds must include each variant image exactly once');
+
+        expect(db.batch).not.toHaveBeenCalled();
     });
 
     it('deletes an image link and preserves valid operation scope', async () => {
@@ -206,13 +365,13 @@ describe('VariantImageRepository', () => {
 
         expect(db.batch).toHaveBeenCalledTimes(1);
         const batched = db.batch.mock.calls[0][0];
-        expect(batched.length).toBe(4);
+        expect(batched.length).toBe(2);
         expect(batched[1].params.slice(1, 5)).toEqual(['variant_1', 'img-1', 0, 0]);
-        expect(batched[2].params.slice(1, 5)).toEqual(['variant_1', 'img-2', 1, 1]);
-        expect(batched[3].params.slice(1, 5)).toEqual(['variant_1', 'img-3', 2, 0]);
+        expect(batched[1].params.slice(8, 12)).toEqual(['variant_1', 'img-2', 1, 1]);
+        expect(batched[1].params.slice(15, 19)).toEqual(['variant_1', 'img-3', 2, 0]);
     });
 
-    it('chunks large syncImages writes into D1-safe batches', async () => {
+    it('syncImages keeps delete and bulk insert in a single batch for large payloads', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);
             if (sql.includes('FROM product_variants')) {
@@ -229,20 +388,29 @@ describe('VariantImageRepository', () => {
             Array.from({ length: 205 }, (_, index) => ({ image_id: `img-${index}` }))
         );
 
-        expect(db.batch).toHaveBeenCalledTimes(3);
-        expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 100, 6]);
+        expect(db.batch).toHaveBeenCalledTimes(1);
+        const [batch] = db.batch.mock.calls[0];
+        expect(batch).toHaveLength(2);
+        expect(batch[0].sql).toContain('DELETE FROM variant_images');
+        expect(batch[1].sql).toContain('INSERT INTO variant_images');
+        expect(batch[1].params).toHaveLength(205 * 7);
     });
 
-    it('chunks large sortImages reorder writes into D1-safe batches', async () => {
+    it('sortImages reorders large image sets in a single update statement', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);
             if (sql.includes('FROM product_variants')) {
                 stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('SELECT image_id FROM variant_images')) {
+                stmt.all.mockResolvedValue({
+                    results: Array.from({ length: 60 }, (_, index) => ({ image_id: `file_${index}` })),
+                });
             } else if (sql.includes('MAX(sort_order)')) {
                 stmt.first.mockResolvedValue({ max_sort_order: 2 });
             } else if (sql.includes('UPDATE variant_images')) {
                 stmt.run.mockResolvedValue({ meta: { changes: 1 } });
             }
+            statements.push(stmt);
             return stmt;
         });
 
@@ -252,7 +420,9 @@ describe('VariantImageRepository', () => {
             imageIds: Array.from({ length: 60 }, (_, index) => `file_${index}`),
         });
 
-        expect(db.batch).toHaveBeenCalledTimes(2);
-        expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 20]);
+        expect(db.batch).not.toHaveBeenCalled();
+        const updateStatement = statements.find((stmt) => stmt.sql.includes('CASE image_id'));
+        expect(updateStatement).toBeTruthy();
+        expect(updateStatement.params).toHaveLength(60 * 3 + 2);
     });
 });

@@ -111,6 +111,30 @@ describe('variant image management routes', () => {
         });
     });
 
+    it('parses string false-like isPrimary payloads as false', async () => {
+        const app = createApp();
+        const { env, executionCtx } = requestContext();
+
+        const res = await app.request(
+            'http://localhost/api/manage/products/prod_1/variants/var_1/images',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imageId: 'file_1', isPrimary: 'false' }),
+            },
+            env,
+            executionCtx
+        );
+
+        expect(res.status).toBe(201);
+        expect(mockVariantImageRepo.addImage).toHaveBeenCalledWith({
+            productId: 'prod_1',
+            variantId: 'var_1',
+            imageId: 'file_1',
+            isPrimary: false,
+        });
+    });
+
     it('PATCH /:id/variants/:variantId/images/sort sorts images', async () => {
         const app = createApp();
         const { env, executionCtx } = requestContext();
@@ -191,5 +215,121 @@ describe('variant image management routes', () => {
         expect(res.status).toBe(400);
         const body = await res.json();
         expect(body.error).toContain('Variant does not belong to product');
+    });
+
+    it('returns conflict when adding a duplicate variant image link', async () => {
+        const app = createApp();
+        const { env, executionCtx } = requestContext();
+        mockVariantImageRepo.addImage.mockRejectedValue(new Error('Image already linked to variant'));
+
+        const res = await app.request(
+            'http://localhost/api/manage/products/prod_1/variants/var_1/images',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imageId: 'file_1' }),
+            },
+            env,
+            executionCtx
+        );
+
+        expect(res.status).toBe(409);
+        const body = await res.json();
+        expect(body.error).toContain('Image already linked to variant');
+    });
+
+    it('returns bad request when setting a primary image that is not linked', async () => {
+        const app = createApp();
+        const { env, executionCtx } = requestContext();
+        mockVariantImageRepo.setPrimary.mockRejectedValue(new Error('Variant image does not exist'));
+
+        const res = await app.request(
+            'http://localhost/api/manage/products/prod_1/variants/var_1/images/file_missing/primary',
+            { method: 'PATCH' },
+            env,
+            executionCtx
+        );
+
+        expect(res.status).toBe(400);
+        const body = await res.json();
+        expect(body.error).toContain('Variant image does not exist');
+    });
+
+    it('returns bad request when sorting variant images with a partial or duplicate set', async () => {
+        const app = createApp();
+        const { env, executionCtx } = requestContext();
+        mockVariantImageRepo.sortImages.mockRejectedValue(
+            new Error('imageIds must include each variant image exactly once')
+        );
+
+        const res = await app.request(
+            'http://localhost/api/manage/products/prod_1/variants/var_1/images/sort',
+            {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imageIds: ['file_2', 'file_2'] }),
+            },
+            env,
+            executionCtx
+        );
+
+        expect(res.status).toBe(400);
+        const body = await res.json();
+        expect(body.error).toContain('imageIds must include each variant image exactly once');
+    });
+
+    it('returns not found when sorting images for a missing product', async () => {
+        const app = createApp();
+        const { env, executionCtx } = requestContext();
+        mockProductRepo.findById.mockResolvedValue(null);
+
+        const res = await app.request(
+            'http://localhost/api/manage/products/prod_missing/variants/var_1/images/sort',
+            {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imageIds: ['file_1'] }),
+            },
+            env,
+            executionCtx
+        );
+
+        expect(res.status).toBe(404);
+        const body = await res.json();
+        expect(body.error).toContain('Product not found');
+    });
+
+    it('returns not found when setting primary image for a missing product', async () => {
+        const app = createApp();
+        const { env, executionCtx } = requestContext();
+        mockProductRepo.findById.mockResolvedValue(null);
+
+        const res = await app.request(
+            'http://localhost/api/manage/products/prod_missing/variants/var_1/images/file_1/primary',
+            { method: 'PATCH' },
+            env,
+            executionCtx
+        );
+
+        expect(res.status).toBe(404);
+        const body = await res.json();
+        expect(body.error).toContain('Product not found');
+    });
+
+    it('returns not found when deleting image for a missing product', async () => {
+        const app = createApp();
+        const { env, executionCtx } = requestContext();
+        mockProductRepo.findById.mockResolvedValue(null);
+
+        const res = await app.request(
+            'http://localhost/api/manage/products/prod_missing/variants/var_1/images/file_1',
+            { method: 'DELETE' },
+            env,
+            executionCtx
+        );
+
+        expect(res.status).toBe(404);
+        const body = await res.json();
+        expect(body.error).toContain('Product not found');
     });
 });

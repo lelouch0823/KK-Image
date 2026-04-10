@@ -6,7 +6,7 @@ import { VariantImageRepository } from '../../../../../repositories/VariantImage
 import { VariantAuditRepository } from '../../../../../repositories/VariantAuditRepository.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
-import { NotFoundError, BadRequestError } from '../../../errors.js';
+import { NotFoundError, BadRequestError, ConflictError } from '../../../errors.js';
 import { requirePermission } from '../../../middleware/auth.js';
 import { scheduleProductCacheInvalidation } from './cache-helpers.js';
 import { ProductCatalogService } from '../../../../../services/ProductCatalogService.js';
@@ -32,6 +32,33 @@ app.use('*', requirePermission('products:manage'));
 
 const isVariantOwnershipError = (error) =>
     error?.message?.includes('Variant does not belong to product');
+const isVariantImageDuplicateError = (error) =>
+    error?.message?.includes('Image already linked to variant');
+const isVariantImageMissingError = (error) =>
+    error?.message?.includes('Variant image does not exist');
+const isVariantImageSortContractError = (error) =>
+    error?.message?.includes('imageIds must include each variant image exactly once');
+const parseBooleanFlag = (value) => {
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        return normalized === 'true' || normalized === '1';
+    }
+    return value === true || value === 1;
+};
+
+const rethrowVariantImageMutationError = (error) => {
+    if (
+        isVariantOwnershipError(error)
+        || isVariantImageMissingError(error)
+        || isVariantImageSortContractError(error)
+    ) {
+        throw new BadRequestError(error.message);
+    }
+    if (isVariantImageDuplicateError(error)) {
+        throw new ConflictError(error.message);
+    }
+    throw error;
+};
 
 const ensureProductExists = async (productRepo, productId) => {
     const product = await productRepo.findById(productId);
@@ -292,7 +319,7 @@ app.post('/:id/variants/:variantId/images', async (c) => {
             productId,
             variantId,
             imageId: body.imageId,
-            isPrimary: Boolean(body.isPrimary),
+            isPrimary: parseBooleanFlag(body.isPrimary),
         });
         await scheduleProductCacheInvalidation(c, { eventType: 'product_variant_image_created', productIds: [productId] });
         scheduleAuditEvent(c, {
@@ -307,10 +334,7 @@ app.post('/:id/variants/:variantId/images', async (c) => {
         });
         return c.json({ success: true, data: created }, 201);
     } catch (error) {
-        if (isVariantOwnershipError(error)) {
-            throw new BadRequestError(error.message);
-        }
-        throw error;
+        rethrowVariantImageMutationError(error);
     }
 });
 
@@ -323,6 +347,9 @@ app.patch('/:id/variants/:variantId/images/sort', async (c) => {
     if (!Array.isArray(body?.imageIds) || body.imageIds.length === 0) {
         throw new BadRequestError('imageIds must be a non-empty array');
     }
+
+    const productRepo = new ProductRepository(env.DB);
+    await ensureProductExists(productRepo, productId);
 
     const variantImageRepo = new VariantImageRepository(env.DB);
     try {
@@ -344,10 +371,7 @@ app.patch('/:id/variants/:variantId/images/sort', async (c) => {
         });
         return c.json({ success: true });
     } catch (error) {
-        if (isVariantOwnershipError(error)) {
-            throw new BadRequestError(error.message);
-        }
-        throw error;
+        rethrowVariantImageMutationError(error);
     }
 });
 
@@ -356,6 +380,9 @@ app.patch('/:id/variants/:variantId/images/:imageId/primary', async (c) => {
     const productId = c.req.param('id');
     const variantId = c.req.param('variantId');
     const imageId = c.req.param('imageId');
+
+    const productRepo = new ProductRepository(env.DB);
+    await ensureProductExists(productRepo, productId);
 
     const variantImageRepo = new VariantImageRepository(env.DB);
     try {
@@ -377,10 +404,7 @@ app.patch('/:id/variants/:variantId/images/:imageId/primary', async (c) => {
         });
         return c.json({ success: true });
     } catch (error) {
-        if (isVariantOwnershipError(error)) {
-            throw new BadRequestError(error.message);
-        }
-        throw error;
+        rethrowVariantImageMutationError(error);
     }
 });
 
@@ -389,6 +413,9 @@ app.delete('/:id/variants/:variantId/images/:imageId', async (c) => {
     const productId = c.req.param('id');
     const variantId = c.req.param('variantId');
     const imageId = c.req.param('imageId');
+
+    const productRepo = new ProductRepository(env.DB);
+    await ensureProductExists(productRepo, productId);
 
     const variantImageRepo = new VariantImageRepository(env.DB);
     try {
@@ -413,10 +440,7 @@ app.delete('/:id/variants/:variantId/images/:imageId', async (c) => {
         });
         return c.json({ success: true });
     } catch (error) {
-        if (isVariantOwnershipError(error)) {
-            throw new BadRequestError(error.message);
-        }
-        throw error;
+        rethrowVariantImageMutationError(error);
     }
 });
 
