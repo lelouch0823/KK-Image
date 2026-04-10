@@ -49,6 +49,7 @@
 ## 修复状态
 
 - 截至 2026-04-10，本次审计确认的 8 个问题已全部完成修复，以下原始问题清单作为审计基线保留。
+- 2026-04-10 增量复查又发现 2 个导入链路问题，已补记在下方问题清单中，当前仍待修复。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -73,12 +74,14 @@
 - `VariantImageRepository.setPrimary()` 先把该变体全部图片置为非主图，再按 `imageId` 更新目标图；但它没有校验目标图片是否存在，若 `imageId` 不存在会返回成功且让该变体失去所有主图。[functions/repositories/VariantImageRepository.js](/home/bjw/Code/KK-Image/functions/repositories/VariantImageRepository.js#L99)
 - 销售端下单/改单后端没有强制执行前端声明的“仅可选择有库存变体”策略。`ProductBindingSection` 和小程序绑定组件都把销售场景固定成 `in_stock_only`，但销售 API 只校验商品/变体存在且为 `active`，不校验 `available_quantity/stock_quantity > 0`，因此绕过前端即可把缺货变体绑定到销售订单，破坏销售侧“只卖可售库存”的业务约束。[src/views/sales/SalesFormView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesFormView.vue#L9) [functions/lib/hono/routes/sales/orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/sales/orders.js#L74) [functions/api/utils/validation.js](/home/bjw/Code/KK-Image/functions/api/utils/validation.js#L5)
 - 采购链路没有阻止同一个预订单被重复采购。无论是手工 `POST /purchase-orders/:id/items`、前端 `OrderPickerModal`，还是 `createFromOrders()`，都只检查订单 `status === 'confirmed'` 与商品/变体匹配，却没有校验 `procurement_status`、也没有校验该 `pre_order_id` 是否已存在于其他未完成采购单中，导致同一订单可被多个采购单重复拉起，直接放大补货量与在途量。[functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js#L156) [src/components/purchase-order/OrderPickerModal.vue](/home/bjw/Code/KK-Image/src/components/purchase-order/OrderPickerModal.vue#L268) [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js#L373)
+- 批量导入的 `import_mode` 兜底策略不安全。`normalizeImportMode()` 只接受精确的 `safe_merge`，其它任何值都会静默降级成 `replace`；而 `batchImport()` 后续会据此走 `replaceMissing` 和“排除未匹配旧变体”的覆盖分支。结果是只要请求方传错枚举值、大小写或脏数据，就会从预期的安全合并直接切到全覆盖导入，造成已有规格/变体被覆盖或归档。[functions/services/ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L105) [functions/services/ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L733)
 
 ### Medium
 
 - 管理端 `/api/manage/products/export` 路由实现与当前前端导出链路语义不一致：它始终忽略筛选条件、仅导出商品汇总字段、不导出变体级字段，并在后台异常时把错误文本直接写进 CSV 流返回 `200`，不利于调用方准确识别失败。[functions/lib/hono/routes/manage/products/export.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/export.js#L7)
 - `ProductBindingSection.handleProductSelect()` 只要商品详情里存在任意变体就直接发出 `product-fetch-success`，即使在当前策略下所有变体都不可选、`initSelectionFromVariants()` 已经把 `selectedVariantId` 留空。销售页收到这个成功事件后会清空错误提示，但并未真正绑定商品，最终形成“选了商品却没有可售变体、页面也不报错”的假成功状态。[src/components/order/ProductBindingSection.vue](/home/bjw/Code/KK-Image/src/components/order/ProductBindingSection.vue#L601) [src/views/sales/SalesFormView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesFormView.vue#L9)
 - 空间商品绑定接口在创建和更新时调用 `validateProductVariantBinding(..., { checkExistence: false })`，只校验 `productId/variantId` 是否成对出现，不校验商品是否存在、变体是否属于商品，也不校验是否仍然有效。结果是后台可以写入任意伪造的商品/变体关联，后续空间列表、详情和销售端空间消费只能得到空 JOIN 或陈旧映射。[functions/lib/hono/routes/manage/spaces/crud.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/crud.js#L162) [functions/lib/hono/routes/manage/spaces/crud.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/crud.js#L250) [functions/api/utils/validation.js](/home/bjw/Code/KK-Image/functions/api/utils/validation.js#L25)
+- 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 
 ### Low
 
@@ -149,3 +152,11 @@
 - 已按修复计划顺序完成全部整改，并分别提交独立修复提交。
 - 已完成扩展后的总回归，覆盖商品图片、销售绑定、采购、空间、导出和商品管理 UI 相关关键用例。
 - 当前审计问题状态已由“待修复”更新为“已全部修复”，后续若有新增缺陷，应另起增量审计记录。
+
+### 2026-04-10 轮次 8
+
+- 对已修复代码做增量复查，重点补扫了商品导入、批量导入策略、列表刷新和缓存相关闭环。
+- 新增 1 个高风险问题:
+  - 批量导入 `import_mode` 非法值会静默落到 `replace`
+- 新增 1 个中风险问题:
+  - 导入存在部分成功时，父级商品列表不会自动刷新
