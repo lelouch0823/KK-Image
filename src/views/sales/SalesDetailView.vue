@@ -42,7 +42,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, inject } from 'vue';
+import { ref, computed, inject, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useI18n } from '@/composables/useI18n'; // Assuming simple t function or similar
@@ -70,6 +70,7 @@ const commentError = ref('');
 const pendingComment = ref('');
 const commentClearKey = ref(0);
 const commenting = ref(false);
+let detailRequestId = 0;
 
 // Inject for shared actions if needed, e.g. causing a list refresh
 const salesContext = inject('salesContext', {});
@@ -81,18 +82,31 @@ const {
 const salesOrderEntry = computed(() => salesOrderMode.value || 'legacy');
 
 const fetchOrder = async () => {
+  const requestId = ++detailRequestId;
+  if (!token.value || !orderId.value) {
+    order.value = null;
+    detailError.value = '';
+    loading.value = false;
+    return false;
+  }
+
   loading.value = true;
   detailError.value = '';
   try {
     const data = await getSalesOrder(token.value, orderId.value);
+    if (requestId !== detailRequestId) return false;
     if (data) {
       order.value = data;
+      return true;
     } else {
       order.value = null;
       detailError.value = t('common.loadFailed');
+      return false;
     }
   } finally {
-    loading.value = false;
+    if (requestId === detailRequestId) {
+      loading.value = false;
+    }
   }
 };
 
@@ -157,7 +171,7 @@ const handleDuplicate = (sourceOrder) => {
     }
 };
 
-onMounted(() => {
+watch([token, orderId], () => {
   fetchOrder();
-});
+}, { immediate: true });
 </script>
