@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 50 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 51 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -96,6 +96,7 @@
   - `38a7bb4`: 采购统计卡片仅认最新加载结果
   - `98c04f2`: 采购单列表仅认最新筛选/分页请求结果
   - `df769ed`: 采购详情写操作仅允许回写当前打开的采购单
+  - `e8a2865`: 管理端与销售端订单列表状态拆分，并只认最新列表请求结果
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -118,6 +119,7 @@
   - 2026-04-10 运行 2 个回归测试文件，共 5 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 6 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 7 个测试，全部通过。
+  - 2026-04-10 运行 6 个回归测试文件，共 10 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -196,6 +198,7 @@
 - `usePurchaseOrders.loadStats()` 同样缺少请求先后隔离。采购页列表/建议弹窗并发触发总览刷新时，旧统计请求在后返回后仍会覆盖当前 `stats`，导致顶部采购统计卡片回跳到旧口径。[src/composables/usePurchaseOrders.js](/home/bjw/Code/KK-Image/src/composables/usePurchaseOrders.js#L438) [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue#L3577)
 - `usePurchaseOrders.loadList()` 也缺少请求先后隔离。采购页快速切换状态筛选、分页或在刷新总览时并发触发列表请求，旧列表结果在后返回后仍会覆盖当前 `list/total/loading`，导致采购单列表回跳到旧筛选页。[src/composables/usePurchaseOrders.js](/home/bjw/Code/KK-Image/src/composables/usePurchaseOrders.js#L53) [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue#L3068)
 - `usePurchaseOrders.updatePO()/allocateCosts()` 会在成功后直接把响应写回 `detail`，却不校验当前详情上下文是否还停留在同一张采购单。用户在旧请求未完成前切到另一张采购单时，旧写操作响应仍会把当前详情改回旧单，形成详情写回串上下文。[src/composables/usePurchaseOrders.js](/home/bjw/Code/KK-Image/src/composables/usePurchaseOrders.js#L228) [src/composables/usePurchaseOrders.js](/home/bjw/Code/KK-Image/src/composables/usePurchaseOrders.js#L412)
+- `useOrders` 同时把管理端订单列表和销售端订单列表绑在同一份模块级 `resource` 上，而 `loadOrders()/loadSalesOrders()` 两条链路又都缺少请求先后隔离。结果是管理端筛选/分页的旧请求会覆盖新列表，销售端加载订单也会把管理端 `orders/loading/pagination/error` 一起改写，形成跨模块串状态和旧结果回跳。[src/composables/useOrders.js](/home/bjw/Code/KK-Image/src/composables/useOrders.js#L16) [src/views/Sales.vue](/home/bjw/Code/KK-Image/src/views/Sales.vue#L180) [src/components/OrderManager.vue](/home/bjw/Code/KK-Image/src/components/OrderManager.vue#L243)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -947,3 +950,24 @@
   - `src/composables/__tests__/usePurchaseOrders.test.js`
   - `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
 - 对应修复提交: `df769ed fix: guard stale purchase detail writebacks`
+
+### 2026-04-10 轮次 89
+
+- 继续复查订单底层 composable 与销售端订单链路，新增 1 个中风险问题:
+  - `useOrders` 把管理端与销售端订单列表状态共用同一份模块级 `resource`，且 `loadOrders()/loadSalesOrders()` 都缺少请求先后隔离，旧请求和跨端链路会互相覆盖 `orders/loading/pagination/error`
+- 下一步把管理端和销售端列表状态拆开，并为两条列表加载链路都补上请求序号回归测试。
+
+### 2026-04-10 轮次 90
+
+- 已完成轮次 89 新增问题修复:
+  - `useOrders.loadOrders()` 现在只认最新一次管理端列表请求，旧筛选/分页响应不会再覆盖当前订单列表
+  - `useOrders` 已把销售端订单列表状态拆到独立的 `salesOrders/salesLoading/salesPagination/salesError`，销售页不再改写管理端订单列表状态
+  - `useOrders.loadSalesOrders()` 现在也只认最新一次销售端列表请求，旧销售订单请求不会再覆盖当前销售端列表
+- 增量回归:
+  - `src/composables/__tests__/useOrders.list-isolation.test.js`
+  - `src/composables/__tests__/useOrders.authz.test.js`
+  - `src/composables/__tests__/useOrders.update-order.test.js`
+  - `src/composables/__tests__/useOrders.change-status.test.js`
+  - `src/composables/__tests__/useOrders.line-commands.test.js`
+  - `src/views/sales/__tests__/sales-module-contract.test.js`
+- 对应修复提交: `e8a2865 fix: isolate order list query state`
