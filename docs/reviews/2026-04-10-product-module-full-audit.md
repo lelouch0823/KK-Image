@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 51 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 52 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -97,6 +97,7 @@
   - `98c04f2`: 采购单列表仅认最新筛选/分页请求结果
   - `df769ed`: 采购详情写操作仅允许回写当前打开的采购单
   - `e8a2865`: 管理端与销售端订单列表状态拆分，并只认最新列表请求结果
+  - `5d6b42b`: 销售订单详情页在路由切单时重载，并阻断旧详情回写
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -120,6 +121,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 6 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 7 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 10 个测试，全部通过。
+  - 2026-04-10 运行 6 个回归测试文件，共 8 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -199,6 +201,7 @@
 - `usePurchaseOrders.loadList()` 也缺少请求先后隔离。采购页快速切换状态筛选、分页或在刷新总览时并发触发列表请求，旧列表结果在后返回后仍会覆盖当前 `list/total/loading`，导致采购单列表回跳到旧筛选页。[src/composables/usePurchaseOrders.js](/home/bjw/Code/KK-Image/src/composables/usePurchaseOrders.js#L53) [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue#L3068)
 - `usePurchaseOrders.updatePO()/allocateCosts()` 会在成功后直接把响应写回 `detail`，却不校验当前详情上下文是否还停留在同一张采购单。用户在旧请求未完成前切到另一张采购单时，旧写操作响应仍会把当前详情改回旧单，形成详情写回串上下文。[src/composables/usePurchaseOrders.js](/home/bjw/Code/KK-Image/src/composables/usePurchaseOrders.js#L228) [src/composables/usePurchaseOrders.js](/home/bjw/Code/KK-Image/src/composables/usePurchaseOrders.js#L412)
 - `useOrders` 同时把管理端订单列表和销售端订单列表绑在同一份模块级 `resource` 上，而 `loadOrders()/loadSalesOrders()` 两条链路又都缺少请求先后隔离。结果是管理端筛选/分页的旧请求会覆盖新列表，销售端加载订单也会把管理端 `orders/loading/pagination/error` 一起改写，形成跨模块串状态和旧结果回跳。[src/composables/useOrders.js](/home/bjw/Code/KK-Image/src/composables/useOrders.js#L16) [src/views/Sales.vue](/home/bjw/Code/KK-Image/src/views/Sales.vue#L180) [src/components/OrderManager.vue](/home/bjw/Code/KK-Image/src/components/OrderManager.vue#L243)
+- `SalesDetailView` 只在 `onMounted()` 时拉一次销售订单详情，没有监听路由里的订单 ID 变化，也没有隔离详情请求先后。销售端如果在详情页内通过通知或其它跳转切到另一张订单，组件复用时会继续停留在旧订单；旧详情慢请求在后返回时还会覆盖当前详情上下文。[src/views/sales/SalesDetailView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesDetailView.vue#L76) [src/views/Sales.vue](/home/bjw/Code/KK-Image/src/views/Sales.vue#L284) [src/components/order/SalesNotificationList.vue](/home/bjw/Code/KK-Image/src/components/order/SalesNotificationList.vue#L168)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -971,3 +974,23 @@
   - `src/composables/__tests__/useOrders.line-commands.test.js`
   - `src/views/sales/__tests__/sales-module-contract.test.js`
 - 对应修复提交: `e8a2865 fix: isolate order list query state`
+
+### 2026-04-10 轮次 91
+
+- 继续复查销售端订单详情链路，新增 1 个中风险问题:
+  - `SalesDetailView` 只在首次挂载时加载订单详情，路由切换到另一张销售订单时不会重载；同时旧详情请求也可能在切单后回写新页面
+- 下一步给销售订单详情页补路由参数监听与请求序号隔离，覆盖通知跳转和详情页内切单场景。
+
+### 2026-04-10 轮次 92
+
+- 已完成轮次 91 新增问题修复:
+  - `SalesDetailView` 现在会监听销售 token 与订单 ID 变化，同一详情组件实例内切换订单会自动重载正确详情
+  - 销售订单详情加载已补请求序号隔离，旧详情请求不会再覆盖当前订单详情页
+- 增量回归:
+  - `src/views/__tests__/SalesDetailView.lifecycle.test.js`
+  - `src/views/__tests__/SalesDetailView.duplicate.test.js`
+  - `src/views/sales/__tests__/sales-module-contract.test.js`
+  - `src/views/sales/__tests__/SalesFormView.resilience.test.js`
+  - `src/components/order/__tests__/SalesNotificationList.error-state.test.js`
+  - `src/components/order/__tests__/SalesStats.error-state.test.js`
+- 对应修复提交: `5d6b42b fix: reload sales detail on route changes`
