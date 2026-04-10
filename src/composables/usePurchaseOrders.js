@@ -44,6 +44,11 @@ export function usePurchaseOrders() {
     limit: 20,
   });
 
+  const canWriteThroughDetail = (purchaseOrderId) => {
+    if (!detail.value?.id) return true;
+    return String(detail.value.id) === String(purchaseOrderId || '');
+  };
+
   // ─── 状态颜色映射 ──────────────────────────────────────
 
   const statusConfig = computed(() => ({
@@ -230,7 +235,9 @@ export function usePurchaseOrders() {
       const json = await res.json();
 
       if (json.success) {
-        detail.value = json.data;
+        if (canWriteThroughDetail(id)) {
+          detail.value = json.data;
+        }
         addToast({ message: t('purchaseOrder.toast.updated'), type: 'success' });
         return true;
       } else {
@@ -410,7 +417,9 @@ export function usePurchaseOrders() {
       const json = await res.json();
 
       if (json.success) {
-        detail.value = json.data;
+        if (canWriteThroughDetail(poId)) {
+          detail.value = json.data;
+        }
         addToast({ message: t('purchaseOrder.toast.allocated'), type: 'success' });
         return true;
       }

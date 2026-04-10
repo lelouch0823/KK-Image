@@ -191,6 +191,40 @@ describe('usePurchaseOrders authz handling', () => {
     }));
   });
 
+  it('does not let stale purchase-order updates overwrite a newer detail context', async () => {
+    let resolveUpdate;
+    mockAuthFetch
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveUpdate = resolve;
+          })
+      )
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          success: true,
+          data: { id: 'po-2', status: 'ordered' },
+        }),
+      });
+
+    const purchaseOrders = usePurchaseOrders();
+    const updatePending = purchaseOrders.updatePO('po-1', { remark: 'old update' });
+    await purchaseOrders.loadDetail('po-2', { forceRefresh: true });
+
+    expect(purchaseOrders.detail.value).toEqual({ id: 'po-2', status: 'ordered' });
+
+    resolveUpdate({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { id: 'po-1', status: 'draft', remark: 'old update' },
+        }),
+    });
+    await updatePending;
+
+    expect(purchaseOrders.detail.value).toEqual({ id: 'po-2', status: 'ordered' });
+  });
+
   it('allocates purchase-order costs through the managed auth client', async () => {
     const allocatedDetail = {
       id: 'po-1',
