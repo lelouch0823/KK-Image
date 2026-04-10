@@ -85,7 +85,7 @@
 </template>
 
 <script setup>
-import { ref, inject, onMounted } from 'vue';
+import { ref, inject, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { API } from '@/utils/constants';
@@ -97,6 +97,8 @@ const salesContext = inject('salesContext');
 
 const spaces = ref([]);
 const loading = ref(true);
+const currentToken = computed(() => salesContext?.accessToken?.value || window.location.pathname.split('/')[2] || '');
+let spacesRequestId = 0;
 
 const getTemplateLabel = (key) => {
   const labels = {
@@ -130,22 +132,37 @@ const getCoverUrl = (space) => {
 };
 
 const loadSpaces = async () => {
+  const requestId = ++spacesRequestId;
+  const token = currentToken.value;
+  if (!token) {
+    spaces.value = [];
+    loading.value = false;
+    return false;
+  }
+
   loading.value = true;
   try {
-    const token = salesContext?.accessToken?.value || window.location.pathname.split('/')[2];
     const res = await requestSales(API.SALES_SPACES(token), {
       token,
     });
     const data = await res.json();
+    if (requestId !== spacesRequestId) return false;
     if (data.success) {
       spaces.value = data.data || [];
+      return true;
     }
   } catch (_err) {
     // Silent fail - empty state will show
+    if (requestId !== spacesRequestId) return false;
   } finally {
-    loading.value = false;
+    if (requestId === spacesRequestId) {
+      loading.value = false;
+    }
   }
+  return false;
 };
 
-onMounted(loadSpaces);
+watch(currentToken, () => {
+  loadSpaces();
+}, { immediate: true });
 </script>
