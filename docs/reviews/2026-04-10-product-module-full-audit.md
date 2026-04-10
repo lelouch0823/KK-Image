@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 48 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 49 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -94,6 +94,7 @@
   - `9fe0ca2`: 采购单详情加载仅认最新请求结果
   - `799d0db`: 采购建议列表仅认最新加载结果
   - `38a7bb4`: 采购统计卡片仅认最新加载结果
+  - `98c04f2`: 采购单列表仅认最新筛选/分页请求结果
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -133,6 +134,7 @@
   - 2026-04-10 运行 2 个回归测试文件，共 32 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 33 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 34 个测试，全部通过。
+  - 2026-04-10 运行 2 个回归测试文件，共 35 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -190,6 +192,7 @@
 - `usePurchaseOrders.loadDetail()` 本身也没有隔离请求先后。采购页主抽屉在快速切换采购单、重复刷新或并发执行 `refreshPurchaseOrderViews()` 时，旧的详情请求在后返回后仍会覆盖当前 `detail/detailLoading`，导致采购单详情面板回跳到上一单。[src/composables/usePurchaseOrders.js](/home/bjw/Code/KK-Image/src/composables/usePurchaseOrders.js#L97) [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue#L3063)
 - `usePurchaseOrders.loadSuggestions()` 也没有隔离请求先后。采购建议弹窗连续打开、刷新或重试时，旧的建议结果在后返回后仍会覆盖当前 `suggestions/suggestionsLoading`，导致商品缺口建议回跳到旧快照。[src/composables/usePurchaseOrders.js](/home/bjw/Code/KK-Image/src/composables/usePurchaseOrders.js#L415) [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue#L3597)
 - `usePurchaseOrders.loadStats()` 同样缺少请求先后隔离。采购页列表/建议弹窗并发触发总览刷新时，旧统计请求在后返回后仍会覆盖当前 `stats`，导致顶部采购统计卡片回跳到旧口径。[src/composables/usePurchaseOrders.js](/home/bjw/Code/KK-Image/src/composables/usePurchaseOrders.js#L438) [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue#L3577)
+- `usePurchaseOrders.loadList()` 也缺少请求先后隔离。采购页快速切换状态筛选、分页或在刷新总览时并发触发列表请求，旧列表结果在后返回后仍会覆盖当前 `list/total/loading`，导致采购单列表回跳到旧筛选页。[src/composables/usePurchaseOrders.js](/home/bjw/Code/KK-Image/src/composables/usePurchaseOrders.js#L53) [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue#L3068)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -909,3 +912,19 @@
   - `src/composables/__tests__/usePurchaseOrders.test.js`
   - `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
 - 对应修复提交: `38a7bb4 fix: isolate purchase stats loads`
+
+### 2026-04-10 轮次 85
+
+- 继续复查采购单列表链路，新增 1 个中风险问题:
+  - `usePurchaseOrders.loadList()` 缺少请求先后隔离，旧筛选/分页结果会覆盖当前采购单列表
+- 下一步给采购列表加载增加请求序号，确保采购页筛选、分页和总览刷新都只认最新列表结果。
+
+### 2026-04-10 轮次 86
+
+- 已完成轮次 85 新增问题修复:
+  - `usePurchaseOrders.loadList()` 现在只认最新一次列表请求，旧筛选/分页结果不会再覆盖当前 `list/total/loading`
+  - 采购页状态筛选、分页切换和总览刷新会自动继承这层列表请求隔离
+- 增量回归:
+  - `src/composables/__tests__/usePurchaseOrders.test.js`
+  - `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
+- 对应修复提交: `98c04f2 fix: isolate purchase order list loads`
