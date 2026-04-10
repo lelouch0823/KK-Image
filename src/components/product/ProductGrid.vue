@@ -43,10 +43,10 @@
                     <span class="max-w-[8.5rem] truncate rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[11px] text-(--text-secondary)" :title="product.spu || '-'">
                         {{ product.spu }}
                     </span>
-                    <span class="max-w-[8rem] truncate text-[11px] text-(--text-secondary)" :title="`${t('product.table.header.stock')}: ${product.stock_quantity}`">
-                        {{ t('product.table.header.stock') }}: {{ product.stock_quantity }}
+                    <span class="max-w-[8rem] truncate text-[11px] text-(--text-secondary)" :title="`${t('product.table.header.stock')}: ${resolveDisplayStock(product)}`">
+                        {{ t('product.table.header.stock') }}: {{ resolveDisplayStock(product) }}
                     </span>
-                    <span v-if="product.stock_quantity <= (product.alert_threshold || 10)" class="bg-danger-bg text-danger-text rounded px-1.5 py-0.5 text-[10px] font-bold">
+                    <span v-if="resolveDisplayStock(product) <= (product.alert_threshold || 10)" class="bg-danger-bg text-danger-text rounded px-1.5 py-0.5 text-[10px] font-bold">
                         {{ t('product.stats.low_stock') }}
                     </span>
                 </div>
@@ -95,6 +95,9 @@ defineProps({
 defineEmits(['view', 'edit', 'share']);
 
 const getMainImageSrc = (product) => resolvePrimaryProductImageSrc(product);
+
+const resolveDisplayStock = (product) =>
+    Number(product?.available_quantity ?? product?.available ?? product?.stock_quantity ?? 0);
 
 const getStatusVariant = (status) => {
     switch(status) {
