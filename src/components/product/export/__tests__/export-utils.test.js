@@ -45,6 +45,53 @@ describe('product export utils', () => {
     });
   });
 
+  it('maps color/size/material columns through dimension_map and localized labels', () => {
+    const rows = flattenProductsToVariantRows([
+      {
+        id: 'p2',
+        name: 'Chair',
+        dimension_map: { dim_color: '颜色', dim_size: '尺寸', dim_material: '材质' },
+        variants: [
+          {
+            id: 'v2',
+            sku: 'SKU-2',
+            options_values: {
+              dim_color: '黑色',
+              dim_size: 'L',
+              dim_material: '羊毛',
+            },
+          },
+        ],
+      },
+      {
+        id: 'p3',
+        name: 'Lamp',
+        variants: [
+          {
+            id: 'v3',
+            sku: 'SKU-3',
+            options_values: {
+              颜色: '白色',
+              尺寸: 'S',
+              材质: '木质',
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(rows[0]).toMatchObject({
+      color: '黑色',
+      size: 'L',
+      material: '羊毛',
+    });
+    expect(rows[1]).toMatchObject({
+      color: '白色',
+      size: 'S',
+      material: '木质',
+    });
+  });
+
   it('builds CSV content with headers and values', () => {
     const csv = buildCsvContent([
       { product_id: 'p1', product_name: 'Test' },

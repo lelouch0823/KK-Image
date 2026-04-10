@@ -53,6 +53,45 @@ const normalizeOptions = (value) => {
   );
 };
 
+const COLOR_LABELS = new Set(['color', '颜色', '顏色']);
+const SIZE_LABELS = new Set(['size', '尺寸', '尺码', '尺碼']);
+const MATERIAL_LABELS = new Set(['material', '材质', '材質']);
+
+const normalizeLabel = (value) => String(value || '').trim().toLowerCase();
+
+const resolveMappedOptionColumns = (product, variant) => {
+  const rawOptions = variant?.options_values && typeof variant.options_values === 'object'
+    ? variant.options_values
+    : {};
+  const dimensionMap = product?.dimension_map && typeof product.dimension_map === 'object'
+    ? product.dimension_map
+    : {};
+
+  let color = '';
+  let size = '';
+  let material = '';
+
+  for (const [rawKey, rawValue] of Object.entries(rawOptions)) {
+    const value = String(rawValue ?? '').trim();
+    if (!value) continue;
+
+    const resolvedLabel = normalizeLabel(dimensionMap[rawKey] || rawKey);
+    if (!color && COLOR_LABELS.has(resolvedLabel)) {
+      color = value;
+      continue;
+    }
+    if (!size && SIZE_LABELS.has(resolvedLabel)) {
+      size = value;
+      continue;
+    }
+    if (!material && MATERIAL_LABELS.has(resolvedLabel)) {
+      material = value;
+    }
+  }
+
+  return { color, size, material };
+};
+
 const formatDate = (timestamp) => {
   if (!timestamp) return '';
   const date = new Date(Number(timestamp));
@@ -107,6 +146,7 @@ export const flattenProductsToVariantRows = (products = []) => {
       : [null];
     for (const variant of variants) {
       const options = normalizeOptions(variant?.options_values || {});
+      const mappedColumns = resolveMappedOptionColumns(product, variant);
       const row = {
         product_id: product?.id || '',
         product_name: product?.name || '',
@@ -126,9 +166,9 @@ export const flattenProductsToVariantRows = (products = []) => {
         barcode: variant?.barcode || '',
         supplier_sku: variant?.supplier_sku || '',
         variant_status: variant?.status || '',
-        color: options.color || '',
-        size: options.size || '',
-        material: options.material || '',
+        color: mappedColumns.color || options.color || '',
+        size: mappedColumns.size || options.size || '',
+        material: mappedColumns.material || options.material || '',
         options_json: JSON.stringify(variant?.options_values || {}),
         image_id: variant?.image_id || variant?.primaryImage || '',
         price: toNumericOrEmpty(variant?.price),

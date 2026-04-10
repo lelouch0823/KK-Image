@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 const mocks = vi.hoisted(() => ({
   search: vi.fn(),
   findVariantsByProductId: vi.fn(),
+  getDimensionMap: vi.fn(),
 }));
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
@@ -15,6 +16,12 @@ vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
 vi.mock('../../../../../../repositories/ProductVariantRepository.js', () => ({
   ProductVariantRepository: vi.fn(() => ({
     findByProductId: mocks.findVariantsByProductId,
+  })),
+}));
+
+vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
+  ProductDimensionRepository: vi.fn(() => ({
+    getDimensionMap: mocks.getDimensionMap,
   })),
 }));
 
@@ -63,7 +70,7 @@ describe('manage product export route', () => {
         id: 'var-1',
         sku: 'SKU-1',
         variant_code: 'V-1',
-        options_values: { Color: 'Black' },
+        options_values: { dim_color: 'Black' },
         price: 199,
         cost_price: 120,
         stock_quantity: 5,
@@ -73,6 +80,7 @@ describe('manage product export route', () => {
         updated_at: 1700003600000,
       },
     ]);
+    mocks.getDimensionMap.mockResolvedValue({ dim_color: '颜色' });
   });
 
   it('forwards export filters and returns variant-level csv columns', async () => {
@@ -100,6 +108,7 @@ describe('manage product export route', () => {
     const csv = await res.text();
     expect(csv).toContain('Variant ID');
     expect(csv).toContain('SKU-1');
+    expect(csv).toContain(',Black,,');
   });
 
   it('returns a non-200 response when export generation fails', async () => {

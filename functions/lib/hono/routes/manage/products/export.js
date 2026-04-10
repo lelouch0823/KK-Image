@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
+import { ProductDimensionRepository } from '../../../../../repositories/ProductDimensionRepository.js';
 import {
   buildCsvContent,
   EXPORT_COLUMNS,
@@ -51,11 +52,13 @@ app.get('/', async (c) => {
 
     const productRepo = new ProductRepository(env.DB);
     const variantRepo = new ProductVariantRepository(env.DB);
+    const dimensionRepo = new ProductDimensionRepository(env.DB);
     const products = await loadAllProductsForExport(productRepo, filters);
     const detailedProducts = await Promise.all(
       products.map(async (product) => ({
         ...product,
         variants: await variantRepo.findByProductId(product.id),
+        dimension_map: await dimensionRepo.getDimensionMap(product.id),
       }))
     );
     const rows = flattenProductsToVariantRows(detailedProducts);
