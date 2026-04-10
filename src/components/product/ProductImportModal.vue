@@ -231,6 +231,7 @@ const createSpecConfig = (name = '', column = '') => ({
 const normalizeSpecName = (value) => String(value || '').trim().toLowerCase();
 const NUMERIC_FIELDS = new Set(['price', 'cost_price', 'stock_quantity', 'alert_threshold']);
 const PRODUCT_FIELDS = new Set(['name', 'spu', 'currency', 'category', 'brand', 'series', 'description']);
+const VALID_VARIANT_STATUSES = new Set(['active', 'archived']);
 
 const normalizeNumeric = (value) => {
     if (value === null || value === undefined || value === '') return undefined;
@@ -245,7 +246,7 @@ const normalizeStatus = (value) => {
     const raw = String(value || '').trim().toLowerCase();
     if (!raw) return 'active';
     if (['active', 'enabled', 'on', '1', '上架', '启用'].includes(raw)) return 'active';
-    if (['inactive', 'disabled', 'off', '0', '下架', '停用'].includes(raw)) return 'inactive';
+    if (['inactive', 'disabled', 'off', '0', '下架', '停用'].includes(raw)) return 'archived';
     if (['archived', 'archive', '归档'].includes(raw)) return 'archived';
     return raw;
 };
@@ -552,6 +553,20 @@ const handleConfirmMapping = () => {
         return;
     }
 
+    const invalidStatusRows = mappedData.filter((item) => !VALID_VARIANT_STATUSES.has(String(item.status || '').trim()));
+    if (invalidStatusRows.length > 0) {
+        invalidStatusRows.forEach((item) => {
+            validationIssues.push({
+                row: Number(item.__rowNumber || 0),
+                code: 'invalid_status',
+                message: t('product.import.preprocess.issue.invalid_status', '状态值不受支持'),
+            });
+        });
+        mappingValidationReport.value = createValidationReport(validationIssues);
+        addToast({ type: 'error', message: t('product.import.error_invalid_status', '存在不受支持的状态值，请修正后再导入') });
+        return;
+    }
+
     const seenSku = new Set();
     const duplicateSkuSet = new Set();
     const duplicateSku = mappedData.find((item) => {
@@ -751,6 +766,25 @@ const handleImport = async () => {
             return spu ? `spu:${spu}` : `row:${idx}`;
         };
 
+        const buildDimensionsFromRows = (rows) => {
+            const dimensionMap = new Map();
+            rows.forEach((row) => {
+                Object.entries(row?.options_values || {}).forEach(([name, value]) => {
+                    const cleanName = String(name || '').trim();
+                    const cleanValue = String(value || '').trim();
+                    if (!cleanName || !cleanValue) return;
+                    if (!dimensionMap.has(cleanName)) {
+                        dimensionMap.set(cleanName, []);
+                    }
+                    const values = dimensionMap.get(cleanName);
+                    if (!values.includes(cleanValue)) {
+                        values.push(cleanValue);
+                    }
+                });
+            });
+            return Array.from(dimensionMap.entries()).map(([name, values]) => ({ name, values }));
+        };
+
         const normalizeVariantFromRow = (row) => {
             const variant = { ...row };
             PRODUCT_FIELDS.forEach((key) => {
@@ -764,13 +798,16 @@ const handleImport = async () => {
             rows.forEach((row, idx) => {
                 const key = buildGroupKey(row, idx);
                 if (!groups.has(key)) {
+                    const groupedRows = rows.filter((candidate, candidateIndex) => buildGroupKey(candidate, candidateIndex) === key);
                     groups.set(key, {
                         name: row.name,
                         spu: String(row.spu || '').trim() || undefined,
+                        currency: row.currency,
                         category: row.category,
                         brand: row.brand,
                         series: row.series,
                         description: row.description,
+                        dimensions: buildDimensionsFromRows(groupedRows),
                         variants: []
                     });
                 }
@@ -799,6 +836,10 @@ const handleImport = async () => {
                         _importStats.value.createdVariants += (result.summary.createdVariants || 0);
                         _importStats.value.updatedVariants += (result.summary.updatedVariants || 0);
                         _importStats.value.conflictCount += (result.summary.conflicts || 0);
+                        _importStats.value.failed += (result.summary.failedProducts || 0);
+                    }
+                    if (Array.isArray(result.errors) && result.errors.length > 0) {
+                        _importStats.value.errors.push(...result.errors);
                     }
                     if (Array.isArray(result.conflicts) && result.conflicts.length > 0) {
                         const tagged = result.conflicts.map((conflict) => ({ batch: i + 1, ...conflict }));

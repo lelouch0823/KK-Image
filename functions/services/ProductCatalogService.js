@@ -811,7 +811,9 @@ export class ProductCatalogService {
                     existingVariantsSnapshot = existingVariants;
                     let normalizedVariants = normalizedItem.variants;
                     if (Array.isArray(normalizedItem.dimensions) && normalizedItem.dimensions.length > 0) {
-                        const dimensions = await this.syncDimensionsFromPayload(productId, normalizedItem.dimensions);
+                        const dimensions = await this.syncDimensionsFromPayload(productId, normalizedItem.dimensions, {
+                            replaceMissing: importMode === IMPORT_MODE.REPLACE,
+                        });
                         normalizedVariants = normalizeVariantDimensionKeys(normalizedVariants, dimensions);
                     }
                     const variantsToSync = mergeIncomingWithExisting(

@@ -31,7 +31,7 @@ function createMockDbWithExistingVariant(existingRows = []) {
   return {
     prepare: vi.fn((sql) => {
       const stmt = createPreparedStatement(sql);
-      if (sql.includes('SELECT id, variant_signature, status FROM product_variants WHERE product_id = ?')) {
+      if (sql.includes('SELECT')) {
         stmt.all.mockResolvedValue({ results: existingRows });
       }
       return stmt;
@@ -78,6 +78,39 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
     expect(balanceStmt).toBeDefined();
     expect(balanceStmt.params).toContain('v-1');
     expect(balanceStmt.params).toContain(5);
+  });
+
+  it('preserves existing stock bindings when an existing variant omits stock_quantity', async () => {
+    db = createMockDbWithExistingVariant([
+      {
+        id: 'v-keep-stock',
+        variant_signature: '{"color":"navy"}',
+        status: 'active',
+        stock_quantity: 12,
+        on_hand: 12,
+        reserved: 4,
+      },
+    ]);
+    repo = new ProductVariantRepository(db);
+
+    await repo.syncVariants('p-1', [
+      {
+        id: 'v-keep-stock',
+        sku: 'SKU-KEEP',
+        price: 100,
+        cost_price: 60,
+        alert_threshold: 2,
+        options_values: { color: 'navy' },
+        status: 'active',
+      },
+    ]);
+
+    const statements = db.batch.mock.calls[0][0];
+    const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
+    const balanceStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO inventory_balances'));
+    expect(upsertStmt.params).toContain(12);
+    expect(balanceStmt.params).toContain(12);
+    expect(upsertStmt.params).not.toContain(0);
   });
 
   it('keeps stock_quantity on insert bindings for new variants', async () => {

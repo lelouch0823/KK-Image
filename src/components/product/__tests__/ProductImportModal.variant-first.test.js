@@ -104,6 +104,60 @@ describe('ProductImportModal Variant-First Payload', () => {
         expect(emptySpuProducts[1].variants).toHaveLength(1);
     });
 
+    it('builds grouped product payload with currency and derived dimensions', async () => {
+        const wrapper = mount(ProductImportModal, {
+            global: {
+                stubs: {
+                    Modal: { template: '<div><slot></slot><slot name="footer"></slot></div>' },
+                    AppIcon: true,
+                    ImportUploadStep: true,
+                    ImportMappingStep: true,
+                    ImportImageMatchStep: true,
+                    ImportPreviewStep: true
+                }
+            },
+            props: { modelValue: true }
+        });
+
+        wrapper.vm.currentStep = 4;
+        wrapper.vm.parsedItems = [
+            {
+                name: '风衣',
+                spu: 'SPU-DIM-1',
+                category: '外套',
+                brand: 'KK',
+                currency: 'USD',
+                sku: 'SKU-DIM-RED-M',
+                options_values: { 颜色: 'Red', 尺寸: 'M' },
+                price: 100,
+            },
+            {
+                name: '风衣',
+                spu: 'SPU-DIM-1',
+                category: '外套',
+                brand: 'KK',
+                currency: 'USD',
+                sku: 'SKU-DIM-BLUE-L',
+                options_values: { 颜色: 'Blue', 尺寸: 'L' },
+                price: 120,
+            },
+        ];
+
+        await wrapper.vm.handleImport();
+
+        const payload = mocks.importProducts.mock.calls[0][0];
+        expect(payload).toHaveLength(1);
+        expect(payload[0]).toMatchObject({
+            name: '风衣',
+            spu: 'SPU-DIM-1',
+            currency: 'USD',
+        });
+        expect(payload[0].dimensions).toEqual([
+            { name: '颜色', values: ['Red', 'Blue'] },
+            { name: '尺寸', values: ['M', 'L'] },
+        ]);
+    });
+
     it('maps extended import fields and keeps mapped status', async () => {
         const wrapper = mount(ProductImportModal, {
             global: {
@@ -195,6 +249,41 @@ describe('ProductImportModal Variant-First Payload', () => {
             droppedEmptyRows: 0,
             normalizedRows: 1,
         });
+    });
+
+    it('maps inactive-like statuses to archived and blocks unsupported statuses early', async () => {
+        const wrapper = mount(ProductImportModal, {
+            global: {
+                stubs: {
+                    Modal: { template: '<div><slot></slot><slot name="footer"></slot></div>' },
+                    AppIcon: true,
+                    ImportUploadStep: true,
+                    ImportMappingStep: true,
+                    ImportImageMatchStep: true,
+                    ImportPreviewStep: true
+                }
+            },
+            props: { modelValue: true }
+        });
+
+        wrapper.vm.fileHeaders = ['商品名称', 'SKU', '状态'];
+        wrapper.vm.rawFileRows = [['冲锋衣', 'SKU-ARCHIVE', '下架']];
+        wrapper.vm.fieldMapping = {
+            name: '商品名称',
+            sku: 'SKU',
+            status: '状态',
+        };
+        wrapper.vm.specConfigs = [];
+        wrapper.vm.handleConfirmMapping();
+        expect(wrapper.vm.parsedItems[0].status).toBe('archived');
+
+        mocks.addToast.mockClear();
+        wrapper.vm.rawFileRows = [['冲锋衣', 'SKU-INVALID', 'paused']];
+        wrapper.vm.parsedItems = [];
+        wrapper.vm.handleConfirmMapping();
+        expect(mocks.addToast).toHaveBeenCalled();
+        expect(wrapper.vm.parsedItems).toHaveLength(0);
+        expect(wrapper.vm.mappingValidationReport?.byCode?.invalid_status).toBe(1);
     });
 
     it('maps custom spec names into options_values and blocks duplicate names', async () => {
@@ -371,6 +460,48 @@ describe('ProductImportModal Variant-First Payload', () => {
             conflicts: 1,
         });
         expect(wrapper.vm.importResult.conflicts).toHaveLength(1);
+    });
+
+    it('surfaces partial batch failures even when backend returns success=true', async () => {
+        mocks.importProducts.mockResolvedValue({
+            success: true,
+            count: 1,
+            summary: {
+                createdProducts: 1,
+                updatedProducts: 0,
+                createdVariants: 1,
+                updatedVariants: 0,
+                conflicts: 0,
+                failedProducts: 1,
+            },
+            errors: ['Failed to process item SPU-ERR: invalid status'],
+        });
+
+        const wrapper = mount(ProductImportModal, {
+            global: {
+                stubs: {
+                    Modal: { template: '<div><slot></slot><slot name="footer"></slot></div>' },
+                    AppIcon: true,
+                    ImportUploadStep: true,
+                    ImportMappingStep: true,
+                    ImportImageMatchStep: true,
+                    ImportPreviewStep: true
+                }
+            },
+            props: { modelValue: true }
+        });
+
+        wrapper.vm.currentStep = 4;
+        wrapper.vm.parsedItems = [
+            { name: 'T恤', spu: 'SPU-S-1', sku: 'SKU-S-1', price: 100 },
+            { name: '帽子', spu: 'SPU-S-2', sku: 'SKU-S-2', price: 50 },
+        ];
+
+        await wrapper.vm.handleImport();
+
+        expect(wrapper.vm.importResult.success).toBe(true);
+        expect(wrapper.vm.importResult.failed).toBe(1);
+        expect(wrapper.vm.importResult.errors).toContain('Failed to process item SPU-ERR: invalid status');
     });
 
     it('passes replace mode to batch import request when user selects full overwrite', async () => {

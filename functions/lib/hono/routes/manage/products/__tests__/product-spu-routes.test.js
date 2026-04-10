@@ -27,6 +27,8 @@ const mockDimensionRepo = {
     updateDimension: vi.fn(),
     updateValueMeta: vi.fn(),
     restoreSnapshot: vi.fn(),
+    archiveValue: vi.fn(),
+    archiveDimension: vi.fn(),
 };
 const mockFolderUtils = {
     ensureVariantFolder: vi.fn(),
@@ -65,6 +67,8 @@ vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
         updateDimension(...args) { return mockDimensionRepo.updateDimension(...args); }
         updateValueMeta(...args) { return mockDimensionRepo.updateValueMeta(...args); }
         restoreSnapshot(...args) { return mockDimensionRepo.restoreSnapshot(...args); }
+        archiveValue(...args) { return mockDimensionRepo.archiveValue(...args); }
+        archiveDimension(...args) { return mockDimensionRepo.archiveDimension(...args); }
     },
 }));
 
@@ -116,6 +120,8 @@ describe('Product Routes — variant-first contract', () => {
         mockDimensionRepo.updateDimension.mockResolvedValue({ id: 'dim-color', name: 'Color' });
         mockDimensionRepo.updateValueMeta.mockResolvedValue(undefined);
         mockDimensionRepo.restoreSnapshot.mockResolvedValue(undefined);
+        mockDimensionRepo.archiveValue.mockResolvedValue(undefined);
+        mockDimensionRepo.archiveDimension.mockResolvedValue(undefined);
         mockFolderUtils.ensureVariantFolder.mockResolvedValue('folder-variant');
         mockFolderUtils.moveFilesToFolder.mockResolvedValue(undefined);
     });
@@ -878,6 +884,77 @@ describe('Product Routes — variant-first contract', () => {
                 ]
             );
             expect(data.summary.archivedVariants).toBe(1);
+        });
+
+        it('should archive missing dimensions and values in replace mode batch import', async () => {
+            mockProductRepo.findBySpu.mockResolvedValue({
+                id: 'existing-id',
+                spu: 'SPU-REPLACE-DIM-1',
+                name: 'Old Name',
+            });
+            mockProductRepo.updateWithMeta.mockResolvedValue({ success: true, changes: 1 });
+            mockDimensionRepo.listByProduct.mockResolvedValue([
+                {
+                    id: 'dim-color',
+                    product_id: 'existing-id',
+                    name: 'Color',
+                    status: 'active',
+                    values: [
+                        { id: 'val-red', value: 'Red', status: 'active' },
+                        { id: 'val-blue', value: 'Blue', status: 'active' },
+                    ],
+                    aliases: [],
+                },
+                {
+                    id: 'dim-size',
+                    product_id: 'existing-id',
+                    name: 'Size',
+                    status: 'active',
+                    values: [
+                        { id: 'val-m', value: 'M', status: 'active' },
+                    ],
+                    aliases: [],
+                },
+            ]);
+            mockDimensionRepo.updateDimension.mockImplementation(async (_productId, dimensionId, payload) => ({
+                id: dimensionId,
+                product_id: 'existing-id',
+                name: payload.name,
+                status: 'active',
+                sort_order: payload.sort_order ?? 0,
+            }));
+            mockVariantRepo.findByProductId.mockResolvedValue([
+                { id: 'var-replace-1', sku: 'SKU-REPLACE-1', price: 100, options_values: { 'dim-color': 'Red' } },
+            ]);
+            mockVariantRepo.syncVariants.mockResolvedValue({ createdCount: 0, updatedCount: 1, archivedCount: 0, deletedCount: 0 });
+
+            const app = createApp();
+            const res = await app.request(
+                'http://localhost/api/manage/products/batch',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        import_mode: 'replace',
+                        items: [
+                            {
+                                name: 'New Name',
+                                spu: 'SPU-REPLACE-DIM-1',
+                                dimensions: [{ id: 'dim-color', name: 'Color', values: ['Red'] }],
+                                variants: [
+                                    { ...validVariants[0], sku: 'SKU-REPLACE-1', options_values: { Color: 'Red' } },
+                                ],
+                            },
+                        ],
+                    }),
+                },
+                { DB: {}, executionCtx: { waitUntil: vi.fn() } },
+                { waitUntil: vi.fn() }
+            );
+
+            expect(res.status).toBe(200);
+            expect(mockDimensionRepo.archiveValue).toHaveBeenCalledWith('existing-id', 'val-blue');
+            expect(mockDimensionRepo.archiveDimension).toHaveBeenCalledWith('existing-id', 'dim-size');
         });
 
         it('should mark item as failed when updateWithMeta returns unsuccessful result', async () => {

@@ -347,7 +347,16 @@ export class ProductVariantRepository {
         const statements = [];
         const incomingList = Array.isArray(variantsData) ? variantsData : [];
         const existingResult = await this.db
-            .prepare('SELECT id, variant_signature, status FROM product_variants WHERE product_id = ?')
+            .prepare(`
+                SELECT
+                    pv.id,
+                    pv.variant_signature,
+                    pv.status,
+                    COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity
+                FROM product_variants pv
+                LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
+                WHERE pv.product_id = ?
+            `)
             .bind(productId)
             .all();
         const existingRows = existingResult.results || [];
@@ -401,6 +410,9 @@ export class ProductVariantRepository {
                 updatedCount += 1;
             }
             const sku = this.buildVariantSku(v.sku, id);
+            const resolvedStockQuantity = v.stock_quantity !== undefined
+                ? Number(v.stock_quantity) || 0
+                : Math.max(0, Number(targetExisting?.stock_quantity) || 0);
             retainedIds.add(id);
             statements.push(
                 this.db.prepare(
@@ -425,7 +437,7 @@ export class ProductVariantRepository {
                     sku,
                     Number(v.price) || 0,
                     v.cost_price !== undefined && v.cost_price !== null ? Number(v.cost_price) : null,
-                    Number(v.stock_quantity) || 0,
+                    resolvedStockQuantity,
                     Number(v.alert_threshold) || 10,
                     JSON.stringify(optionsValues),
                     variantSignature,
@@ -447,8 +459,8 @@ export class ProductVariantRepository {
                         updated_at = excluded.updated_at`
                 ).bind(
                     id,
-                    Number(v.stock_quantity) || 0,
-                    Number(v.stock_quantity) || 0,
+                    resolvedStockQuantity,
+                    resolvedStockQuantity,
                     timestamp
                 )
             );
