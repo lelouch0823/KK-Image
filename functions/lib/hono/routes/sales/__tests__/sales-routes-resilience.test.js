@@ -252,6 +252,42 @@ describe('sales routes resilience', () => {
     expect(mocks.orderCreate).not.toHaveBeenCalled();
   });
 
+  it('rejects order creation when bound variant is out of stock under sales policy', async () => {
+    mocks.productVariantFindByIdAndProductId.mockResolvedValue({
+      id: 'v-1',
+      product_id: 'p-1',
+      status: 'active',
+      available_quantity: 0,
+    });
+    mocks.productFindById.mockResolvedValue({
+      id: 'p-1',
+      status: 'active',
+      images: '[]',
+    });
+
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Shoes',
+          productId: 'p-1',
+          variantId: 'v-1',
+          fileIds: [],
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const payload = await res.json();
+    expect(payload.error).toContain('variant must be in stock');
+    expect(mocks.orderCreate).not.toHaveBeenCalled();
+  });
+
   it('sales products endpoints return stable schema under empty/error', async () => {
     const app = createProductsTestApp();
 
@@ -537,6 +573,51 @@ describe('sales routes resilience', () => {
     ]);
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
     expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('rejects salesperson patch when rebinding to an out-of-stock variant', async () => {
+    mocks.orderFindByIdAndSalesperson.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      quantity: 1,
+      variantId: 'v-old',
+      productId: 'p-1',
+      currentData: { name: 'A' },
+    });
+    mocks.productFindById.mockResolvedValue({
+      id: 'p-1',
+      status: 'active',
+      images: '[]',
+    });
+    mocks.productVariantFindByIdAndProductId.mockResolvedValue({
+      id: 'v-1',
+      product_id: 'p-1',
+      status: 'active',
+      available_quantity: 0,
+    });
+
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders/o-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: 'rebinding',
+          productId: 'p-1',
+          variantId: 'v-1',
+          updates: { remark: 'next' },
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const payload = await res.json();
+    expect(payload.error).toContain('variant must be in stock');
+    expect(mocks.processOrderUpdate).not.toHaveBeenCalled();
   });
 
   it('enqueues order status change through outbox for salesperson void', async () => {

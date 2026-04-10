@@ -129,9 +129,19 @@ Component({
           return;
         }
 
+        const selectableVariants = pickSelectableVariants(result.data, 'in_stock_only');
+        if (selectableVariants.length === 0) {
+          this.setData({
+            productDetail: result.data,
+            variants: [],
+            errorMessage: '该商品暂无可下单规格',
+          });
+          return;
+        }
+
         this.setData({
           productDetail: result.data,
-          variants: pickSelectableVariants(result.data, 'in_stock_only'),
+          variants: selectableVariants,
           errorMessage: '',
         });
       } finally {

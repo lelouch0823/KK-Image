@@ -81,7 +81,10 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
     const orderNo = generateOrderNo();
     const variantId = data.variantId ?? null;
 
-    await validateProductVariantBinding(env.DB, data.productId || null, variantId, { checkActive: true });
+    await validateProductVariantBinding(env.DB, data.productId || null, variantId, {
+        checkActive: true,
+        variantSelectPolicy: 'in_stock_only',
+    });
 
     // 1. 创建订单（事务）
     const createdOrder = await orderRepo.create({
@@ -289,7 +292,10 @@ app.patch('/:id', async (c) => {
     let normalizedVariantId = hasVariantIdPayload ? (variantId || null) : undefined;
 
     if (hasProductIdPayload || hasVariantIdPayload) {
-        const binding = await validateProductVariantBinding(env.DB, effectiveProductId, normalizedVariantId, { checkActive: true });
+        const binding = await validateProductVariantBinding(env.DB, effectiveProductId, normalizedVariantId, {
+            checkActive: true,
+            variantSelectPolicy: 'in_stock_only',
+        });
         normalizedVariantId = binding.normalizedVariantId;
     }
 

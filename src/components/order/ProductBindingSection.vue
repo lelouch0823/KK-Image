@@ -613,7 +613,11 @@ const handleProductSelect = async (product) => {
     if (fullProduct && fullProduct.variants && fullProduct.variants.length > 0) {
       variants.value = fullProduct.variants;
       initSelectionFromVariants();
-      emit('product-fetch-success');
+      if (selectedVariantId.value) {
+        emit('product-fetch-success');
+      } else {
+        emit('product-fetch-error', t('order.binding.variantRequired'));
+      }
     } else {
       variants.value = [];
       selectedVariantId.value = null;

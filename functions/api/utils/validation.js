@@ -3,7 +3,11 @@ import { ProductVariantRepository } from '../../repositories/ProductVariantRepos
 import { BadRequestError } from '../../lib/hono/errors.js';
 
 export async function validateProductVariantBinding(db, productId, variantId, options = {}) {
-  const { checkActive = false, checkExistence = true } = options;
+  const {
+    checkActive = false,
+    checkExistence = true,
+    variantSelectPolicy = 'allow_out_of_stock',
+  } = options;
   const normalizedProductId = productId || null;
   const normalizedVariantId = variantId || null;
 
@@ -47,6 +51,18 @@ export async function validateProductVariantBinding(db, productId, variantId, op
   }
   if (checkActive && variant.status !== 'active') {
     throw new BadRequestError('variant must be active');
+  }
+  if (variantSelectPolicy === 'in_stock_only') {
+    const availableQuantity = Number(
+      variant.available_quantity ??
+      variant.available ??
+      variant.stock_quantity ??
+      variant.stockQuantity ??
+      0
+    );
+    if (availableQuantity <= 0) {
+      throw new BadRequestError('variant must be in stock');
+    }
   }
 
   return {

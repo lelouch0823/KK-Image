@@ -417,6 +417,35 @@ describe('ProductBindingSection variant status and dimensions', () => {
     expect(afterSelectEvents).toHaveLength(1);
   });
 
+  it('emits fetch error instead of false success when sales product has no selectable variants', async () => {
+    mocks.loadSalesProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Sold Out Product',
+      variants: [
+        {
+          id: 'v1',
+          sku: 'SOLD-OUT-1',
+          status: 'active',
+          stock_quantity: 0,
+          alert_threshold: 5,
+          options_values: { color: 'Black', size: '42' },
+        },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null, mode: 'sales', salesToken: 'token-1', variantSelectPolicy: 'in_stock_only' },
+      global: { stubs: { ProductSelect: salesPickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-sales-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('product-fetch-error')).toBeTruthy());
+
+    expect(wrapper.emitted('select')).toBeFalsy();
+    expect(wrapper.emitted('product-fetch-success')).toBeFalsy();
+    expect(wrapper.emitted('product-fetch-error')[0][0]).toBe('order.binding.variantRequired');
+  });
+
   it('supports all policy and allows selecting archived variants', async () => {
     mocks.loadProduct.mockResolvedValueOnce({
       id: 'p1',

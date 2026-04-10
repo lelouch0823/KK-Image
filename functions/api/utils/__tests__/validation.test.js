@@ -59,4 +59,36 @@ describe('validateProductVariantBinding', () => {
       })
     );
   });
+
+  it('rejects out-of-stock variants when policy is in_stock_only', async () => {
+    mocks.variantFindByIdAndProductId.mockResolvedValue({
+      id: 'v-1',
+      product_id: 'p-1',
+      status: 'active',
+      available_quantity: 0,
+    });
+
+    await expect(
+      validateProductVariantBinding({}, 'p-1', 'v-1', {
+        checkActive: true,
+        variantSelectPolicy: 'in_stock_only',
+      })
+    ).rejects.toThrow('variant must be in stock');
+  });
+
+  it('allows out-of-stock variants when policy allows preorders', async () => {
+    mocks.variantFindByIdAndProductId.mockResolvedValue({
+      id: 'v-1',
+      product_id: 'p-1',
+      status: 'active',
+      available_quantity: 0,
+    });
+
+    const result = await validateProductVariantBinding({}, 'p-1', 'v-1', {
+      checkActive: true,
+      variantSelectPolicy: 'allow_out_of_stock',
+    });
+
+    expect(result.normalizedVariantId).toBe('v-1');
+  });
 });
