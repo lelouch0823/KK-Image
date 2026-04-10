@@ -119,7 +119,7 @@
     <SpaceCreateModal
         v-if="showShareModal"
         :initial-product="sharingProduct"
-        @close="showShareModal = false"
+        @close="handleShareClose"
         @created="handleShareCreated"
     />
 
@@ -258,6 +258,8 @@ const queryEditInitializing = ref(false);
 const queryEditError = ref('');
 let stopProductsRefreshSubscription = null;
 let queryEditRequestId = 0;
+let editHydrationRequestId = 0;
+let shareHydrationRequestId = 0;
 
 const filters = reactive({
     search: '',
@@ -315,6 +317,7 @@ onUnmounted(() => {
 });
 
 const handleCreate = () => {
+    editHydrationRequestId += 1;
     isEditMode.value = false;
     editingProduct.value = {};
     showCreateModal.value = true;
@@ -329,6 +332,7 @@ const handleEdit = (product) => {
 const handleQueryEditOpen = async (productId) => {
     if (!productId) return;
     const requestId = ++queryEditRequestId;
+    editHydrationRequestId += 1;
     isEditMode.value = true;
     showCreateModal.value = true;
     queryEditInitializing.value = true;
@@ -383,8 +387,13 @@ const hydrateProductWithVariants = async (product) => {
 };
 
 const handleEditWithHydration = async (product) => {
+    const requestId = ++editHydrationRequestId;
     isEditMode.value = true;
-    editingProduct.value = await hydrateProductWithVariants(product);
+    const hydrated = await hydrateProductWithVariants(product);
+    if (requestId !== editHydrationRequestId) {
+        return;
+    }
+    editingProduct.value = hydrated;
     showCreateModal.value = true;
 };
 
@@ -395,12 +404,22 @@ const handleView = async (product) => {
 };
 
 const handleShare = async (product) => {
-    sharingProduct.value = await hydrateProductWithVariants(product);
+    const requestId = ++shareHydrationRequestId;
+    const hydrated = await hydrateProductWithVariants(product);
+    if (requestId !== shareHydrationRequestId) {
+        return;
+    }
+    sharingProduct.value = hydrated;
     showShareModal.value = true;
 };
 
-const handleShareCreated = (space) => {
+const handleShareClose = () => {
+    shareHydrationRequestId += 1;
     showShareModal.value = false;
+};
+
+const handleShareCreated = (space) => {
+    handleShareClose();
     // Redirect to the space management page automatically for this new space
     router.push(`/manage/space/${space.id}`);
 };
@@ -468,6 +487,7 @@ watch([showDetailModal, viewingProduct], ([isOpen, product]) => {
 watch(showCreateModal, (isOpen) => {
     if (!isOpen) {
         queryEditRequestId += 1;
+        editHydrationRequestId += 1;
         queryEditInitializing.value = false;
         queryEditError.value = '';
         editingProduct.value = null;

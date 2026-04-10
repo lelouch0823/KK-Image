@@ -86,6 +86,45 @@ describe('ProductManager variant hydration', () => {
     expect(wrapper.vm.sharingProduct.selectedVariant.id).toBe('v-1');
   });
 
+  it('keeps the latest share hydration result when multiple shares race', async () => {
+    let resolveFirst;
+    let resolveSecond;
+    mocks.loadProduct
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = resolve;
+          })
+      );
+
+    const wrapper = createWrapper();
+    const first = wrapper.vm.handleShare({ id: 'p-1', name: 'First Lite' });
+    const second = wrapper.vm.handleShare({ id: 'p-2', name: 'Second Lite' });
+
+    resolveSecond({
+      id: 'p-2',
+      name: 'Second Product',
+      variants: [{ id: 'v-2', sku: 'SKU-2', status: 'active' }],
+    });
+    await second;
+
+    resolveFirst({
+      id: 'p-1',
+      name: 'Stale Product',
+      variants: [{ id: 'v-1', sku: 'SKU-1', status: 'active' }],
+    });
+    await first;
+
+    expect(wrapper.vm.sharingProduct.id).toBe('p-2');
+    expect(wrapper.vm.sharingProduct.name).toBe('Second Product');
+  });
+
   it('handleEditWithHydration should use hydration path', async () => {
     mocks.loadProduct.mockResolvedValue({
       id: 'p-2',
@@ -100,6 +139,45 @@ describe('ProductManager variant hydration', () => {
     expect(wrapper.vm.isEditMode).toBe(true);
     expect(wrapper.vm.showCreateModal).toBe(true);
     expect(wrapper.vm.editingProduct.id).toBe('p-2');
+  });
+
+  it('keeps the latest edit hydration result when multiple edits race', async () => {
+    let resolveFirst;
+    let resolveSecond;
+    mocks.loadProduct
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = resolve;
+          })
+      );
+
+    const wrapper = createWrapper();
+    const first = wrapper.vm.handleEditWithHydration({ id: 'p-1', name: 'First Lite' });
+    const second = wrapper.vm.handleEditWithHydration({ id: 'p-2', name: 'Second Lite' });
+
+    resolveSecond({
+      id: 'p-2',
+      name: 'Second Product',
+      variants: [{ id: 'v-2', sku: 'SKU-2', status: 'active' }],
+    });
+    await second;
+
+    resolveFirst({
+      id: 'p-1',
+      name: 'Stale Product',
+      variants: [{ id: 'v-1', sku: 'SKU-1', status: 'active' }],
+    });
+    await first;
+
+    expect(wrapper.vm.editingProduct.id).toBe('p-2');
+    expect(wrapper.vm.editingProduct.name).toBe('Second Product');
   });
 
   it('renders product workflow modal instead of separate detail modal', () => {
