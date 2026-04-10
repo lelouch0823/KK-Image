@@ -188,4 +188,93 @@ describe('SpaceProductEditor contract', () => {
     expect(mocks.loadProduct).not.toHaveBeenCalled();
     expect(wrapper.vm.form.productId).toBe('prod-1');
   });
+
+  it('keeps the latest initData result when refreshes race', async () => {
+    const wrapper = mount(SpaceProductEditor, {
+      props: {
+        space: { id: 'space-1', shareToken: 'share-token' },
+      },
+      global: {
+        stubs: {
+          FileSelector: { template: '<div />' },
+          Tooltip: { template: '<div><slot /></div>' },
+          SpaceAnalytics: { template: '<div />' },
+          SpaceShareCard: { template: '<div />' },
+          SpaceVisibilitySelector: { template: '<div />' },
+          SpaceMediaGrid: { template: '<div />' },
+          ConfirmDialog: { template: '<div />' },
+          ProductBindingSection: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+    vi.clearAllMocks();
+
+    let resolveSpaceFirst;
+    let resolveSpaceSecond;
+
+    mocks.can.mockResolvedValue(true);
+    mocks.loadSpace
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSpaceFirst = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSpaceSecond = resolve;
+          })
+      );
+    mocks.loadProduct.mockImplementation(async (productId) => ({
+      id: productId,
+      name: productId === 'prod-2' ? 'Second Product' : 'Stale Product',
+      brand: productId === 'prod-2' ? 'Brand 2' : 'Brand 1',
+      series: productId === 'prod-2' ? 'Series 2' : 'Series 1',
+      images: [productId === 'prod-2' ? 'img-2' : 'img-1'],
+      variants: [{ id: productId === 'prod-2' ? 'var-2' : 'var-1', sku: productId === 'prod-2' ? 'SKU-2' : 'SKU-1' }],
+    }));
+
+    const first = wrapper.vm.initData();
+    await Promise.resolve();
+    const second = wrapper.vm.initData();
+    await Promise.resolve();
+
+    resolveSpaceSecond({
+      id: 'space-1',
+      name: 'Second Space',
+      description: 'Second Desc',
+      isPublic: true,
+      shareMode: 'selected',
+      sharedSalespersons: [],
+      productId: 'prod-2',
+      variantId: 'var-2',
+      templateData: {},
+      files: [],
+    });
+    await second;
+
+    resolveSpaceFirst({
+      id: 'space-1',
+      name: 'First Space',
+      description: 'First Desc',
+      isPublic: false,
+      shareMode: 'none',
+      sharedSalespersons: [],
+      productId: 'prod-1',
+      variantId: 'var-1',
+      templateData: {},
+      files: [],
+    });
+    await first;
+
+    expect(wrapper.vm.form.name).toBe('Second Space');
+    expect(wrapper.vm.boundProduct).toMatchObject({
+      id: 'prod-2',
+      name: 'Second Product',
+      sku: 'SKU-2',
+    });
+  });
 });

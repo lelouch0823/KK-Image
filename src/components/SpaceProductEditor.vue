@@ -410,6 +410,7 @@ const mobileTab = ref('info');
 const isDesktop = ref(window.innerWidth >= 1024);
 const boundProduct = ref(null);
 const canManageProducts = ref(true);
+let initDataRequestId = 0;
 
 // 确认弹窗状态
 const confirmData = ref({
@@ -451,11 +452,15 @@ const productImages = computed(() => {
 });
 
 const initData = async () => {
+  const requestId = ++initDataRequestId;
   canManageProducts.value = await can('products:manage');
+  if (requestId !== initDataRequestId) return;
   const data = await loadSpace(props.space.id);
+  if (requestId !== initDataRequestId || !data) return;
   if (data) {
     if (data.productId && canManageProducts.value) {
       const product = await loadProduct(data.productId);
+      if (requestId !== initDataRequestId) return;
       if (product) {
         const selectedVariant = (product.variants || []).find(v => v.id === data.variantId) || null;
         const mainImage = resolveBoundProductMainImageSrc({
@@ -633,6 +638,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  initDataRequestId += 1;
   unregisterFolderRefresh(`space_${props.space.id}`);
 });
 </script>
