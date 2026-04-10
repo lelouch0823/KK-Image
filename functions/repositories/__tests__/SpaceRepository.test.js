@@ -145,4 +145,53 @@ describe('SpaceRepository', () => {
             expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 100, 6]);
         });
     });
+
+    describe('createSubspace', () => {
+        it('persists both product_id and variant_id for bound child spaces', async () => {
+            const mockRun = vi.fn().mockResolvedValue({ success: true });
+            const mockBind = vi.fn().mockReturnValue({ run: mockRun });
+            const mockPrepare = vi.fn().mockReturnValue({ bind: mockBind });
+            const mockDb = { prepare: mockPrepare };
+
+            const repo = new SpaceRepository(mockDb);
+
+            await repo.createSubspace({
+                id: 'space-child-1',
+                parentId: 'space-parent-1',
+                name: 'Child Product Space',
+                description: '',
+                isPublic: false,
+                password: null,
+                shareToken: 'share-space',
+                expiresAt: null,
+                template: 'product',
+                templateData: '{}',
+                productId: 'product-2',
+                variantId: 'variant-2',
+                createdAt: 100,
+                updatedAt: 100,
+            });
+
+            expect(mockPrepare).toHaveBeenCalledWith(
+                expect.stringContaining('product_id')
+            );
+            expect(mockBind).toHaveBeenCalledWith(
+                'space-child-1',
+                'space-parent-1',
+                'Child Product Space',
+                '',
+                0,
+                null,
+                'share-space',
+                null,
+                'product',
+                '{}',
+                'product-2',
+                'variant-2',
+                100,
+                100
+            );
+            expect(mockRun).toHaveBeenCalled();
+        });
+    });
 });

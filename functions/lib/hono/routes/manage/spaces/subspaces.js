@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { requirePermission } from '../../../middleware/auth.js';
 import { withCache } from '../../../middleware/cache.js';
 import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js';
+import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
 import {
   generateId,
   generateShareToken,
@@ -39,6 +40,8 @@ const CreateSubspaceSchema = z.object({
   expiresAt: z.number().optional().nullable(),
   template: z.string().optional().default('gallery'),
   templateData: z.record(z.any()).optional().default({}),
+  productId: z.string().optional().nullable(),
+  variantId: z.string().optional().nullable(),
 });
 
 /**
@@ -66,7 +69,7 @@ subspaces.post(
   async (c) => {
     const { env } = c;
     const parentId = c.req.param('id');
-    const { name, description, isPublic, password, expiresAt, template, templateData } =
+    const { name, description, isPublic, password, expiresAt, template, templateData, productId, variantId } =
       c.req.valid('json');
     const repo = new SpaceRepository(env.DB);
     const { name: normalizedName, description: normalizedDescription } = normalizeSpaceCreateFields(name, description);
@@ -77,6 +80,7 @@ subspaces.post(
     const spaceId = generateId();
     const shareToken = generateShareToken();
     const nowMs = Date.now();
+    const binding = await validateProductVariantBinding(env.DB, productId || null, variantId || null);
 
     const newSubspace = {
       id: spaceId,
@@ -89,13 +93,19 @@ subspaces.post(
       expiresAt: expiresAt || null,
       template,
       templateData: JSON.stringify(templateData),
+      productId: binding.normalizedProductId,
+      variantId: binding.normalizedVariantId,
       createdAt: nowMs,
       updatedAt: nowMs,
     };
 
     await repo.createSubspace(newSubspace);
     await invalidateSpaceCaches(c, {
-      ...buildSpaceInvalidatePayload({ spaceId: parentId, parentId, productIds: [parent.product_id] }),
+      ...buildSpaceInvalidatePayload({
+        spaceId: parentId,
+        parentId,
+        productIds: [parent.product_id, newSubspace.productId],
+      }),
       eventType: 'space_subspace_created',
     });
     scheduleAuditEvent(c, {
@@ -107,7 +117,11 @@ subspaces.post(
       targetId: spaceId,
       target_label: normalizedName,
       summary: `Created subspace ${normalizedName}`,
-      metadata: { parentId },
+      metadata: {
+        parentId,
+        productId: newSubspace.productId,
+        variantId: newSubspace.variantId,
+      },
     });
 
     return c.json(
@@ -122,6 +136,8 @@ subspaces.post(
           shareToken,
           shareUrl: getShareUrl(shareToken, 'space'),
           template,
+          productId: newSubspace.productId,
+          variantId: newSubspace.variantId,
           createdAt: nowMs,
         },
       },
