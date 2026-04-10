@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 39 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 40 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -85,6 +85,7 @@
   - `a814e4a`: 商品导入图片上传步骤关闭后的旧任务回写修复
   - `1a0cfd1`: 订单商品绑定组件仅认最新详情加载结果
   - `2259aa6`: 空间商品编辑器仅认最新刷新结果
+  - `bd4a758`: 商品表单规格归档向导仅认当前弹窗上下文的异步结果
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -115,6 +116,7 @@
   - 2026-04-10 运行 4 个回归测试文件，共 33 个测试，全部通过。
   - 2026-04-10 运行 4 个回归测试文件，共 45 个测试，全部通过。
   - 2026-04-10 运行 5 个回归测试文件，共 49 个测试，全部通过。
+  - 2026-04-10 运行 4 个回归测试文件，共 28 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -163,6 +165,7 @@
 - `ProductImportModal` 的图片上传步骤同样没有绑定生命周期。用户在第 3 步匹配图片后，如果关闭弹窗，旧的 `authFetch(...upload...)` 循环完成后仍会继续给 `parsedItems` 注入图片 ID、弹成功提示并把流程推进到预览页，形成图片上传阶段的旧结果串写。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L671)
 - `ProductBindingSection.handleProductSelect()` 在订单绑定链路里直接串行拉商品详情，但没有隔离请求先后。用户快速切换两件商品时，先点商品的旧请求如果后返回，会把后点商品的规格集、默认选中变体和 `select/product-fetch-success` 事件一起覆盖掉，导致订单绑定到错误商品。[src/components/order/ProductBindingSection.vue](/home/bjw/Code/KK-Image/src/components/order/ProductBindingSection.vue#L600)
 - `SpaceProductEditor.initData()` 会在首屏、文件刷新和文件增删后多次重跑，但没有隔离请求先后。旧的 `loadSpace()/loadProduct()` 调用如果后返回，会把刚刷新得到的新空间名、商品绑定和模板字段覆盖成旧值，导致空间商品编辑器出现可复现的回跳。[src/components/SpaceProductEditor.vue](/home/bjw/Code/KK-Image/src/components/SpaceProductEditor.vue#L452)
+- `useProductForm` 的规格维度/规格值归档相关异步动作没有绑定弹窗生命周期。编辑商品时如果在 `previewDimensionImpact/archiveDimension/archiveDimensionValue/restoreDimensionValue` 未完成前关闭弹窗或切到另一件商品，旧请求返回后仍会把当前表单重新打开到旧归档向导，甚至继续改写新商品的规格表单状态。[src/composables/useProductForm.js](/home/bjw/Code/KK-Image/src/composables/useProductForm.js#L357) [src/components/product/ProductCreateModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductCreateModal.vue#L387)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -730,3 +733,22 @@
   - `src/components/product/__tests__/ProductExportModal.filters.test.js`
   - `src/components/__tests__/ProductManager.variant-hydration.test.js`
 - 对应修复提交: `2259aa6 fix: isolate space product editor refreshes`
+
+### 2026-04-10 轮次 67
+
+- 继续复查商品创建/编辑表单的规格归档链路，新增 1 个中风险问题:
+  - 关闭弹窗或切换商品后，旧的规格归档/恢复异步请求仍会回写当前表单并重新打开旧归档向导
+- 下一步把 `useProductForm` 的规格归档相关异步入口统一绑定到弹窗生命周期，并补关闭后不再回写的回归。
+
+### 2026-04-10 轮次 68
+
+- 已完成轮次 67 新增问题修复:
+  - `ProductCreateModal` 现在把 `modelValue` 生命周期传入 `useProductForm`，规格归档相关异步动作会绑定到当前弹窗上下文
+  - 关闭弹窗或切换到另一件商品时会统一废弃旧的归档预览/归档/恢复请求，并同步重置维度归档和值归档向导状态
+  - 旧请求返回后不会再把已关闭或已切换上下文的商品表单重新拉起到旧归档向导
+- 增量回归:
+  - `src/components/product/__tests__/ProductCreateModal.dimension-archive.test.js`
+  - `src/components/product/__tests__/ProductCreateModal.value-archive.test.js`
+  - `src/components/__tests__/SpaceProductEditor.contract.test.js`
+  - `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
+- 对应修复提交: `bd4a758 fix: isolate product form async archive actions`
