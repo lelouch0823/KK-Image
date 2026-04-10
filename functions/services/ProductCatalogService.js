@@ -104,8 +104,10 @@ const pickUnmatchedVariant = (lookup, key, matchedIds) => {
 
 export const normalizeImportMode = (value) => {
     const mode = String(value || '').trim().toLowerCase();
+    if (!mode) return IMPORT_MODE.SAFE_MERGE;
     if (mode === IMPORT_MODE.SAFE_MERGE) return IMPORT_MODE.SAFE_MERGE;
-    return IMPORT_MODE.REPLACE;
+    if (mode === IMPORT_MODE.REPLACE) return IMPORT_MODE.REPLACE;
+    throw new BadRequestError('Invalid import mode');
 };
 
 export const assertBatchItem = (item) => {

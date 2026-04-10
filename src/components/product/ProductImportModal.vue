@@ -888,7 +888,10 @@ const handleImport = async () => {
              addToast({ message: t('product.import.conflicts.summary', { count: _importStats.value.conflictCount }, `导入完成，检测到 ${_importStats.value.conflictCount} 条冲突并已跳过`), type: 'warning' });
         } else {
              addToast({ message: t('common.success'), type: 'success' });
-             emit('success');
+        }
+
+        if (hasSuccess) {
+            emit('success');
         }
 
     } catch (e) {

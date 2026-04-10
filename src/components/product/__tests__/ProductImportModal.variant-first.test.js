@@ -460,6 +460,7 @@ describe('ProductImportModal Variant-First Payload', () => {
             conflicts: 1,
         });
         expect(wrapper.vm.importResult.conflicts).toHaveLength(1);
+        expect(wrapper.emitted('success')).toBeTruthy();
     });
 
     it('surfaces partial batch failures even when backend returns success=true', async () => {
@@ -502,6 +503,7 @@ describe('ProductImportModal Variant-First Payload', () => {
         expect(wrapper.vm.importResult.success).toBe(true);
         expect(wrapper.vm.importResult.failed).toBe(1);
         expect(wrapper.vm.importResult.errors).toContain('Failed to process item SPU-ERR: invalid status');
+        expect(wrapper.emitted('success')).toBeTruthy();
     });
 
     it('passes replace mode to batch import request when user selects full overwrite', async () => {
