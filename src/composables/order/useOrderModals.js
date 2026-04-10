@@ -21,6 +21,8 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
     const detailHydrating = ref(false);
     const detailHydrationError = ref('');
     const detailEditLoading = ref(false);
+    let detailRequestId = 0;
+    let editRequestId = 0;
 
     // --- Create ---
     const handleCreateOrder = async (data) => {
@@ -48,20 +50,42 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
 
     // --- Edit ---
     const openEditModal = async (order) => {
+        const requestId = ++editRequestId;
         const fullOrder = await getOrder(order.id);
+        if (requestId !== editRequestId) return false;
         if (fullOrder) {
             editingOrder.value = fullOrder;
             showEditModal.value = true;
+            return true;
         }
+        return false;
     };
 
     const closeEditModal = async () => {
+        editRequestId += 1;
         showEditModal.value = false;
         editingOrder.value = null;
 
         if (showDetailModal.value && viewingOrder.value) {
-            const updated = await getOrder(viewingOrder.value.id);
-            if (updated) viewingOrder.value = updated;
+            const requestId = ++detailRequestId;
+            detailHydrationError.value = '';
+            detailHydrating.value = true;
+            try {
+                const updated = await getOrder(viewingOrder.value.id);
+                if (requestId !== detailRequestId || !showDetailModal.value) return;
+                if (updated) {
+                    viewingOrder.value = updated;
+                } else {
+                    detailHydrationError.value = t('common.loadFailed');
+                }
+            } catch (_e) {
+                if (requestId !== detailRequestId || !showDetailModal.value) return;
+                detailHydrationError.value = t('common.networkError');
+            } finally {
+                if (requestId === detailRequestId) {
+                    detailHydrating.value = false;
+                }
+            }
         }
     };
 
@@ -81,6 +105,7 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
 
     // --- Detail ---
     const openDetailModal = async (order) => {
+        const requestId = ++detailRequestId;
         viewingOrder.value = order ? { ...order } : null;
         showDetailModal.value = true;
         detailHydrationError.value = '';
@@ -93,6 +118,7 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
 
         try {
             const fullOrder = await getOrder(order.id);
+            if (requestId !== detailRequestId || !showDetailModal.value) return false;
             if (fullOrder) {
                 viewingOrder.value = fullOrder;
                 return true;
@@ -100,14 +126,18 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
             detailHydrationError.value = t('common.loadFailed');
             return false;
         } catch (_e) {
+            if (requestId !== detailRequestId || !showDetailModal.value) return false;
             detailHydrationError.value = t('common.networkError');
             return false;
         } finally {
-            detailHydrating.value = false;
+            if (requestId === detailRequestId) {
+                detailHydrating.value = false;
+            }
         }
     };
 
     const closeDetailModal = () => {
+        detailRequestId += 1;
         showDetailModal.value = false;
         viewingOrder.value = null;
         detailHydrationError.value = '';
@@ -130,9 +160,24 @@ export function useOrderModals(orders, refreshOrders, getOrder, updateOrder, add
 
     const refreshAfterComment = async () => {
         if (!viewingOrder.value) return;
-        const fullOrder = await getOrder(viewingOrder.value.id);
-        if (fullOrder) {
-            viewingOrder.value = fullOrder;
+        const requestId = ++detailRequestId;
+        detailHydrationError.value = '';
+        detailHydrating.value = true;
+        try {
+            const fullOrder = await getOrder(viewingOrder.value.id);
+            if (requestId !== detailRequestId || !showDetailModal.value) return;
+            if (fullOrder) {
+                viewingOrder.value = fullOrder;
+            } else {
+                detailHydrationError.value = t('common.loadFailed');
+            }
+        } catch (_e) {
+            if (requestId !== detailRequestId || !showDetailModal.value) return;
+            detailHydrationError.value = t('common.networkError');
+        } finally {
+            if (requestId === detailRequestId) {
+                detailHydrating.value = false;
+            }
         }
     };
 

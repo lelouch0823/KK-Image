@@ -142,6 +142,38 @@ describe('OrderManager network workflow', () => {
     await pending;
   });
 
+  it('does not let stale detail hydration overwrite a newer order context', async () => {
+    const resolvers = [];
+    mocks.getOrder.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        })
+    );
+
+    const wrapper = createWrapper();
+    const firstPending = wrapper.vm.openDetailModal({ id: 'o-1', orderNo: 'SO-1' });
+    const secondPending = wrapper.vm.openDetailModal({ id: 'o-2', orderNo: 'SO-2' });
+
+    expect(wrapper.vm.viewingOrder).toEqual({ id: 'o-2', orderNo: 'SO-2' });
+
+    resolvers[1]({ id: 'o-2', orderNo: 'SO-2', currentData: { name: 'Newer Order' } });
+    await secondPending;
+
+    expect(wrapper.vm.viewingOrder).toMatchObject({
+      id: 'o-2',
+      currentData: { name: 'Newer Order' },
+    });
+
+    resolvers[0]({ id: 'o-1', orderNo: 'SO-1', currentData: { name: 'Older Order' } });
+    await firstPending;
+
+    expect(wrapper.vm.viewingOrder).toMatchObject({
+      id: 'o-2',
+      currentData: { name: 'Newer Order' },
+    });
+  });
+
   it('keeps query-driven detail shell open and preserves query on hydration failure', async () => {
     mocks.routeQuery = { id: 'o-query' };
     mocks.getOrder.mockResolvedValue(null);
@@ -192,6 +224,37 @@ describe('OrderManager network workflow', () => {
 
     expect(wrapper.vm.showEditModal).toBe(true);
     expect(wrapper.vm.editingOrder.currentData.name).toBe('Hydrated Order');
+  });
+
+  it('does not let stale edit hydration overwrite the latest edit target', async () => {
+    const resolvers = [];
+    mocks.getOrder.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        })
+    );
+
+    const wrapper = createWrapper();
+    const firstPending = wrapper.vm.openEditModal({ id: 'o-1', orderNo: 'SO-1' });
+    const secondPending = wrapper.vm.openEditModal({ id: 'o-2', orderNo: 'SO-2' });
+
+    resolvers[1]({ id: 'o-2', orderNo: 'SO-2', currentData: { name: 'Second Order' } });
+    await secondPending;
+
+    expect(wrapper.vm.showEditModal).toBe(true);
+    expect(wrapper.vm.editingOrder).toMatchObject({
+      id: 'o-2',
+      currentData: { name: 'Second Order' },
+    });
+
+    resolvers[0]({ id: 'o-1', orderNo: 'SO-1', currentData: { name: 'First Order' } });
+    await firstPending;
+
+    expect(wrapper.vm.editingOrder).toMatchObject({
+      id: 'o-2',
+      currentData: { name: 'Second Order' },
+    });
   });
 
   it('opens create modal when toggled from the manager', async () => {
