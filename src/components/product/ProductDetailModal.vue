@@ -2,6 +2,7 @@
   <Modal 
     v-model="isVisible"
     size="6xl"
+    @close="handleClose"
   >
     <template #header>
       <div class="flex flex-1 items-center justify-between gap-4">
@@ -34,7 +35,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
 import ProductDetail from '@/components/product/ProductDetail.vue';
@@ -43,6 +44,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 
 // SOTA: Use defineModel for v-model binding
 const isVisible = defineModel('show', { type: Boolean, default: false });
+const emit = defineEmits(['close']);
 
 const props = defineProps({
   productId: {
@@ -62,51 +64,94 @@ const { loadProduct } = useProducts();
 const loading = ref(false);
 const error = ref('');
 const currentProduct = ref(null);
+let fetchRequestId = 0;
+let clearProductTimer = null;
 
-const fetchProduct = async () => {
-  if (!props.productId) return;
+const clearCloseTimer = () => {
+  if (clearProductTimer) {
+    clearTimeout(clearProductTimer);
+    clearProductTimer = null;
+  }
+};
+
+const invalidatePendingFetch = () => {
+  fetchRequestId += 1;
+  loading.value = false;
+};
+
+const fetchProduct = async (productId = props.productId) => {
+  if (!productId) return;
+
+  const requestId = ++fetchRequestId;
   
   loading.value = true;
   error.value = '';
   
   try {
-    const data = await loadProduct(props.productId);
+    const data = await loadProduct(productId);
+    if (requestId !== fetchRequestId) return;
     if (data) {
       currentProduct.value = data;
     } else {
+      currentProduct.value = null;
       error.value = t('common.error.network_error');
     }
   } catch (err) {
+    if (requestId !== fetchRequestId) return;
+    currentProduct.value = null;
     error.value = err.message || t('common.error.network_error');
   } finally {
-    loading.value = false;
+    if (requestId === fetchRequestId) {
+      loading.value = false;
+    }
   }
+};
+
+const handleClose = () => {
+  emit('close');
 };
 
 watch(
   [() => props.productId, () => props.initialData, isVisible],
   async () => {
+    clearCloseTimer();
+
     // 只有在打开弹窗时才去响应
     if (!isVisible.value) {
+      invalidatePendingFetch();
       // 延迟清除数据，保证退出动画平滑
-      setTimeout(() => {
+      clearProductTimer = setTimeout(() => {
         if (!props.initialData) currentProduct.value = null;
       }, 300);
       return;
     }
 
+    invalidatePendingFetch();
+
     // 如果传递了完整的数据对象，优先直接使用
     if (props.initialData) {
       currentProduct.value = props.initialData;
       if (props.productId && !Array.isArray(props.initialData.variants)) {
-        await fetchProduct();
+        await fetchProduct(props.productId);
       }
+      return;
     } 
     // 否则去后台请求
-    else if (props.productId && (!currentProduct.value || !Array.isArray(currentProduct.value.variants))) {
-      await fetchProduct();
+    if (props.productId && (!currentProduct.value || currentProduct.value.id !== props.productId || !Array.isArray(currentProduct.value.variants))) {
+      if (currentProduct.value?.id !== props.productId) {
+        currentProduct.value = null;
+      }
+      await fetchProduct(props.productId);
+      return;
     }
+
+    error.value = '';
   },
   { immediate: true }
 );
+
+onUnmounted(() => {
+  clearCloseTimer();
+  invalidatePendingFetch();
+});
 </script>
