@@ -249,6 +249,7 @@ const isAuthenticated = ref(false);
 const loginError = ref('');
 const salesperson = ref(null);
 const prefillData = ref(null); // Shared state for duplicating order
+let authRequestId = 0;
 
 // 搜索状态（共享给子组件）
 const searchQuery = ref('');
@@ -300,28 +301,38 @@ const activateSalesNotificationMode = () => {
 
 // Auth & Init
 const checkAuth = async () => {
+  const requestId = ++authRequestId;
   if (!accessToken.value) {
     stopNotificationPolling();
-    loading.value = false;
+    if (requestId === authRequestId) {
+      loading.value = false;
+    }
     return;
   }
   const data = await checkSalesAuth(accessToken.value);
+  if (requestId !== authRequestId) return;
   if (data) {
     isAuthenticated.value = true;
     salesperson.value = data;
     await salesOrderStateMachine.loadOrders();
+    if (requestId !== authRequestId) return;
     activateSalesNotificationMode();
   }
-  loading.value = false;
+  if (requestId === authRequestId) {
+    loading.value = false;
+  }
 };
 
 const handleLogin = async (password) => {
+  const requestId = ++authRequestId;
   loginError.value = '';
   const result = await loginSales(accessToken.value, password);
+  if (requestId !== authRequestId) return;
   if (result.success) {
     isAuthenticated.value = true;
     salesperson.value = result.data;
     await salesOrderStateMachine.loadOrders();
+    if (requestId !== authRequestId) return;
     activateSalesNotificationMode();
   } else {
     loginError.value = result.message;

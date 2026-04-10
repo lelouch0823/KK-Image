@@ -131,4 +131,56 @@ describe('Sales notification mode lifecycle', () => {
 
     wrapper.unmount();
   });
+
+  it('does not let stale auth results overwrite the latest sales token context', async () => {
+    let resolveFirst;
+    let resolveSecond;
+    mocks.checkSalesAuth
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = resolve;
+          })
+      );
+
+    const wrapper = mount(Sales, {
+      global: {
+        stubs: {
+          OrderLogin: true,
+          SalesNotificationList: true,
+          AppErrorBoundary: { template: '<div><slot /></div>' },
+          AsyncStatePanel: true,
+          AppButton: { template: '<button><slot name="icon-left" /><slot /></button>' },
+          AppIcon: true,
+          MobileSalesShell: { template: '<div><slot /></div>' },
+          'router-view': true,
+          'router-link': true,
+        },
+      },
+    });
+
+    routeState.params.token = 'sales-token-b';
+    routeState.path = '/sales/sales-token-b';
+    routeState.fullPath = '/sales/sales-token-b';
+    await flushPromises();
+
+    resolveSecond({ id: 'sp-b', name: 'Bob' });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Bob');
+
+    resolveFirst({ id: 'sp-a', name: 'Alice' });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Bob');
+    expect(wrapper.text()).not.toContain('Alice');
+
+    wrapper.unmount();
+  });
 });
