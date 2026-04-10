@@ -450,6 +450,7 @@ export async function updateComposite(db, {
     newData,
     productId = undefined,
     variantId = undefined,
+    salespersonId = undefined,
     status = undefined,
     fileIds = undefined,
     forceStatusTransition = false,
@@ -500,6 +501,10 @@ export async function updateComposite(db, {
     if (variantId !== undefined) {
         colsToUpdate.push('variant_id = ?');
         params.push(variantId === '' ? null : variantId);
+    }
+    if (salespersonId !== undefined) {
+        colsToUpdate.push('salesperson_id = ?');
+        params.push(salespersonId || null);
     }
     if (status !== undefined) {
         colsToUpdate.push('status = ?');

@@ -311,6 +311,32 @@ describe('Order Mutations SQL Binding', () => {
             });
         });
 
+        it('updateComposite persists salesperson reassignment on the order header', async () => {
+            const inventoryService = {
+                assertSufficient: vi.fn(),
+                applyMutation: vi.fn(),
+            };
+            db.first.mockResolvedValueOnce({ id: 'line-1', line_count: 1 });
+
+            await updateComposite(db, {
+                id: 'o-salesperson',
+                actorType: 'admin',
+                newData: {
+                    name: 'Updated Item',
+                },
+                salespersonId: 'sp-2',
+                inventoryService,
+            });
+
+            const orderUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) => sql.includes('UPDATE orders SET'));
+            expect(orderUpdateIndex).toBeGreaterThanOrEqual(0);
+            expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('salesperson_id = ?');
+
+            const bindArgs = db.bind.mock.calls[orderUpdateIndex];
+            expect(bindArgs).toContain('sp-2');
+            expect(bindArgs[bindArgs.length - 1]).toBe('o-salesperson');
+        });
+
         it('updateStatus also persists compatibility progress back into order_lines', async () => {
             const inventoryService = {
                 assertSufficient: vi.fn(async () => true),

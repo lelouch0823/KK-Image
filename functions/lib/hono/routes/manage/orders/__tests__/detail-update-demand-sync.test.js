@@ -327,4 +327,40 @@ describe('manage order detail update demand sync', () => {
       })
     );
   });
+
+  it('forwards salesperson reassignment through admin order update', async () => {
+    mocks.orderFindById.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      quantity: 1,
+      variantId: null,
+      productId: null,
+      salespersonId: 'sp-1',
+      currentData: { name: 'A' },
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/o-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: 'reassign salesperson',
+          updates: { salespersonId: 'sp-2' },
+        }),
+      },
+      { DB: { prepare: vi.fn() }, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.processOrderUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        salespersonId: 'sp-2',
+        salespersonIdUpdate: 'sp-2',
+      })
+    );
+  });
 });

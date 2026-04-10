@@ -192,8 +192,12 @@ export async function processOrderUpdate(options) {
   const variantIdChanged =
     options.variantId !== undefined &&
     (options.currentVariantId === undefined || options.variantId !== options.currentVariantId);
+  const salespersonIdChanged =
+    options.salespersonIdUpdate !== undefined &&
+    (options.currentSalespersonId === undefined || options.salespersonIdUpdate !== options.currentSalespersonId);
   const statusChanged = updates?.status !== undefined && updates.status !== currentStatus;
-  const hasMutations = dataChanged || filesChanged || productIdChanged || variantIdChanged;
+  const hasMutations =
+    dataChanged || filesChanged || productIdChanged || variantIdChanged || salespersonIdChanged;
 
   // 4. 如果有任何变更（数据/文件/商品绑定），更新订单并发送通知
   if (hasMutations) {
@@ -210,6 +214,7 @@ export async function processOrderUpdate(options) {
       newData,
       productId: options.productId,
       variantId: options.variantId,
+      salespersonId: options.salespersonIdUpdate,
       status: statusChanged ? updates.status : undefined,
       fileIds: filesChanged ? fileChange.newFileIds : undefined,
       forceStatusTransition: Boolean(options.forceStatusTransition),

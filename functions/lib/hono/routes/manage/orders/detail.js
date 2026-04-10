@@ -199,10 +199,12 @@ app.patch('/:id', async (c) => {
         variantId: normalizedVariantId,
         currentProductId: order.productId,
         currentVariantId: order.variantId,
+        currentSalespersonId: order.salespersonId,
         allowedFields: ADMIN_EDITABLE_FIELDS,
         actor: { type: 'admin', id: actor.id, name: actor.name },
         reason: reason || 'Admin Update',
-        salespersonId: order.salespersonId, // 传入销售员ID以发送通知
+        salespersonId: updates.salespersonId ?? order.salespersonId, // 传入销售员ID以发送通知
+        salespersonIdUpdate: updates.salespersonId,
         forceStatusTransition,
         deferNotifications: true,
     });
