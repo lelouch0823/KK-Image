@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 32 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 33 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -78,6 +78,7 @@
   - `7c229b5`: 商品移动端库存口径对齐
   - `b4a66ea`: 商品工作流详情水合竞态修复
   - `221bf84`: 商品详情弹窗关闭链路与详情加载竞态修复
+  - `0a38335`: 商品管理页 query.edit 编辑水合竞态修复
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -101,6 +102,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 6 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 7 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
+  - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -142,6 +144,7 @@
 - 商品移动端列表 `ProductGrid` 仍用 `stock_quantity` 显示库存和低库存标记，而桌面 `ProductTable` 已经统一改用投影后的 `available_quantity`。结果是同一商品在移动端和桌面端会显示两套库存数字，低库存标记也会在移动端错判。[src/components/product/ProductGrid.vue](/home/bjw/Code/KK-Image/src/components/product/ProductGrid.vue#L39) [src/components/product/ProductTable.vue](/home/bjw/Code/KK-Image/src/components/product/ProductTable.vue#L183)
 - `ProductWorkflowModal` 在详情渐进式水合期间如果父级切到另一件商品，旧商品的 `loadProduct()` Promise 仍会在返回后覆盖 `currentProduct`。结果是详情弹窗会短暂或持续回跳到上一件商品，编辑入口也可能基于过期商品草稿打开，形成可复现的串详情竞态。[src/components/product/ProductWorkflowModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductWorkflowModal.vue#L98)
 - `ProductDetailModal` 没有把内层 `Modal` 的 `close` 事件向外透传，采购页却依赖外层 `@close` 清理 `viewProductId`；同时详情加载也没有按 `productId` 隔离请求和重载条件。结果是采购单里的商品详情弹窗点击关闭按钮/遮罩后父级状态不收口，且快速切换商品或切到另一商品 ID 时会继续显示旧详情，形成关闭链路与详情加载双重未闭环。[src/components/product/ProductDetailModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductDetailModal.vue#L2) [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue#L2248)
+- `ProductManager.handleQueryEditOpen()` 在 `query.edit` 自动补齐编辑数据时没有绑定请求生命周期。用户如果在“加载完整商品数据”期间主动关闭编辑弹窗，旧的 `loadProduct()` Promise 返回后仍会调用 `handleEdit(product)`，把已经关闭的编辑弹窗重新打开，并覆盖当前编辑上下文，形成可复现的反复弹开竞态。[src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L328)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -585,3 +588,20 @@
   - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
   - `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
 - 对应修复提交: `221bf84 fix: stabilize product detail modal lifecycle`
+
+### 2026-04-10 轮次 53
+
+- 继续复查商品管理页查询态编辑入口，新增 1 个中风险问题:
+  - `query.edit` 自动水合期间关闭编辑弹窗，旧请求返回后仍会重新打开弹窗
+- 下一步给 `handleQueryEditOpen()` 增加请求序号隔离，并在弹窗关闭时废弃旧的编辑水合请求。
+
+### 2026-04-10 轮次 54
+
+- 已完成轮次 53 新增问题修复:
+  - `ProductManager` 现在会为 `query.edit` 自动水合请求分配序号，关闭编辑弹窗后旧请求不会再回写
+  - 用户在加载中主动关闭编辑弹窗时，旧请求不会再次调用 `handleEdit()` 把弹窗拉起
+- 增量回归:
+  - `src/components/__tests__/ProductManager.variant-hydration.test.js`
+  - `src/components/product/__tests__/ProductWorkflowModal.test.js`
+  - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
+- 对应修复提交: `0a38335 fix: isolate query edit hydration lifecycle`
