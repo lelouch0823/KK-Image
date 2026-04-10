@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 30 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 31 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -76,6 +76,7 @@
   - `e64649a`: 商品详情关联空间切换修复
   - `3883e69`: 商品详情关联空间投影字段对齐
   - `7c229b5`: 商品移动端库存口径对齐
+  - `b4a66ea`: 商品工作流详情水合竞态修复
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -97,6 +98,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 5 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 5 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 6 个测试，全部通过。
+  - 2026-04-10 运行 3 个回归测试文件，共 7 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -136,6 +138,7 @@
 - 商品详情里的关联分享空间只在 `onMounted()` 时加载一次。`ProductWorkflowModal` 或其它父组件复用同一 `ProductDetail` 实例查看第二件商品时，右侧“关联分享空间”仍保留上一件商品的数据，形成跨商品串视图；快速切换时还会有旧请求回写新详情的竞态风险。[src/components/product/ProductDetail.vue](/home/bjw/Code/KK-Image/src/components/product/ProductDetail.vue#L357)
 - 商品详情的关联空间展示仍混用了后端原始字段名 `view_count/is_public/share_token`，但管理端空间接口投影给前端的是 `viewCount/isPublic/shareToken`。结果是详情右侧的浏览量与 Public 徽标长期不显示，复制分享链接逻辑也继续依赖兼容回退字段，和当前前端数据契约不一致。[src/components/product/ProductDetail.vue](/home/bjw/Code/KK-Image/src/components/product/ProductDetail.vue#L85)
 - 商品移动端列表 `ProductGrid` 仍用 `stock_quantity` 显示库存和低库存标记，而桌面 `ProductTable` 已经统一改用投影后的 `available_quantity`。结果是同一商品在移动端和桌面端会显示两套库存数字，低库存标记也会在移动端错判。[src/components/product/ProductGrid.vue](/home/bjw/Code/KK-Image/src/components/product/ProductGrid.vue#L39) [src/components/product/ProductTable.vue](/home/bjw/Code/KK-Image/src/components/product/ProductTable.vue#L183)
+- `ProductWorkflowModal` 在详情渐进式水合期间如果父级切到另一件商品，旧商品的 `loadProduct()` Promise 仍会在返回后覆盖 `currentProduct`。结果是详情弹窗会短暂或持续回跳到上一件商品，编辑入口也可能基于过期商品草稿打开，形成可复现的串详情竞态。[src/components/product/ProductWorkflowModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductWorkflowModal.vue#L98)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -545,3 +548,20 @@
   - `src/components/product/__tests__/ProductFilters.desktop-layout.test.js`
   - `src/components/product/__tests__/product-inventory-projection-consumers.test.js`
 - 对应修复提交: `7c229b5 fix: align mobile product stock display`
+
+### 2026-04-10 轮次 49
+
+- 继续复查商品详情工作流组件，新增 1 个中风险问题:
+  - 详情渐进式水合缺少请求隔离，切换商品时旧请求会回写新商品详情
+- 下一步给详情水合链路补请求序号隔离，并在切换商品时废弃旧 Promise 状态。
+
+### 2026-04-10 轮次 50
+
+- 已完成轮次 49 新增问题修复:
+  - `ProductWorkflowModal` 现在会在切换商品或关闭弹窗时废弃旧的详情水合请求
+  - 旧商品水合结果不会再覆盖新商品详情，详情查看与编辑入口都改为跟随当前商品稳定更新
+- 增量回归:
+  - `src/components/product/__tests__/ProductWorkflowModal.test.js`
+  - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
+  - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
+- 对应修复提交: `b4a66ea fix: isolate product workflow hydration requests`
