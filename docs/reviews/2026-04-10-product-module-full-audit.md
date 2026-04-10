@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 22 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 23 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -68,6 +68,7 @@
   - `f6e79f0`: 管理端执行态订单数量编辑边界收紧
   - `76e51ee`: 订单绑定规格镜像字段后端兜底对齐
   - `41d5e35`: 管理端订单销售员改派闭环
+  - `8fbc9e2`: 子空间商品绑定持久化与校验闭环
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -81,6 +82,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 27 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 22 个测试，全部通过。
   - 2026-04-10 运行 4 个回归测试文件，共 44 个测试，全部通过。
+  - 2026-04-10 运行 3 个回归测试文件，共 15 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -112,6 +114,7 @@
 - 管理端 `/api/manage/products/export` 路由实现与当前前端导出链路语义不一致：它始终忽略筛选条件、仅导出商品汇总字段、不导出变体级字段，并在后台异常时把错误文本直接写进 CSV 流返回 `200`，不利于调用方准确识别失败。[functions/lib/hono/routes/manage/products/export.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/export.js#L7)
 - `ProductBindingSection.handleProductSelect()` 只要商品详情里存在任意变体就直接发出 `product-fetch-success`，即使在当前策略下所有变体都不可选、`initSelectionFromVariants()` 已经把 `selectedVariantId` 留空。销售页收到这个成功事件后会清空错误提示，但并未真正绑定商品，最终形成“选了商品却没有可售变体、页面也不报错”的假成功状态。[src/components/order/ProductBindingSection.vue](/home/bjw/Code/KK-Image/src/components/order/ProductBindingSection.vue#L601) [src/views/sales/SalesFormView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesFormView.vue#L9)
 - 空间商品绑定接口在创建和更新时调用 `validateProductVariantBinding(..., { checkExistence: false })`，只校验 `productId/variantId` 是否成对出现，不校验商品是否存在、变体是否属于商品，也不校验是否仍然有效。结果是后台可以写入任意伪造的商品/变体关联，后续空间列表、详情和销售端空间消费只能得到空 JOIN 或陈旧映射。[functions/lib/hono/routes/manage/spaces/crud.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/crud.js#L162) [functions/lib/hono/routes/manage/spaces/crud.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/crud.js#L250) [functions/api/utils/validation.js](/home/bjw/Code/KK-Image/functions/api/utils/validation.js#L25)
+- 子空间创建链路前端虽然允许携带 `productId/variantId`，但 `POST /api/manage/spaces/:id/subspaces` 的 schema、校验和仓储插入都没有把 `productId` 当正式字段处理。结果是商品型子空间创建后只留下孤立 `variant_id` 或直接丢失整组商品绑定，后续空间列表、详情和按商品聚合的分享空间都无法正确命中子空间记录。[src/components/SpaceCreateModal.vue](/home/bjw/Code/KK-Image/src/components/SpaceCreateModal.vue#L247) [functions/lib/hono/routes/manage/spaces/subspaces.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/subspaces.js#L32) [functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js#L362)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -388,3 +391,20 @@
   - `functions/repositories/__tests__/order-mutations.test.js`
   - `src/components/order/__tests__/OrderEditModal.variant-lock.test.js`
 - 对应修复提交: `41d5e35 fix: persist order salesperson reassignment`
+
+### 2026-04-10 轮次 33
+
+- 继续复查空间商品链路，新增 1 个中风险问题:
+  - 子空间创建入口允许绑定商品和规格，但后端子空间创建 schema、校验和仓储插入都没有完整接住 `productId/variantId`，会生成缺失商品主键的脏子空间绑定
+- 下一步把子空间商品绑定纳入与顶级空间一致的校验/持久化闭环，并补路由与仓储回归。
+
+### 2026-04-10 轮次 34
+
+- 已完成轮次 33 新增问题修复:
+  - 子空间创建路由现在会接收并校验 `productId/variantId`，非法半绑定会直接拒绝
+  - 子空间仓储插入现已同步持久化 `product_id + variant_id`，并把新绑定纳入缓存失效与审计元数据
+- 增量回归:
+  - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
+  - `functions/repositories/__tests__/SpaceRepository.test.js`
+- 对应修复提交: `8fbc9e2 fix: persist subspace product bindings`
