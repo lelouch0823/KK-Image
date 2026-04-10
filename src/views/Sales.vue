@@ -177,15 +177,15 @@ const route = useRoute();
 const router = useRouter();
 
 const {
-  loading: ordersLoading,
-  orders,
+  salesLoading: ordersLoading,
+  salesOrders: orders,
   checkSalesAuth,
   loginSales,
   loadSalesOrders,
   createSalesOrder,
   getSalesOrder,
   addSalesComment,
-  pagination: ordersPagination,
+  salesPagination: ordersPagination,
 } = useOrders();
 
 const { t } = useI18n();

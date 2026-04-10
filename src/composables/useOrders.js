@@ -16,9 +16,14 @@ import { API, SALES_ORDER_PAGE_SIZE } from '@/utils/constants';
 const sharedResource = useResource(API.MANAGE_ORDERS, {
   listPath: 'data.orders',
 });
+const sharedSalesResource = useResource('/api/sales/__shared__/orders', {
+  cache: false,
+});
 const salespersons = ref([]);
 const statuses = ref([]);
 const procurementStatuses = ref([]);
+let manageListRequestId = 0;
+let salesListRequestId = 0;
 
 export function useOrders() {
   const { authFetch } = useAuth();
@@ -28,6 +33,7 @@ export function useOrders() {
 
   // 使用共享资源
   const resource = sharedResource;
+  const salesResource = sharedSalesResource;
 
   /**
    * 加载管理端订单列表（增强版，提取额外数据）
@@ -35,6 +41,7 @@ export function useOrders() {
    * @param {boolean} [append=false] - 是否追加到现有列表（用于无限滚动）
    */
   const loadOrders = async (params = {}, append = false) => {
+    const requestId = ++manageListRequestId;
     // 复用 useResource 的状态管理，但自定义请求逻辑以获取 metadata
     // 取消之前的请求
     resource.abort();
@@ -62,6 +69,9 @@ export function useOrders() {
 
       // 使用自定义 fetch 获取完整响应
       const res = await authFetch(`${API.MANAGE_ORDERS}?${cleanParams.toString()}`).then(r => r.json());
+      if (requestId !== manageListRequestId) {
+        return false;
+      }
 
       if (res.success) {
         // 追加模式：合并新数据，限制最大长度
@@ -110,6 +120,9 @@ export function useOrders() {
         return false;
       }
     } catch (e) {
+      if (requestId !== manageListRequestId) {
+        return false;
+      }
       if (e.name === 'AbortError') return false;
       const status = Number(e?.status);
       if (status === 403) {
@@ -127,7 +140,9 @@ export function useOrders() {
       addToast({ message: resource.error.value, type: 'error' });
       return false;
     } finally {
-      resource.loading.value = false;
+      if (requestId === manageListRequestId) {
+        resource.loading.value = false;
+      }
     }
   };
 
@@ -322,31 +337,42 @@ export function useOrders() {
    */
   const loadSalesOrders = async (token, page = 1, append = false) => {
     if (!token) return;
-    if (!append) resource.loading.value = true;
+    const requestId = ++salesListRequestId;
+    if (!append) {
+      salesResource.loading.value = true;
+    }
+    salesResource.error.value = null;
+    salesResource.errorCode.value = null;
 
     const MAX_ITEMS = 100; // 限制列表最大长度，防止 OOM
 
     const result = await salesOrderApi.list(token, { page, limit: SALES_ORDER_PAGE_SIZE });
+    if (requestId !== salesListRequestId) {
+      return false;
+    }
 
     if (result.ok) {
       const nextOrders = result.data?.orders || [];
       if (append) {
-        const combined = [...resource.items.value, ...nextOrders];
-        resource.items.value = combined.length > MAX_ITEMS
+        const combined = [...salesResource.items.value, ...nextOrders];
+        salesResource.items.value = combined.length > MAX_ITEMS
           ? combined.slice(-MAX_ITEMS)
           : combined;
       } else {
-        resource.items.value = nextOrders;
+        salesResource.items.value = nextOrders;
       }
 
       if (result.data?.pagination) {
-        Object.assign(resource.pagination, result.data.pagination);
+        Object.assign(salesResource.pagination, result.data.pagination);
       }
+      salesResource.loading.value = false;
+      return true;
     } else {
-      addToast({ message: result.error || t('common.loadFailed'), type: 'error' });
+      salesResource.error.value = result.error || t('common.loadFailed');
+      addToast({ message: salesResource.error.value, type: 'error' });
+      salesResource.loading.value = false;
+      return false;
     }
-
-    resource.loading.value = false;
   };
 
   /**
@@ -429,12 +455,17 @@ export function useOrders() {
   return {
     loading: resource.loading,
     orders: resource.items,
+    salesLoading: salesResource.loading,
+    salesOrders: salesResource.items,
     salespersons,
     statuses,
     procurementStatuses,
     pagination: resource.pagination,
+    salesPagination: salesResource.pagination,
     error: resource.error,
     errorCode: resource.errorCode,
+    salesError: salesResource.error,
+    salesErrorCode: salesResource.errorCode,
     loadOrders,
     getOrder,
     updateOrder,
