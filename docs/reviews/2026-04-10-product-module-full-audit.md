@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 28 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 29 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -74,6 +74,7 @@
   - `566f737`: 商品导入零成功批次假成功修复
   - `32705af`: 商品统计弹窗全量口径修复
   - `e64649a`: 商品详情关联空间切换修复
+  - `3883e69`: 商品详情关联空间投影字段对齐
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -93,6 +94,7 @@
   - 2026-04-10 运行 1 个回归测试文件，共 13 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 15 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 5 个测试，全部通过。
+  - 2026-04-10 运行 2 个回归测试文件，共 5 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -130,6 +132,7 @@
 - 商品导入弹窗把后端返回的 `count` 用 `result.count || chunk.length` 计入成功数，导致 `count: 0` 这种“整批零成功”的合法返回被错误回退成整批成功。结果是只要某批次全部失败但接口仍返回 `success: true` 以承载错误明细，前端就会把该批记成成功、触发 `emit('success')` 并刷新列表，形成可复现的假成功导入。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L831)
 - 商品统计弹窗 `ProductStats` 没有接收父级数据，也不会自行拉取商品列表，却直接从一份全新的 `useProducts()` 状态里读取统计值。结果是统计概览默认显示全 0；即使未来改成读取当前页数据，`库存预警/库存总值` 也会继续被错误限定在当前分页，而不是完整筛选结果。[src/components/product/ProductStats.vue](/home/bjw/Code/KK-Image/src/components/product/ProductStats.vue#L1) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L91)
 - 商品详情里的关联分享空间只在 `onMounted()` 时加载一次。`ProductWorkflowModal` 或其它父组件复用同一 `ProductDetail` 实例查看第二件商品时，右侧“关联分享空间”仍保留上一件商品的数据，形成跨商品串视图；快速切换时还会有旧请求回写新详情的竞态风险。[src/components/product/ProductDetail.vue](/home/bjw/Code/KK-Image/src/components/product/ProductDetail.vue#L357)
+- 商品详情的关联空间展示仍混用了后端原始字段名 `view_count/is_public/share_token`，但管理端空间接口投影给前端的是 `viewCount/isPublic/shareToken`。结果是详情右侧的浏览量与 Public 徽标长期不显示，复制分享链接逻辑也继续依赖兼容回退字段，和当前前端数据契约不一致。[src/components/product/ProductDetail.vue](/home/bjw/Code/KK-Image/src/components/product/ProductDetail.vue#L85)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -506,3 +509,19 @@
   - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
   - `src/components/product/__tests__/product-inventory-projection-consumers.test.js`
 - 对应修复提交: `e64649a fix: reload product detail spaces on change`
+
+### 2026-04-10 轮次 45
+
+- 继续复查商品详情的空间展示契约，新增 1 个低风险问题:
+  - 详情页关联空间展示仍读取 snake_case 字段，导致浏览量与公开状态在当前 camelCase 投影下无法显示
+- 下一步把详情页完全对齐到前端空间投影字段，并补源码契约与交互回归。
+
+### 2026-04-10 轮次 46
+
+- 已完成轮次 45 新增问题修复:
+  - 商品详情关联空间展示现已统一读取 `viewCount/isPublic/shareToken`，不再混用旧 snake_case 字段
+  - 已补源码契约与 UI 回归，确保空间列表投影字段继续保持 camelCase
+- 增量回归:
+  - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
+  - `src/components/product/__tests__/product-inventory-projection-consumers.test.js`
+- 对应修复提交: `3883e69 fix: align product detail space projection fields`
