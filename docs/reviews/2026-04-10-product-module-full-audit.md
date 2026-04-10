@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 53 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 54 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -99,6 +99,7 @@
   - `e8a2865`: 管理端与销售端订单列表状态拆分，并只认最新列表请求结果
   - `5d6b42b`: 销售订单详情页在路由切单时重载，并阻断旧详情回写
   - `6de7bab`: 订单管理页详情/编辑模态只认当前水合请求结果
+  - `d9ce028`: 销售统计页只认当前 token 的最新统计请求结果
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -124,6 +125,7 @@
   - 2026-04-10 运行 6 个回归测试文件，共 10 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 8 个测试，全部通过。
   - 2026-04-10 运行 4 个回归测试文件，共 13 个测试，全部通过。
+  - 2026-04-10 运行 6 个回归测试文件，共 8 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -205,6 +207,7 @@
 - `useOrders` 同时把管理端订单列表和销售端订单列表绑在同一份模块级 `resource` 上，而 `loadOrders()/loadSalesOrders()` 两条链路又都缺少请求先后隔离。结果是管理端筛选/分页的旧请求会覆盖新列表，销售端加载订单也会把管理端 `orders/loading/pagination/error` 一起改写，形成跨模块串状态和旧结果回跳。[src/composables/useOrders.js](/home/bjw/Code/KK-Image/src/composables/useOrders.js#L16) [src/views/Sales.vue](/home/bjw/Code/KK-Image/src/views/Sales.vue#L180) [src/components/OrderManager.vue](/home/bjw/Code/KK-Image/src/components/OrderManager.vue#L243)
 - `SalesDetailView` 只在 `onMounted()` 时拉一次销售订单详情，没有监听路由里的订单 ID 变化，也没有隔离详情请求先后。销售端如果在详情页内通过通知或其它跳转切到另一张订单，组件复用时会继续停留在旧订单；旧详情慢请求在后返回时还会覆盖当前详情上下文。[src/views/sales/SalesDetailView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesDetailView.vue#L76) [src/views/Sales.vue](/home/bjw/Code/KK-Image/src/views/Sales.vue#L284) [src/components/order/SalesNotificationList.vue](/home/bjw/Code/KK-Image/src/components/order/SalesNotificationList.vue#L168)
 - `useOrderModals` 在订单管理页里负责详情/编辑模态的订单水合，但 `openDetailModal/openEditModal/refreshAfterComment/closeEditModal` 都没有校验请求上下文。用户连续切两张订单、关闭详情后重开、或在详情里快速切换编辑目标时，旧的 `getOrder()` 结果会把当前 `viewingOrder/editingOrder/detailHydrating` 回写成上一张订单，造成详情/编辑串单。[src/composables/order/useOrderModals.js](/home/bjw/Code/KK-Image/src/composables/order/useOrderModals.js#L24) [src/components/OrderManager.vue](/home/bjw/Code/KK-Image/src/components/OrderManager.vue#L296)
+- `SalesStats` 会在 token 变化和重试时重复触发统计请求，但没有隔离请求先后。销售端如果在同一统计页实例内切换 token，旧 token 的慢请求在后返回后仍会覆盖当前统计卡片，把页面回跳成上一位销售的统计数据。[src/components/order/SalesStats.vue](/home/bjw/Code/KK-Image/src/components/order/SalesStats.vue#L99) [src/views/sales/SalesStatsView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesStatsView.vue#L2)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -1016,3 +1019,23 @@
   - `src/components/__tests__/OrderManager.design-system-migration.test.js`
   - `src/views/__tests__/Dashboard.order-detail-workflow.test.js`
 - 对应修复提交: `6de7bab fix: isolate order modal hydration flows`
+
+### 2026-04-10 轮次 95
+
+- 继续复查销售统计页链路，新增 1 个中风险问题:
+  - `SalesStats` 在 token 切换或重试时没有隔离统计请求先后，旧 token 的慢请求会覆盖当前统计页
+- 下一步给销售统计加载加请求序号，并补 token 切换竞态回归测试。
+
+### 2026-04-10 轮次 96
+
+- 已完成轮次 95 新增问题修复:
+  - `SalesStats.loadStats()` 现在只认当前 token 对应的最新统计请求，旧统计响应不会再覆盖当前卡片
+  - 销售统计页在同一组件实例内切换 token 时，页面只会展示当前 token 的统计结果
+- 增量回归:
+  - `src/components/order/__tests__/SalesStats.lifecycle.test.js`
+  - `src/components/order/__tests__/SalesStats.error-state.test.js`
+  - `src/views/sales/__tests__/sales-module-contract.test.js`
+  - `src/views/sales/__tests__/SalesFormView.resilience.test.js`
+  - `src/components/order/__tests__/SalesNotificationList.error-state.test.js`
+  - `src/views/__tests__/SalesDetailView.lifecycle.test.js`
+- 对应修复提交: `d9ce028 fix: isolate sales stats loads`
