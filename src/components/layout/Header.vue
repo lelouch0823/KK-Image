@@ -152,7 +152,7 @@ const route = useRoute();
 const viewTitle = computed(() => route.meta?.title || '管理后台');
 const { t } = useI18n();
 const { searchQuery } = useSearch();
-const { unreadCount, startPolling, stopPolling, permissionDenied, permissionDeniedReason } = useNotifications();
+const { unreadCount, startPolling, stopPolling, setAdminMode, permissionDenied, permissionDeniedReason } = useNotifications();
 const { isOpen, toggle: toggleAI } = useAI();
 const { hasPermission, loadPermissions } = useAccessControl();
 const { isDark, toggleTheme } = useTheme();
@@ -193,6 +193,7 @@ const handleRefresh = () => {
 onMounted(async () => {
   await loadPermissions();
   canUseAI.value = hasPermission('stats:read');
+  setAdminMode();
   startPolling();
 });
 

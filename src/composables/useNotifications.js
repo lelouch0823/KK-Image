@@ -49,6 +49,9 @@ export function useNotifications() {
     notificationRequestId += 1;
     currentMode = 'admin';
     salesToken = null;
+    notifications.value = [];
+    unreadCount.value = 0;
+    initialized.value = false;
     permissionDenied.value = false;
     permissionDeniedReason.value = '';
   };

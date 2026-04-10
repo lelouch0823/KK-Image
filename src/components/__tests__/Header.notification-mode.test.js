@@ -1,0 +1,79 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushPromises, mount } from '@vue/test-utils';
+import { ref } from 'vue';
+import Header from '@/components/layout/Header.vue';
+
+const mocks = vi.hoisted(() => ({
+  setAdminMode: vi.fn(),
+  startPolling: vi.fn(),
+  stopPolling: vi.fn(),
+  loadPermissions: vi.fn(),
+  hasPermission: vi.fn(),
+}));
+
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ meta: { title: 'Dashboard' } }),
+}));
+
+vi.mock('@/composables/useI18n', () => ({
+  useI18n: () => ({ t: (key) => key }),
+}));
+
+vi.mock('@/composables/useSearch', () => ({
+  useSearch: () => ({ searchQuery: ref('') }),
+}));
+
+vi.mock('@/composables/useNotifications', () => ({
+  useNotifications: () => ({
+    unreadCount: ref(0),
+    startPolling: mocks.startPolling,
+    stopPolling: mocks.stopPolling,
+    setAdminMode: mocks.setAdminMode,
+    permissionDenied: ref(false),
+    permissionDeniedReason: ref(''),
+  }),
+}));
+
+vi.mock('@/composables/useAI', () => ({
+  useAI: () => ({ isOpen: ref(false), toggle: vi.fn() }),
+}));
+
+vi.mock('@/composables/useAccessControl', () => ({
+  useAccessControl: () => ({
+    hasPermission: mocks.hasPermission,
+    loadPermissions: mocks.loadPermissions,
+  }),
+}));
+
+vi.mock('@/composables/useTheme', () => ({
+  useTheme: () => ({ isDark: ref(false), toggleTheme: vi.fn() }),
+}));
+
+vi.mock('@vueuse/core', () => ({
+  onClickOutside: vi.fn(),
+}));
+
+describe('Header notification mode', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.loadPermissions.mockResolvedValue();
+    mocks.hasPermission.mockReturnValue(false);
+  });
+
+  it('switches notifications back to admin mode on mount', async () => {
+    mount(Header, {
+      global: {
+        stubs: {
+          NotificationList: true,
+          AppIcon: true,
+          SearchInput: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(mocks.setAdminMode).toHaveBeenCalledTimes(1);
+    expect(mocks.startPolling).toHaveBeenCalledTimes(1);
+  });
+});

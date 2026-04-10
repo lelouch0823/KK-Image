@@ -101,4 +101,22 @@ describe('useNotifications authz handling', () => {
     expect(store.notifications.value).toEqual([{ id: 'n-b', is_read: 0 }]);
     expect(store.unreadCount.value).toBe(1);
   });
+
+  it('clears stale notification state when switching back to admin mode', async () => {
+    const store = useNotifications();
+    store.setSalesMode('sales-token');
+    store.notifications.value = [{ id: 'sales-n-1', is_read: 0 }];
+    store.unreadCount.value = 2;
+    store.initialized.value = true;
+    store.permissionDenied.value = true;
+    store.permissionDeniedReason.value = '权限不足';
+
+    store.setAdminMode();
+
+    expect(store.notifications.value).toEqual([]);
+    expect(store.unreadCount.value).toBe(0);
+    expect(store.initialized.value).toBe(false);
+    expect(store.permissionDenied.value).toBe(false);
+    expect(store.permissionDeniedReason.value).toBe('');
+  });
 });
