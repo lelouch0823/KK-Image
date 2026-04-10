@@ -52,11 +52,12 @@ const buildStubs = (overrides = {}) => ({
   ConfirmDialog: true,
   AppIcon: true,
   OrderFormFields: {
-    props: ['boundProductVariant', 'modelValue'],
+    props: ['boundProductVariant', 'modelValue', 'disabledFields'],
     template: `
       <div>
         <div data-testid="bound-variant">{{ JSON.stringify(boundProductVariant) }}</div>
         <div data-testid="form-quantity">{{ modelValue.quantity }}</div>
+        <div data-testid="disabled-fields">{{ JSON.stringify(disabledFields) }}</div>
       </div>
     `,
   },
@@ -140,6 +141,15 @@ describe('OrderEditModal variant locking on edit', () => {
     await wrapper.get('[data-testid="unbind"]').trigger('click');
 
     expect(wrapper.get('[data-testid="bound-variant"]').text()).not.toBe('null');
+  });
+
+  it('locks quantity editing once order is in shipping status', () => {
+    const wrapper = mountModal({
+      ...baseOrder,
+      status: 'shipping',
+    });
+
+    expect(wrapper.get('[data-testid="disabled-fields"]').text()).toContain('quantity');
   });
 
   it('prefers top-level order quantity over stale currentData quantity', () => {

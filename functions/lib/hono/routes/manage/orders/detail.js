@@ -28,6 +28,7 @@ export const auditRouteDeclarations = declareAuditRoutes([
 ]);
 const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
 const STRUCTURAL_EDITABLE_STATUSES = new Set(['pending', 'rejected', 'void']);
+const QUANTITY_EDITABLE_STATUSES = new Set(['pending', 'confirmed', 'rejected', 'void']);
 
 function getAdminActor(user) {
     return {
@@ -131,12 +132,16 @@ app.patch('/:id', async (c) => {
     const hasProductIdPayload = productId !== undefined;
     const hasVariantIdPayload = variantId !== undefined;
     const hasBindingMutation = hasProductIdPayload || hasVariantIdPayload;
+    const hasQuantityMutation = updates.quantity !== undefined;
     const effectiveProductId = hasProductIdPayload ? productId : order.productId;
     let normalizedVariantId = hasVariantIdPayload ? (variantId || null) : undefined;
     let validatedBinding = null;
 
     if (hasBindingMutation && !STRUCTURAL_EDITABLE_STATUSES.has(String(order.status || '').trim().toLowerCase())) {
         throw new BadRequestError('product binding can only be changed while order is pending, rejected, or void');
+    }
+    if (hasQuantityMutation && !QUANTITY_EDITABLE_STATUSES.has(String(order.status || '').trim().toLowerCase())) {
+        throw new BadRequestError('quantity can only be changed while order is pending, confirmed, rejected, or void');
     }
 
     if (hasBindingMutation) {

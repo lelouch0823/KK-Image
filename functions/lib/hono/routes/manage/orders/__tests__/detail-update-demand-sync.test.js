@@ -228,4 +228,36 @@ describe('manage order detail update demand sync', () => {
     expect(mocks.processOrderUpdate).not.toHaveBeenCalled();
     expect(mocks.demandSyncOrderTransition).not.toHaveBeenCalled();
   });
+
+  it('rejects quantity edits when admin changes a shipping order', async () => {
+    mocks.orderFindById.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'shipping',
+      quantity: 1,
+      variantId: 'v-old',
+      productId: 'p-1',
+      salespersonId: 'sp-1',
+      currentData: { name: 'A' },
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/o-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: 'quantity changed in shipping',
+          updates: { quantity: 3 },
+        }),
+      },
+      { DB: { prepare: vi.fn() }, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.processOrderUpdate).not.toHaveBeenCalled();
+    expect(mocks.demandSyncOrderTransition).not.toHaveBeenCalled();
+  });
 });

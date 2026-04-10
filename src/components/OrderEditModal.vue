@@ -211,10 +211,18 @@ const STRUCTURAL_EDITABLE_STATUSES = new Set(['pending', 'rejected', 'void']);
 const canEditBinding = computed(() =>
   STRUCTURAL_EDITABLE_STATUSES.has(String(props.order?.status || '').trim().toLowerCase())
 );
+const QUANTITY_EDITABLE_STATUSES = new Set(['pending', 'confirmed', 'rejected', 'void']);
+const canEditQuantity = computed(() =>
+  QUANTITY_EDITABLE_STATUSES.has(String(props.order?.status || '').trim().toLowerCase())
+);
 
 // 绑定商品后锁定的字段
 const LOCKED_FIELDS = ['name', 'brand', 'series', 'sku'];
-const disabledFields = computed(() => boundProduct.value ? LOCKED_FIELDS : []);
+const disabledFields = computed(() => {
+  const fields = boundProduct.value ? [...LOCKED_FIELDS] : [];
+  if (!canEditQuantity.value) fields.push('quantity');
+  return fields;
+});
 
 const boundProductVariant = ref(null);
 
