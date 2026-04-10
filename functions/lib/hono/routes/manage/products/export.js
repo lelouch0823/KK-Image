@@ -1,95 +1,81 @@
-/* eslint-disable no-undef */
 import { Hono } from 'hono';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
+import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
+import {
+  buildCsvContent,
+  EXPORT_COLUMNS,
+  flattenProductsToVariantRows,
+  normalizeProductExportFilters,
+} from '../../../../../../src/components/product/export/export-utils.js';
 
 const app = new Hono();
+const EXPORT_PAGE_LIMIT = 100;
+
+const loadAllProductsForExport = async (repo, filters) => {
+  const products = [];
+  let page = 1;
+
+  while (true) {
+    const result = await repo.search({
+      ...filters,
+      page,
+      limit: EXPORT_PAGE_LIMIT,
+    });
+    const items = Array.isArray(result?.items) ? result.items : [];
+    products.push(...items);
+    if (items.length < EXPORT_PAGE_LIMIT) {
+      return products;
+    }
+    page += 1;
+  }
+};
 
 app.get('/', async (c) => {
-    const { env } = c;
-    const format = c.req.query('format') || 'csv';
+  const { env } = c;
+  const format = String(c.req.query('format') || 'csv').trim().toLowerCase();
 
-    if (format !== 'csv') {
-        return c.json({ error: 'Only CSV format is supported currently' }, 400);
-    }
+  if (format !== 'csv') {
+    return c.json({ success: false, error: 'Only CSV format is supported currently' }, 400);
+  }
 
-    const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
-    const encoder = new TextEncoder();
-
-    // Start background processing
-    (async () => {
-        try {
-            const repo = new ProductRepository(env.DB);
-            const limit = 1000;
-            let page = 1;
-            let hasMore = true;
-
-            // Write BOM for Excel compatibility (UTF-8)
-            await writer.write(encoder.encode('\uFEFF'));
-
-            // Write Header
-            const header = 'ID,Name,SPU,Category,Brand,Price,Stock,Status,Created At\n';
-            await writer.write(encoder.encode(header));
-
-            while (hasMore) {
-                // Fetch formatted filters if needed, but for "Export All" we just strip filters?
-                // Or do we want to export *current view*?
-                // Plan says "Full Export API" -> "Query D1 for *all* products". 
-                // Let's export ALL for now.
-                const result = await repo.search({ page, limit });
-
-                if (!result.items || result.items.length === 0) {
-                    hasMore = false;
-                    break;
-                }
-
-                for (const item of result.items) {
-                    // CSV Escape utility
-                    const escape = (str) => {
-                        if (!str) return '';
-                        const s = String(str).replace(/"/g, '""');
-                        if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-                            return `"${s}"`;
-                        }
-                        return s;
-                    };
-
-                    const line = [
-                        item.id,
-                        item.name,
-                        item.spu,
-                        item.category,
-                        item.brand,
-                        item.price,
-                        item.stock_quantity,
-                        item.status,
-                        new Date(item.created_at).toISOString()
-                    ].map(escape).join(',') + '\n';
-
-                    await writer.write(encoder.encode(line));
-                }
-
-                if (result.items.length < limit) {
-                    hasMore = false;
-                } else {
-                    page++;
-                }
-            }
-        } catch (e) {
-            console.error('Export Error:', e);
-            await writer.write(encoder.encode(`\nError: ${e.message}\n`));
-        } finally {
-            await writer.close();
-        }
-    })();
-
-    return new Response(readable, {
-        headers: {
-            'Content-Type': 'text/csv; charset=utf-8',
-            'Content-Disposition': `attachment; filename="products_export_${new Date().toISOString().split('T')[0]}.csv"`,
-            'Cache-Control': 'no-cache'
-        }
+  try {
+    const filters = normalizeProductExportFilters('filtered', {
+      search: c.req.query('search'),
+      status: c.req.query('status'),
+      brand: c.req.query('brand'),
+      category: c.req.query('category'),
+      hasStock: c.req.query('hasStock'),
+      sortBy: c.req.query('sortBy'),
+      sortOrder: c.req.query('sortOrder'),
     });
+
+    const productRepo = new ProductRepository(env.DB);
+    const variantRepo = new ProductVariantRepository(env.DB);
+    const products = await loadAllProductsForExport(productRepo, filters);
+    const detailedProducts = await Promise.all(
+      products.map(async (product) => ({
+        ...product,
+        variants: await variantRepo.findByProductId(product.id),
+      }))
+    );
+    const rows = flattenProductsToVariantRows(detailedProducts);
+    const csv = buildCsvContent(rows, EXPORT_COLUMNS);
+    const date = new Date().toISOString().slice(0, 10);
+
+    return new Response(csv, {
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="products_variants_${date}.csv"`,
+        'Cache-Control': 'no-cache',
+      },
+    });
+  } catch (error) {
+    console.error('Product export failed:', error);
+    return c.json(
+      { success: false, error: error?.message || 'Product export failed' },
+      500
+    );
+  }
 });
 
 export default app;

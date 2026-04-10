@@ -4,6 +4,7 @@ import {
   buildExcelWorkbook,
   EXPORT_COLUMNS,
   flattenProductsToVariantRows,
+  normalizeProductExportFilters,
 } from '../export-utils.js';
 
 describe('product export utils', () => {
@@ -50,6 +51,43 @@ describe('product export utils', () => {
     ], EXPORT_COLUMNS.slice(0, 2));
     expect(csv).toContain('Product ID,Product Name');
     expect(csv).toContain('p1,Test');
+  });
+
+  it('normalizes filters by scope for export callers', () => {
+    expect(
+      normalizeProductExportFilters('filtered', {
+        search: 'desk',
+        status: 'active',
+        brand: 'ACME',
+        category: 'Furniture',
+        hasStock: 'in_stock',
+        sortBy: 'stock',
+        sortOrder: 'asc',
+      })
+    ).toEqual({
+      search: 'desk',
+      status: 'active',
+      brand: 'ACME',
+      category: 'Furniture',
+      hasStock: 'in_stock',
+      sortBy: 'stock',
+      sortOrder: 'asc',
+    });
+
+    expect(
+      normalizeProductExportFilters('all', {
+        search: 'desk',
+        status: 'active',
+      })
+    ).toEqual({
+      search: '',
+      status: '',
+      brand: '',
+      category: '',
+      hasStock: '',
+      sortBy: '',
+      sortOrder: '',
+    });
   });
 
   it('builds excel workbook with grouped headers', () => {

@@ -97,7 +97,13 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useProducts } from '@/composables/useProducts';
-import { buildCsvContent, buildExcelWorkbook, EXPORT_COLUMNS, flattenProductsToVariantRows } from './export/export-utils.js';
+import {
+  buildCsvContent,
+  buildExcelWorkbook,
+  EXPORT_COLUMNS,
+  flattenProductsToVariantRows,
+  normalizeProductExportFilters,
+} from './export/export-utils.js';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -145,25 +151,7 @@ const stepClass = (index) => {
 };
 
 const fetchAllProducts = async () => {
-  const filterParams = form.scope === 'filtered'
-    ? {
-        search: props.filters?.search || '',
-        status: props.filters?.status || '',
-        brand: props.filters?.brand || '',
-        category: props.filters?.category || '',
-        hasStock: props.filters?.hasStock || '',
-        sortBy: props.filters?.sortBy || '',
-        sortOrder: props.filters?.sortOrder || '',
-      }
-    : {
-        search: '',
-        status: '',
-        brand: '',
-        category: '',
-        hasStock: '',
-        sortBy: '',
-        sortOrder: '',
-      };
+  const filterParams = normalizeProductExportFilters(form.scope, props.filters);
 
   const all = [];
   let page = 1;

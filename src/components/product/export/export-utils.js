@@ -1,5 +1,15 @@
 import XLSX from 'xlsx-js-style';
 
+export const PRODUCT_EXPORT_FILTER_KEYS = Object.freeze([
+  'search',
+  'status',
+  'brand',
+  'category',
+  'hasStock',
+  'sortBy',
+  'sortOrder',
+]);
+
 export const EXPORT_COLUMNS = [
   { key: 'product_id', label: 'Product ID', group: 'Product', width: 22 },
   { key: 'product_name', label: 'Product Name', group: 'Product', width: 20 },
@@ -75,6 +85,18 @@ const resolveStockFlag = (variant) => {
   if (stock <= 0) return 'OUT_OF_STOCK';
   if (alert > 0 && stock <= alert) return 'LOW_STOCK';
   return 'NORMAL';
+};
+
+export const normalizeProductExportFilters = (scope = 'all', filters = {}) => {
+  const normalized = Object.fromEntries(
+    PRODUCT_EXPORT_FILTER_KEYS.map((key) => [key, String(filters?.[key] || '').trim()])
+  );
+
+  if (scope !== 'filtered') {
+    return Object.fromEntries(PRODUCT_EXPORT_FILTER_KEYS.map((key) => [key, '']));
+  }
+
+  return normalized;
 };
 
 export const flattenProductsToVariantRows = (products = []) => {
