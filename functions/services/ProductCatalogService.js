@@ -36,6 +36,17 @@ const normalizeMeta = (meta) => {
     return typeof meta === 'string' ? meta : JSON.stringify(meta);
 };
 
+const hasVariantOptionSelections = (variants = []) =>
+    (variants || []).some((variant) =>
+        Object.entries(variant?.options_values || {}).some(
+            ([key, value]) =>
+                String(key || '').trim() &&
+                value !== undefined &&
+                value !== null &&
+                String(value).trim() !== ''
+        )
+    );
+
 function buildCatalogRollbackPayload(variants = []) {
     return (variants || []).map((variant) => ({
         id: variant.id,
@@ -601,6 +612,21 @@ export class ProductCatalogService {
             allowGeneratedVariantSku: true,
         }));
 
+        let existingDimensionsForVariantSync = null;
+        if (fullReplace && nextBody.variants !== undefined && !Array.isArray(body.dimensions)) {
+            const hasIncomingDimensionedVariants = hasVariantOptionSelections(nextBody.variants);
+            existingDimensionsForVariantSync = await this.dimensionRepo.listByProduct(productId);
+            const hasExistingActiveDimensions = (existingDimensionsForVariantSync || []).some(
+                (dimension) => dimension?.status !== 'archived'
+            );
+
+            if (hasIncomingDimensionedVariants || hasExistingActiveDimensions) {
+                throw new BadRequestError(
+                    'dimensions must be provided explicitly when replacing variants in full replace mode'
+                );
+            }
+        }
+
         const hasProductFieldUpdates = Object.keys(nextBody).some((key) => PRODUCT_MUTABLE_FIELDS.has(key));
         const shouldRollbackDimensions = Boolean(incomingDimensions && nextBody.variants !== undefined);
         const existingDimensionsSnapshot = shouldRollbackDimensions
@@ -624,7 +650,7 @@ export class ProductCatalogService {
 
                 const dimensions = incomingDimensions
                     ? await this.syncDimensionsFromPayload(productId, incomingDimensions, { replaceMissing: fullReplace })
-                    : await this.dimensionRepo.listByProduct(productId);
+                    : (existingDimensionsForVariantSync || await this.dimensionRepo.listByProduct(productId));
                 nextBody.variants = normalizeVariantDimensionKeys(
                     assignGeneratedSkuForPatchVariants(
                         normalizeVariantExternalCodes(nextBody.variants),

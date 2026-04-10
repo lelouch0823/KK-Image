@@ -461,7 +461,7 @@ app.patch('/:id', async (c) => {
         targetId: id,
         target_label: id,
         summary: `Updated product ${id}`,
-        metadata: { changeCount: Array.isArray(result?.changes) ? result.changes.length : undefined },
+        metadata: { changeCount: Number.isFinite(Number(result?.changes)) ? Number(result.changes) : undefined },
     });
     return c.json({
         success: true,
@@ -488,7 +488,7 @@ app.put('/:id', async (c) => {
         targetId: id,
         target_label: id,
         summary: `Replaced product ${id}`,
-        metadata: { changeCount: Array.isArray(result?.changes) ? result.changes.length : undefined },
+        metadata: { changeCount: Number.isFinite(Number(result?.changes)) ? Number(result.changes) : undefined },
     });
     return c.json({
         success: true,
