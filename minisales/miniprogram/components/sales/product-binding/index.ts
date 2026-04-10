@@ -3,20 +3,7 @@ import {
   loadProductList,
   pickSelectableVariants,
 } from '../../../services/sales/products';
-
-type BoundValue = {
-  productId?: string;
-  variantId?: string;
-  name?: string;
-  brand?: string;
-  series?: string;
-  sku?: string;
-  size?: string;
-  color?: string;
-  material?: string;
-  variantLabel?: string;
-  primaryImage?: string;
-};
+import { buildVariantPayload } from './payload';
 
 type ProductSummary = {
   id: string;
@@ -33,24 +20,6 @@ type ProductVariant = {
   optionsValues: Record<string, string>;
   primaryImage: string;
 };
-
-function buildVariantPayload(product: any, variant: ProductVariant): BoundValue {
-  const options = variant.optionsValues || {};
-  const values = Object.values(options).filter(Boolean).map((item) => String(item));
-  return {
-    productId: product.id,
-    variantId: variant.id,
-    name: product.name,
-    brand: product.brand,
-    series: product.series,
-    sku: variant.sku,
-    size: values.join(' / '),
-    color: String(options.color || ''),
-    material: String(options.material || ''),
-    variantLabel: variant.displayName,
-    primaryImage: variant.primaryImage || product.primaryImage,
-  };
-}
 
 Component({
   properties: {
