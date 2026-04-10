@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   resolveBoundProductMainImageSrc,
+  resolveProductPreviewImageSrc,
   resolvePrimaryProductImageSrc,
   resolveProductImageSrcList,
   resolveSelectedVariantMainImageSrc,
@@ -93,5 +94,12 @@ describe('product-image helpers', () => {
       },
     });
     expect(src).toBeNull();
+  });
+
+  it('keeps absolute preview image urls intact for lightweight product payloads', () => {
+    const src = resolveProductPreviewImageSrc({
+      primaryImage: 'https://cdn.example.com/desk.png',
+    });
+    expect(src).toBe('https://cdn.example.com/desk.png');
   });
 });

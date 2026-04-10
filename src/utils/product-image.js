@@ -70,6 +70,12 @@ export const resolvePrimaryProductImageRef = (product) => {
 export const resolvePrimaryProductImageSrc = (product) =>
   toImageSrc(resolvePrimaryProductImageRef(product));
 
+export const resolveProductPreviewImageSrc = (product) => {
+  const preview = toImageSrc(normalizeImageRef(product?.primaryImage));
+  if (preview) return preview;
+  return resolvePrimaryProductImageSrc(product);
+};
+
 export const resolveVariantPrimaryImageRef = (variant) => {
   if (!variant || typeof variant !== 'object') return null;
   const candidates = [variant.primaryImage, variant.image_id];

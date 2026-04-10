@@ -101,7 +101,7 @@ import { useSalesProducts } from '@/composables/useSalesProducts';
 import { onClickOutside, useDebounceFn } from '@vueuse/core';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
-import { resolvePrimaryProductImageSrc } from '@/utils/product-image.js';
+import { resolvePrimaryProductImageSrc, resolveProductPreviewImageSrc } from '@/utils/product-image.js';
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -193,7 +193,7 @@ const select = (product) => {
 
 const getMainImageSrc = (product) => {
   if (isSalesMode.value) {
-    return product.primaryImage ? `/file/${product.primaryImage}` : null;
+    return resolveProductPreviewImageSrc(product);
   }
   return resolvePrimaryProductImageSrc(product);
 };
