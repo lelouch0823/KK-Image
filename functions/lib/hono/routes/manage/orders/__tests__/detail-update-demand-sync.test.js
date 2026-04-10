@@ -143,4 +143,108 @@ describe('manage order detail update demand sync', () => {
       })
     );
   });
+
+  it('releases prior demand before admin unbinds a confirmed product', async () => {
+    mocks.orderFindById.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'confirmed',
+      quantity: 1,
+      variantId: 'v-old',
+      productId: 'p-1',
+      salespersonId: 'sp-1',
+      currentData: { name: 'A' },
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/o-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: 'unbind confirmed',
+          productId: null,
+          variantId: null,
+          updates: { remark: 'manual order now' },
+        }),
+      },
+      { DB: { prepare: vi.fn() }, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.demandSyncOrderTransition).toHaveBeenCalledTimes(2);
+    expect(mocks.demandSyncOrderTransition).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        orderId: 'o-1',
+        fromStatus: 'confirmed',
+        toStatus: 'void',
+        quantity: 1,
+        variantId: 'v-old',
+      })
+    );
+    expect(mocks.demandSyncOrderTransition).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        orderId: 'o-1',
+        fromStatus: null,
+        toStatus: 'confirmed',
+        quantity: 1,
+        variantId: null,
+      })
+    );
+  });
+
+  it('rebalances demand when admin changes quantity on a confirmed product', async () => {
+    mocks.orderFindById.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'confirmed',
+      quantity: 1,
+      variantId: 'v-old',
+      productId: 'p-1',
+      salespersonId: 'sp-1',
+      currentData: { name: 'A' },
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/o-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: 'quantity changed',
+          updates: { quantity: 3 },
+        }),
+      },
+      { DB: { prepare: vi.fn() }, executionCtx: { waitUntil: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.demandSyncOrderTransition).toHaveBeenCalledTimes(2);
+    expect(mocks.demandSyncOrderTransition).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        orderId: 'o-1',
+        fromStatus: 'confirmed',
+        toStatus: 'void',
+        quantity: 1,
+        variantId: 'v-old',
+      })
+    );
+    expect(mocks.demandSyncOrderTransition).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        orderId: 'o-1',
+        fromStatus: null,
+        toStatus: 'confirmed',
+        quantity: 3,
+        variantId: 'v-old',
+      })
+    );
+  });
 });

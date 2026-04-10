@@ -13,6 +13,7 @@ import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { DomainOutboxPublisher } from '../../../../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../../../../api/cron/outbox.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
+import { syncOrderDemandTransitions } from '../../../../api/utils/order-demand-sync.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -331,14 +332,17 @@ app.patch('/:id', async (c) => {
     const nextStatus = ['rejected', 'void'].includes(order.status)
         ? 'pending'
         : (updates?.status ?? order.status);
-    const demandVariantId = hasVariantIdPayload ? normalizedVariantId : order.variantId;
+    const nextVariantId = hasVariantIdPayload ? normalizedVariantId : order.variantId;
+    const nextQuantity = updates?.quantity ?? order.quantity;
     const demandService = new DemandService(env.DB);
-    await demandService.syncOrderTransition({
+    await syncOrderDemandTransitions(demandService, {
         orderId,
-        fromStatus: order.status,
-        toStatus: nextStatus,
-        quantity: updates?.quantity ?? order.quantity,
-        variantId: demandVariantId,
+        previousStatus: order.status,
+        nextStatus,
+        previousQuantity: order.quantity,
+        nextQuantity,
+        previousVariantId: order.variantId,
+        nextVariantId,
     });
 
     if (['rejected', 'void'].includes(order.status)) {

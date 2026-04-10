@@ -17,6 +17,7 @@ import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { publishSingleDomainEventAndPoll } from '../../../_shared/domain-outbox.js';
+import { syncOrderDemandTransitions } from '../../../../../api/utils/order-demand-sync.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -196,14 +197,17 @@ app.patch('/:id', async (c) => {
     }
 
     const nextStatus = finalUpdates?.status ?? order.status;
-    const demandVariantId = hasVariantIdPayload ? normalizedVariantId : order.variantId;
+    const nextVariantId = hasVariantIdPayload ? normalizedVariantId : order.variantId;
+    const nextQuantity = finalUpdates?.quantity ?? order.quantity;
     const demandService = new DemandService(env.DB);
-    await demandService.syncOrderTransition({
+    await syncOrderDemandTransitions(demandService, {
         orderId: id,
-        fromStatus: order.status,
-        toStatus: nextStatus,
-        quantity: finalUpdates?.quantity ?? order.quantity,
-        variantId: demandVariantId,
+        previousStatus: order.status,
+        nextStatus,
+        previousQuantity: order.quantity,
+        nextQuantity,
+        previousVariantId: order.variantId,
+        nextVariantId,
     });
 
     const updatedOrder = await orderRepo.findById(id);
