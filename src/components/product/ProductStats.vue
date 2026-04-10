@@ -33,24 +33,95 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useProducts } from '@/composables/useProducts';
 import { useI18n } from '@/composables/useI18n';
 import MetricTile from '@/design-system/composed/MetricTile.vue';
 
+const props = defineProps({
+  filters: {
+    type: Object,
+    default: () => ({}),
+  },
+  active: {
+    type: Boolean,
+    default: true,
+  },
+});
+
 const { t } = useI18n();
-const { products, pagination } = useProducts();
+const { products, pagination, loadProducts } = useProducts();
+const statsProducts = ref([]);
+const statsTotal = ref(0);
+
+const STATS_PAGE_LIMIT = 100;
+
+const buildStatsQuery = (page) => ({
+  search: String(props.filters?.search || ''),
+  status: String(props.filters?.status || ''),
+  brand: String(props.filters?.brand || ''),
+  category: String(props.filters?.category || ''),
+  hasStock: String(props.filters?.hasStock || ''),
+  sortBy: String(props.filters?.sortBy || ''),
+  sortOrder: String(props.filters?.sortOrder || ''),
+  page,
+  limit: STATS_PAGE_LIMIT,
+});
+
+const loadAllStatsProducts = async () => {
+  const collected = [];
+  let page = 1;
+
+  while (true) {
+    const ok = await loadProducts(buildStatsQuery(page), true);
+    if (!ok) return;
+
+    const pageItems = Array.isArray(products.value) ? [...products.value] : [];
+    collected.push(...pageItems);
+    statsTotal.value = Number(pagination.total || 0);
+    const totalPages = Math.max(1, Number(pagination.totalPages || 1));
+
+    if (page >= totalPages || (statsTotal.value > 0 && collected.length >= statsTotal.value)) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  statsProducts.value = collected;
+  if (statsTotal.value <= 0) {
+    statsTotal.value = collected.length;
+  }
+};
 
 const totalFormatted = computed(() => {
-    return pagination.total.toLocaleString();
+    return Number(statsTotal.value || 0).toLocaleString();
 });
 
 const lowStockCount = computed(() => {
-    return products.value.filter(p => (p.stock_quantity || 0) < (p.alert_threshold || 10)).length;
+    return statsProducts.value.filter((p) => (p.stock_quantity || 0) < (p.alert_threshold || 10)).length;
 });
 
 const valueFormatted = computed(() => {
-    const total = products.value.reduce((acc, p) => acc + (p.cost_price || 0) * (p.stock_quantity || 0), 0);
+    const total = statsProducts.value.reduce((acc, p) => acc + (p.cost_price || 0) * (p.stock_quantity || 0), 0);
     return total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 });
+
+watch(
+  () => [
+    props.active,
+    props.filters?.search,
+    props.filters?.status,
+    props.filters?.brand,
+    props.filters?.category,
+    props.filters?.hasStock,
+    props.filters?.sortBy,
+    props.filters?.sortOrder,
+  ],
+  ([active]) => {
+    if (!active) return;
+    void loadAllStatsProducts();
+  },
+  { immediate: true }
+);
 </script>

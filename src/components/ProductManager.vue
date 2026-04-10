@@ -89,7 +89,7 @@
 
     <!-- Stats Modal (Popup) -->
     <Modal v-model="showStatsModal" :title="t('product.manager.stats_overview')">
-        <ProductStats />
+        <ProductStats :active="showStatsModal" :filters="filters" />
     </Modal>
 
     <!-- Import Modal -->
