@@ -27,6 +27,7 @@ export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'DELETE', path: '/:id', domain: 'orders', action: 'order.delete', severity: 'critical', targetType: 'order' },
 ]);
 const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
+const STRUCTURAL_EDITABLE_STATUSES = new Set(['pending', 'rejected', 'void']);
 
 function getAdminActor(user) {
     return {
@@ -129,11 +130,16 @@ app.patch('/:id', async (c) => {
     let finalUpdates = { ...updates };
     const hasProductIdPayload = productId !== undefined;
     const hasVariantIdPayload = variantId !== undefined;
+    const hasBindingMutation = hasProductIdPayload || hasVariantIdPayload;
     const effectiveProductId = hasProductIdPayload ? productId : order.productId;
     let normalizedVariantId = hasVariantIdPayload ? (variantId || null) : undefined;
     let validatedBinding = null;
 
-    if (hasProductIdPayload || hasVariantIdPayload) {
+    if (hasBindingMutation && !STRUCTURAL_EDITABLE_STATUSES.has(String(order.status || '').trim().toLowerCase())) {
+        throw new BadRequestError('product binding can only be changed while order is pending, rejected, or void');
+    }
+
+    if (hasBindingMutation) {
         validatedBinding = await validateProductVariantBinding(env.DB, effectiveProductId, normalizedVariantId, { checkActive: true });
         normalizedVariantId = validatedBinding.normalizedVariantId;
         if (validatedBinding.variant) {
@@ -143,10 +149,10 @@ app.patch('/:id', async (c) => {
 
     if (effectiveProductId) {
         const product = validatedBinding?.product || await new ProductRepository(env.DB).findById(effectiveProductId);
-        if ((hasProductIdPayload || hasVariantIdPayload) && !product) {
+        if (hasBindingMutation && !product) {
             throw new BadRequestError('productId does not exist');
         }
-        if ((hasProductIdPayload || hasVariantIdPayload) && product?.status !== 'active') {
+        if (hasBindingMutation && product?.status !== 'active') {
             throw new BadRequestError('product must be active');
         }
         if (product) {

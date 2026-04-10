@@ -207,6 +207,11 @@ const form = reactive({
   salespersonId: '',
 });
 
+const STRUCTURAL_EDITABLE_STATUSES = new Set(['pending', 'rejected', 'void']);
+const canEditBinding = computed(() =>
+  STRUCTURAL_EDITABLE_STATUSES.has(String(props.order?.status || '').trim().toLowerCase())
+);
+
 // 绑定商品后锁定的字段
 const LOCKED_FIELDS = ['name', 'brand', 'series', 'sku'];
 const disabledFields = computed(() => boundProduct.value ? LOCKED_FIELDS : []);
@@ -226,6 +231,7 @@ const buildBoundVariantSnapshot = (currentData = {}) => {
 };
 
 const handleProductSelect = (product) => {
+  if (!canEditBinding.value) return;
   const variant = product.selectedVariant;
   if (!variant) return;
   boundProduct.value = {
@@ -296,6 +302,7 @@ const handleProductSelect = (product) => {
 };
 
 const unbindProduct = () => {
+  if (!canEditBinding.value) return;
   boundProduct.value = null;
   selectedProductId.value = null;
   boundProductVariant.value = null;

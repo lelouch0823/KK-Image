@@ -124,6 +124,24 @@ describe('OrderEditModal variant locking on edit', () => {
     });
   });
 
+  it('ignores unbind attempts for confirmed orders', async () => {
+    const wrapper = mountModal(
+      {
+        ...baseOrder,
+        status: 'confirmed',
+      },
+      {
+        ProductBindingSection: {
+          template: '<button data-testid="unbind" @click="$emit(\'unbind\')">unbind</button>',
+        },
+      }
+    );
+
+    await wrapper.get('[data-testid="unbind"]').trigger('click');
+
+    expect(wrapper.get('[data-testid="bound-variant"]').text()).not.toBe('null');
+  });
+
   it('prefers top-level order quantity over stale currentData quantity', () => {
     const wrapper = mountModal(baseOrder);
     expect(wrapper.get('[data-testid="form-quantity"]').text()).toBe('7');
