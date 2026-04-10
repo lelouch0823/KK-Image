@@ -761,6 +761,10 @@ const handleImport = async () => {
     };
     
     try {
+        const toFiniteCount = (value, fallback = 0) => (
+            Number.isFinite(Number(value)) ? Number(value) : fallback
+        );
+
         const buildGroupKey = (row, idx) => {
             const spu = String(row.spu || '').trim();
             return spu ? `spu:${spu}` : `row:${idx}`;
@@ -829,14 +833,14 @@ const handleImport = async () => {
             try {
                 const result = await importProducts(chunk, { importMode: importMode.value });
                 if (result.success) {
-                    _importStats.value.success += (result.count || chunk.length);
+                    _importStats.value.success += toFiniteCount(result.count, chunk.length);
                     if (result.summary) {
-                        _importStats.value.createdProducts += (result.summary.createdProducts || 0);
-                        _importStats.value.updatedProducts += (result.summary.updatedProducts || 0);
-                        _importStats.value.createdVariants += (result.summary.createdVariants || 0);
-                        _importStats.value.updatedVariants += (result.summary.updatedVariants || 0);
-                        _importStats.value.conflictCount += (result.summary.conflicts || 0);
-                        _importStats.value.failed += (result.summary.failedProducts || 0);
+                        _importStats.value.createdProducts += toFiniteCount(result.summary.createdProducts);
+                        _importStats.value.updatedProducts += toFiniteCount(result.summary.updatedProducts);
+                        _importStats.value.createdVariants += toFiniteCount(result.summary.createdVariants);
+                        _importStats.value.updatedVariants += toFiniteCount(result.summary.updatedVariants);
+                        _importStats.value.conflictCount += toFiniteCount(result.summary.conflicts);
+                        _importStats.value.failed += toFiniteCount(result.summary.failedProducts);
                     }
                     if (Array.isArray(result.errors) && result.errors.length > 0) {
                         _importStats.value.errors.push(...result.errors);

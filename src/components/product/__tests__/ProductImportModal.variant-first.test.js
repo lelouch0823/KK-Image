@@ -530,4 +530,47 @@ describe('ProductImportModal Variant-First Payload', () => {
         expect(mocks.importProducts).toHaveBeenCalledTimes(1);
         expect(mocks.importProducts.mock.calls[0][1]).toMatchObject({ importMode: 'replace' });
     });
+
+    it('does not treat zero-count success responses as a fully successful chunk', async () => {
+        mocks.importProducts.mockResolvedValue({
+            success: true,
+            count: 0,
+            summary: {
+                createdProducts: 0,
+                updatedProducts: 0,
+                createdVariants: 0,
+                updatedVariants: 0,
+                conflicts: 0,
+                failedProducts: 2,
+            },
+            errors: ['SPU-1 failed', 'SPU-2 failed'],
+        });
+
+        const wrapper = mount(ProductImportModal, {
+            global: {
+                stubs: {
+                    Modal: { template: '<div><slot></slot><slot name="footer"></slot></div>' },
+                    AppIcon: true,
+                    ImportUploadStep: true,
+                    ImportMappingStep: true,
+                    ImportImageMatchStep: true,
+                    ImportPreviewStep: true
+                }
+            },
+            props: { modelValue: true }
+        });
+
+        wrapper.vm.currentStep = 4;
+        wrapper.vm.parsedItems = [
+            { name: 'A', spu: 'SPU-1', sku: 'SKU-1', price: 100 },
+            { name: 'B', spu: 'SPU-2', sku: 'SKU-2', price: 200 },
+        ];
+
+        await wrapper.vm.handleImport();
+
+        expect(wrapper.vm.importResult.success).toBe(false);
+        expect(wrapper.vm.importResult.count).toBe(0);
+        expect(wrapper.vm.importResult.failed).toBe(2);
+        expect(wrapper.emitted('success')).toBeFalsy();
+    });
 });
