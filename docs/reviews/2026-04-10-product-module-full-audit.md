@@ -2992,3 +2992,15 @@
 - 增量回归:
   - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
 - 对应修复提交: `20dcf90 fix: refresh purchase-order timestamps on item edits`
+
+### 2026-04-12 轮次 268
+
+- 继续深审采购单明细仓储一致性，新增 1 个高风险问题:
+  - [functions/repositories/PurchaseOrderRepository.js](/home/bjw/Code/KK-Image/functions/repositories/PurchaseOrderRepository.js) 修复前虽然已补齐 `updated_at` 刷新，但 `addItems()` 在 header 时间戳刷新失败时仍会留下已插入明细，而 `updateItem()/removeItem()` 也是“先改明细、再单独改 header”，一旦第二步失败就会留下“明细已改、header 未改”的半提交。
+- 已完成本轮修复:
+  - `addItems()` 现在在 header 时间戳刷新失败时也会回滚本轮插入的采购明细。
+  - `updateItem()/removeItem()` 现在会把明细变更与采购单 header 时间戳刷新放进同一个 batch，避免再出现仓储层半提交。
+  - 已补齐 repository 回归测试，锁定“header 刷新失败必须回滚已插入明细”以及“修改/删除明细必须和 header 刷新同事务提交”的行为。
+- 增量回归:
+  - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
+- 对应修复提交: `be1d6ad fix: batch purchase-order item header updates`
