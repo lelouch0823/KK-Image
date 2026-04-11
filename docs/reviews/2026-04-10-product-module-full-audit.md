@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 82 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 83 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -1590,3 +1590,19 @@
   - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
   - `src/views/__tests__/Space.lifecycle.test.js`
 - 对应修复提交: `84b350f fix: normalize product space media urls`
+
+### 2026-04-10 轮次 153
+
+- 继续复查公开合集空间子空间跳转，新增 1 个中风险问题:
+  - `SpaceCollection.vue` 默认子空间链接仍只认 `shareToken`，但公开空间接口对子空间返回的是 `shareUrl`。结果是公开合集页点击子空间会直接跳到 `/space/undefined`
+- 下一步把默认子空间跳转改成 `shareUrl` 优先、`shareToken` 兜底，补齐公开合集子空间访问闭环。
+
+### 2026-04-10 轮次 154
+
+- 已完成轮次 153 新增问题修复:
+  - `SpaceCollection.vue` 默认子空间跳转现在会优先使用公开接口返回的 `shareUrl`
+  - 当只有 `shareToken` 时仍会继续回退到 `/space/:token`，而完全缺失时会安全退到 `#`，不再生成脏链接
+- 增量回归:
+  - `src/components/space/__tests__/SpaceCollection.contract.test.js`
+  - `src/views/__tests__/Space.lifecycle.test.js`
+- 对应修复提交: `d149055 fix: honor public collection subspace links`
