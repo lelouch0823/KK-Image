@@ -2958,3 +2958,15 @@
 - 增量回归:
   - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
 - 对应修复提交: `63f2adb fix: reject duplicate preorder bindings`
+
+### 2026-04-12 轮次 265
+
+- 继续深审采购单创建读后写链路，新增 1 个高风险问题:
+  - [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 与 [functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js) 修复前在采购单已成功创建、明细已成功写入后，如果 `findById()` 读后写偶发拿不到数据，就会把 `createManual/createFromOrders` 返回成 `null`，直接创建路由也会返回 `data: null`。这会让上游误判创建失败，甚至打断后续事件发布链路。
+- 已完成本轮修复:
+  - 手动建单、从订单建单服务以及直接创建路由现在都会在读后写 lookup miss 时回退到已创建的采购单 shell，保证成功创建后不会向上层返回 `null`。
+  - 已补齐服务层与路由层回归测试，锁定“采购单成功创建后，哪怕读回暂时缺失，也必须返回至少包含 `id` 的已创建 shell”的行为。
+- 增量回归:
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+- 对应修复提交: `0744d8f fix: preserve created purchase-order shells`
