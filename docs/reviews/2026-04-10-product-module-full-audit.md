@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 101 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 102 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -136,6 +136,7 @@
   - `f00d15f`: 商品导入预览冲突复制统一走共享剪贴板 helper
   - `fe79d15`: 管理端商品选择器补齐本地错误态与重试入口
   - `07a9a1c`: 商品导入图片上传全失败时不再假成功进入预览
+  - `845c9dd`: 商品导入剔除未解析的本地图片文件名脏数据
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -172,6 +173,7 @@
   - 2026-04-11 运行 2 个回归测试文件，共 23 个测试，全部通过。
   - 2026-04-11 运行 2 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-11 运行 2 个回归测试文件，共 24 个测试，全部通过。
+  - 2026-04-11 运行 2 个回归测试文件，共 25 个测试，全部通过。
   - 2026-04-10 运行 5 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 14 个测试，全部通过。
@@ -1979,3 +1981,20 @@
   - `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
   - `src/components/product/import/__tests__/ImportPreviewStep.test.js`
 - 对应修复提交: `07a9a1c fix: tighten product import and picker error states`
+
+### 2026-04-10 轮次 191
+
+- 继续复查商品导入图片字段闭环，新增 1 个中风险问题:
+  - `ProductImportModal.handleImport()` 在构造变体 payload 时会把未解析的本地 `image_url` 原样带进 `variants[]`。这些值只是 Excel 里的本地文件名，不是后端商品契约字段，也不会被服务端转成图片资源，属于脏数据残留。
+- 下一步在导入 payload 构造阶段剔除非 http 的本地 `image_url`，只保留已上传后的 `images` 结果。
+
+### 2026-04-10 轮次 192
+
+- 已完成轮次 191 新增问题修复:
+  - `ProductImportModal` 现在会在构造变体 payload 时剔除未解析的本地 `image_url`，避免把 Excel 文件名直接带进批量导入请求
+  - 已上传成功的图片仍然走 `images` 字段进入导入，不影响已有的图片匹配上传路径
+  - 已补齐“未解析本地图片文件名不进入变体 payload”回归，并联跑商品导入主流程/导入预览回归
+- 增量回归:
+  - `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
+  - `src/components/product/import/__tests__/ImportPreviewStep.test.js`
+- 对应修复提交: `845c9dd fix: strip unresolved local image names from imports`
