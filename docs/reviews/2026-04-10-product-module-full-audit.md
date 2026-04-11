@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 75 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 78 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -1461,3 +1461,52 @@
   - `minisales/tests/unit/services/spaces.test.ts`
   - `minisales/tests/unit/pages/spaces-controller.test.ts`
 - 对应修复提交: `e86694a fix: hydrate sales space template images for minisales`
+
+### 2026-04-10 轮次 139
+
+- 继续复查 Web 销售空间列表消费契约，新增 1 个中风险问题:
+  - `SalesSpacesView.vue` 直接消费原始 `share_token/file_count/cover_storage_key/p_images` 字段，没有归一化 `template_data.images`，导致商品型空间在“只有模板图片、没有挂空间文件”时列表无封面且文件数显示为 0
+- 下一步把 Web 销售空间列表的消费口径收敛到统一 normalize 层，先补模板图片、封面和文件数回退。
+
+### 2026-04-10 轮次 140
+
+- 已完成轮次 139 新增问题修复:
+  - Web 销售空间列表现在会先归一化销售空间数据，再消费统一的 `shareToken/fileCount/coverUrl/templateData/files` 字段
+  - 商品型销售空间即使只有 `templateData.images`、没有额外挂空间文件，列表卡片仍能显示封面并给出正确文件数
+- 增量回归:
+  - `src/views/sales/__tests__/SalesSpacesView.lifecycle.test.js`
+- 对应修复提交: `8b0ccd7 fix: align sales space web consumption`
+
+### 2026-04-10 轮次 141
+
+- 继续复查小程序销售空间商品模板交互，新增 1 个中风险问题:
+  - 商品模板底部“查看原图”按钮没有携带 `data-url`，而 `spaces_detail/detail.ts` 又在缺失 URL 时直接返回，导致该按钮在商品空间里经常是空操作
+- 下一步在详情页预览逻辑中补当前轮播图兜底，保证按钮至少能打开当前商品图。
+
+### 2026-04-10 轮次 142
+
+- 已完成轮次 141 新增问题修复:
+  - 小程序销售空间详情页在预览事件缺失 URL 时，会自动回退到当前轮播图，再触发 `wx.previewImage`
+  - 商品模板底部“查看原图”按钮不再因为缺失 `data-url` 而失效，轮播索引越界时也会安全回退到首图
+- 增量回归:
+  - `minisales/tests/unit/pages/spaces-detail-page.test.ts`
+  - `minisales/tests/unit/services/spaces.test.ts`
+  - `minisales/tests/unit/pages/spaces-controller.test.ts`
+- 对应修复提交: `9794b44 fix: fallback sales space preview to current image`
+
+### 2026-04-10 轮次 143
+
+- 继续复查 Web 销售空间分享闭环，新增 1 个高风险问题:
+  - `SalesSpacesView.vue` 一律把销售空间卡片跳到公开 `/space/:shareToken`，但销售空间列表实际会返回私有空间、密码空间和需要销售端鉴权的空间，形成“列表可见但点击不可达/重新走公开门禁”的断链
+- 下一步补销售端内部空间详情页，并让 Web 销售空间卡片统一走销售端鉴权链路。
+
+### 2026-04-10 轮次 144
+
+- 已完成轮次 143 新增问题修复:
+  - Web 销售空间卡片现在统一跳到 `/sales/:token/spaces/:id`，不再错误转向公开分享页
+  - 销售端新增内部空间详情页，直接使用销售空间 API 加载详情，私有空间和带公开门禁的空间都能在销售端闭环访问
+  - `Sales.vue` 现在会把销售空间详情也归到空间分区语义下，避免空间详情页误落入订单页头部/底栏状态
+- 增量回归:
+  - `src/views/sales/__tests__/SalesSpacesView.lifecycle.test.js`
+  - `src/views/sales/__tests__/SalesSpaceDetailView.contract.test.js`
+- 对应修复提交: `8b0ccd7 fix: align sales space web consumption`
