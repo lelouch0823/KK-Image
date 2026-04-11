@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 122 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 123 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -143,6 +143,7 @@
   - `cb8fbc4`: 商品导出详情补全失败时中止导出
   - `cc418b0`: 商品导出弹窗会话重置、导出条件变更后旧下载失效、商品选择器上下文切换重载
   - `dd323d5`: 商品统计弹窗刷新失败时清理旧统计结果
+  - `7c79bb4`: 商品 PATCH/PUT 在仅提交 dimensions 时真正执行规格同步
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -223,6 +224,7 @@
   - 2026-04-10 运行 2 个回归测试文件，共 36 个测试，全部通过。
   - 2026-04-11 运行 3 个回归测试文件，共 32 个测试，全部通过。
   - 2026-04-11 运行 3 个回归测试文件，共 13 个测试，全部通过。
+  - 2026-04-11 运行 3 个回归测试文件，共 8 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -2390,3 +2392,17 @@
   - `src/components/product/__tests__/ProductExportModal.filters.test.js`
   - `src/components/product/__tests__/ProductSelect.sales-image.test.js`
 - 对应修复提交: `dd323d5 fix: clear stale product stats after refresh failure`
+
+### 2026-04-11 轮次 225
+
+- 继续复查商品 PATCH/PUT 服务层契约，新增 1 个中风险问题:
+  - `ProductCatalogService.patchProduct()` 只有在 `body.variants` 存在时才会执行 `syncDimensionsFromPayload()`。结果是 `PATCH /api/manage/products/:id` 或 `PUT /api/manage/products/:id` 如果只提交 `dimensions` 而不带 `variants`，后端会直接返回成功，但规格维度根本不会落库，形成典型的假成功契约分叉。[functions/services/ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js)
+- 已完成本轮修复:
+  - 服务层现在会在收到 `dimensions` 时独立执行规格同步，即使本次 payload 没有 `variants` 也不会再静默丢弃维度变更。
+  - 维度独立变更现在也会纳入缓存失效与回滚保护，避免“规格已改但列表/详情仍读旧缓存”或“后续步骤失败后规格半更新”。
+  - 已补齐“仅提交 dimensions 也必须真正同步”的服务层回归测试，并回归 import mode 与商品更新审计元数据测试，确认本轮修复没有冲击既有更新链路。
+- 增量回归:
+  - `functions/services/__tests__/ProductCatalogService.put-boundaries.test.js`
+  - `functions/services/__tests__/ProductCatalogService.import-mode.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-update-audit-metadata.test.js`
+- 对应修复提交: `7c79bb4 fix: sync product dimensions without variant payload`
