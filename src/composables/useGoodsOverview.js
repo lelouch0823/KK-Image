@@ -18,6 +18,8 @@ export function useGoodsOverview() {
     const loading = ref(false);
     const error = ref(null);
     const errorCode = ref(null);
+    let listRequestId = 0;
+    let summaryRequestId = 0;
 
     const filters = reactive({
         category: '',
@@ -76,6 +78,7 @@ export function useGoodsOverview() {
      * 加载分析数据
      */
     const loadData = async () => {
+        const requestId = ++listRequestId;
         loading.value = true;
         error.value = null;
         errorCode.value = null;
@@ -92,6 +95,9 @@ export function useGoodsOverview() {
 
             const res = await authFetch(url);
             const json = await res.json();
+            if (requestId !== listRequestId) {
+                return false;
+            }
 
             if (json.success) {
                 items.value = json.data.items;
@@ -102,6 +108,9 @@ export function useGoodsOverview() {
             error.value = json.error || '加载失败';
             return false;
         } catch (e) {
+            if (requestId !== listRequestId) {
+                return false;
+            }
             console.error('loadGoodsOverview failed:', e);
             const status = Number(e?.status || 0);
             if (status === 403) {
@@ -118,7 +127,9 @@ export function useGoodsOverview() {
             error.value = e.message;
             return false;
         } finally {
-            loading.value = false;
+            if (requestId === listRequestId) {
+                loading.value = false;
+            }
         }
     };
 
@@ -126,15 +137,24 @@ export function useGoodsOverview() {
      * 加载管道概览统计
      */
     const loadSummary = async () => {
+        const requestId = ++summaryRequestId;
         try {
             const res = await authFetch(API.MANAGE_GOODS_OVERVIEW_SUMMARY);
             const json = await res.json();
+            if (requestId !== summaryRequestId) {
+                return false;
+            }
             if (json.success) {
                 summary.value = json.data;
+                return true;
             }
         } catch (e) {
+            if (requestId !== summaryRequestId) {
+                return false;
+            }
             console.error('loadGoodsOverviewSummary failed:', e);
         }
+        return false;
     };
 
     /**

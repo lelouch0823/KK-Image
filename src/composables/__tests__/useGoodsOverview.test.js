@@ -72,6 +72,98 @@ describe('useGoodsOverview composable', () => {
     expect(summary.value).toEqual({ totalProducts: 10, shortageCount: 2 });
   });
 
+  it('keeps the latest overview list when earlier filter loads resolve late', async () => {
+    const resolvers = [];
+    mockAuthFetch.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        })
+    );
+
+    const goodsOverview = useGoodsOverview();
+    goodsOverview.filters.category = 'tops';
+    await Promise.resolve();
+
+    goodsOverview.filters.category = 'pants';
+    await Promise.resolve();
+
+    expect(resolvers).toHaveLength(2);
+    const [resolveFirst, resolveSecond] = resolvers;
+
+    resolveSecond({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: {
+            items: [{ id: 'v-new', name: 'Pants Variant' }],
+            filters: { categories: ['pants'], brands: [] },
+          },
+        }),
+    });
+    await vi.waitFor(() => {
+      expect(goodsOverview.items.value).toEqual([{ id: 'v-new', name: 'Pants Variant' }]);
+    });
+
+    resolveFirst({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: {
+            items: [{ id: 'v-old', name: 'Top Variant' }],
+            filters: { categories: ['tops'], brands: [] },
+          },
+        }),
+    });
+    await vi.waitFor(() => {
+      expect(goodsOverview.items.value).toEqual([{ id: 'v-new', name: 'Pants Variant' }]);
+    });
+  });
+
+  it('keeps the latest summary when earlier summary loads resolve late', async () => {
+    let resolveFirst;
+    let resolveSecond;
+    mockAuthFetch
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = resolve;
+          })
+      );
+
+    const { loadSummary, summary } = useGoodsOverview();
+    const firstPending = loadSummary();
+    const secondPending = loadSummary();
+
+    resolveSecond({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { totalProducts: 20, shortageCount: 3 },
+        }),
+    });
+    await secondPending;
+
+    expect(summary.value).toEqual({ totalProducts: 20, shortageCount: 3 });
+
+    resolveFirst({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { totalProducts: 10, shortageCount: 1 },
+        }),
+    });
+    await firstPending;
+
+    expect(summary.value).toEqual({ totalProducts: 20, shortageCount: 3 });
+  });
+
   it('creates purchase order from selected variants via authFetch', async () => {
     mockAuthFetch
       .mockResolvedValueOnce({
