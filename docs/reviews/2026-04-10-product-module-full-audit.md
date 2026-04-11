@@ -2809,3 +2809,18 @@
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
   - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
 - 对应修复提交: `36a54e8 fix: validate ai manual purchase-order items`
+
+### 2026-04-12 轮次 253
+
+- 继续复查采购单成本链路的输入边界，新增 1 个高风险问题:
+  - [functions/services/purchase-order-item-validation.js](/home/bjw/Code/KK-Image/functions/services/purchase-order-item-validation.js) 修复前并没有约束采购明细 `unit_cost`；[functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js) 的建单、加明细、改明细入口也都允许负单价穿透。结果是负 `unit_cost` 可以直接写入采购单，后续在 [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 做 landed cost 分摊和移动平均成本更新时会把成本口径拉成负值，属于典型的财务语义脏数据入口。
+- 已完成本轮修复:
+  - 共享采购明细校验模块现在新增 `unit_cost` 非负校验，手工建采购单、采购单加明细、AI 手工采购单入口会统一拒绝负单价。
+  - 采购单明细 `PATCH` 路由也补了同样的非负校验，避免先合法建单、后通过更新把负单价写回去。
+  - 已补齐服务层与路由层回归测试，锁定“负采购单价不得创建，也不得更新”的行为。
+- 增量回归:
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+- 对应修复提交: `879e2a6 fix: reject negative purchase-order unit costs`
