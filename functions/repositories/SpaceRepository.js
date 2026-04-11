@@ -84,6 +84,7 @@ export class SpaceRepository {
         FROM spaces s
         ${this._spaceFileCountJoinSQL()}
         ${this._spaceProductJoinsSQL()}
+        WHERE s.parent_id IS NULL
         ORDER BY s.updated_at DESC
       `
             )
@@ -480,11 +481,14 @@ export class SpaceRepository {
             LEFT JOIN files f ON s.cover_file_id = f.id
             LEFT JOIN products p ON s.product_id = p.id
             LEFT JOIN product_variants pv ON s.variant_id = pv.id
-            WHERE s.share_mode = 'all'
+            WHERE s.parent_id IS NULL
+              AND (
+               s.share_mode = 'all'
                OR (s.share_mode = 'selected' AND EXISTS (
                    SELECT 1 FROM space_salesperson_shares sss 
                    WHERE sss.space_id = s.id AND sss.salesperson_id = ?
                ))
+              )
             ORDER BY s.updated_at DESC
         `).bind(salespersonId).all();
         return results;

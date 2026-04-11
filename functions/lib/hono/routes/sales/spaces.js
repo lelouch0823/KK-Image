@@ -14,7 +14,9 @@ app.get('/', withCache(20), async (c) => {
     const { env } = c;
 
     const spaceRepo = new SpaceRepository(env.DB);
-    const results = await spaceRepo.findAllForSalesperson(salesperson.id);
+    const results = (await spaceRepo.findAllForSalesperson(salesperson.id)).filter(
+        (space) => !space.parent_id
+    );
 
     const mappedResults = results.map(space => ({
         ...space,

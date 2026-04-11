@@ -79,4 +79,42 @@ describe('sales spaces routes', () => {
       })
     );
   });
+
+  it('excludes child spaces from the sales spaces top-level list', async () => {
+    mocks.findAllForSalesperson.mockResolvedValue([
+      {
+        id: 'space-parent-1',
+        name: '顶级空间',
+        parent_id: null,
+        template: 'gallery',
+        template_data: '{}',
+      },
+      {
+        id: 'space-child-1',
+        name: '子空间',
+        parent_id: 'space-parent-1',
+        template: 'gallery',
+        template_data: '{}',
+      },
+    ]);
+
+    const app = createApp();
+    const res = await app.request('http://localhost/api/sales/token-1/spaces', {}, {
+      DB: {},
+    });
+
+    expect(res.status).toBe(200);
+    const payload = await res.json();
+    expect(payload).toEqual(
+      expect.objectContaining({
+        success: true,
+        data: [
+          expect.objectContaining({
+            id: 'space-parent-1',
+            name: '顶级空间',
+          }),
+        ],
+      })
+    );
+  });
 });

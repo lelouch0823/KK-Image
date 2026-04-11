@@ -67,7 +67,7 @@ crud.get('/', withCache(30), async (c) => {
   const { env } = c;
   const repo = new SpaceRepository(env.DB);
 
-  const results = await repo.findAll();
+  const results = (await repo.findAll()).filter((space) => !space.parent_id);
   return c.json({
     success: true,
     data: results.map(transformSpaceListItem),

@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
+  findAll: vi.fn(),
   findById: vi.fn(),
   update: vi.fn(),
   updateSharedSalespersons: vi.fn(),
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../../../../repositories/SpaceRepository.js', () => ({
   SpaceRepository: vi.fn(() => ({
     create: mocks.create,
+    findAll: mocks.findAll,
     findById: mocks.findById,
     update: mocks.update,
     updateSharedSalespersons: mocks.updateSharedSalespersons,
@@ -80,6 +82,7 @@ describe('manage spaces crud validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.create.mockResolvedValue(true);
+    mocks.findAll.mockResolvedValue([]);
     mocks.findById.mockResolvedValue({
       id: 'sp-1',
       parent_id: null,
@@ -216,5 +219,46 @@ describe('manage spaces crud validation', () => {
       })
     );
     expect(mocks.updateSharedSalespersons).toHaveBeenCalledWith(expect.any(String), ['sp-a', 'sp-b']);
+  });
+
+  it('excludes subspaces from the top-level spaces list', async () => {
+    mocks.findAll.mockResolvedValueOnce([
+      {
+        id: 'space-parent-1',
+        name: '顶级空间',
+        parent_id: null,
+        is_public: 1,
+        share_mode: 'all',
+        file_count: 1,
+        view_count: 0,
+      },
+      {
+        id: 'space-child-1',
+        name: '子空间',
+        parent_id: 'space-parent-1',
+        is_public: 1,
+        share_mode: 'all',
+        file_count: 2,
+        view_count: 0,
+      },
+    ]);
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/spaces',
+      { method: 'GET' },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.data).toEqual([
+      expect.objectContaining({
+        id: 'space-parent-1',
+        name: '顶级空间',
+      }),
+    ]);
   });
 });
