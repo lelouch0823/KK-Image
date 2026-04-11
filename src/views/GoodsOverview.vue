@@ -284,7 +284,7 @@
             :text="t('goodsOverview.status.shortage')"
           />
           <StatusBadge
-            v-else-if="item.stockQuantity < item.alertThreshold"
+            v-else-if="(item.availableQuantity ?? item.stockQuantity) < item.alertThreshold"
             status="warning"
             :text="t('goodsOverview.status.warning')"
           />
