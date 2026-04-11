@@ -2211,3 +2211,15 @@
 - 增量回归:
   - `src/components/__tests__/SpaceProductEditor.contract.test.js`
 - 对应修复提交: `f1851d3 fix: reload space editor state on space switch`
+
+### 2026-04-11 轮次 212
+
+- 继续复查商品管理入口的编辑/分享补全链路，新增 2 个中风险问题:
+  - `ProductManager.handleShare()` 直接 await `hydrateProductWithVariants()`，接口 reject 时会抛成未处理异常，既没有错误提示，也没有保证分享弹窗保持关闭，属于失败冒泡成全局错误。
+  - `ProductManager.handleEditWithHydration()` 同样没有失败收口；hydrate reject 时错误会直接外抛，并留下 `isEditMode` 等本地状态未回滚，后续创建/编辑入口可能带着脏上下文继续运行。
+- 已完成本轮修复:
+  - `handleShare()` 现在会在当前请求仍有效时收口错误，弹出 toast，并确保分享弹窗不会进入假成功态。
+  - `handleEditWithHydration()` 现在会在当前请求仍有效时回滚 `isEditMode/editingProduct/showCreateModal`，并提示明确错误。
+- 增量回归:
+  - `src/components/__tests__/ProductManager.variant-hydration.test.js`
+- 对应修复提交: `922ee6b fix: handle product manager hydration failures`
