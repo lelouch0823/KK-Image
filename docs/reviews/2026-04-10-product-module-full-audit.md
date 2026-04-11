@@ -2925,3 +2925,14 @@
 - 增量回归:
   - `functions/services/__tests__/purchase-order-moving-average-cost.test.js`
 - 对应修复提交: `45e44d5 fix: aggregate moving-average updates per variant`
+
+### 2026-04-12 轮次 262
+
+- 继续深审成本分摊异常路径，新增 1 个高风险问题:
+  - [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 修复前在 `allocateCosts()` 中先写 `purchase_order_items` 分摊，再并发更新变体 MAC；只要后续某个 MAC 更新失败，就会留下“allocations 已改、前几个 variant cost 已改、后续 variant cost 未改”的半提交状态，属于明确事务未闭环。
+- 已完成本轮修复:
+  - 成本分摊服务现在会保留旧的 allocation 和 variant cost 快照；任何 MAC 更新失败时，会回滚本轮已写入的 allocations，并把前面已成功更新的变体成本恢复到旧值。
+  - 已补齐回归测试，锁定“后续 MAC 更新失败时，必须回滚分摊结果和已成功写入的 variant cost”的行为。
+- 增量回归:
+  - `functions/services/__tests__/purchase-order-moving-average-cost.test.js`
+- 对应修复提交: `ad12b25 fix: roll back failed landed-cost allocations`
