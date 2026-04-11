@@ -439,13 +439,14 @@ app.post('/', async (c) => {
  */
 app.post('/from-orders', async (c) => {
   const body = await c.req.json();
+  const orderIds = [...new Set((body.order_ids || []).filter(Boolean))];
 
-  if (!body.order_ids || body.order_ids.length === 0) {
+  if (orderIds.length === 0) {
     throw new BadRequestError('请至少选择一个预订单');
   }
 
   const service = new PurchaseOrderService(c.env.DB);
-  const po = await service.createFromOrders(body.order_ids, {
+  const po = await service.createFromOrders(orderIds, {
     remark: body.remark,
     allocation_method: body.allocation_method,
     estimated_shipping_cost: body.estimated_shipping_cost,
@@ -456,7 +457,7 @@ app.post('/from-orders', async (c) => {
     eventType: 'purchase_order_created_from_orders',
     poId: po.id,
     payload: {
-      order_ids: body.order_ids,
+      order_ids: orderIds,
     },
   });
   scheduleAuditEvent(c, {
@@ -468,7 +469,7 @@ app.post('/from-orders', async (c) => {
     targetId: po?.id,
     target_label: po?.id || null,
     summary: `Created purchase order ${po?.id || ''} from orders`,
-    metadata: { orderIds: body.order_ids },
+    metadata: { orderIds },
   });
 
   return c.json({ success: true, data: po }, 201);

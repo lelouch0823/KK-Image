@@ -238,6 +238,41 @@ describe('manage purchase-orders routes', () => {
     expect(waitUntil).toHaveBeenCalled();
   });
 
+  it('dedupes create-from-orders order ids before publishing side effects and audit metadata', async () => {
+    const app = createApp();
+    const db = createDb();
+    const waitUntil = vi.fn();
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/from-orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_ids: ['o-1', 'o-1', 'o-2', '', null] }),
+      },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.serviceCreateFromOrders).toHaveBeenCalledWith(['o-1', 'o-2'], expect.any(Object));
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'purchase_order_created_from_orders',
+        payload: expect.objectContaining({
+          order_ids: ['o-1', 'o-2'],
+        }),
+      }),
+    ]);
+    expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        metadata: { orderIds: ['o-1', 'o-2'] },
+      })
+    );
+    expect(waitUntil).toHaveBeenCalled();
+  });
+
   it('enqueues purchase-order update cache side effects through outbox', async () => {
     const app = createApp();
     const db = createDb();
