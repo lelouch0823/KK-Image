@@ -397,7 +397,7 @@ app.post('/', async (c) => {
   });
 
   // 返回完整的采购单
-  const fullPo = await repo.findById(po.id);
+  const fullPo = (await repo.findById(po.id)) || po;
   scheduleAuditEvent(c, {
     domain: 'purchase-orders',
     action: 'purchase_order.create',

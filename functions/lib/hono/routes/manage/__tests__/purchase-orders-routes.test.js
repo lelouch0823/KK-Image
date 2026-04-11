@@ -1419,4 +1419,35 @@ describe('manage purchase-orders routes', () => {
     expect(mocks.repoDeleteIfEmptyDraft).not.toHaveBeenCalled();
     expect(mocks.publish).not.toHaveBeenCalled();
   });
+
+  it('returns the created purchase-order shell when the create-route read-after-write lookup misses', async () => {
+    const app = createApp();
+    const db = createDb();
+    mocks.repoFindById.mockResolvedValueOnce(null);
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ remark: 'draft shell' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json?.data).toEqual(expect.objectContaining({
+      id: 'po-1',
+      po_no: 'PO-1',
+      status: 'draft',
+    }));
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'purchase_order_created',
+        aggregate_id: 'po-1',
+      }),
+    ]);
+  });
 });

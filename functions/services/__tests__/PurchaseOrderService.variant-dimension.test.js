@@ -262,6 +262,39 @@ describe('PurchaseOrderService variant dimension', () => {
     expect(service.repo.addItems).not.toHaveBeenCalled();
   });
 
+  it('createFromOrders falls back to the created purchase-order shell when the read-after-write lookup misses', async () => {
+    const stmt = {
+      bind: vi.fn(() => stmt),
+      all: vi.fn(async () => ({
+        results: [{
+          id: 'o-1',
+          order_no: 'SO-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          quantity: 2,
+          name: 'Tee',
+          sku: 'TEE-YELLOW-S',
+          cost_price: 11,
+        }],
+      })),
+    };
+    const db = { prepare: vi.fn(() => stmt) };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      create: vi.fn(async () => ({ id: 'po-1', po_no: 'PO-1', status: 'draft' })),
+      addItems: vi.fn(async () => []),
+      findById: vi.fn(async () => null),
+      findActiveBindingsByPreOrderIds: vi.fn(async () => []),
+      deleteIfEmptyDraft: vi.fn(async () => true),
+    };
+
+    await expect(service.createFromOrders(['o-1'])).resolves.toEqual({
+      id: 'po-1',
+      po_no: 'PO-1',
+      status: 'draft',
+    });
+  });
+
   it('_updateInventory should reject items without variant_id', async () => {
     const db = {
       prepare: vi.fn(() => ({ bind: vi.fn() })),

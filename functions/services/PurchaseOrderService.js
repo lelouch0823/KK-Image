@@ -454,7 +454,7 @@ export class PurchaseOrderService {
       throw error;
     }
 
-    return this.repo.findById(po.id);
+    return (await this.repo.findById(po.id)) || po;
   }
 
   /**
@@ -541,7 +541,7 @@ export class PurchaseOrderService {
     }
 
     // 4. 返回完整的采购单
-    return this.repo.findById(po.id);
+    return (await this.repo.findById(po.id)) || po;
   }
 
   // ─── 内部工具 ──────────────────────────────────────────
