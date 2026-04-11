@@ -91,7 +91,7 @@ export class AIActionOrchestrator {
 
     if (session.status === 'collecting' && !confirmation) {
       const extractedSlots = this.extractActionSlots(adapter.entityType, text);
-      const nextSlots = { ...slots, ...extractedSlots };
+      const nextSlots = this.#mergeCollectedSlots(adapter.entityType, slots, extractedSlots);
       const normalizedText = String(text || '').trim();
       this.#applyCandidateChoiceFromText(nextSlots, normalizedText);
       const missingSlots = this.#getMissingSlots(adapter, nextSlots);
@@ -202,6 +202,24 @@ export class AIActionOrchestrator {
     }
     const requiredSlots = this.#getRequiredSlots(adapter, slots);
     return requiredSlots.filter((slot) => !this.#hasValue(slots[slot]));
+  }
+
+  #mergeCollectedSlots(entityType, currentSlots = {}, extractedSlots = {}) {
+    const merged = { ...currentSlots, ...extractedSlots };
+
+    if (
+      entityType === 'purchase_order'
+      && String(merged.mode || currentSlots.mode || '').trim() === 'manual'
+      && Array.isArray(currentSlots.items)
+      && Array.isArray(extractedSlots.items)
+    ) {
+      const resolvedExistingItems = currentSlots.items.filter(
+        (item) => item?.product_id && item?.variant_id
+      );
+      merged.items = [...resolvedExistingItems, ...extractedSlots.items];
+    }
+
+    return merged;
   }
 
   #hasValue(value) {

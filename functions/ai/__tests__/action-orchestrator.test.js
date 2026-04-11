@@ -355,6 +355,66 @@ describe('AIActionOrchestrator', () => {
     ]);
   });
 
+  it('preserves already-resolved manual items when a follow-up adds another purchase-order item', async () => {
+    sessionStore.getLatestActiveSession.mockResolvedValueOnce({
+      id: 'act-1',
+      user_id: 'user-1',
+      action_type: 'create_purchase_order',
+      entity_type: 'purchase_order',
+      status: 'collecting',
+      slots_json: JSON.stringify({
+        mode: 'manual',
+        items: [
+          {
+            variant_query: '跑鞋 黑色 42',
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            quantity: 20,
+            unit_cost: 60,
+          },
+        ],
+      }),
+      preview_json: '{}',
+    });
+
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {
+        purchase_order: {
+          items: vi.fn(async (items) => items.map((item, index) => index === 0 && item.product_id
+            ? item
+            : {
+                ...item,
+                product_id: 'prod-2',
+                variant_id: 'var-2',
+              })),
+        },
+      },
+      extractActionSlots,
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '凉鞋 白色 38 补货 10件 单价50',
+    });
+
+    expect(result.kind).toBe('action_preview');
+    expect(result.payload.summary.items).toEqual([
+      expect.objectContaining({
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        quantity: 20,
+      }),
+      expect.objectContaining({
+        product_id: 'prod-2',
+        variant_id: 'var-2',
+        quantity: 10,
+      }),
+    ]);
+  });
+
   it('requests order ids before previewing from-orders mode', async () => {
     orchestrator = new AIActionOrchestrator({
       sessionStore,
