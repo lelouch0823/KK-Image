@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 62 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 63 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -108,6 +108,7 @@
   - `5c04f98`: Dashboard 订单详情抽屉只认当前详情请求结果
   - `c1c1999`: 货品总览列表和汇总只认当前筛选轮次的最新请求结果
   - `844b179`: 销售订单状态机只认当前动作的最新状态迁移结果
+  - `b5ce2aa`: 货品总览禁止为非缺货项静默生成采购单
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -142,6 +143,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 14 个测试，全部通过。
   - 2026-04-10 运行 1 个回归测试文件，共 6 个测试，全部通过。
   - 2026-04-10 运行 5 个回归测试文件，共 9 个测试，全部通过。
+  - 2026-04-10 运行 1 个回归测试文件，共 7 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -232,6 +234,7 @@
 - `Dashboard` 首页里的订单详情抽屉也实现了一套独立的详情水合，但 `viewOrder()/refreshOrderDetail()` 没有隔离请求先后。快速连续查看两张订单、关闭抽屉后旧请求才返回，或评论后详情刷新并发时，旧的 `getOrder()` 结果会把当前 `viewingOrder/detailHydrating` 覆盖成上一张订单。[src/views/Dashboard.vue](/home/bjw/Code/KK-Image/src/views/Dashboard.vue#L409)
 - `useGoodsOverview` 的列表和汇总加载都没有请求先后隔离，而筛选变化会自动触发 `loadData()`。快速切换货品总览筛选或并发触发初始化/刷新时，旧筛选的列表结果和旧汇总结果会在后返回后覆盖当前总览，导致短缺列表与汇总卡片回跳到上一轮筛选口径。[src/composables/useGoodsOverview.js](/home/bjw/Code/KK-Image/src/composables/useGoodsOverview.js#L70)
 - 销售端的 `useSalesOrderStateMachine` 只包了一层状态流转，但没有隔离动作请求先后。搜索、重试或切换页面时如果同时触发多次 `loadOrders/loadDetail/comment`，旧请求仍会把 `state/error` 回写成 `error/empty`，即使底层数据已经是新的成功结果。[src/composables/sales/useSalesOrderStateMachine.js](/home/bjw/Code/KK-Image/src/composables/sales/useSalesOrderStateMachine.js#L22)
+- 货品总览页允许用户选中任意条目后直接“生成采购单”，但 `createPOFromSelected()` 只是把 `shortage <= 0` 的项数量压成 `0`，而后端数量校验与仓储写入会把 `0` 继续归一成 `1`。结果是用户可以对不缺货的货品静默生成 1 件采购明细，业务上直接错单。[src/composables/useGoodsOverview.js](/home/bjw/Code/KK-Image/src/composables/useGoodsOverview.js#L151) [functions/services/purchase-order-constraints.js](/home/bjw/Code/KK-Image/functions/services/purchase-order-constraints.js#L17) [functions/repositories/PurchaseOrderRepository.js](/home/bjw/Code/KK-Image/functions/repositories/PurchaseOrderRepository.js#L409)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -1214,3 +1217,18 @@
   - `src/views/__tests__/SalesDetailView.lifecycle.test.js`
   - `src/components/order/__tests__/SalesStats.lifecycle.test.js`
 - 对应修复提交: `844b179 fix: isolate sales state machine transitions`
+
+### 2026-04-10 轮次 113
+
+- 继续复查货品总览到采购单的业务闭环，新增 1 个高风险问题:
+  - 货品总览允许对 `shortage <= 0` 的条目直接生成采购单，而这类数量会被后端归一成 `1`，最终静默生成错误采购明细
+- 下一步在货品总览建单入口前置校验，只允许为真实缺货条目生成采购单。
+
+### 2026-04-10 轮次 114
+
+- 已完成轮次 113 新增问题修复:
+  - `useGoodsOverview.createPOFromSelected()` 现在会拒绝为 `shortage <= 0` 的条目生成采购单，阻断静默生成 1 件错误采购明细
+  - 货品总览建采购单入口现在只允许真实存在缺口的条目进入采购链路
+- 增量回归:
+  - `src/composables/__tests__/useGoodsOverview.test.js`
+- 对应修复提交: `b5ce2aa fix: block zero-shortage goods overview purchase orders`
