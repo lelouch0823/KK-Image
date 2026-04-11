@@ -2424,7 +2424,11 @@
                       class="flex flex-col gap-3 rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-card)/88 p-4 transition-colors hover:bg-(--bg-hover) lg:flex-row lg:items-center lg:justify-between"
                     >
                       <div class="flex min-w-0 items-center gap-3">
-                        <AppCheckbox v-model="selectedSuggestions" :value="s" />
+                        <AppCheckbox
+                          v-model="selectedSuggestions"
+                          :value="s"
+                          :disabled="getSuggestionOrderIds(s).length === 0"
+                        />
                         <div class="min-w-0">
                           <div
                             class="truncate text-sm font-medium text-(--text-main)"
@@ -2492,7 +2496,7 @@
                   >
                     <button
                       class="bg-primary cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-(--text-inverse) transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                      :disabled="selectedSuggestions.length === 0"
+                      :disabled="selectedSuggestionOrderIds.length === 0"
                       @click="handleCreateFromSuggestions"
                     >
                       {{ t('purchaseOrder.suggestions.addSelected') }} ({{
@@ -3059,6 +3063,14 @@ const suggestionSummaryCards = computed(() => {
   ];
 });
 
+function getSuggestionOrderIds(suggestion = {}) {
+  return [...new Set((suggestion.order_ids || []).filter(Boolean))];
+}
+
+const selectedSuggestionOrderIds = computed(() =>
+  [...new Set((selectedSuggestions.value || []).flatMap((suggestion) => getSuggestionOrderIds(suggestion)))]
+);
+
 const openDetail = async (id) => {
   detailRequestId.value = String(id || '').trim();
   showDetail.value = true;
@@ -3572,8 +3584,17 @@ const executeCreate = async () => {
 
 const handleCreateFromSuggestions = async () => {
   // 将建议中的预订单汇总
-  const allOrderIds = selectedSuggestions.value.flatMap((s) => s.order_ids || []);
-  if (allOrderIds.length === 0) return;
+  const allOrderIds = selectedSuggestionOrderIds.value;
+  if (allOrderIds.length === 0) {
+    addToast({
+      type: 'warning',
+      message: t(
+        'purchaseOrder.toast.noBindableSuggestionOrders',
+        '所选建议暂无可绑定订单，请改为手动建单或等待新的已确认订单。'
+      ),
+    });
+    return;
+  }
 
   const result = await createFromOrders(allOrderIds, {
     allocation_method: 'by_quantity',

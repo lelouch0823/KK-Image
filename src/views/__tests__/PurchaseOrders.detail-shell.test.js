@@ -918,4 +918,23 @@ describe('PurchaseOrders detail shell', () => {
 
     expect(wrapper.vm.selectedSuggestions).toEqual([]);
   });
+
+  it('warns instead of silently no-op when selected suggestions have no bindable orders', async () => {
+    mocks.modalState.showDetail = false;
+    mocks.modalState.showSuggestions = true;
+
+    const wrapper = mountPurchaseOrdersShell();
+    wrapper.vm.selectedSuggestions = [
+      { order_ids: [], product_id: 'prod-1', variant_id: 'var-1', shortage: 6 },
+    ];
+
+    await wrapper.vm.handleCreateFromSuggestions();
+
+    expect(mocks.createFromOrders).not.toHaveBeenCalled();
+    expect(mocks.addToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'warning',
+      })
+    );
+  });
 });
