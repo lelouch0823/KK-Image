@@ -359,6 +359,11 @@ app.post('/', async (c) => {
   const body = await c.req.json();
   const repo = new PurchaseOrderRepository(c.env.DB);
 
+  if (body.items && body.items.length > 0) {
+    await validatePurchaseOrderVariantItems(c.env.DB, body.items);
+    await validatePurchaseOrderPreOrderBinding(c.env.DB, body.items);
+  }
+
   const po = await repo.create({
     remark: body.remark,
     currency: body.currency,
@@ -369,8 +374,6 @@ app.post('/', async (c) => {
 
   // 如果同时传入了明细项，一并添加
   if (body.items && body.items.length > 0) {
-    await validatePurchaseOrderVariantItems(c.env.DB, body.items);
-    await validatePurchaseOrderPreOrderBinding(c.env.DB, body.items);
     try {
       await repo.addItems(po.id, body.items);
     } catch (error) {

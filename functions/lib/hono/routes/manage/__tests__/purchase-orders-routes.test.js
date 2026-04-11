@@ -1389,4 +1389,34 @@ describe('manage purchase-orders routes', () => {
     expect(mocks.repoDeleteIfEmptyDraft).toHaveBeenCalledWith('po-1');
     expect(mocks.publish).not.toHaveBeenCalled();
   });
+
+  it('rejects invalid create-route items before creating a draft purchase order', async () => {
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+    });
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            quantity: 1,
+            unit_cost: -10,
+          }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.repoCreate).not.toHaveBeenCalled();
+    expect(mocks.repoDeleteIfEmptyDraft).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
+  });
 });
