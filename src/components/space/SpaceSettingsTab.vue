@@ -119,9 +119,6 @@ const saveShareSettings = () => {
     shareMode: currentShareMode.value,
     sharedSalespersonIds: currentShareMode.value === 'selected' ? selectedSalespersonIds.value : [],
   });
-  // 保存后重置脏检查基线
-  initialShareMode.value = currentShareMode.value;
-  initialSalespersonIds.value = [...selectedSalespersonIds.value];
 };
 
 const copyLink = async () => {
