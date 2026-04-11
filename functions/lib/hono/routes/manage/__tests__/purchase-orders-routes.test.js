@@ -330,6 +330,61 @@ describe('manage purchase-orders routes', () => {
     expect(mocks.serviceAllocateCosts).toHaveBeenCalledWith('po-1');
   });
 
+  it('rolls completed purchase-order field updates back when cost reallocation fails', async () => {
+    const app = createApp();
+    const db = createDb();
+    const waitUntil = vi.fn();
+    mocks.repoFindById
+      .mockResolvedValueOnce({
+        id: 'po-1',
+        status: 'completed',
+        remark: 'before',
+        actual_shipping_cost: 10,
+        actual_tariff_cost: 5,
+        estimated_shipping_cost: 0,
+        estimated_tariff_cost: 0,
+        currency: 'CNY',
+        allocation_method: 'by_quantity',
+        items: [],
+      })
+      .mockResolvedValueOnce({
+        id: 'po-1',
+        status: 'completed',
+        remark: 'after',
+        actual_shipping_cost: 99,
+        actual_tariff_cost: 5,
+        estimated_shipping_cost: 0,
+        estimated_tariff_cost: 0,
+        currency: 'CNY',
+        allocation_method: 'by_quantity',
+        items: [],
+      });
+    mocks.serviceAllocateCosts.mockRejectedValueOnce(new Error('allocation failed'));
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1',
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actual_shipping_cost: 99, remark: 'after' }),
+      },
+      { DB: db },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(500);
+    expect(mocks.repoUpdate).toHaveBeenNthCalledWith(1, 'po-1', {
+      actual_shipping_cost: 99,
+      remark: 'after',
+    });
+    expect(mocks.repoUpdate).toHaveBeenNthCalledWith(2, 'po-1', {
+      actual_shipping_cost: 10,
+      remark: 'before',
+    });
+    expect(mocks.publish).not.toHaveBeenCalled();
+    expect(waitUntil).not.toHaveBeenCalled();
+  });
+
   it('rejects adding item when pre_order_id product/variant mismatch', async () => {
     const app = createApp();
     const db = createDb({

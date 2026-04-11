@@ -460,6 +460,10 @@ app.post('/from-orders', async (c) => {
 app.put('/:id', async (c) => {
   const body = await c.req.json();
   const repo = new PurchaseOrderRepository(c.env.DB);
+  const currentPo = await requireEntity(
+    repo.findById(c.req.param('id')),
+    () => new NotFoundError('采购单不存在')
+  );
 
   const updated = await repo.update(c.req.param('id'), body);
   requireMutationSuccess(updated, '未找到采购单或无有效字段更新');
@@ -471,7 +475,19 @@ app.put('/:id', async (c) => {
   const shouldReallocateCosts = po.status === 'completed' && hasAllocationImpact(body);
   if (shouldReallocateCosts) {
     const service = new PurchaseOrderService(c.env.DB);
-    await service.allocateCosts(c.req.param('id'));
+    try {
+      await service.allocateCosts(c.req.param('id'));
+    } catch (error) {
+      const rollbackPayload = Object.fromEntries(
+        Object.keys(body || {}).map((field) => [field, currentPo?.[field] ?? null])
+      );
+      try {
+        await repo.update(c.req.param('id'), rollbackPayload);
+      } catch (rollbackError) {
+        console.error('Purchase-order update rollback failed:', rollbackError);
+      }
+      throw error;
+    }
     po = await requireEntity(
       repo.findById(c.req.param('id')),
       () => new NotFoundError('采购单不存在')
