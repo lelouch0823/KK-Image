@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 70 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 71 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -116,6 +116,7 @@
   - `5b80156`: 密码保护商品空间 POST 访问补齐私有/过期校验
   - `a6cd71f`: 商品空间前端正确识别密码门禁响应
   - `2223e18`: 商品空间密码提交只认当前 token 的最新结果
+  - `5e7c3a7`: 商品空间未完成人机验证时切 token 不再绕过 Turnstile
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -158,6 +159,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 5 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 6 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 7 个测试，全部通过。
+  - 2026-04-10 运行 3 个回归测试文件，共 8 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -258,6 +260,7 @@
 - 密码保护的公开空间走 `POST /api/space/:token` 成功访问后，没有像 GET 一样写入 `space_access_logs` 或递增 `view_count`。结果是商品空间的访问统计在“无密码访问”和“密码访问”两条链路上长期分叉，浏览量与访问日志都少记一段真实访问。[functions/api/space/[token].js](/home/bjw/Code/KK-Image/functions/api/space/[token].js#L185)
 - 商品公开空间前端把 `GET /api/space/:token` 返回的 `{ success: true, data: { requiresPassword: true } }` 误当成真实空间详情处理，而不是切换到密码门禁。结果是密码空间首屏不会进入密码校验视图，前端状态机直接跑偏到一份伪“空间数据”。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L114) [functions/api/space/[token].js](/home/bjw/Code/KK-Image/functions/api/space/[token].js#L178)
 - 商品公开空间页的 `submitPassword()` 没有 token/request 维度隔离。用户在密码验证请求未返回前切到另一条空间时，旧密码验证成功结果仍会回写当前页面，把新空间直接串回旧空间详情。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L153)
+- 商品公开空间页在 Turnstile 开启但尚未验证时，如果路由 token 变化，`watch(token)` 会直接调用 `loadSpace()`。结果是用户无需完成人机验证，只要切一次空间 token 就能直接打空间详情接口，门禁形同虚设。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L177)
 
 ### Low
 
@@ -1367,3 +1370,20 @@
   - `src/views/__tests__/Space.lifecycle.test.js`
   - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
 - 对应修复提交: `2223e18 fix: guard stale public space password submits`
+
+### 2026-04-10 轮次 129
+
+- 继续复查公开空间 Turnstile 门禁，新增 1 个高风险问题:
+  - Turnstile 已开启但尚未验证时，`Space.vue` 在 token 变化后仍会直接加载空间详情，允许绕过人机验证门禁
+- 下一步在 token 切换监听里前置 Turnstile 校验状态，未验证时只更新上下文、不发空间详情请求。
+
+### 2026-04-10 轮次 130
+
+- 已完成轮次 129 新增问题修复:
+  - `Space.vue` 在 Turnstile 启用且未验证时切换 token，不会再直接打 `/api/space/*`，门禁状态会被保留
+  - `Space.lifecycle` 测试现在会在每轮后卸载旧实例，避免跨用例 watcher 串写，公开空间生命周期回归更可靠
+- 增量回归:
+  - `functions/api/space/__tests__/public-space-access.test.js`
+  - `src/views/__tests__/Space.lifecycle.test.js`
+  - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
+- 对应修复提交: `5e7c3a7 fix: keep public space turnstile gate on token switches`
