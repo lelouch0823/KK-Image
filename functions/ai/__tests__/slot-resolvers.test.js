@@ -206,4 +206,79 @@ describe('slot resolvers', () => {
       })
     );
   });
+
+  it('returns purchase-order item candidates when one item is ambiguous inside a multi-item draft', async () => {
+    const variantRepo = {
+      searchForAI: vi.fn()
+        .mockResolvedValueOnce({
+          items: [{ id: 'var-1', product_id: 'prod-1', cost_price: 60 }],
+          total: 1,
+        })
+        .mockResolvedValueOnce({
+          items: [
+            {
+              id: 'var-2',
+              product_id: 'prod-2',
+              sku: 'SKU-WHT-38-A',
+              cost_price: 50,
+              variantLabel: '白色 / 38',
+              product: { name: '凉鞋', brand: 'KK' },
+            },
+            {
+              id: 'var-3',
+              product_id: 'prod-2',
+              sku: 'SKU-WHT-38-B',
+              cost_price: 52,
+              variantLabel: '白色 / 38',
+              product: { name: '凉鞋', brand: 'KK' },
+            },
+          ],
+          total: 2,
+        }),
+    };
+
+    const result = await resolvePurchaseOrderItemsSlot(
+      [
+        { variant_query: '跑鞋 黑色 42', quantity: 20, unit_cost: 60 },
+        { variant_query: '凉鞋 白色 38', quantity: 10, unit_cost: 50 },
+      ],
+      { variantRepo }
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        kind: 'candidates',
+        candidates: [
+          expect.objectContaining({
+            value: [
+              expect.objectContaining({
+                product_id: 'prod-1',
+                variant_id: 'var-1',
+                quantity: 20,
+              }),
+              expect.objectContaining({
+                product_id: 'prod-2',
+                variant_id: 'var-2',
+                quantity: 10,
+              }),
+            ],
+          }),
+          expect.objectContaining({
+            value: [
+              expect.objectContaining({
+                product_id: 'prod-1',
+                variant_id: 'var-1',
+                quantity: 20,
+              }),
+              expect.objectContaining({
+                product_id: 'prod-2',
+                variant_id: 'var-3',
+                quantity: 10,
+              }),
+            ],
+          }),
+        ],
+      })
+    );
+  });
 });
