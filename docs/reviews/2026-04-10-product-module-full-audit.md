@@ -2824,3 +2824,18 @@
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
   - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
 - 对应修复提交: `879e2a6 fix: reject negative purchase-order unit costs`
+
+### 2026-04-12 轮次 254
+
+- 继续复查预订单绑定采购链路，新增 1 个高风险问题:
+  - [functions/services/purchase-order-item-validation.js](/home/bjw/Code/KK-Image/functions/services/purchase-order-item-validation.js) 修复前对 `pre_order_id` 只校验“订单存在、状态 confirmed、商品/变体一致”，却没有校验采购明细数量是否与被绑定订单一致。结果是人工加明细或 AI 手工建采购单时，可以把只需 `1` 件的预订单绑成 `10` 件采购；而 [functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js) 的明细 `PATCH quantity` 也能把已绑定数量继续改坏，直接破坏 `pre_order_id` 的一一对应语义。
+- 已完成本轮修复:
+  - 共享 `pre_order` 绑定校验现在会强制比较订单数量与采购明细数量，创建阶段不再允许“绑定同一订单但采购数量不同”的脏数据进入采购单。
+  - 采购单明细 `PATCH quantity` 路由也补了同样的数量一致性校验；只有在绑定订单仍然有效且商品/变体未漂移时才强制锁定数量，已经失效的历史绑定仍允许人工修正，避免把旧草稿彻底锁死。
+  - 已补齐服务层与路由层回归测试，锁定“预订单绑定数量不得在创建或更新时漂移”的行为。
+- 增量回归:
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+- 对应修复提交: `e0c7018 fix: preserve preorder quantity bindings`
