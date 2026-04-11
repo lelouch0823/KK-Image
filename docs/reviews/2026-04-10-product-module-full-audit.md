@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 67 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 68 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -113,6 +113,7 @@
   - `fe6c80f`: 商品空间公开页切换空间时重置媒体索引与 PDF 预览状态
   - `bf2faf0`: 商品空间公开页只认当前 token 的最新空间加载结果
   - `b40d979`: 密码保护商品空间访问补齐浏览量与访问日志记录
+  - `5b80156`: 密码保护商品空间 POST 访问补齐私有/过期校验
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -152,6 +153,7 @@
   - 2026-04-10 运行 1 个回归测试文件，共 1 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 2 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 3 个测试，全部通过。
+  - 2026-04-10 运行 3 个回归测试文件，共 5 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -192,6 +194,7 @@
 - 管理端订单编辑弹窗和 `PATCH /api/manage/orders/:id` 仍允许对 `shipping/arrived/delivered` 等执行态订单直接改数量。该链路不会同步重算已采购/已收货/已发货事实，也不会补做库存发货差额校正，结果是订单头数量会和订单行履约进度、采购进度乃至已扣减库存脱节。[src/components/OrderEditModal.vue](/home/bjw/Code/KK-Image/src/components/OrderEditModal.vue#L37) [functions/lib/hono/routes/manage/orders/detail.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/orders/detail.js#L135) [functions/repositories/order/mutations.js](/home/bjw/Code/KK-Image/functions/repositories/order/mutations.js#L455)
 - 采购链路没有阻止同一个预订单被重复采购。无论是手工 `POST /purchase-orders/:id/items`、前端 `OrderPickerModal`，还是 `createFromOrders()`，都只检查订单 `status === 'confirmed'` 与商品/变体匹配，却没有校验 `procurement_status`、也没有校验该 `pre_order_id` 是否已存在于其他未完成采购单中，导致同一订单可被多个采购单重复拉起，直接放大补货量与在途量。[functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js#L156) [src/components/purchase-order/OrderPickerModal.vue](/home/bjw/Code/KK-Image/src/components/purchase-order/OrderPickerModal.vue#L268) [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js#L373)
 - 批量导入的 `import_mode` 兜底策略不安全。`normalizeImportMode()` 只接受精确的 `safe_merge`，其它任何值都会静默降级成 `replace`；而 `batchImport()` 后续会据此走 `replaceMissing` 和“排除未匹配旧变体”的覆盖分支。结果是只要请求方传错枚举值、大小写或脏数据，就会从预期的安全合并直接切到全覆盖导入，造成已有规格/变体被覆盖或归档。[functions/services/ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L105) [functions/services/ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L733)
+- 密码保护的公开空间 `POST /api/space/:token` 只校验密码，不校验 `is_public` 和 `expires_at`。结果是只要知道分享 token 和密码，就能直接绕过“私有空间不可公开访问”与“过期空间不可访问”的限制，属于公开空间访问控制缺口。[functions/api/space/[token].js](/home/bjw/Code/KK-Image/functions/api/space/[token].js#L202)
 
 ### Medium
 
@@ -1307,3 +1310,20 @@
   - `src/views/__tests__/Space.lifecycle.test.js`
   - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
 - 对应修复提交: `b40d979 fix: track password-protected space access`
+
+### 2026-04-10 轮次 123
+
+- 继续复查密码保护空间访问控制，新增 1 个高风险问题:
+  - `POST /api/space/:token` 没有复用 GET 链路上的私有/过期校验，只要密码正确就能访问私有或已过期空间
+- 下一步把密码访问链路的公开性和过期校验补齐到与 GET 完全一致。
+
+### 2026-04-10 轮次 124
+
+- 已完成轮次 123 新增问题修复:
+  - 密码保护空间的 `POST /api/space/:token` 现在会和 GET 一样先校验 `is_public` 与 `expires_at`
+  - 私有空间和已过期空间即使密码正确也不会再通过密码接口绕过公开访问限制
+- 增量回归:
+  - `functions/api/space/__tests__/public-space-access.test.js`
+  - `src/views/__tests__/Space.lifecycle.test.js`
+  - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
+- 对应修复提交: `5b80156 fix: enforce protected space access guards`
