@@ -387,6 +387,7 @@ import {
   resolveProductImageSrcList,
   resolveSelectedVariantMainImageSrc,
 } from '@/utils/product-image.js';
+import { normalizeVariantOptions } from '@/utils/variant-meta';
 
 const props = defineProps({
   space: { type: Object, required: true },
@@ -555,11 +556,12 @@ const handleProductSelect = (product) => {
   form.value.templateData.price = priceStr;
   
   let materialStr = '';
+  const variantMeta = normalizeVariantOptions(variant.options_values || {});
   try {
      const specs = typeof product.specifications === 'string' ? JSON.parse(product.specifications) : product.specifications;
-     materialStr = specs?.material || '';
+     materialStr = variantMeta.material || specs?.material || '';
   } catch {
-     /* ignore */
+     materialStr = variantMeta.material || '';
   }
   form.value.templateData.material = materialStr;
 };

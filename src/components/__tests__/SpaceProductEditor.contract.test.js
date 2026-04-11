@@ -189,6 +189,45 @@ describe('SpaceProductEditor contract', () => {
     expect(wrapper.vm.form.productId).toBe('prod-1');
   });
 
+  it('prefers selected variant material when rebinding a product space', async () => {
+    const wrapper = mount(SpaceProductEditor, {
+      props: {
+        space: { id: 'space-1', shareToken: 'share-token' },
+      },
+      global: {
+        stubs: {
+          FileSelector: { template: '<div />' },
+          Tooltip: { template: '<div><slot /></div>' },
+          SpaceAnalytics: { template: '<div />' },
+          SpaceShareCard: { template: '<div />' },
+          SpaceVisibilitySelector: { template: '<div />' },
+          SpaceMediaGrid: { template: '<div />' },
+          ConfirmDialog: { template: '<div />' },
+          ProductBindingSection: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    wrapper.vm.handleProductSelect({
+      id: 'prod-1',
+      name: 'Product 1',
+      brand: 'Brand 1',
+      series: 'Series 1',
+      images: ['prod-image'],
+      specifications: { material: 'Cotton' },
+      selectedVariant: {
+        id: 'var-2',
+        sku: 'SKU-2',
+        price: 88,
+        options_values: { 材质: 'Leather' },
+      },
+    });
+
+    expect(wrapper.vm.form.templateData.material).toBe('Leather');
+  });
+
   it('keeps the latest initData result when refreshes race', async () => {
     const wrapper = mount(SpaceProductEditor, {
       props: {
