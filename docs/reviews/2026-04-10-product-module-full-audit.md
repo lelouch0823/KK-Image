@@ -2879,3 +2879,16 @@
 - 增量回归:
   - `functions/services/__tests__/PurchaseOrderShortageClosureService.test.js`
 - 对应修复提交: `fe38643 fix: align shortage closure rollback ordering`
+
+### 2026-04-12 轮次 258
+
+- 继续深审采购单状态流转与成本分摊链路，新增 1 个高风险问题:
+  - [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 修复前在 `arrived -> completed` 时先把采购单 header 状态写成 `completed`，再执行 `allocateCosts()`。一旦成本分摊失败，采购单不会回滚，结果会留下“已结算但成本未分摊”的半完成状态，属于明显事务未闭环。
+- 已完成本轮修复:
+  - 采购单完成状态流转现在会在成本分摊失败时立即执行 guarded rollback，把采购单状态退回原状态。
+  - [functions/repositories/PurchaseOrderRepository.js](/home/bjw/Code/KK-Image/functions/repositories/PurchaseOrderRepository.js) 的 `updateStatusIfCurrent()` 现在在从 `completed` 回退到其他状态时会清除 `completed_at`，避免留下与当前状态不一致的完成时间戳。
+  - 已补齐服务层与仓储层回归测试，锁定“结算完成失败必须回滚 header 状态和 completed_at”的行为。
+- 增量回归:
+  - `functions/services/__tests__/PurchaseOrderService.procurement-status.test.js`
+  - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
+- 对应修复提交: `b14cc72 fix: roll back failed purchase-order completion`
