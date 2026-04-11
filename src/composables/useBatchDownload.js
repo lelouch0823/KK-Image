@@ -30,13 +30,18 @@ export function useBatchDownload() {
     try {
       const zip = new JSZip();
       let completed = 0;
+      let successfulDownloads = 0;
 
       // 并行下载所有文件
       const promises = files.map(async (file) => {
         try {
           const response = await fetch(file.url);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status || 0}`);
+          }
           const blob = await response.blob();
           zip.file(file.name, blob);
+          successfulDownloads++;
 
           completed++;
           downloadProgress.value = Math.floor((completed / files.length) * 50);
@@ -46,6 +51,9 @@ export function useBatchDownload() {
       });
 
       await Promise.all(promises);
+      if (successfulDownloads === 0) {
+        throw new Error('No downloadable files');
+      }
 
       // 生成 ZIP
       const content = await zip.generateAsync({
