@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 94 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 95 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -129,6 +129,7 @@
   - `753b08c`: 空间创建弹窗阻断重复提交
   - `031178e`: 空间删除失败时保留确认弹窗
   - `ab321f7`: 空间可见性设置只在保存确认后清脏
+  - `746e756`: 商品详情关联空间复制链接统一走共享剪贴板 helper
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -158,6 +159,7 @@
   - 2026-04-10 运行 6 个回归测试文件，共 8 个测试，全部通过。
   - 2026-04-10 运行 7 个回归测试文件，共 10 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 10 个测试，全部通过。
+  - 2026-04-11 运行 3 个回归测试文件，共 11 个测试，全部通过。
   - 2026-04-10 运行 5 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 14 个测试，全部通过。
@@ -1834,3 +1836,21 @@
   - `src/views/__tests__/SpaceManager.permission-alignment.test.js`
   - `src/components/__tests__/SpaceCreateModal.unbind.test.js`
 - 对应修复提交: `ab321f7 fix: keep space settings dirty until save confirms`
+
+### 2026-04-10 轮次 177
+
+- 继续复查商品详情关联空间复制链路，新增 1 个中风险问题:
+  - `ProductDetail` 复制关联空间链接时直接拼接 `window.location.origin + /space/:token` 并调用 `navigator.clipboard.writeText`，没有复用项目统一的 `useClipboard().copyShareLink()`。当后端已经返回规范化 `shareUrl`、或者运行环境需要走降级复制方案时，商品详情会复制错误链接或与其他空间入口产生不一致行为。
+- 下一步把商品详情复制动作统一收口到共享剪贴板 helper，优先使用 `shareUrl`，缺失时再回退 `shareToken/share_token`。
+
+### 2026-04-10 轮次 178
+
+- 已完成轮次 177 新增问题修复:
+  - `ProductDetail` 关联空间复制动作现在统一委托 `useClipboard().copyShareLink()`，优先复制后端返回的 `shareUrl`，只有缺失时才回退 `/space/:shareToken`
+  - 复制成功提示复用共享 helper 的契约，商品详情与 Dashboard/子空间列表的复制反馈保持一致，同时兼容 helper 内部的安全上下文降级逻辑
+  - 已补齐“复制动作走共享 clipboard helper”与“优先使用 shareUrl”两条回归，并联跑商品详情关联空间/变体拉取/库存投影消费侧回归
+- 增量回归:
+  - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
+  - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
+  - `src/components/product/__tests__/product-inventory-projection-consumers.test.js`
+- 对应修复提交: `746e756 fix: route product detail share copy through clipboard helper`
