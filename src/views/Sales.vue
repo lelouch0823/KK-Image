@@ -204,8 +204,11 @@ const accessToken = computed(() => route.params.token);
 // Derived state for Header Actions
 const isStatsPage = computed(() => route.path.endsWith('/stats'));
 const isListPage = computed(() => route.path === `/sales/${accessToken.value}` || route.path === `/sales/${accessToken.value}/`);
-const isSpacesPage = computed(() => route.path.endsWith('/spaces'));
-const isOrderTab = computed(() => isListPage.value || route.path.includes('/create') || route.path.includes('/detail') || isStatsPage.value);
+const isSpacesPage = computed(() => route.path.startsWith(`/sales/${accessToken.value}/spaces`));
+const isOrderTab = computed(() => (
+  !isSpacesPage.value &&
+  (isListPage.value || route.path.includes('/create') || route.path.includes('/detail') || isStatsPage.value)
+));
 
 const pageTitle = computed(() => {
   if (isListPage.value) return t('order.portal.myOrders');

@@ -34,9 +34,7 @@
       <a
         v-for="space in spaces"
         :key="space.id"
-        :href="`/space/${space.share_token}`"
-        target="_blank"
-        rel="noopener noreferrer"
+        :href="getSpaceHref(space)"
         class="group overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) shadow-sm transition-all hover:-translate-y-[1px] hover:shadow-md active:translate-y-0"
       >
         <!-- Cover Image -->
@@ -69,7 +67,7 @@
           </p>
           <div class="mt-3 flex items-center justify-between">
             <span class="text-xs text-(--text-muted)">
-              {{ t('salesSpaces.fileCount', { count: space.file_count || 0 }) }}
+              {{ t('salesSpaces.fileCount', { count: space.fileCount || 0 }) }}
             </span>
             <span class="text-primary flex items-center gap-1 text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100">
               {{ t('salesSpaces.viewSpace') }}
@@ -89,6 +87,7 @@ import { ref, inject, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { API } from '@/utils/constants';
+import { normalizeSalesSpace } from '@/utils/sales-space';
 import AppImage from '@/components/ui/AppImage.vue';
 
 const { t } = useI18n();
@@ -112,23 +111,11 @@ const getTemplateLabel = (key) => {
 };
 
 const getCoverUrl = (space) => {
-  const getUrl = (key) => {
-    if (!key) return null;
-    return key.startsWith('http') || key.startsWith('//') ? key : `/file/${key}`;
-  };
+  return space.coverUrl || '';
+};
 
-  if (space.cover_storage_key) return getUrl(space.cover_storage_key);
-  if (space.p_images) {
-    try {
-      const images = typeof space.p_images === 'string' ? JSON.parse(space.p_images) : space.p_images;
-      if (images && images.length > 0) {
-         return images[0].url || getUrl(images[0].storage_key);
-      }
-    } catch (_err) {
-      // Ignore parse error
-    }
-  }
-  return null;
+const getSpaceHref = (space) => {
+  return `/sales/${currentToken.value}/spaces/${space.id}`;
 };
 
 const loadSpaces = async () => {
@@ -148,7 +135,7 @@ const loadSpaces = async () => {
     const data = await res.json();
     if (requestId !== spacesRequestId) return false;
     if (data.success) {
-      spaces.value = data.data || [];
+      spaces.value = Array.isArray(data.data) ? data.data.map(normalizeSalesSpace) : [];
       return true;
     }
   } catch (_err) {

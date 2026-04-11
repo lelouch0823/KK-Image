@@ -79,6 +79,12 @@ const routes = [
                 component: () => import('@/views/sales/SalesSpacesView.vue'),
                 meta: { titleKey: 'router.sales_spaces' },
             },
+            {
+                path: 'spaces/:id',
+                name: 'SalesSpaceDetail',
+                component: () => import('@/views/sales/SalesSpaceDetailView.vue'),
+                meta: { titleKey: 'router.sales_spaces' },
+            },
         ],
     },
     {

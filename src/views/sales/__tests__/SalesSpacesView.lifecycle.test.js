@@ -8,7 +8,14 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/composables/useI18n', () => ({
-  useI18n: () => ({ t: (key) => key }),
+  useI18n: () => ({
+    t: (key, params) => {
+      if (key === 'salesSpaces.fileCount') {
+        return `${key}:${params?.count ?? ''}`;
+      }
+      return key;
+    },
+  }),
 }));
 
 vi.mock('@/composables/useRequestAdapters', () => ({
@@ -70,5 +77,81 @@ describe('SalesSpacesView lifecycle', () => {
 
     expect(wrapper.text()).toContain('Space B');
     expect(wrapper.text()).not.toContain('Space A');
+  });
+
+  it('hydrates product template images into cover and file count when list payload has no bound files', async () => {
+    mocks.requestSales.mockResolvedValue({
+      json: async () => ({
+        success: true,
+        data: [
+          {
+            id: 'space-product-1',
+            name: '新品空间',
+            template: 'product',
+            share_token: 'share-product-1',
+            file_count: 0,
+            template_data: JSON.stringify({
+              images: ['variant-main.jpg', '/file/product-side.jpg'],
+            }),
+          },
+        ],
+      }),
+    });
+
+    const wrapper = mount(SalesSpacesView, {
+      global: {
+        provide: {
+          salesContext: {
+            accessToken: ref('sales-token-a'),
+          },
+        },
+        stubs: {
+          AppImage: {
+            props: ['src'],
+            template: '<img data-testid="space-cover" :src="src" />',
+          },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="space-cover"]').attributes('src')).toBe('/file/variant-main.jpg');
+    expect(wrapper.get('a').attributes('href')).toBe('/sales/sales-token-a/spaces/space-product-1');
+    expect(wrapper.text()).toContain('salesSpaces.fileCount:2');
+  });
+
+  it('routes sales spaces to the authenticated sales detail view instead of the public share page', async () => {
+    mocks.requestSales.mockResolvedValue({
+      json: async () => ({
+        success: true,
+        data: [
+          {
+            id: 'space-private-1',
+            name: '私有空间',
+            template: 'product',
+            share_token: 'share-private-1',
+            is_public: 0,
+          },
+        ],
+      }),
+    });
+
+    const wrapper = mount(SalesSpacesView, {
+      global: {
+        provide: {
+          salesContext: {
+            accessToken: ref('sales-token-a'),
+          },
+        },
+        stubs: {
+          AppImage: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('a').attributes('href')).toBe('/sales/sales-token-a/spaces/space-private-1');
   });
 });
