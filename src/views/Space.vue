@@ -85,9 +85,13 @@ const passwordError = ref('');
 const requiresTurnstile = ref(false);
 const turnstileVerified = ref(false);
 const turnstileSiteKey = ref(''); // 从 API 获取
+let spaceLoadRequestId = 0;
 
 // 从路由获取 Token
 const token = computed(() => route.params.token);
+const isSpaceLoadActive = (requestId, requestToken) => (
+  requestId === spaceLoadRequestId && token.value === requestToken
+);
 
 const spaceComponent = computed(() => {
   switch (space.value?.template) {
@@ -104,15 +108,19 @@ const spaceComponent = computed(() => {
 
 // 加载空间
 const loadSpace = async () => {
-  if (!token.value) {
+  const requestToken = token.value;
+  const requestId = ++spaceLoadRequestId;
+
+  if (!requestToken) {
     error.value = t('spacePublic.invalidLink');
     loading.value = false;
     return;
   }
 
   try {
-    const response = await fetch(API.PUBLIC_SPACE(token.value));
+    const response = await fetch(API.PUBLIC_SPACE(requestToken));
     const result = await response.json();
+    if (!isSpaceLoadActive(requestId, requestToken)) return;
 
     if (result.success) {
       space.value = result.data;
@@ -124,9 +132,12 @@ const loadSpace = async () => {
       error.value = result.message || t('spacePublic.loadFailed');
     }
   } catch (_e) {
+    if (!isSpaceLoadActive(requestId, requestToken)) return;
     error.value = t('common.networkErrorRetry');
   } finally {
-    loading.value = false;
+    if (isSpaceLoadActive(requestId, requestToken)) {
+      loading.value = false;
+    }
   }
 };
 
