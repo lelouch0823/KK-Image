@@ -91,7 +91,7 @@
               : t('product.action.create')
         "
         :loading="submitting"
-        :disabled="initializing || (editMode && incompleteVariantCount > 0)"
+        :disabled="submitBlocked"
         @click="handleSubmit"
       />
     </div>
@@ -228,7 +228,7 @@
                     : t('product.action.create')
               "
               :loading="submitting"
-              :disabled="initializing || (editMode && incompleteVariantCount > 0)"
+              :disabled="submitBlocked"
               @click="handleSubmit"
             />
           </div>
@@ -330,6 +330,7 @@ import DimensionArchiveModal from '@/components/product/DimensionArchiveModal.vu
 import ValueArchiveModal from '@/components/product/ValueArchiveModal.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import { API } from '@/utils/constants';
+import { computed } from 'vue';
 
 const { t } = useI18n();
 
@@ -381,7 +382,7 @@ const {
   formatVariantSample,
   handleUpdateVariantImages,
   handleBatchBuilderApply,
-  handleSubmit,
+  handleSubmit: submitForm,
   incompleteVariantCount,
   incompleteVariantsBannerMessage,
 } = useProductForm({
@@ -390,6 +391,15 @@ const {
   modelValue: toRef(props, 'modelValue'),
   emit,
 });
+
+const submitBlocked = computed(
+  () => props.initializing || !!props.initializationError || (props.editMode && incompleteVariantCount.value > 0)
+);
+
+const handleSubmit = async () => {
+  if (props.initializationError) return;
+  await submitForm();
+};
 
 // 父组件唯一负责监听弹窗开/关并触发状态初始化
 watch(

@@ -207,4 +207,48 @@ describe('ProductCreateModal variant-first payload', () => {
         expect(wrapper.emitted('update:modelValue')).toBeUndefined();
         expect(wrapper.vm.submitting).toBe(false);
     });
+
+    it('blocks submit when edit initialization failed', async () => {
+        const wrapper = mount(ProductCreateModal, {
+            props: {
+                modelValue: true,
+                editMode: true,
+                initializationError: 'load failed',
+                initialData: {
+                    id: 'prod-1',
+                    name: 'Broken Product',
+                    currency: 'CNY',
+                    variants: [],
+                },
+            },
+            global: {
+                stubs: {
+                    Teleport: true,
+                    ImageUploader: true,
+                    AppInput: true,
+                    AppButton: true,
+                    Select: true,
+                    VariantImageManagerModal: true,
+                },
+            },
+        });
+
+        wrapper.vm.form.name = 'Broken Product';
+        wrapper.vm.form.options = [{ id: 'dim-color', name: 'Color', values: ['Blue'], inputValue: '' }];
+        wrapper.vm.form.variants = [{
+            id: 'variant-1',
+            sku: 'SKU-1',
+            price: 100,
+            cost_price: 70,
+            stock_quantity: 8,
+            alert_threshold: 2,
+            status: 'active',
+            options_values: { Color: 'Blue' },
+        }];
+
+        await wrapper.vm.handleSubmit();
+
+        expect(mocks.updateProduct).not.toHaveBeenCalled();
+        expect(mocks.createProduct).not.toHaveBeenCalled();
+    });
 });
