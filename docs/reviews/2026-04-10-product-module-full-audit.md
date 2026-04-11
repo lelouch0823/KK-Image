@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 74 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 75 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -120,6 +120,7 @@
   - `fc1ae7c`: 商品空间模板数据优先投影变体 SKU 和变体主图
   - `cf6a23d`: 商品空间模板数据优先投影变体材质
   - `8ab147f`: 商品空间编辑器绑定变体时同步变体材质
+  - `e86694a`: 小程序销售空间详情会补齐商品模板图片预览文件
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -166,6 +167,7 @@
   - 2026-04-10 运行 1 个回归测试文件，共 2 个测试，全部通过。
   - 2026-04-10 运行 1 个回归测试文件，共 2 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 7 个测试，全部通过。
+  - 2026-04-10 运行 2 个回归测试文件，共 3 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -270,6 +272,7 @@
 - 共享空间模板数据虽然已经 JOIN 到 `pv_sku` 和变体主图 `display_image_id`，但 `projectSpaceTemplateData()` 仍然固定投影商品 `SPU` 和商品图片。结果是绑定到具体变体的商品空间会把 `SPU` 当作 `SKU` 展示，主图也退回商品通图，销售空间和公开商品空间都会看到错规格、错主图。[functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js#L14) [functions/lib/hono/routes/manage/spaces/transformers.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/transformers.js#L14)
 - 共享空间模板数据在变体绑定场景下仍然优先显示商品级 `specifications.material`，没有使用变体 `options_values` 里的材质值。结果是绑定到具体材质变体的商品空间，会继续展示商品默认材质，销售空间和公开商品空间都可能看到错材质。[functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js#L14) [functions/lib/hono/routes/manage/spaces/transformers.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/transformers.js#L14)
 - 管理端 `SpaceProductEditor.handleProductSelect()` 在重新绑定商品变体时，仍然只从商品 `specifications.material` 回填材质，不读取所选变体的 `options_values`。结果是后台手动改绑到另一材质变体后，表单和后续保存仍会把旧的商品默认材质写回空间，和后端投影语义继续分叉。[src/components/SpaceProductEditor.vue](/home/bjw/Code/KK-Image/src/components/SpaceProductEditor.vue#L530)
+- 小程序销售空间详情服务虽然能拿到商品空间的 `templateData.images`，但不会把这组图片转换进 `space.files`。结果是商品模板组件在“仅绑定商品图片、未上传空间文件”时没有任何主图轮播可看，销售空间详情链路在小程序端直接断图。[minisales/miniprogram/services/sales/spaces.ts](/home/bjw/Code/KK-Image/minisales/miniprogram/services/sales/spaces.ts#L42) [minisales/miniprogram/components/space-templates/product/index.wxml](/home/bjw/Code/KK-Image/minisales/miniprogram/components/space-templates/product/index.wxml#L6)
 
 ### Low
 
@@ -1442,3 +1445,19 @@
   - `src/components/__tests__/SpaceProductEditor.contract.test.js`
   - `functions/lib/hono/routes/manage/spaces/__tests__/transformers.test.js`
 - 对应修复提交: `8ab147f fix: sync space editor material with selected variant`
+
+### 2026-04-10 轮次 137
+
+- 继续复查小程序销售空间商品模板，新增 1 个中风险问题:
+  - 销售空间详情服务没有把 `templateData.images` 合并进 `space.files`，商品模板组件在“只有商品图片、没有空间文件”时直接没有主图可看
+- 下一步在小程序销售空间服务层把商品模板图片归一成可预览文件列表，补齐商品空间主图链路。
+
+### 2026-04-10 轮次 138
+
+- 已完成轮次 137 新增问题修复:
+  - 小程序销售空间详情服务现在会把 `templateData.images` 归一成可预览文件，并和现有空间文件去重合并
+  - 商品模板组件在没有额外挂空间文件时，仍能使用绑定商品/变体图片展示主图轮播
+- 增量回归:
+  - `minisales/tests/unit/services/spaces.test.ts`
+  - `minisales/tests/unit/pages/spaces-controller.test.ts`
+- 对应修复提交: `e86694a fix: hydrate sales space template images for minisales`
