@@ -3004,3 +3004,16 @@
 - 增量回归:
   - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
 - 对应修复提交: `be1d6ad fix: batch purchase-order item header updates`
+
+### 2026-04-12 轮次 269
+
+- 继续深审采购单创建返回契约，新增 1 个中高风险问题:
+  - [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 与 [functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js) 修复前虽然已经在 `findById()` 读后写 miss 时回退到已创建 shell，但 fallback 只保留了 header，没有补齐 `items` / `receipts`。这样上层会拿到结构残缺的采购单对象，前端或后续链路只要直接遍历明细/收货数组，就会出现契约分叉或空值分支。
+- 已完成本轮修复:
+  - `createManual()` 与 `createFromOrders()` 现在在读后写 miss 时都会回退到结构完整的采购单 shell，至少包含已创建 header、提交成功的 `items` 以及空的 `receipts` 数组。
+  - `POST /api/manage/purchase-orders` 创建路由现在也会返回同样契约的完整 shell，避免 direct-create 与 service-create 两条链路返回结构不一致。
+  - 已补齐服务层与路由层回归测试，锁定“创建成功后即便读后写暂时 miss，也必须返回包含 `items` / `receipts` 的完整最小载荷”的行为。
+- 增量回归:
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+- 对应修复提交: `bb7e25e fix: preserve created purchase-order fallback payloads`
