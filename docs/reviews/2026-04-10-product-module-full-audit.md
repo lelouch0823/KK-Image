@@ -3017,3 +3017,15 @@
   - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 - 对应修复提交: `bb7e25e fix: preserve created purchase-order fallback payloads`
+
+### 2026-04-12 轮次 270
+
+- 继续深审采购单创建重试链路，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js) 修复前虽然收货、冲销、关闭待收都已有 `Idempotency-Key` 保护，但 `POST /api/manage/purchase-orders` 与 `POST /api/manage/purchase-orders/from-orders` 两个建单入口完全没有幂等控制。网络超时、前端重试或人工重复点击时，请求会再次落库，直接造成重复草稿或重复建单尝试，业务闭环明显不完整。
+- 已完成本轮修复:
+  - 两个建单入口现在都会基于 `Idempotency-Key` + 规范化请求指纹预留创建命令；同一个幂等键重试时会直接重放首次成功响应，不会再次执行建单。
+  - 如果同一个幂等键携带了不同 payload，现在会直接拒绝，避免“同 key 不同请求”把幂等表污染成错误缓存。
+  - 已补齐创建路由回归测试，锁定“重复建单只执行一次”和“同 key 换 payload 必须报错”的行为，同时确保不会重复发布 outbox 事件。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+- 对应修复提交: `4e13ac1 fix: dedupe purchase-order create retries`
