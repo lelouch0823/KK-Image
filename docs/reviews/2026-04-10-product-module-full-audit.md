@@ -2793,3 +2793,19 @@
   - `functions/ai/__tests__/action-submitters.test.js`
   - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
 - 对应修复提交: `c20161c fix: preserve chained ai purchase-order candidates`
+
+### 2026-04-12 轮次 252
+
+- 继续复查 AI 手工采购单提交闭环，新增 1 个高风险问题:
+  - [functions/ai/action-submitters.js](/home/bjw/Code/KK-Image/functions/ai/action-submitters.js) 之前在 `manual` 模式下直接调用 `purchaseOrderRepo.create/addItems`，只检查 `product_id/variant_id` 是否存在，却绕过了管理端 [functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js) 上的 `validateVariantItems` / `validatePreOrderBinding`。结果是 AI 链路可能写入 `variant_id` 与 `product_id` 不匹配、数量不满足 MOQ/步长/箱规、甚至 `pre_order_id` 非法绑定的脏采购明细，和人工入口的业务边界不一致。
+- 已完成本轮修复:
+  - `PurchaseOrderService` 新增 `createManual()`，把手工采购单创建统一收口到服务层，并在建单前复用共享的采购明细校验。
+  - 新增共享校验模块 `purchase-order-item-validation.js`，把“变体归属/状态/数量约束”和“预订单绑定合法性”抽成可复用 helper，AI submitter 与采购单路由现在都走同一套规则，不再分叉。
+  - `action-submitters` 现在在可用时优先调用 `purchaseOrderService.createManual()`，AI 手工采购单不再绕过服务层校验；并补齐 submitter 与 service 红绿测试，锁定这条边界。
+- 增量回归:
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/ai/__tests__/action-orchestrator.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+- 对应修复提交: `36a54e8 fix: validate ai manual purchase-order items`
