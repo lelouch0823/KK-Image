@@ -2697,3 +2697,21 @@
   - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
   - `functions/services/__tests__/InventoryBusinessWorkflow.test.js`
 - 对应修复提交: `05e61b5 fix: enforce ai purchase-order action requirements`
+
+### 2026-04-11 轮次 246
+
+- 继续复查 AI 手工采购项解析闭环，新增 1 个高风险问题:
+  - [functions/ai/slot-resolvers.js](/home/bjw/Code/KK-Image/functions/ai/slot-resolvers.js) 的 `resolvePurchaseOrderItemsSlot()` 在变体搜索未唯一命中时会把原始 `variant_query` 条目原样返回；而此前 [functions/ai/adapters/purchase-order.js](/home/bjw/Code/KK-Image/functions/ai/adapters/purchase-order.js)、[functions/ai/action-orchestrator.js](/home/bjw/Code/KK-Image/functions/ai/action-orchestrator.js) 与 [functions/ai/action-submitters.js](/home/bjw/Code/KK-Image/functions/ai/action-submitters.js) 又没有校验这些条目是否真的已经解析出 `product_id/variant_id`。结果是 AI 可以对“未解析完成的采购明细”直接进入预览甚至提交，最后在仓储层因为 `variant_id is required` 才爆炸，形成延迟失败。
+- 已完成本轮修复:
+  - 采购单适配器现在会把“手工采购项是否都已解析到具体 `product_id/variant_id`”纳入缺失槽位判断；只要还有未解析条目，就继续停留在收集态，不再提前进入预览。
+  - `action-submitters` 也补了提交层兜底：只要任一手工采购项还没有解析出 `product_id/variant_id`，就会直接拒绝提交，不再等到仓储层抛底层字段错误。
+  - 已补齐 AI 编排器和 submitter 回归测试，锁定“未解析采购明细不得预览，也不得提交”的行为。
+- 增量回归:
+  - `functions/ai/__tests__/action-orchestrator.test.js`
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/ai/__tests__/canonicalization.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
+  - `functions/services/__tests__/InventoryBusinessWorkflow.test.js`
+  - `functions/services/__tests__/DemandService.test.js`
+  - `functions/services/__tests__/purchase-suggestions-inventory-semantics.test.js`
+- 对应修复提交: `fbdfdd8 fix: require resolved ai purchase-order items`
