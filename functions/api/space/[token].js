@@ -44,15 +44,25 @@ async function getSpaceData(space, env) {
       .bind(space.id)
       .all(),
     env.DB.prepare(
-      `SELECT s.id, s.name, s.template, s.share_token, s.description, s.template_data, s.product_id,
+      `SELECT s.id, s.name, s.template, s.share_token, s.description, s.template_data, s.product_id, s.variant_id,
               (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
               f.storage_key as cover_storage_key,
               p.spu as p_sku, p.brand as p_brand, p.series as p_series,
-              COALESCE((SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
-              p.specifications as p_specs, p.images as p_images
+              COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
+              p.specifications as p_specs, p.images as p_images,
+              pv.sku as pv_sku,
+              pv.options_values as pv_options_values,
+              (
+                SELECT vi.image_id
+                FROM variant_images vi
+                WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+                ORDER BY vi.sort_order ASC, vi.created_at ASC
+                LIMIT 1
+              ) as display_image_id
        FROM spaces s
        LEFT JOIN files f ON s.cover_file_id = f.id
        LEFT JOIN products p ON s.product_id = p.id
+       LEFT JOIN product_variants pv ON s.variant_id = pv.id
        WHERE s.parent_id = ? AND s.is_public = 1
        ORDER BY s.sort_order ASC, s.name ASC`
     )
@@ -179,10 +189,20 @@ export async function onRequestGet(context) {
     const space = await env.DB.prepare(`
         SELECT s.*,
             p.spu as p_sku, p.brand as p_brand, p.series as p_series,
-            COALESCE((SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
-            p.specifications as p_specs, p.images as p_images
+            COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
+            p.specifications as p_specs, p.images as p_images,
+            pv.sku as pv_sku,
+            pv.options_values as pv_options_values,
+            (
+              SELECT vi.image_id
+              FROM variant_images vi
+              WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+              ORDER BY vi.sort_order ASC, vi.created_at ASC
+              LIMIT 1
+            ) as display_image_id
         FROM spaces s
         LEFT JOIN products p ON s.product_id = p.id
+        LEFT JOIN product_variants pv ON s.variant_id = pv.id
         WHERE s.share_token = ?
     `).bind(shareToken).first();
 
@@ -246,10 +266,20 @@ export async function onRequestPost(context) {
     const space = await env.DB.prepare(`
         SELECT s.*,
             p.spu as p_sku, p.brand as p_brand, p.series as p_series,
-            COALESCE((SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
-            p.specifications as p_specs, p.images as p_images
+            COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
+            p.specifications as p_specs, p.images as p_images,
+            pv.sku as pv_sku,
+            pv.options_values as pv_options_values,
+            (
+              SELECT vi.image_id
+              FROM variant_images vi
+              WHERE vi.variant_id = s.variant_id AND vi.is_primary = 1
+              ORDER BY vi.sort_order ASC, vi.created_at ASC
+              LIMIT 1
+            ) as display_image_id
         FROM spaces s
         LEFT JOIN products p ON s.product_id = p.id
+        LEFT JOIN product_variants pv ON s.variant_id = pv.id
         WHERE s.share_token = ?
     `).bind(shareToken).first();
 
