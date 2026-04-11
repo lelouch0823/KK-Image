@@ -2259,3 +2259,16 @@
   - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
   - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
 - 对应修复提交: `a79d90c fix: harden space product binding boundaries`
+
+### 2026-04-11 轮次 216
+
+- 继续向商品详情查看链路审查，已复核以下关联代码，当前未发现新的已坐实问题:
+  - `src/components/product/ProductDetail.vue`
+  - `src/components/product/ProductDetailModal.vue`
+  - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
+  - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
+  - `src/views/PurchaseOrders.vue` 中 `ProductDetailModal` 挂载链路
+- 本轮结论:
+  - 商品详情里的关联空间加载已有 requestId 收口，失败态与重试入口测试仍有效。
+  - 商品详情弹窗对“切换商品时旧请求回写新详情”和“lite product 背景 hydrate 失败时保留快照”已有测试覆盖，当前未看到新的假空态或脏回写实锤。
+  - 下一步继续沿商品空间详情页、空间详情弹窗和剩余商品入口往下扫，优先查“打开/关闭/切换对象”场景里的旧状态残留。
