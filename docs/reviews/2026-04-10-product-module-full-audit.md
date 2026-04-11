@@ -2588,3 +2588,18 @@
   - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 - 对应修复提交: `a70131e fix: dedupe purchase-order from-orders requests`
+
+### 2026-04-11 轮次 239
+
+- 继续复查采购建议来源和建议建单入口的字段契约，新增 1 个高风险问题:
+  - [functions/services/DemandService.js](/home/bjw/Code/KK-Image/functions/services/DemandService.js) 的 `getDemandSummaryByVariant()` 会把 `confirmed`、`production`、`shipping`、`arrived` 全部活跃订单都聚合进 `order_count` 和 `order_ids`。但 [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 的 `createFromOrders()` 只接受 `confirmed` 订单，因此采购建议列表会把已进入生产/发货/到货阶段的订单也暴露给“按建议建单”，用户点击后会天然撞上后端拒绝，形成“建议来源口径”和“可建单口径”分叉。
+- 已完成本轮修复:
+  - `DemandService.getDemandSummaryByVariant()` 现在保持 `total_demand` 继续基于全部活跃状态计算真实需求缺口，但 `order_count` 和 `order_ids` 改为仅统计 `confirmed` 订单，让采购建议里携带的订单集合与 `createFromOrders()` 的输入契约重新对齐。
+  - 已补齐需求聚合回归测试，明确锁定 SQL 必须使用 `CASE WHEN o.status = 'confirmed' THEN o.id END` 来隔离建议建单入口可消费的订单集合。
+- 增量回归:
+  - `functions/services/__tests__/DemandService.test.js`
+  - `functions/services/__tests__/purchase-suggestions-inventory-semantics.test.js`
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+  - `src/composables/__tests__/usePurchaseOrders.test.js`
+- 对应修复提交: `c02b978 fix: align purchase suggestion order ids with confirmed demand`
