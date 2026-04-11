@@ -279,7 +279,7 @@ export class PurchaseOrderShortageClosureService {
           guardProjectionState: true,
         })
       );
-      orderReverts.unshift(
+      orderReverts.push(
         buildOrderLineProjectionStatement(this.db, transition.current, transition.next, timestamp, {
           guardProjectionState: true,
           expectedDisplayStatus: transition.next.display_status,
@@ -306,7 +306,7 @@ export class PurchaseOrderShortageClosureService {
           }
         )
       );
-      orderReverts.unshift(
+      orderReverts.push(
         buildCompatibilityOrderProcurementStatusStatement(
           this.db,
           orderId,
@@ -350,7 +350,7 @@ export class PurchaseOrderShortageClosureService {
       if (failedOrderIndexes.length > 0) {
         const successfulOrderReverts = orderReverts.filter(
           (_statement, index) => !failedOrderIndexes.includes(index)
-        );
+        ).reverse();
         const rollbackStatements = [...successfulOrderReverts, ...revertStatements];
         if (rollbackStatements.length > 0) {
           await executeBatchChunks(this.db, rollbackStatements);
@@ -387,7 +387,7 @@ export class PurchaseOrderShortageClosureService {
       );
     } catch (error) {
       if (orderReverts.length > 0 || revertStatements.length > 0) {
-        await executeBatchChunks(this.db, [...orderReverts, ...revertStatements]);
+        await executeBatchChunks(this.db, [...orderReverts].reverse().concat(revertStatements));
       }
       await cleanupReservedCommand({
         commandIdempotencyRepo: this.commandIdempotencyRepo,

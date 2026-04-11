@@ -395,4 +395,57 @@ describe('PurchaseOrderShortageClosureService', () => {
       revertStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))
     ).toBe(true);
   });
+
+  it('rolls back only the successful order projections when the guarded order batch partially fails', async () => {
+    const guardedOrderHarness = createDbHarness({
+      purchaseOrderItems: {
+        'poi-1': {
+          id: 'poi-1',
+          po_id: 'po-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          pre_order_id: 'order-1',
+          quantity: 3,
+          received_qty: 0,
+          cancelled_qty: 0,
+        },
+      },
+      orderLineRows: {
+        'order-1': [
+          {
+            id: 'ol-1',
+            order_id: 'order-1',
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            ordered_qty: 3,
+            procured_qty: 3,
+            received_qty: 0,
+            reserved_qty: 0,
+            shipped_qty: 0,
+            cancelled_qty: 0,
+          },
+        ],
+      },
+      batchResultsQueue: [
+        [{ meta: { changes: 1 } }],
+        [{ meta: { changes: 0 } }, { meta: { changes: 1 } }],
+      ],
+    });
+    const guardedOrderService = new PurchaseOrderShortageClosureService(guardedOrderHarness.db, {
+      commandIdempotencyRepo: guardedOrderHarness.commandIdempotencyRepo,
+      now: () => 1710000000000,
+    });
+
+    await expect(
+      guardedOrderService.closeShortages('po-1', {
+        items: [{ purchase_order_item_id: 'poi-1', close_qty: 3 }],
+      })
+    ).rejects.toThrow('关联订单采购进度已变化，请刷新后重试');
+
+    expect(guardedOrderHarness.db.batch).toHaveBeenCalledTimes(3);
+    const revertStatements = guardedOrderHarness.calls.batchCalls[2];
+    expect(revertStatements.some((statement) => statement.sql.includes('UPDATE orders'))).toBe(true);
+    expect(revertStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))).toBe(true);
+    expect(revertStatements.some((statement) => statement.sql.includes('UPDATE order_lines'))).toBe(false);
+  });
 });
