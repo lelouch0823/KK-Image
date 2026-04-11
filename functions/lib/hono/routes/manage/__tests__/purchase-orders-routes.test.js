@@ -23,6 +23,11 @@ const mocks = vi.hoisted(() => ({
   randomUUID: vi.fn(),
   publish: vi.fn(async () => []),
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
+  commandReserve: vi.fn(),
+  commandBuildDeleteStatement: vi.fn(),
+  commandDeleteRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+  commandBuildFinalizeStatement: vi.fn(),
+  commandFinalizeRun: vi.fn(async () => ({ meta: { changes: 1 } })),
 }));
 
 vi.mock('../../../../../repositories/PurchaseOrderRepository.js', () => ({
@@ -38,6 +43,14 @@ vi.mock('../../../../../repositories/PurchaseOrderRepository.js', () => ({
     removeItem: mocks.repoRemoveItem,
     list: vi.fn(async () => ({ items: [], total: 0, page: 1, limit: 20 })),
     getStats: vi.fn(async () => ({})),
+  })),
+}));
+
+vi.mock('../../../../../repositories/CommandIdempotencyRepository.js', () => ({
+  CommandIdempotencyRepository: vi.fn(() => ({
+    reserveCommand: mocks.commandReserve,
+    buildDeleteStatement: mocks.commandBuildDeleteStatement,
+    buildFinalizeStatement: mocks.commandBuildFinalizeStatement,
   })),
 }));
 
@@ -145,6 +158,17 @@ describe('manage purchase-orders routes', () => {
     vi.clearAllMocks();
     vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => mocks.randomUUID());
     mocks.randomUUID.mockReturnValue('generated-idempotency-key');
+    mocks.commandReserve.mockResolvedValue({
+      existing: false,
+      ownsReservation: true,
+      record: { command_id: 'cmd-1' },
+    });
+    mocks.commandBuildDeleteStatement.mockReturnValue({
+      run: mocks.commandDeleteRun,
+    });
+    mocks.commandBuildFinalizeStatement.mockReturnValue({
+      run: mocks.commandFinalizeRun,
+    });
     mocks.repoFindById.mockResolvedValue({ id: 'po-1', status: 'draft', items: [] });
     mocks.repoFindItemById.mockResolvedValue({
       id: 'item-1',
@@ -220,6 +244,135 @@ describe('manage purchase-orders routes', () => {
     expect(waitUntil).toHaveBeenCalled();
   });
 
+  it('replays the original draft-create response for the same Idempotency-Key', async () => {
+    const app = createApp();
+    const db = createDb();
+    const storedResponses = new Map();
+
+    mocks.commandBuildFinalizeStatement.mockImplementation((_commandId, responseJson) => ({
+      run: vi.fn(async () => {
+        storedResponses.set('create-key-1', responseJson);
+        return { meta: { changes: 1 } };
+      }),
+    }));
+    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+      if (idempotencyKey === 'create-key-1' && storedResponses.has(idempotencyKey)) {
+        return {
+          existing: true,
+          ownsReservation: false,
+          record: {
+            command_id: 'cmd-1',
+            scope_key: scopeKey,
+            idempotency_key: idempotencyKey,
+            request_fingerprint: requestFingerprint,
+            response_json: JSON.stringify(storedResponses.get(idempotencyKey)),
+            status: 'committed',
+          },
+        };
+      }
+      return {
+        existing: false,
+        ownsReservation: true,
+        record: {
+          command_id: 'cmd-1',
+          scope_key: scopeKey,
+          idempotency_key: idempotencyKey,
+          request_fingerprint: requestFingerprint,
+        },
+      };
+    });
+
+    const request = () => app.request(
+      'http://localhost/api/manage/purchase-orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'create-key-1',
+        },
+        body: JSON.stringify({ remark: 'dedupe draft' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    const first = await request();
+    const second = await request();
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect(await second.json()).toEqual(await first.clone().json());
+    expect(mocks.repoCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.publish).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects draft-create retries that reuse the same Idempotency-Key with a different payload', async () => {
+    const app = createApp();
+    const db = createDb();
+    let reservedFingerprint = null;
+
+    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+      if (idempotencyKey === 'create-key-2' && reservedFingerprint) {
+        return {
+          existing: true,
+          ownsReservation: false,
+          record: {
+            command_id: 'cmd-2',
+            scope_key: scopeKey,
+            idempotency_key: idempotencyKey,
+            request_fingerprint: reservedFingerprint,
+            response_json: null,
+            status: 'in_flight',
+          },
+        };
+      }
+      reservedFingerprint = requestFingerprint;
+      return {
+        existing: false,
+        ownsReservation: true,
+        record: {
+          command_id: 'cmd-2',
+          scope_key: scopeKey,
+          idempotency_key: idempotencyKey,
+          request_fingerprint: requestFingerprint,
+        },
+      };
+    });
+
+    const first = await app.request(
+      'http://localhost/api/manage/purchase-orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'create-key-2',
+        },
+        body: JSON.stringify({ remark: 'first payload' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    const second = await app.request(
+      'http://localhost/api/manage/purchase-orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'create-key-2',
+        },
+        body: JSON.stringify({ remark: 'second payload' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(400);
+    expect((await second.json()).error).toContain('同一个幂等键不能提交不同的建单请求');
+    expect(mocks.repoCreate).toHaveBeenCalledTimes(1);
+  });
+
   it('enqueues purchase-order create-from-orders cache side effects through outbox', async () => {
     const app = createApp();
     const db = createDb();
@@ -245,6 +398,68 @@ describe('manage purchase-orders routes', () => {
     ]);
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('replays the original create-from-orders response for the same Idempotency-Key', async () => {
+    const app = createApp();
+    const db = createDb();
+    const storedResponses = new Map();
+
+    mocks.commandBuildFinalizeStatement.mockImplementation((_commandId, responseJson) => ({
+      run: vi.fn(async () => {
+        storedResponses.set('from-orders-key-1', responseJson);
+        return { meta: { changes: 1 } };
+      }),
+    }));
+    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+      if (idempotencyKey === 'from-orders-key-1' && storedResponses.has(idempotencyKey)) {
+        return {
+          existing: true,
+          ownsReservation: false,
+          record: {
+            command_id: 'cmd-3',
+            scope_key: scopeKey,
+            idempotency_key: idempotencyKey,
+            request_fingerprint: requestFingerprint,
+            response_json: JSON.stringify(storedResponses.get(idempotencyKey)),
+            status: 'committed',
+          },
+        };
+      }
+      return {
+        existing: false,
+        ownsReservation: true,
+        record: {
+          command_id: 'cmd-3',
+          scope_key: scopeKey,
+          idempotency_key: idempotencyKey,
+          request_fingerprint: requestFingerprint,
+        },
+      };
+    });
+
+    const request = () => app.request(
+      'http://localhost/api/manage/purchase-orders/from-orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'from-orders-key-1',
+        },
+        body: JSON.stringify({ order_ids: ['o-1', 'o-1'], remark: 'dedupe from orders' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    const first = await request();
+    const second = await request();
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect(await second.json()).toEqual(await first.clone().json());
+    expect(mocks.serviceCreateFromOrders).toHaveBeenCalledTimes(1);
+    expect(mocks.publish).toHaveBeenCalledTimes(1);
   });
 
   it('dedupes create-from-orders order ids before publishing side effects and audit metadata', async () => {

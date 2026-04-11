@@ -9,6 +9,7 @@
  */
 
 import { Hono } from 'hono';
+import { CommandIdempotencyRepository } from '../../../../repositories/CommandIdempotencyRepository.js';
 import { PurchaseOrderRepository } from '../../../../repositories/PurchaseOrderRepository.js';
 import { PurchaseOrderService } from '../../../../services/PurchaseOrderService.js';
 import { OrderProcurementDomainService } from '../../../../services/OrderProcurementDomainService.js';
@@ -28,8 +29,15 @@ import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { runOutboxPoller } from '../../../../api/cron/outbox.js';
 import { DomainOutboxPublisher } from '../../../../services/DomainOutboxPublisher.js';
+import {
+  cleanupReservedCommand,
+  replayReservedCommand,
+  resolveReservationOwnership,
+} from '../../../../services/order-procurement-shared.js';
 
 const app = new Hono();
+const PURCHASE_ORDER_CREATE_COMMAND_TYPE = 'purchase_order_create';
+const PURCHASE_ORDER_CREATE_FROM_ORDERS_COMMAND_TYPE = 'purchase_order_create_from_orders';
 export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'POST', path: '/', domain: 'purchase-orders', action: 'purchase_order.create', severity: 'high', targetType: 'purchase_order' },
   { method: 'POST', path: '/from-orders', domain: 'purchase-orders', action: 'purchase_order.create_from_orders', severity: 'high', targetType: 'purchase_order' },
@@ -110,6 +118,101 @@ function buildCreatedPurchaseOrderShell(po = {}, items = []) {
     ...po,
     items: Array.isArray(items) ? items.map((item) => ({ ...item })) : [],
     receipts: [],
+  };
+}
+
+function normalizeScalarFingerprintValue(value) {
+  if (value == null || value === '') return null;
+  return String(value);
+}
+
+function normalizeNumericFingerprintValue(value) {
+  if (value == null || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function normalizePurchaseOrderCreateItems(items = []) {
+  return [...(Array.isArray(items) ? items : [])]
+    .map((item = {}) => ({
+      product_id: normalizeScalarFingerprintValue(item.product_id),
+      variant_id: normalizeScalarFingerprintValue(item.variant_id),
+      pre_order_id: normalizeScalarFingerprintValue(item.pre_order_id),
+      quantity: normalizeNumericFingerprintValue(item.quantity),
+      unit_cost: normalizeNumericFingerprintValue(item.unit_cost),
+    }))
+    .sort((left, right) => {
+      const keys = ['product_id', 'variant_id', 'pre_order_id'];
+      for (const key of keys) {
+        const compare = String(left[key] || '').localeCompare(String(right[key] || ''));
+        if (compare !== 0) return compare;
+      }
+
+      const quantityCompare = Number(left.quantity || 0) - Number(right.quantity || 0);
+      if (quantityCompare !== 0) return quantityCompare;
+      return Number(left.unit_cost || 0) - Number(right.unit_cost || 0);
+    });
+}
+
+function buildPurchaseOrderCreateRequestFingerprint(body = {}) {
+  return JSON.stringify({
+    remark: normalizeScalarFingerprintValue(body.remark),
+    currency: normalizeScalarFingerprintValue(body.currency),
+    allocation_method: normalizeScalarFingerprintValue(body.allocation_method),
+    estimated_shipping_cost: normalizeNumericFingerprintValue(body.estimated_shipping_cost),
+    estimated_tariff_cost: normalizeNumericFingerprintValue(body.estimated_tariff_cost),
+    items: normalizePurchaseOrderCreateItems(body.items),
+  });
+}
+
+function buildPurchaseOrderCreateFromOrdersRequestFingerprint(orderIds = [], body = {}) {
+  return JSON.stringify({
+    order_ids: [...new Set((Array.isArray(orderIds) ? orderIds : []).filter(Boolean))].sort(),
+    remark: normalizeScalarFingerprintValue(body.remark),
+    allocation_method: normalizeScalarFingerprintValue(body.allocation_method),
+    estimated_shipping_cost: normalizeNumericFingerprintValue(body.estimated_shipping_cost),
+    estimated_tariff_cost: normalizeNumericFingerprintValue(body.estimated_tariff_cost),
+  });
+}
+
+function getCreateCommandScopeKey(c, suffix) {
+  const actorId = String(c.get('user')?.id || 'anonymous').trim() || 'anonymous';
+  return `${suffix}:${actorId}`;
+}
+
+async function reserveCreateCommand(c, {
+  commandType,
+  scopeKey,
+  requestFingerprint,
+  mismatchMessage,
+  inFlightMessage,
+}) {
+  const commandIdempotencyRepo = new CommandIdempotencyRepository(c.env.DB);
+  const idempotencyKey = getIdempotencyKey(c);
+  const reservation = await commandIdempotencyRepo.reserveCommand(
+    commandType,
+    scopeKey,
+    idempotencyKey,
+    requestFingerprint
+  );
+
+  if (reservation?.existing) {
+    return {
+      replay: replayReservedCommand(reservation, requestFingerprint, {
+        mismatchMessage,
+        inFlightMessage,
+      }),
+      reservation,
+      commandIdempotencyRepo,
+      idempotencyKey,
+    };
+  }
+
+  return {
+    replay: null,
+    reservation,
+    commandIdempotencyRepo,
+    idempotencyKey,
   };
 }
 
@@ -366,58 +469,100 @@ app.post('/:id/shortage-closures', async (c) => {
 app.post('/', async (c) => {
   const body = await c.req.json();
   const repo = new PurchaseOrderRepository(c.env.DB);
-
-  if (body.items && body.items.length > 0) {
-    await validatePurchaseOrderVariantItems(c.env.DB, body.items);
-    await validatePurchaseOrderPreOrderBinding(c.env.DB, body.items);
-  }
-
-  const po = await repo.create({
-    remark: body.remark,
-    currency: body.currency,
-    allocation_method: body.allocation_method,
-    estimated_shipping_cost: body.estimated_shipping_cost,
-    estimated_tariff_cost: body.estimated_tariff_cost,
+  const requestFingerprint = buildPurchaseOrderCreateRequestFingerprint(body);
+  const {
+    replay,
+    reservation,
+    commandIdempotencyRepo,
+  } = await reserveCreateCommand(c, {
+    commandType: PURCHASE_ORDER_CREATE_COMMAND_TYPE,
+    scopeKey: getCreateCommandScopeKey(c, PURCHASE_ORDER_CREATE_COMMAND_TYPE),
+    requestFingerprint,
+    mismatchMessage: '同一个幂等键不能提交不同的建单请求',
+    inFlightMessage: '当前幂等键对应的建单命令仍在处理中',
   });
 
-  // 如果同时传入了明细项，一并添加
-  if (body.items && body.items.length > 0) {
-    try {
-      await repo.addItems(po.id, body.items);
-    } catch (error) {
-      if (typeof repo.deleteIfEmptyDraft === 'function') {
-        try {
-          await repo.deleteIfEmptyDraft(po.id);
-        } catch (cleanupError) {
-          console.error('Purchase-order route draft cleanup failed:', cleanupError);
-        }
-      }
-      throw error;
+  if (replay) {
+    return c.json({ success: true, data: replay }, 201);
+  }
+
+  const ownsReservation = resolveReservationOwnership(reservation);
+  let fullPo = null;
+
+  try {
+    if (body.items && body.items.length > 0) {
+      await validatePurchaseOrderVariantItems(c.env.DB, body.items);
+      await validatePurchaseOrderPreOrderBinding(c.env.DB, body.items);
     }
+
+    const po = await repo.create({
+      remark: body.remark,
+      currency: body.currency,
+      allocation_method: body.allocation_method,
+      estimated_shipping_cost: body.estimated_shipping_cost,
+      estimated_tariff_cost: body.estimated_tariff_cost,
+    });
+
+    // 如果同时传入了明细项，一并添加
+    if (body.items && body.items.length > 0) {
+      try {
+        await repo.addItems(po.id, body.items);
+      } catch (error) {
+        if (typeof repo.deleteIfEmptyDraft === 'function') {
+          try {
+            await repo.deleteIfEmptyDraft(po.id);
+          } catch (cleanupError) {
+            console.error('Purchase-order route draft cleanup failed:', cleanupError);
+          }
+        }
+        throw error;
+      }
+    }
+
+    await publishPurchaseOrderCacheEvent(c, {
+      eventType: 'purchase_order_created',
+      poId: po.id,
+      payload: {
+        item_count: Array.isArray(body.items) ? body.items.length : 0,
+      },
+    });
+
+    fullPo = (await repo.findById(po.id)) || buildCreatedPurchaseOrderShell(po, body.items);
+    await commandIdempotencyRepo
+      .buildFinalizeStatement(reservation.record?.command_id, fullPo)
+      .run();
+
+    scheduleAuditEvent(c, {
+      domain: 'purchase-orders',
+      action: 'purchase_order.create',
+      result: 'success',
+      severity: 'high',
+      targetType: 'purchase_order',
+      targetId: po.id,
+      target_label: po.id,
+      summary: `Created purchase order ${po.id}`,
+      metadata: { itemCount: Array.isArray(body.items) ? body.items.length : 0 },
+    });
+    return c.json({ success: true, data: fullPo }, 201);
+  } catch (error) {
+    if (fullPo) {
+      try {
+        await commandIdempotencyRepo
+          .buildFinalizeStatement(reservation.record?.command_id, fullPo)
+          .run();
+      } catch (finalizeError) {
+        console.error('Purchase-order create idempotency finalize failed:', finalizeError);
+      }
+    } else {
+      await cleanupReservedCommand({
+        commandIdempotencyRepo,
+        db: c.env.DB,
+        ownsReservation,
+        commandId: reservation.record?.command_id,
+      });
+    }
+    throw error;
   }
-
-  await publishPurchaseOrderCacheEvent(c, {
-    eventType: 'purchase_order_created',
-    poId: po.id,
-    payload: {
-      item_count: Array.isArray(body.items) ? body.items.length : 0,
-    },
-  });
-
-  // 返回完整的采购单
-  const fullPo = (await repo.findById(po.id)) || buildCreatedPurchaseOrderShell(po, body.items);
-  scheduleAuditEvent(c, {
-    domain: 'purchase-orders',
-    action: 'purchase_order.create',
-    result: 'success',
-    severity: 'high',
-    targetType: 'purchase_order',
-    targetId: po.id,
-    target_label: po.id,
-    summary: `Created purchase order ${po.id}`,
-    metadata: { itemCount: Array.isArray(body.items) ? body.items.length : 0 },
-  });
-  return c.json({ success: true, data: fullPo }, 201);
 });
 
 /**
@@ -433,33 +578,76 @@ app.post('/from-orders', async (c) => {
   }
 
   const service = new PurchaseOrderService(c.env.DB);
-  const po = await service.createFromOrders(orderIds, {
-    remark: body.remark,
-    allocation_method: body.allocation_method,
-    estimated_shipping_cost: body.estimated_shipping_cost,
-    estimated_tariff_cost: body.estimated_tariff_cost,
+  const requestFingerprint = buildPurchaseOrderCreateFromOrdersRequestFingerprint(orderIds, body);
+  const {
+    replay,
+    reservation,
+    commandIdempotencyRepo,
+  } = await reserveCreateCommand(c, {
+    commandType: PURCHASE_ORDER_CREATE_FROM_ORDERS_COMMAND_TYPE,
+    scopeKey: getCreateCommandScopeKey(c, PURCHASE_ORDER_CREATE_FROM_ORDERS_COMMAND_TYPE),
+    requestFingerprint,
+    mismatchMessage: '同一个幂等键不能提交不同的建单请求',
+    inFlightMessage: '当前幂等键对应的建单命令仍在处理中',
   });
 
-  await publishPurchaseOrderCacheEvent(c, {
-    eventType: 'purchase_order_created_from_orders',
-    poId: po.id,
-    payload: {
-      order_ids: orderIds,
-    },
-  });
-  scheduleAuditEvent(c, {
-    domain: 'purchase-orders',
-    action: 'purchase_order.create_from_orders',
-    result: 'success',
-    severity: 'high',
-    targetType: 'purchase_order',
-    targetId: po?.id,
-    target_label: po?.id || null,
-    summary: `Created purchase order ${po?.id || ''} from orders`,
-    metadata: { orderIds },
-  });
+  if (replay) {
+    return c.json({ success: true, data: replay }, 201);
+  }
 
-  return c.json({ success: true, data: po }, 201);
+  const ownsReservation = resolveReservationOwnership(reservation);
+  let po = null;
+
+  try {
+    po = await service.createFromOrders(orderIds, {
+      remark: body.remark,
+      allocation_method: body.allocation_method,
+      estimated_shipping_cost: body.estimated_shipping_cost,
+      estimated_tariff_cost: body.estimated_tariff_cost,
+    });
+
+    await publishPurchaseOrderCacheEvent(c, {
+      eventType: 'purchase_order_created_from_orders',
+      poId: po.id,
+      payload: {
+        order_ids: orderIds,
+      },
+    });
+    await commandIdempotencyRepo
+      .buildFinalizeStatement(reservation.record?.command_id, po)
+      .run();
+    scheduleAuditEvent(c, {
+      domain: 'purchase-orders',
+      action: 'purchase_order.create_from_orders',
+      result: 'success',
+      severity: 'high',
+      targetType: 'purchase_order',
+      targetId: po?.id,
+      target_label: po?.id || null,
+      summary: `Created purchase order ${po?.id || ''} from orders`,
+      metadata: { orderIds },
+    });
+
+    return c.json({ success: true, data: po }, 201);
+  } catch (error) {
+    if (po) {
+      try {
+        await commandIdempotencyRepo
+          .buildFinalizeStatement(reservation.record?.command_id, po)
+          .run();
+      } catch (finalizeError) {
+        console.error('Purchase-order from-orders idempotency finalize failed:', finalizeError);
+      }
+    } else {
+      await cleanupReservedCommand({
+        commandIdempotencyRepo,
+        db: c.env.DB,
+        ownsReservation,
+        commandId: reservation.record?.command_id,
+      });
+    }
+    throw error;
+  }
 });
 
 // ─── 更新 ──────────────────────────────────────────────
