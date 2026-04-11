@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 116 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 117 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -2135,3 +2135,21 @@
   - `src/components/product/__tests__/ProductGrid.available-stock.test.js`
   - `src/components/product/__tests__/product-inventory-projection-consumers.test.js`
 - 对应修复提交: `94f4e3b fix: harden product module async boundaries`
+
+### 2026-04-10 轮次 205
+
+- 继续复查商品详情关联空间链路，新增 1 个中风险问题:
+  - `useSpaces.loadProductSpaces()` 在接口失败时直接吞成空数组，`ProductDetail` 又把空数组渲染成“没有关联空间”。这样商品详情里的关联空间区块会把真实加载失败伪装成业务空态，用户既看不到错误，也无法重试。
+- 下一步把 `loadProductSpaces()` 的失败语义恢复为抛错，并在商品详情内提供本地错误态和重试入口，不再把失败混同为空数据。
+
+### 2026-04-10 轮次 206
+
+- 已完成轮次 205 新增问题修复:
+  - `useSpaces.loadProductSpaces()` 现在会在接口失败时抛出明确错误，调用方可以区分“加载失败”和“没有关联空间”
+  - `ProductDetail` 现在会在关联空间加载失败时展示本地错误态和重试按钮，不再把失败伪装成空列表
+  - 已补齐关联空间失败语义与商品详情详情链路回归
+- 增量回归:
+  - `src/composables/__tests__/useSpaces.test.js`
+  - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
+  - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
+- 对应修复提交: `0434fb8 fix: surface associated space load failures`
