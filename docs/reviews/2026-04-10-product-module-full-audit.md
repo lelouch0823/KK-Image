@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 92 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 93 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -127,6 +127,7 @@
   - `4262e29`: 空间详情弹窗与子空间列表只认当前上下文
   - `0ec730d`: 空间详情弹窗写操作失败时不再假成功
   - `753b08c`: 空间创建弹窗阻断重复提交
+  - `031178e`: 空间删除失败时保留确认弹窗
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -279,6 +280,7 @@
 - 管理端 `SpaceDetailModal` 复用同一实例切换空间时，`loadSpace()` 旧请求可以在后返回后覆盖新空间详情；而合集模板下的 `SubspaceList` 也只在挂载时加载一次，切换到另一合集后不会跟随 `spaceId` 重载。结果是空间详情弹窗会显示旧标题、旧设置，合集页签还会继续保留上一条空间的子空间列表。[src/components/SpaceDetailModal.vue](/home/bjw/Code/KK-Image/src/components/SpaceDetailModal.vue) [src/components/SubspaceList.vue](/home/bjw/Code/KK-Image/src/components/SubspaceList.vue)
 - 管理端 `SpaceDetailModal` 的封面设置、发布/取消发布、分享范围保存、文件增删都没有检查 `updateSpace/addFilesToSpace/removeFilesFromSpace` 的返回值。结果是底层写操作失败时，弹窗仍会继续刷新详情、弹成功提示并向父级发 `updated`，形成空间设置与文件操作的假成功。[src/components/SpaceDetailModal.vue](/home/bjw/Code/KK-Image/src/components/SpaceDetailModal.vue)
 - `SpaceCreateModal.handleSubmit()` 没有在 `submitting` 期间阻断重复触发。结果是用户双击“创建”或同一轮里重复触发表单提交时，会并发调用两次 `createSpace/createSubspace`，造成重复创建空间或子空间。[src/components/SpaceCreateModal.vue](/home/bjw/Code/KK-Image/src/components/SpaceCreateModal.vue)
+- 管理端空间主列表的删除确认和 `SubspaceList` 的子空间删除确认都没有检查 `deleteSpace()` 返回值。结果是删除失败时确认框仍会直接关闭，用户会误以为删除成功，形成删除链路假成功。[src/views/SpaceManager/index.vue](/home/bjw/Code/KK-Image/src/views/SpaceManager/index.vue) [src/components/SubspaceList.vue](/home/bjw/Code/KK-Image/src/components/SubspaceList.vue)
 - 商品公开空间页的 `submitPassword()` 没有 token/request 维度隔离。用户在密码验证请求未返回前切到另一条空间时，旧密码验证成功结果仍会回写当前页面，把新空间直接串回旧空间详情。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L153)
 - 商品公开空间页在 Turnstile 开启但尚未验证时，如果路由 token 变化，`watch(token)` 会直接调用 `loadSpace()`。结果是用户无需完成人机验证，只要切一次空间 token 就能直接打空间详情接口，门禁形同虚设。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L177)
 - 共享空间模板数据虽然已经 JOIN 到 `pv_sku` 和变体主图 `display_image_id`，但 `projectSpaceTemplateData()` 仍然固定投影商品 `SPU` 和商品图片。结果是绑定到具体变体的商品空间会把 `SPU` 当作 `SKU` 展示，主图也退回商品通图，销售空间和公开商品空间都会看到错规格、错主图。[functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js#L14) [functions/lib/hono/routes/manage/spaces/transformers.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/transformers.js#L14)
@@ -1789,3 +1791,24 @@
   - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
   - `src/components/__tests__/SpaceDetailModal.lifecycle.test.js`
 - 对应修复提交: `753b08c fix: prevent duplicate space create submits`
+
+### 2026-04-10 轮次 173
+
+- 继续复查空间删除链路的失败收口，新增 1 个中风险问题:
+  - `SpaceManager` 和 `SubspaceList` 的删除确认都不检查 `deleteSpace()` 返回值，删除失败时仍会直接关闭确认框
+- 下一步把删除确认统一改成只在删除成功后才关闭，并补主列表/子空间删除失败回归。
+
+### 2026-04-10 轮次 174
+
+- 已完成轮次 173 新增问题修复:
+  - 管理端空间主列表和子空间列表的删除确认现在都会在 `deleteSpace()` 成功后才关闭，失败时保持当前确认上下文
+  - 子空间删除成功后仍会继续刷新列表并向父级发 `updated`，失败时不会再误收口为成功态
+  - 已补齐管理端主列表删除失败和子空间删除失败两条回归，并联跑空间创建/详情/子空间管理链路相关回归
+- 增量回归:
+  - `src/views/__tests__/SpaceManager.permission-alignment.test.js`
+  - `src/components/__tests__/SubspaceList.lifecycle.test.js`
+  - `src/components/__tests__/SpaceDetailModal.lifecycle.test.js`
+  - `src/components/__tests__/SpaceCreateModal.unbind.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
+- 对应修复提交: `031178e fix: keep space delete dialogs open on failure`
