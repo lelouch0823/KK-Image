@@ -31,8 +31,9 @@ function resolveSpaceAssetUrl(value) {
 /**
  * 获取空间数据 (GET/POST 共享逻辑)
  */
-async function getSpaceData(space, env) {
+async function getSpaceData(space, env, { includePrivateSubspaces = false } = {}) {
   const templateData = projectSpaceTemplateData(space);
+  const subspacesVisibilityFilter = includePrivateSubspaces ? '' : ' AND s.is_public = 1';
   // 并行获取文件列表和子空间
   const [filesResult, subspacesResult] = await Promise.all([
     env.DB.prepare(
@@ -64,7 +65,7 @@ async function getSpaceData(space, env) {
        LEFT JOIN files f ON s.cover_file_id = f.id
        LEFT JOIN products p ON s.product_id = p.id
        LEFT JOIN product_variants pv ON s.variant_id = pv.id
-       WHERE s.parent_id = ? AND s.is_public = 1
+       WHERE s.parent_id = ?${subspacesVisibilityFilter}
        ORDER BY s.sort_order ASC, s.name ASC`
     )
       .bind(space.id)
@@ -233,7 +234,9 @@ export async function onRequestGet(context) {
     }
 
     // 获取空间数据
-    const data = await getSpaceData(space, env);
+    const data = await getSpaceData(space, env, {
+      includePrivateSubspaces: isAdmin && !space.is_public,
+    });
     // GET 请求增加访问记录
     data.viewCount = space.view_count + 1;
 
@@ -313,7 +316,9 @@ export async function onRequestPost(context) {
     }
 
     // 密码正确，返回完整空间数据
-    const data = await getSpaceData(space, env);
+    const data = await getSpaceData(space, env, {
+      includePrivateSubspaces: isAdmin && !space.is_public,
+    });
     data.viewCount = (Number(space.view_count) || 0) + 1;
     await recordSpaceAccess(space.id, request, env);
 

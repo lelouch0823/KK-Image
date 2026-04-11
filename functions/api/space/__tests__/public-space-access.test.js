@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { onRequestGet, onRequestPost } from '../[token].js';
+import { generateJWT } from '../../utils/auth.js';
 
 describe('public space access api', () => {
   const baseSpaceRecord = {
@@ -18,6 +19,14 @@ describe('public space access api', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    if (!globalThis.crypto?.subtle?.timingSafeEqual) {
+      globalThis.crypto.subtle.timingSafeEqual = (a, b) => {
+        if (a.byteLength !== b.byteLength) return false;
+        const left = new Uint8Array(a);
+        const right = new Uint8Array(b);
+        return left.every((value, index) => value === right[index]);
+      };
+    }
   });
 
   it('records access log and increments view count after password verification succeeds', async () => {
@@ -405,6 +414,81 @@ describe('public space access api', () => {
       expect.objectContaining({ url: '/file/variant-primary.jpg' }),
       expect.objectContaining({ url: '/file/product-main.jpg' }),
       expect.objectContaining({ url: '/file/product-side.jpg' }),
+    ]);
+  });
+
+  it('includes private collection subspaces for admin preview requests', async () => {
+    const adminToken = await generateJWT(
+      { id: 'admin-1', name: 'Admin', type: 'admin', role: 'admin' },
+      { JWT_SECRET: 'test-secret' }
+    );
+    const first = vi.fn().mockResolvedValue({
+      ...baseSpaceRecord,
+      password: null,
+      template: 'collection',
+      is_public: 0,
+    });
+    const filesAll = vi.fn().mockResolvedValue({ results: [] });
+    const subspacesAll = vi.fn().mockResolvedValue({
+      results: [
+        {
+          id: 'sub-private-1',
+          name: '私有子空间',
+          template: 'gallery',
+          description: '',
+          template_data: '{}',
+          product_id: null,
+          variant_id: null,
+          file_count: 2,
+          cover_storage_key: 'covers/private.jpg',
+          expires_at: null,
+          is_public: 0,
+        },
+      ],
+    });
+    const batch = vi.fn().mockResolvedValue([]);
+
+    const prepare = vi.fn((sql) => {
+      if (sql.includes('WHERE s.share_token = ?')) {
+        return { bind: () => ({ first }) };
+      }
+      if (sql.includes('FROM space_files sf')) {
+        return { bind: () => ({ all: filesAll }) };
+      }
+      if (sql.includes('WHERE s.parent_id = ? AND s.is_public = 1')) {
+        return { bind: () => ({ all: vi.fn().mockResolvedValue({ results: [] }) }) };
+      }
+      if (sql.includes('WHERE s.parent_id = ?')) {
+        return { bind: () => ({ all: subspacesAll }) };
+      }
+      if (sql.includes('INSERT INTO space_access_logs')) {
+        return { bind: (...args) => ({ sql, args }) };
+      }
+      if (sql.includes('UPDATE spaces SET view_count = view_count + 1')) {
+        return { bind: (...args) => ({ sql, args }) };
+      }
+      throw new Error(`Unexpected SQL: ${sql}`);
+    });
+
+    const response = await onRequestGet({
+      env: { JWT_SECRET: 'test-secret', DB: { prepare, batch } },
+      params: { token: 'share-token' },
+      request: new Request('http://localhost/api/space/share-token', {
+        headers: {
+          Authorization: `Bearer ${adminToken}`,
+        },
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    expect(payload.success).toBe(true);
+    expect(payload.data.subspaces).toEqual([
+      expect.objectContaining({
+        id: 'sub-private-1',
+        name: '私有子空间',
+        coverImage: '/file/covers/private.jpg',
+      }),
     ]);
   });
 });
