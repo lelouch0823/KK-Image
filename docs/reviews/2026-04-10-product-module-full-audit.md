@@ -2309,3 +2309,15 @@
   - `src/components/product/__tests__/ProductCreateModal.variant-first.test.js`
   - `src/components/product/__tests__/ProductCreateModal.inventory-ownership.test.js`
   - `src/components/product/__tests__/ProductWorkflowModal.test.js`
+
+### 2026-04-11 轮次 220
+
+- 继续复查商品导入关闭/重开链路，新增 1 个中风险问题:
+  - `ProductImportModal.processFile()` 缺少独立的异步会话失效保护。文件解析如果在弹窗关闭后才返回，旧解析结果仍会把 `fileHeaders/rawFileRows/currentStep` 写回已重置的导入会话，导致弹窗下次打开时被旧文件强行推进到映射步骤，形成典型的“关闭后旧请求回写新上下文”。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue)
+- 已完成本轮修复:
+  - `ProductImportModal` 现在为文件解析单独维护 `fileParseRequestId`；弹窗关闭或新文件开始解析时，旧解析结果会失效，不再回写已重置的导入流程。
+  - 已补齐“关闭后丢弃旧文件解析结果”的回归测试，并复核导入预览/图片匹配链路未受回归影响。
+- 增量回归:
+  - `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
+  - `src/components/product/import/__tests__/ImportPreviewStep.test.js`
+  - `src/components/product/import/__tests__/ImportImageMatchStep.test.js`
