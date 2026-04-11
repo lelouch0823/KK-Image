@@ -615,6 +615,37 @@ const handleConfirmMapping = () => {
         return;
     }
 
+    const blankSpuRowsByName = mappedData.reduce((acc, item) => {
+        const spu = String(item.spu || '').trim();
+        const name = String(item.name || '').trim();
+        if (spu || !name) return acc;
+        if (!acc.has(name)) {
+            acc.set(name, []);
+        }
+        acc.get(name).push(item);
+        return acc;
+    }, new Map());
+
+    const duplicateNameWithoutSpu = Array.from(blankSpuRowsByName.entries())
+        .filter(([, rows]) => rows.length > 1);
+    if (duplicateNameWithoutSpu.length > 0) {
+        duplicateNameWithoutSpu.forEach(([, rows]) => {
+            rows.forEach((item) => {
+                validationIssues.push({
+                    row: Number(item.__rowNumber || 0),
+                    code: 'duplicate_name_without_spu',
+                    message: t('product.import.preprocess.issue.duplicate_name_without_spu', '同名多行未提供 SPU，无法安全合并为同一商品'),
+                });
+            });
+        });
+        mappingValidationReport.value = createValidationReport(validationIssues);
+        addToast({
+            type: 'error',
+            message: t('product.import.error_duplicate_name_without_spu', '检测到同名多行但未提供 SPU，无法安全分组，请补充 SPU 后再导入'),
+        });
+        return;
+    }
+
     nextPreprocessStats.acceptedRows = mappedData.length;
     preprocessStats.value = nextPreprocessStats;
     mappingValidationReport.value = createValidationReport(validationIssues);

@@ -493,6 +493,37 @@ describe('ProductImportModal Variant-First Payload', () => {
         expect(wrapper.vm.mappingValidationReport.byCode.duplicate_sku).toBeGreaterThanOrEqual(1);
     });
 
+    it('blocks confirm when repeated product names have no spu for safe grouping', async () => {
+        const wrapper = mount(ProductImportModal, {
+            global: {
+                stubs: {
+                    Modal: { template: '<div><slot></slot><slot name="footer"></slot></div>' },
+                    AppIcon: true,
+                    ImportUploadStep: true,
+                    ImportMappingStep: true,
+                    ImportImageMatchStep: true,
+                    ImportPreviewStep: true
+                }
+            },
+            props: { modelValue: true }
+        });
+
+        wrapper.vm.fileHeaders = ['商品名称', 'SKU'];
+        wrapper.vm.rawFileRows = [
+            ['冲锋衣', 'SKU-NO-SPU-1'],
+            [' 冲锋衣 ', 'SKU-NO-SPU-2'],
+        ];
+        wrapper.vm.fieldMapping = { name: '商品名称', sku: 'SKU' };
+        wrapper.vm.specConfigs = [];
+
+        wrapper.vm.handleConfirmMapping();
+
+        expect(mocks.addToast).toHaveBeenCalled();
+        expect(wrapper.vm.parsedItems).toHaveLength(0);
+        expect(wrapper.vm.mappingValidationReport).toBeTruthy();
+        expect(wrapper.vm.mappingValidationReport.byCode.duplicate_name_without_spu).toBe(2);
+    });
+
     it('blocks confirm when product name is empty in source rows', async () => {
         const wrapper = mount(ProductImportModal, {
             global: {
