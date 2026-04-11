@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 98 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 99 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -133,6 +133,7 @@
   - `34be40a`: 空间商品编辑器媒体操作失败时不再假成功
   - `6b0f0e7`: 空间商品编辑器媒体回刷不再覆盖未保存草稿
   - `f80e5c5`: 空间详情切换到加载失败的新空间时清理旧详情
+  - `f00d15f`: 商品导入预览冲突复制统一走共享剪贴板 helper
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -166,6 +167,7 @@
   - 2026-04-11 运行 5 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-11 运行 5 个回归测试文件，共 23 个测试，全部通过。
   - 2026-04-11 运行 7 个回归测试文件，共 28 个测试，全部通过。
+  - 2026-04-11 运行 2 个回归测试文件，共 23 个测试，全部通过。
   - 2026-04-10 运行 5 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 14 个测试，全部通过。
@@ -1922,3 +1924,20 @@
   - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
   - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
 - 对应修复提交: `f80e5c5 fix: clear stale space detail after load failures`
+
+### 2026-04-10 轮次 185
+
+- 继续复查商品导入预览的冲突处理边界，新增 1 个低风险问题:
+  - `ImportPreviewStep` 的“复制当前结果”直接自写 `navigator.clipboard.writeText/execCommand`，没有复用项目统一的 `useClipboard()`。结果是导入预览和其它商品/空间复制入口的降级策略、成功/失败提示完全分叉，错误边界不一致。
+- 下一步把导入预览冲突复制动作统一切回共享剪贴板 helper，并补回归。
+
+### 2026-04-10 轮次 186
+
+- 已完成轮次 185 新增问题修复:
+  - `ImportPreviewStep` 的冲突复制现在统一委托 `useClipboard().copy()`，复制降级与成功/失败提示都和项目其它入口保持一致
+  - 复制按钮补充稳定测试锚点，避免导入预览里多个同类按钮造成回归误测
+  - 已补齐“复制当前冲突结果走共享 clipboard helper”回归，并联跑商品导入预览/商品导入主流程回归
+- 增量回归:
+  - `src/components/product/import/__tests__/ImportPreviewStep.test.js`
+  - `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
+- 对应修复提交: `f00d15f fix: align import preview conflict copy with clipboard helper`
