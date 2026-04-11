@@ -3084,3 +3084,15 @@
   - `functions/ai/__tests__/action-service.purchase-order-publish.test.js`
   - `functions/ai/__tests__/action-service.test.js`
 - 对应修复提交: `1bd96369 fix: dedupe ai purchase-order outbox retries`
+
+### 2026-04-12 轮次 275
+
+- 继续深审命令幂等底层契约，新增 1 个高风险问题:
+  - [migrations/0055_command_idempotency_and_outbox.sql](/home/bjw/Code/KK-Image/migrations/0055_command_idempotency_and_outbox.sql) 修复前把 `command_idempotency.status` 的 CHECK 约束限制成了 `'in_flight'/'committed'` 两种状态，但上层采购单创建恢复逻辑、AI action rail 恢复逻辑已经都在使用 `failed` 作为可恢复状态。结果不是业务代码错，而是数据库 schema 本身与恢复协议脱节，真实库上一旦写入 `failed` 就会直接违反 CHECK 约束，前面整套恢复链路都会在最底层失效。
+- 已完成本轮修复:
+  - 基线迁移 `0055` 现在已把 `command_idempotency.status` 扩展为 `in_flight/committed/failed`，保证新环境初始化时底层契约与代码一致。
+  - 新增升级迁移 [migrations/0062_command_idempotency_failed_status.sql](/home/bjw/Code/KK-Image/migrations/0062_command_idempotency_failed_status.sql)，会重建 `command_idempotency` 表并保留历史数据，让旧环境也能安全接受 `failed` 状态。
+  - 已补齐 repository 回归测试，锁定“finalize 可以持久化 failed”以及“schema 迁移必须显式允许 failed”的行为。
+- 增量回归:
+  - `functions/repositories/__tests__/CommandIdempotencyRepository.test.js`
+- 对应修复提交: `6d6b63de fix: align command idempotency failed states`
