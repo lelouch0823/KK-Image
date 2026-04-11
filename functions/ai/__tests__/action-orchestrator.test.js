@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIActionOrchestrator } from '../action-orchestrator.js';
 import { getActionAdapter } from '../action-registry.js';
+import { extractActionSlots } from '../slot-extraction.js';
 
 function createSessionStoreMock() {
   return {
@@ -310,6 +311,48 @@ describe('AIActionOrchestrator', () => {
 
     expect(result.kind).toBe('slot_request');
     expect(result.payload.missingSlots).toContain('items');
+  });
+
+  it('accepts plain manual item follow-up text without repeating 采购单 during item collection', async () => {
+    sessionStore.getLatestActiveSession.mockResolvedValueOnce({
+      id: 'act-1',
+      user_id: 'user-1',
+      action_type: 'create_purchase_order',
+      entity_type: 'purchase_order',
+      status: 'collecting',
+      slots_json: JSON.stringify({ mode: 'manual' }),
+      preview_json: '{}',
+    });
+
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {
+        purchase_order: {
+          items: vi.fn(async (items) => items.map((item) => ({
+            ...item,
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+          }))),
+        },
+      },
+      extractActionSlots,
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '跑鞋 黑色 42 补货 20件 单价60',
+    });
+
+    expect(result.kind).toBe('action_preview');
+    expect(result.payload.summary.items).toEqual([
+      expect.objectContaining({
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        quantity: 20,
+      }),
+    ]);
   });
 
   it('requests order ids before previewing from-orders mode', async () => {

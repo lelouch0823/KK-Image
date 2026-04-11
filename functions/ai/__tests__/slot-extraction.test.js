@@ -107,6 +107,23 @@ describe('extractActionSlots', () => {
     );
   });
 
+  it('infers manual purchase-order follow-up item text without repeating 采购单', () => {
+    const result = extractActionSlots('purchase_order', '跑鞋 黑色 42 补货 20件 单价60');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        mode: 'manual',
+        items: [
+          expect.objectContaining({
+            variant_query: '跑鞋 黑色 42',
+            quantity: 20,
+            unit_cost: 60,
+          }),
+        ],
+      })
+    );
+  });
+
   it('extracts product fields, dimensions, and generated variants from structured text', () => {
     const result = extractActionSlots(
       'product',

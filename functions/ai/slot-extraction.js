@@ -190,7 +190,7 @@ function extractPurchaseOrderSlots(text = '') {
     slots.currency = currencyMap[currency] || currency.toUpperCase();
   }
 
-  if (slots.mode === 'manual') {
+  if (slots.mode !== 'from_orders') {
     const bodyText = String(text).split(/备注\s*[:：]?/)[0];
     const normalizedBody = bodyText.replace(/^(创建(?:采购单|备货单|补货单)[，,\s]*)/, '').trim();
     const segments = normalizedBody.split(/[;；]/).map((item) => item.trim()).filter(Boolean);
@@ -220,6 +220,7 @@ function extractPurchaseOrderSlots(text = '') {
     }
 
     if (items.length > 0) {
+      slots.mode = 'manual';
       slots.items = items;
     }
   }
