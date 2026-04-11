@@ -2730,3 +2730,18 @@
   - `functions/ai/__tests__/action-submitters.test.js`
   - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
 - 对应修复提交: `0655c13 fix: infer ai purchase-order items from follow-up text`
+
+### 2026-04-11 轮次 248
+
+- 继续复查 AI 采购单多条明细的跟进合并逻辑，新增 1 个高风险问题:
+  - [functions/ai/action-orchestrator.js](/home/bjw/Code/KK-Image/functions/ai/action-orchestrator.js) 在 `collecting` 阶段用浅合并把新提取的 `items` 直接覆盖旧 `items`。结果是当 AI 已经解析出一条手工采购明细、用户再补充第二条明细时，后续回复会把前面已解析成功的行整体覆盖掉，形成典型的“补一条丢一条”。
+- 已完成本轮修复:
+  - 采购单 `collecting` 合并逻辑现在会保留已有的已解析明细，再拼接本轮新提取的手工采购项，不再因为后续补充而把前面已经解析成功的行覆盖掉。
+  - 已补齐编排器回归测试，锁定“补充第二条采购项时必须保留第一条已解析明细”的行为。
+- 增量回归:
+  - `functions/ai/__tests__/action-orchestrator.test.js`
+  - `functions/ai/__tests__/slot-extraction.test.js`
+  - `functions/ai/__tests__/canonicalization.test.js`
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
+- 对应修复提交: `e438a44 fix: preserve resolved ai purchase-order items during follow-up`
