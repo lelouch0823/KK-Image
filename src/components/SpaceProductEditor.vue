@@ -110,7 +110,7 @@
             <input
               v-model="form.templateData.brand"
               type="text"
-              :disabled="!!boundProduct"
+              :disabled="hasProductBinding"
               class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
             />
           </div>
@@ -122,7 +122,7 @@
             <input
               v-model="form.templateData.series"
               type="text"
-              :disabled="!!boundProduct"
+              :disabled="hasProductBinding"
               class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
             />
           </div>
@@ -135,7 +135,7 @@
               <input
                 v-model="form.templateData.price"
                 type="number"
-                :disabled="!!boundProduct"
+                :disabled="hasProductBinding"
                 class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
               />
             </div>
@@ -146,7 +146,7 @@
               <input
                 v-model="form.templateData.material"
                 type="text"
-                :disabled="!!boundProduct"
+                :disabled="hasProductBinding"
                 class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
               />
             </div>
@@ -158,7 +158,7 @@
               v-model="form.templateData.sku"
               type="text"
               :placeholder="t('spaceManager.skuPlaceholder')"
-              :disabled="!!boundProduct"
+              :disabled="hasProductBinding"
               class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
             />
           </div>
@@ -448,6 +448,8 @@ const shareUrl = computed(() => {
   if (!props.space.shareToken) return t('spaceManager.saveToGenerate');
   return `${window.location.origin}${ROUTES.SPACE(props.space.shareToken)}`;
 });
+
+const hasProductBinding = computed(() => !!form.value.productId);
 
 const productImages = computed(() => {
   if (!boundProduct.value || !boundProduct.value._images) return [];

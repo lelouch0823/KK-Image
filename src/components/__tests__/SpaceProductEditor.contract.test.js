@@ -189,6 +189,41 @@ describe('SpaceProductEditor contract', () => {
     expect(wrapper.vm.form.productId).toBe('prod-1');
   });
 
+  it('keeps core product fields readonly when a bound product exists without product permission', async () => {
+    mocks.can.mockResolvedValueOnce(false);
+
+    const wrapper = mount(SpaceProductEditor, {
+      props: {
+        space: { id: 'space-1', shareToken: 'share-token' },
+      },
+      global: {
+        stubs: {
+          FileSelector: { template: '<div />' },
+          Tooltip: { template: '<div><slot /></div>' },
+          SpaceAnalytics: { template: '<div />' },
+          SpaceShareCard: { template: '<div />' },
+          SpaceVisibilitySelector: { template: '<div />' },
+          SpaceMediaGrid: { template: '<div />' },
+          ConfirmDialog: { template: '<div />' },
+          ProductBindingSection: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const lockedValues = ['Brand 1', 'Series 1', '88', 'Leather', 'SKU-2'];
+    const lockedInputs = wrapper.findAll('input').filter((input) =>
+      lockedValues.includes(input.element.value)
+    );
+
+    expect(wrapper.vm.form.productId).toBe('prod-1');
+    expect(lockedInputs).toHaveLength(5);
+    lockedInputs.forEach((input) => {
+      expect(input.element.disabled).toBe(true);
+    });
+  });
+
   it('prefers selected variant material when rebinding a product space', async () => {
     const wrapper = mount(SpaceProductEditor, {
       props: {
