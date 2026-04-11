@@ -330,7 +330,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { isImage, isPdf, formatSize } from '@/utils/formatters';
 import { useBatchDownload } from '@/composables/useBatchDownload';
 import { useI18n } from '@/composables/useI18n';
@@ -385,6 +385,14 @@ const getCoverIndex = () => {
   return 0;
 };
 const currentIndex = ref(getCoverIndex());
+
+watch(
+  () => [props.space?.id, props.space?.coverFileId, displayFiles.value.length],
+  () => {
+    currentIndex.value = getCoverIndex();
+    showPdfPreview.value = false;
+  }
+);
 
 const hasMultipleFiles = computed(() => displayFiles.value.length > 1);
 const currentFile = computed(() => {
