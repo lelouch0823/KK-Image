@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 96 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 97 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -131,6 +131,7 @@
   - `ab321f7`: 空间可见性设置只在保存确认后清脏
   - `746e756`: 商品详情关联空间复制链接统一走共享剪贴板 helper
   - `34be40a`: 空间商品编辑器媒体操作失败时不再假成功
+  - `6b0f0e7`: 空间商品编辑器媒体回刷不再覆盖未保存草稿
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -162,6 +163,7 @@
   - 2026-04-10 运行 6 个回归测试文件，共 10 个测试，全部通过。
   - 2026-04-11 运行 3 个回归测试文件，共 11 个测试，全部通过。
   - 2026-04-11 运行 5 个回归测试文件，共 21 个测试，全部通过。
+  - 2026-04-11 运行 5 个回归测试文件，共 23 个测试，全部通过。
   - 2026-04-10 运行 5 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 14 个测试，全部通过。
@@ -1876,3 +1878,23 @@
   - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
   - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
 - 对应修复提交: `34be40a fix: avoid false success in space product editor media actions`
+
+### 2026-04-10 轮次 181
+
+- 继续复查空间商品编辑器媒体刷新链路，新增 1 个中风险问题:
+  - `SpaceProductEditor` 在加文件成功、删文件成功、上传队列回刷、拖拽排序失败回滚时都直接复用 `initData()`，导致右侧媒体区一刷新就把左侧未保存的名称、描述、分享设置和绑定态草稿整体覆盖成服务端旧值，存在明显的数据丢失风险。
+- 下一步把“全量初始化”和“媒体区刷新”拆开，媒体相关回刷只同步 `files/coverFileId`，不再改写正在编辑的表单草稿。
+
+### 2026-04-10 轮次 182
+
+- 已完成轮次 181 新增问题修复:
+  - `SpaceProductEditor` 新增独立的媒体刷新路径，媒体添加、媒体删除、上传队列回刷和排序失败回滚现在只同步 `files/coverFileId`
+  - 左侧名称、描述、分享设置、商品绑定等未保存草稿在媒体区回刷后会被完整保留，不再被后台旧值覆盖
+  - 已补齐“加文件成功后保留草稿”和“上传回刷后保留草稿”两条回归，并联跑空间编辑器/详情弹窗/子空间/后端管理路由回归
+- 增量回归:
+  - `src/components/__tests__/SpaceProductEditor.contract.test.js`
+  - `src/components/__tests__/SpaceDetailModal.lifecycle.test.js`
+  - `src/components/__tests__/SubspaceList.lifecycle.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
+- 对应修复提交: `6b0f0e7 fix: preserve space editor drafts during media refresh`
