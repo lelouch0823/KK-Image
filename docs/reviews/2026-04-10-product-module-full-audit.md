@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 106 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 107 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -2075,3 +2075,22 @@
   - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
   - `src/components/product/__tests__/ProductWorkflowModal.test.js`
 - 对应修复提交: `cb8fbc4 fix: fail product export when detail hydration is incomplete`
+
+### 2026-04-10 轮次 201
+
+- 继续复查商品创建/编辑表单提交链路，新增 1 个中风险问题:
+  - `useProductForm.handleSubmit()` 只对 `normalizeMutationResult(response)` 的返回值型失败做了 toast 收口；当 `createProductWithMeta/updateProductWithMeta` 或旧版 `createProduct/updateProduct` 直接 reject 时，异常会穿透到组件外层，界面既没有错误提示，也没有明确失败语义，属于错误边界缺口。
+- 下一步在提交逻辑补 `catch`，只对当前仍然有效的提交流程弹错误 toast，并保持 `submitting` 在 `finally` 中稳定回落。
+
+### 2026-04-10 轮次 202
+
+- 已完成轮次 201 新增问题修复:
+  - `useProductForm.handleSubmit()` 现在会在底层保存请求直接抛异常时拦截错误，并在当前提交上下文仍有效时弹出 `error` toast
+  - 失败时不再错误触发 `success` 事件或关闭商品弹窗，`submitting` 也会继续通过既有 `finally` 收口为 `false`
+  - 已补齐“保存请求 reject 时保留弹窗并提示错误”回归，并联跑商品创建/编辑与工作流关联回归
+- 增量回归:
+  - `src/components/product/__tests__/ProductCreateModal.variant-first.test.js`
+  - `src/components/product/__tests__/ProductCreateModal.edit-variant-preservation.test.js`
+  - `src/components/product/__tests__/ProductCreateModal.external-codes.test.js`
+  - `src/components/product/__tests__/ProductWorkflowModal.test.js`
+- 对应修复提交: `8433820 fix: handle product form submit exceptions`
