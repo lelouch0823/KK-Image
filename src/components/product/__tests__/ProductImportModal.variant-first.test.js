@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
     importProducts: vi.fn(),
     authFetch: vi.fn(),
     addToast: vi.fn(),
+    xlsxRead: vi.fn(),
+    sheetToJson: vi.fn(),
 }));
 
 vi.mock('@/composables/useProducts', () => ({
@@ -26,6 +28,13 @@ vi.mock('@/composables/useI18n', () => ({
     useI18n: () => ({ t: (k) => k }),
 }));
 
+vi.mock('xlsx', () => ({
+    read: mocks.xlsxRead,
+    utils: {
+        sheet_to_json: mocks.sheetToJson,
+    },
+}));
+
 describe('ProductImportModal Variant-First Payload', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -33,6 +42,16 @@ describe('ProductImportModal Variant-First Payload', () => {
         mocks.authFetch.mockResolvedValue({
             json: async () => ({ success: true, result: { id: 'img-uploaded' } }),
         });
+        mocks.xlsxRead.mockReturnValue({
+            SheetNames: ['Sheet1'],
+            Sheets: {
+                Sheet1: {},
+            },
+        });
+        mocks.sheetToJson.mockReturnValue([
+            ['商品名称', 'SKU'],
+            ['帽子', 'SKU-HAT'],
+        ]);
     });
 
     it('groups rows by spu and sends variant-first payload', async () => {
@@ -938,5 +957,44 @@ describe('ProductImportModal Variant-First Payload', () => {
         expect(wrapper.vm.importResult.count).toBe(0);
         expect(wrapper.vm.importResult.failed).toBe(2);
         expect(wrapper.emitted('success')).toBeFalsy();
+    });
+
+    it('discards pending file parse results after modal closes', async () => {
+        let resolveArrayBuffer;
+        const wrapper = mount(ProductImportModal, {
+            global: {
+                stubs: {
+                    Modal: { template: '<div><slot></slot><slot name="footer"></slot></div>' },
+                    AppIcon: true,
+                    ImportUploadStep: true,
+                    ImportMappingStep: true,
+                    ImportImageMatchStep: true,
+                    ImportPreviewStep: true
+                }
+            },
+            props: { modelValue: true }
+        });
+
+        const fakeFile = {
+            name: 'products.xlsx',
+            size: 128,
+            arrayBuffer: vi.fn(() => new Promise((resolve) => {
+                resolveArrayBuffer = resolve;
+            })),
+        };
+
+        const pending = wrapper.vm.processFile(fakeFile);
+        await Promise.resolve();
+
+        await wrapper.setProps({ modelValue: false });
+        await wrapper.vm.$nextTick();
+
+        resolveArrayBuffer(new ArrayBuffer(8));
+        await pending;
+
+        expect(wrapper.vm.currentStep).toBe(1);
+        expect(wrapper.vm.fileName).toBe('');
+        expect(wrapper.vm.rawFileRows).toEqual([]);
+        expect(wrapper.vm.fileHeaders).toEqual([]);
     });
 });

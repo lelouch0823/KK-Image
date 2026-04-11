@@ -162,6 +162,7 @@ const importError = ref(null);
 const importResult = ref(null);
 let importRequestId = 0;
 let imageUploadRequestId = 0;
+let fileParseRequestId = 0;
 
 // -- state for mapping --
 const currentStep = ref(1); // 1: Upload, 3: Mapping, 4: Preview
@@ -361,10 +362,12 @@ const resetFile = () => {
 const invalidateImportRequest = () => {
     importRequestId += 1;
     imageUploadRequestId += 1;
+    fileParseRequestId += 1;
 };
 
 const isImportRequestActive = (requestId) => requestId === importRequestId && props.modelValue;
 const isImageUploadActive = (requestId) => requestId === imageUploadRequestId && props.modelValue;
+const isFileParseActive = (requestId) => requestId === fileParseRequestId && props.modelValue;
 
 watch(() => props.modelValue, (visible) => {
     if (!visible) {
@@ -376,6 +379,7 @@ watch(() => props.modelValue, (visible) => {
 // --- Parsers ---
 const processFile = async (file) => {
     if (!file) return;
+    const requestId = ++fileParseRequestId;
     
     // Basic validations
     if (!/\.(xlsx|xls|csv)$/.test(file.name)) {
@@ -390,6 +394,7 @@ const processFile = async (file) => {
 
     try {
         const data = await file.arrayBuffer();
+        if (!isFileParseActive(requestId)) return;
         const workbook = XLSX.read(data);
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
@@ -435,9 +440,11 @@ const processFile = async (file) => {
         rawFileRows.value = jsonData.slice(1);
         
         // Move to mapping step
+        if (!isFileParseActive(requestId)) return;
         currentStep.value = 3;
 
     } catch (e) {
+        if (!isFileParseActive(requestId)) return;
         console.error(e);
         importError.value = t('product.import.error_parse', '文件解析失败');
     }
