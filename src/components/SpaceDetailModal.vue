@@ -198,7 +198,8 @@ const onSubspaceUpdated = () => {
 
 const setCover = async (fileId) => {
   if (!props.canManage) return;
-  await updateSpace(props.space.id, { coverFileId: fileId });
+  const updated = await updateSpace(props.space.id, { coverFileId: fileId });
+  if (!updated) return;
   await loadData();
   addToast({ message: t('spaceManager.coverSet'), type: 'success' });
   emit('updated');
@@ -217,44 +218,58 @@ const loadData = async () => {
 const publishSpace = async () => {
   if (!props.canManage) return;
   publishing.value = true;
-  await updateSpace(props.space.id, { isPublic: true });
-  await loadData();
-  publishing.value = false;
-  addToast({ message: t('spaceManager.shareCard.publishSuccess'), type: 'success' });
-  emit('updated');
+  try {
+    const updated = await updateSpace(props.space.id, { isPublic: true });
+    if (!updated) return;
+    await loadData();
+    addToast({ message: t('spaceManager.shareCard.publishSuccess'), type: 'success' });
+    emit('updated');
+  } finally {
+    publishing.value = false;
+  }
 };
 
 const unpublishSpace = async () => {
   if (!props.canManage) return;
   publishing.value = true;
-  await updateSpace(props.space.id, { isPublic: false });
-  await loadData();
-  publishing.value = false;
-  addToast({ message: t('spaceManager.shareCard.unpublishSuccess'), type: 'success' });
-  emit('updated');
+  try {
+    const updated = await updateSpace(props.space.id, { isPublic: false });
+    if (!updated) return;
+    await loadData();
+    addToast({ message: t('spaceManager.shareCard.unpublishSuccess'), type: 'success' });
+    emit('updated');
+  } finally {
+    publishing.value = false;
+  }
 };
 
 const handleUpdateShareSettings = async (settings) => {
   if (!props.canManage) return;
   publishing.value = true;
-  await updateSpace(props.space.id, settings);
-  await loadData();
-  publishing.value = false;
-  addToast({ message: t('common.saveSuccess'), type: 'success' });
-  emit('updated');
+  try {
+    const updated = await updateSpace(props.space.id, settings);
+    if (!updated) return;
+    await loadData();
+    addToast({ message: t('common.saveSuccess'), type: 'success' });
+    emit('updated');
+  } finally {
+    publishing.value = false;
+  }
 };
 
 const addFiles = async (payload) => {
   if (!props.canManage) return;
   showFileSelector.value = false;
-  await addFilesToSpace(props.space.id, payload);
+  const added = await addFilesToSpace(props.space.id, payload);
+  if (!added) return;
   await loadData();
   emit('updated');
 };
 
 const removeFile = async (fileId) => {
   if (!props.canManage) return;
-  await removeFilesFromSpace(props.space.id, [fileId]);
+  const removed = await removeFilesFromSpace(props.space.id, [fileId]);
+  if (!removed) return;
   await loadData();
   emit('updated');
 };
