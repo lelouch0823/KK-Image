@@ -212,6 +212,43 @@ describe('ProductImportModal Variant-First Payload', () => {
         expect(wrapper.vm.loading).toBe(false);
     });
 
+    it('keeps image-match step open when all matched image uploads fail', async () => {
+        mocks.authFetch.mockResolvedValue({
+            json: async () => ({ success: false, error: 'upload failed' }),
+        });
+
+        const wrapper = mount(ProductImportModal, {
+            global: {
+                stubs: {
+                    Modal: { template: '<div><slot></slot><slot name="footer"></slot></div>' },
+                    AppIcon: true,
+                    ImportUploadStep: true,
+                    ImportMappingStep: true,
+                    ImportImageMatchStep: true,
+                    ImportPreviewStep: true
+                }
+            },
+            props: {
+                modelValue: true
+            }
+        });
+
+        wrapper.vm.currentStep = 5;
+        wrapper.vm.parsedItems = [
+            { name: 'T恤', spu: 'SPU-1001', sku: 'SKU-RED', image_url: 'a.jpg' }
+        ];
+        wrapper.vm.imageMatches = new Map([
+            ['spu:SPU-1001', new File(['a'], 'a.jpg', { type: 'image/jpeg' })]
+        ]);
+
+        await wrapper.vm.handleUploadImagesAndNext();
+
+        expect(wrapper.vm.currentStep).toBe(5);
+        expect(mocks.addToast).not.toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'success' })
+        );
+    });
+
     it('builds grouped product payload with currency and derived dimensions', async () => {
         const wrapper = mount(ProductImportModal, {
             global: {

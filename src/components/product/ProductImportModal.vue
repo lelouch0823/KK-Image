@@ -745,6 +745,13 @@ const handleUploadImagesAndNext = async () => {
         }
 
         if (!isImageUploadActive(requestId)) return;
+        if (uploadedCount === 0) {
+            addToast({
+                message: t('product.import.upload_failed', { message: t('common.operationFailed') }),
+                type: 'error'
+            });
+            return;
+        }
         addToast({ message: t('product.import.upload_success', { count: uploadedCount }), type: 'success' });
         currentStep.value = 4; // To Preview
         
