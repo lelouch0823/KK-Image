@@ -2550,3 +2550,27 @@
   - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
   - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
 - 对应修复提交: `a18801b fix: clean up empty purchase-order drafts on write failure`
+
+### 2026-04-11 轮次 236
+
+- 继续复查采购建议建单输入去重边界，新增 1 个中风险问题:
+  - [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 的 `createFromOrders()` 会原样吃入 `orderIds`。当前端从多个建议项 `flatMap(order_ids)` 时，同一订单可能重复出现在 payload 中；服务层未去重，跨 chunk 查询时会把同一订单查回多次，并重复生成采购单明细，形成重复采购。
+- 已完成本轮修复:
+  - `createFromOrders()` 现在会先对输入 `orderIds` 做去重，再进入分 chunk 查询和建单流程，阻断重复订单被重复落单。
+  - 已补齐“重复 `order_id` 只允许生成一条采购单明细”的服务层回归测试。
+- 增量回归:
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+- 对应修复提交: `fa3f939 fix: tighten purchase-order from-orders input contract`
+
+### 2026-04-11 轮次 237
+
+- 继续复查采购建议建单完整性校验，新增 1 个高风险问题:
+  - [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 目前只要查回了“部分”可采购订单，就会继续创建采购单；如果用户选中的某些订单在点击建单前已变成非 `confirmed`、失去绑定或变体失效，服务层会静默跳过这些订单并按剩余子集建单，形成危险的部分成功。
+- 已完成本轮修复:
+  - `createFromOrders()` 现在要求“可采购命中集”和请求集完全一致”；若有任一订单已不存在或已不再可采购，会直接拒绝整次建单，并明确返回缺失订单 ID 列表。
+  - 已补齐“部分订单失效时必须整体拒绝”的服务层回归测试，并回归仓储安全删除和采购单路由测试，确认本轮输入契约收紧没有破坏既有创建闭环。
+- 增量回归:
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+  - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+- 对应修复提交: `fa3f939 fix: tighten purchase-order from-orders input contract`
