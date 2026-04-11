@@ -250,4 +250,34 @@ describe('PurchaseOrderService procurement status cascade', () => {
     expect(service.repo.updateStatusIfCurrent).toHaveBeenNthCalledWith(1, 'po-1', 'arrived', 'completed');
     expect(service.repo.updateStatusIfCurrent).toHaveBeenNthCalledWith(2, 'po-1', 'completed', 'arrived');
   });
+
+  it('rolls purchase-order and linked orders back when procurement cascade chunking fails mid-flight', async () => {
+    const db = createDb();
+    let batchCall = 0;
+    db.batch = vi.fn(async (stmts) => {
+      batchCall += 1;
+      db.__batchCalls.push(stmts);
+      if (batchCall === 2) {
+        throw new Error('cascade chunk failed');
+      }
+      return stmts.map(() => ({ meta: { changes: 1 } }));
+    });
+
+    const service = new PurchaseOrderService(db);
+    const linkedOrderIds = Array.from({ length: 205 }, (_, index) => `o-${index + 1}`);
+    service.repo = {
+      findById: vi.fn(async () => ({ id: 'po-1', status: 'draft', items: [] })),
+      updateStatus: vi.fn(async () => true),
+      updateStatusIfCurrent: vi.fn(async () => true),
+      getLinkedOrderIds: vi.fn(async () => linkedOrderIds),
+    };
+
+    await expect(service.updateStatus('po-1', 'ordered')).rejects.toThrow('cascade chunk failed');
+
+    expect(service.repo.updateStatusIfCurrent).toHaveBeenNthCalledWith(1, 'po-1', 'draft', 'ordered');
+    expect(service.repo.updateStatusIfCurrent).toHaveBeenNthCalledWith(2, 'po-1', 'ordered', 'draft');
+    expect(db.batch).toHaveBeenCalledTimes(3);
+    expect(db.__batchCalls[2]).toHaveLength(100);
+    expect(db.__sqls.join('\n')).toContain("COALESCE(procurement_status, 'none') = ?");
+  });
 });

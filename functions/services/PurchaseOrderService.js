@@ -139,18 +139,42 @@ export class PurchaseOrderService {
       const linkedOrderIds = await this.repo.getLinkedOrderIds(poId);
       if (linkedOrderIds.length > 0) {
         const now = Date.now();
-        const stmts = linkedOrderIds.map(orderId =>
-          this.db.prepare(
-            `UPDATE orders
-             SET procurement_status = ?, updated_at = ?
-             WHERE id = ?
-               AND status NOT IN ('delivered', 'void')
-               AND COALESCE(procurement_status, 'none') = 'none'`
-          ).bind(targetProcurementStatus, now, orderId)
-        );
-        const results = await executeBatchChunks(this.db, stmts);
-        cascadedOrders = results.filter(r => r.meta?.changes > 0).length;
-        changedOrderIds = linkedOrderIds.filter((_orderId, index) => (results[index]?.meta?.changes || 0) > 0);
+        try {
+          for (const orderIdChunk of chunkArray(linkedOrderIds, D1_MAX_IN_CLAUSE_SIZE)) {
+            const stmts = orderIdChunk.map(orderId =>
+              this.db.prepare(
+                `UPDATE orders
+                 SET procurement_status = ?, updated_at = ?
+                 WHERE id = ?
+                   AND status NOT IN ('delivered', 'void')
+                   AND COALESCE(procurement_status, 'none') = 'none'`
+              ).bind(targetProcurementStatus, now, orderId)
+            );
+            const results = await this.db.batch(stmts);
+            const changedChunkIds = orderIdChunk.filter(
+              (_orderId, index) => (results[index]?.meta?.changes || 0) > 0
+            );
+            cascadedOrders += changedChunkIds.length;
+            changedOrderIds.push(...changedChunkIds);
+          }
+        } catch (error) {
+          if (changedOrderIds.length > 0) {
+            const rollbackNow = Date.now();
+            const rollbackStatements = changedOrderIds.map((orderId) =>
+              this.db.prepare(
+                `UPDATE orders
+                 SET procurement_status = ?, updated_at = ?
+                 WHERE id = ?
+                   AND status NOT IN ('delivered', 'void')
+                   AND COALESCE(procurement_status, 'none') = ?`
+              ).bind('none', rollbackNow, orderId, targetProcurementStatus)
+            );
+            await executeBatchChunks(this.db, rollbackStatements);
+          }
+          await this.repo.updateStatusIfCurrent(poId, newStatus, po.status);
+          throw error;
+        }
+
         changedOrderStatuses = changedOrderIds.map((orderId) => ({
           orderId,
           procurementStatus: targetProcurementStatus,
