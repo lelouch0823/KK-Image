@@ -2440,3 +2440,16 @@
   - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
   - `src/components/product/__tests__/VariantBatchBuilderModal.test.js`
 - 对应修复提交: `ee0f12c fix: preserve zero alert thresholds across product flows`
+
+### 2026-04-11 轮次 228
+
+- 继续复查货品总览视图与仓储层的库存状态口径，新增 1 个中风险问题:
+  - [src/views/GoodsOverview.vue](/home/bjw/Code/KK-Image/src/views/GoodsOverview.vue) 的状态徽标在 `shortage = 0` 时，仍用 `stockQuantity < alertThreshold` 判定预警；但仓储层 [functions/repositories/GoodsOverviewRepository.js](/home/bjw/Code/KK-Image/functions/repositories/GoodsOverviewRepository.js) 的缺口 `shortage` 与 `availableQuantity` 都基于可用库存 `available`。结果是当 `on_hand` 充足、但 `available` 因预留占用跌破预警线时，货品总览会把“可用库存告警”错误显示成“库存充足”，形成同一页面内“缺口/可用库存/状态徽标”三套口径不一致。
+- 已完成本轮修复:
+  - `GoodsOverview` 的 warning 徽标现在改为优先基于 `availableQuantity` 判定，在缺口为 0 但可用库存已低于预警阈值时，会正确展示 `warning`，并在缺少 `availableQuantity` 时回退到 `stockQuantity`。
+  - 已补齐视图级回归测试，覆盖“在手库存充足但可用库存不足”必须显示 warning 的场景，阻断再次回归为 success。
+- 增量回归:
+  - `src/views/__tests__/GoodsOverview.status-semantics.test.js`
+  - `src/views/__tests__/GoodsOverview.design-system-migration.test.js`
+  - `src/composables/__tests__/useGoodsOverview.test.js`
+- 对应修复提交: `7a24da3 fix: align goods overview warning with available stock`
