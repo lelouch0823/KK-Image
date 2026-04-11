@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 71 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 72 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -117,6 +117,7 @@
   - `a6cd71f`: 商品空间前端正确识别密码门禁响应
   - `2223e18`: 商品空间密码提交只认当前 token 的最新结果
   - `5e7c3a7`: 商品空间未完成人机验证时切 token 不再绕过 Turnstile
+  - `fc1ae7c`: 商品空间模板数据优先投影变体 SKU 和变体主图
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -160,6 +161,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 6 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 7 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 8 个测试，全部通过。
+  - 2026-04-10 运行 1 个回归测试文件，共 2 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -261,6 +263,7 @@
 - 商品公开空间前端把 `GET /api/space/:token` 返回的 `{ success: true, data: { requiresPassword: true } }` 误当成真实空间详情处理，而不是切换到密码门禁。结果是密码空间首屏不会进入密码校验视图，前端状态机直接跑偏到一份伪“空间数据”。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L114) [functions/api/space/[token].js](/home/bjw/Code/KK-Image/functions/api/space/[token].js#L178)
 - 商品公开空间页的 `submitPassword()` 没有 token/request 维度隔离。用户在密码验证请求未返回前切到另一条空间时，旧密码验证成功结果仍会回写当前页面，把新空间直接串回旧空间详情。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L153)
 - 商品公开空间页在 Turnstile 开启但尚未验证时，如果路由 token 变化，`watch(token)` 会直接调用 `loadSpace()`。结果是用户无需完成人机验证，只要切一次空间 token 就能直接打空间详情接口，门禁形同虚设。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L177)
+- 共享空间模板数据虽然已经 JOIN 到 `pv_sku` 和变体主图 `display_image_id`，但 `projectSpaceTemplateData()` 仍然固定投影商品 `SPU` 和商品图片。结果是绑定到具体变体的商品空间会把 `SPU` 当作 `SKU` 展示，主图也退回商品通图，销售空间和公开商品空间都会看到错规格、错主图。[functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js#L14) [functions/lib/hono/routes/manage/spaces/transformers.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/transformers.js#L14)
 
 ### Low
 
@@ -1387,3 +1390,18 @@
   - `src/views/__tests__/Space.lifecycle.test.js`
   - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
 - 对应修复提交: `5e7c3a7 fix: keep public space turnstile gate on token switches`
+
+### 2026-04-10 轮次 131
+
+- 继续复查商品空间模板数据投影，新增 1 个中风险问题:
+  - 变体绑定空间虽然查询到了 `pv_sku` 和变体主图，但 `projectSpaceTemplateData()` 仍固定回填商品 `SPU` 和商品图，导致空间详情展示错规格、错主图
+- 下一步把空间模板数据改成“变体绑定优先吃变体投影，商品绑定再回退商品投影”。
+
+### 2026-04-10 轮次 132
+
+- 已完成轮次 131 新增问题修复:
+  - `projectSpaceTemplateData()` 现在在变体绑定场景下会优先投影变体 `SKU`
+  - 变体主图会被前置到 `templateData.images`，商品空间详情不再退回商品通图
+- 增量回归:
+  - `functions/lib/hono/routes/manage/spaces/__tests__/transformers.test.js`
+- 对应修复提交: `fc1ae7c fix: prefer variant projections in space template data`
