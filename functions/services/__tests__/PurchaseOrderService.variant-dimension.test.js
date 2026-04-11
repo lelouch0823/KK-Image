@@ -160,6 +160,41 @@ describe('PurchaseOrderService variant dimension', () => {
     expect(service.repo.addItems).not.toHaveBeenCalled();
   });
 
+  it('createFromOrders cleans up the created draft when item insertion fails', async () => {
+    const stmt = {
+      bind: vi.fn(() => stmt),
+      all: vi.fn(async () => ({
+        results: [{
+          id: 'o-1',
+          order_no: 'SO-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          quantity: 2,
+          name: 'Tee',
+          sku: 'TEE-YELLOW-S',
+          cost_price: 11,
+        }],
+      })),
+    };
+    const db = { prepare: vi.fn(() => stmt) };
+    const service = new PurchaseOrderService(db);
+    const insertionError = new Error('insert items failed');
+    service.repo = {
+      create: vi.fn(async () => ({ id: 'po-1' })),
+      addItems: vi.fn(async () => {
+        throw insertionError;
+      }),
+      findById: vi.fn(async () => ({ id: 'po-1', items: [] })),
+      findActiveBindingsByPreOrderIds: vi.fn(async () => []),
+      deleteIfEmptyDraft: vi.fn(async () => true),
+    };
+
+    await expect(service.createFromOrders(['o-1'])).rejects.toThrow('insert items failed');
+
+    expect(service.repo.deleteIfEmptyDraft).toHaveBeenCalledWith('po-1');
+    expect(service.repo.findById).not.toHaveBeenCalled();
+  });
+
   it('_updateInventory should reject items without variant_id', async () => {
     const db = {
       prepare: vi.fn(() => ({ bind: vi.fn() })),

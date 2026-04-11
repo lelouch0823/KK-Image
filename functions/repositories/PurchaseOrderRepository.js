@@ -142,6 +142,21 @@ export class PurchaseOrderRepository {
     throw new Error('failed to create purchase order');
   }
 
+  async deleteIfEmptyDraft(id) {
+    const result = await this.db.prepare(`
+      DELETE FROM purchase_orders
+      WHERE id = ?
+        AND status = 'draft'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM purchase_order_items
+          WHERE po_id = ?
+        )
+    `).bind(id, id).run();
+
+    return hasChanges(result);
+  }
+
   /**
    * 根据 ID 查找采购单 (含明细)
    */

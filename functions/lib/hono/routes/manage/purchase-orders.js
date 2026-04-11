@@ -395,7 +395,18 @@ app.post('/', async (c) => {
   if (body.items && body.items.length > 0) {
     await validateVariantItems(c.env.DB, body.items);
     await validatePreOrderBinding(c.env.DB, body.items);
-    await repo.addItems(po.id, body.items);
+    try {
+      await repo.addItems(po.id, body.items);
+    } catch (error) {
+      if (typeof repo.deleteIfEmptyDraft === 'function') {
+        try {
+          await repo.deleteIfEmptyDraft(po.id);
+        } catch (cleanupError) {
+          console.error('Purchase-order route draft cleanup failed:', cleanupError);
+        }
+      }
+      throw error;
+    }
   }
 
   await publishPurchaseOrderCacheEvent(c, {

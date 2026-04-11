@@ -184,4 +184,17 @@ describe('PurchaseOrderRepository safety guards', () => {
     ]);
     expect(db.prepare.mock.calls[0][0]).toContain("po.status != 'cancelled'");
   });
+
+  it('deleteIfEmptyDraft only removes empty draft purchase orders', async () => {
+    const db = createDb(1);
+    const repo = new PurchaseOrderRepository(db);
+
+    const removed = await repo.deleteIfEmptyDraft('po-1');
+
+    expect(removed).toBe(true);
+    const sql = db.prepare.mock.calls[0][0];
+    expect(sql).toContain("status = 'draft'");
+    expect(sql).toContain('NOT EXISTS');
+    expect(sql).toContain('FROM purchase_order_items');
+  });
 });

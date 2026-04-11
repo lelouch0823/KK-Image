@@ -423,7 +423,18 @@ export class PurchaseOrderService {
       unit_cost: order.cost_price || 0,
     }));
 
-    await this.repo.addItems(po.id, items);
+    try {
+      await this.repo.addItems(po.id, items);
+    } catch (error) {
+      if (typeof this.repo.deleteIfEmptyDraft === 'function') {
+        try {
+          await this.repo.deleteIfEmptyDraft(po.id);
+        } catch (cleanupError) {
+          console.error('Purchase-order draft cleanup failed:', cleanupError);
+        }
+      }
+      throw error;
+    }
 
     // 4. 返回完整的采购单
     return this.repo.findById(po.id);

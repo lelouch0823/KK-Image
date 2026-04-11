@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   repoCreate: vi.fn(),
   repoUpdate: vi.fn(),
   repoAddItems: vi.fn(),
+  repoDeleteIfEmptyDraft: vi.fn(),
   repoFindActiveBindingsByPreOrderIds: vi.fn(),
   repoUpdateItem: vi.fn(),
   repoRemoveItem: vi.fn(),
@@ -31,6 +32,7 @@ vi.mock('../../../../../repositories/PurchaseOrderRepository.js', () => ({
     create: mocks.repoCreate,
     update: mocks.repoUpdate,
     addItems: mocks.repoAddItems,
+    deleteIfEmptyDraft: mocks.repoDeleteIfEmptyDraft,
     findActiveBindingsByPreOrderIds: mocks.repoFindActiveBindingsByPreOrderIds,
     updateItem: mocks.repoUpdateItem,
     removeItem: mocks.repoRemoveItem,
@@ -156,6 +158,7 @@ describe('manage purchase-orders routes', () => {
     mocks.repoCreate.mockResolvedValue({ id: 'po-1', po_no: 'PO-1', status: 'draft' });
     mocks.repoUpdate.mockResolvedValue(true);
     mocks.repoAddItems.mockResolvedValue(['poi-1']);
+    mocks.repoDeleteIfEmptyDraft.mockResolvedValue(true);
     mocks.repoFindActiveBindingsByPreOrderIds.mockResolvedValue([]);
     mocks.repoUpdateItem.mockResolvedValue(true);
     mocks.repoRemoveItem.mockResolvedValue(true);
@@ -1131,5 +1134,35 @@ describe('manage purchase-orders routes', () => {
     expect(orderBinds.length).toBeGreaterThan(1);
     expect(Math.max(...orderBinds.map((args) => args.length))).toBeLessThanOrEqual(100);
     expect(mocks.repoAddItems).toHaveBeenCalledWith('po-1', items);
+  });
+
+  it('cleans up the created draft when create route item insertion fails', async () => {
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+    });
+    mocks.repoAddItems.mockRejectedValueOnce(new Error('insert items failed'));
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            quantity: 1,
+            unit_cost: 10,
+          }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(500);
+    expect(mocks.repoDeleteIfEmptyDraft).toHaveBeenCalledWith('po-1');
+    expect(mocks.publish).not.toHaveBeenCalled();
   });
 });
