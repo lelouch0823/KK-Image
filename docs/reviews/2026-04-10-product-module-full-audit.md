@@ -2903,3 +2903,14 @@
 - 增量回归:
   - `functions/services/__tests__/PurchaseOrderService.procurement-status.test.js`
 - 对应修复提交: `4d4ba5f fix: roll back failed procurement cascades`
+
+### 2026-04-12 轮次 260
+
+- 继续深审采购单 header 更新与成本分摊链路，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js) 修复前在已完成采购单执行 `PUT /:id` 更新运费/关税等结算字段时，会先把 header 新值写入，再执行 `allocateCosts()`。一旦重算分摊失败，采购单 header 会保留新费用，而 `purchase_order_items` 分摊结果仍是旧值，形成“header 已改、成本分摊未改”的半提交状态。
+- 已完成本轮修复:
+  - 路由现在会在重算成本失败时按本次 `PUT` 覆盖的字段把采购单 header 回滚到更新前快照，避免 header 与分摊结果分叉。
+  - 已补齐路由回归测试，锁定“已完成采购单更新结算字段时，若重算成本失败必须回滚 header 更新且不得发布后续事件”的行为。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+- 对应修复提交: `dfec28c fix: roll back failed purchase-order updates`
