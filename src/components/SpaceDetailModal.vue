@@ -284,7 +284,14 @@ const openPreview = () => {
 };
 
 onMounted(loadData);
-watch(() => props.space.id, loadData);
+watch(
+  () => props.space.id,
+  () => {
+    activeTab.value = 'files';
+    showFileSelector.value = false;
+    loadData();
+  }
+);
 onUnmounted(() => {
   loadRequestId += 1;
 });

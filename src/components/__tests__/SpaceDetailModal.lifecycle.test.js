@@ -191,4 +191,102 @@ describe('SpaceDetailModal lifecycle', () => {
     expect(wrapper.vm.spaceData).toBe(null);
     expect(wrapper.text()).not.toContain('空间 A');
   });
+
+  it('resets to files tab when switching to another space', async () => {
+    mocks.loadSpace
+      .mockResolvedValueOnce({
+        id: 'space-a',
+        name: '空间 A',
+        template: 'gallery',
+        isPublic: true,
+        files: [],
+      })
+      .mockResolvedValueOnce({
+        id: 'space-b',
+        name: '空间 B',
+        template: 'gallery',
+        isPublic: true,
+        files: [],
+      });
+
+    const wrapper = mount(SpaceDetailModal, {
+      props: {
+        space: { id: 'space-a' },
+        canManage: true,
+      },
+      global: {
+        stubs: {
+          Modal: {
+            template: '<div><slot name="header" /><slot /><slot name="footer" /></div>',
+            props: ['modelValue'],
+          },
+          StatusBadge: { template: '<div><slot /></div>' },
+          FileSelector: { template: '<div />' },
+          SpaceAnalytics: { template: '<div />' },
+          SubspaceList: { template: '<div />' },
+          SpaceFilesTab: { template: '<div />' },
+          SpaceSettingsTab: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+    wrapper.vm.activeTab = 'analytics';
+
+    await wrapper.setProps({
+      space: { id: 'space-b' },
+    });
+    await flushPromises();
+
+    expect(wrapper.vm.activeTab).toBe('files');
+  });
+
+  it('closes the file selector when switching to another space', async () => {
+    mocks.loadSpace
+      .mockResolvedValueOnce({
+        id: 'space-a',
+        name: '空间 A',
+        template: 'gallery',
+        isPublic: true,
+        files: [],
+      })
+      .mockResolvedValueOnce({
+        id: 'space-b',
+        name: '空间 B',
+        template: 'gallery',
+        isPublic: true,
+        files: [],
+      });
+
+    const wrapper = mount(SpaceDetailModal, {
+      props: {
+        space: { id: 'space-a' },
+        canManage: true,
+      },
+      global: {
+        stubs: {
+          Modal: {
+            template: '<div><slot name="header" /><slot /><slot name="footer" /></div>',
+            props: ['modelValue'],
+          },
+          StatusBadge: { template: '<div><slot /></div>' },
+          FileSelector: { template: '<div />' },
+          SpaceAnalytics: { template: '<div />' },
+          SubspaceList: { template: '<div />' },
+          SpaceFilesTab: { template: '<div />' },
+          SpaceSettingsTab: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+    wrapper.vm.showFileSelector = true;
+
+    await wrapper.setProps({
+      space: { id: 'space-b' },
+    });
+    await flushPromises();
+
+    expect(wrapper.vm.showFileSelector).toBe(false);
+  });
 });
