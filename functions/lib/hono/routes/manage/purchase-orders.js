@@ -296,7 +296,22 @@ app.post('/:id/shortage-closures', async (c) => {
       },
     },
   ];
-  if (Array.isArray(result?.changedOrderStatuses) && result.changedOrderStatuses.length > 0) {
+  if (Array.isArray(result?.changedOrderProgressions) && result.changedOrderProgressions.length > 0) {
+    events.push(...result.changedOrderProgressions.map((progression) => ({
+      event_type: 'order_procurement_progressed',
+      aggregate_type: 'order',
+      aggregate_id: progression.orderId,
+      payload: {
+        purchase_order_id: poId,
+        order_id: progression.orderId,
+        order_line_id: progression.orderLineId,
+        order_line_display_status_after: progression.orderLineDisplayStatus,
+        procurement_status_after: progression.procurementStatus,
+        order_procurement_status_after: progression.procurementStatus,
+        trigger: 'purchase_order_shortage_closed',
+      },
+    })));
+  } else if (Array.isArray(result?.changedOrderStatuses) && result.changedOrderStatuses.length > 0) {
     events.push(...result.changedOrderStatuses.map(({ orderId, procurementStatus }) => ({
       event_type: 'order_procurement_progressed',
       aggregate_type: 'order',
@@ -305,6 +320,7 @@ app.post('/:id/shortage-closures', async (c) => {
         purchase_order_id: poId,
         order_id: orderId,
         procurement_status_after: procurementStatus,
+        order_procurement_status_after: procurementStatus,
         trigger: 'purchase_order_shortage_closed',
       },
     })));
@@ -523,6 +539,7 @@ app.patch('/:id/status', async (c) => {
         purchase_order_id: c.req.param('id'),
         order_id: orderId,
         procurement_status_after: procurementStatus,
+        order_procurement_status_after: procurementStatus,
         trigger: 'purchase_order_status_changed',
       },
     })));
@@ -535,6 +552,7 @@ app.patch('/:id/status', async (c) => {
         purchase_order_id: c.req.param('id'),
         order_id: orderId,
         procurement_status_after: result.targetProcurementStatus,
+        order_procurement_status_after: result.targetProcurementStatus,
         trigger: 'purchase_order_status_changed',
       },
     })));

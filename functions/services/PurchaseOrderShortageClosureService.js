@@ -123,6 +123,7 @@ export class PurchaseOrderShortageClosureService {
     const orderAggregateTransitions = new Map();
     const results = [];
     const changedOrderStatuses = [];
+    const changedOrderProgressions = [];
     const seenItemIds = new Set();
     const timestamp = this.now();
 
@@ -286,9 +287,11 @@ export class PurchaseOrderShortageClosureService {
       );
     }
 
+    const orderNextProcurementStatuses = new Map();
     for (const [orderId, transition] of orderAggregateTransitions.entries()) {
       const previousStatus = projectCompatibilityProcurementStatus(transition.current);
       const nextStatus = projectCompatibilityProcurementStatus(transition.next);
+      orderNextProcurementStatuses.set(orderId, nextStatus);
       if (nextStatus === previousStatus) continue;
 
       orderStatements.push(
@@ -317,6 +320,21 @@ export class PurchaseOrderShortageClosureService {
       changedOrderStatuses.push({
         orderId,
         procurementStatus: nextStatus,
+      });
+    }
+
+    for (const transition of orderLineTransitions.values()) {
+      const orderId = transition.next.order_id || transition.current.order_id || null;
+      if (!orderId) continue;
+      changedOrderProgressions.push({
+        orderId,
+        orderLineId: transition.next.id,
+        orderLineDisplayStatus: transition.next.display_status,
+        procurementStatus:
+          orderNextProcurementStatuses.get(orderId) ||
+          projectCompatibilityProcurementStatus(
+            orderAggregateTransitions.get(orderId)?.next || {}
+          ),
       });
     }
 
@@ -352,6 +370,7 @@ export class PurchaseOrderShortageClosureService {
       closed_count: results.length,
       items: results,
       changedOrderStatuses,
+      changedOrderProgressions,
     };
 
     try {

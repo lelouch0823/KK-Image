@@ -207,6 +207,14 @@ describe('PurchaseOrderShortageClosureService', () => {
         }),
       ],
       changedOrderStatuses: [],
+      changedOrderProgressions: [
+        {
+          orderId: 'order-1',
+          orderLineId: 'ol-1',
+          orderLineDisplayStatus: 'partially_received',
+          procurementStatus: 'partially_arrived',
+        },
+      ],
     });
 
     const flattenedStatements = harness.calls.batchCalls.flat();
