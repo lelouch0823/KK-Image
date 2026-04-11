@@ -2525,3 +2525,28 @@
   - `src/components/purchase-order/__tests__/PickerModals.design-system.test.js`
   - `src/utils/__tests__/purchase-order-variant-selection.test.js`
 - 对应修复提交: `94d9fd5 fix: clear stale purchase suggestions after refresh failure`
+
+### 2026-04-11 轮次 234
+
+- 继续复查采购建议建单后端闭环，新增 1 个高风险问题:
+  - [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 的 `createFromOrders()` 先 `repo.create()` 再 `repo.addItems()`，但第二步失败时没有任何补偿清理。结果是 `/api/manage/purchase-orders/from-orders` 在明细插入失败时会留下一个空的草稿采购单，形成服务层级别的半成功脏数据。
+- 已完成本轮修复:
+  - `createFromOrders()` 现在在明细插入失败时会调用仓储层的“仅删除空草稿采购单”补偿逻辑，避免把半成品采购单遗留在系统里。
+  - 已为仓储层新增 `deleteIfEmptyDraft()` 安全删除 helper，只会删除“仍为空且状态还是 draft”的采购单，避免误删已被后续流程接管的记录。
+- 增量回归:
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+  - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
+- 对应修复提交: `a18801b fix: clean up empty purchase-order drafts on write failure`
+
+### 2026-04-11 轮次 235
+
+- 继续复查管理端手工建采购单入口，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js) 的 `POST /api/manage/purchase-orders` 同样先创建主表再插入明细；如果 `repo.addItems()` 抛错，路由会直接返回 500，但已创建的空采购单不会清理，和服务层问题一样会把半成功结果落库。
+- 已完成本轮修复:
+  - 路由层现在在手工建单的明细插入失败时，同样调用“仅删除空草稿采购单”的补偿逻辑，再把错误向上抛出；因此不会再在报错后遗留空采购单。
+  - 已补齐路由回归测试，覆盖“建单失败时必须清理已创建草稿且不得发布创建事件”的场景。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+  - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
+- 对应修复提交: `a18801b fix: clean up empty purchase-order drafts on write failure`
