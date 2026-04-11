@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 83 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 84 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -1606,3 +1606,20 @@
   - `src/components/space/__tests__/SpaceCollection.contract.test.js`
   - `src/views/__tests__/Space.lifecycle.test.js`
 - 对应修复提交: `d149055 fix: honor public collection subspace links`
+
+### 2026-04-10 轮次 155
+
+- 继续复查公开合集空间子空间卡片投影，新增 1 个中风险问题:
+  - 公开空间接口对子空间仍只认显式 `cover_storage_key` 和 `space_files`。商品型子空间只要没有单独设置封面文件，就会继续返回 `coverImage: null`、`fileCount: 0`，在公开合集页显示成空白占位和假零文件
+- 下一步把公开合集子空间的封面和文件数口径也对齐到“显式封面/真实文件优先，模板图片兜底”。
+
+### 2026-04-10 轮次 156
+
+- 已完成轮次 155 新增问题修复:
+  - 公开空间接口现在会为商品型子空间补齐模板图片 URL 归一化，不再把原始存储键直接透给前端
+  - 公开合集空间中的商品型子空间在没有显式封面和空间文件时，也会从模板图片中补齐 `coverImage` 和 `fileCount`
+- 增量回归:
+  - `functions/api/space/__tests__/public-space-access.test.js`
+  - `src/components/space/__tests__/SpaceCollection.contract.test.js`
+  - `src/views/__tests__/Space.lifecycle.test.js`
+- 对应修复提交: `93bdca2 fix: hydrate public collection subspace media`
