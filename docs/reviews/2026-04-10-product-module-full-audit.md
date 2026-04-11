@@ -2284,3 +2284,15 @@
   - `src/components/__tests__/SpaceDetailModal.lifecycle.test.js`
   - `src/components/__tests__/SubspaceList.lifecycle.test.js`
   - `src/views/__tests__/SpaceManager.permission-alignment.test.js`
+
+### 2026-04-11 轮次 218
+
+- 继续复查商品详情工作流弹窗切换链路，新增 1 个中风险问题:
+  - `ProductWorkflowModal` 在 `edit` 模式下接收到新的 `product` 时，不会退出旧编辑态，也不会清空旧 `editDraft`。如果父层复用同一个工作流弹窗切换到另一件商品，界面会继续显示上一件商品的编辑表单，形成跨商品脏草稿和错误上下文。[src/components/product/ProductWorkflowModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductWorkflowModal.vue)
+- 已完成本轮修复:
+  - `ProductWorkflowModal` 现在在商品对象切换时会主动退出旧编辑态，清空旧编辑草稿和嵌入式关闭标记，再回到新商品的详情态。
+  - 已补齐“编辑中切换商品”场景的工作流回归测试。
+- 增量回归:
+  - `src/components/product/__tests__/ProductWorkflowModal.test.js`
+  - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
+  - `src/components/__tests__/ProductManager.variant-hydration.test.js`
