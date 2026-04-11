@@ -2296,3 +2296,16 @@
   - `src/components/product/__tests__/ProductWorkflowModal.test.js`
   - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
   - `src/components/__tests__/ProductManager.variant-hydration.test.js`
+
+### 2026-04-11 轮次 219
+
+- 继续复查商品编辑入口的初始化失败边界，新增 1 个中风险问题:
+  - `ProductCreateModal` 在父层传入 `initializationError` 时只显示错误提示，但 `handleSubmit()` 和主提交按钮都没有阻断。这样编辑初始化失败后，用户仍可继续提交，前端会拿着不完整甚至空壳的 `initialData` 往 `updateProduct*` 发请求，形成“加载失败但仍可误保存”的假可操作态。[src/components/product/ProductCreateModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductCreateModal.vue)
+- 已完成本轮修复:
+  - `ProductCreateModal` 现在在存在 `initializationError` 时会统一阻断表单提交。
+  - 创建/编辑主按钮的禁用条件也同步纳入 `initializationError`，不再把失败初始化后的编辑器伪装成可继续保存。
+  - 已补齐“初始化失败时禁止提交”的回归测试，并复核普通创建、库存所有权和工作流编辑链路未受回归影响。
+- 增量回归:
+  - `src/components/product/__tests__/ProductCreateModal.variant-first.test.js`
+  - `src/components/product/__tests__/ProductCreateModal.inventory-ownership.test.js`
+  - `src/components/product/__tests__/ProductWorkflowModal.test.js`
