@@ -5,6 +5,22 @@ import { PurchaseOrderShortageClosureService } from '../PurchaseOrderShortageClo
 function createDbHarness({
   poRow = { id: 'po-1', status: 'shipping' },
   purchaseOrderItems = {},
+  orderLineRows = {
+    'order-1': [
+      {
+        id: 'ol-1',
+        order_id: 'order-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 10,
+        procured_qty: 10,
+        received_qty: 7,
+        reserved_qty: 0,
+        shipped_qty: 0,
+        cancelled_qty: 0,
+      },
+    ],
+  },
   batchResultsQueue = null,
   batchError = null,
   batchErrorMatcher = null,
@@ -65,6 +81,40 @@ function createDbHarness({
 
       if (sql.includes('FROM purchase_order_items')) {
         statement.first = vi.fn(async () => itemRows[String(statement.params[0] || '')] || null);
+      }
+
+      if (sql.includes('FROM order_lines') && sql.includes('SUM(')) {
+        statement.first = vi.fn(async () => {
+          const orderId = String(statement.params[0] || '');
+          const rows = orderLineRows[orderId] || [];
+          return rows.reduce((acc, row) => ({
+            ordered_qty: (acc.ordered_qty || 0) + (row.ordered_qty || 0),
+            procured_qty: (acc.procured_qty || 0) + (row.procured_qty || 0),
+            received_qty: (acc.received_qty || 0) + (row.received_qty || 0),
+            cancelled_qty: (acc.cancelled_qty || 0) + (row.cancelled_qty || 0),
+          }), {
+            ordered_qty: 0,
+            procured_qty: 0,
+            received_qty: 0,
+            cancelled_qty: 0,
+          });
+        });
+      }
+
+      if (sql.includes('FROM order_lines') && sql.includes('WHERE order_id = ?')) {
+        statement.all = vi.fn(async () => {
+          const orderId = String(statement.params[0] || '');
+          const variantId = statement.params[1];
+          const productId = statement.params[2];
+          let rows = [...(orderLineRows[orderId] || [])];
+          if (variantId) {
+            rows = rows.filter((row) => row.variant_id === variantId);
+          }
+          if (productId) {
+            rows = rows.filter((row) => row.product_id === productId);
+          }
+          return { results: rows };
+        });
       }
 
       return statement;
@@ -129,7 +179,7 @@ describe('PurchaseOrderShortageClosureService', () => {
     });
   });
 
-  it('closes remaining receivable quantity on purchase-order items without touching order lines', async () => {
+  it('closes remaining receivable quantity and reprojects linked order procurement progress', async () => {
     const result = await service.closeShortages('po-1', {
       items: [
         { purchase_order_item_id: 'poi-1', close_qty: 3 },
@@ -156,11 +206,12 @@ describe('PurchaseOrderShortageClosureService', () => {
           display_status: 'cancelled',
         }),
       ],
+      changedOrderStatuses: [],
     });
 
     const flattenedStatements = harness.calls.batchCalls.flat();
     expect(flattenedStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))).toBe(true);
-    expect(flattenedStatements.some((statement) => statement.sql.includes('UPDATE order_lines'))).toBe(false);
+    expect(flattenedStatements.some((statement) => statement.sql.includes('UPDATE order_lines'))).toBe(true);
     expect(flattenedStatements.some((statement) => statement.sql.includes('UPDATE orders'))).toBe(false);
 
     const itemUpdateParams = flattenedStatements
@@ -171,6 +222,27 @@ describe('PurchaseOrderShortageClosureService', () => {
       [4, 'cancelled', 'poi-2', 'po-1', 0, 0, 4],
     ]);
 
+    const orderLineUpdateStatement = flattenedStatements.find((statement) =>
+      statement.sql.includes('UPDATE order_lines')
+    );
+    expect(orderLineUpdateStatement.params).toEqual([
+      10,
+      7,
+      7,
+      0,
+      0,
+      0,
+      'partially_received',
+      1710000000000,
+      'ol-1',
+      'order-1',
+      7,
+      0,
+      10,
+      10,
+      0,
+      0,
+    ]);
     expect(flattenedStatements.some((statement) => statement.sql.includes('UPDATE purchase_orders SET updated_at = ?'))).toBe(true);
   });
 
@@ -284,7 +356,7 @@ describe('PurchaseOrderShortageClosureService', () => {
     const finalizeFailureHarness = createDbHarness({
       batchError: new Error('finalize failed'),
       batchErrorMatcher: (statement) => statement.sql.includes('UPDATE purchase_orders SET updated_at = ?'),
-      batchErrorCallIndex: 2,
+      batchErrorCallIndex: 3,
     });
     const finalizeFailureService = new PurchaseOrderShortageClosureService(finalizeFailureHarness.db, {
       commandIdempotencyRepo: finalizeFailureHarness.commandIdempotencyRepo,
@@ -300,16 +372,19 @@ describe('PurchaseOrderShortageClosureService', () => {
       })
     ).rejects.toThrow('finalize failed');
 
-    expect(finalizeFailureHarness.db.batch).toHaveBeenCalledTimes(3);
-    const revertStatements = finalizeFailureHarness.calls.batchCalls[2];
-    expect(revertStatements).toHaveLength(2);
+    expect(finalizeFailureHarness.db.batch).toHaveBeenCalledTimes(4);
+    const revertStatements = finalizeFailureHarness.calls.batchCalls[3];
+    expect(revertStatements).toHaveLength(3);
     expect(
       finalizeFailureHarness.calls.runStatements.some((statement) =>
         statement.sql.includes('DELETE FROM command_idempotency')
       )
     ).toBe(true);
     expect(
-      revertStatements.every((statement) => statement.sql.includes('UPDATE purchase_order_items'))
+      revertStatements.some((statement) => statement.sql.includes('UPDATE order_lines'))
+    ).toBe(true);
+    expect(
+      revertStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))
     ).toBe(true);
   });
 });

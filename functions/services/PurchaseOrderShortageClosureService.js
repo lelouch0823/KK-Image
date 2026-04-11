@@ -3,19 +3,24 @@ import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { CommandIdempotencyRepository } from '../repositories/CommandIdempotencyRepository.js';
 import {
   computePurchaseOrderRemainingReceivable,
+  projectCompatibilityProcurementStatus,
   projectPurchaseOrderItemStatus,
   toNonNegativeInt,
 } from './purchase-order-projection.js';
 import {
+  buildCompatibilityOrderProcurementStatusStatement,
+  buildOrderLineProjectionStatement,
   buildShortageClosureRequestFingerprint,
   buildPurchaseOrderItemCancelledQtyStatement,
   buildFinalizeCommandStatements,
   cleanupReservedCommand,
+  queryCompatibilityProcurementAggregate,
   replayReservedCommand,
   resolveReservationOwnership,
   requirePurchaseOrder,
   requirePurchaseOrderItemForPo,
 } from './order-procurement-shared.js';
+import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 
 function normalizeClosureEntry(entry = {}) {
   return {
@@ -30,6 +35,59 @@ export class PurchaseOrderShortageClosureService {
     this.commandIdempotencyRepo =
       deps.commandIdempotencyRepo || new CommandIdempotencyRepository(db, { now: deps.now });
     this.now = deps.now || (() => Date.now());
+  }
+
+  async queryCompatibilityOrderLines(
+    orderId,
+    { productId = null, variantId = null } = {},
+    includeScopedFilters = true
+  ) {
+    if (!orderId) return [];
+
+    const filters = ['order_id = ?'];
+    const params = [orderId];
+
+    if (includeScopedFilters && variantId) {
+      filters.push('variant_id = ?');
+      params.push(variantId);
+    }
+    if (includeScopedFilters && productId) {
+      filters.push('product_id = ?');
+      params.push(productId);
+    }
+
+    const { results } = await this.db
+      .prepare(
+        `SELECT id, order_id, product_id, variant_id, ordered_qty, procured_qty, received_qty, reserved_qty, shipped_qty, cancelled_qty
+         FROM order_lines
+         WHERE ${filters.join(' AND ')}
+         ORDER BY created_at ASC
+         LIMIT 2`
+      )
+      .bind(...params)
+      .all();
+
+    return results || [];
+  }
+
+  async resolveCompatibilityOrderLine(orderId, criteria = {}) {
+    if (!orderId) return null;
+
+    const scopedMatches = await this.queryCompatibilityOrderLines(orderId, criteria, true);
+    if (scopedMatches.length === 1) return scopedMatches[0];
+    if (scopedMatches.length > 1) {
+      throw new BadRequestError('无法确定关联的订单行，请刷新后重试');
+    }
+
+    if (criteria?.productId || criteria?.variantId) {
+      const fallbackMatches = await this.queryCompatibilityOrderLines(orderId, criteria, false);
+      if (fallbackMatches.length === 1) return fallbackMatches[0];
+      if (fallbackMatches.length > 1) {
+        throw new BadRequestError('无法确定关联的订单行，请刷新后重试');
+      }
+    }
+
+    return null;
   }
 
   async closeShortages(poId, payload = {}, options = {}) {
@@ -59,8 +117,14 @@ export class PurchaseOrderShortageClosureService {
 
     const statements = [];
     const revertStatements = [];
+    const orderStatements = [];
+    const orderReverts = [];
+    const orderLineTransitions = new Map();
+    const orderAggregateTransitions = new Map();
     const results = [];
+    const changedOrderStatuses = [];
     const seenItemIds = new Set();
+    const timestamp = this.now();
 
     for (const entry of items) {
       const normalizedEntry = normalizeClosureEntry(entry);
@@ -108,6 +172,50 @@ export class PurchaseOrderShortageClosureService {
           expectedDisplayStatus: displayStatus,
         })
       );
+
+      if (poItem.pre_order_id) {
+        const compatibilityOrderLine = await this.resolveCompatibilityOrderLine(poItem.pre_order_id, {
+          productId: poItem.product_id || null,
+          variantId: poItem.variant_id || null,
+        });
+        if (!compatibilityOrderLine) {
+          throw new BadRequestError('关联订单缺少唯一可投影的订单行');
+        }
+
+        const existingLineTransition = orderLineTransitions.get(compatibilityOrderLine.id);
+        const currentLineState = existingLineTransition?.next || compatibilityOrderLine;
+        const nextLineState = {
+          ...currentLineState,
+          procured_qty: Math.max(
+            toNonNegativeInt(currentLineState.received_qty),
+            toNonNegativeInt(currentLineState.procured_qty) - closeQty
+          ),
+        };
+        nextLineState.display_status = projectOrderLineStatus(nextLineState);
+        orderLineTransitions.set(compatibilityOrderLine.id, {
+          current: existingLineTransition?.current || compatibilityOrderLine,
+          next: nextLineState,
+        });
+
+        const aggregateTransition = orderAggregateTransitions.get(poItem.pre_order_id) || {
+          current: await queryCompatibilityProcurementAggregate(this.db, poItem.pre_order_id),
+          next: await queryCompatibilityProcurementAggregate(this.db, poItem.pre_order_id),
+        };
+        const procuredDelta = Math.max(
+          toNonNegativeInt(currentLineState.procured_qty) -
+            toNonNegativeInt(nextLineState.procured_qty),
+          0
+        );
+        aggregateTransition.next = {
+          ...aggregateTransition.next,
+          procured_qty: Math.max(
+            toNonNegativeInt(aggregateTransition.next.procured_qty) - procuredDelta,
+            0
+          ),
+        };
+        orderAggregateTransitions.set(poItem.pre_order_id, aggregateTransition);
+      }
+
       results.push({
         purchase_order_item_id: purchaseOrderItemId,
         close_qty: closeQty,
@@ -164,10 +272,86 @@ export class PurchaseOrderShortageClosureService {
       throw new BadRequestError('采购单明细待收进度已变化，请刷新后重试');
     }
 
+    for (const transition of orderLineTransitions.values()) {
+      orderStatements.push(
+        buildOrderLineProjectionStatement(this.db, transition.next, transition.current, timestamp, {
+          guardProjectionState: true,
+        })
+      );
+      orderReverts.unshift(
+        buildOrderLineProjectionStatement(this.db, transition.current, transition.next, timestamp, {
+          guardProjectionState: true,
+          expectedDisplayStatus: transition.next.display_status,
+        })
+      );
+    }
+
+    for (const [orderId, transition] of orderAggregateTransitions.entries()) {
+      const previousStatus = projectCompatibilityProcurementStatus(transition.current);
+      const nextStatus = projectCompatibilityProcurementStatus(transition.next);
+      if (nextStatus === previousStatus) continue;
+
+      orderStatements.push(
+        buildCompatibilityOrderProcurementStatusStatement(
+          this.db,
+          orderId,
+          nextStatus,
+          timestamp,
+          {
+            excludeTerminalStatuses: true,
+            requireStatusChange: true,
+          }
+        )
+      );
+      orderReverts.unshift(
+        buildCompatibilityOrderProcurementStatusStatement(
+          this.db,
+          orderId,
+          previousStatus,
+          timestamp,
+          {
+            excludeTerminalStatuses: true,
+          }
+        )
+      );
+      changedOrderStatuses.push({
+        orderId,
+        procurementStatus: nextStatus,
+      });
+    }
+
+    if (orderStatements.length > 0) {
+      const orderBatchResults = await this.db.batch(orderStatements);
+      const failedOrderIndexes = [];
+      for (let index = 0; index < orderStatements.length; index += 1) {
+        if ((orderBatchResults[index]?.meta?.changes || 0) !== 1) {
+          failedOrderIndexes.push(index);
+        }
+      }
+
+      if (failedOrderIndexes.length > 0) {
+        const successfulOrderReverts = orderReverts.filter(
+          (_statement, index) => !failedOrderIndexes.includes(index)
+        );
+        const rollbackStatements = [...successfulOrderReverts, ...revertStatements];
+        if (rollbackStatements.length > 0) {
+          await executeBatchChunks(this.db, rollbackStatements);
+        }
+        await cleanupReservedCommand({
+          commandIdempotencyRepo: this.commandIdempotencyRepo,
+          db: this.db,
+          ownsReservation,
+          commandId: commandReservation.record?.command_id,
+        });
+        throw new BadRequestError('关联订单采购进度已变化，请刷新后重试');
+      }
+    }
+
     const response = {
       purchase_order_id: poId,
       closed_count: results.length,
       items: results,
+      changedOrderStatuses,
     };
 
     try {
@@ -183,8 +367,8 @@ export class PurchaseOrderShortageClosureService {
         })
       );
     } catch (error) {
-      if (revertStatements.length > 0) {
-        await executeBatchChunks(this.db, revertStatements);
+      if (orderReverts.length > 0 || revertStatements.length > 0) {
+        await executeBatchChunks(this.db, [...orderReverts, ...revertStatements]);
       }
       await cleanupReservedCommand({
         commandIdempotencyRepo: this.commandIdempotencyRepo,

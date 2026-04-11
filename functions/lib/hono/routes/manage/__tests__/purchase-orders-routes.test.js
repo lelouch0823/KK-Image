@@ -176,6 +176,7 @@ describe('manage purchase-orders routes', () => {
       purchase_order_id: 'po-1',
       closed_count: 1,
       items: [{ purchase_order_item_id: 'poi-1', close_qty: 2 }],
+      changedOrderStatuses: [{ orderId: 'o-1', procurementStatus: 'partially_arrived' }],
     });
   });
 
@@ -1065,6 +1066,17 @@ describe('manage purchase-orders routes', () => {
         payload: expect.objectContaining({
           purchase_order_id: 'po-1',
           shortage_closed_count: 1,
+        }),
+      }),
+      expect.objectContaining({
+        event_type: 'order_procurement_progressed',
+        aggregate_type: 'order',
+        aggregate_id: 'o-1',
+        payload: expect.objectContaining({
+          purchase_order_id: 'po-1',
+          order_id: 'o-1',
+          procurement_status_after: 'partially_arrived',
+          trigger: 'purchase_order_shortage_closed',
         }),
       }),
     ]);
