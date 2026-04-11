@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 117 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 118 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -2153,3 +2153,21 @@
   - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
   - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
 - 对应修复提交: `0434fb8 fix: surface associated space load failures`
+
+### 2026-04-10 轮次 207
+
+- 继续复查商品导入工作流回退链路，新增 1 个中风险问题:
+  - `ProductImportModal.handleBack()` 在图片匹配步骤或预览步骤点击返回时，会直接清空 `parsedItems/preprocessStats`，并且从预览页永远退回映射步骤。用户如果只是想回上一层修图片匹配或调整导入前检查，会丢失整轮预处理结果，导入工作流没有真正闭环。
+- 下一步把返回逻辑改成保留当前导入会话数据: 图片匹配返回映射时不清空预处理结果，预览页在存在图片匹配会话时优先回到图片匹配步骤。
+
+### 2026-04-10 轮次 208
+
+- 已完成轮次 207 新增问题修复:
+  - `ProductImportModal` 现在在图片匹配步骤返回映射时会保留 `parsedItems/preprocessStats`
+  - 从预览页返回时，如果当前导入会话存在图片匹配状态，会优先回到图片匹配步骤，不再强制退回映射并清空进度
+  - 已补齐商品导入回退链路、预览链路、图片匹配链路回归
+- 增量回归:
+  - `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
+  - `src/components/product/import/__tests__/ImportPreviewStep.test.js`
+  - `src/components/product/import/__tests__/ImportImageMatchStep.test.js`
+- 对应修复提交: `f174c5e fix: preserve import progress when stepping back`
