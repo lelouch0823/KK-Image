@@ -2981,3 +2981,14 @@
 - 增量回归:
   - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
 - 对应修复提交: `5ab37f7 fix: roll back partial purchase-order item batches`
+
+### 2026-04-12 轮次 267
+
+- 继续深审采购单 header 投影一致性，新增 1 个高风险问题:
+  - [functions/repositories/PurchaseOrderRepository.js](/home/bjw/Code/KK-Image/functions/repositories/PurchaseOrderRepository.js) 修复前只有 `addItems()` 会刷新采购单 `updated_at`，而 `updateItem()`、`removeItem()` 成功后不会同步刷新 header 时间戳。结果采购单列表排序、增量同步和“最近更新时间”投影都会漏掉明细修改/删除这两类核心编辑。
+- 已完成本轮修复:
+  - 采购单明细修改与删除现在都会在 scoped 操作成功后同步刷新采购单 `updated_at`，恢复 header 与明细编辑行为的一致性。
+  - 已补齐 repository 回归测试，锁定“修改/删除采购明细成功后必须刷新采购单 `updated_at`”的行为。
+- 增量回归:
+  - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
+- 对应修复提交: `20dcf90 fix: refresh purchase-order timestamps on item edits`
