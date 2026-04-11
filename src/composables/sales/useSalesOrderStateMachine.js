@@ -23,12 +23,17 @@ const normalizeResult = (result) => {
 export function useSalesOrderStateMachine(actions = {}) {
   const state = ref(STATES.IDLE);
   const error = ref(null);
+  let transitionRequestId = 0;
 
   const runTransition = async (actionName, actionRunner, loadingState = STATES.LOADING) => {
+    const requestId = ++transitionRequestId;
     state.value = loadingState;
     error.value = null;
 
     const result = normalizeResult(await actionRunner());
+    if (requestId !== transitionRequestId) {
+      return result;
+    }
 
     if (!result.ok) {
       state.value = STATES.ERROR;
@@ -76,4 +81,3 @@ export function useSalesOrderStateMachine(actions = {}) {
     retry,
   };
 }
-
