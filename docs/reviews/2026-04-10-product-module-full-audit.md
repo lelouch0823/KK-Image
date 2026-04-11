@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 73 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 74 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -119,6 +119,7 @@
   - `5e7c3a7`: 商品空间未完成人机验证时切 token 不再绕过 Turnstile
   - `fc1ae7c`: 商品空间模板数据优先投影变体 SKU 和变体主图
   - `cf6a23d`: 商品空间模板数据优先投影变体材质
+  - `8ab147f`: 商品空间编辑器绑定变体时同步变体材质
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -164,6 +165,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 8 个测试，全部通过。
   - 2026-04-10 运行 1 个回归测试文件，共 2 个测试，全部通过。
   - 2026-04-10 运行 1 个回归测试文件，共 2 个测试，全部通过。
+  - 2026-04-10 运行 2 个回归测试文件，共 7 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -267,6 +269,7 @@
 - 商品公开空间页在 Turnstile 开启但尚未验证时，如果路由 token 变化，`watch(token)` 会直接调用 `loadSpace()`。结果是用户无需完成人机验证，只要切一次空间 token 就能直接打空间详情接口，门禁形同虚设。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L177)
 - 共享空间模板数据虽然已经 JOIN 到 `pv_sku` 和变体主图 `display_image_id`，但 `projectSpaceTemplateData()` 仍然固定投影商品 `SPU` 和商品图片。结果是绑定到具体变体的商品空间会把 `SPU` 当作 `SKU` 展示，主图也退回商品通图，销售空间和公开商品空间都会看到错规格、错主图。[functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js#L14) [functions/lib/hono/routes/manage/spaces/transformers.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/transformers.js#L14)
 - 共享空间模板数据在变体绑定场景下仍然优先显示商品级 `specifications.material`，没有使用变体 `options_values` 里的材质值。结果是绑定到具体材质变体的商品空间，会继续展示商品默认材质，销售空间和公开商品空间都可能看到错材质。[functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js#L14) [functions/lib/hono/routes/manage/spaces/transformers.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/transformers.js#L14)
+- 管理端 `SpaceProductEditor.handleProductSelect()` 在重新绑定商品变体时，仍然只从商品 `specifications.material` 回填材质，不读取所选变体的 `options_values`。结果是后台手动改绑到另一材质变体后，表单和后续保存仍会把旧的商品默认材质写回空间，和后端投影语义继续分叉。[src/components/SpaceProductEditor.vue](/home/bjw/Code/KK-Image/src/components/SpaceProductEditor.vue#L530)
 
 ### Low
 
@@ -1423,3 +1426,19 @@
 - 增量回归:
   - `functions/lib/hono/routes/manage/spaces/__tests__/transformers.test.js`
 - 对应修复提交: `cf6a23d fix: project variant material in space templates`
+
+### 2026-04-10 轮次 135
+
+- 继续复查管理端空间编辑器与后端空间投影的一致性，新增 1 个中风险问题:
+  - `SpaceProductEditor.handleProductSelect()` 在重绑变体时仍使用商品默认材质，和已经修正后的后端空间模板投影语义分叉
+- 下一步让空间编辑器在选择变体后优先回填变体材质，避免后台再次把错材质保存回空间。
+
+### 2026-04-10 轮次 136
+
+- 已完成轮次 135 新增问题修复:
+  - `SpaceProductEditor` 现在会在重绑商品变体时优先回填所选变体的材质
+  - 管理端空间编辑器和后端空间模板投影现在使用同一套“变体材质优先，商品默认材质兜底”的规则
+- 增量回归:
+  - `src/components/__tests__/SpaceProductEditor.contract.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/transformers.test.js`
+- 对应修复提交: `8ab147f fix: sync space editor material with selected variant`
