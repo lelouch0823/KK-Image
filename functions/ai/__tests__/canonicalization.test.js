@@ -23,4 +23,15 @@ describe('AI business canonicalization', () => {
       })
     );
   });
+
+  it('prefers purchase-order intent over generic order intent when the text contains 采购单', () => {
+    const result = detectCreateIntent('帮我创建采购单');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        entityType: 'purchase_order',
+        actionType: 'create_purchase_order',
+      })
+    );
+  });
 });

@@ -45,12 +45,20 @@ export function detectCreateIntent(text = '') {
   const source = String(text || '').trim();
   if (!includesAny(source, CREATE_PREFIXES)) return null;
 
-  const found = ENTITY_CREATE_MAP.find((item) => includesAny(source, item.aliases));
-  if (!found) return null;
+  let bestMatch = null;
+  for (const item of ENTITY_CREATE_MAP) {
+    for (const alias of item.aliases) {
+      if (!source.includes(alias)) continue;
+      if (!bestMatch || alias.length > bestMatch.alias.length) {
+        bestMatch = { item, alias };
+      }
+    }
+  }
+  if (!bestMatch) return null;
 
   return {
-    entityType: found.entityType,
-    actionType: found.actionType,
+    entityType: bestMatch.item.entityType,
+    actionType: bestMatch.item.actionType,
     text: source,
   };
 }
