@@ -143,8 +143,9 @@ describe('PurchaseOrderRepository safety guards', () => {
 
     await repo.removeItem('po-1', 'item-1');
 
-    const sql = db.prepare.mock.calls[0][0];
-    expect(sql).toContain('WHERE id = ? AND po_id = ?');
+    const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
+    expect(sqlCalls[0]).toContain('WHERE id = ? AND po_id = ?');
+    expect(sqlCalls.some((sql) => sql.includes('UPDATE purchase_orders SET updated_at = ? WHERE id = ?'))).toBe(true);
   });
 
   it('updateItem must be scoped by po_id', async () => {
@@ -153,8 +154,9 @@ describe('PurchaseOrderRepository safety guards', () => {
 
     await repo.updateItem('po-1', 'item-1', { quantity: 2 });
 
-    const sql = db.prepare.mock.calls[0][0];
-    expect(sql).toContain('WHERE id = ? AND po_id = ?');
+    const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
+    expect(sqlCalls[0]).toContain('WHERE id = ? AND po_id = ?');
+    expect(sqlCalls.some((sql) => sql.includes('UPDATE purchase_orders SET updated_at = ? WHERE id = ?'))).toBe(true);
   });
 
   it('addItems batches large inserts into D1-safe chunks', async () => {

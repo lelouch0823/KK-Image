@@ -487,7 +487,14 @@ export class PurchaseOrderRepository {
       .prepare(sql)
       .bind(...params)
       .run();
-    return hasChanges(result);
+    const removed = hasChanges(result);
+    if (removed && useScopedDelete) {
+      await this.db
+        .prepare(`UPDATE purchase_orders SET updated_at = ? WHERE id = ?`)
+        .bind(Date.now(), poIdOrItemId)
+        .run();
+    }
+    return removed;
   }
 
   /**
@@ -537,7 +544,15 @@ export class PurchaseOrderRepository {
       `UPDATE purchase_order_items SET ${fields.join(', ')} ${where}`
     ).bind(...values).run();
 
-    return hasChanges(result);
+    const updated = hasChanges(result);
+    if (updated && scoped) {
+      await this.db
+        .prepare(`UPDATE purchase_orders SET updated_at = ? WHERE id = ?`)
+        .bind(Date.now(), poId)
+        .run();
+    }
+
+    return updated;
   }
 
   /**
