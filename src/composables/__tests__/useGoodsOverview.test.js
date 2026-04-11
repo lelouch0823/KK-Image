@@ -203,4 +203,27 @@ describe('useGoodsOverview composable', () => {
       }),
     ]);
   });
+
+  it('blocks purchase-order creation when selected items have no shortage', async () => {
+    mockAuthFetch.mockResolvedValueOnce({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: {
+            items: [{ id: 'var-1', productId: 'prod-1', name: 'Tee', sku: 'TEE-S', shortage: 0, avgUnitCost: 8.8 }],
+            filters: { categories: [], brands: [] },
+          },
+        }),
+    });
+
+    const { loadData, toggleSelect, items, createPOFromSelected } = useGoodsOverview();
+    await loadData();
+    toggleSelect(items.value[0]);
+
+    const result = await createPOFromSelected();
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('缺货');
+    expect(mockAuthFetch).toHaveBeenCalledTimes(1);
+  });
 });

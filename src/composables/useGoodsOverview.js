@@ -176,6 +176,9 @@ export function useGoodsOverview() {
      */
     const createPOFromSelected = async () => {
         if (selectedItems.value.length === 0) return { success: false, error: '请选择变体' };
+        if (selectedItems.value.some((item) => Number(item?.shortage || 0) <= 0)) {
+            return { success: false, error: '仅可为存在缺货的变体创建采购单' };
+        }
 
         isCreatingPO.value = true;
         try {
