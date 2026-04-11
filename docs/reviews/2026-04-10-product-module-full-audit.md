@@ -3056,3 +3056,18 @@
   - `functions/ai/__tests__/action-orchestrator.test.js`
   - `functions/ai/__tests__/action-service.test.js`
 - 对应修复提交: `e97849d3 fix: harden purchase-order create side effects`
+
+### 2026-04-12 轮次 273
+
+- 继续深审 AI action rail 的提交状态机，新增 1 个高风险问题:
+  - [functions/ai/action-orchestrator.js](/home/bjw/Code/KK-Image/functions/ai/action-orchestrator.js)、[functions/ai/action-service.js](/home/bjw/Code/KK-Image/functions/ai/action-service.js) 与 [functions/ai/action-session-store.js](/home/bjw/Code/KK-Image/functions/ai/action-session-store.js) 修复前会在采购单本体已创建后立刻把 AI action session 标记为 `completed`，然后再执行 outbox 发布。只要后置发布失败，session 就已经结案，后续既不能安全续跑副作用，也会让同一次 AI 确认消息卡成“采购单已建成但事件没发、session 也没法恢复”的死状态。
+- 已完成本轮修复:
+  - AI action orchestrator 现在会把“本体已提交、待补副作用”的采购单会话保存成 `submitted_pending_effects`，并把已提交 payload 持久化到 session 预览数据里。
+  - AI action service 现在只有在采购单 outbox 事件成功发布后，才会把对应 session 真正推进到 `completed`；如果发布失败，会保留 pending session，下一次 turn 可直接重放已提交 payload 继续补副作用，不会再次建单。
+  - `D1ActionSessionStore.updateSession()` 现在支持只改状态而不覆盖原有 `slots_json/preview_json`，避免 finalize session 时把已保存的恢复上下文清空。
+  - 已补齐 session store、orchestrator 与 action service 回归测试，锁定“pending side effects 可恢复、成功后才 completed”的行为。
+- 增量回归:
+  - `functions/ai/__tests__/action-session-store.test.js`
+  - `functions/ai/__tests__/action-orchestrator.test.js`
+  - `functions/ai/__tests__/action-service.test.js`
+- 对应修复提交: `1fcef479 fix: persist pending ai purchase-order effects`
