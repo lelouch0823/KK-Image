@@ -2574,3 +2574,17 @@
   - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 - 对应修复提交: `fa3f939 fix: tighten purchase-order from-orders input contract`
+
+### 2026-04-11 轮次 238
+
+- 继续复查 `from-orders` 前端请求口径，新增 1 个中风险问题:
+  - [src/composables/usePurchaseOrders.js](/home/bjw/Code/KK-Image/src/composables/usePurchaseOrders.js) 的 `createFromOrders()` 会把传入的 `orderIds` 原样发给 `/api/manage/purchase-orders/from-orders`。即使服务层已做去重，前端请求体、路由 outbox payload 和审计 metadata 仍会保留重复 `order_id`，导致“实际只建一单，但日志/事件里重复记多次同一订单”的口径分叉。
+- 已完成本轮修复:
+  - `usePurchaseOrders.createFromOrders()` 现在会在发请求前先去重 `orderIds`，让前端请求体和后端实际建单口径保持一致，也减少重复 payload 噪音。
+  - 已补齐“create-from-orders 请求必须先去重重复订单 ID”的组合式回归测试，并回归 `from-orders` 服务/仓储/路由相关测试。
+- 增量回归:
+  - `src/composables/__tests__/usePurchaseOrders.test.js`
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+  - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+- 对应修复提交: `a70131e fix: dedupe purchase-order from-orders requests`
