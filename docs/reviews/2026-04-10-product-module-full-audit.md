@@ -2936,3 +2936,14 @@
 - 增量回归:
   - `functions/services/__tests__/purchase-order-moving-average-cost.test.js`
 - 对应修复提交: `ad12b25 fix: roll back failed landed-cost allocations`
+
+### 2026-04-12 轮次 263
+
+- 继续深审采购单创建链路，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js) 修复前在 `POST /purchase-orders` 时先创建草稿采购单，再校验随请求一起提交的 `items`。只要明细校验失败，就会留下一个没有明细的脏草稿，而且这里还不会触发清理逻辑，属于明显半提交问题。
+- 已完成本轮修复:
+  - 路由现在会在创建采购单草稿前先完成 `items` 的变体与预订单绑定校验，把非法明细挡在落库之前，避免产生脏草稿。
+  - 已补齐路由回归测试，锁定“创建采购单时若明细非法，必须在创建草稿前直接拒绝请求”的行为。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+- 对应修复提交: `f409675 fix: validate purchase-order items before draft creation`
