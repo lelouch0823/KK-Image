@@ -92,4 +92,45 @@ describe('Space view lifecycle', () => {
 
     expect(wrapper.vm.space).toEqual(expect.objectContaining({ id: 'space-b', name: '空间 B' }));
   });
+
+  it('switches to password gate when api returns password-required payload', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url) => {
+        if (url === '/api/turnstile/verify') {
+          return Promise.resolve({
+            json: async () => ({ success: true, data: { enabled: false } }),
+          });
+        }
+
+        if (url === '/api/space/token-a') {
+          return Promise.resolve({
+            json: async () => ({
+              success: true,
+              message: '该空间需要密码',
+              data: { requiresPassword: true },
+            }),
+          });
+        }
+
+        throw new Error(`Unexpected fetch url: ${url}`);
+      })
+    );
+
+    const wrapper = shallowMount(SpaceView, {
+      global: {
+        stubs: {
+          SpacePassword: true,
+          SpaceTurnstile: true,
+          Skeleton: true,
+          EmptyState: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.vm.requiresPassword).toBe(true);
+    expect(wrapper.vm.space).toBe(null);
+  });
 });

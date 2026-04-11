@@ -122,11 +122,14 @@ const loadSpace = async () => {
     const result = await response.json();
     if (!isSpaceLoadActive(requestId, requestToken)) return;
 
-    if (result.success) {
+    const needsPassword = Boolean(result?.data?.requiresPassword || result?.requiresPassword);
+
+    if (result.success && !needsPassword) {
       space.value = result.data;
       document.title = `${result.data.name} | ${APP_NAME}`;
       requiresPassword.value = false;
-    } else if (result.requiresPassword) {
+    } else if (needsPassword) {
+      space.value = null;
       requiresPassword.value = true;
     } else {
       error.value = result.message || t('spacePublic.loadFailed');
