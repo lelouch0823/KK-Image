@@ -132,4 +132,39 @@ describe('ProductPickerModal lifecycle', () => {
       expect.objectContaining({ variant_id: 'variant-new' }),
     ]);
   });
+
+  it('preserves selected variant payloads across search result changes before confirm', async () => {
+    mocks.loadActiveVariants
+      .mockResolvedValueOnce({
+        items: [{ variant_id: 'variant-a', product_id: 'prod-a', product_name: 'Alpha', sku: 'SKU-A', unit_cost: 10, variant_options: {} }],
+      })
+      .mockResolvedValueOnce({
+        items: [{ variant_id: 'variant-b', product_id: 'prod-b', product_name: 'Beta', sku: 'SKU-B', unit_cost: 12, variant_options: {} }],
+      });
+
+    const wrapper = createWrapper();
+    await wrapper.setProps({ visible: true });
+    await flushPromises();
+
+    wrapper.vm.toggleSelect(wrapper.vm.variants[0]);
+
+    wrapper.vm.searchQuery = 'beta';
+    await wrapper.vm.loadVariants();
+    await flushPromises();
+
+    wrapper.vm.toggleSelect(wrapper.vm.variants[0]);
+    wrapper.vm.confirm();
+
+    expect(wrapper.emitted('confirm')).toEqual([
+      [
+        expect.objectContaining({
+          selectedVariantIds: ['variant-a', 'variant-b'],
+          selectedVariants: [
+            expect.objectContaining({ variant_id: 'variant-a', product_id: 'prod-a' }),
+            expect.objectContaining({ variant_id: 'variant-b', product_id: 'prod-b' }),
+          ],
+        }),
+      ],
+    ]);
+  });
 });

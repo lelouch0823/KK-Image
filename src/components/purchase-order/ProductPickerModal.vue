@@ -174,6 +174,7 @@ const variants = ref([]);
 const loading = ref(false);
 const errorMessage = ref('');
 const selectedVariantIds = ref([]);
+const selectedVariantSnapshots = ref(new Map());
 let variantsRequestId = 0;
 
 const invalidateVariantLoads = () => {
@@ -207,12 +208,29 @@ const selectedCount = computed(() => selectedVariantIds.value.length);
 const isSelected = (variantId) => selectedSet.value.has(variantId);
 const isInitiallySelected = (variantId) => initialSelectedSet.value.has(variantId);
 
+const rememberSelectedVariant = (variant) => {
+  const variantId = variant?.variant_id;
+  if (!variantId) return;
+  const next = new Map(selectedVariantSnapshots.value);
+  next.set(variantId, variant);
+  selectedVariantSnapshots.value = next;
+};
+
+const forgetSelectedVariant = (variantId) => {
+  if (!variantId || !selectedVariantSnapshots.value.has(variantId)) return;
+  const next = new Map(selectedVariantSnapshots.value);
+  next.delete(variantId);
+  selectedVariantSnapshots.value = next;
+};
+
 const toggleSelect = (variant) => {
   const next = new Set(selectedVariantIds.value);
   if (next.has(variant.variant_id)) {
     next.delete(variant.variant_id);
+    forgetSelectedVariant(variant.variant_id);
   } else {
     next.add(variant.variant_id);
+    rememberSelectedVariant(variant);
   }
   selectedVariantIds.value = Array.from(next);
 };
@@ -250,7 +268,7 @@ const buildVariantOptionsLabel = (variant) =>
 const confirm = () => {
   const variantMap = new Map((variants.value || []).map((variant) => [variant.variant_id, variant]));
   const selectedVariants = selectedVariantIds.value
-    .map((variantId) => variantMap.get(variantId))
+    .map((variantId) => selectedVariantSnapshots.value.get(variantId) || variantMap.get(variantId))
     .filter(Boolean);
 
   emit('confirm', {
@@ -269,6 +287,7 @@ watch(
     }
     searchQuery.value = '';
     selectedVariantIds.value = [...(props.initialSelectedVariantIds || [])];
+    selectedVariantSnapshots.value = new Map();
     await loadVariants();
   }
 );

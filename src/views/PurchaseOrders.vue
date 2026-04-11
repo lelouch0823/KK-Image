@@ -3119,6 +3119,16 @@ const resetShortageModalState = () => {
   shortageDrafts.value = [];
 };
 
+const resetCreateDraftState = () => {
+  showCreateModal.value = false;
+  createForm.remark = '';
+  createForm.currency = 'CNY';
+  createForm.estimated_shipping_cost = 0;
+  createForm.estimated_tariff_cost = 0;
+  createForm.allocation_method = 'by_quantity';
+  poItems.splice(0, poItems.length);
+};
+
 const canAllocateCurrentPurchaseOrder = computed(
   () =>
     detail.value?.status === 'completed'
@@ -3538,17 +3548,25 @@ const executeCreate = async () => {
   }));
 
   if (items.length > 0) {
-    await addItems(result.id, items);
+    const itemsAdded = await addItems(result.id, items);
+    if (!itemsAdded) {
+      resetCreateDraftState();
+      detailRequestId.value = String(result.id || '');
+      showDetail.value = true;
+      await refreshPurchaseOrderViews(result.id);
+      addToast({
+        type: 'warning',
+        message: t(
+          'purchaseOrder.toast.createdWithoutItems',
+          '采购单已创建，但明细添加失败，请检查详情后继续处理'
+        ),
+      });
+      return;
+    }
   }
 
   // Reset
-  showCreateModal.value = false;
-  createForm.remark = '';
-  createForm.currency = 'CNY';
-  createForm.estimated_shipping_cost = 0;
-  createForm.estimated_tariff_cost = 0;
-  createForm.allocation_method = 'by_quantity';
-  poItems.splice(0, poItems.length); // 清空
+  resetCreateDraftState();
   await refreshPurchaseOrderViews();
 };
 

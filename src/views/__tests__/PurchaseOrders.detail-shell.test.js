@@ -14,6 +14,9 @@ const mocks = vi.hoisted(() => ({
   refreshPurchaseOrderViews: vi.fn(),
   loadSuggestions: vi.fn(),
   reverseReceipt: vi.fn(),
+  createPO: vi.fn(),
+  addItems: vi.fn(),
+  addToast: vi.fn(),
   refreshBusCallback: null,
   subscribeModule: vi.fn(),
   modalState: {
@@ -60,12 +63,12 @@ vi.mock('@/composables/usePurchaseOrders', () => ({
     loadDetail: mocks.loadDetail,
     loadPurchaseOrderOverview: mocks.loadPurchaseOrderOverview,
     refreshPurchaseOrderViews: mocks.refreshPurchaseOrderViews,
-    createPO: vi.fn(),
+    createPO: mocks.createPO,
     createFromOrders: vi.fn(),
     updatePO: vi.fn(),
     updateStatus: vi.fn(),
     loadSuggestions: mocks.loadSuggestions,
-    addItems: vi.fn(),
+    addItems: mocks.addItems,
     removeItem: vi.fn(),
     updateItem: vi.fn(),
     recordReceipts: vi.fn(),
@@ -94,7 +97,7 @@ vi.mock('@/composables/usePurchaseOrderModals', () => ({
 }));
 
 vi.mock('@/composables/useToast', () => ({
-  useToast: () => ({ addToast: vi.fn() }),
+  useToast: () => ({ addToast: mocks.addToast }),
 }));
 
 vi.mock('@/composables/useAI', () => ({
@@ -123,7 +126,7 @@ function mountPurchaseOrdersShell() {
         AppIcon: { template: '<i />' },
         AppFilterBar: { template: '<div />' },
         AppButton: { template: '<button><slot /></button>' },
-        AppInput: { template: '<input />' },
+        AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
         AppCheckbox: { template: '<input type="checkbox" />' },
         AppSelect: {
           props: ['modelValue', 'options', 'placeholder', 'size'],
@@ -185,6 +188,8 @@ describe('PurchaseOrders detail shell', () => {
     });
     mocks.loadSuggestions.mockResolvedValue();
     mocks.reverseReceipt.mockResolvedValue({ reversal_id: 'reversal-1' });
+    mocks.createPO.mockResolvedValue({ id: 'po-created' });
+    mocks.addItems.mockResolvedValue(true);
   });
 
   it('renders detail shell while purchase-order detail is still loading', () => {
@@ -309,7 +314,7 @@ describe('PurchaseOrders detail shell', () => {
           AppIcon: { template: '<i />' },
           AppFilterBar: { template: '<div />' },
           AppButton: { template: '<button><slot /></button>' },
-          AppInput: { template: '<input />' },
+          AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
           AppCheckbox: { template: '<input type="checkbox" />' },
           AppSelect: { template: '<select />' },
           AppTable: { template: '<div />' },
@@ -376,7 +381,7 @@ describe('PurchaseOrders detail shell', () => {
           AppIcon: { template: '<i />' },
           AppFilterBar: { template: '<div />' },
           AppButton: { template: '<button><slot /></button>' },
-          AppInput: { template: '<input />' },
+          AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
           AppCheckbox: { template: '<input type="checkbox" />' },
           AppSelect: { template: '<select />' },
           AppTable: { template: '<div />' },
@@ -458,7 +463,7 @@ describe('PurchaseOrders detail shell', () => {
           AppIcon: { template: '<i />' },
           AppFilterBar: { template: '<div />' },
           AppButton: { template: '<button><slot /></button>' },
-          AppInput: { template: '<input />' },
+          AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
           AppCheckbox: { template: '<input type="checkbox" />' },
           AppSelect: { template: '<select />' },
           AppTable: { template: '<div />' },
@@ -509,7 +514,7 @@ describe('PurchaseOrders detail shell', () => {
           AppIcon: { template: '<i />' },
           AppFilterBar: { template: '<div />' },
           AppButton: { template: '<button><slot /></button>' },
-          AppInput: { template: '<input />' },
+          AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
           AppCheckbox: { template: '<input type="checkbox" />' },
           AppSelect: { template: '<select />' },
           AppTable: {
@@ -808,7 +813,7 @@ describe('PurchaseOrders detail shell', () => {
           AppIcon: { template: '<i />' },
           AppFilterBar: { template: '<div />' },
           AppButton: { template: '<button><slot /></button>' },
-          AppInput: { template: '<input />' },
+          AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
           AppCheckbox: { template: '<input type="checkbox" />' },
           AppSelect: { template: '<select />' },
           AppTable: { template: '<div />' },
@@ -860,5 +865,37 @@ describe('PurchaseOrders detail shell', () => {
       quantity: 3,
       unit_cost: 18,
     });
+  });
+
+  it('opens the created purchase-order detail when initial item insertion fails after creation', async () => {
+    mocks.modalState.showDetail = false;
+    mocks.modalState.showCreateModal = true;
+    mocks.createPO.mockResolvedValueOnce({ id: 'po-partial' });
+    mocks.addItems.mockResolvedValueOnce(false);
+
+    const wrapper = mountPurchaseOrdersShell();
+    wrapper.vm.poItems.push({
+      product_id: 'prod-1',
+      variant_id: 'var-1',
+      product_name: 'Canvas Bag',
+      quantity: 4,
+      unit_cost: 12,
+    });
+
+    await wrapper.vm.executeCreate();
+
+    expect(mocks.createPO).toHaveBeenCalledTimes(1);
+    expect(mocks.addItems).toHaveBeenCalledWith('po-partial', [
+      expect.objectContaining({
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        quantity: 4,
+      }),
+    ]);
+    expect(mocks.refreshPurchaseOrderViews).toHaveBeenCalledWith('po-partial');
+    expect(wrapper.vm.showDetail).toBe(true);
+    expect(mocks.addToast).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'warning' })
+    );
   });
 });
