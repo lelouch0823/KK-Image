@@ -267,8 +267,11 @@ export class PurchaseOrderService {
       allocations = this._allocateByQuantity(items, shippingCost, tariffCost);
     }
 
-    // 批量更新分摊结果
-    await this.repo.updateAllocations(allocations);
+    const previousAllocations = items.map((item) => ({
+      id: item.id,
+      allocated_freight: Number(item.allocated_freight) || 0,
+      allocated_tariff: Number(item.allocated_tariff) || 0,
+    }));
 
     const allocationById = new Map(allocations.map((allocation) => [allocation.id, allocation]));
     const macInputsByVariant = new Map();
@@ -292,11 +295,36 @@ export class PurchaseOrderService {
       macInputsByVariant.set(item.variant_id, existing);
     }
 
-    const macUpdates = Array.from(macInputsByVariant.entries()).map(([variantId, input]) =>
-      this.variantRepo.updateMovingAverageCost(variantId, input.quantity, input.totalCost)
-    );
-    if (macUpdates.length > 0) {
-      await Promise.all(macUpdates);
+    const macRollbackSnapshots = [];
+    try {
+      await this.repo.updateAllocations(allocations);
+
+      for (const [variantId, input] of macInputsByVariant.entries()) {
+        const variantBefore =
+          typeof this.variantRepo.findById === 'function'
+            ? await this.variantRepo.findById(variantId)
+            : await this.db
+              .prepare('SELECT cost_price FROM product_variants WHERE id = ?')
+              .bind(variantId)
+              .first();
+        macRollbackSnapshots.push({
+          variantId,
+          costPrice: variantBefore?.cost_price ?? null,
+        });
+        await this.variantRepo.updateMovingAverageCost(variantId, input.quantity, input.totalCost);
+      }
+    } catch (error) {
+      if (macRollbackSnapshots.length > 0) {
+        const rollbackTimestamp = Date.now();
+        const rollbackStatements = macRollbackSnapshots.map((snapshot) =>
+          this.db
+            .prepare('UPDATE product_variants SET cost_price = ?, updated_at = ? WHERE id = ?')
+            .bind(snapshot.costPrice, rollbackTimestamp, snapshot.variantId)
+        );
+        await executeBatchChunks(this.db, rollbackStatements);
+      }
+      await this.repo.updateAllocations(previousAllocations);
+      throw error;
     }
   }
 

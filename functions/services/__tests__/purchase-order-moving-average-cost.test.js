@@ -36,14 +36,23 @@ function createDbForAllocateCosts(poRecord) {
     bind: vi.fn(() => poStmt),
     first: vi.fn(async () => poRecord),
   };
+  const variantRollbackStmt = {
+    bind: vi.fn(() => variantRollbackStmt),
+    run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
+  };
 
   return {
     prepare: vi.fn((sql) => {
       if (sql.includes('SELECT * FROM purchase_orders WHERE id = ?')) {
         return poStmt;
       }
+      if (sql.includes('UPDATE product_variants SET cost_price = ?, updated_at = ? WHERE id = ?')) {
+        return variantRollbackStmt;
+      }
       throw new Error(`Unexpected SQL: ${sql}`);
     }),
+    batch: vi.fn(async (stmts) => stmts.map(() => ({ meta: { changes: 1 } }))),
+    __variantRollbackStmt: variantRollbackStmt,
   };
 }
 
@@ -86,6 +95,7 @@ describe('moving average cost workflow', () => {
       updateAllocations: vi.fn(async () => undefined),
     };
     service.variantRepo = {
+      findById: vi.fn(async () => ({ cost_price: 12 })),
       updateMovingAverageCost: vi.fn(async () => true),
     };
 
@@ -129,6 +139,7 @@ describe('moving average cost workflow', () => {
       updateAllocations: vi.fn(async () => undefined),
     };
     service.variantRepo = {
+      findById: vi.fn(async () => ({ cost_price: 12 })),
       updateMovingAverageCost: vi.fn(async () => true),
     };
 
@@ -174,6 +185,7 @@ describe('moving average cost workflow', () => {
       updateAllocations: vi.fn(async () => undefined),
     };
     service.variantRepo = {
+      findById: vi.fn(async () => ({ cost_price: 12 })),
       updateMovingAverageCost: vi.fn(async () => true),
     };
 
@@ -219,6 +231,7 @@ describe('moving average cost workflow', () => {
       updateAllocations: vi.fn(async () => undefined),
     };
     service.variantRepo = {
+      findById: vi.fn(async () => ({ cost_price: 12 })),
       updateMovingAverageCost: vi.fn(async () => true),
     };
 
@@ -230,6 +243,66 @@ describe('moving average cost workflow', () => {
     ]);
     expect(service.variantRepo.updateMovingAverageCost).toHaveBeenCalledTimes(1);
     expect(service.variantRepo.updateMovingAverageCost).toHaveBeenCalledWith('v-1', 3, 60);
+  });
+
+  it('rolls allocations and prior variant costs back when a later MAC update fails', async () => {
+    const db = createDbForAllocateCosts({
+      id: 'po-1',
+      status: 'completed',
+      allocation_method: 'by_quantity',
+      actual_shipping_cost: 30,
+      actual_tariff_cost: 0,
+      estimated_shipping_cost: 0,
+      estimated_tariff_cost: 0,
+    });
+
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      getItemsForAllocation: vi.fn(async () => [
+        {
+          id: 'i-1',
+          variant_id: 'v-1',
+          quantity: 1,
+          received_qty: 1,
+          unit_cost: 10,
+          allocated_freight: 1,
+          allocated_tariff: 2,
+        },
+        {
+          id: 'i-2',
+          variant_id: 'v-2',
+          quantity: 2,
+          received_qty: 2,
+          unit_cost: 10,
+          allocated_freight: 3,
+          allocated_tariff: 4,
+        },
+      ]),
+      updateAllocations: vi.fn(async () => undefined),
+    };
+    service.variantRepo = {
+      findById: vi.fn(async (variantId) => ({
+        id: variantId,
+        cost_price: variantId === 'v-1' ? 11 : 22,
+      })),
+      updateMovingAverageCost: vi.fn()
+        .mockResolvedValueOnce(true)
+        .mockRejectedValueOnce(new Error('mac failed')),
+    };
+
+    await expect(service.allocateCosts('po-1')).rejects.toThrow('mac failed');
+
+    expect(service.repo.updateAllocations).toHaveBeenNthCalledWith(1, [
+      { id: 'i-1', allocated_freight: 10, allocated_tariff: 0 },
+      { id: 'i-2', allocated_freight: 10, allocated_tariff: 0 },
+    ]);
+    expect(service.repo.updateAllocations).toHaveBeenNthCalledWith(2, [
+      { id: 'i-1', allocated_freight: 1, allocated_tariff: 2 },
+      { id: 'i-2', allocated_freight: 3, allocated_tariff: 4 },
+    ]);
+    expect(service.variantRepo.updateMovingAverageCost).toHaveBeenNthCalledWith(1, 'v-1', 1, 20);
+    expect(service.variantRepo.updateMovingAverageCost).toHaveBeenNthCalledWith(2, 'v-2', 2, 40);
+    expect(db.__variantRollbackStmt.bind).toHaveBeenCalledWith(11, expect.any(Number), 'v-1');
   });
 
   it('rejects manual cost allocation before the purchase order reaches completed', async () => {
