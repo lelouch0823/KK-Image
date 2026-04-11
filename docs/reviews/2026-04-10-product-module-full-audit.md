@@ -2715,3 +2715,18 @@
   - `functions/services/__tests__/DemandService.test.js`
   - `functions/services/__tests__/purchase-suggestions-inventory-semantics.test.js`
 - 对应修复提交: `fbdfdd8 fix: require resolved ai purchase-order items`
+
+### 2026-04-11 轮次 247
+
+- 继续复查 AI 采购单收集态的跟进回复链路，新增 1 个中风险问题:
+  - [functions/ai/slot-extraction.js](/home/bjw/Code/KK-Image/functions/ai/slot-extraction.js) 之前只有在文本里显式出现“采购单/备货单/补货单”时才会进入 `manual` 明细解析。结果是 AI 会话已经进入“继续补充采购明细”的收集态后，如果用户只回复“跑鞋 黑色 42 补货 20件 单价60”这类纯明细文本，系统既提不出 `items`，又会把整段文本错误地塞回 `items` 原始值路径，导致会话卡死在收集态。
+- 已完成本轮修复:
+  - `extractPurchaseOrderSlots()` 现在只要检测到手工采购项样式的文本，就会自动推断成 `manual` 模式并抽取 `items`，即使用户没有重复输入“采购单”也能继续推进会话。
+  - 已补齐 slot extraction 与 orchestrator 回归测试，锁定“采购单收集态下的纯明细跟进回复必须能直接进入预览”的行为。
+- 增量回归:
+  - `functions/ai/__tests__/slot-extraction.test.js`
+  - `functions/ai/__tests__/action-orchestrator.test.js`
+  - `functions/ai/__tests__/canonicalization.test.js`
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
+- 对应修复提交: `0655c13 fix: infer ai purchase-order items from follow-up text`
