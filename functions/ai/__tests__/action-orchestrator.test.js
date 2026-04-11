@@ -556,6 +556,107 @@ describe('AIActionOrchestrator', () => {
     ]);
   });
 
+  it('keeps candidate-driven item choices while continuing to resolve later ambiguous items', async () => {
+    const variantRepo = {
+      searchForAI: vi.fn()
+        .mockResolvedValueOnce({
+          items: [
+            {
+              id: 'var-1',
+              product_id: 'prod-1',
+              sku: 'SKU-BLK-42-A',
+              cost_price: 60,
+              variantLabel: '黑色 / 42',
+              product: { name: '跑鞋', brand: 'KK' },
+            },
+            {
+              id: 'var-2',
+              product_id: 'prod-1',
+              sku: 'SKU-BLK-42-B',
+              cost_price: 61,
+              variantLabel: '黑色 / 42',
+              product: { name: '跑鞋', brand: 'KK' },
+            },
+          ],
+          total: 2,
+        })
+        .mockResolvedValueOnce({
+          items: [
+            {
+              id: 'var-3',
+              product_id: 'prod-2',
+              sku: 'SKU-WHT-38-A',
+              cost_price: 50,
+              variantLabel: '白色 / 38',
+              product: { name: '凉鞋', brand: 'KK' },
+            },
+            {
+              id: 'var-4',
+              product_id: 'prod-2',
+              sku: 'SKU-WHT-38-B',
+              cost_price: 52,
+              variantLabel: '白色 / 38',
+              product: { name: '凉鞋', brand: 'KK' },
+            },
+          ],
+          total: 2,
+        }),
+    };
+
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {
+        purchase_order: {
+          items: (items) => resolvePurchaseOrderItemsSlot(items, { variantRepo }),
+        },
+      },
+      extractActionSlots,
+    });
+
+    const initial = await orchestrator.advance({
+      userId: 'user-1',
+      text: '创建采购单，跑鞋 黑色 42 补货 20件 单价60；凉鞋 白色 38 补货 10件 单价50',
+    });
+
+    sessionStore.getLatestActiveSession.mockResolvedValueOnce({
+      id: 'act-1',
+      user_id: 'user-1',
+      action_type: 'create_purchase_order',
+      entity_type: 'purchase_order',
+      status: 'collecting',
+      slots_json: JSON.stringify({
+        mode: 'manual',
+        items: '',
+        __candidateChoices: {
+          items: initial.payload.fields[0].candidates,
+        },
+      }),
+      preview_json: '{}',
+    });
+
+    const secondRound = await orchestrator.advance({
+      userId: 'user-1',
+      text: '2',
+    });
+
+    expect(secondRound.kind).toBe('slot_request');
+    expect(secondRound.payload.fields[0].candidates).toHaveLength(2);
+    expect(secondRound.payload.fields[0].candidates[0].value).toEqual([
+      expect.objectContaining({
+        product_id: 'prod-1',
+        variant_id: 'var-2',
+        quantity: 20,
+      }),
+      expect.objectContaining({
+        product_id: 'prod-2',
+        variant_id: 'var-3',
+        quantity: 10,
+      }),
+    ]);
+  });
+
   it('requests order ids before previewing from-orders mode', async () => {
     orchestrator = new AIActionOrchestrator({
       sessionStore,

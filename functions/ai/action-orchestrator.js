@@ -96,9 +96,20 @@ export class AIActionOrchestrator {
       this.#applyCandidateChoiceFromText(nextSlots, normalizedText);
       const missingSlots = this.#getMissingSlots(adapter, nextSlots);
 
-      if (normalizedText && missingSlots.length > 0 && Object.keys(extractedSlots || {}).length === 0) {
+      if (
+        normalizedText
+        && missingSlots.length > 0
+        && Object.keys(extractedSlots || {}).length === 0
+      ) {
         const targetSlot = missingSlots[0];
-        nextSlots[targetSlot] = await this.#resolveSlotValue(adapter.entityType, targetSlot, normalizedText, nextSlots);
+        if (!this.#hasValue(nextSlots[targetSlot])) {
+          nextSlots[targetSlot] = await this.#resolveSlotValue(
+            adapter.entityType,
+            targetSlot,
+            normalizedText,
+            nextSlots
+          );
+        }
       }
 
       await this.#applySlotResolvers(adapter.entityType, nextSlots);
