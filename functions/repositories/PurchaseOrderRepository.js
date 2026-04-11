@@ -463,10 +463,23 @@ export class PurchaseOrderRepository {
     }
 
     // 同步更新采购单的 updated_at
-    await this.db
-      .prepare(`UPDATE purchase_orders SET updated_at = ? WHERE id = ?`)
-      .bind(now, poId)
-      .run();
+    try {
+      await this.db
+        .prepare(`UPDATE purchase_orders SET updated_at = ? WHERE id = ?`)
+        .bind(now, poId)
+        .run();
+    } catch (error) {
+      if (createdIds.length > 0) {
+        for (const idChunk of chunkArray(createdIds, D1_MAX_IN_CLAUSE_SIZE)) {
+          const placeholders = idChunk.map(() => '?').join(',');
+          await this.db
+            .prepare(`DELETE FROM purchase_order_items WHERE id IN (${placeholders})`)
+            .bind(...idChunk)
+            .run();
+        }
+      }
+      throw error;
+    }
 
     return createdIds;
   }
@@ -483,17 +496,18 @@ export class PurchaseOrderRepository {
       ? [itemIdMaybe, poIdOrItemId]
       : [poIdOrItemId];
 
-    const result = await this.db
-      .prepare(sql)
-      .bind(...params)
-      .run();
+    const statements = useScopedDelete
+      ? [
+          this.db.prepare(sql).bind(...params),
+          this.db
+            .prepare(`UPDATE purchase_orders SET updated_at = ? WHERE id = ?`)
+            .bind(Date.now(), poIdOrItemId),
+        ]
+      : [this.db.prepare(sql).bind(...params)];
+    const [result] = useScopedDelete
+      ? await this.db.batch(statements)
+      : [await statements[0].run()];
     const removed = hasChanges(result);
-    if (removed && useScopedDelete) {
-      await this.db
-        .prepare(`UPDATE purchase_orders SET updated_at = ? WHERE id = ?`)
-        .bind(Date.now(), poIdOrItemId)
-        .run();
-    }
     return removed;
   }
 
@@ -540,17 +554,25 @@ export class PurchaseOrderRepository {
     } else {
       values.push(itemId);
     }
-    const result = await this.db.prepare(
-      `UPDATE purchase_order_items SET ${fields.join(', ')} ${where}`
-    ).bind(...values).run();
+    const statements = scoped
+      ? [
+          this.db.prepare(
+            `UPDATE purchase_order_items SET ${fields.join(', ')} ${where}`
+          ).bind(...values),
+          this.db
+            .prepare(`UPDATE purchase_orders SET updated_at = ? WHERE id = ?`)
+            .bind(Date.now(), poId),
+        ]
+      : [
+          this.db.prepare(
+            `UPDATE purchase_order_items SET ${fields.join(', ')} ${where}`
+          ).bind(...values),
+        ];
+    const [result] = scoped
+      ? await this.db.batch(statements)
+      : [await statements[0].run()];
 
     const updated = hasChanges(result);
-    if (updated && scoped) {
-      await this.db
-        .prepare(`UPDATE purchase_orders SET updated_at = ? WHERE id = ?`)
-        .bind(Date.now(), poId)
-        .run();
-    }
 
     return updated;
   }

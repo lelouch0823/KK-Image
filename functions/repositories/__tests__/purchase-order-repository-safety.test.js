@@ -46,6 +46,45 @@ function createFailingBatchDb({ failOnBatchCall = 2 } = {}) {
   return { prepare, batch, __runStatements: runStatements };
 }
 
+function createHeaderFailureDb() {
+  const runStatements = [];
+  let updateCallCount = 0;
+  const prepare = vi.fn((sql) => ({
+    sql,
+    bind: (...params) => ({
+      sql,
+      params,
+      run: vi.fn(async () => {
+        runStatements.push({ sql, params });
+        if (sql.includes('UPDATE purchase_orders SET updated_at = ?')) {
+          updateCallCount += 1;
+          throw new Error('header update failed');
+        }
+        return { meta: { changes: 1 } };
+      }),
+    }),
+  }));
+  const batch = vi.fn(async (stmts) => stmts.map(() => ({ meta: { changes: 1 } })));
+  return { prepare, batch, __runStatements: runStatements, __updateCallCount: () => updateCallCount };
+}
+
+function createScopedMutationDb(batchChanges = [1, 1]) {
+  const batchCalls = [];
+  const prepare = vi.fn((sql) => ({
+    sql,
+    bind: (...params) => ({
+      sql,
+      params,
+      run: vi.fn(async () => ({ meta: { changes: 1 } })),
+    }),
+  }));
+  const batch = vi.fn(async (stmts) => {
+    batchCalls.push(stmts);
+    return batchChanges.map((changes) => ({ meta: { changes } }));
+  });
+  return { prepare, batch, __batchCalls: batchCalls };
+}
+
 describe('PurchaseOrderRepository safety guards', () => {
   it('generatePoNo increments from the highest daily suffix instead of row count', async () => {
     vi.useFakeTimers();
@@ -138,25 +177,23 @@ describe('PurchaseOrderRepository safety guards', () => {
   });
 
   it('removeItem must be scoped by po_id', async () => {
-    const db = createDb(1);
+    const db = createScopedMutationDb();
     const repo = new PurchaseOrderRepository(db);
 
     await repo.removeItem('po-1', 'item-1');
 
-    const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
-    expect(sqlCalls[0]).toContain('WHERE id = ? AND po_id = ?');
-    expect(sqlCalls.some((sql) => sql.includes('UPDATE purchase_orders SET updated_at = ? WHERE id = ?'))).toBe(true);
+    expect(db.__batchCalls[0][0].sql).toContain('WHERE id = ? AND po_id = ?');
+    expect(db.__batchCalls[0][1].sql).toContain('UPDATE purchase_orders SET updated_at = ? WHERE id = ?');
   });
 
   it('updateItem must be scoped by po_id', async () => {
-    const db = createDb(1);
+    const db = createScopedMutationDb();
     const repo = new PurchaseOrderRepository(db);
 
     await repo.updateItem('po-1', 'item-1', { quantity: 2 });
 
-    const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
-    expect(sqlCalls[0]).toContain('WHERE id = ? AND po_id = ?');
-    expect(sqlCalls.some((sql) => sql.includes('UPDATE purchase_orders SET updated_at = ? WHERE id = ?'))).toBe(true);
+    expect(db.__batchCalls[0][0].sql).toContain('WHERE id = ? AND po_id = ?');
+    expect(db.__batchCalls[0][1].sql).toContain('UPDATE purchase_orders SET updated_at = ? WHERE id = ?');
   });
 
   it('addItems batches large inserts into D1-safe chunks', async () => {
@@ -201,6 +238,27 @@ describe('PurchaseOrderRepository safety guards', () => {
     ).toBe(false);
   });
 
+  it('addItems rolls back inserted items when the purchase-order timestamp refresh fails afterwards', async () => {
+    const db = createHeaderFailureDb();
+    const repo = new PurchaseOrderRepository(db);
+    const items = Array.from({ length: 2 }, (_, index) => ({
+      product_id: `prod-${index + 1}`,
+      variant_id: `var-${index + 1}`,
+      quantity: 1,
+      unit_cost: 10,
+    }));
+
+    await expect(repo.addItems('po-1', items)).rejects.toThrow('header update failed');
+
+    expect(db.batch).toHaveBeenCalledTimes(1);
+    expect(
+      db.__runStatements.some((statement) =>
+        statement.sql.includes('DELETE FROM purchase_order_items WHERE id IN')
+      )
+    ).toBe(true);
+    expect(db.__updateCallCount()).toBe(1);
+  });
+
   it('updateAllocations batches large updates into D1-safe chunks', async () => {
     const db = createBatchDb();
     const repo = new PurchaseOrderRepository(db);
@@ -215,6 +273,30 @@ describe('PurchaseOrderRepository safety guards', () => {
     expect(db.batch).toHaveBeenCalledTimes(2);
     expect(db.batch.mock.calls[0][0]).toHaveLength(100);
     expect(db.batch.mock.calls[1][0]).toHaveLength(5);
+  });
+
+  it('updateItem batches the line mutation and header timestamp refresh together when scoped by po_id', async () => {
+    const db = createScopedMutationDb();
+    const repo = new PurchaseOrderRepository(db);
+
+    await repo.updateItem('po-1', 'item-1', { quantity: 2 });
+
+    expect(db.batch).toHaveBeenCalledTimes(1);
+    expect(db.__batchCalls[0]).toHaveLength(2);
+    expect(db.__batchCalls[0][0].sql).toContain('UPDATE purchase_order_items SET quantity = ?');
+    expect(db.__batchCalls[0][1].sql).toContain('UPDATE purchase_orders SET updated_at = ? WHERE id = ?');
+  });
+
+  it('removeItem batches the line deletion and header timestamp refresh together when scoped by po_id', async () => {
+    const db = createScopedMutationDb();
+    const repo = new PurchaseOrderRepository(db);
+
+    await repo.removeItem('po-1', 'item-1');
+
+    expect(db.batch).toHaveBeenCalledTimes(1);
+    expect(db.__batchCalls[0]).toHaveLength(2);
+    expect(db.__batchCalls[0][0].sql).toContain('DELETE FROM purchase_order_items WHERE id = ? AND po_id = ?');
+    expect(db.__batchCalls[0][1].sql).toContain('UPDATE purchase_orders SET updated_at = ? WHERE id = ?');
   });
 
   it('findActiveBindingsByPreOrderIds returns non-cancelled purchase-order bindings', async () => {
