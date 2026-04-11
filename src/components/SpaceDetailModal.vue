@@ -208,11 +208,12 @@ const setCover = async (fileId) => {
 const loadData = async () => {
   const spaceId = props.space.id;
   const requestId = ++loadRequestId;
+  if (spaceData.value?.id !== spaceId) {
+    spaceData.value = null;
+  }
   const data = await loadSpace(spaceId);
   if (requestId !== loadRequestId || props.space.id !== spaceId) return;
-  if (data) {
-    spaceData.value = data;
-  }
+  spaceData.value = data || null;
 };
 
 const publishSpace = async () => {

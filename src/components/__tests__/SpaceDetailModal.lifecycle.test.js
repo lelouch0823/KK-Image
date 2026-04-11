@@ -147,4 +147,48 @@ describe('SpaceDetailModal lifecycle', () => {
     );
     expect(wrapper.emitted('updated')).toBeUndefined();
   });
+
+  it('clears stale detail state when switching to a space that fails to load', async () => {
+    mocks.loadSpace
+      .mockResolvedValueOnce({
+        id: 'space-a',
+        name: '空间 A',
+        template: 'gallery',
+        isPublic: true,
+        files: [],
+      })
+      .mockResolvedValueOnce(null);
+
+    const wrapper = mount(SpaceDetailModal, {
+      props: {
+        space: { id: 'space-a' },
+        canManage: true,
+      },
+      global: {
+        stubs: {
+          Modal: {
+            template: '<div><slot name="header" /><slot /><slot name="footer" /></div>',
+            props: ['modelValue'],
+          },
+          StatusBadge: { template: '<div><slot /></div>' },
+          FileSelector: { template: '<div />' },
+          SpaceAnalytics: { template: '<div />' },
+          SubspaceList: { template: '<div />' },
+          SpaceFilesTab: { template: '<div />' },
+          SpaceSettingsTab: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+    expect(wrapper.text()).toContain('空间 A');
+
+    await wrapper.setProps({
+      space: { id: 'space-b' },
+    });
+    await flushPromises();
+
+    expect(wrapper.vm.spaceData).toBe(null);
+    expect(wrapper.text()).not.toContain('空间 A');
+  });
 });
