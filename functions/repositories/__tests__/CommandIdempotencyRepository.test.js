@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CommandIdempotencyRepository } from '../CommandIdempotencyRepository.js';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
 function createPreparedStatement(sql, { firstResult = null, runResult = null } = {}) {
   const statement = {
@@ -134,5 +136,31 @@ describe('CommandIdempotencyRepository', () => {
       })
     );
     expect(created.insertStatement).toBeNull();
+  });
+
+  it('buildFinalizeStatement supports persisting failed command states', () => {
+    const db = createMockDb();
+    const repo = new CommandIdempotencyRepository(db, {
+      now: () => 1710000000000,
+    });
+
+    const statement = repo.buildFinalizeStatement('cmd-1', { ok: false }, 'failed');
+
+    expect(statement.params).toEqual([
+      JSON.stringify({ ok: false }),
+      'failed',
+      1710000000000,
+      'cmd-1',
+    ]);
+  });
+
+  it('migration 0055 command idempotency status check includes failed', () => {
+    const migrationPath = path.resolve(process.cwd(), 'migrations/0055_command_idempotency_and_outbox.sql');
+    const sql = readFileSync(migrationPath, 'utf8');
+    const commandIdempotencyTable = sql.match(
+      /CREATE TABLE IF NOT EXISTS command_idempotency[\s\S]*?\);\n\nCREATE UNIQUE INDEX/
+    )?.[0] || '';
+
+    expect(commandIdempotencyTable).toContain("'failed'");
   });
 });
