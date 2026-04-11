@@ -2223,3 +2223,14 @@
 - 增量回归:
   - `src/components/__tests__/ProductManager.variant-hydration.test.js`
 - 对应修复提交: `922ee6b fix: handle product manager hydration failures`
+
+### 2026-04-11 轮次 213
+
+- 继续复查商品关联的空间编辑权限链路，新增 1 个中风险问题:
+  - `SpaceProductEditor` 在没有 `products:manage` 权限时不会 hydrate `boundProduct`，但 `form.productId` 仍保留已有绑定。模板里品牌/系列/价格/材质/SKU 的禁用条件却只看 `!!boundProduct`，导致“已绑定商品的空间”在低权限场景下被伪装成可编辑普通空间，用户能错误修改本应由商品绑定接管的核心参数。
+- 已完成本轮修复:
+  - `SpaceProductEditor` 现在以实际绑定态 `form.productId` 作为核心参数只读条件，而不是依赖 `boundProduct` hydrate 结果。
+  - 即使当前用户没有商品管理权限，只要该空间仍绑定商品，核心参数字段也会保持只读，不再出现权限降级后错误解锁。
+- 增量回归:
+  - `src/components/__tests__/SpaceProductEditor.contract.test.js`
+- 对应修复提交: `e3c5843 fix: lock bound space fields without product access`
