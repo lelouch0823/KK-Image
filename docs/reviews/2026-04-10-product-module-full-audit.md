@@ -2633,3 +2633,37 @@
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
   - `src/composables/__tests__/usePurchaseOrders.test.js`
 - 对应修复提交: `e04f9d7 fix: close empty purchase-suggestion selection no-op`
+
+### 2026-04-11 轮次 242
+
+- 继续复查 AI 建单入口与采购单主链路的一致性，新增 1 个高风险问题:
+  - [functions/ai/action-submitters.js](/home/bjw/Code/KK-Image/functions/ai/action-submitters.js) 的 `create_purchase_order()` 在 `manual` 模式下虽然允许适配器传入 `items`，但实际只调用了 [functions/repositories/PurchaseOrderRepository.js](/home/bjw/Code/KK-Image/functions/repositories/PurchaseOrderRepository.js) 的 `create()` 建空主表，既不会插入采购单明细，也没有在后续失败时清理空草稿。结果是 AI 会返回“创建成功”，但实际只留下一个没有明细的 draft 采购单，属于 AI 入口独有的假成功。
+- 已完成本轮修复:
+  - AI `manual` 建单现在会在创建主表后继续调用 `addItems()` 落明细，确保 AI 手工建单和管理端手工建单具备同样的业务闭环。
+  - 如果 AI 明细插入失败，submitter 会补偿调用 `deleteIfEmptyDraft()` 清理仍为空的 draft，避免 AI 链路遗留半成品采购单。
+  - 已补齐 AI submitter 回归测试，覆盖“手工建单必须写入明细”和“明细失败必须清理空草稿”的场景。
+- 增量回归:
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/ai/__tests__/action-orchestrator.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
+- 对应修复提交: `423b073 fix: close ai manual purchase-order creation gaps`
+
+### 2026-04-11 轮次 243
+
+- 继续复查商品-库存-采购端到端回归的有效性，新增 1 个中风险问题:
+  - [functions/services/__tests__/InventoryBusinessWorkflow.test.js](/home/bjw/Code/KK-Image/functions/services/__tests__/InventoryBusinessWorkflow.test.js) 的内置 `WorkflowDb` 仍在按旧 SQL 片段匹配 `DemandService` 和 `GoodsOverviewRepository` 查询。随着需求聚合改为 `order_lines` 粒度、且 `order_ids/order_count` 改为仅统计 `confirmed` 订单，这个大测已经实际跑不到采购建议和商品总览分支，形成“测试文件仍在，但关键 stub 已失效”的假覆盖。
+- 已完成本轮修复:
+  - `WorkflowDb` 现在按当前真实 SQL 契约匹配 `DemandService` 与 `GoodsOverviewRepository` 的查询分支，并让 `total_demand` 继续覆盖全部 active 状态、`order_count/order_ids` 只覆盖 `confirmed` 状态，和线上实现重新对齐。
+  - 已重新跑通库存-需求-采购业务流大测，恢复这条商品核心链路的端到端保护。
+- 增量回归:
+  - `functions/services/__tests__/InventoryBusinessWorkflow.test.js`
+  - `functions/services/__tests__/DemandService.test.js`
+  - `functions/services/__tests__/purchase-suggestions-inventory-semantics.test.js`
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+  - `src/composables/__tests__/usePurchaseOrders.test.js`
+  - `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/ai/__tests__/action-orchestrator.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
+- 对应修复提交: `66b6d48 test: realign inventory workflow demand projections`
