@@ -2970,3 +2970,14 @@
   - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 - 对应修复提交: `0744d8f fix: preserve created purchase-order shells`
+
+### 2026-04-12 轮次 266
+
+- 继续深审采购单明细批量写入链路，新增 1 个高风险问题:
+  - [functions/repositories/PurchaseOrderRepository.js](/home/bjw/Code/KK-Image/functions/repositories/PurchaseOrderRepository.js) 修复前在 `addItems()` 分块批量插入采购明细时，只要第二个 chunk 以后失败，前面已经成功插入的明细就不会回滚，采购单会留下半截明细，属于明显事务未闭环。
+- 已完成本轮修复:
+  - 采购单明细批量插入现在会跟踪已成功写入的明细 `id`；后续 chunk 失败时，会删除前面已写入的明细，再向上抛错，避免采购单出现半截明细。
+  - 已补齐 repository 回归测试，锁定“批量插入中途失败时，必须回滚前面已成功插入的采购明细且不得刷新采购单 `updated_at`”的行为。
+- 增量回归:
+  - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
+- 对应修复提交: `5ab37f7 fix: roll back partial purchase-order item batches`
