@@ -2508,3 +2508,20 @@
   - `src/components/purchase-order/__tests__/PickerModals.design-system.test.js`
   - `src/utils/__tests__/purchase-order-variant-selection.test.js`
 - 对应修复提交: `ad7c26f fix: preserve purchase-order selection sessions`
+
+### 2026-04-11 轮次 233
+
+- 继续复查采购建议刷新失败边界，新增 1 个中风险问题:
+  - [src/composables/usePurchaseOrders.js](/home/bjw/Code/KK-Image/src/composables/usePurchaseOrders.js) 的 `loadSuggestions()` 在上一轮成功、下一轮刷新失败时不会清空 `suggestions`。结果是建议弹窗会继续展示上一轮旧补货建议，看起来像本轮刷新成功，属于典型的“失败后旧数据残留”。
+- 已完成本轮修复:
+  - `loadSuggestions()` 现在在当前轮次请求失败或返回 `success=false` 时会清空旧建议，确保建议弹窗不会再把上一轮结果伪装成最新数据。
+  - 已补齐“最新一次建议刷新失败后清理旧建议”的组合式回归测试，并回归采购单详情壳、设计契约与双选择器测试，确认本轮修复没有破坏采购链路的其它会话边界。
+- 增量回归:
+  - `src/composables/__tests__/usePurchaseOrders.test.js`
+  - `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
+  - `src/views/__tests__/PurchaseOrders.design-system-migration.test.js`
+  - `src/components/purchase-order/__tests__/OrderPickerModal.detail-workflow.test.js`
+  - `src/components/purchase-order/__tests__/ProductPickerModal.lifecycle.test.js`
+  - `src/components/purchase-order/__tests__/PickerModals.design-system.test.js`
+  - `src/utils/__tests__/purchase-order-variant-selection.test.js`
+- 对应修复提交: `94d9fd5 fix: clear stale purchase suggestions after refresh failure`
