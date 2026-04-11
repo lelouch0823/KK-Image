@@ -13,6 +13,21 @@ import { parseJsonArray } from '../utils/json.js';
 import { getFileUrl } from '../utils/url.js';
 import { projectSpaceTemplateData } from '../../lib/hono/routes/manage/spaces/transformers.js';
 
+function resolveSpaceAssetUrl(value) {
+  const url = String(value || '').trim();
+  if (!url) return null;
+  if (
+    url.startsWith('/') ||
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('data:') ||
+    url.startsWith('blob:')
+  ) {
+    return url;
+  }
+  return getFileUrl(url);
+}
+
 /**
  * 获取空间数据 (GET/POST 共享逻辑)
  */
@@ -70,15 +85,21 @@ async function getSpaceData(space, env) {
   if (space.p_images) {
     const pImages = parseJsonArray(space.p_images, []);
     if (pImages.length > 0) {
-      const productFiles = pImages.map((imgUrl, index) => ({
+      const productFiles = pImages
+        .map((imgUrl, index) => {
+          const url = resolveSpaceAssetUrl(imgUrl);
+          if (!url) return null;
+          return {
         id: `product-img-${index}`,
         name: `Product Image ${index + 1}`,
         size: 0,
         type: 'image',
         mimeType: 'image/jpeg', // Assumption for rendering
-        url: imgUrl,
-        thumbnailUrl: imgUrl,
-      }));
+        url,
+        thumbnailUrl: url,
+      };
+        })
+        .filter(Boolean);
 
       // prepend to allFiles
       allFiles.unshift(...productFiles);
@@ -111,16 +132,23 @@ async function getSpaceData(space, env) {
     viewCount: space.view_count,
     files: allFiles,
     groupedFiles,
-    subspaces: subspaces.map((s) => ({
-      id: s.id,
-      name: s.name,
-      description: s.description,
-      template: s.template,
-      templateData: projectSpaceTemplateData(s),
-      fileCount: s.file_count,
-      shareUrl: s.share_token ? `/space/${s.share_token}` : null,
-      coverImage: s.cover_storage_key ? getFileUrl(s.cover_storage_key) : null,
-    })),
+    subspaces: subspaces.map((s) => {
+      const templateData = projectSpaceTemplateData(s);
+      const templateImages = parseJsonArray(templateData.images, [])
+        .map((image) => resolveSpaceAssetUrl(image))
+        .filter(Boolean);
+      const coverImage = (s.cover_storage_key ? getFileUrl(s.cover_storage_key) : null) || templateImages[0] || null;
+      return {
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        template: s.template,
+        templateData,
+        fileCount: s.file_count || templateImages.length,
+        shareUrl: s.share_token ? `/space/${s.share_token}` : null,
+        coverImage,
+      };
+    }),
   };
 }
 
