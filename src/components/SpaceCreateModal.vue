@@ -237,23 +237,25 @@ const unbindProduct = () => {
 };
 
 const handleSubmit = async () => {
-  if (!form.value.name.trim()) return;
+  if (submitting.value || !form.value.name.trim()) return;
 
   submitting.value = true;
-  let result;
+  try {
+    let result;
 
-  if (isSubspace.value) {
-    // 创建子空间
-    result = await createSubspace(props.parentId, form.value);
-  } else {
-    // 创建顶级空间
-    result = await createSpace(form.value);
-  }
+    if (isSubspace.value) {
+      // 创建子空间
+      result = await createSubspace(props.parentId, form.value);
+    } else {
+      // 创建顶级空间
+      result = await createSpace(form.value);
+    }
 
-  submitting.value = false;
-
-  if (result) {
-    emit('created', result);
+    if (result) {
+      emit('created', result);
+    }
+  } finally {
+    submitting.value = false;
   }
 };
 

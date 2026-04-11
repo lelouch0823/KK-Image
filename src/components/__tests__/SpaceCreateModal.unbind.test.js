@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import SpaceCreateModal from '../SpaceCreateModal.vue';
 
 const mocks = vi.hoisted(() => ({
@@ -72,5 +72,27 @@ describe('SpaceCreateModal unbind contract', () => {
 
     expect(wrapper.vm.form.productId).toBe(null);
     expect(wrapper.vm.form.variantId).toBe(null);
+  });
+
+  it('prevents duplicate create submissions while the first request is still pending', async () => {
+    let resolveCreate;
+    mocks.createSpace.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveCreate = resolve;
+        })
+    );
+
+    const wrapper = createWrapper();
+    wrapper.vm.form.name = '新空间';
+
+    const firstSubmit = wrapper.vm.handleSubmit();
+    const secondSubmit = wrapper.vm.handleSubmit();
+    await flushPromises();
+
+    expect(mocks.createSpace).toHaveBeenCalledTimes(1);
+
+    resolveCreate({ id: 'space-1' });
+    await Promise.all([firstSubmit, secondSubmit]);
   });
 });
