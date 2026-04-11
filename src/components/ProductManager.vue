@@ -389,12 +389,25 @@ const hydrateProductWithVariants = async (product) => {
 const handleEditWithHydration = async (product) => {
     const requestId = ++editHydrationRequestId;
     isEditMode.value = true;
-    const hydrated = await hydrateProductWithVariants(product);
-    if (requestId !== editHydrationRequestId) {
-        return;
+    try {
+        const hydrated = await hydrateProductWithVariants(product);
+        if (requestId !== editHydrationRequestId) {
+            return;
+        }
+        editingProduct.value = hydrated;
+        showCreateModal.value = true;
+    } catch (error) {
+        if (requestId !== editHydrationRequestId) {
+            return;
+        }
+        isEditMode.value = false;
+        editingProduct.value = null;
+        showCreateModal.value = false;
+        addToast({
+            message: error?.message || t('product.workflow.edit_load_failed', 'Failed to load the editor. Please try again.'),
+            type: 'error',
+        });
     }
-    editingProduct.value = hydrated;
-    showCreateModal.value = true;
 };
 
 const handleView = async (product) => {
@@ -405,12 +418,24 @@ const handleView = async (product) => {
 
 const handleShare = async (product) => {
     const requestId = ++shareHydrationRequestId;
-    const hydrated = await hydrateProductWithVariants(product);
-    if (requestId !== shareHydrationRequestId) {
-        return;
+    try {
+        const hydrated = await hydrateProductWithVariants(product);
+        if (requestId !== shareHydrationRequestId) {
+            return;
+        }
+        sharingProduct.value = hydrated;
+        showShareModal.value = true;
+    } catch (error) {
+        if (requestId !== shareHydrationRequestId) {
+            return;
+        }
+        sharingProduct.value = null;
+        showShareModal.value = false;
+        addToast({
+            message: error?.message || t('common.loadFailed'),
+            type: 'error',
+        });
     }
-    sharingProduct.value = hydrated;
-    showShareModal.value = true;
 };
 
 const handleShareClose = () => {

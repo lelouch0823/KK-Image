@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   loadProduct: vi.fn(),
   loadProducts: vi.fn(),
   deleteProduct: vi.fn(),
+  addToast: vi.fn(),
   routeQuery: {},
   routerReplace: vi.fn(),
   routerPush: vi.fn(),
@@ -29,6 +30,10 @@ vi.mock('@/composables/useProducts', () => ({
 
 vi.mock('@/composables/useI18n', () => ({
   useI18n: () => ({ t: (_k, fallback) => fallback || '' }),
+}));
+
+vi.mock('@/composables/useToast', () => ({
+  useToast: () => ({ addToast: mocks.addToast }),
 }));
 
 vi.mock('vue-router', () => ({
@@ -86,6 +91,19 @@ describe('ProductManager variant hydration', () => {
     expect(wrapper.vm.sharingProduct.selectedVariant.id).toBe('v-1');
   });
 
+  it('keeps share modal closed and surfaces errors when share hydration fails', async () => {
+    mocks.loadProduct.mockRejectedValueOnce(new Error('share hydrate failed'));
+
+    const wrapper = createWrapper();
+    await wrapper.vm.handleShare({ id: 'p-1', name: 'Lite' });
+
+    expect(wrapper.vm.showShareModal).toBe(false);
+    expect(wrapper.vm.sharingProduct).toBe(null);
+    expect(mocks.addToast).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'error', message: 'share hydrate failed' })
+    );
+  });
+
   it('keeps the latest share hydration result when multiple shares race', async () => {
     let resolveFirst;
     let resolveSecond;
@@ -139,6 +157,20 @@ describe('ProductManager variant hydration', () => {
     expect(wrapper.vm.isEditMode).toBe(true);
     expect(wrapper.vm.showCreateModal).toBe(true);
     expect(wrapper.vm.editingProduct.id).toBe('p-2');
+  });
+
+  it('keeps edit modal closed and surfaces errors when edit hydration fails', async () => {
+    mocks.loadProduct.mockRejectedValueOnce(new Error('edit hydrate failed'));
+
+    const wrapper = createWrapper();
+    await wrapper.vm.handleEditWithHydration({ id: 'p-2', name: 'Lite 2' });
+
+    expect(wrapper.vm.showCreateModal).toBe(false);
+    expect(wrapper.vm.editingProduct).toBe(null);
+    expect(wrapper.vm.isEditMode).toBe(false);
+    expect(mocks.addToast).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'error', message: 'edit hydrate failed' })
+    );
   });
 
   it('keeps the latest edit hydration result when multiple edits race', async () => {
