@@ -109,6 +109,25 @@ export async function resolvePurchaseOrderItemsSlot(items, { variantRepo } = {})
       continue;
     }
 
+    if (items.length === 1 && Array.isArray(search?.items) && search.items.length > 1) {
+      return buildCandidateResult(search.items.map((matched) => ({
+        value: [{
+          ...item,
+          product_id: matched.product_id,
+          variant_id: matched.id,
+          unit_cost: item.unit_cost ?? matched.cost_price ?? 0,
+        }],
+        label: [
+          matched.product?.name || matched.product_name || query,
+          matched.variantLabel || matched.sku || matched.id,
+        ].filter(Boolean).join(' / '),
+        description: [
+          matched.product?.brand || matched.product_brand,
+          matched.sku,
+        ].filter(Boolean).join(' / '),
+      })), query);
+    }
+
     resolved.push(item);
   }
 

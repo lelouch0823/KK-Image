@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIActionOrchestrator } from '../action-orchestrator.js';
 import { getActionAdapter } from '../action-registry.js';
 import { extractActionSlots } from '../slot-extraction.js';
+import { resolvePurchaseOrderItemsSlot } from '../slot-resolvers.js';
 
 function createSessionStoreMock() {
   return {
@@ -411,6 +412,83 @@ describe('AIActionOrchestrator', () => {
         product_id: 'prod-2',
         variant_id: 'var-2',
         quantity: 10,
+      }),
+    ]);
+  });
+
+  it('returns item candidates and accepts numeric choice for a single ambiguous purchase-order item', async () => {
+    const variantRepo = {
+      searchForAI: vi.fn()
+        .mockResolvedValueOnce({
+          items: [
+            {
+              id: 'var-1',
+              product_id: 'prod-1',
+              sku: 'SKU-BLK-42-A',
+              cost_price: 60,
+              variantLabel: '黑色 / 42',
+              product: { name: '跑鞋', brand: 'KK' },
+            },
+            {
+              id: 'var-2',
+              product_id: 'prod-1',
+              sku: 'SKU-BLK-42-B',
+              cost_price: 61,
+              variantLabel: '黑色 / 42',
+              product: { name: '跑鞋', brand: 'KK' },
+            },
+          ],
+          total: 2,
+        }),
+    };
+
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {
+        purchase_order: {
+          items: (items) => resolvePurchaseOrderItemsSlot(items, { variantRepo }),
+        },
+      },
+      extractActionSlots,
+    });
+
+    const initial = await orchestrator.advance({
+      userId: 'user-1',
+      text: '创建采购单，跑鞋 黑色 42 补货 20件 单价60',
+    });
+
+    expect(initial.kind).toBe('slot_request');
+    expect(initial.payload.fields[0].candidates).toHaveLength(2);
+
+    sessionStore.getLatestActiveSession.mockResolvedValueOnce({
+      id: 'act-1',
+      user_id: 'user-1',
+      action_type: 'create_purchase_order',
+      entity_type: 'purchase_order',
+      status: 'collecting',
+      slots_json: JSON.stringify({
+        mode: 'manual',
+        items: '',
+        __candidateChoices: {
+          items: initial.payload.fields[0].candidates,
+        },
+      }),
+      preview_json: '{}',
+    });
+
+    const followUp = await orchestrator.advance({
+      userId: 'user-1',
+      text: '2',
+    });
+
+    expect(followUp.kind).toBe('action_preview');
+    expect(followUp.payload.summary.items).toEqual([
+      expect.objectContaining({
+        product_id: 'prod-1',
+        variant_id: 'var-2',
+        quantity: 20,
       }),
     ]);
   });

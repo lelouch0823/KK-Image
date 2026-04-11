@@ -148,4 +148,62 @@ describe('slot resolvers', () => {
       }),
     ]);
   });
+
+  it('returns purchase-order item candidates when a single manual item matches multiple variants', async () => {
+    const variantRepo = {
+      searchForAI: vi.fn().mockResolvedValue({
+        items: [
+          {
+            id: 'var-1',
+            product_id: 'prod-1',
+            sku: 'SKU-BLK-42-A',
+            cost_price: 60,
+            variantLabel: '黑色 / 42',
+            product: { name: '跑鞋', brand: 'KK' },
+          },
+          {
+            id: 'var-2',
+            product_id: 'prod-1',
+            sku: 'SKU-BLK-42-B',
+            cost_price: 61,
+            variantLabel: '黑色 / 42',
+            product: { name: '跑鞋', brand: 'KK' },
+          },
+        ],
+        total: 2,
+      }),
+    };
+
+    const result = await resolvePurchaseOrderItemsSlot(
+      [{ variant_query: '跑鞋 黑色 42', quantity: 20, unit_cost: 60 }],
+      { variantRepo }
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        kind: 'candidates',
+        candidates: [
+          expect.objectContaining({
+            label: expect.stringContaining('跑鞋'),
+            value: [
+              expect.objectContaining({
+                product_id: 'prod-1',
+                variant_id: 'var-1',
+                quantity: 20,
+              }),
+            ],
+          }),
+          expect.objectContaining({
+            value: [
+              expect.objectContaining({
+                product_id: 'prod-1',
+                variant_id: 'var-2',
+                quantity: 20,
+              }),
+            ],
+          }),
+        ],
+      })
+    );
+  });
 });
