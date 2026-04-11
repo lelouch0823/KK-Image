@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 93 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 94 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -128,6 +128,7 @@
   - `0ec730d`: 空间详情弹窗写操作失败时不再假成功
   - `753b08c`: 空间创建弹窗阻断重复提交
   - `031178e`: 空间删除失败时保留确认弹窗
+  - `ab321f7`: 空间可见性设置只在保存确认后清脏
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -281,6 +282,7 @@
 - 管理端 `SpaceDetailModal` 的封面设置、发布/取消发布、分享范围保存、文件增删都没有检查 `updateSpace/addFilesToSpace/removeFilesFromSpace` 的返回值。结果是底层写操作失败时，弹窗仍会继续刷新详情、弹成功提示并向父级发 `updated`，形成空间设置与文件操作的假成功。[src/components/SpaceDetailModal.vue](/home/bjw/Code/KK-Image/src/components/SpaceDetailModal.vue)
 - `SpaceCreateModal.handleSubmit()` 没有在 `submitting` 期间阻断重复触发。结果是用户双击“创建”或同一轮里重复触发表单提交时，会并发调用两次 `createSpace/createSubspace`，造成重复创建空间或子空间。[src/components/SpaceCreateModal.vue](/home/bjw/Code/KK-Image/src/components/SpaceCreateModal.vue)
 - 管理端空间主列表的删除确认和 `SubspaceList` 的子空间删除确认都没有检查 `deleteSpace()` 返回值。结果是删除失败时确认框仍会直接关闭，用户会误以为删除成功，形成删除链路假成功。[src/views/SpaceManager/index.vue](/home/bjw/Code/KK-Image/src/views/SpaceManager/index.vue) [src/components/SubspaceList.vue](/home/bjw/Code/KK-Image/src/components/SubspaceList.vue)
+- `SpaceSettingsTab` 在点击“保存销售可见性”后，会立刻把脏检查基线重置为当前选择，即使父级保存失败或尚未回写新 props。结果是按钮会提前显示“已保存”，把失败中的配置误判成成功状态。[src/components/space/SpaceSettingsTab.vue](/home/bjw/Code/KK-Image/src/components/space/SpaceSettingsTab.vue)
 - 商品公开空间页的 `submitPassword()` 没有 token/request 维度隔离。用户在密码验证请求未返回前切到另一条空间时，旧密码验证成功结果仍会回写当前页面，把新空间直接串回旧空间详情。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L153)
 - 商品公开空间页在 Turnstile 开启但尚未验证时，如果路由 token 变化，`watch(token)` 会直接调用 `loadSpace()`。结果是用户无需完成人机验证，只要切一次空间 token 就能直接打空间详情接口，门禁形同虚设。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L177)
 - 共享空间模板数据虽然已经 JOIN 到 `pv_sku` 和变体主图 `display_image_id`，但 `projectSpaceTemplateData()` 仍然固定投影商品 `SPU` 和商品图片。结果是绑定到具体变体的商品空间会把 `SPU` 当作 `SKU` 展示，主图也退回商品通图，销售空间和公开商品空间都会看到错规格、错主图。[functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js#L14) [functions/lib/hono/routes/manage/spaces/transformers.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/transformers.js#L14)
@@ -1812,3 +1814,23 @@
   - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
   - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
 - 对应修复提交: `031178e fix: keep space delete dialogs open on failure`
+
+### 2026-04-10 轮次 175
+
+- 继续复查空间设置页保存反馈，新增 1 个中风险问题:
+  - `SpaceSettingsTab` 点击保存后会立刻把脏检查基线重置为当前选择，父级还没确认保存成功时按钮就会提前显示“已保存”
+- 下一步把脏检查基线收敛为只跟随父级 props 更新，不在子组件点击时提前清脏。
+
+### 2026-04-10 轮次 176
+
+- 已完成轮次 175 新增问题修复:
+  - `SpaceSettingsTab` 现在不会在点击保存时提前重置基线，只有父级 props 真正更新后才会把配置视为已保存
+  - 失败中的销售可见性保存会继续保持 `hasChanges=true`，按钮和文案不再伪装成“已保存”
+  - 已补齐设置页契约回归，并联跑空间详情/子空间/创建链路相关回归
+- 增量回归:
+  - `src/components/space/__tests__/SpaceSettingsTab.contract.test.js`
+  - `src/components/__tests__/SpaceDetailModal.lifecycle.test.js`
+  - `src/components/__tests__/SubspaceList.lifecycle.test.js`
+  - `src/views/__tests__/SpaceManager.permission-alignment.test.js`
+  - `src/components/__tests__/SpaceCreateModal.unbind.test.js`
+- 对应修复提交: `ab321f7 fix: keep space settings dirty until save confirms`
