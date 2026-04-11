@@ -2868,3 +2868,14 @@
   - `functions/services/__tests__/PurchaseOrderShortageClosureService.test.js`
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 - 对应修复提交: `94f9b39 fix: publish shortage closure order progress events`
+
+### 2026-04-12 轮次 257
+
+- 继续深审 `PurchaseOrderShortageClosureService` 的异常回滚路径，新增 1 个高风险问题:
+  - [functions/services/PurchaseOrderShortageClosureService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderShortageClosureService.js) 修复前在 `orderStatements` 部分成功、部分失败时，会按正向失败索引去过滤一个已经被 `unshift` 反转过的 `orderReverts` 数组。结果 partial failure 会回滚错订单投影: 成功写入的订单状态可能没被撤回，反而去撤回失败的订单行投影，属于高风险事务补偿错误。
+- 已完成本轮修复:
+  - 订单投影回滚语句现在按“与正向语句同序收集，执行时再统一逆序回放”的方式处理，保证 partial failure 能按索引精确命中成功写入的投影，full rollback 也仍保持正确逆序撤销。
+  - 已补齐回归测试，锁定“订单投影批量部分失败时，只回滚成功落库的订单投影语句”的行为。
+- 增量回归:
+  - `functions/services/__tests__/PurchaseOrderShortageClosureService.test.js`
+- 对应修复提交: `fe38643 fix: align shortage closure rollback ordering`
