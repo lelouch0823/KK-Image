@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 90 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 91 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -125,6 +125,7 @@
   - `ec1675a`: 空间批量下载在全失败时不再假成功
   - `c5d8961`: 管理端与销售端空间主列表排除子空间
   - `4262e29`: 空间详情弹窗与子空间列表只认当前上下文
+  - `0ec730d`: 空间详情弹窗写操作失败时不再假成功
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -275,6 +276,7 @@
 - 商品公开空间和销售空间共用的 `useBatchDownload()` 不校验 `fetch` 的 HTTP 成功状态，也不要求至少下载成功一个文件。结果是只要所有文件都返回 404/403 或网络失败，前端仍会打包空 ZIP 并弹出“开始下载”的成功提示，形成批量下载假成功。[src/composables/useBatchDownload.js](/home/bjw/Code/KK-Image/src/composables/useBatchDownload.js)
 - 管理端空间主列表和销售端空间主列表都直接消费 `findAll()/findAllForSalesperson()` 的结果，但这两条查询原先没有排除 `parent_id` 非空的子空间。结果是子空间会混入一级空间列表，被重复展示成“顶级空间”，破坏空间层级和入口语义。[functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js) [functions/lib/hono/routes/manage/spaces/crud.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/crud.js) [functions/lib/hono/routes/sales/spaces.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/sales/spaces.js)
 - 管理端 `SpaceDetailModal` 复用同一实例切换空间时，`loadSpace()` 旧请求可以在后返回后覆盖新空间详情；而合集模板下的 `SubspaceList` 也只在挂载时加载一次，切换到另一合集后不会跟随 `spaceId` 重载。结果是空间详情弹窗会显示旧标题、旧设置，合集页签还会继续保留上一条空间的子空间列表。[src/components/SpaceDetailModal.vue](/home/bjw/Code/KK-Image/src/components/SpaceDetailModal.vue) [src/components/SubspaceList.vue](/home/bjw/Code/KK-Image/src/components/SubspaceList.vue)
+- 管理端 `SpaceDetailModal` 的封面设置、发布/取消发布、分享范围保存、文件增删都没有检查 `updateSpace/addFilesToSpace/removeFilesFromSpace` 的返回值。结果是底层写操作失败时，弹窗仍会继续刷新详情、弹成功提示并向父级发 `updated`，形成空间设置与文件操作的假成功。[src/components/SpaceDetailModal.vue](/home/bjw/Code/KK-Image/src/components/SpaceDetailModal.vue)
 - 商品公开空间页的 `submitPassword()` 没有 token/request 维度隔离。用户在密码验证请求未返回前切到另一条空间时，旧密码验证成功结果仍会回写当前页面，把新空间直接串回旧空间详情。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L153)
 - 商品公开空间页在 Turnstile 开启但尚未验证时，如果路由 token 变化，`watch(token)` 会直接调用 `loadSpace()`。结果是用户无需完成人机验证，只要切一次空间 token 就能直接打空间详情接口，门禁形同虚设。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L177)
 - 共享空间模板数据虽然已经 JOIN 到 `pv_sku` 和变体主图 `display_image_id`，但 `projectSpaceTemplateData()` 仍然固定投影商品 `SPU` 和商品图片。结果是绑定到具体变体的商品空间会把 `SPU` 当作 `SKU` 展示，主图也退回商品通图，销售空间和公开商品空间都会看到错规格、错主图。[functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js#L14) [functions/lib/hono/routes/manage/spaces/transformers.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/transformers.js#L14)
@@ -1746,3 +1748,23 @@
   - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
   - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
 - 对应修复提交: `4262e29 fix: isolate space detail modal lifecycle`
+
+### 2026-04-10 轮次 169
+
+- 继续复查管理端空间详情写操作闭环，新增 1 个中风险问题:
+  - `SpaceDetailModal` 的封面设置、发布、分享设置和文件增删不检查底层写操作返回值，失败时仍会刷新、弹成功提示并向父级发 `updated`
+- 下一步把详情弹窗写操作统一改成“仅在成功后才回写 UI”，补失败态回归。
+
+### 2026-04-10 轮次 170
+
+- 已完成轮次 169 新增问题修复:
+  - `SpaceDetailModal` 现在只会在 `updateSpace/addFilesToSpace/removeFilesFromSpace` 成功时才刷新详情、弹成功提示并向父级发 `updated`
+  - 发布/取消发布/分享设置保存的 `publishing` 状态已改成 `try/finally` 收口，失败时不会卡住加载态
+  - 已补齐“分享设置保存失败不再假成功”的回归，并联跑空间管理详情链路相关测试
+- 增量回归:
+  - `src/components/__tests__/SpaceDetailModal.lifecycle.test.js`
+  - `src/components/__tests__/SubspaceList.lifecycle.test.js`
+  - `src/components/__tests__/SpaceProductEditor.contract.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
+- 对应修复提交: `0ec730d fix: avoid false success in space detail actions`
