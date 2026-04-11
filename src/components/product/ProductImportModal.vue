@@ -343,6 +343,8 @@ const resetFile = () => {
     fileName.value = '';
     fileSize.value = '';
     parsedItems.value = [];
+    imageUploadFiles.value = [];
+    imageMatches.value = new Map();
     preprocessStats.value = createPreprocessStats();
     mappingValidationReport.value = null;
     fileHeaders.value = [];

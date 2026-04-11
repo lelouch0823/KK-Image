@@ -136,4 +136,92 @@ describe('ProductCreateModal value archive wizard', () => {
             valueId: 'val-blue',
         });
     });
+
+    it('does not keep a local value when addDimensionValue rejects', async () => {
+        mocks.addDimensionValue.mockRejectedValueOnce(new Error('add failed'));
+
+        const wrapper = createWrapper();
+        const opt = { id: 'dim-color', name: 'Color', values: [], inputValue: 'Blue', metaMap: {} };
+        wrapper.vm.form.options = [opt];
+        wrapper.vm.form.variants = [];
+
+        await expect(wrapper.vm.addOptionValue(opt)).resolves.toBeUndefined();
+
+        expect(wrapper.vm.form.options[0].values).toEqual([]);
+        expect(wrapper.vm.form.variants).toEqual([]);
+        expect(mocks.addToast).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'error',
+                message: 'add failed',
+            })
+        );
+    });
+
+    it('shows an error toast when value impact preview rejects', async () => {
+        mocks.previewDimensionImpact.mockRejectedValueOnce(new Error('impact failed'));
+
+        const wrapper = createWrapper();
+        const opt = { id: 'dim-color', name: 'Color', values: ['Red'], inputValue: '' };
+        wrapper.vm.form.options = [opt];
+
+        await expect(wrapper.vm.removeOptionValue(opt, 0)).resolves.toBeUndefined();
+
+        expect(wrapper.vm.form.options[0].values).toEqual(['Red']);
+        expect(wrapper.vm.valueArchiveWizard.open).toBe(false);
+        expect(mocks.addToast).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'error',
+                message: 'impact failed',
+            })
+        );
+    });
+
+    it('does not restore an archived value when restore request rejects', async () => {
+        mocks.restoreDimensionValue.mockRejectedValueOnce(new Error('restore failed'));
+
+        const wrapper = createWrapper();
+        const opt = {
+            id: 'dim-color',
+            name: 'Color',
+            values: [],
+            archivedValues: [{ id: 'val-red', value: 'Red', status: 'archived' }],
+            inputValue: '',
+        };
+        wrapper.vm.form.options = [opt];
+
+        await expect(wrapper.vm.restoreOptionValue(opt, opt.archivedValues[0], 0)).resolves.toBeUndefined();
+
+        expect(wrapper.vm.form.options[0].values).toEqual([]);
+        expect(wrapper.vm.form.options[0].archivedValues).toEqual([
+            { id: 'val-red', value: 'Red', status: 'archived' },
+        ]);
+        expect(mocks.addToast).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'error',
+                message: 'restore failed',
+            })
+        );
+    });
+
+    it('keeps the value archive wizard open and clears loading when archiving rejects', async () => {
+        mocks.archiveDimensionValue.mockRejectedValueOnce(new Error('archive failed'));
+
+        const wrapper = createWrapper();
+        const opt = { id: 'dim-color', name: 'Color', values: ['Red'], inputValue: '' };
+        wrapper.vm.form.options = [opt];
+        wrapper.vm.form.variants = [{ options_values: { 'dim-color': 'Red' } }];
+
+        await wrapper.vm.removeOptionValue(opt, 0);
+        await expect(wrapper.find('[data-testid="value-archive-confirm"]').trigger('click')).resolves.toBeUndefined();
+
+        expect(wrapper.vm.valueArchiveWizard.open).toBe(true);
+        expect(wrapper.vm.valueArchiveWizard.loading).toBe(false);
+        expect(wrapper.vm.form.options[0].values).toEqual(['Red']);
+        expect(mocks.addToast).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'error',
+                message: 'archive failed',
+            })
+        );
+    });
 });

@@ -78,4 +78,12 @@ describe('useProducts cache invalidation', () => {
       '?page=2&limit=50&search=desk&status=active&brand=ACME&category=Furniture&hasStock=in_stock&sortBy=stock&sortOrder=asc'
     );
   });
+
+  it('throws the backend error when loading a product fails', async () => {
+    mocks.resource.rawRequest.mockResolvedValueOnce({ success: false, error: 'product unavailable' });
+
+    const { loadProduct } = useProducts();
+
+    await expect(loadProduct('p-404')).rejects.toThrow('product unavailable');
+  });
 });

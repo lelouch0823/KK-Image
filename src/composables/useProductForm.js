@@ -593,20 +593,25 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     if (!option) return;
     if (editMode.value && option.id && initialData.value?.id) {
       const requestId = ++asyncActionRequestId;
-      const impact = await previewDimensionImpact(initialData.value.id, {
-        action: 'archive_dimension',
-        dimensionId: option.id,
-      });
-      if (!isAsyncActionActive(requestId)) return;
-      dimensionArchiveWizard.open = true;
-      dimensionArchiveWizard.optionIndex = idx;
-      dimensionArchiveWizard.optionId = option.id;
-      dimensionArchiveWizard.affectedVariantsCount = impact?.data?.affectedVariantsCount ?? 0;
-      dimensionArchiveWizard.sampleVariants = Array.isArray(impact?.data?.sampleVariants)
-        ? impact.data.sampleVariants
-        : [];
-      dimensionArchiveWizard.mode = 'archive_variants';
-      dimensionArchiveWizard.step = 1;
+      try {
+        const impact = await previewDimensionImpact(initialData.value.id, {
+          action: 'archive_dimension',
+          dimensionId: option.id,
+        });
+        if (!isAsyncActionActive(requestId)) return;
+        dimensionArchiveWizard.open = true;
+        dimensionArchiveWizard.optionIndex = idx;
+        dimensionArchiveWizard.optionId = option.id;
+        dimensionArchiveWizard.affectedVariantsCount = impact?.data?.affectedVariantsCount ?? 0;
+        dimensionArchiveWizard.sampleVariants = Array.isArray(impact?.data?.sampleVariants)
+          ? impact.data.sampleVariants
+          : [];
+        dimensionArchiveWizard.mode = 'archive_variants';
+        dimensionArchiveWizard.step = 1;
+      } catch (error) {
+        if (!isAsyncActionActive(requestId)) return;
+        addToast({ message: resolveActionErrorMessage(error), type: 'error' });
+      }
       return;
     }
     form.options.splice(idx, 1);
@@ -620,21 +625,31 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
       .split(',')
       .map((v) => v.trim())
       .filter(Boolean);
-      
+
     if (!opt.metaMap) opt.metaMap = {};
 
     for (const v of vals) {
-      if (!opt.values.includes(v)) opt.values.push(v);
-      if (extraMeta) opt.metaMap[v] = { ...opt.metaMap[v], ...extraMeta };
-
       if (editMode.value && opt.id && initialData.value?.id) {
         const payload = { value: v };
-        if (opt.metaMap[v]) payload.meta = opt.metaMap[v];
-        
-        const response = await addDimensionValue(initialData.value.id, opt.id, payload);
+        const nextMeta = extraMeta ? { ...opt.metaMap[v], ...extraMeta } : opt.metaMap[v];
+        if (nextMeta) payload.meta = nextMeta;
+
+        let response;
+        try {
+          response = await addDimensionValue(initialData.value.id, opt.id, payload);
+        } catch (error) {
+          if (!modelValue || modelValue.value !== false) {
+            addToast({ message: resolveActionErrorMessage(error), type: 'error' });
+          }
+          continue;
+        }
         if (!response?.success) {
           addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
-        } else if (response?.data?.id) {
+          continue;
+        }
+        if (!opt.values.includes(v)) opt.values.push(v);
+        if (extraMeta) opt.metaMap[v] = nextMeta;
+        if (response?.data?.id) {
           updateTrackedDimensionValue(opt.id, v, (currentValue) => ({
             ...(currentValue || {}),
             ...response.data,
@@ -642,7 +657,10 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
             status: response.data?.status || 'active',
           }));
         }
+        continue;
       }
+      if (!opt.values.includes(v)) opt.values.push(v);
+      if (extraMeta) opt.metaMap[v] = { ...opt.metaMap[v], ...extraMeta };
     }
     opt.inputValue = '';
     generateVariants();
@@ -654,20 +672,25 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
       const valueMeta = findTrackedValueMeta(opt.id, value);
       if (valueMeta?.id) {
         const requestId = ++asyncActionRequestId;
-        const impact = await previewDimensionImpact(initialData.value.id, {
-          action: 'archive_value',
-          valueId: valueMeta.id,
-        });
-        if (!isAsyncActionActive(requestId)) return;
-        valueArchiveWizard.open = true;
-        valueArchiveWizard.optionIndex = form.options.indexOf(opt);
-        valueArchiveWizard.valueIndex = vIdx;
-        valueArchiveWizard.valueId = valueMeta.id;
-        valueArchiveWizard.valueLabel = value;
-        valueArchiveWizard.affectedVariantsCount = impact?.data?.affectedVariantsCount ?? 0;
-        valueArchiveWizard.sampleVariants = Array.isArray(impact?.data?.sampleVariants)
-          ? impact.data.sampleVariants
-          : [];
+        try {
+          const impact = await previewDimensionImpact(initialData.value.id, {
+            action: 'archive_value',
+            valueId: valueMeta.id,
+          });
+          if (!isAsyncActionActive(requestId)) return;
+          valueArchiveWizard.open = true;
+          valueArchiveWizard.optionIndex = form.options.indexOf(opt);
+          valueArchiveWizard.valueIndex = vIdx;
+          valueArchiveWizard.valueId = valueMeta.id;
+          valueArchiveWizard.valueLabel = value;
+          valueArchiveWizard.affectedVariantsCount = impact?.data?.affectedVariantsCount ?? 0;
+          valueArchiveWizard.sampleVariants = Array.isArray(impact?.data?.sampleVariants)
+            ? impact.data.sampleVariants
+            : [];
+        } catch (error) {
+          if (!isAsyncActionActive(requestId)) return;
+          addToast({ message: resolveActionErrorMessage(error), type: 'error' });
+        }
         return;
       }
     }
@@ -682,7 +705,14 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
 
     if (editMode.value && opt.id && initialData.value?.id && valueId) {
       const requestId = ++asyncActionRequestId;
-      const response = await restoreDimensionValue(initialData.value.id, valueId);
+      let response;
+      try {
+        response = await restoreDimensionValue(initialData.value.id, valueId);
+      } catch (error) {
+        if (!isAsyncActionActive(requestId)) return;
+        addToast({ message: resolveActionErrorMessage(error), type: 'error' });
+        return;
+      }
       if (!isAsyncActionActive(requestId)) return;
       if (!response?.success) {
         addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
@@ -756,6 +786,9 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
         }
       }
       closeDimensionArchiveWizard(true);
+    } catch (error) {
+      if (!isAsyncActionActive(requestId)) return;
+      addToast({ message: resolveActionErrorMessage(error), type: 'error' });
     } finally {
       if (requestId === asyncActionRequestId) {
         dimensionArchiveWizard.loading = false;
@@ -808,6 +841,9 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
           .map((variant) => markVariantCompleteness(variant, getNextDimensionNames()));
       }
       closeValueArchiveWizard(true);
+    } catch (error) {
+      if (!isAsyncActionActive(requestId)) return;
+      addToast({ message: resolveActionErrorMessage(error), type: 'error' });
     } finally {
       if (requestId === asyncActionRequestId) {
         valueArchiveWizard.loading = false;
@@ -885,6 +921,9 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     }
     return { success: true, data: result };
   };
+
+  const resolveActionErrorMessage = (error) =>
+    error?.message || error?.error || t('common.operationFailed');
 
   const handleSubmit = async () => {
     if (!form.name) {

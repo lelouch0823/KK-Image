@@ -100,7 +100,10 @@ const totalFormatted = computed(() => {
 });
 
 const lowStockCount = computed(() => {
-    return statsProducts.value.filter((p) => (p.stock_quantity || 0) < (p.alert_threshold || 10)).length;
+    return statsProducts.value.filter((p) => {
+      const quantity = Number(p.available_quantity ?? p.available ?? p.stock_quantity ?? 0);
+      return quantity < (p.alert_threshold || 10);
+    }).length;
 });
 
 const valueFormatted = computed(() => {

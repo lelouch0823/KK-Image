@@ -43,7 +43,7 @@ export function useProducts() {
         if (res.success) {
             return res.data;
         }
-        return null;
+        throw new Error(res?.error || res?.message || 'Load product failed');
     };
 
     const loadActiveVariants = async ({ search = '', page = 1, limit = 50 } = {}) => {

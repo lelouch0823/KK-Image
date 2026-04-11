@@ -204,4 +204,45 @@ describe('ProductCreateModal dimension archive mode', () => {
 
         expect(wrapper.vm.dimensionArchiveWizard.open).toBe(false);
     });
+
+    it('shows an error toast when dimension impact preview rejects', async () => {
+        mocks.previewDimensionImpact.mockRejectedValueOnce(new Error('impact failed'));
+
+        const wrapper = createWrapper();
+        wrapper.vm.form.options = [{ id: 'dim-color', name: 'Color', values: ['Red'], inputValue: '' }];
+
+        await expect(wrapper.vm.removeOption(0)).resolves.toBeUndefined();
+
+        expect(wrapper.vm.form.options).toHaveLength(1);
+        expect(wrapper.vm.dimensionArchiveWizard.open).toBe(false);
+        expect(mocks.addToast).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'error',
+                message: 'impact failed',
+            })
+        );
+    });
+
+    it('keeps the wizard open and clears loading when archiving a dimension rejects', async () => {
+        mocks.archiveDimension.mockRejectedValueOnce(new Error('archive failed'));
+
+        const wrapper = createWrapper();
+        wrapper.vm.form.options = [{ id: 'dim-color', name: 'Color', values: ['Red'], inputValue: '' }];
+        wrapper.vm.form.variants = [{ options_values: { 'dim-color': 'Red' } }];
+
+        await wrapper.vm.removeOption(0);
+        await wrapper.find('[data-testid="dimension-archive-next"]').trigger('click');
+
+        await expect(wrapper.find('[data-testid="dimension-archive-confirm"]').trigger('click')).resolves.toBeUndefined();
+
+        expect(wrapper.vm.dimensionArchiveWizard.open).toBe(true);
+        expect(wrapper.vm.dimensionArchiveWizard.loading).toBe(false);
+        expect(wrapper.vm.form.options).toHaveLength(1);
+        expect(mocks.addToast).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'error',
+                message: 'archive failed',
+            })
+        );
+    });
 });

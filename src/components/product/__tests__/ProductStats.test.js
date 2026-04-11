@@ -191,4 +191,44 @@ describe('ProductStats', () => {
     expect(wrapper.text()).toContain('20');
     expect(wrapper.text()).not.toContain('9');
   });
+
+  it('prefers available_quantity when computing low-stock counts', async () => {
+    mocks.loadProducts.mockImplementation(async () => {
+      state.products.value = [
+        { id: 'p-1', cost_price: 5, stock_quantity: 10, available_quantity: 2, alert_threshold: 3 },
+        { id: 'p-2', cost_price: 7, stock_quantity: 8, available_quantity: 1, alert_threshold: 5 },
+      ];
+      state.pagination.page = 1;
+      state.pagination.limit = 2;
+      state.pagination.total = 2;
+      state.pagination.totalPages = 1;
+      return true;
+    });
+
+    const wrapper = mount(ProductStats, {
+      props: {
+        active: true,
+        filters: {},
+      },
+      global: {
+        stubs: {
+          MetricTile: {
+            props: ['label', 'value', 'meta'],
+            template: `
+              <div class="metric">
+                <div class="label">{{ label }}</div>
+                <div class="value"><slot name="value">{{ value }}</slot></div>
+                <div class="meta">{{ meta }}</div>
+              </div>
+            `,
+          },
+        },
+      },
+    });
+
+    await flushPromises();
+    await flushPromises();
+
+    expect(wrapper.vm.lowStockCount).toBe(2);
+  });
 });
