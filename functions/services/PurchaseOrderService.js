@@ -271,7 +271,7 @@ export class PurchaseOrderService {
     await this.repo.updateAllocations(allocations);
 
     const allocationById = new Map(allocations.map((allocation) => [allocation.id, allocation]));
-    const macUpdates = [];
+    const macInputsByVariant = new Map();
     for (const item of items) {
       if (!item.variant_id) continue;
       const itemQty = getReceivedAllocationQty(item);
@@ -283,11 +283,18 @@ export class PurchaseOrderService {
       const perUnitTariff = Number(allocation.allocated_tariff) || 0;
       const itemTotalLandedCost = (unitCost + perUnitFreight + perUnitTariff) * itemQty;
 
-      macUpdates.push(
-        this.variantRepo.updateMovingAverageCost(item.variant_id, itemQty, itemTotalLandedCost)
-      );
+      const existing = macInputsByVariant.get(item.variant_id) || {
+        quantity: 0,
+        totalCost: 0,
+      };
+      existing.quantity += itemQty;
+      existing.totalCost += itemTotalLandedCost;
+      macInputsByVariant.set(item.variant_id, existing);
     }
 
+    const macUpdates = Array.from(macInputsByVariant.entries()).map(([variantId, input]) =>
+      this.variantRepo.updateMovingAverageCost(variantId, input.quantity, input.totalCost)
+    );
     if (macUpdates.length > 0) {
       await Promise.all(macUpdates);
     }

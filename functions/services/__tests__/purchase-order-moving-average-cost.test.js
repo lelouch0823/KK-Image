@@ -187,6 +187,51 @@ describe('moving average cost workflow', () => {
     expect(service.variantRepo.updateMovingAverageCost).toHaveBeenCalledWith('v-2', 2, 32);
   });
 
+  it('aggregates MAC updates per variant when one purchase order splits the same variant across multiple lines', async () => {
+    const db = createDbForAllocateCosts({
+      id: 'po-1',
+      status: 'completed',
+      allocation_method: 'by_quantity',
+      actual_shipping_cost: 30,
+      actual_tariff_cost: 0,
+      estimated_shipping_cost: 0,
+      estimated_tariff_cost: 0,
+    });
+
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      getItemsForAllocation: vi.fn(async () => [
+        {
+          id: 'i-1',
+          variant_id: 'v-1',
+          quantity: 2,
+          received_qty: 1,
+          unit_cost: 10,
+        },
+        {
+          id: 'i-2',
+          variant_id: 'v-1',
+          quantity: 3,
+          received_qty: 2,
+          unit_cost: 10,
+        },
+      ]),
+      updateAllocations: vi.fn(async () => undefined),
+    };
+    service.variantRepo = {
+      updateMovingAverageCost: vi.fn(async () => true),
+    };
+
+    await service.allocateCosts('po-1');
+
+    expect(service.repo.updateAllocations).toHaveBeenCalledWith([
+      { id: 'i-1', allocated_freight: 10, allocated_tariff: 0 },
+      { id: 'i-2', allocated_freight: 10, allocated_tariff: 0 },
+    ]);
+    expect(service.variantRepo.updateMovingAverageCost).toHaveBeenCalledTimes(1);
+    expect(service.variantRepo.updateMovingAverageCost).toHaveBeenCalledWith('v-1', 3, 60);
+  });
+
   it('rejects manual cost allocation before the purchase order reaches completed', async () => {
     const db = createDbForAllocateCosts({
       id: 'po-1',
