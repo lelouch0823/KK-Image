@@ -122,4 +122,39 @@ describe('ProductExportModal filter forwarding', () => {
     expect(wrapper.vm.readyToDownload).toBe(false);
     expect(wrapper.vm.generatedBlob).toBe(null);
   });
+
+  it('fails export when a product detail cannot be hydrated', async () => {
+    mocks.listProductsForExport.mockResolvedValue({
+      success: true,
+      data: [{ id: 'p-1', name: 'Lite Product' }],
+    });
+    mocks.loadProduct.mockResolvedValue(null);
+
+    const wrapper = mount(ProductExportModal, {
+      props: {
+        modelValue: true,
+        filters: {},
+      },
+      global: {
+        stubs: {
+          Modal: {
+            props: ['modelValue', 'title', 'size'],
+            template: '<div><slot /><slot name="footer" /></div>',
+          },
+          AppIcon: true,
+        },
+      },
+    });
+
+    wrapper.vm.form.format = 'csv';
+    await wrapper.find('button.btn.btn-primary').trigger('click');
+    await vi.advanceTimersByTimeAsync(300);
+    await flushPromises();
+
+    expect(wrapper.vm.readyToDownload).toBe(false);
+    expect(wrapper.vm.generatedBlob).toBe(null);
+    expect(mocks.addToast).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'error' })
+    );
+  });
 });

@@ -190,7 +190,16 @@ const hydrateProducts = async (products, requestId) => {
     const base = products[i];
     const detail = await loadProduct(base.id);
     if (!isGenerationActive(requestId)) return null;
-    result.push(detail || base);
+    if (!detail) {
+      throw new Error(
+        t(
+          'product.exportModal.detail_load_failed',
+          { name: base?.name || base?.id || '-' },
+          `Failed to load full product details for export: ${base?.name || base?.id || '-'}`
+        )
+      );
+    }
+    result.push(detail);
     progress.value = 15 + Math.round(((i + 1) / total) * 55);
     statusText.value = t('product.exportModal.loading_rows', { current: i + 1, total });
   }
