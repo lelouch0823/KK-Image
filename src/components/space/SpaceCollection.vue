@@ -69,7 +69,7 @@ const props = defineProps({
   space: { type: Object, required: true },
   getSubspaceHref: {
     type: Function,
-    default: (subspace) => `/space/${subspace.shareToken}`,
+    default: (subspace) => subspace?.shareUrl || (subspace?.shareToken ? `/space/${subspace.shareToken}` : '#'),
   },
 });
 

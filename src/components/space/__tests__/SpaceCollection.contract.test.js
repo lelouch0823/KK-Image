@@ -39,4 +39,37 @@ describe('SpaceCollection contract', () => {
     expect(wrapper.get('a').attributes('href')).toBe('/sales/token-1/spaces/sub-1');
     expect(wrapper.get('[data-testid="sub-cover"]').attributes('src')).toBe('/file/sub-1.jpg');
   });
+
+  it('falls back to public shareUrl when subspace shareToken is absent', () => {
+    const wrapper = mount(SpaceCollection, {
+      props: {
+        space: {
+          id: 'space-parent-2',
+          name: '公开合集空间',
+          description: '',
+          subspaces: [
+            {
+              id: 'sub-2',
+              name: '公开子空间',
+              fileCount: 2,
+              shareUrl: '/space/public-sub-2',
+              coverImage: '/file/sub-2.jpg',
+            },
+          ],
+        },
+      },
+      global: {
+        stubs: {
+          AppImage: {
+            props: ['src'],
+            template: '<img data-testid="public-sub-cover" :src="src" />',
+          },
+          AppIcon: true,
+        },
+      },
+    });
+
+    expect(wrapper.get('a').attributes('href')).toBe('/space/public-sub-2');
+    expect(wrapper.get('[data-testid="public-sub-cover"]').attributes('src')).toBe('/file/sub-2.jpg');
+  });
 });
