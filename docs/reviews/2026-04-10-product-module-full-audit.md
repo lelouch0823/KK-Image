@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 123 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 124 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -144,6 +144,7 @@
   - `cc418b0`: 商品导出弹窗会话重置、导出条件变更后旧下载失效、商品选择器上下文切换重载
   - `dd323d5`: 商品统计弹窗刷新失败时清理旧统计结果
   - `7c79bb4`: 商品 PATCH/PUT 在仅提交 dimensions 时真正执行规格同步
+  - `c5e9811`: 商品导入在整批冲突跳过时保留冲突结果而不误记为失败
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -225,6 +226,7 @@
   - 2026-04-11 运行 3 个回归测试文件，共 32 个测试，全部通过。
   - 2026-04-11 运行 3 个回归测试文件，共 13 个测试，全部通过。
   - 2026-04-11 运行 3 个回归测试文件，共 8 个测试，全部通过。
+  - 2026-04-11 运行 2 个回归测试文件，共 31 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -2406,3 +2408,16 @@
   - `functions/services/__tests__/ProductCatalogService.import-mode.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/product-update-audit-metadata.test.js`
 - 对应修复提交: `7c79bb4 fix: sync product dimensions without variant payload`
+
+### 2026-04-11 轮次 226
+
+- 继续复查商品导入汇总与冲突展示链路，新增 1 个中风险问题:
+  - `ProductImportModal.handleImport()` 只在 `result.success === true` 时才合并 `summary/conflicts`。如果后端在 `safe_merge` 场景下返回“整批均为冲突跳过，因此 `success: false`，但同时带有 `summary.conflicts/conflicts`”，前端会把整批直接记成 `chunk.length` 条失败，并丢掉冲突详情，最终把“已识别并安全跳过的冲突”伪装成“导入失败”。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue)
+- 已完成本轮修复:
+  - 导入汇总现在会先统一吸收后端返回的 `summary/errors/conflicts`，即使该批 `success: false` 也不会丢掉结构化结果。
+  - 对“冲突后全部跳过”的批次，前端不再误记为失败，也不再追加 `Unknown error`；冲突计数和冲突详情会正常进入最终结果与 warning toast。
+  - 已补齐“整批仅冲突时保留冲突结果”的回归测试，并回归导入预览冲突展示测试，确认该修复没有破坏既有冲突 UI。
+- 增量回归:
+  - `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
+  - `src/components/product/import/__tests__/ImportPreviewStep.test.js`
+- 对应修复提交: `c5e9811 fix: preserve conflict-only product import results`
