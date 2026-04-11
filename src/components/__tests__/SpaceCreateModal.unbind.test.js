@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   createSubspace: vi.fn(),
   loadPermissions: vi.fn(),
   hasPermission: vi.fn(),
+  addToast: vi.fn(),
 }));
 
 vi.mock('@/composables/useSpaces', () => ({
@@ -26,6 +27,12 @@ vi.mock('@/composables/useAccessControl', () => ({
   useAccessControl: () => ({
     loadPermissions: mocks.loadPermissions,
     hasPermission: mocks.hasPermission,
+  }),
+}));
+
+vi.mock('@/composables/useToast', () => ({
+  useToast: () => ({
+    addToast: mocks.addToast,
   }),
 }));
 
@@ -94,5 +101,49 @@ describe('SpaceCreateModal unbind contract', () => {
 
     resolveCreate({ id: 'space-1' });
     await Promise.all([firstSubmit, secondSubmit]);
+  });
+
+  it('does not keep a half-bound product when initialProduct has no selectedVariant', async () => {
+    const wrapper = mount(SpaceCreateModal, {
+      props: {
+        initialProduct: {
+          id: 'prod-lite',
+          name: 'Lite Product',
+        },
+      },
+      global: {
+        stubs: {
+          Modal: { template: '<div><slot /><slot name="footer" /></div>' },
+          ProductBindingSection: { template: '<div />' },
+          AppInput: { template: '<input />' },
+          SpaceVisibilitySelector: { template: '<div />' },
+          AppIcon: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.vm.form.productId).toBe(null);
+    expect(wrapper.vm.form.variantId).toBe(null);
+    expect(wrapper.vm.boundProduct).toBe(null);
+  });
+
+  it('blocks submit when product and variant binding are incomplete', async () => {
+    const wrapper = createWrapper();
+    wrapper.vm.form.name = '半绑定空间';
+    wrapper.vm.form.template = 'product';
+    wrapper.vm.form.productId = 'prod-1';
+    wrapper.vm.form.variantId = null;
+
+    await wrapper.vm.handleSubmit();
+
+    expect(mocks.createSpace).not.toHaveBeenCalled();
+    expect(mocks.createSubspace).not.toHaveBeenCalled();
+    expect(mocks.addToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'error',
+      })
+    );
   });
 });

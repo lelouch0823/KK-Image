@@ -70,9 +70,14 @@ describe('manage subspaces routes', () => {
     mocks.createSubspace.mockResolvedValue(undefined);
     mocks.updateSharedSalespersons.mockResolvedValue(undefined);
     mocks.invalidateSpaceCaches.mockImplementation(() => {});
-    mocks.validateProductVariantBinding.mockImplementation(async (_db, productId, variantId) => {
+    mocks.validateProductVariantBinding.mockImplementation(async (_db, productId, variantId, options = {}) => {
       if (productId && !variantId) {
         const error = new Error('variantId is required when productId is provided');
+        error.statusCode = 400;
+        throw error;
+      }
+      if (options.variantSelectPolicy === 'in_stock_only' && variantId === 'variant-oos') {
+        const error = new Error('variant must be in stock');
         error.statusCode = 400;
         throw error;
       }
@@ -135,7 +140,10 @@ describe('manage subspaces routes', () => {
     expect(mocks.validateProductVariantBinding).toHaveBeenCalledWith(
       {},
       'product-2',
-      'variant-2'
+      'variant-2',
+      expect.objectContaining({
+        variantSelectPolicy: 'in_stock_only',
+      })
     );
     expect(mocks.createSubspace).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -180,6 +188,37 @@ describe('manage subspaces routes', () => {
     );
 
     expect(res.status).toBe(400);
+    expect(mocks.createSubspace).not.toHaveBeenCalled();
+  });
+
+  it('rejects subspace creation when rebinding to an out-of-stock variant', async () => {
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/spaces/space-parent-1/subspaces',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Out Of Stock Child Space',
+          productId: 'product-2',
+          variantId: 'variant-oos',
+          templateData: {},
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.validateProductVariantBinding).toHaveBeenCalledWith(
+      {},
+      'product-2',
+      'variant-oos',
+      expect.objectContaining({
+        variantSelectPolicy: 'in_stock_only',
+      })
+    );
     expect(mocks.createSubspace).not.toHaveBeenCalled();
   });
 

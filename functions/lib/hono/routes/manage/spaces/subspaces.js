@@ -94,7 +94,9 @@ subspaces.post(
     const spaceId = generateId();
     const shareToken = generateShareToken();
     const nowMs = Date.now();
-    const binding = await validateProductVariantBinding(env.DB, productId || null, variantId || null);
+    const binding = await validateProductVariantBinding(env.DB, productId || null, variantId || null, {
+      variantSelectPolicy: 'in_stock_only',
+    });
 
     const newSubspace = {
       id: spaceId,

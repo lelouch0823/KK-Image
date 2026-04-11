@@ -128,6 +128,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useI18n } from '@/composables/useI18n';
 import { useAccessControl } from '@/composables/useAccessControl';
+import { useToast } from '@/composables/useToast';
 import AppInput from '@/components/ui/AppInput.vue';
 import SpaceVisibilitySelector from '@/components/space/SpaceVisibilitySelector.vue';
 import Modal from '@/components/ui/Modal.vue';
@@ -146,6 +147,7 @@ const emit = defineEmits(['close', 'created']);
 const { createSpace, createSubspace } = useSpaces();
 const { t } = useI18n();
 const { hasPermission, loadPermissions } = useAccessControl();
+const { addToast } = useToast();
 
 const isSubspace = computed(() => !!props.parentId);
 
@@ -156,7 +158,7 @@ const form = ref({
   name: '',
   description: '',
   template: props.initialProduct ? 'product' : 'gallery',
-  productId: props.initialProduct ? props.initialProduct.id : null,
+  productId: null,
   variantId: null,
   shareMode: 'none',
   sharedSalespersonIds: [],
@@ -213,7 +215,7 @@ const submitButtonText = computed(() => {
 
 const handleProductSelect = (product) => {
   const variant = product.selectedVariant;
-  if (!variant) return;
+  if (!variant) return false;
   const mainImage = resolveSelectedVariantMainImageSrc(product);
   
   boundProduct.value = {
@@ -228,6 +230,7 @@ const handleProductSelect = (product) => {
   form.value.variantId = variant.id;
 
   if (!form.value.name) form.value.name = product.name || '';
+  return true;
 };
 
 const unbindProduct = () => {
@@ -238,6 +241,19 @@ const unbindProduct = () => {
 
 const handleSubmit = async () => {
   if (submitting.value || !form.value.name.trim()) return;
+
+  const hasProductBinding = !!form.value.productId || !!form.value.variantId;
+  const isProductBindingComplete = !!form.value.productId && !!form.value.variantId;
+  if (hasProductBinding && !isProductBindingComplete) {
+    addToast({
+      message:
+        t('spaceManager.productBindingIncomplete') ||
+        t('spaces.productBindingIncomplete') ||
+        '商品绑定不完整，请重新选择商品规格后再创建',
+      type: 'error',
+    });
+    return;
+  }
 
   submitting.value = true;
   try {
@@ -268,10 +284,10 @@ onMounted(() => {
   });
 
   if (props.initialProduct) {
-    handleProductSelect(props.initialProduct);
+    const didBindInitialProduct = handleProductSelect(props.initialProduct);
     
     // Auto-generate a default share name if not provided
-    if (form.value.name === props.initialProduct.name || !form.value.name) {
+    if (didBindInitialProduct && (form.value.name === props.initialProduct.name || !form.value.name)) {
       const dateStr = new Date().toLocaleDateString();
       form.value.name = `${props.initialProduct.name} - ${dateStr}`;
     }

@@ -166,6 +166,36 @@ describe('manage spaces crud validation', () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 
+  it('rejects create when the selected variant is out of stock', async () => {
+    mocks.variantFindByIdAndProductId.mockResolvedValueOnce({
+      id: 'v-oos',
+      product_id: 'p-1',
+      status: 'active',
+      available_quantity: 0,
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/spaces',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Out Of Stock Space',
+          productId: 'p-1',
+          variantId: 'v-oos',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain('variant must be in stock');
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
   it('rejects patch when variant does not belong to bound product', async () => {
     mocks.variantFindByIdAndProductId.mockResolvedValueOnce(null);
     mocks.findById.mockResolvedValueOnce({
@@ -192,6 +222,41 @@ describe('manage spaces crud validation', () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toContain('variantId does not belong to productId');
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects patch when rebinding to an out-of-stock variant', async () => {
+    mocks.findById.mockResolvedValueOnce({
+      id: 'sp-1',
+      parent_id: null,
+      product_id: 'p-1',
+      variant_id: 'v-1',
+    });
+    mocks.variantFindByIdAndProductId.mockResolvedValueOnce({
+      id: 'v-oos',
+      product_id: 'p-1',
+      status: 'active',
+      available_quantity: 0,
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/spaces/sp-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: 'p-1',
+          variantId: 'v-oos',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain('variant must be in stock');
     expect(mocks.update).not.toHaveBeenCalled();
   });
 

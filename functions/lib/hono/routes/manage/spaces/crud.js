@@ -188,6 +188,10 @@ crud.post(
     const shareToken = generateShareToken();
     const nowMs = Date.now();
 
+    const binding = await validateProductVariantBinding(env.DB, productId || null, variantId || null, {
+      variantSelectPolicy: 'in_stock_only',
+    });
+
     const newSpace = {
       id: spaceId,
       name: normalizedName,
@@ -198,14 +202,12 @@ crud.post(
       expiresAt: expiresAt || null,
       template,
       templateData: JSON.stringify(templateData),
-      productId,
-      variantId: variantId || null,
+      productId: binding.normalizedProductId,
+      variantId: binding.normalizedVariantId,
       shareMode,
       createdAt: nowMs,
       updatedAt: nowMs,
     };
-    // Spaces may keep referencing archived catalog entries, but new writes must still point to real entities.
-    await validateProductVariantBinding(env.DB, newSpace.productId, newSpace.variantId);
 
     await repo.create(newSpace);
     if (Array.isArray(sharedSalespersonIds) && sharedSalespersonIds.length > 0) {
@@ -283,8 +285,13 @@ crud.on(
     appendOptionalUpdate(updates, values, 'variant_id = ?', data.variantId, (value) => value || null);
     const nextProductId = data.productId !== undefined ? (data.productId || null) : (space.product_id || null);
     const nextVariantId = data.variantId !== undefined ? (data.variantId || null) : (space.variant_id || null);
-    // Preserve historical archived bindings by validating existence without requiring active status.
-    await validateProductVariantBinding(env.DB, nextProductId, nextVariantId);
+    const currentProductId = space.product_id || null;
+    const currentVariantId = space.variant_id || null;
+    const bindingChanged = nextProductId !== currentProductId || nextVariantId !== currentVariantId;
+    // Preserve historical archived bindings on unrelated edits, but require in-stock variants for new bindings.
+    await validateProductVariantBinding(env.DB, nextProductId, nextVariantId, {
+      variantSelectPolicy: bindingChanged ? 'in_stock_only' : 'allow_out_of_stock',
+    });
     // 处理新的分享模式
     appendOptionalUpdate(updates, values, 'share_mode = ?', data.shareMode);
 
