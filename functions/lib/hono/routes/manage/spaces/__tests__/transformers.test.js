@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { transformSpaceDetail, transformSpaceListItem } from '../transformers.js';
+import { projectSpaceTemplateData, transformSpaceDetail, transformSpaceListItem } from '../transformers.js';
 
 vi.mock('../../../../_shared/utils.js', () => ({
   getShareUrl: vi.fn(() => 'https://share.example/space'),
@@ -7,6 +7,29 @@ vi.mock('../../../../_shared/utils.js', () => ({
 }));
 
 describe('space transformers', () => {
+  it('prefers variant sku and variant image when space is bound to a variant', () => {
+    const templateData = projectSpaceTemplateData({
+      product_id: 'prod-1',
+      variant_id: 'var-1',
+      template_data: '{}',
+      p_sku: 'SPU-001',
+      pv_sku: 'SKU-RED-M',
+      p_price: 199,
+      p_images: '["product-1.jpg","product-2.jpg"]',
+      display_image_id: 'variant-primary.jpg',
+    });
+
+    expect(templateData).toMatchObject({
+      sku: 'SKU-RED-M',
+      price: '199',
+    });
+    expect(templateData.images).toEqual([
+      'variant-primary.jpg',
+      'product-1.jpg',
+      'product-2.jpg',
+    ]);
+  });
+
   it('projects variantId in list and detail payloads', () => {
     const space = {
       id: 'space-1',

@@ -18,7 +18,10 @@ export function projectSpaceTemplateData(space) {
   if (space.product_id) {
     if (space.p_brand !== undefined) templateData.brand = space.p_brand || '';
     if (space.p_series !== undefined) templateData.series = space.p_series || '';
-    if (space.p_sku !== undefined) templateData.sku = space.p_sku || '';
+    const projectedSku = space.variant_id
+      ? (space.pv_sku || space.p_sku || '')
+      : (space.p_sku || '');
+    if (space.p_sku !== undefined || space.pv_sku !== undefined) templateData.sku = projectedSku;
     if (space.p_price !== undefined) templateData.price = space.p_price !== null ? String(space.p_price) : '';
 
     if (space.p_specs) {
@@ -27,7 +30,11 @@ export function projectSpaceTemplateData(space) {
     }
 
     if (space.p_images) {
-      templateData.images = parseJsonArray(space.p_images, []);
+      const productImages = parseJsonArray(space.p_images, []);
+      const variantImage = String(space.display_image_id || '').trim();
+      templateData.images = variantImage
+        ? [variantImage, ...productImages.filter((image) => image !== variantImage)]
+        : productImages;
     }
   }
 
