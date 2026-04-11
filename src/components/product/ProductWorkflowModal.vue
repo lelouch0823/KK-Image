@@ -318,6 +318,7 @@ watch(
     detailHydrationRequestId += 1;
     detailHydrationPending.value = false;
     detailHydrationPromise.value = null;
+    editHydrationError.value = '';
     currentProduct.value = normalizeProduct(product);
     if (mode.value !== 'edit_loading' && mode.value !== 'edit') {
       mode.value = 'detail';

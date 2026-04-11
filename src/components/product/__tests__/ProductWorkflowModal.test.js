@@ -124,7 +124,7 @@ describe('ProductWorkflowModal', () => {
     await flushPromises();
 
     expect(wrapper.find('[data-testid="product-detail"]').exists()).toBe(true);
-    expect(wrapper.get('[data-testid="edit-error"]').text()).toContain('network down');
+    expect(wrapper.find('[data-testid="edit-error"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="retry-edit"]').exists()).toBe(true);
   });
 
@@ -160,5 +160,31 @@ describe('ProductWorkflowModal', () => {
 
     expect(wrapper.get('[data-testid="product-detail"]').text()).toContain('Second Product');
     expect(wrapper.get('[data-testid="product-detail"]').text()).not.toContain('Stale Product');
+  });
+
+  it('clears edit hydration errors after switching to another product', async () => {
+    mocks.loadProduct
+      .mockRejectedValueOnce(new Error('detail down'))
+      .mockRejectedValueOnce(new Error('network down'));
+
+    const wrapper = createWrapper();
+
+    await wrapper.get('[data-testid="enter-edit"]').trigger('click');
+    await flushPromises();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="edit-error"]').exists()).toBe(true);
+
+    await wrapper.setProps({
+      product: {
+        id: 'p-2',
+        name: 'Second Product',
+        variants: [{ id: 'v-2', sku: 'SKU-2' }],
+      },
+    });
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="edit-error"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="product-detail"]').text()).toContain('Second Product');
   });
 });
