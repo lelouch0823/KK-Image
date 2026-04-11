@@ -376,8 +376,13 @@ export class PurchaseOrderService {
       throw new BadRequestError('请至少选择一个预订单');
     }
 
+    const uniqueOrderIds = [...new Set((orderIds || []).filter(Boolean))];
+    if (uniqueOrderIds.length === 0) {
+      throw new BadRequestError('请至少选择一个预订单');
+    }
+
     const orders = [];
-    for (const orderIdChunk of chunkArray(orderIds, D1_MAX_IN_CLAUSE_SIZE)) {
+    for (const orderIdChunk of chunkArray(uniqueOrderIds, D1_MAX_IN_CLAUSE_SIZE)) {
       const placeholders = orderIdChunk.map(() => '?').join(',');
       const { results } = await this.db.prepare(`
         SELECT o.id, o.order_no, o.product_id, o.variant_id, o.quantity,
@@ -395,8 +400,14 @@ export class PurchaseOrderService {
       orders.push(...(results || []));
     }
 
+    const foundOrderIdSet = new Set(orders.map((order) => order.id).filter(Boolean));
+    const missingOrderIds = uniqueOrderIds.filter((orderId) => !foundOrderIdSet.has(orderId));
+
     if (orders.length === 0) {
       throw new NotFoundError('未找到符合条件的已确认订单 (需为已确认状态且已绑定变体)');
+    }
+    if (missingOrderIds.length > 0) {
+      throw new BadRequestError(`以下预订单不存在或已不再可采购: ${missingOrderIds.join(', ')}`);
     }
 
     const activeBindings = typeof this.repo.findActiveBindingsByPreOrderIds === 'function'

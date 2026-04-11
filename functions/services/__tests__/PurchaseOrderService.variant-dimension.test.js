@@ -195,6 +195,73 @@ describe('PurchaseOrderService variant dimension', () => {
     expect(service.repo.findById).not.toHaveBeenCalled();
   });
 
+  it('createFromOrders deduplicates repeated order ids before building purchase-order items', async () => {
+    const queryBinds = [];
+    const db = {
+      prepare: vi.fn((sql) => ({
+        bind: (...args) => {
+          if (sql.includes('FROM orders o')) {
+            queryBinds.push(args);
+          }
+          return {
+            all: vi.fn(async () => ({
+              results: sql.includes('FROM orders o')
+                ? [{ id: 'o-1', order_no: 'SO-1', product_id: 'prod-1', variant_id: 'var-1', quantity: 2, name: 'Tee', sku: 'TEE-1', cost_price: 11 }]
+                : [],
+            })),
+          };
+        },
+      })),
+    };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      create: vi.fn(async () => ({ id: 'po-1' })),
+      addItems: vi.fn(async () => []),
+      findById: vi.fn(async () => ({ id: 'po-1', items: [] })),
+      findActiveBindingsByPreOrderIds: vi.fn(async () => []),
+      deleteIfEmptyDraft: vi.fn(async () => true),
+    };
+
+    await service.createFromOrders(['o-1', 'o-1', 'o-1']);
+
+    expect(queryBinds).toEqual([['o-1']]);
+    expect(service.repo.addItems).toHaveBeenCalledWith('po-1', [
+      expect.objectContaining({ pre_order_id: 'o-1', variant_id: 'var-1' }),
+    ]);
+  });
+
+  it('createFromOrders rejects partial matches when some requested orders are no longer eligible', async () => {
+    const stmt = {
+      bind: vi.fn(() => stmt),
+      all: vi.fn(async () => ({
+        results: [{
+          id: 'o-1',
+          order_no: 'SO-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          quantity: 2,
+          name: 'Tee',
+          sku: 'TEE-YELLOW-S',
+          cost_price: 11,
+        }],
+      })),
+    };
+    const db = { prepare: vi.fn(() => stmt) };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      create: vi.fn(async () => ({ id: 'po-1' })),
+      addItems: vi.fn(async () => []),
+      findById: vi.fn(async () => ({ id: 'po-1', items: [] })),
+      findActiveBindingsByPreOrderIds: vi.fn(async () => []),
+      deleteIfEmptyDraft: vi.fn(async () => true),
+    };
+
+    await expect(service.createFromOrders(['o-1', 'o-missing'])).rejects.toThrow(/o-missing|SO-1|订单/i);
+
+    expect(service.repo.create).not.toHaveBeenCalled();
+    expect(service.repo.addItems).not.toHaveBeenCalled();
+  });
+
   it('_updateInventory should reject items without variant_id', async () => {
     const db = {
       prepare: vi.fn(() => ({ bind: vi.fn() })),
