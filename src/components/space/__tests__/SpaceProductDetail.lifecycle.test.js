@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import SpaceProductDetail from '../SpaceProductDetail.vue';
 
@@ -17,6 +17,10 @@ vi.mock('@/composables/useBatchDownload', () => ({
 }));
 
 describe('SpaceProductDetail lifecycle', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   const createSpace = ({ name, images, coverFileId = null }) => ({
     id: `space-${name}`,
     name,
@@ -62,5 +66,85 @@ describe('SpaceProductDetail lifecycle', () => {
     expect(wrapper.vm.currentFile).toEqual(
       expect.objectContaining({ url: '/file/new-cover.jpg' })
     );
+  });
+
+  it('preserves already resolved template image urls instead of prefixing /file again', () => {
+    const wrapper = mount(SpaceProductDetail, {
+      props: {
+        space: createSpace({
+          name: '已解析图片空间',
+          images: ['/file/already-resolved.jpg', 'https://cdn.example.com/variant-main.jpg'],
+        }),
+      },
+      global: {
+        stubs: {
+          AppImage: true,
+          AppIcon: true,
+        },
+      },
+    });
+
+    expect(wrapper.vm.displayFiles).toEqual([
+      expect.objectContaining({ url: '/file/already-resolved.jpg' }),
+      expect.objectContaining({ url: 'https://cdn.example.com/variant-main.jpg' }),
+    ]);
+  });
+
+  it('deduplicates template images already merged into space files', () => {
+    const wrapper = mount(SpaceProductDetail, {
+      props: {
+        space: {
+          id: 'space-dup',
+          name: '去重空间',
+          templateData: {
+            images: ['variant-main.jpg'],
+          },
+          files: [
+            {
+              id: 'file-1',
+              url: '/file/variant-main.jpg',
+              name: 'variant-main.jpg',
+              mimeType: 'image/jpeg',
+              size: 0,
+            },
+          ],
+          coverFileId: null,
+          viewCount: 0,
+          downloadCount: 0,
+        },
+      },
+      global: {
+        stubs: {
+          AppImage: true,
+          AppIcon: true,
+        },
+      },
+    });
+
+    expect(wrapper.vm.displayFiles).toHaveLength(1);
+    expect(wrapper.vm.displayFiles[0]).toEqual(
+      expect.objectContaining({ url: '/file/variant-main.jpg' })
+    );
+  });
+
+  it('renders without undefined desktop state warnings', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    mount(SpaceProductDetail, {
+      props: {
+        space: createSpace({
+          name: '警告空间',
+          images: ['warn-check.jpg'],
+        }),
+      },
+      global: {
+        stubs: {
+          AppImage: true,
+          AppIcon: true,
+        },
+      },
+    });
+
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 });

@@ -334,6 +334,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { isImage, isPdf, formatSize } from '@/utils/formatters';
 import { useBatchDownload } from '@/composables/useBatchDownload';
 import { useI18n } from '@/composables/useI18n';
+import { useResponsive } from '@/composables/useResponsive';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
@@ -345,6 +346,7 @@ const showPdfPreview = ref(false);
 
 const { t } = useI18n();
 const { downloading, downloadProgress, downloadAll } = useBatchDownload();
+const { isDesktop } = useResponsive();
 
 const templateData = computed(() => props.space.templateData || {});
 
@@ -357,21 +359,44 @@ const hasAnySpecs = computed(() => {
   );
 });
 
+const resolveTemplateImageUrl = (value) => {
+  const url = String(value || '').trim();
+  if (!url) return '';
+  if (
+    url.startsWith('/') ||
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('data:') ||
+    url.startsWith('blob:')
+  ) {
+    return url;
+  }
+  return `/file/${url}`;
+};
+
 const displayFiles = computed(() => {
   const media = [];
+  const seenUrls = new Set();
+  const pushMedia = (file) => {
+    if (!file?.url || seenUrls.has(file.url)) return;
+    seenUrls.add(file.url);
+    media.push(file);
+  };
   if (templateData.value.images && Array.isArray(templateData.value.images)) {
     templateData.value.images.forEach((img, idx) => {
-      media.push({
+      const url = resolveTemplateImageUrl(img);
+      if (!url) return;
+      pushMedia({
         id: `p-img-${idx}`,
-        url: `/file/${img}`,
-        name: img.split('/').pop() || img,
+        url,
+        name: String(img).split('/').pop() || String(img),
         size: 0,
         mimeType: 'image/jpeg',
       });
     });
   }
   if (props.space.files && Array.isArray(props.space.files)) {
-    media.push(...props.space.files);
+    props.space.files.forEach((file) => pushMedia(file));
   }
   return media;
 });
