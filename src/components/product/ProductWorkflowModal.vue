@@ -303,7 +303,7 @@ const handleEditPanelVisibility = (visible) => {
 
 watch(
   [isVisible, () => props.product],
-  ([visible, product]) => {
+  ([visible, product], [, previousProduct]) => {
     if (!visible) {
       mode.value = 'detail';
       editDraft.value = null;
@@ -319,6 +319,12 @@ watch(
     detailHydrationPending.value = false;
     detailHydrationPromise.value = null;
     editHydrationError.value = '';
+    const productChanged = product?.id !== previousProduct?.id;
+    if (productChanged) {
+      mode.value = 'detail';
+      editDraft.value = null;
+      ignoreNextEmbeddedClose.value = false;
+    }
     currentProduct.value = normalizeProduct(product);
     if (mode.value !== 'edit_loading' && mode.value !== 'edit') {
       mode.value = 'detail';

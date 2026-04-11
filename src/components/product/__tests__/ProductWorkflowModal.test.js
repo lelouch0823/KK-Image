@@ -187,4 +187,31 @@ describe('ProductWorkflowModal', () => {
     expect(wrapper.find('[data-testid="edit-error"]').exists()).toBe(false);
     expect(wrapper.get('[data-testid="product-detail"]').text()).toContain('Second Product');
   });
+
+  it('returns to detail mode when switching to another product during edit', async () => {
+    const wrapper = createWrapper({
+      product: {
+        id: 'p-1',
+        name: 'Editable Product',
+        variants: [{ id: 'v-1', sku: 'SKU-1' }],
+      },
+    });
+
+    await wrapper.get('[data-testid="enter-edit"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="product-form-panel"]').exists()).toBe(true);
+
+    await wrapper.setProps({
+      product: {
+        id: 'p-2',
+        name: 'Second Product',
+        variants: [{ id: 'v-2', sku: 'SKU-2' }],
+      },
+    });
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="product-form-panel"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="product-detail"]').text()).toContain('Second Product');
+  });
 });
