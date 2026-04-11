@@ -2839,3 +2839,18 @@
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
   - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
 - 对应修复提交: `e0c7018 fix: preserve preorder quantity bindings`
+
+### 2026-04-12 轮次 255
+
+- 继续复查采购短缺关闭链路，新增 1 个高风险问题:
+  - [functions/services/PurchaseOrderShortageClosureService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderShortageClosureService.js) 修复前在关闭待收短缺时只更新 `purchase_order_items.cancelled_qty`，完全不回写绑定的 `order_lines.procured_qty`，也不重算订单 `procurement_status`。结果是采购单侧已经把短缺关掉了，但订单侧仍然保持“已采购/采购中”旧进度，导致商品-采购-订单三端投影不一致，属于明显业务未闭环。
+- 已完成本轮修复:
+  - 短缺关闭服务现在会在关闭绑定采购明细时同步回写关联订单行的 `procured_qty` 与 `display_status`，并按聚合结果重算订单 `procurement_status`。
+  - 采购单短缺关闭路由现在也会在存在订单进度变化时发布 `order_procurement_progressed` 事件，保证订单侧缓存、通知和后续消费者能收到同一轮变更。
+  - 已补齐 shortage closure 服务与采购单路由回归测试，并联动回归收货/收货回滚链路，锁定“关闭短缺必须同步修正订单采购进度”的行为。
+- 增量回归:
+  - `functions/services/__tests__/PurchaseOrderShortageClosureService.test.js`
+  - `functions/services/__tests__/OrderProcurementDomainService.test.js`
+  - `functions/services/__tests__/OrderProcurementReceiptReversalService.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+- 对应修复提交: `00c34bc fix: sync shortage closures with order procurement progress`
