@@ -2603,3 +2603,33 @@
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
   - `src/composables/__tests__/usePurchaseOrders.test.js`
 - 对应修复提交: `c02b978 fix: align purchase suggestion order ids with confirmed demand`
+
+### 2026-04-11 轮次 240
+
+- 继续复查 `from-orders` 路由层的出站口径，新增 1 个中风险问题:
+  - [functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js) 虽然调用的 [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 已在服务层去重 `orderIds`，但路由本身仍原样把 `body.order_ids` 传给服务、outbox payload 和审计 metadata。结果是外部直接调用 API 时，即使实际只会按去重后的订单建单，事件和审计仍可能记录重复/空值订单 ID，形成“实际行为”和“出站日志”继续分叉。
+- 已完成本轮修复:
+  - `/api/manage/purchase-orders/from-orders` 现在会在入口就统一过滤空值并去重 `order_ids`，随后服务调用、outbox payload 和审计 metadata 全部复用这一份标准化结果。
+  - 已补齐路由回归测试，锁定“重复或空订单 ID 不得流入服务层、事件 payload 或审计 metadata”的契约。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+  - `src/composables/__tests__/usePurchaseOrders.test.js`
+- 对应修复提交: `d553077 fix: normalize create-from-orders route payloads`
+
+### 2026-04-11 轮次 241
+
+- 继续复查采购建议弹窗的操作闭环，新增 1 个中风险问题:
+  - [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue) 在采购建议继续展示“有缺口但没有任何 `confirmed` 订单可绑定”的建议项后，`handleCreateFromSuggestions()` 仍只会把所有 `order_ids` 平铺后直接提交；当用户选中的建议全都没有可绑定订单时，方法会静默 `return`，页面没有任何反馈，形成“可点击但无结果”的假操作面。
+- 已完成本轮修复:
+  - 建议弹窗现在按“可绑定订单数”而不是“勾选行数”决定提交按钮是否可用，并把无可绑定订单的建议项直接标记为不可选，避免用户选中无法建单的建议。
+  - `handleCreateFromSuggestions()` 额外补了 warning 兜底；即使脏状态绕过 UI 限制，点击后也会明确提示“所选建议暂无可绑定订单”，不再静默吞掉操作。
+  - 已补齐详情壳回归测试，锁定“无可绑定订单时必须提示而不是无声返回”的行为。
+- 增量回归:
+  - `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
+  - `functions/services/__tests__/DemandService.test.js`
+  - `functions/services/__tests__/purchase-suggestions-inventory-semantics.test.js`
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+  - `src/composables/__tests__/usePurchaseOrders.test.js`
+- 对应修复提交: `e04f9d7 fix: close empty purchase-suggestion selection no-op`
