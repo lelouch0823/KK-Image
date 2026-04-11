@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 102 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 103 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -137,6 +137,7 @@
   - `fe79d15`: 管理端商品选择器补齐本地错误态与重试入口
   - `07a9a1c`: 商品导入图片上传全失败时不再假成功进入预览
   - `845c9dd`: 商品导入剔除未解析的本地图片文件名脏数据
+  - `c5bb847`: 商品工作流弹窗切商品时清理旧编辑错误
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -174,6 +175,7 @@
   - 2026-04-11 运行 2 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-11 运行 2 个回归测试文件，共 24 个测试，全部通过。
   - 2026-04-11 运行 2 个回归测试文件，共 25 个测试，全部通过。
+  - 2026-04-11 运行 3 个回归测试文件，共 13 个测试，全部通过。
   - 2026-04-10 运行 5 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 14 个测试，全部通过。
@@ -1998,3 +2000,20 @@
   - `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
   - `src/components/product/import/__tests__/ImportPreviewStep.test.js`
 - 对应修复提交: `845c9dd fix: strip unresolved local image names from imports`
+
+### 2026-04-10 轮次 193
+
+- 继续复查商品工作流弹窗生命周期，新增 1 个中风险问题:
+  - `ProductWorkflowModal` 在一个商品的编辑预加载失败后，如果父级直接切到另一个商品，`editHydrationError` 不会重置，旧错误条会直接挂到新商品详情上，形成错上下文残留。
+- 下一步在商品切换监听里清掉旧编辑错误，只保留当前商品自己的失败态。
+
+### 2026-04-10 轮次 194
+
+- 已完成轮次 193 新增问题修复:
+  - `ProductWorkflowModal` 现在会在切换商品上下文时清理 `editHydrationError`，旧商品的编辑失败提示不再泄漏到新商品
+  - 已补齐“编辑预加载失败后切商品时清空旧错误”回归，并联跑商品工作流/商品详情关联回归
+- 增量回归:
+  - `src/components/product/__tests__/ProductWorkflowModal.test.js`
+  - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
+  - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
+- 对应修复提交: `c5bb847 fix: clear stale workflow errors on product switch`
