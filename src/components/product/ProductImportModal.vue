@@ -922,28 +922,43 @@ const handleImport = async () => {
             try {
                 const result = await importProducts(chunk, { importMode: importMode.value });
                 if (!isImportRequestActive(requestId)) return;
+                const batchFailedCount = toFiniteCount(result?.summary?.failedProducts);
+                const batchConflictCount = toFiniteCount(
+                    result?.summary?.conflicts,
+                    Array.isArray(result?.conflicts) ? result.conflicts.length : 0
+                );
+                if (result?.summary) {
+                    _importStats.value.createdProducts += toFiniteCount(result.summary.createdProducts);
+                    _importStats.value.updatedProducts += toFiniteCount(result.summary.updatedProducts);
+                    _importStats.value.createdVariants += toFiniteCount(result.summary.createdVariants);
+                    _importStats.value.updatedVariants += toFiniteCount(result.summary.updatedVariants);
+                    _importStats.value.conflictCount += batchConflictCount;
+                    _importStats.value.failed += batchFailedCount;
+                }
+                if (Array.isArray(result?.errors) && result.errors.length > 0) {
+                    _importStats.value.errors.push(...result.errors);
+                }
+                if (Array.isArray(result?.conflicts) && result.conflicts.length > 0) {
+                    const tagged = result.conflicts.map((conflict) => ({ batch: i + 1, ...conflict }));
+                    _importStats.value.conflicts.push(...tagged);
+                }
+
                 if (result.success) {
                     _importStats.value.success += toFiniteCount(result.count, chunk.length);
-                    if (result.summary) {
-                        _importStats.value.createdProducts += toFiniteCount(result.summary.createdProducts);
-                        _importStats.value.updatedProducts += toFiniteCount(result.summary.updatedProducts);
-                        _importStats.value.createdVariants += toFiniteCount(result.summary.createdVariants);
-                        _importStats.value.updatedVariants += toFiniteCount(result.summary.updatedVariants);
-                        _importStats.value.conflictCount += toFiniteCount(result.summary.conflicts);
-                        _importStats.value.failed += toFiniteCount(result.summary.failedProducts);
-                    }
-                    if (Array.isArray(result.errors) && result.errors.length > 0) {
-                        _importStats.value.errors.push(...result.errors);
-                    }
-                    if (Array.isArray(result.conflicts) && result.conflicts.length > 0) {
-                        const tagged = result.conflicts.map((conflict) => ({ batch: i + 1, ...conflict }));
-                        _importStats.value.conflicts.push(...tagged);
-                    }
                 } else {
-                    _importStats.value.failed += chunk.length;
-                    const errorMsg = `Batch ${i+1} failed: ${result.error || 'Unknown error'}`;
-                    _importStats.value.errors.push(errorMsg);
-                    console.error(errorMsg, result);
+                    const hasStructuredOutcome = batchFailedCount > 0 || batchConflictCount > 0;
+                    if (!hasStructuredOutcome) {
+                        _importStats.value.failed += chunk.length;
+                    }
+                    if (result?.error) {
+                        const errorMsg = `Batch ${i+1} failed: ${result.error}`;
+                        _importStats.value.errors.push(errorMsg);
+                        console.error(errorMsg, result);
+                    } else if (!hasStructuredOutcome) {
+                        const errorMsg = `Batch ${i+1} failed: Unknown error`;
+                        _importStats.value.errors.push(errorMsg);
+                        console.error(errorMsg, result);
+                    }
                 }
             } catch (e) {
                 if (!isImportRequestActive(requestId)) return;

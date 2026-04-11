@@ -959,6 +959,71 @@ describe('ProductImportModal Variant-First Payload', () => {
         expect(wrapper.emitted('success')).toBeFalsy();
     });
 
+    it('preserves conflict-only batch results instead of treating them as full failures', async () => {
+        mocks.importProducts.mockResolvedValue({
+            success: false,
+            count: 0,
+            summary: {
+                createdProducts: 0,
+                updatedProducts: 0,
+                createdVariants: 0,
+                updatedVariants: 0,
+                conflicts: 1,
+                failedProducts: 0,
+            },
+            conflicts: [
+                {
+                    batch: 1,
+                    level: 'variant',
+                    spu: 'SPU-1001',
+                    sku: 'SKU-RED',
+                    field: 'price',
+                    current: 100,
+                    incoming: 120,
+                },
+            ],
+            errors: [],
+        });
+
+        const wrapper = mount(ProductImportModal, {
+            global: {
+                stubs: {
+                    Modal: { template: '<div><slot></slot><slot name="footer"></slot></div>' },
+                    AppIcon: true,
+                    ImportUploadStep: true,
+                    ImportMappingStep: true,
+                    ImportImageMatchStep: true,
+                    ImportPreviewStep: true
+                }
+            },
+            props: { modelValue: true }
+        });
+
+        wrapper.vm.currentStep = 4;
+        wrapper.vm.parsedItems = [
+            { name: 'T恤', spu: 'SPU-1001', sku: 'SKU-RED', price: 120 },
+        ];
+
+        await wrapper.vm.handleImport();
+
+        expect(wrapper.vm.importResult.success).toBe(false);
+        expect(wrapper.vm.importResult.failed).toBe(0);
+        expect(wrapper.vm.importResult.summary.conflicts).toBe(1);
+        expect(wrapper.vm.importResult.conflicts).toEqual([
+            expect.objectContaining({
+                batch: 1,
+                spu: 'SPU-1001',
+                sku: 'SKU-RED',
+                field: 'price',
+            }),
+        ]);
+        expect(wrapper.vm.importStats.failed).toBe(0);
+        expect(wrapper.emitted('success')).toBeFalsy();
+        expect(mocks.addToast).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'warning' })
+        );
+    });
+
     it('discards pending file parse results after modal closes', async () => {
         let resolveArrayBuffer;
         const wrapper = mount(ProductImportModal, {
