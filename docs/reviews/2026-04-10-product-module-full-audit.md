@@ -2186,3 +2186,17 @@
   - `src/components/order/__tests__/OrderEditModal.variant-lock.test.js`
   - `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
 - 对应修复提交: `df8a421 fix: reset bound order product state on reopen`
+
+### 2026-04-11 轮次 210
+
+- 继续复查商品绑定组件在“已有绑定单据/空间进入编辑”链路，新增 1 个中风险问题:
+  - `ProductBindingSection` 只会在内部 `ProductSelect` 选中时加载完整商品详情；当父层直接传入 `boundProduct`（例如编辑已有订单、已有空间绑定商品）时，组件不会自动 hydrate 变体和维度，也不会按 `variantId/sku` 恢复当前绑定规格。结果是绑定卡片只剩商品头信息，规格选择、库存和补货信息链路断开，编辑态业务未闭环。
+- 已完成本轮修复:
+  - `ProductBindingSection` 现在会在接收到已有 `boundProduct` 时静默加载完整商品详情，并优先按 `variantId`、其次按 `sku` 恢复当前绑定的变体。
+  - 该静默 hydrate 只恢复本地规格/库存视图，不会在初始化阶段自动回发 `select`，避免把已有订单/空间错误重选成其他变体。
+- 增量回归:
+  - `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
+  - `src/components/order/__tests__/OrderCreateModal.variant-policy.test.js`
+  - `src/components/order/__tests__/OrderForm.prefill-reset.test.js`
+  - `src/components/order/__tests__/OrderEditModal.variant-lock.test.js`
+- 对应修复提交: `0119e1a fix: hydrate existing bound product variants`
