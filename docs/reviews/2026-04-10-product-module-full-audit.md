@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 87 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 88 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -122,6 +122,7 @@
   - `8ab147f`: 商品空间编辑器绑定变体时同步变体材质
   - `e86694a`: 小程序销售空间详情会补齐商品模板图片预览文件
   - `861a651`: 管理员预览私有合集时补齐私有子空间可见性
+  - `ec1675a`: 空间批量下载在全失败时不再假成功
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -269,6 +270,7 @@
 - 密码保护的公开空间走 `POST /api/space/:token` 成功访问后，没有像 GET 一样写入 `space_access_logs` 或递增 `view_count`。结果是商品空间的访问统计在“无密码访问”和“密码访问”两条链路上长期分叉，浏览量与访问日志都少记一段真实访问。[functions/api/space/[token].js](/home/bjw/Code/KK-Image/functions/api/space/[token].js#L185)
 - 商品公开空间前端把 `GET /api/space/:token` 返回的 `{ success: true, data: { requiresPassword: true } }` 误当成真实空间详情处理，而不是切换到密码门禁。结果是密码空间首屏不会进入密码校验视图，前端状态机直接跑偏到一份伪“空间数据”。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L114) [functions/api/space/[token].js](/home/bjw/Code/KK-Image/functions/api/space/[token].js#L178)
 - 管理员预览未公开合集时，公开空间 API 的子空间查询仍固定附带 `s.is_public = 1`。结果是管理员虽然能通过 share token 打开私有父合集，却会错误看不到其中的私有子空间，合集预览链路不完整。[functions/api/space/[token].js](/home/bjw/Code/KK-Image/functions/api/space/[token].js)
+- 商品公开空间和销售空间共用的 `useBatchDownload()` 不校验 `fetch` 的 HTTP 成功状态，也不要求至少下载成功一个文件。结果是只要所有文件都返回 404/403 或网络失败，前端仍会打包空 ZIP 并弹出“开始下载”的成功提示，形成批量下载假成功。[src/composables/useBatchDownload.js](/home/bjw/Code/KK-Image/src/composables/useBatchDownload.js)
 - 商品公开空间页的 `submitPassword()` 没有 token/request 维度隔离。用户在密码验证请求未返回前切到另一条空间时，旧密码验证成功结果仍会回写当前页面，把新空间直接串回旧空间详情。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L153)
 - 商品公开空间页在 Turnstile 开启但尚未验证时，如果路由 token 变化，`watch(token)` 会直接调用 `loadSpace()`。结果是用户无需完成人机验证，只要切一次空间 token 就能直接打空间详情接口，门禁形同虚设。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L177)
 - 共享空间模板数据虽然已经 JOIN 到 `pv_sku` 和变体主图 `display_image_id`，但 `projectSpaceTemplateData()` 仍然固定投影商品 `SPU` 和商品图片。结果是绑定到具体变体的商品空间会把 `SPU` 当作 `SKU` 展示，主图也退回商品通图，销售空间和公开商品空间都会看到错规格、错主图。[functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js#L14) [functions/lib/hono/routes/manage/spaces/transformers.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/transformers.js#L14)
@@ -1679,3 +1681,23 @@
   - `src/components/space/__tests__/SpaceCollection.contract.test.js`
   - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
 - 对应修复提交: `861a651 fix: include private subspaces in admin previews`
+
+### 2026-04-10 轮次 163
+
+- 继续复查公开商品空间和销售空间的下载边界，新增 1 个中风险问题:
+  - `useBatchDownload()` 不校验 `fetch` 是否返回成功响应，也不要求至少有一个文件真实下载成功；全量失败时仍会生成空 ZIP 并弹成功提示
+- 下一步把批量下载成功条件收紧为“至少 1 个文件下载成功”，并补充全失败/部分失败的行为回归。
+
+### 2026-04-10 轮次 164
+
+- 已完成轮次 163 新增问题修复:
+  - `useBatchDownload()` 现在会校验每个文件的 HTTP 成功状态，失败响应不再被塞进 ZIP
+  - 当本轮批量下载没有任何文件成功获取时，流程会直接走失败提示，不再生成空 ZIP 或弹出成功 toast
+  - 已补齐 composable 回归，覆盖“全失败报错”和“部分失败仍保留成功文件”两条边界
+- 增量回归:
+  - `src/composables/__tests__/useBatchDownload.test.js`
+  - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
+  - `src/views/__tests__/Space.lifecycle.test.js`
+  - `src/components/space/__tests__/SpaceCollection.contract.test.js`
+  - `functions/api/space/__tests__/public-space-access.test.js`
+- 对应修复提交: `ec1675a fix: avoid false success on empty batch downloads`
