@@ -201,11 +201,12 @@ export function usePurchaseOrders() {
    * 从客户订单快速创建采购单
    */
   const createFromOrders = async (orderIds, poData = {}) => {
+    const uniqueOrderIds = [...new Set((orderIds || []).filter(Boolean))];
     try {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_FROM_ORDERS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_ids: orderIds, ...poData }),
+        body: JSON.stringify({ order_ids: uniqueOrderIds, ...poData }),
       });
       const json = await res.json();
 

@@ -191,6 +191,29 @@ describe('usePurchaseOrders authz handling', () => {
     }));
   });
 
+  it('deduplicates repeated order ids before create-from-orders requests', async () => {
+    mockAuthFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({
+        success: true,
+        data: { id: 'po-1' },
+      }),
+    });
+
+    const { createFromOrders } = usePurchaseOrders();
+    await createFromOrders(['o-1', 'o-1', 'o-2', 'o-2'], { allocation_method: 'by_quantity' });
+
+    expect(mockAuthFetch).toHaveBeenCalledWith(
+      '/api/manage/purchase-orders/from-orders',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          order_ids: ['o-1', 'o-2'],
+          allocation_method: 'by_quantity',
+        }),
+      })
+    );
+  });
+
   it('does not let stale purchase-order updates overwrite a newer detail context', async () => {
     let resolveUpdate;
     mockAuthFetch
