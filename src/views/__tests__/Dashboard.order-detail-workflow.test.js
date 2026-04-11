@@ -92,4 +92,55 @@ describe('Dashboard order detail workflow', () => {
     resolveOrder({ id: 'o-2', orderNo: 'SO-2', currentData: { name: 'Hydrated' } });
     await pending;
   });
+
+  it('does not let stale dashboard detail hydration overwrite a newer order context', async () => {
+    const resolvers = [];
+    mocks.getOrder.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        })
+    );
+
+    const wrapper = createWrapper();
+    const firstPending = wrapper.vm.viewOrder({ id: 'o-1', orderNo: 'SO-1' });
+    const secondPending = wrapper.vm.viewOrder({ id: 'o-2', orderNo: 'SO-2' });
+
+    resolvers[1]({ id: 'o-2', orderNo: 'SO-2', currentData: { name: 'Newer Dashboard Order' } });
+    await secondPending;
+
+    expect(wrapper.vm.viewingOrder).toMatchObject({
+      id: 'o-2',
+      currentData: { name: 'Newer Dashboard Order' },
+    });
+
+    resolvers[0]({ id: 'o-1', orderNo: 'SO-1', currentData: { name: 'Older Dashboard Order' } });
+    await firstPending;
+
+    expect(wrapper.vm.viewingOrder).toMatchObject({
+      id: 'o-2',
+      currentData: { name: 'Newer Dashboard Order' },
+    });
+  });
+
+  it('does not write back dashboard detail after the modal closes', async () => {
+    let resolveOrder;
+    mocks.getOrder.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveOrder = resolve;
+        })
+    );
+
+    const wrapper = createWrapper();
+    const pending = wrapper.vm.viewOrder({ id: 'o-3', orderNo: 'SO-3' });
+
+    wrapper.vm.closeDetailModal();
+
+    resolveOrder({ id: 'o-3', orderNo: 'SO-3', currentData: { name: 'Late Detail' } });
+    await pending;
+
+    expect(wrapper.vm.showDetailModal).toBe(false);
+    expect(wrapper.vm.viewingOrder).toBe(null);
+  });
 });

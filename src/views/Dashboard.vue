@@ -398,6 +398,7 @@ const viewingOrder = ref(null);
 const commenting = ref(false);
 const detailHydrating = ref(false);
 const detailHydrationError = ref('');
+let detailRequestId = 0;
 
 const confirmData = ref({
   show: false,
@@ -413,12 +414,14 @@ let charts = {};
 
 // Order Management
 const viewOrder = async (order) => {
+  const requestId = ++detailRequestId;
   viewingOrder.value = order ? { ...order } : null;
   showDetailModal.value = true;
   detailHydrationError.value = '';
   detailHydrating.value = true;
   try {
     const fullOrder = await getOrder(order.id);
+    if (requestId !== detailRequestId || !showDetailModal.value) return false;
     if (fullOrder) {
       viewingOrder.value = fullOrder;
       return true;
@@ -426,14 +429,18 @@ const viewOrder = async (order) => {
     detailHydrationError.value = t('common.loadFailed');
     return false;
   } catch (_e) {
+    if (requestId !== detailRequestId || !showDetailModal.value) return false;
     detailHydrationError.value = t('common.networkError');
     return false;
   } finally {
-    detailHydrating.value = false;
+    if (requestId === detailRequestId) {
+      detailHydrating.value = false;
+    }
   }
 };
 
 const closeDetailModal = () => {
+  detailRequestId += 1;
   showDetailModal.value = false;
   viewingOrder.value = null;
   detailHydrationError.value = '';
@@ -443,26 +450,33 @@ const closeDetailModal = () => {
 
 const refreshOrderDetail = async () => {
   if (viewingOrder.value) {
+    const requestId = ++detailRequestId;
     detailHydrationError.value = '';
     detailHydrating.value = true;
     try {
       const fullOrder = await getOrder(viewingOrder.value.id);
+      if (requestId !== detailRequestId || !showDetailModal.value) return;
       if (fullOrder) {
         viewingOrder.value = fullOrder;
       } else {
         detailHydrationError.value = t('common.loadFailed');
       }
     } catch (_e) {
+      if (requestId !== detailRequestId || !showDetailModal.value) return;
       detailHydrationError.value = t('common.networkError');
     } finally {
-      detailHydrating.value = false;
+      if (requestId === detailRequestId) {
+        detailHydrating.value = false;
+      }
     }
   }
   fetchDashboardData();
   
   // Reload the order detail to show new comments if we are still viewing
   if (viewingOrder.value) {
+    const requestId = ++detailRequestId;
     const fullOrder = await getOrder(viewingOrder.value.id);
+    if (requestId !== detailRequestId || !showDetailModal.value) return;
     if (fullOrder) viewingOrder.value = fullOrder;
   }
 };
