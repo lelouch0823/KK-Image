@@ -3029,3 +3029,30 @@
 - 增量回归:
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 - 对应修复提交: `4e13ac1 fix: dedupe purchase-order create retries`
+
+### 2026-04-12 轮次 271
+
+- 继续深审采购单创建幂等恢复边界，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js) 在上一轮补幂等后，修复前如果采购单本体已经创建成功、但 `purchase_order_created` outbox 发布失败，catch 分支会把这次创建错误地 finalize 成成功缓存。结果客户端第一次拿到的是错误，第二次同 key 重试却会被重放成“假成功”，而实际缺失的 outbox 事件也不会再补发，属于明显业务闭环错误。
+- 已完成本轮修复:
+  - 创建路由现在会把“本体已创建但副作用失败”的命令标记为 `failed`，并保存已创建采购单载荷，而不是伪装成成功。
+  - 同一个幂等键再次重试时，如果命中的是 `failed` 记录，路由会基于已创建采购单补发缺失的 outbox 事件并转正为 `committed`，不会重复建单。
+  - 已补齐 direct-create 与 from-orders 两条回归测试，锁定“创建后副作用失败时，重试只能续跑副作用、不得重复建单”的行为。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+- 对应修复提交: `e97849d3 fix: harden purchase-order create side effects`
+
+### 2026-04-12 轮次 272
+
+- 继续深审 AI 采购单创建旁路，新增 1 个高风险问题:
+  - [functions/ai/action-submitters.js](/home/bjw/Code/KK-Image/functions/ai/action-submitters.js)、[functions/ai/action-orchestrator.js](/home/bjw/Code/KK-Image/functions/ai/action-orchestrator.js) 与 [functions/ai/action-service.js](/home/bjw/Code/KK-Image/functions/ai/action-service.js) 修复前存在两层闭环缺口：一是 AI 创建采购单不会发布 `purchase_order_created*` outbox 事件，导致缓存刷新与下游消费者漏感知；二是如果把 outbox 发布直接放在 submitter 里，一旦发布失败，AI 会话仍停在待确认状态，用户再次确认会重复建单。
+- 已完成本轮修复:
+  - AI 采购单 submitter 现在只返回结构化的 `purchaseOrderCreated` 后置元数据，不再在会话完成前直接执行副作用。
+  - action orchestrator 会把这份后置元数据透传到 `action_submitted` payload，AI action service 则在会话提交完成之后统一发布采购单 outbox 事件并触发 poller，避免 AI 入口继续绕开主链路事件契约。
+  - 同时修复了 manual 模式下“已有 `purchaseOrderService.createManual` 仍强依赖 `purchaseOrderRepo.create`”的依赖顺序问题，恢复服务路径可独立工作。
+  - 已补齐 AI submitter、orchestrator 与 service 三层回归测试，锁定“AI 创建采购单必须携带后置元数据并在 action rail 提交后发布 outbox”的行为。
+- 增量回归:
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/ai/__tests__/action-orchestrator.test.js`
+  - `functions/ai/__tests__/action-service.test.js`
+- 对应修复提交: `e97849d3 fix: harden purchase-order create side effects`
