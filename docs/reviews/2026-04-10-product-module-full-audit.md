@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 68 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 69 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -114,6 +114,7 @@
   - `bf2faf0`: 商品空间公开页只认当前 token 的最新空间加载结果
   - `b40d979`: 密码保护商品空间访问补齐浏览量与访问日志记录
   - `5b80156`: 密码保护商品空间 POST 访问补齐私有/过期校验
+  - `a6cd71f`: 商品空间前端正确识别密码门禁响应
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -154,6 +155,7 @@
   - 2026-04-10 运行 2 个回归测试文件，共 2 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 3 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 5 个测试，全部通过。
+  - 2026-04-10 运行 3 个回归测试文件，共 6 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -252,6 +254,7 @@
 - 商品公开空间页在同一 `Space.vue` 实例内切到另一条商品空间时，会复用同一个 `SpaceProductDetail` 组件，但该组件只在初始化时计算媒体索引。结果是旧空间选中的图片序号和 PDF 预览态会泄漏到新空间，公开访问链路会直接展示错媒体或保留上一个空间的内联 PDF 预览状态。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L39) [src/components/space/SpaceProductDetail.vue](/home/bjw/Code/KK-Image/src/components/space/SpaceProductDetail.vue#L380)
 - 商品公开空间页父组件 `Space.vue` 在路由 token 切换时没有隔离 `loadSpace()` 请求先后。旧 token 的慢请求在后返回后仍会覆盖当前 `space/error/requiresPassword/loading`，导致公开空间页直接串到上一条商品空间的数据或错误状态。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L97)
 - 密码保护的公开空间走 `POST /api/space/:token` 成功访问后，没有像 GET 一样写入 `space_access_logs` 或递增 `view_count`。结果是商品空间的访问统计在“无密码访问”和“密码访问”两条链路上长期分叉，浏览量与访问日志都少记一段真实访问。[functions/api/space/[token].js](/home/bjw/Code/KK-Image/functions/api/space/[token].js#L185)
+- 商品公开空间前端把 `GET /api/space/:token` 返回的 `{ success: true, data: { requiresPassword: true } }` 误当成真实空间详情处理，而不是切换到密码门禁。结果是密码空间首屏不会进入密码校验视图，前端状态机直接跑偏到一份伪“空间数据”。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L114) [functions/api/space/[token].js](/home/bjw/Code/KK-Image/functions/api/space/[token].js#L178)
 
 ### Low
 
@@ -1327,3 +1330,20 @@
   - `src/views/__tests__/Space.lifecycle.test.js`
   - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
 - 对应修复提交: `5b80156 fix: enforce protected space access guards`
+
+### 2026-04-10 轮次 125
+
+- 继续复查商品空间前端消费契约，新增 1 个中风险问题:
+  - `Space.vue` 没有正确识别 `data.requiresPassword` 响应，密码空间首屏不会切到密码门禁，而是把门禁响应当成空间详情处理
+- 下一步把空间首屏的结果分支改成“先识别密码门禁，再决定是否拿到了真实空间详情”。
+
+### 2026-04-10 轮次 126
+
+- 已完成轮次 125 新增问题修复:
+  - `Space.vue` 现在会优先识别密码门禁响应，密码空间首屏会正确进入密码验证视图
+  - 公开空间页只会在拿到真实空间详情时才写入 `space`，不再把 `{ requiresPassword: true }` 当作空间数据
+- 增量回归:
+  - `functions/api/space/__tests__/public-space-access.test.js`
+  - `src/views/__tests__/Space.lifecycle.test.js`
+  - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
+- 对应修复提交: `a6cd71f fix: honor public space password gate responses`
