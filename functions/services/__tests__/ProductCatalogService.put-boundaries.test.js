@@ -166,4 +166,51 @@ describe('ProductCatalogService putProduct boundaries', () => {
     expect(mockProductRepo.updateWithMeta).toHaveBeenCalledTimes(1);
     expect(mockVariantRepo.syncVariants).toHaveBeenCalledTimes(1);
   });
+
+  it('syncs dimensions even when patch payload does not include variants', async () => {
+    const service = new ProductCatalogService({});
+    const syncDimensionsSpy = vi
+      .spyOn(service, 'syncDimensionsFromPayload')
+      .mockResolvedValue([
+        {
+          id: 'dim-color',
+          name: 'Color',
+          status: 'active',
+          values: [{ id: 'val-red', value: 'Red', status: 'active' }],
+        },
+      ]);
+
+    const result = await service.patchProduct(
+      { env: {}, executionCtx: { waitUntil: vi.fn() } },
+      'p1',
+      {
+        dimensions: [
+          {
+            id: 'dim-color',
+            name: 'Color',
+            values: [{ value: 'Red' }],
+          },
+        ],
+      }
+    );
+
+    expect(syncDimensionsSpy).toHaveBeenCalledWith(
+      'p1',
+      [
+        {
+          id: 'dim-color',
+          name: 'Color',
+          values: [{ value: 'Red' }],
+        },
+      ],
+      { replaceMissing: false }
+    );
+    expect(mockProductRepo.updateWithMeta).not.toHaveBeenCalled();
+    expect(mockVariantRepo.syncVariants).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      changes: 0,
+      variantSync: undefined,
+      variantsUpdated: false,
+    });
+  });
 });

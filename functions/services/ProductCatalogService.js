@@ -628,7 +628,7 @@ export class ProductCatalogService {
         }
 
         const hasProductFieldUpdates = Object.keys(nextBody).some((key) => PRODUCT_MUTABLE_FIELDS.has(key));
-        const shouldRollbackDimensions = Boolean(incomingDimensions && nextBody.variants !== undefined);
+        const shouldRollbackDimensions = Boolean(incomingDimensions);
         const existingDimensionsSnapshot = shouldRollbackDimensions
             ? await this.dimensionRepo.listByProduct(productId)
             : null;
@@ -642,15 +642,22 @@ export class ProductCatalogService {
         let variantsUpdated = false;
         let variantSync = null;
         let didSyncVariants = false;
+        let dimensionsUpdated = false;
+        let syncedDimensions = null;
 
         try {
+            if (incomingDimensions) {
+                syncedDimensions = await this.syncDimensionsFromPayload(productId, incomingDimensions, {
+                    replaceMissing: fullReplace,
+                });
+                dimensionsUpdated = true;
+            }
+
             if (nextBody.variants !== undefined) {
                 beforeVariants = await this.variantRepo.findByProductId(productId);
                 beforeVariantImages = await this.loadVariantImageSnapshot(productId, beforeVariants);
 
-                const dimensions = incomingDimensions
-                    ? await this.syncDimensionsFromPayload(productId, incomingDimensions, { replaceMissing: fullReplace })
-                    : (existingDimensionsForVariantSync || await this.dimensionRepo.listByProduct(productId));
+                const dimensions = syncedDimensions || existingDimensionsForVariantSync || await this.dimensionRepo.listByProduct(productId);
                 nextBody.variants = normalizeVariantDimensionKeys(
                     assignGeneratedSkuForPatchVariants(
                         normalizeVariantExternalCodes(nextBody.variants),
@@ -729,7 +736,7 @@ export class ProductCatalogService {
             throw error;
         }
 
-        if ((result.success && result.changes > 0) || variantsUpdated) {
+        if ((result.success && result.changes > 0) || variantsUpdated || dimensionsUpdated) {
             await scheduleProductCacheInvalidation(c, {
                 eventType: fullReplace ? 'product_replaced' : 'product_updated',
                 productIds: [productId],
