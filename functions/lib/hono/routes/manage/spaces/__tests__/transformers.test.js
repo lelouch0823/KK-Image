@@ -15,6 +15,8 @@ describe('space transformers', () => {
       p_sku: 'SPU-001',
       pv_sku: 'SKU-RED-M',
       p_price: 199,
+      p_specs: '{"material":"Cotton"}',
+      pv_options_values: '{"材质":"Leather"}',
       p_images: '["product-1.jpg","product-2.jpg"]',
       display_image_id: 'variant-primary.jpg',
     });
@@ -22,6 +24,7 @@ describe('space transformers', () => {
     expect(templateData).toMatchObject({
       sku: 'SKU-RED-M',
       price: '199',
+      material: 'Leather',
     });
     expect(templateData.images).toEqual([
       'variant-primary.jpg',

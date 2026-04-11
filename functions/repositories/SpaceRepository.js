@@ -22,7 +22,8 @@ export class SpaceRepository {
           p.specifications as p_specs,
           p.images as p_images,
           pv.sku as pv_sku,
-          pv.price as pv_price
+          pv.price as pv_price,
+          pv.options_values as pv_options_values
         `;
     }
 

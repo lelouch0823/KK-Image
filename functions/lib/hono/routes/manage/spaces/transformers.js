@@ -5,6 +5,7 @@
 
 import { getShareUrl, getFileUrl } from '../../../_shared/utils.js';
 import { parseJsonArray, parseJsonObject } from '../../../../../api/utils/json.js';
+import { normalizeVariantOptions } from '../../../../../lib/utils/variant-meta.js';
 
 /**
  * 投影商品字段到空间模版数据中
@@ -27,6 +28,13 @@ export function projectSpaceTemplateData(space) {
     if (space.p_specs) {
       const specs = parseJsonObject(space.p_specs, {});
       if (specs?.material) templateData.material = specs.material || '';
+    }
+
+    if (space.variant_id && space.pv_options_values) {
+      const variantOptions = normalizeVariantOptions(parseJsonObject(space.pv_options_values, {}));
+      if (variantOptions.material) {
+        templateData.material = variantOptions.material;
+      }
     }
 
     if (space.p_images) {
