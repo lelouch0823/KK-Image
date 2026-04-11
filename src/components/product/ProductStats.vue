@@ -56,6 +56,10 @@ const statsTotal = ref(0);
 let statsRequestId = 0;
 
 const STATS_PAGE_LIMIT = 100;
+const resolveAlertThreshold = (value) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : 10;
+};
 
 const resetStatsState = () => {
   statsProducts.value = [];
@@ -111,7 +115,7 @@ const totalFormatted = computed(() => {
 const lowStockCount = computed(() => {
     return statsProducts.value.filter((p) => {
       const quantity = Number(p.available_quantity ?? p.available ?? p.stock_quantity ?? 0);
-      return quantity < (p.alert_threshold || 10);
+      return quantity < resolveAlertThreshold(p.alert_threshold);
     }).length;
 });
 

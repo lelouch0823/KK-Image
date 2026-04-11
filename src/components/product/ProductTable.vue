@@ -85,7 +85,7 @@
           </div>
           <!-- Low stock indicator dot -->
           <div
-               v-if="resolveDisplayStock(row) <= (row.alert_threshold || 10)" 
+               v-if="resolveDisplayStock(row) <= resolveAlertThreshold(row)" 
                class="size-2 animate-pulse rounded-full"
                :class="resolveDisplayStock(row) === 0 ? 'bg-danger' : 'bg-warning'"
                :title="t('product.text.lowStock')"
@@ -182,9 +182,14 @@ const getMainImageSrc = (product) => resolvePrimaryProductImageSrc(product);
 const resolveDisplayStock = (product) =>
     Number(product?.available_quantity ?? product?.available ?? product?.stock_quantity ?? 0);
 
+const resolveAlertThreshold = (product) => {
+    const numeric = Number(product?.alert_threshold);
+    return Number.isFinite(numeric) ? numeric : 10;
+};
+
 const getStockColor = (p) => {
     const qty = resolveDisplayStock(p);
-    const threshold = p.alert_threshold || 10;
+    const threshold = resolveAlertThreshold(p);
     if (qty === 0) return 'text-danger font-bold';
     if (qty <= threshold) return 'text-warning font-bold';
     return 'text-(--text-main)';

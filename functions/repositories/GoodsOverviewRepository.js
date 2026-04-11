@@ -49,7 +49,7 @@ export class GoodsOverviewRepository {
       stockQuantity: row.on_hand ?? row.stock_quantity ?? 0,
       reservedQuantity: row.reserved || 0,
       availableQuantity: row.available ?? row.stock_quantity ?? 0,
-      alertThreshold: row.alert_threshold || 10,
+      alertThreshold: row.alert_threshold ?? 10,
       images,
       confirmedQty: row.confirmed_qty,
       productionQty: row.production_qty,

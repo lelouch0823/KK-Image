@@ -46,7 +46,7 @@
                     <span class="max-w-[8rem] truncate text-[11px] text-(--text-secondary)" :title="`${t('product.table.header.stock')}: ${resolveDisplayStock(product)}`">
                         {{ t('product.table.header.stock') }}: {{ resolveDisplayStock(product) }}
                     </span>
-                    <span v-if="resolveDisplayStock(product) <= (product.alert_threshold || 10)" class="bg-danger-bg text-danger-text rounded px-1.5 py-0.5 text-[10px] font-bold">
+                    <span v-if="resolveDisplayStock(product) <= resolveAlertThreshold(product)" class="bg-danger-bg text-danger-text rounded px-1.5 py-0.5 text-[10px] font-bold">
                         {{ t('product.stats.low_stock') }}
                     </span>
                 </div>
@@ -98,6 +98,11 @@ const getMainImageSrc = (product) => resolvePrimaryProductImageSrc(product);
 
 const resolveDisplayStock = (product) =>
     Number(product?.available_quantity ?? product?.available ?? product?.stock_quantity ?? 0);
+
+const resolveAlertThreshold = (product) => {
+    const numeric = Number(product?.alert_threshold);
+    return Number.isFinite(numeric) ? numeric : 10;
+};
 
 const getStatusVariant = (status) => {
     switch(status) {

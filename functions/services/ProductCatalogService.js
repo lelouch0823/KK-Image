@@ -44,8 +44,13 @@ const hasVariantOptionSelections = (variants = []) =>
                 value !== undefined &&
                 value !== null &&
                 String(value).trim() !== ''
-        )
+            )
     );
+
+const normalizeAlertThreshold = (value, fallback = 10) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+};
 
 function buildCatalogRollbackPayload(variants = []) {
     return (variants || []).map((variant) => ({
@@ -55,7 +60,7 @@ function buildCatalogRollbackPayload(variants = []) {
         cost_price: variant.cost_price !== undefined && variant.cost_price !== null
             ? Number(variant.cost_price)
             : null,
-        alert_threshold: Number(variant.alert_threshold) || 10,
+        alert_threshold: normalizeAlertThreshold(variant.alert_threshold),
         options_values: variant.options_values || {},
         image_id: variant.image_id || null,
         status: variant.status || 'active',

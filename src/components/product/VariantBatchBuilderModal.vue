@@ -123,7 +123,7 @@ function handleApply() {
       price: Number(defaults.price) || 0,
       cost_price: Number(defaults.cost_price) || 0,
       stock_quantity: Number(defaults.stock_quantity) || 0,
-      alert_threshold: Number(defaults.alert_threshold) || 10,
+      alert_threshold: Number.isFinite(Number(defaults.alert_threshold)) ? Number(defaults.alert_threshold) : 10,
       status: defaults.status || 'active',
     }));
 

@@ -173,7 +173,7 @@
                          <span class="font-[Outfit] font-medium text-(--text-main)">{{ formatMoney(variant.price) }}</span>
                      </template>
                       <template #cell-stock="{ row: variant }">
-                         <StatusBadge :variant="resolveVariantStock(variant) <= (variant.alert_threshold || product.alert_threshold || 10) ? 'danger' : 'success'" :dot="true" class="rounded-full! px-2! py-0.5!">
+                         <StatusBadge :variant="resolveVariantStock(variant) <= resolveAlertThreshold(variant.alert_threshold, resolveAlertThreshold(product.alert_threshold)) ? 'danger' : 'success'" :dot="true" class="rounded-full! px-2! py-0.5!">
                              {{ resolveVariantStock(variant) }}
                          </StatusBadge>
                      </template>
@@ -190,7 +190,7 @@
                   </div>
                   <div class="mt-2 flex items-center justify-between text-xs">
                     <span class="text-(--text-secondary)">{{ t('product.table.variant.stock', 'Stock') }}</span>
-                    <span :class="resolveVariantStock(variant) <= (variant.alert_threshold || product.alert_threshold || 10) ? 'text-danger' : 'text-success'">
+                    <span :class="resolveVariantStock(variant) <= resolveAlertThreshold(variant.alert_threshold, resolveAlertThreshold(product.alert_threshold)) ? 'text-danger' : 'text-success'">
                       {{ resolveVariantStock(variant) }}
                     </span>
                   </div>
@@ -231,7 +231,7 @@
                       <div class="h-full rounded-full transition-all duration-500" :class="stockBgClass" :style="{ width: stockProgress + '%' }"></div>
                  </div>
                  <div class="flex justify-between text-xs text-(--text-secondary)">
-                     <span>{{ t('product.form.alert_at') }}: {{ product.alert_threshold || 10 }}</span>
+                     <span>{{ t('product.form.alert_at') }}: {{ resolveAlertThreshold(product.alert_threshold) }}</span>
                      <span>{{ t('product.table.variant.status', 'Status') }}: {{ t(`product.filters.status.${product.status || 'archived'}`) }}</span>
                  </div>
              </div>
@@ -333,13 +333,18 @@ const specs = computed(() => {
 const resolveVariantStock = (variant) =>
     Number(variant?.available_quantity ?? variant?.available ?? variant?.stock_quantity ?? 0);
 
+const resolveAlertThreshold = (value, fallback = 10) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+};
+
 const stockColorClass = computed(() => {
     // If variants exist, aggregate stock
     let q = Number(props.product.available_quantity ?? props.product.available ?? props.product.stock_quantity ?? 0);
     if (props.product.variants && props.product.variants.length > 0) {
         q = props.product.variants.reduce((sum, v) => sum + resolveVariantStock(v), 0);
     }
-    const t_val = props.product.alert_threshold || 10;
+    const t_val = resolveAlertThreshold(props.product.alert_threshold);
     if (q <= t_val) return 'text-danger font-bold';
     return 'text-(--text-main)';
 });
@@ -353,7 +358,7 @@ const totalStock = computed(() => {
 });
 const variantCount = computed(() => Array.isArray(props.product.variants) ? props.product.variants.length : 0);
 const inventoryScale = computed(() => {
-    const alert = Math.max(1, Number(props.product.alert_threshold || 10));
+    const alert = Math.max(1, resolveAlertThreshold(props.product.alert_threshold));
     return Math.max(50, alert * 5, Number(totalStock.value || 0));
 });
 const stockProgress = computed(() =>
@@ -362,7 +367,7 @@ const stockProgress = computed(() =>
 
 const stockBgClass = computed(() => {
     const q = totalStock.value;
-    const t_val = props.product.alert_threshold || 10;
+    const t_val = resolveAlertThreshold(props.product.alert_threshold);
     if (q <= t_val) return 'bg-danger';
     return 'bg-success';
 });

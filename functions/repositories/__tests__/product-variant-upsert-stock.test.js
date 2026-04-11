@@ -131,6 +131,48 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
     expect(upsertStmt.params).toContain(9);
   });
 
+  it('preserves alert_threshold=0 when inserting new variants', async () => {
+    await repo.createBatch('p-1', [
+      {
+        id: 'v-zero-alert',
+        sku: 'SKU-ZERO',
+        price: 88,
+        cost_price: 44,
+        stock_quantity: 10,
+        alert_threshold: 0,
+        status: 'active',
+        options_values: { color: 'red' },
+      },
+    ]);
+
+    const statements = db.batch.mock.calls[0][0];
+    const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
+    expect(upsertStmt.params[6]).toBe(0);
+  });
+
+  it('preserves alert_threshold=0 when syncing existing variants', async () => {
+    db = createMockDbWithExistingVariant([
+      { id: 'v-zero-alert', variant_signature: '{"color":"black"}', status: 'active', stock_quantity: 5 },
+    ]);
+    repo = new ProductVariantRepository(db);
+
+    await repo.syncVariants('p-1', [
+      {
+        id: 'v-zero-alert',
+        sku: 'SKU-ZERO',
+        price: 100,
+        cost_price: 60,
+        stock_quantity: 5,
+        alert_threshold: 0,
+        options_values: { color: 'black' },
+      },
+    ]);
+
+    const statements = db.batch.mock.calls[0][0];
+    const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
+    expect(upsertStmt.params[6]).toBe(0);
+  });
+
   it('seeds inventory_balances for newly inserted variants', async () => {
     await repo.createBatch('p-1', [
       {

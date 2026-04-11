@@ -6,6 +6,10 @@ import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 
 const D1_MAX_IN_CLAUSE_SIZE = 98;
+const normalizeAlertThreshold = (value, fallback = 10) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+};
 
 export class ProductVariantRepository {
     constructor(db) {
@@ -79,7 +83,7 @@ export class ProductVariantRepository {
                     Number(v.price) || 0,
                     v.cost_price !== undefined && v.cost_price !== null ? Number(v.cost_price) : null,
                     Number(v.stock_quantity) || 0,
-                    Number(v.alert_threshold) || 10,
+                    normalizeAlertThreshold(v.alert_threshold),
                     JSON.stringify(optionsValues),
                     variantSignature,
                     v.image_id || null,
@@ -438,7 +442,7 @@ export class ProductVariantRepository {
                     Number(v.price) || 0,
                     v.cost_price !== undefined && v.cost_price !== null ? Number(v.cost_price) : null,
                     resolvedStockQuantity,
-                    Number(v.alert_threshold) || 10,
+                    normalizeAlertThreshold(v.alert_threshold),
                     JSON.stringify(optionsValues),
                     variantSignature,
                     v.image_id || null,
