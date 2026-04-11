@@ -64,15 +64,20 @@ class WorkflowDb {
         return { meta: { changes: 1 } };
       },
       async all() {
-        if (sql.includes('FROM orders o') && sql.includes("GROUP_CONCAT(DISTINCT o.id)")) {
+        if (
+          sql.includes('FROM order_lines ol')
+          && sql.includes("GROUP_CONCAT(DISTINCT CASE WHEN o.status = 'confirmed' THEN o.id END)")
+        ) {
           const active = new Set(['confirmed', 'production', 'shipping', 'arrived']);
           const grouped = new Map();
           for (const order of db.state.orders) {
             if (!active.has(order.status) || !order.variant_id) continue;
             const current = grouped.get(order.variant_id) || { variant_id: order.variant_id, total_demand: 0, order_count: 0, order_ids: [] };
             current.total_demand += Number(order.quantity || 0);
-            current.order_count += 1;
-            current.order_ids.push(order.id);
+            if (order.status === 'confirmed') {
+              current.order_count += 1;
+              current.order_ids.push(order.id);
+            }
             grouped.set(order.variant_id, current);
           }
           return {
@@ -110,7 +115,7 @@ class WorkflowDb {
           };
         }
 
-        if (sql.includes('FROM orders o') && sql.includes('LEFT JOIN inventory_balances ib')) {
+        if (sql.includes('FROM order_lines ol') && sql.includes('LEFT JOIN inventory_balances ib')) {
           const variantId = db.state.orders[0].variant_id;
           const variant = db.state.variants.get(variantId);
           const product = db.state.products.get(variant.product_id);
