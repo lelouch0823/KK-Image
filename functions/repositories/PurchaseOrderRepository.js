@@ -442,7 +442,25 @@ export class PurchaseOrderRepository {
       );
     }
 
-    await executeBatchChunks(this.db, stmts);
+    let insertedCount = 0;
+    try {
+      for (const chunk of chunkArray(stmts, D1_MAX_IN_CLAUSE_SIZE)) {
+        await this.db.batch(chunk);
+        insertedCount += chunk.length;
+      }
+    } catch (error) {
+      const insertedIds = createdIds.slice(0, insertedCount);
+      if (insertedIds.length > 0) {
+        for (const idChunk of chunkArray(insertedIds, D1_MAX_IN_CLAUSE_SIZE)) {
+          const placeholders = idChunk.map(() => '?').join(',');
+          await this.db
+            .prepare(`DELETE FROM purchase_order_items WHERE id IN (${placeholders})`)
+            .bind(...idChunk)
+            .run();
+        }
+      }
+      throw error;
+    }
 
     // 同步更新采购单的 updated_at
     await this.db

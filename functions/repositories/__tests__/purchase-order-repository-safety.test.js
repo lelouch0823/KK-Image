@@ -22,6 +22,30 @@ function createBatchDb() {
   return { prepare, batch, __run: run };
 }
 
+function createFailingBatchDb({ failOnBatchCall = 2 } = {}) {
+  const runStatements = [];
+  const prepare = vi.fn((sql) => ({
+    sql,
+    bind: (...params) => ({
+      sql,
+      params,
+      run: vi.fn(async () => {
+        runStatements.push({ sql, params });
+        return { meta: { changes: 1 } };
+      }),
+    }),
+  }));
+  let batchCall = 0;
+  const batch = vi.fn(async (stmts) => {
+    batchCall += 1;
+    if (batchCall === failOnBatchCall) {
+      throw new Error('batch failed');
+    }
+    return stmts.map(() => ({ meta: { changes: 1 } }));
+  });
+  return { prepare, batch, __runStatements: runStatements };
+}
+
 describe('PurchaseOrderRepository safety guards', () => {
   it('generatePoNo increments from the highest daily suffix instead of row count', async () => {
     vi.useFakeTimers();
@@ -148,6 +172,31 @@ describe('PurchaseOrderRepository safety guards', () => {
     expect(db.batch).toHaveBeenCalledTimes(2);
     expect(db.batch.mock.calls[0][0]).toHaveLength(100);
     expect(db.batch.mock.calls[1][0]).toHaveLength(5);
+  });
+
+  it('addItems rolls back previously inserted chunks when a later batch chunk fails', async () => {
+    const db = createFailingBatchDb();
+    const repo = new PurchaseOrderRepository(db);
+    const items = Array.from({ length: 105 }, (_, index) => ({
+      product_id: `prod-${index + 1}`,
+      variant_id: `var-${index + 1}`,
+      quantity: 1,
+      unit_cost: 10,
+    }));
+
+    await expect(repo.addItems('po-1', items)).rejects.toThrow('batch failed');
+
+    expect(db.batch).toHaveBeenCalledTimes(2);
+    expect(
+      db.__runStatements.some((statement) =>
+        statement.sql.includes('DELETE FROM purchase_order_items WHERE id IN')
+      )
+    ).toBe(true);
+    expect(
+      db.__runStatements.some((statement) =>
+        statement.sql.includes('UPDATE purchase_orders SET updated_at = ?')
+      )
+    ).toBe(false);
   });
 
   it('updateAllocations batches large updates into D1-safe chunks', async () => {
