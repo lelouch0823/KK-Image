@@ -82,4 +82,16 @@ describe('SpaceManager permission alignment', () => {
     expect(wrapper.find('[data-testid="product-editor"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="space-detail"]').exists()).toBe(false);
   });
+
+  it('keeps the delete confirmation open when deleting a space fails', async () => {
+    mocks.deleteSpace.mockResolvedValue(false);
+    const wrapper = createWrapper();
+    await flushPromises();
+
+    wrapper.vm.confirmDelete({ id: 'space-1', name: '空间 A' });
+    await wrapper.vm.confirmData.onConfirm();
+
+    expect(mocks.deleteSpace).toHaveBeenCalledWith('space-1');
+    expect(wrapper.vm.confirmData.show).toBe(true);
+  });
 });

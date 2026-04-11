@@ -319,7 +319,8 @@ const confirmDelete = (space) => {
     onConfirm: async () => {
       confirmData.value.loading = true;
       try {
-        await deleteSpace(space.id);
+        const deleted = await deleteSpace(space.id);
+        if (!deleted) return;
         confirmData.value.show = false;
       } finally {
         confirmData.value.loading = false;

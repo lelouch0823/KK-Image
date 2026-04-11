@@ -275,7 +275,8 @@ const deleteSubspace = (sub) => {
     onConfirm: async () => {
       confirmData.value.loading = true;
       try {
-        await deleteSpace(sub.id);
+        const deleted = await deleteSpace(sub.id);
+        if (!deleted) return;
         await loadData();
         emit('updated');
         confirmData.value.show = false;

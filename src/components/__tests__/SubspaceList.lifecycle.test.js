@@ -106,4 +106,42 @@ describe('SubspaceList lifecycle', () => {
     expect(wrapper.text()).toContain('B 子空间');
     expect(wrapper.text()).not.toContain('A 子空间');
   });
+
+  it('keeps the delete confirmation open when deleting a subspace fails', async () => {
+    mocks.loadSubspaces.mockResolvedValue([
+      {
+        id: 'sub-a-1',
+        name: 'A 子空间',
+        template: 'gallery',
+        fileCount: 1,
+        isPublic: true,
+        coverUrl: '',
+      },
+    ]);
+    mocks.deleteSpace.mockResolvedValue(false);
+
+    const wrapper = mount(SubspaceList, {
+      props: {
+        spaceId: 'space-a',
+        canManage: true,
+      },
+      global: {
+        stubs: {
+          Tooltip: { template: '<div><slot /></div>' },
+          SpaceCreateModal: { template: '<div />' },
+          ConfirmDialog: { template: '<div />' },
+          AppImage: { template: '<img />', props: ['src', 'alt'] },
+          AppButton: { template: '<button><slot /></button>' },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    wrapper.vm.deleteSubspace({ id: 'sub-a-1', name: 'A 子空间' });
+    await wrapper.vm.confirmData.onConfirm();
+
+    expect(mocks.deleteSpace).toHaveBeenCalledWith('sub-a-1');
+    expect(wrapper.vm.confirmData.show).toBe(true);
+  });
 });
