@@ -245,6 +245,7 @@ import AppTable from '@/components/ui/AppTable.vue';
 import { getProductStatusVariant } from '@/utils/status';
 import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
+import { useClipboard } from '@/composables/useClipboard';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { resolveProductImageSrcList, resolveVariantPrimaryImageSrc } from '@/utils/product-image.js';
 
@@ -365,6 +366,7 @@ const formatVariantName = (optionsValues) => {
 // Associated Spaces Logic
 const { loadProductSpaces } = useSpaces();
 const { addToast } = useToast();
+const { copyShareLink: copySpaceShareLink } = useClipboard();
 const associatedSpaces = ref([]);
 const loadingSpaces = ref(true);
 let associatedSpacesRequestId = 0;
@@ -402,9 +404,15 @@ watch(
 
 const copyShareLink = async (space) => {
     try {
-        const url = `${window.location.origin}/space/${space.shareToken || space.share_token}`;
-        await navigator.clipboard.writeText(url);
-        addToast({ message: t('spaces.copyUrlSuccess') || 'Link copied to clipboard!', type: 'success' });
+        const sharePath = String(space.shareUrl || '').trim()
+          || (space.shareToken || space.share_token ? `/space/${space.shareToken || space.share_token}` : '');
+        if (!sharePath) {
+          addToast({ message: t('common.copyFailed'), type: 'error' });
+          return;
+        }
+        await copySpaceShareLink(sharePath, {
+          successMessage: t('spaces.copyUrlSuccess') || 'Link copied to clipboard!',
+        });
     } catch (_e) {
         addToast({ message: t('common.copyFailed'), type: 'error' });
     }

@@ -5,6 +5,7 @@ import ProductDetail from '../ProductDetail.vue';
 const mocks = vi.hoisted(() => ({
   loadProductSpaces: vi.fn(),
   addToast: vi.fn(),
+  copyShareLink: vi.fn(),
 }));
 
 vi.mock('@/composables/useI18n', () => ({
@@ -22,6 +23,12 @@ vi.mock('@/composables/useSpaces', () => ({
 vi.mock('@/composables/useToast', () => ({
   useToast: () => ({
     addToast: mocks.addToast,
+  }),
+}));
+
+vi.mock('@/composables/useClipboard', () => ({
+  useClipboard: () => ({
+    copyShareLink: mocks.copyShareLink,
   }),
 }));
 
@@ -118,5 +125,86 @@ describe('ProductDetail associated spaces', () => {
 
     expect(wrapper.text()).toContain('12 views');
     expect(wrapper.text()).toContain('Public');
+  });
+
+  it('copies associated space links through the shared clipboard helper', async () => {
+    mocks.loadProductSpaces.mockReset();
+    mocks.loadProductSpaces.mockResolvedValueOnce([
+      {
+        id: 'space-1',
+        name: 'Space One',
+        createdAt: 1700000000000,
+        shareToken: 's1',
+      },
+    ]);
+
+    const wrapper = mount(ProductDetail, {
+      props: {
+        product: {
+          id: 'prod-1',
+          name: 'Chair',
+          price: 100,
+          currency: 'CNY',
+          variants: [],
+        },
+      },
+      global: {
+        stubs: {
+          AppImage: { template: '<img />' },
+          StatusBadge: { template: '<span><slot /></span>' },
+          AppTable: { template: '<table />' },
+          AppIcon: { template: '<i />' },
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    });
+
+    await flushPromises();
+    await wrapper.get('button').trigger('click');
+
+    expect(mocks.copyShareLink).toHaveBeenCalledWith('/space/s1', {
+      successMessage: 'Link copied to clipboard!',
+    });
+  });
+
+  it('prefers shareUrl when copying associated space links', async () => {
+    mocks.loadProductSpaces.mockReset();
+    mocks.loadProductSpaces.mockResolvedValueOnce([
+      {
+        id: 'space-1',
+        name: 'Space One',
+        createdAt: 1700000000000,
+        shareToken: 's1',
+        shareUrl: 'https://example.com/space/public-s1',
+      },
+    ]);
+
+    const wrapper = mount(ProductDetail, {
+      props: {
+        product: {
+          id: 'prod-1',
+          name: 'Chair',
+          price: 100,
+          currency: 'CNY',
+          variants: [],
+        },
+      },
+      global: {
+        stubs: {
+          AppImage: { template: '<img />' },
+          StatusBadge: { template: '<span><slot /></span>' },
+          AppTable: { template: '<table />' },
+          AppIcon: { template: '<i />' },
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    });
+
+    await flushPromises();
+    await wrapper.get('button').trigger('click');
+
+    expect(mocks.copyShareLink).toHaveBeenCalledWith('https://example.com/space/public-s1', {
+      successMessage: 'Link copied to clipboard!',
+    });
   });
 });
