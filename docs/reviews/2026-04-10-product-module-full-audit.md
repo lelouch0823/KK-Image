@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 84 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 85 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -1623,3 +1623,20 @@
   - `src/components/space/__tests__/SpaceCollection.contract.test.js`
   - `src/views/__tests__/Space.lifecycle.test.js`
 - 对应修复提交: `93bdca2 fix: hydrate public collection subspace media`
+
+### 2026-04-10 轮次 157
+
+- 继续复查公开商品空间变体投影，新增 1 个高风险问题:
+  - 公开空间 API 的主空间查询和子空间查询都没有 JOIN `product_variants`。结果是变体绑定的公开商品空间、公开合集子空间仍会退回商品级 `SPU/材质/主图`，与管理端/销售端已经修正后的变体投影语义分叉
+- 下一步把公开空间查询对齐到变体投影口径，补齐 `pv_sku/pv_options_values/display_image_id`。
+
+### 2026-04-10 轮次 158
+
+- 已完成轮次 157 新增问题修复:
+  - 公开空间 API 的主空间查询现在会补齐 `product_variants` 和变体主图投影，变体绑定的公开商品空间会正确显示变体 `SKU/材质/主图`
+  - 公开合集空间对子空间的查询也已对齐到同一投影口径，变体绑定子空间不再退回商品级投影
+- 增量回归:
+  - `functions/api/space/__tests__/public-space-access.test.js`
+  - `src/components/space/__tests__/SpaceCollection.contract.test.js`
+  - `src/views/__tests__/Space.lifecycle.test.js`
+- 对应修复提交: `270ba26 fix: project public space variant fields`
