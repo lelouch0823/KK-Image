@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 107 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 116 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -2094,3 +2094,44 @@
   - `src/components/product/__tests__/ProductCreateModal.external-codes.test.js`
   - `src/components/product/__tests__/ProductWorkflowModal.test.js`
 - 对应修复提交: `8433820 fix: handle product form submit exceptions`
+
+### 2026-04-10 轮次 203
+
+- 继续沿商品创建/编辑、导入、详情加载与统计链路复查，新增 9 个中风险问题:
+  - `useProducts.loadProduct()` 在接口返回 `success:false` 时直接吞成 `null`，上层无法区分“加载失败”和“没有详情”，会把 `ProductBindingSection`、`ProductWorkflowModal`、`ProductDetailModal`、`ProductExportModal` 的失败语义带歪。
+  - `ProductImportModal.resetFile()` 没有清空 `imageUploadFiles/imageMatches`，关闭弹窗后再打开会沿用上一次导入会话的本地图片匹配状态。
+  - `useProductForm.removeOption()` 在编辑态请求规格影响预览时没有 `catch`，请求 reject 会直接冒泡，既不提示用户，也不做错误收口。
+  - `useProductForm.addOptionValue()` 在编辑态是“先本地加值再请求持久化”；如果 `addDimensionValue()` reject，会留下未持久化的本地规格值，形成脏状态。
+  - `useProductForm.removeOptionValue()` 在编辑态请求值影响预览时没有 `catch`，reject 后会直接中断交互。
+  - `useProductForm.restoreOptionValue()` 在恢复归档值时没有 `catch`，reject 会直接中断恢复流程且没有错误提示。
+  - `useProductForm.confirmDimensionArchive()` 归档规格只处理返回值失败，不处理 reject；网络异常时会留下可重试弹窗但没有任何错误反馈。
+  - `useProductForm.confirmValueArchive()` 归档规格值也只处理返回值失败，不处理 reject；异常会直接外抛。
+  - `ProductStats` 的低库存统计仍按 `stock_quantity` 聚合，没有优先消费 `available_quantity`，与商品列表/详情展示口径不一致。
+- 下一步把这 9 条按三批修复: 先收口 `loadProduct` 与导入残留，再统一补 `useProductForm` 的异步动作错误边界，最后修正商品统计库存口径。
+
+### 2026-04-10 轮次 204
+
+- 已完成轮次 203 新增问题修复:
+  - `useProducts.loadProduct()` 现在会在接口失败时抛出明确错误，商品绑定、工作流编辑、详情补全、导出补全都会进入正确失败分支，不再把错误伪装成空数据。
+  - `ProductImportModal.resetFile()` 现在会同步清空 `imageUploadFiles/imageMatches`，导入弹窗关闭后不会残留上一轮图片匹配状态。
+  - `useProductForm.removeOption()/removeOptionValue()/restoreOptionValue()/confirmDimensionArchive()/confirmValueArchive()` 现在都补齐了 reject 收口，只在当前上下文仍有效时弹错误 toast，并保持本地状态/向导 loading 稳定。
+  - `useProductForm.addOptionValue()` 现在改成编辑态“服务端写入成功后再落本地值”，reject 时不会留下未持久化规格值或脏变体状态。
+  - `ProductStats` 的低库存统计现在优先消费 `available_quantity`，与商品列表和详情页的库存展示口径一致。
+  - 本轮累计 10 个新增问题已完成修复并形成一组批次总结，其中第 1 条问题已在轮次 201/202 单独修复，其余 9 条由本轮统一收口。
+- 增量回归:
+  - `src/composables/__tests__/useProducts.cache.test.js`
+  - `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
+  - `src/components/product/__tests__/ProductCreateModal.dimension-archive.test.js`
+  - `src/components/product/__tests__/ProductCreateModal.value-archive.test.js`
+  - `src/components/product/__tests__/ProductCreateModal.variant-first.test.js`
+  - `src/components/product/__tests__/ProductCreateModal.edit-variant-preservation.test.js`
+  - `src/components/product/__tests__/ProductCreateModal.external-codes.test.js`
+  - `src/components/product/__tests__/ProductCreateModal.inventory-ownership.test.js`
+  - `src/components/product/__tests__/ProductWorkflowModal.test.js`
+  - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
+  - `src/components/product/__tests__/ProductExportModal.filters.test.js`
+  - `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
+  - `src/components/product/__tests__/ProductStats.test.js`
+  - `src/components/product/__tests__/ProductGrid.available-stock.test.js`
+  - `src/components/product/__tests__/product-inventory-projection-consumers.test.js`
+- 对应修复提交: `94f4e3b fix: harden product module async boundaries`
