@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 124 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 125 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -145,6 +145,7 @@
   - `dd323d5`: 商品统计弹窗刷新失败时清理旧统计结果
   - `7c79bb4`: 商品 PATCH/PUT 在仅提交 dimensions 时真正执行规格同步
   - `c5e9811`: 商品导入在整批冲突跳过时保留冲突结果而不误记为失败
+  - `ee0f12c`: 商品预警阈值为 0 时不再被仓储和前端错误回退成 10
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -227,6 +228,7 @@
   - 2026-04-11 运行 3 个回归测试文件，共 13 个测试，全部通过。
   - 2026-04-11 运行 3 个回归测试文件，共 8 个测试，全部通过。
   - 2026-04-11 运行 2 个回归测试文件，共 31 个测试，全部通过。
+  - 2026-04-11 运行 6 个回归测试文件，共 26 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -2421,3 +2423,20 @@
   - `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
   - `src/components/product/import/__tests__/ImportPreviewStep.test.js`
 - 对应修复提交: `c5e9811 fix: preserve conflict-only product import results`
+
+### 2026-04-11 轮次 227
+
+- 继续复查商品库存预警阈值在写入与展示链路中的口径一致性，新增 1 个高风险问题:
+  - 商品链路多处把 `alert_threshold` 用 `|| 10` 兜底，包括 `ProductVariantRepository.createBatch()/syncVariants()`、`ProductCatalogService` 回滚载荷，以及 `ProductStats/ProductTable/ProductGrid/ProductDetail/GoodsOverviewRepository`。结果是后端会把合法的 `alert_threshold=0` 写成 `10`，前端和货品总览也会把已持久化的 `0` 误显示成 `10`，导致“关闭库存预警”这一合法业务配置无法真正生效，形成从仓储到展示的系统性契约分叉。[functions/repositories/ProductVariantRepository.js](/home/bjw/Code/KK-Image/functions/repositories/ProductVariantRepository.js) [functions/services/ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js) [src/components/product/ProductStats.vue](/home/bjw/Code/KK-Image/src/components/product/ProductStats.vue) [src/components/product/ProductTable.vue](/home/bjw/Code/KK-Image/src/components/product/ProductTable.vue) [src/components/product/ProductGrid.vue](/home/bjw/Code/KK-Image/src/components/product/ProductGrid.vue) [src/components/product/ProductDetail.vue](/home/bjw/Code/KK-Image/src/components/product/ProductDetail.vue) [functions/repositories/GoodsOverviewRepository.js](/home/bjw/Code/KK-Image/functions/repositories/GoodsOverviewRepository.js)
+- 已完成本轮修复:
+  - 仓储和服务层现在会保留 `alert_threshold=0`，不再把合法的零阈值静默改写成默认值 `10`。
+  - 商品统计、列表、卡片、详情、货品总览和批量建规格默认值处理已改为保留显式 `0`，显示口径与持久化语义重新对齐。
+  - 已补齐仓储层和前端回归测试，并回归商品详情、批量建规格、货品总览相关测试，确认零阈值修复没有引入新的库存展示回归。
+- 增量回归:
+  - `functions/repositories/__tests__/product-variant-upsert-stock.test.js`
+  - `functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
+  - `src/components/product/__tests__/ProductGrid.available-stock.test.js`
+  - `src/components/product/__tests__/ProductStats.test.js`
+  - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
+  - `src/components/product/__tests__/VariantBatchBuilderModal.test.js`
+- 对应修复提交: `ee0f12c fix: preserve zero alert thresholds across product flows`
