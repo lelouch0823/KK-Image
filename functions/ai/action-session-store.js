@@ -64,16 +64,25 @@ export class D1ActionSessionStore {
   async updateSession(id, patch = {}) {
     const updatedAt = Date.now();
     const nextStatus = patch.status || 'collecting';
-    const slotsJson = normalizeJson(patch.slots, {});
-    const previewJson = patch.preview === undefined ? null : normalizeJson(patch.preview, {});
+    const replaceSlots = patch.slots !== undefined ? 1 : 0;
+    const slotsJson = replaceSlots ? normalizeJson(patch.slots, {}) : null;
+    const replacePreview = patch.preview !== undefined ? 1 : 0;
+    const previewJson = replacePreview
+      ? (patch.preview === null ? null : normalizeJson(patch.preview, {}))
+      : null;
 
     await this.db.prepare(`
       UPDATE ai_action_sessions
-      SET status = ?, slots_json = ?, preview_json = ?, updated_at = ?
+      SET status = ?,
+          slots_json = CASE WHEN ? = 1 THEN ? ELSE slots_json END,
+          preview_json = CASE WHEN ? = 1 THEN ? ELSE preview_json END,
+          updated_at = ?
       WHERE id = ?
     `).bind(
       nextStatus,
+      replaceSlots,
       slotsJson,
+      replacePreview,
       previewJson,
       updatedAt,
       id

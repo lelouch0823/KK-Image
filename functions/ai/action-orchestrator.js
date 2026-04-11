@@ -12,6 +12,18 @@ function isCandidateResult(value) {
   return value && typeof value === 'object' && value.kind === 'candidates' && Array.isArray(value.candidates);
 }
 
+function buildSubmittedActionPayload(session, adapter, created = {}) {
+  return {
+    sessionId: session.id,
+    entityType: session.entity_type,
+    createdEntityId: created.id,
+    createdEntityLabel: created.label || created.id,
+    purchaseOrderCreated: created.purchaseOrderCreated || null,
+    targetModule: adapter.targetModule,
+    successMessage: created.message || '已完成创建，请前往对应模块查看。',
+  };
+}
+
 export class AIActionOrchestrator {
   constructor({ sessionStore, getActionAdapter, submitters = {}, slotResolvers = {}, extractActionSlots = () => ({}) }) {
     this.sessionStore = sessionStore;
@@ -88,6 +100,14 @@ export class AIActionOrchestrator {
       throw new Error(`Missing action adapter for ${session.entity_type}`);
     }
     const slots = parseJsonObject(session.slots_json, {});
+    const preview = parseJsonObject(session.preview_json, {});
+
+    if (session.status === 'submitted_pending_effects' && preview?.submittedPayload) {
+      return {
+        kind: 'action_submitted',
+        payload: preview.submittedPayload,
+      };
+    }
 
     if (session.status === 'collecting' && !confirmation) {
       const extractedSlots = this.extractActionSlots(adapter.entityType, text);
@@ -159,23 +179,28 @@ export class AIActionOrchestrator {
     }
 
     const created = await submitter(slots);
-    await this.sessionStore.updateSession(session.id, {
-      status: 'completed',
-      slots,
-      preview: parseJsonObject(session.preview_json, {}),
-    });
+    const submittedPayload = buildSubmittedActionPayload(session, adapter, created);
+
+    if (created?.purchaseOrderCreated) {
+      await this.sessionStore.updateSession(session.id, {
+        status: 'submitted_pending_effects',
+        slots,
+        preview: {
+          ...preview,
+          submittedPayload,
+        },
+      });
+    } else {
+      await this.sessionStore.updateSession(session.id, {
+        status: 'completed',
+        slots,
+        preview,
+      });
+    }
 
     return {
       kind: 'action_submitted',
-      payload: {
-        sessionId: session.id,
-        entityType: session.entity_type,
-        createdEntityId: created.id,
-        createdEntityLabel: created.label || created.id,
-        purchaseOrderCreated: created.purchaseOrderCreated || null,
-        targetModule: adapter.targetModule,
-        successMessage: created.message || '已完成创建，请前往对应模块查看。',
-      },
+      payload: submittedPayload,
     };
   }
 

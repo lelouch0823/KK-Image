@@ -175,12 +175,83 @@ describe('AIActionOrchestrator', () => {
     });
 
     expect(result.kind).toBe('action_submitted');
+    expect(sessionStore.updateSession).toHaveBeenCalledWith('act-po-1', expect.objectContaining({
+      status: 'submitted_pending_effects',
+    }));
     expect(result.payload.purchaseOrderCreated).toEqual({
       created: { id: 'po-1', po_no: 'PO-1' },
       mode: 'manual',
       orderIds: [],
       items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 12 }],
     });
+  });
+
+  it('replays a pending purchase-order submission without re-running the submitter', async () => {
+    sessionStore.getLatestActiveSession.mockResolvedValueOnce({
+      id: 'act-po-2',
+      user_id: 'user-1',
+      action_type: 'create_purchase_order',
+      entity_type: 'purchase_order',
+      status: 'submitted_pending_effects',
+      slots_json: JSON.stringify({
+        mode: 'manual',
+        items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 12 }],
+      }),
+      preview_json: JSON.stringify({
+        title: '采购单创建预览',
+        submittedPayload: {
+          sessionId: 'act-po-2',
+          entityType: 'purchase_order',
+          createdEntityId: 'po-2',
+          createdEntityLabel: 'PO-2',
+          purchaseOrderCreated: {
+            created: { id: 'po-2', po_no: 'PO-2' },
+            mode: 'manual',
+            orderIds: [],
+            items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 12 }],
+          },
+          targetModule: 'purchase_orders',
+          successMessage: '已完成创建，请前往对应模块查看。',
+        },
+      }),
+    });
+    submitters.create_purchase_order = vi.fn(async () => ({
+      id: 'po-should-not-run',
+      label: 'PO-SHOULD-NOT-RUN',
+    }));
+
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {},
+      extractActionSlots: () => ({}),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '继续',
+      confirmation: false,
+    });
+
+    expect(result).toEqual({
+      kind: 'action_submitted',
+      payload: {
+        sessionId: 'act-po-2',
+        entityType: 'purchase_order',
+        createdEntityId: 'po-2',
+        createdEntityLabel: 'PO-2',
+        purchaseOrderCreated: {
+          created: { id: 'po-2', po_no: 'PO-2' },
+          mode: 'manual',
+          orderIds: [],
+          items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 12 }],
+        },
+        targetModule: 'purchase_orders',
+        successMessage: '已完成创建，请前往对应模块查看。',
+      },
+    });
+    expect(submitters.create_purchase_order).not.toHaveBeenCalled();
   });
 
   it('collects the next missing slot from a follow-up user reply', async () => {

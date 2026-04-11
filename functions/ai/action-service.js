@@ -135,6 +135,10 @@ export function createAIActionService(deps = {}) {
   const createOrchestrator = deps.createActionOrchestrator || createActionOrchestrator;
   const publishPurchaseOrderCreated =
     deps.publishPurchaseOrderCreated || publishPurchaseOrderCreatedFromAI;
+  const createSessionStore =
+    deps.createSessionStore || ((actionContext = {}) => (
+      actionContext?.env?.DB ? new D1ActionSessionStore(actionContext.env.DB) : null
+    ));
 
   return {
     async handleTurn({ text = '', context = {}, user = null, actionContext = null } = {}) {
@@ -162,6 +166,12 @@ export function createAIActionService(deps = {}) {
         && actionResult.payload?.purchaseOrderCreated
       ) {
         await publishPurchaseOrderCreated(actionContext || {}, actionResult.payload.purchaseOrderCreated);
+        const sessionStore = createSessionStore(actionContext || {});
+        if (actionResult.payload?.sessionId && sessionStore?.updateSession) {
+          await sessionStore.updateSession(actionResult.payload.sessionId, {
+            status: 'completed',
+          });
+        }
       }
 
       const refreshEvent = actionResult.kind === 'action_submitted' && actionResult.payload?.targetModule

@@ -65,14 +65,19 @@ describe('createAIActionService', () => {
 
   it('publishes purchase-order creation side effects after the action rail submits successfully', async () => {
     const publishPurchaseOrderCreated = vi.fn(async () => {});
+    const sessionStore = {
+      updateSession: vi.fn(async () => ({})),
+    };
     const service = createAIActionService({
       deriveContextActionSlots: vi.fn().mockResolvedValue({}),
       detectExplicitConfirmation: vi.fn().mockReturnValue(true),
       publishPurchaseOrderCreated,
+      createSessionStore: vi.fn(() => sessionStore),
       createActionOrchestrator: vi.fn(() => ({
         advance: vi.fn().mockResolvedValue({
           kind: 'action_submitted',
           payload: {
+            sessionId: 'act-po-1',
             targetModule: 'purchase_orders',
             entityType: 'purchase_order',
             createdEntityId: 'po-1',
@@ -101,6 +106,9 @@ describe('createAIActionService', () => {
       orderIds: [],
       items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 12 }],
     });
+    expect(sessionStore.updateSession).toHaveBeenCalledWith('act-po-1', {
+      status: 'completed',
+    });
     expect(result.refreshEvent).toEqual(expect.objectContaining({
       type: 'module_refresh',
       data: expect.objectContaining({
@@ -108,5 +116,46 @@ describe('createAIActionService', () => {
         entityId: 'po-1',
       }),
     }));
+  });
+
+  it('keeps the action session pending when purchase-order post-submit side effects fail', async () => {
+    const publishPurchaseOrderCreated = vi.fn(async () => {
+      throw new Error('publish failed');
+    });
+    const sessionStore = {
+      updateSession: vi.fn(async () => ({})),
+    };
+    const service = createAIActionService({
+      deriveContextActionSlots: vi.fn().mockResolvedValue({}),
+      detectExplicitConfirmation: vi.fn().mockReturnValue(true),
+      publishPurchaseOrderCreated,
+      createSessionStore: vi.fn(() => sessionStore),
+      createActionOrchestrator: vi.fn(() => ({
+        advance: vi.fn().mockResolvedValue({
+          kind: 'action_submitted',
+          payload: {
+            sessionId: 'act-po-2',
+            targetModule: 'purchase_orders',
+            entityType: 'purchase_order',
+            createdEntityId: 'po-2',
+            purchaseOrderCreated: {
+              created: { id: 'po-2', po_no: 'PO-2' },
+              mode: 'manual',
+              orderIds: [],
+              items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 12 }],
+            },
+          },
+        }),
+      })),
+    });
+
+    await expect(service.handleTurn({
+      text: '确认',
+      context: {},
+      user: { id: 'u-1' },
+      actionContext: { env: { DB: {} }, c: { req: { url: 'http://localhost/api/manage/ai' } } },
+    })).rejects.toThrow('publish failed');
+
+    expect(sessionStore.updateSession).not.toHaveBeenCalled();
   });
 });

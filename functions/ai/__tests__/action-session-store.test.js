@@ -59,4 +59,16 @@ describe('D1ActionSessionStore', () => {
     expect(statement.bind).toHaveBeenCalled();
     expect(statement.run).toHaveBeenCalled();
   });
+
+  it('can update only the status without overwriting stored slots and preview', async () => {
+    const { db, statement } = createDbMock();
+    const store = new D1ActionSessionStore(db);
+
+    await store.updateSession('act-2', {
+      status: 'completed',
+    });
+
+    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('CASE WHEN'));
+    expect(statement.run).toHaveBeenCalled();
+  });
 });
