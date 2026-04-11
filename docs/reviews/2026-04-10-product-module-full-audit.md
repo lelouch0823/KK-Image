@@ -2854,3 +2854,17 @@
   - `functions/services/__tests__/OrderProcurementReceiptReversalService.test.js`
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 - 对应修复提交: `00c34bc fix: sync shortage closures with order procurement progress`
+
+### 2026-04-12 轮次 256
+
+- 继续深审 `shortage closure -> order_procurement_progressed -> outbox consumer` 链路，新增 2 个高风险问题:
+  - [functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js) 修复前只要 `shortage closure` 没把订单汇总 `procurement_status` 名称改掉，就完全不发布 `order_procurement_progressed`。但同一轮里 `order_lines.procured_qty/display_status` 已经被更新，结果订单详情缓存、列表缓存、通知链路仍停留在旧采购进度，属于订单侧缓存未闭环。
+  - 同一路由发布的 `order_procurement_progressed` payload 只带 `procurement_status_after`，而通知消费者读取的是 `order_procurement_status_after`。结果从路由流出的采购进度事件在通知文案里会丢失状态字段，属于事件契约不一致。
+- 已完成本轮修复:
+  - 短缺关闭服务现在会返回 `changedOrderProgressions`，显式描述每条被回写的订单行及其最新订单采购状态，不再只暴露“汇总状态名是否变化”。
+  - 短缺关闭路由现在优先按 `changedOrderProgressions` 发布 `order_procurement_progressed`，即使订单汇总状态名保持不变，也会继续驱动订单缓存和后续消费者刷新。
+  - 路由发布的订单采购进度事件现在同时携带 `procurement_status_after` 与 `order_procurement_status_after`，并补齐 `order_line_id`、`order_line_display_status_after`，恢复与通知/缓存消费者的兼容契约。
+- 增量回归:
+  - `functions/services/__tests__/PurchaseOrderShortageClosureService.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+- 对应修复提交: `94f9b39 fix: publish shortage closure order progress events`
