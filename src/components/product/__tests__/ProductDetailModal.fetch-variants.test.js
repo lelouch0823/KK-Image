@@ -160,4 +160,31 @@ describe('ProductDetailModal variant hydration', () => {
     expect(mocks.loadProduct).toHaveBeenNthCalledWith(2, 'p-2');
     expect(wrapper.get('[data-testid="product-detail"]').text()).toContain('Second Product');
   });
+
+  it('keeps initial product snapshot visible when background hydration fails', async () => {
+    mocks.loadProduct.mockResolvedValueOnce(null);
+
+    const wrapper = mount(ProductDetailModal, {
+      props: {
+        show: true,
+        productId: 'p-1',
+        initialData: { id: 'p-1', name: 'Lite Product' },
+      },
+      global: {
+        stubs: {
+          Modal: { template: '<div><slot /></div>', props: ['modelValue'] },
+          ProductDetail: {
+            template: '<div data-testid="product-detail">{{ product?.name }}</div>',
+            props: ['product'],
+          },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="product-detail"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="product-detail"]').text()).toContain('Lite Product');
+    expect(wrapper.text()).not.toContain('common.error.network_error');
+  });
 });

@@ -92,14 +92,19 @@ const fetchProduct = async (productId = props.productId) => {
     if (requestId !== fetchRequestId) return;
     if (data) {
       currentProduct.value = data;
+      error.value = '';
     } else {
-      currentProduct.value = null;
-      error.value = t('common.error.network_error');
+      if (!currentProduct.value || currentProduct.value.id !== productId) {
+        currentProduct.value = null;
+        error.value = t('common.error.network_error');
+      }
     }
   } catch (err) {
     if (requestId !== fetchRequestId) return;
-    currentProduct.value = null;
-    error.value = err.message || t('common.error.network_error');
+    if (!currentProduct.value || currentProduct.value.id !== productId) {
+      currentProduct.value = null;
+      error.value = err.message || t('common.error.network_error');
+    }
   } finally {
     if (requestId === fetchRequestId) {
       loading.value = false;
