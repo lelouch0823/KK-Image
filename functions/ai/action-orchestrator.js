@@ -35,7 +35,8 @@ export class AIActionOrchestrator {
 
     const extractedSlots = this.extractActionSlots(adapter.entityType, text);
     const mergedSlots = await this.#applySlotResolvers(adapter.entityType, { ...extractedSlots, ...slots });
-    const missingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(mergedSlots[slot]));
+    const requiredSlots = this.#getRequiredSlots(adapter, mergedSlots);
+    const missingSlots = requiredSlots.filter((slot) => !this.#hasValue(mergedSlots[slot]));
 
     const sessionId = buildSessionId();
     await this.sessionStore.createSession({
@@ -94,7 +95,8 @@ export class AIActionOrchestrator {
       const nextSlots = { ...slots, ...extractedSlots };
       const normalizedText = String(text || '').trim();
       this.#applyCandidateChoiceFromText(nextSlots, normalizedText);
-      const missingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
+      const requiredSlots = this.#getRequiredSlots(adapter, nextSlots);
+      const missingSlots = requiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
 
       if (normalizedText && missingSlots.length > 0 && Object.keys(extractedSlots || {}).length === 0) {
         const targetSlot = missingSlots[0];
@@ -103,7 +105,8 @@ export class AIActionOrchestrator {
 
       await this.#applySlotResolvers(adapter.entityType, nextSlots);
 
-      const nextMissingSlots = adapter.requiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
+      const nextRequiredSlots = this.#getRequiredSlots(adapter, nextSlots);
+      const nextMissingSlots = nextRequiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
       if (nextMissingSlots.length > 0) {
         await this.sessionStore.updateSession(session.id, {
           status: 'collecting',
@@ -180,12 +183,20 @@ export class AIActionOrchestrator {
   }
 
   #buildFieldMeta(adapter, missingSlots = [], slots = {}) {
+    const requiredSlots = this.#getRequiredSlots(adapter, slots);
     return missingSlots.map((slot) => ({
       key: slot,
       label: adapter.fieldLabels?.[slot] || slot,
-      type: Array.isArray(adapter.requiredSlots) && adapter.requiredSlots.includes(slot) ? 'required' : 'optional',
+      type: requiredSlots.includes(slot) ? 'required' : 'optional',
       candidates: this.#getCandidateChoicesForField(slots, slot),
     }));
+  }
+
+  #getRequiredSlots(adapter, slots = {}) {
+    if (typeof adapter?.getRequiredSlots === 'function') {
+      return adapter.getRequiredSlots(slots);
+    }
+    return Array.isArray(adapter?.requiredSlots) ? adapter.requiredSlots : [];
   }
 
   #hasValue(value) {

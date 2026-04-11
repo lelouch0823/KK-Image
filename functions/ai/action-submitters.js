@@ -48,6 +48,7 @@ export function createActionSubmitters(deps = {}) {
       if (mode === 'from_orders') {
         if (!deps.purchaseOrderService?.createFromOrders) throw new Error('Purchase order from-orders dependency is unavailable');
         const orderIds = Array.isArray(slots.order_ids) ? slots.order_ids : [];
+        if (orderIds.length === 0) throw new Error('At least one order id is required');
         const payload = pickDefined(slots, ['remark', 'currency', 'allocation_method', 'estimated_shipping_cost', 'estimated_tariff_cost']);
         const created = await deps.purchaseOrderService.createFromOrders(orderIds, payload);
         return {
@@ -57,12 +58,16 @@ export function createActionSubmitters(deps = {}) {
       }
 
       if (!deps.purchaseOrderRepo?.create) throw new Error('Purchase order create dependency is unavailable');
+      const items = Array.isArray(slots.items) ? slots.items : [];
+      if (items.length === 0) throw new Error('At least one purchase-order item is required');
+      if (typeof deps.purchaseOrderRepo.addItems !== 'function') {
+        throw new Error('Purchase order item creation dependency is unavailable');
+      }
       const payload = pickDefined(slots, ['remark', 'currency', 'allocation_method', 'estimated_shipping_cost', 'estimated_tariff_cost']);
       const created = await deps.purchaseOrderRepo.create(payload);
-      const items = Array.isArray(slots.items) ? slots.items : [];
       if (items.length > 0) {
         try {
-          await deps.purchaseOrderRepo.addItems?.(created.id, items);
+          await deps.purchaseOrderRepo.addItems(created.id, items);
         } catch (error) {
           if (typeof deps.purchaseOrderRepo.deleteIfEmptyDraft === 'function') {
             try {

@@ -267,6 +267,46 @@ describe('AIActionOrchestrator', () => {
     ]);
   });
 
+  it('requests purchase-order items before previewing manual mode', async () => {
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {},
+      extractActionSlots: () => ({
+        mode: 'manual',
+      }),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '创建采购单',
+    });
+
+    expect(result.kind).toBe('slot_request');
+    expect(result.payload.missingSlots).toContain('items');
+  });
+
+  it('requests order ids before previewing from-orders mode', async () => {
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {},
+      extractActionSlots: () => ({
+        mode: 'from_orders',
+      }),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '根据订单创建采购单',
+    });
+
+    expect(result.kind).toBe('slot_request');
+    expect(result.payload.missingSlots).toContain('order_ids');
+  });
+
   it('resolves multiple manual purchase-order items as a batch', async () => {
     orchestrator = new AIActionOrchestrator({
       sessionStore,

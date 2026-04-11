@@ -3,6 +3,12 @@ export const purchaseOrderActionAdapter = {
   actionType: 'create_purchase_order',
   targetModule: 'purchaseOrders',
   requiredSlots: ['mode'],
+  getRequiredSlots(slots = {}) {
+    const mode = String(slots.mode || '').trim();
+    if (mode === 'manual') return ['mode', 'items'];
+    if (mode === 'from_orders') return ['mode', 'order_ids'];
+    return ['mode'];
+  },
   optionalSlots: ['items', 'order_ids', 'remark', 'currency', 'allocation_method', 'estimated_shipping_cost', 'estimated_tariff_cost'],
   fieldLabels: {
     mode: '创建方式',

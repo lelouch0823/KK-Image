@@ -103,4 +103,30 @@ describe('AI action submitters', () => {
     expect(purchaseOrderRepo.addItems).toHaveBeenCalledTimes(1);
     expect(purchaseOrderRepo.deleteIfEmptyDraft).toHaveBeenCalledWith('po-1');
   });
+
+  it('rejects manual purchase-order submission when items are missing', async () => {
+    const purchaseOrderRepo = {
+      create: vi.fn(async () => ({ id: 'po-1', po_no: 'PO-1' })),
+    };
+    const submitters = createActionSubmitters({ purchaseOrderRepo });
+
+    await expect(submitters.create_purchase_order({
+      mode: 'manual',
+    })).rejects.toThrow('At least one purchase-order item is required');
+
+    expect(purchaseOrderRepo.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects from-orders submission when order ids are missing', async () => {
+    const purchaseOrderService = {
+      createFromOrders: vi.fn(async () => ({ id: 'po-1', po_no: 'PO-1' })),
+    };
+    const submitters = createActionSubmitters({ purchaseOrderService });
+
+    await expect(submitters.create_purchase_order({
+      mode: 'from_orders',
+    })).rejects.toThrow('At least one order id is required');
+
+    expect(purchaseOrderService.createFromOrders).not.toHaveBeenCalled();
+  });
 });
