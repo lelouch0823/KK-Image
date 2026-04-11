@@ -2200,3 +2200,14 @@
   - `src/components/order/__tests__/OrderForm.prefill-reset.test.js`
   - `src/components/order/__tests__/OrderEditModal.variant-lock.test.js`
 - 对应修复提交: `0119e1a fix: hydrate existing bound product variants`
+
+### 2026-04-11 轮次 211
+
+- 继续复查商品关联的空间编辑链路，新增 1 个中风险问题:
+  - `SpaceProductEditor` 只在 `onMounted` 时执行 `initData()` 并注册上传刷新回调。如果父层复用同一个编辑器实例切换到另一个 space，它不会重新加载新的空间详情，也不会把上传刷新回调从旧 `space_<id>` 迁到新空间。结果是编辑器会继续显示旧空间的商品绑定、媒体和模板数据，上传回调也落到错误空间上下文。
+- 已完成本轮修复:
+  - `SpaceProductEditor` 现在会监听 `props.space.id`，在空间切换时重新跑初始化流程。
+  - 上传刷新回调现在会随 `space.id` 切换自动解绑旧 key 并绑定新 key，不再把媒体刷新挂在过期空间上。
+- 增量回归:
+  - `src/components/__tests__/SpaceProductEditor.contract.test.js`
+- 对应修复提交: `f1851d3 fix: reload space editor state on space switch`
