@@ -2453,3 +2453,29 @@
   - `src/views/__tests__/GoodsOverview.design-system-migration.test.js`
   - `src/composables/__tests__/useGoodsOverview.test.js`
 - 对应修复提交: `7a24da3 fix: align goods overview warning with available stock`
+
+### 2026-04-11 轮次 229
+
+- 继续复查 `GoodsOverview -> PurchaseOrders` 创建链路，新增 1 个高风险问题:
+  - [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue) 的 `executeCreate()` 先 `createPO()` 再 `addItems()`，但第二步失败时仍按全成功路径直接关闭弹窗、清空草稿并刷新列表。结果是前端会制造“采购单创建成功”的假闭环，用户丢失已选商品草稿，却不知道后端其实已经留下一个空采购单，属于典型的半成功未收口。
+- 已完成本轮修复:
+  - 创建空采购单后若初始明细插入失败，页面不再伪装成完整成功；现在会关闭创建弹窗、直接打开新建出的采购单详情，并给出 warning，提示用户继续检查和补齐明细。
+  - 新建采购单草稿重置提炼为独立 helper，成功与半成功分支共用，避免后续再出现“某一条分支忘记清理/重复清理”的状态分叉。
+- 增量回归:
+  - `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
+  - `src/views/__tests__/PurchaseOrders.design-system-migration.test.js`
+  - `src/composables/__tests__/usePurchaseOrders.test.js`
+- 对应修复提交: `d8dfc9f fix: close purchase-order creation gaps`
+
+### 2026-04-11 轮次 230
+
+- 继续复查采购单商品选择器跨搜索确认链路，新增 1 个中风险问题:
+  - [src/components/purchase-order/ProductPickerModal.vue](/home/bjw/Code/KK-Image/src/components/purchase-order/ProductPickerModal.vue) 确认时虽然会回传完整 `selectedVariantIds`，但 `selectedVariants` 只从“当前搜索结果列表”里回填。结果是用户先在搜索 A 里勾选一个新变体，再切到搜索 B 勾选另一个变体后确认，前一轮搜索里选中的新变体会因为不在当前列表中而从 `selectedVariants` 静默丢失，导致采购单新增明细少行。[src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue) [src/utils/purchase-order-variant-selection.js](/home/bjw/Code/KK-Image/src/utils/purchase-order-variant-selection.js)
+- 已完成本轮修复:
+  - `ProductPickerModal` 现在会为已选变体维护跨搜索会话快照；确认时会优先用快照回填 `selectedVariants`，从而保证跨搜索新增的变体不会再被静默丢掉。
+  - 已补齐“跨搜索选中多个变体后确认仍保留完整 payload”的回归测试，并回归采购单选择器设计契约与变体选择协调逻辑。
+- 增量回归:
+  - `src/components/purchase-order/__tests__/ProductPickerModal.lifecycle.test.js`
+  - `src/components/purchase-order/__tests__/PickerModals.design-system.test.js`
+  - `src/utils/__tests__/purchase-order-variant-selection.test.js`
+- 对应修复提交: `d8dfc9f fix: close purchase-order creation gaps`
