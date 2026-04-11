@@ -2947,3 +2947,14 @@
 - 增量回归:
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 - 对应修复提交: `f409675 fix: validate purchase-order items before draft creation`
+
+### 2026-04-12 轮次 264
+
+- 继续深审采购绑定规则，新增 1 个高风险问题:
+  - [functions/services/purchase-order-item-validation.js](/home/bjw/Code/KK-Image/functions/services/purchase-order-item-validation.js) 修复前只校验 `pre_order_id` 是否已被“库里已有采购单”占用，却没有拦截“同一个请求里重复提交同一 `pre_order_id`”的场景。结果一个订单可以在同一张采购单里被拆成多条绑定明细，直接破坏一单一绑定的业务约束。
+- 已完成本轮修复:
+  - 共享采购绑定校验现在会在请求内先做 `pre_order_id` 去重校验，重复绑定会直接拒绝，避免同一订单被同一张采购单重复占用。
+  - 已补齐服务层回归测试，锁定“同一请求内重复绑定 `pre_order_id` 必须在创建采购单前直接失败”的行为。
+- 增量回归:
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+- 对应修复提交: `63f2adb fix: reject duplicate preorder bindings`
