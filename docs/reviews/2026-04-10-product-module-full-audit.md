@@ -2914,3 +2914,14 @@
 - 增量回归:
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 - 对应修复提交: `dfec28c fix: roll back failed purchase-order updates`
+
+### 2026-04-12 轮次 261
+
+- 继续深审成本分摊与商品成本链路，新增 1 个高风险问题:
+  - [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 修复前在 `allocateCosts()` 里按采购明细逐条调用 `updateMovingAverageCost()`。如果同一 `variant_id` 在同一采购单里被拆成多条明细，移动平均成本会对同一变体重复加权，导致商品成本被多次放大，属于明确的商品成本计算错误。
+- 已完成本轮修复:
+  - 成本分摊服务现在会先按 `variant_id` 聚合同一采购单中的已收货数量与 landed cost，再对每个变体只执行一次 MAC 更新，恢复同变体拆行场景下的正确成本口径。
+  - 已补齐回归测试，锁定“同一变体拆成多条采购明细时，MAC 只允许按聚合后的数量与总成本更新一次”的行为。
+- 增量回归:
+  - `functions/services/__tests__/purchase-order-moving-average-cost.test.js`
+- 对应修复提交: `45e44d5 fix: aggregate moving-average updates per variant`
