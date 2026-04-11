@@ -2777,3 +2777,19 @@
   - `functions/ai/__tests__/action-submitters.test.js`
   - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
 - 对应修复提交: `cb00689 fix: support mixed ai purchase-order item candidates`
+
+### 2026-04-12 轮次 251
+
+- 继续复查 AI 多条手工采购项的连续歧义恢复链路，新增 1 个高风险问题:
+  - [functions/ai/action-orchestrator.js](/home/bjw/Code/KK-Image/functions/ai/action-orchestrator.js) 在 `collecting` 阶段会先用 `#applyCandidateChoiceFromText()` 把用户输入的数字候选选择写回 `items`，但如果后面仍有未解歧义项，紧接着又会把原始文本 `"2"` 再次当成 `items` 原始值喂给 `#resolveSlotValue()`。结果是第一条已经选中的候选 value 会被数字文本覆盖掉，第二条歧义项的候选链路随即丢失，连续选择场景无法闭环。
+- 已完成本轮修复:
+  - `#resumeSession()` 现在只会在目标槽位仍然为空时，才把当前回复文本当作 fallback 原始值继续解析；如果候选数字已经成功写入 `items`，就直接进入后续 resolver 流程，不再二次覆盖。
+  - 已补齐编排器回归测试，锁定“多条歧义采购项中先选择第一条候选后，系统仍要继续给出后续歧义项候选”的行为。
+- 增量回归:
+  - `functions/ai/__tests__/action-orchestrator.test.js`
+  - `functions/ai/__tests__/slot-resolvers.test.js`
+  - `functions/ai/__tests__/slot-extraction.test.js`
+  - `functions/ai/__tests__/canonicalization.test.js`
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
+- 对应修复提交: `c20161c fix: preserve chained ai purchase-order candidates`
