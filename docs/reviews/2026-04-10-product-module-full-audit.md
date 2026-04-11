@@ -2745,3 +2745,19 @@
   - `functions/ai/__tests__/action-submitters.test.js`
   - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
 - 对应修复提交: `e438a44 fix: preserve resolved ai purchase-order items during follow-up`
+
+### 2026-04-11 轮次 249
+
+- 继续复查 AI 手工采购项的歧义消解链路，新增 1 个高风险问题:
+  - [functions/ai/slot-resolvers.js](/home/bjw/Code/KK-Image/functions/ai/slot-resolvers.js) 之前在单条手工采购项命中多个变体时只会把原始 `variant_query` 原样返回，既不产出候选，也无法让用户通过数字选择继续；会话只能反复停留在“还缺采购明细”的收集态，形成不可解的歧义死循环。
+- 已完成本轮修复:
+  - `resolvePurchaseOrderItemsSlot()` 现在对“单条手工采购项命中多个候选变体”的场景直接返回候选列表，每个候选都携带完整的已解析采购项 payload，便于后续一次性选中继续。
+  - 编排器链路已补齐回归测试，确认 AI 会对这类歧义采购项返回候选，并允许用户用数字选择具体变体后直接进入预览。
+- 增量回归:
+  - `functions/ai/__tests__/slot-resolvers.test.js`
+  - `functions/ai/__tests__/action-orchestrator.test.js`
+  - `functions/ai/__tests__/slot-extraction.test.js`
+  - `functions/ai/__tests__/canonicalization.test.js`
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
+- 对应修复提交: `bcc99dc fix: support ai purchase-order item disambiguation`
