@@ -32,16 +32,11 @@ export function useSpaces() {
    * 按商品加载关联空间列表
    */
   const loadProductSpaces = async (productId) => {
-    try {
-      const res = await authFetch(API.SPACE_BY_PRODUCT(productId)).then(r => r.json());
-      if (res.success) {
-        return res.data;
-      } else {
-        return [];
-      }
-    } catch (_err) {
-      return [];
+    const res = await authFetch(API.SPACE_BY_PRODUCT(productId)).then(r => r.json());
+    if (res.success) {
+      return res.data;
     }
+    throw new Error(res.error || res.message || t('spaces.loadFailed'));
   };
 
   /**

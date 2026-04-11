@@ -69,6 +69,20 @@
             <div v-if="loadingSpaces" class="flex justify-center py-4">
                 <AppIcon name="spinner" class="text-primary size-6 animate-spin" />
             </div>
+            <div
+              v-else-if="spacesError"
+              class="rounded-xl border border-danger/20 bg-danger/5 px-4 py-4 text-center"
+            >
+                <p class="text-sm text-danger">{{ spacesError }}</p>
+                <button
+                  type="button"
+                  class="bg-primary mt-3 rounded-lg px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
+                  data-testid="associated-spaces-retry"
+                  @click="loadAssociatedSpaces(props.product?.id)"
+                >
+                  {{ t('common.retry') }}
+                </button>
+            </div>
             <div v-else-if="associatedSpaces.length === 0" class="flex flex-col items-center justify-center py-6 text-center text-(--text-secondary)">
                 <AppIcon name="link" class="mb-2 size-10 opacity-20" />
                 <span class="text-sm">{{ t('spaceManager.noAssociatedLinks') || 'No shared spaces linked to this product yet.' }}</span>
@@ -369,17 +383,20 @@ const { addToast } = useToast();
 const { copyShareLink: copySpaceShareLink } = useClipboard();
 const associatedSpaces = ref([]);
 const loadingSpaces = ref(true);
+const spacesError = ref('');
 let associatedSpacesRequestId = 0;
 
 const loadAssociatedSpaces = async (productId) => {
     if (!productId) {
         associatedSpaces.value = [];
+        spacesError.value = '';
         loadingSpaces.value = false;
         return;
     }
 
     const requestId = ++associatedSpacesRequestId;
     loadingSpaces.value = true;
+    spacesError.value = '';
     try {
         const spaces = await loadProductSpaces(productId);
         if (requestId !== associatedSpacesRequestId) return;
@@ -388,6 +405,7 @@ const loadAssociatedSpaces = async (productId) => {
         if (requestId !== associatedSpacesRequestId) return;
         console.error('Failed to load associated spaces:', e);
         associatedSpaces.value = [];
+        spacesError.value = e?.message || t('common.loadFailed');
     } finally {
         if (requestId !== associatedSpacesRequestId) return;
         loadingSpaces.value = false;

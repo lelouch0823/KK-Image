@@ -207,4 +207,36 @@ describe('ProductDetail associated spaces', () => {
       successMessage: 'Link copied to clipboard!',
     });
   });
+
+  it('shows a retryable error state when associated spaces fail to load', async () => {
+    mocks.loadProductSpaces.mockReset();
+    mocks.loadProductSpaces.mockRejectedValueOnce(new Error('spaces down'));
+
+    const wrapper = mount(ProductDetail, {
+      props: {
+        product: {
+          id: 'prod-1',
+          name: 'Chair',
+          price: 100,
+          currency: 'CNY',
+          variants: [],
+        },
+      },
+      global: {
+        stubs: {
+          AppImage: { template: '<img />' },
+          StatusBadge: { template: '<span><slot /></span>' },
+          AppTable: { template: '<table />' },
+          AppIcon: { template: '<i />' },
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('spaces down');
+    expect(wrapper.text()).not.toContain('No shared spaces linked to this product yet.');
+    expect(wrapper.get('[data-testid="associated-spaces-retry"]').exists()).toBe(true);
+  });
 });

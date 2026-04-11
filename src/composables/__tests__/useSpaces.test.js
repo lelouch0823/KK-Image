@@ -45,26 +45,22 @@ describe('useSpaces Composable', () => {
             expect(result).toEqual(mockSpaces);
         });
 
-        it('should return an empty array if the API response is unsuccessful', async () => {
+        it('should throw the backend error if the API response is unsuccessful', async () => {
             mockAuthFetch.mockResolvedValue({
                 json: () => Promise.resolve({ success: false, error: 'Database error' }),
             });
 
             const { loadProductSpaces } = useSpaces();
-            const result = await loadProductSpaces('prod123');
-
+            await expect(loadProductSpaces('prod123')).rejects.toThrow('Database error');
             expect(mockAuthFetch).toHaveBeenCalledWith('/api/spaces/product/prod123');
-            expect(result).toEqual([]);
         });
 
-        it('should return an empty array and degrade gracefully on network error', async () => {
+        it('should throw on network error', async () => {
             mockAuthFetch.mockRejectedValue(new Error('Network failure'));
 
             const { loadProductSpaces } = useSpaces();
-            const result = await loadProductSpaces('prod123');
-
+            await expect(loadProductSpaces('prod123')).rejects.toThrow('Network failure');
             expect(mockAuthFetch).toHaveBeenCalledWith('/api/spaces/product/prod123');
-            expect(result).toEqual([]); // Safe degradation without crashing the app
         });
     });
 });
