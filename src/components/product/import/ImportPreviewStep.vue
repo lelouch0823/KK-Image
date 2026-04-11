@@ -132,7 +132,12 @@
                         {{ option.label }}
                     </option>
                 </select>
-                <button type="button" class="btn btn-ghost btn-xs cursor-pointer justify-self-start" @click="copyVisibleConflicts">
+                <button
+                    type="button"
+                    data-testid="copy-visible-conflicts"
+                    class="btn btn-ghost btn-xs cursor-pointer justify-self-start"
+                    @click="copyVisibleConflicts"
+                >
                     {{ t('product.import.conflicts.copy_visible', '复制当前结果') }}
                 </button>
             </div>
@@ -182,6 +187,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { useClipboard } from '@/composables/useClipboard';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
@@ -204,6 +210,7 @@ const props = defineProps({
 
 defineEmits(['reset']);
 const { t } = useI18n();
+const { copy } = useClipboard();
 
 const hasSpu = computed(() => {
     if (!Array.isArray(props.parsedItems) || props.parsedItems.length === 0) return false;
@@ -296,18 +303,10 @@ const visibleConflicts = computed(() => {
 const copyText = async (text) => {
     const payload = String(text || '');
     if (!payload) return;
-    if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(payload);
-        return;
-    }
-    const textarea = document.createElement('textarea');
-    textarea.value = payload;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
+    await copy(payload, {
+        successMessage: t('common.copied'),
+        errorMessage: t('common.copyFailed'),
+    });
 };
 
 const copyVisibleConflicts = async () => {

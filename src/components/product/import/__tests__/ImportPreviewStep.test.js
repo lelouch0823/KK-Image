@@ -2,8 +2,18 @@ import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import ImportPreviewStep from '../ImportPreviewStep.vue';
 
+const mocks = vi.hoisted(() => ({
+    copy: vi.fn(),
+}));
+
 vi.mock('@/composables/useI18n', () => ({
     useI18n: () => ({ t: (k, _fallback) => k })
+}));
+
+vi.mock('@/composables/useClipboard', () => ({
+    useClipboard: () => ({
+        copy: mocks.copy,
+    }),
 }));
 
 describe('ImportPreviewStep', () => {
@@ -185,5 +195,47 @@ describe('ImportPreviewStep', () => {
         expect(wrapper.text()).toContain('price');
         await input.setValue('not-found-keyword');
         expect(wrapper.text()).toContain('product.import.conflicts.empty_filtered');
+    });
+
+    it('copies visible conflicts through the shared clipboard helper', async () => {
+        const wrapper = mount(ImportPreviewStep, {
+            props: {
+                fileName: 'test.xlsx',
+                fileSize: '10KB',
+                parsedItems: [{ name: 'Item A', sku: 'SKU-1' }],
+                loading: false,
+                importResult: {
+                    success: true,
+                    count: 1,
+                    failed: 0,
+                    summary: { conflicts: 1 },
+                    conflicts: [
+                        {
+                            batch: 1,
+                            level: 'variant',
+                            spu: 'SPU-1',
+                            sku: 'SKU-1',
+                            field: 'price',
+                            current: 100,
+                            incoming: 120,
+                        },
+                    ],
+                },
+                importError: null,
+                importStats: {},
+                preprocessStats: {},
+                chunkSize: 200
+            },
+            global: {
+                stubs: { AppIcon: true }
+            }
+        });
+
+        await wrapper.get('[data-testid="copy-visible-conflicts"]').trigger('click');
+
+        expect(mocks.copy).toHaveBeenCalledWith(
+            '[variant] SPU=SPU-1 SKU=SKU-1 price: 100 -> 120',
+            expect.any(Object)
+        );
     });
 });
