@@ -412,6 +412,7 @@ const isDesktop = ref(window.innerWidth >= 1024);
 const boundProduct = ref(null);
 const canManageProducts = ref(true);
 let initDataRequestId = 0;
+let mediaRefreshRequestId = 0;
 
 // 确认弹窗状态
 const confirmData = ref({
@@ -505,6 +506,16 @@ const initData = async () => {
   }
 };
 
+const refreshMediaState = async () => {
+  const spaceId = props.space.id;
+  const requestId = ++mediaRefreshRequestId;
+  const data = await loadSpace(spaceId);
+  if (requestId !== mediaRefreshRequestId || props.space.id !== spaceId || !data) return false;
+  files.value = data.files || [];
+  form.value.coverFileId = data.coverFileId || null;
+  return true;
+};
+
 const saveChanges = async () => {
   saving.value = true;
   try {
@@ -577,7 +588,7 @@ const addFiles = async (fileIds) => {
   showFileSelector.value = false;
   const added = await addFilesToSpace(props.space.id, fileIds);
   if (!added) return;
-  await initData();
+  await refreshMediaState();
   emit('updated');
 };
 
@@ -593,7 +604,7 @@ const removeFile = (fileId) => {
       try {
         const removed = await removeFilesFromSpace(props.space.id, [fileId]);
         if (!removed) return;
-        await initData();
+        await refreshMediaState();
         emit('updated');
         confirmData.value.show = false;
       } finally {
@@ -627,22 +638,23 @@ const handleReorder = async (newFiles) => {
   const success = await reorderSpaceFiles(props.space.id, fileIds);
   
   if (!success) {
-    // Revert logic could be implemented here if strict consistency is needed,
-    // but usually reloading the space or showing an error is enough.
-    await initData(); 
+    await refreshMediaState();
   }
 };
 
 onMounted(() => {
   initData();
   registerFolderRefresh(`space_${props.space.id}`, () => {
-    initData();
-    emit('updated');
+    void refreshMediaState().then((refreshed) => {
+      if (!refreshed) return;
+      emit('updated');
+    });
   });
 });
 
 onUnmounted(() => {
   initDataRequestId += 1;
+  mediaRefreshRequestId += 1;
   unregisterFolderRefresh(`space_${props.space.id}`);
 });
 </script>

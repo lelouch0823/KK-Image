@@ -382,4 +382,153 @@ describe('SpaceProductEditor contract', () => {
     expect(wrapper.emitted('updated')).toBeUndefined();
     expect(wrapper.vm.confirmData.show).toBe(true);
   });
+
+  it('preserves unsaved form edits when files are added successfully', async () => {
+    mocks.loadSpace
+      .mockResolvedValueOnce({
+        id: 'space-1',
+        name: 'Space Name',
+        description: 'Space Desc',
+        isPublic: true,
+        shareMode: 'selected',
+        sharedSalespersons: [{ id: 'sp-1' }],
+        coverFileId: 'cover-1',
+        password: '',
+        productId: 'prod-1',
+        variantId: 'var-2',
+        templateData: {
+          brand: 'Brand 1',
+          series: 'Series 1',
+          price: '88',
+          material: 'Leather',
+          sku: 'SKU-2',
+        },
+        files: [],
+      })
+      .mockResolvedValueOnce({
+        id: 'space-1',
+        name: 'Server Name',
+        description: 'Server Desc',
+        isPublic: true,
+        shareMode: 'selected',
+        sharedSalespersons: [{ id: 'sp-1' }],
+        coverFileId: 'cover-2',
+        password: '',
+        productId: 'prod-1',
+        variantId: 'var-2',
+        templateData: {
+          brand: 'Server Brand',
+          series: 'Server Series',
+          price: '99',
+          material: 'Wood',
+          sku: 'SERVER-SKU',
+        },
+        files: [{ id: 'file-1' }],
+      });
+    mocks.addFilesToSpace.mockResolvedValueOnce(true);
+
+    const wrapper = mount(SpaceProductEditor, {
+      props: {
+        space: { id: 'space-1', shareToken: 'share-token' },
+      },
+      global: {
+        stubs: {
+          FileSelector: { template: '<div />' },
+          Tooltip: { template: '<div><slot /></div>' },
+          SpaceAnalytics: { template: '<div />' },
+          SpaceShareCard: { template: '<div />' },
+          SpaceVisibilitySelector: { template: '<div />' },
+          SpaceMediaGrid: { template: '<div />' },
+          ConfirmDialog: { template: '<div />' },
+          ProductBindingSection: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+    wrapper.vm.form.name = 'Draft Name';
+    wrapper.vm.form.description = 'Draft Desc';
+
+    await wrapper.vm.addFiles(['file-1']);
+
+    expect(wrapper.vm.form.name).toBe('Draft Name');
+    expect(wrapper.vm.form.description).toBe('Draft Desc');
+    expect(wrapper.vm.files).toEqual([{ id: 'file-1' }]);
+    expect(wrapper.vm.form.coverFileId).toBe('cover-2');
+  });
+
+  it('preserves unsaved form edits when upload refresh callbacks reload media', async () => {
+    mocks.loadSpace
+      .mockResolvedValueOnce({
+        id: 'space-1',
+        name: 'Space Name',
+        description: 'Space Desc',
+        isPublic: true,
+        shareMode: 'selected',
+        sharedSalespersons: [{ id: 'sp-1' }],
+        coverFileId: 'cover-1',
+        password: '',
+        productId: 'prod-1',
+        variantId: 'var-2',
+        templateData: {
+          brand: 'Brand 1',
+          series: 'Series 1',
+          price: '88',
+          material: 'Leather',
+          sku: 'SKU-2',
+        },
+        files: [],
+      })
+      .mockResolvedValueOnce({
+        id: 'space-1',
+        name: 'Server Name',
+        description: 'Server Desc',
+        isPublic: true,
+        shareMode: 'selected',
+        sharedSalespersons: [{ id: 'sp-1' }],
+        coverFileId: 'cover-2',
+        password: '',
+        productId: 'prod-1',
+        variantId: 'var-2',
+        templateData: {
+          brand: 'Server Brand',
+          series: 'Server Series',
+          price: '99',
+          material: 'Wood',
+          sku: 'SERVER-SKU',
+        },
+        files: [{ id: 'file-2' }],
+      });
+
+    const wrapper = mount(SpaceProductEditor, {
+      props: {
+        space: { id: 'space-1', shareToken: 'share-token' },
+      },
+      global: {
+        stubs: {
+          FileSelector: { template: '<div />' },
+          Tooltip: { template: '<div><slot /></div>' },
+          SpaceAnalytics: { template: '<div />' },
+          SpaceShareCard: { template: '<div />' },
+          SpaceVisibilitySelector: { template: '<div />' },
+          SpaceMediaGrid: { template: '<div />' },
+          ConfirmDialog: { template: '<div />' },
+          ProductBindingSection: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+    wrapper.vm.form.name = 'Draft Name';
+    wrapper.vm.form.description = 'Draft Desc';
+
+    const refreshMedia = mocks.registerFolderRefresh.mock.calls[0][1];
+    await refreshMedia();
+    await flushPromises();
+
+    expect(wrapper.vm.form.name).toBe('Draft Name');
+    expect(wrapper.vm.form.description).toBe('Draft Desc');
+    expect(wrapper.vm.files).toEqual([{ id: 'file-2' }]);
+    expect(wrapper.vm.form.coverFileId).toBe('cover-2');
+  });
 });
