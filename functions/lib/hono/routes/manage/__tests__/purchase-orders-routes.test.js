@@ -140,6 +140,46 @@ function createDb({ variantRows = [], orderRows = [], poBindingRows = [] } = {})
   };
 }
 
+function normalizeScalarFingerprintValue(value) {
+  if (value == null || value === '') return null;
+  return String(value);
+}
+
+function normalizeNumericFingerprintValue(value) {
+  if (value == null || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function buildCreateFingerprintForTest(body = {}) {
+  return JSON.stringify({
+    remark: normalizeScalarFingerprintValue(body.remark),
+    currency: normalizeScalarFingerprintValue(body.currency),
+    allocation_method: normalizeScalarFingerprintValue(body.allocation_method),
+    estimated_shipping_cost: normalizeNumericFingerprintValue(body.estimated_shipping_cost),
+    estimated_tariff_cost: normalizeNumericFingerprintValue(body.estimated_tariff_cost),
+    items: [...(Array.isArray(body.items) ? body.items : [])]
+      .map((item = {}) => ({
+        product_id: normalizeScalarFingerprintValue(item.product_id),
+        variant_id: normalizeScalarFingerprintValue(item.variant_id),
+        pre_order_id: normalizeScalarFingerprintValue(item.pre_order_id),
+        quantity: normalizeNumericFingerprintValue(item.quantity),
+        unit_cost: normalizeNumericFingerprintValue(item.unit_cost),
+      }))
+      .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))),
+  });
+}
+
+function buildCreateFromOrdersFingerprintForTest(orderIds = [], body = {}) {
+  return JSON.stringify({
+    order_ids: [...new Set((Array.isArray(orderIds) ? orderIds : []).filter(Boolean))].sort(),
+    remark: normalizeScalarFingerprintValue(body.remark),
+    allocation_method: normalizeScalarFingerprintValue(body.allocation_method),
+    estimated_shipping_cost: normalizeNumericFingerprintValue(body.estimated_shipping_cost),
+    estimated_tariff_cost: normalizeNumericFingerprintValue(body.estimated_tariff_cost),
+  });
+}
+
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
@@ -373,6 +413,95 @@ describe('manage purchase-orders routes', () => {
     expect(mocks.repoCreate).toHaveBeenCalledTimes(1);
   });
 
+  it('retries draft-create side effects without duplicating the purchase order after an outbox failure', async () => {
+    const app = createApp();
+    const db = createDb();
+    const commandState = new Map();
+
+    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+      const existing = commandState.get(idempotencyKey);
+      if (existing) {
+        return {
+          existing: true,
+          ownsReservation: false,
+          record: {
+            command_id: existing.commandId,
+            scope_key: scopeKey,
+            idempotency_key: idempotencyKey,
+            request_fingerprint: existing.requestFingerprint,
+            response_json: existing.responseJson,
+            status: existing.status,
+          },
+        };
+      }
+
+      return {
+        existing: false,
+        ownsReservation: true,
+        record: {
+          command_id: 'cmd-create-retry-1',
+          scope_key: scopeKey,
+          idempotency_key: idempotencyKey,
+          request_fingerprint: requestFingerprint,
+        },
+      };
+    });
+    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
+      run: vi.fn(async () => {
+        commandState.set('create-key-retry-1', {
+          commandId,
+          requestFingerprint: commandState.get('create-key-retry-1')?.requestFingerprint || null,
+          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+          status,
+        });
+        return { meta: { changes: 1 } };
+      }),
+    }));
+    mocks.publish
+      .mockRejectedValueOnce(new Error('publish failed'))
+      .mockResolvedValueOnce([]);
+
+    const first = await app.request(
+      'http://localhost/api/manage/purchase-orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'create-key-retry-1',
+        },
+        body: JSON.stringify({ remark: 'retry after publish failure' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(first.status).toBe(500);
+
+    const recorded = commandState.get('create-key-retry-1');
+    if (recorded) {
+      recorded.requestFingerprint = buildCreateFingerprintForTest({ remark: 'retry after publish failure' });
+      commandState.set('create-key-retry-1', recorded);
+    }
+
+    const second = await app.request(
+      'http://localhost/api/manage/purchase-orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'create-key-retry-1',
+        },
+        body: JSON.stringify({ remark: 'retry after publish failure' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(second.status).toBe(201);
+    expect(mocks.repoCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.publish).toHaveBeenCalledTimes(2);
+  });
+
   it('enqueues purchase-order create-from-orders cache side effects through outbox', async () => {
     const app = createApp();
     const db = createDb();
@@ -460,6 +589,95 @@ describe('manage purchase-orders routes', () => {
     expect(await second.json()).toEqual(await first.clone().json());
     expect(mocks.serviceCreateFromOrders).toHaveBeenCalledTimes(1);
     expect(mocks.publish).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries create-from-orders side effects without duplicating the purchase order after an outbox failure', async () => {
+    const app = createApp();
+    const db = createDb();
+    const commandState = new Map();
+
+    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+      const existing = commandState.get(idempotencyKey);
+      if (existing) {
+        return {
+          existing: true,
+          ownsReservation: false,
+          record: {
+            command_id: existing.commandId,
+            scope_key: scopeKey,
+            idempotency_key: idempotencyKey,
+            request_fingerprint: existing.requestFingerprint,
+            response_json: existing.responseJson,
+            status: existing.status,
+          },
+        };
+      }
+
+      return {
+        existing: false,
+        ownsReservation: true,
+        record: {
+          command_id: 'cmd-create-from-orders-retry-1',
+          scope_key: scopeKey,
+          idempotency_key: idempotencyKey,
+          request_fingerprint: requestFingerprint,
+        },
+      };
+    });
+    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
+      run: vi.fn(async () => {
+        commandState.set('from-orders-key-retry-1', {
+          commandId,
+          requestFingerprint: commandState.get('from-orders-key-retry-1')?.requestFingerprint || null,
+          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+          status,
+        });
+        return { meta: { changes: 1 } };
+      }),
+    }));
+    mocks.publish
+      .mockRejectedValueOnce(new Error('publish failed'))
+      .mockResolvedValueOnce([]);
+
+    const first = await app.request(
+      'http://localhost/api/manage/purchase-orders/from-orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'from-orders-key-retry-1',
+        },
+        body: JSON.stringify({ order_ids: ['o-1'], remark: 'retry from orders' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(first.status).toBe(500);
+
+    const recorded = commandState.get('from-orders-key-retry-1');
+    if (recorded) {
+      recorded.requestFingerprint = buildCreateFromOrdersFingerprintForTest(['o-1'], { order_ids: ['o-1'], remark: 'retry from orders' });
+      commandState.set('from-orders-key-retry-1', recorded);
+    }
+
+    const second = await app.request(
+      'http://localhost/api/manage/purchase-orders/from-orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'from-orders-key-retry-1',
+        },
+        body: JSON.stringify({ order_ids: ['o-1'], remark: 'retry from orders' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(second.status).toBe(201);
+    expect(mocks.serviceCreateFromOrders).toHaveBeenCalledTimes(1);
+    expect(mocks.publish).toHaveBeenCalledTimes(2);
   });
 
   it('dedupes create-from-orders order ids before publishing side effects and audit metadata', async () => {

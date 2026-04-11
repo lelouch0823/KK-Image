@@ -136,6 +136,53 @@ describe('AIActionOrchestrator', () => {
     expect(result.payload.targetModule).toBe('customers');
   });
 
+  it('includes purchase-order side effect metadata in the submitted payload', async () => {
+    sessionStore.getLatestActiveSession.mockResolvedValueOnce({
+      id: 'act-po-1',
+      user_id: 'user-1',
+      action_type: 'create_purchase_order',
+      entity_type: 'purchase_order',
+      status: 'awaiting_confirmation',
+      slots_json: JSON.stringify({
+        mode: 'manual',
+        items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 12 }],
+      }),
+      preview_json: JSON.stringify({ title: '采购单创建预览' }),
+    });
+    submitters.create_purchase_order = vi.fn(async () => ({
+      id: 'po-1',
+      label: 'PO-1',
+      purchaseOrderCreated: {
+        created: { id: 'po-1', po_no: 'PO-1' },
+        mode: 'manual',
+        orderIds: [],
+        items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 12 }],
+      },
+    }));
+
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {},
+      extractActionSlots: () => ({}),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '确认',
+      confirmation: true,
+    });
+
+    expect(result.kind).toBe('action_submitted');
+    expect(result.payload.purchaseOrderCreated).toEqual({
+      created: { id: 'po-1', po_no: 'PO-1' },
+      mode: 'manual',
+      orderIds: [],
+      items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 12 }],
+    });
+  });
+
   it('collects the next missing slot from a follow-up user reply', async () => {
     sessionStore.getLatestActiveSession.mockResolvedValueOnce({
       id: 'act-2',

@@ -31,6 +31,7 @@ import { runOutboxPoller } from '../../../../api/cron/outbox.js';
 import { DomainOutboxPublisher } from '../../../../services/DomainOutboxPublisher.js';
 import {
   cleanupReservedCommand,
+  parseStoredResponse,
   replayReservedCommand,
   resolveReservationOwnership,
 } from '../../../../services/order-procurement-shared.js';
@@ -197,11 +198,27 @@ async function reserveCreateCommand(c, {
   );
 
   if (reservation?.existing) {
+    if (reservation.record?.request_fingerprint !== requestFingerprint) {
+      throw new BadRequestError(mismatchMessage);
+    }
+
+    const storedResponse = parseStoredResponse(reservation.record?.response_json);
+    if (reservation.record?.status === 'failed' && storedResponse) {
+      return {
+        replay: null,
+        resume: storedResponse,
+        reservation,
+        commandIdempotencyRepo,
+        idempotencyKey,
+      };
+    }
+
     return {
       replay: replayReservedCommand(reservation, requestFingerprint, {
         mismatchMessage,
         inFlightMessage,
       }),
+      resume: null,
       reservation,
       commandIdempotencyRepo,
       idempotencyKey,
@@ -210,6 +227,7 @@ async function reserveCreateCommand(c, {
 
   return {
     replay: null,
+    resume: null,
     reservation,
     commandIdempotencyRepo,
     idempotencyKey,
@@ -472,6 +490,7 @@ app.post('/', async (c) => {
   const requestFingerprint = buildPurchaseOrderCreateRequestFingerprint(body);
   const {
     replay,
+    resume,
     reservation,
     commandIdempotencyRepo,
   } = await reserveCreateCommand(c, {
@@ -486,7 +505,22 @@ app.post('/', async (c) => {
     return c.json({ success: true, data: replay }, 201);
   }
 
+  if (resume) {
+    await publishPurchaseOrderCacheEvent(c, {
+      eventType: 'purchase_order_created',
+      poId: resume.id,
+      payload: {
+        item_count: Array.isArray(body.items) ? body.items.length : 0,
+      },
+    });
+    await commandIdempotencyRepo
+      .buildFinalizeStatement(reservation.record?.command_id, resume)
+      .run();
+    return c.json({ success: true, data: resume }, 201);
+  }
+
   const ownsReservation = resolveReservationOwnership(reservation);
+  let createdPo = null;
   let fullPo = null;
 
   try {
@@ -495,7 +529,7 @@ app.post('/', async (c) => {
       await validatePurchaseOrderPreOrderBinding(c.env.DB, body.items);
     }
 
-    const po = await repo.create({
+    createdPo = await repo.create({
       remark: body.remark,
       currency: body.currency,
       allocation_method: body.allocation_method,
@@ -506,11 +540,11 @@ app.post('/', async (c) => {
     // 如果同时传入了明细项，一并添加
     if (body.items && body.items.length > 0) {
       try {
-        await repo.addItems(po.id, body.items);
+        await repo.addItems(createdPo.id, body.items);
       } catch (error) {
         if (typeof repo.deleteIfEmptyDraft === 'function') {
           try {
-            await repo.deleteIfEmptyDraft(po.id);
+            await repo.deleteIfEmptyDraft(createdPo.id);
           } catch (cleanupError) {
             console.error('Purchase-order route draft cleanup failed:', cleanupError);
           }
@@ -521,13 +555,14 @@ app.post('/', async (c) => {
 
     await publishPurchaseOrderCacheEvent(c, {
       eventType: 'purchase_order_created',
-      poId: po.id,
+      poId: createdPo.id,
       payload: {
         item_count: Array.isArray(body.items) ? body.items.length : 0,
       },
     });
 
-    fullPo = (await repo.findById(po.id)) || buildCreatedPurchaseOrderShell(po, body.items);
+    fullPo =
+      (await repo.findById(createdPo.id)) || buildCreatedPurchaseOrderShell(createdPo, body.items);
     await commandIdempotencyRepo
       .buildFinalizeStatement(reservation.record?.command_id, fullPo)
       .run();
@@ -538,17 +573,21 @@ app.post('/', async (c) => {
       result: 'success',
       severity: 'high',
       targetType: 'purchase_order',
-      targetId: po.id,
-      target_label: po.id,
-      summary: `Created purchase order ${po.id}`,
+      targetId: createdPo.id,
+      target_label: createdPo.id,
+      summary: `Created purchase order ${createdPo.id}`,
       metadata: { itemCount: Array.isArray(body.items) ? body.items.length : 0 },
     });
     return c.json({ success: true, data: fullPo }, 201);
   } catch (error) {
-    if (fullPo) {
+    if (createdPo) {
+      const failedPayload =
+        fullPo
+        || (await repo.findById(createdPo.id))
+        || buildCreatedPurchaseOrderShell(createdPo, body.items);
       try {
         await commandIdempotencyRepo
-          .buildFinalizeStatement(reservation.record?.command_id, fullPo)
+          .buildFinalizeStatement(reservation.record?.command_id, failedPayload, 'failed')
           .run();
       } catch (finalizeError) {
         console.error('Purchase-order create idempotency finalize failed:', finalizeError);
@@ -581,6 +620,7 @@ app.post('/from-orders', async (c) => {
   const requestFingerprint = buildPurchaseOrderCreateFromOrdersRequestFingerprint(orderIds, body);
   const {
     replay,
+    resume,
     reservation,
     commandIdempotencyRepo,
   } = await reserveCreateCommand(c, {
@@ -593,6 +633,20 @@ app.post('/from-orders', async (c) => {
 
   if (replay) {
     return c.json({ success: true, data: replay }, 201);
+  }
+
+  if (resume) {
+    await publishPurchaseOrderCacheEvent(c, {
+      eventType: 'purchase_order_created_from_orders',
+      poId: resume.id,
+      payload: {
+        order_ids: orderIds,
+      },
+    });
+    await commandIdempotencyRepo
+      .buildFinalizeStatement(reservation.record?.command_id, resume)
+      .run();
+    return c.json({ success: true, data: resume }, 201);
   }
 
   const ownsReservation = resolveReservationOwnership(reservation);
@@ -633,7 +687,7 @@ app.post('/from-orders', async (c) => {
     if (po) {
       try {
         await commandIdempotencyRepo
-          .buildFinalizeStatement(reservation.record?.command_id, po)
+          .buildFinalizeStatement(reservation.record?.command_id, po, 'failed')
           .run();
       } catch (finalizeError) {
         console.error('Purchase-order from-orders idempotency finalize failed:', finalizeError);

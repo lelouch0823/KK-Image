@@ -52,7 +52,16 @@ describe('AI action submitters', () => {
       ['ord-1', 'ord-2'],
       expect.objectContaining({ remark: 'restock' })
     );
-    expect(result).toEqual(expect.objectContaining({ id: 'po-1', label: 'PO-1' }));
+    expect(result).toEqual(expect.objectContaining({
+      id: 'po-1',
+      label: 'PO-1',
+      purchaseOrderCreated: {
+        created: expect.objectContaining({ id: 'po-1', po_no: 'PO-1' }),
+        mode: 'from_orders',
+        orderIds: ['ord-1', 'ord-2'],
+        items: [],
+      },
+    }));
   });
 
   it('creates manual purchase orders with items instead of leaving an empty draft', async () => {
@@ -121,7 +130,23 @@ describe('AI action submitters', () => {
     );
     expect(purchaseOrderRepo.create).not.toHaveBeenCalled();
     expect(purchaseOrderRepo.addItems).not.toHaveBeenCalled();
-    expect(result).toEqual(expect.objectContaining({ id: 'po-1', label: 'PO-1' }));
+    expect(result).toEqual(expect.objectContaining({
+      id: 'po-1',
+      label: 'PO-1',
+      purchaseOrderCreated: {
+        created: expect.objectContaining({ id: 'po-1', po_no: 'PO-1' }),
+        mode: 'manual',
+        orderIds: [],
+        items: [
+          expect.objectContaining({
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            quantity: 3,
+            unit_cost: 12,
+          }),
+        ],
+      },
+    }));
   });
 
   it('cleans up manual purchase-order drafts when AI item insertion fails', async () => {
@@ -141,6 +166,20 @@ describe('AI action submitters', () => {
 
     expect(purchaseOrderRepo.addItems).toHaveBeenCalledTimes(1);
     expect(purchaseOrderRepo.deleteIfEmptyDraft).toHaveBeenCalledWith('po-1');
+  });
+
+  it('does not mask purchase-order creation failures when the service path is used without a repo fallback', async () => {
+    const purchaseOrderService = {
+      createManual: vi.fn(async () => {
+        throw new Error('create failed');
+      }),
+    };
+    const submitters = createActionSubmitters({ purchaseOrderService });
+
+    await expect(submitters.create_purchase_order({
+      mode: 'manual',
+      items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 3, unit_cost: 12 }],
+    })).rejects.toThrow('create failed');
   });
 
   it('rejects manual purchase-order submission when items are missing', async () => {

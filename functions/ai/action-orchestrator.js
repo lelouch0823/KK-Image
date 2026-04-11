@@ -172,6 +172,7 @@ export class AIActionOrchestrator {
         entityType: session.entity_type,
         createdEntityId: created.id,
         createdEntityLabel: created.label || created.id,
+        purchaseOrderCreated: created.purchaseOrderCreated || null,
         targetModule: adapter.targetModule,
         successMessage: created.message || '已完成创建，请前往对应模块查看。',
       },

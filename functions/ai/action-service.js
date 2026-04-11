@@ -15,6 +15,8 @@ import { ProductVariantRepository } from '../repositories/ProductVariantReposito
 import { PurchaseOrderRepository } from '../repositories/PurchaseOrderRepository.js';
 import { PurchaseOrderService } from '../services/PurchaseOrderService.js';
 import { SalespersonRepository } from '../repositories/SalespersonRepository.js';
+import { DomainOutboxPublisher } from '../services/DomainOutboxPublisher.js';
+import { runOutboxPoller } from '../api/cron/outbox.js';
 
 export function detectExplicitConfirmation(text = '') {
   const normalized = String(text || '').trim();
@@ -50,6 +52,39 @@ export async function deriveContextActionSlots(context = {}, { productRepo, vari
   }
 
   return {};
+}
+
+export async function publishPurchaseOrderCreatedFromAI(
+  { c, env } = {},
+  { created, mode, orderIds = [], items = [] } = {}
+) {
+  if (!env?.DB || !created?.id) return;
+
+  const eventType = mode === 'from_orders'
+    ? 'purchase_order_created_from_orders'
+    : 'purchase_order_created';
+  const payload = mode === 'from_orders'
+    ? { order_ids: Array.isArray(orderIds) ? orderIds : [] }
+    : { item_count: Array.isArray(items) ? items.length : 0 };
+
+  const publisher = new DomainOutboxPublisher(env.DB);
+  await publisher.publish([
+    {
+      event_type: eventType,
+      aggregate_type: 'purchase_order',
+      aggregate_id: created.id,
+      payload: {
+        purchase_order_id: created.id,
+        ...payload,
+      },
+    },
+  ]);
+
+  c?.executionCtx?.waitUntil?.(runOutboxPoller({
+    env,
+    requestUrl: c?.req?.url || 'ai://action',
+    workerId: `${eventType}:${created.id}:ai`,
+  }));
 }
 
 export function createActionOrchestrator({ c, env, user, createManagedOrder, createManagedProduct }) {
@@ -98,6 +133,8 @@ export function createAIActionService(deps = {}) {
   const deriveSlots = deps.deriveContextActionSlots || deriveContextActionSlots;
   const detectConfirmation = deps.detectExplicitConfirmation || detectExplicitConfirmation;
   const createOrchestrator = deps.createActionOrchestrator || createActionOrchestrator;
+  const publishPurchaseOrderCreated =
+    deps.publishPurchaseOrderCreated || publishPurchaseOrderCreatedFromAI;
 
   return {
     async handleTurn({ text = '', context = {}, user = null, actionContext = null } = {}) {
@@ -117,6 +154,14 @@ export function createAIActionService(deps = {}) {
           event: null,
           refreshEvent: null,
         };
+      }
+
+      if (
+        actionResult.kind === 'action_submitted'
+        && actionResult.payload?.entityType === 'purchase_order'
+        && actionResult.payload?.purchaseOrderCreated
+      ) {
+        await publishPurchaseOrderCreated(actionContext || {}, actionResult.payload.purchaseOrderCreated);
       }
 
       const refreshEvent = actionResult.kind === 'action_submitted' && actionResult.payload?.targetModule

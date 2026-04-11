@@ -54,10 +54,15 @@ export function createActionSubmitters(deps = {}) {
         return {
           id: created.id,
           label: created.po_no || created.id,
+          purchaseOrderCreated: {
+            created,
+            mode: 'from_orders',
+            orderIds,
+            items: [],
+          },
         };
       }
 
-      if (!deps.purchaseOrderRepo?.create) throw new Error('Purchase order create dependency is unavailable');
       const items = Array.isArray(slots.items) ? slots.items : [];
       if (items.length === 0) throw new Error('At least one purchase-order item is required');
       if (items.some((item) => !item?.product_id || !item?.variant_id)) {
@@ -69,8 +74,15 @@ export function createActionSubmitters(deps = {}) {
         return {
           id: created.id,
           label: created.po_no || created.id,
+          purchaseOrderCreated: {
+            created,
+            mode: 'manual',
+            orderIds: [],
+            items,
+          },
         };
       }
+      if (!deps.purchaseOrderRepo?.create) throw new Error('Purchase order create dependency is unavailable');
       if (typeof deps.purchaseOrderRepo.addItems !== 'function') {
         throw new Error('Purchase order item creation dependency is unavailable');
       }
@@ -92,6 +104,12 @@ export function createActionSubmitters(deps = {}) {
       return {
         id: created.id,
         label: created.po_no || created.id,
+        purchaseOrderCreated: {
+          created,
+          mode: 'manual',
+          orderIds: [],
+          items,
+        },
       };
     },
 

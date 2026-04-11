@@ -62,4 +62,51 @@ describe('createAIActionService', () => {
       }),
     }));
   });
+
+  it('publishes purchase-order creation side effects after the action rail submits successfully', async () => {
+    const publishPurchaseOrderCreated = vi.fn(async () => {});
+    const service = createAIActionService({
+      deriveContextActionSlots: vi.fn().mockResolvedValue({}),
+      detectExplicitConfirmation: vi.fn().mockReturnValue(true),
+      publishPurchaseOrderCreated,
+      createActionOrchestrator: vi.fn(() => ({
+        advance: vi.fn().mockResolvedValue({
+          kind: 'action_submitted',
+          payload: {
+            targetModule: 'purchase_orders',
+            entityType: 'purchase_order',
+            createdEntityId: 'po-1',
+            purchaseOrderCreated: {
+              created: { id: 'po-1', po_no: 'PO-1' },
+              mode: 'manual',
+              orderIds: [],
+              items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 12 }],
+            },
+          },
+        }),
+      })),
+    });
+
+    const actionContext = { env: { DB: {} }, c: { req: { url: 'http://localhost/api/manage/ai' } } };
+    const result = await service.handleTurn({
+      text: '确认',
+      context: {},
+      user: { id: 'u-1' },
+      actionContext,
+    });
+
+    expect(publishPurchaseOrderCreated).toHaveBeenCalledWith(actionContext, {
+      created: { id: 'po-1', po_no: 'PO-1' },
+      mode: 'manual',
+      orderIds: [],
+      items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 12 }],
+    });
+    expect(result.refreshEvent).toEqual(expect.objectContaining({
+      type: 'module_refresh',
+      data: expect.objectContaining({
+        module: 'purchase_orders',
+        entityId: 'po-1',
+      }),
+    }));
+  });
 });
