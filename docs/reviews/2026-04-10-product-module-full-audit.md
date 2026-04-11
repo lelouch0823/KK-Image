@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 95 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 96 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -130,6 +130,7 @@
   - `031178e`: 空间删除失败时保留确认弹窗
   - `ab321f7`: 空间可见性设置只在保存确认后清脏
   - `746e756`: 商品详情关联空间复制链接统一走共享剪贴板 helper
+  - `34be40a`: 空间商品编辑器媒体操作失败时不再假成功
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -160,6 +161,7 @@
   - 2026-04-10 运行 7 个回归测试文件，共 10 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 10 个测试，全部通过。
   - 2026-04-11 运行 3 个回归测试文件，共 11 个测试，全部通过。
+  - 2026-04-11 运行 5 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 5 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 14 个测试，全部通过。
@@ -1854,3 +1856,23 @@
   - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
   - `src/components/product/__tests__/product-inventory-projection-consumers.test.js`
 - 对应修复提交: `746e756 fix: route product detail share copy through clipboard helper`
+
+### 2026-04-10 轮次 179
+
+- 继续复查空间商品编辑器媒体操作闭环，新增 1 个中风险问题:
+  - `SpaceProductEditor` 的加文件和删文件流程都没有检查 `addFilesToSpace()/removeFilesFromSpace()` 返回值，导致底层写操作失败时组件仍会刷新空间详情、向父级发 `updated`，删除确认框还会直接关闭，形成明显假成功。
+- 下一步把空间商品编辑器的媒体写操作统一收口为“仅成功才刷新/emit/关闭确认框”，并补失败态回归。
+
+### 2026-04-10 轮次 180
+
+- 已完成轮次 179 新增问题修复:
+  - `SpaceProductEditor.addFiles()` 现在只有在 `addFilesToSpace()` 成功时才会重载空间详情并向父级发 `updated`
+  - 文件删除确认现在只有在 `removeFilesFromSpace()` 成功时才会刷新详情、发 `updated` 并关闭确认框，失败时会保留当前确认上下文
+  - 已补齐“加文件失败不再假刷新”和“删文件失败保留确认框”两条回归，并联跑空间编辑器/详情弹窗/子空间/后端管理路由回归
+- 增量回归:
+  - `src/components/__tests__/SpaceProductEditor.contract.test.js`
+  - `src/components/__tests__/SpaceDetailModal.lifecycle.test.js`
+  - `src/components/__tests__/SubspaceList.lifecycle.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
+- 对应修复提交: `34be40a fix: avoid false success in space product editor media actions`
