@@ -65,6 +65,19 @@ function normalizeSalesSpace(raw: unknown) {
         ...templateImages.filter((candidate) => !rawFiles.some((file) => file.url === candidate.url)),
         ...rawFiles,
     ];
+    const resolveTemplateCover = (nextTemplateData: UnknownRecord, imagesValue: unknown) => {
+        const nextTemplateImages = safeParseArray<string>(nextTemplateData.images, [])
+            .map((image) => resolveFilePath(image))
+            .filter(Boolean);
+        if (nextTemplateImages[0]) {
+            return nextTemplateImages[0];
+        }
+
+        const productImages = safeParseArray<string>(imagesValue, [])
+            .map((image) => resolveFilePath(image))
+            .filter(Boolean);
+        return productImages[0] || '';
+    };
     return {
         id: pickFirstString([record.id]),
         name: pickFirstString([record.name], '未命名空间'),
@@ -83,14 +96,19 @@ function normalizeSalesSpace(raw: unknown) {
         files: mergedFiles,
         subspaces: asArray(record.subspaces).map((item) => {
             const subspace = asRecord(item);
+            const subspaceTemplateData = safeParseObject(
+                subspace.template_data ?? subspace.templateData,
+                {}
+            );
+            const coverUrl = resolveFilePath(
+                subspace.coverUrl ?? subspace.cover_url,
+                subspace.cover_storage_key ?? subspace.coverStorageKey
+            ) || resolveTemplateCover(subspaceTemplateData, subspace.p_images ?? subspace.productImages);
             return {
                 id: pickFirstString([subspace.id]),
                 name: pickFirstString([subspace.name], '未命名子空间'),
                 fileCount: toFiniteNumber(subspace.file_count ?? subspace.fileCount),
-                coverUrl: resolveFilePath(
-                    subspace.coverUrl ?? subspace.cover_url,
-                    subspace.cover_storage_key ?? subspace.coverStorageKey
-                ),
+                coverUrl,
             };
         }),
     };

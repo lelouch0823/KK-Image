@@ -109,6 +109,21 @@ function normalizeSpaceFile(raw, fallbackId) {
   };
 }
 
+function resolveTemplateImageCover(templateData, productImages) {
+  const templateImages = safeParseArray(templateData?.images, [])
+    .map((image, index) => normalizeSpaceFile(image, `template-cover-${index}`))
+    .filter((file) => file.url);
+  if (templateImages[0]?.url) {
+    return templateImages[0].url;
+  }
+
+  const productImageFiles = safeParseArray(productImages, [])
+    .map((image, index) => normalizeSpaceFile(image, `product-cover-${index}`))
+    .filter((file) => file.url);
+
+  return productImageFiles[0]?.url || '';
+}
+
 export function normalizeSalesSpace(raw) {
   const record = asRecord(raw);
   const templateData = safeParseObject(record.template_data ?? record.templateData, {});
@@ -131,16 +146,18 @@ export function normalizeSalesSpace(raw) {
     .filter((file) => file.url);
   const subspaces = safeParseArray(record.subspaces, []).map((item) => {
     const subspace = asRecord(item);
+    const subspaceTemplateData = safeParseObject(subspace.template_data ?? subspace.templateData, {});
     const subspaceCoverUrl = resolveFilePath(
       subspace.coverImage ?? subspace.coverUrl ?? subspace.cover_url,
       subspace.cover_storage_key ?? subspace.coverStorageKey
-    );
+    ) || resolveTemplateImageCover(subspaceTemplateData, subspace.p_images ?? subspace.productImages);
     return {
       ...subspace,
       id: pickFirstString([subspace.id]),
       name: pickFirstString([subspace.name], ''),
       shareToken: pickFirstString([subspace.shareToken, subspace.share_token]),
       fileCount: toFiniteNumber(subspace.fileCount ?? subspace.file_count),
+      templateData: subspaceTemplateData,
       coverUrl: subspaceCoverUrl,
       coverImage: subspaceCoverUrl,
     };

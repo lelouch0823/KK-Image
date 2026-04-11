@@ -137,4 +137,45 @@ describe('sales spaces service', () => {
       })
     );
   });
+
+  it('hydrates collection subspace cover from template images when no explicit cover exists', async () => {
+    const request = vi.fn().mockResolvedValue({
+      success: true,
+      data: {
+        id: 'space-collection-1',
+        template: 'collection',
+        subspaces: [
+          {
+            id: 'sub-1',
+            name: '子空间 1',
+            template: 'product',
+            template_data: {
+              images: ['variant-main.jpg'],
+            },
+            file_count: 0,
+          },
+        ],
+      },
+      error: null,
+      code: null,
+      status: 200,
+      payload: { success: true },
+    });
+
+    const detailResult = await getSalesSpaceDetail(
+      { accessToken: 'sales-token', spaceId: 'space-collection-1' },
+      request
+    );
+
+    expect(detailResult.data).toEqual(
+      expect.objectContaining({
+        subspaces: [
+          expect.objectContaining({
+            id: 'sub-1',
+            coverUrl: '/file/variant-main.jpg',
+          }),
+        ],
+      })
+    );
+  });
 });
