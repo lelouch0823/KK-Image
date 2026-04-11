@@ -212,9 +212,16 @@ watch(token, () => {
   passwordSubmitRequestId += 1;
   loading.value = true;
   space.value = null;
+  error.value = '';
   requiresPassword.value = false;
   passwordError.value = '';
   verifying.value = false;
+
+  if (requiresTurnstile.value && !turnstileVerified.value) {
+    loading.value = false;
+    return;
+  }
+
   loadSpace();
 });
 
