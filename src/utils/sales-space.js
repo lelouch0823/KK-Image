@@ -129,6 +129,22 @@ export function normalizeSalesSpace(raw) {
   const productImageCandidates = safeParseArray(record.p_images ?? record.productImages, [])
     .map((image, index) => normalizeSpaceFile(image, `product-image-${index}`))
     .filter((file) => file.url);
+  const subspaces = safeParseArray(record.subspaces, []).map((item) => {
+    const subspace = asRecord(item);
+    const subspaceCoverUrl = resolveFilePath(
+      subspace.coverImage ?? subspace.coverUrl ?? subspace.cover_url,
+      subspace.cover_storage_key ?? subspace.coverStorageKey
+    );
+    return {
+      ...subspace,
+      id: pickFirstString([subspace.id]),
+      name: pickFirstString([subspace.name], ''),
+      shareToken: pickFirstString([subspace.shareToken, subspace.share_token]),
+      fileCount: toFiniteNumber(subspace.fileCount ?? subspace.file_count),
+      coverUrl: subspaceCoverUrl,
+      coverImage: subspaceCoverUrl,
+    };
+  });
 
   return {
     ...record,
@@ -141,6 +157,7 @@ export function normalizeSalesSpace(raw) {
     fileCount: files.length || toFiniteNumber(record.file_count ?? record.fileCount),
     templateData,
     files,
+    subspaces,
     viewCount: toFiniteNumber(record.viewCount ?? record.view_count),
     coverUrl: coverUrl || files[0]?.url || productImageCandidates[0]?.url || '',
   };

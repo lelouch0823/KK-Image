@@ -33,11 +33,18 @@ app.get('/:id', withCache(20), async (c) => {
     const { env } = c;
 
     const spaceRepo = new SpaceRepository(env.DB);
-    const result = await spaceRepo.findByIdForSalesperson(spaceId, salesperson.id);
+    const [result, subspaces] = await Promise.all([
+        spaceRepo.findByIdForSalesperson(spaceId, salesperson.id),
+        spaceRepo.findSubspacesForSalesperson(spaceId, salesperson.id),
+    ]);
 
     if (!result) return c.json({ success: false, error: MSG.SPACE.NOT_FOUND }, 404);
 
     result.template_data = JSON.stringify(projectSpaceTemplateData(result));
+    result.subspaces = subspaces.map((subspace) => ({
+        ...subspace,
+        template_data: JSON.stringify(projectSpaceTemplateData(subspace)),
+    }));
 
     return c.json({ success: true, data: result });
 });

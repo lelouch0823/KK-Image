@@ -18,7 +18,12 @@
       />
     </div>
 
-    <component v-else-if="space" :is="spaceComponent" :space="space" />
+    <component
+      v-else-if="space"
+      :is="spaceComponent"
+      :space="space"
+      :get-subspace-href="getSubspaceHref"
+    />
   </div>
 </template>
 
@@ -71,6 +76,8 @@ const spaceComponent = computed(() => {
       return SpaceMasonry;
   }
 });
+
+const getSubspaceHref = (subspace) => `/sales/${currentToken.value}/spaces/${subspace.id}`;
 
 const loadSpaceDetail = async () => {
   const requestToken = currentToken.value;

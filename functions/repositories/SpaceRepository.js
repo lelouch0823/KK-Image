@@ -356,6 +356,41 @@ export class SpaceRepository {
     }
 
     /**
+     * 获取销售员可见的子空间列表
+     * @param {string} parentId
+     * @param {string} salespersonId
+     * @returns {Promise<Array>}
+     */
+    async findSubspacesForSalesperson(parentId, salespersonId) {
+        const { results } = await this.db
+            .prepare(
+                `
+        SELECT s.*,
+            COALESCE(sf_count.file_count, 0) as file_count,
+            f.storage_key as cover_storage_key,
+            ${this._productProjectionSQL()},
+            ${this._variantImageProjectionSQL()}
+        FROM spaces s
+        ${this._spaceFileCountJoinSQL()}
+        ${this._spaceProductJoinsSQL()}
+        WHERE s.parent_id = ?
+          AND (
+            s.share_mode = 'all'
+            OR (s.share_mode = 'selected' AND EXISTS (
+                SELECT 1 FROM space_salesperson_shares sss
+                WHERE sss.space_id = s.id AND sss.salesperson_id = ?
+            ))
+          )
+        ORDER BY s.sort_order ASC, s.updated_at DESC
+      `
+            )
+            .bind(parentId, salespersonId)
+            .all();
+
+        return results;
+    }
+
+    /**
      * 创建子空间
      * @param {Object} data
      * @returns {Promise<void>}

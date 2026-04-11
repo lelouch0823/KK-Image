@@ -15,18 +15,18 @@
       <a
         v-for="sub in space.subspaces"
         :key="sub.id"
-        :href="`/space/${sub.shareToken}`"
+        :href="getSubspaceHref(sub)"
         class="group flex items-start gap-4 rounded-xl border border-(--border-subtle) bg-(--bg-card) p-6 transition-all hover:shadow-lg"
       >
         <div
           class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-(--bg-muted) transition-colors"
           :class="
-            sub.coverImage ? 'border border-(--border-subtle)' : 'group-hover:bg-primary group-hover:text-(--text-inverse)'
+            getSubspaceCover(sub) ? 'border border-(--border-subtle)' : 'group-hover:bg-primary group-hover:text-(--text-inverse)'
           "
         >
           <AppImage
-            v-if="sub.coverImage"
-            :src="sub.coverImage"
+            v-if="getSubspaceCover(sub)"
+            :src="getSubspaceCover(sub)"
             class="size-full transition-transform group-hover:scale-110"
             fit="cover"
             rounded="none"
@@ -65,9 +65,15 @@ import { useI18n } from '@/composables/useI18n';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
-defineProps({
+const props = defineProps({
   space: { type: Object, required: true },
+  getSubspaceHref: {
+    type: Function,
+    default: (subspace) => `/space/${subspace.shareToken}`,
+  },
 });
 
 const { t } = useI18n();
+
+const getSubspaceCover = (subspace) => subspace?.coverImage || subspace?.coverUrl || '';
 </script>
