@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 61 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 62 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -107,6 +107,7 @@
   - `4e936a8`: 销售订单列表搜索改为走服务端查询并支持当前搜索结果分页
   - `5c04f98`: Dashboard 订单详情抽屉只认当前详情请求结果
   - `c1c1999`: 货品总览列表和汇总只认当前筛选轮次的最新请求结果
+  - `844b179`: 销售订单状态机只认当前动作的最新状态迁移结果
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -140,6 +141,7 @@
   - 2026-04-10 运行 6 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 14 个测试，全部通过。
   - 2026-04-10 运行 1 个回归测试文件，共 6 个测试，全部通过。
+  - 2026-04-10 运行 5 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -229,6 +231,7 @@
 - 销售订单列表页的搜索没有接入后端查询。`SalesListView` 只是对当前已加载订单做本地过滤，并在搜索时直接禁用无限滚动；而销售端订单 API 与 `useOrders.loadSalesOrders()` 本身都支持 `search`。结果是未加载到本地的历史订单永远搜不到，销售搜索链路在业务上不闭环。[src/views/sales/SalesListView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesListView.vue#L67) [src/views/Sales.vue](/home/bjw/Code/KK-Image/src/views/Sales.vue#L222) [src/composables/useOrders.js](/home/bjw/Code/KK-Image/src/composables/useOrders.js#L338)
 - `Dashboard` 首页里的订单详情抽屉也实现了一套独立的详情水合，但 `viewOrder()/refreshOrderDetail()` 没有隔离请求先后。快速连续查看两张订单、关闭抽屉后旧请求才返回，或评论后详情刷新并发时，旧的 `getOrder()` 结果会把当前 `viewingOrder/detailHydrating` 覆盖成上一张订单。[src/views/Dashboard.vue](/home/bjw/Code/KK-Image/src/views/Dashboard.vue#L409)
 - `useGoodsOverview` 的列表和汇总加载都没有请求先后隔离，而筛选变化会自动触发 `loadData()`。快速切换货品总览筛选或并发触发初始化/刷新时，旧筛选的列表结果和旧汇总结果会在后返回后覆盖当前总览，导致短缺列表与汇总卡片回跳到上一轮筛选口径。[src/composables/useGoodsOverview.js](/home/bjw/Code/KK-Image/src/composables/useGoodsOverview.js#L70)
+- 销售端的 `useSalesOrderStateMachine` 只包了一层状态流转，但没有隔离动作请求先后。搜索、重试或切换页面时如果同时触发多次 `loadOrders/loadDetail/comment`，旧请求仍会把 `state/error` 回写成 `error/empty`，即使底层数据已经是新的成功结果。[src/composables/sales/useSalesOrderStateMachine.js](/home/bjw/Code/KK-Image/src/composables/sales/useSalesOrderStateMachine.js#L22)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -1192,3 +1195,22 @@
 - 增量回归:
   - `src/composables/__tests__/useGoodsOverview.test.js`
 - 对应修复提交: `c1c1999 fix: isolate goods overview loads`
+
+### 2026-04-10 轮次 111
+
+- 继续复查销售端状态机链路，新增 1 个中风险问题:
+  - `useSalesOrderStateMachine` 本身没有隔离动作请求先后，旧请求会把销售页状态机重新打回 `error/empty`
+- 下一步给销售状态机补请求序号，让同一时刻只认当前动作对应的最新状态迁移结果。
+
+### 2026-04-10 轮次 112
+
+- 已完成轮次 111 新增问题修复:
+  - `useSalesOrderStateMachine` 现在只认当前动作对应的最新请求结果，旧请求不会再覆盖当前 `state/error`
+  - 销售订单列表搜索、详情页加载和统计页等依赖状态机错误态的入口会自动继承这层状态收口
+- 增量回归:
+  - `src/composables/__tests__/useSalesOrderStateMachine.test.js`
+  - `src/views/__tests__/Sales.notification-mode.test.js`
+  - `src/views/sales/__tests__/SalesListView.search-contract.test.js`
+  - `src/views/__tests__/SalesDetailView.lifecycle.test.js`
+  - `src/components/order/__tests__/SalesStats.lifecycle.test.js`
+- 对应修复提交: `844b179 fix: isolate sales state machine transitions`
