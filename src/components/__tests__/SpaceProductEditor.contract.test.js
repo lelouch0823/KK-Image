@@ -317,6 +317,110 @@ describe('SpaceProductEditor contract', () => {
     });
   });
 
+  it('reloads editor state and refresh binding when switching to another space id', async () => {
+    mocks.loadSpace
+      .mockResolvedValueOnce({
+        id: 'space-1',
+        name: 'First Space',
+        description: 'First Desc',
+        isPublic: true,
+        shareMode: 'selected',
+        sharedSalespersons: [{ id: 'sp-1' }],
+        coverFileId: 'cover-1',
+        password: '',
+        productId: 'prod-1',
+        variantId: 'var-2',
+        templateData: {
+          brand: 'Brand 1',
+          series: 'Series 1',
+          price: '88',
+          material: 'Leather',
+          sku: 'SKU-2',
+        },
+        files: [{ id: 'file-1' }],
+      })
+      .mockResolvedValueOnce({
+        id: 'space-2',
+        name: 'Second Space',
+        description: 'Second Desc',
+        isPublic: false,
+        shareMode: 'none',
+        sharedSalespersons: [],
+        coverFileId: 'cover-2',
+        password: '',
+        productId: 'prod-2',
+        variantId: 'var-9',
+        templateData: {
+          brand: 'Brand 2',
+          series: 'Series 2',
+          price: '188',
+          material: 'Wood',
+          sku: 'SKU-9',
+        },
+        files: [{ id: 'file-9' }],
+      });
+    mocks.loadProduct
+      .mockResolvedValueOnce({
+        id: 'prod-1',
+        name: 'Product 1',
+        brand: 'Brand 1',
+        series: 'Series 1',
+        images: ['prod-image-1'],
+        variants: [
+          { id: 'var-2', sku: 'SKU-2' },
+        ],
+      })
+      .mockResolvedValueOnce({
+        id: 'prod-2',
+        name: 'Product 2',
+        brand: 'Brand 2',
+        series: 'Series 2',
+        images: ['prod-image-2'],
+        variants: [
+          { id: 'var-9', sku: 'SKU-9' },
+        ],
+      });
+
+    const wrapper = mount(SpaceProductEditor, {
+      props: {
+        space: { id: 'space-1', shareToken: 'share-token-1' },
+      },
+      global: {
+        stubs: {
+          FileSelector: { template: '<div />' },
+          Tooltip: { template: '<div><slot /></div>' },
+          SpaceAnalytics: { template: '<div />' },
+          SpaceShareCard: { template: '<div />' },
+          SpaceVisibilitySelector: { template: '<div />' },
+          SpaceMediaGrid: { template: '<div />' },
+          ConfirmDialog: { template: '<div />' },
+          ProductBindingSection: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+    expect(wrapper.vm.form.name).toBe('First Space');
+    expect(mocks.registerFolderRefresh).toHaveBeenCalledWith('space_space-1', expect.any(Function));
+
+    await wrapper.setProps({
+      space: { id: 'space-2', shareToken: 'share-token-2' },
+    });
+    await flushPromises();
+
+    expect(mocks.unregisterFolderRefresh).toHaveBeenCalledWith('space_space-1');
+    expect(mocks.registerFolderRefresh).toHaveBeenLastCalledWith('space_space-2', expect.any(Function));
+    expect(mocks.loadSpace).toHaveBeenLastCalledWith('space-2');
+    expect(mocks.loadProduct).toHaveBeenLastCalledWith('prod-2');
+    expect(wrapper.vm.form.name).toBe('Second Space');
+    expect(wrapper.vm.form.productId).toBe('prod-2');
+    expect(wrapper.vm.boundProduct).toMatchObject({
+      id: 'prod-2',
+      sku: 'SKU-9',
+    });
+    expect(wrapper.vm.files).toEqual([{ id: 'file-9' }]);
+  });
+
   it('does not refresh or emit updated when adding files fails', async () => {
     mocks.addFilesToSpace.mockResolvedValueOnce(false);
 

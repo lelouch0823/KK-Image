@@ -363,7 +363,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onUnmounted } from 'vue';
+import { ref, computed, onUnmounted, watch } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
@@ -413,6 +413,7 @@ const boundProduct = ref(null);
 const canManageProducts = ref(true);
 let initDataRequestId = 0;
 let mediaRefreshRequestId = 0;
+let registeredRefreshKey = '';
 
 // 确认弹窗状态
 const confirmData = ref({
@@ -642,19 +643,41 @@ const handleReorder = async (newFiles) => {
   }
 };
 
-onMounted(() => {
-  initData();
-  registerFolderRefresh(`space_${props.space.id}`, () => {
+const bindRefreshHandler = (spaceId) => {
+  const nextKey = spaceId ? `space_${spaceId}` : '';
+  if (registeredRefreshKey && registeredRefreshKey !== nextKey) {
+    unregisterFolderRefresh(registeredRefreshKey);
+    registeredRefreshKey = '';
+  }
+  if (!nextKey || registeredRefreshKey === nextKey) return;
+
+  registeredRefreshKey = nextKey;
+  registerFolderRefresh(nextKey, () => {
     void refreshMediaState().then((refreshed) => {
       if (!refreshed) return;
       emit('updated');
     });
   });
-});
+};
+
+watch(
+  () => props.space?.id,
+  (spaceId) => {
+    initDataRequestId += 1;
+    mediaRefreshRequestId += 1;
+    bindRefreshHandler(spaceId);
+    if (!spaceId) return;
+    void initData();
+  },
+  { immediate: true }
+);
 
 onUnmounted(() => {
   initDataRequestId += 1;
   mediaRefreshRequestId += 1;
-  unregisterFolderRefresh(`space_${props.space.id}`);
+  if (registeredRefreshKey) {
+    unregisterFolderRefresh(registeredRefreshKey);
+    registeredRefreshKey = '';
+  }
 });
 </script>
