@@ -2234,3 +2234,28 @@
 - 增量回归:
   - `src/components/__tests__/SpaceProductEditor.contract.test.js`
 - 对应修复提交: `e3c5843 fix: lock bound space fields without product access`
+
+### 2026-04-11 轮次 214
+
+- 继续复查商品分享创建链路，新增 1 个中风险问题:
+  - `SpaceCreateModal` 初始化时会直接把 `props.initialProduct.id` 写进 `form.productId`，但只有在 `selectedVariant` 存在时才会补齐 `variantId`。一旦调用方传入的是 lite product 或 hydrate 未完成的商品对象，前端就会留下“有 `productId`、无 `variantId`”的半绑定态；提交时请求被后端拒绝，用户前端却没有任何前置阻断，形成可复现的创建失败和假上下文。[src/components/SpaceCreateModal.vue](/home/bjw/Code/KK-Image/src/components/SpaceCreateModal.vue)
+- 已完成本轮修复:
+  - `SpaceCreateModal` 不再在初始化阶段提前写入 `productId`，只有拿到有效 `selectedVariant` 时才正式落绑定。
+  - 创建前现在会拦截半绑定 payload，并弹出错误 toast，避免把无效请求打到后端。
+  - 快捷分享场景只有在初始商品成功完成变体绑定后才会自动生成默认空间名，不再把无效初始商品伪装成已绑定上下文。
+- 增量回归:
+  - `src/components/__tests__/SpaceCreateModal.unbind.test.js`
+- 对应修复提交: `a79d90c fix: harden space product binding boundaries`
+
+### 2026-04-11 轮次 215
+
+- 继续复查商品绑定到空间的前后端契约，新增 1 个中风险问题:
+  - `SpaceCreateModal` 和 `SpaceProductEditor` 前端都把规格选择策略固定成 `in_stock_only`，但 `POST /api/manage/spaces`、`POST /api/manage/spaces/:id/subspaces` 以及空间更新路由调用 `validateProductVariantBinding()` 时没有传这个策略。结果是 UI 虽然禁止绑定缺货规格，接口层仍然接受绕过前端的缺货变体绑定，形成“前端一套、后端一套”的业务分叉；同时空间更新如果未来直接强收紧校验，又会误伤已有历史绑定，因此需要按“仅新绑定收紧、旧绑定保留”处理。[functions/lib/hono/routes/manage/spaces/crud.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/crud.js) [functions/lib/hono/routes/manage/spaces/subspaces.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/subspaces.js)
+- 已完成本轮修复:
+  - 顶级空间创建、子空间创建现在都会以 `in_stock_only` 策略校验商品变体绑定，缺货规格无法再通过接口绕过前端约束。
+  - 空间更新路由现在只在绑定发生变化时启用 `in_stock_only` 校验；对未改动绑定的历史空间仍保留宽松校验，避免编辑其他字段时误伤既有数据。
+  - 已补齐空间创建、子空间创建、空间 rebinding 的后端回归测试。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
+- 对应修复提交: `a79d90c fix: harden space product binding boundaries`
