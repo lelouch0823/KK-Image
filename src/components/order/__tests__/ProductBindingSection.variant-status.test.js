@@ -38,6 +38,52 @@ describe('ProductBindingSection variant status and dimensions', () => {
     vi.clearAllMocks();
   });
 
+  it('hydrates an existing bound product without auto-emitting a reselection', async () => {
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Existing Tee',
+      variants: [
+        {
+          id: 'v1',
+          sku: 'TEE-S',
+          status: 'active',
+          stock_quantity: 8,
+          alert_threshold: 3,
+          options_values: { color: 'Black', size: 'S' },
+        },
+        {
+          id: 'v2',
+          sku: 'TEE-M',
+          status: 'active',
+          available_quantity: 2,
+          stock_quantity: 9,
+          alert_threshold: 3,
+          options_values: { color: 'Black', size: 'M' },
+        },
+      ],
+    });
+
+    const wrapper = mount(ProductBindingSection, {
+      props: {
+        boundProduct: {
+          id: 'p1',
+          name: 'Existing Tee',
+          sku: 'TEE-M',
+          variantId: 'v2',
+          mainImage: null,
+        },
+        mode: 'admin',
+      },
+      global: { stubs: { ProductSelect: pickStub, AppImage: true } },
+    });
+
+    await vi.waitFor(() => expect(mocks.loadProduct).toHaveBeenCalledWith('p1'));
+
+    expect(wrapper.find('[data-testid="dimension-size"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="inventory-summary"]').text()).toContain('2');
+    expect(wrapper.emitted('select')).toBeFalsy();
+  });
+
   it('renders 3D selectors and disables archived options', async () => {
     mocks.loadProduct.mockResolvedValueOnce({
       id: 'p1',

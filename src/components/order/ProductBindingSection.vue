@@ -525,6 +525,13 @@ const isVariantSelectableByMode = (variant) => {
   return true;
 };
 
+const clearSelectionState = () => {
+  selectedVariantId.value = null;
+  for (const dimension of Object.keys(selectedOptions)) {
+    selectedOptions[dimension] = '';
+  }
+};
+
 const matchBySelectedOptions = (variant) => {
   return dimensionKeys.value.every((dimension) => {
     const selected = selectedOptions[dimension];
@@ -532,18 +539,23 @@ const matchBySelectedOptions = (variant) => {
   });
 };
 
-const emitVariantSelection = (variant) => {
-  if (!variant || !variant.selectable) return;
+const applyVariantSelection = (variant, { emitSelection = true } = {}) => {
+  if (!variant) return;
   selectedVariantId.value = variant.id;
   for (const dimension of dimensionKeys.value) {
     selectedOptions[dimension] = variant.optionsMap[dimension] || '';
   }
+  if (!emitSelection || !variant.selectable) return;
   const rawVariant = variants.value.find((v) => v.id === variant.id) || variant;
   emit('select', {
     ...fullProductData.value,
     selectedVariant: rawVariant,
     mainImage: buildMainImagePath(rawVariant),
   });
+};
+
+const emitVariantSelection = (variant) => {
+  applyVariantSelection(variant, { emitSelection: true });
 };
 
 const syncSelection = () => {
@@ -554,6 +566,22 @@ const syncSelection = () => {
     return;
   }
   emitVariantSelection(picked);
+};
+
+const findPreferredVariant = (boundProduct) => {
+  const preferredVariantId = String(boundProduct?.variantId || '').trim();
+  if (preferredVariantId) {
+    const matchedById = normalizedVariants.value.find((variant) => variant.id === preferredVariantId);
+    if (matchedById) return matchedById;
+  }
+
+  const preferredSku = String(boundProduct?.sku || '').trim();
+  if (preferredSku) {
+    const matchedBySku = normalizedVariants.value.find((variant) => String(variant?.sku || '').trim() === preferredSku);
+    if (matchedBySku) return matchedBySku;
+  }
+
+  return normalizedVariants.value.find((variant) => variant.selectable) || normalizedVariants.value[0] || null;
 };
 
 const getDimensionOptions = (dimension) => {
@@ -592,18 +620,61 @@ const selectDimensionOption = (dimension, value) => {
 const initSelectionFromVariants = () => {
   const firstSelectable = normalizedVariants.value.find((variant) => variant.selectable);
   if (!firstSelectable) {
-    selectedVariantId.value = null;
-    for (const dimension of Object.keys(selectedOptions)) selectedOptions[dimension] = '';
+    clearSelectionState();
     return;
   }
   emitVariantSelection(firstSelectable);
+};
+
+const hydrateBoundProduct = async (boundProduct) => {
+  const productId = boundProduct?.id || boundProduct?.productId;
+  if (!productId) return;
+
+  const requestId = ++productDetailRequestId;
+  isLoadingDetails.value = true;
+  variants.value = [];
+  clearSelectionState();
+  fullProductData.value = null;
+
+  try {
+    const fullProduct = isSalesMode.value
+      ? await loadSalesProduct(props.salesToken, productId)
+      : await loadProduct(productId);
+    if (requestId !== productDetailRequestId) return;
+
+    fullProductData.value = fullProduct;
+    const nextVariants = Array.isArray(fullProduct?.variants) ? fullProduct.variants : [];
+    variants.value = nextVariants;
+
+    if (nextVariants.length === 0) {
+      clearSelectionState();
+      return;
+    }
+
+    const preferredVariant = findPreferredVariant(boundProduct);
+    if (preferredVariant) {
+      applyVariantSelection(preferredVariant, { emitSelection: false });
+      return;
+    }
+
+    clearSelectionState();
+  } catch {
+    if (requestId !== productDetailRequestId) return;
+    variants.value = [];
+    clearSelectionState();
+    fullProductData.value = null;
+  } finally {
+    if (requestId === productDetailRequestId) {
+      isLoadingDetails.value = false;
+    }
+  }
 };
 
 const handleProductSelect = async (product) => {
   const requestId = ++productDetailRequestId;
   isLoadingDetails.value = true;
   variants.value = [];
-  selectedVariantId.value = null;
+  clearSelectionState();
   fullProductData.value = null;
 
   try {
@@ -648,10 +719,23 @@ watch(
     if (!newVal) {
       productDetailRequestId += 1;
       variants.value = [];
-      selectedVariantId.value = null;
+      clearSelectionState();
       fullProductData.value = null;
-      for (const dimension of Object.keys(selectedOptions)) selectedOptions[dimension] = '';
+      return;
     }
-  }
+    const boundProductId = newVal.id || newVal.productId;
+    if (!boundProductId) return;
+
+    if (fullProductData.value?.id === boundProductId && variants.value.length > 0) {
+      const preferredVariant = findPreferredVariant(newVal);
+      if (preferredVariant) {
+        applyVariantSelection(preferredVariant, { emitSelection: false });
+      }
+      return;
+    }
+
+    void hydrateBoundProduct(newVal);
+  },
+  { immediate: true }
 );
 </script>
