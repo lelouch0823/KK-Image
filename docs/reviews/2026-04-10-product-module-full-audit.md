@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 97 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 98 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -132,6 +132,7 @@
   - `746e756`: 商品详情关联空间复制链接统一走共享剪贴板 helper
   - `34be40a`: 空间商品编辑器媒体操作失败时不再假成功
   - `6b0f0e7`: 空间商品编辑器媒体回刷不再覆盖未保存草稿
+  - `f80e5c5`: 空间详情切换到加载失败的新空间时清理旧详情
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -164,6 +165,7 @@
   - 2026-04-11 运行 3 个回归测试文件，共 11 个测试，全部通过。
   - 2026-04-11 运行 5 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-11 运行 5 个回归测试文件，共 23 个测试，全部通过。
+  - 2026-04-11 运行 7 个回归测试文件，共 28 个测试，全部通过。
   - 2026-04-10 运行 5 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 14 个测试，全部通过。
@@ -1898,3 +1900,25 @@
   - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
   - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
 - 对应修复提交: `6b0f0e7 fix: preserve space editor drafts during media refresh`
+
+### 2026-04-10 轮次 183
+
+- 继续复查空间详情弹窗失败态切换，新增 1 个中风险问题:
+  - `SpaceDetailModal.loadData()` 在切到新的 `space.id` 后，如果 `loadSpace()` 返回 `null`，不会清空上一条 `spaceData`。结果是新空间加载失败时，弹窗仍会展示旧空间标题、公开状态和设置，形成明显错上下文。
+- 下一步让详情弹窗在切到不同空间时先清旧状态，并在当前请求失败时显式写回 `null`。
+
+### 2026-04-10 轮次 184
+
+- 已完成轮次 183 新增问题修复:
+  - `SpaceDetailModal` 切换到不同 `space.id` 时会先清掉旧 `spaceData`，新空间失败态不再继续展示上一条空间
+  - 当前详情请求返回 `null` 时会显式收口为 `spaceData=null`，避免旧标题、旧文件统计和旧分享设置残留
+  - 已补齐“切到加载失败的新空间时清理旧详情”回归，并联跑空间详情/子空间/编辑器/创建/主列表/后端管理路由回归
+- 增量回归:
+  - `src/components/__tests__/SpaceDetailModal.lifecycle.test.js`
+  - `src/components/__tests__/SubspaceList.lifecycle.test.js`
+  - `src/components/__tests__/SpaceProductEditor.contract.test.js`
+  - `src/views/__tests__/SpaceManager.permission-alignment.test.js`
+  - `src/components/__tests__/SpaceCreateModal.unbind.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
+- 对应修复提交: `f80e5c5 fix: clear stale space detail after load failures`
