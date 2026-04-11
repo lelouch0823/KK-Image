@@ -79,7 +79,7 @@ Page({
   },
 
   previewByUrl(url: string) {
-    if (!this.data.space || !url) {
+    if (!this.data.space) {
       return;
     }
 
@@ -88,7 +88,14 @@ Page({
       return;
     }
 
-    wx.previewImage({ current: url, urls });
+    const currentIndex = Number(this.data.currentIndex || 0);
+    const fallbackUrl = urls[currentIndex] || urls[0] || '';
+    const current = String(url || fallbackUrl);
+    if (!current) {
+      return;
+    }
+
+    wx.previewImage({ current, urls });
   },
 
   handlePreview(e: WechatMiniprogram.CustomEvent<{ url?: string }>) {
