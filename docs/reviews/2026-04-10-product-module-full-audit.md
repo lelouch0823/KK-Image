@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 64 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 65 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -110,6 +110,7 @@
   - `844b179`: 销售订单状态机只认当前动作的最新状态迁移结果
   - `b5ce2aa`: 货品总览禁止为非缺货项静默生成采购单
   - `470323b`: 商品导入阻断“同名多行但未提供 SPU”的歧义分组
+  - `fe6c80f`: 商品空间公开页切换空间时重置媒体索引与 PDF 预览状态
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -146,6 +147,7 @@
   - 2026-04-10 运行 5 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 1 个回归测试文件，共 7 个测试，全部通过。
   - 2026-04-10 运行 1 个回归测试文件，共 16 个测试，全部通过。
+  - 2026-04-10 运行 1 个回归测试文件，共 1 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -240,6 +242,7 @@
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 - 商品导入弹窗允许“同名多行但未提供 SPU”的文件通过映射校验，而后续分组逻辑只会按 `SPU` 合并、对空 `SPU` 行按行拆分。结果是同一商品的多规格行会被静默拆成多个单规格商品，导入成功提示与最终商品结构分叉，属于高概率数据污染入口。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L536) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L778)
+- 商品公开空间页在同一 `Space.vue` 实例内切到另一条商品空间时，会复用同一个 `SpaceProductDetail` 组件，但该组件只在初始化时计算媒体索引。结果是旧空间选中的图片序号和 PDF 预览态会泄漏到新空间，公开访问链路会直接展示错媒体或保留上一个空间的内联 PDF 预览状态。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L39) [src/components/space/SpaceProductDetail.vue](/home/bjw/Code/KK-Image/src/components/space/SpaceProductDetail.vue#L380)
 
 ### Low
 
@@ -1250,3 +1253,18 @@
 - 增量回归:
   - `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
 - 对应修复提交: `470323b fix: block ambiguous product import grouping`
+
+### 2026-04-10 轮次 117
+
+- 继续复查商品空间公开页链路，新增 1 个中风险问题:
+  - `SpaceProductDetail` 只在首次挂载时初始化媒体索引和 PDF 预览态，`Space.vue` 复用实例切空间后会继续沿用旧空间的媒体上下文
+- 下一步给商品空间详情组件补 prop 级状态重置，确保切空间时重新对齐封面和预览状态。
+
+### 2026-04-10 轮次 118
+
+- 已完成轮次 117 新增问题修复:
+  - `SpaceProductDetail` 现在会在空间上下文切换时重置媒体索引，并重新对齐当前空间的封面文件
+  - 切换到另一条商品空间时会同步关闭旧空间残留的 PDF 内联预览状态
+- 增量回归:
+  - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
+- 对应修复提交: `fe6c80f fix: reset space product detail state on reuse`
