@@ -2892,3 +2892,14 @@
   - `functions/services/__tests__/PurchaseOrderService.procurement-status.test.js`
   - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
 - 对应修复提交: `b14cc72 fix: roll back failed purchase-order completion`
+
+### 2026-04-12 轮次 259
+
+- 继续深审采购单状态级联链路，新增 1 个高风险问题:
+  - [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 修复前在 `draft/ordered -> ordered/shipping` 级联订单采购状态时，先写采购单 header，再通过 `executeBatchChunks()` 分块推进关联订单。只要第二个 chunk 以后抛错，就会留下“采购单状态已推进、前几批订单 procurement_status 已写入、后续批次失败”的半提交状态，属于明显事务补偿缺失。
+- 已完成本轮修复:
+  - 采购单状态级联现在按 chunk 跟踪已成功写入的订单；任一 chunk 失败时，会先回滚前面已成功推进的订单 `procurement_status`，再回滚采购单 header 状态，避免采购单与订单采购进度分叉。
+  - 已补齐回归测试，锁定“大批量订单采购状态级联中途失败时，必须同时回滚订单采购状态与采购单 header”的行为。
+- 增量回归:
+  - `functions/services/__tests__/PurchaseOrderService.procurement-status.test.js`
+- 对应修复提交: `4d4ba5f fix: roll back failed procurement cascades`
