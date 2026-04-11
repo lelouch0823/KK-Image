@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 79 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 80 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -1529,3 +1529,25 @@
   - `src/views/sales/__tests__/SalesSpaceDetailView.contract.test.js`
   - `src/views/sales/__tests__/SalesSpacesView.lifecycle.test.js`
 - 对应修复提交: `27df3ef fix: complete sales collection space subspace flow`
+
+### 2026-04-10 轮次 147
+
+- 继续复查销售集合空间子空间卡片封面口径，新增 1 个中风险问题:
+  - 无论是 Web 的 `normalizeSalesSpace()` 还是小程序销售空间服务，对子空间卡片封面都只认显式 `cover_*` 字段，不会从子空间 `templateData.images` 回退。结果是商品型子空间只要没单独设置封面文件，在集合空间里就会一直显示空白占位
+- 下一步把子空间封面归一化改成“显式封面优先，模板图片/商品图片兜底”，统一 Web 与小程序消费口径。
+
+### 2026-04-10 轮次 148
+
+- 已完成轮次 147 新增问题修复:
+  - Web 销售空间归一化现在会在子空间缺少显式封面时，从 `templateData.images` 或商品图片中补齐子空间卡片封面
+  - 小程序销售空间服务对集合子空间也补上了同样的封面回退规则，商品型子空间在合集模板中不再空白
+- 增量回归:
+  - `src/utils/__tests__/sales-space.test.js`
+  - `src/components/space/__tests__/SpaceCollection.contract.test.js`
+  - `src/views/sales/__tests__/SalesSpaceDetailView.contract.test.js`
+  - `src/views/sales/__tests__/SalesSpacesView.lifecycle.test.js`
+  - `functions/lib/hono/routes/sales/__tests__/spaces-routes.test.js`
+  - `minisales/tests/unit/services/spaces.test.ts`
+  - `minisales/tests/unit/pages/spaces-detail-page.test.ts`
+  - `minisales/tests/unit/pages/spaces-controller.test.ts`
+- 对应修复提交: `6d35221 fix: hydrate sales subspace covers from template data`
