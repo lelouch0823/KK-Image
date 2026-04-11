@@ -66,7 +66,12 @@ describe('DemandService', () => {
     const stmt = {
       all: vi.fn(async () => ({
         results: [
-          { variant_id: 'variant-1', total_demand: 9, order_count: 3, order_ids: 'o-1,o-2,o-3' },
+          {
+            variant_id: 'variant-1',
+            total_demand: 9,
+            order_count: 1,
+            order_ids: 'o-1',
+          },
         ],
       })),
     };
@@ -77,10 +82,12 @@ describe('DemandService', () => {
     const sql = db.prepare.mock.calls[0][0];
 
     expect(sql).toContain("o.status IN ('confirmed', 'production', 'shipping', 'arrived')");
+    expect(sql).toContain("CASE WHEN o.status = 'confirmed' THEN o.id END");
     expect(rows[0]).toMatchObject({
       variant_id: 'variant-1',
       total_demand: 9,
-      order_count: 3,
+      order_count: 1,
+      order_ids: ['o-1'],
     });
   });
 

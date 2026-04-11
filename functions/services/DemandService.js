@@ -164,8 +164,8 @@ export class DemandService {
       SELECT
         ol.variant_id AS variant_id,
         COALESCE(SUM(MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)), 0) AS total_demand,
-        COUNT(DISTINCT o.id) AS order_count,
-        GROUP_CONCAT(DISTINCT o.id) AS order_ids
+        COUNT(DISTINCT CASE WHEN o.status = 'confirmed' THEN o.id END) AS order_count,
+        GROUP_CONCAT(DISTINCT CASE WHEN o.status = 'confirmed' THEN o.id END) AS order_ids
       FROM order_lines ol
       JOIN orders o ON o.id = ol.order_id
       WHERE o.status IN ('confirmed', 'production', 'shipping', 'arrived')
