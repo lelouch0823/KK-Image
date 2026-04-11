@@ -105,6 +105,14 @@ function hasAllocationImpact(body = {}) {
   return allocationFields.some((field) => Object.prototype.hasOwnProperty.call(body, field));
 }
 
+function buildCreatedPurchaseOrderShell(po = {}, items = []) {
+  return {
+    ...po,
+    items: Array.isArray(items) ? items.map((item) => ({ ...item })) : [],
+    receipts: [],
+  };
+}
+
 async function validateExistingItemQuantityUpdate(db, item, nextQuantity) {
   if (!item?.variant_id || nextQuantity === undefined || nextQuantity === null) return;
 
@@ -397,7 +405,7 @@ app.post('/', async (c) => {
   });
 
   // 返回完整的采购单
-  const fullPo = (await repo.findById(po.id)) || po;
+  const fullPo = (await repo.findById(po.id)) || buildCreatedPurchaseOrderShell(po, body.items);
   scheduleAuditEvent(c, {
     domain: 'purchase-orders',
     action: 'purchase_order.create',

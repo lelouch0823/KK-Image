@@ -292,6 +292,16 @@ describe('PurchaseOrderService variant dimension', () => {
       id: 'po-1',
       po_no: 'PO-1',
       status: 'draft',
+      items: [
+        {
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          pre_order_id: 'o-1',
+          quantity: 2,
+          unit_cost: 11,
+        },
+      ],
+      receipts: [],
     });
   });
 
@@ -578,5 +588,44 @@ describe('PurchaseOrderService variant dimension', () => {
 
     expect(service.repo.create).not.toHaveBeenCalled();
     expect(service.repo.addItems).not.toHaveBeenCalled();
+  });
+
+  it('createManual falls back to a shell with submitted items when the read-after-write lookup misses', async () => {
+    const db = {
+      prepare: vi.fn((sql) => ({
+        bind: vi.fn(() => ({
+          all: vi.fn(async () => ({
+            results: sql.includes('FROM product_variants')
+              ? [{
+                  id: 'var-1',
+                  product_id: 'prod-1',
+                  status: 'active',
+                  moq: 1,
+                  pack_size: 1,
+                  order_step: 1,
+                }]
+              : [],
+          })),
+        })),
+      })),
+    };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      create: vi.fn(async () => ({ id: 'po-1', po_no: 'PO-1', status: 'draft' })),
+      addItems: vi.fn(async () => []),
+      findById: vi.fn(async () => null),
+      findActiveBindingsByPreOrderIds: vi.fn(async () => []),
+    };
+
+    await expect(service.createManual(
+      { remark: 'manual shell' },
+      [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 11 }]
+    )).resolves.toEqual({
+      id: 'po-1',
+      po_no: 'PO-1',
+      status: 'draft',
+      items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 11 }],
+      receipts: [],
+    });
   });
 });

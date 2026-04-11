@@ -69,6 +69,14 @@ function requireCompletedPurchaseOrderForAllocation(po) {
   }
 }
 
+function buildPurchaseOrderShell(po = {}, items = []) {
+  return {
+    ...po,
+    items: Array.isArray(items) ? items.map((item) => ({ ...item })) : [],
+    receipts: [],
+  };
+}
+
 export class PurchaseOrderService {
   /**
    * @param {D1Database} db
@@ -454,7 +462,7 @@ export class PurchaseOrderService {
       throw error;
     }
 
-    return (await this.repo.findById(po.id)) || po;
+    return (await this.repo.findById(po.id)) || buildPurchaseOrderShell(po, items);
   }
 
   /**
@@ -541,7 +549,7 @@ export class PurchaseOrderService {
     }
 
     // 4. 返回完整的采购单
-    return (await this.repo.findById(po.id)) || po;
+    return (await this.repo.findById(po.id)) || buildPurchaseOrderShell(po, items);
   }
 
   // ─── 内部工具 ──────────────────────────────────────────

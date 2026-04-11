@@ -1442,6 +1442,8 @@ describe('manage purchase-orders routes', () => {
       id: 'po-1',
       po_no: 'PO-1',
       status: 'draft',
+      items: [],
+      receipts: [],
     }));
     expect(mocks.publish).toHaveBeenCalledWith([
       expect.objectContaining({
