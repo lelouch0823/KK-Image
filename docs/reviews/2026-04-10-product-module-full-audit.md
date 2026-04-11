@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 66 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 67 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -112,6 +112,7 @@
   - `470323b`: 商品导入阻断“同名多行但未提供 SPU”的歧义分组
   - `fe6c80f`: 商品空间公开页切换空间时重置媒体索引与 PDF 预览状态
   - `bf2faf0`: 商品空间公开页只认当前 token 的最新空间加载结果
+  - `b40d979`: 密码保护商品空间访问补齐浏览量与访问日志记录
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -150,6 +151,7 @@
   - 2026-04-10 运行 1 个回归测试文件，共 16 个测试，全部通过。
   - 2026-04-10 运行 1 个回归测试文件，共 1 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 2 个测试，全部通过。
+  - 2026-04-10 运行 3 个回归测试文件，共 3 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -246,6 +248,7 @@
 - 商品导入弹窗允许“同名多行但未提供 SPU”的文件通过映射校验，而后续分组逻辑只会按 `SPU` 合并、对空 `SPU` 行按行拆分。结果是同一商品的多规格行会被静默拆成多个单规格商品，导入成功提示与最终商品结构分叉，属于高概率数据污染入口。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L536) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L778)
 - 商品公开空间页在同一 `Space.vue` 实例内切到另一条商品空间时，会复用同一个 `SpaceProductDetail` 组件，但该组件只在初始化时计算媒体索引。结果是旧空间选中的图片序号和 PDF 预览态会泄漏到新空间，公开访问链路会直接展示错媒体或保留上一个空间的内联 PDF 预览状态。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L39) [src/components/space/SpaceProductDetail.vue](/home/bjw/Code/KK-Image/src/components/space/SpaceProductDetail.vue#L380)
 - 商品公开空间页父组件 `Space.vue` 在路由 token 切换时没有隔离 `loadSpace()` 请求先后。旧 token 的慢请求在后返回后仍会覆盖当前 `space/error/requiresPassword/loading`，导致公开空间页直接串到上一条商品空间的数据或错误状态。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L97)
+- 密码保护的公开空间走 `POST /api/space/:token` 成功访问后，没有像 GET 一样写入 `space_access_logs` 或递增 `view_count`。结果是商品空间的访问统计在“无密码访问”和“密码访问”两条链路上长期分叉，浏览量与访问日志都少记一段真实访问。[functions/api/space/[token].js](/home/bjw/Code/KK-Image/functions/api/space/[token].js#L185)
 
 ### Low
 
@@ -1287,3 +1290,20 @@
   - `src/views/__tests__/Space.lifecycle.test.js`
   - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
 - 对应修复提交: `bf2faf0 fix: isolate public space loads`
+
+### 2026-04-10 轮次 121
+
+- 继续复查公开商品空间后端访问闭环，新增 1 个中风险问题:
+  - 密码保护空间在 `POST /api/space/:token` 验证成功后没有记录访问日志，也不会递增浏览量，导致空间访问统计口径缺口
+- 下一步把 GET/POST 的访问计数收敛到同一条记录逻辑，补齐密码空间访问统计。
+
+### 2026-04-10 轮次 122
+
+- 已完成轮次 121 新增问题修复:
+  - 公开空间 GET/POST 现在共用同一条访问记录逻辑，密码空间访问成功后也会写入 `space_access_logs` 并递增 `view_count`
+  - 密码空间返回的 `viewCount` 与数据库递增后的浏览量保持一致，不再比真实访问少 1
+- 增量回归:
+  - `functions/api/space/__tests__/public-space-access.test.js`
+  - `src/views/__tests__/Space.lifecycle.test.js`
+  - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
+- 对应修复提交: `b40d979 fix: track password-protected space access`
