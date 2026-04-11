@@ -2479,3 +2479,32 @@
   - `src/components/purchase-order/__tests__/PickerModals.design-system.test.js`
   - `src/utils/__tests__/purchase-order-variant-selection.test.js`
 - 对应修复提交: `d8dfc9f fix: close purchase-order creation gaps`
+
+### 2026-04-11 轮次 231
+
+- 继续复查采购单订单选择器跨搜索多批次勾选链路，新增 1 个中风险问题:
+  - [src/components/purchase-order/OrderPickerModal.vue](/home/bjw/Code/KK-Image/src/components/purchase-order/OrderPickerModal.vue) 的“全选当前结果”逻辑只比较 `selected.length` 和 `filteredOrders.length`，并在选中时直接用 `filteredOrders` 覆盖整个 `selected`。结果是在用户先选了一批订单、再切换搜索词选择另一批订单时，只要“已选总数”恰好等于“当前过滤结果数”，全选会误判成“当前结果已全选”并直接清空；即使不触发清空，也会把当前搜索之外的已选订单静默覆盖掉，形成跨搜索选中集丢失。
+- 已完成本轮修复:
+  - `OrderPickerModal` 现在按“当前过滤结果中已选数量”计算全选/半选状态，不再用全局已选数误判当前搜索页状态。
+  - 全选当前结果时会与既有选中集做并集，取消全选时只移除当前过滤结果里的订单，不再误伤其它搜索批次已选订单。
+  - 已补齐“缩小搜索范围后全选仍保留先前已选订单”的回归测试。
+- 增量回归:
+  - `src/components/purchase-order/__tests__/OrderPickerModal.detail-workflow.test.js`
+- 对应修复提交: `ad7c26f fix: preserve purchase-order selection sessions`
+
+### 2026-04-11 轮次 232
+
+- 继续复查采购建议弹窗的会话边界，新增 1 个中风险问题:
+  - [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue) 打开 `showSuggestions` 时只刷新建议数据，不重置 `selectedSuggestions`。结果是用户上一轮在建议弹窗里勾选过若干补货建议后，即使关闭弹窗、等待建议集变化再重开，旧勾选仍会残留在新会话里；如果直接点“添加选中”，页面会继续拿上一轮的旧对象建单，形成典型的跨会话脏状态。
+- 已完成本轮修复:
+  - 建议弹窗现在在打开和关闭时都会重置 `selectedSuggestions`，确保每次进入都是一轮干净会话，不再把旧勾选带入新建议列表。
+  - 已补齐“重开建议弹窗时清空旧勾选”的回归测试，并回归采购单详情壳、组合式和双选择器测试，确认本轮改动未带出新的采购流回归。
+- 增量回归:
+  - `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
+  - `src/views/__tests__/PurchaseOrders.design-system-migration.test.js`
+  - `src/composables/__tests__/usePurchaseOrders.test.js`
+  - `src/components/purchase-order/__tests__/OrderPickerModal.detail-workflow.test.js`
+  - `src/components/purchase-order/__tests__/ProductPickerModal.lifecycle.test.js`
+  - `src/components/purchase-order/__tests__/PickerModals.design-system.test.js`
+  - `src/utils/__tests__/purchase-order-variant-selection.test.js`
+- 对应修复提交: `ad7c26f fix: preserve purchase-order selection sessions`
