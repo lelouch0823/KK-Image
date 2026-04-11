@@ -76,6 +76,16 @@ export async function validatePurchaseOrderPreOrderBinding(db, items = [], { rep
   const linkedItems = items.filter((item) => item.pre_order_id);
   if (linkedItems.length === 0) return;
 
+  const seenOrderIds = new Set();
+  for (const item of linkedItems) {
+    const orderId = String(item.pre_order_id || '').trim();
+    if (!orderId) continue;
+    if (seenOrderIds.has(orderId)) {
+      throw new BadRequestError('同一个 pre_order_id 不能重复绑定到多条采购明细');
+    }
+    seenOrderIds.add(orderId);
+  }
+
   const poRepo = repo || new PurchaseOrderRepository(db);
   const orderIds = [...new Set(linkedItems.map((item) => item.pre_order_id))];
   const orderMap = new Map();
