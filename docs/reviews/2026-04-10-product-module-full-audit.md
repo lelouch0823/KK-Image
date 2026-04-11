@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 78 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 79 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -1510,3 +1510,22 @@
   - `src/views/sales/__tests__/SalesSpacesView.lifecycle.test.js`
   - `src/views/sales/__tests__/SalesSpaceDetailView.contract.test.js`
 - 对应修复提交: `8b0ccd7 fix: align sales space web consumption`
+
+### 2026-04-10 轮次 145
+
+- 继续复查销售空间详情集合模板，新增 1 个高风险问题:
+  - 销售空间详情接口没有返回销售员可见的 `subspaces`，而 `SpaceCollection.vue` 又固定把子空间跳到公开 `/space/:shareToken`。结果是销售端集合空间详情要么直接空列表，要么继续掉回公开门禁链路，子空间访问不闭环
+- 下一步把销售空间详情补齐“销售员可见子空间”查询，并让集合模板支持销售端内部子空间跳转。
+
+### 2026-04-10 轮次 146
+
+- 已完成轮次 145 新增问题修复:
+  - 销售空间详情接口现在会补齐当前销售员可见的子空间列表，集合空间在销售端不再无子项可看
+  - `SpaceCollection.vue` 现在支持自定义子空间跳转地址，同时兼容 `coverImage/coverUrl` 两种封面口径
+  - 销售端空间详情页现在会把子空间继续路由到 `/sales/:token/spaces/:id`，集合型销售空间形成完整闭环
+- 增量回归:
+  - `functions/lib/hono/routes/sales/__tests__/spaces-routes.test.js`
+  - `src/components/space/__tests__/SpaceCollection.contract.test.js`
+  - `src/views/sales/__tests__/SalesSpaceDetailView.contract.test.js`
+  - `src/views/sales/__tests__/SalesSpacesView.lifecycle.test.js`
+- 对应修复提交: `27df3ef fix: complete sales collection space subspace flow`
