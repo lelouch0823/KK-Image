@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 81 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 82 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -1573,3 +1573,20 @@
   - `minisales/tests/unit/pages/spaces-detail-page.test.ts`
   - `minisales/tests/unit/pages/spaces-controller.test.ts`
 - 对应修复提交: `1239940 fix: align sales subspace file counts`
+
+### 2026-04-10 轮次 151
+
+- 继续复查商品空间详情媒体合同，新增 1 个中风险问题:
+  - `SpaceProductDetail.vue` 会把 `templateData.images` 一律拼成 ``/file/${img}``，并在服务层已经把模板图片合并进 `space.files` 时再次追加同图。结果是已解析的 `/file/...` 或完整 CDN URL 会被拼坏，商品空间首图/缩略图还可能重复展示同一张图
+- 下一步把商品空间详情媒体归一化收敛到组件内统一 URL 解析，并按 URL 去重合并模板图片与文件列表。
+
+### 2026-04-10 轮次 152
+
+- 已完成轮次 151 新增问题修复:
+  - `SpaceProductDetail.vue` 现在会保留已解析的 `/file/...`、完整 `https://...`、`data:`、`blob:` 图片地址，不再重复拼接 `/file/`
+  - 商品空间详情在模板图片已被服务层合并进 `space.files` 时，会按 URL 去重，不再重复展示同一张图
+  - 组件同时补上了缺失的 `isDesktop` 响应式状态，移除了渲染期未定义告警
+- 增量回归:
+  - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
+  - `src/views/__tests__/Space.lifecycle.test.js`
+- 对应修复提交: `84b350f fix: normalize product space media urls`
