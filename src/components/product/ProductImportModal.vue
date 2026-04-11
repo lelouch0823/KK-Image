@@ -716,6 +716,7 @@ const handleUploadImagesAndNext = async () => {
         // We do this one by one or batched.
         const matches = Array.from(imageMatches.value.entries());
         let uploadedCount = 0;
+        let failedCount = 0;
         
         for (const [key, file] of matches) {
             const formData = new FormData();
@@ -741,6 +742,8 @@ const handleUploadImagesAndNext = async () => {
                      delete item.image_url; // Remove the temporary filename
                 }
                 uploadedCount++;
+            } else {
+                failedCount++;
             }
         }
 
@@ -752,7 +755,18 @@ const handleUploadImagesAndNext = async () => {
             });
             return;
         }
-        addToast({ message: t('product.import.upload_success', { count: uploadedCount }), type: 'success' });
+        if (failedCount > 0) {
+            addToast({
+                message: t(
+                    'product.import.upload_partial',
+                    { success: uploadedCount, failed: failedCount },
+                    `已上传 ${uploadedCount} 张图片，${failedCount} 张失败`
+                ),
+                type: 'warning'
+            });
+        } else {
+            addToast({ message: t('product.import.upload_success', { count: uploadedCount }), type: 'success' });
+        }
         currentStep.value = 4; // To Preview
         
     } catch (e) {

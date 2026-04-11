@@ -249,6 +249,52 @@ describe('ProductImportModal Variant-First Payload', () => {
         );
     });
 
+    it('warns when only part of the matched images upload successfully', async () => {
+        mocks.authFetch
+            .mockResolvedValueOnce({
+                json: async () => ({ success: true, result: { id: 'img-ok' } }),
+            })
+            .mockResolvedValueOnce({
+                json: async () => ({ success: false, error: 'upload failed' }),
+            });
+
+        const wrapper = mount(ProductImportModal, {
+            global: {
+                stubs: {
+                    Modal: { template: '<div><slot></slot><slot name="footer"></slot></div>' },
+                    AppIcon: true,
+                    ImportUploadStep: true,
+                    ImportMappingStep: true,
+                    ImportImageMatchStep: true,
+                    ImportPreviewStep: true
+                }
+            },
+            props: {
+                modelValue: true
+            }
+        });
+
+        wrapper.vm.currentStep = 5;
+        wrapper.vm.parsedItems = [
+            { name: 'T恤', spu: 'SPU-1001', sku: 'SKU-RED', image_url: 'a.jpg' },
+            { name: 'T恤', spu: 'SPU-1002', sku: 'SKU-BLUE', image_url: 'b.jpg' }
+        ];
+        wrapper.vm.imageMatches = new Map([
+            ['spu:SPU-1001', new File(['a'], 'a.jpg', { type: 'image/jpeg' })],
+            ['spu:SPU-1002', new File(['b'], 'b.jpg', { type: 'image/jpeg' })]
+        ]);
+
+        await wrapper.vm.handleUploadImagesAndNext();
+
+        expect(wrapper.vm.currentStep).toBe(4);
+        expect(mocks.addToast).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'warning' })
+        );
+        expect(mocks.addToast).not.toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'success' })
+        );
+    });
+
     it('builds grouped product payload with currency and derived dimensions', async () => {
         const wrapper = mount(ProductImportModal, {
             global: {
