@@ -32,6 +32,7 @@ function resolveSpaceAssetUrl(value) {
  * 获取空间数据 (GET/POST 共享逻辑)
  */
 async function getSpaceData(space, env) {
+  const templateData = projectSpaceTemplateData(space);
   // 并行获取文件列表和子空间
   const [filesResult, subspacesResult] = await Promise.all([
     env.DB.prepare(
@@ -44,7 +45,7 @@ async function getSpaceData(space, env) {
       .bind(space.id)
       .all(),
     env.DB.prepare(
-      `SELECT s.id, s.name, s.template, s.share_token, s.description, s.template_data, s.product_id, s.variant_id,
+      `SELECT s.id, s.name, s.template, s.share_token, s.description, s.template_data, s.product_id, s.variant_id, s.expires_at,
               (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
               f.storage_key as cover_storage_key,
               p.spu as p_sku, p.brand as p_brand, p.series as p_series,
@@ -71,14 +72,26 @@ async function getSpaceData(space, env) {
   ]);
 
   const files = filesResult.results;
-  const subspaces = subspacesResult.results;
+  const subspaces = subspacesResult.results.filter(
+    (subspace) => !subspace.expires_at || subspace.expires_at >= Date.now()
+  );
 
   // 按 section 分组文件
   const groupedFiles = {};
+  const seenFileUrls = new Set();
+  const appendFile = (targetSection, file, { prepend = false } = {}) => {
+    if (!file?.url || seenFileUrls.has(file.url)) return;
+    seenFileUrls.add(file.url);
+    if (!groupedFiles[targetSection]) groupedFiles[targetSection] = [];
+    if (prepend) {
+      groupedFiles[targetSection].unshift(file);
+    } else {
+      groupedFiles[targetSection].push(file);
+    }
+  };
   files.forEach((f) => {
     const section = f.section || 'default';
-    if (!groupedFiles[section]) groupedFiles[section] = [];
-    groupedFiles[section].push({
+    appendFile(section, {
       id: f.id,
       name: f.original_name || f.name,
       size: f.size,
@@ -89,17 +102,15 @@ async function getSpaceData(space, env) {
     });
   });
 
-  const allFiles = Object.values(groupedFiles).flat();
+  let allFiles = Object.values(groupedFiles).flat();
 
-  // 注入商品自带的图片到文件列表中 (置于首部)
-  if (space.p_images) {
-    const pImages = parseJsonArray(space.p_images, []);
-    if (pImages.length > 0) {
-      const productFiles = pImages
-        .map((imgUrl, index) => {
-          const url = resolveSpaceAssetUrl(imgUrl);
-          if (!url) return null;
-          return {
+  // 注入商品/变体模板图片到文件列表中 (置于首部)
+  if (Array.isArray(templateData.images) && templateData.images.length > 0) {
+    const productFiles = templateData.images
+      .map((imgUrl, index) => {
+        const url = resolveSpaceAssetUrl(imgUrl);
+        if (!url) return null;
+        return {
         id: `product-img-${index}`,
         name: `Product Image ${index + 1}`,
         size: 0,
@@ -108,16 +119,11 @@ async function getSpaceData(space, env) {
         url,
         thumbnailUrl: url,
       };
-        })
-        .filter(Boolean);
+      })
+      .filter(Boolean);
 
-      // prepend to allFiles
-      allFiles.unshift(...productFiles);
-
-      // Also add to 'default' section grouping if needed for specific templates
-      if (!groupedFiles['default']) groupedFiles['default'] = [];
-      groupedFiles['default'].unshift(...productFiles);
-    }
+    productFiles.slice().reverse().forEach((file) => appendFile('default', file, { prepend: true }));
+    allFiles = Object.values(groupedFiles).flat();
   }
 
   // 封面图片 - 优先使用显式设置的封面，否则回退到第一张图片
@@ -135,7 +141,7 @@ async function getSpaceData(space, env) {
     name: space.name,
     description: space.description,
     template: space.template,
-    templateData: projectSpaceTemplateData(space),
+    templateData,
     coverImage,
     coverFileId: space.cover_file_id,
     fileCount: allFiles.length,

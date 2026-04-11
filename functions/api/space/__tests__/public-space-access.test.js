@@ -278,4 +278,133 @@ describe('public space access api', () => {
       }),
     ]);
   });
+
+  it('excludes expired public subspaces from collection payloads', async () => {
+    const first = vi.fn().mockResolvedValue({
+      ...baseSpaceRecord,
+      password: null,
+      template: 'collection',
+    });
+    const filesAll = vi.fn().mockResolvedValue({ results: [] });
+    const subspacesAll = vi.fn().mockResolvedValue({
+      results: [
+        {
+          id: 'sub-active-1',
+          name: '有效子空间',
+          template: 'gallery',
+          description: '',
+          template_data: '{}',
+          product_id: null,
+          variant_id: null,
+          file_count: 1,
+          cover_storage_key: 'covers/active.jpg',
+          expires_at: null,
+        },
+        {
+          id: 'sub-expired-1',
+          name: '过期子空间',
+          template: 'gallery',
+          description: '',
+          template_data: '{}',
+          product_id: null,
+          variant_id: null,
+          file_count: 1,
+          cover_storage_key: 'covers/expired.jpg',
+          expires_at: Date.now() - 1000,
+        },
+      ],
+    });
+    const batch = vi.fn().mockResolvedValue([]);
+
+    const prepare = vi.fn((sql) => {
+      if (sql.includes('WHERE s.share_token = ?')) {
+        return { bind: () => ({ first }) };
+      }
+      if (sql.includes('FROM space_files sf')) {
+        return { bind: () => ({ all: filesAll }) };
+      }
+      if (sql.includes('WHERE s.parent_id = ? AND s.is_public = 1')) {
+        return { bind: () => ({ all: subspacesAll }) };
+      }
+      if (sql.includes('INSERT INTO space_access_logs')) {
+        return { bind: (...args) => ({ sql, args }) };
+      }
+      if (sql.includes('UPDATE spaces SET view_count = view_count + 1')) {
+        return { bind: (...args) => ({ sql, args }) };
+      }
+      throw new Error(`Unexpected SQL: ${sql}`);
+    });
+
+    const response = await onRequestGet({
+      env: { DB: { prepare, batch } },
+      params: { token: 'share-token' },
+      request: new Request('http://localhost/api/space/share-token'),
+    });
+
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    expect(payload.success).toBe(true);
+    expect(payload.data.subspaces).toEqual([
+      expect.objectContaining({
+        id: 'sub-active-1',
+      }),
+    ]);
+  });
+
+  it('includes variant primary image in public product files, cover and file count', async () => {
+    const first = vi.fn().mockResolvedValue({
+      ...baseSpaceRecord,
+      password: null,
+      template: 'product',
+      product_id: 'product-1',
+      variant_id: 'variant-1',
+      p_sku: 'SPU-001',
+      pv_sku: 'SKU-BLACK-L',
+      p_price: 199,
+      p_specs: '{"material":"Cotton"}',
+      pv_options_values: '{"材质":"Leather"}',
+      p_images: '["product-main.jpg","product-side.jpg"]',
+      display_image_id: 'variant-primary.jpg',
+      cover_file_id: null,
+    });
+    const filesAll = vi.fn().mockResolvedValue({ results: [] });
+    const subspacesAll = vi.fn().mockResolvedValue({ results: [] });
+    const batch = vi.fn().mockResolvedValue([]);
+
+    const prepare = vi.fn((sql) => {
+      if (sql.includes('WHERE s.share_token = ?')) {
+        return { bind: () => ({ first }) };
+      }
+      if (sql.includes('FROM space_files sf')) {
+        return { bind: () => ({ all: filesAll }) };
+      }
+      if (sql.includes('WHERE s.parent_id = ? AND s.is_public = 1')) {
+        return { bind: () => ({ all: subspacesAll }) };
+      }
+      if (sql.includes('INSERT INTO space_access_logs')) {
+        return { bind: (...args) => ({ sql, args }) };
+      }
+      if (sql.includes('UPDATE spaces SET view_count = view_count + 1')) {
+        return { bind: (...args) => ({ sql, args }) };
+      }
+      throw new Error(`Unexpected SQL: ${sql}`);
+    });
+
+    const response = await onRequestGet({
+      env: { DB: { prepare, batch } },
+      params: { token: 'share-token' },
+      request: new Request('http://localhost/api/space/share-token'),
+    });
+
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    expect(payload.success).toBe(true);
+    expect(payload.data.coverImage).toBe('/file/variant-primary.jpg');
+    expect(payload.data.fileCount).toBe(3);
+    expect(payload.data.files).toEqual([
+      expect.objectContaining({ url: '/file/variant-primary.jpg' }),
+      expect.objectContaining({ url: '/file/product-main.jpg' }),
+      expect.objectContaining({ url: '/file/product-side.jpg' }),
+    ]);
+  });
 });
