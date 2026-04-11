@@ -24,6 +24,7 @@ describe('normalizeSalesSpace', () => {
         id: 'sub-1',
         coverUrl: '/file/variant-main.jpg',
         coverImage: '/file/variant-main.jpg',
+        fileCount: 1,
       }),
     ]);
   });

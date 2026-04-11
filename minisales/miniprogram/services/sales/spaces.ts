@@ -100,6 +100,9 @@ function normalizeSalesSpace(raw: unknown) {
                 subspace.template_data ?? subspace.templateData,
                 {}
             );
+            const subspaceTemplateImages = safeParseArray<string>(subspaceTemplateData.images, [])
+                .map((image) => resolveFilePath(image))
+                .filter(Boolean);
             const coverUrl = resolveFilePath(
                 subspace.coverUrl ?? subspace.cover_url,
                 subspace.cover_storage_key ?? subspace.coverStorageKey
@@ -107,7 +110,7 @@ function normalizeSalesSpace(raw: unknown) {
             return {
                 id: pickFirstString([subspace.id]),
                 name: pickFirstString([subspace.name], '未命名子空间'),
-                fileCount: toFiniteNumber(subspace.file_count ?? subspace.fileCount),
+                fileCount: toFiniteNumber(subspace.file_count ?? subspace.fileCount) || subspaceTemplateImages.length,
                 coverUrl,
             };
         }),

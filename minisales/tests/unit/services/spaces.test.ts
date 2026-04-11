@@ -173,6 +173,7 @@ describe('sales spaces service', () => {
           expect.objectContaining({
             id: 'sub-1',
             coverUrl: '/file/variant-main.jpg',
+            fileCount: 1,
           }),
         ],
       })

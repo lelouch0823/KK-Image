@@ -147,6 +147,9 @@ export function normalizeSalesSpace(raw) {
   const subspaces = safeParseArray(record.subspaces, []).map((item) => {
     const subspace = asRecord(item);
     const subspaceTemplateData = safeParseObject(subspace.template_data ?? subspace.templateData, {});
+    const subspaceTemplateImages = safeParseArray(subspaceTemplateData.images, [])
+      .map((image, index) => normalizeSpaceFile(image, `subspace-template-image-${index}`))
+      .filter((file) => file.url);
     const subspaceCoverUrl = resolveFilePath(
       subspace.coverImage ?? subspace.coverUrl ?? subspace.cover_url,
       subspace.cover_storage_key ?? subspace.coverStorageKey
@@ -156,7 +159,7 @@ export function normalizeSalesSpace(raw) {
       id: pickFirstString([subspace.id]),
       name: pickFirstString([subspace.name], ''),
       shareToken: pickFirstString([subspace.shareToken, subspace.share_token]),
-      fileCount: toFiniteNumber(subspace.fileCount ?? subspace.file_count),
+      fileCount: toFiniteNumber(subspace.fileCount ?? subspace.file_count) || subspaceTemplateImages.length,
       templateData: subspaceTemplateData,
       coverUrl: subspaceCoverUrl,
       coverImage: subspaceCoverUrl,
