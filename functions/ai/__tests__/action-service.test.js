@@ -105,6 +105,7 @@ describe('createAIActionService', () => {
       mode: 'manual',
       orderIds: [],
       items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 12 }],
+      sessionId: 'act-po-1',
     });
     expect(sessionStore.updateSession).toHaveBeenCalledWith('act-po-1', {
       status: 'completed',

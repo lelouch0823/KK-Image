@@ -18,6 +18,22 @@ import { SalespersonRepository } from '../repositories/SalespersonRepository.js'
 import { DomainOutboxPublisher } from '../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../api/cron/outbox.js';
 
+function buildAIPurchaseOrderEventCommandId(sessionId) {
+  const normalized = String(sessionId || '').trim();
+  return normalized ? `ai_purchase_order:${normalized}` : `ai_purchase_order:${crypto.randomUUID()}`;
+}
+
+function isDuplicateOutboxIdempotencyError(error) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return (
+    message.includes('unique constraint failed')
+    && (
+      message.includes('domain_outbox.idempotency_key')
+      || message.includes('idx_domain_outbox_idempotency_key')
+    )
+  );
+}
+
 export function detectExplicitConfirmation(text = '') {
   const normalized = String(text || '').trim();
   if (!normalized) return false;
@@ -56,7 +72,7 @@ export async function deriveContextActionSlots(context = {}, { productRepo, vari
 
 export async function publishPurchaseOrderCreatedFromAI(
   { c, env } = {},
-  { created, mode, orderIds = [], items = [] } = {}
+  { created, mode, orderIds = [], items = [], sessionId = null } = {}
 ) {
   if (!env?.DB || !created?.id) return;
 
@@ -68,17 +84,26 @@ export async function publishPurchaseOrderCreatedFromAI(
     : { item_count: Array.isArray(items) ? items.length : 0 };
 
   const publisher = new DomainOutboxPublisher(env.DB);
-  await publisher.publish([
-    {
-      event_type: eventType,
-      aggregate_type: 'purchase_order',
-      aggregate_id: created.id,
-      payload: {
-        purchase_order_id: created.id,
-        ...payload,
+  try {
+    await publisher.publish([
+      {
+        event_type: eventType,
+        aggregate_type: 'purchase_order',
+        aggregate_id: created.id,
+        payload: {
+          purchase_order_id: created.id,
+          ...payload,
+        },
       },
-    },
-  ]);
+    ], {
+      commandId: buildAIPurchaseOrderEventCommandId(sessionId),
+      correlationId: buildAIPurchaseOrderEventCommandId(sessionId),
+    });
+  } catch (error) {
+    if (!isDuplicateOutboxIdempotencyError(error)) {
+      throw error;
+    }
+  }
 
   c?.executionCtx?.waitUntil?.(runOutboxPoller({
     env,
@@ -165,7 +190,10 @@ export function createAIActionService(deps = {}) {
         && actionResult.payload?.entityType === 'purchase_order'
         && actionResult.payload?.purchaseOrderCreated
       ) {
-        await publishPurchaseOrderCreated(actionContext || {}, actionResult.payload.purchaseOrderCreated);
+        await publishPurchaseOrderCreated(actionContext || {}, {
+          ...actionResult.payload.purchaseOrderCreated,
+          sessionId: actionResult.payload.sessionId || null,
+        });
         const sessionStore = createSessionStore(actionContext || {});
         if (actionResult.payload?.sessionId && sessionStore?.updateSession) {
           await sessionStore.updateSession(actionResult.payload.sessionId, {
