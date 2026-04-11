@@ -97,4 +97,44 @@ describe('sales spaces service', () => {
       })
     );
   });
+
+  it('hydrates product template images into preview files when detail payload has no bound files', async () => {
+    const request = vi.fn().mockResolvedValue({
+      success: true,
+      data: {
+        id: 'space-product-1',
+        template: 'product',
+        template_data: {
+          images: ['variant-main.jpg', '/file/product-side.jpg'],
+        },
+        files: [],
+      },
+      error: null,
+      code: null,
+      status: 200,
+      payload: { success: true },
+    });
+
+    const detailResult = await getSalesSpaceDetail(
+      { accessToken: 'sales-token', spaceId: 'space-product-1' },
+      request
+    );
+
+    expect(detailResult.data).toEqual(
+      expect.objectContaining({
+        files: [
+          expect.objectContaining({
+            id: 'template-image-0',
+            url: '/file/variant-main.jpg',
+            mimeType: 'image/jpeg',
+          }),
+          expect.objectContaining({
+            id: 'template-image-1',
+            url: '/file/product-side.jpg',
+            mimeType: 'image/jpeg',
+          }),
+        ],
+      })
+    );
+  });
 });

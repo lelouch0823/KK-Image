@@ -7,6 +7,7 @@ import { SALES_API } from '../../utils/constants';
 import {
     pickFirstString,
     resolveFilePath,
+    safeParseArray,
     safeParseObject,
     toFiniteNumber,
 } from '../../utils/helpers';
@@ -47,13 +48,30 @@ function normalizeSpaceFile(raw: unknown) {
 
 function normalizeSalesSpace(raw: unknown) {
     const record = asRecord(raw);
+    const templateData = safeParseObject(record.template_data ?? record.templateData, {});
+    const rawFiles = asArray(record.files).map(normalizeSpaceFile);
+    const templateImages = safeParseArray<string>((templateData as UnknownRecord).images, [])
+        .map((image, index) => ({
+            id: `template-image-${index}`,
+            name: `商品图片 ${index + 1}`,
+            url: resolveFilePath(image),
+            mimeType: 'image/jpeg',
+            section: '',
+            width: 0,
+            height: 0,
+        }))
+        .filter((file) => file.url);
+    const mergedFiles = [
+        ...templateImages.filter((candidate) => !rawFiles.some((file) => file.url === candidate.url)),
+        ...rawFiles,
+    ];
     return {
         id: pickFirstString([record.id]),
         name: pickFirstString([record.name], '未命名空间'),
         description: pickFirstString([record.description]),
         template: pickFirstString([record.template], 'gallery'),
-        templateData: safeParseObject(record.template_data ?? record.templateData, {}),
-        fileCount: toFiniteNumber(record.file_count ?? record.fileCount),
+        templateData,
+        fileCount: mergedFiles.length || toFiniteNumber(record.file_count ?? record.fileCount),
         coverUrl: resolveFilePath(
             record.coverUrl ?? record.cover_url,
             record.cover_storage_key ?? record.coverStorageKey
@@ -62,7 +80,7 @@ function normalizeSalesSpace(raw: unknown) {
         updatedAt: toFiniteNumber(record.updated_at ?? record.updatedAt),
         productId: pickFirstString([record.product_id, record.productId]),
         variantId: pickFirstString([record.variant_id, record.variantId]),
-        files: asArray(record.files).map(normalizeSpaceFile),
+        files: mergedFiles,
         subspaces: asArray(record.subspaces).map((item) => {
             const subspace = asRecord(item);
             return {
