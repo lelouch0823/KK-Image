@@ -3071,3 +3071,16 @@
   - `functions/ai/__tests__/action-orchestrator.test.js`
   - `functions/ai/__tests__/action-service.test.js`
 - 对应修复提交: `1fcef479 fix: persist pending ai purchase-order effects`
+
+### 2026-04-12 轮次 274
+
+- 继续深审 AI 采购单后置发布重试链路，新增 1 个高风险问题:
+  - [functions/ai/action-service.js](/home/bjw/Code/KK-Image/functions/ai/action-service.js) 修复前即使已经把 session 留在 `submitted_pending_effects` 里，只要第一次 outbox 发布其实已经成功、但后面的 session finalize 失败，下一次 pending session 重试仍会再次生成一组新的 outbox command id。由于 [functions/services/DomainOutboxPublisher.js](/home/bjw/Code/KK-Image/functions/services/DomainOutboxPublisher.js) 默认会为每次 publish 生成新的 command id / idempotency key，这会把同一条 AI 建单事件重复写入 domain outbox，直接导致下游消费者重复消费。
+- 已完成本轮修复:
+  - AI 采购单后置发布现在会基于 `sessionId` 生成稳定的 outbox `commandId/correlationId`，让同一 session 的重试落到同一组事件键上。
+  - 如果重试命中了 `domain_outbox.idempotency_key` 唯一约束，现在会被视为“事件已成功持久化”，流程会继续唤醒 poller 并完成 session finalize，而不会把这类重复发布误判成失败。
+  - 已补齐 action service 发布层回归测试，锁定“稳定 command id”“重复键视为已发布”和“非重复错误仍然上抛”的行为。
+- 增量回归:
+  - `functions/ai/__tests__/action-service.purchase-order-publish.test.js`
+  - `functions/ai/__tests__/action-service.test.js`
+- 对应修复提交: `1bd96369 fix: dedupe ai purchase-order outbox retries`
