@@ -383,7 +383,11 @@ export class PurchaseOrderRepository {
    * 仅当当前状态匹配时更新成功，用于防并发重复流转
    */
   async updateStatusIfCurrent(id, currentStatus, nextStatus) {
-    const extra = nextStatus === 'completed' ? ', completed_at = ?' : '';
+    const extra = nextStatus === 'completed'
+      ? ', completed_at = ?'
+      : currentStatus === 'completed'
+        ? ', completed_at = NULL'
+        : '';
     const now = Date.now();
     const params = nextStatus === 'completed'
       ? [nextStatus, now, now, id, currentStatus]

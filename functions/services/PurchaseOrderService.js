@@ -160,7 +160,12 @@ export class PurchaseOrderService {
 
     // 4. 如果是结算完成，触发成本分摊
     if (newStatus === 'completed') {
-      await this.allocateCosts(poId);
+      try {
+        await this.allocateCosts(poId);
+      } catch (error) {
+        await this.repo.updateStatusIfCurrent(poId, newStatus, po.status);
+        throw error;
+      }
     }
 
     const stockUpdated = 0;

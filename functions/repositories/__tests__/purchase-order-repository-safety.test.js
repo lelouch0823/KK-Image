@@ -102,6 +102,17 @@ describe('PurchaseOrderRepository safety guards', () => {
     expect(okPass).toBe(true);
   });
 
+  it('updateStatusIfCurrent clears completed_at when rolling back from completed', async () => {
+    const db = createDb(1);
+    const repo = new PurchaseOrderRepository(db);
+
+    const ok = await repo.updateStatusIfCurrent('po-1', 'completed', 'arrived');
+
+    expect(ok).toBe(true);
+    const sql = db.prepare.mock.calls[0][0];
+    expect(sql).toContain('completed_at = NULL');
+  });
+
   it('removeItem must be scoped by po_id', async () => {
     const db = createDb(1);
     const repo = new PurchaseOrderRepository(db);

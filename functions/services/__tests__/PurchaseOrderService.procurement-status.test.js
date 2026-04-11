@@ -231,4 +231,23 @@ describe('PurchaseOrderService procurement status cascade', () => {
       linkedOrderIds.map((orderId) => ({ orderId, procurementStatus: 'ordered' }))
     );
   });
+
+  it('rolls purchase-order status back when cost allocation fails during completion', async () => {
+    const db = createDb();
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      findById: vi.fn(async () => ({ id: 'po-1', status: 'arrived', items: [] })),
+      updateStatus: vi.fn(async () => true),
+      updateStatusIfCurrent: vi.fn(async () => true),
+      getLinkedOrderIds: vi.fn(async () => []),
+    };
+    service.allocateCosts = vi.fn(async () => {
+      throw new Error('allocation failed');
+    });
+
+    await expect(service.updateStatus('po-1', 'completed')).rejects.toThrow('allocation failed');
+
+    expect(service.repo.updateStatusIfCurrent).toHaveBeenNthCalledWith(1, 'po-1', 'arrived', 'completed');
+    expect(service.repo.updateStatusIfCurrent).toHaveBeenNthCalledWith(2, 'po-1', 'completed', 'arrived');
+  });
 });
