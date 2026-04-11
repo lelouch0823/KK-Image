@@ -4,6 +4,8 @@ import { ref } from 'vue';
 import ProductSelect from '../ProductSelect.vue';
 
 const salesProducts = ref([]);
+const adminProducts = ref([]);
+const adminError = ref('');
 
 const mocks = vi.hoisted(() => ({
   loadSalesProducts: vi.fn(),
@@ -19,9 +21,10 @@ vi.mock('@/composables/useI18n', () => ({
 
 vi.mock('@/composables/useProducts', () => ({
   useProducts: () => ({
-    products: ref([]),
+    products: adminProducts,
     loadProducts: mocks.loadProducts,
     loading: ref(false),
+    error: adminError,
   }),
 }));
 
@@ -52,6 +55,8 @@ describe('ProductSelect sales image rendering', () => {
         primaryImage: 'https://cdn.example.com/desk.png',
       },
     ];
+    adminProducts.value = [];
+    adminError.value = '';
   });
 
   it('keeps absolute sales product image urls intact', async () => {
@@ -76,5 +81,38 @@ describe('ProductSelect sales image rendering', () => {
     expect(wrapper.find('[data-testid="product-image"]').attributes('src')).toBe(
       'https://cdn.example.com/desk.png'
     );
+  });
+
+  it('shows admin load errors locally and retries the current admin search', async () => {
+    mocks.loadProducts.mockImplementation(async () => {
+      adminError.value = 'Admin load failed';
+      return false;
+    });
+
+    const wrapper = mount(ProductSelect, {
+      props: {
+        mode: 'admin',
+      },
+      global: {
+        stubs: {
+          AppIcon: { template: '<div />' },
+          AppImage: { template: '<img />' },
+        },
+      },
+    });
+
+    const input = wrapper.find('input');
+    await input.setValue('desk');
+    await input.trigger('focus');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain('Admin load failed');
+    expect(wrapper.emitted('load-error')?.[0]?.[0]).toBe('Admin load failed');
+
+    await wrapper.get('[data-testid="unified-product-retry"]').trigger('click');
+
+    expect(mocks.loadProducts).toHaveBeenCalledTimes(2);
+    expect(mocks.loadProducts).toHaveBeenNthCalledWith(1, { search: 'desk', limit: 10, page: 1 });
+    expect(mocks.loadProducts).toHaveBeenNthCalledWith(2, { search: 'desk', limit: 10, page: 1 });
   });
 });

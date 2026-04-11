@@ -119,7 +119,8 @@ const isSalesMode = computed(() => props.mode === 'sales');
 const { 
   products: adminProducts, 
   loadProducts: loadAdminProducts, 
-  loading: adminLoading 
+  loading: adminLoading,
+  error: adminError,
 } = useProducts();
 
 const { 
@@ -135,7 +136,7 @@ const isOpen = ref(false);
 const searchQuery = ref('');
 
 const loading = computed(() => isSalesMode.value ? salesLoading.value : adminLoading.value);
-const error = computed(() => isSalesMode.value ? salesError.value : null);
+const error = computed(() => isSalesMode.value ? salesError.value : adminError.value);
 const items = computed(() => isSalesMode.value ? (salesProducts.value || []) : (adminProducts.value || []));
 
 const placeholderText = computed(() => {
@@ -181,7 +182,9 @@ const retryLoad = async () => {
     if (!result.ok) {
       emit('load-error', result.error || t('common.loadFailed'));
     }
+    return;
   }
+  await handleSearch(searchQuery.value);
 };
 
 const select = (product) => {
