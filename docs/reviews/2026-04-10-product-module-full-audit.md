@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 118 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 121 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -141,6 +141,7 @@
   - `6fa20b0`: 商品导入图片部分成功时改为警告提示
   - `0346601`: 商品详情背景补全失败时保留当前快照
   - `cb8fbc4`: 商品导出详情补全失败时中止导出
+  - `cc418b0`: 商品导出弹窗会话重置、导出条件变更后旧下载失效、商品选择器上下文切换重载
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -219,6 +220,7 @@
   - 2026-04-10 运行 2 个回归测试文件，共 34 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 35 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 36 个测试，全部通过。
+  - 2026-04-11 运行 3 个回归测试文件，共 32 个测试，全部通过。
 - 残余风险:
   - 当前验证以仓储、路由、组件契约和关键链路回归为主，尚未执行浏览器级 E2E 或线上数据回放。
 
@@ -2321,3 +2323,55 @@
   - `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
   - `src/components/product/import/__tests__/ImportPreviewStep.test.js`
   - `src/components/product/import/__tests__/ImportImageMatchStep.test.js`
+
+### 2026-04-11 轮次 221
+
+- 继续复查商品导出弹窗关闭/重开链路，新增 1 个中风险问题:
+  - `ProductExportModal` 关闭时只清理生成进度和下载状态，没有恢复 `form.format/form.scope` 默认值。结果是用户上一轮若选择了 `csv + 当前筛选结果`，下次重新打开弹窗时会静默继承旧导出参数，形成跨会话脏状态和误导性导出上下文。[src/components/product/ProductExportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductExportModal.vue)
+- 已完成本轮修复:
+  - `ProductExportModal.resetState()` 现在会同时恢复 `format='excel'` 与 `scope='all'`，关闭后重新打开总是回到干净默认会话。
+  - 已补齐“关闭后导出参数重置”的回归测试，阻断再次回归为跨会话残留。
+- 增量回归:
+  - `src/components/product/__tests__/ProductExportModal.filters.test.js`
+- 对应修复提交: `cc418b0 fix: reset product export and select session state`
+
+### 2026-04-11 轮次 222
+
+- 继续复查商品选择器在销售/管理上下文切换时的缓存边界，新增 1 个中风险问题:
+  - `ProductSelect` 打开下拉时只判断“当前是否已有候选项”，不会识别这些候选项属于哪个 `mode/token/statusFilter` 上下文。结果是在销售 token 切换、管理端状态筛选切换后，只要内存里还留着旧列表，下拉就会继续展示上一上下文的商品候选，直到用户手动搜索才会刷新，属于典型的旧数据污染新上下文。[src/components/product/ProductSelect.vue](/home/bjw/Code/KK-Image/src/components/product/ProductSelect.vue)
+- 已完成本轮修复:
+  - `ProductSelect` 现在按 `mode/token/statusFilter` 维护 `currentContextKey`，上下文变化时会失效旧列表标记。
+  - 如果选择器此时正处于打开状态，会立即按新上下文重拉候选，不再把旧 token 或旧筛选下的商品暴露给当前用户。
+  - 已补齐“销售 token 切换后即使旧缓存仍在也必须重拉”的回归测试。
+- 增量回归:
+  - `src/components/product/__tests__/ProductSelect.sales-image.test.js`
+- 对应修复提交: `cc418b0 fix: reset product export and select session state`
+
+### 2026-04-11 轮次 223
+
+- 继续复查商品导出链路的“展示条件 vs 实际下载内容”一致性，新增 2 个中风险问题:
+  - `ProductExportModal` 在文件生成完成后，如果用户改了 `format` 或 `scope`，旧的 `generatedBlob` 仍保持可下载。界面展示的是新导出条件，但点击下载拿到的仍是旧文件，形成“界面条件已变、下载结果未变”的错配。[src/components/product/ProductExportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductExportModal.vue)
+  - `ProductExportModal` 在 `scope='filtered'` 场景下，如果父层 `filters` 发生变化，旧导出文件同样不会失效。结果是列表筛选已经切到另一组商品，弹窗里旧下载按钮却还能继续导出上一组筛选结果，业务上属于明显未闭环。[src/components/product/ProductExportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductExportModal.vue)
+- 已完成本轮修复:
+  - 新增 `invalidateReadyDownload()`，在生成结束后只要 `format/scope` 或归一化后的筛选条件发生变化，就立即失效旧下载结果，强制用户基于当前条件重新生成文件。
+  - 已补齐“切换格式后旧下载失效”和“filtered 筛选条件变更后旧下载失效”的回归测试，确保导出参数、筛选上下文和实际文件内容保持一致。
+- 增量回归:
+  - `src/components/product/__tests__/ProductExportModal.filters.test.js`
+- 对应修复提交: `cc418b0 fix: reset product export and select session state`
+
+### 2026-04-11 本批次 10 个问题总结
+
+- 本批次从轮次 214 到轮次 223，共新增并闭环 10 个商品及关联链路问题，主题集中在三类:
+  - 关闭/切换对象后的旧状态残留: `SpaceCreateModal` 半绑定、`SpaceDetailModal` 跨空间 UI 状态、`ProductWorkflowModal` 跨商品草稿、`ProductExportModal` 导出参数残留。
+  - 新上下文被旧异步或旧缓存污染: `ProductImportModal` 旧文件解析回写、`ProductSelect` 复用旧 token/筛选候选、`ProductExportModal` 继续持有与当前条件不一致的旧下载。
+  - 失败边界和前后端契约未闭环: 空间绑定缺货策略分叉、`ProductCreateModal` 初始化失败后仍可提交。
+- 这 10 个问题均已完成代码修复并补上针对性回归测试，代码提交对应:
+  - `a79d90c`
+  - `651f5bc`
+  - `443c472`
+  - `1f05164`
+  - `4a1c908`
+  - `cc418b0`
+- 当前这一批次的审查结论:
+  - 商品模块剩余高频风险仍集中在“筛选器/统计组件口径一致性”“导出导入与列表筛选的契约收口”“关联后端路由的错误语义是否与前端一致”。
+  - 下一轮继续优先复查 `ProductFilters.vue`、`ProductStats.vue`、`functions/lib/hono/routes/manage/products/export.js` 及其相邻链路。
