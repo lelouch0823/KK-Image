@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 85 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 86 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -1640,3 +1640,21 @@
   - `src/components/space/__tests__/SpaceCollection.contract.test.js`
   - `src/views/__tests__/Space.lifecycle.test.js`
 - 对应修复提交: `270ba26 fix: project public space variant fields`
+
+### 2026-04-10 轮次 159
+
+- 继续复查公开商品空间媒体统计口径，新增 1 个高风险问题:
+  - 公开空间 API 虽然已经把变体主图投到 `templateData.images`，但 `files/coverImage/fileCount` 仍只按原始 `p_images` 和 `space_files` 组装。结果是变体绑定的公开商品空间会出现“详情展示是变体主图，但封面/文件数/下载列表还是商品图口径”的分叉
+- 下一步把公开商品空间媒体注入统一改为基于 `projectSpaceTemplateData(space).images`，并按 URL 去重收口。
+
+### 2026-04-10 轮次 160
+
+- 已完成轮次 159 新增问题修复:
+  - 公开商品空间 `files`、`coverImage`、`fileCount` 现在都和 `templateData.images` 使用同一套投影口径，变体主图会真正进入公开空间媒体列表
+  - 模板图片与空间文件在公开空间 API 中会按 URL 去重，避免同一张图在 `files` 中重复出现
+- 增量回归:
+  - `functions/api/space/__tests__/public-space-access.test.js`
+  - `src/views/__tests__/Space.lifecycle.test.js`
+  - `src/components/space/__tests__/SpaceCollection.contract.test.js`
+  - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
+- 对应修复提交: `fc05168 fix: align public product space media counts`
