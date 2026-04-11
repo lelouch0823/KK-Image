@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 60 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 61 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -106,6 +106,7 @@
   - `b1f09a2`: 管理端挂载时会重置通知模式回 admin，并清空旧销售通知状态
   - `4e936a8`: 销售订单列表搜索改为走服务端查询并支持当前搜索结果分页
   - `5c04f98`: Dashboard 订单详情抽屉只认当前详情请求结果
+  - `c1c1999`: 货品总览列表和汇总只认当前筛选轮次的最新请求结果
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -138,6 +139,7 @@
   - 2026-04-10 运行 5 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 14 个测试，全部通过。
+  - 2026-04-10 运行 1 个回归测试文件，共 6 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -226,6 +228,7 @@
 - 通知中心的管理端回切链路也不完整：`Header` 挂载时没有显式调用 `setAdminMode()`，而 `useNotifications.setAdminMode()` 本身也不会清空旧销售通知状态。结果是从销售端回到管理端时，Header 首轮轮询仍可能继续打旧销售 token，页面也会短暂显示旧销售通知与未读数。[src/components/layout/Header.vue](/home/bjw/Code/KK-Image/src/components/layout/Header.vue#L183) [src/composables/useNotifications.js](/home/bjw/Code/KK-Image/src/composables/useNotifications.js#L42)
 - 销售订单列表页的搜索没有接入后端查询。`SalesListView` 只是对当前已加载订单做本地过滤，并在搜索时直接禁用无限滚动；而销售端订单 API 与 `useOrders.loadSalesOrders()` 本身都支持 `search`。结果是未加载到本地的历史订单永远搜不到，销售搜索链路在业务上不闭环。[src/views/sales/SalesListView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesListView.vue#L67) [src/views/Sales.vue](/home/bjw/Code/KK-Image/src/views/Sales.vue#L222) [src/composables/useOrders.js](/home/bjw/Code/KK-Image/src/composables/useOrders.js#L338)
 - `Dashboard` 首页里的订单详情抽屉也实现了一套独立的详情水合，但 `viewOrder()/refreshOrderDetail()` 没有隔离请求先后。快速连续查看两张订单、关闭抽屉后旧请求才返回，或评论后详情刷新并发时，旧的 `getOrder()` 结果会把当前 `viewingOrder/detailHydrating` 覆盖成上一张订单。[src/views/Dashboard.vue](/home/bjw/Code/KK-Image/src/views/Dashboard.vue#L409)
+- `useGoodsOverview` 的列表和汇总加载都没有请求先后隔离，而筛选变化会自动触发 `loadData()`。快速切换货品总览筛选或并发触发初始化/刷新时，旧筛选的列表结果和旧汇总结果会在后返回后覆盖当前总览，导致短缺列表与汇总卡片回跳到上一轮筛选口径。[src/composables/useGoodsOverview.js](/home/bjw/Code/KK-Image/src/composables/useGoodsOverview.js#L70)
 - 商品导入弹窗对“部分成功”没有向父级发出成功事件。`handleImport()` 只有在“零失败且零冲突”时才 `emit('success')`，但前面已经把存在成功导入记录的部分成功结果标记为 `importResult.success = true`，页脚按钮也允许用户直接关闭弹窗。`ProductManager` 依赖这个事件刷新列表，因此一旦导入结果里同时包含成功项和失败项/冲突项，弹窗可关闭但列表不会刷新，用户要手动刷新后才能看到已导入的商品。[src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L865) [src/components/product/ProductImportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductImportModal.vue#L881) [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue#L398)
 - 批量导入路由的审计语义已经与服务层返回脱节。`POST /api/manage/products/batch` 无论 `batchImport()` 是否真正导入成功，都固定把审计结果写成 `result: 'success'`；同时它写入审计元数据的 `imported/created/updated` 读取的是不存在的顶层字段，而服务层真实返回的是 `count` 与 `summary.createdProducts/updatedProducts`。结果是导入全失败时审计仍显示成功，而成功导入时关键统计又可能长期记录为 `null`，削弱后台审计可追溯性。[batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js#L19) [ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js#L887)
 
@@ -1174,3 +1177,18 @@
   - `src/components/__tests__/OrderManager.network-workflow.test.js`
   - `src/views/__tests__/SalesDetailView.lifecycle.test.js`
 - 对应修复提交: `5c04f98 fix: isolate dashboard order detail loads`
+
+### 2026-04-10 轮次 109
+
+- 继续复查货品总览链路，新增 1 个中风险问题:
+  - `useGoodsOverview` 的列表和汇总加载缺少请求先后隔离，快速切筛选或并发刷新时旧结果会覆盖当前总览
+- 下一步给货品总览列表和汇总都补请求序号，并覆盖筛选切换竞态回归。
+
+### 2026-04-10 轮次 110
+
+- 已完成轮次 109 新增问题修复:
+  - `useGoodsOverview.loadData()` 现在只认当前筛选轮次对应的最新列表请求，旧筛选列表不会再覆盖当前总览
+  - `useGoodsOverview.loadSummary()` 现在只认最新一次汇总请求，旧汇总结果不会再覆盖当前统计卡片
+- 增量回归:
+  - `src/composables/__tests__/useGoodsOverview.test.js`
+- 对应修复提交: `c1c1999 fix: isolate goods overview loads`
