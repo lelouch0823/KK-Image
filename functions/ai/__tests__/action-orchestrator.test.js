@@ -287,6 +287,31 @@ describe('AIActionOrchestrator', () => {
     expect(result.payload.missingSlots).toContain('items');
   });
 
+  it('keeps collecting purchase-order items until manual items are resolved to concrete variants', async () => {
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {
+        purchase_order: {
+          items: vi.fn(async (items) => items),
+        },
+      },
+      extractActionSlots: () => ({
+        mode: 'manual',
+        items: [{ variant_query: '跑鞋 黑色 42', quantity: 20 }],
+      }),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '创建采购单，跑鞋 黑色 42 补货 20件',
+    });
+
+    expect(result.kind).toBe('slot_request');
+    expect(result.payload.missingSlots).toContain('items');
+  });
+
   it('requests order ids before previewing from-orders mode', async () => {
     orchestrator = new AIActionOrchestrator({
       sessionStore,

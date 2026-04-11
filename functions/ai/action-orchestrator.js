@@ -35,8 +35,7 @@ export class AIActionOrchestrator {
 
     const extractedSlots = this.extractActionSlots(adapter.entityType, text);
     const mergedSlots = await this.#applySlotResolvers(adapter.entityType, { ...extractedSlots, ...slots });
-    const requiredSlots = this.#getRequiredSlots(adapter, mergedSlots);
-    const missingSlots = requiredSlots.filter((slot) => !this.#hasValue(mergedSlots[slot]));
+    const missingSlots = this.#getMissingSlots(adapter, mergedSlots);
 
     const sessionId = buildSessionId();
     await this.sessionStore.createSession({
@@ -95,8 +94,7 @@ export class AIActionOrchestrator {
       const nextSlots = { ...slots, ...extractedSlots };
       const normalizedText = String(text || '').trim();
       this.#applyCandidateChoiceFromText(nextSlots, normalizedText);
-      const requiredSlots = this.#getRequiredSlots(adapter, nextSlots);
-      const missingSlots = requiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
+      const missingSlots = this.#getMissingSlots(adapter, nextSlots);
 
       if (normalizedText && missingSlots.length > 0 && Object.keys(extractedSlots || {}).length === 0) {
         const targetSlot = missingSlots[0];
@@ -105,8 +103,7 @@ export class AIActionOrchestrator {
 
       await this.#applySlotResolvers(adapter.entityType, nextSlots);
 
-      const nextRequiredSlots = this.#getRequiredSlots(adapter, nextSlots);
-      const nextMissingSlots = nextRequiredSlots.filter((slot) => !this.#hasValue(nextSlots[slot]));
+      const nextMissingSlots = this.#getMissingSlots(adapter, nextSlots);
       if (nextMissingSlots.length > 0) {
         await this.sessionStore.updateSession(session.id, {
           status: 'collecting',
@@ -197,6 +194,14 @@ export class AIActionOrchestrator {
       return adapter.getRequiredSlots(slots);
     }
     return Array.isArray(adapter?.requiredSlots) ? adapter.requiredSlots : [];
+  }
+
+  #getMissingSlots(adapter, slots = {}) {
+    if (typeof adapter?.getMissingSlots === 'function') {
+      return adapter.getMissingSlots(slots);
+    }
+    const requiredSlots = this.#getRequiredSlots(adapter, slots);
+    return requiredSlots.filter((slot) => !this.#hasValue(slots[slot]));
   }
 
   #hasValue(value) {

@@ -117,6 +117,22 @@ describe('AI action submitters', () => {
     expect(purchaseOrderRepo.create).not.toHaveBeenCalled();
   });
 
+  it('rejects manual purchase-order submission when items are unresolved', async () => {
+    const purchaseOrderRepo = {
+      create: vi.fn(async () => ({ id: 'po-1', po_no: 'PO-1' })),
+      addItems: vi.fn(async () => ['poi-1']),
+    };
+    const submitters = createActionSubmitters({ purchaseOrderRepo });
+
+    await expect(submitters.create_purchase_order({
+      mode: 'manual',
+      items: [{ variant_query: '跑鞋 黑色 42', quantity: 20 }],
+    })).rejects.toThrow('Resolved product_id and variant_id are required for every purchase-order item');
+
+    expect(purchaseOrderRepo.create).not.toHaveBeenCalled();
+    expect(purchaseOrderRepo.addItems).not.toHaveBeenCalled();
+  });
+
   it('rejects from-orders submission when order ids are missing', async () => {
     const purchaseOrderService = {
       createFromOrders: vi.fn(async () => ({ id: 'po-1', po_no: 'PO-1' })),
