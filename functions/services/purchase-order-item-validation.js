@@ -5,6 +5,15 @@ import { validateOrderQuantity } from './purchase-order-constraints.js';
 
 const D1_MAX_IN_CLAUSE_SIZE = 100;
 
+export function validatePurchaseOrderUnitCost(unitCost, { label = 'unit_cost' } = {}) {
+  if (unitCost === undefined || unitCost === null || unitCost === '') return;
+
+  const normalized = Number(unitCost);
+  if (!Number.isFinite(normalized) || normalized < 0) {
+    throw new BadRequestError(`${label} must be a non-negative number`);
+  }
+}
+
 export async function validatePurchaseOrderVariantItems(db, items = []) {
   if (!items || items.length === 0) return;
   const variantIds = [...new Set(items.map((item) => item.variant_id).filter(Boolean))];
@@ -34,6 +43,8 @@ export async function validatePurchaseOrderVariantItems(db, items = []) {
   }
 
   for (const item of items) {
+    validatePurchaseOrderUnitCost(item.unit_cost);
+
     const variant = variantMap.get(item.variant_id);
     if (!variant) {
       throw new BadRequestError(`变体不存在: ${item.variant_id}`);

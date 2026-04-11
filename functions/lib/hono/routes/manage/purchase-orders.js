@@ -16,6 +16,7 @@ import { OrderProcurementReceiptReversalService } from '../../../../services/Ord
 import { PurchaseOrderShortageClosureService } from '../../../../services/PurchaseOrderShortageClosureService.js';
 import {
   validatePurchaseOrderPreOrderBinding,
+  validatePurchaseOrderUnitCost,
   validatePurchaseOrderVariantItems,
 } from '../../../../services/purchase-order-item-validation.js';
 import { validateOrderQuantity } from '../../../../services/purchase-order-constraints.js';
@@ -584,6 +585,7 @@ app.patch('/:id/items/:itemId', async (c) => {
     throw new NotFoundError('明细不存在');
   }
 
+  validatePurchaseOrderUnitCost(body.unit_cost);
   await validateExistingItemQuantityUpdate(c.env.DB, existingItem, body.quantity);
 
   const updated = await repo.updateItem(poId, c.req.param('itemId'), body);

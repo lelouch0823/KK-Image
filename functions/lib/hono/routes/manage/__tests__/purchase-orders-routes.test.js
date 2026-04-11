@@ -385,6 +385,34 @@ describe('manage purchase-orders routes', () => {
     expect(mocks.repoAddItems).not.toHaveBeenCalled();
   });
 
+  it('rejects adding item when unit_cost is negative', async () => {
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+    });
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            quantity: 1,
+            unit_cost: -10,
+          }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.repoAddItems).not.toHaveBeenCalled();
+  });
+
   it('rejects updating item outside current po scope', async () => {
     const app = createApp();
     const db = createDb({
@@ -438,6 +466,27 @@ describe('manage purchase-orders routes', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity: 3 }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.repoUpdateItem).not.toHaveBeenCalled();
+  });
+
+  it('rejects purchase-order item patch when unit_cost is negative', async () => {
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+    });
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items/item-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ unit_cost: -5 }),
       },
       { DB: db },
       { waitUntil: vi.fn() }
