@@ -316,4 +316,70 @@ describe('SpaceProductEditor contract', () => {
       sku: 'SKU-2',
     });
   });
+
+  it('does not refresh or emit updated when adding files fails', async () => {
+    mocks.addFilesToSpace.mockResolvedValueOnce(false);
+
+    const wrapper = mount(SpaceProductEditor, {
+      props: {
+        space: { id: 'space-1', shareToken: 'share-token' },
+      },
+      global: {
+        stubs: {
+          FileSelector: { template: '<div />' },
+          Tooltip: { template: '<div><slot /></div>' },
+          SpaceAnalytics: { template: '<div />' },
+          SpaceShareCard: { template: '<div />' },
+          SpaceVisibilitySelector: { template: '<div />' },
+          SpaceMediaGrid: { template: '<div />' },
+          ConfirmDialog: { template: '<div />' },
+          ProductBindingSection: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+    vi.clearAllMocks();
+    mocks.addFilesToSpace.mockResolvedValueOnce(false);
+
+    await wrapper.vm.addFiles(['file-1']);
+
+    expect(mocks.addFilesToSpace).toHaveBeenCalledWith('space-1', ['file-1']);
+    expect(mocks.loadSpace).not.toHaveBeenCalled();
+    expect(wrapper.emitted('updated')).toBeUndefined();
+  });
+
+  it('keeps remove confirmation open when removing files fails', async () => {
+    mocks.removeFilesFromSpace.mockResolvedValueOnce(false);
+
+    const wrapper = mount(SpaceProductEditor, {
+      props: {
+        space: { id: 'space-1', shareToken: 'share-token' },
+      },
+      global: {
+        stubs: {
+          FileSelector: { template: '<div />' },
+          Tooltip: { template: '<div><slot /></div>' },
+          SpaceAnalytics: { template: '<div />' },
+          SpaceShareCard: { template: '<div />' },
+          SpaceVisibilitySelector: { template: '<div />' },
+          SpaceMediaGrid: { template: '<div />' },
+          ConfirmDialog: { template: '<div />' },
+          ProductBindingSection: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+    vi.clearAllMocks();
+    mocks.removeFilesFromSpace.mockResolvedValueOnce(false);
+
+    wrapper.vm.removeFile('file-1');
+    await wrapper.vm.confirmData.onConfirm();
+
+    expect(mocks.removeFilesFromSpace).toHaveBeenCalledWith('space-1', ['file-1']);
+    expect(mocks.loadSpace).not.toHaveBeenCalled();
+    expect(wrapper.emitted('updated')).toBeUndefined();
+    expect(wrapper.vm.confirmData.show).toBe(true);
+  });
 });

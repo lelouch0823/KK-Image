@@ -575,7 +575,8 @@ const unbindProduct = () => {
 
 const addFiles = async (fileIds) => {
   showFileSelector.value = false;
-  await addFilesToSpace(props.space.id, fileIds);
+  const added = await addFilesToSpace(props.space.id, fileIds);
+  if (!added) return;
   await initData();
   emit('updated');
 };
@@ -590,7 +591,8 @@ const removeFile = (fileId) => {
     onConfirm: async () => {
       confirmData.value.loading = true;
       try {
-        await removeFilesFromSpace(props.space.id, [fileId]);
+        const removed = await removeFilesFromSpace(props.space.id, [fileId]);
+        if (!removed) return;
         await initData();
         emit('updated');
         confirmData.value.show = false;
