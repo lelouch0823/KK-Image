@@ -115,4 +115,30 @@ describe('ProductSelect sales image rendering', () => {
     expect(mocks.loadProducts).toHaveBeenNthCalledWith(1, { search: 'desk', limit: 10, page: 1 });
     expect(mocks.loadProducts).toHaveBeenNthCalledWith(2, { search: 'desk', limit: 10, page: 1 });
   });
+
+  it('reloads products when the sales token changes even if old results are still cached', async () => {
+    const wrapper = mount(ProductSelect, {
+      props: {
+        mode: 'sales',
+        token: 'sales-token-a',
+      },
+      global: {
+        stubs: {
+          AppIcon: { template: '<div />' },
+          AppImage: { template: '<img />' },
+        },
+      },
+    });
+
+    await wrapper.find('input').trigger('focus');
+    expect(mocks.loadSalesProducts).toHaveBeenCalledTimes(1);
+    expect(mocks.loadSalesProducts).toHaveBeenLastCalledWith('sales-token-a', { search: '', page: 1, limit: 12 });
+
+    wrapper.vm.isOpen = false;
+    await wrapper.setProps({ token: 'sales-token-b' });
+    await wrapper.find('input').trigger('focus');
+
+    expect(mocks.loadSalesProducts).toHaveBeenCalledTimes(2);
+    expect(mocks.loadSalesProducts).toHaveBeenLastCalledWith('sales-token-b', { search: '', page: 1, limit: 12 });
+  });
 });

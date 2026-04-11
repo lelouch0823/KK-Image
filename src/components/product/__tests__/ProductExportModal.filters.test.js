@@ -157,4 +157,118 @@ describe('ProductExportModal filter forwarding', () => {
       expect.objectContaining({ type: 'error' })
     );
   });
+
+  it('resets export options after the modal closes', async () => {
+    const wrapper = mount(ProductExportModal, {
+      props: {
+        modelValue: true,
+        filters: {},
+      },
+      global: {
+        stubs: {
+          Modal: {
+            props: ['modelValue', 'title', 'size'],
+            template: '<div><slot /><slot name="footer" /></div>',
+          },
+          AppIcon: true,
+        },
+      },
+    });
+
+    wrapper.vm.form.format = 'csv';
+    wrapper.vm.form.scope = 'filtered';
+
+    await wrapper.setProps({ modelValue: false });
+    await wrapper.vm.$nextTick();
+    await wrapper.setProps({ modelValue: true });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.form.format).toBe('excel');
+    expect(wrapper.vm.form.scope).toBe('all');
+  });
+
+  it('invalidates a ready download when the export format changes', async () => {
+    mocks.listProductsForExport.mockResolvedValue({
+      success: true,
+      data: [{ id: 'p-1', name: 'Lite Product' }],
+    });
+    mocks.loadProduct.mockResolvedValue({
+      id: 'p-1',
+      name: 'Full Product',
+      variants: [{ id: 'v-1', sku: 'SKU-1' }],
+    });
+
+    const wrapper = mount(ProductExportModal, {
+      props: {
+        modelValue: true,
+        filters: {},
+      },
+      global: {
+        stubs: {
+          Modal: {
+            props: ['modelValue', 'title', 'size'],
+            template: '<div><slot /><slot name="footer" /></div>',
+          },
+          AppIcon: true,
+        },
+      },
+    });
+
+    wrapper.vm.form.format = 'excel';
+    await wrapper.find('button.btn.btn-primary').trigger('click');
+    await vi.advanceTimersByTimeAsync(300);
+    await flushPromises();
+
+    expect(wrapper.vm.readyToDownload).toBe(true);
+    expect(wrapper.vm.generatedBlob).not.toBe(null);
+
+    wrapper.vm.form.format = 'csv';
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.readyToDownload).toBe(false);
+    expect(wrapper.vm.generatedBlob).toBe(null);
+  });
+
+  it('invalidates a ready download when filtered export inputs change', async () => {
+    mocks.listProductsForExport.mockResolvedValue({
+      success: true,
+      data: [{ id: 'p-1', name: 'Lite Product' }],
+    });
+    mocks.loadProduct.mockResolvedValue({
+      id: 'p-1',
+      name: 'Full Product',
+      variants: [{ id: 'v-1', sku: 'SKU-1' }],
+    });
+
+    const wrapper = mount(ProductExportModal, {
+      props: {
+        modelValue: true,
+        filters: { search: 'desk', status: 'active' },
+      },
+      global: {
+        stubs: {
+          Modal: {
+            props: ['modelValue', 'title', 'size'],
+            template: '<div><slot /><slot name="footer" /></div>',
+          },
+          AppIcon: true,
+        },
+      },
+    });
+
+    wrapper.vm.form.scope = 'filtered';
+    await wrapper.find('button.btn.btn-primary').trigger('click');
+    await vi.advanceTimersByTimeAsync(300);
+    await flushPromises();
+
+    expect(wrapper.vm.readyToDownload).toBe(true);
+
+    await wrapper.setProps({
+      filters: { search: 'chair', status: 'active' },
+    });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.readyToDownload).toBe(false);
+    expect(wrapper.vm.generatedBlob).toBe(null);
+  });
 });

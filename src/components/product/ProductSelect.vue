@@ -134,10 +134,18 @@ const {
 const containerRef = ref(null);
 const isOpen = ref(false);
 const searchQuery = ref('');
+const lastLoadedContextKey = ref('');
 
 const loading = computed(() => isSalesMode.value ? salesLoading.value : adminLoading.value);
 const error = computed(() => isSalesMode.value ? salesError.value : adminError.value);
 const items = computed(() => isSalesMode.value ? (salesProducts.value || []) : (adminProducts.value || []));
+const currentContextKey = computed(() =>
+  JSON.stringify({
+    mode: props.mode,
+    token: props.token,
+    statusFilter: props.statusFilter,
+  })
+);
 
 const placeholderText = computed(() => {
   if (props.placeholder) return props.placeholder;
@@ -147,6 +155,7 @@ const placeholderText = computed(() => {
 });
 
 const handleSearch = async (query) => {
+  const contextKey = currentContextKey.value;
   if (isSalesMode.value) {
     if (!props.token) return;
     await loadSalesProducts(props.token, { search: query, page: 1, limit: 12 });
@@ -155,11 +164,12 @@ const handleSearch = async (query) => {
     if (props.statusFilter) params.status = props.statusFilter;
     await loadAdminProducts(params);
   }
+  lastLoadedContextKey.value = contextKey;
 };
 
 const open = () => {
   isOpen.value = true;
-  if (!searchQuery.value && items.value.length === 0) {
+  if (!searchQuery.value && (items.value.length === 0 || lastLoadedContextKey.value !== currentContextKey.value)) {
       handleSearch('');
   }
 };
@@ -211,6 +221,13 @@ const getProductSubtext = (product) => {
 watch(error, (message) => {
   if (message) {
     emit('load-error', message);
+  }
+});
+
+watch(currentContextKey, () => {
+  lastLoadedContextKey.value = '';
+  if (isOpen.value) {
+    void handleSearch(searchQuery.value);
   }
 });
 </script>

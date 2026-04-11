@@ -129,6 +129,17 @@ const generatedBlob = ref(null);
 const generatedFileName = ref('');
 let generationRequestId = 0;
 
+const invalidateReadyDownload = () => {
+  if (isGenerating.value) return;
+  if (!readyToDownload.value && !generatedBlob.value && !generatedFileName.value) return;
+  readyToDownload.value = false;
+  generatedBlob.value = null;
+  generatedFileName.value = '';
+  progress.value = 0;
+  currentStep.value = -1;
+  statusText.value = '';
+};
+
 const resetState = () => {
   isGenerating.value = false;
   readyToDownload.value = false;
@@ -137,6 +148,8 @@ const resetState = () => {
   statusText.value = '';
   generatedBlob.value = null;
   generatedFileName.value = '';
+  form.format = 'excel';
+  form.scope = 'all';
 };
 
 const invalidateGeneration = () => {
@@ -149,6 +162,21 @@ watch(() => props.modelValue, (visible) => {
     resetState();
   }
 });
+
+watch(
+  [() => form.format, () => form.scope],
+  () => {
+    invalidateReadyDownload();
+  }
+);
+
+watch(
+  () => JSON.stringify(normalizeProductExportFilters(form.scope, props.filters)),
+  () => {
+    if (form.scope !== 'filtered') return;
+    invalidateReadyDownload();
+  }
+);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
