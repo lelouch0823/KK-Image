@@ -2272,3 +2272,15 @@
   - 商品详情里的关联空间加载已有 requestId 收口，失败态与重试入口测试仍有效。
   - 商品详情弹窗对“切换商品时旧请求回写新详情”和“lite product 背景 hydrate 失败时保留快照”已有测试覆盖，当前未看到新的假空态或脏回写实锤。
   - 下一步继续沿商品空间详情页、空间详情弹窗和剩余商品入口往下扫，优先查“打开/关闭/切换对象”场景里的旧状态残留。
+
+### 2026-04-11 轮次 217
+
+- 继续复查商品关联的空间详情弹窗切换链路，新增 1 个中风险问题:
+  - `SpaceDetailModal` 复用实例切换 `space.id` 时只重新拉详情，不会清理内部 `activeTab/showFileSelector`。结果是用户从空间 A 切到空间 B 时，会把旧空间的“分析/设置”标签页甚至打开中的文件选择器一起带进新上下文，形成跨空间残留状态；文件选择器还会让后续选文件操作落到错误的空间语境里，属于可复现的业务未闭环。[src/components/SpaceDetailModal.vue](/home/bjw/Code/KK-Image/src/components/SpaceDetailModal.vue)
+- 已完成本轮修复:
+  - `SpaceDetailModal` 现在在 `props.space.id` 变化时会先重置到 `files` 标签并关闭文件选择器，再加载新空间详情。
+  - 已补齐跨空间切换时的标签页重置和文件选择器收口测试。
+- 增量回归:
+  - `src/components/__tests__/SpaceDetailModal.lifecycle.test.js`
+  - `src/components/__tests__/SubspaceList.lifecycle.test.js`
+  - `src/views/__tests__/SpaceManager.permission-alignment.test.js`
