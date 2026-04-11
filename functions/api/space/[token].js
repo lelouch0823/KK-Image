@@ -229,6 +229,15 @@ export async function onRequestPost(context) {
       return error(MSG.SPACE.NOT_FOUND, 404);
     }
 
+    const isAdmin = await isAdminAuthenticated(request, env);
+    if (!space.is_public && !isAdmin) {
+      return error(MSG.SPACE.PRIVATE, 403);
+    }
+
+    if (space.expires_at && space.expires_at < Date.now()) {
+      return error(MSG.SPACE.EXPIRED, 410);
+    }
+
     // 检查是否需要密码
     if (!space.password) {
       return error(MSG.SPACE.NO_PASSWORD_REQUIRED, 400);

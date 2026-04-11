@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { onRequestPost } from '../[token].js';
 
 describe('public space access api', () => {
-  const spaceRecord = {
+  const baseSpaceRecord = {
     id: 'space-1',
     share_token: 'share-token',
     password: 'secret',
@@ -12,6 +12,8 @@ describe('public space access api', () => {
     view_count: 3,
     cover_file_id: null,
     p_images: '[]',
+    is_public: 1,
+    expires_at: null,
   };
 
   beforeEach(() => {
@@ -19,6 +21,7 @@ describe('public space access api', () => {
   });
 
   it('records access log and increments view count after password verification succeeds', async () => {
+    const spaceRecord = { ...baseSpaceRecord };
     const first = vi.fn().mockResolvedValue(spaceRecord);
     const all = vi.fn().mockResolvedValue({ results: [] });
     const batch = vi.fn().mockResolvedValue([]);
@@ -62,5 +65,56 @@ describe('public space access api', () => {
     const payload = await response.json();
     expect(payload.success).toBe(true);
     expect(payload.data.viewCount).toBe(4);
+  });
+
+  it('rejects password access to private spaces', async () => {
+    const first = vi.fn().mockResolvedValue({ ...baseSpaceRecord, is_public: 0 });
+    const batch = vi.fn();
+    const prepare = vi.fn((sql) => {
+      if (sql.includes('WHERE s.share_token = ?')) {
+        return { bind: () => ({ first }) };
+      }
+      throw new Error(`Unexpected SQL: ${sql}`);
+    });
+
+    const response = await onRequestPost({
+      env: { DB: { prepare, batch } },
+      params: { token: 'share-token' },
+      request: new Request('http://localhost/api/space/share-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: 'secret' }),
+      }),
+    });
+
+    expect(response.status).toBe(403);
+    expect(batch).not.toHaveBeenCalled();
+  });
+
+  it('rejects password access to expired spaces', async () => {
+    const first = vi.fn().mockResolvedValue({
+      ...baseSpaceRecord,
+      expires_at: Date.now() - 1000,
+    });
+    const batch = vi.fn();
+    const prepare = vi.fn((sql) => {
+      if (sql.includes('WHERE s.share_token = ?')) {
+        return { bind: () => ({ first }) };
+      }
+      throw new Error(`Unexpected SQL: ${sql}`);
+    });
+
+    const response = await onRequestPost({
+      env: { DB: { prepare, batch } },
+      params: { token: 'share-token' },
+      request: new Request('http://localhost/api/space/share-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: 'secret' }),
+      }),
+    });
+
+    expect(response.status).toBe(410);
+    expect(batch).not.toHaveBeenCalled();
   });
 });
