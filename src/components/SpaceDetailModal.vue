@@ -138,7 +138,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
@@ -167,6 +167,7 @@ const spaceData = ref(null);
 const showFileSelector = ref(false);
 const activeTab = ref('files');
 const publishing = ref(false);
+let loadRequestId = 0;
 
 const getTemplateLabel = (key) => {
   const labels = {
@@ -204,7 +205,10 @@ const setCover = async (fileId) => {
 };
 
 const loadData = async () => {
-  const data = await loadSpace(props.space.id);
+  const spaceId = props.space.id;
+  const requestId = ++loadRequestId;
+  const data = await loadSpace(spaceId);
+  if (requestId !== loadRequestId || props.space.id !== spaceId) return;
   if (data) {
     spaceData.value = data;
   }
@@ -265,4 +269,7 @@ const openPreview = () => {
 
 onMounted(loadData);
 watch(() => props.space.id, loadData);
+onUnmounted(() => {
+  loadRequestId += 1;
+});
 </script>

@@ -201,7 +201,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
@@ -227,6 +227,7 @@ const { copyShareLink } = useClipboard();
 const subspaces = ref([]);
 const loading = ref(false);
 const showCreateModal = ref(false);
+let loadRequestId = 0;
 
 // 确认弹窗状态
 const confirmData = ref({
@@ -242,8 +243,12 @@ const getTemplateLabel = (template) =>
   t(`spaceManager.templates.${template || 'custom'}`) || template;
 
 const loadData = async () => {
+  const spaceId = props.spaceId;
+  const requestId = ++loadRequestId;
   loading.value = true;
-  subspaces.value = await loadSubspaces(props.spaceId);
+  const data = await loadSubspaces(spaceId);
+  if (requestId !== loadRequestId || props.spaceId !== spaceId) return;
+  subspaces.value = data;
   loading.value = false;
 };
 
@@ -289,5 +294,11 @@ const onSubspaceCreated = async () => {
 
 onMounted(() => {
   loadData();
+});
+watch(() => props.spaceId, () => {
+  loadData();
+});
+onUnmounted(() => {
+  loadRequestId += 1;
 });
 </script>
