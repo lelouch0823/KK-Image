@@ -3622,7 +3622,12 @@ watch(showDetail, (isOpen) => {
 
 // 打开建议弹窗时自动加载
 watch(showSuggestions, (v) => {
-  if (v) loadSuggestions();
+  if (v) {
+    selectedSuggestions.value = [];
+    loadSuggestions();
+    return;
+  }
+  selectedSuggestions.value = [];
 });
 
 const detailFocusedVariantId = computed(() => getDetailFocusedVariantId(detail.value));

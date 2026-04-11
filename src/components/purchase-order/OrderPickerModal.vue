@@ -320,11 +320,21 @@ const filteredOrders = computed(() => {
 });
 
 // ─── 全选逻辑 ────────────────────────────────────────
+const filteredOrderIdSet = computed(() => new Set(filteredOrders.value.map((order) => order.id)));
+const selectedOrderIdSet = computed(() => new Set(selected.value.map((order) => order.id)));
+
+const selectedFilteredCount = computed(() =>
+  filteredOrders.value.reduce(
+    (count, order) => count + (selectedOrderIdSet.value.has(order.id) ? 1 : 0),
+    0
+  )
+);
+
 const isAllSelected = computed(() =>
-  filteredOrders.value.length > 0 && selected.value.length === filteredOrders.value.length
+  filteredOrders.value.length > 0 && selectedFilteredCount.value === filteredOrders.value.length
 );
 const isPartiallySelected = computed(() =>
-  selected.value.length > 0 && selected.value.length < filteredOrders.value.length
+  selectedFilteredCount.value > 0 && selectedFilteredCount.value < filteredOrders.value.length
 );
 
 const isSelected = (id) => selected.value.some(o => o.id === id);
@@ -340,9 +350,13 @@ const toggleSelect = (order) => {
 
 const toggleSelectAll = () => {
   if (isAllSelected.value) {
-    selected.value = [];
+    selected.value = selected.value.filter((order) => !filteredOrderIdSet.value.has(order.id));
   } else {
-    selected.value = [...filteredOrders.value];
+    const next = new Map(selected.value.map((order) => [order.id, order]));
+    for (const order of filteredOrders.value) {
+      next.set(order.id, order);
+    }
+    selected.value = Array.from(next.values());
   }
 };
 

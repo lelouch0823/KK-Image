@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   createPO: vi.fn(),
   addItems: vi.fn(),
   addToast: vi.fn(),
+  createFromOrders: vi.fn(),
   refreshBusCallback: null,
   subscribeModule: vi.fn(),
   modalState: {
@@ -64,7 +65,7 @@ vi.mock('@/composables/usePurchaseOrders', () => ({
     loadPurchaseOrderOverview: mocks.loadPurchaseOrderOverview,
     refreshPurchaseOrderViews: mocks.refreshPurchaseOrderViews,
     createPO: mocks.createPO,
-    createFromOrders: vi.fn(),
+    createFromOrders: mocks.createFromOrders,
     updatePO: vi.fn(),
     updateStatus: vi.fn(),
     loadSuggestions: mocks.loadSuggestions,
@@ -190,6 +191,7 @@ describe('PurchaseOrders detail shell', () => {
     mocks.reverseReceipt.mockResolvedValue({ reversal_id: 'reversal-1' });
     mocks.createPO.mockResolvedValue({ id: 'po-created' });
     mocks.addItems.mockResolvedValue(true);
+    mocks.createFromOrders.mockResolvedValue({ id: 'po-from-suggestions' });
   });
 
   it('renders detail shell while purchase-order detail is still loading', () => {
@@ -897,5 +899,23 @@ describe('PurchaseOrders detail shell', () => {
     expect(mocks.addToast).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'warning' })
     );
+  });
+
+  it('resets selected suggestions when reopening the suggestions modal', async () => {
+    mocks.modalState.showDetail = false;
+    mocks.modalState.showSuggestions = true;
+
+    const wrapper = mountPurchaseOrdersShell();
+    wrapper.vm.selectedSuggestions = [
+      { order_ids: ['old-order'], product_id: 'prod-old', variant_id: 'var-old' },
+    ];
+
+    wrapper.vm.showSuggestions = false;
+    await wrapper.vm.$nextTick();
+
+    wrapper.vm.showSuggestions = true;
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.selectedSuggestions).toEqual([]);
   });
 });

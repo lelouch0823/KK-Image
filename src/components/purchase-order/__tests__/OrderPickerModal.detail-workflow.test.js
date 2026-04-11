@@ -134,4 +134,40 @@ describe('OrderPickerModal detail workflow', () => {
 
     expect(wrapper.vm.viewingOrder).toEqual(expect.objectContaining({ id: 'o-2' }));
   });
+
+  it('keeps previously selected orders when selecting all within a narrower search result', async () => {
+    mocks.orders.value = [
+      { id: 'order-a', orderNo: 'SO-A', status: 'confirmed', procurementStatus: 'none', productName: 'Alpha' },
+      { id: 'order-b', orderNo: 'SO-B', status: 'confirmed', procurementStatus: 'none', productName: 'Beta' },
+      { id: 'order-c', orderNo: 'SO-C', status: 'confirmed', procurementStatus: 'none', productName: 'Gamma' },
+    ];
+
+    const wrapper = mount(OrderPickerModal, {
+      props: {
+        visible: true,
+      },
+      global: {
+        stubs: {
+          Teleport: true,
+          Transition: false,
+          OrderWorkflowModal: { template: '<div />', props: ['show', 'order', 'hydrating', 'hydrationError'] },
+          AppIcon: { template: '<i />' },
+          SearchInput: {
+            props: ['modelValue'],
+            template: '<input />',
+          },
+        },
+      },
+    });
+
+    wrapper.vm.toggleSelect(mocks.orders.value[0]);
+    wrapper.vm.searchQuery = 'Beta';
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.filteredOrders.map((order) => order.id)).toEqual(['order-b']);
+
+    wrapper.vm.toggleSelectAll();
+
+    expect(wrapper.vm.selected.map((order) => order.id)).toEqual(['order-a', 'order-b']);
+  });
 });
