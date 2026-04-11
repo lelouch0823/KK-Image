@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 104 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 105 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -139,6 +139,7 @@
   - `845c9dd`: 商品导入剔除未解析的本地图片文件名脏数据
   - `c5bb847`: 商品工作流弹窗切商品时清理旧编辑错误
   - `6fa20b0`: 商品导入图片部分成功时改为警告提示
+  - `0346601`: 商品详情背景补全失败时保留当前快照
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -178,6 +179,7 @@
   - 2026-04-11 运行 2 个回归测试文件，共 25 个测试，全部通过。
   - 2026-04-11 运行 3 个回归测试文件，共 13 个测试，全部通过。
   - 2026-04-11 运行 2 个回归测试文件，共 26 个测试，全部通过。
+  - 2026-04-11 运行 3 个回归测试文件，共 14 个测试，全部通过。
   - 2026-04-10 运行 5 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 14 个测试，全部通过。
@@ -2036,3 +2038,21 @@
   - `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
   - `src/components/product/import/__tests__/ImportPreviewStep.test.js`
 - 对应修复提交: `6fa20b0 fix: warn on partial import image upload success`
+
+### 2026-04-10 轮次 197
+
+- 继续复查商品详情弹窗背景补全链路，新增 1 个中风险问题:
+  - `ProductDetailModal` 在拿着 `initialData` 做后台补全时，如果 `loadProduct()` 失败，会把当前轻量商品快照直接清空成错误页。用户明明已经看到商品基础信息，却会因为“补充详情失败”失去整个详情视图。
+- 下一步把背景补全失败改成保留当前快照，只在没有任何可展示数据时才落错误页。
+
+### 2026-04-10 轮次 198
+
+- 已完成轮次 197 新增问题修复:
+  - `ProductDetailModal` 现在会在背景补全失败时保留当前 `initialData` 快照，不再把已有详情打成错误页
+  - 只有当前没有任何可展示商品数据时，详情弹窗才会真正收口为错误态
+  - 已补齐“背景补全失败时保留当前快照”回归，并联跑商品详情/工作流/关联空间回归
+- 增量回归:
+  - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
+  - `src/components/product/__tests__/ProductWorkflowModal.test.js`
+  - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
+- 对应修复提交: `0346601 fix: preserve product detail snapshot on hydrate failure`
