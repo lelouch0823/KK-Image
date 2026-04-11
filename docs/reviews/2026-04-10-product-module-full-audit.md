@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-11，本次审计累计确认的 105 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-11，本次审计累计确认的 106 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -140,6 +140,7 @@
   - `c5bb847`: 商品工作流弹窗切商品时清理旧编辑错误
   - `6fa20b0`: 商品导入图片部分成功时改为警告提示
   - `0346601`: 商品详情背景补全失败时保留当前快照
+  - `cb8fbc4`: 商品导出详情补全失败时中止导出
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -180,6 +181,7 @@
   - 2026-04-11 运行 3 个回归测试文件，共 13 个测试，全部通过。
   - 2026-04-11 运行 2 个回归测试文件，共 26 个测试，全部通过。
   - 2026-04-11 运行 3 个回归测试文件，共 14 个测试，全部通过。
+  - 2026-04-11 运行 3 个回归测试文件，共 13 个测试，全部通过。
   - 2026-04-10 运行 5 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 6 个回归测试文件，共 9 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 14 个测试，全部通过。
@@ -2056,3 +2058,20 @@
   - `src/components/product/__tests__/ProductWorkflowModal.test.js`
   - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
 - 对应修复提交: `0346601 fix: preserve product detail snapshot on hydrate failure`
+
+### 2026-04-10 轮次 199
+
+- 继续复查商品导出闭环，新增 1 个中风险问题:
+  - `ProductExportModal` 在补全商品详情时，如果 `loadProduct()` 返回 `null`，会直接回退到列表页的 lite 数据继续导出。这样生成的文件会静默缺少完整变体明细，却仍然走成功收口，属于业务未闭环。
+- 下一步把导出流程收紧为“任一商品详情补全失败就中止导出并提示错误”，避免产出不完整文件。
+
+### 2026-04-10 轮次 200
+
+- 已完成轮次 199 新增问题修复:
+  - `ProductExportModal` 现在在任一商品详情补全失败时会直接中止导出并提示错误，不再偷用 lite 列表数据生成不完整文件
+  - 已补齐“商品详情补全失败时导出应失败”回归，并联跑商品导出/详情/工作流回归
+- 增量回归:
+  - `src/components/product/__tests__/ProductExportModal.filters.test.js`
+  - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
+  - `src/components/product/__tests__/ProductWorkflowModal.test.js`
+- 对应修复提交: `cb8fbc4 fix: fail product export when detail hydration is incomplete`
