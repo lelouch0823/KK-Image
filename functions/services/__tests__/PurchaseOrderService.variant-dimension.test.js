@@ -381,4 +381,40 @@ describe('PurchaseOrderService variant dimension', () => {
     await expect(service.updateStatus('po-1', 'cancelled')).rejects.toThrow(/arrived/);
     expect(service._updateInventory).not.toHaveBeenCalled();
   });
+
+  it('createManual rejects mismatched product and variant pairs before creating a draft', async () => {
+    const db = {
+      prepare: vi.fn((sql) => ({
+        bind: vi.fn(() => ({
+          all: vi.fn(async () => ({
+            results: sql.includes('FROM product_variants')
+              ? [{
+                  id: 'var-1',
+                  product_id: 'prod-1',
+                  status: 'active',
+                  moq: 1,
+                  pack_size: 1,
+                  order_step: 1,
+                }]
+              : [],
+          })),
+        })),
+      })),
+    };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      create: vi.fn(async () => ({ id: 'po-1' })),
+      addItems: vi.fn(async () => []),
+      findById: vi.fn(async () => ({ id: 'po-1', items: [] })),
+      findActiveBindingsByPreOrderIds: vi.fn(async () => []),
+    };
+
+    await expect(service.createManual(
+      { remark: 'ai manual' },
+      [{ product_id: 'prod-x', variant_id: 'var-1', quantity: 2, unit_cost: 11 }]
+    )).rejects.toThrow('variant_id 与 product_id 不匹配');
+
+    expect(service.repo.create).not.toHaveBeenCalled();
+    expect(service.repo.addItems).not.toHaveBeenCalled();
+  });
 });

@@ -85,6 +85,45 @@ describe('AI action submitters', () => {
     expect(result).toEqual(expect.objectContaining({ id: 'po-1', label: 'PO-1' }));
   });
 
+  it('routes manual purchase-order submissions through purchaseOrderService when available', async () => {
+    const purchaseOrderService = {
+      createManual: vi.fn(async (payload, items) => ({
+        id: 'po-1',
+        po_no: 'PO-1',
+        payload,
+        items,
+      })),
+    };
+    const purchaseOrderRepo = {
+      create: vi.fn(async () => ({ id: 'po-repo-1', po_no: 'PO-REPO-1' })),
+      addItems: vi.fn(async () => ['poi-1']),
+    };
+    const submitters = createActionSubmitters({ purchaseOrderService, purchaseOrderRepo });
+
+    const result = await submitters.create_purchase_order({
+      mode: 'manual',
+      remark: 'manual draft',
+      items: [
+        { product_id: 'prod-1', variant_id: 'var-1', quantity: 3, unit_cost: 12 },
+      ],
+    });
+
+    expect(purchaseOrderService.createManual).toHaveBeenCalledWith(
+      expect.objectContaining({ remark: 'manual draft' }),
+      [
+        expect.objectContaining({
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          quantity: 3,
+          unit_cost: 12,
+        }),
+      ]
+    );
+    expect(purchaseOrderRepo.create).not.toHaveBeenCalled();
+    expect(purchaseOrderRepo.addItems).not.toHaveBeenCalled();
+    expect(result).toEqual(expect.objectContaining({ id: 'po-1', label: 'PO-1' }));
+  });
+
   it('cleans up manual purchase-order drafts when AI item insertion fails', async () => {
     const purchaseOrderRepo = {
       create: vi.fn(async () => ({ id: 'po-1', po_no: 'PO-1' })),

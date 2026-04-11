@@ -19,6 +19,10 @@ import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 import { InventoryService } from './InventoryService.js';
 import { DemandService } from './DemandService.js';
 import {
+  validatePurchaseOrderPreOrderBinding,
+  validatePurchaseOrderVariantItems,
+} from './purchase-order-item-validation.js';
+import {
   getPurchaseOrderOutstandingQty,
   getPurchaseOrderReceivedQty,
 } from './purchase-order-projection.js';
@@ -362,6 +366,31 @@ export class PurchaseOrderService {
       })
       .filter((row) => row.shortage > 0)
       .sort((a, b) => b.shortage - a.shortage);
+  }
+
+  async createManual(poData = {}, items = []) {
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new BadRequestError('请提供至少一条明细项');
+    }
+
+    await validatePurchaseOrderVariantItems(this.db, items);
+    await validatePurchaseOrderPreOrderBinding(this.db, items, { repo: this.repo });
+
+    const po = await this.repo.create(poData);
+    try {
+      await this.repo.addItems(po.id, items);
+    } catch (error) {
+      if (typeof this.repo.deleteIfEmptyDraft === 'function') {
+        try {
+          await this.repo.deleteIfEmptyDraft(po.id);
+        } catch (cleanupError) {
+          console.error('Purchase-order draft cleanup failed:', cleanupError);
+        }
+      }
+      throw error;
+    }
+
+    return this.repo.findById(po.id);
   }
 
   /**

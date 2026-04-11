@@ -63,10 +63,17 @@ export function createActionSubmitters(deps = {}) {
       if (items.some((item) => !item?.product_id || !item?.variant_id)) {
         throw new Error('Resolved product_id and variant_id are required for every purchase-order item');
       }
+      const payload = pickDefined(slots, ['remark', 'currency', 'allocation_method', 'estimated_shipping_cost', 'estimated_tariff_cost']);
+      if (typeof deps.purchaseOrderService?.createManual === 'function') {
+        const created = await deps.purchaseOrderService.createManual(payload, items);
+        return {
+          id: created.id,
+          label: created.po_no || created.id,
+        };
+      }
       if (typeof deps.purchaseOrderRepo.addItems !== 'function') {
         throw new Error('Purchase order item creation dependency is unavailable');
       }
-      const payload = pickDefined(slots, ['remark', 'currency', 'allocation_method', 'estimated_shipping_cost', 'estimated_tariff_cost']);
       const created = await deps.purchaseOrderRepo.create(payload);
       if (items.length > 0) {
         try {

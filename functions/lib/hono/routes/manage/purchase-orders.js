@@ -14,6 +14,10 @@ import { PurchaseOrderService } from '../../../../services/PurchaseOrderService.
 import { OrderProcurementDomainService } from '../../../../services/OrderProcurementDomainService.js';
 import { OrderProcurementReceiptReversalService } from '../../../../services/OrderProcurementReceiptReversalService.js';
 import { PurchaseOrderShortageClosureService } from '../../../../services/PurchaseOrderShortageClosureService.js';
+import {
+  validatePurchaseOrderPreOrderBinding,
+  validatePurchaseOrderVariantItems,
+} from '../../../../services/purchase-order-item-validation.js';
 import { validateOrderQuantity } from '../../../../services/purchase-order-constraints.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { withCache } from '../../middleware/cache.js';
@@ -21,12 +25,10 @@ import { requirePermission } from '../../middleware/auth.js';
 import { requireEntity } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
-import { chunkArray } from '../../../../lib/db/batch.js';
 import { runOutboxPoller } from '../../../../api/cron/outbox.js';
 import { DomainOutboxPublisher } from '../../../../services/DomainOutboxPublisher.js';
 
 const app = new Hono();
-const D1_MAX_IN_CLAUSE_SIZE = 100;
 export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'POST', path: '/', domain: 'purchase-orders', action: 'purchase_order.create', severity: 'high', targetType: 'purchase_order' },
   { method: 'POST', path: '/from-orders', domain: 'purchase-orders', action: 'purchase_order.create_from_orders', severity: 'high', targetType: 'purchase_order' },
@@ -100,98 +102,6 @@ function hasAllocationImpact(body = {}) {
   ];
 
   return allocationFields.some((field) => Object.prototype.hasOwnProperty.call(body, field));
-}
-
-async function validateVariantItems(db, items = []) {
-  if (!items || items.length === 0) return;
-  const variantIds = [...new Set(items.map((item) => item.variant_id).filter(Boolean))];
-  if (variantIds.length !== items.length) {
-    // duplicates are allowed, but missing variant_id is not
-    const hasMissing = items.some((item) => !item.variant_id);
-    if (hasMissing) throw new BadRequestError('采购单明细必须包含 variant_id');
-  }
-
-  if (items.some((item) => !item.product_id || !item.variant_id)) {
-    throw new BadRequestError('采购单明细必须包含 product_id 与 variant_id');
-  }
-
-  const variantMap = new Map();
-  for (const variantIdChunk of chunkArray(variantIds, D1_MAX_IN_CLAUSE_SIZE)) {
-    const placeholders = variantIdChunk.map(() => '?').join(',');
-    const { results } = await db.prepare(`
-      SELECT id, product_id, status,
-             COALESCE(moq, 1) AS moq,
-             COALESCE(pack_size, 1) AS pack_size,
-             COALESCE(order_step, 1) AS order_step
-      FROM product_variants
-      WHERE id IN (${placeholders})
-    `).bind(...variantIdChunk).all();
-    for (const row of results || []) {
-      variantMap.set(row.id, row);
-    }
-  }
-
-  for (const item of items) {
-    const variant = variantMap.get(item.variant_id);
-    if (!variant) {
-      throw new BadRequestError(`变体不存在: ${item.variant_id}`);
-    }
-    if (variant.product_id !== item.product_id) {
-      throw new BadRequestError('variant_id 与 product_id 不匹配');
-    }
-    if (String(variant.status || '').toLowerCase() !== 'active') {
-      throw new BadRequestError('仅可采购 active 变体');
-    }
-    const result = validateOrderQuantity(item.quantity || 1, {
-      moq: variant.moq,
-      orderStep: variant.order_step,
-      packSize: variant.pack_size,
-    });
-    if (!result.valid) {
-      throw new BadRequestError(`${result.reason}（建议数量: ${result.suggestedQuantity}）`);
-    }
-  }
-}
-
-async function validatePreOrderBinding(db, items = []) {
-  if (!items || items.length === 0) return;
-  const linkedItems = items.filter((item) => item.pre_order_id);
-  if (linkedItems.length === 0) return;
-
-  const poRepo = new PurchaseOrderRepository(db);
-  const orderIds = [...new Set(linkedItems.map((item) => item.pre_order_id))];
-  const orderMap = new Map();
-  for (const orderIdChunk of chunkArray(orderIds, D1_MAX_IN_CLAUSE_SIZE)) {
-    const placeholders = orderIdChunk.map(() => '?').join(',');
-    const { results } = await db.prepare(`
-      SELECT id, status, product_id, variant_id
-      FROM orders
-      WHERE id IN (${placeholders})
-    `).bind(...orderIdChunk).all();
-    for (const row of results || []) {
-      orderMap.set(row.id, row);
-    }
-  }
-
-  const activeBindings = await poRepo.findActiveBindingsByPreOrderIds(orderIds);
-  const bindingMap = new Map(activeBindings.map((binding) => [binding.pre_order_id, binding]));
-
-  for (const item of linkedItems) {
-    const order = orderMap.get(item.pre_order_id);
-    if (!order) {
-      throw new BadRequestError(`预订单不存在: ${item.pre_order_id}`);
-    }
-    if (order.status !== 'confirmed') {
-      throw new BadRequestError('仅可关联 confirmed 状态的预订单');
-    }
-    if (order.product_id !== item.product_id || order.variant_id !== item.variant_id) {
-      throw new BadRequestError('pre_order_id 与商品/变体不匹配');
-    }
-    const binding = bindingMap.get(item.pre_order_id);
-    if (binding) {
-      throw new BadRequestError(`${order.order_no || item.pre_order_id} 已在采购单 ${binding.po_no || binding.po_id} 中`);
-    }
-  }
 }
 
 async function validateExistingItemQuantityUpdate(db, item, nextQuantity) {
@@ -393,8 +303,8 @@ app.post('/', async (c) => {
 
   // 如果同时传入了明细项，一并添加
   if (body.items && body.items.length > 0) {
-    await validateVariantItems(c.env.DB, body.items);
-    await validatePreOrderBinding(c.env.DB, body.items);
+    await validatePurchaseOrderVariantItems(c.env.DB, body.items);
+    await validatePurchaseOrderPreOrderBinding(c.env.DB, body.items);
     try {
       await repo.addItems(po.id, body.items);
     } catch (error) {
@@ -626,8 +536,8 @@ app.post('/:id/items', async (c) => {
   if (!body.items || body.items.length === 0) {
     throw new BadRequestError('请提供至少一条明细项');
   }
-  await validateVariantItems(c.env.DB, body.items);
-  await validatePreOrderBinding(c.env.DB, body.items);
+  await validatePurchaseOrderVariantItems(c.env.DB, body.items);
+  await validatePurchaseOrderPreOrderBinding(c.env.DB, body.items);
 
   const ids = await repo.addItems(poId, body.items);
 
