@@ -2667,3 +2667,33 @@
   - `functions/ai/__tests__/action-orchestrator.test.js`
   - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
 - 对应修复提交: `66b6d48 test: realign inventory workflow demand projections`
+
+### 2026-04-11 轮次 244
+
+- 继续复查 AI 商品/采购语义识别入口，新增 1 个高风险问题:
+  - [functions/ai/canonicalization.js](/home/bjw/Code/KK-Image/functions/ai/canonicalization.js) 的 `detectCreateIntent()` 按 `ENTITY_CREATE_MAP` 顺序做首次命中，`order` 比 `purchase_order` 更早出现；而“采购单/备货单/补货单”本身又包含“订单”字样。结果是用户说“创建采购单”时，AI 很可能先命中 `create_order`，把采购单意图误路由成预订单创建，属于上游入口级别的实体识别错误。
+- 已完成本轮修复:
+  - `detectCreateIntent()` 现在会在所有命中的创建实体别名里优先选择“更长、更具体”的别名，不再因为先扫到“订单”而吞掉“采购单”意图。
+  - 已补齐规范化回归测试，明确锁定“创建采购单”必须映射到 `create_purchase_order`。
+- 增量回归:
+  - `functions/ai/__tests__/canonicalization.test.js`
+  - `functions/ai/__tests__/action-orchestrator.test.js`
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
+- 对应修复提交: `63fbaa0 fix: prefer purchase-order ai intents over generic orders`
+
+### 2026-04-11 轮次 245
+
+- 继续复查 AI 采购单动作的输入契约，新增 1 个高风险问题:
+  - [functions/ai/adapters/purchase-order.js](/home/bjw/Code/KK-Image/functions/ai/adapters/purchase-order.js) 和 [functions/ai/action-orchestrator.js](/home/bjw/Code/KK-Image/functions/ai/action-orchestrator.js) 之前只把 `mode` 当成采购单动作的静态必填字段，导致 `manual` 模式没有 `items`、`from_orders` 模式没有 `order_ids` 时也能直接进入预览甚至提交；再叠加 [functions/ai/action-submitters.js](/home/bjw/Code/KK-Image/functions/ai/action-submitters.js) 缺少空输入兜底，就会形成 AI 空采购单或提交时报错的弱边界。
+- 已完成本轮修复:
+  - 采购单适配器现在会按 `mode` 动态声明必填槽位：`manual` 必须有 `items`，`from_orders` 必须有 `order_ids`；编排器也已改为按适配器动态计算缺失字段，保证预览前就把缺失输入拦住。
+  - `action-submitters` 额外补了提交层兜底：`manual` 没有明细、`from_orders` 没有订单 ID 时会直接拒绝，而不是继续创建或依赖下游报错。
+  - 已补齐 AI 编排器和 submitter 回归测试，覆盖“采购单模式化必填字段必须在预览前收齐”和“提交层也要拒绝空输入”的场景。
+- 增量回归:
+  - `functions/ai/__tests__/action-orchestrator.test.js`
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/ai/__tests__/canonicalization.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
+  - `functions/services/__tests__/InventoryBusinessWorkflow.test.js`
+- 对应修复提交: `05e61b5 fix: enforce ai purchase-order action requirements`
