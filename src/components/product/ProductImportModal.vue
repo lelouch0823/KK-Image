@@ -786,17 +786,11 @@ const handleUploadImagesAndNext = async () => {
 const handleBack = () => {
     if (currentStep.value === 3) {
         resetFile();
-    } else if (currentStep.value === 4) {
-        // If came from 5, go back to 5? Or back to 3? 
-        // Simplification: Go back to Mapping (3) resets matching?
-        // Let's go back to 3.
-        currentStep.value = 3;
-        parsedItems.value = [];
-        preprocessStats.value = createPreprocessStats();
     } else if (currentStep.value === 5) {
         currentStep.value = 3;
-        parsedItems.value = [];
-        preprocessStats.value = createPreprocessStats();
+    } else if (currentStep.value === 4) {
+        const hasImageWorkflowState = imageUploadFiles.value.length > 0 || imageMatches.value.size > 0;
+        currentStep.value = hasImageWorkflowState ? 5 : 3;
     }
 };
 

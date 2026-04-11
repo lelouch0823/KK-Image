@@ -329,6 +329,80 @@ describe('ProductImportModal Variant-First Payload', () => {
         );
     });
 
+    it('returns from image matching to mapping without clearing parsed data', async () => {
+        const wrapper = mount(ProductImportModal, {
+            global: {
+                stubs: {
+                    Modal: { template: '<div><slot></slot><slot name="footer"></slot></div>' },
+                    AppIcon: true,
+                    ImportUploadStep: true,
+                    ImportMappingStep: true,
+                    ImportImageMatchStep: true,
+                    ImportPreviewStep: true
+                }
+            },
+            props: { modelValue: true }
+        });
+
+        wrapper.vm.currentStep = 5;
+        wrapper.vm.parsedItems = [
+            { name: 'T恤', spu: 'SPU-1001', sku: 'SKU-RED', image_url: 'a.jpg' }
+        ];
+        wrapper.vm.preprocessStats = {
+            sourceRows: 1,
+            acceptedRows: 1,
+            droppedEmptyRows: 0,
+            normalizedRows: 0,
+        };
+
+        wrapper.vm.handleBack();
+
+        expect(wrapper.vm.currentStep).toBe(3);
+        expect(wrapper.vm.parsedItems).toEqual([
+            { name: 'T恤', spu: 'SPU-1001', sku: 'SKU-RED', image_url: 'a.jpg' }
+        ]);
+        expect(wrapper.vm.preprocessStats.acceptedRows).toBe(1);
+    });
+
+    it('returns from preview to image matching when image workflow is active', async () => {
+        const wrapper = mount(ProductImportModal, {
+            global: {
+                stubs: {
+                    Modal: { template: '<div><slot></slot><slot name="footer"></slot></div>' },
+                    AppIcon: true,
+                    ImportUploadStep: true,
+                    ImportMappingStep: true,
+                    ImportImageMatchStep: true,
+                    ImportPreviewStep: true
+                }
+            },
+            props: { modelValue: true }
+        });
+
+        wrapper.vm.currentStep = 4;
+        wrapper.vm.parsedItems = [
+            { name: 'T恤', spu: 'SPU-1001', sku: 'SKU-RED', images: ['img-uploaded'] }
+        ];
+        wrapper.vm.preprocessStats = {
+            sourceRows: 1,
+            acceptedRows: 1,
+            droppedEmptyRows: 0,
+            normalizedRows: 0,
+        };
+        wrapper.vm.imageUploadFiles = [new File(['a'], 'a.jpg', { type: 'image/jpeg' })];
+        wrapper.vm.imageMatches = new Map([
+            ['spu:SPU-1001', new File(['a'], 'a.jpg', { type: 'image/jpeg' })]
+        ]);
+
+        wrapper.vm.handleBack();
+
+        expect(wrapper.vm.currentStep).toBe(5);
+        expect(wrapper.vm.parsedItems).toEqual([
+            { name: 'T恤', spu: 'SPU-1001', sku: 'SKU-RED', images: ['img-uploaded'] }
+        ]);
+        expect(wrapper.vm.preprocessStats.acceptedRows).toBe(1);
+    });
+
     it('builds grouped product payload with currency and derived dimensions', async () => {
         const wrapper = mount(ProductImportModal, {
             global: {
