@@ -124,6 +124,24 @@ async function getSpaceData(space, env) {
   };
 }
 
+async function recordSpaceAccess(spaceId, request, env) {
+  const accessId = Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO space_access_logs (id, space_id, ip_address, user_agent, referrer, accessed_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).bind(
+      accessId,
+      spaceId,
+      request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || '',
+      request.headers.get('User-Agent') || '',
+      request.headers.get('Referer') || '',
+      Date.now()
+    ),
+    env.DB.prepare('UPDATE spaces SET view_count = view_count + 1 WHERE id = ?').bind(spaceId),
+  ]);
+}
+
 export async function onRequestGet(context) {
   const { env, params, request } = context;
   const shareToken = params.token;
@@ -166,22 +184,7 @@ export async function onRequestGet(context) {
     data.viewCount = space.view_count + 1;
 
     // 记录访问
-    // 批量执行：记录访问日志 + 更新计数
-    const accessId = Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
-    await env.DB.batch([
-      env.DB.prepare(
-        `INSERT INTO space_access_logs (id, space_id, ip_address, user_agent, referrer, accessed_at)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      ).bind(
-        accessId,
-        space.id,
-        request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || '',
-        request.headers.get('User-Agent') || '',
-        request.headers.get('Referer') || '',
-        Date.now()
-      ),
-      env.DB.prepare('UPDATE spaces SET view_count = view_count + 1 WHERE id = ?').bind(space.id),
-    ]);
+    await recordSpaceAccess(space.id, request, env);
 
     return success(data, 'Success', 200, {
       'Cache-Control':
@@ -238,6 +241,8 @@ export async function onRequestPost(context) {
 
     // 密码正确，返回完整空间数据
     const data = await getSpaceData(space, env);
+    data.viewCount = (Number(space.view_count) || 0) + 1;
+    await recordSpaceAccess(space.id, request, env);
 
     return success(data, MSG.AUTH.VERIFY_SUCCESS, 200, { 'Cache-Control': 'no-store, max-age=0' });
   } catch (err) {
