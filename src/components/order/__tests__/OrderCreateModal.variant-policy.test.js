@@ -30,4 +30,58 @@ describe('OrderCreateModal variant policy', () => {
 
     expect(wrapper.get('[data-testid="variant-policy"]').text()).toBe('allow_out_of_stock');
   });
+
+  it('clears bound variant snapshot after closing and reopening', async () => {
+    const wrapper = mount(OrderCreateModal, {
+      props: {
+        modelValue: true,
+        salespersons: [],
+        statuses: [],
+      },
+      global: {
+        stubs: {
+          Modal: {
+            template: '<div><slot /></div>',
+          },
+          ProductBindingSection: {
+            template: '<button data-testid="select-product" @click="$emit(\'select\', product)">pick</button>',
+            data() {
+              return {
+                product: {
+                  id: 'prod-1',
+                  name: 'Desk',
+                  brand: 'ACME',
+                  series: 'Series A',
+                  dimension_map: { Color: 'Color' },
+                  selectedVariant: {
+                    id: 'var-1',
+                    sku: 'SKU-1',
+                    options_values: { Color: 'Red' },
+                  },
+                },
+              };
+            },
+          },
+          OrderForm: {
+            props: ['boundProductVariant', 'prefill'],
+            template: `
+              <div>
+                <div data-testid="bound-variant">{{ JSON.stringify(boundProductVariant) }}</div>
+                <div data-testid="prefill">{{ JSON.stringify(prefill) }}</div>
+              </div>
+            `,
+          },
+        },
+      },
+    });
+
+    await wrapper.get('[data-testid="select-product"]').trigger('click');
+    expect(wrapper.get('[data-testid="bound-variant"]').text()).toContain('Red');
+
+    await wrapper.setProps({ modelValue: false });
+    await wrapper.setProps({ modelValue: true });
+
+    expect(wrapper.get('[data-testid="bound-variant"]').text()).toBe('null');
+    expect(wrapper.get('[data-testid="prefill"]').text()).toBe('{}');
+  });
 });

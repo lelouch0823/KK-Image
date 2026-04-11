@@ -160,6 +160,7 @@ watch(() => props.modelValue, (val) => {
   if (val) {
     boundProduct.value = null;
     selectedProductId.value = null;
+    boundProductVariant.value = null;
     formData.value = {};
   }
 });

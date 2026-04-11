@@ -82,17 +82,21 @@ export function useOrderForm(options = {}) {
    * 填充表单数据 (用于复制订单)
    * @param {Object} data - 预填充数据
    */
+  const resetFormState = () => {
+    Object.keys(form).forEach((key) => {
+      if (key === 'quantity') {
+        form[key] = 1;
+      } else {
+        form[key] = '';
+      }
+    });
+    uploadedFiles.value = [];
+  };
+
   const fillForm = (data) => {
+    resetFormState();
+
     if (!data) {
-      // 重置表单
-      Object.keys(form).forEach((key) => {
-        if (key === 'quantity') {
-          form[key] = 1;
-        } else {
-          form[key] = '';
-        }
-      });
-      uploadedFiles.value = [];
       return;
     }
 
