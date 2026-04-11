@@ -57,6 +57,11 @@ let statsRequestId = 0;
 
 const STATS_PAGE_LIMIT = 100;
 
+const resetStatsState = () => {
+  statsProducts.value = [];
+  statsTotal.value = 0;
+};
+
 const buildStatsQuery = (page) => ({
   search: String(props.filters?.search || ''),
   status: String(props.filters?.status || ''),
@@ -76,7 +81,11 @@ const loadAllStatsProducts = async (requestId) => {
 
   while (true) {
     const ok = await loadProducts(buildStatsQuery(page), true);
-    if (requestId !== statsRequestId || !ok) return;
+    if (requestId !== statsRequestId) return;
+    if (!ok) {
+      resetStatsState();
+      return;
+    }
 
     const pageItems = Array.isArray(products.value) ? [...products.value] : [];
     collected.push(...pageItems);

@@ -192,6 +192,65 @@ describe('ProductStats', () => {
     expect(wrapper.text()).not.toContain('9');
   });
 
+  it('clears stale metrics when the latest stats refresh fails', async () => {
+    mocks.loadProducts.mockImplementation(async (params) => {
+      if (params.brand === 'Broken') {
+        return false;
+      }
+
+      state.products.value = [
+        { id: 'p-1', cost_price: 10, stock_quantity: 2, alert_threshold: 3 },
+      ];
+      state.pagination.page = 1;
+      state.pagination.limit = 1;
+      state.pagination.total = 1;
+      state.pagination.totalPages = 1;
+      return true;
+    });
+
+    const wrapper = mount(ProductStats, {
+      props: {
+        active: true,
+        filters: {
+          brand: 'Healthy',
+        },
+      },
+      global: {
+        stubs: {
+          MetricTile: {
+            props: ['label', 'value', 'meta'],
+            template: `
+              <div class="metric">
+                <div class="label">{{ label }}</div>
+                <div class="value"><slot name="value">{{ value }}</slot></div>
+                <div class="meta">{{ meta }}</div>
+              </div>
+            `,
+          },
+        },
+      },
+    });
+
+    await flushPromises();
+    await flushPromises();
+
+    expect(wrapper.vm.totalFormatted).toBe('1');
+    expect(wrapper.vm.lowStockCount).toBe(1);
+    expect(wrapper.vm.valueFormatted).toBe('20');
+
+    await wrapper.setProps({
+      filters: {
+        brand: 'Broken',
+      },
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(wrapper.vm.totalFormatted).toBe('0');
+    expect(wrapper.vm.lowStockCount).toBe(0);
+    expect(wrapper.vm.valueFormatted).toBe('0');
+  });
+
   it('prefers available_quantity when computing low-stock counts', async () => {
     mocks.loadProducts.mockImplementation(async () => {
       state.products.value = [
