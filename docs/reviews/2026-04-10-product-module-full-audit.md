@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 69 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 70 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -115,6 +115,7 @@
   - `b40d979`: 密码保护商品空间访问补齐浏览量与访问日志记录
   - `5b80156`: 密码保护商品空间 POST 访问补齐私有/过期校验
   - `a6cd71f`: 商品空间前端正确识别密码门禁响应
+  - `2223e18`: 商品空间密码提交只认当前 token 的最新结果
 - 基线验证:
   - 2026-04-10 运行 23 个回归测试文件，共 128 个测试，全部通过。
 - 增量验证:
@@ -156,6 +157,7 @@
   - 2026-04-10 运行 3 个回归测试文件，共 3 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 5 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 6 个测试，全部通过。
+  - 2026-04-10 运行 3 个回归测试文件，共 7 个测试，全部通过。
   - 2026-04-10 运行 2 个回归测试文件，共 21 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 18 个测试，全部通过。
   - 2026-04-10 运行 3 个回归测试文件，共 16 个测试，全部通过。
@@ -255,6 +257,7 @@
 - 商品公开空间页父组件 `Space.vue` 在路由 token 切换时没有隔离 `loadSpace()` 请求先后。旧 token 的慢请求在后返回后仍会覆盖当前 `space/error/requiresPassword/loading`，导致公开空间页直接串到上一条商品空间的数据或错误状态。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L97)
 - 密码保护的公开空间走 `POST /api/space/:token` 成功访问后，没有像 GET 一样写入 `space_access_logs` 或递增 `view_count`。结果是商品空间的访问统计在“无密码访问”和“密码访问”两条链路上长期分叉，浏览量与访问日志都少记一段真实访问。[functions/api/space/[token].js](/home/bjw/Code/KK-Image/functions/api/space/[token].js#L185)
 - 商品公开空间前端把 `GET /api/space/:token` 返回的 `{ success: true, data: { requiresPassword: true } }` 误当成真实空间详情处理，而不是切换到密码门禁。结果是密码空间首屏不会进入密码校验视图，前端状态机直接跑偏到一份伪“空间数据”。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L114) [functions/api/space/[token].js](/home/bjw/Code/KK-Image/functions/api/space/[token].js#L178)
+- 商品公开空间页的 `submitPassword()` 没有 token/request 维度隔离。用户在密码验证请求未返回前切到另一条空间时，旧密码验证成功结果仍会回写当前页面，把新空间直接串回旧空间详情。[src/views/Space.vue](/home/bjw/Code/KK-Image/src/views/Space.vue#L153)
 
 ### Low
 
@@ -1347,3 +1350,20 @@
   - `src/views/__tests__/Space.lifecycle.test.js`
   - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
 - 对应修复提交: `a6cd71f fix: honor public space password gate responses`
+
+### 2026-04-10 轮次 127
+
+- 继续复查商品空间密码验证链路，新增 1 个中风险问题:
+  - `Space.vue.submitPassword()` 没有请求先后隔离，切空间后旧密码验证结果仍会覆盖当前页面
+- 下一步给密码提交流程补 token 维度的请求序号，并在 token 切换时废弃旧提交上下文。
+
+### 2026-04-10 轮次 128
+
+- 已完成轮次 127 新增问题修复:
+  - `Space.vue.submitPassword()` 现在只认当前 token 的最新密码验证结果，旧提交不会再串写当前空间
+  - 路由 token 切换时会同步清空旧密码错误和验证状态，避免上一条空间的密码流程污染当前页
+- 增量回归:
+  - `functions/api/space/__tests__/public-space-access.test.js`
+  - `src/views/__tests__/Space.lifecycle.test.js`
+  - `src/components/space/__tests__/SpaceProductDetail.lifecycle.test.js`
+- 对应修复提交: `2223e18 fix: guard stale public space password submits`
