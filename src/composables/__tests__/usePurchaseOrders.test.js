@@ -498,6 +498,28 @@ describe('usePurchaseOrders authz handling', () => {
     expect(suggestions.value).toEqual([{ variant_id: 'variant-new', shortage: 2 }]);
   });
 
+  it('clears stale purchase suggestions when the latest refresh fails', async () => {
+    mockAuthFetch
+      .mockResolvedValueOnce({
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: [{ variant_id: 'variant-old', shortage: 5 }],
+          }),
+      })
+      .mockRejectedValueOnce(new Error('network down'));
+
+    const { loadSuggestions, suggestions } = usePurchaseOrders();
+    await loadSuggestions();
+
+    expect(suggestions.value).toEqual([{ variant_id: 'variant-old', shortage: 5 }]);
+
+    const ok = await loadSuggestions();
+
+    expect(ok).toBe(false);
+    expect(suggestions.value).toEqual([]);
+  });
+
   it('keeps the latest purchase stats when earlier stats loads resolve late', async () => {
     let resolveFirst;
     let resolveSecond;

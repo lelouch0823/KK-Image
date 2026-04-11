@@ -447,11 +447,13 @@ export function usePurchaseOrders() {
         suggestions.value = json.data;
         return true;
       }
+      suggestions.value = [];
     } catch (e) {
       if (requestId !== suggestionsRequestId) {
         return false;
       }
       console.error('loadSuggestions failed:', e);
+      suggestions.value = [];
     } finally {
       if (requestId === suggestionsRequestId) {
         suggestionsLoading.value = false;
