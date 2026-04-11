@@ -108,6 +108,31 @@ function hasAllocationImpact(body = {}) {
 async function validateExistingItemQuantityUpdate(db, item, nextQuantity) {
   if (!item?.variant_id || nextQuantity === undefined || nextQuantity === null) return;
 
+  if (item?.pre_order_id) {
+    const { results } = await db
+      .prepare(`
+        SELECT id, status, product_id, variant_id, quantity
+        FROM orders
+        WHERE id = ?
+      `)
+      .bind(item.pre_order_id)
+      .all();
+    const linkedOrder = (results || [])[0] || null;
+
+    const orderStillMatchesBinding = linkedOrder
+      && linkedOrder.status === 'confirmed'
+      && linkedOrder.product_id === item.product_id
+      && linkedOrder.variant_id === item.variant_id;
+
+    if (orderStillMatchesBinding) {
+      const requestedQuantity = Number.parseInt(String(nextQuantity ?? '').trim(), 10);
+      const expectedQuantity = Number.parseInt(String(linkedOrder.quantity ?? '').trim(), 10);
+      if (requestedQuantity !== expectedQuantity) {
+        throw new BadRequestError('pre_order_id 与订单数量不匹配');
+      }
+    }
+  }
+
   const { results } = await db.prepare(`
     SELECT id,
            COALESCE(moq, 1) AS moq,

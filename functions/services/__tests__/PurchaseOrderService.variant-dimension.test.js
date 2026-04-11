@@ -453,4 +453,49 @@ describe('PurchaseOrderService variant dimension', () => {
     expect(service.repo.create).not.toHaveBeenCalled();
     expect(service.repo.addItems).not.toHaveBeenCalled();
   });
+
+  it('createManual rejects pre_order bindings whose quantity no longer matches the linked order', async () => {
+    const db = {
+      prepare: vi.fn((sql) => ({
+        bind: vi.fn(() => ({
+          all: vi.fn(async () => ({
+            results: sql.includes('FROM product_variants')
+              ? [{
+                  id: 'var-1',
+                  product_id: 'prod-1',
+                  status: 'active',
+                  moq: 1,
+                  pack_size: 1,
+                  order_step: 1,
+                }]
+              : sql.includes('FROM orders')
+                ? [{
+                    id: 'o-1',
+                    order_no: 'SO-1',
+                    status: 'confirmed',
+                    product_id: 'prod-1',
+                    variant_id: 'var-1',
+                    quantity: 1,
+                  }]
+                : [],
+          })),
+        })),
+      })),
+    };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      create: vi.fn(async () => ({ id: 'po-1' })),
+      addItems: vi.fn(async () => []),
+      findById: vi.fn(async () => ({ id: 'po-1', items: [] })),
+      findActiveBindingsByPreOrderIds: vi.fn(async () => []),
+    };
+
+    await expect(service.createManual(
+      { remark: 'ai manual' },
+      [{ product_id: 'prod-1', variant_id: 'var-1', pre_order_id: 'o-1', quantity: 10, unit_cost: 11 }]
+    )).rejects.toThrow(/数量|quantity/i);
+
+    expect(service.repo.create).not.toHaveBeenCalled();
+    expect(service.repo.addItems).not.toHaveBeenCalled();
+  });
 });

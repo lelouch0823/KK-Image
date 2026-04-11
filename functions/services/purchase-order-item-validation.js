@@ -5,6 +5,11 @@ import { validateOrderQuantity } from './purchase-order-constraints.js';
 
 const D1_MAX_IN_CLAUSE_SIZE = 100;
 
+function normalizeComparableQuantity(value, fallback = 1) {
+  const normalized = Number.parseInt(String(value ?? '').trim(), 10);
+  return Number.isFinite(normalized) && normalized > 0 ? normalized : fallback;
+}
+
 export function validatePurchaseOrderUnitCost(unitCost, { label = 'unit_cost' } = {}) {
   if (unitCost === undefined || unitCost === null || unitCost === '') return;
 
@@ -66,7 +71,7 @@ export async function validatePurchaseOrderVariantItems(db, items = []) {
   }
 }
 
-export async function validatePurchaseOrderPreOrderBinding(db, items = [], { repo } = {}) {
+export async function validatePurchaseOrderPreOrderBinding(db, items = [], { repo, currentPoId = null } = {}) {
   if (!items || items.length === 0) return;
   const linkedItems = items.filter((item) => item.pre_order_id);
   if (linkedItems.length === 0) return;
@@ -100,8 +105,13 @@ export async function validatePurchaseOrderPreOrderBinding(db, items = [], { rep
     if (order.product_id !== item.product_id || order.variant_id !== item.variant_id) {
       throw new BadRequestError('pre_order_id 与商品/变体不匹配');
     }
+    const expectedQuantity = normalizeComparableQuantity(order.quantity, 1);
+    const requestedQuantity = normalizeComparableQuantity(item.quantity, 1);
+    if (requestedQuantity !== expectedQuantity) {
+      throw new BadRequestError('pre_order_id 与订单数量不匹配');
+    }
     const binding = bindingMap.get(item.pre_order_id);
-    if (binding) {
+    if (binding && binding.po_id !== currentPoId) {
       throw new BadRequestError(`${order.order_no || item.pre_order_id} 已在采购单 ${binding.po_no || binding.po_id} 中`);
     }
   }

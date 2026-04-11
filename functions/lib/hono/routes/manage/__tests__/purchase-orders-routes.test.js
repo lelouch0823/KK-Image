@@ -385,6 +385,36 @@ describe('manage purchase-orders routes', () => {
     expect(mocks.repoAddItems).not.toHaveBeenCalled();
   });
 
+  it('rejects adding item when pre_order_id quantity does not match the linked order', async () => {
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+      orderRows: [{ id: 'o-1', order_no: 'SO-1', product_id: 'prod-1', variant_id: 'var-1', status: 'confirmed', quantity: 1 }],
+    });
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            pre_order_id: 'o-1',
+            quantity: 10,
+            unit_cost: 10,
+          }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.repoAddItems).not.toHaveBeenCalled();
+  });
+
   it('rejects adding item when unit_cost is negative', async () => {
     const app = createApp();
     const db = createDb({
@@ -487,6 +517,37 @@ describe('manage purchase-orders routes', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ unit_cost: -5 }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.repoUpdateItem).not.toHaveBeenCalled();
+  });
+
+  it('rejects purchase-order item quantity patch when a linked pre_order quantity would diverge', async () => {
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+      orderRows: [{ id: 'o-1', order_no: 'SO-1', product_id: 'prod-1', variant_id: 'var-1', status: 'confirmed', quantity: 5 }],
+    });
+    mocks.repoFindItemById.mockResolvedValueOnce({
+      id: 'item-1',
+      po_id: 'po-1',
+      product_id: 'prod-1',
+      variant_id: 'var-1',
+      pre_order_id: 'o-1',
+      quantity: 5,
+      unit_cost: 5,
+    });
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items/item-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 10 }),
       },
       { DB: db },
       { waitUntil: vi.fn() }
