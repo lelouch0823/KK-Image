@@ -78,6 +78,7 @@ const { t } = useI18n();
 const route = useRoute();
 
 const loading = ref(true);
+const verifying = ref(false);
 const error = ref('');
 const space = ref(null);
 const requiresPassword = ref(false);
@@ -86,11 +87,15 @@ const requiresTurnstile = ref(false);
 const turnstileVerified = ref(false);
 const turnstileSiteKey = ref(''); // 从 API 获取
 let spaceLoadRequestId = 0;
+let passwordSubmitRequestId = 0;
 
 // 从路由获取 Token
 const token = computed(() => route.params.token);
 const isSpaceLoadActive = (requestId, requestToken) => (
   requestId === spaceLoadRequestId && token.value === requestToken
+);
+const isPasswordSubmitActive = (requestId, requestToken) => (
+  requestId === passwordSubmitRequestId && token.value === requestToken
 );
 
 const spaceComponent = computed(() => {
@@ -146,17 +151,21 @@ const loadSpace = async () => {
 
 const submitPassword = async (pwd) => {
   if (!pwd) return;
+  const requestToken = token.value;
+  const requestId = ++passwordSubmitRequestId;
   passwordError.value = '';
   loading.value = true;
+  verifying.value = true;
 
   try {
     // 使用 POST 安全传递密码，后端直接返回完整数据
-    const response = await fetch(API.PUBLIC_SPACE(token.value), {
+    const response = await fetch(API.PUBLIC_SPACE(requestToken), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: pwd }),
     });
     const result = await response.json();
+    if (!isPasswordSubmitActive(requestId, requestToken)) return;
 
     if (result.success && result.data) {
       // 密码验证成功，后端直接返回了完整数据
@@ -168,9 +177,13 @@ const submitPassword = async (pwd) => {
       passwordError.value = result.message || t('gallery.passwordError');
     }
   } catch (_e) {
+    if (!isPasswordSubmitActive(requestId, requestToken)) return;
     passwordError.value = t('common.networkErrorRetry');
   } finally {
-    loading.value = false;
+    if (isPasswordSubmitActive(requestId, requestToken)) {
+      loading.value = false;
+      verifying.value = false;
+    }
   }
 };
 
@@ -196,8 +209,12 @@ const handleTurnstileVerified = async (token) => {
 
 // 监听 Token 变化 (处理 SPA 同组件跳转)
 watch(token, () => {
+  passwordSubmitRequestId += 1;
   loading.value = true;
   space.value = null;
+  requiresPassword.value = false;
+  passwordError.value = '';
+  verifying.value = false;
   loadSpace();
 });
 

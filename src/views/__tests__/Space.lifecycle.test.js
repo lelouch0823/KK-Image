@@ -133,4 +133,82 @@ describe('Space view lifecycle', () => {
     expect(wrapper.vm.requiresPassword).toBe(true);
     expect(wrapper.vm.space).toBe(null);
   });
+
+  it('ignores stale password submit results after token switches', async () => {
+    let resolvePasswordSubmit;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url, options) => {
+        if (url === '/api/turnstile/verify') {
+          return Promise.resolve({
+            json: async () => ({ success: true, data: { enabled: false } }),
+          });
+        }
+
+        if (url === '/api/space/token-a' && (!options || options.method === undefined)) {
+          return Promise.resolve({
+            json: async () => ({
+              success: true,
+              message: '该空间需要密码',
+              data: { requiresPassword: true },
+            }),
+          });
+        }
+
+        if (url === '/api/space/token-a' && options?.method === 'POST') {
+          return new Promise((resolve) => {
+            resolvePasswordSubmit = () =>
+              resolve({
+                json: async () => ({
+                  success: true,
+                  data: { id: 'space-a', name: '空间 A', template: 'product', templateData: {}, files: [] },
+                }),
+              });
+          });
+        }
+
+        if (url === '/api/space/token-b' && (!options || options.method === undefined)) {
+          return Promise.resolve({
+            json: async () => ({
+              success: true,
+              data: { id: 'space-b', name: '空间 B', template: 'product', templateData: {}, files: [] },
+            }),
+          });
+        }
+
+        throw new Error(`Unexpected fetch url: ${url}`);
+      })
+    );
+
+    const wrapper = shallowMount(SpaceView, {
+      global: {
+        stubs: {
+          SpacePassword: true,
+          SpaceTurnstile: true,
+          Skeleton: true,
+          EmptyState: true,
+        },
+      },
+    });
+
+    await flushPromises();
+    expect(wrapper.vm.requiresPassword).toBe(true);
+
+    const pending = wrapper.vm.submitPassword('secret');
+    await Promise.resolve();
+
+    route.params.token = 'token-b';
+    await nextTick();
+    await flushPromises();
+
+    expect(wrapper.vm.space).toEqual(expect.objectContaining({ id: 'space-b' }));
+
+    resolvePasswordSubmit();
+    await pending;
+    await flushPromises();
+
+    expect(wrapper.vm.space).toEqual(expect.objectContaining({ id: 'space-b' }));
+    expect(wrapper.vm.passwordError).toBe('');
+  });
 });
