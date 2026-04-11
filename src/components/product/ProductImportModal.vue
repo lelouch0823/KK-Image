@@ -859,6 +859,13 @@ const handleImport = async () => {
             PRODUCT_FIELDS.forEach((key) => {
                 delete variant[key];
             });
+            if (
+                variant.image_url &&
+                typeof variant.image_url === 'string' &&
+                !variant.image_url.match(/^https?:\/\//i)
+            ) {
+                delete variant.image_url;
+            }
             return variant;
         };
 

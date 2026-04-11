@@ -303,6 +303,42 @@ describe('ProductImportModal Variant-First Payload', () => {
         ]);
     });
 
+    it('omits unresolved local image filenames from imported variant payloads', async () => {
+        const wrapper = mount(ProductImportModal, {
+            global: {
+                stubs: {
+                    Modal: { template: '<div><slot></slot><slot name="footer"></slot></div>' },
+                    AppIcon: true,
+                    ImportUploadStep: true,
+                    ImportMappingStep: true,
+                    ImportImageMatchStep: true,
+                    ImportPreviewStep: true
+                }
+            },
+            props: { modelValue: true }
+        });
+
+        wrapper.vm.currentStep = 4;
+        wrapper.vm.parsedItems = [
+            {
+                name: '风衣',
+                spu: 'SPU-IMG-1',
+                sku: 'SKU-IMG-1',
+                price: 100,
+                cost_price: 50,
+                stock_quantity: 10,
+                alert_threshold: 2,
+                status: 'active',
+                image_url: 'local-only.jpg',
+            },
+        ];
+
+        await wrapper.vm.handleImport();
+
+        const payload = mocks.importProducts.mock.calls.at(-1)[0];
+        expect(payload[0].variants[0]).not.toHaveProperty('image_url');
+    });
+
     it('maps extended import fields and keeps mapped status', async () => {
         const wrapper = mount(ProductImportModal, {
             global: {
