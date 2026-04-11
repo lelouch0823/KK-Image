@@ -2171,3 +2171,18 @@
   - `src/components/product/import/__tests__/ImportPreviewStep.test.js`
   - `src/components/product/import/__tests__/ImportImageMatchStep.test.js`
 - 对应修复提交: `f174c5e fix: preserve import progress when stepping back`
+
+### 2026-04-11 轮次 209
+
+- 继续复查商品绑定到订单创建链路，新增 2 个中风险问题:
+  - `OrderCreateModal` 在关闭后重新打开时只重置了 `boundProduct/formData`，没有清空 `boundProductVariant`。如果上一轮已绑定商品，下一次新建订单会继续显示旧规格快照，形成跨会话脏状态。
+  - `useOrderForm.fillForm()` 处理 `prefill` 时只覆盖传入字段；当父层传入空对象 `{}` 或部分预填充数据时，旧的商品名、品牌、图片等字段会残留。`OrderCreateModal` 正是用 `{}` 尝试重置表单，因此关闭后再打开会把上一单的商品信息和图片带进来，业务没有真正闭环。
+- 已完成本轮修复:
+  - `OrderCreateModal` 现在在每次打开创建弹窗时同步清空 `boundProductVariant`，不会把旧绑定规格带入下一次开单。
+  - `useOrderForm.fillForm()` 现在会先完整重置表单和图片，再应用新的 `prefill` 数据；空对象和部分对象都不会残留旧值。
+- 增量回归:
+  - `src/components/order/__tests__/OrderCreateModal.variant-policy.test.js`
+  - `src/components/order/__tests__/OrderForm.prefill-reset.test.js`
+  - `src/components/order/__tests__/OrderEditModal.variant-lock.test.js`
+  - `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
+- 对应修复提交: `df8a421 fix: reset bound order product state on reopen`
