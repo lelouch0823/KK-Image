@@ -58,8 +58,22 @@ export function createActionSubmitters(deps = {}) {
 
       if (!deps.purchaseOrderRepo?.create) throw new Error('Purchase order create dependency is unavailable');
       const payload = pickDefined(slots, ['remark', 'currency', 'allocation_method', 'estimated_shipping_cost', 'estimated_tariff_cost']);
-      if (Array.isArray(slots.items)) payload.items = slots.items;
       const created = await deps.purchaseOrderRepo.create(payload);
+      const items = Array.isArray(slots.items) ? slots.items : [];
+      if (items.length > 0) {
+        try {
+          await deps.purchaseOrderRepo.addItems?.(created.id, items);
+        } catch (error) {
+          if (typeof deps.purchaseOrderRepo.deleteIfEmptyDraft === 'function') {
+            try {
+              await deps.purchaseOrderRepo.deleteIfEmptyDraft(created.id);
+            } catch {
+              // best-effort cleanup; preserve original item insertion error
+            }
+          }
+          throw error;
+        }
+      }
       return {
         id: created.id,
         label: created.po_no || created.id,

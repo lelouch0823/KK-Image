@@ -54,4 +54,53 @@ describe('AI action submitters', () => {
     );
     expect(result).toEqual(expect.objectContaining({ id: 'po-1', label: 'PO-1' }));
   });
+
+  it('creates manual purchase orders with items instead of leaving an empty draft', async () => {
+    const purchaseOrderRepo = {
+      create: vi.fn(async (payload) => ({ id: 'po-1', po_no: 'PO-1', ...payload })),
+      addItems: vi.fn(async () => ['poi-1']),
+      findById: vi.fn(async () => ({ id: 'po-1', po_no: 'PO-1', items: [{ id: 'poi-1' }] })),
+    };
+    const submitters = createActionSubmitters({ purchaseOrderRepo });
+
+    const result = await submitters.create_purchase_order({
+      mode: 'manual',
+      remark: 'manual draft',
+      items: [
+        { product_id: 'prod-1', variant_id: 'var-1', quantity: 3, unit_cost: 12 },
+      ],
+    });
+
+    expect(purchaseOrderRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ remark: 'manual draft' })
+    );
+    expect(purchaseOrderRepo.addItems).toHaveBeenCalledWith('po-1', [
+      expect.objectContaining({
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        quantity: 3,
+        unit_cost: 12,
+      }),
+    ]);
+    expect(result).toEqual(expect.objectContaining({ id: 'po-1', label: 'PO-1' }));
+  });
+
+  it('cleans up manual purchase-order drafts when AI item insertion fails', async () => {
+    const purchaseOrderRepo = {
+      create: vi.fn(async () => ({ id: 'po-1', po_no: 'PO-1' })),
+      addItems: vi.fn(async () => {
+        throw new Error('insert failed');
+      }),
+      deleteIfEmptyDraft: vi.fn(async () => true),
+    };
+    const submitters = createActionSubmitters({ purchaseOrderRepo });
+
+    await expect(submitters.create_purchase_order({
+      mode: 'manual',
+      items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 3, unit_cost: 12 }],
+    })).rejects.toThrow('insert failed');
+
+    expect(purchaseOrderRepo.addItems).toHaveBeenCalledTimes(1);
+    expect(purchaseOrderRepo.deleteIfEmptyDraft).toHaveBeenCalledWith('po-1');
+  });
 });
