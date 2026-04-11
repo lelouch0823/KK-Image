@@ -48,7 +48,7 @@
 
 ## 修复状态
 
-- 截至 2026-04-10，本次审计累计确认的 80 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
+- 截至 2026-04-10，本次审计累计确认的 81 个问题已全部完成修复；以下清单保留为审计基线与增量复查记录。
 - 对应修复提交:
   - `a849ceb` / `c4272f7`: 变体图片唯一性、主图切换与批量操作边界
   - `4895358`: 销售侧 `in_stock_only` 约束与假成功状态
@@ -1551,3 +1551,25 @@
   - `minisales/tests/unit/pages/spaces-detail-page.test.ts`
   - `minisales/tests/unit/pages/spaces-controller.test.ts`
 - 对应修复提交: `6d35221 fix: hydrate sales subspace covers from template data`
+
+### 2026-04-10 轮次 149
+
+- 继续复查销售集合空间子空间统计口径，新增 1 个中风险问题:
+  - 子空间卡片的文件数仍只认显式 `file_count/fileCount`。商品型子空间如果只有模板图片、没有空间文件，会出现“有封面但文件数仍是 0”的分叉，和点进详情后的可预览内容不一致
+- 下一步把子空间文件数口径改成“真实文件数优先，真实文件数为 0 时回退模板图片数量”，统一 Web 与小程序展示。
+
+### 2026-04-10 轮次 150
+
+- 已完成轮次 149 新增问题修复:
+  - Web 销售空间归一化现在会在子空间没有真实文件时，用模板图片数量补齐子空间卡片文件数
+  - 小程序销售空间服务也同步采用同一规则，合集模板中的商品型子空间不会再显示“0 个文件”假状态
+- 增量回归:
+  - `src/utils/__tests__/sales-space.test.js`
+  - `src/components/space/__tests__/SpaceCollection.contract.test.js`
+  - `src/views/sales/__tests__/SalesSpaceDetailView.contract.test.js`
+  - `src/views/sales/__tests__/SalesSpacesView.lifecycle.test.js`
+  - `functions/lib/hono/routes/sales/__tests__/spaces-routes.test.js`
+  - `minisales/tests/unit/services/spaces.test.ts`
+  - `minisales/tests/unit/pages/spaces-detail-page.test.ts`
+  - `minisales/tests/unit/pages/spaces-controller.test.ts`
+- 对应修复提交: `1239940 fix: align sales subspace file counts`
