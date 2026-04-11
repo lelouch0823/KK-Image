@@ -2761,3 +2761,19 @@
   - `functions/ai/__tests__/action-submitters.test.js`
   - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
 - 对应修复提交: `bcc99dc fix: support ai purchase-order item disambiguation`
+
+### 2026-04-12 轮次 250
+
+- 继续复查 AI 多条手工采购项的混合歧义场景，新增 1 个高风险问题:
+  - [functions/ai/slot-resolvers.js](/home/bjw/Code/KK-Image/functions/ai/slot-resolvers.js) 在“多条采购明细里只有其中一条命中多个候选变体”的场景下，之前只会解析前面唯一命中的行，然后把歧义行原样保留；既不会产出候选，也不会把已解析行一起带入后续选择，导致多条明细场景再次退化成无候选的卡死态。
+- 已完成本轮修复:
+  - `resolvePurchaseOrderItemsSlot()` 现在在遇到第一条歧义采购项时，会基于“前面已解析行 + 当前歧义行的每个候选 + 后续未处理行”生成候选 value，保证混合场景下也能继续通过候选选择推进。
+  - 已补齐 resolver 与 orchestrator 回归测试，锁定“多条明细里单条歧义时，候选必须保留已解析行并允许继续选择”的行为。
+- 增量回归:
+  - `functions/ai/__tests__/slot-resolvers.test.js`
+  - `functions/ai/__tests__/action-orchestrator.test.js`
+  - `functions/ai/__tests__/slot-extraction.test.js`
+  - `functions/ai/__tests__/canonicalization.test.js`
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
+- 对应修复提交: `cb00689 fix: support mixed ai purchase-order item candidates`
