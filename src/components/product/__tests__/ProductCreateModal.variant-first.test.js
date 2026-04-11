@@ -178,4 +178,33 @@ describe('ProductCreateModal variant-first payload', () => {
         expect(wrapper.emitted('success')).toBeUndefined();
         expect(wrapper.emitted('update:modelValue')).toBeUndefined();
     });
+
+    it('shows an error toast and keeps the modal open when submit rejects', async () => {
+        mocks.createProduct.mockRejectedValueOnce(new Error('network down'));
+
+        const wrapper = createWrapper();
+        wrapper.vm.form.name = 'Variant Product';
+        wrapper.vm.form.options = [{ id: 'dim-color', name: 'Color', values: ['Blue'], inputValue: '' }];
+        wrapper.vm.form.variants = [{
+            sku: 'SKU-001',
+            price: 100,
+            cost_price: 70,
+            stock_quantity: 8,
+            alert_threshold: 2,
+            status: 'active',
+            options_values: { Color: 'Blue' },
+        }];
+
+        await expect(wrapper.vm.handleSubmit()).resolves.toBeUndefined();
+
+        expect(mocks.addToast).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'error',
+                message: 'network down',
+            })
+        );
+        expect(wrapper.emitted('success')).toBeUndefined();
+        expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+        expect(wrapper.vm.submitting).toBe(false);
+    });
 });

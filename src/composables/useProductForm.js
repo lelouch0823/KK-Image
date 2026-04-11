@@ -1008,6 +1008,12 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
         emit('success', normalized.data || null);
         emit('update:modelValue', false);
       }
+    } catch (error) {
+      if (!isSubmitActionActive(requestId)) return;
+      addToast({
+        message: error?.message || error?.error || t('common.operationFailed'),
+        type: 'error',
+      });
     } finally {
       if (requestId === submitRequestId) {
         submitting.value = false;
