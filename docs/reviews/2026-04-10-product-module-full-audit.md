@@ -3122,3 +3122,17 @@
   - `functions/ai/__tests__/action-service.purchase-order-publish.test.js`
   - `functions/ai/__tests__/action-service.test.js`
   - `functions/services/__tests__/DomainOutboxPublisher.test.js`
+
+### 2026-04-12 轮次 278
+
+- 继续深审商品创建主链路，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/products/index.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/index.js)、[functions/lib/hono/routes/manage/products/create-product.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/create-product.js) 与 [functions/services/ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js) 修复前存在与采购单创建同类的闭环缺口：`POST /api/manage/products` 完全没有 `Idempotency-Key` 保护，而 `createProduct()` 又在商品本体创建成功后才发 `product_created` cache outbox。这样一来，只要网络重试、前端重复点击，或者第一次其实已经建商品成功但 cache outbox / finalize 失败，管理端再次重试就会重复创建商品，且无法安全只补副作用。
+- 已完成本轮修复:
+  - 商品创建路由现在已接入命令幂等保留、响应重放、`failed` 恢复与同 key 指纹校验；同一个幂等键重试时不会重复建商品，同 key 不同 payload 会被拒绝。
+  - 商品创建服务现在支持把“建商品本体”和“发 `product_created` cache outbox”拆开执行；管理端创建链路会在路由层使用稳定的 `commandId/correlationId` 发布 cache 事件，并在 outbox 唯一键冲突时把它视为“事件已持久化”，从而安全恢复 finalize 失败后的重试。
+  - 已补齐商品创建幂等回归测试，锁定“成功响应重放”“cache 发布失败只补副作用”“finalize 失败恢复不重复生成 create 事件”的行为，同时更新 cache helper 测试以覆盖新的可选 publish options 契约。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/products/__tests__/product-create-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-create-transactional.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/cache-outbox-helper.test.js`
+- 对应修复提交: `1c8dd771 fix: harden product create retries`
