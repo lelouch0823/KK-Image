@@ -3224,3 +3224,16 @@
   - `functions/repositories/__tests__/product-dimensions.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/variant-dimensions-routes.test.js`
 - 对应修复提交: `bf8d10c4 fix: align archived dimension value states`
+
+### 2026-04-12 轮次 285
+
+- 继续深审商品变体图片链路，新增 1 个中高风险问题:
+  - [functions/repositories/VariantImageRepository.js](/home/bjw/Code/KK-Image/functions/repositories/VariantImageRepository.js) 修复前删除变体图片时只是简单 `DELETE` 当前记录。如果删掉的是当前主图，而该变体还有其他图片存在，仓储不会自动补选新的主图，导致图片集合落成“存在多张图但没有任何 `is_primary = 1`”的半残状态。后续详情接口虽然会用排序兜底挑第一张，但数据库主图语义已经断裂，后台排序/后续主图变更也会在脏状态上继续运行。
+- 已完成本轮修复:
+  - `deleteImage()` 现在会先识别被删图片是否为当前主图；如果是，并且该变体还有剩余图片，会在同一批原子语句里删除旧主图并把下一张候选图补成新的主图。
+  - 如果删除的不是主图，或者删除后已无剩余图片，仓储会保持原有轻路径，不引入额外副作用。
+  - 已补齐仓储级回归测试，并回跑图片路由测试，锁定“删除主图必须自动补位新的主图”的行为。
+- 增量回归:
+  - `functions/repositories/__tests__/variant-images.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js`
+- 对应修复提交: `f350857a fix: preserve variant image primary after deletes`
