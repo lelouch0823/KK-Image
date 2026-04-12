@@ -3615,3 +3615,17 @@
   - 补齐销售端详情返回 `null` 的回归测试，并复跑整组绑定组件状态测试，显式锁定“网络/鉴权失败报 load failed，规格不可选才报 variant required”的行为。
 - 增量回归:
   - `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
+
+### 2026-04-12 轮次 313
+
+- 继续深审商品详情消费链路，新增 1 个中风险问题:
+  - [src/components/ProductManager.vue](/home/bjw/Code/KK-Image/src/components/ProductManager.vue) 和 [src/components/product/ProductWorkflowModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductWorkflowModal.vue) 修复前在选择预览图和默认规格时，仍沿用 `variants.find(active) || variants[0]` 的回退逻辑。这样一来，只要商品当前只剩 archived 规格，管理端商品预览、快速分享和详情工作流仍会自动选中 archived SKU，并把 archived 规格图重新当成主图展示，等于把前面已经在详情页和绑定链路里收掉的 archived 规格又从另一条 UI 链路带了回来。
+- 已完成本轮修复:
+  - 商品管理预览、分享和工作流详情现在只会自动选中 active 规格；当商品没有任何 active 规格时，不再回退到 `variants[0]`，也不会再拿 archived 规格图片充当主图。
+  - 新增共享规格判定工具 [src/utils/product-variants.js](/home/bjw/Code/KK-Image/src/utils/product-variants.js)，把“什么算 active 规格、默认规格如何选择”的规则集中起来，避免商品详情、管理预览、工作流弹窗继续各写一套。
+  - 商品详情组件也改为复用同一套 active 规格判定 helper，进一步收敛商品展示口径。
+  - 补齐商品管理和工作流弹窗的 archived fallback 回归测试，并复跑商品详情关联空间测试，显式锁定“archived 规格不会再被自动选中或自动带图”的行为。
+- 增量回归:
+  - `src/components/__tests__/ProductManager.variant-hydration.test.js`
+  - `src/components/product/__tests__/ProductWorkflowModal.test.js`
+  - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
