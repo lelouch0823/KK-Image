@@ -170,8 +170,7 @@ export class GoodsOverviewRepository {
         SELECT DISTINCT p.category
         FROM order_lines ol
         JOIN orders o ON o.id = ol.order_id
-        JOIN products p ON ol.product_id = p.id
-        JOIN product_variants pv ON pv.id = ol.variant_id
+        LEFT JOIN products p ON ol.product_id = p.id
         WHERE o.status IN (${this.STATUS_IN_CLAUSE}) 
           AND ol.product_id IS NOT NULL 
           AND ol.variant_id IS NOT NULL
@@ -187,7 +186,6 @@ export class GoodsOverviewRepository {
         FROM order_lines ol
         JOIN orders o ON o.id = ol.order_id
         LEFT JOIN products p ON ol.product_id = p.id
-        JOIN product_variants pv ON pv.id = ol.variant_id
         WHERE o.status IN (${this.STATUS_IN_CLAUSE}) 
           AND ol.product_id IS NOT NULL 
           AND ol.variant_id IS NOT NULL

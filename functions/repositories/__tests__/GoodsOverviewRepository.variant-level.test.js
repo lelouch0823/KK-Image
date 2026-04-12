@@ -178,4 +178,41 @@ describe('GoodsOverviewRepository variant-level', () => {
     }));
   });
 
+  it('keeps available brand and category filters when historical demand remains but live variant rows are gone', async () => {
+    const db = {
+      prepare: vi.fn((sql) => ({
+        bind: vi.fn(() => ({
+          all: vi.fn(async () => {
+            if (sql.includes('SELECT DISTINCT p.category')) {
+              return {
+                results: sql.includes('JOIN product_variants pv')
+                  ? []
+                  : [{ category: 'Top' }],
+              };
+            }
+            if (sql.includes("SELECT DISTINCT COALESCE(p.brand, json_extract(o.current_data, '$.brand')) as brand")) {
+              return {
+                results: sql.includes('JOIN product_variants pv')
+                  ? []
+                  : [{ brand: 'KK' }],
+              };
+            }
+            return { results: [] };
+          }),
+        })),
+      })),
+    };
+
+    const repo = new GoodsOverviewRepository(db);
+    const filters = await repo.getAvailableFilters();
+    const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
+
+    expect(sqlCalls.some((sql) => sql.includes('SELECT DISTINCT p.category'))).toBe(true);
+    expect(sqlCalls.some((sql) => sql.includes('SELECT DISTINCT COALESCE(p.brand'))).toBe(true);
+    expect(filters).toEqual({
+      categories: ['Top'],
+      brands: ['KK'],
+    });
+  });
+
 });
