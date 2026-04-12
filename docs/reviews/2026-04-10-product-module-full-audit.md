@@ -3338,3 +3338,25 @@
   - `functions/lib/hono/routes/manage/products/__tests__/product-update-audit-metadata.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/product-patch-rollback-boundary.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/variant-audit-routes.test.js`
+
+### 2026-04-12 轮次 292
+
+- 继续深审商品关联销售链路，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/sales/products.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/sales/products.js) 修复前的销售端商品详情 `GET /api/sales/:token/products/:id` 只过滤了 `status !== 'active'` 的变体，却仍会把 `available_quantity <= 0` 的缺货变体继续返回给销售端；但销售下单链路在 [functions/lib/hono/routes/sales/orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/sales/orders.js) 明确使用 `variantSelectPolicy: 'in_stock_only'` 拒绝这些变体。结果就是商品详情先把不可下单选项展示给销售，再在创建订单时回 400，形成前台读链路和下单写链路互相打架的业务缺口。
+- 已完成本轮修复:
+  - 销售端商品详情现在会按“`status === active` 且 `available_quantity > 0`”统一筛出真正可售变体，不再继续暴露缺货或归档选项。
+  - 同步补齐销售端路由回归测试，锁定“详情页与销售下单的 in-stock-only 规则保持一致”的行为，避免后续再回退成“详情可见、下单报错”。
+- 增量回归:
+  - `functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js`
+
+### 2026-04-12 轮次 293
+
+- 继续深审商品绑定到订单的快照链路，新增 1 个高风险问题:
+  - [functions/api/utils/validation.js](/home/bjw/Code/KK-Image/functions/api/utils/validation.js) 修复前 `validateProductVariantBinding()` 只返回商品和变体本体，不会补齐商品的 `dimension_map`。但销售下单、管理下单和改单都会把它的返回值直接传进 [functions/api/utils/order-binding-snapshot.js](/home/bjw/Code/KK-Image/functions/api/utils/order-binding-snapshot.js)，而后者要靠 `product.dimension_map` 才能把 `dim-color`、`dim-size` 这类维度 ID 还原成 `Color` / `Size` / `Material`。真实环境里只要 `ProductRepository.findById()` 没预先带这个字段，订单快照就会丢颜色/材质/尺寸语义，甚至直接把内部维度 ID 写到订单展示字段里。
+- 已完成本轮修复:
+  - `validateProductVariantBinding()` 现在会在商品缺少 `dimension_map` 时，自动通过 `ProductDimensionRepository.getDimensionMap(productId)` 补齐映射，再统一返回给下游调用方。
+  - 补了 utility 级回归测试，锁定 binding helper 会主动补 `dimension_map`；同时补了销售下单路由级回归，验证即使 `productFindById()` 不带维度映射，也仍能正确生成 `color/material/size` 订单快照。
+  - 顺手修正了销售订单“已读”两条路由回归断言，使其对齐共享 outbox helper 当前的 `publish(events, publishOptions)` 调用签名，恢复这组验证的稳定性。
+- 增量回归:
+  - `functions/api/utils/__tests__/validation.test.js`
+  - `functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js`
