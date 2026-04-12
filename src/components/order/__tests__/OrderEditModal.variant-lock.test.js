@@ -169,4 +169,31 @@ describe('OrderEditModal variant locking on edit', () => {
     const wrapper = mountModal(baseOrder);
     expect(wrapper.get('[data-testid="form-quantity"]').text()).toBe('7');
   });
+
+  it('falls back to line snapshot names when historical bound order lost current and original product names', () => {
+    const wrapper = mountModal(
+      {
+        ...baseOrder,
+        originalData: {},
+        currentData: {
+          ...baseOrder.currentData,
+          name: '',
+        },
+        lines: [{ id: 'line-1', snapshotName: 'Snapshot Chair' }],
+      },
+      {
+        ProductBindingSection: {
+          props: ['boundProduct', 'variantSelectPolicy'],
+          template: '<div><div data-testid="variant-policy">{{ variantSelectPolicy }}</div><div data-testid="bound-product-name">{{ boundProduct?.name || "" }}</div></div>',
+        },
+        OrderOriginalInfo: {
+          props: ['data'],
+          template: '<div data-testid="original-product-name">{{ data.name || "" }}</div>',
+        },
+      }
+    );
+
+    expect(wrapper.get('[data-testid="bound-product-name"]').text()).toBe('Snapshot Chair');
+    expect(wrapper.get('[data-testid="original-product-name"]').text()).toBe('Snapshot Chair');
+  });
 });

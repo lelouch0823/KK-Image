@@ -137,7 +137,7 @@ import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { getStatusBadgeClass } from '@/utils/status';
 import { generateRandomId } from '@/utils/common';
-import { resolveOrderQuantity } from '@/utils/order-display';
+import { resolveHistoricalOrderProductName, resolveOrderQuantity } from '@/utils/order-display';
 import { resolveSelectedVariantMainImageSrc } from '@/utils/product-image.js';
 import { ORDER_BOUND_SNAPSHOT_FIELDS } from '@/utils/order-binding-fields.js';
 import { useSalesToken } from '@/composables/useSalesToken';
@@ -347,9 +347,10 @@ watch(
       initializedId.value = newOrder.id;
       // Ensure currentData exists
       const current = newOrder.currentData || {};
+      const historicalProductName = current.name || resolveHistoricalOrderProductName(newOrder);
       
       form.status = newOrder.status || 'pending';
-      form.name = current.name || '';
+      form.name = historicalProductName;
       form.brand = current.brand || '';
       form.series = current.series || '';
       form.sku = current.sku || '';
@@ -366,7 +367,7 @@ watch(
         // 已绑定时显示基本信息
         boundProduct.value = {
           id: newOrder.productId,
-          name: current.name || '', // Prefer current order data
+          name: historicalProductName,
           sku: current.sku || '',
           brand: current.brand || '',
           series: current.series || '',
@@ -383,7 +384,7 @@ watch(
 
       initialValues.value = {
         status: newOrder.status || 'pending',
-        name: current.name || '',
+        name: historicalProductName,
         brand: current.brand || '',
         series: current.series || '',
         sku: current.sku || '',
@@ -412,7 +413,10 @@ watch(
 
 
 
-const originalData = computed(() => props.order.originalData || {});
+const originalData = computed(() => ({
+  ...(props.order.originalData || {}),
+  name: props.order.originalData?.name || resolveHistoricalOrderProductName(props.order),
+}));
 
 const getCurrentBindingState = () => {
   const productId = selectedProductId.value ?? null;

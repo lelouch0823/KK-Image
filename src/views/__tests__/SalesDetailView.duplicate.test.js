@@ -80,4 +80,54 @@ describe('SalesDetailView duplicate prefill', () => {
     );
     expect(mocks.routerPush).toHaveBeenCalledWith('/sales/sales-token/create');
   });
+
+  it('falls back to line snapshot name when duplicating a historical order without currentData name', async () => {
+    mocks.getSalesOrder.mockResolvedValueOnce({
+      id: 'order-1',
+      orderNo: 'SO-1001',
+      quantity: 9,
+      files: [],
+      currentData: {
+        brand: 'KK',
+        series: 'Main',
+        size: 'L',
+        color: 'Black',
+        material: 'Cotton',
+        quantity: 1,
+        remark: 'remark',
+      },
+      lines: [{ id: 'line-1', snapshotName: 'Snapshot Chair' }],
+    });
+    const setPrefillData = vi.fn();
+
+    const wrapper = mount(SalesDetailView, {
+      global: {
+        provide: {
+          salesContext: {
+            loadOrders: vi.fn(),
+            setPrefillData,
+            salesOrderMode: { value: 'line-level' },
+          },
+        },
+        stubs: {
+          'router-link': true,
+          OrderDetail: {
+            props: ['order'],
+            template: '<button data-testid="duplicate" @click="$emit(\'duplicate\', order)">duplicate</button>',
+          },
+          EmptyState: true,
+          AsyncStatePanel: true,
+        },
+      },
+    });
+
+    await flushPromises();
+    await wrapper.get('[data-testid="duplicate"]').trigger('click');
+
+    expect(setPrefillData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Snapshot Chair',
+      })
+    );
+  });
 });

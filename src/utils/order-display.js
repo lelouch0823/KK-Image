@@ -8,3 +8,6 @@ export const resolveOrderQuantity = (order = {}) => {
 
 export const resolveOrderProductName = (order = {}) =>
   order.currentData?.name || order.lines?.[0]?.snapshotName || order.productName || '';
+
+export const resolveHistoricalOrderProductName = (order = {}) =>
+  order.lines?.[0]?.snapshotName || order.productName || order.currentData?.name || '';
