@@ -3388,3 +3388,17 @@
   - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
   - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
   - `functions/api/utils/__tests__/validation.test.js`
+
+### 2026-04-12 轮次 296
+
+- 继续深审空间查询边界，新增 1 个高风险问题:
+  - [functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js) 以及 [functions/api/space/[token].js](/home/bjw/Code/KK-Image/functions/api/space/[token].js) 修复前对 `product_variants` 的 JOIN 只有 `s.variant_id = pv.id`，没有额外要求 `pv.product_id = s.product_id`。这意味着历史脏数据一旦把空间的 `product_id` 和 `variant_id` 指向不同商品，读取侧就会把 A 商品和 B 变体硬拼在一起：SKU、价格、材质、主图都可能来自错误商品，公开空间和销售空间都会展示出一份不存在的“假商品”。
+- 已完成本轮修复:
+  - 空间仓储和公开空间 API 的所有商品/变体 JOIN 现在都统一收紧为 `s.variant_id = pv.id AND pv.product_id = s.product_id`，确保只有属于当前商品的变体才会参与模板投影与主图解析。
+  - 补齐公开空间 API 回归测试，显式校验 SQL 已经带上商品归属约束，并锁定“跨商品脏绑定时只保留商品自身快照，不再拼接外部变体字段”的行为。
+- 增量回归:
+  - `functions/api/space/__tests__/public-space-access.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/transformers.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
+  - `functions/api/utils/__tests__/validation.test.js`
