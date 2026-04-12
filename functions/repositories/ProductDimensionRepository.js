@@ -44,6 +44,27 @@ export class ProductDimensionRepository {
             : statement.bind(productId, normalizedName).first();
     }
 
+    async findDuplicateValueByLabel(dimensionId, value, { productId = null, excludeValueId = null } = {}) {
+        const normalizedValue = String(value || '').trim();
+        if (!normalizedValue) return null;
+
+        if (productId && excludeValueId) {
+            return this.db
+                .prepare(`SELECT v.id
+                    FROM product_dimension_values v
+                    JOIN product_dimensions d ON d.id = v.dimension_id
+                    WHERE d.product_id = ? AND v.dimension_id = ? AND LOWER(TRIM(v.value)) = LOWER(TRIM(?)) AND v.status = 'active' AND v.id <> ?
+                    LIMIT 1`)
+                .bind(productId, dimensionId, normalizedValue, excludeValueId)
+                .first();
+        }
+
+        return this.db
+            .prepare('SELECT id FROM product_dimension_values WHERE dimension_id = ? AND LOWER(TRIM(value)) = LOWER(TRIM(?)) LIMIT 1')
+            .bind(dimensionId, normalizedValue)
+            .first();
+    }
+
     async findValueRowsByProductAndValueId(productId, valueId) {
         const result = await this.db
             .prepare(`SELECT v.id, v.value, v.dimension_id, v.status
@@ -211,10 +232,7 @@ export class ProductDimensionRepository {
             throw new Error('value is required');
         }
 
-        const duplicateRow = await this.db
-            .prepare('SELECT id FROM product_dimension_values WHERE dimension_id = ? AND value = ? LIMIT 1')
-            .bind(dimensionId, value)
-            .first();
+        const duplicateRow = await this.findDuplicateValueByLabel(dimensionId, value);
         if (duplicateRow) {
             throw new Error('duplicate dimension values with same label are not supported');
         }
@@ -407,14 +425,10 @@ export class ProductDimensionRepository {
         if (row.dimension_status === ARCHIVED_STATUS) {
             throw new Error('cannot restore value for archived dimension');
         }
-        const duplicateActiveRow = await this.db
-            .prepare(`SELECT v.id
-                FROM product_dimension_values v
-                JOIN product_dimensions d ON d.id = v.dimension_id
-                WHERE d.product_id = ? AND v.dimension_id = ? AND v.value = ? AND v.status = 'active' AND v.id <> ?
-                LIMIT 1`)
-            .bind(productId, row.dimension_id, row.value, valueId)
-            .first();
+        const duplicateActiveRow = await this.findDuplicateValueByLabel(row.dimension_id, row.value, {
+            productId,
+            excludeValueId: valueId,
+        });
         if (duplicateActiveRow) {
             throw new Error('duplicate dimension values with same label are not supported');
         }

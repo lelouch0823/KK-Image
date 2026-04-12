@@ -277,6 +277,27 @@ describe('variant dimensions routes', () => {
         expect(mockDimensionRepo.archiveValue).toHaveBeenCalledWith('prod-1', 'val-red');
     });
 
+    it('POST /:id/dimensions/:dimensionId/values rejects duplicate labels after trim/case normalization', async () => {
+        mockDimensionRepo.addValue.mockRejectedValueOnce(new Error('duplicate dimension values with same label are not supported'));
+
+        const app = createApp();
+        const res = await app.request(
+            'http://localhost/api/manage/products/prod-1/dimensions/dim-color/values',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ value: ' RED ' }),
+            },
+            { DB: {} },
+            { waitUntil: vi.fn() }
+        );
+
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual(expect.objectContaining({
+            error: 'duplicate dimension values with same label are not supported',
+        }));
+    });
+
     it('PATCH /:id/values/:valueId/restore rejects restoring values under archived dimensions', async () => {
         mockDimensionRepo.restoreValue.mockRejectedValueOnce(new Error('cannot restore value for archived dimension'));
 
@@ -291,6 +312,23 @@ describe('variant dimensions routes', () => {
         expect(res.status).toBe(400);
         expect(await res.json()).toEqual(expect.objectContaining({
             error: 'cannot restore value for archived dimension',
+        }));
+    });
+
+    it('PATCH /:id/values/:valueId/restore rejects duplicate labels after trim/case normalization', async () => {
+        mockDimensionRepo.restoreValue.mockRejectedValueOnce(new Error('duplicate dimension values with same label are not supported'));
+
+        const app = createApp();
+        const res = await app.request(
+            'http://localhost/api/manage/products/prod-1/values/val-red/restore',
+            { method: 'PATCH' },
+            { DB: {} },
+            { waitUntil: vi.fn() }
+        );
+
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual(expect.objectContaining({
+            error: 'duplicate dimension values with same label are not supported',
         }));
     });
 });

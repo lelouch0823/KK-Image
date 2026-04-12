@@ -214,6 +214,23 @@ describe('ProductDimensionRepository', () => {
         );
     });
 
+    it('addValue should reject duplicate labels after trim/case normalization', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.trim() === 'SELECT id FROM product_dimensions WHERE id = ? AND product_id = ?') {
+                stmt.first.mockResolvedValue({ id: 'dim-color' });
+            }
+            if (sql.includes("SELECT id FROM product_dimension_values WHERE dimension_id = ? AND LOWER(TRIM(value)) = LOWER(TRIM(?)) LIMIT 1")) {
+                stmt.first.mockResolvedValue({ id: 'val-red' });
+            }
+            return stmt;
+        });
+
+        await expect(
+            repo.addValue('prod-1', 'dim-color', { value: '  RED  ' })
+        ).rejects.toThrow('duplicate dimension values with same label are not supported');
+    });
+
     it('archiveDimension should cascade active values under the archived dimension', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);
@@ -260,6 +277,30 @@ describe('ProductDimensionRepository', () => {
         await expect(repo.restoreValue('prod-1', 'val-red')).rejects.toThrow(
             'cannot restore value for archived dimension'
         );
+    });
+
+    it('restoreValue should reject duplicate labels after trim/case normalization', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('SELECT v.*, d.product_id, d.status AS dimension_status')) {
+                stmt.first.mockResolvedValue({
+                    id: 'val-red-archived',
+                    value: ' Red ',
+                    dimension_id: 'dim-color',
+                    product_id: 'prod-1',
+                    dimension_status: 'active',
+                    status: 'archived',
+                });
+            }
+            if (sql.includes('LOWER(TRIM(v.value)) = LOWER(TRIM(?))')) {
+                stmt.first.mockResolvedValue({ id: 'val-red-active' });
+            }
+            return stmt;
+        });
+
+        await expect(
+            repo.restoreValue('prod-1', 'val-red-archived')
+        ).rejects.toThrow('duplicate dimension values with same label are not supported');
     });
 
     it('restoreSnapshot chunks large snapshot writes into D1-safe sizes', async () => {
