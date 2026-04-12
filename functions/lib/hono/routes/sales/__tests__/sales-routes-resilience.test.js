@@ -382,6 +382,65 @@ describe('sales routes resilience', () => {
     );
   });
 
+  it('hydrates binding snapshot fields from repository dimension_map when product payload omits it', async () => {
+    mocks.productVariantFindByIdAndProductId.mockResolvedValue({
+      id: 'v-1',
+      product_id: 'p-1',
+      status: 'active',
+      sku: 'SKU-BLUE-L',
+      available_quantity: 5,
+      options_values: {
+        'dim-color': 'Blue',
+        'dim-material': 'Linen',
+        'dim-size': 'L',
+      },
+    });
+    mocks.productFindById.mockResolvedValue({
+      id: 'p-1',
+      status: 'active',
+      name: 'Repository Hydrated Tee',
+      brand: 'ACME',
+      series: 'S2',
+      images: '[]',
+    });
+    mocks.dimensionGetMap.mockResolvedValue({
+      'dim-color': 'Color',
+      'dim-material': 'Material',
+      'dim-size': 'Size',
+    });
+
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Placeholder',
+          quantity: 1,
+          productId: 'p-1',
+          variantId: 'v-1',
+          fileIds: [],
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.dimensionGetMap).toHaveBeenCalledWith('p-1');
+    expect(mocks.orderCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sku: 'SKU-BLUE-L',
+          color: 'Blue',
+          material: 'Linen',
+          size: 'Size: L',
+        }),
+      })
+    );
+  });
+
   it('sales products endpoints return stable schema under empty/error', async () => {
     const app = createProductsTestApp();
 
@@ -474,6 +533,39 @@ describe('sales routes resilience', () => {
     expect(payload.data.dimension_map).toEqual({ 'dim-color': 'Color' });
   });
 
+  it('filters out-of-stock variants from sales product detail to match sales order policy', async () => {
+    mocks.productFindById.mockResolvedValue({
+      id: 'p-1',
+      status: 'active',
+      images: '[]',
+    });
+    mocks.variantFindByProductId.mockResolvedValue([
+      { id: 'v-in', product_id: 'p-1', status: 'active', available_quantity: 3, stock_quantity: 3, options_values: { 'dim-color': 'Red' } },
+      { id: 'v-out', product_id: 'p-1', status: 'active', available_quantity: 0, stock_quantity: 0, options_values: { 'dim-color': 'Blue' } },
+      { id: 'v-archived', product_id: 'p-1', status: 'archived', available_quantity: 8, stock_quantity: 8, options_values: { 'dim-color': 'Green' } },
+    ]);
+    mocks.dimensionListByProduct.mockResolvedValue([]);
+    mocks.variantImageListByVariant.mockResolvedValue([]);
+
+    const app = createProductsTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/products/p-1',
+      {},
+      { DB: createDbMock() },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    const payload = await res.json();
+    expect(payload.data.variants).toHaveLength(1);
+    expect(payload.data.variants[0]).toEqual(
+      expect.objectContaining({
+        id: 'v-in',
+        available_quantity: 3,
+      })
+    );
+  });
+
   it('enqueues sales read cache invalidation through outbox after GET /:id', async () => {
     mocks.orderFindByIdAndSalesperson.mockResolvedValue({
       id: 'o-1',
@@ -493,7 +585,8 @@ describe('sales routes resilience', () => {
 
     expect(res.status).toBe(200);
     expect(mocks.orderMarkAsRead).toHaveBeenCalledWith('o-1', 'sales');
-    expect(mocks.publish).toHaveBeenCalledWith([
+    expect(mocks.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.publish.mock.calls[0][0]).toEqual([
       expect.objectContaining({
         event_type: 'order_read_by_sales',
         aggregate_id: 'o-1',
@@ -527,7 +620,8 @@ describe('sales routes resilience', () => {
 
     expect(res.status).toBe(200);
     expect(mocks.orderMarkAsRead).toHaveBeenCalledWith('o-1', 'sales');
-    expect(mocks.publish).toHaveBeenCalledWith([
+    expect(mocks.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.publish.mock.calls[0][0]).toEqual([
       expect.objectContaining({
         event_type: 'order_read_by_sales',
         aggregate_id: 'o-1',

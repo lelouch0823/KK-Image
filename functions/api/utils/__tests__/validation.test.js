@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mocks = vi.hoisted(() => ({
   productFindById: vi.fn(),
   variantFindByIdAndProductId: vi.fn(),
+  dimensionGetMap: vi.fn(),
 }));
 
 vi.mock('../../../repositories/ProductRepository.js', () => ({
@@ -17,6 +18,12 @@ vi.mock('../../../repositories/ProductVariantRepository.js', () => ({
   })),
 }));
 
+vi.mock('../../../repositories/ProductDimensionRepository.js', () => ({
+  ProductDimensionRepository: vi.fn(() => ({
+    getDimensionMap: mocks.dimensionGetMap,
+  })),
+}));
+
 import { validateProductVariantBinding } from '../validation.js';
 
 describe('validateProductVariantBinding', () => {
@@ -24,6 +31,7 @@ describe('validateProductVariantBinding', () => {
     vi.clearAllMocks();
     mocks.productFindById.mockResolvedValue({ id: 'p-1', status: 'active' });
     mocks.variantFindByIdAndProductId.mockResolvedValue({ id: 'v-1', product_id: 'p-1', status: 'active' });
+    mocks.dimensionGetMap.mockResolvedValue({});
   });
 
   it('rejects product without variant', async () => {
@@ -56,6 +64,26 @@ describe('validateProductVariantBinding', () => {
         product: expect.objectContaining({ id: 'p-1' }),
         variant: expect.objectContaining({ id: 'v-1' }),
         normalizedVariantId: 'v-1',
+      })
+    );
+  });
+
+  it('hydrates product dimension_map for downstream order snapshot consumers', async () => {
+    mocks.dimensionGetMap.mockResolvedValue({
+      'dim-color': 'Color',
+      'dim-size': 'Size',
+    });
+
+    const result = await validateProductVariantBinding({}, 'p-1', 'v-1', { checkActive: true });
+
+    expect(mocks.dimensionGetMap).toHaveBeenCalledWith('p-1');
+    expect(result.product).toEqual(
+      expect.objectContaining({
+        id: 'p-1',
+        dimension_map: {
+          'dim-color': 'Color',
+          'dim-size': 'Size',
+        },
       })
     );
   });

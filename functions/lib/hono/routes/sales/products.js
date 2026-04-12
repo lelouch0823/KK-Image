@@ -11,6 +11,18 @@ import { loadVariantReplenishmentMap } from '../_shared/variant-replenishment.js
 
 const app = new Hono();
 
+function isSellableSalesVariant(variant = {}) {
+  if (variant?.status !== 'active') return false;
+  const availableQuantity = Number(
+    variant?.available_quantity ??
+    variant?.available ??
+    variant?.stock_quantity ??
+    variant?.stockQuantity ??
+    0
+  );
+  return availableQuantity > 0;
+}
+
 app.onError((err, c) => {
   const statusCode = Number(err?.statusCode || 500);
   const code = err?.code || 'INTERNAL_ERROR';
@@ -76,7 +88,7 @@ app.get('/:id', withCache(30), async (c) => {
   const dimensionRepo = new ProductDimensionRepository(env.DB);
   const variantImageRepo = new VariantImageRepository(env.DB);
 
-  const variants = (await variantRepo.findByProductId(id)).filter((variant) => variant.status === 'active');
+  const variants = (await variantRepo.findByProductId(id)).filter((variant) => isSellableSalesVariant(variant));
   const replenishmentMap = await loadVariantReplenishmentMap(env.DB, variants.map((variant) => variant.id));
   const dimensions = (await dimensionRepo.listByProduct(id))
     .filter((dimension) => dimension?.status !== 'archived')

@@ -1,5 +1,6 @@
 import { ProductRepository } from '../../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../../repositories/ProductVariantRepository.js';
+import { ProductDimensionRepository } from '../../repositories/ProductDimensionRepository.js';
 import { BadRequestError } from '../../lib/hono/errors.js';
 
 export async function validateProductVariantBinding(db, productId, variantId, options = {}) {
@@ -65,8 +66,17 @@ export async function validateProductVariantBinding(db, productId, variantId, op
     }
   }
 
+  let hydratedProduct = product;
+  if (!hydratedProduct.dimension_map) {
+    const dimensionRepo = new ProductDimensionRepository(db);
+    hydratedProduct = {
+      ...product,
+      dimension_map: await dimensionRepo.getDimensionMap(normalizedProductId),
+    };
+  }
+
   return {
-    product,
+    product: hydratedProduct,
     variant,
     normalizedProductId,
     normalizedVariantId,
