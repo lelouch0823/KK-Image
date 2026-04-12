@@ -3402,3 +3402,19 @@
   - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
   - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
   - `functions/api/utils/__tests__/validation.test.js`
+
+### 2026-04-12 轮次 297
+
+- 继续深审商品关联销售空间读取链路，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/sales/spaces.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/sales/spaces.js) 修复前的销售端空间列表 `GET /api/sales/:token/spaces` 和详情 `GET /api/sales/:token/spaces/:id` 都没有过滤 `expires_at`。结果是已经过期的顶级空间、以及合集空间下已经过期的子空间，仍会继续暴露给销售端；更糟的是，空间详情对“空间本体已过期”也不会拒绝访问，导致销售侧能继续读取本该失效的商品承载空间，业务时效边界没有闭环。
+- 已完成本轮修复:
+  - 销售端空间列表现在会统一过滤 `expires_at < now` 的顶级空间，不再继续向销售暴露已过期空间。
+  - 销售端空间详情现在会在空间本体已过期时直接返回 `404`；合集详情中的子空间列表也会同步过滤掉已过期子空间，保持列表页、详情页和空间时效规则一致。
+  - 新增销售端路由回归测试，锁定“过期空间不再可见、过期详情不可访问、过期子空间不再出现在合集详情里”的行为，避免后续读链路再回退。
+- 增量回归:
+  - `functions/lib/hono/routes/sales/__tests__/spaces-routes.test.js`
+  - `functions/api/space/__tests__/public-space-access.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/transformers.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
+  - `functions/api/utils/__tests__/validation.test.js`
