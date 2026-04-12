@@ -189,6 +189,7 @@ crud.post(
     const nowMs = Date.now();
 
     const binding = await validateProductVariantBinding(env.DB, productId || null, variantId || null, {
+      checkActive: true,
       variantSelectPolicy: 'in_stock_only',
     });
 
@@ -290,6 +291,7 @@ crud.on(
     const bindingChanged = nextProductId !== currentProductId || nextVariantId !== currentVariantId;
     // Preserve historical archived bindings on unrelated edits, but require in-stock variants for new bindings.
     await validateProductVariantBinding(env.DB, nextProductId, nextVariantId, {
+      checkActive: bindingChanged,
       variantSelectPolicy: bindingChanged ? 'in_stock_only' : 'allow_out_of_stock',
     });
     // 处理新的分享模式

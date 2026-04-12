@@ -76,6 +76,16 @@ describe('manage subspaces routes', () => {
         error.statusCode = 400;
         throw error;
       }
+      if (options.checkActive && productId === 'product-archived') {
+        const error = new Error('product must be active');
+        error.statusCode = 400;
+        throw error;
+      }
+      if (options.checkActive && variantId === 'variant-archived') {
+        const error = new Error('variant must be active');
+        error.statusCode = 400;
+        throw error;
+      }
       if (options.variantSelectPolicy === 'in_stock_only' && variantId === 'variant-oos') {
         const error = new Error('variant must be in stock');
         error.statusCode = 400;
@@ -216,6 +226,38 @@ describe('manage subspaces routes', () => {
       'product-2',
       'variant-oos',
       expect.objectContaining({
+        variantSelectPolicy: 'in_stock_only',
+      })
+    );
+    expect(mocks.createSubspace).not.toHaveBeenCalled();
+  });
+
+  it('rejects subspace creation when rebinding to an archived variant', async () => {
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/spaces/space-parent-1/subspaces',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Archived Child Space',
+          productId: 'product-2',
+          variantId: 'variant-archived',
+          templateData: {},
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.validateProductVariantBinding).toHaveBeenCalledWith(
+      {},
+      'product-2',
+      'variant-archived',
+      expect.objectContaining({
+        checkActive: true,
         variantSelectPolicy: 'in_stock_only',
       })
     );

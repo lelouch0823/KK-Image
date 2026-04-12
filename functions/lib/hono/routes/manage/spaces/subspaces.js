@@ -95,6 +95,7 @@ subspaces.post(
     const shareToken = generateShareToken();
     const nowMs = Date.now();
     const binding = await validateProductVariantBinding(env.DB, productId || null, variantId || null, {
+      checkActive: true,
       variantSelectPolicy: 'in_stock_only',
     });
 

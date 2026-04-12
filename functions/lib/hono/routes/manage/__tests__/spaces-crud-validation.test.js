@@ -196,6 +196,34 @@ describe('manage spaces crud validation', () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 
+  it('rejects create when the bound product is archived', async () => {
+    mocks.productFindById.mockResolvedValueOnce({
+      id: 'p-1',
+      status: 'archived',
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/spaces',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Archived Product Space',
+          productId: 'p-1',
+          variantId: 'v-1',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain('product must be active');
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
   it('rejects patch when variant does not belong to bound product', async () => {
     mocks.variantFindByIdAndProductId.mockResolvedValueOnce(null);
     mocks.findById.mockResolvedValueOnce({
@@ -257,6 +285,41 @@ describe('manage spaces crud validation', () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toContain('variant must be in stock');
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects patch when rebinding to an archived variant', async () => {
+    mocks.findById.mockResolvedValueOnce({
+      id: 'sp-1',
+      parent_id: null,
+      product_id: 'p-1',
+      variant_id: 'v-1',
+    });
+    mocks.variantFindByIdAndProductId.mockResolvedValueOnce({
+      id: 'v-archived',
+      product_id: 'p-1',
+      status: 'archived',
+      available_quantity: 8,
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/spaces/sp-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: 'p-1',
+          variantId: 'v-archived',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain('variant must be active');
     expect(mocks.update).not.toHaveBeenCalled();
   });
 
