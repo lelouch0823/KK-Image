@@ -3741,3 +3741,14 @@
   - 补齐建议采购回归测试，显式锁定“live 商品行已丢失但订单行快照仍在时，建议采购仍会保留该缺口”的行为。
 - 增量回归:
   - `pnpm vitest run functions/services/__tests__/purchase-suggestions-inventory-semantics.test.js functions/services/__tests__/variant-pricing-strategy.test.js functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js functions/services/__tests__/InventoryBusinessWorkflow.test.js`
+
+### 2026-04-13 轮次 323
+
+- 继续深审商品关联订货总览的筛选链路，新增 1 个中风险问题:
+  - [functions/repositories/GoodsOverviewRepository.js](/home/bjw/Code/KK-Image/functions/repositories/GoodsOverviewRepository.js) 修复前 `getAvailableFilters()` 虽然已经基于 `order_lines` 统计需求，但分类和品牌筛选项仍然要求 `JOIN product_variants`。结果是只要历史缺口对应的 live variant 行已被删掉，订货总览主列表还能继续显示这条需求，筛选面板却会先把对应的品牌/分类选项静默吞掉，形成“列表能看见，筛选不能选”的读模型断裂。
+- 已完成本轮修复:
+  - 订货总览筛选项现在不再把 `product_variants` 的 live 存在性当作前置条件，而是只依赖仍有有效需求的 `order_lines` 与订单状态。
+  - 分类筛选项改为 `LEFT JOIN products`，品牌筛选项继续优先回退 `orders.current_data.brand`，从而保证历史缺口即使对应 variant 行已删，筛选面板仍能和主列表保持一致。
+  - 补齐仓储回归测试，显式锁定“live variant 行缺失时，品牌/分类筛选项仍会保留历史需求对应选项”的行为，并复跑路由测试确认接口层语义未回退。
+- 增量回归:
+  - `pnpm vitest run functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js`
