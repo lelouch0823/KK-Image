@@ -3489,3 +3489,16 @@
   - `functions/repositories/__tests__/product-spu.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/export-route.test.js`
   - `src/components/product/__tests__/ProductExportModal.filters.test.js`
+
+### 2026-04-12 轮次 303
+
+- 继续深审商品关联的订货总览链路，新增 1 个中高风险问题:
+  - [functions/lib/hono/routes/manage/goods-overview.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/goods-overview.js) 和 [src/composables/useGoodsOverview.js](/home/bjw/Code/KK-Image/src/composables/useGoodsOverview.js) 修复前存在明显的列表/导出口径漂移：页面列表会按当前 `category / brand / shortageOnly / sort` 筛选实时查询，但前端导出入口不会把这些筛选条件带到导出 URL，后端导出路由也直接硬编码成 `getList({ sort: 'demand' })`。结果是管理员在页面上看到的是某个筛选子集，导出的却始终接近“全量结果按 demand 排序”，属于典型的业务未闭环。
+- 已完成本轮修复:
+  - 管理端订货总览前端现在统一复用同一套 query 构造逻辑，列表加载和 CSV 导出都会带上当前 `category / brand / shortageOnly / sort` 条件，不再出现“看的是筛选结果、导出的是全量数据”的分叉。
+  - 后端 `goods-overview` 列表和导出路由现在统一使用共享的筛选解析逻辑，CSV 导出会真实复用当前 query filters，而不是再偷偷覆盖成固定的 `sort: 'demand'`。
+  - 补齐 composable 级和管理端路由级回归测试，显式锁定“goods overview 导出必须对齐当前筛选条件”的行为。
+- 增量回归:
+  - `src/composables/__tests__/useGoodsOverview.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js`
+  - `functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
