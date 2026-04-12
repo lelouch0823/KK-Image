@@ -21,6 +21,13 @@ const mockDimensionRepo = {
   updateDimension: vi.fn(),
   updateValueMeta: vi.fn(),
 };
+const mockCommandIdempotency = {
+  reserveCommand: vi.fn(),
+  buildDeleteStatement: vi.fn(),
+  deleteRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+  buildFinalizeStatement: vi.fn(),
+  finalizeRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+};
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
@@ -62,10 +69,22 @@ vi.mock('../../../../../../repositories/VariantAuditRepository.js', () => ({
   },
 }));
 
+vi.mock('../../../../../../repositories/CommandIdempotencyRepository.js', () => ({
+  CommandIdempotencyRepository: vi.fn(() => ({
+    reserveCommand: mockCommandIdempotency.reserveCommand,
+    buildDeleteStatement: mockCommandIdempotency.buildDeleteStatement,
+    buildFinalizeStatement: mockCommandIdempotency.buildFinalizeStatement,
+  })),
+}));
+
 vi.mock('../../../../middleware/cache.js', () => ({
   withCache: () => async (_c, next) => await next(),
   invalidateCache: vi.fn(),
   getProductCacheUrls: vi.fn(() => []),
+}));
+
+vi.mock('../../../../middleware/auth.js', () => ({
+  requirePermission: () => async (_c, next) => next(),
 }));
 
 vi.mock('../../../../_shared/domain-outbox.js', () => ({
@@ -76,7 +95,7 @@ function createApp() {
   const app = new Hono();
   app.onError((err, c) => c.json({ success: false, error: err.message }, err.statusCode || 500));
   app.use('/api/manage/products/*', async (c, next) => {
-    c.set('user', { id: 'u-manager', type: 'user', role: 'manager', permissions: [] });
+    c.set('user', { id: 'u-manager', type: 'user', role: 'manager', permissions: ['products:manage'] });
     await next();
   });
   app.route('/api/manage/products', productsApp);
@@ -109,6 +128,17 @@ describe('product validation rules', () => {
       updatedCount: 1,
       archivedCount: 0,
       reactivatedCount: 0,
+    });
+    mockCommandIdempotency.reserveCommand.mockResolvedValue({
+      existing: false,
+      ownsReservation: true,
+      record: { command_id: 'cmd-product-validation-1' },
+    });
+    mockCommandIdempotency.buildDeleteStatement.mockReturnValue({
+      run: mockCommandIdempotency.deleteRun,
+    });
+    mockCommandIdempotency.buildFinalizeStatement.mockReturnValue({
+      run: mockCommandIdempotency.finalizeRun,
     });
     mockDimensionRepo.listByProduct.mockResolvedValue([]);
     mockDimensionRepo.createDimension.mockResolvedValue({ id: 'dim-1', name: 'Color' });

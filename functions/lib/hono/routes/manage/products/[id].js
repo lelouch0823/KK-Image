@@ -4,6 +4,7 @@ import { ProductVariantRepository } from '../../../../../repositories/ProductVar
 import { ProductDimensionRepository } from '../../../../../repositories/ProductDimensionRepository.js';
 import { VariantImageRepository } from '../../../../../repositories/VariantImageRepository.js';
 import { VariantAuditRepository } from '../../../../../repositories/VariantAuditRepository.js';
+import { CommandIdempotencyRepository } from '../../../../../repositories/CommandIdempotencyRepository.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../../errors.js';
@@ -11,8 +12,15 @@ import { requirePermission } from '../../../middleware/auth.js';
 import { scheduleProductCacheInvalidation } from './cache-helpers.js';
 import { ProductCatalogService } from '../../../../../services/ProductCatalogService.js';
 import { loadVariantReplenishmentMap } from '../../_shared/variant-replenishment.js';
+import {
+    cleanupReservedCommand,
+    parseStoredResponse,
+    replayReservedCommand,
+    resolveReservationOwnership,
+} from '../../../../../services/order-procurement-shared.js';
 
 const app = new Hono();
+const PRODUCT_ARCHIVE_COMMAND_TYPE = 'product_archive';
 export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'POST', path: '/:id/dimensions', domain: 'products', action: 'product.dimension.create', severity: 'high', targetType: 'product' },
     { method: 'PATCH', path: '/:id/dimensions/:dimensionId', domain: 'products', action: 'product.dimension.update', severity: 'high', targetType: 'product' },
@@ -67,6 +75,132 @@ const ensureProductExists = async (productRepo, productId) => {
     }
     return product;
 };
+
+function getIdempotencyKey(c) {
+    const requestKey = String(c.req.header('Idempotency-Key') || '').trim();
+    return requestKey || crypto.randomUUID();
+}
+
+function buildProductArchiveRequestFingerprint(productId) {
+    return JSON.stringify({
+        productId: String(productId || '').trim(),
+    });
+}
+
+function getArchiveCommandScopeKey(c) {
+    const actorId = String(c.get('user')?.id || 'anonymous').trim() || 'anonymous';
+    return `${PRODUCT_ARCHIVE_COMMAND_TYPE}:${actorId}`;
+}
+
+function isDuplicateOutboxIdempotencyError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return (
+        message.includes('unique constraint failed')
+        && (
+            message.includes('domain_outbox.idempotency_key')
+            || message.includes('idx_domain_outbox_idempotency_key')
+        )
+    );
+}
+
+async function publishProductArchivedCacheEvent(c, productId, { commandId, correlationId } = {}) {
+    try {
+        await scheduleProductCacheInvalidation(c, {
+            eventType: 'product_archived',
+            productIds: [productId],
+        }, {
+            commandId,
+            correlationId,
+        });
+    } catch (error) {
+        if (!isDuplicateOutboxIdempotencyError(error)) {
+            throw error;
+        }
+    }
+}
+
+function buildProductArchiveStoredResponse({
+    productId,
+    response,
+    variantAuditEvents = [],
+    variantAuditPersisted = false,
+}) {
+    return {
+        productId,
+        response,
+        variantAuditEvents,
+        variantAuditPersisted: Boolean(variantAuditPersisted),
+    };
+}
+
+function normalizeProductArchiveStoredResponse(storedResponse, productId) {
+    if (!storedResponse) return null;
+    if (storedResponse?.response) {
+        return {
+            productId: storedResponse.productId || productId,
+            response: storedResponse.response,
+            variantAuditEvents: Array.isArray(storedResponse.variantAuditEvents)
+                ? storedResponse.variantAuditEvents
+                : [],
+            variantAuditPersisted: Boolean(storedResponse.variantAuditPersisted),
+        };
+    }
+
+    return {
+        productId,
+        response: storedResponse,
+        variantAuditEvents: [],
+        variantAuditPersisted: true,
+    };
+}
+
+function getProductArchivePublicResponse(storedResponse) {
+    return storedResponse?.response || storedResponse;
+}
+
+async function reserveProductArchiveCommand(c, { requestFingerprint }) {
+    const commandIdempotencyRepo = new CommandIdempotencyRepository(c.env.DB);
+    const idempotencyKey = getIdempotencyKey(c);
+    const reservation = await commandIdempotencyRepo.reserveCommand(
+        PRODUCT_ARCHIVE_COMMAND_TYPE,
+        getArchiveCommandScopeKey(c),
+        idempotencyKey,
+        requestFingerprint
+    );
+
+    if (reservation?.existing) {
+        if (reservation.record?.request_fingerprint !== requestFingerprint) {
+            throw new BadRequestError('同一个幂等键不能提交不同的商品归档请求');
+        }
+
+        const storedResponse = parseStoredResponse(reservation.record?.response_json);
+        if (reservation.record?.status === 'failed' && storedResponse) {
+            return {
+                replay: null,
+                resume: storedResponse,
+                reservation,
+                commandIdempotencyRepo,
+            };
+        }
+
+        return {
+            replay: replayReservedCommand(reservation, requestFingerprint, {
+                mismatchMessage: '同一个幂等键不能提交不同的商品归档请求',
+                inFlightMessage: '当前幂等键对应的商品归档命令仍在处理中',
+            }),
+            resume: null,
+            reservation,
+            commandIdempotencyRepo,
+        };
+    }
+
+    return {
+        replay: null,
+        resume: null,
+        reservation,
+        commandIdempotencyRepo,
+    };
+}
 
 /**
  * GET /:id - 获取商品详情
@@ -504,30 +638,82 @@ app.put('/:id', async (c) => {
 app.delete('/:id', async (c) => {
     const { env } = c;
     const id = c.req.param('id');
+    const requestFingerprint = buildProductArchiveRequestFingerprint(id);
+    const {
+        replay,
+        resume,
+        reservation,
+        commandIdempotencyRepo,
+    } = await reserveProductArchiveCommand(c, { requestFingerprint });
+
+    if (replay) {
+        return c.json(getProductArchivePublicResponse(replay));
+    }
+
     const repo = new ProductRepository(env.DB);
     await ensureProductExists(repo, id);
+    const auditRepo = new VariantAuditRepository(env.DB);
+    if (resume) {
+        const storedArchive = normalizeProductArchiveStoredResponse(resume, id);
+        if (!storedArchive?.variantAuditPersisted && Array.isArray(storedArchive?.variantAuditEvents) && storedArchive.variantAuditEvents.length > 0) {
+            await auditRepo.createBatch(storedArchive.variantAuditEvents);
+            storedArchive.variantAuditPersisted = true;
+        }
+        await publishProductArchivedCacheEvent(c, storedArchive?.productId || id, {
+            commandId: reservation.record?.command_id,
+            correlationId: reservation.record?.command_id,
+        });
+        await commandIdempotencyRepo
+            .buildFinalizeStatement(reservation.record?.command_id, storedArchive)
+            .run();
+        return c.json(getProductArchivePublicResponse(storedArchive));
+    }
+
     const now = Date.now();
     const variantRepo = new ProductVariantRepository(env.DB);
-    const auditRepo = new VariantAuditRepository(env.DB);
-    const beforeVariants = await variantRepo.findByProductId(id);
-    const result = await env.DB
-        .prepare(`UPDATE product_variants SET status = 'archived', updated_at = ? WHERE product_id = ?`)
-        .bind(now, id)
-        .run();
-    const changedRows = Number(result?.meta?.changes || 0);
-    const hadVariants = Array.isArray(beforeVariants) && beforeVariants.length > 0;
-    const success = changedRows > 0 || !hadVariants;
+    const ownsReservation = resolveReservationOwnership(reservation);
+    let archiveState = null;
 
-    if (success) {
+    try {
+        const beforeVariants = await variantRepo.findByProductId(id);
+        const result = await env.DB
+            .prepare(`UPDATE product_variants SET status = 'archived', updated_at = ? WHERE product_id = ?`)
+            .bind(now, id)
+            .run();
+        const changedRows = Number(result?.meta?.changes || 0);
+        const hadVariants = Array.isArray(beforeVariants) && beforeVariants.length > 0;
+        const success = changedRows > 0 || !hadVariants;
+
+        if (!success) {
+            throw new BadRequestError('Delete failed');
+        }
+
         const events = (beforeVariants || []).map((variant) => ({
             variant_id: variant.id,
             product_id: id,
             action: 'variant_archived',
             changes: { before: { status: variant.status || 'active' }, after: { status: 'archived' } },
         }));
+        archiveState = buildProductArchiveStoredResponse({
+            productId: id,
+            response: { success: true, message: 'Product variants archived' },
+            variantAuditEvents: events,
+            variantAuditPersisted: false,
+        });
+
         if (events.length > 0) {
             await auditRepo.createBatch(events);
+            archiveState.variantAuditPersisted = true;
         }
+
+        await publishProductArchivedCacheEvent(c, id, {
+            commandId: reservation.record?.command_id,
+            correlationId: reservation.record?.command_id,
+        });
+        await commandIdempotencyRepo
+            .buildFinalizeStatement(reservation.record?.command_id, archiveState)
+            .run();
+
         scheduleAuditEvent(c, {
             domain: 'products',
             action: 'product.archive',
@@ -539,11 +725,25 @@ app.delete('/:id', async (c) => {
             summary: `Archived product ${id}`,
             metadata: { variantCount: events.length },
         });
-        // 使缓存失效
-        await scheduleProductCacheInvalidation(c, { eventType: 'product_archived', productIds: [id] });
-        return c.json({ success: true, message: 'Product variants archived' });
-    } else {
-        throw new BadRequestError('Delete failed');
+        return c.json(archiveState.response);
+    } catch (error) {
+        if (archiveState) {
+            try {
+                await commandIdempotencyRepo
+                    .buildFinalizeStatement(reservation.record?.command_id, archiveState, 'failed')
+                    .run();
+            } catch (finalizeError) {
+                console.error('Product archive idempotency finalize failed:', finalizeError);
+            }
+        } else {
+            await cleanupReservedCommand({
+                commandIdempotencyRepo,
+                db: c.env.DB,
+                ownsReservation,
+                commandId: reservation.record?.command_id,
+            });
+        }
+        throw error;
     }
 });
 

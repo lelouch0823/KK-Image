@@ -28,6 +28,7 @@ const mockDimensionRepo = {
     archiveVariantsByValue: vi.fn(),
     mergeKeepByDimensionRemoval: vi.fn(),
 };
+const mockScheduleProductCacheInvalidation = vi.fn(async () => []);
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
     ProductRepository: class {
@@ -119,11 +120,19 @@ vi.mock('../../../../middleware/cache.js', () => ({
     getProductCacheUrls: vi.fn(() => []),
 }));
 
+vi.mock('../../../../middleware/auth.js', () => ({
+    requirePermission: () => async (_c, next) => next(),
+}));
+
+vi.mock('../cache-helpers.js', () => ({
+    scheduleProductCacheInvalidation: (...args) => mockScheduleProductCacheInvalidation(...args),
+}));
+
 function createApp() {
     const app = new Hono();
     app.onError((err, c) => c.json({ success: false, error: err.message }, err.statusCode || 500));
     app.use('/api/manage/products/*', async (c, next) => {
-        c.set('user', { id: 'u-manager', type: 'user', role: 'manager', permissions: [] });
+        c.set('user', { id: 'u-manager', type: 'user', role: 'manager', permissions: ['products:manage'] });
         await next();
     });
     app.route('/api/manage/products', productsDetailApp);
@@ -136,6 +145,7 @@ describe('variant dimensions routes', () => {
         mockProductRepo.findById.mockResolvedValue({ id: 'prod-1', name: 'Tee' });
         mockVariantRepo.findByProductId.mockResolvedValue([]);
         mockVariantImageRepo.listByVariant.mockResolvedValue([]);
+        mockScheduleProductCacheInvalidation.mockResolvedValue([]);
         mockDimensionRepo.listByProduct.mockResolvedValue([
             { id: 'dim-color', name: 'Color', status: 'active', values: [] },
         ]);

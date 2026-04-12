@@ -32,6 +32,14 @@ const mockFolderUtils = {
   moveFilesToFolder: vi.fn(),
 };
 const mockScheduleAuditEvent = vi.fn();
+const mockScheduleProductCacheInvalidation = vi.fn(async () => []);
+const mockCommandIdempotency = {
+  reserveCommand: vi.fn(),
+  buildDeleteStatement: vi.fn(),
+  deleteRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+  buildFinalizeStatement: vi.fn(),
+  finalizeRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+};
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
@@ -83,9 +91,21 @@ vi.mock('../../../../../../api/utils/folder-utils.js', () => ({
   moveFilesToFolder: (...args) => mockFolderUtils.moveFilesToFolder(...args),
 }));
 
+vi.mock('../../../../../../repositories/CommandIdempotencyRepository.js', () => ({
+  CommandIdempotencyRepository: vi.fn(() => ({
+    reserveCommand: mockCommandIdempotency.reserveCommand,
+    buildDeleteStatement: mockCommandIdempotency.buildDeleteStatement,
+    buildFinalizeStatement: mockCommandIdempotency.buildFinalizeStatement,
+  })),
+}));
+
 vi.mock('../../../../middleware/cache.js', () => ({
   invalidateCache: vi.fn(async () => {}),
   getProductCacheUrls: vi.fn(() => []),
+}));
+
+vi.mock('../cache-helpers.js', () => ({
+  scheduleProductCacheInvalidation: (...args) => mockScheduleProductCacheInvalidation(...args),
 }));
 
 vi.mock('../../../../_shared/audit-helpers.js', async () => {
@@ -103,7 +123,7 @@ function createApp() {
     return c.json({ success: false, error: err.message }, err.statusCode || 500);
   });
   app.use('/api/manage/products/*', async (c, next) => {
-    c.set('user', { id: 'u-manager', type: 'user', role: 'manager', permissions: [] });
+    c.set('user', { id: 'u-manager', type: 'user', role: 'manager', permissions: ['products:manage'] });
     await next();
   });
   app.route('/api/manage/products', productByIdApp);
@@ -127,6 +147,18 @@ describe('product variant audit routes', () => {
     mockVariantImageRepo.syncImages.mockResolvedValue(undefined);
     mockFolderUtils.ensureVariantFolder.mockResolvedValue('folder-variant');
     mockFolderUtils.moveFilesToFolder.mockResolvedValue(undefined);
+    mockScheduleProductCacheInvalidation.mockResolvedValue([]);
+    mockCommandIdempotency.reserveCommand.mockResolvedValue({
+      existing: false,
+      ownsReservation: true,
+      record: { command_id: 'cmd-product-archive-1' },
+    });
+    mockCommandIdempotency.buildDeleteStatement.mockReturnValue({
+      run: mockCommandIdempotency.deleteRun,
+    });
+    mockCommandIdempotency.buildFinalizeStatement.mockReturnValue({
+      run: mockCommandIdempotency.finalizeRun,
+    });
     mockScheduleAuditEvent.mockReset();
   });
 
