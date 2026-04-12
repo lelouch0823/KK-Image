@@ -3514,3 +3514,18 @@
 - 增量回归:
   - `functions/utils/__tests__/ai-tool-executor.test.js`
   - `functions/utils/__tests__/ai-tool-executor.canonicalization.test.js`
+
+### 2026-04-12 轮次 305
+
+- 继续深审商品相关导出的错误边界，新增 1 个中风险问题:
+  - [src/components/product/export/export-utils.js](/home/bjw/Code/KK-Image/src/components/product/export/export-utils.js) 和 [functions/lib/hono/routes/manage/goods-overview.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/goods-overview.js) 修复前导出 CSV 时只做了双引号转义，没有做表格公式注入防护。只要商品名、SKU、品牌、变体标签等字段以 `= + - @` 开头，管理员把导出文件直接用 Excel / Numbers 打开时，就会被当成公式执行，属于商品导出和订货总览导出的错误边界缺失。
+- 已完成本轮修复:
+  - 商品变体导出的共享 `buildCsvContent()` 现在会统一中和以 `= + - @` 开头的单元格值，前端本地 CSV 和后端商品导出路由会一起继承这条防护，不再各自实现、各自遗漏。
+  - `goods-overview` 导出路由现在也补上同样的公式注入中和逻辑，确保订货总览导出的商品名、规格名、SKU、品牌字段不会在表格软件里被当作公式执行。
+  - 补齐商品导出 util 和 goods overview 路由回归测试，显式锁定“危险前缀会被转义后再写入 CSV”的行为。
+- 增量回归:
+  - `src/components/product/export/__tests__/export-utils.test.js`
+  - `src/components/product/__tests__/ProductExportModal.filters.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/export-route.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js`
+  - `src/composables/__tests__/useGoodsOverview.test.js`
