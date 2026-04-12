@@ -2,6 +2,37 @@ import { describe, it, expect, vi } from 'vitest';
 import { executeAITool } from '../ai-tool-executor.js';
 
 describe('executeAITool - variant aware tools', () => {
+  it('searchProducts defaults to active catalog scope', async () => {
+    const productRepo = {
+      search: vi.fn().mockResolvedValue({
+        items: [{ id: 'prod-1' }],
+        total: 1,
+      }),
+    };
+
+    const result = await executeAITool(
+      'searchProducts',
+      { search: 'tee', brand: 'KK', limit: 99 },
+      { productRepo }
+    );
+
+    expect(productRepo.search).toHaveBeenCalledWith({
+      search: 'tee',
+      category: undefined,
+      brand: 'KK',
+      status: 'active',
+      limit: 20,
+      page: 1,
+    });
+    expect(result.scope).toEqual(
+      expect.objectContaining({
+        status: 'active',
+        search: 'tee',
+        brand: 'KK',
+      })
+    );
+  });
+
   it('searchVariants uses variant repo and returns normalized paging meta', async () => {
     const searchForAI = vi.fn().mockResolvedValue({
       items: [{ id: 'v1' }, { id: 'v2' }],
@@ -83,7 +114,7 @@ describe('executeAITool - variant aware tools', () => {
     );
   });
 
-  it('getProductDetail includes variants when variant repo is available', async () => {
+  it('getProductDetail keeps only active variants when variant repo is available', async () => {
     const productRepo = {
       findById: vi.fn().mockResolvedValue({
         id: 'prod-1',
@@ -92,8 +123,8 @@ describe('executeAITool - variant aware tools', () => {
     };
     const variantRepo = {
       findByProductId: vi.fn().mockResolvedValue([
-        { id: 'v1', product_id: 'prod-1' },
-        { id: 'v2', product_id: 'prod-1' },
+        { id: 'v1', product_id: 'prod-1', status: 'active', options_values: { Color: 'Red' } },
+        { id: 'v2', product_id: 'prod-1', status: 'archived', options_values: { Color: 'Grey' } },
       ]),
     };
 
@@ -103,7 +134,9 @@ describe('executeAITool - variant aware tools', () => {
     expect(result).toEqual(
       expect.objectContaining({
         id: 'prod-1',
-        variants: expect.arrayContaining([expect.objectContaining({ id: 'v1' })]),
+        variants: [
+          expect.objectContaining({ id: 'v1', variantLabel: 'Red' }),
+        ],
       })
     );
   });

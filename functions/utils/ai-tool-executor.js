@@ -17,6 +17,11 @@ function normalizeTotal(candidate, fallback = 0) {
     return Number(fallback) || 0;
 }
 
+function normalizeEntityStatus(value, fallback = 'active') {
+    const normalized = String(value || '').trim().toLowerCase();
+    return normalized || fallback;
+}
+
 function withPagingMeta({ items, total, limit, page = 1, scope = {} }) {
     const safeItems = Array.isArray(items) ? items : [];
     const safeTotal = normalizeTotal(total, safeItems.length);
@@ -116,11 +121,12 @@ export async function executeAITool(name, args, repos) {
             }
             case 'searchProducts': {
                 const limit = parseLimit(args.limit, 10, 20);
+                const normalizedStatus = normalizeEntityStatus(args.status);
                 const res = await productRepo.search({
                     search: args.search,
                     category: args.category,
                     brand: args.brand,
-                    status: args.status,
+                    status: normalizedStatus,
                     limit: limit,
                     page: 1
                 });
@@ -130,7 +136,7 @@ export async function executeAITool(name, args, repos) {
                     limit,
                     page: 1,
                     scope: {
-                        status: args.status || null,
+                        status: normalizedStatus,
                         search: args.search || '',
                         category: args.category || '',
                         brand: args.brand || '',
@@ -197,10 +203,12 @@ export async function executeAITool(name, args, repos) {
                 const variants = variantRepo?.findByProductId ? await variantRepo.findByProductId(args.id) : [];
                 return {
                     ...dt,
-                    variants: (variants || []).map((variant) => ({
-                        ...variant,
-                        variantLabel: buildVariantDisplayName(variant.options_values || {}),
-                    })),
+                    variants: (variants || [])
+                        .filter((variant) => normalizeEntityStatus(variant?.status) === 'active')
+                        .map((variant) => ({
+                            ...variant,
+                            variantLabel: buildVariantDisplayName(variant.options_values || {}),
+                        })),
                 };
             }
             case 'getVariantDetail': {
