@@ -187,6 +187,48 @@ describe('variant dimensions routes', () => {
         expect(mockDimensionRepo.createDimension).toHaveBeenCalledWith('prod-1', { name: 'Size' });
     });
 
+    it('POST /:id/dimensions rejects duplicate active dimension names', async () => {
+        mockDimensionRepo.createDimension.mockRejectedValueOnce(new Error('duplicate dimension names are not supported'));
+
+        const app = createApp();
+        const res = await app.request(
+            'http://localhost/api/manage/products/prod-1/dimensions',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: 'Color' }),
+            },
+            { DB: {} },
+            { waitUntil: vi.fn() }
+        );
+
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual(expect.objectContaining({
+            error: 'duplicate dimension names are not supported',
+        }));
+    });
+
+    it('PATCH /:id/dimensions/:dimensionId rejects renaming to another active dimension name', async () => {
+        mockDimensionRepo.updateDimension.mockRejectedValueOnce(new Error('duplicate dimension names are not supported'));
+
+        const app = createApp();
+        const res = await app.request(
+            'http://localhost/api/manage/products/prod-1/dimensions/dim-color',
+            {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: 'Size' }),
+            },
+            { DB: {} },
+            { waitUntil: vi.fn() }
+        );
+
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual(expect.objectContaining({
+            error: 'duplicate dimension names are not supported',
+        }));
+    });
+
     it('PATCH /:id/dimensions/:dimensionId/archive supports merge_keep mode', async () => {
         const app = createApp();
         const res = await app.request(

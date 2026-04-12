@@ -66,6 +66,45 @@ describe('ProductDimensionRepository', () => {
         );
     });
 
+    it('createDimension should reject duplicate active dimension names on the same product', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes("SELECT COUNT(*) AS total FROM product_dimensions WHERE product_id = ? AND status = 'active'")) {
+                stmt.first.mockResolvedValue({ total: 1 });
+            }
+            if (sql.includes("SELECT id FROM product_dimensions WHERE product_id = ? AND status = 'active' AND LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 1")) {
+                stmt.first.mockResolvedValue({ id: 'dim-color' });
+            }
+            return stmt;
+        });
+
+        await expect(
+            repo.createDimension('prod-1', { name: '  Color  ' })
+        ).rejects.toThrow('duplicate dimension names are not supported');
+    });
+
+    it('updateDimension should reject renaming to another active dimension name on the same product', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.trim() === 'SELECT * FROM product_dimensions WHERE id = ? AND product_id = ?') {
+                stmt.first.mockResolvedValue({
+                    id: 'dim-size',
+                    product_id: 'prod-1',
+                    name: 'Size',
+                    sort_order: 1,
+                });
+            }
+            if (sql.includes("SELECT id FROM product_dimensions WHERE product_id = ? AND status = 'active' AND LOWER(TRIM(name)) = LOWER(TRIM(?)) AND id <> ? LIMIT 1")) {
+                stmt.first.mockResolvedValue({ id: 'dim-color' });
+            }
+            return stmt;
+        });
+
+        await expect(
+            repo.updateDimension('prod-1', 'dim-size', { name: ' color ' })
+        ).rejects.toThrow('duplicate dimension names are not supported');
+    });
+
   it('mergeKeepByDimensionRemoval should archive deduped active variants', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);

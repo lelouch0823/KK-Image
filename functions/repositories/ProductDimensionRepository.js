@@ -30,6 +30,20 @@ export class ProductDimensionRepository {
         this.db = db;
     }
 
+    async findActiveDimensionByName(productId, name, { excludeDimensionId = null } = {}) {
+        const normalizedName = String(name || '').trim();
+        if (!normalizedName) return null;
+
+        const sql = excludeDimensionId
+            ? "SELECT id FROM product_dimensions WHERE product_id = ? AND status = 'active' AND LOWER(TRIM(name)) = LOWER(TRIM(?)) AND id <> ? LIMIT 1"
+            : "SELECT id FROM product_dimensions WHERE product_id = ? AND status = 'active' AND LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 1";
+        const statement = this.db.prepare(sql);
+
+        return excludeDimensionId
+            ? statement.bind(productId, normalizedName, excludeDimensionId).first()
+            : statement.bind(productId, normalizedName).first();
+    }
+
     async findValueRowsByProductAndValueId(productId, valueId) {
         const result = await this.db
             .prepare(`SELECT v.id, v.value, v.dimension_id, v.status
@@ -122,6 +136,11 @@ export class ProductDimensionRepository {
             throw new Error('dimension name is required');
         }
 
+        const duplicateDimension = await this.findActiveDimensionByName(productId, name);
+        if (duplicateDimension) {
+            throw new Error('duplicate dimension names are not supported');
+        }
+
         const countRow = await this.db
             .prepare("SELECT COUNT(*) AS total FROM product_dimensions WHERE product_id = ? AND status = 'active'")
             .bind(productId)
@@ -154,6 +173,12 @@ export class ProductDimensionRepository {
         const nextName = payload.name !== undefined ? String(payload.name || '').trim() : current.name;
         if (!nextName) {
             throw new Error('dimension name is required');
+        }
+        const duplicateDimension = await this.findActiveDimensionByName(productId, nextName, {
+            excludeDimensionId: dimensionId,
+        });
+        if (duplicateDimension) {
+            throw new Error('duplicate dimension names are not supported');
         }
         const nextSortOrder = Number.isInteger(payload.sort_order) ? payload.sort_order : current.sort_order;
         const timestamp = now();
