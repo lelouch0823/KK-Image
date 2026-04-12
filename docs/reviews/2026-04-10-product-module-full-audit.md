@@ -3706,3 +3706,15 @@
   - 补齐详情恢复测试与打印视图回归测试，显式锁定“当 currentData 稀疏时，详情页与打印视图仍会回退 originalData 快照字段”的行为。
 - 增量回归:
   - `pnpm vitest run src/views/__tests__/SalesDetailView.duplicate.test.js src/components/order/__tests__/OrderEditModal.variant-lock.test.js src/components/order/__tests__/OrderDetail.recovery.test.js src/components/order/__tests__/OrderPrintView.snapshot-fields.test.js src/components/order/__tests__/OrderDetail.lines.test.js`
+
+### 2026-04-13 轮次 320
+
+- 继续深审商品关联采购的订单选入链路，新增 1 个中风险问题:
+  - [functions/repositories/order/helpers.js](/home/bjw/Code/KK-Image/functions/repositories/order/helpers.js) 和 [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue) 修复前在“从订单选择器加入采购草稿”时，虽然商品名能依赖 `productName` 保住，但订单列表模型并没有向前端暴露 `brand / sku`，采购页也没有回退 `mainImage`。而 [src/components/purchase-order/OrderPickerModal.vue](/home/bjw/Code/KK-Image/src/components/purchase-order/OrderPickerModal.vue) 确认时 emit 的正是列表项，不是详情体。结果是历史订单一旦只通过列表项进入采购草稿，商品品牌、SKU 和图片会系统性丢空，采购创建页会显示残缺的商品摘要。
+- 已完成本轮修复:
+  - 订单列表模型现在会从 `current_data` 中统一投影 `brand` 与 `sku`，让订单选择器确认后的列表项本身就携带采购草稿所需的最小商品摘要字段。
+  - 采购页 `handleOrdersSelected()` 现在优先回退 `order.brand / order.sku / order.mainImage`，只在缺失时再读 `currentData`，避免依赖详情体结构。
+  - 订单选择器里的品牌 chip 与采购草稿里的商品摘要因此保持一致，不再出现“选择器看到品牌，加入草稿后品牌/SKU/图片消失”的展示断链。
+  - 补齐订单查询与采购页壳层回归测试，显式锁定“列表项摘要字段会被带入采购草稿”的行为。
+- 增量回归:
+  - `pnpm vitest run functions/repositories/__tests__/order-queries.display-model.test.js src/views/__tests__/PurchaseOrders.detail-shell.test.js`
