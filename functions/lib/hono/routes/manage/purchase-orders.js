@@ -54,19 +54,39 @@ export const auditRouteDeclarations = declareAuditRoutes([
 ]);
 app.use('*', requirePermission('products:manage'));
 
-async function publishPurchaseOrderCacheEvent(c, { eventType, poId, payload = {} }) {
+function isDuplicateOutboxIdempotencyError(error) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return (
+    message.includes('unique constraint failed')
+    && (
+      message.includes('domain_outbox.idempotency_key')
+      || message.includes('idx_domain_outbox_idempotency_key')
+    )
+  );
+}
+
+async function publishPurchaseOrderCacheEvent(c, { eventType, poId, payload = {}, commandId, correlationId }) {
   const publisher = new DomainOutboxPublisher(c.env.DB);
-  await publisher.publish([
-    {
-      event_type: eventType,
-      aggregate_type: 'purchase_order',
-      aggregate_id: poId,
-      payload: {
-        purchase_order_id: poId,
-        ...payload,
+  try {
+    await publisher.publish([
+      {
+        event_type: eventType,
+        aggregate_type: 'purchase_order',
+        aggregate_id: poId,
+        payload: {
+          purchase_order_id: poId,
+          ...payload,
+        },
       },
-    },
-  ]);
+    ], {
+      commandId,
+      correlationId,
+    });
+  } catch (error) {
+    if (!isDuplicateOutboxIdempotencyError(error)) {
+      throw error;
+    }
+  }
 
   c.executionCtx.waitUntil(runOutboxPoller({
     env: c.env,
@@ -512,6 +532,8 @@ app.post('/', async (c) => {
       payload: {
         item_count: Array.isArray(body.items) ? body.items.length : 0,
       },
+      commandId: reservation.record?.command_id,
+      correlationId: reservation.record?.command_id,
     });
     await commandIdempotencyRepo
       .buildFinalizeStatement(reservation.record?.command_id, resume)
@@ -559,6 +581,8 @@ app.post('/', async (c) => {
       payload: {
         item_count: Array.isArray(body.items) ? body.items.length : 0,
       },
+      commandId: reservation.record?.command_id,
+      correlationId: reservation.record?.command_id,
     });
 
     fullPo =
@@ -642,6 +666,8 @@ app.post('/from-orders', async (c) => {
       payload: {
         order_ids: orderIds,
       },
+      commandId: reservation.record?.command_id,
+      correlationId: reservation.record?.command_id,
     });
     await commandIdempotencyRepo
       .buildFinalizeStatement(reservation.record?.command_id, resume)
@@ -666,6 +692,8 @@ app.post('/from-orders', async (c) => {
       payload: {
         order_ids: orderIds,
       },
+      commandId: reservation.record?.command_id,
+      correlationId: reservation.record?.command_id,
     });
     await commandIdempotencyRepo
       .buildFinalizeStatement(reservation.record?.command_id, po)

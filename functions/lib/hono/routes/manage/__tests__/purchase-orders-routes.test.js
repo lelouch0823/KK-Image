@@ -278,7 +278,10 @@ describe('manage purchase-orders routes', () => {
           purchase_order_id: 'po-1',
         }),
       }),
-    ]);
+    ], expect.objectContaining({
+      commandId: 'cmd-1',
+      correlationId: 'cmd-1',
+    }));
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
     expect(waitUntil).toHaveBeenCalled();
@@ -502,6 +505,112 @@ describe('manage purchase-orders routes', () => {
     expect(mocks.publish).toHaveBeenCalledTimes(2);
   });
 
+  it('retries draft-create finalize failures without generating duplicate create events', async () => {
+    const app = createApp();
+    const db = createDb();
+    const commandState = new Map();
+    const responsePayload = {
+      id: 'po-1',
+      po_no: 'PO-1',
+      status: 'draft',
+      items: [],
+      receipts: [],
+    };
+
+    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+      const existing = commandState.get(idempotencyKey);
+      if (existing) {
+        return {
+          existing: true,
+          ownsReservation: false,
+          record: {
+            command_id: existing.commandId,
+            scope_key: scopeKey,
+            idempotency_key: idempotencyKey,
+            request_fingerprint: existing.requestFingerprint,
+            response_json: existing.responseJson,
+            status: existing.status,
+          },
+        };
+      }
+
+      return {
+        existing: false,
+        ownsReservation: true,
+        record: {
+          command_id: 'cmd-create-finalize-retry-1',
+          scope_key: scopeKey,
+          idempotency_key: idempotencyKey,
+          request_fingerprint: requestFingerprint,
+        },
+      };
+    });
+    let committedFinalizeAttempts = 0;
+    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
+      run: vi.fn(async () => {
+        if (status === 'committed') {
+          committedFinalizeAttempts += 1;
+          if (committedFinalizeAttempts === 1) {
+            throw new Error('finalize committed failed');
+          }
+        }
+        commandState.set('create-key-finalize-1', {
+          commandId,
+          requestFingerprint: buildCreateFingerprintForTest({ remark: 'retry after finalize failure' }),
+          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+          status,
+        });
+        return { meta: { changes: 1 } };
+      }),
+    }));
+    mocks.publish
+      .mockResolvedValueOnce([])
+      .mockRejectedValueOnce(new Error('D1_ERROR: UNIQUE constraint failed: domain_outbox.idempotency_key'));
+    mocks.repoFindById.mockResolvedValue(responsePayload);
+
+    const first = await app.request(
+      'http://localhost/api/manage/purchase-orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'create-key-finalize-1',
+        },
+        body: JSON.stringify({ remark: 'retry after finalize failure' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(first.status).toBe(500);
+
+    const second = await app.request(
+      'http://localhost/api/manage/purchase-orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'create-key-finalize-1',
+        },
+        body: JSON.stringify({ remark: 'retry after finalize failure' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(second.status).toBe(201);
+    expect(mocks.repoCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.publish).toHaveBeenCalledTimes(2);
+    expect(mocks.publish.mock.calls[0][1]).toEqual(expect.objectContaining({
+      commandId: 'cmd-create-finalize-retry-1',
+      correlationId: 'cmd-create-finalize-retry-1',
+    }));
+    expect(mocks.publish.mock.calls[1][1]).toEqual(expect.objectContaining({
+      commandId: 'cmd-create-finalize-retry-1',
+      correlationId: 'cmd-create-finalize-retry-1',
+    }));
+  });
+
   it('enqueues purchase-order create-from-orders cache side effects through outbox', async () => {
     const app = createApp();
     const db = createDb();
@@ -524,7 +633,10 @@ describe('manage purchase-orders routes', () => {
         event_type: 'purchase_order_created_from_orders',
         aggregate_id: 'po-2',
       }),
-    ]);
+    ], expect.objectContaining({
+      commandId: 'cmd-1',
+      correlationId: 'cmd-1',
+    }));
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
   });
@@ -680,6 +792,114 @@ describe('manage purchase-orders routes', () => {
     expect(mocks.publish).toHaveBeenCalledTimes(2);
   });
 
+  it('retries create-from-orders finalize failures without generating duplicate create events', async () => {
+    const app = createApp();
+    const db = createDb();
+    const commandState = new Map();
+
+    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+      const existing = commandState.get(idempotencyKey);
+      if (existing) {
+        return {
+          existing: true,
+          ownsReservation: false,
+          record: {
+            command_id: existing.commandId,
+            scope_key: scopeKey,
+            idempotency_key: idempotencyKey,
+            request_fingerprint: existing.requestFingerprint,
+            response_json: existing.responseJson,
+            status: existing.status,
+          },
+        };
+      }
+
+      return {
+        existing: false,
+        ownsReservation: true,
+        record: {
+          command_id: 'cmd-from-orders-finalize-retry-1',
+          scope_key: scopeKey,
+          idempotency_key: idempotencyKey,
+          request_fingerprint: requestFingerprint,
+        },
+      };
+    });
+    let committedFinalizeAttempts = 0;
+    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
+      run: vi.fn(async () => {
+        if (status === 'committed') {
+          committedFinalizeAttempts += 1;
+          if (committedFinalizeAttempts === 1) {
+            throw new Error('finalize committed failed');
+          }
+        }
+        commandState.set('from-orders-key-finalize-1', {
+          commandId,
+          requestFingerprint: buildCreateFromOrdersFingerprintForTest(['o-1'], {
+            order_ids: ['o-1'],
+            remark: 'retry from-orders finalize failure',
+          }),
+          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+          status,
+        });
+        return { meta: { changes: 1 } };
+      }),
+    }));
+    mocks.publish
+      .mockResolvedValueOnce([])
+      .mockRejectedValueOnce(new Error('D1_ERROR: UNIQUE constraint failed: domain_outbox.idempotency_key'));
+    mocks.serviceCreateFromOrders.mockResolvedValue({
+      id: 'po-2',
+      po_no: 'PO-2',
+      status: 'draft',
+      items: [],
+      receipts: [],
+    });
+
+    const first = await app.request(
+      'http://localhost/api/manage/purchase-orders/from-orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'from-orders-key-finalize-1',
+        },
+        body: JSON.stringify({ order_ids: ['o-1'], remark: 'retry from-orders finalize failure' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(first.status).toBe(500);
+
+    const second = await app.request(
+      'http://localhost/api/manage/purchase-orders/from-orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'from-orders-key-finalize-1',
+        },
+        body: JSON.stringify({ order_ids: ['o-1'], remark: 'retry from-orders finalize failure' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(second.status).toBe(201);
+    expect(mocks.serviceCreateFromOrders).toHaveBeenCalledTimes(1);
+    expect(mocks.publish).toHaveBeenCalledTimes(2);
+    expect(mocks.publish.mock.calls[0][1]).toEqual(expect.objectContaining({
+      commandId: 'cmd-from-orders-finalize-retry-1',
+      correlationId: 'cmd-from-orders-finalize-retry-1',
+    }));
+    expect(mocks.publish.mock.calls[1][1]).toEqual(expect.objectContaining({
+      commandId: 'cmd-from-orders-finalize-retry-1',
+      correlationId: 'cmd-from-orders-finalize-retry-1',
+    }));
+  });
+
   it('dedupes create-from-orders order ids before publishing side effects and audit metadata', async () => {
     const app = createApp();
     const db = createDb();
@@ -705,7 +925,10 @@ describe('manage purchase-orders routes', () => {
           order_ids: ['o-1', 'o-2'],
         }),
       }),
-    ]);
+    ], expect.objectContaining({
+      commandId: 'cmd-1',
+      correlationId: 'cmd-1',
+    }));
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -737,7 +960,10 @@ describe('manage purchase-orders routes', () => {
         event_type: 'purchase_order_updated',
         aggregate_id: 'po-1',
       }),
-    ]);
+    ], expect.objectContaining({
+      commandId: undefined,
+      correlationId: undefined,
+    }));
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
   });
@@ -1191,7 +1417,10 @@ describe('manage purchase-orders routes', () => {
         event_type: 'purchase_order_item_created',
         aggregate_id: 'po-1',
       }),
-    ]);
+    ], expect.objectContaining({
+      commandId: undefined,
+      correlationId: undefined,
+    }));
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
   });
@@ -1220,7 +1449,10 @@ describe('manage purchase-orders routes', () => {
         event_type: 'purchase_order_item_updated',
         aggregate_id: 'po-1',
       }),
-    ]);
+    ], expect.objectContaining({
+      commandId: undefined,
+      correlationId: undefined,
+    }));
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
   });
@@ -1243,7 +1475,10 @@ describe('manage purchase-orders routes', () => {
         event_type: 'purchase_order_item_deleted',
         aggregate_id: 'po-1',
       }),
-    ]);
+    ], expect.objectContaining({
+      commandId: undefined,
+      correlationId: undefined,
+    }));
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
   });
@@ -1267,7 +1502,10 @@ describe('manage purchase-orders routes', () => {
         event_type: 'purchase_order_cost_allocated',
         aggregate_id: 'po-1',
       }),
-    ]);
+    ], expect.objectContaining({
+      commandId: undefined,
+      correlationId: undefined,
+    }));
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
   });
@@ -1883,6 +2121,9 @@ describe('manage purchase-orders routes', () => {
         event_type: 'purchase_order_created',
         aggregate_id: 'po-1',
       }),
-    ]);
+    ], expect.objectContaining({
+      commandId: 'cmd-1',
+      correlationId: 'cmd-1',
+    }));
   });
 });
