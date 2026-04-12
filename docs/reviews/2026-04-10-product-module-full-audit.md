@@ -3278,3 +3278,21 @@
   - `functions/lib/hono/routes/manage/products/__tests__/variant-dimensions-routes.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/product-archive-idempotency.test.js`
+- 对应修复提交: `9d02b819 fix: harden product detail create retries`
+
+### 2026-04-12 轮次 289
+
+- 继续深审商品详情剩余 mutation 写路径，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/products/[id].js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/[id].js) 修复前的 `PATCH /:id/dimensions/:dimensionId/archive`、`PATCH /:id/values/:valueId/archive`、`PATCH /:id/values/:valueId/restore`、`PATCH /:id/variants/:variantId/images/sort`、`PATCH /:id/variants/:variantId/images/:imageId/primary`、`DELETE /:id/variants/:variantId/images/:imageId` 仍全部停留在“先改本体、后发 cache outbox”的裸写路径。这里尤其危险的是维度归档 / 值归档 / 值恢复 / 图片删除：只要本体已经成功但 cache 事件或 finalize 在尾部失败，重试就会重复执行真正的业务变更，图片删除还可能因为第二次已经删空而直接返回 404，导致缓存副作用永远补不齐。
+- 已完成本轮修复:
+  - 上述 6 条 mutation 路由现在都已接入统一的命令幂等保留协议，请求指纹会绑定 `productId`、路径参数以及必要的请求体字段；同一个幂等键重试会重放原响应，同 key 不同 payload / 不同路由目标会被明确拒绝。
+  - 维度归档、值归档、值恢复和图片删除现在都支持 `failed` 恢复：如果第一次请求已经改完本体，但 cache outbox / finalize 失败，重试只会补对应的缓存副作用，不会再次执行真正的业务修改。
+  - 图片排序、主图切换、图片删除的 cache outbox 现在也全部透传稳定的 `commandId/correlationId`；如果恢复流程命中了 `domain_outbox.idempotency_key` 唯一约束，会被视为“事件已持久化”，从而安全完成 finalize。
+  - 同时把这些路由的幂等流程抽成统一执行器，避免 `reserve/replay/resume/finalize` 逻辑继续在 `[id].js` 里分叉漂移。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/products/__tests__/product-detail-mutation-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-detail-create-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-dimensions-routes.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-archive-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-audit-routes.test.js`
