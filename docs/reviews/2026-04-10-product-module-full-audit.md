@@ -3418,3 +3418,36 @@
   - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
   - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
   - `functions/api/utils/__tests__/validation.test.js`
+
+### 2026-04-12 轮次 298
+
+- 继续深审销售空间过期规则的分层边界，新增 1 个中高风险问题:
+  - [functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js) 修复前 `findAllForSalesperson()`、`findByIdForSalesperson()`、`findSubspacesForSalesperson()` 这三条共享仓储方法虽然名字表达的是“销售员可见空间”，但底层 SQL 仍会把已过期空间查出来，真正的时效过滤只在 [functions/lib/hono/routes/sales/spaces.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/sales/spaces.js) 路由层临时追加。这样一来，只要后续有别的销售端调用方复用这些 repository 方法，就会再次把过期空间带出，导致“修过一次路由、下个入口再漏一次”的契约漂移。
+- 已完成本轮修复:
+  - `SpaceRepository` 现在把“销售可见空间必须未过期”收敛成共享 SQL 条件，销售员列表、详情、子空间查询都会直接在仓储层过滤 `expires_at`，不再依赖单个路由各自兜底。
+  - 销售端路由仍保留防御性判断，形成“仓储层保证主契约，路由层补最终边界”的双保险，避免未来新增入口重新踩回过期空间暴露问题。
+  - 新增仓储级单测，显式锁定三条销售员查询 SQL 都带有未过期约束和正确的时间参数绑定。
+- 增量回归:
+  - `functions/repositories/__tests__/SpaceRepository.test.js`
+  - `functions/lib/hono/routes/sales/__tests__/spaces-routes.test.js`
+  - `functions/api/space/__tests__/public-space-access.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/transformers.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
+  - `functions/api/utils/__tests__/validation.test.js`
+
+### 2026-04-12 轮次 299
+
+- 继续深审商品绑定空间后的管理端读链路，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/spaces/transformers.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/transformers.js)、[src/components/SpaceProductEditor.vue](/home/bjw/Code/KK-Image/src/components/SpaceProductEditor.vue) 和 [src/views/SpaceManager/index.vue](/home/bjw/Code/KK-Image/src/views/SpaceManager/index.vue) 修复前虽然已经允许“历史归档绑定保留、读取侧回退 template_data 快照”，但管理端 API 并不会告诉前端“当前绑定已失效”，编辑器也只会在加载商品详情失败时把绑定信息直接吞掉。结果就是空间管理页和编辑页都无法区分“正常 live 绑定”与“仅靠历史快照存活的归档/缺失绑定”，管理员既看不出业务风险，也没有稳定的上下文去重绑或解绑，属于典型的业务未闭环。
+- 已完成本轮修复:
+  - 空间 transformer 现在会统一输出 `bindingState` 与 `bindingUsesSnapshot`，显式区分 `active / unbound / archived_product / archived_variant / missing_product / missing_variant`，让管理端读链路可以可靠识别历史失效绑定。
+  - `SpaceRepository` 的商品投影补齐了 `p_bound_id / pv_bound_id`，避免 transformer 只能猜状态而无法判断“归档”和“记录已不存在”的区别。
+  - 空间编辑器在商品详情已无法加载、但空间仍保留历史绑定时，现在会保留一张基于快照的绑定卡片并展示明确告警，不再把绑定状态悄悄吞掉；空间列表卡片也会直接标出“商品已归档 / 规格已失效”等风险标记，管理员进入前就能看到问题。
+  - 同步补齐 transformer、仓储和前端编辑器/列表契约测试，锁定“历史失效绑定仍可见、仍可处理、不会误判成未绑定”的行为。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/spaces/__tests__/transformers.test.js`
+  - `functions/repositories/__tests__/SpaceRepository.test.js`
+  - `src/components/__tests__/SpaceProductEditor.contract.test.js`
+  - `src/views/__tests__/SpaceManager.permission-alignment.test.js`
+  - `src/views/__tests__/SpaceManager.design-system-migration.test.js`
