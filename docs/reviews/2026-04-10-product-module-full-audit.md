@@ -3360,3 +3360,16 @@
 - 增量回归:
   - `functions/api/utils/__tests__/validation.test.js`
   - `functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js`
+
+### 2026-04-12 轮次 294
+
+- 继续深审商品绑定的空间链路，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/spaces/crud.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/crud.js) 和 [functions/lib/hono/routes/manage/spaces/subspaces.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/subspaces.js) 修复前在创建/更新空间绑定时，只要求 `variantSelectPolicy: 'in_stock_only'`，却没有同时要求 `checkActive: true`。结果是“有库存但已归档”的商品或变体仍可能被绑定进空间/子空间，约束强度甚至弱于销售订单链路；而空间详情、分享页和后续销售访问又会把这种历史无效绑定继续暴露出去，属于典型的商品关联业务未闭环。
+- 已完成本轮修复:
+  - 主空间创建、子空间创建现在都已统一要求绑定目标同时满足“active 且 in stock”，不再接受归档商品/归档变体。
+  - 主空间更新路由现在按“只有真正发生绑定变更时才要求 `checkActive: true`”处理：新绑定必须是 active + in stock，但对于历史上已经存在的归档绑定，仍允许做与绑定无关的普通字段编辑，避免把存量脏数据直接变成不可维护状态。
+  - 同步补齐主空间和子空间路由回归测试，锁定“归档商品/归档变体一律拒绝新绑定”的行为。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
+  - `functions/api/utils/__tests__/validation.test.js`
