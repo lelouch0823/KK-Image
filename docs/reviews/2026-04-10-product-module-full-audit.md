@@ -3683,3 +3683,15 @@
   - 补齐销售复制与编辑弹窗回归测试，显式锁定“历史订单商品名缺失于 current/original data 时，前端二次消费链路仍会回退 snapshotName”的行为。
 - 增量回归:
   - `pnpm vitest run src/views/__tests__/SalesDetailView.duplicate.test.js src/components/order/__tests__/OrderEditModal.variant-lock.test.js src/components/order/__tests__/OrderDetail.lines.test.js src/components/order/__tests__/OrderDetail.recovery.test.js`
+
+### 2026-04-13 轮次 318
+
+- 继续深审商品关联订单的前端二次消费链路，新增 1 个中风险问题:
+  - [src/views/sales/SalesDetailView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesDetailView.vue) 和 [src/components/OrderEditModal.vue](/home/bjw/Code/KK-Image/src/components/OrderEditModal.vue) 上一轮虽然已经补了历史商品名回退，但 `brand / series / sku / size / color / material / remark / deadline` 这组镜像字段仍只读取 `currentData`。结果是只要历史订单这些字段后来只保留在 `originalData`，销售复制订单会把规格摘要预填成空，管理端编辑弹窗的表单初始值、绑定商品卡片和原始信息卡片也会继续显示空白，形成“名字回来了，规格摘要还是丢”的半闭环状态。
+- 已完成本轮修复:
+  - 扩展 [src/utils/order-display.js](/home/bjw/Code/KK-Image/src/utils/order-display.js)，新增 `resolveOrderSnapshotField()`，统一收敛“优先 currentData、缺失时回退 originalData；商品名继续走历史快照优先”的前端镜像字段解析规则。
+  - 销售详情页复制订单现在会对 `brand / series / size / color / material / remark` 一并回退历史快照字段，不再只修商品名、继续把规格摘要带空。
+  - 管理端编辑弹窗初始化时，现在会对表单、绑定商品卡片和原始信息卡片统一回退 `originalData` 中的历史镜像字段，避免历史订单进入编辑态后规格摘要再次消失。
+  - 补齐销售复制与编辑弹窗的字段级回归测试，显式锁定“当 currentData 稀疏但 originalData 仍保留快照时，前端二次消费链路仍会完整回退镜像字段”的行为。
+- 增量回归:
+  - `pnpm vitest run src/views/__tests__/SalesDetailView.duplicate.test.js src/components/order/__tests__/OrderEditModal.variant-lock.test.js src/components/order/__tests__/OrderDetail.lines.test.js src/components/order/__tests__/OrderDetail.recovery.test.js`
