@@ -3,6 +3,11 @@ import { Hono } from 'hono';
 
 const mocks = vi.hoisted(() => ({
   orderCreate: vi.fn(),
+  commandReserve: vi.fn(),
+  commandBuildDeleteStatement: vi.fn(),
+  commandDeleteRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+  commandBuildFinalizeStatement: vi.fn(),
+  commandFinalizeRun: vi.fn(async () => ({ meta: { changes: 1 } })),
   validateProductVariantBinding: vi.fn(),
   getSalespersonAccessTokens: vi.fn(),
   invalidateCache: vi.fn(async () => {}),
@@ -10,11 +15,20 @@ const mocks = vi.hoisted(() => ({
   moveFilesToFolder: vi.fn(),
   publish: vi.fn(async () => []),
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
+  randomUUID: vi.fn(),
 }));
 
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
   OrderRepository: vi.fn(() => ({
     create: mocks.orderCreate,
+  })),
+}));
+
+vi.mock('../../../../../repositories/CommandIdempotencyRepository.js', () => ({
+  CommandIdempotencyRepository: vi.fn(() => ({
+    reserveCommand: mocks.commandReserve,
+    buildDeleteStatement: mocks.commandBuildDeleteStatement,
+    buildFinalizeStatement: mocks.commandBuildFinalizeStatement,
   })),
 }));
 
@@ -72,7 +86,20 @@ function createApp() {
 describe('manage order create route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => mocks.randomUUID());
+    mocks.randomUUID.mockReturnValue('generated-order-idempotency-key');
     mocks.orderCreate.mockResolvedValue({ id: 'order-1', orderNo: 'SO-1001' });
+    mocks.commandReserve.mockResolvedValue({
+      existing: false,
+      ownsReservation: true,
+      record: { command_id: 'cmd-order-1' },
+    });
+    mocks.commandBuildDeleteStatement.mockReturnValue({
+      run: mocks.commandDeleteRun,
+    });
+    mocks.commandBuildFinalizeStatement.mockReturnValue({
+      run: mocks.commandFinalizeRun,
+    });
     mocks.validateProductVariantBinding.mockResolvedValue({ normalizedVariantId: null });
     mocks.getSalespersonAccessTokens.mockResolvedValue([]);
     mocks.ensureOrderFolder.mockResolvedValue('folder-order-1');
@@ -137,8 +164,182 @@ describe('manage order create route', () => {
           salesperson_id: 'sales-1',
         }),
       }),
-    ]);
+    ], expect.objectContaining({
+      commandId: 'cmd-order-1',
+      correlationId: 'cmd-order-1',
+    }));
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
     expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('retries order-create side effects without duplicating the order after an outbox failure', async () => {
+    const app = createApp();
+    const commandState = new Map();
+
+    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+      const existing = commandState.get(idempotencyKey);
+      if (existing) {
+        return {
+          existing: true,
+          ownsReservation: false,
+          record: {
+            command_id: existing.commandId,
+            scope_key: scopeKey,
+            idempotency_key: idempotencyKey,
+            request_fingerprint: existing.requestFingerprint,
+            response_json: existing.responseJson,
+            status: existing.status,
+          },
+        };
+      }
+
+      return {
+        existing: false,
+        ownsReservation: true,
+        record: {
+          command_id: 'cmd-order-retry-1',
+          scope_key: scopeKey,
+          idempotency_key: idempotencyKey,
+          request_fingerprint: requestFingerprint,
+        },
+      };
+    });
+    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
+      run: vi.fn(async () => {
+        commandState.set('order-key-retry-1', {
+          commandId,
+          requestFingerprint: commandState.get('order-key-retry-1')?.requestFingerprint || JSON.stringify({
+            productName: 'Sample Product',
+            quantity: 1,
+            salespersonId: 'sales-1',
+          }),
+          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+          status,
+        });
+        return { meta: { changes: 1 } };
+      }),
+    }));
+    mocks.publish
+      .mockRejectedValueOnce(new Error('publish failed'))
+      .mockResolvedValueOnce([]);
+
+    const request = () => app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'order-key-retry-1',
+        },
+        body: JSON.stringify({
+          productName: 'Sample Product',
+          salespersonId: 'sales-1',
+          quantity: 1,
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    const first = await request();
+    const second = await request();
+
+    expect(first.status).toBe(500);
+    expect(second.status).toBe(201);
+    expect(mocks.orderCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.publish).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries finalize failures without generating duplicate order-created events', async () => {
+    const app = createApp();
+    const commandState = new Map();
+    let committedFinalizeAttempts = 0;
+
+    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+      const existing = commandState.get(idempotencyKey);
+      if (existing) {
+        return {
+          existing: true,
+          ownsReservation: false,
+          record: {
+            command_id: existing.commandId,
+            scope_key: scopeKey,
+            idempotency_key: idempotencyKey,
+            request_fingerprint: existing.requestFingerprint,
+            response_json: existing.responseJson,
+            status: existing.status,
+          },
+        };
+      }
+
+      return {
+        existing: false,
+        ownsReservation: true,
+        record: {
+          command_id: 'cmd-order-finalize-1',
+          scope_key: scopeKey,
+          idempotency_key: idempotencyKey,
+          request_fingerprint: requestFingerprint,
+        },
+      };
+    });
+    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
+      run: vi.fn(async () => {
+        if (status === 'committed') {
+          committedFinalizeAttempts += 1;
+          if (committedFinalizeAttempts === 1) {
+            throw new Error('finalize committed failed');
+          }
+        }
+        commandState.set('order-key-finalize-1', {
+          commandId,
+          requestFingerprint: JSON.stringify({
+            productName: 'Sample Product',
+            quantity: 1,
+            salespersonId: 'sales-1',
+          }),
+          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+          status,
+        });
+        return { meta: { changes: 1 } };
+      }),
+    }));
+    mocks.publish
+      .mockResolvedValueOnce([])
+      .mockRejectedValueOnce(new Error('D1_ERROR: UNIQUE constraint failed: domain_outbox.idempotency_key'));
+
+    const request = () => app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'order-key-finalize-1',
+        },
+        body: JSON.stringify({
+          productName: 'Sample Product',
+          salespersonId: 'sales-1',
+          quantity: 1,
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    const first = await request();
+    const second = await request();
+
+    expect(first.status).toBe(500);
+    expect(second.status).toBe(201);
+    expect(mocks.orderCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.publish).toHaveBeenCalledTimes(2);
+    expect(mocks.publish.mock.calls[0][1]).toEqual(expect.objectContaining({
+      commandId: 'cmd-order-finalize-1',
+      correlationId: 'cmd-order-finalize-1',
+    }));
+    expect(mocks.publish.mock.calls[1][1]).toEqual(expect.objectContaining({
+      commandId: 'cmd-order-finalize-1',
+      correlationId: 'cmd-order-finalize-1',
+    }));
   });
 });

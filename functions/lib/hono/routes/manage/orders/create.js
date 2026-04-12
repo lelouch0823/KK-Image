@@ -1,6 +1,7 @@
 
 import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
+import { CommandIdempotencyRepository } from '../../../../../repositories/CommandIdempotencyRepository.js';
 import {
     canTransitionOrderStatus
 } from '../../../../../api/utils/order-state-machine.js';
@@ -8,13 +9,20 @@ import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
 import { BadRequestError } from '../../../errors.js';
 import { assertForceStatusTransitionAllowed } from './authz-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
-import { createManagedOrder } from './create-order.js';
+import { createManagedOrder, publishOrderCreatedByAdmin } from './create-order.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
+import {
+    cleanupReservedCommand,
+    parseStoredResponse,
+    replayReservedCommand,
+    resolveReservationOwnership,
+} from '../../../../../services/order-procurement-shared.js';
 
 const app = new Hono();
+const ORDER_CREATE_COMMAND_TYPE = 'order_create';
 export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'POST', path: '/', domain: 'orders', action: 'order.create', severity: 'high', targetType: 'order', runtimeAssertionLevel: 'runtime', highRisk: true },
     { method: 'POST', path: '/batch', domain: 'orders', action: 'order.batch_update', severity: 'high', targetType: 'order', highRisk: true },
@@ -41,12 +49,154 @@ function assertValidBatchStatusAction(normalizedAction, normalizedStatus) {
     }
 }
 
+function getIdempotencyKey(c) {
+    const requestKey = String(c.req.header('Idempotency-Key') || '').trim();
+    return requestKey || crypto.randomUUID();
+}
+
+function normalizeOrderCreateFingerprintValue(value) {
+    if (Array.isArray(value)) {
+        return value.map((item) => normalizeOrderCreateFingerprintValue(item));
+    }
+
+    if (value && typeof value === 'object') {
+        return Object.keys(value)
+            .sort()
+            .reduce((acc, key) => {
+                const normalized = normalizeOrderCreateFingerprintValue(value[key]);
+                if (normalized !== undefined) {
+                    acc[key] = normalized;
+                }
+                return acc;
+            }, {});
+    }
+
+    return value;
+}
+
+function buildOrderCreateRequestFingerprint(body = {}) {
+    return JSON.stringify(normalizeOrderCreateFingerprintValue(body));
+}
+
+function getCreateCommandScopeKey(c) {
+    const actorId = String(c.get('user')?.id || 'anonymous').trim() || 'anonymous';
+    return `${ORDER_CREATE_COMMAND_TYPE}:${actorId}`;
+}
+
+async function reserveOrderCreateCommand(c, { requestFingerprint }) {
+    const commandIdempotencyRepo = new CommandIdempotencyRepository(c.env.DB);
+    const idempotencyKey = getIdempotencyKey(c);
+    const reservation = await commandIdempotencyRepo.reserveCommand(
+        ORDER_CREATE_COMMAND_TYPE,
+        getCreateCommandScopeKey(c),
+        idempotencyKey,
+        requestFingerprint
+    );
+
+    if (reservation?.existing) {
+        if (reservation.record?.request_fingerprint !== requestFingerprint) {
+            throw new BadRequestError('同一个幂等键不能提交不同的订单创建请求');
+        }
+
+        const storedResponse = parseStoredResponse(reservation.record?.response_json);
+        if (reservation.record?.status === 'failed' && storedResponse) {
+            return {
+                replay: null,
+                resume: storedResponse,
+                reservation,
+                commandIdempotencyRepo,
+            };
+        }
+
+        return {
+            replay: replayReservedCommand(reservation, requestFingerprint, {
+                mismatchMessage: '同一个幂等键不能提交不同的订单创建请求',
+                inFlightMessage: '当前幂等键对应的订单创建命令仍在处理中',
+            }),
+            resume: null,
+            reservation,
+            commandIdempotencyRepo,
+        };
+    }
+
+    return {
+        replay: null,
+        resume: null,
+        reservation,
+        commandIdempotencyRepo,
+    };
+}
+
 /**
  * POST / - 管理端创建订单
  */
 app.post('/', async (c) => {
     const body = await c.req.json();
-    const result = await createManagedOrder(c, body);
+    const requestFingerprint = buildOrderCreateRequestFingerprint(body);
+    const {
+        replay,
+        resume,
+        reservation,
+        commandIdempotencyRepo,
+    } = await reserveOrderCreateCommand(c, { requestFingerprint });
+
+    if (replay) {
+        return c.json({ success: true, data: replay }, 201);
+    }
+
+    if (resume) {
+        await publishOrderCreatedByAdmin(c, {
+            orderId: resume.id,
+            orderNo: resume.orderNo,
+            salespersonId: body.salespersonId,
+            actorName: c.get('user')?.name || 'Admin',
+            commandId: reservation.record?.command_id,
+            correlationId: reservation.record?.command_id,
+        });
+        await commandIdempotencyRepo
+            .buildFinalizeStatement(reservation.record?.command_id, resume)
+            .run();
+        return c.json({ success: true, data: resume }, 201);
+    }
+
+    const ownsReservation = resolveReservationOwnership(reservation);
+    let result = null;
+
+    try {
+        result = await createManagedOrder(c, body, c.get('user'), {
+            skipOrderCreatedEvent: true,
+        });
+        await publishOrderCreatedByAdmin(c, {
+            orderId: result.id,
+            orderNo: result.orderNo,
+            salespersonId: body.salespersonId,
+            actorName: c.get('user')?.name || 'Admin',
+            commandId: reservation.record?.command_id,
+            correlationId: reservation.record?.command_id,
+        });
+        await commandIdempotencyRepo
+            .buildFinalizeStatement(reservation.record?.command_id, result)
+            .run();
+    } catch (error) {
+        if (result) {
+            try {
+                await commandIdempotencyRepo
+                    .buildFinalizeStatement(reservation.record?.command_id, result, 'failed')
+                    .run();
+            } catch (finalizeError) {
+                console.error('Order create idempotency finalize failed:', finalizeError);
+            }
+        } else {
+            await cleanupReservedCommand({
+                commandIdempotencyRepo,
+                db: c.env.DB,
+                ownsReservation,
+                commandId: reservation.record?.command_id,
+            });
+        }
+        throw error;
+    }
+
     scheduleAuditEvent(c, {
         domain: 'orders',
         action: 'order.create',

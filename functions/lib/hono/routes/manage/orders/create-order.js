@@ -9,8 +9,64 @@ import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPubli
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { buildOrderBindingSnapshot } from '../../../../../api/utils/order-binding-snapshot.js';
 
-export async function createManagedOrder(c, body, user = c.get('user')) {
+function isDuplicateOutboxIdempotencyError(error) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return (
+    message.includes('unique constraint failed')
+    && (
+      message.includes('domain_outbox.idempotency_key')
+      || message.includes('idx_domain_outbox_idempotency_key')
+    )
+  );
+}
+
+export async function publishOrderCreatedByAdmin(c, {
+  orderId,
+  orderNo,
+  salespersonId,
+  actorName,
+  commandId,
+  correlationId,
+} = {}) {
   const { env } = c;
+  const publisher = new DomainOutboxPublisher(env.DB);
+  try {
+    await publisher.publish([
+      {
+        event_type: 'order_created_by_admin',
+        aggregate_type: 'order',
+        aggregate_id: orderId,
+        payload: {
+          order_id: orderId,
+          order_no: orderNo,
+          salesperson_id: salespersonId,
+          actor_name: actorName,
+        },
+      },
+    ], {
+      commandId,
+      correlationId,
+    });
+  } catch (error) {
+    if (!isDuplicateOutboxIdempotencyError(error)) {
+      throw error;
+    }
+  }
+
+  c.executionCtx.waitUntil(runOutboxPoller({
+    env,
+    requestUrl: c.req.url,
+    workerId: `order-create:${orderId}`,
+  }));
+}
+
+export async function createManagedOrder(c, body, user = c.get('user'), options = {}) {
+  const { env } = c;
+  const {
+    skipOrderCreatedEvent = false,
+    orderCreatedEventCommandId,
+    orderCreatedEventCorrelationId,
+  } = options;
 
   if (!body.productName || !body.salespersonId) {
     throw new BadRequestError('Product Name and Salesperson are required');
@@ -90,25 +146,16 @@ export async function createManagedOrder(c, body, user = c.get('user')) {
     }
   }
 
-  const publisher = new DomainOutboxPublisher(env.DB);
-  await publisher.publish([
-    {
-      event_type: 'order_created_by_admin',
-      aggregate_type: 'order',
-      aggregate_id: persistedOrderId,
-      payload: {
-        order_id: persistedOrderId,
-        order_no: persistedOrderNo,
-        salesperson_id: body.salespersonId,
-        actor_name: user?.name || 'Admin',
-      },
-    },
-  ]);
-  c.executionCtx.waitUntil(runOutboxPoller({
-    env,
-    requestUrl: c.req.url,
-    workerId: `order-create:${persistedOrderId}`,
-  }));
+  if (!skipOrderCreatedEvent) {
+    await publishOrderCreatedByAdmin(c, {
+      orderId: persistedOrderId,
+      orderNo: persistedOrderNo,
+      salespersonId: body.salespersonId,
+      actorName: user?.name || 'Admin',
+      commandId: orderCreatedEventCommandId,
+      correlationId: orderCreatedEventCorrelationId,
+    });
+  }
 
   return { id: persistedOrderId, orderNo: persistedOrderNo };
 }
