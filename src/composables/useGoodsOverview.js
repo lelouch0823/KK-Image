@@ -74,6 +74,15 @@ export function useGoodsOverview() {
 
     // ─── 数据加载 ────────────────────────────────────
 
+    const buildOverviewQuery = () => {
+        const params = new URLSearchParams();
+        if (filters.category) params.set('category', filters.category);
+        if (filters.brand) params.set('brand', filters.brand);
+        if (filters.shortageOnly) params.set('shortageOnly', '1');
+        if (filters.sort) params.set('sort', filters.sort);
+        return params.toString();
+    };
+
     /**
      * 加载分析数据
      */
@@ -84,13 +93,7 @@ export function useGoodsOverview() {
         errorCode.value = null;
 
         try {
-            const params = new URLSearchParams();
-            if (filters.category) params.set('category', filters.category);
-            if (filters.brand) params.set('brand', filters.brand);
-            if (filters.shortageOnly) params.set('shortageOnly', '1');
-            if (filters.sort) params.set('sort', filters.sort);
-
-            const queryStr = params.toString();
+            const queryStr = buildOverviewQuery();
             const url = queryStr ? `${API.MANAGE_GOODS_OVERVIEW}?${queryStr}` : API.MANAGE_GOODS_OVERVIEW;
 
             const res = await authFetch(url);
@@ -161,8 +164,9 @@ export function useGoodsOverview() {
      * 导出 CSV
      */
     const exportCSV = () => {
+        const queryStr = buildOverviewQuery();
         const link = document.createElement('a');
-        link.href = API.MANAGE_GOODS_OVERVIEW_EXPORT;
+        link.href = queryStr ? `${API.MANAGE_GOODS_OVERVIEW_EXPORT}?${queryStr}` : API.MANAGE_GOODS_OVERVIEW_EXPORT;
         link.download = '';
         document.body.appendChild(link);
         link.click();

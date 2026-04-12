@@ -21,6 +21,13 @@ import { requirePermission } from '../../middleware/auth.js';
 const app = new Hono();
 app.use('*', requirePermission('products:manage'));
 
+const readGoodsOverviewFilters = (url) => ({
+    category: url.searchParams.get('category') || '',
+    brand: url.searchParams.get('brand') || '',
+    shortageOnly: url.searchParams.get('shortageOnly') === '1',
+    sort: url.searchParams.get('sort') || 'shortage',
+});
+
 /**
  * GET / — 变体管道分析列表
  *
@@ -34,12 +41,7 @@ app.get('/', withCache(20), async (c) => {
     const { env } = c;
     const url = new URL(c.req.url);
 
-    const filters = {
-        category: url.searchParams.get('category') || '',
-        brand: url.searchParams.get('brand') || '',
-        shortageOnly: url.searchParams.get('shortageOnly') === '1',
-        sort: url.searchParams.get('sort') || 'shortage'
-    };
+    const filters = readGoodsOverviewFilters(url);
 
     const overviewRepo = new GoodsOverviewRepository(env.DB);
     const [items, availableFilters] = await Promise.all([
@@ -75,8 +77,9 @@ app.get('/export', async (c) => {
     const { env } = c;
 
     const overviewRepo = new GoodsOverviewRepository(env.DB);
-    // 复用仓储获取列表，避免硬编码重复
-    const results = await overviewRepo.getList({ sort: 'demand' });
+    const url = new URL(c.req.url);
+    const filters = readGoodsOverviewFilters(url);
+    const results = await overviewRepo.getList(filters);
 
     const escapeCSV = (v) => (v === null || v === undefined ? '' : `"${String(v).replace(/"/g, '""')}"`);
 

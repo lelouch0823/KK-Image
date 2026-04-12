@@ -204,6 +204,36 @@ describe('useGoodsOverview composable', () => {
     ]);
   });
 
+  it('builds export url from current filters', () => {
+    mockAuthFetch.mockResolvedValue({
+      json: () => Promise.resolve({ success: true, data: { items: [], filters: { categories: [], brands: [] } } }),
+    });
+    const appendChild = vi.spyOn(document.body, 'appendChild').mockImplementation(() => {});
+    const removeChild = vi.spyOn(document.body, 'removeChild').mockImplementation(() => {});
+    const click = vi.fn();
+    const createElement = vi.spyOn(document, 'createElement').mockReturnValue({
+      click,
+      href: '',
+      download: '',
+    });
+
+    const { filters, exportCSV } = useGoodsOverview();
+    filters.category = 'tops';
+    filters.brand = 'KK';
+    filters.shortageOnly = true;
+    filters.sort = 'demand';
+
+    exportCSV();
+
+    const link = createElement.mock.results[0].value;
+    expect(createElement).toHaveBeenCalledWith('a');
+    expect(link.href).toBe(`${API.MANAGE_GOODS_OVERVIEW_EXPORT}?category=tops&brand=KK&shortageOnly=1&sort=demand`);
+    expect(click).toHaveBeenCalledTimes(1);
+    appendChild.mockRestore();
+    removeChild.mockRestore();
+    createElement.mockRestore();
+  });
+
   it('blocks purchase-order creation when selected items have no shortage', async () => {
     mockAuthFetch.mockResolvedValueOnce({
       json: () =>
