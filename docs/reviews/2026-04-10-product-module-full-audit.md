@@ -3730,3 +3730,14 @@
   - 补齐采购服务回归测试，显式锁定“历史订单快照会一路透传到采购项写入和 fallback shell”的行为。
 - 增量回归:
   - `pnpm vitest run functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+
+### 2026-04-13 轮次 322
+
+- 继续深审商品关联采购的建议采购链路，新增 1 个中高风险问题:
+  - [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 修复前的 `getSuggestions()` 仍然完全依赖 `product_variants -> products` live 查询来构造建议项。这样一来，只要 confirmed 历史订单对应的规格或商品记录后续被删掉，`DemandService` 明明还能统计出真实缺口，但建议采购列表会直接把这条需求吞掉，形成“订货总览里还有缺口，建议采购却消失”的业务断链。
+- 已完成本轮修复:
+  - `getSuggestions()` 现在在 live `product_variants/products` 查询缺行时，会自动追加一层 `order_lines + orders + inventory_balances` 回退查询，从订单行快照和订单镜像字段重建最小可展示摘要，不再让历史缺口直接消失。
+  - 回退建议项会继续保留 `product_name / sku / brand / images / variant_options` 与库存快照，并复用原有 shortage、价格策略和展示名投影逻辑，保证建议采购在 deleted live rows 场景下仍能稳定展示。
+  - 补齐建议采购回归测试，显式锁定“live 商品行已丢失但订单行快照仍在时，建议采购仍会保留该缺口”的行为。
+- 增量回归:
+  - `pnpm vitest run functions/services/__tests__/purchase-suggestions-inventory-semantics.test.js functions/services/__tests__/variant-pricing-strategy.test.js functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js functions/services/__tests__/InventoryBusinessWorkflow.test.js`
