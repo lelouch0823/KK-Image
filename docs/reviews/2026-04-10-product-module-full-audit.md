@@ -3263,3 +3263,18 @@
   - `functions/repositories/__tests__/product-dimensions.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/variant-dimensions-routes.test.js`
 - 对应修复提交: `d632e5e9 fix: normalize duplicate product dimension values`
+
+### 2026-04-12 轮次 288
+
+- 继续深审商品详情创建写路径，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/products/[id].js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/[id].js) 修复前的 `POST /api/manage/products/:id/dimensions`、`POST /api/manage/products/:id/dimensions/:dimensionId/values`、`POST /api/manage/products/:id/variants/:variantId/images` 都是“先写本体、后发 `scheduleProductCacheInvalidation`”的创建路由，却完全没有 `Idempotency-Key`、成功响应重放、`failed` 恢复和稳定 cache outbox command。只要第一次请求已经成功写出维度 / 维度值 / 变体图片，但 cache 事件或 finalize 在尾部失败，后续重试就会重复创建本体；而 finalize 失败后再补副作用时，也可能重复生成缓存事件，属于和商品创建/批量导入/商品归档同类的写路径闭环缺口。
+- 已完成本轮修复:
+  - 三条创建路由现在都已接入统一的命令幂等保留协议，请求指纹会绑定 `productId` 与各自路径参数/请求体；同一个幂等键重试会重放原响应，同 key 不同 payload 会被明确拒绝。
+  - 当第一次请求已经把维度、维度值或变体图片写成功，但 cache outbox / finalize 失败时，幂等记录会先落成 `failed`；重试时只补 `product_dimension_created`、`product_dimension_value_created`、`product_variant_image_created` 三类缓存副作用，不会重复执行真正的创建本体。
+  - 三条路由发布 cache outbox 时现在都会统一透传幂等预留命令的稳定 `commandId/correlationId`；如果重试命中了 `domain_outbox.idempotency_key` 唯一约束，会被视为“事件已持久化”，从而安全完成 finalize。
+  - 同步补齐商品详情旧测试壳对 `CommandIdempotencyRepository` 的 mock，恢复维度/图片管理原有路由断言在新幂等层下的真实业务覆盖。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/products/__tests__/product-detail-create-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-dimensions-routes.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-archive-idempotency.test.js`
