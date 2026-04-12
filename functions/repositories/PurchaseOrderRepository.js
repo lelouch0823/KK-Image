@@ -51,6 +51,36 @@ function summarizePurchaseOrderItems(items = []) {
   }));
 }
 
+const PURCHASE_ORDER_SNAPSHOT_VARIANT_KEYS = ['size', 'color', 'material'];
+
+function buildPurchaseOrderSnapshotVariantOptions(snapshotSpecs = {}) {
+  if (!snapshotSpecs || typeof snapshotSpecs !== 'object') return {};
+
+  return PURCHASE_ORDER_SNAPSHOT_VARIANT_KEYS.reduce((acc, key) => {
+    const value = snapshotSpecs[key];
+    if (value === undefined || value === null || value === '') return acc;
+    acc[key] = value;
+    return acc;
+  }, {});
+}
+
+function mapPurchaseOrderSnapshotFields(row = {}) {
+  const snapshotSpecs = parseJsonObject(row.snapshot_specs, {});
+  const snapshotVariantOptions = buildPurchaseOrderSnapshotVariantOptions(snapshotSpecs);
+  const hasSnapshotVariantOptions = Object.keys(snapshotVariantOptions).length > 0;
+  const liveVariantOptions = parseJsonObject(row.variant_options, {});
+
+  return {
+    ...row,
+    product_name: row.snapshot_name || row.product_name,
+    product_brand: row.snapshot_brand || row.product_brand,
+    variant_sku: row.snapshot_sku || row.variant_sku,
+    product_images: row.snapshot_image ? [row.snapshot_image] : parseJsonArray(row.product_images, []),
+    product_specifications: parseJsonObject(row.product_specifications, {}),
+    variant_options: hasSnapshotVariantOptions ? snapshotVariantOptions : liveVariantOptions,
+  };
+}
+
 const D1_MAX_IN_CLAUSE_SIZE = 100;
 
 function isPurchaseOrderNoConflictError(error) {
@@ -175,12 +205,31 @@ export class PurchaseOrderRepository {
         v.sku AS variant_sku,
         v.options_values AS variant_options,
         o.order_no AS customer_order_no,
+        ols.snapshot_name AS snapshot_name,
+        ols.snapshot_sku AS snapshot_sku,
+        ols.snapshot_specs AS snapshot_specs,
+        ols.snapshot_image AS snapshot_image,
+        json_extract(ols.snapshot_specs, '$.brand') AS snapshot_brand,
         COALESCE(pr.receipt_count, 0) AS receipt_count,
         pr.last_received_at AS last_received_at
       FROM purchase_order_items poi
       LEFT JOIN products p ON poi.product_id = p.id
       LEFT JOIN product_variants v ON poi.variant_id = v.id
       LEFT JOIN orders o ON poi.pre_order_id = o.id
+      LEFT JOIN (
+        SELECT
+          order_id,
+          product_id,
+          variant_id,
+          MAX(snapshot_name) AS snapshot_name,
+          MAX(snapshot_sku) AS snapshot_sku,
+          MAX(snapshot_specs) AS snapshot_specs,
+          MAX(snapshot_image) AS snapshot_image
+        FROM order_lines
+        GROUP BY order_id, product_id, variant_id
+      ) ols ON ols.order_id = poi.pre_order_id
+        AND ols.product_id = poi.product_id
+        AND ols.variant_id = poi.variant_id
       LEFT JOIN (
         SELECT
           purchase_order_item_id,
@@ -193,30 +242,37 @@ export class PurchaseOrderRepository {
       ORDER BY poi.created_at ASC
     `).bind(id).all();
 
-    const poItems = (items || []).map(item => ({
-      ...item,
-      quantity: toNumber(item.quantity),
-      received_qty: toNumber(item.received_qty),
-      cancelled_qty: toNumber(item.cancelled_qty),
-      receipt_count: toNumber(item.receipt_count),
-      product_images: parseJsonArray(item.product_images, []),
-      product_specifications: parseJsonObject(item.product_specifications, {}),
-      variant_options: parseJsonObject(item.variant_options, {}),
-    }));
+    const poItems = (items || []).map((item) => {
+      const mapped = mapPurchaseOrderSnapshotFields(item);
+      return {
+        ...mapped,
+        quantity: toNumber(item.quantity),
+        received_qty: toNumber(item.received_qty),
+        cancelled_qty: toNumber(item.cancelled_qty),
+        receipt_count: toNumber(item.receipt_count),
+      };
+    });
     const { results: receipts } = await this.db.prepare(`
       SELECT
         pr.*,
         p.name AS product_name,
         p.brand AS product_brand,
         p.spu AS product_sku,
+        p.images AS product_images,
         v.sku AS variant_sku,
         v.options_values AS variant_options,
+        ol.snapshot_name AS snapshot_name,
+        ol.snapshot_sku AS snapshot_sku,
+        ol.snapshot_specs AS snapshot_specs,
+        ol.snapshot_image AS snapshot_image,
+        json_extract(ol.snapshot_specs, '$.brand') AS snapshot_brand,
         COALESCE(rr.reversed_qty, 0) AS reversed_qty,
         COALESCE(rr.reversal_count, 0) AS reversal_count,
         rr.last_reversed_at AS last_reversed_at
       FROM purchase_receipts pr
       LEFT JOIN products p ON p.id = pr.product_id
       LEFT JOIN product_variants v ON v.id = pr.variant_id
+      LEFT JOIN order_lines ol ON ol.id = pr.order_line_id
       LEFT JOIN (
         SELECT
           original_receipt_id,
@@ -230,8 +286,9 @@ export class PurchaseOrderRepository {
       ORDER BY pr.received_at DESC, pr.created_at DESC
     `).bind(id).all();
     const receiptRows = (receipts || []).map((receipt) => {
+      const mapped = mapPurchaseOrderSnapshotFields(receipt);
       const normalizedReceipt = normalizePurchaseOrderProgress({
-        ...receipt,
+        ...mapped,
         received_qty: toNumber(receipt.received_qty),
       });
       const reversedQty = toNumber(receipt.reversed_qty);
@@ -244,8 +301,6 @@ export class PurchaseOrderRepository {
         last_reversed_at: toNumber(receipt.last_reversed_at),
         available_reversal_qty: availableReversalQty,
         is_reversed: reversedQty > 0 || toNumber(receipt.reversal_count) > 0,
-        product_images: parseJsonArray(receipt.product_images, []),
-        variant_options: parseJsonObject(receipt.variant_options, {}),
       };
     });
     const progress = summarizePurchaseOrderItems(poItems);
