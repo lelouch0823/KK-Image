@@ -3659,3 +3659,15 @@
   - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
   - `functions/services/__tests__/InventoryBusinessWorkflow.test.js`
   - `src/views/__tests__/GoodsOverview.status-semantics.test.js`
+
+### 2026-04-12 轮次 316
+
+- 继续深审商品关联订单列表/导出链路，新增 1 个中高风险问题:
+  - [functions/repositories/order/queries.js](/home/bjw/Code/KK-Image/functions/repositories/order/queries.js)、[functions/repositories/order/helpers.js](/home/bjw/Code/KK-Image/functions/repositories/order/helpers.js) 和 [functions/lib/hono/routes/manage/orders/list.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/orders/list.js) 修复前只从 `orders.current_data.name` 读取商品名；而订单详情侧已经会回退 `order_lines.snapshot_name`。结果是只要历史订单的 `current_data.name` 缺失、被清洗或早期未落库，详情页还能显示商品名，但管理端列表、CSV 导出以及按商品名搜索都会丢空或搜不到，形成商品历史快照在不同消费链路里的展示口径漂移。
+- 已完成本轮修复:
+  - 新增共享 SQL 片段 [functions/repositories/order/sql.js](/home/bjw/Code/KK-Image/functions/repositories/order/sql.js)，把订单进度聚合、首条订单行 `snapshot_name` 回退、商品名搜索扩展收敛到同一入口，避免仓储查询和导出路由各自维护一套 SQL 造成再次分叉。
+  - 销售员列表、管理端列表和管理端导出现在都会显式回退 `order_line_snapshot.snapshot_name`；当 `current_data.name` 缺失时，订单列表与导出的商品名会和详情页保持一致，不再把历史商品名丢空。
+  - 管理端搜索也同步扩展到 `order_line_snapshot.snapshot_name`，确保历史订单即使只剩订单行快照，仍然可以通过商品名被检索出来，补齐展示之外的业务闭环。
+  - 补齐订单查询与导出回归测试，显式锁定“商品名缺失时回退 snapshot_name，且搜索条件同样覆盖 snapshot_name”的行为。
+- 增量回归:
+  - `pnpm vitest run functions/repositories/__tests__/order-queries.display-model.test.js functions/lib/hono/routes/manage/__tests__/order-list-routes.test.js functions/repositories/__tests__/order-helpers.procurement-status.test.js functions/repositories/__tests__/order-queries.progress-filter.test.js functions/lib/hono/routes/manage/__tests__/order-detail-routes.test.js src/components/order/__tests__/OrderDetail.lines.test.js`
