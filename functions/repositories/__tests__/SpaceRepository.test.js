@@ -154,6 +154,68 @@ describe('SpaceRepository', () => {
         });
     });
 
+    describe('salesperson visibility', () => {
+        it('filters expired spaces in salesperson list queries at repository level', async () => {
+            vi.useFakeTimers();
+            vi.setSystemTime(new Date('2026-04-12T00:00:00.000Z'));
+
+            const mockAll = vi.fn().mockResolvedValue({ results: [] });
+            const mockBind = vi.fn().mockReturnValue({ all: mockAll });
+            const mockPrepare = vi.fn().mockReturnValue({ bind: mockBind });
+            const mockDb = { prepare: mockPrepare };
+
+            const repo = new SpaceRepository(mockDb);
+            await repo.findAllForSalesperson('sp-1');
+
+            const sql = mockPrepare.mock.calls[0][0];
+            expect(sql).toContain('s.parent_id IS NULL');
+            expect(sql).toContain('s.expires_at IS NULL OR s.expires_at >= ?');
+            expect(mockBind).toHaveBeenCalledWith(Date.now(), 'sp-1');
+
+            vi.useRealTimers();
+        });
+
+        it('filters expired spaces in salesperson detail queries at repository level', async () => {
+            vi.useFakeTimers();
+            vi.setSystemTime(new Date('2026-04-12T00:00:00.000Z'));
+
+            const mockFirst = vi.fn().mockResolvedValue(null);
+            const mockBind = vi.fn().mockReturnValue({ first: mockFirst });
+            const mockPrepare = vi.fn().mockReturnValue({ bind: mockBind });
+            const mockDb = { prepare: mockPrepare };
+
+            const repo = new SpaceRepository(mockDb);
+            await repo.findByIdForSalesperson('space-1', 'sp-1');
+
+            const sql = mockPrepare.mock.calls[0][0];
+            expect(sql).toContain('WHERE s.id = ?');
+            expect(sql).toContain('s.expires_at IS NULL OR s.expires_at >= ?');
+            expect(mockBind).toHaveBeenCalledWith('space-1', Date.now(), 'sp-1');
+
+            vi.useRealTimers();
+        });
+
+        it('filters expired subspaces in salesperson subspace queries at repository level', async () => {
+            vi.useFakeTimers();
+            vi.setSystemTime(new Date('2026-04-12T00:00:00.000Z'));
+
+            const mockAll = vi.fn().mockResolvedValue({ results: [] });
+            const mockBind = vi.fn().mockReturnValue({ all: mockAll });
+            const mockPrepare = vi.fn().mockReturnValue({ bind: mockBind });
+            const mockDb = { prepare: mockPrepare };
+
+            const repo = new SpaceRepository(mockDb);
+            await repo.findSubspacesForSalesperson('parent-1', 'sp-1');
+
+            const sql = mockPrepare.mock.calls[0][0];
+            expect(sql).toContain('WHERE s.parent_id = ?');
+            expect(sql).toContain('s.expires_at IS NULL OR s.expires_at >= ?');
+            expect(mockBind).toHaveBeenCalledWith('parent-1', Date.now(), 'sp-1');
+
+            vi.useRealTimers();
+        });
+    });
+
     describe('batch safety', () => {
         function createStatement(sql) {
             const statement = {

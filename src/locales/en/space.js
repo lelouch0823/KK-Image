@@ -132,6 +132,23 @@ export default {
     noAssociatedLinks: 'No shared spaces linked to this product yet.',
     quickShare: 'Quick Share',
     select: 'Select',
+    bindingIssues: {
+      archivedProduct:
+        'The product bound to this space has been archived. The space is now showing its own snapshot data only. Rebind it to an active product, or unbind it and maintain static content.',
+      archivedVariant:
+        'The variant bound to this space has been archived. The space is now showing its own snapshot data only. Please pick a sellable variant again, or unbind it and maintain static content.',
+      missingProduct:
+        'The product originally bound to this space no longer exists. Only the historical snapshot remains. Rebind it to a valid product, or unbind it and maintain static content.',
+      missingVariant:
+        'The variant originally bound to this space no longer exists. Only the historical snapshot remains. Please select a valid variant again, or unbind it and maintain static content.',
+      badges: {
+        archivedProduct: 'Product Archived',
+        archivedVariant: 'Variant Archived',
+        missingProduct: 'Product Missing',
+        missingVariant: 'Variant Missing',
+        snapshot: 'Snapshot Binding',
+      },
+    },
   },
 
   // Public Space Page

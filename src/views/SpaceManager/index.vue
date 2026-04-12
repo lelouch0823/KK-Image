@@ -116,6 +116,12 @@
               {{ space.shareMode === 'all' ? t('spaceManager.shareMode.all') : t('spaceManager.shareMode.selected') }}
             </span>
             <span
+              v-if="space.bindingUsesSnapshot"
+              class="absolute bottom-2 left-2 rounded-full bg-amber-500/90 px-2 py-1 text-xs font-medium text-white"
+            >
+              {{ getBindingStateLabel(space.bindingState) }}
+            </span>
+            <span
               v-else-if="!space.isPublic"
               class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-(--text-secondary)/80 px-2 py-1 text-xs font-medium text-(--text-inverse)"
             >
@@ -299,6 +305,16 @@ const openCreateModal = () => {
 
 const getTemplateLabel = (template) =>
   t(`spaceManager.templates.${template || 'custom'}`) || template;
+
+const getBindingStateLabel = (bindingState) => {
+  const mapping = {
+    archived_product: t('spaceManager.bindingIssues.badges.archivedProduct') || '商品已归档',
+    archived_variant: t('spaceManager.bindingIssues.badges.archivedVariant') || '规格已归档',
+    missing_product: t('spaceManager.bindingIssues.badges.missingProduct') || '商品已失效',
+    missing_variant: t('spaceManager.bindingIssues.badges.missingVariant') || '规格已失效',
+  };
+  return mapping[bindingState] || (t('spaceManager.bindingIssues.badges.snapshot') || '绑定快照');
+};
 
 const openSpaceDetail = (space) => {
   selectedSpace.value = space;

@@ -133,6 +133,19 @@ export default {
     noAssociatedLinks: '暂无关联的分享空间',
     quickShare: '快速分享',
     select: '选择',
+    bindingIssues: {
+      archivedProduct: '该空间绑定的商品已归档，当前仅保留空间自己的快照信息。你可以改绑到新的在售商品，或解绑后改为普通空间内容。',
+      archivedVariant: '该空间绑定的规格已归档，当前仅保留空间自己的快照信息。请重新选择可售规格，或解绑后手动维护空间内容。',
+      missingProduct: '该空间原先绑定的商品已不存在，当前只剩历史快照。请尽快重新绑定商品，或解除绑定后改为静态内容。',
+      missingVariant: '该空间原先绑定的规格已不存在，当前只剩历史快照。请重新选择有效规格，或解除绑定后改为静态内容。',
+      badges: {
+        archivedProduct: '商品已归档',
+        archivedVariant: '规格已归档',
+        missingProduct: '商品已失效',
+        missingVariant: '规格已失效',
+        snapshot: '绑定快照',
+      },
+    },
   },
 
   // spacePublic (公共空间页面)

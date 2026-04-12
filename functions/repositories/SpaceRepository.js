@@ -13,8 +13,13 @@ export class SpaceRepository {
         this.db = db;
     }
 
+    _nonExpiredSpaceWhereClause(alias = 's') {
+        return `(${alias}.expires_at IS NULL OR ${alias}.expires_at >= ?)`;
+    }
+
     _productProjectionSQL() {
         return `
+          p.id as p_bound_id,
           p.spu as p_sku,
           p.status as p_status,
           p.brand as p_brand,
@@ -22,6 +27,7 @@ export class SpaceRepository {
           COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
           p.specifications as p_specs,
           p.images as p_images,
+          pv.id as pv_bound_id,
           pv.sku as pv_sku,
           pv.status as pv_status,
           pv.price as pv_price,
@@ -365,6 +371,7 @@ export class SpaceRepository {
      * @returns {Promise<Array>}
      */
     async findSubspacesForSalesperson(parentId, salespersonId) {
+        const now = Date.now();
         const { results } = await this.db
             .prepare(
                 `
@@ -377,6 +384,7 @@ export class SpaceRepository {
         ${this._spaceFileCountJoinSQL()}
         ${this._spaceProductJoinsSQL()}
         WHERE s.parent_id = ?
+          AND ${this._nonExpiredSpaceWhereClause('s')}
           AND (
             s.share_mode = 'all'
             OR (s.share_mode = 'selected' AND EXISTS (
@@ -387,7 +395,7 @@ export class SpaceRepository {
         ORDER BY s.sort_order ASC, s.updated_at DESC
       `
             )
-            .bind(parentId, salespersonId)
+            .bind(parentId, now, salespersonId)
             .all();
 
         return results;
@@ -473,6 +481,7 @@ export class SpaceRepository {
      * @returns {Promise<Array>}
      */
     async findAllForSalesperson(salespersonId) {
+        const now = Date.now();
         const { results } = await this.db.prepare(`
             SELECT s.*, 
                 (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
@@ -484,6 +493,7 @@ export class SpaceRepository {
             LEFT JOIN products p ON s.product_id = p.id
             LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
             WHERE s.parent_id IS NULL
+              AND ${this._nonExpiredSpaceWhereClause('s')}
               AND (
                s.share_mode = 'all'
                OR (s.share_mode = 'selected' AND EXISTS (
@@ -492,7 +502,7 @@ export class SpaceRepository {
                ))
               )
             ORDER BY s.updated_at DESC
-        `).bind(salespersonId).all();
+        `).bind(now, salespersonId).all();
         return results;
     }
 
@@ -503,6 +513,7 @@ export class SpaceRepository {
      * @returns {Promise<Object|null>}
      */
     async findByIdForSalesperson(spaceId, salespersonId) {
+        const now = Date.now();
         const space = await this.db.prepare(`
             SELECT s.*,
                 f.storage_key as cover_storage_key,
@@ -513,12 +524,13 @@ export class SpaceRepository {
             LEFT JOIN products p ON s.product_id = p.id
             LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
             WHERE s.id = ?
+              AND ${this._nonExpiredSpaceWhereClause('s')}
               AND (s.share_mode = 'all'
                    OR (s.share_mode = 'selected' AND EXISTS (
                        SELECT 1 FROM space_salesperson_shares sss 
                        WHERE sss.space_id = s.id AND sss.salesperson_id = ?
                    )))
-        `).bind(spaceId, salespersonId).first();
+        `).bind(spaceId, now, salespersonId).first();
 
         if (!space) return null;
 

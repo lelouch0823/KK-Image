@@ -90,6 +90,16 @@
                 </svg>
                 <p>该空间已绑定商品，品牌、系列、价格等核心参数由商品关联系统自动接管。如需修改，请点击上方的<strong>“编辑”</strong>按钮前往商品库修改。保存该空间后修改即可全局生效。</p>
             </div>
+
+            <div
+              v-if="bindingWarning"
+              class="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-50/80 p-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-900/20 dark:text-amber-200"
+            >
+              <svg class="mt-0.5 size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 4h.01M10.29 3.86l-7.4 12.8A1 1 0 003.75 18h16.5a1 1 0 00.86-1.5l-7.4-12.8a1 1 0 00-1.72 0z" />
+              </svg>
+              <p>{{ bindingWarning }}</p>
+            </div>
           </div>
 
           <div>
@@ -411,6 +421,7 @@ const mobileTab = ref('info');
 const isDesktop = ref(window.innerWidth >= 1024);
 const boundProduct = ref(null);
 const canManageProducts = ref(true);
+const bindingState = ref('unbound');
 let initDataRequestId = 0;
 let mediaRefreshRequestId = 0;
 let registeredRefreshKey = '';
@@ -456,6 +467,53 @@ const productImages = computed(() => {
   return resolveProductImageSrcList({ images: boundProduct.value._images });
 });
 
+const bindingWarningMap = computed(() => ({
+  archived_product:
+    t(
+      'spaceManager.bindingIssues.archivedProduct',
+      '该空间绑定的商品已归档，当前仅保留空间自己的快照信息。你可以改绑到新的在售商品，或解绑后改为普通空间内容。'
+    ),
+  archived_variant:
+    t(
+      'spaceManager.bindingIssues.archivedVariant',
+      '该空间绑定的规格已归档，当前仅保留空间自己的快照信息。请重新选择可售规格，或解绑后手动维护空间内容。'
+    ),
+  missing_product:
+    t(
+      'spaceManager.bindingIssues.missingProduct',
+      '该空间原先绑定的商品已不存在，当前只剩历史快照。请尽快重新绑定商品，或解除绑定后改为静态内容。'
+    ),
+  missing_variant:
+    t(
+      'spaceManager.bindingIssues.missingVariant',
+      '该空间原先绑定的规格已不存在，当前只剩历史快照。请重新选择有效规格，或解除绑定后改为静态内容。'
+    ),
+}));
+
+const bindingWarning = computed(() => bindingWarningMap.value[bindingState.value] || '');
+
+const resolveFallbackBoundProductName = (data) => {
+  const brand = String(data?.templateData?.brand || '').trim();
+  const series = String(data?.templateData?.series || '').trim();
+  return [brand, series].filter(Boolean).join(' ') || data?.name || 'Historical Product';
+};
+
+const buildFallbackBoundProduct = (data) => {
+  const images = Array.isArray(data?.templateData?.images) ? data.templateData.images : [];
+  const imageList = resolveProductImageSrcList({ images });
+  return {
+    id: data?.productId || data?.product_id || '',
+    productId: data?.productId || data?.product_id || '',
+    variantId: data?.variantId || data?.variant_id || null,
+    name: resolveFallbackBoundProductName(data),
+    sku: data?.templateData?.sku || '',
+    brand: data?.templateData?.brand || '',
+    series: data?.templateData?.series || '',
+    mainImage: imageList[0] || '',
+    _images: images,
+  };
+};
+
 const initData = async () => {
   const requestId = ++initDataRequestId;
   canManageProducts.value = await can('products:manage');
@@ -463,6 +521,7 @@ const initData = async () => {
   const data = await loadSpace(props.space.id);
   if (requestId !== initDataRequestId || !data) return;
   if (data) {
+    bindingState.value = String(data.bindingState || (data.productId ? 'active' : 'unbound'));
     if (data.productId && canManageProducts.value) {
       const product = await loadProduct(data.productId);
       if (requestId !== initDataRequestId) return;
@@ -481,6 +540,10 @@ const initData = async () => {
           mainImage,
           _images: product.images, // Store raw images for computed property
         };
+      } else if (bindingState.value !== 'active' && bindingState.value !== 'unbound') {
+        boundProduct.value = buildFallbackBoundProduct(data);
+      } else {
+        boundProduct.value = null;
       }
     } else {
       boundProduct.value = null;
@@ -583,6 +646,7 @@ const handleProductSelect = (product) => {
 const unbindProduct = () => {
   if (!canManageProducts.value) return;
   boundProduct.value = null;
+  bindingState.value = 'unbound';
   form.value.productId = null;
   form.value.variantId = null;
 };

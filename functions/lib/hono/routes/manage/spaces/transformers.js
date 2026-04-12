@@ -7,6 +7,32 @@ import { getShareUrl, getFileUrl } from '../../../_shared/utils.js';
 import { parseJsonArray, parseJsonObject } from '../../../../../api/utils/json.js';
 import { normalizeVariantOptions } from '../../../../../lib/utils/variant-meta.js';
 
+export function resolveSpaceBindingState(space = {}) {
+  const hasProductBinding = Boolean(space.product_id);
+  const hasVariantBinding = Boolean(space.variant_id);
+
+  if (!hasProductBinding && !hasVariantBinding) return 'unbound';
+  if (hasProductBinding && !space.p_bound_id) return 'missing_product';
+  if (hasVariantBinding && !space.pv_bound_id) return 'missing_variant';
+
+  const productStatus = String(space.p_status || '').trim().toLowerCase();
+  if (hasProductBinding && productStatus && productStatus !== 'active') {
+    return 'archived_product';
+  }
+
+  const variantStatus = String(space.pv_status || '').trim().toLowerCase();
+  if (hasVariantBinding && variantStatus && variantStatus !== 'active') {
+    return 'archived_variant';
+  }
+
+  return 'active';
+}
+
+function hasBindingSnapshotFallback(space = {}) {
+  const bindingState = resolveSpaceBindingState(space);
+  return bindingState !== 'unbound' && bindingState !== 'active';
+}
+
 /**
  * 投影商品字段到空间模版数据中
  * @param {Object} space 
@@ -59,6 +85,7 @@ export function projectSpaceTemplateData(space) {
  * @returns {Object} API 响应格式
  */
 export function transformSpaceListItem(space) {
+  const bindingState = resolveSpaceBindingState(space);
   return {
     id: space.id,
     name: space.name,
@@ -78,6 +105,8 @@ export function transformSpaceListItem(space) {
     viewCount: space.view_count || 0,
     productId: space.product_id || null,
     variantId: space.variant_id || null,
+    bindingState,
+    bindingUsesSnapshot: hasBindingSnapshotFallback(space),
     createdAt: space.created_at,
     updatedAt: space.updated_at,
   };
@@ -90,6 +119,7 @@ export function transformSpaceListItem(space) {
  * @returns {Object} API 响应格式
  */
 export function transformSpaceDetail(space, files = []) {
+  const bindingState = resolveSpaceBindingState(space);
   return {
     id: space.id,
     name: space.name,
@@ -109,6 +139,8 @@ export function transformSpaceDetail(space, files = []) {
     viewCount: space.view_count,
     productId: space.product_id || null,
     variantId: space.variant_id || null,
+    bindingState,
+    bindingUsesSnapshot: hasBindingSnapshotFallback(space),
     createdAt: space.created_at,
     updatedAt: space.updated_at,
     files: files.map(transformFile),

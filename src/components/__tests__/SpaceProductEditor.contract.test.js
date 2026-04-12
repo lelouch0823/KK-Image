@@ -189,6 +189,55 @@ describe('SpaceProductEditor contract', () => {
     expect(wrapper.vm.form.productId).toBe('prod-1');
   });
 
+  it('keeps a fallback bound product card when historical binding target has already disappeared', async () => {
+    mocks.loadSpace.mockResolvedValueOnce({
+      id: 'space-1',
+      name: 'Space Name',
+      description: 'Space Desc',
+      productId: 'prod-1',
+      variantId: 'var-2',
+      bindingState: 'missing_variant',
+      templateData: {
+        brand: 'Brand 1',
+        series: 'Series 1',
+        price: '88',
+        material: 'Leather',
+        sku: 'SKU-2',
+        images: ['snapshot-image'],
+      },
+      files: [],
+    });
+    mocks.loadProduct.mockResolvedValueOnce(null);
+
+    const wrapper = mount(SpaceProductEditor, {
+      props: {
+        space: { id: 'space-1', shareToken: 'share-token' },
+      },
+      global: {
+        stubs: {
+          FileSelector: { template: '<div />' },
+          Tooltip: { template: '<div><slot /></div>' },
+          SpaceAnalytics: { template: '<div />' },
+          SpaceShareCard: { template: '<div />' },
+          SpaceVisibilitySelector: { template: '<div />' },
+          SpaceMediaGrid: { template: '<div />' },
+          ConfirmDialog: { template: '<div />' },
+          ProductBindingSection: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.vm.boundProduct).toMatchObject({
+      id: 'prod-1',
+      variantId: 'var-2',
+      name: 'Brand 1 Series 1',
+      sku: 'SKU-2',
+    });
+    expect(wrapper.text()).toContain('历史快照');
+  });
+
   it('keeps core product fields readonly when a bound product exists without product permission', async () => {
     mocks.can.mockResolvedValueOnce(false);
 

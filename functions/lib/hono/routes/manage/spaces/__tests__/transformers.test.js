@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { projectSpaceTemplateData, transformSpaceDetail, transformSpaceListItem } from '../transformers.js';
+import {
+  projectSpaceTemplateData,
+  resolveSpaceBindingState,
+  transformSpaceDetail,
+  transformSpaceListItem,
+} from '../transformers.js';
 
 vi.mock('../../../../_shared/utils.js', () => ({
   getShareUrl: vi.fn(() => 'https://share.example/space'),
@@ -78,6 +83,8 @@ describe('space transformers', () => {
       view_count: 7,
       product_id: 'prod-1',
       variant_id: 'var-1',
+      p_bound_id: 'prod-1',
+      pv_bound_id: 'var-1',
       created_at: 1711000000000,
       updated_at: 1711000001000,
     };
@@ -85,13 +92,60 @@ describe('space transformers', () => {
     expect(transformSpaceListItem(space)).toMatchObject({
       productId: 'prod-1',
       variantId: 'var-1',
+      bindingState: 'active',
+      bindingUsesSnapshot: false,
       createdAt: 1711000000000,
     });
 
     expect(transformSpaceDetail(space, [])).toMatchObject({
       productId: 'prod-1',
       variantId: 'var-1',
+      bindingState: 'active',
+      bindingUsesSnapshot: false,
       createdAt: 1711000000000,
+    });
+  });
+
+  it('marks archived or missing bindings so management readers can surface fallback state', () => {
+    expect(
+      resolveSpaceBindingState({
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        p_bound_id: 'prod-1',
+        pv_bound_id: 'var-1',
+        p_status: 'archived',
+        pv_status: 'active',
+      })
+    ).toBe('archived_product');
+
+    expect(
+      resolveSpaceBindingState({
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        p_bound_id: 'prod-1',
+        pv_bound_id: null,
+        p_status: 'active',
+      })
+    ).toBe('missing_variant');
+
+    expect(
+      transformSpaceDetail(
+        {
+          id: 'space-2',
+          name: 'Space 2',
+          template: 'product',
+          template_data: '{}',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          p_bound_id: 'prod-1',
+          pv_bound_id: null,
+          p_status: 'active',
+        },
+        []
+      )
+    ).toMatchObject({
+      bindingState: 'missing_variant',
+      bindingUsesSnapshot: true,
     });
   });
 });
