@@ -3296,3 +3296,27 @@
   - `functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/product-archive-idempotency.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/variant-audit-routes.test.js`
+- 对应修复提交: `1dd8d6f8 fix: harden product detail mutation retries`
+
+### 2026-04-12 轮次 290
+
+- 继续深审商品管理剩余大写路径与幂等实现边界，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/products/[id].js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/[id].js) 修复前仍有 `PATCH /:id/dimensions/:dimensionId`、`PATCH /:id`、`PUT /:id` 三条高风险写路由没有接入命令幂等与失败恢复。其中 `PATCH /:id` / `PUT /:id` 还会在 [functions/services/ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js) 里先完成商品/维度/变体本体更新，最后才发 `product_updated` / `product_replaced` cache outbox。只要尾部 cache/finalize 失败，重试就会重复跑整条 patch/replace 逻辑，直接落入此前已经修掉的同类缺口。
+- 已完成本轮修复:
+  - `PATCH /:id/dimensions/:dimensionId`、`PATCH /:id`、`PUT /:id` 现在都已接入命令幂等保留、请求指纹校验、成功响应重放与 `failed` 恢复；同一个幂等键重试不会重复执行真正的更新 / 替换逻辑，同 key 不同 payload 会被明确拒绝。
+  - `ProductCatalogService.patchProduct()` / `putProduct()` 现在支持 `skipCacheInvalidation` 与稳定 `cacheEventCommandId/cacheEventCorrelationId` 选项，路由层可以把 cache outbox 从服务内部安全上提，真正实现“本体更新”和“尾部副作用”可恢复拆分。
+  - 商品路由的幂等工具已统一抽到 [idempotency-helpers.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/idempotency-helpers.js)，`index.js`、`batch.js`、`[id].js` 现在共享同一套 request fingerprint / reserve / replay / resume / finalize 基础能力，避免后续各文件继续分叉实现。
+  - 至此，商品模块里所有高风险写路由都已经接入同一类幂等与恢复闭环，不再只覆盖局部端点。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/products/__tests__/product-update-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-update-audit-metadata.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-patch-rollback-boundary.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-create-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/batch-routes.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-detail-create-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-detail-mutation-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-spu-routes.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-dimensions-routes.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-archive-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-audit-routes.test.js`
