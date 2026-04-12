@@ -166,4 +166,70 @@ describe('purchase suggestions inventory semantics', () => {
     ]);
   });
 
+  it('keeps shortage suggestions visible when live product rows are gone but order-line snapshots remain', async () => {
+    const db = {
+      prepare: vi.fn((sql) => ({
+        bind: vi.fn(() => ({
+          all: vi.fn(async () => {
+            if (sql.includes('FROM product_variants pv')) {
+              return { results: [] };
+            }
+            if (sql.includes('FROM order_lines ol')) {
+              return {
+                results: [
+                  {
+                    variant_id: 'variant-deleted',
+                    product_id: 'product-deleted',
+                    product_name: 'Snapshot Tee',
+                    sku: 'SNAPSHOT-SKU',
+                    brand: 'Snapshot Brand',
+                    cost_price: 0,
+                    suggested_purchase_price: 0,
+                    on_hand: 0,
+                    reserved: 0,
+                    available: 0,
+                    images: '["snapshot-image"]',
+                    variant_options: '{"color":"Black","size":"L","material":"Canvas"}',
+                  },
+                ],
+              };
+            }
+            return { results: [] };
+          }),
+        })),
+      })),
+    };
+    const service = new PurchaseOrderService(db);
+    service.repo.getLastPurchasePricesByVariant = vi.fn(async () => ({}));
+    service.demandService = {
+      getDemandSummaryByVariant: vi.fn(async () => [
+        {
+          variant_id: 'variant-deleted',
+          total_demand: 4,
+          order_count: 1,
+          order_ids: ['o-deleted'],
+        },
+      ]),
+    };
+
+    const suggestions = await service.getSuggestions();
+    const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
+
+    expect(sqlCalls.some((sql) => sql.includes('FROM product_variants pv'))).toBe(true);
+    expect(sqlCalls.some((sql) => sql.includes('FROM order_lines ol'))).toBe(true);
+    expect(suggestions).toEqual([
+      expect.objectContaining({
+        variant_id: 'variant-deleted',
+        product_id: 'product-deleted',
+        product_name: 'Snapshot Tee',
+        sku: 'SNAPSHOT-SKU',
+        brand: 'Snapshot Brand',
+        total_demand: 4,
+        available_quantity: 0,
+        shortage: 4,
+        variant_display_name: 'Black / Canvas / L',
+      }),
+    ]);
+  });
+
 });

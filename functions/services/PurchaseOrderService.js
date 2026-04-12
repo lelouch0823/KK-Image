@@ -55,6 +55,62 @@ function buildSuggestionPricing(row, lastPurchasePriceMap) {
   };
 }
 
+async function loadSuggestionSnapshotFallbackRows(db, variantIds = []) {
+  if (!Array.isArray(variantIds) || variantIds.length === 0) return [];
+
+  const rows = [];
+  for (const variantIdChunk of chunkArray(variantIds, D1_MAX_IN_CLAUSE_SIZE)) {
+    const placeholders = variantIdChunk.map(() => '?').join(',');
+    const { results } = await db.prepare(`
+      SELECT
+        ol.variant_id AS variant_id,
+        MAX(ol.product_id) AS product_id,
+        NULL AS product_code,
+        NULL AS variant_code,
+        COALESCE(
+          MAX(ol.snapshot_name),
+          MAX(json_extract(o.current_data, '$.name')),
+          MAX(json_extract(o.original_data, '$.name')),
+          '-'
+        ) AS product_name,
+        COALESCE(
+          MAX(ol.snapshot_sku),
+          MAX(json_extract(o.current_data, '$.sku')),
+          MAX(json_extract(o.current_data, '$.variant_sku')),
+          MAX(json_extract(o.current_data, '$.spu')),
+          MAX(json_extract(o.original_data, '$.sku')),
+          MAX(json_extract(o.original_data, '$.variant_sku')),
+          MAX(json_extract(o.original_data, '$.spu')),
+          '-'
+        ) AS sku,
+        COALESCE(
+          MAX(json_extract(ol.snapshot_specs, '$.brand')),
+          MAX(json_extract(o.current_data, '$.brand')),
+          MAX(json_extract(o.original_data, '$.brand')),
+          ''
+        ) AS brand,
+        0 AS cost_price,
+        0 AS suggested_purchase_price,
+        COALESCE(MAX(ib.on_hand), 0) AS on_hand,
+        COALESCE(MAX(ib.reserved), 0) AS reserved,
+        COALESCE(MAX(ib.available), 0) AS available,
+        CASE
+          WHEN MAX(ol.snapshot_image) IS NOT NULL THEN json_array(MAX(ol.snapshot_image))
+          ELSE '[]'
+        END AS images,
+        COALESCE(MAX(ol.snapshot_specs), '{}') AS variant_options
+      FROM order_lines ol
+      JOIN orders o ON o.id = ol.order_id
+      LEFT JOIN inventory_balances ib ON ib.variant_id = ol.variant_id
+      WHERE ol.variant_id IN (${placeholders})
+        AND o.status IN ('confirmed', 'production', 'shipping', 'arrived')
+      GROUP BY ol.variant_id
+    `).bind(...variantIdChunk).all();
+    rows.push(...(results || []));
+  }
+  return rows;
+}
+
 function toNumber(value) {
   return Number(value || 0);
 }
@@ -462,6 +518,12 @@ export class PurchaseOrderService {
         WHERE pv.id IN (${placeholders})
       `).bind(...variantIdChunk).all();
       rows.push(...(results || []));
+    }
+
+    const liveVariantIdSet = new Set(rows.map((row) => row.variant_id).filter(Boolean));
+    const missingVariantIds = variantIds.filter((variantId) => !liveVariantIdSet.has(variantId));
+    if (missingVariantIds.length > 0) {
+      rows.push(...await loadSuggestionSnapshotFallbackRows(this.db, missingVariantIds));
     }
 
     const demandByVariant = new Map(demandRows.map((row) => [row.variant_id, row]));
