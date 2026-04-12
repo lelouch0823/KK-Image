@@ -3136,3 +3136,16 @@
   - `functions/lib/hono/routes/manage/products/__tests__/product-create-transactional.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/cache-outbox-helper.test.js`
 - 对应修复提交: `1c8dd771 fix: harden product create retries`
+
+### 2026-04-12 轮次 279
+
+- 继续深审商品关联的订单创建链路，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/orders/create.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/orders/create.js) 与 [functions/lib/hono/routes/manage/orders/create-order.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/orders/create-order.js) 修复前存在与商品创建、采购单创建同类的闭环缺口：`POST /api/manage/orders` 没有任何 `Idempotency-Key` 保护，而 `order_created_by_admin` outbox 事件又是在订单本体、需求同步、文件归档之后才发布。这样一来，只要前端重复点击、网络超时重试，或者第一次其实已建单成功但创建事件 / finalize 失败，管理端再次提交就会重复创建订单，缓存与通知链路也无法安全只补副作用。
+- 已完成本轮修复:
+  - 管理端订单创建路由现在已接入命令幂等保留、指纹校验、成功响应重放与 `failed` 恢复；同一个幂等键重试不再重复建单，同 key 不同 payload 会被拒绝。
+  - 订单创建实现现在支持把“建单本体”和“发 `order_created_by_admin` outbox 事件”拆开执行；管理端路由会使用稳定的 `commandId/correlationId` 发布创建事件，并在 outbox 唯一键冲突时把它视为“事件已持久化”，从而安全恢复 finalize 失败后的重试。
+  - 已补齐路由壳层与真实创建链路两类回归测试，锁定“成功响应重放”“副作用失败仅补副作用”“finalize 失败恢复不重复生成创建事件”的行为。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/orders/__tests__/create-routes.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/order-create-route.test.js`
+- 对应修复提交: `e9c6d835 fix: harden order create retries`
