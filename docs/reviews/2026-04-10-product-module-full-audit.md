@@ -3250,3 +3250,16 @@
   - `functions/repositories/__tests__/variant-images.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js`
 - 对应修复提交: `153b49b5 fix: promote first variant image to primary`
+
+### 2026-04-12 轮次 287
+
+- 继续深审商品维度值规则，新增 1 个中高风险问题:
+  - [functions/repositories/ProductDimensionRepository.js](/home/bjw/Code/KK-Image/functions/repositories/ProductDimensionRepository.js) 修复前对 `product_dimension_values.value` 的重复校验仍是大小写/空格敏感的精确匹配。这样一来，同一维度下可以并存 `Red`、` red `、`RED` 这类语义完全重复的值；后续新增 value、恢复归档 value、变体选项映射都会落到歧义标签上，和前面已经修掉的“重复维度名”是同类一致性缺口。
+- 已完成本轮修复:
+  - 维度值重复检测现在已按 `trim + lowercase` 归一化处理，新增 value 与恢复归档 value 都不会再接受语义重复的标签。
+  - 同步补齐仓储级红绿测试，锁定“addValue reject normalized duplicate”“restoreValue reject normalized duplicate”两条边界。
+  - 另外补了路由级回归测试，确保管理端新增/恢复 value 时会向调用方明确返回 400，而不是悄悄把重复值写进系统。
+- 增量回归:
+  - `functions/repositories/__tests__/product-dimensions.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-dimensions-routes.test.js`
+- 对应修复提交: `d632e5e9 fix: normalize duplicate product dimension values`
