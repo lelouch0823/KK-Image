@@ -2,6 +2,8 @@ import { executeBatchChunks } from '../lib/db/batch.js';
 import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 
+const D1_MAX_BATCH_SIZE = 100;
+
 export class DomainOutboxPublisher {
   constructor(db, deps = {}) {
     this.db = db;
@@ -39,11 +41,53 @@ export class DomainOutboxPublisher {
       this.normalizeEvent(event, commandId, correlationId, index + 1)
     );
 
-    const statements = this.domainOutboxRepo.buildInsertStatements(
-      normalizedEvents,
-      (event) => getDomainEventDefinition(event.event_type).consumers
-    );
-    await executeBatchChunks(this.db, statements);
+    const eventChunks = [];
+    let currentChunk = [];
+    let currentStatementCount = 0;
+
+    for (const event of normalizedEvents) {
+      const statementCountForEvent =
+        1 + getDomainEventDefinition(event.event_type).consumers.length;
+      if (
+        currentChunk.length > 0
+        && currentStatementCount + statementCountForEvent > D1_MAX_BATCH_SIZE
+      ) {
+        eventChunks.push(currentChunk);
+        currentChunk = [];
+        currentStatementCount = 0;
+      }
+      currentChunk.push(event);
+      currentStatementCount += statementCountForEvent;
+    }
+
+    if (currentChunk.length > 0) {
+      eventChunks.push(currentChunk);
+    }
+
+    const persistedEventIds = [];
+    try {
+      for (const eventChunk of eventChunks) {
+        const statements = this.domainOutboxRepo.buildInsertStatements(
+          eventChunk,
+          (event) => getDomainEventDefinition(event.event_type).consumers
+        );
+        await this.db.batch(statements);
+        persistedEventIds.push(...eventChunk.map((event) => event.id));
+      }
+    } catch (error) {
+      if (persistedEventIds.length > 0) {
+        const rollbackStatements = persistedEventIds.map((eventId) =>
+          this.db.prepare('DELETE FROM domain_outbox WHERE id = ?').bind(eventId)
+        );
+        try {
+          await executeBatchChunks(this.db, rollbackStatements);
+        } catch (rollbackError) {
+          console.error('Domain outbox rollback failed:', rollbackError);
+        }
+      }
+      throw error;
+    }
+
     return normalizedEvents;
   }
 }
