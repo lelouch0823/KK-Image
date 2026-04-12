@@ -22,8 +22,14 @@ import {
 const app = new Hono();
 const PRODUCT_ARCHIVE_COMMAND_TYPE = 'product_archive';
 const PRODUCT_DIMENSION_CREATE_COMMAND_TYPE = 'product_dimension_create';
+const PRODUCT_DIMENSION_ARCHIVE_COMMAND_TYPE = 'product_dimension_archive';
 const PRODUCT_DIMENSION_VALUE_CREATE_COMMAND_TYPE = 'product_dimension_value_create';
+const PRODUCT_DIMENSION_VALUE_ARCHIVE_COMMAND_TYPE = 'product_dimension_value_archive';
+const PRODUCT_DIMENSION_VALUE_RESTORE_COMMAND_TYPE = 'product_dimension_value_restore';
 const PRODUCT_VARIANT_IMAGE_CREATE_COMMAND_TYPE = 'product_variant_image_create';
+const PRODUCT_VARIANT_IMAGE_SORT_COMMAND_TYPE = 'product_variant_image_sort';
+const PRODUCT_VARIANT_IMAGE_PRIMARY_COMMAND_TYPE = 'product_variant_image_primary';
+const PRODUCT_VARIANT_IMAGE_DELETE_COMMAND_TYPE = 'product_variant_image_delete';
 export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'POST', path: '/:id/dimensions', domain: 'products', action: 'product.dimension.create', severity: 'high', targetType: 'product' },
     { method: 'PATCH', path: '/:id/dimensions/:dimensionId', domain: 'products', action: 'product.dimension.update', severity: 'high', targetType: 'product' },
@@ -247,6 +253,91 @@ async function reserveProductWriteCommand(c, {
     };
 }
 
+async function runIdempotentProductWrite(c, {
+    commandType,
+    requestFingerprint,
+    mismatchMessage,
+    inFlightMessage,
+    eventType,
+    productId,
+    successStatus = 200,
+    execute,
+    onSuccess = null,
+    mapDomainError = null,
+}) {
+    const {
+        replay,
+        resume,
+        reservation,
+        commandIdempotencyRepo,
+    } = await reserveProductWriteCommand(c, {
+        commandType,
+        requestFingerprint,
+        mismatchMessage,
+        inFlightMessage,
+    });
+
+    if (replay) {
+        return c.json(replay, successStatus);
+    }
+
+    const ownsReservation = resolveReservationOwnership(reservation);
+    let responseBody = null;
+
+    try {
+        if (resume) {
+            await publishProductCacheEvent(c, eventType, productId, {
+                commandId: reservation.record?.command_id,
+                correlationId: reservation.record?.command_id,
+            });
+            await commandIdempotencyRepo
+                .buildFinalizeStatement(reservation.record?.command_id, resume)
+                .run();
+            return c.json(resume, successStatus);
+        }
+
+        responseBody = await execute();
+        await publishProductCacheEvent(c, eventType, productId, {
+            commandId: reservation.record?.command_id,
+            correlationId: reservation.record?.command_id,
+        });
+        await commandIdempotencyRepo
+            .buildFinalizeStatement(reservation.record?.command_id, responseBody)
+            .run();
+
+        if (typeof onSuccess === 'function') {
+            onSuccess(responseBody);
+        }
+
+        return c.json(responseBody, successStatus);
+    } catch (error) {
+        if (responseBody) {
+            try {
+                await commandIdempotencyRepo
+                    .buildFinalizeStatement(reservation.record?.command_id, responseBody, 'failed')
+                    .run();
+            } catch (finalizeError) {
+                console.error(`${commandType} idempotency finalize failed:`, finalizeError);
+            }
+            throw error;
+        }
+
+        if (!resume) {
+            await cleanupReservedCommand({
+                commandIdempotencyRepo,
+                db: c.env.DB,
+                ownsReservation,
+                commandId: reservation.record?.command_id,
+            });
+        }
+
+        if (typeof mapDomainError === 'function') {
+            mapDomainError(error);
+        }
+        throw error;
+    }
+}
+
 /**
  * GET /:id - 获取商品详情
  */
@@ -408,34 +499,47 @@ app.patch('/:id/dimensions/:dimensionId/archive', async (c) => {
     const dimensionId = c.req.param('dimensionId');
     const body = await c.req.json().catch(() => ({}));
     const mode = String(body?.mode || 'archive_variants').trim();
-
+    const requestFingerprint = buildProductMutationRequestFingerprint({ productId, dimensionId, mode });
     const productRepo = new ProductRepository(env.DB);
-    await ensureProductExists(productRepo, productId);
-
     const dimensionRepo = new ProductDimensionRepository(env.DB);
-    try {
-        let effect = null;
-        if (mode === 'merge_keep') {
-            effect = await dimensionRepo.mergeKeepByDimensionRemoval(productId, dimensionId);
-        } else {
-            effect = { archivedVariants: await dimensionRepo.archiveVariantsByDimension(productId, dimensionId) };
-        }
-        const archivedDimension = await dimensionRepo.archiveDimension(productId, dimensionId);
-        await scheduleProductCacheInvalidation(c, { eventType: 'product_dimension_archived', productIds: [productId] });
-        scheduleAuditEvent(c, {
-            domain: 'products',
-            action: 'product.dimension.archive',
-            result: 'success',
-            severity: 'high',
-            targetType: 'product',
-            targetId: productId,
-            target_label: productId,
-            summary: `Archived dimension ${dimensionId} on product ${productId}`,
-        });
-        return c.json({ success: true, data: { dimension: archivedDimension, effect } });
-    } catch (error) {
-        throw new BadRequestError(error.message || 'Archive dimension failed');
-    }
+
+    return runIdempotentProductWrite(c, {
+        commandType: PRODUCT_DIMENSION_ARCHIVE_COMMAND_TYPE,
+        requestFingerprint,
+        mismatchMessage: '同一个幂等键不能提交不同的商品规格维度归档请求',
+        inFlightMessage: '当前幂等键对应的商品规格维度归档命令仍在处理中',
+        eventType: 'product_dimension_archived',
+        productId,
+        execute: async () => {
+            await ensureProductExists(productRepo, productId);
+            let effect = null;
+            if (mode === 'merge_keep') {
+                effect = await dimensionRepo.mergeKeepByDimensionRemoval(productId, dimensionId);
+            } else {
+                effect = { archivedVariants: await dimensionRepo.archiveVariantsByDimension(productId, dimensionId) };
+            }
+            const archivedDimension = await dimensionRepo.archiveDimension(productId, dimensionId);
+            return { success: true, data: { dimension: archivedDimension, effect } };
+        },
+        onSuccess: () => {
+            scheduleAuditEvent(c, {
+                domain: 'products',
+                action: 'product.dimension.archive',
+                result: 'success',
+                severity: 'high',
+                targetType: 'product',
+                targetId: productId,
+                target_label: productId,
+                summary: `Archived dimension ${dimensionId} on product ${productId}`,
+            });
+        },
+        mapDomainError: (error) => {
+            if (error instanceof NotFoundError || error instanceof BadRequestError) {
+                throw error;
+            }
+            throw new BadRequestError(error.message || 'Archive dimension failed');
+        },
+    });
 });
 
 app.post('/:id/dimensions/:dimensionId/values', async (c) => {
@@ -528,55 +632,83 @@ app.patch('/:id/values/:valueId/archive', async (c) => {
     const { env } = c;
     const productId = c.req.param('id');
     const valueId = c.req.param('valueId');
+    const requestFingerprint = buildProductMutationRequestFingerprint({ productId, valueId });
     const productRepo = new ProductRepository(env.DB);
-    await ensureProductExists(productRepo, productId);
-
     const dimensionRepo = new ProductDimensionRepository(env.DB);
-    try {
-        const effect = await dimensionRepo.archiveVariantsByValue(productId, valueId);
-        const value = await dimensionRepo.archiveValue(productId, valueId);
-        await scheduleProductCacheInvalidation(c, { eventType: 'product_dimension_value_archived', productIds: [productId] });
-        scheduleAuditEvent(c, {
-            domain: 'products',
-            action: 'product.dimension_value.archive',
-            result: 'success',
-            severity: 'high',
-            targetType: 'product',
-            targetId: productId,
-            target_label: productId,
-            summary: `Archived dimension value ${valueId} on product ${productId}`,
-        });
-        return c.json({ success: true, data: { value, effect } });
-    } catch (error) {
-        throw new BadRequestError(error.message || 'Archive value failed');
-    }
+
+    return runIdempotentProductWrite(c, {
+        commandType: PRODUCT_DIMENSION_VALUE_ARCHIVE_COMMAND_TYPE,
+        requestFingerprint,
+        mismatchMessage: '同一个幂等键不能提交不同的商品规格值归档请求',
+        inFlightMessage: '当前幂等键对应的商品规格值归档命令仍在处理中',
+        eventType: 'product_dimension_value_archived',
+        productId,
+        execute: async () => {
+            await ensureProductExists(productRepo, productId);
+            const effect = await dimensionRepo.archiveVariantsByValue(productId, valueId);
+            const value = await dimensionRepo.archiveValue(productId, valueId);
+            return { success: true, data: { value, effect } };
+        },
+        onSuccess: () => {
+            scheduleAuditEvent(c, {
+                domain: 'products',
+                action: 'product.dimension_value.archive',
+                result: 'success',
+                severity: 'high',
+                targetType: 'product',
+                targetId: productId,
+                target_label: productId,
+                summary: `Archived dimension value ${valueId} on product ${productId}`,
+            });
+        },
+        mapDomainError: (error) => {
+            if (error instanceof NotFoundError || error instanceof BadRequestError) {
+                throw error;
+            }
+            throw new BadRequestError(error.message || 'Archive value failed');
+        },
+    });
 });
 
 app.patch('/:id/values/:valueId/restore', async (c) => {
     const { env } = c;
     const productId = c.req.param('id');
     const valueId = c.req.param('valueId');
+    const requestFingerprint = buildProductMutationRequestFingerprint({ productId, valueId });
     const productRepo = new ProductRepository(env.DB);
-    await ensureProductExists(productRepo, productId);
-
     const dimensionRepo = new ProductDimensionRepository(env.DB);
-    try {
-        const value = await dimensionRepo.restoreValue(productId, valueId);
-        await scheduleProductCacheInvalidation(c, { eventType: 'product_dimension_value_restored', productIds: [productId] });
-        scheduleAuditEvent(c, {
-            domain: 'products',
-            action: 'product.dimension_value.restore',
-            result: 'success',
-            severity: 'high',
-            targetType: 'product',
-            targetId: productId,
-            target_label: productId,
-            summary: `Restored dimension value ${valueId} on product ${productId}`,
-        });
-        return c.json({ success: true, data: value });
-    } catch (error) {
-        throw new BadRequestError(error.message || 'Restore value failed');
-    }
+
+    return runIdempotentProductWrite(c, {
+        commandType: PRODUCT_DIMENSION_VALUE_RESTORE_COMMAND_TYPE,
+        requestFingerprint,
+        mismatchMessage: '同一个幂等键不能提交不同的商品规格值恢复请求',
+        inFlightMessage: '当前幂等键对应的商品规格值恢复命令仍在处理中',
+        eventType: 'product_dimension_value_restored',
+        productId,
+        execute: async () => {
+            await ensureProductExists(productRepo, productId);
+            const value = await dimensionRepo.restoreValue(productId, valueId);
+            return { success: true, data: value };
+        },
+        onSuccess: () => {
+            scheduleAuditEvent(c, {
+                domain: 'products',
+                action: 'product.dimension_value.restore',
+                result: 'success',
+                severity: 'high',
+                targetType: 'product',
+                targetId: productId,
+                target_label: productId,
+                summary: `Restored dimension value ${valueId} on product ${productId}`,
+            });
+        },
+        mapDomainError: (error) => {
+            if (error instanceof NotFoundError || error instanceof BadRequestError) {
+                throw error;
+            }
+            throw new BadRequestError(error.message || 'Restore value failed');
+        },
+    });
 });
 
 app.post('/:id/dimensions/impact', async (c) => {
@@ -698,31 +830,42 @@ app.patch('/:id/variants/:variantId/images/sort', async (c) => {
         throw new BadRequestError('imageIds must be a non-empty array');
     }
 
+    const requestFingerprint = buildProductMutationRequestFingerprint({ productId, variantId, imageIds: body.imageIds });
     const productRepo = new ProductRepository(env.DB);
-    await ensureProductExists(productRepo, productId);
-
     const variantImageRepo = new VariantImageRepository(env.DB);
-    try {
-        await variantImageRepo.sortImages({
-            productId,
-            variantId,
-            imageIds: body.imageIds,
-        });
-        await scheduleProductCacheInvalidation(c, { eventType: 'product_variant_image_sorted', productIds: [productId] });
-        scheduleAuditEvent(c, {
-            domain: 'products',
-            action: 'product.variant_image.sort',
-            result: 'success',
-            severity: 'high',
-            targetType: 'product',
-            targetId: productId,
-            target_label: productId,
-            summary: `Sorted variant images on product ${productId}`,
-        });
-        return c.json({ success: true });
-    } catch (error) {
-        rethrowVariantImageMutationError(error);
-    }
+
+    return runIdempotentProductWrite(c, {
+        commandType: PRODUCT_VARIANT_IMAGE_SORT_COMMAND_TYPE,
+        requestFingerprint,
+        mismatchMessage: '同一个幂等键不能提交不同的商品变体图片排序请求',
+        inFlightMessage: '当前幂等键对应的商品变体图片排序命令仍在处理中',
+        eventType: 'product_variant_image_sorted',
+        productId,
+        execute: async () => {
+            await ensureProductExists(productRepo, productId);
+            await variantImageRepo.sortImages({
+                productId,
+                variantId,
+                imageIds: body.imageIds,
+            });
+            return { success: true };
+        },
+        onSuccess: () => {
+            scheduleAuditEvent(c, {
+                domain: 'products',
+                action: 'product.variant_image.sort',
+                result: 'success',
+                severity: 'high',
+                targetType: 'product',
+                targetId: productId,
+                target_label: productId,
+                summary: `Sorted variant images on product ${productId}`,
+            });
+        },
+        mapDomainError: (error) => {
+            rethrowVariantImageMutationError(error);
+        },
+    });
 });
 
 app.patch('/:id/variants/:variantId/images/:imageId/primary', async (c) => {
@@ -730,32 +873,42 @@ app.patch('/:id/variants/:variantId/images/:imageId/primary', async (c) => {
     const productId = c.req.param('id');
     const variantId = c.req.param('variantId');
     const imageId = c.req.param('imageId');
-
+    const requestFingerprint = buildProductMutationRequestFingerprint({ productId, variantId, imageId });
     const productRepo = new ProductRepository(env.DB);
-    await ensureProductExists(productRepo, productId);
-
     const variantImageRepo = new VariantImageRepository(env.DB);
-    try {
-        await variantImageRepo.setPrimary({
-            productId,
-            variantId,
-            imageId,
-        });
-        await scheduleProductCacheInvalidation(c, { eventType: 'product_variant_image_primary_changed', productIds: [productId] });
-        scheduleAuditEvent(c, {
-            domain: 'products',
-            action: 'product.variant_image.primary',
-            result: 'success',
-            severity: 'high',
-            targetType: 'product',
-            targetId: productId,
-            target_label: productId,
-            summary: `Changed primary variant image on product ${productId}`,
-        });
-        return c.json({ success: true });
-    } catch (error) {
-        rethrowVariantImageMutationError(error);
-    }
+
+    return runIdempotentProductWrite(c, {
+        commandType: PRODUCT_VARIANT_IMAGE_PRIMARY_COMMAND_TYPE,
+        requestFingerprint,
+        mismatchMessage: '同一个幂等键不能提交不同的商品变体主图设置请求',
+        inFlightMessage: '当前幂等键对应的商品变体主图设置命令仍在处理中',
+        eventType: 'product_variant_image_primary_changed',
+        productId,
+        execute: async () => {
+            await ensureProductExists(productRepo, productId);
+            await variantImageRepo.setPrimary({
+                productId,
+                variantId,
+                imageId,
+            });
+            return { success: true };
+        },
+        onSuccess: () => {
+            scheduleAuditEvent(c, {
+                domain: 'products',
+                action: 'product.variant_image.primary',
+                result: 'success',
+                severity: 'high',
+                targetType: 'product',
+                targetId: productId,
+                target_label: productId,
+                summary: `Changed primary variant image on product ${productId}`,
+            });
+        },
+        mapDomainError: (error) => {
+            rethrowVariantImageMutationError(error);
+        },
+    });
 });
 
 app.delete('/:id/variants/:variantId/images/:imageId', async (c) => {
@@ -763,35 +916,48 @@ app.delete('/:id/variants/:variantId/images/:imageId', async (c) => {
     const productId = c.req.param('id');
     const variantId = c.req.param('variantId');
     const imageId = c.req.param('imageId');
-
+    const requestFingerprint = buildProductMutationRequestFingerprint({ productId, variantId, imageId });
     const productRepo = new ProductRepository(env.DB);
-    await ensureProductExists(productRepo, productId);
-
     const variantImageRepo = new VariantImageRepository(env.DB);
-    try {
-        const removed = await variantImageRepo.deleteImage({
-            productId,
-            variantId,
-            imageId,
-        });
-        if (!removed) {
-            throw new NotFoundError('Variant image not found');
-        }
-        await scheduleProductCacheInvalidation(c, { eventType: 'product_variant_image_deleted', productIds: [productId] });
-        scheduleAuditEvent(c, {
-            domain: 'products',
-            action: 'product.variant_image.delete',
-            result: 'success',
-            severity: 'high',
-            targetType: 'product',
-            targetId: productId,
-            target_label: productId,
-            summary: `Deleted variant image on product ${productId}`,
-        });
-        return c.json({ success: true });
-    } catch (error) {
-        rethrowVariantImageMutationError(error);
-    }
+
+    return runIdempotentProductWrite(c, {
+        commandType: PRODUCT_VARIANT_IMAGE_DELETE_COMMAND_TYPE,
+        requestFingerprint,
+        mismatchMessage: '同一个幂等键不能提交不同的商品变体图片删除请求',
+        inFlightMessage: '当前幂等键对应的商品变体图片删除命令仍在处理中',
+        eventType: 'product_variant_image_deleted',
+        productId,
+        execute: async () => {
+            await ensureProductExists(productRepo, productId);
+            const removed = await variantImageRepo.deleteImage({
+                productId,
+                variantId,
+                imageId,
+            });
+            if (!removed) {
+                throw new NotFoundError('Variant image not found');
+            }
+            return { success: true };
+        },
+        onSuccess: () => {
+            scheduleAuditEvent(c, {
+                domain: 'products',
+                action: 'product.variant_image.delete',
+                result: 'success',
+                severity: 'high',
+                targetType: 'product',
+                targetId: productId,
+                target_label: productId,
+                summary: `Deleted variant image on product ${productId}`,
+            });
+        },
+        mapDomainError: (error) => {
+            if (error instanceof NotFoundError) {
+                throw error;
+            }
+            rethrowVariantImageMutationError(error);
+        },
+    });
 });
 
 /**
