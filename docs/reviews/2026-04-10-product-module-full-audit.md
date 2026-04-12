@@ -3237,3 +3237,16 @@
   - `functions/repositories/__tests__/variant-images.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js`
 - 对应修复提交: `f350857a fix: preserve variant image primary after deletes`
+
+### 2026-04-12 轮次 286
+
+- 继续深审商品变体图片新增链路，新增 1 个中高风险问题:
+  - [functions/repositories/VariantImageRepository.js](/home/bjw/Code/KK-Image/functions/repositories/VariantImageRepository.js) 修复前 `addImage()` 在首张图片场景下也完全依赖调用方显式传 `isPrimary`。而管理端 `POST /api/manage/products/:id/variants/:variantId/images` 默认会把缺省 `isPrimary` 解析成 `false`。结果就是给一个原本没有任何图片的变体新增第一张图时，仓储会把它写成“唯一图片但不是主图”，继续留下“有图无主图”的脏状态。
+- 已完成本轮修复:
+  - `addImage()` 现在会自动识别“当前是首张图片”的场景；即使调用方没显式传 `isPrimary`，首张图也会自动提升为主图。
+  - 如果调用方本来就显式要求主图，行为保持不变；如果已经存在旧图，也仍沿用既有主图切换逻辑。
+  - 已补齐仓储级回归测试，并回跑图片路由测试，锁定“首张图自动成为主图”的行为。
+- 增量回归:
+  - `functions/repositories/__tests__/variant-images.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js`
+- 对应修复提交: `153b49b5 fix: promote first variant image to primary`
