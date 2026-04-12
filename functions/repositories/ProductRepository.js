@@ -33,12 +33,12 @@ export class ProductRepository {
             WITH variant_agg AS (
                 SELECT
                     pv.product_id,
-                    MIN(price) AS min_price,
-                    MIN(COALESCE(cost_price, 0)) AS min_cost_price,
-                    SUM(COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS total_stock_quantity,
-                    SUM(COALESCE(ib.available, pv.stock_quantity, 0)) AS total_available_quantity,
-                    MIN(COALESCE(alert_threshold, 10)) AS min_alert_threshold,
-                    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active_variant_count
+                    MIN(CASE WHEN pv.status = 'active' THEN price END) AS min_price,
+                    MIN(CASE WHEN pv.status = 'active' THEN COALESCE(cost_price, 0) END) AS min_cost_price,
+                    SUM(CASE WHEN pv.status = 'active' THEN COALESCE(ib.on_hand, pv.stock_quantity, 0) ELSE 0 END) AS total_stock_quantity,
+                    SUM(CASE WHEN pv.status = 'active' THEN COALESCE(ib.available, pv.stock_quantity, 0) ELSE 0 END) AS total_available_quantity,
+                    MIN(CASE WHEN pv.status = 'active' THEN COALESCE(alert_threshold, 10) END) AS min_alert_threshold,
+                    SUM(CASE WHEN pv.status = 'active' THEN 1 ELSE 0 END) AS active_variant_count
                 FROM product_variants pv
                 LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
                 GROUP BY pv.product_id

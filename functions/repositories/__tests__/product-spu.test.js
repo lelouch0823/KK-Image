@@ -192,6 +192,34 @@ describe('ProductRepository — SPU 重构', () => {
             expect(searchSql[0]).not.toContain('sku LIKE');
         });
 
+        it('商品聚合应只统计 active 规格的价格与库存', async () => {
+            db.prepare.mockImplementation((sql) => {
+                const stmt = createPreparedStatement(sql);
+                if (sql.includes('COUNT(*)')) {
+                    stmt.first.mockResolvedValue({ total: 0 });
+                    return stmt;
+                }
+                if (sql.includes('SELECT DISTINCT p.brand AS brand') || sql.includes('SELECT DISTINCT p.category AS category')) {
+                    stmt.all.mockResolvedValue({ results: [] });
+                    return stmt;
+                }
+                if (sql.includes('FROM products p')) {
+                    stmt.all.mockResolvedValue({ results: [] });
+                    return stmt;
+                }
+                return stmt;
+            });
+
+            await repo.search({ hasStock: 'in_stock', status: 'active' });
+
+            const listSql = db.prepare.mock.calls.find((call) => call[0].includes('ORDER BY'))?.[0] || '';
+            expect(listSql).toContain("MIN(CASE WHEN pv.status = 'active' THEN price END) AS min_price");
+            expect(listSql).toContain("MIN(CASE WHEN pv.status = 'active' THEN COALESCE(cost_price, 0) END) AS min_cost_price");
+            expect(listSql).toContain("SUM(CASE WHEN pv.status = 'active' THEN COALESCE(ib.on_hand, pv.stock_quantity, 0) ELSE 0 END) AS total_stock_quantity");
+            expect(listSql).toContain("SUM(CASE WHEN pv.status = 'active' THEN COALESCE(ib.available, pv.stock_quantity, 0) ELSE 0 END) AS total_available_quantity");
+            expect(listSql).toContain("MIN(CASE WHEN pv.status = 'active' THEN COALESCE(alert_threshold, 10) END) AS min_alert_threshold");
+        });
+
         it('应支持组合品牌、分类、有库存和排序查询', async () => {
             db.prepare.mockImplementation((sql) => {
                 const stmt = createPreparedStatement(sql);
