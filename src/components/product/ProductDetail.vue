@@ -39,7 +39,7 @@
           </div>
           <div class="rounded-xl border border-(--border-color) bg-(--bg-card) px-3 py-2">
             <p class="text-[11px] text-(--text-secondary)">{{ t('product.form.variants_title', 'Variants') }}</p>
-            <p class="mt-1 text-lg font-semibold text-(--text-main)">{{ variantCount }}</p>
+            <p class="mt-1 text-lg font-semibold text-(--text-main)">{{ activeVariantCount }}</p>
           </div>
           <div class="rounded-xl border border-(--border-color) bg-(--bg-card) px-3 py-2">
             <p class="text-[11px] text-(--text-secondary)">{{ t('product.form.inventory', 'Inventory') }}</p>
@@ -157,12 +157,12 @@
         </div>
 
         <!-- Variants or Specs -->
-        <div v-if="product.variants && product.variants.length > 0" class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-sm">
+        <div v-if="activeVariants.length > 0" class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-sm">
              <h3 class="mb-4 text-sm font-bold tracking-wider text-(--text-main) uppercase opacity-80">{{ t('product.form.variants_title', 'Variants') }}</h3>
              <div class="hidden overflow-hidden md:block">
                  <AppTable
                      :columns="variantColumns"
-                     :data="product.variants"
+                     :data="activeVariants"
                      no-border
                  >
                      <template #cell-variant="{ row: variant }">
@@ -180,7 +180,7 @@
                  </AppTable>
              </div>
              <div class="space-y-2 md:hidden">
-                <div v-for="variant in product.variants" :key="variant.id" class="rounded-lg border border-(--border-color) bg-(--bg-muted)/30 p-3">
+                <div v-for="variant in activeVariants" :key="variant.id" class="rounded-lg border border-(--border-color) bg-(--bg-muted)/30 p-3">
                   <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                       <p class="truncate text-sm font-medium text-(--text-main)">{{ formatVariantName(variant.options_values) }}</p>
@@ -280,8 +280,14 @@ const variantColumns = computed(() => [
     { key: 'stock', label: 'Stock' },
 ]);
 
+const isActiveVariant = (variant) => String(variant?.status || 'active').trim().toLowerCase() === 'active';
+
+const activeVariants = computed(() =>
+    Array.isArray(props.product.variants) ? props.product.variants.filter((variant) => isActiveVariant(variant)) : []
+);
+
 const images = computed(() => {
-    const variantImages = (props.product.variants || [])
+    const variantImages = activeVariants.value
         .map((variant) => resolveVariantPrimaryImageSrc(variant))
         .filter(Boolean);
     const productImages = resolveProductImageSrcList(props.product);
@@ -341,8 +347,8 @@ const resolveAlertThreshold = (value, fallback = 10) => {
 const stockColorClass = computed(() => {
     // If variants exist, aggregate stock
     let q = Number(props.product.available_quantity ?? props.product.available ?? props.product.stock_quantity ?? 0);
-    if (props.product.variants && props.product.variants.length > 0) {
-        q = props.product.variants.reduce((sum, v) => sum + resolveVariantStock(v), 0);
+    if (activeVariants.value.length > 0) {
+        q = activeVariants.value.reduce((sum, v) => sum + resolveVariantStock(v), 0);
     }
     const t_val = resolveAlertThreshold(props.product.alert_threshold);
     if (q <= t_val) return 'text-danger font-bold';
@@ -351,12 +357,12 @@ const stockColorClass = computed(() => {
 
 const totalStock = computed(() => {
     let q = Number(props.product.available_quantity ?? props.product.available ?? props.product.stock_quantity ?? 0);
-    if (props.product.variants && props.product.variants.length > 0) {
-        q = props.product.variants.reduce((sum, v) => sum + resolveVariantStock(v), 0);
+    if (activeVariants.value.length > 0) {
+        q = activeVariants.value.reduce((sum, v) => sum + resolveVariantStock(v), 0);
     }
     return q;
 });
-const variantCount = computed(() => Array.isArray(props.product.variants) ? props.product.variants.length : 0);
+const activeVariantCount = computed(() => activeVariants.value.length);
 const inventoryScale = computed(() => {
     const alert = Math.max(1, resolveAlertThreshold(props.product.alert_threshold));
     return Math.max(50, alert * 5, Number(totalStock.value || 0));

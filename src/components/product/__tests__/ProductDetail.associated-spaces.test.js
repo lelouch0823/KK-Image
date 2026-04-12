@@ -87,6 +87,43 @@ describe('ProductDetail associated spaces', () => {
     expect(wrapper.text()).not.toContain('Space One');
   });
 
+  it('hides archived variants from the catalog detail presentation', async () => {
+    mocks.loadProductSpaces.mockReset();
+    mocks.loadProductSpaces.mockResolvedValueOnce([]);
+
+    const wrapper = mount(ProductDetail, {
+      props: {
+        product: {
+          id: 'prod-1',
+          name: 'Chair',
+          price: 100,
+          currency: 'CNY',
+          variants: [
+            { id: 'v-active', sku: 'SKU-ACTIVE', status: 'active', available_quantity: 5, price: 100, options_values: { Color: 'Black' } },
+            { id: 'v-archived', sku: 'SKU-ARCHIVED', status: 'archived', available_quantity: 7, price: 80, options_values: { Color: 'Grey' } },
+          ],
+        },
+      },
+      global: {
+        stubs: {
+          AppImage: { template: '<img />' },
+          StatusBadge: { template: '<span><slot /></span>' },
+          AppTable: {
+            props: ['data'],
+            template: '<div>{{ data.map((item) => item.sku).join(",") }}</div>',
+          },
+          AppIcon: { template: '<i />' },
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('SKU-ACTIVE');
+    expect(wrapper.text()).not.toContain('SKU-ARCHIVED');
+  });
+
   it('renders associated space metadata from camelCase fields', async () => {
     mocks.loadProductSpaces.mockReset();
     mocks.loadProductSpaces.mockResolvedValueOnce([
