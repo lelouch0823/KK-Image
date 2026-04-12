@@ -24,6 +24,13 @@ const mockDimensionRepo = {
   addValue: vi.fn(),
   restoreSnapshot: vi.fn(),
 };
+const mockCommandRepo = {
+  reserveCommand: vi.fn(),
+  buildDeleteStatement: vi.fn(),
+  deleteRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+  buildFinalizeStatement: vi.fn(),
+  finalizeRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+};
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
@@ -63,9 +70,21 @@ vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
   },
 }));
 
+vi.mock('../../../../../../repositories/CommandIdempotencyRepository.js', () => ({
+  CommandIdempotencyRepository: class {
+    reserveCommand(...args) { return mockCommandRepo.reserveCommand(...args); }
+    buildDeleteStatement(...args) { return mockCommandRepo.buildDeleteStatement(...args); }
+    buildFinalizeStatement(...args) { return mockCommandRepo.buildFinalizeStatement(...args); }
+  },
+}));
+
 vi.mock('../../../../middleware/cache.js', () => ({
   invalidateCache: vi.fn(),
   getProductCacheUrls: vi.fn(() => []),
+}));
+
+vi.mock('../cache-helpers.js', () => ({
+  scheduleProductCacheInvalidation: vi.fn(async () => []),
 }));
 
 function createApp() {
@@ -110,6 +129,13 @@ describe('product patch rollback boundaries', () => {
     mockDimensionRepo.restoreSnapshot.mockResolvedValue(undefined);
     mockVariantImageRepo.listByVariant.mockResolvedValue([]);
     mockVariantImageRepo.syncImages.mockResolvedValue(undefined);
+    mockCommandRepo.reserveCommand.mockResolvedValue({
+      existing: false,
+      ownsReservation: true,
+      record: { command_id: 'cmd-product-patch-boundary-1' },
+    });
+    mockCommandRepo.buildDeleteStatement.mockReturnValue({ run: mockCommandRepo.deleteRun });
+    mockCommandRepo.buildFinalizeStatement.mockReturnValue({ run: mockCommandRepo.finalizeRun });
     mockVariantRepo.findByProductId
       .mockResolvedValueOnce([
         {

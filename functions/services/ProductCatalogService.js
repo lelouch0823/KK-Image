@@ -616,7 +616,12 @@ export class ProductCatalogService {
         return product;
     }
 
-    async patchProduct(c, productId, body, { fullReplace = false } = {}) {
+    async patchProduct(c, productId, body, {
+        fullReplace = false,
+        skipCacheInvalidation = false,
+        cacheEventCommandId,
+        cacheEventCorrelationId,
+    } = {}) {
         const existingProductSnapshot = await this.ensureProductExists(productId);
 
         const incomingDimensions = Array.isArray(body.dimensions) ? body.dimensions : null;
@@ -753,10 +758,15 @@ export class ProductCatalogService {
         }
 
         if ((result.success && result.changes > 0) || variantsUpdated || dimensionsUpdated) {
-            await scheduleProductCacheInvalidation(c, {
-                eventType: fullReplace ? 'product_replaced' : 'product_updated',
-                productIds: [productId],
-            });
+            if (!skipCacheInvalidation) {
+                await scheduleProductCacheInvalidation(c, {
+                    eventType: fullReplace ? 'product_replaced' : 'product_updated',
+                    productIds: [productId],
+                }, {
+                    commandId: cacheEventCommandId,
+                    correlationId: cacheEventCorrelationId,
+                });
+            }
             return {
                 changes: result.changes,
                 variantSync: variantSync || undefined,
@@ -775,8 +785,8 @@ export class ProductCatalogService {
         throw new BadRequestError(result.error || 'Update failed');
     }
 
-    async putProduct(c, productId, body) {
-        return this.patchProduct(c, productId, body, { fullReplace: true });
+    async putProduct(c, productId, body, options = {}) {
+        return this.patchProduct(c, productId, body, { ...options, fullReplace: true });
     }
 
     async batchImport(c, body = {}, options = {}) {

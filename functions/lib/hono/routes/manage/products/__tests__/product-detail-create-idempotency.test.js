@@ -329,7 +329,10 @@ describe('manage product detail create routes idempotency', () => {
     expect(mocks.scheduleProductCacheInvalidation).toHaveBeenCalledTimes(2);
     expect(mocks.commandBuildFinalizeStatement).toHaveBeenCalledWith(
       'cmd-dimension-create-retry-1',
-      expect.objectContaining({ id: 'dim-1' }),
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({ id: 'dim-1' }),
+      }),
       'failed'
     );
   });
@@ -600,7 +603,10 @@ describe('manage product detail create routes idempotency', () => {
     expect(mocks.scheduleProductCacheInvalidation).toHaveBeenCalledTimes(2);
     expect(mocks.commandBuildFinalizeStatement).toHaveBeenCalledWith(
       'cmd-dimension-value-create-retry-1',
-      expect.objectContaining({ id: 'val-1' }),
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({ id: 'val-1' }),
+      }),
       'failed'
     );
   });
@@ -872,7 +878,10 @@ describe('manage product detail create routes idempotency', () => {
     expect(mocks.scheduleProductCacheInvalidation).toHaveBeenCalledTimes(2);
     expect(mocks.commandBuildFinalizeStatement).toHaveBeenCalledWith(
       'cmd-variant-image-create-retry-1',
-      expect.objectContaining({ id: 'img-link-1' }),
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({ id: 'img-link-1' }),
+      }),
       'failed'
     );
   });

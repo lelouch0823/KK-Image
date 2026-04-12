@@ -311,7 +311,10 @@ describe('manage product create route idempotency', () => {
     expect(mocks.scheduleProductCacheInvalidation).toHaveBeenCalledTimes(2);
     expect(mocks.commandBuildFinalizeStatement).toHaveBeenCalledWith(
       'cmd-product-retry-1',
-      expect.objectContaining({ id: 'prod-1' }),
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({ id: 'prod-1' }),
+      }),
       'failed'
     );
   });
