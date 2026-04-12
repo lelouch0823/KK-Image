@@ -3164,3 +3164,19 @@
   - `functions/ai/__tests__/action-service.test.js`
   - `functions/ai/__tests__/action-service.purchase-order-publish.test.js`
 - 对应修复提交: `45389157 fix: persist ai order and product side effects`
+
+### 2026-04-12 轮次 281
+
+- 继续深审商品批量导入主链路，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/products/batch.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/batch.js) 与 [functions/services/ProductCatalogService.js](/home/bjw/Code/KK-Image/functions/services/ProductCatalogService.js) 修复前没有任何 `Idempotency-Key` / failed-resume 闭环，而 `batchImport()` 只有在整批商品处理完后才发布 `product_batch_imported` cache outbox。这样一来，只要网络超时重试、前端重复提交，或者第一次其实已经把整批商品导入成功但 cache 事件 / finalize 失败，后续重试就会整批重跑 `batchImport()`，重复更新商品、重复创建变体，并再次生成一批新的缓存事件。
+- 已完成本轮修复:
+  - 商品批量导入路由现在已接入命令幂等保留、请求指纹校验、成功响应重放与 `failed` 恢复；同一个幂等键重试不会重复跑整批导入，同 key 不同 payload 会被拒绝。
+  - `ProductCatalogService.batchImport()` 现在支持把“整批导入本体”和“发布 `product_batch_imported` cache outbox”拆开执行，并把本次实际影响的 `productIds` 返回给路由层；路由会使用稳定的 `commandId/correlationId` 发布 cache 事件，并在 outbox 唯一键冲突时把它视为“事件已持久化”，从而安全恢复 finalize 失败后的重试。
+  - 同步补齐商品路由旧测试壳的幂等仓储 / 权限中间件 mock，恢复 `POST /api/manage/products` 与 `POST /api/manage/products/batch` 的真实业务断言，避免新闭环引入后被测试基础设施误判成 500。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/products/__tests__/batch-routes.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-spu-routes.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-create-idempotency.test.js`
+  - `functions/services/__tests__/ProductCatalogService.import-mode.test.js`
+  - `functions/repositories/__tests__/product-import-merge.test.js`
+- 对应修复提交: `9f6b4695 fix: harden product batch import retries`
