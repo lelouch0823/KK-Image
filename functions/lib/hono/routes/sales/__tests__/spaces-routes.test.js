@@ -117,4 +117,107 @@ describe('sales spaces routes', () => {
       })
     );
   });
+
+  it('excludes expired spaces from the sales spaces top-level list', async () => {
+    mocks.findAllForSalesperson.mockResolvedValue([
+      {
+        id: 'space-active-1',
+        name: '有效空间',
+        parent_id: null,
+        template: 'gallery',
+        template_data: '{}',
+        expires_at: null,
+      },
+      {
+        id: 'space-expired-1',
+        name: '过期空间',
+        parent_id: null,
+        template: 'gallery',
+        template_data: '{}',
+        expires_at: Date.now() - 1000,
+      },
+    ]);
+
+    const app = createApp();
+    const res = await app.request('http://localhost/api/sales/token-1/spaces', {}, {
+      DB: {},
+    });
+
+    expect(res.status).toBe(200);
+    const payload = await res.json();
+    expect(payload.data).toEqual([
+      expect.objectContaining({
+        id: 'space-active-1',
+        name: '有效空间',
+      }),
+    ]);
+  });
+
+  it('returns 404 when salesperson requests an expired space detail', async () => {
+    mocks.findByIdForSalesperson.mockResolvedValue({
+      id: 'space-expired-1',
+      name: '过期空间',
+      template: 'collection',
+      template_data: '{}',
+      files: [],
+      expires_at: Date.now() - 1000,
+    });
+
+    const app = createApp();
+    const res = await app.request('http://localhost/api/sales/token-1/spaces/space-expired-1', {}, {
+      DB: {},
+    });
+
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual(
+      expect.objectContaining({
+        success: false,
+      })
+    );
+  });
+
+  it('excludes expired subspaces from sales collection detail', async () => {
+    mocks.findByIdForSalesperson.mockResolvedValue({
+      id: 'space-parent-1',
+      name: '合集空间',
+      template: 'collection',
+      template_data: '{}',
+      files: [],
+      expires_at: null,
+    });
+    mocks.findSubspacesForSalesperson.mockResolvedValue([
+      {
+        id: 'sub-active-1',
+        name: '有效子空间',
+        template: 'gallery',
+        share_token: 'sub-share-1',
+        file_count: 3,
+        cover_storage_key: 'covers/sub-1.jpg',
+        expires_at: null,
+      },
+      {
+        id: 'sub-expired-1',
+        name: '过期子空间',
+        template: 'gallery',
+        share_token: 'sub-share-expired',
+        file_count: 1,
+        cover_storage_key: 'covers/sub-expired.jpg',
+        expires_at: Date.now() - 1000,
+      },
+    ]);
+
+    const app = createApp();
+    const res = await app.request('http://localhost/api/sales/token-1/spaces/space-parent-1', {}, {
+      DB: {},
+    });
+
+    expect(res.status).toBe(200);
+    const payload = await res.json();
+    expect(payload.data.subspaces).toEqual([
+      expect.objectContaining({
+        id: 'sub-active-1',
+        name: '有效子空间',
+      }),
+    ]);
+  });
 });
