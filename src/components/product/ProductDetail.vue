@@ -262,6 +262,7 @@ import { useToast } from '@/composables/useToast';
 import { useClipboard } from '@/composables/useClipboard';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { resolveProductImageSrcList, resolveVariantPrimaryImageSrc } from '@/utils/product-image.js';
+import { isCatalogActiveVariant } from '@/utils/product-variants.js';
 
 const props = defineProps({
     product: {
@@ -280,7 +281,7 @@ const variantColumns = computed(() => [
     { key: 'stock', label: 'Stock' },
 ]);
 
-const isActiveVariant = (variant) => String(variant?.status || 'active').trim().toLowerCase() === 'active';
+const isActiveVariant = (variant) => isCatalogActiveVariant(variant);
 
 const activeVariants = computed(() =>
     Array.isArray(props.product.variants) ? props.product.variants.filter((variant) => isActiveVariant(variant)) : []

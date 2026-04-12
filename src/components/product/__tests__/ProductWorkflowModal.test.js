@@ -111,6 +111,45 @@ describe('ProductWorkflowModal', () => {
     expect(wrapper.get('[data-testid="product-detail"]').text()).toContain('Hydrated Detail Product');
   });
 
+  it('does not auto-select archived variants during progressive detail hydration', async () => {
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'p-1',
+      name: 'Archived Only Product',
+      variants: [{ id: 'v-archived', sku: 'SKU-ARCHIVED', status: 'archived', image_id: 'img-archived' }],
+    });
+
+    const wrapper = mount(ProductWorkflowModal, {
+      props: {
+        show: true,
+        product: {
+          id: 'p-1',
+          name: 'Lite Product',
+        },
+      },
+      global: {
+        stubs: {
+          Modal: {
+            template: '<div><slot name="header" /><slot /></div>',
+            props: ['modelValue', 'title', 'size'],
+          },
+          ProductDetail: {
+            template: '<div data-testid="product-detail">{{ product?.selectedVariant?.id || "none" }}|{{ product?.mainImage || "none" }}</div>',
+            props: ['product'],
+          },
+          ProductCreateModal: {
+            template: '<div data-testid="product-form-panel">{{ initialData?.name }}</div>',
+            props: ['modelValue', 'editMode', 'initialData', 'embedded'],
+          },
+          AppIcon: { template: '<i />' },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="product-detail"]').text()).toBe('none|none');
+  });
+
   it('returns to detail with retryable error when edit hydration fails', async () => {
     mocks.loadProduct
       .mockRejectedValueOnce(new Error('detail down'))

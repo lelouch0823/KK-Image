@@ -232,6 +232,7 @@ import Modal from '@/components/ui/Modal.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import { useI18n } from '@/composables/useI18n';
 import { resolveBoundProductMainImageSrc } from '@/utils/product-image.js';
+import { findDefaultCatalogActiveVariant } from '@/utils/product-variants.js';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
 const { t } = useI18n();
@@ -369,7 +370,7 @@ const decorateProductPreview = (product) => {
     const preview = { ...product };
     const variants = Array.isArray(preview.variants) ? preview.variants : [];
     if (!preview.selectedVariant && variants.length > 0) {
-        preview.selectedVariant = variants.find((variant) => variant.status === 'active') || variants[0];
+        preview.selectedVariant = findDefaultCatalogActiveVariant(variants) || undefined;
     }
     preview.mainImage = resolveBoundProductMainImageSrc(preview) || preview.mainImage || null;
     return preview;
@@ -380,7 +381,7 @@ const hydrateProductWithVariants = async (product) => {
     const hydrated = full ? { ...full } : { ...product };
     const variants = Array.isArray(hydrated.variants) ? hydrated.variants : [];
     if (!hydrated.selectedVariant && variants.length > 0) {
-        hydrated.selectedVariant = variants.find((variant) => variant.status === 'active') || variants[0];
+        hydrated.selectedVariant = findDefaultCatalogActiveVariant(variants) || undefined;
     }
     hydrated.mainImage = resolveBoundProductMainImageSrc(hydrated) || hydrated.mainImage || null;
     return hydrated;

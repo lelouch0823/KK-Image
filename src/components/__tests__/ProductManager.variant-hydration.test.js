@@ -91,6 +91,21 @@ describe('ProductManager variant hydration', () => {
     expect(wrapper.vm.sharingProduct.selectedVariant.id).toBe('v-1');
   });
 
+  it('does not auto-select archived variants when share hydration only returns archived variants', async () => {
+    mocks.loadProduct.mockResolvedValue({
+      id: 'p-archived',
+      name: 'Archived Variant Product',
+      variants: [{ id: 'v-archived', sku: 'SKU-ARCHIVED', status: 'archived', image_id: 'img-archived' }],
+    });
+
+    const wrapper = createWrapper();
+    await wrapper.vm.handleShare({ id: 'p-archived', name: 'Lite Archived' });
+
+    expect(wrapper.vm.showShareModal).toBe(true);
+    expect(wrapper.vm.sharingProduct.selectedVariant).toBeUndefined();
+    expect(wrapper.vm.sharingProduct.mainImage).toBe(null);
+  });
+
   it('keeps share modal closed and surfaces errors when share hydration fails', async () => {
     mocks.loadProduct.mockRejectedValueOnce(new Error('share hydrate failed'));
 

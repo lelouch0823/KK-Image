@@ -170,6 +170,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useProducts } from '@/composables/useProducts';
 import { resolveBoundProductMainImageSrc } from '@/utils/product-image.js';
+import { findDefaultCatalogActiveVariant } from '@/utils/product-variants.js';
 import Modal from '@/components/ui/Modal.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
@@ -212,7 +213,7 @@ const normalizeProduct = (product) => {
   const normalized = { ...product };
   const variants = Array.isArray(normalized.variants) ? normalized.variants : [];
   if (!normalized.selectedVariant && variants.length > 0) {
-    normalized.selectedVariant = variants.find((variant) => variant.status === 'active') || variants[0];
+    normalized.selectedVariant = findDefaultCatalogActiveVariant(variants) || undefined;
   }
   normalized.mainImage =
     resolveBoundProductMainImageSrc(normalized) || normalized.mainImage || null;
