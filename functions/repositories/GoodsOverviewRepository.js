@@ -74,7 +74,7 @@ export class GoodsOverviewRepository {
     const { category, brand, shortageOnly, sort = 'shortage' } = filters;
 
     // 构建 WHERE 子句
-    let whereClause = `o.status IN (${this.STATUS_IN_CLAUSE}) AND ol.product_id IS NOT NULL AND ol.variant_id IS NOT NULL AND pv.status = 'active'`;
+    let whereClause = `o.status IN (${this.STATUS_IN_CLAUSE}) AND ol.product_id IS NOT NULL AND ol.variant_id IS NOT NULL`;
     const bindParams = [...this.ACTIVE_STATUSES]; // 用于 IN 子句
 
     if (category) {
@@ -175,7 +175,6 @@ export class GoodsOverviewRepository {
         WHERE o.status IN (${this.STATUS_IN_CLAUSE}) 
           AND ol.product_id IS NOT NULL 
           AND ol.variant_id IS NOT NULL
-          AND pv.status = 'active'
           AND ${REMAINING_DEMAND_EXPR} > 0
           AND p.category IS NOT NULL 
           AND p.category != ''
@@ -192,7 +191,6 @@ export class GoodsOverviewRepository {
         WHERE o.status IN (${this.STATUS_IN_CLAUSE}) 
           AND ol.product_id IS NOT NULL 
           AND ol.variant_id IS NOT NULL
-          AND pv.status = 'active'
           AND ${REMAINING_DEMAND_EXPR} > 0
         ORDER BY brand
     `;
@@ -236,7 +234,6 @@ export class GoodsOverviewRepository {
         LEFT JOIN product_variants pv ON pv.id = ol.variant_id
         WHERE o.status IN (${this.STATUS_IN_CLAUSE}) AND ol.product_id IS NOT NULL
           AND ol.variant_id IS NOT NULL
-          AND pv.status = 'active'
       `).bind(...this.ACTIVE_STATUSES).all(),
 
       this.db.prepare(`
@@ -249,7 +246,6 @@ export class GoodsOverviewRepository {
             LEFT JOIN inventory_balances ib ON ib.variant_id = ol.variant_id
             WHERE o.status IN (${this.STATUS_IN_CLAUSE}) AND ol.product_id IS NOT NULL
               AND ol.variant_id IS NOT NULL
-              AND pv.status = 'active'
             GROUP BY ol.variant_id
             HAVING shortage > 0
         )

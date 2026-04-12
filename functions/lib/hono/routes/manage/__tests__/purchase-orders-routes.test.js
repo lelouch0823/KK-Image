@@ -2031,6 +2031,38 @@ describe('manage purchase-orders routes', () => {
     expect(mocks.repoAddItems).toHaveBeenCalledWith('po-1', items);
   });
 
+  it('allows adding archived variants when they still match a confirmed preorder binding', async () => {
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-archived', product_id: 'prod-1', status: 'archived', moq: 1, pack_size: 1, order_step: 1 }],
+      orderRows: [{ id: 'o-1', order_no: 'SO-1', product_id: 'prod-1', variant_id: 'var-archived', status: 'confirmed', quantity: 2 }],
+    });
+
+    const payload = {
+      items: [{
+        product_id: 'prod-1',
+        variant_id: 'var-archived',
+        pre_order_id: 'o-1',
+        quantity: 2,
+        unit_cost: 10,
+      }],
+    };
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.repoAddItems).toHaveBeenCalledWith('po-1', payload.items);
+  });
+
   it('cleans up the created draft when create route item insertion fails', async () => {
     const app = createApp();
     const db = createDb({

@@ -57,7 +57,9 @@ export async function validatePurchaseOrderVariantItems(db, items = []) {
     if (variant.product_id !== item.product_id) {
       throw new BadRequestError('variant_id 与 product_id 不匹配');
     }
-    if (String(variant.status || '').toLowerCase() !== 'active') {
+    const variantIsActive = String(variant.status || '').toLowerCase() === 'active';
+    const allowArchivedLinkedDemand = Boolean(item.pre_order_id);
+    if (!variantIsActive && !allowArchivedLinkedDemand) {
       throw new BadRequestError('仅可采购 active 变体');
     }
     const result = validateOrderQuantity(item.quantity || 1, {

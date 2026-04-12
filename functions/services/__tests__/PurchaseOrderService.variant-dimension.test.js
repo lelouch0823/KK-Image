@@ -305,6 +305,42 @@ describe('PurchaseOrderService variant dimension', () => {
     });
   });
 
+  it('createFromOrders keeps confirmed archived-variant demand procurable', async () => {
+    const stmt = {
+      bind: vi.fn(() => stmt),
+      all: vi.fn(async () => ({
+        results: [{
+          id: 'o-archived',
+          order_no: 'SO-ARCHIVED',
+          product_id: 'prod-1',
+          variant_id: 'var-archived',
+          quantity: 2,
+          name: 'Archived Tee',
+          sku: 'TEE-ARCHIVED',
+          cost_price: 11,
+        }],
+      })),
+    };
+    const db = { prepare: vi.fn(() => stmt) };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      create: vi.fn(async () => ({ id: 'po-1' })),
+      addItems: vi.fn(async () => []),
+      findById: vi.fn(async () => ({ id: 'po-1', items: [] })),
+      findActiveBindingsByPreOrderIds: vi.fn(async () => []),
+    };
+
+    await service.createFromOrders(['o-archived']);
+
+    expect(db.prepare.mock.calls[0][0]).not.toContain("AND pv.status = 'active'");
+    expect(service.repo.addItems).toHaveBeenCalledWith('po-1', [
+      expect.objectContaining({
+        pre_order_id: 'o-archived',
+        variant_id: 'var-archived',
+      }),
+    ]);
+  });
+
   it('_updateInventory should reject items without variant_id', async () => {
     const db = {
       prepare: vi.fn(() => ({ bind: vi.fn() })),

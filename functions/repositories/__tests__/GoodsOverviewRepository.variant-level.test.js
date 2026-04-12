@@ -134,4 +134,48 @@ describe('GoodsOverviewRepository variant-level', () => {
       brands: ['KK'],
     });
   });
+  it('keeps archived-demand variants in the overview when confirmed order demand still exists', async () => {
+    const all = vi.fn(async () => ({
+      results: [{
+        id: 'variant-archived',
+        product_id: 'product-1',
+        product_code: 'P001',
+        variant_code: 'V001',
+        name: 'Archived Tee',
+        sku: 'TEE-ARCHIVED',
+        brand: 'KK',
+        category: 'tops',
+        stock_quantity: 1,
+        on_hand: 1,
+        reserved: 0,
+        available: 1,
+        alert_threshold: 5,
+        variant_options: '{"Color":"Red"}',
+        images: '[]',
+        confirmed_qty: 6,
+        production_qty: 0,
+        shipping_qty: 0,
+        arrived_qty: 0,
+        total_demand: 6,
+        order_count: 1,
+        shortage: 5,
+      }],
+    }));
+    const db = {
+      prepare: vi.fn(() => ({ bind: vi.fn(() => ({ all })) })),
+    };
+
+    const repo = new GoodsOverviewRepository(db);
+    const list = await repo.getList({ sort: 'shortage' });
+    const listSql = db.prepare.mock.calls[0][0];
+
+    expect(listSql).not.toContain("pv.status = 'active'");
+    expect(list[0]).toEqual(expect.objectContaining({
+      variantId: 'variant-archived',
+      totalDemand: 6,
+      availableQuantity: 1,
+      shortage: 5,
+    }));
+  });
+
 });

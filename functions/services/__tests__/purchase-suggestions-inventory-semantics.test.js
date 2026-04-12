@@ -111,4 +111,59 @@ describe('purchase suggestions inventory semantics', () => {
     expect(variantQueryBinds.length).toBeGreaterThan(1);
     expect(Math.max(...variantQueryBinds.map((args) => args.length))).toBeLessThanOrEqual(100);
   });
+  it('keeps shortage suggestions visible when the demanded variant has since been archived', async () => {
+    const stmt = {
+      bind: vi.fn(() => stmt),
+      all: vi.fn(async () => ({
+        results: [
+          {
+            variant_id: 'variant-archived',
+            product_id: 'product-1',
+            product_code: 'P001',
+            variant_code: 'V001',
+            product_name: 'Archived Tee',
+            sku: 'TEE-ARCHIVED',
+            brand: 'KK',
+            cost_price: 20,
+            suggested_purchase_price: 18,
+            on_hand: 1,
+            reserved: 0,
+            available: 1,
+            images: '[]',
+            variant_options: '{"Color":"Red"}',
+            variant_status: 'archived',
+          },
+        ],
+      })),
+    };
+    const db = {
+      prepare: vi.fn(() => stmt),
+    };
+    const service = new PurchaseOrderService(db);
+    service.repo.getLastPurchasePricesByVariant = vi.fn(async () => ({}));
+    service.demandService = {
+      getDemandSummaryByVariant: vi.fn(async () => [
+        {
+          variant_id: 'variant-archived',
+          total_demand: 6,
+          order_count: 1,
+          order_ids: ['o-archived'],
+        },
+      ]),
+    };
+
+    const suggestions = await service.getSuggestions();
+    const variantReadSql = db.prepare.mock.calls[0][0];
+
+    expect(variantReadSql).not.toContain("AND pv.status = 'active'");
+    expect(suggestions).toEqual([
+      expect.objectContaining({
+        variant_id: 'variant-archived',
+        total_demand: 6,
+        available_quantity: 1,
+        shortage: 5,
+      }),
+    ]);
+  });
+
 });

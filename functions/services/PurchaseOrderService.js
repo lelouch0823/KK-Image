@@ -397,7 +397,6 @@ export class PurchaseOrderService {
         JOIN products p ON pv.product_id = p.id
         LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
         WHERE pv.id IN (${placeholders})
-          AND pv.status = 'active'
       `).bind(...variantIdChunk).all();
       rows.push(...(results || []));
     }
@@ -496,7 +495,6 @@ export class PurchaseOrderService {
           AND o.status = 'confirmed'
           AND o.product_id IS NOT NULL
           AND o.variant_id IS NOT NULL
-          AND pv.status = 'active'
       `).bind(...orderIdChunk).all();
       orders.push(...(results || []));
     }
