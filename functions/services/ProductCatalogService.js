@@ -779,7 +779,12 @@ export class ProductCatalogService {
         return this.patchProduct(c, productId, body, { fullReplace: true });
     }
 
-    async batchImport(c, body = {}) {
+    async batchImport(c, body = {}, options = {}) {
+        const {
+            skipCacheInvalidation = false,
+            cacheEventCommandId,
+            cacheEventCorrelationId,
+        } = options;
         const items = body.items;
         const importMode = normalizeImportMode(body.import_mode);
 
@@ -941,12 +946,16 @@ export class ProductCatalogService {
             summary,
             errors,
             conflicts: conflicts.slice(0, 200),
+            productIds: [...updatedProductIds],
         };
 
-        if (success) {
+        if (success && !skipCacheInvalidation) {
             await scheduleProductCacheInvalidation(c, {
                 eventType: 'product_batch_imported',
                 productIds: [...updatedProductIds],
+            }, {
+                commandId: cacheEventCommandId,
+                correlationId: cacheEventCorrelationId,
             });
         }
 
