@@ -3451,3 +3451,16 @@
   - `src/components/__tests__/SpaceProductEditor.contract.test.js`
   - `src/views/__tests__/SpaceManager.permission-alignment.test.js`
   - `src/views/__tests__/SpaceManager.design-system-migration.test.js`
+
+### 2026-04-12 轮次 300
+
+- 继续深审商品详情的关联空间读取链路，新增 1 个高风险问题:
+  - [functions/repositories/SpaceRepository.js](/home/bjw/Code/KK-Image/functions/repositories/SpaceRepository.js) 修复前 `findByProductId()` 会把所有绑定到商品的空间都直接查出来，其中既包括已经过期的空间，也包括合集里的子空间；而 [functions/lib/hono/routes/manage/spaces/crud.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/crud.js) 的 `GET /api/manage/spaces/product/:productId` 又会把它原样返回给商品详情页的“关联分享链接”。结果就是商品详情会把已经失效的分享入口和子空间一起计入关联空间数量并继续暴露操作入口。更隐蔽的是，这条查询还没有补齐 `p_bound_id / pv_bound_id` 投影字段，在上一轮引入 `bindingState` 之后，它会把本来正常的商品绑定误判成 `missing_product`。
+- 已完成本轮修复:
+  - `findByProductId()` 现在只返回“未过期的顶级空间”，从仓储层直接过滤掉过期空间和子空间，避免商品详情继续把失效分享或合集子空间混进关联空间入口。
+  - 同时给这条查询补齐完整的商品/变体投影字段，确保 `transformSpaceListItem()` 在商品关联空间列表里也能正确输出 `bindingState` / `bindingUsesSnapshot`，不会再把正常绑定误标成失效绑定。
+  - 补齐仓储级和管理端路由级回归测试，锁定“商品关联空间列表只返回顶级有效空间，且绑定状态元数据正确”的行为。
+- 增量回归:
+  - `functions/repositories/__tests__/SpaceRepository.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
+  - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
