@@ -72,7 +72,7 @@ const salesOrderEntry = computed(() => salesOrderMode.value || 'legacy');
 
 const submitProgress = ref({ step: '', current: 0, total: 0 });
 
-const LOCKED_FIELDS = ['name', 'brand', 'series', 'sku'];
+const LOCKED_FIELDS = ['name', 'brand', 'series', 'sku', 'size', 'color', 'material'];
 const COLOR_LABELS = ['color', '颜色', '顏色'];
 const MATERIAL_LABELS = ['material', '材质', '材質'];
 

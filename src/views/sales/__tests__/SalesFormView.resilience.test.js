@@ -46,13 +46,29 @@ const mountView = () =>
             <div>
               <span data-testid="variant-policy">{{ variantSelectPolicy }}</span>
               <button data-testid="trigger-product-error" @click="$emit('product-fetch-error', 'fetch failed')">error</button>
+              <button
+                data-testid="bind-product"
+                @click="$emit('select', {
+                  id: 'p-1',
+                  name: 'Bound Product',
+                  brand: 'KK',
+                  series: 'Series A',
+                  dimension_map: { size: '尺码', color: '颜色', material: '材质' },
+                  selectedVariant: {
+                    id: 'v-1',
+                    sku: 'SKU-1',
+                    options_values: { size: 'M', color: '黑色', material: '皮革' },
+                  },
+                })"
+              >bind</button>
             </div>
           `,
         },
         OrderForm: {
-          props: ['submitError'],
+          props: ['submitError', 'disabledFields'],
           template: `
             <div>
+              <div data-testid="disabled-fields">{{ JSON.stringify(disabledFields) }}</div>
               <button data-testid="submit-order" @click="$emit('submit', { name: 'Existing Product', fileIds: ['f-1'] })">submit</button>
               <p v-if="submitError" data-testid="submit-error">{{ submitError }}</p>
             </div>
@@ -76,6 +92,21 @@ describe('SalesFormView resilience', () => {
 
     expect(wrapper.find('[data-testid="product-fetch-error"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="product-fetch-retry"]').exists()).toBe(true);
+  });
+
+  it('locks all bound snapshot fields after product selection', async () => {
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="bind-product"]').trigger('click');
+
+    const disabledFields = wrapper.get('[data-testid="disabled-fields"]').text();
+    expect(disabledFields).toContain('name');
+    expect(disabledFields).toContain('brand');
+    expect(disabledFields).toContain('series');
+    expect(disabledFields).toContain('sku');
+    expect(disabledFields).toContain('size');
+    expect(disabledFields).toContain('color');
+    expect(disabledFields).toContain('material');
   });
 
   it('prevents silent submit failure and keeps form state', async () => {

@@ -763,6 +763,57 @@ describe('sales routes resilience', () => {
     expect(waitUntil).toHaveBeenCalled();
   });
 
+  it('preserves existing bound snapshots during ordinary salesperson edits', async () => {
+    mocks.orderFindByIdAndSalesperson.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      quantity: 1,
+      variantId: 'v-1',
+      productId: 'p-1',
+      currentData: {
+        name: 'Frozen Name',
+        brand: 'Frozen Brand',
+        series: 'Frozen Series',
+        sku: 'FROZEN-SKU',
+        size: 'Size: M',
+        color: 'Black',
+        material: 'Leather',
+      },
+    });
+
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders/o-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: 'customer changed note',
+          updates: {
+            remark: 'next',
+            name: 'Live Rename',
+            brand: 'Live Brand',
+            series: 'Live Series',
+            sku: 'LIVE-SKU',
+            size: 'Size: XL',
+            color: 'White',
+            material: 'Metal',
+          },
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.productFindById).not.toHaveBeenCalled();
+    expect(mocks.productVariantFindByIdAndProductId).not.toHaveBeenCalled();
+    expect(mocks.processOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      updates: { remark: 'next' },
+    }));
+  });
+
   it('rejects salesperson patch when rebinding to an out-of-stock variant', async () => {
     mocks.orderFindByIdAndSalesperson.mockResolvedValue({
       id: 'o-1',

@@ -17,6 +17,7 @@ import { syncOrderDemandTransitions } from '../../../../api/utils/order-demand-s
 import { buildOrderBindingSnapshot } from '../../../../api/utils/order-binding-snapshot.js';
 
 const app = new Hono();
+const SALES_BOUND_SNAPSHOT_FIELDS = Object.freeze(['name', 'brand', 'series', 'sku', 'size', 'color', 'material']);
 export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'POST', path: '/', domain: 'sales-orders', action: 'sales.order.create', severity: 'high', targetType: 'order' },
     { method: 'PATCH', path: '/:id/read', domain: 'sales-orders', action: 'sales.order.read', severity: 'normal', targetType: 'order' },
@@ -303,10 +304,19 @@ app.patch('/:id', async (c) => {
 
     const hasProductIdPayload = productId !== undefined;
     const hasVariantIdPayload = variantId !== undefined;
+    const hasBindingMutation = hasProductIdPayload || hasVariantIdPayload;
     const effectiveProductId = hasProductIdPayload ? productId : order.productId;
+    const hasExistingBinding = Boolean(order.productId && order.variantId);
     let normalizedVariantId = hasVariantIdPayload ? (variantId || null) : undefined;
+    const finalUpdates = { ...updates };
 
-    if (hasProductIdPayload || hasVariantIdPayload) {
+    if (hasExistingBinding && !hasBindingMutation) {
+        for (const field of SALES_BOUND_SNAPSHOT_FIELDS) {
+            delete finalUpdates[field];
+        }
+    }
+
+    if (hasBindingMutation) {
         const binding = await validateProductVariantBinding(env.DB, effectiveProductId, normalizedVariantId, {
             checkActive: true,
             variantSelectPolicy: 'in_stock_only',
@@ -315,15 +325,15 @@ app.patch('/:id', async (c) => {
         const boundSnapshot = buildOrderBindingSnapshot({
             product: binding.product,
             variant: binding.variant,
-            fallback: updates,
+            fallback: finalUpdates,
         });
-        updates.name = boundSnapshot.name;
-        updates.brand = boundSnapshot.brand;
-        updates.series = boundSnapshot.series;
-        updates.sku = boundSnapshot.sku;
-        updates.size = boundSnapshot.size;
-        updates.color = boundSnapshot.color;
-        updates.material = boundSnapshot.material;
+        finalUpdates.name = boundSnapshot.name;
+        finalUpdates.brand = boundSnapshot.brand;
+        finalUpdates.series = boundSnapshot.series;
+        finalUpdates.sku = boundSnapshot.sku;
+        finalUpdates.size = boundSnapshot.size;
+        finalUpdates.color = boundSnapshot.color;
+        finalUpdates.material = boundSnapshot.material;
     }
 
     // 销售端允许修改的字段
@@ -336,7 +346,7 @@ app.patch('/:id', async (c) => {
         orderNo: order.orderNo,
         currentData: order.currentData,
         currentStatus: order.status,
-        updates,
+        updates: finalUpdates,
         fileIds,
         productId,
         variantId: normalizedVariantId,
@@ -357,9 +367,9 @@ app.patch('/:id', async (c) => {
 
     const nextStatus = ['rejected', 'void'].includes(order.status)
         ? 'pending'
-        : (updates?.status ?? order.status);
+        : (finalUpdates?.status ?? order.status);
     const nextVariantId = hasVariantIdPayload ? normalizedVariantId : order.variantId;
-    const nextQuantity = updates?.quantity ?? order.quantity;
+    const nextQuantity = finalUpdates?.quantity ?? order.quantity;
     const demandService = new DemandService(env.DB);
     await syncOrderDemandTransitions(demandService, {
         orderId,
