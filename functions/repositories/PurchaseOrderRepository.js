@@ -3,6 +3,8 @@ import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { buildSetClause } from '../api/utils/sql.js';
 import { hasChanges } from '../api/utils/result.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
+import { ProductDimensionRepository } from './ProductDimensionRepository.js';
+import { buildOrderBindingSnapshot } from '../api/utils/order-binding-snapshot.js';
 import {
   getPurchaseOrderCancelledQty,
   getPurchaseOrderOrderedQty,
@@ -52,6 +54,9 @@ function summarizePurchaseOrderItems(items = []) {
 }
 
 const PURCHASE_ORDER_SNAPSHOT_VARIANT_KEYS = ['size', 'color', 'material'];
+const PURCHASE_ORDER_SIZE_LABELS = new Set(['size', '尺码', '尺寸']);
+const PURCHASE_ORDER_COLOR_LABELS = new Set(['color', '颜色', '顏色']);
+const PURCHASE_ORDER_MATERIAL_LABELS = new Set(['material', '材质', '材質']);
 
 function buildPurchaseOrderSnapshotVariantOptions(snapshotSpecs = {}) {
   if (!snapshotSpecs || typeof snapshotSpecs !== 'object') return {};
@@ -78,6 +83,58 @@ function mapPurchaseOrderSnapshotFields(row = {}) {
     product_images: row.snapshot_image ? [row.snapshot_image] : parseJsonArray(row.product_images, []),
     product_specifications: parseJsonObject(row.product_specifications, {}),
     variant_options: hasSnapshotVariantOptions ? snapshotVariantOptions : liveVariantOptions,
+  };
+}
+
+function normalizePurchaseItemSnapshotSpecs(rawSnapshotSpecs = {}) {
+  const snapshotSpecs = parseJsonObject(rawSnapshotSpecs, {});
+  return JSON.stringify({
+    brand: snapshotSpecs.brand || '',
+    size: snapshotSpecs.size || '',
+    color: snapshotSpecs.color || '',
+    material: snapshotSpecs.material || '',
+    series: snapshotSpecs.series || '',
+  });
+}
+
+function resolvePurchaseItemSnapshotSize({ product, variant, fallback = '' }) {
+  const options = parseJsonObject(variant?.options_values, {});
+  const dimensionMap = product?.dimension_map || {};
+  const otherSpecs = [];
+
+  for (const [key, rawValue] of Object.entries(options)) {
+    if (rawValue === undefined || rawValue === null || rawValue === '') continue;
+    const readableKey = String(dimensionMap[key] || key);
+    const normalizedKey = readableKey.toLowerCase();
+    const value = String(rawValue);
+
+    if (PURCHASE_ORDER_COLOR_LABELS.has(normalizedKey) || PURCHASE_ORDER_MATERIAL_LABELS.has(normalizedKey)) {
+      continue;
+    }
+    if (PURCHASE_ORDER_SIZE_LABELS.has(normalizedKey)) {
+      return value;
+    }
+    otherSpecs.push(`${readableKey}: ${value}`);
+  }
+
+  return otherSpecs.join('，') || fallback;
+}
+
+
+function buildLivePurchaseItemSnapshot({ product, variant }) {
+  const snapshot = buildOrderBindingSnapshot({ product, variant, fallback: {} });
+  const productImages = parseJsonArray(product?.images, []);
+  return {
+    snapshot_name: snapshot.name || '',
+    snapshot_sku: snapshot.sku || '',
+    snapshot_specs: normalizePurchaseItemSnapshotSpecs({
+      brand: snapshot.brand || '',
+      size: resolvePurchaseItemSnapshotSize({ product, variant, fallback: snapshot.size || '' }),
+      color: snapshot.color || '',
+      material: snapshot.material || '',
+      series: snapshot.series || '',
+    }),
+    snapshot_image: variant?.image_id || productImages[0] || null,
   };
 }
 
@@ -205,11 +262,11 @@ export class PurchaseOrderRepository {
         v.sku AS variant_sku,
         v.options_values AS variant_options,
         o.order_no AS customer_order_no,
-        ols.snapshot_name AS snapshot_name,
-        ols.snapshot_sku AS snapshot_sku,
-        ols.snapshot_specs AS snapshot_specs,
-        ols.snapshot_image AS snapshot_image,
-        json_extract(ols.snapshot_specs, '$.brand') AS snapshot_brand,
+        COALESCE(poi.snapshot_name, ols.snapshot_name) AS snapshot_name,
+        COALESCE(poi.snapshot_sku, ols.snapshot_sku) AS snapshot_sku,
+        COALESCE(poi.snapshot_specs, ols.snapshot_specs) AS snapshot_specs,
+        COALESCE(poi.snapshot_image, ols.snapshot_image) AS snapshot_image,
+        COALESCE(json_extract(poi.snapshot_specs, '$.brand'), json_extract(ols.snapshot_specs, '$.brand')) AS snapshot_brand,
         COALESCE(pr.receipt_count, 0) AS receipt_count,
         pr.last_received_at AS last_received_at
       FROM purchase_order_items poi
@@ -261,17 +318,18 @@ export class PurchaseOrderRepository {
         p.images AS product_images,
         v.sku AS variant_sku,
         v.options_values AS variant_options,
-        ol.snapshot_name AS snapshot_name,
-        ol.snapshot_sku AS snapshot_sku,
-        ol.snapshot_specs AS snapshot_specs,
-        ol.snapshot_image AS snapshot_image,
-        json_extract(ol.snapshot_specs, '$.brand') AS snapshot_brand,
+        COALESCE(poi_item.snapshot_name, ol.snapshot_name) AS snapshot_name,
+        COALESCE(poi_item.snapshot_sku, ol.snapshot_sku) AS snapshot_sku,
+        COALESCE(poi_item.snapshot_specs, ol.snapshot_specs) AS snapshot_specs,
+        COALESCE(poi_item.snapshot_image, ol.snapshot_image) AS snapshot_image,
+        COALESCE(json_extract(poi_item.snapshot_specs, '$.brand'), json_extract(ol.snapshot_specs, '$.brand')) AS snapshot_brand,
         COALESCE(rr.reversed_qty, 0) AS reversed_qty,
         COALESCE(rr.reversal_count, 0) AS reversal_count,
         rr.last_reversed_at AS last_reversed_at
       FROM purchase_receipts pr
       LEFT JOIN products p ON p.id = pr.product_id
       LEFT JOIN product_variants v ON v.id = pr.variant_id
+      LEFT JOIN purchase_order_items poi_item ON poi_item.id = pr.purchase_order_item_id
       LEFT JOIN order_lines ol ON ol.id = pr.order_line_id
       LEFT JOIN (
         SELECT
@@ -458,6 +516,130 @@ export class PurchaseOrderRepository {
 
   // ─── 明细操作 ──────────────────────────────────────────
 
+  async loadOrderLineSnapshotMap(items = []) {
+    const orderIds = [...new Set(items.map((item) => String(item?.pre_order_id || '').trim()).filter(Boolean))];
+    const snapshotMap = new Map();
+    if (orderIds.length === 0) return snapshotMap;
+
+    for (const chunk of chunkArray(orderIds, D1_MAX_IN_CLAUSE_SIZE)) {
+      const placeholders = chunk.map(() => '?').join(',');
+      const { results = [] } = await this.db
+        .prepare(
+          `SELECT
+            order_id,
+            product_id,
+            variant_id,
+            MAX(snapshot_name) AS snapshot_name,
+            MAX(snapshot_sku) AS snapshot_sku,
+            MAX(snapshot_specs) AS snapshot_specs,
+            MAX(snapshot_image) AS snapshot_image
+           FROM order_lines
+           WHERE order_id IN (${placeholders})
+           GROUP BY order_id, product_id, variant_id`
+        )
+        .bind(...chunk)
+        .all();
+
+      for (const row of results) {
+        snapshotMap.set(`${row.order_id}::${row.product_id || ''}::${row.variant_id || ''}`, row);
+      }
+    }
+
+    return snapshotMap;
+  }
+
+  async loadLivePurchaseItemSnapshotMap(items = []) {
+    const variantIds = [...new Set(items.map((item) => String(item?.variant_id || '').trim()).filter(Boolean))];
+    const liveRows = [];
+    if (variantIds.length === 0) return new Map();
+
+    for (const chunk of chunkArray(variantIds, D1_MAX_IN_CLAUSE_SIZE)) {
+      const placeholders = chunk.map(() => '?').join(',');
+      const { results = [] } = await this.db
+        .prepare(
+          `SELECT
+            p.id AS product_id,
+            p.name AS product_name,
+            p.brand AS product_brand,
+            p.series AS product_series,
+            p.images AS product_images,
+            p.specifications AS product_specifications,
+            v.id AS variant_id,
+            v.sku AS variant_sku,
+            v.options_values AS variant_options,
+            v.image_id AS variant_image_id
+           FROM product_variants v
+           JOIN products p ON p.id = v.product_id
+           WHERE v.id IN (${placeholders})`
+        )
+        .bind(...chunk)
+        .all();
+      liveRows.push(...results);
+    }
+
+    const productIds = [...new Set(liveRows.map((row) => row.product_id).filter(Boolean))];
+    const dimensionRepo = new ProductDimensionRepository(this.db);
+    const dimensionMapByProductId = new Map();
+    for (const productId of productIds) {
+      dimensionMapByProductId.set(productId, await dimensionRepo.getDimensionMap(productId));
+    }
+
+    const snapshotMap = new Map();
+    for (const row of liveRows) {
+      const product = {
+        id: row.product_id,
+        name: row.product_name,
+        brand: row.product_brand,
+        series: row.product_series,
+        images: row.product_images,
+        specifications: parseJsonObject(row.product_specifications, {}),
+        dimension_map: dimensionMapByProductId.get(row.product_id) || {},
+      };
+      const variant = {
+        id: row.variant_id,
+        sku: row.variant_sku,
+        options_values: row.variant_options,
+        image_id: row.variant_image_id,
+      };
+      snapshotMap.set(`${row.product_id || ''}::${row.variant_id || ''}`, buildLivePurchaseItemSnapshot({ product, variant }));
+    }
+
+    return snapshotMap;
+  }
+
+  async hydratePurchaseItemSnapshots(items = []) {
+    const needsHydration = items.some((item) => !item?.snapshot_name || !item?.snapshot_sku || !item?.snapshot_specs || !item?.snapshot_image);
+    if (!needsHydration) {
+      return items.map((item) => ({
+        ...item,
+        snapshot_specs: normalizePurchaseItemSnapshotSpecs(item.snapshot_specs),
+      }));
+    }
+
+    const orderLineSnapshotMap = await this.loadOrderLineSnapshotMap(items);
+    const liveSnapshotMap = await this.loadLivePurchaseItemSnapshotMap(items);
+
+    return items.map((item) => {
+      const itemSnapshot = {
+        snapshot_name: item.snapshot_name || null,
+        snapshot_sku: item.snapshot_sku || null,
+        snapshot_specs: item.snapshot_specs ? normalizePurchaseItemSnapshotSpecs(item.snapshot_specs) : null,
+        snapshot_image: item.snapshot_image || null,
+      };
+      const orderLineSnapshot = orderLineSnapshotMap.get(`${item.pre_order_id || ''}::${item.product_id || ''}::${item.variant_id || ''}`) || null;
+      const liveSnapshot = liveSnapshotMap.get(`${item.product_id || ''}::${item.variant_id || ''}`) || null;
+      const fallback = orderLineSnapshot || liveSnapshot || {};
+
+      return {
+        ...item,
+        snapshot_name: itemSnapshot.snapshot_name || fallback.snapshot_name || null,
+        snapshot_sku: itemSnapshot.snapshot_sku || fallback.snapshot_sku || null,
+        snapshot_specs: itemSnapshot.snapshot_specs || fallback.snapshot_specs || null,
+        snapshot_image: itemSnapshot.snapshot_image || fallback.snapshot_image || null,
+      };
+    });
+  }
+
   /**
    * 批量添加明细
    * @param {string} poId
@@ -469,8 +651,9 @@ export class PurchaseOrderRepository {
     const now = Date.now();
     const stmts = [];
     const createdIds = [];
+    const hydratedItems = await this.hydratePurchaseItemSnapshots(items);
 
-    for (const item of items) {
+    for (const item of hydratedItems) {
       if (!item.product_id) {
         throw new Error('product_id is required');
       }
@@ -482,8 +665,10 @@ export class PurchaseOrderRepository {
 
       stmts.push(
         this.db.prepare(`
-          INSERT INTO purchase_order_items (id, po_id, product_id, variant_id, pre_order_id, quantity, unit_cost, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO purchase_order_items (
+            id, po_id, product_id, variant_id, pre_order_id, quantity, unit_cost, snapshot_name, snapshot_sku, snapshot_specs, snapshot_image, created_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
           id,
           poId,
@@ -492,6 +677,10 @@ export class PurchaseOrderRepository {
           item.pre_order_id || null,
           item.quantity || 1,
           item.unit_cost || 0,
+          item.snapshot_name || null,
+          item.snapshot_sku || null,
+          item.snapshot_specs || null,
+          item.snapshot_image || null,
           now
         )
       );

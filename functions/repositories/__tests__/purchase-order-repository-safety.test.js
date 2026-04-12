@@ -204,6 +204,10 @@ describe('PurchaseOrderRepository safety guards', () => {
       variant_id: `var-${index + 1}`,
       quantity: 1,
       unit_cost: 10,
+      snapshot_name: `Snapshot ${index + 1}`,
+      snapshot_sku: `SNAP-${index + 1}`,
+      snapshot_specs: JSON.stringify({ brand: 'Snapshot Brand', size: 'L', color: 'Black', material: 'Canvas' }),
+      snapshot_image: `snapshot-image-${index + 1}`,
     }));
 
     await repo.addItems('po-1', items);
@@ -221,6 +225,10 @@ describe('PurchaseOrderRepository safety guards', () => {
       variant_id: `var-${index + 1}`,
       quantity: 1,
       unit_cost: 10,
+      snapshot_name: `Snapshot ${index + 1}`,
+      snapshot_sku: `SNAP-${index + 1}`,
+      snapshot_specs: JSON.stringify({ brand: 'Snapshot Brand', size: 'L', color: 'Black', material: 'Canvas' }),
+      snapshot_image: `snapshot-image-${index + 1}`,
     }));
 
     await expect(repo.addItems('po-1', items)).rejects.toThrow('batch failed');
@@ -246,6 +254,10 @@ describe('PurchaseOrderRepository safety guards', () => {
       variant_id: `var-${index + 1}`,
       quantity: 1,
       unit_cost: 10,
+      snapshot_name: `Snapshot ${index + 1}`,
+      snapshot_sku: `SNAP-${index + 1}`,
+      snapshot_specs: JSON.stringify({ brand: 'Snapshot Brand', size: 'L', color: 'Black', material: 'Canvas' }),
+      snapshot_image: `snapshot-image-${index + 1}`,
     }));
 
     await expect(repo.addItems('po-1', items)).rejects.toThrow('header update failed');
@@ -257,6 +269,80 @@ describe('PurchaseOrderRepository safety guards', () => {
       )
     ).toBe(true);
     expect(db.__updateCallCount()).toBe(1);
+  });
+
+  it('addItems snapshots live product fields for manual procurement lines when snapshot fields are missing', async () => {
+    const batch = vi.fn(async (stmts) => stmts.map(() => ({ meta: { changes: 1 } })));
+    const prepare = vi.fn((sql) => {
+      if (sql.includes('FROM product_variants v')) {
+        const statement = {
+          bind: vi.fn(() => statement),
+          all: vi.fn(async () => ({
+            results: [{
+              product_id: 'prod-1',
+              variant_id: 'var-1',
+              product_name: 'Snapshot Product',
+              product_brand: 'Snapshot Brand',
+              product_series: 'Series A',
+              product_images: '["snapshot-image"]',
+              product_specifications: '{}',
+              variant_sku: 'SNAP-001',
+              variant_options: '{"颜色":"Black","材质":"Canvas","尺码":"L"}',
+              variant_image_id: 'variant-image',
+            }],
+          })),
+        };
+        return statement;
+      }
+      if (sql.includes('FROM order_lines')) {
+        const statement = {
+          bind: vi.fn(() => statement),
+          all: vi.fn(async () => ({ results: [] })),
+        };
+        return statement;
+      }
+      if (sql.includes('SELECT id, name FROM product_dimensions')) {
+        const statement = {
+          bind: vi.fn(() => statement),
+          all: vi.fn(async () => ({
+            results: [
+              { id: 'dim-color', name: '颜色' },
+              { id: 'dim-material', name: '材质' },
+              { id: 'dim-size', name: '尺码' },
+            ],
+          })),
+        };
+        return statement;
+      }
+      const statement = {
+        sql,
+        bind: vi.fn((...params) => ({
+          sql,
+          params,
+          run: vi.fn(async () => ({ meta: { changes: 1 } })),
+        })),
+      };
+      return statement;
+    });
+    const repo = new PurchaseOrderRepository({ prepare, batch });
+
+    await repo.addItems('po-1', [{
+      product_id: 'prod-1',
+      variant_id: 'var-1',
+      pre_order_id: null,
+      quantity: 2,
+      unit_cost: 15,
+    }]);
+
+    const insertStmt = batch.mock.calls[0][0][0];
+    expect(insertStmt.sql).toContain('snapshot_name');
+    expect(insertStmt.sql).toContain('snapshot_specs');
+    expect(insertStmt.params).toEqual(expect.arrayContaining([
+      'Snapshot Product',
+      'SNAP-001',
+      JSON.stringify({ brand: 'Snapshot Brand', size: 'L', color: 'Black', material: 'Canvas', series: 'Series A' }),
+      'variant-image',
+    ]));
   });
 
   it('updateAllocations batches large updates into D1-safe chunks', async () => {

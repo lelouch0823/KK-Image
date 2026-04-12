@@ -185,6 +185,97 @@ describe('PurchaseOrderRepository read model', () => {
     }));
   });
 
+  it('prefers purchase-item snapshots for manual procurement history when no order line exists', async () => {
+    const poStmt = {
+      bind: vi.fn(() => poStmt),
+      first: vi.fn(async () => ({
+        id: 'po-1',
+        po_no: 'PO-1',
+        status: 'shipping',
+      })),
+    };
+    const itemsStmt = {
+      bind: vi.fn(() => itemsStmt),
+      all: vi.fn(async () => ({
+        results: [{
+          id: 'poi-1',
+          po_id: 'po-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          pre_order_id: null,
+          quantity: 8,
+          received_qty: 3,
+          cancelled_qty: 0,
+          receipt_count: 1,
+          last_received_at: 123456,
+          product_name: 'Live Product Name',
+          product_brand: 'Live Brand',
+          product_images: '["live-image"]',
+          product_specifications: '{}',
+          variant_sku: 'LIVE-SKU',
+          variant_options: '{"Color":"White"}',
+          snapshot_name: 'Manual Snapshot Product',
+          snapshot_sku: 'MANUAL-SKU',
+          snapshot_specs: '{"brand":"Manual Brand","size":"L","color":"Camel","material":"Canvas"}',
+          snapshot_image: 'manual-snapshot-image',
+          snapshot_brand: 'Manual Brand',
+        }],
+      })),
+    };
+    const receiptsStmt = {
+      bind: vi.fn(() => receiptsStmt),
+      all: vi.fn(async () => ({
+        results: [{
+          id: 'receipt-1',
+          purchase_order_item_id: 'poi-1',
+          order_line_id: null,
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          received_qty: 3,
+          product_name: 'Live Product Name',
+          product_brand: 'Live Brand',
+          product_sku: 'LIVE-PRODUCT-SKU',
+          product_images: '["live-image"]',
+          variant_sku: 'LIVE-SKU',
+          variant_options: '{"Color":"White"}',
+          snapshot_name: 'Manual Snapshot Product',
+          snapshot_sku: 'MANUAL-SKU',
+          snapshot_specs: '{"brand":"Manual Brand","size":"L","color":"Camel","material":"Canvas"}',
+          snapshot_image: 'manual-snapshot-image',
+          snapshot_brand: 'Manual Brand',
+          reversed_qty: 0,
+          reversal_count: 0,
+        }],
+      })),
+    };
+    const db = {
+      prepare: vi.fn()
+        .mockReturnValueOnce(poStmt)
+        .mockReturnValueOnce(itemsStmt)
+        .mockReturnValueOnce(receiptsStmt),
+    };
+
+    const repo = new PurchaseOrderRepository(db);
+    const po = await repo.findById('po-1');
+
+    expect(db.prepare.mock.calls[2][0]).toContain('LEFT JOIN purchase_order_items poi_item ON poi_item.id = pr.purchase_order_item_id');
+    expect(db.prepare.mock.calls[2][0]).toContain('COALESCE(poi_item.snapshot_name, ol.snapshot_name) AS snapshot_name');
+    expect(po.items[0]).toEqual(expect.objectContaining({
+      product_name: 'Manual Snapshot Product',
+      product_brand: 'Manual Brand',
+      variant_sku: 'MANUAL-SKU',
+      product_images: ['manual-snapshot-image'],
+      variant_options: { size: 'L', color: 'Camel', material: 'Canvas' },
+    }));
+    expect(po.receipts[0]).toEqual(expect.objectContaining({
+      product_name: 'Manual Snapshot Product',
+      product_brand: 'Manual Brand',
+      variant_sku: 'MANUAL-SKU',
+      product_images: ['manual-snapshot-image'],
+      variant_options: { size: 'L', color: 'Camel', material: 'Canvas' },
+    }));
+  });
+
   it('list aggregates item counts and remaining inbound quantities from purchase_order_items progress', async () => {
     const countStmt = {
       bind: vi.fn(() => countStmt),
