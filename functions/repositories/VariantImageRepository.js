@@ -38,6 +38,7 @@ export class VariantImageRepository {
             .bind(variantId)
             .first();
         const sortOrder = Number(sortRow?.max_sort_order ?? -1) + 1;
+        const shouldBePrimary = Boolean(isPrimary) || sortOrder === 0;
         const id = generateId();
 
         const insertStatement = this.db
@@ -45,10 +46,10 @@ export class VariantImageRepository {
                 `INSERT INTO variant_images (id, variant_id, image_id, sort_order, is_primary, created_at, updated_at)
                  VALUES (?, ?, ?, ?, ?, ?, ?)`
             )
-            .bind(id, variantId, imageId, sortOrder, isPrimary ? 1 : 0, timestamp, timestamp);
+            .bind(id, variantId, imageId, sortOrder, shouldBePrimary ? 1 : 0, timestamp, timestamp);
 
         try {
-            if (isPrimary) {
+            if (shouldBePrimary) {
                 await executeBatchChunks(this.db, [
                     this.db
                         .prepare('UPDATE variant_images SET is_primary = 0, updated_at = ? WHERE variant_id = ?')

@@ -74,6 +74,41 @@ describe('VariantImageRepository', () => {
         expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO variant_images'));
     });
 
+    it('promotes the first image to primary even when isPrimary is omitted', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('FROM product_variants')) {
+                stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('WHERE variant_id = ? AND image_id = ?')) {
+                stmt.first.mockResolvedValue(null);
+            } else if (sql.includes('MAX(sort_order)')) {
+                stmt.first.mockResolvedValue({ max_sort_order: null });
+            } else if (sql.includes('INSERT INTO variant_images')) {
+                stmt.run.mockResolvedValue({ meta: { changes: 1 } });
+            } else if (sql.includes('SELECT * FROM variant_images')) {
+                stmt.first.mockResolvedValue({
+                    id: 'vi_1',
+                    variant_id: 'variant_1',
+                    image_id: 'file_1',
+                    sort_order: 0,
+                    is_primary: 1,
+                });
+            }
+            return stmt;
+        });
+
+        const created = await repo.addImage({
+            productId: 'product_1',
+            variantId: 'variant_1',
+            imageId: 'file_1',
+            isPrimary: false,
+        });
+
+        expect(created.is_primary).toBe(1);
+        const insertStatement = db.prepare.mock.results.find((entry) => entry.value.sql.includes('INSERT INTO variant_images'))?.value;
+        expect(insertStatement?.params[4]).toBe(1);
+    });
+
     it('rejects duplicate image links for the same variant', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);
