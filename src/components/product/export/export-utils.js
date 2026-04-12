@@ -127,6 +127,11 @@ const resolveStockFlag = (variant) => {
 };
 const normalizeVariantStatus = (variant) => String(variant?.status || '').trim().toLowerCase();
 
+const neutralizeSpreadsheetFormula = (value) => {
+  const normalized = value === null || value === undefined ? '' : String(value);
+  return /^[=+\-@]/.test(normalized) ? `'${normalized}` : normalized;
+};
+
 const variantMatchesExportFilters = (variant, filters = {}) => {
   const normalizedStatus = String(filters?.status || '').trim().toLowerCase();
   const normalizedHasStock = String(filters?.hasStock || '').trim().toLowerCase();
@@ -218,7 +223,7 @@ export const flattenProductsToVariantRows = (products = [], filters = {}) => {
 
 export const buildCsvContent = (rows = [], columns = EXPORT_COLUMNS) => {
   const escapeCell = (value) => {
-    const str = value === null || value === undefined ? '' : String(value);
+    const str = neutralizeSpreadsheetFormula(value);
     const escaped = str.replace(/"/g, '""');
     if (escaped.includes(',') || escaped.includes('"') || escaped.includes('\n')) {
       return `"${escaped}"`;

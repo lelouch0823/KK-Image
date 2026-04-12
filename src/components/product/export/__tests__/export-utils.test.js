@@ -100,6 +100,15 @@ describe('product export utils', () => {
     expect(csv).toContain('p1,Test');
   });
 
+  it('neutralizes spreadsheet formula prefixes in csv cells', () => {
+    const csv = buildCsvContent([
+      { product_id: '=cmd', product_name: '+SUM(1,2)' },
+    ], EXPORT_COLUMNS.slice(0, 2));
+
+    expect(csv).toContain("'=cmd");
+    expect(csv).toContain("'+SUM(1,2)");
+  });
+
   it('normalizes filters by scope for export callers', () => {
     expect(
       normalizeProductExportFilters('filtered', {

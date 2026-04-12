@@ -28,6 +28,11 @@ const readGoodsOverviewFilters = (url) => ({
     sort: url.searchParams.get('sort') || 'shortage',
 });
 
+const neutralizeSpreadsheetFormula = (value) => {
+    const normalized = value === null || value === undefined ? '' : String(value);
+    return /^[=+\-@]/.test(normalized) ? `'${normalized}` : normalized;
+};
+
 /**
  * GET / — 变体管道分析列表
  *
@@ -81,7 +86,7 @@ app.get('/export', async (c) => {
     const filters = readGoodsOverviewFilters(url);
     const results = await overviewRepo.getList(filters);
 
-    const escapeCSV = (v) => (v === null || v === undefined ? '' : `"${String(v).replace(/"/g, '""')}"`);
+    const escapeCSV = (v) => `"${neutralizeSpreadsheetFormula(v).replace(/"/g, '""')}"`;
 
     const headers = ['商品名称', '变体', 'SKU', '品牌', '分类', '当前库存', '待订货', '生产中', '运输中', '已到货', '总需求', '订单数', '缺口', '入货成本', '运费分摊', '关税分摊', '到岸成本'];
     const rows = results.map(r => [

@@ -106,4 +106,43 @@ describe('manage goods overview routes', () => {
     expect(csv).toContain('Tee');
     expect(csv).toContain('Black / L');
   });
+
+  it('neutralizes spreadsheet formula prefixes in exported csv cells', async () => {
+    mocks.getList.mockResolvedValueOnce([
+      {
+        id: 'var-danger',
+        name: '=cmd',
+        variantLabel: '@danger',
+        sku: '+SUM(1,2)',
+        brand: '-KK',
+        category: 'Top',
+        stockQuantity: 1,
+        confirmedQty: 0,
+        productionQty: 0,
+        shippingQty: 0,
+        arrivedQty: 0,
+        totalDemand: 1,
+        orderCount: 1,
+        shortage: 0,
+        avgUnitCost: 1,
+        avgFreight: 0,
+        avgTariff: 0,
+        landedCost: 1,
+      },
+    ]);
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/goods-overview/export',
+      { method: 'GET' },
+      { DB: {} }
+    );
+
+    expect(res.status).toBe(200);
+    const csv = await res.text();
+    expect(csv).toContain(`"'=cmd"`);
+    expect(csv).toContain(`"'@danger"`);
+    expect(csv).toContain(`"'+SUM(1,2)"`);
+    expect(csv).toContain(`"'-KK"`);
+  });
 });
