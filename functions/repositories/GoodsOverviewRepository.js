@@ -82,7 +82,12 @@ export class GoodsOverviewRepository {
       bindParams.push(category);
     }
     if (brand) {
-      whereClause += ` AND COALESCE(p.brand, json_extract(o.current_data, '$.brand')) = ?`;
+      whereClause += ` AND COALESCE(
+        json_extract(ol.snapshot_specs, '$.brand'),
+        p.brand,
+        json_extract(o.current_data, '$.brand'),
+        json_extract(o.original_data, '$.brand')
+      ) = ?`;
       bindParams.push(brand);
     }
 
@@ -111,21 +116,45 @@ export class GoodsOverviewRepository {
         SELECT 
             ol.variant_id as id,
             ol.product_id as product_id,
-            p.product_code as product_code,
-            pv.variant_code as variant_code,
-            COALESCE(p.name, json_extract(o.current_data, '$.name')) as name,
-            COALESCE(pv.sku, p.spu, '-') as sku,
-            COALESCE(p.brand, json_extract(o.current_data, '$.brand'), '-') as brand,
-            COALESCE(p.category, '-') as category,
-            COALESCE(ib.on_hand, pv.stock_quantity, 0) as stock_quantity,
-            COALESCE(ib.on_hand, pv.stock_quantity, 0) as on_hand,
-            COALESCE(ib.reserved, 0) as reserved,
-            COALESCE(ib.available, COALESCE(pv.stock_quantity, 0)) as available,
-            COALESCE(pv.alert_threshold, 10) as alert_threshold,
-            pv.options_values as variant_options,
+            MAX(p.product_code) as product_code,
+            MAX(pv.variant_code) as variant_code,
+            COALESCE(
+              MAX(ol.snapshot_name),
+              MAX(p.name),
+              MAX(json_extract(o.current_data, '$.name')),
+              MAX(json_extract(o.original_data, '$.name')),
+              '-'
+            ) as name,
+            COALESCE(
+              MAX(ol.snapshot_sku),
+              MAX(pv.sku),
+              MAX(p.spu),
+              MAX(json_extract(o.current_data, '$.sku')),
+              MAX(json_extract(o.current_data, '$.variant_sku')),
+              MAX(json_extract(o.current_data, '$.spu')),
+              MAX(json_extract(o.original_data, '$.sku')),
+              MAX(json_extract(o.original_data, '$.variant_sku')),
+              MAX(json_extract(o.original_data, '$.spu')),
+              '-'
+            ) as sku,
+            COALESCE(
+              MAX(json_extract(ol.snapshot_specs, '$.brand')),
+              MAX(p.brand),
+              MAX(json_extract(o.current_data, '$.brand')),
+              MAX(json_extract(o.original_data, '$.brand')),
+              '-'
+            ) as brand,
+            COALESCE(MAX(p.category), '-') as category,
+            MAX(COALESCE(ib.on_hand, pv.stock_quantity, 0)) as stock_quantity,
+            MAX(COALESCE(ib.on_hand, pv.stock_quantity, 0)) as on_hand,
+            MAX(COALESCE(ib.reserved, 0)) as reserved,
+            MAX(COALESCE(ib.available, COALESCE(pv.stock_quantity, 0))) as available,
+            MAX(COALESCE(pv.alert_threshold, 10)) as alert_threshold,
+            COALESCE(MAX(ol.snapshot_specs), MAX(pv.options_values), '{}') as variant_options,
             CASE
-              WHEN fv.storage_key IS NOT NULL THEN json_array(fv.storage_key)
-              ELSE p.images
+              WHEN MAX(ol.snapshot_image) IS NOT NULL THEN json_array(MAX(ol.snapshot_image))
+              WHEN MAX(fv.storage_key) IS NOT NULL THEN json_array(MAX(fv.storage_key))
+              ELSE MAX(p.images)
             END as images,
             COALESCE(SUM(CASE WHEN o.status = 'confirmed' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as confirmed_qty,
             COALESCE(SUM(CASE WHEN o.status = 'production' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as production_qty,
@@ -182,7 +211,12 @@ export class GoodsOverviewRepository {
     const { results: categories } = await this.db.prepare(filterSql).bind(...this.ACTIVE_STATUSES).all();
 
     const brandSql = `
-        SELECT DISTINCT COALESCE(p.brand, json_extract(o.current_data, '$.brand')) as brand
+        SELECT DISTINCT COALESCE(
+          json_extract(ol.snapshot_specs, '$.brand'),
+          p.brand,
+          json_extract(o.current_data, '$.brand'),
+          json_extract(o.original_data, '$.brand')
+        ) as brand
         FROM order_lines ol
         JOIN orders o ON o.id = ol.order_id
         LEFT JOIN products p ON ol.product_id = p.id

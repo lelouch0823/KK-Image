@@ -190,7 +190,7 @@ describe('GoodsOverviewRepository variant-level', () => {
                   : [{ category: 'Top' }],
               };
             }
-            if (sql.includes("SELECT DISTINCT COALESCE(p.brand, json_extract(o.current_data, '$.brand')) as brand")) {
+            if (sql.includes('SELECT DISTINCT COALESCE(') && sql.includes(' as brand')) {
               return {
                 results: sql.includes('JOIN product_variants pv')
                   ? []
@@ -208,11 +208,61 @@ describe('GoodsOverviewRepository variant-level', () => {
     const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
 
     expect(sqlCalls.some((sql) => sql.includes('SELECT DISTINCT p.category'))).toBe(true);
-    expect(sqlCalls.some((sql) => sql.includes('SELECT DISTINCT COALESCE(p.brand'))).toBe(true);
+    expect(sqlCalls.some((sql) => sql.includes('SELECT DISTINCT COALESCE('))).toBe(true);
+    expect(sqlCalls.some((sql) => sql.includes("json_extract(ol.snapshot_specs, '$.brand')"))).toBe(true);
     expect(filters).toEqual({
       categories: ['Top'],
       brands: ['KK'],
     });
+  });
+
+  it('falls back to order-line snapshots in overview list when live product rows are gone', async () => {
+    const db = createMockDb([{
+      id: 'variant-deleted',
+      product_id: 'product-deleted',
+      product_code: null,
+      variant_code: null,
+      name: 'Snapshot Tee',
+      sku: 'SNAPSHOT-SKU',
+      brand: 'Snapshot Brand',
+      category: '-',
+      stock_quantity: 0,
+      on_hand: 0,
+      reserved: 0,
+      available: 0,
+      alert_threshold: 10,
+      variant_options: '{"color":"Black","size":"L","material":"Canvas"}',
+      images: '["snapshot-image"]',
+      confirmed_qty: 4,
+      production_qty: 0,
+      shipping_qty: 0,
+      arrived_qty: 0,
+      total_demand: 4,
+      order_count: 1,
+      shortage: 4,
+      avg_unit_cost: 0,
+      avg_freight: 0,
+      avg_tariff: 0,
+    }]);
+
+    const repo = new GoodsOverviewRepository(db);
+    const list = await repo.getList({ sort: 'shortage' });
+    const sql = db.prepare.mock.calls[0][0];
+
+    expect(sql).toContain('snapshot_name');
+    expect(sql).toContain('snapshot_sku');
+    expect(sql).toContain("json_extract(ol.snapshot_specs, '$.brand')");
+    expect(sql).toContain('snapshot_image');
+    expect(sql).toContain('snapshot_specs');
+    expect(list[0]).toEqual(expect.objectContaining({
+      variantId: 'variant-deleted',
+      name: 'Snapshot Tee',
+      sku: 'SNAPSHOT-SKU',
+      brand: 'Snapshot Brand',
+      variantLabel: 'Black / Canvas / L',
+      images: ['snapshot-image'],
+      shortage: 4,
+    }));
   });
 
 });
