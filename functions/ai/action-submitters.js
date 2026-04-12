@@ -30,6 +30,9 @@ export function createActionSubmitters(deps = {}) {
       return {
         id: created.id,
         label: created.name || payload.name || created.id,
+        productCreated: {
+          created,
+        },
       };
     },
 
@@ -40,6 +43,10 @@ export function createActionSubmitters(deps = {}) {
       return {
         id: created.id,
         label: created.orderNo || created.id,
+        orderCreated: {
+          created,
+          salespersonId: payload.salespersonId || null,
+        },
       };
     },
 

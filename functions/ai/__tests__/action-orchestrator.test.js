@@ -186,6 +186,97 @@ describe('AIActionOrchestrator', () => {
     });
   });
 
+  it('keeps product submissions pending until post-submit side effects complete', async () => {
+    sessionStore.getLatestActiveSession.mockResolvedValueOnce({
+      id: 'act-prod-1',
+      user_id: 'user-1',
+      action_type: 'create_product',
+      entity_type: 'product',
+      status: 'awaiting_confirmation',
+      slots_json: JSON.stringify({
+        name: 'Sneaker',
+        variants: [{ sku: 'SKU-1', price: 100, cost_price: 50, stock_quantity: 5, alert_threshold: 2, status: 'active' }],
+      }),
+      preview_json: JSON.stringify({ title: '商品创建预览' }),
+    });
+    submitters.create_product = vi.fn(async () => ({
+      id: 'prod-1',
+      label: 'Sneaker',
+      productCreated: {
+        created: { id: 'prod-1', name: 'Sneaker' },
+      },
+    }));
+
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {},
+      extractActionSlots: () => ({}),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '确认',
+      confirmation: true,
+    });
+
+    expect(result.kind).toBe('action_submitted');
+    expect(sessionStore.updateSession).toHaveBeenCalledWith('act-prod-1', expect.objectContaining({
+      status: 'submitted_pending_effects',
+    }));
+    expect(result.payload.productCreated).toEqual({
+      created: { id: 'prod-1', name: 'Sneaker' },
+    });
+  });
+
+  it('keeps order submissions pending until post-submit side effects complete', async () => {
+    sessionStore.getLatestActiveSession.mockResolvedValueOnce({
+      id: 'act-order-1',
+      user_id: 'user-1',
+      action_type: 'create_order',
+      entity_type: 'order',
+      status: 'awaiting_confirmation',
+      slots_json: JSON.stringify({
+        productName: 'Classic Runner',
+        salespersonId: 'sp-1',
+        quantity: 2,
+      }),
+      preview_json: JSON.stringify({ title: '订单创建预览' }),
+    });
+    submitters.create_order = vi.fn(async () => ({
+      id: 'ord-1',
+      label: 'ORD-1',
+      orderCreated: {
+        created: { id: 'ord-1', orderNo: 'ORD-1' },
+        salespersonId: 'sp-1',
+      },
+    }));
+
+    orchestrator = new AIActionOrchestrator({
+      sessionStore,
+      getActionAdapter,
+      submitters,
+      slotResolvers: {},
+      extractActionSlots: () => ({}),
+    });
+
+    const result = await orchestrator.advance({
+      userId: 'user-1',
+      text: '确认',
+      confirmation: true,
+    });
+
+    expect(result.kind).toBe('action_submitted');
+    expect(sessionStore.updateSession).toHaveBeenCalledWith('act-order-1', expect.objectContaining({
+      status: 'submitted_pending_effects',
+    }));
+    expect(result.payload.orderCreated).toEqual({
+      created: { id: 'ord-1', orderNo: 'ORD-1' },
+      salespersonId: 'sp-1',
+    });
+  });
+
   it('replays a pending purchase-order submission without re-running the submitter', async () => {
     sessionStore.getLatestActiveSession.mockResolvedValueOnce({
       id: 'act-po-2',

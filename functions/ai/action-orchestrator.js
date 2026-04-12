@@ -19,6 +19,8 @@ function buildSubmittedActionPayload(session, adapter, created = {}) {
     createdEntityId: created.id,
     createdEntityLabel: created.label || created.id,
     purchaseOrderCreated: created.purchaseOrderCreated || null,
+    productCreated: created.productCreated || null,
+    orderCreated: created.orderCreated || null,
     targetModule: adapter.targetModule,
     successMessage: created.message || '已完成创建，请前往对应模块查看。',
   };
@@ -181,7 +183,7 @@ export class AIActionOrchestrator {
     const created = await submitter(slots);
     const submittedPayload = buildSubmittedActionPayload(session, adapter, created);
 
-    if (created?.purchaseOrderCreated) {
+    if (created?.purchaseOrderCreated || created?.productCreated || created?.orderCreated) {
       await this.sessionStore.updateSession(session.id, {
         status: 'submitted_pending_effects',
         slots,

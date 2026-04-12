@@ -17,10 +17,21 @@ import { PurchaseOrderService } from '../services/PurchaseOrderService.js';
 import { SalespersonRepository } from '../repositories/SalespersonRepository.js';
 import { DomainOutboxPublisher } from '../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../api/cron/outbox.js';
+import { scheduleProductCacheInvalidation } from '../lib/hono/routes/manage/products/cache-helpers.js';
 
 function buildAIPurchaseOrderEventCommandId(sessionId) {
   const normalized = String(sessionId || '').trim();
   return normalized ? `ai_purchase_order:${normalized}` : `ai_purchase_order:${crypto.randomUUID()}`;
+}
+
+function buildAIProductEventCommandId(sessionId) {
+  const normalized = String(sessionId || '').trim();
+  return normalized ? `ai_product:${normalized}` : `ai_product:${crypto.randomUUID()}`;
+}
+
+function buildAIOrderEventCommandId(sessionId) {
+  const normalized = String(sessionId || '').trim();
+  return normalized ? `ai_order:${normalized}` : `ai_order:${crypto.randomUUID()}`;
 }
 
 function isDuplicateOutboxIdempotencyError(error) {
@@ -112,6 +123,64 @@ export async function publishPurchaseOrderCreatedFromAI(
   }));
 }
 
+export async function publishProductCreatedFromAI(
+  { c, env } = {},
+  { created, sessionId = null } = {}
+) {
+  if (!env?.DB || !created?.id) return;
+
+  try {
+    await scheduleProductCacheInvalidation(c, {
+      eventType: 'product_created',
+      productIds: [created.id],
+    }, {
+      commandId: buildAIProductEventCommandId(sessionId),
+      correlationId: buildAIProductEventCommandId(sessionId),
+    });
+  } catch (error) {
+    if (!isDuplicateOutboxIdempotencyError(error)) {
+      throw error;
+    }
+  }
+}
+
+export async function publishOrderCreatedFromAI(
+  { c, env, user } = {},
+  { created, salespersonId = null, sessionId = null } = {}
+) {
+  if (!env?.DB || !created?.id) return;
+
+  const publisher = new DomainOutboxPublisher(env.DB);
+  try {
+    await publisher.publish([
+      {
+        event_type: 'order_created_by_admin',
+        aggregate_type: 'order',
+        aggregate_id: created.id,
+        payload: {
+          order_id: created.id,
+          order_no: created.orderNo || null,
+          salesperson_id: salespersonId,
+          actor_name: user?.name || user?.id || 'AI',
+        },
+      },
+    ], {
+      commandId: buildAIOrderEventCommandId(sessionId),
+      correlationId: buildAIOrderEventCommandId(sessionId),
+    });
+  } catch (error) {
+    if (!isDuplicateOutboxIdempotencyError(error)) {
+      throw error;
+    }
+  }
+
+  c?.executionCtx?.waitUntil?.(runOutboxPoller({
+    env,
+    requestUrl: c?.req?.url || 'ai://action',
+    workerId: `order_created_by_admin:${created.id}:ai`,
+  }));
+}
+
 export function createActionOrchestrator({ c, env, user, createManagedOrder, createManagedProduct }) {
   const customerRepo = new CustomerRepository(env.DB);
   const productRepo = new ProductRepository(env.DB);
@@ -134,10 +203,14 @@ export function createActionOrchestrator({ c, env, user, createManagedOrder, cre
       purchaseOrderService,
       salespersonRepo,
       orderService: {
-        create: (payload) => createManagedOrder(c, payload, user),
+        create: (payload) => createManagedOrder(c, payload, user, {
+          skipOrderCreatedEvent: true,
+        }),
       },
       productService: {
-        create: (payload) => createManagedProduct(c, payload),
+        create: (payload) => createManagedProduct(c, payload, {
+          skipCacheInvalidation: true,
+        }),
       },
     }),
     slotResolvers: {
@@ -160,6 +233,10 @@ export function createAIActionService(deps = {}) {
   const createOrchestrator = deps.createActionOrchestrator || createActionOrchestrator;
   const publishPurchaseOrderCreated =
     deps.publishPurchaseOrderCreated || publishPurchaseOrderCreatedFromAI;
+  const publishProductCreated =
+    deps.publishProductCreated || publishProductCreatedFromAI;
+  const publishOrderCreated =
+    deps.publishOrderCreated || publishOrderCreatedFromAI;
   const createSessionStore =
     deps.createSessionStore || ((actionContext = {}) => (
       actionContext?.env?.DB ? new D1ActionSessionStore(actionContext.env.DB) : null
@@ -192,6 +269,43 @@ export function createAIActionService(deps = {}) {
       ) {
         await publishPurchaseOrderCreated(actionContext || {}, {
           ...actionResult.payload.purchaseOrderCreated,
+          sessionId: actionResult.payload.sessionId || null,
+        });
+        const sessionStore = createSessionStore(actionContext || {});
+        if (actionResult.payload?.sessionId && sessionStore?.updateSession) {
+          await sessionStore.updateSession(actionResult.payload.sessionId, {
+            status: 'completed',
+          });
+        }
+      }
+
+      if (
+        actionResult.kind === 'action_submitted'
+        && actionResult.payload?.entityType === 'product'
+        && actionResult.payload?.productCreated
+      ) {
+        await publishProductCreated(actionContext || {}, {
+          ...actionResult.payload.productCreated,
+          sessionId: actionResult.payload.sessionId || null,
+        });
+        const sessionStore = createSessionStore(actionContext || {});
+        if (actionResult.payload?.sessionId && sessionStore?.updateSession) {
+          await sessionStore.updateSession(actionResult.payload.sessionId, {
+            status: 'completed',
+          });
+        }
+      }
+
+      if (
+        actionResult.kind === 'action_submitted'
+        && actionResult.payload?.entityType === 'order'
+        && actionResult.payload?.orderCreated
+      ) {
+        await publishOrderCreated({
+          ...(actionContext || {}),
+          user,
+        }, {
+          ...actionResult.payload.orderCreated,
           sessionId: actionResult.payload.sessionId || null,
         });
         const sessionStore = createSessionStore(actionContext || {});

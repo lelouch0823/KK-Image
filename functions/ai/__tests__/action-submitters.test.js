@@ -33,7 +33,40 @@ describe('AI action submitters', () => {
     });
 
     expect(productService.create).toHaveBeenCalled();
-    expect(result).toEqual(expect.objectContaining({ id: 'prod-1', label: 'Sneaker' }));
+    expect(result).toEqual(expect.objectContaining({
+      id: 'prod-1',
+      label: 'Sneaker',
+      productCreated: {
+        created: expect.objectContaining({ id: 'prod-1', name: 'Sneaker' }),
+      },
+    }));
+  });
+
+  it('includes order side-effect metadata in create_order results', async () => {
+    const orderService = {
+      create: vi.fn(async () => ({ id: 'ord-1', orderNo: 'ORD-1' })),
+    };
+    const submitters = createActionSubmitters({ orderService });
+
+    const result = await submitters.create_order({
+      productName: 'Classic Runner',
+      salespersonId: 'sp-1',
+      quantity: 2,
+    });
+
+    expect(orderService.create).toHaveBeenCalledWith(expect.objectContaining({
+      productName: 'Classic Runner',
+      salespersonId: 'sp-1',
+      quantity: 2,
+    }));
+    expect(result).toEqual(expect.objectContaining({
+      id: 'ord-1',
+      label: 'ORD-1',
+      orderCreated: {
+        created: expect.objectContaining({ id: 'ord-1', orderNo: 'ORD-1' }),
+        salespersonId: 'sp-1',
+      },
+    }));
   });
 
   it('routes purchase-order from-orders mode to the correct submitter dependency', async () => {
