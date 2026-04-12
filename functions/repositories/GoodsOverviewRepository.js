@@ -57,6 +57,7 @@ export class GoodsOverviewRepository {
       arrivedQty: row.arrived_qty,
       totalDemand: row.total_demand,
       orderCount: row.order_count,
+      orderIds: row.order_ids ? String(row.order_ids).split(',').filter(Boolean) : [],
       shortage: projectInventoryGap(row.total_demand, row.available ?? row.stock_quantity),
       // 成本数据 (来自采购单明细聚合)
       avgUnitCost: Math.round(avgUnitCost * 100) / 100,
@@ -162,6 +163,7 @@ export class GoodsOverviewRepository {
             COALESCE(SUM(CASE WHEN o.status = 'arrived' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as arrived_qty,
             COALESCE(SUM(${REMAINING_DEMAND_EXPR}), 0) as total_demand,
             COUNT(DISTINCT o.id) as order_count,
+            GROUP_CONCAT(DISTINCT CASE WHEN o.status = 'confirmed' THEN o.id END) as order_ids,
             COALESCE(SUM(${REMAINING_DEMAND_EXPR}), 0) - COALESCE(MAX(COALESCE(ib.available, pv.stock_quantity, 0)), 0) as shortage,
             COALESCE(pc.avg_unit_cost, 0) as avg_unit_cost,
             COALESCE(pc.avg_freight, 0) as avg_freight,

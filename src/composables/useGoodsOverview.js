@@ -175,6 +175,13 @@ export function useGoodsOverview() {
 
     const isCreatingPO = ref(false);
 
+    const canRetryHistoricalOrders = (message = '') => {
+        const normalized = String(message || '');
+        return normalized.includes('仅可采购 active 变体')
+            || normalized.includes('变体不存在')
+            || normalized.includes('variant_id 与 product_id 不匹配');
+    };
+
     /**
      * 从选中变体创建采购单
      */
@@ -208,6 +215,28 @@ export function useGoodsOverview() {
             if (json.success) {
                 clearSelection();
                 return { success: true, data: json.data };
+            }
+
+            const fallbackOrderIds = [...new Set(
+                selectedItems.value.flatMap((item) => (
+                    Array.isArray(item?.orderIds) ? item.orderIds.filter(Boolean) : []
+                ))
+            )];
+            if (canRetryHistoricalOrders(json.error) && fallbackOrderIds.length > 0) {
+                const retryRes = await authFetch(API.MANAGE_PURCHASE_ORDER_FROM_ORDERS, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        order_ids: fallbackOrderIds,
+                        allocation_method: 'by_quantity',
+                    }),
+                });
+                const retryJson = await retryRes.json();
+                if (retryJson.success) {
+                    clearSelection();
+                    return { success: true, data: retryJson.data };
+                }
+                return { success: false, error: retryJson.error || '生成失败' };
             }
             return { success: false, error: json.error || '生成失败' };
         } catch (e) {

@@ -36,6 +36,7 @@ describe('GoodsOverviewRepository variant-level', () => {
       arrived_qty: 0,
       total_demand: 2,
       order_count: 1,
+      order_ids: 'o-1',
       shortage: -1,
       avg_unit_cost: 1,
       avg_freight: 0.2,
@@ -58,6 +59,7 @@ describe('GoodsOverviewRepository variant-level', () => {
     expect(list[0].variantCode).toBe('V0001');
     expect(list[0].stockQuantity).toBe(7);
     expect(list[0].shortage).toBe(-1);
+    expect(list[0].orderIds).toEqual(['o-1']);
   });
 
   it('builds summary from order_lines remaining demand instead of order headers', async () => {
@@ -239,6 +241,7 @@ describe('GoodsOverviewRepository variant-level', () => {
       arrived_qty: 0,
       total_demand: 4,
       order_count: 1,
+      order_ids: 'o-deleted',
       shortage: 4,
       avg_unit_cost: 0,
       avg_freight: 0,
@@ -261,6 +264,7 @@ describe('GoodsOverviewRepository variant-level', () => {
       brand: 'Snapshot Brand',
       variantLabel: 'Black / Canvas / L',
       images: ['snapshot-image'],
+      orderIds: ['o-deleted'],
       shortage: 4,
     }));
   });

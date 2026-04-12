@@ -15,6 +15,7 @@ vi.mock('@/utils/constants', () => ({
     MANAGE_GOODS_OVERVIEW_SUMMARY: '/api/manage/goods-overview/summary',
     MANAGE_GOODS_OVERVIEW_EXPORT: '/api/manage/goods-overview/export',
     MANAGE_PURCHASE_ORDERS: '/api/manage/purchase-orders',
+    MANAGE_PURCHASE_ORDER_FROM_ORDERS: '/api/manage/purchase-orders/from-orders',
   },
 }));
 
@@ -202,6 +203,57 @@ describe('useGoodsOverview composable', () => {
         quantity: 5,
       }),
     ]);
+  });
+
+  it('retries through create-from-orders when historical-demand items fail manual PO validation', async () => {
+    mockAuthFetch
+      .mockResolvedValueOnce({
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: {
+              items: [{
+                id: 'var-archived',
+                variantId: 'var-archived',
+                productId: 'prod-1',
+                name: 'Archived Tee',
+                sku: 'TEE-ARCHIVED',
+                shortage: 5,
+                avgUnitCost: 8.8,
+                orderIds: ['o-2', 'o-1', 'o-2'],
+              }],
+              filters: { categories: [], brands: [] },
+            },
+          }),
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({ success: false, error: '仅可采购 active 变体' }),
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({ success: true, data: { id: 'po-2' } }),
+      });
+
+    const { loadData, toggleSelect, items, createPOFromSelected } = useGoodsOverview();
+    await loadData();
+    toggleSelect(items.value[0]);
+    const result = await createPOFromSelected();
+
+    expect(result.success).toBe(true);
+    expect(mockAuthFetch).toHaveBeenNthCalledWith(
+      2,
+      API.MANAGE_PURCHASE_ORDERS,
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(mockAuthFetch).toHaveBeenNthCalledWith(
+      3,
+      API.MANAGE_PURCHASE_ORDER_FROM_ORDERS,
+      expect.objectContaining({ method: 'POST' }),
+    );
+
+    const [, retryRequest] = mockAuthFetch.mock.calls[2];
+    const retryPayload = JSON.parse(retryRequest.body);
+    expect(retryPayload.order_ids).toEqual(['o-2', 'o-1']);
+    expect(retryPayload.allocation_method).toBe('by_quantity');
   });
 
   it('builds export url from current filters', () => {
