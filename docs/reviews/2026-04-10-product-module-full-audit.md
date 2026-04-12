@@ -3502,3 +3502,15 @@
   - `src/composables/__tests__/useGoodsOverview.test.js`
   - `functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js`
   - `functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
+
+### 2026-04-12 轮次 304
+
+- 继续深审商品 AI 消费链路，新增 1 个中高风险问题:
+  - [functions/utils/ai-tool-executor.js](/home/bjw/Code/KK-Image/functions/utils/ai-tool-executor.js) 修复前 `searchVariants` 默认只给 AI 返回 `active` 规格，但 `searchProducts` 默认不会限制商品状态，`getProductDetail` 还会把指定商品下的全部规格原样带给模型，包括 `archived` 规格。结果是 AI 很容易在“先搜商品、再读商品详情”的链路里读到归档商品或归档规格，并继续基于这些失效目录给出 SKU、库存、推荐或采购判断，和管理端商品列表、导出、下单链路的 active 口径发生漂移。
+- 已完成本轮修复:
+  - `searchProducts` 现在默认按 `active` 商品目录查询，和 `searchVariants` 的默认行为保持一致；只有显式传入别的状态时，才会主动放宽到对应目录。
+  - `getProductDetail` 现在只向 AI 暴露 `active` 规格，避免模型在商品详情里重新读到已经归档的 SKU 组合；规格标签仍然保留，方便 AI 正常做库存和组合分析。
+  - 补齐 AI 工具执行器回归测试，显式锁定“商品搜索默认 active、商品详情不再混入 archived 规格”的行为。
+- 增量回归:
+  - `functions/utils/__tests__/ai-tool-executor.test.js`
+  - `functions/utils/__tests__/ai-tool-executor.canonicalization.test.js`
