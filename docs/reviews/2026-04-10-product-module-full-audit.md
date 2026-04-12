@@ -3211,3 +3211,16 @@
   - `functions/repositories/__tests__/product-dimensions.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/variant-dimensions-routes.test.js`
 - 对应修复提交: `2de675d3 fix: prevent duplicate product dimension names`
+
+### 2026-04-12 轮次 284
+
+- 继续深审商品维度状态机，新增 1 个中高风险问题:
+  - [functions/repositories/ProductDimensionRepository.js](/home/bjw/Code/KK-Image/functions/repositories/ProductDimensionRepository.js) 修复前 `archiveDimension()` 只把维度本身标记成 `archived`，不会级联归档其 `product_dimension_values`；同时 `restoreValue()` 也不校验父维度状态。结果就是系统可以写出“维度已归档但 value 仍是 active”，甚至还能把归档维度下的 value 单独恢复成 active。这会把商品维度树写成父子状态冲突，影响维度管理、变体映射和后续恢复操作。
+- 已完成本轮修复:
+  - `archiveDimension()` 现在会连同该维度下所有 active value 一起归档，保证维度与 value 状态一致。
+  - `restoreValue()` 现在会显式校验父维度状态；如果维度本身已经归档，会拒绝恢复子 value，避免继续写出“子 active / 父 archived”的非法状态。
+  - 同步补齐仓储级与路由级回归测试，锁定“archive cascades values”“restore under archived dimension rejects with 400”的行为。
+- 增量回归:
+  - `functions/repositories/__tests__/product-dimensions.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-dimensions-routes.test.js`
+- 对应修复提交: `bf8d10c4 fix: align archived dimension value states`
