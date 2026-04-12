@@ -3476,3 +3476,16 @@
   - `functions/repositories/__tests__/product-spu.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/export-route.test.js`
   - `src/components/product/__tests__/ProductExportModal.filters.test.js`
+
+### 2026-04-12 轮次 302
+
+- 继续深审商品导出链路，新增 1 个中高风险问题:
+  - [functions/lib/hono/routes/manage/products/export.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/export.js)、[src/components/product/ProductExportModal.vue](/home/bjw/Code/KK-Image/src/components/product/ProductExportModal.vue) 和 [src/components/product/export/export-utils.js](/home/bjw/Code/KK-Image/src/components/product/export/export-utils.js) 修复前虽然商品列表和商品层聚合已经按当前筛选条件筛掉了归档/缺货商品，但“当前筛选结果导出”在真正展开变体行时仍会把商品详情里的全部规格原样导出，导致归档规格、缺货规格重新混入 CSV / Excel。结果就是界面上看到的是“active + 有库存”的筛选结果，导出的却是另一套更宽的规格口径，前后端都存在同一个语义漂移。
+- 已完成本轮修复:
+  - `flattenProductsToVariantRows()` 现在会接收规范化后的导出筛选条件，并在变体行展开阶段继续按 `status` / `hasStock` 过滤规格，避免商品级筛选后又在导出阶段重新把无效规格放回来。
+  - 管理端导出路由和前端导出弹窗现在都统一把当前导出筛选条件继续传入规格展开层，后端 CSV 导出与前端本地生成文件的行为保持一致，不再出现两条链路各自漂移。
+  - 补齐后端导出回归和前端导出弹窗回归，显式锁定“filtered export 只包含当前筛选口径下仍然有效的规格行”的行为；前端测试同时适配了当前 jsdom Blob 读取方式，恢复 CSV 内容断言稳定性。
+- 增量回归:
+  - `functions/repositories/__tests__/product-spu.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/export-route.test.js`
+  - `src/components/product/__tests__/ProductExportModal.filters.test.js`
