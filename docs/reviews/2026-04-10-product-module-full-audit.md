@@ -3373,3 +3373,18 @@
   - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
   - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
   - `functions/api/utils/__tests__/validation.test.js`
+
+### 2026-04-12 轮次 295
+
+- 继续深审空间读取侧的商品投影链路，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/spaces/transformers.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/spaces/transformers.js) 修复前 `projectSpaceTemplateData()` 只要看到空间带了 `product_id`，就会无条件用当前商品/变体 JOIN 回来的实时字段覆盖空间自己的 `template_data`。这意味着一旦旧空间里残留了“已归档商品/已归档变体”绑定，公开空间页、销售端空间页和管理端空间详情都会继续把失效商品当成 live catalog 去展示，甚至把最新 SKU、材质、图片重新投影出来，直接冲掉原本应该保留的空间快照。
+- 已完成本轮修复:
+  - `projectSpaceTemplateData()` 现在只有在绑定商品/变体仍处于 `active` 时才会投影 live catalog 字段；如果绑定目标已经失效，则退回空间自己保存的 `template_data` 快照，不再继续把归档商品实时暴露出去。
+  - `SpaceRepository` 以及公开空间 API 查询现在都会把 `p.status` / `pv.status` 一并选出来，保证共享 transformer 在管理端、销售端和公开访问链路都能拿到绑定状态，而不是只在局部调用里“理论支持”。
+  - 补齐 transformer 单测和公开空间 API 回归，锁定“归档绑定回退静态快照”的行为，并校验公开空间 SQL 真的已经把状态字段带出。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/spaces/__tests__/transformers.test.js`
+  - `functions/api/space/__tests__/public-space-access.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
+  - `functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js`
+  - `functions/api/utils/__tests__/validation.test.js`
