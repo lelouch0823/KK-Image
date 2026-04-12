@@ -356,6 +356,64 @@ describe('public space access api', () => {
     ]);
   });
 
+  it('guards public space variant joins by product ownership to avoid cross-product projection', async () => {
+    const first = vi.fn().mockResolvedValue({
+      ...baseSpaceRecord,
+      password: null,
+      template: 'product',
+      product_id: 'product-1',
+      variant_id: 'variant-foreign',
+      p_sku: 'SPU-001',
+      p_status: 'active',
+      pv_sku: null,
+      pv_status: null,
+      p_price: 99,
+      p_specs: '{}',
+      pv_options_values: null,
+      p_images: '["product-main.jpg"]',
+      display_image_id: null,
+    });
+    const filesAll = vi.fn().mockResolvedValue({ results: [] });
+    const subspacesAll = vi.fn().mockResolvedValue({ results: [] });
+    const batch = vi.fn().mockResolvedValue([]);
+
+    const prepare = vi.fn((sql) => {
+      if (sql.includes('WHERE s.share_token = ?')) {
+        expect(sql).toContain('LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id');
+        return { bind: () => ({ first }) };
+      }
+      if (sql.includes('FROM space_files sf')) {
+        return { bind: () => ({ all: filesAll }) };
+      }
+      if (sql.includes('WHERE s.parent_id = ? AND s.is_public = 1')) {
+        expect(sql).toContain('LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id');
+        return { bind: () => ({ all: subspacesAll }) };
+      }
+      if (sql.includes('INSERT INTO space_access_logs')) {
+        return { bind: (...args) => ({ sql, args }) };
+      }
+      if (sql.includes('UPDATE spaces SET view_count = view_count + 1')) {
+        return { bind: (...args) => ({ sql, args }) };
+      }
+      throw new Error(`Unexpected SQL: ${sql}`);
+    });
+
+    const response = await onRequestGet({
+      env: { DB: { prepare, batch } },
+      params: { token: 'share-token' },
+      request: new Request('http://localhost/api/space/share-token'),
+    });
+
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    expect(payload.data.templateData).toEqual(
+      expect.objectContaining({
+        sku: 'SPU-001',
+        images: ['product-main.jpg'],
+      })
+    );
+  });
+
   it('excludes expired public subspaces from collection payloads', async () => {
     const first = vi.fn().mockResolvedValue({
       ...baseSpaceRecord,

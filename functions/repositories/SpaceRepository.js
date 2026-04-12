@@ -66,7 +66,7 @@ export class SpaceRepository {
         return `
         LEFT JOIN files f ON s.cover_file_id = f.id
         LEFT JOIN products p ON s.product_id = p.id
-        LEFT JOIN product_variants pv ON s.variant_id = pv.id
+        LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
       `;
     }
 
@@ -131,7 +131,7 @@ export class SpaceRepository {
               ${this._productProjectionSQL()}
             FROM spaces s
             LEFT JOIN products p ON s.product_id = p.id
-            LEFT JOIN product_variants pv ON s.variant_id = pv.id
+            LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
             WHERE s.id = ?
         `).bind(id).first();
     }
@@ -482,7 +482,7 @@ export class SpaceRepository {
             FROM spaces s
             LEFT JOIN files f ON s.cover_file_id = f.id
             LEFT JOIN products p ON s.product_id = p.id
-            LEFT JOIN product_variants pv ON s.variant_id = pv.id
+            LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
             WHERE s.parent_id IS NULL
               AND (
                s.share_mode = 'all'
@@ -511,7 +511,7 @@ export class SpaceRepository {
             FROM spaces s
             LEFT JOIN files f ON s.cover_file_id = f.id
             LEFT JOIN products p ON s.product_id = p.id
-            LEFT JOIN product_variants pv ON s.variant_id = pv.id
+            LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
             WHERE s.id = ?
               AND (s.share_mode = 'all'
                    OR (s.share_mode = 'selected' AND EXISTS (

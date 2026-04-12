@@ -65,7 +65,7 @@ async function getSpaceData(space, env, { includePrivateSubspaces = false } = {}
        FROM spaces s
        LEFT JOIN files f ON s.cover_file_id = f.id
        LEFT JOIN products p ON s.product_id = p.id
-       LEFT JOIN product_variants pv ON s.variant_id = pv.id
+       LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
        WHERE s.parent_id = ?${subspacesVisibilityFilter}
        ORDER BY s.sort_order ASC, s.name ASC`
     )
@@ -211,7 +211,7 @@ export async function onRequestGet(context) {
             ) as display_image_id
         FROM spaces s
         LEFT JOIN products p ON s.product_id = p.id
-        LEFT JOIN product_variants pv ON s.variant_id = pv.id
+        LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
         WHERE s.share_token = ?
     `).bind(shareToken).first();
 
@@ -291,7 +291,7 @@ export async function onRequestPost(context) {
             ) as display_image_id
         FROM spaces s
         LEFT JOIN products p ON s.product_id = p.id
-        LEFT JOIN product_variants pv ON s.variant_id = pv.id
+        LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
         WHERE s.share_token = ?
     `).bind(shareToken).first();
 
