@@ -299,6 +299,129 @@ describe('PurchaseOrderService variant dimension', () => {
           pre_order_id: 'o-1',
           quantity: 2,
           unit_cost: 11,
+          snapshot_name: 'Tee',
+          snapshot_sku: 'TEE-YELLOW-S',
+          snapshot_specs: JSON.stringify({
+            brand: '',
+            size: '',
+            color: '',
+            material: '',
+            series: '',
+          }),
+          snapshot_image: null,
+          product_name: 'Tee',
+          product_brand: '',
+          variant_sku: 'TEE-YELLOW-S',
+          product_images: [],
+          variant_options: {},
+        },
+      ],
+      receipts: [],
+    });
+  });
+
+  it('createFromOrders carries historical snapshot fields into inserted items and fallback shells', async () => {
+    const stmt = {
+      bind: vi.fn(() => stmt),
+      all: vi.fn(async () => ({
+        results: [{
+          id: 'o-1',
+          order_no: 'SO-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          quantity: 2,
+          name: 'Live Tee',
+          sku: 'LIVE-SKU',
+          cost_price: 11,
+          current_data: JSON.stringify({
+            name: 'Current Tee',
+            brand: 'Current Brand',
+            sku: 'CURRENT-SKU',
+            size: 'XL',
+            color: 'Blue',
+            material: 'Canvas',
+            series: 'History Line',
+          }),
+          original_data: JSON.stringify({
+            name: 'Original Tee',
+            brand: 'Original Brand',
+            sku: 'ORIGINAL-SKU',
+          }),
+          snapshot_name: 'Snapshot Tee',
+          snapshot_sku: 'SNAPSHOT-SKU',
+          snapshot_specs: JSON.stringify({
+            brand: 'Snapshot Brand',
+            size: 'L',
+            color: 'Black',
+            material: 'Leather',
+            series: 'Archive Line',
+          }),
+          snapshot_image: 'snapshot-image',
+        }],
+      })),
+    };
+    const db = { prepare: vi.fn(() => stmt) };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      create: vi.fn(async () => ({ id: 'po-1', po_no: 'PO-1', status: 'draft' })),
+      addItems: vi.fn(async () => []),
+      findById: vi.fn(async () => null),
+      findActiveBindingsByPreOrderIds: vi.fn(async () => []),
+      deleteIfEmptyDraft: vi.fn(async () => true),
+    };
+
+    const result = await service.createFromOrders(['o-1']);
+    const insertedItems = service.repo.addItems.mock.calls[0][1];
+    const querySql = db.prepare.mock.calls[0][0];
+
+    expect(querySql).toContain('o.current_data');
+    expect(querySql).toContain('o.original_data');
+    expect(querySql).toContain('snapshot_name');
+    expect(insertedItems).toEqual([
+      expect.objectContaining({
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        pre_order_id: 'o-1',
+        quantity: 2,
+        unit_cost: 11,
+        snapshot_name: 'Snapshot Tee',
+        snapshot_sku: 'SNAPSHOT-SKU',
+        snapshot_specs: JSON.stringify({
+          brand: 'Snapshot Brand',
+          size: 'L',
+          color: 'Black',
+          material: 'Leather',
+          series: 'Archive Line',
+        }),
+        snapshot_image: 'snapshot-image',
+      }),
+    ]);
+    expect(result).toEqual({
+      id: 'po-1',
+      po_no: 'PO-1',
+      status: 'draft',
+      items: [
+        {
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          pre_order_id: 'o-1',
+          quantity: 2,
+          unit_cost: 11,
+          snapshot_name: 'Snapshot Tee',
+          snapshot_sku: 'SNAPSHOT-SKU',
+          snapshot_specs: JSON.stringify({
+            brand: 'Snapshot Brand',
+            size: 'L',
+            color: 'Black',
+            material: 'Leather',
+            series: 'Archive Line',
+          }),
+          snapshot_image: 'snapshot-image',
+          product_name: 'Snapshot Tee',
+          variant_sku: 'SNAPSHOT-SKU',
+          product_brand: 'Snapshot Brand',
+          product_images: ['snapshot-image'],
+          variant_options: {},
         },
       ],
       receipts: [],
@@ -660,7 +783,17 @@ describe('PurchaseOrderService variant dimension', () => {
       id: 'po-1',
       po_no: 'PO-1',
       status: 'draft',
-      items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 11 }],
+      items: [{
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        quantity: 2,
+        unit_cost: 11,
+        product_name: '',
+        product_brand: '',
+        variant_sku: '',
+        product_images: [],
+        variant_options: {},
+      }],
       receipts: [],
     });
   });

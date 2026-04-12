@@ -72,8 +72,71 @@ function requireCompletedPurchaseOrderForAllocation(po) {
 function buildPurchaseOrderShell(po = {}, items = []) {
   return {
     ...po,
-    items: Array.isArray(items) ? items.map((item) => ({ ...item })) : [],
+    items: Array.isArray(items)
+      ? items.map((item) => {
+        const snapshotSpecs = parseJsonObject(item.snapshot_specs, {});
+        return {
+          ...item,
+          product_name: item.snapshot_name || item.product_name || '',
+          product_brand: snapshotSpecs.brand || item.product_brand || '',
+          variant_sku: item.snapshot_sku || item.variant_sku || '',
+          product_images: item.snapshot_image
+            ? [item.snapshot_image]
+            : parseJsonArray(item.product_images, []),
+          variant_options: parseJsonObject(item.variant_options, {}),
+        };
+      })
+      : [],
     receipts: [],
+  };
+}
+
+function normalizePurchaseOrderSnapshotSpecs(rawSnapshotSpecs = {}) {
+  const snapshotSpecs = parseJsonObject(rawSnapshotSpecs, {});
+  return JSON.stringify({
+    brand: snapshotSpecs.brand || '',
+    size: snapshotSpecs.size || '',
+    color: snapshotSpecs.color || '',
+    material: snapshotSpecs.material || '',
+    series: snapshotSpecs.series || '',
+  });
+}
+
+function buildPurchaseOrderSnapshotSpecsFromData(data = {}) {
+  if (!data || typeof data !== 'object') return {};
+
+  return {
+    brand: data.brand || '',
+    size: data.size || '',
+    color: data.color || '',
+    material: data.material || '',
+    series: data.series || '',
+  };
+}
+
+function resolveCreateFromOrdersSnapshot(order = {}) {
+  const currentData = parseJsonObject(order.current_data, {});
+  const originalData = parseJsonObject(order.original_data, {});
+  const persistedSnapshotSpecs = parseJsonObject(order.snapshot_specs, {});
+  const mergedSnapshotSpecs = {
+    ...buildPurchaseOrderSnapshotSpecsFromData(originalData),
+    ...buildPurchaseOrderSnapshotSpecsFromData(currentData),
+    ...persistedSnapshotSpecs,
+  };
+
+  return {
+    snapshot_name: order.snapshot_name || currentData.name || originalData.name || order.name || '',
+    snapshot_sku: order.snapshot_sku
+      || currentData.sku
+      || currentData.variant_sku
+      || currentData.spu
+      || originalData.sku
+      || originalData.variant_sku
+      || originalData.spu
+      || order.sku
+      || '',
+    snapshot_specs: normalizePurchaseOrderSnapshotSpecs(mergedSnapshotSpecs),
+    snapshot_image: order.snapshot_image || order.main_image_id || null,
   };
 }
 
@@ -486,11 +549,30 @@ export class PurchaseOrderService {
       const placeholders = orderIdChunk.map(() => '?').join(',');
       const { results } = await this.db.prepare(`
         SELECT o.id, o.order_no, o.product_id, o.variant_id, o.quantity,
+               o.current_data, o.original_data, o.main_image_id,
                p.name, pv.sku AS sku,
-               COALESCE(pv.cost_price, 0) AS cost_price
+               COALESCE(pv.cost_price, 0) AS cost_price,
+               order_line_snapshot.snapshot_name,
+               order_line_snapshot.snapshot_sku,
+               order_line_snapshot.snapshot_specs,
+               order_line_snapshot.snapshot_image
         FROM orders o
         LEFT JOIN products p ON o.product_id = p.id
         LEFT JOIN product_variants pv ON pv.id = o.variant_id
+        LEFT JOIN (
+          SELECT
+            order_id,
+            product_id,
+            variant_id,
+            MAX(snapshot_name) AS snapshot_name,
+            MAX(snapshot_sku) AS snapshot_sku,
+            MAX(snapshot_specs) AS snapshot_specs,
+            MAX(snapshot_image) AS snapshot_image
+          FROM order_lines
+          GROUP BY order_id, product_id, variant_id
+        ) order_line_snapshot ON order_line_snapshot.order_id = o.id
+          AND order_line_snapshot.product_id = o.product_id
+          AND order_line_snapshot.variant_id = o.variant_id
         WHERE o.id IN (${placeholders})
           AND o.status = 'confirmed'
           AND o.product_id IS NOT NULL
@@ -531,6 +613,7 @@ export class PurchaseOrderService {
       pre_order_id: order.id,
       quantity: order.quantity || 1,
       unit_cost: order.cost_price || 0,
+      ...resolveCreateFromOrdersSnapshot(order),
     }));
 
     try {
