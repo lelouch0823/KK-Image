@@ -356,10 +356,21 @@ export class ProductDimensionRepository {
         }
 
         const timestamp = now();
-        await this.db
-            .prepare("UPDATE product_dimensions SET status = 'archived', updated_at = ? WHERE id = ?")
-            .bind(timestamp, dimensionId)
-            .run();
+        const valueRows = await this.db
+            .prepare("SELECT id FROM product_dimension_values WHERE dimension_id = ? AND status = 'active'")
+            .bind(dimensionId)
+            .all();
+        const statements = [
+            this.db
+                .prepare("UPDATE product_dimensions SET status = 'archived', updated_at = ? WHERE id = ?")
+                .bind(timestamp, dimensionId),
+            ...(valueRows?.results || []).map((valueRow) =>
+                this.db
+                    .prepare("UPDATE product_dimension_values SET status = 'archived', updated_at = ? WHERE id = ?")
+                    .bind(timestamp, valueRow.id)
+            ),
+        ];
+        await executeBatchChunks(this.db, statements);
         return { ...row, status: ARCHIVED_STATUS, updated_at: timestamp };
     }
 
@@ -384,7 +395,7 @@ export class ProductDimensionRepository {
 
     async restoreValue(productId, valueId) {
         const row = await this.db
-            .prepare(`SELECT v.*, d.product_id
+            .prepare(`SELECT v.*, d.product_id, d.status AS dimension_status
                 FROM product_dimension_values v
                 JOIN product_dimensions d ON d.id = v.dimension_id
                 WHERE v.id = ? AND d.product_id = ?`)
@@ -392,6 +403,9 @@ export class ProductDimensionRepository {
             .first();
         if (!row) {
             throw new Error('value not found');
+        }
+        if (row.dimension_status === ARCHIVED_STATUS) {
+            throw new Error('cannot restore value for archived dimension');
         }
         const duplicateActiveRow = await this.db
             .prepare(`SELECT v.id

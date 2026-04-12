@@ -214,6 +214,54 @@ describe('ProductDimensionRepository', () => {
         );
     });
 
+    it('archiveDimension should cascade active values under the archived dimension', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.trim() === 'SELECT * FROM product_dimensions WHERE id = ? AND product_id = ?') {
+                stmt.first.mockResolvedValue({
+                    id: 'dim-color',
+                    product_id: 'prod-1',
+                    name: 'Color',
+                    status: 'active',
+                });
+            }
+            if (sql.includes('SELECT id FROM product_dimension_values WHERE dimension_id = ? AND status = \'active\'')) {
+                stmt.all.mockResolvedValue({
+                    results: [{ id: 'val-red' }, { id: 'val-blue' }],
+                });
+            }
+            return stmt;
+        });
+
+        await repo.archiveDimension('prod-1', 'dim-color');
+
+        expect(db.batch).toHaveBeenCalledTimes(1);
+        const statements = db.batch.mock.calls[0][0];
+        expect(statements.some((stmt) => stmt.sql.includes("UPDATE product_dimensions SET status = 'archived'"))).toBe(true);
+        expect(statements.filter((stmt) => stmt.sql.includes("UPDATE product_dimension_values SET status = 'archived'"))).toHaveLength(2);
+    });
+
+    it('restoreValue should reject values whose parent dimension is archived', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('SELECT v.*, d.product_id, d.status AS dimension_status')) {
+                stmt.first.mockResolvedValue({
+                    id: 'val-red',
+                    value: 'Red',
+                    dimension_id: 'dim-color',
+                    product_id: 'prod-1',
+                    dimension_status: 'archived',
+                    status: 'archived',
+                });
+            }
+            return stmt;
+        });
+
+        await expect(repo.restoreValue('prod-1', 'val-red')).rejects.toThrow(
+            'cannot restore value for archived dimension'
+        );
+    });
+
     it('restoreSnapshot chunks large snapshot writes into D1-safe sizes', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);

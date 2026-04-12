@@ -276,4 +276,21 @@ describe('variant dimensions routes', () => {
         expect(mockDimensionRepo.archiveVariantsByValue).toHaveBeenCalledWith('prod-1', 'val-red');
         expect(mockDimensionRepo.archiveValue).toHaveBeenCalledWith('prod-1', 'val-red');
     });
+
+    it('PATCH /:id/values/:valueId/restore rejects restoring values under archived dimensions', async () => {
+        mockDimensionRepo.restoreValue.mockRejectedValueOnce(new Error('cannot restore value for archived dimension'));
+
+        const app = createApp();
+        const res = await app.request(
+            'http://localhost/api/manage/products/prod-1/values/val-red/restore',
+            { method: 'PATCH' },
+            { DB: {} },
+            { waitUntil: vi.fn() }
+        );
+
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual(expect.objectContaining({
+            error: 'cannot restore value for archived dimension',
+        }));
+    });
 });
