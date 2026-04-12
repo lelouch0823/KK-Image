@@ -3542,3 +3542,15 @@
   - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
   - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
   - `src/components/product/__tests__/product-inventory-projection-consumers.test.js`
+
+### 2026-04-12 轮次 307
+
+- 继续深审商品绑定空间的编辑链路，新增 1 个中高风险问题:
+  - [src/components/SpaceProductEditor.vue](/home/bjw/Code/KK-Image/src/components/SpaceProductEditor.vue) 修复前在 `initData()` 里只要检测到 `data.productId && canManageProducts`，就会优先加载 live 商品并用其重新组装 `boundProduct`。这样一来，即使空间 API 已经明确返回 `bindingState = archived_variant / archived_product / missing_*`，只要商品主体还能加载，编辑器仍会用 live 商品卡片覆盖历史快照，导致上一轮刚补上的“失效绑定保留快照、显式提示风险”的业务闭环再次失效。
+- 已完成本轮修复:
+  - 空间编辑器现在会先以 `bindingState` 作为主契约：当绑定状态不是 `active / unbound` 时，直接回退到 `templateData` 快照构建绑定卡片，不再尝试用 live 商品覆盖失效绑定。
+  - 只有 `bindingState === active` 时才继续请求 live 商品并组装实时绑定信息，确保“正常绑定看 live，历史失效绑定看快照”的显示语义稳定一致。
+  - 补齐编辑器契约测试，显式锁定“规格已归档但商品主体仍可加载时，仍然优先展示快照绑定卡片”的行为。
+- 增量回归:
+  - `src/components/__tests__/SpaceProductEditor.contract.test.js`
+
