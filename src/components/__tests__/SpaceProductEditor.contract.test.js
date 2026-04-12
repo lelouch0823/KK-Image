@@ -238,6 +238,64 @@ describe('SpaceProductEditor contract', () => {
     expect(wrapper.text()).toContain('历史快照');
   });
 
+  it('prefers snapshot binding card when the bound variant is archived but product still loads', async () => {
+    mocks.loadSpace.mockResolvedValueOnce({
+      id: 'space-1',
+      name: 'Space Name',
+      description: 'Space Desc',
+      productId: 'prod-1',
+      variantId: 'var-2',
+      bindingState: 'archived_variant',
+      templateData: {
+        brand: 'Snapshot Brand',
+        series: 'Snapshot Series',
+        price: '88',
+        material: 'Leather',
+        sku: 'SNAP-SKU',
+        images: ['snapshot-image'],
+      },
+      files: [],
+    });
+    mocks.loadProduct.mockResolvedValueOnce({
+      id: 'prod-1',
+      name: 'Live Product',
+      brand: 'Live Brand',
+      series: 'Live Series',
+      images: ['live-image'],
+      variants: [
+        { id: 'var-2', sku: 'LIVE-SKU', status: 'archived' },
+      ],
+    });
+
+    const wrapper = mount(SpaceProductEditor, {
+      props: {
+        space: { id: 'space-1', shareToken: 'share-token' },
+      },
+      global: {
+        stubs: {
+          FileSelector: { template: '<div />' },
+          Tooltip: { template: '<div><slot /></div>' },
+          SpaceAnalytics: { template: '<div />' },
+          SpaceShareCard: { template: '<div />' },
+          SpaceVisibilitySelector: { template: '<div />' },
+          SpaceMediaGrid: { template: '<div />' },
+          ConfirmDialog: { template: '<div />' },
+          ProductBindingSection: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.vm.boundProduct).toMatchObject({
+      id: 'prod-1',
+      name: 'Snapshot Brand Snapshot Series',
+      sku: 'SNAP-SKU',
+      mainImage: '/file/snapshot-image',
+    });
+    expect(wrapper.text()).toContain('规格已归档');
+  });
+
   it('keeps core product fields readonly when a bound product exists without product permission', async () => {
     mocks.can.mockResolvedValueOnce(false);
 

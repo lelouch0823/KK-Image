@@ -523,27 +523,29 @@ const initData = async () => {
   if (data) {
     bindingState.value = String(data.bindingState || (data.productId ? 'active' : 'unbound'));
     if (data.productId && canManageProducts.value) {
-      const product = await loadProduct(data.productId);
-      if (requestId !== initDataRequestId) return;
-      if (product) {
-        const selectedVariant = (product.variants || []).find(v => v.id === data.variantId) || null;
-        const mainImage = resolveBoundProductMainImageSrc({
-          ...product,
-          selectedVariant,
-        });
-        boundProduct.value = {
-          id: product.id,
-          name: product.name,
-          sku: selectedVariant?.sku || '',
-          brand: product.brand,
-          series: product.series,
-          mainImage,
-          _images: product.images, // Store raw images for computed property
-        };
-      } else if (bindingState.value !== 'active' && bindingState.value !== 'unbound') {
+      if (bindingState.value !== 'active' && bindingState.value !== 'unbound') {
         boundProduct.value = buildFallbackBoundProduct(data);
       } else {
-        boundProduct.value = null;
+        const product = await loadProduct(data.productId);
+        if (requestId !== initDataRequestId) return;
+        if (product) {
+          const selectedVariant = (product.variants || []).find(v => v.id === data.variantId) || null;
+          const mainImage = resolveBoundProductMainImageSrc({
+            ...product,
+            selectedVariant,
+          });
+          boundProduct.value = {
+            id: product.id,
+            name: product.name,
+            sku: selectedVariant?.sku || '',
+            brand: product.brand,
+            series: product.series,
+            mainImage,
+            _images: product.images, // Store raw images for computed property
+          };
+        } else {
+          boundProduct.value = null;
+        }
       }
     } else {
       boundProduct.value = null;
