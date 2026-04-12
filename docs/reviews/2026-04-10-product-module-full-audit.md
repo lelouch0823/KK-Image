@@ -3718,3 +3718,15 @@
   - 补齐订单查询与采购页壳层回归测试，显式锁定“列表项摘要字段会被带入采购草稿”的行为。
 - 增量回归:
   - `pnpm vitest run functions/repositories/__tests__/order-queries.display-model.test.js src/views/__tests__/PurchaseOrders.detail-shell.test.js`
+
+### 2026-04-13 轮次 321
+
+- 继续深审商品关联采购的建单服务链路，新增 1 个中风险问题:
+  - [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 修复前在 `createFromOrders()` 里虽然已经允许 archived 历史订单继续采购，但服务层查询出来的仍只有 live `p.name / pv.sku / cost_price`，没有显式携带 `orders.current_data / original_data` 和 `order_lines.snapshot_*`。结果是只要采购单创建后立即读详情 miss，服务返回的 fallback shell 就会丢掉历史快照摘要；同时如果仓储层将来被 mock、短路或局部复用，采购项写入也会继续隐式依赖 live 商品字段，和前面已修好的历史订单展示口径再次分叉。
+- 已完成本轮修复:
+  - `createFromOrders()` 现在会显式查询 `orders.current_data / original_data / main_image_id`，并聚合 `order_lines.snapshot_name / snapshot_sku / snapshot_specs / snapshot_image`，不再只带 live 商品表字段出服务层。
+  - 新增服务层快照解析逻辑：优先继承订单行 `snapshot_*`，缺失时再回退 `current_data / original_data / live name+sku` 组装采购项快照，并在调用仓储 `addItems()` 前把 `snapshot_name / snapshot_sku / snapshot_specs / snapshot_image` 全量带齐。
+  - 采购单创建后的 fallback shell 现在也会同步投影 `product_name / product_brand / variant_sku / product_images`，避免读后写 miss 时 UI 拿到一个缺摘要的临时壳对象。
+  - 补齐采购服务回归测试，显式锁定“历史订单快照会一路透传到采购项写入和 fallback shell”的行为。
+- 增量回归:
+  - `pnpm vitest run functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
