@@ -139,6 +139,7 @@ import { getStatusBadgeClass } from '@/utils/status';
 import { generateRandomId } from '@/utils/common';
 import { resolveOrderQuantity } from '@/utils/order-display';
 import { resolveSelectedVariantMainImageSrc } from '@/utils/product-image.js';
+import { ORDER_BOUND_SNAPSHOT_FIELDS } from '@/utils/order-binding-fields.js';
 import { useSalesToken } from '@/composables/useSalesToken';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
@@ -217,7 +218,7 @@ const canEditQuantity = computed(() =>
 );
 
 // 绑定商品后锁定的字段
-const LOCKED_FIELDS = ['name', 'brand', 'series', 'sku'];
+const LOCKED_FIELDS = ORDER_BOUND_SNAPSHOT_FIELDS;
 const disabledFields = computed(() => {
   const fields = boundProduct.value ? [...LOCKED_FIELDS] : [];
   if (!canEditQuantity.value) fields.push('quantity');

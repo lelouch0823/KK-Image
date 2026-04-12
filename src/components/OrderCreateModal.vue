@@ -36,6 +36,7 @@
 import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { resolveSelectedVariantMainImageSrc } from '@/utils/product-image.js';
+import { ORDER_BOUND_SNAPSHOT_FIELDS } from '@/utils/order-binding-fields.js';
 import Modal from '@/components/ui/Modal.vue';
 import OrderForm from '@/components/order/OrderForm.vue';
 import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
@@ -60,7 +61,7 @@ const formData = ref({});
 const boundProductVariant = ref(null);
 
 // Locked fields when product is bound
-const LOCKED_FIELDS = ['name', 'brand', 'series', 'sku'];
+const LOCKED_FIELDS = ORDER_BOUND_SNAPSHOT_FIELDS;
 const disabledFields = computed(() => boundProduct.value ? LOCKED_FIELDS : []);
 
 const getProductMainImage = (product) => resolveSelectedVariantMainImageSrc(product);

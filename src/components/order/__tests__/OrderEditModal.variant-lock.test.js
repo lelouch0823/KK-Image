@@ -88,6 +88,19 @@ describe('OrderEditModal variant locking on edit', () => {
     expect(wrapper.get('[data-testid="bound-variant"]').text()).not.toBe('null');
   });
 
+  it('locks all snapshot-controlled spec fields for existing bound orders', () => {
+    const wrapper = mountModal(baseOrder);
+    const disabledFields = wrapper.get('[data-testid="disabled-fields"]').text();
+
+    expect(disabledFields).toContain('name');
+    expect(disabledFields).toContain('brand');
+    expect(disabledFields).toContain('series');
+    expect(disabledFields).toContain('sku');
+    expect(disabledFields).toContain('size');
+    expect(disabledFields).toContain('color');
+    expect(disabledFields).toContain('material');
+  });
+
   it('keeps unlocked mode when order is not bound to a variant', () => {
     const wrapper = mountModal({
       ...baseOrder,

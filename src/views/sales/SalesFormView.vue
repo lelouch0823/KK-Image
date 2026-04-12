@@ -54,6 +54,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import OrderForm from '@/components/order/OrderForm.vue';
 import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
+import { ORDER_BOUND_SNAPSHOT_FIELDS } from '@/utils/order-binding-fields.js';
 
 const router = useRouter();
 const route = useRoute();
@@ -72,7 +73,7 @@ const salesOrderEntry = computed(() => salesOrderMode.value || 'legacy');
 
 const submitProgress = ref({ step: '', current: 0, total: 0 });
 
-const LOCKED_FIELDS = ['name', 'brand', 'series', 'sku', 'size', 'color', 'material'];
+const LOCKED_FIELDS = ORDER_BOUND_SNAPSHOT_FIELDS;
 const COLOR_LABELS = ['color', '颜色', '顏色'];
 const MATERIAL_LABELS = ['material', '材质', '材質'];
 
