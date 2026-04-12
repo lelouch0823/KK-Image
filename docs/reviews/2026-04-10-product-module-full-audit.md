@@ -3695,3 +3695,14 @@
   - 补齐销售复制与编辑弹窗的字段级回归测试，显式锁定“当 currentData 稀疏但 originalData 仍保留快照时，前端二次消费链路仍会完整回退镜像字段”的行为。
 - 增量回归:
   - `pnpm vitest run src/views/__tests__/SalesDetailView.duplicate.test.js src/components/order/__tests__/OrderEditModal.variant-lock.test.js src/components/order/__tests__/OrderDetail.lines.test.js src/components/order/__tests__/OrderDetail.recovery.test.js`
+
+### 2026-04-13 轮次 319
+
+- 继续深审商品关联订单的详情/打印展示层，新增 1 个中风险问题:
+  - [src/components/order/OrderDetail.vue](/home/bjw/Code/KK-Image/src/components/order/OrderDetail.vue) 和 [src/components/order/OrderPrintView.vue](/home/bjw/Code/KK-Image/src/components/order/OrderPrintView.vue) 修复前虽然已经能回退历史商品名，但“当前信息”卡片和打印视图里的 `brand / series / sku / size / color / material / remark / deadline` 仍然只读 `currentData`。结果是只要历史订单这些字段只保留在 `originalData`，详情页仍会显示大片空白，打印单也会把历史规格摘要打空，形成展示层和前面刚修好的复制/编辑链路再次分叉。
+- 已完成本轮修复:
+  - 详情页当前信息卡和打印视图现在都统一复用 [src/utils/order-display.js](/home/bjw/Code/KK-Image/src/utils/order-display.js) 里的 snapshot field helper，不再各自直接读取 `currentData`。
+  - 历史订单即使只有 `originalData` 保留品牌、系列、规格、备注或交期，详情页和打印单也会继续展示这些历史镜像字段，不再把兼容场景误显示成空值。
+  - 补齐详情恢复测试与打印视图回归测试，显式锁定“当 currentData 稀疏时，详情页与打印视图仍会回退 originalData 快照字段”的行为。
+- 增量回归:
+  - `pnpm vitest run src/views/__tests__/SalesDetailView.duplicate.test.js src/components/order/__tests__/OrderEditModal.variant-lock.test.js src/components/order/__tests__/OrderDetail.recovery.test.js src/components/order/__tests__/OrderPrintView.snapshot-fields.test.js src/components/order/__tests__/OrderDetail.lines.test.js`
