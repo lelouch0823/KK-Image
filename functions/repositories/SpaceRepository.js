@@ -106,21 +106,25 @@ export class SpaceRepository {
      * @returns {Promise<Array>}
      */
     async findByProductId(productId) {
+        const now = Date.now();
         const { results } = await this.db
             .prepare(
                 `
         SELECT s.*,
           COALESCE(sf_count.file_count, 0) as file_count,
           f.storage_key as cover_storage_key,
+          ${this._productProjectionSQL()},
           ${this._variantImageProjectionSQL()}
         FROM spaces s
         ${this._spaceFileCountJoinSQL()}
         ${this._spaceProductJoinsSQL()}
         WHERE s.product_id = ?
+          AND s.parent_id IS NULL
+          AND ${this._nonExpiredSpaceWhereClause('s')}
         ORDER BY s.updated_at DESC
       `
             )
-            .bind(productId)
+            .bind(productId, now)
             .all();
         return results;
     }

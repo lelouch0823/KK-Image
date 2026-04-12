@@ -77,7 +77,10 @@ describe('SpaceRepository', () => {
             expect(mockPrepare).toHaveBeenCalledWith(
                 expect.stringContaining('WHERE s.product_id = ?')
             );
-            expect(mockBind).toHaveBeenCalledWith(productId);
+            expect(mockPrepare).toHaveBeenCalledWith(
+                expect.stringContaining('AND s.parent_id IS NULL')
+            );
+            expect(mockBind).toHaveBeenCalledWith(productId, expect.any(Number));
             expect(mockAll).toHaveBeenCalled();
 
             expect(result).toEqual(mockResults);
@@ -95,11 +98,17 @@ describe('SpaceRepository', () => {
             const productId = 'prod_none';
 
             // Execute
+            vi.useFakeTimers();
+            vi.setSystemTime(new Date('2026-04-12T00:00:00.000Z'));
             const result = await repo.findByProductId(productId);
+            const sql = mockPrepare.mock.calls[0][0];
+
+            expect(sql).toContain('s.expires_at IS NULL OR s.expires_at >= ?');
+            expect(mockBind).toHaveBeenCalledWith(productId, Date.now());
 
             // Assert
-            expect(mockBind).toHaveBeenCalledWith(productId);
             expect(result).toEqual([]);
+            vi.useRealTimers();
         });
 
         it('should throw an error if the database query fails', async () => {
@@ -130,6 +139,7 @@ describe('SpaceRepository', () => {
             const sql = mockPrepare.mock.calls[0][0];
             expect(sql).toContain('variant_images');
             expect(sql).toContain('COALESCE');
+            expect(sql).toContain('p.id as p_bound_id');
             expect(sql).toContain('display_image_id');
         });
     });

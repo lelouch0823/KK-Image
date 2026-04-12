@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   findAll: vi.fn(),
   findById: vi.fn(),
+  findByProductId: vi.fn(),
   update: vi.fn(),
   updateSharedSalespersons: vi.fn(),
   invalidateSpaceCaches: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock('../../../../../repositories/SpaceRepository.js', () => ({
     create: mocks.create,
     findAll: mocks.findAll,
     findById: mocks.findById,
+    findByProductId: mocks.findByProductId,
     update: mocks.update,
     updateSharedSalespersons: mocks.updateSharedSalespersons,
   })),
@@ -89,6 +91,7 @@ describe('manage spaces crud validation', () => {
       product_id: null,
       variant_id: null,
     });
+    mocks.findByProductId.mockResolvedValue([]);
     mocks.update.mockResolvedValue({
       id: 'sp-1',
       share_token: 'token-1',
@@ -347,6 +350,45 @@ describe('manage spaces crud validation', () => {
       })
     );
     expect(mocks.updateSharedSalespersons).toHaveBeenCalledWith(expect.any(String), ['sp-a', 'sp-b']);
+  });
+
+  it('returns product spaces with active binding metadata', async () => {
+    mocks.findByProductId.mockResolvedValueOnce([
+      {
+        id: 'space-parent-1',
+        name: '顶级空间',
+        parent_id: null,
+        is_public: 1,
+        share_mode: 'all',
+        file_count: 1,
+        view_count: 9,
+        product_id: 'p-1',
+        variant_id: 'v-1',
+        p_bound_id: 'p-1',
+        pv_bound_id: 'v-1',
+        p_status: 'active',
+        pv_status: 'active',
+      },
+    ]);
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/spaces/product/p-1',
+      { method: 'GET' },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(mocks.findByProductId).toHaveBeenCalledWith('p-1');
+    expect(body.data).toEqual([
+      expect.objectContaining({
+        id: 'space-parent-1',
+        bindingState: 'active',
+        bindingUsesSnapshot: false,
+      }),
+    ]);
   });
 
   it('excludes subspaces from the top-level spaces list', async () => {
