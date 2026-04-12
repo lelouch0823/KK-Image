@@ -3566,3 +3566,15 @@
   - `functions/lib/hono/routes/manage/__tests__/order-detail-routes.test.js`
   - `functions/lib/hono/routes/manage/orders/__tests__/detail-update-demand-sync.test.js`
 
+### 2026-04-12 轮次 309
+
+- 继续深审商品关联销售下单链路，新增 1 个中高风险问题:
+  - [functions/lib/hono/routes/sales/orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/sales/orders.js) 和 [src/views/sales/SalesFormView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesFormView.vue) 修复前对“已绑定商品”的销售订单存在同类快照失控问题：销售端 PATCH 在没有重绑商品的情况下，仍允许客户端提交 `name / brand / series / sku / size / color / material` 这组商品快照字段；而前端表单只锁了前四个字段，没有锁 `size / color / material`。结果是销售只要改单备注或其他普通字段，就可以把已绑定 SKU 的规格快照手工改坏，前后端契约也不一致。
+- 已完成本轮修复:
+  - 销售端订单 PATCH 现在和管理端一样，把商品快照字段收敛成“仅在绑定变更时重建，否则冻结”的受控字段；普通改单不会再接受客户端覆写历史商品快照。
+  - 销售表单在绑定商品后，现在会一并锁定 `size / color / material`，让前端交互和后端快照保护规则保持一致，不再出现“前端还能改、后端悄悄丢”的契约漂移。
+  - 补齐销售端路由回归和销售表单回归，显式锁定“普通销售改单不会污染已绑定商品快照，所有商品快照字段都会被锁定”的行为。
+- 增量回归:
+  - `functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js`
+  - `src/views/sales/__tests__/SalesFormView.resilience.test.js`
+
