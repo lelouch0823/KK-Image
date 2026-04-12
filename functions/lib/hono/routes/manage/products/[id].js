@@ -21,6 +21,9 @@ import {
 
 const app = new Hono();
 const PRODUCT_ARCHIVE_COMMAND_TYPE = 'product_archive';
+const PRODUCT_DIMENSION_CREATE_COMMAND_TYPE = 'product_dimension_create';
+const PRODUCT_DIMENSION_VALUE_CREATE_COMMAND_TYPE = 'product_dimension_value_create';
+const PRODUCT_VARIANT_IMAGE_CREATE_COMMAND_TYPE = 'product_variant_image_create';
 export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'POST', path: '/:id/dimensions', domain: 'products', action: 'product.dimension.create', severity: 'high', targetType: 'product' },
     { method: 'PATCH', path: '/:id/dimensions/:dimensionId', domain: 'products', action: 'product.dimension.update', severity: 'high', targetType: 'product' },
@@ -81,15 +84,39 @@ function getIdempotencyKey(c) {
     return requestKey || crypto.randomUUID();
 }
 
+function normalizeProductMutationFingerprintValue(value) {
+    if (Array.isArray(value)) {
+        return value.map((item) => normalizeProductMutationFingerprintValue(item));
+    }
+
+    if (value && typeof value === 'object') {
+        return Object.keys(value)
+            .sort()
+            .reduce((acc, key) => {
+                const normalized = normalizeProductMutationFingerprintValue(value[key]);
+                if (normalized !== undefined) {
+                    acc[key] = normalized;
+                }
+                return acc;
+            }, {});
+    }
+
+    return value;
+}
+
 function buildProductArchiveRequestFingerprint(productId) {
     return JSON.stringify({
         productId: String(productId || '').trim(),
     });
 }
 
-function getArchiveCommandScopeKey(c) {
+function buildProductMutationRequestFingerprint(scope = {}) {
+    return JSON.stringify(normalizeProductMutationFingerprintValue(scope));
+}
+
+function getCommandScopeKey(c, commandType) {
     const actorId = String(c.get('user')?.id || 'anonymous').trim() || 'anonymous';
-    return `${PRODUCT_ARCHIVE_COMMAND_TYPE}:${actorId}`;
+    return `${commandType}:${actorId}`;
 }
 
 function isDuplicateOutboxIdempotencyError(error) {
@@ -103,10 +130,10 @@ function isDuplicateOutboxIdempotencyError(error) {
     );
 }
 
-async function publishProductArchivedCacheEvent(c, productId, { commandId, correlationId } = {}) {
+async function publishProductCacheEvent(c, eventType, productId, { commandId, correlationId } = {}) {
     try {
         await scheduleProductCacheInvalidation(c, {
-            eventType: 'product_archived',
+            eventType,
             productIds: [productId],
         }, {
             commandId,
@@ -117,6 +144,10 @@ async function publishProductArchivedCacheEvent(c, productId, { commandId, corre
             throw error;
         }
     }
+}
+
+async function publishProductArchivedCacheEvent(c, productId, { commandId, correlationId } = {}) {
+    await publishProductCacheEvent(c, 'product_archived', productId, { commandId, correlationId });
 }
 
 function buildProductArchiveStoredResponse({
@@ -159,18 +190,32 @@ function getProductArchivePublicResponse(storedResponse) {
 }
 
 async function reserveProductArchiveCommand(c, { requestFingerprint }) {
+    return reserveProductWriteCommand(c, {
+        commandType: PRODUCT_ARCHIVE_COMMAND_TYPE,
+        requestFingerprint,
+        mismatchMessage: '同一个幂等键不能提交不同的商品归档请求',
+        inFlightMessage: '当前幂等键对应的商品归档命令仍在处理中',
+    });
+}
+
+async function reserveProductWriteCommand(c, {
+    commandType,
+    requestFingerprint,
+    mismatchMessage,
+    inFlightMessage,
+}) {
     const commandIdempotencyRepo = new CommandIdempotencyRepository(c.env.DB);
     const idempotencyKey = getIdempotencyKey(c);
     const reservation = await commandIdempotencyRepo.reserveCommand(
-        PRODUCT_ARCHIVE_COMMAND_TYPE,
-        getArchiveCommandScopeKey(c),
+        commandType,
+        getCommandScopeKey(c, commandType),
         idempotencyKey,
         requestFingerprint
     );
 
     if (reservation?.existing) {
         if (reservation.record?.request_fingerprint !== requestFingerprint) {
-            throw new BadRequestError('同一个幂等键不能提交不同的商品归档请求');
+            throw new BadRequestError(mismatchMessage || '同一个幂等键不能提交不同请求');
         }
 
         const storedResponse = parseStoredResponse(reservation.record?.response_json);
@@ -185,8 +230,8 @@ async function reserveProductArchiveCommand(c, { requestFingerprint }) {
 
         return {
             replay: replayReservedCommand(reservation, requestFingerprint, {
-                mismatchMessage: '同一个幂等键不能提交不同的商品归档请求',
-                inFlightMessage: '当前幂等键对应的商品归档命令仍在处理中',
+                mismatchMessage,
+                inFlightMessage,
             }),
             resume: null,
             reservation,
@@ -248,13 +293,49 @@ app.post('/:id/dimensions', async (c) => {
     const { env } = c;
     const productId = c.req.param('id');
     const body = await c.req.json();
-    const productRepo = new ProductRepository(env.DB);
-    await ensureProductExists(productRepo, productId);
+    const requestFingerprint = buildProductMutationRequestFingerprint({ productId, body });
+    const {
+        replay,
+        resume,
+        reservation,
+        commandIdempotencyRepo,
+    } = await reserveProductWriteCommand(c, {
+        commandType: PRODUCT_DIMENSION_CREATE_COMMAND_TYPE,
+        requestFingerprint,
+        mismatchMessage: '同一个幂等键不能提交不同的商品规格维度创建请求',
+        inFlightMessage: '当前幂等键对应的商品规格维度创建命令仍在处理中',
+    });
 
+    if (replay) {
+        return c.json({ success: true, data: replay }, 201);
+    }
+
+    const ownsReservation = resolveReservationOwnership(reservation);
+    const productRepo = new ProductRepository(env.DB);
     const dimensionRepo = new ProductDimensionRepository(env.DB);
+    let created = null;
+
     try {
-        const created = await dimensionRepo.createDimension(productId, body);
-        await scheduleProductCacheInvalidation(c, { eventType: 'product_dimension_created', productIds: [productId] });
+        await ensureProductExists(productRepo, productId);
+        if (resume) {
+            await publishProductCacheEvent(c, 'product_dimension_created', productId, {
+                commandId: reservation.record?.command_id,
+                correlationId: reservation.record?.command_id,
+            });
+            await commandIdempotencyRepo
+                .buildFinalizeStatement(reservation.record?.command_id, resume)
+                .run();
+            return c.json({ success: true, data: resume }, 201);
+        }
+
+        created = await dimensionRepo.createDimension(productId, body);
+        await publishProductCacheEvent(c, 'product_dimension_created', productId, {
+            commandId: reservation.record?.command_id,
+            correlationId: reservation.record?.command_id,
+        });
+        await commandIdempotencyRepo
+            .buildFinalizeStatement(reservation.record?.command_id, created)
+            .run();
         scheduleAuditEvent(c, {
             domain: 'products',
             action: 'product.dimension.create',
@@ -267,6 +348,28 @@ app.post('/:id/dimensions', async (c) => {
         });
         return c.json({ success: true, data: created }, 201);
     } catch (error) {
+        if (created) {
+            try {
+                await commandIdempotencyRepo
+                    .buildFinalizeStatement(reservation.record?.command_id, created, 'failed')
+                    .run();
+            } catch (finalizeError) {
+                console.error('Product dimension create idempotency finalize failed:', finalizeError);
+            }
+            throw error;
+        }
+
+        if (!resume) {
+            await cleanupReservedCommand({
+                commandIdempotencyRepo,
+                db: c.env.DB,
+                ownsReservation,
+                commandId: reservation.record?.command_id,
+            });
+        }
+        if (error instanceof NotFoundError || error instanceof BadRequestError) {
+            throw error;
+        }
         throw new BadRequestError(error.message || 'Create dimension failed');
     }
 });
@@ -340,13 +443,49 @@ app.post('/:id/dimensions/:dimensionId/values', async (c) => {
     const productId = c.req.param('id');
     const dimensionId = c.req.param('dimensionId');
     const body = await c.req.json();
-    const productRepo = new ProductRepository(env.DB);
-    await ensureProductExists(productRepo, productId);
+    const requestFingerprint = buildProductMutationRequestFingerprint({ productId, dimensionId, body });
+    const {
+        replay,
+        resume,
+        reservation,
+        commandIdempotencyRepo,
+    } = await reserveProductWriteCommand(c, {
+        commandType: PRODUCT_DIMENSION_VALUE_CREATE_COMMAND_TYPE,
+        requestFingerprint,
+        mismatchMessage: '同一个幂等键不能提交不同的商品规格值创建请求',
+        inFlightMessage: '当前幂等键对应的商品规格值创建命令仍在处理中',
+    });
 
+    if (replay) {
+        return c.json({ success: true, data: replay }, 201);
+    }
+
+    const ownsReservation = resolveReservationOwnership(reservation);
+    const productRepo = new ProductRepository(env.DB);
     const dimensionRepo = new ProductDimensionRepository(env.DB);
+    let created = null;
+
     try {
-        const created = await dimensionRepo.addValue(productId, dimensionId, body);
-        await scheduleProductCacheInvalidation(c, { eventType: 'product_dimension_value_created', productIds: [productId] });
+        await ensureProductExists(productRepo, productId);
+        if (resume) {
+            await publishProductCacheEvent(c, 'product_dimension_value_created', productId, {
+                commandId: reservation.record?.command_id,
+                correlationId: reservation.record?.command_id,
+            });
+            await commandIdempotencyRepo
+                .buildFinalizeStatement(reservation.record?.command_id, resume)
+                .run();
+            return c.json({ success: true, data: resume }, 201);
+        }
+
+        created = await dimensionRepo.addValue(productId, dimensionId, body);
+        await publishProductCacheEvent(c, 'product_dimension_value_created', productId, {
+            commandId: reservation.record?.command_id,
+            correlationId: reservation.record?.command_id,
+        });
+        await commandIdempotencyRepo
+            .buildFinalizeStatement(reservation.record?.command_id, created)
+            .run();
         scheduleAuditEvent(c, {
             domain: 'products',
             action: 'product.dimension_value.create',
@@ -359,6 +498,28 @@ app.post('/:id/dimensions/:dimensionId/values', async (c) => {
         });
         return c.json({ success: true, data: created }, 201);
     } catch (error) {
+        if (created) {
+            try {
+                await commandIdempotencyRepo
+                    .buildFinalizeStatement(reservation.record?.command_id, created, 'failed')
+                    .run();
+            } catch (finalizeError) {
+                console.error('Product dimension value create idempotency finalize failed:', finalizeError);
+            }
+            throw error;
+        }
+
+        if (!resume) {
+            await cleanupReservedCommand({
+                commandIdempotencyRepo,
+                db: c.env.DB,
+                ownsReservation,
+                commandId: reservation.record?.command_id,
+            });
+        }
+        if (error instanceof NotFoundError || error instanceof BadRequestError) {
+            throw error;
+        }
         throw new BadRequestError(error.message || 'Add value failed');
     }
 });
@@ -444,18 +605,54 @@ app.post('/:id/variants/:variantId/images', async (c) => {
         throw new BadRequestError('imageId is required');
     }
 
-    const productRepo = new ProductRepository(env.DB);
-    await ensureProductExists(productRepo, productId);
+    const requestFingerprint = buildProductMutationRequestFingerprint({ productId, variantId, body });
+    const {
+        replay,
+        resume,
+        reservation,
+        commandIdempotencyRepo,
+    } = await reserveProductWriteCommand(c, {
+        commandType: PRODUCT_VARIANT_IMAGE_CREATE_COMMAND_TYPE,
+        requestFingerprint,
+        mismatchMessage: '同一个幂等键不能提交不同的商品变体图片创建请求',
+        inFlightMessage: '当前幂等键对应的商品变体图片创建命令仍在处理中',
+    });
 
+    if (replay) {
+        return c.json({ success: true, data: replay }, 201);
+    }
+
+    const ownsReservation = resolveReservationOwnership(reservation);
+    const productRepo = new ProductRepository(env.DB);
     const variantImageRepo = new VariantImageRepository(env.DB);
+    let created = null;
+
     try {
-        const created = await variantImageRepo.addImage({
+        await ensureProductExists(productRepo, productId);
+        if (resume) {
+            await publishProductCacheEvent(c, 'product_variant_image_created', productId, {
+                commandId: reservation.record?.command_id,
+                correlationId: reservation.record?.command_id,
+            });
+            await commandIdempotencyRepo
+                .buildFinalizeStatement(reservation.record?.command_id, resume)
+                .run();
+            return c.json({ success: true, data: resume }, 201);
+        }
+
+        created = await variantImageRepo.addImage({
             productId,
             variantId,
             imageId: body.imageId,
             isPrimary: parseBooleanFlag(body.isPrimary),
         });
-        await scheduleProductCacheInvalidation(c, { eventType: 'product_variant_image_created', productIds: [productId] });
+        await publishProductCacheEvent(c, 'product_variant_image_created', productId, {
+            commandId: reservation.record?.command_id,
+            correlationId: reservation.record?.command_id,
+        });
+        await commandIdempotencyRepo
+            .buildFinalizeStatement(reservation.record?.command_id, created)
+            .run();
         scheduleAuditEvent(c, {
             domain: 'products',
             action: 'product.variant_image.create',
@@ -468,6 +665,25 @@ app.post('/:id/variants/:variantId/images', async (c) => {
         });
         return c.json({ success: true, data: created }, 201);
     } catch (error) {
+        if (created) {
+            try {
+                await commandIdempotencyRepo
+                    .buildFinalizeStatement(reservation.record?.command_id, created, 'failed')
+                    .run();
+            } catch (finalizeError) {
+                console.error('Product variant image create idempotency finalize failed:', finalizeError);
+            }
+            throw error;
+        }
+
+        if (!resume) {
+            await cleanupReservedCommand({
+                commandIdempotencyRepo,
+                db: c.env.DB,
+                ownsReservation,
+                commandId: reservation.record?.command_id,
+            });
+        }
         rethrowVariantImageMutationError(error);
     }
 });

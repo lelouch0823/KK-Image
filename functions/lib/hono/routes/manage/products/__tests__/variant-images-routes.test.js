@@ -13,6 +13,13 @@ const mockVariantImageRepo = {
     setPrimary: vi.fn(),
     deleteImage: vi.fn(),
 };
+const mockCommandRepo = {
+    reserveCommand: vi.fn(),
+    buildDeleteStatement: vi.fn(),
+    deleteRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+    buildFinalizeStatement: vi.fn(),
+    finalizeRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+};
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
     ProductRepository: class {
@@ -37,6 +44,20 @@ vi.mock('../../../../../../repositories/VariantImageRepository.js', () => ({
         }
         deleteImage(...args) {
             return mockVariantImageRepo.deleteImage(...args);
+        }
+    },
+}));
+
+vi.mock('../../../../../../repositories/CommandIdempotencyRepository.js', () => ({
+    CommandIdempotencyRepository: class {
+        reserveCommand(...args) {
+            return mockCommandRepo.reserveCommand(...args);
+        }
+        buildDeleteStatement(...args) {
+            return mockCommandRepo.buildDeleteStatement(...args);
+        }
+        buildFinalizeStatement(...args) {
+            return mockCommandRepo.buildFinalizeStatement(...args);
         }
     },
 }));
@@ -83,6 +104,17 @@ describe('variant image management routes', () => {
         mockVariantImageRepo.sortImages.mockResolvedValue(undefined);
         mockVariantImageRepo.setPrimary.mockResolvedValue(undefined);
         mockVariantImageRepo.deleteImage.mockResolvedValue(true);
+        mockCommandRepo.reserveCommand.mockResolvedValue({
+            existing: false,
+            ownsReservation: true,
+            record: { command_id: 'cmd-product-variant-image-test-1' },
+        });
+        mockCommandRepo.buildDeleteStatement.mockReturnValue({
+            run: mockCommandRepo.deleteRun,
+        });
+        mockCommandRepo.buildFinalizeStatement.mockReturnValue({
+            run: mockCommandRepo.finalizeRun,
+        });
     });
 
     it('POST /:id/variants/:variantId/images adds variant image', async () => {

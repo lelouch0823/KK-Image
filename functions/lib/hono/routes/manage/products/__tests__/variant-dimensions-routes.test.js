@@ -28,6 +28,13 @@ const mockDimensionRepo = {
     archiveVariantsByValue: vi.fn(),
     mergeKeepByDimensionRemoval: vi.fn(),
 };
+const mockCommandRepo = {
+    reserveCommand: vi.fn(),
+    buildDeleteStatement: vi.fn(),
+    deleteRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+    buildFinalizeStatement: vi.fn(),
+    finalizeRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+};
 const mockScheduleProductCacheInvalidation = vi.fn(async () => []);
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
@@ -115,6 +122,20 @@ vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
     },
 }));
 
+vi.mock('../../../../../../repositories/CommandIdempotencyRepository.js', () => ({
+    CommandIdempotencyRepository: class {
+        reserveCommand(...args) {
+            return mockCommandRepo.reserveCommand(...args);
+        }
+        buildDeleteStatement(...args) {
+            return mockCommandRepo.buildDeleteStatement(...args);
+        }
+        buildFinalizeStatement(...args) {
+            return mockCommandRepo.buildFinalizeStatement(...args);
+        }
+    },
+}));
+
 vi.mock('../../../../middleware/cache.js', () => ({
     invalidateCache: vi.fn(),
     getProductCacheUrls: vi.fn(() => []),
@@ -160,6 +181,17 @@ describe('variant dimensions routes', () => {
         mockDimensionRepo.archiveVariantsByDimension.mockResolvedValue(2);
         mockDimensionRepo.archiveVariantsByValue.mockResolvedValue({ changes: 1, dimensionId: 'dim-color', value: 'Red' });
         mockDimensionRepo.mergeKeepByDimensionRemoval.mockResolvedValue({ deduped: 1, updated: 2 });
+        mockCommandRepo.reserveCommand.mockResolvedValue({
+            existing: false,
+            ownsReservation: true,
+            record: { command_id: 'cmd-product-detail-test-1' },
+        });
+        mockCommandRepo.buildDeleteStatement.mockReturnValue({
+            run: mockCommandRepo.deleteRun,
+        });
+        mockCommandRepo.buildFinalizeStatement.mockReturnValue({
+            run: mockCommandRepo.finalizeRun,
+        });
     });
 
     it('GET /:id returns dimensions and dimension_map', async () => {
