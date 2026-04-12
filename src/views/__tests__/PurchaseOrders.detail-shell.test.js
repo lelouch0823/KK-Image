@@ -869,6 +869,32 @@ describe('PurchaseOrders detail shell', () => {
     });
   });
 
+  it('falls back to list-item brand sku and main image when selected orders do not carry currentData', async () => {
+    const wrapper = mountPurchaseOrdersShell();
+
+    await wrapper.vm.handleOrdersSelected([
+      {
+        id: 'order-summary',
+        productId: 'prod-summary',
+        variantId: 'var-summary',
+        orderNo: 'SO-SUMMARY',
+        productName: 'Summary Product',
+        brand: 'KK Summary',
+        sku: 'SKU-SUMMARY',
+        mainImage: '/file/summary-image',
+        quantity: 2,
+      },
+    ]);
+
+    expect(wrapper.vm.poItems).toHaveLength(1);
+    expect(wrapper.vm.poItems[0]).toMatchObject({
+      product_name: 'Summary Product',
+      brand: 'KK Summary',
+      sku: 'SKU-SUMMARY',
+      image: '/file/summary-image',
+    });
+  });
+
   it('opens the created purchase-order detail when initial item insertion fails after creation', async () => {
     mocks.modalState.showDetail = false;
     mocks.modalState.showCreateModal = true;

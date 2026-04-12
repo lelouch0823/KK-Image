@@ -148,7 +148,7 @@ describe('order queries display model compatibility', () => {
           id: 'o-1',
           order_no: 'SO-1',
           salesperson_id: 'sp-1',
-          current_data: JSON.stringify({ name: 'Chair' }),
+          current_data: JSON.stringify({ name: 'Chair', brand: 'KK', sku: 'SKU-1' }),
           status: 'production',
           procurement_status: 'ordered',
           display_status: 'partially_received',
@@ -161,7 +161,7 @@ describe('order queries display model compatibility', () => {
           updated_at: 2,
           salesperson_name: 'A',
           salesperson_store: 'S',
-          main_image_key: null,
+          main_image_key: 'img-key',
           main_image_blurhash: null,
         }],
       })),
@@ -175,6 +175,9 @@ describe('order queries display model compatibility', () => {
     expect(db.prepare.mock.calls[1][0]).toContain('display_status');
     expect(db.prepare.mock.calls[1][0]).not.toContain('ORDER BY ol.created_at ASC');
     expect(result.items[0].displayStatus).toBe('partially_received');
+    expect(result.items[0].brand).toBe('KK');
+    expect(result.items[0].sku).toBe('SKU-1');
+    expect(result.items[0].mainImage).toBe('/file/img-key');
   });
 
   it('selects display_status for salesperson list items', async () => {

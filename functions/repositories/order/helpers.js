@@ -63,6 +63,8 @@ export function mapOrderListItem(order) {
         id: order.id,
         orderNo: order.order_no,
         productName: currentData.name || order.snapshot_name || '',
+        brand: currentData.brand || '',
+        sku: currentData.sku || currentData.variant_sku || currentData.spu || '',
         status: order.status,
         procurementStatus,
         displayStatus,
