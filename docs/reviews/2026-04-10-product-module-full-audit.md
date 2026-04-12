@@ -3578,3 +3578,15 @@
   - `functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js`
   - `src/views/sales/__tests__/SalesFormView.resilience.test.js`
 
+### 2026-04-12 轮次 310
+
+- 继续深审商品关联采购详情读链路，新增 1 个中高风险问题:
+  - [functions/repositories/PurchaseOrderRepository.js](/home/bjw/Code/KK-Image/functions/repositories/PurchaseOrderRepository.js) 修复前在读取采购单明细和收货记录时，只会直接 join 当前的 `products / product_variants` 表拿 `product_name / product_brand / variant_sku / variant_options / product_images`。这会导致一旦商品目录后续改名、改 SKU、改主图，甚至 live 规格字段发生漂移，历史采购单详情和收货时间线都会被当前 live 商品信息反向污染，无法稳定还原“当时采购的到底是什么”。
+- 已完成本轮修复:
+  - 采购单仓储现在对关联订单行的采购明细与收货记录，优先回退 `order_lines.snapshot_*` 字段，历史采购展示不再被 live 商品名、SKU、品牌或图片覆盖。
+  - 对规格展示层，采购详情会优先从订单行快照里提取 `size / color / material` 作为历史规格标签；只有没有快照时才继续使用当前 live `variant_options`。
+  - 补齐采购单读模型回归测试，并复跑采购详情壳层回归，显式锁定“商品目录后续漂移不会污染既有采购历史展示”的行为。
+- 增量回归:
+  - `functions/repositories/__tests__/PurchaseOrderRepository.read-model.test.js`
+  - `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
+
