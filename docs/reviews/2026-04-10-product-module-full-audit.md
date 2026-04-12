@@ -3199,3 +3199,15 @@
   - `functions/lib/hono/routes/manage/products/__tests__/product-patch-rollback-boundary.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/product-update-audit-metadata.test.js`
 - 对应修复提交: `833fe0a8 fix: harden product archive retries`
+
+### 2026-04-12 轮次 283
+
+- 继续深审商品维度业务规则，新增 1 个中高风险问题:
+  - [functions/repositories/ProductDimensionRepository.js](/home/bjw/Code/KK-Image/functions/repositories/ProductDimensionRepository.js) 修复前只校验了维度名非空和 active 数量上限，却没有阻止同一商品下重复的 active 维度名。这样一来，运营可以同时创建两个 `Color` / `Size` 之类的维度，或者把一个维度重命名成另一个 active 维度名，后续变体 `options_values`、维度映射和 AI/导入归并都会出现键歧义，属于直接破坏商品维度模型的一致性缺口。
+- 已完成本轮修复:
+  - `ProductDimensionRepository` 现在已新增“同商品下 active 维度名大小写/首尾空格归一后必须唯一”的业务校验；创建维度与重命名维度都会先做重复检测，避免把维度模型写成歧义状态。
+  - 同步补齐仓储级红绿测试，锁定“create reject duplicate active name”“rename reject duplicate active name”两条边界；并补路由级断言，确保用户实际能收到明确的 400 错误而不是悄悄写出脏数据。
+- 增量回归:
+  - `functions/repositories/__tests__/product-dimensions.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-dimensions-routes.test.js`
+- 对应修复提交: `2de675d3 fix: prevent duplicate product dimension names`
