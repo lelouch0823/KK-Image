@@ -3554,3 +3554,15 @@
 - 增量回归:
   - `src/components/__tests__/SpaceProductEditor.contract.test.js`
 
+### 2026-04-12 轮次 308
+
+- 继续深审商品关联订单的更新链路，新增 1 个中高风险问题:
+  - [functions/lib/hono/routes/manage/orders/detail.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/orders/detail.js) 修复前对“已绑定商品”的订单做普通 PATCH 时，没有把 `name / brand / series / sku / size / color / material` 这组商品快照字段当成受控字段保护起来。一方面，路由会在没有绑定变更的情况下再次读取 live 商品并回填 `name / brand / series`，导致订单历史快照被当前商品目录偷偷覆盖；另一方面，其余快照字段又允许客户端直接改写，结果是订单只要改备注、数量等普通字段，就可能把历史商品快照污染成一半来自 live、一半来自客户端伪造数据的混合状态。
+- 已完成本轮修复:
+  - 订单详情 PATCH 现在把上述商品快照字段收敛成“仅在绑定变更时重建，否则冻结”的受控字段；普通编辑不会再重新读取 live 商品，也不会接受客户端覆盖这些历史快照字段。
+  - 仍然在 `productId / variantId` 发生变更时，通过 `validateProductVariantBinding()` 和 `buildOrderBindingSnapshot()` 统一重建完整快照，确保绑定切换时的商品快照继续和当前 active 商品目录保持一致。
+  - 补齐订单详情路由回归测试，显式锁定“普通编辑不会覆写已绑定订单快照”的行为；并顺手修正一条已与当前 outbox 发布签名漂移的旧断言，恢复整组详情路由测试稳定性。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/__tests__/order-detail-routes.test.js`
+  - `functions/lib/hono/routes/manage/orders/__tests__/detail-update-demand-sync.test.js`
+
