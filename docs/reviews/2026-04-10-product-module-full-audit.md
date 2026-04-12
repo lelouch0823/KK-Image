@@ -3763,3 +3763,14 @@
   - 补齐仓储回归测试，显式锁定“live 商品行缺失时，订货总览主列表仍会回退历史商品摘要”的行为，并复跑路由测试确认接口层继续稳定。
 - 增量回归:
   - `pnpm vitest run functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js`
+
+### 2026-04-13 轮次 325
+
+- 继续深审商品关联订货总览到采购单的前端闭环，新增 1 个中高风险问题:
+  - [src/composables/useGoodsOverview.js](/home/bjw/Code/KK-Image/src/composables/useGoodsOverview.js) 修复前总览页“生成采购单”始终走手工建单，只提交 `product_id / variant_id / quantity`。这样一来，已经在总览中可见的 archived/deleted 历史缺口，点击生成采购单后仍会被后端 `validatePurchaseOrderVariantItems()` 以“仅可采购 active 变体 / 变体不存在”直接拦掉，形成“能看见缺口，但不能从同页继续补货”的前端闭环断裂。
+- 已完成本轮修复:
+  - 订货总览读模型现在会把 confirmed `orderIds` 一并透传给前端，用于在历史缺口场景下回退到订单驱动建单。
+  - 总览页生成采购单现在仍优先尝试原有手工建单；如果后端明确返回 archived/deleted 历史需求校验错误，且当前选择项带有 `orderIds`，前端会自动回退到 `/purchase-orders/from-orders`，把历史订单链路补齐，而不是直接向用户报错。
+  - 补齐 composable 与仓储回归测试，显式锁定“历史缺口手工建单失败后，会自动改走 from-orders”的行为，并复跑总览前后端关联测试确认未破坏现有正常建单路径。
+- 增量回归:
+  - `pnpm vitest run functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js src/composables/__tests__/useGoodsOverview.test.js src/views/__tests__/GoodsOverview.status-semantics.test.js`
