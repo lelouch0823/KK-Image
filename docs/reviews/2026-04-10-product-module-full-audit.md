@@ -3629,3 +3629,16 @@
   - `src/components/__tests__/ProductManager.variant-hydration.test.js`
   - `src/components/product/__tests__/ProductWorkflowModal.test.js`
   - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
+
+### 2026-04-12 轮次 314
+
+- 继续深审商品关联采购写链路，新增 1 个中高风险问题:
+  - [functions/repositories/PurchaseOrderRepository.js](/home/bjw/Code/KK-Image/functions/repositories/PurchaseOrderRepository.js) 修复前虽然已经在采购详情读模型里优先回退 `order_lines.snapshot_*`，但 `purchase_order_items` 自身写入时并不会持久化任何商品快照。结果是只要采购明细来自手工补货、`pre_order_id = null`，历史采购单和收货记录就没有可回退的稳定快照，之后商品目录一旦改名、换主图、改 SKU 或规格值，手工采购历史仍会被 live 商品目录反向污染，业务闭环只补了一半。
+- 已完成本轮修复:
+  - 采购单仓储的 `addItems()` 现在会在写入前统一补齐采购项快照：若已有显式 `snapshot_*` 字段则直接标准化复用；若绑定了订单则优先继承订单行快照；若是手工采购则回退 live `product + variant + dimension_map` 组装稳定快照，再把 `snapshot_name / snapshot_sku / snapshot_specs / snapshot_image` 一并持久化到 `purchase_order_items`。
+  - 采购详情和收货时间线继续优先读取采购项快照，再回退订单行快照，从而把“有关联订单的采购”和“纯手工采购”统一收敛到同一套历史快照口径。
+  - 补齐数据库迁移 [migrations/0063_purchase_order_item_snapshots.sql](/home/bjw/Code/KK-Image/migrations/0063_purchase_order_item_snapshots.sql) 与初始化 schema [scripts/init-database.sql](/home/bjw/Code/KK-Image/scripts/init-database.sql)，避免新库和增量库在采购快照字段上继续漂移。
+  - 补齐采购仓储安全回归测试，显式锁定“手工采购明细在缺少传入快照时也会自动落库快照”的行为，并复跑采购读模型测试，确认手工采购历史展示继续优先使用采购项快照。
+- 增量回归:
+  - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
+  - `functions/repositories/__tests__/PurchaseOrderRepository.read-model.test.js`
