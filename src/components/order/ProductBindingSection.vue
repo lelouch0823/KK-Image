@@ -642,6 +642,13 @@ const hydrateBoundProduct = async (boundProduct) => {
       : await loadProduct(productId);
     if (requestId !== productDetailRequestId) return;
 
+    if (!fullProduct) {
+      clearSelectionState();
+      fullProductData.value = null;
+      variants.value = [];
+      return;
+    }
+
     fullProductData.value = fullProduct;
     const nextVariants = Array.isArray(fullProduct?.variants) ? fullProduct.variants : [];
     variants.value = nextVariants;
@@ -683,8 +690,16 @@ const handleProductSelect = async (product) => {
       ? await loadSalesProduct(props.salesToken, productId)
       : await loadProduct(productId);
     if (requestId !== productDetailRequestId) return;
+    if (!fullProduct) {
+      variants.value = [];
+      selectedVariantId.value = null;
+      fullProductData.value = null;
+      emit('product-fetch-error', t('common.loadFailed'));
+      return;
+    }
+
     fullProductData.value = fullProduct;
-    if (fullProduct && fullProduct.variants && fullProduct.variants.length > 0) {
+    if (fullProduct.variants && fullProduct.variants.length > 0) {
       variants.value = fullProduct.variants;
       initSelectionFromVariants();
       if (selectedVariantId.value) {

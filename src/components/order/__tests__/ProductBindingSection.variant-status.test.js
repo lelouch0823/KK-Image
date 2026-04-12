@@ -554,6 +554,22 @@ describe('ProductBindingSection variant status and dimensions', () => {
     expect(wrapper.emitted('product-fetch-error')[0][0]).toBe('order.binding.variantRequired');
   });
 
+  it('reports load failure when sales product detail hydration returns null', async () => {
+    mocks.loadSalesProduct.mockResolvedValueOnce(null);
+
+    const wrapper = mount(ProductBindingSection, {
+      props: { boundProduct: null, mode: 'sales', salesToken: 'token-1', variantSelectPolicy: 'in_stock_only' },
+      global: { stubs: { ProductSelect: salesPickStub, AppImage: true } },
+    });
+
+    await wrapper.find('[data-testid="pick-sales-product"]').trigger('click');
+    await vi.waitFor(() => expect(wrapper.emitted('product-fetch-error')).toBeTruthy());
+
+    expect(wrapper.emitted('select')).toBeFalsy();
+    expect(wrapper.emitted('product-fetch-success')).toBeFalsy();
+    expect(wrapper.emitted('product-fetch-error')[0][0]).toBe('common.loadFailed');
+  });
+
   it('supports all policy and allows selecting archived variants', async () => {
     mocks.loadProduct.mockResolvedValueOnce({
       id: 'p1',
