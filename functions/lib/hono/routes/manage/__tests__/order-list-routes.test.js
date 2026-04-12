@@ -141,4 +141,65 @@ describe('manage order list routes', () => {
     expect(payload.data.procurementStatuses).not.toContain('none');
     expect(payload.data.procurementStatuses).not.toContain('partially_arrived');
   });
+  it('falls back to snapshot_name when exporting orders whose current_data lost the product name', async () => {
+    const exportStmt = {
+      bind: vi.fn(() => exportStmt),
+      all: vi.fn(async () => ({
+        results: [{
+          id: 'o-1',
+          order_no: 'SO-1',
+          current_data: JSON.stringify({}),
+          status: 'confirmed',
+          salesperson_name: 'Alice',
+          created_at: 1710000000000,
+          snapshot_name: 'Snapshot Chair',
+        }],
+      })),
+    };
+    const db = {
+      prepare: vi.fn((sql) => {
+        if (sql.includes('FROM orders o')) return exportStmt;
+        return { all: mocks.salespersonsAll };
+      }),
+    };
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/orders/export',
+      {},
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(db.prepare.mock.calls[0][0]).toContain('snapshot_name');
+    const csv = await res.text();
+    expect(csv).toContain('Snapshot Chair');
+  });
+
+  it('extends export search filters to snapshot_name fallback when current_data name is missing', async () => {
+    const exportStmt = {
+      bind: vi.fn(() => exportStmt),
+      all: vi.fn(async () => ({ results: [] })),
+    };
+    const db = {
+      prepare: vi.fn((sql) => {
+        if (sql.includes('FROM orders o')) return exportStmt;
+        return { all: mocks.salespersonsAll };
+      }),
+    };
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/orders/export?search=Snapshot%20Chair',
+      {},
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(db.prepare.mock.calls[0][0]).toContain('order_line_snapshot.snapshot_name LIKE ?');
+    expect(exportStmt.bind).toHaveBeenCalledWith('%Snapshot Chair%', '%Snapshot Chair%', '%Snapshot Chair%');
+  });
+
 });

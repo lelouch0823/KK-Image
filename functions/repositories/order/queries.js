@@ -8,61 +8,13 @@
  */
 
 import { parseRepoPagination } from '../../api/utils/pagination.js';
-import { expandOrderProcurementStatusFilter } from '../../api/utils/constants.js';
 import { mapOrderDetail, mapOrderListItem } from './helpers.js';
-
-const ORDER_LINE_STATUS_AGGREGATE_JOIN = `
-      LEFT JOIN (
-          SELECT
-              aggregate_lines.order_id,
-              CASE
-                  WHEN aggregate_lines.ordered_qty > 0 AND aggregate_lines.cancelled_qty >= aggregate_lines.ordered_qty THEN 'cancelled'
-                  WHEN aggregate_lines.remaining_qty > 0 AND aggregate_lines.shipped_qty >= aggregate_lines.remaining_qty THEN 'completed'
-                  WHEN aggregate_lines.shipped_qty > 0 THEN 'partially_shipped'
-                  WHEN aggregate_lines.remaining_qty > 0 AND aggregate_lines.received_qty >= aggregate_lines.remaining_qty THEN 'ready'
-                  WHEN aggregate_lines.received_qty > 0 THEN 'partially_received'
-                  WHEN aggregate_lines.remaining_qty > 0 AND aggregate_lines.procured_qty >= aggregate_lines.remaining_qty THEN 'fully_procured'
-                  WHEN aggregate_lines.procured_qty > 0 THEN 'partially_procured'
-                  ELSE 'unprocured'
-              END AS display_status
-          FROM (
-              SELECT
-                  summarized.order_id,
-                  summarized.ordered_qty,
-                  summarized.procured_qty,
-                  summarized.received_qty,
-                  summarized.shipped_qty,
-                  summarized.cancelled_qty,
-                  MAX(summarized.ordered_qty - summarized.cancelled_qty, 0) AS remaining_qty
-              FROM (
-                  SELECT
-                      order_id,
-                      COALESCE(SUM(ordered_qty), 0) AS ordered_qty,
-                      COALESCE(SUM(procured_qty), 0) AS procured_qty,
-                      COALESCE(SUM(received_qty), 0) AS received_qty,
-                      COALESCE(SUM(shipped_qty), 0) AS shipped_qty,
-                      COALESCE(SUM(cancelled_qty), 0) AS cancelled_qty
-                  FROM order_lines
-                  GROUP BY order_id
-              ) summarized
-          ) aggregate_lines
-      ) order_line_agg ON order_line_agg.order_id = o.id
-`;
-
-const ORDER_PROGRESS_STATUS_SQL = "COALESCE(order_line_agg.display_status, o.procurement_status, 'none')";
-
-function appendProgressStatusFilter(whereClause, bindParams, procurementStatus) {
-    const statusValues = expandOrderProcurementStatusFilter(procurementStatus);
-    if (statusValues.length === 0) return whereClause;
-
-    if (statusValues.length === 1) {
-        bindParams.push(statusValues[0]);
-        return `${whereClause} AND ${ORDER_PROGRESS_STATUS_SQL} = ?`;
-    }
-
-    bindParams.push(...statusValues);
-    return `${whereClause} AND ${ORDER_PROGRESS_STATUS_SQL} IN (${statusValues.map(() => '?').join(', ')})`;
-}
+import {
+    ORDER_LINE_PRIMARY_SNAPSHOT_JOIN,
+    ORDER_LINE_STATUS_AGGREGATE_JOIN,
+    appendOrderProductSearchFilter,
+    appendOrderProgressStatusFilter,
+} from './sql.js';
 
 async function findOrderLines(db, orderId) {
     const { results } = await db
@@ -197,6 +149,7 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
       SELECT
           o.id, o.order_no, o.current_data, o.status, o.procurement_status,
           order_line_agg.display_status as display_status,
+          order_line_snapshot.snapshot_name as snapshot_name,
           o.unread_by_sales as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
           f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
@@ -213,6 +166,7 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
           END as status_priority
       FROM orders o
       ${ORDER_LINE_STATUS_AGGREGATE_JOIN}
+      ${ORDER_LINE_PRIMARY_SNAPSHOT_JOIN}
       LEFT JOIN files f ON o.main_image_id = f.id
       ${where}
       ORDER BY
@@ -267,7 +221,7 @@ export async function listForAdmin(
         bindParams.push(status);
     }
     if (procurementStatus) {
-        whereClause = appendProgressStatusFilter(whereClause, bindParams, procurementStatus);
+        whereClause = appendOrderProgressStatusFilter(whereClause, bindParams, procurementStatus);
     }
     if (startTime > 0) {
         whereClause += ' AND o.created_at >= ?';
@@ -277,14 +231,10 @@ export async function listForAdmin(
         whereClause += ' AND o.created_at <= ?';
         bindParams.push(endTime);
     }
-    if (search) {
-        whereClause += ' AND (o.order_no LIKE ? OR o.current_data LIKE ?)';
-        const searchPattern = `%${search}%`;
-        bindParams.push(searchPattern, searchPattern);
-    }
+    whereClause = appendOrderProductSearchFilter(whereClause, bindParams, search);
 
     const countResult = await db
-        .prepare(`SELECT COUNT(*) as total FROM orders o ${ORDER_LINE_STATUS_AGGREGATE_JOIN} WHERE ${whereClause}`)
+        .prepare(`SELECT COUNT(*) as total FROM orders o ${ORDER_LINE_STATUS_AGGREGATE_JOIN} ${ORDER_LINE_PRIMARY_SNAPSHOT_JOIN} WHERE ${whereClause}`)
         .bind(...bindParams)
         .first();
 
@@ -292,6 +242,7 @@ export async function listForAdmin(
       SELECT
           o.id, o.order_no, o.salesperson_id, o.current_data, o.status, o.procurement_status, o.product_id, o.variant_id, o.quantity,
           order_line_agg.display_status as display_status,
+          order_line_snapshot.snapshot_name as snapshot_name,
           o.unread_by_admin as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
           s.name as salesperson_name, s.store as salesperson_store,
@@ -309,6 +260,7 @@ export async function listForAdmin(
           END as status_priority
       FROM orders o
       ${ORDER_LINE_STATUS_AGGREGATE_JOIN}
+      ${ORDER_LINE_PRIMARY_SNAPSHOT_JOIN}
       LEFT JOIN salespersons s ON o.salesperson_id = s.id
       LEFT JOIN files f ON o.main_image_id = f.id
       WHERE ${whereClause}

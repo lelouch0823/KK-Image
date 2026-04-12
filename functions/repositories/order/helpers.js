@@ -62,7 +62,7 @@ export function mapOrderListItem(order) {
     return {
         id: order.id,
         orderNo: order.order_no,
-        productName: currentData.name || '',
+        productName: currentData.name || order.snapshot_name || '',
         status: order.status,
         procurementStatus,
         displayStatus,

@@ -214,4 +214,103 @@ describe('order queries display model compatibility', () => {
     expect(db.prepare.mock.calls[1][0]).not.toContain('ORDER BY ol.created_at ASC');
     expect(result.items[0].displayStatus).toBe('partially_received');
   });
+  it('falls back to order-line snapshot names in admin list items when current_data name is missing', async () => {
+    const countStmt = {
+      bind: vi.fn(() => countStmt),
+      first: vi.fn(async () => ({ total: 1 })),
+    };
+    const listStmt = {
+      bind: vi.fn(() => listStmt),
+      all: vi.fn(async () => ({
+        results: [{
+          id: 'o-1',
+          order_no: 'SO-1',
+          salesperson_id: 'sp-1',
+          current_data: JSON.stringify({}),
+          status: 'production',
+          procurement_status: 'ordered',
+          display_status: 'partially_received',
+          product_id: 'p-1',
+          variant_id: 'v-1',
+          quantity: 5,
+          is_unread: 0,
+          main_image_id: null,
+          created_at: 1,
+          updated_at: 2,
+          salesperson_name: 'A',
+          salesperson_store: 'S',
+          main_image_key: null,
+          main_image_blurhash: null,
+          snapshot_name: 'Snapshot Chair',
+        }],
+      })),
+    };
+    const db = {
+      prepare: vi.fn().mockReturnValueOnce(countStmt).mockReturnValueOnce(listStmt),
+    };
+
+    const result = await listForAdmin(db, { page: 1, limit: 20 });
+
+    expect(db.prepare.mock.calls[1][0]).toContain('snapshot_name');
+    expect(result.items[0].productName).toBe('Snapshot Chair');
+  });
+
+  it('falls back to order-line snapshot names in salesperson list items when current_data name is missing', async () => {
+    const countStmt = {
+      bind: vi.fn(() => countStmt),
+      first: vi.fn(async () => ({ total: 1 })),
+    };
+    const listStmt = {
+      bind: vi.fn(() => listStmt),
+      all: vi.fn(async () => ({
+        results: [{
+          id: 'o-1',
+          order_no: 'SO-1',
+          current_data: JSON.stringify({}),
+          status: 'production',
+          procurement_status: 'ordered',
+          display_status: 'partially_received',
+          is_unread: 0,
+          main_image_id: null,
+          created_at: 1,
+          updated_at: 2,
+          main_image_key: null,
+          main_image_blurhash: null,
+          product_id: 'p-1',
+          variant_id: 'v-1',
+          quantity: 5,
+          snapshot_name: 'Snapshot Chair',
+        }],
+      })),
+    };
+    const db = {
+      prepare: vi.fn().mockReturnValueOnce(countStmt).mockReturnValueOnce(listStmt),
+    };
+
+    const result = await listBySalesperson(db, 'sp-1', { page: 1, limit: 20 });
+
+    expect(db.prepare.mock.calls[1][0]).toContain('snapshot_name');
+    expect(result.items[0].productName).toBe('Snapshot Chair');
+  });
+
+  it('extends admin search filters to order-line snapshot names when current_data name is missing', async () => {
+    const countStmt = {
+      bind: vi.fn(() => countStmt),
+      first: vi.fn(async () => ({ total: 0 })),
+    };
+    const listStmt = {
+      bind: vi.fn(() => listStmt),
+      all: vi.fn(async () => ({ results: [] })),
+    };
+    const db = {
+      prepare: vi.fn().mockReturnValueOnce(countStmt).mockReturnValueOnce(listStmt),
+    };
+
+    await listForAdmin(db, { search: 'Snapshot Chair', page: 1, limit: 20 });
+
+    expect(db.prepare.mock.calls[0][0]).toContain('order_line_snapshot.snapshot_name LIKE ?');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_line_snapshot.snapshot_name LIKE ?');
+    expect(listStmt.bind).toHaveBeenCalledWith('%Snapshot Chair%', '%Snapshot Chair%', '%Snapshot Chair%', 20, 0);
+  });
+
 });
