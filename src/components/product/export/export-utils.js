@@ -125,6 +125,31 @@ const resolveStockFlag = (variant) => {
   if (alert > 0 && stock <= alert) return 'LOW_STOCK';
   return 'NORMAL';
 };
+const normalizeVariantStatus = (variant) => String(variant?.status || '').trim().toLowerCase();
+
+const variantMatchesExportFilters = (variant, filters = {}) => {
+  const normalizedStatus = String(filters?.status || '').trim().toLowerCase();
+  const normalizedHasStock = String(filters?.hasStock || '').trim().toLowerCase();
+
+  if (!variant) {
+    return !normalizedStatus && !normalizedHasStock;
+  }
+
+  if (normalizedStatus && normalizeVariantStatus(variant) !== normalizedStatus) {
+    return false;
+  }
+
+  const projectedStock = resolveProjectedStock(variant || {});
+  if (normalizedHasStock === 'in_stock' && projectedStock <= 0) {
+    return false;
+  }
+  if (normalizedHasStock === 'out_of_stock' && projectedStock > 0) {
+    return false;
+  }
+
+  return true;
+};
+
 
 export const normalizeProductExportFilters = (scope = 'all', filters = {}) => {
   const normalized = Object.fromEntries(
@@ -138,13 +163,16 @@ export const normalizeProductExportFilters = (scope = 'all', filters = {}) => {
   return normalized;
 };
 
-export const flattenProductsToVariantRows = (products = []) => {
+export const flattenProductsToVariantRows = (products = [], filters = {}) => {
   const rows = [];
   for (const product of products) {
-    const variants = Array.isArray(product?.variants) && product.variants.length > 0
-      ? product.variants
-      : [null];
-    for (const variant of variants) {
+    const productVariants = Array.isArray(product?.variants) && product.variants.length > 0
+      ? product.variants.filter((variant) => variantMatchesExportFilters(variant, filters))
+      : [null].filter((variant) => variantMatchesExportFilters(variant, filters));
+    if (Array.isArray(product?.variants) && product.variants.length > 0 && productVariants.length === 0) {
+      continue;
+    }
+    for (const variant of productVariants) {
       const options = normalizeOptions(variant?.options_values || {});
       const mappedColumns = resolveMappedOptionColumns(product, variant);
       const row = {

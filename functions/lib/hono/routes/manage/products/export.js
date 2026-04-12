@@ -61,7 +61,7 @@ app.get('/', async (c) => {
         dimension_map: await dimensionRepo.getDimensionMap(product.id),
       }))
     );
-    const rows = flattenProductsToVariantRows(detailedProducts);
+    const rows = flattenProductsToVariantRows(detailedProducts, filters);
     const csv = buildCsvContent(rows, EXPORT_COLUMNS);
     const date = new Date().toISOString().slice(0, 10);
 

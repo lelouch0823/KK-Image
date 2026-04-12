@@ -23,6 +23,13 @@ vi.mock('@/composables/useI18n', () => ({
   useI18n: () => ({ t: (key, fallback) => fallback || key }),
 }));
 
+const readBlobText = (blob) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result || ''));
+  reader.onerror = () => reject(reader.error || new Error('Failed to read blob'));
+  reader.readAsText(blob);
+});
+
 describe('ProductExportModal filter forwarding', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -121,6 +128,51 @@ describe('ProductExportModal filter forwarding', () => {
 
     expect(wrapper.vm.readyToDownload).toBe(false);
     expect(wrapper.vm.generatedBlob).toBe(null);
+  });
+
+  it('keeps filtered export rows aligned with current variant-level filters', async () => {
+    mocks.listProductsForExport.mockResolvedValue({
+      success: true,
+      data: [{ id: 'p-1', name: 'Lite Product' }],
+    });
+    mocks.loadProduct.mockResolvedValue({
+      id: 'p-1',
+      name: 'Full Product',
+      variants: [
+        { id: 'v-1', sku: 'SKU-1', status: 'active', available_quantity: 5 },
+        { id: 'v-archived', sku: 'SKU-ARCHIVED', status: 'archived', available_quantity: 5 },
+        { id: 'v-oos', sku: 'SKU-OOS', status: 'active', available_quantity: 0 },
+      ],
+    });
+
+    const wrapper = mount(ProductExportModal, {
+      props: {
+        modelValue: true,
+        filters: { status: 'active', hasStock: 'in_stock' },
+      },
+      global: {
+        stubs: {
+          Modal: {
+            props: ['modelValue', 'title', 'size'],
+            template: '<div><slot /><slot name="footer" /></div>',
+          },
+          AppIcon: true,
+        },
+      },
+    });
+
+    wrapper.vm.form.scope = 'filtered';
+    wrapper.vm.form.format = 'csv';
+    await wrapper.find('button.btn.btn-primary').trigger('click');
+    await vi.advanceTimersByTimeAsync(300);
+    await flushPromises();
+
+    expect(wrapper.vm.readyToDownload).toBe(true);
+    vi.useRealTimers();
+    const csv = await readBlobText(wrapper.vm.generatedBlob);
+    expect(csv).toContain('SKU-1');
+    expect(csv).not.toContain('SKU-ARCHIVED');
+    expect(csv).not.toContain('SKU-OOS');
   });
 
   it('fails export when a product detail cannot be hydrated', async () => {

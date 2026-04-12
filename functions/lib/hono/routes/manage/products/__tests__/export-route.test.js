@@ -79,6 +79,32 @@ describe('manage product export route', () => {
         created_at: 1700000000000,
         updated_at: 1700003600000,
       },
+      {
+        id: 'var-archived',
+        sku: 'SKU-ARCHIVED',
+        variant_code: 'V-ARCHIVED',
+        options_values: { dim_color: 'Grey' },
+        price: 99,
+        cost_price: 80,
+        stock_quantity: 6,
+        available_quantity: 6,
+        status: 'archived',
+        created_at: 1700000000000,
+        updated_at: 1700003600000,
+      },
+      {
+        id: 'var-oos',
+        sku: 'SKU-OOS',
+        variant_code: 'V-OOS',
+        options_values: { dim_color: 'White' },
+        price: 189,
+        cost_price: 110,
+        stock_quantity: 0,
+        available_quantity: 0,
+        status: 'active',
+        created_at: 1700000000000,
+        updated_at: 1700003600000,
+      },
     ]);
     mocks.getDimensionMap.mockResolvedValue({ dim_color: '颜色' });
   });
@@ -109,6 +135,8 @@ describe('manage product export route', () => {
     expect(csv).toContain('Variant ID');
     expect(csv).toContain('SKU-1');
     expect(csv).toContain(',Black,,');
+    expect(csv).not.toContain('SKU-ARCHIVED');
+    expect(csv).not.toContain('SKU-OOS');
   });
 
   it('returns a non-200 response when export generation fails', async () => {

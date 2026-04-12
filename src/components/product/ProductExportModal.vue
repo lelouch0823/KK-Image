@@ -281,7 +281,7 @@ const handleGenerate = async () => {
     statusText.value = t('product.exportModal.step_build_detail', '正在加载变体详情...');
     const detailProducts = await hydrateProducts(products, requestId);
     if (!isGenerationActive(requestId) || !detailProducts) return;
-    const rows = flattenProductsToVariantRows(detailProducts);
+    const rows = flattenProductsToVariantRows(detailProducts, normalizeProductExportFilters(form.scope, props.filters));
 
     statusText.value = t('product.exportModal.step_render_detail', '正在生成文件...');
     progress.value = 85;
