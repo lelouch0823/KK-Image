@@ -137,7 +137,7 @@ import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { getStatusBadgeClass } from '@/utils/status';
 import { generateRandomId } from '@/utils/common';
-import { resolveHistoricalOrderProductName, resolveOrderQuantity } from '@/utils/order-display';
+import { resolveHistoricalOrderProductName, resolveOrderQuantity, resolveOrderSnapshotField } from '@/utils/order-display';
 import { resolveSelectedVariantMainImageSrc } from '@/utils/product-image.js';
 import { ORDER_BOUND_SNAPSHOT_FIELDS } from '@/utils/order-binding-fields.js';
 import { useSalesToken } from '@/composables/useSalesToken';
@@ -347,19 +347,27 @@ watch(
       initializedId.value = newOrder.id;
       // Ensure currentData exists
       const current = newOrder.currentData || {};
-      const historicalProductName = current.name || resolveHistoricalOrderProductName(newOrder);
+      const historicalProductName = resolveHistoricalOrderProductName(newOrder);
+      const historicalBrand = resolveOrderSnapshotField(newOrder, 'brand');
+      const historicalSeries = resolveOrderSnapshotField(newOrder, 'series');
+      const historicalSku = resolveOrderSnapshotField(newOrder, 'sku');
+      const historicalSize = resolveOrderSnapshotField(newOrder, 'size');
+      const historicalColor = resolveOrderSnapshotField(newOrder, 'color');
+      const historicalMaterial = resolveOrderSnapshotField(newOrder, 'material');
+      const historicalRemark = resolveOrderSnapshotField(newOrder, 'remark');
+      const historicalDeadline = resolveOrderSnapshotField(newOrder, 'deadline');
       
       form.status = newOrder.status || 'pending';
       form.name = historicalProductName;
-      form.brand = current.brand || '';
-      form.series = current.series || '';
-      form.sku = current.sku || '';
-      form.size = current.size || '';
-      form.color = current.color || '';
-      form.material = current.material || '';
+      form.brand = historicalBrand;
+      form.series = historicalSeries;
+      form.sku = historicalSku;
+      form.size = historicalSize;
+      form.color = historicalColor;
+      form.material = historicalMaterial;
       form.quantity = resolveOrderQuantity(newOrder);
-      form.remark = current.remark || '';
-      form.deadline = current.deadline || '';
+      form.remark = historicalRemark;
+      form.deadline = historicalDeadline;
 
       // 初始化已绑定商品
       if (newOrder.productId) {
@@ -368,9 +376,9 @@ watch(
         boundProduct.value = {
           id: newOrder.productId,
           name: historicalProductName,
-          sku: current.sku || '',
-          brand: current.brand || '',
-          series: current.series || '',
+          sku: historicalSku,
+          brand: historicalBrand,
+          series: historicalSeries,
           variantId: newOrder.variantId || null,
           mainImage: newOrder.mainImage || null, // Assuming this comes from order join
         };
@@ -385,15 +393,15 @@ watch(
       initialValues.value = {
         status: newOrder.status || 'pending',
         name: historicalProductName,
-        brand: current.brand || '',
-        series: current.series || '',
-        sku: current.sku || '',
-        size: current.size || '',
-        color: current.color || '',
-        material: current.material || '',
+        brand: historicalBrand,
+        series: historicalSeries,
+        sku: historicalSku,
+        size: historicalSize,
+        color: historicalColor,
+        material: historicalMaterial,
         quantity: resolveOrderQuantity(newOrder),
-        remark: current.remark || '',
-        deadline: current.deadline || '',
+        remark: historicalRemark,
+        deadline: historicalDeadline,
         fileIds: (newOrder.files || []).map((f) => f.id).sort().join(','),
         productId: newOrder.productId || null,
         variantId: newOrder.variantId || null,
@@ -415,7 +423,15 @@ watch(
 
 const originalData = computed(() => ({
   ...(props.order.originalData || {}),
-  name: props.order.originalData?.name || resolveHistoricalOrderProductName(props.order),
+  name: resolveHistoricalOrderProductName(props.order),
+  brand: resolveOrderSnapshotField(props.order, 'brand'),
+  series: resolveOrderSnapshotField(props.order, 'series'),
+  sku: resolveOrderSnapshotField(props.order, 'sku'),
+  size: resolveOrderSnapshotField(props.order, 'size'),
+  color: resolveOrderSnapshotField(props.order, 'color'),
+  material: resolveOrderSnapshotField(props.order, 'material'),
+  remark: resolveOrderSnapshotField(props.order, 'remark'),
+  deadline: resolveOrderSnapshotField(props.order, 'deadline'),
 }));
 
 const getCurrentBindingState = () => {

@@ -196,4 +196,51 @@ describe('OrderEditModal variant locking on edit', () => {
     expect(wrapper.get('[data-testid="bound-product-name"]').text()).toBe('Snapshot Chair');
     expect(wrapper.get('[data-testid="original-product-name"]').text()).toBe('Snapshot Chair');
   });
+
+  it('falls back to originalData snapshot fields when edit form currentData is sparse', () => {
+    const wrapper = mountModal(
+      {
+        ...baseOrder,
+        originalData: {
+          brand: 'Archive Brand',
+          series: 'Archive Series',
+          sku: 'ARCHIVE-SKU',
+          size: 'Archive Size',
+          color: 'Archive Color',
+          material: 'Archive Material',
+        },
+        currentData: {
+          ...baseOrder.currentData,
+          brand: '',
+          series: '',
+          sku: '',
+          size: '',
+          color: '',
+          material: '',
+        },
+      },
+      {
+        OrderFormFields: {
+          props: ['boundProductVariant', 'modelValue', 'disabledFields'],
+          template: '<div><div data-testid="bound-variant">{{ JSON.stringify(boundProductVariant) }}</div><div data-testid="form-payload">{{ JSON.stringify(modelValue) }}</div><div data-testid="disabled-fields">{{ JSON.stringify(disabledFields) }}</div></div>',
+        },
+        OrderOriginalInfo: {
+          props: ['data'],
+          template: '<div data-testid="original-data">{{ JSON.stringify(data) }}</div>',
+        },
+      }
+    );
+
+    const formPayload = wrapper.get('[data-testid="form-payload"]').text();
+    const originalPayload = wrapper.get('[data-testid="original-data"]').text();
+
+    expect(formPayload).toContain('Archive Brand');
+    expect(formPayload).toContain('Archive Series');
+    expect(formPayload).toContain('ARCHIVE-SKU');
+    expect(formPayload).toContain('Archive Size');
+    expect(formPayload).toContain('Archive Color');
+    expect(formPayload).toContain('Archive Material');
+    expect(originalPayload).toContain('Archive Brand');
+    expect(originalPayload).toContain('Archive Series');
+  });
 });

@@ -10,4 +10,10 @@ export const resolveOrderProductName = (order = {}) =>
   order.currentData?.name || order.lines?.[0]?.snapshotName || order.productName || '';
 
 export const resolveHistoricalOrderProductName = (order = {}) =>
-  order.lines?.[0]?.snapshotName || order.productName || order.currentData?.name || '';
+  order.lines?.[0]?.snapshotName || order.productName || order.currentData?.name || order.originalData?.name || '';
+
+export const resolveOrderSnapshotField = (order = {}, field = '') => {
+  if (!field) return '';
+  if (field === 'name') return resolveHistoricalOrderProductName(order);
+  return order.currentData?.[field] || order.originalData?.[field] || '';
+};

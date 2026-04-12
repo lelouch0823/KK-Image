@@ -46,7 +46,7 @@ import { ref, computed, inject, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useI18n } from '@/composables/useI18n'; // Assuming simple t function or similar
-import { resolveOrderProductName, resolveOrderQuantity } from '@/utils/order-display';
+import { resolveOrderProductName, resolveOrderQuantity, resolveOrderSnapshotField } from '@/utils/order-display';
 import OrderDetail from '@/components/order/OrderDetail.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AsyncStatePanel from '@/components/common/AsyncStatePanel.vue';
@@ -153,13 +153,13 @@ const handleDuplicate = (sourceOrder) => {
 
     const prefill = {
         name: resolveOrderProductName(sourceOrder),
-        brand: currentData.brand || '',
-        series: currentData.series || '',
-        size: currentData.size || '',
-        color: currentData.color || '',
-        material: currentData.material || '',
+        brand: resolveOrderSnapshotField(sourceOrder, 'brand'),
+        series: resolveOrderSnapshotField(sourceOrder, 'series'),
+        size: resolveOrderSnapshotField(sourceOrder, 'size'),
+        color: resolveOrderSnapshotField(sourceOrder, 'color'),
+        material: resolveOrderSnapshotField(sourceOrder, 'material'),
         quantity: resolveOrderQuantity(sourceOrder),
-        remark: currentData.remark || '',
+        remark: resolveOrderSnapshotField(sourceOrder, 'remark'),
         deadline: '', 
         files: prefillFiles,
     };
