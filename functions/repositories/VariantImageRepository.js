@@ -213,11 +213,47 @@ export class VariantImageRepository {
 
     async deleteImage({ productId, variantId, imageId }) {
         await this.productVariantRepository.assertBelongsToProduct(variantId, productId);
-        const result = await this.db
+        const currentImage = await this.findVariantImage(variantId, imageId);
+        if (!currentImage) {
+            return false;
+        }
+
+        const timestamp = now();
+        const deleteStatement = this.db
             .prepare('DELETE FROM variant_images WHERE variant_id = ? AND image_id = ?')
+            .bind(variantId, imageId);
+
+        if (Number(currentImage.is_primary) !== 1) {
+            const result = await deleteStatement.run();
+            return (result?.meta?.changes || 0) > 0;
+        }
+
+        const nextImage = await this.db
+            .prepare(
+                `SELECT image_id
+                 FROM variant_images
+                 WHERE variant_id = ? AND image_id <> ?
+                 ORDER BY sort_order ASC, created_at ASC
+                 LIMIT 1`
+            )
             .bind(variantId, imageId)
-            .run();
-        return (result?.meta?.changes || 0) > 0;
+            .first();
+
+        const statements = [deleteStatement];
+        if (nextImage?.image_id) {
+            statements.push(
+                this.db
+                    .prepare(
+                        `UPDATE variant_images
+                         SET is_primary = 1, updated_at = ?
+                         WHERE variant_id = ? AND image_id = ?`
+                    )
+                    .bind(timestamp, variantId, nextImage.image_id)
+            );
+        }
+
+        await executeBatchChunks(this.db, statements);
+        return true;
     }
 
     async listByVariant({ productId, variantId }) {

@@ -288,6 +288,13 @@ describe('VariantImageRepository', () => {
             const stmt = createPreparedStatement(sql);
             if (sql.includes('FROM product_variants')) {
                 stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('SELECT * FROM variant_images WHERE variant_id = ? AND image_id = ?')) {
+                stmt.first.mockResolvedValue({
+                    id: 'vi_2',
+                    variant_id: 'variant_1',
+                    image_id: 'file_2',
+                    is_primary: 0,
+                });
             } else if (sql.includes('DELETE FROM variant_images')) {
                 stmt.run.mockResolvedValue({ meta: { changes: 1 } });
             }
@@ -304,11 +311,53 @@ describe('VariantImageRepository', () => {
         expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('DELETE FROM variant_images'));
     });
 
+    it('promotes the next image to primary when deleting the current primary image', async () => {
+        db.prepare.mockImplementation((sql) => {
+            const stmt = createPreparedStatement(sql);
+            if (sql.includes('FROM product_variants')) {
+                stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('SELECT * FROM variant_images WHERE variant_id = ? AND image_id = ?')) {
+                stmt.first.mockResolvedValue({
+                    id: 'vi_1',
+                    variant_id: 'variant_1',
+                    image_id: 'file_1',
+                    is_primary: 1,
+                });
+            } else if (sql.includes('FROM variant_images') && sql.includes('image_id <> ?') && sql.includes('ORDER BY sort_order ASC')) {
+                stmt.first.mockResolvedValue({
+                    image_id: 'file_2',
+                });
+            } else if (sql.includes('DELETE FROM variant_images')) {
+                stmt.run.mockResolvedValue({ meta: { changes: 1 } });
+            } else if (sql.includes('UPDATE variant_images SET is_primary = 1')) {
+                stmt.run.mockResolvedValue({ meta: { changes: 1 } });
+            }
+            return stmt;
+        });
+
+        const removed = await repo.deleteImage({
+            productId: 'product_1',
+            variantId: 'variant_1',
+            imageId: 'file_1',
+        });
+
+        expect(removed).toBe(true);
+        expect(db.batch).toHaveBeenCalledTimes(1);
+        const batched = db.batch.mock.calls[0][0];
+        expect(batched).toHaveLength(2);
+        expect(batched[0].sql).toContain('DELETE FROM variant_images');
+        expect(batched[1].sql).toContain('UPDATE variant_images');
+        expect(batched[1].sql).toContain('SET is_primary = 1');
+        expect(batched[1].params.slice(1)).toEqual(['variant_1', 'file_2']);
+    });
+
     it('returns false when deleteImage affects zero rows', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);
             if (sql.includes('FROM product_variants')) {
                 stmt.first.mockResolvedValue({ id: 'variant_1' });
+            } else if (sql.includes('SELECT * FROM variant_images WHERE variant_id = ? AND image_id = ?')) {
+                stmt.first.mockResolvedValue(null);
             } else if (sql.includes('DELETE FROM variant_images')) {
                 stmt.run.mockResolvedValue({ meta: { changes: 0 } });
             }
