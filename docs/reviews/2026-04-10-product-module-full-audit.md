@@ -3642,3 +3642,20 @@
 - 增量回归:
   - `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
   - `functions/repositories/__tests__/PurchaseOrderRepository.read-model.test.js`
+
+### 2026-04-12 轮次 315
+
+- 继续深审商品归档后的采购规划链路，新增 1 个高风险问题:
+  - [functions/repositories/GoodsOverviewRepository.js](/home/bjw/Code/KK-Image/functions/repositories/GoodsOverviewRepository.js)、[functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js) 和 [functions/services/purchase-order-item-validation.js](/home/bjw/Code/KK-Image/functions/services/purchase-order-item-validation.js) 修复前都会把 `pv.status = 'active'` 当成硬前置条件。结果是已确认订单如果后来绑定规格被归档，订货总览、采购建议、`createFromOrders()` 以及采购单手工补单都会把这部分真实履约缺口直接吞掉或拦死，造成“订单还在、库存缺口还在，但采购规划链路消失”的业务断链。
+- 已完成本轮修复:
+  - 订货总览与采购建议现在不再把 archived 规格需求直接过滤掉；只要 confirmed / production / shipping / arrived 订单仍有未完结需求，这部分缺口就会继续出现在总览和建议里，不会因为规格后续归档而从计划视图里消失。
+  - `createFromOrders()` 现在允许继续为这类 confirmed 历史订单生成采购单，不再因为规格后来归档就把订单判成“已不再可采购”。
+  - 采购明细校验现在收敛成更精确的边界：无订单绑定的手工采购仍只允许 active 规格；但如果 `pre_order_id` 仍合法指向 matching 的 confirmed 订单，则允许继续采购对应 archived 规格，用于完成已有履约责任。
+  - 补齐订货总览、采购建议、采购服务和采购路由回归测试，显式锁定“archived demand 仍会出现在规划链路里，且合法 linked preorder 仍可继续采购”的行为。
+- 增量回归:
+  - `functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
+  - `functions/services/__tests__/purchase-suggestions-inventory-semantics.test.js`
+  - `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+  - `functions/services/__tests__/InventoryBusinessWorkflow.test.js`
+  - `src/views/__tests__/GoodsOverview.status-semantics.test.js`
