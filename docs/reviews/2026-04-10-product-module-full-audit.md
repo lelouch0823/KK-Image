@@ -3671,3 +3671,15 @@
   - 补齐订单查询与导出回归测试，显式锁定“商品名缺失时回退 snapshot_name，且搜索条件同样覆盖 snapshot_name”的行为。
 - 增量回归:
   - `pnpm vitest run functions/repositories/__tests__/order-queries.display-model.test.js functions/lib/hono/routes/manage/__tests__/order-list-routes.test.js functions/repositories/__tests__/order-helpers.procurement-status.test.js functions/repositories/__tests__/order-queries.progress-filter.test.js functions/lib/hono/routes/manage/__tests__/order-detail-routes.test.js src/components/order/__tests__/OrderDetail.lines.test.js`
+
+### 2026-04-12 轮次 317
+
+- 继续深审商品关联订单的前端二次消费链路，新增 1 个中风险问题:
+  - [src/views/sales/SalesDetailView.vue](/home/bjw/Code/KK-Image/src/views/sales/SalesDetailView.vue) 和 [src/components/OrderEditModal.vue](/home/bjw/Code/KK-Image/src/components/OrderEditModal.vue) 修复前在“复制订单”和“编辑已绑定订单”这两条前端链路里，仍然直接依赖 `currentData.name` / `originalData.name`。结果是只要历史订单的商品名只保留在订单行 `snapshotName`，销售复制订单会把新建表单商品名预填成空，管理端编辑弹窗里的绑定商品卡片和原始信息卡片也会同时丢空，形成“详情页看得到，二次操作又丢失”的前端闭环断点。
+- 已完成本轮修复:
+  - 新增前端历史商品名解析 helper [src/utils/order-display.js](/home/bjw/Code/KK-Image/src/utils/order-display.js) 中的 `resolveHistoricalOrderProductName()`，把“订单行快照优先、再回退现有展示字段”的规则集中收敛，避免编辑态和复制态各自重写一遍回退逻辑。
+  - 销售详情页复制订单时，现在会通过统一 helper 回退历史商品名；即使 `currentData.name` 缺失，只要订单行快照仍在，创建页预填也不会再把商品名带空。
+  - 管理端编辑弹窗初始化时，现在会把绑定商品卡片、表单初始值和原始信息卡片统一回退到历史商品名，不再出现“绑定商品还在，但编辑界面名字空白”的状态漂移。
+  - 补齐销售复制与编辑弹窗回归测试，显式锁定“历史订单商品名缺失于 current/original data 时，前端二次消费链路仍会回退 snapshotName”的行为。
+- 增量回归:
+  - `pnpm vitest run src/views/__tests__/SalesDetailView.duplicate.test.js src/components/order/__tests__/OrderEditModal.variant-lock.test.js src/components/order/__tests__/OrderDetail.lines.test.js src/components/order/__tests__/OrderDetail.recovery.test.js`
