@@ -3149,3 +3149,18 @@
   - `functions/lib/hono/routes/manage/orders/__tests__/create-routes.test.js`
   - `functions/lib/hono/routes/manage/__tests__/order-create-route.test.js`
 - 对应修复提交: `e9c6d835 fix: harden order create retries`
+
+### 2026-04-12 轮次 280
+
+- 继续深审 AI 创建旁路与商品/订单链路，新增 1 个高风险问题:
+  - [functions/ai/action-submitters.js](/home/bjw/Code/KK-Image/functions/ai/action-submitters.js)、[functions/ai/action-orchestrator.js](/home/bjw/Code/KK-Image/functions/ai/action-orchestrator.js) 与 [functions/ai/action-service.js](/home/bjw/Code/KK-Image/functions/ai/action-service.js) 修复前只对采购单做了 `submitted_pending_effects` 闭环，`create_product` 与 `create_order` 仍在 submitter 里直接执行真正创建。这样一来，只要商品缓存事件或订单 `order_created_by_admin` outbox 在本体成功后失败，AI 会话就会卡在“本体已创建但 session 没记住、后续无法安全补副作用”的隐性坏状态，和此前采购单问题是同类缺口。
+- 已完成本轮修复:
+  - AI 商品与订单 submitter 现在都会返回结构化的 `productCreated` / `orderCreated` 后置元数据，不再把不可恢复的副作用直接锁死在 submitter 成功路径里。
+  - action orchestrator 现在会把商品、订单、采购单三类创建统一纳入 `submitted_pending_effects`，把已提交 payload 持久化到 session 预览数据里，后续可以无损重放补副作用。
+  - AI action service 现在会在商品/订单 action rail 提交成功后再统一发布 `product_created` / `order_created_by_admin` 事件，并在副作用成功后才把 session 标记为 `completed`；如果发布失败，会保留 pending session，避免“本体已建成但副作用和 session 状态脱节”。
+- 增量回归:
+  - `functions/ai/__tests__/action-submitters.test.js`
+  - `functions/ai/__tests__/action-orchestrator.test.js`
+  - `functions/ai/__tests__/action-service.test.js`
+  - `functions/ai/__tests__/action-service.purchase-order-publish.test.js`
+- 对应修复提交: `45389157 fix: persist ai order and product side effects`
