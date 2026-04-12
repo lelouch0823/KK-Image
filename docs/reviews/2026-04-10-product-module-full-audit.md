@@ -3604,3 +3604,14 @@
   - `src/components/order/__tests__/OrderCreateModal.variant-policy.test.js`
   - `src/components/order/__tests__/OrderEditModal.variant-lock.test.js`
   - `src/views/sales/__tests__/SalesFormView.resilience.test.js`
+
+### 2026-04-12 轮次 312
+
+- 继续深审商品绑定组件的错误边界，新增 1 个中风险问题:
+  - [src/components/order/ProductBindingSection.vue](/home/bjw/Code/KK-Image/src/components/order/ProductBindingSection.vue) 修复前在销售端选择商品后，会调用 `loadSalesProduct()` 拉商品详情；但这个 composable 在请求失败时返回的是 `null` 而不是抛错。绑定组件随后把 `null` 当成“商品存在但没有可选规格”处理，向上游发出 `order.binding.variantRequired`，把真实的网络/鉴权加载失败误报成“请先选规格”。这会直接误导销售和管理员排障，也让重试逻辑绑错提示语义。
+- 已完成本轮修复:
+  - 商品绑定组件现在把“详情返回 `null`”单独识别为加载失败，统一上报 `common.loadFailed`，不再混入“没有可选规格”的业务分支。
+  - 仍然保留原有 `variantRequired` 分支给“详情成功返回，但在当前策略下没有可选规格”的真实场景，避免把这两类错误边界混在一起。
+  - 补齐销售端详情返回 `null` 的回归测试，并复跑整组绑定组件状态测试，显式锁定“网络/鉴权失败报 load failed，规格不可选才报 variant required”的行为。
+- 增量回归:
+  - `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
