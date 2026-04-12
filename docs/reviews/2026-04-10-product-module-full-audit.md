@@ -3590,3 +3590,17 @@
   - `functions/repositories/__tests__/PurchaseOrderRepository.read-model.test.js`
   - `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
 
+
+### 2026-04-12 轮次 311
+
+- 继续深审商品关联订单的前端编辑/创建链路，新增 1 个中风险问题:
+  - [src/components/OrderEditModal.vue](/home/bjw/Code/KK-Image/src/components/OrderEditModal.vue) 和 [src/components/OrderCreateModal.vue](/home/bjw/Code/KK-Image/src/components/OrderCreateModal.vue) 修复前仍各自维护一份过期的商品快照锁定字段清单，只锁了 `name / brand / series / sku` 四个字段，没有把 `size / color / material` 一并纳入前端受控字段。这样一来，管理端编辑弹窗与后端 PATCH 冻结规则继续漂移；而创建弹窗虽然当前主要通过只读规格块规避手工录入，但字段清单本身已经和销售端、后端出现分叉，后续只要 UI 分支稍有调整，就会再次把历史快照保护打穿。
+- 已完成本轮修复:
+  - 管理端订单编辑弹窗现在会和后端、销售端保持一致，在绑定商品后完整锁定 `name / brand / series / sku / size / color / material` 七个商品快照字段。
+  - 管理端订单创建弹窗也同步切到同一套完整锁定字段口径，避免“创建一套、编辑一套、销售一套”的前端契约继续分裂。
+  - 新增共享前端常量 [src/utils/order-binding-fields.js](/home/bjw/Code/KK-Image/src/utils/order-binding-fields.js)，让管理端创建、管理端编辑、销售端创建三条商品绑定入口统一复用同一套快照字段定义，收敛后续再漂移的风险。
+  - 补齐管理端创建弹窗回归测试，并复跑管理端编辑与销售端表单回归，显式锁定“三条前端绑定入口都会完整锁定全部商品快照字段”的行为。
+- 增量回归:
+  - `src/components/order/__tests__/OrderCreateModal.variant-policy.test.js`
+  - `src/components/order/__tests__/OrderEditModal.variant-lock.test.js`
+  - `src/views/sales/__tests__/SalesFormView.resilience.test.js`
