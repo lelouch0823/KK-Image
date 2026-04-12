@@ -3529,3 +3529,16 @@
   - `functions/lib/hono/routes/manage/products/__tests__/export-route.test.js`
   - `functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js`
   - `src/composables/__tests__/useGoodsOverview.test.js`
+
+### 2026-04-12 轮次 306
+
+- 继续深审商品详情读链路，新增 1 个中高风险问题:
+  - [src/components/product/ProductDetail.vue](/home/bjw/Code/KK-Image/src/components/product/ProductDetail.vue) 修复前会把 `product.variants` 原样用于详情展示、图片集合、规格数量和库存汇总，没有过滤 `archived` 规格。结果是商品列表和导出已经按 active 规格收口后，详情页仍会继续展示归档 SKU，并把归档库存一起累计进“Inventory”卡片，直接把商品详情展示口径重新带偏。
+- 已完成本轮修复:
+  - 商品详情组件现在只使用 `active` 规格做变体展示、图片聚合、规格计数和库存汇总，避免归档 SKU 继续出现在详情页里，也避免顶部库存统计再被归档规格污染。
+  - 当商品只剩归档规格时，详情页会自然退回到规格说明面板，而不是继续伪装成还有可售规格的商品。
+  - 补齐详情组件回归测试，显式锁定“archived 规格不会再出现在详情展示里”的行为，并复跑详情相关链路回归。
+- 增量回归:
+  - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
+  - `src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js`
+  - `src/components/product/__tests__/product-inventory-projection-consumers.test.js`
