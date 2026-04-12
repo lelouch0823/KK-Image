@@ -160,6 +160,9 @@ export async function runIdempotentCommand(c, {
             await commandIdempotencyRepo
                 .buildFinalizeStatement(reservation.record?.command_id, resume)
                 .run();
+            if (typeof onSuccess === 'function') {
+                await onSuccess(resume, { isResume: true });
+            }
             return c.json(resume, successStatus);
         }
 
@@ -176,7 +179,7 @@ export async function runIdempotentCommand(c, {
             .run();
 
         if (typeof onSuccess === 'function') {
-            await onSuccess(responseBody);
+            await onSuccess(responseBody, { isResume: false });
         }
 
         return c.json(responseBody, successStatus);

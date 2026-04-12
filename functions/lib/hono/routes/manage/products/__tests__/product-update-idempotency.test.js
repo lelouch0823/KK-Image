@@ -78,8 +78,8 @@ vi.mock('../cache-helpers.js', () => ({
   scheduleProductCacheInvalidation: mocks.scheduleProductCacheInvalidation,
 }));
 
-vi.mock('../../../_shared/audit-helpers.js', async () => {
-  const actual = await vi.importActual('../../../_shared/audit-helpers.js');
+vi.mock('../../../../_shared/audit-helpers.js', async () => {
+  const actual = await vi.importActual('../../../../_shared/audit-helpers.js');
   return {
     ...actual,
     scheduleAuditEvent: mocks.scheduleAuditEvent,
@@ -312,6 +312,11 @@ describe('manage product update routes idempotency', () => {
     expect(second.status).toBe(200);
     expect(mocks.patchProduct).toHaveBeenCalledTimes(1);
     expect(mocks.scheduleProductCacheInvalidation).toHaveBeenCalledTimes(2);
+    expect(mocks.scheduleAuditEvent).toHaveBeenCalledTimes(1);
+    expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: 'product.update', result: 'success' })
+    );
     expect(mocks.patchProduct).toHaveBeenCalledWith(
       expect.anything(),
       'prod-1',

@@ -842,6 +842,17 @@ app.delete('/:id', async (c) => {
         await commandIdempotencyRepo
             .buildFinalizeStatement(reservation.record?.command_id, storedArchive)
             .run();
+        scheduleAuditEvent(c, {
+            domain: 'products',
+            action: 'product.archive',
+            result: 'success',
+            severity: 'critical',
+            targetType: 'product',
+            targetId: id,
+            target_label: id,
+            summary: `Archived product ${id}`,
+            metadata: { variantCount: Array.isArray(storedArchive?.variantAuditEvents) ? storedArchive.variantAuditEvents.length : 0 },
+        });
         return c.json(getProductArchivePublicResponse(storedArchive));
     }
 
