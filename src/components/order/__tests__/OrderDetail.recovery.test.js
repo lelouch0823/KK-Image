@@ -39,6 +39,7 @@ const baseOrder = {
   files: [],
   timeline: [],
   currentData: { name: 'Test Product' },
+  originalData: {},
   customer: { name: 'Alice' },
 };
 
@@ -94,5 +95,52 @@ describe('OrderDetail recovery UX', () => {
 
     await wrapper.get('[data-testid="comment-retry"]').trigger('click');
     expect(wrapper.emitted('comment')?.[0]?.[0]).toBe('hello');
+  });
+
+  it('falls back to originalData snapshot fields in current info when currentData is sparse', () => {
+    const wrapper = mount(OrderDetail, {
+      props: {
+        order: {
+          ...baseOrder,
+          currentData: { name: 'Test Product' },
+          originalData: {
+            brand: 'Archive Brand',
+            series: 'Archive Series',
+            size: 'Archive Size',
+            color: 'Archive Color',
+            material: 'Archive Material',
+            remark: 'Archive Remark',
+            deadline: '2026-04-13',
+          },
+        },
+        mode: 'sales',
+      },
+      global: {
+        stubs: {
+          OrderTimeline: true,
+          OrderFileGrid: true,
+          OrderInfoCard: {
+            props: ['data'],
+            template: '<div data-testid="order-info-card">{{ JSON.stringify(data) }}</div>',
+          },
+          OrderPersonCard: true,
+          OrderStatusHeader: true,
+          OrderLinesCard: true,
+          OrderPrintView: true,
+          OrderEditModal: true,
+          Modal: true,
+          ConfirmDialog: true,
+          Lightbox: true,
+          AppIcon: true,
+        },
+      },
+    });
+
+    const infoPayload = wrapper.get('[data-testid="order-info-card"]').text();
+    expect(infoPayload).toContain('Archive Brand');
+    expect(infoPayload).toContain('Archive Series');
+    expect(infoPayload).toContain('Archive Size');
+    expect(infoPayload).toContain('Archive Color');
+    expect(infoPayload).toContain('Archive Material');
   });
 });

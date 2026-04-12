@@ -42,30 +42,30 @@
         </div>
         <div class="grid grid-cols-[80px_1fr]">
           <dt class="text-(--text-secondary)">{{ t('order.form.brand') }}</dt>
-          <dd class="font-medium text-black">{{ currentData.brand || '-' }}</dd>
+          <dd class="font-medium text-black">{{ displayData.brand || '-' }}</dd>
         </div>
         <div class="grid grid-cols-[80px_1fr]">
           <dt class="text-(--text-secondary)">{{ t('order.form.series') }}</dt>
-          <dd class="font-medium text-black">{{ currentData.series || '-' }}</dd>
+          <dd class="font-medium text-black">{{ displayData.series || '-' }}</dd>
         </div>
         <div class="grid grid-cols-[80px_1fr]">
           <dt class="text-(--text-secondary)">{{ t('order.form.size') }}</dt>
-          <dd class="font-medium text-black">{{ currentData.size || '-' }}</dd>
+          <dd class="font-medium text-black">{{ displayData.size || '-' }}</dd>
         </div>
         <div class="grid grid-cols-[80px_1fr]">
           <dt class="text-(--text-secondary)">{{ t('order.form.color') }}</dt>
-          <dd class="font-medium text-black">{{ currentData.color || '-' }}</dd>
+          <dd class="font-medium text-black">{{ displayData.color || '-' }}</dd>
         </div>
         <div class="grid grid-cols-[80px_1fr]">
           <dt class="text-(--text-secondary)">{{ t('order.form.material') }}</dt>
-          <dd class="font-medium text-black">{{ currentData.material || '-' }}</dd>
+          <dd class="font-medium text-black">{{ displayData.material || '-' }}</dd>
         </div>
         <div class="col-span-2 mt-2 border-t border-dashed border-(--border-color) pt-2">
           <dt class="mb-1 text-xs text-(--text-secondary)">{{ t('order.form.remark') }}</dt>
           <dd
             class="rounded border border-(--border-color) bg-(--bg-muted) p-3 text-sm leading-relaxed text-black"
           >
-            {{ currentData.remark || '-' }}
+            {{ displayData.remark || '-' }}
           </dd>
         </div>
       </dl>
@@ -156,7 +156,7 @@ import { computed } from 'vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import { useI18n } from '@/composables/useI18n';
 import { formatTimelineTime } from '@/utils/formatters';
-import { resolveOrderProductName, resolveOrderQuantity } from '@/utils/order-display';
+import { resolveOrderProductName, resolveOrderQuantity, resolveOrderSnapshotField } from '@/utils/order-display';
 import OrderProcurementBadge from './OrderProcurementBadge.vue';
 import OrderTimeline from './OrderTimeline.vue';
 
@@ -174,7 +174,14 @@ const orderLines = computed(() => (Array.isArray(props.order.lines) ? props.orde
 const orderQuantity = computed(() => resolveOrderQuantity(props.order));
 const displayData = computed(() => ({
   ...currentData.value,
-  name: currentData.value.name || resolveOrderProductName(props.order),
+  name: resolveOrderProductName(props.order),
+  brand: resolveOrderSnapshotField(props.order, 'brand'),
+  series: resolveOrderSnapshotField(props.order, 'series'),
+  size: resolveOrderSnapshotField(props.order, 'size'),
+  color: resolveOrderSnapshotField(props.order, 'color'),
+  material: resolveOrderSnapshotField(props.order, 'material'),
+  remark: resolveOrderSnapshotField(props.order, 'remark'),
+  deadline: resolveOrderSnapshotField(props.order, 'deadline'),
 }));
 
 const formatTime = (timestamp) => formatTimelineTime(timestamp);

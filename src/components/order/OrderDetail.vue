@@ -190,6 +190,7 @@ import {
   resolveOrderProductName,
   resolveOrderProgressStatus,
   resolveOrderQuantity,
+  resolveOrderSnapshotField,
 } from '@/utils/order-display';
 
 const props = defineProps({
@@ -273,7 +274,15 @@ const progressStatus = computed(() => resolveOrderProgressStatus(props.order));
 const productName = computed(() => resolveOrderProductName(props.order));
 const displayData = computed(() => ({
   ...currentData.value,
-  name: currentData.value.name || productName.value,
+  name: productName.value,
+  brand: resolveOrderSnapshotField(props.order, 'brand'),
+  series: resolveOrderSnapshotField(props.order, 'series'),
+  sku: resolveOrderSnapshotField(props.order, 'sku'),
+  size: resolveOrderSnapshotField(props.order, 'size'),
+  color: resolveOrderSnapshotField(props.order, 'color'),
+  material: resolveOrderSnapshotField(props.order, 'material'),
+  remark: resolveOrderSnapshotField(props.order, 'remark'),
+  deadline: resolveOrderSnapshotField(props.order, 'deadline'),
 }));
 
 // 是否有修正
