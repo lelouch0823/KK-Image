@@ -3320,3 +3320,21 @@
   - `functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/product-archive-idempotency.test.js`
   - `functions/lib/hono/routes/manage/products/__tests__/variant-audit-routes.test.js`
+
+### 2026-04-12 轮次 291
+
+- 继续深审商品管理幂等恢复尾部副作用，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/products/idempotency-helpers.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/idempotency-helpers.js) 修复前的统一幂等执行器在“本体已成功、但 cache publish / finalize 失败”场景下，会把命令记录写成 `failed` 并保存成功响应；后续重试虽然会走 `resume` 补 cache 和 finalize，但不会再执行路由侧 `onSuccess`。这意味着商品创建、商品更新、规格/图片等所有共用 helper 的写路由，在恢复成功后都可能漏掉 `scheduleAuditEvent(...)` 这类尾部审计副作用。与此同时，[functions/lib/hono/routes/manage/products/[id].js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/[id].js) 的商品归档自定义恢复分支也存在同类缺口。
+- 已完成本轮修复:
+  - 统一幂等执行器现在在 `resume` 成功补完 cache + finalize 之后，也会执行路由传入的 `onSuccess(..., { isResume: true })`；这样商品创建、商品更新以及所有已接入 helper 的商品详情写路由，在恢复成功后都能补齐审计事件，不再只补缓存副作用。
+  - 商品归档 `DELETE /:id` 的自定义恢复分支现在也会在 finalize 成功后补记 `product.archive` 审计事件，避免它继续成为 helper 外的漏网点。
+  - 同时修正了 3 组幂等测试里 `audit-helpers` 的 mock 路径，使回归真正命中路由实际引用的模块，锁定“恢复成功后审计只补一次”的行为，而不是误读真实 audit 落库。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/products/__tests__/product-create-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-update-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-archive-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-detail-create-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-detail-mutation-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-update-audit-metadata.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-patch-rollback-boundary.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-audit-routes.test.js`
