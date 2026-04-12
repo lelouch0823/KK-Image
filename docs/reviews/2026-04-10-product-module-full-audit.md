@@ -3752,3 +3752,14 @@
   - 补齐仓储回归测试，显式锁定“live variant 行缺失时，品牌/分类筛选项仍会保留历史需求对应选项”的行为，并复跑路由测试确认接口层语义未回退。
 - 增量回归:
   - `pnpm vitest run functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js`
+
+### 2026-04-13 轮次 324
+
+- 继续深审商品关联订货总览的主列表展示链路，新增 1 个中高风险问题:
+  - [functions/repositories/GoodsOverviewRepository.js](/home/bjw/Code/KK-Image/functions/repositories/GoodsOverviewRepository.js) 修复前订货总览主列表虽然还能保留 deleted/历史规格的需求数量，但商品摘要字段仍主要读取 live `products/product_variants`。结果是只要 live 商品或规格行被删掉，列表里的商品名、SKU、品牌、规格标签和图片就会退化成空值或 `-`，管理端虽然看见“有缺口”，却不容易判断缺的到底是哪一款货。
+- 已完成本轮修复:
+  - 订货总览主列表现在会优先回退 `order_lines.snapshot_name / snapshot_sku / snapshot_specs / snapshot_image`，再回退 `orders.current_data / original_data`，最后才使用 live 商品字段，保证 deleted live rows 场景下历史摘要仍可读。
+  - 品牌筛选条件也同步收敛到同一套快照优先口径，避免“列表展示的是历史品牌，但按品牌筛选又筛不出来”的再次分叉。
+  - 补齐仓储回归测试，显式锁定“live 商品行缺失时，订货总览主列表仍会回退历史商品摘要”的行为，并复跑路由测试确认接口层继续稳定。
+- 增量回归:
+  - `pnpm vitest run functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js`
