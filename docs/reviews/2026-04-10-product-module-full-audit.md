@@ -3108,3 +3108,17 @@
 - 增量回归:
   - `functions/services/__tests__/DomainOutboxPublisher.test.js`
 - 对应修复提交: `b82ed509 fix: roll back partial outbox publish chunks`
+
+### 2026-04-12 轮次 277
+
+- 继续深审管理端采购单创建恢复链路，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/purchase-orders.js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js) 修复前虽然 `POST /api/manage/purchase-orders` 与 `POST /api/manage/purchase-orders/from-orders` 已支持“本体已创建但 finalize 失败”的失败恢复，但补发 `purchase_order_created*` outbox 事件时仍然使用 `DomainOutboxPublisher` 默认生成的随机 `commandId`。只要第一次事件其实已经写进 outbox、只是后续 finalize 失败，第二次同一幂等键 resume 就会再次生成新的 outbox idempotency key，导致同一张采购单的创建事件被重复写出，下游缓存刷新和消费链路都会重复触发。
+- 已完成本轮修复:
+  - 管理端 direct-create 与 from-orders 两条建单链路现在都会把幂等预留命令的 `command_id` 透传给 outbox 发布，确保首次执行与 failed-resume 使用同一组稳定的 `commandId/correlationId`。
+  - 当补发命中了 `domain_outbox.idempotency_key` / `idx_domain_outbox_idempotency_key` 唯一约束时，路由现在会把它视为“创建事件已成功持久化”，继续唤醒 outbox poller 并完成 finalize，而不会把这类可恢复重试误判成失败。
+  - 已补齐 direct-create 与 from-orders 两条 finalize-failure 回归测试，并同步更新路由发布断言，锁定“重试不重复建单、不重复生成创建事件、创建事件命令号稳定”的行为。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
+  - `functions/ai/__tests__/action-service.purchase-order-publish.test.js`
+  - `functions/ai/__tests__/action-service.test.js`
+  - `functions/services/__tests__/DomainOutboxPublisher.test.js`
