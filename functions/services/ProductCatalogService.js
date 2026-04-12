@@ -511,7 +511,13 @@ export class ProductCatalogService {
         }
     }
 
-    async createProduct(c, body) {
+    async createProduct(c, body, options = {}) {
+        const {
+            skipCacheInvalidation = false,
+            cacheEventCommandId,
+            cacheEventCorrelationId,
+        } = options;
+
         if (!body.name) {
             throw new BadRequestError('Name is required');
         }
@@ -598,10 +604,15 @@ export class ProductCatalogService {
             throw error;
         }
 
-        await scheduleProductCacheInvalidation(c, {
-            eventType: 'product_created',
-            productIds: [product?.id || null],
-        });
+        if (!skipCacheInvalidation) {
+            await scheduleProductCacheInvalidation(c, {
+                eventType: 'product_created',
+                productIds: [product?.id || null],
+            }, {
+                commandId: cacheEventCommandId,
+                correlationId: cacheEventCorrelationId,
+            });
+        }
         return product;
     }
 

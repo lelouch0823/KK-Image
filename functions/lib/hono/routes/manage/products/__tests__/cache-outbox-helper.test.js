@@ -34,7 +34,8 @@ describe('manage products cache outbox helper', () => {
           product_ids: ['p-1'],
         },
       }),
-      'product_variant_image_deleted:p-1'
+      'product_variant_image_deleted:p-1',
+      undefined
     );
   });
 });
