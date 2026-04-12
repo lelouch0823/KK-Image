@@ -3096,3 +3096,15 @@
 - 增量回归:
   - `functions/repositories/__tests__/CommandIdempotencyRepository.test.js`
 - 对应修复提交: `6d6b63de fix: align command idempotency failed states`
+
+### 2026-04-12 轮次 276
+
+- 继续深审 durable outbox 发布器，新增 1 个高风险问题:
+  - [functions/services/DomainOutboxPublisher.js](/home/bjw/Code/KK-Image/functions/services/DomainOutboxPublisher.js) 修复前把大批量事件直接按 statement 维度分块写入 D1。只要第二批以后抛错，就会留下“前几批 domain_outbox 事件和部分 consumer jobs 已插入、后续批次没插入”的半提交状态；之后调用方即便重试，也可能因为幂等键冲突或缺失的 consumer jobs 让部分事件永久失联。
+- 已完成本轮修复:
+  - outbox 发布器现在改为按“事件”为单位组装 D1-safe batch，确保单个事件和它的 consumer jobs 永远不会被拆到不同 chunk。
+  - 任一 chunk 发布失败时，发布器会删除前面已成功插入的 `domain_outbox` 事件，让 `outbox_consumer_jobs` 依赖外键级联一起回滚，避免 durable outbox 留下半截事实。
+  - 已补齐 outbox 发布器回归测试，锁定“后续 chunk 失败必须回滚前面已写入事件”的行为。
+- 增量回归:
+  - `functions/services/__tests__/DomainOutboxPublisher.test.js`
+- 对应修复提交: `b82ed509 fix: roll back partial outbox publish chunks`
