@@ -3180,3 +3180,22 @@
   - `functions/services/__tests__/ProductCatalogService.import-mode.test.js`
   - `functions/repositories/__tests__/product-import-merge.test.js`
 - 对应修复提交: `9f6b4695 fix: harden product batch import retries`
+
+### 2026-04-12 轮次 282
+
+- 继续深审商品归档链路，新增 1 个高风险问题:
+  - [functions/lib/hono/routes/manage/products/[id].js](/home/bjw/Code/KK-Image/functions/lib/hono/routes/manage/products/[id].js) 修复前的 `DELETE /api/manage/products/:id` 完全没有命令幂等与 failed-resume 协议，却会在归档 `product_variants` 之后继续批量写 `variant_audit_logs`，最后才发 `product_archived` cache outbox。只要第一次“变体已归档但审计批写、cache outbox 或 finalize 失败”，后续重试就会重复执行整条归档逻辑，轻则重复写审计，重则因为行已归档而直接返回 400，导致缓存副作用永远无法安全补齐。
+- 已完成本轮修复:
+  - 商品归档路由现在已接入命令幂等保留、请求指纹校验、成功响应重放与 `failed` 恢复；同一个幂等键重试不会重复归档商品，同 key 跨商品复用会被拒绝。
+  - 归档链路现在会把公开响应、`variant_audit` 待写事件和“审计是否已持久化”状态一并写入幂等记录；这样在 `variant_audit` 或 cache 事件之后失败时，恢复流程只会补缺失副作用，不会重跑商品归档本体，也不会重复生成已落库的审计记录。
+  - `product_archived` cache outbox 现在统一使用幂等预留命令的稳定 `commandId/correlationId`；如果重试命中了 `domain_outbox.idempotency_key` 唯一约束，会被视为“归档事件已持久化”，从而安全完成 finalize。
+  - 同步补齐 `[id].js` 关联测试壳对 `cache-helpers` / `CommandIdempotencyRepository` 的 mock，恢复商品详情写路径测试在当前实现下的真实业务断言。
+- 增量回归:
+  - `functions/lib/hono/routes/manage/products/__tests__/product-archive-idempotency.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-audit-routes.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-dimensions-routes.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-validation-rules.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-patch-rollback-boundary.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/product-update-audit-metadata.test.js`
+- 对应修复提交: `833fe0a8 fix: harden product archive retries`
