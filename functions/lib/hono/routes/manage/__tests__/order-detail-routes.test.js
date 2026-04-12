@@ -160,7 +160,8 @@ describe('manage order detail routes', () => {
 
     expect(res.status).toBe(200);
     expect(mocks.markAsRead).toHaveBeenCalledWith('order-1', 'admin');
-    expect(mocks.publish).toHaveBeenCalledWith([
+    const [publishedEvents] = mocks.publish.mock.calls[0] || [];
+    expect(publishedEvents).toEqual([
       expect.objectContaining({
         event_type: 'order_read_by_admin',
         aggregate_type: 'order',
@@ -521,6 +522,80 @@ describe('manage order detail routes', () => {
 
     expect(res.status).toBe(400);
     expect(mocks.processOrderUpdate).not.toHaveBeenCalled();
+  });
+
+  it('preserves existing bound snapshots during ordinary edits', async () => {
+    mocks.findById
+      .mockResolvedValueOnce({
+        id: 'order-1',
+        orderNo: 'SO-1',
+        status: 'pending',
+        salespersonId: 'sp-1',
+        productId: 'p-1',
+        variantId: 'v-1',
+        quantity: 2,
+        currentData: {
+          name: 'Frozen Name',
+          brand: 'Frozen Brand',
+          series: 'Frozen Series',
+          sku: 'FROZEN-SKU',
+          size: 'Size: M',
+          color: 'Black',
+          material: 'Leather',
+        },
+      })
+      .mockResolvedValueOnce({
+        id: 'order-1',
+        orderNo: 'SO-1',
+        status: 'pending',
+        salespersonId: 'sp-1',
+        productId: 'p-1',
+        variantId: 'v-1',
+        quantity: 2,
+        currentData: {
+          name: 'Frozen Name',
+          brand: 'Frozen Brand',
+          series: 'Frozen Series',
+          sku: 'FROZEN-SKU',
+          size: 'Size: M',
+          color: 'Black',
+          material: 'Leather',
+          remark: 'updated',
+        },
+      });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          updates: {
+            remark: 'updated',
+            name: 'Live Rename',
+            brand: 'Live Brand',
+            series: 'Live Series',
+            sku: 'LIVE-SKU',
+            size: 'Size: XL',
+            color: 'White',
+            material: 'Metal',
+          },
+          reason: 'ordinary edit',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.productFindById).not.toHaveBeenCalled();
+    expect(mocks.variantFindByIdAndProductId).not.toHaveBeenCalled();
+    expect(mocks.processOrderUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        updates: { remark: 'updated' },
+      })
+    );
   });
 
   it('returns updated order payload after PATCH /:id', async () => {

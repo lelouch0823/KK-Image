@@ -1,7 +1,6 @@
 
 import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
-import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
 import {
     canTransitionOrderStatus
@@ -30,6 +29,7 @@ export const auditRouteDeclarations = declareAuditRoutes([
 const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
 const STRUCTURAL_EDITABLE_STATUSES = new Set(['pending', 'rejected', 'void']);
 const QUANTITY_EDITABLE_STATUSES = new Set(['pending', 'confirmed', 'rejected', 'void']);
+const ORDER_BOUND_SNAPSHOT_FIELDS = Object.freeze(['name', 'brand', 'series', 'sku', 'size', 'color', 'material']);
 
 function getAdminActor(user) {
     return {
@@ -135,6 +135,7 @@ app.patch('/:id', async (c) => {
     const hasBindingMutation = hasProductIdPayload || hasVariantIdPayload;
     const hasQuantityMutation = updates.quantity !== undefined;
     const effectiveProductId = hasProductIdPayload ? productId : order.productId;
+    const hasExistingBinding = Boolean(order.productId && order.variantId);
     let normalizedVariantId = hasVariantIdPayload ? (variantId || null) : undefined;
     let validatedBinding = null;
 
@@ -143,6 +144,12 @@ app.patch('/:id', async (c) => {
     }
     if (hasQuantityMutation && !QUANTITY_EDITABLE_STATUSES.has(String(order.status || '').trim().toLowerCase())) {
         throw new BadRequestError('quantity can only be changed while order is pending, confirmed, rejected, or void');
+    }
+
+    if (hasExistingBinding && !hasBindingMutation) {
+        for (const field of ORDER_BOUND_SNAPSHOT_FIELDS) {
+            delete finalUpdates[field];
+        }
     }
 
     if (hasBindingMutation) {
@@ -160,21 +167,6 @@ app.patch('/:id', async (c) => {
         finalUpdates.size = boundSnapshot.size;
         finalUpdates.color = boundSnapshot.color;
         finalUpdates.material = boundSnapshot.material;
-    }
-
-    if (effectiveProductId) {
-        const product = validatedBinding?.product || await new ProductRepository(env.DB).findById(effectiveProductId);
-        if (hasBindingMutation && !product) {
-            throw new BadRequestError('productId does not exist');
-        }
-        if (hasBindingMutation && product?.status !== 'active') {
-            throw new BadRequestError('product must be active');
-        }
-        if (product) {
-            finalUpdates.name = product.name;
-            finalUpdates.brand = product.brand;
-            finalUpdates.series = product.series;
-        }
     }
 
     const requestedStatus = finalUpdates?.status;
