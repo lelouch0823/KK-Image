@@ -33,6 +33,33 @@ describe('space transformers', () => {
     ]);
   });
 
+  it('falls back to stored template data when bound product or variant is archived', () => {
+    const templateData = projectSpaceTemplateData({
+      product_id: 'prod-1',
+      variant_id: 'var-1',
+      template_data: JSON.stringify({
+        sku: 'SNAPSHOT-SKU',
+        material: 'Snapshot Material',
+        images: ['snapshot-cover.jpg'],
+      }),
+      p_status: 'archived',
+      pv_status: 'archived',
+      p_sku: 'LIVE-SPU',
+      pv_sku: 'LIVE-SKU',
+      p_price: 199,
+      p_specs: '{"material":"Live Material"}',
+      pv_options_values: '{"材质":"Live Leather"}',
+      p_images: '["live-1.jpg","live-2.jpg"]',
+      display_image_id: 'live-primary.jpg',
+    });
+
+    expect(templateData).toEqual({
+      sku: 'SNAPSHOT-SKU',
+      material: 'Snapshot Material',
+      images: ['snapshot-cover.jpg'],
+    });
+  });
+
   it('projects variantId in list and detail payloads', () => {
     const space = {
       id: 'space-1',

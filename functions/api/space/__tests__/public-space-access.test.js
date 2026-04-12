@@ -288,6 +288,74 @@ describe('public space access api', () => {
     ]);
   });
 
+  it('falls back to stored template data when public space binding points to archived catalog records', async () => {
+    const first = vi.fn().mockResolvedValue({
+      ...baseSpaceRecord,
+      password: null,
+      template: 'product',
+      product_id: 'product-1',
+      variant_id: 'variant-1',
+      template_data: JSON.stringify({
+        sku: 'SNAPSHOT-SKU',
+        material: 'Snapshot Material',
+        images: ['snapshot-main.jpg'],
+      }),
+      p_status: 'archived',
+      pv_status: 'archived',
+      p_sku: 'LIVE-SPU',
+      pv_sku: 'LIVE-SKU',
+      p_price: 199,
+      p_specs: '{"material":"Cotton"}',
+      pv_options_values: '{"材质":"Leather"}',
+      p_images: '["product-main.jpg","product-side.jpg"]',
+      display_image_id: 'variant-primary.jpg',
+    });
+    const filesAll = vi.fn().mockResolvedValue({ results: [] });
+    const subspacesAll = vi.fn().mockResolvedValue({ results: [] });
+    const batch = vi.fn().mockResolvedValue([]);
+
+    const prepare = vi.fn((sql) => {
+      if (sql.includes('WHERE s.share_token = ?')) {
+        expect(sql).toContain('p.status as p_status');
+        expect(sql).toContain('pv.status as pv_status');
+        return { bind: () => ({ first }) };
+      }
+      if (sql.includes('FROM space_files sf')) {
+        return { bind: () => ({ all: filesAll }) };
+      }
+      if (sql.includes('WHERE s.parent_id = ? AND s.is_public = 1')) {
+        expect(sql).toContain('p.status as p_status');
+        expect(sql).toContain('pv.status as pv_status');
+        return { bind: () => ({ all: subspacesAll }) };
+      }
+      if (sql.includes('INSERT INTO space_access_logs')) {
+        return { bind: (...args) => ({ sql, args }) };
+      }
+      if (sql.includes('UPDATE spaces SET view_count = view_count + 1')) {
+        return { bind: (...args) => ({ sql, args }) };
+      }
+      throw new Error(`Unexpected SQL: ${sql}`);
+    });
+
+    const response = await onRequestGet({
+      env: { DB: { prepare, batch } },
+      params: { token: 'share-token' },
+      request: new Request('http://localhost/api/space/share-token'),
+    });
+
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    expect(payload.success).toBe(true);
+    expect(payload.data.templateData).toEqual({
+      sku: 'SNAPSHOT-SKU',
+      material: 'Snapshot Material',
+      images: ['snapshot-main.jpg'],
+    });
+    expect(payload.data.files).toEqual([
+      expect.objectContaining({ url: '/file/snapshot-main.jpg' }),
+    ]);
+  });
+
   it('excludes expired public subspaces from collection payloads', async () => {
     const first = vi.fn().mockResolvedValue({
       ...baseSpaceRecord,

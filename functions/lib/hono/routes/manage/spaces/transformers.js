@@ -14,9 +14,13 @@ import { normalizeVariantOptions } from '../../../../../lib/utils/variant-meta.j
  */
 export function projectSpaceTemplateData(space) {
   const templateData = parseJsonObject(space.template_data, {});
+  const productStatus = String(space.p_status || '').trim().toLowerCase();
+  const variantStatus = String(space.pv_status || '').trim().toLowerCase();
+  const hasActiveProductBinding = !space.product_id || !productStatus || productStatus === 'active';
+  const hasActiveVariantBinding = !space.variant_id || !variantStatus || variantStatus === 'active';
 
   // 如果绑定了产品，用产品表 JOIN 过来的数据覆盖空间的模板字段
-  if (space.product_id) {
+  if (space.product_id && hasActiveProductBinding && hasActiveVariantBinding) {
     if (space.p_brand !== undefined) templateData.brand = space.p_brand || '';
     if (space.p_series !== undefined) templateData.series = space.p_series || '';
     const projectedSku = space.variant_id

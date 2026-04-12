@@ -16,12 +16,14 @@ export class SpaceRepository {
     _productProjectionSQL() {
         return `
           p.spu as p_sku,
+          p.status as p_status,
           p.brand as p_brand,
           p.series as p_series,
           COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
           p.specifications as p_specs,
           p.images as p_images,
           pv.sku as pv_sku,
+          pv.status as pv_status,
           pv.price as pv_price,
           pv.options_values as pv_options_values
         `;
