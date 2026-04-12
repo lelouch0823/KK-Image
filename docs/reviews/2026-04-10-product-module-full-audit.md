@@ -3464,3 +3464,15 @@
   - `functions/repositories/__tests__/SpaceRepository.test.js`
   - `functions/lib/hono/routes/manage/__tests__/spaces-crud-validation.test.js`
   - `src/components/product/__tests__/ProductDetail.associated-spaces.test.js`
+
+### 2026-04-12 轮次 301
+
+- 继续深审商品模块核心读模型，新增 1 个高风险问题:
+  - [functions/repositories/ProductRepository.js](/home/bjw/Code/KK-Image/functions/repositories/ProductRepository.js) 修复前商品列表/搜索使用的 `variant_agg` CTE 会把所有规格都纳入聚合，包括 `archived` 规格。结果是一个“仍有 active 规格”的商品，只要归档规格里还有库存、低价或更低告警阈值，就会污染商品层的 `price`、`cost_price`、`stock_quantity`、`available_quantity`、`alert_threshold`，进一步把商品列表展示、`hasStock` 筛选以及导出前置筛选结果一起带偏。这属于商品模块最核心的读模型口径错误。
+- 已完成本轮修复:
+  - `ProductRepository` 的 `variant_agg` 现在只聚合 `pv.status = 'active'` 的规格，商品层价格、库存、可用库存、告警阈值和派生状态都不再被归档规格污染。
+  - 补齐仓储级回归测试，显式锁定聚合 SQL 已经改为“只统计 active 规格”的口径；同时复跑商品导出路由和前端导出弹窗测试，确认这次修正不会打坏现有导出链路。
+- 增量回归:
+  - `functions/repositories/__tests__/product-spu.test.js`
+  - `functions/lib/hono/routes/manage/products/__tests__/export-route.test.js`
+  - `src/components/product/__tests__/ProductExportModal.filters.test.js`
