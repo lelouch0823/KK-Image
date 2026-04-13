@@ -55,6 +55,21 @@
       </template>
 
       <template #content>
+    <div
+      v-if="showRequestErrorState"
+      class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8"
+    >
+      <EmptyState
+        icon="search"
+        :title="t('common.error.network_error')"
+        :description="error || t('common.text.load_failed')"
+      >
+        <template #action>
+          <AppButton variant="secondary" :text="t('common.action.retry')" @click="init" />
+        </template>
+      </EmptyState>
+    </div>
+    <template v-else>
 
     <!-- ===== 管道概览卡片：骨架屏 or 真实数据 ===== -->
     <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -321,6 +336,7 @@
         </button>
       </template>
     </FloatingSelectionBar>
+    </template>
       </template>
     </ManagementListShell>
     </template>
@@ -341,6 +357,7 @@ import AppCheckbox from '@/components/ui/AppCheckbox.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
 import FilterSelect from '@/design-system/composed/FilterSelect.vue';
 import MetricTile from '@/design-system/composed/MetricTile.vue';
 import SummaryStrip from '@/design-system/composed/SummaryStrip.vue';
@@ -416,6 +433,10 @@ const summaryByStatus = computed(() => ({
     qty: summary.value?.byStatus?.arrived?.qty || 0,
   },
 }));
+
+const showRequestErrorState = computed(() =>
+  !loading.value && Boolean(error.value) && errorCode.value !== 'FORBIDDEN'
+);
 
 const getItemImageSrc = (item) => resolvePrimaryProductImageSrc({ images: item?.images || [] });
 

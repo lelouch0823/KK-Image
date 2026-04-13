@@ -61,8 +61,8 @@ function createComposableState(itemOverrides = {}) {
     items: ref([item]),
     summary: ref(summary),
     loading: ref(false),
-    error: ref(null),
-    errorCode: ref(null),
+    error: ref(itemOverrides.errorOverride ?? null),
+    errorCode: ref(itemOverrides.errorCodeOverride ?? null),
     filters: {
       brand: '',
       category: '',
@@ -101,11 +101,12 @@ function createWrapper(itemOverrides) {
         SummaryStrip: { template: '<div><slot /></div>' },
         FloatingSelectionBar: { template: '<div><slot name="summary" /><slot /></div>', props: ['visible'] },
         PermissionDeniedState: { template: '<div />' },
+        EmptyState: { template: '<div data-testid="goods-overview-error-state"><slot name="action" /></div>' },
         AppImage: { template: '<img data-testid="overview-image" :src="src" />', props: ['src'] },
         AppTable: {
           props: ['data'],
           template: `
-            <div>
+            <div data-testid="goods-overview-table">
               <div v-for="row in data" :key="row.id">
                 <slot name="cell-name" :row="row" />
                 <slot name="cell-status" :row="row" />
@@ -166,5 +167,15 @@ describe('GoodsOverview status semantics', () => {
         },
       })
     ).not.toThrow();
+  });
+
+  it('shows a retryable error state instead of a silent empty table on network failures', () => {
+    const wrapper = createWrapper({
+      errorOverride: 'network down',
+      errorCodeOverride: 'NETWORK_ERROR',
+    });
+
+    expect(wrapper.find('[data-testid="goods-overview-error-state"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="goods-overview-table"]').exists()).toBe(false);
   });
 });
