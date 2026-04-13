@@ -3851,3 +3851,14 @@
   - 补齐订单快照、销售创建、管理改单、总览仓储回退回归测试，显式锁定“历史分类不会再从订货总览里消失”的行为。
 - 增量回归:
   - `pnpm vitest run functions/repositories/__tests__/order-mutations.test.js functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js functions/lib/hono/routes/manage/orders/__tests__/detail-update-demand-sync.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
+
+### 2026-04-13 轮次 333
+
+- 继续深审商品关联 AI 消费链路，新增 1 个中风险问题:
+  - [functions/utils/ai-tool-executor.js](/home/bjw/Code/KK-Image/functions/utils/ai-tool-executor.js) 修复前在 `getGoodsOverviewList` 里把 `shortageOnly` 写死成 `args.shortageOnly === true`。这意味着只要模型工具调用传来的是常见字符串真值（例如 `'true'`、`'1'`）或数字 `1`，工具层就会静默退回全量订货总览，而不是仅缺货列表，AI 分析结果会和用户意图分叉且没有任何错误提示。
+- 已完成本轮修复:
+  - AI 工具执行器新增布尔归一化 helper，`getGoodsOverviewList` 现在能正确识别 `true/'true'/'1'/1/yes` 这类真值输入，不再因为类型漂移悄悄扩大查询范围。
+  - 补齐 AI 工具执行器回归测试，显式锁定“字符串型 shortageOnly 真值会正确下推到 goods overview 仓储查询”的行为。
+  - 复跑 AI 工具 canonicalization 与 goods overview 工具测试，确认本轮修复没有影响现有分页元数据和工具边界。
+- 增量回归:
+  - `pnpm vitest run functions/utils/__tests__/ai-tool-executor.test.js functions/utils/__tests__/ai-tool-executor.canonicalization.test.js`
