@@ -3839,3 +3839,15 @@
   - 复跑总览 composable、视图、路由、仓储关联测试，确认权限文案对齐没有影响现有权限态、错误态和摘要渲染逻辑。
 - 增量回归:
   - `pnpm vitest run src/views/__tests__/GoodsOverview.status-semantics.test.js src/composables/__tests__/useGoodsOverview.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
+
+### 2026-04-13 轮次 332
+
+- 继续深审商品绑定订单快照与订货总览历史口径，新增 1 个高风险问题:
+  - 商品绑定订单时，镜像快照和 `order_lines.snapshot_specs` 一直没有保存 `category`，而 [functions/repositories/GoodsOverviewRepository.js](/home/bjw/Code/KK-Image/functions/repositories/GoodsOverviewRepository.js) 修复前又只从 live `products.category` 读取分类。结果是商品被删、归档或改分类后，历史需求在订货总览里会直接丢分类字段，分类筛选也会把这些历史需求漏掉，形成“品牌还能回退、分类却失踪”的口径分叉。
+- 已完成本轮修复:
+  - 订单绑定快照现在会统一写入 `category`，覆盖销售创建、管理创建、销售改单、管理改单以及 `order_lines.snapshot_specs` 兼容快照同步链路，避免未来新增历史订单继续丢分类。
+  - 订货总览仓储现在对分类与分类筛选统一回退 `snapshot_specs.category -> products.category -> orders.current_data.category -> orders.original_data.category`，历史需求即便 live 商品已删除或分类已漂移，也能继续正确展示和筛选。
+  - 订单绑定字段常量同步纳入 `category`，防止已绑定订单在普通编辑时把这类镜像字段静默覆盖掉。
+  - 补齐订单快照、销售创建、管理改单、总览仓储回退回归测试，显式锁定“历史分类不会再从订货总览里消失”的行为。
+- 增量回归:
+  - `pnpm vitest run functions/repositories/__tests__/order-mutations.test.js functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js functions/lib/hono/routes/manage/orders/__tests__/detail-update-demand-sync.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
