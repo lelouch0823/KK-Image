@@ -379,12 +379,12 @@ const columns = computed(() => [
 
 const brandOptions = computed(() => [
   { value: '', label: t('goodsOverview.filter.allBrands') },
-  ...availableFilters.brands.map((brand) => ({ value: brand, label: brand })),
+  ...(availableFilters.value?.brands || []).map((brand) => ({ value: brand, label: brand })),
 ]);
 
 const categoryOptions = computed(() => [
   { value: '', label: t('goodsOverview.filter.allCategories') },
-  ...availableFilters.categories.map((category) => ({ value: category, label: category })),
+  ...(availableFilters.value?.categories || []).map((category) => ({ value: category, label: category })),
 ]);
 
 const sortOptions = computed(() => [

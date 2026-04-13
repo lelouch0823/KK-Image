@@ -65,10 +65,10 @@ function createComposableState(itemOverrides = {}) {
       shortageOnly: false,
       sort: 'shortage',
     },
-    availableFilters: {
+    availableFilters: ref({
       categories: [],
       brands: [],
-    },
+    }),
     selectedItems: ref([]),
     isAllSelected: computed(() => false),
     toggleSelect: vi.fn(),
@@ -142,5 +142,13 @@ describe('GoodsOverview status semantics', () => {
     expect(wrapper.get('[data-testid="overview-image"]').attributes('src')).toBe(
       'https://example.com/history-cover.png'
     );
+  });
+
+  it('reads filter options from the composable ref without crashing', () => {
+    expect(() =>
+      createWrapper({
+        images: [],
+      })
+    ).not.toThrow();
   });
 });
