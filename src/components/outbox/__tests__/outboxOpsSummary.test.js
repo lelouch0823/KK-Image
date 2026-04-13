@@ -30,6 +30,9 @@ describe('buildOutboxOpsMetrics', () => {
       eventType: 'purchase_receipt_recorded',
       consumerName: 'notification',
       status: 'failed',
+    }, {
+      isLoading: true,
+      isStale: true,
     })).toEqual({
       totalEvents: 2,
       failedJobs: 1,
@@ -37,6 +40,8 @@ describe('buildOutboxOpsMetrics', () => {
       latestCreatedAt: '2026-04-13T09:30:00.000Z',
       selectedFilters: ['purchase_receipt_recorded', 'notification', 'failed'],
       hasFilters: true,
+      isLoading: true,
+      isStale: true,
     });
   });
 });

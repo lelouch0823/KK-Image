@@ -309,6 +309,7 @@ export default {
     summary: {
       globalLabel: '全局健康概览',
       globalDescription: '基于当前已加载事件集合，判断是否存在积压或失败信号。',
+      globalUpdating: '全局健康概览更新中',
       eventsUnit: '条事件',
       totalEvents: '总事件数',
       failedJobs: '失败消费者',

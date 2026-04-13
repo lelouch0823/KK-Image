@@ -309,6 +309,7 @@ export default {
     summary: {
       globalLabel: 'Global health view',
       globalDescription: 'Based on the currently loaded event set, surface backlog or failure signals before you drill in.',
+      globalUpdating: 'Global health is updating',
       eventsUnit: 'events',
       totalEvents: 'Total events',
       failedJobs: 'Failed consumers',

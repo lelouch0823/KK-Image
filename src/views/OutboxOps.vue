@@ -86,8 +86,13 @@
                   {{ t('outboxOps.summary.globalDescription', '基于当前已加载事件集合，判断是否存在积压或失败信号。') }}
                 </p>
               </div>
-              <StatusBadge variant="primary" outline>
-                {{ healthMetrics.totalEvents }} {{ t('outboxOps.summary.eventsUnit', '条事件') }}
+              <StatusBadge
+                :variant="healthMetrics.isLoading ? 'warning' : 'primary'"
+                outline
+              >
+                {{ healthMetrics.isLoading
+                  ? t('outboxOps.summary.globalUpdating', '全局健康概览更新中')
+                  : `${healthMetrics.totalEvents} ${t('outboxOps.summary.eventsUnit', '条事件')}` }}
               </StatusBadge>
             </div>
 
@@ -278,7 +283,6 @@ const {
   clearReplayResult,
 } = useOutboxOps();
 const {
-  events: healthEvents,
   loadEvents: loadHealthEvents,
 } = healthOps;
 
@@ -288,6 +292,9 @@ const filters = reactive({
   status: '',
 });
 const selectedEventId = ref('');
+const globalHealthEvents = ref([]);
+const healthLoading = ref(false);
+const healthLoaded = ref(false);
 
 const statusOptions = computed(() => ([
   { value: '', label: t('outboxOps.filters.allStatuses', '全部状态') },
@@ -301,17 +308,39 @@ const hasActiveFilters = computed(() => Boolean(
   filters.eventType || filters.consumerName || filters.status
 ));
 const healthMetrics = computed(() => buildOutboxOpsMetrics(
-  hasActiveFilters.value ? healthEvents.value : events.value
+  globalHealthEvents.value,
+  {},
+  {
+    isLoading: healthLoading.value,
+    isStale: healthLoaded.value && hasActiveFilters.value && healthLoading.value,
+  }
 ));
 const filteredMetrics = computed(() => buildOutboxOpsMetrics(events.value, filters));
+
+async function refreshGlobalHealthEvents() {
+  healthLoading.value = true;
+
+  try {
+    const ok = await loadHealthEvents({});
+    if (ok) {
+      globalHealthEvents.value = [...healthOps.events.value];
+      healthLoaded.value = true;
+    }
+  } finally {
+    healthLoading.value = false;
+  }
+}
 
 async function fetchEvents() {
   clearReplayResult();
   if (hasActiveFilters.value) {
     await loadEvents(filters);
-    void loadHealthEvents({});
+    void refreshGlobalHealthEvents();
   } else {
     await loadEvents({});
+    globalHealthEvents.value = [...events.value];
+    healthLoaded.value = true;
+    healthLoading.value = false;
   }
 
   if (selectedEventId.value && !events.value.some((event) => event.id === selectedEventId.value)) {

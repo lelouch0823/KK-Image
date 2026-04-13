@@ -193,4 +193,63 @@ describe('OutboxOps behavior', () => {
     expect(mocks.queueLoadEvents).toHaveBeenCalledWith({});
     expect(mocks.healthLoadEvents).not.toHaveBeenCalled();
   });
+
+  it('shows global health as updating while filtered health refresh is still in flight', async () => {
+    let resolveHealthRefresh;
+    mocks.healthLoadEvents.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveHealthRefresh = resolve;
+    }));
+
+    const module = await import('../OutboxOps.vue');
+    const OutboxOps = module.default;
+
+    const wrapper = mount(OutboxOps, {
+      global: {
+        stubs: {
+          ManagementListShell: { template: '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>' },
+          AppTable: { template: '<div data-testid="outbox-table" />' },
+          AppButton: {
+            template: '<button @click="$emit(\'click\')"><slot />{{ text }}</button>',
+            props: ['text'],
+            emits: ['click'],
+          },
+          AppInput: {
+            template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            props: ['modelValue'],
+            emits: ['update:modelValue'],
+          },
+          AppSelect: {
+            template: '<select @change="$emit(\'update:modelValue\', $event.target.value)"><option value=""></option></select>',
+            props: ['modelValue', 'options'],
+            emits: ['update:modelValue'],
+          },
+          Select: { template: '<div />' },
+          StatusBadge: { template: '<div><slot /></div>' },
+          PermissionDeniedState: { template: '<div />' },
+          OutboxEventTable: { template: '<div data-testid="outbox-event-table" />' },
+          OutboxReplayPanel: { template: '<div data-testid="outbox-replay-panel" />' },
+          MetricTile: { template: '<div />' },
+          StatePanel: { template: '<div><slot /></div>' },
+          SummaryStrip: { template: '<div><slot /></div>' },
+          AppIcon: { template: '<i />' },
+        },
+      },
+    });
+
+    await flushPromises();
+    await wrapper.find('input').setValue('purchase_receipt_recorded');
+    await wrapper.find('button').trigger('click');
+    await flushPromises();
+
+    expect(mocks.queueLoadEvents).toHaveBeenLastCalledWith({
+      eventType: 'purchase_receipt_recorded',
+      consumerName: '',
+      status: '',
+    });
+    expect(mocks.healthLoadEvents).toHaveBeenCalledWith({});
+    expect(wrapper.text()).toContain('全局健康概览更新中');
+
+    resolveHealthRefresh(true);
+    await flushPromises();
+  });
 });

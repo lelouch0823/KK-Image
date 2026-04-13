@@ -3,7 +3,7 @@ function toTimestamp(value) {
   return Number.isFinite(timestamp) ? timestamp : null;
 }
 
-export function buildOutboxOpsMetrics(events = [], filters = {}) {
+export function buildOutboxOpsMetrics(events = [], filters = {}, options = {}) {
   let failedJobs = 0;
   let activeJobs = 0;
   let latestCreatedAt = null;
@@ -37,5 +37,7 @@ export function buildOutboxOpsMetrics(events = [], filters = {}) {
     latestCreatedAt,
     selectedFilters,
     hasFilters: selectedFilters.length > 0,
+    isLoading: Boolean(options.isLoading),
+    isStale: Boolean(options.isStale),
   };
 }
