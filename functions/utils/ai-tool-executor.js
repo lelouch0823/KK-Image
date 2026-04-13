@@ -22,6 +22,13 @@ function normalizeEntityStatus(value, fallback = 'active') {
     return normalized || fallback;
 }
 
+function normalizeBooleanFlag(value) {
+    if (value === true || value === false) return value;
+    if (typeof value === 'number') return value === 1;
+    const normalized = String(value ?? '').trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes';
+}
+
 function withPagingMeta({ items, total, limit, page = 1, scope = {} }) {
     const safeItems = Array.isArray(items) ? items : [];
     const safeTotal = normalizeTotal(total, safeItems.length);
@@ -266,7 +273,7 @@ export async function executeAITool(name, args, repos) {
                 const filters = {
                     category: args.category || '',
                     brand: args.brand || '',
-                    shortageOnly: args.shortageOnly === true,
+                    shortageOnly: normalizeBooleanFlag(args.shortageOnly),
                     sort: args.sort || 'shortage'
                 };
                 const allItems = await goodsOverviewRepo.getList(filters);

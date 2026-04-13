@@ -186,6 +186,25 @@ describe('executeAITool - variant aware tools', () => {
     );
   });
 
+  it('getGoodsOverviewList canonicalizes string shortageOnly flags before querying repo', async () => {
+    const goodsOverviewRepo = {
+      getList: vi.fn().mockResolvedValue([{ id: 'g1' }]),
+    };
+
+    await executeAITool(
+      'getGoodsOverviewList',
+      { shortageOnly: 'true', limit: 2, category: 'Outerwear' },
+      { goodsOverviewRepo }
+    );
+
+    expect(goodsOverviewRepo.getList).toHaveBeenCalledWith({
+      category: 'Outerwear',
+      brand: '',
+      shortageOnly: true,
+      sort: 'shortage',
+    });
+  });
+
   it('searchPurchaseOrders returns paging meta with true total', async () => {
     const purchaseOrderRepo = {
       list: vi.fn().mockResolvedValue({
