@@ -3828,3 +3828,14 @@
   - 复跑总览 composable、视图、路由、仓储关联测试，确认新增错误态没有影响已有权限态、摘要兜底和失败态清理逻辑。
 - 增量回归:
   - `pnpm vitest run src/views/__tests__/GoodsOverview.status-semantics.test.js src/composables/__tests__/useGoodsOverview.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
+
+### 2026-04-13 轮次 331
+
+- 继续深审商品关联订货总览的权限链路文案，新增 1 个低风险问题:
+  - [src/views/GoodsOverview.vue](/home/bjw/Code/KK-Image/src/views/GoodsOverview.vue) 修复前权限不足 fallback 文案提示管理员分配 `goods:read`，但真实路由、侧边栏和路由元信息统一要求的是 `products:manage`。当后端没有返回具体错误文本时，页面会把用户引导到一个仓库里根本不存在的权限名，造成错误排障指引。
+- 已完成本轮修复:
+  - 总览页权限态 fallback 文案已改成真实的 `products:manage`，与后端鉴权和路由元信息保持一致。
+  - composable 权限错误回归测试与视图权限态回归测试同步对齐到真实权限名，避免后续测试再把错误权限文案当成正确行为固化下来。
+  - 复跑总览 composable、视图、路由、仓储关联测试，确认权限文案对齐没有影响现有权限态、错误态和摘要渲染逻辑。
+- 增量回归:
+  - `pnpm vitest run src/views/__tests__/GoodsOverview.status-semantics.test.js src/composables/__tests__/useGoodsOverview.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
