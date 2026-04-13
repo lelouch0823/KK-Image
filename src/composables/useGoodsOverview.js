@@ -72,6 +72,16 @@ export function useGoodsOverview() {
         selectedIds.value = new Set();
     };
 
+    const resetOverviewState = () => {
+        items.value = [];
+        availableFilters.value = { categories: [], brands: [] };
+        clearSelection();
+    };
+
+    const resetSummaryState = () => {
+        summary.value = null;
+    };
+
     // ─── 数据加载 ────────────────────────────────────
 
     const buildOverviewQuery = () => {
@@ -108,6 +118,7 @@ export function useGoodsOverview() {
                 return true;
             }
 
+            resetOverviewState();
             error.value = json.error || '加载失败';
             return false;
         } catch (e) {
@@ -115,6 +126,7 @@ export function useGoodsOverview() {
                 return false;
             }
             console.error('loadGoodsOverview failed:', e);
+            resetOverviewState();
             const status = Number(e?.status || 0);
             if (status === 403) {
                 errorCode.value = 'FORBIDDEN';
@@ -151,11 +163,13 @@ export function useGoodsOverview() {
                 summary.value = json.data;
                 return true;
             }
+            resetSummaryState();
         } catch (e) {
             if (requestId !== summaryRequestId) {
                 return false;
             }
             console.error('loadGoodsOverviewSummary failed:', e);
+            resetSummaryState();
         }
         return false;
     };
@@ -252,9 +266,8 @@ export function useGoodsOverview() {
      */
     const init = async () => {
         // 重置数据以触发骨架屏展示
-        summary.value = null;
-        items.value = [];
-        clearSelection();
+        resetSummaryState();
+        resetOverviewState();
         await Promise.all([loadData(), loadSummary()]);
     };
 

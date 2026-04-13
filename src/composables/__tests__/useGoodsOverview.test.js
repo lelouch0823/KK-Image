@@ -73,6 +73,55 @@ describe('useGoodsOverview composable', () => {
     expect(summary.value).toEqual({ totalProducts: 10, shortageCount: 2 });
   });
 
+  it('clears stale overview items and filters when a refresh fails', async () => {
+    mockAuthFetch
+      .mockResolvedValueOnce({
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: {
+              items: [{ id: 'v-1', name: 'Variant 1' }],
+              filters: { categories: ['tops'], brands: ['kk'] },
+            },
+          }),
+      })
+      .mockRejectedValueOnce(new Error('network down'));
+
+    const { loadData, items, availableFilters, errorCode, error } = useGoodsOverview();
+    await loadData();
+
+    expect(items.value).toEqual([{ id: 'v-1', name: 'Variant 1' }]);
+    expect(availableFilters.value).toEqual({ categories: ['tops'], brands: ['kk'] });
+
+    await loadData();
+
+    expect(items.value).toEqual([]);
+    expect(availableFilters.value).toEqual({ categories: [], brands: [] });
+    expect(errorCode.value).toBe('NETWORK_ERROR');
+    expect(error.value).toBe('network down');
+  });
+
+  it('clears stale summary when summary refresh fails', async () => {
+    mockAuthFetch
+      .mockResolvedValueOnce({
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { totalProducts: 10, shortageCount: 2 },
+          }),
+      })
+      .mockRejectedValueOnce(new Error('summary unavailable'));
+
+    const { loadSummary, summary } = useGoodsOverview();
+    await loadSummary();
+
+    expect(summary.value).toEqual({ totalProducts: 10, shortageCount: 2 });
+
+    await loadSummary();
+
+    expect(summary.value).toBeNull();
+  });
+
   it('keeps the latest overview list when earlier filter loads resolve late', async () => {
     const resolvers = [];
     mockAuthFetch.mockImplementation(
