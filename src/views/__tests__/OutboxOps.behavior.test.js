@@ -113,7 +113,7 @@ describe('OutboxOps behavior', () => {
     const wrapper = mount(OutboxOps, {
       global: {
         stubs: {
-          ManagementListShell: { template: '<div><slot name="filters" /><slot name="actions" /><slot name="content" /></div>' },
+          ManagementListShell: { template: '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>' },
           AppTable: { template: '<div data-testid="outbox-table" />' },
           AppButton: { template: '<button><slot /></button>' },
           AppInput: { template: '<input />' },
@@ -127,6 +127,9 @@ describe('OutboxOps behavior', () => {
       },
     });
 
+    expect(wrapper.find('[data-testid="outbox-ops-banner"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="outbox-ops-summary"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="outbox-workspace"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="outbox-event-table"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="outbox-replay-panel"]').exists()).toBe(true);
   });

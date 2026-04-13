@@ -64,6 +64,7 @@ export default {
   salesStats: misc.salesStats,
   ai: misc.ai,
   auditLogs: misc.auditLogs,
+  outboxOps: misc.outboxOps,
   trash,
   goodsOverview,
   purchaseOrder,
