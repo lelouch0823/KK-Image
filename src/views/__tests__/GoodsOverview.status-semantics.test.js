@@ -97,12 +97,13 @@ function createWrapper(itemOverrides) {
         SummaryStrip: { template: '<div><slot /></div>' },
         FloatingSelectionBar: { template: '<div><slot name="summary" /><slot /></div>', props: ['visible'] },
         PermissionDeniedState: { template: '<div />' },
-        AppImage: { template: '<img />', props: ['src'] },
+        AppImage: { template: '<img data-testid="overview-image" :src="src" />', props: ['src'] },
         AppTable: {
           props: ['data'],
           template: `
             <div>
               <div v-for="row in data" :key="row.id">
+                <slot name="cell-name" :row="row" />
                 <slot name="cell-status" :row="row" />
               </div>
             </div>
@@ -131,5 +132,15 @@ describe('GoodsOverview status semantics', () => {
     });
 
     expect(wrapper.get('[data-testid="status-badge"]').attributes('data-status')).toBe('warning');
+  });
+
+  it('renders full image urls without forcing a /file prefix in the overview list', () => {
+    const wrapper = createWrapper({
+      images: ['https://example.com/history-cover.png'],
+    });
+
+    expect(wrapper.get('[data-testid="overview-image"]').attributes('src')).toBe(
+      'https://example.com/history-cover.png'
+    );
   });
 });

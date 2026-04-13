@@ -186,7 +186,7 @@
         <template #cell-name="{ row: item }">
           <div class="flex items-center gap-2.5">
             <div class="size-8 shrink-0 overflow-hidden rounded-lg border border-(--border-subtle) bg-(--bg-muted)">
-              <AppImage v-if="item.images?.[0]" :src="'/file/' + item.images[0]" class="size-full" />
+              <AppImage v-if="getItemImageSrc(item)" :src="getItemImageSrc(item)" class="size-full" />
               <div v-else class="flex size-full items-center justify-center text-(--text-muted)">
                 <AppIcon name="photo" class="size-4" />
               </div>
@@ -346,6 +346,7 @@ import MetricTile from '@/design-system/composed/MetricTile.vue';
 import SummaryStrip from '@/design-system/composed/SummaryStrip.vue';
 import FloatingSelectionBar from '@/design-system/composed/FloatingSelectionBar.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
+import { resolvePrimaryProductImageSrc } from '@/components/product/image-resolver.js';
 
 
 const { t } = useI18n();
@@ -392,6 +393,8 @@ const sortOptions = computed(() => [
   { value: 'name', label: t('goodsOverview.sort.name') },
   { value: 'cost', label: t('goodsOverview.sort.cost') },
 ]);
+
+const getItemImageSrc = (item) => resolvePrimaryProductImageSrc({ images: item?.images || [] });
 
 const handleCreatePO = async () => {
   if (isCreatingPO.value) return;
