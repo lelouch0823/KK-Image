@@ -68,7 +68,7 @@
               </StatusBadge>
               <StatusBadge :variant="filteredMetrics.failedJobs ? 'danger' : 'success'" dot>
                 {{ filteredMetrics.failedJobs
-                  ? t('outboxOps.banner.attention', '{count} 个失败消费者待关注', { count: filteredMetrics.failedJobs })
+                  ? t('outboxOps.banner.attention', { count: filteredMetrics.failedJobs })
                   : t('outboxOps.banner.clear', '当前筛选范围无失败消费者') }}
               </StatusBadge>
             </div>
@@ -210,11 +210,11 @@
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <StatusBadge variant="info" outline>
-                {{ t('outboxOps.workspace.results', '共 {count} 条', { count: filteredMetrics.totalEvents }) }}
+                {{ t('outboxOps.workspace.results', { count: filteredMetrics.totalEvents }) }}
               </StatusBadge>
               <StatusBadge :variant="filteredMetrics.failedJobs ? 'danger' : 'success'" outline>
                 {{ filteredMetrics.failedJobs
-                  ? t('outboxOps.workspace.failedHint', '{count} 个失败项', { count: filteredMetrics.failedJobs })
+                  ? t('outboxOps.workspace.failedHint', { count: filteredMetrics.failedJobs })
                   : t('outboxOps.workspace.clearHint', '当前范围无失败项') }}
               </StatusBadge>
             </div>
@@ -297,15 +297,22 @@ const statusOptions = computed(() => ([
   { value: 'failed', label: 'failed' },
   { value: 'skipped', label: 'skipped' },
 ]));
-const healthMetrics = computed(() => buildOutboxOpsMetrics(healthEvents.value));
+const hasActiveFilters = computed(() => Boolean(
+  filters.eventType || filters.consumerName || filters.status
+));
+const healthMetrics = computed(() => buildOutboxOpsMetrics(
+  hasActiveFilters.value ? healthEvents.value : events.value
+));
 const filteredMetrics = computed(() => buildOutboxOpsMetrics(events.value, filters));
 
 async function fetchEvents() {
   clearReplayResult();
-  await Promise.all([
-    loadHealthEvents({}),
-    loadEvents(filters),
-  ]);
+  if (hasActiveFilters.value) {
+    await loadEvents(filters);
+    void loadHealthEvents({});
+  } else {
+    await loadEvents({});
+  }
 
   if (selectedEventId.value && !events.value.some((event) => event.id === selectedEventId.value)) {
     selectedEventId.value = '';

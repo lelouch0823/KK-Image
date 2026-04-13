@@ -236,8 +236,8 @@ const eventStatusVariant = computed(() => {
   return 'success';
 });
 const eventStatusLabel = computed(() => {
-  if (failedJobCount.value) return t('outboxOps.replay.statusFailed', '{count} 个失败消费者', { count: failedJobCount.value });
-  if (activeJobCount.value) return t('outboxOps.replay.statusActive', '{count} 个待处理消费者', { count: activeJobCount.value });
+  if (failedJobCount.value) return t('outboxOps.replay.statusFailed', { count: failedJobCount.value });
+  if (activeJobCount.value) return t('outboxOps.replay.statusActive', { count: activeJobCount.value });
   return t('outboxOps.replay.statusReady', '当前事件无失败消费者');
 });
 const resultVariant = computed(() => {

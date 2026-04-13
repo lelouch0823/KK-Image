@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ref } from 'vue';
@@ -8,11 +8,30 @@ import Sidebar from '@/components/layout/Sidebar.vue';
 const mocks = vi.hoisted(() => ({
   permissions: ['audit:read'],
   loadPermissions: vi.fn(async () => []),
-  loadEvents: vi.fn(async () => true),
+  queueLoadEvents: vi.fn(async () => true),
+  healthLoadEvents: vi.fn(async () => true),
 }));
 
 vi.mock('@/composables/useI18n', () => ({
-  useI18n: () => ({ t: (key, fallback) => fallback || key }),
+  useI18n: () => ({
+    t: (key, paramsOrFallback = {}) => {
+      const messages = {
+        'outboxOps.workspace.results': '共 {count} 条',
+      };
+      const hasFallback = typeof paramsOrFallback === 'string';
+      const fallback = hasFallback ? paramsOrFallback : undefined;
+      const params = !hasFallback && paramsOrFallback && typeof paramsOrFallback === 'object'
+        ? paramsOrFallback
+        : {};
+      const value = messages[key] || fallback || key;
+
+      if (typeof value === 'string' && Object.keys(params).length > 0) {
+        return value.replace(/{(\w+)}/g, (_, token) => `${params[token] ?? `{${token}}`}`);
+      }
+
+      return value;
+    },
+  }),
 }));
 
 vi.mock('@/composables/useAuth', () => ({
@@ -43,21 +62,30 @@ vi.mock('@/components/ui/Select.vue', () => ({
 }));
 
 vi.mock('@/composables/useOutboxOps', () => ({
-  useOutboxOps: () => ({
-    events: ref([{ id: 'evt-1', event_type: 'purchase_receipt_recorded' }]),
-    loading: ref(false),
-    error: ref(''),
-    errorCode: ref(null),
-    eventDetail: ref({ id: 'evt-1' }),
-    detailLoading: ref(false),
-    replayLoading: ref(false),
-    lastReplayResult: ref(null),
-    loadEvents: mocks.loadEvents,
-    loadEventDetail: vi.fn(async () => ({ id: 'evt-1' })),
-    dryRunReplay: vi.fn(async () => ({ runId: 'dry-1' })),
-    executeReplay: vi.fn(async () => ({ runId: 'exec-1' })),
-    clearReplayResult: vi.fn(),
-  }),
+  useOutboxOps: (() => {
+    let callIndex = 0;
+
+    return () => {
+      callIndex += 1;
+      const isQueueInstance = callIndex % 2 === 0;
+
+      return {
+        events: ref([{ id: 'evt-1', event_type: 'purchase_receipt_recorded' }]),
+        loading: ref(false),
+        error: ref(''),
+        errorCode: ref(null),
+        eventDetail: ref({ id: 'evt-1' }),
+        detailLoading: ref(false),
+        replayLoading: ref(false),
+        lastReplayResult: ref(null),
+        loadEvents: isQueueInstance ? mocks.queueLoadEvents : mocks.healthLoadEvents,
+        loadEventDetail: vi.fn(async () => ({ id: 'evt-1' })),
+        dryRunReplay: vi.fn(async () => ({ runId: 'dry-1' })),
+        executeReplay: vi.fn(async () => ({ runId: 'exec-1' })),
+        clearReplayResult: vi.fn(),
+      };
+    };
+  })(),
 }));
 
 vi.mock('vue-router', () => ({
@@ -132,5 +160,37 @@ describe('OutboxOps behavior', () => {
     expect(wrapper.find('[data-testid="outbox-workspace"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="outbox-event-table"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="outbox-replay-panel"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('共 1 条');
+  });
+
+  it('does not issue a duplicate health list request when no filters are active', async () => {
+    const module = await import('../OutboxOps.vue');
+    const OutboxOps = module.default;
+
+    mount(OutboxOps, {
+      global: {
+        stubs: {
+          ManagementListShell: { template: '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>' },
+          AppTable: { template: '<div data-testid="outbox-table" />' },
+          AppButton: { template: '<button><slot /></button>' },
+          AppInput: { template: '<input />' },
+          AppSelect: { template: '<div />' },
+          Select: { template: '<div />' },
+          StatusBadge: { template: '<div><slot /></div>' },
+          PermissionDeniedState: { template: '<div />' },
+          OutboxEventTable: { template: '<div data-testid="outbox-event-table" />' },
+          OutboxReplayPanel: { template: '<div data-testid="outbox-replay-panel" />' },
+          MetricTile: { template: '<div />' },
+          StatePanel: { template: '<div><slot /></div>' },
+          SummaryStrip: { template: '<div><slot /></div>' },
+          AppIcon: { template: '<i />' },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(mocks.queueLoadEvents).toHaveBeenCalledWith({});
+    expect(mocks.healthLoadEvents).not.toHaveBeenCalled();
   });
 });
