@@ -56,11 +56,16 @@ describe('manage outbox routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
-      eventType: 'purchase_receipt_recorded',
-      consumerName: 'notification',
-      status: 'failed',
-    }));
+    expect(mocks.listEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: 'purchase_receipt_recorded',
+        consumerName: 'notification',
+        status: 'failed',
+      }),
+      expect.objectContaining({
+        limit: 100,
+      })
+    );
   });
 
   it('returns event detail including consumer jobs and webhook attempts', async () => {

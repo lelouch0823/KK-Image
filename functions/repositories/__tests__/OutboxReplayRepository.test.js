@@ -32,9 +32,10 @@ function createReplayDbStub({
 
             if (sql.includes('FROM domain_outbox')) {
               let filtered = [...events];
+              const effectiveParams = sql.includes('LIMIT ?') ? params.slice(0, -1) : params;
 
               if (sql.includes('event_type = ?')) {
-                const eventType = params.find((value) => events.some((row) => row.event_type === value));
+                const eventType = effectiveParams.find((value) => events.some((row) => row.event_type === value));
                 if (eventType) {
                   filtered = filtered.filter((row) => row.event_type === eventType);
                 }
@@ -43,8 +44,8 @@ function createReplayDbStub({
               if (sql.includes('FROM outbox_consumer_jobs jobs')) {
                 const hasConsumerNameFilter = sql.includes('jobs.consumer_name = ?');
                 const hasStatusFilter = sql.includes('jobs.status = ?');
-                const filterBindings = params.slice(
-                  params.length - Number(hasConsumerNameFilter) - Number(hasStatusFilter)
+                const filterBindings = effectiveParams.slice(
+                  effectiveParams.length - Number(hasConsumerNameFilter) - Number(hasStatusFilter)
                 );
                 let bindingIndex = 0;
                 const consumerName = hasConsumerNameFilter ? filterBindings[bindingIndex++] : null;
@@ -323,6 +324,28 @@ describe('OutboxReplayRepository', () => {
         (sql) => sql.includes('FROM outbox_consumer_jobs') && !sql.includes('FROM domain_outbox')
       ).length
     ).toBeGreaterThan(1);
+  });
+
+  it('limits list queries to a bounded newest-first result set', async () => {
+    const events = Array.from({ length: 4 }, (_, index) => ({
+      id: `evt-${index + 1}`,
+      command_id: `cmd-${index + 1}`,
+      sequence_in_command: 1,
+      event_type: 'purchase_receipt_recorded',
+      aggregate_id: `receipt-${index + 1}`,
+      created_at: 1710000000000 + index,
+    }));
+    const db = createReplayDbStub({ events });
+    const repo = new OutboxReplayRepository(db);
+
+    await repo.listEvents({ eventType: 'purchase_receipt_recorded' }, { limit: 2 });
+
+    expect(
+      db.getPrepareCalls().some((sql) =>
+        sql.includes('ORDER BY created_at DESC, sequence_in_command DESC')
+        && sql.includes('LIMIT ?')
+      )
+    ).toBe(true);
   });
 
   it('creates replay runs for dry-run and live replay requests', async () => {

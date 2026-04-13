@@ -6,10 +6,13 @@ const app = new Hono();
 
 app.get('/', requirePermission('audit:read'), async (c) => {
   const repo = new OutboxReplayRepository(c.env.DB);
+  const requestedLimit = Number(c.req.query('limit') || 100);
   const events = await repo.listEvents({
     eventType: c.req.query('eventType') || null,
     consumerName: c.req.query('consumerName') || null,
     status: c.req.query('status') || null,
+  }, {
+    limit: requestedLimit,
   });
 
   return c.json({

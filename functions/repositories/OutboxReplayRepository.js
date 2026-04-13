@@ -2,6 +2,8 @@ import { generatePrefixedId } from '../_shared/utils.js';
 import { safeJsonParse } from '../api/utils/json.js';
 
 const OUTBOX_EVENT_ID_BATCH_SIZE = 90;
+const DEFAULT_OUTBOX_LIST_LIMIT = 100;
+const MAX_OUTBOX_LIST_LIMIT = 200;
 
 export class OutboxReplayRepository {
   constructor(db, deps = {}) {
@@ -97,9 +99,13 @@ export class OutboxReplayRepository {
     };
   }
 
-  async listEvents(filters = {}) {
+  async listEvents(filters = {}, options = {}) {
     const conditions = [];
     const bindings = [];
+    const rawLimit = Number(options.limit || DEFAULT_OUTBOX_LIST_LIMIT);
+    const limit = Number.isFinite(rawLimit)
+      ? Math.min(Math.max(Math.trunc(rawLimit), 1), MAX_OUTBOX_LIST_LIMIT)
+      : DEFAULT_OUTBOX_LIST_LIMIT;
 
     if (filters.eventType) {
       conditions.push('event_type = ?');
@@ -136,9 +142,10 @@ export class OutboxReplayRepository {
         `SELECT *
          FROM domain_outbox
          ${whereClause}
-         ORDER BY created_at DESC, sequence_in_command DESC`
+         ORDER BY created_at DESC, sequence_in_command DESC
+         LIMIT ?`
       )
-      .bind(...bindings)
+      .bind(...bindings, limit)
       .all();
 
     const rows = results || [];
