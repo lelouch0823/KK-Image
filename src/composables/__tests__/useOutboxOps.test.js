@@ -108,4 +108,44 @@ describe('useOutboxOps', () => {
       expect.objectContaining({ method: 'POST' })
     );
   });
+
+  it('keeps the newest list result when earlier requests resolve later', async () => {
+    let resolveFirst;
+    let resolveSecond;
+    const firstResponse = new Promise((resolve) => {
+      resolveFirst = resolve;
+    });
+    const secondResponse = new Promise((resolve) => {
+      resolveSecond = resolve;
+    });
+
+    mockAuthFetch
+      .mockReturnValueOnce(firstResponse)
+      .mockReturnValueOnce(secondResponse);
+
+    const { useOutboxOps } = await import('../useOutboxOps');
+    const { loadEvents, events, loading } = useOutboxOps();
+
+    const firstLoad = loadEvents({ eventType: 'older' });
+    const secondLoad = loadEvents({ eventType: 'newer' });
+
+    resolveSecond({
+      json: () => Promise.resolve({
+        success: true,
+        data: [{ id: 'evt-new', event_type: 'newer' }],
+      }),
+    });
+    await secondLoad;
+
+    resolveFirst({
+      json: () => Promise.resolve({
+        success: true,
+        data: [{ id: 'evt-old', event_type: 'older' }],
+      }),
+    });
+    await firstLoad;
+
+    expect(events.value).toEqual([{ id: 'evt-new', event_type: 'newer' }]);
+    expect(loading.value).toBe(false);
+  });
 });

@@ -27,17 +27,25 @@ export function useOutboxOps() {
   const detailLoading = ref(false);
   const replayLoading = ref(false);
   const lastReplayResult = ref(null);
+  let latestListRequestId = 0;
 
   const loadEvents = async (filters = {}) => {
+    const requestId = ++latestListRequestId;
     loading.value = true;
-    error.value = '';
-    errorCode.value = null;
+    if (requestId === latestListRequestId) {
+      error.value = '';
+      errorCode.value = null;
+    }
 
     try {
       const query = buildQuery(filters);
       const target = query ? `${API.MANAGE_OUTBOX}?${query}` : API.MANAGE_OUTBOX;
       const res = await authFetch(target);
       const json = await res.json();
+
+      if (requestId !== latestListRequestId) {
+        return false;
+      }
 
       if (!json.success) {
         error.value = json.error || json.message || t('common.loadFailed');
@@ -48,6 +56,9 @@ export function useOutboxOps() {
       events.value = Array.isArray(json.data) ? json.data : [];
       return true;
     } catch (e) {
+      if (requestId !== latestListRequestId) {
+        return false;
+      }
       const status = Number(e?.status || 0);
       if (status === 403) {
         errorCode.value = 'FORBIDDEN';
@@ -65,7 +76,9 @@ export function useOutboxOps() {
       addToast({ message: error.value, type: 'error' });
       return false;
     } finally {
-      loading.value = false;
+      if (requestId === latestListRequestId) {
+        loading.value = false;
+      }
     }
   };
 
