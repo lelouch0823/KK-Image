@@ -81,57 +81,57 @@
       <template v-else-if="summary">
         <MetricTile
           :label="t('goodsOverview.pipeline.confirmed')"
-          :value="summary.byStatus.confirmed.products"
+          :value="summaryByStatus.confirmed.products"
           icon="clipboard-document-check"
           tone="warning"
           flat
         >
           <template #meta>
-            <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.confirmed.count }) }}</span>
+            <span>{{ t('goodsOverview.orderCount', { count: summaryByStatus.confirmed.count }) }}</span>
             <span class="text-(--text-muted)">·</span>
-            <span>{{ summary.byStatus.confirmed.qty }} {{ t('goodsOverview.unit') }}</span>
+            <span>{{ summaryByStatus.confirmed.qty }} {{ t('goodsOverview.unit') }}</span>
           </template>
         </MetricTile>
 
         <MetricTile
           :label="t('goodsOverview.pipeline.production')"
-          :value="summary.byStatus.production.products"
+          :value="summaryByStatus.production.products"
           icon="beaker"
           tone="info"
           flat
         >
           <template #meta>
-            <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.production.count }) }}</span>
+            <span>{{ t('goodsOverview.orderCount', { count: summaryByStatus.production.count }) }}</span>
             <span class="text-(--text-muted)">·</span>
-            <span>{{ summary.byStatus.production.qty }} {{ t('goodsOverview.unit') }}</span>
+            <span>{{ summaryByStatus.production.qty }} {{ t('goodsOverview.unit') }}</span>
           </template>
         </MetricTile>
 
         <MetricTile
           :label="t('goodsOverview.pipeline.shipping')"
-          :value="summary.byStatus.shipping.products"
+          :value="summaryByStatus.shipping.products"
           icon="building-storefront"
           tone="purple"
           flat
         >
           <template #meta>
-            <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.shipping.count }) }}</span>
+            <span>{{ t('goodsOverview.orderCount', { count: summaryByStatus.shipping.count }) }}</span>
             <span class="text-(--text-muted)">·</span>
-            <span>{{ summary.byStatus.shipping.qty }} {{ t('goodsOverview.unit') }}</span>
+            <span>{{ summaryByStatus.shipping.qty }} {{ t('goodsOverview.unit') }}</span>
           </template>
         </MetricTile>
 
         <MetricTile
           :label="t('goodsOverview.pipeline.arrived')"
-          :value="summary.byStatus.arrived.products"
+          :value="summaryByStatus.arrived.products"
           icon="check"
           tone="success"
           flat
         >
           <template #meta>
-            <span>{{ t('goodsOverview.orderCount', { count: summary.byStatus.arrived.count }) }}</span>
+            <span>{{ t('goodsOverview.orderCount', { count: summaryByStatus.arrived.count }) }}</span>
             <span class="text-(--text-muted)">·</span>
-            <span>{{ summary.byStatus.arrived.qty }} {{ t('goodsOverview.unit') }}</span>
+            <span>{{ summaryByStatus.arrived.qty }} {{ t('goodsOverview.unit') }}</span>
           </template>
         </MetricTile>
       </template>
@@ -393,6 +393,29 @@ const sortOptions = computed(() => [
   { value: 'name', label: t('goodsOverview.sort.name') },
   { value: 'cost', label: t('goodsOverview.sort.cost') },
 ]);
+
+const summaryByStatus = computed(() => ({
+  confirmed: {
+    products: summary.value?.byStatus?.confirmed?.products || 0,
+    count: summary.value?.byStatus?.confirmed?.count || 0,
+    qty: summary.value?.byStatus?.confirmed?.qty || 0,
+  },
+  production: {
+    products: summary.value?.byStatus?.production?.products || 0,
+    count: summary.value?.byStatus?.production?.count || 0,
+    qty: summary.value?.byStatus?.production?.qty || 0,
+  },
+  shipping: {
+    products: summary.value?.byStatus?.shipping?.products || 0,
+    count: summary.value?.byStatus?.shipping?.count || 0,
+    qty: summary.value?.byStatus?.shipping?.qty || 0,
+  },
+  arrived: {
+    products: summary.value?.byStatus?.arrived?.products || 0,
+    count: summary.value?.byStatus?.arrived?.count || 0,
+    qty: summary.value?.byStatus?.arrived?.qty || 0,
+  },
+}));
 
 const getItemImageSrc = (item) => resolvePrimaryProductImageSrc({ images: item?.images || [] });
 

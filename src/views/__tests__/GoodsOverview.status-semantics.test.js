@@ -31,6 +31,10 @@ vi.mock('@/composables/useGoodsOverview', () => ({
 }));
 
 function createComposableState(itemOverrides = {}) {
+  const summary =
+    itemOverrides.summaryOverride !== undefined
+      ? itemOverrides.summaryOverride
+      : null;
   const item = {
     id: 'variant-1',
     variantId: 'variant-1',
@@ -55,7 +59,7 @@ function createComposableState(itemOverrides = {}) {
 
   return {
     items: ref([item]),
-    summary: ref(null),
+    summary: ref(summary),
     loading: ref(false),
     error: ref(null),
     errorCode: ref(null),
@@ -148,6 +152,18 @@ describe('GoodsOverview status semantics', () => {
     expect(() =>
       createWrapper({
         images: [],
+      })
+    ).not.toThrow();
+  });
+
+  it('does not crash when summary payload is missing byStatus details', () => {
+    expect(() =>
+      createWrapper({
+        summaryOverride: {
+          totalProducts: 12,
+          totalDemand: 20,
+          shortageCount: 3,
+        },
       })
     ).not.toThrow();
   });
