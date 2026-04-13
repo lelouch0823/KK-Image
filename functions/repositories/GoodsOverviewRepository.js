@@ -79,7 +79,12 @@ export class GoodsOverviewRepository {
     const bindParams = [...this.ACTIVE_STATUSES]; // 用于 IN 子句
 
     if (category) {
-      whereClause += ' AND p.category = ?';
+      whereClause += ` AND COALESCE(
+        json_extract(ol.snapshot_specs, '$.category'),
+        p.category,
+        json_extract(o.current_data, '$.category'),
+        json_extract(o.original_data, '$.category')
+      ) = ?`;
       bindParams.push(category);
     }
     if (brand) {
@@ -145,7 +150,13 @@ export class GoodsOverviewRepository {
               MAX(json_extract(o.original_data, '$.brand')),
               '-'
             ) as brand,
-            COALESCE(MAX(p.category), '-') as category,
+            COALESCE(
+              MAX(json_extract(ol.snapshot_specs, '$.category')),
+              MAX(p.category),
+              MAX(json_extract(o.current_data, '$.category')),
+              MAX(json_extract(o.original_data, '$.category')),
+              '-'
+            ) as category,
             MAX(COALESCE(ib.on_hand, pv.stock_quantity, 0)) as stock_quantity,
             MAX(COALESCE(ib.on_hand, pv.stock_quantity, 0)) as on_hand,
             MAX(COALESCE(ib.reserved, 0)) as reserved,
@@ -198,7 +209,12 @@ export class GoodsOverviewRepository {
    */
   async getAvailableFilters() {
     const filterSql = `
-        SELECT DISTINCT p.category
+        SELECT DISTINCT COALESCE(
+          json_extract(ol.snapshot_specs, '$.category'),
+          p.category,
+          json_extract(o.current_data, '$.category'),
+          json_extract(o.original_data, '$.category')
+        ) as category
         FROM order_lines ol
         JOIN orders o ON o.id = ol.order_id
         LEFT JOIN products p ON ol.product_id = p.id
@@ -206,9 +222,19 @@ export class GoodsOverviewRepository {
           AND ol.product_id IS NOT NULL 
           AND ol.variant_id IS NOT NULL
           AND ${REMAINING_DEMAND_EXPR} > 0
-          AND p.category IS NOT NULL 
-          AND p.category != ''
-        ORDER BY p.category
+          AND COALESCE(
+            json_extract(ol.snapshot_specs, '$.category'),
+            p.category,
+            json_extract(o.current_data, '$.category'),
+            json_extract(o.original_data, '$.category')
+          ) IS NOT NULL 
+          AND COALESCE(
+            json_extract(ol.snapshot_specs, '$.category'),
+            p.category,
+            json_extract(o.current_data, '$.category'),
+            json_extract(o.original_data, '$.category')
+          ) != ''
+        ORDER BY category
     `;
     const { results: categories } = await this.db.prepare(filterSql).bind(...this.ACTIVE_STATUSES).all();
 

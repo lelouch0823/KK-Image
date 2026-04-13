@@ -163,6 +163,7 @@ describe('Order Mutations SQL Binding', () => {
                 data: {
                     name: 'Snapshot Item',
                     sku: 'SKU-987',
+                    category: 'Outerwear',
                     size: 'L',
                     color: 'Blue',
                     brand: 'Acme',
@@ -197,6 +198,7 @@ describe('Order Mutations SQL Binding', () => {
 
             const snapshotSpecs = JSON.parse(bindArgs[6]);
             expect(snapshotSpecs).toEqual({
+                category: 'Outerwear',
                 size: 'L',
                 color: 'Blue',
                 brand: 'Acme',
@@ -280,6 +282,7 @@ describe('Order Mutations SQL Binding', () => {
                 newData: {
                     name: 'Updated Item',
                     sku: 'SKU-2',
+                    category: 'Archive Outerwear',
                     quantity: 4,
                     size: 'XL',
                     color: 'Black',
@@ -305,6 +308,7 @@ describe('Order Mutations SQL Binding', () => {
 
             const snapshotSpecsArg = bindArgs.find((value) => typeof value === 'string' && value.includes('"size":"XL"'));
             expect(JSON.parse(snapshotSpecsArg)).toEqual({
+                category: 'Archive Outerwear',
                 size: 'XL',
                 color: 'Black',
                 material: 'Leather',

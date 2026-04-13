@@ -185,7 +185,7 @@ describe('GoodsOverviewRepository variant-level', () => {
       prepare: vi.fn((sql) => ({
         bind: vi.fn(() => ({
           all: vi.fn(async () => {
-            if (sql.includes('SELECT DISTINCT p.category')) {
+            if (sql.includes('SELECT DISTINCT COALESCE(') && sql.includes(' as category')) {
               return {
                 results: sql.includes('JOIN product_variants pv')
                   ? []
@@ -209,9 +209,10 @@ describe('GoodsOverviewRepository variant-level', () => {
     const filters = await repo.getAvailableFilters();
     const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
 
-    expect(sqlCalls.some((sql) => sql.includes('SELECT DISTINCT p.category'))).toBe(true);
+    expect(sqlCalls.some((sql) => sql.includes('SELECT DISTINCT COALESCE(') && sql.includes(' as category'))).toBe(true);
     expect(sqlCalls.some((sql) => sql.includes('SELECT DISTINCT COALESCE('))).toBe(true);
     expect(sqlCalls.some((sql) => sql.includes("json_extract(ol.snapshot_specs, '$.brand')"))).toBe(true);
+    expect(sqlCalls.some((sql) => sql.includes("json_extract(ol.snapshot_specs, '$.category')"))).toBe(true);
     expect(filters).toEqual({
       categories: ['Top'],
       brands: ['KK'],
@@ -227,13 +228,13 @@ describe('GoodsOverviewRepository variant-level', () => {
       name: 'Snapshot Tee',
       sku: 'SNAPSHOT-SKU',
       brand: 'Snapshot Brand',
-      category: '-',
+      category: 'Archive Outerwear',
       stock_quantity: 0,
       on_hand: 0,
       reserved: 0,
       available: 0,
       alert_threshold: 10,
-      variant_options: '{"color":"Black","size":"L","material":"Canvas"}',
+      variant_options: '{"category":"Archive Outerwear","color":"Black","size":"L","material":"Canvas"}',
       images: '["snapshot-image"]',
       confirmed_qty: 4,
       production_qty: 0,
@@ -255,6 +256,9 @@ describe('GoodsOverviewRepository variant-level', () => {
     expect(sql).toContain('snapshot_name');
     expect(sql).toContain('snapshot_sku');
     expect(sql).toContain("json_extract(ol.snapshot_specs, '$.brand')");
+    expect(sql).toContain("json_extract(ol.snapshot_specs, '$.category')");
+    expect(sql).toContain("json_extract(o.current_data, '$.category')");
+    expect(sql).toContain("json_extract(o.original_data, '$.category')");
     expect(sql).toContain('snapshot_image');
     expect(sql).toContain('snapshot_specs');
     expect(list[0]).toEqual(expect.objectContaining({
@@ -262,6 +266,7 @@ describe('GoodsOverviewRepository variant-level', () => {
       name: 'Snapshot Tee',
       sku: 'SNAPSHOT-SKU',
       brand: 'Snapshot Brand',
+      category: 'Archive Outerwear',
       variantLabel: 'Black / Canvas / L',
       images: ['snapshot-image'],
       orderIds: ['o-deleted'],

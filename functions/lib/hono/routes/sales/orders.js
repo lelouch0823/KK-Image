@@ -17,7 +17,7 @@ import { syncOrderDemandTransitions } from '../../../../api/utils/order-demand-s
 import { buildOrderBindingSnapshot } from '../../../../api/utils/order-binding-snapshot.js';
 
 const app = new Hono();
-const SALES_BOUND_SNAPSHOT_FIELDS = Object.freeze(['name', 'brand', 'series', 'sku', 'size', 'color', 'material']);
+const SALES_BOUND_SNAPSHOT_FIELDS = Object.freeze(['name', 'brand', 'category', 'series', 'sku', 'size', 'color', 'material']);
 export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'POST', path: '/', domain: 'sales-orders', action: 'sales.order.create', severity: 'high', targetType: 'order' },
     { method: 'PATCH', path: '/:id/read', domain: 'sales-orders', action: 'sales.order.read', severity: 'normal', targetType: 'order' },
@@ -115,6 +115,7 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
             remark: data.remark,
             deadline: data.deadline,
             brand: boundSnapshot.brand,
+            category: boundSnapshot.category,
             series: boundSnapshot.series,
             sku: boundSnapshot.sku,
         },
@@ -329,6 +330,7 @@ app.patch('/:id', async (c) => {
         });
         finalUpdates.name = boundSnapshot.name;
         finalUpdates.brand = boundSnapshot.brand;
+        finalUpdates.category = boundSnapshot.category;
         finalUpdates.series = boundSnapshot.series;
         finalUpdates.sku = boundSnapshot.sku;
         finalUpdates.size = boundSnapshot.size;
@@ -338,7 +340,7 @@ app.patch('/:id', async (c) => {
 
     // 销售端允许修改的字段
     // SOTA: productId 是顶级表列，通过 options.productId 单独传递处理，不应加入 JSON data 字段列表
-    const SALES_EDITABLE_FIELDS = ['name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
+    const SALES_EDITABLE_FIELDS = ['name', 'brand', 'category', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
 
     const updateResult = await processOrderUpdate({
         env,

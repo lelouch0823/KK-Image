@@ -29,7 +29,7 @@ async function assertBatchDeliveryStockSufficient(inventoryService, requirements
     }
 }
 
-const SNAPSHOT_SPEC_KEYS = ['size', 'color', 'material', 'brand', 'series', 'remark', 'deadline'];
+const SNAPSHOT_SPEC_KEYS = ['category', 'size', 'color', 'material', 'brand', 'series', 'remark', 'deadline'];
 
 function buildSnapshotSpecs(data) {
     if (!data || typeof data !== 'object') return null;

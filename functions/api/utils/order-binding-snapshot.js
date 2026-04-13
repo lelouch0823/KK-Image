@@ -43,6 +43,7 @@ export function buildOrderBindingSnapshot({ product, variant, fallback = {} } = 
     ...fallback,
     name: product.name || fallback.name || '',
     brand: product.brand || fallback.brand || '',
+    category: product.category || fallback.category || '',
     series: product.series || fallback.series || '',
     sku: variant.sku || fallback.sku || '',
     color: color || fallback.color || '',

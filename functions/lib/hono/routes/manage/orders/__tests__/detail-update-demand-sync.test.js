@@ -278,6 +278,7 @@ describe('manage order detail update demand sync', () => {
         status: 'active',
         name: 'Hydrated Tee',
         brand: 'ACME',
+        category: 'Outerwear',
         series: 'S1',
         dimension_map: {
           'dim-color': 'Color',
@@ -319,6 +320,7 @@ describe('manage order detail update demand sync', () => {
     expect(mocks.processOrderUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         updates: expect.objectContaining({
+          category: 'Outerwear',
           sku: 'SKU-RED-M',
           color: 'Red',
           material: 'Cotton',

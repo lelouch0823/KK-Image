@@ -26,10 +26,10 @@ export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'POST', path: '/:id/comment', domain: 'orders', action: 'order.comment.create', severity: 'normal', targetType: 'order' },
     { method: 'DELETE', path: '/:id', domain: 'orders', action: 'order.delete', severity: 'critical', targetType: 'order' },
 ]);
-const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
+const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'category', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
 const STRUCTURAL_EDITABLE_STATUSES = new Set(['pending', 'rejected', 'void']);
 const QUANTITY_EDITABLE_STATUSES = new Set(['pending', 'confirmed', 'rejected', 'void']);
-const ORDER_BOUND_SNAPSHOT_FIELDS = Object.freeze(['name', 'brand', 'series', 'sku', 'size', 'color', 'material']);
+const ORDER_BOUND_SNAPSHOT_FIELDS = Object.freeze(['name', 'brand', 'category', 'series', 'sku', 'size', 'color', 'material']);
 
 function getAdminActor(user) {
     return {
@@ -162,6 +162,7 @@ app.patch('/:id', async (c) => {
         });
         finalUpdates.name = boundSnapshot.name;
         finalUpdates.brand = boundSnapshot.brand;
+        finalUpdates.category = boundSnapshot.category;
         finalUpdates.series = boundSnapshot.series;
         finalUpdates.sku = boundSnapshot.sku;
         finalUpdates.size = boundSnapshot.size;

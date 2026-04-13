@@ -102,6 +102,7 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
     data: {
       name: boundSnapshot.name,
       brand: boundSnapshot.brand,
+      category: boundSnapshot.category,
       series: boundSnapshot.series,
       sku: boundSnapshot.sku,
       size: boundSnapshot.size,

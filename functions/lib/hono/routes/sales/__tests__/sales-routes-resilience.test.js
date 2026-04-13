@@ -342,6 +342,7 @@ describe('sales routes resilience', () => {
       status: 'active',
       name: 'Hydrated Tee',
       brand: 'ACME',
+      category: 'Outerwear',
       series: 'S1',
       images: '[]',
       dimension_map: {
@@ -373,6 +374,7 @@ describe('sales routes resilience', () => {
     expect(mocks.orderCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
+          category: 'Outerwear',
           sku: 'SKU-RED-M',
           color: 'Red',
           material: 'Cotton',
@@ -400,6 +402,7 @@ describe('sales routes resilience', () => {
       status: 'active',
       name: 'Repository Hydrated Tee',
       brand: 'ACME',
+      category: 'Tops',
       series: 'S2',
       images: '[]',
     });
@@ -432,6 +435,7 @@ describe('sales routes resilience', () => {
     expect(mocks.orderCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
+          category: 'Tops',
           sku: 'SKU-BLUE-L',
           color: 'Blue',
           material: 'Linen',
