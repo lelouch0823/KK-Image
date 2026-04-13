@@ -154,10 +154,14 @@ export class OutboxReplayRepository {
       filters
     );
 
-    return rows.map((row) => ({
-      ...row,
-      consumerJobs: consumerJobsByEventId.get(row.id) || [],
-    }));
+    return {
+      items: rows.map((row) => ({
+        ...row,
+        consumerJobs: consumerJobsByEventId.get(row.id) || [],
+      })),
+      limit,
+      isTruncated: rows.length === limit,
+    };
   }
 
   async getEventDetail(eventId) {

@@ -24,10 +24,15 @@ export function useOutboxOps() {
   const error = ref('');
   const errorCode = ref(null);
   const eventDetail = ref(null);
+  const listMeta = ref({
+    limit: 100,
+    isTruncated: false,
+  });
   const detailLoading = ref(false);
   const replayLoading = ref(false);
   const lastReplayResult = ref(null);
   let latestListRequestId = 0;
+  let latestDetailRequestId = 0;
 
   const loadEvents = async (filters = {}) => {
     const requestId = ++latestListRequestId;
@@ -54,6 +59,10 @@ export function useOutboxOps() {
       }
 
       events.value = Array.isArray(json.data) ? json.data : [];
+      listMeta.value = {
+        limit: Number(json?.meta?.limit || 100),
+        isTruncated: Boolean(json?.meta?.isTruncated),
+      };
       return true;
     } catch (e) {
       if (requestId !== latestListRequestId) {
@@ -83,12 +92,22 @@ export function useOutboxOps() {
   };
 
   const loadEventDetail = async (eventId) => {
-    if (!eventId) return null;
+    if (!eventId) {
+      latestDetailRequestId += 1;
+      eventDetail.value = null;
+      detailLoading.value = false;
+      return null;
+    }
 
+    const requestId = ++latestDetailRequestId;
     detailLoading.value = true;
     try {
       const res = await authFetch(API.MANAGE_OUTBOX_BY_ID(eventId));
       const json = await res.json();
+
+      if (requestId !== latestDetailRequestId) {
+        return null;
+      }
 
       if (!json.success) {
         addToast({ message: json.error || json.message || t('common.loadFailed'), type: 'error' });
@@ -98,10 +117,15 @@ export function useOutboxOps() {
       eventDetail.value = json.data || null;
       return eventDetail.value;
     } catch (e) {
+      if (requestId !== latestDetailRequestId) {
+        return null;
+      }
       addToast({ message: e?.message || t('common.networkError'), type: 'error' });
       return null;
     } finally {
-      detailLoading.value = false;
+      if (requestId === latestDetailRequestId) {
+        detailLoading.value = false;
+      }
     }
   };
 
@@ -142,6 +166,7 @@ export function useOutboxOps() {
     error,
     errorCode,
     eventDetail,
+    listMeta,
     detailLoading,
     replayLoading,
     lastReplayResult,

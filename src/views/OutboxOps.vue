@@ -87,14 +87,23 @@
                 </p>
               </div>
               <StatusBadge
-                :variant="healthMetrics.isLoading ? 'warning' : 'primary'"
+                :variant="healthMetrics.isLoading || healthMetrics.refreshFailed ? 'warning' : 'primary'"
                 outline
               >
                 {{ healthMetrics.isLoading
                   ? t('outboxOps.summary.globalUpdating', '全局健康概览更新中')
-                  : `${healthMetrics.totalEvents} ${t('outboxOps.summary.eventsUnit', '条事件')}` }}
+                  : healthMetrics.refreshFailed
+                    ? t('outboxOps.summary.globalStale', '全局健康概览为上一次成功快照')
+                    : `${healthMetrics.totalEvents} ${t('outboxOps.summary.eventsUnit', '条事件')}` }}
               </StatusBadge>
             </div>
+
+            <p
+              v-if="healthMetrics.refreshFailed"
+              class="text-sm text-warning"
+            >
+              {{ t('outboxOps.summary.globalRefreshFailed', '最近一次全局刷新失败，当前展示的是上一次成功快照。') }}
+            </p>
 
             <div class="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
               <MetricTile
@@ -217,6 +226,13 @@
               <StatusBadge variant="info" outline>
                 {{ t('outboxOps.workspace.results', { count: filteredMetrics.totalEvents }) }}
               </StatusBadge>
+              <StatusBadge
+                v-if="listMeta.isTruncated"
+                variant="warning"
+                outline
+              >
+                {{ t('outboxOps.workspace.truncated', { limit: listMeta.limit }) }}
+              </StatusBadge>
               <StatusBadge :variant="filteredMetrics.failedJobs ? 'danger' : 'success'" outline>
                 {{ filteredMetrics.failedJobs
                   ? t('outboxOps.workspace.failedHint', { count: filteredMetrics.failedJobs })
@@ -224,6 +240,13 @@
               </StatusBadge>
             </div>
           </div>
+
+          <p
+            v-if="listMeta.isTruncated"
+            class="text-sm text-warning"
+          >
+            {{ t('outboxOps.workspace.truncatedHint', '更早的事件未展示，请缩小筛选范围后重试。') }}
+          </p>
 
           <OutboxEventTable
             :events="events"
@@ -234,7 +257,7 @@
         </StatePanel>
 
         <OutboxReplayPanel
-          :event="eventDetail"
+          :event="displayedEventDetail"
           :detail-loading="detailLoading"
           :replay-loading="replayLoading"
           :last-replay-result="lastReplayResult"
@@ -273,6 +296,7 @@ const {
   error,
   errorCode,
   eventDetail,
+  listMeta,
   detailLoading,
   replayLoading,
   lastReplayResult,
@@ -292,9 +316,12 @@ const filters = reactive({
   status: '',
 });
 const selectedEventId = ref('');
+const displayedEventDetail = ref(null);
 const globalHealthEvents = ref([]);
 const healthLoading = ref(false);
 const healthLoaded = ref(false);
+const healthRefreshFailed = ref(false);
+let latestDetailSelectionId = 0;
 
 const statusOptions = computed(() => ([
   { value: '', label: t('outboxOps.filters.allStatuses', '全部状态') },
@@ -312,7 +339,8 @@ const healthMetrics = computed(() => buildOutboxOpsMetrics(
   {},
   {
     isLoading: healthLoading.value,
-    isStale: healthLoaded.value && hasActiveFilters.value && healthLoading.value,
+    isStale: healthLoaded.value && hasActiveFilters.value && (healthLoading.value || healthRefreshFailed.value),
+    refreshFailed: healthRefreshFailed.value,
   }
 ));
 const filteredMetrics = computed(() => buildOutboxOpsMetrics(events.value, filters));
@@ -325,6 +353,13 @@ async function refreshGlobalHealthEvents() {
     if (ok) {
       globalHealthEvents.value = [...healthOps.events.value];
       healthLoaded.value = true;
+      healthRefreshFailed.value = false;
+    } else if (healthLoaded.value) {
+      healthRefreshFailed.value = true;
+    }
+  } catch {
+    if (healthLoaded.value) {
+      healthRefreshFailed.value = true;
     }
   } finally {
     healthLoading.value = false;
@@ -341,23 +376,49 @@ async function fetchEvents() {
     globalHealthEvents.value = [...events.value];
     healthLoaded.value = true;
     healthLoading.value = false;
+    healthRefreshFailed.value = false;
   }
 
   if (selectedEventId.value && !events.value.some((event) => event.id === selectedEventId.value)) {
     selectedEventId.value = '';
+    displayedEventDetail.value = null;
     eventDetail.value = null;
   }
 }
 
 async function handleSelectEvent(event) {
   clearReplayResult();
-  selectedEventId.value = event?.id || '';
-  await loadEventDetail(event?.id);
+  const nextEventId = event?.id || '';
+  const requestId = ++latestDetailSelectionId;
+  selectedEventId.value = nextEventId;
+  displayedEventDetail.value = null;
+
+  if (!nextEventId) {
+    eventDetail.value = null;
+    return;
+  }
+
+  const detail = await loadEventDetail(nextEventId);
+  if (requestId !== latestDetailSelectionId || selectedEventId.value !== nextEventId) {
+    return;
+  }
+
+  if (detail?.id === nextEventId) {
+    displayedEventDetail.value = detail;
+  }
 }
 
 async function handleRefreshDetail(eventId) {
   if (!eventId) return;
-  await loadEventDetail(eventId);
+  const requestId = ++latestDetailSelectionId;
+  const detail = await loadEventDetail(eventId);
+  if (requestId !== latestDetailSelectionId || selectedEventId.value !== eventId) {
+    return;
+  }
+
+  if (detail?.id === eventId) {
+    displayedEventDetail.value = detail;
+  }
 }
 
 async function handleDryRun(payload) {

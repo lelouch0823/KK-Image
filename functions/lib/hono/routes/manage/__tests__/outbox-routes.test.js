@@ -31,12 +31,16 @@ function createApp() {
 describe('manage outbox routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.listEvents.mockResolvedValue([{
-      id: 'evt-1',
-      event_type: 'purchase_receipt_recorded',
-      consumerJobs: [{ consumer_name: 'notification', status: 'published' }],
-      webhookAttempts: [],
-    }]);
+    mocks.listEvents.mockResolvedValue({
+      items: [{
+        id: 'evt-1',
+        event_type: 'purchase_receipt_recorded',
+        consumerJobs: [{ consumer_name: 'notification', status: 'published' }],
+        webhookAttempts: [],
+      }],
+      limit: 100,
+      isTruncated: false,
+    });
     mocks.getEventDetail.mockResolvedValue({
       id: 'evt-1',
       event_type: 'purchase_receipt_recorded',
@@ -66,6 +70,18 @@ describe('manage outbox routes', () => {
         limit: 100,
       })
     );
+
+    const json = await res.json();
+    expect(json.data).toEqual([
+      expect.objectContaining({
+        id: 'evt-1',
+        consumerJobs: [expect.objectContaining({ consumer_name: 'notification' })],
+      }),
+    ]);
+    expect(json.meta).toEqual({
+      limit: 100,
+      isTruncated: false,
+    });
   });
 
   it('returns event detail including consumer jobs and webhook attempts', async () => {

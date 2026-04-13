@@ -33,6 +33,7 @@ describe('buildOutboxOpsMetrics', () => {
     }, {
       isLoading: true,
       isStale: true,
+      refreshFailed: true,
     })).toEqual({
       totalEvents: 2,
       failedJobs: 1,
@@ -42,6 +43,7 @@ describe('buildOutboxOpsMetrics', () => {
       hasFilters: true,
       isLoading: true,
       isStale: true,
+      refreshFailed: true,
     });
   });
 });

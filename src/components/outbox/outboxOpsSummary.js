@@ -39,5 +39,6 @@ export function buildOutboxOpsMetrics(events = [], filters = {}, options = {}) {
     hasFilters: selectedFilters.length > 0,
     isLoading: Boolean(options.isLoading),
     isStale: Boolean(options.isStale),
+    refreshFailed: Boolean(options.refreshFailed),
   };
 }

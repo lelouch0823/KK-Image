@@ -38,11 +38,15 @@ describe('useOutboxOps', () => {
       json: () => Promise.resolve({
         success: true,
         data: [{ id: 'evt-1', event_type: 'purchase_receipt_recorded' }],
+        meta: {
+          limit: 100,
+          isTruncated: true,
+        },
       }),
     });
 
     const { useOutboxOps } = await import('../useOutboxOps');
-    const { loadEvents, events } = useOutboxOps();
+    const { loadEvents, events, listMeta } = useOutboxOps();
     const ok = await loadEvents({
       eventType: 'purchase_receipt_recorded',
       consumerName: 'notification',
@@ -51,6 +55,10 @@ describe('useOutboxOps', () => {
 
     expect(ok).toBe(true);
     expect(events.value).toEqual([{ id: 'evt-1', event_type: 'purchase_receipt_recorded' }]);
+    expect(listMeta.value).toEqual({
+      limit: 100,
+      isTruncated: true,
+    });
     expect(mockAuthFetch).toHaveBeenCalledWith(
       '/api/manage/outbox?eventType=purchase_receipt_recorded&consumerName=notification&status=failed'
     );
@@ -147,5 +155,45 @@ describe('useOutboxOps', () => {
 
     expect(events.value).toEqual([{ id: 'evt-new', event_type: 'newer' }]);
     expect(loading.value).toBe(false);
+  });
+
+  it('keeps the newest event detail when earlier detail requests resolve later', async () => {
+    let resolveFirst;
+    let resolveSecond;
+    const firstResponse = new Promise((resolve) => {
+      resolveFirst = resolve;
+    });
+    const secondResponse = new Promise((resolve) => {
+      resolveSecond = resolve;
+    });
+
+    mockAuthFetch
+      .mockReturnValueOnce(firstResponse)
+      .mockReturnValueOnce(secondResponse);
+
+    const { useOutboxOps } = await import('../useOutboxOps');
+    const { loadEventDetail, eventDetail, detailLoading } = useOutboxOps();
+
+    const firstLoad = loadEventDetail('evt-old');
+    const secondLoad = loadEventDetail('evt-new');
+
+    resolveSecond({
+      json: () => Promise.resolve({
+        success: true,
+        data: { id: 'evt-new', event_type: 'newer' },
+      }),
+    });
+    await secondLoad;
+
+    resolveFirst({
+      json: () => Promise.resolve({
+        success: true,
+        data: { id: 'evt-old', event_type: 'older' },
+      }),
+    });
+    await firstLoad;
+
+    expect(eventDetail.value).toEqual({ id: 'evt-new', event_type: 'newer' });
+    expect(detailLoading.value).toBe(false);
   });
 });

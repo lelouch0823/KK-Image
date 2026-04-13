@@ -32,6 +32,7 @@ function createReplayDbStub({
 
             if (sql.includes('FROM domain_outbox')) {
               let filtered = [...events];
+              const limit = sql.includes('LIMIT ?') ? Number(params.at(-1)) : null;
               const effectiveParams = sql.includes('LIMIT ?') ? params.slice(0, -1) : params;
 
               if (sql.includes('event_type = ?')) {
@@ -61,7 +62,7 @@ function createReplayDbStub({
                 });
               }
 
-              return { results: filtered };
+              return { results: Number.isFinite(limit) ? filtered.slice(0, limit) : filtered };
             }
 
             if (sql.includes('FROM outbox_consumer_jobs')) {
@@ -202,8 +203,8 @@ describe('OutboxReplayRepository', () => {
     const list = await repo.listEvents({ eventType: 'purchase_receipt_recorded' });
     const detail = await repo.getEventDetail('evt-1');
 
-    expect(list).toHaveLength(1);
-    expect(list[0]).toEqual(expect.objectContaining({
+    expect(list.items).toHaveLength(1);
+    expect(list.items[0]).toEqual(expect.objectContaining({
       id: 'evt-1',
       consumerJobs: [expect.objectContaining({ consumer_name: 'notification' })],
     }));
@@ -278,8 +279,8 @@ describe('OutboxReplayRepository', () => {
       status: 'failed',
     });
 
-    expect(list.map((item) => item.id)).toEqual(['evt-1', 'evt-2']);
-    expect(list[0].consumerJobs).toEqual([
+    expect(list.items.map((item) => item.id)).toEqual(['evt-1', 'evt-2']);
+    expect(list.items[0].consumerJobs).toEqual([
       expect.objectContaining({ consumer_name: 'notification', status: 'failed' }),
     ]);
     expect(db.getPrepareCalls().filter((sql) => sql.includes('FROM webhook_logs'))).toHaveLength(0);
@@ -288,6 +289,53 @@ describe('OutboxReplayRepository', () => {
         (sql) => sql.includes('FROM outbox_consumer_jobs') && !sql.includes('FROM domain_outbox')
       )
     ).toHaveLength(1);
+  });
+
+  it('returns bounded list metadata when the result count reaches the query limit', async () => {
+    const db = createReplayDbStub({
+      events: [
+        {
+          id: 'evt-1',
+          command_id: 'cmd-1',
+          sequence_in_command: 1,
+          event_type: 'purchase_receipt_recorded',
+          aggregate_id: 'receipt-1',
+          created_at: 1710000000000,
+        },
+        {
+          id: 'evt-2',
+          command_id: 'cmd-2',
+          sequence_in_command: 1,
+          event_type: 'purchase_receipt_recorded',
+          aggregate_id: 'receipt-2',
+          created_at: 1710000001000,
+        },
+        {
+          id: 'evt-3',
+          command_id: 'cmd-3',
+          sequence_in_command: 1,
+          event_type: 'purchase_receipt_recorded',
+          aggregate_id: 'receipt-3',
+          created_at: 1710000002000,
+        },
+      ],
+      consumerJobsByEventId: {
+        'evt-1': [],
+        'evt-2': [],
+      },
+    });
+    const repo = new OutboxReplayRepository(db);
+
+    const result = await repo.listEvents({ eventType: 'purchase_receipt_recorded' }, { limit: 2 });
+
+    expect(result).toEqual(expect.objectContaining({
+      items: [
+        expect.objectContaining({ id: 'evt-1' }),
+        expect.objectContaining({ id: 'evt-2' }),
+      ],
+      limit: 2,
+      isTruncated: true,
+    }));
   });
 
   it('batches consumer job lookups when the event list is larger than one SQL variable window', async () => {
@@ -315,8 +363,8 @@ describe('OutboxReplayRepository', () => {
 
     const list = await repo.listEvents({ eventType: 'purchase_receipt_recorded' });
 
-    expect(list).toHaveLength(95);
-    expect(list[0].consumerJobs).toEqual([
+    expect(list.items).toHaveLength(95);
+    expect(list.items[0].consumerJobs).toEqual([
       expect.objectContaining({ event_id: 'evt-1', consumer_name: 'notification' }),
     ]);
     expect(
