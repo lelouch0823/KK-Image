@@ -45,16 +45,16 @@ describe('useGoodsOverview composable', () => {
   });
 
   it('marks forbidden when authFetch rejects with 403', async () => {
-    const err = new Error('权限不足: goods:read');
+    const err = new Error('权限不足: products:manage');
     err.status = 403;
-    err.data = { error: '权限不足: goods:read' };
+    err.data = { error: '权限不足: products:manage' };
     mockAuthFetch.mockRejectedValueOnce(err);
 
     const { loadData, errorCode, error } = useGoodsOverview();
     await loadData();
 
     expect(errorCode.value).toBe('FORBIDDEN');
-    expect(error.value).toContain('权限不足');
+    expect(error.value).toContain('products:manage');
   });
 
   it('loads summary via authFetch', async () => {

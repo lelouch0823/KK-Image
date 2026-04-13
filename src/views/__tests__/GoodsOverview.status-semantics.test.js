@@ -100,7 +100,10 @@ function createWrapper(itemOverrides) {
         MetricTile: { template: '<div><slot name="meta" /></div>' },
         SummaryStrip: { template: '<div><slot /></div>' },
         FloatingSelectionBar: { template: '<div><slot name="summary" /><slot /></div>', props: ['visible'] },
-        PermissionDeniedState: { template: '<div />' },
+        PermissionDeniedState: {
+          template: '<div data-testid="goods-overview-forbidden" :data-description="description" />',
+          props: ['title', 'description', 'homeTo', 'homeText'],
+        },
         EmptyState: { template: '<div data-testid="goods-overview-error-state"><slot name="action" /></div>' },
         AppImage: { template: '<img data-testid="overview-image" :src="src" />', props: ['src'] },
         AppTable: {
@@ -177,5 +180,14 @@ describe('GoodsOverview status semantics', () => {
 
     expect(wrapper.find('[data-testid="goods-overview-error-state"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="goods-overview-table"]').exists()).toBe(false);
+  });
+
+  it('uses the real products:manage permission name in the forbidden fallback copy', () => {
+    const wrapper = createWrapper({
+      errorOverride: null,
+      errorCodeOverride: 'FORBIDDEN',
+    });
+
+    expect(wrapper.get('[data-testid="goods-overview-forbidden"]').attributes('data-description')).toContain('products:manage');
   });
 });

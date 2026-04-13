@@ -3,7 +3,7 @@
     <div v-if="errorCode === 'FORBIDDEN'" class="rounded-xl border border-(--border-color) bg-(--bg-card) p-8">
       <PermissionDeniedState
         title="订货总览权限不足"
-        :description="error || '当前账号没有订货总览读取权限，请联系管理员分配 goods:read。'"
+        :description="error || '当前账号没有订货总览读取权限，请联系管理员分配 products:manage。'"
         home-to="/admin/forbidden"
         home-text="查看权限说明"
         @retry="init"
