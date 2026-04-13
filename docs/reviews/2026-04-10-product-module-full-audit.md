@@ -3774,3 +3774,13 @@
   - 补齐 composable 与仓储回归测试，显式锁定“历史缺口手工建单失败后，会自动改走 from-orders”的行为，并复跑总览前后端关联测试确认未破坏现有正常建单路径。
 - 增量回归:
   - `pnpm vitest run functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js src/composables/__tests__/useGoodsOverview.test.js src/views/__tests__/GoodsOverview.status-semantics.test.js`
+
+### 2026-04-13 轮次 326
+
+- 继续深审商品关联订货总览的前端展示链路，新增 1 个中风险问题:
+  - [src/views/GoodsOverview.vue](/home/bjw/Code/KK-Image/src/views/GoodsOverview.vue) 修复前在列表缩略图里直接拼接 `'/file/' + item.images[0]`，没有复用项目已经统一好的图片解析器。这样一来，只要总览项图片来自历史快照外链、已经解析过的 `/file/...` 路径，或后续其他合法图片引用格式，页面都会把它再次错误拼接，导致总览列表图像显示失真或直接 404。
+- 已完成本轮修复:
+  - 总览页商品缩略图现在统一复用共享图片解析器，不再自己拼接 `/file/`，从而与商品列表、商品详情等其它商品消费入口保持同一套图片 URL 口径。
+  - 补齐总览页视图回归测试，显式锁定“完整 URL 图片在总览列表中不会再被错误拼接 `/file/`”的行为，并复跑总览前后端关联测试确认未影响现有筛选、建单和状态展示逻辑。
+- 增量回归:
+  - `pnpm vitest run src/views/__tests__/GoodsOverview.status-semantics.test.js src/composables/__tests__/useGoodsOverview.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
