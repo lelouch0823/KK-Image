@@ -3784,3 +3784,14 @@
   - 补齐总览页视图回归测试，显式锁定“完整 URL 图片在总览列表中不会再被错误拼接 `/file/`”的行为，并复跑总览前后端关联测试确认未影响现有筛选、建单和状态展示逻辑。
 - 增量回归:
   - `pnpm vitest run src/views/__tests__/GoodsOverview.status-semantics.test.js src/composables/__tests__/useGoodsOverview.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
+
+### 2026-04-13 轮次 327
+
+- 继续深审商品关联订货总览的前端消费层，新增 1 个高风险问题:
+  - [src/views/GoodsOverview.vue](/home/bjw/Code/KK-Image/src/views/GoodsOverview.vue) 修复前在脚本里把 `useGoodsOverview()` 返回的 `availableFilters` 当普通对象直接访问 `availableFilters.brands/categories`。实际 composable 返回的是 `ref`，真实运行时这里会在计算筛选项时直接抛 `Cannot read properties of undefined (reading 'map')`，导致整个总览页在首屏就崩。现有页面测试因为把 `availableFilters` mock 成了普通对象，刚好把这个真实 bug 掩盖掉了。
+- 已完成本轮修复:
+  - 总览页现在正确从 `availableFilters.value` 读取品牌和分类列表，不再把 ref 当普通对象使用。
+  - 总览页视图测试同步改成贴近真实运行时的 ref 形态，显式锁定“筛选项来自 composable ref 时页面仍能正常渲染”的行为，避免同类 mock 掩盖问题再次发生。
+  - 复跑总览仓储、路由、composable 和视图关联测试，确认本轮修复未破坏前面已补齐的历史快照、历史缺口建单和图片展示逻辑。
+- 增量回归:
+  - `pnpm vitest run src/views/__tests__/GoodsOverview.status-semantics.test.js src/composables/__tests__/useGoodsOverview.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
