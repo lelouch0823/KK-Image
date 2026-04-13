@@ -3806,3 +3806,14 @@
   - 复跑总览视图、composable、路由、仓储关联测试，确认本轮兜底没有影响现有筛选、摘要和历史快照回退逻辑。
 - 增量回归:
   - `pnpm vitest run src/views/__tests__/GoodsOverview.status-semantics.test.js src/composables/__tests__/useGoodsOverview.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
+
+### 2026-04-13 轮次 329
+
+- 继续深审商品关联订货总览的加载失败边界，新增 1 个高风险问题:
+  - [src/composables/useGoodsOverview.js](/home/bjw/Code/KK-Image/src/composables/useGoodsOverview.js) 修复前在 `loadData()` 或 `loadSummary()` 失败时只写 `error/errorCode`，却保留上一次成功请求留下的 `items`、`availableFilters`、`summary`。这样一来，用户切换筛选后若新请求失败，页面会继续显示旧列表和旧汇总，但筛选条件已经变成新的，形成“看似成功切筛选，实际展示旧数据”的静默误导；采购建单也可能继续基于旧列表操作。
+- 已完成本轮修复:
+  - 总览 composable 新增失败态重置逻辑，当前请求一旦失败或返回 `success: false`，就会清空旧列表、旧筛选项、旧汇总和旧选择状态，不再把历史成功结果伪装成当前结果。
+  - 补齐 composable 回归测试，显式锁定“刷新失败会清空旧列表/筛选项”和“汇总刷新失败会清空旧 summary”的行为，避免后续重构再次引入静默误导。
+  - 复跑总览 composable、视图、路由、仓储关联测试，确认失败态清理没有影响现有并发隔离、历史快照回退和总览展示逻辑。
+- 增量回归:
+  - `pnpm vitest run src/composables/__tests__/useGoodsOverview.test.js src/views/__tests__/GoodsOverview.status-semantics.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
