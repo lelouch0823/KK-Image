@@ -3795,3 +3795,14 @@
   - 复跑总览仓储、路由、composable 和视图关联测试，确认本轮修复未破坏前面已补齐的历史快照、历史缺口建单和图片展示逻辑。
 - 增量回归:
   - `pnpm vitest run src/views/__tests__/GoodsOverview.status-semantics.test.js src/composables/__tests__/useGoodsOverview.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
+
+### 2026-04-13 轮次 328
+
+- 继续深审商品关联订货总览的汇总消费层，新增 1 个中风险问题:
+  - [src/views/GoodsOverview.vue](/home/bjw/Code/KK-Image/src/views/GoodsOverview.vue) 修复前在模板里直接读取 `summary.byStatus.confirmed/production/shipping/arrived`。一旦后端返回的是裁剪版 summary、灰度期间字段尚未补齐，或某次异常响应只保留 `totalProducts/totalDemand/shortageCount`，页面就会在渲染指标卡时直接抛 `Cannot read properties of undefined`，整个总览页崩溃，错误边界也接不住这类模板求值异常。
+- 已完成本轮修复:
+  - 总览页新增 `summaryByStatus` 默认结构，对四个管道状态统一做 0 值兜底，不再直接信任 `summary.byStatus` 一定完整存在。
+  - 补齐视图回归测试，显式锁定“summary payload 缺少 byStatus 细节时页面仍能稳定渲染”的行为，防止接口口径漂移再次把总览页打崩。
+  - 复跑总览视图、composable、路由、仓储关联测试，确认本轮兜底没有影响现有筛选、摘要和历史快照回退逻辑。
+- 增量回归:
+  - `pnpm vitest run src/views/__tests__/GoodsOverview.status-semantics.test.js src/composables/__tests__/useGoodsOverview.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
