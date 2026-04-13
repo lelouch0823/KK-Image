@@ -3817,3 +3817,14 @@
   - 复跑总览 composable、视图、路由、仓储关联测试，确认失败态清理没有影响现有并发隔离、历史快照回退和总览展示逻辑。
 - 增量回归:
   - `pnpm vitest run src/composables/__tests__/useGoodsOverview.test.js src/views/__tests__/GoodsOverview.status-semantics.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
+
+### 2026-04-13 轮次 330
+
+- 继续深审商品关联订货总览的页面错误边界，新增 1 个中风险问题:
+  - [src/views/GoodsOverview.vue](/home/bjw/Code/KK-Image/src/views/GoodsOverview.vue) 修复前只对 `FORBIDDEN` 单独展示权限态，其它网络错误/服务异常虽然会把 composable 的 `error` 写出来，但页面仍继续渲染空列表壳子，没有显式失败提示，也没有页内重试入口。用户看到的是“空表格”而不是“请求失败”，很难区分到底是没有数据还是加载失败。
+- 已完成本轮修复:
+  - 总览页新增非权限错误态，当前请求失败后会在内容区明确展示网络错误提示和重试按钮，不再把失败伪装成空数据。
+  - 补齐视图回归测试，显式锁定“网络失败时展示可重试错误态而不是静默空表格”的行为，避免后续改动再次丢失错误边界。
+  - 复跑总览 composable、视图、路由、仓储关联测试，确认新增错误态没有影响已有权限态、摘要兜底和失败态清理逻辑。
+- 增量回归:
+  - `pnpm vitest run src/views/__tests__/GoodsOverview.status-semantics.test.js src/composables/__tests__/useGoodsOverview.test.js functions/lib/hono/routes/manage/__tests__/goods-overview-routes.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
