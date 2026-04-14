@@ -22,6 +22,7 @@ const sharedSalesResource = useResource('/api/sales/__shared__/orders', {
 const salespersons = ref([]);
 const statuses = ref([]);
 const procurementStatuses = ref([]);
+const deliveryStatuses = ref([]);
 let manageListRequestId = 0;
 let salesListRequestId = 0;
 
@@ -94,6 +95,9 @@ export function useOrders() {
         }
         if (res.data.procurementStatuses && procurementStatuses.value.length === 0) {
           procurementStatuses.value = res.data.procurementStatuses;
+        }
+        if (res.data.deliveryStatuses && deliveryStatuses.value.length === 0) {
+          deliveryStatuses.value = res.data.deliveryStatuses;
         }
 
         // Update pagination
@@ -511,6 +515,7 @@ export function useOrders() {
     salespersons,
     statuses,
     procurementStatuses,
+    deliveryStatuses,
     pagination: resource.pagination,
     salesPagination: salesResource.pagination,
     error: resource.error,

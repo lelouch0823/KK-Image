@@ -82,6 +82,20 @@ export const ORDER_LINE_PRIMARY_SNAPSHOT_JOIN = `
 
 export const ORDER_PROGRESS_STATUS_SQL = "COALESCE(order_line_agg.display_status, o.procurement_status, 'none')";
 
+export const ORDER_DELIVERY_STATUS_SQL = `
+    CASE
+        WHEN COALESCE(order_line_agg.shipped_qty, 0) > 0
+            AND COALESCE(order_line_agg.returned_qty, 0) >= COALESCE(order_line_agg.shipped_qty, 0)
+            AND COALESCE(order_line_agg.returned_qty, 0) > 0 THEN 'returned'
+        WHEN COALESCE(order_line_agg.returned_qty, 0) > 0 THEN 'partially_returned'
+        WHEN LOWER(TRIM(COALESCE(o.delivery_status, ''))) IN ('not_shipped', 'in_transit', 'delivered', 'partially_returned', 'returned')
+            THEN LOWER(TRIM(o.delivery_status))
+        WHEN COALESCE(o.delivered_at, 0) > 0 THEN 'delivered'
+        WHEN COALESCE(order_line_agg.shipped_qty, 0) > 0 THEN 'in_transit'
+        ELSE 'not_shipped'
+    END
+`;
+
 export function appendOrderProgressStatusFilter(whereClause, bindParams, procurementStatus) {
     const statusValues = expandOrderProcurementStatusFilter(procurementStatus);
     if (statusValues.length === 0) return whereClause;
@@ -93,6 +107,13 @@ export function appendOrderProgressStatusFilter(whereClause, bindParams, procure
 
     bindParams.push(...statusValues);
     return `${whereClause} AND ${ORDER_PROGRESS_STATUS_SQL} IN (${statusValues.map(() => "?").join(", ")})`;
+}
+
+export function appendOrderDeliveryStatusFilter(whereClause, bindParams, deliveryStatus) {
+    if (!deliveryStatus) return whereClause;
+
+    bindParams.push(deliveryStatus);
+    return `${whereClause} AND ${ORDER_DELIVERY_STATUS_SQL} = ?`;
 }
 
 export function appendOrderProductSearchFilter(whereClause, bindParams, search) {

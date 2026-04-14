@@ -17,6 +17,7 @@ export function useOrderFilters(loadOrders) {
         salesperson: '',
         status: '',
         procurementStatus: '',
+        deliveryStatus: '',
         search: '',
     });
 
@@ -35,6 +36,7 @@ export function useOrderFilters(loadOrders) {
             salesperson: filterState.value.salesperson,
             status: filterState.value.status,
             procurementStatus: filterState.value.procurementStatus,
+            deliveryStatus: filterState.value.deliveryStatus,
             search: filterState.value.search,
             startTime: filterDateRange.value.start,
             endTime: filterDateRange.value.end,
@@ -55,9 +57,21 @@ export function useOrderFilters(loadOrders) {
             filterDateRange.value = { start, end };
             filterState.value.status = '';
             filterState.value.procurementStatus = '';
+            filterState.value.deliveryStatus = '';
         } else if (type === 'pending') {
             filterState.value.status = 'pending';
             filterState.value.procurementStatus = '';
+            filterState.value.deliveryStatus = '';
+            filterDateRange.value = { start: 0, end: 0 };
+        } else if (type === 'awaiting_delivery') {
+            filterState.value.status = 'fulfilled';
+            filterState.value.procurementStatus = '';
+            filterState.value.deliveryStatus = 'in_transit';
+            filterDateRange.value = { start: 0, end: 0 };
+        } else if (['delivered', 'partially_returned', 'returned'].includes(type)) {
+            filterState.value.status = '';
+            filterState.value.procurementStatus = '';
+            filterState.value.deliveryStatus = type;
             filterDateRange.value = { start: 0, end: 0 };
         }
 
@@ -73,6 +87,7 @@ export function useOrderFilters(loadOrders) {
             if (filterState.value.salesperson) params.set('salesperson', filterState.value.salesperson);
             if (filterState.value.status) params.set('status', filterState.value.status);
             if (filterState.value.procurementStatus) params.set('procurementStatus', filterState.value.procurementStatus);
+            if (filterState.value.deliveryStatus) params.set('deliveryStatus', filterState.value.deliveryStatus);
             if (filterState.value.search) params.set('search', filterState.value.search);
 
             const url = `${API.MANAGE_ORDER_EXPORT}?${params.toString()}`;
@@ -108,6 +123,7 @@ export function useOrderFilters(loadOrders) {
             salesperson: filterState.value.salesperson,
             status: filterState.value.status,
             procurementStatus: filterState.value.procurementStatus,
+            deliveryStatus: filterState.value.deliveryStatus,
             search: filterState.value.search,
             startTime: filterDateRange.value.start,
             endTime: filterDateRange.value.end,

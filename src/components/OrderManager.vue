@@ -37,6 +37,7 @@
               :salespersons="salespersons"
               :statuses="statuses"
               :procurement-statuses="procurementStatuses"
+              :delivery-statuses="deliveryStatuses"
               :exporting="exporting"
               :show-create="true"
               class="border-none bg-transparent p-0 shadow-none"
@@ -86,6 +87,7 @@
               :salespersons="salespersons"
               :statuses="statuses"
               :procurement-statuses="procurementStatuses"
+              :delivery-statuses="deliveryStatuses"
               :exporting="exporting"
               :show-create="true"
               class="mb-4"
@@ -274,6 +276,7 @@ const {
   salespersons,
   statuses,
   procurementStatuses,
+  deliveryStatuses,
   loading,
   error,
   errorCode,

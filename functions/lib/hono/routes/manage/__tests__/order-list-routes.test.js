@@ -4,11 +4,18 @@ import { Hono } from 'hono';
 const mocks = vi.hoisted(() => ({
   listForAdmin: vi.fn(),
   salespersonsAll: vi.fn(),
+  getAdminStats: vi.fn(),
 }));
 
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
   OrderRepository: vi.fn(() => ({
     listForAdmin: mocks.listForAdmin,
+  })),
+}));
+
+vi.mock('../../../../../repositories/OrderStatsRepository.js', () => ({
+  OrderStatsRepository: vi.fn(() => ({
+    getAdminStats: mocks.getAdminStats,
   })),
 }));
 
@@ -41,6 +48,23 @@ describe('manage order list routes', () => {
       totalPages: 0,
     }));
     mocks.salespersonsAll.mockResolvedValue({ results: [] });
+    mocks.getAdminStats.mockResolvedValue({
+      today: 4,
+      week: 12,
+      month: 20,
+      statusDistribution: { pending: 3, fulfilled: 5 },
+      deliveryStatusDistribution: {
+        in_transit: 2,
+        delivered: 6,
+        partially_returned: 1,
+        returned: 1,
+      },
+      awaitingDelivery: 2,
+      delivered: 6,
+      partiallyReturned: 1,
+      returned: 1,
+      recentTrend: [],
+    });
   });
 
   it('clamps page and limit bounds via parsePagination', async () => {
@@ -141,6 +165,90 @@ describe('manage order list routes', () => {
     expect(payload.data.procurementStatuses).not.toContain('none');
     expect(payload.data.procurementStatuses).not.toContain('partially_arrived');
   });
+
+  it('normalizes legacy delivered status filter to canonical fulfilled query', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders?status=delivered',
+      {},
+      { DB: createDb() },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.listForAdmin).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'fulfilled' })
+    );
+  });
+
+  it('returns canonical order status filter options without legacy delivered alias', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {},
+      { DB: createDb() },
+      { waitUntil: vi.fn() }
+    );
+
+    const payload = await res.json();
+
+    expect(payload.data.statuses).toContain('fulfilled');
+    expect(payload.data.statuses).not.toContain('delivered');
+  });
+
+  it('passes deliveryStatus through to repository query options and exposes delivery filter options', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders?deliveryStatus=partially_returned',
+      {},
+      { DB: createDb() },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.listForAdmin).toHaveBeenCalledWith(
+      expect.objectContaining({ deliveryStatus: 'partially_returned' })
+    );
+
+    const payload = await res.json();
+    expect(payload.data.deliveryStatuses).toEqual([
+      'not_shipped',
+      'in_transit',
+      'delivered',
+      'partially_returned',
+      'returned',
+    ]);
+  });
+
+  it('returns post-fulfillment dashboard counters from GET /stats', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/stats',
+      {},
+      { DB: createDb() },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+
+    const payload = await res.json();
+    expect(payload.data).toMatchObject({
+      todayCount: 4,
+      pendingCount: 3,
+      weekCount: 12,
+      awaitingDeliveryCount: 2,
+      deliveredCount: 6,
+      partiallyReturnedCount: 1,
+      returnedCount: 1,
+    });
+    expect(payload.data.deliveryStatusDistribution).toEqual({
+      in_transit: 2,
+      delivered: 6,
+      partially_returned: 1,
+      returned: 1,
+    });
+  });
+
   it('falls back to snapshot_name when exporting orders whose current_data lost the product name', async () => {
     const exportStmt = {
       bind: vi.fn(() => exportStmt),
@@ -200,6 +308,51 @@ describe('manage order list routes', () => {
     expect(res.status).toBe(200);
     expect(db.prepare.mock.calls[0][0]).toContain('order_line_snapshot.snapshot_name LIKE ?');
     expect(exportStmt.bind).toHaveBeenCalledWith('%Snapshot Chair%', '%Snapshot Chair%', '%Snapshot Chair%');
+  });
+
+  it('exports fulfillment, delivery, and returned quantity columns and forwards delivery filters', async () => {
+    const exportStmt = {
+      bind: vi.fn(() => exportStmt),
+      all: vi.fn(async () => ({
+        results: [{
+          id: 'o-1',
+          order_no: 'SO-1',
+          current_data: JSON.stringify({ name: 'Walnut Chair' }),
+          status: 'fulfilled',
+          fulfillment_status: 'fulfilled',
+          delivery_status: 'partially_returned',
+          line_returned_qty: 2,
+          salesperson_name: 'Alice',
+          created_at: 1710000000000,
+          snapshot_name: 'Snapshot Chair',
+        }],
+      })),
+    };
+    const db = {
+      prepare: vi.fn((sql) => {
+        if (sql.includes('FROM orders o')) return exportStmt;
+        return { all: mocks.salespersonsAll };
+      }),
+    };
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/orders/export?deliveryStatus=partially_returned',
+      {},
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(db.prepare.mock.calls[0][0]).toContain('partially_returned');
+    expect(exportStmt.bind).toHaveBeenCalledWith('partially_returned');
+
+    const csv = await res.text();
+    expect(csv).toContain('履约状态');
+    expect(csv).toContain('物流状态');
+    expect(csv).toContain('退回数量');
+    expect(csv).toContain('部分退回');
+    expect(csv).toContain('"2"');
   });
 
 });

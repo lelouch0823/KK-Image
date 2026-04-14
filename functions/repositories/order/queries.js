@@ -8,10 +8,12 @@
  */
 
 import { parseRepoPagination } from '../../api/utils/pagination.js';
+import { normalizeOrderStatusFilter } from '../../api/utils/constants.js';
 import { mapOrderDetail, mapOrderListItem } from './helpers.js';
 import {
     ORDER_LINE_PRIMARY_SNAPSHOT_JOIN,
     ORDER_LINE_STATUS_AGGREGATE_JOIN,
+    appendOrderDeliveryStatusFilter,
     appendOrderProductSearchFilter,
     appendOrderProgressStatusFilter,
 } from './sql.js';
@@ -143,9 +145,10 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
     let where = 'WHERE salesperson_id = ?';
     const params = [salespersonId];
 
-    if (status) {
+    const normalizedStatus = normalizeOrderStatusFilter(status);
+    if (normalizedStatus) {
         where += ' AND status = ?';
-        params.push(status);
+        params.push(normalizedStatus);
     }
 
     const countResult = await db
@@ -211,7 +214,7 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
  */
 export async function listForAdmin(
     db,
-    { salespersonId, customerId, status, procurementStatus, search, startTime, endTime, page = 1, limit = 20 } = {}
+    { salespersonId, customerId, status, procurementStatus, deliveryStatus, search, startTime, endTime, page = 1, limit = 20 } = {}
 ) {
     const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
         { page, limit },
@@ -229,12 +232,16 @@ export async function listForAdmin(
         whereClause += ' AND o.customer_id = ?';
         bindParams.push(customerId);
     }
-    if (status) {
+    const normalizedStatus = normalizeOrderStatusFilter(status);
+    if (normalizedStatus) {
         whereClause += ' AND o.status = ?';
-        bindParams.push(status);
+        bindParams.push(normalizedStatus);
     }
     if (procurementStatus) {
         whereClause = appendOrderProgressStatusFilter(whereClause, bindParams, procurementStatus);
+    }
+    if (deliveryStatus) {
+        whereClause = appendOrderDeliveryStatusFilter(whereClause, bindParams, deliveryStatus);
     }
     if (startTime > 0) {
         whereClause += ' AND o.created_at >= ?';

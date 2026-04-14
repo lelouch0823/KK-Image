@@ -49,7 +49,11 @@ export {
 export {
   CORS_MAX_AGE,
   ORDER_STATUSES,
+  ORDER_FILTER_STATUSES,
+  ORDER_DELIVERY_STATUSES,
   ORDER_PROCUREMENT_STATUSES,
+  normalizeOrderStatusFilter,
+  normalizeOrderDeliveryStatusFilter,
   normalizeOrderProcurementStatus,
   expandOrderProcurementStatusFilter,
 } from '../api/utils/constants.js';

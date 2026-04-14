@@ -67,6 +67,16 @@
         />
       </div>
 
+      <div class="w-28 sm:w-40 lg:w-32 xl:w-40">
+        <Select
+          :model-value="filters.deliveryStatus"
+          :options="deliveryStatusOptions"
+          :placeholder="isMobile ? t('order.manage.deliveryStatusShort') : t('order.manage.allDeliveryStatuses')"
+          size="sm"
+          @update:model-value="$emit('update:filters', { ...filters, deliveryStatus: $event })"
+        />
+      </div>
+
       <!-- 搜索 -->
       <div class="min-w-0 basis-full lg:min-w-[12rem] lg:flex-1">
         <SearchInput
@@ -124,6 +134,7 @@ const {
   salespersons = [],
   statuses = [],
   procurementStatuses = [],
+  deliveryStatuses = [],
   exporting = false,
   showCreate = false,
 } = defineProps({
@@ -141,6 +152,10 @@ const {
     default: () => [],
   },
   procurementStatuses: {
+    type: Array,
+    default: () => [],
+  },
+  deliveryStatuses: {
     type: Array,
     default: () => [],
   },
@@ -200,6 +215,14 @@ const procurementStatusOptions = computed(() => [
     value: '',
   },
   ...procurementStatuses.map((s) => ({ label: t(`order.procurementStatuses.${s}`), value: s })),
+]);
+
+const deliveryStatusOptions = computed(() => [
+  {
+    label: isMobile.value ? t('order.manage.deliveryStatusShort') : t('order.manage.allDeliveryStatuses'),
+    value: '',
+  },
+  ...deliveryStatuses.map((s) => ({ label: t(`order.deliveryStatuses.${s}`), value: s })),
 ]);
 </script>
 

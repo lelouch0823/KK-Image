@@ -1,10 +1,14 @@
 import { Hono } from 'hono';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { OrderStatsRepository } from '../../../../../repositories/OrderStatsRepository.js';
+import { mapOrderListItem } from '../../../../../repositories/order/helpers.js';
 import { parseJsonObject } from '../../../../../api/utils/json.js';
 import {
     MSG,
-    ORDER_STATUSES,
+    ORDER_DELIVERY_STATUSES,
+    ORDER_FILTER_STATUSES,
+    normalizeOrderDeliveryStatusFilter,
+    normalizeOrderStatusFilter,
     ORDER_PROCUREMENT_STATUSES,
     normalizeOrderProcurementStatus,
     getChinaDayStart,
@@ -15,6 +19,7 @@ import { withCache } from '../../../middleware/cache.js';
 import {
     ORDER_LINE_PRIMARY_SNAPSHOT_JOIN,
     ORDER_LINE_STATUS_AGGREGATE_JOIN,
+    appendOrderDeliveryStatusFilter,
     appendOrderProductSearchFilter,
     appendOrderProgressStatusFilter,
 } from '../../../../../repositories/order/sql.js';
@@ -30,6 +35,7 @@ app.get('/', withCache(20), async (c) => {
     const salespersonId = c.req.query('salesperson');
     const status = c.req.query('status');
     const procurementStatus = c.req.query('procurementStatus');
+    const deliveryStatus = c.req.query('deliveryStatus');
     const search = c.req.query('search');
     const startTime = parseInt(c.req.query('startTime') || '0', 10);
     const endTime = parseInt(c.req.query('endTime') || '0', 10);
@@ -38,8 +44,9 @@ app.get('/', withCache(20), async (c) => {
     const [result, { results: salespersons }] = await Promise.all([
         orderRepo.listForAdmin({
             salespersonId,
-            status: status && ORDER_STATUSES.includes(status) ? status : null,
+            status: normalizeOrderStatusFilter(status),
             procurementStatus: normalizeOrderProcurementStatus(procurementStatus),
+            deliveryStatus: normalizeOrderDeliveryStatusFilter(deliveryStatus),
             search,
             startTime,
             endTime,
@@ -60,8 +67,9 @@ app.get('/', withCache(20), async (c) => {
                 name: s.name,
                 store: s.store,
             })),
-            statuses: ORDER_STATUSES,
+            statuses: ORDER_FILTER_STATUSES,
             procurementStatuses: ORDER_PROCUREMENT_STATUSES,
+            deliveryStatuses: ORDER_DELIVERY_STATUSES,
             pagination: {
                 page: result.page,
                 limit: result.limit,
@@ -102,7 +110,12 @@ app.get('/stats', withCache(20), async (c) => {
             todayCount: stats.today,
             pendingCount: stats.statusDistribution['pending'] || 0,
             weekCount: stats.week,
+            awaitingDeliveryCount: stats.awaitingDelivery || 0,
+            deliveredCount: stats.delivered || 0,
+            partiallyReturnedCount: stats.partiallyReturned || 0,
+            returnedCount: stats.returned || 0,
             statusDistribution: stats.statusDistribution,
+            deliveryStatusDistribution: stats.deliveryStatusDistribution || {},
             monthTrend,
         },
     });
@@ -117,6 +130,7 @@ app.get('/export', async (c) => {
     const salespersonId = url.searchParams.get('salesperson');
     const status = url.searchParams.get('status');
     const procurementStatus = url.searchParams.get('procurementStatus');
+    const deliveryStatus = url.searchParams.get('deliveryStatus');
     const search = url.searchParams.get('search');
     const fromDate = url.searchParams.get('from');
     const toDate = url.searchParams.get('to');
@@ -128,14 +142,20 @@ app.get('/export', async (c) => {
         whereClause += ' AND o.salesperson_id = ?';
         bindParams.push(salespersonId);
     }
-    if (status && ORDER_STATUSES.includes(status)) {
+    const normalizedStatus = normalizeOrderStatusFilter(status);
+    if (normalizedStatus) {
         whereClause += ' AND o.status = ?';
-        bindParams.push(status);
+        bindParams.push(normalizedStatus);
     }
     whereClause = appendOrderProgressStatusFilter(
         whereClause,
         bindParams,
         normalizeOrderProcurementStatus(procurementStatus)
+    );
+    whereClause = appendOrderDeliveryStatusFilter(
+        whereClause,
+        bindParams,
+        normalizeOrderDeliveryStatusFilter(deliveryStatus)
     );
     whereClause = appendOrderProductSearchFilter(whereClause, bindParams, search);
 
@@ -150,7 +170,15 @@ app.get('/export', async (c) => {
     }
 
     const { results: orders } = await env.DB.prepare(`
-    SELECT o.*, order_line_snapshot.snapshot_name as snapshot_name, s.name as salesperson_name, s.store as salesperson_store
+    SELECT
+      o.*,
+      order_line_agg.ordered_qty as line_ordered_qty,
+      order_line_agg.shipped_qty as line_shipped_qty,
+      order_line_agg.returned_qty as line_returned_qty,
+      order_line_agg.cancelled_qty as line_cancelled_qty,
+      order_line_snapshot.snapshot_name as snapshot_name,
+      s.name as salesperson_name,
+      s.store as salesperson_store
     FROM orders o
     ${ORDER_LINE_STATUS_AGGREGATE_JOIN}
     ${ORDER_LINE_PRIMARY_SNAPSHOT_JOIN}
@@ -165,6 +193,9 @@ app.get('/export', async (c) => {
         { key: 'order_no', label: MSG.EXPORT.HEADERS.ORDER_NO },
         { key: 'product_name', label: MSG.EXPORT.HEADERS.PRODUCT_NAME },
         { key: 'status', label: MSG.EXPORT.HEADERS.STATUS },
+        { key: 'fulfillment_status', label: MSG.EXPORT.HEADERS.FULFILLMENT_STATUS },
+        { key: 'delivery_status', label: MSG.EXPORT.HEADERS.DELIVERY_STATUS },
+        { key: 'returned_quantity', label: MSG.EXPORT.HEADERS.RETURNED_QUANTITY },
         { key: 'salesperson', label: MSG.EXPORT.HEADERS.SALESPERSON },
         { key: 'created_at', label: MSG.EXPORT.HEADERS.CREATED_AT },
     ];
@@ -174,10 +205,14 @@ app.get('/export', async (c) => {
     const header = columns.map(c => c.label).join(',');
     const rows = orders.map(o => {
         const data = parseJsonObject(o.current_data, {});
+        const mapped = mapOrderListItem(o);
         return [
             escapeCSV(o.order_no),
             escapeCSV(data.name || o.snapshot_name || ''),
             escapeCSV(MSG.ORDER.STATUS?.[o.status] || o.status),
+            escapeCSV(MSG.ORDER.FULFILLMENT_STATUS?.[mapped.fulfillmentStatus] || mapped.fulfillmentStatus),
+            escapeCSV(MSG.ORDER.DELIVERY_STATUS?.[mapped.deliveryStatus] || mapped.deliveryStatus),
+            escapeCSV(Number(o.line_returned_qty || 0)),
             escapeCSV(o.salesperson_name),
             escapeCSV(getChinaDateStr(o.created_at))
         ].join(',');

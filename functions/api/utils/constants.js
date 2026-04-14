@@ -19,6 +19,25 @@ export const ORDER_STATUSES = [
   'void',
 ];
 
+export const ORDER_FILTER_STATUSES = [
+  'pending',
+  'confirmed',
+  'rejected',
+  'production',
+  'shipping',
+  'arrived',
+  'fulfilled',
+  'void',
+];
+
+export const ORDER_DELIVERY_STATUSES = [
+  'not_shipped',
+  'in_transit',
+  'delivered',
+  'partially_returned',
+  'returned',
+];
+
 // 订单列表进度状态选项
 export const ORDER_PROCUREMENT_STATUSES = [
   'unprocured',
@@ -54,4 +73,17 @@ export function expandOrderProcurementStatusFilter(status) {
   const normalized = normalizeOrderProcurementStatus(status);
   if (!normalized) return [];
   return ORDER_PROCUREMENT_STATUS_EXPANSIONS[normalized] || [normalized];
+}
+
+export function normalizeOrderStatusFilter(status) {
+  if (!status) return null;
+  const normalized = String(status).trim().toLowerCase();
+  const canonical = normalized === 'delivered' ? 'fulfilled' : normalized;
+  return ORDER_FILTER_STATUSES.includes(canonical) ? canonical : null;
+}
+
+export function normalizeOrderDeliveryStatusFilter(status) {
+  if (!status) return null;
+  const normalized = String(status).trim().toLowerCase();
+  return ORDER_DELIVERY_STATUSES.includes(normalized) ? normalized : null;
 }

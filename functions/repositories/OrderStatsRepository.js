@@ -6,6 +6,7 @@
  */
 
 import { parseJsonObject } from '../api/utils/json.js';
+import { ORDER_DELIVERY_STATUS_SQL, ORDER_LINE_STATUS_AGGREGATE_JOIN } from './order/sql.js';
 
 export class OrderStatsRepository {
   constructor(db) {
@@ -204,7 +205,15 @@ export class OrderStatsRepository {
    * @param {number} monthStart
    */
   async getAdminStats(todayStart, weekStart, monthStart) {
-    const [todayResult, weekResult, monthResult, statusDistribution, recentTrend] =
+    const [
+      todayResult,
+      weekResult,
+      monthResult,
+      statusDistribution,
+      deliveryStatusDistribution,
+      awaitingDeliveryResult,
+      recentTrend,
+    ] =
       await Promise.all([
         this.db
           .prepare(
@@ -240,6 +249,30 @@ export class OrderStatsRepository {
         this.db
           .prepare(
             `
+                SELECT effective_delivery_status as status, COUNT(*) as count
+                FROM (
+                    SELECT ${ORDER_DELIVERY_STATUS_SQL} AS effective_delivery_status
+                    FROM orders o
+                    ${ORDER_LINE_STATUS_AGGREGATE_JOIN}
+                )
+                GROUP BY effective_delivery_status
+            `
+          )
+          .all(),
+        this.db
+          .prepare(
+            `
+                SELECT COUNT(*) as count
+                FROM orders o
+                ${ORDER_LINE_STATUS_AGGREGATE_JOIN}
+                WHERE LOWER(TRIM(COALESCE(o.status, ''))) IN ('fulfilled', 'delivered')
+                  AND ${ORDER_DELIVERY_STATUS_SQL} = 'in_transit'
+            `
+          )
+          .first(),
+        this.db
+          .prepare(
+            `
                 SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count
                 FROM orders 
                 WHERE created_at >= ?
@@ -257,6 +290,14 @@ export class OrderStatsRepository {
         acc[row.status] = row.count;
         return acc;
       }, {}),
+      deliveryStatusDistribution: deliveryStatusDistribution.results.reduce((acc, row) => {
+        acc[row.status] = row.count;
+        return acc;
+      }, {}),
+      awaitingDelivery: awaitingDeliveryResult.count,
+      delivered: deliveryStatusDistribution.results.find((row) => row.status === 'delivered')?.count || 0,
+      partiallyReturned: deliveryStatusDistribution.results.find((row) => row.status === 'partially_returned')?.count || 0,
+      returned: deliveryStatusDistribution.results.find((row) => row.status === 'returned')?.count || 0,
       recentTrend: recentTrend.results,
     };
   }

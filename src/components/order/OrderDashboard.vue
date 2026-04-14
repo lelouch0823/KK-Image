@@ -38,6 +38,58 @@
     </MetricTile>
 
     <MetricTile
+      :label="t('order.dashboard.awaitingDelivery')"
+      :value="loading ? '' : stats.awaitingDeliveryCount"
+      icon="truck"
+      tone="primary"
+      clickable
+      @click="$emit('filter', 'awaiting_delivery')"
+    >
+      <template v-if="loading" #value>
+        <span class="bg-primary/10 inline-block h-9 w-12 animate-pulse rounded-lg"></span>
+      </template>
+    </MetricTile>
+
+    <MetricTile
+      :label="t('order.dashboard.delivered')"
+      :value="loading ? '' : stats.deliveredCount"
+      icon="check-badge"
+      tone="success"
+      clickable
+      @click="$emit('filter', 'delivered')"
+    >
+      <template v-if="loading" #value>
+        <span class="bg-success/10 inline-block h-9 w-12 animate-pulse rounded-lg"></span>
+      </template>
+    </MetricTile>
+
+    <MetricTile
+      :label="t('order.dashboard.partiallyReturned')"
+      :value="loading ? '' : stats.partiallyReturnedCount"
+      icon="arrow-uturn-left"
+      tone="warning"
+      clickable
+      @click="$emit('filter', 'partially_returned')"
+    >
+      <template v-if="loading" #value>
+        <span class="bg-warning/10 inline-block h-9 w-12 animate-pulse rounded-lg"></span>
+      </template>
+    </MetricTile>
+
+    <MetricTile
+      :label="t('order.dashboard.returned')"
+      :value="loading ? '' : stats.returnedCount"
+      icon="archive-box-arrow-down"
+      tone="danger"
+      clickable
+      @click="$emit('filter', 'returned')"
+    >
+      <template v-if="loading" #value>
+        <span class="bg-danger/10 inline-block h-9 w-12 animate-pulse rounded-lg"></span>
+      </template>
+    </MetricTile>
+
+    <MetricTile
       :label="t('order.dashboard.statusDistribution')"
       :value="''"
       icon="chart-pie"
@@ -89,7 +141,12 @@ const stats = ref({
   todayCount: 0,
   pendingCount: 0,
   weekCount: 0,
+  awaitingDeliveryCount: 0,
+  deliveredCount: 0,
+  partiallyReturnedCount: 0,
+  returnedCount: 0,
   statusDistribution: {},
+  deliveryStatusDistribution: {},
 });
 
 const loadStats = async () => {
