@@ -54,6 +54,11 @@ vi.mock('../../../../../repositories/OrderTimelineRepository.js', () => ({
   })),
 }));
 
+vi.mock('../../../../../repositories/order/history-queries.js', () => ({
+  listOrderShipmentHistory: vi.fn(async () => []),
+  listOrderReturnHistory: vi.fn(async () => []),
+}));
+
 vi.mock('../../../middleware/cache.js', () => ({
   invalidateCache: mocks.invalidateCache,
 }));

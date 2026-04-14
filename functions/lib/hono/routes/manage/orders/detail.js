@@ -394,6 +394,24 @@ app.post('/:id/delivery-confirmation', async (c) => {
         },
     });
 
+    const publisher = new DomainOutboxPublisher(env.DB);
+    await publisher.publish([
+        {
+            event_type: 'order_delivery_confirmed',
+            aggregate_type: 'order',
+            aggregate_id: id,
+            payload: {
+                order_id: id,
+                order_no: beforeOrder.orderNo,
+                salesperson_id: beforeOrder.salespersonId || null,
+                actor_name: actor.name,
+                delivery_status: 'delivered',
+                delivered_at: result.deliveredAt,
+            },
+        },
+    ]);
+    scheduleOutboxProcessing(c, `order-delivery-confirm:${id}`);
+
     const updatedOrder = await repo.findById(id);
     return c.json({
         success: true,

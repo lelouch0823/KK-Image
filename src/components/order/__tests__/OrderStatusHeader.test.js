@@ -63,4 +63,27 @@ describe('OrderStatusHeader', () => {
     expect(wrapper.text()).toContain('Admin');
     expect(wrapper.text()).toContain('signed by receiver');
   });
+
+  it('does not render a separate delivered lifecycle step after fulfilled', () => {
+    const wrapper = mount(OrderStatusHeader, {
+      props: {
+        orderNo: 'SO-1',
+        productName: 'Chair',
+        status: 'fulfilled',
+        procurementStatus: 'completed',
+        deliveryStatus: 'delivered',
+      },
+      global: {
+        stubs: {
+          StatusBadge: { template: '<div><slot /></div>' },
+          AppIcon: true,
+          OrderProcurementBadge: true,
+          OrderDeliveryStatusBadge: true,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain('order.statuses.fulfilled');
+    expect(wrapper.text()).not.toContain('order.statuses.delivered');
+  });
 });

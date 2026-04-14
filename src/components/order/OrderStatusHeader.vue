@@ -121,6 +121,7 @@ import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { formatTime } from '@/utils/formatters';
 import { STATUS_OPTIONS, getStatusVariant } from '@/utils/status';
+import { normalizeOrderStatus } from '@/utils/order-state-machine';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import OrderProcurementBadge from './OrderProcurementBadge.vue';
@@ -178,10 +179,10 @@ defineEmits(['confirm-delivery']);
 const { t } = useI18n();
 
 // 状态流程 (排除 rejected)
-const statusSteps = STATUS_OPTIONS.filter((s) => s !== 'rejected');
+const statusSteps = STATUS_OPTIONS.filter((s) => s !== 'rejected' && s !== 'delivered');
 
 const currentStepIndex = computed(() => {
-  const idx = statusSteps.indexOf(props.status);
+  const idx = statusSteps.indexOf(normalizeOrderStatus(props.status));
   return idx >= 0 ? idx : 0;
 });
 

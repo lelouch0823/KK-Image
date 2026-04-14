@@ -232,6 +232,81 @@ describe('DomainOutboxConsumers notifications', () => {
     }));
   });
 
+  it('creates one sales notification from order_delivery_confirmed', async () => {
+    const result = await DOMAIN_OUTBOX_CONSUMERS.notification({
+      db: {},
+      baseUrl: 'https://kk.example.com',
+      event: {
+        id: 'job-notification-delivery',
+        event_id: 'evt-delivery',
+        event_type: 'order_delivery_confirmed',
+        aggregate_type: 'order',
+        aggregate_id: 'o-delivery',
+        payload_json: JSON.stringify({
+          order_id: 'o-delivery',
+          order_no: 'SO-DELIVERY',
+          salesperson_id: 'sp-delivery',
+          actor_name: 'Admin',
+          delivery_status: 'delivered',
+        }),
+      },
+    });
+
+    expect(result).toEqual({
+      id: 'notification-1',
+      created: true,
+    });
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Delivery confirmed',
+      content: 'Order SO-DELIVERY delivery has been confirmed',
+      receiver: 'sales',
+      salespersonId: 'sp-delivery',
+      orderId: 'o-delivery',
+      dedupeKey: 'order_delivery_confirmed:evt-delivery:sales:sp-delivery',
+      metadata: expect.objectContaining({
+        eventType: 'order_delivery_confirmed',
+      }),
+    }));
+  });
+
+  it('creates one sales notification from order_return_restocked', async () => {
+    const result = await DOMAIN_OUTBOX_CONSUMERS.notification({
+      db: {},
+      baseUrl: 'https://kk.example.com',
+      event: {
+        id: 'job-notification-return',
+        event_id: 'evt-return',
+        event_type: 'order_return_restocked',
+        aggregate_type: 'order',
+        aggregate_id: 'o-return',
+        payload_json: JSON.stringify({
+          order_id: 'o-return',
+          order_no: 'SO-RETURN',
+          salesperson_id: 'sp-return',
+          actor_name: 'Admin',
+          quantity: 2,
+          reason: 'damage',
+        }),
+      },
+    });
+
+    expect(result).toEqual({
+      id: 'notification-1',
+      created: true,
+    });
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Return restocked',
+      content: 'Returned stock for order SO-RETURN has been restocked',
+      receiver: 'sales',
+      salespersonId: 'sp-return',
+      orderId: 'o-return',
+      dedupeKey: 'order_return_restocked:evt-return:sales:sp-return',
+      metadata: expect.objectContaining({
+        eventType: 'order_return_restocked',
+      }),
+    }));
+  });
+
   it('creates one admin reminder notification from order_pending_reminder_due', async () => {
     const result = await DOMAIN_OUTBOX_CONSUMERS.notification({
       db: {},

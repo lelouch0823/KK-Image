@@ -150,5 +150,20 @@ describe('manage order delivery confirmation route', () => {
         newValue: 'delivered',
       })
     );
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_delivery_confirmed',
+        aggregate_type: 'order',
+        aggregate_id: 'o-1',
+        payload: expect.objectContaining({
+          order_id: 'o-1',
+          order_no: 'SO-1',
+          delivery_status: 'delivered',
+          actor_name: 'Admin',
+        }),
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
   });
 });

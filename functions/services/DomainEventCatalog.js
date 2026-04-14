@@ -55,6 +55,18 @@ export const DOMAIN_EVENT_CATALOG = {
     version: 1,
     consumers: ['cache'],
   },
+  order_delivery_confirmed: {
+    version: 1,
+    consumers: ['cache', 'notification'],
+  },
+  order_return_created: {
+    version: 1,
+    consumers: ['cache', 'notification'],
+  },
+  order_return_restocked: {
+    version: 1,
+    consumers: ['cache', 'notification'],
+  },
   purchase_order_created: {
     version: 1,
     consumers: ['cache'],

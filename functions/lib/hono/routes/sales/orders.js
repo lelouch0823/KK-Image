@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { CreateOrderSchema, AddCommentSchema } from '../../schemas/sales.js';
 import { MSG, generateId, generateOrderNo } from '../../_shared/utils.js';
+import { normalizeOrderStatusFilter } from '../../../../api/utils/constants.js';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 import { validateProductVariantBinding } from '../../../../api/utils/validation.js';
 import { parsePagination, requireEntity } from '../../_shared/route-helpers.js';
@@ -53,7 +54,7 @@ app.get('/', withCache(20), async (c) => {
 
     const orderRepo = new OrderRepository(env.DB);
     const result = await orderRepo.listBySalesperson(salesperson.id, {
-        status,
+        status: normalizeOrderStatusFilter(status),
         page,
         limit
     });

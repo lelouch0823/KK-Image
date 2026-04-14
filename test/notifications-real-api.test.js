@@ -12,6 +12,7 @@ import {
   createConfirmedOrder,
   createPurchaseOrderFromOrders,
   transitionPurchaseOrderToShipping,
+  getOrderDetail,
   getPurchaseOrderDetail,
 } from './utils/order-procurement-real-api.js';
 import {
@@ -807,5 +808,124 @@ describeIfRealApi('Notifications Real API Workflow', function () {
     assert.ok(
       String(finalList.orderProcurementReversed.title || '').includes('notification.order_procurement_reversed')
     );
+  });
+
+  it('materializes sales notifications for delivery confirmation and returned stock events', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('notify-delivery-return');
+    const { salespersonId, accessToken, jwt } = await createAuthenticatedSalesSession(token, seed, {
+      namePrefix: 'Notify Delivery Return',
+      store: 'Notify Delivery Return Store',
+    });
+
+    const clearSalesUnread = await salesApiRequest(accessToken, jwt, `/api/sales/${accessToken}/notifications/all/read`, {
+      method: 'POST',
+      body: {},
+      expectedStatus: 200,
+    });
+    assert.strictEqual(clearSalesUnread.json?.success, true);
+
+    const { productId, variantId, productName } = await createWorkflowProduct(token, seed, {
+      stockQuantity: 0,
+    });
+    const orderId = await createConfirmedOrder(token, {
+      seed,
+      salespersonId,
+      productId,
+      variantId,
+      productName,
+      quantity: 2,
+    });
+    const poId = await createPurchaseOrderFromOrders(token, [orderId], seed);
+
+    await transitionPurchaseOrderToShipping(token, poId);
+
+    const poDetail = await getPurchaseOrderDetail(token, poId);
+    const poItemId = poDetail?.items?.[0]?.id;
+    assert.ok(poItemId, 'purchase order item missing for delivery/return notification flow');
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: poItemId,
+            received_qty: 2,
+            note: 'delivery return notification flow receipt',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+
+    const orderAfterReceipt = await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const line = order?.lines?.[0];
+      assert.ok(line?.id, 'order line missing for delivery/return notification flow');
+      assert.strictEqual(line?.receivedQuantity, 2);
+      return { order, line };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'delivery/return notification order detail did not converge after receipt',
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { quantity: 2 },
+      expectedStatus: 200,
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'fulfilled' },
+      expectedStatus: 200,
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/delivery-confirmation`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { note: 'delivery notification regression flow' },
+      expectedStatus: 200,
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/return`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { quantity: 1, reason: 'damage', note: 'return notification regression flow' },
+      expectedStatus: 200,
+    });
+
+    await waitFor(async () => {
+      const result = await findSalesNotification(
+        accessToken,
+        jwt,
+        () => true,
+        { unreadOnly: true, limit: 100, cacheBust: true }
+      );
+      const deliveryNotification = result.list.find(
+        (item) =>
+          item.metadata?.eventType === 'order_delivery_confirmed'
+          && item.metadata?.payload?.order_id === orderId
+      );
+      const returnNotification = result.list.find(
+        (item) =>
+          item.metadata?.eventType === 'order_return_restocked'
+          && item.metadata?.payload?.order_id === orderId
+      );
+
+      assert.ok(deliveryNotification, 'order_delivery_confirmed sales notification has not been materialized yet');
+      assert.ok(returnNotification, 'order_return_restocked sales notification has not been materialized yet');
+      return { deliveryNotification, returnNotification };
+    }, {
+      ...salesNotificationPoll,
+      onTimeoutMessage: 'delivery/return sales notifications did not appear',
+    });
   });
 });

@@ -1,7 +1,10 @@
 import { Hono } from 'hono';
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { OrderLineFulfillmentService } from '../../../../../services/OrderLineFulfillmentService.js';
+import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
+import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { parsePositiveLineCommandQuantity } from '../../../../../services/order-line-shared.js';
+import { OrderTimelineRepository } from '../../../../../repositories/OrderTimelineRepository.js';
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 
@@ -23,6 +26,48 @@ function scheduleOutboxProcessing(c, workerId) {
   }));
 }
 
+function buildTimelineComment({ action, lineId, quantity, reason = '', note = '' }) {
+  if (action === 'ship') return `订单行 ${lineId} 出货 ${quantity} 件`;
+  if (action === 'unship') return `订单行 ${lineId} 撤销出货 ${quantity} 件`;
+  if (action === 'return') {
+    const parts = [`订单行 ${lineId} 退回 ${quantity} 件`];
+    if (reason) parts.push(`原因：${reason}`);
+    if (note) parts.push(`备注：${note}`);
+    return parts.join('，');
+  }
+  return '';
+}
+
+function buildFollowupDomainEvents({ action, orderId, lineId, quantity, body, actorName, order }) {
+  if (action !== 'return') return [];
+
+  const payload = {
+    order_id: orderId,
+    order_no: order?.orderNo || order?.order_no || '',
+    order_line_id: lineId,
+    salesperson_id: order?.salespersonId || order?.salesperson_id || null,
+    quantity,
+    reason: String(body?.reason || '').trim(),
+    note: String(body?.note || '').trim(),
+    actor_name: actorName || 'Admin',
+  };
+
+  return [
+    {
+      event_type: 'order_return_created',
+      aggregate_type: 'order',
+      aggregate_id: orderId,
+      payload,
+    },
+    {
+      event_type: 'order_return_restocked',
+      aggregate_type: 'order',
+      aggregate_id: orderId,
+      payload,
+    },
+  ];
+}
+
 async function handleLineCommand(c, action, executor) {
   const orderId = c.req.param('id');
   const lineId = c.req.param('lineId');
@@ -34,11 +79,44 @@ async function handleLineCommand(c, action, executor) {
     quantity,
   };
   const service = new OrderLineFulfillmentService(c.env.DB);
+  const timelineRepo = new OrderTimelineRepository(c.env.DB);
+  const publisher = new DomainOutboxPublisher(c.env.DB);
+  const orderRepo = new OrderRepository(c.env.DB);
 
   const data = await executor(service, orderId, lineId, payload, {
     actorId: user?.id || null,
     actorName: user?.name || 'Admin',
   });
+
+  const timelineComment = buildTimelineComment({
+    action,
+    lineId,
+    quantity,
+    reason: body?.reason,
+    note: body?.note,
+  });
+  if (timelineComment) {
+    await timelineRepo.addTimelineEntry(orderId, {
+      actionType: 'comment',
+      actorType: 'admin',
+      actorId: user?.id || null,
+      actorName: user?.name || 'Admin',
+      comment: timelineComment,
+    });
+  }
+
+  const followupEvents = buildFollowupDomainEvents({
+    action,
+    orderId,
+    lineId,
+    quantity,
+    body,
+    actorName: user?.name || 'Admin',
+    order: action === 'return' ? await orderRepo.findById(orderId) : null,
+  });
+  if (followupEvents.length > 0) {
+    await publisher.publish(followupEvents);
+  }
 
   scheduleAuditEvent(c, {
     domain: 'orders',

@@ -77,6 +77,11 @@ vi.mock('../../../../../repositories/OrderTimelineRepository.js', () => ({
   })),
 }));
 
+vi.mock('../../../../../repositories/order/history-queries.js', () => ({
+  listOrderShipmentHistory: vi.fn(async () => []),
+  listOrderReturnHistory: vi.fn(async () => []),
+}));
+
 vi.mock('../../../../../api/utils/order-utils.js', () => ({
   processOrderUpdate: mocks.processOrderUpdate,
 }));
@@ -191,6 +196,30 @@ describe('sales routes resilience', () => {
         error: expect.any(String),
         code: 'BAD_REQUEST',
       })
+    );
+  });
+
+  it('normalizes legacy delivered status filter to fulfilled for salesperson lists', async () => {
+    mocks.orderListBySalesperson.mockResolvedValue({
+      items: [],
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 0,
+    });
+    const app = createOrdersTestApp();
+
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders?status=delivered',
+      {},
+      { DB: createDbMock() },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.orderListBySalesperson).toHaveBeenCalledWith(
+      'sp-1',
+      expect.objectContaining({ status: 'fulfilled' })
     );
   });
 

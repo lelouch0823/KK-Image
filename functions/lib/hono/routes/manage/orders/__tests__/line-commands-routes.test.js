@@ -7,6 +7,9 @@ const mocks = vi.hoisted(() => ({
   shipLine: vi.fn(),
   unshipLine: vi.fn(),
   returnLine: vi.fn(),
+  orderFindById: vi.fn(),
+  addTimelineEntry: vi.fn(),
+  publish: vi.fn(async () => []),
   scheduleAuditEvent: vi.fn(),
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
@@ -18,6 +21,24 @@ vi.mock('../../../../../../services/OrderLineFulfillmentService.js', () => ({
     shipLine: mocks.shipLine,
     unshipLine: mocks.unshipLine,
     returnLine: mocks.returnLine,
+  })),
+}));
+
+vi.mock('../../../../../../repositories/OrderTimelineRepository.js', () => ({
+  OrderTimelineRepository: vi.fn(() => ({
+    addTimelineEntry: mocks.addTimelineEntry,
+  })),
+}));
+
+vi.mock('../../../../../../repositories/OrderRepository.js', () => ({
+  OrderRepository: vi.fn(() => ({
+    findById: mocks.orderFindById,
+  })),
+}));
+
+vi.mock('../../../../../../services/DomainOutboxPublisher.js', () => ({
+  DomainOutboxPublisher: vi.fn(() => ({
+    publish: mocks.publish,
   })),
 }));
 
@@ -56,6 +77,11 @@ describe('manage order line command routes', () => {
     mocks.shipLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'ship', quantity: 1 });
     mocks.unshipLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'unship', quantity: 1 });
     mocks.returnLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'return', quantity: 1 });
+    mocks.orderFindById.mockResolvedValue({
+      id: 'order-1',
+      orderNo: 'SO-1',
+      salespersonId: 'sales-1',
+    });
   });
 
   it('routes reserve, release, ship, unship, and return commands through the fulfillment service and schedules outbox polling', async () => {
@@ -128,6 +154,55 @@ describe('manage order line command routes', () => {
       { quantity: 1, reason: 'damage', note: 'box crushed' },
       expect.any(Object)
     );
+    expect(mocks.addTimelineEntry).toHaveBeenCalledWith(
+      'order-1',
+      expect.objectContaining({
+        actionType: 'comment',
+        comment: '订单行 line-1 出货 1 件',
+      })
+    );
+    expect(mocks.addTimelineEntry).toHaveBeenCalledWith(
+      'order-1',
+      expect.objectContaining({
+        actionType: 'comment',
+        comment: '订单行 line-1 撤销出货 1 件',
+      })
+    );
+    expect(mocks.addTimelineEntry).toHaveBeenCalledWith(
+      'order-1',
+      expect.objectContaining({
+        actionType: 'comment',
+        comment: '订单行 line-1 退回 1 件，原因：damage，备注：box crushed',
+      })
+    );
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_return_created',
+        aggregate_type: 'order',
+        aggregate_id: 'order-1',
+        payload: expect.objectContaining({
+          order_id: 'order-1',
+          order_no: 'SO-1',
+          order_line_id: 'line-1',
+          salesperson_id: 'sales-1',
+          quantity: 1,
+          reason: 'damage',
+        }),
+      }),
+      expect.objectContaining({
+        event_type: 'order_return_restocked',
+        aggregate_type: 'order',
+        aggregate_id: 'order-1',
+        payload: expect.objectContaining({
+          order_id: 'order-1',
+          order_no: 'SO-1',
+          order_line_id: 'line-1',
+          salesperson_id: 'sales-1',
+          quantity: 1,
+          reason: 'damage',
+        }),
+      }),
+    ]);
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(5);
     expect(waitUntil).toHaveBeenCalledTimes(5);
   });

@@ -367,6 +367,12 @@ function resolveNotificationTitle(eventType) {
       return JSON.stringify({ key: 'notification.order.statusChanged' });
     case 'order_status_changed_by_sales':
       return JSON.stringify({ key: 'notification.order.updated' });
+    case 'order_delivery_confirmed':
+      return 'Delivery confirmed';
+    case 'order_return_created':
+      return 'Return created';
+    case 'order_return_restocked':
+      return 'Return restocked';
     case 'order_comment_created_by_admin':
     case 'order_comment_created_by_sales':
       return JSON.stringify({ key: 'notification.order.commented' });
@@ -430,6 +436,9 @@ function resolveNotificationRecipient(event, payload) {
     case 'order_created_by_admin':
     case 'order_updated_by_admin':
     case 'order_status_changed_by_admin':
+    case 'order_delivery_confirmed':
+    case 'order_return_created':
+    case 'order_return_restocked':
     case 'order_comment_created_by_admin':
       return {
         receiver: 'sales',
@@ -465,6 +474,18 @@ function resolveNotificationContent(event, payload) {
 
   if (event?.event_type === 'order_created_by_admin') {
     return `Order ${payload.order_no || payload.order_id || ''} has been assigned to you`.trim();
+  }
+
+  if (event?.event_type === 'order_delivery_confirmed') {
+    return `Order ${payload.order_no || payload.order_id || ''} delivery has been confirmed`.trim();
+  }
+
+  if (event?.event_type === 'order_return_created') {
+    return `Order ${payload.order_no || payload.order_id || ''} has a return for ${payload.quantity || 0} unit(s)`.trim();
+  }
+
+  if (event?.event_type === 'order_return_restocked') {
+    return `Returned stock for order ${payload.order_no || payload.order_id || ''} has been restocked`.trim();
   }
 
   if (event?.event_type === 'purchase_receipt_recorded') {
