@@ -113,9 +113,9 @@ const { formatSize, formatDate, isImage } = useFileManager();
 
 const columns = computed(() => [
   { key: 'name', label: t('fileManager.table.name') },
-  { key: 'size', label: t('fileManager.table.size'), class: 'hidden sm:table-cell' },
-  { key: 'type', label: t('fileManager.table.type'), class: 'hidden md:table-cell' },
-  { key: 'createdAt', label: t('fileManager.table.uploadedAt'), class: 'hidden lg:table-cell' },
+  { key: 'size', label: t('fileManager.table.size'), headerClass: 'hidden sm:table-cell', cellClass: 'hidden sm:table-cell' },
+  { key: 'type', label: t('fileManager.table.type'), headerClass: 'hidden md:table-cell', cellClass: 'hidden md:table-cell' },
+  { key: 'createdAt', label: t('fileManager.table.uploadedAt'), headerClass: 'hidden lg:table-cell', cellClass: 'hidden lg:table-cell' },
   { key: 'actions', label: t('fileManager.table.actions'), align: 'right' },
 ]);
 </script>

@@ -367,9 +367,32 @@ CREATE TABLE IF NOT EXISTS orders (
         'production',   -- 生产中
         'shipping',     -- 已发货
         'arrived',      -- 已到店
+        'fulfilled',    -- 履约完成
         'delivered',    -- 已交付
         'void'          -- 已作废
     )),
+    procurement_status TEXT NOT NULL DEFAULT 'none' CHECK(procurement_status IN (
+        'none',
+        'planned',
+        'ordered',
+        'partially_arrived',
+        'arrived'
+    )),
+    fulfillment_status TEXT NOT NULL DEFAULT 'unfulfilled' CHECK(fulfillment_status IN (
+        'unfulfilled',
+        'partially_fulfilled',
+        'fulfilled'
+    )),
+    delivery_status TEXT NOT NULL DEFAULT 'not_shipped' CHECK(delivery_status IN (
+        'not_shipped',
+        'in_transit',
+        'delivered',
+        'partially_returned',
+        'returned'
+    )),
+    delivered_at INTEGER,
+    delivered_by TEXT,
+    delivery_note TEXT NOT NULL DEFAULT '',
     main_image_id TEXT,                     -- 主图 ID
     has_new_feedback INTEGER DEFAULT 0,     -- [已弃用] 是否有新反馈
     unread_by_admin INTEGER DEFAULT 1,      -- 管理员未读 (1: 未读, 0: 已读)
@@ -394,6 +417,9 @@ CREATE INDEX IF NOT EXISTS idx_orders_no ON orders(order_no);
 CREATE INDEX IF NOT EXISTS idx_orders_status_created ON orders(status, created_at DESC);
 -- [SOTA] 复合索引：管理员未读筛选
 CREATE INDEX IF NOT EXISTS idx_orders_unread_admin ON orders(unread_by_admin, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_procurement_status ON orders(procurement_status);
+CREATE INDEX IF NOT EXISTS idx_orders_fulfillment_status ON orders(fulfillment_status);
+CREATE INDEX IF NOT EXISTS idx_orders_delivery_status ON orders(delivery_status);
 
 -- 7.3 订单文件 (多对多)
 CREATE TABLE IF NOT EXISTS order_files (
@@ -628,6 +654,8 @@ CREATE TABLE IF NOT EXISTS inventory_events (
         'inventory_released',
         'reservation_release',
         'order_shipment',
+        'order_unshipment',
+        'order_return_restock',
         'order_line_cancelled',
         'inventory_adjusted_reversal',
         'manual_adjustment'
@@ -675,6 +703,65 @@ CREATE INDEX IF NOT EXISTS idx_order_line_allocations_variant_id
     ON order_line_allocations(variant_id);
 CREATE INDEX IF NOT EXISTS idx_order_line_allocations_status
     ON order_line_allocations(status);
+
+CREATE TABLE IF NOT EXISTS order_returns (
+    id TEXT PRIMARY KEY,
+    order_id TEXT NOT NULL,
+    order_line_id TEXT NOT NULL,
+    variant_id TEXT,
+    quantity INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'requested' CHECK(status IN (
+        'requested',
+        'received',
+        'restocked',
+        'cancelled'
+    )),
+    reason TEXT DEFAULT '',
+    note TEXT DEFAULT '',
+    created_by TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (order_line_id) REFERENCES order_lines(id) ON DELETE CASCADE,
+    FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_returns_order_id
+    ON order_returns(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_returns_order_line_id
+    ON order_returns(order_line_id);
+CREATE INDEX IF NOT EXISTS idx_order_returns_variant_id
+    ON order_returns(variant_id);
+CREATE INDEX IF NOT EXISTS idx_order_returns_status
+    ON order_returns(status);
+CREATE INDEX IF NOT EXISTS idx_order_returns_created_at
+    ON order_returns(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS order_shipments (
+    id TEXT PRIMARY KEY,
+    order_id TEXT NOT NULL,
+    order_line_id TEXT NOT NULL,
+    variant_id TEXT,
+    action_type TEXT NOT NULL CHECK(action_type IN ('shipped', 'unshipped')),
+    quantity INTEGER NOT NULL CHECK(quantity > 0),
+    note TEXT NOT NULL DEFAULT '',
+    created_by TEXT,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (order_line_id) REFERENCES order_lines(id) ON DELETE CASCADE,
+    FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_shipments_order_id
+    ON order_shipments(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_shipments_order_line_id
+    ON order_shipments(order_line_id);
+CREATE INDEX IF NOT EXISTS idx_order_shipments_variant_id
+    ON order_shipments(variant_id);
+CREATE INDEX IF NOT EXISTS idx_order_shipments_action_type
+    ON order_shipments(action_type);
+CREATE INDEX IF NOT EXISTS idx_order_shipments_created_at
+    ON order_shipments(created_at DESC);
 
 CREATE TABLE IF NOT EXISTS command_idempotency (
     id TEXT PRIMARY KEY,

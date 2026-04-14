@@ -113,7 +113,7 @@
                             <AppIcon name="document-duplicate" class="size-4" />
                         </button>
                         <router-link 
-                          :to="`/manage/space/${space.id}`" 
+                          :to="{ name: 'Spaces', query: { id: space.id } }" 
                           class="hover:text-primary hover:bg-(--bg-card) focus-visible:ring-primary focus-visible:ring-2 focus-visible:outline-none cursor-pointer rounded-lg p-1.5 text-(--text-secondary) transition-colors"
                         >
                             <AppIcon name="arrow-top-right-on-square" class="size-4" />

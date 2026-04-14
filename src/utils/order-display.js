@@ -1,6 +1,9 @@
 export const resolveOrderProgressStatus = (order = {}) =>
   order.displayStatus || order.procurementStatus || 'none';
 
+export const resolveOrderDeliveryStatus = (order = {}) =>
+  order.deliveryStatus || 'not_shipped';
+
 export const resolveOrderQuantity = (order = {}) => {
   const quantity = Number(order.quantity ?? order.currentData?.quantity ?? 1);
   return Number.isFinite(quantity) && quantity > 0 ? quantity : 1;

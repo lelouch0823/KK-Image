@@ -88,10 +88,9 @@ describe('OrderManager line-level statuses', () => {
               '<div><slot name="status" v-for="order in data" :order="order" :key="order.id" /></div>',
           },
           OrderFilters: { template: '<div />' },
-          OrderStatusChanger: { template: '<div />' },
-          OrderProcurementBadge: {
-            props: ['status'],
-            template: '<div data-testid="procurement-badge">{{ status }}</div>',
+          OrderListStatusStack: {
+            props: ['procurementStatus', 'deliveryStatus'],
+            template: '<div data-testid="procurement-badge">{{ procurementStatus }}|{{ deliveryStatus }}</div>',
           },
           Pagination: { template: '<div />' },
           OrderCards: { template: '<div />' },
@@ -105,6 +104,6 @@ describe('OrderManager line-level statuses', () => {
       },
     });
 
-    expect(wrapper.get('[data-testid="procurement-badge"]').text()).toBe('partially_received');
+    expect(wrapper.get('[data-testid="procurement-badge"]').text()).toBe('partially_received|not_shipped');
   });
 });

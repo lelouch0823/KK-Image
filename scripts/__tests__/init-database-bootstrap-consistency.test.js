@@ -17,6 +17,23 @@ function extractCreateTableBlock(sql, tableName) {
 }
 
 describe('init-database bootstrap consistency', () => {
+  it('defines fulfillment, delivery, and returns persistence for order redesign', () => {
+    const sql = loadInitSchema();
+    const ordersSql = extractCreateTableBlock(sql, 'orders');
+    const returnsSql = extractCreateTableBlock(sql, 'order_returns');
+    const inventoryEventsSql = extractCreateTableBlock(sql, 'inventory_events');
+
+    expect(ordersSql).toMatch(/\bfulfillment_status\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'unfulfilled'/i);
+    expect(ordersSql).toMatch(/\bdelivery_status\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'not_shipped'/i);
+    expect(returnsSql).toMatch(/CREATE TABLE IF NOT EXISTS\s+order_returns\s*\(/i);
+    expect(returnsSql).toMatch(/\border_id\s+TEXT\s+NOT\s+NULL\b/i);
+    expect(returnsSql).toMatch(/\border_line_id\s+TEXT\s+NOT\s+NULL\b/i);
+    expect(returnsSql).toMatch(/\bvariant_id\s+TEXT\b/i);
+    expect(returnsSql).toMatch(/\bquantity\s+INTEGER\s+NOT\s+NULL\b/i);
+    expect(returnsSql).toMatch(/\bstatus\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'pending'/i);
+    expect(inventoryEventsSql).toMatch(/'order_return_restock'/i);
+  });
+
   it('defines prerequisite tables referenced by Task 1 foundation FKs', () => {
     const sql = loadInitSchema();
 

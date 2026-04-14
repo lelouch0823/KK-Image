@@ -11,6 +11,8 @@ export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'POST', path: '/:id/lines/:lineId/reserve', domain: 'orders', action: 'order.line.reserve', severity: 'high', targetType: 'order' },
   { method: 'POST', path: '/:id/lines/:lineId/release', domain: 'orders', action: 'order.line.release', severity: 'high', targetType: 'order' },
   { method: 'POST', path: '/:id/lines/:lineId/ship', domain: 'orders', action: 'order.line.ship', severity: 'high', targetType: 'order' },
+  { method: 'POST', path: '/:id/lines/:lineId/unship', domain: 'orders', action: 'order.line.unship', severity: 'high', targetType: 'order' },
+  { method: 'POST', path: '/:id/lines/:lineId/return', domain: 'orders', action: 'order.line.return', severity: 'high', targetType: 'order' },
 ]);
 
 function scheduleOutboxProcessing(c, workerId) {
@@ -27,11 +29,13 @@ async function handleLineCommand(c, action, executor) {
   const user = c.get('user');
   const body = await c.req.json();
   const quantity = parsePositiveLineCommandQuantity(body);
+  const payload = {
+    ...body,
+    quantity,
+  };
   const service = new OrderLineFulfillmentService(c.env.DB);
 
-  const data = await executor(service, orderId, lineId, {
-    quantity,
-  }, {
+  const data = await executor(service, orderId, lineId, payload, {
     actorId: user?.id || null,
     actorName: user?.name || 'Admin',
   });
@@ -48,6 +52,7 @@ async function handleLineCommand(c, action, executor) {
       orderLineId: lineId,
       quantity,
       action,
+      ...(body?.reason ? { reason: body.reason } : {}),
     },
   });
   scheduleOutboxProcessing(c, `order-line-${action}:${orderId}:${lineId}`);
@@ -71,6 +76,16 @@ app.post('/:id/lines/:lineId/release', async (c) =>
 app.post('/:id/lines/:lineId/ship', async (c) =>
   handleLineCommand(c, 'ship', (service, orderId, lineId, payload, options) =>
     service.shipLine(orderId, lineId, payload, options)
+  ));
+
+app.post('/:id/lines/:lineId/unship', async (c) =>
+  handleLineCommand(c, 'unship', (service, orderId, lineId, payload, options) =>
+    service.unshipLine(orderId, lineId, payload, options)
+  ));
+
+app.post('/:id/lines/:lineId/return', async (c) =>
+  handleLineCommand(c, 'return', (service, orderId, lineId, payload, options) =>
+    service.returnLine(orderId, lineId, payload, options)
   ));
 
 export default app;

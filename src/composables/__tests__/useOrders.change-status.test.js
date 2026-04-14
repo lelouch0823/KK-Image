@@ -48,13 +48,13 @@ describe('useOrders.changeStatus force payload', () => {
 
   it('forwards force flag and note to status API', async () => {
     const { changeStatus } = useOrders();
-    const ok = await changeStatus('o-1', 'delivered', 'force reason', true);
+    const ok = await changeStatus('o-1', 'fulfilled', 'force reason', true);
 
     expect(ok).toBe(true);
     const [, options] = mocks.authFetch.mock.calls[0];
     const body = JSON.parse(options.body);
     expect(body).toMatchObject({
-      status: 'delivered',
+      status: 'fulfilled',
       note: 'force reason',
       force: true,
     });

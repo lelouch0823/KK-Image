@@ -49,19 +49,16 @@
 
           <!-- Status Slot -->
           <template #status="{ order }">
-            <div class="flex flex-col items-center gap-1">
-              <OrderStatusChanger
-                :status="order.status"
-                :loading="statusChanging[order.id]"
-                :permissions="currentUser?.permissions || []"
-                :on-status-change="(e) => handleStatusChange(order, e)"
-              />
-              <OrderProcurementBadge
-                :status="resolveOrderProgressStatus(order)"
-                :show-label="false"
-                compact
-              />
-            </div>
+            <OrderListStatusStack
+              :status="order.status"
+              :procurement-status="resolveOrderProgressStatus(order)"
+              :delivery-status="resolveOrderDeliveryStatus(order)"
+              :loading="statusChanging[order.id]"
+              :permissions="currentUser?.permissions || []"
+              :can-deliver="order.canDeliver"
+              mode="manage"
+              :on-status-change="(e) => handleStatusChange(order, e)"
+            />
           </template>
 
           <!-- Footer Slot: Pagination -->
@@ -104,19 +101,16 @@
           @edit="openEditModal"
         >
           <template #status="{ order }">
-            <div class="flex flex-col items-end gap-1">
-              <OrderStatusChanger
-                :status="order.status"
-                :loading="statusChanging[order.id]"
-                :permissions="currentUser?.permissions || []"
-                :on-status-change="(e) => handleStatusChange(order, e)"
-              />
-              <OrderProcurementBadge
-                :status="resolveOrderProgressStatus(order)"
-                :show-label="false"
-                compact
-              />
-            </div>
+            <OrderListStatusStack
+              :status="order.status"
+              :procurement-status="resolveOrderProgressStatus(order)"
+              :delivery-status="resolveOrderDeliveryStatus(order)"
+              :loading="statusChanging[order.id]"
+              :permissions="currentUser?.permissions || []"
+              :can-deliver="order.canDeliver"
+              mode="manage"
+              :on-status-change="(e) => handleStatusChange(order, e)"
+            />
           </template>
         </OrderCards>
         <!-- Mobile Infinite Scroll Trigger -->
@@ -159,6 +153,7 @@
       :hydration-error="detailHydrationError"
       :commenting="commenting"
       :line-command-state="lineCommandState"
+      :delivery-confirm-pending="deliveryConfirm.pending"
       :edit-pending="detailEditLoading"
       @close="closeDetailModal"
       @retry="() => viewingOrder?.id && openDetailModal(viewingOrder)"
@@ -167,6 +162,7 @@
       @edit="handleEditFromDetail"
       @delete-order="() => showDeleteModal = true"
       @line-command="handleOrderLineCommand"
+      @confirm-delivery="openDeliveryConfirm"
     />
 
     <!-- 订单编辑弹窗 -->
@@ -182,12 +178,46 @@
     <!-- Confirm Dialog -->
     <ConfirmDialog
       v-if="errorCode !== 'FORBIDDEN'"
+      v-model="lineCommandConfirm.show"
+      :title="lineCommandConfirm.title"
+      :message="lineCommandConfirm.message"
+      :confirm-text="lineCommandConfirm.confirmText"
+      :type="lineCommandConfirm.type"
+      :loading="lineCommandState.pending"
+      @confirm="confirmLineCommand"
+      @cancel="cancelLineCommandConfirm"
+    />
+
+    <ConfirmDialog
+      v-if="errorCode !== 'FORBIDDEN'"
       v-model="confirmData.show"
       :title="confirmData.title"
       :message="confirmData.message"
       :type="confirmData.type"
       :loading="confirmData.loading"
       @confirm="confirmData.onConfirm"
+    />
+
+    <ConfirmDialog
+      v-if="errorCode !== 'FORBIDDEN'"
+      v-model="deliveryConfirm.show"
+      :title="deliveryConfirm.title"
+      :message="deliveryConfirm.message"
+      :confirm-text="deliveryConfirm.confirmText"
+      :type="deliveryConfirm.type"
+      :loading="deliveryConfirm.pending"
+      @confirm="confirmDelivery"
+      @cancel="cancelDeliveryConfirm"
+    />
+
+    <OrderReturnDialog
+      v-if="errorCode !== 'FORBIDDEN'"
+      v-model="returnDialog.show"
+      :quantity="returnDialog.quantity"
+      :line-label="returnDialog.lineLabel"
+      :loading="returnDialog.pending"
+      @confirm="confirmReturn"
+      @cancel="cancelReturnDialog"
     />
 
     <!-- Destructive Delete Modal -->
@@ -225,10 +255,10 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import OrderFilters from './order/OrderFilters.vue';
 import OrderTable from './order/OrderTable.vue';
 import OrderCards from './order/OrderCards.vue';
-import OrderStatusChanger from './OrderStatusChanger.vue';
-import OrderProcurementBadge from './order/OrderProcurementBadge.vue';
+import OrderListStatusStack from './order/OrderListStatusStack.vue';
 import OrderEditModal from './OrderEditModal.vue';
 import OrderWorkflowModal from './order/OrderWorkflowModal.vue';
+import OrderReturnDialog from './order/OrderReturnDialog.vue';
 import OrderDashboard from './order/OrderDashboard.vue';
 import OrderCreateModal from '@/components/OrderCreateModal.vue';
 import DestructiveConfirmModal from '@/components/common/DestructiveConfirmModal.vue';
@@ -237,7 +267,7 @@ import ManagementListShell from '@/design-system/patterns/ManagementListShell.vu
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
-import { resolveOrderProgressStatus } from '@/utils/order-display';
+import { resolveOrderDeliveryStatus, resolveOrderProgressStatus } from '@/utils/order-display';
 
 const {
   orders,
@@ -254,6 +284,9 @@ const {
   reserveOrderLine,
   releaseOrderLine,
   shipOrderLine,
+  unshipOrderLine,
+  returnOrderLine,
+  confirmOrderDelivery,
   changeStatus,
   addComment,
   batchAction,
@@ -320,6 +353,32 @@ const lineCommandState = reactive({
   action: '',
   error: '',
 });
+const lineCommandConfirm = reactive({
+  show: false,
+  lineId: null,
+  action: '',
+  quantity: 0,
+  title: '',
+  message: '',
+  confirmText: '',
+  type: 'primary',
+});
+const deliveryConfirm = reactive({
+  show: false,
+  pending: false,
+  note: '',
+  title: '',
+  message: '',
+  confirmText: '',
+  type: 'primary',
+});
+const returnDialog = reactive({
+  show: false,
+  pending: false,
+  lineId: null,
+  quantity: 0,
+  lineLabel: '',
+});
 
 const refreshViewingOrder = async () => {
   if (!viewingOrder.value?.id) return null;
@@ -334,14 +393,161 @@ const lineCommandExecutors = {
   reserve: reserveOrderLine,
   release: releaseOrderLine,
   ship: shipOrderLine,
+  unship: unshipOrderLine,
+  return: returnOrderLine,
 };
+
+function openDeliveryConfirm(payload = {}) {
+  if (!viewingOrder.value?.id || deliveryConfirm.pending) return false;
+
+  deliveryConfirm.show = true;
+  deliveryConfirm.note = String(payload?.note || '').trim();
+  deliveryConfirm.title = t('order.detail.deliveryConfirmTitle', '确认签收');
+  deliveryConfirm.message = t(
+    'order.detail.deliveryConfirmMessage',
+    '确认该订单已经由客户签收了吗？'
+  );
+  deliveryConfirm.confirmText = t('order.detail.deliveryConfirmAction', '确认签收');
+  deliveryConfirm.type = 'primary';
+  return true;
+}
+
+function cancelDeliveryConfirm() {
+  deliveryConfirm.show = false;
+  deliveryConfirm.pending = false;
+  deliveryConfirm.note = '';
+  deliveryConfirm.title = '';
+  deliveryConfirm.message = '';
+  deliveryConfirm.confirmText = '';
+  deliveryConfirm.type = 'primary';
+}
+
+function openLineCommandConfirm({ line, lineId, action, quantity }) {
+  const lineLabel = String(line?.snapshotName || line?.id || lineId || '').trim();
+  const actionConfig = {
+    reserve: {
+      title: t('order.detail.reserveConfirmTitle', '确认预留'),
+      message: t('order.detail.reserveConfirmMessage', {
+        quantity,
+        lineLabel: lineLabel || lineId,
+      }),
+      confirmText: t('order.detail.reserveAction', '预留'),
+      type: 'primary',
+    },
+    release: {
+      title: t('order.detail.releaseConfirmTitle', '确认释放'),
+      message: t('order.detail.releaseConfirmMessage', {
+        quantity,
+        lineLabel: lineLabel || lineId,
+      }),
+      confirmText: t('order.detail.releaseAction', '释放'),
+      type: 'primary',
+    },
+    ship: {
+      title: t('order.detail.shipConfirmTitle', '确认出货'),
+      message: t('order.detail.shipConfirmMessage', {
+        quantity,
+        lineLabel: lineLabel || lineId,
+      }),
+      confirmText: t('order.detail.shipAction', '出货'),
+      type: 'warning',
+    },
+    unship: {
+      title: t('order.detail.unshipConfirmTitle', '确认撤销出货'),
+      message: t('order.detail.unshipConfirmMessage', {
+        quantity,
+        lineLabel: lineLabel || lineId,
+      }),
+      confirmText: t('order.detail.unshipAction', '撤销出货'),
+      type: 'warning',
+    },
+    return: {
+      title: t('order.detail.returnConfirmTitle', '确认退回'),
+      message: t('order.detail.returnConfirmMessage', {
+        quantity,
+        lineLabel: lineLabel || lineId,
+      }),
+      confirmText: t('order.detail.returnAction', '退回'),
+      type: 'warning',
+    },
+  };
+  const config = actionConfig[action];
+  if (!config) return false;
+
+  lineCommandConfirm.show = true;
+  lineCommandConfirm.lineId = lineId;
+  lineCommandConfirm.action = action;
+  lineCommandConfirm.quantity = quantity;
+  lineCommandConfirm.title = config.title;
+  lineCommandConfirm.message = config.message;
+  lineCommandConfirm.confirmText = config.confirmText;
+  lineCommandConfirm.type = config.type;
+  return true;
+}
+
+function cancelLineCommandConfirm() {
+  lineCommandConfirm.show = false;
+  lineCommandConfirm.lineId = null;
+  lineCommandConfirm.action = '';
+  lineCommandConfirm.quantity = 0;
+  lineCommandConfirm.title = '';
+  lineCommandConfirm.message = '';
+  lineCommandConfirm.confirmText = '';
+  lineCommandConfirm.type = 'primary';
+}
+
+function openReturnDialog({ line, lineId, quantity }) {
+  returnDialog.show = true;
+  returnDialog.pending = false;
+  returnDialog.lineId = lineId;
+  returnDialog.quantity = quantity;
+  returnDialog.lineLabel = String(line?.snapshotName || line?.id || lineId || '').trim();
+  return true;
+}
+
+function cancelReturnDialog() {
+  returnDialog.show = false;
+  returnDialog.pending = false;
+  returnDialog.lineId = null;
+  returnDialog.quantity = 0;
+  returnDialog.lineLabel = '';
+}
 
 const handleOrderLineCommand = async ({ lineId, action, quantity }) => {
   if (!viewingOrder.value?.id || lineCommandState.pending) return false;
 
   const executor = lineCommandExecutors[action];
   if (typeof executor !== 'function') return false;
+  const line = Array.isArray(viewingOrder.value?.lines)
+    ? viewingOrder.value.lines.find((item) => item?.id === lineId)
+    : null;
 
+  if (line && !line.variantId) {
+    lineCommandState.pending = false;
+    lineCommandState.lineId = lineId;
+    lineCommandState.action = action;
+    lineCommandState.error = t(
+      'order.detail.lineCommandVariantRequired',
+      'Bind a product variant before using fulfillment actions.'
+    );
+    return false;
+  }
+
+  lineCommandState.error = '';
+  if (action === 'return') {
+    return openReturnDialog({ line, lineId, quantity });
+  }
+  return openLineCommandConfirm({ line, lineId, action, quantity });
+};
+
+const confirmLineCommand = async () => {
+  if (!viewingOrder.value?.id || lineCommandState.pending) return false;
+
+  const { lineId, action, quantity } = lineCommandConfirm;
+  const executor = lineCommandExecutors[action];
+  if (!lineId || !action || typeof executor !== 'function') return false;
+
+  cancelLineCommandConfirm();
   lineCommandState.pending = true;
   lineCommandState.lineId = lineId;
   lineCommandState.action = action;
@@ -356,11 +562,68 @@ const handleOrderLineCommand = async ({ lineId, action, quantity }) => {
     }
 
     await refreshViewingOrder();
+    refreshOrders(pagination.page);
     lineCommandState.lineId = null;
     lineCommandState.action = '';
     lineCommandState.error = '';
     return true;
   } finally {
+    lineCommandState.pending = false;
+  }
+};
+
+const confirmDelivery = async () => {
+  if (!viewingOrder.value?.id || deliveryConfirm.pending) return false;
+
+  const orderId = viewingOrder.value.id;
+  const note = deliveryConfirm.note;
+  deliveryConfirm.pending = true;
+
+  try {
+    const success = await confirmOrderDelivery(orderId, note);
+    if (!success) return false;
+
+    cancelDeliveryConfirm();
+    await refreshViewingOrder();
+    refreshOrders(pagination.page);
+    return true;
+  } finally {
+    deliveryConfirm.pending = false;
+  }
+};
+
+const confirmReturn = async ({ reason, note }) => {
+  if (!viewingOrder.value?.id || !returnDialog.lineId || returnDialog.pending) return false;
+
+  const orderId = viewingOrder.value.id;
+  const lineId = returnDialog.lineId;
+  const quantity = returnDialog.quantity;
+  returnDialog.pending = true;
+  lineCommandState.pending = true;
+  lineCommandState.lineId = lineId;
+  lineCommandState.action = 'return';
+  lineCommandState.error = '';
+
+  try {
+    const success = await returnOrderLine(orderId, lineId, {
+      quantity,
+      reason,
+      note,
+    });
+    if (!success) {
+      lineCommandState.error = t('order.detail.lineCommandFailed', '订单行操作未完成，请重试。');
+      return false;
+    }
+
+    cancelReturnDialog();
+    await refreshViewingOrder();
+    refreshOrders(pagination.page);
+    lineCommandState.lineId = null;
+    lineCommandState.action = '';
+    lineCommandState.error = '';
+    return true;
+  } finally {
+    returnDialog.pending = false;
     lineCommandState.pending = false;
   }
 };

@@ -46,12 +46,18 @@ describe('useOrders line command helpers', () => {
     });
   });
 
-  it('posts reserve, release, and ship line commands to the dedicated management endpoints', async () => {
-    const { reserveOrderLine, releaseOrderLine, shipOrderLine } = useOrders();
+  it('posts reserve, release, ship, unship, and return line commands to the dedicated management endpoints', async () => {
+    const { reserveOrderLine, releaseOrderLine, shipOrderLine, unshipOrderLine, returnOrderLine } = useOrders();
 
     await reserveOrderLine('o-1', 'line-1', 2);
     await releaseOrderLine('o-1', 'line-1', 1);
     await shipOrderLine('o-1', 'line-1', 3);
+    await unshipOrderLine('o-1', 'line-1', 2);
+    await returnOrderLine('o-1', 'line-1', {
+      quantity: 1,
+      reason: 'damage',
+      note: 'box crushed',
+    });
 
     expect(mocks.authFetch.mock.calls[0][0]).toBe('/api/manage/orders/o-1/lines/line-1/reserve');
     expect(JSON.parse(mocks.authFetch.mock.calls[0][1].body)).toEqual({ quantity: 2 });
@@ -59,5 +65,22 @@ describe('useOrders line command helpers', () => {
     expect(JSON.parse(mocks.authFetch.mock.calls[1][1].body)).toEqual({ quantity: 1 });
     expect(mocks.authFetch.mock.calls[2][0]).toBe('/api/manage/orders/o-1/lines/line-1/ship');
     expect(JSON.parse(mocks.authFetch.mock.calls[2][1].body)).toEqual({ quantity: 3 });
+    expect(mocks.authFetch.mock.calls[3][0]).toBe('/api/manage/orders/o-1/lines/line-1/unship');
+    expect(JSON.parse(mocks.authFetch.mock.calls[3][1].body)).toEqual({ quantity: 2 });
+    expect(mocks.authFetch.mock.calls[4][0]).toBe('/api/manage/orders/o-1/lines/line-1/return');
+    expect(JSON.parse(mocks.authFetch.mock.calls[4][1].body)).toEqual({
+      quantity: 1,
+      reason: 'damage',
+      note: 'box crushed',
+    });
+  });
+
+  it('posts delivery confirmation to the dedicated management endpoint', async () => {
+    const { confirmOrderDelivery } = useOrders();
+
+    await confirmOrderDelivery('o-1', 'signed by receiver');
+
+    expect(mocks.authFetch.mock.calls[0][0]).toBe('/api/manage/orders/o-1/delivery-confirmation');
+    expect(JSON.parse(mocks.authFetch.mock.calls[0][1].body)).toEqual({ note: 'signed by receiver' });
   });
 });

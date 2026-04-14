@@ -273,7 +273,7 @@ export class PurchaseOrderService {
                 `UPDATE orders
                  SET procurement_status = ?, updated_at = ?
                  WHERE id = ?
-                   AND status NOT IN ('delivered', 'void')
+                   AND status NOT IN ('fulfilled', 'delivered', 'void')
                    AND COALESCE(procurement_status, 'none') = 'none'`
               ).bind(targetProcurementStatus, now, orderId)
             );
@@ -292,7 +292,7 @@ export class PurchaseOrderService {
                 `UPDATE orders
                  SET procurement_status = ?, updated_at = ?
                  WHERE id = ?
-                   AND status NOT IN ('delivered', 'void')
+                   AND status NOT IN ('fulfilled', 'delivered', 'void')
                    AND COALESCE(procurement_status, 'none') = ?`
               ).bind('none', rollbackNow, orderId, targetProcurementStatus)
             );

@@ -367,6 +367,578 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
     });
   });
 
+  it('unships shipped quantity back into stock and restores the line to a ready state', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('line-unship');
+    const salespersonId = await ensureSalespersonId(token, seed);
+    const { productId, variantId, productName } = await createWorkflowProduct(token, seed, {
+      stockQuantity: 0,
+    });
+    const orderId = await createConfirmedOrder(token, {
+      seed,
+      salespersonId,
+      productId,
+      variantId,
+      productName,
+      quantity: 3,
+    });
+    const poId = await createPurchaseOrderFromOrders(token, [orderId], seed);
+
+    await transitionPurchaseOrderToShipping(token, poId);
+
+    const poBeforeReceipt = await getPurchaseOrderDetail(token, poId);
+    const poItemId = poBeforeReceipt?.items?.[0]?.id;
+    assert.ok(poItemId, 'purchase order item missing');
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: poItemId,
+            received_qty: 3,
+            note: 'receipt before ship and unship',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+
+    const orderAfterReceipt = await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const variant = await getVariantDetail(token, productId, variantId);
+      const line = order?.lines?.[0];
+      assert.ok(line?.id, 'order line missing');
+      assert.strictEqual(line?.receivedQuantity, 3);
+      assert.strictEqual(line?.shippedQuantity, 0);
+      assert.strictEqual(line?.displayStatus, 'ready');
+      assert.strictEqual(Number(variant.stock_quantity || 0), 3);
+      return { order, line, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'receipt baseline did not converge before unship flow',
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { quantity: 2 },
+      expectedStatus: 200,
+    });
+
+    await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const variant = await getVariantDetail(token, productId, variantId);
+      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 2);
+      assert.strictEqual(order?.lines?.[0]?.displayStatus, 'partially_shipped');
+      assert.strictEqual(Number(variant.stock_quantity || 0), 1);
+      return { order, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'ship baseline did not converge before unship',
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/unship`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { quantity: 2 },
+      expectedStatus: 200,
+    });
+
+    await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const variant = await getVariantDetail(token, productId, variantId);
+      const shipmentActions = (order?.shipments || []).map((item) => item.actionType);
+
+      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 0);
+      assert.strictEqual(order?.lines?.[0]?.displayStatus, 'ready');
+      assert.deepStrictEqual(shipmentActions.slice(0, 2), ['unshipped', 'shipped']);
+      assert.strictEqual(Number(order?.shipments?.[0]?.quantity || 0), 2);
+      assert.strictEqual(Number(variant.stock_quantity || 0), 3);
+      return { order, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'unship did not restore stock and ready line state',
+    });
+  });
+
+  it('rejects delivered status until all effective line quantities have been shipped', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('delivered-guard');
+    const salespersonId = await ensureSalespersonId(token, seed);
+    const { productId, variantId, productName } = await createWorkflowProduct(token, seed, {
+      stockQuantity: 0,
+    });
+    const orderId = await createConfirmedOrder(token, {
+      seed,
+      salespersonId,
+      productId,
+      variantId,
+      productName,
+      quantity: 4,
+    });
+    const poId = await createPurchaseOrderFromOrders(token, [orderId], seed);
+
+    await transitionPurchaseOrderToShipping(token, poId);
+
+    const poBeforeReceipt = await getPurchaseOrderDetail(token, poId);
+    const poItemId = poBeforeReceipt?.items?.[0]?.id;
+    assert.ok(poItemId, 'purchase order item missing');
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: poItemId,
+            received_qty: 4,
+            note: 'receipt before partial ship delivery guard',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+
+    const orderAfterReceipt = await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const line = order?.lines?.[0];
+      assert.ok(line?.id, 'order line missing');
+      assert.strictEqual(line?.receivedQuantity, 4);
+      return { order, line };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'receipt baseline did not converge before delivered guard',
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { quantity: 2 },
+      expectedStatus: 200,
+    });
+
+    await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 2);
+      assert.strictEqual(order?.lines?.[0]?.displayStatus, 'partially_shipped');
+      return order;
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'partial ship baseline did not converge before delivered guard',
+    });
+
+    const deliveredReject = await apiRequest(`/api/manage/orders/${orderId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'delivered' },
+      expectedStatus: 400,
+    });
+    assert.match(
+      String(deliveredReject.json?.error || ''),
+      /cannot mark order delivered until all line quantities are shipped|all line quantities are shipped/i
+    );
+
+    const finalOrder = await getOrderDetail(token, orderId);
+    const finalVariant = await getVariantDetail(token, productId, variantId);
+    assert.notStrictEqual(finalOrder?.status, 'delivered');
+    assert.strictEqual(finalOrder?.lines?.[0]?.shippedQuantity, 2);
+    assert.strictEqual(finalOrder?.lines?.[0]?.displayStatus, 'partially_shipped');
+    assert.strictEqual(Number(finalVariant.stock_quantity || 0), 2);
+  });
+
+  it('blocks void while shipped quantity remains and allows void only after unshipping', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('void-after-unship');
+    const salespersonId = await ensureSalespersonId(token, seed);
+    const { productId, variantId, productName } = await createWorkflowProduct(token, seed, {
+      stockQuantity: 0,
+    });
+    const orderId = await createConfirmedOrder(token, {
+      seed,
+      salespersonId,
+      productId,
+      variantId,
+      productName,
+      quantity: 2,
+    });
+    const poId = await createPurchaseOrderFromOrders(token, [orderId], seed);
+
+    await transitionPurchaseOrderToShipping(token, poId);
+
+    const poBeforeReceipt = await getPurchaseOrderDetail(token, poId);
+    const poItemId = poBeforeReceipt?.items?.[0]?.id;
+    assert.ok(poItemId, 'purchase order item missing');
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: poItemId,
+            received_qty: 2,
+            note: 'receipt before void guard',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+
+    const orderAfterReceipt = await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const line = order?.lines?.[0];
+      assert.ok(line?.id, 'order line missing');
+      assert.strictEqual(line?.receivedQuantity, 2);
+      return { order, line };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'receipt baseline did not converge before void guard',
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { quantity: 1 },
+      expectedStatus: 200,
+    });
+
+    await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const variant = await getVariantDetail(token, productId, variantId);
+      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 1);
+      assert.strictEqual(Number(variant.stock_quantity || 0), 1);
+      return { order, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'ship baseline did not converge before void guard',
+    });
+
+    const voidReject = await apiRequest(`/api/manage/orders/${orderId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'void' },
+      expectedStatus: 400,
+    });
+    assert.match(
+      String(voidReject.json?.error || ''),
+      /cannot void order while shipped line quantities remain|shipped line quantities remain/i
+    );
+
+    await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/unship`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { quantity: 1 },
+      expectedStatus: 200,
+    });
+
+    await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const variant = await getVariantDetail(token, productId, variantId);
+      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 0);
+      assert.strictEqual(order?.lines?.[0]?.displayStatus, 'ready');
+      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+      return { order, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'unship baseline did not converge before void retry',
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'void' },
+      expectedStatus: 200,
+    });
+
+    await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const variant = await getVariantDetail(token, productId, variantId);
+      const suggestions = await apiRequest('/api/manage/purchase-orders/suggestions', {
+        bearerToken: token,
+        expectedStatus: 200,
+      });
+      const suggestion = findSuggestion(suggestions.json, variantId);
+
+      assert.strictEqual(order?.status, 'void');
+      assert.strictEqual(order?.lines?.[0]?.cancelledQuantity, 2);
+      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 0);
+      assert.strictEqual(order?.lines?.[0]?.displayStatus, 'cancelled');
+      assert.ok(!suggestion, 'voided order should no longer produce purchase suggestion');
+      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+      assert.strictEqual(Number(variant.available_quantity || 0), 2);
+      return { order, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'void did not converge after stock was restored by unship',
+    });
+  });
+
+  it('rejects unship after delivery has been explicitly confirmed', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('delivered-unship-guard');
+    const salespersonId = await ensureSalespersonId(token, seed);
+    const { productId, variantId, productName } = await createWorkflowProduct(token, seed, {
+      stockQuantity: 0,
+    });
+    const orderId = await createConfirmedOrder(token, {
+      seed,
+      salespersonId,
+      productId,
+      variantId,
+      productName,
+      quantity: 2,
+    });
+    const poId = await createPurchaseOrderFromOrders(token, [orderId], seed);
+
+    await transitionPurchaseOrderToShipping(token, poId);
+
+    const poBeforeReceipt = await getPurchaseOrderDetail(token, poId);
+    const poItemId = poBeforeReceipt?.items?.[0]?.id;
+    assert.ok(poItemId, 'purchase order item missing');
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: poItemId,
+            received_qty: 2,
+            note: 'receipt before delivery-confirmation unship guard',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+
+    const orderAfterReceipt = await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const line = order?.lines?.[0];
+      assert.ok(line?.id, 'order line missing');
+      assert.strictEqual(line?.receivedQuantity, 2);
+      return { order, line };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'receipt baseline did not converge before delivery-confirmation unship guard',
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { quantity: 2 },
+      expectedStatus: 200,
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'fulfilled' },
+      expectedStatus: 200,
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/delivery-confirmation`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { note: 'customer signed at front desk' },
+      expectedStatus: 200,
+    });
+
+    const unshipReject = await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/unship`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { quantity: 1 },
+      expectedStatus: 400,
+    });
+    assert.match(String(unshipReject.json?.error || ''), /delivered order/i);
+
+    const finalOrder = await getOrderDetail(token, orderId);
+    const finalVariant = await getVariantDetail(token, productId, variantId);
+    assert.strictEqual(finalOrder?.status, 'fulfilled');
+    assert.strictEqual(finalOrder?.deliveryStatus, 'delivered');
+    assert.ok(Number(finalOrder?.deliveryConfirmedAt || 0) > 0);
+    assert.match(String(finalOrder?.deliveryConfirmedBy || ''), /admin/i);
+    assert.strictEqual(finalOrder?.lines?.[0]?.shippedQuantity, 2);
+    assert.strictEqual(finalOrder?.lines?.[0]?.displayStatus, 'completed');
+    assert.strictEqual(Number(finalVariant.stock_quantity || 0), 0);
+  });
+
+  it('requires delivery confirmation before returning shipped quantity back into stock and rolls delivery status from partial to full return', async () => {
+    const token = await getBearerToken();
+    const seed = uniqueSeed('fulfilled-return');
+    const salespersonId = await ensureSalespersonId(token, seed);
+    const { productId, variantId, productName } = await createWorkflowProduct(token, seed, {
+      stockQuantity: 0,
+    });
+    const orderId = await createConfirmedOrder(token, {
+      seed,
+      salespersonId,
+      productId,
+      variantId,
+      productName,
+      quantity: 2,
+    });
+    const poId = await createPurchaseOrderFromOrders(token, [orderId], seed);
+
+    await transitionPurchaseOrderToShipping(token, poId);
+
+    const poBeforeReceipt = await getPurchaseOrderDetail(token, poId);
+    const poItemId = poBeforeReceipt?.items?.[0]?.id;
+    assert.ok(poItemId, 'purchase order item missing');
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: poItemId,
+            received_qty: 2,
+            note: 'receipt before return flow',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+
+    const orderAfterReceipt = await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const line = order?.lines?.[0];
+      assert.ok(line?.id, 'order line missing');
+      assert.strictEqual(line?.receivedQuantity, 2);
+      return { order, line };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'receipt baseline did not converge before delivery-confirmed return flow',
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { quantity: 2 },
+      expectedStatus: 200,
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/status`, {
+      bearerToken: token,
+      method: 'PATCH',
+      body: { status: 'fulfilled' },
+      expectedStatus: 200,
+    });
+
+    const returnBeforeDeliveryConfirm = await apiRequest(
+      `/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/return`,
+      {
+        bearerToken: token,
+        method: 'POST',
+        body: { quantity: 1, reason: 'damage', note: 'attempted before delivery confirmation' },
+        expectedStatus: 400,
+      }
+    );
+    assert.match(
+      String(returnBeforeDeliveryConfirm.json?.error || ''),
+      /delivery-confirmed order|delivery is confirmed/i
+    );
+
+    await apiRequest(`/api/manage/orders/${orderId}/delivery-confirmation`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { note: 'customer received the shipment' },
+      expectedStatus: 200,
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/return`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { quantity: 1, reason: 'damage', note: 'outer box collapsed' },
+      expectedStatus: 200,
+    });
+
+    await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const variant = await getVariantDetail(token, productId, variantId);
+      const line = order?.lines?.[0];
+      const shipmentActions = (order?.shipments || []).map((item) => item.actionType);
+      const returns = order?.returns || [];
+
+      assert.strictEqual(order?.status, 'fulfilled');
+      assert.strictEqual(order?.deliveryStatus, 'partially_returned');
+      assert.ok(Number(order?.deliveryConfirmedAt || 0) > 0);
+      assert.match(String(order?.deliveryConfirmedBy || ''), /admin/i);
+      assert.strictEqual(line?.shippedQuantity, 2);
+      assert.strictEqual(line?.returnedQuantity, 1);
+      assert.strictEqual(line?.displayStatus, 'completed');
+      assert.deepStrictEqual(shipmentActions.slice(0, 1), ['shipped']);
+      assert.strictEqual(returns.length, 1);
+      assert.strictEqual(returns[0]?.reason, 'damage');
+      assert.strictEqual(Number(returns[0]?.quantity || 0), 1);
+      assert.strictEqual(Number(variant.stock_quantity || 0), 1);
+      return { order, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'partial delivery-confirmed return flow did not converge in order detail and inventory projections',
+    });
+
+    await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/return`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { quantity: 1, reason: 'wrong_item', note: 'customer returned the remaining unit' },
+      expectedStatus: 200,
+    });
+
+    await waitFor(async () => {
+      const order = await getOrderDetail(token, orderId);
+      const variant = await getVariantDetail(token, productId, variantId);
+      const line = order?.lines?.[0];
+      const returns = order?.returns || [];
+
+      assert.strictEqual(order?.status, 'fulfilled');
+      assert.strictEqual(order?.deliveryStatus, 'returned');
+      assert.ok(Number(order?.deliveryConfirmedAt || 0) > 0);
+      assert.match(String(order?.deliveryConfirmedBy || ''), /admin/i);
+      assert.strictEqual(line?.shippedQuantity, 2);
+      assert.strictEqual(line?.returnedQuantity, 2);
+      assert.strictEqual(line?.displayStatus, 'completed');
+      assert.strictEqual(returns.length, 2);
+      assert.strictEqual(returns[0]?.reason, 'wrong_item');
+      assert.strictEqual(returns[1]?.reason, 'damage');
+      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+      return { order, variant };
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'full delivery-confirmed return flow did not converge in order detail and inventory projections',
+    });
+  });
+
   it('rejects reversing a receipt after shipped stock has already consumed part of the received inventory', async () => {
     const token = await getBearerToken();
     const seed = uniqueSeed('reversal-after-ship');

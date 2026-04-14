@@ -18,11 +18,14 @@ import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { publishSingleDomainEventAndPoll } from '../../../_shared/domain-outbox.js';
 import { syncOrderDemandTransitions } from '../../../../../api/utils/order-demand-sync.js';
 import { buildOrderBindingSnapshot } from '../../../../../api/utils/order-binding-snapshot.js';
+import { OrderDeliveryService } from '../../../../../services/OrderDeliveryService.js';
+import { listOrderReturnHistory, listOrderShipmentHistory } from '../../../../../repositories/order/history-queries.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'PATCH', path: '/:id', domain: 'orders', action: 'order.update', severity: 'high', targetType: 'order' },
     { method: 'PATCH', path: '/:id/status', domain: 'orders', action: 'order.status.change', severity: 'high', targetType: 'order' },
+    { method: 'POST', path: '/:id/delivery-confirmation', domain: 'orders', action: 'order.delivery.confirm', severity: 'high', targetType: 'order' },
     { method: 'POST', path: '/:id/comment', domain: 'orders', action: 'order.comment.create', severity: 'normal', targetType: 'order' },
     { method: 'DELETE', path: '/:id', domain: 'orders', action: 'order.delete', severity: 'critical', targetType: 'order' },
 ]);
@@ -71,9 +74,11 @@ app.get('/:id', async (c) => {
     const { OrderTimelineRepository } = await import('../../../../../repositories/OrderTimelineRepository.js');
     const timelineRepo = new OrderTimelineRepository(env.DB);
 
-    const [files, timeline] = await Promise.all([
+    const [files, timeline, shipments, returns] = await Promise.all([
         repo.getFiles(id),
         timelineRepo.getTimeline(id),
+        listOrderShipmentHistory(env.DB, id),
+        listOrderReturnHistory(env.DB, id),
     ]);
 
     // 标记管理员已读
@@ -94,6 +99,8 @@ app.get('/:id', async (c) => {
             ...order,
             files,
             timeline,
+            shipments,
+            returns,
         }
     });
 });
@@ -336,6 +343,63 @@ app.patch('/:id/status', async (c) => {
         metadata: { force: forceStatusTransition, note: note || '' },
     });
     return c.json({ success: true, message: MSG.ORDER.STATUS_CHANGED });
+});
+
+app.post('/:id/delivery-confirmation', async (c) => {
+    const { env } = c;
+    const user = c.get('user');
+    const actor = getAdminActor(user);
+    const id = c.req.param('id');
+    const { note = '' } = await c.req.json();
+
+    const repo = new OrderRepository(env.DB);
+    const beforeOrder = await requireEntity(
+        repo.findById(id),
+        () => new NotFoundError(MSG.ORDER.NOT_FOUND)
+    );
+
+    const service = new OrderDeliveryService(env.DB);
+    const result = await service.confirmDelivery(id, { note }, {
+        actorId: actor.id,
+        actorName: actor.name,
+    });
+
+    await repo.timelineRepo.addTimelineEntry(id, {
+        actionType: 'field_updated',
+        actorType: 'admin',
+        actorId: actor.id,
+        actorName: actor.name,
+        fieldName: 'delivery_status',
+        oldValue: beforeOrder.deliveryStatus || 'in_transit',
+        newValue: 'delivered',
+        reason: String(note || '').trim(),
+    });
+
+    scheduleAuditEvent(c, {
+        domain: 'orders',
+        action: 'order.delivery.confirm',
+        result: 'success',
+        severity: 'high',
+        targetType: 'order',
+        targetId: id,
+        target_label: beforeOrder.orderNo,
+        summary: `${actor.name} confirmed delivery for order ${beforeOrder.orderNo}`,
+        changes_json: {
+            before: { deliveryStatus: beforeOrder.deliveryStatus || 'in_transit' },
+            after: { deliveryStatus: 'delivered' },
+        },
+        metadata: {
+            note: String(note || '').trim(),
+            deliveredAt: result.deliveredAt,
+        },
+    });
+
+    const updatedOrder = await repo.findById(id);
+    return c.json({
+        success: true,
+        message: 'Delivery confirmed',
+        data: updatedOrder,
+    });
 });
 
 /**

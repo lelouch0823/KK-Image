@@ -447,7 +447,10 @@ const handleShareClose = () => {
 const handleShareCreated = (space) => {
     handleShareClose();
     // Redirect to the space management page automatically for this new space
-    router.push(`/manage/space/${space.id}`);
+    router.push({
+        name: 'Spaces',
+        query: { id: space.id },
+    });
 };
 
 const handleModalSuccess = async (createdProduct = null) => {

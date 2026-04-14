@@ -4,6 +4,10 @@ export const ORDER_LINE_STATUS_AGGREGATE_JOIN = `
       LEFT JOIN (
           SELECT
               aggregate_lines.order_id,
+              aggregate_lines.ordered_qty,
+              aggregate_lines.shipped_qty,
+              aggregate_lines.returned_qty,
+              aggregate_lines.cancelled_qty,
               CASE
                   WHEN aggregate_lines.ordered_qty > 0 AND aggregate_lines.cancelled_qty >= aggregate_lines.ordered_qty THEN 'cancelled'
                   WHEN aggregate_lines.remaining_qty > 0 AND aggregate_lines.shipped_qty >= aggregate_lines.remaining_qty THEN 'completed'
@@ -21,6 +25,7 @@ export const ORDER_LINE_STATUS_AGGREGATE_JOIN = `
                   summarized.procured_qty,
                   summarized.received_qty,
                   summarized.shipped_qty,
+                  summarized.returned_qty,
                   summarized.cancelled_qty,
                   MAX(summarized.ordered_qty - summarized.cancelled_qty, 0) AS remaining_qty
               FROM (
@@ -30,8 +35,27 @@ export const ORDER_LINE_STATUS_AGGREGATE_JOIN = `
                       COALESCE(SUM(procured_qty), 0) AS procured_qty,
                       COALESCE(SUM(received_qty), 0) AS received_qty,
                       COALESCE(SUM(shipped_qty), 0) AS shipped_qty,
+                      COALESCE(SUM(returned_qty), 0) AS returned_qty,
                       COALESCE(SUM(cancelled_qty), 0) AS cancelled_qty
-                  FROM order_lines
+                  FROM (
+                      SELECT
+                          ol.order_id,
+                          ol.ordered_qty,
+                          ol.procured_qty,
+                          ol.received_qty,
+                          ol.shipped_qty,
+                          COALESCE(orq.returned_qty, 0) AS returned_qty,
+                          ol.cancelled_qty
+                      FROM order_lines ol
+                      LEFT JOIN (
+                          SELECT
+                              order_line_id,
+                              COALESCE(SUM(quantity), 0) AS returned_qty
+                          FROM order_returns
+                          WHERE status != 'cancelled'
+                          GROUP BY order_line_id
+                      ) orq ON orq.order_line_id = ol.id
+                  )
                   GROUP BY order_id
               ) summarized
           ) aggregate_lines

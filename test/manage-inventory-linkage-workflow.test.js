@@ -145,6 +145,20 @@ describeIfRealApi('Manage Inventory Linkage Real API Workflow', function () {
     assert.strictEqual(Number(confirmedOverviewItem.availableQuantity || 0), 0);
     assert.strictEqual(Number(confirmedOverviewItem.shortage || 0), 12);
 
+    const order1Detail = await apiRequest(`/api/manage/orders/${order1}`, {
+      bearerToken: token,
+      expectedStatus: 200,
+    });
+    const order1LineId = order1Detail.json?.data?.lines?.[0]?.id;
+    assert.ok(order1LineId, 'order1 line id missing');
+
+    await apiRequest(`/api/manage/orders/${order1}/lines/${order1LineId}/ship`, {
+      bearerToken: token,
+      method: 'POST',
+      body: { quantity: 4 },
+      expectedStatus: 200,
+    });
+
     await apiRequest(`/api/manage/orders/${order1}/status`, {
       bearerToken: token,
       method: 'PATCH',
@@ -160,8 +174,8 @@ describeIfRealApi('Manage Inventory Linkage Real API Workflow', function () {
     assert.ok(deliveredSuggestion, 'delivered suggestion missing');
     assert.strictEqual(Number(deliveredSuggestion.total_demand || 0), 8);
     assert.strictEqual(Number(deliveredSuggestion.stock_quantity || 0), 6);
-    assert.strictEqual(Number(deliveredSuggestion.available_quantity || 0), 0);
-    assert.strictEqual(Number(deliveredSuggestion.shortage || 0), 8);
+    assert.strictEqual(Number(deliveredSuggestion.available_quantity || 0), 2);
+    assert.strictEqual(Number(deliveredSuggestion.shortage || 0), 6);
 
     const createdPo = await apiRequest('/api/manage/purchase-orders', {
       bearerToken: token,
@@ -231,7 +245,7 @@ describeIfRealApi('Manage Inventory Linkage Real API Workflow', function () {
       const finalVariant = findVariant(finalDetail.json, variantId);
       assert.ok(finalVariant, 'final variant missing');
       assert.strictEqual(Number(finalVariant.stock_quantity || 0), 11);
-      assert.strictEqual(Number(finalVariant.available_quantity || 0), 3);
+      assert.strictEqual(Number(finalVariant.available_quantity || 0), 7);
       return finalVariant;
     }, {
       timeoutMs: 15000,
@@ -248,8 +262,8 @@ describeIfRealApi('Manage Inventory Linkage Real API Workflow', function () {
       assert.ok(finalSuggestion, 'final suggestion missing');
       assert.strictEqual(Number(finalSuggestion.total_demand || 0), 8);
       assert.strictEqual(Number(finalSuggestion.stock_quantity || 0), 11);
-      assert.strictEqual(Number(finalSuggestion.available_quantity || 0), 3);
-      assert.strictEqual(Number(finalSuggestion.shortage || 0), 5);
+      assert.strictEqual(Number(finalSuggestion.available_quantity || 0), 7);
+      assert.strictEqual(Number(finalSuggestion.shortage || 0), 1);
       return finalSuggestion;
     }, {
       timeoutMs: 15000,
@@ -265,8 +279,8 @@ describeIfRealApi('Manage Inventory Linkage Real API Workflow', function () {
       const finalOverviewItem = findOverviewItem(finalOverview.json, variantId);
       assert.ok(finalOverviewItem, 'final overview item missing');
       assert.strictEqual(Number(finalOverviewItem.stockQuantity || 0), 11);
-      assert.strictEqual(Number(finalOverviewItem.availableQuantity || 0), 3);
-      assert.strictEqual(Number(finalOverviewItem.shortage || 0), 5);
+      assert.strictEqual(Number(finalOverviewItem.availableQuantity || 0), 7);
+      assert.strictEqual(Number(finalOverviewItem.shortage || 0), 1);
       return finalOverviewItem;
     }, {
       timeoutMs: 15000,
@@ -289,7 +303,7 @@ describeIfRealApi('Manage Inventory Linkage Real API Workflow', function () {
       const arrivedVariant = findVariant(arrivedDetail.json, variantId);
       assert.ok(arrivedVariant, 'arrived variant missing');
       assert.strictEqual(Number(arrivedVariant.stock_quantity || 0), 11);
-      assert.strictEqual(Number(arrivedVariant.available_quantity || 0), 3);
+      assert.strictEqual(Number(arrivedVariant.available_quantity || 0), 7);
       return arrivedVariant;
     }, {
       timeoutMs: 10000,

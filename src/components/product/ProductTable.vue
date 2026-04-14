@@ -11,6 +11,7 @@
     :empty-text="t('product.table.empty')"
     :virtual="products.length > 50"
     :estimate-size="64"
+    table-layout="fixed"
     @row-click="$emit('view', $event)"
     @sort-change="$emit('sort-change', $event)"
   >
@@ -54,16 +55,23 @@
 
     <!-- SPU Cell -->
     <template #cell-spu="{ value }">
-      <div class="flex flex-col items-center gap-1">
-          <div class="w-fit rounded bg-(--bg-muted) px-2 py-0.5 font-mono text-sm text-(--text-main) dark:bg-(--bg-secondary)">
-              {{ value }}
-          </div>
+      <div class="flex min-w-0 flex-col items-center gap-1">
+          <AppTableCodeChip
+            :value="value"
+            max-width="12rem"
+            size="sm"
+            tone="main"
+          />
       </div>
     </template>
 
     <!-- Category Cell -->
     <template #cell-category="{ value }">
-       <span v-if="value" class="bg-info-bg text-info inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
+       <span
+          v-if="value"
+          class="bg-info-bg text-info inline-flex max-w-[10rem] items-center truncate whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium"
+          :title="value"
+       >
           {{ value }}
        </span>
        <span v-else class="text-(--text-muted)">-</span>
@@ -95,13 +103,13 @@
 
     <!-- Status Cell -->
     <template #cell-status="{ value }">
-      <span 
-          class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize"
-          :class="getStatusClass(value)"
-      >
-          <span class="mr-1.5 size-1.5 rounded-full" :class="getStatusDot(value)"></span>
-          {{ t(`product.filters.status.${value}`) }}
-      </span>
+      <AppTableStatusPill
+        :label="t(`product.filters.status.${value}`)"
+        :title="t(`product.filters.status.${value}`)"
+        :variant="getProductStatusVariant(value)"
+        dot
+        size="sm"
+      />
     </template>
 
     <!-- Updated At Cell -->
@@ -145,9 +153,12 @@ import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import AppTableCodeChip from '@/components/ui/AppTableCodeChip.vue';
+import AppTableStatusPill from '@/components/ui/AppTableStatusPill.vue';
 import { formatRelativeTime } from '@/utils/formatters';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core';
 import { resolvePrimaryProductImageSrc } from './image-resolver.js';
+import { getProductStatusVariant } from '@/utils/status';
 
 const { t } = useI18n();
 defineProps({
@@ -164,12 +175,37 @@ const isLargeScreen = breakpoints.greater('lg');
 
 const columns = computed(() => [
   { key: 'product', label: t('product.table.header.product'), align: 'left', width: '300px' },
-  { key: 'spu', label: t('product.form.spu'), align: 'center', class: 'hidden md:table-cell' },
-  { key: 'category', label: t('product.table.header.category'), align: 'center', class: 'hidden lg:table-cell' },
+  {
+    key: 'spu',
+    label: t('product.form.spu'),
+    kind: 'identifier',
+    align: 'center',
+    width: '180px',
+    maxWidth: '180px',
+    headerClass: 'hidden md:table-cell',
+    cellClass: 'hidden md:table-cell',
+  },
+  {
+    key: 'category',
+    label: t('product.table.header.category'),
+    align: 'center',
+    width: '160px',
+    maxWidth: '160px',
+    headerClass: 'hidden lg:table-cell',
+    cellClass: 'hidden lg:table-cell',
+    nowrap: true,
+  },
   { key: 'price', label: t('product.table.header.price'), align: 'center', sortable: true },
-  { key: 'stock', label: t('product.table.header.stock'), align: 'center', sortable: true },
-  { key: 'status', label: t('product.table.header.status'), align: 'center' },
-  { key: 'updatedAt', label: t('common.updated'), align: 'center', class: 'hidden xl:table-cell' }, // Mapped from updated_at to updatedAt in template slot? No, access raw row.
+  { key: 'stock', label: t('product.table.header.stock'), kind: 'numeric', align: 'center', sortable: true },
+  { key: 'status', label: t('product.table.header.status'), kind: 'status', align: 'center', width: '96px', maxWidth: '96px' },
+  {
+    key: 'updatedAt',
+    label: t('common.updated'),
+    kind: 'datetime',
+    align: 'center',
+    headerClass: 'hidden xl:table-cell',
+    cellClass: 'hidden xl:table-cell',
+  },
   { key: 'actions', label: t('product.table.header.actions'), align: 'center', width: '100px' },
 ]);
 
@@ -195,23 +231,6 @@ const getStockColor = (p) => {
     return 'text-(--text-main)';
 };
 
-const getStatusClass = (s) => {
-    switch (s) {
-        case 'active': return 'bg-success-bg text-success-text border-success';
-        case 'draft': return 'bg-(--bg-muted) text-(--text-secondary) border-(--border-color)';
-        case 'archived': return 'bg-warning-bg text-warning-text border-warning';
-        default: return 'bg-(--bg-muted) text-(--text-secondary)';
-    }
-}
-
-const getStatusDot = (s) => {
-    switch (s) {
-        case 'active': return 'bg-success';
-        case 'draft': return 'bg-(--text-muted)';
-        case 'archived': return 'bg-warning';
-        default: return 'bg-(--text-muted)';
-    }
-}
 </script>
 
 <style scoped>

@@ -15,10 +15,9 @@ const mountList = (props = {}, extraStubs = {}) =>
       stubs: {
         AppIcon: true,
         AppImage: true,
-        StatusBadge: true,
-        OrderProcurementBadge: {
-          props: ['status'],
-          template: '<div data-testid="procurement-badge">{{ status }}</div>',
+        OrderListStatusStack: {
+          props: ['procurementStatus'],
+          template: '<div data-testid="procurement-badge">{{ procurementStatus }}</div>',
         },
         Skeleton: true,
         ...extraStubs,

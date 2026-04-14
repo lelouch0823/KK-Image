@@ -217,7 +217,7 @@
 
         <!-- SKU -->
         <template #cell-sku="{ row: item }">
-          <code class="rounded bg-(--bg-muted) px-1.5 py-0.5 text-xs text-(--text-secondary)">{{ item.sku }}</code>
+          <AppTableCodeChip :value="item.sku" max-width="11rem" />
         </template>
 
         <!-- 品牌 (响应式处理) -->
@@ -293,20 +293,23 @@
 
         <!-- 状态标签 -->
         <template #cell-status="{ row: item }">
-          <StatusBadge
+          <AppTableStatusPill
             v-if="item.shortage > 0"
-            status="danger"
-            :text="t('goodsOverview.status.shortage')"
+            :label="t('goodsOverview.status.shortage')"
+            variant="danger"
+            size="sm"
           />
-          <StatusBadge
+          <AppTableStatusPill
             v-else-if="(item.availableQuantity ?? item.stockQuantity) < item.alertThreshold"
-            status="warning"
-            :text="t('goodsOverview.status.warning')"
+            :label="t('goodsOverview.status.warning')"
+            variant="warning"
+            size="sm"
           />
-          <StatusBadge
+          <AppTableStatusPill
             v-else
-            status="success"
-            :text="t('goodsOverview.status.sufficient')"
+            :label="t('goodsOverview.status.sufficient')"
+            variant="success"
+            size="sm"
           />
         </template>
       </AppTable>
@@ -363,6 +366,8 @@ import MetricTile from '@/design-system/composed/MetricTile.vue';
 import SummaryStrip from '@/design-system/composed/SummaryStrip.vue';
 import FloatingSelectionBar from '@/design-system/composed/FloatingSelectionBar.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
+import AppTableCodeChip from '@/components/ui/AppTableCodeChip.vue';
+import AppTableStatusPill from '@/components/ui/AppTableStatusPill.vue';
 import { resolvePrimaryProductImageSrc } from '@/components/product/image-resolver.js';
 
 
@@ -378,20 +383,20 @@ const {
 
 const columns = computed(() => [
   { key: 'selection', label: '', width: '40px' },
-  { key: 'name', label: t('goodsOverview.table.name') },
-  { key: 'sku', label: t('goodsOverview.table.sku') },
-  { key: 'brand', label: t('goodsOverview.table.brand'), class: 'hidden md:table-cell' },
-  { key: 'stockQuantity', label: t('goodsOverview.table.stock'), align: 'center' },
-  { key: 'confirmedQty', label: t('goodsOverview.pipeline.confirmed'), align: 'center', class: 'text-warning' },
-  { key: 'productionQty', label: t('goodsOverview.pipeline.production'), align: 'center', class: 'text-info' },
-  { key: 'shippingQty', label: t('goodsOverview.pipeline.shipping'), align: 'center', class: 'text-(--color-purple)' },
-  { key: 'arrivedQty', label: t('goodsOverview.pipeline.arrived'), align: 'center', class: 'text-success' },
-  { key: 'totalDemand', label: t('goodsOverview.table.totalDemand'), align: 'center' },
-  { key: 'shortage', label: t('goodsOverview.table.shortage'), align: 'center' },
-  { key: 'avgUnitCost', label: t('goodsOverview.table.unitCost'), align: 'center', class: 'hidden lg:table-cell' },
-  { key: 'avgFreight', label: t('goodsOverview.table.freight'), align: 'center', class: 'hidden lg:table-cell' },
-  { key: 'landedCost', label: t('goodsOverview.table.landedCost'), align: 'center', class: 'hidden lg:table-cell' },
-  { key: 'status', label: t('goodsOverview.table.status'), align: 'center' },
+  { key: 'name', label: t('goodsOverview.table.name'), width: '240px', minWidth: '240px' },
+  { key: 'sku', label: t('goodsOverview.table.sku'), kind: 'identifier', width: '180px', maxWidth: '180px' },
+  { key: 'brand', label: t('goodsOverview.table.brand'), headerClass: 'hidden md:table-cell', cellClass: 'hidden md:table-cell' },
+  { key: 'stockQuantity', label: t('goodsOverview.table.stock'), kind: 'numeric', align: 'center' },
+  { key: 'confirmedQty', label: t('goodsOverview.pipeline.confirmed'), kind: 'numeric', align: 'center', class: 'text-warning' },
+  { key: 'productionQty', label: t('goodsOverview.pipeline.production'), kind: 'numeric', align: 'center', class: 'text-info' },
+  { key: 'shippingQty', label: t('goodsOverview.pipeline.shipping'), kind: 'numeric', align: 'center', class: 'text-(--color-purple)' },
+  { key: 'arrivedQty', label: t('goodsOverview.pipeline.arrived'), kind: 'numeric', align: 'center', class: 'text-success' },
+  { key: 'totalDemand', label: t('goodsOverview.table.totalDemand'), kind: 'numeric', align: 'center' },
+  { key: 'shortage', label: t('goodsOverview.table.shortage'), kind: 'numeric', align: 'center' },
+  { key: 'avgUnitCost', label: t('goodsOverview.table.unitCost'), kind: 'numeric', align: 'center', headerClass: 'hidden lg:table-cell', cellClass: 'hidden lg:table-cell' },
+  { key: 'avgFreight', label: t('goodsOverview.table.freight'), kind: 'numeric', align: 'center', headerClass: 'hidden lg:table-cell', cellClass: 'hidden lg:table-cell' },
+  { key: 'landedCost', label: t('goodsOverview.table.landedCost'), kind: 'numeric', align: 'center', headerClass: 'hidden lg:table-cell', cellClass: 'hidden lg:table-cell' },
+  { key: 'status', label: t('goodsOverview.table.status'), kind: 'status', align: 'center', width: '96px', maxWidth: '96px' },
 ]);
 
 const brandOptions = computed(() => [
@@ -448,7 +453,7 @@ const handleCreatePO = async () => {
     addToast({ type: 'success', message: t('goodsOverview.toast.poCreated') });
     const query = { id: result.data.id };
     if (firstSelectedVariantId) query.variantId = firstSelectedVariantId;
-    router.push({ path: '/purchase-orders', query });
+    router.push({ name: 'PurchaseOrders', query });
   } else {
     addToast({ type: 'error', message: result.error || '生成采购单失败' });
   }

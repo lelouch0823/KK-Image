@@ -102,12 +102,14 @@
         mode="admin"
         :commenting="commenting"
         :line-command-state="lineCommandState"
+        :delivery-confirm-pending="deliveryConfirmPending"
         @back="$emit('close')"
         @comment="$emit('comment', $event)"
         @refresh="$emit('refresh')"
         @edit="$emit('edit', $event)"
         @delete-order="$emit('delete-order')"
         @line-command="$emit('line-command', $event)"
+        @confirm-delivery="$emit('confirm-delivery')"
       />
     </div>
   </Modal>
@@ -153,9 +155,13 @@ defineProps({
       error: '',
     }),
   },
+  deliveryConfirmPending: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-defineEmits(['close', 'retry', 'comment', 'refresh', 'edit', 'delete-order', 'line-command']);
+defineEmits(['close', 'retry', 'comment', 'refresh', 'edit', 'delete-order', 'line-command', 'confirm-delivery']);
 
 const { t } = useI18n();
 const detailRef = ref(null);

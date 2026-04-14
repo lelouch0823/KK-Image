@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({
   reserveLine: vi.fn(),
   releaseLine: vi.fn(),
   shipLine: vi.fn(),
+  unshipLine: vi.fn(),
+  returnLine: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
@@ -14,6 +16,8 @@ vi.mock('../../../../../../services/OrderLineFulfillmentService.js', () => ({
     reserveLine: mocks.reserveLine,
     releaseLine: mocks.releaseLine,
     shipLine: mocks.shipLine,
+    unshipLine: mocks.unshipLine,
+    returnLine: mocks.returnLine,
   })),
 }));
 
@@ -50,9 +54,11 @@ describe('manage order line command routes', () => {
     mocks.reserveLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'reserve', quantity: 2 });
     mocks.releaseLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'release', quantity: 1 });
     mocks.shipLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'ship', quantity: 1 });
+    mocks.unshipLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'unship', quantity: 1 });
+    mocks.returnLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'return', quantity: 1 });
   });
 
-  it('routes reserve, release, and ship commands through the fulfillment service and schedules outbox polling', async () => {
+  it('routes reserve, release, ship, unship, and return commands through the fulfillment service and schedules outbox polling', async () => {
     const app = createApp();
     const waitUntil = vi.fn();
 
@@ -86,15 +92,44 @@ describe('manage order line command routes', () => {
       { DB: {} },
       { waitUntil }
     );
+    const unshipRes = await app.request(
+      'http://localhost/api/manage/orders/order-1/lines/line-1/unship',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 1 }),
+      },
+      { DB: {} },
+      { waitUntil }
+    );
+    const returnRes = await app.request(
+      'http://localhost/api/manage/orders/order-1/lines/line-1/return',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 1, reason: 'damage', note: 'box crushed' }),
+      },
+      { DB: {} },
+      { waitUntil }
+    );
 
     expect(reserveRes.status).toBe(200);
     expect(releaseRes.status).toBe(200);
     expect(shipRes.status).toBe(200);
+    expect(unshipRes.status).toBe(200);
+    expect(returnRes.status).toBe(200);
     expect(mocks.reserveLine).toHaveBeenCalledWith('order-1', 'line-1', { quantity: 2 }, expect.any(Object));
     expect(mocks.releaseLine).toHaveBeenCalledWith('order-1', 'line-1', { quantity: 1 }, expect.any(Object));
     expect(mocks.shipLine).toHaveBeenCalledWith('order-1', 'line-1', { quantity: 1 }, expect.any(Object));
-    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(3);
-    expect(waitUntil).toHaveBeenCalledTimes(3);
+    expect(mocks.unshipLine).toHaveBeenCalledWith('order-1', 'line-1', { quantity: 1 }, expect.any(Object));
+    expect(mocks.returnLine).toHaveBeenCalledWith(
+      'order-1',
+      'line-1',
+      { quantity: 1, reason: 'damage', note: 'box crushed' },
+      expect.any(Object)
+    );
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(5);
+    expect(waitUntil).toHaveBeenCalledTimes(5);
   });
 
   it('rejects missing positive quantity payloads for line commands', async () => {

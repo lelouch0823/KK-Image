@@ -12,10 +12,65 @@
         <div class="mt-2">
           <OrderProcurementBadge
             :status="procurementStatus"
-            dot
-            show-label
-            compact
+            preset="detail"
           />
+          <OrderDeliveryStatusBadge
+            v-if="deliveryStatus && deliveryStatus !== 'not_shipped'"
+            :status="deliveryStatus"
+            preset="detail"
+            class="mt-2"
+          />
+        </div>
+        <div
+          v-if="showDeliveryConfirmationBlock"
+          class="mt-3 rounded-xl border border-emerald-500/15 bg-emerald-500/6 px-3 py-3"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">
+                {{ t('order.detail.deliveryConfirmationTitle', 'Delivery Confirmation') }}
+              </p>
+              <p
+                v-if="deliveryConfirmedAt"
+                class="mt-1 text-sm text-(--text-main)"
+              >
+                {{ formatTime(deliveryConfirmedAt) }}
+                <span
+                  v-if="deliveryConfirmedBy"
+                  class="text-(--text-secondary)"
+                >
+                  · {{ deliveryConfirmedBy }}
+                </span>
+              </p>
+              <p
+                v-else
+                class="mt-1 text-sm text-(--text-secondary)"
+              >
+                {{
+                  t(
+                    'order.detail.deliveryConfirmationHint',
+                    'Confirm this after the customer has actually received the shipment.'
+                  )
+                }}
+              </p>
+              <p
+                v-if="deliveryNote"
+                class="mt-1 text-xs break-words whitespace-pre-wrap text-(--text-secondary)"
+              >
+                {{ deliveryNote }}
+              </p>
+            </div>
+            <button
+              v-if="canConfirmDelivery"
+              type="button"
+              data-testid="confirm-delivery-button"
+              class="cursor-pointer rounded-lg border border-emerald-600/20 bg-emerald-600/10 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-600/15 disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="deliveryConfirmPending"
+              @click="$emit('confirm-delivery')"
+            >
+              {{ t('order.detail.deliveryConfirmAction', 'Confirm Delivery') }}
+            </button>
+          </div>
         </div>
       </div>
       <StatusBadge class="shrink-0" :variant="getStatusVariant(status)" size="md" dot>
@@ -64,10 +119,12 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { formatTime } from '@/utils/formatters';
 import { STATUS_OPTIONS, getStatusVariant } from '@/utils/status';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import OrderProcurementBadge from './OrderProcurementBadge.vue';
+import OrderDeliveryStatusBadge from './OrderDeliveryStatusBadge.vue';
 
 const props = defineProps({
   orderNo: {
@@ -86,11 +143,37 @@ const props = defineProps({
     type: String,
     default: 'none',
   },
+  deliveryStatus: {
+    type: String,
+    default: 'not_shipped',
+  },
+  canConfirmDelivery: {
+    type: Boolean,
+    default: false,
+  },
+  deliveryConfirmPending: {
+    type: Boolean,
+    default: false,
+  },
+  deliveryConfirmedAt: {
+    type: Number,
+    default: null,
+  },
+  deliveryConfirmedBy: {
+    type: String,
+    default: '',
+  },
+  deliveryNote: {
+    type: String,
+    default: '',
+  },
   quantity: {
     type: Number,
     default: 1,
   },
 });
+
+defineEmits(['confirm-delivery']);
 
 const { t } = useI18n();
 
@@ -101,6 +184,14 @@ const currentStepIndex = computed(() => {
   const idx = statusSteps.indexOf(props.status);
   return idx >= 0 ? idx : 0;
 });
+
+const showDeliveryConfirmationBlock = computed(() =>
+  props.canConfirmDelivery
+  || Boolean(props.deliveryConfirmedAt)
+  || Boolean(String(props.deliveryNote || '').trim())
+  || props.deliveryStatus === 'delivered'
+  || props.deliveryStatus === 'returned'
+);
 
 const progressWidth = computed(() => {
   const total = statusSteps.length - 1;

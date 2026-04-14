@@ -13,6 +13,8 @@ const mocks = vi.hoisted(() => ({
   deleteSpace: vi.fn(),
   loadPermissions: vi.fn(),
   hasPermission: vi.fn(),
+  routeQuery: {},
+  routerReplace: vi.fn(),
 }));
 
 vi.mock('@/composables/useSpaces', () => ({
@@ -39,6 +41,11 @@ vi.mock('@/composables/useI18n', () => ({
   }),
 }));
 
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ query: mocks.routeQuery, path: '/admin/spaces' }),
+  useRouter: () => ({ replace: mocks.routerReplace }),
+}));
+
 describe('SpaceManager permission alignment', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -50,6 +57,7 @@ describe('SpaceManager permission alignment', () => {
     mocks.deleteSpace.mockResolvedValue(true);
     mocks.loadPermissions.mockResolvedValue([]);
     mocks.hasPermission.mockImplementation((permission) => permission === 'spaces:manage');
+    mocks.routeQuery = {};
   });
 
   function createWrapper() {
@@ -93,5 +101,34 @@ describe('SpaceManager permission alignment', () => {
 
     expect(mocks.deleteSpace).toHaveBeenCalledWith('space-1');
     expect(wrapper.vm.confirmData.show).toBe(true);
+  });
+
+  it('opens the queried space detail when the spaces list contains that id', async () => {
+    mocks.routeQuery = { id: 'space-2' };
+    mockSpaces.value = [
+      { id: 'space-1', template: 'custom', name: 'Space One' },
+      { id: 'space-2', template: 'custom', name: 'Space Two' },
+    ];
+
+    const wrapper = createWrapper();
+    await flushPromises();
+
+    expect(wrapper.vm.selectedSpace).toMatchObject({ id: 'space-2' });
+  });
+
+  it('clears the query-driven space id after dismissing the detail modal', async () => {
+    mocks.routeQuery = { id: 'space-2', tab: 'linked' };
+    mockSpaces.value = [{ id: 'space-2', template: 'custom', name: 'Space Two' }];
+
+    const wrapper = createWrapper();
+    await flushPromises();
+
+    wrapper.vm.selectedSpace = null;
+    await flushPromises();
+
+    expect(mocks.routerReplace).toHaveBeenCalledWith({
+      path: '/admin/spaces',
+      query: { tab: 'linked' },
+    });
   });
 });

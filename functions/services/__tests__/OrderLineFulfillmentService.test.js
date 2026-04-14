@@ -25,6 +25,13 @@ function createDbHarness({
     reserved: 1,
     available: 9,
   },
+  returnedQuantityRow = {
+    returned_qty: 0,
+  },
+  orderReturnSummaryRow = {
+    shipped_qty: 2,
+    returned_qty: 0,
+  },
   activeAllocations = [],
 } = {}) {
   const calls = {
@@ -56,6 +63,14 @@ function createDbHarness({
 
       if (sql.includes('FROM inventory_balances')) {
         statement.first = vi.fn(async () => inventoryBalanceRow);
+      }
+
+      if (sql.includes('FROM order_returns') && sql.includes('WHERE order_line_id = ?')) {
+        statement.first = vi.fn(async () => returnedQuantityRow);
+      }
+
+      if (sql.includes('FROM order_lines ol') && sql.includes('LEFT JOIN (') && sql.includes('order_returns')) {
+        statement.first = vi.fn(async () => orderReturnSummaryRow);
       }
 
       return statement;
@@ -423,6 +438,12 @@ describe('OrderLineFulfillmentService', () => {
         orderLineId: 'line-1',
       })
     );
+    expect(harness.calls.batchedStatements.some((statement) =>
+      statement.sql.includes('INSERT INTO order_shipments')
+        && statement.params.includes('shipped')
+        && statement.params.includes(3)
+        && statement.params.includes('Admin')
+    )).toBe(true);
     expect(harness.calls.outboxEvents).toHaveLength(1);
     expect(harness.calls.outboxEvents[0].event_type).toBe('order_line_fulfillment_updated');
     expect(harness.calls.outboxConsumerMatrix[0].consumers).toEqual(['cache']);
@@ -487,6 +508,290 @@ describe('OrderLineFulfillmentService', () => {
     );
   });
 
+  it('unships a previously shipped line quantity, restores stock, and recomputes line state', async () => {
+    harness = createDbHarness({
+      orderLineRow: {
+        order_id: 'order-1',
+        order_no: 'SO-1',
+        salesperson_id: 'sales-1',
+        order_status: 'shipping',
+        line_id: 'line-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 8,
+        procured_qty: 8,
+        received_qty: 8,
+        reserved_qty: 0,
+        shipped_qty: 5,
+        cancelled_qty: 0,
+        display_status: 'partially_shipped',
+      },
+      inventoryBalanceRow: {
+        variant_id: 'var-1',
+        on_hand: 5,
+        reserved: 0,
+        available: 5,
+      },
+    });
+    service = new OrderLineFulfillmentService(harness.db, {
+      allocationRepo: harness.allocationRepo,
+      inventoryService: harness.inventoryService,
+      domainOutboxRepo: harness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    const result = await service.unshipLine(
+      'order-1',
+      'line-1',
+      { quantity: 2 },
+      { actorName: 'Admin' }
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        action: 'unship',
+        quantity: 2,
+      })
+    );
+    expect(harness.inventoryService.buildMutationStatements).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'order_unshipment',
+        variantId: 'var-1',
+        quantityDelta: 2,
+        orderId: 'order-1',
+        orderLineId: 'line-1',
+      })
+    );
+    expect(harness.calls.batchedStatements.some((statement) =>
+      statement.sql.includes('INSERT INTO order_shipments')
+        && statement.params.includes('unshipped')
+        && statement.params.includes(2)
+        && statement.params.includes('Admin')
+    )).toBe(true);
+    expect(harness.calls.outboxEvents).toHaveLength(1);
+    expect(harness.calls.outboxEvents[0].event_type).toBe('order_line_fulfillment_updated');
+  });
+
+  it('rejects unshipping when the parent order is already delivered', async () => {
+    harness = createDbHarness({
+      orderLineRow: {
+        order_id: 'order-1',
+        order_no: 'SO-1',
+        salesperson_id: 'sales-1',
+        order_status: 'delivered',
+        line_id: 'line-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 2,
+        procured_qty: 2,
+        received_qty: 2,
+        reserved_qty: 0,
+        shipped_qty: 2,
+        cancelled_qty: 0,
+        display_status: 'completed',
+      },
+    });
+    service = new OrderLineFulfillmentService(harness.db, {
+      allocationRepo: harness.allocationRepo,
+      inventoryService: harness.inventoryService,
+      domainOutboxRepo: harness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await expect(
+      service.unshipLine('order-1', 'line-1', { quantity: 1 }, { actorName: 'Admin' })
+    ).rejects.toThrow(/delivered order/i);
+
+    expect(harness.calls.inventoryMutations).toHaveLength(0);
+    expect(harness.db.batch).not.toHaveBeenCalled();
+  });
+
+  it('also rejects unshipping when legacy delivered input was normalized to fulfilled in storage', async () => {
+    harness = createDbHarness({
+      orderLineRow: {
+        order_id: 'order-1',
+        order_no: 'SO-1',
+        salesperson_id: 'sales-1',
+        order_status: 'fulfilled',
+        delivery_status: 'delivered',
+        line_id: 'line-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 2,
+        procured_qty: 2,
+        received_qty: 2,
+        reserved_qty: 0,
+        shipped_qty: 2,
+        cancelled_qty: 0,
+        display_status: 'completed',
+      },
+    });
+    service = new OrderLineFulfillmentService(harness.db, {
+      allocationRepo: harness.allocationRepo,
+      inventoryService: harness.inventoryService,
+      domainOutboxRepo: harness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await expect(
+      service.unshipLine('order-1', 'line-1', { quantity: 1 }, { actorName: 'Admin' })
+    ).rejects.toThrow(/delivered order/i);
+
+    expect(harness.calls.inventoryMutations).toHaveLength(0);
+    expect(harness.db.batch).not.toHaveBeenCalled();
+  });
+
+  it('returns delivered line quantity into stock, records structured reason metadata, and marks partially returned orders correctly', async () => {
+    harness = createDbHarness({
+      orderLineRow: {
+        order_id: 'order-1',
+        order_no: 'SO-1',
+        salesperson_id: 'sales-1',
+        order_status: 'fulfilled',
+        delivery_status: 'delivered',
+        line_id: 'line-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 2,
+        procured_qty: 2,
+        received_qty: 2,
+        reserved_qty: 0,
+        shipped_qty: 2,
+        cancelled_qty: 0,
+        display_status: 'completed',
+      },
+      inventoryBalanceRow: {
+        variant_id: 'var-1',
+        on_hand: 0,
+        reserved: 0,
+        available: 0,
+      },
+      returnedQuantityRow: {
+        returned_qty: 0,
+      },
+      orderReturnSummaryRow: {
+        shipped_qty: 2,
+        returned_qty: 0,
+      },
+    });
+    service = new OrderLineFulfillmentService(harness.db, {
+      allocationRepo: harness.allocationRepo,
+      inventoryService: harness.inventoryService,
+      domainOutboxRepo: harness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    const result = await service.returnLine(
+      'order-1',
+      'line-1',
+      { quantity: 1, reason: 'damage', note: 'box crushed on arrival' },
+      { actorName: 'Admin' }
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        action: 'return',
+        quantity: 1,
+      })
+    );
+    expect(harness.inventoryService.buildMutationStatements).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'order_return_restock',
+        variantId: 'var-1',
+        quantityDelta: 1,
+        orderId: 'order-1',
+        orderLineId: 'line-1',
+      })
+    );
+    expect(harness.calls.batchedStatements.some((statement) =>
+      statement.sql.includes('UPDATE orders SET delivery_status = ?')
+        && statement.params[0] === 'partially_returned'
+    )).toBe(true);
+    expect(harness.calls.batchedStatements.some((statement) =>
+      statement.sql.includes('INSERT INTO order_returns')
+        && statement.params.includes('damage')
+        && statement.params.includes('box crushed on arrival')
+    )).toBe(true);
+  });
+
+  it('rejects returns before delivery is confirmed', async () => {
+    await expect(
+      service.returnLine(
+        'order-1',
+        'line-1',
+        { quantity: 1, reason: 'damage' },
+        { actorName: 'Admin' }
+      )
+    ).rejects.toThrow(/delivery-confirmed order/i);
+  });
+
+  it('marks fully returned orders as returned after the last shipped quantity is restocked', async () => {
+    harness = createDbHarness({
+      orderLineRow: {
+        order_id: 'order-1',
+        order_no: 'SO-1',
+        salesperson_id: 'sales-1',
+        order_status: 'fulfilled',
+        delivery_status: 'partially_returned',
+        line_id: 'line-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 2,
+        procured_qty: 2,
+        received_qty: 2,
+        reserved_qty: 0,
+        shipped_qty: 2,
+        cancelled_qty: 0,
+        display_status: 'completed',
+      },
+      returnedQuantityRow: {
+        returned_qty: 1,
+      },
+      orderReturnSummaryRow: {
+        shipped_qty: 2,
+        returned_qty: 1,
+      },
+    });
+    service = new OrderLineFulfillmentService(harness.db, {
+      allocationRepo: harness.allocationRepo,
+      inventoryService: harness.inventoryService,
+      domainOutboxRepo: harness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await service.returnLine(
+      'order-1',
+      'line-1',
+      { quantity: 1, reason: 'wrong_item', note: 'second unit also returned' },
+      { actorName: 'Admin' }
+    );
+
+    expect(harness.calls.batchedStatements.some((statement) =>
+      statement.sql.includes('UPDATE orders SET delivery_status = ?')
+        && statement.params[0] === 'returned'
+    )).toBe(true);
+  });
+
+  it('rejects returns without a valid reason code', async () => {
+    await expect(
+      service.returnLine(
+        'order-1',
+        'line-1',
+        { quantity: 1, reason: '' },
+        { actorName: 'Admin' }
+      )
+    ).rejects.toThrow(/valid return reason/i);
+
+    await expect(
+      service.returnLine(
+        'order-1',
+        'line-1',
+        { quantity: 1, reason: 'bad_code' },
+        { actorName: 'Admin' }
+      )
+    ).rejects.toThrow(/valid return reason/i);
+  });
+
   it('rejects line commands that exceed remaining, reserved, or available quantities', async () => {
     await expect(
       service.reserveLine('order-1', 'line-1', { quantity: 10 }, { actorName: 'Admin' })
@@ -530,6 +835,18 @@ describe('OrderLineFulfillmentService', () => {
 
     await expect(
       service.shipLine('order-1', 'line-1', { quantity: 8 }, { actorName: 'Admin' })
+    ).rejects.toBeInstanceOf(BadRequestError);
+
+    harness = createDbHarness();
+    service = new OrderLineFulfillmentService(harness.db, {
+      allocationRepo: harness.allocationRepo,
+      inventoryService: harness.inventoryService,
+      domainOutboxRepo: harness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await expect(
+      service.unshipLine('order-1', 'line-1', { quantity: 3 }, { actorName: 'Admin' })
     ).rejects.toBeInstanceOf(BadRequestError);
   });
 });

@@ -68,7 +68,10 @@ describe('Dashboard order detail workflow', () => {
           PermissionDeniedState: { template: '<div />' },
           AppImage: { template: '<div />' },
           AppButton: { template: '<button><slot /><slot name="append" /></button>' },
-          RouterLink: { template: '<a><slot /></a>' },
+          RouterLink: {
+            props: ['to'],
+            template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
+          },
         },
       },
     });
@@ -142,5 +145,14 @@ describe('Dashboard order detail workflow', () => {
 
     expect(wrapper.vm.showDetailModal).toBe(false);
     expect(wrapper.vm.viewingOrder).toBe(null);
+  });
+
+  it('links pending orders card to the named admin orders route', () => {
+    const wrapper = createWrapper();
+
+    expect(wrapper.get('a').attributes('data-to')).toBe(JSON.stringify({
+      name: 'Orders',
+      query: { status: 'pending' },
+    }));
   });
 });

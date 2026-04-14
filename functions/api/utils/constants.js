@@ -14,6 +14,7 @@ export const ORDER_STATUSES = [
   'production',
   'shipping',
   'arrived',
+  'fulfilled',
   'delivered',
   'void',
 ];

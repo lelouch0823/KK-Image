@@ -61,7 +61,10 @@ describe('ProductDetail associated spaces', () => {
           StatusBadge: { template: '<span><slot /></span>' },
           AppTable: { template: '<table />' },
           AppIcon: { template: '<i />' },
-          RouterLink: { template: '<a><slot /></a>' },
+          RouterLink: {
+            props: ['to'],
+            template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
+          },
         },
       },
     });
@@ -113,7 +116,10 @@ describe('ProductDetail associated spaces', () => {
             template: '<div>{{ data.map((item) => item.sku).join(",") }}</div>',
           },
           AppIcon: { template: '<i />' },
-          RouterLink: { template: '<a><slot /></a>' },
+          RouterLink: {
+            props: ['to'],
+            template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
+          },
         },
       },
     });
@@ -153,7 +159,10 @@ describe('ProductDetail associated spaces', () => {
           StatusBadge: { template: '<span><slot /></span>' },
           AppTable: { template: '<table />' },
           AppIcon: { template: '<i />' },
-          RouterLink: { template: '<a><slot /></a>' },
+          RouterLink: {
+            props: ['to'],
+            template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
+          },
         },
       },
     });
@@ -191,7 +200,10 @@ describe('ProductDetail associated spaces', () => {
           StatusBadge: { template: '<span><slot /></span>' },
           AppTable: { template: '<table />' },
           AppIcon: { template: '<i />' },
-          RouterLink: { template: '<a><slot /></a>' },
+          RouterLink: {
+            props: ['to'],
+            template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
+          },
         },
       },
     });
@@ -232,7 +244,10 @@ describe('ProductDetail associated spaces', () => {
           StatusBadge: { template: '<span><slot /></span>' },
           AppTable: { template: '<table />' },
           AppIcon: { template: '<i />' },
-          RouterLink: { template: '<a><slot /></a>' },
+          RouterLink: {
+            props: ['to'],
+            template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
+          },
         },
       },
     });
@@ -265,7 +280,10 @@ describe('ProductDetail associated spaces', () => {
           StatusBadge: { template: '<span><slot /></span>' },
           AppTable: { template: '<table />' },
           AppIcon: { template: '<i />' },
-          RouterLink: { template: '<a><slot /></a>' },
+          RouterLink: {
+            props: ['to'],
+            template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
+          },
         },
       },
     });
@@ -275,5 +293,48 @@ describe('ProductDetail associated spaces', () => {
     expect(wrapper.text()).toContain('spaces down');
     expect(wrapper.text()).not.toContain('No shared spaces linked to this product yet.');
     expect(wrapper.get('[data-testid="associated-spaces-retry"]').exists()).toBe(true);
+  });
+
+  it('links associated spaces through the named admin spaces route', async () => {
+    mocks.loadProductSpaces.mockReset();
+    mocks.loadProductSpaces.mockResolvedValueOnce([
+      {
+        id: 'space-1',
+        name: 'Space One',
+        createdAt: 1700000000000,
+        shareToken: 's1',
+      },
+    ]);
+
+    const wrapper = mount(ProductDetail, {
+      props: {
+        product: {
+          id: 'prod-1',
+          name: 'Chair',
+          price: 100,
+          currency: 'CNY',
+          variants: [],
+        },
+      },
+      global: {
+        stubs: {
+          AppImage: { template: '<img />' },
+          StatusBadge: { template: '<span><slot /></span>' },
+          AppTable: { template: '<table />' },
+          AppIcon: { template: '<i />' },
+          RouterLink: {
+            props: ['to'],
+            template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
+          },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('a').attributes('data-to')).toBe(JSON.stringify({
+      name: 'Spaces',
+      query: { id: 'space-1' },
+    }));
   });
 });

@@ -4,7 +4,7 @@ export const PO_TO_PROCUREMENT_STATUS_MAP = Object.freeze({
   arrived: 'arrived',
 });
 
-const TERMINAL_ORDER_STATUSES = new Set(['delivered', 'void']);
+const TERMINAL_ORDER_STATUSES = new Set(['fulfilled', 'delivered', 'void']);
 
 export function isTerminalOrderStatus(status) {
   return TERMINAL_ORDER_STATUSES.has(String(status || '').toLowerCase());

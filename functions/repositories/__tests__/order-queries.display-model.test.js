@@ -14,6 +14,8 @@ describe('order queries display model compatibility', () => {
         variant_id: 'v-1',
         status: 'production',
         procurement_status: 'ordered',
+        fulfillment_status: 'unfulfilled',
+        delivery_status: 'not_shipped',
         unread_by_admin: 0,
         unread_by_sales: 0,
         original_data: '{}',
@@ -22,6 +24,9 @@ describe('order queries display model compatibility', () => {
         main_image_blurhash: null,
         main_image_id: null,
         quantity: 5,
+        delivered_at: 1710000000000,
+        delivered_by: 'Admin',
+        delivery_note: 'signed by receiver',
         created_at: 1,
         updated_at: 2,
         customer_name: null,
@@ -62,6 +67,7 @@ describe('order queries display model compatibility', () => {
             received_qty: 2,
             reserved_qty: 0,
             shipped_qty: 0,
+            returned_qty: 1,
             cancelled_qty: 0,
             display_status: 'partially_received',
             created_at: 2,
@@ -78,6 +84,11 @@ describe('order queries display model compatibility', () => {
 
     expect(db.prepare.mock.calls[1][0]).toContain('FROM order_lines');
     expect(result.displayStatus).toBe('partially_received');
+    expect(result.fulfillmentStatus).toBe('unfulfilled');
+    expect(result.deliveryStatus).toBe('not_shipped');
+    expect(result.deliveryConfirmedAt).toBe(1710000000000);
+    expect(result.deliveryConfirmedBy).toBe('Admin');
+    expect(result.deliveryNote).toBe('signed by receiver');
     expect(result.lines).toEqual([
       expect.objectContaining({
         id: 'line-1',
@@ -91,6 +102,7 @@ describe('order queries display model compatibility', () => {
         orderedQuantity: 3,
         procuredQuantity: 3,
         receivedQuantity: 2,
+        returnedQuantity: 1,
         displayStatus: 'partially_received',
       }),
     ]);
@@ -108,6 +120,8 @@ describe('order queries display model compatibility', () => {
         variant_id: 'v-1',
         status: 'production',
         procurement_status: 'partially_arrived',
+        fulfillment_status: 'unfulfilled',
+        delivery_status: 'not_shipped',
         unread_by_admin: 0,
         unread_by_sales: 0,
         original_data: '{}',
@@ -151,10 +165,19 @@ describe('order queries display model compatibility', () => {
           current_data: JSON.stringify({ name: 'Chair', brand: 'KK', sku: 'SKU-1' }),
           status: 'production',
           procurement_status: 'ordered',
+          fulfillment_status: 'partially_fulfilled',
+          delivery_status: 'in_transit',
           display_status: 'partially_received',
           product_id: 'p-1',
           variant_id: 'v-1',
           quantity: 5,
+          line_ordered_qty: 5,
+          line_shipped_qty: 2,
+          delivered_at: 1710000000000,
+          delivered_by: 'Admin',
+          delivery_note: 'receiver signed',
+          line_returned_qty: 1,
+          line_cancelled_qty: 0,
           is_unread: 0,
           main_image_id: null,
           created_at: 1,
@@ -173,8 +196,16 @@ describe('order queries display model compatibility', () => {
     const result = await listForAdmin(db, { page: 1, limit: 20 });
 
     expect(db.prepare.mock.calls[1][0]).toContain('display_status');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.fulfillment_status');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.delivery_status');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_line_agg.ordered_qty as line_ordered_qty');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_line_agg.shipped_qty as line_shipped_qty');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_line_agg.returned_qty as line_returned_qty');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_line_agg.cancelled_qty as line_cancelled_qty');
     expect(db.prepare.mock.calls[1][0]).not.toContain('ORDER BY ol.created_at ASC');
     expect(result.items[0].displayStatus).toBe('partially_received');
+    expect(result.items[0].fulfillmentStatus).toBe('partially_fulfilled');
+    expect(result.items[0].deliveryStatus).toBe('partially_returned');
     expect(result.items[0].brand).toBe('KK');
     expect(result.items[0].sku).toBe('SKU-1');
     expect(result.items[0].mainImage).toBe('/file/img-key');
@@ -194,7 +225,10 @@ describe('order queries display model compatibility', () => {
           current_data: JSON.stringify({ name: 'Chair' }),
           status: 'production',
           procurement_status: 'ordered',
+          fulfillment_status: 'partially_fulfilled',
+          delivery_status: 'in_transit',
           display_status: 'partially_received',
+          line_returned_qty: 0,
           is_unread: 0,
           main_image_id: null,
           created_at: 1,
@@ -214,8 +248,15 @@ describe('order queries display model compatibility', () => {
     const result = await listBySalesperson(db, 'sp-1', { page: 1, limit: 20 });
 
     expect(db.prepare.mock.calls[1][0]).toContain('display_status');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.fulfillment_status');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.delivery_status');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_line_agg.ordered_qty as line_ordered_qty');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_line_agg.shipped_qty as line_shipped_qty');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_line_agg.cancelled_qty as line_cancelled_qty');
     expect(db.prepare.mock.calls[1][0]).not.toContain('ORDER BY ol.created_at ASC');
     expect(result.items[0].displayStatus).toBe('partially_received');
+    expect(result.items[0].fulfillmentStatus).toBe('partially_fulfilled');
+    expect(result.items[0].deliveryStatus).toBe('in_transit');
   });
   it('falls back to order-line snapshot names in admin list items when current_data name is missing', async () => {
     const countStmt = {

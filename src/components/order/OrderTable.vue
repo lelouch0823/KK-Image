@@ -82,10 +82,11 @@
 
     <!-- Salesperson Cell -->
     <template #cell-salesperson="{ row }">
-      <div v-if="row.salespersonName" class="flex min-w-0 flex-col">
-        <span class="block truncate font-medium" :title="row.salespersonName">{{ row.salespersonName }}</span>
-        <span class="block truncate text-xs text-(--text-secondary)" :title="row.store">{{ row.store }}</span>
-      </div>
+      <AppTableTextStack
+        v-if="row.salespersonName"
+        :primary="row.salespersonName"
+        :secondary="row.store"
+      />
       <span v-else class="text-(--text-muted)">-</span>
     </template>
 
@@ -98,9 +99,11 @@
     <template #cell-status="{ row }">
       <slot name="status" :order="row">
          <!-- Fallback if no slot provided -->
-        <span class="inline-flex items-center rounded-full bg-(--bg-muted) px-2 py-0.5 text-xs font-medium text-(--text-secondary)">
-          {{ row.status }}
-        </span>
+        <AppTableStatusPill
+          :label="row.status"
+          variant="default"
+          size="xs"
+        />
       </slot>
     </template>
 
@@ -145,6 +148,8 @@ import { useI18n } from '@/composables/useI18n';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppTableTextStack from '@/components/ui/AppTableTextStack.vue';
+import AppTableStatusPill from '@/components/ui/AppTableStatusPill.vue';
 import { formatTime } from '@/utils/formatters';
 
 const props = defineProps({
@@ -173,11 +178,11 @@ const { t } = useI18n();
 const columns = computed(() => {
   const cols = [
     { key: 'product', label: t('order.form.productName'), align: 'left', width: '25%' },
-    { key: 'quantity', label: t('order.form.quantity'), align: 'center', width: '10%' },
+    { key: 'quantity', label: t('order.form.quantity'), kind: 'numeric', align: 'center', width: '10%' },
     { key: 'salesperson', label: t('salesperson.name'), align: 'center', width: '15%' },
     { key: 'orderNo', label: t('order.orderNo'), align: 'center', width: '15%' },
-    { key: 'status', label: t('order.status'), align: 'center', width: '15%' },
-    { key: 'createdAt', label: t('order.createdAt'), align: 'center', width: '15%' },
+    { key: 'status', label: t('order.status'), kind: 'status', align: 'left', width: '1%', minWidth: '7.5rem', maxWidth: '9rem' },
+    { key: 'createdAt', label: t('order.createdAt'), kind: 'datetime', align: 'center', width: '15%' },
     { key: 'actions', label: t('common.actions'), align: 'center', width: '100px' },
   ];
 

@@ -159,7 +159,7 @@ export class OrderStatsRepository {
         .prepare(
           `
                 SELECT COUNT(*) as count FROM orders 
-                WHERE salesperson_id = ? AND status = 'delivered'
+                WHERE salesperson_id = ? AND status IN ('fulfilled', 'delivered')
             `
         )
         .bind(salespersonId)

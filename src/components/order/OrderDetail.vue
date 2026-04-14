@@ -22,6 +22,8 @@
           <OrderLinesCard
             :lines="orderLines"
             :mode="mode"
+            :order-status="order.status"
+            :delivery-status="deliveryStatus"
             :line-command-state="lineCommandState"
             @line-command="$emit('line-command', $event)"
           />
@@ -55,7 +57,14 @@
             :product-name="productName"
             :status="order.status"
             :procurement-status="progressStatus"
+            :delivery-status="deliveryStatus"
+            :can-confirm-delivery="canConfirmDelivery"
+            :delivery-confirm-pending="deliveryConfirmPending"
+            :delivery-confirmed-at="order.deliveryConfirmedAt"
+            :delivery-confirmed-by="order.deliveryConfirmedBy"
+            :delivery-note="order.deliveryNote"
             :quantity="orderQuantity"
+            @confirm-delivery="$emit('confirm-delivery')"
           />
 
           <!-- 时间轴 (PC端窄栏显示，移动端通用) -->
@@ -63,6 +72,10 @@
             <h3 class="text-primary mb-4 text-sm font-medium">{{ t('order.detail.timeline') }}</h3>
             <OrderTimeline :timeline="order.timeline" />
           </div>
+
+          <OrderShipmentHistoryCard :shipments="orderShipments" />
+
+          <OrderReturnHistoryCard :returns="orderReturns" />
 
           <div
             v-if="markReadError"
@@ -180,6 +193,8 @@ import OrderInfoCard from './OrderInfoCard.vue';
 import OrderCommentInput from './OrderCommentInput.vue';
 import OrderPersonCard from './OrderPersonCard.vue';
 import OrderStatusHeader from './OrderStatusHeader.vue';
+import OrderShipmentHistoryCard from './OrderShipmentHistoryCard.vue';
+import OrderReturnHistoryCard from './OrderReturnHistoryCard.vue';
 import OrderPrintView from './OrderPrintView.vue';
 import OrderLinesCard from './OrderLinesCard.vue';
 import OrderEditModal from '../OrderEditModal.vue';
@@ -187,6 +202,7 @@ import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import Lightbox from '@/components/ui/Lightbox.vue';
 import {
+  resolveOrderDeliveryStatus,
   resolveOrderProductName,
   resolveOrderProgressStatus,
   resolveOrderQuantity,
@@ -209,9 +225,13 @@ const props = defineProps({
       error: '',
     }),
   },
+  deliveryConfirmPending: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(['back', 'comment', 'refresh', 'duplicate', 'edit', 'delete-order', 'line-command']);
+const emit = defineEmits(['back', 'comment', 'refresh', 'duplicate', 'edit', 'delete-order', 'line-command', 'confirm-delivery']);
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -269,8 +289,16 @@ const hasCustomerInfo = computed(() => {
 // 当前数据
 const currentData = computed(() => props.order.currentData || {});
 const orderLines = computed(() => (Array.isArray(props.order.lines) ? props.order.lines : []));
+const orderShipments = computed(() => (Array.isArray(props.order.shipments) ? props.order.shipments : []));
+const orderReturns = computed(() => (Array.isArray(props.order.returns) ? props.order.returns : []));
 const orderQuantity = computed(() => resolveOrderQuantity(props.order));
 const progressStatus = computed(() => resolveOrderProgressStatus(props.order));
+const deliveryStatus = computed(() => resolveOrderDeliveryStatus(props.order));
+const canConfirmDelivery = computed(() =>
+  props.mode === 'admin'
+  && String(props.order?.status || '').trim().toLowerCase() === 'fulfilled'
+  && deliveryStatus.value === 'in_transit'
+);
 const productName = computed(() => resolveOrderProductName(props.order));
 const displayData = computed(() => ({
   ...currentData.value,

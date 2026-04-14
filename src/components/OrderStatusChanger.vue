@@ -4,15 +4,15 @@
     <button
       type="button"
       :disabled="loading"
-      class="focus-visible:ring-primary/30 focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none inline-flex items-center justify-between gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold shadow-sm transition-all duration-200 hover:shadow-md active:scale-95 disabled:opacity-50"
-      :class="currentStatusClass"
+      class="focus-visible:ring-primary/30 focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none inline-flex min-w-[4.25rem] items-center justify-center whitespace-nowrap rounded-full border py-1.5 text-xs font-semibold shadow-sm transition-all duration-200 hover:shadow-md active:scale-95 disabled:opacity-50"
+      :class="[currentStatusClass, showChevron ? 'relative pl-3 pr-8' : 'px-3.5']"
       @click="openModal"
     >
-      <span class="flex items-center gap-1.5">
+      <span class="flex min-w-0 items-center justify-center gap-1.5 text-center">
         <span class="size-2 rounded-full" :class="getStatusDotColor(status)"></span>
-        {{ t(`order.statuses.${status}`) }}
+        <span class="max-w-[4.5rem] truncate">{{ t(`order.statuses.${status}`) }}</span>
       </span>
-      <AppIcon name="chevron-up-down" class="size-3.5 opacity-60" />
+      <AppIcon v-if="showChevron" name="chevron-up-down" class="absolute right-3 size-3.5 opacity-60" />
     </button>
 
     <!-- 状态变更弹窗 -->
@@ -78,7 +78,7 @@
                   v-for="s in orderedStatusOptions"
                   :key="s"
                   type="button"
-                  :disabled="isOutOfFlowStatus(s) && !canUseForceOverride"
+                  :disabled="isStatusDisabled(s)"
                   :aria-label="getStatusButtonAriaLabel(s)"
                   class="focus-visible:ring-primary/30 focus-visible:ring-2 focus-visible:outline-none relative flex cursor-pointer items-center gap-2.5 rounded-xl border-2 px-4 py-3 text-left transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50"
                   :class="[
@@ -105,13 +105,7 @@
 
                   <span
                     class="ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium"
-                    :class="[
-                      s === status
-                        ? 'bg-(--bg-muted) text-(--text-secondary)'
-                        : isOutOfFlowStatus(s)
-                          ? 'bg-warning/15 text-warning'
-                          : 'bg-success/15 text-success',
-                    ]"
+                    :class="getStatusTagClass(s)"
                   >
                     {{ getStatusTagText(s) }}
                   </span>
@@ -231,6 +225,8 @@ const props = defineProps({
   status: { type: String, required: true },
   loading: Boolean,
   permissions: { type: Array, default: () => [] },
+  showChevron: { type: Boolean, default: true },
+  canDeliver: { type: Boolean, default: true },
   // 异步回调：返回 Promise 以便弹窗等待 API 完成后再关闭
   onStatusChange: { type: Function, default: null },
 });
@@ -262,7 +258,9 @@ const isDangerousStatus = computed(
 );
 
 const allowedTransitions = computed(() => getAllowedOrderTransitions(props.status));
+const isBlockedStatus = (s) => ['fulfilled', 'delivered'].includes(s) && !props.canDeliver;
 const isOutOfFlowStatus = (s) => s !== props.status && !allowedTransitions.value.includes(s);
+const isStatusDisabled = (s) => isBlockedStatus(s) || (isOutOfFlowStatus(s) && !canUseForceOverride.value);
 const requiresForceOverride = computed(() => selectedStatus.value && isOutOfFlowStatus(selectedStatus.value));
 const canUseForceOverride = computed(() => hasForceStatusPermission(props.permissions));
 const forceReasonValid = computed(() => String(statusNote.value || '').trim().length > 0);
@@ -274,8 +272,15 @@ const orderedStatusOptions = computed(() => {
 
 const getStatusTagText = (s) => {
   if (s === props.status) return t('order.manage.currentTag');
+  if (isBlockedStatus(s)) return t('order.manage.blockedTag');
   if (isOutOfFlowStatus(s)) return t('order.manage.forceTag');
   return t('order.manage.flowTag');
+};
+
+const getStatusTagClass = (s) => {
+  if (s === props.status) return 'bg-(--bg-muted) text-(--text-secondary)';
+  if (isBlockedStatus(s) || isOutOfFlowStatus(s)) return 'bg-warning/15 text-warning';
+  return 'bg-success/15 text-success';
 };
 
 const getStatusButtonAriaLabel = (s) => {
@@ -285,6 +290,17 @@ const getStatusButtonAriaLabel = (s) => {
 };
 
 const friendlyTipKey = computed(() => {
+  if (
+    !props.canDeliver &&
+    props.status !== 'delivered' &&
+    (
+      !selectedStatus.value ||
+      selectedStatus.value === props.status ||
+      ['fulfilled', 'delivered'].includes(selectedStatus.value)
+    )
+  ) {
+    return 'order.manage.deliveryBlockedTip';
+  }
   if (!selectedStatus.value || selectedStatus.value === props.status) {
     return 'order.manage.friendlyPickTip';
   }

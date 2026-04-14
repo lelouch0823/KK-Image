@@ -10,16 +10,16 @@
 import { generateId, now } from '../../api/utils/id.js';
 import { assertOrderStatusTransition } from '../../api/utils/order-state-machine.js';
 import { chunkArray, executeBatchChunks } from '../../lib/db/batch.js';
+import { BadRequestError } from '../../lib/hono/errors.js';
 import { InventoryService } from '../../services/InventoryService.js';
 import { projectOrderLineStatus } from '../../services/OrderStatusProjectionService.js';
 
 export const INSUFFICIENT_VARIANT_STOCK_ERROR = 'insufficient variant stock for delivery';
+export const ORDER_SHIPPED_VOID_GUARD_ERROR = 'cannot void order while shipped line quantities remain';
+export const ORDER_DELIVERED_COMPLETENESS_ERROR =
+    'cannot mark order delivered until all line quantities are shipped';
 
 function getDeliveryStockDelta(oldStatus, newStatus, quantity) {
-    const safeQty = Math.max(0, Number(quantity) || 0);
-    if (!safeQty) return 0;
-    if (oldStatus !== 'delivered' && newStatus === 'delivered') return -safeQty;
-    if (oldStatus === 'delivered' && newStatus !== 'delivered') return safeQty;
     return 0;
 }
 
@@ -71,6 +71,62 @@ async function findOrderLineIdByOrderId(db, orderId) {
 
 function toNonNegativeInt(value) {
     return Math.max(0, Math.trunc(Number(value) || 0));
+}
+
+function normalizeOrderLifecycleStatus(status) {
+    const normalized = String(status || '').trim().toLowerCase();
+    if (normalized === 'delivered') return 'fulfilled';
+    return normalized;
+}
+
+async function getOrderLineTotals(db, orderId) {
+    if (!orderId) {
+        return {
+            ordered_qty: 0,
+            shipped_qty: 0,
+            cancelled_qty: 0,
+            line_count: 0,
+        };
+    }
+
+    const summary = await db
+        .prepare(
+            `SELECT
+                COALESCE(SUM(ordered_qty), 0) AS ordered_qty,
+                COALESCE(SUM(shipped_qty), 0) AS shipped_qty,
+                COALESCE(SUM(cancelled_qty), 0) AS cancelled_qty,
+                COUNT(*) AS line_count
+             FROM order_lines
+             WHERE order_id = ?`
+        )
+        .bind(orderId)
+        .first();
+
+    return {
+        ordered_qty: toNonNegativeInt(summary?.ordered_qty),
+        shipped_qty: toNonNegativeInt(summary?.shipped_qty),
+        cancelled_qty: toNonNegativeInt(summary?.cancelled_qty),
+        line_count: toNonNegativeInt(summary?.line_count),
+    };
+}
+
+async function assertOrderStatusCompatibleWithLines(db, orderId, nextStatus) {
+    const normalizedStatus = normalizeOrderLifecycleStatus(nextStatus);
+    if (!normalizedStatus) return;
+
+    const totals = await getOrderLineTotals(db, orderId);
+    if (totals.line_count <= 0) return;
+
+    const remainingQty = Math.max(totals.ordered_qty - totals.cancelled_qty, 0);
+    const shippedQty = totals.shipped_qty;
+
+    if (normalizedStatus === 'fulfilled' && shippedQty < remainingQty) {
+        throw new BadRequestError(ORDER_DELIVERED_COMPLETENESS_ERROR);
+    }
+
+    if (normalizedStatus === 'void' && shippedQty > 0) {
+        throw new BadRequestError(ORDER_SHIPPED_VOID_GUARD_ERROR);
+    }
 }
 
 async function syncCompatibilityOrderLineSnapshot(db, {
@@ -140,7 +196,7 @@ async function syncCompatibilityOrderLineSnapshot(db, {
 
 function deriveCompatibilityLineState(status, orderedQty, existingLine = {}) {
     const ordered = normalizeQuantity(orderedQty);
-    const normalizedStatus = String(status || 'pending').trim().toLowerCase();
+    const normalizedStatus = normalizeOrderLifecycleStatus(status || 'pending');
     const next = {
         ordered_qty: ordered,
         procured_qty: toNonNegativeInt(existingLine.procured_qty),
@@ -152,23 +208,20 @@ function deriveCompatibilityLineState(status, orderedQty, existingLine = {}) {
 
     if (['void', 'rejected', 'cancelled'].includes(normalizedStatus)) {
         next.cancelled_qty = ordered;
-        next.shipped_qty = 0;
         next.reserved_qty = 0;
     } else {
         next.cancelled_qty = 0;
     }
 
-    if (['production', 'shipping', 'arrived', 'delivered'].includes(normalizedStatus)) {
+    if (['production', 'shipping', 'arrived', 'fulfilled'].includes(normalizedStatus)) {
         next.procured_qty = Math.max(next.procured_qty, ordered);
     }
 
-    if (['arrived', 'delivered'].includes(normalizedStatus)) {
+    if (['arrived', 'fulfilled'].includes(normalizedStatus)) {
         next.received_qty = Math.max(next.received_qty, ordered);
     }
 
-    if (normalizedStatus !== 'delivered') {
-        next.shipped_qty = 0;
-    } else {
+    if (normalizedStatus === 'fulfilled') {
         const remaining = Math.max(ordered - next.cancelled_qty, 0);
         next.shipped_qty = Math.max(next.shipped_qty, remaining);
     }
@@ -228,7 +281,7 @@ async function buildCompatibilityLineProgressStatement(db, orderId, status, orde
 }
 
 function buildInitialOrderLineProgress(status, orderedQty) {
-    const normalizedStatus = String(status || 'pending').trim().toLowerCase();
+    const normalizedStatus = normalizeOrderLifecycleStatus(status || 'pending');
     const quantity = normalizeQuantity(orderedQty);
     const progress = {
         procured_qty: 0,
@@ -245,7 +298,7 @@ function buildInitialOrderLineProgress(status, orderedQty) {
         return progress;
     }
 
-    if (normalizedStatus === 'delivered') {
+    if (normalizedStatus === 'fulfilled') {
         progress.procured_qty = quantity;
         progress.received_qty = quantity;
         progress.shipped_qty = quantity;
@@ -282,6 +335,7 @@ export async function create(
 ) {
     const timestamp = now();
     const normalizedQuantity = normalizeQuantity(quantity);
+    const normalizedStatus = normalizeOrderLifecycleStatus(status || 'pending') || 'pending';
     const orderData = JSON.stringify(data);
     const batchStatements = [];
 
@@ -294,13 +348,13 @@ export async function create(
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?, ?, ?)
         `
             )
-            .bind(id, orderNo, salespersonId, orderData, orderData, status, mainImageId, normalizedQuantity, timestamp, timestamp, productId, variantId)
+            .bind(id, orderNo, salespersonId, orderData, orderData, normalizedStatus, mainImageId, normalizedQuantity, timestamp, timestamp, productId, variantId)
     );
 
     const snapshotSpecs = buildSnapshotSpecs(data);
     const snapshotSpecsJson = snapshotSpecs ? JSON.stringify(snapshotSpecs) : null;
     const orderedQty = normalizedQuantity;
-    const lineProgress = buildInitialOrderLineProgress(status, orderedQty);
+    const lineProgress = buildInitialOrderLineProgress(normalizedStatus, orderedQty);
     const orderLineId = generateId();
     batchStatements.push(
         db
@@ -460,16 +514,20 @@ export async function updateComposite(db, {
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
     const statements = [];
     const stockService = inventoryService || new InventoryService(db);
+    const normalizedStatus = status !== undefined
+        ? (normalizeOrderLifecycleStatus(status) || status)
+        : undefined;
 
     if (status !== undefined) {
+        await assertOrderStatusCompatibleWithLines(db, id, normalizedStatus);
         const currentOrder = await db
             .prepare('SELECT status, variant_id, quantity FROM orders WHERE id = ?')
             .bind(id)
             .first();
         if (currentOrder?.status) {
-            assertOrderStatusTransition(currentOrder.status, status, { forceStatusTransition });
+            assertOrderStatusTransition(currentOrder.status, normalizedStatus, { forceStatusTransition });
         }
-        const stockDelta = getDeliveryStockDelta(currentOrder?.status, status, currentOrder?.quantity);
+        const stockDelta = getDeliveryStockDelta(currentOrder?.status, normalizedStatus, currentOrder?.quantity);
         if (currentOrder?.variant_id && stockDelta < 0) {
             await stockService.assertSufficient(currentOrder.variant_id, Math.abs(stockDelta));
         }
@@ -508,7 +566,7 @@ export async function updateComposite(db, {
     }
     if (status !== undefined) {
         colsToUpdate.push('status = ?');
-        params.push(status);
+        params.push(normalizedStatus);
     }
     if (Array.isArray(fileIds)) {
         colsToUpdate.push('main_image_id = ?');
@@ -536,7 +594,7 @@ export async function updateComposite(db, {
         statements.push(await buildCompatibilityLineProgressStatement(
             db,
             id,
-            status,
+            normalizedStatus,
             newData?.quantity,
             timestamp
         ));
@@ -570,14 +628,16 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
     const timestamp = now();
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
     const inventoryService = options.inventoryService || new InventoryService(db);
+    const normalizedNextStatus = normalizeOrderLifecycleStatus(newStatus);
+    await assertOrderStatusCompatibleWithLines(db, id, normalizedNextStatus);
     const currentOrder = await db
         .prepare('SELECT status, variant_id, quantity FROM orders WHERE id = ?')
         .bind(id)
         .first();
     if (currentOrder?.status) {
-        assertOrderStatusTransition(currentOrder.status, newStatus, { forceStatusTransition });
+        assertOrderStatusTransition(currentOrder.status, normalizedNextStatus, { forceStatusTransition });
     }
-    const stockDelta = getDeliveryStockDelta(currentOrder?.status, newStatus, currentOrder?.quantity);
+    const stockDelta = getDeliveryStockDelta(currentOrder?.status, normalizedNextStatus, currentOrder?.quantity);
     const canAdjustVariantStock = Boolean(currentOrder?.variant_id) && stockDelta !== 0;
 
     if (canAdjustVariantStock && stockDelta < 0) {
@@ -598,7 +658,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
         const lineProgressStatement = await buildCompatibilityLineProgressStatement(
             db,
             id,
-            newStatus,
+            normalizedNextStatus,
             currentOrder?.quantity,
             timestamp
         );
@@ -611,7 +671,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
       WHERE id = ?
       `
                 )
-                .bind(newStatus, timestamp, id),
+                .bind(normalizedNextStatus, timestamp, id),
             lineProgressStatement,
         ];
         await executeBatchChunks(db, statements);
@@ -621,7 +681,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
     const lineProgressStatement = await buildCompatibilityLineProgressStatement(
         db,
         id,
-        newStatus,
+        normalizedNextStatus,
         currentOrder?.quantity,
         timestamp
     );
@@ -634,7 +694,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
       WHERE id = ?
       `
             )
-            .bind(newStatus, timestamp, id),
+            .bind(normalizedNextStatus, timestamp, id),
         lineProgressStatement,
     ]);
     return { success: true, meta: { changes: 1 } };
@@ -679,6 +739,7 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
     const timestamp = now();
     const batchStatements = [];
     const inventoryService = options.inventoryService || new InventoryService(db);
+    const normalizedNextStatus = normalizeOrderLifecycleStatus(newStatus);
     const existingOrders = [];
     for (const idChunk of chunkArray(ids)) {
         const placeholders = idChunk.map(() => '?').join(',');
@@ -692,11 +753,12 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
     const deliveryRequirementsByVariant = new Map();
 
     for (const id of ids) {
+        await assertOrderStatusCompatibleWithLines(db, id, normalizedNextStatus);
         const order = orderMap.get(id);
         if (order?.status) {
-            assertOrderStatusTransition(order.status, newStatus, { forceStatusTransition });
+            assertOrderStatusTransition(order.status, normalizedNextStatus, { forceStatusTransition });
         }
-        const stockDelta = getDeliveryStockDelta(order?.status, newStatus, order?.quantity);
+        const stockDelta = getDeliveryStockDelta(order?.status, normalizedNextStatus, order?.quantity);
         if (order?.variant_id && stockDelta < 0) {
             const requiredQty = Math.abs(stockDelta);
             const prev = deliveryRequirementsByVariant.get(order.variant_id) || 0;
@@ -709,7 +771,7 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
 
     for (const id of ids) {
         const order = orderMap.get(id);
-        const stockDelta = getDeliveryStockDelta(order?.status, newStatus, order?.quantity);
+        const stockDelta = getDeliveryStockDelta(order?.status, normalizedNextStatus, order?.quantity);
         if (order?.variant_id && stockDelta !== 0) {
             inventoryMutations.push({
                 type: 'order_shipment',
@@ -728,12 +790,12 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
           UPDATE orders SET status = ?, unread_by_sales = 1, updated_at = ? WHERE id = ?
           `
                 )
-                .bind(newStatus, timestamp, id)
+                .bind(normalizedNextStatus, timestamp, id)
         );
         batchStatements.push(await buildCompatibilityLineProgressStatement(
             db,
             id,
-            newStatus,
+            normalizedNextStatus,
             order?.quantity,
             timestamp
         ));

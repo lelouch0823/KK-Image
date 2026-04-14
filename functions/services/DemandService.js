@@ -4,8 +4,8 @@ import { BadRequestError } from '../lib/hono/errors.js';
 const DEMAND_ACTIVE_STATUSES = new Set(['confirmed', 'production', 'shipping', 'arrived']);
 const DEMAND_RELEASE_STATUSES = new Set(['void', 'rejected', 'cancelled']);
 const RESERVATION_ACTIVE_STATUSES = new Set(['confirmed', 'production', 'shipping', 'arrived']);
-const SHIPMENT_PREP_STATUSES = new Set(['shipping', 'delivered']);
-const SHIPMENT_CONSUME_STATUSES = new Set(['delivered']);
+const SHIPMENT_PREP_STATUSES = new Set(['shipping', 'fulfilled', 'delivered']);
+const SHIPMENT_CONSUME_STATUSES = new Set(['fulfilled', 'delivered']);
 
 export class DemandService {
   constructor(db) {

@@ -297,7 +297,7 @@ export function buildCompatibilityOrderProcurementStatusStatement(
   const params = [procurementStatus, timestamp, orderId];
 
   if (excludeTerminalStatuses) {
-    whereClauses.push("AND status NOT IN ('delivered', 'void')");
+    whereClauses.push("AND status NOT IN ('fulfilled', 'delivered', 'void')");
   }
 
   if (requireStatusChange) {

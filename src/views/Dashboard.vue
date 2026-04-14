@@ -110,7 +110,7 @@
                 
                 <!-- Footer -->
                 <div class="border-t border-(--border-subtle) bg-(--bg-card) p-4 text-center dark:border-white/5 dark:bg-(--bg-card)/50">
-                    <router-link to="/orders?status=pending" class="text-primary flex w-full items-center justify-center gap-1 text-xs font-medium transition-colors hover:text-primary/80">
+                    <router-link :to="{ name: 'Orders', query: { status: 'pending' } }" class="text-primary flex w-full items-center justify-center gap-1 text-xs font-medium transition-colors hover:text-primary/80">
                         {{ t('dashboard.viewAllPending') }}
                         <AppIcon name="arrow-right" class="size-3.5" />
                     </router-link>

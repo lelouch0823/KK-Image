@@ -17,7 +17,7 @@ describe('OrderProcurementBadge', () => {
 
   it('renders explicit procurement status label', () => {
     const wrapper = mount(OrderProcurementBadge, {
-      props: { status: 'ordered', showLabel: true },
+      props: { status: 'ordered', preset: 'detail' },
     });
 
     expect(wrapper.text()).toContain('order.procurementStatus');
@@ -30,5 +30,25 @@ describe('OrderProcurementBadge', () => {
     });
 
     expect(wrapper.text()).toContain('order.procurementStatuses.partially_received');
+  });
+
+  it('supports a lightweight meta appearance for dense lists', () => {
+    const wrapper = mount(OrderProcurementBadge, {
+      props: { status: 'partially_received', preset: 'meta' },
+    });
+
+    expect(wrapper.text()).toContain('order.procurementStatuses.partially_received');
+    expect(wrapper.classes()).toContain('whitespace-nowrap');
+    expect(wrapper.find('span > span').exists()).toBe(true);
+  });
+
+  it('supports a compact line preset for readonly line-level states', () => {
+    const wrapper = mount(OrderProcurementBadge, {
+      props: { status: 'ordered', preset: 'line' },
+    });
+
+    expect(wrapper.text()).toContain('order.procurementStatuses.ordered');
+    expect(wrapper.classes()).toContain('whitespace-nowrap');
+    expect(wrapper.classes()).toContain('!text-[10px]');
   });
 });

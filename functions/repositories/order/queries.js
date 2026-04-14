@@ -21,14 +21,22 @@ async function findOrderLines(db, orderId) {
         .prepare(
             `
       SELECT
-          id, order_id, product_id, variant_id,
-          snapshot_name, snapshot_image,
-          ordered_qty, procured_qty, received_qty, reserved_qty,
-          shipped_qty, cancelled_qty, display_status,
-          created_at, updated_at
-      FROM order_lines
-      WHERE order_id = ?
-      ORDER BY created_at ASC
+          ol.id, ol.order_id, ol.product_id, ol.variant_id,
+          ol.snapshot_name, ol.snapshot_image,
+          ol.ordered_qty, ol.procured_qty, ol.received_qty, ol.reserved_qty,
+          ol.shipped_qty, COALESCE(orq.returned_qty, 0) AS returned_qty, ol.cancelled_qty, ol.display_status,
+          ol.created_at, ol.updated_at
+      FROM order_lines ol
+      LEFT JOIN (
+          SELECT
+              order_line_id,
+              COALESCE(SUM(quantity), 0) AS returned_qty
+          FROM order_returns
+          WHERE status != 'cancelled'
+          GROUP BY order_line_id
+      ) orq ON orq.order_line_id = ol.id
+      WHERE ol.order_id = ?
+      ORDER BY ol.created_at ASC
       `
         )
         .bind(orderId)
@@ -147,8 +155,12 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
 
     const listSql = `
       SELECT
-          o.id, o.order_no, o.current_data, o.status, o.procurement_status,
+          o.id, o.order_no, o.current_data, o.status, o.procurement_status, o.fulfillment_status, o.delivery_status,
           order_line_agg.display_status as display_status,
+          order_line_agg.ordered_qty as line_ordered_qty,
+          order_line_agg.shipped_qty as line_shipped_qty,
+          order_line_agg.returned_qty as line_returned_qty,
+          order_line_agg.cancelled_qty as line_cancelled_qty,
           order_line_snapshot.snapshot_name as snapshot_name,
           o.unread_by_sales as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
@@ -159,6 +171,7 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
               WHEN 'shipping' THEN 3
               WHEN 'confirmed' THEN 4
               WHEN 'arrived' THEN 5
+              WHEN 'fulfilled' THEN 6
               WHEN 'delivered' THEN 6
               WHEN 'rejected' THEN 7
               WHEN 'void' THEN 99
@@ -240,8 +253,12 @@ export async function listForAdmin(
 
     const listSql = `
       SELECT
-          o.id, o.order_no, o.salesperson_id, o.current_data, o.status, o.procurement_status, o.product_id, o.variant_id, o.quantity,
+          o.id, o.order_no, o.salesperson_id, o.current_data, o.status, o.procurement_status, o.fulfillment_status, o.delivery_status, o.product_id, o.variant_id, o.quantity,
           order_line_agg.display_status as display_status,
+          order_line_agg.ordered_qty as line_ordered_qty,
+          order_line_agg.shipped_qty as line_shipped_qty,
+          order_line_agg.returned_qty as line_returned_qty,
+          order_line_agg.cancelled_qty as line_cancelled_qty,
           order_line_snapshot.snapshot_name as snapshot_name,
           o.unread_by_admin as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
@@ -253,6 +270,7 @@ export async function listForAdmin(
               WHEN 'shipping' THEN 3
               WHEN 'confirmed' THEN 4
               WHEN 'arrived' THEN 5
+              WHEN 'fulfilled' THEN 6
               WHEN 'delivered' THEN 6
               WHEN 'rejected' THEN 7
               WHEN 'void' THEN 99

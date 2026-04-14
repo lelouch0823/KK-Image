@@ -59,12 +59,13 @@ describe('InventoryProjectionService', () => {
     const projection = projectInventoryBalances([
       { event_type: 'purchase_received', quantity_delta: 5 },
       { event_type: 'inventory_adjusted_reversal', quantity_delta: -2 },
+      { event_type: 'order_unshipment', quantity_delta: 1 },
     ]);
 
     expect(projection).toEqual({
-      on_hand: 3,
+      on_hand: 4,
       reserved: 0,
-      available: 3,
+      available: 4,
     });
   });
 });

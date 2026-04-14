@@ -15,16 +15,21 @@
             :data="shares"
             :loading="loading"
             class="h-full"
+            table-layout="fixed"
         >
             <template #cell-name="{ row }">
-                <div class="flex flex-col">
-                    <span class="font-medium text-(--text-main)">{{ row.name }}</span>
-                    <span class="text-xs text-(--text-secondary)">{{ row.spaceName || '...' }}</span>
-                </div>
+                <AppTableTextStack
+                  :primary="row.name"
+                  :secondary="row.spaceName || '...'"
+                />
             </template>
             <template #cell-code="{ row }">
-                <div class="flex items-center gap-2">
-                  <span class="rounded bg-(--bg-muted) px-2 py-1 font-mono text-xs select-all">{{ row.shareToken }}</span>
+                <div class="flex min-w-0 items-center gap-2">
+                  <AppTableCodeChip
+                    :value="row.shareToken"
+                    max-width="14rem"
+                    selectable
+                  />
                   <button
                       class="hover:text-primary text-(--text-secondary)"
                       :title="t('share.copyLink')"
@@ -124,6 +129,8 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppTableCodeChip from '@/components/ui/AppTableCodeChip.vue';
+import AppTableTextStack from '@/components/ui/AppTableTextStack.vue';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -153,10 +160,10 @@ const confirmData = ref({
 });
 
 const columns = computed(() => [
-    { key: 'name', label: t('share.table.name') },
-    { key: 'code', label: t('share.table.code') },
-    { key: 'expiresAt', label: t('share.table.expires') },
-    { key: 'actions', label: t('common.actions'), align: 'right' },
+    { key: 'name', label: t('share.table.name'), width: '240px', minWidth: '240px' },
+    { key: 'code', label: t('share.table.code'), kind: 'identifier', width: '260px', maxWidth: '260px' },
+    { key: 'expiresAt', label: t('share.table.expires'), kind: 'datetime', width: '160px', maxWidth: '160px' },
+    { key: 'actions', label: t('common.actions'), align: 'right', width: '110px', maxWidth: '110px', nowrap: true },
 ]);
 
 const fetchShares = async () => {

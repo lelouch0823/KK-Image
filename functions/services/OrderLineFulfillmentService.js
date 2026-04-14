@@ -39,6 +39,27 @@ function getAllocationRemaining(allocation = {}) {
   );
 }
 
+const RETURN_REASON_CODES = Object.freeze([
+  'customer_refused',
+  'wrong_item',
+  'damage',
+  'quality_issue',
+  'logistics_failure',
+  'other',
+]);
+
+function parseReturnReason(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!RETURN_REASON_CODES.includes(normalized)) {
+    throw new BadRequestError('returns require a valid return reason code');
+  }
+  return normalized;
+}
+
+function normalizeLedgerNote(value) {
+  return String(value || '').trim();
+}
+
 export class OrderLineFulfillmentService {
   constructor(db, deps = {}) {
     this.db = db;
@@ -283,6 +304,16 @@ export class OrderLineFulfillmentService {
     });
 
     statements.push(
+      this.buildShipmentLedgerStatement({
+        orderId,
+        lineId,
+        variantId: line.variant_id,
+        actionType: 'shipped',
+        quantity,
+        actorName: options.actorName || null,
+        note: normalizeLedgerNote(payload?.note),
+        timestamp,
+      }),
       ...(shipment?.statements || []),
       buildOrderLineProjectionStatement(
         this.db,
@@ -321,6 +352,172 @@ export class OrderLineFulfillmentService {
     });
   }
 
+  async unshipLine(orderId, lineId, payload = {}, options = {}) {
+    const line = await this.requireOrderLine(orderId, lineId);
+    const quantity = parsePositiveLineCommandQuantity(payload);
+    this.assertVariantBacked(line);
+    this.assertUnshipAllowed(line);
+
+    const currentShipped = toNonNegativeInt(line.shipped_qty);
+    if (quantity > currentShipped) {
+      throw new BadRequestError(`unship quantity exceeds shipped quantity: ${currentShipped}`);
+    }
+
+    const inventory = await queryInventoryBalance(this.db, line.variant_id);
+    const timestamp = this.now();
+    const nextLineState = this.buildNextLineState(line, {
+      shipped_qty: Math.max(currentShipped - quantity, 0),
+    });
+
+    const unshipment = await this.inventoryService.buildMutationStatements({
+      type: 'order_unshipment',
+      variantId: line.variant_id,
+      quantityDelta: quantity,
+      orderId,
+      orderLineId: lineId,
+      referenceType: 'order',
+      referenceId: orderId,
+      metadata: {
+        action: 'unship',
+        actorName: options.actorName || null,
+      },
+    });
+
+    const statements = [
+      this.buildShipmentLedgerStatement({
+        orderId,
+        lineId,
+        variantId: line.variant_id,
+        actionType: 'unshipped',
+        quantity,
+        actorName: options.actorName || null,
+        note: normalizeLedgerNote(payload?.note),
+        timestamp,
+      }),
+      ...(unshipment?.statements || []),
+      buildOrderLineProjectionStatement(
+        this.db,
+        {
+          ...nextLineState,
+          id: line.line_id,
+          order_id: line.order_id,
+        },
+        {
+          id: line.line_id,
+          order_id: line.order_id,
+        },
+        timestamp
+      ),
+      this.buildOrderTouchStatement(orderId, timestamp),
+      ...this.buildOutboxStatements({
+        order: line,
+        orderId,
+        lineId,
+        action: 'unship',
+        quantity,
+        nextLineState,
+        timestamp,
+        actorName: options.actorName || null,
+      }),
+    ];
+
+    await this.db.batch(statements);
+    return this.buildCommandResult({
+      orderId,
+      lineId,
+      action: 'unship',
+      quantity,
+      nextLineState,
+      inventory,
+    });
+  }
+
+  async returnLine(orderId, lineId, payload = {}, options = {}) {
+    const line = await this.requireOrderLine(orderId, lineId);
+    const quantity = parsePositiveLineCommandQuantity(payload);
+    const reason = parseReturnReason(payload?.reason);
+    this.assertVariantBacked(line);
+    this.assertReturnAllowed(line);
+
+    const returnedQty = await this.getReturnedQuantity(lineId);
+    const currentShipped = toNonNegativeInt(line.shipped_qty);
+    const returnableQty = Math.max(currentShipped - returnedQty, 0);
+    if (quantity > returnableQty) {
+      throw new BadRequestError(`return quantity exceeds shipped returnable quantity: ${returnableQty}`);
+    }
+
+    const inventory = await queryInventoryBalance(this.db, line.variant_id);
+    const timestamp = this.now();
+    const nextReturnedQty = returnedQty + quantity;
+    const nextLineState = this.buildNextLineState(line);
+    const returnId = this.uuid();
+    const nextOrderDeliveryStatus = await this.deriveNextOrderDeliveryStatus(orderId, quantity);
+
+    const restock = await this.inventoryService.buildMutationStatements({
+      type: 'order_return_restock',
+      variantId: line.variant_id,
+      quantityDelta: quantity,
+      orderId,
+      orderLineId: lineId,
+      referenceType: 'order',
+      referenceId: orderId,
+      metadata: {
+        action: 'return',
+        actorId: options.actorId || null,
+        actorName: options.actorName || null,
+        orderReturnId: returnId,
+      },
+    });
+
+    const statements = [
+      ...(restock?.statements || []),
+      this.db
+        .prepare(
+          `INSERT INTO order_returns (
+             id, order_id, order_line_id, variant_id, quantity, status, reason, note, created_by, created_at, updated_at
+           ) VALUES (?, ?, ?, ?, ?, 'restocked', ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          returnId,
+          orderId,
+          lineId,
+          line.variant_id,
+          quantity,
+          reason,
+          payload?.note || '',
+          options.actorName || null,
+          timestamp,
+          timestamp
+        ),
+      this.db
+        .prepare(`UPDATE orders SET delivery_status = ?, updated_at = ? WHERE id = ?`)
+        .bind(nextOrderDeliveryStatus, timestamp, orderId),
+      this.buildOrderTouchStatement(orderId, timestamp),
+      ...this.buildOutboxStatements({
+        order: line,
+        orderId,
+        lineId,
+        action: 'return',
+        quantity,
+        nextLineState,
+        returnedQtyAfter: nextReturnedQty,
+        timestamp,
+        actorName: options.actorName || null,
+      }),
+    ];
+
+    await this.db.batch(statements);
+    return this.buildCommandResult({
+      orderId,
+      lineId,
+      action: 'return',
+      quantity,
+      nextLineState,
+      returnedQtyAfter: nextReturnedQty,
+      inventory,
+    });
+  }
+
   async requireOrderLine(orderId, lineId) {
     const row = await this.db
       .prepare(
@@ -329,6 +526,7 @@ export class OrderLineFulfillmentService {
             o.order_no,
             o.salesperson_id,
             o.status AS order_status,
+            o.delivery_status,
             ol.id AS line_id,
             ol.product_id,
             ol.variant_id,
@@ -361,6 +559,65 @@ export class OrderLineFulfillmentService {
     }
   }
 
+  assertUnshipAllowed(line) {
+    const orderStatus = String(line?.order_status || '').trim().toLowerCase();
+    if (orderStatus === 'delivered' || orderStatus === 'fulfilled') {
+      throw new BadRequestError('cannot unship line from a delivered order');
+    }
+  }
+
+  assertReturnAllowed(line) {
+    const orderStatus = String(line?.order_status || '').trim().toLowerCase();
+    const deliveryStatus = String(line?.delivery_status || '').trim().toLowerCase();
+    if (orderStatus === 'delivered') {
+      return;
+    }
+    if (!['delivered', 'partially_returned', 'returned'].includes(deliveryStatus)) {
+      throw new BadRequestError('returns require a delivery-confirmed order');
+    }
+  }
+
+  async getReturnedQuantity(lineId) {
+    const row = await this.db
+      .prepare(
+        `SELECT COALESCE(SUM(quantity), 0) AS returned_qty
+         FROM order_returns
+         WHERE order_line_id = ?
+           AND status != 'cancelled'`
+      )
+      .bind(lineId)
+      .first();
+
+    return toNonNegativeInt(row?.returned_qty);
+  }
+
+  async deriveNextOrderDeliveryStatus(orderId, addedReturnedQty) {
+    const row = await this.db
+      .prepare(
+        `SELECT
+            COALESCE(SUM(ol.shipped_qty), 0) AS shipped_qty,
+            COALESCE(SUM(orq.returned_qty), 0) AS returned_qty
+         FROM order_lines ol
+         LEFT JOIN (
+             SELECT
+                 order_line_id,
+                 COALESCE(SUM(quantity), 0) AS returned_qty
+             FROM order_returns
+             WHERE status != 'cancelled'
+             GROUP BY order_line_id
+         ) orq ON orq.order_line_id = ol.id
+         WHERE ol.order_id = ?`
+      )
+      .bind(orderId)
+      .first();
+
+    const shippedQty = toNonNegativeInt(row?.shipped_qty);
+    const returnedQty = toNonNegativeInt(row?.returned_qty) + toNonNegativeInt(addedReturnedQty);
+    if (shippedQty > 0 && returnedQty >= shippedQty) return 'returned';
+    if (returnedQty > 0) return 'partially_returned';
+    return 'delivered';
+  }
+
   buildNextLineState(line, overrides = {}) {
     const next = {
       ordered_qty: toNonNegativeInt(line.ordered_qty),
@@ -380,6 +637,35 @@ export class OrderLineFulfillmentService {
     return this.db
       .prepare('UPDATE orders SET updated_at = ? WHERE id = ?')
       .bind(timestamp, orderId);
+  }
+
+  buildShipmentLedgerStatement({
+    orderId,
+    lineId,
+    variantId,
+    actionType,
+    quantity,
+    actorName,
+    note = '',
+    timestamp,
+  }) {
+    return this.db
+      .prepare(
+        `INSERT INTO order_shipments (
+           id, order_id, order_line_id, variant_id, action_type, quantity, note, created_by, created_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        this.uuid(),
+        orderId,
+        lineId,
+        variantId || null,
+        actionType,
+        quantity,
+        note,
+        actorName || null,
+        timestamp
+      );
   }
 
   buildReservationMovementStatements({
@@ -462,6 +748,7 @@ export class OrderLineFulfillmentService {
     action,
     quantity,
     nextLineState,
+    returnedQtyAfter = null,
     timestamp,
     actorName = null,
   }) {
@@ -490,6 +777,7 @@ export class OrderLineFulfillmentService {
         actor_name: actorName,
         reserved_qty_after: nextLineState.reserved_qty,
         shipped_qty_after: nextLineState.shipped_qty,
+        returned_qty_after: returnedQtyAfter,
         display_status_after: nextLineState.display_status,
       }),
       occurred_at: timestamp,
@@ -501,7 +789,7 @@ export class OrderLineFulfillmentService {
     );
   }
 
-  buildCommandResult({ orderId, lineId, action, quantity, nextLineState, inventory }) {
+  buildCommandResult({ orderId, lineId, action, quantity, nextLineState, returnedQtyAfter = null, inventory }) {
     return {
       order_id: orderId,
       order_line_id: lineId,
@@ -510,6 +798,7 @@ export class OrderLineFulfillmentService {
       order_line: {
         reserved_qty: nextLineState.reserved_qty,
         shipped_qty: nextLineState.shipped_qty,
+        returned_qty: returnedQtyAfter,
         display_status: nextLineState.display_status,
       },
       inventory,

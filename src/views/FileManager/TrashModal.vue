@@ -94,6 +94,7 @@
             :columns="columns"
             :data="files"
             :row-class="getRowClass"
+            table-layout="fixed"
             @row-click="toggleSelection"
           >
             <template #header-selection>
@@ -143,7 +144,12 @@
             </template>
             <template #cell-originalLocation="{ row: file }">
               <!-- 原位置 (Clickable in future, now plain text) -->
-              <span class="text-xs text-(--text-secondary) opacity-75">{{ file.originalPath || '-' }}</span>
+              <span
+                class="inline-block max-w-[20rem] truncate whitespace-nowrap text-xs text-(--text-secondary) opacity-75"
+                :title="file.originalPath || '-'"
+              >
+                {{ file.originalPath || '-' }}
+              </span>
             </template>
             <template #cell-size="{ row: file }">
               <span class="text-(--text-secondary) opacity-75">{{ formatSize(file.size) }}</span>
@@ -264,10 +270,10 @@ const getRowClass = (row) => {
 
 const columns = computed(() => [
   { key: 'selection', label: '', width: '48px' },
-  { key: 'name', label: t('fileManager.table.name') },
-  { key: 'originalLocation', label: t('trash.originalLocation') },
-  { key: 'size', label: t('fileManager.table.size') },
-  { key: 'deletedAt', label: t('trash.deletedAt') },
+  { key: 'name', label: t('fileManager.table.name'), width: '280px', minWidth: '280px' },
+  { key: 'originalLocation', label: t('trash.originalLocation'), kind: 'path', width: '360px', maxWidth: '360px' },
+  { key: 'size', label: t('fileManager.table.size'), kind: 'numeric', width: '120px', maxWidth: '120px' },
+  { key: 'deletedAt', label: t('trash.deletedAt'), kind: 'datetime', width: '160px', maxWidth: '160px' },
   { key: 'actions', label: t('fileManager.table.actions'), align: 'right', width: '120px' }
 ]);
 

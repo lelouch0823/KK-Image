@@ -97,4 +97,44 @@ describe('OrderStatusChanger force flow UX', () => {
       })
     );
   });
+
+  it('treats confirmed to fulfilled as an in-flow transition under the new fulfillment semantics', async () => {
+    const onStatusChange = vi.fn(async () => {});
+    const wrapper = mountChanger({
+      status: 'confirmed',
+      canDeliver: true,
+      permissions: [],
+      onStatusChange,
+    });
+
+    await wrapper.get('button').trigger('click');
+    const fulfilledBtn = wrapper.find('[aria-label="order.statuses.fulfilled - order.manage.flowTag"]');
+    expect(fulfilledBtn.exists()).toBe(true);
+    expect(fulfilledBtn.attributes('disabled')).toBeUndefined();
+
+    await fulfilledBtn.trigger('click');
+    await wrapper.findAll('button').find((b) => b.text().includes('common.confirm')).trigger('click');
+
+    expect(onStatusChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'fulfilled',
+        force: false,
+      })
+    );
+  });
+
+  it('disables delivered when the order has not shipped all non-cancelled quantity yet', async () => {
+    const wrapper = mountChanger({
+      status: 'confirmed',
+      canDeliver: false,
+      permissions: ['admin:full'],
+    });
+
+    await wrapper.get('button').trigger('click');
+    const deliveredBtn = wrapper.find('[aria-label="order.statuses.delivered - order.manage.blockedTag"]');
+    expect(deliveredBtn.exists()).toBe(true);
+    expect(deliveredBtn.attributes('disabled')).toBeDefined();
+    expect(deliveredBtn.get('.ml-auto').classes()).toContain('text-warning');
+    expect(wrapper.text()).toContain('order.manage.deliveryBlockedTip');
+  });
 });

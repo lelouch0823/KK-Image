@@ -39,6 +39,27 @@ const order = {
   displayStatus: 'partially_received',
   files: [],
   timeline: [],
+  shipments: [
+    {
+      id: 'ship-1',
+      actionType: 'shipped',
+      quantity: 2,
+      actorName: 'Admin',
+      lineLabel: 'Line A',
+      createdAt: 1710000000000,
+    },
+  ],
+  returns: [
+    {
+      id: 'ret-1',
+      status: 'restocked',
+      reason: 'damage',
+      quantity: 1,
+      createdBy: 'Admin',
+      lineLabel: 'Line A',
+      createdAt: 1710003600000,
+    },
+  ],
   currentData: {
     name: 'Legacy Snapshot Name',
   },
@@ -70,8 +91,16 @@ describe('OrderDetail line-level rendering', () => {
           OrderInfoCard: true,
           OrderPersonCard: true,
           OrderStatusHeader: {
-            props: ['procurementStatus'],
-            template: '<div data-testid="status-header">{{ procurementStatus }}</div>',
+            props: ['procurementStatus', 'deliveryStatus'],
+            template: '<div data-testid="status-header">{{ procurementStatus }}|{{ deliveryStatus }}</div>',
+          },
+          OrderShipmentHistoryCard: {
+            props: ['shipments'],
+            template: '<div data-testid="shipment-history-card">{{ shipments.length }}</div>',
+          },
+          OrderReturnHistoryCard: {
+            props: ['returns'],
+            template: '<div data-testid="return-history-card">{{ returns.length }}</div>',
           },
           OrderLinesCard: {
             props: ['lines', 'mode'],
@@ -88,7 +117,9 @@ describe('OrderDetail line-level rendering', () => {
       },
     });
 
-    expect(wrapper.get('[data-testid="status-header"]').text()).toBe('partially_received');
+    expect(wrapper.get('[data-testid="status-header"]').text()).toBe('partially_received|not_shipped');
     expect(wrapper.get('[data-testid="order-lines-card"]').text()).toBe('admin-1-Line A');
+    expect(wrapper.get('[data-testid="shipment-history-card"]').text()).toBe('1');
+    expect(wrapper.get('[data-testid="return-history-card"]').text()).toBe('1');
   });
 });

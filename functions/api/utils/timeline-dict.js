@@ -21,6 +21,7 @@ export const FIELD_LABELS = {
 
     // 系统字段
     status: { zh: '状态', en: 'Status' },
+    delivery_status: { zh: '物流状态', en: 'Delivery Status' },
     'order.detail.status': { zh: '状态', en: 'Status' }, // 兼容旧数据
     images: { zh: '图片', en: 'Images' },
     files: { zh: '图片', en: 'Images' },
@@ -34,7 +35,10 @@ export const STATUS_VALUES = {
     confirmed: { zh: '已确认', en: 'Confirmed' },
     production: { zh: '生产中', en: 'In Production' },
     warehouse: { zh: '已入库', en: 'In Warehouse' },
-    delivered: { zh: '已发货', en: 'Shipped' },
+    fulfilled: { zh: '履约完成', en: 'Fulfillment Complete' },
+    in_transit: { zh: '运输中', en: 'In Transit' },
+    delivered: { zh: '已签收', en: 'Delivered' },
+    returned: { zh: '已退回', en: 'Returned' },
     completed: { zh: '已完成', en: 'Completed' },
     cancelled: { zh: '已取消', en: 'Cancelled' },
     rejected: { zh: '已驳回', en: 'Rejected' },
@@ -56,7 +60,7 @@ export function getTimelineDisplay(fieldName, oldValue, newValue) {
     };
 
     // 如果是状态字段，尝试翻译值
-    if (['status', 'order.detail.status'].includes(fieldName)) {
+    if (['status', 'delivery_status', 'order.detail.status'].includes(fieldName)) {
         if (STATUS_VALUES[oldValue]) {
             display.oldValue = STATUS_VALUES[oldValue];
         }

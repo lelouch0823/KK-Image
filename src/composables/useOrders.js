@@ -245,12 +245,12 @@ export function useOrders() {
     }
   };
 
-  const runOrderLineCommand = async (path, quantity, successMessage) => {
+  const runOrderLineCommand = async (path, payload, successMessage) => {
     try {
       const res = await authFetch(path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantity }),
+        body: JSON.stringify(payload),
       }).then(r => r.json());
 
       if (res.success) {
@@ -268,21 +268,68 @@ export function useOrders() {
 
   const reserveOrderLine = async (orderId, lineId, quantity) => runOrderLineCommand(
     API.MANAGE_ORDER_LINE_RESERVE(orderId, lineId),
-    quantity,
+    { quantity },
     t('order.detail.reserveSuccess', '预留成功')
   );
 
   const releaseOrderLine = async (orderId, lineId, quantity) => runOrderLineCommand(
     API.MANAGE_ORDER_LINE_RELEASE(orderId, lineId),
-    quantity,
+    { quantity },
     t('order.detail.releaseSuccess', '释放成功')
   );
 
   const shipOrderLine = async (orderId, lineId, quantity) => runOrderLineCommand(
     API.MANAGE_ORDER_LINE_SHIP(orderId, lineId),
-    quantity,
+    { quantity },
     t('order.detail.shipSuccess', '出货成功')
   );
+
+  const unshipOrderLine = async (orderId, lineId, quantity) => runOrderLineCommand(
+    API.MANAGE_ORDER_LINE_UNSHIP(orderId, lineId),
+    { quantity },
+    t('order.detail.unshipSuccess', '撤销出货成功')
+  );
+
+  const returnOrderLine = async (orderId, lineId, payload) => {
+    const normalizedPayload =
+      typeof payload === 'number'
+        ? { quantity: payload }
+        : {
+            quantity: Number(payload?.quantity || 0),
+            reason: payload?.reason || '',
+            note: payload?.note || '',
+          };
+
+    return runOrderLineCommand(
+      API.MANAGE_ORDER_LINE_RETURN(orderId, lineId),
+      normalizedPayload,
+      t('order.detail.returnSuccess', '退回入库成功')
+    );
+  };
+
+  const confirmOrderDelivery = async (orderId, note = '') => {
+    try {
+      const res = await authFetch(API.MANAGE_ORDER_DELIVERY_CONFIRM(orderId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note }),
+      }).then(r => r.json());
+
+      if (res.success) {
+        addToast({
+          message: res.message || t('order.detail.deliveryConfirmSuccess', '签收确认成功'),
+          type: 'success',
+        });
+        return true;
+      }
+
+      addToast({ message: res.error || res.message || t('common.operationFailed'), type: 'error' });
+      return false;
+    } catch (_e) {
+      addToast({ message: t('common.networkError'), type: 'error' });
+      return false;
+    }
+  };
 
   /**
    * 添加管理员留言
@@ -476,6 +523,9 @@ export function useOrders() {
     reserveOrderLine,
     releaseOrderLine,
     shipOrderLine,
+    unshipOrderLine,
+    returnOrderLine,
+    confirmOrderDelivery,
     changeStatus,
     addComment,
     batchAction,

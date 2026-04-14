@@ -33,7 +33,7 @@ describe('OrderPrintView historical snapshot fallback', () => {
       global: {
         stubs: {
           AppImage: true,
-          OrderProcurementBadge: true,
+          OrderLineProcurementState: true,
           OrderTimeline: true,
         },
       },

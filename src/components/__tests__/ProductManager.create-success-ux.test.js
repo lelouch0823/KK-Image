@@ -190,4 +190,15 @@ describe('ProductManager create success UX', () => {
     expect(wrapper.vm.brandOptions).not.toEqual(['OnlyCurrentPageBrand']);
     expect(wrapper.vm.categoryOptions).not.toEqual(['OnlyCurrentPageCategory']);
   });
+
+  it('navigates new share spaces through the named admin spaces route', () => {
+    const wrapper = createWrapper();
+
+    wrapper.vm.handleShareCreated({ id: 'space-9' });
+
+    expect(mocks.routerPush).toHaveBeenCalledWith({
+      name: 'Spaces',
+      query: { id: 'space-9' },
+    });
+  });
 });

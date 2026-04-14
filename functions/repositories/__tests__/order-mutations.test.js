@@ -347,6 +347,12 @@ describe('Order Mutations SQL Binding', () => {
                 applyMutation: vi.fn(async () => true),
             };
             db.first
+                .mockResolvedValueOnce({
+                    ordered_qty: 3,
+                    shipped_qty: 3,
+                    cancelled_qty: 0,
+                    line_count: 1,
+                })
                 .mockResolvedValueOnce({ status: 'arrived', variant_id: 'v-1', quantity: 3 })
                 .mockResolvedValueOnce({ id: 'line-1', line_count: 1 })
                 .mockResolvedValueOnce({ line_count: 1 })
@@ -357,7 +363,7 @@ describe('Order Mutations SQL Binding', () => {
                     procured_qty: 3,
                     received_qty: 3,
                     reserved_qty: 0,
-                    shipped_qty: 0,
+                    shipped_qty: 3,
                     cancelled_qty: 0,
                 });
 
@@ -366,12 +372,69 @@ describe('Order Mutations SQL Binding', () => {
             const lineUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) => sql.includes('UPDATE order_lines'));
             expect(lineUpdateIndex).toBeGreaterThanOrEqual(0);
 
+            const orderUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) =>
+                sql.includes('UPDATE orders') && sql.includes('SET status = ?')
+            );
+            expect(orderUpdateIndex).toBeGreaterThanOrEqual(0);
+            expect(db.bind.mock.calls[orderUpdateIndex][0]).toBe('fulfilled');
+
             const bindArgs = db.bind.mock.calls[lineUpdateIndex];
             expect(bindArgs).toContain(3);
             expect(bindArgs).toContain('completed');
             expect(db.prepare.mock.calls[lineUpdateIndex][0]).toContain('WHERE id = ? AND order_id = ?');
             expect(bindArgs[bindArgs.length - 2]).toBe('line-1');
             expect(bindArgs[bindArgs.length - 1]).toBe('o-1');
+        });
+
+        it('batchUpdateStatus persists fulfilled when legacy delivered input is requested', async () => {
+            const batchDb = createBatchAwareDb({
+                allHandler: async () => ({
+                    results: [{
+                        id: 'o-legacy',
+                        status: 'shipping',
+                        variant_id: null,
+                        quantity: 2,
+                    }],
+                }),
+                firstHandler: async (statement) => {
+                    if (statement.sql.includes('SUM(ordered_qty)')) {
+                        return {
+                            ordered_qty: 2,
+                            shipped_qty: 2,
+                            cancelled_qty: 0,
+                            line_count: 1,
+                        };
+                    }
+                    if (statement.sql.includes('SELECT id,') && statement.sql.includes('line_count')) {
+                        return {
+                            id: 'line-legacy',
+                            line_count: 1,
+                            ordered_qty: 2,
+                            procured_qty: 2,
+                            received_qty: 2,
+                            reserved_qty: 0,
+                            shipped_qty: 2,
+                            cancelled_qty: 0,
+                        };
+                    }
+                    if (statement.sql.includes('SELECT COUNT(*) AS line_count')) {
+                        return { line_count: 1 };
+                    }
+                    if (statement.sql.includes('SELECT id FROM order_lines')) {
+                        return { id: 'line-legacy' };
+                    }
+                    return null;
+                },
+            });
+
+            await batchUpdateStatus(batchDb, timelineRepo, ['o-legacy'], 'delivered', null);
+
+            const orderUpdateStatement = batchDb.batchCalls
+                .flat()
+                .find((statement) => statement.sql.includes('UPDATE orders') && statement.sql.includes('SET status = ?'));
+
+            expect(orderUpdateStatement).toBeTruthy();
+            expect(orderUpdateStatement.params[0]).toBe('fulfilled');
         });
     });
 

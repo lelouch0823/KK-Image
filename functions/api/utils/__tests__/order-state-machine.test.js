@@ -14,27 +14,34 @@ describe('order-state-machine', () => {
 
   it('validates in-flow and out-of-flow transitions', () => {
     expect(canTransitionOrderStatus('pending', 'confirmed')).toBe(true);
-    expect(canTransitionOrderStatus('pending', 'delivered')).toBe(false);
+    expect(canTransitionOrderStatus('pending', 'fulfilled')).toBe(false);
+    expect(canTransitionOrderStatus('confirmed', 'fulfilled')).toBe(true);
+    expect(canTransitionOrderStatus('shipping', 'fulfilled')).toBe(true);
   });
 
   it('throws for out-of-flow transition without force', () => {
-    expect(() => assertOrderStatusTransition('pending', 'delivered')).toThrow(
+    expect(() => assertOrderStatusTransition('pending', 'fulfilled')).toThrow(
       INVALID_ORDER_STATUS_TRANSITION_ERROR
     );
   });
 
   it('allows out-of-flow transition with force option', () => {
     expect(() =>
-      assertOrderStatusTransition('pending', 'delivered', { forceStatusTransition: true })
+      assertOrderStatusTransition('pending', 'fulfilled', { forceStatusTransition: true })
     ).not.toThrow();
   });
 
-  it('marks delivered and void as high-risk statuses', () => {
-    expect(ORDER_HIGH_RISK_STATUSES).toContain('delivered');
+  it('marks fulfilled and void as high-risk statuses', () => {
+    expect(ORDER_HIGH_RISK_STATUSES).toContain('fulfilled');
     expect(ORDER_HIGH_RISK_STATUSES).toContain('void');
   });
 
-  it('allows rollback from delivered to void in normal flow', () => {
+  it('allows rollback from fulfilled to void in normal flow', () => {
+    expect(canTransitionOrderStatus('fulfilled', 'void')).toBe(true);
+  });
+
+  it('keeps legacy delivered input compatible with fulfilled flow', () => {
+    expect(canTransitionOrderStatus('confirmed', 'delivered')).toBe(true);
     expect(canTransitionOrderStatus('delivered', 'void')).toBe(true);
   });
 });

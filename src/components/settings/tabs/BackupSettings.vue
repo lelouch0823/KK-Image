@@ -25,11 +25,12 @@
           :loading="loading"
           :empty-text="t('settings.backup.empty', 'No backups found')"
           no-border
+          table-layout="fixed"
         >
           <template #cell-name="{ row: backup }">
-            <div class="flex items-center gap-3 font-medium text-(--text-main)">
+            <div class="flex min-w-0 items-center gap-3 font-medium text-(--text-main)">
               <AppIcon name="document" class="group-hover:text-primary size-5 text-(--text-muted) transition-colors" />
-              {{ backup.name }}
+              <span class="truncate" :title="backup.name">{{ backup.name }}</span>
             </div>
           </template>
           <template #cell-size="{ row: backup }">
@@ -74,10 +75,10 @@ const loading = ref(true);
 const creating = ref(false);
 
 const columns = computed(() => [
-  { key: 'name', label: t('settings.backup.filename', 'Filename') },
-  { key: 'size', label: t('settings.backup.size', 'Size') },
-  { key: 'date', label: t('settings.backup.date', 'Date') },
-  { key: 'actions', label: t('common.actions', 'Actions'), align: 'right' },
+  { key: 'name', label: t('settings.backup.filename', 'Filename'), width: '320px', minWidth: '320px' },
+  { key: 'size', label: t('settings.backup.size', 'Size'), kind: 'numeric', width: '120px', maxWidth: '120px' },
+  { key: 'date', label: t('settings.backup.date', 'Date'), kind: 'datetime', width: '180px', maxWidth: '180px' },
+  { key: 'actions', label: t('common.actions', 'Actions'), align: 'right', width: '140px', maxWidth: '140px', nowrap: true },
 ]);
 
 const fetchBackups = async () => {

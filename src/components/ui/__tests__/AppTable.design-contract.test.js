@@ -168,4 +168,73 @@ describe('AppTable design contract', () => {
     expect(wrapper.get('[data-table-stage-mode="loading"]').exists()).toBe(true);
     expect(wrapper.get('[data-table-stage]').classes()).toContain('app-table__stage');
   });
+
+  it('supports declarative column cell behavior and per-table layout', () => {
+    const wrapper = mount(AppTable, {
+      props: {
+        tableLayout: 'fixed',
+        columns: [
+          {
+            key: 'code',
+            label: 'Code',
+            width: '180px',
+            maxWidth: '180px',
+            headerClass: 'tracking-wide',
+            cellClass: 'font-mono',
+            nowrap: true,
+            truncate: true,
+          },
+        ],
+        data: [{ id: 1, code: 'LONG-LONG-LONG-CODE-1234567890' }],
+      },
+    });
+
+    expect(wrapper.get('table').attributes('style')).toContain('table-layout: fixed;');
+    expect(wrapper.get('th').classes()).toContain('tracking-wide');
+    expect(wrapper.get('td').classes()).toContain('font-mono');
+    expect(wrapper.get('td').classes()).toContain('truncate');
+    expect(wrapper.get('td').classes()).toContain('whitespace-nowrap');
+    expect(wrapper.get('td').attributes('style')).toContain('width: 180px;');
+    expect(wrapper.get('td').attributes('style')).toContain('max-width: 180px;');
+  });
+
+  it('supports semantic column kinds with overridable defaults', () => {
+    const wrapper = mount(AppTable, {
+      props: {
+        columns: [
+          { key: 'sku', label: 'SKU', kind: 'identifier', width: '180px', maxWidth: '180px' },
+          { key: 'status', label: 'Status', kind: 'status', cellClass: 'font-semibold' },
+          { key: 'createdAt', label: 'Created', kind: 'datetime' },
+          { key: 'count', label: 'Count', kind: 'numeric' },
+        ],
+        data: [{ id: 1, sku: 'SKU-ALPHA-BETA-GAMMA', status: 'active', createdAt: '2026-04-13 10:00', count: 42 }],
+      },
+    });
+
+    const cells = wrapper.findAll('td');
+    expect(cells[0].classes()).toContain('whitespace-nowrap');
+    expect(cells[0].classes()).toContain('truncate');
+    expect(cells[1].classes()).toContain('whitespace-nowrap');
+    expect(cells[1].classes()).toContain('font-semibold');
+    expect(cells[1].classes()).not.toContain('truncate');
+    expect(cells[2].classes()).toContain('whitespace-nowrap');
+    expect(cells[2].classes()).toContain('tabular-nums');
+    expect(cells[3].classes()).toContain('whitespace-nowrap');
+    expect(cells[3].classes()).toContain('tabular-nums');
+  });
+
+  it('mirrors legacy responsive visibility classes onto body cells', () => {
+    const wrapper = mount(AppTable, {
+      props: {
+        columns: [
+          { key: 'name', label: 'Name', class: 'hidden md:table-cell' },
+        ],
+        data: [{ id: 1, name: 'Alpha' }],
+      },
+    });
+
+    expect(wrapper.get('th').classes()).toContain('hidden');
+    expect(wrapper.get('td').classes()).toContain('hidden');
+    expect(wrapper.get('td').classes()).toContain('md:table-cell');
+  });
 });

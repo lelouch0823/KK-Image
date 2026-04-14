@@ -39,11 +39,13 @@
           @click="$emit('view', order)"
         >
           <!-- 状态 Badge (右上角) -->
-          <div class="absolute top-3 right-3 z-10 flex flex-col items-end gap-1">
-              <StatusBadge :variant="getStatusVariant(order.status)" size="sm" class="!px-2 !py-0.5 !text-[10px]">
-                  {{ t(`order.statuses.${order.status}`) }}
-              </StatusBadge>
-              <OrderProcurementBadge :status="resolveOrderProgressStatus(order)" compact />
+          <div class="absolute top-3 right-3 z-10">
+            <OrderListStatusStack
+              :status="order.status"
+              :procurement-status="resolveOrderProgressStatus(order)"
+              :delivery-status="resolveOrderDeliveryStatus(order)"
+              mode="list"
+            />
           </div>
 
           <div class="flex h-full gap-3">
@@ -114,10 +116,8 @@
 import { ref, computed, toRef, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { formatRelativeTime } from '@/utils/formatters';
-import { resolveOrderProgressStatus } from '@/utils/order-display';
-import { getStatusVariant } from '@/utils/status';
-import StatusBadge from '@/components/ui/StatusBadge.vue';
-import OrderProcurementBadge from '@/components/order/OrderProcurementBadge.vue';
+import { resolveOrderDeliveryStatus, resolveOrderProgressStatus } from '@/utils/order-display';
+import OrderListStatusStack from '@/components/order/OrderListStatusStack.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AsyncStatePanel from '@/components/common/AsyncStatePanel.vue';

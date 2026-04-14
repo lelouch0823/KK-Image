@@ -13,6 +13,7 @@ import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { DomainOutboxPublisher } from '../../../../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../../../../api/cron/outbox.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
+import { listOrderReturnHistory, listOrderShipmentHistory } from '../../../../repositories/order/history-queries.js';
 import { syncOrderDemandTransitions } from '../../../../api/utils/order-demand-sync.js';
 import { buildOrderBindingSnapshot } from '../../../../api/utils/order-binding-snapshot.js';
 
@@ -202,9 +203,11 @@ app.get('/:id', async (c) => {
     const { OrderTimelineRepository } = await import('../../../../repositories/OrderTimelineRepository.js');
     const tplRepo = new OrderTimelineRepository(env.DB);
 
-    const [files, timeline] = await Promise.all([
+    const [files, timeline, shipments, returns] = await Promise.all([
         orderRepo.getFiles(orderId),
         tplRepo.getTimeline(orderId),
+        listOrderShipmentHistory(env.DB, orderId),
+        listOrderReturnHistory(env.DB, orderId),
     ]);
 
     // Mark as read
@@ -225,6 +228,8 @@ app.get('/:id', async (c) => {
             ...order,
             files,
             timeline,
+            shipments,
+            returns,
         }
     });
 });

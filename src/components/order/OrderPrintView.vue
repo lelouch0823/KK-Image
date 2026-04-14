@@ -88,7 +88,7 @@
               <p class="font-semibold text-black">{{ line.snapshotName || '-' }}</p>
               <p class="mt-1 text-xs text-(--text-secondary)">#{{ line.id }}</p>
             </div>
-            <OrderProcurementBadge :status="line.displayStatus" compact />
+            <OrderLineProcurementState :status="line.displayStatus" />
           </div>
           <div class="mt-3 grid grid-cols-5 gap-3 text-xs">
             <div>
@@ -157,7 +157,7 @@ import AppImage from '@/components/ui/AppImage.vue';
 import { useI18n } from '@/composables/useI18n';
 import { formatTimelineTime } from '@/utils/formatters';
 import { resolveOrderProductName, resolveOrderQuantity, resolveOrderSnapshotField } from '@/utils/order-display';
-import OrderProcurementBadge from './OrderProcurementBadge.vue';
+import OrderLineProcurementState from './OrderLineProcurementState.vue';
 import OrderTimeline from './OrderTimeline.vue';
 
 const props = defineProps({

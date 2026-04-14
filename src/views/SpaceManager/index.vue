@@ -264,7 +264,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onActivated } from 'vue';
+import { ref, onMounted, onActivated, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useSpaces } from '@/composables/useSpaces';
 import { useI18n } from '@/composables/useI18n';
 import { useAccessControl } from '@/composables/useAccessControl';
@@ -282,7 +283,8 @@ import ManagementListShell from '@/design-system/patterns/ManagementListShell.vu
 const { spaces, loading, error, errorCode, loadSpaces, deleteSpace } = useSpaces();
 const { t } = useI18n();
 const { hasPermission, loadPermissions } = useAccessControl();
-
+const route = useRoute();
+const router = useRouter();
 
 const showCreateModal = ref(false);
 const selectedSpace = ref(null);
@@ -355,6 +357,26 @@ const onOpenSubspace = (subspace) => {
   // 切换到子空间的编辑器
   selectedSpace.value = subspace;
 };
+
+watch(
+  [() => String(route.query.id || '').trim(), spaces],
+  ([targetId, currentSpaces]) => {
+    if (!targetId) return;
+    if (selectedSpace.value?.id === targetId) return;
+    const matchedSpace = (currentSpaces || []).find((space) => String(space.id) === targetId);
+    if (matchedSpace) {
+      selectedSpace.value = matchedSpace;
+    }
+  },
+  { immediate: true }
+);
+
+watch(selectedSpace, (space) => {
+  if (space || !route.query.id) return;
+  const newQuery = { ...route.query };
+  delete newQuery.id;
+  router.replace({ path: route.path, query: newQuery });
+});
 
 onMounted(() => {
   loadPermissions().then(() => {

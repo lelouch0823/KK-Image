@@ -5,6 +5,7 @@ export const STATUS_OPTIONS = [
   'production',
   'shipping',
   'arrived',
+  'fulfilled',
   'delivered',
   'void',
 ];
@@ -22,6 +23,8 @@ export const STATUS_STYLES = {
     'bg-(--color-cyan-bg) text-(--color-cyan-text) border-(--color-cyan)/20 hover:bg-(--color-cyan-bg)/80',
   arrived:
     'bg-(--color-success-bg) text-(--color-success-text) border-success/20 hover:bg-(--color-success-bg)/80',
+  fulfilled:
+    'bg-(--bg-muted) text-(--text-secondary) border-(--border-color) hover:bg-(--bg-hover)',
   delivered:
     'bg-(--bg-muted) text-(--text-secondary) border-(--border-color) hover:bg-(--bg-hover)',
 };
@@ -33,6 +36,7 @@ export const STATUS_DOTS = {
   production: 'bg-(--color-purple)',
   shipping: 'bg-(--color-cyan)',
   arrived: 'bg-success',
+  fulfilled: 'bg-(--text-muted)',
   delivered: 'bg-(--text-muted)',
 };
 
@@ -44,6 +48,7 @@ export const getStatusVariant = (status) => {
     production: 'purple',
     shipping: 'cyan',
     arrived: 'success',
+    fulfilled: 'default',
     delivered: 'default',
     void: 'default',
   };
@@ -74,6 +79,7 @@ export const STATUS_HEX_COLORS = {
   production: '#8b5cf6', // violet-500
   shipping: '#3b82f6', // blue-500
   arrived: '#0ea5e9', // sky-500
+  fulfilled: '#64748b', // slate-500
   delivered: '#64748b', // slate-500
   rejected: '#ef4444', // red-500
   void: '#9ca3af', // gray-400
@@ -105,6 +111,8 @@ export const getStatusBadgeClass = (status) => {
       'bg-(--color-cyan-bg) text-(--color-cyan-text) border-(--color-cyan)/20',
     arrived:
       'bg-(--color-success-bg) text-(--color-success-text) border-success/20',
+    fulfilled:
+      'bg-(--bg-muted) text-(--text-secondary) border-(--border-color)',
     delivered:
       'bg-(--bg-muted) text-(--text-secondary) border-(--border-color)',
     rejected:

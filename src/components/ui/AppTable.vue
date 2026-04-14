@@ -25,22 +25,18 @@
         class="overflow-x-auto" 
         :class="{ 'max-h-[600px] overflow-y-auto': virtual }"
       >
-        <table class="w-full text-left text-sm">
+        <table class="w-full text-left text-sm" :style="{ tableLayout }">
           <thead
             class="app-table__head sticky top-0 z-10 bg-(--bg-card)/92 font-medium text-(--text-secondary) backdrop-blur-sm"
             :class="{ 'app-table__head--plain': noBorder }"
           >
             <tr :class="noBorder ? 'border-b border-(--border-color)/35' : 'border-b border-(--border-color)/70'">
               <th
-                v-for="col in columns"
+                v-for="col in normalizedColumns"
                 :key="col.key"
                 class="px-4 py-3.5 font-semibold whitespace-nowrap"
-                :class="[
-                  col.sortable ? 'cursor-pointer select-none' : '',
-                  col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
-                  col.class
-                ]"
-                :style="{ width: col.width }"
+                :class="col.headerClassList"
+                :style="col.headerStyleValue"
                 @click="toggleSort(col)"
               >
                 <slot :name="`header-${col.key}`" :column="col">
@@ -68,9 +64,10 @@
             <template v-if="loading">
               <tr v-for="i in 5" :key="i">
                 <td
-                  v-for="col in columns"
+                  v-for="col in normalizedColumns"
                   :key="col.key"
                   class="p-4"
+                  :style="col.cellStyleValue"
                 >
                   <div class="h-4 w-3/4 animate-pulse rounded bg-(--bg-muted)"></div>
                 </td>
@@ -94,7 +91,7 @@
             <!-- Data Rows (Virtual Mode with TanStack) -->
             <template v-else-if="virtual">
               <tr :style="{ height: `${virtualTotalSize}px`, position: 'relative' }">
-                <td :colspan="columns.length" class="p-0" style="position: relative;">
+                <td :colspan="normalizedColumns.length" class="p-0" style="position: relative;">
                   <div
                     v-for="virtualRow in virtualItems"
                     :key="data[virtualRow.index]?.[rowKey] || virtualRow.index"
@@ -107,21 +104,18 @@
                     }"
                     @click="handleRowClick(virtualRow.index)"
                   >
-                    <table class="w-full text-left text-sm">
+                    <table class="w-full text-left text-sm" :style="{ tableLayout }">
                       <tbody>
                         <tr>
                           <td
-                            v-for="col in columns"
+                            v-for="col in normalizedColumns"
                             :key="col.key"
                             class="px-4 py-3 align-middle"
-                            :class="[
-                              col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
-                              col.tdClass
-                            ]"
-                            :style="{ width: col.width }"
+                            :class="col.cellClassList"
+                            :style="col.cellStyleValue"
                           >
                             <slot :name="`cell-${col.key}`" :row="data[virtualRow.index]" :index="virtualRow.index" :value="data[virtualRow.index]?.[col.key]">
-                              {{ data[virtualRow.index]?.[col.key] }}
+                              <span :class="col.defaultContentClass">{{ data[virtualRow.index]?.[col.key] }}</span>
                             </slot>
                           </td>
                         </tr>
@@ -142,16 +136,14 @@
                 @click="$emit('row-click', row)"
               >
                 <td
-                  v-for="col in columns"
+                  v-for="col in normalizedColumns"
                   :key="col.key"
                   class="px-4 py-3 align-middle"
-                  :class="[
-                    col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
-                    col.tdClass
-                  ]"
+                  :class="col.cellClassList"
+                  :style="col.cellStyleValue"
                 >
                   <slot :name="`cell-${col.key}`" :row="row" :index="index" :value="row[col.key]">
-                    {{ row[col.key] }}
+                    <span :class="col.defaultContentClass">{{ row[col.key] }}</span>
                   </slot>
                 </td>
               </tr>
@@ -241,12 +233,117 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  tableLayout: {
+    type: String,
+    default: 'auto',
+  },
 });
 
 const emit = defineEmits(['row-click', 'sort-change']);
 
 const { t } = useI18n();
 const parentRef = ref(null);
+const normalizeCssLength = (value) => {
+  if (value === undefined || value === null || value === '') return undefined;
+  return typeof value === 'number' ? `${value}px` : value;
+};
+
+const resolveColumnBaseStyle = (column) => {
+  const width = normalizeCssLength(column.width);
+  const minWidth = normalizeCssLength(column.minWidth);
+  const maxWidth = normalizeCssLength(column.maxWidth);
+  const style = {};
+
+  if (width) style.width = width;
+  if (minWidth) style.minWidth = minWidth;
+  if (maxWidth) style.maxWidth = maxWidth;
+
+  return style;
+};
+
+const resolveColumnKindDefaults = (column) => {
+  const map = {
+    identifier: {
+      nowrap: true,
+      truncate: true,
+    },
+    path: {
+      nowrap: true,
+      truncate: true,
+    },
+    status: {
+      nowrap: true,
+    },
+    numeric: {
+      nowrap: true,
+      cellClass: 'tabular-nums',
+    },
+    datetime: {
+      nowrap: true,
+      cellClass: 'tabular-nums',
+    },
+  };
+
+  return map[column?.kind] || {};
+};
+
+const resolveAlignmentClass = (column) => {
+  if (column.align === 'right') return 'text-right';
+  if (column.align === 'center') return 'text-center';
+  return 'text-left';
+};
+
+const resolveLegacyResponsiveCellClass = (column) => {
+  const legacyClass = String(column?.class || '').trim();
+  if (!legacyClass) return '';
+
+  const tokens = legacyClass.split(/\s+/).filter(Boolean);
+  const responsiveVisibilityTokens = tokens.filter(
+    (token) => token === 'hidden' || token.endsWith(':table-cell')
+  );
+
+  return responsiveVisibilityTokens.join(' ');
+};
+
+const normalizedColumns = computed(() =>
+  (props.columns || []).map((column) => {
+    const kindDefaults = resolveColumnKindDefaults(column);
+    const resolvedColumn = {
+      ...kindDefaults,
+      ...column,
+    };
+    const baseStyle = resolveColumnBaseStyle(resolvedColumn);
+    const shouldNowrap = Boolean(resolvedColumn.nowrap || resolvedColumn.truncate);
+    const legacyResponsiveCellClass = resolveLegacyResponsiveCellClass(resolvedColumn);
+
+    return {
+      ...resolvedColumn,
+      headerClassList: [
+        resolvedColumn.sortable ? 'cursor-pointer select-none' : '',
+        resolveAlignmentClass(resolvedColumn),
+        kindDefaults.headerClass,
+        resolvedColumn.class,
+        resolvedColumn.headerClass,
+      ],
+      cellClassList: [
+        resolveAlignmentClass(resolvedColumn),
+        kindDefaults.cellClass,
+        resolvedColumn.tdClass,
+        resolvedColumn.cellClass,
+        legacyResponsiveCellClass,
+        shouldNowrap ? 'whitespace-nowrap' : '',
+        resolvedColumn.truncate ? 'truncate' : '',
+      ],
+      headerStyleValue: [baseStyle, resolvedColumn.headerStyle],
+      cellStyleValue: [baseStyle, resolvedColumn.cellStyle],
+      defaultContentClass: [
+        shouldNowrap ? 'block whitespace-nowrap' : '',
+        resolvedColumn.truncate ? 'truncate' : '',
+      ],
+    };
+  })
+);
+
 const stageMode = computed(() => {
   if (props.loading) return 'loading';
   if (!props.data || props.data.length === 0) return 'empty';

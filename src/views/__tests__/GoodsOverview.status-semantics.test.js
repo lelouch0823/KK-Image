@@ -73,7 +73,7 @@ function createComposableState(itemOverrides = {}) {
       categories: [],
       brands: [],
     }),
-    selectedItems: ref([]),
+    selectedItems: ref(itemOverrides.selectedItemsOverride ?? []),
     isAllSelected: computed(() => false),
     toggleSelect: vi.fn(),
     toggleSelectAll: vi.fn(),
@@ -117,9 +117,9 @@ function createWrapper(itemOverrides) {
             </div>
           `,
         },
-        StatusBadge: {
-          template: '<div data-testid="status-badge" :data-status="status">{{ text }}</div>',
-          props: ['status', 'text'],
+        AppTableStatusPill: {
+          template: '<div data-testid="status-badge" :data-variant="variant">{{ label }}</div>',
+          props: ['variant', 'label'],
         },
       },
     },
@@ -139,7 +139,7 @@ describe('GoodsOverview status semantics', () => {
       alertThreshold: 5,
     });
 
-    expect(wrapper.get('[data-testid="status-badge"]').attributes('data-status')).toBe('warning');
+    expect(wrapper.get('[data-testid="status-badge"]').attributes('data-variant')).toBe('warning');
   });
 
   it('renders full image urls without forcing a /file prefix in the overview list', () => {
@@ -189,5 +189,31 @@ describe('GoodsOverview status semantics', () => {
     });
 
     expect(wrapper.get('[data-testid="goods-overview-forbidden"]').attributes('data-description')).toContain('products:manage');
+  });
+
+  it('navigates to the named purchase-orders admin route after creating a purchase order', async () => {
+    const wrapper = createWrapper({
+      selectedItemsOverride: [
+        {
+          id: 'variant-1',
+          variantId: 'variant-1',
+        },
+      ],
+    });
+    const state = mocks.useGoodsOverview.mock.results.at(-1)?.value;
+    state.createPOFromSelected.mockResolvedValue({
+      success: true,
+      data: { id: 'po-123' },
+    });
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('goodsOverview.batch.createPO'))
+      ?.trigger('click');
+
+    expect(mocks.push).toHaveBeenCalledWith({
+      name: 'PurchaseOrders',
+      query: { id: 'po-123', variantId: 'variant-1' },
+    });
   });
 });

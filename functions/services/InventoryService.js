@@ -12,6 +12,8 @@ const VALID_MUTATION_TYPES = new Set([
   'inventory_adjusted_reversal',
   'manual_adjustment',
   'order_shipment',
+  'order_unshipment',
+  'order_return_restock',
 ]);
 export { appendInventoryLedgerEvent, projectInventoryBalances };
 
