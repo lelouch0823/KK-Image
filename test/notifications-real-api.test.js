@@ -810,7 +810,7 @@ describeIfRealApi('Notifications Real API Workflow', function () {
     );
   });
 
-  it('materializes sales notifications for delivery confirmation and returned stock events', async () => {
+  it('materializes sales notifications for delivery confirmation and one-step return creation', async () => {
     const token = await getBearerToken();
     const seed = uniqueSeed('notify-delivery-return');
     const { salespersonId, accessToken, jwt } = await createAuthenticatedSalesSession(token, seed, {
@@ -916,12 +916,25 @@ describeIfRealApi('Notifications Real API Workflow', function () {
       );
       const returnNotification = result.list.find(
         (item) =>
-          item.metadata?.eventType === 'order_return_restocked'
+          item.metadata?.eventType === 'order_return_created'
+          && item.metadata?.payload?.order_id === orderId
+      );
+      const duplicateReturnNotifications = result.list.filter(
+        (item) =>
+          (
+            item.metadata?.eventType === 'order_return_created'
+            || item.metadata?.eventType === 'order_return_restocked'
+          )
           && item.metadata?.payload?.order_id === orderId
       );
 
       assert.ok(deliveryNotification, 'order_delivery_confirmed sales notification has not been materialized yet');
-      assert.ok(returnNotification, 'order_return_restocked sales notification has not been materialized yet');
+      assert.ok(returnNotification, 'order_return_created sales notification has not been materialized yet');
+      assert.strictEqual(
+        duplicateReturnNotifications.length,
+        1,
+        'one-step return flow should materialize exactly one sales-visible return notification'
+      );
       return { deliveryNotification, returnNotification };
     }, {
       ...salesNotificationPoll,

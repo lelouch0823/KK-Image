@@ -561,7 +561,11 @@ export class OrderLineFulfillmentService {
 
   assertUnshipAllowed(line) {
     const orderStatus = String(line?.order_status || '').trim().toLowerCase();
-    if (orderStatus === 'delivered' || orderStatus === 'fulfilled') {
+    const deliveryStatus = String(line?.delivery_status || '').trim().toLowerCase();
+    if (
+      orderStatus === 'delivered'
+      || ['delivered', 'partially_returned', 'returned'].includes(deliveryStatus)
+    ) {
       throw new BadRequestError('cannot unship line from a delivered order');
     }
   }

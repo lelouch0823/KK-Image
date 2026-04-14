@@ -269,14 +269,14 @@ describe('DomainOutboxConsumers notifications', () => {
     }));
   });
 
-  it('creates one sales notification from order_return_restocked', async () => {
+  it('creates one sales notification from order_return_created', async () => {
     const result = await DOMAIN_OUTBOX_CONSUMERS.notification({
       db: {},
       baseUrl: 'https://kk.example.com',
       event: {
         id: 'job-notification-return',
         event_id: 'evt-return',
-        event_type: 'order_return_restocked',
+        event_type: 'order_return_created',
         aggregate_type: 'order',
         aggregate_id: 'o-return',
         payload_json: JSON.stringify({
@@ -295,16 +295,45 @@ describe('DomainOutboxConsumers notifications', () => {
       created: true,
     });
     expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Return restocked',
-      content: 'Returned stock for order SO-RETURN has been restocked',
+      title: 'Return created',
+      content: 'Order SO-RETURN has a return for 2 unit(s)',
       receiver: 'sales',
       salespersonId: 'sp-return',
       orderId: 'o-return',
-      dedupeKey: 'order_return_restocked:evt-return:sales:sp-return',
+      dedupeKey: 'order_return_created:evt-return:sales:sp-return',
       metadata: expect.objectContaining({
-        eventType: 'order_return_restocked',
+        eventType: 'order_return_created',
       }),
     }));
+  });
+
+  it('suppresses sales notifications from order_return_restocked in the one-step return flow', async () => {
+    const result = await DOMAIN_OUTBOX_CONSUMERS.notification({
+      db: {},
+      baseUrl: 'https://kk.example.com',
+      event: {
+        id: 'job-notification-return-restocked',
+        event_id: 'evt-return-restocked',
+        event_type: 'order_return_restocked',
+        aggregate_type: 'order',
+        aggregate_id: 'o-return',
+        payload_json: JSON.stringify({
+          order_id: 'o-return',
+          order_no: 'SO-RETURN',
+          salesperson_id: 'sp-return',
+          actor_name: 'Admin',
+          quantity: 2,
+          reason: 'damage',
+        }),
+      },
+    });
+
+    expect(result).toEqual({
+      skipped: true,
+      reason: 'notification_suppressed',
+    });
+    expect(mocks.createFromDomainEvent).not.toHaveBeenCalled();
+    expect(mocks.invalidateCache).not.toHaveBeenCalled();
   });
 
   it('creates one admin reminder notification from order_pending_reminder_due', async () => {

@@ -606,6 +606,60 @@ describe('OrderLineFulfillmentService', () => {
     expect(harness.db.batch).not.toHaveBeenCalled();
   });
 
+  it('allows unshipping fulfilled orders that are still in transit', async () => {
+    harness = createDbHarness({
+      orderLineRow: {
+        order_id: 'order-1',
+        order_no: 'SO-1',
+        salesperson_id: 'sales-1',
+        order_status: 'fulfilled',
+        delivery_status: 'in_transit',
+        line_id: 'line-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 2,
+        procured_qty: 2,
+        received_qty: 2,
+        reserved_qty: 0,
+        shipped_qty: 2,
+        cancelled_qty: 0,
+        display_status: 'completed',
+      },
+      inventoryBalanceRow: {
+        variant_id: 'var-1',
+        on_hand: 0,
+        reserved: 0,
+        available: 0,
+      },
+    });
+    service = new OrderLineFulfillmentService(harness.db, {
+      allocationRepo: harness.allocationRepo,
+      inventoryService: harness.inventoryService,
+      domainOutboxRepo: harness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    const result = await service.unshipLine(
+      'order-1',
+      'line-1',
+      { quantity: 1 },
+      { actorName: 'Admin' }
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        action: 'unship',
+        quantity: 1,
+      })
+    );
+    expect(harness.inventoryService.buildMutationStatements).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'order_unshipment',
+        quantityDelta: 1,
+      })
+    );
+  });
+
   it('also rejects unshipping when legacy delivered input was normalized to fulfilled in storage', async () => {
     harness = createDbHarness({
       orderLineRow: {

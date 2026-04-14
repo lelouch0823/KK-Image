@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useOrderFilters } from '../useOrderFilters';
+import { DateUtils } from '@/utils/date';
 
 const mocks = vi.hoisted(() => ({
   authFetch: vi.fn(),
@@ -103,6 +104,23 @@ describe('useOrderFilters', () => {
     );
     expect(mocks.authFetch).toHaveBeenCalledWith(
       expect.stringContaining('status=fulfilled')
+    );
+  });
+
+  it('forwards active date range in export requests', async () => {
+    const { filterDateRange, exportOrders } = useOrderFilters(mocks.loadOrders);
+    filterDateRange.value = {
+      start: DateUtils.getBeijingDayStart(Date.UTC(2026, 3, 14, 4, 0, 0)),
+      end: DateUtils.getBeijingDayEnd(Date.UTC(2026, 3, 14, 4, 0, 0)),
+    };
+
+    await exportOrders();
+
+    expect(mocks.authFetch).toHaveBeenCalledWith(
+      expect.stringContaining('from=2026-04-14')
+    );
+    expect(mocks.authFetch).toHaveBeenCalledWith(
+      expect.stringContaining('to=2026-04-14')
     );
   });
 });

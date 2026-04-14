@@ -26,6 +26,11 @@ import {
 
 const app = new Hono();
 
+const neutralizeSpreadsheetFormula = (value) => {
+    const normalized = value === null || value === undefined ? '' : String(value);
+    return /^[=+\-@]/.test(normalized) ? `'${normalized}` : normalized;
+};
+
 /**
  * GET / - 获取订单列表
  */
@@ -200,7 +205,7 @@ app.get('/export', async (c) => {
         { key: 'created_at', label: MSG.EXPORT.HEADERS.CREATED_AT },
     ];
 
-    const escapeCSV = (v) => (v === null || v === undefined ? '' : `"${String(v).replace(/"/g, '""')}"`);
+    const escapeCSV = (v) => `"${neutralizeSpreadsheetFormula(v).replace(/"/g, '""')}"`;
 
     const header = columns.map(c => c.label).join(',');
     const rows = orders.map(o => {

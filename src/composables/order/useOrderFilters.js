@@ -5,6 +5,11 @@ import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 
+function formatBeijingDate(timestamp) {
+    if (!timestamp) return '';
+    return new Date(Number(timestamp) + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 export function useOrderFilters(loadOrders) {
     const { t } = useI18n();
     const { addToast } = useToast();
@@ -89,6 +94,8 @@ export function useOrderFilters(loadOrders) {
             if (filterState.value.procurementStatus) params.set('procurementStatus', filterState.value.procurementStatus);
             if (filterState.value.deliveryStatus) params.set('deliveryStatus', filterState.value.deliveryStatus);
             if (filterState.value.search) params.set('search', filterState.value.search);
+            if (filterDateRange.value.start > 0) params.set('from', formatBeijingDate(filterDateRange.value.start));
+            if (filterDateRange.value.end > 0) params.set('to', formatBeijingDate(filterDateRange.value.end));
 
             const url = `${API.MANAGE_ORDER_EXPORT}?${params.toString()}`;
             const response = await authFetch(url);

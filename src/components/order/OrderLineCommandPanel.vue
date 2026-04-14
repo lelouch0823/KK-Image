@@ -30,7 +30,7 @@
           }}
         </p>
         <p
-          v-else-if="unshipBlockedByOrderStatus"
+          v-else-if="unshipBlockedByDeliveryStatus"
           class="mt-2 rounded-xl border border-sky-500/20 bg-sky-500/8 px-3 py-2 text-xs text-sky-700"
         >
           {{
@@ -124,7 +124,7 @@
         type="button"
         data-testid="line-command-unship"
         class="cursor-pointer rounded-xl border border-sky-500/20 bg-sky-500/10 px-3 py-2.5 text-sm font-semibold text-sky-600 transition hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-50"
-        :disabled="loading || !isVariantBacked || unshipBlockedByOrderStatus || limits.unship <= 0"
+        :disabled="loading || !isVariantBacked || unshipBlockedByDeliveryStatus || limits.unship <= 0"
         @click="submit('unship')"
       >
         {{ t('order.detail.unshipAction', '撤销出货') }}
@@ -184,7 +184,10 @@ const isVariantBacked = computed(() => Boolean(props.line?.variantId));
 const orderStatusNormalized = computed(() => String(props.orderStatus || '').trim().toLowerCase());
 const deliveryStatusNormalized = computed(() => String(props.deliveryStatus || '').trim().toLowerCase());
 const orderIsTerminalFulfilled = computed(() => ['fulfilled', 'delivered'].includes(orderStatusNormalized.value));
-const unshipBlockedByOrderStatus = computed(() => orderIsTerminalFulfilled.value);
+const unshipBlockedByDeliveryStatus = computed(() =>
+  orderStatusNormalized.value === 'delivered'
+  || ['delivered', 'partially_returned', 'returned'].includes(deliveryStatusNormalized.value)
+);
 const returnAllowedByOrderStatus = computed(() =>
   orderStatusNormalized.value === 'delivered'
   || ['delivered', 'returned'].includes(deliveryStatusNormalized.value)
@@ -216,7 +219,7 @@ const limits = computed(() => {
       reserve: reserveCap,
       release: reserved,
       ship: shipCap,
-      unship: unshipBlockedByOrderStatus.value ? 0 : shipped,
+      unship: unshipBlockedByDeliveryStatus.value ? 0 : shipped,
       return: Math.max(shipped - returned, 0),
     };
 });

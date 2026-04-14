@@ -537,7 +537,18 @@ function resolveNotificationType(eventType) {
   return 'order';
 }
 
+function shouldMaterializeNotification(eventType) {
+  return eventType !== 'order_return_restocked';
+}
+
 async function notifyOutboxEvent({ db, event, baseUrl }) {
+  if (!shouldMaterializeNotification(event?.event_type)) {
+    return {
+      skipped: true,
+      reason: 'notification_suppressed',
+    };
+  }
+
   const payload = safeJsonParse(
     typeof event?.payload_json === 'string' ? event.payload_json || null : null,
     {}

@@ -137,12 +137,33 @@ describe('OrderLineCommandPanel', () => {
     expect(wrapper.get('[data-testid="line-command-unship"]').attributes('disabled')).toBeDefined();
   });
 
-  it('disables unship when the parent order is already delivered', async () => {
+  it('keeps unship available for fulfilled orders before delivery confirmation', async () => {
     const wrapper = mount(OrderLineCommandPanel, {
       props: {
         orderStatus: 'fulfilled',
+        deliveryStatus: 'in_transit',
         line: {
           id: 'line-4',
+          variantId: 'var-4',
+          orderedQuantity: 5,
+          receivedQuantity: 5,
+          reservedQuantity: 0,
+          shippedQuantity: 2,
+          cancelledQuantity: 0,
+        },
+      },
+    });
+
+    expect(wrapper.get('[data-testid="line-command-unship"]').attributes('disabled')).toBeUndefined();
+  });
+
+  it('disables unship once delivery has been confirmed', async () => {
+    const wrapper = mount(OrderLineCommandPanel, {
+      props: {
+        orderStatus: 'fulfilled',
+        deliveryStatus: 'delivered',
+        line: {
+          id: 'line-4b',
           variantId: 'var-4',
           orderedQuantity: 5,
           receivedQuantity: 5,

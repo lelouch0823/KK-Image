@@ -355,4 +355,44 @@ describe('manage order list routes', () => {
     expect(csv).toContain('"2"');
   });
 
+  it('neutralizes spreadsheet formula prefixes in exported order csv cells', async () => {
+    const exportStmt = {
+      bind: vi.fn(() => exportStmt),
+      all: vi.fn(async () => ({
+        results: [{
+          id: 'o-1',
+          order_no: '=SO-1',
+          current_data: JSON.stringify({ name: '+CMD' }),
+          status: 'fulfilled',
+          fulfillment_status: 'fulfilled',
+          delivery_status: 'delivered',
+          line_returned_qty: 0,
+          salesperson_name: '@Alice',
+          created_at: 1710000000000,
+          snapshot_name: '-Snapshot',
+        }],
+      })),
+    };
+    const db = {
+      prepare: vi.fn((sql) => {
+        if (sql.includes('FROM orders o')) return exportStmt;
+        return { all: mocks.salespersonsAll };
+      }),
+    };
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/orders/export',
+      {},
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    const csv = await res.text();
+    expect(csv).toContain(`"'=SO-1"`);
+    expect(csv).toContain(`"'+CMD"`);
+    expect(csv).toContain(`"'@Alice"`);
+  });
+
 });
