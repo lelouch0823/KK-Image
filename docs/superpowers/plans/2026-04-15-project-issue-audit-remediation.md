@@ -12,13 +12,15 @@
 
 ## Execution Status
 
-- 状态：completed on 2026-04-15
+- 状态：partially completed on 2026-04-15
 - 结案说明：[docs/reviews/2026-04-15-project-issue-audit-closure-note.md](/home/bjw/Code/KK-Image/docs/reviews/2026-04-15-project-issue-audit-closure-note.md)
-- 执行结果：原 Stage 1 与 Stage 2 涉及的 `01-30` 问题均已完成落地，不再保留本计划内未执行项。
+- 执行结果：`01-25` 与 `30` 已完成落地；`26-29` 完成了首轮 helper / read-model 抽离，但“大文件职责过载”仍需继续治理。
 - 新鲜验证：
   - targeted `eslint` PASS：覆盖原审查中直接点名的 Node/Vitest globals、Workers globals、Vue 规则作用域、死代码和无效抑制项
   - targeted audit suites PASS：`10` files / `14` tests
-- follow-up：`pnpm typecheck:minisales` 已证明类型检查改为 `tsconfig.json` 驱动，但同时暴露出未纳入本次 30 条清单的小程序现存类型错误，需另行治理，不回滚本计划结案状态。
+- follow-up：
+  - `pnpm typecheck:minisales` 已证明类型检查改为 `tsconfig.json` 驱动，且本轮已把 `minisales` 接入 root `lint` / `ci-test` 默认门禁。
+  - `26-29` 对应的四个大文件仍需继续拆分，当前只完成了首轮可验证抽离。
 
 ## Scope Split
 

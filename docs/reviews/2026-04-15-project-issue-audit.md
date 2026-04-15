@@ -5,8 +5,8 @@
 - 问题真实性审查已完成，`01-30` 全部确认为真实问题。
 - 修复计划：[docs/superpowers/plans/2026-04-15-project-issue-audit-remediation.md](/home/bjw/Code/KK-Image/docs/superpowers/plans/2026-04-15-project-issue-audit-remediation.md)
 - 结案说明：[docs/reviews/2026-04-15-project-issue-audit-closure-note.md](/home/bjw/Code/KK-Image/docs/reviews/2026-04-15-project-issue-audit-closure-note.md)
-- 执行状态：已完成，原 Stage 1 / Stage 2 均已落地。
-- 补充说明：新鲜验证中 `pnpm typecheck:minisales` 已证明类型检查覆盖缺口被修复，但也暴露出一批未纳入本次 30 条清单的小程序类型问题，需另行治理。
+- 执行状态：`01-25` 与 `30` 已完成；`26-29` 已完成首轮抽离，但仍保留后续架构治理项。
+- 补充说明：新鲜验证中 `pnpm typecheck:minisales` 已证明类型检查覆盖缺口被修复，本轮也已把 `minisales` 接入 root `lint` / `ci-test` 默认门禁。
 
 ## 审查范围
 
