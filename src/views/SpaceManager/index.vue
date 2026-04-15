@@ -3,19 +3,16 @@
     <template #actions>
       <div v-if="spaces.length > 0 && canManageSpaces" class="flex gap-2">
         <Tooltip :content="t('spaceManager.create')">
-          <button
-            class="bg-primary flex size-9 items-center justify-center rounded-lg text-(--text-inverse) shadow-sm transition-colors hover:bg-primary-hover dark:text-gray-900"
+          <AppButton
+            variant="primary"
+            size="sm"
+            :text="t('spaceManager.create')"
             @click="showCreateModal = true"
           >
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 4v16m8-8H4"
-              ></path>
-            </svg>
-          </button>
+            <template #icon-left>
+              <AppIcon name="plus" class="size-4" />
+            </template>
+          </AppButton>
         </Tooltip>
       </div>
     </template>
@@ -44,10 +41,7 @@
       </div>
 
       <div v-else-if="errorCode === 'FORBIDDEN'" class="py-6">
-        <PermissionDeniedState
-          :reason="error"
-          @retry="loadSpaces()"
-        />
+        <PermissionDeniedState :reason="error" @retry="loadSpaces()" />
       </div>
 
       <div v-else-if="error" class="py-6">
@@ -59,7 +53,10 @@
         />
       </div>
 
-      <div v-else-if="spaces.length > 0" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div
+        v-else-if="spaces.length > 0"
+        class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
+      >
         <div
           v-for="space in spaces"
           :key="space.id"
@@ -78,19 +75,7 @@
               rounded="none"
             />
             <div v-else class="absolute inset-0 flex items-center justify-center">
-              <svg
-                class="size-12 text-(--text-disabled)"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                ></path>
-              </svg>
+              <AppIcon name="folder" class="size-12 text-(--text-disabled)" />
             </div>
 
             <span
@@ -99,37 +84,36 @@
               {{ getTemplateLabel(space.template) }}
             </span>
 
-            <span
+            <StatusBadge
               v-if="space.shareMode && space.shareMode !== 'none'"
-              class="absolute top-2 right-2 flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium"
+              class="absolute top-2 right-2"
               :class="{
-                'bg-success text-(--text-inverse)': space.shareMode === 'all',
-                'bg-info text-(--text-inverse)': space.shareMode === 'selected',
+                'bg-success text-(--text-inverse) border-success/20': space.shareMode === 'all',
+                'bg-info text-(--text-inverse) border-info/20': space.shareMode === 'selected',
               }"
             >
-              <svg v-if="space.shareMode === 'all'" class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
-              </svg>
-              <svg v-else class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-              </svg>
-              {{ space.shareMode === 'all' ? t('spaceManager.shareMode.all') : t('spaceManager.shareMode.selected') }}
-            </span>
-            <span
+              <AppIcon :name="space.shareMode === 'all' ? 'share' : 'users'" class="size-3" />
+              {{
+                space.shareMode === 'all'
+                  ? t('spaceManager.shareMode.all')
+                  : t('spaceManager.shareMode.selected')
+              }}
+            </StatusBadge>
+            <StatusBadge
               v-if="space.bindingUsesSnapshot"
-              class="absolute bottom-2 left-2 rounded-full bg-amber-500/90 px-2 py-1 text-xs font-medium text-white"
+              variant="warning"
+              class="absolute bottom-2 left-2"
             >
               {{ getBindingStateLabel(space.bindingState) }}
-            </span>
-            <span
+            </StatusBadge>
+            <StatusBadge
               v-else-if="!space.isPublic"
-              class="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-(--text-secondary)/80 px-2 py-1 text-xs font-medium text-(--text-inverse)"
+              variant="neutral"
+              class="absolute top-2 right-2"
             >
-              <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-              </svg>
+              <AppIcon name="lock-closed" class="size-3" />
               {{ t('spaceManager.shareMode.none') }}
-            </span>
+            </StatusBadge>
           </div>
 
           <div class="p-4">
@@ -140,31 +124,11 @@
 
             <div class="mt-3 flex items-center gap-4 text-xs text-(--text-secondary)">
               <span class="flex items-center gap-1">
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  ></path>
-                </svg>
+                <AppIcon name="document-text" class="size-4" />
                 {{ t('fileManager.totalFiles', { count: space.fileCount }) }}
               </span>
               <span class="flex items-center gap-1">
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  ></path>
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  ></path>
-                </svg>
+                <AppIcon name="eye" class="size-4" />
                 {{ space.viewCount }} {{ t('spacePublic.views') }}
               </span>
             </div>
@@ -179,10 +143,7 @@
               @click.stop="manageSpace(space)"
             >
               <template #icon-left>
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
+                <AppIcon name="eye" class="size-4" />
               </template>
             </AppButton>
             <AppButton
@@ -195,9 +156,7 @@
               @click.stop="confirmDelete(space)"
             >
               <template #icon-left>
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                </svg>
+                <AppIcon name="trash" class="size-4" />
               </template>
             </AppButton>
           </div>
@@ -212,15 +171,9 @@
         container-class="py-20"
       >
         <template #action>
-          <AppButton
-            v-if="canManageSpaces"
-            :text="t('space.create')"
-            @click="openCreateModal"
-          >
+          <AppButton v-if="canManageSpaces" :text="t('space.create')" @click="openCreateModal">
             <template #icon-left>
-              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
+              <AppIcon name="plus" class="size-4" />
             </template>
           </AppButton>
         </template>
@@ -276,8 +229,10 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
 const { spaces, loading, error, errorCode, loadSpaces, deleteSpace } = useSpaces();
@@ -315,7 +270,7 @@ const getBindingStateLabel = (bindingState) => {
     missing_product: t('spaceManager.bindingIssues.badges.missingProduct') || '商品已失效',
     missing_variant: t('spaceManager.bindingIssues.badges.missingVariant') || '规格已失效',
   };
-  return mapping[bindingState] || (t('spaceManager.bindingIssues.badges.snapshot') || '绑定快照');
+  return mapping[bindingState] || t('spaceManager.bindingIssues.badges.snapshot') || '绑定快照';
 };
 
 const openSpaceDetail = (space) => {
