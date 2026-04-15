@@ -26,6 +26,20 @@ const rules = [
     ],
     patterns: [/style="\{\{/g, /color="#/g],
   },
+  {
+    id: 'no-hardcoded-stats-surface-colors',
+    files: ['minisales/miniprogram/pages/stats/stats.scss'],
+    patterns: [
+      /#eff6ff/g,
+      /#ffffff/g,
+      /#bfdbfe/g,
+      /#0f172a/g,
+      /#93c5fd/g,
+      /#3b82f6/g,
+      /#c084fc/g,
+      /#7c3aed/g,
+    ],
+  },
 ];
 
 const scanRule = (rootDir, rule) => {

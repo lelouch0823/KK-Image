@@ -49,6 +49,15 @@
   - `SpaceProductDetail.vue`
   - `SpaceMasonry.vue`
   - `FileSelector.vue`
+- 页面 / 表单 / token / minisales 第四轮收口已完成：
+  - `PermissionDeniedState.vue`
+  - `Dashboard.vue`
+  - `SpaceManager/index.vue`
+  - `Stats.vue`
+  - `AIChart.vue`
+  - `VariantBatchBuilderModal.vue`
+  - `OrderForm.vue`
+  - `minisales/miniprogram/pages/stats/stats.scss`
 - minisales 已完成状态 / shell / surface 第一轮收敛，去掉了核心链路中的 `style="{{...}}"` 状态注入和 controller 拼色字符串。
 
 ### 新增治理护栏
@@ -57,16 +66,18 @@
   - 拦截 `material-symbols-outlined`
   - 拦截 `font-[Outfit]`
   - 拦截已明确废弃的主色 fallback hex
+  - 拦截 `Stats.vue` / `AIChart.vue` 回流旧 chart fallback 调色板
 - `scripts/qa/check-ui-foundation-usage.mjs`
   - 对已整改的高风险 Web 文件拦截 raw `button` / `input` / `textarea` / `select` / `svg` 回流
 - `scripts/qa/check-minisales-ui-contract.mjs`
   - 拦截 minisales 关键链路重新引入 `statusStyle`、inline template style 和 controller 直接拼 hex 样式
+  - 拦截 `pages/stats/stats.scss` 回流硬编码 surface / gradient 色值
 - `package.json`
   - 新增 `qa:check-design-system` 聚合命令
 
 ### 当前验证结果
 
-- 本轮收口相关 Vitest：7 文件 12 测试通过
+- 本轮收口相关 Vitest：10 文件 17 测试通过
 - `pnpm qa:check-design-system`：通过
 - `eslint --max-warnings 0`：已对本轮整改涉及文件通过
 - `prettier --check` 等价校验：本轮改动文件已通过 `prettier --write` 重写并保持无 diff 异常
@@ -74,7 +85,7 @@
 
 ### 仍待后续波次处理的 backlog
 
-- 本轮已清空此前挂在当前分支收口清单里的采购 overlay、space 详情组件和 `FileSelector`。
+- 本轮已清空此前挂在当前分支收口清单里的采购 overlay、space 详情组件、`FileSelector`，以及本轮新增的页面 / 表单 / chart token / minisales stats 收口项。
 - 审计基线下方记录的其余历史问题仍作为后续波次 backlog 保留，但不再包含上述已整改文件。
 - 两个明确保留的原生能力例外：
   - `src/components/SpaceProductEditor.vue` 中隐藏的 `type="file"` 输入，用于原生文件选择能力

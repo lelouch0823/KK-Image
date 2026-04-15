@@ -20,15 +20,15 @@
   gap: 20rpx;
   padding: 28rpx;
   border-radius: 28rpx;
-  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
-  border: 1rpx solid #bfdbfe;
+  background: linear-gradient(135deg, $card-blue-bg 0%, $bg-card 100%);
+  border: 1rpx solid $card-blue-border;
 }
 
 .header-card__title {
   display: block;
   font-size: $font-size-xl;
   font-weight: 700;
-  color: #0f172a;
+  color: $text-main;
 }
 
 .header-card__subtitle {
@@ -111,11 +111,11 @@
   width: 100%;
   min-height: 20rpx;
   border-radius: 18rpx 18rpx 0 0;
-  background: linear-gradient(180deg, #93c5fd 0%, #3b82f6 100%);
+  background: linear-gradient(180deg, $card-blue-border 0%, $card-blue-text 100%);
 }
 
 .chart-bars__bar--active {
-  background: linear-gradient(180deg, #c084fc 0%, #7c3aed 100%);
+  background: linear-gradient(180deg, $card-purple-border 0%, $card-purple-accent 100%);
 }
 
 .chart-bars__count {
