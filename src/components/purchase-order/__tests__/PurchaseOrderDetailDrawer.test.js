@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import process from 'node:process';
 import { mount } from '@vue/test-utils';
 import PurchaseOrderDetailDrawer from '../PurchaseOrderDetailDrawer.vue';
 
@@ -113,6 +116,10 @@ describe('PurchaseOrderDetailDrawer', () => {
       },
       global: {
         stubs: {
+          Modal: { template: '<div><slot name="header" /><slot /><slot name="footer" /></div>' },
+          ActionBar: { template: '<div><slot name="leading" /><slot /></div>' },
+          StatePanel: { template: '<section><slot /></section>' },
+          AppButton: { template: '<button><slot /></button>' },
           Teleport: true,
           Transition: false,
           AppImage: { template: '<div />' },
@@ -130,8 +137,28 @@ describe('PurchaseOrderDetailDrawer', () => {
     expect(wrapper.find('[data-testid="purchase-order-detail-items"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="purchase-order-detail-receipts"]').exists()).toBe(true);
     expect(wrapper.text()).toContain('Premium Canvas Bag');
-    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain('已到 4 / 12');
-    expect(wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()).toContain('Color: Black');
-    expect(wrapper.get('[data-testid="purchase-order-open-reversal-modal"]').text()).toContain('冲销收货');
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain(
+      '已到 4 / 12'
+    );
+    expect(
+      wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()
+    ).toContain('Color: Black');
+    expect(wrapper.get('[data-testid="purchase-order-open-reversal-modal"]').text()).toContain(
+      '冲销收货'
+    );
+  });
+
+  it('uses the shared modal shell and action bar contract', async () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/components/purchase-order/PurchaseOrderDetailDrawer.vue'),
+      'utf8'
+    );
+
+    expect(source).toContain('<Modal');
+    expect(source).toContain('<ActionBar');
+    expect(source).toContain('<AppButton');
+    expect(source).not.toContain('bg-linear-to');
+    expect(source).not.toContain('radial-gradient');
+    expect(source).not.toContain('shadow-[0_30px_80px_-35px_rgba(15,23,42,0.45)]');
   });
 });
