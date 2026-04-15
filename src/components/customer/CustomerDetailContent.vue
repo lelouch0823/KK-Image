@@ -7,13 +7,11 @@
           {{ customer?.name }}
         </h2>
         <div class="ml-3 flex h-7 items-center">
-          <button
-            type="button"
-            class="focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:outline-none rounded-md bg-(--bg-card) text-(--text-secondary) transition-colors hover:text-(--text-main)"
-            @click="$emit('close')"
-          >
-            <AppIcon name="x-mark" class="size-6" />
-          </button>
+          <AppButton variant="ghost" size="sm" class="!px-2" @click="$emit('close')">
+            <template #icon-left>
+              <AppIcon name="x-mark" class="size-5" />
+            </template>
+          </AppButton>
         </div>
       </div>
       <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:space-x-6">
@@ -33,19 +31,20 @@
       <!-- Tabs -->
       <div class="border-b border-(--border-color)">
         <nav class="-mb-px flex px-6" aria-label="Tabs">
-          <button
+          <AppButton
             v-for="tab in tabs"
             :key="tab.key"
-            :class="[
+            variant="link"
+            class="mr-6 !rounded-none border-b-2 px-1 py-4 text-sm font-medium whitespace-nowrap no-underline transition-colors"
+            :class="
               currentTab === tab.key
                 ? 'border-primary text-primary'
-                : 'border-transparent text-(--text-secondary) hover:border-(--border-hover) hover:text-(--text-main)',
-              'mr-8 border-b-2 px-1 py-4 text-sm font-medium whitespace-nowrap transition-colors',
-            ]"
+                : 'border-transparent text-(--text-secondary) hover:border-(--border-hover) hover:text-(--text-main)'
+            "
             @click="currentTab = tab.key"
           >
             {{ tab.name }}
-          </button>
+          </AppButton>
         </nav>
       </div>
 
@@ -54,27 +53,25 @@
         <!-- 基本信息 -->
         <div v-if="currentTab === 'info'" class="space-y-6">
           <!-- 操作栏 -->
-          <div class="mb-6 flex justify-start gap-4">
-            <button
-              class="focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:outline-none inline-flex items-center rounded-md border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm leading-4 font-medium text-(--text-main) shadow-sm transition-colors hover:bg-(--bg-hover)"
-              @click="$emit('edit', customer)"
-            >
-              <AppIcon name="pencil-square" class="mr-2 -ml-0.5 size-4" />
-              {{ t('common.edit') }}
-            </button>
-            <button
-              class="bg-danger inline-flex items-center rounded-md border border-transparent px-3 py-2 text-sm leading-4 font-medium text-(--text-inverse) shadow-sm transition-all hover:opacity-90 active:scale-95"
-              @click="handleDelete"
-            >
-              <AppIcon name="trash" class="mr-2 -ml-0.5 size-4" />
-              {{ t('common.delete') }}
-            </button>
-          </div>
+          <ActionBar class="border-none bg-transparent px-0 py-0 shadow-none">
+            <AppButton variant="white" :text="t('common.edit')" @click="$emit('edit', customer)">
+              <template #icon-left>
+                <AppIcon name="pencil-square" class="size-4" />
+              </template>
+            </AppButton>
+            <AppButton variant="danger" :text="t('common.delete')" @click="handleDelete">
+              <template #icon-left>
+                <AppIcon name="trash" class="size-4" />
+              </template>
+            </AppButton>
+          </ActionBar>
 
-          <div class="border-t border-(--border-color) pt-4">
-            <h4 class="mb-3 text-sm font-medium text-(--text-secondary)">
-              {{ t('customer.form.basicInfo') }}
-            </h4>
+          <AppCard padding="p-5">
+            <template #header>
+              <h4 class="text-sm font-medium text-(--text-secondary)">
+                {{ t('customer.form.basicInfo') }}
+              </h4>
+            </template>
             <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div class="sm:col-span-1">
                 <dt class="text-xs font-medium text-(--text-secondary)">
@@ -83,7 +80,9 @@
                 <dd class="mt-1 text-sm text-(--text-primary)">{{ customer?.phone || '-' }}</dd>
               </div>
               <div class="sm:col-span-1">
-                <dt class="text-xs font-medium text-(--text-secondary)">{{ t('common.createdAt') }}</dt>
+                <dt class="text-xs font-medium text-(--text-secondary)">
+                  {{ t('common.createdAt') }}
+                </dt>
                 <dd class="mt-1 text-sm text-(--text-primary)">
                   {{ formatDate(customer?.createdAt) }}
                 </dd>
@@ -128,28 +127,25 @@
                 </dd>
               </div>
             </dl>
-          </div>
+          </AppCard>
         </div>
 
         <!-- 历史订单 -->
         <div v-if="currentTab === 'orders'" class="space-y-4">
           <div v-if="loadingOrders" class="py-8 text-center">
-            <div
-              class="border-primary mx-auto size-8 animate-spin rounded-full border-b-2"
-            ></div>
+            <AppIcon name="spinner" class="text-primary mx-auto size-8 animate-spin" />
           </div>
 
-          <div v-else-if="orders.length === 0" class="py-8 text-center text-(--text-secondary)">
-            <AppIcon name="rectangle-group" class="mx-auto size-12 text-(--text-secondary) opacity-50" />
-            <p class="mt-2 text-sm">{{ t('customer.detail.noOrders') }}</p>
-          </div>
+          <EmptyState
+            v-else-if="orders.length === 0"
+            icon="inbox"
+            :title="t('customer.detail.noOrders')"
+            :description="t('customer.detail.noOrders')"
+            size="sm"
+          />
 
           <div v-else class="space-y-4">
-            <div
-              v-for="order in orders"
-              :key="order.id"
-              class="rounded-lg border border-(--border-color) bg-(--bg-card) p-3 transition-shadow hover:shadow-sm"
-            >
+            <AppCard v-for="order in orders" :key="order.id" padding="p-4">
               <div class="mb-2 flex items-start justify-between">
                 <div>
                   <p class="text-sm font-medium text-(--text-primary)">{{ order.productName }}</p>
@@ -159,7 +155,9 @@
                 </div>
                 <StatusBadge :status="order.status" class="origin-right scale-90" />
               </div>
-              <div class="mt-2 flex gap-2 border-t border-(--border-color) pt-2 text-xs text-(--text-secondary)">
+              <div
+                class="mt-2 flex gap-2 border-t border-(--border-color) pt-2 text-xs text-(--text-secondary)"
+              >
                 <AppImage
                   v-if="order.mainImage"
                   :src="order.mainImage"
@@ -175,7 +173,7 @@
                   </p>
                 </div>
               </div>
-            </div>
+            </AppCard>
           </div>
         </div>
       </div>
@@ -200,8 +198,12 @@ import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { formatDate, formatCurrency } from '@/utils/formatters';
 import { API } from '@/utils/constants';
+import ActionBar from '@/design-system/composed/ActionBar.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppCard from '@/components/ui/AppCard.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
@@ -232,7 +234,6 @@ const tabs = computed(() => [
   { key: 'info', name: t('customer.form.basicInfo') },
   { key: 'orders', name: t('customer.detail.historyOrders') },
 ]);
-
 
 const loadOrders = async () => {
   if (!props.customer?.id) return;
@@ -295,10 +296,10 @@ watch(currentTab, (newTab) => {
 watch(
   () => props.customer?.id,
   (newId) => {
-    if (newId){
-         // Reset on customer change
-         currentTab.value = 'info';
-         orders.value = [];
+    if (newId) {
+      // Reset on customer change
+      currentTab.value = 'info';
+      orders.value = [];
     }
   }
 );
