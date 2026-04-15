@@ -1,6 +1,7 @@
 <template>
   <div
     :data-surface-variant="variant"
+    data-state-panel
     class="rounded-2xl border border-transparent"
     :class="panelClass"
   >

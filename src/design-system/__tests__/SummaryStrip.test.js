@@ -15,5 +15,6 @@ describe('SummaryStrip', () => {
 
     expect(wrapper.classes()).toContain('shadow-none');
     expect(wrapper.classes()).not.toContain('shadow-sm');
+    expect(wrapper.attributes('data-summary-strip')).toBeDefined();
   });
 });

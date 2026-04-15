@@ -26,7 +26,8 @@
             v-if="modelValue"
             role="dialog"
             aria-modal="true"
-            :aria-labelledby="title ? modalTitleId : undefined"
+            :aria-labelledby="labelledBy || (title ? modalTitleId : undefined)"
+            data-modal-surface="base"
             class="animate-in flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl border border-(--border-color) bg-(--color-modal-bg) shadow-2xl ring-1 ring-black/5"
             :class="sizeClass"
           >
@@ -100,6 +101,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  labelledBy: {
+    type: String,
+    default: '',
+  },
   zIndex: {
     type: [Number, String],
     default: null,
@@ -109,8 +114,15 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'close']);
 
 // 智能堆叠管理
-const { generateModalId, register, unregister, shouldShowBlur, isTopModal, getZIndex } =
-  useModalStack();
+const {
+  generateModalId,
+  register,
+  unregister,
+  shouldShowBlur,
+  isTopModal,
+  getZIndex,
+  hasOpenModals,
+} = useModalStack();
 const modalId = ref(generateModalId());
 const modalTitleId = computed(() => `modal-title-${modalId.value}`);
 
@@ -173,6 +185,10 @@ const handleBackdropClick = () => {
   }
 };
 
+const syncBodyScrollLock = () => {
+  document.body.style.overflow = hasOpenModals.value ? 'hidden' : '';
+};
+
 // ESC 键关闭（仅最顶层响应）
 const handleKeydown = (e) => {
   if (e.key === 'Escape' && props.modelValue && props.closable && isTopModal(modalId.value)) {
@@ -186,11 +202,11 @@ watch(
   (visible) => {
     if (visible) {
       register(modalId.value);
-      document.body.style.overflow = 'hidden';
+      syncBodyScrollLock();
       document.addEventListener('keydown', handleKeydown);
     } else {
       unregister(modalId.value);
-      document.body.style.overflow = '';
+      syncBodyScrollLock();
       document.removeEventListener('keydown', handleKeydown);
     }
   },
@@ -200,7 +216,7 @@ watch(
 onUnmounted(() => {
   unregister(modalId.value);
   document.removeEventListener('keydown', handleKeydown);
-  document.body.style.overflow = '';
+  syncBodyScrollLock();
 });
 </script>
 
