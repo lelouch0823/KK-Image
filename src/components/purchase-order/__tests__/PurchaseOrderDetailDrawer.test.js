@@ -124,6 +124,7 @@ describe('PurchaseOrderDetailDrawer', () => {
     });
 
     expect(wrapper.find('[data-testid="purchase-order-detail-summary"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="purchase-order-detail-close"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="purchase-order-detail-progress"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="purchase-order-detail-cost"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="purchase-order-detail-items"]').exists()).toBe(true);

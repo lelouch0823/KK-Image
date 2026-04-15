@@ -118,6 +118,7 @@
             <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <button
                     type="button"
+                    data-testid="product-import-mode-safe-merge"
                     class="cursor-pointer rounded-lg border px-3 py-2 text-left transition-colors"
                     :class="importMode === 'safe_merge' ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-(--text-main) hover:bg-(--bg-hover)'"
                     @click="updateImportMode('safe_merge')"
@@ -127,6 +128,7 @@
                 </button>
                 <button
                     type="button"
+                    data-testid="product-import-mode-replace"
                     class="cursor-pointer rounded-lg border px-3 py-2 text-left transition-colors"
                     :class="importMode === 'replace' ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-(--text-main) hover:bg-(--bg-hover)'"
                     @click="updateImportMode('replace')"

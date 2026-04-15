@@ -16,5 +16,7 @@ describe('purchase-order picker modal design system', () => {
 
     expect(source).toContain('data-testid="purchase-order-product-picker-shell"');
     expect(source).toContain('data-testid="purchase-order-product-picker-toolbar"');
+    expect(source).toContain('data-testid="purchase-order-product-picker-search"');
+    expect(source).toContain(':data-testid="`purchase-order-product-picker-checkbox-${variant.variant_id}`"');
   });
 });

@@ -108,6 +108,7 @@ async function importProductThroughUi(page, product) {
     const specColumnTrigger = specColumnSelect.getByRole('button');
     const triggerId = await specColumnTrigger.getAttribute('id');
 
+    await page.getByTestId('product-import-mode-replace').click();
     await specNameInput.fill('颜色');
     await specColumnTrigger.click();
     await page
@@ -122,6 +123,40 @@ async function importProductThroughUi(page, product) {
     await page.getByText('导入完成！', { exact: true }).waitFor({ state: 'visible', timeout: 30000 });
     await page.getByTestId('product-import-submit').click();
     await page.getByTestId('product-import-modal').waitFor({ state: 'hidden', timeout: 30000 });
+
+    const productListEntry = page.getByText(product.name, { exact: false }).first();
+    await productListEntry.waitFor({ state: 'visible', timeout: 30000 });
+    await productListEntry.click();
+
+    const detailContent = page.getByTestId('product-detail-content');
+    await detailContent.waitFor({ state: 'visible', timeout: 30000 });
+
+    const detailLoading = page.getByTestId('detail-loading');
+    if (await detailLoading.count()) {
+      await detailLoading.waitFor({ state: 'hidden', timeout: 30000 });
+    }
+
+    await page.getByTestId('product-detail-name').waitFor({ state: 'visible', timeout: 30000 });
+    const brandText = await page.getByTestId('product-detail-brand').textContent();
+    const spuText = await page.getByTestId('product-detail-spu').textContent();
+    const priceText = await page.getByTestId('product-detail-price').textContent();
+    const stockText = await page.getByTestId('product-detail-total-stock').textContent();
+
+    if (String(brandText || '').trim() !== 'ImportedBrand') {
+      throw new Error(`Imported product brand did not persist: ${brandText}`);
+    }
+    if (String(spuText || '').trim() !== product.spu) {
+      throw new Error(`Imported product SPU changed unexpectedly: ${spuText}`);
+    }
+    if (!String(priceText || '').includes('99')) {
+      throw new Error(`Imported product price did not update to replace value: ${priceText}`);
+    }
+    if (String(stockText || '').trim() !== '9') {
+      throw new Error(`Imported product stock did not update to replace value: ${stockText}`);
+    }
+
+    await page.keyboard.press('Escape');
+    await detailContent.waitFor({ state: 'hidden', timeout: 30000 });
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
@@ -129,6 +164,7 @@ async function importProductThroughUi(page, product) {
 
 async function createAndEditPurchaseOrderThroughUi(page, product) {
   const remark = `UI-PO-${createSeed('remark')}`;
+  const itemMutationPattern = /\/api\/manage\/purchase-orders\/[^/]+\/items\/[^/]+$/;
 
   await page.goto(`${baseURL}/admin/purchase-orders`, { waitUntil: 'domcontentloaded' });
   await stabilizePage(page);
@@ -140,36 +176,74 @@ async function createAndEditPurchaseOrderThroughUi(page, product) {
 
   const picker = page.getByTestId('purchase-order-product-picker-shell');
   await picker.waitFor({ state: 'visible', timeout: 30000 });
-  await picker.locator('input').first().fill(product.sku);
-  await page.waitForTimeout(400);
-  await picker.locator('input[type="checkbox"]').first().check();
+  await page.getByTestId('purchase-order-product-picker-search').locator('input').fill(product.sku);
+  const resultRow = picker.getByTestId(/purchase-order-product-picker-row-/).filter({ hasText: product.sku }).first();
+  await resultRow.waitFor({ state: 'visible', timeout: 30000 });
+  await resultRow.click();
   await page.getByTestId('purchase-order-product-picker-confirm').click();
 
   await page.getByTestId('purchase-order-create-submit').click();
   await page.getByTestId('purchase-order-create-shell').waitFor({ state: 'hidden', timeout: 30000 });
 
-  const remarkCell = page.getByText(remark, { exact: false }).first();
-  await remarkCell.waitFor({ state: 'visible', timeout: 30000 });
-  await remarkCell.click();
-
   const detailShell = page.getByTestId('purchase-order-detail-shell');
-  await detailShell.waitFor({ state: 'visible', timeout: 30000 });
+  const openDetailByRemark = async () => {
+    const remarkCell = page.getByText(remark, { exact: false }).first();
+    await remarkCell.waitFor({ state: 'visible', timeout: 30000 });
+    await remarkCell.click();
+    await detailShell.waitFor({ state: 'visible', timeout: 30000 });
+  };
+
+  const closeDetail = async () => {
+    await page.getByTestId('purchase-order-detail-close').click();
+    await detailShell.waitFor({ state: 'hidden', timeout: 30000 });
+  };
+
+  await openDetailByRemark();
 
   const itemCard = page.getByTestId('purchase-order-detail-item-card').first();
   await itemCard.waitFor({ state: 'visible', timeout: 30000 });
 
   const quantityInput = itemCard.getByTestId(/purchase-order-detail-item-quantity-/).first();
   await quantityInput.fill('6');
-  await quantityInput.press('Tab');
+  await Promise.all([
+    page.waitForResponse((response) => response.request().method() === 'PATCH' && itemMutationPattern.test(response.url()), { timeout: 30000 }),
+    quantityInput.press('Tab'),
+  ]);
 
   const unitCostInput = itemCard.getByTestId(/purchase-order-detail-item-unit-cost-/).first();
   await unitCostInput.fill('47');
-  await unitCostInput.press('Tab');
+  await Promise.all([
+    page.waitForResponse((response) => response.request().method() === 'PATCH' && itemMutationPattern.test(response.url()), { timeout: 30000 }),
+    unitCostInput.press('Tab'),
+  ]);
 
-  await page.waitForTimeout(600);
-  await itemCard.hover();
-  await itemCard.getByTestId(/purchase-order-detail-item-remove-/).first().click();
+  await closeDetail();
+  await openDetailByRemark();
+
+  const reopenedItemCard = page.getByTestId('purchase-order-detail-item-card').first();
+  await reopenedItemCard.waitFor({ state: 'visible', timeout: 30000 });
+  const reopenedQuantityInput = reopenedItemCard.getByTestId(/purchase-order-detail-item-quantity-/).first();
+  const reopenedUnitCostInput = reopenedItemCard.getByTestId(/purchase-order-detail-item-unit-cost-/).first();
+
+  if ((await reopenedQuantityInput.inputValue()) !== '6') {
+    throw new Error('Purchase order quantity did not persist after reopening detail');
+  }
+  if ((await reopenedUnitCostInput.inputValue()) !== '47') {
+    throw new Error('Purchase order unit cost did not persist after reopening detail');
+  }
+
+  await reopenedItemCard.hover();
+  const removeButton = reopenedItemCard.getByTestId(/purchase-order-detail-item-remove-/).first();
+  await removeButton.waitFor({ state: 'visible', timeout: 30000 });
+  await Promise.all([
+    page.waitForResponse((response) => response.request().method() === 'DELETE' && itemMutationPattern.test(response.url()), { timeout: 30000 }),
+    removeButton.click(),
+  ]);
   await page.getByTestId('purchase-order-detail-item-card').waitFor({ state: 'hidden', timeout: 30000 });
+
+  await closeDetail();
+  await openDetailByRemark();
+  await page.locator('[data-testid="purchase-order-detail-item-card"]').first().waitFor({ state: 'hidden', timeout: 30000 });
 }
 
 async function main() {

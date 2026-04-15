@@ -24,13 +24,15 @@
           </div>
 
           <div data-testid="purchase-order-product-picker-toolbar" class="border-b border-(--border-subtle) bg-(--bg-card)/65 px-6 py-4">
-            <SearchInput
-              v-model="searchQuery"
-              :placeholder="t('purchaseOrder.selection.searchVariant', '搜索商品名 / SKU / 变体')"
-              input-class="!rounded-xl !bg-(--bg-page)"
-              :debounce="0"
-              @search="debouncedSearch"
-            />
+            <div data-testid="purchase-order-product-picker-search">
+              <SearchInput
+                v-model="searchQuery"
+                :placeholder="t('purchaseOrder.selection.searchVariant', '搜索商品名 / SKU / 变体')"
+                input-class="!rounded-xl !bg-(--bg-page)"
+                :debounce="0"
+                @search="debouncedSearch"
+              />
+            </div>
             <div class="mt-3 flex flex-wrap items-center gap-2">
               <span class="inline-flex items-center rounded-full border border-sky-500/20 bg-sky-500/8 px-2.5 py-1 text-[10px] font-semibold text-sky-700">
                 {{ t('purchaseOrder.ui.activeVariants', '可选变体') }} {{ sortedVariants.length }}
@@ -90,6 +92,7 @@
                   : 'border-(--border-subtle) bg-(--bg-card)/86 hover:border-(--border-color) hover:bg-(--bg-hover)'"
               >
                 <input
+                  :data-testid="`purchase-order-product-picker-checkbox-${variant.variant_id}`"
                   type="checkbox"
                   :checked="isSelected(variant.variant_id)"
                   class="text-primary size-4 cursor-pointer rounded border-(--border-color) focus:ring-primary"

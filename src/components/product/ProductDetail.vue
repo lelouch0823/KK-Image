@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
+  <div data-testid="product-detail-content" class="grid grid-cols-1 gap-6 lg:grid-cols-12">
     <!-- Left: Gallery -->
     <div class="space-y-4 lg:col-span-7">
         <div class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) p-1 shadow-sm">
@@ -130,10 +130,10 @@
         <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-sm">
              <div class="mb-3 flex items-start justify-between gap-2">
                  <div>
-                     <span v-if="product.brand" class="text-primary mb-1 inline-block text-xs font-semibold tracking-wider uppercase">{{ product.brand }}</span>
-                     <h2 class="line-clamp-2 text-xl font-bold text-(--text-main)">{{ product.name }}</h2>
+                     <span v-if="product.brand" data-testid="product-detail-brand" class="text-primary mb-1 inline-block text-xs font-semibold tracking-wider uppercase">{{ product.brand }}</span>
+                     <h2 data-testid="product-detail-name" class="line-clamp-2 text-xl font-bold text-(--text-main)">{{ product.name }}</h2>
                      <div class="mt-1 flex items-center gap-2 text-sm text-(--text-secondary)">
-                         <span v-if="product.spu" class="rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono text-xs">{{ product.spu }}</span>
+                         <span v-if="product.spu" data-testid="product-detail-spu" class="rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono text-xs">{{ product.spu }}</span>
                          <span v-if="product.series">&bull; {{ product.series }}</span>
                      </div>
                  </div>
@@ -147,7 +147,7 @@
              <div class="mt-6">
                  <p class="text-[11px] text-(--text-secondary)">{{ t('product.form.price', 'Price') }}</p>
                  <div class="mt-1 flex items-center gap-2">
-                    <span class="font-[Outfit] text-3xl font-bold text-(--text-main)">{{ formatMoney(product.price) }}</span>
+                    <span data-testid="product-detail-price" class="font-[Outfit] text-3xl font-bold text-(--text-main)">{{ formatMoney(product.price) }}</span>
                     <span class="rounded bg-(--bg-muted) px-2 py-0.5 text-[10px] font-medium text-(--text-secondary)">{{ currencyCode }}</span>
                  </div>
                  <span v-if="product.cost_price !== undefined && product.cost_price !== null" class="mt-1 block text-xs text-(--text-secondary)">
@@ -223,10 +223,10 @@
         <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-sm">
              <h3 class="mb-4 text-sm font-bold tracking-wider text-(--text-main) uppercase opacity-80">{{ t('product.form.inventory') }}</h3>
              <div class="space-y-4">
-                 <div class="flex justify-between text-sm">
+                  <div class="flex justify-between text-sm">
                      <span class="text-(--text-secondary)">{{ t('product.stats.stock_level') }}</span>
-                     <span :class="stockColorClass" class="font-medium">{{ totalStock }}</span>
-                 </div>
+                     <span data-testid="product-detail-total-stock" :class="stockColorClass" class="font-medium">{{ totalStock }}</span>
+                  </div>
                  <div class="h-2 w-full overflow-hidden rounded-full bg-(--bg-muted)">
                       <div class="h-full rounded-full transition-all duration-500" :class="stockBgClass" :style="{ width: stockProgress + '%' }"></div>
                  </div>

@@ -19,6 +19,7 @@
         </div>
         <button
           type="button"
+          data-testid="purchase-order-detail-close"
           class="cursor-pointer rounded-lg p-2 text-(--text-secondary) hover:bg-(--bg-hover)"
           @click="$emit('close')"
         >
