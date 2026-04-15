@@ -14,6 +14,8 @@ describe('PurchaseOrders decomposition audit', () => {
       path.join(ROOT, 'src', 'views', 'purchase-orders', 'stepper.js'),
       path.join(ROOT, 'src', 'views', 'purchase-orders', 'drafts.js'),
       path.join(ROOT, 'src', 'views', 'purchase-orders', 'create-flow.js'),
+      path.join(ROOT, 'src', 'composables', 'usePurchaseOrderDetailActions.js'),
+      path.join(ROOT, 'src', 'composables', 'usePurchaseOrderCreateFlow.js'),
     ];
     const source = fs.readFileSync(mainPath, 'utf8');
 
@@ -39,8 +41,12 @@ describe('PurchaseOrders decomposition audit', () => {
       offenders.push('src/views/PurchaseOrders.vue: missing purchase-order draft helper import');
     }
 
-    if (!source.includes("@/views/purchase-orders/create-flow.js")) {
-      offenders.push('src/views/PurchaseOrders.vue: missing purchase-order create-flow helper import');
+    if (!source.includes("@/composables/usePurchaseOrderDetailActions")) {
+      offenders.push('src/views/PurchaseOrders.vue: missing purchase-order detail-actions composable import');
+    }
+
+    if (!source.includes("@/composables/usePurchaseOrderCreateFlow")) {
+      offenders.push('src/views/PurchaseOrders.vue: missing purchase-order create-flow composable import');
     }
 
     for (const marker of [
@@ -65,6 +71,16 @@ describe('PurchaseOrders decomposition audit', () => {
       'const excludeOrderIds = computed(() => {',
       'const selectedVariantIdsForPicker = computed(() => {',
       'const existingBrands = computed(() => {',
+      'const saveCostSettings = async ({ allocateAfterSave = false } = {}) => {',
+      'const openReceiptModal = () => {',
+      'const submitReceipts = async () => {',
+      'const submitShortageClosures = async () => {',
+      'const submitReceiptReversal = async () => {',
+      'const handleOrdersSelected = async (orders) => {',
+      'const handleProductsSelected = async ({ selectedVariantIds = [], selectedVariants = [] } = {}) => {',
+      'const handleCreate = async () => {',
+      'const executeCreate = async () => {',
+      'const handleCreateFromSuggestions = async () => {',
     ]) {
       if (source.includes(marker)) {
         offenders.push(`src/views/PurchaseOrders.vue: still defines ${marker}`);

@@ -2531,6 +2531,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePurchaseOrders } from '@/composables/usePurchaseOrders';
 import { usePurchaseOrderModals } from '@/composables/usePurchaseOrderModals';
+import { usePurchaseOrderCreateFlow } from '@/composables/usePurchaseOrderCreateFlow';
+import { usePurchaseOrderDetailActions } from '@/composables/usePurchaseOrderDetailActions';
 import { useToast } from '@/composables/useToast';
 import { useAI } from '@/composables/useAI';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
@@ -2542,7 +2544,6 @@ import {
   getPurchaseOrderOutstandingQty,
   getPurchaseOrderReceivedQty,
 } from '@/utils/purchase-order-progress';
-import { reconcileVariantSelection } from '@/utils/purchase-order-variant-selection';
 import { formatCurrency as formatMoney } from '@/utils/formatters';
 import { formatDate, formatDateTime } from "@/views/purchase-orders/formatters.js";
 import {
@@ -2562,19 +2563,8 @@ import {
   getSuggestionOrderIds,
   isReceiptDraftInvalid,
   isShortageDraftInvalid,
-  normalizeDecimal,
-  normalizeNullableDecimal,
   normalizeReceiptQty,
 } from "@/views/purchase-orders/drafts.js";
-import {
-  buildCreatePurchaseItemsPayload,
-  getCreateFlowSourceItems,
-  getExistingBrands,
-  getExcludeOrderIds,
-  getSelectedVariantIdsForPicker,
-  getShortageItems,
-  getTotalCreateQty,
-} from "@/views/purchase-orders/create-flow.js";
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
 import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
@@ -2661,27 +2651,6 @@ const createForm = reactive({
 const poItems = reactive([]);
 const selectedSuggestions = ref([]);
 const detailRequestId = ref('');
-const showCostModal = ref(false);
-const costSubmitting = ref(false);
-const costDraft = reactive({
-  remark: '',
-  currency: 'CNY',
-  allocation_method: 'by_quantity',
-  estimated_shipping_cost: 0,
-  estimated_tariff_cost: 0,
-  actual_shipping_cost: '',
-  actual_tariff_cost: '',
-});
-const showReceiptModal = ref(false);
-const receiptSubmitting = ref(false);
-const receiptDrafts = ref([]);
-const showShortageClosureModal = ref(false);
-const shortageSubmitting = ref(false);
-const shortageDrafts = ref([]);
-const showReceiptReversalModal = ref(false);
-const receiptReversalSubmitting = ref(false);
-const receiptReversalReason = ref('');
-const activeReceiptForReversal = ref(null);
 let stopPurchaseOrdersRefreshSubscription = null;
 
 // ─── 计算属性 ────────────────────────────────────────
@@ -2995,10 +2964,6 @@ const suggestionSummaryCards = computed(() => {
   ];
 });
 
-const selectedSuggestionOrderIds = computed(() =>
-  [...new Set((selectedSuggestions.value || []).flatMap((suggestion) => getSuggestionOrderIds(suggestion)))]
-);
-
 const openDetail = async (id) => {
   detailRequestId.value = String(id || '').trim();
   showDetail.value = true;
@@ -3023,378 +2988,86 @@ const retryDetail = async () => {
   if (!id) return;
   await openDetail(id);
 };
-
-const resetReceiptModalState = () => {
-  showReceiptModal.value = false;
-  receiptDrafts.value = [];
-};
-
-const resetShortageModalState = () => {
-  showShortageClosureModal.value = false;
-  shortageDrafts.value = [];
-};
-
-const resetCreateDraftState = () => {
-  showCreateModal.value = false;
-  createForm.remark = '';
-  createForm.currency = 'CNY';
-  createForm.estimated_shipping_cost = 0;
-  createForm.estimated_tariff_cost = 0;
-  createForm.allocation_method = 'by_quantity';
-  poItems.splice(0, poItems.length);
-};
-
-const canAllocateCurrentPurchaseOrder = computed(
-  () =>
-    detail.value?.status === 'completed'
-    && Boolean(detail.value?.id)
-    && (detail.value?.items?.length || 0) > 0
-);
-
-const resetCostModalState = () => {
-  showCostModal.value = false;
-  costDraft.remark = '';
-  costDraft.currency = 'CNY';
-  costDraft.allocation_method = 'by_quantity';
-  costDraft.estimated_shipping_cost = 0;
-  costDraft.estimated_tariff_cost = 0;
-  costDraft.actual_shipping_cost = '';
-  costDraft.actual_tariff_cost = '';
-};
-
-const openCostModal = () => {
-  if (!detail.value) return;
-  costDraft.remark = detail.value.remark || '';
-  costDraft.currency = detail.value.currency || 'CNY';
-  costDraft.allocation_method = detail.value.allocation_method || 'by_quantity';
-  costDraft.estimated_shipping_cost = detail.value.estimated_shipping_cost ?? 0;
-  costDraft.estimated_tariff_cost = detail.value.estimated_tariff_cost ?? 0;
-  costDraft.actual_shipping_cost = detail.value.actual_shipping_cost ?? '';
-  costDraft.actual_tariff_cost = detail.value.actual_tariff_cost ?? '';
-  showCostModal.value = true;
-};
-
-const closeCostModal = () => {
-  if (costSubmitting.value) return;
-  resetCostModalState();
-};
-
-const saveCostSettings = async ({ allocateAfterSave = false } = {}) => {
-  if (!detail.value || costSubmitting.value) return;
-
-  costSubmitting.value = true;
-  try {
-    const saved = await updatePO(detail.value.id, {
-      remark: String(costDraft.remark || '').trim() || null,
-      currency:
-        String(costDraft.currency || 'CNY')
-          .trim()
-          .toUpperCase() || 'CNY',
-      allocation_method: costDraft.allocation_method || 'by_quantity',
-      estimated_shipping_cost: normalizeDecimal(costDraft.estimated_shipping_cost, 0),
-      estimated_tariff_cost: normalizeDecimal(costDraft.estimated_tariff_cost, 0),
-      actual_shipping_cost: normalizeNullableDecimal(costDraft.actual_shipping_cost),
-      actual_tariff_cost: normalizeNullableDecimal(costDraft.actual_tariff_cost),
-    });
-    if (!saved) return;
-
-    if (allocateAfterSave && canAllocateCurrentPurchaseOrder.value) {
-      const allocated = await allocateCosts(detail.value.id);
-      if (!allocated) return;
-    }
-
-    resetCostModalState();
-    await refreshPurchaseOrderViews(detail.value.id);
-  } finally {
-    costSubmitting.value = false;
-  }
-};
-
-const openReceiptModal = () => {
-  if (!canRecordReceipts.value) return;
-  receiptDrafts.value = receiptCandidates.value.map((entry) => ({ ...entry }));
-  showReceiptModal.value = true;
-};
-
-const closeReceiptModal = () => {
-  if (receiptSubmitting.value) return;
-  resetReceiptModalState();
-};
-
-const openShortageModal = () => {
-  if (!canCloseShortages.value) return;
-  shortageDrafts.value = shortageCandidates.value.map((entry) => ({ ...entry }));
-  showShortageClosureModal.value = true;
-};
-
-const closeShortageModal = () => {
-  if (shortageSubmitting.value) return;
-  resetShortageModalState();
-};
-
-const submitReceipts = async () => {
-  if (!detail.value || receiptSubmitting.value) return;
-
-  const items = receiptDrafts.value
-    .map((entry) => ({
-      purchase_order_item_id: entry.purchase_order_item_id,
-      received_qty: normalizeReceiptQty(entry.received_qty),
-      note: String(entry.note || '').trim() || undefined,
-      max_receivable: Number(entry.max_receivable || 0),
-    }))
-    .filter((entry) => entry.received_qty > 0);
-
-  if (items.length === 0) {
-    addToast({
-      type: 'warning',
-      message: t('purchaseOrder.toast.receiptQtyRequired', '请至少填写一条收货数量'),
-    });
-    return;
-  }
-
-  if (items.some((entry) => entry.received_qty > entry.max_receivable)) {
-    addToast({
-      type: 'warning',
-      message: t('purchaseOrder.ui.receiptQtyOverflow', '不能超过当前剩余可收数量。'),
-    });
-    return;
-  }
-
-  receiptSubmitting.value = true;
-  try {
-    const result = await recordReceipts(detail.value.id, {
-      items: items.map(({ purchase_order_item_id, received_qty, note }) => ({
-        purchase_order_item_id,
-        received_qty,
-        ...(note ? { note } : {}),
-      })),
-    });
-
-    if (!result) return;
-
-    resetReceiptModalState();
-    await refreshPurchaseOrderViews(detail.value.id);
-  } finally {
-    receiptSubmitting.value = false;
-  }
-};
-
-const submitShortageClosures = async () => {
-  if (!detail.value || shortageSubmitting.value) return;
-
-  const items = shortageDrafts.value
-    .map((entry) => ({
-      purchase_order_item_id: entry.purchase_order_item_id,
-      close_qty: normalizeReceiptQty(entry.close_qty),
-      max_closable: Number(entry.max_closable || 0),
-    }))
-    .filter((entry) => entry.close_qty > 0);
-
-  if (items.length === 0) {
-    addToast({
-      type: 'warning',
-      message: t('purchaseOrder.toast.shortageQtyRequired', '请至少填写一条关闭数量'),
-    });
-    return;
-  }
-
-  if (items.some((entry) => entry.close_qty > entry.max_closable)) {
-    addToast({
-      type: 'warning',
-      message: t('purchaseOrder.ui.shortageQtyOverflow', '不能超过当前剩余待收数量。'),
-    });
-    return;
-  }
-
-  shortageSubmitting.value = true;
-  try {
-    const result = await closeShortages(detail.value.id, {
-      items: items.map(({ purchase_order_item_id, close_qty }) => ({
-        purchase_order_item_id,
-        close_qty,
-      })),
-    });
-
-    if (!result) return;
-
-    resetShortageModalState();
-    await refreshPurchaseOrderViews(detail.value.id);
-  } finally {
-    shortageSubmitting.value = false;
-  }
-};
-
-const canReverseReceipt = (receipt = {}) =>
-  ['ordered', 'shipping', 'arrived'].includes(String(detail.value?.status || '')) &&
-  normalizeReceiptQty(receipt.available_reversal_qty) > 0;
-
-const resetReceiptReversalState = () => {
-  showReceiptReversalModal.value = false;
-  activeReceiptForReversal.value = null;
-  receiptReversalReason.value = '';
-};
-
-const openReceiptReversalModal = (receipt) => {
-  if (!receipt || !canReverseReceipt(receipt)) return;
-  activeReceiptForReversal.value = receipt;
-  receiptReversalReason.value = '';
-  showReceiptReversalModal.value = true;
-};
-
-const closeReceiptReversalModal = () => {
-  if (receiptReversalSubmitting.value) return;
-  resetReceiptReversalState();
-};
-
-const submitReceiptReversal = async () => {
-  if (!detail.value || !activeReceiptForReversal.value || receiptReversalSubmitting.value) return;
-
-  receiptReversalSubmitting.value = true;
-  try {
-    const result = await reverseReceipt(detail.value.id, activeReceiptForReversal.value.id, {
-      reason: String(receiptReversalReason.value || '').trim() || undefined,
-    });
-
-    if (!result) return;
-
-    resetReceiptReversalState();
-    await refreshPurchaseOrderViews(detail.value.id);
-  } finally {
-    receiptReversalSubmitting.value = false;
-  }
-};
-
-// ─── 新建/编辑采购单 - 选择器打开 ──────────────────────
-// (已通过 usePurchaseOrderModals 处理方法定义)
-
-// 从预定单选择器接收选中的订单 → 转化为 poItems 行或直接添加到草稿
-const handleOrdersSelected = async (orders) => {
-  const itemsToAdd = [];
-  for (const order of orders) {
-    // 避免重复添加同一个订单
-    const isDuplicate =
-      pickerTarget.value === 'create'
-        ? poItems.some((i) => i.pre_order_id === order.id)
-        : detail.value?.items?.some((i) => i.pre_order_id === order.id);
-    if (isDuplicate) continue;
-
-    const data =
-      order.currentData && typeof order.currentData === 'object' ? order.currentData : {};
-
-    itemsToAdd.push({
-      product_id: order.productId || null,
-      variant_id: order.variantId || null,
-      product_name: order.productName || data.name || '—',
-      sku: order.sku || data.sku || data.variant_sku || data.spu || '—',
-      brand: order.brand || data.brand || '',
-      image: order.mainImage || data.images?.[0] || null,
-      quantity: order.quantity || 1,
-      unit_cost: data.cost_price || data.price || 0,
-      moq: order.moq || null,
-      pack_size: order.pack_size || null,
-      order_step: order.order_step || null,
-      pre_order_id: order.id,
-      order_no: order.orderNo || '',
-      required_quantity: order.quantity || 1, // 预定需求量
-    });
-  }
-
-  if (itemsToAdd.length === 0) return;
-  const validItems = itemsToAdd.filter((i) => i.product_id && i.variant_id);
-  if (validItems.length === 0) return;
-
-  if (pickerTarget.value === 'create') {
-    poItems.push(...validItems);
-  } else if (pickerTarget.value === 'detail' && detail.value) {
-    // 详情草稿面板：直接调用接口添加明细
-    const newItems = validItems.map((i) => ({
-      product_id: i.product_id,
-      variant_id: i.variant_id,
-      pre_order_id: i.pre_order_id,
-      quantity: i.quantity,
-      unit_cost: i.unit_cost,
-    }));
-    const success = await addItems(detail.value.id, newItems);
-    if (success) {
-      await refreshPurchaseOrderViews(detail.value.id);
-    }
-  }
-};
-
-// 从变体选择器接收“最终选中集”并增删同步采购明细
-const handleProductsSelected = async ({ selectedVariantIds = [], selectedVariants = [] } = {}) => {
-  if (pickerTarget.value === 'create') {
-    const { toAdd, toRemoveVariantIds } = reconcileVariantSelection({
-      currentItems: poItems,
-      selectedVariants,
-      selectedVariantIds,
-    });
-
-    if (toRemoveVariantIds.length > 0) {
-      for (let i = poItems.length - 1; i >= 0; i--) {
-        if (!poItems[i].pre_order_id && toRemoveVariantIds.includes(poItems[i].variant_id)) {
-          poItems.splice(i, 1);
-        }
-      }
-    }
-    if (toAdd.length > 0) {
-      poItems.push(...toAdd);
-    }
-    return;
-  }
-
-  if (pickerTarget.value === 'detail' && detail.value) {
-    const currentItems = (detail.value.items || []).filter(
-      (item) => !item.pre_order_id && item.variant_id
-    );
-    const { toAdd, toRemoveItemIds } = reconcileVariantSelection({
-      currentItems,
-      selectedVariants,
-      selectedVariantIds,
-    });
-
-    if (toRemoveItemIds.length > 0) {
-      await Promise.all(toRemoveItemIds.map((itemId) => removeItem(detail.value.id, itemId)));
-    }
-    if (toAdd.length > 0) {
-      const newItems = toAdd.map((item) => ({
-        product_id: item.product_id,
-        variant_id: item.variant_id,
-        pre_order_id: null,
-        quantity: item.quantity,
-        unit_cost: item.unit_cost,
-      }));
-      await addItems(detail.value.id, newItems);
-    }
-
-    if (toRemoveItemIds.length > 0 || toAdd.length > 0) {
-      await refreshPurchaseOrderViews(detail.value.id);
-    }
-  }
-};
-
-// 删除单条明细
-const removePoItem = (idx) => {
-  poItems.splice(idx, 1);
-};
-
-// 计算属性
-const createFlowSourceItems = computed(() =>
-  getCreateFlowSourceItems({
-    pickerTarget: pickerTarget.value,
-    detailItems: detail.value?.items || [],
-    poItems,
-  })
-);
-const totalCreateQty = computed(() => getTotalCreateQty(poItems));
-const shortageItems = computed(function computeCreateFlowShortages() {
-  return getShortageItems(poItems);
+const {
+  showCostModal,
+  costSubmitting,
+  costDraft,
+  showReceiptModal,
+  receiptSubmitting,
+  receiptDrafts,
+  showShortageClosureModal,
+  shortageSubmitting,
+  shortageDrafts,
+  showReceiptReversalModal,
+  receiptReversalSubmitting,
+  receiptReversalReason,
+  activeReceiptForReversal,
+  canAllocateCurrentPurchaseOrder,
+  resetCostModalState,
+  openCostModal,
+  closeCostModal,
+  saveCostSettings,
+  resetReceiptModalState,
+  openReceiptModal,
+  closeReceiptModal,
+  openShortageModal,
+  closeShortageModal,
+  submitReceipts,
+  submitShortageClosures,
+  canReverseReceipt,
+  resetReceiptReversalState,
+  openReceiptReversalModal,
+  closeReceiptReversalModal,
+  submitReceiptReversal,
+} = usePurchaseOrderDetailActions({
+  detail,
+  t,
+  addToast,
+  updatePO,
+  allocateCosts,
+  recordReceipts,
+  reverseReceipt,
+  closeShortages,
+  refreshPurchaseOrderViews,
+  receiptCandidates,
+  shortageCandidates,
+  canRecordReceipts,
+  canCloseShortages,
 });
-const excludeOrderIds = computed(() => getExcludeOrderIds(createFlowSourceItems.value));
-const selectedVariantIdsForPicker = computed(() =>
-  getSelectedVariantIdsForPicker(createFlowSourceItems.value)
-);
-const existingBrands = computed(() => getExistingBrands(createFlowSourceItems.value));
+
+const {
+  totalCreateQty,
+  shortageItems,
+  excludeOrderIds,
+  selectedVariantIdsForPicker,
+  existingBrands,
+  selectedSuggestionOrderIds,
+  handleOrdersSelected,
+  handleProductsSelected,
+  removePoItem,
+  executeCreate,
+  handleCreate,
+  handleCreateFromSuggestions,
+} = usePurchaseOrderCreateFlow({
+  t,
+  addToast,
+  createForm,
+  poItems,
+  pickerTarget,
+  detail,
+  detailRequestId,
+  showDetail,
+  showCreateModal,
+  showSuggestions,
+  showShortageConfirm,
+  selectedSuggestions,
+  createPO,
+  createFromOrders,
+  addItems,
+  removeItem,
+  refreshPurchaseOrderViews,
+  validateOrderQuantity,
+});
 
 // 详情明细编辑处理
 const handleDetailUpdateItem = async (itemId, field, value) => {
@@ -3410,91 +3083,6 @@ const handleDetailRemoveItem = async (itemId) => {
   const success = await removeItem(detail.value.id, itemId);
   if (success) {
     await refreshPurchaseOrderViews(detail.value.id);
-  }
-};
-
-// 创建采购单
-const handleCreate = async () => {
-  if (poItems.length === 0) return;
-
-  // 如果有数量低于需求的，弹出二次确认
-  if (shortageItems.value.length > 0) {
-    showShortageConfirm.value = true;
-    return;
-  }
-
-  await executeCreate();
-};
-
-const executeCreate = async () => {
-  showShortageConfirm.value = false;
-
-  for (const item of poItems) {
-    const result = validateOrderQuantity(item.quantity || 1, {
-      moq: item.moq || 1,
-      packSize: item.pack_size || 1,
-      orderStep: item.order_step || 1,
-    });
-    if (!result.valid) {
-      addToast({
-        type: 'warning',
-        message: `${item.product_name} 数量不满足规则，建议数量 ${result.suggestedQuantity}`,
-      });
-      return;
-    }
-  }
-
-  // Step 1: 创建空采购单
-  const result = await createPO({ ...createForm });
-  if (!result) return;
-
-  // Step 2: 批量添加明细
-  const items = buildCreatePurchaseItemsPayload(poItems);
-
-  if (items.length > 0) {
-    const itemsAdded = await addItems(result.id, items);
-    if (!itemsAdded) {
-      resetCreateDraftState();
-      detailRequestId.value = String(result.id || '');
-      showDetail.value = true;
-      await refreshPurchaseOrderViews(result.id);
-      addToast({
-        type: 'warning',
-        message: t(
-          'purchaseOrder.toast.createdWithoutItems',
-          '采购单已创建，但明细添加失败，请检查详情后继续处理'
-        ),
-      });
-      return;
-    }
-  }
-
-  // Reset
-  resetCreateDraftState();
-  await refreshPurchaseOrderViews();
-};
-
-const handleCreateFromSuggestions = async () => {
-  // 将建议中的预订单汇总
-  const allOrderIds = selectedSuggestionOrderIds.value;
-  if (allOrderIds.length === 0) {
-    addToast({
-      type: 'warning',
-      message: t(
-        'purchaseOrder.toast.noBindableSuggestionOrders',
-        '所选建议暂无可绑定订单，请改为手动建单或等待新的已确认订单。'
-      ),
-    });
-    return;
-  }
-
-  const result = await createFromOrders(allOrderIds, {
-    allocation_method: 'by_quantity',
-  });
-  if (result) {
-    showSuggestions.value = false;
-    selectedSuggestions.value = [];
-    await refreshPurchaseOrderViews();
   }
 };
 
