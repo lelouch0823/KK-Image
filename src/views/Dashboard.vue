@@ -119,7 +119,7 @@
                   :text="t('dashboard.viewAllPending')"
                   @click="router.push({ name: 'Orders', query: { status: 'pending' } })"
                 >
-                  <template #append>
+                  <template #icon-right>
                     <AppIcon name="arrow-right" class="size-3.5" />
                   </template>
                 </AppButton>
@@ -200,7 +200,7 @@
                   :text="t('dashboard.viewHistory')"
                   @click="showShareManager = true"
                 >
-                  <template #append>
+                  <template #icon-right>
                     <AppIcon name="arrow-right" class="size-3.5" />
                   </template>
                 </AppButton>
@@ -271,7 +271,7 @@
                   :text="t('dashboard.browseAllFiles')"
                   @click="router.push('/admin/files')"
                 >
-                  <template #append>
+                  <template #icon-right>
                     <AppIcon name="arrow-right" class="size-3.5" />
                   </template>
                 </AppButton>

@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import PermissionDeniedState from '../PermissionDeniedState.vue';
 
 describe('PermissionDeniedState', () => {
+  it('uses shared button primitives for retry actions', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/components/ui/PermissionDeniedState.vue'),
+      'utf8'
+    );
+
+    expect(source).toContain('AppButton');
+    expect(source).not.toContain('<button');
+  });
+
   it('falls back to requiredPermission when reason is absent', () => {
     const wrapper = mount(PermissionDeniedState, {
       props: {
@@ -10,6 +22,7 @@ describe('PermissionDeniedState', () => {
       },
       global: {
         stubs: {
+          AppButton: true,
           AppIcon: true,
           RouterLink: { template: '<a><slot /></a>' },
         },
@@ -27,6 +40,7 @@ describe('PermissionDeniedState', () => {
       },
       global: {
         stubs: {
+          AppButton: true,
           AppIcon: true,
           RouterLink: { template: '<a><slot /></a>' },
         },

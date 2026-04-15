@@ -239,6 +239,12 @@ const readCssColor = (token, fallback) => {
   if (typeof document === 'undefined') return fallback;
   return getComputedStyle(document.documentElement).getPropertyValue(token).trim() || fallback;
 };
+const readCssColorChain = (tokens, fallback = '') => {
+  if (typeof document === 'undefined') return fallback;
+  const style = getComputedStyle(document.documentElement);
+  return tokens.map((token) => style.getPropertyValue(token).trim()).find(Boolean) || fallback;
+};
+const DEFAULT_RGB_CHANNELS = '0, 0, 0';
 
 const hexToRgb = (color) => {
   const value = color.replace('#', '').trim();
@@ -256,26 +262,27 @@ const colorToRgb = (color, fallback) => {
   return matched.slice(0, 3).join(', ');
 };
 
-const withAlpha = (color, alpha, fallback) => `rgba(${colorToRgb(color, fallback)}, ${alpha})`;
+const withAlpha = (color, alpha, fallback = DEFAULT_RGB_CHANNELS) =>
+  `rgba(${colorToRgb(color, fallback)}, ${alpha})`;
 
 const getChartPalette = () => {
   return {
-    primary: readCssColor('--color-primary', 'rgb(236, 91, 19)'),
-    success: readCssColor('--color-success', 'rgb(16, 185, 129)'),
-    warning: readCssColor('--color-warning', 'rgb(245, 158, 11)'),
-    danger: readCssColor('--color-danger', 'rgb(239, 68, 68)'),
-    info: readCssColor('--color-info', 'rgb(59, 130, 246)'),
-    border: readCssColor('--border-color', 'rgb(229, 231, 235)'),
-    textMain: readCssColor('--text-main', 'rgb(17, 24, 39)'),
-    textSecondary: readCssColor('--text-secondary', 'rgb(107, 114, 128)'),
-    bgCard: readCssColor('--bg-card', '#ffffff'),
+    primary: readCssColorChain(['--color-primary', '--color-chart-1'], 'rgb(0, 0, 0)'),
+    success: readCssColorChain(['--color-success', '--color-chart-3'], 'rgb(0, 0, 0)'),
+    warning: readCssColorChain(['--color-warning', '--color-chart-4'], 'rgb(0, 0, 0)'),
+    danger: readCssColorChain(['--color-danger', '--color-chart-5'], 'rgb(0, 0, 0)'),
+    info: readCssColorChain(['--color-info', '--color-chart-2'], 'rgb(0, 0, 0)'),
+    border: readCssColor('--border-color', 'rgb(0, 0, 0)'),
+    textMain: readCssColor('--text-main', 'rgb(0, 0, 0)'),
+    textSecondary: readCssColor('--text-secondary', 'rgb(0, 0, 0)'),
+    bgCard: readCssColor('--bg-card', 'rgb(255, 255, 255)'),
   };
 };
 
 const configureChartDefaults = () => {
   const palette = getChartPalette();
   Chart.defaults.color = palette.textSecondary;
-  Chart.defaults.borderColor = withAlpha(palette.border, 0.7, '229, 231, 235');
+  Chart.defaults.borderColor = withAlpha(palette.border, 0.7);
 };
 configureChartDefaults();
 
@@ -327,8 +334,8 @@ const createCharts = () => {
 
     // Gradient Fill
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, withAlpha(palette.info, 0.4, '59, 130, 246'));
-    gradient.addColorStop(1, withAlpha(palette.info, 0, '59, 130, 246'));
+    gradient.addColorStop(0, withAlpha(palette.info, 0.4));
+    gradient.addColorStop(1, withAlpha(palette.info, 0));
 
     trendChartInstance = new Chart(ctx, {
       type: 'line',
@@ -373,7 +380,7 @@ const createCharts = () => {
           },
           y: {
             border: { display: false },
-            grid: { color: withAlpha(palette.border, 0.4, '229, 231, 235'), opacity: 0.1 },
+            grid: { color: withAlpha(palette.border, 0.4), opacity: 0.1 },
             beginAtZero: true,
             ticks: { color: palette.textSecondary },
           },

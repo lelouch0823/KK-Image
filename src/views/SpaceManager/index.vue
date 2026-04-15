@@ -233,6 +233,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import Tooltip from '@/components/ui/Tooltip.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
 const { spaces, loading, error, errorCode, loadSpaces, deleteSpace } = useSpaces();

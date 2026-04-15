@@ -85,10 +85,13 @@ const grayColors = ref({});
 const surfaceColor = ref('rgb(255, 255, 255)');
 const fontSans = ref('Inter, system-ui, -apple-system, sans-serif');
 let themeObserver = null;
+const DEFAULT_RGB_CHANNELS = '0, 0, 0';
 
 const readThemeValue = (style, name, fallback) => style.getPropertyValue(name).trim() || fallback;
+const readThemeValueChain = (style, names, fallback = '') =>
+  names.map((name) => style.getPropertyValue(name).trim()).find(Boolean) || fallback;
 
-const parseColorToRgb = (color, fallback = '59, 130, 246') => {
+const parseColorToRgb = (color, fallback = DEFAULT_RGB_CHANNELS) => {
   const normalized = String(color || '').trim();
   if (normalized.startsWith('#')) {
     let hex = normalized.slice(1);
@@ -124,11 +127,11 @@ const loadThemeColors = () => {
   setTimeout(() => {
     const style = getComputedStyle(document.documentElement);
     chartColors.value = [
-      readThemeValue(style, '--color-chart-1', 'rgb(59, 130, 246)'),
-      readThemeValue(style, '--color-chart-2', 'rgb(139, 92, 246)'),
-      readThemeValue(style, '--color-chart-3', 'rgb(16, 185, 129)'),
-      readThemeValue(style, '--color-chart-4', 'rgb(245, 158, 11)'),
-      readThemeValue(style, '--color-chart-5', 'rgb(239, 68, 68)'),
+      readThemeValueChain(style, ['--color-chart-1', '--color-primary'], 'rgb(0, 0, 0)'),
+      readThemeValueChain(style, ['--color-chart-2', '--color-info'], 'rgb(0, 0, 0)'),
+      readThemeValueChain(style, ['--color-chart-3', '--color-success'], 'rgb(0, 0, 0)'),
+      readThemeValueChain(style, ['--color-chart-4', '--color-warning'], 'rgb(0, 0, 0)'),
+      readThemeValueChain(style, ['--color-chart-5', '--color-danger'], 'rgb(0, 0, 0)'),
     ];
     grayColors.value = {
       100: readThemeValue(style, '--color-gray-100', 'rgb(243, 244, 246)'),
@@ -174,7 +177,7 @@ onUnmounted(() => {
 // Enhance data with application theme colors
 const enhancedData = computed(() => {
   const datasetClone = JSON.parse(JSON.stringify(props.data));
-  const colors = chartColors.value.length ? chartColors.value : ['rgb(59, 130, 246)'];
+  const colors = chartColors.value.length ? chartColors.value : ['rgb(0, 0, 0)'];
 
   datasetClone.datasets = datasetClone.datasets.map((dataset, index) => {
     const color = colors[index % colors.length];
@@ -182,7 +185,7 @@ const enhancedData = computed(() => {
     if (props.type === 'line') {
       return {
         borderColor: color,
-        backgroundColor: withAlpha(color, 0.12, '59, 130, 246'),
+        backgroundColor: withAlpha(color, 0.12, DEFAULT_RGB_CHANNELS),
         fill: true,
         tension: 0.4,
         borderWidth: 2,
@@ -199,7 +202,7 @@ const enhancedData = computed(() => {
       return {
         backgroundColor: color,
         borderRadius: 4,
-        hoverBackgroundColor: withAlpha(color, 0.86, '59, 130, 246'),
+        hoverBackgroundColor: withAlpha(color, 0.86, DEFAULT_RGB_CHANNELS),
         ...dataset,
       };
     }

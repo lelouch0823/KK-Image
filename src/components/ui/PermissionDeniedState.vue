@@ -22,13 +22,14 @@
           {{ reasonText }}
         </p>
         <div class="mt-4 flex flex-wrap items-center gap-2">
-          <button
+          <AppButton
             v-if="showRetry"
-            class="cursor-pointer rounded-lg bg-warning px-3 py-1.5 text-sm font-medium text-white transition-colors hover:opacity-90 focus-visible:ring-2 focus-visible:ring-warning/30 focus-visible:outline-none"
+            variant="outline"
+            class="border-warning/30 bg-warning text-white hover:border-warning hover:bg-warning/90 hover:text-white"
             @click="$emit('retry')"
           >
             重新尝试
-          </button>
+          </AppButton>
           <RouterLink
             v-if="showHome"
             :to="homeTo"
@@ -45,6 +46,7 @@
 <script setup>
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({

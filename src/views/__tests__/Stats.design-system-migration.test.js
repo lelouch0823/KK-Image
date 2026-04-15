@@ -8,5 +8,7 @@ describe('Stats design-system migration', () => {
 
     expect(source).toContain('DashboardShell');
     expect(source).not.toContain('font-display');
+    expect(source).not.toContain('rgb(236, 91, 19)');
+    expect(source).not.toContain('#ffffff');
   });
 });

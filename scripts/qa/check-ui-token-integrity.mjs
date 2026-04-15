@@ -25,12 +25,12 @@ const targetedRules = [
   {
     id: 'stats-chart-fallback',
     files: ['src/views/Stats.vue'],
-    patterns: [/#ec5b13/gi, /#f97316/gi],
+    patterns: [/#ec5b13/gi, /#f97316/gi, /rgb\(236,\s*91,\s*19\)/g, /#ffffff/gi],
   },
   {
     id: 'aichart-legacy-fallbacks',
     files: ['src/components/common/ai/AIChart.vue'],
-    patterns: [/#3B82F6/g, /'Outfit'/g],
+    patterns: [/#3B82F6/g, /'Outfit'/g, /rgb\(59,\s*130,\s*246\)/g, /rgb\(139,\s*92,\s*246\)/g],
   },
   {
     id: 'product-font-exceptions',
