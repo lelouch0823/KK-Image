@@ -1,5 +1,85 @@
 # 2026-04-16 前端设计规范审查
 
+## 当前分支执行结果（2026-04-16 收口更新）
+
+说明：
+
+- 本文档下方的大段问题清单保留为**审计基线**，记录的是启动整改前识别出的风险面。
+- 本节补充的是当前分支 `frontend-design-system-remediation` 在本次开发收口后的执行结果，便于区分“已修复”与“仍待治理”。
+
+### 已完成整改的波次
+
+- 共享设计契约、shared token / tone / icon / typography contract 已补齐并入库。
+- 共享 overlay / surface primitives 已补齐，`Modal` / `ActionBar` / `StatePanel` 等组合层已作为业务壳层标准入口。
+- 视图层已完成第一轮迁移：
+  - `Dashboard.vue`
+  - `Stats.vue`
+  - `GoodsOverview.vue`
+  - `SpaceManager/index.vue`
+  - `Login.vue`
+  - `src/views/stats/*`
+- 采购高频 overlay 已完成第一轮迁移：
+  - `ProductPickerModal.vue`
+  - `OrderPickerModal.vue`
+  - `PurchaseOrderCreateDrawer.vue`
+  - `PurchaseOrderDetailDrawer.vue`
+- customer / common / settings 第二轮高频组件已完成迁移：
+  - `SpaceProductEditor.vue`
+  - `AIChatWidget.vue`
+  - `AIChart.vue`
+  - `SalespersonSelectModal.vue`
+  - `AISettings.vue`
+  - `DestructiveConfirmModal.vue`
+  - `CustomerDetailPanel.vue`
+  - `CustomerDetailContent.vue`
+- 商品 / 订单第二轮高频组件已完成迁移：
+  - `ProductCreateModal.vue`
+  - `ProductVariantTable.vue`
+  - `ProductTable.vue`
+  - `ProductDetail.vue`
+  - `OrderStatusChanger.vue`
+  - 并清除了相关高可见 `font-[Outfit]` 残留
+- minisales 已完成状态 / shell / surface 第一轮收敛，去掉了核心链路中的 `style="{{...}}"` 状态注入和 controller 拼色字符串。
+
+### 新增治理护栏
+
+- `scripts/qa/check-ui-token-integrity.mjs`
+  - 拦截 `material-symbols-outlined`
+  - 拦截 `font-[Outfit]`
+  - 拦截已明确废弃的主色 fallback hex
+- `scripts/qa/check-ui-foundation-usage.mjs`
+  - 对已整改的高风险 Web 文件拦截 raw `button` / `input` / `textarea` / `select` / `svg` 回流
+- `scripts/qa/check-minisales-ui-contract.mjs`
+  - 拦截 minisales 关键链路重新引入 `statusStyle`、inline template style 和 controller 直接拼 hex 样式
+- `package.json`
+  - 新增 `qa:check-design-system` 聚合命令
+
+### 当前验证结果
+
+- 设计系统相关窄范围 Vitest：17 文件 61 测试通过
+- 商品 / 订单关键链路窄范围 Vitest：通过
+- `pnpm qa:check-design-system`：通过
+- `eslint --max-warnings 0`：已对本次整改涉及文件通过
+- `prettier --check`：已对本次整改涉及文件通过
+- `git diff --check`：当前整改文件范围内通过
+
+### 仍待后续波次处理的 backlog
+
+- 本次并未清空审计基线中的全部历史问题，仍有部分低频或次高频文件保留在 backlog，例如：
+  - `src/components/purchase-order/PurchaseOrderCostModal.vue`
+  - `src/components/purchase-order/PurchaseOrderReceiptModal.vue`
+  - `src/components/purchase-order/PurchaseOrderShortageModal.vue`
+  - `src/components/purchase-order/PurchaseOrderReceiptReversalModal.vue`
+  - `src/components/purchase-order/PurchaseOrderSuggestionsDrawer.vue`
+  - `src/components/purchase-order/PurchaseOrderSupportOverlays.vue`
+  - `src/components/space/SpaceProductDetail.vue`
+  - `src/components/space/SpaceMasonry.vue`
+  - `src/components/FileSelector.vue`
+- 两个明确保留的原生能力例外：
+  - `src/components/SpaceProductEditor.vue` 中隐藏的 `type="file"` 输入，用于原生文件选择能力
+  - `src/components/product/ProductDetail.vue` 中用于缩略图切换的图片按钮
+- 这些例外已从 guardrail 中显式排除，不应再扩散到新的业务文件。
+
 ## 审查目标
 
 - 检查前端代码是否脱离项目设计系统和页面模式规范。
@@ -36,13 +116,13 @@
 
 ## 横向统计
 
-| 模块 | 文件数 | 原生控件命中 | 本地 SVG/图标命中 | 硬编码颜色命中 | inline style 命中 |
-|---|---:|---:|---:|---:|---:|
-| shared (`src/styles` / `src/components/ui` / `src/design-system` / `src/components/layout`) | 52 | 46 / 17 文件 | 4 / 4 文件 | 104 / 10 文件 | 28 / 15 文件 |
-| views (`src/views`) | 36 | 21 / 7 文件 | 13 / 2 文件 | 70 / 8 文件 | 8 / 4 文件 |
-| commerce (`product` / `order` / `purchase-order`) | 80 | 193 / 51 文件 | 4 / 1 文件 | 66 / 14 文件 | 21 / 18 文件 |
-| space / customer / settings / common | 56 | 133 / 40 文件 | 27 / 10 文件 | 31 / 7 文件 | 3 / 3 文件 |
-| minisales | 121 | 1 / 1 文件 | 0 / 0 文件 | 226 / 32 文件 | 14 / 9 文件 |
+| 模块                                                                                        | 文件数 |  原生控件命中 | 本地 SVG/图标命中 | 硬编码颜色命中 | inline style 命中 |
+| ------------------------------------------------------------------------------------------- | -----: | ------------: | ----------------: | -------------: | ----------------: |
+| shared (`src/styles` / `src/components/ui` / `src/design-system` / `src/components/layout`) |     52 |  46 / 17 文件 |        4 / 4 文件 |  104 / 10 文件 |      28 / 15 文件 |
+| views (`src/views`)                                                                         |     36 |   21 / 7 文件 |       13 / 2 文件 |    70 / 8 文件 |        8 / 4 文件 |
+| commerce (`product` / `order` / `purchase-order`)                                           |     80 | 193 / 51 文件 |        4 / 1 文件 |   66 / 14 文件 |      21 / 18 文件 |
+| space / customer / settings / common                                                        |     56 | 133 / 40 文件 |      27 / 10 文件 |    31 / 7 文件 |        3 / 3 文件 |
+| minisales                                                                                   |    121 |    1 / 1 文件 |        0 / 0 文件 |  226 / 32 文件 |       14 / 9 文件 |
 
 说明：
 
