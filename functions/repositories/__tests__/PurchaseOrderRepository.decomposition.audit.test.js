@@ -11,6 +11,7 @@ describe('PurchaseOrderRepository decomposition audit', () => {
     const helperPaths = [
       path.join(ROOT, 'functions', 'repositories', 'purchase-order-read-model.js'),
       path.join(ROOT, 'functions', 'repositories', 'purchase-order-snapshot.js'),
+      path.join(ROOT, 'functions', 'repositories', 'purchase-order-item-snapshots.js'),
     ];
     const source = fs.readFileSync(mainPath, 'utf8');
 
@@ -28,11 +29,18 @@ describe('PurchaseOrderRepository decomposition audit', () => {
       offenders.push('functions/repositories/PurchaseOrderRepository.js: missing snapshot helper import');
     }
 
+    if (!source.includes("./purchase-order-item-snapshots.js")) {
+      offenders.push('functions/repositories/PurchaseOrderRepository.js: missing item snapshot helper import');
+    }
+
     for (const marker of [
       'function normalizePurchaseOrderProgress(',
       'function summarizePurchaseOrderItems(',
       'function mapPurchaseOrderSnapshotFields(',
       'function buildLivePurchaseItemSnapshot(',
+      'async loadOrderLineSnapshotMap(items = []) {',
+      'async loadLivePurchaseItemSnapshotMap(items = []) {',
+      'async hydratePurchaseItemSnapshots(items = []) {',
     ]) {
       if (source.includes(marker)) {
         offenders.push(`functions/repositories/PurchaseOrderRepository.js: still defines ${marker}`);

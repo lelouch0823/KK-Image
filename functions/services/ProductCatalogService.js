@@ -14,7 +14,6 @@ import {
     assignGeneratedSkuForPatchVariants,
     buildCatalogRollbackPayload,
     buildProductRollbackPayload,
-    cloneVariantImages,
     hasOwnMeta,
     hasVariantOptionSelections,
     IMPORT_MODE,
@@ -27,6 +26,11 @@ import {
     buildSafeVariantSyncPayload,
     mergeIncomingWithExisting,
 } from "./product-catalog/variant-matching.js";
+import {
+    cleanupCreatedCatalogRecords,
+    loadVariantImageSnapshot,
+    rollbackPatchedProduct,
+} from "./product-catalog/maintenance.js";
 
 const isVariantSyncValidationError = (error) => {
     const message = String(error?.message || '');
@@ -154,77 +158,6 @@ export class ProductCatalogService {
         return this.dimensionRepo.listByProduct(productId);
     }
 
-    async cleanupCreatedCatalogRecords(created) {
-        for (const variantId of created.variantIds) {
-            await this.db.prepare('DELETE FROM variant_images WHERE variant_id = ?').bind(variantId).run();
-            await this.db.prepare('DELETE FROM product_variants WHERE id = ?').bind(variantId).run();
-        }
-
-        for (const valueId of created.dimensionValueIds) {
-            await this.db.prepare('DELETE FROM product_dimension_values WHERE id = ?').bind(valueId).run();
-        }
-
-        for (const dimensionId of created.dimensionIds) {
-            await this.db.prepare('DELETE FROM product_dimensions WHERE id = ?').bind(dimensionId).run();
-        }
-
-        if (created.productId) {
-            await this.db.prepare('DELETE FROM products WHERE id = ?').bind(created.productId).run();
-        }
-    }
-
-    async loadVariantImageSnapshot(productId, variants = [], variantImageRepo = new VariantImageRepository(this.db, this.variantRepo)) {
-        const snapshot = new Map();
-        for (const variant of variants || []) {
-            const variantId = String(variant?.id || '').trim();
-            if (!variantId) continue;
-            const images = await variantImageRepo.listByVariant({ productId, variantId });
-            snapshot.set(variantId, cloneVariantImages(images));
-        }
-        return snapshot;
-    }
-
-    async rollbackPatchedProduct({
-        productId,
-        existingProductSnapshot = null,
-        existingDimensionsSnapshot = null,
-        shouldRollbackProduct = false,
-        shouldRollbackDimensions = false,
-        didSyncVariants = false,
-        beforeVariants = [],
-        beforeVariantImages = new Map(),
-        afterVariants = [],
-    } = {}) {
-        if (shouldRollbackProduct && existingProductSnapshot) {
-            const rollbackProductData = buildProductRollbackPayload(existingProductSnapshot);
-            if (Object.keys(rollbackProductData).length > 0) {
-                await this.productRepo.updateWithMeta(productId, rollbackProductData);
-            }
-        }
-
-        if (shouldRollbackDimensions && existingDimensionsSnapshot && typeof this.dimensionRepo.restoreSnapshot === 'function') {
-            await this.dimensionRepo.restoreSnapshot(productId, existingDimensionsSnapshot);
-        }
-
-        if (!didSyncVariants || !beforeVariants) return;
-
-        await this.variantRepo.syncVariants(productId, buildCatalogRollbackPayload(beforeVariants));
-
-        const variantImageRepo = new VariantImageRepository(this.db, this.variantRepo);
-        const beforeVariantIds = new Set((beforeVariants || []).map((variant) => String(variant?.id || '').trim()).filter(Boolean));
-        const rollbackVariantIds = new Set([
-            ...Array.from(beforeVariantIds),
-            ...((afterVariants || []).map((variant) => String(variant?.id || '').trim()).filter(Boolean)),
-        ]);
-
-        for (const variantId of rollbackVariantIds) {
-            const images = beforeVariantIds.has(variantId)
-                ? cloneVariantImages(beforeVariantImages.get(variantId) || [])
-                : [];
-            await variantImageRepo.syncImages(productId, variantId, images);
-        }
-    }
-
     async createProduct(c, body, options = {}) {
         const {
             skipCacheInvalidation = false,
@@ -314,7 +247,7 @@ export class ProductCatalogService {
                 console.error('Archive variant images by folder failed (product create):', error);
             }
         } catch (error) {
-            await this.cleanupCreatedCatalogRecords(created);
+            await cleanupCreatedCatalogRecords({ db: this.db, created });
             throw error;
         }
 
@@ -390,7 +323,12 @@ export class ProductCatalogService {
 
             if (nextBody.variants !== undefined) {
                 beforeVariants = await this.variantRepo.findByProductId(productId);
-                beforeVariantImages = await this.loadVariantImageSnapshot(productId, beforeVariants);
+                beforeVariantImages = await loadVariantImageSnapshot({
+                    db: this.db,
+                    productId,
+                    variants: beforeVariants,
+                    variantRepo: this.variantRepo,
+                });
 
                 const dimensions = syncedDimensions || existingDimensionsForVariantSync || await this.dimensionRepo.listByProduct(productId);
                 nextBody.variants = normalizeVariantDimensionKeys(
@@ -453,7 +391,11 @@ export class ProductCatalogService {
         } catch (error) {
             if (productUpdated || shouldRollbackDimensions || didSyncVariants) {
                 try {
-                    await this.rollbackPatchedProduct({
+                    await rollbackPatchedProduct({
+                        db: this.db,
+                        productRepo: this.productRepo,
+                        dimensionRepo: this.dimensionRepo,
+                        variantRepo: this.variantRepo,
                         productId,
                         existingProductSnapshot,
                         existingDimensionsSnapshot,

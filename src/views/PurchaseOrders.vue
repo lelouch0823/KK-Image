@@ -461,7 +461,7 @@
                             ></div>
                             <div
                               class="bg-primary absolute top-1/2 left-0 h-0.5 -translate-y-1/2 transition-all duration-500"
-                              :style="{ width: getStepperProgress(detail.status) }"
+                              :style="{ width: getStepperProgress(stepsList, detail.status) }"
                             ></div>
 
                             <div
@@ -471,10 +471,10 @@
                             >
                               <div
                                 class="flex size-7 items-center justify-center rounded-full border-2 transition-colors duration-300"
-                                :class="getStepIconClasses(detail.status, step.value)"
+                                :class="getStepIconClasses(stepsList, detail.status, step.value)"
                               >
                                 <AppIcon
-                                  v-if="isStepCompleted(detail.status, step.value)"
+                                  v-if="isStepCompleted(stepsList, detail.status, step.value)"
                                   name="check"
                                   class="size-3.5 text-(--text-inverse)"
                                   stroke-width="3"
@@ -489,7 +489,7 @@
                                 :class="
                                   detail.status === step.value
                                     ? 'text-(--text-main)'
-                                    : isStepCompleted(detail.status, step.value)
+                                    : isStepCompleted(stepsList, detail.status, step.value)
                                       ? 'text-(--text-main)'
                                       : 'text-(--text-muted)'
                                 "
@@ -2550,6 +2550,22 @@ import {
   createReceiptProgressSummaryBuilder,
   hasReceiptMeta,
 } from "@/views/purchase-orders/progress.js";
+import {
+  createPurchaseOrderSteps,
+  getStepIconClasses,
+  getStepperProgress,
+  isStepCompleted,
+} from "@/views/purchase-orders/stepper.js";
+import {
+  buildSuggestionMeta,
+  buildSuggestionVariantLabel,
+  getSuggestionOrderIds,
+  isReceiptDraftInvalid,
+  isShortageDraftInvalid,
+  normalizeDecimal,
+  normalizeNullableDecimal,
+  normalizeReceiptQty,
+} from "@/views/purchase-orders/drafts.js";
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
 import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
@@ -2708,45 +2724,7 @@ const statCards = computed(() => {
     },
   ];
 });
-const stepsList = [
-  { value: 'draft', label: t('purchaseOrder.status.draft') },
-  { value: 'ordered', label: t('purchaseOrder.status.ordered') },
-  { value: 'shipping', label: t('purchaseOrder.status.shipping') },
-  { value: 'arrived', label: t('purchaseOrder.status.arrived') },
-  { value: 'completed', label: t('purchaseOrder.status.completed') },
-];
-
-const getStepIndex = (status) => {
-  return stepsList.findIndex((s) => s.value === status);
-};
-
-const isStepCompleted = (currentStatus, stepStatus) => {
-  if (currentStatus === 'cancelled') return false;
-  return getStepIndex(currentStatus) > getStepIndex(stepStatus);
-};
-
-const getStepperProgress = (currentStatus) => {
-  if (currentStatus === 'cancelled') return '0%';
-  const currentIndex = getStepIndex(currentStatus);
-  if (currentIndex <= 0) return '0%';
-  return `${(currentIndex / (stepsList.length - 1)) * 100}%`;
-};
-
-const getStepIconClasses = (currentStatus, stepStatus) => {
-  if (currentStatus === 'cancelled') {
-    return 'border-(--border-subtle) bg-(--bg-muted) text-(--text-muted)';
-  }
-  const currentIndex = getStepIndex(currentStatus);
-  const stepIndex = getStepIndex(stepStatus);
-
-  if (currentIndex > stepIndex) {
-    return 'border-primary bg-primary text-(--text-inverse)';
-  } else if (currentIndex === stepIndex) {
-    return 'border-primary bg-(--bg-card)';
-  } else {
-    return 'border-(--border-strong) bg-(--bg-muted)';
-  }
-};
+const stepsList = createPurchaseOrderSteps(t);
 
 const handleStatusUpdate = async (newStatus) => {
   if (!detail.value) return;
@@ -2800,18 +2778,6 @@ const formatInteger = (value) => Number(value || 0).toLocaleString('zh-CN');
 const formatPurchaseCurrency = (value, currency = 'CNY') => {
   if (value === undefined || value === null || value === '') return '—';
   return formatMoney(value, currency || 'CNY');
-};
-
-const buildSuggestionVariantLabel = (variantOptions = {}) =>
-  Object.values(variantOptions || {})
-    .map((value) => String(value || '').trim())
-    .filter(Boolean)
-    .join(' / ');
-
-const buildSuggestionMeta = (suggestion) => {
-  const sku = String(suggestion?.sku || '').trim();
-  const brand = String(suggestion?.brand || '').trim();
-  return [sku || '—', brand || '-'].join(' · ');
 };
 
 const progressStatusConfig = computed(() => ({
@@ -3020,10 +2986,6 @@ const suggestionSummaryCards = computed(() => {
   ];
 });
 
-function getSuggestionOrderIds(suggestion = {}) {
-  return [...new Set((suggestion.order_ids || []).filter(Boolean))];
-}
-
 const selectedSuggestionOrderIds = computed(() =>
   [...new Set((selectedSuggestions.value || []).flatMap((suggestion) => getSuggestionOrderIds(suggestion)))]
 );
@@ -3052,31 +3014,6 @@ const retryDetail = async () => {
   if (!id) return;
   await openDetail(id);
 };
-
-function normalizeReceiptQty(value) {
-  const numeric = Number(value || 0);
-  if (!Number.isFinite(numeric)) return 0;
-  return Math.max(0, Math.trunc(numeric));
-}
-
-function normalizeDecimal(value, fallback = 0) {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : fallback;
-}
-
-function normalizeNullableDecimal(value) {
-  if (value === '' || value === null || value === undefined) return null;
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
-}
-
-function isReceiptDraftInvalid(entry = {}) {
-  return normalizeReceiptQty(entry.received_qty) > Number(entry.max_receivable || 0);
-}
-
-function isShortageDraftInvalid(entry = {}) {
-  return normalizeReceiptQty(entry.close_qty) > Number(entry.max_closable || 0);
-}
 
 const resetReceiptModalState = () => {
   showReceiptModal.value = false;

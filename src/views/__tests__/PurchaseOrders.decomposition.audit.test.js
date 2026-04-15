@@ -11,6 +11,8 @@ describe('PurchaseOrders decomposition audit', () => {
     const helperPaths = [
       path.join(ROOT, 'src', 'views', 'purchase-orders', 'formatters.js'),
       path.join(ROOT, 'src', 'views', 'purchase-orders', 'progress.js'),
+      path.join(ROOT, 'src', 'views', 'purchase-orders', 'stepper.js'),
+      path.join(ROOT, 'src', 'views', 'purchase-orders', 'drafts.js'),
     ];
     const source = fs.readFileSync(mainPath, 'utf8');
 
@@ -28,11 +30,31 @@ describe('PurchaseOrders decomposition audit', () => {
       offenders.push('src/views/PurchaseOrders.vue: missing purchase-order progress helper import');
     }
 
+    if (!source.includes("@/views/purchase-orders/stepper.js")) {
+      offenders.push('src/views/PurchaseOrders.vue: missing purchase-order stepper helper import');
+    }
+
+    if (!source.includes("@/views/purchase-orders/drafts.js")) {
+      offenders.push('src/views/PurchaseOrders.vue: missing purchase-order draft helper import');
+    }
+
     for (const marker of [
       'const formatDate = (ts) => {',
       'const formatDateTime = (ts) => {',
       'const buildReceiptProgressSummary = (record = {}) => {',
       'const buildReceiptMeta = (record = {}) => {',
+      'const getStepIndex = (status) => {',
+      'const isStepCompleted = (currentStatus, stepStatus) => {',
+      'const getStepperProgress = (currentStatus) => {',
+      'const getStepIconClasses = (currentStatus, stepStatus) => {',
+      'function normalizeReceiptQty(value) {',
+      'function normalizeDecimal(value, fallback = 0) {',
+      'function normalizeNullableDecimal(value) {',
+      'function isReceiptDraftInvalid(entry = {}) {',
+      'function isShortageDraftInvalid(entry = {}) {',
+      'const buildSuggestionVariantLabel = (variantOptions = {}) =>',
+      'const buildSuggestionMeta = (suggestion) => {',
+      'function getSuggestionOrderIds(suggestion = {}) {',
     ]) {
       if (source.includes(marker)) {
         offenders.push(`src/views/PurchaseOrders.vue: still defines ${marker}`);

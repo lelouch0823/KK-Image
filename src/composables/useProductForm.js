@@ -17,6 +17,16 @@ import {
   cloneDimensions,
   normalizeVariantOptionKeysToNames,
 } from '@/composables/product-form/dimensions.js';
+import {
+  buildGeneratedVariants,
+  buildVariantOptionsKey,
+  createVariantCompletenessMarker,
+  createVariantLocalKeyFactory,
+  ensureVariantLocalKey,
+  getNextDimensionNames,
+  getVariantOptionValue,
+  removeDimensionFromVariant,
+} from '@/composables/product-form/variants.js';
 
 export {
   buildVariantSyncSummaryMessage,
@@ -101,15 +111,9 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
   });
 
   // ——— 变体本地 key 辅助 ———
-  const nextVariantLocalKey = () => {
-    variantLocalKeySeed.value += 1;
-    return `variant_local_${variantLocalKeySeed.value}`;
-  };
-
-  const ensureVariantLocalKey = (variant = {}) => ({
-    ...variant,
-    _clientKey: variant._clientKey || variant.id || nextVariantLocalKey(),
-  });
+  const nextVariantLocalKey = createVariantLocalKeyFactory(variantLocalKeySeed);
+  const ensureVariantLocalKeyWithFactory = (variant = {}) =>
+    ensureVariantLocalKey(variant, nextVariantLocalKey);
 
   const activeDimensionNames = computed(() =>
     form.options
@@ -117,29 +121,12 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
       .filter(Boolean)
   );
 
-  const markVariantCompleteness = (variant = {}, dimensionNames = activeDimensionNames.value) => {
-    const normalized = ensureVariantLocalKey(variant);
-    if (detectIncompleteVariant(dimensionNames, normalized, editMode.value)) {
-      return {
-        ...normalized,
-        status: 'pending_incomplete',
-        _incomplete: true,
-      };
-    }
-
-    if (normalized.status === 'pending_incomplete') {
-      return {
-        ...normalized,
-        status: 'active',
-        _incomplete: false,
-      };
-    }
-
-    return {
-      ...normalized,
-      _incomplete: false,
-    };
-  };
+  const markVariantCompleteness = createVariantCompletenessMarker({
+    activeDimensionNamesRef: activeDimensionNames,
+    detectIncompleteVariant,
+    editModeRef: editMode,
+    ensureVariantLocalKey: ensureVariantLocalKeyWithFactory,
+  });
 
   const incompleteVariants = computed(() =>
     form.variants.filter((variant) => detectIncompleteVariant(activeDimensionNames.value, variant, editMode.value))
@@ -210,9 +197,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
   function fillFormFromData(data) {
     const imgs = parseJsonArray(data.images, []);
     const nextOptions = buildOptionsFromDimensions(data);
-    const nextDimensionNames = nextOptions
-      .map((option) => String(option?.name || '').trim())
-      .filter(Boolean);
+    const nextDimensionNames = getNextDimensionNames(nextOptions);
     const dimensionNameLookup = buildDimensionNameLookup(data);
     trackedDimensions.value = cloneDimensions(data?.dimensions || []);
 
@@ -268,71 +253,13 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
 
   // ——— 笛卡尔积生成变体 ———
   const generateVariants = () => {
-    const validOptions = form.options.filter((o) => o.name && o.values.length > 0);
-    const dimensionNames = validOptions
-      .map((option) => String(option?.name || '').trim())
-      .filter(Boolean);
-    if (validOptions.length === 0) {
-      form.variants = [];
-      return;
-    }
-
-    const cartesian = validOptions.reduce(
-      (acc, opt) => {
-        const res = [];
-        acc.forEach((oldObj) => {
-          opt.values.forEach((val) => {
-            res.push({ ...oldObj, [opt.name]: val });
-          });
-        });
-        return res;
-      },
-      [{}]
-    );
-
-    const oldVariantsMap = new Map();
-    form.variants.forEach((v) => {
-      const key = variantOptionsKey(v.options_values);
-      oldVariantsMap.set(key, v);
+    form.variants = buildGeneratedVariants({
+      options: form.options,
+      currentVariants: form.variants,
+      editMode: editMode.value,
+      markVariantCompleteness,
     });
-
-    const generatedVariants = cartesian.map((combo) => {
-      const key = variantOptionsKey(combo);
-      const old = oldVariantsMap.get(key);
-      if (old) return markVariantCompleteness(old, dimensionNames);
-
-      return markVariantCompleteness({
-        sku: '',
-        barcode: '',
-        supplier_sku: '',
-        price: 0,
-        cost_price: 0,
-        stock_quantity: 0,
-        alert_threshold: 10,
-        options_values: combo,
-        status: 'active',
-        images: [],
-      }, dimensionNames);
-    });
-
-    if (!editMode.value) {
-      form.variants = generatedVariants;
-      return;
-    }
-
-    const generatedKeys = new Set(generatedVariants.map((variant) => variantOptionsKey(variant.options_values)));
-    const preservedExistingVariants = form.variants.filter((variant) => {
-      if (!variant?.id) return false;
-      return !generatedKeys.has(variantOptionsKey(variant.options_values));
-    }).map((variant) => markVariantCompleteness(variant, dimensionNames));
-
-    form.variants = [...preservedExistingVariants, ...generatedVariants].map((variant) => markVariantCompleteness(variant, dimensionNames));
   };
-
-  const getNextDimensionNames = () =>
-    form.options
-      .map((option) => String(option?.name || '').trim())
-      .filter(Boolean);
 
   const updateTrackedDimensionValue = (dimensionId, valueLabel, updater) => {
     const trackedDimension = trackedDimensions.value.find((dimension) => dimension.id === dimensionId);
@@ -356,27 +283,6 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     trackedDimensions.value
       .find((dimension) => dimension.id === dimensionId)
       ?.values?.find((entry) => entry?.value === valueLabel);
-
-  const getVariantOptionValue = (variant, option) => {
-    const optionsValues = variant?.options_values || {};
-    if (option?.id && Object.prototype.hasOwnProperty.call(optionsValues, option.id)) {
-      return optionsValues[option.id];
-    }
-    if (option?.name && Object.prototype.hasOwnProperty.call(optionsValues, option.name)) {
-      return optionsValues[option.name];
-    }
-    return undefined;
-  };
-
-  const removeDimensionFromVariant = (variant, option) => {
-    const nextOptionsValues = { ...(variant?.options_values || {}) };
-    if (option?.id) delete nextOptionsValues[option.id];
-    if (option?.name) delete nextOptionsValues[option.name];
-    return {
-      ...variant,
-      options_values: nextOptionsValues,
-    };
-  };
 
   // ——— 选项 CRUD ———
   const addOption = () => {
@@ -570,18 +476,18 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
           const seenKeys = new Set();
           for (const variant of form.variants) {
             const nextVariant = removeDimensionFromVariant(variant, archivedOption);
-            const key = variantOptionsKey(nextVariant.options_values);
+            const key = buildVariantOptionsKey(nextVariant.options_values);
             if (seenKeys.has(key)) continue;
             seenKeys.add(key);
             dedupedVariants.push(nextVariant);
           }
           form.variants = dedupedVariants.map((variant) =>
-            markVariantCompleteness(variant, getNextDimensionNames())
+            markVariantCompleteness(variant, getNextDimensionNames(form.options))
           );
         } else {
           form.variants = form.variants
             .filter((variant) => getVariantOptionValue(variant, archivedOption) === undefined)
-            .map((variant) => markVariantCompleteness(variant, getNextDimensionNames()));
+            .map((variant) => markVariantCompleteness(variant, getNextDimensionNames(form.options)));
         }
       }
       closeDimensionArchiveWizard(true);
@@ -637,7 +543,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
         }
         form.variants = form.variants
           .filter((variant) => getVariantOptionValue(variant, option) !== valueArchiveWizard.valueLabel)
-          .map((variant) => markVariantCompleteness(variant, getNextDimensionNames()));
+          .map((variant) => markVariantCompleteness(variant, getNextDimensionNames(form.options)));
       }
       closeValueArchiveWizard(true);
     } catch (error) {
@@ -672,16 +578,6 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     }
   };
 
-  const variantOptionsKey = (optionsValues) =>
-    JSON.stringify(
-      Object.keys(optionsValues || {})
-        .sort()
-        .reduce((acc, key) => {
-          acc[key] = optionsValues[key];
-          return acc;
-        }, {})
-    );
-
   const handleBatchBuilderApply = ({ options = [], variants = [] }) => {
     const normalizedOptions = options.map((option) => ({
       name: option.name,
@@ -691,11 +587,11 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     form.options = normalizedOptions;
 
     const existingMap = new Map(
-      form.variants.map((variant) => [variantOptionsKey(variant.options_values), variant])
+      form.variants.map((variant) => [buildVariantOptionsKey(variant.options_values), variant])
     );
 
     for (const variant of variants) {
-      const key = variantOptionsKey(variant.options_values);
+      const key = buildVariantOptionsKey(variant.options_values);
       if (existingMap.has(key)) continue;
       const optionsValues = variant.options_values || {};
       form.variants.push({
@@ -885,8 +781,8 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     handleUpdateVariantImages,
     handleBatchBuilderApply,
     handleSubmit,
-    variantOptionsKey,
-    ensureVariantLocalKey,
+    variantOptionsKey: buildVariantOptionsKey,
+    ensureVariantLocalKey: ensureVariantLocalKeyWithFactory,
     incompleteVariants,
     incompleteVariantCount,
     incompleteVariantsBannerMessage,
