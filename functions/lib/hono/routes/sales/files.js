@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { MSG, getFileUrl, timestampToIso } from '../../_shared/utils.js';
+import { MSG, getFileUrl, timestampToIso } from '../../../../_shared/utils.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
@@ -23,10 +23,14 @@ app.post('/upload', async (c) => {
 
     let folderId = 'root';
     if (orderId) {
-        const order = await env.DB.prepare('SELECT order_no FROM orders WHERE id = ?').bind(orderId).first();
+        const order = await env.DB.prepare(
+          'SELECT order_no FROM orders WHERE id = ? AND salesperson_id = ?'
+        ).bind(orderId, salesperson.id).first();
         if (order?.order_no) {
             const { ensureOrderFolder } = await import('../../../../api/utils/folder-utils.js');
             folderId = await ensureOrderFolder(env, order.order_no);
+        } else {
+            return c.json({ success: false, error: MSG.AUTH.FORBIDDEN }, 403);
         }
     }
 

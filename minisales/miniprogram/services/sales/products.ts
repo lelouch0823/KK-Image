@@ -24,6 +24,13 @@ function withData<T, U>(result: SalesRequestResult<T>, data: U | null): SalesReq
     };
 }
 
+function withoutData<T, U>(result: SalesRequestResult<T>): SalesRequestResult<U> {
+    return {
+        ...result,
+        data: null,
+    };
+}
+
 export async function loadProductList(
     input: { accessToken: string; search?: string; page?: number; limit?: number },
     request: RequestFn = salesRequest
@@ -39,7 +46,7 @@ export async function loadProductList(
     });
 
     if (!result.success) {
-        return withData(result, null);
+        return withoutData(result);
     }
 
     const payloadMeta = result.payload.meta as Record<string, unknown> | undefined;
@@ -63,7 +70,7 @@ export async function loadProductDetail(
     });
 
     if (!result.success || !result.data) {
-        return withData(result, null);
+        return withoutData(result);
     }
 
     return withData(result, normalizeSalesProductDetail(result.data));

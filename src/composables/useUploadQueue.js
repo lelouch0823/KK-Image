@@ -5,6 +5,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { useImageCompression } from '@/composables/useImageCompression';
 import { API, MAX_UPLOAD_SIZE } from '@/utils/constants';
+import { parseJsonObject } from '@/utils/json.js';
 
 // ============================================================
 // 全局状态 - 保证组件切换时队列不丢失
@@ -313,24 +314,22 @@ export function useUploadQueue() {
       item.speed = 0;
 
       if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const res = JSON.parse(xhr.responseText);
-          if (res.success) {
-            item.status = 'success';
-            item.progress = 100;
-
-            // 触发该文件夹的刷新回调
-            const callback = folderRefreshCallbacks.value.get(item.folderId);
-            if (callback) {
-              callback();
-            }
-          } else {
-            item.status = 'error';
-            item.error = res.message || t('uploadQueue.uploadFailed');
-          }
-        } catch (_e) {
+        const res = parseJsonObject(xhr.responseText, null);
+        if (!res) {
           item.status = 'error';
           item.error = t('uploadQueue.parseError');
+        } else if (res.success) {
+          item.status = 'success';
+          item.progress = 100;
+
+          // 触发该文件夹的刷新回调
+          const callback = folderRefreshCallbacks.value.get(item.folderId);
+          if (callback) {
+            callback();
+          }
+        } else {
+          item.status = 'error';
+          item.error = res.message || t('uploadQueue.uploadFailed');
         }
       } else {
         item.status = 'error';

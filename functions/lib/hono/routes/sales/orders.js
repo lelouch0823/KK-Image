@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { CreateOrderSchema, AddCommentSchema } from '../../schemas/sales.js';
-import { MSG, generateId, generateOrderNo } from '../../_shared/utils.js';
+import { MSG, generateId, generateOrderNo } from '../../../../_shared/utils.js';
 import { normalizeOrderStatusFilter } from '../../../../api/utils/constants.js';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 import { validateProductVariantBinding } from '../../../../api/utils/validation.js';
@@ -109,6 +109,7 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
         id: orderId,
         orderNo,
         salespersonId: salesperson.id,
+        enforceSalesFileScope: true,
         data: {
             name: boundSnapshot.name,
             size: boundSnapshot.size,
@@ -363,6 +364,7 @@ app.patch('/:id', async (c) => {
         allowedFields: SALES_EDITABLE_FIELDS,
         actor: { type: 'salesperson', id: salesperson.id, name: salesperson.name },
         salespersonId: salesperson.id,
+        enforceSalesFileScope: true,
         reason: reason.trim(),
         deferNotifications: true,
     });

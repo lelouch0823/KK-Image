@@ -18,6 +18,7 @@ import { SalespersonRepository } from '../repositories/SalespersonRepository.js'
 import { DomainOutboxPublisher } from '../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../api/cron/outbox.js';
 import { scheduleProductCacheInvalidation } from '../lib/hono/routes/manage/products/cache-helpers.js';
+import { evaluateActionPermission } from '../lib/authz/index.js';
 
 function buildAIPurchaseOrderEventCommandId(sessionId) {
   const normalized = String(sessionId || '').trim();
@@ -224,6 +225,13 @@ export function createActionOrchestrator({ c, env, user, createManagedOrder, cre
       },
     },
     extractActionSlots,
+    canAccessAction: async (subject, adapter) => {
+      if (!adapter?.requiredPermission) return true;
+      return evaluateActionPermission({
+        user: subject,
+        permission: adapter.requiredPermission,
+      });
+    },
   });
 }
 
@@ -248,6 +256,7 @@ export function createAIActionService(deps = {}) {
       const orchestrator = createOrchestrator(actionContext || {});
       const actionResult = await orchestrator.advance({
         userId: user?.id || 'anonymous',
+        user,
         text,
         slots: contextSlots,
         confirmation: detectConfirmation(text),
@@ -257,6 +266,21 @@ export function createAIActionService(deps = {}) {
         return {
           handled: false,
           actionResult: null,
+          event: null,
+          refreshEvent: null,
+        };
+      }
+
+      if (actionResult.kind === 'action_denied') {
+        return {
+          handled: true,
+          actionResult: {
+            kind: 'action_denied',
+            payload: {
+              ...actionResult.payload,
+              successMessage: '当前账号没有执行该 AI 写操作的权限。',
+            },
+          },
           event: null,
           refreshEvent: null,
         };

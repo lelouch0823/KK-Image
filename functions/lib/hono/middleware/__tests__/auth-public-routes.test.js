@@ -14,7 +14,7 @@ vi.mock('../../_shared/audit-helpers.js', async () => {
 });
 
 import { authMiddleware } from '../auth.js';
-import { MSG } from '../../_shared/utils.js';
+import { MSG } from '../../../../_shared/utils.js';
 
 function createApp() {
   const app = new Hono();

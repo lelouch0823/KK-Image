@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { MSG } from '../../_shared/utils.js';
+import { MSG } from '../../../../_shared/utils.js';
 import { SpaceRepository } from '../../../../repositories/SpaceRepository.js';
 import { projectSpaceTemplateData } from '../manage/spaces/transformers.js';
 import { withCache } from '../../middleware/cache.js';

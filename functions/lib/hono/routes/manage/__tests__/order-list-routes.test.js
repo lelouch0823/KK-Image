@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
+import { DateUtils } from '../../../../../_shared/utils.js';
 
 const mocks = vi.hoisted(() => ({
   listForAdmin: vi.fn(),
@@ -393,6 +394,92 @@ describe('manage order list routes', () => {
     expect(csv).toContain(`"'=SO-1"`);
     expect(csv).toContain(`"'+CMD"`);
     expect(csv).toContain(`"'@Alice"`);
+  });
+
+  it('exports localized order status labels for canonical and legacy fulfilled rows', async () => {
+    const exportStmt = {
+      bind: vi.fn(() => exportStmt),
+      all: vi.fn(async () => ({
+        results: [
+          {
+            id: 'o-1',
+            order_no: 'SO-1',
+            current_data: JSON.stringify({ name: 'Chair' }),
+            status: 'fulfilled',
+            fulfillment_status: 'fulfilled',
+            delivery_status: 'in_transit',
+            line_returned_qty: 0,
+            salesperson_name: 'Alice',
+            created_at: 1710000000000,
+            snapshot_name: 'Chair',
+          },
+          {
+            id: 'o-2',
+            order_no: 'SO-2',
+            current_data: JSON.stringify({ name: 'Lamp' }),
+            status: 'delivered',
+            fulfillment_status: 'fulfilled',
+            delivery_status: 'delivered',
+            line_returned_qty: 0,
+            salesperson_name: 'Bob',
+            created_at: 1710000000000,
+            snapshot_name: 'Lamp',
+          },
+        ],
+      })),
+    };
+    const db = {
+      prepare: vi.fn((sql) => {
+        if (sql.includes('FROM orders o')) return exportStmt;
+        return { all: mocks.salespersonsAll };
+      }),
+    };
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/orders/export',
+      {},
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    const csv = await res.text();
+    expect(csv).toContain('"履约完成"');
+    expect(csv).not.toContain('"fulfilled"');
+    expect(csv).not.toContain('"delivered"');
+  });
+
+  it('forwards salesperson and date range filters and expands fulfilled export status alias', async () => {
+    const exportStmt = {
+      bind: vi.fn(() => exportStmt),
+      all: vi.fn(async () => ({ results: [] })),
+    };
+    const db = {
+      prepare: vi.fn((sql) => {
+        if (sql.includes('FROM orders o')) return exportStmt;
+        return { all: mocks.salespersonsAll };
+      }),
+    };
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/orders/export?salesperson=sp-1&status=fulfilled&from=2026-04-01&to=2026-04-14',
+      {},
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(db.prepare.mock.calls[0][0]).toContain('o.salesperson_id = ?');
+    expect(db.prepare.mock.calls[0][0]).toContain('o.status IN (?, ?)');
+    expect(exportStmt.bind).toHaveBeenCalledWith(
+      'sp-1',
+      'fulfilled',
+      'delivered',
+      DateUtils.parseChinaDate('2026-04-01'),
+      DateUtils.parseChinaDate('2026-04-14') + 86400000
+    );
   });
 
 });

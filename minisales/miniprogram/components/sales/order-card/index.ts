@@ -67,7 +67,7 @@ Component({
   properties: {
     order: {
       type: Object,
-      value: null,
+      value: undefined,
     },
   },
   data: {
@@ -76,7 +76,7 @@ Component({
     timeText: '',
   },
   observers: {
-    order(order: OrderCardItem | null) {
+    order(order?: OrderCardItem) {
       if (!order) {
         this.setData({
           statusLabel: '',
@@ -97,7 +97,7 @@ Component({
   },
   methods: {
     onTap() {
-      const order = this.properties.order as OrderCardItem | null;
+      const order = this.properties.order as OrderCardItem | undefined;
       if (!order || !order.id) {
         return;
       }

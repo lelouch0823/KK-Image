@@ -108,6 +108,7 @@ const getStatusColorClass = (status) => {
         confirmed: 'bg-info',
         production: 'bg-(--color-orange)', 
         shipping: 'bg-primary',
+        fulfilled: 'bg-success',
         completed: 'bg-success', // delivered/completed
         delivered: 'bg-success',
         arrived: 'bg-(--color-cyan)',

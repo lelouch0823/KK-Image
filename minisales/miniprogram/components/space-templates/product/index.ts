@@ -1,6 +1,6 @@
 Component({
     properties: {
-        space: { type: Object, value: null },
+        space: { type: Object, value: undefined },
     },
     methods: {
         onSwiperChange(e: WechatMiniprogram.SwiperChange) {

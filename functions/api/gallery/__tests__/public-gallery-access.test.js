@@ -1,0 +1,110 @@
+import { describe, expect, it, vi } from 'vitest';
+
+import { onRequestGet, onRequestPost } from '../[token].js';
+
+function createDb() {
+  return {
+    prepare: vi.fn((sql) => {
+      if (sql.includes('SELECT * FROM folders WHERE share_token = ?')) {
+        return {
+          bind: vi.fn(() => ({
+            first: vi.fn(async () => ({
+              id: 'folder-1',
+              share_token: 'gallery-token',
+              name: 'Gallery',
+              description: '',
+              created_at: 1,
+              is_public: 1,
+              password: 'secret',
+              share_expires_at: Date.now() + 60_000,
+            })),
+          })),
+        };
+      }
+      if (sql.includes('SELECT * FROM files WHERE folder_id = ?')) {
+        return {
+          bind: vi.fn(() => ({
+            all: vi.fn(async () => ({
+              results: [
+                {
+                  id: 'file-1',
+                  folder_id: 'folder-1',
+                  name: 'hero.jpg',
+                  original_name: 'hero.jpg',
+                  mime_type: 'image/jpeg',
+                  storage_key: 'hero-key',
+                  size: 10,
+                  created_at: 1,
+                },
+              ],
+            })),
+          })),
+        };
+      }
+      if (sql.includes('FROM folders') && sql.includes('parent_id = ?')) {
+        return {
+          bind: vi.fn(() => ({
+            all: vi.fn(async () => ({ results: [] })),
+          })),
+        };
+      }
+      throw new Error(`Unexpected SQL: ${sql}`);
+    }),
+  };
+}
+
+describe('public gallery access api', () => {
+  it('caps public response caching to the signed url lifetime', async () => {
+    const response = await onRequestGet({
+      env: {
+        DB: createDb(),
+        JWT_SECRET: 'jwt-secret',
+      },
+      params: { token: 'gallery-token' },
+      request: new Request('http://localhost/api/gallery/gallery-token'),
+    });
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get('Cache-Control')).toBe('public, max-age=900, stale-while-revalidate=0');
+  });
+
+  it('does not accept password from query string anymore', async () => {
+    const response = await onRequestGet({
+      env: { DB: createDb() },
+      params: { token: 'gallery-token' },
+      request: new Request('http://localhost/api/gallery/gallery-token?password=secret'),
+    });
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: { requiresPassword: true },
+    });
+  });
+
+  it('returns signed file URLs after password verification succeeds', async () => {
+    const response = await onRequestPost({
+      env: {
+        DB: createDb(),
+        JWT_SECRET: 'jwt-secret',
+        KV: {
+          get: vi.fn(async () => null),
+          put: vi.fn(async () => undefined),
+          delete: vi.fn(async () => undefined),
+        },
+      },
+      params: { token: 'gallery-token' },
+      request: new Request('http://localhost/api/gallery/gallery-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: 'secret' }),
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    expect(payload.data.files[0].url).toContain('/file/file-1');
+    expect(payload.data.files[0].url).toContain('access=');
+    expect(response.headers.get('Cache-Control')).toBe('no-store, max-age=0');
+  });
+});

@@ -2,6 +2,7 @@ export const purchaseOrderActionAdapter = {
   entityType: 'purchase_order',
   actionType: 'create_purchase_order',
   targetModule: 'purchaseOrders',
+  requiredPermission: 'products:manage',
   requiredSlots: ['mode'],
   getRequiredSlots(slots = {}) {
     const mode = String(slots.mode || '').trim();

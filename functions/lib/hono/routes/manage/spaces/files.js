@@ -6,7 +6,7 @@
 
 import { Hono } from 'hono';
 import { requirePermission } from '../../../middleware/auth.js';
-import { MSG } from '../../../_shared/utils.js';
+import { MSG } from '../../../../../_shared/utils.js';
 import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js';
 import { BadRequestError } from '../../../errors.js';
 import { invalidateSpaceCaches } from './cache-helpers.js';

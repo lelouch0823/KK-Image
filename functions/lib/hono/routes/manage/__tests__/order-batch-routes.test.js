@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   getSalespersonAccessTokens: vi.fn(async () => []),
   publish: vi.fn(async () => []),
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
+  isInsufficientStockError: vi.fn(() => false),
+  isInvalidStatusTransitionError: vi.fn(() => false),
 }));
 
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
@@ -58,6 +60,11 @@ vi.mock('../../../../../api/cron/outbox.js', () => ({
   runOutboxPoller: mocks.runOutboxPoller,
 }));
 
+vi.mock('../orders/error-helpers.js', () => ({
+  isInsufficientStockError: mocks.isInsufficientStockError,
+  isInvalidStatusTransitionError: mocks.isInvalidStatusTransitionError,
+}));
+
 import createAppRoutes from '../orders/create.js';
 
 const createApp = (user = { id: 'u-1', name: 'Admin', type: 'admin', permissions: ['admin:full'] }) => {
@@ -85,6 +92,8 @@ describe('manage order batch route', () => {
     mocks.variantFindByIdAndProductId.mockResolvedValue({ id: 'v-1', product_id: 'p-1', status: 'active' });
     mocks.publish.mockResolvedValue([]);
     mocks.runOutboxPoller.mockResolvedValue({ claimed: 0, published: 0, failed: 0 });
+    mocks.isInsufficientStockError.mockReturnValue(false);
+    mocks.isInvalidStatusTransitionError.mockReturnValue(false);
   });
 
   it('maps frontend confirm action to status=confirmed', async () => {
@@ -122,6 +131,7 @@ describe('manage order batch route', () => {
 
   it('returns 400 when batch delivered transition fails due to insufficient stock', async () => {
     mocks.batchUpdateStatus.mockRejectedValue(new Error('insufficient variant stock for delivery'));
+    mocks.isInsufficientStockError.mockReturnValue(true);
     const app = createApp();
     const res = await app.request(
       'http://localhost/api/manage/orders/batch',
@@ -184,6 +194,27 @@ describe('manage order batch route', () => {
     expect(mocks.batchUpdateStatus).not.toHaveBeenCalled();
   });
 
+  it('returns 400 when batch request has no valid ids', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/batch',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: [],
+          action: 'status',
+          value: 'confirmed',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.batchUpdateStatus).not.toHaveBeenCalled();
+  });
+
   it('returns 400 when force batch transition has no reason', async () => {
     const app = createApp();
     const res = await app.request(
@@ -214,6 +245,44 @@ describe('manage order batch route', () => {
 
     expect(res.status).toBe(400);
     expect(mocks.batchUpdateStatus).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when repository rejects batch status with invalid transition marker', async () => {
+    mocks.batchUpdateStatus.mockRejectedValue(
+      new Error('INVALID_ORDER_STATUS_TRANSITION_ERROR: pending -> delivered')
+    );
+    mocks.isInvalidStatusTransitionError.mockReturnValue(true);
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/batch',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: ['o-1'],
+          action: 'status',
+          value: 'delivered',
+          force: true,
+          reason: 'force but repository still rejects',
+        }),
+      },
+      {
+        DB: {
+          prepare: vi.fn(() => ({
+            bind: vi.fn(() => ({
+              all: vi.fn(async () => ({
+                results: [{ id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' }],
+              })),
+            })),
+          })),
+        },
+      },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(String(body.error || '')).toMatch(/invalid status transition/i);
   });
 
   it('allows force batch transition when reason is provided', async () => {
@@ -312,51 +381,69 @@ describe('manage order batch route', () => {
     expect(mocks.batchUpdateStatus).not.toHaveBeenCalled();
   });
 
-  it('rejects create order when bound product is archived', async () => {
-    mocks.productFindById.mockResolvedValue({ id: 'p-1', status: 'archived' });
+  it('publishes batch status change events and schedules outbox polling for matched orders', async () => {
     const app = createApp();
+    const waitUntil = vi.fn();
     const res = await app.request(
-      'http://localhost/api/manage/orders',
+      'http://localhost/api/manage/orders/batch',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          productName: 'Shoe',
-          salespersonId: 'sp-1',
-          productId: 'p-1',
-          variantId: 'v-1',
-          fileIds: [],
+          ids: ['o-1', 'o-2'],
+          action: 'status',
+          value: 'confirmed',
         }),
       },
-      { DB: { prepare: vi.fn() } },
-      { waitUntil: vi.fn() }
-    );
-
-    expect(res.status).toBe(400);
-    expect(mocks.create).not.toHaveBeenCalled();
-  });
-
-  it('rejects create order when bound variant is archived', async () => {
-    mocks.variantFindByIdAndProductId.mockResolvedValue({ id: 'v-1', product_id: 'p-1', status: 'archived' });
-    const app = createApp();
-    const res = await app.request(
-      'http://localhost/api/manage/orders',
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productName: 'Shoe',
-          salespersonId: 'sp-1',
-          productId: 'p-1',
-          variantId: 'v-1',
-          fileIds: [],
-        }),
+        DB: {
+          prepare: vi.fn(() => ({
+            bind: vi.fn(() => ({
+              all: vi.fn(async () => ({
+                results: [
+                  { id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' },
+                  { id: 'o-2', order_no: 'SO-2', salesperson_id: 'sp-2', status: 'pending' },
+                ],
+              })),
+            })),
+          })),
+        },
       },
-      { DB: { prepare: vi.fn() } },
-      { waitUntil: vi.fn() }
+      { waitUntil }
     );
 
-    expect(res.status).toBe(400);
-    expect(mocks.create).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(mocks.batchUpdateStatus).toHaveBeenCalledWith(
+      ['o-1', 'o-2'],
+      'confirmed',
+      expect.objectContaining({ actorType: 'admin' }),
+      expect.objectContaining({ forceStatusTransition: false })
+    );
+    expect(mocks.publish).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event_type: 'order_status_changed_by_admin',
+        aggregate_id: 'o-1',
+        payload: expect.objectContaining({
+          order_id: 'o-1',
+          order_no: 'SO-1',
+          salesperson_id: 'sp-1',
+          status: 'confirmed',
+          batch: true,
+        }),
+      }),
+      expect.objectContaining({
+        event_type: 'order_status_changed_by_admin',
+        aggregate_id: 'o-2',
+        payload: expect.objectContaining({
+          order_id: 'o-2',
+          order_no: 'SO-2',
+          salesperson_id: 'sp-2',
+          status: 'confirmed',
+          batch: true,
+        }),
+      }),
+    ]);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
   });
 });

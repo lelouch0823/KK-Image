@@ -10,7 +10,7 @@ import {
   MSG,
   getShareUrl,
   getFileUrl,
-} from '../../_shared/utils.js';
+} from '../../../../_shared/utils.js';
 
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';

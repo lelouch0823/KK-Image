@@ -6,8 +6,8 @@ const mocks = vi.hoisted(() => ({
   verifyApiKey: vi.fn(),
 }));
 
-vi.mock('../../_shared/utils.js', async () => {
-  const actual = await vi.importActual('../../_shared/utils.js');
+vi.mock('../../../../_shared/utils.js', async () => {
+  const actual = await vi.importActual('../../../../_shared/utils.js');
   return {
     ...actual,
     verifyJWT: mocks.verifyJWT,
@@ -16,7 +16,7 @@ vi.mock('../../_shared/utils.js', async () => {
 });
 
 import { authMiddleware } from '../auth.js';
-import { ADMIN_AUTH_COOKIE } from '../../_shared/utils.js';
+import { ADMIN_AUTH_COOKIE } from '../../../../_shared/utils.js';
 
 function createApp() {
   const app = new Hono();

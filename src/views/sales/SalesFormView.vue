@@ -55,6 +55,7 @@ import { useToast } from '@/composables/useToast';
 import OrderForm from '@/components/order/OrderForm.vue';
 import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
 import { ORDER_BOUND_SNAPSHOT_FIELDS } from '@/utils/order-binding-fields.js';
+import { parseJsonObject } from '@/utils/json.js';
 
 const router = useRouter();
 const route = useRoute();
@@ -114,13 +115,7 @@ const handleProductSelect = (product) => {
   selectedProductId.value = product.id;
 
   let options = variant.options_values || {};
-  if (typeof options === 'string') {
-    try {
-      options = JSON.parse(options);
-    } catch {
-      options = {};
-    }
-  }
+  options = parseJsonObject(options, {});
 
   const dimensionMap = product.dimension_map || {};
   const mappedOptions = {};
@@ -226,4 +221,3 @@ onUnmounted(() => {
   if (setPrefillData) setPrefillData(null);
 });
 </script>
-

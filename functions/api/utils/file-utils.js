@@ -27,6 +27,16 @@ const DANGEROUS_EXTENSIONS = new Set([
   'dll', 'sys', 'cpl', 'inf', 'reg', 'hta',
 ]);
 
+const DANGEROUS_MIME_TYPES = new Set([
+  'image/svg+xml',
+  'text/html',
+  'application/xhtml+xml',
+  'application/xml',
+  'text/xml',
+  'application/javascript',
+  'text/javascript',
+]);
+
 /** 默认允许的 MIME 类型前缀 (宽松模式) */
 const DEFAULT_ALLOWED_MIME_PREFIXES = [
   'image/',
@@ -68,10 +78,9 @@ function getExtension(name) {
  * @param {string[]} allowed
  * @returns {boolean}
  */
-// eslint-disable-next-line no-unused-vars
 function isMimeAllowed(mimeType, allowed) {
   if (!mimeType) return false;
-  return allowed.some((prefix) => mimeType.startsWith(prefix));
+  return allowed.some((prefix) => mimeType === prefix || mimeType.startsWith(prefix));
 }
 
 /**
@@ -87,7 +96,6 @@ function resolveMaxSize(env, options) {
 /**
  * 获取允许的 MIME 前缀
  */
-// eslint-disable-next-line no-unused-vars
 function resolveAllowedMimes(options) {
   return options?.allowedMimePrefixes || DEFAULT_ALLOWED_MIME_PREFIXES;
 }
@@ -157,13 +165,16 @@ export async function storeFile(env, file, options = {}) {
     throw new Error(MSG.FILE.DANGEROUS_TYPE);
   }
 
-  // 2b. MIME 类型白名单 (Disabled per user request)
-  // if (!skipTypeCheck) {
-  //   const allowed = resolveAllowedMimes(options);
-  //   if (!isMimeAllowed(mimeType, allowed)) {
-  //     throw new Error(MSG.FILE.INVALID_TYPE);
-  //   }
-  // }
+  // 2b. 主动内容 MIME 拦截 + 白名单校验
+  if (DANGEROUS_MIME_TYPES.has(mimeType)) {
+    throw new Error(MSG.FILE.INVALID_TYPE);
+  }
+  if (!options.skipTypeCheck) {
+    const allowed = resolveAllowedMimes(options);
+    if (!isMimeAllowed(mimeType, allowed)) {
+      throw new Error(MSG.FILE.INVALID_TYPE);
+    }
+  }
 
   // 2c. 文件大小限制
   const maxSize = resolveMaxSize(env, options);

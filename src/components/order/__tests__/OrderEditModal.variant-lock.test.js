@@ -52,12 +52,13 @@ const buildStubs = (overrides = {}) => ({
   ConfirmDialog: true,
   AppIcon: true,
   OrderFormFields: {
-    props: ['boundProductVariant', 'modelValue', 'disabledFields'],
+    props: ['boundProductVariant', 'modelValue', 'disabledFields', 'statuses'],
     template: `
       <div>
         <div data-testid="bound-variant">{{ JSON.stringify(boundProductVariant) }}</div>
         <div data-testid="form-quantity">{{ modelValue.quantity }}</div>
         <div data-testid="disabled-fields">{{ JSON.stringify(disabledFields) }}</div>
+        <div data-testid="status-options">{{ JSON.stringify(statuses) }}</div>
       </div>
     `,
   },
@@ -168,6 +169,16 @@ describe('OrderEditModal variant locking on edit', () => {
   it('prefers top-level order quantity over stale currentData quantity', () => {
     const wrapper = mountModal(baseOrder);
     expect(wrapper.get('[data-testid="form-quantity"]').text()).toBe('7');
+  });
+
+  it('uses canonical fulfillment statuses in its default admin status options', () => {
+    const wrapper = mountModal(baseOrder);
+    const statusOptions = wrapper.get('[data-testid="status-options"]').text();
+
+    expect(statusOptions).toContain('arrived');
+    expect(statusOptions).toContain('fulfilled');
+    expect(statusOptions).not.toContain('completed');
+    expect(statusOptions).not.toContain('delivered');
   });
 
   it('falls back to line snapshot names when historical bound order lost current and original product names', () => {

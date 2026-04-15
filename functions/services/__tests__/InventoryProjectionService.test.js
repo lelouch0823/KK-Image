@@ -68,4 +68,18 @@ describe('InventoryProjectionService', () => {
       available: 4,
     });
   });
+
+  it('restocks on-hand inventory when order returns are replayed from the ledger', () => {
+    const projection = projectInventoryBalances([
+      { event_type: 'purchase_received', quantity_delta: 5 },
+      { event_type: 'order_shipment', quantity_delta: -3 },
+      { event_type: 'order_return_restock', quantity_delta: 2 },
+    ]);
+
+    expect(projection).toEqual({
+      on_hand: 4,
+      reserved: 0,
+      available: 4,
+    });
+  });
 });

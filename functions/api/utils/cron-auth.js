@@ -4,6 +4,7 @@
  */
 export function isCronAuthorized(request, env = {}) {
   const authHeader = request.headers.get('Authorization');
-  const secret = env.CRON_SECRET || 'dev-secret';
+  const secret = String(env.CRON_SECRET || '').trim();
+  if (!secret) return false;
   return Boolean(authHeader) && authHeader === `Bearer ${secret}`;
 }

@@ -1,4 +1,4 @@
-import { MSG } from '../../../_shared/utils.js';
+import { MSG } from '../../../../../_shared/utils.js';
 import { NotFoundError } from '../../../errors.js';
 import { requireEntity } from '../../../_shared/route-helpers.js';
 

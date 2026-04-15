@@ -63,6 +63,31 @@ describe('createAIActionService', () => {
     }));
   });
 
+  it('surfaces action_denied as a handled AI response', async () => {
+    const service = createAIActionService({
+      deriveContextActionSlots: vi.fn().mockResolvedValue({}),
+      detectExplicitConfirmation: vi.fn().mockReturnValue(false),
+      createActionOrchestrator: vi.fn(() => ({
+        advance: vi.fn().mockResolvedValue({
+          kind: 'action_denied',
+          payload: { entityType: 'order', requiredPermission: 'orders:manage' },
+        }),
+      })),
+    });
+
+    const result = await service.handleTurn({
+      text: '帮我创建订单',
+      context: {},
+      user: { id: 'u-1' },
+    });
+
+    expect(result).toEqual(expect.objectContaining({
+      handled: true,
+      actionResult: expect.objectContaining({ kind: 'action_denied' }),
+      refreshEvent: null,
+    }));
+  });
+
   it('publishes purchase-order creation side effects after the action rail submits successfully', async () => {
     const publishPurchaseOrderCreated = vi.fn(async () => {});
     const sessionStore = {

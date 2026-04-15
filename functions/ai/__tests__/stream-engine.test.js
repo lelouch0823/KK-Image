@@ -2,8 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { createAIRequestContext } from '../request-context.js';
 import { runAIStreamEngine } from '../stream-engine.js';
 
-/* global ReadableStream */
-
 function createReadable(chunks) {
   const encoder = new TextEncoder();
   return new ReadableStream({

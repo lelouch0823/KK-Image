@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
 import { parseJsonArray, parseJsonObject } from '../../../../api/utils/json.js';
-import { generatePrefixedId, generateHmacSignature, MSG } from '../../_shared/utils.js';
+import { generatePrefixedId, generateHmacSignature, MSG } from '../../../../_shared/utils.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
@@ -33,7 +33,7 @@ function rowToWebhook(row) {
     id: row.id,
     url: row.url,
     events: parseJsonArray(row.events, WEBHOOK_EVENTS),
-    secret: row.secret,
+    hasSecret: Boolean(row.secret),
     headers: parseJsonObject(row.headers, {}),
     enabled: Boolean(row.enabled),
     createdBy: row.created_by,
@@ -116,7 +116,7 @@ app.post('/', requirePermission('webhooks:write'), async (c) => {
     id,
     url: data.url,
     events: data.events || WEBHOOK_EVENTS,
-    secret: data.secret || null,
+    hasSecret: Boolean(data.secret),
     headers: data.headers || {},
     enabled: true,
     createdBy: user.name || user.id,
@@ -247,10 +247,10 @@ app.post('/:id/test', requirePermission('webhooks:write'), async (c) => {
   };
 
   // 添加签名
-  if (webhook.secret) {
+  if (row.secret) {
     headers['X-Webhook-Signature'] = await generateHmacSignature(
       JSON.stringify(payload),
-      webhook.secret
+      row.secret
     );
   }
 

@@ -82,6 +82,13 @@ export function normalizeOrderStatusFilter(status) {
   return ORDER_FILTER_STATUSES.includes(canonical) ? canonical : null;
 }
 
+export function expandOrderStatusFilter(status) {
+  const normalized = normalizeOrderStatusFilter(status);
+  if (!normalized) return [];
+  if (normalized === 'fulfilled') return ['fulfilled', 'delivered'];
+  return [normalized];
+}
+
 export function normalizeOrderDeliveryStatusFilter(status) {
   if (!status) return null;
   const normalized = String(status).trim().toLowerCase();

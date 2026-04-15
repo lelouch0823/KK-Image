@@ -2534,7 +2534,7 @@ import { usePurchaseOrderModals } from '@/composables/usePurchaseOrderModals';
 import { useToast } from '@/composables/useToast';
 import { useAI } from '@/composables/useAI';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
-import { CURRENCY_OPTIONS } from '@/composables/useProductForm';
+import { CURRENCY_OPTIONS } from '@/constants/currency.js';
 import { validateOrderQuantity } from '@/utils/purchase-order-constraints';
 import {
   getPurchaseOrderCancelledQty,
@@ -2544,6 +2544,12 @@ import {
 } from '@/utils/purchase-order-progress';
 import { reconcileVariantSelection } from '@/utils/purchase-order-variant-selection';
 import { formatCurrency as formatMoney } from '@/utils/formatters';
+import { formatDate, formatDateTime } from "@/views/purchase-orders/formatters.js";
+import {
+  createReceiptMetaBuilder,
+  createReceiptProgressSummaryBuilder,
+  hasReceiptMeta,
+} from "@/views/purchase-orders/progress.js";
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
 import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
@@ -2789,26 +2795,6 @@ const currencyOptions = computed(() =>
 
 // ─── 方法 ────────────────────────────────────────────
 
-const formatDate = (ts) => {
-  if (!ts) return '—';
-  return new Date(ts).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-};
-
-const formatDateTime = (ts) => {
-  if (!ts) return '—';
-  return new Date(ts).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
 const formatInteger = (value) => Number(value || 0).toLocaleString('zh-CN');
 
 const formatPurchaseCurrency = (value, currency = 'CNY') => {
@@ -2838,8 +2824,6 @@ const progressStatusConfig = computed(() => ({
   cancelled: { label: t('purchaseOrder.progress.cancelled', '已取消'), variant: 'default' },
 }));
 
-const toProgressNumber = (value) => Number(value || 0);
-
 const getProgressStatusMeta = (status) =>
   progressStatusConfig.value[status] || progressStatusConfig.value.open;
 
@@ -2847,36 +2831,9 @@ const getProgressStatusLabel = (status) => getProgressStatusMeta(status).label;
 
 const getProgressStatusVariant = (status) => getProgressStatusMeta(status).variant;
 
-const buildReceiptProgressSummary = (record = {}) => {
-  const ordered = getPurchaseOrderOrderedQty(record);
-  const received = getPurchaseOrderReceivedQty(record);
-  const cancelled = getPurchaseOrderCancelledQty(record);
-  const outstanding = getPurchaseOrderOutstandingQty(record);
+const buildReceiptProgressSummary = createReceiptProgressSummaryBuilder({ t });
 
-  const parts = [`${t('purchaseOrder.progress.receivedPrefix', '已到')} ${received} / ${ordered}`];
-  if (cancelled > 0) {
-    parts.push(`${t('purchaseOrder.progress.cancelledPrefix', '取消')} ${cancelled}`);
-  }
-  parts.push(`${t('purchaseOrder.progress.outstandingPrefix', '待收')} ${outstanding}`);
-  return parts.join(' · ');
-};
-
-const buildReceiptMeta = (record = {}) => {
-  const parts = [];
-  const receiptCount = toProgressNumber(record.receipt_count);
-  if (receiptCount > 0) {
-    parts.push(`${receiptCount} ${t('purchaseOrder.progress.receiptCountSuffix', '次入库')}`);
-  }
-  if (record.last_received_at) {
-    parts.push(
-      `${t('purchaseOrder.progress.lastReceivedPrefix', '最近到货')} ${formatDate(record.last_received_at)}`
-    );
-  }
-  return parts.join(' · ');
-};
-
-const hasReceiptMeta = (record = {}) =>
-  toProgressNumber(record.receipt_count) > 0 || Boolean(record.last_received_at);
+const buildReceiptMeta = createReceiptMetaBuilder({ t, formatDate });
 
 const consoleSignals = computed(() => {
   if (!stats.value) return [];

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
-import { MSG, storeFile, getFileUrl, timestampToIso } from '../../_shared/utils.js';
+import { MSG, storeFile, getFileUrl, timestampToIso } from '../../../../_shared/utils.js';
 import { BadRequestError, NotFoundError } from '../../errors.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';

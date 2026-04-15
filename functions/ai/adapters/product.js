@@ -2,6 +2,7 @@ export const productActionAdapter = {
   entityType: 'product',
   actionType: 'create_product',
   targetModule: 'products',
+  requiredPermission: 'products:manage',
   requiredSlots: ['name', 'currency', 'variants'],
   optionalSlots: ['spu', 'brand', 'category', 'description', 'images', 'dimensions'],
   fieldLabels: {

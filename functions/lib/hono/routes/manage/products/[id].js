@@ -18,7 +18,6 @@ import {
 } from './idempotency-helpers.js';
 import {
     cleanupReservedCommand,
-    parseStoredResponse,
     resolveReservationOwnership,
 } from '../../../../../services/order-procurement-shared.js';
 

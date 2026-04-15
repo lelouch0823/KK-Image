@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { reactive, nextTick } from 'vue';
-import { flushPromises, shallowMount } from '@vue/test-utils';
+import { flushPromises, mount, shallowMount } from '@vue/test-utils';
 import SpaceView from '../Space.vue';
 
 const route = reactive({
@@ -246,5 +246,54 @@ describe('Space view lifecycle', () => {
     expect(publicSpaceCalls).toHaveLength(0);
     expect(wrapper.vm.space).toBe(null);
     expect(wrapper.vm.loading).toBe(false);
+  });
+
+  it('renders document spaces through a dedicated document template', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url) => {
+        if (url === '/api/turnstile/verify') {
+          return Promise.resolve({
+            json: async () => ({ success: true, data: { enabled: false } }),
+          });
+        }
+
+        if (url === '/api/space/token-a') {
+          return Promise.resolve({
+            json: async () => ({
+              success: true,
+              data: {
+                id: 'space-doc',
+                name: '文档空间',
+                template: 'document',
+                templateData: {},
+                files: [{ id: 'file-1', name: '说明书.pdf', url: '/file/file-1', mimeType: 'application/pdf' }],
+              },
+            }),
+          });
+        }
+
+        throw new Error(`Unexpected fetch url: ${url}`);
+      })
+    );
+
+    const wrapper = mount(SpaceView, {
+      global: {
+        stubs: {
+          SpacePassword: true,
+          SpaceTurnstile: true,
+          Skeleton: true,
+          EmptyState: true,
+          AppIcon: true,
+          AppImage: true,
+        },
+      },
+    });
+    mountedWrappers.push(wrapper);
+
+    await flushPromises();
+    await flushPromises();
+
+    expect(wrapper.vm.spaceComponentKey).toBe('document');
   });
 });

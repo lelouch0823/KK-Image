@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { WebhookRepository } from '../../../../repositories/WebhookRepository.js';
 import { DOMAIN_EVENT_CATALOG } from '../../../../services/DomainEventCatalog.js';
-import { generateHmacSignature, MSG } from '../../_shared/utils.js';
+import { generateHmacSignature, MSG } from '../../../../_shared/utils.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
@@ -197,7 +197,7 @@ app.post('/:id/test', requirePermission('webhooks:write'), async (c) => {
   const repo = new WebhookRepository(c.env.DB);
   const user = c.get('user') || {};
   const webhook = await requireEntity(
-    repo.getById(c.req.param('id')),
+    repo.getByIdWithSecret(c.req.param('id')),
     () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND)
   );
   const payload = buildTestPayload(webhook, user);

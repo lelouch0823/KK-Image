@@ -1,4 +1,4 @@
-import { verifyJWT, verifyApiKey, extractAdminAuthToken, MSG } from '../_shared/utils.js';
+import { verifyJWT, verifyApiKey, extractAdminAuthToken, MSG } from '../../../_shared/utils.js';
 import { evaluateUserPermission } from '../../authz/index.js';
 import { isLegacyJwtContext } from '../_shared/auth-context.js';
 import {

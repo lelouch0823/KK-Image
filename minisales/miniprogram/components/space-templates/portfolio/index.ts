@@ -1,6 +1,6 @@
 Component({
     properties: {
-        space: { type: Object, value: null },
+        space: { type: Object, value: undefined },
         currentIndex: { type: Number, value: 0 },
     },
     methods: {

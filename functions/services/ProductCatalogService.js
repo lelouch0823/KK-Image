@@ -3,22 +3,30 @@ import { ProductVariantRepository } from '../repositories/ProductVariantReposito
 import { ProductDimensionRepository } from '../repositories/ProductDimensionRepository.js';
 import { VariantImageRepository } from '../repositories/VariantImageRepository.js';
 import { VariantAuditRepository } from '../repositories/VariantAuditRepository.js';
-import { generateId } from '../api/utils/id.js';
 import { resolveVariantImageSyncPlan } from '../lib/hono/routes/manage/products/variant-image-sync.js';
 import { archiveVariantImagesByFolder } from '../lib/hono/routes/manage/products/variant-image-folders.js';
 import { scheduleProductCacheInvalidation } from '../lib/hono/routes/manage/products/cache-helpers.js';
 import { normalizeVariantDimensionKeys, normalizeVariantExternalCodes } from '../lib/hono/routes/manage/products/variant-normalizers.js';
 import { BadRequestError, ConflictError, NotFoundError } from '../lib/hono/errors.js';
 import { validateProductPayload } from '../lib/hono/routes/manage/products/product-schema.js';
-const IMPORT_MODE = {
-    REPLACE: 'replace',
-    SAFE_MERGE: 'safe_merge',
-};
-
-const PRODUCT_MUTABLE_FIELDS = new Set([
-    'name', 'spu', 'slug', 'category', 'brand', 'series',
-    'currency', 'description', 'images', 'specifications', 'options',
-]);
+import {
+    assertBatchItem,
+    assignGeneratedSkuForPatchVariants,
+    buildCatalogRollbackPayload,
+    buildProductRollbackPayload,
+    cloneVariantImages,
+    hasOwnMeta,
+    hasVariantOptionSelections,
+    IMPORT_MODE,
+    normalizeImportMode,
+    normalizeMeta,
+    PRODUCT_MUTABLE_FIELDS,
+} from "./product-catalog/batch-import.js";
+import {
+    buildSafeProductUpdateData,
+    buildSafeVariantSyncPayload,
+    mergeIncomingWithExisting,
+} from "./product-catalog/variant-matching.js";
 
 const isVariantSyncValidationError = (error) => {
     const message = String(error?.message || '');
@@ -28,308 +36,14 @@ const isVariantSyncValidationError = (error) => {
     );
 };
 
-const hasOwnMeta = (value) =>
-    value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, 'meta');
-
-const normalizeMeta = (meta) => {
-    if (meta === undefined || meta === null || meta === '') return null;
-    return typeof meta === 'string' ? meta : JSON.stringify(meta);
-};
-
-const hasVariantOptionSelections = (variants = []) =>
-    (variants || []).some((variant) =>
-        Object.entries(variant?.options_values || {}).some(
-            ([key, value]) =>
-                String(key || '').trim() &&
-                value !== undefined &&
-                value !== null &&
-                String(value).trim() !== ''
-            )
-    );
-
-const normalizeAlertThreshold = (value, fallback = 10) => {
-    const numeric = Number(value);
-    return Number.isFinite(numeric) ? numeric : fallback;
-};
-
-function buildCatalogRollbackPayload(variants = []) {
-    return (variants || []).map((variant) => ({
-        id: variant.id,
-        sku: variant.sku,
-        price: Number(variant.price) || 0,
-        cost_price: variant.cost_price !== undefined && variant.cost_price !== null
-            ? Number(variant.cost_price)
-            : null,
-        alert_threshold: normalizeAlertThreshold(variant.alert_threshold),
-        options_values: variant.options_values || {},
-        image_id: variant.image_id || null,
-        status: variant.status || 'active',
-        barcode: variant.barcode ?? null,
-        supplier_sku: variant.supplier_sku ?? null,
-    }));
-}
-
-function buildProductRollbackPayload(product = {}) {
-    const rollback = {};
-    for (const field of PRODUCT_MUTABLE_FIELDS) {
-        if (Object.prototype.hasOwnProperty.call(product, field)) {
-            rollback[field] = product[field];
-        }
-    }
-    return rollback;
-}
-
-const cloneVariantImages = (images = []) => (images || []).map((image) => ({ ...image }));
-
-function assignGeneratedSkuForPatchVariants(variants = [], variantRepo) {
-    return (variants || []).map((variant) => {
-        if (String(variant?.sku || '').trim() || String(variant?.id || '').trim()) {
-            return variant;
-        }
-
-        const fallbackSeed = variant._clientKey
-            || variant.variant_code
-            || JSON.stringify(variant.options_values || {})
-            || generateId();
-        const buildFallbackVariantSku = typeof variantRepo?.buildFallbackVariantSku === 'function'
-            ? variantRepo.buildFallbackVariantSku.bind(variantRepo)
-            : (value) => `SKU-${String(value || generateId()).replace(/[^a-zA-Z0-9]+/g, '').toUpperCase()}`;
-
-        return {
-            ...variant,
-            sku: buildFallbackVariantSku(fallbackSeed),
-        };
-    });
-}
-
-const appendLookup = (lookup, key, variant) => {
-    if (!key) return;
-    if (!lookup.has(key)) lookup.set(key, []);
-    lookup.get(key).push(variant);
-};
-
-const pickUnmatchedVariant = (lookup, key, matchedIds) => {
-    const list = lookup.get(key) || [];
-    for (const item of list) {
-        if (!matchedIds.has(item.id)) {
-            return item;
-        }
-    }
-    return null;
-};
-
-export const normalizeImportMode = (value) => {
-    const mode = String(value || '').trim().toLowerCase();
-    if (!mode) return IMPORT_MODE.SAFE_MERGE;
-    if (mode === IMPORT_MODE.SAFE_MERGE) return IMPORT_MODE.SAFE_MERGE;
-    if (mode === IMPORT_MODE.REPLACE) return IMPORT_MODE.REPLACE;
-    throw new BadRequestError('Invalid import mode');
-};
-
-export const assertBatchItem = (item) => {
-    const name = String(item?.name || '').trim();
-    if (!name) {
-        throw new Error('name is required');
-    }
-    item.name = name;
-
-    if (!Array.isArray(item?.variants) || item.variants.length === 0) {
-        throw new Error('at least one variant is required');
-    }
-
-    const seenSkus = new Set();
-    item.variants.forEach((variant, index) => {
-        const sku = String(variant?.sku || '').trim();
-        if (!sku) {
-            throw new Error(`variant #${index + 1} sku is required`);
-        }
-        if (seenSkus.has(sku)) {
-            throw new Error(`variant sku duplicated: ${sku}`);
-        }
-        seenSkus.add(sku);
-        variant.sku = sku;
-    });
-};
-
-const isEmptyValue = (value) => {
-    if (value === undefined || value === null) return true;
-    if (typeof value === 'string') return value.trim() === '';
-    if (Array.isArray(value)) return value.length === 0;
-    if (typeof value === 'object') return Object.keys(value).length === 0;
-    return false;
-};
-
-const normalizeObjectValue = (value) => {
-    if (!value || typeof value !== 'object') return value;
-    return Object.keys(value).sort().reduce((acc, key) => {
-        acc[key] = value[key];
-        return acc;
-    }, {});
-};
-
-const areValuesEqual = (a, b) => {
-    if (typeof a === 'object' || typeof b === 'object') {
-        return JSON.stringify(normalizeObjectValue(a)) === JSON.stringify(normalizeObjectValue(b));
-    }
-    return String(a ?? '') === String(b ?? '');
-};
-
-const safeMergeField = ({ target, incoming, field, context, conflicts, currentValue }) => {
-    if (!(field in incoming)) return;
-    const incomingValue = incoming[field];
-    if (isEmptyValue(incomingValue)) return;
-
-    const baseValue = currentValue !== undefined ? currentValue : target[field];
-    if (isEmptyValue(baseValue) || areValuesEqual(baseValue, incomingValue)) {
-        target[field] = incomingValue;
-        return;
-    }
-
-    conflicts.push({
-        ...context,
-        field,
-        current: currentValue,
-        incoming: incomingValue,
-    });
-};
-
-const buildSafeProductUpdateData = (existing, incoming, conflicts) => {
-    const next = {};
-    const fields = ['name', 'spu', 'category', 'brand', 'series', 'description', 'currency', 'slug', 'images', 'specifications', 'options'];
-    fields.forEach((field) => {
-        safeMergeField({
-            target: next,
-            incoming,
-            field,
-            currentValue: existing?.[field],
-            conflicts,
-            context: {
-                level: 'product',
-                spu: String(existing?.spu || incoming?.spu || '').trim() || null,
-            },
-        });
-    });
-    return next;
-};
-
-const buildSafeVariantSyncPayload = (existingVariants, variantsToSync, conflicts, item) => {
-    const existingById = new Map(existingVariants.map((variant) => [variant.id, variant]));
-    const mutableFields = ['sku', 'price', 'cost_price', 'stock_quantity', 'alert_threshold', 'options_values', 'image_id', 'status', 'barcode', 'supplier_sku'];
-
-    return variantsToSync.map((variant) => {
-        if (!variant?.id || !existingById.has(variant.id)) {
-            return variant;
-        }
-        const existing = existingById.get(variant.id);
-        const merged = { ...existing };
-
-        mutableFields.forEach((field) => {
-            safeMergeField({
-                target: merged,
-                incoming: variant,
-                field,
-                conflicts,
-                context: {
-                    level: 'variant',
-                    spu: String(item?.spu || '').trim() || null,
-                    sku: String(existing?.sku || variant?.sku || '').trim() || null,
-                },
-            });
-        });
-
-        return {
-            ...merged,
-            id: existing.id,
-        };
-    });
-};
-
-export const buildVariantMatchKey = (variant) => {
-    const variantCode = String(variant?.variant_code || '').trim();
-    if (variantCode) return `code:${variantCode}`;
-
-    const sku = String(variant?.sku || '').trim();
-    if (sku) return `sku:${sku}`;
-
-    const opts = variant?.options_values && typeof variant.options_values === 'object'
-        ? variant.options_values
-        : {};
-    const entries = Object.entries(opts)
-        .map(([k, v]) => [String(k || '').trim(), String(v || '').trim()])
-        .filter(([k, v]) => k && v)
-        .sort(([a], [b]) => a.localeCompare(b));
-    if (entries.length === 0) return null;
-
-    const sig = entries.map(([k, v]) => `${k}:${v}`).join('|');
-    return `sig:${sig}`;
-};
-
-export const mergeIncomingWithExisting = (existingVariants, incomingVariants, { includeUnmatchedExisting = true } = {}) => {
-    const existingByCode = new Map();
-    const existingBySku = new Map();
-    const existingBySignature = new Map();
-    const matchedExistingIds = new Set();
-    existingVariants.forEach((variant) => {
-        const code = String(variant?.variant_code || '').trim();
-        const sku = String(variant?.sku || '').trim();
-        const signature = (() => {
-            const opts = variant?.options_values && typeof variant.options_values === 'object'
-                ? variant.options_values
-                : {};
-            const entries = Object.entries(opts)
-                .map(([k, v]) => [String(k || '').trim(), String(v || '').trim()])
-                .filter(([k, v]) => k && v)
-                .sort(([a], [b]) => a.localeCompare(b));
-            if (entries.length === 0) return null;
-            return `sig:${entries.map(([k, v]) => `${k}:${v}`).join('|')}`;
-        })();
-
-        appendLookup(existingByCode, code ? `code:${code}` : null, variant);
-        appendLookup(existingBySku, sku ? `sku:${sku}` : null, variant);
-        appendLookup(existingBySignature, signature, variant);
-    });
-
-    const merged = [];
-
-    incomingVariants.forEach((incoming) => {
-        let existing = null;
-
-        const incomingCode = String(incoming?.variant_code || '').trim();
-        if (incomingCode) {
-            existing = pickUnmatchedVariant(existingByCode, `code:${incomingCode}`, matchedExistingIds);
-        }
-
-        const incomingSku = String(incoming?.sku || '').trim();
-        if (!existing && incomingSku) {
-            existing = pickUnmatchedVariant(existingBySku, `sku:${incomingSku}`, matchedExistingIds);
-        }
-
-        const incomingKey = buildVariantMatchKey(incoming);
-        if (!existing && incomingKey?.startsWith('sig:')) {
-            existing = pickUnmatchedVariant(existingBySignature, incomingKey, matchedExistingIds);
-        }
-
-        if (existing) {
-            matchedExistingIds.add(existing.id);
-            merged.push({
-                ...incoming,
-                id: existing.id,
-            });
-        } else {
-            merged.push(incoming);
-        }
-    });
-
-    if (includeUnmatchedExisting) {
-        existingVariants.forEach((variant) => {
-            if (!matchedExistingIds.has(variant.id)) {
-                merged.push(variant);
-            }
-        });
-    }
-
-    return merged;
-};
+export {
+    assertBatchItem,
+    normalizeImportMode,
+} from "./product-catalog/batch-import.js";
+export {
+    buildVariantMatchKey,
+    mergeIncomingWithExisting,
+} from "./product-catalog/variant-matching.js";
 
 export class ProductCatalogService {
     constructor(db) {

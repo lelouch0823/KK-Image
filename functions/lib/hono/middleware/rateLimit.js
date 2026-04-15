@@ -1,14 +1,26 @@
+function getRateLimitKv(env = {}) {
+  return env.RATE_LIMIT_KV || env.KV || null;
+}
+
+function rateLimitUnavailableResponse(c) {
+  return c.json(
+    {
+      success: false,
+      error: 'Rate limit service unavailable.',
+    },
+    503
+  );
+}
+
 /**
  * 滑动窗口限流中间件
  * 使用 KV 存储请求计数
  */
 export async function rateLimitMiddleware(c, next) {
-  // 如果没有 KV 绑定，跳过限流
-  if (!c.env.KV && !c.env.RATE_LIMIT_KV) {
-    return next();
+  const kv = getRateLimitKv(c.env);
+  if (!kv) {
+    return rateLimitUnavailableResponse(c);
   }
-
-  const kv = c.env.RATE_LIMIT_KV || c.env.KV;
   const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
   const windowMs = 60000; // 1 分钟窗口
   const maxRequests = 100; // 每窗口最大请求数
@@ -47,9 +59,8 @@ export async function rateLimitMiddleware(c, next) {
 
     return next();
   } catch (err) {
-    // 限流失败不应阻止请求
     console.error('[RateLimit] Error:', err.message);
-    return next();
+    return rateLimitUnavailableResponse(c);
   }
 }
 
@@ -61,8 +72,8 @@ export function rateLimit(options = {}) {
   const { window = 60000, max = 100, keyPrefix = 'ratelimit' } = options;
 
   return async (c, next) => {
-    const kv = c.env.RATE_LIMIT_KV || c.env.KV;
-    if (!kv) return next();
+    const kv = getRateLimitKv(c.env);
+    if (!kv) return rateLimitUnavailableResponse(c);
 
     const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
     const windowKey = Math.floor(Date.now() / window);
@@ -74,11 +85,16 @@ export function rateLimit(options = {}) {
       return c.json({ success: false, error: 'Rate limit exceeded' }, 429);
     }
 
-    c.executionCtx.waitUntil(
-      kv.put(key, String(current + 1), { expirationTtl: Math.ceil(window / 1000) * 2 })
-    );
+    try {
+      c.executionCtx.waitUntil(
+        kv.put(key, String(current + 1), { expirationTtl: Math.ceil(window / 1000) * 2 })
+      );
 
-    return next();
+      return next();
+    } catch (err) {
+      console.error('[RateLimit] Error:', err.message);
+      return rateLimitUnavailableResponse(c);
+    }
   };
 }
 
@@ -104,7 +120,7 @@ export const LOGIN_LOCKOUT_CONFIG = {
  * @returns {Promise<{locked: boolean, remaining: number, retryAfter: number}>}
  */
 export async function checkLoginLockout(kv, ip, username) {
-  if (!kv) return { locked: false, remaining: LOGIN_LOCKOUT_CONFIG.maxAttempts, retryAfter: 0 };
+  if (!kv) return { locked: false, unavailable: true, remaining: 0, retryAfter: 0 };
 
   const key = `login_lockout:${ip}:${username || 'unknown'}`;
 
@@ -133,7 +149,7 @@ export async function checkLoginLockout(kv, ip, username) {
     return { locked: false, remaining, retryAfter: 0 };
   } catch (err) {
     console.error('[LoginLockout] Check error:', err.message);
-    return { locked: false, remaining: LOGIN_LOCKOUT_CONFIG.maxAttempts, retryAfter: 0 };
+    return { locked: false, unavailable: true, remaining: 0, retryAfter: 0 };
   }
 }
 
@@ -146,7 +162,7 @@ export async function checkLoginLockout(kv, ip, username) {
  * @returns {Promise<{locked: boolean, remaining: number, retryAfter: number}>}
  */
 export async function recordLoginFailure(kv, ip, username, executionCtx) {
-  if (!kv) return { locked: false, remaining: LOGIN_LOCKOUT_CONFIG.maxAttempts - 1, retryAfter: 0 };
+  if (!kv) return { locked: false, unavailable: true, remaining: 0, retryAfter: 0 };
 
   const key = `login_lockout:${ip}:${username || 'unknown'}`;
 
@@ -199,7 +215,7 @@ export async function recordLoginFailure(kv, ip, username, executionCtx) {
     };
   } catch (err) {
     console.error('[LoginLockout] Record error:', err.message);
-    return { locked: false, remaining: LOGIN_LOCKOUT_CONFIG.maxAttempts - 1, retryAfter: 0 };
+    return { locked: false, unavailable: true, remaining: 0, retryAfter: 0 };
   }
 }
 

@@ -24,7 +24,7 @@ type ProductVariant = {
 Component({
   properties: {
     salesToken: { type: String, value: '' },
-    value: { type: Object, value: null },
+    value: { type: Object, value: undefined },
   },
   data: {
     pickerVisible: false,

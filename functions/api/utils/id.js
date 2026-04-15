@@ -66,22 +66,136 @@ export function timestampToIso(timestamp) {
 
 // ==================== 密码哈希 ====================
 
+const PASSWORD_HASH_VERSION = 'pbkdf2$sha256';
+const PASSWORD_ITERATIONS = 210000;
+const PASSWORD_SALT_BYTES = 16;
+
+function bytesToBase64Url(bytes) {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function base64UrlToBytes(value) {
+  const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+  const padding = normalized.length % 4;
+  const padded = padding ? normalized + '='.repeat(4 - padding) : normalized;
+  return Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
+}
+
+function constantTimeEqualBytes(left, right) {
+  const a = left instanceof Uint8Array ? left : new Uint8Array(left);
+  const b = right instanceof Uint8Array ? right : new Uint8Array(right);
+  if (a.length !== b.length) {
+    let _mismatch = a.length ^ b.length;
+    const max = Math.max(a.length, b.length);
+    for (let i = 0; i < max; i += 1) {
+      _mismatch |= (a[i] || 0) ^ (b[i] || 0);
+    }
+    return false;
+  }
+  if (crypto.subtle.timingSafeEqual) {
+    return crypto.subtle.timingSafeEqual(a, b);
+  }
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    mismatch |= a[i] ^ b[i];
+  }
+  return mismatch === 0;
+}
+
+async function derivePasswordBytes(password, pepper, saltBytes, iterations = PASSWORD_ITERATIONS) {
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(`${password}\u0000${pepper}`),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+  const derived = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      hash: 'SHA-256',
+      salt: saltBytes,
+      iterations,
+    },
+    keyMaterial,
+    256
+  );
+  return new Uint8Array(derived);
+}
+
+function parsePasswordHashRecord(encodedHash) {
+  const normalized = String(encodedHash || '').trim();
+  if (!normalized.startsWith(`${PASSWORD_HASH_VERSION}$`)) {
+    return null;
+  }
+  const parts = normalized.split('$');
+  if (parts.length !== 5) {
+    return null;
+  }
+  const iterations = Number.parseInt(parts[2], 10);
+  if (!Number.isFinite(iterations) || iterations <= 0) {
+    return null;
+  }
+  return {
+    iterations,
+    salt: parts[3],
+    hash: parts[4],
+  };
+}
+
+export function passwordHashNeedsMigration(encodedHash) {
+  return !parsePasswordHashRecord(encodedHash);
+}
+
 /**
  * 生成密码哈希
  * @param {string} password - 原始密码
- * @param {string} salt - 盐值（必需，建议使用 JWT_SECRET）
+ * @param {string} pepper - 应用级 pepper（必需，建议使用 JWT_SECRET）
  * @returns {Promise<string>}
  */
-export async function hashPassword(password, salt) {
-  if (!salt) {
+export async function hashPassword(password, pepper) {
+  if (!pepper) {
     throw new Error('Salt is required for password hashing');
   }
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password + salt);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+  const saltBytes = crypto.getRandomValues(new Uint8Array(PASSWORD_SALT_BYTES));
+  const derived = await derivePasswordBytes(password, pepper, saltBytes, PASSWORD_ITERATIONS);
+  return [
+    PASSWORD_HASH_VERSION,
+    String(PASSWORD_ITERATIONS),
+    bytesToBase64Url(saltBytes),
+    bytesToBase64Url(derived),
+  ].join('$');
+}
+
+/**
+ * 校验密码哈希
+ * @param {string} password
+ * @param {string} encodedHash
+ * @param {string} pepper
+ * @returns {Promise<boolean>}
+ */
+export async function verifyPassword(password, encodedHash, pepper) {
+  if (!pepper || !encodedHash) return false;
+
+  const parsed = parsePasswordHashRecord(encodedHash);
+  if (!parsed) {
+    const legacyHash = await sha256Hex(`${password}${pepper}`);
+    const left = new TextEncoder().encode(legacyHash);
+    const right = new TextEncoder().encode(String(encodedHash));
+    return constantTimeEqualBytes(left, right);
+  }
+
+  const derived = await derivePasswordBytes(
+    password,
+    pepper,
+    base64UrlToBytes(parsed.salt),
+    parsed.iterations
+  );
+  return constantTimeEqualBytes(derived, base64UrlToBytes(parsed.hash));
 }
 
 // ==================== HMAC 签名 ====================

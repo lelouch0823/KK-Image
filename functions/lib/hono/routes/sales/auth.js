@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { SalesLoginSchema, WechatLoginSchema } from '../../schemas/sales.js';
-import { MSG, hashPassword } from '../../_shared/utils.js';
+import { MSG, hashPassword, verifyPassword, passwordHashNeedsMigration } from '../../../../_shared/utils.js';
 import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
 import { loginRateLimitMiddleware } from '../../middleware/rateLimit.js';
 import { NotFoundError, ForbiddenError } from '../../errors.js';
@@ -47,10 +47,17 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', SalesLoginSchema
         return handleLoginFailure(c, username);
     }
 
-    const passwordHash = await hashPassword(password, env.JWT_SECRET);
+    const passwordMatches = await verifyPassword(password, salesperson.password_hash, env.JWT_SECRET);
 
-    if (salesperson.password_hash !== passwordHash) {
+    if (!passwordMatches) {
         return handleLoginFailure(c, username);
+    }
+
+    if (passwordHashNeedsMigration(salesperson.password_hash)) {
+        const upgradedHash = await hashPassword(password, env.JWT_SECRET);
+        await env.DB.prepare('UPDATE salespersons SET password_hash = ?, updated_at = ? WHERE id = ?')
+          .bind(upgradedHash, Date.now(), salesperson.id)
+          .run();
     }
 
     // 登录成功，清除失败记录
@@ -167,10 +174,17 @@ app.post('/:token/auth', loginRateLimitMiddleware, async (c) => {
     );
     if (!salesperson.is_active) throw new ForbiddenError(MSG.SALESPERSON.DISABLED);
 
-    const inputHash = await hashPassword(password, env.JWT_SECRET);
+    const passwordMatches = await verifyPassword(password, salesperson.password_hash, env.JWT_SECRET);
 
-    if (inputHash !== salesperson.password_hash) {
+    if (!passwordMatches) {
         return handleLoginFailure(c, accessToken, MSG.SALESPERSON.INVALID_PASSWORD);
+    }
+
+    if (passwordHashNeedsMigration(salesperson.password_hash)) {
+        const upgradedHash = await hashPassword(password, env.JWT_SECRET);
+        await env.DB.prepare('UPDATE salespersons SET password_hash = ?, updated_at = ? WHERE id = ?')
+          .bind(upgradedHash, Date.now(), salesperson.id)
+          .run();
     }
 
     // 登录成功，清除失败记录

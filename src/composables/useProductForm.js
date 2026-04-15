@@ -3,226 +3,25 @@ import { ref, reactive, computed, watch } from 'vue';
 import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
+import { parseJsonArray, parseJsonObject } from '@/utils/json.js';
+import {
+  buildVariantSyncSummaryMessage,
+  detectIncompleteVariant,
+  formatSubmittedCurrency,
+  isExistingVariantInEditMode,
+  normalizeCurrencyCode,
+} from '@/composables/product-form/helpers.js';
+import {
+  buildDimensionNameLookup,
+  buildOptionsFromDimensions,
+  cloneDimensions,
+  normalizeVariantOptionKeysToNames,
+} from '@/composables/product-form/dimensions.js';
 
-// 货币配置常量
-export const CURRENCY_OPTIONS = [
-  { code: 'CNY', symbol: '¥', label: '人民币' },
-  { code: 'USD', symbol: '$', label: 'US Dollar' },
-  { code: 'EUR', symbol: '€', label: 'Euro' },
-  { code: 'GBP', symbol: '£', label: 'British Pound' },
-  { code: 'JPY', symbol: '¥', label: '日本円' },
-];
-export const CURRENCY_SYMBOLS = Object.fromEntries(CURRENCY_OPTIONS.map((c) => [c.code, c.symbol]));
-const CURRENCY_CODE_SET = new Set(CURRENCY_OPTIONS.map((c) => c.code));
-
-/**
- * 规范化货币代码，若无效则默认 CNY
- */
-function normalizeCurrencyCode(value) {
-  const code = String(value || '').trim().toUpperCase();
-  return CURRENCY_CODE_SET.has(code) ? code : 'CNY';
-}
-
-function formatSubmittedCurrency(value) {
-  const code = String(value || '').trim().toUpperCase();
-  return code || 'CNY';
-}
-
-function isExistingVariantInEditMode(editModeRef, variant) {
-  return Boolean(editModeRef?.value && variant?.id);
-}
-
-function normalizeOptionKeys(optionsValues) {
-  return Object.keys(optionsValues || {})
-    .map((key) => String(key || '').trim())
-    .filter(Boolean)
-    .sort();
-}
-
-export function detectIncompleteVariant(activeDimensionNames = [], variant = {}, isEditMode = false) {
-  if (!isEditMode || !variant?.id) return false;
-  const activeKeys = [...new Set((activeDimensionNames || []).map((name) => String(name || '').trim()).filter(Boolean))].sort();
-  const variantKeys = normalizeOptionKeys(variant.options_values);
-  if (activeKeys.length === 0) return false;
-  if (variantKeys.length !== activeKeys.length) return true;
-  return activeKeys.some((key, index) => key !== variantKeys[index]);
-}
-
-/**
- * 安全解析 JSON 字符串
- */
-function parseJson(str) {
-  try {
-    return typeof str === 'string' ? JSON.parse(str) : str || null;
-  } catch {
-    return null;
-  }
-}
-
-function translateWithFallback(translate, key, params, fallback) {
-  const resolved = typeof translate === 'function' ? translate(key, params) : '';
-  if (!resolved || resolved === key) return fallback;
-  return resolved;
-}
-
-export function buildVariantSyncSummaryMessage(sync = {}, translate) {
-  const created = Math.max(0, Number(sync.created ?? 0));
-  const updated = Math.max(0, Number(sync.updated ?? 0));
-  const archived = Math.max(0, Number(sync.archived ?? 0));
-  const reactivated = Math.max(0, Number(sync.reactivated ?? 0));
-
-  const parts = [];
-  if (created > 0) {
-    parts.push(
-      translateWithFallback(
-        translate,
-        'product.form.variant_sync_created',
-        { count: created },
-        `Created ${created} variants`
-      )
-    );
-  }
-  if (updated > 0) {
-    parts.push(
-      translateWithFallback(
-        translate,
-        'product.form.variant_sync_updated',
-        { count: updated },
-        `Updated ${updated} variants`
-      )
-    );
-  }
-  if (archived > 0) {
-    parts.push(
-      translateWithFallback(
-        translate,
-        'product.form.variant_sync_archived',
-        { count: archived },
-        `Archived ${archived} variants`
-      )
-    );
-  }
-  if (reactivated > 0) {
-    parts.push(
-      translateWithFallback(
-        translate,
-        'product.form.variant_sync_reactivated',
-        { count: reactivated },
-        `Reactivated ${reactivated} variants`
-      )
-    );
-  }
-
-  if (parts.length === 0) {
-    return translateWithFallback(
-      translate,
-      'product.form.variant_sync_no_changes',
-      {},
-      'Variants synced with no quantity changes'
-    );
-  }
-
-  return translateWithFallback(
-    translate,
-    'product.form.variant_sync_summary_readable',
-    { details: parts.join('，') },
-    `Variants synced: ${parts.join(', ')}`
-  );
-}
-
-/**
- * 将原始 option 数据转换为表单模型
- */
-function toOptionModel(raw = {}) {
-  const values = [];
-  const metaMap = {};
-
-  if (Array.isArray(raw.values)) {
-    raw.values.forEach(entry => {
-       const val = typeof entry === 'string' ? entry : entry?.value;
-       const cleanVal = String(val || '').trim();
-       if (cleanVal && entry?.status !== 'archived') {
-          values.push(cleanVal);
-          if (entry?.meta) {
-              const metaObj = typeof entry.meta === 'string' ? parseJson(entry.meta) : entry.meta;
-              if (metaObj) metaMap[cleanVal] = metaObj;
-          }
-       }
-    });
-  }
-
-  return {
-    id: raw.id || null,
-    name: String(raw.name || '').trim(),
-    values: [...new Set(values)],
-    metaMap,
-    inputValue: '',
-    archivedValues: Array.isArray(raw.values)
-      ? raw.values.filter(
-          (entry) => entry && typeof entry === 'object' && entry.status === 'archived'
-        )
-      : [],
-  };
-}
-
-/**
- * 从产品数据构建选项数组
- */
-function buildOptionsFromDimensions(data) {
-  if (Array.isArray(data?.dimensions) && data.dimensions.length > 0) {
-    return data.dimensions
-      .filter((dimension) => dimension?.status !== 'archived')
-      .map((dimension) =>
-        toOptionModel({
-          id: dimension.id,
-          name: dimension.name,
-          values: dimension.values || [],
-        })
-      )
-      .filter((dimension) => dimension.name);
-  }
-  return (parseJson(data?.options) || []).map((option) => toOptionModel(option));
-}
-
-function cloneDimensions(dimensions = []) {
-  return (dimensions || []).map((dimension) => ({
-    ...dimension,
-    values: Array.isArray(dimension?.values)
-      ? dimension.values.map((value) => ({ ...value }))
-      : [],
-  }));
-}
-
-function buildDimensionNameLookup(data) {
-  const fromMap = Object.entries(data?.dimension_map || {}).reduce((acc, [id, name]) => {
-    const cleanId = String(id || '').trim();
-    const cleanName = String(name || '').trim();
-    if (cleanId && cleanName) acc[cleanId] = cleanName;
-    return acc;
-  }, {});
-
-  return (data?.dimensions || []).reduce((acc, dimension) => {
-    const cleanId = String(dimension?.id || '').trim();
-    const cleanName = String(dimension?.name || '').trim();
-    if (cleanId && cleanName) acc[cleanId] = cleanName;
-    return acc;
-  }, fromMap);
-}
-
-function normalizeVariantOptionKeysToNames(variant, dimensionNameLookup = {}) {
-  const normalizedOptions = Object.entries(variant?.options_values || {}).reduce((acc, [key, value]) => {
-    const cleanKey = String(key || '').trim();
-    const nextKey = dimensionNameLookup[cleanKey] || cleanKey;
-    if (!nextKey) return acc;
-    acc[nextKey] = value;
-    return acc;
-  }, {});
-
-  return {
-    ...variant,
-    options_values: normalizedOptions,
-  };
-}
+export {
+  buildVariantSyncSummaryMessage,
+  detectIncompleteVariant,
+} from '@/composables/product-form/helpers.js';
 
 /**
  * useProductForm — 商品创建/编辑表单的 composable
@@ -409,7 +208,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
 
   // ——— 表单初始化 ———
   function fillFormFromData(data) {
-    const imgs = parseJson(data.images) || [];
+    const imgs = parseJsonArray(data.images, []);
     const nextOptions = buildOptionsFromDimensions(data);
     const nextDimensionNames = nextOptions
       .map((option) => String(option?.name || '').trim())
@@ -854,7 +653,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
   // ——— 变体辅助 ———
   const formatVariantSample = (sample) => {
     const raw = sample?.options_values || {};
-    const optionsValues = typeof raw === 'string' ? parseJson(raw) || {} : raw;
+    const optionsValues = typeof raw === 'string' ? parseJsonObject(raw, {}) : raw;
     const parts = Object.values(optionsValues || {})
       .map((value) => String(value || '').trim())
       .filter(Boolean);
@@ -1069,8 +868,6 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     showVariantBatchBuilder,
     dimensionArchiveWizard,
     valueArchiveWizard,
-    CURRENCY_OPTIONS,
-    CURRENCY_SYMBOLS,
     // 方法
     resetForm,
     fillFormFromData,

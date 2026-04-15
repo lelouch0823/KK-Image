@@ -357,4 +357,44 @@ describe('order queries display model compatibility', () => {
     expect(listStmt.bind).toHaveBeenCalledWith('%Snapshot Chair%', '%Snapshot Chair%', '%Snapshot Chair%', 20, 0);
   });
 
+  it('matches both canonical fulfilled and legacy delivered rows when filtering admin lists by fulfilled', async () => {
+    const countStmt = {
+      bind: vi.fn(() => countStmt),
+      first: vi.fn(async () => ({ total: 0 })),
+    };
+    const listStmt = {
+      bind: vi.fn(() => listStmt),
+      all: vi.fn(async () => ({ results: [] })),
+    };
+    const db = {
+      prepare: vi.fn().mockReturnValueOnce(countStmt).mockReturnValueOnce(listStmt),
+    };
+
+    await listForAdmin(db, { status: 'fulfilled', page: 1, limit: 20 });
+
+    expect(db.prepare.mock.calls[0][0]).toContain('o.status IN (?, ?)');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.status IN (?, ?)');
+    expect(listStmt.bind).toHaveBeenCalledWith('fulfilled', 'delivered', 20, 0);
+  });
+
+  it('matches both canonical fulfilled and legacy delivered rows when filtering salesperson lists by delivered alias', async () => {
+    const countStmt = {
+      bind: vi.fn(() => countStmt),
+      first: vi.fn(async () => ({ total: 0 })),
+    };
+    const listStmt = {
+      bind: vi.fn(() => listStmt),
+      all: vi.fn(async () => ({ results: [] })),
+    };
+    const db = {
+      prepare: vi.fn().mockReturnValueOnce(countStmt).mockReturnValueOnce(listStmt),
+    };
+
+    await listBySalesperson(db, 'sp-1', { status: 'delivered', page: 1, limit: 20 });
+
+    expect(db.prepare.mock.calls[0][0]).toContain('status IN (?, ?)');
+    expect(db.prepare.mock.calls[1][0]).toContain('status IN (?, ?)');
+    expect(listStmt.bind).toHaveBeenCalledWith('sp-1', 'fulfilled', 'delivered', 20, 0);
+  });
+
 });

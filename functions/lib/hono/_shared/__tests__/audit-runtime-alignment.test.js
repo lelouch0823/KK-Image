@@ -469,8 +469,8 @@ describe('audit runtime alignment', () => {
       ensureOrderFolder: vi.fn(async () => 'folder-order-1'),
       moveFilesToFolder: vi.fn(async () => undefined),
     }));
-    vi.doMock('../../_shared/utils.js', async () => {
-      const actual = await vi.importActual('../../_shared/utils.js');
+    vi.doMock('../../../../_shared/utils.js', async () => {
+      const actual = await vi.importActual('../../../../_shared/utils.js');
       return {
         ...actual,
         generateId: vi.fn(() => 'order-1'),

@@ -57,6 +57,13 @@ function withData<T, U>(result: SalesRequestResult<T>, data: U | null): SalesReq
     };
 }
 
+function withoutData<T, U>(result: SalesRequestResult<T>): SalesRequestResult<U> {
+    return {
+        ...result,
+        data: null,
+    };
+}
+
 function buildOrdersPath({ accessToken, page = 1, limit = 20, search = '' }: LoadSalesOrdersInput): string {
     const query = buildQueryString({ page, limit, search });
     return query ? `${SALES_API.orders(accessToken)}?${query}` : SALES_API.orders(accessToken);
@@ -97,7 +104,7 @@ export async function loadSalesOrders(
     });
 
     if (!result.success || !result.data) {
-        return withData(result, null);
+        return withoutData(result);
     }
 
     return withData(result, normalizeSalesOrdersPage(result.data));
@@ -113,7 +120,7 @@ export async function getSalesOrderDetail(
     });
 
     if (!result.success || !result.data) {
-        return withData(result, null);
+        return withoutData(result);
     }
 
     return withData(result, normalizeSalesOrderDetail(result.data));

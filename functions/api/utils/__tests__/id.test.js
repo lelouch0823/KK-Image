@@ -8,9 +8,11 @@ import {
   timestampToIso,
   hashPassword,
    isValidUrl,
-   generateOrderNo,
-   generateHmacSignature,
-   sha256Hex
+  generateOrderNo,
+  generateHmacSignature,
+  sha256Hex,
+  verifyPassword,
+  passwordHashNeedsMigration,
  } from '../id';
 
 describe('Backend ID and Utils', () => {
@@ -61,14 +63,24 @@ describe('Backend ID and Utils', () => {
   });
 
   describe('Security Utils', () => {
-    it('hashPassword should hash password with salt', async () => {
+    it('hashPassword should generate a non-legacy hash record that verifies successfully', async () => {
       const password = 'mypassword';
-      const salt = 'mysalt';
-      const hash1 = await hashPassword(password, salt);
-      const hash2 = await hashPassword(password, salt);
+      const pepper = 'mysalt';
+      const hash = await hashPassword(password, pepper);
       
-      expect(hash1).toBe(hash2);
-      expect(hash1.length).toBe(64); // SHA-256 hex is 64 chars
+      expect(hash.startsWith('pbkdf2$sha256$')).toBe(true);
+      await expect(verifyPassword(password, hash, pepper)).resolves.toBe(true);
+      await expect(verifyPassword('wrong', hash, pepper)).resolves.toBe(false);
+      expect(passwordHashNeedsMigration(hash)).toBe(false);
+    });
+
+    it('verifyPassword should accept legacy sha256 hashes for migration', async () => {
+      const password = 'mypassword';
+      const pepper = 'legacy-pepper';
+      const legacyHash = await sha256Hex(`${password}${pepper}`);
+
+      await expect(verifyPassword(password, legacyHash, pepper)).resolves.toBe(true);
+      expect(passwordHashNeedsMigration(legacyHash)).toBe(true);
     });
 
     it('hashPassword should throw error if salt is missing', async () => {

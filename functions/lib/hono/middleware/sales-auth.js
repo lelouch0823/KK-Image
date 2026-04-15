@@ -1,4 +1,4 @@
-import { MSG } from '../_shared/utils.js';
+import { MSG } from '../../../_shared/utils.js';
 import { authenticateSalesperson } from '../../../api/utils/salesperson-auth.js';
 
 const resolveAuthStatus = (message) => {

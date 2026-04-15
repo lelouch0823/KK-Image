@@ -8,7 +8,7 @@ import {
   MSG,
   getShareUrl,
   getFileUrl,
-} from '../../_shared/utils.js';
+} from '../../../../_shared/utils.js';
 import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
 import { AlbumRepository } from '../../../../repositories/AlbumRepository.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';

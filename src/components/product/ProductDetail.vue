@@ -261,6 +261,7 @@ import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
 import { useClipboard } from '@/composables/useClipboard';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import { parseJsonObject } from '@/utils/json.js';
 import { resolveProductImageSrcList, resolveVariantPrimaryImageSrc } from '@/utils/product-image.js';
 import { isCatalogActiveVariant } from '@/utils/product-variants.js';
 
@@ -327,14 +328,8 @@ const currencyFormatter = computed(() => {
 const formatMoney = (value) => currencyFormatter.value.format(Number(value) || 0);
 
 const specs = computed(() => {
-    try {
-        if (!props.product.specifications) return {};
-        return typeof props.product.specifications === 'string'
-            ? JSON.parse(props.product.specifications)
-            : props.product.specifications;
-    } catch {
-        return {};
-    }
+    if (!props.product.specifications) return {};
+    return parseJsonObject(props.product.specifications, {});
 });
 
 const resolveVariantStock = (variant) =>
@@ -380,13 +375,9 @@ const stockBgClass = computed(() => {
 });
 
 const formatVariantName = (optionsValues) => {
-    try {
-        const parsed = typeof optionsValues === 'string' ? JSON.parse(optionsValues) : optionsValues;
-        if (!parsed || Object.keys(parsed).length === 0) return 'Default';
-        return Object.values(parsed).join(' / ');
-    } catch {
-        return 'Default';
-    }
+    const parsed = parseJsonObject(optionsValues, {});
+    if (Object.keys(parsed).length === 0) return 'Default';
+    return Object.values(parsed).join(' / ');
 };
 
 // Associated Spaces Logic
@@ -419,8 +410,9 @@ const loadAssociatedSpaces = async (productId) => {
         associatedSpaces.value = [];
         spacesError.value = e?.message || t('common.loadFailed');
     } finally {
-        if (requestId !== associatedSpacesRequestId) return;
-        loadingSpaces.value = false;
+        if (requestId === associatedSpacesRequestId) {
+            loadingSpaces.value = false;
+        }
     }
 };
 

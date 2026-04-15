@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MSG } from '../_shared/utils.js';
+import { MSG } from '../../../_shared/utils.js';
 
 /**
  * 用户登录 Schema

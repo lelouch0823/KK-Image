@@ -1,3 +1,5 @@
+import { parseJsonArray, parseJsonObject } from '@/utils/json.js';
+
 function asRecord(value) {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return value;
@@ -17,44 +19,6 @@ function pickFirstString(values, fallback = '') {
 function toFiniteNumber(value, fallback = 0) {
   const next = Number(value);
   return Number.isFinite(next) ? next : fallback;
-}
-
-function safeParseObject(value, fallback = {}) {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string' && value.trim()) {
-    try {
-      const parsed = JSON.parse(value);
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        return parsed;
-      }
-    } catch (_error) {
-      return fallback;
-    }
-  }
-
-  return fallback;
-}
-
-function safeParseArray(value, fallback = []) {
-  if (Array.isArray(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string' && value.trim()) {
-    try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) {
-        return parsed;
-      }
-    } catch (_error) {
-      return fallback;
-    }
-  }
-
-  return fallback;
 }
 
 function resolveFilePath(path, storageKey) {
@@ -110,14 +74,14 @@ function normalizeSpaceFile(raw, fallbackId) {
 }
 
 function resolveTemplateImageCover(templateData, productImages) {
-  const templateImages = safeParseArray(templateData?.images, [])
+  const templateImages = parseJsonArray(templateData?.images, [])
     .map((image, index) => normalizeSpaceFile(image, `template-cover-${index}`))
     .filter((file) => file.url);
   if (templateImages[0]?.url) {
     return templateImages[0].url;
   }
 
-  const productImageFiles = safeParseArray(productImages, [])
+  const productImageFiles = parseJsonArray(productImages, [])
     .map((image, index) => normalizeSpaceFile(image, `product-cover-${index}`))
     .filter((file) => file.url);
 
@@ -126,11 +90,11 @@ function resolveTemplateImageCover(templateData, productImages) {
 
 export function normalizeSalesSpace(raw) {
   const record = asRecord(raw);
-  const templateData = safeParseObject(record.template_data ?? record.templateData, {});
-  const rawFiles = safeParseArray(record.files, []).map((file, index) =>
+  const templateData = parseJsonObject(record.template_data ?? record.templateData, {});
+  const rawFiles = parseJsonArray(record.files, []).map((file, index) =>
     normalizeSpaceFile(file, `space-file-${index}`)
   );
-  const templateImages = safeParseArray(templateData.images, [])
+  const templateImages = parseJsonArray(templateData.images, [])
     .map((image, index) => normalizeSpaceFile(image, `template-image-${index}`))
     .filter((file) => file.url);
   const files = [
@@ -141,13 +105,13 @@ export function normalizeSalesSpace(raw) {
     record.coverUrl ?? record.cover_url,
     record.cover_storage_key ?? record.coverStorageKey
   );
-  const productImageCandidates = safeParseArray(record.p_images ?? record.productImages, [])
+  const productImageCandidates = parseJsonArray(record.p_images ?? record.productImages, [])
     .map((image, index) => normalizeSpaceFile(image, `product-image-${index}`))
     .filter((file) => file.url);
-  const subspaces = safeParseArray(record.subspaces, []).map((item) => {
+  const subspaces = parseJsonArray(record.subspaces, []).map((item) => {
     const subspace = asRecord(item);
-    const subspaceTemplateData = safeParseObject(subspace.template_data ?? subspace.templateData, {});
-    const subspaceTemplateImages = safeParseArray(subspaceTemplateData.images, [])
+    const subspaceTemplateData = parseJsonObject(subspace.template_data ?? subspace.templateData, {});
+    const subspaceTemplateImages = parseJsonArray(subspaceTemplateData.images, [])
       .map((image, index) => normalizeSpaceFile(image, `subspace-template-image-${index}`))
       .filter((file) => file.url);
     const subspaceCoverUrl = resolveFilePath(

@@ -1,4 +1,4 @@
-import { MSG } from '../../../_shared/utils.js';
+import { MSG } from '../../../../../_shared/utils.js';
 import { BadRequestError, ForbiddenError } from '../../../errors.js';
 import { checkPermission } from '../../../middleware/auth.js';
 

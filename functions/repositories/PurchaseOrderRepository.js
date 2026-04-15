@@ -1,142 +1,19 @@
 import { parseRepoPagination } from '../api/utils/pagination.js';
-import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
+import { parseJsonObject } from '../api/utils/json.js';
 import { buildSetClause } from '../api/utils/sql.js';
 import { hasChanges } from '../api/utils/result.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { ProductDimensionRepository } from './ProductDimensionRepository.js';
-import { buildOrderBindingSnapshot } from '../api/utils/order-binding-snapshot.js';
 import {
-  getPurchaseOrderCancelledQty,
-  getPurchaseOrderOrderedQty,
-  getPurchaseOrderOutstandingQty,
-  getPurchaseOrderReceivedQty,
-  projectPurchaseOrderDisplayStatus,
-} from '../services/purchase-order-projection.js';
-
-function toNumber(value) {
-  return Number(value || 0);
-}
-
-function normalizePurchaseOrderProgress(row = {}) {
-  return {
-    ...row,
-    item_count: toNumber(row.item_count),
-    ordered_qty: getPurchaseOrderOrderedQty(row),
-    received_qty: getPurchaseOrderReceivedQty(row),
-    cancelled_qty: getPurchaseOrderCancelledQty(row),
-    outstanding_qty: getPurchaseOrderOutstandingQty(row),
-    total_goods_cost: toNumber(row.total_goods_cost),
-    receipt_count: toNumber(row.receipt_count),
-    display_status: row.display_status || projectPurchaseOrderDisplayStatus(row),
-  };
-}
-
-function summarizePurchaseOrderItems(items = []) {
-  return normalizePurchaseOrderProgress(items.reduce((acc, item) => ({
-    item_count: acc.item_count + 1,
-    ordered_qty: acc.ordered_qty + getPurchaseOrderOrderedQty(item),
-    received_qty: acc.received_qty + getPurchaseOrderReceivedQty(item),
-    cancelled_qty: acc.cancelled_qty + getPurchaseOrderCancelledQty(item),
-    outstanding_qty: acc.outstanding_qty + getPurchaseOrderOutstandingQty(item),
-    total_goods_cost: acc.total_goods_cost + (toNumber(item.quantity) * toNumber(item.unit_cost)),
-    receipt_count: acc.receipt_count + toNumber(item.receipt_count),
-    last_received_at: Math.max(acc.last_received_at, toNumber(item.last_received_at)),
-  }), {
-    item_count: 0,
-    ordered_qty: 0,
-    received_qty: 0,
-    cancelled_qty: 0,
-    outstanding_qty: 0,
-    total_goods_cost: 0,
-    receipt_count: 0,
-    last_received_at: 0,
-  }));
-}
-
-const PURCHASE_ORDER_SNAPSHOT_VARIANT_KEYS = ['size', 'color', 'material'];
-const PURCHASE_ORDER_SIZE_LABELS = new Set(['size', '尺码', '尺寸']);
-const PURCHASE_ORDER_COLOR_LABELS = new Set(['color', '颜色', '顏色']);
-const PURCHASE_ORDER_MATERIAL_LABELS = new Set(['material', '材质', '材質']);
-
-function buildPurchaseOrderSnapshotVariantOptions(snapshotSpecs = {}) {
-  if (!snapshotSpecs || typeof snapshotSpecs !== 'object') return {};
-
-  return PURCHASE_ORDER_SNAPSHOT_VARIANT_KEYS.reduce((acc, key) => {
-    const value = snapshotSpecs[key];
-    if (value === undefined || value === null || value === '') return acc;
-    acc[key] = value;
-    return acc;
-  }, {});
-}
-
-function mapPurchaseOrderSnapshotFields(row = {}) {
-  const snapshotSpecs = parseJsonObject(row.snapshot_specs, {});
-  const snapshotVariantOptions = buildPurchaseOrderSnapshotVariantOptions(snapshotSpecs);
-  const hasSnapshotVariantOptions = Object.keys(snapshotVariantOptions).length > 0;
-  const liveVariantOptions = parseJsonObject(row.variant_options, {});
-
-  return {
-    ...row,
-    product_name: row.snapshot_name || row.product_name,
-    product_brand: row.snapshot_brand || row.product_brand,
-    variant_sku: row.snapshot_sku || row.variant_sku,
-    product_images: row.snapshot_image ? [row.snapshot_image] : parseJsonArray(row.product_images, []),
-    product_specifications: parseJsonObject(row.product_specifications, {}),
-    variant_options: hasSnapshotVariantOptions ? snapshotVariantOptions : liveVariantOptions,
-  };
-}
-
-function normalizePurchaseItemSnapshotSpecs(rawSnapshotSpecs = {}) {
-  const snapshotSpecs = parseJsonObject(rawSnapshotSpecs, {});
-  return JSON.stringify({
-    brand: snapshotSpecs.brand || '',
-    size: snapshotSpecs.size || '',
-    color: snapshotSpecs.color || '',
-    material: snapshotSpecs.material || '',
-    series: snapshotSpecs.series || '',
-  });
-}
-
-function resolvePurchaseItemSnapshotSize({ product, variant, fallback = '' }) {
-  const options = parseJsonObject(variant?.options_values, {});
-  const dimensionMap = product?.dimension_map || {};
-  const otherSpecs = [];
-
-  for (const [key, rawValue] of Object.entries(options)) {
-    if (rawValue === undefined || rawValue === null || rawValue === '') continue;
-    const readableKey = String(dimensionMap[key] || key);
-    const normalizedKey = readableKey.toLowerCase();
-    const value = String(rawValue);
-
-    if (PURCHASE_ORDER_COLOR_LABELS.has(normalizedKey) || PURCHASE_ORDER_MATERIAL_LABELS.has(normalizedKey)) {
-      continue;
-    }
-    if (PURCHASE_ORDER_SIZE_LABELS.has(normalizedKey)) {
-      return value;
-    }
-    otherSpecs.push(`${readableKey}: ${value}`);
-  }
-
-  return otherSpecs.join('，') || fallback;
-}
-
-
-function buildLivePurchaseItemSnapshot({ product, variant }) {
-  const snapshot = buildOrderBindingSnapshot({ product, variant, fallback: {} });
-  const productImages = parseJsonArray(product?.images, []);
-  return {
-    snapshot_name: snapshot.name || '',
-    snapshot_sku: snapshot.sku || '',
-    snapshot_specs: normalizePurchaseItemSnapshotSpecs({
-      brand: snapshot.brand || '',
-      size: resolvePurchaseItemSnapshotSize({ product, variant, fallback: snapshot.size || '' }),
-      color: snapshot.color || '',
-      material: snapshot.material || '',
-      series: snapshot.series || '',
-    }),
-    snapshot_image: variant?.image_id || productImages[0] || null,
-  };
-}
+  normalizePurchaseOrderProgress,
+  summarizePurchaseOrderItems,
+  toNumber,
+} from "./purchase-order-read-model.js";
+import {
+  buildLivePurchaseItemSnapshot,
+  mapPurchaseOrderSnapshotFields,
+  normalizePurchaseItemSnapshotSpecs,
+} from "./purchase-order-snapshot.js";
 
 const D1_MAX_IN_CLAUSE_SIZE = 100;
 

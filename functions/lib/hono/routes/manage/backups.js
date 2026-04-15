@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
-import { MSG } from '../../_shared/utils.js';
+import { MSG } from '../../../../_shared/utils.js';
 import { NotFoundError } from '../../errors.js';
 import { requireEntity } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';

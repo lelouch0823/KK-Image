@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MSG } from '../_shared/utils.js';
+import { MSG } from '../../../_shared/utils.js';
 
 /**
  * 文件创建 Schema

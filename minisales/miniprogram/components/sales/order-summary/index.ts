@@ -2,12 +2,12 @@ Component({
   properties: {
     summary: {
       type: Object,
-      value: null,
+      value: undefined,
     },
   },
   methods: {
     onPreview() {
-      const summary = this.properties.summary as { mainImage?: string } | null;
+      const summary = this.properties.summary as { mainImage?: string } | undefined;
       if (!summary?.mainImage) {
         return;
       }

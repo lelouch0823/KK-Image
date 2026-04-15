@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { CreateUserSchema, UpdateUserSchema } from '../../schemas/user.js';
 import { requirePermission } from '../../middleware/auth.js';
-import { generateId, hashPassword, MSG } from '../../_shared/utils.js';
+import { generateId, hashPassword, MSG } from '../../../../_shared/utils.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { parseJsonArray } from '../../../../api/utils/json.js';

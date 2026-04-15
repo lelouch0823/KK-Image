@@ -8,20 +8,8 @@ import {
   buildCreatePayload,
   canSubmitOrderForm,
   type BoundSalesProductValue,
+  type OrderFormState,
 } from './controller';
-
-interface FormData {
-  name: string;
-  brand: string;
-  series: string;
-  sku: string;
-  size: string;
-  color: string;
-  material: string;
-  remark: string;
-  deadline: string;
-  quantity: number;
-}
 
 interface UploadFile {
   id?: string;
@@ -69,7 +57,7 @@ Page({
       remark: '',
       deadline: '',
       quantity: 1,
-    } as FormData,
+    } as OrderFormState,
     boundProduct: null as BoundProductValue | null,
     fileList: [] as UploadFile[],
     submitting: false,

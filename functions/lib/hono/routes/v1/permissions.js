@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { MSG } from '../../_shared/utils.js';
+import { MSG } from '../../../../_shared/utils.js';
 import {
   evaluateActionPermission,
   findUnknownPolicyActions,

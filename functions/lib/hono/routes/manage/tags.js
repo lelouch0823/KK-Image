@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
-import { generateId, now } from '../../_shared/utils.js';
+import { generateId, now } from '../../../../_shared/utils.js';
 import { BadRequestError, ConflictError } from '../../errors.js';
 import { TagRepository } from '../../../../repositories/TagRepository.js';
 import { withCache } from '../../middleware/cache.js';

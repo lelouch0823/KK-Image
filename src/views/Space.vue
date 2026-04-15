@@ -72,7 +72,7 @@ const SpaceCollection = defineAsyncComponent(
   () => import('@/components/space/SpaceCollection.vue')
 );
 // Document, Portfolio 等暂复用 Masonry 或开发简易版
-const SpaceDocument = defineAsyncComponent(() => import('@/components/space/SpaceMasonry.vue'));
+const SpaceDocument = defineAsyncComponent(() => import('@/components/space/SpaceDocument.vue'));
 
 const { t } = useI18n();
 const route = useRoute();
@@ -98,8 +98,21 @@ const isPasswordSubmitActive = (requestId, requestToken) => (
   requestId === passwordSubmitRequestId && token.value === requestToken
 );
 
-const spaceComponent = computed(() => {
+const spaceComponentKey = computed(() => {
   switch (space.value?.template) {
+    case 'product':
+      return 'product';
+    case 'collection':
+      return 'collection';
+    case 'document':
+      return 'document';
+    default:
+      return 'gallery';
+  }
+});
+
+const spaceComponent = computed(() => {
+  switch (spaceComponentKey.value) {
     case 'product':
       return SpaceProductDetail;
     case 'collection':

@@ -17,7 +17,7 @@ vi.mock('../../../middleware/auth.js', () => ({
   },
 }));
 
-vi.mock('../../../_shared/utils.js', () => ({
+vi.mock('../../../../../_shared/utils.js', () => ({
   MSG: {
     COMMON: { UPLOAD_NO_FILE: 'NO_FILE' },
     FILE: { UPLOAD_SUCCESS: 'UPLOAD_SUCCESS', INSTANT_UPLOAD: 'INSTANT_UPLOAD' },

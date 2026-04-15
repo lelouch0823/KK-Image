@@ -4,7 +4,13 @@
  * @module lib/hono/_shared/auth-helpers
  */
 
-import { generateJWT, MSG, hashPassword } from './utils.js';
+import {
+  generateJWT,
+  MSG,
+  hashPassword,
+  verifyPassword,
+  passwordHashNeedsMigration,
+} from '../../../_shared/utils.js';
 import { parseJsonArray } from '../../../api/utils/json.js';
 import {
   checkLoginLockout,
@@ -39,6 +45,16 @@ function getKV(env) {
   return env.RATE_LIMIT_KV || env.KV;
 }
 
+function serviceUnavailableResponse(c, errorMessage = MSG.AUTH.VERIFY_FAILED) {
+  return c.json(
+    {
+      success: false,
+      error: errorMessage,
+    },
+    503
+  );
+}
+
 /**
  * 检查登录限流，如果被锁定则返回 429 响应对象，否则返回 null
  * @param {Object} c - Hono context
@@ -50,6 +66,9 @@ export async function checkAndRespondLockout(c, identifier) {
   const ip = getClientIp(c);
 
   const lockoutStatus = await checkLoginLockout(kv, ip, identifier);
+  if (lockoutStatus.unavailable) {
+    return serviceUnavailableResponse(c, MSG.AUTH.VERIFY_FAILED);
+  }
   if (lockoutStatus.locked) {
     scheduleAuditEvent(c, {
       domain: 'sales-auth',
@@ -87,6 +106,9 @@ export async function handleLoginFailure(c, identifier, errorMsg = MSG.AUTH.INVA
   const ip = getClientIp(c);
 
   const failureResult = await recordLoginFailure(kv, ip, identifier, c.executionCtx);
+  if (failureResult.unavailable) {
+    return serviceUnavailableResponse(c, MSG.AUTH.VERIFY_FAILED);
+  }
 
   if (failureResult.locked) {
     scheduleAuditEvent(c, {
@@ -137,6 +159,7 @@ export async function handleLoginFailure(c, identifier, errorMsg = MSG.AUTH.INVA
 export async function clearFailures(c, identifier) {
   const kv = getKV(c.env);
   const ip = getClientIp(c);
+  if (!kv) return;
   await clearLoginFailures(kv, ip, identifier, c.executionCtx);
 }
 
@@ -202,8 +225,15 @@ export async function authenticateAdminUser(env, username, password) {
   if (!dbUser) return null;
 
   // 3. 验证密码（hashPassword + 比较）
-  const inputHash = await hashPassword(password, env.JWT_SECRET);
-  if (inputHash !== dbUser.password_hash) return null;
+  const passwordMatches = await verifyPassword(password, dbUser.password_hash, env.JWT_SECRET);
+  if (!passwordMatches) return null;
+
+  if (passwordHashNeedsMigration(dbUser.password_hash)) {
+    const upgradedHash = await hashPassword(password, env.JWT_SECRET);
+    await env.DB.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
+      .bind(upgradedHash, Date.now(), dbUser.id)
+      .run();
+  }
 
   return {
     id: dbUser.id,

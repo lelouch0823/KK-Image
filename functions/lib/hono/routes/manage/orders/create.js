@@ -5,7 +5,7 @@ import { CommandIdempotencyRepository } from '../../../../../repositories/Comman
 import {
     canTransitionOrderStatus
 } from '../../../../../api/utils/order-state-machine.js';
-import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
+import { MSG, ORDER_STATUSES } from '../../../../../_shared/utils.js';
 import { BadRequestError } from '../../../errors.js';
 import { assertForceStatusTransitionAllowed } from './authz-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';

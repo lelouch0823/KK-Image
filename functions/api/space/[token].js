@@ -7,13 +7,53 @@
 
 import { success, error } from '../utils/response.js';
 import { MSG } from '../utils/messages.js';
-import { timingSafeCompare, isAdminAuthenticated } from '../utils/auth.js';
+import {
+  timingSafeCompare,
+  isAdminAuthenticated,
+  generateScopedAccessToken,
+} from '../utils/auth.js';
 import { getFileType } from '../utils/file-utils.js';
 import { parseJsonArray } from '../utils/json.js';
 import { getFileUrl } from '../utils/url.js';
 import { projectSpaceTemplateData } from '../../lib/hono/routes/manage/spaces/transformers.js';
+import {
+  checkLoginLockout,
+  recordLoginFailure,
+  clearLoginFailures,
+} from '../../lib/hono/middleware/rateLimit.js';
 
-function resolveSpaceAssetUrl(value) {
+const PUBLIC_SHARE_FILE_TTL_SECONDS = 15 * 60;
+const PUBLIC_SHARE_CACHE_CONTROL = `public, max-age=${PUBLIC_SHARE_FILE_TTL_SECONDS}, stale-while-revalidate=0`;
+
+function getRateLimitKv(env) {
+  return env.RATE_LIMIT_KV || env.KV || null;
+}
+
+function getClientIp(request) {
+  return request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
+}
+
+async function buildSignedFileUrl(env, fileRef, shareType, shareToken) {
+  if (!env?.JWT_SECRET) {
+    return getFileUrl(fileRef);
+  }
+  const access = await generateScopedAccessToken(
+    {
+      sub: fileRef,
+      type: 'public_file_access',
+      fileRef,
+      shareType,
+      shareToken,
+    },
+    env,
+    15 * 60
+  );
+  const baseUrl = getFileUrl(fileRef);
+  const separator = baseUrl.includes('?') ? '&' : '?';
+  return `${baseUrl}${separator}access=${encodeURIComponent(access)}`;
+}
+
+async function resolveSpaceAssetUrl(value, fileUrlBuilder = getFileUrl) {
   const url = String(value || '').trim();
   if (!url) return null;
   if (
@@ -25,13 +65,13 @@ function resolveSpaceAssetUrl(value) {
   ) {
     return url;
   }
-  return getFileUrl(url);
+  return fileUrlBuilder(url);
 }
 
 /**
  * 获取空间数据 (GET/POST 共享逻辑)
  */
-async function getSpaceData(space, env, { includePrivateSubspaces = false } = {}) {
+async function getSpaceData(space, env, { includePrivateSubspaces = false, fileUrlBuilder = getFileUrl } = {}) {
   const templateData = projectSpaceTemplateData(space);
   const subspacesVisibilityFilter = includePrivateSubspaces ? '' : ' AND s.is_public = 1';
   // 并行获取文件列表和子空间
@@ -91,28 +131,31 @@ async function getSpaceData(space, env, { includePrivateSubspaces = false } = {}
       groupedFiles[targetSection].push(file);
     }
   };
-  files.forEach((f) => {
+  for (const f of files) {
     const section = f.section || 'default';
+    const fileRef = f.id;
+    const url = await fileUrlBuilder(fileRef);
     appendFile(section, {
       id: f.id,
       name: f.original_name || f.name,
       size: f.size,
       type: getFileType(f.mime_type, f.name),
       mimeType: f.mime_type,
-      url: getFileUrl(f.storage_key),
-      thumbnailUrl: getFileType(f.mime_type, f.name) === 'image' ? getFileUrl(f.storage_key) : null,
+      url,
+      thumbnailUrl: getFileType(f.mime_type, f.name) === 'image' ? url : null,
     });
-  });
+  }
 
   let allFiles = Object.values(groupedFiles).flat();
 
   // 注入商品/变体模板图片到文件列表中 (置于首部)
   if (Array.isArray(templateData.images) && templateData.images.length > 0) {
-    const productFiles = templateData.images
-      .map((imgUrl, index) => {
-        const url = resolveSpaceAssetUrl(imgUrl);
-        if (!url) return null;
-        return {
+    const productFiles = (
+      await Promise.all(
+        templateData.images.map(async (imgUrl, index) => {
+          const url = await resolveSpaceAssetUrl(imgUrl, fileUrlBuilder);
+          if (!url) return null;
+          return {
         id: `product-img-${index}`,
         name: `Product Image ${index + 1}`,
         size: 0,
@@ -121,8 +164,9 @@ async function getSpaceData(space, env, { includePrivateSubspaces = false } = {}
         url,
         thumbnailUrl: url,
       };
-      })
-      .filter(Boolean);
+        })
+      )
+    ).filter(Boolean);
 
     productFiles.slice().reverse().forEach((file) => appendFile('default', file, { prepend: true }));
     allFiles = Object.values(groupedFiles).flat();
@@ -150,12 +194,17 @@ async function getSpaceData(space, env, { includePrivateSubspaces = false } = {}
     viewCount: space.view_count,
     files: allFiles,
     groupedFiles,
-    subspaces: subspaces.map((s) => {
+    subspaces: await Promise.all(subspaces.map(async (s) => {
       const templateData = projectSpaceTemplateData(s);
-      const templateImages = parseJsonArray(templateData.images, [])
-        .map((image) => resolveSpaceAssetUrl(image))
-        .filter(Boolean);
-      const coverImage = (s.cover_storage_key ? getFileUrl(s.cover_storage_key) : null) || templateImages[0] || null;
+      const templateImages = (
+        await Promise.all(
+          parseJsonArray(templateData.images, []).map((image) =>
+            resolveSpaceAssetUrl(image, fileUrlBuilder)
+          )
+        )
+      ).filter(Boolean);
+      const coverImage =
+        (s.cover_storage_key ? await fileUrlBuilder(s.cover_storage_key) : null) || templateImages[0] || null;
       return {
         id: s.id,
         name: s.name,
@@ -166,7 +215,7 @@ async function getSpaceData(space, env, { includePrivateSubspaces = false } = {}
         shareUrl: s.share_token ? `/space/${s.share_token}` : null,
         coverImage,
       };
-    }),
+    })),
   };
 }
 
@@ -186,6 +235,33 @@ async function recordSpaceAccess(spaceId, request, env) {
     ),
     env.DB.prepare('UPDATE spaces SET view_count = view_count + 1 WHERE id = ?').bind(spaceId),
   ]);
+}
+
+async function authorizePublicPasswordAttempt(env, request, identifier) {
+  const kv = getRateLimitKv(env);
+  const status = await checkLoginLockout(kv, getClientIp(request), identifier);
+  if (status.unavailable) {
+    return error('Public share protection unavailable', 503);
+  }
+  if (status.locked) {
+    return error(MSG.AUTH.TOO_MANY_ATTEMPTS || 'Too many attempts', 429);
+  }
+  return null;
+}
+
+async function recordPublicPasswordFailure(env, request, identifier) {
+  const kv = getRateLimitKv(env);
+  const status = await recordLoginFailure(kv, getClientIp(request), identifier);
+  if (status.unavailable) {
+    return error('Public share protection unavailable', 503);
+  }
+  return null;
+}
+
+async function clearPublicPasswordFailures(env, request, identifier) {
+  const kv = getRateLimitKv(env);
+  if (!kv) return;
+  await clearLoginFailures(kv, getClientIp(request), identifier);
 }
 
 export async function onRequestGet(context) {
@@ -236,8 +312,13 @@ export async function onRequestGet(context) {
     }
 
     // 获取空间数据
+    const fileUrlBuilder =
+      !isAdmin || space.is_public
+        ? (fileRef) => buildSignedFileUrl(env, fileRef, 'space', space.share_token)
+        : getFileUrl;
     const data = await getSpaceData(space, env, {
       includePrivateSubspaces: isAdmin && !space.is_public,
+      fileUrlBuilder,
     });
     // GET 请求增加访问记录
     data.viewCount = space.view_count + 1;
@@ -248,7 +329,7 @@ export async function onRequestGet(context) {
     return success(data, 'Success', 200, {
       'Cache-Control':
         space.is_public && !space.password
-          ? 'public, max-age=3600, stale-while-revalidate=86400'
+          ? PUBLIC_SHARE_CACHE_CONTROL
           : 'no-store, max-age=0',
     });
   } catch (err) {
@@ -314,13 +395,21 @@ export async function onRequestPost(context) {
     }
 
     // 使用常量时间比较 (SOTA Security)
+    const throttleIdentifier = `space:${shareToken}`;
+    const throttleError = await authorizePublicPasswordAttempt(env, request, throttleIdentifier);
+    if (throttleError) return throttleError;
+
     if (!timingSafeCompare(password, space.password)) {
+      const failure = await recordPublicPasswordFailure(env, request, throttleIdentifier);
+      if (failure) return failure;
       return error(MSG.SPACE.PASSWORD_ERROR, 401);
     }
 
     // 密码正确，返回完整空间数据
+    await clearPublicPasswordFailures(env, request, throttleIdentifier);
     const data = await getSpaceData(space, env, {
       includePrivateSubspaces: isAdmin && !space.is_public,
+      fileUrlBuilder: (fileRef) => buildSignedFileUrl(env, fileRef, 'space', space.share_token),
     });
     data.viewCount = (Number(space.view_count) || 0) + 1;
     await recordSpaceAccess(space.id, request, env);

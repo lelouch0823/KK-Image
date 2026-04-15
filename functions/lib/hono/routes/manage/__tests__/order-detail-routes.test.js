@@ -22,6 +22,8 @@ const mocks = vi.hoisted(() => ({
   scheduleAuditEvent: vi.fn(),
   publish: vi.fn(async () => []),
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
+  isInsufficientStockError: vi.fn(() => false),
+  isInvalidStatusTransitionError: vi.fn(() => false),
 }));
 
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
@@ -98,6 +100,11 @@ vi.mock('../../../../../api/cron/outbox.js', () => ({
   runOutboxPoller: mocks.runOutboxPoller,
 }));
 
+vi.mock('../orders/error-helpers.js', () => ({
+  isInsufficientStockError: mocks.isInsufficientStockError,
+  isInvalidStatusTransitionError: mocks.isInvalidStatusTransitionError,
+}));
+
 vi.mock('../../../../../api/utils/order-utils.js', () => ({
   processOrderUpdate: mocks.processOrderUpdate,
 }));
@@ -151,6 +158,8 @@ describe('manage order detail routes', () => {
       sku: 'SKU-1',
       status: 'active',
     });
+    mocks.isInsufficientStockError.mockReturnValue(false);
+    mocks.isInvalidStatusTransitionError.mockReturnValue(false);
   });
 
   it('enqueues admin read cache invalidation through outbox after GET /:id', async () => {
@@ -201,6 +210,24 @@ describe('manage order detail routes', () => {
       expect.anything(),
       expect.objectContaining({ action: 'order.comment.create', domain: 'orders' })
     );
+  });
+
+  it('returns 400 when admin submits an empty comment payload', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/comment',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment: '' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.setUnread).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
   });
 
   it('enqueues deferred order-update side effects via outbox after PATCH /:id', async () => {
@@ -381,6 +408,7 @@ describe('manage order detail routes', () => {
       currentData: {},
     });
     mocks.updateStatus.mockRejectedValue(new Error('insufficient variant stock for delivery'));
+    mocks.isInsufficientStockError.mockReturnValue(true);
     const app = createApp();
     const res = await app.request(
       'http://localhost/api/manage/orders/order-1/status',
@@ -396,6 +424,62 @@ describe('manage order detail routes', () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(String(body.error || '')).toMatch(/insufficient stock/i);
+  });
+
+  it('returns 400 when PATCH /:id/status hits invalid transition marker from repository', async () => {
+    mocks.updateStatus.mockRejectedValue(
+      new Error('INVALID_ORDER_STATUS_TRANSITION_ERROR: pending -> delivered')
+    );
+    mocks.isInvalidStatusTransitionError.mockReturnValue(true);
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/status',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'delivered', force: true, note: 'forced request still rejected' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(String(body.error || '')).toMatch(/invalid status transition/i);
+    expect(mocks.publish).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when PATCH /:id/status repository update reports no change', async () => {
+    mocks.updateStatus.mockResolvedValue(false);
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/status',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'confirmed' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.publish).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 when GET /:id cannot find the order', async () => {
+    mocks.findById.mockResolvedValueOnce(null);
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/missing-order',
+      { method: 'GET' },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(404);
+    expect(mocks.markAsRead).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
   });
 
   it('returns 400 when PATCH /:id/status is out-of-flow without force', async () => {

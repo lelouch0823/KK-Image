@@ -16,6 +16,13 @@ function withData<T, U>(result: SalesRequestResult<T>, data: U | null): SalesReq
     };
 }
 
+function withoutData<T, U>(result: SalesRequestResult<T>): SalesRequestResult<U> {
+    return {
+        ...result,
+        data: null,
+    };
+}
+
 export async function loadSalesNotifications(
     input: { accessToken: string; limit?: number; unreadOnly?: boolean },
     request: RequestFn = salesRequest
@@ -30,7 +37,7 @@ export async function loadSalesNotifications(
     });
 
     if (!result.success || !result.data) {
-        return withData(result, null);
+        return withoutData(result);
     }
 
     return withData(result, normalizeSalesNotificationsPayload(result.data));

@@ -141,6 +141,7 @@ import { resolveHistoricalOrderProductName, resolveOrderQuantity, resolveOrderSn
 import { resolveSelectedVariantMainImageSrc } from '@/utils/product-image.js';
 import { ORDER_BOUND_SNAPSHOT_FIELDS } from '@/utils/order-binding-fields.js';
 import { useSalesToken } from '@/composables/useSalesToken';
+import { parseJsonObject } from '@/utils/json.js';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import OrderFormFields from './order/OrderFormFields.vue';
@@ -160,7 +161,8 @@ const props = defineProps({
       'confirmed',
       'production',
       'shipping',
-      'completed',
+      'arrived',
+      'fulfilled',
       'rejected',
       'void',
     ],
@@ -256,9 +258,7 @@ const handleProductSelect = (product) => {
 
   // Extract variant specs
   let options = variant.options_values || {};
-  if (typeof options === 'string') {
-    try { options = JSON.parse(options); } catch { options = {}; }
-  }
+  options = parseJsonObject(options, {});
 
   let extractedColor = '';
   let extractedMaterial = '';

@@ -373,6 +373,42 @@ describe('OrderProcurementReceiptReversalService', () => {
     )).toBe(true);
   });
 
+  it('builds rollback order-line projections with a concrete display status when preflight guards fail', async () => {
+    harness.db.batch
+      .mockImplementationOnce(async (statements = []) => {
+        harness.calls.batchCalls.push(statements);
+        harness.calls.batchedStatements.push(...statements);
+        return statements.map((statement) => ({
+          meta: { changes: statement.sql.includes('UPDATE order_lines') ? 0 : 1 },
+        }));
+      })
+      .mockImplementationOnce(async (statements = []) => {
+        harness.calls.batchCalls.push(statements);
+        harness.calls.batchedStatements.push(...statements);
+        return statements.map(() => ({ meta: { changes: 1 } }));
+      });
+
+    await expect(
+      service.reverseReceipt(
+        'po-1',
+        'receipt-1',
+        { reason: 'rollback' },
+        { idempotencyKey: 'idem-1' }
+      )
+    ).rejects.toThrow(BadRequestError);
+
+    const preparedOrderLineStatements = harness.db.prepare.mock.results
+      .map((result) => result.value)
+      .filter((statement) => statement?.sql?.includes('UPDATE order_lines'));
+    const rollbackOrderLineUpdate = preparedOrderLineStatements.find(
+      (statement) => statement.params?.at(-1) === 'fully_procured'
+    );
+
+    expect(rollbackOrderLineUpdate).toBeTruthy();
+    expect(rollbackOrderLineUpdate.params).not.toContain(undefined);
+    expect(rollbackOrderLineUpdate.params[1]).toBe('ready');
+  });
+
   it('downgrades arrived purchase orders back to shipping when reversal reopens receivable quantity', async () => {
     const arrivedHarness = createDbHarness({
       poRow: { id: 'po-1', status: 'arrived' },

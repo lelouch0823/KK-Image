@@ -202,8 +202,23 @@ const lightbox = ref({ visible: false, file: null, index: 0 });
 // 从路由获取 Token
 const token = computed(() => route.params.token);
 
+const normalizeAlbumData = (data = {}) => {
+  const files = Array.isArray(data.files)
+    ? data.files.map((f) => {
+        const ext = f.name.split('.').pop().toLowerCase();
+        return {
+          ...f,
+          type: isImage(f) ? 'image' : ext === 'pdf' ? 'pdf' : 'other',
+          thumbnailUrl: f.url,
+        };
+      })
+    : [];
+
+  return { ...data, files };
+};
+
 // 加载相册
-const loadAlbum = async (pwd = null) => {
+const loadAlbum = async () => {
   if (!token.value) {
     error.value = t('gallery.invalidLink');
     loading.value = false;
@@ -211,28 +226,19 @@ const loadAlbum = async (pwd = null) => {
   }
 
   try {
-    let url = API.PUBLIC_GALLERY(token.value);
-    if (pwd) url += `?password=${encodeURIComponent(pwd)}`;
-
-    const response = await fetch(url);
+    const response = await fetch(API.PUBLIC_GALLERY(token.value));
     const result = await response.json();
+    const needsPassword = Boolean(result?.data?.requiresPassword || result?.requiresPassword);
 
-    if (result.success) {
-      // 使用工具函数规范化文件类型
-      const files = result.data.files.map((f) => {
-        const ext = f.name.split('.').pop().toLowerCase();
-        return {
-          ...f,
-          type: isImage(f) ? 'image' : ext === 'pdf' ? 'pdf' : 'other',
-          thumbnailUrl: f.url,
-        };
-      });
-
-      album.value = { ...result.data, files };
+    if (result.success && !needsPassword) {
+      album.value = normalizeAlbumData(result.data);
       document.title = `${result.data.name} | ${APP_NAME}`;
       requiresPassword.value = false;
-    } else if (result.requiresPassword) {
+      error.value = '';
+    } else if (needsPassword) {
+      album.value = null;
       requiresPassword.value = true;
+      error.value = '';
     } else {
       error.value = result.message || t('gallery.loadFailed');
     }
@@ -251,9 +257,28 @@ const submitPassword = async (pwd) => {
   }
   passwordError.value = '';
   verifying.value = true;
-  await loadAlbum(pwd);
-  if (requiresPassword.value) {
-    passwordError.value = t('gallery.passwordError');
+  try {
+    const response = await fetch(API.PUBLIC_GALLERY(token.value), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd }),
+    });
+    const result = await response.json();
+
+    if (result.success && result.data) {
+      album.value = normalizeAlbumData(result.data);
+      document.title = `${result.data.name} | ${APP_NAME}`;
+      requiresPassword.value = false;
+      passwordError.value = '';
+      error.value = '';
+    } else {
+      requiresPassword.value = true;
+      passwordError.value = result.message || t('gallery.passwordError');
+    }
+  } catch (_e) {
+    passwordError.value = t('gallery.networkError');
+  } finally {
+    verifying.value = false;
   }
 };
 

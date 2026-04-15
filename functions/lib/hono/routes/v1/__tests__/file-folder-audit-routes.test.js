@@ -169,13 +169,13 @@ describe('v1 file and folder audit routes', () => {
         aggregate_type: 'file',
         aggregate_id: 'file-1',
       }),
-    ]);
+    ], undefined);
     expect(fileMocks.publish).toHaveBeenCalledWith([
       expect.objectContaining({
         event_type: 'v1_file_batch_deleted',
         aggregate_type: 'file',
       }),
-    ]);
+    ], undefined);
     expect(fileMocks.runOutboxPoller).toHaveBeenCalledTimes(2);
     expect(waitUntil).toHaveBeenCalled();
 
@@ -218,7 +218,7 @@ describe('v1 file and folder audit routes', () => {
         aggregate_type: 'folder',
         aggregate_id: 'folder-1',
       }),
-    ]);
+    ], undefined);
     expect(fileMocks.runOutboxPoller).toHaveBeenCalledTimes(1);
     expect(waitUntil).toHaveBeenCalled();
     expect(fileMocks.scheduleAuditEvent).toHaveBeenCalledWith(

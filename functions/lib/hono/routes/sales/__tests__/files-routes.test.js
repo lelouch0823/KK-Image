@@ -31,6 +31,9 @@ vi.mock('../../../_shared/domain-outbox.js', () => ({
 
 vi.mock('../../../_shared/utils.js', () => ({
   MSG: {
+    AUTH: {
+      FORBIDDEN: 'FORBIDDEN',
+    },
     FILE: {
       UPLOAD_SUCCESS: 'UPLOAD_SUCCESS',
       INSTANT_UPLOAD: 'INSTANT_UPLOAD',
@@ -119,5 +122,29 @@ describe('sales files routes', () => {
         targetId: 'file-sales-1',
       })
     );
+  });
+
+  it('rejects upload attempts against another salesperson order', async () => {
+    const app = createApp();
+    const formData = new FormData();
+    formData.append('file', new Blob(['sales-upload-body'], { type: 'text/plain' }), 'sales-upload.txt');
+
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/upload?orderId=order-foreign',
+      { method: 'POST', body: formData },
+      {
+        DB: {
+          prepare: vi.fn(() => ({
+            bind: vi.fn(() => ({
+              first: vi.fn(async () => null),
+            })),
+          })),
+        },
+      },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(403);
+    expect(mocks.storeFile).not.toHaveBeenCalled();
   });
 });

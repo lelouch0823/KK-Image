@@ -28,13 +28,13 @@ describe('cron auth helper', () => {
     expect(isCronAuthorized(request, { CRON_SECRET: 'super-secret' })).toBe(false);
   });
 
-  it('uses dev default secret when CRON_SECRET is missing', () => {
+  it('rejects request when CRON_SECRET is missing', () => {
     const request = new Request('https://example.com/api/cron/backup', {
       headers: {
         Authorization: 'Bearer dev-secret',
       },
     });
 
-    expect(isCronAuthorized(request, {})).toBe(true);
+    expect(isCronAuthorized(request, {})).toBe(false);
   });
 });

@@ -31,7 +31,20 @@ const providerRegistry = {
  * 存储提供者实例缓存
  * @type {Map<string, import('./base-provider.js').BaseStorageProvider>}
  */
-const providerCache = new Map();
+const providerCache = new WeakMap();
+
+function getProviderCacheBucket(env) {
+  if (!env || typeof env !== 'object') {
+    return null;
+  }
+
+  let bucket = providerCache.get(env);
+  if (!bucket) {
+    bucket = new Map();
+    providerCache.set(env, bucket);
+  }
+  return bucket;
+}
 
 /**
  * 获取存储提供者实例
@@ -41,19 +54,19 @@ const providerCache = new Map();
  */
 export function getStorageProvider(env, providerType = null) {
   // 确定使用的存储类型
-  const type = providerType || env.STORAGE_PROVIDER || StorageProviderType.TELEGRAM;
+  const type = String(providerType || env.STORAGE_PROVIDER || StorageProviderType.R2).toLowerCase();
+  const cacheBucket = getProviderCacheBucket(env);
 
   // 检查缓存
-  const cacheKey = `${type}`;
-  if (providerCache.has(cacheKey)) {
-    return providerCache.get(cacheKey);
+  if (cacheBucket?.has(type)) {
+    return cacheBucket.get(type);
   }
 
   // 创建提供者实例
   const ProviderClass = providerRegistry[type.toLowerCase()];
   if (!ProviderClass) {
-    console.warn(`Unknown storage provider: ${type}, falling back to Telegram`);
-    return getStorageProvider(env, StorageProviderType.TELEGRAM);
+    console.warn(`Unknown storage provider: ${type}, falling back to R2`);
+    return getStorageProvider(env, StorageProviderType.R2);
   }
 
   const provider = new ProviderClass(env);
@@ -61,15 +74,15 @@ export function getStorageProvider(env, providerType = null) {
   // 检查配置是否有效
   if (!provider.isConfigured()) {
     console.warn(`Storage provider ${type} is not properly configured`);
-    // 如果不是 Telegram，尝试回退到 Telegram
-    if (type !== StorageProviderType.TELEGRAM) {
-      console.warn('Falling back to Telegram storage');
-      return getStorageProvider(env, StorageProviderType.TELEGRAM);
+    // 非默认 R2 配置失效时，回退到 R2
+    if (type !== StorageProviderType.R2) {
+      console.warn('Falling back to R2 storage');
+      return getStorageProvider(env, StorageProviderType.R2);
     }
   }
 
   // 缓存实例
-  providerCache.set(cacheKey, provider);
+  cacheBucket?.set(type, provider);
 
   return provider;
 }

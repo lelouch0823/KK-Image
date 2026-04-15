@@ -329,6 +329,7 @@ import ProductOptionsBuilder from '@/components/product/ProductOptionsBuilder.vu
 import DimensionArchiveModal from '@/components/product/DimensionArchiveModal.vue';
 import ValueArchiveModal from '@/components/product/ValueArchiveModal.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import { CURRENCY_OPTIONS, CURRENCY_SYMBOLS } from '@/constants/currency.js';
 import { API } from '@/utils/constants';
 import { computed } from 'vue';
 
@@ -365,8 +366,6 @@ const {
   showVariantBatchBuilder,
   dimensionArchiveWizard,
   valueArchiveWizard,
-  CURRENCY_OPTIONS,
-  CURRENCY_SYMBOLS,
   resetForm,
   fillFormFromData,
   addOption,

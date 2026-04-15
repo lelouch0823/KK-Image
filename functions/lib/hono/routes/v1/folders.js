@@ -8,7 +8,7 @@ import {
 } from '../../schemas/folder.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
-import { generateId, generateShareToken, now, MSG } from '../../_shared/utils.js';
+import { generateId, generateShareToken, getFileUrl, now, MSG } from '../../../../_shared/utils.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
 import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
@@ -24,11 +24,27 @@ export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'PUT', path: '/:id/share', domain: 'v1-folders', action: 'v1.folder.share_update', severity: 'high', targetType: 'folder' },
 ]);
 
+function toSafeFolder(folder) {
+  return {
+    id: folder.id,
+    parentId: folder.parent_id || null,
+    name: folder.name,
+    description: folder.description || '',
+    isPublic: Boolean(folder.is_public),
+    hasPassword: Boolean(folder.password),
+    shareExpiresAt: folder.share_expires_at || null,
+    createdAt: folder.created_at || null,
+    updatedAt: folder.updated_at || null,
+    subfolderCount: folder.subfolderCount ?? folder.subfolder_count ?? 0,
+    fileCount: folder.fileCount ?? folder.file_count ?? 0,
+  };
+}
+
 /**
  * GET /api/v1/folders - 获取文件夹列表
  * SOTA: 使用 Repository 的 list() 方法，通过 JOIN 消除 N+1 查询
  */
-app.get('/', zValidator('query', FolderQuerySchema), withCache(30), async (c) => {
+app.get('/', requirePermission('folders:read'), zValidator('query', FolderQuerySchema), withCache(30), async (c) => {
   const { page, limit, parentId, search } = c.req.valid('query');
   const repo = new FolderRepository(c.env.DB);
 
@@ -36,7 +52,7 @@ app.get('/', zValidator('query', FolderQuerySchema), withCache(30), async (c) =>
 
   return c.json({
     success: true,
-    data: result.items,
+    data: result.items.map((item) => toSafeFolder(item)),
     pagination: {
       page: result.page,
       limit: result.limit,
@@ -49,7 +65,7 @@ app.get('/', zValidator('query', FolderQuerySchema), withCache(30), async (c) =>
 /**
  * GET /api/v1/folders/:id - 获取单个文件夹详情
  */
-app.get('/:id', withCache(60), async (c) => {
+app.get('/:id', requirePermission('folders:read'), withCache(60), async (c) => {
   const id = c.req.param('id');
   const repo = new FolderRepository(c.env.DB);
 
@@ -61,9 +77,17 @@ app.get('/:id', withCache(60), async (c) => {
   return c.json({
     success: true,
     data: {
-      ...detail.folder,
-      files: detail.files,
-      subfolders: detail.subfolders,
+      ...toSafeFolder(detail.folder),
+      files: detail.files.map((file) => ({
+        id: file.id,
+        name: file.name,
+        originalName: file.original_name || null,
+        size: file.size,
+        mimeType: file.mime_type || null,
+        createdAt: file.created_at || null,
+        url: getFileUrl(file.id || file.storage_key),
+      })),
+      subfolders: detail.subfolders.map((folder) => toSafeFolder(folder)),
     },
   });
 });

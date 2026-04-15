@@ -1,3 +1,5 @@
+import { parseJsonArray } from '@/utils/json.js';
+
 const ABSOLUTE_SRC_PATTERN = /^(https?:)?\/\//i;
 
 export const parseProductImages = (rawImages) => {
@@ -5,12 +7,7 @@ export const parseProductImages = (rawImages) => {
   if (Array.isArray(rawImages)) return rawImages;
   if (typeof rawImages !== 'string') return [];
 
-  try {
-    const parsed = JSON.parse(rawImages);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return parseJsonArray(rawImages, []);
 };
 
 export const normalizeImageRef = (image) => {

@@ -15,7 +15,7 @@ import {
   generateId,
   generateShareToken,
   getShareUrl,
-} from '../../../_shared/utils.js';
+} from '../../../../../_shared/utils.js';
 import { transformSpaceListItem } from './transformers.js';
 import { invalidateSpaceCaches } from './cache-helpers.js';
 import {

@@ -8,7 +8,7 @@ import {
 } from '../../schemas/file.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
-import { getFileUrl, generateId, MSG } from '../../_shared/utils.js';
+import { getFileUrl, generateId, MSG } from '../../../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../errors.js';
@@ -34,6 +34,20 @@ const ALLOWED_SORT_COLUMNS = {
   updated_at: 'updated_at',
 };
 
+function toSafeFile(file) {
+  return {
+    id: file.id,
+    name: file.name,
+    originalName: file.original_name || null,
+    folderId: file.folder_id || null,
+    size: file.size,
+    mimeType: file.mime_type || null,
+    createdAt: file.created_at || null,
+    updatedAt: file.updated_at || null,
+    url: getFileUrl(file.id || file.storage_key),
+  };
+}
+
 async function assertTargetFolderExists(folderRepo, targetFolderId) {
   if (!targetFolderId || targetFolderId === 'root') return;
   await requireEntity(folderRepo.findById(targetFolderId), () => new NotFoundError(MSG.FOLDER.NOT_FOUND));
@@ -42,7 +56,7 @@ async function assertTargetFolderExists(folderRepo, targetFolderId) {
 /**
  * GET /api/v1/files - 获取文件列表
  */
-app.get('/', zValidator('query', FileQuerySchema), withCache(30), async (c) => {
+app.get('/', requirePermission('files:read'), zValidator('query', FileQuerySchema), withCache(30), async (c) => {
   const { page, limit, sort, order, folderId, search, type, isPublic } = c.req.valid('query');
   const { env } = c;
 
@@ -89,10 +103,7 @@ app.get('/', zValidator('query', FileQuerySchema), withCache(30), async (c) => {
 
   return c.json({
     success: true,
-    data: results.map((file) => ({
-      ...file,
-      url: getFileUrl(file.storage_key),
-    })),
+    data: results.map((file) => toSafeFile(file)),
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   });
 });
@@ -100,7 +111,7 @@ app.get('/', zValidator('query', FileQuerySchema), withCache(30), async (c) => {
 /**
  * POST /api/v1/files/check-hash - 预检查 (original_hash)
  */
-app.post('/check-hash', async (c) => {
+app.post('/check-hash', requirePermission('files:read'), async (c) => {
   const { original_hash } = await c.req.json();
   if (!original_hash) throw new BadRequestError('original_hash is required');
 
@@ -115,7 +126,6 @@ app.post('/check-hash', async (c) => {
         file: {
           id: existingFile.id,
           name: existingFile.name,
-          url: getFileUrl(existingFile.storage_key),
           mimeType: existingFile.mime_type,
           size: existingFile.size,
           instantUpload: true,
@@ -131,7 +141,7 @@ app.post('/check-hash', async (c) => {
 /**
  * GET /api/v1/files/:id - 获取单个文件
  */
-app.get('/:id', withCache(60), async (c) => {
+app.get('/:id', requirePermission('files:read'), withCache(60), async (c) => {
   const id = c.req.param('id');
   const { env } = c;
 
@@ -143,10 +153,7 @@ app.get('/:id', withCache(60), async (c) => {
 
   return c.json({
     success: true,
-    data: {
-      ...file,
-      url: getFileUrl(file.storage_key),
-    },
+    data: toSafeFile(file),
   });
 });
 

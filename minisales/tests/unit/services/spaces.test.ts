@@ -179,4 +179,25 @@ describe('sales spaces service', () => {
       })
     );
   });
+
+  it('keeps a stable null data envelope when spaces loading fails', async () => {
+    const request = vi.fn().mockResolvedValue({
+      success: false,
+      data: null,
+      error: 'forbidden',
+      code: 'FORBIDDEN',
+      status: 403,
+      detail: null,
+      payload: { success: false },
+    });
+
+    const result = await loadSalesSpaces({ accessToken: 'sales-token' }, request);
+
+    expect(result).toMatchObject({
+      success: false,
+      data: null,
+      error: 'forbidden',
+      code: 'FORBIDDEN',
+    });
+  });
 });

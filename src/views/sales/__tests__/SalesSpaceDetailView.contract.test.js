@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { flushPromises, shallowMount } from '@vue/test-utils';
+import { flushPromises, mount, shallowMount } from '@vue/test-utils';
 import { ref } from 'vue';
 import SalesSpaceDetailView from '../SalesSpaceDetailView.vue';
 
@@ -60,5 +60,41 @@ describe('SalesSpaceDetailView contract', () => {
     expect(mocks.requestSales).toHaveBeenCalledWith('/api/sales/sales-token-a/spaces/space-1', {
       token: 'sales-token-a',
     });
+  });
+
+  it('renders document spaces through a dedicated document template', async () => {
+    mocks.requestSales.mockResolvedValue({
+      json: async () => ({
+        success: true,
+        data: {
+          id: 'space-1',
+          name: '销售文档空间',
+          template: 'document',
+          template_data: '{}',
+          files: [{ id: 'file-1', name: '报价单.pdf', url: '/file/file-1', mimeType: 'application/pdf' }],
+        },
+      }),
+    });
+
+    const wrapper = mount(SalesSpaceDetailView, {
+      global: {
+        provide: {
+          salesContext: {
+            accessToken: ref('sales-token-a'),
+          },
+        },
+        stubs: {
+          AppIcon: true,
+          AppImage: true,
+          Skeleton: true,
+          EmptyState: true,
+        },
+      },
+    });
+
+    await flushPromises();
+    await flushPromises();
+
+    expect(wrapper.vm.spaceComponentKey).toBe('document');
   });
 });

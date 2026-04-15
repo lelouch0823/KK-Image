@@ -15,7 +15,7 @@ import { requirePermission } from '../../../middleware/auth.js';
 import { withCache } from '../../../middleware/cache.js';
 import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js';
 import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
-import { generateId, generateShareToken, MSG, getShareUrl } from '../../../_shared/utils.js';
+import { generateId, generateShareToken, MSG, getShareUrl } from '../../../../../_shared/utils.js';
 import {
   transformSpaceListItem,
   transformSpaceDetail,
@@ -126,7 +126,7 @@ crud.get('/:id/stats', withCache(30), async (c) => {
   const days = Math.min(Math.max(parseInt(c.req.query('days') || '7', 10), 1), 30);
 
   // 计算时间范围起点 (UTC+8 时区处理)
-  const { getChinaDayStart, getChinaDateStr } = await import('../../../_shared/utils.js');
+  const { getChinaDayStart, getChinaDateStr } = await import('../../../../../_shared/utils.js');
   const todayStart = getChinaDayStart();
   const startTimestamp = todayStart - (days - 1) * 86400000;
 

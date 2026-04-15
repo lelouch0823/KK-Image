@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
-import { getFileUrl, MSG } from '../../_shared/utils.js';
+import { getFileUrl, MSG } from '../../../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { decrementRefCount } from '../../../../api/utils/blob-utils.js';

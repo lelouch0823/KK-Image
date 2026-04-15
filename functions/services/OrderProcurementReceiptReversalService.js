@@ -220,6 +220,7 @@ export class OrderProcurementReceiptReversalService {
         originalReceipt.pre_order_id,
         receiptOrderLineId
       );
+      orderLine.display_status = projectOrderLineStatus(orderLine);
       const nextOrderLineReceivedQty = Math.max(
         toNonNegativeInt(orderLine.received_qty) - reversalQty,
         0

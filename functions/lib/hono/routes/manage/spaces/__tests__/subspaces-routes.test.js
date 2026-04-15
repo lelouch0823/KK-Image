@@ -31,7 +31,7 @@ vi.mock('../cache-helpers.js', () => ({
   invalidateSpaceCaches: mocks.invalidateSpaceCaches,
 }));
 
-vi.mock('../../../../_shared/utils.js', () => ({
+vi.mock('../../../../../../_shared/utils.js', () => ({
   generateId: vi.fn(() => 'space-child-1'),
   generateShareToken: vi.fn(() => 'share-space'),
   getShareUrl: vi.fn(() => 'https://share/space'),

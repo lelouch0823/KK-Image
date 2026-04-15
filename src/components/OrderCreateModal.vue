@@ -37,6 +37,7 @@ import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { resolveSelectedVariantMainImageSrc } from '@/utils/product-image.js';
 import { ORDER_BOUND_SNAPSHOT_FIELDS } from '@/utils/order-binding-fields.js';
+import { parseJsonObject } from '@/utils/json.js';
 import Modal from '@/components/ui/Modal.vue';
 import OrderForm from '@/components/order/OrderForm.vue';
 import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
@@ -84,9 +85,7 @@ const handleProductSelect = (product) => {
 
   // Extract variant specs
   let options = variant.options_values || {};
-  if (typeof options === 'string') {
-    try { options = JSON.parse(options); } catch { options = {}; }
-  }
+  options = parseJsonObject(options, {});
 
   // Map option IDs to names using dimension_map
   const dimensionMap = product.dimension_map || {};

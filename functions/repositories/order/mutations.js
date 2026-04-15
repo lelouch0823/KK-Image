@@ -8,6 +8,7 @@
  */
 
 import { generateId, now } from '../../api/utils/id.js';
+import { inClause } from '../../api/utils/sql.js';
 import { assertOrderStatusTransition } from '../../api/utils/order-state-machine.js';
 import { chunkArray, executeBatchChunks } from '../../lib/db/batch.js';
 import { BadRequestError } from '../../lib/hono/errors.js';
@@ -19,7 +20,7 @@ export const ORDER_SHIPPED_VOID_GUARD_ERROR = 'cannot void order while shipped l
 export const ORDER_DELIVERED_COMPLETENESS_ERROR =
     'cannot mark order delivered until all line quantities are shipped';
 
-function getDeliveryStockDelta(oldStatus, newStatus, quantity) {
+function getDeliveryStockDelta(_oldStatus, _newStatus, _quantity) {
     return 0;
 }
 
@@ -77,6 +78,42 @@ function normalizeOrderLifecycleStatus(status) {
     const normalized = String(status || '').trim().toLowerCase();
     if (normalized === 'delivered') return 'fulfilled';
     return normalized;
+}
+
+async function assertSalesScopedFileIds(db, fileIds, salespersonId, { orderId = null } = {}) {
+    const normalizedIds = [...new Set((Array.isArray(fileIds) ? fileIds : []).filter(Boolean))];
+    if (!salespersonId || normalizedIds.length === 0) return;
+
+    const { results } = await db.prepare(
+        `SELECT
+            f.id,
+            f.created_by,
+            EXISTS(
+              SELECT 1
+              FROM order_files of
+              WHERE of.file_id = f.id
+            ) as linked_to_any_order,
+            EXISTS(
+              SELECT 1
+              FROM order_files of
+              WHERE of.file_id = f.id
+                AND of.order_id = ?
+            ) as linked_to_target_order
+         FROM files f
+         WHERE f.id IN ${inClause(normalizedIds)}`
+    ).bind(orderId || '', ...normalizedIds).all();
+
+    const rowsById = new Map((results || []).map((row) => [row.id, row]));
+    const invalidIds = normalizedIds.filter((fileId) => {
+        const row = rowsById.get(fileId);
+        if (!row) return true;
+        if (row.linked_to_target_order) return false;
+        return !(row.created_by === salespersonId && !row.linked_to_any_order);
+    });
+
+    if (invalidIds.length > 0) {
+        throw new Error(`Invalid sales file scope: ${invalidIds.join(', ')}`);
+    }
 }
 
 async function getOrderLineTotals(db, orderId) {
@@ -331,9 +368,12 @@ function buildInitialOrderLineProgress(status, orderedQty) {
 export async function create(
     db,
     timelineRepo,
-    { id, orderNo, salespersonId, data, status = 'pending', mainImageId, quantity = 1, fileIds = [], timeline, productId = null, variantId = null }
+    { id, orderNo, salespersonId, data, status = 'pending', mainImageId, quantity = 1, fileIds = [], timeline, productId = null, variantId = null, enforceSalesFileScope = false }
 ) {
     const timestamp = now();
+    if (enforceSalesFileScope) {
+        await assertSalesScopedFileIds(db, fileIds, salespersonId);
+    }
     const normalizedQuantity = normalizeQuantity(quantity);
     const normalizedStatus = normalizeOrderLifecycleStatus(status || 'pending') || 'pending';
     const orderData = JSON.stringify(data);
@@ -509,8 +549,12 @@ export async function updateComposite(db, {
     fileIds = undefined,
     forceStatusTransition = false,
     inventoryService = undefined,
+    enforceSalesFileScope = false,
 }) {
     const timestamp = now();
+    if (enforceSalesFileScope) {
+        await assertSalesScopedFileIds(db, fileIds, salespersonId, { orderId: id });
+    }
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
     const statements = [];
     const stockService = inventoryService || new InventoryService(db);

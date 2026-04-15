@@ -1,14 +1,15 @@
 import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { generatePrefixedId } from '../_shared/utils.js';
 
-function rowToWebhook(row) {
+function rowToWebhook(row, { includeSecret = false } = {}) {
   if (!row) return null;
 
   return {
     id: row.id,
     url: row.url,
     events: parseJsonArray(row.events, []),
-    secret: row.secret || null,
+    ...(includeSecret ? { secret: row.secret || null } : {}),
+    hasSecret: Boolean(row.secret),
     headers: parseJsonObject(row.headers, {}),
     enabled: Boolean(row.enabled),
     createdBy: row.created_by || null,
@@ -38,7 +39,7 @@ export class WebhookRepository {
       .bind(`%"${eventType}"%`)
       .all();
 
-    return (results || []).map(rowToWebhook).filter((row) => row.events.includes(eventType));
+    return (results || []).map((row) => rowToWebhook(row, { includeSecret: true })).filter((row) => row.events.includes(eventType));
   }
 
   async listAll() {
@@ -46,13 +47,18 @@ export class WebhookRepository {
       .prepare('SELECT * FROM webhooks ORDER BY created_at DESC')
       .all();
 
-    return (results || []).map(rowToWebhook);
+    return (results || []).map((row) => rowToWebhook(row));
   }
 
   async getById(id) {
     const row = await this.db.prepare('SELECT * FROM webhooks WHERE id = ?').bind(id).first();
 
     return rowToWebhook(row);
+  }
+
+  async getByIdWithSecret(id) {
+    const row = await this.db.prepare('SELECT * FROM webhooks WHERE id = ?').bind(id).first();
+    return rowToWebhook(row, { includeSecret: true });
   }
 
   async create({ url, events = [], secret = null, headers = {}, enabled = true, actorId = null }) {

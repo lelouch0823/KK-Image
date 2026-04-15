@@ -302,7 +302,7 @@ async function main() {
     // 执行各项检查
     await checkBasicPages();
     await checkStaticAssets();
-    const apiHealthy = await checkAPIHealth();
+    await checkAPIHealth();
     const token = await checkAuthentication();
     await checkAPIEndpoints(token);
     await checkEnvironmentConfig();

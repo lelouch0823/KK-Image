@@ -8,7 +8,7 @@
  */
 
 import { parseRepoPagination } from '../../api/utils/pagination.js';
-import { normalizeOrderStatusFilter } from '../../api/utils/constants.js';
+import { expandOrderStatusFilter } from '../../api/utils/constants.js';
 import { mapOrderDetail, mapOrderListItem } from './helpers.js';
 import {
     ORDER_LINE_PRIMARY_SNAPSHOT_JOIN,
@@ -145,10 +145,13 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
     let where = 'WHERE salesperson_id = ?';
     const params = [salespersonId];
 
-    const normalizedStatus = normalizeOrderStatusFilter(status);
-    if (normalizedStatus) {
+    const statusValues = expandOrderStatusFilter(status);
+    if (statusValues.length === 1) {
         where += ' AND status = ?';
-        params.push(normalizedStatus);
+        params.push(statusValues[0]);
+    } else if (statusValues.length > 1) {
+        where += ` AND status IN (${statusValues.map(() => '?').join(', ')})`;
+        params.push(...statusValues);
     }
 
     const countResult = await db
@@ -232,10 +235,13 @@ export async function listForAdmin(
         whereClause += ' AND o.customer_id = ?';
         bindParams.push(customerId);
     }
-    const normalizedStatus = normalizeOrderStatusFilter(status);
-    if (normalizedStatus) {
+    const statusValues = expandOrderStatusFilter(status);
+    if (statusValues.length === 1) {
         whereClause += ' AND o.status = ?';
-        bindParams.push(normalizedStatus);
+        bindParams.push(statusValues[0]);
+    } else if (statusValues.length > 1) {
+        whereClause += ` AND o.status IN (${statusValues.map(() => '?').join(', ')})`;
+        bindParams.push(...statusValues);
     }
     if (procurementStatus) {
         whereClause = appendOrderProgressStatusFilter(whereClause, bindParams, procurementStatus);

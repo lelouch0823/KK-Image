@@ -183,6 +183,7 @@ describe('WebhookRepository', () => {
         id: 'wh-1',
         url: 'https://example.com/a',
         events: ['purchase_receipt_recorded'],
+        hasSecret: true,
         secret: 'secret-a',
         headers: { 'X-Test': '1' },
         enabled: true,

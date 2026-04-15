@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { NotificationRepository } from '../../../../repositories/NotificationRepository.js';
-import { MSG } from '../../_shared/utils.js';
+import { MSG } from '../../../../_shared/utils.js';
 import { BadRequestError } from '../../errors.js';
 import { withCache } from '../../middleware/cache.js';
 import { requirePermission } from '../../middleware/auth.js';

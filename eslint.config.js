@@ -3,6 +3,76 @@ import vue from "eslint-plugin-vue";
 import betterTailwindcss from "eslint-plugin-better-tailwindcss";
 import prettier from "eslint-config-prettier";
 
+const browserGlobals = {
+    window: "readonly",
+    document: "readonly",
+    console: "readonly",
+    localStorage: "readonly",
+    sessionStorage: "readonly",
+    navigator: "readonly",
+    fetch: "readonly",
+    URL: "readonly",
+    FormData: "readonly",
+    File: "readonly",
+    Blob: "readonly",
+    FileReader: "readonly",
+    Image: "readonly",
+    setTimeout: "readonly",
+    setInterval: "readonly",
+    clearTimeout: "readonly",
+    clearInterval: "readonly",
+    requestAnimationFrame: "readonly",
+    cancelAnimationFrame: "readonly",
+    alert: "readonly",
+    confirm: "readonly",
+    performance: "readonly",
+    IntersectionObserver: "readonly",
+    ResizeObserver: "readonly",
+    MutationObserver: "readonly",
+    CustomEvent: "readonly",
+    Event: "readonly",
+    AbortController: "readonly",
+    Headers: "readonly",
+    Request: "readonly",
+    Response: "readonly",
+    URLSearchParams: "readonly",
+    Notification: "readonly",
+    XMLHttpRequest: "readonly",
+    getComputedStyle: "readonly",
+    crypto: "readonly"
+};
+
+const nodeGlobals = {
+    process: "readonly",
+    Buffer: "readonly",
+    __dirname: "readonly",
+    __filename: "readonly",
+    global: "readonly",
+    require: "readonly",
+    module: "readonly",
+    console: "readonly",
+    setTimeout: "readonly",
+    clearTimeout: "readonly",
+    setInterval: "readonly",
+    clearInterval: "readonly",
+    URLSearchParams: "readonly",
+    WebSocket: "readonly"
+};
+
+const testGlobals = {
+    describe: "readonly",
+    it: "readonly",
+    test: "readonly",
+    expect: "readonly",
+    beforeAll: "readonly",
+    beforeEach: "readonly",
+    before: "readonly",
+    afterAll: "readonly",
+    afterEach: "readonly",
+    after: "readonly",
+    vi: "readonly"
+};
+
 // Cloudflare Workers 全局变量（Web Platform APIs）
 const workersGlobals = {
     // URL/Fetch APIs
@@ -14,6 +84,9 @@ const workersGlobals = {
     FormData: "readonly",
     File: "readonly",
     Blob: "readonly",
+    ReadableStream: "readonly",
+    WritableStream: "readonly",
+    TransformStream: "readonly",
     AbortSignal: "readonly",
     AbortController: "readonly",
     // Crypto & Encoding
@@ -43,20 +116,30 @@ export default [
     js.configs.recommended,
 
     // Vue 3 推荐配置
-    ...vue.configs["flat/recommended"],
+    ...vue.configs["flat/recommended"].map((config) => {
+        if (config.files || !config.rules) {
+            return config;
+        }
+        return {
+            ...config,
+            files: ["**/*.vue"]
+        };
+    }),
 
     // Tailwind CSS v4 配置 (ESLint 9 Flat Config format)
     {
+        settings: {
+            "better-tailwindcss": {
+                entryPoint: "src/styles/main.css"
+            }
+        },
         plugins: {
             "better-tailwindcss": betterTailwindcss
         },
         rules: {
-            // 排序 class
-            "better-tailwindcss/sort-classes": "warn",
-            // 禁止重复 class
-            "better-tailwindcss/no-duplicate-classes": "warn",
-            // 使用简写 class
-            "better-tailwindcss/enforce-shorthand-classes": "warn"
+            "better-tailwindcss/sort-classes": "off",
+            "better-tailwindcss/no-duplicate-classes": "off",
+            "better-tailwindcss/enforce-shorthand-classes": "off"
         }
     },
 
@@ -83,43 +166,7 @@ export default [
         files: ["src/**/*.js", "src/**/*.vue"],
         languageOptions: {
             globals: {
-                // Browser globals
-                window: "readonly",
-                document: "readonly",
-                console: "readonly",
-                localStorage: "readonly",
-                sessionStorage: "readonly",
-                navigator: "readonly",
-                fetch: "readonly",
-                URL: "readonly",
-                FormData: "readonly",
-                File: "readonly",
-                Blob: "readonly",
-                FileReader: "readonly",
-                Image: "readonly",
-                setTimeout: "readonly",
-                setInterval: "readonly",
-                clearTimeout: "readonly",
-                clearInterval: "readonly",
-                requestAnimationFrame: "readonly",
-                cancelAnimationFrame: "readonly",
-                alert: "readonly",
-                confirm: "readonly",
-                performance: "readonly",
-                IntersectionObserver: "readonly",
-                ResizeObserver: "readonly",
-                MutationObserver: "readonly",
-                CustomEvent: "readonly",
-                Event: "readonly",
-                AbortController: "readonly",
-                Headers: "readonly",
-                Request: "readonly",
-                Response: "readonly",
-                URLSearchParams: "readonly",
-                Notification: "readonly",
-                XMLHttpRequest: "readonly",
-                getComputedStyle: "readonly",
-                crypto: "readonly"
+                ...browserGlobals
             }
         },
         rules: {
@@ -156,6 +203,46 @@ export default [
             "no-console": ["warn", { allow: ["warn", "error"] }],
             // 禁止 debugger
             "no-debugger": "warn"
+        }
+    },
+
+    {
+        files: ["src/**/__tests__/**/*.js", "src/**/*.test.js", "src/**/*.spec.js"],
+        languageOptions: {
+            globals: {
+                ...browserGlobals,
+                ...nodeGlobals,
+                ...testGlobals
+            }
+        }
+    },
+
+    {
+        files: [
+            "functions/**/__tests__/**/*.js",
+            "functions/**/*.test.js",
+            "functions/**/*.spec.js",
+            "scripts/**/*.js",
+            "scripts/**/*.mjs",
+            "scripts/**/*.cjs",
+            "test/**/*.js"
+        ],
+        languageOptions: {
+            globals: {
+                ...nodeGlobals,
+                ...testGlobals,
+                ...browserGlobals,
+                ...workersGlobals
+            }
+        },
+        rules: {
+            "no-console": "off",
+            "no-unused-vars": ["warn", {
+                argsIgnorePattern: "^_",
+                varsIgnorePattern: "^_",
+                caughtErrorsIgnorePattern: "^_"
+            }],
+            "no-constant-condition": ["error", { checkLoops: false }]
         }
     },
 

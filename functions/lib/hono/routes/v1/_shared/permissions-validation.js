@@ -1,4 +1,4 @@
-import { MSG } from '../../../_shared/utils.js';
+import { MSG } from '../../../../../_shared/utils.js';
 import { BadRequestError } from '../../../errors.js';
 import { findUnknownPolicyActions } from '../../../../authz/index.js';
 

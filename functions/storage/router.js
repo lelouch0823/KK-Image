@@ -15,8 +15,8 @@ import { safeJsonParse } from './_shared/utils.js';
  * 默认路由规则
  */
 const DEFAULT_RULES = [
-  // 小于 5MB 的文件使用 Telegram（免费无限）
-  { condition: 'size < 5242880', storage: 'telegram' },
+  // 小文件默认也优先使用 R2，避免隐式依赖可选提供者
+  { condition: 'size < 5242880', storage: 'r2' },
   // 视频文件使用 R2（适合大文件）
   { condition: 'type startsWith video/', storage: 'r2' },
   // 音频文件使用 R2
@@ -62,7 +62,7 @@ export class SmartRouter {
 
     // 如果是单一模式或冗余模式，直接使用主存储
     if (mode === 'single' || mode === 'redundant') {
-      return this.env.STORAGE_PRIMARY || this.env.STORAGE_PROVIDER || 'telegram';
+      return this.env.STORAGE_PRIMARY || this.env.STORAGE_PROVIDER || 'r2';
     }
 
     // 智能模式：根据规则选择
@@ -77,7 +77,7 @@ export class SmartRouter {
     }
 
     // 回退到主存储
-    return this.env.STORAGE_PRIMARY || 'telegram';
+    return this.env.STORAGE_PRIMARY || this.env.STORAGE_PROVIDER || 'r2';
   }
 
   /**

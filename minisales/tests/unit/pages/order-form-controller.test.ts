@@ -8,7 +8,18 @@ import {
 describe('order form controller', () => {
   it('builds a create payload with fileIds and selected product binding', () => {
     const payload = buildCreatePayload({
-      form: { name: 'Poster', brand: 'KK', quantity: 2, remark: '' },
+      form: {
+        name: 'Poster',
+        brand: 'KK',
+        series: '',
+        sku: '',
+        size: '',
+        color: '',
+        material: '',
+        remark: '',
+        deadline: '',
+        quantity: 2,
+      },
       uploads: [
         { id: 'f-1', status: 'done' },
         { id: 'f-2', status: 'done' },
@@ -83,6 +94,41 @@ describe('order form controller', () => {
           isLocal: false,
         },
       ],
+    });
+  });
+
+  it('normalizes sparse prefill values back into complete form strings', () => {
+    const state = buildFormPrefillState(
+      {
+        name: 'Existing',
+        brand: '',
+        series: '',
+        sku: '',
+        size: '',
+        color: '',
+        material: '',
+        remark: '',
+        deadline: '',
+        quantity: 1,
+      },
+      {
+        name: undefined,
+        brand: undefined,
+        quantity: undefined,
+      }
+    );
+
+    expect(state.form).toEqual({
+      name: 'Existing',
+      brand: '',
+      series: '',
+      sku: '',
+      size: '',
+      color: '',
+      material: '',
+      remark: '',
+      deadline: '',
+      quantity: 1,
     });
   });
 });

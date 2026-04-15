@@ -3,7 +3,7 @@
  * 将数据库记录转换为 API 响应格式
  */
 
-import { getShareUrl, getFileUrl } from '../../../_shared/utils.js';
+import { getShareUrl, getFileUrl } from '../../../../../_shared/utils.js';
 import { parseJsonArray, parseJsonObject } from '../../../../../api/utils/json.js';
 import { normalizeVariantOptions } from '../../../../../lib/utils/variant-meta.js';
 

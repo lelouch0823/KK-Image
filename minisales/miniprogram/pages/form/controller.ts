@@ -25,8 +25,21 @@ export interface BoundSalesProductValue {
   variantId?: string;
 }
 
+export interface OrderFormState {
+  name: string;
+  brand: string;
+  series: string;
+  sku: string;
+  size: string;
+  color: string;
+  material: string;
+  remark: string;
+  deadline: string;
+  quantity: number;
+}
+
 interface BuildCreatePayloadInput {
-  form: OrderFormValue;
+  form: OrderFormState;
   uploads: OrderFormUpload[];
   boundProduct?: BoundSalesProductValue | null;
 }
@@ -40,6 +53,10 @@ interface FormPrefillInput extends OrderFormValue, BoundSalesProductValue {
 function toQuantity(value: unknown): number {
   const next = Number(value || 1);
   return Number.isFinite(next) && next > 0 ? next : 1;
+}
+
+function toFormText(value: unknown): string {
+  return typeof value === 'string' ? value : '';
 }
 
 export function buildCreatePayload({ form, uploads, boundProduct }: BuildCreatePayloadInput) {
@@ -66,10 +83,17 @@ export function canSubmitOrderForm(uploads: OrderFormUpload[]): boolean {
   return !(uploads || []).some((item) => item.status === 'loading');
 }
 
-export function buildFormPrefillState(form: OrderFormValue, prefill: FormPrefillInput) {
+export function buildFormPrefillState(form: OrderFormState, prefill: FormPrefillInput) {
   const nextForm = {
-    ...form,
-    ...prefill,
+    name: toFormText(prefill.name ?? form.name),
+    brand: toFormText(prefill.brand ?? form.brand),
+    series: toFormText(prefill.series ?? form.series),
+    sku: toFormText(prefill.sku ?? form.sku),
+    size: toFormText(prefill.size ?? form.size),
+    color: toFormText(prefill.color ?? form.color),
+    material: toFormText(prefill.material ?? form.material),
+    remark: toFormText(prefill.remark ?? form.remark),
+    deadline: toFormText(prefill.deadline ?? form.deadline),
     quantity: toQuantity(prefill.quantity ?? form.quantity),
   };
 

@@ -5,7 +5,7 @@ import { validateProductVariantBinding } from '../../../../../api/utils/validati
 import {
     canTransitionOrderStatus
 } from '../../../../../api/utils/order-state-machine.js';
-import { MSG, ORDER_STATUSES } from '../../../_shared/utils.js';
+import { MSG, ORDER_STATUSES } from '../../../../../_shared/utils.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
 import { assertAdminFull, assertForceStatusTransitionAllowed } from './authz-helpers.js';
 import { requireEntity } from '../../../_shared/route-helpers.js';

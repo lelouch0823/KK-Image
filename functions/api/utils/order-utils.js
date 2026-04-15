@@ -218,6 +218,7 @@ export async function processOrderUpdate(options) {
       status: statusChanged ? updates.status : undefined,
       fileIds: filesChanged ? fileChange.newFileIds : undefined,
       forceStatusTransition: Boolean(options.forceStatusTransition),
+      enforceSalesFileScope: Boolean(options.enforceSalesFileScope),
     });
 
     const timelineRepo = new OrderTimelineRepository(env.DB);

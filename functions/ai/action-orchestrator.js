@@ -27,18 +27,19 @@ function buildSubmittedActionPayload(session, adapter, created = {}) {
 }
 
 export class AIActionOrchestrator {
-  constructor({ sessionStore, getActionAdapter, submitters = {}, slotResolvers = {}, extractActionSlots = () => ({}) }) {
+  constructor({ sessionStore, getActionAdapter, submitters = {}, slotResolvers = {}, extractActionSlots = () => ({}), canAccessAction = async () => true }) {
     this.sessionStore = sessionStore;
     this.getActionAdapter = getActionAdapter;
     this.submitters = submitters;
     this.slotResolvers = slotResolvers;
     this.extractActionSlots = extractActionSlots;
+    this.canAccessAction = canAccessAction;
   }
 
-  async advance({ userId, text = '', slots = {}, confirmation = false }) {
+  async advance({ userId, user = null, text = '', slots = {}, confirmation = false }) {
     const activeSession = await this.sessionStore.getLatestActiveSession(userId);
     if (activeSession) {
-      return this.#resumeSession({ session: activeSession, text, confirmation });
+      return this.#resumeSession({ session: activeSession, user, text, confirmation });
     }
 
     const intent = detectCreateIntent(text);
@@ -46,6 +47,15 @@ export class AIActionOrchestrator {
 
     const adapter = this.getActionAdapter(intent.entityType);
     if (!adapter) return null;
+    if (!(await this.canAccessAction(user, adapter))) {
+      return {
+        kind: 'action_denied',
+        payload: {
+          entityType: adapter.entityType,
+          requiredPermission: adapter.requiredPermission || null,
+        },
+      };
+    }
 
     const extractedSlots = this.extractActionSlots(adapter.entityType, text);
     const mergedSlots = await this.#applySlotResolvers(adapter.entityType, { ...extractedSlots, ...slots });
@@ -96,10 +106,19 @@ export class AIActionOrchestrator {
     };
   }
 
-  async #resumeSession({ session, text, confirmation }) {
+  async #resumeSession({ session, user, text, confirmation }) {
     const adapter = this.getActionAdapter(session.entity_type);
     if (!adapter) {
       throw new Error(`Missing action adapter for ${session.entity_type}`);
+    }
+    if (!(await this.canAccessAction(user, adapter))) {
+      return {
+        kind: 'action_denied',
+        payload: {
+          entityType: adapter.entityType,
+          requiredPermission: adapter.requiredPermission || null,
+        },
+      };
     }
     const slots = parseJsonObject(session.slots_json, {});
     const preview = parseJsonObject(session.preview_json, {});

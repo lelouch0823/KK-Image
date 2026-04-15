@@ -13,7 +13,7 @@
  */
 
 import { Hono } from 'hono';
-import { getChinaDateStr } from '../../_shared/utils.js';
+import { getChinaDateStr } from '../../../../_shared/utils.js';
 import { GoodsOverviewRepository } from '../../../../repositories/GoodsOverviewRepository.js';
 import { withCache } from '../../middleware/cache.js';
 import { requirePermission } from '../../middleware/auth.js';

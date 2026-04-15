@@ -168,6 +168,7 @@ export const MSG = {
       production: '生产中',
       shipping: '在途',
       fulfilled: '履约完成',
+      delivered: '履约完成',
       completed: '已完成',
       rejected: '已驳回',
       void: '已作废',

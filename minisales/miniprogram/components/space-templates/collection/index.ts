@@ -1,6 +1,6 @@
 Component({
     properties: {
-        space: { type: Object, value: null },
+        space: { type: Object, value: undefined },
     },
     methods: {
         onSubspaceTap(e: WechatMiniprogram.CustomEvent) {

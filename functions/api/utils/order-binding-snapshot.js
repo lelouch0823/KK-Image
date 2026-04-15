@@ -1,16 +1,11 @@
+import { parseJsonObject } from './json.js';
+
 const COLOR_LABELS = new Set(['color', '颜色', '顏色']);
 const MATERIAL_LABELS = new Set(['material', '材质', '材質']);
 
 function parseOptionsValues(optionsValues) {
   if (!optionsValues) return {};
-  if (typeof optionsValues === 'string') {
-    try {
-      return JSON.parse(optionsValues) || {};
-    } catch {
-      return {};
-    }
-  }
-  return typeof optionsValues === 'object' ? optionsValues : {};
+  return parseJsonObject(optionsValues, {});
 }
 
 export function buildOrderBindingSnapshot({ product, variant, fallback = {} } = {}) {

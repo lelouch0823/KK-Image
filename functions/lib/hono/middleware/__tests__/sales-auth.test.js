@@ -10,7 +10,7 @@ vi.mock('../../../../api/utils/salesperson-auth.js', () => ({
 }));
 
 import { salesAuthMiddleware } from '../sales-auth.js';
-import { MSG } from '../../_shared/utils.js';
+import { MSG } from '../../../../_shared/utils.js';
 
 const createApp = () => {
   const app = new Hono();

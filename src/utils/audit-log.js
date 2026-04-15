@@ -1,11 +1,9 @@
+import { safeParseJson } from '@/utils/json.js';
+
 export function parseAuditJson(value, fallback = null) {
   if (!value) return fallback;
   if (typeof value === 'object') return value;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
+  return safeParseJson(value, fallback);
 }
 
 export function formatAuditSummary(row = {}) {

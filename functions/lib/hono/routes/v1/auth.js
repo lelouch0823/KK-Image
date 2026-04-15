@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { LoginSchema, TokenSchema } from '../../schemas/user.js';
-import { generateJWT, ADMIN_AUTH_COOKIE, verifyTurnstile, MSG } from '../../_shared/utils.js';
+import { generateJWT, ADMIN_AUTH_COOKIE, verifyTurnstile, MSG } from '../../../../_shared/utils.js';
 import { normalizeUserContext } from '../../_shared/auth-context.js';
 import { loginRateLimitMiddleware } from '../../middleware/rateLimit.js';
 import {
@@ -32,7 +32,10 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', LoginSchema), as
   if (lockoutRes) return lockoutRes;
 
   // Turnstile 验证（如果配置）
-  if (env.TURNSTILE_SECRET_KEY && turnstileToken) {
+  if (env.TURNSTILE_SECRET_KEY) {
+    if (!turnstileToken) {
+      return c.json({ success: false, error: MSG.AUTH.VERIFY_FAILED }, 400);
+    }
     const isValid = await verifyTurnstile(turnstileToken, env.TURNSTILE_SECRET_KEY);
     if (!isValid) {
       return c.json({ success: false, error: MSG.AUTH.VERIFY_FAILED }, 400);

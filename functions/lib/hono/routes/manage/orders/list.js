@@ -4,6 +4,7 @@ import { OrderStatsRepository } from '../../../../../repositories/OrderStatsRepo
 import { mapOrderListItem } from '../../../../../repositories/order/helpers.js';
 import { parseJsonObject } from '../../../../../api/utils/json.js';
 import {
+    expandOrderStatusFilter,
     MSG,
     ORDER_DELIVERY_STATUSES,
     ORDER_FILTER_STATUSES,
@@ -13,7 +14,7 @@ import {
     normalizeOrderProcurementStatus,
     getChinaDayStart,
     getChinaDateStr,
-} from '../../../_shared/utils.js';
+} from '../../../../../_shared/utils.js';
 import { parsePagination } from '../../../_shared/route-helpers.js';
 import { withCache } from '../../../middleware/cache.js';
 import {
@@ -147,10 +148,13 @@ app.get('/export', async (c) => {
         whereClause += ' AND o.salesperson_id = ?';
         bindParams.push(salespersonId);
     }
-    const normalizedStatus = normalizeOrderStatusFilter(status);
-    if (normalizedStatus) {
+    const statusValues = expandOrderStatusFilter(status);
+    if (statusValues.length === 1) {
         whereClause += ' AND o.status = ?';
-        bindParams.push(normalizedStatus);
+        bindParams.push(statusValues[0]);
+    } else if (statusValues.length > 1) {
+        whereClause += ` AND o.status IN (${statusValues.map(() => '?').join(', ')})`;
+        bindParams.push(...statusValues);
     }
     whereClause = appendOrderProgressStatusFilter(
         whereClause,
@@ -164,7 +168,7 @@ app.get('/export', async (c) => {
     );
     whereClause = appendOrderProductSearchFilter(whereClause, bindParams, search);
 
-    const { DateUtils } = await import('../../../_shared/utils.js');
+    const { DateUtils } = await import('../../../../../_shared/utils.js');
     if (fromDate) {
         whereClause += ' AND o.created_at >= ?';
         bindParams.push(DateUtils.parseChinaDate(fromDate));
@@ -214,7 +218,7 @@ app.get('/export', async (c) => {
         return [
             escapeCSV(o.order_no),
             escapeCSV(data.name || o.snapshot_name || ''),
-            escapeCSV(MSG.ORDER.STATUS?.[o.status] || o.status),
+            escapeCSV(MSG.ORDER.STATUS?.[mapped.status] || MSG.ORDER.STATUS?.[o.status] || o.status),
             escapeCSV(MSG.ORDER.FULFILLMENT_STATUS?.[mapped.fulfillmentStatus] || mapped.fulfillmentStatus),
             escapeCSV(MSG.ORDER.DELIVERY_STATUS?.[mapped.deliveryStatus] || mapped.deliveryStatus),
             escapeCSV(Number(o.line_returned_qty || 0)),

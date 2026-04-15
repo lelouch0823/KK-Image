@@ -14,6 +14,13 @@ function withData<T, U>(result: SalesRequestResult<T>, data: U | null): SalesReq
     };
 }
 
+function withoutData<T, U>(result: SalesRequestResult<T>): SalesRequestResult<U> {
+    return {
+        ...result,
+        data: null,
+    };
+}
+
 export interface SalesProfile {
     id: string;
     name: string;
@@ -40,7 +47,7 @@ export async function getCurrentSalesProfile(
     });
 
     if (!result.success || !result.data) {
-        return withData(result, null);
+        return withoutData(result);
     }
 
     return withData(result, {

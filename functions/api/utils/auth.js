@@ -53,8 +53,14 @@ class SimpleJWT {
     const aBytes = encoder.encode(a);
     const bBytes = encoder.encode(b);
 
-    // 使用 Cloudflare Workers 原生的 timingSafeEqual API
-    return crypto.subtle.timingSafeEqual(aBytes, bBytes);
+    if (crypto.subtle.timingSafeEqual) {
+      return crypto.subtle.timingSafeEqual(aBytes, bBytes);
+    }
+    let mismatch = 0;
+    for (let i = 0; i < aBytes.length; i += 1) {
+      mismatch |= aBytes[i] ^ bBytes[i];
+    }
+    return mismatch === 0;
   }
 
   /**
@@ -119,6 +125,32 @@ class SimpleJWT {
     // 转换为 URL-safe 格式
     return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
+}
+
+export async function generateScopedAccessToken(payload, env, expiresIn = 300) {
+  if (!env?.JWT_SECRET) {
+    throw new Error(MSG.AUTH.JWT_SECRET_MISSING);
+  }
+  const now = Math.floor(Date.now() / 1000);
+  return SimpleJWT.encode(
+    {
+      ...payload,
+      iat: now,
+      exp: now + expiresIn,
+    },
+    env.JWT_SECRET
+  );
+}
+
+export async function verifyScopedAccessToken(token, env, expectedType = null) {
+  if (!env?.JWT_SECRET) {
+    throw new Error(MSG.AUTH.JWT_SECRET_MISSING);
+  }
+  const payload = await SimpleJWT.decode(token, env.JWT_SECRET);
+  if (expectedType && payload?.type !== expectedType) {
+    throw new Error(MSG.AUTH.FORBIDDEN);
+  }
+  return payload;
 }
 
 // 验证 API Key

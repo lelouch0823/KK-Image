@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
-import { getChinaDayStart } from '../../_shared/utils.js';
+import { getChinaDayStart } from '../../../../_shared/utils.js';
 import { StatsRepository } from '../../../../repositories/StatsRepository.js';
 
 const app = new Hono();

@@ -33,6 +33,13 @@ function withData<T, U>(result: SalesRequestResult<T>, data: U | null): SalesReq
     };
 }
 
+function withoutData<T, U>(result: SalesRequestResult<T>): SalesRequestResult<U> {
+    return {
+        ...result,
+        data: null,
+    };
+}
+
 function normalizeSpaceFile(raw: unknown) {
     const record = asRecord(raw);
     return {
@@ -48,7 +55,7 @@ function normalizeSpaceFile(raw: unknown) {
 
 function normalizeSalesSpace(raw: unknown) {
     const record = asRecord(raw);
-    const templateData = safeParseObject(record.template_data ?? record.templateData, {});
+    const templateData = safeParseObject<UnknownRecord>(record.template_data ?? record.templateData, {});
     const rawFiles = asArray(record.files).map(normalizeSpaceFile);
     const templateImages = safeParseArray<string>((templateData as UnknownRecord).images, [])
         .map((image, index) => ({
@@ -98,7 +105,7 @@ function normalizeSalesSpace(raw: unknown) {
             const subspace = asRecord(item);
             const subspaceTemplateData = safeParseObject(
                 subspace.template_data ?? subspace.templateData,
-                {}
+                {} as UnknownRecord
             );
             const subspaceTemplateImages = safeParseArray<string>(subspaceTemplateData.images, [])
                 .map((image) => resolveFilePath(image))
@@ -127,7 +134,7 @@ export async function loadSalesSpaces(
     });
 
     if (!result.success) {
-        return withData(result, null);
+        return withoutData(result);
     }
 
     return withData(result, Array.isArray(result.data) ? result.data.map(normalizeSalesSpace) : []);
@@ -143,7 +150,7 @@ export async function getSalesSpaceDetail(
     });
 
     if (!result.success || !result.data) {
-        return withData(result, null);
+        return withoutData(result);
     }
 
     return withData(result, normalizeSalesSpace(result.data));

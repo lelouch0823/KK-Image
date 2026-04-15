@@ -172,6 +172,161 @@ describe('manage order create route', () => {
     expect(waitUntil).toHaveBeenCalled();
   });
 
+  it('returns 400 when required order fields are missing', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          salespersonId: 'sales-1',
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.orderCreate).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when order status is invalid', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: 'Sample Product',
+          salespersonId: 'sales-1',
+          status: 'invalid-status',
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.orderCreate).not.toHaveBeenCalled();
+  });
+
+  it('rejects create order when bound product is archived', async () => {
+    const error = new Error('product must be active');
+    error.statusCode = 400;
+    mocks.validateProductVariantBinding.mockRejectedValueOnce(error);
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: 'Sample Product',
+          salespersonId: 'sales-1',
+          productId: 'p-1',
+          variantId: 'v-1',
+          quantity: 1,
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.orderCreate).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
+  });
+
+  it('rejects create order when bound variant is archived', async () => {
+    const error = new Error('variant must be active');
+    error.statusCode = 400;
+    mocks.validateProductVariantBinding.mockRejectedValueOnce(error);
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: 'Sample Product',
+          salespersonId: 'sales-1',
+          productId: 'p-1',
+          variantId: 'v-1',
+          quantity: 1,
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.orderCreate).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
+  });
+
+  it('continues order creation when file archiving fails', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mocks.ensureOrderFolder.mockRejectedValueOnce(new Error('folder unavailable'));
+
+    try {
+      const app = createApp();
+      const res = await app.request(
+        'http://localhost/api/manage/orders',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productName: 'Sample Product',
+            salespersonId: 'sales-1',
+            quantity: 1,
+            fileIds: ['file-1'],
+          }),
+        },
+        { DB: {} },
+        { waitUntil: vi.fn() }
+      );
+
+      expect(res.status).toBe(201);
+      expect(mocks.orderCreate).toHaveBeenCalledTimes(1);
+      expect(mocks.publish).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it('swallows duplicate outbox idempotency errors during create-side effect publish', async () => {
+    mocks.publish.mockRejectedValueOnce(
+      new Error('UNIQUE CONSTRAINT FAILED: domain_outbox.idempotency_key')
+    );
+
+    const app = createApp();
+    const waitUntil = vi.fn();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: 'Sample Product',
+          salespersonId: 'sales-1',
+          quantity: 1,
+        }),
+      },
+      { DB: {} },
+      { waitUntil }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalled();
+  });
+
   it('retries order-create side effects without duplicating the order after an outbox failure', async () => {
     const app = createApp();
     const commandState = new Map();

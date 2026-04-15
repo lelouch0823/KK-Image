@@ -19,8 +19,8 @@
     </div>
 
     <component
-      v-else-if="space"
       :is="spaceComponent"
+      v-else-if="space"
       :space="space"
       :get-subspace-href="getSubspaceHref"
     />
@@ -44,7 +44,7 @@ const SpaceProductDetail = defineAsyncComponent(
 const SpaceCollection = defineAsyncComponent(
   () => import('@/components/space/SpaceCollection.vue')
 );
-const SpaceDocument = defineAsyncComponent(() => import('@/components/space/SpaceMasonry.vue'));
+const SpaceDocument = defineAsyncComponent(() => import('@/components/space/SpaceDocument.vue'));
 
 const { t } = useI18n();
 const { requestSales } = useRequestAdapters();
@@ -64,8 +64,21 @@ const isActiveDetailRequest = (requestId, requestToken, requestSpaceId) => (
   currentSpaceId.value === requestSpaceId
 );
 
-const spaceComponent = computed(() => {
+const spaceComponentKey = computed(() => {
   switch (space.value?.template) {
+    case 'product':
+      return 'product';
+    case 'collection':
+      return 'collection';
+    case 'document':
+      return 'document';
+    default:
+      return 'gallery';
+  }
+});
+
+const spaceComponent = computed(() => {
+  switch (spaceComponentKey.value) {
     case 'product':
       return SpaceProductDetail;
     case 'collection':

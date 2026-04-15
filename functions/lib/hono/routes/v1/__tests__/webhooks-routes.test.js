@@ -14,7 +14,7 @@ vi.mock('../../../middleware/auth.js', () => ({
   },
 }));
 
-vi.mock('../../../_shared/utils.js', () => ({
+vi.mock('../../../../../_shared/utils.js', () => ({
   generatePrefixedId: mocks.generatePrefixedId,
   generateHmacSignature: mocks.generateHmacSignature,
   MSG: {

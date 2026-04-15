@@ -17,6 +17,8 @@ export interface SalesRequestOptions {
   header?: Record<string, string>;
 }
 
+type RequestData = WechatMiniprogram.IAnyObject | string | ArrayBuffer | undefined;
+
 function getToken(): string | null {
   return wx.getStorageSync(STORAGE_KEYS.TOKEN) || null;
 }
@@ -30,6 +32,19 @@ function toRecord(value: unknown): Record<string, unknown> {
 
 function toStringOrNull(value: unknown): string | null {
   return typeof value === 'string' ? value : null;
+}
+
+function toRequestData(value: unknown): RequestData {
+  if (typeof value === 'undefined') {
+    return undefined;
+  }
+  if (typeof value === 'string' || value instanceof ArrayBuffer) {
+    return value;
+  }
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as WechatMiniprogram.IAnyObject;
+  }
+  return undefined;
 }
 
 export async function salesRequest<T>({
@@ -49,7 +64,7 @@ export async function salesRequest<T>({
     wx.request({
       url: `${API_BASE_URL}${path}`,
       method: method as any,
-      data,
+      data: toRequestData(data),
       header: requestHeader,
       success: (res) => {
         const payload = toRecord(res.data);
