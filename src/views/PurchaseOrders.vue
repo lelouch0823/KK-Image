@@ -93,895 +93,34 @@
           <!-- ==================== 详情面板 (弹窗) ==================== -->
           <Teleport to="body">
             <transition name="fade">
-              <div
-                v-if="showDetail"
-                data-testid="purchase-order-detail-shell"
-                class="fixed inset-0 z-50 flex items-center justify-center p-4"
-              >
-                <!-- 背景遮罩 -->
-                <div
-                  class="absolute inset-0 bg-(--color-overlay-dim) backdrop-blur-sm"
-                  @click="showDetail = false"
-                ></div>
-                <!-- 面板 -->
-                <div
-                  class="relative flex w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-(--border-color)/70 bg-(--color-modal-bg) shadow-[0_32px_90px_-45px_rgba(15,23,42,0.4)]"
-                  style="max-height: calc(100vh - 3rem)"
-                >
-                  <div
-                    data-testid="purchase-order-detail-summary"
-                    class="relative flex shrink-0 items-center justify-between border-b border-(--border-color)/70 bg-(--bg-card) px-6 py-5"
-                  >
-                    <div class="min-w-0">
-                      <p
-                        class="text-xs font-semibold tracking-[0.18em] text-(--text-muted) uppercase"
-                      >
-                        Purchase Order Chain
-                      </p>
-                      <h2 class="truncate text-lg font-semibold text-(--text-main)">
-                        {{ detail?.po_no || t('purchaseOrder.detail.title') || '采购单详情' }}
-                      </h2>
-                      <span
-                        v-if="detail?.status"
-                        data-testid="purchase-order-detail-status-chip"
-                        class="mt-2 inline-flex items-center rounded-full border border-(--border-color)/65 px-2.5 py-0.5 text-xs font-semibold"
-                        :style="{
-                          color: statusConfig[detail.status]?.color || 'inherit',
-                          backgroundColor: statusConfig[detail.status]?.bg || 'var(--bg-muted)',
-                        }"
-                      >
-                        {{ statusConfig[detail.status]?.label || detail.status }}
-                      </span>
-                    </div>
-                    <div class="relative flex items-center gap-2">
-                      <StatusBadge
-                        v-if="
-                          detail?.display_status ||
-                          detail?.ordered_qty ||
-                          detail?.received_qty ||
-                          detail?.cancelled_qty
-                        "
-                        :variant="getProgressStatusVariant(detail?.display_status)"
-                        class="hidden sm:inline-flex"
-                      >
-                        {{ getProgressStatusLabel(detail?.display_status) }}
-                      </StatusBadge>
-                      <button
-                        class="cursor-pointer rounded-xl p-2 text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
-                        @click="showDetail = false"
-                      >
-                        <AppIcon name="x-mark" class="size-5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="flex h-full min-h-0 flex-col">
-                    <div
-                      v-if="_detailLoading"
-                      class="border-b border-(--border-color) bg-(--bg-muted)/55 px-6 py-4"
-                    >
-                      <div class="flex items-start gap-4">
-                        <div
-                          class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full"
-                        >
-                          <AppIcon name="spinner" class="size-5 animate-spin" />
-                        </div>
-                        <div class="min-w-0">
-                          <p class="text-sm font-semibold text-(--text-main)">
-                            {{ t('purchaseOrder.detail.loadingTitle', '正在刷新采购单详情') }}
-                          </p>
-                          <p class="mt-1 text-sm text-(--text-secondary)">
-                            {{
-                              t(
-                                'purchaseOrder.detail.loadingBody',
-                                '先展示详情容器，完整采购单信息会在后台补齐。'
-                              )
-                            }}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      v-else-if="!detail"
-                      role="alert"
-                      class="flex min-h-[240px] items-center justify-center px-6 py-10 text-center text-(--text-secondary)"
-                    >
-                      <div>
-                        <p class="text-sm font-medium text-(--text-main)">
-                          {{ t('purchaseOrder.error.notFound') }}
-                        </p>
-                        <p class="mt-2 text-sm">
-                          {{
-                            t(
-                              'purchaseOrder.detail.loadFailedHint',
-                              '未能加载采购单详情，请关闭后重试。'
-                            )
-                          }}
-                        </p>
-                        <button
-                          type="button"
-                          data-testid="purchase-order-detail-retry"
-                          class="bg-primary mt-4 rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) transition-colors hover:bg-primary/90"
-                          @click="retryDetail"
-                        >
-                          {{ t('common.retry') }}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div v-else class="flex-1 space-y-6 overflow-y-auto p-6">
-                      <section
-                        data-testid="purchase-order-detail-hero"
-                        class="grid gap-3 md:grid-cols-2 xl:grid-cols-4"
-                      >
-                        <article
-                          v-for="card in detailSummaryCards"
-                          :key="card.key"
-                          class="rounded-[1.25rem] border border-(--border-color)/60 bg-(--bg-card) p-4 shadow-none"
-                        >
-                          <p
-                            class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase"
-                          >
-                            {{ card.label }}
-                          </p>
-                          <div
-                            class="mt-2 font-mono text-xl font-semibold text-(--text-main) tabular-nums"
-                          >
-                            {{ card.value }}
-                          </div>
-                          <p class="mt-1 text-xs leading-5 text-(--text-secondary)">
-                            {{ card.hint }}
-                          </p>
-                        </article>
-                      </section>
-                      <div class="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(18rem,0.95fr)]">
-                        <!-- 状态可视化 (Stepper) -->
-                        <div
-                          data-testid="purchase-order-detail-progress"
-                          class="rounded-[1.5rem] border border-(--border-color)/65 bg-(--bg-card) p-5 shadow-none"
-                        >
-                          <div class="mb-4 flex items-start justify-between gap-3">
-                            <div>
-                              <p
-                                class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase"
-                              >
-                                Workflow
-                              </p>
-                              <h3 class="text-sm font-semibold text-(--text-main)">
-                                {{ t('purchaseOrder.detail.title', '采购单详情') }}
-                              </h3>
-                            </div>
-                            <div class="flex flex-col items-end gap-1.5">
-                              <span
-                                class="rounded-full bg-(--bg-muted) px-2.5 py-1 text-xs font-medium text-(--text-secondary)"
-                              >
-                                {{ statusConfig[detail.status]?.label || detail.status }}
-                              </span>
-                              <template
-                                v-if="
-                                  detail.display_status ||
-                                  detail.ordered_qty ||
-                                  detail.received_qty ||
-                                  detail.cancelled_qty
-                                "
-                              >
-                                <StatusBadge
-                                  data-testid="purchase-order-detail-progress-badge"
-                                  :variant="getProgressStatusVariant(detail.display_status)"
-                                  class="text-[10px]"
-                                >
-                                  {{ getProgressStatusLabel(detail.display_status) }}
-                                </StatusBadge>
-                                <span
-                                  data-testid="purchase-order-detail-progress-summary"
-                                  class="text-right text-[11px] text-(--text-secondary)"
-                                >
-                                  {{ buildReceiptProgressSummary(detail) }}
-                                </span>
-                              </template>
-                            </div>
-                          </div>
-                          <div class="relative flex items-center justify-between">
-                            <div
-                              class="absolute top-1/2 left-0 h-0.5 w-full -translate-y-1/2 bg-(--border-color)"
-                            ></div>
-                            <div
-                              class="bg-primary absolute top-1/2 left-0 h-0.5 -translate-y-1/2 transition-all duration-500"
-                              :style="{ width: getStepperProgress(stepsList, detail.status) }"
-                            ></div>
-
-                            <div
-                              v-for="step in stepsList"
-                              :key="step.value"
-                              class="relative z-10 flex flex-col items-center gap-2"
-                            >
-                              <div
-                                class="flex size-7 items-center justify-center rounded-full border-2 transition-colors duration-300"
-                                :class="getStepIconClasses(stepsList, detail.status, step.value)"
-                              >
-                                <AppIcon
-                                  v-if="isStepCompleted(stepsList, detail.status, step.value)"
-                                  name="check"
-                                  class="size-3.5 text-(--text-inverse)"
-                                  stroke-width="3"
-                                />
-                                <div
-                                  v-else-if="detail.status === step.value"
-                                  class="bg-primary size-2 rounded-full"
-                                ></div>
-                              </div>
-                              <span
-                                class="text-center text-xs font-medium"
-                                :class="
-                                  detail.status === step.value
-                                    ? 'text-(--text-main)'
-                                    : isStepCompleted(stepsList, detail.status, step.value)
-                                      ? 'text-(--text-main)'
-                                      : 'text-(--text-muted)'
-                                "
-                              >
-                                {{ step.label }}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- 费用信息 -->
-                        <div
-                          data-testid="purchase-order-detail-cost"
-                          class="rounded-[1.5rem] border border-(--border-color)/65 bg-(--bg-card) p-5 shadow-none"
-                        >
-                          <div class="mb-3 flex items-start justify-between gap-3">
-                            <div>
-                              <p
-                                class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase"
-                              >
-                                Cost Summary
-                              </p>
-                              <h3 class="text-sm font-semibold text-(--text-main)">
-                                {{ t('purchaseOrder.detail.costInfo') }}
-                              </h3>
-                            </div>
-                            <div class="flex flex-wrap items-center justify-end gap-2">
-                              <span
-                                class="rounded-full border border-(--border-color) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)"
-                              >
-                                {{ detail.currency || 'CNY' }}
-                              </span>
-                              <span
-                                class="rounded-full border border-(--border-color) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)"
-                              >
-                                {{
-                                  detail.allocation_method === 'by_value'
-                                    ? t('purchaseOrder.form.byValue')
-                                    : t('purchaseOrder.form.byQuantity')
-                                }}
-                              </span>
-                              <button
-                                type="button"
-                                data-testid="purchase-order-open-cost-modal"
-                                class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-(--border-color) bg-(--bg-card)/85 px-3 py-1.5 text-xs font-medium text-(--text-main) transition-colors hover:bg-(--bg-hover)"
-                                @click="openCostModal"
-                              >
-                                <AppIcon name="pencil-square" class="size-3.5" />
-                                {{ t('purchaseOrder.action.settle', '填写实际费用') }}
-                              </button>
-                            </div>
-                          </div>
-                          <div class="grid grid-cols-2 gap-3">
-                            <div class="rounded-xl bg-(--bg-muted)/55 p-3">
-                              <div class="text-xs text-(--text-secondary)">
-                                {{ t('purchaseOrder.form.estimatedShipping') }}
-                              </div>
-                              <div
-                                class="mt-1 font-mono text-base font-semibold text-(--text-main) tabular-nums"
-                              >
-                                {{
-                                  formatPurchaseCurrency(
-                                    detail.estimated_shipping_cost,
-                                    detail.currency
-                                  )
-                                }}
-                              </div>
-                            </div>
-                            <div class="rounded-xl bg-(--bg-muted)/55 p-3">
-                              <div class="text-xs text-(--text-secondary)">
-                                {{ t('purchaseOrder.form.estimatedTariff') }}
-                              </div>
-                              <div
-                                class="mt-1 font-mono text-base font-semibold text-(--text-main) tabular-nums"
-                              >
-                                {{
-                                  formatPurchaseCurrency(
-                                    detail.estimated_tariff_cost,
-                                    detail.currency
-                                  )
-                                }}
-                              </div>
-                            </div>
-                            <div class="rounded-xl bg-(--bg-muted)/40 p-3">
-                              <div class="text-xs text-(--text-secondary)">
-                                {{ t('purchaseOrder.table.actualShipping') }}
-                              </div>
-                              <div
-                                class="mt-1 font-mono text-base font-semibold text-(--text-main) tabular-nums"
-                              >
-                                {{
-                                  formatPurchaseCurrency(
-                                    detail.actual_shipping_cost,
-                                    detail.currency
-                                  )
-                                }}
-                              </div>
-                            </div>
-                            <div class="rounded-xl bg-(--bg-muted)/40 p-3">
-                              <div class="text-xs text-(--text-secondary)">
-                                {{ t('purchaseOrder.table.actualTariff') }}
-                              </div>
-                              <div
-                                class="mt-1 font-mono text-base font-semibold text-(--text-main) tabular-nums"
-                              >
-                                {{
-                                  formatPurchaseCurrency(detail.actual_tariff_cost, detail.currency)
-                                }}
-                              </div>
-                            </div>
-                          </div>
-                          <p class="mt-3 text-xs leading-5 text-(--text-secondary)">
-                            {{
-                              t(
-                                'purchaseOrder.ui.costFallbackHint',
-                                '未填写实际费用时，成本分摊会回退使用预估运费与预估关税。'
-                              )
-                            }}
-                          </p>
-                        </div>
-                      </div>
-
-                      <!-- 明细列表 -->
-                      <div
-                        data-testid="purchase-order-detail-items"
-                        class="rounded-[1.6rem] border border-(--border-color)/65 bg-(--bg-card) p-4 shadow-none"
-                      >
-                        <div
-                          class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
-                        >
-                          <div>
-                            <p
-                              class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase"
-                            >
-                              Line Items
-                            </p>
-                            <h3 class="mt-1 text-sm font-semibold text-(--text-main)">
-                              {{ t('purchaseOrder.detail.items') }} ({{
-                                detail.items?.length || 0
-                              }})
-                            </h3>
-                          </div>
-                          <div v-if="detail.status === 'draft'" class="flex items-center gap-2">
-                            <button
-                              type="button"
-                              class="border-primary/30 bg-primary/5 text-primary flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-primary/10"
-                              @click="openOrderPicker('detail')"
-                            >
-                              <AppIcon name="plus" class="size-3.5" />
-                              {{ t('purchaseOrder.action.linkOrders') }}
-                            </button>
-                            <button
-                              type="button"
-                              class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-(--border-color) px-2.5 py-1.5 text-xs font-medium text-(--text-main) transition-colors hover:bg-(--bg-hover)"
-                              @click="openProductPicker('detail')"
-                            >
-                              <AppIcon name="plus" class="size-3.5" />
-                              {{ t('purchaseOrder.action.addProduct') }}
-                            </button>
-                          </div>
-                        </div>
-                        <div v-if="detail.items && detail.items.length > 0" class="space-y-3">
-                          <div
-                            v-for="item in detail.items"
-                            :key="item.id"
-                            data-testid="purchase-order-detail-item-card"
-                            class="group grid gap-3 rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-card) p-3.5 transition-colors duration-200 hover:border-primary/20 hover:bg-(--bg-hover) sm:grid-cols-[minmax(0,1.35fr)_minmax(12rem,14rem)] sm:items-stretch"
-                          >
-                            <div class="flex min-w-0 items-start gap-3">
-                              <!-- 商品主图 -->
-                              <div
-                                class="size-14 shrink-0 overflow-hidden rounded-xl border border-(--border-subtle) bg-(--bg-muted) shadow-sm"
-                              >
-                                <AppImage
-                                  v-if="item.product_images?.[0]"
-                                  :src="getFileUrl(item.product_images[0])"
-                                  :alt="item.product_name"
-                                  class="size-full object-cover"
-                                />
-                                <div v-else class="flex size-full items-center justify-center">
-                                  <AppIcon name="photo" class="size-6 text-(--text-muted)" />
-                                </div>
-                              </div>
-
-                              <!-- 商品信息 -->
-                              <div class="flex min-w-0 flex-col gap-1.5">
-                                <div
-                                  class="hover:text-primary flex min-w-0 cursor-pointer items-center gap-2 transition-colors"
-                                  @click="handleViewProductDetail(item.product_id)"
-                                >
-                                  <span
-                                    class="line-clamp-1 min-w-0 text-sm font-medium break-all text-(--text-main)"
-                                    :title="item.product_name"
-                                    >{{ item.product_name || '—' }}</span
-                                  >
-                                  <span
-                                    v-if="item.product_brand"
-                                    class="max-w-[8rem] shrink-0 truncate rounded-full border border-(--border-color)/70 bg-(--bg-muted) px-2 py-0.5 text-[10px] font-medium text-(--text-secondary)"
-                                    :title="item.product_brand"
-                                    >{{ item.product_brand }}</span
-                                  >
-                                  <span
-                                    v-if="detail.status === 'draft'"
-                                    class="text-danger flex shrink-0 cursor-pointer items-center gap-0.5 text-xs opacity-0 transition-opacity group-hover:opacity-100"
-                                    @click="handleDetailRemoveItem(item.id)"
-                                  >
-                                    <AppIcon name="trash" class="size-3" />
-                                    {{ t('common.delete') }}
-                                  </span>
-                                </div>
-                                <div
-                                  class="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)"
-                                >
-                                  <code
-                                    class="max-w-[10rem] truncate rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[10px]"
-                                    :title="item.variant_sku || item.product_sku || '-'"
-                                    >{{ item.variant_sku || item.product_sku || '-' }}</code
-                                  >
-                                  <span class="text-(--text-muted)">·</span>
-                                  <span
-                                    v-if="item.customer_order_no"
-                                    class="bg-info/10 text-info inline-flex max-w-[12rem] items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                                    :title="item.customer_order_no"
-                                  >
-                                    <AppIcon name="shopping-bag" class="size-3" />
-                                    {{ item.customer_order_no }}
-                                  </span>
-                                  <span
-                                    v-else
-                                    class="bg-warning/10 text-warning inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                                  >
-                                    <AppIcon name="building-storefront" class="size-3" />
-                                    {{ t('purchaseOrder.detail.publicStock') }}
-                                  </span>
-                                </div>
-                                <div
-                                  v-if="
-                                    item.variant_options &&
-                                    Object.keys(item.variant_options).length > 0
-                                  "
-                                  data-testid="purchase-order-detail-item-variant-options"
-                                  class="mt-0.5 flex min-w-0 flex-wrap gap-1"
-                                >
-                                  <span
-                                    v-for="(val, key) in item.variant_options"
-                                    :key="`variant-${key}`"
-                                    class="border-primary/20 bg-primary/8 text-primary rounded-full border px-2 py-0.5 text-[10px] font-medium break-all"
-                                    :title="`${key}: ${val}`"
-                                  >
-                                    {{ key }}: {{ val }}
-                                  </span>
-                                </div>
-                                <!-- Specs -->
-                                <div
-                                  v-if="
-                                    item.product_specifications &&
-                                    Object.keys(item.product_specifications).length > 0
-                                  "
-                                  class="mt-0.5 flex min-w-0 flex-wrap gap-1"
-                                >
-                                  <span
-                                    v-for="(val, key) in item.product_specifications"
-                                    :key="key"
-                                    class="max-w-full rounded border border-(--border-subtle) bg-(--bg-page) px-1.5 py-0.5 text-[10px] break-all text-(--text-secondary)"
-                                    :title="`${key}: ${val}`"
-                                  >
-                                    {{ key }}: {{ val }}
-                                  </span>
-                                </div>
-                                <div
-                                  v-if="detail.status !== 'draft'"
-                                  data-testid="purchase-order-detail-item-progress"
-                                  class="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] text-(--text-secondary)"
-                                >
-                                  <StatusBadge
-                                    :variant="
-                                      getProgressStatusVariant(
-                                        item.display_status || detail.display_status
-                                      )
-                                    "
-                                    class="text-[10px]"
-                                  >
-                                    {{
-                                      getProgressStatusLabel(
-                                        item.display_status || detail.display_status
-                                      )
-                                    }}
-                                  </StatusBadge>
-                                  <span>{{ buildReceiptProgressSummary(item) }}</span>
-                                  <span v-if="hasReceiptMeta(item)">{{
-                                    buildReceiptMeta(item)
-                                  }}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div
-                              v-if="detail.status === 'draft'"
-                              class="rounded-2xl border border-(--border-subtle) bg-(--bg-page)/80 p-3"
-                            >
-                              <div class="grid grid-cols-2 gap-3">
-                                <div class="flex flex-col">
-                                  <span class="mb-1 text-[10px] text-(--text-secondary)">{{
-                                    t('purchaseOrder.table.quantity')
-                                  }}</span>
-                                  <AppInput
-                                    v-model="item.quantity"
-                                    type="number"
-                                    min="1"
-                                    class="w-full text-center"
-                                    size="sm"
-                                    @change="
-                                      handleDetailUpdateItem(item.id, 'quantity', item.quantity)
-                                    "
-                                  />
-                                </div>
-                                <div class="flex flex-col">
-                                  <span class="mb-1 text-[10px] text-(--text-secondary)">{{
-                                    t('purchaseOrder.table.unitCost')
-                                  }}</span>
-                                  <div class="relative">
-                                    <span
-                                      class="absolute top-1.5 left-2 text-xs text-(--text-secondary)"
-                                      >¥</span
-                                    >
-                                    <AppInput
-                                      v-model="item.unit_cost"
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      class="w-full pr-2 pl-5 text-right"
-                                      size="sm"
-                                      @change="
-                                        handleDetailUpdateItem(item.id, 'unit_cost', item.unit_cost)
-                                      "
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div
-                              v-else
-                              class="flex flex-col justify-between rounded-2xl border border-(--border-subtle) bg-(--bg-page)/80 p-3"
-                            >
-                              <div class="space-y-2">
-                                <div class="flex items-center justify-between gap-3">
-                                  <span class="text-[11px] font-medium text-(--text-secondary)">{{
-                                    t('purchaseOrder.table.quantity')
-                                  }}</span>
-                                  <span
-                                    class="font-mono text-sm font-semibold text-(--text-main) tabular-nums"
-                                    >×{{ item.quantity }}</span
-                                  >
-                                </div>
-                                <div class="flex items-center justify-between gap-3">
-                                  <span class="text-[11px] font-medium text-(--text-secondary)">{{
-                                    t('purchaseOrder.table.unitCost')
-                                  }}</span>
-                                  <span
-                                    class="font-mono text-sm font-semibold text-(--text-main) tabular-nums"
-                                    >{{
-                                      formatPurchaseCurrency(item.unit_cost, detail.currency)
-                                    }}</span
-                                  >
-                                </div>
-                                <div
-                                  class="flex items-center justify-between gap-3 border-t border-(--border-subtle) pt-2"
-                                >
-                                  <span class="text-[11px] font-medium text-(--text-secondary)">{{
-                                    t('purchaseOrder.table.totalGoodsCost')
-                                  }}</span>
-                                  <span
-                                    class="font-mono text-base font-semibold text-(--text-main) tabular-nums"
-                                    >{{
-                                      formatPurchaseCurrency(
-                                        (item.quantity || 0) * (item.unit_cost || 0),
-                                        detail.currency
-                                      )
-                                    }}</span
-                                  >
-                                </div>
-                              </div>
-                              <div
-                                v-if="item.allocated_freight > 0 || item.allocated_tariff > 0"
-                                class="text-xs text-(--text-secondary)"
-                              >
-                                {{ t('purchaseOrder.allocation.freight') }}
-                                {{
-                                  formatPurchaseCurrency(item.allocated_freight, detail.currency)
-                                }}
-                                + {{ t('purchaseOrder.allocation.tariff') }}
-                                {{ formatPurchaseCurrency(item.allocated_tariff, detail.currency) }}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <p v-else class="py-4 text-center text-sm text-(--text-secondary)">
-                          {{ t('purchaseOrder.emptyItems') }}
-                        </p>
-                      </div>
-
-                      <div
-                        data-testid="purchase-order-detail-receipts"
-                        class="rounded-[1.6rem] border border-(--border-color)/65 bg-(--bg-card) p-4 shadow-none"
-                      >
-                        <div
-                          class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
-                        >
-                          <div>
-                            <p
-                              class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase"
-                            >
-                              Receipt Ledger
-                            </p>
-                            <h3 class="mt-1 text-sm font-semibold text-(--text-main)">
-                              {{ t('purchaseOrder.detail.receipts', '收货台账') }}
-                              <span
-                                class="ml-1 font-mono text-xs font-normal text-(--text-secondary) tabular-nums"
-                                >({{ receiptTimeline.length }})</span
-                              >
-                            </h3>
-                            <p class="mt-1 text-xs text-(--text-secondary)">
-                              {{
-                                t(
-                                  'purchaseOrder.ui.receiptLedgerHint',
-                                  '登记每次到货与冲销记录，确保采购、订单、库存三条投影保持一致。'
-                                )
-                              }}
-                            </p>
-                          </div>
-                          <div class="flex flex-wrap items-center gap-2 lg:justify-end">
-                            <StatusBadge variant="default" class="text-[10px]">
-                              {{
-                                t('purchaseOrder.ui.receiptLedgerMeta', '支持部分到货与整笔冲销')
-                              }}
-                            </StatusBadge>
-                            <StatusBadge
-                              v-if="receiptReceivableCount > 0"
-                              variant="info"
-                              class="text-[10px]"
-                            >
-                              {{ t('purchaseOrder.ui.receiptReceivableLines', '待收行') }}
-                              {{ receiptReceivableCount }}
-                            </StatusBadge>
-                            <button
-                              v-if="canRecordReceipts"
-                              type="button"
-                              data-testid="purchase-order-open-receipt-modal"
-                              class="bg-primary flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-(--text-inverse) shadow-sm transition-colors hover:bg-primary/90"
-                              @click="openReceiptModal"
-                            >
-                              <AppIcon name="archive-box-arrow-down" class="size-3.5" />
-                              {{ t('purchaseOrder.action.recordReceipt', '登记收货') }}
-                            </button>
-                            <button
-                              v-if="canCloseShortages"
-                              type="button"
-                              data-testid="purchase-order-open-shortage-modal"
-                              class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300/70 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-100"
-                              @click="openShortageModal"
-                            >
-                              <AppIcon name="minus-circle" class="size-3.5" />
-                              {{ t('purchaseOrder.action.closeOutstanding', '关闭待收') }}
-                            </button>
-                          </div>
-                        </div>
-
-                        <div v-if="receiptTimeline.length > 0" class="space-y-3">
-                          <article
-                            v-for="receipt in receiptTimeline"
-                            :key="receipt.id"
-                            data-testid="purchase-order-receipt-card"
-                            class="grid gap-3 rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-card) p-3.5 sm:grid-cols-[minmax(0,1.3fr)_minmax(14rem,16rem)]"
-                          >
-                            <div class="min-w-0">
-                              <div class="flex min-w-0 flex-wrap items-center gap-2">
-                                <span
-                                  class="line-clamp-1 min-w-0 text-sm font-medium break-all text-(--text-main)"
-                                  :title="receipt.product_name"
-                                >
-                                  {{ receipt.product_name || '—' }}
-                                </span>
-                                <code
-                                  class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[10px] text-(--text-secondary)"
-                                >
-                                  {{ receipt.variant_sku || receipt.product_sku || '—' }}
-                                </code>
-                                <StatusBadge
-                                  :variant="receipt.is_reversed ? 'default' : 'success'"
-                                  class="text-[10px]"
-                                >
-                                  {{
-                                    receipt.is_reversed
-                                      ? t('purchaseOrder.ui.receiptReversedTag', '已冲销')
-                                      : t('purchaseOrder.ui.receiptRecordedTag', '已入账')
-                                  }}
-                                </StatusBadge>
-                                <StatusBadge
-                                  v-if="canReverseReceipt(receipt)"
-                                  variant="warning"
-                                  class="text-[10px]"
-                                >
-                                  {{ t('purchaseOrder.ui.receiptReversibleTag', '可冲销') }}
-                                </StatusBadge>
-                              </div>
-                              <div
-                                class="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)"
-                              >
-                                <span
-                                  >{{ t('purchaseOrder.form.receivedQty', '本次到货') }}
-                                  {{ formatInteger(receipt.received_qty) }}</span
-                                >
-                                <span v-if="receipt.available_reversal_qty > 0"
-                                  >· {{ t('purchaseOrder.ui.availableReversalQty', '可冲销量') }}
-                                  {{ formatInteger(receipt.available_reversal_qty) }}</span
-                                >
-                                <span v-if="receipt.reversed_qty > 0"
-                                  >· {{ t('purchaseOrder.ui.reversedQty', '已冲销') }}
-                                  {{ formatInteger(receipt.reversed_qty) }}</span
-                                >
-                                <span>· {{ formatDateTime(receipt.received_at) }}</span>
-                              </div>
-                              <div
-                                v-if="
-                                  receipt.variant_options &&
-                                  Object.keys(receipt.variant_options).length > 0
-                                "
-                                class="mt-2 flex min-w-0 flex-wrap gap-1"
-                              >
-                                <span
-                                  v-for="(val, key) in receipt.variant_options"
-                                  :key="`receipt-variant-${receipt.id}-${key}`"
-                                  class="border-primary/20 bg-primary/8 text-primary rounded-full border px-2 py-0.5 text-[10px] font-medium break-all"
-                                >
-                                  {{ key }}: {{ val }}
-                                </span>
-                              </div>
-                              <p
-                                v-if="receipt.note"
-                                class="mt-2 rounded-xl bg-(--bg-muted)/55 px-3 py-2 text-xs leading-5 break-all whitespace-pre-wrap text-(--text-secondary)"
-                              >
-                                {{ receipt.note }}
-                              </p>
-                            </div>
-
-                            <div
-                              class="flex flex-col justify-between rounded-2xl border border-(--border-subtle) bg-(--bg-page)/80 p-3"
-                            >
-                              <div class="space-y-2 text-xs text-(--text-secondary)">
-                                <div class="flex items-center justify-between gap-3">
-                                  <span>{{
-                                    t('purchaseOrder.ui.receiptRecordId', '收货记录')
-                                  }}</span>
-                                  <code class="font-mono text-[11px] text-(--text-main)">{{
-                                    receipt.id
-                                  }}</code>
-                                </div>
-                                <div class="flex items-center justify-between gap-3">
-                                  <span>{{
-                                    t('purchaseOrder.ui.receiptReversalCount', '冲销次数')
-                                  }}</span>
-                                  <span
-                                    class="font-mono text-sm font-semibold text-(--text-main) tabular-nums"
-                                    >{{ formatInteger(receipt.reversal_count) }}</span
-                                  >
-                                </div>
-                                <div class="flex items-center justify-between gap-3">
-                                  <span>{{
-                                    t('purchaseOrder.ui.receiptLastReversedAt', '最近冲销')
-                                  }}</span>
-                                  <span class="text-right text-(--text-main)">{{
-                                    receipt.last_reversed_at
-                                      ? formatDateTime(receipt.last_reversed_at)
-                                      : '—'
-                                  }}</span>
-                                </div>
-                              </div>
-                              <button
-                                v-if="canReverseReceipt(receipt)"
-                                type="button"
-                                data-testid="purchase-order-open-reversal-modal"
-                                class="mt-3 flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100"
-                                @click="openReceiptReversalModal(receipt)"
-                              >
-                                <AppIcon name="arrow-uturn-left" class="size-3.5" />
-                                {{ t('purchaseOrder.action.reverseReceipt', '冲销收货') }}
-                              </button>
-                            </div>
-                          </article>
-                        </div>
-                        <div
-                          v-else
-                          class="rounded-[1.35rem] border border-dashed border-(--border-subtle) bg-(--bg-page)/60 px-4 py-10 text-center"
-                        >
-                          <div
-                            class="mx-auto flex size-12 items-center justify-center rounded-full bg-(--bg-muted)"
-                          >
-                            <AppIcon name="archive-box" class="size-5 text-(--text-muted)" />
-                          </div>
-                          <p class="mt-3 text-sm font-medium text-(--text-main)">
-                            {{ t('purchaseOrder.ui.receiptLedgerEmptyTitle', '还没有收货记录') }}
-                          </p>
-                          <p class="mt-1 text-sm text-(--text-secondary)">
-                            {{
-                              canRecordReceipts
-                                ? t(
-                                    'purchaseOrder.ui.receiptLedgerEmptyBody',
-                                    '当前采购单还有待收货明细，可以登记本次到货。'
-                                  )
-                                : t(
-                                    'purchaseOrder.ui.receiptLedgerLockedBody',
-                                    '当前状态下没有可登记的收货明细。'
-                                  )
-                            }}
-                          </p>
-                        </div>
-                      </div>
-
-                      <!-- 备注 -->
-                      <div
-                        v-if="detail.remark"
-                        class="rounded-2xl border border-(--border-color)/70 bg-(--bg-card) p-4 shadow-sm"
-                      >
-                        <h3 class="mb-2 text-sm font-semibold text-(--text-main)">
-                          {{ t('purchaseOrder.form.remark') }}
-                        </h3>
-                        <p class="text-sm break-all whitespace-pre-wrap text-(--text-secondary)">
-                          {{ detail.remark }}
-                        </p>
-                      </div>
-                    </div>
-
-                    <!-- Footer Fixed Action Bar -->
-                    <div
-                      v-if="detail"
-                      data-testid="purchase-order-detail-footer"
-                      class="flex flex-col gap-3 border-t border-(--border-color) bg-(--bg-card) px-6 py-4 lg:flex-row lg:items-center lg:justify-between"
-                    >
-                      <div class="flex items-center gap-3">
-                        <!-- 左侧：次要/辅助操作 -->
-                        <button
-                          v-if="nextStatuses.includes('cancelled')"
-                          class="text-danger cursor-pointer rounded-xl px-4 py-2 text-sm font-medium transition-colors hover:bg-danger/10"
-                          @click="handleStatusUpdate('cancelled')"
-                        >
-                          {{ t('purchaseOrder.action.cancelOrder') }}
-                        </button>
-                      </div>
-
-                      <div class="flex items-center gap-3">
-                        <!-- 右侧：主要操作 -->
-                        <button
-                          v-for="ns in nextStatuses.filter((s) => s !== 'cancelled')"
-                          :key="ns"
-                          class="bg-primary cursor-pointer rounded-xl px-6 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:bg-primary/90 hover:shadow"
-                          @click="handleStatusUpdate(ns)"
-                        >
-                          {{ t('purchaseOrder.action.updateTo') }}:
-                          {{ statusConfig[ns]?.label || ns }}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <PurchaseOrderDetailDrawer
+                :show="showDetail"
+                :detail-loading="_detailLoading"
+                :detail="detail"
+                :status-config="statusConfig"
+                :summary-cards="detailSummaryCards"
+                :next-statuses="nextStatuses"
+                :steps-list="stepsList"
+                :receipt-timeline="receiptTimeline"
+                :receipt-receivable-count="receiptReceivableCount"
+                :can-record-receipts="canRecordReceipts"
+                :can-close-shortages="canCloseShortages"
+                :t="t"
+                :helpers="detailHelpers"
+                :get-file-url="getFileUrl"
+                @close="showDetail = false"
+                @retry-detail="retryDetail"
+                @status-update="handleStatusUpdate"
+                @open-cost-modal="openCostModal"
+                @open-order-picker="openOrderPicker"
+                @open-product-picker="openProductPicker"
+                @view-product-detail="handleViewProductDetail"
+                @update-item="handleDetailUpdateItem"
+                @remove-item="handleDetailRemoveItem"
+                @open-receipt-modal="openReceiptModal"
+                @open-shortage-modal="openShortageModal"
+                @open-reversal-modal="openReceiptReversalModal"
+              />
             </transition>
           </Teleport>
 
@@ -2361,14 +1500,13 @@ import { usePurchaseOrderModals } from '@/composables/usePurchaseOrderModals';
 import { usePurchaseOrderCreateFlow } from '@/composables/usePurchaseOrderCreateFlow';
 import { usePurchaseOrderDetailActions } from '@/composables/usePurchaseOrderDetailActions';
 import { usePurchaseOrderListPresentation } from '@/composables/usePurchaseOrderListPresentation';
+import { usePurchaseOrderDetailPresentation } from '@/composables/usePurchaseOrderDetailPresentation';
 import { useToast } from '@/composables/useToast';
 import { useAI } from '@/composables/useAI';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import { CURRENCY_OPTIONS } from '@/constants/currency.js';
 import { validateOrderQuantity } from '@/utils/purchase-order-constraints';
 import {
-  getPurchaseOrderCancelledQty,
-  getPurchaseOrderOrderedQty,
   getPurchaseOrderOutstandingQty,
   getPurchaseOrderReceivedQty,
 } from '@/utils/purchase-order-progress';
@@ -2394,6 +1532,7 @@ import {
 } from "@/views/purchase-orders/drafts.js";
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
 import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
+import PurchaseOrderDetailDrawer from '@/components/purchase-order/PurchaseOrderDetailDrawer.vue';
 import PurchaseOrderOverviewBanner from '@/components/purchase-order/PurchaseOrderOverviewBanner.vue';
 import PurchaseOrderListTable from '@/components/purchase-order/PurchaseOrderListTable.vue';
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
@@ -2487,8 +1626,6 @@ const {
   columns,
   consoleSignals,
   buildReceiptProgressSummary,
-  getProgressStatusLabel,
-  getProgressStatusVariant,
   getListStatusVariant,
 } = usePurchaseOrderListPresentation({ stats, t });
 
@@ -2540,97 +1677,24 @@ const formatPurchaseCurrency = (value, currency = 'CNY') => {
 };
 
 const buildReceiptMeta = createReceiptMetaBuilder({ t, formatDate });
-
-const detailSummaryCards = computed(() => {
-  if (!detail.value) return [];
-
-  return [
-    {
-      key: 'ordered',
-      label: t('purchaseOrder.ui.orderedVolume', '采购数量'),
-      value: formatInteger(detail.value.ordered_qty),
-      hint: `${formatInteger(detail.value.item_count)} ${t('purchaseOrder.ui.lineCount', '条明细')}`,
-    },
-    {
-      key: 'received',
-      label: t('purchaseOrder.ui.receivedVolume', '已到货'),
-      value: formatInteger(detail.value.received_qty),
-      hint: getProgressStatusLabel(detail.value.display_status),
-    },
-    {
-      key: 'outstanding',
-      label: t('purchaseOrder.ui.outstandingVolume', '待收货'),
-      value: formatInteger(detail.value.outstanding_qty),
-      hint: buildReceiptProgressSummary(detail.value),
-    },
-    {
-      key: 'goods',
-      label: t('purchaseOrder.ui.goodsTotal', '商品总额'),
-      value: formatPurchaseCurrency(detail.value.total_goods_cost, detail.value.currency),
-      hint:
-        buildReceiptMeta(detail.value) ||
-        t('purchaseOrder.ui.awaitingReceiptMeta', '尚未产生入库记录'),
-    },
-  ];
+const {
+  detailSummaryCards,
+  receiptTimeline,
+  receiptCandidates,
+  receiptReceivableCount,
+  canRecordReceipts,
+  shortageCandidates,
+  canCloseShortages,
+  getProgressStatusLabel,
+  getProgressStatusVariant,
+} = usePurchaseOrderDetailPresentation({
+  detail,
+  t,
+  formatInteger,
+  formatPurchaseCurrency,
+  buildReceiptProgressSummary,
+  buildReceiptMeta,
 });
-
-const receiptTimeline = computed(() =>
-  Array.isArray(detail.value?.receipts) ? detail.value.receipts : []
-);
-
-const receiptCandidates = computed(() => {
-  if (!detail.value || !Array.isArray(detail.value.items)) return [];
-
-  return detail.value.items
-    .map((item) => ({
-      purchase_order_item_id: item.id,
-      product_name: item.product_name || '—',
-      variant_sku: item.variant_sku || item.product_sku || '—',
-      ordered_qty: getPurchaseOrderOrderedQty(item),
-      received_qty_before: getPurchaseOrderReceivedQty(item),
-      max_receivable: getPurchaseOrderOutstandingQty(item),
-      customer_order_no: item.customer_order_no || '',
-      variant_options: item.variant_options || {},
-      note: '',
-      received_qty: 0,
-    }))
-    .filter((item) => item.max_receivable > 0);
-});
-
-const receiptReceivableCount = computed(() => receiptCandidates.value.length);
-
-const canRecordReceipts = computed(
-  () =>
-    Boolean(detail.value?.id) &&
-    ['ordered', 'shipping'].includes(String(detail.value?.status || '')) &&
-    receiptCandidates.value.length > 0
-);
-
-const shortageCandidates = computed(() => {
-  if (!detail.value || !Array.isArray(detail.value.items)) return [];
-
-  return detail.value.items
-    .map((item) => ({
-      purchase_order_item_id: item.id,
-      product_name: item.product_name || '—',
-      variant_sku: item.variant_sku || item.product_sku || '—',
-      ordered_qty: getPurchaseOrderOrderedQty(item),
-      received_qty_before: getPurchaseOrderReceivedQty(item),
-      cancelled_qty_before: getPurchaseOrderCancelledQty(item),
-      max_closable: getPurchaseOrderOutstandingQty(item),
-      customer_order_no: item.customer_order_no || '',
-      variant_options: item.variant_options || {},
-      close_qty: 0,
-    }))
-    .filter((item) => item.max_closable > 0);
-});
-
-const canCloseShortages = computed(
-  () =>
-    Boolean(detail.value?.id) &&
-    ['ordered', 'shipping'].includes(String(detail.value?.status || '')) &&
-    shortageCandidates.value.length > 0
-);
 
 const receiptDraftSelectedCount = computed(
   () => receiptDrafts.value.filter((entry) => normalizeReceiptQty(entry.received_qty) > 0).length
@@ -2798,6 +1862,21 @@ const {
   refreshPurchaseOrderViews,
   validateOrderQuantity,
 });
+
+const detailHelpers = {
+  formatInteger,
+  formatPurchaseCurrency,
+  formatDateTime,
+  getProgressStatusLabel,
+  getProgressStatusVariant,
+  buildReceiptProgressSummary,
+  buildReceiptMeta,
+  getStepperProgress,
+  getStepIconClasses,
+  isStepCompleted,
+  hasReceiptMeta,
+  canReverseReceipt,
+};
 
 // 详情明细编辑处理
 const handleDetailUpdateItem = async (itemId, field, value) => {
