@@ -127,396 +127,23 @@
           <!-- ==================== 新建采购单 Modal (增强版) ==================== -->
           <Teleport to="body">
             <transition name="fade">
-              <div
-                v-if="showCreateModal"
-                data-testid="purchase-order-create-shell"
-                class="fixed inset-0 z-50 flex items-center justify-center p-4"
-              >
-                <div
-                  class="absolute inset-0 bg-(--color-overlay-dim) backdrop-blur-sm"
-                  @click="showCreateModal = false"
-                ></div>
-                <div
-                  class="relative flex w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-(--border-color)/70 bg-(--color-modal-bg) shadow-[0_32px_90px_-45px_rgba(15,23,42,0.38)]"
-                  style="max-height: calc(100vh - 3rem)"
-                >
-                  <!-- 头部 -->
-                  <div
-                    class="relative flex items-start justify-between border-b border-(--border-color) bg-linear-to-r from-sky-50/75 via-(--bg-card) to-amber-50/40 px-6 py-5"
-                  >
-                    <div
-                      class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.1),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.1),transparent_24%)]"
-                    ></div>
-                    <div class="relative">
-                      <p
-                        class="text-xs font-semibold tracking-[0.18em] text-(--text-muted) uppercase"
-                      >
-                        Draft Builder
-                      </p>
-                      <h2 class="mt-1 text-xl font-bold text-(--text-main)">
-                        {{ t('purchaseOrder.action.create') }}
-                      </h2>
-                      <p class="mt-1 text-sm text-(--text-secondary)">
-                        {{
-                          t(
-                            'purchaseOrder.ui.createHint',
-                            '先设置成本策略，再补充采购商品和关联预定单。'
-                          )
-                        }}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      class="cursor-pointer rounded-lg p-2 text-(--text-secondary) hover:bg-(--bg-hover)"
-                      @click="showCreateModal = false"
-                    >
-                      <AppIcon name="x-mark" class="size-5" />
-                    </button>
-                  </div>
-
-                  <!-- 可滚动主体 -->
-                  <div class="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                    <div class="space-y-5">
-                      <section
-                        class="rounded-[1.6rem] border border-(--border-color)/70 bg-linear-to-br from-(--bg-card) to-sky-50/30 p-4 shadow-sm"
-                      >
-                        <div
-                          class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"
-                        >
-                          <div>
-                            <p
-                              class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase"
-                            >
-                              Configuration
-                            </p>
-                            <h3 class="mt-1 text-sm font-semibold text-(--text-main)">
-                              {{ t('purchaseOrder.ui.configurationTitle', '采购策略与费用设置') }}
-                            </h3>
-                          </div>
-                          <div class="flex flex-wrap items-center gap-2">
-                            <StatusBadge variant="info" class="text-[10px]">
-                              {{ t('purchaseOrder.detail.items') }} {{ poItems.length }}
-                            </StatusBadge>
-                            <StatusBadge variant="success" class="text-[10px]">
-                              {{ t('purchaseOrder.form.totalQty') }} {{ totalCreateQty }}
-                            </StatusBadge>
-                            <StatusBadge
-                              v-if="shortageItems.length > 0"
-                              variant="warning"
-                              class="text-[10px]"
-                            >
-                              {{ t('purchaseOrder.form.quantityWarning') }}
-                              {{ shortageItems.length }}
-                            </StatusBadge>
-                          </div>
-                        </div>
-
-                        <div
-                          class="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(22rem,1fr)]"
-                        >
-                          <div
-                            class="rounded-2xl border border-(--border-subtle) bg-(--bg-card)/85 p-4"
-                          >
-                            <label class="text-xs font-medium text-(--text-secondary)">{{
-                              t('purchaseOrder.form.remark')
-                            }}</label>
-                            <AppInput
-                              v-model="createForm.remark"
-                              type="text"
-                              class="mt-2"
-                              :placeholder="t('purchaseOrder.form.remarkPlaceholder')"
-                            />
-                          </div>
-
-                          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                            <div
-                              class="rounded-2xl border border-(--border-subtle) bg-(--bg-card)/85 p-4"
-                            >
-                              <label class="text-xs font-medium text-(--text-secondary)">{{
-                                t('purchaseOrder.form.currency')
-                              }}</label>
-                              <AppSelect
-                                v-model="createForm.currency"
-                                :options="currencyOptions"
-                                :placeholder="t('purchaseOrder.form.currency')"
-                                size="sm"
-                                class="mt-2"
-                              />
-                            </div>
-                            <div
-                              class="rounded-2xl border border-(--border-subtle) bg-(--bg-card)/85 p-4"
-                            >
-                              <label class="text-xs font-medium text-(--text-secondary)">{{
-                                t('purchaseOrder.form.estimatedShipping')
-                              }}</label>
-                              <AppInput
-                                v-model="createForm.estimated_shipping_cost"
-                                type="number"
-                                step="0.01"
-                                class="mt-2"
-                              />
-                            </div>
-                            <div
-                              class="rounded-2xl border border-(--border-subtle) bg-(--bg-card)/85 p-4"
-                            >
-                              <label class="text-xs font-medium text-(--text-secondary)">{{
-                                t('purchaseOrder.form.estimatedTariff')
-                              }}</label>
-                              <AppInput
-                                v-model="createForm.estimated_tariff_cost"
-                                type="number"
-                                step="0.01"
-                                class="mt-2"
-                              />
-                            </div>
-                            <div
-                              class="rounded-2xl border border-(--border-subtle) bg-(--bg-card)/85 p-4 sm:col-span-2 xl:col-span-3"
-                            >
-                              <label class="text-xs font-medium text-(--text-secondary)">{{
-                                t('purchaseOrder.form.allocationMethod')
-                              }}</label>
-                              <AppSelect
-                                v-model="createForm.allocation_method"
-                                :options="allocationMethodOptions"
-                                :placeholder="t('purchaseOrder.form.byQuantity')"
-                                size="sm"
-                                class="mt-2"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </section>
-
-                      <!-- 分隔线 + 采购商品列表 -->
-                      <div
-                        class="rounded-[1.6rem] border border-(--border-color)/70 bg-(--bg-card) shadow-sm"
-                      >
-                        <!-- 列表头部 -->
-                        <div
-                          class="flex flex-col gap-3 border-b border-(--border-subtle) p-4 lg:flex-row lg:items-center lg:justify-between"
-                        >
-                          <div>
-                            <p
-                              class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase"
-                            >
-                              Procurement Mix
-                            </p>
-                            <h3 class="mt-1 text-sm font-semibold text-(--text-main)">
-                              {{ t('purchaseOrder.form.itemList') }}
-                              <span
-                                v-if="poItems.length > 0"
-                                class="ml-1 font-mono text-xs font-normal tabular-nums text-(--text-secondary)"
-                                >({{ poItems.length }})</span
-                              >
-                            </h3>
-                          </div>
-                          <div class="flex items-center gap-2">
-                            <button
-                              type="button"
-                              class="border-primary/30 bg-primary/5 text-primary flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-primary/10"
-                              @click="openOrderPicker('create')"
-                            >
-                              <AppIcon name="clipboard-document-list" class="size-3.5" />
-                              {{ t('purchaseOrder.action.linkOrders') }}
-                            </button>
-                            <button
-                              type="button"
-                              class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-(--border-color) px-3 py-1.5 text-xs font-medium text-(--text-main) transition-colors hover:bg-(--bg-hover)"
-                              @click="openProductPicker('create')"
-                            >
-                              <AppIcon name="plus" class="size-3.5" />
-                              {{ t('purchaseOrder.action.addProduct') }}
-                            </button>
-                          </div>
-                        </div>
-
-                        <!-- 空状态 -->
-                        <div v-if="poItems.length === 0" class="flex flex-col items-center py-12">
-                          <div
-                            class="flex size-16 items-center justify-center rounded-[1.35rem] bg-linear-to-br from-(--bg-muted) to-sky-50/40"
-                          >
-                            <AppIcon name="cube" class="size-7 text-(--text-muted)" />
-                          </div>
-                          <p class="mt-3 text-sm text-(--text-secondary)">
-                            {{ t('purchaseOrder.form.noItems') }}
-                          </p>
-                        </div>
-
-                        <!-- 商品表格 -->
-                        <div v-else class="overflow-x-auto">
-                          <table class="w-full">
-                            <thead>
-                              <tr
-                                class="border-b border-(--border-subtle) text-left text-xs font-medium text-(--text-secondary)"
-                              >
-                                <th class="px-4 py-2.5">{{ t('purchaseOrder.table.product') }}</th>
-                                <th class="px-4 py-2.5 text-center">
-                                  {{ t('purchaseOrder.table.quantity') }}
-                                </th>
-                                <th class="px-4 py-2.5 text-right">
-                                  {{ t('purchaseOrder.table.unitCost') }}
-                                </th>
-                                <th class="px-4 py-2.5 text-center">
-                                  {{ t('purchaseOrder.form.source') }}
-                                </th>
-                                <th class="w-10 px-2 py-2.5"></th>
-                              </tr>
-                            </thead>
-                            <tbody class="divide-y divide-(--border-subtle)">
-                              <tr
-                                v-for="(item, idx) in poItems"
-                                :key="idx"
-                                class="group transition-colors hover:bg-(--bg-hover)"
-                              >
-                                <!-- 商品信息 -->
-                                <td class="px-4 py-3">
-                                  <div class="flex items-center gap-2.5">
-                                    <div
-                                      class="size-8 shrink-0 overflow-hidden rounded-lg border border-(--border-subtle) bg-(--bg-muted)"
-                                    >
-                                      <AppImage
-                                        v-if="item.image"
-                                        :src="'/file/' + item.image"
-                                        class="size-full"
-                                      />
-                                      <div
-                                        v-else
-                                        class="flex size-full items-center justify-center text-(--text-muted)"
-                                      >
-                                        <AppIcon name="photo" class="size-4" />
-                                      </div>
-                                    </div>
-                                    <div class="min-w-0">
-                                      <div
-                                        class="truncate text-sm font-medium text-(--text-main)"
-                                        :title="item.product_name || '—'"
-                                      >
-                                        {{ item.product_name || '—' }}
-                                      </div>
-                                      <div
-                                        class="flex min-w-0 items-center gap-1.5 text-xs text-(--text-secondary)"
-                                      >
-                                        <span
-                                          class="max-w-[8rem] truncate font-mono"
-                                          :title="item.sku || '-'"
-                                          >{{ item.sku || '-' }}</span
-                                        >
-                                        <span
-                                          v-if="item.brand"
-                                          class="max-w-[7rem] truncate"
-                                          :title="item.brand"
-                                          >· {{ item.brand }}</span
-                                        >
-                                      </div>
-                                    </div>
-                                  </div>
-                                </td>
-
-                                <!-- 数量 (可编辑) -->
-                                <td class="px-4 py-3 text-center">
-                                  <div class="flex flex-col items-center">
-                                    <AppInput
-                                      v-model="item.quantity"
-                                      type="number"
-                                      min="1"
-                                      class="w-20 text-center"
-                                      size="sm"
-                                    />
-                                    <span
-                                      v-if="
-                                        item.required_quantity &&
-                                        item.quantity < item.required_quantity
-                                      "
-                                      class="text-danger mt-1 text-[10px] font-medium"
-                                    >
-                                      {{ t('purchaseOrder.form.quantityWarning') }} ({{
-                                        item.required_quantity
-                                      }})
-                                    </span>
-                                  </div>
-                                </td>
-
-                                <!-- 单价 (可编辑) -->
-                                <td class="px-4 py-3 text-right">
-                                  <AppInput
-                                    v-model="item.unit_cost"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    class="w-24 text-right"
-                                    size="sm"
-                                  />
-                                </td>
-
-                                <!-- 来源标签 -->
-                                <td class="px-4 py-3 text-center">
-                                  <span
-                                    v-if="item.pre_order_id"
-                                    class="bg-info/10 text-info inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                                  >
-                                    <AppIcon name="shopping-bag" class="size-3" />
-                                    {{ t('purchaseOrder.form.sourceOrder') }}
-                                  </span>
-                                  <span
-                                    v-else
-                                    class="inline-flex items-center gap-1 rounded-full bg-(--bg-muted) px-2 py-0.5 text-[10px] font-semibold text-(--text-secondary)"
-                                  >
-                                    <AppIcon name="building-storefront" class="size-3" />
-                                    {{ t('purchaseOrder.form.sourceStock') }}
-                                  </span>
-                                </td>
-
-                                <!-- 删除按钮 -->
-                                <td class="px-2 py-3">
-                                  <button
-                                    type="button"
-                                    class="hover:bg-danger/10 hover:text-danger cursor-pointer rounded-lg p-1.5 text-(--text-muted) opacity-0 transition-all group-hover:opacity-100"
-                                    @click="removePoItem(idx)"
-                                  >
-                                    <AppIcon name="trash" class="size-4" />
-                                  </button>
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 底部操作栏 -->
-                  <div
-                    class="flex flex-col gap-3 border-t border-(--border-color) bg-linear-to-r from-(--bg-card) to-(--bg-muted)/30 px-6 py-4 lg:flex-row lg:items-center lg:justify-between"
-                  >
-                    <div class="text-sm text-(--text-secondary)">
-                      <span v-if="poItems.length > 0">
-                        {{ poItems.length }} {{ t('purchaseOrder.form.itemsCount') }} ·
-                        {{ t('purchaseOrder.form.totalQty') }}:
-                        <strong class="font-mono font-semibold tabular-nums text-(--text-main)">{{
-                          totalCreateQty
-                        }}</strong>
-                      </span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                      <button
-                        type="button"
-                        class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
-                        @click="showCreateModal = false"
-                      >
-                        {{ t('common.cancel') }}
-                      </button>
-                      <button
-                        type="button"
-                        :disabled="poItems.length === 0"
-                        class="bg-primary cursor-pointer rounded-xl px-5 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                        @click="handleCreate"
-                      >
-                        {{ t('common.create') }}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <PurchaseOrderCreateDrawer
+                :show="showCreateModal"
+                :t="t"
+                :create-form="createForm"
+                :currency-options="currencyOptions"
+                :allocation-method-options="allocationMethodOptions"
+                :po-items="poItems"
+                :total-create-qty="totalCreateQty"
+                :shortage-items="shortageItems"
+                :get-file-url="getFileUrl"
+                @close="showCreateModal = false"
+                @update:create-form="Object.assign(createForm, $event)"
+                @open-order-picker="openOrderPicker"
+                @open-product-picker="openProductPicker"
+                @remove-item="removePoItem"
+                @submit="handleCreate"
+              />
             </transition>
           </Teleport>
 
@@ -1312,166 +939,21 @@
           <!-- ==================== 智能建议 Modal ==================== -->
           <Teleport to="body">
             <transition name="fade">
-              <div
-                v-if="showSuggestions"
-                data-testid="purchase-order-suggestions-shell"
-                class="fixed inset-0 z-50 flex items-center justify-center p-4"
-              >
-                <div
-                  class="absolute inset-0 bg-(--color-overlay-dim) backdrop-blur-sm"
-                  @click="showSuggestions = false"
-                ></div>
-                <div
-                  class="relative flex w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-(--border-color)/70 bg-(--color-modal-bg) p-6 shadow-[0_32px_90px_-45px_rgba(15,23,42,0.38)]"
-                >
-                  <div
-                    class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.08),transparent_22%)]"
-                  ></div>
-                  <div class="relative mb-4 flex items-start justify-between gap-3">
-                    <div>
-                      <p
-                        class="text-xs font-semibold tracking-[0.18em] text-(--text-muted) uppercase"
-                      >
-                        Smart Suggestions
-                      </p>
-                      <h2 class="mt-1 text-xl font-bold text-(--text-main)">
-                        {{ t('purchaseOrder.suggestions.title') }}
-                      </h2>
-                      <p class="mt-1 text-sm text-(--text-secondary)">
-                        {{ t('purchaseOrder.suggestions.subtitle') }}
-                      </p>
-                    </div>
-                    <button
-                      class="cursor-pointer rounded-lg p-2 text-(--text-secondary) hover:bg-(--bg-hover)"
-                      @click="showSuggestions = false"
-                    >
-                      <AppIcon name="x-mark" class="size-5" />
-                    </button>
-                  </div>
-
-                  <div
-                    v-if="!suggestionsLoading && suggestionSummaryCards.length > 0"
-                    class="relative mb-4 grid gap-3 md:grid-cols-3"
-                  >
-                    <article
-                      v-for="card in suggestionSummaryCards"
-                      :key="card.key"
-                      class="rounded-[1.35rem] border border-(--border-color)/60 bg-(--bg-card)/88 p-4"
-                    >
-                      <p
-                        class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase"
-                      >
-                        {{ card.label }}
-                      </p>
-                      <div
-                        class="mt-2 font-mono text-2xl font-semibold tabular-nums text-(--text-main)"
-                      >
-                        {{ card.value }}
-                      </div>
-                      <p class="mt-1 text-xs leading-5 text-(--text-secondary)">{{ card.hint }}</p>
-                    </article>
-                  </div>
-
-                  <div v-if="suggestionsLoading" class="flex items-center justify-center py-12">
-                    <div
-                      class="border-primary size-8 animate-spin rounded-full border-4 border-t-transparent"
-                    ></div>
-                  </div>
-                  <div v-else-if="suggestions.length === 0" class="py-12 text-center">
-                    <AppIcon name="light-bulb" class="mx-auto size-10 text-(--text-muted)" />
-                    <p class="mt-3 text-sm text-(--text-secondary)">
-                      {{ t('purchaseOrder.suggestions.empty') }}
-                    </p>
-                  </div>
-                  <div v-else class="max-h-96 space-y-2 overflow-y-auto">
-                    <div
-                      v-for="s in suggestions"
-                      :key="`${s.product_id}-${s.variant_id || 'no-variant'}`"
-                      class="flex flex-col gap-3 rounded-[1.35rem] border border-(--border-subtle) bg-(--bg-card)/88 p-4 transition-colors hover:bg-(--bg-hover) lg:flex-row lg:items-center lg:justify-between"
-                    >
-                      <div class="flex min-w-0 items-center gap-3">
-                        <AppCheckbox
-                          v-model="selectedSuggestions"
-                          :value="s"
-                          :disabled="getSuggestionOrderIds(s).length === 0"
-                        />
-                        <div class="min-w-0">
-                          <div
-                            class="truncate text-sm font-medium text-(--text-main)"
-                            :title="s.product_name || '—'"
-                          >
-                            {{ s.product_name || '—' }}
-                          </div>
-                          <div
-                            class="truncate text-xs text-(--text-secondary)"
-                            :title="buildSuggestionMeta(s)"
-                          >
-                            {{ buildSuggestionMeta(s) }}
-                            <template
-                              v-if="s.variant_options && Object.keys(s.variant_options).length > 0"
-                            >
-                              · {{ buildSuggestionVariantLabel(s.variant_options) }}
-                            </template>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="flex flex-wrap items-center gap-2 text-xs lg:justify-end">
-                        <StatusBadge variant="danger" class="text-[10px]">
-                          {{ t('purchaseOrder.suggestions.shortage') }} {{ s.shortage }}
-                        </StatusBadge>
-                        <StatusBadge variant="default" class="text-[10px]">
-                          {{ t('purchaseOrder.suggestions.stock') }}
-                          {{ s.available_quantity ?? s.stock_quantity }}
-                        </StatusBadge>
-                        <span
-                          class="rounded-full bg-(--bg-muted) px-2.5 py-1 font-mono tabular-nums text-(--text-secondary)"
-                          >成本 ¥{{ (s.variant_cost_price || s.cost_price || 0).toFixed(2) }}</span
-                        >
-                        <span
-                          class="bg-primary/8 text-primary rounded-full px-2.5 py-1 font-mono tabular-nums"
-                          >建议 ¥{{
-                            (s.suggested_purchase_price || s.cost_price || 0).toFixed(2)
-                          }}</span
-                        >
-                        <span
-                          v-if="s.last_purchase_price != null"
-                          class="font-mono tabular-nums text-(--text-secondary)"
-                        >
-                          最近 ¥{{ Number(s.last_purchase_price).toFixed(2) }}
-                        </span>
-                        <span
-                          v-if="s.price_delta != null"
-                          class="font-mono font-semibold tabular-nums"
-                          :class="
-                            s.price_delta > 0
-                              ? 'text-warning'
-                              : s.price_delta < 0
-                                ? 'text-success'
-                                : 'text-(--text-secondary)'
-                          "
-                        >
-                          Δ {{ s.price_delta > 0 ? '+' : '' }}{{ Number(s.price_delta).toFixed(2) }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    v-if="suggestions.length > 0"
-                    class="relative mt-4 flex justify-end gap-3 border-t border-(--border-color)/60 pt-4"
-                  >
-                    <button
-                      class="bg-primary cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-(--text-inverse) transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                      :disabled="selectedSuggestionOrderIds.length === 0"
-                      @click="handleCreateFromSuggestions"
-                    >
-                      {{ t('purchaseOrder.suggestions.addSelected') }} ({{
-                        selectedSuggestions.length
-                      }})
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <PurchaseOrderSuggestionsDrawer
+                :show="showSuggestions"
+                :t="t"
+                :suggestions-loading="suggestionsLoading"
+                :suggestions="suggestions"
+                :suggestion-summary-cards="suggestionSummaryCards"
+                :selected-suggestions="selectedSuggestions"
+                :selected-suggestion-order-ids="selectedSuggestionOrderIds"
+                :build-suggestion-meta="buildSuggestionMeta"
+                :build-suggestion-variant-label="buildSuggestionVariantLabel"
+                :get-suggestion-order-ids="getSuggestionOrderIds"
+                @close="showSuggestions = false"
+                @submit="handleCreateFromSuggestions"
+                @update:selected-suggestions="selectedSuggestions = $event"
+              />
             </transition>
           </Teleport>
         </template>
@@ -1531,18 +1013,17 @@ import {
   normalizeReceiptQty,
 } from "@/views/purchase-orders/drafts.js";
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
+import PurchaseOrderCreateDrawer from '@/components/purchase-order/PurchaseOrderCreateDrawer.vue';
 import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
 import PurchaseOrderDetailDrawer from '@/components/purchase-order/PurchaseOrderDetailDrawer.vue';
 import PurchaseOrderOverviewBanner from '@/components/purchase-order/PurchaseOrderOverviewBanner.vue';
 import PurchaseOrderListTable from '@/components/purchase-order/PurchaseOrderListTable.vue';
+import PurchaseOrderSuggestionsDrawer from '@/components/purchase-order/PurchaseOrderSuggestionsDrawer.vue';
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
-import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
-import AppCheckbox from '@/components/ui/AppCheckbox.vue';
 import AppSelect from '@/components/ui/Select.vue';
-import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
