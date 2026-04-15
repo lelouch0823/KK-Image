@@ -1,29 +1,29 @@
-import { parseRepoPagination } from '../api/utils/pagination.js';
 import { buildSetClause } from '../api/utils/sql.js';
 import { hasChanges } from '../api/utils/result.js';
-import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
-import {
-  normalizePurchaseOrderProgress,
-  summarizePurchaseOrderItems,
-  toNumber,
-} from "./purchase-order-read-model.js";
-import {
-  mapPurchaseOrderSnapshotFields,
-} from "./purchase-order-snapshot.js";
-import { hydratePurchaseItemSnapshots } from "./purchase-order-item-snapshots.js";
+import { executeBatchChunks } from '../lib/db/batch.js';
+// Read-model shaping is delegated to ./purchase-order-read-model.js.
+// Snapshot normalization is delegated to ./purchase-order-snapshot.js.
+// Snapshot hydration is delegated to ./purchase-order-item-snapshots.js.
 import {
   findActiveBindingsByPreOrderIds,
   getLastPurchasePricesByVariant,
   getLinkedOrderIds,
 } from "./purchase-order-links.js";
-
-const D1_MAX_IN_CLAUSE_SIZE = 100;
-
-function isPurchaseOrderNoConflictError(error) {
-  const message = String(error?.message || error || '').toLowerCase();
-  return message.includes('unique constraint failed')
-    && message.includes('purchase_orders.po_no');
-}
+import {
+  generatePurchaseOrderNo,
+  isPurchaseOrderNoConflictError,
+} from './purchase-order-numbering.js';
+import {
+  findPurchaseOrderDetail,
+  getPurchaseOrderItemsForAllocation,
+  getPurchaseOrderStats,
+  listPurchaseOrders,
+} from './purchase-order-queries.js';
+import {
+  addPurchaseOrderItems,
+  removePurchaseOrderItem,
+  updatePurchaseOrderItem,
+} from './purchase-order-item-mutations.js';
 
 /**
  * 采购单仓储 (Purchase Order Repository)
@@ -45,26 +45,8 @@ export class PurchaseOrderRepository {
   /**
    * 生成采购单号 PO-YYYYMMDD-NNN
    */
-  async generatePoNo() {
-    const now = new Date();
-    const year = now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai', year: 'numeric' });
-    const month = now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai', month: '2-digit' });
-    const day = now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai', day: '2-digit' });
-    const prefix = `PO-${year}${month}${day}`;
-
-    const latest = await this.db
-      .prepare(
-        `SELECT po_no
-         FROM purchase_orders
-         WHERE po_no LIKE ?
-         ORDER BY po_no DESC
-         LIMIT 1`
-      )
-      .bind(`${prefix}-%`)
-      .first();
-
-    const seq = Number(String(latest?.po_no || '').split('-').at(-1) || 0) + 1;
-    return `${prefix}-${String(seq).padStart(3, '0')}`;
+  async generatePoNo(_options = undefined) {
+    return generatePurchaseOrderNo(this.db);
   }
 
   // ─── 主表 CRUD ─────────────────────────────────────────
@@ -126,201 +108,15 @@ export class PurchaseOrderRepository {
   /**
    * 根据 ID 查找采购单 (含明细)
    */
-  async findById(id) {
-    const po = await this.db.prepare(`SELECT * FROM purchase_orders WHERE id = ?`).bind(id).first();
-    if (!po) return null;
-
-    const { results: items } = await this.db.prepare(`
-      SELECT 
-        poi.*,
-        p.name AS product_name,
-        p.spu AS product_sku,
-        p.brand AS product_brand,
-        p.images AS product_images,
-        p.specifications AS product_specifications,
-        v.sku AS variant_sku,
-        v.options_values AS variant_options,
-        o.order_no AS customer_order_no,
-        COALESCE(poi.snapshot_name, ols.snapshot_name) AS snapshot_name,
-        COALESCE(poi.snapshot_sku, ols.snapshot_sku) AS snapshot_sku,
-        COALESCE(poi.snapshot_specs, ols.snapshot_specs) AS snapshot_specs,
-        COALESCE(poi.snapshot_image, ols.snapshot_image) AS snapshot_image,
-        COALESCE(json_extract(poi.snapshot_specs, '$.brand'), json_extract(ols.snapshot_specs, '$.brand')) AS snapshot_brand,
-        COALESCE(pr.receipt_count, 0) AS receipt_count,
-        pr.last_received_at AS last_received_at
-      FROM purchase_order_items poi
-      LEFT JOIN products p ON poi.product_id = p.id
-      LEFT JOIN product_variants v ON poi.variant_id = v.id
-      LEFT JOIN orders o ON poi.pre_order_id = o.id
-      LEFT JOIN (
-        SELECT
-          order_id,
-          product_id,
-          variant_id,
-          MAX(snapshot_name) AS snapshot_name,
-          MAX(snapshot_sku) AS snapshot_sku,
-          MAX(snapshot_specs) AS snapshot_specs,
-          MAX(snapshot_image) AS snapshot_image
-        FROM order_lines
-        GROUP BY order_id, product_id, variant_id
-      ) ols ON ols.order_id = poi.pre_order_id
-        AND ols.product_id = poi.product_id
-        AND ols.variant_id = poi.variant_id
-      LEFT JOIN (
-        SELECT
-          purchase_order_item_id,
-          COUNT(*) AS receipt_count,
-          MAX(received_at) AS last_received_at
-        FROM purchase_receipts
-        GROUP BY purchase_order_item_id
-      ) pr ON pr.purchase_order_item_id = poi.id
-      WHERE poi.po_id = ?
-      ORDER BY poi.created_at ASC
-    `).bind(id).all();
-
-    const poItems = (items || []).map((item) => {
-      const mapped = mapPurchaseOrderSnapshotFields(item);
-      return {
-        ...mapped,
-        quantity: toNumber(item.quantity),
-        received_qty: toNumber(item.received_qty),
-        cancelled_qty: toNumber(item.cancelled_qty),
-        receipt_count: toNumber(item.receipt_count),
-      };
-    });
-    const { results: receipts } = await this.db.prepare(`
-      SELECT
-        pr.*,
-        p.name AS product_name,
-        p.brand AS product_brand,
-        p.spu AS product_sku,
-        p.images AS product_images,
-        v.sku AS variant_sku,
-        v.options_values AS variant_options,
-        COALESCE(poi_item.snapshot_name, ol.snapshot_name) AS snapshot_name,
-        COALESCE(poi_item.snapshot_sku, ol.snapshot_sku) AS snapshot_sku,
-        COALESCE(poi_item.snapshot_specs, ol.snapshot_specs) AS snapshot_specs,
-        COALESCE(poi_item.snapshot_image, ol.snapshot_image) AS snapshot_image,
-        COALESCE(json_extract(poi_item.snapshot_specs, '$.brand'), json_extract(ol.snapshot_specs, '$.brand')) AS snapshot_brand,
-        COALESCE(rr.reversed_qty, 0) AS reversed_qty,
-        COALESCE(rr.reversal_count, 0) AS reversal_count,
-        rr.last_reversed_at AS last_reversed_at
-      FROM purchase_receipts pr
-      LEFT JOIN products p ON p.id = pr.product_id
-      LEFT JOIN product_variants v ON v.id = pr.variant_id
-      LEFT JOIN purchase_order_items poi_item ON poi_item.id = pr.purchase_order_item_id
-      LEFT JOIN order_lines ol ON ol.id = pr.order_line_id
-      LEFT JOIN (
-        SELECT
-          original_receipt_id,
-          COALESCE(SUM(reversal_qty), 0) AS reversed_qty,
-          COUNT(*) AS reversal_count,
-          MAX(created_at) AS last_reversed_at
-        FROM purchase_receipt_reversals
-        GROUP BY original_receipt_id
-      ) rr ON rr.original_receipt_id = pr.id
-      WHERE pr.purchase_order_id = ?
-      ORDER BY pr.received_at DESC, pr.created_at DESC
-    `).bind(id).all();
-    const receiptRows = (receipts || []).map((receipt) => {
-      const mapped = mapPurchaseOrderSnapshotFields(receipt);
-      const normalizedReceipt = normalizePurchaseOrderProgress({
-        ...mapped,
-        received_qty: toNumber(receipt.received_qty),
-      });
-      const reversedQty = toNumber(receipt.reversed_qty);
-      const receivedQty = toNumber(receipt.received_qty);
-      const availableReversalQty = Math.max(receivedQty - reversedQty, 0);
-      return {
-        ...normalizedReceipt,
-        reversed_qty: reversedQty,
-        reversal_count: toNumber(receipt.reversal_count),
-        last_reversed_at: toNumber(receipt.last_reversed_at),
-        available_reversal_qty: availableReversalQty,
-        is_reversed: reversedQty > 0 || toNumber(receipt.reversal_count) > 0,
-      };
-    });
-    const progress = summarizePurchaseOrderItems(poItems);
-
-    return {
-      ...po,
-      ...progress,
-      items: poItems,
-      receipts: receiptRows,
-    };
+  async findById(id, _options = undefined) {
+    return findPurchaseOrderDetail({ db: this.db, id });
   }
 
   /**
    * 列表查询 (带分页和状态筛选)
    */
-  async list(filters = {}) {
-    const { status, search = '', page = 1, limit = 20 } = filters;
-    const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
-      { page, limit },
-      { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
-    );
-
-    let where = '1=1';
-    const params = [];
-
-    if (status) {
-      where += ' AND status = ?';
-      params.push(status);
-    }
-    if (search) {
-      where += ' AND (po_no LIKE ? OR remark LIKE ?)';
-      const like = `%${String(search).trim()}%`;
-      params.push(like, like);
-    }
-
-    // 统计总数
-    const countResult = await this.db
-      .prepare(`SELECT COUNT(*) as total FROM purchase_orders WHERE ${where}`)
-      .bind(...params)
-      .first();
-
-    // 查询列表
-    const { results } = await this.db
-      .prepare(`
-        SELECT po.*,
-          COALESCE(agg.item_count, 0) AS item_count,
-          COALESCE(agg.ordered_qty, 0) AS ordered_qty,
-          COALESCE(agg.received_qty, 0) AS received_qty,
-          COALESCE(agg.cancelled_qty, 0) AS cancelled_qty,
-          COALESCE(agg.outstanding_qty, 0) AS outstanding_qty,
-          COALESCE(agg.total_goods_cost, 0) AS total_goods_cost,
-          CASE
-            WHEN COALESCE(agg.ordered_qty, 0) > 0 AND COALESCE(agg.cancelled_qty, 0) >= COALESCE(agg.ordered_qty, 0) THEN 'cancelled'
-            WHEN COALESCE(agg.ordered_qty, 0) > 0 AND COALESCE(agg.outstanding_qty, 0) <= 0 THEN 'received'
-            WHEN COALESCE(agg.received_qty, 0) > 0 THEN 'partially_received'
-            ELSE 'open'
-          END AS display_status
-        FROM purchase_orders po
-        LEFT JOIN (
-          SELECT
-            po_id,
-            COUNT(*) AS item_count,
-            COALESCE(SUM(quantity), 0) AS ordered_qty,
-            COALESCE(SUM(received_qty), 0) AS received_qty,
-            COALESCE(SUM(cancelled_qty), 0) AS cancelled_qty,
-            COALESCE(SUM(MAX(quantity - received_qty - cancelled_qty, 0)), 0) AS outstanding_qty,
-            COALESCE(SUM(quantity * unit_cost), 0) AS total_goods_cost
-          FROM purchase_order_items
-          GROUP BY po_id
-        ) agg ON agg.po_id = po.id
-        WHERE ${where}
-        ORDER BY po.created_at DESC
-        LIMIT ? OFFSET ?
-      `)
-      .bind(...params, safeLimit, offset)
-      .all();
-
-    return {
-      items: results.map((row) => normalizePurchaseOrderProgress(row)),
-      total: countResult?.total || 0,
-      page: safePage,
-      limit: safeLimit,
-    };
+  async list(filters = {}, _options = undefined) {
+    return listPurchaseOrders({ db: this.db, filters });
   }
 
   /**
@@ -400,114 +196,15 @@ export class PurchaseOrderRepository {
    * @param {string} poId
    * @param {Array<{product_id, pre_order_id, quantity, unit_cost}>} items
    */
-  async addItems(poId, items) {
-    if (!items || items.length === 0) return [];
-
-    const now = Date.now();
-    const stmts = [];
-    const createdIds = [];
-    const hydratedItems = await hydratePurchaseItemSnapshots({ db: this.db, items });
-
-    for (const item of hydratedItems) {
-      if (!item.product_id) {
-        throw new Error('product_id is required');
-      }
-      if (!item.variant_id) {
-        throw new Error('variant_id is required');
-      }
-      const id = crypto.randomUUID();
-      createdIds.push(id);
-
-      stmts.push(
-        this.db.prepare(`
-          INSERT INTO purchase_order_items (
-            id, po_id, product_id, variant_id, pre_order_id, quantity, unit_cost, snapshot_name, snapshot_sku, snapshot_specs, snapshot_image, created_at
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
-          id,
-          poId,
-          item.product_id,
-          item.variant_id,
-          item.pre_order_id || null,
-          item.quantity || 1,
-          item.unit_cost || 0,
-          item.snapshot_name || null,
-          item.snapshot_sku || null,
-          item.snapshot_specs || null,
-          item.snapshot_image || null,
-          now
-        )
-      );
-    }
-
-    let insertedCount = 0;
-    try {
-      for (const chunk of chunkArray(stmts, D1_MAX_IN_CLAUSE_SIZE)) {
-        await this.db.batch(chunk);
-        insertedCount += chunk.length;
-      }
-    } catch (error) {
-      const insertedIds = createdIds.slice(0, insertedCount);
-      if (insertedIds.length > 0) {
-        for (const idChunk of chunkArray(insertedIds, D1_MAX_IN_CLAUSE_SIZE)) {
-          const placeholders = idChunk.map(() => '?').join(',');
-          await this.db
-            .prepare(`DELETE FROM purchase_order_items WHERE id IN (${placeholders})`)
-            .bind(...idChunk)
-            .run();
-        }
-      }
-      throw error;
-    }
-
-    // 同步更新采购单的 updated_at
-    try {
-      await this.db
-        .prepare(`UPDATE purchase_orders SET updated_at = ? WHERE id = ?`)
-        .bind(now, poId)
-        .run();
-    } catch (error) {
-      if (createdIds.length > 0) {
-        for (const idChunk of chunkArray(createdIds, D1_MAX_IN_CLAUSE_SIZE)) {
-          const placeholders = idChunk.map(() => '?').join(',');
-          await this.db
-            .prepare(`DELETE FROM purchase_order_items WHERE id IN (${placeholders})`)
-            .bind(...idChunk)
-            .run();
-        }
-      }
-      throw error;
-    }
-
-    return createdIds;
+  async addItems(poId, items, _options = undefined) {
+    return addPurchaseOrderItems({ db: this.db, poId, items });
   }
 
   /**
    * 删除单条明细
    */
-  async removeItem(poIdOrItemId, itemIdMaybe) {
-    const useScopedDelete = typeof itemIdMaybe === 'string';
-    const sql = useScopedDelete
-      ? `DELETE FROM purchase_order_items WHERE id = ? AND po_id = ?`
-      : `DELETE FROM purchase_order_items WHERE id = ?`;
-    const params = useScopedDelete
-      ? [itemIdMaybe, poIdOrItemId]
-      : [poIdOrItemId];
-
-    const statements = useScopedDelete
-      ? [
-          this.db.prepare(sql).bind(...params),
-          this.db
-            .prepare(`UPDATE purchase_orders SET updated_at = ? WHERE id = ?`)
-            .bind(Date.now(), poIdOrItemId),
-        ]
-      : [this.db.prepare(sql).bind(...params)];
-    const [result] = useScopedDelete
-      ? await this.db.batch(statements)
-      : [await statements[0].run()];
-    const removed = hasChanges(result);
-    return removed;
+  async removeItem(poIdOrItemId, itemIdMaybe, _options = undefined) {
+    return removePurchaseOrderItem({ db: this.db, poIdOrItemId, itemIdMaybe });
   }
 
   /**
@@ -533,47 +230,13 @@ export class PurchaseOrderRepository {
    * @param {Object} updates - { quantity?, unit_cost? }
    * @returns {Promise<boolean>} 是否更新成功
    */
-  async updateItem(poIdOrItemId, itemIdOrUpdates, updatesMaybe) {
-    const scoped = updatesMaybe !== undefined;
-    const poId = scoped ? poIdOrItemId : null;
-    const itemId = scoped ? itemIdOrUpdates : poIdOrItemId;
-    const updates = scoped ? updatesMaybe : itemIdOrUpdates;
-
-    const fields = [];
-    const values = [];
-
-    if (updates.quantity !== undefined) { fields.push('quantity = ?'); values.push(updates.quantity); }
-    if (updates.unit_cost !== undefined) { fields.push('unit_cost = ?'); values.push(updates.unit_cost); }
-
-    if (fields.length === 0) return false;
-
-    const where = scoped ? 'WHERE id = ? AND po_id = ?' : 'WHERE id = ?';
-    if (scoped) {
-      values.push(itemId, poId);
-    } else {
-      values.push(itemId);
-    }
-    const statements = scoped
-      ? [
-          this.db.prepare(
-            `UPDATE purchase_order_items SET ${fields.join(', ')} ${where}`
-          ).bind(...values),
-          this.db
-            .prepare(`UPDATE purchase_orders SET updated_at = ? WHERE id = ?`)
-            .bind(Date.now(), poId),
-        ]
-      : [
-          this.db.prepare(
-            `UPDATE purchase_order_items SET ${fields.join(', ')} ${where}`
-          ).bind(...values),
-        ];
-    const [result] = scoped
-      ? await this.db.batch(statements)
-      : [await statements[0].run()];
-
-    const updated = hasChanges(result);
-
-    return updated;
+  async updateItem(poIdOrItemId, itemIdOrUpdates, updatesMaybe, _options = undefined) {
+    return updatePurchaseOrderItem({
+      db: this.db,
+      poIdOrItemId,
+      itemIdOrUpdates,
+      updatesMaybe,
+    });
   }
 
   /**
@@ -591,21 +254,7 @@ export class PurchaseOrderRepository {
    * 获取采购单明细 (含商品信息，用于成本分摊计算)
    */
   async getItemsForAllocation(poId) {
-    const { results } = await this.db.prepare(`
-      SELECT poi.*, 
-        COALESCE(vagg.min_cost_price, 0) AS product_cost_price, 
-        v.cost_price AS variant_cost_price
-      FROM purchase_order_items poi
-      LEFT JOIN products p ON poi.product_id = p.id
-      LEFT JOIN product_variants v ON poi.variant_id = v.id
-      LEFT JOIN (
-        SELECT product_id, MIN(COALESCE(cost_price, 0)) AS min_cost_price
-        FROM product_variants
-        GROUP BY product_id
-      ) vagg ON vagg.product_id = p.id
-      WHERE poi.po_id = ?
-    `).bind(poId).all();
-    return results;
+    return getPurchaseOrderItemsForAllocation({ db: this.db, poId });
   }
 
   /**
@@ -638,22 +287,8 @@ export class PurchaseOrderRepository {
   /**
    * 获取采购统计概览
    */
-  async getStats() {
-    const result = await this.db.prepare(`
-      SELECT
-        COUNT(*) AS total,
-        COUNT(CASE WHEN status = 'draft' THEN 1 END) AS draft_count,
-        COUNT(CASE WHEN status = 'ordered' THEN 1 END) AS ordered_count,
-        COUNT(CASE WHEN status = 'shipping' THEN 1 END) AS shipping_count,
-        COUNT(CASE WHEN status = 'arrived' THEN 1 END) AS arrived_count,
-        COUNT(CASE WHEN status = 'completed' THEN 1 END) AS completed_count,
-        COALESCE((SELECT SUM(quantity) FROM purchase_order_items), 0) AS ordered_qty,
-        COALESCE((SELECT SUM(received_qty) FROM purchase_order_items), 0) AS received_qty,
-        COALESCE((SELECT SUM(cancelled_qty) FROM purchase_order_items), 0) AS cancelled_qty,
-        COALESCE((SELECT SUM(MAX(quantity - received_qty - cancelled_qty, 0)) FROM purchase_order_items), 0) AS outstanding_qty
-      FROM purchase_orders
-    `).first();
-    return normalizePurchaseOrderProgress(result || {});
+  async getStats(_options = undefined) {
+    return getPurchaseOrderStats({ db: this.db });
   }
 
   // ─── 内部工具 ──────────────────────────────────────────

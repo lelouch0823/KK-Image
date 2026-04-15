@@ -10,6 +10,10 @@ describe('ProductCatalogService decomposition audit', () => {
     const mainPath = path.join(ROOT, 'functions', 'services', 'ProductCatalogService.js');
     const helperPaths = [
       path.join(ROOT, 'functions', 'services', 'product-catalog', 'batch-import.js'),
+      path.join(ROOT, 'functions', 'services', 'product-catalog', 'batch-execution.js'),
+      path.join(ROOT, 'functions', 'services', 'product-catalog', 'create.js'),
+      path.join(ROOT, 'functions', 'services', 'product-catalog', 'dimensions.js'),
+      path.join(ROOT, 'functions', 'services', 'product-catalog', 'patch.js'),
       path.join(ROOT, 'functions', 'services', 'product-catalog', 'variant-matching.js'),
       path.join(ROOT, 'functions', 'services', 'product-catalog', 'maintenance.js'),
       path.join(ROOT, 'functions', 'services', 'product-catalog', 'variant-images.js'),
@@ -26,16 +30,24 @@ describe('ProductCatalogService decomposition audit', () => {
       offenders.push('functions/services/ProductCatalogService.js: missing batch-import helper import');
     }
 
+    if (!source.includes("./product-catalog/batch-execution.js")) {
+      offenders.push('functions/services/ProductCatalogService.js: missing batch-execution helper import');
+    }
+
+    if (!source.includes("./product-catalog/create.js")) {
+      offenders.push('functions/services/ProductCatalogService.js: missing create helper import');
+    }
+
+    if (!source.includes("./product-catalog/dimensions.js")) {
+      offenders.push('functions/services/ProductCatalogService.js: missing dimensions helper import');
+    }
+
+    if (!source.includes("./product-catalog/patch.js")) {
+      offenders.push('functions/services/ProductCatalogService.js: missing patch helper import');
+    }
+
     if (!source.includes("./product-catalog/variant-matching.js")) {
       offenders.push('functions/services/ProductCatalogService.js: missing variant-matching helper import');
-    }
-
-    if (!source.includes("./product-catalog/maintenance.js")) {
-      offenders.push('functions/services/ProductCatalogService.js: missing maintenance helper import');
-    }
-
-    if (!source.includes("./product-catalog/variant-images.js")) {
-      offenders.push('functions/services/ProductCatalogService.js: missing variant-images helper import');
     }
 
     for (const marker of [
@@ -48,10 +60,22 @@ describe('ProductCatalogService decomposition audit', () => {
       'async rollbackPatchedProduct({',
       'const variantImageRepo = new VariantImageRepository(this.db, this.variantRepo);',
       'const imageSyncPlan = resolveVariantImageSyncPlan({',
+      'async syncDimensionsFromPayload(productId, incomingDimensions = [], { replaceMissing = false } = {}) {',
+      'async patchProduct(c, productId, body, {',
+      'async batchImport(c, body = {}, options = {}) {',
+      'const created = {',
+      'product = await productRepo.create(body);',
+      'const normalizedVariants = normalizeVariantDimensionKeys(',
+      'await syncCatalogVariantImages({',
+      'await cleanupCreatedCatalogRecords({ db, created });',
     ]) {
       if (source.includes(marker)) {
         offenders.push(`functions/services/ProductCatalogService.js: still defines ${marker}`);
       }
+    }
+
+    if (!source.includes('executeProductCatalogCreate({')) {
+      offenders.push('functions/services/ProductCatalogService.js: missing create helper delegation');
     }
 
     expect(

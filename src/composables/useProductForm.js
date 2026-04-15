@@ -31,6 +31,11 @@ import {
   applyBatchBuilderSelection,
   buildVariantsAfterDimensionArchive,
 } from '@/composables/product-form/archives.js';
+import { createProductFormArchiveActions } from '@/composables/product-form/archive-actions.js';
+import {
+  createActionErrorMessageResolver,
+  createProductFormSubmitHandler,
+} from '@/composables/product-form/submission.js';
 
 export {
   buildVariantSyncSummaryMessage,
@@ -144,6 +149,8 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
       `There are ${incompleteVariantCount.value} legacy variants that no longer match the current specs. Remove/archive them before saving.`
     )
   );
+
+  const resolveActionErrorMessage = createActionErrorMessageResolver({ t });
 
   const resetArchiveWizards = () => {
     dimensionArchiveWizard.open = false;
@@ -442,116 +449,6 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     generateVariants();
   };
 
-  // ——— 维度归档向导 ———
-  const closeDimensionArchiveWizard = (force = false) => {
-    if (dimensionArchiveWizard.loading && !force) return;
-    dimensionArchiveWizard.open = false;
-    dimensionArchiveWizard.step = 1;
-    dimensionArchiveWizard.optionIndex = -1;
-    dimensionArchiveWizard.optionId = '';
-    dimensionArchiveWizard.affectedVariantsCount = 0;
-    dimensionArchiveWizard.sampleVariants = [];
-    dimensionArchiveWizard.mode = 'archive_variants';
-  };
-
-  const confirmDimensionArchive = async () => {
-    if (!initialData.value?.id || !dimensionArchiveWizard.optionId) return;
-    const requestId = ++asyncActionRequestId;
-    dimensionArchiveWizard.loading = true;
-    try {
-      const response = await archiveDimension(initialData.value.id, dimensionArchiveWizard.optionId, {
-        mode: dimensionArchiveWizard.mode,
-      });
-      if (!isAsyncActionActive(requestId)) return;
-      if (!response?.success) {
-        addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
-        return;
-      }
-      if (dimensionArchiveWizard.optionIndex >= 0) {
-        const archivedOption = form.options[dimensionArchiveWizard.optionIndex];
-        form.options.splice(dimensionArchiveWizard.optionIndex, 1);
-        if (archivedOption?.id) {
-          const trackedDimension = trackedDimensions.value.find((dimension) => dimension.id === archivedOption.id);
-          if (trackedDimension) trackedDimension.status = 'archived';
-        }
-
-        form.variants = buildVariantsAfterDimensionArchive({
-          variants: form.variants,
-          archivedOption,
-          mode: dimensionArchiveWizard.mode,
-          removeDimensionFromVariant,
-          getVariantOptionValue,
-          buildVariantOptionsKey,
-          markVariantCompleteness,
-          getNextDimensionNames: () => getNextDimensionNames(form.options),
-        });
-      }
-      closeDimensionArchiveWizard(true);
-    } catch (error) {
-      if (!isAsyncActionActive(requestId)) return;
-      addToast({ message: resolveActionErrorMessage(error), type: 'error' });
-    } finally {
-      if (requestId === asyncActionRequestId) {
-        dimensionArchiveWizard.loading = false;
-      }
-    }
-  };
-
-  // ——— 值归档向导 ———
-  const closeValueArchiveWizard = (force = false) => {
-    if (valueArchiveWizard.loading && !force) return;
-    valueArchiveWizard.open = false;
-    valueArchiveWizard.optionIndex = -1;
-    valueArchiveWizard.valueIndex = -1;
-    valueArchiveWizard.valueId = '';
-    valueArchiveWizard.valueLabel = '';
-    valueArchiveWizard.affectedVariantsCount = 0;
-    valueArchiveWizard.sampleVariants = [];
-  };
-
-  const confirmValueArchive = async () => {
-    if (!initialData.value?.id || !valueArchiveWizard.valueId) return;
-    const requestId = ++asyncActionRequestId;
-    valueArchiveWizard.loading = true;
-    try {
-      const response = await archiveDimensionValue(initialData.value.id, valueArchiveWizard.valueId);
-      if (!isAsyncActionActive(requestId)) return;
-      if (!response?.success) {
-        addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
-        return;
-      }
-      if (valueArchiveWizard.optionIndex >= 0 && valueArchiveWizard.valueIndex >= 0) {
-        const option = form.options[valueArchiveWizard.optionIndex];
-        option?.values?.splice(valueArchiveWizard.valueIndex, 1);
-        if (option) {
-          if (!Array.isArray(option.archivedValues)) option.archivedValues = [];
-          option.archivedValues.push({
-            id: valueArchiveWizard.valueId,
-            value: valueArchiveWizard.valueLabel,
-            status: 'archived',
-          });
-          updateTrackedDimensionValue(option.id, valueArchiveWizard.valueLabel, (currentValue) => ({
-            ...(currentValue || {}),
-            id: valueArchiveWizard.valueId,
-            value: valueArchiveWizard.valueLabel,
-            status: 'archived',
-          }));
-        }
-        form.variants = form.variants
-          .filter((variant) => getVariantOptionValue(variant, option) !== valueArchiveWizard.valueLabel)
-          .map((variant) => markVariantCompleteness(variant, getNextDimensionNames(form.options)));
-      }
-      closeValueArchiveWizard(true);
-    } catch (error) {
-      if (!isAsyncActionActive(requestId)) return;
-      addToast({ message: resolveActionErrorMessage(error), type: 'error' });
-    } finally {
-      if (requestId === asyncActionRequestId) {
-        valueArchiveWizard.loading = false;
-      }
-    }
-  };
-
   // ——— 变体辅助 ———
   const formatVariantSample = (sample) => {
     const raw = sample?.options_values || {};
@@ -586,157 +483,66 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     form.variants = result.variants;
   };
 
-  // ——— 表单提交 ———
-  const normalizeMutationResult = (result) => {
-    if (result && typeof result === 'object' && Object.prototype.hasOwnProperty.call(result, 'success')) {
-      return result;
-    }
-    if (result === null || result === undefined || result === false) {
-      return { success: false };
-    }
-    if (result === true) {
-      return { success: true };
-    }
-    return { success: true, data: result };
+  const nextAsyncActionRequestId = () => {
+    asyncActionRequestId += 1;
+    return asyncActionRequestId;
   };
+  nextAsyncActionRequestId.current = () => asyncActionRequestId;
 
-  const resolveActionErrorMessage = (error) =>
-    error?.message || error?.error || t('common.operationFailed');
-
-  const handleSubmit = async () => {
-    if (!form.name) {
-      addToast({
-        message: t('common.validation_error', '请填写必填项 (商品名称)'),
-        type: 'error',
-      });
-      return;
-    }
-    if (!Array.isArray(form.variants) || form.variants.length === 0) {
-      addToast({
-        message: t('common.validation_error', '请至少添加一个变体'),
-        type: 'error',
-      });
-      return;
-    }
-    const invalidVariant = form.variants.find(
-      (variant) =>
-        (!editMode.value && !String(variant.sku || '').trim()) ||
-        variant.price === undefined ||
-        variant.cost_price === undefined ||
-        variant.stock_quantity === undefined ||
-        variant.alert_threshold === undefined ||
-        !variant.status
-    );
-    if (invalidVariant) {
-      addToast({
-        message: t('common.validation_error', 'Please complete each variant SKU/price/cost/inventory/alert/status'),
-        type: 'error',
-      });
-      return;
-    }
-    if (incompleteVariantCount.value > 0) {
-      addToast({
-        message: t(
-          'product.form.incomplete_variants_block_submit',
-          'Remove or archive incomplete legacy variants before saving'
-        ),
-        type: 'error',
-      });
-      return;
-    }
-
-    const requestId = ++submitRequestId;
-    submitting.value = true;
-    try {
-      // 从图片上传器中提取 ID
-      const currentImageIds = imageObjects.value.map((f) => f.id).filter(Boolean);
-
-      const payload = {
-        name: form.name,
-        description: form.description,
-        brand: form.brand,
-        series: form.series,
-        category: form.category,
-        currency: formatSubmittedCurrency(form.currency),
-        spu: form.spu || undefined,
-        slug: form.slug || undefined,
-        images: currentImageIds,
-        options: form.options.map((o) => ({ name: o.name, values: o.values })),
-        dimensions: form.options
-          .filter((option) => option.name)
-          .map((option) => ({
-            id: option.id || undefined,
-            name: option.name,
-            values: option.values.map(val => ({
-                 value: val,
-                 meta: option.metaMap?.[val] || undefined
-            })),
-          })),
-        variants: form.variants.map((variant) => {
-          const { _clientKey, _incomplete, ...variantPayload } = variant;
-          const payload = {
-            ...variantPayload,
-            barcode: String(variant.barcode || '').trim() || null,
-            supplier_sku: String(variant.supplier_sku || '').trim() || null,
-          };
-          if (isExistingVariantInEditMode(editMode, variant)) {
-            delete payload.stock_quantity;
-          }
-          return payload;
-        }),
-      };
-
-      let response;
-      if (editMode.value) {
-        if (typeof updateProductWithMeta === 'function') {
-          response = await updateProductWithMeta(initialData.value.id, payload);
-        } else {
-          response = await updateProduct(initialData.value.id, payload);
-        }
-      } else if (typeof createProductWithMeta === 'function') {
-        response = await createProductWithMeta(payload);
-      } else {
-        response = await createProduct(payload);
-      }
-
-      const normalized = normalizeMutationResult(response);
-      if (!isSubmitActionActive(requestId)) return;
-      if (!normalized.success) {
-        addToast({
-          message: normalized.error || normalized.message || t('common.operationFailed'),
-          type: 'error',
-        });
-        return;
-      }
-
-      if (normalized.variantSync) {
-        addToast({
-          message: buildVariantSyncSummaryMessage(normalized.variantSync, t),
-          type: 'success',
-        });
-      } else {
-        addToast({
-          message: editMode.value ? t('common.updated') : t('common.created'),
-          type: 'success',
-        });
-      }
-
-      if (normalized.success) {
-        emit('success', normalized.data || null);
-        emit('update:modelValue', false);
-      }
-    } catch (error) {
-      if (!isSubmitActionActive(requestId)) return;
-      addToast({
-        message: error?.message || error?.error || t('common.operationFailed'),
-        type: 'error',
-      });
-    } finally {
-      if (requestId === submitRequestId) {
-        submitting.value = false;
-      }
-    }
+  const nextSubmitRequestId = () => {
+    submitRequestId += 1;
+    return submitRequestId;
   };
+  nextSubmitRequestId.current = () => submitRequestId;
+
+  const {
+    closeDimensionArchiveWizard,
+    confirmDimensionArchive,
+    closeValueArchiveWizard,
+    confirmValueArchive,
+  } = createProductFormArchiveActions({
+    initialData,
+    form,
+    trackedDimensions,
+    dimensionArchiveWizard,
+    valueArchiveWizard,
+    addToast,
+    t,
+    archiveDimension,
+    archiveDimensionValue,
+    nextAsyncActionRequestId,
+    isAsyncActionActive,
+    resolveActionErrorMessage,
+    updateTrackedDimensionValue,
+    buildVariantsAfterDimensionArchive,
+    removeDimensionFromVariant,
+    getVariantOptionValue,
+    buildVariantOptionsKey,
+    markVariantCompleteness,
+    getNextDimensionNames,
+  });
+
+  const handleSubmit = createProductFormSubmitHandler({
+    form,
+    imageObjects,
+    editMode,
+    initialData,
+    t,
+    addToast,
+    emit,
+    incompleteVariantCount,
+    submitting,
+    nextSubmitRequestId,
+    isSubmitActionActive,
+    createProduct,
+    updateProduct,
+    createProductWithMeta,
+    updateProductWithMeta,
+    formatSubmittedCurrency,
+    isExistingVariantInEditMode,
+    buildVariantSyncSummaryMessage,
+    resolveActionErrorMessage,
+  });
 
   return {
     // 状态

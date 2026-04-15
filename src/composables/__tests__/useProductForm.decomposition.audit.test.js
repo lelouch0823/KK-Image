@@ -13,6 +13,8 @@ describe('useProductForm decomposition audit', () => {
       path.join(ROOT, 'src', 'composables', 'product-form', 'dimensions.js'),
       path.join(ROOT, 'src', 'composables', 'product-form', 'variants.js'),
       path.join(ROOT, 'src', 'composables', 'product-form', 'archives.js'),
+      path.join(ROOT, 'src', 'composables', 'product-form', 'archive-actions.js'),
+      path.join(ROOT, 'src', 'composables', 'product-form', 'submission.js'),
     ];
     const source = fs.readFileSync(mainPath, 'utf8');
 
@@ -38,6 +40,14 @@ describe('useProductForm decomposition audit', () => {
       offenders.push('src/composables/useProductForm.js: missing product-form archive helper import');
     }
 
+    if (!source.includes("@/composables/product-form/archive-actions.js")) {
+      offenders.push('src/composables/useProductForm.js: missing product-form archive-actions import');
+    }
+
+    if (!source.includes("@/composables/product-form/submission.js")) {
+      offenders.push('src/composables/useProductForm.js: missing product-form submission import');
+    }
+
     for (const marker of [
       'function normalizeCurrencyCode(',
       'function toOptionModel(',
@@ -50,6 +60,12 @@ describe('useProductForm decomposition audit', () => {
       'const removeDimensionFromVariant = (variant, option) => {',
       'const variantOptionsKey = (optionsValues) =>',
       'const handleBatchBuilderApply = ({ options = [], variants = [] }) => {',
+      'const closeDimensionArchiveWizard = (force = false) => {',
+      'const confirmDimensionArchive = async () => {',
+      'const closeValueArchiveWizard = (force = false) => {',
+      'const confirmValueArchive = async () => {',
+      'const normalizeMutationResult = (result) => {',
+      'const handleSubmit = async () => {',
     ]) {
       if (source.includes(marker)) {
         offenders.push(`src/composables/useProductForm.js: still defines ${marker}`);
