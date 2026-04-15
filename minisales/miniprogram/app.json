@@ -1,28 +1,17 @@
 {
-  "pages": [
-    "pages/index/index",
-    "pages/spaces/spaces",
-    "pages/stats/stats",
-    "pages/login/login"
-  ],
+  "pages": ["pages/index/index", "pages/spaces/spaces", "pages/stats/stats", "pages/login/login"],
   "subPackages": [
     {
       "root": "pages/form",
-      "pages": [
-        "form"
-      ]
+      "pages": ["form"]
     },
     {
       "root": "pages/detail",
-      "pages": [
-        "detail"
-      ]
+      "pages": ["detail"]
     },
     {
       "root": "pages/spaces_detail",
-      "pages": [
-        "detail"
-      ]
+      "pages": ["detail"]
     }
   ],
   "window": {
@@ -72,8 +61,8 @@
       {
         "pagePath": "pages/spaces/spaces",
         "text": "资源",
-        "iconPath": "assets/icons/orders.png",
-        "selectedIconPath": "assets/icons/orders-active.png"
+        "iconPath": "assets/icons/stats.png",
+        "selectedIconPath": "assets/icons/stats-active.png"
       }
     ]
   },

@@ -57,6 +57,10 @@
   justify-content: center;
 }
 
+.line-card__placeholder-icon {
+  color: $text-muted;
+}
+
 .line-card__copy {
   min-width: 0;
   flex: 1;
@@ -78,6 +82,36 @@
   border-radius: 999rpx;
   font-size: $font-size-xs;
   line-height: 1.2;
+}
+
+.line-card__status--neutral {
+  color: $text-secondary;
+  background: $bg-hover;
+}
+
+.line-card__status--warning {
+  color: $status-pending;
+  background: $status-pending-bg;
+}
+
+.line-card__status--info {
+  color: $status-confirmed;
+  background: $status-confirmed-bg;
+}
+
+.line-card__status--primary {
+  color: $status-production;
+  background: $status-production-bg;
+}
+
+.line-card__status--success {
+  color: $status-arrived;
+  background: $status-arrived-bg;
+}
+
+.line-card__status--danger {
+  color: $status-rejected;
+  background: $status-rejected-bg;
 }
 
 .line-card__metrics {

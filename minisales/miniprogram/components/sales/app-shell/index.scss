@@ -1,7 +1,9 @@
+@import '../../../styles/variables.scss';
+
 .shell {
   position: relative;
   padding: 24rpx 32rpx 8rpx;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  background: $shell-surface-bg;
 }
 
 .shell__header {
@@ -18,14 +20,14 @@
   display: block;
   font-size: 36rpx;
   font-weight: 700;
-  color: #0f172a;
+  color: $text-main;
 }
 
 .shell__subtitle {
   display: block;
   margin-top: 8rpx;
   font-size: 24rpx;
-  color: #64748b;
+  color: $text-secondary;
 }
 
 .shell__actions {
@@ -39,11 +41,11 @@
   width: 68rpx;
   height: 68rpx;
   border-radius: 18rpx;
-  background: #eef2ff;
+  background: $shell-action-bg;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #334155;
+  color: $text-main;
   transition: transform 0.16s ease;
 }
 
@@ -52,7 +54,7 @@
 }
 
 .shell__action--notify {
-  background: #f1f5f9;
+  background: $shell-notify-bg;
 }
 
 .shell__badge {
@@ -63,8 +65,8 @@
   height: 30rpx;
   border-radius: 15rpx;
   padding: 0 8rpx;
-  background: #ef4444;
-  color: #ffffff;
+  background: $shell-badge-bg;
+  color: $color-white;
   font-size: 20rpx;
   line-height: 30rpx;
   text-align: center;
@@ -79,13 +81,13 @@
 .shell__tab {
   padding: 10rpx 28rpx;
   border-radius: 999rpx;
-  background: #e2e8f0;
-  color: #334155;
+  background: $shell-tab-bg;
+  color: $text-main;
   font-size: 24rpx;
   transition: all 0.18s ease;
 }
 
 .shell__tab--active {
-  background: #2563eb;
-  color: #ffffff;
+  background: $shell-tab-active-bg;
+  color: $color-white;
 }

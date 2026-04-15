@@ -9,7 +9,7 @@
           全部已读
         </text>
         <view class="drawer__close" bind:tap="onCloseTap">
-          <t-icon name="close" size="30rpx" color="#475569" />
+          <t-icon name="close" size="30rpx" />
         </view>
       </view>
     </view>

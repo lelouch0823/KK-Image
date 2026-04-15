@@ -4,6 +4,7 @@ import {
   safeParseObject,
   toFiniteNumber,
 } from '../../utils/helpers';
+import { resolveStatusConfig, type OrderStatusTone } from '../../utils/constants';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -15,8 +16,7 @@ interface DetailInfoRow {
 
 interface StatusMeta {
   label: string;
-  color: string;
-  background: string;
+  tone: OrderStatusTone;
 }
 
 export interface OrderDetailSummaryViewModel {
@@ -24,7 +24,7 @@ export interface OrderDetailSummaryViewModel {
   title: string;
   status: string;
   statusLabel: string;
-  statusStyle: string;
+  statusTone: OrderStatusTone;
   quantity: number;
   mainImage: string;
   infoRows: DetailInfoRow[];
@@ -40,7 +40,7 @@ export interface OrderDetailLineViewModel {
   title: string;
   status: string;
   statusLabel: string;
-  statusStyle: string;
+  statusTone: OrderStatusTone;
   orderedQty: number;
   procuredQty: number;
   receivedQty: number;
@@ -105,19 +105,6 @@ export interface DuplicatePrefill {
   files: DuplicatePrefillFile[];
 }
 
-const STATUS_META: Record<string, StatusMeta> = {
-  pending: { label: '待确认', color: '#b45309', background: '#fef3c7' },
-  confirmed: { label: '已确认', color: '#1d4ed8', background: '#dbeafe' },
-  rejected: { label: '已驳回', color: '#b91c1c', background: '#fee2e2' },
-  production: { label: '生产中', color: '#6d28d9', background: '#ede9fe' },
-  shipping: { label: '已发货', color: '#0e7490', background: '#cffafe' },
-  arrived: { label: '已到店', color: '#047857', background: '#d1fae5' },
-  delivered: { label: '已交付', color: '#15803d', background: '#dcfce7' },
-  void: { label: '已作废', color: '#4b5563', background: '#e5e7eb' },
-  partially_received: { label: '部分到货', color: '#92400e', background: '#fde68a' },
-  received: { label: '已到货', color: '#047857', background: '#d1fae5' },
-};
-
 function asRecord(value: unknown): UnknownRecord {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return value as UnknownRecord;
@@ -130,7 +117,10 @@ function asArray(value: unknown): unknown[] {
 }
 
 function pickRecordString(record: UnknownRecord, keys: string[], fallback = ''): string {
-  return pickFirstString(keys.map((key) => record[key]), fallback);
+  return pickFirstString(
+    keys.map((key) => record[key]),
+    fallback
+  );
 }
 
 function toPositiveNumber(value: unknown, fallback = 1): number {
@@ -159,22 +149,21 @@ function resolveVideoFlag(mimeType: string, url: string): boolean {
 }
 
 function resolveStatusMeta(status: string): StatusMeta {
-  return STATUS_META[status] || {
-    label: status || '处理中',
-    color: '#334155',
-    background: '#e2e8f0',
+  const config = resolveStatusConfig(status);
+  return {
+    label: config.label,
+    tone: config.tone,
   };
-}
-
-function buildStatusStyle(meta: StatusMeta): string {
-  return `color:${meta.color};background:${meta.background};`;
 }
 
 function normalizeLine(raw: unknown): OrderDetailLineViewModel {
   const record = asRecord(raw);
   const status = pickRecordString(record, ['status', 'displayStatus', 'display_status'], 'pending');
   const meta = resolveStatusMeta(status);
-  const orderedQty = toPositiveNumber(record.orderedQty ?? record.ordered_qty ?? record.quantity, 1);
+  const orderedQty = toPositiveNumber(
+    record.orderedQty ?? record.ordered_qty ?? record.quantity,
+    1
+  );
   const procuredQty = toFiniteNumber(record.procuredQty ?? record.procured_qty);
   const receivedQty = toFiniteNumber(record.receivedQty ?? record.received_qty);
   const reservedQty = toFiniteNumber(record.reservedQty ?? record.reserved_qty);
@@ -186,7 +175,7 @@ function normalizeLine(raw: unknown): OrderDetailLineViewModel {
     title: pickRecordString(record, ['title', 'snapshotName', 'snapshot_name'], '未命名行项目'),
     status,
     statusLabel: meta.label,
-    statusStyle: buildStatusStyle(meta),
+    statusTone: meta.tone,
     orderedQty,
     procuredQty,
     receivedQty,
@@ -296,31 +285,35 @@ export function buildOrderDetailViewModel(detail: unknown): OrderDetailViewModel
   const record = asRecord(detail);
   const currentData = safeParseObject<UnknownRecord>(record.currentData ?? record.current_data, {});
   const lines = asArray(record.lines).map(normalizeLine);
-  const files = asArray(record.files).map(normalizeFile).filter((item) => item.url);
+  const files = asArray(record.files)
+    .map(normalizeFile)
+    .filter((item) => item.url);
   const timeline = asArray(record.timeline).map(normalizeTimelineItem);
   const header = asRecord(record.header);
-  const status = pickFirstString([
-    record.displayStatus,
-    record.display_status,
-    record.status,
-  ], 'pending');
+  const status = pickFirstString(
+    [record.displayStatus, record.display_status, record.status],
+    'pending'
+  );
   const statusMeta = resolveStatusMeta(status);
   const quantity = toPositiveNumber(record.quantity ?? currentData.quantity, 1);
 
   return {
     summary: {
       orderNo: pickFirstString([record.orderNo, record.order_no]),
-      title: pickFirstString([
-        currentData.name,
-        record.name,
-        header.title,
-        lines[0]?.title,
-        record.orderNo,
-        record.order_no,
-      ], '未命名订单'),
+      title: pickFirstString(
+        [
+          currentData.name,
+          record.name,
+          header.title,
+          lines[0]?.title,
+          record.orderNo,
+          record.order_no,
+        ],
+        '未命名订单'
+      ),
       status,
       statusLabel: statusMeta.label,
-      statusStyle: buildStatusStyle(statusMeta),
+      statusTone: statusMeta.tone,
       quantity,
       mainImage: pickFirstString([
         header.mainImage,
@@ -343,14 +336,16 @@ export function buildDuplicatePrefill(detail: unknown): DuplicatePrefill {
   const files = asArray(record.files)
     .map(normalizeFile)
     .filter((item) => item.url)
-    .map((item): DuplicatePrefillFile => ({
-      id: item.id,
-      url: item.url,
-      name: item.name,
-      type: item.isVideo ? 'video' : 'image',
-      status: 'done',
-      isLocal: false,
-    }));
+    .map(
+      (item): DuplicatePrefillFile => ({
+        id: item.id,
+        url: item.url,
+        name: item.name,
+        type: item.isVideo ? 'video' : 'image',
+        status: 'done',
+        isLocal: false,
+      })
+    );
 
   const prefill: DuplicatePrefill = {
     name: pickRecordString(currentData, ['name']),
@@ -364,12 +359,10 @@ export function buildDuplicatePrefill(detail: unknown): DuplicatePrefill {
       pickRecordString(currentData, ['color']),
       pickRecordString(currentData, ['material']),
       pickRecordString(currentData, ['size']),
-    ].filter(Boolean).join(' / '),
-    primaryImage: pickFirstString([
-      header.mainImage,
-      header.main_image,
-      files[0]?.url,
-    ]),
+    ]
+      .filter(Boolean)
+      .join(' / '),
+    primaryImage: pickFirstString([header.mainImage, header.main_image, files[0]?.url]),
     remark: pickRecordString(currentData, ['remark']),
     deadline: pickRecordString(currentData, ['deadline']),
     quantity: toPositiveNumber(record.quantity ?? currentData.quantity, 1),

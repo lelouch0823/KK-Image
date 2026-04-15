@@ -9,7 +9,7 @@
         lazy-load
       />
       <view wx:else class="summary-card__image summary-card__image--placeholder">
-        <t-icon name="image" size="54rpx" color="#94a3b8" />
+        <t-icon name="image" size="54rpx" class="summary-card__placeholder-icon" />
       </view>
     </view>
 
@@ -18,7 +18,7 @@
       <text class="summary-card__order-no">{{summary && summary.orderNo}}</text>
 
       <view class="summary-card__meta">
-        <text class="summary-card__status" style="{{summary && summary.statusStyle}}">{{summary && summary.statusLabel}}</text>
+        <text class="summary-card__status summary-card__status--{{summary && summary.statusTone}}">{{summary && summary.statusLabel}}</text>
         <text class="summary-card__quantity">数量 {{(summary && summary.quantity) || 1}}</text>
       </view>
     </view>

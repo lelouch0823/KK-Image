@@ -32,6 +32,10 @@
   justify-content: center;
 }
 
+.order-card__placeholder-icon {
+  color: $text-muted;
+}
+
 .order-card__dot {
   position: absolute;
   top: -4rpx;
@@ -80,6 +84,36 @@
   font-size: 22rpx;
   line-height: 1.2;
   @include text-ellipsis;
+}
+
+.order-card__status--neutral {
+  color: $text-secondary;
+  background: $bg-hover;
+}
+
+.order-card__status--warning {
+  color: $status-pending;
+  background: $status-pending-bg;
+}
+
+.order-card__status--info {
+  color: $status-confirmed;
+  background: $status-confirmed-bg;
+}
+
+.order-card__status--primary {
+  color: $status-production;
+  background: $status-production-bg;
+}
+
+.order-card__status--success {
+  color: $status-arrived;
+  background: $status-arrived-bg;
+}
+
+.order-card__status--danger {
+  color: $status-rejected;
+  background: $status-rejected-bg;
 }
 
 .order-card__time {

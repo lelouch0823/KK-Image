@@ -33,6 +33,10 @@
   justify-content: center;
 }
 
+.summary-card__placeholder-icon {
+  color: $text-muted;
+}
+
 .summary-card__body {
   min-width: 0;
   flex: 1;
@@ -75,6 +79,36 @@
 .summary-card__quantity {
   color: #0f172a;
   background: #e2e8f0;
+}
+
+.summary-card__status--neutral {
+  color: $text-secondary;
+  background: $bg-hover;
+}
+
+.summary-card__status--warning {
+  color: $status-pending;
+  background: $status-pending-bg;
+}
+
+.summary-card__status--info {
+  color: $status-confirmed;
+  background: $status-confirmed-bg;
+}
+
+.summary-card__status--primary {
+  color: $status-production;
+  background: $status-production-bg;
+}
+
+.summary-card__status--success {
+  color: $status-arrived;
+  background: $status-arrived-bg;
+}
+
+.summary-card__status--danger {
+  color: $status-rejected;
+  background: $status-rejected-bg;
 }
 
 .summary-card__rows {
