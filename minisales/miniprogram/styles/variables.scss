@@ -28,6 +28,7 @@ $border-color: #e5e7eb;
 $border-strong: #dbe5f0;
 $border-radius: 16rpx;
 $border-radius-lg: 24rpx;
+$border-radius-pill: 999rpx;
 
 // 间距
 $spacing-xs: 8rpx;
@@ -47,15 +48,25 @@ $font-size-2xl: 44rpx;
 // 阴影
 $shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
 $shadow-md: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+$shadow-lg: $shadow-overlay;
 $shadow-overlay: 0 20rpx 48rpx rgba(15, 23, 42, 0.18);
 
 // 壳层与覆盖层
 $shell-surface-bg: linear-gradient(180deg, $bg-card 0%, $bg-subtle 100%);
+$surface-shell-gradient-start: $bg-card;
+$surface-shell-gradient-end: $bg-subtle;
+$surface-panel-bg: $bg-card;
+$surface-panel-border: $border-color;
+$surface-panel-muted-bg: $bg-subtle;
 $shell-action-bg: $bg-info-subtle;
+$shell-action-neutral-bg: $bg-hover;
+$shell-action-color: $text-main;
 $shell-notify-bg: $bg-hover;
 $shell-badge-bg: $color-danger;
 $shell-tab-bg: $status-void-bg;
+$shell-tab-color: $text-main;
 $shell-tab-active-bg: $color-primary;
+$shell-tab-active-color: $color-white;
 $overlay-mask: rgba(15, 23, 42, 0.28);
 
 // 状态卡片颜色
