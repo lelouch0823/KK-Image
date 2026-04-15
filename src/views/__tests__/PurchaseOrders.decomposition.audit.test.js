@@ -49,6 +49,24 @@ describe('PurchaseOrders decomposition audit', () => {
       offenders.push('src/views/PurchaseOrders.vue: missing purchase-order create-flow composable import');
     }
 
+    for (const expectedImport of [
+      "@/components/purchase-order/PurchaseOrderOverviewBanner.vue",
+      "@/components/purchase-order/PurchaseOrderListTable.vue",
+      "@/components/purchase-order/PurchaseOrderDetailDrawer.vue",
+      "@/components/purchase-order/PurchaseOrderCreateDrawer.vue",
+      "@/components/purchase-order/PurchaseOrderSuggestionsDrawer.vue",
+      "@/components/purchase-order/PurchaseOrderCostModal.vue",
+      "@/components/purchase-order/PurchaseOrderReceiptModal.vue",
+      "@/components/purchase-order/PurchaseOrderShortageModal.vue",
+      "@/components/purchase-order/PurchaseOrderReceiptReversalModal.vue",
+      "@/composables/usePurchaseOrderListPresentation",
+      "@/composables/usePurchaseOrderDetailPresentation",
+    ]) {
+      if (!source.includes(expectedImport)) {
+        offenders.push(`src/views/PurchaseOrders.vue: missing future decomposition import ${expectedImport}`);
+      }
+    }
+
     for (const marker of [
       'const formatDate = (ts) => {',
       'const formatDateTime = (ts) => {',
@@ -81,6 +99,10 @@ describe('PurchaseOrders decomposition audit', () => {
       'const handleCreate = async () => {',
       'const executeCreate = async () => {',
       'const handleCreateFromSuggestions = async () => {',
+      'data-testid="purchase-order-console-banner"',
+      'data-testid="purchase-order-detail-shell"',
+      'data-testid="purchase-order-create-shell"',
+      'data-testid="purchase-order-suggestions-shell"',
     ]) {
       if (source.includes(marker)) {
         offenders.push(`src/views/PurchaseOrders.vue: still defines ${marker}`);
