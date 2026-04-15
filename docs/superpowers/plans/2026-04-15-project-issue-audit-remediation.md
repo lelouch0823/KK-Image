@@ -212,3 +212,4 @@ Create a dedicated second-stage plan for:
 - `providerCache` env-keying (`14`)
 - cross-runtime purchase-order projection deduplication (`16`)
 - large-file decomposition in `PurchaseOrders.vue`, `useProductForm.js`, `ProductCatalogService.js`, and `PurchaseOrderRepository.js` (`26-29`)
+- dedicated route-shell budget plan for `PurchaseOrders.vue`: `docs/superpowers/plans/2026-04-15-purchase-orders-under-800-plan.md`
