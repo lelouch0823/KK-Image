@@ -37,205 +37,32 @@
         </template>
 
         <template #content>
-          <!-- ===== 统计卡片：骨架屏 or 真实数据 ===== -->
-          <section
-            data-testid="purchase-order-console-banner"
-            class="relative overflow-hidden rounded-[1.75rem] border border-(--border-color)/60 bg-(--bg-card) p-4 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.28)] sm:p-5"
-          >
-            <div
-              class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.06),transparent_24%)]"
-            ></div>
-            <div class="relative space-y-4">
-              <div class="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                  <div>
-                    <h2 class="text-lg font-semibold text-(--text-main)">
-                      {{ t('purchaseOrder.title') }}
-                    </h2>
-                    <p class="mt-1 max-w-2xl text-sm leading-6 text-(--text-secondary)">
-                      {{ t('purchaseOrder.subtitle') }}
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-center lg:justify-end">
-                  <span
-                    class="inline-flex items-center rounded-full border border-(--border-color)/70 bg-(--bg-card)/80 px-3 py-1 text-[11px] font-medium text-(--text-secondary)"
-                  >
-                    {{ t('purchaseOrder.pagination.total', { count: total }) }}
-                  </span>
-                </div>
-              </div>
+          <PurchaseOrderOverviewBanner
+            :title="t('purchaseOrder.title')"
+            :description="t('purchaseOrder.subtitle')"
+            :total="total"
+            :loading="loading"
+            :stats="stats"
+            :stat-cards="statCards"
+            :console-signals="consoleSignals"
+            :active-status="filters.status"
+            @toggle-status-filter="toggleStatusFilter"
+          />
 
-              <div
-                data-testid="purchase-order-overview-strip"
-                class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6"
-              >
-                <template v-if="loading && !stats">
-                  <!-- 骨架卡片 ×6 -->
-                  <div
-                    v-for="i in 6"
-                    :key="'sk-card-' + i"
-                    class="relative overflow-hidden rounded-2xl border border-(--border-color)/60 bg-(--bg-card)/90 p-4 shadow-none backdrop-blur sm:p-5"
-                  >
-                    <div class="flex items-start justify-between">
-                      <div class="flex-1 space-y-3">
-                        <div class="skeleton-shimmer h-3.5 w-16 rounded bg-(--bg-muted)" />
-                        <div class="skeleton-shimmer h-8 w-12 rounded bg-(--bg-muted)" />
-                      </div>
-                      <div class="skeleton-shimmer size-9 rounded-xl bg-(--bg-muted) sm:size-10" />
-                    </div>
-                  </div>
-                </template>
-
-                <template v-else-if="stats">
-                  <MetricTile
-                    v-for="card in statCards"
-                    :key="card.key"
-                    :label="card.label"
-                    :value="card.count"
-                    :icon="card.icon"
-                    :tone="card.tone"
-                    :active="filters.status === card.key"
-                    flat
-                    clickable
-                    @click="toggleStatusFilter(card.key)"
-                  />
-                </template>
-              </div>
-
-              <div v-if="consoleSignals.length > 0" class="grid gap-3 md:grid-cols-3">
-                <article
-                  v-for="signal in consoleSignals"
-                  :key="signal.key"
-                  class="rounded-[1.1rem] border border-(--border-color)/55 bg-(--bg-card)/92 p-4"
-                >
-                  <p
-                    class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase"
-                  >
-                    {{ signal.label }}
-                  </p>
-                  <div class="mt-2">
-                    <div>
-                      <div class="font-mono text-2xl font-semibold text-(--text-main) tabular-nums">
-                        {{ signal.value }}
-                      </div>
-                      <p class="mt-1 text-xs leading-5 text-(--text-secondary)">
-                        {{ signal.hint }}
-                      </p>
-                    </div>
-                  </div>
-                </article>
-              </div>
-            </div>
-          </section>
-
-          <!-- ===== 数据表格：AppTable ===== -->
-          <AppTable
+          <PurchaseOrderListTable
             :columns="columns"
-            :data="list"
+            :list="list"
             :loading="loading"
             :empty-text="t('purchaseOrder.empty')"
-            no-border
+            :status-config="statusConfig"
+            :format-date="formatDate"
+            :format-purchase-currency="formatPurchaseCurrency"
+            :build-receipt-progress-summary="buildReceiptProgressSummary"
+            :get-progress-status-label="getProgressStatusLabel"
+            :get-progress-status-variant="getProgressStatusVariant"
+            :get-list-status-variant="getListStatusVariant"
             @row-click="(row) => openDetail(row.id)"
-          >
-            <template #toolbar>
-              <div
-                class="mb-3 flex flex-col gap-2 border-b border-(--border-color)/35 px-1 pb-3 lg:flex-row lg:items-center lg:justify-between"
-              >
-                <div>
-                  <h3 class="text-sm font-semibold text-(--text-main)">Order Ledger</h3>
-                  <p class="mt-1 text-xs text-(--text-secondary)">
-                    {{
-                      t(
-                        'purchaseOrder.ui.tableHint',
-                        '主状态和到货进度在同一列聚合展示，便于快速扫读链路卡点。'
-                      )
-                    }}
-                  </p>
-                </div>
-                <div class="text-xs text-(--text-secondary) lg:text-right">
-                  {{ t('purchaseOrder.ui.liveHint', '点击行可查看采购链路详情') }}
-                </div>
-              </div>
-            </template>
-
-            <!-- 采购单编号 -->
-            <template #cell-po_no="{ row: po }">
-              <code
-                data-testid="purchase-order-po-chip"
-                class="inline-flex items-center rounded-full border border-(--border-color)/70 bg-(--bg-muted) px-2.5 py-1 font-mono text-[11px] font-semibold tracking-[0.04em] text-(--text-main)"
-              >
-                {{ po.po_no }}
-              </code>
-            </template>
-
-            <template #cell-status="{ row: po }">
-              <div class="flex flex-col items-start gap-1.5">
-                <StatusBadge
-                  v-if="po.status"
-                  data-testid="purchase-order-status-badge"
-                  :variant="
-                    ['draft', 'cancelled'].includes(po.status)
-                      ? 'default'
-                      : ['ordered'].includes(po.status)
-                        ? 'warning'
-                        : po.status === 'shipping'
-                          ? 'purple'
-                          : po.status === 'arrived'
-                            ? 'info'
-                            : 'success'
-                  "
-                  class="ring-1 ring-black/5"
-                >
-                  {{ statusConfig[po.status]?.label || po.status }}
-                </StatusBadge>
-                <template
-                  v-if="po.display_status || po.ordered_qty || po.received_qty || po.cancelled_qty"
-                >
-                  <StatusBadge
-                    data-testid="purchase-order-progress-badge"
-                    :variant="getProgressStatusVariant(po.display_status)"
-                    class="text-[10px]"
-                  >
-                    {{ getProgressStatusLabel(po.display_status) }}
-                  </StatusBadge>
-                  <span
-                    data-testid="purchase-order-progress-summary"
-                    class="text-[11px] text-(--text-secondary)"
-                  >
-                    {{ buildReceiptProgressSummary(po) }}
-                  </span>
-                </template>
-              </div>
-            </template>
-
-            <!-- 商品数 -->
-            <template #cell-item_count="{ row: po }">
-              <span class="font-medium text-(--text-main)">{{ po.item_count || 0 }}</span>
-            </template>
-
-            <!-- 商品总金额 -->
-            <template #cell-total_goods_cost="{ row: po }">
-              <span
-                data-testid="purchase-order-total-cost"
-                class="inline-flex min-w-[7.5rem] justify-end font-mono text-sm font-semibold text-(--text-main) tabular-nums"
-              >
-                {{ formatPurchaseCurrency(po.total_goods_cost, po.currency) }}
-              </span>
-            </template>
-
-            <!-- 备注 -->
-            <template #cell-remark="{ row: po }">
-              <span class="max-w-[150px] truncate text-(--text-secondary)" :title="po.remark">{{
-                po.remark || '-'
-              }}</span>
-            </template>
-
-            <!-- 创建时间 -->
-            <template #cell-created_at="{ row: po }">
-              <span class="text-(--text-secondary)">{{ formatDate(po.created_at) }}</span>
-            </template>
-          </AppTable>
+          />
 
           <!-- 分页 -->
           <div
@@ -2533,6 +2360,7 @@ import { usePurchaseOrders } from '@/composables/usePurchaseOrders';
 import { usePurchaseOrderModals } from '@/composables/usePurchaseOrderModals';
 import { usePurchaseOrderCreateFlow } from '@/composables/usePurchaseOrderCreateFlow';
 import { usePurchaseOrderDetailActions } from '@/composables/usePurchaseOrderDetailActions';
+import { usePurchaseOrderListPresentation } from '@/composables/usePurchaseOrderListPresentation';
 import { useToast } from '@/composables/useToast';
 import { useAI } from '@/composables/useAI';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
@@ -2548,7 +2376,6 @@ import { formatCurrency as formatMoney } from '@/utils/formatters';
 import { formatDate, formatDateTime } from "@/views/purchase-orders/formatters.js";
 import {
   createReceiptMetaBuilder,
-  createReceiptProgressSummaryBuilder,
   hasReceiptMeta,
 } from "@/views/purchase-orders/progress.js";
 import {
@@ -2567,17 +2394,17 @@ import {
 } from "@/views/purchase-orders/drafts.js";
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
 import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
+import PurchaseOrderOverviewBanner from '@/components/purchase-order/PurchaseOrderOverviewBanner.vue';
+import PurchaseOrderListTable from '@/components/purchase-order/PurchaseOrderListTable.vue';
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppCheckbox from '@/components/ui/AppCheckbox.vue';
-import AppTable from '@/components/ui/AppTable.vue';
 import AppSelect from '@/components/ui/Select.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
-import MetricTile from '@/design-system/composed/MetricTile.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
 const { t } = useI18n();
@@ -2655,53 +2482,16 @@ let stopPurchaseOrdersRefreshSubscription = null;
 
 // ─── 计算属性 ────────────────────────────────────────
 
-const statCards = computed(() => {
-  if (!stats.value) return [];
-  return [
-    {
-      key: '',
-      label: t('purchaseOrder.filter.all'),
-      count: stats.value.total || 0,
-      icon: 'bars-4',
-      tone: 'primary',
-    },
-    {
-      key: 'draft',
-      label: t('purchaseOrder.status.draft'),
-      count: stats.value.draft_count || 0,
-      icon: 'pencil-square',
-      tone: 'slate',
-    },
-    {
-      key: 'ordered',
-      label: t('purchaseOrder.status.ordered'),
-      count: stats.value.ordered_count || 0,
-      icon: 'clipboard-document-check',
-      tone: 'warning',
-    },
-    {
-      key: 'shipping',
-      label: t('purchaseOrder.status.shipping'),
-      count: stats.value.shipping_count || 0,
-      icon: 'truck',
-      tone: 'purple',
-    },
-    {
-      key: 'arrived',
-      label: t('purchaseOrder.status.arrived'),
-      count: stats.value.arrived_count || 0,
-      icon: 'cube',
-      tone: 'success',
-    },
-    {
-      key: 'completed',
-      label: t('purchaseOrder.status.completed'),
-      count: stats.value.completed_count || 0,
-      icon: 'check-badge',
-      tone: 'info',
-    },
-  ];
-});
+const {
+  statCards,
+  columns,
+  consoleSignals,
+  buildReceiptProgressSummary,
+  getProgressStatusLabel,
+  getProgressStatusVariant,
+  getListStatusVariant,
+} = usePurchaseOrderListPresentation({ stats, t });
+
 const stepsList = createPurchaseOrderSteps(t);
 
 const handleStatusUpdate = async (newStatus) => {
@@ -2728,15 +2518,6 @@ const nextStatuses = computed(() => {
   return map[detail.value.status] || [];
 });
 
-const columns = computed(() => [
-  { key: 'po_no', label: t('purchaseOrder.table.poNo') },
-  { key: 'status', label: t('purchaseOrder.table.status') },
-  { key: 'item_count', label: t('purchaseOrder.table.itemCount'), align: 'center' },
-  { key: 'total_goods_cost', label: t('purchaseOrder.table.totalGoodsCost') },
-  { key: 'remark', label: t('purchaseOrder.form.remark') },
-  { key: 'created_at', label: t('purchaseOrder.table.createdAt') },
-]);
-
 const allocationMethodOptions = computed(() => [
   { value: 'by_quantity', label: t('purchaseOrder.form.byQuantity') },
   { value: 'by_value', label: t('purchaseOrder.form.byValue') },
@@ -2758,58 +2539,7 @@ const formatPurchaseCurrency = (value, currency = 'CNY') => {
   return formatMoney(value, currency || 'CNY');
 };
 
-const progressStatusConfig = computed(() => ({
-  open: { label: t('purchaseOrder.progress.open', '待到货'), variant: 'warning' },
-  partially_received: {
-    label: t('purchaseOrder.progress.partiallyReceived', '部分到货'),
-    variant: 'primary',
-  },
-  received: { label: t('purchaseOrder.progress.received', '已全部到货'), variant: 'success' },
-  cancelled: { label: t('purchaseOrder.progress.cancelled', '已取消'), variant: 'default' },
-}));
-
-const getProgressStatusMeta = (status) =>
-  progressStatusConfig.value[status] || progressStatusConfig.value.open;
-
-const getProgressStatusLabel = (status) => getProgressStatusMeta(status).label;
-
-const getProgressStatusVariant = (status) => getProgressStatusMeta(status).variant;
-
-const buildReceiptProgressSummary = createReceiptProgressSummaryBuilder({ t });
-
 const buildReceiptMeta = createReceiptMetaBuilder({ t, formatDate });
-
-const consoleSignals = computed(() => {
-  if (!stats.value) return [];
-
-  const draftCount = Number(stats.value.draft_count || 0);
-  const activeCount =
-    Number(stats.value.ordered_count || 0) +
-    Number(stats.value.shipping_count || 0) +
-    Number(stats.value.arrived_count || 0);
-  const completedCount = Number(stats.value.completed_count || 0);
-
-  return [
-    {
-      key: 'active',
-      label: t('purchaseOrder.ui.activeWork', '在途链路'),
-      value: formatInteger(activeCount),
-      hint: t('purchaseOrder.ui.activeWorkHint', '已下单、运输中、待结算采购单总和。'),
-    },
-    {
-      key: 'draft',
-      label: t('purchaseOrder.ui.draftBacklog', '草稿堆积'),
-      value: formatInteger(draftCount),
-      hint: t('purchaseOrder.ui.draftBacklogHint', '等待补货明细、成本策略或关联订单的草稿。'),
-    },
-    {
-      key: 'completed',
-      label: t('purchaseOrder.ui.settlementClosed', '已结算'),
-      value: formatInteger(completedCount),
-      hint: t('purchaseOrder.ui.settlementClosedHint', '已完成入库与结算闭环的采购单。'),
-    },
-  ];
-});
 
 const detailSummaryCards = computed(() => {
   if (!detail.value) return [];
