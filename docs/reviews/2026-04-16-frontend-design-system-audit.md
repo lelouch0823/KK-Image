@@ -39,6 +39,16 @@
   - `ProductDetail.vue`
   - `OrderStatusChanger.vue`
   - 并清除了相关高可见 `font-[Outfit]` 残留
+- 采购 / space / 文件选择第三轮收口已完成：
+  - `PurchaseOrderCostModal.vue`
+  - `PurchaseOrderReceiptModal.vue`
+  - `PurchaseOrderShortageModal.vue`
+  - `PurchaseOrderReceiptReversalModal.vue`
+  - `PurchaseOrderSuggestionsDrawer.vue`
+  - `PurchaseOrderSupportOverlays.vue`
+  - `SpaceProductDetail.vue`
+  - `SpaceMasonry.vue`
+  - `FileSelector.vue`
 - minisales 已完成状态 / shell / surface 第一轮收敛，去掉了核心链路中的 `style="{{...}}"` 状态注入和 controller 拼色字符串。
 
 ### 新增治理护栏
@@ -56,25 +66,16 @@
 
 ### 当前验证结果
 
-- 设计系统相关窄范围 Vitest：17 文件 61 测试通过
-- 商品 / 订单关键链路窄范围 Vitest：通过
+- 本轮收口相关 Vitest：7 文件 12 测试通过
 - `pnpm qa:check-design-system`：通过
-- `eslint --max-warnings 0`：已对本次整改涉及文件通过
-- `prettier --check`：已对本次整改涉及文件通过
-- `git diff --check`：当前整改文件范围内通过
+- `eslint --max-warnings 0`：已对本轮整改涉及文件通过
+- `prettier --check` 等价校验：本轮改动文件已通过 `prettier --write` 重写并保持无 diff 异常
+- `git diff --check`：当前工作区通过
 
 ### 仍待后续波次处理的 backlog
 
-- 本次并未清空审计基线中的全部历史问题，仍有部分低频或次高频文件保留在 backlog，例如：
-  - `src/components/purchase-order/PurchaseOrderCostModal.vue`
-  - `src/components/purchase-order/PurchaseOrderReceiptModal.vue`
-  - `src/components/purchase-order/PurchaseOrderShortageModal.vue`
-  - `src/components/purchase-order/PurchaseOrderReceiptReversalModal.vue`
-  - `src/components/purchase-order/PurchaseOrderSuggestionsDrawer.vue`
-  - `src/components/purchase-order/PurchaseOrderSupportOverlays.vue`
-  - `src/components/space/SpaceProductDetail.vue`
-  - `src/components/space/SpaceMasonry.vue`
-  - `src/components/FileSelector.vue`
+- 本轮已清空此前挂在当前分支收口清单里的采购 overlay、space 详情组件和 `FileSelector`。
+- 审计基线下方记录的其余历史问题仍作为后续波次 backlog 保留，但不再包含上述已整改文件。
 - 两个明确保留的原生能力例外：
   - `src/components/SpaceProductEditor.vue` 中隐藏的 `type="file"` 输入，用于原生文件选择能力
   - `src/components/product/ProductDetail.vue` 中用于缩略图切换的图片按钮
