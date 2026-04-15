@@ -73,4 +73,58 @@ describe('usePurchaseOrderDetailActions', () => {
     expect(addToast).toHaveBeenCalled();
     expect(recordReceipts).not.toHaveBeenCalled();
   });
+
+  it('seeds receipt, shortage, and reversal modal state from current detail payload', () => {
+    const actions = usePurchaseOrderDetailActions({
+      detail: ref({
+        id: 'po-1',
+        status: 'shipping',
+      }),
+      t,
+      addToast: vi.fn(),
+      updatePO: vi.fn(),
+      allocateCosts: vi.fn(),
+      recordReceipts: vi.fn(),
+      reverseReceipt: vi.fn(),
+      closeShortages: vi.fn(),
+      refreshPurchaseOrderViews: vi.fn(),
+      receiptCandidates: computed(() => [
+        {
+          purchase_order_item_id: 'item-1',
+          product_name: 'Premium Canvas Bag',
+          max_receivable: 3,
+          received_qty: 0,
+        },
+      ]),
+      shortageCandidates: computed(() => [
+        {
+          purchase_order_item_id: 'item-1',
+          product_name: 'Premium Canvas Bag',
+          max_closable: 2,
+          close_qty: 0,
+        },
+      ]),
+      canRecordReceipts: computed(() => true),
+      canCloseShortages: computed(() => true),
+    });
+
+    actions.openReceiptModal();
+    expect(actions.showReceiptModal.value).toBe(true);
+    expect(actions.receiptDrafts.value).toHaveLength(1);
+    expect(actions.receiptDrafts.value[0].received_qty).toBe(0);
+
+    actions.openShortageModal();
+    expect(actions.showShortageClosureModal.value).toBe(true);
+    expect(actions.shortageDrafts.value).toHaveLength(1);
+    expect(actions.shortageDrafts.value[0].close_qty).toBe(0);
+
+    actions.openReceiptReversalModal({
+      id: 'receipt-1',
+      product_name: 'Premium Canvas Bag',
+      received_qty: 3,
+      available_reversal_qty: 3,
+    });
+    expect(actions.showReceiptReversalModal.value).toBe(true);
+    expect(actions.activeReceiptForReversal.value?.id).toBe('receipt-1');
+  });
 });
