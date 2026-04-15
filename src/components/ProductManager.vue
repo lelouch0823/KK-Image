@@ -52,6 +52,7 @@
             >
                 <template #actions>
                     <button 
+                        data-testid="product-create-trigger"
                         class="bg-primary shadow-primary/20 flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap text-(--text-inverse) shadow-sm transition-all hover:bg-primary-hover active:scale-95 xl:px-4"
                         :title="t('product.action.create')"
                         @click="handleCreate"
@@ -61,6 +62,7 @@
                     </button>
 
                     <button
+                        data-testid="product-import-trigger"
                         class="hover:text-info hover:bg-(--bg-hover) flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all active:scale-95"
                         :title="t('product.action.import')"
                         @click="showImportModal = true"

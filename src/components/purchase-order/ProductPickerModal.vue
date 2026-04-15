@@ -83,6 +83,7 @@
               <label
                 v-for="variant in sortedVariants"
                 :key="variant.variant_id"
+                :data-testid="`purchase-order-product-picker-row-${variant.variant_id}`"
                 class="group flex cursor-pointer items-center gap-3 rounded-[1.3rem] border p-3.5 transition-all duration-200"
                 :class="isSelected(variant.variant_id)
                   ? 'border-primary bg-primary/5 shadow-sm'
@@ -135,6 +136,7 @@
               </button>
               <button
                 type="button"
+                data-testid="purchase-order-product-picker-confirm"
                 class="bg-primary text-inverse cursor-pointer rounded-xl px-5 py-2.5 text-sm font-medium shadow-sm transition-all hover:opacity-90"
                 @click="confirm"
               >

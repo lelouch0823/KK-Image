@@ -92,6 +92,7 @@
 
                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <input
+                        :data-testid="`product-import-spec-name-${index}`"
                         :value="spec.name"
                         type="text"
                         class="focus:border-primary w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main) outline-none"
@@ -99,6 +100,7 @@
                         @input="setSpecName(index, $event.target.value)"
                     />
                     <Select
+                        :data-testid="`product-import-spec-column-${index}`"
                         :model-value="spec.column"
                         :options="[{label: t('product.import.specs.select_column', '选择规格列'), value: ''}, ...fileHeaders.map(h => ({label: h, value: h}))]"
                         :placeholder="t('product.import.specs.select_column', '选择规格列')"

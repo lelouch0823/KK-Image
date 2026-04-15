@@ -75,6 +75,7 @@
               <button
                 v-if="detail.status === 'draft'"
                 type="button"
+                :data-testid="`purchase-order-detail-item-remove-${item.id}`"
                 class="text-danger flex shrink-0 cursor-pointer items-center gap-0.5 text-xs opacity-0 transition-opacity group-hover:opacity-100"
                 @click.stop="$emit('remove-item', item.id)"
               >
@@ -165,6 +166,7 @@
               </span>
               <AppInput
                 v-model="item.quantity"
+                :data-testid="`purchase-order-detail-item-quantity-${item.id}`"
                 type="number"
                 min="1"
                 class="w-full text-center"
@@ -180,6 +182,7 @@
                 <span class="absolute top-1.5 left-2 text-xs text-(--text-secondary)">¥</span>
                 <AppInput
                   v-model="item.unit_cost"
+                  :data-testid="`purchase-order-detail-item-unit-cost-${item.id}`"
                   type="number"
                   step="0.01"
                   min="0"

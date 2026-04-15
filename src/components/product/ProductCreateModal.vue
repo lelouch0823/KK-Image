@@ -113,6 +113,7 @@
 
       <div class="flex min-h-screen items-center justify-center p-4">
         <div
+          data-testid="product-create-modal"
           class="relative w-full max-w-4xl transform overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) text-left shadow-2xl transition-all"
         >
           <div
@@ -220,6 +221,7 @@
             />
             <AppButton
               variant="primary"
+              data-testid="product-create-submit"
               :text="
                 submitting
                   ? t('common.saving')

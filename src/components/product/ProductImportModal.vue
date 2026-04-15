@@ -4,7 +4,7 @@
     :title="t('product.import.title')"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <div class="space-y-6">
+    <div data-testid="product-import-modal" class="space-y-6">
       <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4">
         <div class="mb-3 flex items-center justify-between">
           <h3 class="text-sm font-semibold text-(--text-main)">{{ t('product.import.workflow_title', '导入流程') }}</h3>
@@ -80,6 +80,7 @@
     <template #footer>
         <button 
             type="button" 
+            data-testid="product-import-close"
             class="btn btn-ghost mr-2" 
             :disabled="loading"
             @click="currentStep === 1 ? $emit('update:modelValue', false) : handleBack()"
@@ -87,11 +88,11 @@
             {{ currentStep === 1 ? t('common.cancel') : t('product.import.back') }}
         </button>
         
-        <button v-if="currentStep === 3" type="button" class="btn btn-primary" @click="handleConfirmMapping">
+        <button v-if="currentStep === 3" type="button" data-testid="product-import-confirm-mapping" class="btn btn-primary" @click="handleConfirmMapping">
             {{ t('product.import.confirm_mapping') }}
         </button>
 
-        <button v-if="currentStep === 5" type="button" class="btn btn-primary" :disabled="loading" @click="handleUploadImagesAndNext">
+        <button v-if="currentStep === 5" type="button" data-testid="product-import-upload-next" class="btn btn-primary" :disabled="loading" @click="handleUploadImagesAndNext">
             <AppIcon v-if="loading" name="spinner" class="mr-2 size-4 animate-spin" />
             {{ loading ? t('product.import.uploading') : t('product.import.upload_and_continue') }}
         </button>
@@ -99,6 +100,7 @@
         <button 
             v-if="currentStep === 4"
             type="button" 
+            data-testid="product-import-submit"
             class="btn btn-primary"
             :disabled="!parsedItems.length || loading"
             @click="importResult && importResult.success ? $emit('update:modelValue', false) : handleImport()"

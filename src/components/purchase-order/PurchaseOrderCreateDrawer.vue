@@ -72,6 +72,7 @@
                   {{ t('purchaseOrder.form.remark') }}
                 </label>
                 <AppInput
+                  data-testid="purchase-order-create-remark"
                   :model-value="createForm.remark"
                   type="text"
                   class="mt-2"
@@ -166,6 +167,7 @@
                 </button>
                 <button
                   type="button"
+                  data-testid="purchase-order-open-product-picker-create"
                   class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-(--border-color) px-3 py-1.5 text-xs font-medium text-(--text-main) transition-colors hover:bg-(--bg-hover)"
                   @click="$emit('open-product-picker', 'create')"
                 >

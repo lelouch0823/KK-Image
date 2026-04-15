@@ -44,7 +44,8 @@
     "db:migrations:check-prefix": "node scripts/check-migration-prefixes.mjs",
     "qa:check-direct-protected-fetch": "node scripts/qa/check-direct-protected-fetch.mjs",
     "qa:check-audit-route-coverage": "node scripts/qa/check-audit-route-coverage.mjs",
-    "qa:check-audit-route-coverage:json": "node scripts/qa/check-audit-route-coverage.mjs --json"
+    "qa:check-audit-route-coverage:json": "node scripts/qa/check-audit-route-coverage.mjs --json",
+    "qa:admin-flows": "node scripts/qa/admin-business-flow-smoke.cjs"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.4.3",

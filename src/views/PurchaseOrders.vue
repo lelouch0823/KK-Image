@@ -30,6 +30,7 @@
           <!-- 新建按钮 -->
           <AppButton
             variant="primary"
+            data-testid="purchase-order-open-create"
             :text="t('purchaseOrder.action.create')"
             icon="plus"
             @click="showCreateModal = true"

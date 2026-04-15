@@ -6,6 +6,7 @@
     <div class="space-y-4">
       <AppInput
         v-model="form.name"
+        data-testid="product-form-name"
         :label="t('product.form.name')"
         :placeholder="t('product.form.name_placeholder')"
         required
@@ -23,6 +24,7 @@
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <AppInput
         v-model="form.brand"
+        data-testid="product-form-brand"
         :label="t('order.form.brand')"
         :placeholder="t('order.form.brandPlaceholder')"
       />
@@ -56,11 +58,13 @@
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <AppInput
         v-model="form.category"
+        data-testid="product-form-category"
         :label="t('product.form.category')"
         :placeholder="t('product.form.category_placeholder')"
       />
       <AppInput
         v-model="form.spu"
+        data-testid="product-form-spu"
         :label="t('product.form.spu')"
         placeholder="e.g. SPU-0001"
         class="font-mono uppercase"

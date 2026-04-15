@@ -23,6 +23,7 @@
         </button>
         <button
           type="button"
+          data-testid="product-option-add"
           class="bg-primary shadow-primary/20 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-(--text-inverse) shadow-md transition-all hover:bg-primary-hover active:scale-95"
           @click="$emit('add-option')"
         >
@@ -57,6 +58,7 @@
                 </label>
                 <AppInput
                   v-model="opt.name"
+                  :data-testid="`product-option-name-${idx}`"
                   :placeholder="t('product.form.option_name', '例如: 颜色、尺寸 (Color, Size)')"
                   size="sm"
                   class="font-medium"
@@ -141,6 +143,7 @@
                   <!-- AppInput自带圆角，我们加上 !bg-transparent 等覆盖 -->
                   <AppInput
                     v-model="opt.inputValue"
+                    :data-testid="`product-option-value-${idx}`"
                     :placeholder="isColorDimension(opt.name) ? t('product.form.option_color_placeholder', '添加颜色 (如: 红色)') : t('product.form.option_values_placeholder', '添加规格 (如: XL, M...)')"
                     size="sm"
                     class="!border-dashed !border-(--border-strong) !bg-transparent"

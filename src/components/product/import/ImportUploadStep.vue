@@ -51,6 +51,7 @@
             >
                 <input 
                     ref="fileInput"
+                    data-testid="product-import-file-input"
                     type="file" 
                     accept=".xlsx, .xls, .csv" 
                     class="hidden"

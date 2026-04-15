@@ -66,6 +66,7 @@
           <!-- SKU -->
           <td class="p-2 ">
             <input
+              :data-testid="`variant-sku-${idx}`"
               :value="variant.sku || ''"
               type="text"
               class="variant-input"
@@ -76,6 +77,7 @@
           <!-- 条码 -->
           <td class="p-2 ">
             <input
+              :data-testid="`variant-barcode-${idx}`"
               :value="variant.barcode || ''"
               type="text"
               class="variant-input"
@@ -86,6 +88,7 @@
           <!-- 供应商 SKU -->
           <td class="p-2 ">
             <input
+              :data-testid="`variant-supplier-sku-${idx}`"
               :value="variant.supplier_sku || ''"
               type="text"
               class="variant-input"
@@ -98,6 +101,7 @@
             <div class="relative">
               <span class="absolute top-1/2 left-2 -translate-y-1/2 text-xs text-(--text-muted)">{{ currencySymbol }}</span>
               <input
+                :data-testid="`variant-price-${idx}`"
                 :value="variant.price ?? ''"
                 type="number"
                 step="0.01"
@@ -112,6 +116,7 @@
             <div class="relative">
               <span class="absolute top-1/2 left-2 -translate-y-1/2 text-xs text-(--text-muted)">{{ currencySymbol }}</span>
               <input
+                :data-testid="`variant-cost-${idx}`"
                 :value="variant.cost_price ?? ''"
                 type="number"
                 step="0.01"
@@ -124,6 +129,7 @@
           <!-- 库存 -->
           <td class="p-2 ">
             <input
+              :data-testid="`variant-stock-${idx}`"
               :value="variant.stock_quantity ?? ''"
               type="number"
               class="variant-input"
@@ -135,6 +141,7 @@
           <!-- 预警 -->
           <td class="p-2 ">
             <input
+              :data-testid="`variant-alert-${idx}`"
               :value="variant.alert_threshold ?? ''"
               type="number"
               class="variant-input"
