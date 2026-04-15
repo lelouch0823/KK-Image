@@ -10,16 +10,11 @@
     <div class="flex h-[60vh] flex-col md:h-[500px]">
       <!-- 搜索栏 -->
       <div class="border-b border-(--border-color) px-4 py-3">
-        <div class="relative">
-          <AppIcon
-            name="magnifying-glass"
-            class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-(--text-muted)"
-          />
-          <input
-            v-model="searchQuery"
-            class="focus:border-primary focus:bg-(--bg-card) w-full rounded-lg border border-(--border-color) bg-(--bg-muted) py-2.5 pr-4 pl-9 text-sm text-(--text-main) transition-colors outline-none dark:focus:bg-(--bg-muted)"
-          />
-        </div>
+        <AppInput v-model="searchQuery" size="md">
+          <template #prepend>
+            <AppIcon name="magnifying-glass" class="size-4" />
+          </template>
+        </AppInput>
       </div>
 
       <!-- 列表内容区 -->
@@ -28,89 +23,91 @@
         <div v-if="loading" class="flex h-32 items-center justify-center">
           <AppIcon name="spinner" class="text-primary size-6 animate-spin" />
         </div>
-        
+
         <!-- 空状态 -->
-        <div v-else-if="filteredSalespersons.length === 0" class="flex h-32 flex-col items-center justify-center py-8 text-(--text-muted)">
+        <div
+          v-else-if="filteredSalespersons.length === 0"
+          class="flex h-32 flex-col items-center justify-center py-8 text-(--text-muted)"
+        >
           <AppIcon name="users" class="mb-2 size-8 opacity-50" />
           <span class="text-sm">{{ t('salesperson.noAvailable') || '暂无销售员信息' }}</span>
         </div>
-        
+
         <!-- 数据列表 -->
-        <div v-else class="space-y-1">
-          <button
+        <div v-else class="space-y-2">
+          <AppCard
             v-for="sp in filteredSalespersons"
             :key="sp.id"
-            type="button"
-            class="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200"
-            :class="localSelectedIds.includes(sp.id)
-              ? 'bg-primary/10 ring-primary/30 ring-1 ring-inset dark:bg-primary/20 dark:ring-primary/50'
-              : 'hover:bg-(--bg-hover) hover:shadow-sm'"
+            clickable
+            padding="p-3"
+            :selected="localSelectedIds.includes(sp.id)"
+            class="group"
             @click="toggleSelection(sp.id)"
           >
-            <!-- 单选与多选形态自适应 -->
-            <span
-              class="flex flex-shrink-0 items-center justify-center border transition-all duration-200"
-              :class="[
-                multiple ? 'size-5 rounded' : 'size-5 rounded-full',
-                localSelectedIds.includes(sp.id)
-                  ? 'border-primary bg-primary shadow-primary/20 text-white shadow-sm dark:shadow-none'
-                  : 'group-hover:border-primary border-(--border-strong) bg-(--bg-card) dark:bg-(--bg-muted)'
-              ]"
-            >
-              <template v-if="localSelectedIds.includes(sp.id)">
-                <!-- Checkbox SVG -->
-                <AppIcon v-if="multiple" name="check" class="size-3.5" />
-                <!-- Radio Dot -->
-                <div v-else class="size-2 rounded-full bg-white"></div>
-              </template>
-            </span>
-            
-            <!-- 头像占位 -->
-            <div
-              class="flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-medium shadow-sm"
-              :class="localSelectedIds.includes(sp.id)
-                ? 'from-primary to-primary/70 shadow-primary/30 bg-gradient-to-br text-white dark:shadow-none'
-                : 'border border-(--border-color) bg-(--bg-muted) text-(--text-secondary) dark:bg-(--bg-card)'"
-            >
-              {{ sp.name.charAt(0).toUpperCase() }}
-            </div>
-
-            <!-- 信息 -->
-            <div class="flex-1 overflow-hidden">
-              <div
-                class="truncate text-sm font-medium transition-colors"
-                :class="localSelectedIds.includes(sp.id) ? 'text-primary' : 'text-(--text-main)'"
+            <div class="flex items-center gap-3 text-left">
+              <span
+                class="flex flex-shrink-0 items-center justify-center border transition-all duration-200"
+                :class="[
+                  multiple ? 'size-5 rounded' : 'size-5 rounded-full',
+                  localSelectedIds.includes(sp.id)
+                    ? 'border-primary bg-primary text-white shadow-sm'
+                    : 'group-hover:border-primary border-(--border-strong) bg-(--bg-card)',
+                ]"
               >
-                {{ sp.name }}
+                <template v-if="localSelectedIds.includes(sp.id)">
+                  <AppIcon v-if="multiple" name="check" class="size-3.5" />
+                  <span v-else class="size-2 rounded-full bg-white"></span>
+                </template>
+              </span>
+
+              <div
+                class="flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-medium shadow-sm"
+                :class="
+                  localSelectedIds.includes(sp.id)
+                    ? 'from-primary to-primary/70 shadow-primary/30 bg-gradient-to-br text-white'
+                    : 'border border-(--border-color) bg-(--bg-muted) text-(--text-secondary)'
+                "
+              >
+                {{ sp.name.charAt(0).toUpperCase() }}
               </div>
-              <div v-if="sp.store" class="truncate text-xs text-(--text-secondary)">{{ sp.store }}</div>
+
+              <div class="flex-1 overflow-hidden">
+                <div
+                  class="truncate text-sm font-medium transition-colors"
+                  :class="localSelectedIds.includes(sp.id) ? 'text-primary' : 'text-(--text-main)'"
+                >
+                  {{ sp.name }}
+                </div>
+                <div v-if="sp.store" class="truncate text-xs text-(--text-secondary)">
+                  {{ sp.store }}
+                </div>
+              </div>
             </div>
-          </button>
+          </AppCard>
         </div>
       </div>
     </div>
 
     <!-- 底部操作栏 -->
     <template #footer>
-      <div class="flex w-full items-center justify-between">
+      <ActionBar class="w-full border-none bg-transparent px-0 py-0 shadow-none">
         <div class="text-sm text-(--text-secondary)">
-          {{ t('common.selected') || '已选' }}: <span class="text-primary font-semibold">{{ localSelectedIds.length }}</span>
+          {{ t('common.selected') || '已选' }}:
+          <span class="text-primary font-semibold">{{ localSelectedIds.length }}</span>
         </div>
         <div class="flex gap-3">
-          <button
-            class="rounded-lg px-4 py-2 text-sm font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover) hover:text-(--text-main)"
+          <AppButton
+            variant="secondary"
+            :text="t('common.cancel') || '取消'"
             @click="handleCancel"
-          >
-            {{ t('common.cancel') || '取消' }}
-          </button>
-          <button
-            class="bg-primary rounded-lg px-6 py-2 text-sm font-medium text-white shadow-sm transition-all hover:opacity-90 active:scale-95"
+          />
+          <AppButton
+            variant="primary"
+            :text="t('common.confirm') || '确定'"
             @click="handleConfirm"
-          >
-            {{ t('common.confirm') || '确定' }}
-          </button>
+          />
         </div>
-      </div>
+      </ActionBar>
     </template>
   </Modal>
 </template>
@@ -122,6 +119,10 @@ import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
 import Modal from '@/components/ui/Modal.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppCard from '@/components/ui/AppCard.vue';
+import ActionBar from '@/design-system/composed/ActionBar.vue';
 
 const props = defineProps({
   show: {
@@ -155,15 +156,18 @@ const searchQuery = ref('');
 const localSelectedIds = ref([]);
 
 // 当弹窗打开时，初始化本地选中状态并加载数据
-watch(() => props.show, (val) => {
-  if (val) {
-    localSelectedIds.value = [...props.initialSelectedIds];
-    searchQuery.value = '';
-    if (salespersons.value.length === 0) {
-      loadSalespersons();
+watch(
+  () => props.show,
+  (val) => {
+    if (val) {
+      localSelectedIds.value = [...props.initialSelectedIds];
+      searchQuery.value = '';
+      if (salespersons.value.length === 0) {
+        loadSalespersons();
+      }
     }
   }
-});
+);
 
 const loadSalespersons = async () => {
   loading.value = true;
@@ -183,9 +187,8 @@ const loadSalespersons = async () => {
 const filteredSalespersons = computed(() => {
   if (!searchQuery.value) return salespersons.value;
   const q = searchQuery.value.toLowerCase();
-  return salespersons.value.filter(sp => 
-    sp.name.toLowerCase().includes(q) || 
-    (sp.store && sp.store.toLowerCase().includes(q))
+  return salespersons.value.filter(
+    (sp) => sp.name.toLowerCase().includes(q) || (sp.store && sp.store.toLowerCase().includes(q))
   );
 });
 
@@ -219,7 +222,7 @@ const handleCancel = () => {
 };
 
 const handleConfirm = () => {
-  const selectedObjects = salespersons.value.filter(sp => localSelectedIds.value.includes(sp.id));
+  const selectedObjects = salespersons.value.filter((sp) => localSelectedIds.value.includes(sp.id));
   emit('confirm', [...localSelectedIds.value], selectedObjects);
   emit('update:show', false);
 };

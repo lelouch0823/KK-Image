@@ -1,16 +1,19 @@
 <template>
-  <div
-    class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 lg:items-center"
-    @click.self="$emit('close')"
+  <Modal
+    :model-value="true"
+    size="6xl"
+    body-class="!p-0"
+    @update:model-value="handleModalVisibility"
+    @close="$emit('close')"
   >
-    <!-- 移动端: 全屏底部抽屉 | 桌面端: 居中弹窗 -->
     <div
-      class="flex size-full flex-col overflow-hidden rounded-t-2xl bg-white lg:mx-4 lg:h-[90vh] lg:max-w-5xl lg:flex-row lg:rounded-2xl lg:rounded-t-2xl dark:bg-gray-900"
+      class="flex h-[90vh] min-h-0 flex-col overflow-hidden bg-white lg:flex-row dark:bg-gray-900"
     >
       <!-- 移动端: 顶部标签栏 -->
       <div class="flex items-center border-b border-(--border-color) px-4 py-3 lg:hidden">
-        <button
-          class="flex-1 border-b-2 py-2 text-center text-sm font-medium transition-colors"
+        <AppButton
+          variant="link"
+          class="flex-1 !rounded-none border-b-2 py-2 text-center text-sm font-medium no-underline"
           :class="
             mobileTab === 'info'
               ? 'border-primary text-primary'
@@ -19,9 +22,10 @@
           @click="mobileTab = 'info'"
         >
           {{ t('spaceManager.productInfo') }}
-        </button>
-        <button
-          class="flex-1 border-b-2 py-2 text-center text-sm font-medium transition-colors"
+        </AppButton>
+        <AppButton
+          variant="link"
+          class="flex-1 !rounded-none border-b-2 py-2 text-center text-sm font-medium no-underline"
           :class="
             mobileTab === 'media'
               ? 'border-primary text-primary'
@@ -30,17 +34,12 @@
           @click="mobileTab = 'media'"
         >
           {{ t('spaceManager.media') }}
-        </button>
-        <button class="text-muted ml-2 p-2 hover:text-primary" @click="$emit('close')">
-          <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
+        </AppButton>
+        <AppButton variant="ghost" size="sm" class="ml-2 !w-8 !px-0" @click="$emit('close')">
+          <template #icon-left>
+            <AppIcon name="x-mark" class="size-5" />
+          </template>
+        </AppButton>
       </div>
 
       <!-- 左侧：商品属性编辑器 -->
@@ -83,45 +82,48 @@
               @select="handleProductSelect"
               @unbind="unbindProduct"
             />
-            
-            <div v-if="boundProduct" class="mt-3 flex items-start gap-2 rounded-lg border border-blue-500/20 bg-blue-50/50 p-3 text-sm text-blue-800 dark:border-blue-500/30 dark:bg-blue-900/20 dark:text-blue-300">
-                <svg class="mt-0.5 size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p>该空间已绑定商品，品牌、系列、价格等核心参数由商品关联系统自动接管。如需修改，请点击上方的<strong>“编辑”</strong>按钮前往商品库修改。保存该空间后修改即可全局生效。</p>
-            </div>
 
-            <div
-              v-if="bindingWarning"
-              class="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-50/80 p-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-900/20 dark:text-amber-200"
+            <AppCard
+              v-if="boundProduct"
+              padding="p-3"
+              class="mt-3 border-blue-500/20 bg-blue-50/50 text-sm text-blue-800 dark:border-blue-500/30 dark:bg-blue-900/20 dark:text-blue-300"
             >
-              <svg class="mt-0.5 size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 4h.01M10.29 3.86l-7.4 12.8A1 1 0 003.75 18h16.5a1 1 0 00.86-1.5l-7.4-12.8a1 1 0 00-1.72 0z" />
-              </svg>
-              <p>{{ bindingWarning }}</p>
-            </div>
+              <div class="flex items-start gap-2">
+                <AppIcon name="information-circle" class="mt-0.5 size-4 shrink-0" />
+                <p>
+                  该空间已绑定商品，品牌、系列、价格等核心参数由商品关联系统自动接管。如需修改，请点击上方的<strong>“编辑”</strong>按钮前往商品库修改。保存该空间后修改即可全局生效。
+                </p>
+              </div>
+            </AppCard>
+
+            <AppCard
+              v-if="bindingWarning"
+              padding="p-3"
+              class="mt-3 border-amber-500/25 bg-amber-50/80 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-900/20 dark:text-amber-200"
+            >
+              <div class="flex items-start gap-2">
+                <AppIcon name="exclamation-triangle" class="mt-0.5 size-4 shrink-0" />
+                <p>{{ bindingWarning }}</p>
+              </div>
+            </AppCard>
           </div>
 
           <div>
             <label class="text-primary mb-1 block text-sm font-medium">{{
               t('spaceManager.productName')
             }}</label>
-            <input
-              v-model="form.name"
-              type="text"
-              class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none"
-            />
+            <AppInput v-model="form.name" type="text" size="md" />
           </div>
 
           <div>
             <label class="text-primary mb-1 block text-sm font-medium">{{
               t('spaceManager.brand')
             }}</label>
-            <input
+            <AppInput
               v-model="form.templateData.brand"
               type="text"
               :disabled="hasProductBinding"
-              class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
+              size="md"
             />
           </div>
 
@@ -129,11 +131,11 @@
             <label class="text-primary mb-1 block text-sm font-medium">{{
               t('spaceManager.series')
             }}</label>
-            <input
+            <AppInput
               v-model="form.templateData.series"
               type="text"
               :disabled="hasProductBinding"
-              class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
+              size="md"
             />
           </div>
 
@@ -142,34 +144,34 @@
               <label class="text-primary mb-1 block text-sm font-medium">{{
                 t('spaceManager.price')
               }}</label>
-              <input
+              <AppInput
                 v-model="form.templateData.price"
                 type="number"
                 :disabled="hasProductBinding"
-                class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
+                size="md"
               />
             </div>
             <div>
               <label class="text-primary mb-1 block text-sm font-medium">{{
                 t('spaceManager.material')
               }}</label>
-              <input
+              <AppInput
                 v-model="form.templateData.material"
                 type="text"
                 :disabled="hasProductBinding"
-                class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
+                size="md"
               />
             </div>
           </div>
 
           <div>
             <label class="text-primary mb-1 block text-sm font-medium">SKU</label>
-            <input
+            <AppInput
               v-model="form.templateData.sku"
               type="text"
               :placeholder="t('spaceManager.skuPlaceholder')"
               :disabled="hasProductBinding"
-              class="focus:border-primary w-full rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none disabled:cursor-not-allowed disabled:bg-(--bg-hover) disabled:text-(--text-muted)"
+              size="md"
             />
           </div>
 
@@ -177,11 +179,12 @@
             <label class="text-primary mb-1 block text-sm font-medium">{{
               t('spaceManager.descLabel')
             }}</label>
-            <textarea
+            <AppInput
               v-model="form.description"
+              textarea
               rows="4"
-              class="focus:border-primary w-full resize-none rounded-lg border border-(--border-color) px-4 py-2 transition-colors outline-none"
-            ></textarea>
+              class="[&_textarea]:resize-none"
+            />
           </div>
 
           <!-- Share Card -->
@@ -196,7 +199,7 @@
                 class="!border-dashed !bg-transparent shadow-none"
               />
             </div>
-            
+
             <div class="px-6 pt-2 pb-6">
               <SpaceShareCard
                 v-model:is-public="form.isPublic"
@@ -209,35 +212,22 @@
         </div>
 
         <!-- 底部操作栏 -->
-        <div class="flex gap-3 border-t border-(--border-color) px-6 py-4">
-          <button
-            class="hover:text-primary flex items-center gap-1.5 rounded-lg border border-(--border-color) px-4 py-2 text-(--text-secondary) transition-colors"
-            @click="openPreview"
-          >
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-              />
-            </svg>
-            {{ t('spaceManager.preview') }}
-          </button>
-          <button
-            :disabled="saving"
-            class="bg-primary flex-1 rounded-lg py-2 text-(--text-inverse) transition-colors hover:bg-primary-hover disabled:opacity-50"
+        <ActionBar
+          class="border-none border-t border-(--border-color) bg-transparent px-6 py-4 shadow-none"
+        >
+          <AppButton variant="white" :text="t('spaceManager.preview')" @click="openPreview">
+            <template #icon-left>
+              <AppIcon name="eye" class="size-4" />
+            </template>
+          </AppButton>
+          <AppButton
+            :loading="saving"
+            variant="primary"
+            class="min-w-40"
+            :text="saving ? t('spaceManager.saving') : t('spaceManager.save')"
             @click="saveChanges"
-          >
-            {{ saving ? t('spaceManager.saving') : t('spaceManager.save') }}
-          </button>
-        </div>
+          />
+        </ActionBar>
       </div>
 
       <!-- 右侧：媒体资源管理 + 数据分析 -->
@@ -251,8 +241,9 @@
           class="hidden items-center justify-between border-b border-(--border-color) px-6 py-3 lg:flex"
         >
           <div class="flex space-x-4">
-            <button
-              class="border-b-2 px-1 py-2 text-sm font-medium transition-colors duration-200"
+            <AppButton
+              variant="link"
+              class="!rounded-none border-b-2 px-1 py-2 text-sm font-medium no-underline"
               :class="
                 activeRightTab === 'media'
                   ? 'border-primary text-primary'
@@ -261,9 +252,10 @@
               @click="activeRightTab = 'media'"
             >
               {{ t('spaceManager.media') }}
-            </button>
-            <button
-              class="border-b-2 px-1 py-2 text-sm font-medium transition-colors duration-200"
+            </AppButton>
+            <AppButton
+              variant="link"
+              class="!rounded-none border-b-2 px-1 py-2 text-sm font-medium no-underline"
               :class="
                 activeRightTab === 'analytics'
                   ? 'border-primary text-primary'
@@ -272,37 +264,26 @@
               @click="activeRightTab = 'analytics'"
             >
               {{ t('spaceManager.tabs.analytics') }}
-            </button>
+            </AppButton>
           </div>
           <div class="flex gap-2">
             <Tooltip v-if="activeRightTab === 'media'" :content="t('spaceManager.addFile')">
-              <button
-                class="text-primary flex size-8 items-center justify-center rounded-lg bg-(--bg-muted) text-sm font-medium transition-colors hover:bg-(--bg-hover)"
+              <AppButton
+                variant="secondary"
+                size="sm"
+                class="!h-8 !w-8 !px-0 text-primary"
                 @click="showFileSelector = true"
               >
-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-              </button>
+                <template #icon-left>
+                  <AppIcon name="plus" class="size-5" />
+                </template>
+              </AppButton>
             </Tooltip>
-            <button
-              class="text-secondary rounded-lg p-2 hover:text-primary hover:bg-(--bg-hover)"
-              @click="$emit('close')"
-            >
-              <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+            <AppButton variant="ghost" size="sm" class="!h-8 !w-8 !px-0" @click="$emit('close')">
+              <template #icon-left>
+                <AppIcon name="x-mark" class="size-6" />
+              </template>
+            </AppButton>
           </div>
         </div>
 
@@ -311,20 +292,16 @@
           class="flex items-center justify-between border-b border-(--border-color) px-4 py-3 lg:hidden"
         >
           <span class="text-primary text-sm font-medium">{{ t('spaceManager.media') }}</span>
-          <button
-            class="bg-primary flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-(--text-inverse)"
+          <AppButton
+            variant="primary"
+            size="sm"
+            :text="t('spaceManager.addFile')"
             @click="showFileSelector = true"
           >
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            {{ t('spaceManager.addFile') }}
-          </button>
+            <template #icon-left>
+              <AppIcon name="plus" class="size-4" />
+            </template>
+          </AppButton>
         </div>
 
         <!-- 媒体标签内容 -->
@@ -342,13 +319,7 @@
             @upload="$refs.fileInput.click()"
             @reorder="handleReorder"
           />
-          <input
-            ref="fileInput"
-            type="file"
-            multiple
-            class="hidden"
-            @change="handleNativeUpload"
-          />
+          <input ref="fileInput" type="file" multiple class="hidden" @change="handleNativeUpload" />
         </div>
 
         <!-- 数据分析标签内容 -->
@@ -369,7 +340,7 @@
       :loading="confirmData.loading"
       @confirm="confirmData.onConfirm"
     />
-  </div>
+  </Modal>
 </template>
 
 <script setup>
@@ -386,11 +357,17 @@ import { useUploadQueue } from '@/composables/useUploadQueue';
 // Components
 import FileSelector from '@/components/FileSelector.vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
+import Modal from '@/components/ui/Modal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppCard from '@/components/ui/AppCard.vue';
+import AppInput from '@/components/ui/AppInput.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import SpaceAnalytics from './SpaceAnalytics.vue';
 import SpaceShareCard from './space/SpaceShareCard.vue';
 import SpaceVisibilitySelector from './space/SpaceVisibilitySelector.vue';
 import SpaceMediaGrid from './space/SpaceMediaGrid.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import ActionBar from '@/design-system/composed/ActionBar.vue';
 import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
 import {
   resolveBoundProductMainImageSrc,
@@ -405,7 +382,14 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'updated']);
 
-const { updateSpace, addFilesToSpace, removeFilesFromSpace, reorderSpaceFiles, loadSpace } = useSpaces();
+const handleModalVisibility = (visible) => {
+  if (!visible) {
+    emit('close');
+  }
+};
+
+const { updateSpace, addFilesToSpace, removeFilesFromSpace, reorderSpaceFiles, loadSpace } =
+  useSpaces();
 const { loadProduct } = useProducts();
 const { addToast } = useToast();
 const { t } = useI18n();
@@ -468,26 +452,22 @@ const productImages = computed(() => {
 });
 
 const bindingWarningMap = computed(() => ({
-  archived_product:
-    t(
-      'spaceManager.bindingIssues.archivedProduct',
-      '该空间绑定的商品已归档，当前仅保留空间自己的快照信息。你可以改绑到新的在售商品，或解绑后改为普通空间内容。'
-    ),
-  archived_variant:
-    t(
-      'spaceManager.bindingIssues.archivedVariant',
-      '该空间绑定的规格已归档，当前仅保留空间自己的快照信息。请重新选择可售规格，或解绑后手动维护空间内容。'
-    ),
-  missing_product:
-    t(
-      'spaceManager.bindingIssues.missingProduct',
-      '该空间原先绑定的商品已不存在，当前只剩历史快照。请尽快重新绑定商品，或解除绑定后改为静态内容。'
-    ),
-  missing_variant:
-    t(
-      'spaceManager.bindingIssues.missingVariant',
-      '该空间原先绑定的规格已不存在，当前只剩历史快照。请重新选择有效规格，或解除绑定后改为静态内容。'
-    ),
+  archived_product: t(
+    'spaceManager.bindingIssues.archivedProduct',
+    '该空间绑定的商品已归档，当前仅保留空间自己的快照信息。你可以改绑到新的在售商品，或解绑后改为普通空间内容。'
+  ),
+  archived_variant: t(
+    'spaceManager.bindingIssues.archivedVariant',
+    '该空间绑定的规格已归档，当前仅保留空间自己的快照信息。请重新选择可售规格，或解绑后手动维护空间内容。'
+  ),
+  missing_product: t(
+    'spaceManager.bindingIssues.missingProduct',
+    '该空间原先绑定的商品已不存在，当前只剩历史快照。请尽快重新绑定商品，或解除绑定后改为静态内容。'
+  ),
+  missing_variant: t(
+    'spaceManager.bindingIssues.missingVariant',
+    '该空间原先绑定的规格已不存在，当前只剩历史快照。请重新选择有效规格，或解除绑定后改为静态内容。'
+  ),
 }));
 
 const bindingWarning = computed(() => bindingWarningMap.value[bindingState.value] || '');
@@ -529,7 +509,8 @@ const initData = async () => {
         const product = await loadProduct(data.productId);
         if (requestId !== initDataRequestId) return;
         if (product) {
-          const selectedVariant = (product.variants || []).find(v => v.id === data.variantId) || null;
+          const selectedVariant =
+            (product.variants || []).find((v) => v.id === data.variantId) || null;
           const mainImage = resolveBoundProductMainImageSrc({
             ...product,
             selectedVariant,
@@ -556,7 +537,9 @@ const initData = async () => {
       description: data.description || '',
       isPublic: data.isPublic || false,
       shareMode: data.shareMode || 'none',
-      sharedSalespersonIds: data.sharedSalespersons ? data.sharedSalespersons.map(sp => sp.id) : [],
+      sharedSalespersonIds: data.sharedSalespersons
+        ? data.sharedSalespersons.map((sp) => sp.id)
+        : [],
       coverFileId: data.coverFileId || null,
       password: data.password || '',
       productId: data.productId || null,
@@ -612,7 +595,7 @@ const handleProductSelect = (product) => {
   const variant = product.selectedVariant;
   if (!variant) return;
   const mainImage = resolveSelectedVariantMainImageSrc(product);
-  
+
   boundProduct.value = {
     id: product.id,
     name: product.name,
@@ -630,17 +613,20 @@ const handleProductSelect = (product) => {
   form.value.templateData.brand = product.brand || '';
   form.value.templateData.series = product.series || '';
   form.value.templateData.sku = variant.sku || '';
-  
+
   let priceStr = String(variant.price || '');
   form.value.templateData.price = priceStr;
-  
+
   let materialStr = '';
   const variantMeta = normalizeVariantOptions(variant.options_values || {});
   try {
-     const specs = typeof product.specifications === 'string' ? JSON.parse(product.specifications) : product.specifications;
-     materialStr = variantMeta.material || specs?.material || '';
+    const specs =
+      typeof product.specifications === 'string'
+        ? JSON.parse(product.specifications)
+        : product.specifications;
+    materialStr = variantMeta.material || specs?.material || '';
   } catch {
-     materialStr = variantMeta.material || '';
+    materialStr = variantMeta.material || '';
   }
   form.value.templateData.material = materialStr;
 };
@@ -702,10 +688,10 @@ const handleNativeUpload = (event) => {
 const handleReorder = async (newFiles) => {
   // Optimistic update
   files.value = newFiles;
-  
-  const fileIds = newFiles.map(f => f.id);
+
+  const fileIds = newFiles.map((f) => f.id);
   const success = await reorderSpaceFiles(props.space.id, fileIds);
-  
+
   if (!success) {
     await refreshMediaState();
   }
