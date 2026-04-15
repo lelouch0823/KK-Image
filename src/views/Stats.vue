@@ -260,14 +260,14 @@ const withAlpha = (color, alpha, fallback) => `rgba(${colorToRgb(color, fallback
 
 const getChartPalette = () => {
   return {
-    primary: readCssColor('--color-primary', '#ec5b13'),
-    success: readCssColor('--color-success', '#10b981'),
-    warning: readCssColor('--color-warning', '#f59e0b'),
-    danger: readCssColor('--color-danger', '#ef4444'),
-    info: readCssColor('--color-info', '#3b82f6'),
-    border: readCssColor('--border-color', '#e5e7eb'),
-    textMain: readCssColor('--text-main', '#111827'),
-    textSecondary: readCssColor('--text-secondary', '#6b7280'),
+    primary: readCssColor('--color-primary', 'rgb(236, 91, 19)'),
+    success: readCssColor('--color-success', 'rgb(16, 185, 129)'),
+    warning: readCssColor('--color-warning', 'rgb(245, 158, 11)'),
+    danger: readCssColor('--color-danger', 'rgb(239, 68, 68)'),
+    info: readCssColor('--color-info', 'rgb(59, 130, 246)'),
+    border: readCssColor('--border-color', 'rgb(229, 231, 235)'),
+    textMain: readCssColor('--text-main', 'rgb(17, 24, 39)'),
+    textSecondary: readCssColor('--text-secondary', 'rgb(107, 114, 128)'),
     bgCard: readCssColor('--bg-card', '#ffffff'),
   };
 };

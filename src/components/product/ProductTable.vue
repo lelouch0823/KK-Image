@@ -47,7 +47,7 @@
           </div>
         </div>
         <div class="min-w-0 flex-1 text-left">
-          <div class="truncate font-[Outfit] font-medium text-(--text-main)" :title="row.name">
+          <div class="truncate font-medium text-(--text-main)" :title="row.name">
             {{ row.name }}
           </div>
           <div class="mt-0.5 flex min-w-0 flex-wrap gap-2 text-xs text-(--text-secondary)">
@@ -78,13 +78,14 @@
 
     <!-- Category Cell -->
     <template #cell-category="{ value }">
-      <span
+      <StatusBadge
         v-if="value"
-        class="bg-info-bg text-info inline-flex max-w-[10rem] items-center truncate whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium"
-        :title="value"
+        variant="info"
+        class="inline-flex max-w-[10rem] truncate whitespace-nowrap align-middle"
+        :label="value"
       >
         {{ value }}
-      </span>
+      </StatusBadge>
       <span v-else class="text-(--text-muted)">-</span>
     </template>
 
@@ -138,27 +139,33 @@
       <div
         class="flex items-center justify-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
       >
-        <button
-          class="hover:bg-primary/10 text-primary rounded-lg p-1.5 transition-colors"
+        <AppButton
+          variant="ghost"
+          size="sm"
+          class="!h-8 !w-8 !px-0 text-primary hover:!bg-primary/10 hover:!text-primary"
           :title="t('spaceManager.quickShare') || 'Share'"
           @click.stop="$emit('share', row)"
         >
           <AppIcon name="share" class="size-4" />
-        </button>
-        <button
-          class="hover:bg-info-bg hover:text-info rounded-lg p-1.5 text-(--text-muted) transition-colors"
+        </AppButton>
+        <AppButton
+          variant="ghost"
+          size="sm"
+          class="!h-8 !w-8 !px-0 text-(--text-muted) hover:!bg-info-bg hover:!text-info"
           :title="t('common.edit') || 'Edit'"
           @click.stop="$emit('edit', row)"
         >
           <AppIcon name="pencil-square" class="size-4" />
-        </button>
-        <button
-          class="hover:bg-danger-bg hover:text-danger rounded-lg p-1.5 text-(--text-muted) transition-colors"
+        </AppButton>
+        <AppButton
+          variant="ghost"
+          size="sm"
+          class="!h-8 !w-8 !px-0 text-(--text-muted) hover:!bg-danger-bg hover:!text-danger"
           :title="t('common.delete') || 'Delete'"
           @click.stop="$emit('delete', row)"
         >
           <AppIcon name="trash" class="size-4" />
-        </button>
+        </AppButton>
       </div>
     </template>
   </AppTable>
@@ -167,10 +174,12 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppTableCodeChip from '@/components/ui/AppTableCodeChip.vue';
 import AppTableStatusPill from '@/components/ui/AppTableStatusPill.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
 import { formatRelativeTime } from '@/utils/formatters';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core';
 import { resolvePrimaryProductImageSrc } from './image-resolver.js';

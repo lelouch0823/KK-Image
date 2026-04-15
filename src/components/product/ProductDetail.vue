@@ -83,7 +83,7 @@
       </div>
 
       <!-- Associated Share Links -->
-      <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-6 shadow-sm">
+      <StatePanel class="shadow-sm">
         <div class="mb-4 flex items-center justify-between">
           <h3 class="font-bold text-(--text-main)">
             {{ t('spaceManager.associatedLinks') || 'Associated Share Links' }}
@@ -101,14 +101,15 @@
           class="rounded-xl border border-danger/20 bg-danger/5 px-4 py-4 text-center"
         >
           <p class="text-sm text-danger">{{ spacesError }}</p>
-          <button
-            type="button"
-            class="bg-primary mt-3 rounded-lg px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
+          <AppButton
+            variant="primary"
+            size="sm"
+            class="mt-3"
             data-testid="associated-spaces-retry"
             @click="loadAssociatedSpaces(props.product?.id)"
           >
             {{ t('common.retry') }}
-          </button>
+          </AppButton>
         </div>
         <div
           v-else-if="associatedSpaces.length === 0"
@@ -151,15 +152,16 @@
             <div
               class="flex shrink-0 items-center gap-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
             >
-              <button
-                type="button"
-                class="hover:text-primary hover:bg-(--bg-card) focus-visible:ring-primary focus-visible:ring-2 focus-visible:outline-none cursor-pointer rounded-lg p-1.5 text-(--text-secondary) transition-colors"
+              <AppButton
+                variant="ghost"
+                size="sm"
+                class="!h-8 !w-8 !px-0"
                 :title="t('common.copyLink')"
                 :aria-label="`${t('common.copyLink')}: ${space.name}`"
                 @click="copyShareLink(space)"
               >
                 <AppIcon name="document-duplicate" class="size-4" />
-              </button>
+              </AppButton>
               <router-link
                 :to="{ name: 'Spaces', query: { id: space.id } }"
                 class="hover:text-primary hover:bg-(--bg-card) focus-visible:ring-primary focus-visible:ring-2 focus-visible:outline-none cursor-pointer rounded-lg p-1.5 text-(--text-secondary) transition-colors"
@@ -169,13 +171,13 @@
             </div>
           </div>
         </div>
-      </div>
+      </StatePanel>
     </div>
 
     <!-- Right: Info -->
     <div class="space-y-4 lg:sticky lg:top-4 lg:col-span-5 lg:min-w-[24rem] lg:self-start">
       <!-- Header Info -->
-      <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-sm">
+      <StatePanel class="shadow-sm">
         <div class="mb-3 flex items-start justify-between gap-2">
           <div>
             <span
@@ -212,7 +214,7 @@
           <div class="mt-1 flex items-center gap-2">
             <span
               data-testid="product-detail-price"
-              class="font-[Outfit] text-3xl font-bold text-(--text-main)"
+              class="text-3xl font-semibold text-(--text-main)"
               >{{ formatMoney(product.price) }}</span
             >
             <span
@@ -227,7 +229,7 @@
             {{ t('product.form.cost', 'Cost') }}: {{ formatMoney(product.cost_price) }}
           </span>
         </div>
-      </div>
+      </StatePanel>
 
       <!-- Variants or Specs -->
       <div
@@ -248,7 +250,7 @@
               </div>
             </template>
             <template #cell-price="{ row: variant }">
-              <span class="font-[Outfit] font-medium text-(--text-main)">{{
+              <span class="font-mono font-medium text-(--text-main)">{{
                 formatMoney(variant.price)
               }}</span>
             </template>
@@ -394,6 +396,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import StatePanel from '@/design-system/composed/StatePanel.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppTable from '@/components/ui/AppTable.vue';

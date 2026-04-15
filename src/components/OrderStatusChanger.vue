@@ -1,220 +1,192 @@
 <template>
   <div class="inline-block">
-    <!-- 触发按钮 -->
-    <button
+    <AppButton
       type="button"
       :disabled="loading"
-      class="focus-visible:ring-primary/30 focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none inline-flex min-w-[4.25rem] items-center justify-center whitespace-nowrap rounded-full border py-1.5 text-xs font-semibold shadow-sm transition-all duration-200 hover:shadow-md active:scale-95 disabled:opacity-50"
+      variant="white"
+      size="sm"
+      class="min-w-[4.25rem] rounded-full border shadow-sm"
       :class="[currentStatusClass, showChevron ? 'relative pl-3 pr-8' : 'px-3.5']"
       @click="openModal"
     >
-      <span class="flex min-w-0 items-center justify-center gap-1.5 text-center">
+      <template #icon-left>
         <span class="size-2 rounded-full" :class="getStatusDotColor(status)"></span>
-        <span class="max-w-[4.5rem] truncate">{{ t(`order.statuses.${status}`) }}</span>
-      </span>
-      <AppIcon v-if="showChevron" name="chevron-up-down" class="absolute right-3 size-3.5 opacity-60" />
-    </button>
+      </template>
+      <span class="max-w-[4.5rem] truncate">{{ t(`order.statuses.${status}`) }}</span>
+      <template v-if="showChevron" #icon-right>
+        <AppIcon name="chevron-up-down" class="absolute right-3 size-3.5 opacity-60" />
+      </template>
+    </AppButton>
 
-    <!-- 状态变更弹窗 -->
-    <Teleport to="body">
-      <transition name="fade-scale">
-        <div
-          v-if="showModal"
-          class="fixed inset-0 z-[100] flex items-center justify-center bg-(--color-overlay-dim) p-4 backdrop-blur-sm"
-          @click.self="closeModal"
-        >
-          <div
-            class="w-full max-w-md transform overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) shadow-2xl transition-all"
-            @click.stop
-          >
-            <!-- 顶部渐变装饰 + 图标 -->
-            <div
-              class="from-primary/10 via-info/10 to-success/10 relative flex h-20 items-center justify-center overflow-hidden bg-linear-to-br"
-            >
-              <div class="absolute inset-0 scale-150 transform opacity-20 blur-2xl">
-                <div class="bg-primary absolute top-0 left-1/4 size-20 rounded-full"></div>
-                <div
-                  class="bg-success absolute right-1/4 bottom-0 size-16 rounded-full"
-                ></div>
-              </div>
-
-              <div
-                class="from-primary/20 to-primary/5 ring-primary/10 relative z-10 flex size-12 items-center justify-center rounded-xl bg-linear-to-br ring-1"
-              >
-                <AppIcon name="arrow-path" class="text-primary size-6" />
-              </div>
-            </div>
-
-            <!-- 标题 -->
-            <div class="px-6 pt-5 pb-3 text-center">
-              <h3 class="text-primary text-lg font-bold">{{ t('order.manage.changeStatus') }}</h3>
-              <p class="mt-1 text-sm text-(--text-secondary)">
-                {{ t('order.manage.currentStatus') }}:
-                <span class="text-primary font-medium">{{ t(`order.statuses.${status}`) }}</span>
-              </p>
-              <p class="mt-1 text-xs text-(--text-muted)">
-                {{ t('order.manage.transitionHint') }}
-              </p>
-            </div>
-            <div class="px-6 pb-4">
-              <div
-                class="border-info/20 bg-info-bg/40 rounded-xl border px-3 py-2"
-                aria-live="polite"
-              >
-                <p class="text-info text-xs">{{ t(friendlyTipKey) }}</p>
-              </div>
-              <p
-                v-if="!canUseForceOverride"
-                class="mt-2 text-xs text-(--text-secondary)"
-              >
-                {{ t('order.manage.friendlyNoPermissionTip') }}
-              </p>
-            </div>
-
-            <!-- 状态选择列表 -->
-            <div class="px-6 pb-4">
-              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <button
-                  v-for="s in orderedStatusOptions"
-                  :key="s"
-                  type="button"
-                  :disabled="isStatusDisabled(s)"
-                  :aria-label="getStatusButtonAriaLabel(s)"
-                  class="focus-visible:ring-primary/30 focus-visible:ring-2 focus-visible:outline-none relative flex cursor-pointer items-center gap-2.5 rounded-xl border-2 px-4 py-3 text-left transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50"
-                  :class="[
-                    selectedStatus === s
-                      ? 'border-primary bg-primary/5 ring-primary/20 ring-2'
-                      : 'border-(--border-color) hover:border-(--border-hover) hover:bg-(--bg-hover)',
-                    isOutOfFlowStatus(s) ? 'border-warning/40' : '',
-                  ]"
-                  @click="selectedStatus = s"
-                >
-                  <span
-                    class="size-3 shrink-0 rounded-full ring-2 ring-offset-1"
-                    :class="[
-                      getStatusDotColor(s),
-                      selectedStatus === s ? 'ring-current/30' : 'ring-transparent',
-                    ]"
-                  ></span>
-                  <span
-                    class="text-sm"
-                    :class="selectedStatus === s ? 'text-primary font-semibold' : 'text-primary'"
-                  >
-                    {{ t(`order.statuses.${s}`) }}
-                  </span>
-
-                  <span
-                    class="ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium"
-                    :class="getStatusTagClass(s)"
-                  >
-                    {{ getStatusTagText(s) }}
-                  </span>
-
-                  <!-- 选中勾 -->
-                  <AppIcon
-                    v-if="selectedStatus === s"
-                    name="check"
-                    class="text-primary absolute top-2 right-2 size-4"
-                  />
-                </button>
-              </div>
-            </div>
-
-            <div class="px-6 pb-4">
-              <label class="mb-2 block text-xs font-medium text-(--text-secondary)">
-                {{ t('order.manage.statusNote') }}
-                <span v-if="!requiresForceOverride" class="text-(--text-muted)">({{ t('common.optional') }})</span>
-                <span v-else class="text-danger">*</span>
-              </label>
-              <input
-                ref="noteInput"
-                v-model="statusNote"
-                type="text"
-                :placeholder="t('order.manage.statusNotePlaceholder')"
-                class="input"
-                :aria-required="requiresForceOverride ? 'true' : 'false'"
-                @keyup.enter="handleConfirm"
+    <Modal v-model="showModal" size="md" body-class="!p-0" @close="closeModal">
+      <template #header>
+        <div class="flex flex-1 items-start justify-between gap-4">
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-(--text-main)">
+              {{ t('order.manage.changeStatus') }}
+            </h3>
+            <p class="mt-1 text-sm text-(--text-secondary)">
+              {{ t('order.manage.currentStatus') }}:
+              <StatusBadge
+                class="ml-1 align-middle"
+                :variant="getStatusVariant(status)"
+                :label="t(`order.statuses.${status}`)"
               />
-              <p
-                v-if="requiresForceOverride && !forceReasonValid"
-                role="alert"
-                class="text-warning mt-2 text-xs"
-              >
-                {{ t('order.manage.forceReasonRequired') }}
-              </p>
-            </div>
+            </p>
+          </div>
+          <AppButton variant="ghost" size="sm" class="!h-9 !w-9 !px-0" @click="closeModal">
+            <AppIcon name="x-mark" class="size-5" />
+          </AppButton>
+        </div>
+      </template>
 
-            <div v-if="requiresForceOverride" class="px-6 pb-4">
-              <div aria-live="polite" class="border-warning/30 rounded-xl border bg-(--color-warning-bg)/50 p-3">
-                <p class="text-sm text-(--text-main)">
-                  {{ t('order.manage.forceTransitionWarning') }}
-                </p>
-                <label class="mt-2 flex items-center gap-2 text-sm text-(--text-main)">
-                  <input
-                    v-model="forceOverrideConfirmed"
-                    :disabled="!canUseForceOverride"
-                    type="checkbox"
-                    class="size-4 rounded border-(--border-color)"
-                  />
-                  <span v-if="canUseForceOverride">{{ t('order.manage.forceTransitionConfirm') }}</span>
-                  <span v-else class="text-danger">{{ t('order.manage.forceTransitionNoPermission') }}</span>
-                </label>
-              </div>
-            </div>
+      <div class="space-y-4 p-6">
+        <div class="rounded-xl border border-info/20 bg-info/5 px-3 py-2" aria-live="polite">
+          <p class="text-info text-xs">{{ t(friendlyTipKey) }}</p>
+        </div>
+        <p v-if="!canUseForceOverride" class="text-xs text-(--text-secondary)">
+          {{ t('order.manage.friendlyNoPermissionTip') }}
+        </p>
 
-            <!-- 危险操作提示 -->
-            <div v-if="isDangerousStatus" class="px-6 pb-4">
-              <div
-                aria-live="polite"
-                class="border-danger/20 bg-danger-bg flex items-start gap-2 rounded-xl border p-3"
-              >
-                <AppIcon
-                  name="exclamation-triangle"
-                  class="text-danger mt-0.5 size-5 shrink-0"
-                />
-                <p class="text-danger text-xs">
-                  {{ t('order.manage.dangerousStatusWarning') }}
-                </p>
-              </div>
-            </div>
-
-            <!-- 操作按钮 -->
-            <div class="flex items-center gap-3 px-6 pb-6">
-              <button
-                type="button"
-                :disabled="submitting"
-                class="rounded-xl bg-(--bg-muted) px-4 py-2.5 text-sm font-semibold text-(--text-secondary) transition-all hover:bg-(--bg-hover) active:scale-95 disabled:opacity-50"
-                @click="closeModal"
-              >
-                {{ t('common.cancel') }}
-              </button>
-              <button
-                type="button"
-                :disabled="!canConfirm"
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <AppButton
+            v-for="s in orderedStatusOptions"
+            :key="s"
+            type="button"
+            block
+            variant="white"
+            size="sm"
+            :disabled="isStatusDisabled(s)"
+            :aria-label="getStatusButtonAriaLabel(s)"
+            class="!h-auto !justify-start !rounded-xl !border-2 !px-4 !py-3 text-left"
+            :class="[
+              selectedStatus === s
+                ? '!border-primary bg-primary/5 ring-2 ring-primary/20'
+                : '!border-(--border-color) hover:!border-(--border-hover) hover:!bg-(--bg-hover)',
+              isOutOfFlowStatus(s) ? 'border-warning/40' : '',
+            ]"
+            @click="selectedStatus = s"
+          >
+            <template #icon-left>
+              <span
+                class="size-3 shrink-0 rounded-full ring-2 ring-offset-1"
                 :class="[
-                  'flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-(--text-inverse) shadow-lg transition-all active:scale-95',
-                  isDangerousStatus
-                    ? 'bg-danger shadow-danger/20 hover:bg-danger/90'
-                    : 'bg-primary shadow-primary/20 hover:opacity-90',
-                  !canConfirm ? 'cursor-not-allowed opacity-70' : '',
+                  getStatusDotColor(s),
+                  selectedStatus === s ? 'ring-current/30' : 'ring-transparent',
                 ]"
-                @click="handleConfirm"
+              ></span>
+            </template>
+            {{ t(`order.statuses.${s}`) }}
+            <template #icon-right>
+              <div
+                class="ml-auto flex items-center gap-2"
+                :class="{
+                  'text-warning': isBlockedStatus(s) || isOutOfFlowStatus(s),
+                  'text-success':
+                    !isBlockedStatus(s) && !isOutOfFlowStatus(s) && s !== props.status,
+                }"
               >
-                <AppIcon v-if="submitting" name="spinner" class="size-4 animate-spin" />
-                {{ t('common.confirm') }}
-              </button>
-            </div>
+                <StatusBadge
+                  :variant="resolveTagVariant(s)"
+                  :label="getStatusTagText(s)"
+                  class="text-[10px]"
+                />
+                <AppIcon v-if="selectedStatus === s" name="check" class="size-4 text-primary" />
+              </div>
+            </template>
+          </AppButton>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-xs font-medium text-(--text-secondary)">
+            {{ t('order.manage.statusNote') }}
+            <span v-if="!requiresForceOverride" class="text-(--text-muted)">
+              ({{ t('common.optional') }})
+            </span>
+            <span v-else class="text-danger">*</span>
+          </label>
+          <AppInput
+            ref="noteInput"
+            v-model="statusNote"
+            :placeholder="t('order.manage.statusNotePlaceholder')"
+            :aria-required="requiresForceOverride ? 'true' : 'false'"
+            @keyup.enter="handleConfirm"
+          />
+          <p
+            v-if="requiresForceOverride && !forceReasonValid"
+            role="alert"
+            class="text-warning mt-2 text-xs"
+          >
+            {{ t('order.manage.forceReasonRequired') }}
+          </p>
+        </div>
+
+        <div v-if="requiresForceOverride">
+          <div aria-live="polite" class="rounded-xl border border-warning/30 bg-warning/10 p-3">
+            <p class="text-sm text-(--text-main)">
+              {{ t('order.manage.forceTransitionWarning') }}
+            </p>
+            <label class="mt-2 flex items-center gap-2 text-sm text-(--text-main)">
+              <AppCheckbox v-model="forceOverrideConfirmed" :disabled="!canUseForceOverride" />
+              <span v-if="canUseForceOverride">
+                {{ t('order.manage.forceTransitionConfirm') }}
+              </span>
+              <span v-else class="text-danger">
+                {{ t('order.manage.forceTransitionNoPermission') }}
+              </span>
+            </label>
           </div>
         </div>
-      </transition>
-    </Teleport>
+
+        <div v-if="isDangerousStatus">
+          <div
+            aria-live="polite"
+            class="flex items-start gap-2 rounded-xl border border-danger/20 bg-danger/5 p-3"
+          >
+            <AppIcon name="exclamation-triangle" class="text-danger mt-0.5 size-5 shrink-0" />
+            <p class="text-danger text-xs">
+              {{ t('order.manage.dangerousStatusWarning') }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <ActionBar class="border-none bg-transparent px-0 py-0 shadow-none">
+          <template #leading>
+            <span class="text-xs text-(--text-secondary)">
+              {{ t('order.manage.transitionHint') }}
+            </span>
+          </template>
+          <AppButton type="button" variant="secondary" :disabled="submitting" @click="closeModal">
+            {{ t('common.cancel') }}
+          </AppButton>
+          <AppButton
+            type="button"
+            :variant="isDangerousStatus ? 'danger' : 'primary'"
+            :disabled="!canConfirm"
+            :loading="submitting"
+            @click="handleConfirm"
+          >
+            {{ t('common.confirm') }}
+          </AppButton>
+        </ActionBar>
+      </template>
+    </Modal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { useI18n } from '@/composables/useI18n';
-import { STATUS_OPTIONS, STATUS_STYLES, STATUS_DOTS } from '@/utils/status';
+import ActionBar from '@/design-system/composed/ActionBar.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppCheckbox from '@/components/ui/AppCheckbox.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
+import Modal from '@/components/ui/Modal.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
+import { STATUS_OPTIONS, STATUS_STYLES, STATUS_DOTS, getStatusVariant } from '@/utils/status';
 import {
   getAllowedOrderTransitions,
   hasForceStatusPermission,
@@ -227,7 +199,6 @@ const props = defineProps({
   permissions: { type: Array, default: () => [] },
   showChevron: { type: Boolean, default: true },
   canDeliver: { type: Boolean, default: true },
-  // 异步回调：返回 Promise 以便弹窗等待 API 完成后再关闭
   onStatusChange: { type: Function, default: null },
 });
 
@@ -235,7 +206,6 @@ const emit = defineEmits(['change']);
 
 const { t } = useI18n();
 
-// 状态
 const showModal = ref(false);
 const selectedStatus = ref('');
 const statusNote = ref('');
@@ -243,44 +213,41 @@ const forceOverrideConfirmed = ref(false);
 const submitting = ref(false);
 const noteInput = ref(null);
 
-// 状态选项
 const statusOptions = STATUS_OPTIONS;
-
-// 当前状态样式
 const currentStatusClass = computed(() => STATUS_STYLES[props.status] || STATUS_STYLES.pending);
-
-// 获取状态圆点颜色
 const getStatusDotColor = (s) => STATUS_DOTS[s] || 'bg-gray-400';
 
-// 是否为危险状态
-const isDangerousStatus = computed(
-  () => isHighRiskOrderStatus(selectedStatus.value)
-);
+const isDangerousStatus = computed(() => isHighRiskOrderStatus(selectedStatus.value));
 
 const allowedTransitions = computed(() => getAllowedOrderTransitions(props.status));
 const isBlockedStatus = (s) => ['fulfilled', 'delivered'].includes(s) && !props.canDeliver;
 const isOutOfFlowStatus = (s) => s !== props.status && !allowedTransitions.value.includes(s);
-const isStatusDisabled = (s) => isBlockedStatus(s) || (isOutOfFlowStatus(s) && !canUseForceOverride.value);
-const requiresForceOverride = computed(() => selectedStatus.value && isOutOfFlowStatus(selectedStatus.value));
+const isStatusDisabled = (s) =>
+  isBlockedStatus(s) || (isOutOfFlowStatus(s) && !canUseForceOverride.value);
+const requiresForceOverride = computed(
+  () => selectedStatus.value && isOutOfFlowStatus(selectedStatus.value)
+);
 const canUseForceOverride = computed(() => hasForceStatusPermission(props.permissions));
 const forceReasonValid = computed(() => String(statusNote.value || '').trim().length > 0);
 const orderedStatusOptions = computed(() => {
-  const inFlow = statusOptions.filter((s) => s === props.status || allowedTransitions.value.includes(s));
+  const inFlow = statusOptions.filter(
+    (s) => s === props.status || allowedTransitions.value.includes(s)
+  );
   const outOfFlow = statusOptions.filter((s) => !inFlow.includes(s));
   return [...inFlow, ...outOfFlow];
 });
+
+const resolveTagVariant = (s) => {
+  if (s === props.status) return 'default';
+  if (isBlockedStatus(s) || isOutOfFlowStatus(s)) return 'warning';
+  return 'success';
+};
 
 const getStatusTagText = (s) => {
   if (s === props.status) return t('order.manage.currentTag');
   if (isBlockedStatus(s)) return t('order.manage.blockedTag');
   if (isOutOfFlowStatus(s)) return t('order.manage.forceTag');
   return t('order.manage.flowTag');
-};
-
-const getStatusTagClass = (s) => {
-  if (s === props.status) return 'bg-(--bg-muted) text-(--text-secondary)';
-  if (isBlockedStatus(s) || isOutOfFlowStatus(s)) return 'bg-warning/15 text-warning';
-  return 'bg-success/15 text-success';
 };
 
 const getStatusButtonAriaLabel = (s) => {
@@ -293,11 +260,9 @@ const friendlyTipKey = computed(() => {
   if (
     !props.canDeliver &&
     props.status !== 'delivered' &&
-    (
-      !selectedStatus.value ||
+    (!selectedStatus.value ||
       selectedStatus.value === props.status ||
-      ['fulfilled', 'delivered'].includes(selectedStatus.value)
-    )
+      ['fulfilled', 'delivered'].includes(selectedStatus.value))
   ) {
     return 'order.manage.deliveryBlockedTip';
   }
@@ -316,16 +281,16 @@ const friendlyTipKey = computed(() => {
   return 'order.manage.friendlyFlowTip';
 });
 
-// 是否可以确认
 const canConfirm = computed(() => {
-  if (!selectedStatus.value || selectedStatus.value === props.status || submitting.value) return false;
+  if (!selectedStatus.value || selectedStatus.value === props.status || submitting.value) {
+    return false;
+  }
   if (!requiresForceOverride.value) return true;
   if (!canUseForceOverride.value) return false;
   if (!forceOverrideConfirmed.value) return false;
   return forceReasonValid.value;
 });
 
-// 打开弹窗
 const openModal = () => {
   if (props.loading) return;
   selectedStatus.value = props.status;
@@ -334,13 +299,11 @@ const openModal = () => {
   showModal.value = true;
 };
 
-// 关闭弹窗
 const closeModal = () => {
   if (submitting.value) return;
   showModal.value = false;
 };
 
-// 确认变更
 const handleConfirm = async () => {
   if (!canConfirm.value) return;
 
@@ -352,8 +315,6 @@ const handleConfirm = async () => {
       force: requiresForceOverride.value && forceOverrideConfirmed.value,
     };
 
-    // SOTA: 使用 onStatusChange prop 回调实现真正的异步等待
-    // 确保弹窗在 API 调用完成后才关闭，避免用户打开详情时数据未刷新
     if (props.onStatusChange) {
       await props.onStatusChange(payload);
     } else {
@@ -365,51 +326,9 @@ const handleConfirm = async () => {
   }
 };
 
-// ESC 关闭
-const handleKeyDown = (e) => {
-  if (!showModal.value) return;
-  if (e.key === 'Escape' && !submitting.value) {
-    closeModal();
-  }
-};
-
-onMounted(() => {
-  window.addEventListener('keydown', handleKeyDown);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeyDown);
-});
-
-// 弹窗打开时聚焦输入框
 watch(showModal, (val) => {
   if (val) {
-    nextTick(() => noteInput.value?.focus());
+    nextTick(() => noteInput.value?.focus?.());
   }
 });
 </script>
-
-<style scoped>
-.fade-scale-enter-active,
-.fade-scale-leave-active {
-  transition: opacity 0.3s ease;
-}
-.fade-scale-enter-from,
-.fade-scale-leave-to {
-  opacity: 0;
-}
-.fade-scale-enter-active .transform {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.fade-scale-enter-from .transform {
-  transform: scale(0.9);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fade-scale-enter-active,
-  .fade-scale-leave-active,
-  .fade-scale-enter-active .transform {
-    transition: none !important;
-  }
-}
-</style>
