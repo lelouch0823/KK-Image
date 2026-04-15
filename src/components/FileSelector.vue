@@ -22,30 +22,36 @@
     <div
       class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-(--border-color) bg-(--bg-muted)/30 px-6 py-3 text-sm whitespace-nowrap backdrop-blur-sm"
     >
-      <button
-        class="hover:text-primary flex items-center gap-1 transition-colors"
+      <AppButton
+        variant="link"
+        size="sm"
+        class="hover:text-primary flex items-center gap-1 no-underline"
         :class="!currentFolderId ? 'text-primary font-semibold' : 'text-secondary'"
         @click="navigateTo(null)"
       >
-        <AppIcon name="home" class="size-4" />
+        <template #icon-left>
+          <AppIcon name="home" class="size-4" />
+        </template>
         {{ t('fileSelector.allFiles') }}
-      </button>
+      </AppButton>
       <template v-for="folder in breadcrumbs" :key="folder.id">
         <span class="text-(--border-color)">/</span>
-        <button
-          class="hover:text-primary transition-colors"
+        <AppButton
+          variant="link"
+          size="sm"
+          class="hover:text-primary no-underline"
           :class="currentFolderId === folder.id ? 'text-primary font-semibold' : 'text-secondary'"
           @click="navigateTo(folder.id)"
         >
           {{ folder.name }}
-        </button>
+        </AppButton>
       </template>
     </div>
 
     <!-- 文件列表 (Scrollable) -->
     <div class="content-area flex-1 overflow-y-auto p-4">
       <div v-if="loading" class="flex justify-center py-10">
-        <div class="border-primary size-8 animate-spin rounded-full border-b-2"></div>
+        <AppIcon name="spinner" class="text-primary size-8 animate-spin" />
       </div>
 
       <div v-else class="grid grid-cols-2 content-start gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -144,24 +150,23 @@
 
     <!-- Footer -->
     <template #footer>
-      <button
-        class="text-secondary px-4 py-2 text-sm font-medium transition-colors hover:text-primary"
-        @click="$emit('close')"
-      >
-        {{ t('fileSelector.cancel') }}
-      </button>
-      <button
-        :disabled="selectedIds.length === 0 && selectedFolderIds.length === 0"
-        class="bg-primary shadow-primary/20 rounded-lg px-6 py-2 text-sm font-medium text-(--text-inverse) shadow-lg transition-all hover:bg-(--color-primary-hover) active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-        @click="confirmSelect"
-      >
-        {{ t('fileSelector.add') }}
-        {{
-          selectedIds.length + selectedFolderIds.length > 0
-            ? `(${selectedIds.length + selectedFolderIds.length})`
-            : ''
-        }}
-      </button>
+      <ActionBar class="w-full border-none bg-transparent px-0 py-0 shadow-none">
+        <AppButton variant="secondary" @click="$emit('close')">
+          {{ t('fileSelector.cancel') }}
+        </AppButton>
+        <AppButton
+          variant="primary"
+          :disabled="selectedIds.length === 0 && selectedFolderIds.length === 0"
+          @click="confirmSelect"
+        >
+          {{ t('fileSelector.add') }}
+          {{
+            selectedIds.length + selectedFolderIds.length > 0
+              ? `(${selectedIds.length + selectedFolderIds.length})`
+              : ''
+          }}
+        </AppButton>
+      </ActionBar>
     </template>
   </Modal>
 </template>
@@ -172,6 +177,8 @@ import { API } from '@/utils/constants';
 import { isImage } from '@/utils/formatters';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
+import ActionBar from '@/design-system/composed/ActionBar.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import Modal from '@/components/ui/Modal.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -248,9 +255,7 @@ const navigateTo = (folderId, _folderObj = null) => {
 const loadFiles = async () => {
   loading.value = true;
   try {
-    const url = currentFolderId.value
-      ? API.FOLDER_BY_ID(currentFolderId.value)
-      : API.FILES;
+    const url = currentFolderId.value ? API.FOLDER_BY_ID(currentFolderId.value) : API.FILES;
 
     const response = await authFetch(url);
     const result = await response.json();
@@ -262,7 +267,7 @@ const loadFiles = async () => {
       if (currentFolderId.value) {
         files.value = result.data.files || [];
       } else {
-        files.value = Array.isArray(result.data) ? result.data : (result.data?.data || []);
+        files.value = Array.isArray(result.data) ? result.data : result.data?.data || [];
       }
     } else {
       files.value = [];

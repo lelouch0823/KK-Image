@@ -28,22 +28,19 @@ describe('FileSelector authz behavior', () => {
     foldersForbidden.status = 403;
     foldersForbidden.data = { error: '权限不足: folders:read' };
 
-    authFetchMock
-      .mockRejectedValueOnce(foldersForbidden)
-      .mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: [{ id: 'file-1', name: 'root-file.pdf', url: '/root-file.pdf' }],
-          }),
-      });
+    authFetchMock.mockRejectedValueOnce(foldersForbidden).mockResolvedValueOnce({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: [{ id: 'file-1', name: 'root-file.pdf', url: '/root-file.pdf' }],
+        }),
+    });
 
     const wrapper = mount(FileSelector, {
       global: {
         stubs: {
           Modal: {
-            template:
-              '<div><slot name="header" /><slot /><slot name="footer" /></div>',
+            template: '<div><slot name="header" /><slot /><slot name="footer" /></div>',
           },
           AppImage: {
             props: ['src', 'alt'],

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { ref } from 'vue';
 import SpaceProductDetail from '../SpaceProductDetail.vue';
 
 vi.mock('@/composables/useI18n', () => ({
@@ -10,8 +11,8 @@ vi.mock('@/composables/useI18n', () => ({
 
 vi.mock('@/composables/useBatchDownload', () => ({
   useBatchDownload: () => ({
-    downloading: { value: false },
-    downloadProgress: { value: 0 },
+    downloading: ref(false),
+    downloadProgress: ref(0),
     downloadAll: vi.fn(),
   }),
 }));
@@ -63,9 +64,7 @@ describe('SpaceProductDetail lifecycle', () => {
 
     expect(wrapper.vm.currentIndex).toBe(0);
     expect(wrapper.vm.showPdfPreview).toBe(false);
-    expect(wrapper.vm.currentFile).toEqual(
-      expect.objectContaining({ url: '/file/new-cover.jpg' })
-    );
+    expect(wrapper.vm.currentFile).toEqual(expect.objectContaining({ url: '/file/new-cover.jpg' }));
   });
 
   it('preserves already resolved template image urls instead of prefixing /file again', () => {
