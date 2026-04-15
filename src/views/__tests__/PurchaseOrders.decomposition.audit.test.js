@@ -13,6 +13,7 @@ describe('PurchaseOrders decomposition audit', () => {
       path.join(ROOT, 'src', 'views', 'purchase-orders', 'progress.js'),
       path.join(ROOT, 'src', 'views', 'purchase-orders', 'stepper.js'),
       path.join(ROOT, 'src', 'views', 'purchase-orders', 'drafts.js'),
+      path.join(ROOT, 'src', 'views', 'purchase-orders', 'create-flow.js'),
     ];
     const source = fs.readFileSync(mainPath, 'utf8');
 
@@ -38,6 +39,10 @@ describe('PurchaseOrders decomposition audit', () => {
       offenders.push('src/views/PurchaseOrders.vue: missing purchase-order draft helper import');
     }
 
+    if (!source.includes("@/views/purchase-orders/create-flow.js")) {
+      offenders.push('src/views/PurchaseOrders.vue: missing purchase-order create-flow helper import');
+    }
+
     for (const marker of [
       'const formatDate = (ts) => {',
       'const formatDateTime = (ts) => {',
@@ -55,6 +60,11 @@ describe('PurchaseOrders decomposition audit', () => {
       'const buildSuggestionVariantLabel = (variantOptions = {}) =>',
       'const buildSuggestionMeta = (suggestion) => {',
       'function getSuggestionOrderIds(suggestion = {}) {',
+      'const totalCreateQty = computed(() => poItems.reduce((sum, i) => sum + (i.quantity || 0), 0))',
+      'const shortageItems = computed(() =>',
+      'const excludeOrderIds = computed(() => {',
+      'const selectedVariantIdsForPicker = computed(() => {',
+      'const existingBrands = computed(() => {',
     ]) {
       if (source.includes(marker)) {
         offenders.push(`src/views/PurchaseOrders.vue: still defines ${marker}`);

@@ -12,6 +12,7 @@ describe('ProductCatalogService decomposition audit', () => {
       path.join(ROOT, 'functions', 'services', 'product-catalog', 'batch-import.js'),
       path.join(ROOT, 'functions', 'services', 'product-catalog', 'variant-matching.js'),
       path.join(ROOT, 'functions', 'services', 'product-catalog', 'maintenance.js'),
+      path.join(ROOT, 'functions', 'services', 'product-catalog', 'variant-images.js'),
     ];
     const source = fs.readFileSync(mainPath, 'utf8');
 
@@ -33,6 +34,10 @@ describe('ProductCatalogService decomposition audit', () => {
       offenders.push('functions/services/ProductCatalogService.js: missing maintenance helper import');
     }
 
+    if (!source.includes("./product-catalog/variant-images.js")) {
+      offenders.push('functions/services/ProductCatalogService.js: missing variant-images helper import');
+    }
+
     for (const marker of [
       'function buildCatalogRollbackPayload(',
       'const safeMergeField =',
@@ -41,6 +46,8 @@ describe('ProductCatalogService decomposition audit', () => {
       'async cleanupCreatedCatalogRecords(created) {',
       'async loadVariantImageSnapshot(productId, variants = [], variantImageRepo = new VariantImageRepository(this.db, this.variantRepo)) {',
       'async rollbackPatchedProduct({',
+      'const variantImageRepo = new VariantImageRepository(this.db, this.variantRepo);',
+      'const imageSyncPlan = resolveVariantImageSyncPlan({',
     ]) {
       if (source.includes(marker)) {
         offenders.push(`functions/services/ProductCatalogService.js: still defines ${marker}`);

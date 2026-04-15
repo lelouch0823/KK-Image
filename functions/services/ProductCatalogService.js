@@ -1,10 +1,7 @@
 import { ProductRepository } from '../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../repositories/ProductVariantRepository.js';
 import { ProductDimensionRepository } from '../repositories/ProductDimensionRepository.js';
-import { VariantImageRepository } from '../repositories/VariantImageRepository.js';
 import { VariantAuditRepository } from '../repositories/VariantAuditRepository.js';
-import { resolveVariantImageSyncPlan } from '../lib/hono/routes/manage/products/variant-image-sync.js';
-import { archiveVariantImagesByFolder } from '../lib/hono/routes/manage/products/variant-image-folders.js';
 import { scheduleProductCacheInvalidation } from '../lib/hono/routes/manage/products/cache-helpers.js';
 import { normalizeVariantDimensionKeys, normalizeVariantExternalCodes } from '../lib/hono/routes/manage/products/variant-normalizers.js';
 import { BadRequestError, ConflictError, NotFoundError } from '../lib/hono/errors.js';
@@ -31,6 +28,7 @@ import {
     loadVariantImageSnapshot,
     rollbackPatchedProduct,
 } from "./product-catalog/maintenance.js";
+import { syncCatalogVariantImages } from "./product-catalog/variant-images.js";
 
 const isVariantSyncValidationError = (error) => {
     const message = String(error?.message || '');
@@ -228,24 +226,15 @@ export class ProductCatalogService {
             const createdVariants = await this.variantRepo.createBatch(product.id, normalizedVariants);
             created.variantIds.push(...createdVariants.map((variant) => variant.id).filter(Boolean));
 
-            const variantImageRepo = new VariantImageRepository(this.db, this.variantRepo);
-            const imageSyncPlan = resolveVariantImageSyncPlan({
+            await syncCatalogVariantImages({
+                db: this.db,
+                env: c.env,
+                productId: product.id,
                 inputVariants: normalizedVariants,
                 persistedVariants: createdVariants,
+                variantRepo: this.variantRepo,
+                archiveLogLabel: 'product create',
             });
-            if (imageSyncPlan.unresolved.length > 0) {
-                throw new BadRequestError(`Unable to reconcile variant image targets: ${JSON.stringify(imageSyncPlan.unresolved)}`);
-            }
-
-            for (const task of imageSyncPlan.tasks) {
-                await variantImageRepo.syncImages(product.id, task.variantId, task.images);
-            }
-
-            try {
-                await archiveVariantImagesByFolder(c.env, product.id, imageSyncPlan.tasks);
-            } catch (error) {
-                console.error('Archive variant images by folder failed (product create):', error);
-            }
         } catch (error) {
             await cleanupCreatedCatalogRecords({ db: this.db, created });
             throw error;
@@ -363,26 +352,15 @@ export class ProductCatalogService {
                 }
 
                 afterVariants = await this.variantRepo.findByProductId(productId);
-                const variantImageRepo = new VariantImageRepository(this.db, this.variantRepo);
-                const imageSyncPlan = resolveVariantImageSyncPlan({
+                await syncCatalogVariantImages({
+                    db: this.db,
+                    env: c.env,
+                    productId,
                     inputVariants: nextBody.variants,
                     persistedVariants: afterVariants,
+                    variantRepo: this.variantRepo,
+                    archiveLogLabel: 'product patch',
                 });
-                if (imageSyncPlan.unresolved.length > 0) {
-                    throw new BadRequestError(
-                        `Unable to reconcile variant image targets: ${JSON.stringify(imageSyncPlan.unresolved)}`
-                    );
-                }
-
-                for (const task of imageSyncPlan.tasks) {
-                    await variantImageRepo.syncImages(productId, task.variantId, task.images);
-                }
-
-                try {
-                    await archiveVariantImagesByFolder(c.env, productId, imageSyncPlan.tasks);
-                } catch (error) {
-                    console.error('Archive variant images by folder failed (product patch):', error);
-                }
 
                 const events = this.variantRepo.buildAuditEvents(productId, beforeVariants, afterVariants);
                 await this.auditRepo.createBatch(events);

@@ -12,6 +12,7 @@ describe('PurchaseOrderRepository decomposition audit', () => {
       path.join(ROOT, 'functions', 'repositories', 'purchase-order-read-model.js'),
       path.join(ROOT, 'functions', 'repositories', 'purchase-order-snapshot.js'),
       path.join(ROOT, 'functions', 'repositories', 'purchase-order-item-snapshots.js'),
+      path.join(ROOT, 'functions', 'repositories', 'purchase-order-links.js'),
     ];
     const source = fs.readFileSync(mainPath, 'utf8');
 
@@ -33,6 +34,10 @@ describe('PurchaseOrderRepository decomposition audit', () => {
       offenders.push('functions/repositories/PurchaseOrderRepository.js: missing item snapshot helper import');
     }
 
+    if (!source.includes("./purchase-order-links.js")) {
+      offenders.push('functions/repositories/PurchaseOrderRepository.js: missing links helper import');
+    }
+
     for (const marker of [
       'function normalizePurchaseOrderProgress(',
       'function summarizePurchaseOrderItems(',
@@ -41,6 +46,8 @@ describe('PurchaseOrderRepository decomposition audit', () => {
       'async loadOrderLineSnapshotMap(items = []) {',
       'async loadLivePurchaseItemSnapshotMap(items = []) {',
       'async hydratePurchaseItemSnapshots(items = []) {',
+      'SELECT DISTINCT pre_order_id FROM purchase_order_items WHERE po_id = ? AND pre_order_id IS NOT NULL',
+      'SELECT latest.variant_id, poi.unit_cost AS last_purchase_price',
     ]) {
       if (source.includes(marker)) {
         offenders.push(`functions/repositories/PurchaseOrderRepository.js: still defines ${marker}`);

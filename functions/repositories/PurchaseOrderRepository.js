@@ -11,6 +11,11 @@ import {
   mapPurchaseOrderSnapshotFields,
 } from "./purchase-order-snapshot.js";
 import { hydratePurchaseItemSnapshots } from "./purchase-order-item-snapshots.js";
+import {
+  findActiveBindingsByPreOrderIds,
+  getLastPurchasePricesByVariant,
+  getLinkedOrderIds,
+} from "./purchase-order-links.js";
 
 const D1_MAX_IN_CLAUSE_SIZE = 100;
 
@@ -575,38 +580,11 @@ export class PurchaseOrderRepository {
    * 获取采购单的所有关联预订单 ID
    */
   async getLinkedOrderIds(poId) {
-    const { results } = await this.db
-      .prepare(`SELECT DISTINCT pre_order_id FROM purchase_order_items WHERE po_id = ? AND pre_order_id IS NOT NULL`)
-      .bind(poId)
-      .all();
-    return results.map(r => r.pre_order_id);
+    return getLinkedOrderIds({ db: this.db, poId });
   }
 
   async findActiveBindingsByPreOrderIds(preOrderIds = []) {
-    const normalizedIds = [...new Set((preOrderIds || []).filter(Boolean))];
-    if (normalizedIds.length === 0) return [];
-
-    const bindings = [];
-    for (const orderIdChunk of chunkArray(normalizedIds, D1_MAX_IN_CLAUSE_SIZE)) {
-      const placeholders = orderIdChunk.map(() => '?').join(',');
-      const { results } = await this.db
-        .prepare(`
-          SELECT
-            poi.pre_order_id,
-            poi.po_id,
-            po.po_no,
-            po.status AS po_status
-          FROM purchase_order_items poi
-          JOIN purchase_orders po ON po.id = poi.po_id
-          WHERE poi.pre_order_id IN (${placeholders})
-            AND po.status != 'cancelled'
-        `)
-        .bind(...orderIdChunk)
-        .all();
-      bindings.push(...(results || []));
-    }
-
-    return bindings;
+    return findActiveBindingsByPreOrderIds({ db: this.db, preOrderIds });
   }
 
   /**
@@ -636,35 +614,7 @@ export class PurchaseOrderRepository {
    * @returns {Promise<Record<string, number>>}
    */
   async getLastPurchasePricesByVariant(variantIds = []) {
-    if (!variantIds || variantIds.length === 0) return {};
-
-    const map = {};
-    for (const variantIdChunk of chunkArray(variantIds, D1_MAX_IN_CLAUSE_SIZE)) {
-      const placeholders = variantIdChunk.map(() => '?').join(',');
-      const { results } = await this.db.prepare(`
-        SELECT latest.variant_id, poi.unit_cost AS last_purchase_price
-        FROM (
-          SELECT poi2.variant_id,
-                 MAX(COALESCE(po2.completed_at, po2.updated_at, po2.created_at, 0)) AS latest_ts
-          FROM purchase_order_items poi2
-          JOIN purchase_orders po2 ON po2.id = poi2.po_id
-          WHERE po2.status = 'completed'
-            AND poi2.variant_id IN (${placeholders})
-          GROUP BY poi2.variant_id
-        ) latest
-        JOIN purchase_order_items poi ON poi.variant_id = latest.variant_id
-        JOIN purchase_orders po ON po.id = poi.po_id
-        WHERE po.status = 'completed'
-          AND COALESCE(po.completed_at, po.updated_at, po.created_at, 0) = latest.latest_ts
-      `).bind(...variantIdChunk).all();
-
-      for (const row of results || []) {
-        if (map[row.variant_id] == null) {
-          map[row.variant_id] = Number(row.last_purchase_price) || 0;
-        }
-      }
-    }
-    return map;
+    return getLastPurchasePricesByVariant({ db: this.db, variantIds });
   }
 
   /**

@@ -2566,6 +2566,15 @@ import {
   normalizeNullableDecimal,
   normalizeReceiptQty,
 } from "@/views/purchase-orders/drafts.js";
+import {
+  buildCreatePurchaseItemsPayload,
+  getCreateFlowSourceItems,
+  getExistingBrands,
+  getExcludeOrderIds,
+  getSelectedVariantIdsForPicker,
+  getShortageItems,
+  getTotalCreateQty,
+} from "@/views/purchase-orders/create-flow.js";
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
 import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
@@ -3370,27 +3379,22 @@ const removePoItem = (idx) => {
 };
 
 // 计算属性
-const totalCreateQty = computed(() => poItems.reduce((sum, i) => sum + (i.quantity || 0), 0));
-const shortageItems = computed(() =>
-  poItems.filter((i) => i.required_quantity && i.quantity < i.required_quantity)
+const createFlowSourceItems = computed(() =>
+  getCreateFlowSourceItems({
+    pickerTarget: pickerTarget.value,
+    detailItems: detail.value?.items || [],
+    poItems,
+  })
 );
-const excludeOrderIds = computed(() => {
-  const items =
-    pickerTarget.value === 'detail' && detail.value ? detail.value.items || [] : poItems;
-  return items.filter((i) => i.pre_order_id).map((i) => i.pre_order_id);
+const totalCreateQty = computed(() => getTotalCreateQty(poItems));
+const shortageItems = computed(function computeCreateFlowShortages() {
+  return getShortageItems(poItems);
 });
-const selectedVariantIdsForPicker = computed(() => {
-  const items =
-    pickerTarget.value === 'detail' && detail.value ? detail.value.items || [] : poItems;
-  return [
-    ...new Set(items.filter((i) => !i.pre_order_id && i.variant_id).map((i) => i.variant_id)),
-  ];
-});
-const existingBrands = computed(() => {
-  const items =
-    pickerTarget.value === 'detail' && detail.value ? detail.value.items || [] : poItems;
-  return [...new Set(items.map((i) => i.brand).filter(Boolean))];
-});
+const excludeOrderIds = computed(() => getExcludeOrderIds(createFlowSourceItems.value));
+const selectedVariantIdsForPicker = computed(() =>
+  getSelectedVariantIdsForPicker(createFlowSourceItems.value)
+);
+const existingBrands = computed(() => getExistingBrands(createFlowSourceItems.value));
 
 // 详情明细编辑处理
 const handleDetailUpdateItem = async (itemId, field, value) => {
@@ -3445,13 +3449,7 @@ const executeCreate = async () => {
   if (!result) return;
 
   // Step 2: 批量添加明细
-  const items = poItems.map((item) => ({
-    product_id: item.product_id,
-    variant_id: item.variant_id,
-    pre_order_id: item.pre_order_id || null,
-    quantity: item.quantity || 1,
-    unit_cost: item.unit_cost || 0,
-  }));
+  const items = buildCreatePurchaseItemsPayload(poItems);
 
   if (items.length > 0) {
     const itemsAdded = await addItems(result.id, items);

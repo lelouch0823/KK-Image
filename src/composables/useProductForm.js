@@ -27,6 +27,10 @@ import {
   getVariantOptionValue,
   removeDimensionFromVariant,
 } from '@/composables/product-form/variants.js';
+import {
+  applyBatchBuilderSelection,
+  buildVariantsAfterDimensionArchive,
+} from '@/composables/product-form/archives.js';
 
 export {
   buildVariantSyncSummaryMessage,
@@ -471,24 +475,16 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
           if (trackedDimension) trackedDimension.status = 'archived';
         }
 
-        if (dimensionArchiveWizard.mode === 'merge_keep') {
-          const dedupedVariants = [];
-          const seenKeys = new Set();
-          for (const variant of form.variants) {
-            const nextVariant = removeDimensionFromVariant(variant, archivedOption);
-            const key = buildVariantOptionsKey(nextVariant.options_values);
-            if (seenKeys.has(key)) continue;
-            seenKeys.add(key);
-            dedupedVariants.push(nextVariant);
-          }
-          form.variants = dedupedVariants.map((variant) =>
-            markVariantCompleteness(variant, getNextDimensionNames(form.options))
-          );
-        } else {
-          form.variants = form.variants
-            .filter((variant) => getVariantOptionValue(variant, archivedOption) === undefined)
-            .map((variant) => markVariantCompleteness(variant, getNextDimensionNames(form.options)));
-        }
+        form.variants = buildVariantsAfterDimensionArchive({
+          variants: form.variants,
+          archivedOption,
+          mode: dimensionArchiveWizard.mode,
+          removeDimensionFromVariant,
+          getVariantOptionValue,
+          buildVariantOptionsKey,
+          markVariantCompleteness,
+          getNextDimensionNames: () => getNextDimensionNames(form.options),
+        });
       }
       closeDimensionArchiveWizard(true);
     } catch (error) {
@@ -578,29 +574,16 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     }
   };
 
-  const handleBatchBuilderApply = ({ options = [], variants = [] }) => {
-    const normalizedOptions = options.map((option) => ({
-      name: option.name,
-      values: Array.isArray(option.values) ? option.values : [],
-      inputValue: '',
-    }));
-    form.options = normalizedOptions;
-
-    const existingMap = new Map(
-      form.variants.map((variant) => [buildVariantOptionsKey(variant.options_values), variant])
-    );
-
-    for (const variant of variants) {
-      const key = buildVariantOptionsKey(variant.options_values);
-      if (existingMap.has(key)) continue;
-      const optionsValues = variant.options_values || {};
-      form.variants.push({
-        ...markVariantCompleteness(variant),
-        sku: String(variant.sku || ''),
-        options_values: optionsValues,
-      });
-      existingMap.set(key, variant);
-    }
+  const handleBatchBuilderApply = (payload = {}) => {
+    const result = applyBatchBuilderSelection({
+      existingVariants: form.variants,
+      options: payload.options || [],
+      variants: payload.variants || [],
+      buildVariantOptionsKey,
+      markVariantCompleteness,
+    });
+    form.options = result.options;
+    form.variants = result.variants;
   };
 
   // ——— 表单提交 ———

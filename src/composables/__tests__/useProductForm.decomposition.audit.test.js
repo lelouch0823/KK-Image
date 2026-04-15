@@ -12,6 +12,7 @@ describe('useProductForm decomposition audit', () => {
       path.join(ROOT, 'src', 'composables', 'product-form', 'helpers.js'),
       path.join(ROOT, 'src', 'composables', 'product-form', 'dimensions.js'),
       path.join(ROOT, 'src', 'composables', 'product-form', 'variants.js'),
+      path.join(ROOT, 'src', 'composables', 'product-form', 'archives.js'),
     ];
     const source = fs.readFileSync(mainPath, 'utf8');
 
@@ -33,6 +34,10 @@ describe('useProductForm decomposition audit', () => {
       offenders.push('src/composables/useProductForm.js: missing product-form variant helper import');
     }
 
+    if (!source.includes("@/composables/product-form/archives.js")) {
+      offenders.push('src/composables/useProductForm.js: missing product-form archive helper import');
+    }
+
     for (const marker of [
       'function normalizeCurrencyCode(',
       'function toOptionModel(',
@@ -44,6 +49,7 @@ describe('useProductForm decomposition audit', () => {
       'const getVariantOptionValue = (variant, option) => {',
       'const removeDimensionFromVariant = (variant, option) => {',
       'const variantOptionsKey = (optionsValues) =>',
+      'const handleBatchBuilderApply = ({ options = [], variants = [] }) => {',
     ]) {
       if (source.includes(marker)) {
         offenders.push(`src/composables/useProductForm.js: still defines ${marker}`);
