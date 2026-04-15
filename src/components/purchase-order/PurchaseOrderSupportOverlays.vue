@@ -71,7 +71,11 @@
         <AppButton variant="secondary" @click="$emit('close-shortage-confirm')">
           {{ t('common.cancel') }}
         </AppButton>
-        <AppButton variant="warning" @click="$emit('confirm-shortage-create')">
+        <AppButton
+          variant="outline"
+          class="border-warning/40 text-warning hover:border-warning hover:bg-warning/10 hover:text-warning"
+          @click="$emit('confirm-shortage-create')"
+        >
           {{ t('purchaseOrder.form.confirmCreate') }}
         </AppButton>
       </ActionBar>
