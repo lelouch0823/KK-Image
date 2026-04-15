@@ -1,14 +1,14 @@
 <template>
   <div
     class="group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all duration-200"
+    :data-tone="resolvedTone"
     :class="[
       variantClass,
       clickable
         ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg active:scale-[0.98]'
         : 'hover:-translate-y-0.5 hover:shadow-md',
-      glow ? 'backdrop-blur-md' : ''
+      glow ? 'backdrop-blur-md' : '',
     ]"
-    :style="glow ? { '--shadow-color': shadowColor } : {}"
     @click="clickable && $emit('click')"
   >
     <!-- Background Blob (for glow mode) -->
@@ -38,7 +38,9 @@
         </span>
       </div>
 
-      <div class="group-hover:text-primary text-2xl font-bold text-(--text-main) tabular-nums transition-colors">
+      <div
+        class="group-hover:text-primary text-2xl font-semibold text-(--text-main) font-mono tabular-nums transition-colors"
+      >
         <slot>{{ formattedValue }}</slot>
       </div>
 
@@ -59,17 +61,14 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { getToneClasses, normalizeTone } from '@/design-system/toneContract';
 
 const { t } = useI18n();
 
 const props = defineProps({
   label: { type: String, default: '' },
   value: { type: [String, Number], default: '' },
-  variant: {
-    type: String,
-    default: 'default',
-    validator: v => ['default', 'info', 'purple', 'success', 'warning', 'danger', 'cyan'].includes(v),
-  },
+  variant: { type: String, default: 'neutral' },
   clickable: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
   trend: { type: Number, default: null }, // percentage change
@@ -78,19 +77,7 @@ const props = defineProps({
 });
 
 defineEmits(['click']);
-
-const shadowColor = computed(() => {
-  const colors = {
-    default: '120, 113, 108',
-    info: '59, 130, 246',
-    purple: '139, 92, 246', // Keep partial raw for complex shadow if needed, or map to var
-    success: '16, 185, 129',
-    warning: '245, 158, 11',
-    danger: '239, 68, 68',
-    cyan: '6, 182, 212',
-  };
-  return colors[props.variant] || colors.default;
-});
+const resolvedTone = computed(() => normalizeTone(props.variant || 'neutral'));
 
 const formattedValue = computed(() => {
   if (typeof props.value === 'number') {
@@ -100,40 +87,14 @@ const formattedValue = computed(() => {
 });
 
 const variantClass = computed(() => {
-  const variants = {
-    default: 'border-(--border-color) bg-(--bg-card)',
-    info: 'border-info/20 bg-info/5 hover:shadow-lg hover:shadow-info/10',
-    purple: 'border-purple-500/20 bg-purple-500/5 hover:shadow-lg hover:shadow-purple-500/10',
-    success: 'border-success/20 bg-success/5 hover:shadow-lg hover:shadow-success/10',
-    warning: 'border-warning/20 bg-warning/5 hover:shadow-lg hover:shadow-warning/10',
-    danger: 'border-danger/20 bg-danger/5 hover:shadow-lg hover:shadow-danger/10',
-    cyan: 'border-cyan-500/20 bg-cyan-500/5 hover:shadow-lg hover:shadow-cyan-500/10',
-  };
-  return variants[props.variant] || variants.default;
+  return getToneClasses(resolvedTone.value).surface;
 });
 
 const blobClass = computed(() => {
-  const blobs = {
-    info: 'bg-info',
-    purple: 'bg-purple-500',
-    success: 'bg-success',
-    warning: 'bg-warning',
-    danger: 'bg-danger',
-    cyan: 'bg-cyan-500',
-  };
-  return blobs[props.variant] || 'bg-slate-500';
+  return getToneClasses(resolvedTone.value).blob;
 });
 
 const labelClass = computed(() => {
-  const labels = {
-    default: 'text-(--text-secondary)',
-    info: 'text-info',
-    purple: 'text-purple-600 dark:text-purple-400',
-    success: 'text-success',
-    warning: 'text-warning',
-    danger: 'text-danger',
-    cyan: 'text-cyan-600 dark:text-cyan-400',
-  };
-  return labels[props.variant] || labels.default;
+  return getToneClasses(resolvedTone.value).accentText;
 });
 </script>

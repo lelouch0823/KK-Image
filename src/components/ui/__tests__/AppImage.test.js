@@ -45,4 +45,19 @@ describe('AppImage', () => {
     expect(img.attributes('loading')).toBe('lazy');
     expect(img.attributes('decoding')).toBe('async');
   });
+
+  it('renders shared iconography for default blocked badges after load', async () => {
+    const wrapper = mount(AppImage, {
+      props: {
+        src: '/file/img-2',
+        status: 'blocked',
+        lazy: false,
+      },
+    });
+
+    await wrapper.get('img[alt=""]').trigger('load');
+
+    expect(wrapper.find('.app-image__badge svg').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain('🚫');
+  });
 });

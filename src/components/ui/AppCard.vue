@@ -1,6 +1,7 @@
 <template>
   <div
-    class="overflow-hidden rounded-2xl border bg-(--bg-card) transition-all duration-200"
+    class="group relative overflow-hidden rounded-2xl border bg-(--bg-card) transition-all duration-200"
+    :data-tone="accentTone"
     :class="[
       borderClass,
       clickable
@@ -46,6 +47,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { getToneClasses, normalizeTone } from '@/design-system/toneContract';
 
 const props = defineProps({
   clickable: { type: Boolean, default: false },
@@ -60,19 +62,11 @@ const props = defineProps({
 
 defineEmits(['click']);
 
+const accentTone = computed(() => normalizeTone(props.indicator || 'primary'));
+
 const indicatorClass = computed(() => {
   if (!props.indicator) return '';
-  const colors = {
-    blue: 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]',
-    teal: 'bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.8)]',
-    orange: 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]',
-    indigo: 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]',
-    pink: 'bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.8)]',
-    danger: 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]',
-    purple: 'bg-purple-500 shadow-[0_0_8px_rgba(139,92,246,0.8)]',
-    cyan: 'bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]',
-  };
-  return colors[props.indicator] || `bg-${props.indicator}-500`;
+  return getToneClasses(props.indicator).dot;
 });
 
 const bodyClass = computed(() => {
@@ -80,20 +74,7 @@ const bodyClass = computed(() => {
 });
 
 const blobClass = computed(() => {
-  const colors = {
-    blue: 'bg-blue-500/40',
-    teal: 'bg-teal-500/40',
-    orange: 'bg-orange-500/40',
-    indigo: 'bg-indigo-500/40',
-    pink: 'bg-pink-500/40',
-    danger: 'bg-red-500/40',
-    purple: 'bg-purple-500/40',
-    cyan: 'bg-cyan-500/40',
-    info: 'bg-info/40',
-    success: 'bg-success/40',
-    warning: 'bg-warning/40',
-  };
-  return colors[props.indicator] || 'bg-primary/30';
+  return getToneClasses(accentTone.value).blob;
 });
 
 const borderClass = computed(() => {

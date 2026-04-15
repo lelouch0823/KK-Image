@@ -7,7 +7,7 @@ describe('AppCard design contract', () => {
     const wrapper = mount(AppCard, {
       props: {
         clickable: true,
-        indicator: 'info',
+        indicator: 'purple',
         glow: true,
       },
       slots: {
@@ -21,5 +21,7 @@ describe('AppCard design contract', () => {
 
     await wrapper.trigger('click');
     expect(wrapper.emitted('click')).toHaveLength(1);
+    expect(wrapper.attributes('data-tone')).toBe('primary');
+    expect(wrapper.html()).not.toContain('purple-500');
   });
 });

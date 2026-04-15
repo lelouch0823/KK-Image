@@ -1,173 +1,157 @@
-@import "./tokens/primitive.css";
-@import "./tokens/semantic.css";
-@import "./tokens/motion.css";
-@import "./tokens/charts.css";
-@import "./tokens/themes.css";
-@import "tailwindcss";
+@import './tokens/primitive.css';
+@import './tokens/semantic.css';
+@import './tokens/motion.css';
+@import './tokens/charts.css';
+@import './tokens/themes.css';
+@import 'tailwindcss';
 
 /* Enable class-based dark mode */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* Tailwind CSS v4 主题配置 */
 @theme {
-    /* Color Palette Mapping */
-    --color-primary: var(--color-primary);
-    --color-primary-hover: var(--color-primary-hover);
-    --color-primary-light: var(--color-primary-light);
-    --color-primary-bg: var(--color-primary-bg);
+  /* Color Palette Mapping */
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-light: var(--color-primary-light);
+  --color-primary-bg: var(--color-primary-bg);
 
-    --color-secondary: var(--color-secondary);
-    --color-secondary-hover: var(--color-secondary-hover);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-hover: var(--color-secondary-hover);
 
-    --color-success: var(--color-success);
-    --color-success-bg: var(--color-success-bg);
-    --color-success-text: var(--color-success-text);
-    --color-success-border: var(--border-success);
+  --color-success: var(--color-success);
+  --color-success-bg: var(--color-success-bg);
+  --color-success-text: var(--color-success-text);
+  --color-success-border: var(--border-success);
 
-    --color-warning: var(--color-warning);
-    --color-warning-bg: var(--color-warning-bg);
-    --color-warning-text: var(--color-warning-text);
-    --color-warning-border: var(--border-warning);
+  --color-warning: var(--color-warning);
+  --color-warning-bg: var(--color-warning-bg);
+  --color-warning-text: var(--color-warning-text);
+  --color-warning-border: var(--border-warning);
 
-    --color-danger: var(--color-danger);
-    --color-danger-bg: var(--color-danger-bg);
-    --color-danger-text: var(--color-danger-text);
-    --color-danger-border: var(--border-danger);
+  --color-danger: var(--color-danger);
+  --color-danger-bg: var(--color-danger-bg);
+  --color-danger-text: var(--color-danger-text);
+  --color-danger-border: var(--border-danger);
 
-    --color-info: var(--color-info);
-    --color-info-bg: var(--color-info-bg);
-    --color-info-text: var(--color-info-text);
-    --color-info-border: var(--border-info);
+  --color-info: var(--color-info);
+  --color-info-bg: var(--color-info-bg);
+  --color-info-text: var(--color-info-text);
+  --color-info-border: var(--border-info);
 
-    --color-border: var(--border-color);
-    --color-border-hover: var(--border-hover);
-    --color-border-subtle: var(--border-subtle);
-    --color-border-strong: var(--border-strong);
+  --color-border: var(--border-color);
+  --color-border-hover: var(--border-hover);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
 
-    --color-surface: var(--bg-card);
-    --color-surface-hover: var(--bg-hover);
-    --color-surface-active: var(--bg-active);
-    --color-surface-muted: var(--bg-muted);
-    --color-surface-secondary: var(--bg-secondary);
+  --color-surface: var(--bg-card);
+  --color-surface-hover: var(--bg-hover);
+  --color-surface-active: var(--bg-active);
+  --color-surface-muted: var(--bg-muted);
+  --color-surface-secondary: var(--bg-secondary);
 
-    --color-main: var(--text-main);
-    --color-main-inverse: var(--text-inverse);
-    --color-muted: var(--text-muted);
+  --color-main: var(--text-main);
+  --color-main-inverse: var(--text-inverse);
+  --color-muted: var(--text-muted);
 
-    --color-secondary-text: var(--text-secondary);
+  --color-secondary-text: var(--text-secondary);
 
-    /* Spacing & Layout */
-    --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  /* Spacing & Layout */
+  --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family-mono:
+    'SFMono-Regular', 'SF Mono', 'JetBrains Mono', Consolas, 'Liberation Mono', Menlo, monospace;
 
-    --radius-sm: var(--radius-sm);
-    --radius-md: var(--radius-md);
-    --radius-lg: var(--radius-lg);
-    --radius-xl: var(--radius-xl);
-
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
 }
 
 @layer base {
-    html,
-    body {
-        overflow-x: hidden;
-        width: 100%;
-        max-width: 100%;
-    }
+  html,
+  body {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+  }
 
-    body {
-        @apply bg-[var(--bg-page)] text-[var(--text-main)] font-sans antialiased;
-    }
+  body {
+    @apply bg-[var(--bg-page)] text-[var(--text-main)] font-sans antialiased;
+  }
 
-    /* 全局滚动条样式 (适配黑白主题) */
-    * {
-        scrollbar-width: thin;
-        scrollbar-color: var(--color-border-hover) transparent;
-    }
+  /* 全局滚动条样式 (适配黑白主题) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-hover) transparent;
+  }
 
-    ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
 
-    ::-webkit-scrollbar-track {
-        background: transparent;
-    }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-    ::-webkit-scrollbar-thumb {
-        background-color: var(--color-border-hover);
-        border-radius: var(--radius-full);
-    }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-border-hover);
+    border-radius: var(--radius-full);
+  }
 
-    ::-webkit-scrollbar-thumb:hover {
-        background-color: var(--color-border-strong);
-    }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-border-strong);
+  }
 
-    ::-webkit-scrollbar-corner {
-        background: transparent;
-    }
-}
-
-/* Material Symbols Icon Class */
-.material-symbols-outlined {
-    font-family: 'Material Symbols Outlined';
-    font-weight: normal;
-    font-style: normal;
-    font-size: 24px;
-    display: inline-block;
-    line-height: 1;
-    text-transform: none;
-    letter-spacing: normal;
-    word-wrap: normal;
-    white-space: nowrap;
-    direction: ltr;
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
 
 @layer components {
+  /* 基础按钮样式 - Enhanced Interaction */
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
 
-    /* 基础按钮样式 - Enhanced Interaction */
-    .btn {
-        @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed;
-    }
+  .btn-primary {
+    @apply bg-primary text-white dark:text-surface hover:bg-primary-hover focus:ring-primary shadow-sm hover:shadow;
+  }
 
-    .btn-primary {
-        @apply bg-primary text-white dark:text-surface hover:bg-primary-hover focus:ring-primary shadow-sm hover:shadow;
-    }
+  .btn-secondary {
+    @apply bg-surface border border-border text-secondary-text hover:bg-surface-hover focus:ring-border shadow-sm hover:shadow-md;
+  }
 
-    .btn-secondary {
-        @apply bg-surface border border-border text-secondary-text hover:bg-surface-hover focus:ring-border shadow-sm hover:shadow-md;
-    }
+  .btn-danger {
+    @apply bg-danger-bg text-danger-text border border-danger-border hover:bg-danger/20 focus:ring-danger/30;
+  }
 
-    .btn-danger {
-        @apply bg-danger-bg text-danger-text border border-danger-border hover:bg-danger/20 focus:ring-danger/30;
-    }
+  .btn-ghost {
+    @apply text-secondary-text hover:text-main hover:bg-surface-hover;
+  }
 
-    .btn-ghost {
-        @apply text-secondary-text hover:text-main hover:bg-surface-hover;
-    }
+  /* 基础输入框 */
+  .input {
+    @apply w-full h-10 px-3 text-sm border border-border rounded-lg bg-surface dark:bg-surface-muted focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-sm;
+  }
 
-    /* 基础输入框 */
-    .input {
-        @apply w-full h-10 px-3 text-sm border border-border rounded-lg bg-surface dark:bg-surface-muted focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-sm;
-    }
+  /* Premium date picker styling */
+  input[type='date'] {
+    position: relative;
+  }
 
-
-    /* Premium date picker styling */
-    input[type="date"] {
-        position: relative;
-    }
-
-    input[type="date"]::-webkit-calendar-picker-indicator {
-        background: transparent;
-        bottom: 0;
-        color: transparent;
-        cursor: pointer;
-        height: auto;
-        left: 0;
-        position: absolute;
-        right: 0;
-        top: 0;
-        width: auto;
-    }
+  input[type='date']::-webkit-calendar-picker-indicator {
+    background: transparent;
+    bottom: 0;
+    color: transparent;
+    cursor: pointer;
+    height: auto;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
+  }
 }
 
 /* 动画工具类 */
@@ -175,40 +159,42 @@
 /* Page Fade Transition */
 .fade-page-enter-active,
 .fade-page-leave-active {
-    transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .fade-page-enter-from {
-    opacity: 0;
-    transform: translateY(10px);
+  opacity: 0;
+  transform: translateY(10px);
 }
 
 .fade-page-leave-to {
-    opacity: 0;
-    transform: translateY(-10px);
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 /* Base Fade */
 .fade-enter-active,
 .fade-leave-active {
-    transition: opacity var(--transition-base);
+  transition: opacity var(--transition-base);
 }
 
 .fade-enter-from,
 .fade-leave-to {
-    opacity: 0;
+  opacity: 0;
 }
 
 /* Slide Up */
 .slide-up-enter-active,
 .slide-up-leave-active {
-    transition: all var(--transition-base);
+  transition: all var(--transition-base);
 }
 
 .slide-up-enter-from,
 .slide-up-leave-to {
-    opacity: 0;
-    transform: translateY(10px);
+  opacity: 0;
+  transform: translateY(10px);
 }
 
 /* List Transitions */
@@ -216,17 +202,17 @@
 /* apply transition to moving elements */
 .list-enter-active,
 .list-leave-active {
-    transition: all 0.5s ease;
+  transition: all 0.5s ease;
 }
 
 .list-enter-from,
 .list-leave-to {
-    opacity: 0;
-    transform: translateX(30px);
+  opacity: 0;
+  transform: translateX(30px);
 }
 
 /* ensure leaving items are taken out of layout flow so that moving
    animations can be calculated correctly. */
 .list-leave-active {
-    position: absolute;
+  position: absolute;
 }

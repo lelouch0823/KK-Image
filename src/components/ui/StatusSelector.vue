@@ -6,10 +6,7 @@
       class="focus:ring-primary/20 focus:ring-2 focus:outline-none flex items-center gap-2 rounded-full border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-sm font-medium transition-colors hover:bg-(--bg-hover)"
       @click="toggle"
     >
-      <span
-        class="size-2 rounded-full"
-        :class="getStatusColorClass(modelValue)"
-      ></span>
+      <span class="size-2 rounded-full" :class="getStatusColorClass(modelValue)"></span>
       <span>{{ t(`order.statuses.${modelValue}`) }}</span>
       <AppIcon
         name="chevron-down"
@@ -24,7 +21,7 @@
       class="absolute right-0 z-50 overflow-auto rounded-lg border border-(--border-color) bg-(--bg-card) shadow-lg ring-1 ring-black/5 focus:outline-none"
       :class="[
         dropdownPosition === 'top' ? 'bottom-full mb-1 origin-bottom' : 'mt-1 origin-top',
-        'max-h-60 w-48'
+        'max-h-60 w-48',
       ]"
     >
       <div class="p-1">
@@ -36,16 +33,9 @@
           :class="{ 'bg-(--bg-muted)': modelValue === status }"
           @click="select(status)"
         >
-          <span
-            class="size-2 rounded-full"
-            :class="getStatusColorClass(status)"
-          ></span>
+          <span class="size-2 rounded-full" :class="getStatusColorClass(status)"></span>
           <span class="flex-1 text-left">{{ t(`order.statuses.${status}`) }}</span>
-          <AppIcon
-            v-if="modelValue === status"
-            name="check"
-            class="text-primary size-4"
-          />
+          <AppIcon v-if="modelValue === status" name="check" class="text-primary size-4" />
         </button>
       </div>
     </div>
@@ -56,6 +46,7 @@
 import { ref, onMounted, onUnmounted, nextTick, useTemplateRef } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import { getStatusDotClass } from '@/design-system/toneContract';
 
 defineProps({
   modelValue: {
@@ -102,20 +93,7 @@ const select = (status) => {
 
 // 获取状态颜色类（仅圆点颜色）
 const getStatusColorClass = (status) => {
-    // 映射状态到 Tailwind 颜色类 (参考 utils/status.js，提取 bg 部分并转换)
-    const map = {
-        pending: 'bg-warning',
-        confirmed: 'bg-info',
-        production: 'bg-(--color-orange)', 
-        shipping: 'bg-primary',
-        fulfilled: 'bg-success',
-        completed: 'bg-success', // delivered/completed
-        delivered: 'bg-success',
-        arrived: 'bg-(--color-cyan)',
-        rejected: 'bg-danger',
-        void: 'bg-(--text-muted)',
-    };
-    return map[status] || 'bg-gray-400';
+  return getStatusDotClass(status);
 };
 
 // 点击外部关闭
