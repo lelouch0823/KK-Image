@@ -45,10 +45,10 @@ function normalizeReceiptEntry(entry = {}) {
   };
 }
 
-function countReceiptWriteStatements(preparedReceipts = []) {
+function countReceiptWriteStatements(preparedReceipts = [], { hasCommandInsert = false } = {}) {
   return preparedReceipts.reduce(
     (total, prepared) => {
-      let nextTotal = total + 1 + RECEIPT_BASE_EVENT_WRITE_COUNT;
+      let nextTotal = total + 2 + RECEIPT_BASE_EVENT_WRITE_COUNT;
 
       if (prepared.compatibilityOrderLineId && prepared.poItem?.pre_order_id) {
         nextTotal += 2 + RECEIPT_ORDER_EVENT_WRITE_COUNT;
@@ -60,7 +60,7 @@ function countReceiptWriteStatements(preparedReceipts = []) {
 
       return nextTotal;
     },
-    RECEIPT_FINALIZE_STATEMENT_COUNT
+    RECEIPT_FINALIZE_STATEMENT_COUNT + (hasCommandInsert ? 1 : 0)
   );
 }
 
@@ -224,13 +224,12 @@ export class OrderProcurementDomainService {
     const statements = [];
     const results = [];
     const outboxEvents = [];
-    const preflightStatements = [];
-    const preflightReverts = [];
+    const purchaseItemGuardResultIndexes = [];
     const preparedReceipts = [];
     let sequenceInCommand = 1;
 
     if (commandReservation.insertStatement) {
-      preflightStatements.push(commandReservation.insertStatement);
+      statements.push(commandReservation.insertStatement);
     }
 
     for (const entry of items) {
@@ -273,21 +272,8 @@ export class OrderProcurementDomainService {
           requiredRemainingQty: receivedQty,
         }
       );
-      preflightReverts.push(
-        this.db
-          .prepare(
-            `UPDATE purchase_order_items
-           SET received_qty = ?, display_status = ?
-           WHERE id = ? AND po_id = ?`
-          )
-          .bind(
-            toNonNegativeInt(poItem.received_qty),
-            projectPurchaseOrderItemStatus(poItem),
-            poItem.id,
-            poId
-          )
-      );
-      preflightStatements.push(purchaseItemStatement);
+      purchaseItemGuardResultIndexes.push(statements.length);
+      statements.push(purchaseItemStatement);
       preparedReceipts.push({
         normalizedEntry,
         purchaseOrderItemId,
@@ -299,7 +285,11 @@ export class OrderProcurementDomainService {
       });
     }
 
-    if (countReceiptWriteStatements(preparedReceipts) > D1_MAX_BATCH_SIZE) {
+    if (
+      countReceiptWriteStatements(preparedReceipts, {
+        hasCommandInsert: Boolean(commandReservation.insertStatement),
+      }) > D1_MAX_BATCH_SIZE
+    ) {
       await cleanupReservedCommand({
         commandIdempotencyRepo: this.commandIdempotencyRepo,
         db: this.db,
@@ -307,32 +297,6 @@ export class OrderProcurementDomainService {
         commandId: commandRecord.command_id,
       });
       throw new BadRequestError('本次收货包含的写入过多，请拆分后重试');
-    }
-
-    const preflightResults =
-      preflightStatements.length > 0 ? await executeBatchChunks(this.db, preflightStatements) : [];
-    const preflightOffset = commandReservation.insertStatement ? 1 : 0;
-    const failedPreflightIndexes = [];
-    for (let index = 0; index < preflightReverts.length; index += 1) {
-      if ((preflightResults?.[index + preflightOffset]?.meta?.changes || 0) !== 1) {
-        failedPreflightIndexes.push(index);
-      }
-    }
-
-    if (failedPreflightIndexes.length > 0) {
-      const successfulReverts = preflightReverts.filter(
-        (_statement, index) => !failedPreflightIndexes.includes(index)
-      );
-      if (successfulReverts.length > 0) {
-        await executeBatchChunks(this.db, successfulReverts);
-      }
-      await cleanupReservedCommand({
-        commandIdempotencyRepo: this.commandIdempotencyRepo,
-        db: this.db,
-        ownsReservation,
-        commandId: commandRecord.command_id,
-      });
-      throw new BadRequestError('采购单明细收货进度已变化，请刷新后重试');
     }
 
     try {
@@ -557,12 +521,15 @@ export class OrderProcurementDomainService {
         })
       );
 
-      await executeBatchChunks(this.db, statements);
+      const writeResults = await executeBatchChunks(this.db, statements);
+      const hasGuardMismatch = purchaseItemGuardResultIndexes.some(
+        (resultIndex) => (writeResults?.[resultIndex]?.meta?.changes || 0) !== 1
+      );
+      if (hasGuardMismatch) {
+        throw new BadRequestError('采购单明细收货进度已变化，请刷新后重试');
+      }
       return response;
     } catch (error) {
-      if (preflightReverts.length > 0) {
-        await executeBatchChunks(this.db, preflightReverts);
-      }
       await cleanupReservedCommand({
         commandIdempotencyRepo: this.commandIdempotencyRepo,
         db: this.db,

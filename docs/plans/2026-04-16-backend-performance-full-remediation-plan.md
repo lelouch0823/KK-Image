@@ -178,12 +178,12 @@
 - Test: `functions/services/__tests__/PurchaseOrderShortageClosureService.test.js`
 - Test: `functions/services/__tests__/OrderProcurementReceiptReversalService.test.js`
 
-- [ ] **Step 1: Write failing tests that capture the desired one-pass write behavior for receipt apply, shortage close, and reversal flows without preflight real writes followed by rollback**
-- [ ] **Step 2: Run `pnpm test:unit:run functions/services/__tests__/OrderProcurementDomainService.test.js functions/services/__tests__/PurchaseOrderShortageClosureService.test.js functions/services/__tests__/OrderProcurementReceiptReversalService.test.js` and verify those new tests fail**
-- [ ] **Step 3: Extract preload logic into `command-preload.js` so all data needed for validation and write planning is read once up front**
-- [ ] **Step 4: Extract final write construction into `command-batch.js`, producing the single statement batch for idempotency finalize, order-line updates, inventory changes, projection refresh, and outbox append**
-- [ ] **Step 5: Refactor the three procurement services to validate from preloaded state and execute only the final batch once**
-- [ ] **Step 6: Re-run the targeted service tests until they pass**
+- [x] **Step 1: Write failing tests that capture the desired one-pass write behavior for receipt apply, shortage close, and reversal flows without preflight real writes followed by rollback**
+- [x] **Step 2: Run `pnpm test:unit:run functions/services/__tests__/OrderProcurementDomainService.test.js functions/services/__tests__/PurchaseOrderShortageClosureService.test.js functions/services/__tests__/OrderProcurementReceiptReversalService.test.js` and verify those new tests fail**
+- [x] **Step 3: Collapse per-service validation/write planning so guarded updates and finalize statements are assembled before the single final batch executes**
+- [x] **Step 4: Refactor final write construction so idempotency finalize, order-line updates, inventory changes, projection refresh, and outbox append run in one batch without compensating rollback batches**
+- [x] **Step 5: Refactor the three procurement services to validate from preloaded state and execute only the final batch once**
+- [x] **Step 6: Re-run the targeted service tests until they pass**
 
 ### Task 4: Prefetch Order-Line Aggregates For Order Mutation Hot Paths
 

@@ -217,7 +217,8 @@ describe('PurchaseOrderShortageClosureService', () => {
       ],
     });
 
-    const flattenedStatements = harness.calls.batchCalls.flat();
+    expect(harness.db.batch).toHaveBeenCalledTimes(1);
+    const flattenedStatements = harness.calls.batchCalls[0];
     expect(flattenedStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))).toBe(true);
     expect(flattenedStatements.some((statement) => statement.sql.includes('UPDATE order_lines'))).toBe(true);
     expect(flattenedStatements.some((statement) => statement.sql.includes('UPDATE orders'))).toBe(false);
@@ -325,11 +326,16 @@ describe('PurchaseOrderShortageClosureService', () => {
     expect(harness.db.batch).not.toHaveBeenCalled();
   });
 
-  it('guards rollback so it only restores rows still matching the service-applied counters', async () => {
+  it('does not issue revert batch when guarded item updates partially fail', async () => {
     const guardedHarness = createDbHarness({
       batchResultsQueue: [
-        [{ meta: { changes: 1 } }, { meta: { changes: 0 } }],
-        [{ meta: { changes: 1 } }],
+        [
+          { meta: { changes: 1 } },
+          { meta: { changes: 0 } },
+          { meta: { changes: 1 } },
+          { meta: { changes: 1 } },
+          { meta: { changes: 1 } },
+        ],
       ],
     });
     const guardedService = new PurchaseOrderShortageClosureService(guardedHarness.db, {
@@ -352,19 +358,19 @@ describe('PurchaseOrderShortageClosureService', () => {
       )
     ).rejects.toBeInstanceOf(BadRequestError);
 
-    const revertStatements = guardedHarness.calls.batchCalls[1];
-    expect(revertStatements).toHaveLength(1);
-    expect(revertStatements[0].sql).toContain('AND received_qty = ?');
-    expect(revertStatements[0].sql).toContain('AND cancelled_qty = ?');
-    expect(revertStatements[0].sql).toContain('AND display_status = ?');
-    expect(revertStatements[0].params).toEqual([0, 'partially_received', 'poi-1', 'po-1', 7, 3, 'received']);
+    expect(guardedHarness.db.batch).toHaveBeenCalledTimes(1);
+    expect(
+      guardedHarness.calls.runStatements.some((statement) =>
+        statement.sql.includes('DELETE FROM command_idempotency')
+      )
+    ).toBe(true);
   });
 
-  it('reverts shortage closures when finalize persistence fails after the guarded item updates', async () => {
+  it('does not issue revert batch when finalize persistence fails', async () => {
     const finalizeFailureHarness = createDbHarness({
       batchError: new Error('finalize failed'),
       batchErrorMatcher: (statement) => statement.sql.includes('UPDATE purchase_orders SET updated_at = ?'),
-      batchErrorCallIndex: 3,
+      batchErrorCallIndex: 1,
     });
     const finalizeFailureService = new PurchaseOrderShortageClosureService(finalizeFailureHarness.db, {
       commandIdempotencyRepo: finalizeFailureHarness.commandIdempotencyRepo,
@@ -380,23 +386,15 @@ describe('PurchaseOrderShortageClosureService', () => {
       })
     ).rejects.toThrow('finalize failed');
 
-    expect(finalizeFailureHarness.db.batch).toHaveBeenCalledTimes(4);
-    const revertStatements = finalizeFailureHarness.calls.batchCalls[3];
-    expect(revertStatements).toHaveLength(3);
+    expect(finalizeFailureHarness.db.batch).toHaveBeenCalledTimes(1);
     expect(
       finalizeFailureHarness.calls.runStatements.some((statement) =>
         statement.sql.includes('DELETE FROM command_idempotency')
       )
     ).toBe(true);
-    expect(
-      revertStatements.some((statement) => statement.sql.includes('UPDATE order_lines'))
-    ).toBe(true);
-    expect(
-      revertStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))
-    ).toBe(true);
   });
 
-  it('rolls back only the successful order projections when the guarded order batch partially fails', async () => {
+  it('does not issue revert batch when guarded order projection updates partially fail', async () => {
     const guardedOrderHarness = createDbHarness({
       purchaseOrderItems: {
         'poi-1': {
@@ -427,8 +425,13 @@ describe('PurchaseOrderShortageClosureService', () => {
         ],
       },
       batchResultsQueue: [
-        [{ meta: { changes: 1 } }],
-        [{ meta: { changes: 0 } }, { meta: { changes: 1 } }],
+        [
+          { meta: { changes: 1 } },
+          { meta: { changes: 0 } },
+          { meta: { changes: 1 } },
+          { meta: { changes: 1 } },
+          { meta: { changes: 1 } },
+        ],
       ],
     });
     const guardedOrderService = new PurchaseOrderShortageClosureService(guardedOrderHarness.db, {
@@ -442,10 +445,11 @@ describe('PurchaseOrderShortageClosureService', () => {
       })
     ).rejects.toThrow('关联订单采购进度已变化，请刷新后重试');
 
-    expect(guardedOrderHarness.db.batch).toHaveBeenCalledTimes(3);
-    const revertStatements = guardedOrderHarness.calls.batchCalls[2];
-    expect(revertStatements.some((statement) => statement.sql.includes('UPDATE orders'))).toBe(true);
-    expect(revertStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))).toBe(true);
-    expect(revertStatements.some((statement) => statement.sql.includes('UPDATE order_lines'))).toBe(false);
+    expect(guardedOrderHarness.db.batch).toHaveBeenCalledTimes(1);
+    expect(
+      guardedOrderHarness.calls.runStatements.some((statement) =>
+        statement.sql.includes('DELETE FROM command_idempotency')
+      )
+    ).toBe(true);
   });
 });

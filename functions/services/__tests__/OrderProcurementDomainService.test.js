@@ -273,7 +273,7 @@ describe('OrderProcurementDomainService', () => {
     });
   });
 
-  it('commits purchase item, receipt, inventory, order progress, and outbox in one transaction batch', async () => {
+  it('commits purchase item, receipt, inventory, order progress, and outbox in one final batch', async () => {
     const result = await service.recordPurchaseOrderReceipts('po-1', {
       items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
     }, {
@@ -285,7 +285,7 @@ describe('OrderProcurementDomainService', () => {
       receipt_count: 1,
     }));
 
-    expect(harness.db.batch).toHaveBeenCalledTimes(2);
+    expect(harness.db.batch).toHaveBeenCalledTimes(1);
     const sqlBatch = harness.calls.batchedStatements.map((statement) => statement.sql).join('\n');
     expect(sqlBatch).toContain('INSERT INTO command_idempotency');
     expect(sqlBatch).toContain('UPDATE purchase_order_items');
@@ -568,7 +568,7 @@ describe('OrderProcurementDomainService', () => {
     expect(orderLineUpdateStatement.sql).toContain('WHERE id = ? AND order_id = ?');
   });
 
-  it('does not over-apply concurrent receipt increments', async () => {
+  it('does not trigger compensating rollback batches when receipt guard fails', async () => {
     const concurrentHarness = createDbHarness({
       purchaseOrderItemUpdateResult: { meta: { changes: 0 } },
     });
@@ -584,10 +584,35 @@ describe('OrderProcurementDomainService', () => {
       idempotencyKey: 'idem-1',
     })).rejects.toBeInstanceOf(BadRequestError);
 
-    expect(concurrentHarness.purchaseReceiptRepo.createInsertStatement).not.toHaveBeenCalled();
-    expect(concurrentHarness.inventoryService.buildMutationStatements).not.toHaveBeenCalled();
+    expect(concurrentHarness.db.batch).toHaveBeenCalledTimes(1);
     expect(concurrentHarness.calls.batchedStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))).toBe(true);
+    expect(concurrentHarness.calls.batchedStatements.some((statement) => statement.sql.includes('UPDATE order_lines'))).toBe(true);
     expect(concurrentHarness.calls.runStatements.some((statement) => statement.sql.includes('DELETE FROM command_idempotency'))).toBe(true);
+  });
+
+  it('does not trigger compensating rollback batches when finalize write fails', async () => {
+    const finalizeFailureHarness = createDbHarness({
+      batchError: new Error('finalize failed'),
+      batchErrorMatcher: (statement) => statement.sql.includes('UPDATE command_idempotency SET response_json'),
+    });
+    const finalizeFailureService = new OrderProcurementDomainService(finalizeFailureHarness.db, {
+      purchaseReceiptRepo: finalizeFailureHarness.purchaseReceiptRepo,
+      inventoryService: finalizeFailureHarness.inventoryService,
+      commandIdempotencyRepo: finalizeFailureHarness.commandIdempotencyRepo,
+      domainOutboxRepo: finalizeFailureHarness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await expect(finalizeFailureService.recordPurchaseOrderReceipts('po-1', {
+      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
+    }, {
+      idempotencyKey: 'idem-1',
+    })).rejects.toThrow('finalize failed');
+
+    expect(finalizeFailureHarness.db.batch).toHaveBeenCalledTimes(1);
+    expect(finalizeFailureHarness.calls.batchedStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))).toBe(true);
+    expect(finalizeFailureHarness.calls.batchedStatements.some((statement) => statement.sql.includes('UPDATE order_lines'))).toBe(true);
+    expect(finalizeFailureHarness.calls.runStatements.some((statement) => statement.sql.includes('DELETE FROM command_idempotency'))).toBe(true);
   });
 
   it('fails without partial persistence when downstream write errors', async () => {

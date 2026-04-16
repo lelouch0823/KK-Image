@@ -156,16 +156,17 @@
   - 列表查询改为只读取轻量摘要列，避免热路径搬运大 JSON
 
 ### 12. 采购收货 / 冲销 / 待收关闭链路存在多阶段写入与补偿回滚
-- 状态：`deferred`
+- 状态：`implemented`
 - 严重级别：高
 - 位置：
   - [functions/services/OrderProcurementDomainService.js](/home/bjw/Code/KK-Image/functions/services/OrderProcurementDomainService.js)
   - [functions/services/PurchaseOrderShortageClosureService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderShortageClosureService.js)
   - [functions/services/OrderProcurementReceiptReversalService.js](/home/bjw/Code/KK-Image/functions/services/OrderProcurementReceiptReversalService.js)
 - 问题描述：当前采购域写路径存在“预检真实写入 -> 主批次写入 -> 出错回滚”的多阶段模型，写放大和锁占用时间都偏高。
-- 建议后续：
-  - 收敛为单次 CAS 最终写入模型
-  - 将幂等 finalize、投影更新、outbox 插入统一进同一批次
+- 本轮处理：
+  - 将收货、待收关闭、收货冲销三条写路径都收敛为单次最终 batch
+  - 去掉 `purchase_order_items` / `order_lines` / 订单投影的 preflight 真写入与补偿回滚 batch
+  - guard / finalize 失败时仅执行幂等清理，避免额外写放大
 
 ### 13. 订单状态流转与订单变更路径反复扫描 `order_lines`
 - 状态：`deferred`
@@ -246,6 +247,9 @@
 - [functions/repositories/order/summary-projection.js](/home/bjw/Code/KK-Image/functions/repositories/order/summary-projection.js)
 - [functions/lib/db/query.js](/home/bjw/Code/KK-Image/functions/lib/db/query.js)
 - [functions/services/DomainOutboxDispatchService.js](/home/bjw/Code/KK-Image/functions/services/DomainOutboxDispatchService.js)
+- [functions/services/OrderProcurementDomainService.js](/home/bjw/Code/KK-Image/functions/services/OrderProcurementDomainService.js)
+- [functions/services/PurchaseOrderShortageClosureService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderShortageClosureService.js)
+- [functions/services/OrderProcurementReceiptReversalService.js](/home/bjw/Code/KK-Image/functions/services/OrderProcurementReceiptReversalService.js)
 - [migrations/0072_order_summary_projection.sql](/home/bjw/Code/KK-Image/migrations/0072_order_summary_projection.sql)
 - [migrations/0073_order_payload_sidecar.sql](/home/bjw/Code/KK-Image/migrations/0073_order_payload_sidecar.sql)
 - [migrations/0075_redundant_index_cleanup.sql](/home/bjw/Code/KK-Image/migrations/0075_redundant_index_cleanup.sql)

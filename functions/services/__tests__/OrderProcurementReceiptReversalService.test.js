@@ -325,10 +325,10 @@ describe('OrderProcurementReceiptReversalService', () => {
       'inventory_receipt_reversed',
       'order_procurement_reversed',
     ]);
-    expect(harness.db.batch).toHaveBeenCalledTimes(2);
+    expect(harness.db.batch).toHaveBeenCalledTimes(1);
   });
 
-  it('prewrites guarded purchase and order counters before persisting reversal facts', async () => {
+  it('applies guarded counter updates together with reversal facts in a single final batch', async () => {
     await service.reverseReceipt(
       'po-1',
       'receipt-1',
@@ -340,73 +340,54 @@ describe('OrderProcurementReceiptReversalService', () => {
       }
     );
 
-    const preflightStatements = harness.calls.batchCalls[0];
-    expect(preflightStatements).toHaveLength(3);
-
-    const purchaseItemUpdate = preflightStatements[1];
-    expect(purchaseItemUpdate.sql).toContain('UPDATE purchase_order_items');
-    expect(purchaseItemUpdate.sql).toContain('AND received_qty = ?');
-    expect(purchaseItemUpdate.sql).toContain('AND cancelled_qty = ?');
-    expect(purchaseItemUpdate.params).toEqual([0, 'open', 'poi-1', 'po-1', 5, 0]);
-
-    const orderLineUpdate = preflightStatements[2];
-    expect(orderLineUpdate.sql).toContain('UPDATE order_lines');
-    expect(orderLineUpdate.sql).toContain('AND received_qty = ?');
-    expect(orderLineUpdate.sql).toContain('AND cancelled_qty = ?');
-    expect(orderLineUpdate.params).toEqual([
-      0,
-      'fully_procured',
-      1710000000000,
-      'line-1',
-      'o-1',
-      5,
-      0,
-      5,
-      5,
-      0,
-      0,
-    ]);
-
-    const writeStatements = harness.calls.batchCalls[1];
-    expect(writeStatements.some((statement) =>
+    expect(harness.db.batch).toHaveBeenCalledTimes(1);
+    const finalStatements = harness.calls.batchCalls[0];
+    expect(finalStatements.some((statement) =>
+      statement.sql.includes('INSERT INTO command_idempotency')
+    )).toBe(true);
+    expect(finalStatements.some((statement) =>
+      statement.sql.includes('UPDATE purchase_order_items')
+      && statement.sql.includes('AND received_qty = ?')
+      && statement.sql.includes('AND cancelled_qty = ?')
+    )).toBe(true);
+    expect(finalStatements.some((statement) =>
+      statement.sql.includes('UPDATE order_lines')
+      && statement.sql.includes('AND received_qty = ?')
+      && statement.sql.includes('AND cancelled_qty = ?')
+    )).toBe(true);
+    expect(finalStatements.some((statement) =>
       statement.sql.includes('INSERT INTO purchase_receipt_reversals')
     )).toBe(true);
   });
 
-  it('builds rollback order-line projections with a concrete display status when preflight guards fail', async () => {
-    harness.db.batch
-      .mockImplementationOnce(async (statements = []) => {
-        harness.calls.batchCalls.push(statements);
-        harness.calls.batchedStatements.push(...statements);
-        return statements.map((statement) => ({
-          meta: { changes: statement.sql.includes('UPDATE order_lines') ? 0 : 1 },
-        }));
-      })
-      .mockImplementationOnce(async (statements = []) => {
-        harness.calls.batchCalls.push(statements);
-        harness.calls.batchedStatements.push(...statements);
-        return statements.map(() => ({ meta: { changes: 1 } }));
-      });
+  it('performs idempotency cleanup only when the final batch fails without running rollback projection batches', async () => {
+    const failureHarness = createDbHarness({
+      batchError: new Error('final batch failed'),
+      batchErrorMatcher: (statement) =>
+        statement.sql.includes('INSERT INTO purchase_receipt_reversals'),
+    });
+    const failureService = new OrderProcurementReceiptReversalService(failureHarness.db, {
+      purchaseReceiptRepo: failureHarness.purchaseReceiptRepo,
+      inventoryService: failureHarness.inventoryService,
+      commandIdempotencyRepo: failureHarness.commandIdempotencyRepo,
+      domainOutboxRepo: failureHarness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
 
     await expect(
-      service.reverseReceipt(
+      failureService.reverseReceipt(
         'po-1',
         'receipt-1',
         { reason: 'rollback' },
         { idempotencyKey: 'idem-1' }
       )
-    ).rejects.toThrow(BadRequestError);
-
-    const preparedOrderLineStatements = harness.db.prepare.mock.results
-      .map((result) => result.value)
-      .filter((statement) => statement?.sql?.includes('UPDATE order_lines'));
-    const rollbackOrderLineUpdate = preparedOrderLineStatements.find(
-      (statement) => statement.params?.at(-1) === 'fully_procured'
-    );
-
-    expect(rollbackOrderLineUpdate).toBeTruthy();
-    expect(rollbackOrderLineUpdate.params).not.toContain(undefined);
-    expect(rollbackOrderLineUpdate.params[1]).toBe('ready');
+    ).rejects.toThrow('final batch failed');
+    expect(failureHarness.db.batch).toHaveBeenCalledTimes(1);
+    expect(
+      failureHarness.calls.runStatements.some((statement) =>
+        statement.sql.includes('DELETE FROM command_idempotency')
+      )
+    ).toBe(true);
   });
 
   it('downgrades arrived purchase orders back to shipping when reversal reopens receivable quantity', async () => {

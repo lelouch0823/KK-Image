@@ -1,5 +1,4 @@
 import { BadRequestError } from '../lib/hono/errors.js';
-import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { CommandIdempotencyRepository } from '../repositories/CommandIdempotencyRepository.js';
 import {
   computePurchaseOrderRemainingReceivable,
@@ -116,9 +115,7 @@ export class PurchaseOrderShortageClosureService {
     }
 
     const statements = [];
-    const revertStatements = [];
     const orderStatements = [];
-    const orderReverts = [];
     const orderLineTransitions = new Map();
     const orderAggregateTransitions = new Map();
     const results = [];
@@ -162,15 +159,6 @@ export class PurchaseOrderShortageClosureService {
           nextCancelledQty,
           nextDisplayStatus: displayStatus,
           requiredRemainingQty: closeQty,
-        })
-      );
-      revertStatements.push(
-        buildPurchaseOrderItemCancelledQtyStatement(this.db, poId, poItem, {
-          nextCancelledQty: toNonNegativeInt(poItem.cancelled_qty),
-          nextDisplayStatus: projectPurchaseOrderItemStatus(poItem),
-          expectedReceivedQty: poItem.received_qty,
-          expectedCancelledQty: nextCancelledQty,
-          expectedDisplayStatus: displayStatus,
         })
       );
 
@@ -226,63 +214,10 @@ export class PurchaseOrderShortageClosureService {
       });
     }
 
-    const batchResults = [];
-    let appliedStatementCount = 0;
-    try {
-      for (const chunk of chunkArray(statements)) {
-        const chunkResults = await this.db.batch(chunk);
-        if (Array.isArray(chunkResults)) {
-          batchResults.push(...chunkResults);
-        }
-        appliedStatementCount += chunk.length;
-      }
-    } catch (error) {
-      const successfulReverts = revertStatements.slice(0, appliedStatementCount);
-      if (successfulReverts.length > 0) {
-        await executeBatchChunks(this.db, successfulReverts);
-      }
-      await cleanupReservedCommand({
-        commandIdempotencyRepo: this.commandIdempotencyRepo,
-        db: this.db,
-        ownsReservation,
-        commandId: commandReservation.record?.command_id,
-      });
-      throw error;
-    }
-
-    const failedIndexes = [];
-    for (let index = 0; index < statements.length; index += 1) {
-      if ((batchResults[index]?.meta?.changes || 0) !== 1) {
-        failedIndexes.push(index);
-      }
-    }
-
-    if (failedIndexes.length > 0) {
-      const successfulReverts = revertStatements.filter(
-        (_statement, index) => !failedIndexes.includes(index)
-      );
-      if (successfulReverts.length > 0) {
-        await executeBatchChunks(this.db, successfulReverts);
-      }
-      await cleanupReservedCommand({
-        commandIdempotencyRepo: this.commandIdempotencyRepo,
-        db: this.db,
-        ownsReservation,
-        commandId: commandReservation.record?.command_id,
-      });
-      throw new BadRequestError('采购单明细待收进度已变化，请刷新后重试');
-    }
-
     for (const transition of orderLineTransitions.values()) {
       orderStatements.push(
         buildOrderLineProjectionStatement(this.db, transition.next, transition.current, timestamp, {
           guardProjectionState: true,
-        })
-      );
-      orderReverts.push(
-        buildOrderLineProjectionStatement(this.db, transition.current, transition.next, timestamp, {
-          guardProjectionState: true,
-          expectedDisplayStatus: transition.next.display_status,
         })
       );
     }
@@ -306,17 +241,6 @@ export class PurchaseOrderShortageClosureService {
           }
         )
       );
-      orderReverts.push(
-        buildCompatibilityOrderProcurementStatusStatement(
-          this.db,
-          orderId,
-          previousStatus,
-          timestamp,
-          {
-            excludeTerminalStatuses: true,
-          }
-        )
-      );
       changedOrderStatuses.push({
         orderId,
         procurementStatus: nextStatus,
@@ -334,35 +258,8 @@ export class PurchaseOrderShortageClosureService {
           orderNextProcurementStatuses.get(orderId) ||
           projectCompatibilityProcurementStatus(
             orderAggregateTransitions.get(orderId)?.next || {}
-          ),
+        ),
       });
-    }
-
-    if (orderStatements.length > 0) {
-      const orderBatchResults = await this.db.batch(orderStatements);
-      const failedOrderIndexes = [];
-      for (let index = 0; index < orderStatements.length; index += 1) {
-        if ((orderBatchResults[index]?.meta?.changes || 0) !== 1) {
-          failedOrderIndexes.push(index);
-        }
-      }
-
-      if (failedOrderIndexes.length > 0) {
-        const successfulOrderReverts = orderReverts.filter(
-          (_statement, index) => !failedOrderIndexes.includes(index)
-        ).reverse();
-        const rollbackStatements = [...successfulOrderReverts, ...revertStatements];
-        if (rollbackStatements.length > 0) {
-          await executeBatchChunks(this.db, rollbackStatements);
-        }
-        await cleanupReservedCommand({
-          commandIdempotencyRepo: this.commandIdempotencyRepo,
-          db: this.db,
-          ownsReservation,
-          commandId: commandReservation.record?.command_id,
-        });
-        throw new BadRequestError('关联订单采购进度已变化，请刷新后重试');
-      }
     }
 
     const response = {
@@ -373,28 +270,62 @@ export class PurchaseOrderShortageClosureService {
       changedOrderProgressions,
     };
 
-    try {
-      await executeBatchChunks(
-        this.db,
-        buildFinalizeCommandStatements({
-          db: this.db,
-          commandIdempotencyRepo: this.commandIdempotencyRepo,
-          purchaseOrderId: poId,
-          timestamp: this.now(),
-          commandId: commandReservation.record?.command_id,
-          response,
-        })
-      );
-    } catch (error) {
-      if (orderReverts.length > 0 || revertStatements.length > 0) {
-        await executeBatchChunks(this.db, [...orderReverts].reverse().concat(revertStatements));
-      }
+    const finalizeStatements = buildFinalizeCommandStatements({
+      db: this.db,
+      commandIdempotencyRepo: this.commandIdempotencyRepo,
+      purchaseOrderId: poId,
+      timestamp: this.now(),
+      commandId: commandReservation.record?.command_id,
+      response,
+    });
+    const allStatements = statements.concat(orderStatements, finalizeStatements);
+    let cleanedUpReservation = false;
+    const cleanupReservation = async () => {
+      if (cleanedUpReservation) return;
+      cleanedUpReservation = true;
       await cleanupReservedCommand({
         commandIdempotencyRepo: this.commandIdempotencyRepo,
         db: this.db,
         ownsReservation,
         commandId: commandReservation.record?.command_id,
       });
+    };
+
+    try {
+      const batchResults = await this.db.batch(allStatements);
+
+      const failedItemIndexes = [];
+      for (let index = 0; index < statements.length; index += 1) {
+        if ((batchResults[index]?.meta?.changes || 0) !== 1) {
+          failedItemIndexes.push(index);
+        }
+      }
+      if (failedItemIndexes.length > 0) {
+        await cleanupReservation();
+        throw new BadRequestError('采购单明细待收进度已变化，请刷新后重试');
+      }
+
+      const orderOffset = statements.length;
+      const failedOrderIndexes = [];
+      for (let index = 0; index < orderStatements.length; index += 1) {
+        if ((batchResults[orderOffset + index]?.meta?.changes || 0) !== 1) {
+          failedOrderIndexes.push(index);
+        }
+      }
+      if (failedOrderIndexes.length > 0) {
+        await cleanupReservation();
+        throw new BadRequestError('关联订单采购进度已变化，请刷新后重试');
+      }
+
+      const finalizeOffset = orderOffset + orderStatements.length;
+      for (let index = 0; index < finalizeStatements.length; index += 1) {
+        if ((batchResults[finalizeOffset + index]?.meta?.changes || 0) !== 1) {
+          await cleanupReservation();
+          throw new BadRequestError('关闭待收命令提交失败，请重试');
+        }
+      }
+    } catch (error) {
+      await cleanupReservation();
       throw error;
     }
 
