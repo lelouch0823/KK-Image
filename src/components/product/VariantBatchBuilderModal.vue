@@ -1,61 +1,101 @@
 <template>
-  <Teleport to="body">
-    <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-(--color-overlay-dim) backdrop-blur-sm" @click="$emit('update:modelValue', false)"></div>
-      <div class="relative w-full max-w-2xl rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-2xl">
-        <div class="mb-4 flex items-center justify-between">
-          <h3 class="font-[Outfit] text-lg font-bold text-(--text-main)">Batch Variant Builder</h3>
-          <button type="button" class="cursor-pointer text-(--text-muted)" aria-label="Close" @click="$emit('update:modelValue', false)">
-            <AppIcon name="x-mark" class="size-5" />
-          </button>
-        </div>
+  <Modal
+    :model-value="modelValue"
+    size="2xl"
+    :closable="false"
+    @update:model-value="$emit('update:modelValue', $event)"
+  >
+    <template #header>
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-lg font-semibold text-(--text-main)">Batch Variant Builder</h3>
+        <AppButton
+          variant="ghost"
+          size="sm"
+          class="h-9 w-9 px-0"
+          aria-label="Close"
+          @click="$emit('update:modelValue', false)"
+        >
+          <AppIcon name="x-mark" class="size-5" />
+        </AppButton>
+      </div>
+    </template>
 
-        <div class="space-y-3">
-          <label class="block text-xs text-(--text-secondary)">颜色 (comma-separated)</label>
-          <input v-model="colorsInput" data-testid="input-colors" class="input w-full p-2 text-sm" type="text" placeholder="黄,蓝">
+    <div class="space-y-5">
+      <div class="space-y-3">
+        <AppInput
+          v-model="colorsInput"
+          data-testid="input-colors"
+          label="颜色 (comma-separated)"
+          type="text"
+          placeholder="黄,蓝"
+        />
 
-          <label class="block text-xs text-(--text-secondary)">材质 (optional)</label>
-          <input v-model="materialsInput" data-testid="input-materials" class="input w-full p-2 text-sm" type="text" placeholder="棉,涤纶">
+        <AppInput
+          v-model="materialsInput"
+          data-testid="input-materials"
+          label="材质 (optional)"
+          type="text"
+          placeholder="棉,涤纶"
+        />
 
-          <label class="block text-xs text-(--text-secondary)">尺码 (optional)</label>
-          <input v-model="sizesInput" data-testid="input-sizes" class="input w-full p-2 text-sm" type="text" placeholder="S,M,L">
-        </div>
+        <AppInput
+          v-model="sizesInput"
+          data-testid="input-sizes"
+          label="尺码 (optional)"
+          type="text"
+          placeholder="S,M,L"
+        />
+      </div>
 
-        <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <input v-model.number="defaults.price" data-testid="default-price" class="input p-2 text-sm" type="number" placeholder="Price">
-          <input v-model.number="defaults.cost_price" data-testid="default-cost" class="input p-2 text-sm" type="number" placeholder="Cost">
-          <input v-model.number="defaults.stock_quantity" data-testid="default-stock" class="input p-2 text-sm" type="number" placeholder="Stock">
-          <select
-            v-model="defaults.status"
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <AppInput
+          v-model="defaults.price"
+          data-testid="default-price"
+          label="Price"
+          type="number"
+          placeholder="Price"
+        />
+        <AppInput
+          v-model="defaults.cost_price"
+          data-testid="default-cost"
+          label="Cost"
+          type="number"
+          placeholder="Cost"
+        />
+        <AppInput
+          v-model="defaults.stock_quantity"
+          data-testid="default-stock"
+          label="Stock"
+          type="number"
+          placeholder="Stock"
+        />
+        <div class="flex flex-col gap-1 text-sm font-medium text-(--text-secondary)">
+          <span>Status</span>
+          <Select
+            :model-value="defaults.status"
+            :options="statusOptions"
+            placeholder="Status"
             data-testid="default-status-select"
-            class="input h-9 rounded-lg p-2 text-sm"
-          >
-            <option
-              v-for="option in statusOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </div>
-
-        <div class="mt-5 flex justify-end gap-2">
-          <button type="button" class="cursor-pointer rounded-lg border border-(--border-color) px-3 py-2 text-sm" @click="$emit('update:modelValue', false)">
-            Cancel
-          </button>
-          <button data-testid="apply-btn" type="button" class="bg-primary cursor-pointer rounded-lg px-4 py-2 text-sm font-bold text-(--text-inverse)" @click="handleApply">
-            Apply
-          </button>
+            @update:model-value="defaults.status = $event"
+          />
         </div>
       </div>
     </div>
-  </Teleport>
+
+    <template #footer>
+      <AppButton variant="secondary" @click="$emit('update:modelValue', false)">Cancel</AppButton>
+      <AppButton data-testid="apply-btn" @click="handleApply">Apply</AppButton>
+    </template>
+  </Modal>
 </template>
 
 <script setup>
 import { reactive, ref } from 'vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
+import Modal from '@/components/ui/Modal.vue';
+import Select from '@/components/ui/Select.vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -88,10 +128,14 @@ const parseValues = (raw) => {
 };
 
 const variantKey = (optionsValues = {}) =>
-  JSON.stringify(Object.keys(optionsValues).sort().reduce((acc, key) => {
-    acc[key] = optionsValues[key];
-    return acc;
-  }, {}));
+  JSON.stringify(
+    Object.keys(optionsValues)
+      .sort()
+      .reduce((acc, key) => {
+        acc[key] = optionsValues[key];
+        return acc;
+      }, {})
+  );
 
 function handleApply() {
   const colors = parseValues(colorsInput.value);
@@ -112,7 +156,9 @@ function handleApply() {
     );
   }
 
-  const existingKeys = new Set((props.existingVariants || []).map((variant) => variantKey(variant.options_values || {})));
+  const existingKeys = new Set(
+    (props.existingVariants || []).map((variant) => variantKey(variant.options_values || {}))
+  );
   const variants = matrix
     .filter((optionsValues) => !existingKeys.has(variantKey(optionsValues)))
     .map((optionsValues) => ({
@@ -123,7 +169,9 @@ function handleApply() {
       price: Number(defaults.price) || 0,
       cost_price: Number(defaults.cost_price) || 0,
       stock_quantity: Number(defaults.stock_quantity) || 0,
-      alert_threshold: Number.isFinite(Number(defaults.alert_threshold)) ? Number(defaults.alert_threshold) : 10,
+      alert_threshold: Number.isFinite(Number(defaults.alert_threshold))
+        ? Number(defaults.alert_threshold)
+        : 10,
       status: defaults.status || 'active',
     }));
 

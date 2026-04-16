@@ -38,6 +38,12 @@ describe('ProductPickerModal lifecycle', () => {
       global: {
         stubs: {
           Teleport: true,
+          Modal: { template: '<div><slot name="header" /><slot /><slot name="footer" /></div>' },
+          ActionBar: { template: '<div><slot name="leading" /><slot /></div>' },
+          StatePanel: { template: '<section><slot /></section>' },
+          AppButton: { template: '<button><slot /></button>' },
+          AppCheckbox: { template: '<input type="checkbox" />' },
+          StatusBadge: { template: '<div><slot /></div>' },
           SearchInput: true,
           AppIcon: true,
           AppImage: true,
@@ -75,18 +81,14 @@ describe('ProductPickerModal lifecycle', () => {
     });
     await secondPending;
 
-    expect(wrapper.vm.variants).toEqual([
-      expect.objectContaining({ variant_id: 'variant-chair' }),
-    ]);
+    expect(wrapper.vm.variants).toEqual([expect.objectContaining({ variant_id: 'variant-chair' })]);
 
     resolveFirst({
       items: [{ variant_id: 'variant-desk', product_name: 'Desk', variant_options: {} }],
     });
     await flushPromises();
 
-    expect(wrapper.vm.variants).toEqual([
-      expect.objectContaining({ variant_id: 'variant-chair' }),
-    ]);
+    expect(wrapper.vm.variants).toEqual([expect.objectContaining({ variant_id: 'variant-chair' })]);
   });
 
   it('keeps the latest reopen results when an earlier open resolves late', async () => {
@@ -119,27 +121,41 @@ describe('ProductPickerModal lifecycle', () => {
     });
     await flushPromises();
 
-    expect(wrapper.vm.variants).toEqual([
-      expect.objectContaining({ variant_id: 'variant-new' }),
-    ]);
+    expect(wrapper.vm.variants).toEqual([expect.objectContaining({ variant_id: 'variant-new' })]);
 
     resolveFirst({
       items: [{ variant_id: 'variant-old', product_name: 'Old', variant_options: {} }],
     });
     await flushPromises();
 
-    expect(wrapper.vm.variants).toEqual([
-      expect.objectContaining({ variant_id: 'variant-new' }),
-    ]);
+    expect(wrapper.vm.variants).toEqual([expect.objectContaining({ variant_id: 'variant-new' })]);
   });
 
   it('preserves selected variant payloads across search result changes before confirm', async () => {
     mocks.loadActiveVariants
       .mockResolvedValueOnce({
-        items: [{ variant_id: 'variant-a', product_id: 'prod-a', product_name: 'Alpha', sku: 'SKU-A', unit_cost: 10, variant_options: {} }],
+        items: [
+          {
+            variant_id: 'variant-a',
+            product_id: 'prod-a',
+            product_name: 'Alpha',
+            sku: 'SKU-A',
+            unit_cost: 10,
+            variant_options: {},
+          },
+        ],
       })
       .mockResolvedValueOnce({
-        items: [{ variant_id: 'variant-b', product_id: 'prod-b', product_name: 'Beta', sku: 'SKU-B', unit_cost: 12, variant_options: {} }],
+        items: [
+          {
+            variant_id: 'variant-b',
+            product_id: 'prod-b',
+            product_name: 'Beta',
+            sku: 'SKU-B',
+            unit_cost: 12,
+            variant_options: {},
+          },
+        ],
       });
 
     const wrapper = createWrapper();

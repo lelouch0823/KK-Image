@@ -1,12 +1,12 @@
 <template>
-  <div 
+  <div
     :data-table-surface="noBorder ? 'plain' : 'card'"
     :data-min-rows="minRows"
     class="app-table flex w-full flex-col overflow-hidden"
     :class="[
       noBorder
         ? 'app-table--plain'
-        : 'app-table--card rounded-2xl border border-(--border-color)/70 bg-(--bg-card) shadow-[0_10px_30px_rgba(15,23,42,0.05)]'
+        : 'app-table--card rounded-2xl border border-(--border-color)/70 bg-(--bg-card) shadow-sm',
     ]"
   >
     <!-- Toolbar / Header Slot -->
@@ -20,9 +20,9 @@
       :data-table-stage-mode="stageMode"
       :style="{ minHeight: stageMinHeight }"
     >
-      <div 
+      <div
         ref="parentRef"
-        class="overflow-x-auto" 
+        class="overflow-x-auto"
         :class="{ 'max-h-[600px] overflow-y-auto': virtual }"
       >
         <table class="w-full text-left text-sm" :style="{ tableLayout }">
@@ -30,7 +30,13 @@
             class="app-table__head sticky top-0 z-10 bg-(--bg-card)/92 font-medium text-(--text-secondary) backdrop-blur-sm"
             :class="{ 'app-table__head--plain': noBorder }"
           >
-            <tr :class="noBorder ? 'border-b border-(--border-color)/35' : 'border-b border-(--border-color)/70'">
+            <tr
+              :class="
+                noBorder
+                  ? 'border-b border-(--border-color)/35'
+                  : 'border-b border-(--border-color)/70'
+              "
+            >
               <th
                 v-for="col in normalizedColumns"
                 :key="col.key"
@@ -77,7 +83,10 @@
             <!-- Empty State -->
             <template v-else-if="!data || data.length === 0">
               <tr>
-                <td :colspan="columns.length" class="px-4 py-12 text-center text-(--text-secondary)">
+                <td
+                  :colspan="columns.length"
+                  class="px-4 py-12 text-center text-(--text-secondary)"
+                >
                   <slot name="empty">
                     <div class="flex flex-col items-center justify-center gap-2">
                       <AppIcon name="archive-box" class="size-8 opacity-20" />
@@ -91,7 +100,7 @@
             <!-- Data Rows (Virtual Mode with TanStack) -->
             <template v-else-if="virtual">
               <tr :style="{ height: `${virtualTotalSize}px`, position: 'relative' }">
-                <td :colspan="normalizedColumns.length" class="p-0" style="position: relative;">
+                <td :colspan="normalizedColumns.length" class="p-0" style="position: relative">
                   <div
                     v-for="virtualRow in virtualItems"
                     :key="data[virtualRow.index]?.[rowKey] || virtualRow.index"
@@ -114,8 +123,15 @@
                             :class="col.cellClassList"
                             :style="col.cellStyleValue"
                           >
-                            <slot :name="`cell-${col.key}`" :row="data[virtualRow.index]" :index="virtualRow.index" :value="data[virtualRow.index]?.[col.key]">
-                              <span :class="col.defaultContentClass">{{ data[virtualRow.index]?.[col.key] }}</span>
+                            <slot
+                              :name="`cell-${col.key}`"
+                              :row="data[virtualRow.index]"
+                              :index="virtualRow.index"
+                              :value="data[virtualRow.index]?.[col.key]"
+                            >
+                              <span :class="col.defaultContentClass">{{
+                                data[virtualRow.index]?.[col.key]
+                              }}</span>
                             </slot>
                           </td>
                         </tr>

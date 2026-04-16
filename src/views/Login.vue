@@ -5,13 +5,13 @@
     <div class="w-full max-w-md">
       <!-- 登录卡片 -->
       <div
-        class="animate-scale-in shadow-glass overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)/90 ring-1 ring-black/5 backdrop-blur-xl"
+        class="animate-scale-in shadow-glass overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)/90 ring-1 ring-(--border-color)/50 backdrop-blur-xl"
       >
         <!-- 头部 -->
         <div class="px-8 pt-10 pb-6 text-center">
           <!-- Logo -->
           <div
-            class="mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-2xl font-bold text-white shadow-lg dark:from-blue-500 dark:to-indigo-600"
+            class="bg-primary text-(--text-inverse) mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl text-2xl font-bold shadow-lg"
           >
             KK
           </div>
@@ -107,7 +107,10 @@
             </form>
 
             <!-- 成功转场状态 -->
-            <div v-else class="flex flex-col items-center justify-center px-8 pt-4 pb-16 text-center">
+            <div
+              v-else
+              class="flex flex-col items-center justify-center px-8 pt-4 pb-16 text-center"
+            >
               <div class="relative mb-6">
                 <div class="bg-primary/20 absolute inset-0 size-16 animate-ping rounded-full"></div>
                 <div
@@ -116,7 +119,9 @@
                   <AppIcon name="check" class="size-8" stroke-width="3" />
                 </div>
               </div>
-              <h2 class="text-primary mb-2 text-xl font-bold italic">{{ t('auth.loginSuccess') }}</h2>
+              <h2 class="text-primary mb-2 text-xl font-bold italic">
+                {{ t('auth.loginSuccess') }}
+              </h2>
               <div class="flex items-center gap-2 text-sm text-(--text-secondary)">
                 <AppIcon name="spinner" class="size-4 animate-spin" />
                 <span>{{ t('auth.preparingWorkspace') }}</span>
@@ -211,7 +216,7 @@ const handleLogin = async () => {
     if (response.ok && result.success) {
       redirecting.value = true;
       addToast({ message: t('auth.loginSuccess'), type: 'success' });
-      
+
       // 平滑跳转
       setTimeout(() => {
         // 使用 router 跳转代替 window.location
@@ -224,7 +229,7 @@ const handleLogin = async () => {
         window.turnstile.reset();
         turnstileToken.value = '';
       }
-      
+
       const msg = result.message || t('common.invalidCredentials');
       error.value = msg;
       addToast({ message: msg, type: 'error' });
@@ -252,8 +257,8 @@ const waitForTurnstile = () => {
             turnstileToken.value = token;
           },
           'error-callback': () => {
-             console.warn('Turnstile error');
-          }
+            console.warn('Turnstile error');
+          },
         });
       } catch (e) {
         console.error('Turnstile render error:', e);
@@ -289,18 +294,8 @@ onMounted(() => {
 /* 背景动画 */
 .bg-pattern {
   background-image:
-    radial-gradient(circle at 25% 25%, rgba(139, 92, 246, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 75% 75%, rgba(236, 72, 153, 0.03) 0%, transparent 50%);
-}
-
-/* 输入框焦点动画 */
-.input-focus {
-  transition: all 0.2s ease;
-}
-
-.input-focus:focus {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    radial-gradient(circle at 25% 25%, var(--color-primary-bg) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, var(--color-info-bg) 0%, transparent 50%);
 }
 
 /* 进场动画：由下而上渐显 */

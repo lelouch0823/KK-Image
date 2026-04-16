@@ -45,6 +45,10 @@
     "qa:check-direct-protected-fetch": "node scripts/qa/check-direct-protected-fetch.mjs",
     "qa:check-audit-route-coverage": "node scripts/qa/check-audit-route-coverage.mjs",
     "qa:check-audit-route-coverage:json": "node scripts/qa/check-audit-route-coverage.mjs --json",
+    "qa:check-ui-token-integrity": "node scripts/qa/check-ui-token-integrity.mjs",
+    "qa:check-ui-foundation-usage": "node scripts/qa/check-ui-foundation-usage.mjs",
+    "qa:check-minisales-ui-contract": "node scripts/qa/check-minisales-ui-contract.mjs",
+    "qa:check-design-system": "pnpm qa:check-ui-token-integrity && pnpm qa:check-ui-foundation-usage && pnpm qa:check-minisales-ui-contract",
     "qa:admin-flows": "node scripts/qa/admin-business-flow-smoke.cjs"
   },
   "dependencies": {

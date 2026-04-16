@@ -53,6 +53,19 @@ describe('OrderForm prefill reset', () => {
               />
             `,
           },
+          AppInput: {
+            props: ['modelValue', 'disabled', 'textarea'],
+            inheritAttrs: false,
+            template: `
+              <component
+                :is="textarea ? 'textarea' : 'input'"
+                :value="modelValue"
+                :disabled="disabled"
+                @input="$emit('update:modelValue', $event.target.value)"
+              />
+            `,
+          },
+          AppButton: true,
           StatusSelector: true,
           Select: true,
           AppIcon: true,

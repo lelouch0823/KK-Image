@@ -15,4 +15,17 @@ describe('MetricTile', () => {
     expect(wrapper.classes()).toContain('shadow-none');
     expect(wrapper.classes()).not.toContain('shadow-sm');
   });
+
+  it('normalizes legacy tone aliases to canonical shared tones', () => {
+    const wrapper = mount(MetricTile, {
+      props: {
+        label: 'Shipping',
+        value: 4,
+        tone: 'cyan',
+      },
+    });
+
+    expect(wrapper.attributes('data-tone')).toBe('info');
+    expect(wrapper.html()).not.toContain('cyan-500');
+  });
 });

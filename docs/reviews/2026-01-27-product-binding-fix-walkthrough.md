@@ -63,7 +63,7 @@
 ````carousel
 ```vue
 <!-- Dashboard.vue 语义化示例 -->
-<div class="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]">
+<div class="rounded-2xl border border-(--border-color) bg-(--bg-card)">
   <h3 class="text-[var(--text-main)] font-semibold">...</h3>
   <p class="text-[var(--text-secondary)]">...</p>
 </div>

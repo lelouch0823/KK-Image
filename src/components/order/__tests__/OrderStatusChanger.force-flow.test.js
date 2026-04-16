@@ -29,7 +29,9 @@ describe('OrderStatusChanger force flow UX', () => {
     await wrapper.get('button').trigger('click');
     expect(wrapper.text()).toContain('order.manage.friendlyPickTip');
 
-    const confirmedBtn = wrapper.find('[aria-label="order.statuses.confirmed - order.manage.flowTag"]');
+    const confirmedBtn = wrapper.find(
+      '[aria-label="order.statuses.confirmed - order.manage.flowTag"]'
+    );
     await confirmedBtn.trigger('click');
     expect(wrapper.text()).toContain('order.manage.friendlyFlowTip');
   });
@@ -46,10 +48,15 @@ describe('OrderStatusChanger force flow UX', () => {
     const wrapper = mountChanger({ onStatusChange, permissions: [] });
 
     await wrapper.get('button').trigger('click');
-    const confirmedBtn = wrapper.find('[aria-label="order.statuses.confirmed - order.manage.flowTag"]');
+    const confirmedBtn = wrapper.find(
+      '[aria-label="order.statuses.confirmed - order.manage.flowTag"]'
+    );
     expect(confirmedBtn.exists()).toBe(true);
     await confirmedBtn.trigger('click');
-    await wrapper.findAll('button').find((b) => b.text().includes('common.confirm')).trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('common.confirm'))
+      .trigger('click');
 
     expect(onStatusChange).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -63,7 +70,9 @@ describe('OrderStatusChanger force flow UX', () => {
     const wrapper = mountChanger({ permissions: [] });
 
     await wrapper.get('button').trigger('click');
-    const deliveredBtn = wrapper.find('[aria-label="order.statuses.delivered - order.manage.forceTag"]');
+    const deliveredBtn = wrapper.find(
+      '[aria-label="order.statuses.delivered - order.manage.forceTag"]'
+    );
     expect(deliveredBtn.exists()).toBe(true);
     expect(deliveredBtn.attributes('disabled')).toBeDefined();
   });
@@ -73,14 +82,16 @@ describe('OrderStatusChanger force flow UX', () => {
     const wrapper = mountChanger({ permissions: ['admin:full'], onStatusChange });
 
     await wrapper.get('button').trigger('click');
-    const deliveredBtn = wrapper.find('[aria-label="order.statuses.delivered - order.manage.forceTag"]');
+    const deliveredBtn = wrapper.find(
+      '[aria-label="order.statuses.delivered - order.manage.forceTag"]'
+    );
     await deliveredBtn.trigger('click');
     expect(wrapper.text()).toContain('order.manage.friendlyForceConfirmTip');
 
     const confirmBtn = wrapper.findAll('button').find((b) => b.text().includes('common.confirm'));
     expect(confirmBtn.attributes('disabled')).toBeDefined();
 
-    const noteInput = wrapper.find('input.input');
+    const noteInput = wrapper.find('input[type="text"]');
     await noteInput.setValue('manual override note');
     expect(confirmBtn.attributes('disabled')).toBeDefined();
 
@@ -108,12 +119,17 @@ describe('OrderStatusChanger force flow UX', () => {
     });
 
     await wrapper.get('button').trigger('click');
-    const fulfilledBtn = wrapper.find('[aria-label="order.statuses.fulfilled - order.manage.flowTag"]');
+    const fulfilledBtn = wrapper.find(
+      '[aria-label="order.statuses.fulfilled - order.manage.flowTag"]'
+    );
     expect(fulfilledBtn.exists()).toBe(true);
     expect(fulfilledBtn.attributes('disabled')).toBeUndefined();
 
     await fulfilledBtn.trigger('click');
-    await wrapper.findAll('button').find((b) => b.text().includes('common.confirm')).trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('common.confirm'))
+      .trigger('click');
 
     expect(onStatusChange).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -131,7 +147,9 @@ describe('OrderStatusChanger force flow UX', () => {
     });
 
     await wrapper.get('button').trigger('click');
-    const deliveredBtn = wrapper.find('[aria-label="order.statuses.delivered - order.manage.blockedTag"]');
+    const deliveredBtn = wrapper.find(
+      '[aria-label="order.statuses.delivered - order.manage.blockedTag"]'
+    );
     expect(deliveredBtn.exists()).toBe(true);
     expect(deliveredBtn.attributes('disabled')).toBeDefined();
     expect(deliveredBtn.get('.ml-auto').classes()).toContain('text-warning');

@@ -1,5 +1,5 @@
-<view class="metric-card" style="{{metric && metric.cardStyle}}">
-  <text class="metric-card__label" style="{{metric && metric.labelStyle}}">{{metric && metric.label}}</text>
-  <text class="metric-card__value" style="{{metric && metric.valueStyle}}">{{metric && metric.value}}</text>
+<view class="metric-card metric-card--{{metric && metric.tone}}">
+  <text class="metric-card__label">{{metric && metric.label}}</text>
+  <text class="metric-card__value">{{metric && metric.value}}</text>
   <text class="metric-card__helper">{{metric && metric.helper}}</text>
 </view>

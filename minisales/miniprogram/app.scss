@@ -5,7 +5,8 @@
  */
 
 page {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: $font-size-base;
   color: $text-main;
   background-color: $bg-page;
@@ -16,6 +17,72 @@ page {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.sales-shell-surface {
+  background: linear-gradient(
+    180deg,
+    $surface-shell-gradient-start 0%,
+    $surface-shell-gradient-end 100%
+  );
+  border-bottom: 1rpx solid $border-color;
+}
+
+.sales-surface-card {
+  background: $surface-panel-bg;
+  border: 1rpx solid $surface-panel-border;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-sm;
+}
+
+.sales-surface-soft {
+  background: $surface-panel-muted-bg;
+  border: 1rpx solid $surface-panel-border;
+  border-radius: $border-radius-lg;
+}
+
+.sales-overlay-panel {
+  background: $surface-panel-bg;
+  border: 1rpx solid $surface-panel-border;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+}
+
+.sales-soft-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 18rpx;
+  background: $shell-action-bg;
+  color: $shell-action-color;
+  transition:
+    transform 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.sales-soft-action:active {
+  transform: scale(0.96);
+}
+
+.sales-soft-action--neutral {
+  background: $shell-action-neutral-bg;
+}
+
+.sales-pill-tab {
+  padding: 10rpx 28rpx;
+  border-radius: $border-radius-pill;
+  background: $shell-tab-bg;
+  color: $shell-tab-color;
+  font-size: $font-size-sm;
+  transition: all 0.18s ease;
+}
+
+.sales-pill-tab--active {
+  background: $shell-tab-active-bg;
+  color: $shell-tab-active-color;
 }
 
 // 全局盒模型重置 - 防止 padding 导致宽度溢出

@@ -4,6 +4,7 @@
   min-height: 180rpx;
   padding: 24rpx;
   border-radius: 24rpx;
+  border: 1rpx solid transparent;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -25,4 +26,43 @@
   margin-top: 12rpx;
   font-size: $font-size-xs;
   color: $text-secondary;
+}
+
+.metric-card--info {
+  background: $card-blue-bg;
+  border-color: $card-blue-border;
+}
+
+.metric-card--info .metric-card__label {
+  color: $card-blue-text;
+}
+
+.metric-card--info .metric-card__value {
+  color: $card-blue-accent;
+}
+
+.metric-card--success {
+  background: $card-green-bg;
+  border-color: $card-green-border;
+}
+
+.metric-card--success .metric-card__label {
+  color: $card-green-text;
+}
+
+.metric-card--success .metric-card__value {
+  color: $card-green-accent;
+}
+
+.metric-card--primary {
+  background: $card-purple-bg;
+  border-color: $card-purple-border;
+}
+
+.metric-card--primary .metric-card__label {
+  color: $card-purple-text;
+}
+
+.metric-card--primary .metric-card__value {
+  color: $card-purple-accent;
 }

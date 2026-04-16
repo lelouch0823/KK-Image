@@ -24,6 +24,25 @@ vi.mock('@/composables/useOrders', () => ({
   }),
 }));
 
+const sharedStubs = {
+  Teleport: true,
+  Transition: false,
+  Modal: {
+    template: '<div><slot name="header" /><slot /><slot name="footer" /></div>',
+    props: ['modelValue', 'title', 'size', 'bodyClass'],
+  },
+  ActionBar: { template: '<div><slot name="leading" /><slot /></div>' },
+  StatePanel: { template: '<section><slot /></section>' },
+  AppButton: { template: '<button><slot /></button>' },
+  AppCheckbox: { template: '<input type="checkbox" />' },
+  StatusBadge: { template: '<div><slot /></div>' },
+  AppIcon: { template: '<i />' },
+  SearchInput: {
+    props: ['modelValue'],
+    template: '<input />',
+  },
+};
+
 describe('OrderPickerModal detail workflow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -41,11 +60,11 @@ describe('OrderPickerModal detail workflow', () => {
       },
       global: {
         stubs: {
-          Teleport: true,
-          Transition: false,
-          Modal: { template: '<div><slot name="header" /><slot /></div>', props: ['modelValue', 'title', 'size', 'bodyClass'] },
-          OrderWorkflowModal: { template: '<div data-testid="order-workflow" />', props: ['show', 'order', 'hydrating', 'hydrationError'] },
-          AppIcon: { template: '<i />' },
+          ...sharedStubs,
+          OrderWorkflowModal: {
+            template: '<div data-testid="order-workflow" />',
+            props: ['show', 'order', 'hydrating', 'hydrationError'],
+          },
         },
       },
     });
@@ -58,9 +77,27 @@ describe('OrderPickerModal detail workflow', () => {
 
   it('hides orders that are already in procurement when order progress data is available', async () => {
     mocks.orders.value = [
-      { id: 'o-1', orderNo: 'SO-1', status: 'confirmed', procurementStatus: 'none', productName: 'Available' },
-      { id: 'o-2', orderNo: 'SO-2', status: 'confirmed', procurementStatus: 'ordered', productName: 'In Procurement' },
-      { id: 'o-3', orderNo: 'SO-3', status: 'confirmed', displayStatus: 'partially_received', productName: 'Partially Received' },
+      {
+        id: 'o-1',
+        orderNo: 'SO-1',
+        status: 'confirmed',
+        procurementStatus: 'none',
+        productName: 'Available',
+      },
+      {
+        id: 'o-2',
+        orderNo: 'SO-2',
+        status: 'confirmed',
+        procurementStatus: 'ordered',
+        productName: 'In Procurement',
+      },
+      {
+        id: 'o-3',
+        orderNo: 'SO-3',
+        status: 'confirmed',
+        displayStatus: 'partially_received',
+        productName: 'Partially Received',
+      },
     ];
 
     const wrapper = mount(OrderPickerModal, {
@@ -69,13 +106,10 @@ describe('OrderPickerModal detail workflow', () => {
       },
       global: {
         stubs: {
-          Teleport: true,
-          Transition: false,
-          OrderWorkflowModal: { template: '<div />', props: ['show', 'order', 'hydrating', 'hydrationError'] },
-          AppIcon: { template: '<i />' },
-          SearchInput: {
-            props: ['modelValue'],
-            template: '<input />',
+          ...sharedStubs,
+          OrderWorkflowModal: {
+            template: '<div />',
+            props: ['show', 'order', 'hydrating', 'hydrationError'],
           },
         },
       },
@@ -109,13 +143,10 @@ describe('OrderPickerModal detail workflow', () => {
       },
       global: {
         stubs: {
-          Teleport: true,
-          Transition: false,
-          OrderWorkflowModal: { template: '<div />', props: ['show', 'order', 'hydrating', 'hydrationError'] },
-          AppIcon: { template: '<i />' },
-          SearchInput: {
-            props: ['modelValue'],
-            template: '<input />',
+          ...sharedStubs,
+          OrderWorkflowModal: {
+            template: '<div />',
+            props: ['show', 'order', 'hydrating', 'hydrationError'],
           },
         },
       },
@@ -137,9 +168,27 @@ describe('OrderPickerModal detail workflow', () => {
 
   it('keeps previously selected orders when selecting all within a narrower search result', async () => {
     mocks.orders.value = [
-      { id: 'order-a', orderNo: 'SO-A', status: 'confirmed', procurementStatus: 'none', productName: 'Alpha' },
-      { id: 'order-b', orderNo: 'SO-B', status: 'confirmed', procurementStatus: 'none', productName: 'Beta' },
-      { id: 'order-c', orderNo: 'SO-C', status: 'confirmed', procurementStatus: 'none', productName: 'Gamma' },
+      {
+        id: 'order-a',
+        orderNo: 'SO-A',
+        status: 'confirmed',
+        procurementStatus: 'none',
+        productName: 'Alpha',
+      },
+      {
+        id: 'order-b',
+        orderNo: 'SO-B',
+        status: 'confirmed',
+        procurementStatus: 'none',
+        productName: 'Beta',
+      },
+      {
+        id: 'order-c',
+        orderNo: 'SO-C',
+        status: 'confirmed',
+        procurementStatus: 'none',
+        productName: 'Gamma',
+      },
     ];
 
     const wrapper = mount(OrderPickerModal, {
@@ -148,13 +197,10 @@ describe('OrderPickerModal detail workflow', () => {
       },
       global: {
         stubs: {
-          Teleport: true,
-          Transition: false,
-          OrderWorkflowModal: { template: '<div />', props: ['show', 'order', 'hydrating', 'hydrationError'] },
-          AppIcon: { template: '<i />' },
-          SearchInput: {
-            props: ['modelValue'],
-            template: '<input />',
+          ...sharedStubs,
+          OrderWorkflowModal: {
+            template: '<div />',
+            props: ['show', 'order', 'hydrating', 'hydrationError'],
           },
         },
       },

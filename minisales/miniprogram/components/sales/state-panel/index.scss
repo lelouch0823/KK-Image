@@ -1,16 +1,19 @@
+@import '../../../styles/variables.scss';
+
 .state-panel {
   min-height: 240rpx;
   border-radius: 20rpx;
-  background: #ffffff;
+  border: 1rpx solid $border-color;
+  background: $bg-card;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: $text-secondary;
 }
 
 .state-panel--error {
-  color: #dc2626;
+  color: $status-rejected;
 }
 
 .state-panel__text {
@@ -22,7 +25,7 @@
   margin-top: 16rpx;
   padding: 8rpx 22rpx;
   border-radius: 999rpx;
-  background: #fee2e2;
+  background: $status-rejected-bg;
   font-size: 24rpx;
-  color: #b91c1c;
+  color: $status-rejected;
 }

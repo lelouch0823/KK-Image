@@ -24,7 +24,12 @@ describe('PurchaseOrderSuggestionsDrawer', () => {
         suggestionsLoading: false,
         suggestions: [suggestion],
         suggestionSummaryCards: [
-          { key: 'candidates', label: '候选变体', value: '1', hint: '按当前订货缺口和库存情况筛出的待采购对象。' },
+          {
+            key: 'candidates',
+            label: '候选变体',
+            value: '1',
+            hint: '按当前订货缺口和库存情况筛出的待采购对象。',
+          },
         ],
         selectedSuggestions: [suggestion],
         selectedSuggestionOrderIds: [],
@@ -34,6 +39,7 @@ describe('PurchaseOrderSuggestionsDrawer', () => {
       },
       global: {
         stubs: {
+          Teleport: true,
           AppIcon: { template: '<i />' },
           AppCheckbox: { template: '<input type="checkbox" />' },
           StatusBadge: { template: '<div><slot /></div>' },
@@ -45,6 +51,8 @@ describe('PurchaseOrderSuggestionsDrawer', () => {
     expect(wrapper.text()).toContain('Premium Canvas Bag');
     expect(wrapper.text()).toContain('候选变体');
     expect(wrapper.text()).toContain('Color: Black');
-    expect(wrapper.get('[data-testid="purchase-order-suggestions-submit"]').attributes('disabled')).toBeDefined();
+    expect(
+      wrapper.get('[data-testid="purchase-order-suggestions-submit"]').attributes('disabled')
+    ).toBeDefined();
   });
 });

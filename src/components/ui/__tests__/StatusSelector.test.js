@@ -22,4 +22,20 @@ describe('StatusSelector', () => {
 
     expect(wrapper.find('span.size-2').classes()).toContain('bg-success');
   });
+
+  it('maps production to the shared primary tone instead of a local purple palette', () => {
+    const wrapper = mount(StatusSelector, {
+      props: {
+        modelValue: 'production',
+        options: ['production'],
+      },
+      global: {
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    });
+
+    expect(wrapper.find('span.size-2').classes()).toContain('bg-primary');
+  });
 });

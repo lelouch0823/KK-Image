@@ -1,8 +1,8 @@
 :root {
-    --color-chart-1: #3b82f6;
-    --color-chart-2: #8b5cf6;
-    --color-chart-3: #10b981;
-    --color-chart-4: #f59e0b;
-    --color-chart-5: #ef4444;
-    --color-chart-grid: #f3f4f6;
+  --color-chart-1: var(--color-primary);
+  --color-chart-2: var(--color-info);
+  --color-chart-3: var(--color-success);
+  --color-chart-4: var(--color-warning);
+  --color-chart-5: var(--color-danger);
+  --color-chart-grid: var(--border-subtle);
 }

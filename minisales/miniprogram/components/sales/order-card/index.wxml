@@ -8,7 +8,7 @@
       lazy-load
     />
     <view wx:else class="order-card__image order-card__image--placeholder">
-      <t-icon name="image" size="44rpx" color="#9ca3af" />
+      <t-icon name="image" size="44rpx" class="order-card__placeholder-icon" />
     </view>
     <view wx:if="{{order && order.hasNewFeedback}}" class="order-card__dot"></view>
   </view>
@@ -17,7 +17,7 @@
     <text class="order-card__title">{{(order && order.title) || '未命名订单'}}</text>
     <text class="order-card__order-no">{{order && order.orderNo}}</text>
     <view class="order-card__meta">
-      <text class="order-card__status" style="{{statusStyle}}">{{statusLabel}}</text>
+      <text class="order-card__status order-card__status--{{statusTone}}">{{statusLabel}}</text>
       <text class="order-card__time">{{timeText}}</text>
     </view>
   </view>

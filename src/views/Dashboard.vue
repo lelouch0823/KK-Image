@@ -1,261 +1,296 @@
 <template>
-  <div class="relative min-h-screen w-full overflow-hidden bg-(--bg-page) font-sans text-(--text-secondary) transition-colors duration-300">
-    <!-- Fixed Background Gradient Mesh -->
-    <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-      <!-- Top Left Blob -->
-      <div class="bg-primary/5 absolute -top-[10%] -left-[10%] size-[50%] rounded-full blur-[120px] dark:bg-primary/10"></div>
-      <!-- Top Right Blob -->
-      <div class="absolute top-[20%] right-[10%] size-[40%] rounded-full bg-purple-500/5 blur-[120px] dark:bg-purple-500/10"></div>
-    </div>
+  <div class="min-h-screen bg-(--bg-page) px-4 py-8 text-(--text-secondary) sm:px-6 lg:px-8">
+    <DashboardShell :title="t('dashboard.title')" :description="dashboardDescription">
+      <template #actions>
+        <AppButton
+          variant="secondary"
+          :text="t('common.refresh')"
+          :loading="isRefreshing"
+          @click="handleRefresh"
+        >
+          <template #icon-left>
+            <AppIcon name="arrow-path" class="size-4" />
+          </template>
+        </AppButton>
+      </template>
 
-    <!-- Main Content -->
-    <div class="relative z-10 px-4 py-8 sm:px-6 lg:px-8">
-      <DashboardShell :title="t('dashboard.title')" :description="dashboardDescription">
-        <template #actions>
-          <AppButton
-            variant="secondary"
-            :text="t('common.refresh')"
-            :loading="isRefreshing"
-            @click="handleRefresh"
+      <template #summary>
+        <div v-if="dashboardErrorCode === 'FORBIDDEN'" class="mb-8">
+          <PermissionDeniedState
+            :reason="dashboardError"
+            home-to="/admin/forbidden"
+            home-text="查看权限说明"
+            @retry="fetchDashboardData"
+          />
+        </div>
+
+        <StatGroup v-else :columns="4">
+          <AppStatCard
+            v-for="card in summaryCards"
+            :key="card.key"
+            :label="card.label"
+            :value="card.value"
+            :variant="card.variant"
           >
-            <template #icon-left>
-              <AppIcon name="arrow-path" class="size-4" />
+            <template #icon>
+              <AppIcon :name="card.icon" class="size-5" />
             </template>
-          </AppButton>
-        </template>
+            <template #footer>
+              <div class="flex items-center gap-2 text-xs text-(--text-secondary)">
+                <span v-if="card.footer">{{ card.footer }}</span>
+                <span v-if="card.meta" :class="card.metaClass">{{ card.meta }}</span>
+              </div>
+            </template>
+          </AppStatCard>
+        </StatGroup>
+      </template>
 
-        <template #summary>
-          <div v-if="dashboardErrorCode === 'FORBIDDEN'" class="mb-8">
-            <PermissionDeniedState
-              :reason="dashboardError"
-              home-to="/admin/forbidden"
-              home-text="查看权限说明"
-              @retry="fetchDashboardData"
-            />
+      <template #main>
+        <div
+          v-if="dashboardErrorCode !== 'FORBIDDEN'"
+          class="grid h-full grid-cols-1 gap-6 pb-8 lg:grid-cols-12"
+        >
+          <div class="lg:col-span-5">
+            <SurfaceSection
+              class="flex h-full min-h-[400px] flex-col"
+              body-class="flex flex-1 flex-col p-0"
+            >
+              <template #header>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-sm font-semibold text-(--text-main)">
+                    {{ t('dashboard.pendingOrders') }}
+                  </h3>
+                  <StatusBadge variant="danger" dot>{{ t('dashboard.actionNeeded') }}</StatusBadge>
+                </div>
+              </template>
+              <template #actions>
+                <StatusBadge v-if="orderStats.pendingCount > 0" variant="danger">
+                  {{ orderStats.pendingCount }}
+                </StatusBadge>
+              </template>
+
+              <div class="custom-scrollbar flex-1 overflow-y-auto bg-(--bg-muted)/40">
+                <div
+                  v-if="orderStats.recentPendingOrders.length > 0"
+                  class="divide-y divide-(--border-color)"
+                >
+                  <div
+                    v-for="order in orderStats.recentPendingOrders"
+                    :key="order.id"
+                    class="group cursor-pointer border-l-2 border-transparent p-4 transition-colors hover:border-warning/40 hover:bg-(--bg-hover)"
+                    @click="viewOrder(order)"
+                  >
+                    <div class="mb-1 flex items-start justify-between gap-3">
+                      <span class="text-primary font-mono text-xs font-medium">
+                        {{ order.orderNo }}
+                      </span>
+                      <StatusBadge variant="neutral" outline>
+                        {{ formatRelativeTime(order.createdAt, t) }}
+                      </StatusBadge>
+                    </div>
+                    <div class="mb-2 text-xs text-(--text-secondary)">{{ order.name }}</div>
+                    <div class="flex items-center gap-2">
+                      <div class="h-1 w-16 overflow-hidden rounded-full bg-(--bg-muted)">
+                        <div class="bg-warning h-full w-1/3"></div>
+                      </div>
+                      <span
+                        class="text-[10px] font-bold tracking-wider text-(--text-muted) uppercase"
+                      >
+                        {{ t('dashboard.awaitingAction') }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="flex h-full items-center">
+                  <EmptyState
+                    icon="check-circle"
+                    :title="t('dashboard.noPendingOrders')"
+                    :description="t('dashboard.liveStatus')"
+                    container-class="w-full py-12"
+                  />
+                </div>
+              </div>
+
+              <div class="border-t border-(--border-color) p-3">
+                <AppButton
+                  variant="ghost"
+                  class="w-full justify-center"
+                  size="sm"
+                  :text="t('dashboard.viewAllPending')"
+                  @click="router.push({ name: 'Orders', query: { status: 'pending' } })"
+                >
+                  <template #icon-right>
+                    <AppIcon name="arrow-right" class="size-3.5" />
+                  </template>
+                </AppButton>
+              </div>
+            </SurfaceSection>
           </div>
 
-          <StatGroup v-else :columns="4">
-            <AppStatCard
-              v-for="card in summaryCards"
-              :key="card.key"
-              :label="card.label"
-              :value="card.value"
-              :variant="card.variant"
+          <div class="flex flex-col gap-6 lg:col-span-7">
+            <SurfaceSection
+              class="flex min-h-[300px] flex-col"
+              body-class="flex flex-1 flex-col p-0"
             >
-              <template #icon>
-                <AppIcon :name="card.icon" class="size-5" />
-              </template>
-              <template #footer>
-                <div class="flex items-center gap-2 text-xs text-(--text-secondary)">
-                  <span v-if="card.footer">{{ card.footer }}</span>
-                  <span v-if="card.meta" :class="card.metaClass">{{ card.meta }}</span>
+              <template #header>
+                <div class="flex items-center gap-2">
+                  <AppIcon name="share" class="size-4 text-primary" />
+                  <h3 class="text-sm font-semibold text-(--text-main)">
+                    {{ t('dashboard.recentShares') }}
+                  </h3>
                 </div>
               </template>
-            </AppStatCard>
-          </StatGroup>
-        </template>
 
-        <template #main>
-
-      <!-- Main Layout -->
-      <div v-if="dashboardErrorCode !== 'FORBIDDEN'" class="grid h-full grid-cols-1 gap-6 pb-8 lg:grid-cols-12">
-        
-        <!-- Pending Orders List (Left Column - 5 cols) -->
-        <div class="flex flex-col gap-6 lg:col-span-5">
-            <div class="flex h-full min-h-[400px] flex-col overflow-hidden rounded-2xl border border-(--border-subtle) bg-white/70 shadow-sm backdrop-blur-md dark:border-white/5 dark:bg-(--bg-card)/60 dark:shadow-lg">
-                <div class="flex items-center justify-between border-b border-(--border-subtle) bg-(--bg-card) p-5 dark:border-white/5 dark:bg-(--bg-card)/50">
-                    <div class="flex items-center gap-2">
-                        <div class="size-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
-                        <h3 class="text-sm font-semibold text-(--text-main)">{{ t('dashboard.pendingOrders') }}</h3>
-                    </div>
-                    <span v-if="orderStats.pendingCount > 0" class="rounded border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-xs font-bold text-red-500 dark:text-red-400">
-                        {{ orderStats.pendingCount }}
-                    </span>
-                </div>
-                
-                <div class="custom-scrollbar flex-1 overflow-y-auto bg-(--bg-muted)/50 dark:bg-[#0f1219]/50">
-                    <div v-if="orderStats.recentPendingOrders.length > 0" class="divide-y divide-(--border-subtle) dark:divide-white/5">
-                        <div
-                            v-for="order in orderStats.recentPendingOrders"
-                            :key="order.id"
-                            class="group cursor-pointer border-l-2 border-transparent p-4 transition-colors hover:border-indigo-500/50 hover:bg-(--bg-hover) dark:hover:bg-[#161b26]"
-                            @click="viewOrder(order)"
-                        >
-                            <div class="mb-1 flex items-start justify-between">
-                                <span class="text-primary font-mono text-xs font-medium group-hover:text-primary/80">
-                                    {{ order.orderNo }}
-                                </span>
-                                <span class="rounded border border-(--border-subtle) bg-white px-1.5 py-0.5 text-[10px] text-(--text-secondary) dark:border-white/5 dark:bg-[#1a202c] dark:text-slate-500">
-                                    {{ formatRelativeTime(order.createdAt, t) }}
-                                </span>
-                            </div>
-                            <div class="mb-2 text-xs text-(--text-secondary)">{{ order.name }}</div>
-                            
-                            <!-- Visual Progress Bar -->
-                            <div class="flex items-center gap-2">
-                                <div class="h-1 w-16 overflow-hidden rounded-full bg-(--bg-secondary) dark:bg-[#1f2937]">
-                                    <div class="h-full w-1/3 bg-red-500/80 shadow-[0_0_5px_rgba(239,68,68,0.5)]"></div> 
-                                </div>
-                                <span class="text-[10px] font-bold tracking-wider text-(--text-muted) uppercase">{{ t('dashboard.awaitingAction') }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div v-else class="flex h-full flex-col items-center justify-center p-8 text-center text-sm text-(--text-secondary)">
-                         <div class="flex flex-col items-center gap-2">
-                             <AppIcon name="check-circle" class="size-8 text-(--text-muted) opacity-50" />
-                             {{ t('dashboard.noPendingOrders') }}
-                         </div>
-                    </div>
-                </div>
-                
-                <!-- Footer -->
-                <div class="border-t border-(--border-subtle) bg-(--bg-card) p-4 text-center dark:border-white/5 dark:bg-(--bg-card)/50">
-                    <router-link :to="{ name: 'Orders', query: { status: 'pending' } }" class="text-primary flex w-full items-center justify-center gap-1 text-xs font-medium transition-colors hover:text-primary/80">
-                        {{ t('dashboard.viewAllPending') }}
-                        <AppIcon name="arrow-right" class="size-3.5" />
-                    </router-link>
-                </div>
-            </div>
-        </div>
-
-        <!-- Right Column (7 cols): Shared Links & Recent Files -->
-        <div class="flex flex-col gap-6 lg:col-span-7">
-            
-            <!-- Shared Links Card -->
-            <div class="relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-(--border-subtle) bg-white/70 shadow-sm backdrop-blur-md dark:border-white/5 dark:bg-(--bg-card)/60 dark:shadow-lg">
-                <div class="pointer-events-none absolute top-0 right-0 size-64 rounded-full bg-purple-500/5 blur-3xl dark:bg-purple-900/10"></div>
-                <div class="flex items-center gap-2 border-b border-(--border-subtle) bg-(--bg-card) p-5 dark:border-white/5 dark:bg-(--bg-card)/50">
-                    <div class="size-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
-                    <h3 class="text-sm font-semibold text-(--text-main)">{{ t('dashboard.recentShares') }}</h3>
-                </div>
-
-                <div v-if="recentShares.length === 0" class="flex flex-1 flex-col items-center justify-center bg-(--bg-muted)/30 p-10 text-center dark:bg-[#0f1219]/30">
-                    <div class="mb-4 flex size-16 items-center justify-center rounded-full border border-(--border-subtle) bg-(--bg-card) shadow-inner dark:border-white/5 dark:bg-[#151921]">
-                        <AppIcon name="no-symbol" class="size-8 text-(--text-muted)" />
-                    </div>
-                    <h4 class="mb-1 text-base font-medium text-(--text-main)">{{ t('dashboard.noActiveShares') }}</h4>
-                    <p class="mx-auto max-w-xs text-xs text-(--text-secondary)">{{ t('dashboard.noActiveSharesDesc') }}</p>
+              <div v-if="recentShares.length === 0" class="flex flex-1 items-center">
+                <EmptyState
+                  icon="no-symbol"
+                  :title="t('dashboard.noActiveShares')"
+                  :description="t('dashboard.noActiveSharesDesc')"
+                  container-class="w-full py-12"
+                >
+                  <template #action>
                     <AppButton
-                        variant="primary"
-                        class="mt-6"
-                        :text="t('dashboard.shareFile')"
-                        @click="showShareManager = true"
+                      variant="primary"
+                      class="mt-6"
+                      :text="t('dashboard.shareFile')"
+                      @click="showShareManager = true"
                     />
-                </div>
-                
-                <div v-else class="flex-1 overflow-auto bg-(--bg-muted)/30 dark:bg-[#0f1219]/30">
-                     <!-- List for Shares -->
-                     <ul class="divide-y divide-(--border-subtle) dark:divide-white/5">
-                        <li v-for="item in recentShares" :key="item.id" class="flex items-center justify-between p-4 transition-colors hover:bg-(--bg-hover) dark:hover:bg-[#161b26]">
-                            <div class="flex items-center gap-3">
-                                <div class="flex size-8 items-center justify-center rounded border border-purple-500/20 bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                                    <AppIcon name="folder" class="size-4.5" />
-                                </div>
-                                <div>
-                                    <div class="text-sm font-medium text-(--text-main)">{{ item.name }}</div>
-                                    <div class="hover:text-primary dark:hover:text-primary/80 cursor-pointer font-mono text-[10px] text-(--text-secondary)" @click="handleCopyShareLink(item)">
-                                        {{ item.shareToken }}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="rounded border border-(--border-subtle) bg-white px-2 py-1 text-[10px] text-(--text-secondary) dark:border-white/5 dark:bg-[#1a202c]">
-                                {{ formatExpiry(item.expiresAt, t) }}
-                            </div>
-                        </li>
-                     </ul>
-                </div>
+                  </template>
+                </EmptyState>
+              </div>
 
-                <div class="border-t border-(--border-subtle) bg-(--bg-card) p-3 text-center dark:border-white/5 dark:bg-[#11141d]">
-                    <AppButton
-                        variant="secondary"
-                        class="text-primary w-full border-none! bg-transparent! hover:text-primary/80"
-                        size="sm"
-                        :text="t('dashboard.viewHistory')"
-                        @click="showShareManager = true"
-                    >
-                        <template #append>
-                            <AppIcon name="arrow-right" class="size-3.5" />
-                        </template>
-                    </AppButton>
-                </div>
-            </div>
-
-            <!-- Recent Files Card -->
-            <div class="relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-(--border-subtle) bg-white/70 shadow-sm backdrop-blur-md dark:border-white/5 dark:bg-(--bg-card)/60 dark:shadow-lg">
-                <div class="pointer-events-none absolute bottom-0 left-0 size-64 rounded-full bg-cyan-500/5 blur-3xl dark:bg-cyan-900/10"></div>
-                <div class="flex items-center gap-2 border-b border-(--border-subtle) bg-(--bg-card) p-5 dark:border-white/5 dark:bg-(--bg-card)/50">
-                    <div class="size-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"></div>
-                    <h3 class="text-sm font-semibold text-(--text-main)">{{ t('dashboard.recentFiles') }}</h3>
-                </div>
-
-                <div v-if="recentFiles.length === 0" class="flex flex-1 flex-col items-center justify-center bg-(--bg-muted)/30 p-10 text-center dark:bg-[#0f1219]/30">
-                    <div class="mb-4 flex size-16 items-center justify-center rounded-full border border-(--border-subtle) bg-(--bg-card) shadow-inner dark:border-white/5 dark:bg-[#151921]">
-                        <AppIcon name="archive-box-x-mark" class="size-8 text-(--text-muted)" />
-                    </div>
-                    <h4 class="mb-1 text-base font-medium text-(--text-main)">{{ t('dashboard.noRecentFiles') }}</h4>
-                    <p class="mx-auto max-w-xs text-xs text-(--text-secondary)">{{ t('dashboard.noRecentFilesDesc') }}</p>
-                    <div class="pointer-events-none mt-8 grid w-full max-w-sm grid-cols-2 gap-4 opacity-30 blur-[1px]">
-                        <div class="flex items-center gap-3 rounded-lg border border-(--border-subtle) bg-white p-3 dark:border-white/5 dark:bg-[#151921]">
-                            <AppIcon name="document-text" class="size-5 text-blue-500 dark:text-blue-400" />
-                            <div class="h-1.5 w-20 rounded bg-slate-200 dark:bg-slate-800"></div>
+              <div v-else class="flex-1 overflow-auto bg-(--bg-muted)/20">
+                <ul class="divide-y divide-(--border-color)">
+                  <li
+                    v-for="item in recentShares"
+                    :key="item.id"
+                    class="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-(--bg-hover)"
+                  >
+                    <div class="flex min-w-0 items-center gap-3">
+                      <div
+                        class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-(--color-primary-bg) text-primary"
+                      >
+                        <AppIcon name="folder" class="size-4.5" />
+                      </div>
+                      <div class="min-w-0">
+                        <div class="truncate text-sm font-medium text-(--text-main)">
+                          {{ item.name }}
                         </div>
-                        <div class="flex items-center gap-3 rounded-lg border border-(--border-subtle) bg-white p-3 dark:border-white/5 dark:bg-[#151921]">
-                            <AppIcon name="photo" class="size-5 text-green-500 dark:text-green-400" />
-                            <div class="h-1.5 w-16 rounded bg-slate-200 dark:bg-slate-800"></div>
-                        </div>
+                        <AppButton
+                          variant="link"
+                          class="!text-(--text-secondary) hover:!text-primary font-mono text-[10px]"
+                          @click="handleCopyShareLink(item)"
+                        >
+                          {{ item.shareToken }}
+                        </AppButton>
+                      </div>
                     </div>
-                </div>
+                    <StatusBadge variant="neutral" outline>
+                      {{ formatExpiry(item.expiresAt, t) }}
+                    </StatusBadge>
+                  </li>
+                </ul>
+              </div>
 
-                <div v-else class="flex-1 overflow-auto bg-(--bg-muted)/30 dark:bg-[#0f1219]/30">
-                    <!-- List for Files -->
-                    <ul class="divide-y divide-(--border-subtle) dark:divide-white/5">
-                        <li v-for="(file, index) in recentFiles" :key="index" class="flex items-center justify-between p-4 transition-colors hover:bg-(--bg-hover) dark:hover:bg-[#161b26]">
-                            <div class="flex items-center gap-3 overflow-hidden">
-                                <div class="shadow-glow-cyan flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-cyan-500/20 bg-(--bg-card) text-xs font-bold text-cyan-600 uppercase dark:bg-[#1a202c] dark:text-cyan-400">
-                                     <AppImage
-                                       v-if="isImage(file)"
-                                       :src="file.url"
-                                       class="size-full"
-                                       fit="cover"
-                                     />
-                                     <AppIcon v-else name="document-text" class="size-4.5" />
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="max-w-[150px] truncate text-sm font-medium text-(--text-main) sm:max-w-xs">{{ file.name }}</div>
-                                    <div class="text-[10px] text-(--text-secondary)">{{ formatSize(file.size) }} • {{ formatDate(file.timestamp) }}</div>
-                                </div>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
+              <div class="border-t border-(--border-color) p-3">
+                <AppButton
+                  variant="ghost"
+                  class="w-full justify-center"
+                  size="sm"
+                  :text="t('dashboard.viewHistory')"
+                  @click="showShareManager = true"
+                >
+                  <template #icon-right>
+                    <AppIcon name="arrow-right" class="size-3.5" />
+                  </template>
+                </AppButton>
+              </div>
+            </SurfaceSection>
 
-                <div class="border-t border-(--border-subtle) bg-(--bg-card) p-3 text-center dark:border-white/5 dark:bg-[#11141d]">
-                    <AppButton
-                        variant="secondary"
-                        class="text-primary w-full border-none! bg-transparent! hover:text-primary/80"
-                        size="sm"
-                        :text="t('dashboard.browseAllFiles')"
-                        @click="router.push('/admin/files')"
-                    >
-                        <template #append>
-                            <AppIcon name="arrow-right" class="size-3.5" />
-                        </template>
-                    </AppButton>
+            <SurfaceSection
+              class="flex min-h-[300px] flex-col"
+              body-class="flex flex-1 flex-col p-0"
+            >
+              <template #header>
+                <div class="flex items-center gap-2">
+                  <AppIcon name="document-text" class="size-4 text-info" />
+                  <h3 class="text-sm font-semibold text-(--text-main)">
+                    {{ t('dashboard.recentFiles') }}
+                  </h3>
                 </div>
-            </div>
+              </template>
+
+              <div v-if="recentFiles.length === 0" class="flex flex-1 items-center">
+                <EmptyState
+                  icon="archive-box-x-mark"
+                  :title="t('dashboard.noRecentFiles')"
+                  :description="t('dashboard.noRecentFilesDesc')"
+                  container-class="w-full py-12"
+                />
+              </div>
+
+              <div v-else class="flex-1 overflow-auto bg-(--bg-muted)/20">
+                <ul class="divide-y divide-(--border-color)">
+                  <li
+                    v-for="(file, index) in recentFiles"
+                    :key="index"
+                    class="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-(--bg-hover)"
+                  >
+                    <div class="flex min-w-0 items-center gap-3 overflow-hidden">
+                      <div
+                        class="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-info/20 bg-(--color-info-bg) text-info text-xs font-bold uppercase"
+                      >
+                        <AppImage
+                          v-if="isImage(file)"
+                          :src="file.url"
+                          class="size-full"
+                          fit="cover"
+                        />
+                        <AppIcon v-else name="document-text" class="size-4.5" />
+                      </div>
+                      <div class="min-w-0">
+                        <div
+                          class="max-w-[150px] truncate text-sm font-medium text-(--text-main) sm:max-w-xs"
+                        >
+                          {{ file.name }}
+                        </div>
+                        <div class="text-[10px] text-(--text-secondary)">
+                          {{ formatSize(file.size) }} • {{ formatDate(file.timestamp) }}
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="border-t border-(--border-color) p-3">
+                <AppButton
+                  variant="ghost"
+                  class="w-full justify-center"
+                  size="sm"
+                  :text="t('dashboard.browseAllFiles')"
+                  @click="router.push('/admin/files')"
+                >
+                  <template #icon-right>
+                    <AppIcon name="arrow-right" class="size-3.5" />
+                  </template>
+                </AppButton>
+              </div>
+            </SurfaceSection>
+          </div>
         </div>
-      </div>
-        </template>
+      </template>
 
-        <template #secondary>
-          <footer v-if="dashboardErrorCode !== 'FORBIDDEN'" class="py-4 text-center text-[10px] text-(--text-muted)">
-            {{ t('dashboard.footer') }}
-          </footer>
-        </template>
-      </DashboardShell>
-    </div>
+      <template #secondary>
+        <footer
+          v-if="dashboardErrorCode !== 'FORBIDDEN'"
+          class="py-4 text-center text-[10px] text-(--text-muted)"
+        >
+          {{ t('dashboard.footer') }}
+        </footer>
+      </template>
+    </DashboardShell>
 
-    <!-- Modals -->
     <ShareManagementModal v-model="showShareManager" @edit="handleManagerEdit" />
     <ShareFolderModal
       v-model="showEditShare"
@@ -296,7 +331,9 @@ import ShareManagementModal from '@/components/ShareManagementModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
 import OrderWorkflowModal from '@/components/order/OrderWorkflowModal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
 import {
   formatSize,
   formatDate,
@@ -309,6 +346,7 @@ import AppImage from '@/components/ui/AppImage.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppStatCard from '@/components/ui/AppStatCard.vue';
+import SurfaceSection from '@/design-system/composed/SurfaceSection.vue';
 import DashboardShell from '@/design-system/patterns/DashboardShell.vue';
 import StatGroup from '@/design-system/composed/StatGroup.vue';
 import Chart from 'chart.js/auto';
@@ -374,14 +412,17 @@ const summaryCards = computed(() => [
     variant: 'success',
     icon: 'chart-bar',
     footer: weekTrend.value === 0 ? t('dashboard.trendSame') : '',
-    meta: weekTrend.value === 0 ? '' : `${weekTrend.value > 0 ? '↑' : '↓'} ${Math.abs(weekTrend.value)}%`,
+    meta:
+      weekTrend.value === 0
+        ? ''
+        : `${weekTrend.value > 0 ? '↑' : '↓'} ${Math.abs(weekTrend.value)}%`,
     metaClass: weekTrend.value > 0 ? 'text-success' : 'text-danger',
   },
   {
     key: 'shares',
     label: t('dashboard.activeShares'),
     value: orderStats.value.activeSharesCount || 0,
-    variant: 'purple',
+    variant: 'primary',
     icon: 'share',
     footer: t('dashboard.acrossProjects'),
     meta: '',
@@ -471,7 +512,7 @@ const refreshOrderDetail = async () => {
     }
   }
   fetchDashboardData();
-  
+
   // Reload the order detail to show new comments if we are still viewing
   if (viewingOrder.value) {
     const requestId = ++detailRequestId;
@@ -483,7 +524,7 @@ const refreshOrderDetail = async () => {
 
 const handleComment = async (comment) => {
   if (!viewingOrder.value || !comment.trim() || commenting.value) return;
-  
+
   commenting.value = true;
   try {
     const success = await addComment(viewingOrder.value.id, comment);
@@ -503,7 +544,7 @@ const fetchDashboardData = async () => {
     const res = await authFetchJson(API.MANAGE_DASHBOARD_OVERVIEW);
     if (res.success && res.data) {
       orderStats.value = res.data;
-      
+
       // Update Lists
       if (res.data.recentFiles) {
         recentFiles.value = res.data.recentFiles;
@@ -514,14 +555,14 @@ const fetchDashboardData = async () => {
 
       // Update Charts
       if (res.data.charts) {
-          if (Object.keys(charts).length > 0) {
-              updateCharts(res.data.charts);
-          } else {
-             // If charts not initialized but we have data, we might be in early stage.
-             // initCharts calls updateCharts eventually.
-          }
+        if (Object.keys(charts).length > 0) {
+          updateCharts(res.data.charts);
+        } else {
+          // If charts not initialized but we have data, we might be in early stage.
+          // initCharts calls updateCharts eventually.
+        }
       }
-      
+
       lastUpdatedTime.value = new Date().toLocaleTimeString();
     }
   } catch (e) {
@@ -561,93 +602,117 @@ const handleEditUpdated = () => {
 
 // Charts Logic
 const updateCharts = (data) => {
-    const processTrend = (trendData, type) => {
-        const labels = [];
-        const values = [];
-        
-        if (type === 'hourly') {
-            const map = {};
-            trendData.forEach(item => map[item.hour] = item.count);
-            for (let i = 0; i < 24; i++) {
-                const hour = i.toString().padStart(2, '0');
-                labels.push(hour);
-                values.push(map[hour] || 0);
-            }
-        } else {
-            const map = {};
-            trendData.forEach(item => map[item.date] = item.count);
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                const dateStr = d.toISOString().split('T')[0];
-                labels.push(dateStr.slice(5));
-                values.push(map[dateStr] || 0);
-            }
-        }
-        return { labels, values };
-    };
+  const processTrend = (trendData, type) => {
+    const labels = [];
+    const values = [];
 
-    const updateChart = (id, processedData) => {
-        if (charts[id]) {
-            charts[id].data.labels = processedData.labels;
-            charts[id].data.datasets[0].data = processedData.values;
-            charts[id].update();
-        }
-    };
+    if (type === 'hourly') {
+      const map = {};
+      trendData.forEach((item) => (map[item.hour] = item.count));
+      for (let i = 0; i < 24; i++) {
+        const hour = i.toString().padStart(2, '0');
+        labels.push(hour);
+        values.push(map[hour] || 0);
+      }
+    } else {
+      const map = {};
+      trendData.forEach((item) => (map[item.date] = item.count));
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        labels.push(dateStr.slice(5));
+        values.push(map[dateStr] || 0);
+      }
+    }
+    return { labels, values };
+  };
 
-    if (data.today) updateChart('chart1', processTrend(data.today, 'hourly'));
-    if (data.pending) updateChart('chart2', processTrend(data.pending, 'daily'));
-    if (data.week) updateChart('chart3', processTrend(data.week, 'daily'));
-    if (data.shares) updateChart('chart4', processTrend(data.shares, 'daily'));
+  const updateChart = (id, processedData) => {
+    if (charts[id]) {
+      charts[id].data.labels = processedData.labels;
+      charts[id].data.datasets[0].data = processedData.values;
+      charts[id].update();
+    }
+  };
+
+  if (data.today) updateChart('chart1', processTrend(data.today, 'hourly'));
+  if (data.pending) updateChart('chart2', processTrend(data.pending, 'daily'));
+  if (data.week) updateChart('chart3', processTrend(data.week, 'daily'));
+  if (data.shares) updateChart('chart4', processTrend(data.shares, 'daily'));
+};
+
+const resolveDashboardChartColor = (token, fallback) => {
+  if (typeof document === 'undefined') {
+    return `rgba(${fallback}, 1)`;
+  }
+
+  const color = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+  if (color.startsWith('#') && color.length === 7) {
+    const parsed = Number.parseInt(color.slice(1), 16);
+    if (!Number.isNaN(parsed)) {
+      const rgb = `${(parsed >> 16) & 255}, ${(parsed >> 8) & 255}, ${parsed & 255}`;
+      return `rgba(${rgb}, 1)`;
+    }
+  }
+
+  const matched = color.match(/\d+/g);
+  if (matched?.length >= 3) {
+    return `rgba(${matched.slice(0, 3).join(', ')}, 1)`;
+  }
+
+  return `rgba(${fallback}, 1)`;
 };
 
 const initCharts = () => {
-    const createChart = (id, color, data, labels) => {
-        const canvas = document.getElementById(id);
-        if (!canvas) return;
-        
-        if (charts[id]) {
-            charts[id].destroy();
-        }
+  const createChart = (id, color, data, labels) => {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
 
-        const ctx = canvas.getContext('2d');
-        const gradient = ctx.createLinearGradient(0, 0, 0, 50);
-        gradient.addColorStop(0, color.replace('1)', '0.3)')); 
-        gradient.addColorStop(1, color.replace('1)', '0.0)'));
-        
-        charts[id] = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels || ['1', '2', '3', '4', '5', '6', '7'],
-                datasets: [{
-                    data: data,
-                    borderColor: color,
-                    borderWidth: 2,
-                    backgroundColor: gradient,
-                    fill: true,
-                    pointRadius: 0,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                scales: { x: { display: false }, y: { display: false } },
-                animation: { duration: 1000 }
-            }
-        });
-    };
-
-    createChart('chart1', 'rgba(59, 130, 246, 1)', [], []);
-    createChart('chart2', 'rgba(248, 113, 113, 1)', [], []);
-    createChart('chart3', 'rgba(16, 185, 129, 1)', [], []);
-    createChart('chart4', 'rgba(168, 85, 247, 1)', [], []);
-    
-    // Check if we have data in orderStats from fetchDashboardData (which might have finished before nextTick)
-    if (orderStats.value && orderStats.value.charts) {
-        updateCharts(orderStats.value.charts);
+    if (charts[id]) {
+      charts[id].destroy();
     }
+
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 50);
+    gradient.addColorStop(0, color.replace('1)', '0.3)'));
+    gradient.addColorStop(1, color.replace('1)', '0.0)'));
+
+    charts[id] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels || ['1', '2', '3', '4', '5', '6', '7'],
+        datasets: [
+          {
+            data: data,
+            borderColor: color,
+            borderWidth: 2,
+            backgroundColor: gradient,
+            fill: true,
+            pointRadius: 0,
+            tension: 0.4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: { x: { display: false }, y: { display: false } },
+        animation: { duration: 1000 },
+      },
+    });
+  };
+
+  createChart('chart1', resolveDashboardChartColor('--color-info', '59, 130, 246'), [], []);
+  createChart('chart2', resolveDashboardChartColor('--color-danger', '239, 68, 68'), [], []);
+  createChart('chart3', resolveDashboardChartColor('--color-success', '16, 185, 129'), [], []);
+  createChart('chart4', resolveDashboardChartColor('--color-primary', '236, 91, 19'), [], []);
+
+  // Check if we have data in orderStats from fetchDashboardData (which might have finished before nextTick)
+  if (orderStats.value && orderStats.value.charts) {
+    updateCharts(orderStats.value.charts);
+  }
 };
 
 onMounted(async () => {
@@ -681,7 +746,7 @@ watch([showDetailModal, viewingOrder], ([isOpen, order]) => {
 
 <style scoped>
 .custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-color) transparent;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
 }
 </style>

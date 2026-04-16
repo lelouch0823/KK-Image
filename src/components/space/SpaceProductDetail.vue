@@ -17,123 +17,137 @@
             class="bg-surface size-full select-none"
             rounded="none"
           />
+          <div
+            v-else-if="currentFile && isPdf(currentFile) && !showPdfPreview"
+            class="flex size-full flex-col items-center justify-center gap-6 bg-(--bg-muted) p-8 text-center"
+          >
+            <!-- PDF Icon -->
             <div
-              v-else-if="currentFile && isPdf(currentFile) && !showPdfPreview"
-              class="flex size-full flex-col items-center justify-center gap-6 bg-(--bg-muted) p-8 text-center"
+              class="flex size-24 items-center justify-center rounded-2xl bg-(--bg-card) shadow-sm"
             >
-              <!-- PDF Icon -->
-              <div class="flex size-24 items-center justify-center rounded-2xl bg-(--bg-card) shadow-sm">
-                <AppIcon name="document-text" class="size-12 text-red-500" />
-              </div>
-
-              <!-- File Info -->
-              <div>
-                <h3 class="font-medium text-(--text-main)">{{ currentFile.name }}</h3>
-                <p class="mt-1 text-sm text-(--text-secondary)">PDF • {{ formatSize(currentFile.size) }}</p>
-              </div>
-
-              <!-- Actions -->
-              <div class="flex flex-wrap justify-center gap-3">
-                <button
-                  class="flex items-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-medium text-(--text-main) transition-colors hover:bg-(--bg-surface-hover)"
-                  @click.stop="showPdfPreview = true"
-                >
-                  <AppIcon name="eye" class="size-4" />
-                  {{ t('spacePublic.viewInline') }}
-                </button>
-
-                <a
-                  :href="currentFile.url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="flex items-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-medium text-(--text-main) transition-colors hover:bg-(--bg-surface-hover)"
-                  @click.stop
-                >
-                  <AppIcon name="arrow-top-right-on-square" class="size-4" />
-                  {{ t('spacePublic.openPreview') }}
-                </a>
-
-                <a
-                  :href="currentFile.url"
-                  download
-                  class="bg-primary flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover)"
-                  @click.stop
-                >
-                  <AppIcon name="arrow-down-tray" class="size-4" />
-                  {{ t('spacePublic.download') }}
-                </a>
-              </div>
+              <AppIcon name="document-text" class="size-12 text-red-500" />
             </div>
 
-            <!-- Inline PDF Preview (Iframe) -->
-            <div
-              v-else-if="currentFile && isPdf(currentFile) && showPdfPreview"
-              class="relative flex size-full flex-col bg-(--bg-card)"
-            >
-              <iframe
-                :src="currentFile.url"
-                class="size-full border-0"
-                title="PDF Preview"
-              ></iframe>
-              <button
-                class="absolute top-4 right-4 rounded-lg bg-black/50 px-3 py-1 text-sm text-white backdrop-blur-sm transition-colors hover:bg-black/70"
-                @click="showPdfPreview = false"
+            <!-- File Info -->
+            <div>
+              <h3 class="font-medium text-(--text-main)">{{ currentFile.name }}</h3>
+              <p class="mt-1 text-sm text-(--text-secondary)">
+                PDF • {{ formatSize(currentFile.size) }}
+              </p>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-wrap justify-center gap-3">
+              <AppButton
+                variant="white"
+                size="sm"
+                class="text-(--text-main)"
+                @click.stop="showPdfPreview = true"
               >
-                {{ t('spacePublic.backToCard') }}
-              </button>
-            </div>
+                <template #icon-left>
+                  <AppIcon name="eye" class="size-4" />
+                </template>
+                {{ t('spacePublic.viewInline') }}
+              </AppButton>
 
-            <!-- Generic File Preview -->
-            <div
-              v-else-if="currentFile"
-              class="text-secondary flex size-full flex-col items-center justify-center gap-4 bg-(--bg-muted) p-8 text-center"
-            >
-              <div class="flex size-20 items-center justify-center rounded-2xl bg-(--bg-card) shadow-sm">
-                <AppIcon name="document-text" class="text-primary size-10" />
-              </div>
-              <div>
-                <h3 class="font-medium text-(--text-main)">{{ currentFile.name }}</h3>
-                <p class="mt-1 text-sm text-(--text-secondary)">
-                  {{ formatSize(currentFile.size) }}
-                </p>
-              </div>
+              <a
+                :href="currentFile.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-medium text-(--text-main) transition-colors hover:bg-(--bg-surface-hover)"
+                @click.stop
+              >
+                <AppIcon name="arrow-top-right-on-square" class="size-4" />
+                {{ t('spacePublic.openPreview') }}
+              </a>
+
               <a
                 :href="currentFile.url"
                 download
-                class="hover:bg-primary-hover hover:text-(--text-inverse) mt-2 inline-flex items-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-medium text-(--text-main) transition-colors"
+                class="bg-primary flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover)"
                 @click.stop
               >
                 <AppIcon name="arrow-down-tray" class="size-4" />
                 {{ t('spacePublic.download') }}
               </a>
             </div>
+          </div>
 
-            <!-- No Media State -->
-            <div
-              v-else
-              class="flex size-full flex-col items-center justify-center gap-4 bg-(--bg-muted) p-8 text-center text-(--text-secondary)"
+          <!-- Inline PDF Preview (Iframe) -->
+          <div
+            v-else-if="currentFile && isPdf(currentFile) && showPdfPreview"
+            class="relative flex size-full flex-col bg-(--bg-card)"
+          >
+            <iframe :src="currentFile.url" class="size-full border-0" title="PDF Preview"></iframe>
+            <AppButton
+              variant="ghost"
+              size="sm"
+              class="absolute top-4 right-4 bg-black/50 text-white backdrop-blur-sm hover:!bg-black/70 hover:!text-white"
+              @click="showPdfPreview = false"
             >
-               <div class="flex size-16 items-center justify-center rounded-2xl bg-(--bg-card) shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-                 <AppIcon name="photo" class="size-8 text-(--text-muted) opacity-50" />
-               </div>
-               <p class="text-sm font-medium">{{ t('gallery.noImages') }}</p>
+              {{ t('spacePublic.backToCard') }}
+            </AppButton>
+          </div>
+
+          <!-- Generic File Preview -->
+          <div
+            v-else-if="currentFile"
+            class="text-secondary flex size-full flex-col items-center justify-center gap-4 bg-(--bg-muted) p-8 text-center"
+          >
+            <div
+              class="flex size-20 items-center justify-center rounded-2xl bg-(--bg-card) shadow-sm"
+            >
+              <AppIcon name="document-text" class="text-primary size-10" />
             </div>
+            <div>
+              <h3 class="font-medium text-(--text-main)">{{ currentFile.name }}</h3>
+              <p class="mt-1 text-sm text-(--text-secondary)">
+                {{ formatSize(currentFile.size) }}
+              </p>
+            </div>
+            <a
+              :href="currentFile.url"
+              download
+              class="hover:bg-primary-hover hover:text-(--text-inverse) mt-2 inline-flex items-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-medium text-(--text-main) transition-colors"
+              @click.stop
+            >
+              <AppIcon name="arrow-down-tray" class="size-4" />
+              {{ t('spacePublic.download') }}
+            </a>
+          </div>
+
+          <!-- No Media State -->
+          <div
+            v-else
+            class="flex size-full flex-col items-center justify-center gap-4 bg-(--bg-muted) p-8 text-center text-(--text-secondary)"
+          >
+            <div
+              class="flex size-16 items-center justify-center rounded-2xl bg-(--bg-card) shadow-sm"
+            >
+              <AppIcon name="photo" class="size-8 text-(--text-muted) opacity-50" />
+            </div>
+            <p class="text-sm font-medium">{{ t('gallery.noImages') }}</p>
+          </div>
 
           <!-- Navigation Arrows (Hidden on mobile) -->
-          <button
+          <AppButton
             v-if="hasMultipleFiles"
-            class="bg-surface/80 text-secondary-text absolute top-1/2 left-4 hidden -translate-y-1/2 rounded-full p-2 opacity-0 shadow-md transition-opacity hover:bg-surface group-hover:opacity-100 lg:flex"
+            variant="white"
+            size="sm"
+            class="bg-surface/80 text-secondary-text absolute top-1/2 left-4 hidden -translate-y-1/2 rounded-full opacity-0 shadow-md transition-opacity group-hover:opacity-100 lg:!flex"
             @click="prevImage"
           >
             <AppIcon name="chevron-left" class="size-5" />
-          </button>
-          <button
+          </AppButton>
+          <AppButton
             v-if="hasMultipleFiles"
-            class="absolute top-1/2 right-4 hidden -translate-y-1/2 rounded-full bg-(--bg-card)/80 p-2 text-(--text-secondary) opacity-0 shadow-md transition-opacity group-hover:opacity-100 hover:bg-(--bg-card) lg:flex"
+            variant="white"
+            size="sm"
+            class="absolute top-1/2 right-4 hidden -translate-y-1/2 rounded-full bg-(--bg-card)/80 text-(--text-secondary) opacity-0 shadow-md transition-opacity group-hover:opacity-100 lg:!flex"
             @click="nextImage"
           >
             <AppIcon name="chevron-right" class="size-5" />
-          </button>
+          </AppButton>
 
           <!-- Mobile Indicators -->
           <div
@@ -151,16 +165,21 @@
 
         <!-- Thumbnails -->
         <div v-if="hasMultipleFiles" class="scrollbar-hide flex gap-3 overflow-x-auto pb-2">
-          <button
+          <AppButton
             v-for="(file, index) in displayFiles"
             :key="file.id"
-            class="relative size-20 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all hover:opacity-80 active:scale-95"
+            variant="ghost"
+            size="sm"
+            class="relative !h-20 !w-20 flex-shrink-0 overflow-hidden rounded-lg border-2 !p-0 transition-all hover:opacity-80 active:scale-95 [&_span]:contents"
             :class="
               currentIndex === index
-                ? 'border-primary ring-2 ring-[var(--color-primary-light,rgba(59,130,246,0.2))]'
+                ? 'border-primary ring-2 ring-primary/20'
                 : 'border-transparent'
             "
-            @click="currentIndex = index; showPdfPreview = false;"
+            @click="
+              currentIndex = index;
+              showPdfPreview = false;
+            "
           >
             <AppImage
               v-if="isImage(file)"
@@ -180,7 +199,7 @@
               </template>
               <span v-else>{{ file.name.split('.').pop() }}</span>
             </div>
-          </button>
+          </AppButton>
         </div>
       </div>
 
@@ -193,7 +212,11 @@
           >
             {{ templateData.brand }}
           </div>
-          <h1 class="text-2xl leading-tight font-semibold tracking-tight text-(--text-main) sm:text-3xl">{{ space.name }}</h1>
+          <h1
+            class="text-2xl leading-tight font-semibold tracking-tight text-(--text-main) sm:text-3xl"
+          >
+            {{ space.name }}
+          </h1>
           <p v-if="templateData.series" class="mt-2 text-base text-(--text-secondary) sm:text-lg">
             {{ templateData.series }}
           </p>
@@ -202,19 +225,34 @@
           </p>
         </div>
 
-        <div v-if="templateData.price && Number(templateData.price) > 0" class="flex items-baseline gap-1">
+        <div
+          v-if="templateData.price && Number(templateData.price) > 0"
+          class="flex items-baseline gap-1"
+        >
           <span class="text-sm font-medium text-(--text-secondary)">¥</span>
-          <span class="text-3xl font-bold tracking-tight text-(--text-main)">{{ formatPrice(templateData.price) }}</span>
+          <span class="text-3xl font-bold tracking-tight text-(--text-main)">{{
+            formatPrice(templateData.price)
+          }}</span>
         </div>
-        <div v-else-if="templateData.price" class="text-primary flex items-center gap-3 rounded-xl border border-[var(--color-primary-light,rgba(59,130,246,0.1))] bg-[var(--color-primary-light,rgba(59,130,246,0.05))] p-4">
-           <div class="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-light,rgba(59,130,246,0.15))]">
-             <AppIcon name="chat-bubble-left-right" class="size-5" />
-           </div>
-           <span class="text-sm font-semibold tracking-wide">{{ t('spacePublic.inquiryPrice') || 'Contact for Price' }}</span>
+        <div
+          v-else-if="templateData.price"
+          class="text-primary flex items-center gap-3 rounded-xl border border-primary/20 bg-(--color-primary-bg) p-4"
+        >
+          <div
+            class="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-(--color-primary-bg)"
+          >
+            <AppIcon name="chat-bubble-left-right" class="size-5" />
+          </div>
+          <span class="text-sm font-semibold tracking-wide">{{
+            t('spacePublic.inquiryPrice') || 'Contact for Price'
+          }}</span>
         </div>
 
         <!-- SOTA Product Parameters Table -->
-        <div v-if="hasAnySpecs" class="overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card)">
+        <div
+          v-if="hasAnySpecs"
+          class="overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card)"
+        >
           <dl class="divide-y divide-(--border-color) text-sm">
             <div
               v-if="templateData.brand"
@@ -247,7 +285,10 @@
           </dl>
         </div>
 
-        <div v-if="space.description" class="prose prose-sm prose-gray dark:prose-invert text-secondary-text max-w-none border-t border-(--border-color) pt-6">
+        <div
+          v-if="space.description"
+          class="prose prose-sm prose-gray dark:prose-invert text-secondary-text max-w-none border-t border-(--border-color) pt-6"
+        >
           <h3 class="text-main text-sm font-medium">{{ t('spacePublic.description') }}</h3>
           <p class="whitespace-pre-line">{{ space.description }}</p>
         </div>
@@ -257,30 +298,35 @@
             v-if="currentFile"
             :href="currentFile.url"
             download
-            class="bg-primary flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-(--text-inverse) shadow-[var(--color-primary-light,rgba(59,130,246,0.2))] shadow-lg transition-all hover:-translate-y-[1px] hover:bg-(--color-primary-hover) active:translate-y-0"
+            class="bg-primary shadow-primary/10 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-(--text-inverse) shadow-lg transition-all hover:-translate-y-[1px] hover:bg-(--color-primary-hover) active:translate-y-0"
           >
             <AppIcon name="arrow-down-tray" class="size-5" />
             {{ t('spacePublic.downloadCurrent') }}
           </a>
 
-          <button
+          <AppButton
             v-if="hasMultipleFiles"
             :disabled="downloading"
-            class="text-primary flex w-full items-center justify-center gap-2 rounded-xl border border-(--border-color) bg-(--bg-card) py-3 font-medium transition-all hover:-translate-y-[1px] hover:bg-(--bg-surface-hover) hover:shadow-sm active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+            variant="white"
+            class="text-primary w-full hover:-translate-y-[1px] hover:bg-(--bg-surface-hover) hover:shadow-sm active:translate-y-0 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             @click="handleDownloadAll"
           >
-            <AppIcon v-if="downloading" name="spinner" class="size-5 animate-spin" />
-            <AppIcon v-else name="arrow-down-tray" class="size-5" />
+            <template #icon-left>
+              <AppIcon v-if="downloading" name="spinner" class="size-5 animate-spin" />
+              <AppIcon v-else name="arrow-down-tray" class="size-5" />
+            </template>
             {{
               downloading
                 ? `${t('spacePublic.packing')} ${downloadProgress}%`
                 : t('spacePublic.downloadAll')
             }}
-          </button>
+          </AppButton>
 
           <p class="mt-3 text-center text-xs text-(--text-muted)">
             <span>{{ space.viewCount || 0 }} {{ t('spacePublic.views') }}</span>
-            <span v-if="space.downloadCount !== undefined"> • {{ space.downloadCount }} {{ t('spacePublic.downloads') }}</span>
+            <span v-if="space.downloadCount !== undefined">
+              • {{ space.downloadCount }} {{ t('spacePublic.downloads') }}</span
+            >
           </p>
         </div>
       </div>
@@ -289,41 +335,54 @@
     <!-- SOTA Mobile Sticky Bottom Bar -->
     <div
       v-if="currentFile"
-      class="fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t border-(--border-color) bg-(--bg-card) p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] transition-transform duration-300 ease-in-out lg:hidden"
+      class="fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t border-(--border-color) bg-(--bg-card) p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-lg transition-transform duration-300 ease-in-out lg:hidden"
       :class="isScrolling ? 'translate-y-full' : 'translate-y-0'"
     >
       <div class="flex flex-1 items-center gap-2">
-        <div v-if="templateData.price && Number(templateData.price) > 0" class="mr-auto flex flex-col justify-center px-1">
-           <span class="text-[10px] leading-none text-(--text-secondary)">{{ t('spaceManager.price') }}</span>
-           <div class="mt-0.5 flex items-baseline gap-0.5">
-             <span class="text-primary text-[10px]">¥</span>
-             <span class="text-primary text-lg leading-none font-bold tracking-tight">{{ formatPrice(templateData.price).split('.')[0] }}</span>
-             <span class="text-primary text-[10px] font-medium opacity-80">.{{ formatPrice(templateData.price).split('.')[1] }}</span>
-           </div>
+        <div
+          v-if="templateData.price && Number(templateData.price) > 0"
+          class="mr-auto flex flex-col justify-center px-1"
+        >
+          <span class="text-[10px] leading-none text-(--text-secondary)">{{
+            t('spaceManager.price')
+          }}</span>
+          <div class="mt-0.5 flex items-baseline gap-0.5">
+            <span class="text-primary text-[10px]">¥</span>
+            <span class="text-primary text-lg leading-none font-bold tracking-tight">{{
+              formatPrice(templateData.price).split('.')[0]
+            }}</span>
+            <span class="text-primary text-[10px] font-medium opacity-80"
+              >.{{ formatPrice(templateData.price).split('.')[1] }}</span
+            >
+          </div>
         </div>
-        
+
         <a
           v-if="currentFile"
           :href="currentFile.url"
           download
-          class="text-primary flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--color-primary-light,rgba(59,130,246,0.2))] bg-[var(--color-primary-light,rgba(59,130,246,0.05))] py-3 font-medium transition-transform active:scale-95"
+          class="text-primary flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary/20 bg-(--color-primary-bg) py-3 font-medium transition-transform active:scale-95"
         >
           <AppIcon name="arrow-down-tray" class="size-5" />
           <span class="text-sm font-semibold">{{ t('spacePublic.download') }}</span>
         </a>
 
-        <button
+        <AppButton
           v-if="hasMultipleFiles || (displayFiles.length > 0 && isDesktop)"
           :disabled="downloading"
-          class="bg-primary flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-medium text-(--text-inverse) shadow-[var(--color-primary-light,rgba(59,130,246,0.2))] shadow-lg transition-transform active:scale-95 disabled:scale-100 disabled:opacity-50"
+          variant="primary"
+          block
+          class="shadow-primary/10 flex-1 shadow-lg transition-transform active:scale-95 disabled:scale-100"
           @click="handleDownloadAll"
         >
-          <AppIcon v-if="downloading" name="spinner" class="size-5 animate-spin" />
-          <AppIcon v-else name="arrow-down-tray" class="size-5" />
+          <template #icon-left>
+            <AppIcon v-if="downloading" name="spinner" class="size-5 animate-spin" />
+            <AppIcon v-else name="arrow-down-tray" class="size-5" />
+          </template>
           <span class="text-sm text-nowrap">{{
             downloading ? `${downloadProgress}%` : t('spacePublic.downloadAll')
           }}</span>
-        </button>
+        </AppButton>
       </div>
     </div>
   </div>
@@ -335,6 +394,7 @@ import { isImage, isPdf, formatSize } from '@/utils/formatters';
 import { useBatchDownload } from '@/composables/useBatchDownload';
 import { useI18n } from '@/composables/useI18n';
 import { useResponsive } from '@/composables/useResponsive';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 

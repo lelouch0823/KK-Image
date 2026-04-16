@@ -1,36 +1,23 @@
 <template>
-  <div
-    v-if="modelValue"
-    class="fixed inset-0 z-50 overflow-hidden"
-    aria-labelledby="slide-over-title"
-    role="dialog"
-    aria-modal="true"
+  <Modal
+    :model-value="modelValue"
+    size="lg"
+    body-class="!p-0"
+    @update:model-value="handleModelValueUpdate"
+    @close="close"
   >
-    <div class="absolute inset-0 overflow-hidden">
-      <!-- 背景遮罩 -->
-      <div
-        class="bg-opacity-75 absolute inset-0 bg-gray-500 transition-opacity"
-        aria-hidden="true"
-        @click="close"
-      ></div>
-
-      <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
-        <div
-          class="pointer-events-auto flex size-full  transform flex-col bg-(--bg-card) shadow-xl transition duration-500 ease-in-out sm:w-screen sm:max-w-md sm:duration-700"
-        >
-          <CustomerDetailContent 
-            :customer="customer"
-            @close="close"
-            @refresh="$emit('refresh')"
-            @edit="(c) => $emit('edit', c)"
-          />
-        </div>
-      </div>
-    </div>
-  </div>
+    <CustomerDetailContent
+      class="min-h-[70vh] sm:min-h-[36rem]"
+      :customer="customer"
+      @close="close"
+      @refresh="$emit('refresh')"
+      @edit="(c) => $emit('edit', c)"
+    />
+  </Modal>
 </template>
 
 <script setup>
+import Modal from '@/components/ui/Modal.vue';
 import CustomerDetailContent from './CustomerDetailContent.vue';
 
 defineProps({
@@ -42,5 +29,9 @@ const emit = defineEmits(['update:modelValue', 'refresh', 'edit']);
 
 const close = () => {
   emit('update:modelValue', false);
+};
+
+const handleModelValueUpdate = (nextValue) => {
+  emit('update:modelValue', nextValue);
 };
 </script>

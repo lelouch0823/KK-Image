@@ -2,13 +2,17 @@
   <div class="space-y-6">
     <SettingsSection
       :title="t('settings.ai.title', 'AI Configuration')"
-      :description="t('settings.ai.description', 'Manage API keys and model preferences for the AI assistant.')"
+      :description="
+        t('settings.ai.description', 'Manage API keys and model preferences for the AI assistant.')
+      "
       icon="sparkles"
     >
       <form class="space-y-6" @submit.prevent="saveSettings">
         <!-- API Provider URL -->
         <div class="space-y-2">
-          <label class="text-primary text-sm font-medium">{{ t('settings.ai.apiUrl', 'API Base URL') }}</label>
+          <label class="text-primary text-sm font-medium">{{
+            t('settings.ai.apiUrl', 'API Base URL')
+          }}</label>
           <div class="relative">
             <AppInput
               v-model="form.AI_API_URL"
@@ -16,12 +20,18 @@
               placeholder="https://api.openai.com/v1"
             />
           </div>
-          <p class="text-secondary text-xs">{{ t('settings.ai.apiUrlDesc', 'The base URL for the OpenAI-compatible API provider.') }}</p>
+          <p class="text-secondary text-xs">
+            {{
+              t('settings.ai.apiUrlDesc', 'The base URL for the OpenAI-compatible API provider.')
+            }}
+          </p>
         </div>
 
         <!-- API Key -->
         <div class="space-y-2">
-          <label class="text-primary text-sm font-medium">{{ t('settings.ai.apiKey', 'API Key') }}</label>
+          <label class="text-primary text-sm font-medium">{{
+            t('settings.ai.apiKey', 'API Key')
+          }}</label>
           <div class="relative">
             <AppInput
               v-model="form.AI_API_KEY"
@@ -29,60 +39,102 @@
               class="pr-10"
               placeholder="sk-..."
             />
-            <button
+            <AppButton
               type="button"
-              class="absolute top-2.5 right-3 text-(--text-muted) transition-colors hover:text-(--text-main)"
+              variant="ghost"
+              size="sm"
+              class="absolute top-1.5 right-2 !h-7 !w-7 !px-0"
               @click="showKey = !showKey"
             >
-              <AppIcon v-if="!showKey" name="eye" class="size-5" />
-              <AppIcon v-else name="eye-slash" class="size-5" />
-            </button>
+              <template #icon-left>
+                <AppIcon v-if="!showKey" name="eye" class="size-5" />
+                <AppIcon v-else name="eye-slash" class="size-5" />
+              </template>
+            </AppButton>
           </div>
-          <p class="text-secondary text-xs">{{ t('settings.ai.apiKeyDesc', 'Your API key is stored securely in the database.') }}</p>
+          <p class="text-secondary text-xs">
+            {{ t('settings.ai.apiKeyDesc', 'Your API key is stored securely in the database.') }}
+          </p>
         </div>
 
-        <div class="space-y-2 rounded-lg border border-(--border-color) bg-(--bg-card) p-3">
+        <AppCard padding="p-3" class="space-y-2">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <p class="text-sm font-medium text-(--text-main)">{{ t('settings.ai.dynamicFallback', 'Dynamic Fallback') }}</p>
+              <p class="text-sm font-medium text-(--text-main)">
+                {{ t('settings.ai.dynamicFallback', 'Dynamic Fallback') }}
+              </p>
               <p class="mt-1 text-xs text-(--text-secondary)">
-                {{ t('settings.ai.dynamicFallbackDesc', 'When enabled, fallback models are auto-ranked by recent failure rate and latency window. Primary model remains fixed.') }}
+                {{
+                  t(
+                    'settings.ai.dynamicFallbackDesc',
+                    'When enabled, fallback models are auto-ranked by recent failure rate and latency window. Primary model remains fixed.'
+                  )
+                }}
               </p>
             </div>
-            <label class="inline-flex cursor-pointer items-center">
-              <input
-                v-model="dynamicFallbackEnabled"
-                type="checkbox"
-                class="peer sr-only"
-              />
-              <span class="peer-checked:bg-primary h-6 w-11 rounded-full bg-(--bg-muted) transition-colors"></span>
-            </label>
+            <AppButton
+              type="button"
+              :variant="dynamicFallbackEnabled ? 'primary' : 'secondary'"
+              size="sm"
+              :text="
+                dynamicFallbackEnabled
+                  ? t('common.enabled', 'Enabled')
+                  : t('common.disabled', 'Disabled')
+              "
+              @click="dynamicFallbackEnabled = !dynamicFallbackEnabled"
+            />
           </div>
 
           <div class="pt-2">
-            <label class="text-primary text-xs font-medium">{{ t('settings.ai.healthWindow', 'Health Window') }}</label>
-            <input
+            <label class="text-primary text-xs font-medium">{{
+              t('settings.ai.healthWindow', 'Health Window')
+            }}</label>
+            <AppInput
               v-model.number="form.AI_MODEL_HEALTH_WINDOW"
               :disabled="!dynamicFallbackEnabled"
               type="number"
               min="5"
               max="200"
-              class="focus:border-primary focus:ring-primary/20 focus:ring-1 focus:outline-none mt-1 w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-xs text-(--text-main) disabled:cursor-not-allowed disabled:opacity-50"
+              size="sm"
+              class="mt-1"
             />
-            <p class="mt-1 text-xs text-(--text-muted)">{{ t('settings.ai.healthWindowHint', 'Use 5-200 recent requests per model for failure/latency scoring.') }}</p>
+            <p class="mt-1 text-xs text-(--text-muted)">
+              {{
+                t(
+                  'settings.ai.healthWindowHint',
+                  'Use 5-200 recent requests per model for failure/latency scoring.'
+                )
+              }}
+            </p>
           </div>
-        </div>
+        </AppCard>
 
         <!-- Models -->
         <div class="space-y-2">
-          <label class="text-primary text-sm font-medium">{{ t('settings.ai.models', 'Model List') }}</label>
-          <p class="text-secondary text-xs">{{ t('settings.ai.modelListDesc', 'Select models from fetched list. The first one has highest priority.') }}</p>
+          <label class="text-primary text-sm font-medium">{{
+            t('settings.ai.models', 'Model List')
+          }}</label>
           <p class="text-secondary text-xs">
-            {{ t('settings.ai.orderHint', 'Sort from top to bottom by priority. If the primary model fails or is rate-limited, AI will automatically fall back to the next model.') }}
+            {{
+              t(
+                'settings.ai.modelListDesc',
+                'Select models from fetched list. The first one has highest priority.'
+              )
+            }}
+          </p>
+          <p class="text-secondary text-xs">
+            {{
+              t(
+                'settings.ai.orderHint',
+                'Sort from top to bottom by priority. If the primary model fails or is rate-limited, AI will automatically fall back to the next model.'
+              )
+            }}
           </p>
 
-          <div class="rounded-lg border border-(--border-color) bg-(--bg-card) p-3">
-            <p class="mb-2 text-xs font-medium text-(--text-secondary)">{{ t('settings.ai.selectedModels', 'Selected Models') }}</p>
+          <AppCard padding="p-3">
+            <p class="mb-2 text-xs font-medium text-(--text-secondary)">
+              {{ t('settings.ai.selectedModels', 'Selected Models') }}
+            </p>
             <div
               v-if="selectedModels.length > 0"
               data-testid="selected-model-grid"
@@ -101,7 +153,10 @@
                 <div class="flex items-start justify-between gap-2">
                   <div class="min-w-0 flex-1">
                     <div class="flex min-w-0 items-center gap-2">
-                      <span class="cursor-grab text-(--text-muted) active:cursor-grabbing" :title="t('settings.ai.dragToSort', 'Drag to sort')">
+                      <span
+                        class="cursor-grab text-(--text-muted) active:cursor-grabbing"
+                        :title="t('settings.ai.dragToSort', 'Drag to sort')"
+                      >
                         <AppIcon name="bars-3" class="size-4" />
                       </span>
                       <span class="truncate font-mono text-xs">{{ model }}</span>
@@ -109,73 +164,96 @@
                     <div class="mt-2 flex flex-wrap items-center gap-1.5">
                       <span
                         class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
-                        :class="index === 0
-                          ? 'bg-primary/15 text-primary'
-                          : 'bg-(--bg-card) text-(--text-secondary)'"
+                        :class="
+                          index === 0
+                            ? 'bg-primary/15 text-primary'
+                            : 'bg-(--bg-card) text-(--text-secondary)'
+                        "
                       >
-                        {{ index === 0 ? t('settings.ai.primaryModel', 'Primary') : t('settings.ai.fallbackModel', { index }) }}
+                        {{
+                          index === 0
+                            ? t('settings.ai.primaryModel', 'Primary')
+                            : t('settings.ai.fallbackModel', { index })
+                        }}
                       </span>
                       <span
                         class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
-                        :class="isVisionModel(model)
-                          ? 'bg-success/15 text-success'
-                          : 'bg-warning/15 text-warning'"
+                        :class="
+                          isVisionModel(model)
+                            ? 'bg-success/15 text-success'
+                            : 'bg-warning/15 text-warning'
+                        "
                       >
-                        {{ isVisionModel(model)
-                          ? t('settings.ai.visionSupported', '支持图片')
-                          : t('settings.ai.visionLikelyUnsupported', '可能仅文本') }}
+                        {{
+                          isVisionModel(model)
+                            ? t('settings.ai.visionSupported', '支持图片')
+                            : t('settings.ai.visionLikelyUnsupported', '可能仅文本')
+                        }}
                       </span>
                     </div>
                   </div>
                   <div class="flex shrink-0 items-center gap-1">
-                    <button
+                    <AppButton
                       v-if="index > 0"
                       data-testid="set-primary-btn"
                       type="button"
-                      class="cursor-pointer rounded px-2 py-1 text-[10px] text-(--text-secondary) transition-colors hover:bg-(--bg-card) hover:text-(--text-main)"
+                      variant="ghost"
+                      size="sm"
+                      class="!h-6 !px-2 text-[10px]"
+                      :text="t('settings.ai.setPrimary', 'Set Primary')"
                       @click="setPrimaryModel(model)"
-                    >
-                      {{ t('settings.ai.setPrimary', 'Set Primary') }}
-                    </button>
-                    <button
+                    />
+                    <AppButton
                       type="button"
-                      class="cursor-pointer rounded p-0.5 text-(--text-muted) transition-colors hover:bg-(--bg-card) hover:text-(--text-main)"
+                      variant="ghost"
+                      size="sm"
+                      class="!h-6 !w-6 !px-0"
                       @click="removeSelectedModel(model)"
                     >
-                      <AppIcon name="x-mark" class="size-3.5" />
-                    </button>
+                      <template #icon-left>
+                        <AppIcon name="x-mark" class="size-3.5" />
+                      </template>
+                    </AppButton>
                   </div>
                 </div>
               </div>
             </div>
-            <p v-else class="text-xs text-(--text-muted)">{{ t('settings.ai.noSelectedModels', 'No model selected yet') }}</p>
-          </div>
+            <p v-else class="text-xs text-(--text-muted)">
+              {{ t('settings.ai.noSelectedModels', 'No model selected yet') }}
+            </p>
+          </AppCard>
 
-          <div class="flex flex-wrap items-center gap-2 pt-1">
-            <button
+          <ActionBar class="border-none bg-transparent px-0 py-0 shadow-none">
+            <AppButton
               type="button"
               :disabled="modelFetching || !form.AI_API_URL || !form.AI_API_KEY"
-              class="inline-flex items-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-xs font-medium text-(--text-main) transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-50"
+              variant="white"
+              size="sm"
+              :loading="modelFetching"
+              :text="t('settings.ai.fetchModels', 'Fetch Models')"
               @click="fetchModels"
             >
-              <AppIcon v-if="modelFetching" name="spinner" class="size-4 animate-spin" />
-              <AppIcon v-else name="magnifying-glass" class="size-4" />
-              {{ t('settings.ai.fetchModels', 'Fetch Models') }}
-            </button>
+              <template v-if="!modelFetching" #icon-left>
+                <AppIcon name="magnifying-glass" class="size-4" />
+              </template>
+            </AppButton>
 
-            <button
+            <AppButton
               type="button"
               :disabled="testing || !form.AI_API_URL || !form.AI_API_KEY"
-              class="inline-flex items-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-xs font-medium text-(--text-main) transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-50"
+              variant="white"
+              size="sm"
+              :loading="testing"
+              :text="t('settings.ai.testConnection', 'Test Connectivity')"
               @click="testConnection"
             >
-              <AppIcon v-if="testing" name="spinner" class="size-4 animate-spin" />
-              <AppIcon v-else name="check-badge" class="size-4" />
-              {{ t('settings.ai.testConnection', 'Test Connectivity') }}
-            </button>
-          </div>
+              <template v-if="!testing" #icon-left>
+                <AppIcon name="check-badge" class="size-4" />
+              </template>
+            </AppButton>
+          </ActionBar>
 
-          <div v-if="availableModels.length > 0" class="rounded-lg border border-(--border-color) bg-(--bg-muted) p-3">
+          <AppCard v-if="availableModels.length > 0" padding="p-3" class="bg-(--bg-muted)">
             <p class="mb-2 text-xs font-medium text-(--text-secondary)">
               {{ t('settings.ai.fetchedModels', 'Fetched Models') }} ({{ availableModels.length }})
             </p>
@@ -189,15 +267,18 @@
                   size="sm"
                 />
               </div>
-              <button
+              <AppButton
                 type="button"
                 :disabled="!selectedFetchedModel"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-xs font-medium text-(--text-main) transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-50"
+                variant="white"
+                size="sm"
+                :text="t('settings.ai.addModel', 'Add Model')"
                 @click="appendSelectedModel"
               >
-                <AppIcon name="plus" class="size-3.5" />
-                {{ t('settings.ai.addModel', 'Add Model') }}
-              </button>
+                <template #icon-left>
+                  <AppIcon name="plus" class="size-3.5" />
+                </template>
+              </AppButton>
             </div>
 
             <div class="flex flex-wrap gap-1.5">
@@ -209,34 +290,45 @@
                 <span>{{ model }}</span>
                 <span
                   class="rounded px-1 py-0.5 text-[10px] font-semibold"
-                  :class="isVisionModel(model)
-                    ? 'bg-success/15 text-success'
-                    : 'bg-warning/15 text-warning'"
+                  :class="
+                    isVisionModel(model)
+                      ? 'bg-success/15 text-success'
+                      : 'bg-warning/15 text-warning'
+                  "
                 >
-                  {{ isVisionModel(model)
-                    ? t('settings.ai.visionSupported', '支持图片')
-                    : t('settings.ai.visionLikelyUnsupported', '可能仅文本') }}
+                  {{
+                    isVisionModel(model)
+                      ? t('settings.ai.visionSupported', '支持图片')
+                      : t('settings.ai.visionLikelyUnsupported', '可能仅文本')
+                  }}
                 </span>
-                <button
+                <AppButton
                   type="button"
-                  class="rounded px-1 text-[10px] text-(--text-secondary) hover:bg-(--bg-hover) hover:text-(--text-main)"
+                  variant="link"
+                  size="sm"
+                  class="!h-auto !px-1 text-[10px]"
+                  :text="t('settings.ai.setPrimary', 'Set Primary')"
                   @click="pinModelAsPrimary(model)"
-                >
-                  {{ t('settings.ai.setPrimary', 'Set Primary') }}
-                </button>
+                />
               </span>
             </div>
-          </div>
+          </AppCard>
 
           <div
             v-if="connectionResult"
             class="rounded-lg border p-3 text-xs"
-            :class="connectionResult.ok
-              ? 'border-success/30 bg-success/10 text-(--text-main)'
-              : 'border-danger/30 bg-danger/10 text-(--text-main)'"
+            :class="
+              connectionResult.ok
+                ? 'border-success/30 bg-success/10 text-(--text-main)'
+                : 'border-danger/30 bg-danger/10 text-(--text-main)'
+            "
           >
             <p class="font-medium">
-              {{ connectionResult.ok ? t('settings.ai.testSuccess', 'Connection successful') : t('settings.ai.testFailed', 'Connection failed') }}
+              {{
+                connectionResult.ok
+                  ? t('settings.ai.testSuccess', 'Connection successful')
+                  : t('settings.ai.testFailed', 'Connection failed')
+              }}
             </p>
             <p v-if="connectionResult.message" class="mt-1">{{ connectionResult.message }}</p>
             <p v-else class="mt-1">
@@ -247,19 +339,24 @@
             </p>
           </div>
 
-          <div class="rounded-lg border border-(--border-color) bg-(--bg-card) p-3">
+          <AppCard padding="p-3">
             <div class="mb-2 flex items-center justify-between gap-2">
-              <p class="text-xs font-medium text-(--text-secondary)">{{ t('settings.ai.healthStats', 'Model Health Stats') }}</p>
-              <button
+              <p class="text-xs font-medium text-(--text-secondary)">
+                {{ t('settings.ai.healthStats', 'Model Health Stats') }}
+              </p>
+              <AppButton
                 type="button"
-                class="inline-flex items-center gap-1 rounded border border-(--border-color) px-2 py-1 text-[11px] text-(--text-main) hover:bg-(--bg-hover)"
                 :disabled="healthLoading"
+                :loading="healthLoading"
+                variant="white"
+                size="sm"
+                :text="t('settings.ai.refreshHealth', 'Refresh')"
                 @click="fetchHealthStats"
               >
-                <AppIcon v-if="healthLoading" name="spinner" class="size-3.5 animate-spin" />
-                <AppIcon v-else name="arrow-path" class="size-3.5" />
-                {{ t('settings.ai.refreshHealth', 'Refresh') }}
-              </button>
+                <template v-if="!healthLoading" #icon-left>
+                  <AppIcon name="arrow-path" class="size-3.5" />
+                </template>
+              </AppButton>
             </div>
             <div
               v-if="healthStats.length > 0"
@@ -272,26 +369,35 @@
                 class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-2.5 py-2 text-[11px]"
               >
                 <p class="truncate font-mono text-xs text-(--text-main)">{{ item.model }}</p>
-                <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-(--text-secondary)">
-                  <span>{{ t('settings.ai.failureRate', 'Fail') }} {{ item.failureRateLabel }}</span>
-                  <span>{{ t('settings.ai.avgLatency', 'Latency') }} {{ item.avgLatencyLabel }}</span>
+                <div
+                  class="mt-2 flex flex-wrap items-center justify-between gap-1 text-(--text-secondary)"
+                >
+                  <span
+                    >{{ t('settings.ai.failureRate', 'Fail') }} {{ item.failureRateLabel }}</span
+                  >
+                  <span
+                    >{{ t('settings.ai.avgLatency', 'Latency') }} {{ item.avgLatencyLabel }}</span
+                  >
                 </div>
               </div>
             </div>
-            <p v-else class="text-xs text-(--text-muted)">{{ t('settings.ai.healthEmpty', 'No health data yet') }}</p>
-          </div>
+            <p v-else class="text-xs text-(--text-muted)">
+              {{ t('settings.ai.healthEmpty', 'No health data yet') }}
+            </p>
+          </AppCard>
         </div>
-        
+
         <div class="flex justify-end pt-4">
-           <button
+          <AppButton
             type="submit"
-            :disabled="saving"
-            class="bg-primary inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50"
+            variant="primary"
+            :loading="saving"
+            :text="saving ? t('settings.saving', 'Saving...') : t('settings.save', 'Save Changes')"
           >
-            <AppIcon v-if="saving" name="spinner" class="size-4 animate-spin" />
-            <span v-if="saving">{{ t('settings.saving', 'Saving...') }}</span>
-            <span v-else>{{ t('settings.save', 'Save Changes') }}</span>
-          </button>
+            <template v-if="!saving" #icon-left>
+              <AppIcon name="check-badge" class="size-4" />
+            </template>
+          </AppButton>
         </div>
       </form>
     </SettingsSection>
@@ -303,7 +409,10 @@ import { ref, onMounted, reactive, computed } from 'vue';
 import SettingsSection from '../SettingsSection.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppCard from '@/components/ui/AppCard.vue';
 import AppSelect from '@/components/ui/Select.vue';
+import ActionBar from '@/design-system/composed/ActionBar.vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
@@ -342,7 +451,7 @@ const fetchSettings = async () => {
     loading.value = true;
     const res = await authFetch('/api/manage/settings');
     const json = await res.json();
-    
+
     if (json.success && json.data && json.data.ai) {
       const ai = json.data.ai;
       form.AI_API_URL = ai.AI_API_URL || '';
@@ -366,7 +475,11 @@ const saveSettings = async () => {
       { key: 'AI_API_URL', value: form.AI_API_URL, category: 'ai' },
       { key: 'AI_API_KEY', value: form.AI_API_KEY, category: 'ai' },
       { key: 'AI_MODELS', value: form.AI_MODELS, category: 'ai' },
-      { key: 'AI_DYNAMIC_FALLBACK_ENABLED', value: String(form.AI_DYNAMIC_FALLBACK_ENABLED), category: 'ai' },
+      {
+        key: 'AI_DYNAMIC_FALLBACK_ENABLED',
+        value: String(form.AI_DYNAMIC_FALLBACK_ENABLED),
+        category: 'ai',
+      },
       { key: 'AI_MODEL_HEALTH_WINDOW', value: String(form.AI_MODEL_HEALTH_WINDOW), category: 'ai' },
     ];
 
@@ -375,7 +488,7 @@ const saveSettings = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ settings: settingsToSave }),
     });
-    
+
     const json = await res.json();
     if (json.success) {
       addToast({ message: t('settings.ai.saveSuccess', 'AI settings saved'), type: 'success' });
@@ -411,7 +524,10 @@ const appendSelectedModel = () => {
 
   const current = splitModels(form.AI_MODELS);
   if (current.includes(model)) {
-    addToast({ type: 'info', message: t('settings.ai.modelExists', 'Model already exists in list') });
+    addToast({
+      type: 'info',
+      message: t('settings.ai.modelExists', 'Model already exists in list'),
+    });
     return;
   }
 
@@ -436,7 +552,10 @@ const pinModelAsPrimary = (targetModel) => {
   const models = splitModels(form.AI_MODELS).filter((item) => item !== targetModel);
   models.unshift(targetModel);
   form.AI_MODELS = [...new Set(models)].join(', ');
-  addToast({ type: 'success', message: t('settings.ai.primarySetSuccess', 'Primary model updated') });
+  addToast({
+    type: 'success',
+    message: t('settings.ai.primarySetSuccess', 'Primary model updated'),
+  });
 };
 
 const onDragStart = (index) => {
@@ -480,10 +599,16 @@ const fetchModels = async () => {
     if (models.length > 0 && selectedModels.value.length === 0) {
       form.AI_MODELS = models.join(', ');
     }
-    addToast({ type: 'success', message: t('settings.ai.fetchModelsSuccess', 'Models fetched successfully') });
+    addToast({
+      type: 'success',
+      message: t('settings.ai.fetchModelsSuccess', 'Models fetched successfully'),
+    });
     fetchHealthStats();
   } catch (e) {
-    addToast({ type: 'error', message: e.message || t('settings.ai.fetchModelsFailed', 'Failed to fetch models') });
+    addToast({
+      type: 'error',
+      message: e.message || t('settings.ai.fetchModelsFailed', 'Failed to fetch models'),
+    });
   } finally {
     modelFetching.value = false;
   }
@@ -539,7 +664,9 @@ const fetchHealthStats = async () => {
     const res = await authFetch(`/api/manage/settings/ai/health${query}`);
     const json = await res.json();
     if (!json.success) {
-      throw new Error(json.error || t('settings.ai.healthLoadFailed', 'Failed to load health stats'));
+      throw new Error(
+        json.error || t('settings.ai.healthLoadFailed', 'Failed to load health stats')
+      );
     }
 
     const rows = Array.isArray(json.data?.models) ? json.data.models : [];
@@ -553,7 +680,10 @@ const fetchHealthStats = async () => {
       };
     });
   } catch (e) {
-    addToast({ type: 'error', message: e.message || t('settings.ai.healthLoadFailed', 'Failed to load health stats') });
+    addToast({
+      type: 'error',
+      message: e.message || t('settings.ai.healthLoadFailed', 'Failed to load health stats'),
+    });
   } finally {
     healthLoading.value = false;
   }

@@ -12,20 +12,22 @@
         </div>
       </div>
 
-      <button
+      <AppButton
         v-if="hasFiles"
         :disabled="downloading"
-        class="bg-primary flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        variant="primary"
         @click="handleDownloadAll"
       >
-        <AppIcon v-if="downloading" name="spinner" class="size-4 animate-spin" />
-        <AppIcon v-else name="arrow-down-tray" class="size-4" />
+        <template #icon-left>
+          <AppIcon v-if="downloading" name="spinner" class="size-4 animate-spin" />
+          <AppIcon v-else name="arrow-down-tray" class="size-4" />
+        </template>
         {{
           downloading
             ? `${t('spacePublic.packing')} ${downloadProgress}%`
             : t('spacePublic.downloadAllSimple')
         }}
-      </button>
+      </AppButton>
     </div>
 
     <!-- Masonry Grid -->
@@ -88,12 +90,14 @@
         class="size-full max-h-screen max-w-screen p-4"
         rounded="none"
       />
-      <button
-        class="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+      <AppButton
+        variant="ghost"
+        size="sm"
+        class="absolute top-4 right-4 rounded-full bg-white/10 text-white hover:!bg-white/20 hover:!text-white"
         @click="lightbox.visible = false"
       >
         <AppIcon name="x-mark" class="size-6" />
-      </button>
+      </AppButton>
     </div>
   </div>
 </template>
@@ -103,6 +107,7 @@ import { ref, computed } from 'vue';
 import { isImage } from '@/utils/formatters';
 import { useBatchDownload } from '@/composables/useBatchDownload';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 

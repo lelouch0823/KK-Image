@@ -33,7 +33,7 @@
 
 - public viewer 结构未收敛到 `PublicViewerShell`，自己实现了页面容器、媒体区、信息栏、移动端 sticky CTA。证据：`src/components/space/SpaceProductDetail.vue:2-4`、`187-329`；基线见 `src/design-system/patterns/PublicViewerShell.vue:1-11`。
 - viewer 原语重复：文件预览、PDF 预览、缩略图导航、移动端底栏、下载 CTA 都是本地实现；同仓库已有 `Lightbox` 和公共 gate/pattern。证据：`68-84`、`123-183`、`255-327`。
-- 视觉 token 违规较多：`text-red-500`、`bg-black/50`、`bg-white`、`ring-[var(--color-primary-light,rgba(...))]`、`border-[var(...)]`、`shadow-[...]`、`bg-[var(...)]`。证据：`26`、`79`、`116`、`147-160`、`209-210`、`260`、`292`、`309`、`318`。
+- 视觉 token 违规较多：`text-red-500`、`bg-black/50`、`bg-white`、`ring-[ var(--color-primary-light,rgba(...)) ]`、`border-[ var(...) ]`、`shadow-[ ... ]`、`bg-[ var(...) ]`。证据：`26`、`79`、`116`、`147-160`、`209-210`、`260`、`292`、`309`、`318`。
 - 基础控件绕过：多处原生 `button`/`a` 承担主次操作，没有经过 `AppButton`。证据：`37-64`、`78-83`、`100-108`、`123-135`、`154-163`、`266-279`、`315-326`。
 - 修复建议：外层换到 `PublicViewerShell`，图片查看切到 `Lightbox`，下载与切换动作改用 `AppButton`，把 sticky action bar、thumbnail rail、PDF card 抽成 viewer 级 composed primitives。
 

@@ -2,26 +2,14 @@
   <div
     ref="containerRef"
     class="app-image"
-    :class="[
-      containerClasses,
-      { 'app-image--lazy': lazy && !isIntersecting },
-    ]"
+    :class="[containerClasses, { 'app-image--lazy': lazy && !isIntersecting }]"
     :style="containerStyle"
   >
     <!-- 占位层 (加载中或懒加载未触发) -->
-    <div
-      v-if="showPlaceholder"
-      class="app-image__placeholder"
-      :style="placeholderStyle"
-    >
+    <div v-if="showPlaceholder" class="app-image__placeholder" :style="placeholderStyle">
       <slot name="placeholder">
         <!-- Blurhash 占位 -->
-        <img
-          v-if="blurhashDataUrl"
-          :src="blurhashDataUrl"
-          class="app-image__blurhash"
-          alt=""
-        />
+        <img v-if="blurhashDataUrl" :src="blurhashDataUrl" class="app-image__blurhash" alt="" />
         <!-- 骨架屏占位 -->
         <div v-else class="app-image__skeleton" />
       </slot>
@@ -47,12 +35,7 @@
         <div class="app-image__error-content">
           <!-- Broken Image Icon -->
           <AppIcon name="exclamation-circle" class="app-image__error-icon" />
-          <button
-            v-if="retryable"
-            type="button"
-            class="app-image__retry-btn"
-            @click="handleRetry"
-          >
+          <button v-if="retryable" type="button" class="app-image__retry-btn" @click="handleRetry">
             {{ t('common.retry') }}
           </button>
         </div>
@@ -62,8 +45,12 @@
     <!-- 业务状态角标 -->
     <div v-if="status && state === 'loaded'" class="app-image__badge" :class="badgeClass">
       <slot name="badge">
-        <span v-if="status === 'blocked'" class="app-image__badge-blocked">🚫</span>
-        <span v-else-if="status === 'liked'" class="app-image__badge-liked">❤️</span>
+        <span v-if="status === 'blocked'" class="app-image__badge-blocked">
+          <AppIcon name="no-symbol" class="size-3.5" />
+        </span>
+        <span v-else-if="status === 'liked'" class="app-image__badge-liked">
+          <AppIcon name="heart" class="size-3.5" />
+        </span>
         <span v-else-if="status === 'new'" class="app-image__badge-new">NEW</span>
         <span v-else class="app-image__badge-custom">{{ status }}</span>
       </slot>
@@ -169,16 +156,14 @@ const containerClasses = computed(() => [
 const containerStyle = computed(() => {
   const style = {};
   if (props.width) style.width = typeof props.width === 'number' ? `${props.width}px` : props.width;
-  if (props.height) style.height = typeof props.height === 'number' ? `${props.height}px` : props.height;
+  if (props.height)
+    style.height = typeof props.height === 'number' ? `${props.height}px` : props.height;
   if (props.aspectRatio) style.aspectRatio = props.aspectRatio;
   return style;
 });
 
 // 图片类名
-const imageClasses = computed(() => [
-  'app-image__img',
-  `app-image__img--fit-${props.fit}`,
-]);
+const imageClasses = computed(() => ['app-image__img', `app-image__img--fit-${props.fit}`]);
 
 const nativeLoading = computed(() => (props.lazy ? 'lazy' : 'eager'));
 
@@ -199,7 +184,8 @@ const badgeClass = computed(() => `app-image__badge--${props.status}`);
 let observer = null;
 
 onMounted(() => {
-  const canObserve = typeof globalThis !== 'undefined' && typeof globalThis.IntersectionObserver === 'function';
+  const canObserve =
+    typeof globalThis !== 'undefined' && typeof globalThis.IntersectionObserver === 'function';
   if (props.lazy && containerRef.value && canObserve) {
     observer = new IntersectionObserver(
       (entries) => {
@@ -221,10 +207,13 @@ onUnmounted(() => {
 });
 
 // 监听 src 变化
-watch(() => [props.src, props.fallback], () => {
-  state.value = 'idle';
-  usingFallback.value = false;
-});
+watch(
+  () => [props.src, props.fallback],
+  () => {
+    state.value = 'idle';
+    usingFallback.value = false;
+  }
+);
 
 // 监听 shouldLoad 变化
 watch(shouldLoad, (val) => {
@@ -246,7 +235,7 @@ function handleError(e) {
     state.value = 'loading';
     return;
   }
-  
+
   // 避免重复触发
   if (state.value === 'error') return;
 
@@ -270,13 +259,27 @@ function handleRetry() {
 }
 
 /* 圆角级别 */
-.app-image--rounded-none { border-radius: 0; }
-.app-image--rounded-sm { border-radius: 0.125rem; }
-.app-image--rounded-md { border-radius: 0.375rem; }
-.app-image--rounded-lg { border-radius: 0.5rem; }
-.app-image--rounded-xl { border-radius: 0.75rem; }
-.app-image--rounded-2xl { border-radius: 1rem; }
-.app-image--rounded-full { border-radius: 9999px; }
+.app-image--rounded-none {
+  border-radius: 0;
+}
+.app-image--rounded-sm {
+  border-radius: 0.125rem;
+}
+.app-image--rounded-md {
+  border-radius: 0.375rem;
+}
+.app-image--rounded-lg {
+  border-radius: 0.5rem;
+}
+.app-image--rounded-xl {
+  border-radius: 0.75rem;
+}
+.app-image--rounded-2xl {
+  border-radius: 1rem;
+}
+.app-image--rounded-full {
+  border-radius: 9999px;
+}
 
 /* 占位层 */
 .app-image__placeholder {
@@ -305,19 +308,18 @@ function handleRetry() {
 .app-image__skeleton {
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    var(--bg-muted) 0%,
-    var(--bg-hover) 50%,
-    var(--bg-muted) 100%
-  );
+  background: linear-gradient(90deg, var(--bg-muted) 0%, var(--bg-hover) 50%, var(--bg-muted) 100%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s infinite;
 }
 
 @keyframes skeleton-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* 实际图片 */
@@ -331,11 +333,21 @@ function handleRetry() {
   transition: none;
 }
 
-.app-image__img--fit-cover { object-fit: cover; }
-.app-image__img--fit-contain { object-fit: contain; }
-.app-image__img--fit-fill { object-fit: fill; }
-.app-image__img--fit-none { object-fit: none; }
-.app-image__img--fit-scale-down { object-fit: scale-down; }
+.app-image__img--fit-cover {
+  object-fit: cover;
+}
+.app-image__img--fit-contain {
+  object-fit: contain;
+}
+.app-image__img--fit-fill {
+  object-fit: fill;
+}
+.app-image__img--fit-none {
+  object-fit: none;
+}
+.app-image__img--fit-scale-down {
+  object-fit: scale-down;
+}
 
 /* 错误态 */
 .app-image__error {
@@ -350,10 +362,10 @@ function handleRetry() {
 
 /* 增加错误态的视觉区分 (Error visual distinction) */
 .app-image--error .app-image__error {
-    background-color: var(--bg-muted);
+  background-color: var(--bg-muted);
 }
 :root.dark .app-image--error .app-image__error {
-    background-color: var(--color-danger-bg); /* Red tint in dark mode */
+  background-color: var(--color-danger-bg); /* Red tint in dark mode */
 }
 
 /* 针对错误态更明显的图标颜色 */
@@ -385,7 +397,8 @@ function handleRetry() {
   width: 1.5rem;
   height: 1.5rem;
   font-size: 0.875rem;
-  background-color: rgba(239, 68, 68, 0.9);
+  color: var(--text-inverse);
+  background-color: var(--color-danger);
   border-radius: 9999px;
 }
 
@@ -396,7 +409,8 @@ function handleRetry() {
   width: 1.5rem;
   height: 1.5rem;
   font-size: 0.75rem;
-  background-color: rgba(236, 72, 153, 0.9);
+  color: var(--text-inverse);
+  background-color: var(--color-primary);
   border-radius: 9999px;
 }
 

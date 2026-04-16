@@ -1,7 +1,9 @@
+@import '../styles/variables.scss';
+
 :host {
   display: block;
 }
 
 t-tab-bar {
-  --td-tab-bar-border-color: #e2e8f0;
+  --td-tab-bar-border-color: #{$border-color};
 }

@@ -6,71 +6,81 @@
     @close="$emit('close-product-detail')"
   />
 
-  <Teleport to="body">
-    <transition name="fade">
+  <Modal
+    :model-value="showShortageConfirm"
+    size="lg"
+    :closable="false"
+    body-class="!p-0"
+    @update:model-value="handleShortageVisibilityChange"
+  >
+    <template #header>
       <div
-        v-if="showShortageConfirm"
-        class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+        data-testid="purchase-order-shortage-confirm-shell"
+        class="flex items-start justify-between gap-3"
       >
-        <div class="absolute inset-0 bg-(--color-overlay-dim) backdrop-blur-sm" @click="$emit('close-shortage-confirm')"></div>
-        <div
-          class="border-warning/20 relative w-full max-w-lg overflow-hidden rounded-[1.8rem] border bg-(--color-modal-bg) p-6 shadow-[0_28px_80px_-42px_rgba(15,23,42,0.42)]"
-        >
-          <div
-            class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.12),transparent_28%)]"
-          ></div>
-          <div class="relative mb-4 flex items-center gap-3">
-            <div class="bg-warning/10 flex size-10 items-center justify-center rounded-full">
-              <AppIcon name="exclamation-triangle" class="text-warning size-5" />
-            </div>
-            <div>
-              <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
-                Quantity Guardrail
-              </p>
-              <h3 class="mt-1 text-base font-bold text-(--text-main)">
-                {{ t('purchaseOrder.form.confirmShortageTitle') }}
-              </h3>
-            </div>
+        <div class="flex items-start gap-3">
+          <div class="bg-warning/10 flex size-10 items-center justify-center rounded-full">
+            <AppIcon name="exclamation-triangle" class="text-warning size-5" />
           </div>
-          <p class="relative mb-5 text-sm text-(--text-secondary)">
-            {{ t('purchaseOrder.form.confirmShortage') }}
-          </p>
-          <div
-            class="border-warning/20 bg-warning/5 relative mb-5 max-h-40 overflow-y-auto rounded-xl border p-3"
-          >
-            <div
-              v-for="item in shortageItems"
-              :key="`${item.product_id || 'p'}-${item.variant_id || 'v'}`"
-              class="flex items-center justify-between py-1 text-sm"
-            >
-              <span class="max-w-[70%] truncate text-(--text-main)" :title="item.product_name || '—'">
-                {{ item.product_name || '—' }}
-              </span>
-              <span class="text-danger font-mono font-semibold tabular-nums">
-                {{ item.quantity }} / {{ item.required_quantity }}
-              </span>
-            </div>
-          </div>
-          <div class="relative flex justify-end gap-3">
-            <button
-              type="button"
-              class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-(--text-secondary) hover:bg-(--bg-hover)"
-              @click="$emit('close-shortage-confirm')"
-            >
-              {{ t('common.cancel') }}
-            </button>
-            <button
-              type="button"
-              class="bg-warning cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium text-white hover:opacity-90"
-              @click="$emit('confirm-shortage-create')"
-            >
-              {{ t('purchaseOrder.form.confirmCreate') }}
-            </button>
+          <div>
+            <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
+              Quantity Guardrail
+            </p>
+            <h3 class="mt-1 text-base font-bold text-(--text-main)">
+              {{ t('purchaseOrder.form.confirmShortageTitle') }}
+            </h3>
           </div>
         </div>
+        <AppButton
+          variant="ghost"
+          size="sm"
+          class="h-9 w-9 px-0"
+          @click="$emit('close-shortage-confirm')"
+        >
+          <AppIcon name="x-mark" class="size-5" />
+        </AppButton>
       </div>
-    </transition>
-  </Teleport>
+    </template>
+
+    <div class="space-y-4 px-6 py-5">
+      <p class="text-sm text-(--text-secondary)">
+        {{ t('purchaseOrder.form.confirmShortage') }}
+      </p>
+
+      <AppCard class="border-warning/20 bg-warning/5 max-h-40 overflow-y-auto p-3">
+        <div
+          v-for="item in shortageItems"
+          :key="`${item.product_id || 'p'}-${item.variant_id || 'v'}`"
+          class="flex items-center justify-between gap-3 py-1 text-sm"
+        >
+          <span
+            class="min-w-0 flex-1 truncate text-(--text-main)"
+            :title="item.product_name || '—'"
+          >
+            {{ item.product_name || '—' }}
+          </span>
+          <span class="text-danger shrink-0 font-mono font-semibold tabular-nums">
+            {{ item.quantity }} / {{ item.required_quantity }}
+          </span>
+        </div>
+      </AppCard>
+    </div>
+
+    <template #footer>
+      <ActionBar class="!justify-end border-none bg-transparent px-0 py-0 shadow-none">
+        <AppButton variant="secondary" @click="$emit('close-shortage-confirm')">
+          {{ t('common.cancel') }}
+        </AppButton>
+        <AppButton
+          variant="outline"
+          class="border-warning/40 text-warning hover:border-warning hover:bg-warning/10 hover:text-warning"
+          @click="$emit('confirm-shortage-create')"
+        >
+          {{ t('purchaseOrder.form.confirmCreate') }}
+        </AppButton>
+      </ActionBar>
+    </template>
+  </Modal>
 
   <OrderPickerModal
     :visible="showOrderPicker"
@@ -91,7 +101,11 @@
 import OrderPickerModal from '@/components/purchase-order/OrderPickerModal.vue';
 import ProductPickerModal from '@/components/purchase-order/ProductPickerModal.vue';
 import ProductDetailModal from '@/components/product/ProductDetailModal.vue';
+import ActionBar from '@/design-system/composed/ActionBar.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppCard from '@/components/ui/AppCard.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import Modal from '@/components/ui/Modal.vue';
 
 defineProps({
   t: { type: Function, required: true },
@@ -105,7 +119,7 @@ defineProps({
   selectedVariantIdsForPicker: { type: Array, default: () => [] },
 });
 
-defineEmits([
+const emit = defineEmits([
   'close-product-detail',
   'close-shortage-confirm',
   'confirm-shortage-create',
@@ -114,4 +128,10 @@ defineEmits([
   'close-product-picker',
   'products-selected',
 ]);
+
+const handleShortageVisibilityChange = (nextVisible) => {
+  if (!nextVisible) {
+    emit('close-shortage-confirm');
+  }
+};
 </script>
