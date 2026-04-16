@@ -32,6 +32,7 @@ const rules = [
   {
     id: 'no-raw-buttons-in-remediated-web-files',
     files: [
+      'src/views/Dashboard.vue',
       'src/components/SpaceProductEditor.vue',
       'src/components/common/AIChatWidget.vue',
       'src/components/salesperson/SalespersonSelectModal.vue',
@@ -41,6 +42,7 @@ const rules = [
       'src/components/purchase-order/PurchaseOrderCreateDrawer.vue',
       'src/components/purchase-order/PurchaseOrderDetailDrawer.vue',
       'src/components/product/ProductCreateModal.vue',
+      'src/components/product/ProductDetail.vue',
       'src/components/product/ProductTable.vue',
       'src/components/product/ProductVariantTable.vue',
       'src/components/product/VariantBatchBuilderModal.vue',

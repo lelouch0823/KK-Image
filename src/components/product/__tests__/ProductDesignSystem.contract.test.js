@@ -41,5 +41,6 @@ describe('product design system migration contract', () => {
     expect(source).toContain("import AppButton from '@/components/ui/AppButton.vue'");
     expect(source).toContain('<StatePanel');
     expect(source).toContain('data-testid="associated-spaces-retry"');
+    expect(source).not.toContain('<button');
   });
 });

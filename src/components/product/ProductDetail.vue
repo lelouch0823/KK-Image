@@ -23,11 +23,12 @@
 
         <!-- Thumbnails -->
         <div v-if="images.length > 1" class="scrollbar-hide flex gap-2 overflow-x-auto p-3">
-          <button
+          <AppButton
             v-for="(img, idx) in images"
             :key="idx"
-            type="button"
-            class="focus-visible:ring-primary/20 focus-visible:ring-2 focus-visible:outline-none relative size-16 shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 transition-all"
+            variant="ghost"
+            size="sm"
+            class="focus-visible:ring-primary/20 relative !h-16 !w-16 shrink-0 overflow-hidden rounded-lg border-2 !p-0 transition-all [&_span]:contents"
             :class="
               currentIndex === idx
                 ? 'border-primary ring-primary/20 opacity-100 ring-2'
@@ -41,7 +42,7 @@
               fit="cover"
               class="size-full"
             />
-          </button>
+          </AppButton>
         </div>
       </div>
 

@@ -122,7 +122,7 @@
             class="flex size-full flex-col items-center justify-center gap-4 bg-(--bg-muted) p-8 text-center text-(--text-secondary)"
           >
             <div
-              class="flex size-16 items-center justify-center rounded-2xl bg-(--bg-card) shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+              class="flex size-16 items-center justify-center rounded-2xl bg-(--bg-card) shadow-sm"
             >
               <AppIcon name="photo" class="size-8 text-(--text-muted) opacity-50" />
             </div>
@@ -173,7 +173,7 @@
             class="relative !h-20 !w-20 flex-shrink-0 overflow-hidden rounded-lg border-2 !p-0 transition-all hover:opacity-80 active:scale-95 [&_span]:contents"
             :class="
               currentIndex === index
-                ? 'border-primary ring-2 ring-[var(--color-primary-light,rgba(59,130,246,0.2))]'
+                ? 'border-primary ring-2 ring-primary/20'
                 : 'border-transparent'
             "
             @click="
@@ -236,10 +236,10 @@
         </div>
         <div
           v-else-if="templateData.price"
-          class="text-primary flex items-center gap-3 rounded-xl border border-[var(--color-primary-light,rgba(59,130,246,0.1))] bg-[var(--color-primary-light,rgba(59,130,246,0.05))] p-4"
+          class="text-primary flex items-center gap-3 rounded-xl border border-primary/20 bg-(--color-primary-bg) p-4"
         >
           <div
-            class="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-light,rgba(59,130,246,0.15))]"
+            class="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-(--color-primary-bg)"
           >
             <AppIcon name="chat-bubble-left-right" class="size-5" />
           </div>
@@ -298,7 +298,7 @@
             v-if="currentFile"
             :href="currentFile.url"
             download
-            class="bg-primary flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-(--text-inverse) shadow-[var(--color-primary-light,rgba(59,130,246,0.2))] shadow-lg transition-all hover:-translate-y-[1px] hover:bg-(--color-primary-hover) active:translate-y-0"
+            class="bg-primary shadow-primary/10 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-(--text-inverse) shadow-lg transition-all hover:-translate-y-[1px] hover:bg-(--color-primary-hover) active:translate-y-0"
           >
             <AppIcon name="arrow-down-tray" class="size-5" />
             {{ t('spacePublic.downloadCurrent') }}
@@ -335,7 +335,7 @@
     <!-- SOTA Mobile Sticky Bottom Bar -->
     <div
       v-if="currentFile"
-      class="fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t border-(--border-color) bg-(--bg-card) p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] transition-transform duration-300 ease-in-out lg:hidden"
+      class="fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t border-(--border-color) bg-(--bg-card) p-4 pb-[env(safe-area-inset-bottom,20px)] shadow-lg transition-transform duration-300 ease-in-out lg:hidden"
       :class="isScrolling ? 'translate-y-full' : 'translate-y-0'"
     >
       <div class="flex flex-1 items-center gap-2">
@@ -361,7 +361,7 @@
           v-if="currentFile"
           :href="currentFile.url"
           download
-          class="text-primary flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--color-primary-light,rgba(59,130,246,0.2))] bg-[var(--color-primary-light,rgba(59,130,246,0.05))] py-3 font-medium transition-transform active:scale-95"
+          class="text-primary flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary/20 bg-(--color-primary-bg) py-3 font-medium transition-transform active:scale-95"
         >
           <AppIcon name="arrow-down-tray" class="size-5" />
           <span class="text-sm font-semibold">{{ t('spacePublic.download') }}</span>
@@ -372,7 +372,7 @@
           :disabled="downloading"
           variant="primary"
           block
-          class="flex-1 shadow-[var(--color-primary-light,rgba(59,130,246,0.2))] shadow-lg transition-transform active:scale-95 disabled:scale-100"
+          class="shadow-primary/10 flex-1 shadow-lg transition-transform active:scale-95 disabled:scale-100"
           @click="handleDownloadAll"
         >
           <template #icon-left>

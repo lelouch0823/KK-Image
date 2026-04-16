@@ -40,6 +40,14 @@ const rules = [
       /#7c3aed/g,
     ],
   },
+  {
+    id: 'no-hardcoded-shared-surface-colors',
+    files: [
+      'minisales/miniprogram/components/sales/order-summary/index.scss',
+      'minisales/miniprogram/components/sales/order-lines/index.scss',
+    ],
+    patterns: [/#0f172a/g, /#e2e8f0/g, /#f8fafc/g],
+  },
 ];
 
 const scanRule = (rootDir, rule) => {

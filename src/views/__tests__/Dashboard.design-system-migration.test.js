@@ -9,6 +9,7 @@ describe('Dashboard design-system migration', () => {
 
     expect(source).toContain('DashboardShell');
     expect(source).toContain('AppStatCard');
+    expect(source).not.toContain('<button');
     expect(source).not.toContain(legacyMaterialSymbolsClass);
     expect(source).not.toContain('<template #append>');
   });

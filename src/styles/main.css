@@ -76,7 +76,11 @@
   }
 
   body {
-    @apply bg-[var(--bg-page)] text-[var(--text-main)] font-sans antialiased;
+    background-color: var(--bg-page);
+    color: var(--text-main);
+    font-family: var(--font-family-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* 全局滚动条样式 (适配黑白主题) */

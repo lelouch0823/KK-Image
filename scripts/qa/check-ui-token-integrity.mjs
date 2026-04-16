@@ -42,6 +42,11 @@ const targetedRules = [
     ],
     patterns: [/font-\[Outfit\]/g],
   },
+  {
+    id: 'space-product-detail-local-primary-palette',
+    files: ['src/components/space/SpaceProductDetail.vue'],
+    patterns: [/ring-\[var\(/g, /border-\[var\(/g, /bg-\[var\(/g, /shadow-\[var\(/g],
+  },
 ];
 
 const listFilesRecursively = (rootDir, relativeDir) => {

@@ -202,8 +202,8 @@ const handleKeydown = (e) => {
     <!-- Loading State -->
     <template v-if="loading">
       <div class="animate-pulse">
-        <div class="mb-2 h-4 w-16 rounded bg-[var(--border-color)]" />
-        <div class="h-8 w-24 rounded bg-[var(--border-color)]" />
+        <div class="mb-2 h-4 w-16 rounded bg-(--border-color)" />
+        <div class="h-8 w-24 rounded bg-(--border-color)" />
       </div>
     </template>
 
@@ -267,13 +267,13 @@ const formattedValue = computed(() => {
 
 const variantClass = computed(() => {
   const variants = {
-    default: 'border-[var(--border-color)] bg-[var(--bg-card)]',
-    info: 'border-[var(--color-info)]/20 bg-[var(--color-info)]/5',
-    purple: 'border-[var(--color-purple)]/20 bg-[var(--color-purple)]/5',
-    success: 'border-[var(--color-success)]/20 bg-[var(--color-success)]/5',
-    warning: 'border-[var(--color-warning)]/20 bg-[var(--color-warning)]/5',
-    danger: 'border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5',
-    cyan: 'border-[var(--color-cyan)]/20 bg-[var(--color-cyan)]/5',
+    default: 'border-(--border-color) bg-(--bg-card)',
+    info: 'border-info/20 bg-info/5',
+    purple: 'border-primary/20 bg-primary/5',
+    success: 'border-success/20 bg-success/5',
+    warning: 'border-warning/20 bg-warning/5',
+    danger: 'border-danger/20 bg-danger/5',
+    cyan: 'border-info/20 bg-info/5',
   };
   return variants[props.variant] || variants.default;
 });
@@ -331,30 +331,30 @@ const props = defineProps({
       <!-- Existing simple skeleton -->
       <div
         v-if="!template"
-        class="skeleton-shimmer rounded bg-[var(--bg-muted)]"
+        class="skeleton-shimmer rounded bg-(--bg-muted)"
         :class="sizeClass"
       />
 
       <!-- Stat Card Template -->
       <div
         v-else-if="template === 'stat-card'"
-        class="skeleton-shimmer rounded-xl border border-[var(--border-color)] bg-[var(--bg-muted)] p-4"
+        class="skeleton-shimmer rounded-xl border border-(--border-color) bg-(--bg-muted) p-4"
       >
-        <div class="mb-2 h-4 w-16 rounded bg-[var(--border-color)]" />
-        <div class="h-8 w-24 rounded bg-[var(--border-color)]" />
+        <div class="mb-2 h-4 w-16 rounded bg-(--border-color)" />
+        <div class="h-8 w-24 rounded bg-(--border-color)" />
       </div>
 
       <!-- List Card Template -->
       <div
         v-else-if="template === 'list-card'"
-        class="skeleton-shimmer rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4"
+        class="skeleton-shimmer rounded-xl border border-(--border-color) bg-(--bg-card) p-4"
       >
         <div class="flex gap-3">
-          <div class="size-16 flex-shrink-0 rounded-lg bg-[var(--bg-muted)]" />
+          <div class="size-16 flex-shrink-0 rounded-lg bg-(--bg-muted)" />
           <div class="flex-1 space-y-2">
-            <div class="h-4 w-3/4 rounded bg-[var(--bg-muted)]" />
-            <div class="h-3 w-1/2 rounded bg-[var(--bg-muted)]" />
-            <div class="h-3 w-1/3 rounded bg-[var(--bg-muted)]" />
+            <div class="h-4 w-3/4 rounded bg-(--bg-muted)" />
+            <div class="h-3 w-1/2 rounded bg-(--bg-muted)" />
+            <div class="h-3 w-1/3 rounded bg-(--bg-muted)" />
           </div>
         </div>
       </div>
@@ -362,7 +362,7 @@ const props = defineProps({
       <!-- Avatar Template -->
       <div
         v-else-if="template === 'avatar'"
-        class="skeleton-shimmer size-10 rounded-full bg-[var(--bg-muted)]"
+        class="skeleton-shimmer size-10 rounded-full bg-(--bg-muted)"
       />
     </template>
   </div>

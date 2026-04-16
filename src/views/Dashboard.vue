@@ -176,13 +176,13 @@
                         <div class="truncate text-sm font-medium text-(--text-main)">
                           {{ item.name }}
                         </div>
-                        <button
-                          type="button"
-                          class="hover:text-primary cursor-pointer font-mono text-[10px] text-(--text-secondary) transition-colors"
+                        <AppButton
+                          variant="link"
+                          class="!text-(--text-secondary) hover:!text-primary font-mono text-[10px]"
                           @click="handleCopyShareLink(item)"
                         >
                           {{ item.shareToken }}
-                        </button>
+                        </AppButton>
                       </div>
                     </div>
                     <StatusBadge variant="neutral" outline>

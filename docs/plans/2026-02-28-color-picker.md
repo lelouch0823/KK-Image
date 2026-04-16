@@ -256,7 +256,7 @@ Replace input value section and tag group section in template:
             />
             
             <!-- Default Color Picker Picker -->
-            <div v-if="isColorDimension(opt.name)" class="relative size-8 shrink-0 overflow-hidden rounded-md border border-[var(--border-color)]">
+            <div v-if="isColorDimension(opt.name)" class="relative size-8 shrink-0 overflow-hidden rounded-md border border-(--border-color)">
                 <input 
                     type="color" 
                     v-model="pendingColorSelection"
@@ -279,7 +279,7 @@ Replace input value section and tag group section in template:
             <span
               v-for="(val, vIdx) in opt.values"
               :key="vIdx"
-              class="inline-flex items-center gap-1.5 rounded-full border border-(--border-color) bg-(--bg-muted) px-2.5 py-1 text-xs font-medium text-(--text-main) transition-colors hover:bg-[var(--bg-page)]"
+              class="inline-flex items-center gap-1.5 rounded-full border border-(--border-color) bg-(--bg-muted) px-2.5 py-1 text-xs font-medium text-(--text-main) transition-colors hover:bg-(--bg-page)"
             >
               <!-- SOTA Interactive Color Swatch -->
               <label 
