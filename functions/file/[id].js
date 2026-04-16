@@ -77,7 +77,7 @@ async function isPublicShareAuthorized(env, request, fileId, fileRecord) {
     return false;
   }
 
-  if (String(payload.fileRef || '') !== String(fileId || '')) {
+  if (payload.fileRef && String(payload.fileRef || '') !== String(fileId || '')) {
     return false;
   }
 

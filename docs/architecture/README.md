@@ -34,6 +34,7 @@
 - [数据访问层](modules/repository-layer.md)
 - [存储层](modules/storage-layer.md)
 - [预订单创建链路](modules/preorder-creation-flow.md)
+- [后端性能基线](backend-performance-baseline.md)
 - [后端性能优化审查](backend-performance-optimization-review.md)
 - [后端性能优化实施计划](backend-performance-optimization-plan.md)
 

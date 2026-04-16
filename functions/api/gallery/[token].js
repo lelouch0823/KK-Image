@@ -59,23 +59,27 @@ async function clearPublicPasswordFailures(env, request, identifier) {
   await clearLoginFailures(kv, ip, identifier);
 }
 
-async function buildSignedFileUrl(env, fileRef, shareType, shareToken) {
+async function createSharedFileUrlBuilder(env, shareType, shareToken) {
   if (!env?.JWT_SECRET) {
-    return getFileUrl(fileRef);
+    return (fileRef) => getFileUrl(fileRef);
   }
+
   const access = await generateScopedAccessToken(
     {
-      sub: fileRef,
+      sub: `${shareType}:${shareToken}`,
       type: 'public_file_access',
-      fileRef,
       shareType,
       shareToken,
     },
     env,
     15 * 60
   );
-  const separator = getFileUrl(fileRef).includes('?') ? '&' : '?';
-  return `${getFileUrl(fileRef)}${separator}access=${encodeURIComponent(access)}`;
+
+  return (fileRef) => {
+    const baseUrl = getFileUrl(fileRef);
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    return `${baseUrl}${separator}access=${encodeURIComponent(access)}`;
+  };
 }
 
 async function buildGalleryResponse(folder, files, subfolders, env) {
@@ -88,16 +92,17 @@ async function buildGalleryResponse(folder, files, subfolders, env) {
     return 'file';
   };
 
+  const fileUrlBuilder = await createSharedFileUrlBuilder(env, 'gallery', folder.share_token);
   const coverFile = files.find((f) => getFileType(f.mime_type, f.name) === 'image');
   const coverImage = coverFile
-    ? await buildSignedFileUrl(env, coverFile.id, 'gallery', folder.share_token)
+    ? fileUrlBuilder(coverFile.id)
     : null;
 
   const signedFiles = await Promise.all(
     files.map(async (f) => {
       const fileRef = f.id;
       const fileType = getFileType(f.mime_type, f.name);
-      const signedUrl = await buildSignedFileUrl(env, fileRef, 'gallery', folder.share_token);
+      const signedUrl = fileUrlBuilder(fileRef);
       return {
         id: f.id,
         name: f.original_name || f.name,
@@ -150,7 +155,19 @@ async function loadGalleryData(env, shareToken) {
   const [{ results: files }, { results: subfolders }] = await Promise.all([
     env.DB.prepare(
       `
-      SELECT * FROM files WHERE folder_id = ? AND (is_deleted IS NULL OR is_deleted = 0) ORDER BY created_at DESC
+      SELECT
+        id,
+        folder_id,
+        name,
+        original_name,
+        mime_type,
+        storage_key,
+        size,
+        created_at
+      FROM files
+      WHERE folder_id = ?
+        AND (is_deleted IS NULL OR is_deleted = 0)
+      ORDER BY created_at DESC
     `
     )
       .bind(folder.id)

@@ -21,7 +21,7 @@ function createDb() {
           })),
         };
       }
-      if (sql.includes('SELECT * FROM files WHERE folder_id = ?')) {
+      if (sql.includes('FROM files') && sql.includes('WHERE folder_id = ?')) {
         return {
           bind: vi.fn(() => ({
             all: vi.fn(async () => ({
@@ -35,6 +35,16 @@ function createDb() {
                   storage_key: 'hero-key',
                   size: 10,
                   created_at: 1,
+                },
+                {
+                  id: 'file-2',
+                  folder_id: 'folder-1',
+                  name: 'detail.jpg',
+                  original_name: 'detail.jpg',
+                  mime_type: 'image/jpeg',
+                  storage_key: 'detail-key',
+                  size: 12,
+                  created_at: 2,
                 },
               ],
             })),
@@ -106,5 +116,34 @@ describe('public gallery access api', () => {
     expect(payload.data.files[0].url).toContain('/file/file-1');
     expect(payload.data.files[0].url).toContain('access=');
     expect(response.headers.get('Cache-Control')).toBe('no-store, max-age=0');
+  });
+
+  it('reuses one shared access token for all gallery files in the same response', async () => {
+    const response = await onRequestPost({
+      env: {
+        DB: createDb(),
+        JWT_SECRET: 'jwt-secret',
+        KV: {
+          get: vi.fn(async () => null),
+          put: vi.fn(async () => undefined),
+          delete: vi.fn(async () => undefined),
+        },
+      },
+      params: { token: 'gallery-token' },
+      request: new Request('http://localhost/api/gallery/gallery-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: 'secret' }),
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    const accessTokens = payload.data.files.map((file) =>
+      new URL(file.url, 'http://localhost').searchParams.get('access')
+    );
+
+    expect(accessTokens).toHaveLength(2);
+    expect(new Set(accessTokens).size).toBe(1);
   });
 });

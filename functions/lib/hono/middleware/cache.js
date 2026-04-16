@@ -13,7 +13,9 @@ function createCacheRequest(url, accept = 'application/json') {
   });
 }
 
-export function withCache(ttlSeconds = 60) {
+export function withCache(ttlSeconds = 60, options = {}) {
+  const { etagMode = 'off' } = options;
+
   return async (c, next) => {
     // 仅缓存 GET 请求
     if (c.req.method !== 'GET') {
@@ -46,19 +48,18 @@ export function withCache(ttlSeconds = 60) {
 
     // 仅缓存成功响应
     if (c.res && c.res.ok) {
-      const response = c.res.clone();
-      const bodyText = await response.clone().text();
+      c.res.headers.set('Cache-Control', `public, max-age=${ttlSeconds}`);
+      c.res.headers.set('X-Cache', 'MISS');
 
-      // 生成 ETag（使用共享的哈希函数）
-      const hashHex = await sha256Hex(bodyText);
-      const etag = `"${hashHex.substring(0, 16)}"`;
+      if (etagMode === 'body-hash') {
+        const bodyText = await c.res.clone().text();
+        const hashHex = await sha256Hex(bodyText);
+        c.res.headers.set('ETag', `"${hashHex.substring(0, 16)}"`);
+      }
 
-      response.headers.set('Cache-Control', `public, max-age=${ttlSeconds}`);
-      response.headers.set('ETag', etag);
-      response.headers.set('X-Cache', 'MISS');
-
-      // 异步写入缓存
-      c.executionCtx.waitUntil(cache.put(cacheKey, response));
+      // 保持原始响应对象作为最终返回值，仅克隆一份用于异步写缓存，
+      // 避免在 Hono app.request() 场景下返回不可再次读取的 body。
+      c.executionCtx.waitUntil(cache.put(cacheKey, c.res.clone()));
     }
   };
 }
