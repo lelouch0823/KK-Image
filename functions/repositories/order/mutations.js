@@ -14,6 +14,10 @@ import { chunkArray, executeBatchChunks } from '../../lib/db/batch.js';
 import { BadRequestError } from '../../lib/hono/errors.js';
 import { InventoryService } from '../../services/InventoryService.js';
 import { projectOrderLineStatus } from '../../services/OrderStatusProjectionService.js';
+import {
+    getPrefetchedOrderLineState,
+    prefetchOrderLineStates,
+} from '../../services/order-procurement/order-line-prefetch.js';
 import { createOrderPayloadUpsertStatement, deriveOrderSummaryFields } from './payloads.js';
 
 export const INSUFFICIENT_VARIANT_STOCK_ERROR = 'insufficient variant stock for delivery';
@@ -52,23 +56,21 @@ function normalizeQuantity(quantity) {
     return Math.trunc(parsed);
 }
 
-async function findOrderLineIdByOrderId(db, orderId) {
+async function getOrderLineState(db, orderId, prefetchedStates = null) {
+    const prefetchedState = getPrefetchedOrderLineState(prefetchedStates, orderId);
+    if (prefetchedState) return prefetchedState;
     if (!orderId) return null;
 
-    const row = await db
-        .prepare('SELECT id FROM order_lines WHERE order_id = ? ORDER BY created_at ASC LIMIT 1')
-        .bind(orderId)
-        .first();
+    const prefetched = await prefetchOrderLineStates(db, [orderId]);
+    return getPrefetchedOrderLineState(prefetched, orderId);
+}
 
-    if (!row?.id) return null;
+async function findOrderLineIdByOrderId(db, orderId, prefetchedStates = null) {
+    if (!orderId) return null;
 
-    const lineCountRow = await db
-        .prepare('SELECT COUNT(*) AS line_count FROM order_lines WHERE order_id = ?')
-        .bind(orderId)
-        .first();
-    if (lineCountRow && Number(lineCountRow.line_count ?? 1) !== 1) return null;
-
-    return row?.id || null;
+    const row = await getOrderLineState(db, orderId, prefetchedStates);
+    if (!row?.id || Number(row.line_count ?? 1) !== 1) return null;
+    return row.id || null;
 }
 
 function toNonNegativeInt(value) {
@@ -117,7 +119,7 @@ async function assertSalesScopedFileIds(db, fileIds, salespersonId, { orderId = 
     }
 }
 
-async function getOrderLineTotals(db, orderId) {
+async function getOrderLineTotals(db, orderId, prefetchedStates = null) {
     if (!orderId) {
         return {
             ordered_qty: 0,
@@ -127,32 +129,21 @@ async function getOrderLineTotals(db, orderId) {
         };
     }
 
-    const summary = await db
-        .prepare(
-            `SELECT
-                COALESCE(SUM(ordered_qty), 0) AS ordered_qty,
-                COALESCE(SUM(shipped_qty), 0) AS shipped_qty,
-                COALESCE(SUM(cancelled_qty), 0) AS cancelled_qty,
-                COUNT(*) AS line_count
-             FROM order_lines
-             WHERE order_id = ?`
-        )
-        .bind(orderId)
-        .first();
+    const summary = await getOrderLineState(db, orderId, prefetchedStates);
 
     return {
-        ordered_qty: toNonNegativeInt(summary?.ordered_qty),
-        shipped_qty: toNonNegativeInt(summary?.shipped_qty),
-        cancelled_qty: toNonNegativeInt(summary?.cancelled_qty),
+        ordered_qty: toNonNegativeInt(summary?.total_ordered_qty),
+        shipped_qty: toNonNegativeInt(summary?.total_shipped_qty),
+        cancelled_qty: toNonNegativeInt(summary?.total_cancelled_qty),
         line_count: toNonNegativeInt(summary?.line_count),
     };
 }
 
-async function assertOrderStatusCompatibleWithLines(db, orderId, nextStatus) {
+async function assertOrderStatusCompatibleWithLines(db, orderId, nextStatus, prefetchedStates = null) {
     const normalizedStatus = normalizeOrderLifecycleStatus(nextStatus);
     if (!normalizedStatus) return;
 
-    const totals = await getOrderLineTotals(db, orderId);
+    const totals = await getOrderLineTotals(db, orderId, prefetchedStates);
     if (totals.line_count <= 0) return;
 
     const remainingQty = Math.max(totals.ordered_qty - totals.cancelled_qty, 0);
@@ -175,17 +166,9 @@ async function syncCompatibilityOrderLineSnapshot(db, {
     quantity,
     mainImageId,
     timestamp,
+    prefetchedStates = null,
 }) {
-    const targetLine = await db
-        .prepare(
-            `SELECT id, (SELECT COUNT(*) FROM order_lines WHERE order_id = ?) AS line_count
-             FROM order_lines
-             WHERE order_id = ?
-             ORDER BY created_at ASC
-             LIMIT 1`
-        )
-        .bind(orderId, orderId)
-        .first();
+    const targetLine = await getOrderLineState(db, orderId, prefetchedStates);
 
     if (!targetLine?.id || Number(targetLine.line_count ?? 1) !== 1) {
         return db.prepare('SELECT 1').bind();
@@ -268,24 +251,15 @@ function deriveCompatibilityLineState(status, orderedQty, existingLine = {}) {
     return next;
 }
 
-async function buildCompatibilityLineProgressStatement(db, orderId, status, orderedQty, timestamp) {
-    const existingLine = await db
-        .prepare(
-            `SELECT id,
-                    ordered_qty,
-                    procured_qty,
-                    received_qty,
-                    reserved_qty,
-                    shipped_qty,
-                    cancelled_qty,
-                    (SELECT COUNT(*) FROM order_lines WHERE order_id = ?) AS line_count
-             FROM order_lines
-             WHERE order_id = ?
-             ORDER BY created_at ASC
-             LIMIT 1`
-        )
-        .bind(orderId, orderId)
-        .first();
+async function buildCompatibilityLineProgressStatement(
+    db,
+    orderId,
+    status,
+    orderedQty,
+    timestamp,
+    prefetchedStates = null
+) {
+    const existingLine = await getOrderLineState(db, orderId, prefetchedStates);
 
     if (!existingLine?.id || Number(existingLine.line_count ?? 1) !== 1) {
         return db.prepare('SELECT 1').bind();
@@ -580,9 +554,10 @@ export async function updateComposite(db, {
     const normalizedStatus = status !== undefined
         ? (normalizeOrderLifecycleStatus(status) || status)
         : undefined;
+    const orderLineStates = await prefetchOrderLineStates(db, [id]);
 
     if (status !== undefined) {
-        await assertOrderStatusCompatibleWithLines(db, id, normalizedStatus);
+        await assertOrderStatusCompatibleWithLines(db, id, normalizedStatus, orderLineStates);
         const currentOrder = await db
             .prepare('SELECT status, variant_id, quantity FROM orders WHERE id = ?')
             .bind(id)
@@ -595,7 +570,7 @@ export async function updateComposite(db, {
             await stockService.assertSufficient(currentOrder.variant_id, Math.abs(stockDelta));
         }
         if (currentOrder?.variant_id && stockDelta !== 0) {
-            const orderLineId = await findOrderLineIdByOrderId(db, id);
+            const orderLineId = await findOrderLineIdByOrderId(db, id, orderLineStates);
             await stockService.applyMutation({
                 type: 'order_shipment',
                 variantId: currentOrder.variant_id,
@@ -659,6 +634,7 @@ export async function updateComposite(db, {
             quantity: newData?.quantity,
             mainImageId: Array.isArray(fileIds) ? (fileIds.length > 0 ? fileIds[0] : null) : undefined,
             timestamp,
+            prefetchedStates: orderLineStates,
         })
     );
 
@@ -668,7 +644,8 @@ export async function updateComposite(db, {
             id,
             normalizedStatus,
             newData?.quantity,
-            timestamp
+            timestamp,
+            orderLineStates
         ));
     }
 
@@ -701,7 +678,8 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
     const inventoryService = options.inventoryService || new InventoryService(db);
     const normalizedNextStatus = normalizeOrderLifecycleStatus(newStatus);
-    await assertOrderStatusCompatibleWithLines(db, id, normalizedNextStatus);
+    const orderLineStates = await prefetchOrderLineStates(db, [id]);
+    await assertOrderStatusCompatibleWithLines(db, id, normalizedNextStatus, orderLineStates);
     const currentOrder = await db
         .prepare('SELECT status, variant_id, quantity FROM orders WHERE id = ?')
         .bind(id)
@@ -717,7 +695,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
     }
 
     if (canAdjustVariantStock) {
-        const orderLineId = await findOrderLineIdByOrderId(db, id);
+        const orderLineId = await findOrderLineIdByOrderId(db, id, orderLineStates);
         await inventoryService.applyMutation({
             type: 'order_shipment',
             variantId: currentOrder.variant_id,
@@ -732,7 +710,8 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
             id,
             normalizedNextStatus,
             currentOrder?.quantity,
-            timestamp
+            timestamp,
+            orderLineStates
         );
         const statements = [
             db
@@ -755,7 +734,8 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
         id,
         normalizedNextStatus,
         currentOrder?.quantity,
-        timestamp
+        timestamp,
+        orderLineStates
     );
     await executeBatchChunks(db, [
         db
@@ -822,10 +802,11 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
         existingOrders.push(...results);
     }
     const orderMap = new Map((existingOrders || []).map((row) => [row.id, row]));
+    const orderLineStates = await prefetchOrderLineStates(db, ids);
     const deliveryRequirementsByVariant = new Map();
 
     for (const id of ids) {
-        await assertOrderStatusCompatibleWithLines(db, id, normalizedNextStatus);
+        await assertOrderStatusCompatibleWithLines(db, id, normalizedNextStatus, orderLineStates);
         const order = orderMap.get(id);
         if (order?.status) {
             assertOrderStatusTransition(order.status, normalizedNextStatus, { forceStatusTransition });
@@ -869,7 +850,8 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
             id,
             normalizedNextStatus,
             order?.quantity,
-            timestamp
+            timestamp,
+            orderLineStates
         ));
 
         if (timeline) {

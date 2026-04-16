@@ -3,6 +3,10 @@ import path from 'node:path';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { updateComposite, updateData, updateStatus, create, batchUpdateStatus } from '../order/mutations.js';
 
+function isOrderLinePrefetchSql(sql = '') {
+    return sql.includes('ROW_NUMBER() OVER') && sql.includes('COUNT(*) OVER');
+}
+
 function createBatchAwareDb({
     allHandler = async () => ({ results: [] }),
     firstHandler = async () => null,
@@ -49,6 +53,7 @@ describe('Order Mutations SQL Binding', () => {
         db = {
             prepare: vi.fn().mockReturnThis(),
             bind: vi.fn().mockReturnThis(),
+            all: vi.fn().mockResolvedValue({ results: [] }),
             first: vi.fn().mockResolvedValue(null),
             run: vi.fn().mockResolvedValue({ success: true }),
             batch: vi.fn().mockResolvedValue([]),
@@ -317,7 +322,25 @@ describe('Order Mutations SQL Binding', () => {
                 assertSufficient: vi.fn(),
                 applyMutation: vi.fn(),
             };
-            db.first.mockResolvedValueOnce({ id: 'line-1', line_count: 1 });
+            db.all.mockResolvedValueOnce({
+                results: [{
+                    order_id: 'o-sync',
+                    id: 'line-1',
+                    product_id: 'prod-1',
+                    variant_id: 'var-1',
+                    ordered_qty: 3,
+                    procured_qty: 0,
+                    received_qty: 0,
+                    reserved_qty: 0,
+                    shipped_qty: 0,
+                    cancelled_qty: 0,
+                    line_count: 1,
+                    total_ordered_qty: 3,
+                    total_shipped_qty: 0,
+                    total_cancelled_qty: 0,
+                    row_num: 1,
+                }],
+            });
 
             await updateComposite(db, {
                 id: 'o-sync',
@@ -363,7 +386,23 @@ describe('Order Mutations SQL Binding', () => {
                 assertSufficient: vi.fn(),
                 applyMutation: vi.fn(),
             };
-            db.first.mockResolvedValueOnce({ id: 'line-1', line_count: 1 });
+            db.all.mockResolvedValueOnce({
+                results: [{
+                    order_id: 'o-sidecar-sync',
+                    id: 'line-1',
+                    ordered_qty: 1,
+                    procured_qty: 0,
+                    received_qty: 0,
+                    reserved_qty: 0,
+                    shipped_qty: 0,
+                    cancelled_qty: 0,
+                    line_count: 1,
+                    total_ordered_qty: 1,
+                    total_shipped_qty: 0,
+                    total_cancelled_qty: 0,
+                    row_num: 1,
+                }],
+            });
 
             await updateComposite(db, {
                 id: 'o-sidecar-sync',
@@ -391,7 +430,23 @@ describe('Order Mutations SQL Binding', () => {
                 assertSufficient: vi.fn(),
                 applyMutation: vi.fn(),
             };
-            db.first.mockResolvedValueOnce({ id: 'line-1', line_count: 1 });
+            db.all.mockResolvedValueOnce({
+                results: [{
+                    order_id: 'o-salesperson',
+                    id: 'line-1',
+                    ordered_qty: 1,
+                    procured_qty: 0,
+                    received_qty: 0,
+                    reserved_qty: 0,
+                    shipped_qty: 0,
+                    cancelled_qty: 0,
+                    line_count: 1,
+                    total_ordered_qty: 1,
+                    total_shipped_qty: 0,
+                    total_cancelled_qty: 0,
+                    row_num: 1,
+                }],
+            });
 
             await updateComposite(db, {
                 id: 'o-salesperson',
@@ -417,26 +472,26 @@ describe('Order Mutations SQL Binding', () => {
                 assertSufficient: vi.fn(async () => true),
                 applyMutation: vi.fn(async () => true),
             };
-            db.first
-                .mockResolvedValueOnce({
-                    ordered_qty: 3,
-                    shipped_qty: 3,
-                    cancelled_qty: 0,
-                    line_count: 1,
-                })
-                .mockResolvedValueOnce({ status: 'arrived', variant_id: 'v-1', quantity: 3 })
-                .mockResolvedValueOnce({ id: 'line-1', line_count: 1 })
-                .mockResolvedValueOnce({ line_count: 1 })
-                .mockResolvedValueOnce({
+            db.all.mockResolvedValueOnce({
+                results: [{
+                    order_id: 'o-1',
                     id: 'line-1',
-                    line_count: 1,
                     ordered_qty: 3,
                     procured_qty: 3,
                     received_qty: 3,
                     reserved_qty: 0,
                     shipped_qty: 3,
                     cancelled_qty: 0,
-                });
+                    line_count: 1,
+                    total_ordered_qty: 3,
+                    total_shipped_qty: 3,
+                    total_cancelled_qty: 0,
+                    row_num: 1,
+                }],
+            });
+            db.first
+                .mockResolvedValueOnce({ status: 'arrived', variant_id: 'v-1', quantity: 3 })
+                .mockResolvedValueOnce(null);
 
             await updateStatus(db, 'o-1', 'delivered', 'admin', { inventoryService });
 
@@ -459,43 +514,30 @@ describe('Order Mutations SQL Binding', () => {
 
         it('batchUpdateStatus persists fulfilled when legacy delivered input is requested', async () => {
             const batchDb = createBatchAwareDb({
-                allHandler: async () => ({
-                    results: [{
-                        id: 'o-legacy',
-                        status: 'shipping',
-                        variant_id: null,
-                        quantity: 2,
-                    }],
-                }),
-                firstHandler: async (statement) => {
-                    if (statement.sql.includes('SUM(ordered_qty)')) {
-                        return {
-                            ordered_qty: 2,
-                            shipped_qty: 2,
-                            cancelled_qty: 0,
-                            line_count: 1,
-                        };
-                    }
-                    if (statement.sql.includes('SELECT id,') && statement.sql.includes('line_count')) {
-                        return {
+                allHandler: async (statement) => ({
+                    results: isOrderLinePrefetchSql(statement.sql)
+                        ? [{
+                            order_id: 'o-legacy',
                             id: 'line-legacy',
-                            line_count: 1,
                             ordered_qty: 2,
                             procured_qty: 2,
                             received_qty: 2,
                             reserved_qty: 0,
                             shipped_qty: 2,
                             cancelled_qty: 0,
-                        };
-                    }
-                    if (statement.sql.includes('SELECT COUNT(*) AS line_count')) {
-                        return { line_count: 1 };
-                    }
-                    if (statement.sql.includes('SELECT id FROM order_lines')) {
-                        return { id: 'line-legacy' };
-                    }
-                    return null;
-                },
+                            line_count: 1,
+                            total_ordered_qty: 2,
+                            total_shipped_qty: 2,
+                            total_cancelled_qty: 0,
+                            row_num: 1,
+                        }]
+                        : [{
+                            id: 'o-legacy',
+                            status: 'shipping',
+                            variant_id: null,
+                            quantity: 2,
+                        }],
+                }),
             });
 
             await batchUpdateStatus(batchDb, timelineRepo, ['o-legacy'], 'delivered', null);
@@ -507,6 +549,78 @@ describe('Order Mutations SQL Binding', () => {
             expect(orderUpdateStatement).toBeTruthy();
             expect(orderUpdateStatement.params[0]).toBe('fulfilled');
         });
+
+        it('updateStatus reuses one prefetched order-line state instead of separate totals and primary-line scans', async () => {
+            const batchDb = createBatchAwareDb({
+                allHandler: async (statement) => ({
+                    results: isOrderLinePrefetchSql(statement.sql)
+                        ? [{
+                            order_id: 'o-prefetch',
+                            id: 'line-prefetch',
+                            ordered_qty: 3,
+                            procured_qty: 3,
+                            received_qty: 3,
+                            reserved_qty: 0,
+                            shipped_qty: 3,
+                            cancelled_qty: 0,
+                            line_count: 1,
+                            total_ordered_qty: 3,
+                            total_shipped_qty: 3,
+                            total_cancelled_qty: 0,
+                            row_num: 1,
+                        }]
+                        : [],
+                }),
+                firstHandler: async (statement) => {
+                    if (statement.sql.includes('SELECT status, variant_id, quantity FROM orders WHERE id = ?')) {
+                        return { status: 'arrived', variant_id: null, quantity: 3 };
+                    }
+                    return null;
+                },
+            });
+
+            await updateStatus(batchDb, 'o-prefetch', 'delivered', 'admin');
+
+            expect(batchDb.sqlCalls.some((sql) => sql.includes('COALESCE(SUM(ordered_qty), 0) AS ordered_qty'))).toBe(false);
+            expect(batchDb.sqlCalls.some((sql) => sql.includes('SELECT id FROM order_lines WHERE order_id = ?'))).toBe(false);
+            expect(batchDb.sqlCalls.filter((sql) => isOrderLinePrefetchSql(sql))).toHaveLength(1);
+        });
+
+        it('batchUpdateStatus prefetches line totals and primary snapshots once per chunk instead of per order', async () => {
+            const ids = ['o-1', 'o-2', 'o-3'];
+            const batchDb = createBatchAwareDb({
+                allHandler: async (statement) => ({
+                    results: isOrderLinePrefetchSql(statement.sql)
+                        ? statement.params.map((orderId) => ({
+                            order_id: orderId,
+                            id: `line-${orderId}`,
+                            ordered_qty: 1,
+                            procured_qty: 1,
+                            received_qty: 0,
+                            reserved_qty: 0,
+                            shipped_qty: 0,
+                            cancelled_qty: 0,
+                            line_count: 1,
+                            total_ordered_qty: 1,
+                            total_shipped_qty: 0,
+                            total_cancelled_qty: 0,
+                            row_num: 1,
+                        }))
+                        : statement.params.map((id) => ({
+                            id,
+                            status: 'pending',
+                            variant_id: null,
+                            quantity: 1,
+                        })),
+                }),
+            });
+
+            await batchUpdateStatus(batchDb, timelineRepo, ids, 'confirmed', null);
+
+            expect(batchDb.sqlCalls.some((sql) => sql.includes('COALESCE(SUM(ordered_qty), 0) AS ordered_qty'))).toBe(false);
+            expect(batchDb.sqlCalls.some((sql) => sql.includes('SELECT id FROM order_lines WHERE order_id = ?'))).toBe(false);
+            expect(batchDb.sqlCalls.filter((sql) => isOrderLinePrefetchSql(sql))).toHaveLength(1);
+        });
     });
 
     describe('cutover guardrails', () => {
@@ -514,30 +628,34 @@ describe('Order Mutations SQL Binding', () => {
             const ids = Array.from({ length: 205 }, (_, index) => `o-${index + 1}`);
             const batchDb = createBatchAwareDb({
                 allHandler: async (statement) => ({
-                    results: statement.params.map((id) => ({
-                        id,
-                        status: 'pending',
-                        variant_id: null,
-                        quantity: 1,
-                    })),
+                    results: isOrderLinePrefetchSql(statement.sql)
+                        ? statement.params.map((orderId) => ({
+                            order_id: orderId,
+                            id: `line-${orderId}`,
+                            ordered_qty: 1,
+                            procured_qty: 0,
+                            received_qty: 0,
+                            reserved_qty: 0,
+                            shipped_qty: 0,
+                            cancelled_qty: 0,
+                            line_count: 1,
+                            total_ordered_qty: 1,
+                            total_shipped_qty: 0,
+                            total_cancelled_qty: 0,
+                            row_num: 1,
+                        }))
+                        : statement.params.map((id) => ({
+                            id,
+                            status: 'pending',
+                            variant_id: null,
+                            quantity: 1,
+                        })),
                 }),
-                firstHandler: async (statement) => {
-                    if (statement.sql.includes('SELECT id,') && statement.sql.includes('line_count')) {
-                        return { id: `line-${statement.params[0]}`, line_count: 1 };
-                    }
-                    if (statement.sql.includes('SELECT COUNT(*) AS line_count')) {
-                        return { line_count: 1 };
-                    }
-                    if (statement.sql.includes('SELECT id FROM order_lines')) {
-                        return { id: `line-${statement.params[0]}` };
-                    }
-                    return null;
-                },
             });
 
             await batchUpdateStatus(batchDb, timelineRepo, ids, 'confirmed', null);
 
-            expect(batchDb.allCalls).toHaveLength(3);
+            expect(batchDb.allCalls).toHaveLength(6);
             expect(Math.max(...batchDb.allCalls.map((call) => call.params.length))).toBeLessThanOrEqual(100);
             expect(batchDb.batch).toHaveBeenCalledTimes(5);
             expect(Math.max(...batchDb.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(100);

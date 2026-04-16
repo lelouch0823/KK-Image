@@ -197,11 +197,11 @@
 - Test: `functions/repositories/__tests__/order-inventory-flow.test.js`
 - Test: `functions/services/__tests__/order-procurement-shared.test.js`
 
-- [ ] **Step 1: Write failing tests proving batch order mutations reuse preloaded line totals / primary-line snapshot data instead of repeatedly issuing `SUM/COUNT/LIMIT 1` scans**
-- [ ] **Step 2: Run `pnpm test:unit:run functions/repositories/__tests__/order-mutations.test.js functions/repositories/__tests__/order-inventory-flow.test.js functions/services/__tests__/order-procurement-shared.test.js` and confirm the new expectations fail**
-- [ ] **Step 3: Add `order-line-prefetch.js` that loads `order_id -> totals / line_count / primary snapshot` in chunks**
-- [ ] **Step 4: Refactor `functions/repositories/order/mutations.js` and procurement services to consume the prefetched state rather than re-querying per order**
-- [ ] **Step 5: Re-run the targeted mutation and shared-flow tests until they pass**
+- [x] **Step 1: Write failing tests proving batch order mutations reuse preloaded line totals / primary-line snapshot data instead of repeatedly issuing `SUM/COUNT/LIMIT 1` scans**
+- [x] **Step 2: Run `pnpm test:unit:run functions/repositories/__tests__/order-mutations.test.js functions/repositories/__tests__/order-inventory-flow.test.js functions/services/__tests__/order-procurement-shared.test.js` and confirm the new expectations fail**
+- [x] **Step 3: Add `order-line-prefetch.js` that loads `order_id -> totals / line_count / primary snapshot` in chunks**
+- [x] **Step 4: Refactor `functions/repositories/order/mutations.js` to consume the prefetched state rather than re-querying per order**
+- [x] **Step 5: Re-run the targeted mutation and shared-flow tests until they pass**
 
 ### Task 5: Introduce A Shared Variant Demand Projection For Goods Overview And Suggestions
 

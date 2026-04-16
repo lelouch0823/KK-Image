@@ -169,14 +169,16 @@
   - guard / finalize 失败时仅执行幂等清理，避免额外写放大
 
 ### 13. 订单状态流转与订单变更路径反复扫描 `order_lines`
-- 状态：`deferred`
+- 状态：`implemented`
 - 严重级别：高
 - 位置：
   - [functions/repositories/order/mutations.js](/home/bjw/Code/KK-Image/functions/repositories/order/mutations.js)
+  - [functions/services/order-procurement/order-line-prefetch.js](/home/bjw/Code/KK-Image/functions/services/order-procurement/order-line-prefetch.js)
 - 问题描述：状态更新、批量更新、兼容投影更新过程中，对同一订单反复做 `SUM/COUNT/LIMIT 1` 聚合，批量场景下复杂度会快速上升。
-- 建议后续：
-  - 预取 `order_id -> totals / primary_line / line_count`
-  - 在内存计算下一状态与派生态，再统一提交更新
+- 本轮处理：
+  - 新增 `order-line-prefetch.js`，按 chunk 一次性预取 `order_id -> totals / primary_line / line_count`
+  - 将 `updateStatus`、`updateComposite`、`batchUpdateStatus` 切到预取状态复用，去掉 mutation 热路径里重复的 `SUM/COUNT/LIMIT 1` 查询
+  - 补齐 mutation / inventory / shared helper 回归，锁定新的预取查询形态
 
 ### 14. 缺货总览 / 需求服务 / 采购建议重复扫描活动订单行
 - 状态：`deferred`

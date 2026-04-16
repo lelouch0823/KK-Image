@@ -30,6 +30,40 @@ function createMockDb({
 } = {}) {
   const db = {
     prepare: vi.fn((sql) => {
+      if (sql.includes('ROW_NUMBER() OVER') && sql.includes('COUNT(*) OVER')) {
+        const statement = createStatement(sql);
+        statement.bind = vi.fn((...orderIds) => {
+          statement.params = orderIds;
+          statement.all = vi.fn(async () => ({
+            results: orderIds.map((orderId) => {
+              const summary = lineSummariesByOrderId[orderId] || {
+                ordered_qty: 0,
+                shipped_qty: 0,
+                cancelled_qty: 0,
+                line_count: 0,
+              };
+
+              return {
+                order_id: orderId,
+                id: `line-for-${orderId}`,
+                ordered_qty: summary.ordered_qty || 0,
+                procured_qty: summary.ordered_qty || 0,
+                received_qty: summary.ordered_qty || 0,
+                reserved_qty: 0,
+                shipped_qty: summary.shipped_qty || 0,
+                cancelled_qty: summary.cancelled_qty || 0,
+                line_count: summary.line_count || 0,
+                total_ordered_qty: summary.ordered_qty || 0,
+                total_shipped_qty: summary.shipped_qty || 0,
+                total_cancelled_qty: summary.cancelled_qty || 0,
+                row_num: 1,
+              };
+            }).filter((row) => row.line_count > 0),
+          }));
+          return statement;
+        });
+        return statement;
+      }
       if (sql.includes('COALESCE(SUM(ordered_qty), 0) AS ordered_qty')) {
         const statement = createStatement(sql);
         statement.bind = vi.fn((orderId) => {
@@ -271,14 +305,27 @@ describe('order inventory flow on status transitions', () => {
     };
     vi.spyOn(db, 'prepare').mockImplementation((sql) => ({
       bind: vi.fn(() => ({
+        all: vi.fn(async () => ({
+          results: sql.includes('ROW_NUMBER() OVER')
+            ? [{
+                order_id: 'o-1',
+                id: 'line-for-order',
+                ordered_qty: 1,
+                procured_qty: 1,
+                received_qty: 1,
+                reserved_qty: 0,
+                shipped_qty: 1,
+                cancelled_qty: 0,
+                line_count: 1,
+                total_ordered_qty: 1,
+                total_shipped_qty: 1,
+                total_cancelled_qty: 0,
+                row_num: 1,
+              }]
+            : [],
+        })),
         first: vi.fn(async () => (
-          sql.includes('COALESCE(SUM(ordered_qty), 0) AS ordered_qty')
-            ? { ordered_qty: 1, shipped_qty: 1, cancelled_qty: 0, line_count: 1 }
-            : (
-          sql.includes('SELECT id FROM order_lines WHERE order_id = ?')
-            ? { id: 'line-for-order' }
-            : { status: 'arrived', variant_id: 'v-1', quantity: 1 }
-            )
+          { status: 'arrived', variant_id: 'v-1', quantity: 1 }
         )),
         run: vi.fn(async () => ({ success: true })),
       })),

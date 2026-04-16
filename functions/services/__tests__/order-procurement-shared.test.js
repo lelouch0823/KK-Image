@@ -513,7 +513,7 @@ describe('order-procurement-shared', () => {
     expect(plain).toBe(plainStatement);
     expect(prepare).toHaveBeenNthCalledWith(
       1,
-      expect.stringContaining("status NOT IN ('delivered', 'void')")
+      expect.stringContaining("status NOT IN ('fulfilled', 'delivered', 'void')")
     );
     expect(bind).toHaveBeenNthCalledWith(1, 'arrived', 123, 'order-1', 'arrived');
     expect(bind).toHaveBeenNthCalledWith(2, 'partially_arrived', 456, 'order-1');
