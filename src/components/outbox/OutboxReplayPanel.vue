@@ -161,8 +161,11 @@
           </StatusBadge>
         </div>
 
-        <div v-if="lastReplayResult" class="overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
-          <pre class="max-h-72 overflow-x-auto overflow-y-auto p-4 text-xs text-slate-100">{{ formattedReplayResult }}</pre>
+        <div
+          v-if="lastReplayResult"
+          class="overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-page)"
+        >
+          <pre class="max-h-72 overflow-x-auto overflow-y-auto p-4 text-xs text-(--text-main)">{{ formattedReplayResult }}</pre>
         </div>
         <div v-else class="rounded-xl border border-dashed border-(--border-color) p-4 text-sm text-(--text-secondary)">
           {{ t('outboxOps.replay.resultEmpty', '尚未执行 Dry Run 或 Replay，最近结果会展示在这里。') }}

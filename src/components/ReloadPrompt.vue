@@ -6,34 +6,8 @@
   >
     <div class="flex items-start gap-4">
       <div class="flex-shrink-0">
-        <svg
-          v-if="offlineReady"
-          class="size-6 text-green-500"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M5 13l4 4L19 7"
-          />
-        </svg>
-        <svg
-          v-else
-          class="text-primary size-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-          />
-        </svg>
+        <AppIcon v-if="offlineReady" name="check-circle" class="size-6 text-success" />
+        <AppIcon v-else name="arrow-path" class="size-6 text-primary" />
       </div>
       <div class="flex-1">
         <h3 class="text-primary text-sm font-medium">
@@ -49,12 +23,7 @@
             :text="t('pwa.reload')"
             @click="updateServiceWorker()"
           />
-          <AppButton
-            variant="secondary"
-            size="sm"
-            :text="t('pwa.close')"
-            @click="close"
-          />
+          <AppButton variant="secondary" size="sm" :text="t('pwa.close')" @click="close" />
         </div>
       </div>
     </div>
@@ -66,6 +35,7 @@ import { ref } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const { t } = useI18n();
 let offlineReady = ref(false);

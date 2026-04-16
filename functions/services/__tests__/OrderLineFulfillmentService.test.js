@@ -237,7 +237,18 @@ function createDbHarness({
     }),
   };
 
-  return { db, calls, allocationRepo, inventoryService, domainOutboxRepo };
+  const variantDemandProjectionRepo = {
+    refreshByVariantId: vi.fn(async () => {}),
+  };
+
+  return {
+    db,
+    calls,
+    allocationRepo,
+    inventoryService,
+    domainOutboxRepo,
+    variantDemandProjectionRepo,
+  };
 }
 
 describe('OrderLineFulfillmentService', () => {
@@ -251,6 +262,7 @@ describe('OrderLineFulfillmentService', () => {
       allocationRepo: harness.allocationRepo,
       inventoryService: harness.inventoryService,
       domainOutboxRepo: harness.domainOutboxRepo,
+      variantDemandProjectionRepo: harness.variantDemandProjectionRepo,
       now: () => 1710000000000,
       uuid: vi.fn(() => crypto.randomUUID()),
     });
@@ -359,6 +371,7 @@ describe('OrderLineFulfillmentService', () => {
       allocationRepo: harness.allocationRepo,
       inventoryService: harness.inventoryService,
       domainOutboxRepo: harness.domainOutboxRepo,
+      variantDemandProjectionRepo: harness.variantDemandProjectionRepo,
       now: () => 1710000000000,
     });
 
@@ -413,6 +426,7 @@ describe('OrderLineFulfillmentService', () => {
       allocationRepo: harness.allocationRepo,
       inventoryService: harness.inventoryService,
       domainOutboxRepo: harness.domainOutboxRepo,
+      variantDemandProjectionRepo: harness.variantDemandProjectionRepo,
       now: () => 1710000000000,
     });
 
@@ -479,6 +493,7 @@ describe('OrderLineFulfillmentService', () => {
       allocationRepo: harness.allocationRepo,
       inventoryService: harness.inventoryService,
       domainOutboxRepo: harness.domainOutboxRepo,
+      variantDemandProjectionRepo: harness.variantDemandProjectionRepo,
       now: () => 1710000000000,
     });
 
@@ -506,6 +521,7 @@ describe('OrderLineFulfillmentService', () => {
         quantityDelta: -2,
       })
     );
+    expect(harness.variantDemandProjectionRepo.refreshByVariantId).toHaveBeenCalledWith('var-1');
   });
 
   it('unships a previously shipped line quantity, restores stock, and recomputes line state', async () => {
@@ -537,6 +553,7 @@ describe('OrderLineFulfillmentService', () => {
       allocationRepo: harness.allocationRepo,
       inventoryService: harness.inventoryService,
       domainOutboxRepo: harness.domainOutboxRepo,
+      variantDemandProjectionRepo: harness.variantDemandProjectionRepo,
       now: () => 1710000000000,
     });
 
@@ -570,6 +587,7 @@ describe('OrderLineFulfillmentService', () => {
     )).toBe(true);
     expect(harness.calls.outboxEvents).toHaveLength(1);
     expect(harness.calls.outboxEvents[0].event_type).toBe('order_line_fulfillment_updated');
+    expect(harness.variantDemandProjectionRepo.refreshByVariantId).toHaveBeenCalledWith('var-1');
   });
 
   it('rejects unshipping when the parent order is already delivered', async () => {

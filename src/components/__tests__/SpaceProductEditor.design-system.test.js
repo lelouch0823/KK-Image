@@ -13,8 +13,8 @@ describe('SpaceProductEditor design-system migration', () => {
     expect(source).toContain("import AppButton from '@/components/ui/AppButton.vue'");
     expect(source).toContain("import AppInput from '@/components/ui/AppInput.vue'");
     expect(source).toContain("import AppIcon from '@/components/ui/AppIcon.vue'");
-    expect(source).toContain("import AppCard from '@/components/ui/AppCard.vue'");
     expect(source).toContain("import ActionBar from '@/design-system/composed/ActionBar.vue'");
+    expect(source).toContain("import CalloutPanel from '@/design-system/composed/CalloutPanel.vue'");
     expect(source).not.toContain('<button');
     expect(source).not.toContain('<svg');
   });

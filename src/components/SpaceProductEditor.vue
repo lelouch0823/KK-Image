@@ -6,9 +6,7 @@
     @update:model-value="handleModalVisibility"
     @close="$emit('close')"
   >
-    <div
-      class="flex h-[90vh] min-h-0 flex-col overflow-hidden bg-white lg:flex-row dark:bg-gray-900"
-    >
+    <div class="flex h-[90vh] min-h-0 flex-col overflow-hidden bg-(--bg-card) lg:flex-row">
       <!-- 移动端: 顶部标签栏 -->
       <div class="flex items-center border-b border-(--border-color) px-4 py-3 lg:hidden">
         <AppButton
@@ -83,29 +81,19 @@
               @unbind="unbindProduct"
             />
 
-            <AppCard
+            <CalloutPanel
               v-if="boundProduct"
-              padding="p-3"
-              class="mt-3 border-blue-500/20 bg-blue-50/50 text-sm text-blue-800 dark:border-blue-500/30 dark:bg-blue-900/20 dark:text-blue-300"
-            >
-              <div class="flex items-start gap-2">
-                <AppIcon name="information-circle" class="mt-0.5 size-4 shrink-0" />
-                <p>
-                  该空间已绑定商品，品牌、系列、价格等核心参数由商品关联系统自动接管。如需修改，请点击上方的<strong>“编辑”</strong>按钮前往商品库修改。保存该空间后修改即可全局生效。
-                </p>
-              </div>
-            </AppCard>
+              class="mt-3"
+              tone="info"
+              :description="boundProductNotice"
+            />
 
-            <AppCard
+            <CalloutPanel
               v-if="bindingWarning"
-              padding="p-3"
-              class="mt-3 border-amber-500/25 bg-amber-50/80 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-900/20 dark:text-amber-200"
-            >
-              <div class="flex items-start gap-2">
-                <AppIcon name="exclamation-triangle" class="mt-0.5 size-4 shrink-0" />
-                <p>{{ bindingWarning }}</p>
-              </div>
-            </AppCard>
+              class="mt-3"
+              tone="warning"
+              :description="bindingWarning"
+            />
           </div>
 
           <div>
@@ -233,7 +221,7 @@
       <!-- 右侧：媒体资源管理 + 数据分析 -->
       <div
         v-show="mobileTab === 'media' || isDesktop"
-        class="flex flex-1 flex-col bg-white dark:bg-gray-900"
+        class="flex flex-1 flex-col bg-(--bg-card)"
         :class="{ 'hidden lg:flex': mobileTab !== 'media' }"
       >
         <!-- 右侧标签头 (桌面端) -->
@@ -247,7 +235,7 @@
               :class="
                 activeRightTab === 'media'
                   ? 'border-primary text-primary'
-                  : 'text-secondary border-transparent hover:text-(--text-main) dark:text-gray-400 dark:hover:text-gray-200'
+                  : 'text-secondary border-transparent hover:text-(--text-main)'
               "
               @click="activeRightTab = 'media'"
             >
@@ -259,7 +247,7 @@
               :class="
                 activeRightTab === 'analytics'
                   ? 'border-primary text-primary'
-                  : 'text-secondary border-transparent hover:text-(--text-main) dark:text-gray-400 dark:hover:text-gray-200'
+                  : 'text-secondary border-transparent hover:text-(--text-main)'
               "
               @click="activeRightTab = 'analytics'"
             >
@@ -359,7 +347,6 @@ import FileSelector from '@/components/FileSelector.vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import Modal from '@/components/ui/Modal.vue';
 import AppButton from '@/components/ui/AppButton.vue';
-import AppCard from '@/components/ui/AppCard.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import SpaceAnalytics from './SpaceAnalytics.vue';
@@ -368,6 +355,7 @@ import SpaceVisibilitySelector from './space/SpaceVisibilitySelector.vue';
 import SpaceMediaGrid from './space/SpaceMediaGrid.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import ActionBar from '@/design-system/composed/ActionBar.vue';
+import CalloutPanel from '@/design-system/composed/CalloutPanel.vue';
 import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
 import {
   resolveBoundProductMainImageSrc,
@@ -471,6 +459,12 @@ const bindingWarningMap = computed(() => ({
 }));
 
 const bindingWarning = computed(() => bindingWarningMap.value[bindingState.value] || '');
+const boundProductNotice = computed(() =>
+  t(
+    'spaceManager.bindingNotice',
+    '该空间已绑定商品，品牌、系列、价格等核心参数由商品关联系统自动接管。如需修改，请点击上方的“编辑”按钮前往商品库修改。保存该空间后修改即可全局生效。'
+  )
+);
 
 const resolveFallbackBoundProductName = (data) => {
   const brand = String(data?.templateData?.brand || '').trim();

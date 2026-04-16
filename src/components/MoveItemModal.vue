@@ -45,17 +45,15 @@
           :key="folder.id"
           class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition-colors"
           :class="[
-             selectedId === folder.id
+            selectedId === folder.id
               ? 'bg-primary/10 text-primary'
               : 'text-(--text-main) hover:bg-(--bg-hover)',
-             isTargetDisabled(folder) ? 'cursor-not-allowed opacity-50' : ''
+            isTargetDisabled(folder) ? 'cursor-not-allowed opacity-50' : '',
           ]"
           :style="{ paddingLeft: folder.level * 1.5 + 0.75 + 'rem' }"
           @click="!isTargetDisabled(folder) && selectFolder(folder)"
         >
-          <svg class="size-5 shrink-0 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
-          </svg>
+          <AppIcon name="folder" class="size-5 shrink-0 text-warning" />
           <span class="block truncate">{{ folder.name }}</span>
         </div>
 
@@ -70,11 +68,7 @@
 
     <!-- Footer -->
     <template #footer>
-      <AppButton
-        variant="secondary"
-        :text="t('moveFile.cancel')"
-        @click="close"
-      />
+      <AppButton variant="secondary" :text="t('moveFile.cancel')" @click="close" />
       <AppButton
         variant="primary"
         :text="moving ? t('moveFile.moving') : t('moveFile.move')"
@@ -92,6 +86,7 @@ import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import Modal from '@/components/ui/Modal.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 
@@ -126,20 +121,20 @@ const selectFolder = (folder) => {
 // Cannot move a folder into itself or its descendants
 const isTargetDisabled = (targetFolder) => {
   if (!targetFolder || !props.itemsToMove.length) return false;
-  
+
   // If moving folders, check for circular reference
   const movingFolderIds = props.itemsToMove
-    .filter(item => item.type === 'folder')
-    .map(item => item.id);
-    
+    .filter((item) => item.type === 'folder')
+    .map((item) => item.id);
+
   if (movingFolderIds.includes(targetFolder.id)) return true;
-  
+
   // Also need to check if targetFolder is a descendant of any moving folder
   // But flattenedFolders structure doesn't easily show full ancestry path without traversal
-  // However, we rely on the Backend to catch loop errors as a safety net, 
+  // However, we rely on the Backend to catch loop errors as a safety net,
   // and here we just prevent direct self-selection.
   // For a robust UI, we should check ancestry.
-  
+
   // Simple check: Is targetFolder ID inside the list of moving folders?
   return movingFolderIds.includes(targetFolder.id);
 };
@@ -197,45 +192,50 @@ const confirmMove = async () => {
   if (!selectedId.value) return;
 
   moving.value = true;
-  const targetFolderId = selectedId.value === 'root' ? null : selectedId.value; // Corrected: root is null in DB usually or 'root'? 
+  const targetFolderId = selectedId.value === 'root' ? null : selectedId.value; // Corrected: root is null in DB usually or 'root'?
   // Backend expects 'root' or valid ID for folders? Actually updateFolder takes parentId.
   // Check useFileManager moveFolder implementation: it sends { parentId }.
-  
+
   // Let's split items by type
-  const files = props.itemsToMove.filter(i => i.type === 'file').map(i => i.id);
-  const folders = props.itemsToMove.filter(i => i.type === 'folder').map(i => i.id);
-  
+  const files = props.itemsToMove.filter((i) => i.type === 'file').map((i) => i.id);
+  const folders = props.itemsToMove.filter((i) => i.type === 'folder').map((i) => i.id);
+
   try {
-    
     // Batch move files
     if (files.length > 0) {
-       const res = await authFetch(`${API.FILES}/batch/move`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids: files, targetFolderId: targetFolderId === 'root' ? null : targetFolderId }), // DB usually treats null as root for parent_id
-       }).then(r => r.json());
-       if (!res.success) throw new Error(res.message || 'File move failed');
+      const res = await authFetch(`${API.FILES}/batch/move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: files,
+          targetFolderId: targetFolderId === 'root' ? null : targetFolderId,
+        }), // DB usually treats null as root for parent_id
+      }).then((r) => r.json());
+      if (!res.success) throw new Error(res.message || 'File move failed');
     }
-    
+
     // Move folders individually (since we don't have batch move folder API yet, or we reuse updateFolder)
     // Actually we can implement batch move folder in backend later, but for now loop
     if (folders.length > 0) {
       // Parallelize
-       await Promise.all(folders.map(id => 
+      await Promise.all(
+        folders.map((id) =>
           authFetch(`${API.FOLDERS}/${id}`, {
-             method: 'PUT',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ parentId: targetFolderId === 'root' ? null : targetFolderId })
-          }).then(r => r.json()).then(res => {
-             if (!res.success) throw new Error(res.message);
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ parentId: targetFolderId === 'root' ? null : targetFolderId }),
           })
-       ));
+            .then((r) => r.json())
+            .then((res) => {
+              if (!res.success) throw new Error(res.message);
+            })
+        )
+      );
     }
 
     addToast({ message: t('moveFile.moveSuccess'), type: 'success' });
     emit('moved');
     close();
-    
   } catch (err) {
     addToast({ message: err.message || t('moveFile.opFailed'), type: 'error' });
   } finally {

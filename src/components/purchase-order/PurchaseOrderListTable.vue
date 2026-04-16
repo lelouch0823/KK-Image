@@ -44,7 +44,7 @@
           v-if="po.status"
           data-testid="purchase-order-status-badge"
           :variant="getListStatusVariant(po.status)"
-          class="ring-1 ring-black/5"
+          class="ring-1 ring-(--border-color)/40"
         >
           {{ statusConfig[po.status]?.label || po.status }}
         </StatusBadge>

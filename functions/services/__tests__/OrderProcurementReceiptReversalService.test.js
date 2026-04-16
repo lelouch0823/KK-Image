@@ -52,6 +52,7 @@ function createDbHarness({
   },
   batchError = null,
   batchErrorMatcher = null,
+  batchResults = null,
 } = {}) {
   const calls = {
     reversalPayloads: [],
@@ -109,7 +110,7 @@ function createDbHarness({
       ) {
         throw batchError;
       }
-      return statements.map(() => ({ meta: { changes: 1 } }));
+      return batchResults || statements.map(() => ({ meta: { changes: 1 } }));
     }),
   };
 
@@ -667,6 +668,42 @@ describe('OrderProcurementReceiptReversalService', () => {
       0,
     ]);
     expect(poItemUpdate?.params.slice(0, 2)).toEqual([5, 'partially_received']);
+  });
+
+  it('does not fail the reversal after source facts commit when a linked-order projection reports zero guarded changes', async () => {
+    const projectionHarness = createDbHarness({
+      batchResults: [
+        { meta: { changes: 1 } },
+        { meta: { changes: 1 } },
+        { meta: { changes: 0 } },
+      ],
+    });
+    const projectionService = new OrderProcurementReceiptReversalService(projectionHarness.db, {
+      purchaseReceiptRepo: projectionHarness.purchaseReceiptRepo,
+      inventoryService: projectionHarness.inventoryService,
+      commandIdempotencyRepo: projectionHarness.commandIdempotencyRepo,
+      domainOutboxRepo: projectionHarness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await expect(
+      projectionService.reverseReceipt(
+        'po-1',
+        'receipt-1',
+        {
+          reason: 'rollback',
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).resolves.toEqual(
+      expect.objectContaining({
+        purchase_order_id: 'po-1',
+        receipt_id: 'receipt-1',
+        reversal_qty: 5,
+      })
+    );
   });
 
   it('still emits reversal outbox events when the original receipt has no variant inventory mutation', async () => {

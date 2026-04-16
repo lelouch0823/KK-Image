@@ -30,6 +30,8 @@ import {
 
 const D1_MAX_BATCH_SIZE = 100;
 const RECEIPT_FINALIZE_STATEMENT_COUNT = 2;
+const RECEIPT_ITEM_LOCK_TYPE = 'purchase_receipt_item_lock';
+const RECEIPT_ITEM_LOCK_KEY = '__item_lock__';
 const RECEIPT_BASE_EVENT_WRITE_COUNT =
   1 + getDomainEventDefinition('purchase_receipt_recorded').consumers.length;
 const RECEIPT_INVENTORY_EVENT_WRITE_COUNT =
@@ -83,6 +85,57 @@ export class OrderProcurementDomainService {
     this.domainOutboxRepo =
       deps.domainOutboxRepo || new DomainOutboxRepository(db, { now: deps.now });
     this.now = deps.now || (() => Date.now());
+  }
+
+  buildReceiptItemLockRecord(purchaseOrderItemId, timestamp, commandId, index) {
+    return {
+      id: crypto.randomUUID(),
+      command_type: RECEIPT_ITEM_LOCK_TYPE,
+      scope_key: purchaseOrderItemId,
+      idempotency_key: RECEIPT_ITEM_LOCK_KEY,
+      command_id: `${commandId}:item-lock:${index}`,
+      request_fingerprint: JSON.stringify({
+        purchase_order_item_id: purchaseOrderItemId,
+        command_id: commandId,
+      }),
+      response_json: null,
+      status: 'in_flight',
+      created_at: timestamp,
+      updated_at: timestamp,
+    };
+  }
+
+  async acquireReceiptItemLocks(preparedReceipts, timestamp, commandId) {
+    const purchaseOrderItemIds = [...new Set(
+      preparedReceipts
+        .map((prepared) => String(prepared.purchaseOrderItemId || '').trim())
+        .filter(Boolean)
+    )].sort();
+    const acquiredLocks = [];
+
+    for (const [index, purchaseOrderItemId] of purchaseOrderItemIds.entries()) {
+      const lockRecord = this.buildReceiptItemLockRecord(
+        purchaseOrderItemId,
+        timestamp,
+        commandId,
+        index + 1
+      );
+      const insertResult = await this.commandIdempotencyRepo.buildInsertStatement(lockRecord).run();
+      if (Number(insertResult?.meta?.changes || 0) !== 1) {
+        await this.cleanupReceiptItemLocks(acquiredLocks);
+        throw new BadRequestError('采购单明细收货进度已变化，请刷新后重试');
+      }
+      acquiredLocks.push(lockRecord);
+    }
+
+    return acquiredLocks;
+  }
+
+  async cleanupReceiptItemLocks(lockRecords = []) {
+    for (const lockRecord of lockRecords) {
+      if (!lockRecord?.command_id) continue;
+      await this.commandIdempotencyRepo.buildDeleteStatement(lockRecord.command_id).run();
+    }
   }
 
   async queryCompatibilityOrderLines(
@@ -226,6 +279,7 @@ export class OrderProcurementDomainService {
     const outboxEvents = [];
     const purchaseItemGuardResultIndexes = [];
     const preparedReceipts = [];
+    let receiptItemLocks = [];
     let sequenceInCommand = 1;
 
     if (commandReservation.insertStatement) {
@@ -297,6 +351,22 @@ export class OrderProcurementDomainService {
         commandId: commandRecord.command_id,
       });
       throw new BadRequestError('本次收货包含的写入过多，请拆分后重试');
+    }
+
+    try {
+      receiptItemLocks = await this.acquireReceiptItemLocks(
+        preparedReceipts,
+        timestamp,
+        commandRecord.command_id
+      );
+    } catch (error) {
+      await cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandRecord.command_id,
+      });
+      throw error;
     }
 
     try {
@@ -517,6 +587,10 @@ export class OrderProcurementDomainService {
           leadingStatements: this.domainOutboxRepo.buildInsertStatements(
             outboxEvents,
             (event) => getDomainEventDefinition(event.event_type).consumers
+          ).concat(
+            receiptItemLocks.map((lockRecord) =>
+              this.commandIdempotencyRepo.buildDeleteStatement(lockRecord.command_id)
+            )
           ),
         })
       );
@@ -530,6 +604,7 @@ export class OrderProcurementDomainService {
       }
       return response;
     } catch (error) {
+      await this.cleanupReceiptItemLocks(receiptItemLocks);
       await cleanupReservedCommand({
         commandIdempotencyRepo: this.commandIdempotencyRepo,
         db: this.db,

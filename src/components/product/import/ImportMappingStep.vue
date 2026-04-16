@@ -21,9 +21,9 @@
             </div>
         </div>
         <div class="grid max-h-[40vh] grid-cols-1 gap-4 overflow-y-auto pr-1">
-            <div v-for="field in systemFields" :key="field.key" class="flex items-center justify-between border-b border-(--border-color) pb-2 dark:border-white/10">
+            <div v-for="field in systemFields" :key="field.key" class="flex items-center justify-between border-b border-(--border-color) pb-2">
                 <div class="flex flex-col">
-                    <span class="text-sm font-medium text-(--text-main) dark:text-white">
+                    <span class="text-sm font-medium text-(--text-main)">
                         {{ field.label }} 
                         <span v-if="field.required" class="text-danger">*</span>
                     </span>

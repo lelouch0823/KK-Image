@@ -58,6 +58,17 @@
   - `VariantBatchBuilderModal.vue`
   - `OrderForm.vue`
   - `minisales/miniprogram/pages/stats/stats.scss`
+- 文件管理 / 消息气泡 / 采购状态 / 辅助工具第五轮收口已完成：
+  - `TrashModal.vue`
+  - `FileManagerToolbar.vue`
+  - `MoveItemModal.vue`
+  - `SubspaceList.vue`
+  - `SpaceProductDetail.vue`
+  - `OrderProcurementBadge.vue`
+  - `ChatMessage.vue`
+  - `SalespersonCards.vue`
+  - `ReloadPrompt.vue`
+  - `src/utils/highlight.js`
 - minisales 已完成状态 / shell / surface 第一轮收敛，去掉了核心链路中的 `style="{{...}}"` 状态注入和 controller 拼色字符串。
 
 ### 新增治理护栏
@@ -91,6 +102,14 @@
   - `src/components/SpaceProductEditor.vue` 中隐藏的 `type="file"` 输入，用于原生文件选择能力
   - `src/components/product/ProductDetail.vue` 中用于缩略图切换的图片按钮
 - 这些例外已从 guardrail 中显式排除，不应再扩散到新的业务文件。
+- 本轮复核后新增确认的“功能性颜色 / 打印态”例外：
+  - `src/components/order/OrderPrintView.vue`：打印黑白输出，保留 `text-black` / `border-black` / `bg-white`
+  - `src/components/ui/AppColorInput.vue`：颜色输入默认值 `#ffffff`
+  - `src/components/settings/tabs/WatermarkSettings.vue`
+  - `src/composables/useWatermarkSettings.js`
+  - `src/components/order/ProductBindingSection.vue`：颜色名称到色值映射与 fallback
+  - `src/components/product/ProductOptionsBuilder.vue`：待选颜色值状态
+  - `src/components/TagModal.vue`：标签色 fallback
 
 ## 审查目标
 

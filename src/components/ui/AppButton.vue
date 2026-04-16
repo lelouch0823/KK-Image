@@ -78,7 +78,7 @@ const variantClasses = computed(() => {
   const variants = {
     primary: 'bg-primary text-(--text-inverse) hover:bg-(--color-primary-hover) focus:ring-primary/50',
     secondary: 'bg-(--bg-muted) text-(--text-secondary) hover:bg-(--bg-hover) hover:text-(--text-main) focus:ring-primary/20',
-    danger: 'bg-danger text-white hover:opacity-90 focus:ring-danger/50',
+    danger: 'bg-danger text-(--text-inverse) hover:opacity-90 focus:ring-danger/50',
     ghost: 'bg-transparent text-(--text-secondary) hover:bg-(--bg-muted) hover:text-(--text-main) focus:ring-primary/15',
     link: 'bg-transparent text-primary hover:underline p-0 h-auto',
     outline: 'border border-(--border-color) bg-transparent text-(--text-secondary) hover:border-(--text-secondary) hover:text-(--text-main)',

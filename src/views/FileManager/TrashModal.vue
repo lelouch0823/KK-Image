@@ -86,12 +86,9 @@
         >
           <div class="relative mb-6">
             <div
-              class="absolute -inset-4 rounded-full bg-gradient-to-tr from-green-100 to-blue-50 opacity-50 blur-xl"
+              class="absolute -inset-4 rounded-full bg-(--color-success-bg) opacity-70 blur-xl"
             ></div>
-            <AppIcon
-              class="relative size-32 text-(--text-muted)/20"
-              name="check-circle"
-            />
+            <AppIcon class="relative size-32 text-(--text-muted)/20" name="check-circle" />
           </div>
           <h3 class="mb-2 text-xl font-medium text-(--text-primary)">
             {{ t('trash.empty') }}
@@ -109,17 +106,10 @@
             @row-click="toggleSelection"
           >
             <template #header-selection>
-              <AppCheckbox
-                :checked="isAllSelected"
-                @change="toggleSelectAll"
-              />
+              <AppCheckbox :checked="isAllSelected" @change="toggleSelectAll" />
             </template>
             <template #cell-selection="{ row: file }">
-              <AppCheckbox
-                v-model="selectedIds"
-                :value="file.id"
-                @click.stop
-              />
+              <AppCheckbox v-model="selectedIds" :value="file.id" @click.stop />
             </template>
             <template #cell-name="{ row: file }">
               <div class="flex items-center gap-3">
@@ -135,16 +125,8 @@
                     fit="cover"
                     rounded="sm"
                   />
-                  <AppIcon
-                    v-else-if="file.type === 'folder'"
-                    class="size-5"
-                    name="folder"
-                  />
-                  <AppIcon
-                    v-else
-                    class="size-5"
-                    name="document"
-                  />
+                  <AppIcon v-else-if="file.type === 'folder'" class="size-5" name="folder" />
+                  <AppIcon v-else class="size-5" name="document" />
                 </div>
                 <div class="min-w-0">
                   <div class="truncate font-medium text-(--text-primary) opacity-75">
@@ -166,10 +148,14 @@
               <span class="text-(--text-secondary) opacity-75">{{ formatSize(file.size) }}</span>
             </template>
             <template #cell-deletedAt="{ row: file }">
-              <span class="text-(--text-secondary) opacity-75">{{ formatDate(file.deletedAt) }}</span>
+              <span class="text-(--text-secondary) opacity-75">{{
+                formatDate(file.deletedAt)
+              }}</span>
             </template>
             <template #cell-actions="{ row: file }">
-              <div class="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+              <div
+                class="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100"
+              >
                 <AppButton
                   variant="ghost"
                   size="sm"
@@ -277,18 +263,19 @@ const deleteConfirmMessage = computed(() => {
 
   const [pendingId] = pendingDeleteIds.value;
   const target = files.value.find((file) => file.id === pendingId);
-  return target?.name
-    ? `${t('trash.confirmDelete')} (${target.name})`
-    : t('trash.confirmDelete');
+  return target?.name ? `${t('trash.confirmDelete')} (${target.name})` : t('trash.confirmDelete');
 });
 
 // Watch visibility to load data
-watch(() => props.modelValue, (visible) => {
-  if (visible) {
-    loadTrashData();
-    selectedIds.value = [];
+watch(
+  () => props.modelValue,
+  (visible) => {
+    if (visible) {
+      loadTrashData();
+      selectedIds.value = [];
+    }
   }
-});
+);
 
 const toggleSelectAll = () => {
   if (isAllSelected.value) {
@@ -314,15 +301,33 @@ const getRowClass = (row) => {
 const columns = computed(() => [
   { key: 'selection', label: '', width: '48px' },
   { key: 'name', label: t('fileManager.table.name'), width: '280px', minWidth: '280px' },
-  { key: 'originalLocation', label: t('trash.originalLocation'), kind: 'path', width: '360px', maxWidth: '360px' },
-  { key: 'size', label: t('fileManager.table.size'), kind: 'numeric', width: '120px', maxWidth: '120px' },
-  { key: 'deletedAt', label: t('trash.deletedAt'), kind: 'datetime', width: '160px', maxWidth: '160px' },
-  { key: 'actions', label: t('fileManager.table.actions'), align: 'right', width: '120px' }
+  {
+    key: 'originalLocation',
+    label: t('trash.originalLocation'),
+    kind: 'path',
+    width: '360px',
+    maxWidth: '360px',
+  },
+  {
+    key: 'size',
+    label: t('fileManager.table.size'),
+    kind: 'numeric',
+    width: '120px',
+    maxWidth: '120px',
+  },
+  {
+    key: 'deletedAt',
+    label: t('trash.deletedAt'),
+    kind: 'datetime',
+    width: '160px',
+    maxWidth: '160px',
+  },
+  { key: 'actions', label: t('fileManager.table.actions'), align: 'right', width: '120px' },
 ]);
 
 const handleRestore = async (file) => {
   if (await restoreTrashItems([file.id])) {
-    files.value = files.value.filter(f => f.id !== file.id);
+    files.value = files.value.filter((f) => f.id !== file.id);
     emit('change');
   }
 };
@@ -334,7 +339,7 @@ const requestDelete = (file) => {
 
 const handleRestoreSelected = async () => {
   if (await restoreTrashItems(selectedIds.value)) {
-    files.value = files.value.filter(f => !selectedIds.value.includes(f.id));
+    files.value = files.value.filter((f) => !selectedIds.value.includes(f.id));
     selectedIds.value = [];
     emit('change');
   }
@@ -352,8 +357,8 @@ const handleDeleteConfirmed = async () => {
   }
 
   if (await deleteTrashItems(pendingDeleteIds.value)) {
-    files.value = files.value.filter(f => !pendingDeleteIds.value.includes(f.id));
-    selectedIds.value = selectedIds.value.filter(id => !pendingDeleteIds.value.includes(id));
+    files.value = files.value.filter((f) => !pendingDeleteIds.value.includes(f.id));
+    selectedIds.value = selectedIds.value.filter((id) => !pendingDeleteIds.value.includes(id));
     showDeleteConfirm.value = false;
     pendingDeleteIds.value = [];
     emit('change');

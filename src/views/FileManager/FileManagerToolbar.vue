@@ -1,10 +1,12 @@
 <template>
-  <div class="flex flex-col gap-3 border-b border-(--border-color) px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-6 lg:py-4">
+  <div
+    class="flex flex-col gap-3 border-b border-(--border-color) px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-6 lg:py-4"
+  >
     <!-- 第一行: 面包屑 + 上传按钮 -->
     <div class="flex items-center justify-between gap-3">
       <!-- Breadcrumbs -->
-      <div 
-        class="scrollbar-thin flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto lg:max-w-2xl lg:gap-2" 
+      <div
+        class="scrollbar-thin flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto lg:max-w-2xl lg:gap-2"
         :class="{ 'hidden lg:flex': selectedCount > 0 }"
       >
         <AppButton
@@ -25,7 +27,11 @@
             variant="link"
             size="sm"
             class="max-w-24 !h-auto truncate !px-0 !text-sm whitespace-nowrap sm:max-w-none"
-            :class="index === breadcrumbs.length - 1 ? 'text-primary' : 'text-(--text-secondary) hover:text-primary'"
+            :class="
+              index === breadcrumbs.length - 1
+                ? 'text-primary'
+                : 'text-(--text-secondary) hover:text-primary'
+            "
             @click="$emit('navigate', crumb.id)"
           >
             {{ crumb.name }}
@@ -35,7 +41,13 @@
 
       <!-- 移动端: 上传按钮 (始终可见) -->
       <div class="flex shrink-0 items-center gap-2 lg:hidden">
-        <input ref="fileInputMobile" type="file" multiple class="hidden" @change="handleFileSelect" />
+        <input
+          ref="fileInputMobile"
+          type="file"
+          multiple
+          class="hidden"
+          @change="handleFileSelect"
+        />
         <AppButton
           v-if="canWriteFiles"
           variant="primary"
@@ -61,14 +73,14 @@
         leave-from-class="transform translate-x-0 opacity-100"
         leave-to-class="transform translate-x-4 opacity-0"
       >
-        <div 
-          v-if="selectedCount > 0" 
+        <div
+          v-if="selectedCount > 0"
           class="border-primary/20 bg-primary/5 flex items-center gap-1 overflow-hidden rounded-lg border px-2 py-1.5 transition-all"
         >
           <span class="text-primary mr-1 text-xs font-medium lg:mr-2">{{
             t('fileManager.selected', { count: selectedCount })
           }}</span>
-          
+
           <div class="bg-primary/20 h-4 w-px"></div>
 
           <AppButton
@@ -79,9 +91,9 @@
             :title="t('fileManager.actions.tag')"
             @click="$emit('batch-tag')"
           >
-             <template #icon-left>
-               <AppIcon name="tag" class="size-4" />
-             </template>
+            <template #icon-left>
+              <AppIcon name="tag" class="size-4" />
+            </template>
           </AppButton>
 
           <AppButton
@@ -92,9 +104,9 @@
             :title="t('fileManager.actions.move')"
             @click="$emit('batch-move')"
           >
-             <template #icon-left>
-               <AppIcon name="arrows-right-left" class="size-4" />
-             </template>
+            <template #icon-left>
+              <AppIcon name="arrows-right-left" class="size-4" />
+            </template>
           </AppButton>
 
           <AppButton
@@ -105,9 +117,9 @@
             :title="t('fileManager.actions.delete')"
             @click="$emit('batch-delete')"
           >
-             <template #icon-left>
-               <AppIcon name="trash" class="size-4" />
-             </template>
+            <template #icon-left>
+              <AppIcon name="trash" class="size-4" />
+            </template>
           </AppButton>
 
           <AppButton
@@ -117,9 +129,9 @@
             :title="t('common.cancel')"
             @click="$emit('clear-selection')"
           >
-             <template #icon-left>
-               <AppIcon name="x-mark" class="size-4" />
-             </template>
+            <template #icon-left>
+              <AppIcon name="x-mark" class="size-4" />
+            </template>
           </AppButton>
         </div>
       </Transition>
@@ -132,12 +144,7 @@
         :content="t('fileManager.shareFolder')"
         class="hidden lg:block"
       >
-        <AppButton
-          variant="white"
-          size="md"
-          class="size-10 !px-0"
-          @click="$emit('share-folder')"
-        >
+        <AppButton variant="white" size="md" class="size-10 !px-0" @click="$emit('share-folder')">
           <template #icon-left>
             <AppIcon name="share" class="size-5" />
           </template>
@@ -180,7 +187,7 @@
         <AppButton
           variant="white"
           size="sm"
-          class="size-9 !px-0 hover:border-red-200 hover:bg-red-50 hover:text-danger lg:size-10"
+          class="size-9 !px-0 hover:border-danger/30 hover:bg-(--color-danger-bg) hover:text-danger lg:size-10"
           @click="$emit('open-trash')"
         >
           <template #icon-left>
@@ -197,25 +204,27 @@
         class="w-28 sm:w-40 lg:w-64"
       >
         <template #prepend>
-           <AppIcon name="magnifying-glass" class="size-4" />
+          <AppIcon name="magnifying-glass" class="size-4" />
         </template>
       </AppInput>
 
       <!-- 视图切换 -->
-      <div class="hidden items-center rounded-lg border border-(--border-color) bg-(--bg-card) p-1 sm:flex">
-          <AppButton
-              v-for="mode in ['grid', 'list']"
-              :key="mode"
-              size="sm"
-              variant="ghost"
-              class="!h-7 !p-1.5"
-              :class="{ 'text-primary bg-(--bg-card) shadow-sm': viewMode === mode }"
-              @click="$emit('update:viewMode', mode)"
-          >
-              <template #icon-left>
-                  <AppIcon :name="mode === 'grid' ? 'squares-2x2' : 'bars-3'" class="size-4" />
-              </template>
-          </AppButton>
+      <div
+        class="hidden items-center rounded-lg border border-(--border-color) bg-(--bg-card) p-1 sm:flex"
+      >
+        <AppButton
+          v-for="mode in ['grid', 'list']"
+          :key="mode"
+          size="sm"
+          variant="ghost"
+          class="!h-7 !p-1.5"
+          :class="{ 'text-primary bg-(--bg-card) shadow-sm': viewMode === mode }"
+          @click="$emit('update:viewMode', mode)"
+        >
+          <template #icon-left>
+            <AppIcon :name="mode === 'grid' ? 'squares-2x2' : 'bars-3'" class="size-4" />
+          </template>
+        </AppButton>
       </div>
     </div>
   </div>

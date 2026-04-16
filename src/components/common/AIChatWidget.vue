@@ -40,7 +40,7 @@
             :class="isMobile ? '' : 'cursor-move hover:bg-primary/90'"
           >
             <div class="flex items-center gap-3">
-              <div class="flex size-8 items-center justify-center rounded-lg bg-white/20">
+              <div class="flex size-8 items-center justify-center rounded-lg bg-(--bg-card)/20">
                 <AppIcon name="bolt" class="size-5" />
               </div>
               <div>
@@ -54,7 +54,7 @@
                 :title="t('ai.clear')"
                 variant="ghost"
                 size="sm"
-                class="!h-8 !w-8 !px-0 text-white hover:!bg-white/10 hover:!text-white"
+                class="!h-8 !w-8 !px-0 text-(--text-inverse) hover:!bg-(--bg-card)/10 hover:!text-(--text-inverse)"
                 @click="clearHistory"
               >
                 <template #icon-left>
@@ -65,7 +65,7 @@
                 :title="t('common.close')"
                 variant="ghost"
                 size="sm"
-                class="!h-8 !w-8 !px-0 text-white hover:!bg-white/10 hover:!text-white"
+                class="!h-8 !w-8 !px-0 text-(--text-inverse) hover:!bg-(--bg-card)/10 hover:!text-(--text-inverse)"
                 @click="close"
               >
                 <template #icon-left>
@@ -160,7 +160,7 @@
                   v-model="userInput"
                   :disabled="isStreamingLoading"
                   :placeholder="t('ai.placeholder')"
-                  class="[&_input]:rounded-xl [&_input]:border-none [&_input]:bg-(--bg-muted) [&_input]:py-3 [&_input]:pr-12 dark:[&_input]:bg-white/5"
+                  class="[&_input]:rounded-xl [&_input]:border-none [&_input]:bg-(--bg-muted) [&_input]:py-3 [&_input]:pr-12"
                   @paste="onPaste"
                 />
                 <AppButton

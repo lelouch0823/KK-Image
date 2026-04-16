@@ -78,7 +78,7 @@
                 ></span>
                 <span
                   v-else
-                  class="block size-2 rounded-full bg-(--color-text-muted) shadow-sm"
+                  class="block size-2 rounded-full bg-(--text-muted) shadow-sm"
                 ></span>
               </div>
 
@@ -104,7 +104,7 @@
                 <AppButton
                   variant="ghost"
                   size="sm"
-                  class="text-primary hidden !h-6 !w-6 !gap-0 !rounded-full !px-0 group-hover:flex hover:bg-black/5 dark:hover:bg-white/10 [&_span]:hidden"
+                  class="text-primary hidden !h-6 !w-6 !gap-0 !rounded-full !px-0 group-hover:flex hover:bg-(--bg-hover) [&_span]:hidden"
                   title="标记为已读"
                   @click.stop="markAsRead(item.id)"
                 >

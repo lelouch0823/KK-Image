@@ -26,7 +26,7 @@
           <!-- 选中指示器 -->
           <span
             v-if="modelValue === mode.value"
-            class="bg-primary absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full text-white"
+            class="bg-primary absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full text-(--text-inverse)"
           >
             <AppIcon name="check" class="size-2.5" stroke-width="4" />
           </span>

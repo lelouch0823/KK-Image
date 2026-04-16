@@ -50,13 +50,13 @@
                 :class="[
                   multiple ? 'size-5 rounded' : 'size-5 rounded-full',
                   localSelectedIds.includes(sp.id)
-                    ? 'border-primary bg-primary text-white shadow-sm'
+                    ? 'border-primary bg-primary text-(--text-inverse) shadow-sm'
                     : 'group-hover:border-primary border-(--border-strong) bg-(--bg-card)',
                 ]"
               >
                 <template v-if="localSelectedIds.includes(sp.id)">
                   <AppIcon v-if="multiple" name="check" class="size-3.5" />
-                  <span v-else class="size-2 rounded-full bg-white"></span>
+                  <span v-else class="size-2 rounded-full bg-(--text-inverse)"></span>
                 </template>
               </span>
 
@@ -64,7 +64,7 @@
                 class="flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-medium shadow-sm"
                 :class="
                   localSelectedIds.includes(sp.id)
-                    ? 'from-primary to-primary/70 shadow-primary/30 bg-gradient-to-br text-white'
+                    ? 'from-primary to-primary/70 shadow-primary/30 bg-gradient-to-br text-(--text-inverse)'
                     : 'border border-(--border-color) bg-(--bg-muted) text-(--text-secondary)'
                 "
               >

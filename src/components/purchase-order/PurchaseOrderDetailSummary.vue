@@ -11,20 +11,19 @@
           </h2>
         </div>
         <div class="flex flex-col items-end gap-2">
-          <span
+          <StatusBadge
             v-if="detail?.status"
             data-testid="purchase-order-detail-status-chip"
-            class="rounded-full px-3 py-1 text-xs font-medium"
-            :style="{
-              color: statusConfig[detail.status]?.color || 'inherit',
-              backgroundColor: statusConfig[detail.status]?.bg || 'var(--bg-muted)',
-            }"
+            :variant="getStatusVariant(detail.status)"
           >
             {{ statusConfig[detail.status]?.label || detail.status }}
-          </span>
+          </StatusBadge>
           <template
             v-if="
-              detail?.display_status || detail?.ordered_qty || detail?.received_qty || detail?.cancelled_qty
+              detail?.display_status ||
+              detail?.ordered_qty ||
+              detail?.received_qty ||
+              detail?.cancelled_qty
             "
           >
             <StatusBadge
@@ -45,10 +44,7 @@
       </div>
     </div>
 
-    <div
-      data-testid="purchase-order-detail-hero"
-      class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
-    >
+    <div data-testid="purchase-order-detail-hero" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <article
         v-for="card in summaryCards"
         :key="card.key"
@@ -68,6 +64,14 @@
 
 <script setup>
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+
+const getStatusVariant = (status) => {
+  if (['draft', 'cancelled'].includes(status)) return 'default';
+  if (status === 'ordered') return 'warning';
+  if (status === 'shipping') return 'primary';
+  if (status === 'arrived') return 'info';
+  return 'success';
+};
 
 defineProps({
   detail: {

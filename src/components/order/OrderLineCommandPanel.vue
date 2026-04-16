@@ -20,7 +20,7 @@
         </p>
         <p
           v-if="!isVariantBacked"
-          class="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/8 px-3 py-2 text-xs text-amber-700"
+          class="mt-2 rounded-xl border border-warning/20 bg-(--color-warning-bg) px-3 py-2 text-xs text-(--color-warning-text)"
         >
           {{
             t(
@@ -31,7 +31,7 @@
         </p>
         <p
           v-else-if="unshipBlockedByDeliveryStatus"
-          class="mt-2 rounded-xl border border-sky-500/20 bg-sky-500/8 px-3 py-2 text-xs text-sky-700"
+          class="mt-2 rounded-xl border border-info/20 bg-(--color-info-bg) px-3 py-2 text-xs text-(--color-info-text)"
         >
           {{
             t(
@@ -42,7 +42,7 @@
         </p>
         <p
           v-else-if="!returnAllowedByOrderStatus && limits.return > 0"
-          class="mt-2 rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-3 py-2 text-xs text-emerald-700"
+          class="mt-2 rounded-xl border border-success/20 bg-(--color-success-bg) px-3 py-2 text-xs text-(--color-success-text)"
         >
           {{
             t(
@@ -57,22 +57,22 @@
             {{ t('order.detail.reservableQty', '可预留') }} {{ limits.reserve }}
           </span>
           <span
-            class="rounded-full bg-slate-500/10 px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)"
+            class="rounded-full border border-(--border-color) bg-(--bg-muted) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)"
           >
             {{ t('order.detail.reservedQty', '已预留') }} {{ limits.release }}
           </span>
           <span
-            class="rounded-full bg-orange-500/10 px-2.5 py-1 text-[11px] font-medium text-orange-600"
+            class="rounded-full border border-warning/20 bg-(--color-warning-bg) px-2.5 py-1 text-[11px] font-medium text-(--color-warning-text)"
           >
             {{ t('order.detail.shippableQty', '可出货') }} {{ limits.ship }}
           </span>
           <span
-            class="rounded-full bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-600"
+            class="rounded-full border border-info/20 bg-(--color-info-bg) px-2.5 py-1 text-[11px] font-medium text-(--color-info-text)"
           >
             {{ t('order.detail.unshippableQty', '可撤销出货') }} {{ limits.unship }}
           </span>
           <span
-            class="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-700"
+            class="rounded-full border border-success/20 bg-(--color-success-bg) px-2.5 py-1 text-[11px] font-medium text-(--color-success-text)"
           >
             {{ t('order.detail.returnableQty', '可退回') }} {{ limits.return }}
           </span>
@@ -119,7 +119,7 @@
         variant="outline"
         size="sm"
         data-testid="line-command-ship"
-        class="border-orange-500/20 bg-orange-500/10 text-orange-600 hover:border-orange-500/30 hover:bg-orange-500/15 hover:text-orange-600"
+        class="border-warning/20 bg-(--color-warning-bg) text-(--color-warning-text) hover:opacity-90"
         :disabled="loading || !isVariantBacked || limits.ship <= 0"
         @click="submit('ship')"
       >
@@ -129,7 +129,7 @@
         variant="outline"
         size="sm"
         data-testid="line-command-unship"
-        class="border-sky-500/20 bg-sky-500/10 text-sky-600 hover:border-sky-500/30 hover:bg-sky-500/15 hover:text-sky-600"
+        class="border-info/20 bg-(--color-info-bg) text-(--color-info-text) hover:opacity-90"
         :disabled="loading || !isVariantBacked || unshipBlockedByDeliveryStatus || limits.unship <= 0"
         @click="submit('unship')"
       >
@@ -139,7 +139,7 @@
         variant="outline"
         size="sm"
         data-testid="line-command-return"
-        class="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:border-emerald-500/30 hover:bg-emerald-500/15 hover:text-emerald-700"
+        class="border-success/20 bg-(--color-success-bg) text-(--color-success-text) hover:opacity-90"
         :disabled="loading || !isVariantBacked || !returnAllowedByOrderStatus || limits.return <= 0"
         @click="submit('return')"
       >

@@ -1,8 +1,8 @@
 <template>
-    <div v-if="fileName" class="rounded-lg border border-(--border-color) bg-(--bg-card) p-4 dark:border-white/10 dark:bg-white/5">
+    <div v-if="fileName" class="rounded-lg border border-(--border-color) bg-(--bg-card) p-4">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="bg-success/10 text-success flex size-10 items-center justify-center rounded-lg dark:bg-success/20">
+                <div class="bg-success/10 text-success flex size-10 items-center justify-center rounded-lg">
                     <AppIcon name="document-text" class="size-6" />
                 </div>
                 <div>
@@ -23,7 +23,7 @@
         </div>
 
         <!-- Parsed Stats -->
-        <div v-if="parsedItems.length > 0" class="mt-4 border-t border-(--border-color) pt-3 dark:border-white/10">
+        <div v-if="parsedItems.length > 0" class="mt-4 border-t border-(--border-color) pt-3">
             <div class="flex items-center justify-between text-sm">
                 <span class="text-(--text-secondary)">{{ t('product.import.total_rows', '识别行数') }}:</span>
                 <span class="font-medium text-(--text-main)">{{ parsedItems.length }}</span>
@@ -59,17 +59,17 @@
         </div>
 
         <!-- Progress Bar -->
-        <div v-if="loading" class="mt-4 border-t border-(--border-color) pt-3 dark:border-white/10">
+        <div v-if="loading" class="mt-4 border-t border-(--border-color) pt-3">
             <div class="mb-1 flex justify-between text-xs">
             <span class="text-primary">
                 {{ t('product.import.importing', { current: importStats.processed, total: importStats.total }) }}
                 ({{ processedChunk }}/{{ totalChunk }} 批次)
             </span>
-            <span class="font-medium text-(--text-main) dark:text-white">
+            <span class="font-medium text-(--text-main)">
                 {{ progressPercent }}%
             </span>
         </div>
-        <div class="h-2 w-full overflow-hidden rounded-full bg-(--bg-muted) transition-colors dark:bg-white/10">
+        <div class="h-2 w-full overflow-hidden rounded-full bg-(--bg-muted) transition-colors">
             <div 
                 class="bg-primary h-full transition-all duration-300" 
                 :style="{ width: progressPercent + '%' }"
@@ -81,7 +81,7 @@
     <!-- Import Result -->
     <div
       v-if="importResult" class="mt-4 rounded-md p-3 text-sm" 
-      :class="importResult.success && importResult.count > 0 ? 'bg-success/10 text-success dark:bg-success/10 dark:text-green-300' : 'bg-danger/10 text-danger dark:bg-danger/10 dark:text-red-300'">
+      :class="importResult.success && importResult.count > 0 ? 'bg-(--color-success-bg) text-(--color-success-text)' : 'bg-(--color-danger-bg) text-(--color-danger-text)'">
         <p class="font-medium">
         {{ importResult.success && importResult.count > 0 ? '导入完成！' : '导入失败' }}
         </p>
@@ -177,7 +177,7 @@
     </div>
 
     <!-- Error Feedback (General) -->
-    <div v-if="importError" class="bg-danger/10 text-danger mt-4 rounded-md p-3 text-sm dark:bg-danger/10 dark:text-red-300">
+    <div v-if="importError" class="mt-4 rounded-md bg-(--color-danger-bg) p-3 text-sm text-(--color-danger-text)">
         {{ importError }}
     </div>
 </template>

@@ -8,11 +8,7 @@
 
     <!-- Loading -->
     <div v-if="loading" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div
-        v-for="i in 4"
-        :key="i"
-        class="h-48 animate-pulse rounded-2xl bg-(--bg-muted)"
-      ></div>
+      <div v-for="i in 4" :key="i" class="h-48 animate-pulse rounded-2xl bg-(--bg-muted)"></div>
     </div>
 
     <!-- Empty State -->
@@ -20,10 +16,10 @@
       v-else-if="spaces.length === 0"
       class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-(--border-color) bg-(--bg-muted) px-6 py-16 text-center"
     >
-      <div class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-(--bg-card) shadow-sm">
-        <svg class="size-8 text-(--text-muted)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
+      <div
+        class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-(--bg-card) shadow-sm"
+      >
+        <AppIcon name="photo" class="size-8 text-(--text-muted)" />
       </div>
       <h3 class="text-base font-semibold text-(--text-main)">{{ t('salesSpaces.empty') }}</h3>
       <p class="mt-1 text-sm text-(--text-secondary)">{{ t('salesSpaces.emptyDesc') }}</p>
@@ -47,19 +43,23 @@
             rounded="none"
           />
           <div v-else class="flex size-full items-center justify-center">
-            <svg class="size-12 text-(--text-muted) opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+            <AppIcon name="photo" class="size-12 text-(--text-muted) opacity-30" />
           </div>
           <!-- Template Badge -->
-          <span class="absolute top-3 left-3 max-w-[75%] truncate rounded-full bg-black/50 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm" :title="getTemplateLabel(space.template)">
+          <span
+            class="absolute top-3 left-3 max-w-[75%] truncate rounded-full bg-(--color-overlay-dim) px-2.5 py-0.5 text-xs font-medium text-(--text-inverse) backdrop-blur-sm"
+            :title="getTemplateLabel(space.template)"
+          >
             {{ getTemplateLabel(space.template) }}
           </span>
         </div>
 
         <!-- Info -->
         <div class="p-4">
-          <h3 class="group-hover:text-primary truncate text-sm font-semibold text-(--text-main)" :title="space.name || '-'">
+          <h3
+            class="group-hover:text-primary truncate text-sm font-semibold text-(--text-main)"
+            :title="space.name || '-'"
+          >
             {{ space.name || '-' }}
           </h3>
           <p v-if="space.description" class="mt-1 line-clamp-2 text-xs text-(--text-secondary)">
@@ -69,11 +69,11 @@
             <span class="text-xs text-(--text-muted)">
               {{ t('salesSpaces.fileCount', { count: space.fileCount || 0 }) }}
             </span>
-            <span class="text-primary flex items-center gap-1 text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100">
+            <span
+              class="text-primary flex items-center gap-1 text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100"
+            >
               {{ t('salesSpaces.viewSpace') }}
-              <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
+              <AppIcon name="arrow-top-right-on-square" class="size-3.5" />
             </span>
           </div>
         </div>
@@ -88,6 +88,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { API } from '@/utils/constants';
 import { normalizeSalesSpace } from '@/utils/sales-space';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 
 const { t } = useI18n();
@@ -96,7 +97,9 @@ const salesContext = inject('salesContext');
 
 const spaces = ref([]);
 const loading = ref(true);
-const currentToken = computed(() => salesContext?.accessToken?.value || window.location.pathname.split('/')[2] || '');
+const currentToken = computed(
+  () => salesContext?.accessToken?.value || window.location.pathname.split('/')[2] || ''
+);
 let spacesRequestId = 0;
 
 const getTemplateLabel = (key) => {
@@ -149,7 +152,11 @@ const loadSpaces = async () => {
   return false;
 };
 
-watch(currentToken, () => {
-  loadSpaces();
-}, { immediate: true });
+watch(
+  currentToken,
+  () => {
+    loadSpaces();
+  },
+  { immediate: true }
+);
 </script>

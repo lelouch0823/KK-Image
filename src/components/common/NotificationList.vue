@@ -21,7 +21,10 @@
 
     <!-- List -->
     <div class="min-h-[100px] flex-1 overflow-y-auto">
-      <div v-if="loading && notifications.length === 0" class="p-8 text-center text-gray-400">
+      <div
+        v-if="loading && notifications.length === 0"
+        class="p-8 text-center text-(--text-muted)"
+      >
         <div
           class="border-primary mx-auto mb-2 size-5 animate-spin rounded-full border-2 border-t-transparent"
         ></div>
@@ -32,7 +35,7 @@
         v-else-if="notifications.length === 0"
         class="text-secondary flex flex-col items-center p-8 text-center"
       >
-        <AppIcon name="bell" class="mb-2 size-10 text-gray-200" />
+        <AppIcon name="bell" class="mb-2 size-10 text-(--text-muted)" />
         <span class="text-sm">{{ t('notification.empty') }}</span>
       </div>
 
@@ -41,7 +44,7 @@
           v-for="item in notifications"
           :key="item.id"
           class="group relative cursor-pointer p-4 transition-colors hover:bg-(--bg-hover)"
-          :class="{ 'bg-primary/5': item.is_read === 0 }"
+          :class="{ 'bg-(--color-primary-bg)': item.is_read === 0 }"
           @click="handleClick(item)"
         >
           <div class="flex items-start gap-3">
@@ -57,7 +60,7 @@
               ></span>
               <span
                 v-else
-                class="mt-1.5 block size-2 rounded-full bg-(--color-text-muted)"
+                class="mt-1.5 block size-2 rounded-full bg-(--text-muted)"
               ></span>
             </div>
 
@@ -80,7 +83,7 @@
                 v-if="canWriteNotifications"
                 variant="ghost"
                 size="sm"
-                class="text-primary !hidden !size-6 !rounded-full !p-0 group-hover:!inline-flex hover:!bg-black/5 dark:hover:!bg-white/10"
+                class="text-primary !hidden !size-6 !rounded-full !p-0 group-hover:!inline-flex hover:!bg-(--bg-hover)"
                 title="标记为已读"
                 @click.stop="markAsRead(item.id)"
               >

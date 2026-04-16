@@ -25,7 +25,7 @@
           <AppButton
             v-if="showRetry"
             variant="outline"
-            class="border-warning/30 bg-warning text-white hover:border-warning hover:bg-warning/90 hover:text-white"
+            class="border-warning/30 bg-warning text-(--text-inverse) hover:border-warning hover:bg-warning/90 hover:text-(--text-inverse)"
             @click="$emit('retry')"
           >
             重新尝试

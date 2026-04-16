@@ -2,7 +2,7 @@
   <!-- 移动端背景遮罩 -->
   <div
     v-if="isOpen"
-    class="fixed inset-0 z-40 bg-black/50 transition-opacity lg:hidden"
+    class="fixed inset-0 z-40 bg-(--color-overlay-dim) transition-opacity lg:hidden"
     @click="closeSidebar"
   ></div>
 
@@ -23,7 +23,7 @@
     >
       <div class="flex items-center overflow-hidden">
         <div
-          class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-gray-800 to-black text-sm font-bold text-white"
+          class="bg-primary text-(--text-inverse) flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold shadow-sm"
         >
           KK
         </div>

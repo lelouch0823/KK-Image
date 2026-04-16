@@ -10,7 +10,7 @@
     >
       <div
         v-if="visible"
-        class="fixed inset-0 bg-black/95 backdrop-blur-md"
+        class="fixed inset-0 bg-(--color-overlay-dim) backdrop-blur-md"
         :style="zIndexStyle"
         @click.self="$emit('close')"
         @wheel="handleWheel"
@@ -19,19 +19,19 @@
       >
         <!-- Toolbar -->
         <div
-          class="absolute top-0 right-0 left-0 z-10 flex items-center justify-between bg-gradient-to-b from-black/50 to-transparent p-4 transition-colors"
+          class="absolute top-0 right-0 left-0 z-10 flex items-center justify-between bg-(--color-overlay-dim) p-4 transition-colors"
         >
-          <div class="px-2 text-sm font-medium text-white/90">
+          <div class="px-2 text-sm font-medium text-(--text-inverse) opacity-90">
             {{ currentIndex + 1 }} / {{ total }}
           </div>
 
           <div class="flex items-center gap-4">
             <!-- Zoom/Rotate Toolbar (Only for images) - Hidden on mobile -->
-            <div v-if="isImage" class="mr-4 hidden items-center gap-2 border-r border-white/10 pr-4 sm:flex">
+            <div v-if="isImage" class="mr-4 hidden items-center gap-2 border-r border-(--bg-card)/20 pr-4 sm:flex">
               <!-- Rotate -->
               <button
                 type="button"
-                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
+                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md transition-all duration-200 hover:bg-(--bg-card)/25 hover:opacity-100 focus-visible:outline-none"
                 :aria-label="t('gallery.rotate')"
                 :title="t('gallery.rotate')"
                 @click.stop="rotate"
@@ -42,7 +42,7 @@
               <!-- Zoom In -->
               <button
                 type="button"
-                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
+                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md transition-all duration-200 hover:bg-(--bg-card)/25 hover:opacity-100 focus-visible:outline-none"
                 :aria-label="t('gallery.zoomIn')"
                 :title="t('gallery.zoomIn')"
                 @click.stop="zoomIn"
@@ -53,7 +53,7 @@
               <!-- Zoom Out -->
               <button
                 type="button"
-                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
+                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md transition-all duration-200 hover:bg-(--bg-card)/25 hover:opacity-100 focus-visible:outline-none"
                 :aria-label="t('gallery.zoomOut')"
                 :title="t('gallery.zoomOut')"
                 @click.stop="zoomOut"
@@ -62,7 +62,7 @@
               </button>
 
               <!-- Zoom indicator -->
-              <span class="min-w-12 text-center text-sm font-medium text-white/70">
+              <span class="min-w-12 text-center text-sm font-medium text-(--text-inverse) opacity-80">
                 {{ Math.round(scale * 100) }}%
               </span>
             </div>
@@ -72,7 +72,7 @@
               v-if="currentFile"
               :href="currentFile.url"
               download
-              class="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-md transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white"
+              class="flex items-center gap-2 rounded-full bg-(--bg-card)/15 px-4 py-2 text-sm font-medium text-(--text-inverse) backdrop-blur-md transition-colors hover:bg-(--bg-card)/25 focus-visible:outline-none"
               aria-label="Download file"
             >
               <AppIcon name="arrow-down-tray" class="size-4" />
@@ -81,7 +81,7 @@
 
             <!-- Close Button -->
             <button
-              class="flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white"
+              class="flex size-10 items-center justify-center rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md transition-colors hover:bg-(--bg-card)/25 hover:opacity-100 focus-visible:outline-none"
               :aria-label="t('gallery.close')"
               @click="$emit('close')"
             >
@@ -93,7 +93,7 @@
         <!-- Navigation Buttons -->
         <button
           v-if="currentIndex > 0"
-          class="absolute top-1/2 left-4 z-10 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white sm:flex"
+          class="absolute top-1/2 left-4 z-10 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md transition-colors hover:bg-(--bg-card)/25 hover:opacity-100 focus-visible:outline-none sm:flex"
           :aria-label="t('gallery.prev')"
           @click="$emit('prev')"
         >
@@ -101,7 +101,7 @@
         </button>
         <button
           v-if="currentIndex < total - 1"
-          class="absolute top-1/2 right-4 z-10 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/70 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white sm:flex"
+          class="absolute top-1/2 right-4 z-10 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md transition-colors hover:bg-(--bg-card)/25 hover:opacity-100 focus-visible:outline-none sm:flex"
           :aria-label="t('gallery.next')"
           @click="$emit('next')"
         >
@@ -132,20 +132,20 @@
           </div>
 
           <!-- Other Files -->
-          <div v-else class="text-center text-white">
+          <div v-else class="text-center text-(--text-inverse)">
             <div
-              class="mx-auto mb-6 flex size-24 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md"
+              class="mx-auto mb-6 flex size-24 items-center justify-center rounded-2xl bg-(--bg-card)/15 backdrop-blur-md"
             >
               <AppIcon name="document" class="size-12" />
             </div>
             <h3 class="mb-4 text-lg font-medium">{{ currentFile?.name }}</h3>
-            <p class="mb-6 text-sm text-white/60">{{ t('gallery.previewNotSupported') }}</p>
+            <p class="mb-6 text-sm opacity-70">{{ t('gallery.previewNotSupported') }}</p>
           </div>
         </div>
 
         <!-- Hint -->
         <div
-          class="absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1 text-sm text-white/70 backdrop-blur-md"
+          class="absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full bg-(--bg-card)/15 px-3 py-1 text-sm text-(--text-inverse) opacity-80 backdrop-blur-md"
         >
           {{ t('gallery.scrollHint') }}
         </div>

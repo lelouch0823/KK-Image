@@ -215,7 +215,7 @@ const noteInput = ref(null);
 
 const statusOptions = STATUS_OPTIONS;
 const currentStatusClass = computed(() => STATUS_STYLES[props.status] || STATUS_STYLES.pending);
-const getStatusDotColor = (s) => STATUS_DOTS[s] || 'bg-gray-400';
+const getStatusDotColor = (s) => STATUS_DOTS[s] || 'bg-(--text-muted)';
 
 const isDangerousStatus = computed(() => isHighRiskOrderStatus(selectedStatus.value));
 

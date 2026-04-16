@@ -26,7 +26,10 @@
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
-import { normalizeProcurementStatus, getProcurementStatusVariant } from '@/utils/procurement-status';
+import {
+  normalizeProcurementStatus,
+  getProcurementStatusVariant,
+} from '@/utils/procurement-status';
 
 const props = defineProps({
   status: {
@@ -102,7 +105,7 @@ const metaClass = computed(() => {
     warning: 'text-warning',
     danger: 'text-danger',
     info: 'text-info',
-    purple: 'text-purple-500',
+    purple: 'text-primary',
   };
   return map[normalizedVariant.value] || map.default;
 });
@@ -115,7 +118,7 @@ const metaDotClass = computed(() => {
     warning: 'bg-warning',
     danger: 'bg-danger',
     info: 'bg-info',
-    purple: 'bg-purple-500',
+    purple: 'bg-primary',
   };
   return map[normalizedVariant.value] || map.default;
 });

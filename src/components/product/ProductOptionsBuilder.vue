@@ -99,7 +99,7 @@
                   <!-- 动态交互设色圆点 -->
                   <label 
                     v-if="opt.metaMap && opt.metaMap[val] && opt.metaMap[val].color" 
-                    class="relative size-3 shrink-0 cursor-pointer rounded-full shadow-inner ring-1 ring-black/10 transition-transform ring-inset hover:scale-110"
+                    class="relative size-3 shrink-0 cursor-pointer rounded-full shadow-inner ring-1 ring-(--border-color)/50 transition-transform ring-inset hover:scale-110"
                     :style="{ backgroundColor: opt.metaMap[val].color }"
                     :title="t('product.form.edit_color', '点击修改颜色')"
                   >

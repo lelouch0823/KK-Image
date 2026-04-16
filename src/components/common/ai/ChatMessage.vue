@@ -8,7 +8,7 @@
           'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm transition-all',
           message.role === 'user'
             ? 'bg-primary shadow-primary/20 rounded-br-none font-medium text-(--text-inverse)'
-            : 'rounded-bl-none border border-(--border-color) bg-(--bg-card) text-(--text-main) shadow-sm'
+            : 'rounded-bl-none border border-(--border-color) bg-(--bg-card) text-(--text-main) shadow-sm',
         ]"
       >
         <!-- Assistant Message (Markdown) -->
@@ -17,7 +17,7 @@
           class="markdown-body text-sm leading-relaxed"
           v-html="message.html"
         ></div>
-        
+
         <!-- User Message (Multimodal) -->
         <div v-else-if="message.role === 'user'" class="space-y-2 leading-relaxed">
           <template v-for="(part, index) in userMessageParts" :key="index">
@@ -26,28 +26,34 @@
               v-else-if="part.type === 'image_url' && part.image_url?.url"
               :src="part.image_url.url"
               alt="User attached image"
-              class="max-h-48 max-w-full rounded-lg border border-white/30 object-contain shadow-sm"
+              class="max-h-48 max-w-full rounded-lg border border-(--text-inverse)/30 object-contain shadow-sm"
             />
           </template>
         </div>
 
         <!-- Thinking / Tool Status (Integrated) -->
-        <div 
-          v-if="message.role === 'assistant' && (isThinking || toolStatus)" 
+        <div
+          v-if="message.role === 'assistant' && (isThinking || toolStatus)"
           class="flex items-center gap-3"
           :class="message.html ? 'mt-3 border-t border-(--border-color)/50 pt-3' : ''"
         >
           <!-- Tool Status -->
           <template v-if="toolStatus">
             <AppIcon name="spinner" class="text-primary size-4 animate-spin" />
-            <span class="text-secondary text-xs">{{ t('ai.toolLoading', { tool: getToolName(toolStatus) }) }}</span>
+            <span class="text-secondary text-xs">{{
+              t('ai.toolLoading', { tool: getToolName(toolStatus) })
+            }}</span>
           </template>
           <!-- Default Thinking -->
           <template v-else>
             <div class="flex gap-1">
               <span class="bg-primary/40 size-1.5 animate-bounce rounded-full"></span>
-              <span class="bg-primary/40 size-1.5 animate-bounce rounded-full [animation-delay:0.2s]"></span>
-              <span class="bg-primary/40 size-1.5 animate-bounce rounded-full [animation-delay:0.4s]"></span>
+              <span
+                class="bg-primary/40 size-1.5 animate-bounce rounded-full [animation-delay:0.2s]"
+              ></span>
+              <span
+                class="bg-primary/40 size-1.5 animate-bounce rounded-full [animation-delay:0.4s]"
+              ></span>
             </div>
             <span v-if="!message.html" class="text-secondary text-xs">{{ t('ai.thinking') }}</span>
           </template>
@@ -63,7 +69,8 @@
     >
       <div v-if="showReportButton && !isGeneratingReport" class="mt-2 flex justify-start">
         <AppButton
-          class="from-info to-purple !rounded-xl bg-gradient-to-r shadow-md hover:shadow-lg hover:brightness-110"
+          variant="white"
+          class="!rounded-xl border-info/20 bg-(--color-info-bg) text-(--color-info-text) shadow-sm hover:!bg-(--color-info-bg) hover:opacity-90"
           @click="$emit('generate-report')"
         >
           <template #icon-left>
@@ -76,7 +83,9 @@
 
     <!-- Report Generation Loading -->
     <div v-if="isGeneratingReport" class="mt-2 flex justify-start">
-      <div class="flex items-center gap-2 rounded-xl bg-(--bg-muted) px-4 py-2.5 text-sm text-(--text-secondary)">
+      <div
+        class="flex items-center gap-2 rounded-xl bg-(--bg-muted) px-4 py-2.5 text-sm text-(--text-secondary)"
+      >
         <AppIcon name="spinner" class="size-4 animate-spin" />
         {{ t('ai.generatingReport') }}
       </div>
@@ -112,7 +121,7 @@ const props = defineProps({
   isGeneratingReport: {
     type: Boolean,
     default: false,
-  }
+  },
 });
 
 defineEmits(['generate-report']);

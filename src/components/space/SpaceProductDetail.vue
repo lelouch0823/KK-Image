@@ -25,7 +25,7 @@
             <div
               class="flex size-24 items-center justify-center rounded-2xl bg-(--bg-card) shadow-sm"
             >
-              <AppIcon name="document-text" class="size-12 text-red-500" />
+              <AppIcon name="document-text" class="size-12 text-(--color-danger-text)" />
             </div>
 
             <!-- File Info -->
@@ -82,7 +82,7 @@
             <AppButton
               variant="ghost"
               size="sm"
-              class="absolute top-4 right-4 bg-black/50 text-white backdrop-blur-sm hover:!bg-black/70 hover:!text-white"
+              class="absolute top-4 right-4 bg-(--color-overlay-dim) text-(--text-inverse) backdrop-blur-sm hover:!bg-(--color-overlay-dim) hover:!text-(--text-inverse)"
               @click="showPdfPreview = false"
             >
               {{ t('spacePublic.backToCard') }}
@@ -158,7 +158,7 @@
               v-for="(file, idx) in displayFiles"
               :key="file.id"
               class="size-1.5 rounded-full transition-all"
-              :class="currentIndex === idx ? 'w-3 bg-white' : 'bg-white/50'"
+              :class="currentIndex === idx ? 'w-3 bg-(--text-inverse)' : 'bg-(--text-inverse)/50'"
             ></span>
           </div>
         </div>
@@ -194,7 +194,7 @@
               class="bg-surface-muted text-secondary-text flex size-full flex-col items-center justify-center gap-1 text-xs font-bold uppercase"
             >
               <template v-if="isPdf(file)">
-                <AppIcon name="document-text" class="size-6 text-red-500" />
+                <AppIcon name="document-text" class="size-6 text-(--color-danger-text)" />
                 <span class="text-[10px]">PDF</span>
               </template>
               <span v-else>{{ file.name.split('.').pop() }}</span>

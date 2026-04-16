@@ -1,6 +1,7 @@
 import { BadRequestError, NotFoundError } from '../lib/hono/errors.js';
 import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.js';
 import { OrderLineAllocationRepository } from '../repositories/OrderLineAllocationRepository.js';
+import { VariantDemandProjectionRepository } from '../repositories/VariantDemandProjectionRepository.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { InventoryService } from './InventoryService.js';
 import {
@@ -67,12 +68,19 @@ export class OrderLineFulfillmentService {
     this.uuid = deps.uuid || (() => crypto.randomUUID());
     this.allocationRepo = deps.allocationRepo || new OrderLineAllocationRepository(db);
     this.inventoryService = deps.inventoryService || new InventoryService(db);
+    this.variantDemandProjectionRepo =
+      deps.variantDemandProjectionRepo || new VariantDemandProjectionRepository(db);
     this.domainOutboxRepo =
       deps.domainOutboxRepo ||
       new DomainOutboxRepository(db, {
         now: this.now,
         uuid: this.uuid,
       });
+  }
+
+  async refreshDemandProjection(variantId) {
+    if (!variantId) return;
+    await this.variantDemandProjectionRepo.refreshByVariantId(variantId);
   }
 
   async reserveLine(orderId, lineId, payload = {}, options = {}) {
@@ -342,6 +350,7 @@ export class OrderLineFulfillmentService {
     );
 
     await this.db.batch(statements);
+    await this.refreshDemandProjection(line.variant_id);
     return this.buildCommandResult({
       orderId,
       lineId,
@@ -422,6 +431,7 @@ export class OrderLineFulfillmentService {
     ];
 
     await this.db.batch(statements);
+    await this.refreshDemandProjection(line.variant_id);
     return this.buildCommandResult({
       orderId,
       lineId,

@@ -34,6 +34,7 @@ SET
 INSERT INTO order_payloads (order_id, original_data, current_data, created_at, updated_at)
 SELECT id, original_data, current_data, created_at, updated_at
 FROM orders
+WHERE 1 = 1
 ON CONFLICT(order_id) DO UPDATE SET
   original_data = excluded.original_data,
   current_data = excluded.current_data,

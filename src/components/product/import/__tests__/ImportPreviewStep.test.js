@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import ImportPreviewStep from '../ImportPreviewStep.vue';
+import Select from '@/components/ui/Select.vue';
 
 const mocks = vi.hoisted(() => ({
     copy: vi.fn(),
@@ -185,8 +186,8 @@ describe('ImportPreviewStep', () => {
             }
         });
 
-        const select = wrapper.get('[data-testid="conflict-level-select"]');
-        await select.setValue('variant');
+        const select = wrapper.findComponent(Select);
+        await select.vm.$emit('update:modelValue', 'variant');
         expect(wrapper.text()).toContain('SKU-V');
         expect(wrapper.text()).not.toContain('SPU-P');
 

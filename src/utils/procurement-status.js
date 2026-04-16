@@ -32,7 +32,7 @@ export const getProcurementStatusVariant = (status) => {
     fully_procured: 'info',
     partially_received: 'primary',
     ready: 'success',
-    partially_shipped: 'purple',
+    partially_shipped: 'primary',
     completed: 'success',
     cancelled: 'danger',
   };

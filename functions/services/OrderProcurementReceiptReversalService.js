@@ -194,7 +194,6 @@ export class OrderProcurementReceiptReversalService {
           timestamp
         )
       );
-      guardedStatementIndexes.push(statements.length - 1);
     }
 
     let nextProcurementStatus = null;
@@ -220,7 +219,6 @@ export class OrderProcurementReceiptReversalService {
           guardProjectionState: true,
         })
       );
-      guardedStatementIndexes.push(statements.length - 1);
 
       const aggregate = await queryCompatibilityProcurementAggregate(
         this.db,

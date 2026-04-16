@@ -24,7 +24,7 @@
               <div
                 class="from-primary flex size-8 items-center justify-center rounded-lg bg-gradient-to-br to-(--color-gray-700)"
               >
-                <AppIcon name="clipboard-document-list" class="size-4 text-white" />
+                <AppIcon name="clipboard-document-list" class="size-4 text-(--text-inverse)" />
               </div>
               <div>
                 <h1 class="text-primary text-sm font-semibold">{{ isSpacesPage ? t('salesSpaces.title') : t('order.portal.myOrders') }}</h1>

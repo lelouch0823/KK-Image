@@ -2,7 +2,7 @@
   <transition name="fade">
     <div
       v-if="modelValue"
-      class="shadow-glass fixed z-50 max-w-[240px] min-w-[160px] overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-card)/90 p-1 ring-1 ring-black/5 backdrop-blur-md dark:bg-(--bg-card)/95"
+      class="shadow-glass fixed z-50 max-w-[240px] min-w-[160px] overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-card)/90 p-1 ring-1 ring-(--border-color)/40 backdrop-blur-md dark:bg-(--bg-card)/95"
       :style="menuStyle"
       @contextmenu.prevent
     >

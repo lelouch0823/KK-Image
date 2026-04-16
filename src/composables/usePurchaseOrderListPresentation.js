@@ -6,7 +6,7 @@ const formatInteger = (value) => Number(value || 0).toLocaleString('zh-CN');
 const getListStatusVariant = (status) => {
   if (['draft', 'cancelled'].includes(status)) return 'default';
   if (status === 'ordered') return 'warning';
-  if (status === 'shipping') return 'purple';
+  if (status === 'shipping') return 'primary';
   if (status === 'arrived') return 'info';
   return 'success';
 };
@@ -42,7 +42,7 @@ export function usePurchaseOrderListPresentation({ stats, t }) {
         label: t('purchaseOrder.status.shipping'),
         count: stats.value.shipping_count || 0,
         icon: 'truck',
-        tone: 'purple',
+        tone: 'primary',
       },
       {
         key: 'arrived',
@@ -110,10 +110,7 @@ export function usePurchaseOrderListPresentation({ stats, t }) {
         key: 'draft',
         label: t('purchaseOrder.ui.draftBacklog', '草稿堆积'),
         value: formatInteger(draftCount),
-        hint: t(
-          'purchaseOrder.ui.draftBacklogHint',
-          '等待补货明细、成本策略或关联订单的草稿。'
-        ),
+        hint: t('purchaseOrder.ui.draftBacklogHint', '等待补货明细、成本策略或关联订单的草稿。'),
       },
       {
         key: 'completed',

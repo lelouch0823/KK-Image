@@ -13,7 +13,7 @@
 export function highlightText(
   text,
   keyword,
-  className = 'bg-yellow-200 text-yellow-900 rounded px-0.5'
+  className = 'bg-(--color-warning-bg) text-(--color-warning-text) rounded px-0.5'
 ) {
   if (!text || !keyword) return text || '';
 

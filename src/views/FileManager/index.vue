@@ -168,7 +168,7 @@
                              />
                               <div
                                v-else
-                               class="mb-2 flex size-20 items-center justify-center rounded bg-(--bg-muted) text-sm font-bold text-(--text-secondary) uppercase dark:bg-white/10"
+                               class="mb-2 flex size-20 items-center justify-center rounded bg-(--bg-muted) text-sm font-bold text-(--text-secondary) uppercase"
                               >
                                 {{ getFileExtension(file.name) }}
                               </div>

@@ -52,12 +52,36 @@ export function usePurchaseOrders() {
   // ─── 状态颜色映射 ──────────────────────────────────────
 
   const statusConfig = computed(() => ({
-    draft: { label: t('purchaseOrder.status.draft'), color: 'var(--text-secondary)', bg: 'var(--bg-muted)' },
-    ordered: { label: t('purchaseOrder.status.ordered'), color: 'var(--color-warning-text)', bg: 'var(--color-warning-bg)' },
-    shipping: { label: t('purchaseOrder.status.shipping'), color: 'var(--color-purple)', bg: 'var(--color-purple-bg)' },
-    arrived: { label: t('purchaseOrder.status.arrived'), color: 'var(--color-info-text)', bg: 'var(--color-info-bg)' },
-    completed: { label: t('purchaseOrder.status.completed'), color: 'var(--color-success-text)', bg: 'var(--color-success-bg)' },
-    cancelled: { label: t('purchaseOrder.status.cancelled'), color: 'var(--color-danger-text)', bg: 'var(--color-danger-bg)' },
+    draft: {
+      label: t('purchaseOrder.status.draft'),
+      color: 'var(--text-secondary)',
+      bg: 'var(--bg-muted)',
+    },
+    ordered: {
+      label: t('purchaseOrder.status.ordered'),
+      color: 'var(--color-warning-text)',
+      bg: 'var(--color-warning-bg)',
+    },
+    shipping: {
+      label: t('purchaseOrder.status.shipping'),
+      color: 'var(--color-primary)',
+      bg: 'var(--color-primary-bg)',
+    },
+    arrived: {
+      label: t('purchaseOrder.status.arrived'),
+      color: 'var(--color-info-text)',
+      bg: 'var(--color-info-bg)',
+    },
+    completed: {
+      label: t('purchaseOrder.status.completed'),
+      color: 'var(--color-success-text)',
+      bg: 'var(--color-success-bg)',
+    },
+    cancelled: {
+      label: t('purchaseOrder.status.cancelled'),
+      color: 'var(--color-danger-text)',
+      bg: 'var(--color-danger-bg)',
+    },
   }));
 
   // ─── 列表 ────────────────────────────────────────────
@@ -312,7 +336,10 @@ export function usePurchaseOrders() {
       const json = await res.json();
 
       if (json.success) {
-        addToast({ message: t('purchaseOrder.toast.itemUpdated') || '明细已更新', type: 'success' });
+        addToast({
+          message: t('purchaseOrder.toast.itemUpdated') || '明细已更新',
+          type: 'success',
+        });
         return true;
       }
       addToast({ message: json.error, type: 'error' });
@@ -352,7 +379,10 @@ export function usePurchaseOrders() {
       const json = await res.json();
 
       if (json.success) {
-        addToast({ message: t('purchaseOrder.toast.receiptsRecorded') || '收货已登记', type: 'success' });
+        addToast({
+          message: t('purchaseOrder.toast.receiptsRecorded') || '收货已登记',
+          type: 'success',
+        });
         return json.data;
       }
       addToast({ message: json.error, type: 'error' });
@@ -374,7 +404,10 @@ export function usePurchaseOrders() {
       const json = await res.json();
 
       if (json.success) {
-        addToast({ message: t('purchaseOrder.toast.receiptReversed') || '收货冲销已提交', type: 'success' });
+        addToast({
+          message: t('purchaseOrder.toast.receiptReversed') || '收货冲销已提交',
+          type: 'success',
+        });
         return json.data;
       }
       addToast({ message: json.error, type: 'error' });
@@ -396,7 +429,10 @@ export function usePurchaseOrders() {
       const json = await res.json();
 
       if (json.success) {
-        addToast({ message: t('purchaseOrder.toast.shortageClosed') || '待收数量已关闭', type: 'success' });
+        addToast({
+          message: t('purchaseOrder.toast.shortageClosed') || '待收数量已关闭',
+          type: 'success',
+        });
         return json.data;
       }
       addToast({ message: json.error, type: 'error' });
@@ -498,19 +534,38 @@ export function usePurchaseOrders() {
 
   return {
     // 状态
-    list, total, loading, error, errorCode, detail, detailLoading,
-    suggestions, suggestionsLoading, stats,
-    filters, statusConfig,
+    list,
+    total,
+    loading,
+    error,
+    errorCode,
+    detail,
+    detailLoading,
+    suggestions,
+    suggestionsLoading,
+    stats,
+    filters,
+    statusConfig,
     // 列表
-    loadList, loadStats, loadPurchaseOrderOverview,
+    loadList,
+    loadStats,
+    loadPurchaseOrderOverview,
     // 详情
-    loadDetail, refreshPurchaseOrderViews,
+    loadDetail,
+    refreshPurchaseOrderViews,
     // CRUD
-    createPO, createFromOrders, updatePO,
+    createPO,
+    createFromOrders,
+    updatePO,
     // 状态
     updateStatus,
     // 明细
-    addItems, removeItem, updateItem, recordReceipts, reverseReceipt, closeShortages,
+    addItems,
+    removeItem,
+    updateItem,
+    recordReceipts,
+    reverseReceipt,
+    closeShortages,
     // 成本
     allocateCosts,
     // 建议

@@ -23,11 +23,11 @@
         </div>
         <div
           v-if="showDeliveryConfirmationBlock"
-          class="mt-3 rounded-xl border border-emerald-500/15 bg-emerald-500/6 px-3 py-3"
+          class="mt-3 rounded-xl border border-success/20 bg-(--color-success-bg) px-3 py-3"
         >
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">
+              <p class="text-xs font-semibold tracking-wide text-(--color-success-text) uppercase">
                 {{ t('order.detail.deliveryConfirmationTitle', 'Delivery Confirmation') }}
               </p>
               <p
@@ -65,7 +65,7 @@
               variant="outline"
               size="sm"
               data-testid="confirm-delivery-button"
-              class="border-emerald-600/20 bg-emerald-600/10 text-emerald-700 hover:border-emerald-600/30 hover:bg-emerald-600/15 hover:text-emerald-700"
+              class="border-success/20 bg-(--color-success-bg) text-(--color-success-text) hover:opacity-90"
               :disabled="deliveryConfirmPending"
               @click="$emit('confirm-delivery')"
             >

@@ -367,7 +367,7 @@
                     <AppIcon
                       v-if="isCreatingPO"
                       name="spinner"
-                      class="size-4 animate-spin text-white"
+                      class="size-4 animate-spin text-(--text-inverse)"
                     />
                   </template>
                   {{ t('goodsOverview.batch.createPO') }}

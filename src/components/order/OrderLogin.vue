@@ -33,7 +33,7 @@
               <AppButton
                 variant="ghost"
                 size="sm"
-                class="text-muted absolute top-1/2 right-3 min-h-11 min-w-11 -translate-y-1/2 !gap-0 rounded-lg !px-0 hover:bg-black/5 hover:text-primary focus-visible:ring-primary/30 [&_span]:hidden"
+                class="text-muted absolute top-1/2 right-3 min-h-11 min-w-11 -translate-y-1/2 !gap-0 rounded-lg !px-0 hover:bg-(--bg-hover) hover:text-primary focus-visible:ring-primary/30 [&_span]:hidden"
                 @click="showPassword = !showPassword"
               >
                 <template #icon-left>

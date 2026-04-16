@@ -18,7 +18,7 @@
     <!-- Dropdown -->
     <div
       v-if="isOpen"
-      class="absolute right-0 z-50 overflow-auto rounded-lg border border-(--border-color) bg-(--bg-card) shadow-lg ring-1 ring-black/5 focus:outline-none"
+      class="absolute right-0 z-50 overflow-auto rounded-lg border border-(--border-color) bg-(--bg-card) shadow-lg ring-1 ring-(--border-color)/40 focus:outline-none"
       :class="[
         dropdownPosition === 'top' ? 'bottom-full mb-1 origin-bottom' : 'mt-1 origin-top',
         'max-h-60 w-48',

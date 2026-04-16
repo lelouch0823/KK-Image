@@ -29,7 +29,7 @@
     >
       <div
         v-if="isOpen && (items.length > 0 || loading || error || (searchQuery && items.length === 0))"
-        class="absolute z-50 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-(--border-subtle) bg-(--bg-card)/90 p-1.5 shadow-xl ring-1 ring-black/5 backdrop-blur-xl"
+        class="absolute z-50 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-(--border-subtle) bg-(--bg-card)/90 p-1.5 shadow-xl ring-1 ring-(--border-color)/40 backdrop-blur-xl"
       >
         <div v-if="error" class="rounded-lg border border-(--color-danger-text)/20 bg-(--color-danger-bg)/40 px-4 py-3">
           <p class="text-sm text-(--text-main)">{{ error }}</p>

@@ -156,7 +156,7 @@
                 <AppIcon
                   v-if="isDimensionOptionSelected(dimension, option.value)"
                   name="check"
-                  class="size-4 text-white mix-blend-difference drop-shadow-md sm:size-5"
+                  class="size-4 text-(--text-inverse) mix-blend-difference drop-shadow-md sm:size-5"
                 />
               </div>
               <span

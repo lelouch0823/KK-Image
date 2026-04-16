@@ -54,14 +54,14 @@
           <!-- 红点 -->
           <span
             v-if="unreadCount > 0"
-            class="bg-danger absolute top-1.5 right-1.5 size-2 rounded-full border border-white"
+            class="bg-danger absolute top-1.5 right-1.5 size-2 rounded-full border border-(--bg-card)"
           ></span>
         </AppButton>
         <AppButton
           v-else
           variant="white"
           size="sm"
-          class="relative !h-9 !w-9 !gap-0 !px-0 border-amber-300 bg-amber-50 text-amber-700 [&_span]:hidden"
+          class="relative !h-9 !w-9 !gap-0 !px-0 border-warning/25 bg-(--color-warning-bg) text-(--color-warning-text) [&_span]:hidden"
           :title="permissionDeniedReason || '通知读取权限不足'"
           disabled
         >

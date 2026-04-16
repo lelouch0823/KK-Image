@@ -33,15 +33,10 @@
         v-else-if="subspaces.length === 0"
         class="text-secondary flex h-full flex-col items-center justify-center py-16 text-center"
       >
-        <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full border-2 border-dashed border-(--border-color) bg-(--bg-muted)">
-          <svg class="text-muted size-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-            ></path>
-          </svg>
+        <div
+          class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full border-2 border-dashed border-(--border-color) bg-(--bg-muted)"
+        >
+          <AppIcon name="rectangle-group" class="text-muted size-8" />
         </div>
         <p class="mb-5 text-sm">{{ t('spaceManager.emptySubspaces') }}</p>
         <AppButton
@@ -78,19 +73,7 @@
                 rounded="none"
               />
               <div v-else class="flex size-full items-center justify-center">
-                <svg
-                  class="text-muted size-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1.5"
-                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                  ></path>
-                </svg>
+                <AppIcon name="folder" class="text-muted size-6" />
               </div>
             </div>
 
@@ -110,26 +93,14 @@
                   v-if="sub.isPublic"
                   class="text-success inline-flex items-center gap-1 rounded-full bg-(--color-success-bg) px-2 py-0.5 text-[10px] font-medium"
                 >
-                  <svg class="size-2.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fill-rule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
+                  <AppIcon name="check-circle" class="size-3" />
                   {{ t('spaceManager.publicOn') }}
                 </span>
                 <span
                   v-else
                   class="inline-flex items-center gap-1 rounded-full bg-(--bg-muted) px-2 py-0.5 text-[10px] font-medium text-(--text-muted)"
                 >
-                  <svg class="size-2.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fill-rule="evenodd"
-                      d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
+                  <AppIcon name="lock-closed" class="size-3" />
                   {{ t('spaceManager.publicOff') }}
                 </span>
               </div>
@@ -155,7 +126,7 @@
                 <AppButton
                   variant="ghost"
                   size="sm"
-                  class="size-8 !px-0 bg-(--color-danger-bg) text-danger hover:bg-red-100 hover:text-danger"
+                  class="size-8 !px-0 bg-(--color-danger-bg) text-danger hover:bg-(--color-danger-bg) hover:text-danger"
                   @click.stop="deleteSubspace(sub)"
                 >
                   <template #icon-left>
@@ -286,9 +257,12 @@ const onSubspaceCreated = async () => {
 onMounted(() => {
   loadData();
 });
-watch(() => props.spaceId, () => {
-  loadData();
-});
+watch(
+  () => props.spaceId,
+  () => {
+    loadData();
+  }
+);
 onUnmounted(() => {
   loadRequestId += 1;
 });

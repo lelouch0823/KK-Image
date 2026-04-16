@@ -64,9 +64,9 @@
 
         <!-- Overlay -->
         <div
-          class="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 via-transparent to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100"
+          class="absolute inset-0 flex items-end bg-(--color-overlay-dim) p-3 opacity-0 transition-opacity group-hover:opacity-100"
         >
-          <span class="w-full truncate text-xs font-medium text-white">{{ file.name }}</span>
+          <span class="w-full truncate text-xs font-medium text-(--text-inverse)">{{ file.name }}</span>
         </div>
       </div>
     </div>
@@ -79,7 +79,7 @@
     <!-- Lightbox (Reusing same logic or component ideally, simplified here) -->
     <div
       v-if="lightbox.visible"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-(--color-overlay-dim) backdrop-blur-sm"
       @click.self="lightbox.visible = false"
     >
       <AppImage
@@ -93,7 +93,7 @@
       <AppButton
         variant="ghost"
         size="sm"
-        class="absolute top-4 right-4 rounded-full bg-white/10 text-white hover:!bg-white/20 hover:!text-white"
+        class="absolute top-4 right-4 rounded-full bg-(--bg-card)/15 text-(--text-inverse) hover:!bg-(--bg-card)/25 hover:!text-(--text-inverse)"
         @click="lightbox.visible = false"
       >
         <AppIcon name="x-mark" class="size-6" />

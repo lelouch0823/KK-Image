@@ -8,8 +8,8 @@
     @close="$emit('cancel')"
   >
     <div class="space-y-4">
-      <div class="rounded-xl border border-emerald-500/15 bg-emerald-500/6 px-4 py-3">
-        <p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">
+      <div class="rounded-xl border border-success/20 bg-(--color-success-bg) px-4 py-3">
+        <p class="text-xs font-semibold tracking-wide text-(--color-success-text) uppercase">
           {{ t('order.detail.returnDialogSummaryLabel', 'Return Summary') }}
         </p>
         <p class="mt-1 text-sm text-(--text-main)">

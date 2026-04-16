@@ -28,7 +28,7 @@
             aria-modal="true"
             :aria-labelledby="labelledBy || (title ? modalTitleId : undefined)"
             data-modal-surface="base"
-            class="animate-in flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl border border-(--border-color) bg-(--color-modal-bg) shadow-2xl ring-1 ring-black/5"
+            class="animate-in flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl border border-(--border-color) bg-(--color-modal-bg) shadow-2xl ring-1 ring-(--border-color)/40"
             :class="sizeClass"
           >
             <!-- Header -->
@@ -231,7 +231,7 @@ onUnmounted(() => {
   }
 
   /* Remove modal card shadow and border */
-  :deep(.bg-white.rounded-xl.shadow-2xl) {
+  :deep([data-modal-surface='base']) {
     box-shadow: none !important;
     border: none !important;
     border-radius: 0 !important;

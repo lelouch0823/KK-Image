@@ -134,9 +134,9 @@
 
             <!-- Hover Overlay -->
             <div
-              class="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 via-transparent to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100"
+              class="absolute inset-0 flex items-end bg-(--color-overlay-dim) p-3 opacity-0 transition-opacity group-hover:opacity-100"
             >
-              <span class="w-full truncate text-xs font-medium text-white">{{ file.name }}</span>
+              <span class="w-full truncate text-xs font-medium text-(--text-inverse)">{{ file.name }}</span>
             </div>
           </div>
         </div>
