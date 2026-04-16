@@ -771,6 +771,24 @@ CREATE INDEX IF NOT EXISTS idx_order_summary_projection_effective_delivery_statu
 CREATE INDEX IF NOT EXISTS idx_order_summary_projection_updated_at
     ON order_summary_projection(updated_at DESC);
 
+CREATE TABLE IF NOT EXISTS variant_demand_projection (
+    variant_id TEXT PRIMARY KEY,
+    confirmed_qty INTEGER NOT NULL DEFAULT 0,
+    production_qty INTEGER NOT NULL DEFAULT 0,
+    shipping_qty INTEGER NOT NULL DEFAULT 0,
+    arrived_qty INTEGER NOT NULL DEFAULT 0,
+    total_demand INTEGER NOT NULL DEFAULT 0,
+    order_count INTEGER NOT NULL DEFAULT 0,
+    order_ids TEXT,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_variant_demand_projection_total_demand
+    ON variant_demand_projection(total_demand DESC);
+CREATE INDEX IF NOT EXISTS idx_variant_demand_projection_updated_at
+    ON variant_demand_projection(updated_at DESC);
+
 CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_orders_ai
 AFTER INSERT ON orders
 BEGIN

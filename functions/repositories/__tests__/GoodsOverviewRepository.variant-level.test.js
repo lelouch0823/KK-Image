@@ -13,7 +13,7 @@ function createMockDb(results = []) {
 }
 
 describe('GoodsOverviewRepository variant-level', () => {
-  it('queries and groups by variant_id for goods overview list', async () => {
+  it('reads list demand from variant_demand_projection instead of raw order_lines aggregation', async () => {
     const db = createMockDb([{
       id: 'var-1',
       variant_id: 'var-1',
@@ -47,11 +47,11 @@ describe('GoodsOverviewRepository variant-level', () => {
     const list = await repo.getList({ sort: 'shortage' });
 
     const sql = db.prepare.mock.calls[0][0];
-    expect(sql).toContain('ol.variant_id');
-    expect(sql).toContain('FROM order_lines ol');
-    expect(sql).toContain('JOIN orders o ON o.id = ol.order_id');
-    expect(sql).toContain('GROUP BY ol.variant_id');
-    expect(sql).toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)');
+    expect(sql).toContain('FROM variant_demand_projection vdp');
+    expect(sql).toContain('vdp.variant_id');
+    expect(sql).not.toContain('FROM order_lines ol');
+    expect(sql).not.toContain('JOIN orders o ON o.id = ol.order_id');
+    expect(sql).not.toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)');
     expect(sql).toContain('inventory_balances');
     expect(list[0].id).toBe('var-1');
     expect(list[0].productId).toBe('prod-1');
@@ -62,7 +62,7 @@ describe('GoodsOverviewRepository variant-level', () => {
     expect(list[0].orderIds).toEqual(['o-1']);
   });
 
-  it('builds summary from order_lines remaining demand instead of order headers', async () => {
+  it('builds summary from variant_demand_projection', async () => {
     const summaryStmt = {
       bind: vi.fn(() => summaryStmt),
       all: vi.fn(async () => ({
@@ -98,15 +98,15 @@ describe('GoodsOverviewRepository variant-level', () => {
     const repo = new GoodsOverviewRepository(db);
     const summary = await repo.getSummary();
 
-    expect(db.prepare.mock.calls[0][0]).toContain('FROM order_lines ol');
-    expect(db.prepare.mock.calls[0][0]).toContain('JOIN orders o ON o.id = ol.order_id');
-    expect(db.prepare.mock.calls[0][0]).toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)');
-    expect(db.prepare.mock.calls[0][0]).toContain("COUNT(DISTINCT CASE WHEN MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0) > 0 THEN ol.variant_id END)");
+    expect(db.prepare.mock.calls[0][0]).toContain('FROM variant_demand_projection vdp');
+    expect(db.prepare.mock.calls[0][0]).not.toContain('FROM order_lines ol');
+    expect(db.prepare.mock.calls[0][0]).not.toContain('JOIN orders o ON o.id = ol.order_id');
+    expect(db.prepare.mock.calls[0][0]).not.toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)');
     expect(summary.totalDemand).toBe(2);
     expect(summary.shortageCount).toBe(1);
   });
 
-  it('builds available filters from order_lines-backed active demand', async () => {
+  it('builds available filters from variant_demand_projection-backed demand', async () => {
     const categoryStmt = {
       bind: vi.fn(() => categoryStmt),
       all: vi.fn(async () => ({ results: [{ category: 'Top' }] })),
@@ -125,12 +125,10 @@ describe('GoodsOverviewRepository variant-level', () => {
     const repo = new GoodsOverviewRepository(db);
     const filters = await repo.getAvailableFilters();
 
-    expect(db.prepare.mock.calls[0][0]).toContain('FROM order_lines ol');
-    expect(db.prepare.mock.calls[0][0]).toContain('JOIN orders o ON o.id = ol.order_id');
-    expect(db.prepare.mock.calls[0][0]).toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0) > 0');
-    expect(db.prepare.mock.calls[1][0]).toContain('FROM order_lines ol');
-    expect(db.prepare.mock.calls[1][0]).toContain('JOIN orders o ON o.id = ol.order_id');
-    expect(db.prepare.mock.calls[1][0]).toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0) > 0');
+    expect(db.prepare.mock.calls[0][0]).toContain('FROM variant_demand_projection vdp');
+    expect(db.prepare.mock.calls[0][0]).not.toContain('FROM order_lines ol');
+    expect(db.prepare.mock.calls[1][0]).toContain('FROM variant_demand_projection vdp');
+    expect(db.prepare.mock.calls[1][0]).not.toContain('FROM order_lines ol');
     expect(filters).toEqual({
       categories: ['Top'],
       brands: ['KK'],
@@ -171,6 +169,7 @@ describe('GoodsOverviewRepository variant-level', () => {
     const list = await repo.getList({ sort: 'shortage' });
     const listSql = db.prepare.mock.calls[0][0];
 
+    expect(listSql).toContain('FROM variant_demand_projection vdp');
     expect(listSql).not.toContain("pv.status = 'active'");
     expect(list[0]).toEqual(expect.objectContaining({
       variantId: 'variant-archived',
@@ -185,20 +184,8 @@ describe('GoodsOverviewRepository variant-level', () => {
       prepare: vi.fn((sql) => ({
         bind: vi.fn(() => ({
           all: vi.fn(async () => {
-            if (sql.includes('SELECT DISTINCT COALESCE(') && sql.includes(' as category')) {
-              return {
-                results: sql.includes('JOIN product_variants pv')
-                  ? []
-                  : [{ category: 'Top' }],
-              };
-            }
-            if (sql.includes('SELECT DISTINCT COALESCE(') && sql.includes(' as brand')) {
-              return {
-                results: sql.includes('JOIN product_variants pv')
-                  ? []
-                  : [{ brand: 'KK' }],
-              };
-            }
+            if (sql.includes(' as category')) return { results: [{ category: 'Top' }] };
+            if (sql.includes(' as brand')) return { results: [{ brand: 'KK' }] };
             return { results: [] };
           }),
         })),
@@ -209,10 +196,8 @@ describe('GoodsOverviewRepository variant-level', () => {
     const filters = await repo.getAvailableFilters();
     const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
 
-    expect(sqlCalls.some((sql) => sql.includes('SELECT DISTINCT COALESCE(') && sql.includes(' as category'))).toBe(true);
-    expect(sqlCalls.some((sql) => sql.includes('SELECT DISTINCT COALESCE('))).toBe(true);
-    expect(sqlCalls.some((sql) => sql.includes("json_extract(ol.snapshot_specs, '$.brand')"))).toBe(true);
-    expect(sqlCalls.some((sql) => sql.includes("json_extract(ol.snapshot_specs, '$.category')"))).toBe(true);
+    expect(sqlCalls.some((sql) => sql.includes('FROM variant_demand_projection vdp') && sql.includes(' as category'))).toBe(true);
+    expect(sqlCalls.some((sql) => sql.includes('FROM variant_demand_projection vdp') && sql.includes(' as brand'))).toBe(true);
     expect(filters).toEqual({
       categories: ['Top'],
       brands: ['KK'],

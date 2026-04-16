@@ -12,6 +12,7 @@
 
 import { PurchaseOrderRepository } from '../repositories/PurchaseOrderRepository.js';
 import { ProductVariantRepository } from '../repositories/ProductVariantRepository.js';
+import { VariantDemandProjectionRepository } from '../repositories/VariantDemandProjectionRepository.js';
 import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { NotFoundError, BadRequestError } from '../lib/hono/errors.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
@@ -206,6 +207,7 @@ export class PurchaseOrderService {
     this.variantRepo = new ProductVariantRepository(db);
     this.inventoryService = new InventoryService(db, this.variantRepo);
     this.demandService = new DemandService(db);
+    this.demandProjectionRepo = new VariantDemandProjectionRepository(db);
   }
 
   // ─── 状态机级联 (Cascading State Machine) ────────────
@@ -487,7 +489,7 @@ export class PurchaseOrderService {
    * @returns {Promise<Array>} 建议列表
    */
   async getSuggestions() {
-    const demandRows = await this.demandService.getDemandSummaryByVariant();
+    const demandRows = await this.demandProjectionRepo.listAll();
     const variantIds = demandRows.map((row) => row.variant_id).filter(Boolean);
     if (variantIds.length === 0) {
       return [];

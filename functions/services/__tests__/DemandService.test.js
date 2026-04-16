@@ -38,7 +38,7 @@ describe('DemandService', () => {
       .resolves.toMatchObject({ stockDeductionPending: true, consumesReservation: true });
   });
 
-  it('aggregates confirmed demand by variant', async () => {
+  it('reads variant demand summary from shared projection rows', async () => {
     const stmt = {
       all: vi.fn(async () => ({
         results: [
@@ -51,7 +51,10 @@ describe('DemandService', () => {
     });
 
     const rows = await service.getDemandSummaryByVariant();
+    const sql = service.db.prepare.mock.calls[0][0];
 
+    expect(sql).toContain('FROM variant_demand_projection vdp');
+    expect(sql).not.toContain('FROM order_lines ol');
     expect(rows).toEqual([
       {
         variant_id: 'variant-1',
@@ -62,7 +65,7 @@ describe('DemandService', () => {
     ]);
   });
 
-  it('aggregates active reservation demand beyond confirmed only', async () => {
+  it('keeps production/shipping/arrived demand in projection summary', async () => {
     const stmt = {
       all: vi.fn(async () => ({
         results: [
@@ -81,8 +84,8 @@ describe('DemandService', () => {
     const rows = await service.getDemandSummaryByVariant();
     const sql = db.prepare.mock.calls[0][0];
 
-    expect(sql).toContain("o.status IN ('confirmed', 'production', 'shipping', 'arrived')");
-    expect(sql).toContain("CASE WHEN o.status = 'confirmed' THEN o.id END");
+    expect(sql).toContain('FROM variant_demand_projection vdp');
+    expect(sql).not.toContain('JOIN orders o ON o.id = ol.order_id');
     expect(rows[0]).toMatchObject({
       variant_id: 'variant-1',
       total_demand: 9,
@@ -91,7 +94,7 @@ describe('DemandService', () => {
     });
   });
 
-  it('bases demand summary on order_lines remaining quantity rather than raw order headers', async () => {
+  it('does not recompute demand summary from raw order_lines joins', async () => {
     const stmt = {
       all: vi.fn(async () => ({
         results: [
@@ -105,9 +108,10 @@ describe('DemandService', () => {
     await service.getDemandSummaryByVariant();
 
     const sql = db.prepare.mock.calls[0][0];
-    expect(sql).toContain('FROM order_lines ol');
-    expect(sql).toContain('JOIN orders o ON o.id = ol.order_id');
-    expect(sql).toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)');
+    expect(sql).toContain('FROM variant_demand_projection vdp');
+    expect(sql).not.toContain('FROM order_lines ol');
+    expect(sql).not.toContain('JOIN orders o ON o.id = ol.order_id');
+    expect(sql).not.toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)');
   });
 
   it('persists reservation projection and ledger rows when syncing transitions', async () => {
@@ -127,6 +131,30 @@ describe('DemandService', () => {
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_balances'));
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_ledger'));
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_events'));
+  });
+
+  it('refreshes variant demand projection during demand-affecting transitions', async () => {
+    const run = vi.fn(async () => ({ meta: { changes: 1 } }));
+    const db = {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({
+          run,
+          all: vi.fn(async () => ({ results: [] })),
+          first: vi.fn(async () => null),
+        })),
+      })),
+    };
+    const service = new DemandService(db);
+
+    await service.syncOrderTransition({
+      orderId: 'o-1',
+      variantId: 'variant-1',
+      quantity: 3,
+      fromStatus: 'pending',
+      toStatus: 'confirmed',
+    });
+
+    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO variant_demand_projection'));
   });
 
   it('resolves order_line_id for reservation events when order context is supplied', async () => {

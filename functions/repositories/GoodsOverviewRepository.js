@@ -13,19 +13,89 @@ function projectInventoryGap(totalDemand, stockQuantity) {
   return (Number(totalDemand) || 0) - (Number(stockQuantity) || 0);
 }
 
-const REMAINING_DEMAND_EXPR = 'MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)';
+const SNAPSHOT_JOIN_SQL = `
+  LEFT JOIN (
+    SELECT
+      ol.variant_id AS variant_id,
+      MAX(ol.product_id) AS product_id,
+      MAX(ol.snapshot_name) AS snapshot_name,
+      MAX(ol.snapshot_sku) AS snapshot_sku,
+      MAX(json_extract(ol.snapshot_specs, '$.brand')) AS snapshot_brand,
+      MAX(json_extract(ol.snapshot_specs, '$.category')) AS snapshot_category,
+      MAX(json_extract(o.current_data, '$.brand')) AS current_brand,
+      MAX(json_extract(o.original_data, '$.brand')) AS original_brand,
+      MAX(json_extract(o.current_data, '$.category')) AS current_category,
+      MAX(json_extract(o.original_data, '$.category')) AS original_category,
+      MAX(ol.snapshot_specs) AS snapshot_specs,
+      MAX(ol.snapshot_image) AS snapshot_image
+    FROM order_lines AS ol
+    JOIN orders AS o ON o.id = ol.order_id
+    WHERE ol.variant_id IS NOT NULL
+    GROUP BY ol.variant_id
+  ) demand_snapshot ON demand_snapshot.variant_id = vdp.variant_id
+`;
+
+const COST_JOIN_SQL = `
+  LEFT JOIN (
+    SELECT
+      variant_id,
+      AVG(unit_cost) AS avg_unit_cost,
+      AVG(allocated_freight) AS avg_freight,
+      AVG(allocated_tariff) AS avg_tariff
+    FROM purchase_order_items
+    WHERE variant_id IS NOT NULL
+    GROUP BY variant_id
+  ) pc ON pc.variant_id = vdp.variant_id
+`;
+
+function buildDemandIdentitySql() {
+  return `
+    COALESCE(demand_snapshot.product_id, pv.product_id) AS product_id,
+    MAX(p.product_code) AS product_code,
+    MAX(pv.variant_code) AS variant_code,
+    COALESCE(
+      MAX(demand_snapshot.snapshot_name),
+      MAX(p.name),
+      '-'
+    ) AS name,
+    COALESCE(
+      MAX(demand_snapshot.snapshot_sku),
+      MAX(pv.sku),
+      MAX(p.spu),
+      '-'
+    ) AS sku,
+    COALESCE(
+      MAX(demand_snapshot.snapshot_brand),
+      MAX(p.brand),
+      MAX(demand_snapshot.current_brand),
+      MAX(demand_snapshot.original_brand),
+      '-'
+    ) AS brand,
+    COALESCE(
+      MAX(demand_snapshot.snapshot_category),
+      MAX(p.category),
+      MAX(demand_snapshot.current_category),
+      MAX(demand_snapshot.original_category),
+      '-'
+    ) AS category
+  `;
+}
+
+function buildInventorySql() {
+  return `
+    MAX(COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS stock_quantity,
+    MAX(COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS on_hand,
+    MAX(COALESCE(ib.reserved, 0)) AS reserved,
+    MAX(COALESCE(ib.available, COALESCE(pv.stock_quantity, 0))) AS available,
+    MAX(COALESCE(pv.alert_threshold, 10)) AS alert_threshold
+  `;
+}
 
 export class GoodsOverviewRepository {
   constructor(db) {
     this.db = db;
-    // 有效状态: confirmed / production / shipping / arrived
-    this.ACTIVE_STATUSES = ['confirmed', 'production', 'shipping', 'arrived'];
-    this.STATUS_IN_CLAUSE = this.ACTIVE_STATUSES.map(() => '?').join(',');
   }
 
-  /**
-   * 内部映射函数，处理解析和默认值
-   */
   _mapItem(row) {
     const images = parseJsonArray(row.images, []);
     const variantOptions = parseJsonObject(row.variant_options, {});
@@ -59,7 +129,6 @@ export class GoodsOverviewRepository {
       orderCount: row.order_count,
       orderIds: row.order_ids ? String(row.order_ids).split(',').filter(Boolean) : [],
       shortage: projectInventoryGap(row.total_demand, row.available ?? row.stock_quantity),
-      // 成本数据 (来自采购单明细聚合)
       avgUnitCost: Math.round(avgUnitCost * 100) / 100,
       avgFreight: Math.round(avgFreight * 100) / 100,
       avgTariff: Math.round(avgTariff * 100) / 100,
@@ -67,37 +136,31 @@ export class GoodsOverviewRepository {
     };
   }
 
-  /**
-   * 核心列表查询
-   * @param {Object} filters 筛选参数 (category, brand, shortageOnly, sort)
-   */
   async getList(filters = {}) {
     const { category, brand, shortageOnly, sort = 'shortage' } = filters;
-
-    // 构建 WHERE 子句
-    let whereClause = `o.status IN (${this.STATUS_IN_CLAUSE}) AND ol.product_id IS NOT NULL AND ol.variant_id IS NOT NULL`;
-    const bindParams = [...this.ACTIVE_STATUSES]; // 用于 IN 子句
+    const bindParams = [];
+    let whereClause = 'vdp.total_demand > 0';
 
     if (category) {
       whereClause += ` AND COALESCE(
-        json_extract(ol.snapshot_specs, '$.category'),
+        demand_snapshot.snapshot_category,
         p.category,
-        json_extract(o.current_data, '$.category'),
-        json_extract(o.original_data, '$.category')
+        demand_snapshot.current_category,
+        demand_snapshot.original_category
       ) = ?`;
       bindParams.push(category);
     }
+
     if (brand) {
       whereClause += ` AND COALESCE(
-        json_extract(ol.snapshot_specs, '$.brand'),
+        demand_snapshot.snapshot_brand,
         p.brand,
-        json_extract(o.current_data, '$.brand'),
-        json_extract(o.original_data, '$.brand')
+        demand_snapshot.current_brand,
+        demand_snapshot.original_brand
       ) = ?`;
       bindParams.push(brand);
     }
 
-    // 排序
     let orderBy;
     switch (sort) {
       case 'demand':
@@ -115,209 +178,151 @@ export class GoodsOverviewRepository {
         break;
     }
 
-    // HAVING 子句 - 仅缺货 or 全部
     const havingClause = shortageOnly ? 'HAVING shortage > 0' : 'HAVING total_demand > 0';
-
     const sql = `
-        SELECT 
-            ol.variant_id as id,
-            ol.product_id as product_id,
-            MAX(p.product_code) as product_code,
-            MAX(pv.variant_code) as variant_code,
-            COALESCE(
-              MAX(ol.snapshot_name),
-              MAX(p.name),
-              MAX(json_extract(o.current_data, '$.name')),
-              MAX(json_extract(o.original_data, '$.name')),
-              '-'
-            ) as name,
-            COALESCE(
-              MAX(ol.snapshot_sku),
-              MAX(pv.sku),
-              MAX(p.spu),
-              MAX(json_extract(o.current_data, '$.sku')),
-              MAX(json_extract(o.current_data, '$.variant_sku')),
-              MAX(json_extract(o.current_data, '$.spu')),
-              MAX(json_extract(o.original_data, '$.sku')),
-              MAX(json_extract(o.original_data, '$.variant_sku')),
-              MAX(json_extract(o.original_data, '$.spu')),
-              '-'
-            ) as sku,
-            COALESCE(
-              MAX(json_extract(ol.snapshot_specs, '$.brand')),
-              MAX(p.brand),
-              MAX(json_extract(o.current_data, '$.brand')),
-              MAX(json_extract(o.original_data, '$.brand')),
-              '-'
-            ) as brand,
-            COALESCE(
-              MAX(json_extract(ol.snapshot_specs, '$.category')),
-              MAX(p.category),
-              MAX(json_extract(o.current_data, '$.category')),
-              MAX(json_extract(o.original_data, '$.category')),
-              '-'
-            ) as category,
-            MAX(COALESCE(ib.on_hand, pv.stock_quantity, 0)) as stock_quantity,
-            MAX(COALESCE(ib.on_hand, pv.stock_quantity, 0)) as on_hand,
-            MAX(COALESCE(ib.reserved, 0)) as reserved,
-            MAX(COALESCE(ib.available, COALESCE(pv.stock_quantity, 0))) as available,
-            MAX(COALESCE(pv.alert_threshold, 10)) as alert_threshold,
-            COALESCE(MAX(ol.snapshot_specs), MAX(pv.options_values), '{}') as variant_options,
-            CASE
-              WHEN MAX(ol.snapshot_image) IS NOT NULL THEN json_array(MAX(ol.snapshot_image))
-              WHEN MAX(fv.storage_key) IS NOT NULL THEN json_array(MAX(fv.storage_key))
-              ELSE MAX(p.images)
-            END as images,
-            COALESCE(SUM(CASE WHEN o.status = 'confirmed' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as confirmed_qty,
-            COALESCE(SUM(CASE WHEN o.status = 'production' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as production_qty,
-            COALESCE(SUM(CASE WHEN o.status = 'shipping' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as shipping_qty,
-            COALESCE(SUM(CASE WHEN o.status = 'arrived' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as arrived_qty,
-            COALESCE(SUM(${REMAINING_DEMAND_EXPR}), 0) as total_demand,
-            COUNT(DISTINCT o.id) as order_count,
-            GROUP_CONCAT(DISTINCT CASE WHEN o.status = 'confirmed' THEN o.id END) as order_ids,
-            COALESCE(SUM(${REMAINING_DEMAND_EXPR}), 0) - COALESCE(MAX(COALESCE(ib.available, pv.stock_quantity, 0)), 0) as shortage,
-            COALESCE(pc.avg_unit_cost, 0) as avg_unit_cost,
-            COALESCE(pc.avg_freight, 0) as avg_freight,
-            COALESCE(pc.avg_tariff, 0) as avg_tariff
-        FROM order_lines ol
-        JOIN orders o ON o.id = ol.order_id
-        LEFT JOIN products p ON ol.product_id = p.id
-        LEFT JOIN product_variants pv ON pv.id = ol.variant_id
-        LEFT JOIN inventory_balances ib ON ib.variant_id = ol.variant_id
-        LEFT JOIN files fv ON fv.id = pv.image_id
-        LEFT JOIN (
-          SELECT variant_id,
-            AVG(unit_cost) as avg_unit_cost,
-            AVG(allocated_freight) as avg_freight,
-            AVG(allocated_tariff) as avg_tariff
-          FROM purchase_order_items
-          WHERE variant_id IS NOT NULL
-          GROUP BY variant_id
-        ) pc ON pc.variant_id = ol.variant_id
-        WHERE ${whereClause}
-        GROUP BY ol.variant_id
-        ${havingClause}
-        ORDER BY ${orderBy}
+      SELECT
+        vdp.variant_id AS id,
+        ${buildDemandIdentitySql()},
+        ${buildInventorySql()},
+        COALESCE(MAX(demand_snapshot.snapshot_specs), MAX(pv.options_values), '{}') AS variant_options,
+        CASE
+          WHEN MAX(demand_snapshot.snapshot_image) IS NOT NULL THEN json_array(MAX(demand_snapshot.snapshot_image))
+          WHEN MAX(fv.storage_key) IS NOT NULL THEN json_array(MAX(fv.storage_key))
+          ELSE MAX(p.images)
+        END AS images,
+        vdp.confirmed_qty,
+        vdp.production_qty,
+        vdp.shipping_qty,
+        vdp.arrived_qty,
+        vdp.total_demand,
+        vdp.order_count,
+        vdp.order_ids,
+        vdp.total_demand - COALESCE(MAX(COALESCE(ib.available, pv.stock_quantity, 0)), 0) AS shortage,
+        COALESCE(pc.avg_unit_cost, 0) AS avg_unit_cost,
+        COALESCE(pc.avg_freight, 0) AS avg_freight,
+        COALESCE(pc.avg_tariff, 0) AS avg_tariff
+      FROM variant_demand_projection vdp
+      ${SNAPSHOT_JOIN_SQL}
+      LEFT JOIN product_variants pv ON pv.id = vdp.variant_id
+      LEFT JOIN products p ON p.id = COALESCE(pv.product_id, demand_snapshot.product_id)
+      LEFT JOIN inventory_balances ib ON ib.variant_id = vdp.variant_id
+      LEFT JOIN files fv ON fv.id = pv.image_id
+      ${COST_JOIN_SQL}
+      WHERE ${whereClause}
+      GROUP BY vdp.variant_id
+      ${havingClause}
+      ORDER BY ${orderBy}
     `;
 
     const { results } = await this.db.prepare(sql).bind(...bindParams).all();
-    return results.map(row => this._mapItem(row));
+    return (results || []).map((row) => this._mapItem(row));
   }
 
-  /**
-   * 提取实际用到（有处于执行中订单）的分类和品牌
-   */
   async getAvailableFilters() {
-    const filterSql = `
-        SELECT DISTINCT COALESCE(
-          json_extract(ol.snapshot_specs, '$.category'),
+    const categorySql = `
+      SELECT DISTINCT COALESCE(
+        demand_snapshot.snapshot_category,
+        p.category,
+        demand_snapshot.current_category,
+        demand_snapshot.original_category
+      ) as category
+      FROM variant_demand_projection vdp
+      ${SNAPSHOT_JOIN_SQL}
+      LEFT JOIN product_variants pv ON pv.id = vdp.variant_id
+      LEFT JOIN products p ON p.id = COALESCE(pv.product_id, demand_snapshot.product_id)
+      WHERE vdp.total_demand > 0
+        AND COALESCE(
+          demand_snapshot.snapshot_category,
           p.category,
-          json_extract(o.current_data, '$.category'),
-          json_extract(o.original_data, '$.category')
-        ) as category
-        FROM order_lines ol
-        JOIN orders o ON o.id = ol.order_id
-        LEFT JOIN products p ON ol.product_id = p.id
-        WHERE o.status IN (${this.STATUS_IN_CLAUSE}) 
-          AND ol.product_id IS NOT NULL 
-          AND ol.variant_id IS NOT NULL
-          AND ${REMAINING_DEMAND_EXPR} > 0
-          AND COALESCE(
-            json_extract(ol.snapshot_specs, '$.category'),
-            p.category,
-            json_extract(o.current_data, '$.category'),
-            json_extract(o.original_data, '$.category')
-          ) IS NOT NULL 
-          AND COALESCE(
-            json_extract(ol.snapshot_specs, '$.category'),
-            p.category,
-            json_extract(o.current_data, '$.category'),
-            json_extract(o.original_data, '$.category')
-          ) != ''
-        ORDER BY category
+          demand_snapshot.current_category,
+          demand_snapshot.original_category
+        ) IS NOT NULL
+        AND COALESCE(
+          demand_snapshot.snapshot_category,
+          p.category,
+          demand_snapshot.current_category,
+          demand_snapshot.original_category
+        ) != ''
+      ORDER BY category
     `;
-    const { results: categories } = await this.db.prepare(filterSql).bind(...this.ACTIVE_STATUSES).all();
+    const { results: categories } = await this.db.prepare(categorySql).bind().all();
 
     const brandSql = `
-        SELECT DISTINCT COALESCE(
-          json_extract(ol.snapshot_specs, '$.brand'),
+      SELECT DISTINCT COALESCE(
+        demand_snapshot.snapshot_brand,
+        p.brand,
+        demand_snapshot.current_brand,
+        demand_snapshot.original_brand
+      ) as brand
+      FROM variant_demand_projection vdp
+      ${SNAPSHOT_JOIN_SQL}
+      LEFT JOIN product_variants pv ON pv.id = vdp.variant_id
+      LEFT JOIN products p ON p.id = COALESCE(pv.product_id, demand_snapshot.product_id)
+      WHERE vdp.total_demand > 0
+        AND COALESCE(
+          demand_snapshot.snapshot_brand,
           p.brand,
-          json_extract(o.current_data, '$.brand'),
-          json_extract(o.original_data, '$.brand')
-        ) as brand
-        FROM order_lines ol
-        JOIN orders o ON o.id = ol.order_id
-        LEFT JOIN products p ON ol.product_id = p.id
-        WHERE o.status IN (${this.STATUS_IN_CLAUSE}) 
-          AND ol.product_id IS NOT NULL 
-          AND ol.variant_id IS NOT NULL
-          AND ${REMAINING_DEMAND_EXPR} > 0
-        ORDER BY brand
+          demand_snapshot.current_brand,
+          demand_snapshot.original_brand
+        ) IS NOT NULL
+        AND COALESCE(
+          demand_snapshot.snapshot_brand,
+          p.brand,
+          demand_snapshot.current_brand,
+          demand_snapshot.original_brand
+        ) != ''
+      ORDER BY brand
     `;
-    const { results: rawBrands } = await this.db.prepare(brandSql).bind(...this.ACTIVE_STATUSES).all();
-    const brands = rawBrands.filter(r => r.brand && r.brand !== '-');
+    const { results: brands } = await this.db.prepare(brandSql).bind().all();
 
     return {
-      categories: categories.map(r => r.category),
-      brands: brands.map(r => r.brand)
+      categories: (categories || []).map((row) => row.category).filter(Boolean),
+      brands: (brands || []).map((row) => row.brand).filter(Boolean),
     };
   }
 
-  /**
-   * 全局状态概览 (Summary)
-   * @returns {Promise<{totalProducts: number, totalDemand: number, shortageCount: number, byStatus: Object}>}
-   */
   async getSummary() {
-    // SOTA: 并行执行两个独立查询，遵循 OrderStatsRepository 的 Promise.all 模式
     const [mainResult, shortageResult] = await Promise.all([
       this.db.prepare(`
-        SELECT 
-            COUNT(DISTINCT CASE WHEN ${REMAINING_DEMAND_EXPR} > 0 THEN ol.variant_id END) as total_products,
-            COALESCE(SUM(${REMAINING_DEMAND_EXPR}), 0) as total_demand,
-            -- 不同商品数
-            COUNT(DISTINCT CASE WHEN o.status = 'confirmed' AND ${REMAINING_DEMAND_EXPR} > 0 THEN ol.variant_id END) as confirmed_products,
-            COUNT(DISTINCT CASE WHEN o.status = 'production' AND ${REMAINING_DEMAND_EXPR} > 0 THEN ol.variant_id END) as production_products,
-            COUNT(DISTINCT CASE WHEN o.status = 'shipping'  AND ${REMAINING_DEMAND_EXPR} > 0 THEN ol.variant_id END) as shipping_products,
-            COUNT(DISTINCT CASE WHEN o.status = 'arrived'   AND ${REMAINING_DEMAND_EXPR} > 0 THEN ol.variant_id END) as arrived_products,
-            -- 件数
-            COALESCE(SUM(CASE WHEN o.status = 'confirmed' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as confirmed_qty,
-            COALESCE(SUM(CASE WHEN o.status = 'production' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as production_qty,
-            COALESCE(SUM(CASE WHEN o.status = 'shipping' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as shipping_qty,
-            COALESCE(SUM(CASE WHEN o.status = 'arrived' THEN ${REMAINING_DEMAND_EXPR} ELSE 0 END), 0) as arrived_qty,
-            -- 订单条数
-            COUNT(DISTINCT CASE WHEN o.status = 'confirmed' AND ${REMAINING_DEMAND_EXPR} > 0 THEN o.id END) as confirmed_orders,
-            COUNT(DISTINCT CASE WHEN o.status = 'production' AND ${REMAINING_DEMAND_EXPR} > 0 THEN o.id END) as production_orders,
-            COUNT(DISTINCT CASE WHEN o.status = 'shipping' AND ${REMAINING_DEMAND_EXPR} > 0 THEN o.id END) as shipping_orders,
-            COUNT(DISTINCT CASE WHEN o.status = 'arrived' AND ${REMAINING_DEMAND_EXPR} > 0 THEN o.id END) as arrived_orders
-        FROM order_lines ol
-        JOIN orders o ON o.id = ol.order_id
-        LEFT JOIN product_variants pv ON pv.id = ol.variant_id
-        WHERE o.status IN (${this.STATUS_IN_CLAUSE}) AND ol.product_id IS NOT NULL
-          AND ol.variant_id IS NOT NULL
-      `).bind(...this.ACTIVE_STATUSES).all(),
-
+        SELECT
+          COUNT(DISTINCT CASE WHEN vdp.total_demand > 0 THEN vdp.variant_id END) AS total_products,
+          COALESCE(SUM(vdp.total_demand), 0) AS total_demand,
+          COUNT(DISTINCT CASE WHEN vdp.confirmed_qty > 0 THEN vdp.variant_id END) AS confirmed_products,
+          COUNT(DISTINCT CASE WHEN vdp.production_qty > 0 THEN vdp.variant_id END) AS production_products,
+          COUNT(DISTINCT CASE WHEN vdp.shipping_qty > 0 THEN vdp.variant_id END) AS shipping_products,
+          COUNT(DISTINCT CASE WHEN vdp.arrived_qty > 0 THEN vdp.variant_id END) AS arrived_products,
+          COALESCE(SUM(vdp.confirmed_qty), 0) AS confirmed_qty,
+          COALESCE(SUM(vdp.production_qty), 0) AS production_qty,
+          COALESCE(SUM(vdp.shipping_qty), 0) AS shipping_qty,
+          COALESCE(SUM(vdp.arrived_qty), 0) AS arrived_qty,
+          COALESCE(SUM(CASE WHEN vdp.confirmed_qty > 0 THEN vdp.order_count ELSE 0 END), 0) AS confirmed_orders,
+          COUNT(DISTINCT CASE WHEN vdp.production_qty > 0 THEN vdp.variant_id END) AS production_orders,
+          COUNT(DISTINCT CASE WHEN vdp.shipping_qty > 0 THEN vdp.variant_id END) AS shipping_orders,
+          COUNT(DISTINCT CASE WHEN vdp.arrived_qty > 0 THEN vdp.variant_id END) AS arrived_orders
+        FROM variant_demand_projection vdp
+        WHERE vdp.total_demand > 0
+      `).bind().all(),
       this.db.prepare(`
-        SELECT COUNT(*) as count FROM (
-            SELECT ol.variant_id as id,
-                COALESCE(SUM(${REMAINING_DEMAND_EXPR}), 0) - COALESCE(MAX(COALESCE(ib.available, pv.stock_quantity, 0)), 0) as shortage
-            FROM order_lines ol
-            JOIN orders o ON o.id = ol.order_id
-            LEFT JOIN product_variants pv ON pv.id = ol.variant_id
-            LEFT JOIN inventory_balances ib ON ib.variant_id = ol.variant_id
-            WHERE o.status IN (${this.STATUS_IN_CLAUSE}) AND ol.product_id IS NOT NULL
-              AND ol.variant_id IS NOT NULL
-            GROUP BY ol.variant_id
-            HAVING shortage > 0
+        SELECT COUNT(*) AS count FROM (
+          SELECT
+            vdp.variant_id,
+            vdp.total_demand - COALESCE(MAX(COALESCE(ib.available, pv.stock_quantity, 0)), 0) AS shortage
+          FROM variant_demand_projection vdp
+          LEFT JOIN product_variants pv ON pv.id = vdp.variant_id
+          LEFT JOIN inventory_balances ib ON ib.variant_id = vdp.variant_id
+          WHERE vdp.total_demand > 0
+          GROUP BY vdp.variant_id
+          HAVING shortage > 0
         )
-      `).bind(...this.ACTIVE_STATUSES).all(),
+      `).bind().all(),
     ]);
 
-    const row = mainResult.results[0] || {};
+    const row = mainResult.results?.[0] || {};
 
     return {
       totalProducts: row.total_products || 0,
       totalDemand: row.total_demand || 0,
-      shortageCount: shortageResult.results[0]?.count || 0,
+      shortageCount: shortageResult.results?.[0]?.count || 0,
       byStatus: {
         confirmed: { products: row.confirmed_products || 0, count: row.confirmed_orders || 0, qty: row.confirmed_qty || 0 },
         production: { products: row.production_products || 0, count: row.production_orders || 0, qty: row.production_qty || 0 },

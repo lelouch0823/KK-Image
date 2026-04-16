@@ -4,13 +4,49 @@ import { InventoryService } from '../InventoryService.js';
 import { PurchaseOrderService } from '../PurchaseOrderService.js';
 import { GoodsOverviewRepository } from '../../repositories/GoodsOverviewRepository.js';
 
+const ACTIVE_DEMAND_STATUSES = new Set(['confirmed', 'production', 'shipping', 'arrived']);
+
+function buildProjectionRows(state) {
+  const grouped = new Map();
+  for (const order of state.orders) {
+    if (!ACTIVE_DEMAND_STATUSES.has(order.status) || !order.variant_id) continue;
+    const current = grouped.get(order.variant_id) || {
+      variant_id: order.variant_id,
+      confirmed_qty: 0,
+      production_qty: 0,
+      shipping_qty: 0,
+      arrived_qty: 0,
+      total_demand: 0,
+      order_count: 0,
+      order_ids: [],
+    };
+    const quantity = Number(order.quantity || 0);
+    current.total_demand += quantity;
+    if (order.status === 'confirmed') {
+      current.confirmed_qty += quantity;
+      current.order_count += 1;
+      current.order_ids.push(order.id);
+    } else if (order.status === 'production') {
+      current.production_qty += quantity;
+    } else if (order.status === 'shipping') {
+      current.shipping_qty += quantity;
+    } else if (order.status === 'arrived') {
+      current.arrived_qty += quantity;
+    }
+    grouped.set(order.variant_id, current);
+  }
+  return [...grouped.values()];
+}
+
 class WorkflowDb {
   constructor(state) {
     this.state = state;
+    this.sqlLog = [];
   }
 
   prepare(sql) {
     const db = this;
+    db.sqlLog.push(sql);
     const stmt = {
       sql,
       params: [],
@@ -61,9 +97,66 @@ class WorkflowDb {
           return { meta: { changes: 1 } };
         }
 
+        if (sql.includes('INSERT INTO variant_demand_projection')) {
+          return { meta: { changes: 1 } };
+        }
+
         return { meta: { changes: 1 } };
       },
       async all() {
+        if (sql.includes('FROM variant_demand_projection vdp') && !sql.includes('JOIN products p')) {
+          const projectionRows = buildProjectionRows(db.state);
+          return {
+            results: projectionRows.map((row) => ({
+              ...row,
+              order_ids: row.order_ids.join(','),
+            })),
+          };
+        }
+
+        if (sql.includes('FROM variant_demand_projection vdp') && sql.includes('JOIN products p')) {
+          const projectionRows = buildProjectionRows(db.state);
+          return {
+            results: projectionRows.map((projection) => {
+              const variant = db.state.variants.get(projection.variant_id);
+              const product = db.state.products.get(variant.product_id);
+              const balance = db.state.balances.get(projection.variant_id) || { on_hand: 0, reserved: 0, available: 0 };
+              return {
+                id: projection.variant_id,
+                variant_id: projection.variant_id,
+                product_id: product.id,
+                product_code: product.product_code,
+                variant_code: variant.variant_code,
+                name: product.name,
+                sku: variant.sku,
+                brand: product.brand,
+                category: product.category,
+                stock_quantity: balance.on_hand,
+                on_hand: balance.on_hand,
+                reserved: balance.reserved,
+                available: balance.available,
+                alert_threshold: variant.alert_threshold,
+                variant_options: JSON.stringify(variant.options_values || {}),
+                images: '[]',
+                confirmed_qty: projection.confirmed_qty,
+                production_qty: projection.production_qty,
+                shipping_qty: projection.shipping_qty,
+                arrived_qty: projection.arrived_qty,
+                total_demand: projection.total_demand,
+                order_count: projection.order_count,
+                order_ids: projection.order_ids.join(','),
+                shortage: projection.total_demand - balance.available,
+                avg_unit_cost: variant.cost_price,
+                avg_freight: 0,
+                avg_tariff: 0,
+                product_name: product.name,
+                cost_price: variant.cost_price,
+                suggested_purchase_price: variant.suggested_purchase_price || 0,
+              };
+            }),
+          };
+        }
+
         if (
           sql.includes('FROM order_lines ol')
           && sql.includes("GROUP_CONCAT(DISTINCT CASE WHEN o.status = 'confirmed' THEN o.id END)")
@@ -214,6 +307,7 @@ describe('inventory-demand-purchase workflow', () => {
     await demandService.syncOrderTransition({ orderId: 'order-2', variantId: 'variant-1', quantity: 8, fromStatus: 'pending', toStatus: 'confirmed' });
 
     expect(state.balances.get('variant-1')).toEqual({ on_hand: 10, reserved: 12, available: 0 });
+    expect(db.sqlLog.some((sql) => sql.includes('INSERT INTO variant_demand_projection'))).toBe(true);
 
     let suggestions = await purchaseOrderService.getSuggestions();
     expect(suggestions[0]).toMatchObject({
@@ -231,6 +325,8 @@ describe('inventory-demand-purchase workflow', () => {
       availableQuantity: 0,
       shortage: 12,
     });
+    expect(db.sqlLog.some((sql) => sql.includes('FROM variant_demand_projection vdp'))).toBe(true);
+    expect(db.sqlLog.some((sql) => sql.includes('FROM order_lines ol') && sql.includes('JOIN orders o ON o.id = ol.order_id'))).toBe(false);
 
     await inventoryService.applyMutation({ type: 'order_shipment', variantId: 'variant-1', quantityDelta: -4 });
     state.orders[0].status = 'delivered';

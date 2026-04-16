@@ -1,5 +1,6 @@
 import { generateId } from '../api/utils/id.js';
 import { BadRequestError } from '../lib/hono/errors.js';
+import { VariantDemandProjectionRepository } from '../repositories/VariantDemandProjectionRepository.js';
 
 const DEMAND_ACTIVE_STATUSES = new Set(['confirmed', 'production', 'shipping', 'arrived']);
 const DEMAND_RELEASE_STATUSES = new Set(['void', 'rejected', 'cancelled']);
@@ -10,6 +11,7 @@ const SHIPMENT_CONSUME_STATUSES = new Set(['fulfilled', 'delivered']);
 export class DemandService {
   constructor(db) {
     this.db = db;
+    this.projectionRepo = new VariantDemandProjectionRepository(db);
   }
 
   async queryOrderLineCandidates(payload = {}, includeScopedFilters = true) {
@@ -156,28 +158,28 @@ export class DemandService {
       ).run();
     }
 
+    const fromStatus = String(payload?.fromStatus || '').trim();
+    const toStatus = String(payload?.toStatus || '').trim();
+    const projectionNeedsRefresh = Boolean(payload?.variantId) && fromStatus !== toStatus && (
+      DEMAND_ACTIVE_STATUSES.has(fromStatus)
+      || DEMAND_ACTIVE_STATUSES.has(toStatus)
+      || effect.createsDemand
+      || effect.releasesDemand
+    );
+    if (projectionNeedsRefresh) {
+      await this.projectionRepo.refreshByVariantId(payload.variantId);
+    }
+
     return result;
   }
 
   async getDemandSummaryByVariant() {
-    const { results } = await this.db.prepare(`
-      SELECT
-        ol.variant_id AS variant_id,
-        COALESCE(SUM(MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)), 0) AS total_demand,
-        COUNT(DISTINCT CASE WHEN o.status = 'confirmed' THEN o.id END) AS order_count,
-        GROUP_CONCAT(DISTINCT CASE WHEN o.status = 'confirmed' THEN o.id END) AS order_ids
-      FROM order_lines ol
-      JOIN orders o ON o.id = ol.order_id
-      WHERE o.status IN ('confirmed', 'production', 'shipping', 'arrived')
-        AND ol.variant_id IS NOT NULL
-      GROUP BY ol.variant_id
-    `).all();
-
-    return (results || []).map((row) => ({
+    const rows = await this.projectionRepo.listAll();
+    return rows.map((row) => ({
       variant_id: row.variant_id,
       total_demand: Number(row.total_demand || 0),
       order_count: Number(row.order_count || 0),
-      order_ids: row.order_ids ? String(row.order_ids).split(',') : [],
+      order_ids: Array.isArray(row.order_ids) ? row.order_ids : [],
     }));
   }
 }

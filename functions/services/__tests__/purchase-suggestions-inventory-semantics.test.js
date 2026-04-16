@@ -2,52 +2,57 @@ import { describe, expect, it, vi } from 'vitest';
 import { PurchaseOrderService } from '../PurchaseOrderService.js';
 
 describe('purchase suggestions inventory semantics', () => {
-  it('uses shared demand summary and stock semantics to compute shortage', async () => {
-    const stmt = {
-      bind: vi.fn(() => stmt),
-      all: vi.fn(async () => ({
-        results: [
-          {
-            variant_id: 'variant-1',
-            product_id: 'product-1',
-            product_code: 'P001',
-            variant_code: 'V001',
-            product_name: 'Tee',
-            sku: 'TEE-RED-M',
-            brand: 'KK',
-            cost_price: 20,
-            suggested_purchase_price: 18,
-            on_hand: 7,
-            reserved: 2,
-            available: 3,
-            images: '[]',
-            variant_options: '{"Color":"Red"}',
-          },
-        ],
-      })),
-    };
+  it('reads shared variant demand projection and stock semantics to compute shortage', async () => {
     const db = {
-      prepare: vi.fn(() => stmt),
+      prepare: vi.fn((sql) => ({
+        bind: vi.fn(() => ({
+          all: vi.fn(async () => {
+            if (sql.includes('FROM variant_demand_projection vdp')) {
+              return {
+                results: [
+                  {
+                    variant_id: 'variant-1',
+                    total_demand: 8,
+                    order_count: 2,
+                    order_ids: 'o-1,o-2',
+                  },
+                ],
+              };
+            }
+            return {
+              results: [
+                {
+                  variant_id: 'variant-1',
+                  product_id: 'product-1',
+                  product_code: 'P001',
+                  variant_code: 'V001',
+                  product_name: 'Tee',
+                  sku: 'TEE-RED-M',
+                  brand: 'KK',
+                  cost_price: 20,
+                  suggested_purchase_price: 18,
+                  on_hand: 7,
+                  reserved: 2,
+                  available: 3,
+                  images: '[]',
+                  variant_options: '{"Color":"Red"}',
+                },
+              ],
+            };
+          }),
+        })),
+      })),
     };
     const service = new PurchaseOrderService(db);
     service.repo.getLastPurchasePricesByVariant = vi.fn(async () => ({}));
-    service.demandService = {
-      getDemandSummaryByVariant: vi.fn(async () => [
-        {
-          variant_id: 'variant-1',
-          total_demand: 8,
-          order_count: 2,
-          order_ids: ['o-1', 'o-2'],
-        },
-      ]),
-    };
+    service.demandService = { getDemandSummaryByVariant: vi.fn(async () => []) };
 
     const suggestions = await service.getSuggestions();
-    const variantReadSql = db.prepare.mock.calls[0][0];
+    const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
 
-    expect(service.demandService.getDemandSummaryByVariant).toHaveBeenCalledTimes(1);
-    expect(variantReadSql).toContain('inventory_balances');
-    expect(variantReadSql).toContain('available');
+    expect(service.demandService.getDemandSummaryByVariant).not.toHaveBeenCalled();
+    expect(sqlCalls.some((sql) => sql.includes('FROM variant_demand_projection vdp'))).toBe(true);
+    expect(sqlCalls.some((sql) => sql.includes('FROM product_variants pv') && sql.includes('inventory_balances'))).toBe(true);
     expect(suggestions).toEqual([
       expect.objectContaining({
         variant_id: 'variant-1',
@@ -60,12 +65,12 @@ describe('purchase suggestions inventory semantics', () => {
     ]);
   });
 
-  it('chunks variant suggestion reads when demand spans more than the D1 variable limit', async () => {
-    const demandRows = Array.from({ length: 1005 }, (_, index) => ({
+  it('chunks variant suggestion reads when projection demand spans more than the D1 variable limit', async () => {
+    const projectionRows = Array.from({ length: 1005 }, (_, index) => ({
       variant_id: `variant-${index + 1}`,
       total_demand: 5,
       order_count: 1,
-      order_ids: [`order-${index + 1}`],
+      order_ids: `order-${index + 1}`,
     }));
     const variantQueryBinds = [];
     const db = {
@@ -76,24 +81,24 @@ describe('purchase suggestions inventory semantics', () => {
           }
           return {
             all: vi.fn(async () => ({
-              results: sql.includes('FROM product_variants pv')
-                ? args.map((variantId) => ({
-                    variant_id: variantId,
-                    product_id: `product-${variantId}`,
-                    product_code: `P-${variantId}`,
-                    variant_code: `V-${variantId}`,
-                    product_name: `Product ${variantId}`,
-                    sku: `SKU-${variantId}`,
-                    brand: 'KK',
-                    cost_price: 10,
-                    suggested_purchase_price: 0,
-                    on_hand: 0,
-                    reserved: 0,
-                    available: 0,
-                    images: '[]',
-                    variant_options: '{"Color":"Red"}',
-                  }))
-                : [],
+              results: sql.includes('FROM variant_demand_projection vdp')
+                ? projectionRows
+                : args.map((variantId) => ({
+                  variant_id: variantId,
+                  product_id: `product-${variantId}`,
+                  product_code: `P-${variantId}`,
+                  variant_code: `V-${variantId}`,
+                  product_name: `Product ${variantId}`,
+                  sku: `SKU-${variantId}`,
+                  brand: 'KK',
+                  cost_price: 10,
+                  suggested_purchase_price: 0,
+                  on_hand: 0,
+                  reserved: 0,
+                  available: 0,
+                  images: '[]',
+                  variant_options: '{"Color":"Red"}',
+                })),
             })),
           };
         },
@@ -101,9 +106,6 @@ describe('purchase suggestions inventory semantics', () => {
     };
     const service = new PurchaseOrderService(db);
     service.repo.getLastPurchasePricesByVariant = vi.fn(async () => ({}));
-    service.demandService = {
-      getDemandSummaryByVariant: vi.fn(async () => demandRows),
-    };
 
     const suggestions = await service.getSuggestions();
 
@@ -112,50 +114,55 @@ describe('purchase suggestions inventory semantics', () => {
     expect(Math.max(...variantQueryBinds.map((args) => args.length))).toBeLessThanOrEqual(100);
   });
   it('keeps shortage suggestions visible when the demanded variant has since been archived', async () => {
-    const stmt = {
-      bind: vi.fn(() => stmt),
-      all: vi.fn(async () => ({
-        results: [
-          {
-            variant_id: 'variant-archived',
-            product_id: 'product-1',
-            product_code: 'P001',
-            variant_code: 'V001',
-            product_name: 'Archived Tee',
-            sku: 'TEE-ARCHIVED',
-            brand: 'KK',
-            cost_price: 20,
-            suggested_purchase_price: 18,
-            on_hand: 1,
-            reserved: 0,
-            available: 1,
-            images: '[]',
-            variant_options: '{"Color":"Red"}',
-            variant_status: 'archived',
-          },
-        ],
-      })),
-    };
     const db = {
-      prepare: vi.fn(() => stmt),
+      prepare: vi.fn((sql) => ({
+        bind: vi.fn(() => ({
+          all: vi.fn(async () => {
+            if (sql.includes('FROM variant_demand_projection vdp')) {
+              return {
+                results: [
+                  {
+                    variant_id: 'variant-archived',
+                    total_demand: 6,
+                    order_count: 1,
+                    order_ids: 'o-archived',
+                  },
+                ],
+              };
+            }
+            return {
+              results: [
+                {
+                  variant_id: 'variant-archived',
+                  product_id: 'product-1',
+                  product_code: 'P001',
+                  variant_code: 'V001',
+                  product_name: 'Archived Tee',
+                  sku: 'TEE-ARCHIVED',
+                  brand: 'KK',
+                  cost_price: 20,
+                  suggested_purchase_price: 18,
+                  on_hand: 1,
+                  reserved: 0,
+                  available: 1,
+                  images: '[]',
+                  variant_options: '{"Color":"Red"}',
+                  variant_status: 'archived',
+                },
+              ],
+            };
+          }),
+        })),
+      })),
     };
     const service = new PurchaseOrderService(db);
     service.repo.getLastPurchasePricesByVariant = vi.fn(async () => ({}));
-    service.demandService = {
-      getDemandSummaryByVariant: vi.fn(async () => [
-        {
-          variant_id: 'variant-archived',
-          total_demand: 6,
-          order_count: 1,
-          order_ids: ['o-archived'],
-        },
-      ]),
-    };
 
     const suggestions = await service.getSuggestions();
-    const variantReadSql = db.prepare.mock.calls[0][0];
+    const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
 
-    expect(variantReadSql).not.toContain("AND pv.status = 'active'");
+    expect(sqlCalls.some((sql) => sql.includes('FROM variant_demand_projection vdp'))).toBe(true);
+    expect(sqlCalls.some((sql) => sql.includes('FROM product_variants pv') && !sql.includes("AND pv.status = 'active'"))).toBe(true);
     expect(suggestions).toEqual([
       expect.objectContaining({
         variant_id: 'variant-archived',
@@ -171,6 +178,18 @@ describe('purchase suggestions inventory semantics', () => {
       prepare: vi.fn((sql) => ({
         bind: vi.fn(() => ({
           all: vi.fn(async () => {
+            if (sql.includes('FROM variant_demand_projection vdp')) {
+              return {
+                results: [
+                  {
+                    variant_id: 'variant-deleted',
+                    total_demand: 4,
+                    order_count: 1,
+                    order_ids: 'o-deleted',
+                  },
+                ],
+              };
+            }
             if (sql.includes('FROM product_variants pv')) {
               return { results: [] };
             }
@@ -201,20 +220,11 @@ describe('purchase suggestions inventory semantics', () => {
     };
     const service = new PurchaseOrderService(db);
     service.repo.getLastPurchasePricesByVariant = vi.fn(async () => ({}));
-    service.demandService = {
-      getDemandSummaryByVariant: vi.fn(async () => [
-        {
-          variant_id: 'variant-deleted',
-          total_demand: 4,
-          order_count: 1,
-          order_ids: ['o-deleted'],
-        },
-      ]),
-    };
 
     const suggestions = await service.getSuggestions();
     const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
 
+    expect(sqlCalls.some((sql) => sql.includes('FROM variant_demand_projection vdp'))).toBe(true);
     expect(sqlCalls.some((sql) => sql.includes('FROM product_variants pv'))).toBe(true);
     expect(sqlCalls.some((sql) => sql.includes('FROM order_lines ol'))).toBe(true);
     expect(suggestions).toEqual([
