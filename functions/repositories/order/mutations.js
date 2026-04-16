@@ -14,6 +14,7 @@ import { chunkArray, executeBatchChunks } from '../../lib/db/batch.js';
 import { BadRequestError } from '../../lib/hono/errors.js';
 import { InventoryService } from '../../services/InventoryService.js';
 import { projectOrderLineStatus } from '../../services/OrderStatusProjectionService.js';
+import { createOrderPayloadUpsertStatement, deriveOrderSummaryFields } from './payloads.js';
 
 export const INSUFFICIENT_VARIANT_STOCK_ERROR = 'insufficient variant stock for delivery';
 export const ORDER_SHIPPED_VOID_GUARD_ERROR = 'cannot void order while shipped line quantities remain';
@@ -377,6 +378,7 @@ export async function create(
     const normalizedQuantity = normalizeQuantity(quantity);
     const normalizedStatus = normalizeOrderLifecycleStatus(status || 'pending') || 'pending';
     const orderData = JSON.stringify(data);
+    const { summaryName, summaryBrand, summarySku } = deriveOrderSummaryFields(data);
     const batchStatements = [];
 
     // 1. 插入订单
@@ -384,11 +386,11 @@ export async function create(
         db
             .prepare(
                 `
-        INSERT INTO orders (id, order_no, salesperson_id, original_data, current_data, status, main_image_id, quantity, unread_by_admin, unread_by_sales, created_at, updated_at, product_id, variant_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?, ?, ?)
+        INSERT INTO orders (id, order_no, salesperson_id, original_data, current_data, status, main_image_id, quantity, summary_name, summary_brand, summary_sku, unread_by_admin, unread_by_sales, created_at, updated_at, product_id, variant_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?, ?, ?)
         `
             )
-            .bind(id, orderNo, salespersonId, orderData, orderData, normalizedStatus, mainImageId, normalizedQuantity, timestamp, timestamp, productId, variantId)
+            .bind(id, orderNo, salespersonId, orderData, orderData, normalizedStatus, mainImageId, normalizedQuantity, summaryName, summaryBrand, summarySku, timestamp, timestamp, productId, variantId)
     );
 
     const snapshotSpecs = buildSnapshotSpecs(data);
@@ -443,6 +445,14 @@ export async function create(
             )
     );
 
+    batchStatements.push(createOrderPayloadUpsertStatement(db, {
+        orderId: id,
+        originalData: orderData,
+        currentData: orderData,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+    }));
+
     // 2. 关联文件
     fileIds.forEach((fileId, index) => {
         batchStatements.push(
@@ -477,10 +487,11 @@ export async function create(
 export async function updateData(db, id, newData, actorType, productId = undefined, variantId = undefined) {
     const timestamp = now();
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
+    const { summaryName, summaryBrand, summarySku } = deriveOrderSummaryFields(newData);
 
-    const params = [JSON.stringify(newData), timestamp];
+    const params = [JSON.stringify(newData), timestamp, summaryName, summaryBrand, summarySku];
 
-    const colsToUpdate = ['current_data = ?', `${updateField} = 1`, 'updated_at = ?'];
+    const colsToUpdate = ['current_data = ?', `${updateField} = 1`, 'updated_at = ?', 'summary_name = ?', 'summary_brand = ?', 'summary_sku = ?'];
 
     // SOTA: Fix update quantity column from JSON
     if (newData.quantity !== undefined) {
@@ -510,6 +521,14 @@ export async function updateData(db, id, newData, actorType, productId = undefin
         .prepare(query)
         .bind(...params)
         .run();
+
+    await createOrderPayloadUpsertStatement(db, {
+        orderId: id,
+        originalData: JSON.stringify(newData),
+        currentData: JSON.stringify(newData),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+    }).run();
 
     const lineSnapshotStatement = await syncCompatibilityOrderLineSnapshot(db, {
         orderId: id,
@@ -589,8 +608,9 @@ export async function updateComposite(db, {
         }
     }
 
-    const colsToUpdate = ['current_data = ?', `${updateField} = 1`, 'updated_at = ?'];
-    const params = [JSON.stringify(newData), timestamp];
+    const { summaryName, summaryBrand, summarySku } = deriveOrderSummaryFields(newData);
+    const colsToUpdate = ['current_data = ?', `${updateField} = 1`, 'updated_at = ?', 'summary_name = ?', 'summary_brand = ?', 'summary_sku = ?'];
+    const params = [JSON.stringify(newData), timestamp, summaryName, summaryBrand, summarySku];
 
     if (newData?.quantity !== undefined) {
         colsToUpdate.push('quantity = ?');
@@ -621,6 +641,14 @@ export async function updateComposite(db, {
     statements.push(
         db.prepare(`UPDATE orders SET ${colsToUpdate.join(', ')} WHERE id = ?`).bind(...params)
     );
+
+    statements.push(createOrderPayloadUpsertStatement(db, {
+        orderId: id,
+        originalData: JSON.stringify(newData),
+        currentData: JSON.stringify(newData),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+    }));
 
     statements.push(
         await syncCompatibilityOrderLineSnapshot(db, {

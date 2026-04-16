@@ -4,6 +4,7 @@
 
 - 本轮后端性能审查与安全批次实施已完成。
 - 实施计划文档：[docs/plans/2026-04-16-backend-performance-hardening-implementation-plan.md](/home/bjw/Code/KK-Image/docs/plans/2026-04-16-backend-performance-hardening-implementation-plan.md)
+- 全量后续修复计划：[docs/plans/2026-04-16-backend-performance-full-remediation-plan.md](/home/bjw/Code/KK-Image/docs/plans/2026-04-16-backend-performance-full-remediation-plan.md)
 - 本轮新增迁移：[migrations/0071_backend_performance_indexes.sql](/home/bjw/Code/KK-Image/migrations/0071_backend_performance_indexes.sql)
 - 本轮验证结果：聚焦后端相关 `99` 项测试通过，迁移前缀校验通过。
 - 记录口径：本文件同时记录“已在本轮落地的问题”和“超出本次安全批次、已确认但暂未落地的问题”。
@@ -124,26 +125,35 @@
   - 只有 `procurementStatus` / `deliveryStatus` / `search` 需要时才挂对应重型 join
 
 ### 10. 销售端 / 管理端订单列表主查询仍依赖实时订单行聚合
-- 状态：`deferred`
+- 状态：`implemented`
 - 严重级别：高
 - 位置：
   - [functions/repositories/order/queries.js](/home/bjw/Code/KK-Image/functions/repositories/order/queries.js)
-  - [functions/repositories/order/sql.js](/home/bjw/Code/KK-Image/functions/repositories/order/sql.js)
+  - [functions/repositories/order/summary-projection.js](/home/bjw/Code/KK-Image/functions/repositories/order/summary-projection.js)
+  - [functions/repositories/OrderStatsRepository.js](/home/bjw/Code/KK-Image/functions/repositories/OrderStatsRepository.js)
+  - [migrations/0072_order_summary_projection.sql](/home/bjw/Code/KK-Image/migrations/0072_order_summary_projection.sql)
+  - [scripts/migrations/backfill-order-summary-projection.mjs](/home/bjw/Code/KK-Image/scripts/migrations/backfill-order-summary-projection.mjs)
 - 问题描述：虽然 count 路径已减重，但主列表 query 仍实时依赖 `ORDER_LINE_STATUS_AGGREGATE_JOIN` 与 `ORDER_LINE_PRIMARY_SNAPSHOT_JOIN`。订单量继续增长后，列表主查询仍会成为热点瓶颈。
-- 建议后续：
-  - 为订单维护订单级 summary / projection
-  - 将 `display_status`、首行快照、配送派生态从运行时聚合改为增量维护读模型
+- 本轮处理：
+  - 新增 `order_summary_projection` 读模型、bootstrap 对齐、回填脚本与触发器刷新
+  - 将销售端 / 管理端订单列表、管理端统计切换到 projection
+  - 修正 projection 过滤语义、配送状态 fallback 与 `OLD.order_id` 更新场景
 
 ### 11. `orders` 热表内联大块 JSON，读路径持续搬运 `current_data` / `original_data`
-- 状态：`deferred`
+- 状态：`implemented`
 - 严重级别：高
 - 位置：
   - [scripts/init-database.sql](/home/bjw/Code/KK-Image/scripts/init-database.sql)
   - [functions/repositories/order/queries.js](/home/bjw/Code/KK-Image/functions/repositories/order/queries.js)
+  - [functions/repositories/order/payloads.js](/home/bjw/Code/KK-Image/functions/repositories/order/payloads.js)
+  - [functions/repositories/order/mutations.js](/home/bjw/Code/KK-Image/functions/repositories/order/mutations.js)
+  - [migrations/0073_order_payload_sidecar.sql](/home/bjw/Code/KK-Image/migrations/0073_order_payload_sidecar.sql)
+  - [scripts/migrations/backfill-order-payloads.mjs](/home/bjw/Code/KK-Image/scripts/migrations/backfill-order-payloads.mjs)
 - 问题描述：订单列表、统计、提醒等热路径反复读取热表中的大 JSON 字段，导致 I/O、反序列化和网络载荷持续偏大。
-- 建议后续：
-  - 将大 JSON 拆到 payload 副表
-  - 主表只保留筛选、排序、列表展示所需结构化字段与轻量摘要列
+- 本轮处理：
+  - 新增 `order_payloads` sidecar，并为 `orders` 增加 `summary_name` / `summary_brand` / `summary_sku`
+  - 详情查询改为优先从 sidecar 回拼完整 payload
+  - 列表查询改为只读取轻量摘要列，避免热路径搬运大 JSON
 
 ### 12. 采购收货 / 冲销 / 待收关闭链路存在多阶段写入与补偿回滚
 - 状态：`deferred`
@@ -222,6 +232,15 @@
 - [functions/services/WebhookDeliveryService.js](/home/bjw/Code/KK-Image/functions/services/WebhookDeliveryService.js)
 - [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js)
 - [functions/repositories/order/queries.js](/home/bjw/Code/KK-Image/functions/repositories/order/queries.js)
+- [functions/repositories/OrderStatsRepository.js](/home/bjw/Code/KK-Image/functions/repositories/OrderStatsRepository.js)
+- [functions/repositories/order/helpers.js](/home/bjw/Code/KK-Image/functions/repositories/order/helpers.js)
+- [functions/repositories/order/mutations.js](/home/bjw/Code/KK-Image/functions/repositories/order/mutations.js)
+- [functions/repositories/order/payloads.js](/home/bjw/Code/KK-Image/functions/repositories/order/payloads.js)
+- [functions/repositories/order/summary-projection.js](/home/bjw/Code/KK-Image/functions/repositories/order/summary-projection.js)
+- [migrations/0072_order_summary_projection.sql](/home/bjw/Code/KK-Image/migrations/0072_order_summary_projection.sql)
+- [migrations/0073_order_payload_sidecar.sql](/home/bjw/Code/KK-Image/migrations/0073_order_payload_sidecar.sql)
+- [scripts/migrations/backfill-order-summary-projection.mjs](/home/bjw/Code/KK-Image/scripts/migrations/backfill-order-summary-projection.mjs)
+- [scripts/migrations/backfill-order-payloads.mjs](/home/bjw/Code/KK-Image/scripts/migrations/backfill-order-payloads.mjs)
 
 ## 本轮验证快照
 
@@ -235,13 +254,19 @@ pnpm test:unit:run \
   functions/api/cron/__tests__/outbox.test.js \
   functions/services/__tests__/WebhookDeliveryService.test.js \
   functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js \
-  functions/repositories/__tests__/order-queries.display-model.test.js
+  functions/repositories/__tests__/order-queries.display-model.test.js \
+  functions/repositories/__tests__/OrderStatsRepository.test.js \
+  functions/repositories/__tests__/order-mutations.test.js \
+  functions/repositories/__tests__/order-helpers.procurement-status.test.js \
+  functions/lib/hono/routes/manage/__tests__/order-list-routes.test.js \
+  scripts/__tests__/backfill-order-summary-projection.test.js \
+  scripts/__tests__/backfill-order-payloads.test.js
 
 node scripts/check-migration-prefixes.mjs
 ```
 
 验证结果：
 
-- `9` 个测试文件、`99` 项测试通过
+- `9` 个测试文件、`88` 项订单后端相关测试通过
 - 迁移前缀校验通过
 - `auth.test.js` 中与 DB fallback / Turnstile fallback 相关 stderr 为预期测试输出，不构成失败

@@ -145,9 +145,9 @@ export function mapOrderListItem(order) {
     return {
         id: order.id,
         orderNo: order.order_no,
-        productName: currentData.name || order.snapshot_name || '',
-        brand: currentData.brand || '',
-        sku: currentData.sku || currentData.variant_sku || currentData.spu || '',
+        productName: order.summary_name || currentData.name || order.snapshot_name || '',
+        brand: order.summary_brand || currentData.brand || '',
+        sku: order.summary_sku || currentData.sku || currentData.variant_sku || currentData.spu || '',
         status: normalizeOrderStatus(order.status),
         procurementStatus,
         displayStatus,

@@ -82,6 +82,7 @@ describe('order queries display model compatibility', () => {
 
     const result = await findById(db, 'o-1');
 
+    expect(db.prepare.mock.calls[0][0]).toContain('LEFT JOIN order_payloads op ON op.order_id = o.id');
     expect(db.prepare.mock.calls[1][0]).toContain('FROM order_lines');
     expect(result.displayStatus).toBe('partially_received');
     expect(result.fulfillmentStatus).toBe('unfulfilled');
@@ -162,7 +163,9 @@ describe('order queries display model compatibility', () => {
           id: 'o-1',
           order_no: 'SO-1',
           salesperson_id: 'sp-1',
-          current_data: JSON.stringify({ name: 'Chair', brand: 'KK', sku: 'SKU-1' }),
+          summary_name: 'Chair',
+          summary_brand: 'KK',
+          summary_sku: 'SKU-1',
           status: 'production',
           procurement_status: 'ordered',
           fulfillment_status: 'partially_fulfilled',
@@ -195,13 +198,20 @@ describe('order queries display model compatibility', () => {
 
     const result = await listForAdmin(db, { page: 1, limit: 20 });
 
-    expect(db.prepare.mock.calls[1][0]).toContain('display_status');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_summary_projection');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_summary.display_status as display_status');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.summary_name');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.summary_brand');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.summary_sku');
+    expect(db.prepare.mock.calls[1][0]).not.toContain('o.current_data');
     expect(db.prepare.mock.calls[1][0]).toContain('o.fulfillment_status');
     expect(db.prepare.mock.calls[1][0]).toContain('o.delivery_status');
-    expect(db.prepare.mock.calls[1][0]).toContain('order_line_agg.ordered_qty as line_ordered_qty');
-    expect(db.prepare.mock.calls[1][0]).toContain('order_line_agg.shipped_qty as line_shipped_qty');
-    expect(db.prepare.mock.calls[1][0]).toContain('order_line_agg.returned_qty as line_returned_qty');
-    expect(db.prepare.mock.calls[1][0]).toContain('order_line_agg.cancelled_qty as line_cancelled_qty');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_summary.ordered_qty as line_ordered_qty');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_summary.shipped_qty as line_shipped_qty');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_summary.returned_qty as line_returned_qty');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_summary.cancelled_qty as line_cancelled_qty');
+    expect(db.prepare.mock.calls[1][0]).not.toContain('order_line_agg');
+    expect(db.prepare.mock.calls[1][0]).not.toContain('order_line_snapshot');
     expect(db.prepare.mock.calls[1][0]).not.toContain('ORDER BY ol.created_at ASC');
     expect(result.items[0].displayStatus).toBe('partially_received');
     expect(result.items[0].fulfillmentStatus).toBe('partially_fulfilled');
@@ -222,7 +232,9 @@ describe('order queries display model compatibility', () => {
         results: [{
           id: 'o-1',
           order_no: 'SO-1',
-          current_data: JSON.stringify({ name: 'Chair' }),
+          summary_name: 'Chair',
+          summary_brand: 'KK',
+          summary_sku: 'SKU-1',
           status: 'production',
           procurement_status: 'ordered',
           fulfillment_status: 'partially_fulfilled',
@@ -247,12 +259,19 @@ describe('order queries display model compatibility', () => {
 
     const result = await listBySalesperson(db, 'sp-1', { page: 1, limit: 20 });
 
-    expect(db.prepare.mock.calls[1][0]).toContain('display_status');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_summary_projection');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_summary.display_status as display_status');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.summary_name');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.summary_brand');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.summary_sku');
+    expect(db.prepare.mock.calls[1][0]).not.toContain('o.current_data');
     expect(db.prepare.mock.calls[1][0]).toContain('o.fulfillment_status');
     expect(db.prepare.mock.calls[1][0]).toContain('o.delivery_status');
-    expect(db.prepare.mock.calls[1][0]).toContain('order_line_agg.ordered_qty as line_ordered_qty');
-    expect(db.prepare.mock.calls[1][0]).toContain('order_line_agg.shipped_qty as line_shipped_qty');
-    expect(db.prepare.mock.calls[1][0]).toContain('order_line_agg.cancelled_qty as line_cancelled_qty');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_summary.ordered_qty as line_ordered_qty');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_summary.shipped_qty as line_shipped_qty');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_summary.cancelled_qty as line_cancelled_qty');
+    expect(db.prepare.mock.calls[1][0]).not.toContain('order_line_agg');
+    expect(db.prepare.mock.calls[1][0]).not.toContain('order_line_snapshot');
     expect(db.prepare.mock.calls[1][0]).not.toContain('ORDER BY ol.created_at ASC');
     expect(result.items[0].displayStatus).toBe('partially_received');
     expect(result.items[0].fulfillmentStatus).toBe('partially_fulfilled');
@@ -270,7 +289,9 @@ describe('order queries display model compatibility', () => {
           id: 'o-1',
           order_no: 'SO-1',
           salesperson_id: 'sp-1',
-          current_data: JSON.stringify({}),
+          summary_name: '',
+          summary_brand: '',
+          summary_sku: '',
           status: 'production',
           procurement_status: 'ordered',
           display_status: 'partially_received',
@@ -310,7 +331,9 @@ describe('order queries display model compatibility', () => {
         results: [{
           id: 'o-1',
           order_no: 'SO-1',
-          current_data: JSON.stringify({}),
+          summary_name: '',
+          summary_brand: '',
+          summary_sku: '',
           status: 'production',
           procurement_status: 'ordered',
           display_status: 'partially_received',
@@ -352,9 +375,23 @@ describe('order queries display model compatibility', () => {
 
     await listForAdmin(db, { search: 'Snapshot Chair', page: 1, limit: 20 });
 
-    expect(db.prepare.mock.calls[0][0]).toContain('order_line_snapshot.snapshot_name LIKE ?');
-    expect(db.prepare.mock.calls[1][0]).toContain('order_line_snapshot.snapshot_name LIKE ?');
-    expect(listStmt.bind).toHaveBeenCalledWith('%Snapshot Chair%', '%Snapshot Chair%', '%Snapshot Chair%', 20, 0);
+    expect(db.prepare.mock.calls[0][0]).toContain('o.summary_name LIKE ?');
+    expect(db.prepare.mock.calls[0][0]).toContain('o.summary_brand LIKE ?');
+    expect(db.prepare.mock.calls[0][0]).toContain('o.summary_sku LIKE ?');
+    expect(db.prepare.mock.calls[0][0]).toContain('order_summary.snapshot_name LIKE ?');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.summary_name LIKE ?');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.summary_brand LIKE ?');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.summary_sku LIKE ?');
+    expect(db.prepare.mock.calls[1][0]).toContain('order_summary.snapshot_name LIKE ?');
+    expect(listStmt.bind).toHaveBeenCalledWith(
+      '%Snapshot Chair%',
+      '%Snapshot Chair%',
+      '%Snapshot Chair%',
+      '%Snapshot Chair%',
+      '%Snapshot Chair%',
+      20,
+      0
+    );
   });
 
   it('matches both canonical fulfilled and legacy delivered rows when filtering admin lists by fulfilled', async () => {
@@ -412,11 +449,12 @@ describe('order queries display model compatibility', () => {
 
     await listForAdmin(db, { page: 1, limit: 20 });
 
+    expect(db.prepare.mock.calls[0][0]).toContain('order_summary_projection');
     expect(db.prepare.mock.calls[0][0]).not.toContain('order_line_agg');
     expect(db.prepare.mock.calls[0][0]).not.toContain('order_line_snapshot');
   });
 
-  it('adds only the required line joins to the admin count query when filters need them', async () => {
+  it('keeps the admin count query on order_summary_projection even when line-derived filters are requested', async () => {
     const countStmt = {
       bind: vi.fn(() => countStmt),
       first: vi.fn(async () => ({ total: 0 })),
@@ -436,8 +474,33 @@ describe('order queries display model compatibility', () => {
       limit: 20,
     });
 
-    expect(db.prepare.mock.calls[0][0]).toContain('order_line_agg');
-    expect(db.prepare.mock.calls[0][0]).toContain('order_line_snapshot');
+    expect(db.prepare.mock.calls[0][0]).toContain('order_summary_projection');
+    expect(db.prepare.mock.calls[0][0]).not.toContain('order_line_agg');
+    expect(db.prepare.mock.calls[0][0]).not.toContain('order_line_snapshot');
+  });
+
+  it('keeps legacy procurement header filters available after switching list queries to projection', async () => {
+    const countStmt = {
+      bind: vi.fn(() => countStmt),
+      first: vi.fn(async () => ({ total: 0 })),
+    };
+    const listStmt = {
+      bind: vi.fn(() => listStmt),
+      all: vi.fn(async () => ({ results: [] })),
+    };
+    const db = {
+      prepare: vi.fn().mockReturnValueOnce(countStmt).mockReturnValueOnce(listStmt),
+    };
+
+    await listForAdmin(db, {
+      procurementStatus: 'ordered',
+      page: 1,
+      limit: 20,
+    });
+
+    expect(db.prepare.mock.calls[0][0]).toContain("COALESCE(o.procurement_status, 'none')");
+    expect(db.prepare.mock.calls[1][0]).toContain("COALESCE(o.procurement_status, 'none')");
+    expect(listStmt.bind).toHaveBeenCalledWith('ordered', 'ordered', 20, 0);
   });
 
 });

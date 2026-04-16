@@ -109,6 +109,23 @@ describe('Order Mutations SQL Binding', () => {
             const bindArgs = db.bind.mock.calls[0];
             expect(bindArgs).toContain(15);
         });
+
+        it('upserts order_payloads and summary fields together when editing data', async () => {
+            const orderId = 'test-order-payload';
+            const newData = { name: 'Edited Item', brand: 'KK', sku: 'SKU-2' };
+
+            await updateData(db, orderId, newData, 'admin');
+
+            expect(db.prepare.mock.calls[0][0]).toContain('summary_name = ?');
+            expect(db.prepare.mock.calls[0][0]).toContain('summary_brand = ?');
+            expect(db.prepare.mock.calls[0][0]).toContain('summary_sku = ?');
+            expect(db.prepare.mock.calls[1][0]).toContain('INSERT INTO order_payloads');
+
+            const headerBindArgs = db.bind.mock.calls[0];
+            expect(headerBindArgs).toContain('Edited Item');
+            expect(headerBindArgs).toContain('KK');
+            expect(headerBindArgs).toContain('SKU-2');
+        });
     });
 
     describe('create()', () => {
@@ -153,6 +170,32 @@ describe('Order Mutations SQL Binding', () => {
 
             const bindArgs = db.bind.mock.calls[0];
             expect(bindArgs).toContain('v_001');
+        });
+
+        it('writes sidecar payload and lightweight summary columns on create', async () => {
+            const params = {
+                id: 'o_payload',
+                orderNo: 'no_payload',
+                salespersonId: 's_1',
+                data: { name: 'Payload Item', brand: 'KK', sku: 'SKU-1' },
+                status: 'pending',
+                quantity: 1,
+            };
+
+            await create(db, timelineRepo, params);
+
+            const insertOrderSql = db.prepare.mock.calls[0][0];
+            expect(insertOrderSql).toContain('summary_name');
+            expect(insertOrderSql).toContain('summary_brand');
+            expect(insertOrderSql).toContain('summary_sku');
+
+            const payloadInsertIndex = db.prepare.mock.calls.findIndex(([sql]) => sql.includes('INSERT INTO order_payloads'));
+            expect(payloadInsertIndex).toBeGreaterThanOrEqual(0);
+
+            const orderBindArgs = db.bind.mock.calls[0];
+            expect(orderBindArgs).toContain('Payload Item');
+            expect(orderBindArgs).toContain('KK');
+            expect(orderBindArgs).toContain('SKU-1');
         });
 
         it('should create an order_lines row with the display snapshot when a single-line order is created', async () => {
@@ -313,6 +356,34 @@ describe('Order Mutations SQL Binding', () => {
                 color: 'Black',
                 material: 'Leather',
             });
+        });
+
+        it('updateComposite batches order_payloads upsert with header updates', async () => {
+            const inventoryService = {
+                assertSufficient: vi.fn(),
+                applyMutation: vi.fn(),
+            };
+            db.first.mockResolvedValueOnce({ id: 'line-1', line_count: 1 });
+
+            await updateComposite(db, {
+                id: 'o-sidecar-sync',
+                actorType: 'admin',
+                newData: {
+                    name: 'Updated Item',
+                    brand: 'KK',
+                    sku: 'SKU-9',
+                },
+                inventoryService,
+            });
+
+            const payloadInsertIndex = db.prepare.mock.calls.findIndex(([sql]) => sql.includes('INSERT INTO order_payloads'));
+            expect(payloadInsertIndex).toBeGreaterThanOrEqual(0);
+
+            const orderUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) => sql.includes('UPDATE orders SET'));
+            expect(orderUpdateIndex).toBeGreaterThanOrEqual(0);
+            expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('summary_name = ?');
+            expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('summary_brand = ?');
+            expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('summary_sku = ?');
         });
 
         it('updateComposite persists salesperson reassignment on the order header', async () => {

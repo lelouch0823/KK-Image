@@ -114,4 +114,32 @@ describe('check-migration-prefixes', () => {
     expect(sql).toContain('idx_folders_parent_deleted_created');
     expect(sql).toContain('idx_folders_deleted_name');
   });
+
+  it('accepts the order summary projection migration name', async () => {
+    const fileName = '0072_order_summary_projection.sql';
+    const file = path.resolve(process.cwd(), 'migrations', fileName);
+
+    expect(fileName).toMatch(/^\d+_.+\.sql$/);
+    expect(fs.existsSync(file)).toBe(true);
+
+    const sql = fs.readFileSync(file, 'utf8');
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS order_summary_projection');
+    expect(sql).toContain('effective_delivery_status');
+    expect(sql).toContain('trg_order_summary_projection_order_lines_ai');
+    expect(sql).toContain('trg_order_summary_projection_order_returns_ad');
+  });
+
+  it('accepts the order payload sidecar migration name', async () => {
+    const fileName = '0073_order_payload_sidecar.sql';
+    const file = path.resolve(process.cwd(), 'migrations', fileName);
+
+    expect(fileName).toMatch(/^\d+_.+\.sql$/);
+    expect(fs.existsSync(file)).toBe(true);
+
+    const sql = fs.readFileSync(file, 'utf8');
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS order_payloads');
+    expect(sql).toContain('ALTER TABLE orders ADD COLUMN summary_name');
+    expect(sql).toContain('ALTER TABLE orders ADD COLUMN summary_brand');
+    expect(sql).toContain('ALTER TABLE orders ADD COLUMN summary_sku');
+  });
 });

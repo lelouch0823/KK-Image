@@ -120,4 +120,47 @@ describe('init-database bootstrap consistency', () => {
     expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_folders_deleted_name');
     expect(sql).toContain('ON folders(is_deleted, name)');
   });
+
+  it('defines order_summary_projection bootstrap table, indexes, and refresh triggers', () => {
+    const sql = loadInitSchema();
+    const projectionSql = extractCreateTableBlock(sql, 'order_summary_projection');
+
+    expect(projectionSql).toMatch(/CREATE TABLE IF NOT EXISTS\s+order_summary_projection\s*\(/i);
+    expect(projectionSql).toMatch(/\border_id\s+TEXT\s+PRIMARY\s+KEY\b/i);
+    expect(projectionSql).toMatch(/\bdisplay_status\s+TEXT\b/i);
+    expect(projectionSql).toMatch(/\bsnapshot_name\s+TEXT\b/i);
+    expect(projectionSql).toMatch(/\bordered_qty\s+INTEGER\s+NOT\s+NULL\s+DEFAULT\s+0\b/i);
+    expect(projectionSql).toMatch(/\bshipped_qty\s+INTEGER\s+NOT\s+NULL\s+DEFAULT\s+0\b/i);
+    expect(projectionSql).toMatch(/\breturned_qty\s+INTEGER\s+NOT\s+NULL\s+DEFAULT\s+0\b/i);
+    expect(projectionSql).toMatch(/\bcancelled_qty\s+INTEGER\s+NOT\s+NULL\s+DEFAULT\s+0\b/i);
+    expect(projectionSql).toMatch(/\beffective_delivery_status\s+TEXT\s+NOT\s+NULL\b/i);
+    expect(projectionSql).toMatch(/\bupdated_at\s+INTEGER\s+NOT\s+NULL\b/i);
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_order_summary_projection_display_status');
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_order_summary_projection_effective_delivery_status');
+    expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_orders_ai');
+    expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_orders_au');
+    expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_lines_ai');
+    expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_lines_au');
+    expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_lines_ad');
+    expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_returns_ai');
+    expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_returns_au');
+    expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_returns_ad');
+    expect(sql).toMatch(/CREATE TRIGGER IF NOT EXISTS\s+trg_order_summary_projection_order_lines_au[\s\S]*OLD\.order_id/i);
+    expect(sql).toMatch(/CREATE TRIGGER IF NOT EXISTS\s+trg_order_summary_projection_order_returns_au[\s\S]*OLD\.order_id/i);
+  });
+
+  it('defines order_payloads sidecar and lightweight order summary columns', () => {
+    const sql = loadInitSchema();
+    const ordersSql = extractCreateTableBlock(sql, 'orders');
+    const payloadsSql = extractCreateTableBlock(sql, 'order_payloads');
+
+    expect(ordersSql).toMatch(/\bsummary_name\s+TEXT\b/i);
+    expect(ordersSql).toMatch(/\bsummary_brand\s+TEXT\b/i);
+    expect(ordersSql).toMatch(/\bsummary_sku\s+TEXT\b/i);
+    expect(payloadsSql).toMatch(/CREATE TABLE IF NOT EXISTS\s+order_payloads\s*\(/i);
+    expect(payloadsSql).toMatch(/\border_id\s+TEXT\s+PRIMARY\s+KEY\b/i);
+    expect(payloadsSql).toMatch(/\boriginal_data\s+TEXT\s+NOT\s+NULL\b/i);
+    expect(payloadsSql).toMatch(/\bcurrent_data\s+TEXT\s+NOT\s+NULL\b/i);
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_order_payloads_updated_at');
+  });
 });

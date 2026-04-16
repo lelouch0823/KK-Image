@@ -10,13 +10,13 @@
 import { parseRepoPagination } from '../../api/utils/pagination.js';
 import { expandOrderStatusFilter } from '../../api/utils/constants.js';
 import { mapOrderDetail, mapOrderListItem } from './helpers.js';
+import { ORDER_PAYLOADS_JOIN_SQL, ORDER_PAYLOADS_SELECT_SQL } from './payloads.js';
 import {
-    ORDER_LINE_PRIMARY_SNAPSHOT_JOIN,
-    ORDER_LINE_STATUS_AGGREGATE_JOIN,
-    appendOrderDeliveryStatusFilter,
-    appendOrderProductSearchFilter,
-    appendOrderProgressStatusFilter,
-} from './sql.js';
+    ORDER_SUMMARY_PROJECTION_JOIN,
+    appendOrderSummaryDeliveryStatusFilter,
+    appendOrderSummaryProductSearchFilter,
+    appendOrderSummaryProgressStatusFilter,
+} from './summary-projection.js';
 
 async function findOrderLines(db, orderId) {
     const { results } = await db
@@ -57,9 +57,16 @@ export async function findById(db, id) {
     const order = await db
         .prepare(
             `
-      SELECT o.*, o.product_id, o.variant_id, o.quantity, f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
+      SELECT
+             o.id, o.order_no, o.salesperson_id, o.customer_id, o.product_id, o.variant_id, o.quantity,
+             ${ORDER_PAYLOADS_SELECT_SQL},
+             o.status, o.procurement_status, o.fulfillment_status, o.delivery_status,
+             o.delivered_at, o.delivered_by, o.delivery_note,
+             o.main_image_id, o.unread_by_admin, o.unread_by_sales, o.created_at, o.updated_at,
+             f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
              c.name as customer_name, c.company as customer_company, c.phone as customer_phone
       FROM orders o
+      ${ORDER_PAYLOADS_JOIN_SQL}
       LEFT JOIN files f ON o.main_image_id = f.id
       LEFT JOIN customers c ON o.customer_id = c.id
       WHERE o.id = ?
@@ -88,9 +95,16 @@ export async function findByIdAndSalesperson(db, id, salespersonId) {
     const order = await db
         .prepare(
             `
-      SELECT o.*, o.product_id, o.variant_id, o.quantity, f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
+      SELECT
+             o.id, o.order_no, o.salesperson_id, o.customer_id, o.product_id, o.variant_id, o.quantity,
+             ${ORDER_PAYLOADS_SELECT_SQL},
+             o.status, o.procurement_status, o.fulfillment_status, o.delivery_status,
+             o.delivered_at, o.delivered_by, o.delivery_note,
+             o.main_image_id, o.unread_by_admin, o.unread_by_sales, o.created_at, o.updated_at,
+             f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
              c.name as customer_name, c.company as customer_company, c.phone as customer_phone
       FROM orders o
+      ${ORDER_PAYLOADS_JOIN_SQL}
       LEFT JOIN files f ON o.main_image_id = f.id
       LEFT JOIN customers c ON o.customer_id = c.id
       WHERE o.id = ? AND o.salesperson_id = ?
@@ -142,32 +156,33 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
         { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
     );
 
-    let where = 'WHERE salesperson_id = ?';
+    let where = 'WHERE o.salesperson_id = ?';
     const params = [salespersonId];
 
     const statusValues = expandOrderStatusFilter(status);
     if (statusValues.length === 1) {
-        where += ' AND status = ?';
+        where += ' AND o.status = ?';
         params.push(statusValues[0]);
     } else if (statusValues.length > 1) {
-        where += ` AND status IN (${statusValues.map(() => '?').join(', ')})`;
+        where += ` AND o.status IN (${statusValues.map(() => '?').join(', ')})`;
         params.push(...statusValues);
     }
 
     const countResult = await db
-        .prepare(`SELECT COUNT(*) as total FROM orders ${where}`)
+        .prepare(`SELECT COUNT(*) as total FROM orders o ${ORDER_SUMMARY_PROJECTION_JOIN} ${where}`)
         .bind(...params)
         .first();
 
     const listSql = `
       SELECT
-          o.id, o.order_no, o.current_data, o.status, o.procurement_status, o.fulfillment_status, o.delivery_status,
-          order_line_agg.display_status as display_status,
-          order_line_agg.ordered_qty as line_ordered_qty,
-          order_line_agg.shipped_qty as line_shipped_qty,
-          order_line_agg.returned_qty as line_returned_qty,
-          order_line_agg.cancelled_qty as line_cancelled_qty,
-          order_line_snapshot.snapshot_name as snapshot_name,
+          o.id, o.order_no, o.summary_name, o.summary_brand, o.summary_sku, o.status, o.procurement_status, o.fulfillment_status, o.delivery_status,
+          o.product_id, o.variant_id, o.quantity,
+          order_summary.display_status as display_status,
+          order_summary.ordered_qty as line_ordered_qty,
+          order_summary.shipped_qty as line_shipped_qty,
+          order_summary.returned_qty as line_returned_qty,
+          order_summary.cancelled_qty as line_cancelled_qty,
+          order_summary.snapshot_name as snapshot_name,
           o.unread_by_sales as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
           f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
@@ -184,8 +199,7 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
               ELSE 50
           END as status_priority
       FROM orders o
-      ${ORDER_LINE_STATUS_AGGREGATE_JOIN}
-      ${ORDER_LINE_PRIMARY_SNAPSHOT_JOIN}
+      ${ORDER_SUMMARY_PROJECTION_JOIN}
       LEFT JOIN files f ON o.main_image_id = f.id
       ${where}
       ORDER BY
@@ -244,10 +258,10 @@ export async function listForAdmin(
         bindParams.push(...statusValues);
     }
     if (procurementStatus) {
-        whereClause = appendOrderProgressStatusFilter(whereClause, bindParams, procurementStatus);
+        whereClause = appendOrderSummaryProgressStatusFilter(whereClause, bindParams, procurementStatus);
     }
     if (deliveryStatus) {
-        whereClause = appendOrderDeliveryStatusFilter(whereClause, bindParams, deliveryStatus);
+        whereClause = appendOrderSummaryDeliveryStatusFilter(whereClause, bindParams, deliveryStatus);
     }
     if (startTime > 0) {
         whereClause += ' AND o.created_at >= ?';
@@ -257,26 +271,22 @@ export async function listForAdmin(
         whereClause += ' AND o.created_at <= ?';
         bindParams.push(endTime);
     }
-    whereClause = appendOrderProductSearchFilter(whereClause, bindParams, search);
-    const countJoinSql = [
-        (procurementStatus || deliveryStatus) ? ORDER_LINE_STATUS_AGGREGATE_JOIN : '',
-        search ? ORDER_LINE_PRIMARY_SNAPSHOT_JOIN : '',
-    ].filter(Boolean).join(' ');
+    whereClause = appendOrderSummaryProductSearchFilter(whereClause, bindParams, search);
 
     const countResult = await db
-        .prepare(`SELECT COUNT(*) as total FROM orders o ${countJoinSql} WHERE ${whereClause}`)
+        .prepare(`SELECT COUNT(*) as total FROM orders o ${ORDER_SUMMARY_PROJECTION_JOIN} WHERE ${whereClause}`)
         .bind(...bindParams)
         .first();
 
     const listSql = `
       SELECT
-          o.id, o.order_no, o.salesperson_id, o.current_data, o.status, o.procurement_status, o.fulfillment_status, o.delivery_status, o.product_id, o.variant_id, o.quantity,
-          order_line_agg.display_status as display_status,
-          order_line_agg.ordered_qty as line_ordered_qty,
-          order_line_agg.shipped_qty as line_shipped_qty,
-          order_line_agg.returned_qty as line_returned_qty,
-          order_line_agg.cancelled_qty as line_cancelled_qty,
-          order_line_snapshot.snapshot_name as snapshot_name,
+          o.id, o.order_no, o.salesperson_id, o.summary_name, o.summary_brand, o.summary_sku, o.status, o.procurement_status, o.fulfillment_status, o.delivery_status, o.product_id, o.variant_id, o.quantity,
+          order_summary.display_status as display_status,
+          order_summary.ordered_qty as line_ordered_qty,
+          order_summary.shipped_qty as line_shipped_qty,
+          order_summary.returned_qty as line_returned_qty,
+          order_summary.cancelled_qty as line_cancelled_qty,
+          order_summary.snapshot_name as snapshot_name,
           o.unread_by_admin as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
           s.name as salesperson_name, s.store as salesperson_store,
@@ -294,8 +304,7 @@ export async function listForAdmin(
               ELSE 50
           END as status_priority
       FROM orders o
-      ${ORDER_LINE_STATUS_AGGREGATE_JOIN}
-      ${ORDER_LINE_PRIMARY_SNAPSHOT_JOIN}
+      ${ORDER_SUMMARY_PROJECTION_JOIN}
       LEFT JOIN salespersons s ON o.salesperson_id = s.id
       LEFT JOIN files f ON o.main_image_id = f.id
       WHERE ${whereClause}

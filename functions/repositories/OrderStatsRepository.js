@@ -6,7 +6,10 @@
  */
 
 import { parseJsonObject } from '../api/utils/json.js';
-import { ORDER_DELIVERY_STATUS_SQL, ORDER_LINE_STATUS_AGGREGATE_JOIN } from './order/sql.js';
+import {
+  ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL,
+  ORDER_SUMMARY_PROJECTION_JOIN,
+} from './order/summary-projection.js';
 
 export class OrderStatsRepository {
   constructor(db) {
@@ -249,13 +252,10 @@ export class OrderStatsRepository {
         this.db
           .prepare(
             `
-                SELECT effective_delivery_status as status, COUNT(*) as count
-                FROM (
-                    SELECT ${ORDER_DELIVERY_STATUS_SQL} AS effective_delivery_status
-                    FROM orders o
-                    ${ORDER_LINE_STATUS_AGGREGATE_JOIN}
-                )
-                GROUP BY effective_delivery_status
+                SELECT ${ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL} as status, COUNT(*) as count
+                FROM orders o
+                ${ORDER_SUMMARY_PROJECTION_JOIN}
+                GROUP BY ${ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL}
             `
           )
           .all(),
@@ -263,10 +263,15 @@ export class OrderStatsRepository {
           .prepare(
             `
                 SELECT COUNT(*) as count
-                FROM orders o
-                ${ORDER_LINE_STATUS_AGGREGATE_JOIN}
-                WHERE LOWER(TRIM(COALESCE(o.status, ''))) IN ('fulfilled', 'delivered')
-                  AND ${ORDER_DELIVERY_STATUS_SQL} = 'in_transit'
+                FROM (
+                    SELECT
+                      LOWER(TRIM(COALESCE(o.status, ''))) AS normalized_status,
+                      ${ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL} AS effective_delivery_status
+                    FROM orders o
+                    ${ORDER_SUMMARY_PROJECTION_JOIN}
+                )
+                WHERE normalized_status IN ('fulfilled', 'delivered')
+                  AND effective_delivery_status = 'in_transit'
             `
           )
           .first(),
