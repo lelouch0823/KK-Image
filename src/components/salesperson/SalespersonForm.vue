@@ -46,17 +46,21 @@
 
       <!-- 状态 & 重置链接 (编辑模式) -->
       <div v-if="isEditing" class="space-y-5 border-t border-(--border-color) pt-5">
-        <label class="group flex cursor-pointer items-center justify-between">
-          <span
-            class="group-hover:text-primary text-sm font-medium text-(--text-main) transition-colors"
-          >{{ t('salesperson.activeStatus') }}</span>
-          <div class="relative inline-flex cursor-pointer items-center">
-            <input v-model="form.isActive" type="checkbox" class="peer sr-only" />
-            <div
-              class="peer h-6 w-11 rounded-full bg-(--bg-muted) transition-all peer-checked:bg-primary peer-focus:ring-primary/20 peer-focus:ring-2 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:size-5 after:rounded-full after:border after:border-(--border-color) after:bg-(--bg-card) after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-(--bg-card)"
-            ></div>
+        <div class="flex items-center justify-between gap-4">
+          <div class="space-y-1">
+            <span class="text-sm font-medium text-(--text-main)">{{
+              t('salesperson.activeStatus')
+            }}</span>
+            <p class="text-xs text-(--text-secondary)">
+              {{
+                form.isActive
+                  ? t('salesperson.active', 'Active')
+                  : t('salesperson.disabled', 'Disabled')
+              }}
+            </p>
           </div>
-        </label>
+          <AppCheckbox v-model="form.isActive" />
+        </div>
 
         <div class="flex items-center justify-between">
           <span class="text-sm text-(--text-secondary)">{{ t('salesperson.uuid') }}</span>
@@ -64,30 +68,34 @@
             <code
               class="text-primary rounded-lg border border-(--border-color) bg-(--bg-muted) px-2 py-1.5 font-mono text-xs"
             >{{ salesperson.uuid }}</code>
-            <button
+            <AppButton
               type="button"
-              class="text-primary px-2 py-1 text-xs font-semibold transition-colors hover:text-primary-hover hover:underline"
+              variant="link"
+              size="sm"
+              class="!h-auto !px-0 text-xs font-semibold"
               @click="$emit('resetToken', salesperson.uuid)"
             >
               {{ t('salesperson.resetLink') }}
-            </button>
+            </AppButton>
           </div>
         </div>
       </div>
     </form>
 
     <template #footer>
-      <AppButton
-        variant="secondary"
-        :text="t('common.cancel')"
-        @click="visible = false"
-      />
-      <AppButton
-        variant="primary"
-        :text="submitting ? t('common.saving') : t('common.save')"
-        :loading="submitting"
-        @click="handleSubmit"
-      />
+      <ActionBar class="w-full border-none bg-transparent px-0 py-0 shadow-none">
+        <AppButton
+          variant="secondary"
+          :text="t('common.cancel')"
+          @click="visible = false"
+        />
+        <AppButton
+          variant="primary"
+          :text="submitting ? t('common.saving') : t('common.save')"
+          :loading="submitting"
+          @click="handleSubmit"
+        />
+      </ActionBar>
     </template>
   </Modal>
 </template>
@@ -96,8 +104,10 @@
 import { ref, watch, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
-import AppInput from '@/components/ui/AppInput.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppCheckbox from '@/components/ui/AppCheckbox.vue';
+import AppInput from '@/components/ui/AppInput.vue';
+import ActionBar from '@/design-system/composed/ActionBar.vue';
 
 const props = defineProps({
   modelValue: {

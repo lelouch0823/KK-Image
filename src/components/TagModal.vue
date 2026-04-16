@@ -30,10 +30,12 @@
 
       <!-- Tag List -->
       <div v-else-if="tags && tags.length > 0" class="mt-2 flex flex-wrap gap-2">
-        <button
+        <AppButton
           v-for="tag in tags"
           :key="tag.id"
-          class="hover:border-primary hover:bg-primary/10 hover:text-primary flex items-center gap-1.5 rounded-full border border-(--border-color) bg-(--bg-muted) px-3 py-1.5 text-sm transition-all"
+          variant="white"
+          size="sm"
+          class="!rounded-full border-(--border-color) hover:!border-primary hover:!bg-primary/10 hover:!text-primary"
           @click="handleAssignTag(tag)"
         >
           <span
@@ -41,7 +43,7 @@
             :style="{ backgroundColor: tag.color || '#94a3b8' }"
           ></span>
           <span>{{ tag.name }}</span>
-        </button>
+        </AppButton>
       </div>
 
       <div v-else class="py-4 text-center text-sm text-(--text-secondary)">

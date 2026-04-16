@@ -10,14 +10,12 @@
       @retry="recover"
     >
       <template #actions>
-        <button
-          type="button"
-          class="rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-medium text-(--text-main)"
+        <AppButton
+          variant="outline"
           data-testid="back-action"
+          :text="t('order.detail.backToList') || '返回列表'"
           @click="$emit('back')"
-        >
-          {{ t('order.detail.backToList') || '返回列表' }}
-        </button>
+        />
       </template>
     </AsyncStatePanel>
   </div>
@@ -27,6 +25,7 @@
 import { ref, onErrorCaptured, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AsyncStatePanel from '@/components/common/AsyncStatePanel.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 
 const props = defineProps({
   resetKey: { type: [String, Number], default: '' },

@@ -57,7 +57,7 @@ describe('ProductOptionsBuilder event contract', () => {
     expect(wrapper.emitted('remove-option')?.[0]).toEqual([0]);
 
     const appInputs = wrapper.findAllComponents(AppInputStub);
-    await appInputs[0].vm.$emit('input', new Event('input'));
+    await appInputs[0].vm.$emit('update:modelValue', 'Color');
     expect(wrapper.emitted('generate-variants')).toHaveLength(1);
 
     const enterEvent = { key: 'Enter', preventDefault: vi.fn() };

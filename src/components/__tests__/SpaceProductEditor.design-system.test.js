@@ -18,4 +18,48 @@ describe('SpaceProductEditor design-system migration', () => {
     expect(source).not.toContain('<button');
     expect(source).not.toContain('<svg');
   });
+
+  it('keeps nested space share and file controls on shared primitives', () => {
+    const filesTab = readFileSync(
+      resolve(process.cwd(), 'src/components/space/SpaceFilesTab.vue'),
+      'utf8'
+    );
+    const shareCard = readFileSync(
+      resolve(process.cwd(), 'src/components/space/SpaceShareCard.vue'),
+      'utf8'
+    );
+    const settingsTab = readFileSync(
+      resolve(process.cwd(), 'src/components/space/SpaceSettingsTab.vue'),
+      'utf8'
+    );
+    const visibilitySelector = readFileSync(
+      resolve(process.cwd(), 'src/components/space/SpaceVisibilitySelector.vue'),
+      'utf8'
+    );
+    const mediaGrid = readFileSync(
+      resolve(process.cwd(), 'src/components/space/SpaceMediaGrid.vue'),
+      'utf8'
+    );
+
+    expect(filesTab).toContain("import AppButton from '@/components/ui/AppButton.vue'");
+    expect(filesTab).not.toContain('<button');
+    expect(filesTab).not.toContain('hover:bg-red-600');
+
+    expect(shareCard).toContain("import AppButton from '@/components/ui/AppButton.vue'");
+    expect(shareCard).toContain("import AppInput from '@/components/ui/AppInput.vue'");
+    expect(shareCard).not.toContain('<button');
+    expect(shareCard).not.toContain('<input');
+
+    expect(settingsTab).toContain("import AppButton from '@/components/ui/AppButton.vue'");
+    expect(settingsTab).toContain("import AppInput from '@/components/ui/AppInput.vue'");
+    expect(settingsTab).not.toContain('<button');
+    expect(settingsTab).not.toContain('<input');
+
+    expect(visibilitySelector).toContain("import AppCard from '@/components/ui/AppCard.vue'");
+    expect(visibilitySelector).not.toContain('<button');
+
+    expect(mediaGrid).toContain("import AppButton from '@/components/ui/AppButton.vue'");
+    expect(mediaGrid).not.toContain('<button');
+    expect(mediaGrid).not.toContain('bg-blue-500/90');
+  });
 });

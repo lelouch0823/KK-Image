@@ -33,8 +33,10 @@
       <!-- Tabs Header -->
       <div class="shrink-0 border-b border-(--border-color) bg-(--bg-card) px-6">
         <div class="flex space-x-6">
-          <button
-            class="border-b-2 px-1 py-3 text-sm font-medium transition-colors duration-200"
+          <AppButton
+            variant="link"
+            size="sm"
+            class="rounded-none border-b-2 !px-1 !py-3 text-sm font-medium transition-colors duration-200"
             :class="
               activeTab === 'files'
                 ? 'border-primary text-primary'
@@ -45,9 +47,11 @@
             {{
               isCollectionTemplate ? t('spaceManager.tabs.subspaces') : t('spaceManager.tabs.files')
             }}
-          </button>
-          <button
-            class="border-b-2 px-1 py-3 text-sm font-medium transition-colors duration-200"
+          </AppButton>
+          <AppButton
+            variant="link"
+            size="sm"
+            class="rounded-none border-b-2 !px-1 !py-3 text-sm font-medium transition-colors duration-200"
             :class="
               activeTab === 'settings'
                 ? 'border-primary text-primary'
@@ -56,9 +60,11 @@
             @click="activeTab = 'settings'"
           >
             {{ t('spaceManager.tabs.settings') }}
-          </button>
-          <button
-            class="border-b-2 px-1 py-3 text-sm font-medium transition-colors duration-200"
+          </AppButton>
+          <AppButton
+            variant="link"
+            size="sm"
+            class="rounded-none border-b-2 !px-1 !py-3 text-sm font-medium transition-colors duration-200"
             :class="
               activeTab === 'analytics'
                 ? 'border-primary text-primary'
@@ -67,7 +73,7 @@
             @click="activeTab = 'analytics'"
           >
             {{ t('spaceManager.tabs.analytics') }}
-          </button>
+          </AppButton>
         </div>
       </div>
 
@@ -114,18 +120,19 @@
 
     <!-- Footer -->
     <template #footer>
-      <button
-        class="hover:text-primary px-4 py-2 text-sm font-medium text-(--text-secondary) transition-colors"
+      <AppButton
+        variant="secondary"
         @click="$emit('close')"
       >
         {{ t('spaceManager.close') }}
-      </button>
-      <button
-        class="text-primary rounded-lg bg-(--bg-muted) px-4 py-2 text-sm font-medium transition-colors hover:bg-(--bg-hover)"
+      </AppButton>
+      <AppButton
+        variant="white"
+        class="text-primary hover:text-primary"
         @click="openPreview"
       >
         {{ t('spaceManager.preview') }}
-      </button>
+      </AppButton>
     </template>
 
     <!-- 文件选择器 -->
@@ -147,6 +154,7 @@ import { useI18n } from '@/composables/useI18n';
 import FileSelector from '@/components/FileSelector.vue';
 import SpaceAnalytics from './SpaceAnalytics.vue';
 import SubspaceList from '@/components/SubspaceList.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import Modal from '@/components/ui/Modal.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import SpaceFilesTab from './space/SpaceFilesTab.vue';

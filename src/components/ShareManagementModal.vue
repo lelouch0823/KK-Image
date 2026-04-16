@@ -30,13 +30,17 @@
                     max-width="14rem"
                     selectable
                   />
-                  <button
-                      class="hover:text-primary text-(--text-secondary)"
-                      :title="t('share.copyLink')"
-                      @click="copyLink(row)"
+                  <AppButton
+                    variant="ghost"
+                    size="sm"
+                    class="!size-8 !p-0 text-(--text-secondary) hover:!text-primary"
+                    :title="t('share.copyLink')"
+                    @click="copyLink(row)"
                   >
+                    <template #icon-left>
                       <AppIcon name="clipboard" class="size-4" />
-                  </button>
+                    </template>
+                  </AppButton>
                 </div>
             </template>
             <template #cell-expiresAt="{ row }">
@@ -83,23 +87,23 @@
       <div class="flex flex-1 items-center justify-between">
         <span class="text-secondary text-sm">{{ t('share.total', { count: total }) }}</span>
         <div class="flex gap-2">
-          <button
+          <AppButton
+            variant="outline"
+            size="sm"
             :disabled="page <= 1"
-            class="btn btn-secondary px-3 py-1 text-sm disabled:opacity-50"
+            :text="t('share.prevPage')"
             @click="page--"
-          >
-            {{ t('share.prevPage') }}
-          </button>
+          />
           <span class="text-secondary flex items-center px-2 text-sm"
             >{{ page }} / {{ totalPages }}</span
           >
-          <button
+          <AppButton
+            variant="outline"
+            size="sm"
             :disabled="page >= totalPages"
-            class="btn btn-secondary px-3 py-1 text-sm disabled:opacity-50"
+            :text="t('share.nextPage')"
             @click="page++"
-          >
-            {{ t('share.nextPage') }}
-          </button>
+          />
         </div>
       </div>
     </template>

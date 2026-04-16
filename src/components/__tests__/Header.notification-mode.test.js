@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
@@ -75,5 +77,12 @@ describe('Header notification mode', () => {
 
     expect(mocks.setAdminMode).toHaveBeenCalledTimes(1);
     expect(mocks.startPolling).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps header shell actions on shared buttons', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/components/layout/Header.vue'), 'utf8');
+
+    expect(source).toContain("import AppButton from '@/components/ui/AppButton.vue'");
+    expect(source).not.toContain('<button');
   });
 });

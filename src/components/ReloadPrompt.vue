@@ -43,19 +43,18 @@
           {{ offlineReady ? t('pwa.offlineReadyDesc') : t('pwa.newContentDesc') }}
         </p>
         <div class="mt-3 flex gap-3">
-          <button
+          <AppButton
             v-if="needRefresh"
-            class="bg-primary rounded-md px-3 py-1.5 text-xs font-medium text-(--text-inverse) transition-colors hover:bg-primary-hover"
+            size="sm"
+            :text="t('pwa.reload')"
             @click="updateServiceWorker()"
-          >
-            {{ t('pwa.reload') }}
-          </button>
-          <button
-            class="rounded-md bg-(--bg-muted) px-3 py-1.5 text-xs font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
+          />
+          <AppButton
+            variant="secondary"
+            size="sm"
+            :text="t('pwa.close')"
             @click="close"
-          >
-            {{ t('pwa.close') }}
-          </button>
+          />
         </div>
       </div>
     </div>
@@ -66,6 +65,7 @@
 import { ref } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 
 const { t } = useI18n();
 let offlineReady = ref(false);

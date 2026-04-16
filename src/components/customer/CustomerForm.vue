@@ -53,19 +53,23 @@
             class="rounded-full! px-2.5! py-0.5!"
           >
             {{ tag }}
-            <button
-              type="button"
-              class="text-primary ml-1 transition-colors hover:text-primary-hover"
+            <AppButton
+              variant="ghost"
+              size="sm"
+              class="text-primary ml-1 !h-auto !min-w-0 !rounded-full !p-0 hover:!text-primary-hover"
               @click="removeTag(index)"
             >
-              <AppIcon name="x-mark" class="size-3" />
-            </button>
+              <template #icon-left>
+                <AppIcon name="x-mark" class="size-3" />
+              </template>
+            </AppButton>
           </StatusBadge>
-          <input
+          <AppInput
             v-model="tagInput"
             type="text"
             :placeholder="t('customer.form.tagInputPlaceholder')"
-            class="min-w-[100px] flex-1 border-none bg-transparent p-0 text-sm text-(--text-main) placeholder:text-(--text-secondary)/50 focus:ring-0 focus:outline-none"
+            size="sm"
+            class="min-w-[180px] flex-1"
             @keydown.enter.prevent="addTag"
             @keydown.backspace="handleBackspace"
           />

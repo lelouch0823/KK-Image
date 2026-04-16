@@ -83,14 +83,15 @@
             data-testid="mark-read-warning"
           >
             <p class="text-sm text-(--text-main)">{{ markReadError }}</p>
-            <button
-              type="button"
-              class="bg-primary mt-2 rounded-lg px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
+            <AppButton
+              variant="primary"
+              size="sm"
+              class="mt-2"
               data-testid="mark-read-retry"
               @click="retryMarkAsRead"
             >
               {{ t('common.retry') }}
-            </button>
+            </AppButton>
           </div>
 
 
@@ -183,6 +184,7 @@ import { API } from '@/utils/constants';
 import { useSalesToken } from '@/composables/useSalesToken';
 import { useLightbox } from '@/composables/useLightbox';
 import { formatTimelineTime } from '@/utils/formatters';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 

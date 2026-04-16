@@ -81,37 +81,31 @@
         <p class="mb-4 text-sm text-(--text-secondary) sm:mb-0 sm:max-w-xl">
           {{ t('order.detail.dangerWarning') || '此操作不可逆。订单及其关联的客户信息、图片文件、留言和所有历史记录将被永久擦除。建议优先使用“作废”功能。' }}
         </p>
-        <button 
-          class="focus:ring-danger focus:ring-2 focus:ring-offset-2 bg-danger inline-flex w-full shrink-0 items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-danger/90 sm:w-auto"
+        <AppButton
+          variant="danger"
+          class="w-full shrink-0 sm:w-auto"
           @click="$emit('delete-order')"
         >
           {{ t('order.detail.deletePermanently') || '彻底删除订单' }}
-        </button>
+        </AppButton>
       </div>
     </div>
 
     <template #footer>
-      <button
-        class="rounded-lg border border-(--border-subtle) px-5 py-2 font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
+      <AppButton
+        variant="outline"
         @click="$emit('close')"
       >
         {{ t('common.cancel') }}
-      </button>
-      <button
-        :class="[
-          !isValid || submitting ? 'cursor-not-allowed opacity-50' : 'hover:opacity-90',
-          'bg-primary shadow-primary/20 flex items-center rounded-lg px-5 py-2 font-medium text-(--text-inverse) shadow-lg transition-all'
-        ]"
+      </AppButton>
+      <AppButton
+        variant="primary"
         :disabled="!isValid || submitting"
+        :loading="submitting"
         @click="handleSaveClick"
       >
-        <AppIcon
-          v-if="submitting"
-          name="spinner"
-          class="mr-2 size-4 animate-spin"
-        />
         {{ t('common.save') }}
-      </button>
+      </AppButton>
     </template>
 
     <!-- Reason Input Dialog -->
@@ -143,6 +137,7 @@ import { ORDER_BOUND_SNAPSHOT_FIELDS } from '@/utils/order-binding-fields.js';
 import { useSalesToken } from '@/composables/useSalesToken';
 import { parseJsonObject } from '@/utils/json.js';
 import Modal from '@/components/ui/Modal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import OrderFormFields from './order/OrderFormFields.vue';
 import OrderOriginalInfo from './order/OrderOriginalInfo.vue';

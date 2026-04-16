@@ -2,24 +2,20 @@
   <div ref="containerRef" class="relative w-full">
     <!-- Input Field -->
     <div class="relative">
-      <div 
-        class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-(--text-muted)"
-      >
-        <AppIcon name="magnifying-glass" class="size-5" />
-      </div>
-        <input
+      <AppInput
         v-model="searchQuery"
-        type="text"
-        class="focus:border-primary focus:ring-primary focus:bg-(--bg-card) focus:ring-1 focus:outline-none w-full rounded-lg border-(--border-color) bg-(--bg-muted) py-2.5 pr-4 pl-10 text-sm text-(--text-main) transition-colors placeholder:text-(--text-muted)"
+        class="bg-(--bg-muted)"
         :placeholder="placeholderText"
         @focus="open"
-        @input="handleInput"
-      />
-      
-      <!-- Loading Indicator -->
-      <div v-if="loading" class="absolute inset-y-0 right-0 flex items-center pr-3">
-        <AppIcon name="spinner" class="text-primary size-4 animate-spin" />
-      </div>
+        @update:model-value="handleInput"
+      >
+        <template #prepend>
+          <AppIcon name="magnifying-glass" class="size-5" />
+        </template>
+        <template v-if="loading" #append>
+          <AppIcon name="spinner" class="text-primary size-4 animate-spin" />
+        </template>
+      </AppInput>
     </div>
 
     <!-- Dropdown -->
@@ -37,14 +33,15 @@
       >
         <div v-if="error" class="rounded-lg border border-(--color-danger-text)/20 bg-(--color-danger-bg)/40 px-4 py-3">
           <p class="text-sm text-(--text-main)">{{ error }}</p>
-          <button
-            type="button"
-            class="bg-primary mt-2 rounded-lg px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
+          <AppButton
+            variant="primary"
+            size="sm"
+            class="mt-2"
             data-testid="unified-product-retry"
             @click="retryLoad"
           >
             {{ t('common.retry') }}
-          </button>
+          </AppButton>
         </div>
         
         <!-- Empty State -->
@@ -99,8 +96,10 @@ import { useI18n } from '@/composables/useI18n';
 import { useProducts } from '@/composables/useProducts';
 import { useSalesProducts } from '@/composables/useSalesProducts';
 import { onClickOutside, useDebounceFn } from '@vueuse/core';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 import { resolvePrimaryProductImageSrc, resolveProductPreviewImageSrc } from '@/utils/product-image.js';
 
 const props = defineProps({

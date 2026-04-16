@@ -4,22 +4,30 @@
   >
     <div class="flex items-center gap-3">
       <!-- 移动端汉堡菜单按钮 -->
-      <button
-        class="text-secondary -ml-2 rounded-lg p-2 hover:bg-(--bg-hover) lg:hidden"
+      <AppButton
+        variant="ghost"
+        size="sm"
+        class="text-secondary -ml-2 !h-9 !w-9 !gap-0 !px-0 lg:hidden [&_span]:hidden"
         @click="$emit('openSidebar')"
       >
-        <AppIcon name="bars-3" class="size-5" />
-      </button>
+        <template #icon-left>
+          <AppIcon name="bars-3" class="size-5" />
+        </template>
+      </AppButton>
       <h1 class="text-primary text-lg font-semibold lg:text-xl">{{ viewTitle }}</h1>
     </div>
     <div class="flex items-center gap-2 lg:gap-4">
       <!-- 移动端搜索按钮 -->
-      <button
-        class="text-secondary flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-(--bg-hover) lg:hidden"
+      <AppButton
+        variant="ghost"
+        size="sm"
+        class="text-secondary !h-9 !w-9 !gap-0 !px-0 lg:hidden [&_span]:hidden"
         @click="openMobileSearch"
       >
-        <AppIcon name="magnifying-glass" class="size-5" />
-      </button>
+        <template #icon-left>
+          <AppIcon name="magnifying-glass" class="size-5" />
+        </template>
+      </AppButton>
 
       <!-- 搜索框 (桌面端) -->
       <div class="hidden lg:block">
@@ -32,27 +40,35 @@
       </div>
       <!-- 通知铃铛 (桌面端) -->
       <div v-if="notificationsSupported" ref="notificationRef" class="relative">
-        <button
+        <AppButton
           v-if="!permissionDenied"
-          class="relative flex size-9 items-center justify-center rounded-lg border border-(--border-color) transition-colors hover:bg-(--bg-hover)"
+          variant="white"
+          size="sm"
+          class="relative !h-9 !w-9 !gap-0 !px-0 [&_span]:hidden"
           :class="{ 'bg-(--bg-hover)': showNotifications }"
           @click="toggleNotifications"
         >
-          <AppIcon name="bell" class="text-secondary size-5" />
+          <template #icon-left>
+            <AppIcon name="bell" class="text-secondary size-5" />
+          </template>
           <!-- 红点 -->
           <span
             v-if="unreadCount > 0"
             class="bg-danger absolute top-1.5 right-1.5 size-2 rounded-full border border-white"
           ></span>
-        </button>
-        <button
+        </AppButton>
+        <AppButton
           v-else
-          class="relative flex size-9 cursor-not-allowed items-center justify-center rounded-lg border border-amber-300 bg-amber-50 text-amber-700"
+          variant="white"
+          size="sm"
+          class="relative !h-9 !w-9 !gap-0 !px-0 border-amber-300 bg-amber-50 text-amber-700 [&_span]:hidden"
           :title="permissionDeniedReason || '通知读取权限不足'"
           disabled
         >
-          <AppIcon name="lock-closed" class="size-5" />
-        </button>
+          <template #icon-left>
+            <AppIcon name="lock-closed" class="size-5" />
+          </template>
+        </AppButton>
 
         <!-- 下拉弹窗 (PC端) -->
         <Transition
@@ -74,40 +90,50 @@
       </div>
 
       <!-- 主题切换按钮 -->
-      <button
-        class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) transition-colors hover:bg-(--bg-hover)"
+      <AppButton
+        variant="white"
+        size="sm"
+        class="!h-9 !w-9 !gap-0 !px-0 [&_span]:hidden"
         :title="isDark ? '切换亮色模式' : '切换暗色模式'"
         @click="toggleTheme"
       >
-        <!-- Sun Icon (Show in Dark Mode) -->
-        <AppIcon v-if="isDark" name="sun" class="text-secondary size-5" />
-        <!-- Moon Icon (Show in Light Mode) -->
-        <AppIcon v-else name="moon" class="text-secondary size-5" />
-      </button>
+        <template #icon-left>
+          <AppIcon v-if="isDark" name="sun" class="text-secondary size-5" />
+          <AppIcon v-else name="moon" class="text-secondary size-5" />
+        </template>
+      </AppButton>
 
       <!-- AI 助手按钮 -->
-      <button
+      <AppButton
         v-if="canUseAI"
         :title="t('ai.assistant')"
-        class="group relative flex size-9 items-center justify-center rounded-lg border border-(--border-color) transition-all hover:bg-primary/5 hover:border-primary/30"
+        variant="white"
+        size="sm"
+        class="group relative !h-9 !w-9 !gap-0 !px-0 transition-all hover:border-primary/30 hover:bg-primary/5 [&_span]:hidden"
         :class="{ 'bg-primary/10 border-primary/50 text-primary': isOpen }"
         @click="toggleAI"
       >
-        <AppIcon
-          name="bolt"
-          class="size-5 transition-transform group-hover:scale-110"
-          :class="{ 'text-primary': isOpen, 'text-secondary': !isOpen }"
-        />
-      </button>
+        <template #icon-left>
+          <AppIcon
+            name="bolt"
+            class="size-5 transition-transform group-hover:scale-110"
+            :class="{ 'text-primary': isOpen, 'text-secondary': !isOpen }"
+          />
+        </template>
+      </AppButton>
 
       <!-- 刷新按钮 -->
-      <button
+      <AppButton
+        variant="white"
+        size="sm"
         :title="t('header.refresh')"
-        class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) transition-colors hover:bg-(--bg-hover) disabled:opacity-50"
+        class="!h-9 !w-9 !gap-0 !px-0 disabled:opacity-50 [&_span]:hidden"
         @click="handleRefresh"
       >
-        <AppIcon name="arrow-path" class="text-secondary size-4" />
-      </button>
+        <template #icon-left>
+          <AppIcon name="arrow-path" class="text-secondary size-4" />
+        </template>
+      </AppButton>
     </div>
     
     <!-- 移动端搜索遮罩 (Search Overlay) -->
@@ -123,9 +149,9 @@
               @clear="closeMobileSearch"
             />
         </div>
-        <button class="text-secondary ml-3 p-2 font-medium" @click="closeMobileSearch">
+        <AppButton variant="link" class="text-secondary ml-3" @click="closeMobileSearch">
             {{ t('common.cancel') }}
-        </button>
+        </AppButton>
       </div>
     </transition>
   </header>
@@ -142,6 +168,7 @@ import { onClickOutside } from '@vueuse/core';
 import { useAI } from '@/composables/useAI';
 import { useAccessControl } from '@/composables/useAccessControl';
 import { useTheme } from '@/composables/useTheme';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
 

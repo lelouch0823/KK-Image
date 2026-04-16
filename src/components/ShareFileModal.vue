@@ -41,13 +41,7 @@
           t('share.directLink')
         }}</label>
         <div class="flex gap-2">
-          <input
-            type="text"
-            readonly
-            :value="shareUrl"
-            class="input flex-1 bg-(--bg-muted) text-sm"
-            @click="$event.target.select()"
-          />
+          <AppInput :model-value="shareUrl" readonly class="flex-1" />
           <Tooltip :content="t('common.copy')">
             <AppButton
               variant="secondary"
@@ -91,6 +85,7 @@ import Modal from '@/components/ui/Modal.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 import { ROUTES } from '@/utils/constants';
 
 const props = defineProps({

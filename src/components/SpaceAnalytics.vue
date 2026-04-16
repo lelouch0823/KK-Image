@@ -58,9 +58,11 @@
           <div
             class="flex rounded-lg border border-(--border-color) bg-(--bg-muted) p-0.5"
           >
-            <button
+            <AppButton
+              variant="ghost"
+              size="sm"
               :class="[
-                'rounded-md px-3 py-1 text-xs font-medium transition-all duration-200',
+                'rounded-md !h-auto !px-3 !py-1 text-xs font-medium transition-all duration-200',
                 selectedDays === 7
                   ? 'text-primary bg-(--bg-card) shadow-sm'
                   : 'text-(--text-secondary) hover:text-(--text-main)',
@@ -68,10 +70,12 @@
               @click="changeDays(7)"
             >
               {{ t('spaceAnalytics.days7') }}
-            </button>
-            <button
+            </AppButton>
+            <AppButton
+              variant="ghost"
+              size="sm"
               :class="[
-                'rounded-md px-3 py-1 text-xs font-medium transition-all duration-200',
+                'rounded-md !h-auto !px-3 !py-1 text-xs font-medium transition-all duration-200',
                 selectedDays === 30
                   ? 'text-primary bg-(--bg-card) shadow-sm'
                   : 'text-(--text-secondary) hover:text-(--text-main)',
@@ -79,7 +83,7 @@
               @click="changeDays(30)"
             >
               {{ t('spaceAnalytics.days30') }}
-            </button>
+            </AppButton>
           </div>
         </div>
 
@@ -131,6 +135,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppStatCard from '@/components/ui/AppStatCard.vue';
 import {
   Chart as ChartJS,

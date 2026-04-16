@@ -40,23 +40,25 @@
 
       <!-- Footer 操作按钮 -->
       <div class="mt-5 flex justify-end gap-2">
-        <button
-          type="button"
-          class="rounded-lg border border-(--border-color) px-3 py-2 text-sm text-(--text-main)"
+        <AppButton
+          variant="white"
+          size="sm"
           :disabled="wizard.loading"
           @click="$emit('close')"
         >
           {{ t('common.cancel', 'Cancel') }}
-        </button>
-        <button
+        </AppButton>
+        <AppButton
           data-testid="value-archive-confirm"
-          type="button"
-          class="bg-danger rounded-lg px-3 py-2 text-sm text-white disabled:opacity-60"
+          variant="danger"
+          size="sm"
           :disabled="wizard.loading"
+          :loading="wizard.loading"
+          :loading-text="t('common.processing', 'Processing...')"
           @click="$emit('confirm')"
         >
-          {{ wizard.loading ? t('common.processing', 'Processing...') : t('common.confirm', 'Confirm') }}
-        </button>
+          {{ t('common.confirm', 'Confirm') }}
+        </AppButton>
       </div>
     </div>
   </Modal>
@@ -64,6 +66,7 @@
 
 <script setup>
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import Modal from '@/components/ui/Modal.vue';
 
 const { t } = useI18n();

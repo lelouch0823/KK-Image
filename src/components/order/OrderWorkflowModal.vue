@@ -8,25 +8,32 @@
       <div class="flex items-center gap-4">
         <h3 class="text-lg font-semibold text-(--text-main)">{{ t('order.detail.title') }}</h3>
         <div class="flex items-center gap-2">
-          <button
-            class="hover:bg-primary hover:text-inverse bg-primary/10 text-primary flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          <AppButton
+            variant="secondary"
+            size="sm"
+            class="bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
             :disabled="!order || hydrating || editPending"
             @click="$emit('edit', order)"
           >
-            <AppIcon
-              :name="editPending ? 'spinner' : 'pencil-square'"
-              class="size-3.5"
-              :class="{ 'animate-spin': editPending }"
-            />
+            <template #icon-left>
+              <AppIcon
+                :name="editPending ? 'spinner' : 'pencil-square'"
+                class="size-3.5"
+                :class="{ 'animate-spin': editPending }"
+              />
+            </template>
             {{ t('order.manage.editOrder') }}
-          </button>
-          <button
-            class="hover:text-primary hover:bg-(--bg-hover) flex items-center gap-1.5 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-xs font-medium text-(--text-secondary) transition-colors"
+          </AppButton>
+          <AppButton
+            variant="white"
+            size="sm"
             @click="detailRef?.handleSavePdf?.()"
           >
-            <AppIcon name="arrow-down-tray" class="size-3.5" />
+            <template #icon-left>
+              <AppIcon name="arrow-down-tray" class="size-3.5" />
+            </template>
             {{ t('common.savePdf') }}
-          </button>
+          </AppButton>
         </div>
       </div>
     </template>
@@ -59,14 +66,15 @@
       >
         <div class="flex items-center justify-between gap-3">
           <span>{{ hydrationError }}</span>
-          <button
-            type="button"
+          <AppButton
+            variant="outline"
+            size="sm"
             data-testid="order-detail-retry"
-            class="border-danger/20 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-danger/10"
+            class="border-danger/20 text-danger hover:border-danger/30 hover:bg-danger/10 hover:text-danger"
             @click="$emit('retry')"
           >
             {{ t('common.retry') }}
-          </button>
+          </AppButton>
         </div>
       </div>
 
@@ -118,6 +126,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import Modal from '@/components/ui/Modal.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';

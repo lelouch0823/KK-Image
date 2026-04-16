@@ -21,21 +21,13 @@
         <span class="mb-1 block text-sm font-medium text-(--text-secondary)">
           {{ t('order.detail.returnReasonLabel', 'Reason Code') }}
         </span>
-        <select
-          :value="reason"
+        <Select
           data-testid="return-reason-select"
-          class="focus:border-primary focus:ring-primary focus:ring-1 focus:outline-none block h-10 w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 text-sm text-(--text-main)"
-          @change="reason = $event.target.value"
-        >
-          <option value="">{{ t('order.detail.returnReasonPlaceholder', 'Select a reason') }}</option>
-          <option
-            v-for="option in reasonOptions"
-            :key="option.value"
-            :value="option.value"
-          >
-            {{ option.label }}
-          </option>
-        </select>
+          :model-value="reason"
+          :options="reasonSelectOptions"
+          size="sm"
+          @update:model-value="reason = $event"
+        />
       </label>
 
       <AppInput
@@ -72,6 +64,7 @@ import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import Select from '@/components/ui/Select.vue';
 
 const props = defineProps({
   modelValue: {
@@ -104,6 +97,11 @@ const reasonOptions = computed(() => [
   { value: 'quality_issue', label: t('order.returnReasons.quality_issue') },
   { value: 'logistics_failure', label: t('order.returnReasons.logistics_failure') },
   { value: 'other', label: t('order.returnReasons.other') },
+]);
+
+const reasonSelectOptions = computed(() => [
+  { value: '', label: t('order.detail.returnReasonPlaceholder', 'Select a reason') },
+  ...reasonOptions.value,
 ]);
 
 watch(

@@ -8,13 +8,15 @@
     >
       <h3 class="font-medium text-(--text-main)">{{ t('notification.title') }}</h3>
       <div class="flex items-center gap-2">
-        <button
+        <AppButton
           v-if="unreadCount > 0"
-          class="text-primary text-xs font-medium transition-colors hover:text-primary-hover"
+          variant="link"
+          size="sm"
+          class="text-primary"
           @click="markAllAsRead"
         >
           {{ t('notification.markAllRead') }}
-        </button>
+        </AppButton>
       </div>
     </div>
 
@@ -26,14 +28,14 @@
         data-testid="notification-error"
       >
         <p class="text-sm text-(--text-main)">{{ t('common.loadFailed') }}</p>
-        <button
-          type="button"
-          class="bg-primary rounded-lg px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
+        <AppButton
+          variant="primary"
+          size="sm"
           data-testid="notification-retry"
           @click="runFetch"
         >
           {{ t('common.retry') }}
-        </button>
+        </AppButton>
       </div>
 
       <div
@@ -99,13 +101,17 @@
 
               <!-- Unread indicator dot & Mark Read Action -->
               <div v-if="item.is_read === 0" class="flex shrink-0 items-center gap-2 self-center">
-                <button 
-                  class="text-primary hidden size-6 items-center justify-center rounded-full transition-colors group-hover:flex hover:bg-black/5 dark:hover:bg-white/10"
+                <AppButton
+                  variant="ghost"
+                  size="sm"
+                  class="text-primary hidden !h-6 !w-6 !gap-0 !rounded-full !px-0 group-hover:flex hover:bg-black/5 dark:hover:bg-white/10 [&_span]:hidden"
                   title="标记为已读"
                   @click.stop="markAsRead(item.id)"
                 >
-                  <AppIcon name="check" class="size-4" />
-                </button>
+                  <template #icon-left>
+                    <AppIcon name="check" class="size-4" />
+                  </template>
+                </AppButton>
                 <div class="bg-primary size-2 animate-pulse rounded-full"></div>
               </div>
             </div>
@@ -121,6 +127,7 @@ import { onMounted, ref, computed } from 'vue';
 import { useNotifications } from '@/composables/useNotifications';
 import { useI18n } from '@/composables/useI18n';
 import { formatDate } from '@/utils/formatters';
+import AppButton from '@/components/ui/AppButton.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 

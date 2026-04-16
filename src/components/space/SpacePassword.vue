@@ -13,20 +13,18 @@
           <p class="text-secondary mt-1 text-sm">{{ t('spacePublic.passwordProtected') }}</p>
         </div>
         <form @submit.prevent="handleSubmit">
-          <input
+          <AppInput
             v-model="password"
             type="password"
+            size="lg"
+            class="mb-4"
             :placeholder="t('gallery.enterPassword')"
-            class="focus:border-primary focus:bg-surface focus:outline-none border-border bg-surface-muted mb-4 h-12 w-full rounded-xl border px-4 text-sm transition-colors"
           />
-          <button
-            type="submit"
-            class="bg-primary h-12 w-full rounded-xl font-medium text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover)"
-          >
+          <AppButton type="submit" variant="primary" size="lg" block>
             {{ t('gallery.confirm') }}
-          </button>
+          </AppButton>
         </form>
-        <p v-if="error" class="mt-4 text-center text-sm text-red-500">{{ error }}</p>
+        <p v-if="error" class="text-danger mt-4 text-center text-sm">{{ error }}</p>
       </div>
     </div>
   </div>
@@ -35,7 +33,9 @@
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 
 const props = defineProps({
   error: { type: String, default: '' },

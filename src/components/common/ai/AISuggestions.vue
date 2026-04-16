@@ -1,17 +1,21 @@
 <template>
   <div v-if="suggestions.length > 0" class="scrollbar-hide flex gap-2 overflow-x-auto px-4 pt-1 pb-2">
-    <button
+    <AppButton
       v-for="suggestion in suggestions"
       :key="suggestion"
-      class="hover:border-primary/30 hover:bg-primary/5 hover:text-primary rounded-full border border-(--border-color) bg-(--bg-muted) px-3 py-1.5 text-xs whitespace-nowrap text-(--text-secondary) transition-all active:scale-95"
+      variant="white"
+      size="sm"
+      class="whitespace-nowrap !rounded-full hover:!border-primary/30 hover:!bg-primary/5 hover:!text-primary active:scale-95"
       @click="$emit('select', suggestion)"
     >
       {{ suggestion }}
-    </button>
+    </AppButton>
   </div>
 </template>
 
 <script setup>
+import AppButton from '@/components/ui/AppButton.vue';
+
 defineProps({
   suggestions: {
     type: Array,

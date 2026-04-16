@@ -30,14 +30,17 @@
                 autocomplete="current-password"
                 class="pr-12"
               />
-              <button
-                type="button"
-                class="text-muted absolute top-1/2 right-3 min-h-11 min-w-11 -translate-y-1/2 rounded-lg p-2 transition-colors hover:text-primary hover:bg-black/5 focus-visible:ring-primary/30 focus-visible:ring-2 focus-visible:outline-none active:scale-90"
+              <AppButton
+                variant="ghost"
+                size="sm"
+                class="text-muted absolute top-1/2 right-3 min-h-11 min-w-11 -translate-y-1/2 !gap-0 rounded-lg !px-0 hover:bg-black/5 hover:text-primary focus-visible:ring-primary/30 [&_span]:hidden"
                 @click="showPassword = !showPassword"
               >
-                <AppIcon v-if="showPassword" name="eye-slash" class="size-5" />
-                <AppIcon v-else name="eye" class="size-5" />
-              </button>
+                <template #icon-left>
+                  <AppIcon v-if="showPassword" name="eye-slash" class="size-5" />
+                  <AppIcon v-else name="eye" class="size-5" />
+                </template>
+              </AppButton>
             </div>
           </div>
 
@@ -50,14 +53,16 @@
           </label>
 
           <!-- 登录按钮 -->
-          <button
+          <AppButton
             type="submit"
             :disabled="!password || isSubmitting"
-            class="bg-primary flex h-12 w-full items-center justify-center gap-2 rounded-xl font-medium text-(--text-inverse) transition-all hover:bg-(--color-primary-hover) disabled:cursor-not-allowed disabled:opacity-50"
+            :loading="isSubmitting"
+            :loading-text="t('auth.loggingIn')"
+            size="lg"
+            block
           >
-            <AppIcon v-if="isSubmitting" name="spinner" class="size-5 animate-spin" />
-            <span>{{ isSubmitting ? t('auth.loggingIn') : t('auth.loginButton') }}</span>
-          </button>
+            {{ t('auth.loginButton') }}
+          </AppButton>
 
           <!-- 错误提示 -->
           <p
@@ -83,6 +88,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppCheckbox from '@/components/ui/AppCheckbox.vue';

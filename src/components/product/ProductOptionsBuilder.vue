@@ -13,23 +13,25 @@
         </p>
       </div>
       <div class="flex items-center gap-3">
-        <button
-          type="button"
-          class="flex items-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2 text-sm font-medium text-(--text-secondary) shadow-sm transition-colors hover:bg-(--bg-page) hover:text-(--text-main)"
+        <AppButton
+          variant="white"
           @click="$emit('batch-build')"
         >
-          <AppIcon name="sparkles" class="size-4.5" />
+          <template #icon-left>
+            <AppIcon name="sparkles" class="size-4.5" />
+          </template>
           {{ t('product.form.batch_build_variants', 'Batch Build') }}
-        </button>
-        <button
-          type="button"
+        </AppButton>
+        <AppButton
           data-testid="product-option-add"
-          class="bg-primary shadow-primary/20 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-(--text-inverse) shadow-md transition-all hover:bg-primary-hover active:scale-95"
+          class="shadow-primary/20 shadow-md"
           @click="$emit('add-option')"
         >
-          <AppIcon name="plus" class="size-4.5" />
+          <template #icon-left>
+            <AppIcon name="plus" class="size-4.5" />
+          </template>
           {{ t('product.form.add_option', 'Add Option') }}
-        </button>
+        </AppButton>
       </div>
     </div>
 
@@ -62,17 +64,20 @@
                   :placeholder="t('product.form.option_name', '例如: 颜色、尺寸 (Color, Size)')"
                   size="sm"
                   class="font-medium"
-                  @input="$emit('generate-variants')"
+                  @update:model-value="$emit('generate-variants')"
                 />
               </div>
-              <button
-                type="button"
-                class="hover:text-danger self-end p-2 text-(--text-muted) transition-colors md:self-auto"
+              <AppButton
+                variant="ghost"
+                size="sm"
+                class="self-end text-(--text-muted) hover:text-danger !h-9 !w-9 !gap-0 !px-0 [&_span]:hidden md:self-auto"
                 :title="t('common.delete', 'Delete')"
                 @click="$emit('remove-option', idx)"
               >
-                <AppIcon name="trash" class="size-5" />
-              </button>
+                <template #icon-left>
+                  <AppIcon name="trash" class="size-5" />
+                </template>
+              </AppButton>
             </div>
 
             <!-- 下半部：规格值及输入区 -->
@@ -98,21 +103,24 @@
                     :style="{ backgroundColor: opt.metaMap[val].color }"
                     :title="t('product.form.edit_color', '点击修改颜色')"
                   >
-                      <input 
-                          v-model="opt.metaMap[val].color" 
-                          type="color" 
-                          class="absolute size-0 opacity-0" 
+                      <AppInput
+                        v-model="opt.metaMap[val].color"
+                        type="color"
+                        class="absolute inset-0 opacity-0 [&_input]:cursor-pointer [&_input]:border-0 [&_input]:bg-transparent [&_input]:p-0"
                       />
                   </label>
                   <span class="max-w-[12rem] truncate" :title="val">{{ val }}</span>
-                  <button
-                    type="button"
+                  <AppButton
+                    variant="ghost"
+                    size="sm"
                     :data-testid="`remove-value-${idx}-${vIdx}`"
-                    class="text-primary/70 flex items-center justify-center transition-colors hover:text-primary"
+                    class="text-primary/70 hover:text-primary !h-6 !w-6 !gap-0 !px-0 [&_span]:hidden"
                     @click="$emit('remove-value', opt, vIdx)"
                   >
-                    <AppIcon name="x-mark" class="size-4" />
-                  </button>
+                    <template #icon-left>
+                      <AppIcon name="x-mark" class="size-4" />
+                    </template>
+                  </AppButton>
                 </div>
 
                 <!-- 归档历史值 -->
@@ -124,15 +132,18 @@
                   >
                     <span class="text-[10px]">[{{ t('product.form.archived_values', '已归档') }}]</span>
                     <span class="max-w-[10rem] truncate" :title="archived.value">{{ archived.value }}</span>
-                    <button
-                      type="button"
+                    <AppButton
+                      variant="link"
+                      size="sm"
                       :data-testid="`restore-value-${idx}-${aIdx}`"
-                      class="text-primary ml-1 flex items-center font-bold hover:text-primary-hover"
+                      class="text-primary ml-1"
                       :title="t('common.restore', 'Restore')"
                       @click="$emit('restore-value', opt, archived, aIdx)"
                     >
-                      <AppIcon name="arrow-path" class="size-4" />
-                    </button>
+                      <template #icon-left>
+                        <AppIcon name="arrow-path" class="size-4" />
+                      </template>
+                    </AppButton>
                   </div>
                 </template>
               </div>
@@ -150,14 +161,17 @@
                     @keydown.enter.prevent="isColorDimension(opt.name) ? $emit('add-value', opt, { color: pendingColorSelection }) : $emit('add-value', opt)"
                   >
                     <template #append>
-                      <button
-                        type="button"
+                      <AppButton
+                        variant="ghost"
+                        size="sm"
                         :disabled="!opt.inputValue"
-                        class="text-primary flex items-center justify-center transition-colors hover:text-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                        class="text-primary hover:text-primary-hover !h-8 !w-8 !gap-0 !px-0 [&_span]:hidden"
                         @click="isColorDimension(opt.name) ? $emit('add-value', opt, { color: pendingColorSelection }) : $emit('add-value', opt)"
                       >
-                        <AppIcon name="plus" class="size-5" />
-                      </button>
+                        <template #icon-left>
+                          <AppIcon name="plus" class="size-5" />
+                        </template>
+                      </AppButton>
                     </template>
                   </AppInput>
                 </div>
@@ -167,12 +181,11 @@
                   <!-- Background hint div -->
                   <div class="pointer-events-none absolute inset-1 rounded-md shadow-inner" :style="{ backgroundColor: pendingColorSelection }"></div>
                   <!-- The invisible input covering it all -->
-                  <input 
-                      v-model="pendingColorSelection" 
-                      type="color"
-                      class="absolute -inset-2 size-16 cursor-pointer opacity-0"
-                      @input="handleColorSelect($event, opt)"
-                      @change="handleColorSelect($event, opt)"
+                  <AppInput
+                    v-model="pendingColorSelection"
+                    type="color"
+                    class="absolute inset-0 opacity-0 [&_input]:h-full [&_input]:cursor-pointer [&_input]:border-0 [&_input]:bg-transparent [&_input]:p-0"
+                    @update:model-value="handleColorSelect($event, opt)"
                   />
                 </div>
               </div>
@@ -187,6 +200,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';

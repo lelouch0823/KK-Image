@@ -31,26 +31,34 @@
           {{ t('purchaseOrder.ui.receiptReceivableLines', '待收行') }}
           {{ receiptReceivableCount }}
         </StatusBadge>
-        <button
+        <AppButton
           v-if="canRecordReceipts"
           type="button"
+          variant="primary"
+          size="sm"
           data-testid="purchase-order-open-receipt-modal"
-          class="bg-primary flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-(--text-inverse) shadow-sm transition-colors hover:bg-primary/90"
+          class="shadow-sm"
           @click="$emit('open-receipt-modal')"
         >
-          <AppIcon name="archive-box-arrow-down" class="size-3.5" />
+          <template #icon-left>
+            <AppIcon name="archive-box-arrow-down" class="size-3.5" />
+          </template>
           {{ t('purchaseOrder.action.recordReceipt', '登记收货') }}
-        </button>
-        <button
+        </AppButton>
+        <AppButton
           v-if="canCloseShortages"
           type="button"
+          variant="white"
+          size="sm"
           data-testid="purchase-order-open-shortage-modal"
-          class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300/70 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-100"
+          class="shadow-sm"
           @click="$emit('open-shortage-modal')"
         >
-          <AppIcon name="minus-circle" class="size-3.5" />
+          <template #icon-left>
+            <AppIcon name="minus-circle" class="size-3.5" />
+          </template>
           {{ t('purchaseOrder.action.closeOutstanding', '关闭待收') }}
-        </button>
+        </AppButton>
       </div>
     </div>
 
@@ -143,16 +151,20 @@
               </span>
             </div>
           </div>
-          <button
+          <AppButton
             v-if="helpers.canReverseReceipt(receipt)"
             type="button"
+            variant="white"
+            size="sm"
             data-testid="purchase-order-open-reversal-modal"
-            class="mt-3 flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100"
+            class="mt-3 justify-center"
             @click="$emit('open-reversal-modal', receipt)"
           >
-            <AppIcon name="arrow-uturn-left" class="size-3.5" />
+            <template #icon-left>
+              <AppIcon name="arrow-uturn-left" class="size-3.5" />
+            </template>
             {{ t('purchaseOrder.action.reverseReceipt', '冲销收货') }}
-          </button>
+          </AppButton>
         </div>
       </article>
     </div>
@@ -185,6 +197,7 @@
 </template>
 
 <script setup>
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 

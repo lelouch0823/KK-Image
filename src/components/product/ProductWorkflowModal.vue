@@ -20,33 +20,37 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <button
+          <AppButton
             v-if="mode === 'edit'"
-            type="button"
-            class="rounded-lg border border-(--border-color) px-3 py-1.5 text-xs font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover) hover:text-(--text-main)"
+            variant="white"
+            size="sm"
+            class="!h-8"
             @click="returnToDetail"
           >
             {{ t('product.workflow.back_to_detail', 'Back to Detail') }}
-          </button>
-          <button
+          </AppButton>
+          <AppButton
             v-else
-            type="button"
+            variant="secondary"
+            size="sm"
             data-testid="enter-edit"
-            class="hover:bg-primary hover:text-inverse bg-primary/10 text-primary flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            class="!h-8 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
             :disabled="mode === 'edit_loading' || !currentProduct?.id"
             @click="enterEdit"
           >
-            <AppIcon
-              :name="mode === 'edit_loading' ? 'spinner' : 'pencil-square'"
-              class="size-3.5"
-              :class="{ 'animate-spin': mode === 'edit_loading' }"
-            />
+            <template #icon-left>
+              <AppIcon
+                :name="mode === 'edit_loading' ? 'spinner' : 'pencil-square'"
+                class="size-3.5"
+                :class="{ 'animate-spin': mode === 'edit_loading' }"
+              />
+            </template>
             {{
               mode === 'edit_loading'
                 ? t('product.workflow.preparing_edit_action', 'Preparing Edit...')
                 : t('product.action.edit')
             }}
-          </button>
+          </AppButton>
         </div>
       </div>
     </template>
@@ -61,21 +65,22 @@
         <div class="flex items-center justify-between gap-3">
           <span>{{ editHydrationError }}</span>
           <div class="flex items-center gap-2">
-            <button
-              type="button"
+            <AppButton
               data-testid="retry-edit"
-              class="border-danger/20 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-danger/10"
+              variant="outline"
+              size="sm"
+              class="border-danger/20 text-danger hover:border-danger/35 hover:bg-danger/10 hover:text-danger"
               @click="enterEdit"
             >
               {{ t('common.action.retry', 'Retry') }}
-            </button>
-            <button
-              type="button"
-              class="rounded-lg px-3 py-1.5 text-xs font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
+            </AppButton>
+            <AppButton
+              variant="ghost"
+              size="sm"
               @click="clearEditError"
             >
               {{ t('product.action.cancel') }}
-            </button>
+            </AppButton>
           </div>
         </div>
       </div>
@@ -172,6 +177,7 @@ import { useProducts } from '@/composables/useProducts';
 import { resolveBoundProductMainImageSrc } from '@/utils/product-image.js';
 import { findDefaultCatalogActiveVariant } from '@/utils/product-variants.js';
 import Modal from '@/components/ui/Modal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
 import ProductDetail from '@/components/product/ProductDetail.vue';

@@ -25,12 +25,16 @@
               </div>
             </div>
             <!-- 编辑按钮 (Top Right) -->
-            <button
-               class="rounded-full p-2 text-(--text-secondary) active:bg-(--bg-muted)"
+            <AppButton
+               variant="ghost"
+               size="sm"
+               class="rounded-full !h-8 !w-8 !px-0"
                @click.stop="$emit('edit', customer)"
             >
-               <AppIcon name="pencil-square" class="size-4" />
-            </button>
+               <template #icon-left>
+                 <AppIcon name="pencil-square" class="size-4" />
+               </template>
+            </AppButton>
           </div>
 
           <!-- 联系方式 -->
@@ -80,6 +84,7 @@ import { useI18n } from '@/composables/useI18n';
 import { formatDate } from '@/utils/formatters';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppCard from '@/components/ui/AppCard.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 

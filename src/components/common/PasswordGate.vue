@@ -21,14 +21,16 @@
             class="mb-4"
             autofocus
           />
-          <button
+          <AppButton
             type="submit"
             :disabled="loading"
-            class="bg-primary flex h-12 w-full items-center justify-center rounded-xl font-medium text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover) disabled:opacity-50"
+            class="!h-12 w-full !rounded-xl"
+            :text="buttonText || t('common.confirm')"
           >
-            <AppIcon v-if="loading" name="spinner" class="mr-2 size-5 animate-spin" />
-            {{ buttonText || t('common.confirm') }}
-          </button>
+            <template v-if="loading" #icon-left>
+              <AppIcon name="spinner" class="size-5 animate-spin" />
+            </template>
+          </AppButton>
         </form>
         <p v-if="error" class="text-danger mt-4 text-center text-sm">{{ error }}</p>
       </div>
@@ -39,6 +41,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 

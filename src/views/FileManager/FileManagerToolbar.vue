@@ -7,36 +7,46 @@
         class="scrollbar-thin flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto lg:max-w-2xl lg:gap-2" 
         :class="{ 'hidden lg:flex': selectedCount > 0 }"
       >
-        <button
-          class="flex shrink-0 items-center gap-1 text-sm font-medium whitespace-nowrap transition-colors"
-          :class="!currentFolder ? 'text-primary' : 'text-secondary hover:text-primary'"
+        <AppButton
+          variant="link"
+          size="sm"
+          class="!h-auto shrink-0 !gap-1 !px-0 !text-sm whitespace-nowrap"
+          :class="!currentFolder ? 'text-primary' : 'text-(--text-secondary) hover:text-primary'"
           @click="$emit('navigate', null)"
         >
-          <AppIcon name="home" class="size-4" />
+          <template #icon-left>
+            <AppIcon name="home" class="size-4" />
+          </template>
           <span class="hidden sm:inline">{{ t('fileManager.root') }}</span>
-        </button>
+        </AppButton>
         <template v-for="(crumb, index) in breadcrumbs" :key="crumb.id">
           <span class="text-secondary text-xs lg:text-sm">/</span>
-          <button
-            class="max-w-24 truncate text-sm font-medium whitespace-nowrap transition-colors sm:max-w-none"
-            :class="index === breadcrumbs.length - 1 ? 'text-primary' : 'text-secondary hover:text-primary'"
+          <AppButton
+            variant="link"
+            size="sm"
+            class="max-w-24 !h-auto truncate !px-0 !text-sm whitespace-nowrap sm:max-w-none"
+            :class="index === breadcrumbs.length - 1 ? 'text-primary' : 'text-(--text-secondary) hover:text-primary'"
             @click="$emit('navigate', crumb.id)"
           >
             {{ crumb.name }}
-          </button>
+          </AppButton>
         </template>
       </div>
 
       <!-- 移动端: 上传按钮 (始终可见) -->
       <div class="flex shrink-0 items-center gap-2 lg:hidden">
         <input ref="fileInputMobile" type="file" multiple class="hidden" @change="handleFileSelect" />
-        <button
+        <AppButton
           v-if="canWriteFiles"
-          class="bg-primary shadow-primary/20 flex size-9 items-center justify-center rounded-xl text-(--text-inverse) shadow-lg transition-all active:scale-95 dark:text-gray-900"
-          @click="$refs.fileInputMobile.click()"
+          variant="primary"
+          size="sm"
+          class="size-9 !px-0 shadow-lg"
+          @click="triggerUpload('mobile')"
         >
-          <AppIcon name="cloud-arrow-up" class="size-5" />
-        </button>
+          <template #icon-left>
+            <AppIcon name="cloud-arrow-up" class="size-5" />
+          </template>
+        </AppButton>
       </div>
     </div>
 
@@ -122,45 +132,61 @@
         :content="t('fileManager.shareFolder')"
         class="hidden lg:block"
       >
-        <button
-          class="text-secondary flex size-10 items-center justify-center rounded-xl border border-(--border-color) bg-(--bg-card) transition-all hover:text-primary hover:bg-(--bg-hover) active:scale-95"
+        <AppButton
+          variant="white"
+          size="md"
+          class="size-10 !px-0"
           @click="$emit('share-folder')"
         >
-          <AppIcon name="share" class="size-5" />
-        </button>
+          <template #icon-left>
+            <AppIcon name="share" class="size-5" />
+          </template>
+        </AppButton>
       </Tooltip>
 
       <!-- 桌面端上传按钮 -->
       <input ref="fileInput" type="file" multiple class="hidden" @change="handleFileSelect" />
       <div v-if="canWriteFiles" class="hidden lg:block">
         <Tooltip :content="t('fileManager.upload')">
-          <button
-            class="bg-primary shadow-primary/20 flex size-10 items-center justify-center rounded-xl text-(--text-inverse) shadow-lg transition-all hover:bg-primary-hover hover:shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 dark:text-gray-900"
-            @click="$refs.fileInput.click()"
+          <AppButton
+            variant="primary"
+            size="md"
+            class="size-10 !px-0 shadow-lg hover:-translate-y-0.5"
+            @click="triggerUpload('desktop')"
           >
-            <AppIcon name="cloud-arrow-up" class="size-5" />
-          </button>
+            <template #icon-left>
+              <AppIcon name="cloud-arrow-up" class="size-5" />
+            </template>
+          </AppButton>
         </Tooltip>
       </div>
 
       <!-- 新建文件夹 -->
       <Tooltip v-if="canManageFolders" :content="t('fileManager.newFolder')">
-        <button
-          class="text-secondary flex size-9 items-center justify-center rounded-xl border border-(--border-color) bg-(--bg-card) transition-all hover:text-primary hover:bg-(--bg-hover) active:scale-95 lg:size-10"
+        <AppButton
+          variant="white"
+          size="sm"
+          class="size-9 !px-0 lg:size-10"
           @click="$emit('create-folder')"
         >
-          <AppIcon name="folder-plus" class="size-4 lg:size-5" />
-        </button>
+          <template #icon-left>
+            <AppIcon name="folder-plus" class="size-4 lg:size-5" />
+          </template>
+        </AppButton>
       </Tooltip>
 
       <!-- 回收站 -->
       <Tooltip :content="t('trash.title')">
-        <button
-          class="text-secondary flex size-9 items-center justify-center rounded-xl border border-(--border-color) bg-(--bg-card) transition-all hover:text-danger hover:border-red-200 hover:bg-red-50 active:scale-95 lg:size-10"
+        <AppButton
+          variant="white"
+          size="sm"
+          class="size-9 !px-0 hover:border-red-200 hover:bg-red-50 hover:text-danger lg:size-10"
           @click="$emit('open-trash')"
         >
-          <AppIcon name="trash" class="size-4 lg:size-5" />
-        </button>
+          <template #icon-left>
+            <AppIcon name="trash" class="size-4 lg:size-5" />
+          </template>
+        </AppButton>
       </Tooltip>
 
       <!-- 搜索框: 移动端收缩, 桌面端展开 -->
@@ -256,6 +282,11 @@ const { t } = useI18n();
 const { searchQuery } = useSearch();
 const fileInput = ref(null);
 const fileInputMobile = ref(null);
+
+const triggerUpload = (target) => {
+  const input = target === 'mobile' ? fileInputMobile.value : fileInput.value;
+  input?.click();
+};
 
 const handleFileSelect = (e) => {
   if (e.target.files.length > 0) {

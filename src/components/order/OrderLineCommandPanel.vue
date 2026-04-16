@@ -83,61 +83,68 @@
         <span class="mb-1 block text-xs font-medium text-(--text-secondary)">
           {{ t('order.detail.lineActionQuantity', '数量') }}
         </span>
-        <input
-          v-model.number="quantity"
+        <AppInput
+          :model-value="quantity"
           type="number"
           min="1"
-          class="w-full rounded-xl border border-(--border-color) bg-(--bg-muted)/40 px-3 py-2 text-sm text-(--text-main) outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+          size="sm"
+          class="!rounded-xl !bg-(--bg-muted)/40"
+          @update:model-value="quantity = Number($event)"
         />
       </label>
     </div>
 
     <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-5">
-      <button
-        type="button"
+      <AppButton
+        variant="outline"
+        size="sm"
         data-testid="line-command-reserve"
-        class="cursor-pointer rounded-xl border border-primary/20 bg-primary/8 px-3 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary/14 disabled:cursor-not-allowed disabled:opacity-50"
+        class="border-primary/20 bg-primary/8 text-primary hover:border-primary/30 hover:bg-primary/14 hover:text-primary"
         :disabled="loading || !isVariantBacked || limits.reserve <= 0"
         @click="submit('reserve')"
       >
         {{ t('order.detail.reserveAction', '预留') }}
-      </button>
-      <button
-        type="button"
+      </AppButton>
+      <AppButton
+        variant="secondary"
+        size="sm"
         data-testid="line-command-release"
-        class="cursor-pointer rounded-xl border border-(--border-color) bg-(--bg-muted)/65 px-3 py-2.5 text-sm font-semibold text-(--text-main) transition hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-50"
+        class="bg-(--bg-muted)/65 text-(--text-main)"
         :disabled="loading || !isVariantBacked || limits.release <= 0"
         @click="submit('release')"
       >
         {{ t('order.detail.releaseAction', '释放') }}
-      </button>
-      <button
-        type="button"
+      </AppButton>
+      <AppButton
+        variant="outline"
+        size="sm"
         data-testid="line-command-ship"
-        class="cursor-pointer rounded-xl border border-orange-500/20 bg-orange-500/10 px-3 py-2.5 text-sm font-semibold text-orange-600 transition hover:bg-orange-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+        class="border-orange-500/20 bg-orange-500/10 text-orange-600 hover:border-orange-500/30 hover:bg-orange-500/15 hover:text-orange-600"
         :disabled="loading || !isVariantBacked || limits.ship <= 0"
         @click="submit('ship')"
       >
         {{ t('order.detail.shipAction', '出货') }}
-      </button>
-      <button
-        type="button"
+      </AppButton>
+      <AppButton
+        variant="outline"
+        size="sm"
         data-testid="line-command-unship"
-        class="cursor-pointer rounded-xl border border-sky-500/20 bg-sky-500/10 px-3 py-2.5 text-sm font-semibold text-sky-600 transition hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+        class="border-sky-500/20 bg-sky-500/10 text-sky-600 hover:border-sky-500/30 hover:bg-sky-500/15 hover:text-sky-600"
         :disabled="loading || !isVariantBacked || unshipBlockedByDeliveryStatus || limits.unship <= 0"
         @click="submit('unship')"
       >
         {{ t('order.detail.unshipAction', '撤销出货') }}
-      </button>
-      <button
-        type="button"
+      </AppButton>
+      <AppButton
+        variant="outline"
+        size="sm"
         data-testid="line-command-return"
-        class="cursor-pointer rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+        class="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:border-emerald-500/30 hover:bg-emerald-500/15 hover:text-emerald-700"
         :disabled="loading || !isVariantBacked || !returnAllowedByOrderStatus || limits.return <= 0"
         @click="submit('return')"
       >
         {{ t('order.detail.returnAction', '退回') }}
-      </button>
+      </AppButton>
     </div>
 
     <p
@@ -152,6 +159,8 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 
 const props = defineProps({
   line: {

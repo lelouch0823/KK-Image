@@ -70,16 +70,20 @@
                 <span class="text-sm text-(--text-secondary)">{{ t('salesperson.accessLink') }}</span>
              </div>
              <div class="flex min-w-0 items-center gap-2">
-                 <div class="flex-1 rounded border border-(--border-color) bg-(--bg-card) px-2 py-1.5 font-mono text-xs break-all text-(--text-muted)" :title="accessUrl">
+             <div class="flex-1 rounded border border-(--border-color) bg-(--bg-card) px-2 py-1.5 font-mono text-xs break-all text-(--text-muted)" :title="accessUrl">
                      {{ accessUrl }}
                  </div>
-                 <button
-                    class="hover:text-primary p-1.5 text-(--text-secondary) transition-colors"
-                     :title="t('salesperson.copyLink')"
-                     @click="$emit('copy', person.accessToken)"
+                 <AppButton
+                    variant="ghost"
+                    size="sm"
+                    class="!h-8 !w-8 !px-0 hover:text-primary"
+                    :title="t('salesperson.copyLink')"
+                    @click="$emit('copy', person.accessToken)"
                  >
-                     <AppIcon name="clipboard" class="size-4" />
-                 </button>
+                    <template #icon-left>
+                      <AppIcon name="clipboard" class="size-4" />
+                    </template>
+                 </AppButton>
              </div>
         </div>
       </div>
@@ -87,21 +91,19 @@
 
     <!-- Footer -->
     <template #footer>
-      <button
-        type="button"
-        class="rounded-lg px-4 py-2 text-sm font-medium text-(--text-secondary) transition-colors hover:bg-(--bg-muted)"
-        @click="close"
-      >
-        {{ t('common.close') }}
-      </button>
-      <button
-        v-if="person && person.orderCount > 0"
-        type="button"
-        class="bg-primary shadow-primary/20 inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) shadow-lg transition-all hover:bg-(--color-primary-hover) active:scale-95"
-        @click="viewOrders"
-      >
-        {{ t('salesperson.viewOrders') }}
-      </button>
+      <ActionBar class="w-full border-none bg-transparent px-0 py-0 shadow-none">
+        <AppButton
+          variant="secondary"
+          :text="t('common.close')"
+          @click="close"
+        />
+        <AppButton
+          v-if="person && person.orderCount > 0"
+          variant="primary"
+          :text="t('salesperson.viewOrders')"
+          @click="viewOrders"
+        />
+      </ActionBar>
     </template>
   </Modal>
 </template>
@@ -110,8 +112,10 @@
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import ActionBar from '@/design-system/composed/ActionBar.vue';
 
 const props = defineProps({
   modelValue: {
@@ -129,8 +133,8 @@ const emit = defineEmits(['update:modelValue', 'view-orders', 'copy']);
 const { t } = useI18n();
 
 const accessUrl = computed(() => {
-    if (!props.person?.accessToken) return '';
-    return `${window.location.origin}/sales/${props.person.accessToken}`;
+  if (!props.person?.accessToken) return '';
+  return `${window.location.origin}/sales/${props.person.accessToken}`;
 });
 
 const close = () => {
@@ -151,7 +155,7 @@ const formatDate = (timestamp) => {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   });
 };
 </script>

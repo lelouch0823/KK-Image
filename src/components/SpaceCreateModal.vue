@@ -12,38 +12,39 @@
           t('spaceManager.selectTemplate')
         }}</label>
         <div class="grid grid-cols-2 gap-2">
-          <button
+          <AppCard
             v-for="tpl in templates"
             :key="tpl.key"
-            type="button"
-            class="flex items-center gap-2 rounded-lg border p-3 text-left transition-all"
+            clickable
+            padding="p-3"
+            class="text-left"
             :class="
               form.template === tpl.key
                 ? 'border-primary bg-primary/5'
-                : 'border-(--border-subtle) bg-(--bg-muted)/30 hover:border-(--border-hover)'
+                : 'border-(--border-subtle) bg-(--bg-muted)/30'
             "
             @click="form.template = tpl.key"
           >
-            <AppIcon :name="tpl.icon" class="size-5 shrink-0 text-(--text-secondary)" />
-            <div>
-              <div class="text-sm font-medium text-(--text-main)">{{ tpl.label }}</div>
-              <div class="text-xs text-(--text-secondary)">{{ tpl.desc }}</div>
+            <div class="flex items-center gap-2">
+              <AppIcon :name="tpl.icon" class="size-5 shrink-0 text-(--text-secondary)" />
+              <div>
+                <div class="text-sm font-medium text-(--text-main)">{{ tpl.label }}</div>
+                <div class="text-xs text-(--text-secondary)">{{ tpl.desc }}</div>
+              </div>
             </div>
-          </button>
+          </AppCard>
         </div>
       </div>
 
       <!-- 通用字段: 描述 (仅非商品模版显示，商品模版在详情里填) -->
       <div v-if="form.template !== 'product'">
-        <label class="mb-1 block text-sm font-medium text-(--text-main)">{{
-          t('spaceManager.descLabel')
-        }}</label>
-        <textarea
+        <AppInput
           v-model="form.description"
+          :label="t('spaceManager.descLabel')"
+          textarea
           rows="2"
-          class="focus:border-primary focus:ring-primary focus:ring-1 w-full resize-none rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 transition-all outline-none"
           :placeholder="t('spaceManager.descPlaceholder')"
-        ></textarea>
+        />
       </div>
 
       <!-- 动态表单: 商品模版 -->
@@ -78,19 +79,12 @@
 
       <!-- 动态表单: 通用模版 -->
       <div v-else>
-        <!-- 空间名称 -->
-        <div>
-          <label class="mb-1 block text-sm font-medium text-(--text-main)"
-            >{{ t('spaceManager.spaceName') }} *</label
-          >
-          <input
-            v-model="form.name"
-            type="text"
-            required
-            class="focus:border-primary focus:ring-primary focus:ring-1 w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-4 py-2.5 transition-all outline-none"
-            :placeholder="t('spaceManager.spaceNamePlaceholder')"
-          />
-        </div>
+        <AppInput
+          v-model="form.name"
+          :label="`${t('spaceManager.spaceName')} *`"
+          required
+          :placeholder="t('spaceManager.spaceNamePlaceholder')"
+        />
       </div>
     </form>
 
@@ -106,19 +100,20 @@
     </div>
 
     <template #footer>
-      <button
-        class="rounded-lg px-4 py-2 text-(--text-secondary) transition-colors hover:bg-(--bg-hover)"
+      <AppButton
+        variant="secondary"
         @click="$emit('close')"
       >
         {{ t('common.cancel') }}
-      </button>
-      <button
+      </AppButton>
+      <AppButton
+        variant="primary"
         :disabled="submitting"
-        class="bg-primary shadow-primary/20 rounded-lg px-6 py-2 font-medium text-(--text-inverse) shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        :loading="submitting"
         @click="handleSubmit"
       >
         {{ submitButtonText }}
-      </button>
+      </AppButton>
     </template>
   </Modal>
 </template>
@@ -129,6 +124,8 @@ import { useSpaces } from '@/composables/useSpaces';
 import { useI18n } from '@/composables/useI18n';
 import { useAccessControl } from '@/composables/useAccessControl';
 import { useToast } from '@/composables/useToast';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppCard from '@/components/ui/AppCard.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import SpaceVisibilitySelector from '@/components/space/SpaceVisibilitySelector.vue';
 import Modal from '@/components/ui/Modal.vue';

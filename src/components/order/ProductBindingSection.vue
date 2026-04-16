@@ -83,15 +83,18 @@
           >
             <AppIcon name="pencil-square" class="size-5" />
           </a>
-          <button
-            type="button"
+          <AppButton
+            variant="ghost"
+            size="sm"
             data-testid="unbind-product"
-            class="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg p-2 text-(--text-muted) transition-colors hover:bg-(--color-danger-bg) hover:text-(--color-danger-text)"
+            class="min-h-11 min-w-11 !h-11 !w-11 !rounded-lg !p-0 text-(--text-muted) hover:!bg-(--color-danger-bg) hover:!text-(--color-danger-text)"
             :title="t('order.binding.unbind')"
             @click="$emit('unbind')"
           >
-            <AppIcon name="trash" class="size-5" />
-          </button>
+            <template #icon-left>
+              <AppIcon name="trash" class="size-5" />
+            </template>
+          </AppButton>
         </div>
       </div>
 
@@ -126,39 +129,48 @@
             :data-testid="`dimension-options-${String(dimension)}`"
             class="flex flex-wrap gap-x-3 gap-y-2.5 sm:gap-4"
           >
-            <label
+            <AppButton
               v-for="option in getDimensionOptions(dimension)"
               :key="option.value"
-              class="group flex flex-col items-center gap-1 focus-within:outline-none"
-              :class="[option.selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50']"
+              variant="ghost"
+              size="sm"
+              class="group !h-auto !min-w-0 !rounded-none !bg-transparent !p-0 shadow-none"
+              :class="[
+                option.selectable ? '' : '!cursor-not-allowed !opacity-50',
+                isDimensionOptionSelected(dimension, option.value) ? '!text-(--text-main)' : '!text-(--text-secondary)',
+              ]"
               :data-testid="getDimensionTestId(dimension)"
+              :disabled="!option.selectable"
+              :aria-pressed="isDimensionOptionSelected(dimension, option.value)"
+              @click="selectDimensionOption(dimension, option.value)"
             >
-              <input
-                type="radio"
-                class="peer sr-only"
-                :name="`dimension-${dimension}`"
-                :value="option.value"
-                :disabled="!option.selectable"
-                :checked="selectedOptions[dimension] === option.value"
-                @change="selectDimensionOption(dimension, option.value)"
-              />
               <div
-                class="peer-focus-visible:ring-primary/50 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 flex size-9 items-center justify-center rounded-full border-2 border-transparent shadow-sm transition-all peer-checked:border-(--bg-card) peer-checked:ring-2 peer-checked:ring-(--text-main) sm:size-10"
+                class="flex size-9 items-center justify-center rounded-full border-2 border-transparent shadow-sm transition-all sm:size-10"
+                :class="
+                  isDimensionOptionSelected(dimension, option.value)
+                    ? 'border-(--bg-card) ring-2 ring-(--text-main)'
+                    : ''
+                "
                 :style="buildColorSwatchStyle(option.value)"
               >
                 <AppIcon
-                  v-if="selectedOptions[dimension] === option.value"
+                  v-if="isDimensionOptionSelected(dimension, option.value)"
                   name="check"
                   class="size-4 text-white mix-blend-difference drop-shadow-md sm:size-5"
                 />
               </div>
               <span
-                class="max-w-14 truncate text-center text-[10px] font-medium text-(--text-secondary) transition-colors peer-checked:font-bold peer-checked:text-(--text-main) sm:max-w-16 sm:text-[11px]"
+                class="max-w-14 truncate text-center text-[10px] font-medium transition-colors sm:max-w-16 sm:text-[11px]"
+                :class="
+                  isDimensionOptionSelected(dimension, option.value)
+                    ? 'font-bold text-(--text-main)'
+                    : 'text-(--text-secondary)'
+                "
                 :title="option.label"
               >
                 {{ getOptionLabelDisplay(option.label) }}
               </span>
-            </label>
+            </AppButton>
           </div>
 
           <div
@@ -166,32 +178,28 @@
             :data-testid="`dimension-options-${String(dimension)}`"
             class="grid [grid-template-columns:repeat(auto-fit,minmax(5.75rem,1fr))] gap-2 sm:[grid-template-columns:repeat(auto-fit,minmax(7.25rem,1fr))] sm:gap-2.5"
           >
-            <label
+            <AppButton
               v-for="option in getDimensionOptions(dimension)"
               :key="option.value"
-              class="focus-within:ring-primary/50 focus-within:ring-2 focus-within:ring-offset-1 focus-within:outline-none relative min-w-0 rounded-lg"
-              :class="[option.selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50']"
+              variant="ghost"
+              size="sm"
+              class="group relative min-w-0 !h-auto !rounded-lg !bg-transparent !p-0 shadow-none"
+              :class="[option.selectable ? '' : '!cursor-not-allowed !opacity-50']"
               :data-testid="getDimensionTestId(dimension)"
+              :disabled="!option.selectable"
+              :aria-pressed="isDimensionOptionSelected(dimension, option.value)"
+              @click="selectDimensionOption(dimension, option.value)"
             >
-              <input
-                type="radio"
-                class="peer sr-only"
-                :name="`dimension-${dimension}`"
-                :value="option.value"
-                :disabled="!option.selectable"
-                :checked="selectedOptions[dimension] === option.value"
-                @change="selectDimensionOption(dimension, option.value)"
-              />
               <div
                 :data-testid="`dimension-option-card-${String(dimension)}`"
-                class="flex min-h-11 items-center justify-center rounded-lg border-2 border-(--border-subtle)/80 bg-(--bg-muted)/20 px-2 py-1 text-center text-xs font-semibold text-(--text-secondary) transition-all peer-checked:border-(--text-main) peer-checked:bg-(--bg-muted)/45 peer-checked:text-(--text-main) sm:min-h-11 sm:py-1.5 sm:text-sm"
-                :class="{ 'border-dashed border-(--border-subtle)/50': !option.selectable }"
+                class="flex min-h-11 items-center justify-center rounded-lg border-2 px-2 py-1 text-center text-xs font-semibold transition-all sm:min-h-11 sm:py-1.5 sm:text-sm"
+                :class="getDimensionOptionCardClasses(dimension, option)"
               >
                 <span class="line-clamp-2 break-words" :title="option.label">
                   {{ getOptionLabelDisplay(option.label) }}
                 </span>
               </div>
-            </label>
+            </AppButton>
           </div>
         </section>
 
@@ -260,6 +268,7 @@
 import { ref, reactive, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import ProductSelect from '@/components/product/ProductSelect.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import Lightbox from '@/components/ui/Lightbox.vue';
@@ -400,6 +409,14 @@ const displayProductName = computed(() =>
 
 const getDimensionTestId = (dimensionKey) =>
   `dimension-${String(dimensionKey || '').replace(/\s+/g, '_')}`;
+const isDimensionOptionSelected = (dimension, value) => selectedOptions[dimension] === value;
+const getDimensionOptionCardClasses = (dimension, option) => ({
+  'border-(--border-subtle)/80 bg-(--bg-muted)/20 text-(--text-secondary)':
+    !isDimensionOptionSelected(dimension, option.value),
+  'border-(--text-main) bg-(--bg-muted)/45 text-(--text-main)':
+    isDimensionOptionSelected(dimension, option.value),
+  'border-dashed border-(--border-subtle)/50': !option.selectable,
+});
 
 const displaySku = computed(() => {
   if (variants.value.length > 0 && selectedVariantId.value) {

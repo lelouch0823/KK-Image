@@ -27,15 +27,16 @@
               : t('purchaseOrder.form.byQuantity')
           }}
         </span>
-        <button
-          type="button"
+        <AppButton
+          variant="outline"
+          size="sm"
           data-testid="purchase-order-open-cost-modal"
-          class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-(--border-color) bg-(--bg-card)/85 px-3 py-1.5 text-xs font-medium text-(--text-main) transition-colors hover:bg-(--bg-hover)"
+          class="!h-8 !bg-(--bg-card)/85 text-(--text-main)"
           @click="$emit('open-cost-modal')"
         >
           <AppIcon name="pencil-square" class="size-3.5" />
           {{ t('purchaseOrder.action.settle', '填写实际费用') }}
-        </button>
+        </AppButton>
       </div>
     </div>
     <div class="grid grid-cols-2 gap-3">
@@ -84,6 +85,7 @@
 </template>
 
 <script setup>
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 defineProps({

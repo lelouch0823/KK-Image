@@ -1,14 +1,17 @@
 <template>
   <ManagementListShell :title="t('salesperson.title')" :description="t('salesperson.subtitle')">
     <template #actions>
-      <button
+      <AppButton
         v-if="canManageSalespersons"
-        class="bg-primary shadow-primary/10 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) shadow-lg transition-all hover:bg-(--color-primary-hover) active:scale-95"
+        variant="primary"
+        class="shadow-lg"
         @click="openModal()"
       >
-        <AppIcon name="plus" class="size-4" />
+        <template #icon-left>
+          <AppIcon name="plus" class="size-4" />
+        </template>
         {{ t('salesperson.create') }}
-      </button>
+      </AppButton>
     </template>
 
     <template #filters>
@@ -113,6 +116,7 @@ import { useManagedListSelection } from '@/composables/useManagedListSelection';
 import { useAccessControl } from '@/composables/useAccessControl';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';

@@ -45,15 +45,23 @@
 
       <!-- Step 2: 策略选择 -->
       <div v-else class="mt-4 space-y-2">
-        <label class="flex cursor-pointer items-start gap-2 rounded-lg border border-(--border-color) p-3">
-          <input
-            v-model="wizard.mode"
-            data-testid="dimension-archive-mode-archive"
-            type="radio"
-            value="archive_variants"
-            class="mt-0.5"
-          />
-          <div>
+        <AppCard
+          clickable
+          data-testid="dimension-archive-mode-archive"
+          :selected="wizard.mode === 'archive_variants'"
+          class="flex items-start gap-3"
+          padding="p-3"
+          role="radio"
+          :aria-checked="wizard.mode === 'archive_variants'"
+          @click="wizard.mode = 'archive_variants'"
+        >
+          <div
+            class="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors"
+            :class="wizard.mode === 'archive_variants' ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-transparent'"
+          >
+            <span class="size-2 rounded-full bg-current"></span>
+          </div>
+          <div class="min-w-0">
             <p class="text-sm font-medium text-(--text-main)">
               {{ t('product.form.archive_affected_variants', 'Archive affected variants') }}
             </p>
@@ -61,16 +69,24 @@
               {{ t('product.form.archive_affected_variants_desc', 'Safe default for edit flow.') }}
             </p>
           </div>
-        </label>
-        <label class="flex cursor-pointer items-start gap-2 rounded-lg border border-(--border-color) p-3">
-          <input
-            v-model="wizard.mode"
-            data-testid="dimension-archive-mode-merge"
-            type="radio"
-            value="merge_keep"
-            class="mt-0.5"
-          />
-          <div>
+        </AppCard>
+        <AppCard
+          clickable
+          data-testid="dimension-archive-mode-merge"
+          :selected="wizard.mode === 'merge_keep'"
+          class="flex items-start gap-3"
+          padding="p-3"
+          role="radio"
+          :aria-checked="wizard.mode === 'merge_keep'"
+          @click="wizard.mode = 'merge_keep'"
+        >
+          <div
+            class="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors"
+            :class="wizard.mode === 'merge_keep' ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-transparent'"
+          >
+            <span class="size-2 rounded-full bg-current"></span>
+          </div>
+          <div class="min-w-0">
             <p class="text-sm font-medium text-(--text-main)">
               {{ t('product.form.merge_and_keep', 'Merge & keep') }}
             </p>
@@ -78,48 +94,50 @@
               {{ t('product.form.merge_and_keep_desc', 'Ignore removed dimension and dedupe by signature.') }}
             </p>
           </div>
-        </label>
+        </AppCard>
       </div>
 
       <!-- Footer 操作按钮 -->
       <div class="mt-5 flex justify-end gap-2">
-        <button
-          type="button"
-          class="rounded-lg border border-(--border-color) px-3 py-2 text-sm text-(--text-main)"
+        <AppButton
+          variant="white"
+          size="sm"
           :disabled="wizard.loading"
           @click="$emit('close')"
         >
           {{ t('common.cancel', 'Cancel') }}
-        </button>
-        <button
+        </AppButton>
+        <AppButton
           v-if="wizard.step === 2"
-          type="button"
-          class="rounded-lg border border-(--border-color) px-3 py-2 text-sm text-(--text-main)"
+          variant="outline"
+          size="sm"
           :disabled="wizard.loading"
           @click="wizard.step = 1"
         >
           {{ t('common.back', 'Back') }}
-        </button>
-        <button
+        </AppButton>
+        <AppButton
           v-if="wizard.step === 1"
           data-testid="dimension-archive-next"
-          type="button"
-          class="bg-primary rounded-lg px-3 py-2 text-sm text-white"
+          variant="primary"
+          size="sm"
           :disabled="wizard.loading"
           @click="wizard.step = 2"
         >
           {{ t('common.next', 'Next') }}
-        </button>
-        <button
+        </AppButton>
+        <AppButton
           v-else
           data-testid="dimension-archive-confirm"
-          type="button"
-          class="bg-danger rounded-lg px-3 py-2 text-sm text-white disabled:opacity-60"
+          variant="danger"
+          size="sm"
           :disabled="wizard.loading"
+          :loading="wizard.loading"
+          :loading-text="t('common.processing', 'Processing...')"
           @click="$emit('confirm')"
         >
-          {{ wizard.loading ? t('common.processing', 'Processing...') : t('common.confirm', 'Confirm') }}
-        </button>
+          {{ t('common.confirm', 'Confirm') }}
+        </AppButton>
       </div>
     </div>
   </Modal>
@@ -127,6 +145,8 @@
 
 <script setup>
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppCard from '@/components/ui/AppCard.vue';
 import Modal from '@/components/ui/Modal.vue';
 
 const { t } = useI18n();

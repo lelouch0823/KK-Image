@@ -8,18 +8,25 @@
     >
       <template #footer>
         <!-- 保存按钮 -->
-        <button
+        <AppButton
           v-if="canManage"
           :disabled="publishing || !hasChanges"
-          class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
-          :class="hasChanges
-            ? 'bg-primary text-(--text-inverse) shadow-sm hover:opacity-90 active:scale-[0.98]'
-            : 'bg-(--bg-muted) text-(--text-secondary)'"
+          :variant="hasChanges ? 'primary' : 'secondary'"
+          class="mt-4 w-full"
+          data-testid="save-share-settings"
           @click="saveShareSettings"
         >
-          <AppIcon v-if="publishing" name="spinner" class="size-4 animate-spin" />
-          {{ publishing ? t('common.saving') : (hasChanges ? t('spaceManager.saveShareSettings') : t('spaceManager.shareSettingsSaved')) }}
-        </button>
+          <template v-if="publishing" #icon-left>
+            <AppIcon name="spinner" class="size-4 animate-spin" />
+          </template>
+          {{
+            publishing
+              ? t('common.saving')
+              : hasChanges
+                ? t('spaceManager.saveShareSettings')
+                : t('spaceManager.shareSettingsSaved')
+          }}
+        </AppButton>
       </template>
     </SpaceVisibilitySelector>
 
@@ -37,29 +44,34 @@
 
       <div class="space-y-3 p-5">
         <div class="flex min-w-0 gap-2">
-          <input
-            type="text"
+          <AppInput
+            :model-value="shareUrl"
+            size="sm"
+            class="min-w-0 flex-1"
             readonly
             :value="shareUrl"
-            class="min-w-0 flex-1 truncate rounded-xl border border-(--border-color) bg-(--bg-muted) px-4 py-2.5 font-mono text-sm text-(--text-main)"
             :title="shareUrl"
           />
-          <button
-            class="flex items-center gap-2 rounded-xl border border-(--border-color) bg-(--bg-card) px-4 py-2.5 text-sm text-(--text-main) transition-colors hover:bg-(--bg-hover)"
+          <AppButton
+            variant="white"
+            size="sm"
             @click="copyLink"
           >
-            <AppIcon name="clipboard" class="size-4" />
+            <template #icon-left>
+              <AppIcon name="clipboard" class="size-4" />
+            </template>
             {{ t('common.copy') }}
-          </button>
+          </AppButton>
         </div>
-        <button
+        <AppButton
           v-if="canManage"
           :disabled="publishing"
-          class="w-full rounded-xl border border-(--border-color) py-2.5 text-sm text-(--text-secondary) transition-colors hover:border-(--color-danger-text) hover:text-(--color-danger-text)"
+          variant="outline"
+          class="w-full border-danger/30 text-danger hover:border-danger hover:bg-danger/5 hover:text-danger"
           @click="$emit('unpublish')"
         >
           {{ t('spaceManager.shareCard.unpublish') }}
-        </button>
+        </AppButton>
       </div>
     </div>
   </div>
@@ -70,7 +82,9 @@ import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useClipboard } from '@/composables/useClipboard';
 import SpaceVisibilitySelector from '@/components/space/SpaceVisibilitySelector.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 
 const props = defineProps({
   isPublic: { type: Boolean, default: false },

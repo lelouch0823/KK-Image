@@ -18,7 +18,7 @@
           rounded="none"
         />
         <!-- 商品图标记 -->
-        <div class="absolute top-2 left-2 rounded-full bg-blue-500/90 px-2 py-0.5 text-[10px] text-white shadow-sm backdrop-blur-sm">
+        <div class="bg-primary/90 absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] text-white shadow-sm backdrop-blur-sm">
           {{ t('product.text.image') || '商品图' }}
         </div>
       </div>
@@ -54,22 +54,26 @@
 
         <!-- 操作遮罩 -->
         <div
-          class="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100"
+          class="absolute inset-0 flex items-center justify-center gap-2 bg-(--color-overlay-dim) opacity-0 transition-opacity group-hover:opacity-100"
         >
-          <button
+          <AppButton
             :title="t('spaceManager.setCover')"
-            class="text-secondary rounded-full bg-white/90 p-2 transition-colors hover:bg-white"
+            variant="white"
+            size="sm"
+            class="!h-9 !w-9 rounded-full bg-(--bg-card)/90 !px-0 backdrop-blur-sm [&_span]:contents"
             @click="$emit('setCover', file)"
           >
             <AppIcon name="photo" class="size-4" />
-          </button>
-          <button
+          </AppButton>
+          <AppButton
             :title="t('spaceManager.remove')"
-            class="text-danger rounded-full bg-white/90 p-2 transition-colors hover:bg-white"
+            variant="danger"
+            size="sm"
+            class="!h-9 !w-9 rounded-full !px-0 shadow-sm hover:opacity-90 [&_span]:contents"
             @click="$emit('remove', file.id)"
           >
             <AppIcon name="trash" class="size-4" />
-          </button>
+          </AppButton>
         </div>
 
         <!-- 封面标记 -->
@@ -86,12 +90,13 @@
     <div v-else class="text-secondary flex h-full flex-col items-center justify-center py-12">
       <AppIcon name="photo" class="mb-4 size-16 text-(--border-color)" />
       <p>{{ t('spaceManager.emptyMedia') }}</p>
-      <button
-        class="text-primary mt-4 text-sm transition-colors hover:underline"
+      <AppButton
+        variant="link"
+        class="mt-4"
         @click="$emit('addFiles')"
       >
         {{ t('spaceManager.addMediaHint') }}
-      </button>
+      </AppButton>
     </div>
   </div>
 </template>
@@ -100,6 +105,7 @@
 import { ref, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { isImage } from '@/utils/formatters';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 

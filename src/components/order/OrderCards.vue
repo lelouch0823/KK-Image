@@ -61,12 +61,14 @@
             <span class="text-xs text-(--text-secondary)/50">{{
               formatTime(order.createdAt)
             }}</span>
-            <button
-              class="bg-primary/5 text-primary rounded-xl px-4 py-2 text-xs font-bold transition-all hover:bg-primary/10 active:scale-90"
+            <AppButton
+              variant="secondary"
+              size="sm"
+              class="bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
               @click="$emit('edit', order)"
             >
               {{ t('order.manage.editOrder') }}
-            </button>
+            </AppButton>
           </div>
         </template>
       </AppCard>
@@ -81,6 +83,7 @@
 import { useI18n } from '@/composables/useI18n';
 import { formatDate } from '@/utils/formatters';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';

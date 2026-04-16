@@ -149,19 +149,17 @@
 
       <!-- 展开/收起按钮 -->
       <div v-if="hasMore" class="mt-4 text-center">
-        <button
-          class="hover:text-primary hover:bg-(--bg-hover) inline-flex items-center gap-1.5 rounded-full bg-(--bg-muted) px-4 py-2 text-sm text-(--text-secondary) shadow-sm transition-all"
+        <AppButton
+          variant="secondary"
+          size="sm"
+          class="rounded-full"
           @click="isExpanded = !isExpanded"
         >
-          <template v-if="isExpanded">
-            <AppIcon name="chevron-up" class="size-4" />
-            {{ t('order.timeline.collapse') }}
+          <template #icon-left>
+            <AppIcon :name="isExpanded ? 'chevron-up' : 'chevron-down'" class="size-4" />
           </template>
-          <template v-else>
-            <AppIcon name="chevron-down" class="size-4" />
-            {{ t('order.timeline.viewAll', { count: totalCount }) }}
-          </template>
-        </button>
+          {{ isExpanded ? t('order.timeline.collapse') : t('order.timeline.viewAll', { count: totalCount }) }}
+        </AppButton>
       </div>
 
       <!-- 空状态 -->
@@ -255,6 +253,7 @@ import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { STATUS_STYLES, getStatusVariant } from '@/utils/status';
 import { formatTimelineTime } from '@/utils/formatters';
+import AppButton from '@/components/ui/AppButton.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppTable from '@/components/ui/AppTable.vue';

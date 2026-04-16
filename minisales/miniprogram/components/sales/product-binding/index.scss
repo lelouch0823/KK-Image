@@ -5,7 +5,7 @@
   padding: 24rpx;
   border-radius: 24rpx;
   border: 1rpx solid $border-color;
-  background: #ffffff;
+  background: $bg-card;
   box-shadow: $shadow-sm;
 }
 
@@ -39,8 +39,8 @@
   padding: 8rpx 20rpx;
   border-radius: 999rpx;
   font-size: $font-size-xs;
-  color: #2563eb;
-  background: #dbeafe;
+  color: $status-confirmed;
+  background: $status-confirmed-bg;
 }
 
 .binding-card__summary {
@@ -54,7 +54,7 @@
   width: 120rpx;
   height: 120rpx;
   border-radius: 18rpx;
-  background: #e2e8f0;
+  background: $bg-hover;
 }
 
 .binding-card__image--empty {
@@ -84,7 +84,7 @@
   margin-top: 20rpx;
   padding: 20rpx;
   border-radius: 18rpx;
-  background: #f8fafc;
+  background: $bg-subtle;
 }
 
 .binding-card__empty-text,
@@ -103,7 +103,7 @@
 .binding-picker__mask {
   position: absolute;
   inset: 0;
-  background: rgba(15, 23, 42, 0.32);
+  background: $overlay-mask;
 }
 
 .binding-picker__panel {
@@ -113,9 +113,9 @@
   top: 10vh;
   bottom: 48rpx;
   border-radius: 28rpx;
-  background: #ffffff;
+  background: $bg-card;
   overflow: hidden;
-  box-shadow: 0 24rpx 60rpx rgba(15, 23, 42, 0.2);
+  box-shadow: $shadow-overlay;
 }
 
 .binding-picker__header {
@@ -124,7 +124,7 @@
   justify-content: space-between;
   padding: 24rpx;
   border-bottom: 1rpx solid $border-color;
-  background: #f8fafc;
+  background: $bg-subtle;
 }
 
 .binding-picker__title {
@@ -172,7 +172,7 @@
   padding: 18rpx;
   border-radius: 20rpx;
   border: 1rpx solid $border-color;
-  background: #ffffff;
+  background: $bg-card;
 }
 
 .binding-picker__product + .binding-picker__product {
@@ -180,15 +180,15 @@
 }
 
 .binding-picker__product--active {
-  border-color: #93c5fd;
-  background: #eff6ff;
+  border-color: $card-blue-border;
+  background: $card-blue-bg;
 }
 
 .binding-picker__product-image {
   width: 96rpx;
   height: 96rpx;
   border-radius: 16rpx;
-  background: #e2e8f0;
+  background: $bg-hover;
 }
 
 .binding-picker__product-image--empty {
@@ -223,8 +223,8 @@
 .binding-picker__variant {
   padding: 18rpx 20rpx;
   border-radius: 20rpx;
-  background: #f8fafc;
-  border: 1rpx solid #dbe5f0;
+  background: $bg-subtle;
+  border: 1rpx solid $border-strong;
 }
 
 .binding-picker__variant-title {

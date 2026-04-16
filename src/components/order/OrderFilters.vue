@@ -3,33 +3,45 @@
     <template #actions>
       <!-- Mobile: Icon buttons only -->
       <div class="flex shrink-0 items-center gap-1 lg:hidden">
-        <button
+        <AppButton
           v-if="showCreate"
-          class="bg-primary flex size-9 items-center justify-center rounded-lg text-(--text-inverse) shadow-sm transition-all active:scale-95"
+          variant="primary"
+          size="sm"
+          class="!h-9 !w-9 !gap-0 !px-0 shadow-sm [&_span]:hidden"
           :title="t('order.manage.create')"
           @click="$emit('create')"
         >
-          <AppIcon name="plus" class="size-5" />
-        </button>
+          <template #icon-left>
+            <AppIcon name="plus" class="size-5" />
+          </template>
+        </AppButton>
         
         <!-- Mobile Stats Button -->
-        <button
-          class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) transition-all active:scale-95"
+        <AppButton
+          variant="white"
+          size="sm"
+          class="text-primary !h-9 !w-9 !gap-0 !px-0 [&_span]:hidden"
           :title="t('dashboard.stats')"
           @click="$emit('show-stats')"
         >
-          <AppIcon name="chart-bar" class="size-5" />
-        </button>
+          <template #icon-left>
+            <AppIcon name="chart-bar" class="size-5" />
+          </template>
+        </AppButton>
 
-        <button
+        <AppButton
+          variant="white"
+          size="sm"
           :disabled="exporting"
-          class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-main) transition-all active:scale-95 disabled:opacity-50"
+          :loading="exporting"
+          class="!h-9 !w-9 !gap-0 !px-0 text-(--text-main) [&_span]:hidden"
           :title="t('order.manage.export')"
           @click="$emit('export')"
         >
-          <AppIcon v-if="exporting" name="spinner" class="size-4 animate-spin" />
-          <AppIcon v-else name="document-arrow-down" class="size-4" />
-        </button>
+          <template #icon-left>
+            <AppIcon name="document-arrow-down" class="size-4" />
+          </template>
+        </AppButton>
       </div>
     </template>
 
@@ -90,32 +102,44 @@
 
       <!-- Desktop: inline actions next to search -->
       <div class="hidden shrink-0 items-center gap-2 lg:flex">
-        <button
+        <AppButton
           v-if="showCreate"
-          class="bg-primary shadow-primary/20 flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap text-(--text-inverse) shadow-sm transition-all hover:opacity-90 active:scale-95 xl:px-4"
+          variant="primary"
+          size="sm"
+          class="shadow-primary/20 whitespace-nowrap shadow-sm xl:px-4"
           @click="$emit('create')"
         >
-          <AppIcon name="plus" class="size-4" />
+          <template #icon-left>
+            <AppIcon name="plus" class="size-4" />
+          </template>
           {{ t('order.manage.create') }}
-        </button>
+        </AppButton>
 
-        <button
-          class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) transition-all hover:bg-(--bg-hover) active:scale-95"
+        <AppButton
+          variant="white"
+          size="sm"
+          class="text-primary !h-9 !w-9 !gap-0 !px-0 [&_span]:hidden"
           :title="t('dashboard.stats')"
           @click="$emit('show-stats')"
         >
-          <AppIcon name="chart-bar" class="size-5" />
-        </button>
+          <template #icon-left>
+            <AppIcon name="chart-bar" class="size-5" />
+          </template>
+        </AppButton>
 
-        <button
+        <AppButton
+          variant="white"
+          size="sm"
           :disabled="exporting"
-          class="flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-main) transition-all hover:bg-(--bg-hover) active:scale-95 disabled:opacity-50"
+          :loading="exporting"
+          class="!h-9 !w-9 !gap-0 !px-0 text-(--text-main) [&_span]:hidden"
           :title="t('order.manage.export')"
           @click="$emit('export')"
         >
-          <AppIcon v-if="exporting" name="spinner" class="size-4 animate-spin" />
-          <AppIcon v-else name="arrow-down-tray" class="size-4" />
-        </button>
+          <template #icon-left>
+            <AppIcon name="arrow-down-tray" class="size-4" />
+          </template>
+        </AppButton>
       </div>
     </template>
   </AppFilterBar>
@@ -127,6 +151,7 @@ import { useI18n } from '@/composables/useI18n';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import Select from '@/components/ui/Select.vue';
 import AppFilterBar from '@/components/ui/AppFilterBar.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const {

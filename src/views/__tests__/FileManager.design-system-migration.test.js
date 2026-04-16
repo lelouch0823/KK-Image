@@ -13,4 +13,21 @@ describe('FileManager design-system migration', () => {
 
     expect(source).not.toContain("relative flex min-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card)");
   });
+
+  it('uses shared buttons in the toolbar action affordances', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/views/FileManager/FileManagerToolbar.vue'),
+      'utf8'
+    );
+
+    expect(source).toContain("import AppButton from '@/components/ui/AppButton.vue'");
+    expect(source).not.toContain('<button');
+  });
+
+  it('uses shared buttons for folder grid context affordances', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/views/FileManager/FolderGrid.vue'), 'utf8');
+
+    expect(source).toContain("import AppButton from '@/components/ui/AppButton.vue'");
+    expect(source).not.toContain('<button');
+  });
 });

@@ -14,14 +14,13 @@
     <!-- 分享模式选择器 -->
     <div class="p-5">
       <div class="grid grid-cols-3 gap-2">
-        <button
+        <AppCard
           v-for="mode in shareModes"
           :key="mode.value"
-          type="button"
-          class="group relative flex flex-col items-center gap-2 rounded-xl border p-3 transition-all duration-200"
-          :class="modelValue === mode.value
-            ? 'border-primary bg-primary/5 shadow-sm'
-            : 'border-(--border-color) hover:border-(--border-hover) hover:bg-(--bg-hover)'"
+          clickable
+          :selected="modelValue === mode.value"
+          padding="p-3"
+          class="group relative flex flex-col items-center gap-2 text-center duration-200"
           @click="updateShareMode(mode.value)"
         >
           <!-- 选中指示器 -->
@@ -45,7 +44,7 @@
           >
             {{ mode.label }}
           </span>
-        </button>
+        </AppCard>
       </div>
 
       <!-- 选择销售员 (仅 selected 模式) - 带展开动画 -->
@@ -76,6 +75,7 @@
 import { computed, h } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import SalespersonPicker from '@/components/SalespersonPicker.vue';
+import AppCard from '@/components/ui/AppCard.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({

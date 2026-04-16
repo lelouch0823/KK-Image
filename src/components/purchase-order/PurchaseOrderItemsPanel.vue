@@ -13,22 +13,28 @@
         </h3>
       </div>
       <div v-if="detail.status === 'draft'" class="flex items-center gap-2">
-        <button
+        <AppButton
           type="button"
-          class="border-primary/30 bg-primary/5 text-primary flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-primary/10"
+          variant="outline"
+          size="sm"
           @click="$emit('open-order-picker', 'detail')"
         >
-          <AppIcon name="plus" class="size-3.5" />
+          <template #icon-left>
+            <AppIcon name="plus" class="size-3.5" />
+          </template>
           {{ t('purchaseOrder.action.linkOrders') }}
-        </button>
-        <button
+        </AppButton>
+        <AppButton
           type="button"
-          class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-(--border-color) px-2.5 py-1.5 text-xs font-medium text-(--text-main) transition-colors hover:bg-(--bg-hover)"
+          variant="white"
+          size="sm"
           @click="$emit('open-product-picker', 'detail')"
         >
-          <AppIcon name="plus" class="size-3.5" />
+          <template #icon-left>
+            <AppIcon name="plus" class="size-3.5" />
+          </template>
           {{ t('purchaseOrder.action.addProduct') }}
-        </button>
+        </AppButton>
       </div>
     </div>
 
@@ -72,16 +78,19 @@
               >
                 {{ item.product_brand }}
               </span>
-              <button
+              <AppButton
                 v-if="detail.status === 'draft'"
                 type="button"
+                variant="link"
                 :data-testid="`purchase-order-detail-item-remove-${item.id}`"
-                class="text-danger flex shrink-0 cursor-pointer items-center gap-0.5 text-xs opacity-0 transition-opacity group-hover:opacity-100"
-                @click.stop="$emit('remove-item', item.id)"
+                class="shrink-0 text-xs !text-danger opacity-0 transition-opacity group-hover:opacity-100"
+                @click="$event.stopPropagation(); $emit('remove-item', item.id)"
               >
-                <AppIcon name="trash" class="size-3" />
+                <template #icon-left>
+                  <AppIcon name="trash" class="size-3" />
+                </template>
                 {{ t('common.delete') }}
-              </button>
+              </AppButton>
             </div>
 
             <div class="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)">
@@ -255,6 +264,7 @@
 </template>
 
 <script setup>
+import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';

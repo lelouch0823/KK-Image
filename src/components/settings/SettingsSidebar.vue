@@ -1,13 +1,14 @@
 <template>
   <nav class="flex flex-col gap-1">
-    <button
+    <AppButton
       v-for="item in items"
       :key="item.id"
-      class="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all duration-200"
+      variant="ghost"
+      class="group !flex !h-auto !w-full !justify-start gap-3 !rounded-lg px-3 py-2.5 !text-left text-sm font-medium transition-all duration-200"
       :class="[
         currentTab === item.id
-          ? 'text-primary bg-(--color-primary-bg) shadow-sm ring-1 ring-(--color-primary-light) ring-inset'
-          : 'hover:text-primary hover:bg-(--bg-hover) text-(--text-secondary)',
+          ? 'text-primary !bg-(--color-primary-bg) shadow-sm ring-1 ring-(--color-primary-light) ring-inset'
+          : 'text-(--text-secondary) hover:!bg-(--bg-hover) hover:!text-primary',
       ]"
       @click="$emit('update:currentTab', item.id)"
     >
@@ -23,11 +24,12 @@
       >
         {{ item.badge }}
       </span>
-    </button>
+    </AppButton>
   </nav>
 </template>
 
 <script setup>
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 defineProps({

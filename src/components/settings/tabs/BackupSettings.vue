@@ -6,15 +6,17 @@
       icon="cloud-arrow-up"
     >
       <template #action>
-        <button
+        <AppButton
           :disabled="creating"
-          class="bg-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+          variant="primary"
+          :loading="creating"
           @click="createBackup"
         >
-          <AppIcon v-if="creating" name="spinner" class="size-4 animate-spin" />
-          <AppIcon v-else name="plus" class="size-4" />
+          <template v-if="!creating" #icon-left>
+            <AppIcon name="plus" class="size-4" />
+          </template>
           {{ creating ? t('settings.backup.creating', 'Creating...') : t('settings.backup.create', 'Create Backup') }}
-        </button>
+        </AppButton>
       </template>
 
       <!-- Backup List -->
@@ -41,13 +43,16 @@
           </template>
           <template #cell-actions="{ row: backup }">
             <div class="flex justify-end pr-2">
-              <button
-                class="hover:text-primary hover:bg-(--bg-hover) inline-flex items-center gap-1.5 rounded-md border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-xs font-medium text-(--text-main) shadow-sm transition-colors"
+              <AppButton
+                variant="white"
+                size="sm"
                 @click="downloadBackup(backup)"
               >
-                <AppIcon name="arrow-down-tray" class="size-3.5" />
+                <template #icon-left>
+                  <AppIcon name="arrow-down-tray" class="size-3.5" />
+                </template>
                 {{ t('common.download', 'Download') }}
-              </button>
+              </AppButton>
             </div>
           </template>
         </AppTable>
@@ -59,6 +64,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import SettingsSection from '../SettingsSection.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import { useI18n } from '@/composables/useI18n';

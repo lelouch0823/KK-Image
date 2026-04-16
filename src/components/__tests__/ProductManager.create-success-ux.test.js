@@ -83,8 +83,10 @@ describe('ProductManager create success UX', () => {
           Pagination: { template: '<div />' },
           EmptyState: { template: '<div><slot name="action" /></div>' },
           Modal: { template: '<div><slot /></div>' },
+          ConfirmDialog: { template: '<div />', props: ['modelValue'] },
           PermissionDeniedState: { template: '<div />' },
           AppIcon: { template: '<div />' },
+          AppButton: { template: '<button><slot /></button>' },
         },
       },
     });
@@ -200,5 +202,27 @@ describe('ProductManager create success UX', () => {
       name: 'Spaces',
       query: { id: 'space-9' },
     });
+  });
+
+  it('opens shared confirm dialog before deleting a product', async () => {
+    const wrapper = createWrapper();
+    const product = { id: 'p-delete', name: 'Delete Me' };
+
+    wrapper.vm.handleDelete(product);
+
+    expect(wrapper.vm.confirmData.show).toBe(true);
+    expect(wrapper.vm.confirmData.type).toBe('danger');
+    expect(wrapper.vm.confirmData.onConfirm).toEqual(expect.any(Function));
+
+    await wrapper.vm.confirmData.onConfirm();
+
+    expect(mocks.deleteProduct).toHaveBeenCalledWith('p-delete');
+    expect(mocks.loadProducts).toHaveBeenLastCalledWith(
+      {
+        page: 2,
+      },
+      false
+    );
+    expect(wrapper.vm.confirmData.show).toBe(false);
   });
 });

@@ -182,6 +182,13 @@ describe('OutboxOps behavior', () => {
     expect(noAuditWrapper.text()).not.toContain('router.outbox_ops');
   });
 
+  it('keeps sidebar navigation and shell actions on shared buttons', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/components/layout/Sidebar.vue'), 'utf8');
+
+    expect(source).toContain("import AppButton from '@/components/ui/AppButton.vue'");
+    expect(source).not.toContain('<button');
+  });
+
   it('renders the outbox ops page with event list and replay workspace regions', async () => {
     const module = await import('../OutboxOps.vue');
     const OutboxOps = module.default;

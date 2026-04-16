@@ -7,6 +7,8 @@ describe('SalespersonManager design-system migration', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/components/SalespersonManager.vue'), 'utf8');
 
     expect(source).toContain('ManagementListShell');
+    expect(source).toContain("import AppButton from '@/components/ui/AppButton.vue'");
     expect(source).not.toContain("<h2 class=\"text-lg font-semibold text-(--text-main)\">{{ t('salesperson.title') }}</h2>");
+    expect(source).not.toContain('<button');
   });
 });

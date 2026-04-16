@@ -9,13 +9,12 @@
         <p class="mt-3 text-sm font-semibold text-(--text-main)">{{ titleText }}</p>
         <p class="mt-1 text-sm text-(--text-secondary)">请确认以下信息后再创建。</p>
       </div>
-      <button
-        type="button"
-        class="bg-primary shrink-0 rounded-xl px-3 py-2 text-xs font-medium text-(--text-inverse) transition-colors hover:opacity-90"
+      <AppButton
+        size="sm"
+        class="shrink-0 !rounded-xl"
+        text="确认创建"
         @click="$emit('confirm')"
-      >
-        确认创建
-      </button>
+      />
     </div>
 
     <div class="mt-4 space-y-4">
@@ -62,6 +61,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import AppButton from '@/components/ui/AppButton.vue';
 
 defineEmits(['confirm']);
 

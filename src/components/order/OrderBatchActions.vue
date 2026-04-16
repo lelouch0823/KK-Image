@@ -4,43 +4,53 @@
       <span class="text-primary text-sm font-medium">
         {{ t('order.manage.selectedCount', { count: selectedCount }) }}
       </span>
-      <button
-        class="hover:text-primary text-sm text-(--text-secondary) transition-colors"
+      <AppButton
+        variant="link"
+        size="sm"
         @click="$emit('cancel')"
       >
         {{ t('order.manage.cancelSelect') }}
-      </button>
+      </AppButton>
     </template>
 
-    <button
+    <AppButton
       :disabled="processing"
-      class="bg-primary shadow-primary/10 flex h-9 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-(--text-inverse) shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+      class="shadow-primary/10 shadow-lg"
       @click="$emit('action', 'confirm')"
     >
-      <AppIcon name="check" class="size-4.5" />
+      <template #icon-left>
+        <AppIcon name="check" class="size-4.5" />
+      </template>
       {{ t('order.manage.batchConfirm') }}
-    </button>
-    <button
+    </AppButton>
+    <AppButton
       :disabled="processing"
-      class="bg-warning shadow-warning/10 flex h-9 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-(--text-inverse) shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+      variant="outline"
+      class="border-warning/30 bg-warning/10 text-warning shadow-warning/10 hover:border-warning/40 hover:bg-warning/15 hover:text-warning shadow-lg"
       @click="$emit('action', 'reject')"
     >
-      <AppIcon name="x-mark" class="size-4.5" />
+      <template #icon-left>
+        <AppIcon name="x-mark" class="size-4.5" />
+      </template>
       {{ t('order.manage.batchReject') }}
-    </button>
-    <button
+    </AppButton>
+    <AppButton
+      variant="danger"
       :disabled="processing"
-      class="bg-danger shadow-danger/10 flex h-9 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-(--text-inverse) shadow-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+      class="shadow-danger/10 shadow-lg"
       @click="$emit('action', 'void')"
     >
-      <AppIcon name="trash" class="size-4" />
+      <template #icon-left>
+        <AppIcon name="trash" class="size-4" />
+      </template>
       {{ t('order.manage.batchVoid') }}
-    </button>
+    </AppButton>
   </FloatingSelectionBar>
 </template>
 
 <script setup>
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import FloatingSelectionBar from '@/design-system/composed/FloatingSelectionBar.vue';
 

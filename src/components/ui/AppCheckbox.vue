@@ -1,6 +1,7 @@
 <template>
   <div class="relative flex items-center justify-center">
     <input
+      ref="inputEl"
       type="checkbox"
       class="peer size-5 cursor-pointer appearance-none rounded-md border-2 border-(--border-color) bg-(--bg-card) transition-all duration-200 ease-in-out checked:border-primary! checked:bg-primary! hover:border-primary/50 focus:ring-primary/20 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20 dark:bg-white/5 dark:focus:ring-offset-gray-900"
       :checked="isChecked"
@@ -9,15 +10,16 @@
       @change="handleChange"
     />
     <AppIcon
-      name="check"
-      class="pointer-events-none absolute top-1/2 left-1/2 size-3.5 -translate-1/2 text-(--bg-card) opacity-0 transition-opacity duration-200 peer-checked:opacity-100"
+      :name="indicatorIcon"
+      class="pointer-events-none absolute top-1/2 left-1/2 size-3.5 -translate-1/2 text-(--bg-card) transition-opacity duration-200"
+      :class="showIndicator ? 'opacity-100' : 'opacity-0'"
       stroke-width="3"
     />
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
@@ -37,9 +39,14 @@ const props = defineProps({
     type: Boolean,
     default: undefined,
   },
+  indeterminate: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['update:modelValue', 'change']);
+const inputEl = ref(null);
 
 const isChecked = computed(() => {
   if (props.checked !== undefined) return props.checked;
@@ -49,6 +56,18 @@ const isChecked = computed(() => {
   }
   return props.modelValue;
 });
+
+const showIndicator = computed(() => props.indeterminate || isChecked.value);
+const indicatorIcon = computed(() => (props.indeterminate ? 'minus' : 'check'));
+
+const syncIndeterminate = () => {
+  if (inputEl.value) {
+    inputEl.value.indeterminate = props.indeterminate;
+  }
+};
+
+onMounted(syncIndeterminate);
+watch(() => props.indeterminate, syncIndeterminate, { immediate: true });
 
 const handleChange = (e) => {
   const checked = e.target.checked;

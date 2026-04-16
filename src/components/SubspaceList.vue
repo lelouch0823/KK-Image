@@ -6,19 +6,16 @@
     >
       <div class="flex items-center gap-3">
         <Tooltip v-if="props.canManage" :content="t('spaceManager.createSubspace')">
-          <button
-            class="bg-primary flex size-8 items-center justify-center rounded-lg text-sm font-medium text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover)"
+          <AppButton
+            variant="primary"
+            size="sm"
+            class="size-8 !px-0"
             @click="showCreateModal = true"
           >
-            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 4v16m8-8H4"
-              ></path>
-            </svg>
-          </button>
+            <template #icon-left>
+              <AppIcon name="plus" class="size-5" />
+            </template>
+          </AppButton>
         </Tooltip>
         <span class="text-secondary text-xs"
           >{{ subspaces.length }} {{ t('spaceManager.subspaces') }}</span
@@ -54,9 +51,7 @@
           @click="showCreateModal = true"
         >
           <template #icon-left>
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
+            <AppIcon name="plus" class="size-4" />
           </template>
         </AppButton>
       </div>
@@ -145,34 +140,28 @@
               class="flex items-center gap-2 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
             >
               <Tooltip :content="t('spaceManager.copyLink')">
-                <button
-                  class="text-secondary flex size-8 items-center justify-center rounded-lg bg-(--bg-muted) transition-colors hover:text-primary hover:bg-(--bg-hover)"
+                <AppButton
+                  variant="ghost"
+                  size="sm"
+                  class="size-8 !px-0 bg-(--bg-muted) text-(--text-secondary) hover:text-primary"
                   @click.stop="copyLink(sub)"
                 >
-                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                    ></path>
-                  </svg>
-                </button>
+                  <template #icon-left>
+                    <AppIcon name="clipboard" class="size-4" />
+                  </template>
+                </AppButton>
               </Tooltip>
               <Tooltip v-if="props.canManage" :content="t('spaceManager.deleteSpace')">
-                <button
-                  class="text-danger flex size-8 items-center justify-center rounded-lg bg-(--color-danger-bg) transition-colors hover:bg-red-100"
+                <AppButton
+                  variant="ghost"
+                  size="sm"
+                  class="size-8 !px-0 bg-(--color-danger-bg) text-danger hover:bg-red-100 hover:text-danger"
                   @click.stop="deleteSubspace(sub)"
                 >
-                  <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    ></path>
-                  </svg>
-                </button>
+                  <template #icon-left>
+                    <AppIcon name="trash" class="size-4" />
+                  </template>
+                </AppButton>
               </Tooltip>
             </div>
           </div>
@@ -209,6 +198,7 @@ import { useClipboard } from '@/composables/useClipboard';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 

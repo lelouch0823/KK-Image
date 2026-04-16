@@ -31,15 +31,20 @@
           <span class="text-[11px] text-(--text-secondary)">{{ field.candidates.length }} 项</span>
         </div>
         <div class="mt-2 space-y-2">
-          <button
+          <AppButton
             v-for="(candidate, index) in field.candidates"
             :key="candidate.value || index"
             :data-testid="`candidate-option-${index}`"
             :data-selected="selectedCandidates[field.key]?.value === candidate.value ? 'true' : 'false'"
             :disabled="Boolean(selectedCandidates[field.key])"
-            type="button"
-            class="hover:bg-primary/5 block w-full rounded-lg bg-(--bg-card) px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-            :class="selectedCandidates[field.key]?.value === candidate.value ? 'ring-primary/30 bg-primary/5 ring-2' : ''"
+            variant="white"
+            size="sm"
+            class="!block !h-auto w-full !justify-start !rounded-lg px-3 py-2 !text-left disabled:cursor-not-allowed disabled:opacity-60"
+            :class="
+              selectedCandidates[field.key]?.value === candidate.value
+                ? 'ring-primary/30 !bg-primary/5 ring-2'
+                : ''
+            "
             @click="handleSelect(field.key, candidate, index)"
           >
             <div class="flex items-start justify-between gap-3">
@@ -53,7 +58,7 @@
                 选择
               </span>
             </div>
-          </button>
+          </AppButton>
         </div>
         <div
           v-if="selectedCandidates[field.key]"
@@ -61,14 +66,14 @@
         >
           <div class="flex items-center justify-between gap-3">
             <p class="text-xs font-medium text-(--text-main)">已选择</p>
-            <button
+            <AppButton
               :data-testid="`reselect-${field.key}`"
-              type="button"
-              class="text-primary text-xs font-medium"
+              variant="link"
+              size="sm"
+              class="text-xs font-medium"
+              text="重新选择"
               @click="clearSelection(field.key)"
-            >
-              重新选择
-            </button>
+            />
           </div>
           <p class="mt-1 text-sm font-medium text-(--text-main)">{{ selectedCandidates[field.key].label || selectedCandidates[field.key].value }}</p>
           <p v-if="selectedCandidates[field.key].description" class="mt-1 text-xs text-(--text-secondary)">
@@ -83,6 +88,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import AppButton from '@/components/ui/AppButton.vue';
 
 const emit = defineEmits(['select']);
 

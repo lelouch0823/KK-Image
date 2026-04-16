@@ -6,110 +6,105 @@
       icon="photo"
     >
       <form class="space-y-6" @submit.prevent="saveSettings">
-        
         <!-- Enable Watermark -->
-        <div class="flex items-center justify-between">
-          <div>
-            <label class="text-primary text-sm font-medium">{{ t('settings.watermark.enable', 'Enable Watermark') }}</label>
-            <p class="text-secondary text-xs">{{ t('settings.watermark.enableDesc', 'When enabled, new image uploads will have a watermark applied in the browser.') }}</p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            :aria-checked="form.WATERMARK_ENABLED === 'true'"
-            class="focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:outline-none relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out"
-            :class="form.WATERMARK_ENABLED === 'true' ? 'bg-primary' : 'bg-(--bg-muted)'"
-            @click="form.WATERMARK_ENABLED = form.WATERMARK_ENABLED === 'true' ? 'false' : 'true'"
-          >
-            <span
-              aria-hidden="true"
-              class="pointer-events-none inline-block size-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-              :class="form.WATERMARK_ENABLED === 'true' ? 'translate-x-5' : 'translate-x-0'"
+        <AppCard padding="p-4" class="space-y-4">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <label class="text-primary text-sm font-medium">{{
+                t('settings.watermark.enable', 'Enable Watermark')
+              }}</label>
+              <p class="text-secondary text-xs">
+                {{
+                  t(
+                    'settings.watermark.enableDesc',
+                    'When enabled, new image uploads will have a watermark applied in the browser.'
+                  )
+                }}
+              </p>
+            </div>
+            <AppButton
+              type="button"
+              size="sm"
+              :variant="form.WATERMARK_ENABLED === 'true' ? 'primary' : 'secondary'"
+              :text="
+                form.WATERMARK_ENABLED === 'true'
+                  ? t('common.enabled', 'Enabled')
+                  : t('common.disabled', 'Disabled')
+              "
+              @click="toggleWatermarkEnabled"
             />
-          </button>
-        </div>
+          </div>
+        </AppCard>
 
         <template v-if="form.WATERMARK_ENABLED === 'true'">
-          <!-- Watermark Text -->
-          <div class="space-y-2">
-            <label class="text-primary text-sm font-medium">{{ t('settings.watermark.text', 'Watermark Text') }}</label>
-            <AppInput
-              v-model="form.WATERMARK_TEXT"
-              type="text"
-              placeholder="e.g. KK-Image"
-            />
-          </div>
-
-          <!-- Position -->
-          <div class="space-y-2">
-            <label class="text-primary text-sm font-medium">{{ t('settings.watermark.position', 'Position') }}</label>
-            <AppSelect
-              v-model="form.WATERMARK_POSITION"
-              :options="positionOptions"
-              :placeholder="t('settings.watermark.posBottomRight', 'Bottom Right')"
-            />
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <!-- Opacity -->
+          <AppCard padding="p-4" class="space-y-5">
+            <!-- Watermark Text -->
             <div class="space-y-2">
-              <label class="text-primary flex justify-between text-sm font-medium">
-                <span>{{ t('settings.watermark.opacity', 'Opacity') }}</span>
-                <span>{{ Math.round(parseFloat(form.WATERMARK_OPACITY) * 100) }}%</span>
-              </label>
-              <input
+              <label class="text-primary text-sm font-medium">{{
+                t('settings.watermark.text', 'Watermark Text')
+              }}</label>
+              <AppInput
+                v-model="form.WATERMARK_TEXT"
+                type="text"
+                placeholder="e.g. KK-Image"
+              />
+            </div>
+
+            <!-- Position -->
+            <div class="space-y-2">
+              <label class="text-primary text-sm font-medium">{{
+                t('settings.watermark.position', 'Position')
+              }}</label>
+              <AppSelect
+                v-model="form.WATERMARK_POSITION"
+                :options="positionOptions"
+                :placeholder="t('settings.watermark.posBottomRight', 'Bottom Right')"
+              />
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <AppSlider
                 v-model="form.WATERMARK_OPACITY"
-                type="range"
+                :label="t('settings.watermark.opacity', 'Opacity')"
+                :value-text="`${Math.round(parseFloat(form.WATERMARK_OPACITY) * 100)}%`"
                 min="0.1"
                 max="1.0"
                 step="0.1"
-                class="accent-primary w-full"
               />
-            </div>
 
-            <!-- Size Ratio -->
-            <div class="space-y-2">
-              <label class="text-primary flex justify-between text-sm font-medium">
-                <span>{{ t('settings.watermark.size', 'Size Ratio') }}</span>
-                <span>{{ Math.round(parseFloat(form.WATERMARK_SIZE_RATIO) * 100) }}%</span>
-              </label>
-              <input
+              <AppSlider
                 v-model="form.WATERMARK_SIZE_RATIO"
-                type="range"
+                :label="t('settings.watermark.size', 'Size Ratio')"
+                :value-text="`${Math.round(parseFloat(form.WATERMARK_SIZE_RATIO) * 100)}%`"
+                :hint="
+                  t('settings.watermark.sizeDesc', 'Text size relative to image width.')
+                "
                 min="0.02"
                 max="0.2"
                 step="0.01"
-                class="accent-primary w-full"
               />
-              <p class="text-secondary text-xs">{{ t('settings.watermark.sizeDesc', 'Text size relative to image width.') }}</p>
             </div>
-          </div>
 
-          <!-- Color -->
-          <div class="space-y-2">
-            <label class="text-primary text-sm font-medium">{{ t('settings.watermark.color', 'Color') }}</label>
-            <div class="flex items-center gap-3">
-              <input
-                v-model="form.WATERMARK_COLOR"
-                type="color"
-                class="h-10 w-14 cursor-pointer rounded bg-transparent p-0"
-              />
-              <span class="text-secondary text-sm">{{ form.WATERMARK_COLOR }}</span>
-            </div>
-          </div>
+            <AppColorInput
+              v-model="form.WATERMARK_COLOR"
+              :label="t('settings.watermark.color', 'Color')"
+              :hint="t('settings.watermark.colorHint', 'Choose the exported watermark color.')"
+            />
+          </AppCard>
         </template>
-        
-        <div class="flex justify-end pt-4">
-           <button
+
+        <ActionBar class="border-none bg-transparent px-0 py-0 shadow-none">
+          <AppButton
             type="submit"
-            :disabled="saving"
-            class="bg-primary inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-(--text-inverse) shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50"
+            variant="primary"
+            :loading="saving"
+            :text="saving ? t('settings.saving', 'Saving...') : t('settings.save', 'Save Changes')"
           >
-            <AppIcon v-if="saving" name="spinner" class="size-4 animate-spin" />
-            <span v-if="saving">{{ t('settings.saving', 'Saving...') }}</span>
-            <span v-else>{{ t('settings.save', 'Save Changes') }}</span>
-          </button>
-        </div>
+            <template v-if="!saving" #icon-left>
+              <AppIcon name="check-badge" class="size-4" />
+            </template>
+          </AppButton>
+        </ActionBar>
       </form>
     </SettingsSection>
   </div>
@@ -119,8 +114,13 @@
 import { onMounted, reactive, ref } from 'vue';
 import SettingsSection from '../SettingsSection.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppCard from '@/components/ui/AppCard.vue';
+import AppColorInput from '@/components/ui/AppColorInput.vue';
 import AppInput from '@/components/ui/AppInput.vue';
+import AppSlider from '@/components/ui/AppSlider.vue';
 import AppSelect from '@/components/ui/Select.vue';
+import ActionBar from '@/design-system/composed/ActionBar.vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
@@ -149,6 +149,10 @@ const positionOptions = [
   { value: 'top-left', label: t('settings.watermark.posTopLeft', 'Top Left') },
   { value: 'center', label: t('settings.watermark.posCenter', 'Center') },
 ];
+
+const toggleWatermarkEnabled = () => {
+  form.WATERMARK_ENABLED = form.WATERMARK_ENABLED === 'true' ? 'false' : 'true';
+};
 
 const loadCurrentSettings = async () => {
   await loadSettings(true); // reload from server

@@ -38,19 +38,13 @@
         <label class="mb-1.5 block text-sm font-medium text-(--text-main)">{{
           t('product.form.currency', 'Currency')
         }}</label>
-        <select
-          v-model="form.currency"
+        <Select
           data-testid="currency-select"
-          class="focus:border-primary focus:ring-primary/10 focus:ring-2 h-9 w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-2 text-sm text-(--text-main) outline-none"
-        >
-          <option
-            v-for="option in currencySelectOptions"
-            :key="option.value"
-            :value="option.value"
-          >
-            {{ option.label }}
-          </option>
-        </select>
+          :model-value="form.currency"
+          :options="currencySelectOptions"
+          size="sm"
+          @update:model-value="form.currency = $event"
+        />
       </div>
     </div>
 
@@ -82,6 +76,7 @@
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppInput from '@/components/ui/AppInput.vue';
+import Select from '@/components/ui/Select.vue';
 
 // 使用组件内部的 i18n，不从父组件透传
 const { t } = useI18n();

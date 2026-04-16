@@ -58,13 +58,17 @@
                     </StatusBadge>
                     
                     <div class="flex items-center gap-3">
-                        <button 
-                            class="hover:bg-primary/10 text-primary rounded p-1 transition-colors"
+                        <AppButton
+                            variant="ghost"
+                            size="sm"
+                            class="text-primary hover:bg-primary/10 !h-8 !w-8 !gap-0 !px-0 [&_span]:hidden"
                             :title="t('spaceManager.quickShare') || 'Share'"
                             @click.stop="$emit('share', product)"
                         >
-                            <AppIcon name="share" class="size-4.5" />
-                        </button>
+                            <template #icon-left>
+                                <AppIcon name="share" class="size-4.5" />
+                            </template>
+                        </AppButton>
                         <div class="text-primary text-lg font-bold">¥{{ product.price }}</div>
                     </div>
                 </div>
@@ -76,6 +80,7 @@
 
 <script setup>
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';

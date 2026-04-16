@@ -33,14 +33,16 @@
 
     <!-- Order Count Cell -->
     <template #cell-orderCount="{ row, value }">
-      <button
+      <AppButton
         v-if="value > 0"
-        class="text-info cursor-pointer hover:underline"
+        variant="link"
+        size="sm"
+        class="!h-auto !px-0 text-info"
         :title="t('salesperson.viewOrders')"
         @click.stop="$emit('view-orders', row)"
       >
         <StatusBadge variant="info">{{ value }}</StatusBadge>
-      </button>
+      </AppButton>
       <StatusBadge v-else variant="default">{{ value }}</StatusBadge>
     </template>
 
@@ -54,30 +56,42 @@
     <!-- Actions Cell -->
     <template #cell-actions="{ row }">
       <div class="mobile:opacity-100 flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-        <button
-          class="hover:text-primary hover:bg-(--bg-hover) rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
+        <AppButton
+          variant="ghost"
+          size="sm"
+          class="!h-8 !w-8 !px-0"
           :title="t('salesperson.copyLink')"
           @click.stop="$emit('copy', row.accessToken)"
         >
-          <AppIcon name="clipboard" class="size-4" />
-        </button>
-        <button
+          <template #icon-left>
+            <AppIcon name="clipboard" class="size-4" />
+          </template>
+        </AppButton>
+        <AppButton
           v-if="canManage"
-          class="hover:bg-info-bg hover:text-info rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
+          variant="ghost"
+          size="sm"
+          class="!h-8 !w-8 !px-0 hover:bg-info-bg hover:text-info"
           :title="t('salesperson.edit')"
           @click.stop="$emit('edit', row)"
         >
-          <AppIcon name="pencil-alt" class="size-4" />
-        </button>
-        <button
+          <template #icon-left>
+            <AppIcon name="pencil-alt" class="size-4" />
+          </template>
+        </AppButton>
+        <AppButton
           v-if="canManage"
-          class="hover:bg-danger/10 hover:text-danger rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
+          variant="ghost"
+          size="sm"
+          class="!h-8 !w-8 !px-0 hover:bg-danger/10 hover:text-danger"
           :title="row.orderCount > 0 ? t('salesperson.cannotDeleteHasOrders') : t('common.delete')"
           :disabled="row.orderCount > 0"
           @click.stop="$emit('delete', row)"
         >
-          <AppIcon name="trash" class="size-4" />
-        </button>
+          <template #icon-left>
+            <AppIcon name="trash" class="size-4" />
+          </template>
+        </AppButton>
       </div>
     </template>
   </AppTable>
@@ -86,6 +100,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';

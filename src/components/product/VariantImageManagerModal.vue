@@ -10,20 +10,26 @@
     >
       <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8">
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" @click="$emit('update:modelValue', false)"></div>
-        <div class="relative z-10 flex h-[85vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) shadow-2xl">
+        <AppCard
+          padding="p-0"
+          class="relative z-10 flex h-[85vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl shadow-2xl"
+        >
           <!-- Header -->
           <div class="flex items-center justify-between border-b border-(--border-color) bg-(--bg-card) px-6 py-4">
             <div>
               <h1 class="text-xl font-bold tracking-tight text-(--text-main)">{{ t('product.create.variants.image_upload', 'Product Variant Image Upload') }}</h1>
               <p class="mt-1 text-sm text-(--text-secondary)">{{ t('product.create.variants.image_manage', 'Manage and organize visual assets for each SKU') }}</p>
             </div>
-            <button 
-              type="button" 
-              class="cursor-pointer rounded-lg p-2 text-(--text-secondary) transition-colors hover:bg-(--bg-muted) hover:text-(--text-main)" 
+            <AppButton
+              variant="ghost"
+              size="sm"
+              class="text-(--text-secondary) hover:text-(--text-main) !h-10 !w-10 !gap-0 !px-0 [&_span]:hidden"
               @click="$emit('update:modelValue', false)"
             >
-              <AppIcon name="x-mark" class="size-6" />
-            </button>
+              <template #icon-left>
+                <AppIcon name="x-mark" class="size-6" />
+              </template>
+            </AppButton>
           </div>
 
           <!-- Main Content Area -->
@@ -35,16 +41,13 @@
                   {{ t('product.create.variants.select', 'Select Variant') }}
                 </h2>
                 <nav class="space-y-1">
-                  <button
+                  <AppCard
                     v-for="(variant, index) in variants"
                     :key="getVariantKey(variant, index)"
-                    type="button"
-                    class="group flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 transition-colors"
-                    :class="[
-                      selectedVariantKey === getVariantKey(variant, index)
-                        ? 'border-primary/20 bg-primary/10 text-primary border'
-                        : 'border border-transparent text-(--text-secondary) hover:bg-(--bg-muted)/50 hover:text-(--text-main)'
-                    ]"
+                    clickable
+                    :selected="selectedVariantKey === getVariantKey(variant, index)"
+                    padding="px-3 py-2.5"
+                    class="group flex w-full items-center justify-between rounded-lg text-(--text-secondary) hover:text-(--text-main)"
                     @click="selectedVariantKey = getVariantKey(variant, index)"
                   >
                     <div class="flex items-center gap-3 overflow-hidden pr-2">
@@ -66,7 +69,7 @@
                     >
                       {{ getImageCountByKey(getVariantKey(variant, index)) }}
                     </span>
-                  </button>
+                  </AppCard>
                 </nav>
               </div>
             </aside>
@@ -105,23 +108,21 @@
               <span class="text-xs">{{ t('product.variants.image.auto_save', 'Changes are automatically saved to draft.') }}</span>
             </div>
             <div class="flex gap-3">
-              <button 
-                type="button"
-                class="cursor-pointer px-6 py-2 text-sm font-bold text-(--text-secondary) transition-colors hover:text-(--text-main)"
+              <AppButton
+                variant="ghost"
                 @click="$emit('update:modelValue', false)"
               >
                 {{ t('common.cancel', 'Cancel') }}
-              </button>
-              <button 
-                type="button"
-                class="bg-primary shadow-primary/20 cursor-pointer rounded-lg px-8 py-2 text-sm font-bold text-white shadow-lg transition-all hover:bg-primary/90"
+              </AppButton>
+              <AppButton
+                class="shadow-primary/20 px-8 shadow-lg"
                 @click="$emit('update:modelValue', false)"
               >
                 {{ t('common.saveChanges', 'Save Changes') }}
-              </button>
+              </AppButton>
             </div>
           </div>
-        </div>
+        </AppCard>
       </div>
     </Transition>
   </Teleport>
@@ -130,6 +131,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppCard from '@/components/ui/AppCard.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import ImageUploader from '@/components/common/ImageUploader.vue';
 import { API } from '@/utils/constants';

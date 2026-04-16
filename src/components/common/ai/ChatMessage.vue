@@ -62,13 +62,15 @@
       enter-to-class="opacity-100 translate-y-0"
     >
       <div v-if="showReportButton && !isGeneratingReport" class="mt-2 flex justify-start">
-        <button
-          class="from-info to-purple flex items-center gap-2 rounded-xl bg-gradient-to-r px-4 py-2.5 text-sm font-medium text-(--text-inverse) shadow-md transition-all hover:shadow-lg hover:brightness-110"
+        <AppButton
+          class="from-info to-purple !rounded-xl bg-gradient-to-r shadow-md hover:shadow-lg hover:brightness-110"
           @click="$emit('generate-report')"
         >
-          <AppIcon name="chart-bar" class="size-4" />
+          <template #icon-left>
+            <AppIcon name="chart-bar" class="size-4" />
+          </template>
           {{ t('ai.generateReport') }}
-        </button>
+        </AppButton>
       </div>
     </transition>
 
@@ -84,6 +86,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { useI18n } from '@/composables/useI18n';
 

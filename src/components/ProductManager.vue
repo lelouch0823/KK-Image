@@ -2,41 +2,57 @@
   <ManagementListShell :title="t('product.manager.title')" :description="t('product.manager.subtitle')">
       <template #actions>
             <!-- Create Button -->
-            <button 
-                class="bg-primary shadow-primary/20 flex items-center justify-center gap-2 rounded-lg text-sm font-medium text-(--text-inverse) shadow-sm transition-all hover:bg-primary-hover active:scale-95 max-sm:size-9 sm:h-9 sm:px-4 lg:hidden"
+            <AppButton
+                variant="primary"
+                size="sm"
+                class="shadow-sm max-sm:size-9 max-sm:!px-0 lg:hidden"
                 :title="t('product.action.create')"
                 @click="handleCreate"
             >
-                <AppIcon name="plus" class="size-5 sm:size-4" />
+                <template #icon-left>
+                    <AppIcon name="plus" class="size-5 sm:size-4" />
+                </template>
                 <span class="hidden sm:inline">{{ t('product.action.create') }}</span>
-            </button>
+            </AppButton>
 
             <!-- Import Button -->
-            <button
-                class="hover:text-info hover:bg-(--bg-hover) flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all active:scale-95 lg:hidden"
+            <AppButton
+                variant="white"
+                size="sm"
+                class="size-9 !px-0 hover:text-info lg:hidden"
                 :title="t('product.action.import')"
                 @click="showImportModal = true"
             >
-                <AppIcon name="arrow-up-tray" class="size-5" />
-            </button>
+                <template #icon-left>
+                    <AppIcon name="arrow-up-tray" class="size-5" />
+                </template>
+            </AppButton>
 
             <!-- Export Button -->
-            <button
-                class="hover:text-info hover:bg-(--bg-hover) flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all active:scale-95 lg:hidden"
+            <AppButton
+                variant="white"
+                size="sm"
+                class="size-9 !px-0 hover:text-info lg:hidden"
                 :title="t('product.action.export')"
                 @click="handleExport"
             >
-                <AppIcon name="arrow-down-tray" class="size-5" />
-            </button>
+                <template #icon-left>
+                    <AppIcon name="arrow-down-tray" class="size-5" />
+                </template>
+            </AppButton>
 
              <!-- Stats Button -->
-            <button
-                class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) transition-all hover:bg-(--bg-hover) active:scale-95 lg:hidden"
+            <AppButton
+                variant="white"
+                size="sm"
+                class="size-9 !px-0 text-primary hover:text-primary lg:hidden"
                 :title="t('product.manager.stats_overview')"
                 @click="showStatsModal = true"
             >
-                <AppIcon name="chart-bar" class="size-5" />
-            </button>
+                <template #icon-left>
+                    <AppIcon name="chart-bar" class="size-5" />
+                </template>
+            </AppButton>
       </template>
 
       <template #filters>
@@ -51,40 +67,56 @@
                 @refresh="handleFilterRefresh"
             >
                 <template #actions>
-                    <button 
+                    <AppButton
                         data-testid="product-create-trigger"
-                        class="bg-primary shadow-primary/20 flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap text-(--text-inverse) shadow-sm transition-all hover:bg-primary-hover active:scale-95 xl:px-4"
+                        variant="primary"
+                        size="sm"
+                        class="whitespace-nowrap shadow-sm"
                         :title="t('product.action.create')"
                         @click="handleCreate"
                     >
-                        <AppIcon name="plus" class="size-4" />
+                        <template #icon-left>
+                            <AppIcon name="plus" class="size-4" />
+                        </template>
                         <span>{{ t('product.action.create') }}</span>
-                    </button>
+                    </AppButton>
 
-                    <button
+                    <AppButton
                         data-testid="product-import-trigger"
-                        class="hover:text-info hover:bg-(--bg-hover) flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all active:scale-95"
+                        variant="white"
+                        size="sm"
+                        class="size-9 !px-0 hover:text-info"
                         :title="t('product.action.import')"
                         @click="showImportModal = true"
                     >
-                        <AppIcon name="arrow-up-tray" class="size-5" />
-                    </button>
+                        <template #icon-left>
+                            <AppIcon name="arrow-up-tray" class="size-5" />
+                        </template>
+                    </AppButton>
 
-                    <button
-                        class="hover:text-info hover:bg-(--bg-hover) flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-secondary) transition-all active:scale-95"
+                    <AppButton
+                        variant="white"
+                        size="sm"
+                        class="size-9 !px-0 hover:text-info"
                         :title="t('product.action.export')"
                         @click="handleExport"
                     >
-                        <AppIcon name="arrow-down-tray" class="size-5" />
-                    </button>
+                        <template #icon-left>
+                            <AppIcon name="arrow-down-tray" class="size-5" />
+                        </template>
+                    </AppButton>
 
-                    <button
-                        class="text-primary flex size-9 items-center justify-center rounded-lg border border-(--border-color) bg-(--bg-card) transition-all hover:bg-(--bg-hover) active:scale-95"
+                    <AppButton
+                        variant="white"
+                        size="sm"
+                        class="size-9 !px-0 text-primary hover:text-primary"
                         :title="t('product.manager.stats_overview')"
                         @click="showStatsModal = true"
                     >
-                        <AppIcon name="chart-bar" class="size-5" />
-                    </button>
+                        <template #icon-left>
+                            <AppIcon name="chart-bar" class="size-5" />
+                        </template>
+                    </AppButton>
                 </template>
             </ProductFilters>
       </template>
@@ -179,9 +211,9 @@
             :description="error"
         >
             <template #action>
-                 <button class="btn btn-primary" @click="reloadProducts">
+                 <AppButton variant="primary" size="sm" @click="reloadProducts">
                     {{ t('common.action.retry') }}
-                 </button>
+                 </AppButton>
             </template>
         </EmptyState>
         
@@ -192,9 +224,9 @@
             :description="t('product.text.empty_description') || t('common.text.create_first_item')"
         >
             <template #action>
-                <button class="btn btn-primary" @click="handleCreate">
+                <AppButton variant="primary" size="sm" @click="handleCreate">
                     {{ t('product.action.create') }}
-                </button>
+                </AppButton>
             </template>
         </EmptyState>
       </div>
@@ -207,6 +239,14 @@
         />
     </div>
       </template>
+    <ConfirmDialog
+        v-model="confirmData.show"
+        :title="confirmData.title"
+        :message="confirmData.message"
+        :type="confirmData.type"
+        :loading="confirmData.loading"
+        @confirm="confirmData.onConfirm"
+    />
   </ManagementListShell>
 </template>
 
@@ -227,7 +267,9 @@ const ProductImportModal = defineAsyncComponent(() => import('./product/ProductI
 const ProductExportModal = defineAsyncComponent(() => import('./product/ProductExportModal.vue'));
 import ProductGrid from './product/ProductGrid.vue';
 import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import Modal from '@/components/ui/Modal.vue';
@@ -257,6 +299,14 @@ const isEditMode = ref(false);
 const editingProduct = ref(null);
 const viewingProduct = ref(null);
 const sharingProduct = ref(null);
+const confirmData = ref({
+    show: false,
+    title: '',
+    message: '',
+    type: 'danger',
+    loading: false,
+    onConfirm: async () => {},
+});
 const queryEditInitializing = ref(false);
 const queryEditError = ref('');
 let stopProductsRefreshSubscription = null;
@@ -481,11 +531,24 @@ const handleModalSuccess = async (createdProduct = null) => {
     });
 };
 
-const handleDelete = async (product) => {
-    if (confirm(t('product.action.delete_confirm_message', { name: product.name }))) {
-        await deleteProduct(product.id);
-        reloadProducts(); 
-    }
+const handleDelete = (product) => {
+    confirmData.value = {
+        show: true,
+        title: t('common.delete'),
+        message: t('product.action.delete_confirm_message', { name: product.name }),
+        type: 'danger',
+        loading: false,
+        onConfirm: async () => {
+            confirmData.value.loading = true;
+            try {
+                await deleteProduct(product.id);
+                await reloadProducts();
+                confirmData.value.show = false;
+            } finally {
+                confirmData.value.loading = false;
+            }
+        },
+    };
 };
 
 const handleExport = () => {

@@ -74,20 +74,22 @@
               {{ t('purchaseOrder.pagination.total', { count: total }) }}
             </p>
             <div class="flex items-center gap-2">
-              <button
+              <AppButton
+                variant="outline"
+                size="sm"
                 :disabled="filters.page <= 1"
-                class="cursor-pointer rounded-lg border border-(--border-color) px-3 py-1.5 text-sm transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-50"
+                class="min-w-[5.5rem]"
+                :text="`← ${t('purchaseOrder.pagination.prev')}`"
                 @click="changePage(-1)"
-              >
-                ← {{ t('purchaseOrder.pagination.prev') }}
-              </button>
-              <button
+              />
+              <AppButton
+                variant="outline"
+                size="sm"
                 :disabled="filters.page * filters.limit >= total"
-                class="cursor-pointer rounded-lg border border-(--border-color) px-3 py-1.5 text-sm transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-50"
+                class="min-w-[5.5rem]"
+                :text="`${t('purchaseOrder.pagination.next')} →`"
                 @click="changePage(1)"
-              >
-                {{ t('purchaseOrder.pagination.next') }} →
-              </button>
+              />
             </div>
           </div>
 

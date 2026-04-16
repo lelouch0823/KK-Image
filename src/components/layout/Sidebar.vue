@@ -37,27 +37,33 @@
       </div>
       <div class="flex items-center gap-1">
         <!-- 桌面端折叠按钮 -->
-        <button
-          type="button"
-          class="text-secondary hidden rounded-lg p-1.5 transition-colors hover:text-primary hover:bg-(--bg-hover) lg:flex"
+        <AppButton
+          variant="ghost"
+          size="sm"
+          class="text-secondary hidden !h-8 !w-8 !gap-0 !px-0 hover:text-primary lg:flex [&_span]:hidden"
           :title="isCollapsed ? t('sidebar.expand') : t('sidebar.collapse')"
           @click="toggleCollapse"
         >
-          <AppIcon
-            name="chevron-double-left"
-            class="size-5 transition-transform duration-300"
-            :class="isCollapsed ? 'rotate-180' : ''"
-          />
-        </button>
+          <template #icon-left>
+            <AppIcon
+              name="chevron-double-left"
+              class="size-5 transition-transform duration-300"
+              :class="isCollapsed ? 'rotate-180' : ''"
+            />
+          </template>
+        </AppButton>
 
         <!-- 移动端关闭按钮 -->
-        <button
-          type="button"
-          class="rounded-lg p-1.5 text-(--text-muted) hover:bg-(--bg-hover) lg:hidden"
+        <AppButton
+          variant="ghost"
+          size="sm"
+          class="text-(--text-muted) !h-8 !w-8 !gap-0 !px-0 lg:hidden [&_span]:hidden"
           @click="closeSidebar"
         >
-          <AppIcon name="x-mark" class="size-5" />
-        </button>
+          <template #icon-left>
+            <AppIcon name="x-mark" class="size-5" />
+          </template>
+        </AppButton>
       </div>
     </div>
 
@@ -72,25 +78,29 @@
             {{ t('sidebar.menu') }}
           </div>
         </transition>
-        <button
+        <AppButton
           v-for="item in visibleMenuItems"
           :key="item.key"
-          type="button"
+          variant="ghost"
+          size="sm"
+          block
           :title="isCollapsed ? item.label : ''"
-          class="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+          class="mb-1 !h-auto !justify-start !px-3 !py-2.5 text-sm font-medium"
           :class="[
             currentView === item.key
               ? 'text-primary bg-primary/5 ring-primary/10 font-semibold shadow-sm ring-1'
               : 'text-secondary hover:text-primary hover:bg-(--bg-hover)',
-            isCollapsed ? 'justify-center' : '',
+            isCollapsed ? '!justify-center' : '',
           ]"
           @click="handleMenuClick(item.key)"
         >
-          <AppIcon :name="item.icon" class="size-5 shrink-0" />
+          <template #icon-left>
+            <AppIcon :name="item.icon" class="size-5 shrink-0" />
+          </template>
           <transition name="fade-slide">
             <span v-if="!isCollapsed" class="whitespace-nowrap">{{ item.label }}</span>
           </transition>
-        </button>
+        </AppButton>
       </div>
 
       <div>
@@ -102,20 +112,24 @@
             {{ t('sidebar.manage') }}
           </div>
         </transition>
-        <button
-          type="button"
+        <AppButton
+          variant="ghost"
+          size="sm"
+          block
           :title="isCollapsed ? t('sidebar.logout') : ''"
           :class="[
-            'text-secondary flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:text-danger hover:bg-(--color-danger-bg)',
-            isCollapsed ? 'justify-center' : '',
+            'text-secondary !h-auto !justify-start !px-3 !py-2.5 text-sm font-medium hover:text-danger hover:bg-(--color-danger-bg)',
+            isCollapsed ? '!justify-center' : '',
           ]"
           @click="handleLogout"
         >
-          <AppIcon name="arrow-right-on-rectangle" class="size-5 shrink-0" />
+          <template #icon-left>
+            <AppIcon name="arrow-right-on-rectangle" class="size-5 shrink-0" />
+          </template>
           <transition name="fade-slide">
             <span v-if="!isCollapsed" class="whitespace-nowrap">{{ t('sidebar.logout') }}</span>
           </transition>
-        </button>
+        </AppButton>
       </div>
     </nav>
 
@@ -156,6 +170,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import { useAccessControl } from '@/composables/useAccessControl';
 import { useToast } from '@/composables/useToast';
+import AppButton from '@/components/ui/AppButton.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 

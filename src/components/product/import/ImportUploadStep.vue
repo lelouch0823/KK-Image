@@ -8,14 +8,17 @@
                 <p class="mb-3 text-xs leading-5 text-(--text-secondary)">
                     {{ t('product.import.step1_desc', '请下载标准 Excel 模板，按照格式填写商品信息。') }}
                 </p>
-                <button 
-                    type="button"
-                    class="text-primary border-primary/20 inline-flex cursor-pointer items-center gap-2 rounded-md border bg-(--bg-card) px-3 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-(--bg-hover)"
+                <AppButton
+                    variant="white"
+                    size="sm"
+                    class="border-primary/20 text-primary"
                     @click="downloadTemplate"
                 >
-                    <AppIcon name="arrow-down-tray" class="size-4" />
+                    <template #icon-left>
+                        <AppIcon name="arrow-down-tray" class="size-4" />
+                    </template>
                     {{ t('product.import.download_template', '下载 Excel 模板') }}
-                </button>
+                </AppButton>
             </div>
 
             <div class="rounded-xl border border-(--border-color) bg-(--bg-muted) p-4">
@@ -85,6 +88,7 @@
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import * as XLSX from 'xlsx';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const emit = defineEmits(['file-selected']);

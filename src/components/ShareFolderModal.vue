@@ -36,13 +36,7 @@
           }}</span>
         </div>
         <div class="flex gap-2">
-          <input
-            type="text"
-            readonly
-            :value="existingShareUrl"
-            class="input flex-1 bg-(--bg-card) text-sm"
-            @click="$event.target.select()"
-          />
+          <AppInput :model-value="existingShareUrl" readonly class="flex-1" />
           <Tooltip :content="t('share.copyLink')">
             <AppButton
               variant="secondary"
@@ -66,7 +60,7 @@
           }}</span>
           <AppButton
             variant="ghost"
-            size="xs"
+            size="sm"
             class="text-info-text h-auto !p-0 text-xs font-medium hover:text-info-text/80 hover:bg-transparent"
             :text="t('share.regenerate')"
             @click="showExpiryOptions = true"
@@ -95,13 +89,7 @@
       <div v-if="shareUrl" class="mb-4">
         <label class="mb-2 block text-sm font-medium text-(--text-main)">{{ t('share.generate') }}</label>
         <div class="flex gap-2">
-          <input
-            type="text"
-            readonly
-            :value="shareUrl"
-            class="input flex-1 bg-(--bg-muted) text-sm"
-            @click="$event.target.select()"
-          />
+          <AppInput :model-value="shareUrl" readonly class="flex-1" />
           <Tooltip :content="t('common.copy')">
             <AppButton
               variant="secondary"
@@ -162,6 +150,7 @@ import Tooltip from '@/components/ui/Tooltip.vue';
 import Modal from '@/components/ui/Modal.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

@@ -16,14 +16,11 @@
     <p class="text-base font-semibold text-(--text-main)">{{ titleText }}</p>
     <p class="max-w-md text-sm text-(--text-secondary)">{{ errorText }}</p>
     <div class="flex items-center gap-2">
-      <button
-        type="button"
-        class="bg-primary rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse)"
+      <AppButton
         data-testid="retry-action"
+        :text="retryText"
         @click="$emit('retry')"
-      >
-        {{ retryText }}
-      </button>
+      />
       <slot name="actions"></slot>
     </div>
   </div>
@@ -44,6 +41,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 
 const props = defineProps({
   state: { type: String, default: 'ready' },
@@ -67,4 +65,3 @@ const titleText = computed(() => props.title || t('common.loadFailed'));
 const descriptionText = computed(() => props.description || t('common.noData'));
 const errorText = computed(() => props.error || props.description || t('common.networkError'));
 </script>
-

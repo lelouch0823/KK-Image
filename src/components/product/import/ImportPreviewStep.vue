@@ -10,12 +10,16 @@
                     <p class="text-xs text-(--text-secondary)">{{ fileSize }}</p>
                 </div>
             </div>
-            <button 
-                class="hover:text-danger cursor-pointer text-(--text-muted)"
+            <AppButton
+                variant="ghost"
+                size="sm"
+                class="text-(--text-muted) hover:text-danger !h-8 !w-8 !gap-0 !px-0 [&_span]:hidden"
                 @click="$emit('reset')"
             >
-                <AppIcon name="x-mark" class="size-5" />
-            </button>
+                <template #icon-left>
+                    <AppIcon name="x-mark" class="size-5" />
+                </template>
+            </AppButton>
         </div>
 
         <!-- Parsed Stats -->
@@ -101,45 +105,39 @@
         <div class="mb-2 flex items-center justify-between">
             <p class="text-warning text-sm font-semibold">{{ t('product.import.conflicts.title', '冲突详情（已跳过）') }}</p>
             <div class="flex items-center gap-2">
-                <button type="button" class="btn btn-ghost btn-xs cursor-pointer" @click="downloadConflictsCsv">
+                <AppButton variant="ghost" size="sm" @click="downloadConflictsCsv">
                     {{ t('product.import.conflicts.download', '下载冲突报告 CSV') }}
-                </button>
-                <button type="button" class="btn btn-ghost btn-xs cursor-pointer" @click="toggleConflictsExpanded">
+                </AppButton>
+                <AppButton variant="ghost" size="sm" @click="toggleConflictsExpanded">
                     {{ conflictsExpanded ? t('common.collapse', '收起') : t('common.expand', '展开') }}
-                </button>
+                </AppButton>
             </div>
         </div>
 
         <div v-if="conflictsExpanded" class="space-y-2">
             <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <input
-                    v-model.trim="conflictSearch"
+                <AppInput
+                    v-model="conflictSearch"
                     data-testid="conflict-search-input"
-                    type="text"
-                    class="focus:border-primary w-full rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs text-(--text-main) outline-none"
+                    size="sm"
                     :placeholder="t('product.import.conflicts.search_placeholder', '搜索 SPU/SKU/字段')"
                 />
-                <select
-                    v-model="conflictLevelFilter"
+                <Select
                     data-testid="conflict-level-select"
-                    class="focus:border-primary w-full rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs text-(--text-main) outline-none"
-                >
-                    <option
-                        v-for="option in conflictLevelOptions"
-                        :key="option.value"
-                        :value="option.value"
-                    >
-                        {{ option.label }}
-                    </option>
-                </select>
-                <button
-                    type="button"
+                    :model-value="conflictLevelFilter"
+                    :options="conflictLevelOptions"
+                    size="sm"
+                    @update:model-value="conflictLevelFilter = $event"
+                />
+                <AppButton
+                    variant="ghost"
+                    size="sm"
                     data-testid="copy-visible-conflicts"
-                    class="btn btn-ghost btn-xs cursor-pointer justify-self-start"
+                    class="justify-self-start"
                     @click="copyVisibleConflicts"
                 >
                     {{ t('product.import.conflicts.copy_visible', '复制当前结果') }}
-                </button>
+                </AppButton>
             </div>
 
             <div class="border-warning/20 max-h-52 overflow-y-auto rounded border bg-(--bg-card)">
@@ -188,7 +186,10 @@
 import { computed, ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useClipboard } from '@/composables/useClipboard';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
+import Select from '@/components/ui/Select.vue';
 
 const props = defineProps({
     fileName: { type: String, default: '' },

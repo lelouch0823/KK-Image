@@ -48,14 +48,14 @@
                         {{ t('product.import.specs.desc', '支持 0-3 个规格，支持预设名称或自定义名称。') }}
                     </p>
                 </div>
-                <button
-                    type="button"
-                    class="btn btn-ghost"
+                <AppButton
+                    variant="ghost"
+                    size="sm"
                     :disabled="specConfigs.length >= 3"
                     @click="addSpec"
                 >
                     + {{ t('product.import.specs.add', '添加规格') }}
-                </button>
+                </AppButton>
             </div>
 
             <div v-if="specConfigs.length === 0" class="text-xs text-(--text-secondary)">
@@ -67,37 +67,38 @@
                     <span class="text-xs font-semibold text-(--text-main)">
                         {{ t('product.import.specs.item', '规格') }} {{ index + 1 }}
                     </span>
-                    <button
-                        type="button"
-                        class="text-danger cursor-pointer text-xs"
+                    <AppButton
+                        variant="link"
+                        size="sm"
+                        class="text-danger"
                         :aria-label="t('common.delete', '删除')"
                         @click="removeSpec(index)"
                     >
                         {{ t('common.delete', '删除') }}
-                    </button>
+                    </AppButton>
                 </div>
 
                 <div class="mb-2 flex flex-wrap gap-2">
-                    <button
+                    <AppButton
                         v-for="preset in getPresetOptionsFor(index)"
                         :key="preset"
-                        type="button"
-                        class="cursor-pointer rounded-full border px-2 py-1 text-xs transition-colors"
-                        :class="normalizeName(spec.name) === normalizeName(preset) ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-(--text-secondary) hover:bg-(--bg-hover)'"
+                        :variant="normalizeName(spec.name) === normalizeName(preset) ? 'secondary' : 'ghost'"
+                        size="sm"
+                        class="rounded-full !px-2"
+                        :class="normalizeName(spec.name) === normalizeName(preset) ? 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary' : ''"
                         @click="setSpecName(index, preset)"
                     >
                         {{ preset }}
-                    </button>
+                    </AppButton>
                 </div>
 
                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <input
+                    <AppInput
                         :data-testid="`product-import-spec-name-${index}`"
-                        :value="spec.name"
-                        type="text"
-                        class="focus:border-primary w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main) outline-none"
+                        :model-value="spec.name"
+                        size="sm"
                         :placeholder="t('product.import.specs.name_placeholder', '输入规格名（如：颜色）')"
-                        @input="setSpecName(index, $event.target.value)"
+                        @update:model-value="setSpecName(index, $event)"
                     />
                     <Select
                         :data-testid="`product-import-spec-column-${index}`"
@@ -116,26 +117,28 @@
                 {{ t('product.import.mode.desc', '请选择导入时遇到同 SPU/变体时的处理方式。') }}
             </p>
             <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <button
-                    type="button"
+                <AppCard
+                    clickable
                     data-testid="product-import-mode-safe-merge"
-                    class="cursor-pointer rounded-lg border px-3 py-2 text-left transition-colors"
-                    :class="importMode === 'safe_merge' ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-(--text-main) hover:bg-(--bg-hover)'"
+                    :selected="importMode === 'safe_merge'"
+                    class="text-left"
+                    padding="p-3"
                     @click="updateImportMode('safe_merge')"
                 >
                     <p class="text-sm font-semibold">{{ t('product.import.mode.safe_merge', '仅更新无冲突（推荐）') }}</p>
-                    <p class="mt-1 text-xs opacity-80">{{ t('product.import.mode.safe_merge_desc', '已有非空且不一致字段将跳过，并记录冲突') }}</p>
-                </button>
-                <button
-                    type="button"
+                    <p class="mt-1 text-xs text-(--text-secondary)">{{ t('product.import.mode.safe_merge_desc', '已有非空且不一致字段将跳过，并记录冲突') }}</p>
+                </AppCard>
+                <AppCard
+                    clickable
                     data-testid="product-import-mode-replace"
-                    class="cursor-pointer rounded-lg border px-3 py-2 text-left transition-colors"
-                    :class="importMode === 'replace' ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-(--text-main) hover:bg-(--bg-hover)'"
+                    :selected="importMode === 'replace'"
+                    class="text-left"
+                    padding="p-3"
                     @click="updateImportMode('replace')"
                 >
                     <p class="text-sm font-semibold">{{ t('product.import.mode.replace', '全覆盖更新') }}</p>
-                    <p class="mt-1 text-xs opacity-80">{{ t('product.import.mode.replace_desc', '同 SPU 命中后按导入值覆盖原有字段') }}</p>
-                </button>
+                    <p class="mt-1 text-xs text-(--text-secondary)">{{ t('product.import.mode.replace_desc', '同 SPU 命中后按导入值覆盖原有字段') }}</p>
+                </AppCard>
             </div>
         </div>
 
@@ -182,6 +185,9 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppCard from '@/components/ui/AppCard.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 import Select from '@/components/ui/Select.vue';
 
 const props = defineProps({

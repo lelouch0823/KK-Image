@@ -45,8 +45,21 @@ const rules = [
     files: [
       'minisales/miniprogram/components/sales/order-summary/index.scss',
       'minisales/miniprogram/components/sales/order-lines/index.scss',
+      'minisales/miniprogram/components/sales/order-card/index.scss',
+      'minisales/miniprogram/components/sales/product-binding/index.scss',
+      'minisales/miniprogram/components/sales/timeline-card/index.scss',
     ],
-    patterns: [/#0f172a/g, /#e2e8f0/g, /#f8fafc/g],
+    patterns: [
+      /#0f172a/g,
+      /#e2e8f0/g,
+      /#f8fafc/g,
+      /#ffffff/g,
+      /#dbeafe/g,
+      /#93c5fd/g,
+      /#eff6ff/g,
+      /rgba\(15,\s*23,\s*42,\s*0\.32\)/g,
+      /rgba\(59,\s*130,\s*246,\s*0\.12\)/g,
+    ],
   },
 ];
 

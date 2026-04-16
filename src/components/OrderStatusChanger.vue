@@ -5,7 +5,7 @@
       :disabled="loading"
       variant="white"
       size="sm"
-      class="min-w-[4.25rem] rounded-full border shadow-sm"
+      class="min-w-[4.25rem] justify-center whitespace-nowrap rounded-full border text-center shadow-sm"
       :class="[currentStatusClass, showChevron ? 'relative pl-3 pr-8' : 'px-3.5']"
       @click="openModal"
     >

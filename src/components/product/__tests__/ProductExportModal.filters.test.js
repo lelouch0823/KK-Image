@@ -62,8 +62,8 @@ describe('ProductExportModal filter forwarding', () => {
       },
     });
 
-    await wrapper.find('input[value="filtered"]').setValue(true);
-    await wrapper.find('button.btn.btn-primary').trigger('click');
+    await wrapper.find('[data-testid="export-scope-filtered"]').trigger('click');
+    await wrapper.find('[data-testid="export-generate"]').trigger('click');
     await vi.advanceTimersByTimeAsync(150);
 
     expect(mocks.listProductsForExport).toHaveBeenCalledWith({
@@ -109,7 +109,7 @@ describe('ProductExportModal filter forwarding', () => {
     });
 
     wrapper.vm.form.format = 'csv';
-    await wrapper.find('button.btn.btn-primary').trigger('click');
+    await wrapper.find('[data-testid="export-generate"]').trigger('click');
     await vi.advanceTimersByTimeAsync(150);
 
     expect(wrapper.vm.isGenerating).toBe(true);
@@ -163,7 +163,7 @@ describe('ProductExportModal filter forwarding', () => {
 
     wrapper.vm.form.scope = 'filtered';
     wrapper.vm.form.format = 'csv';
-    await wrapper.find('button.btn.btn-primary').trigger('click');
+    await wrapper.find('[data-testid="export-generate"]').trigger('click');
     await vi.advanceTimersByTimeAsync(300);
     await flushPromises();
 
@@ -199,7 +199,7 @@ describe('ProductExportModal filter forwarding', () => {
     });
 
     wrapper.vm.form.format = 'csv';
-    await wrapper.find('button.btn.btn-primary').trigger('click');
+    await wrapper.find('[data-testid="export-generate"]').trigger('click');
     await vi.advanceTimersByTimeAsync(300);
     await flushPromises();
 
@@ -267,7 +267,7 @@ describe('ProductExportModal filter forwarding', () => {
     });
 
     wrapper.vm.form.format = 'excel';
-    await wrapper.find('button.btn.btn-primary').trigger('click');
+    await wrapper.find('[data-testid="export-generate"]').trigger('click');
     await vi.advanceTimersByTimeAsync(300);
     await flushPromises();
 
@@ -309,7 +309,7 @@ describe('ProductExportModal filter forwarding', () => {
     });
 
     wrapper.vm.form.scope = 'filtered';
-    await wrapper.find('button.btn.btn-primary').trigger('click');
+    await wrapper.find('[data-testid="export-generate"]').trigger('click');
     await vi.advanceTimersByTimeAsync(300);
     await flushPromises();
 

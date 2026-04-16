@@ -6,6 +6,10 @@ describe('ProductManager design-system migration', () => {
   it('uses the shared management list shell', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/components/ProductManager.vue'), 'utf8');
     expect(source).toContain('ManagementListShell');
+    expect(source).toContain("import AppButton from '@/components/ui/AppButton.vue'");
+    expect(source).toContain('ConfirmDialog');
+    expect(source).not.toContain('<button');
+    expect(source).not.toContain('confirm(');
   });
 
   it('uses lightweight pagination framing inside the content shell', () => {

@@ -28,18 +28,13 @@
           </p>
         </div>
       </div>
-      <!-- Toggle Switch -->
-      <label class="relative inline-flex cursor-pointer items-center">
-        <input
-          :checked="isPublic"
-          type="checkbox"
-          class="peer sr-only"
-          @change="$emit('update:isPublic', $event.target.checked)"
-        />
-        <div
-          class="peer h-5 w-9 rounded-full bg-(--border-strong) transition-all peer-checked:bg-primary peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-(--bg-card) after:transition-all after:content-[''] peer-checked:after:translate-x-full"
-        ></div>
-      </label>
+      <AppButton
+        :variant="isPublic ? 'primary' : 'white'"
+        size="sm"
+        @click="$emit('update:isPublic', !isPublic)"
+      >
+        {{ isPublic ? t('common.enabled', '已开启') : t('common.enable', '开启') }}
+      </AppButton>
     </div>
 
     <!-- Share Information -->
@@ -52,13 +47,17 @@
       >
         {{ shareUrl }}
       </div>
-      <button
-        class="bg-primary/5 text-primary flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium transition-colors hover:bg-primary/10"
+      <AppButton
+        variant="outline"
+        size="sm"
+        class="w-full justify-center"
         @click.prevent="copyLink"
       >
-        <AppIcon name="clipboard" class="size-3.5" />
+        <template #icon-left>
+          <AppIcon name="clipboard" class="size-3.5" />
+        </template>
         {{ t('common.copy') }}
-      </button>
+      </AppButton>
 
       <!-- Password Lock -->
       <div class="border-t border-(--border-color) pt-3">
@@ -69,30 +68,30 @@
               t('spaceManager.passwordLock')
             }}</span>
           </div>
-          <label class="relative inline-flex cursor-pointer items-center">
-            <input
-              :checked="passwordEnabled"
-              type="checkbox"
-              class="peer sr-only"
-              @change="$emit('update:passwordEnabled', $event.target.checked)"
-            />
-            <div
-              class="peer h-4 w-7 rounded-full bg-(--color-gray-200) peer-checked:bg-primary after:absolute after:top-[2px] after:left-[2px] after:h-3 after:w-3 after:rounded-full after:bg-(--bg-card) after:transition-all after:content-[''] peer-checked:after:translate-x-full"
-            ></div>
-          </label>
+          <AppButton
+            :variant="passwordEnabled ? 'primary' : 'white'"
+            size="sm"
+            @click="$emit('update:passwordEnabled', !passwordEnabled)"
+          >
+            {{
+              passwordEnabled
+                ? t('common.enabled', '已开启')
+                : t('common.enable', '开启')
+            }}
+          </AppButton>
         </div>
         <div v-if="passwordEnabled" class="flex gap-2">
-          <input
-            :value="password"
+          <AppInput
+            :model-value="password"
             type="text"
-            class="focus:border-primary flex-1 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-sm text-(--text-main) transition-all outline-none"
+            size="sm"
             :placeholder="t('spaceManager.setPassword')"
-            @input="$emit('update:password', $event.target.value)"
+            @update:model-value="$emit('update:password', $event)"
           />
         </div>
       </div>
     </div>
-    <div v-else class="text-center text-[10px] text-(--text-secondary) italic">>
+    <div v-else class="text-center text-[10px] text-(--text-secondary) italic">
       {{ t('spaceManager.shareCard.publishHint') }}
     </div>
   </div>
@@ -101,7 +100,9 @@
 <script setup>
 import { useI18n } from '@/composables/useI18n';
 import { useClipboard } from '@/composables/useClipboard';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 
 const props = defineProps({
   isPublic: {

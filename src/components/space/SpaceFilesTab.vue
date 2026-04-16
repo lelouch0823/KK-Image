@@ -7,24 +7,35 @@
       <div class="flex items-center gap-3">
         <!-- Add existing file -->
         <Tooltip v-if="canManage" :content="t('spaceManager.addFile')">
-          <button
-            class="group flex h-9 items-center justify-center gap-2 rounded-lg border border-(--border-color) bg-(--bg-card) px-3 text-sm font-medium text-(--text-secondary) shadow-sm transition-all hover:border-(--color-primary-light) hover:bg-(--bg-hover) hover:text-(--text-primary) hover:shadow-md active:scale-95"
+          <AppButton
+            variant="white"
+            size="sm"
+            class="group hover:border-(--color-primary-light) hover:text-(--text-primary) hover:shadow-md"
             @click="$emit('addFiles')"
           >
-            <AppIcon name="arrow-up-tray" class="size-4 text-(--text-muted) transition-colors group-hover:text-(--text-primary)" />
+            <template #icon-left>
+              <AppIcon
+                name="arrow-up-tray"
+                class="size-4 text-(--text-muted) transition-colors group-hover:text-(--text-primary)"
+              />
+            </template>
             <span>{{ t('spaceManager.addFile') || 'Select Files' }}</span>
-          </button>
+          </AppButton>
         </Tooltip>
 
         <!-- Upload new file -->
         <Tooltip v-if="canManage" :content="t('common.upload')">
-          <button
-            class="group bg-primary shadow-primary/20 flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-(--text-inverse) shadow-lg transition-all hover:-translate-y-0.5 hover:bg-(--color-primary-hover) active:scale-95"
+          <AppButton
+            variant="primary"
+            size="sm"
+            class="group shadow-primary/20 shadow-lg hover:-translate-y-0.5"
             @click="$emit('upload')"
           >
-            <AppIcon name="plus" class="size-4.5 transition-transform group-hover:scale-110" />
+            <template #icon-left>
+              <AppIcon name="plus" class="size-4.5 transition-transform group-hover:scale-110" />
+            </template>
             <span>{{ t('common.upload') || 'Upload' }}</span>
-          </button>
+          </AppButton>
         </Tooltip>
         
         <span class="text-secondary text-xs">{{
@@ -82,25 +93,29 @@
             {{ file.name?.split('.').pop() }}
           </div>
           <div
-            class="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100"
+            class="absolute inset-0 flex items-center justify-center gap-2 bg-(--color-overlay-dim) opacity-0 transition-opacity group-hover:opacity-100"
           >
             <!-- Set as Cover Button -->
-            <button
+            <AppButton
               v-if="canManage && file.mimeType?.startsWith('image/') && coverFileId !== file.id"
-              class="bg-primary rounded-full p-1.5 text-(--text-inverse) transition-colors hover:bg-(--color-primary-hover)"
+              variant="primary"
+              size="sm"
+              class="!h-8 !w-8 rounded-full !px-0 shadow-sm [&_span]:contents"
               :title="t('spaceManager.setCover')"
               @click.stop="$emit('setCover', file.id)"
             >
               <AppIcon name="photo-solid" class="size-4" />
-            </button>
+            </AppButton>
             <!-- Remove Button -->
-            <button
+            <AppButton
               v-if="canManage"
-              class="bg-danger rounded-full p-1.5 text-(--text-inverse) transition-colors hover:bg-red-600"
+              variant="danger"
+              size="sm"
+              class="!h-8 !w-8 rounded-full !px-0 shadow-sm hover:opacity-90 [&_span]:contents"
               @click.stop="$emit('remove', file.id)"
             >
               <AppIcon name="trash" class="size-4" />
-            </button>
+            </AppButton>
           </div>
         </div>
       </div>
@@ -111,6 +126,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';

@@ -14,11 +14,13 @@
     <!-- 销售卡片网格 -->
     <template v-else-if="data.length > 0">
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <div
+        <AppCard
           v-for="person in data"
           :key="person.id"
+          clickable
+          padding="p-0"
           :class="[
-            'group relative cursor-pointer overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) transition-all duration-300 hover:-translate-y-1 hover:shadow-lg',
+            'group relative overflow-hidden',
             cardClass(person),
           ]"
           @click="$emit('view-detail', person)"
@@ -46,14 +48,18 @@
             </div>
             <!-- 订单数 (可点击跳转) -->
             <div class="mt-4 flex justify-center">
-                <button
+                <AppButton
                 v-if="person.orderCount > 0"
-                class="flex items-center justify-center gap-1 transition-opacity hover:opacity-80"
+                variant="link"
+                size="sm"
+                class="!h-auto !gap-1 !px-0 text-(--text-secondary)"
                 @click.stop="$emit('view-orders', person)"
                 >
-                <span class="text-secondary text-xs">{{ t('salesperson.table.orders') }}:</span>
+                <template #icon-left>
+                  <span class="text-secondary text-xs">{{ t('salesperson.table.orders') }}:</span>
+                </template>
                 <StatusBadge variant="info" size="xs">{{ person.orderCount }}</StatusBadge>
-                </button>
+                </AppButton>
                 <div v-else class="flex items-center justify-center gap-1">
                 <span class="text-secondary text-xs">{{ t('salesperson.table.orders') }}:</span>
                 <StatusBadge variant="default" size="xs">{{ person.orderCount }}</StatusBadge>
@@ -61,39 +67,50 @@
             </div>
           </div>
 
-          <!-- 图标操作栏 -->
-          <div
-            class="flex items-center justify-center gap-4 border-t border-(--border-color) bg-(--bg-muted)/50 px-2 py-2.5"
-          >
+          <template #footer>
+            <div class="flex items-center justify-center gap-4">
             <!-- 复制链接 -->
-            <button
-              class="hover:bg-primary/5 hover:text-primary rounded-xl p-2 text-(--text-secondary) transition-all active:scale-90"
+            <AppButton
+              variant="ghost"
+              size="sm"
+              class="!h-9 !w-9 !px-0 hover:text-primary"
               :title="t('salesperson.copyLink')"
               @click.stop="$emit('copy', person.accessToken)"
             >
-              <AppIcon name="clipboard" class="size-5" />
-            </button>
+              <template #icon-left>
+                <AppIcon name="clipboard" class="size-5" />
+              </template>
+            </AppButton>
             <!-- 编辑 -->
-            <button
+            <AppButton
               v-if="canManage"
-              class="rounded-xl p-2 text-(--text-secondary) transition-all hover:bg-(--color-info-bg) hover:text-(--color-info-text) active:scale-90"
+              variant="ghost"
+              size="sm"
+              class="!h-9 !w-9 !px-0 hover:bg-(--color-info-bg) hover:text-(--color-info-text)"
               :title="t('salesperson.edit')"
               @click.stop="$emit('edit', person)"
             >
-              <AppIcon name="pencil-alt" class="size-5" />
-            </button>
+              <template #icon-left>
+                <AppIcon name="pencil-alt" class="size-5" />
+              </template>
+            </AppButton>
             <!-- 删除 -->
-            <button
+            <AppButton
               v-if="canManage"
-              class="rounded-xl p-2 text-(--text-secondary) transition-all hover:bg-(--color-danger-bg) hover:text-(--color-danger-text) active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
+              variant="ghost"
+              size="sm"
+              class="!h-9 !w-9 !px-0 hover:bg-(--color-danger-bg) hover:text-(--color-danger-text)"
               :title="t('common.delete')"
               :disabled="person.orderCount > 0"
               @click.stop="$emit('delete', person)"
             >
-              <AppIcon name="trash" class="size-5" />
-            </button>
-          </div>
-        </div>
+              <template #icon-left>
+                <AppIcon name="trash" class="size-5" />
+              </template>
+            </AppButton>
+            </div>
+          </template>
+        </AppCard>
       </div>
     </template>
 
@@ -104,6 +121,8 @@
 
 <script setup>
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppCard from '@/components/ui/AppCard.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';

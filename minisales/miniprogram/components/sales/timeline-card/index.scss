@@ -57,7 +57,7 @@
   top: 20rpx;
   bottom: 0;
   width: 2rpx;
-  background: #e2e8f0;
+  background: $border-strong;
 }
 
 .timeline-card__dot {
@@ -68,7 +68,7 @@
   margin-top: 8rpx;
   border-radius: 50%;
   background: $color-primary;
-  box-shadow: 0 0 0 8rpx rgba(59, 130, 246, 0.12);
+  box-shadow: 0 0 0 8rpx $card-blue-bg;
   flex-shrink: 0;
 }
 

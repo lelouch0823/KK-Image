@@ -13,20 +13,25 @@
           {{ sp.name.charAt(0).toUpperCase() }}
         </span>
         {{ sp.name }}
-        <button
+        <AppButton
           type="button"
-          class="text-primary/60 ml-0.5 rounded-full p-0.5 transition-colors hover:bg-primary/20 hover:text-primary"
+          variant="ghost"
+          size="sm"
+          class="text-primary/60 ml-0.5 !h-5 !w-5 rounded-full !px-0 hover:bg-primary/20 hover:text-primary"
           @click.stop="remove(sp.id)"
         >
-          <AppIcon name="x-mark" class="size-3.5" />
-        </button>
+          <template #icon-left>
+            <AppIcon name="x-mark" class="size-3.5" />
+          </template>
+        </AppButton>
       </span>
     </div>
 
     <!-- 触发选择弹窗的按钮 (代替下拉) -->
-    <button
+    <AppButton
       type="button"
-      class="hover:border-primary hover:bg-primary/5 focus:border-primary focus:ring-primary focus:ring-1 focus:outline-none flex w-full items-center justify-between rounded-xl border border-(--border-color) bg-(--bg-card) px-4 py-3 text-left shadow-sm transition-all"
+      variant="white"
+      class="w-full !justify-between rounded-xl text-left shadow-sm hover:border-primary hover:bg-primary/5"
       @click="showModal = true"
     >
       <span class="text-secondary">{{ placeholder }}</span>
@@ -34,7 +39,7 @@
         <AppIcon name="plus" class="size-4" />
         {{ t('spaceManager.select') || '选择' }}
       </span>
-    </button>
+    </AppButton>
 
     <SalespersonSelectModal
       :show="showModal"
@@ -52,6 +57,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import SalespersonSelectModal from '@/components/salesperson/SalespersonSelectModal.vue';
 

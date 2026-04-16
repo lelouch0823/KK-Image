@@ -32,18 +32,23 @@
       </div>
 
       <!-- More Actions Button -->
-      <button
-        class="text-secondary absolute top-1.5 right-1.5 z-10 rounded-lg border border-(--border-color) bg-(--bg-card) p-1 shadow-sm transition-all hover:text-primary sm:top-2 sm:right-2 sm:p-1.5 lg:opacity-0 lg:group-hover:opacity-100"
+      <AppButton
+        variant="white"
+        size="sm"
+        class="text-secondary absolute top-1.5 right-1.5 z-10 !h-7 !w-7 !px-0 shadow-sm sm:top-2 sm:right-2 sm:!h-8 sm:!w-8 lg:opacity-0 lg:group-hover:opacity-100"
         @click.stop="$emit('context-menu', $event, folder)"
       >
-        <AppIcon name="ellipsis-vertical" class="size-3.5 sm:size-4" />
-      </button>
+        <template #icon-left>
+          <AppIcon name="ellipsis-vertical" class="size-3.5 sm:size-4" />
+        </template>
+      </AppButton>
     </div>
   </TransitionGroup>
 </template>
 
 <script setup>
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 defineProps({

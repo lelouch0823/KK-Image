@@ -21,6 +21,18 @@ describe('OrderReturnDialog', () => {
             template: '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea>',
             props: ['modelValue'],
           },
+          Select: {
+            template: `
+              <select
+                data-testid="return-reason-select"
+                :value="modelValue"
+                @change="$emit('update:modelValue', $event.target.value)"
+              >
+                <option v-for="option in options" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+            `,
+            props: ['modelValue', 'options'],
+          },
           AppButton: {
             template: '<button :disabled="disabled" @click.stop="$emit(\'click\')"><slot>{{ text }}</slot></button>',
             props: ['text', 'variant', 'disabled', 'loading'],
@@ -48,6 +60,18 @@ describe('OrderReturnDialog', () => {
           AppInput: {
             template: '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea>',
             props: ['modelValue'],
+          },
+          Select: {
+            template: `
+              <select
+                data-testid="return-reason-select"
+                :value="modelValue"
+                @change="$emit('update:modelValue', $event.target.value)"
+              >
+                <option v-for="option in options" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+            `,
+            props: ['modelValue', 'options'],
           },
           AppButton: {
             template: '<button :disabled="disabled" @click.stop="$emit(\'click\')"><slot>{{ text }}</slot></button>',

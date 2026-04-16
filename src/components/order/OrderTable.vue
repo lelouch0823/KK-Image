@@ -19,11 +19,9 @@
     <!-- Custom Header for Selection -->
     <template #header-selection>
       <div class="flex items-center justify-center">
-        <input
-          type="checkbox"
+        <AppCheckbox
           :checked="isAllSelected"
           :indeterminate="isPartialSelected"
-          class="text-primary size-4 cursor-pointer rounded-lg border-(--border-color) bg-(--bg-muted) transition-all focus:ring-primary/20"
           @change="toggleSelectAll"
         />
       </div>
@@ -32,12 +30,7 @@
     <!-- Selection Cell -->
     <template #cell-selection="{ row }">
       <div class="flex items-center justify-center" @click.stop>
-        <input
-          type="checkbox"
-          :checked="isSelected(row.id)"
-          class="text-primary size-4 cursor-pointer rounded-lg border-(--border-color) bg-(--bg-muted) transition-all focus:ring-primary/20"
-          @change="toggleSelect(row.id)"
-        />
+        <AppCheckbox :checked="isSelected(row.id)" @change="toggleSelect(row.id)" />
       </div>
     </template>
 
@@ -115,28 +108,40 @@
     <!-- Actions Cell -->
     <template #cell-actions="{ row }">
       <div class="flex items-center justify-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-        <button
-          class="hover:text-info hover:bg-info-bg rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
+        <AppButton
+          variant="ghost"
+          size="sm"
+          class="text-(--text-secondary) hover:text-info hover:bg-info-bg !h-7 !w-7 !gap-0 !px-0 [&_span]:hidden"
           :title="t('common.view')"
           @click.stop="$emit('detail', row)"
         >
-          <AppIcon name="eye" class="size-4" />
-        </button>
-        <button
-          class="hover:text-primary hover:bg-(--bg-hover) rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
+          <template #icon-left>
+            <AppIcon name="eye" class="size-4" />
+          </template>
+        </AppButton>
+        <AppButton
+          variant="ghost"
+          size="sm"
+          class="text-(--text-secondary) hover:text-primary hover:bg-(--bg-hover) !h-7 !w-7 !gap-0 !px-0 [&_span]:hidden"
           :title="t('common.edit')"
           @click.stop="$emit('edit', row)"
         >
-          <AppIcon name="pencil-alt" class="size-4" />
-        </button>
-        <button
+          <template #icon-left>
+            <AppIcon name="pencil-alt" class="size-4" />
+          </template>
+        </AppButton>
+        <AppButton
           v-if="row.status !== 'void'"
-          class="hover:bg-danger/10 hover:text-danger rounded-lg p-1.5 text-(--text-secondary) transition-colors active:scale-90"
+          variant="ghost"
+          size="sm"
+          class="text-(--text-secondary) hover:bg-danger/10 hover:text-danger !h-7 !w-7 !gap-0 !px-0 [&_span]:hidden"
           :title="t('order.actions.void')"
           @click.stop="$emit('void', row)"
         >
-          <AppIcon name="no-symbol" class="size-4" />
-        </button>
+          <template #icon-left>
+            <AppIcon name="no-symbol" class="size-4" />
+          </template>
+        </AppButton>
       </div>
     </template>
   </AppTable>
@@ -145,6 +150,8 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppCheckbox from '@/components/ui/AppCheckbox.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -201,8 +208,8 @@ const isPartialSelected = computed(() => {
   return props.selectedIds.length > 0 && props.selectedIds.length < props.data.length;
 });
 
-const toggleSelectAll = (e) => {
-  if (e.target.checked) {
+const toggleSelectAll = (checked) => {
+  if (checked) {
     emit('update:selectedIds', props.data.map(order => order.id));
   } else {
     emit('update:selectedIds', []);

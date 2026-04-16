@@ -8,13 +8,14 @@
     >
       <h3 class="text-primary font-medium">{{ t('notification.title') }}</h3>
       <div class="flex items-center gap-2">
-        <button
+        <AppButton
           v-if="unreadCount > 0 && canWriteNotifications"
-          class="text-primary text-xs font-medium transition-colors hover:text-primary-hover"
+          variant="link"
+          size="sm"
+          class="text-xs font-medium"
+          :text="t('notification.markAllRead')"
           @click="markAllAsRead"
-        >
-          {{ t('notification.markAllRead') }}
-        </button>
+        />
       </div>
     </div>
 
@@ -75,14 +76,18 @@
 
             <!-- Unread indicator dot & Mark Read Action -->
             <div v-if="item.is_read === 0" class="flex shrink-0 items-center gap-2 self-center">
-              <button
+              <AppButton
                 v-if="canWriteNotifications"
-                class="text-primary hidden size-6 items-center justify-center rounded-full transition-colors group-hover:flex hover:bg-black/5 dark:hover:bg-white/10"
+                variant="ghost"
+                size="sm"
+                class="text-primary !hidden !size-6 !rounded-full !p-0 group-hover:!inline-flex hover:!bg-black/5 dark:hover:!bg-white/10"
                 title="标记为已读"
                 @click.stop="markAsRead(item.id)"
               >
-                <AppIcon name="check" class="size-4" />
-              </button>
+                <template #icon-left>
+                  <AppIcon name="check" class="size-4" />
+                </template>
+              </AppButton>
               <div class="bg-primary size-2 rounded-full"></div>
             </div>
           </div>
@@ -99,6 +104,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useAccessControl } from '@/composables/useAccessControl';
 import { formatDate } from '@/utils/formatters';
 import { useRouter } from 'vue-router';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({

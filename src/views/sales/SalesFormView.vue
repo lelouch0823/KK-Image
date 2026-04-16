@@ -24,14 +24,16 @@
       data-testid="product-fetch-error"
     >
       <p class="text-sm text-(--text-main)">{{ productFetchError }}</p>
-      <button
+      <AppButton
         type="button"
-        class="bg-primary mt-2 rounded-lg px-3 py-1.5 text-xs font-medium text-(--text-inverse)"
+        variant="primary"
+        size="sm"
+        class="mt-2"
         data-testid="product-fetch-retry"
         @click="retryProductFetch"
       >
         {{ t('common.retry') }}
-      </button>
+      </AppButton>
     </div>
 
     <OrderForm
@@ -52,6 +54,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
+import AppButton from '@/components/ui/AppButton.vue';
 import OrderForm from '@/components/order/OrderForm.vue';
 import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
 import { ORDER_BOUND_SNAPSHOT_FIELDS } from '@/utils/order-binding-fields.js';

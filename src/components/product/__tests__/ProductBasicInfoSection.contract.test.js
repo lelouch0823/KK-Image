@@ -17,6 +17,26 @@ const AppInputStub = defineComponent({
   template: `<input :value="modelValue" @input="$emit('update:modelValue', $event.target.value)" />`,
 });
 
+const SelectStub = defineComponent({
+  name: 'Select',
+  props: {
+    modelValue: { type: [String, Number], default: '' },
+    options: { type: Array, default: () => [] },
+  },
+  emits: ['update:modelValue'],
+  template: `
+    <select
+      data-testid="currency-select"
+      :value="modelValue"
+      @change="$emit('update:modelValue', $event.target.value)"
+    >
+      <option v-for="option in options" :key="option.value" :value="option.value">
+        {{ option.label }}
+      </option>
+    </select>
+  `,
+});
+
 describe('ProductBasicInfoSection contract', () => {
   it('updates shared reactive form via AppInput v-model', async () => {
     const form = {
@@ -38,6 +58,7 @@ describe('ProductBasicInfoSection contract', () => {
       global: {
         stubs: {
           AppInput: AppInputStub,
+          Select: SelectStub,
         },
       },
     });
@@ -75,6 +96,7 @@ describe('ProductBasicInfoSection contract', () => {
       global: {
         stubs: {
           AppInput: AppInputStub,
+          Select: SelectStub,
         },
       },
     });

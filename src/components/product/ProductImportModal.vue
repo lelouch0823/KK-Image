@@ -78,42 +78,49 @@
 
     <!-- Footer Actions -->
     <template #footer>
-        <button 
-            type="button" 
+        <AppButton
+            variant="ghost"
             data-testid="product-import-close"
-            class="btn btn-ghost mr-2" 
+            class="mr-2"
             :disabled="loading"
             @click="currentStep === 1 ? $emit('update:modelValue', false) : handleBack()"
         >
             {{ currentStep === 1 ? t('common.cancel') : t('product.import.back') }}
-        </button>
+        </AppButton>
         
-        <button v-if="currentStep === 3" type="button" data-testid="product-import-confirm-mapping" class="btn btn-primary" @click="handleConfirmMapping">
+        <AppButton
+            v-if="currentStep === 3"
+            data-testid="product-import-confirm-mapping"
+            @click="handleConfirmMapping"
+        >
             {{ t('product.import.confirm_mapping') }}
-        </button>
+        </AppButton>
 
-        <button v-if="currentStep === 5" type="button" data-testid="product-import-upload-next" class="btn btn-primary" :disabled="loading" @click="handleUploadImagesAndNext">
-            <AppIcon v-if="loading" name="spinner" class="mr-2 size-4 animate-spin" />
-            {{ loading ? t('product.import.uploading') : t('product.import.upload_and_continue') }}
-        </button>
+        <AppButton
+            v-if="currentStep === 5"
+            data-testid="product-import-upload-next"
+            :disabled="loading"
+            :loading="loading"
+            :loading-text="t('product.import.uploading')"
+            @click="handleUploadImagesAndNext"
+        >
+            {{ t('product.import.upload_and_continue') }}
+        </AppButton>
 
-        <button 
+        <AppButton
             v-if="currentStep === 4"
-            type="button" 
             data-testid="product-import-submit"
-            class="btn btn-primary"
             :disabled="!parsedItems.length || loading"
+            :loading="loading"
+            :loading-text="t('product.import.importing', { current: importStats.processed, total: importStats.total })"
             @click="importResult && importResult.success ? $emit('update:modelValue', false) : handleImport()"
         >
-            <AppIcon v-if="loading" name="spinner" class="mr-2 size-4 animate-spin" />
             {{ 
-                loading 
-                    ? t('product.import.importing', { current: importStats.processed, total: importStats.total }) 
-                    : (importResult 
-                        ? (importResult.success ? t('common.complete') : t('common.retry'))
-                        : t('product.import.action')) 
+                importResult 
+                    ? (importResult.success ? t('common.complete') : t('common.retry'))
+                    : t('product.import.action')
             }}
-        </button>
+        </AppButton>
     </template>
   </Modal>
 </template>
@@ -127,6 +134,7 @@ import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 // Step Components

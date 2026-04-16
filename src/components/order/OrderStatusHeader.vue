@@ -60,16 +60,17 @@
                 {{ deliveryNote }}
               </p>
             </div>
-            <button
+            <AppButton
               v-if="canConfirmDelivery"
-              type="button"
+              variant="outline"
+              size="sm"
               data-testid="confirm-delivery-button"
-              class="cursor-pointer rounded-lg border border-emerald-600/20 bg-emerald-600/10 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-600/15 disabled:cursor-not-allowed disabled:opacity-50"
+              class="border-emerald-600/20 bg-emerald-600/10 text-emerald-700 hover:border-emerald-600/30 hover:bg-emerald-600/15 hover:text-emerald-700"
               :disabled="deliveryConfirmPending"
               @click="$emit('confirm-delivery')"
             >
               {{ t('order.detail.deliveryConfirmAction', 'Confirm Delivery') }}
-            </button>
+            </AppButton>
           </div>
         </div>
       </div>
@@ -122,6 +123,7 @@ import { useI18n } from '@/composables/useI18n';
 import { formatTime } from '@/utils/formatters';
 import { STATUS_OPTIONS, getStatusVariant } from '@/utils/status';
 import { normalizeOrderStatus } from '@/utils/order-state-machine';
+import AppButton from '@/components/ui/AppButton.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import OrderProcurementBadge from './OrderProcurementBadge.vue';

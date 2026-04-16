@@ -24,38 +24,49 @@
               <span class="mr-2 text-sm text-(--text-muted)">
                 {{ t('fileManager.selected', { count: selectedIds.length }) }}
               </span>
-              <button
-                class="text-primary flex items-center gap-1.5 rounded-lg bg-(--color-primary-bg) px-3 py-1.5 text-sm font-medium transition-colors hover:bg-(--color-primary-hover)"
+              <AppButton
+                variant="outline"
+                size="sm"
+                class="text-primary hover:bg-(--color-primary-bg) hover:text-primary"
                 :disabled="loading"
                 @click="handleRestoreSelected"
               >
-                <AppIcon name="arrow-path" class="size-4" />
+                <template #icon-left>
+                  <AppIcon name="arrow-path" class="size-4" />
+                </template>
                 {{ t('trash.restore') }}
-              </button>
-              <button
-                class="text-danger flex items-center gap-1.5 rounded-lg bg-(--color-danger-bg) px-3 py-1.5 text-sm font-medium transition-colors hover:bg-red-100"
+              </AppButton>
+              <AppButton
+                variant="danger"
+                size="sm"
                 :disabled="loading"
-                @click="handleDeleteSelected"
+                @click="requestDeleteSelected"
               >
-                <AppIcon name="trash" class="size-4" />
+                <template #icon-left>
+                  <AppIcon name="trash" class="size-4" />
+                </template>
                 {{ t('trash.deleteForever') }}
-              </button>
+              </AppButton>
             </div>
           </transition>
 
           <!-- 清空回收站 -->
-          <button
+          <AppButton
             v-if="files.length > 0"
-            class="group border-danger/30 text-danger relative flex items-center gap-2 rounded-lg border bg-(--bg-card) px-4 py-2 text-sm font-medium transition-all hover:bg-danger/10 hover:shadow-sm disabled:opacity-50"
+            variant="outline"
+            size="sm"
+            class="group border-danger/30 text-danger hover:bg-danger/10 hover:text-danger"
             :disabled="loading || selectedIds.length > 0"
             @click="showEmptyConfirm = true"
           >
-            <AppIcon
-              class="size-4 transition-transform duration-300 group-hover:rotate-12"
-              name="trash"
-            />
+            <template #icon-left>
+              <AppIcon
+                class="size-4 transition-transform duration-300 group-hover:rotate-12"
+                name="trash"
+              />
+            </template>
             {{ t('trash.emptyTrash') }}
-          </button>
+          </AppButton>
         </div>
       </div>
 
@@ -159,20 +170,28 @@
             </template>
             <template #cell-actions="{ row: file }">
               <div class="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                <button
-                  class="text-success rounded p-1 hover:bg-success/10"
+                <AppButton
+                  variant="ghost"
+                  size="sm"
+                  class="!h-8 !w-8 !px-0 text-success hover:bg-success/10 hover:text-success"
                   :title="t('trash.restore')"
                   @click.stop="handleRestore(file)"
                 >
-                  <AppIcon name="arrow-path" class="size-4" />
-                </button>
-                <button
-                  class="text-danger rounded p-1 hover:bg-danger/10"
+                  <template #icon-left>
+                    <AppIcon name="arrow-path" class="size-4" />
+                  </template>
+                </AppButton>
+                <AppButton
+                  variant="ghost"
+                  size="sm"
+                  class="!h-8 !w-8 !px-0 text-danger hover:bg-danger/10 hover:text-danger"
                   :title="t('trash.deleteForever')"
-                  @click.stop="handleDelete(file)"
+                  @click.stop="requestDelete(file)"
                 >
-                  <AppIcon name="trash" class="size-4" />
-                </button>
+                  <template #icon-left>
+                    <AppIcon name="trash" class="size-4" />
+                  </template>
+                </AppButton>
               </div>
             </template>
           </AppTable>
@@ -189,6 +208,15 @@
         :loading="loading"
         @confirm="handleEmptyTrash"
       />
+      <ConfirmDialog
+        v-model="showDeleteConfirm"
+        type="danger"
+        :title="t('trash.deleteForever')"
+        :message="deleteConfirmMessage"
+        :confirm-text="t('trash.deleteForever')"
+        :loading="loading"
+        @confirm="handleDeleteConfirmed"
+      />
     </div>
   </Modal>
 </template>
@@ -198,6 +226,7 @@ import { ref, computed, watch } from 'vue';
 import { useFileManager } from '@/composables/useFileManager';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import AppCheckbox from '@/components/ui/AppCheckbox.vue';
@@ -234,9 +263,23 @@ const {
 
 const selectedIds = ref([]);
 const showEmptyConfirm = ref(false);
+const showDeleteConfirm = ref(false);
+const pendingDeleteIds = ref([]);
 
 const isAllSelected = computed(() => {
   return files.value.length > 0 && selectedIds.value.length === files.value.length;
+});
+
+const deleteConfirmMessage = computed(() => {
+  if (pendingDeleteIds.value.length > 1) {
+    return t('trash.confirmDelete');
+  }
+
+  const [pendingId] = pendingDeleteIds.value;
+  const target = files.value.find((file) => file.id === pendingId);
+  return target?.name
+    ? `${t('trash.confirmDelete')} (${target.name})`
+    : t('trash.confirmDelete');
 });
 
 // Watch visibility to load data
@@ -284,13 +327,9 @@ const handleRestore = async (file) => {
   }
 };
 
-const handleDelete = async (file) => {
-  if (confirm(t('trash.confirmDelete'))) {
-    if (await deleteTrashItems([file.id])) {
-      files.value = files.value.filter(f => f.id !== file.id);
-      emit('change');
-    }
-  }
+const requestDelete = (file) => {
+  pendingDeleteIds.value = [file.id];
+  showDeleteConfirm.value = true;
 };
 
 const handleRestoreSelected = async () => {
@@ -301,13 +340,23 @@ const handleRestoreSelected = async () => {
   }
 };
 
-const handleDeleteSelected = async () => {
-  if (confirm(t('trash.confirmDelete'))) {
-    if (await deleteTrashItems(selectedIds.value)) {
-      files.value = files.value.filter(f => !selectedIds.value.includes(f.id));
-      selectedIds.value = [];
-      emit('change');
-    }
+const requestDeleteSelected = () => {
+  pendingDeleteIds.value = [...selectedIds.value];
+  showDeleteConfirm.value = pendingDeleteIds.value.length > 0;
+};
+
+const handleDeleteConfirmed = async () => {
+  if (pendingDeleteIds.value.length === 0) {
+    showDeleteConfirm.value = false;
+    return;
+  }
+
+  if (await deleteTrashItems(pendingDeleteIds.value)) {
+    files.value = files.value.filter(f => !pendingDeleteIds.value.includes(f.id));
+    selectedIds.value = selectedIds.value.filter(id => !pendingDeleteIds.value.includes(id));
+    showDeleteConfirm.value = false;
+    pendingDeleteIds.value = [];
+    emit('change');
   }
 };
 

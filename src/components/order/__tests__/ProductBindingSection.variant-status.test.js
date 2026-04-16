@@ -145,7 +145,7 @@ describe('ProductBindingSection variant status and dimensions', () => {
     const materialButtons = wrapper.findAll('[data-testid="dimension-material"]');
     const silkButton = materialButtons.find((btn) => btn.text() === 'Silk');
     expect(silkButton).toBeTruthy();
-    expect(silkButton.find('input').element.disabled).toBe(true);
+    expect(silkButton.attributes('disabled')).toBeDefined();
   });
 
   it('keeps the latest product detail when selections race', async () => {
@@ -741,7 +741,7 @@ describe('ProductBindingSection variant status and dimensions', () => {
       expect.arrayContaining(['divide-x', 'divide-(--border-subtle)/60'])
     );
     expect(wrapper.find('[data-testid="dimension-option-card-size"]').classes()).toEqual(
-      expect.arrayContaining(['bg-(--bg-muted)/20'])
+      expect.arrayContaining(['bg-(--bg-muted)/45', 'border-(--text-main)'])
     );
   });
 

@@ -7,29 +7,40 @@
   >
     <div class="space-y-5">
       <section class="space-y-2">
-        <h4 class="text-sm font-semibold text-(--text-main)">{{ t('product.exportModal.format', '导出格式') }}</h4>
+        <h4 class="text-sm font-semibold text-(--text-main)">
+          {{ t('product.exportModal.format', '导出格式') }}
+        </h4>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            class="cursor-pointer rounded-xl border px-4 py-3 text-left transition-colors"
-            :class="form.format === 'excel' ? 'border-primary bg-primary/5' : 'border-(--border-color) hover:bg-(--bg-hover)'"
-            :disabled="isGenerating"
-            @click="form.format = 'excel'"
+          <AppCard
+            clickable
+            :selected="form.format === 'excel'"
+            padding="p-4"
+            class="text-left"
+            :class="{ 'pointer-events-none opacity-60': isGenerating }"
+            data-testid="export-format-excel"
+            @click="!isGenerating && (form.format = 'excel')"
           >
             <div class="flex items-center gap-2">
               <AppIcon name="chart-bar" class="size-4" />
               <span class="font-medium">Excel</span>
             </div>
             <p class="mt-1 text-xs text-(--text-secondary)">
-              {{ t('product.exportModal.excel_desc', '高级报表样式（分组表头、筛选、冻结、数值格式）') }}
+              {{
+                t(
+                  'product.exportModal.excel_desc',
+                  '高级报表样式（分组表头、筛选、冻结、数值格式）'
+                )
+              }}
             </p>
-          </button>
-          <button
-            type="button"
-            class="cursor-pointer rounded-xl border px-4 py-3 text-left transition-colors"
-            :class="form.format === 'csv' ? 'border-primary bg-primary/5' : 'border-(--border-color) hover:bg-(--bg-hover)'"
-            :disabled="isGenerating"
-            @click="form.format = 'csv'"
+          </AppCard>
+          <AppCard
+            clickable
+            :selected="form.format === 'csv'"
+            padding="p-4"
+            class="text-left"
+            :class="{ 'pointer-events-none opacity-60': isGenerating }"
+            data-testid="export-format-csv"
+            @click="!isGenerating && (form.format = 'csv')"
           >
             <div class="flex items-center gap-2">
               <AppIcon name="document-text" class="size-4" />
@@ -38,27 +49,45 @@
             <p class="mt-1 text-xs text-(--text-secondary)">
               {{ t('product.exportModal.csv_desc', '兼容性最佳，适合超大数据量') }}
             </p>
-          </button>
+          </AppCard>
         </div>
       </section>
 
       <section class="space-y-2">
-        <h4 class="text-sm font-semibold text-(--text-main)">{{ t('product.exportModal.scope', '导出范围') }}</h4>
+        <h4 class="text-sm font-semibold text-(--text-main)">
+          {{ t('product.exportModal.scope', '导出范围') }}
+        </h4>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label class="cursor-pointer rounded-xl border border-(--border-color) px-4 py-3 hover:bg-(--bg-hover)">
-            <input v-model="form.scope" type="radio" class="mr-2" value="all" :disabled="isGenerating" />
+          <AppCard
+            clickable
+            :selected="form.scope === 'all'"
+            padding="p-4"
+            class="text-left"
+            :class="{ 'pointer-events-none opacity-60': isGenerating }"
+            data-testid="export-scope-all"
+            @click="!isGenerating && (form.scope = 'all')"
+          >
             {{ t('product.exportModal.scope_all', '全部商品') }}
-          </label>
-          <label class="cursor-pointer rounded-xl border border-(--border-color) px-4 py-3 hover:bg-(--bg-hover)">
-            <input v-model="form.scope" type="radio" class="mr-2" value="filtered" :disabled="isGenerating" />
+          </AppCard>
+          <AppCard
+            clickable
+            :selected="form.scope === 'filtered'"
+            padding="p-4"
+            class="text-left"
+            :class="{ 'pointer-events-none opacity-60': isGenerating }"
+            data-testid="export-scope-filtered"
+            @click="!isGenerating && (form.scope = 'filtered')"
+          >
             {{ t('product.exportModal.scope_filtered', '当前筛选结果') }}
-          </label>
+          </AppCard>
         </div>
       </section>
 
       <section class="rounded-xl border border-(--border-color) bg-(--bg-muted) p-4">
         <div class="mb-2 flex items-center justify-between">
-          <p class="text-sm font-medium text-(--text-main)">{{ t('product.exportModal.progress', '文件生成进度') }}</p>
+          <p class="text-sm font-medium text-(--text-main)">
+            {{ t('product.exportModal.progress', '文件生成进度') }}
+          </p>
           <span class="text-xs text-(--text-secondary)">{{ progress }}%</span>
         </div>
         <div class="h-2 overflow-hidden rounded-full bg-(--bg-muted)">
@@ -74,17 +103,40 @@
     </div>
 
     <template #footer>
-      <button type="button" class="btn btn-ghost" :disabled="isGenerating" @click="$emit('update:modelValue', false)">
+      <AppButton
+        variant="secondary"
+        :disabled="isGenerating"
+        @click="$emit('update:modelValue', false)"
+      >
         {{ t('common.cancel', '取消') }}
-      </button>
-      <button v-if="!readyToDownload" type="button" class="btn btn-primary" :disabled="isGenerating" @click="handleGenerate">
-        <AppIcon v-if="isGenerating" name="spinner" class="mr-2 size-4 animate-spin" />
-        {{ isGenerating ? t('product.exportModal.generating', '生成中...') : t('product.exportModal.generate', '生成文件') }}
-      </button>
-      <button v-else type="button" class="btn btn-primary" @click="downloadFile">
-        <AppIcon name="arrow-down-tray" class="mr-2 size-4" />
+      </AppButton>
+      <AppButton
+        v-if="!readyToDownload"
+        variant="primary"
+        :disabled="isGenerating"
+        data-testid="export-generate"
+        @click="handleGenerate"
+      >
+        <template #icon-left>
+          <AppIcon v-if="isGenerating" name="spinner" class="size-4 animate-spin" />
+        </template>
+        {{
+          isGenerating
+            ? t('product.exportModal.generating', '生成中...')
+            : t('product.exportModal.generate', '生成文件')
+        }}
+      </AppButton>
+      <AppButton
+        v-else
+        variant="primary"
+        data-testid="export-download"
+        @click="downloadFile"
+      >
+        <template #icon-left>
+          <AppIcon name="arrow-down-tray" class="size-4" />
+        </template>
         {{ t('product.exportModal.download', '下载文件') }}
-      </button>
+      </AppButton>
     </template>
   </Modal>
 </template>
@@ -92,6 +144,8 @@
 <script setup>
 import { reactive, ref, watch } from 'vue';
 import XLSX from 'xlsx-js-style';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppCard from '@/components/ui/AppCard.vue';
 import Modal from '@/components/ui/Modal.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { useI18n } from '@/composables/useI18n';
