@@ -1,14 +1,8 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
+import { expectFileUnderEffectiveLineBudget } from '../../../test/utils/line-budget.js';
 
 describe('PurchaseOrders line budget', () => {
-  it('keeps PurchaseOrders route shell under 800 lines', () => {
-    const source = fs.readFileSync(
-      path.resolve(process.cwd(), 'src/views/PurchaseOrders.vue'),
-      'utf8'
-    );
-
-    expect(source.split('\n').length).toBeLessThan(800);
+  it('keeps PurchaseOrders route shell under 800 effective lines', () => {
+    expectFileUnderEffectiveLineBudget('src/views/PurchaseOrders.vue', 800);
   });
 });

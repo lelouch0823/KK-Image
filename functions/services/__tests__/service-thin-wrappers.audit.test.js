@@ -24,6 +24,15 @@ describe('service thin wrappers audit', () => {
     expect(OrderProcurementDomainService.prototype).not.toHaveProperty(
       'buildCompatibilityOrderStatusStatement'
     );
+    expect(OrderProcurementDomainService.prototype).not.toHaveProperty(
+      'buildReceiptItemLockRecord'
+    );
+    expect(OrderProcurementDomainService.prototype).not.toHaveProperty(
+      'acquireReceiptItemLocks'
+    );
+    expect(OrderProcurementDomainService.prototype).not.toHaveProperty(
+      'cleanupReceiptItemLocks'
+    );
 
     expect(OrderProcurementReceiptReversalService.prototype).not.toHaveProperty(
       'requireReversiblePurchaseOrder'

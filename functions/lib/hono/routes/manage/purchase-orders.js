@@ -44,7 +44,7 @@ export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'POST', path: '/from-orders', domain: 'purchase-orders', action: 'purchase_order.create_from_orders', severity: 'high', targetType: 'purchase_order' },
   { method: 'PUT', path: '/:id', domain: 'purchase-orders', action: 'purchase_order.update', severity: 'high', targetType: 'purchase_order' },
   { method: 'PATCH', path: '/:id/status', domain: 'purchase-orders', action: 'purchase_order.status.change', severity: 'high', targetType: 'purchase_order' },
-  { method: 'POST', path: '/:id/receipts', domain: 'purchase-orders', action: 'purchase_order.receipt.create', severity: 'high', targetType: 'purchase_order' },
+  { method: 'POST', path: '/:id/receipts', domain: 'purchase-orders', action: 'purchase_order.receipt.create', severity: 'high', targetType: 'purchase_order', runtimeAssertionLevel: 'runtime' },
   { method: 'POST', path: '/:id/receipts/:receiptId/reversal', domain: 'purchase-orders', action: 'purchase_order.receipt.reverse', severity: 'critical', targetType: 'purchase_order' },
   { method: 'POST', path: '/:id/shortage-closures', domain: 'purchase-orders', action: 'purchase_order.shortage.close', severity: 'high', targetType: 'purchase_order' },
   { method: 'POST', path: '/:id/items', domain: 'purchase-orders', action: 'purchase_order.item.create', severity: 'high', targetType: 'purchase_order' },

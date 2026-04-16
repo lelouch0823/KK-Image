@@ -122,9 +122,10 @@ describe('Audit Log Utility', () => {
 describe('Audit Logs API (Hono Route)', () => {
     it('GET /api/manage/audit-logs should accept valid admin token', async () => {
         const token = await generateJWT({ id: 'admin1', name: 'Admin', type: 'admin', permissions: ['admin:full'] }, mockEnv);
+        const executionCtx = { waitUntil: vi.fn() };
         const res = await app.request('/api/manage/audit-logs', {
             headers: { 'Authorization': `Bearer ${token}` }
-        }, mockEnv);
+        }, mockEnv, executionCtx);
 
         expect(res.status).toBe(200);
         const data = await res.json();
@@ -133,9 +134,10 @@ describe('Audit Logs API (Hono Route)', () => {
 
     it('GET /api/manage/audit-logs should reject non-admin users', async () => {
         const token = await generateJWT({ id: 'user1', name: 'User', type: 'user', permissions: ['read'] }, mockEnv);
+        const executionCtx = { waitUntil: vi.fn() };
         const res = await app.request('/api/manage/audit-logs', {
             headers: { 'Authorization': `Bearer ${token}` }
-        }, mockEnv);
+        }, mockEnv, executionCtx);
 
         expect(res.status).toBe(403); // Forbidden due to missing admin:full
     });

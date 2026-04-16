@@ -1,7 +1,6 @@
 import assert from 'assert';
 import FormData from 'form-data';
 import fetchMultipart from 'node-fetch';
-import { describe, vi } from 'vitest';
 
 export const RUN_REAL_API_TESTS = process.env.RUN_REAL_API_TESTS === '1';
 const BASIC_USER = process.env.BASIC_USER || 'admin';
@@ -20,11 +19,18 @@ export function getBaseUrl() {
 export const BASE_URL = getBaseUrl();
 
 export function describeIfRealApi(name, suiteFn) {
-  const runner = RUN_REAL_API_TESTS ? describe : describe.skip;
+  const runner = RUN_REAL_API_TESTS ? globalThis.describe : globalThis.describe.skip;
   return runner(name, function wrappedSuite() {
+    const runtimeContext = this && typeof this.timeout === 'function' ? this : null;
     const timeoutContext = {
       timeout(ms) {
-        vi.setConfig({ testTimeout: ms });
+        if (runtimeContext) {
+          runtimeContext.timeout(ms);
+          return;
+        }
+        if (globalThis.vi?.setConfig) {
+          globalThis.vi.setConfig({ testTimeout: ms });
+        }
       },
     };
     return suiteFn.call(timeoutContext);

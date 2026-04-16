@@ -176,6 +176,24 @@ function createDbHarness({
   };
 
   const commandIdempotencyRepo = {
+    buildInsertStatement: vi.fn((record) => (
+      db.prepare(
+        `INSERT INTO command_idempotency (
+          id, command_type, scope_key, idempotency_key, command_id, request_fingerprint, response_json, status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        record.id,
+        record.command_type,
+        record.scope_key,
+        record.idempotency_key,
+        record.command_id,
+        record.request_fingerprint,
+        record.response_json,
+        record.status,
+        record.created_at,
+        record.updated_at
+      )
+    )),
     reserveReversalCommand: vi.fn(async (_scopeKey, _idempotencyKey, requestFingerprint) => ({
       existing: false,
       record: {
@@ -209,6 +227,9 @@ function createDbHarness({
           'UPDATE command_idempotency SET response_json = ?, status = ?, updated_at = ? WHERE command_id = ?'
         )
         .bind(JSON.stringify(responseJson), status, 1710000000000, commandId)
+    ),
+    buildDeleteStatement: vi.fn((commandId) =>
+      db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId)
     ),
   };
 
@@ -260,6 +281,10 @@ function createDbHarness({
     }),
   };
 
+  const variantDemandProjectionRefreshService = {
+    refreshByVariantIds: vi.fn(async () => []),
+  };
+
   return {
     db,
     calls,
@@ -267,6 +292,7 @@ function createDbHarness({
     inventoryService,
     commandIdempotencyRepo,
     domainOutboxRepo,
+    variantDemandProjectionRefreshService,
   };
 }
 
@@ -282,6 +308,7 @@ describe('OrderProcurementReceiptReversalService', () => {
       inventoryService: harness.inventoryService,
       commandIdempotencyRepo: harness.commandIdempotencyRepo,
       domainOutboxRepo: harness.domainOutboxRepo,
+      variantDemandProjectionRefreshService: harness.variantDemandProjectionRefreshService,
       now: () => 1710000000000,
     });
   });
@@ -327,6 +354,9 @@ describe('OrderProcurementReceiptReversalService', () => {
       'order_procurement_reversed',
     ]);
     expect(harness.db.batch).toHaveBeenCalledTimes(1);
+    expect(harness.variantDemandProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
+      'var-1',
+    ]);
   });
 
   it('applies guarded counter updates together with reversal facts in a single final batch', async () => {
@@ -781,5 +811,73 @@ describe('OrderProcurementReceiptReversalService', () => {
         statement.sql.includes('DELETE FROM command_idempotency')
       )
     ).toBe(true);
+  });
+
+  it('rejects a second concurrent reversal writer before downstream side effects run when the receipt lock is held', async () => {
+    const lockedHarness = createDbHarness();
+    lockedHarness.commandIdempotencyRepo.buildInsertStatement.mockImplementationOnce((record) => (
+      lockedHarness.db.prepare(
+        `INSERT INTO command_idempotency (
+          id, command_type, scope_key, idempotency_key, command_id, request_fingerprint, response_json, status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        record.id,
+        record.command_type,
+        record.scope_key,
+        record.idempotency_key,
+        record.command_id,
+        record.request_fingerprint,
+        record.response_json,
+        record.status,
+        record.created_at,
+        record.updated_at
+      )
+    ));
+    const originalRun = lockedHarness.db.prepare.mock.results[0]?.value?.run;
+    const lockedService = new OrderProcurementReceiptReversalService(lockedHarness.db, {
+      purchaseReceiptRepo: lockedHarness.purchaseReceiptRepo,
+      inventoryService: lockedHarness.inventoryService,
+      commandIdempotencyRepo: {
+        ...lockedHarness.commandIdempotencyRepo,
+        buildInsertStatement: vi.fn((record) => {
+          const statement = lockedHarness.db.prepare(
+            `INSERT INTO command_idempotency (
+              id, command_type, scope_key, idempotency_key, command_id, request_fingerprint, response_json, status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ).bind(
+            record.id,
+            record.command_type,
+            record.scope_key,
+            record.idempotency_key,
+            record.command_id,
+            record.request_fingerprint,
+            record.response_json,
+            record.status,
+            record.created_at,
+            record.updated_at
+          );
+          statement.run = vi.fn(async () => ({ meta: { changes: 0 } }));
+          return statement;
+        }),
+      },
+      domainOutboxRepo: lockedHarness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await expect(
+      lockedService.reverseReceipt(
+        'po-1',
+        'receipt-1',
+        {
+          reason: 'race',
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).rejects.toBeInstanceOf(BadRequestError);
+
+    expect(lockedHarness.purchaseReceiptRepo.createReversalInsertStatement).not.toHaveBeenCalled();
+    expect(lockedHarness.inventoryService.buildMutationStatements).not.toHaveBeenCalled();
   });
 });

@@ -72,6 +72,14 @@ class MockD1PreparedStatement {
         // Basic SQL simulation for tests
         const q = this.query.trim().toUpperCase();
 
+        if (q.startsWith('SELECT 1 AS EXIST FROM FILES WHERE NAME =')) {
+            return null;
+        }
+
+        if (q.startsWith('SELECT 1 AS EXIST FROM FOLDERS WHERE NAME =')) {
+            return null;
+        }
+
         if (q.startsWith('SELECT COUNT(*)')) {
             return { total: 1, count: 1 };
         }

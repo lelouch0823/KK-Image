@@ -1,9 +1,9 @@
 import { BadRequestError, NotFoundError } from '../lib/hono/errors.js';
 import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.js';
 import { OrderLineAllocationRepository } from '../repositories/OrderLineAllocationRepository.js';
-import { VariantDemandProjectionRepository } from '../repositories/VariantDemandProjectionRepository.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { InventoryService } from './InventoryService.js';
+import { VariantDemandProjectionRefreshService } from './VariantDemandProjectionRefreshService.js';
 import {
   buildOrderLineProjectionStatement,
   parsePositiveLineCommandQuantity,
@@ -68,8 +68,8 @@ export class OrderLineFulfillmentService {
     this.uuid = deps.uuid || (() => crypto.randomUUID());
     this.allocationRepo = deps.allocationRepo || new OrderLineAllocationRepository(db);
     this.inventoryService = deps.inventoryService || new InventoryService(db);
-    this.variantDemandProjectionRepo =
-      deps.variantDemandProjectionRepo || new VariantDemandProjectionRepository(db);
+    this.variantDemandProjectionRefreshService =
+      deps.variantDemandProjectionRefreshService || new VariantDemandProjectionRefreshService(db);
     this.domainOutboxRepo =
       deps.domainOutboxRepo ||
       new DomainOutboxRepository(db, {
@@ -80,7 +80,7 @@ export class OrderLineFulfillmentService {
 
   async refreshDemandProjection(variantId) {
     if (!variantId) return;
-    await this.variantDemandProjectionRepo.refreshByVariantId(variantId);
+    await this.variantDemandProjectionRefreshService.refreshByVariantIds([variantId]);
   }
 
   async reserveLine(orderId, lineId, payload = {}, options = {}) {

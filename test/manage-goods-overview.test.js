@@ -1,6 +1,7 @@
 import './utils/mocks.js';
 import { app } from '../functions/lib/hono/app.js';
 import { generateJWT } from '../functions/api/utils/auth.js';
+import { MockKVNamespace } from './utils/mocks.js';
 import assert from 'assert';
 
 const mockExecutionCtx = {
@@ -34,18 +35,22 @@ class TestStmtMock {
         // Return structured data to satisfy goods-overview expectations
         const q = this.query.trim().toUpperCase();
 
-        if (q.includes("SELECT DISTINCT CATEGORY")) {
+        if (q.includes("SELECT DISTINCT COALESCE(") && q.includes("AS CATEGORY")) {
             return { results: [{ category: 'TestCat' }] };
         }
-        if (q.includes("SELECT DISTINCT BRAND")) {
+        if (q.includes("SELECT DISTINCT COALESCE(") && q.includes("AS BRAND")) {
             return { results: [{ brand: 'TestBrand' }] };
         }
-        if (q.includes("COUNT(DISTINCT P.ID) AS TOTAL_PRODUCTS")) {
+        if (q.includes("COUNT(DISTINCT CASE WHEN VDP.TOTAL_DEMAND > 0 THEN VDP.VARIANT_ID END) AS TOTAL_PRODUCTS")) {
             // summary query row
             return {
                 results: [{
                     total_products: 5,
                     total_demand: 100,
+                    confirmed_products: 1,
+                    production_products: 2,
+                    shipping_products: 3,
+                    arrived_products: 4,
                     confirmed_qty: 10,
                     production_qty: 20,
                     shipping_qty: 30,
@@ -57,7 +62,7 @@ class TestStmtMock {
                 }]
             };
         }
-        if (q.includes("HAVING SHORTAGE > 0") && q.startsWith("SELECT COUNT(*) AS COUNT")) {
+        if (q.startsWith("SELECT COUNT(*) AS COUNT FROM (")) {
             // summary shortage count query
             return { results: [{ count: 2 }] };
         }
@@ -66,6 +71,7 @@ class TestStmtMock {
         return {
             results: [{
                 id: 'mock1',
+                product_id: 'prod-1',
                 name: 'Mock Product',
                 sku: 'SKU1',
                 brand: 'BrandX',
@@ -73,6 +79,7 @@ class TestStmtMock {
                 stock_quantity: 10,
                 alert_threshold: 5,
                 images: JSON.stringify(['img1.jpg']),
+                variant_options: JSON.stringify({ color: 'Black', size: 'L' }),
                 confirmed_qty: 1,
                 production_qty: 2,
                 shipping_qty: 3,
@@ -85,6 +92,8 @@ class TestStmtMock {
                 id: 'mock2',
                 name: 'Mock Product 2',
                 images: 'invalid-json',
+                variant_options: 'invalid-json',
+                total_demand: 2,
                 shortage: 5
             }]
         };
@@ -103,6 +112,7 @@ describe('Goods Overview API', () => {
 
         localMockEnv = {
             DB: new TestDbMock(),
+            KV: new MockKVNamespace(),
             BASIC_USER: 'admin',
             BASIC_PASS: 'password',
             JWT_SECRET: 'test-secret',
@@ -125,17 +135,20 @@ describe('Goods Overview API', () => {
             assert.strictEqual(body.success, true);
             assert.strictEqual(body.data.items.length, 2);
             assert.strictEqual(body.data.filters.categories[0], 'TestCat');
+            assert.strictEqual(body.data.filters.brands[0], 'TestBrand');
 
             // Should properly parse JSON images for first, fallback to [] for second
             assert.deepStrictEqual(body.data.items[0].images, ['img1.jpg']);
             assert.deepStrictEqual(body.data.items[1].images, []);
+            assert.strictEqual(body.data.items[0].variantLabel, 'Black / L');
+            assert.strictEqual(body.data.items[1].variantLabel, '-');
 
             // Check SQL queries
             assert.strictEqual(localMockEnv.DB.queries.length, 3);
             const mainQuery = localMockEnv.DB.queries[0];
             assert.ok(mainQuery.query.includes("ORDER BY shortage DESC, total_demand DESC"));
             assert.ok(mainQuery.query.includes("HAVING total_demand > 0"));
-            assert.deepStrictEqual(mainQuery.bindings, ['confirmed', 'production', 'shipping', 'arrived']);
+            assert.deepStrictEqual(mainQuery.bindings, []);
         });
 
         it('should apply shortageOnly=1, sort=demand and filters', async () => {
@@ -147,9 +160,9 @@ describe('Goods Overview API', () => {
             const mainQuery = localMockEnv.DB.queries[0];
             assert.ok(mainQuery.query.includes("ORDER BY total_demand DESC, shortage DESC"));
             assert.ok(mainQuery.query.includes("HAVING shortage > 0"));
-            assert.ok(mainQuery.query.includes("p.category = ?"));
-            assert.ok(mainQuery.query.includes("p.brand = ?"));
-            assert.deepStrictEqual(mainQuery.bindings, ['confirmed', 'production', 'shipping', 'arrived', 'Cat1', 'Brand1']);
+            assert.ok(mainQuery.query.includes("snapshot_category"));
+            assert.ok(mainQuery.query.includes("snapshot_brand"));
+            assert.deepStrictEqual(mainQuery.bindings, ['Cat1', 'Brand1']);
         });
 
         it('should apply sort=name', async () => {
@@ -159,7 +172,7 @@ describe('Goods Overview API', () => {
             assert.strictEqual(res.status, 200);
 
             const mainQuery = localMockEnv.DB.queries[0];
-            assert.ok(mainQuery.query.includes("ORDER BY p.name ASC"));
+            assert.ok(mainQuery.query.includes("ORDER BY name ASC, sku ASC"));
         });
     });
 
@@ -191,7 +204,7 @@ describe('Goods Overview API', () => {
 
             const text = await res.text();
             // assert.ok(text.startsWith('\uFEFF')); // BOM may be stripped by res.text() in some environments
-            assert.ok(text.includes('商品名称,SKU,品牌,分类')); // Headers
+            assert.ok(text.includes('商品名称,变体,SKU,品牌,分类')); // Headers
             assert.ok(text.includes('"Mock Product"')); // escapeCSV usage
         });
     });

@@ -8,14 +8,18 @@ const mockProductRepo = {
     create: vi.fn(),
     findById: vi.fn(),
     findBySpu: vi.fn(),
+    findBySpuBatch: vi.fn(),
     search: vi.fn(),
     updateWithMeta: vi.fn(),
+    bulkUpsertFromImport: vi.fn(),
 };
 
 const mockVariantRepo = {
     createBatch: vi.fn(),
     syncVariants: vi.fn(),
     findByProductId: vi.fn(),
+    findByProductIds: vi.fn(),
+    bulkSyncFromImport: vi.fn(),
 };
 const mockVariantImageRepo = {
     syncImages: vi.fn(),
@@ -47,8 +51,10 @@ vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
         create(...args) { return mockProductRepo.create(...args); }
         findById(...args) { return mockProductRepo.findById(...args); }
         findBySpu(...args) { return mockProductRepo.findBySpu(...args); }
+        findBySpuBatch(...args) { return mockProductRepo.findBySpuBatch(...args); }
         search(...args) { return mockProductRepo.search(...args); }
         updateWithMeta(...args) { return mockProductRepo.updateWithMeta(...args); }
+        bulkUpsertFromImport(...args) { return mockProductRepo.bulkUpsertFromImport(...args); }
     },
 }));
 
@@ -57,6 +63,8 @@ vi.mock('../../../../../../repositories/ProductVariantRepository.js', () => ({
         createBatch(...args) { return mockVariantRepo.createBatch(...args); }
         syncVariants(...args) { return mockVariantRepo.syncVariants(...args); }
         findByProductId(...args) { return mockVariantRepo.findByProductId(...args); }
+        findByProductIds(...args) { return mockVariantRepo.findByProductIds(...args); }
+        bulkSyncFromImport(...args) { return mockVariantRepo.bulkSyncFromImport(...args); }
     },
 }));
 
@@ -133,6 +141,98 @@ describe('Product Routes — variant-first contract', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockProductRepo.findById.mockResolvedValue(null);
+        mockProductRepo.findBySpuBatch.mockImplementation(async (spus = []) => {
+            const entries = await Promise.all(
+                (Array.isArray(spus) ? spus : []).map(async (spu) => [spu, await mockProductRepo.findBySpu(spu)])
+            );
+            return new Map(entries.filter(([, product]) => product));
+        });
+        mockProductRepo.bulkUpsertFromImport.mockImplementation(async (plans = []) => {
+            const successes = [];
+            const failures = [];
+
+            for (const plan of Array.isArray(plans) ? plans : []) {
+                try {
+                    if (plan?.needsProductUpsert === false) {
+                        successes.push({
+                            itemKey: plan?.itemKey,
+                            operation: plan?.operation,
+                            productId: plan?.productId,
+                        });
+                        continue;
+                    }
+
+                    if (plan?.operation === 'created') {
+                        const created = await mockProductRepo.create(plan.productData);
+                        successes.push({
+                            itemKey: plan?.itemKey,
+                            operation: plan?.operation,
+                            productId: created?.id || plan?.productId,
+                        });
+                        continue;
+                    }
+
+                    if (plan?.operation === 'updated') {
+                        const result = await mockProductRepo.updateWithMeta(plan.productId, plan.productData);
+                        if (result?.success === false) {
+                            throw new Error(result.error || 'Update product failed');
+                        }
+                        successes.push({
+                            itemKey: plan?.itemKey,
+                            operation: plan?.operation,
+                            productId: plan?.productId,
+                        });
+                        continue;
+                    }
+
+                    throw new Error('Unsupported product import operation');
+                } catch (error) {
+                    failures.push({
+                        itemKey: plan?.itemKey,
+                        operation: plan?.operation,
+                        productId: plan?.productId || null,
+                        error,
+                    });
+                }
+            }
+
+            return { successes, failures };
+        });
+        mockVariantRepo.findByProductIds.mockImplementation(async (productIds = []) => {
+            const entries = await Promise.all(
+                (Array.isArray(productIds) ? productIds : []).map(async (productId) => [productId, await mockVariantRepo.findByProductId(productId)])
+            );
+            return new Map(entries.map(([productId, rows]) => [productId, rows || []]));
+        });
+        mockVariantRepo.bulkSyncFromImport.mockImplementation(async (plans = []) => {
+            const successes = [];
+            const failures = [];
+
+            for (const plan of Array.isArray(plans) ? plans : []) {
+                try {
+                    const variants = await mockVariantRepo.syncVariants(plan.productId, plan.variantsToSync);
+                    successes.push({
+                        itemKey: plan?.itemKey,
+                        productId: plan?.productId,
+                        stats: {
+                            createdCount: variants?.createdCount ?? plan?.fallbackStats?.createdCount ?? 0,
+                            updatedCount: variants?.updatedCount ?? plan?.fallbackStats?.updatedCount ?? 0,
+                            archivedCount: variants?.archivedCount ?? variants?.deletedCount ?? plan?.fallbackStats?.archivedCount ?? 0,
+                            reactivatedCount: variants?.reactivatedCount ?? plan?.fallbackStats?.reactivatedCount ?? 0,
+                        },
+                        variants,
+                    });
+                } catch (error) {
+                    failures.push({
+                        itemKey: plan?.itemKey,
+                        productId: plan?.productId || null,
+                        error,
+                    });
+                }
+            }
+
+            return { successes, failures };
+        });
         mockDimensionRepo.createDimension.mockResolvedValue({ id: 'dim-color', name: 'Color' });
         mockDimensionRepo.addValue.mockResolvedValue({ id: 'val-red', value: 'Red' });
         mockDimensionRepo.listByProduct.mockResolvedValue([]);

@@ -61,6 +61,7 @@ vi.mock('@/composables/useUploadQueue', () => ({
 describe('SpaceProductEditor contract', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    document.body.innerHTML = '';
     mocks.can.mockResolvedValue(true);
     mocks.loadSpace.mockResolvedValue({
       id: 'space-1',
@@ -235,7 +236,7 @@ describe('SpaceProductEditor contract', () => {
       name: 'Brand 1 Series 1',
       sku: 'SKU-2',
     });
-    expect(wrapper.text()).toContain('历史快照');
+    expect(document.body.textContent || '').toContain('历史快照');
   });
 
   it('prefers snapshot binding card when the bound variant is archived but product still loads', async () => {
@@ -293,7 +294,7 @@ describe('SpaceProductEditor contract', () => {
       sku: 'SNAP-SKU',
       mainImage: '/file/snapshot-image',
     });
-    expect(wrapper.text()).toContain('规格已归档');
+    expect(document.body.textContent || '').toContain('规格已归档');
   });
 
   it('keeps core product fields readonly when a bound product exists without product permission', async () => {
@@ -320,14 +321,14 @@ describe('SpaceProductEditor contract', () => {
     await flushPromises();
 
     const lockedValues = ['Brand 1', 'Series 1', '88', 'Leather', 'SKU-2'];
-    const lockedInputs = wrapper.findAll('input').filter((input) =>
-      lockedValues.includes(input.element.value)
+    const lockedInputs = Array.from(document.body.querySelectorAll('input')).filter((input) =>
+      lockedValues.includes(input.value)
     );
 
     expect(wrapper.vm.form.productId).toBe('prod-1');
     expect(lockedInputs).toHaveLength(5);
     lockedInputs.forEach((input) => {
-      expect(input.element.disabled).toBe(true);
+      expect(input.disabled).toBe(true);
     });
   });
 

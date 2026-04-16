@@ -1,6 +1,7 @@
 import assert from 'assert';
+import { describeIfRealApi } from './utils/manage-products-real-api.js';
 
-describe('kk-life Local Testing', function () {
+describeIfRealApi('kk-life Local Testing', function () {
     const appBaseUrl = process.env.APP_BASE_URL || 'http://127.0.0.1:3000';
     const apiBaseUrl = process.env.API_BASE_URL || 'http://127.0.0.1:8080';
 

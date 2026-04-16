@@ -282,7 +282,19 @@ function createDbHarness({
     }),
   };
 
-  return { db, calls, purchaseReceiptRepo, inventoryService, commandIdempotencyRepo, domainOutboxRepo };
+  const variantDemandProjectionRefreshService = {
+    refreshByVariantIds: vi.fn(async () => []),
+  };
+
+  return {
+    db,
+    calls,
+    purchaseReceiptRepo,
+    inventoryService,
+    commandIdempotencyRepo,
+    domainOutboxRepo,
+    variantDemandProjectionRefreshService,
+  };
 }
 
 describe('OrderProcurementDomainService', () => {
@@ -297,6 +309,7 @@ describe('OrderProcurementDomainService', () => {
       inventoryService: harness.inventoryService,
       commandIdempotencyRepo: harness.commandIdempotencyRepo,
       domainOutboxRepo: harness.domainOutboxRepo,
+      variantDemandProjectionRefreshService: harness.variantDemandProjectionRefreshService,
       now: () => 1710000000000,
     });
   });
@@ -329,6 +342,9 @@ describe('OrderProcurementDomainService', () => {
       'purchase_receipt_recorded',
       'inventory_received',
       'order_procurement_progressed',
+    ]);
+    expect(harness.variantDemandProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
+      'var-1',
     ]);
   });
 

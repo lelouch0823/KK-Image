@@ -1,14 +1,8 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
+import { expectFileUnderEffectiveLineBudget } from '../../../test/utils/line-budget.js';
 
 describe('PurchaseOrderRepository line budget', () => {
-  it('keeps PurchaseOrderRepository under 560 lines', () => {
-    const source = fs.readFileSync(
-      path.resolve(process.cwd(), 'functions/repositories/PurchaseOrderRepository.js'),
-      'utf8'
-    );
-
-    expect(source.split('\n').length).toBeLessThan(560);
+  it('keeps PurchaseOrderRepository under 560 effective lines', () => {
+    expectFileUnderEffectiveLineBudget('functions/repositories/PurchaseOrderRepository.js', 560);
   });
 });

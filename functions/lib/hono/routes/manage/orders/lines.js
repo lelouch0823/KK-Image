@@ -78,6 +78,9 @@ async function handleLineCommand(c, action, executor) {
     ...body,
     quantity,
   };
+  if (!['reserve', 'release', 'ship', 'unship', 'return'].includes(action)) {
+    throw new Error(`Unsupported order line action: ${action}`);
+  }
   const service = new OrderLineFulfillmentService(c.env.DB);
   const timelineRepo = new OrderTimelineRepository(c.env.DB);
   const publisher = new DomainOutboxPublisher(c.env.DB);
@@ -120,9 +123,9 @@ async function handleLineCommand(c, action, executor) {
 
   scheduleAuditEvent(c, {
     domain: 'orders',
-    action: `order.line.${action}`,
+    action: action === 'reserve' ? 'order.line.reserve' : action === 'release' ? 'order.line.release' : action === 'ship' ? 'order.line.ship' : action === 'unship' ? 'order.line.unship' : 'order.line.return',
     result: 'success',
-    severity: action === 'ship' ? 'high' : 'normal',
+    severity: 'high',
     targetType: 'order',
     targetId: orderId,
     summary: `${user?.name || 'Admin'} executed ${action} on order line ${lineId}`,

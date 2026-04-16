@@ -16,7 +16,12 @@ describe('V1 API: Files & Folders', () => {
     before(async () => {
         // Generate tokens for tests
         const adminUser = { id: 'admin', name: 'Admin', type: 'admin', permissions: ['admin:full'] };
-        const normalUser = { id: 'user', name: 'User', type: 'user', permissions: ['files:read', 'files:write'] };
+        const normalUser = {
+            id: 'user',
+            name: 'User',
+            type: 'user',
+            permissions: ['files:read', 'files:write', 'folders:read']
+        };
 
         adminToken = await generateJWT(adminUser, mockEnv);
         userToken = await generateJWT(normalUser, mockEnv);

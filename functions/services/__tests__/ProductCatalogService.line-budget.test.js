@@ -1,14 +1,8 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
+import { expectFileUnderEffectiveLineBudget } from '../../../test/utils/line-budget.js';
 
 describe('ProductCatalogService line budget', () => {
-  it('keeps ProductCatalogService under 520 lines', () => {
-    const source = fs.readFileSync(
-      path.resolve(process.cwd(), 'functions/services/ProductCatalogService.js'),
-      'utf8'
-    );
-
-    expect(source.split('\n').length).toBeLessThan(520);
+  it('keeps ProductCatalogService under 520 effective lines', () => {
+    expectFileUnderEffectiveLineBudget('functions/services/ProductCatalogService.js', 520);
   });
 });

@@ -125,11 +125,14 @@ describe('manage no-op update routes', () => {
 
     expect(res.status).toBe(200);
     expect(mocks.customerUpdate).toHaveBeenCalledWith('customer-1', expect.objectContaining({ name: 'Alice' }));
-    expect(mocks.publish).toHaveBeenCalledWith([
+    const [publishedEvents, publishContext] = mocks.publish.mock.calls[0];
+    expect(publishContext).toBeUndefined();
+    expect(publishedEvents).toEqual([
       expect.objectContaining({
         event_type: 'customer_updated',
         aggregate_type: 'customer',
         aggregate_id: 'customer-1',
+        payload: { customer_id: 'customer-1' },
       }),
     ]);
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
@@ -157,11 +160,14 @@ describe('manage no-op update routes', () => {
 
     expect(res.status).toBe(200);
     expect(mocks.salespersonUpdate).toHaveBeenCalledWith('sales-1', expect.objectContaining({ name: 'Bob' }));
-    expect(mocks.publish).toHaveBeenCalledWith([
+    const [publishedEvents, publishContext] = mocks.publish.mock.calls[0];
+    expect(publishContext).toBeUndefined();
+    expect(publishedEvents).toEqual([
       expect.objectContaining({
         event_type: 'salesperson_updated',
         aggregate_type: 'salesperson',
         aggregate_id: 'sales-1',
+        payload: { salesperson_id: 'sales-1' },
       }),
     ]);
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);

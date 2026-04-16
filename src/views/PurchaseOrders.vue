@@ -1,5 +1,6 @@
 <template>
   <div class="space-y-6">
+    <!-- 无采购单读取权限时，直接展示权限说明并提供重试入口。 -->
     <div
       v-if="errorCode === 'FORBIDDEN'"
       class="rounded-xl border border-(--border-color) bg-(--bg-card) p-8"
@@ -15,19 +16,19 @@
       />
     </div>
     <template v-else>
+      <!-- 列表页主壳：统一承载标题、操作区、内容区。 -->
       <ManagementListShell
         :title="t('purchaseOrder.title')"
         :description="t('purchaseOrder.subtitle')"
       >
         <template #actions>
-          <!-- 智能建议按钮 -->
+          <!-- 顶部操作始终保持轻量，只暴露“建议”和“新建”两个主入口。 -->
           <AppButton
             variant="secondary"
             :text="t('purchaseOrder.action.viewSuggestions')"
             icon="light-bulb"
             @click="showSuggestions = true"
           />
-          <!-- 新建按钮 -->
           <AppButton
             variant="primary"
             data-testid="purchase-order-open-create"
@@ -38,6 +39,7 @@
         </template>
 
         <template #content>
+          <!-- 横幅区域负责展示统计、状态信号和快捷筛选。 -->
           <PurchaseOrderOverviewBanner
             :title="t('purchaseOrder.title')"
             :description="t('purchaseOrder.subtitle')"
@@ -50,6 +52,7 @@
             @toggle-status-filter="toggleStatusFilter"
           />
 
+          <!-- 列表表格仅负责渲染与交互回调，格式化逻辑由 presentation/composable 注入。 -->
           <PurchaseOrderListTable
             :columns="columns"
             :list="list"
@@ -65,7 +68,7 @@
             @row-click="(row) => openDetail(row.id)"
           />
 
-          <!-- 分页 -->
+          <!-- 只有总数超过当前分页容量时才展示分页控制。 -->
           <div
             v-if="total > filters.limit"
             class="flex items-center justify-between border-t border-(--border-color)/70 bg-(--bg-muted)/35 px-4 py-3"
@@ -93,7 +96,7 @@
             </div>
           </div>
 
-          <!-- ==================== 详情面板 (弹窗) ==================== -->
+          <!-- 详情抽屉：承载采购单生命周期中的大多数查看和变更动作。 -->
           <Teleport to="body">
             <transition name="fade">
               <PurchaseOrderDetailDrawer
@@ -127,7 +130,7 @@
             </transition>
           </Teleport>
 
-          <!-- ==================== 新建采购单 Modal (增强版) ==================== -->
+          <!-- 新建抽屉：独立于详情抽屉，避免创建态和编辑态互相污染。 -->
           <Teleport to="body">
             <transition name="fade">
               <PurchaseOrderCreateDrawer
@@ -150,6 +153,7 @@
             </transition>
           </Teleport>
 
+          <!-- 缺口关闭弹层：用于把剩余未到货数量显式关闭。 -->
           <Teleport to="body">
             <transition name="fade">
               <PurchaseOrderShortageModal
@@ -168,6 +172,7 @@
             </transition>
           </Teleport>
 
+          <!-- 收货弹层：对当前可收货条目做批量收货录入。 -->
           <Teleport to="body">
             <transition name="fade">
               <PurchaseOrderReceiptModal
@@ -186,6 +191,7 @@
             </transition>
           </Teleport>
 
+          <!-- 成本弹层：维护币种、运费、关税和分摊方式。 -->
           <Teleport to="body">
             <transition name="fade">
               <PurchaseOrderCostModal
@@ -204,6 +210,7 @@
             </transition>
           </Teleport>
 
+          <!-- 收货回滚弹层：只针对已记录的 receipt 做逆向撤销。 -->
           <Teleport to="body">
             <transition name="fade">
               <PurchaseOrderReceiptReversalModal
@@ -221,6 +228,7 @@
             </transition>
           </Teleport>
 
+          <!-- 辅助覆盖层集中承载产品详情、订单/商品选择器和缺口确认。 -->
           <PurchaseOrderSupportOverlays
             :t="t"
             :view-product-id="viewProductId"
@@ -267,6 +275,8 @@
 </template>
 
 <script setup>
+// 这个页面本身只负责“编排”。
+// 具体的数据读写、弹层状态、创建流程、展示映射都下沉到 composables / child components。
 import {
   ref,
   reactive,
@@ -278,6 +288,7 @@ import {
   watch,
 } from 'vue';
 
+// 文件预览统一走公开文件路由，避免子组件各自拼接路径。
 const getFileUrl = (id) => `/file/${id}`;
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
@@ -331,6 +342,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 
+// 页面级基础依赖：国际化、路由、toast、AI 上下文、刷新总线。
 const { t } = useI18n();
 const {
   list,
@@ -369,6 +381,7 @@ const { addToast } = useToast();
 const { setContext } = useAI();
 const { subscribeModule } = useAppRefreshBus();
 
+// 纯 UI/模态状态统一收拢在 modal composable，避免页面本体被局部开关淹没。
 const {
   showDetail,
   showCreateModal,
@@ -384,11 +397,12 @@ const {
   openProductPicker,
 } = usePurchaseOrderModals();
 
+// 从详情抽屉跳商品详情时，只需要切换当前 product id。
 const handleViewProductDetail = (id) => {
   viewProductId.value = id;
 };
 
-// 复用常量与逻辑
+// 新建采购单的表单壳状态。
 const createForm = reactive({
   remark: '',
   currency: 'CNY',
@@ -402,6 +416,7 @@ const selectedSuggestions = ref([]);
 const detailRequestId = ref('');
 let stopPurchaseOrdersRefreshSubscription = null;
 
+// 列表展示层：负责把 stats/list 组织成卡片、列定义、控制台信号等 UI 友好数据。
 const {
   statCards,
   columns,
@@ -410,8 +425,10 @@ const {
   getListStatusVariant,
 } = usePurchaseOrderListPresentation({ stats, t });
 
+// 步骤条定义是静态结构，只依赖文案函数。
 const stepsList = createPurchaseOrderSteps(t);
 
+// 详情页状态推进统一从这里发起，成功后刷新列表和详情，避免局部状态漂移。
 const handleStatusUpdate = async (newStatus) => {
   if (!detail.value) return;
   const success = await updateStatus(detail.value.id, newStatus);
@@ -420,6 +437,7 @@ const handleStatusUpdate = async (newStatus) => {
   }
 };
 
+// 下一可用状态由当前采购单状态和收货进度共同决定。
 const nextStatuses = computed(() => {
   if (!detail.value) return [];
   if (detail.value.status === 'shipping') {
@@ -435,6 +453,7 @@ const nextStatuses = computed(() => {
   return map[detail.value.status] || [];
 });
 
+// 币种和分摊方式选项都来源于统一常量/国际化，避免子组件各自维护枚举。
 const allocationMethodOptions = computed(() => [
   { value: 'by_quantity', label: t('purchaseOrder.form.byQuantity') },
   { value: 'by_value', label: t('purchaseOrder.form.byValue') },
@@ -454,6 +473,7 @@ const formatPurchaseCurrency = (value, currency = 'CNY') => {
   return formatMoney(value, currency || 'CNY');
 };
 
+// 收货元信息构建器负责把 receipt 历史整理成详情侧边栏可展示的数据。
 const buildReceiptMeta = createReceiptMetaBuilder({ t, formatDate });
 const {
   detailSummaryCards,
@@ -474,6 +494,7 @@ const {
   buildReceiptMeta,
 });
 
+// 收货/缺口关闭两个批量弹层都基于 draft 列表推导“已选择条目数”和“总数量”。
 const receiptDraftSelectedCount = computed(
   () => receiptDrafts.value.filter((entry) => normalizeReceiptQty(entry.received_qty) > 0).length
 );
@@ -502,6 +523,7 @@ const shortageSubmitDisabled = computed(
     shortageDrafts.value.some((entry) => isShortageDraftInvalid(entry))
 );
 
+// 智能建议面板只关心建议集合和当前勾选项，汇总卡片在 presentation 层统一生成。
 const { suggestionSummaryCards } = usePurchaseOrderSuggestionPresentation({
   suggestions,
   selectedSuggestions,
@@ -509,12 +531,15 @@ const { suggestionSummaryCards } = usePurchaseOrderSuggestionPresentation({
   formatInteger,
 });
 
+// 打开详情时先记录目标 id，再触发详情加载。
+// detailRequestId 也会被重试、刷新和路由联动复用。
 const openDetail = async (id) => {
   detailRequestId.value = String(id || '').trim();
   showDetail.value = true;
   await loadDetail(id);
 };
 
+// 分页切换时只修改 page，并复用同一套 loadList 查询。
 const changePage = async (delta) => {
   const nextPage = Math.max(1, Number(filters.page || 1) + Number(delta || 0));
   if (nextPage === filters.page) return;
@@ -522,17 +547,22 @@ const changePage = async (delta) => {
   await loadList();
 };
 
+// 点击状态卡时在“当前状态”和“全部状态”之间切换，并重置分页。
 const toggleStatusFilter = async (status) => {
   filters.status = filters.status === status ? '' : status;
   filters.page = 1;
   await loadList();
 };
 
+// 详情重试优先使用当前记住的请求 id，其次回退到路由 query。
 const retryDetail = async () => {
   const id = detailRequestId.value || String(route.query.id || '').trim();
   if (!id) return;
   await openDetail(id);
 };
+
+// 详情侧所有写操作都由 detail actions composable 接管：
+// 成本设置、收货、缺口关闭、收货回滚都从这里暴露一致的状态和提交方法。
 const {
   showCostModal,
   costSubmitting,
@@ -580,6 +610,7 @@ const {
   canCloseShortages,
 });
 
+// 新建流程 composable 负责组装订单/商品选择结果，并统一处理“直接创建”和“从建议创建”。
 const {
   totalCreateQty,
   shortageItems,
@@ -614,6 +645,7 @@ const {
   validateOrderQuantity,
 });
 
+// 详情抽屉需要的一组展示 helper 集中打包传入，避免子组件直接依赖页面外部实现。
 const detailHelpers = {
   formatInteger,
   formatPurchaseCurrency,
@@ -629,6 +661,7 @@ const detailHelpers = {
   canReverseReceipt,
 };
 
+// 详情里的条目修改只允许发生在 draft 态，变更成功后强制刷新视图快照。
 const handleDetailUpdateItem = async (itemId, field, value) => {
   if (!detail.value || detail.value.status !== 'draft') return;
   const success = await updateItem(detail.value.id, itemId, { [field]: value });
@@ -637,6 +670,7 @@ const handleDetailUpdateItem = async (itemId, field, value) => {
   }
 };
 
+// 删除条目同样只允许在 draft 态下执行。
 const handleDetailRemoveItem = async (itemId) => {
   if (!detail.value || detail.value.status !== 'draft') return;
   const success = await removeItem(detail.value.id, itemId);
@@ -645,6 +679,8 @@ const handleDetailRemoveItem = async (itemId) => {
   }
 };
 
+// 页面挂载后订阅采购单模块刷新事件。
+// 只有在未打开抽屉时才静默刷新 overview，避免打断用户正在编辑的上下文。
 onMounted(() => {
   stopPurchaseOrdersRefreshSubscription = subscribeModule('purchaseOrders', async () => {
     if (!showCreateModal.value && !showDetail.value) {
@@ -653,6 +689,8 @@ onMounted(() => {
   });
 });
 
+// keep-alive 激活时重新拉取概览。
+// 如果 URL 上带了 id，则自动恢复详情抽屉。
 onActivated(async () => {
   await loadPurchaseOrderOverview();
 
@@ -662,6 +700,7 @@ onActivated(async () => {
   }
 });
 
+// 详情抽屉关闭时，负责清理路由 query 和各种明细弹层状态。
 watch(showDetail, (isOpen) => {
   if (!isOpen && route.query.id) {
     const newQuery = { ...route.query };
@@ -675,6 +714,7 @@ watch(showDetail, (isOpen) => {
   }
 });
 
+// 智能建议每次打开都重新清空勾选并拉取，关闭时也做清理，避免脏选择遗留。
 watch(showSuggestions, (v) => {
   if (v) {
     selectedSuggestions.value = [];
@@ -686,6 +726,8 @@ watch(showSuggestions, (v) => {
 
 const detailFocusedVariantId = computed(() => getDetailFocusedVariantId(detail.value));
 
+// 把当前采购上下文同步到 AI：
+// 商品选择器优先，其次是显式商品详情，再其次是详情抽屉聚焦的变体，最后才回退到路由 query。
 watch(
   [
     showProductPicker,
@@ -731,6 +773,7 @@ watch(
   }
 );
 
+// 页面失活时清空 AI 上下文，避免其它页面继承采购单的上下文对象。
 onDeactivated(() => {
   setContext({
     selectedId: null,
@@ -738,6 +781,7 @@ onDeactivated(() => {
   });
 });
 
+// 页面销毁时显式退订刷新总线，避免重复订阅。
 onUnmounted(() => {
   stopPurchaseOrdersRefreshSubscription?.();
   stopPurchaseOrdersRefreshSubscription = null;

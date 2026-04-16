@@ -1,9 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import { DemandService } from '../DemandService.js';
 
+function createProjectionAwareDb() {
+  return {
+    prepare(sql) {
+      return {
+        bind() {
+          if (sql.includes('SELECT id FROM order_lines')) {
+            return {
+              all: async () => ({ results: [] }),
+              first: async () => null,
+            };
+          }
+
+          return {
+            run: async () => ({ meta: { changes: 1 } }),
+            all: async () => ({ results: [] }),
+            first: async () => null,
+          };
+        },
+      };
+    },
+  };
+}
+
 describe('Demand reservation projection', () => {
   it('creates reservation on confirm, releases on cancellation, and consumes reservation on delivery', async () => {
-    const service = new DemandService({});
+    const service = new DemandService(createProjectionAwareDb());
 
     await expect(
       service.syncOrderTransition({ fromStatus: 'pending', toStatus: 'confirmed', quantity: 4, variantId: 'v-1' })
@@ -37,7 +60,7 @@ describe('Demand reservation projection', () => {
   });
 
   it('treats production-to-void as releasing active demand and reservation', async () => {
-    const service = new DemandService({});
+    const service = new DemandService(createProjectionAwareDb());
 
     await expect(
       service.syncOrderTransition({ fromStatus: 'production', toStatus: 'void', quantity: 2, variantId: 'v-1' })

@@ -149,11 +149,14 @@ describe('manage folders routes', () => {
 
     expect(res.status).toBe(200);
     expect(mocks.softDelete).toHaveBeenCalledWith('folder-1');
-    expect(mocks.publish).toHaveBeenCalledWith([
+    const [publishedEvents, publishContext] = mocks.publish.mock.calls[0];
+    expect(publishContext).toBeUndefined();
+    expect(publishedEvents).toEqual([
       expect.objectContaining({
         event_type: 'folder_deleted',
         aggregate_type: 'folder',
         aggregate_id: 'folder-1',
+        payload: { folder_id: 'folder-1' },
       }),
     ]);
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
@@ -191,7 +194,9 @@ describe('manage folders routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.publish).toHaveBeenCalledWith([
+    const [publishedEvents, publishContext] = mocks.publish.mock.calls[0];
+    expect(publishContext).toBeUndefined();
+    expect(publishedEvents).toEqual([
       expect.objectContaining({
         event_type: 'file_uploaded',
         aggregate_type: 'file',
@@ -200,6 +205,10 @@ describe('manage folders routes', () => {
           file: expect.objectContaining({
             id: 'file-1',
             filename: 'asset.png',
+          }),
+          user: expect.objectContaining({
+            id: 'admin-1',
+            name: 'Admin',
           }),
         }),
       }),
@@ -239,10 +248,14 @@ describe('manage folders routes', () => {
       ['name = ?', 'updated_at = ?'],
       ['Updated Folder', expect.any(Number)]
     );
-    expect(mocks.publish).toHaveBeenCalledWith([
+    const [publishedEvents, publishContext] = mocks.publish.mock.calls[0];
+    expect(publishContext).toBeUndefined();
+    expect(publishedEvents).toEqual([
       expect.objectContaining({
         event_type: 'folder_updated',
+        aggregate_type: 'folder',
         aggregate_id: 'folder-1',
+        payload: { folder_id: 'folder-1' },
       }),
     ]);
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);

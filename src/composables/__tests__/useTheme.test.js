@@ -66,10 +66,10 @@ describe('useTheme Composable', () => {
   it('main.css should import layered token entrypoints', () => {
     const mainCss = readFileSync(resolve(process.cwd(), 'src/styles/main.css'), 'utf8');
 
-    expect(mainCss).toContain('@import "./tokens/primitive.css";');
-    expect(mainCss).toContain('@import "./tokens/semantic.css";');
-    expect(mainCss).toContain('@import "./tokens/motion.css";');
-    expect(mainCss).toContain('@import "./tokens/charts.css";');
-    expect(mainCss).toContain('@import "./tokens/themes.css";');
+    expect(mainCss).toContain("@import './tokens/primitive.css';");
+    expect(mainCss).toContain("@import './tokens/semantic.css';");
+    expect(mainCss).toContain("@import './tokens/motion.css';");
+    expect(mainCss).toContain("@import './tokens/charts.css';");
+    expect(mainCss).toContain("@import './tokens/themes.css';");
   });
 });

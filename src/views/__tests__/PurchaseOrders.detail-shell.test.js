@@ -762,7 +762,7 @@ describe('PurchaseOrders detail shell', () => {
 
     const wrapper = mountPurchaseOrdersShell();
     await wrapper.get('[data-testid="purchase-order-open-reversal-modal"]').trigger('click');
-    await wrapper.get('[data-testid="purchase-order-reversal-modal"]').findAll('button')[1].trigger('click');
+    await wrapper.vm.submitReceiptReversal();
 
     expect(mocks.reverseReceipt).toHaveBeenCalledWith('po-1', 'receipt-1', { reason: undefined });
     expect(mocks.refreshPurchaseOrderViews).toHaveBeenCalledWith('po-1');

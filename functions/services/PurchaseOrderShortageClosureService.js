@@ -1,5 +1,6 @@
 import { BadRequestError } from '../lib/hono/errors.js';
 import { CommandIdempotencyRepository } from '../repositories/CommandIdempotencyRepository.js';
+import { VariantDemandProjectionRefreshService } from './VariantDemandProjectionRefreshService.js';
 import {
   computePurchaseOrderRemainingReceivable,
   projectCompatibilityProcurementStatus,
@@ -33,6 +34,8 @@ export class PurchaseOrderShortageClosureService {
     this.db = db;
     this.commandIdempotencyRepo =
       deps.commandIdempotencyRepo || new CommandIdempotencyRepository(db, { now: deps.now });
+    this.variantDemandProjectionRefreshService =
+      deps.variantDemandProjectionRefreshService || new VariantDemandProjectionRefreshService(db);
     this.now = deps.now || (() => Date.now());
   }
 
@@ -121,6 +124,7 @@ export class PurchaseOrderShortageClosureService {
     const results = [];
     const changedOrderStatuses = [];
     const changedOrderProgressions = [];
+    const affectedVariantIds = new Set();
     const seenItemIds = new Set();
     const timestamp = this.now();
 
@@ -141,6 +145,7 @@ export class PurchaseOrderShortageClosureService {
         poId,
         purchaseOrderItemId
       );
+      if (poItem.variant_id) affectedVariantIds.add(poItem.variant_id);
       const remainingReceivable = computePurchaseOrderRemainingReceivable(poItem);
       if (closeQty > remainingReceivable) {
         throw new BadRequestError(`关闭数量超过剩余待收数量: ${remainingReceivable}`);
@@ -328,6 +333,10 @@ export class PurchaseOrderShortageClosureService {
       await cleanupReservation();
       throw error;
     }
+
+    await this.variantDemandProjectionRefreshService.refreshByVariantIds([
+      ...affectedVariantIds,
+    ]);
 
     return response;
   }

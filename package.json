@@ -12,7 +12,7 @@
     "lint:fix": "eslint src functions scripts test --fix",
     "format": "prettier --write \"src/**/*.{js,vue}\" \"functions/**/*.js\" \"scripts/**/*.{js,mjs,cjs}\" \"test/**/*.js\" \"docs/**/*.md\" \"minisales/**/*.{ts,json,md}\"",
     "ci-test": "concurrently --kill-others --success first \"pnpm start\" \"wait-on http://localhost:8080 && pnpm test && pnpm check:minisales\"",
-    "test": "pnpm test:unit:run && mocha --exit",
+    "test": "pnpm test:unit:run && node scripts/run-mocha-tests.mjs",
     "test:unit": "node node_modules/vitest/vitest.mjs",
     "test:unit:run": "node node_modules/vitest/vitest.mjs run",
     "test:ui": "node node_modules/vitest/vitest.mjs --ui",

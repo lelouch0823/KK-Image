@@ -40,6 +40,7 @@ describe('audit runtime alignment', () => {
   it('matches manage order create runtime event to its declaration', async () => {
     vi.doMock('../../routes/manage/orders/create-order.js', () => ({
       createManagedOrder: vi.fn(async () => ({ id: 'order-1', orderNo: 'SO-1' })),
+      publishOrderCreatedByAdmin: vi.fn(async () => undefined),
     }));
     const mod = await import('../../routes/manage/orders/create.js');
     const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'POST' && item.path === '/');

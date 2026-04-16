@@ -5,6 +5,7 @@ import FormData from 'form-data';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { describeIfRealApi } from './utils/manage-products-real-api.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,7 +22,7 @@ let testWebhookId = null;
 let testJwtToken = null;
 let testApiKeyId = null;
 
-describe('kk-life API v1 Tests', function () {
+describeIfRealApi('kk-life API v1 Tests', function () {
   this.timeout(30000); // 30秒超时
 
   // 系统监控 API 测试
