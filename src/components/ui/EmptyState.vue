@@ -68,7 +68,20 @@ const {
   icon: {
     type: String,
     default: 'folder',
-    validator: (v) => ['folder', 'file', 'user', 'search', 'image', 'inbox', 'plus', 'users'].includes(v),
+    validator: (v) =>
+      [
+        'folder',
+        'file',
+        'user',
+        'search',
+        'image',
+        'inbox',
+        'plus',
+        'users',
+        'check-circle',
+        'no-symbol',
+        'archive-box-x-mark',
+      ].includes(v),
   },
   size: {
     type: String,
@@ -90,6 +103,9 @@ const appIconMap = {
   image: 'photo',
   inbox: 'inbox',
   plus: 'plus',
+  'check-circle': 'check-circle',
+  'no-symbol': 'no-symbol',
+  'archive-box-x-mark': 'archive-box-x-mark',
 };
 
 const appIconName = computed(() => appIconMap[icon] || 'folder');

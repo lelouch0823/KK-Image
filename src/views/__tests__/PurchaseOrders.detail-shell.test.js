@@ -114,6 +114,21 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ replace: mocks.routerReplace, push: mocks.routerPush }),
 }));
 
+const appSelectStub = {
+  props: ['modelValue', 'options', 'placeholder', 'size'],
+  template: `
+    <select>
+      <option
+        v-for="option in options || []"
+        :key="option.value"
+        :value="option.value"
+      >
+        {{ option.label }}
+      </option>
+    </select>
+  `,
+};
+
 function mountPurchaseOrdersShell() {
   return mount(PurchaseOrders, {
     global: {
@@ -129,20 +144,7 @@ function mountPurchaseOrdersShell() {
         AppButton: { template: '<button><slot /></button>' },
         AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
         AppCheckbox: { template: '<input type="checkbox" />' },
-        AppSelect: {
-          props: ['modelValue', 'options', 'placeholder', 'size'],
-          template: `
-            <select>
-              <option
-                v-for="option in options || []"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ option.label }}
-              </option>
-            </select>
-          `,
-        },
+        AppSelect: appSelectStub,
         AppTable: { template: '<div />' },
         StatusBadge: { template: '<div><slot /></div>' },
         PermissionDeniedState: { template: '<div />' },
@@ -318,7 +320,7 @@ describe('PurchaseOrders detail shell', () => {
           AppButton: { template: '<button><slot /></button>' },
           AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
           AppCheckbox: { template: '<input type="checkbox" />' },
-          AppSelect: { template: '<select />' },
+          AppSelect: appSelectStub,
           AppTable: { template: '<div />' },
           StatusBadge: { template: '<div><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
@@ -385,7 +387,7 @@ describe('PurchaseOrders detail shell', () => {
           AppButton: { template: '<button><slot /></button>' },
           AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
           AppCheckbox: { template: '<input type="checkbox" />' },
-          AppSelect: { template: '<select />' },
+          AppSelect: appSelectStub,
           AppTable: { template: '<div />' },
           StatusBadge: { template: '<div><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
@@ -467,7 +469,7 @@ describe('PurchaseOrders detail shell', () => {
           AppButton: { template: '<button><slot /></button>' },
           AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
           AppCheckbox: { template: '<input type="checkbox" />' },
-          AppSelect: { template: '<select />' },
+          AppSelect: appSelectStub,
           AppTable: { template: '<div />' },
           StatusBadge: { template: '<div><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
@@ -518,7 +520,7 @@ describe('PurchaseOrders detail shell', () => {
           AppButton: { template: '<button><slot /></button>' },
           AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
           AppCheckbox: { template: '<input type="checkbox" />' },
-          AppSelect: { template: '<select />' },
+          AppSelect: appSelectStub,
           AppTable: {
             props: ['columns', 'data'],
             template: `
@@ -817,7 +819,7 @@ describe('PurchaseOrders detail shell', () => {
           AppButton: { template: '<button><slot /></button>' },
           AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
           AppCheckbox: { template: '<input type="checkbox" />' },
-          AppSelect: { template: '<select />' },
+          AppSelect: appSelectStub,
           AppTable: { template: '<div />' },
           StatusBadge: { template: '<div><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },

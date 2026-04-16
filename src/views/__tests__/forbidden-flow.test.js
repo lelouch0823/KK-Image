@@ -37,6 +37,7 @@ vi.mock('@/composables/useAccessControl', () => ({
 describe('forbidden flow', () => {
   beforeEach(() => {
     vi.resetModules()
+    window.scrollTo = vi.fn()
     checkAuthMock.mockReset().mockResolvedValue(true)
     canMock.mockReset()
     clearPermissionsMock.mockReset()
