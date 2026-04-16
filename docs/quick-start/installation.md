@@ -57,21 +57,21 @@ pnpm install
 
 最低必需：
 
-| 变量名 | 说明 |
-| --- | --- |
+| 变量名       | 说明         |
+| ------------ | ------------ |
 | `BASIC_USER` | 管理员用户名 |
-| `BASIC_PASS` | 管理员密码 |
+| `BASIC_PASS` | 管理员密码   |
 | `JWT_SECRET` | JWT 签名密钥 |
 
 常见可选项：
 
-| 变量名 | 说明 |
-| --- | --- |
-| `WECHAT_APPID` / `WECHAT_SECRET` | 销售端微信登录 |
-| `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | 登录页验证 |
-| `SENTRY_DSN` | 错误监控 |
-| `ModerateContentApiKey` | 内容审查 |
-| `STORAGE_PROVIDER` | 默认 `r2`，也可用 `telegram` / `s3` |
+| 变量名                                        | 说明                                |
+| --------------------------------------------- | ----------------------------------- |
+| `WECHAT_APPID` / `WECHAT_SECRET`              | 销售端微信登录                      |
+| `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | 登录页验证                          |
+| `SENTRY_DSN`                                  | 错误监控                            |
+| `ModerateContentApiKey`                       | 内容审查                            |
+| `STORAGE_PROVIDER`                            | 默认 `r2`，也可用 `telegram` / `s3` |
 
 详见 [环境变量配置指南](../deployment/environment-variables.md)。
 
@@ -126,6 +126,20 @@ pnpm dev
 ```
 
 注意：`pnpm dev` 只启动 Vite，不包含 Pages Worker、本地 D1 迁移和 Functions 模拟。
+
+### 真实 API 回归
+
+```bash
+pnpm build
+pnpm start
+pnpm test:real-api:full-chain
+```
+
+开始前请先确认：
+
+- `pnpm db:migrate:local` 已成功执行
+- `127.0.0.1:8080` 没有被残留 `workerd` / `wrangler pages dev` 占用
+- `http://127.0.0.1:8080/api/v1/health` 返回健康响应
 
 ## 9. 部署后验证
 

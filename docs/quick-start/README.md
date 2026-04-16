@@ -25,6 +25,15 @@
 corepack enable
 pnpm install
 pnpm dev:all
+pnpm test
+```
+
+如果要验证真实 API 全链路：
+
+```bash
+pnpm build
+pnpm start
+pnpm test:real-api:full-chain
 ```
 
 ### 生产部署
@@ -41,6 +50,12 @@ pnpm dev:all
 - `/admin`：管理端后台
 - `/sales/:token`：销售端门户
 - `/space/:token`：公开共享空间
+- `/gallery/:token`：公开相册分享
+
+## 验证口径提醒
+
+- `pnpm test` 代表默认仓库测试套件通过，不等于真实 API 链路已经验证。
+- `pnpm test:real-api:full-chain` 依赖本地 Worker 在 `127.0.0.1:8080` 正常启动，并且 `/api/v1/health` 可访问。
 
 ## 下一步阅读
 

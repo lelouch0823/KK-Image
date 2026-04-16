@@ -4,11 +4,12 @@
 
 ## 1. 总体架构
 
-kk-life 基于 Cloudflare Pages Functions + Hono 构建，分为四层：
+kk-life 以 Cloudflare Pages Functions + Hono 为主业务骨架，同时保留少量文件式 public / cron 路由，分为四层：
 
 1. 路由层
    - `functions/lib/hono/app.js`
    - 负责挂载 `/api/manage`、`/api/sales`、`/api/v1`
+   - public / cron 补充入口仍位于 `functions/api/space/[token].js`、`functions/api/gallery/[token].js`、`functions/api/cron/*`
 2. 领域服务层
    - `functions/services/`
    - 负责采购收货、库存、需求聚合、outbox 消费等跨仓储业务逻辑
@@ -78,6 +79,7 @@ graph LR
 - `reserved_qty`：订单行内部的履约预留
 - `shipped_qty`：订单行内部的已发货量
 - `order_line_allocations`：履约预留事实
+- `inventory_events`：库存事实事件
 
 ### 3.2 采购进度
 
@@ -187,5 +189,5 @@ src/
 - 新副作用优先接入 outbox，而不是在路由中直接调用
 - 大批量 D1 写入优先使用 chunked batch helper
 - 收货 / 冲销命令幂等优先使用 `CommandIdempotencyRepository` 的原子占位逻辑，不要回退到“先查再插”的竞争窗口实现
-- 本地真实链路联调优先跑 `pnpm dev:all` 和 `pnpm test:real-api:full-chain`
+- 本地默认验证优先跑 `pnpm test`；真实链路联调再补 `pnpm build`、`pnpm start` 和 `pnpm test:real-api:full-chain`
 - 文档、测试、API 示例必须与 Hono 当前真实路由保持一致

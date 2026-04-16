@@ -4,7 +4,7 @@
 
 1. 管理端 API：`/api/manage/*`
 2. 销售端 API：`/api/sales/*`
-3. 公开空间 API：`/api/space/*`
+3. 公开分享 API：`/api/space/*` + `/api/gallery/*`
 4. 标准资源 / 运维 API：`/api/v1/*`
 
 ## 管理端 API
@@ -27,11 +27,16 @@
 
 详见 [sales.md](sales.md)。
 
-## 公开空间 API
+## 公开分享 API
 
 - Base URL: `/api/space/:token`
 - 认证：share token，必要时再通过 `POST` 提交密码
 - 当前实现只保留 `GET /api/space/:token` 与 `POST /api/space/:token`
+
+另有公开相册：
+
+- Base URL: `/api/gallery/:token`
+- 当前实现保留 `GET /api/gallery/:token` 与 `POST /api/gallery/:token`
 
 详见 [space.md](space.md)。
 
@@ -46,6 +51,7 @@
 - `/api/v1/permissions`
 - `/api/v1/webhooks`
 - `/api/v1/health`
+- `/api/v1/health/info`
 
 ## 响应约定
 

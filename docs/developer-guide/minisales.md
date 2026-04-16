@@ -78,43 +78,43 @@ miniprogram/pages/
 
 ```bash
 cd minisales
-npm install
+pnpm install
 ```
 
 然后用微信开发者工具打开 `minisales/` 目录。
 
 ## 6. 主要接口映射
 
-| 场景 | 接口 |
-| --- | --- |
-| 微信登录 | `POST /api/sales/wechat-login` |
-| 密码登录 | `POST /api/sales/:token/auth` |
-| 获取当前销售信息 | `GET /api/sales/:token/auth` |
-| 绑定微信 | `POST /api/sales/:token/bind-wechat` |
-| 订单列表 | `GET /api/sales/:token/orders` |
-| 创建订单 | `POST /api/sales/:token/orders` |
-| 订单详情 | `GET /api/sales/:token/orders/:id` |
-| 标记详情已读 | `PATCH /api/sales/:token/orders/:id/read` |
-| 订单留言 | `POST /api/sales/:token/orders/:id/comment` |
-| 上传素材 | `POST /api/sales/:token/upload` |
-| 业绩统计 | `GET /api/sales/:token/stats` |
-| 共享空间列表 | `GET /api/sales/:token/spaces` |
-| 共享空间详情 | `GET /api/sales/:token/spaces/:id` |
+| 场景             | 接口                                        |
+| ---------------- | ------------------------------------------- |
+| 微信登录         | `POST /api/sales/wechat-login`              |
+| 密码登录         | `POST /api/sales/:token/auth`               |
+| 获取当前销售信息 | `GET /api/sales/:token/auth`                |
+| 绑定微信         | `POST /api/sales/:token/bind-wechat`        |
+| 订单列表         | `GET /api/sales/:token/orders`              |
+| 创建订单         | `POST /api/sales/:token/orders`             |
+| 订单详情         | `GET /api/sales/:token/orders/:id`          |
+| 标记详情已读     | `PATCH /api/sales/:token/orders/:id/read`   |
+| 订单留言         | `POST /api/sales/:token/orders/:id/comment` |
+| 上传素材         | `POST /api/sales/:token/upload`             |
+| 业绩统计         | `GET /api/sales/:token/stats`               |
+| 共享空间列表     | `GET /api/sales/:token/spaces`              |
+| 共享空间详情     | `GET /api/sales/:token/spaces/:id`          |
 
 ## 7. 测试与验证
 
 核心验证命令：
 
 ```bash
-npm run test:unit
-npm run typecheck
+pnpm test:unit
+pnpm typecheck
 ```
 
 定向回归：
 
 ```bash
-npm run test:unit -- tests/unit/pages/order-detail-controller.test.ts
-npm run test:unit -- tests/unit/pages/sales-stats-controller.test.ts tests/unit/pages/spaces-controller.test.ts
+pnpm test:unit -- tests/unit/pages/order-detail-controller.test.ts
+pnpm test:unit -- tests/unit/pages/sales-stats-controller.test.ts tests/unit/pages/spaces-controller.test.ts
 ```
 
 当前单测覆盖重点：

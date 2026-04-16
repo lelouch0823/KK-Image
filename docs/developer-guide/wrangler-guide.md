@@ -12,27 +12,27 @@
 
 ### 本地开发
 
-| 命令 | 作用 |
-| --- | --- |
-| `pnpm dev` | 仅启动 Vite 前端 |
+| 命令           | 作用                                       |
+| -------------- | ------------------------------------------ |
+| `pnpm dev`     | 仅启动 Vite 前端                           |
 | `pnpm dev:all` | 启动 Vite + Pages Worker，并先应用本地迁移 |
-| `pnpm start` | 基于 `dist` 启动本地 Pages Worker |
+| `pnpm start`   | 基于 `dist` 启动本地 Pages Worker          |
 
 ### 构建与部署
 
-| 命令 | 作用 |
-| --- | --- |
-| `pnpm build` | 构建前端到 `dist` |
+| 命令                  | 作用                  |
+| --------------------- | --------------------- |
+| `pnpm build`          | 构建前端到 `dist`     |
 | `pnpm deploy:preview` | 部署 preview 分支构建 |
-| `pnpm deploy:prod` | 部署 main 分支构建 |
+| `pnpm deploy:prod`    | 部署 main 分支构建    |
 
 ### D1 迁移
 
-| 命令 | 作用 |
-| --- | --- |
-| `pnpm db:migrate:local` | 应用本地迁移 |
-| `pnpm db:migrate:preview:raw` | 对 preview 环境远程应用迁移 |
-| `pnpm db:migrate:prod:raw` | 对 production 环境远程应用迁移 |
+| 命令                          | 作用                           |
+| ----------------------------- | ------------------------------ |
+| `pnpm db:migrate:local`       | 应用本地迁移                   |
+| `pnpm db:migrate:preview:raw` | 对 preview 环境远程应用迁移    |
+| `pnpm db:migrate:prod:raw`    | 对 production 环境远程应用迁移 |
 
 ## 3. 当前 `wrangler.toml` 的关键点
 
@@ -53,6 +53,20 @@ pnpm install
 pnpm db:migrate:local
 pnpm dev:all
 ```
+
+### 真实 API 回归工作流
+
+```bash
+pnpm build
+pnpm start
+pnpm test:real-api:full-chain
+```
+
+运行前先确认：
+
+- 8080 端口未被残留 `workerd` / `wrangler pages dev` 占用
+- `/api/v1/health` 可访问
+- 真实 API 失败时先区分源码问题、测试问题和本地环境问题
 
 ### Secrets 管理
 

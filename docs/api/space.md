@@ -2,10 +2,12 @@
 
 > Base URL: `/api/space/:token`
 
-当前公开空间 API 只保留两个入口：
+当前公开分享能力有两条主线：
 
-- `GET /api/space/:token`
-- `POST /api/space/:token`
+- 空间：`GET /api/space/:token`、`POST /api/space/:token`
+- 相册：`GET /api/gallery/:token`、`POST /api/gallery/:token`
+
+本页先记录空间 API：
 
 ## 1. 获取空间详情
 
@@ -66,5 +68,6 @@ Body:
 ## 3. 说明
 
 - 旧文档里出现过的 `/api/space/:token/folder/:folderId` 与 `/api/space/:token/download/:fileId` 在当前实现中不存在
+- 公开相册使用的是独立文件式入口 `/api/gallery/:token`
 - 公开空间页面前端路由是 `/space/:token`
 - 如果管理员携带有效认证上下文，请求可进入未公开空间的预览模式

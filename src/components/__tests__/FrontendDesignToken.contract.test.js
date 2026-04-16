@@ -350,6 +350,10 @@ describe('frontend design token contracts', () => {
         forbidden: ['to-purple'],
       },
       {
+        file: 'src/components/common/uploader/UploadButton.vue',
+        forbidden: ['<svg'],
+      },
+      {
         file: 'src/utils/highlight.js',
         forbidden: ['bg-yellow-200', 'text-yellow-900'],
       },

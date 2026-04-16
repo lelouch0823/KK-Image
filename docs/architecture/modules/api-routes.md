@@ -2,7 +2,7 @@
 
 ## 1. 模块概述
 
-项目后端统一由 `functions/lib/hono/app.js` 挂载，当前真实架构不是散落在 `functions/api/*` 下的直连处理器，而是：
+项目后端以 `functions/lib/hono/app.js` 挂载的 Hono 主路由为核心，同时保留少量文件式 public / cron 入口。当前真实架构不是散落在 `functions/api/*` 下的大量直连业务处理器，而是：
 
 - Hono 路由层
 - 中间件层
@@ -50,10 +50,19 @@ functions/lib/hono/
 - `routes/manage/outbox.js`
 - `routes/manage/audit-replay.js`
 
+仍然由文件式 Functions 承担的当前入口包括：
+
+- `functions/api/space/[token].js`
+- `functions/api/gallery/[token].js`
+- `functions/api/cron/*`
+- `functions/api/turnstile/verify.js`
+
 ## 3. 路由树
 
 ```text
 /api
+├── /gallery/:token
+├── /space/:token
 ├── /v1
 │   ├── /auth
 │   ├── /health
@@ -157,6 +166,8 @@ functions/lib/hono/
 - `PATCH /api/manage/orders/:id/status`
 - `POST /api/manage/orders/:id/comment`
 - `POST /api/sales/:token/orders`
+- `POST /api/manage/orders/:id/lines/:lineId/unship`
+- `POST /api/manage/orders/:id/lines/:lineId/return`
 
 ### 6.2 采购
 
@@ -185,11 +196,13 @@ functions/lib/hono/
 const publisher = new DomainOutboxPublisher(env.DB);
 await publisher.publish(events);
 
-c.executionCtx.waitUntil(runOutboxPoller({
-  env,
-  requestUrl: c.req.url,
-  workerId: 'some-worker-id',
-}));
+c.executionCtx.waitUntil(
+  runOutboxPoller({
+    env,
+    requestUrl: c.req.url,
+    workerId: 'some-worker-id',
+  })
+);
 ```
 
 当前典型覆盖场景：
@@ -207,6 +220,11 @@ c.executionCtx.waitUntil(runOutboxPoller({
 - `/api/manage/audit-replay`
   - `POST /dry-run`
   - `POST /execute`
+
+公开访问入口：
+
+- `/api/space/:token`
+- `/api/gallery/:token`
 
 这部分能力已经属于正式架构，不再只是内部脚本。
 

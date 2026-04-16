@@ -67,16 +67,16 @@ graph TB
 
 ### 2.1 用户角色
 
-| 角色 | 入口 | 认证方式 |
-|------|------|----------|
-| 管理员 | `/admin` / `/api/manage/*` | Admin JWT / Basic Auth / `X-API-Key` |
-| 销售 | `/sales/:token` / `/api/sales/:token/*` | Sales JWT + access token |
-| 访客 | `/space/:token` | Share token + 密码（可选） |
-| 外部系统 | `/api/manage/*`, `/api/v1/*` | `X-API-Key` / Bearer Token |
+| 角色     | 入口                                    | 认证方式                             |
+| -------- | --------------------------------------- | ------------------------------------ |
+| 管理员   | `/admin` / `/api/manage/*`              | Admin JWT / Basic Auth / `X-API-Key` |
+| 销售     | `/sales/:token` / `/api/sales/:token/*` | Sales JWT + access token             |
+| 访客     | `/space/:token`                         | Share token + 密码（可选）           |
+| 外部系统 | `/api/manage/*`, `/api/v1/*`            | `X-API-Key` / Bearer Token           |
 
 ### 2.2 运行时结构
 
-当前后端不是旧文档中的 `functions/api/...` 直连路由结构，而是以 Hono 应用为中心：
+当前后端不是旧文档中的“所有业务都散落在 `functions/api/...` 文件式路由”结构，而是以 Hono 应用为中心，并保留少量文件式补充入口：
 
 ```text
 functions/
@@ -84,6 +84,8 @@ functions/
 ├── lib/hono/routes/manage/         # 管理端路由
 ├── lib/hono/routes/sales/          # 销售端路由
 ├── lib/hono/routes/v1/             # 标准 / 运维接口
+├── api/space/[token].js            # 公开空间访问
+├── api/gallery/[token].js          # 公开相册访问
 ├── repositories/                   # 数据访问层
 ├── services/                       # 领域服务、outbox、通知、库存、采购
 └── api/cron/outbox.js              # outbox poller / 恢复入口
@@ -220,7 +222,7 @@ sequenceDiagram
 
 副作用由消费者从 `outbox_consumer_jobs` 读取并幂等执行。
 
-在本地开发里，`pnpm dev:all` / `pnpm start` 会先执行 `pnpm db:migrate:local`，确保 Worker 使用的 D1 schema 已经跟上最新迁移。
+在本地开发里，`pnpm dev:all` / `pnpm start` 会先执行 `pnpm db:migrate:local`，确保 Worker 使用的 D1 schema 已经跟上最新迁移。默认仓库验证口径是 `pnpm test`；只有在需要确认真实 Worker + D1 + 路由链路时，才补跑 real API 测试。
 
 ### 5.2 当前主要消费者
 

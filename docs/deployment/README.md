@@ -29,6 +29,7 @@
 pnpm install
 pnpm db:migrate:local
 pnpm dev:all
+pnpm test
 ```
 
 ### 预览
@@ -76,11 +77,20 @@ pnpm deploy:prod
 如果要验证全链业务回归，建议在本地或预览环境执行：
 
 ```bash
+pnpm build
+pnpm start
 pnpm test:real-api:full-chain
 ```
+
+开始前请先确认：
+
+- 本地迁移已应用
+- `127.0.0.1:8080` 没有残留 Worker 占用
+- `http://127.0.0.1:8080/api/v1/health` 返回健康响应
 
 ## 7. 常见误区
 
 - `pnpm dev` 只启动前端，不会启动 Pages Worker
+- `pnpm test` 不等于真实 API 已验证
 - 根路径 `/` 不是公开上传页，而是会跳转到 `/login`
 - Telegram 存储不是必需项；默认推荐使用 R2

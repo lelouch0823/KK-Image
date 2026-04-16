@@ -10,6 +10,8 @@
 
 - `GET /api/manage/dashboard/overview`
 - `GET /api/manage/orders/stats`
+- `GET /api/manage/stats`
+- `GET /api/manage/stats/uploads`
 
 ## 2. 文件与共享空间
 
@@ -48,6 +50,8 @@
 - `POST /api/manage/orders/:id/lines/:lineId/reserve`
 - `POST /api/manage/orders/:id/lines/:lineId/release`
 - `POST /api/manage/orders/:id/lines/:lineId/ship`
+- `POST /api/manage/orders/:id/lines/:lineId/unship`
+- `POST /api/manage/orders/:id/lines/:lineId/return`
 
 说明：
 
@@ -62,6 +66,7 @@
 - `GET /api/manage/customers`
 - `GET /api/manage/customers/search?q=keyword`
 - `GET /api/manage/customers/:id`
+- `GET /api/manage/customers/:id/orders`
 - `POST /api/manage/customers`
 - `PUT /api/manage/customers/:id`
 - `DELETE /api/manage/customers/:id`
@@ -133,6 +138,7 @@
 ### 通知
 
 - `GET /api/manage/notifications`
+- `POST /api/manage/notifications`
 - `POST /api/manage/notifications/:id/read`
 
 ### 审计
@@ -157,5 +163,8 @@
 
 ```bash
 pnpm dev:all
+pnpm test
+pnpm build
+pnpm start
 pnpm test:real-api:full-chain
 ```

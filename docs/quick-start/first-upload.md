@@ -64,9 +64,16 @@
 ## 5. 推荐的本地全链验证
 
 ```bash
-pnpm dev:all
+pnpm test
+pnpm build
+pnpm start
 pnpm test:real-api:full-chain
 ```
+
+说明：
+
+- `pnpm test` 先验证默认仓库测试套件。
+- real API 测试前要保证本地 Worker 已启动且 `http://127.0.0.1:8080/api/v1/health` 正常。
 
 ## 6. 常见问题
 
@@ -85,6 +92,12 @@ pnpm test:real-api:full-chain
 - 检查 `DB` 与 `R2_BUCKET` 绑定
 - 检查远程或本地迁移是否已经执行
 - 若使用 Telegram / S3 存储，检查对应可选环境变量是否已配置
+
+### real API 测试直接失败
+
+- 检查 `127.0.0.1:8080` 是否被旧 `workerd` / `wrangler pages dev` 残留进程占用
+- 检查 `pnpm build` 是否成功
+- 检查 `pnpm start` 启动后的 `/api/v1/health`
 
 ### 销售端无法登录
 

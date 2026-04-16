@@ -122,8 +122,8 @@
 
 1. 在底部标签切到“共享空间”。
 2. 找到目标空间卡片。
-3. 点击后在新窗口打开 `/space/:token`。
-4. 把打开后的链接或页面发给客户查看。
+3. 点击后进入销售端空间详情页 `/sales/:token/spaces/:id`。
+4. 在详情页查看素材、下级空间或继续给客户展示。
 
 如果页面没有任何卡片，通常表示后台暂时还没给你分配可展示空间。
 
@@ -172,6 +172,7 @@
 - [销售端订单详情教程](pages/sales-detail.md)
 - [销售端个人统计教程](pages/sales-stats.md)
 - [销售端共享空间教程](pages/sales-spaces.md)
+- [销售端空间详情教程](pages/sales-space-detail.md)
 - [文件上传与附件管理](uploading-images.md)
 - [微信小程序销售端手册](minisales-guide.md)
 - [预订单业务简化版](preorder-business-quick-guide.md)

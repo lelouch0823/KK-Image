@@ -31,6 +31,7 @@
 ### 管理端
 
 - `GET /api/manage/dashboard/overview`
+- `GET /api/manage/stats`
 - `GET /api/manage/orders`
 - `GET /api/manage/orders/:id`
 - `POST /api/manage/orders`
@@ -38,6 +39,8 @@
 - `POST /api/manage/orders/:id/lines/:lineId/reserve`
 - `POST /api/manage/orders/:id/lines/:lineId/release`
 - `POST /api/manage/orders/:id/lines/:lineId/ship`
+- `POST /api/manage/orders/:id/lines/:lineId/unship`
+- `POST /api/manage/orders/:id/lines/:lineId/return`
 - `GET /api/manage/products`
 - `GET /api/manage/goods-overview`
 - `GET /api/manage/purchase-orders`
@@ -70,11 +73,19 @@
 - `POST /api/sales/:token/upload`
 - `GET /api/sales/:token/stats`
 - `GET /api/sales/:token/spaces`
+- `GET /api/sales/:token/spaces/:id`
+- `GET /api/sales/:token/notifications`
+- `POST /api/sales/:token/notifications/:id/read`
 
 ### 公开空间
 
 - `GET /api/space/:token`
 - `POST /api/space/:token`
+
+### 公开相册
+
+- `GET /api/gallery/:token`
+- `POST /api/gallery/:token`
 
 ## 3. 当前架构约定
 
@@ -87,5 +98,8 @@
 
 ```bash
 pnpm dev:all
+pnpm test
+pnpm build
+pnpm start
 pnpm test:real-api:full-chain
 ```

@@ -15,14 +15,14 @@
 
 ## 技术栈
 
-| 层级 | 技术 |
-| --- | --- |
-| Web 前端 | Vue 3 + Vite + Tailwind CSS v4 |
-| 小程序 | 微信小程序 + TypeScript + SCSS + Skyline / glass-easel |
-| 后端 | Cloudflare Pages Functions + Hono |
-| 数据库 | Cloudflare D1 |
-| 存储 | Cloudflare R2（默认） |
-| 认证 | Basic Auth + 自定义 JWT + Sales access token |
+| 层级     | 技术                                                   |
+| -------- | ------------------------------------------------------ |
+| Web 前端 | Vue 3 + Vite + Tailwind CSS v4                         |
+| 小程序   | 微信小程序 + TypeScript + SCSS + Skyline / glass-easel |
+| 后端     | Cloudflare Pages Functions + Hono                      |
+| 数据库   | Cloudflare D1                                          |
+| 存储     | Cloudflare R2（默认）                                  |
+| 认证     | Basic Auth + 自定义 JWT + Sales access token           |
 
 ## 常用命令
 
@@ -42,9 +42,16 @@ pnpm dev
 ### 测试
 
 ```bash
-pnpm test:unit
+pnpm test
+pnpm test:unit:run
 pnpm test:real-api:full-chain
 ```
+
+测试口径：
+
+- `pnpm test` 是默认仓库测试套件。
+- `pnpm test:unit:run` 适合非交互、文件级验证。
+- `pnpm test:real-api:full-chain` 只在需要覆盖真实 Worker + D1 + 路由链路时补跑。
 
 ### 数据库迁移
 
@@ -58,4 +65,5 @@ pnpm db:migrate:prod:raw
 
 - `pnpm dev` 只启动 Vite，不会拉起本地 Pages Worker
 - 若要联调 Hono 路由、D1 和 R2，请使用 `pnpm dev:all`
+- 当前后端是 Hono 主业务路由加少量文件式 public/cron 路由并存
 - 当前数据库名称与 `wrangler.toml` 保持一致，为 `kk-life-db`

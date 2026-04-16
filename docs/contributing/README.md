@@ -26,9 +26,16 @@ pnpm dev
 
 ```bash
 pnpm lint
-pnpm test:unit
+pnpm test
+pnpm test:unit:run
 pnpm test:real-api:full-chain
 ```
+
+说明：
+
+- `pnpm test` 是默认仓库测试套件，会运行 unit + mocha。
+- `pnpm test:unit:run` 适合迭代期做定向、非交互式验证。
+- `pnpm test:real-api:full-chain` 只在改动触达真实 API 业务链路时补跑，不要把它和默认测试混为一谈。
 
 ## 4. 数据库相关
 
@@ -55,6 +62,7 @@ pnpm db:migrate:prod:raw
 - 不要继续使用旧版图床 / Telegraph 叙述覆盖当前产品入口
 - 不要新增失效链接
 - 命令、路由、绑定名必须以仓库当前代码与 `wrangler.toml` 为准
+- 如果文档提到“测试通过”，要写清楚跑的是 `pnpm test`、`pnpm test:unit:run` 还是 real API 测试
 
 ## 7. 问题反馈
 

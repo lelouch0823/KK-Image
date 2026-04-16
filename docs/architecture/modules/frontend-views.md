@@ -29,42 +29,43 @@ Router (src/router/index.js)
 
 ### 2.1 公开页面
 
-| 页面 | 路径 | 功能描述 |
-|------|------|----------|
-| `Login.vue` | `/login` | 用户登录，支持 Turnstile 验证 |
-| `Gallery.vue` | `/gallery/:token` | Token-based 相册分享 |
-| `Space.vue` | `/space/:token` | Token-based 空间分享 |
-| `Sales.vue` | `/sales/:token` | 销售员门户布局 |
+| 页面          | 路径              | 功能描述                      |
+| ------------- | ----------------- | ----------------------------- |
+| `Login.vue`   | `/login`          | 用户登录，支持 Turnstile 验证 |
+| `Gallery.vue` | `/gallery/:token` | Token-based 相册分享          |
+| `Space.vue`   | `/space/:token`   | Token-based 空间分享          |
+| `Sales.vue`   | `/sales/:token`   | 销售员门户布局                |
 
 ### 2.2 管理后台页面
 
 当前后台页面主要通过路由 `meta.permission` 做权限控制，而不是旧文档中的固定角色表。
 
-| 页面 | 路径 | 主要权限 | 功能描述 |
-|------|------|----------|----------|
-| `Dashboard.vue` | `/admin/dashboard` | `stats:read` | 管理仪表盘 |
-| `FileManager/` | `/admin/files` | `files:read` | 文件管理 |
-| `SpaceManager/` | `/admin/spaces` | `spaces:read` | 空间管理 |
-| `Products.vue` | `/admin/products` | `products:manage` | 商品管理 |
-| `Orders.vue` | `/admin/orders` | `orders:manage` | 订单管理 |
-| `Salespersons.vue` | `/admin/salespersons` | `users:read` | 销售人员管理 |
-| `GoodsOverview.vue` | `/admin/goods-overview` | `products:manage` | 缺口与订货总览 |
-| `PurchaseOrders.vue` | `/admin/purchase-orders` | `products:manage` | 采购单管理 |
-| `Customers.vue` | `/admin/customers` | `orders:manage` | 客户管理 |
-| `Stats.vue` | `/admin/stats` | `stats:read` | 统计分析 |
-| `Settings.vue` | `/admin/settings` | `admin:full` | 系统设置 |
-| `AuditLogs.vue` | `/admin/audit-logs` | `audit:read` | 审计日志 |
-| `OutboxOps.vue` | `/admin/outbox-ops` | `audit:read` | Outbox / Replay 运维 |
+| 页面                 | 路径                     | 主要权限          | 功能描述             |
+| -------------------- | ------------------------ | ----------------- | -------------------- |
+| `Dashboard.vue`      | `/admin/dashboard`       | `stats:read`      | 管理仪表盘           |
+| `FileManager/`       | `/admin/files`           | `files:read`      | 文件管理             |
+| `SpaceManager/`      | `/admin/spaces`          | `spaces:read`     | 空间管理             |
+| `Products.vue`       | `/admin/products`        | `products:manage` | 商品管理             |
+| `Orders.vue`         | `/admin/orders`          | `orders:manage`   | 订单管理             |
+| `Salespersons.vue`   | `/admin/salespersons`    | `users:read`      | 销售人员管理         |
+| `GoodsOverview.vue`  | `/admin/goods-overview`  | `products:manage` | 缺口与订货总览       |
+| `PurchaseOrders.vue` | `/admin/purchase-orders` | `products:manage` | 采购单管理           |
+| `Customers.vue`      | `/admin/customers`       | `orders:manage`   | 客户管理             |
+| `Stats.vue`          | `/admin/stats`           | `stats:read`      | 统计分析             |
+| `Settings.vue`       | `/admin/settings`        | `admin:full`      | 系统设置             |
+| `AuditLogs.vue`      | `/admin/audit-logs`      | `audit:read`      | 审计日志             |
+| `OutboxOps.vue`      | `/admin/outbox-ops`      | `audit:read`      | Outbox / Replay 运维 |
 
 ### 2.3 销售员门户子页面
 
-| 页面 | 路径 | 功能描述 |
-|------|------|----------|
-| `SalesListView.vue` | `/sales/:token` | 订单列表 |
-| `SalesFormView.vue` | `/sales/:token/create` | 创建订单 |
-| `SalesDetailView.vue` | `/sales/:token/detail/:id` | 订单详情 |
-| `SalesStatsView.vue` | `/sales/:token/stats` | 个人统计 |
-| `SalesSpacesView.vue` | `/sales/:token/spaces` | 关联空间 |
+| 页面                       | 路径                       | 功能描述       |
+| -------------------------- | -------------------------- | -------------- |
+| `SalesListView.vue`        | `/sales/:token`            | 订单列表       |
+| `SalesFormView.vue`        | `/sales/:token/create`     | 创建订单       |
+| `SalesDetailView.vue`      | `/sales/:token/detail/:id` | 订单详情       |
+| `SalesStatsView.vue`       | `/sales/:token/stats`      | 个人统计       |
+| `SalesSpacesView.vue`      | `/sales/:token/spaces`     | 关联空间       |
+| `SalesSpaceDetailView.vue` | `/sales/:token/spaces/:id` | 销售端空间详情 |
 
 ---
 
@@ -73,6 +74,7 @@ Router (src/router/index.js)
 ### 3.1 Dashboard.vue - 管理仪表盘
 
 **功能说明**:
+
 - 核心数据指标展示（今日订单、待处理、本周订单、活跃分享）
 - 待处理订单列表
 - 最近分享链接
@@ -80,6 +82,7 @@ Router (src/router/index.js)
 - Chart.js 图表可视化
 
 **使用的 Composables**:
+
 - `useAuth()` - 认证和 API 请求
 - `useI18n()` - 国际化
 - `useOrders()` - 订单管理
@@ -90,6 +93,7 @@ Router (src/router/index.js)
 ### 3.2 FileManager/index.vue - 文件管理
 
 **功能说明**:
+
 - 文件和文件夹的 CRUD 操作
 - 拖拽上传支持
 - 批量操作（移动、删除、标签）
@@ -98,6 +102,7 @@ Router (src/router/index.js)
 - 回收站管理
 
 **子组件**:
+
 - `FileManagerToolbar.vue` - 工具栏
 - `FileManagerModals.vue` - 弹窗集合
 - `FileTable.vue` - 列表视图
@@ -106,6 +111,7 @@ Router (src/router/index.js)
 - `TrashModal.vue` - 回收站弹窗
 
 **使用的 Composables**:
+
 - `useFileManager()` - 文件管理核心逻辑
 - `useSearch()` - 搜索功能
 - `useUploadQueue()` - 上传队列
@@ -117,16 +123,25 @@ Router (src/router/index.js)
 ### 3.3 Sales.vue - 销售员门户布局
 
 **功能说明**:
+
 - 销售员登录验证
 - 作为嵌套路由的布局容器
 - 通知系统（轮询 + 推送）
 - 底部导航栏
 
 **依赖注入**:
+
 ```javascript
 provide('salesContext', {
-  orders, loading, salesperson, accessToken,
-  loadOrders, pagination, prefillData, setPrefillData, searchQuery
+  orders,
+  loading,
+  salesperson,
+  accessToken,
+  loadOrders,
+  pagination,
+  prefillData,
+  setPrefillData,
+  searchQuery,
 });
 ```
 
@@ -135,12 +150,14 @@ provide('salesContext', {
 ### 3.4 GoodsOverview.vue - 商品概览
 
 **功能说明**:
+
 - 商品库存管道可视化（待订货、生产中、运输中、已到货）
 - 缺货预警
 - 批量创建采购单
 - CSV 导出
 
 **使用的 Composables**:
+
 - `useGoodsOverview()` - 商品概览核心逻辑
 
 ---
@@ -148,6 +165,7 @@ provide('salesContext', {
 ### 3.5 PurchaseOrders.vue - 采购单管理
 
 **功能说明**:
+
 - 采购单列表和详情
 - 状态流转（草稿→已下单→运输中→已到货→已结算）
 - 费用分摊计算
@@ -172,31 +190,34 @@ provide('salesContext', {
 const routes = [
   // 根路径重定向
   { path: '/', redirect: '/login' },
-  
+
   // 公开路由
   { path: '/login', name: 'Login', component: Login, meta: { guest: true } },
   { path: '/gallery/:token', name: 'Gallery', component: Gallery },
   { path: '/space/:token', name: 'Space', component: Space },
-  
+
   // 销售员门户（嵌套路由）
-  { 
-    path: '/sales/:token', 
-    component: Sales, 
+  {
+    path: '/sales/:token',
+    component: Sales,
     children: [
       { path: '', name: 'SalesList', component: SalesListView },
       { path: 'create', name: 'SalesCreate', component: SalesFormView },
       { path: 'detail/:id', name: 'SalesDetail', component: SalesDetailView },
       { path: 'stats', name: 'SalesStats', component: SalesStatsView },
       { path: 'spaces', name: 'SalesSpaces', component: SalesSpacesView },
-    ]
+      { path: 'spaces/:id', name: 'SalesSpaceDetail', component: SalesSpaceDetailView },
+    ],
   },
-  
+
   // 管理后台（需要认证）
-  { 
-    path: '/admin', 
-    component: AdminLayout, 
+  {
+    path: '/admin',
+    component: AdminLayout,
     meta: { requiresAuth: true },
-    children: [/* 管理页面 */]
+    children: [
+      /* 管理页面 */
+    ],
   },
 ];
 ```
@@ -205,7 +226,7 @@ const routes = [
 
 ```javascript
 router.beforeEach(async (to, from, next) => {
-  if (to.matched.some(record => record.meta.requiresAuth)) {
+  if (to.matched.some((record) => record.meta.requiresAuth)) {
     if (!isAuth) {
       next({ path: '/login', query: { redirect: to.fullPath } });
     } else {
@@ -215,8 +236,7 @@ router.beforeEach(async (to, from, next) => {
       }
       next();
     }
-  }
-  else if (to.matched.some(record => record.meta.guest)) {
+  } else if (to.matched.some((record) => record.meta.guest)) {
     if (isAuth) next({ path: '/admin/dashboard' });
     else next();
   }
@@ -262,7 +282,7 @@ flowchart TB
         Space[Space.vue]
         SalesPortal[Sales.vue]
     end
-    
+
     subgraph Admin["管理后台 /admin"]
         Dashboard[Dashboard.vue]
         Files[FileManager]
@@ -271,13 +291,13 @@ flowchart TB
         GoodsOverview[GoodsOverview.vue]
         PurchaseOrders[PurchaseOrders.vue]
     end
-    
+
     subgraph SalesSub["销售员子页面"]
         SalesList[SalesListView]
         SalesCreate[SalesFormView]
         SalesDetail[SalesDetailView]
     end
-    
+
     Login -->|登录成功| Dashboard
     Dashboard -->|待处理订单| Orders
     Dashboard -->|最近文件| Files
@@ -292,11 +312,13 @@ flowchart TB
 ## 7. 最佳实践
 
 ### 7.1 组件拆分原则
+
 - 主视图保持简洁，将复杂逻辑拆分到 composables
 - 子组件按功能划分
 - 共享状态通过 provide/inject
 
 ### 7.2 状态管理
+
 ```javascript
 // 推荐：使用 composables 管理状态
 const { orders, loading, loadOrders } = useOrders();
@@ -306,6 +328,7 @@ provide('salesContext', { orders, loading, accessToken });
 ```
 
 ### 7.3 响应式设计
+
 ```vue
 <!-- 使用 Tailwind 响应式类 -->
 <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -313,6 +336,7 @@ provide('salesContext', { orders, loading, accessToken });
 ```
 
 ### 7.4 性能优化
+
 - 路由懒加载
 - 组件懒加载
 - 图表销毁

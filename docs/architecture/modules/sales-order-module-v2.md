@@ -102,4 +102,4 @@ V2 回滚不需要发版：
 
 详细执行步骤见：
 
-- `docs/plans/2026-03-01-sales-order-module-rollout-checklist.md`
+- `docs/archive/plans/2026-03-01-sales-order-module-rollout-checklist.md`

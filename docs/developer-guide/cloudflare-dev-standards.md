@@ -4,8 +4,8 @@
 
 ## 1. 路由组织
 
-- 业务主路由统一由 `functions/lib/hono/app.js` 挂载
-- 不再把 `functions/api/*` 的文件式业务路由视为主结构
+- 主业务路由统一由 `functions/lib/hono/app.js` 挂载
+- `functions/api/*` 仍保留少量文件式入口，例如 public share、Turnstile、cron 和 catch-all 适配器；不要误以为这些路径已经全部迁入 Hono
 - 中间件统一放在 `functions/lib/hono/middleware/`
 
 ## 2. D1 规范
@@ -30,4 +30,5 @@
 
 - 只调前端：`pnpm dev`
 - 联调 Pages Worker、D1、R2：`pnpm dev:all`
+- 默认仓库测试：`pnpm test`
 - 真实链路回归：`pnpm test:real-api:full-chain`

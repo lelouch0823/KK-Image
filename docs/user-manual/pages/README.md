@@ -19,10 +19,11 @@
 - [销售端订单详情](sales-detail.md)
 - [销售端个人统计](sales-stats.md)
 - [销售端共享空间](sales-spaces.md)
+- [销售端空间详情](sales-space-detail.md)
 
 ## 说明
 
-- 本目录覆盖当前所有面向业务使用者的真实页面。
+- 本目录覆盖当前主要面向业务使用者的真实 Web 页面。
 - 本目录只覆盖 Web 路由页，不覆盖微信小程序页面；小程序请看 [微信小程序销售端手册](../minisales-guide.md)。
 - `404`、权限拒绝等状态页不单独写业务教程。
 - 如果想看模块级业务规则，请继续参考 [销售端使用手册](../sales-guide.md)、[预订单业务简化版](../preorder-business-quick-guide.md)、[文件上传与附件管理](../uploading-images.md)。

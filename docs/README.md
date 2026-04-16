@@ -37,6 +37,7 @@
 
 ```bash
 pnpm dev:all
+pnpm test
 pnpm test:real-api:full-chain
 ```
 
@@ -44,4 +45,6 @@ pnpm test:real-api:full-chain
 
 - 根路径 `/` 默认重定向到 `/login`。
 - 当前默认对象存储为 R2；Telegram / S3 存储属于可选配置。
-- `docs/plans`、`docs/archive`、`docs/reviews`、`docs/superpowers` 主要用于保留历史过程材料。
+- 当前后端是“`functions/lib/hono/app.js` 挂载的 Hono 主业务路由 + 少量文件式 public/cron 路由”并存，不要把仓库描述成纯文件式 Functions，也不要误写成所有接口都已迁入 Hono。
+- `pnpm test` 是默认仓库测试套件；`pnpm test:real-api:full-chain` 需要本地 Worker 健康启动，只能代表真实 API 链路验证，不是所有任务的默认必跑项。
+- 历史计划、评审与 agent 过程正文已下沉到 `docs/archive/plans/`、`docs/archive/reviews/`、`docs/archive/superpowers/`；`docs/plans`、`docs/reviews`、`docs/superpowers` 现在只保留索引说明。

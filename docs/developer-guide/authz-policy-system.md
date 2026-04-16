@@ -19,19 +19,19 @@
 
 ## 2. 目录与职责
 
-| 路径 | 职责 |
-|---|---|
-| `policy/authz.rego` | 授权判定规则（allow/reason） |
-| `policy/metadata.json` | 角色、动作、动作标签元数据 |
-| `policy/tests/*.rego` | 策略单测（OPA 原生测试） |
-| `scripts/policy/compile-opa.mjs` | 编译 Rego -> WASM + 生成运行时产物 |
-| `scripts/policy/watch-opa.mjs` | 监听策略文件变更并自动重编译 |
-| `functions/lib/authz/generated/policy-artifact.wasm` | 预编译 OPA-WASM 模块产物 |
-| `functions/lib/authz/generated/policy-artifact.js` | 运行时数据产物（metadata/data） |
-| `functions/lib/authz/wasm-loader.worker.js` | Workers 运行时 Wasm module 加载桥接 |
-| `functions/lib/authz/opa-engine.js` | OPA 评估引擎（OPA 单决策路径） |
-| `functions/lib/authz/index.js` | 鉴权输入构建与统一评估入口 |
-| `functions/lib/hono/middleware/auth.js` | 路由权限守卫调用入口 |
+| 路径                                                 | 职责                                |
+| ---------------------------------------------------- | ----------------------------------- |
+| `policy/authz.rego`                                  | 授权判定规则（allow/reason）        |
+| `policy/metadata.json`                               | 角色、动作、动作标签元数据          |
+| `policy/tests/*.rego`                                | 策略单测（OPA 原生测试）            |
+| `scripts/policy/compile-opa.mjs`                     | 编译 Rego -> WASM + 生成运行时产物  |
+| `scripts/policy/watch-opa.mjs`                       | 监听策略文件变更并自动重编译        |
+| `functions/lib/authz/generated/policy-artifact.wasm` | 预编译 OPA-WASM 模块产物            |
+| `functions/lib/authz/generated/policy-artifact.js`   | 运行时数据产物（metadata/data）     |
+| `functions/lib/authz/wasm-loader.worker.js`          | Workers 运行时 Wasm module 加载桥接 |
+| `functions/lib/authz/opa-engine.js`                  | OPA 评估引擎（OPA 单决策路径）      |
+| `functions/lib/authz/index.js`                       | 鉴权输入构建与统一评估入口          |
+| `functions/lib/hono/middleware/auth.js`              | 路由权限守卫调用入口                |
 
 ## 3. 核心架构
 
@@ -92,8 +92,8 @@
 
 1. 修改 `policy/authz.rego`
 2. 增加/更新 `policy/tests/*.rego`
-3. 执行 `pnpm run authz:policy:test`
-4. 执行 `pnpm run authz:policy:build`
+3. 执行 `pnpm authz:policy:test`
+4. 执行 `pnpm authz:policy:build`
 5. 重启 `wrangler/pages dev` 进程验证
 
 ### 5.2 修改角色权限映射（`.json`）
@@ -112,7 +112,7 @@
 推荐并行运行：
 
 ```bash
-pnpm run authz:policy:watch
+pnpm authz:policy:watch
 ```
 
 该命令会监听 `policy/` 下 `.rego/.json` 变更并自动编译。  
@@ -123,14 +123,14 @@ pnpm run authz:policy:watch
 推荐使用项目脚本，确保使用仓库内 wrangler 版本：
 
 ```bash
-pnpm run dev:all
+pnpm dev:all
 ```
 
 或静态产物模式：
 
 ```bash
-pnpm run build
-pnpm run start
+pnpm build
+pnpm start
 ```
 
 注意：
@@ -186,10 +186,10 @@ node scripts/qa/check-audit-route-coverage.mjs
 ### 7.1 必跑命令
 
 ```bash
-pnpm run authz:policy:test
-pnpm run authz:policy:build
-pnpm run test:unit
-pnpm run db:migrations:check-prefix
+pnpm authz:policy:test
+pnpm authz:policy:build
+pnpm test:unit:run
+pnpm db:migrations:check-prefix
 ```
 
 ### 7.2 覆盖范围要求
@@ -219,7 +219,7 @@ pnpm run db:migrations:check-prefix
 
 如果本地仍出现 Wasm 初始化错误，优先确认：
 
-1. 已执行 `pnpm run authz:policy:build` 生成最新 `policy-artifact.wasm`
+1. 已执行 `pnpm authz:policy:build` 生成最新 `policy-artifact.wasm`
 2. 已重启 `wrangler/pages dev` 以加载新工件
 3. 运行时日志未出现旧版 `POLICY_WASM_BASE64` 相关代码路径
 
@@ -228,11 +228,11 @@ pnpm run db:migrations:check-prefix
 大概率是没重新编译产物或没重启服务：
 
 ```bash
-pnpm run authz:policy:build
+pnpm authz:policy:build
 # 然后重启 dev 进程
 ```
 
-如果你使用的是全局 wrangler，请改为项目脚本（`pnpm run dev:all` / `pnpm run start`）复现，先排除本地 CLI 版本偏差。
+如果你使用的是全局 wrangler，请改为项目脚本（`pnpm dev:all` / `pnpm start`）复现，先排除本地 CLI 版本偏差。
 
 ### Q3: 需要下载 OPA 二进制吗
 
