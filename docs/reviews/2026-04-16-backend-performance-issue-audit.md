@@ -181,28 +181,34 @@
   - 补齐 mutation / inventory / shared helper 回归，锁定新的预取查询形态
 
 ### 14. 缺货总览 / 需求服务 / 采购建议重复扫描活动订单行
-- 状态：`deferred`
+- 状态：`implemented`
 - 严重级别：高
 - 位置：
+  - [functions/repositories/VariantDemandProjectionRepository.js](/home/bjw/Code/KK-Image/functions/repositories/VariantDemandProjectionRepository.js)
   - [functions/repositories/GoodsOverviewRepository.js](/home/bjw/Code/KK-Image/functions/repositories/GoodsOverviewRepository.js)
   - [functions/services/DemandService.js](/home/bjw/Code/KK-Image/functions/services/DemandService.js)
   - [functions/services/PurchaseOrderService.js](/home/bjw/Code/KK-Image/functions/services/PurchaseOrderService.js)
+  - [migrations/0074_variant_demand_projection.sql](/home/bjw/Code/KK-Image/migrations/0074_variant_demand_projection.sql)
 - 问题描述：缺口汇总、需求汇总、采购建议都在独立重复扫描 `order_lines + orders + inventory_balances`，同类聚合缺少共享投影。
-- 建议后续：
-  - 建立 variant 级 demand / shortage projection
-  - 订单行变化时增量维护，读接口直接查询投影
+- 本轮处理：
+  - 新增 `variant_demand_projection` 表、bootstrap 定义和 backfill 脚本，用共享 projection 承载 variant 级 demand facts
+  - 新增 `VariantDemandProjectionRepository`，将 `DemandService` 写路径切到 projection refresh
+  - 将 `GoodsOverviewRepository` / `PurchaseOrderService.getSuggestions()` 改为优先读取 projection，只有 live 商品行缺失时才回退到 snapshot
 
 ### 15. 商品批量导入仍缺少 preload + bulk upsert 模型
-- 状态：`deferred`
+- 状态：`implemented`
 - 严重级别：中
 - 位置：
+  - [functions/services/product-catalog/preload-existing.js](/home/bjw/Code/KK-Image/functions/services/product-catalog/preload-existing.js)
+  - [functions/services/product-catalog/bulk-upsert.js](/home/bjw/Code/KK-Image/functions/services/product-catalog/bulk-upsert.js)
   - [functions/services/product-catalog/batch-execution.js](/home/bjw/Code/KK-Image/functions/services/product-catalog/batch-execution.js)
   - [functions/repositories/ProductRepository.js](/home/bjw/Code/KK-Image/functions/repositories/ProductRepository.js)
   - [functions/repositories/ProductVariantRepository.js](/home/bjw/Code/KK-Image/functions/repositories/ProductVariantRepository.js)
 - 问题描述：批量导入仍偏向按商品逐个读取、逐个同步、逐个回滚，已有商品越多，重复查询越多。
-- 建议后续：
-  - 导入前按 SPU / variant 维度 preload 现有数据
-  - 分块 bulk upsert，避免每个商品单独走一遍全链路
+- 本轮处理：
+  - 新增 preload helper，按 chunk 预取 SPU / variants / dimensions 现状，移除 per-item read 链路
+  - 新增 bulk upsert helper，并补齐 `ProductRepository` / `ProductVariantRepository` 批量契约
+  - 重建 `batch-execution.js`，让批量导入统一走 preload + bulk upsert，同时保留失败回滚和 summary 语义
 
 ### 16. 慢查询观测层未真正接入 repository / service 热路径
 - 状态：`implemented`

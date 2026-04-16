@@ -1,18 +1,43 @@
-import { normalizeVariantDimensionKeys, normalizeVariantExternalCodes } from '../../lib/hono/routes/manage/products/variant-normalizers.js';
+import { generateId } from '../../api/utils/id.js';
+import { normalizeVariantExternalCodes } from '../../lib/hono/routes/manage/products/variant-normalizers.js';
 import { BadRequestError } from '../../lib/hono/errors.js';
 import { validateProductPayload } from '../../lib/hono/routes/manage/products/product-schema.js';
 import {
     assertBatchItem,
-    buildCatalogRollbackPayload,
-    buildProductRollbackPayload,
     IMPORT_MODE,
     normalizeImportMode,
 } from './batch-import.js';
-import {
-    buildSafeProductUpdateData,
-    buildSafeVariantSyncPayload,
-    mergeIncomingWithExisting,
-} from './variant-matching.js';
+import { preloadBatchImportExistingState, chunkBatchImportItems } from './preload-existing.js';
+import { executeBulkProductImportUpsert } from './bulk-upsert.js';
+import { buildSafeProductUpdateData } from './variant-matching.js';
+
+const BATCH_IMPORT_LIMIT = 500;
+
+function normalizeSpu(value) {
+    const normalized = String(value || '').trim();
+    return normalized || null;
+}
+
+function buildProductImportPayload(normalizedItem = {}) {
+    const productData = { ...normalizedItem };
+    delete productData.variants;
+    delete productData.dimensions;
+    return productData;
+}
+
+function normalizeBatchImportVariants(variants = []) {
+    return (Array.isArray(variants) ? variants : []).map((variant) => ({
+        ...variant,
+        cost_price: variant?.cost_price ?? 0,
+        stock_quantity: variant?.stock_quantity ?? 0,
+        alert_threshold: variant?.alert_threshold ?? 10,
+        status: variant?.status || 'active',
+    }));
+}
+
+function buildImportErrorLabel(item = {}) {
+    return item?.spu || item?.name || 'UNKNOWN';
+}
 
 export async function executeProductCatalogBatchImport({
     db,
@@ -29,7 +54,7 @@ export async function executeProductCatalogBatchImport({
         throw new BadRequestError('Invalid items array');
     }
 
-    if (items.length > 500) {
+    if (items.length > BATCH_IMPORT_LIMIT) {
         throw new BadRequestError('Batch size limit exceeded (max 500)');
     }
 
@@ -47,135 +72,89 @@ export async function executeProductCatalogBatchImport({
     const conflicts = [];
     const updatedProductIds = new Set();
 
-    for (const item of items) {
-        let createdProductId = null;
-        let productId = null;
-        let productOperation = null;
-        let existingProductSnapshot = null;
-        let existingVariantsSnapshot = null;
-        let existingDimensionsSnapshot = null;
+    for (const chunk of chunkBatchImportItems(items)) {
+        const existingState = await preloadBatchImportExistingState({
+            items: chunk,
+            productRepo,
+            variantRepo,
+            dimensionRepo,
+        });
 
-        try {
-            assertBatchItem(item);
-            const normalizedItem = validateProductPayload({
-                ...item,
-                variants: normalizeVariantExternalCodes(item.variants),
-            }, { requireVariants: true });
-            const spu = normalizedItem.spu ? String(normalizedItem.spu).trim() : null;
-            let isNew = false;
+        const plans = [];
+        for (const item of chunk) {
+            try {
+                assertBatchItem(item);
+                const normalizedItem = validateProductPayload({
+                    ...item,
+                    variants: normalizeVariantExternalCodes(normalizeBatchImportVariants(item.variants)),
+                }, { requireVariants: true });
+                const spu = normalizeSpu(normalizedItem.spu);
+                const existingProduct = spu
+                    ? (existingState.productsBySpu.get(spu) || null)
+                    : null;
 
-            if (spu) {
-                const existing = await productRepo.findBySpu(spu);
-                if (existing) {
-                    productId = existing.id;
-                    existingProductSnapshot = typeof productRepo.findById === 'function'
-                        ? await productRepo.findById(productId)
-                        : existing;
-                    existingDimensionsSnapshot = await dimensionRepo.listByProduct(productId);
-                    productOperation = 'updated';
-                    const updateData = { ...normalizedItem };
-                    delete updateData.variants;
-                    delete updateData.dimensions;
+                if (existingProduct) {
+                    const productId = existingProduct.id;
+                    const existingProductSnapshot = existingState.productsById.get(productId) || existingProduct;
+                    const existingVariantsSnapshot = existingState.variantsByProductId.get(productId) || [];
+                    const existingDimensionsSnapshot = existingState.dimensionsByProductId.get(productId) || [];
+                    const updateData = buildProductImportPayload(normalizedItem);
                     const nextUpdateData = importMode === IMPORT_MODE.SAFE_MERGE
-                        ? buildSafeProductUpdateData(existingProductSnapshot || existing, updateData, conflicts)
+                        ? buildSafeProductUpdateData(existingProductSnapshot || existingProduct, updateData, conflicts)
                         : updateData;
-                    if (Object.keys(nextUpdateData).length > 0) {
-                        const updateResult = await productRepo.updateWithMeta(productId, nextUpdateData);
-                        if (updateResult?.success === false) {
-                            throw new Error(updateResult.error || 'Update product failed');
-                        }
-                    }
-                }
-            }
 
-            if (!productId) {
-                const createData = { ...normalizedItem };
-                delete createData.variants;
-                delete createData.dimensions;
-                const newProduct = await productRepo.create(createData);
-                productId = newProduct.id;
-                createdProductId = productId;
-                isNew = true;
-                productOperation = 'created';
-            }
-
-            if (normalizedItem.variants && normalizedItem.variants.length > 0) {
-                const existingVariants = isNew ? [] : await variantRepo.findByProductId(productId);
-                existingVariantsSnapshot = existingVariants;
-                let normalizedVariants = normalizedItem.variants;
-                if (Array.isArray(normalizedItem.dimensions) && normalizedItem.dimensions.length > 0) {
-                    const dimensions = await syncDimensionsFromPayload(productId, normalizedItem.dimensions, {
-                        replaceMissing: importMode === IMPORT_MODE.REPLACE,
+                    plans.push({
+                        itemKey: spu || normalizedItem.name,
+                        normalizedItem,
+                        operation: 'updated',
+                        productId,
+                        productData: nextUpdateData,
+                        needsProductUpsert: Object.keys(nextUpdateData).length > 0,
+                        existingProductSnapshot,
+                        existingVariantsSnapshot,
+                        existingDimensionsSnapshot,
                     });
-                    normalizedVariants = normalizeVariantDimensionKeys(normalizedVariants, dimensions);
+                    updatedProductIds.add(productId);
+                    continue;
                 }
-                const variantsToSync = mergeIncomingWithExisting(
-                    existingVariants,
-                    normalizedVariants,
-                    { includeUnmatchedExisting: importMode !== IMPORT_MODE.REPLACE }
-                );
-                const nextVariantsToSync = importMode === IMPORT_MODE.SAFE_MERGE
-                    ? buildSafeVariantSyncPayload(existingVariants, variantsToSync, conflicts, normalizedItem)
-                    : variantsToSync;
-                const existingIdSet = new Set(existingVariants.map((variant) => variant.id));
-                const incomingVariantCount = Array.isArray(normalizedItem.variants) ? normalizedItem.variants.length : 0;
-                const matchedUpdateCount = nextVariantsToSync.reduce((count, variant) => (
-                    variant?.id && existingIdSet.has(variant.id) ? count + 1 : count
-                ), 0);
-                const computedUpdated = Math.min(incomingVariantCount, matchedUpdateCount);
-                const computedCreated = Math.max(incomingVariantCount - computedUpdated, 0);
 
-                const syncResult = await variantRepo.syncVariants(productId, nextVariantsToSync);
-                summary.createdVariants += syncResult?.createdCount ?? computedCreated;
-                summary.updatedVariants += syncResult?.updatedCount ?? computedUpdated;
-                summary.archivedVariants += syncResult?.archivedCount ?? syncResult?.deletedCount ?? 0;
-                summary.reactivatedVariants += syncResult?.reactivatedCount ?? 0;
-            }
-
-            if (productOperation === 'created') {
-                summary.createdProducts += 1;
-            } else if (productOperation === 'updated') {
-                summary.updatedProducts += 1;
-            }
-            if (productId) {
+                const productId = generateId();
+                plans.push({
+                    itemKey: spu || normalizedItem.name,
+                    normalizedItem,
+                    operation: 'created',
+                    productId,
+                    productData: buildProductImportPayload(normalizedItem),
+                    needsProductUpsert: true,
+                    existingProductSnapshot: null,
+                    existingVariantsSnapshot: [],
+                    existingDimensionsSnapshot: [],
+                });
                 updatedProductIds.add(productId);
+            } catch (error) {
+                summary.failedProducts += 1;
+                errors.push(`Failed to process item ${buildImportErrorLabel(item)}: ${error.message}`);
             }
-        } catch (error) {
-            if (createdProductId) {
-                try {
-                    await db.prepare('DELETE FROM products WHERE id = ?').bind(createdProductId).run();
-                } catch (rollbackError) {
-                    console.error('Batch product rollback failed:', rollbackError);
-                }
-                if (productOperation === 'created') {
-                    summary.createdProducts = Math.max(0, summary.createdProducts - 1);
-                }
-                updatedProductIds.delete(createdProductId);
-            } else if (productOperation === 'updated' && productId) {
-                try {
-                    if (existingProductSnapshot) {
-                        const rollbackProductData = buildProductRollbackPayload(existingProductSnapshot);
-                        if (Object.keys(rollbackProductData).length > 0) {
-                            await productRepo.updateWithMeta(productId, rollbackProductData);
-                        }
-                    }
-                    if (existingDimensionsSnapshot && typeof dimensionRepo.restoreSnapshot === 'function') {
-                        await dimensionRepo.restoreSnapshot(productId, existingDimensionsSnapshot);
-                    }
-                    if (existingVariantsSnapshot) {
-                        await variantRepo.syncVariants(productId, buildCatalogRollbackPayload(existingVariantsSnapshot));
-                    }
-                } catch (rollbackError) {
-                    console.error('Batch product update rollback failed:', rollbackError);
-                }
-            }
-            summary.failedProducts += 1;
-            errors.push(`Failed to process item ${item.spu || item.name}: ${error.message}`);
         }
+
+        await executeBulkProductImportUpsert({
+            db,
+            plans,
+            importMode,
+            productRepo,
+            variantRepo,
+            dimensionRepo,
+            syncDimensionsFromPayload,
+            summary,
+            errors,
+            conflicts,
+            updatedProductIds,
+        });
     }
 
     summary.conflicts = conflicts.length;
     const success = summary.createdProducts > 0 || summary.updatedProducts > 0;
+
     return {
         success,
         importMode,

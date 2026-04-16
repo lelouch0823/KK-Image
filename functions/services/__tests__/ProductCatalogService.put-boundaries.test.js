@@ -3,12 +3,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockProductRepo = {
   findById: vi.fn(),
   updateWithMeta: vi.fn(),
+  findBySpuBatch: vi.fn(),
+  bulkUpsertFromImport: vi.fn(),
 };
 
 const mockVariantRepo = {
   findByProductId: vi.fn(),
   syncVariants: vi.fn(),
   buildAuditEvents: vi.fn(),
+  findByProductIds: vi.fn(),
+  bulkSyncFromImport: vi.fn(),
 };
 
 const mockDimensionRepo = {
@@ -24,6 +28,8 @@ vi.mock('../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
     findById(...args) { return mockProductRepo.findById(...args); }
     updateWithMeta(...args) { return mockProductRepo.updateWithMeta(...args); }
+    findBySpuBatch(...args) { return mockProductRepo.findBySpuBatch(...args); }
+    bulkUpsertFromImport(...args) { return mockProductRepo.bulkUpsertFromImport(...args); }
   },
 }));
 
@@ -32,6 +38,8 @@ vi.mock('../../repositories/ProductVariantRepository.js', () => ({
     findByProductId(...args) { return mockVariantRepo.findByProductId(...args); }
     syncVariants(...args) { return mockVariantRepo.syncVariants(...args); }
     buildAuditEvents(...args) { return mockVariantRepo.buildAuditEvents(...args); }
+    findByProductIds(...args) { return mockVariantRepo.findByProductIds(...args); }
+    bulkSyncFromImport(...args) { return mockVariantRepo.bulkSyncFromImport(...args); }
   },
 }));
 
@@ -90,6 +98,10 @@ describe('ProductCatalogService putProduct boundaries', () => {
     mockDimensionRepo.listByProduct.mockResolvedValue([]);
     mockDimensionRepo.restoreSnapshot.mockResolvedValue(undefined);
     mockAuditRepo.createBatch.mockResolvedValue(undefined);
+    mockProductRepo.findBySpuBatch.mockResolvedValue(new Map());
+    mockProductRepo.bulkUpsertFromImport.mockResolvedValue({ successes: [], failures: [] });
+    mockVariantRepo.findByProductIds.mockResolvedValue(new Map());
+    mockVariantRepo.bulkSyncFromImport.mockResolvedValue({ successes: [], failures: [] });
   });
 
   it('rejects ambiguous full replace when variants are replaced but dimensions are omitted on a dimensioned product', async () => {
@@ -212,5 +224,60 @@ describe('ProductCatalogService putProduct boundaries', () => {
       variantSync: undefined,
       variantsUpdated: false,
     });
+  });
+
+  it('batchImport still preserves rollback semantics under chunk preload', async () => {
+    const deleteRun = vi.fn(async () => ({ success: true, meta: { changes: 1 } }));
+    const deleteBind = vi.fn(() => ({ run: deleteRun }));
+    const prepare = vi.fn(() => ({ bind: deleteBind }));
+    const service = new ProductCatalogService({ prepare });
+
+    mockProductRepo.bulkUpsertFromImport.mockResolvedValue({
+      successes: [
+        { itemKey: 'SPU-OK', operation: 'created', productId: 'p-created-1' },
+        { itemKey: 'SPU-FAIL', operation: 'created', productId: 'p-created-2' },
+      ],
+      failures: [],
+    });
+    mockVariantRepo.bulkSyncFromImport.mockResolvedValue({
+      successes: [
+        {
+          itemKey: 'SPU-OK',
+          productId: 'p-created-1',
+          stats: { createdCount: 1, updatedCount: 0, archivedCount: 0, reactivatedCount: 0 },
+        },
+      ],
+      failures: [
+        {
+          itemKey: 'SPU-FAIL',
+          operation: 'created',
+          productId: 'p-created-2',
+          error: new Error('variant conflict'),
+        },
+      ],
+    });
+
+    const result = await service.batchImport(
+      { env: {}, executionCtx: { waitUntil: vi.fn() } },
+      {
+        items: [
+          { name: 'A', spu: 'SPU-OK', variants: [{ sku: 'SKU-OK', price: 10 }] },
+          { name: 'B', spu: 'SPU-FAIL', variants: [{ sku: 'SKU-FAIL', price: 20 }] },
+        ],
+      },
+      { skipCacheInvalidation: true }
+    );
+
+    expect(mockProductRepo.findBySpuBatch).toHaveBeenCalledTimes(1);
+    expect(mockVariantRepo.findByProductIds).toHaveBeenCalledTimes(1);
+    expect(mockProductRepo.bulkUpsertFromImport).toHaveBeenCalledTimes(1);
+    expect(mockVariantRepo.bulkSyncFromImport).toHaveBeenCalledTimes(1);
+    expect(prepare).toHaveBeenCalledWith('DELETE FROM products WHERE id = ?');
+    expect(deleteBind).toHaveBeenCalledWith('p-created-2');
+
+    expect(result.summary.createdProducts).toBe(1);
+    expect(result.summary.failedProducts).toBe(1);
+    expect(result.count).toBe(1);
+    expect(result.success).toBe(true);
   });
 });

@@ -137,6 +137,41 @@ export class ProductVariantRepository {
         return (result?.results || []).map((r) => ({ ...r, options_values: parseJsonObject(r.options_values, {}) }));
     }
 
+    async findByProductIds(productIds = []) {
+        const normalizedIds = [...new Set((Array.isArray(productIds) ? productIds : [])
+            .map((productId) => String(productId || '').trim())
+            .filter(Boolean))];
+        const rowsByProductId = new Map();
+        if (normalizedIds.length === 0) return rowsByProductId;
+
+        for (const idChunk of chunkArray(normalizedIds, D1_MAX_IN_CLAUSE_SIZE)) {
+            const placeholders = idChunk.map(() => '?').join(',');
+            const result = await this.db.prepare(`
+                SELECT
+                    pv.*,
+                    COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity,
+                    COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
+                    COALESCE(ib.reserved, 0) AS reserved,
+                    COALESCE(ib.available, COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS available_quantity
+                FROM product_variants pv
+                LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
+                WHERE pv.product_id IN (${placeholders})
+                ORDER BY pv.product_id ASC, pv.created_at ASC
+            `).bind(...idChunk).all();
+            for (const row of result?.results || []) {
+                const productId = String(row?.product_id || '').trim();
+                if (!productId) continue;
+                if (!rowsByProductId.has(productId)) rowsByProductId.set(productId, []);
+                rowsByProductId.get(productId).push({
+                    ...row,
+                    options_values: parseJsonObject(row.options_values, {}),
+                });
+            }
+        }
+
+        return rowsByProductId;
+    }
+
     async findById(variantId) {
         const row = await this.db.prepare(`
             SELECT
@@ -346,27 +381,31 @@ export class ProductVariantRepository {
         return events;
     }
 
-    async syncVariants(productId, variantsData) {
+    async syncVariantPlan(productId, variantsData, existingRows = null) {
         const timestamp = now();
         const statements = [];
         const incomingList = Array.isArray(variantsData) ? variantsData : [];
-        const existingResult = await this.db
-            .prepare(`
-                SELECT
-                    pv.id,
-                    pv.variant_signature,
-                    pv.status,
-                    COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity
-                FROM product_variants pv
-                LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
-                WHERE pv.product_id = ?
-            `)
-            .bind(productId)
-            .all();
-        const existingRows = existingResult.results || [];
-        const existingById = new Map(existingRows.map((row) => [row.id, row]));
+        const existingResult = existingRows == null
+            ? await this.db
+                .prepare(`
+                    SELECT
+                        pv.id,
+                        pv.variant_signature,
+                        pv.status,
+                        COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity
+                    FROM product_variants pv
+                    LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
+                    WHERE pv.product_id = ?
+                `)
+                .bind(productId)
+                .all()
+            : null;
+        const resolvedExistingRows = existingRows == null
+            ? (existingResult?.results || [])
+            : (Array.isArray(existingRows) ? existingRows : []);
+        const existingById = new Map(resolvedExistingRows.map((row) => [row.id, row]));
         const existingBySignature = new Map(
-            existingRows
+            resolvedExistingRows
                 .filter((row) => String(row.variant_signature || '').trim() !== '')
                 .map((row) => [row.variant_signature, row])
         );
@@ -471,7 +510,7 @@ export class ProductVariantRepository {
             results.push({ ...v, id, sku, product_id: productId });
         }
 
-        const idsToArchive = existingRows
+        const idsToArchive = resolvedExistingRows
             .filter((row) => row.status !== 'archived' && !retainedIds.has(row.id))
             .map((row) => row.id);
         archivedCount = idsToArchive.length;
@@ -502,5 +541,43 @@ export class ProductVariantRepository {
         results.reactivatedCount = reactivatedCount;
         results.deletedCount = archivedCount;
         return results;
+    }
+
+    async syncVariants(productId, variantsData) {
+        return this.syncVariantPlan(productId, variantsData);
+    }
+
+    async bulkSyncFromImport(plans = []) {
+        const successes = [];
+        const failures = [];
+
+        for (const plan of Array.isArray(plans) ? plans : []) {
+            try {
+                const results = await this.syncVariantPlan(
+                    plan.productId,
+                    plan.variantsToSync,
+                    plan.existingVariants || []
+                );
+                successes.push({
+                    itemKey: plan.itemKey,
+                    productId: plan.productId,
+                    stats: {
+                        createdCount: results.createdCount ?? plan?.fallbackStats?.createdCount ?? 0,
+                        updatedCount: results.updatedCount ?? plan?.fallbackStats?.updatedCount ?? 0,
+                        archivedCount: results.archivedCount ?? plan?.fallbackStats?.archivedCount ?? 0,
+                        reactivatedCount: results.reactivatedCount ?? plan?.fallbackStats?.reactivatedCount ?? 0,
+                    },
+                    variants: results,
+                });
+            } catch (error) {
+                failures.push({
+                    itemKey: plan?.itemKey,
+                    productId: plan?.productId || null,
+                    error,
+                });
+            }
+        }
+
+        return { successes, failures };
     }
 }

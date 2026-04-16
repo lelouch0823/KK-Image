@@ -3,7 +3,7 @@ import { parseRepoPagination } from '../api/utils/pagination.js';
 import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { buildSetClause } from '../api/utils/sql.js';
 import { hasChanges } from '../api/utils/result.js';
-import { executeBatchChunks } from '../lib/db/batch.js';
+import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { execute, query, queryFirst } from '../lib/db/query.js';
 
 export class ProductRepository {
@@ -361,6 +361,111 @@ export class ProductRepository {
             { label: 'product.findBySpu' }
         );
         return this._parseResult(result);
+    }
+
+    async findBySpuBatch(spus = []) {
+        const normalizedSpus = [...new Set((Array.isArray(spus) ? spus : [])
+            .map((spu) => String(spu || '').trim())
+            .filter(Boolean))];
+        const productsBySpu = new Map();
+        if (normalizedSpus.length === 0) return productsBySpu;
+
+        for (const spuChunk of chunkArray(normalizedSpus, 100)) {
+            const placeholders = spuChunk.map(() => '?').join(', ');
+            const result = await query(
+                this.db,
+                this._productSelectSQL(`p.spu IN (${placeholders})`),
+                spuChunk,
+                { label: 'product.findBySpuBatch' }
+            );
+            for (const row of result.results || []) {
+                const parsed = this._parseResult(row);
+                const key = String(parsed?.spu || '').trim();
+                if (key) {
+                    productsBySpu.set(key, parsed);
+                }
+            }
+        }
+
+        return productsBySpu;
+    }
+
+    async bulkUpsertFromImport(plans = []) {
+        const successes = [];
+        const failures = [];
+
+        for (const plan of Array.isArray(plans) ? plans : []) {
+            try {
+                const operation = String(plan?.operation || '').trim();
+                const productId = String(plan?.productId || '').trim();
+                const productData = plan?.productData || {};
+                const needsProductUpsert = plan?.needsProductUpsert !== false;
+
+                if (!needsProductUpsert) {
+                    successes.push({
+                        itemKey: plan?.itemKey,
+                        operation,
+                        productId,
+                    });
+                    continue;
+                }
+
+                if (operation === 'created') {
+                    const now = Date.now();
+                    const currency = this.normalizeCurrency(productData.currency);
+                    if (!currency) {
+                        throw new Error('Invalid currency code');
+                    }
+
+                    const payload = {
+                        id: productId,
+                        name: productData.name,
+                        spu: productData.spu || null,
+                        slug: productData.slug || null,
+                        category: productData.category || null,
+                        brand: productData.brand || null,
+                        series: productData.series || null,
+                        currency,
+                        description: productData.description || '',
+                        images: JSON.stringify(productData.images || []),
+                        specifications: JSON.stringify(productData.specifications || {}),
+                        options: JSON.stringify(productData.options || []),
+                        created_at: now,
+                        updated_at: now,
+                    };
+                    const keys = Object.keys(payload);
+                    const placeholders = keys.map(() => '?').join(', ');
+                    await execute(
+                        this.db,
+                        `INSERT INTO products (${keys.join(', ')}) VALUES (${placeholders})`,
+                        Object.values(payload),
+                        { label: 'product.bulkImport.create' }
+                    );
+                } else if (operation === 'updated') {
+                    const updateResult = await this.updateWithMeta(productId, productData);
+                    if (updateResult?.success === false) {
+                        throw new Error(updateResult.error || 'Update product failed');
+                    }
+                } else {
+                    throw new Error('Unsupported product import operation');
+                }
+
+                successes.push({
+                    itemKey: plan?.itemKey,
+                    operation,
+                    productId,
+                });
+            } catch (error) {
+                failures.push({
+                    itemKey: plan?.itemKey,
+                    operation: plan?.operation,
+                    productId: plan?.productId || null,
+                    error,
+                });
+            }
+        }
+
+        return { successes, failures };
     }
 
     /**

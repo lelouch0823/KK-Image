@@ -11,6 +11,8 @@ describe('ProductCatalogService decomposition audit', () => {
     const helperPaths = [
       path.join(ROOT, 'functions', 'services', 'product-catalog', 'batch-import.js'),
       path.join(ROOT, 'functions', 'services', 'product-catalog', 'batch-execution.js'),
+      path.join(ROOT, 'functions', 'services', 'product-catalog', 'preload-existing.js'),
+      path.join(ROOT, 'functions', 'services', 'product-catalog', 'bulk-upsert.js'),
       path.join(ROOT, 'functions', 'services', 'product-catalog', 'create.js'),
       path.join(ROOT, 'functions', 'services', 'product-catalog', 'dimensions.js'),
       path.join(ROOT, 'functions', 'services', 'product-catalog', 'patch.js'),
@@ -32,6 +34,17 @@ describe('ProductCatalogService decomposition audit', () => {
 
     if (!source.includes("./product-catalog/batch-execution.js")) {
       offenders.push('functions/services/ProductCatalogService.js: missing batch-execution helper import');
+    }
+
+    const batchExecutionSource = fs.readFileSync(
+      path.join(ROOT, 'functions', 'services', 'product-catalog', 'batch-execution.js'),
+      'utf8'
+    );
+    if (!batchExecutionSource.includes("./preload-existing.js")) {
+      offenders.push('functions/services/product-catalog/batch-execution.js: missing preload-existing helper import');
+    }
+    if (!batchExecutionSource.includes("./bulk-upsert.js")) {
+      offenders.push('functions/services/product-catalog/batch-execution.js: missing bulk-upsert helper import');
     }
 
     if (!source.includes("./product-catalog/create.js")) {
@@ -76,6 +89,15 @@ describe('ProductCatalogService decomposition audit', () => {
 
     if (!source.includes('executeProductCatalogCreate({')) {
       offenders.push('functions/services/ProductCatalogService.js: missing create helper delegation');
+    }
+    if (!source.includes('executeProductCatalogBatchImport({')) {
+      offenders.push('functions/services/ProductCatalogService.js: missing batch import helper delegation');
+    }
+    if (!batchExecutionSource.includes('preloadBatchImportExistingState({')) {
+      offenders.push('functions/services/product-catalog/batch-execution.js: missing preload delegation');
+    }
+    if (!batchExecutionSource.includes('executeBulkProductImportUpsert({')) {
+      offenders.push('functions/services/product-catalog/batch-execution.js: missing bulk upsert delegation');
     }
 
     expect(

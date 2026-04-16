@@ -219,13 +219,13 @@
 - Test: `functions/services/__tests__/purchase-suggestions-inventory-semantics.test.js`
 - Test: `scripts/__tests__/backfill-variant-demand-projection.test.js`
 
-- [ ] **Step 1: Write failing tests proving goods overview, demand sync, and purchase suggestions can all read from a shared variant-level projection instead of recomputing the same joins independently**
-- [ ] **Step 2: Run `pnpm test:unit:run functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js functions/services/__tests__/DemandService.test.js functions/services/__tests__/InventoryBusinessWorkflow.test.js functions/services/__tests__/purchase-suggestions-inventory-semantics.test.js scripts/__tests__/backfill-variant-demand-projection.test.js` and verify the new tests fail**
-- [ ] **Step 3: Add `variant_demand_projection` schema and bootstrap definitions with indexes for shortage and sort-order access**
-- [ ] **Step 4: Implement the backfill script and `VariantDemandProjectionRepository.js`**
-- [ ] **Step 5: Update `DemandService` to refresh the projection during demand-affecting writes**
-- [ ] **Step 6: Update `GoodsOverviewRepository` and `PurchaseOrderService.getSuggestions()` to read the projection first**
-- [ ] **Step 7: Re-run the targeted tests until they pass**
+- [x] **Step 1: Write failing tests proving goods overview, demand sync, and purchase suggestions can all read from a shared variant-level projection instead of recomputing the same joins independently**
+- [x] **Step 2: Run `pnpm test:unit:run functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js functions/services/__tests__/DemandService.test.js functions/services/__tests__/InventoryBusinessWorkflow.test.js functions/services/__tests__/purchase-suggestions-inventory-semantics.test.js scripts/__tests__/backfill-variant-demand-projection.test.js` and verify the new tests fail**
+- [x] **Step 3: Add `variant_demand_projection` schema and bootstrap definitions with indexes for shortage and sort-order access**
+- [x] **Step 4: Implement the backfill script and `VariantDemandProjectionRepository.js`**
+- [x] **Step 5: Update `DemandService` to refresh the projection during demand-affecting writes**
+- [x] **Step 6: Update `GoodsOverviewRepository` and `PurchaseOrderService.getSuggestions()` to read the projection first**
+- [x] **Step 7: Re-run the targeted tests until they pass**
 
 ### Task 6: Rebuild Product Import Around Preload And Bulk Upsert
 
@@ -240,12 +240,12 @@
 - Test: `functions/services/__tests__/ProductCatalogService.decomposition.audit.test.js`
 - Test: `functions/services/__tests__/ProductCatalogService.put-boundaries.test.js`
 
-- [ ] **Step 1: Write failing tests proving batch import preloads existing products / variants once per chunk and uses bulk upsert paths instead of per-item lookup chains**
-- [ ] **Step 2: Run `pnpm test:unit:run functions/repositories/__tests__/product-import-merge.test.js functions/services/__tests__/ProductCatalogService.decomposition.audit.test.js functions/services/__tests__/ProductCatalogService.put-boundaries.test.js` and confirm the new tests fail**
-- [ ] **Step 3: Add `preload-existing.js` to gather existing product, variant, and dimension state by chunk**
-- [ ] **Step 4: Add `bulk-upsert.js` for chunked create/update persistence and integrate it into `batch-execution.js`**
-- [ ] **Step 5: Refactor `ProductCatalogService`, `ProductRepository`, and `ProductVariantRepository` so batch import uses preload + chunked upsert, while preserving rollback semantics**
-- [ ] **Step 6: Re-run the targeted tests until they pass**
+- [x] **Step 1: Write failing tests proving batch import preloads existing products / variants once per chunk and uses bulk upsert paths instead of per-item lookup chains**
+- [x] **Step 2: Run `pnpm test:unit:run functions/repositories/__tests__/product-import-merge.test.js functions/services/__tests__/ProductCatalogService.decomposition.audit.test.js functions/services/__tests__/ProductCatalogService.put-boundaries.test.js` and confirm the new tests fail**
+- [x] **Step 3: Add `preload-existing.js` to gather existing product, variant, and dimension state by chunk**
+- [x] **Step 4: Add `bulk-upsert.js` for chunked create/update persistence and integrate it into `batch-execution.js`**
+- [x] **Step 5: Refactor `ProductCatalogService`, `ProductRepository`, and `ProductVariantRepository` so batch import uses preload + chunked upsert, while preserving rollback semantics**
+- [x] **Step 6: Re-run the targeted tests until they pass**
 
 ### Task 7: Wire Query Observability Into Backend Hot Paths
 

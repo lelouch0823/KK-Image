@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { mergeIncomingWithExisting, buildVariantMatchKey } from '../../lib/hono/routes/manage/products/batch.js';
 import { ProductCatalogService } from '../../services/ProductCatalogService.js';
 
@@ -147,6 +147,73 @@ describe('Product Import Variant Merge Logic', () => {
             const updated = merged.find(v => v.id === 'id-empty' && v.price === 120);
             expect(updated).toBeUndefined();
         });
+    });
+
+    it('batch import preloads once per chunk and avoids per-item lookup/write chain', async () => {
+        const service = new ProductCatalogService({});
+        service.productRepo.findBySpu = vi.fn();
+        service.productRepo.create = vi.fn();
+        service.productRepo.updateWithMeta = vi.fn();
+        service.variantRepo.findByProductId = vi.fn();
+        service.variantRepo.syncVariants = vi.fn();
+
+        service.productRepo.findBySpuBatch = vi.fn(async () => new Map());
+        service.variantRepo.findByProductIds = vi.fn(async () => new Map());
+        service.productRepo.bulkUpsertFromImport = vi.fn(async (rows) => ({
+            successes: rows.map((row, index) => ({
+                itemKey: row.itemKey,
+                operation: row.operation,
+                productId: row.productId || `created-${index}`,
+            })),
+            failures: [],
+        }));
+        service.variantRepo.bulkSyncFromImport = vi.fn(async (plans) => ({
+            successes: plans.map((plan) => ({
+                itemKey: plan.itemKey,
+                productId: plan.productId,
+                stats: {
+                    createdCount: 1,
+                    updatedCount: 0,
+                    archivedCount: 0,
+                    reactivatedCount: 0,
+                },
+            })),
+            failures: [],
+        }));
+
+        const result = await service.batchImport(
+            { env: {}, executionCtx: { waitUntil: vi.fn() } },
+            {
+                import_mode: 'safe_merge',
+                items: [
+                    {
+                        name: 'Tee A',
+                        spu: 'SPU-A',
+                        variants: [{ sku: 'SKU-A', price: 100, options_values: { Color: 'Red' } }],
+                    },
+                    {
+                        name: 'Tee B',
+                        spu: 'SPU-B',
+                        variants: [{ sku: 'SKU-B', price: 200, options_values: { Color: 'Blue' } }],
+                    },
+                ],
+            },
+            { skipCacheInvalidation: true }
+        );
+
+        expect(service.productRepo.findBySpuBatch).toHaveBeenCalledTimes(1);
+        expect(service.variantRepo.findByProductIds).toHaveBeenCalledTimes(1);
+        expect(service.productRepo.bulkUpsertFromImport).toHaveBeenCalledTimes(1);
+        expect(service.variantRepo.bulkSyncFromImport).toHaveBeenCalledTimes(1);
+
+        expect(service.productRepo.findBySpu).not.toHaveBeenCalled();
+        expect(service.productRepo.create).not.toHaveBeenCalled();
+        expect(service.productRepo.updateWithMeta).not.toHaveBeenCalled();
+        expect(service.variantRepo.findByProductId).not.toHaveBeenCalled();
+        expect(service.variantRepo.syncVariants).not.toHaveBeenCalled();
+
+        expect(result.summary.failedProducts).toBe(0);
+        expect(result.count).toBe(2);
     });
 
 });
