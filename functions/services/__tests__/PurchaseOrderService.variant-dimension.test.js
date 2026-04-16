@@ -125,6 +125,49 @@ describe('PurchaseOrderService variant dimension', () => {
     );
   });
 
+  it('createFromOrders scopes snapshot aggregation to the selected order ids', async () => {
+    const queryBinds = [];
+    const sqlCalls = [];
+    const db = {
+      prepare: vi.fn((sql) => {
+        sqlCalls.push(sql);
+        return {
+          bind: (...args) => {
+            if (sql.includes('FROM orders o')) {
+              queryBinds.push(args);
+            }
+            return {
+              all: vi.fn(async () => ({
+                results: [{
+                  id: 'o-1',
+                  order_no: 'SO-1',
+                  product_id: 'prod-1',
+                  variant_id: 'var-1',
+                  quantity: 2,
+                  name: 'Tee',
+                  sku: 'TEE-YELLOW-S',
+                  cost_price: 11,
+                }],
+              })),
+            };
+          },
+        };
+      }),
+    };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      create: vi.fn(async () => ({ id: 'po-1' })),
+      addItems: vi.fn(async () => []),
+      findById: vi.fn(async () => ({ id: 'po-1', items: [] })),
+      findActiveBindingsByPreOrderIds: vi.fn(async () => []),
+    };
+
+    await service.createFromOrders(['o-1']);
+
+    expect(sqlCalls[0]).toMatch(/FROM order_lines[\s\S]+WHERE order_id IN \(\?\)/);
+    expect(queryBinds[0]).toEqual(['o-1', 'o-1']);
+  });
+
   it('createFromOrders rejects orders already linked to another active purchase order', async () => {
     const stmt = {
       bind: vi.fn(() => stmt),
@@ -224,7 +267,7 @@ describe('PurchaseOrderService variant dimension', () => {
 
     await service.createFromOrders(['o-1', 'o-1', 'o-1']);
 
-    expect(queryBinds).toEqual([['o-1']]);
+    expect(queryBinds).toEqual([['o-1', 'o-1']]);
     expect(service.repo.addItems).toHaveBeenCalledWith('po-1', [
       expect.objectContaining({ pre_order_id: 'o-1', variant_id: 'var-1' }),
     ]);

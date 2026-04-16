@@ -274,4 +274,92 @@ describe('WebhookDeliveryService', () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it('delivers endpoints under the configured concurrency limit', async () => {
+    const releases = [];
+    const started = [];
+    let activeCount = 0;
+    let maxActiveCount = 0;
+    const webhookRepo = createWebhookRepoStub({
+      listActiveByEvent: vi.fn(async () => [
+        {
+          id: 'wh-1',
+          url: 'https://example.com/one',
+          events: ['purchase_receipt_recorded'],
+          secret: null,
+          headers: {},
+          enabled: true,
+        },
+        {
+          id: 'wh-2',
+          url: 'https://example.com/two',
+          events: ['purchase_receipt_recorded'],
+          secret: null,
+          headers: {},
+          enabled: true,
+        },
+        {
+          id: 'wh-3',
+          url: 'https://example.com/three',
+          events: ['purchase_receipt_recorded'],
+          secret: null,
+          headers: {},
+          enabled: true,
+        },
+      ]),
+    });
+    const fetchMock = vi.fn(async (url) => {
+      started.push(url);
+      activeCount += 1;
+      maxActiveCount = Math.max(maxActiveCount, activeCount);
+      await new Promise((resolve) => {
+        releases.push(() => {
+          activeCount -= 1;
+          resolve();
+        });
+      });
+      return new Response('ok', { status: 200 });
+    });
+    const service = new WebhookDeliveryService(
+      {},
+      {
+        webhookRepo,
+        fetch: fetchMock,
+        signPayload: vi.fn(async () => 'sig-1'),
+        endpointConcurrency: 2,
+        now: () => 1710000022222,
+      }
+    );
+
+    const deliveryPromise = service.deliverDomainEvent({
+      event_id: 'evt-5',
+      event_type: 'purchase_receipt_recorded',
+      aggregate_type: 'purchase_receipt',
+      aggregate_id: 'receipt-5',
+      payload_json: JSON.stringify({ purchase_order_id: 'po-5' }),
+    });
+
+    await vi.waitFor(() => {
+      expect(started).toEqual([
+        'https://example.com/one',
+        'https://example.com/two',
+      ]);
+    });
+
+    releases.shift()?.();
+
+    await vi.waitFor(() => {
+      expect(started).toEqual([
+        'https://example.com/one',
+        'https://example.com/two',
+        'https://example.com/three',
+      ]);
+    });
+
+    releases.splice(0).forEach((release) => release());
+
+    const result = await deliveryPromise;
+    expect(maxActiveCount).toBe(2);
+    expect(result.deliveries).toHaveLength(3);
+  });
 });

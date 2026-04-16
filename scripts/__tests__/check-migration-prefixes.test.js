@@ -92,4 +92,26 @@ describe('check-migration-prefixes', () => {
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS domain_outbox');
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS outbox_consumer_jobs');
   });
+
+  it('accepts the backend performance indexes migration name', async () => {
+    const fileName = '0071_backend_performance_indexes.sql';
+    const file = path.resolve(process.cwd(), 'migrations', fileName);
+
+    expect(fileName).toMatch(/^\d+_.+\.sql$/);
+    expect(fs.existsSync(file)).toBe(true);
+
+    const sql = fs.readFileSync(file, 'utf8');
+    expect(sql).toContain('idx_spaces_share_mode');
+    expect(sql).toContain('idx_notifications_receiver_read_created');
+    expect(sql).toContain('idx_space_files_space_section_sort');
+    expect(sql).toContain('idx_space_access_logs_space_time');
+    expect(sql).toContain('idx_orders_salesperson_created');
+    expect(sql).toContain('idx_orders_salesperson_status_created');
+    expect(sql).toContain('idx_order_lines_order_created');
+    expect(sql).toContain('idx_order_lines_variant_status_created');
+    expect(sql).toContain('idx_files_folder_deleted_created');
+    expect(sql).toContain('idx_files_original_hash_deleted');
+    expect(sql).toContain('idx_folders_parent_deleted_created');
+    expect(sql).toContain('idx_folders_deleted_name');
+  });
 });

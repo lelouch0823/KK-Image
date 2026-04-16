@@ -607,7 +607,8 @@ export class PurchaseOrderService {
     }
 
     const orders = [];
-    for (const orderIdChunk of chunkArray(uniqueOrderIds, D1_MAX_IN_CLAUSE_SIZE)) {
+    const snapshotScopedChunkSize = Math.max(1, Math.floor(D1_MAX_IN_CLAUSE_SIZE / 2));
+    for (const orderIdChunk of chunkArray(uniqueOrderIds, snapshotScopedChunkSize)) {
       const placeholders = orderIdChunk.map(() => '?').join(',');
       const { results } = await this.db.prepare(`
         SELECT o.id, o.order_no, o.product_id, o.variant_id, o.quantity,
@@ -631,6 +632,7 @@ export class PurchaseOrderService {
             MAX(snapshot_specs) AS snapshot_specs,
             MAX(snapshot_image) AS snapshot_image
           FROM order_lines
+          WHERE order_id IN (${placeholders})
           GROUP BY order_id, product_id, variant_id
         ) order_line_snapshot ON order_line_snapshot.order_id = o.id
           AND order_line_snapshot.product_id = o.product_id
@@ -639,7 +641,7 @@ export class PurchaseOrderService {
           AND o.status = 'confirmed'
           AND o.product_id IS NOT NULL
           AND o.variant_id IS NOT NULL
-      `).bind(...orderIdChunk).all();
+      `).bind(...orderIdChunk, ...orderIdChunk).all();
       orders.push(...(results || []));
     }
 

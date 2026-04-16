@@ -1,12 +1,15 @@
 import { generateHmacSignature } from '../_shared/utils.js';
 import { safeJsonParse } from '../api/utils/json.js';
 import { WebhookRepository } from '../repositories/WebhookRepository.js';
+import { runConcurrent } from '../lib/async/runConcurrent.js';
 
 function classifyStatusCode(statusCode) {
   if (statusCode >= 200 && statusCode < 300) return 'delivered';
   if (statusCode >= 400 && statusCode < 500) return 'terminal';
   return 'retryable';
 }
+
+const DEFAULT_ENDPOINT_CONCURRENCY = 4;
 
 export class WebhookDeliveryService {
   constructor(db, deps = {}) {
@@ -15,6 +18,7 @@ export class WebhookDeliveryService {
     this.fetch = deps.fetch || globalThis.fetch?.bind(globalThis);
     this.signPayload = deps.signPayload || generateHmacSignature;
     this.now = deps.now || (() => Date.now());
+    this.endpointConcurrency = deps.endpointConcurrency || DEFAULT_ENDPOINT_CONCURRENCY;
   }
 
   buildEnvelope(event = {}) {
@@ -36,20 +40,16 @@ export class WebhookDeliveryService {
 
   async deliverDomainEvent(event) {
     const endpoints = await this.webhookRepo.listActiveByEvent(event.event_type);
-    const deliveries = [];
-    let shouldRetry = false;
-
-    for (const endpoint of endpoints) {
+    const deliveries = await runConcurrent(endpoints, async (endpoint) => {
       const deliveryKey = `${event.event_id || event.id}:${endpoint.id}:v1`;
 
       if (await this.webhookRepo.hasSuccessfulDelivery(endpoint.id, deliveryKey)) {
-        deliveries.push({
+        return {
           webhookId: endpoint.id,
           deliveryKey,
           skipped: true,
           classification: 'already_delivered',
-        });
-        continue;
+        };
       }
 
       const latestAttempt = await this.webhookRepo.getLatestAttempt(endpoint.id, deliveryKey);
@@ -98,17 +98,13 @@ export class WebhookDeliveryService {
           success,
         });
 
-        deliveries.push({
+        return {
           webhookId: endpoint.id,
           deliveryKey,
           attemptNumber,
           classification,
           success,
-        });
-
-        if (classification === 'retryable') {
-          shouldRetry = true;
-        }
+        };
       } catch (error) {
         const durationMs = Math.max(this.now() - startedAt, 0);
         const nextRetryAt = this.now() + 60_000;
@@ -128,19 +124,18 @@ export class WebhookDeliveryService {
           success: false,
         });
 
-        deliveries.push({
+        return {
           webhookId: endpoint.id,
           deliveryKey,
           attemptNumber,
           classification: 'retryable',
           success: false,
-        });
-        shouldRetry = true;
+        };
       }
-    }
+    }, this.endpointConcurrency);
 
     return {
-      shouldRetry,
+      shouldRetry: deliveries.some((delivery) => delivery?.classification === 'retryable'),
       deliveries,
     };
   }

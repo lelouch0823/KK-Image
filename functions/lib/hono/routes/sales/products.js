@@ -45,7 +45,7 @@ app.get('/', withCache(20), async (c) => {
     hasStock: 'in_stock',
     page,
     limit,
-  });
+  }, { includeFilters: false });
 
   const items = (result.items || []).map((item) => {
     const images = parseJsonArray(item.images, []);

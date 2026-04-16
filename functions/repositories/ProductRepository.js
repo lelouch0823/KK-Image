@@ -63,6 +63,16 @@ export class ProductRepository {
         `;
     }
 
+    _productCountSQL(whereClause = '1=1') {
+        return `
+            ${this._variantAggregateCTE()}
+            SELECT COUNT(*) as total
+            FROM products p
+            LEFT JOIN variant_agg va ON va.product_id = p.id
+            WHERE ${whereClause}
+        `;
+    }
+
     buildProductFilterClause(filters = {}, { omit = [] } = {}) {
         const clauses = [];
         const params = [];
@@ -351,7 +361,8 @@ export class ProductRepository {
      * 根据条件搜索
      * @param {Object} filters { search, category, brand, status, page, limit }
      */
-    async search(filters = {}) {
+    async search(filters = {}, options = {}) {
+        const { includeFilters = true } = options;
         const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
             { page: filters.page, limit: filters.limit },
             { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
@@ -362,7 +373,7 @@ export class ProductRepository {
         const { clause, params } = this.buildProductFilterClause(filters);
         let query = this._productSelectSQL(clause);
 
-        const countQuery = `SELECT COUNT(*) as total FROM (${query}) q`;
+        const countQuery = this._productCountSQL(clause);
         const countParams = [...params];
 
         if (requestedSortField) {
@@ -373,12 +384,24 @@ export class ProductRepository {
         query += ' LIMIT ? OFFSET ?';
         params.push(safeLimit, offset);
 
-        const [results, countResult, brands, categories] = await Promise.all([
-            this.db.prepare(query).bind(...params).all(),
-            this.db.prepare(countQuery).bind(...countParams).first(),
-            this.listAvailableBrands(filters),
-            this.listAvailableCategories(filters),
-        ]);
+        let results;
+        let countResult;
+        let brands = [];
+        let categories = [];
+
+        if (includeFilters) {
+            [results, countResult, brands, categories] = await Promise.all([
+                this.db.prepare(query).bind(...params).all(),
+                this.db.prepare(countQuery).bind(...countParams).first(),
+                this.listAvailableBrands(filters),
+                this.listAvailableCategories(filters),
+            ]);
+        } else {
+            [results, countResult] = await Promise.all([
+                this.db.prepare(query).bind(...params).all(),
+                this.db.prepare(countQuery).bind(...countParams).first(),
+            ]);
+        }
 
         return {
             items: (results.results || []).map(item => this._parseResult(item)),

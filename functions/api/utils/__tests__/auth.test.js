@@ -93,11 +93,9 @@ describe('Auth Utils 100% Coverage Final', () => {
   describe('API Key Operations', () => {
     it('should verify from DB and use cache on second call', async () => {
       // First call: DB fetch
-      db.all.mockResolvedValueOnce({
-        results: [
-          { id: 'k1', key_value: 'v1', permissions: '["read"]', disabled: 0 }
-        ]
-      });
+      db.first.mockResolvedValueOnce(
+        { id: 'k1', key_value: 'v1', permissions: '["read"]', disabled: 0 }
+      );
       const res1 = await verifyApiKey('v1', env);
       expect(res1.id).toBe('k1');
       expect(db.prepare).toHaveBeenCalledTimes(1);
@@ -109,33 +107,46 @@ describe('Auth Utils 100% Coverage Final', () => {
     });
 
     it('should throw if API key is invalid (cache cleared in beforeEach)', async () => {
-      db.all.mockResolvedValueOnce({ results: [] });
+      db.first.mockResolvedValueOnce(null);
       await expect(verifyApiKey('v99', env)).rejects.toThrow(MSG.AUTH.API_KEY_INVALID);
     });
 
     it('should use default API key if DB fails', async () => {
-      db.all.mockRejectedValue(new Error('DB Fail'));
+      db.first.mockRejectedValue(new Error('DB Fail'));
       const res = await verifyApiKey('default-tk', env);
       expect(res.id).toBe('default');
     });
 
     it('should throw if default API key doesn\'t match provided one', async () => {
-      db.all.mockRejectedValue(new Error('DB Fail'));
+      db.first.mockRejectedValue(new Error('DB Fail'));
       await expect(verifyApiKey('wrong-tk', env)).rejects.toThrow(MSG.AUTH.API_KEY_INVALID);
     });
 
     it('falls back to empty permissions when api key permissions payload is invalid', async () => {
-      db.all.mockResolvedValueOnce({
-        results: [
-          { id: 'k2', key_value: 'v2', permissions: 'not-json', disabled: 0 }
-        ]
-      });
+      db.first.mockResolvedValueOnce(
+        { id: 'k2', key_value: 'v2', permissions: 'not-json', disabled: 0 }
+      );
       const res = await verifyApiKey('v2', env);
       expect(res.permissions).toEqual([]);
     });
 
+    it('queries API keys by exact value instead of loading the full active key list', async () => {
+      db.first.mockResolvedValueOnce(
+        { id: 'k3', key_value: 'v3', permissions: '[]', disabled: 0 }
+      );
+
+      const res = await verifyApiKey('v3', env);
+
+      expect(res.id).toBe('k3');
+      expect(db.prepare).toHaveBeenCalledWith(
+        'SELECT * FROM api_keys WHERE key_value = ? AND disabled = 0 LIMIT 1'
+      );
+      expect(db.bind).toHaveBeenCalledWith('v3');
+      expect(db.all).not.toHaveBeenCalled();
+    });
+
     it('uses empty permissions for default API key fallback', async () => {
-      db.all.mockRejectedValue(new Error('DB Fail'));
+      db.first.mockRejectedValue(new Error('DB Fail'));
       const res = await verifyApiKey('default-tk', env);
       expect(res.permissions).toEqual([]);
     });

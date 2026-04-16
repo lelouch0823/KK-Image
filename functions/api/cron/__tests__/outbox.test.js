@@ -36,7 +36,7 @@ vi.mock('../../../services/DomainOutboxConsumers.js', () => ({
   },
 }));
 
-import { onRequest } from '../outbox.js';
+import { onRequest, runOutboxPoller } from '../outbox.js';
 
 describe('cron outbox poller', () => {
   beforeEach(() => {
@@ -111,5 +111,75 @@ describe('cron outbox poller', () => {
     }));
     expect(mocks.markPublished).toHaveBeenCalledTimes(4);
     expect(mocks.markFailed).not.toHaveBeenCalled();
+  });
+
+  it('processes jobs within a consumer under the configured concurrency limit', async () => {
+    const releases = [];
+    const started = [];
+    let activeCount = 0;
+    let maxActiveCount = 0;
+
+    mocks.claimJobs.mockReset();
+    mocks.claimJobs
+      .mockResolvedValueOnce([
+        {
+          id: 'job-audit-1',
+          consumer_name: 'audit',
+          event_id: 'evt-1',
+          event_type: 'purchase_receipt_recorded',
+          payload_json: '{}',
+        },
+        {
+          id: 'job-audit-2',
+          consumer_name: 'audit',
+          event_id: 'evt-2',
+          event_type: 'purchase_receipt_recorded',
+          payload_json: '{}',
+        },
+        {
+          id: 'job-audit-3',
+          consumer_name: 'audit',
+          event_id: 'evt-3',
+          event_type: 'purchase_receipt_recorded',
+          payload_json: '{}',
+        },
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+
+    mocks.auditConsumer.mockImplementation(async ({ job }) => {
+      started.push(job.id);
+      activeCount += 1;
+      maxActiveCount = Math.max(maxActiveCount, activeCount);
+      await new Promise((resolve) => {
+        releases.push(() => {
+          activeCount -= 1;
+          resolve();
+        });
+      });
+    });
+
+    const pollerPromise = runOutboxPoller({
+      env: { DB: {} },
+      requestUrl: 'https://kk.example.com/api/cron/outbox',
+      jobConcurrency: 2,
+    });
+
+    await vi.waitFor(() => {
+      expect(started).toEqual(['job-audit-1', 'job-audit-2']);
+    });
+
+    releases.shift()?.();
+
+    await vi.waitFor(() => {
+      expect(started).toEqual(['job-audit-1', 'job-audit-2', 'job-audit-3']);
+    });
+
+    releases.splice(0).forEach((release) => release());
+
+    const result = await pollerPromise;
+    expect(result).toEqual({ claimed: 3, published: 3, failed: 0 });
+    expect(maxActiveCount).toBe(2);
   });
 });

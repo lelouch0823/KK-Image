@@ -96,6 +96,38 @@ describe('InventoryService', () => {
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_events'));
   });
 
+  it('batches DB-backed mutations instead of running each statement serially in applyBatch', async () => {
+    const run = vi.fn(async () => ({ meta: { changes: 1 } }));
+    const db = {
+      batch: vi.fn(async (statements) => statements.map(() => ({ success: true, meta: { changes: 1 } }))),
+      prepare: vi.fn((sql) => {
+        const statement = {
+          sql,
+          bind: vi.fn((...params) => ({
+            sql,
+            params,
+            run,
+          })),
+        };
+        return statement;
+      }),
+    };
+    service = new InventoryService(db, variantRepo);
+
+    const result = await service.applyBatch([
+      { type: 'purchase_arrival', variantId: 'variant-1', quantityDelta: 5 },
+      { type: 'manual_adjustment', variantId: 'variant-2', quantityDelta: -2 },
+    ]);
+
+    expect(result).toEqual({
+      productCount: 2,
+      totalQty: 7,
+    });
+    expect(db.batch).toHaveBeenCalledTimes(1);
+    expect(db.batch.mock.calls[0][0]).toHaveLength(8);
+    expect(run).not.toHaveBeenCalled();
+  });
+
   it('resolves order_line_id and preserves source refs in inventory_events when order context is supplied', async () => {
     const run = vi.fn(async () => ({ meta: { changes: 1 } }));
     let inventoryEventBindArgs = null;

@@ -21,7 +21,7 @@ const loadAllProductsForExport = async (repo, filters) => {
       ...filters,
       page,
       limit: EXPORT_PAGE_LIMIT,
-    });
+    }, { includeFilters: false });
     const items = Array.isArray(result?.items) ? result.items : [];
     products.push(...items);
     if (items.length < EXPORT_PAGE_LIMIT) {

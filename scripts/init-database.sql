@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS folders (
     is_public INTEGER DEFAULT 0,            -- 是否公开 (0: 私有, 1: 公开)
     password TEXT,                          -- 访问密码 (可选)
     created_by TEXT,                        -- 创建人 (用户名或 ID)
+    is_deleted INTEGER NOT NULL DEFAULT 0,  -- 软删除标记
+    deleted_at INTEGER,                     -- 删除时间
     created_at INTEGER NOT NULL,            -- 创建时间 (毫秒级时间戳)
     updated_at INTEGER NOT NULL,            -- 更新时间
     FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE
@@ -42,6 +44,8 @@ CREATE TABLE IF NOT EXISTS folders (
 CREATE INDEX IF NOT EXISTS idx_folders_parent ON folders(parent_id);
 CREATE INDEX IF NOT EXISTS idx_folders_share_token ON folders(share_token);
 CREATE INDEX IF NOT EXISTS idx_folders_created_by ON folders(created_by);
+CREATE INDEX IF NOT EXISTS idx_folders_parent_deleted_created ON folders(parent_id, is_deleted, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_folders_deleted_name ON folders(is_deleted, name);
 
 -- 1.2 二进制大对象表 (CAS - 内容寻址存储)
 -- 用于文件去重，存储文件的实际内容哈希和元数据
@@ -72,6 +76,8 @@ CREATE TABLE IF NOT EXISTS files (
     height INTEGER,                         -- 图片高度 (像素)
     blurhash TEXT,                          -- BlurHash 占位符字符串
     status TEXT DEFAULT 'normal' CHECK(status IN ('normal', 'blocked', 'whitelisted', 'liked')),
+    is_deleted INTEGER NOT NULL DEFAULT 0,  -- 软删除标记
+    deleted_at INTEGER,                     -- 删除时间
     created_at INTEGER NOT NULL,            -- 上传时间
     updated_at INTEGER,                     -- 更新时间
     FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
@@ -86,6 +92,8 @@ CREATE INDEX IF NOT EXISTS idx_files_status ON files(status);
 CREATE INDEX IF NOT EXISTS idx_files_mime_type ON files(mime_type);
 -- [SOTA] 复合索引：按文件夹+创建时间排序
 CREATE INDEX IF NOT EXISTS idx_files_folder_created ON files(folder_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_files_folder_deleted_created ON files(folder_id, is_deleted, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_files_original_hash_deleted ON files(original_hash, is_deleted);
 
 -- ===========================================================================
 -- 2. 虚拟相册 (Albums - Virtual Collections)
@@ -182,6 +190,7 @@ CREATE TABLE IF NOT EXISTS space_files (
 
 CREATE INDEX IF NOT EXISTS idx_space_files_space ON space_files(space_id);
 CREATE INDEX IF NOT EXISTS idx_space_files_file ON space_files(file_id);
+CREATE INDEX IF NOT EXISTS idx_space_files_space_section_sort ON space_files(space_id, section, sort_order);
 
 -- 3.3 访问日志
 CREATE TABLE IF NOT EXISTS space_access_logs (
@@ -196,6 +205,7 @@ CREATE TABLE IF NOT EXISTS space_access_logs (
 
 CREATE INDEX IF NOT EXISTS idx_space_access_logs_space ON space_access_logs(space_id);
 CREATE INDEX IF NOT EXISTS idx_space_access_logs_time ON space_access_logs(accessed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_space_access_logs_space_time ON space_access_logs(space_id, accessed_at DESC);
 
 -- ===========================================================================
 -- 4. 用户系统 (User System)
@@ -420,6 +430,8 @@ CREATE INDEX IF NOT EXISTS idx_orders_unread_admin ON orders(unread_by_admin, cr
 CREATE INDEX IF NOT EXISTS idx_orders_procurement_status ON orders(procurement_status);
 CREATE INDEX IF NOT EXISTS idx_orders_fulfillment_status ON orders(fulfillment_status);
 CREATE INDEX IF NOT EXISTS idx_orders_delivery_status ON orders(delivery_status);
+CREATE INDEX IF NOT EXISTS idx_orders_salesperson_created ON orders(salesperson_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_salesperson_status_created ON orders(salesperson_id, status, created_at DESC);
 
 -- 7.3 订单文件 (多对多)
 CREATE TABLE IF NOT EXISTS order_files (
@@ -594,6 +606,8 @@ CREATE TABLE IF NOT EXISTS order_lines (
 CREATE INDEX IF NOT EXISTS idx_order_lines_order_id ON order_lines(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_lines_variant_id ON order_lines(variant_id);
 CREATE INDEX IF NOT EXISTS idx_order_lines_display_status ON order_lines(display_status);
+CREATE INDEX IF NOT EXISTS idx_order_lines_order_created ON order_lines(order_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_order_lines_variant_status_created ON order_lines(variant_id, display_status, created_at ASC);
 
 CREATE TABLE IF NOT EXISTS purchase_receipts (
     id TEXT PRIMARY KEY,
@@ -879,6 +893,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
+CREATE INDEX IF NOT EXISTS idx_notifications_receiver_read_created ON notifications(receiver, is_read, created_at DESC);
 -- [SOTA] 复合索引：销售端通知查询优化
 CREATE INDEX IF NOT EXISTS idx_notifications_receiver_sales ON notifications(receiver, salesperson_id, is_read, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_order ON notifications(order_id);

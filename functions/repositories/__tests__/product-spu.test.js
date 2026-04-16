@@ -357,6 +357,73 @@ describe('ProductRepository — SPU 重构', () => {
 
             expect(result.filters.categories).toEqual(['Top', 'Shoes']);
         });
+
+        it('可按选项跳过分面查询以减少额外聚合扫描', async () => {
+            db.prepare.mockImplementation((sql) => {
+                const stmt = createPreparedStatement(sql);
+
+                if (sql.includes('COUNT(*)')) {
+                    stmt.first.mockResolvedValue({ total: 1 });
+                    return stmt;
+                }
+
+                if (sql.includes('FROM products p')) {
+                    stmt.all.mockResolvedValue({
+                        results: [{
+                            id: 'test-id',
+                            name: 'Test',
+                            images: '[]',
+                            specifications: '{}',
+                            options: '[]',
+                        }]
+                    });
+                }
+
+                return stmt;
+            });
+
+            const result = await repo.search(
+                { status: 'active', hasStock: 'in_stock' },
+                { includeFilters: false }
+            );
+
+            expect(result.filters).toEqual({ brands: [], categories: [] });
+            expect(db.prepare.mock.calls.some((call) => call[0].includes('SELECT DISTINCT p.brand AS brand'))).toBe(false);
+            expect(db.prepare.mock.calls.some((call) => call[0].includes('SELECT DISTINCT p.category AS category'))).toBe(false);
+        });
+
+        it('计数查询不应包装完整商品列表子查询', async () => {
+            db.prepare.mockImplementation((sql) => {
+                const stmt = createPreparedStatement(sql);
+
+                if (sql.includes('COUNT(*)')) {
+                    stmt.first.mockResolvedValue({ total: 1 });
+                    return stmt;
+                }
+
+                if (sql.includes('FROM products p')) {
+                    stmt.all.mockResolvedValue({
+                        results: [{
+                            id: 'test-id',
+                            name: 'Test',
+                            images: '[]',
+                            specifications: '{}',
+                            options: '[]',
+                        }]
+                    });
+                }
+
+                return stmt;
+            });
+
+            await repo.search(
+                { status: 'active', hasStock: 'in_stock' },
+                { includeFilters: false }
+            );
+
+            const countSql = db.prepare.mock.calls.find((call) => call[0].includes('COUNT(*) as total'))?.[0] || '';
+            expect(countSql).not.toContain('FROM (');
+        });
     });
 
     // ---------------------------------------------------------------

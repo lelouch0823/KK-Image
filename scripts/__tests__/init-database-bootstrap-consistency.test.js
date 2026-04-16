@@ -30,7 +30,7 @@ describe('init-database bootstrap consistency', () => {
     expect(returnsSql).toMatch(/\border_line_id\s+TEXT\s+NOT\s+NULL\b/i);
     expect(returnsSql).toMatch(/\bvariant_id\s+TEXT\b/i);
     expect(returnsSql).toMatch(/\bquantity\s+INTEGER\s+NOT\s+NULL\b/i);
-    expect(returnsSql).toMatch(/\bstatus\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'pending'/i);
+    expect(returnsSql).toMatch(/\bstatus\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'requested'/i);
     expect(inventoryEventsSql).toMatch(/'order_return_restock'/i);
   });
 
@@ -79,5 +79,45 @@ describe('init-database bootstrap consistency', () => {
     expect(jobsSql).toMatch(/\bconsumer_name\s+TEXT\s+NOT\s+NULL\b/i);
     expect(jobsSql).toMatch(/\bevent_id\s+TEXT\s+NOT\s+NULL\b/i);
     expect(jobsSql).toMatch(/\bleased_until\s+INTEGER\b/i);
+  });
+
+  it('defines first-batch performance indexes for hot read paths', () => {
+    const sql = loadInitSchema();
+
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_spaces_share_mode ON spaces(share_mode)');
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_notifications_receiver_read_created');
+    expect(sql).toContain('ON notifications(receiver, is_read, created_at DESC)');
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_space_files_space_section_sort');
+    expect(sql).toContain('ON space_files(space_id, section, sort_order)');
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_space_access_logs_space_time');
+    expect(sql).toContain('ON space_access_logs(space_id, accessed_at DESC)');
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_orders_salesperson_created');
+    expect(sql).toContain('ON orders(salesperson_id, created_at DESC)');
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_orders_salesperson_status_created');
+    expect(sql).toContain('ON orders(salesperson_id, status, created_at DESC)');
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_order_lines_order_created');
+    expect(sql).toContain('ON order_lines(order_id, created_at ASC)');
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_order_lines_variant_status_created');
+    expect(sql).toContain('ON order_lines(variant_id, display_status, created_at ASC)');
+  });
+
+  it('defines recycle-bin columns and hot-path indexes for files and folders', () => {
+    const sql = loadInitSchema();
+    const foldersSql = extractCreateTableBlock(sql, 'folders');
+    const filesSql = extractCreateTableBlock(sql, 'files');
+
+    expect(foldersSql).toMatch(/\bis_deleted\s+INTEGER\s+NOT\s+NULL\s+DEFAULT\s+0\b/i);
+    expect(foldersSql).toMatch(/\bdeleted_at\s+INTEGER\b/i);
+    expect(filesSql).toMatch(/\bis_deleted\s+INTEGER\s+NOT\s+NULL\s+DEFAULT\s+0\b/i);
+    expect(filesSql).toMatch(/\bdeleted_at\s+INTEGER\b/i);
+
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_files_folder_deleted_created');
+    expect(sql).toContain('ON files(folder_id, is_deleted, created_at DESC)');
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_files_original_hash_deleted');
+    expect(sql).toContain('ON files(original_hash, is_deleted)');
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_folders_parent_deleted_created');
+    expect(sql).toContain('ON folders(parent_id, is_deleted, created_at DESC)');
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_folders_deleted_name');
+    expect(sql).toContain('ON folders(is_deleted, name)');
   });
 });

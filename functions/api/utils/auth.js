@@ -159,10 +159,8 @@ export async function verifyApiKey(apiKey, env) {
     throw new Error(MSG.AUTH.API_KEY_REQUIRED);
   }
 
-  // 从环境变量或 KV 存储中获取有效的 API Keys
-  const validApiKeys = await getValidApiKeys(env);
-
-  const keyInfo = validApiKeys.find((key) => key.key === apiKey);
+  // 从环境变量或 D1 存储中按 key 精确查找
+  const keyInfo = await getValidApiKey(apiKey, env);
   if (!keyInfo) {
     throw new Error(MSG.AUTH.API_KEY_INVALID);
   }
@@ -240,50 +238,58 @@ export async function generateJWT(user, env, expiresIn = 3600) {
   return await SimpleJWT.encode(payload, env.JWT_SECRET);
 }
 
-// 获取有效的 API Keys (带内存缓存)
-async function getValidApiKeys(env) {
+// 获取单个有效 API Key (带内存缓存)
+async function getValidApiKey(apiKey, env) {
   // 1. 检查内存缓存
   const now = Date.now();
-  if (cachedApiKeys && now - lastCacheUpdate < CACHE_TTL) {
-    return cachedApiKeys;
+  if (cachedApiKeys && now - lastCacheUpdate < CACHE_TTL && cachedApiKeys.has(apiKey)) {
+    return cachedApiKeys.get(apiKey);
   }
 
   // 2. 尝试从 D1 数据库获取
   try {
-    const { results } = await env.DB.prepare('SELECT * FROM api_keys WHERE disabled = 0').all();
+    const row = await env.DB
+      .prepare('SELECT * FROM api_keys WHERE key_value = ? AND disabled = 0 LIMIT 1')
+      .bind(apiKey)
+      .first();
 
-    // 映射字段以保持一致性 (key_value -> key)
-    const keys = results.map(row => ({
-      ...row,
-      key: row.key_value,
-      // permissions 需要在使用时解析，这里保持原样或预解析均可，建议保持原样
-    }));
+    if (row) {
+      const keyInfo = {
+        ...row,
+        key: row.key_value,
+      };
+      if (!cachedApiKeys || now - lastCacheUpdate >= CACHE_TTL) {
+        cachedApiKeys = new Map();
+      }
+      cachedApiKeys.set(apiKey, keyInfo);
+      lastCacheUpdate = now;
+      return keyInfo;
+    }
 
-    // 更新缓存
-    cachedApiKeys = keys;
-    lastCacheUpdate = now;
-    return keys;
+    if (!cachedApiKeys || now - lastCacheUpdate >= CACHE_TTL) {
+      cachedApiKeys = new Map();
+      lastCacheUpdate = now;
+    }
+    return null;
   } catch (error) {
     console.error('Failed to get API keys from D1:', error);
   }
 
   // 如果 KV/D1 中没有，使用环境变量中的默认 API Key
   const defaultApiKey = env.DEFAULT_API_KEY;
-  if (defaultApiKey) {
-    return [
-      {
-        id: 'default',
-        key: defaultApiKey,
-        name: 'Default API Key',
-        permissions: [],
-        created_at: Date.now(),
-        disabled: 0,
-      },
-    ];
+  if (defaultApiKey && apiKey === defaultApiKey) {
+    return {
+      id: 'default',
+      key: defaultApiKey,
+      name: 'Default API Key',
+      permissions: [],
+      created_at: Date.now(),
+      disabled: 0,
+    };
   }
 
-  // 如果都没有，返回空数组
-  return [];
+  // 如果都没有，返回空
+  return null;
 }
 
 export function __resetApiKeyCacheForTest() {

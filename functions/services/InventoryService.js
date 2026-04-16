@@ -1,4 +1,5 @@
 import { generateId } from '../api/utils/id.js';
+import { executeBatchChunks } from '../lib/db/batch.js';
 import { ProductVariantRepository } from '../repositories/ProductVariantRepository.js';
 import { BadRequestError } from '../lib/hono/errors.js';
 import {
@@ -207,8 +208,17 @@ export class InventoryService {
       return { productCount: 0, totalQty: 0 };
     }
 
-    for (const mutation of mutations) {
-      await this.applyMutation(mutation);
+    if (typeof this.db?.prepare === 'function' && typeof this.db?.batch === 'function') {
+      const statements = [];
+      for (const mutation of mutations) {
+        const built = await this.buildMutationStatements(mutation);
+        statements.push(...built.statements);
+      }
+      await executeBatchChunks(this.db, statements);
+    } else {
+      for (const mutation of mutations) {
+        await this.applyMutation(mutation);
+      }
     }
 
     return {

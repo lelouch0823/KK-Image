@@ -397,4 +397,47 @@ describe('order queries display model compatibility', () => {
     expect(listStmt.bind).toHaveBeenCalledWith('sp-1', 'fulfilled', 'delivered', 20, 0);
   });
 
+  it('keeps the admin count query lightweight when no line-derived filters are requested', async () => {
+    const countStmt = {
+      bind: vi.fn(() => countStmt),
+      first: vi.fn(async () => ({ total: 0 })),
+    };
+    const listStmt = {
+      bind: vi.fn(() => listStmt),
+      all: vi.fn(async () => ({ results: [] })),
+    };
+    const db = {
+      prepare: vi.fn().mockReturnValueOnce(countStmt).mockReturnValueOnce(listStmt),
+    };
+
+    await listForAdmin(db, { page: 1, limit: 20 });
+
+    expect(db.prepare.mock.calls[0][0]).not.toContain('order_line_agg');
+    expect(db.prepare.mock.calls[0][0]).not.toContain('order_line_snapshot');
+  });
+
+  it('adds only the required line joins to the admin count query when filters need them', async () => {
+    const countStmt = {
+      bind: vi.fn(() => countStmt),
+      first: vi.fn(async () => ({ total: 0 })),
+    };
+    const listStmt = {
+      bind: vi.fn(() => listStmt),
+      all: vi.fn(async () => ({ results: [] })),
+    };
+    const db = {
+      prepare: vi.fn().mockReturnValueOnce(countStmt).mockReturnValueOnce(listStmt),
+    };
+
+    await listForAdmin(db, {
+      search: 'Snapshot Chair',
+      procurementStatus: 'ordered',
+      page: 1,
+      limit: 20,
+    });
+
+    expect(db.prepare.mock.calls[0][0]).toContain('order_line_agg');
+    expect(db.prepare.mock.calls[0][0]).toContain('order_line_snapshot');
+  });
+
 });

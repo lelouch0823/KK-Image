@@ -258,9 +258,13 @@ export async function listForAdmin(
         bindParams.push(endTime);
     }
     whereClause = appendOrderProductSearchFilter(whereClause, bindParams, search);
+    const countJoinSql = [
+        (procurementStatus || deliveryStatus) ? ORDER_LINE_STATUS_AGGREGATE_JOIN : '',
+        search ? ORDER_LINE_PRIMARY_SNAPSHOT_JOIN : '',
+    ].filter(Boolean).join(' ');
 
     const countResult = await db
-        .prepare(`SELECT COUNT(*) as total FROM orders o ${ORDER_LINE_STATUS_AGGREGATE_JOIN} ${ORDER_LINE_PRIMARY_SNAPSHOT_JOIN} WHERE ${whereClause}`)
+        .prepare(`SELECT COUNT(*) as total FROM orders o ${countJoinSql} WHERE ${whereClause}`)
         .bind(...bindParams)
         .first();
 
