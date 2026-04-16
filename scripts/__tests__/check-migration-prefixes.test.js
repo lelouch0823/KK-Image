@@ -142,4 +142,31 @@ describe('check-migration-prefixes', () => {
     expect(sql).toContain('ALTER TABLE orders ADD COLUMN summary_brand');
     expect(sql).toContain('ALTER TABLE orders ADD COLUMN summary_sku');
   });
+
+  it('accepts the redundant index cleanup migration name', async () => {
+    const fileName = '0075_redundant_index_cleanup.sql';
+    const file = path.resolve(process.cwd(), 'migrations', fileName);
+
+    expect(fileName).toMatch(/^\d+_.+\.sql$/);
+    expect(fs.existsSync(file)).toBe(true);
+
+    const sql = fs.readFileSync(file, 'utf8');
+    expect(sql).toContain('DROP INDEX IF EXISTS idx_users_username');
+    expect(sql).toContain('DROP INDEX IF EXISTS idx_api_keys_value');
+    expect(sql).toContain('DROP INDEX IF EXISTS idx_products_sku');
+    expect(sql).toContain('DROP INDEX IF EXISTS idx_products_slug');
+    expect(sql).toContain('DROP INDEX IF EXISTS idx_variants_sku');
+    expect(sql).toContain('DROP INDEX IF EXISTS idx_salespersons_token');
+    expect(sql).toContain('DROP INDEX IF EXISTS idx_salespersons_wechat_openid');
+    expect(sql).toContain('DROP INDEX IF EXISTS idx_orders_no');
+    expect(sql).toContain('DROP INDEX IF EXISTS idx_purchase_orders_no');
+    expect(sql).toContain('DROP INDEX IF EXISTS idx_folders_share_token');
+    expect(sql).toContain('DROP INDEX IF EXISTS idx_albums_share_token');
+    expect(sql).toContain('DROP INDEX IF EXISTS idx_spaces_share_token');
+    expect(sql).toContain('DROP INDEX IF EXISTS idx_purchase_receipt_reversals_original_receipt');
+    expect(sql).toContain('CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug ON products(slug)');
+    expect(sql).toContain(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_purchase_receipt_reversals_original_receipt_unique'
+    );
+  });
 });

@@ -9,6 +9,7 @@
 
 import { parseRepoPagination } from '../../api/utils/pagination.js';
 import { expandOrderStatusFilter } from '../../api/utils/constants.js';
+import { query, queryFirst } from '../../lib/db/query.js';
 import { mapOrderDetail, mapOrderListItem } from './helpers.js';
 import { ORDER_PAYLOADS_JOIN_SQL, ORDER_PAYLOADS_SELECT_SQL } from './payloads.js';
 import {
@@ -19,9 +20,9 @@ import {
 } from './summary-projection.js';
 
 async function findOrderLines(db, orderId) {
-    const { results } = await db
-        .prepare(
-            `
+    const { results } = await query(
+        db,
+        `
       SELECT
           ol.id, ol.order_id, ol.product_id, ol.variant_id,
           ol.snapshot_name, ol.snapshot_image,
@@ -40,9 +41,10 @@ async function findOrderLines(db, orderId) {
       WHERE ol.order_id = ?
       ORDER BY ol.created_at ASC
       `
-        )
-        .bind(orderId)
-        .all();
+        ,
+        [orderId],
+        { label: 'order.find.lines' }
+    );
 
     return results || [];
 }
@@ -54,9 +56,9 @@ async function findOrderLines(db, orderId) {
  * @returns {Promise<Object|null>}
  */
 export async function findById(db, id) {
-    const order = await db
-        .prepare(
-            `
+    const order = await queryFirst(
+        db,
+        `
       SELECT
              o.id, o.order_no, o.salesperson_id, o.customer_id, o.product_id, o.variant_id, o.quantity,
              ${ORDER_PAYLOADS_SELECT_SQL},
@@ -71,9 +73,10 @@ export async function findById(db, id) {
       LEFT JOIN customers c ON o.customer_id = c.id
       WHERE o.id = ?
       `
-        )
-        .bind(id)
-        .first();
+        ,
+        [id],
+        { label: 'order.findById' }
+    );
 
     if (!order) return null;
 
@@ -92,9 +95,9 @@ export async function findById(db, id) {
  * @returns {Promise<Object|null>}
  */
 export async function findByIdAndSalesperson(db, id, salespersonId) {
-    const order = await db
-        .prepare(
-            `
+    const order = await queryFirst(
+        db,
+        `
       SELECT
              o.id, o.order_no, o.salesperson_id, o.customer_id, o.product_id, o.variant_id, o.quantity,
              ${ORDER_PAYLOADS_SELECT_SQL},
@@ -109,9 +112,10 @@ export async function findByIdAndSalesperson(db, id, salespersonId) {
       LEFT JOIN customers c ON o.customer_id = c.id
       WHERE o.id = ? AND o.salesperson_id = ?
       `
-        )
-        .bind(id, salespersonId)
-        .first();
+        ,
+        [id, salespersonId],
+        { label: 'order.findByIdAndSalesperson' }
+    );
 
     if (!order) return null;
 
@@ -129,16 +133,17 @@ export async function findByIdAndSalesperson(db, id, salespersonId) {
  * @returns {Promise<Array<Object>>}
  */
 export async function findStalePending(db, thresholdTimestamp) {
-    const { results } = await db
-        .prepare(
-            `
+    const { results } = await query(
+        db,
+        `
       SELECT o.id, o.order_no, o.salesperson_id, o.status, o.created_at
       FROM orders o
       WHERE o.status = 'pending' AND o.created_at < ?
       `
-        )
-        .bind(thresholdTimestamp)
-        .all();
+        ,
+        [thresholdTimestamp],
+        { label: 'order.findStalePending' }
+    );
 
     return results;
 }
@@ -168,10 +173,12 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
         params.push(...statusValues);
     }
 
-    const countResult = await db
-        .prepare(`SELECT COUNT(*) as total FROM orders o ${ORDER_SUMMARY_PROJECTION_JOIN} ${where}`)
-        .bind(...params)
-        .first();
+    const countResult = await queryFirst(
+        db,
+        `SELECT COUNT(*) as total FROM orders o ${ORDER_SUMMARY_PROJECTION_JOIN} ${where}`,
+        params,
+        { label: 'order.listBySalesperson.count' }
+    );
 
     const listSql = `
       SELECT
@@ -209,10 +216,12 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
       LIMIT ? OFFSET ?
       `;
 
-    const { results } = await db
-        .prepare(listSql)
-        .bind(...params, safeLimit, offset)
-        .all();
+    const { results } = await query(
+        db,
+        listSql,
+        [...params, safeLimit, offset],
+        { label: 'order.listBySalesperson.list' }
+    );
 
     return {
         items: results.map(mapOrderListItem),
@@ -273,10 +282,12 @@ export async function listForAdmin(
     }
     whereClause = appendOrderSummaryProductSearchFilter(whereClause, bindParams, search);
 
-    const countResult = await db
-        .prepare(`SELECT COUNT(*) as total FROM orders o ${ORDER_SUMMARY_PROJECTION_JOIN} WHERE ${whereClause}`)
-        .bind(...bindParams)
-        .first();
+    const countResult = await queryFirst(
+        db,
+        `SELECT COUNT(*) as total FROM orders o ${ORDER_SUMMARY_PROJECTION_JOIN} WHERE ${whereClause}`,
+        bindParams,
+        { label: 'order.listForAdmin.count' }
+    );
 
     const listSql = `
       SELECT
@@ -315,10 +326,12 @@ export async function listForAdmin(
       LIMIT ? OFFSET ?
       `;
 
-    const { results } = await db
-        .prepare(listSql)
-        .bind(...bindParams, safeLimit, offset)
-        .all();
+    const { results } = await query(
+        db,
+        listSql,
+        [...bindParams, safeLimit, offset],
+        { label: 'order.listForAdmin.list' }
+    );
 
     return {
         items: results.map((order) => ({
@@ -340,18 +353,19 @@ export async function listForAdmin(
  * @returns {Promise<Array>}
  */
 export async function getFiles(db, orderId) {
-    const result = await db
-        .prepare(
-            `
+    const result = await query(
+        db,
+        `
       SELECT f.id, f.name, f.original_name, f.mime_type, f.size, f.storage_key, f.blurhash, f.created_at
       FROM order_files of
       JOIN files f ON of.file_id = f.id
       WHERE of.order_id = ?
       ORDER BY of.sort_order ASC, f.created_at ASC
       `
-        )
-        .bind(orderId)
-        .all();
+        ,
+        [orderId],
+        { label: 'order.files.list' }
+    );
 
     return result.results.map((f) => ({
         id: f.id,

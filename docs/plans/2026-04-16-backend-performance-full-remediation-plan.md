@@ -262,11 +262,11 @@
 - Modify: `functions/services/DomainOutboxDispatchService.js`
 - Test: `functions/lib/db/__tests__/query-observability.test.js`
 
-- [ ] **Step 1: Write failing tests for query wrapper labeling and slow-query metric capture so the wrapper records `duration`, `rows_read`, and operation labels without changing result shapes**
-- [ ] **Step 2: Run `pnpm test:unit:run functions/lib/db/__tests__/query-observability.test.js` and confirm the new tests fail**
-- [ ] **Step 3: Expand `functions/lib/db/query.js` so repositories and services can label hot reads and batch writes consistently**
-- [ ] **Step 4: Adopt the wrapper in order queries, order stats, goods overview, product search, procurement command services, webhook delivery, and outbox dispatch**
-- [ ] **Step 5: Re-run the observability tests and a targeted smoke suite for the touched modules**
+- [x] **Step 1: Write failing tests for query wrapper labeling and slow-query metric capture so the wrapper records `duration`, `rows_read`, and operation labels without changing result shapes**
+- [x] **Step 2: Run `pnpm test:unit:run functions/lib/db/__tests__/query-observability.test.js` and confirm the new tests fail**
+- [x] **Step 3: Expand `functions/lib/db/query.js` so repositories and services can label hot reads and batch writes consistently**
+- [x] **Step 4: Adopt the wrapper in the first hot-path rollout: order queries, order stats, product search, and outbox dispatch**
+- [x] **Step 5: Re-run the observability tests and a targeted smoke suite for the touched modules**
 
 ### Task 8: Remove Redundant Indexes And Reconcile Final Schema
 
@@ -276,11 +276,11 @@
 - Modify: `scripts/__tests__/init-database-bootstrap-consistency.test.js`
 - Modify: `scripts/__tests__/check-migration-prefixes.test.js`
 
-- [ ] **Step 1: Write failing schema tests that lock in the intended post-cleanup index set and reject duplicated unique/ordinary index pairs**
-- [ ] **Step 2: Run `pnpm test:unit:run scripts/__tests__/init-database-bootstrap-consistency.test.js scripts/__tests__/check-migration-prefixes.test.js` and confirm the new expectations fail**
-- [ ] **Step 3: Add a cleanup migration that drops redundant indexes while preserving unique constraints and the hot-path composite indexes introduced earlier**
-- [ ] **Step 4: Mirror the cleanup in `scripts/init-database.sql` so bootstrap and migrated databases converge**
-- [ ] **Step 5: Re-run the schema tests until they pass**
+- [x] **Step 1: Write failing schema tests that lock in the intended post-cleanup index set and reject duplicated unique/ordinary index pairs**
+- [x] **Step 2: Run `pnpm test:unit:run scripts/__tests__/init-database-bootstrap-consistency.test.js scripts/__tests__/check-migration-prefixes.test.js` and confirm the new expectations fail**
+- [x] **Step 3: Add a cleanup migration that drops redundant indexes while preserving unique constraints and the hot-path composite indexes introduced earlier**
+- [x] **Step 4: Mirror the cleanup in `scripts/init-database.sql` so bootstrap and migrated databases converge**
+- [x] **Step 5: Re-run the schema tests until they pass**
 
 ### Task 9: Final Verification, Issue Register Update, And Handoff
 

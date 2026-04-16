@@ -1,4 +1,5 @@
 import { executeBatchChunks } from '../lib/db/batch.js';
+import { execute, query } from '../lib/db/query.js';
 
 export class DomainOutboxDispatchService {
   constructor(db, deps = {}) {
@@ -9,9 +10,9 @@ export class DomainOutboxDispatchService {
   }
 
   async claimJobs(consumerName, workerId, nowTs = this.now(), limit = 10) {
-    const { results } = await this.db
-      .prepare(
-        `SELECT
+    const { results } = await query(
+      this.db,
+      `SELECT
             jobs.*,
             evt.command_id,
             evt.event_type,
@@ -29,9 +30,10 @@ export class DomainOutboxDispatchService {
            )
          ORDER BY jobs.available_at ASC, jobs.created_at ASC
          LIMIT ?`
-      )
-      .bind(consumerName, nowTs, nowTs, limit)
-      .all();
+      ,
+      [consumerName, nowTs, nowTs, limit],
+      { label: 'outbox.claimJobs.select' }
+    );
 
     const candidates = results || [];
     if (candidates.length === 0) return [];
@@ -66,27 +68,28 @@ export class DomainOutboxDispatchService {
   }
 
   async markPublished(jobId, nowTs = this.now()) {
-    return this.db
-      .prepare(
-        `UPDATE outbox_consumer_jobs
+    return execute(
+      this.db,
+      `UPDATE outbox_consumer_jobs
          SET status = 'published',
              processed_at = ?,
              leased_by = NULL,
              leased_until = NULL,
              updated_at = ?
          WHERE id = ?`
-      )
-      .bind(nowTs, nowTs, jobId)
-      .run();
+      ,
+      [nowTs, nowTs, jobId],
+      { label: 'outbox.markPublished' }
+    );
   }
 
   async markFailed(job, error, nowTs = this.now()) {
     const attemptCount = Number(job?.attempt_count || 0) + 1;
     const nextAvailableAt = nowTs + this.retryBackoffMs(attemptCount);
 
-    return this.db
-      .prepare(
-        `UPDATE outbox_consumer_jobs
+    return execute(
+      this.db,
+      `UPDATE outbox_consumer_jobs
          SET status = 'failed',
              available_at = ?,
              last_error = ?,
@@ -95,14 +98,15 @@ export class DomainOutboxDispatchService {
              leased_until = NULL,
              updated_at = ?
          WHERE id = ?`
-      )
-      .bind(
+      ,
+      [
         nextAvailableAt,
         String(error?.message || error || 'unknown outbox consumer error'),
         attemptCount,
         nowTs,
-        job?.id
-      )
-      .run();
+        job?.id,
+      ],
+      { label: 'outbox.markFailed' }
+    );
   }
 }

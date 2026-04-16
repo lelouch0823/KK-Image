@@ -4,6 +4,7 @@ import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { buildSetClause } from '../api/utils/sql.js';
 import { hasChanges } from '../api/utils/result.js';
 import { executeBatchChunks } from '../lib/db/batch.js';
+import { execute, query, queryFirst } from '../lib/db/query.js';
 
 export class ProductRepository {
     static PRODUCT_SORT_FIELDS = Object.freeze({
@@ -122,7 +123,9 @@ export class ProductRepository {
               AND p.brand != ''
             ORDER BY p.brand COLLATE NOCASE
         `;
-        const result = await this.db.prepare(sql).bind(...params).all();
+        const result = await query(this.db, sql, params, {
+            label: 'product.search.filters.brands',
+        });
         return (result.results || []).map((row) => row.brand).filter(Boolean);
     }
 
@@ -138,7 +141,9 @@ export class ProductRepository {
               AND p.category != ''
             ORDER BY p.category COLLATE NOCASE
         `;
-        const result = await this.db.prepare(sql).bind(...params).all();
+        const result = await query(this.db, sql, params, {
+            label: 'product.search.filters.categories',
+        });
         return (result.results || []).map((row) => row.category).filter(Boolean);
     }
 
@@ -177,7 +182,9 @@ export class ProductRepository {
 
         const query = `INSERT INTO products (${keys.join(', ')}) VALUES (${placeholders})`;
 
-        await this.db.prepare(query).bind(...values).run();
+        await execute(this.db, query, values, {
+            label: 'product.create',
+        });
 
         const inserted = await this.findById(id);
         return inserted || product;
@@ -325,9 +332,12 @@ export class ProductRepository {
         const { clause, values } = buildSetClause(updateData);
 
         try {
-            const result = await this.db.prepare(`UPDATE products SET ${clause} WHERE id = ?`)
-                .bind(...values, id)
-                .run();
+            const result = await execute(
+                this.db,
+                `UPDATE products SET ${clause} WHERE id = ?`,
+                [...values, id],
+                { label: 'product.update' }
+            );
 
             return {
                 success: result.success,
@@ -344,7 +354,12 @@ export class ProductRepository {
      * @param {string} spu 
      */
     async findBySpu(spu) {
-        const result = await this.db.prepare(this._productSelectSQL('p.spu = ?')).bind(spu).first();
+        const result = await queryFirst(
+            this.db,
+            this._productSelectSQL('p.spu = ?'),
+            [spu],
+            { label: 'product.findBySpu' }
+        );
         return this._parseResult(result);
     }
 
@@ -353,7 +368,12 @@ export class ProductRepository {
      * @param {string} id
      */
     async findById(id) {
-        const result = await this.db.prepare(this._productSelectSQL('p.id = ?')).bind(id).first();
+        const result = await queryFirst(
+            this.db,
+            this._productSelectSQL('p.id = ?'),
+            [id],
+            { label: 'product.findById' }
+        );
         return this._parseResult(result);
     }
 
@@ -371,17 +391,17 @@ export class ProductRepository {
         const requestedSortField = ProductRepository.PRODUCT_SORT_FIELDS[filters.sortBy];
 
         const { clause, params } = this.buildProductFilterClause(filters);
-        let query = this._productSelectSQL(clause);
+        let listQuery = this._productSelectSQL(clause);
 
         const countQuery = this._productCountSQL(clause);
         const countParams = [...params];
 
         if (requestedSortField) {
-            query += ` ORDER BY ${requestedSortField} ${normalizedSortOrder}, p.created_at DESC`;
+            listQuery += ` ORDER BY ${requestedSortField} ${normalizedSortOrder}, p.created_at DESC`;
         } else {
-            query += ' ORDER BY p.created_at DESC';
+            listQuery += ' ORDER BY p.created_at DESC';
         }
-        query += ' LIMIT ? OFFSET ?';
+        listQuery += ' LIMIT ? OFFSET ?';
         params.push(safeLimit, offset);
 
         let results;
@@ -391,15 +411,15 @@ export class ProductRepository {
 
         if (includeFilters) {
             [results, countResult, brands, categories] = await Promise.all([
-                this.db.prepare(query).bind(...params).all(),
-                this.db.prepare(countQuery).bind(...countParams).first(),
+                query(this.db, listQuery, params, { label: 'product.search.list' }),
+                queryFirst(this.db, countQuery, countParams, { label: 'product.search.count' }),
                 this.listAvailableBrands(filters),
                 this.listAvailableCategories(filters),
             ]);
         } else {
             [results, countResult] = await Promise.all([
-                this.db.prepare(query).bind(...params).all(),
-                this.db.prepare(countQuery).bind(...countParams).first(),
+                query(this.db, listQuery, params, { label: 'product.search.list' }),
+                queryFirst(this.db, countQuery, countParams, { label: 'product.search.count' }),
             ]);
         }
 

@@ -163,4 +163,27 @@ describe('init-database bootstrap consistency', () => {
     expect(payloadsSql).toMatch(/\bcurrent_data\s+TEXT\s+NOT\s+NULL\b/i);
     expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_order_payloads_updated_at');
   });
+
+  it('rejects duplicated unique and plain indexes for exact-match columns', () => {
+    const sql = loadInitSchema();
+
+    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)');
+    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_api_keys_value ON api_keys(key_value)');
+    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku)');
+    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug)');
+    expect(sql).toContain('CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug ON products(slug)');
+    expect(sql).not.toContain('CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug_unique');
+    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_variants_sku ON product_variants(sku)');
+    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_salespersons_token ON salespersons(access_token)');
+    expect(sql).not.toContain(
+      'CREATE INDEX IF NOT EXISTS idx_salespersons_wechat_openid ON salespersons(wechat_openid)'
+    );
+    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_orders_no ON orders(order_no)');
+    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_purchase_orders_no ON purchase_orders(po_no)');
+    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_folders_share_token ON folders(share_token)');
+    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_albums_share_token ON albums(share_token)');
+    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_spaces_share_token ON spaces(share_token)');
+    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_purchase_receipt_reversals_original_receipt');
+    expect(sql).toContain('CREATE UNIQUE INDEX IF NOT EXISTS idx_purchase_receipt_reversals_original_receipt_unique');
+  });
 });

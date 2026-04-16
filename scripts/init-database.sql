@@ -42,7 +42,6 @@ CREATE TABLE IF NOT EXISTS folders (
 );
 
 CREATE INDEX IF NOT EXISTS idx_folders_parent ON folders(parent_id);
-CREATE INDEX IF NOT EXISTS idx_folders_share_token ON folders(share_token);
 CREATE INDEX IF NOT EXISTS idx_folders_created_by ON folders(created_by);
 CREATE INDEX IF NOT EXISTS idx_folders_parent_deleted_created ON folders(parent_id, is_deleted, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_folders_deleted_name ON folders(is_deleted, name);
@@ -120,7 +119,6 @@ CREATE TABLE IF NOT EXISTS album_files (
     FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_albums_share_token ON albums(share_token);
 CREATE INDEX IF NOT EXISTS idx_album_files_album ON album_files(album_id);
 CREATE INDEX IF NOT EXISTS idx_album_files_file ON album_files(file_id);
 
@@ -154,7 +152,6 @@ CREATE TABLE IF NOT EXISTS spaces (
 );
 
 CREATE INDEX IF NOT EXISTS idx_spaces_parent ON spaces(parent_id);
-CREATE INDEX IF NOT EXISTS idx_spaces_share_token ON spaces(share_token);
 CREATE INDEX IF NOT EXISTS idx_spaces_template ON spaces(template);
 CREATE INDEX IF NOT EXISTS idx_spaces_cover ON spaces(cover_file_id);
 -- [SOTA] 复合索引：公开空间按更新时间排序
@@ -223,8 +220,6 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at INTEGER
 );
 
-CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-
 -- ===========================================================================
 -- 5. API Keys (Service-to-Service 或开发者访问)
 -- ===========================================================================
@@ -238,8 +233,6 @@ CREATE TABLE IF NOT EXISTS api_keys (
     expires_at INTEGER,                     -- 过期时间 (NULL 表示永不过期)
     disabled INTEGER DEFAULT 0              -- 是否禁用
 );
-
-CREATE INDEX IF NOT EXISTS idx_api_keys_value ON api_keys(key_value);
 
 -- ===========================================================================
 -- 6. 商品系统 (Merchandise System) [SOTA]
@@ -285,9 +278,7 @@ CREATE TABLE IF NOT EXISTS products (
 );
 
 -- 创建索引
-CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
-CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug_unique ON products(slug); -- SQLite workaround for ALTER but good here too
+CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_brand ON products(brand);
 CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
@@ -310,7 +301,6 @@ CREATE TABLE IF NOT EXISTS product_variants (
 );
 
 CREATE INDEX IF NOT EXISTS idx_variants_product ON product_variants(product_id);
-CREATE INDEX IF NOT EXISTS idx_variants_sku ON product_variants(sku);
 
 -- ===========================================================================
 -- 7. 客户关系管理 (CRM)
@@ -354,9 +344,7 @@ CREATE TABLE IF NOT EXISTS salespersons (
     updated_at INTEGER NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_salespersons_token ON salespersons(access_token);
 CREATE INDEX IF NOT EXISTS idx_salespersons_active ON salespersons(is_active);
-CREATE INDEX IF NOT EXISTS idx_salespersons_wechat_openid ON salespersons(wechat_openid);
 
 -- 7.2 订单表
 CREATE TABLE IF NOT EXISTS orders (
@@ -425,7 +413,6 @@ CREATE INDEX IF NOT EXISTS idx_orders_product_id ON orders(product_id);
 CREATE INDEX IF NOT EXISTS idx_orders_variant_id ON orders(variant_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_orders_no ON orders(order_no);
 -- [SOTA] 复合索引：按状态+创建时间排序 (常用查询优化)
 CREATE INDEX IF NOT EXISTS idx_orders_status_created ON orders(status, created_at DESC);
 -- [SOTA] 复合索引：管理员未读筛选
@@ -514,7 +501,6 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
     completed_at INTEGER
 );
 
-CREATE INDEX IF NOT EXISTS idx_purchase_orders_no ON purchase_orders(po_no);
 CREATE INDEX IF NOT EXISTS idx_purchase_orders_status ON purchase_orders(status);
 CREATE INDEX IF NOT EXISTS idx_purchase_orders_created ON purchase_orders(created_at DESC);
 
@@ -661,8 +647,6 @@ CREATE TABLE IF NOT EXISTS purchase_receipt_reversals (
     FOREIGN KEY (original_receipt_id) REFERENCES purchase_receipts(id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_purchase_receipt_reversals_original_receipt
-    ON purchase_receipt_reversals(original_receipt_id, created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_purchase_receipt_reversals_original_receipt_unique
     ON purchase_receipt_reversals(original_receipt_id);
 

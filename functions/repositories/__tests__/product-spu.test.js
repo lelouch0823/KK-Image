@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductRepository } from '../ProductRepository.js';
+import * as queryModule from '../../lib/db/query.js';
 
 // 模拟 D1 prepared statement
 function createPreparedStatement(sql) {
@@ -257,6 +258,53 @@ describe('ProductRepository — SPU 重构', () => {
             expect(listSql).toContain('category = ?');
             expect(listSql).toContain('COALESCE(va.total_available_quantity, COALESCE(va.total_stock_quantity, 0)) > 0');
             expect(listSql).toContain('ORDER BY available_quantity DESC');
+        });
+
+        it('ProductRepository.search 应通过可观测查询封装打热路径标签', async () => {
+            const querySpy = vi.spyOn(queryModule, 'query');
+            const queryFirstSpy = vi.spyOn(queryModule, 'queryFirst');
+
+            db.prepare.mockImplementation((sql) => {
+                const stmt = createPreparedStatement(sql);
+
+                if (sql.includes('COUNT(*)')) {
+                    stmt.first.mockResolvedValue({ total: 1 });
+                    return stmt;
+                }
+
+                if (sql.includes('SELECT DISTINCT p.brand AS brand')) {
+                    stmt.all.mockResolvedValue({ results: [{ brand: 'KK' }] });
+                    return stmt;
+                }
+
+                if (sql.includes('SELECT DISTINCT p.category AS category')) {
+                    stmt.all.mockResolvedValue({ results: [{ category: 'Top' }] });
+                    return stmt;
+                }
+
+                if (sql.includes('FROM products p')) {
+                    stmt.all.mockResolvedValue({
+                        results: [{
+                            id: 'test-id',
+                            name: 'Observable Product',
+                            spu: 'SPU-OBS',
+                            images: '[]',
+                            specifications: '{}',
+                            options: '[]',
+                        }]
+                    });
+                }
+
+                return stmt;
+            });
+
+            const result = await repo.search({ search: 'SPU-OBS' });
+
+            expect(result.items).toHaveLength(1);
+            expect(querySpy.mock.calls.some(([, , , options]) => options?.label === 'product.search.list')).toBe(true);
+            expect(queryFirstSpy.mock.calls.some(([, , , options]) => options?.label === 'product.search.count')).toBe(true);
+            expect(querySpy.mock.calls.some(([, , , options]) => options?.label === 'product.search.filters.brands')).toBe(true);
+            expect(querySpy.mock.calls.some(([, , , options]) => options?.label === 'product.search.filters.categories')).toBe(true);
         });
 
         it('返回品牌分面元数据时应忽略当前品牌条件但保留其他条件', async () => {

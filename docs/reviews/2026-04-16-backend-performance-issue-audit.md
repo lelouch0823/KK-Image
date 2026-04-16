@@ -202,24 +202,31 @@
   - 分块 bulk upsert，避免每个商品单独走一遍全链路
 
 ### 16. 慢查询观测层未真正接入 repository / service 热路径
-- 状态：`deferred`
+- 状态：`implemented`
 - 严重级别：中
 - 位置：
   - [functions/lib/db/query.js](/home/bjw/Code/KK-Image/functions/lib/db/query.js)
+  - [functions/repositories/ProductRepository.js](/home/bjw/Code/KK-Image/functions/repositories/ProductRepository.js)
+  - [functions/repositories/order/queries.js](/home/bjw/Code/KK-Image/functions/repositories/order/queries.js)
+  - [functions/repositories/OrderStatsRepository.js](/home/bjw/Code/KK-Image/functions/repositories/OrderStatsRepository.js)
+  - [functions/services/DomainOutboxDispatchService.js](/home/bjw/Code/KK-Image/functions/services/DomainOutboxDispatchService.js)
 - 问题描述：仓库内已有查询封装和慢查询度量入口，但多数热点 repository / service 并未统一接入，导致性能治理难以持续闭环。
-- 建议后续：
-  - 将热路径查询统一纳入 query wrapper
-  - 记录 `duration`、`rows_read`、SQL label 与 chunk 级批处理耗时
+- 本轮处理：
+  - 统一 `query / queryFirst / execute` 的可观测契约，补齐 `label`、`duration`、`rows_read`、`rows_written`、`operation`
+  - 保持原结果结构不变，仅以非枚举 `_perf` 附着指标，避免破坏调用方
+  - 将商品搜索、订单详情/列表、订单统计、outbox claim/update 热路径切到 wrapper 并打上稳定 SQL label
 
 ### 17. 部分 schema 仍保留冗余索引，增加写放大
-- 状态：`deferred`
+- 状态：`implemented`
 - 严重级别：低
 - 位置：
   - [scripts/init-database.sql](/home/bjw/Code/KK-Image/scripts/init-database.sql)
+  - [migrations/0075_redundant_index_cleanup.sql](/home/bjw/Code/KK-Image/migrations/0075_redundant_index_cleanup.sql)
 - 问题描述：部分唯一索引与普通索引重复覆盖同一列前缀，虽然不一定是当前主瓶颈，但会增加迁移、写入和存储维护成本。
-- 建议后续：
-  - 对唯一列、完全覆盖的单列索引做一次系统性清理
-  - 保留与真实查询模式对应的最小索引集合
+- 本轮处理：
+  - 新增 `0075_redundant_index_cleanup.sql`，清理 `share_token`、`username`、`key_value`、`sku`、`order_no`、`po_no` 等由唯一约束或唯一索引覆盖的冗余单列索引
+  - 统一 `products.slug` 为单一唯一索引 `idx_products_slug`
+  - 删除 `purchase_receipt_reversals.original_receipt_id` 上被唯一索引完全覆盖的冗余复合索引
 
 ## 本轮落地文件
 
@@ -237,8 +244,11 @@
 - [functions/repositories/order/mutations.js](/home/bjw/Code/KK-Image/functions/repositories/order/mutations.js)
 - [functions/repositories/order/payloads.js](/home/bjw/Code/KK-Image/functions/repositories/order/payloads.js)
 - [functions/repositories/order/summary-projection.js](/home/bjw/Code/KK-Image/functions/repositories/order/summary-projection.js)
+- [functions/lib/db/query.js](/home/bjw/Code/KK-Image/functions/lib/db/query.js)
+- [functions/services/DomainOutboxDispatchService.js](/home/bjw/Code/KK-Image/functions/services/DomainOutboxDispatchService.js)
 - [migrations/0072_order_summary_projection.sql](/home/bjw/Code/KK-Image/migrations/0072_order_summary_projection.sql)
 - [migrations/0073_order_payload_sidecar.sql](/home/bjw/Code/KK-Image/migrations/0073_order_payload_sidecar.sql)
+- [migrations/0075_redundant_index_cleanup.sql](/home/bjw/Code/KK-Image/migrations/0075_redundant_index_cleanup.sql)
 - [scripts/migrations/backfill-order-summary-projection.mjs](/home/bjw/Code/KK-Image/scripts/migrations/backfill-order-summary-projection.mjs)
 - [scripts/migrations/backfill-order-payloads.mjs](/home/bjw/Code/KK-Image/scripts/migrations/backfill-order-payloads.mjs)
 

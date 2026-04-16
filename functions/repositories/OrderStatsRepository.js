@@ -6,6 +6,7 @@
  */
 
 import { parseJsonObject } from '../api/utils/json.js';
+import { query, queryFirst } from '../lib/db/query.js';
 import {
   ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL,
   ORDER_SUMMARY_PROJECTION_JOIN,
@@ -16,24 +17,32 @@ export class OrderStatsRepository {
     this.db = db;
   }
 
+  async runQuery(sql, bindings = [], label) {
+    return query(this.db, sql, bindings, { label });
+  }
+
+  async runQueryFirst(sql, bindings = [], label) {
+    return queryFirst(this.db, sql, bindings, { label });
+  }
+
   /**
    * 获取最近的待处理订单
    * @param {number} limit
    * @returns {Promise<Array>}
    */
   async getRecentPending(limit = 5) {
-    const result = await this.db
-      .prepare(
-        `
+    const result = await this.runQuery(
+      `
             SELECT id, order_no, current_data, created_at, status 
             FROM orders 
             WHERE status = 'pending'
             ORDER BY created_at DESC 
             LIMIT ?
         `
-      )
-      .bind(limit)
-      .all();
+      ,
+      [limit],
+      'order.stats.recentPending'
+    );
 
     return result.results.map((order) => {
       const data = parseJsonObject(order.current_data, {});
@@ -53,14 +62,14 @@ export class OrderStatsRepository {
    * @returns {Promise<number>}
    */
   async countCreatedAfter(timestamp) {
-    const result = await this.db
-      .prepare(
-        `
+    const result = await this.runQueryFirst(
+      `
             SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
         `
-      )
-      .bind(timestamp)
-      .first();
+      ,
+      [timestamp],
+      'order.stats.countCreatedAfter'
+    );
     return result?.count || 0;
   }
 
@@ -70,14 +79,14 @@ export class OrderStatsRepository {
    * @returns {Promise<number>}
    */
   async countByStatus(status) {
-    const result = await this.db
-      .prepare(
-        `
+    const result = await this.runQueryFirst(
+      `
             SELECT COUNT(*) as count FROM orders WHERE status = ?
         `
-      )
-      .bind(status)
-      .first();
+      ,
+      [status],
+      'order.stats.countByStatus'
+    );
     return result?.count || 0;
   }
 
@@ -88,15 +97,15 @@ export class OrderStatsRepository {
    * @returns {Promise<number>}
    */
   async countCreatedBetween(startTimestamp, endTimestamp) {
-    const result = await this.db
-      .prepare(
-        `
+    const result = await this.runQueryFirst(
+      `
             SELECT COUNT(*) as count FROM orders 
             WHERE created_at >= ? AND created_at < ?
         `
-      )
-      .bind(startTimestamp, endTimestamp)
-      .first();
+      ,
+      [startTimestamp, endTimestamp],
+      'order.stats.countCreatedBetween'
+    );
     return result?.count || 0;
   }
 
@@ -107,32 +116,32 @@ export class OrderStatsRepository {
    */
   async getSalesStats(salespersonId, todayStart) {
     const [totalResult, todayResult, pendingResult] = await Promise.all([
-      this.db
-        .prepare(
-          `
+      this.runQueryFirst(
+        `
                 SELECT COUNT(*) as count FROM orders WHERE salesperson_id = ?
             `
-        )
-        .bind(salespersonId)
-        .first(),
-      this.db
-        .prepare(
-          `
+        ,
+        [salespersonId],
+        'order.stats.sales.total'
+      ),
+      this.runQueryFirst(
+        `
                 SELECT COUNT(*) as count FROM orders 
                 WHERE salesperson_id = ? AND created_at >= ?
             `
-        )
-        .bind(salespersonId, todayStart)
-        .first(),
-      this.db
-        .prepare(
-          `
+        ,
+        [salespersonId, todayStart],
+        'order.stats.sales.today'
+      ),
+      this.runQueryFirst(
+        `
                 SELECT COUNT(*) as count FROM orders 
                 WHERE salesperson_id = ? AND status = 'pending'
             `
-        )
-        .bind(salespersonId)
-        .first(),
+        ,
+        [salespersonId],
+        'order.stats.sales.pending'
+      ),
     ]);
 
     return {
@@ -150,47 +159,47 @@ export class OrderStatsRepository {
   async getSalesFullStats(salespersonId, monthStart) {
     const [totalResult, completedResult, monthResult, trendResult] = await Promise.all([
       // 累计订单
-      this.db
-        .prepare(
-          `
+      this.runQueryFirst(
+        `
                 SELECT COUNT(*) as count FROM orders WHERE salesperson_id = ?
             `
-        )
-        .bind(salespersonId)
-        .first(),
+        ,
+        [salespersonId],
+        'order.stats.salesFull.total'
+      ),
       // 已完成订单
-      this.db
-        .prepare(
-          `
+      this.runQueryFirst(
+        `
                 SELECT COUNT(*) as count FROM orders 
                 WHERE salesperson_id = ? AND status IN ('fulfilled', 'delivered')
             `
-        )
-        .bind(salespersonId)
-        .first(),
+        ,
+        [salespersonId],
+        'order.stats.salesFull.completed'
+      ),
       // 本月订单
-      this.db
-        .prepare(
-          `
+      this.runQueryFirst(
+        `
                 SELECT COUNT(*) as count FROM orders 
                 WHERE salesperson_id = ? AND created_at >= ?
             `
-        )
-        .bind(salespersonId, monthStart)
-        .first(),
+        ,
+        [salespersonId, monthStart],
+        'order.stats.salesFull.month'
+      ),
       // 近30天趋势
-      this.db
-        .prepare(
-          `
+      this.runQuery(
+        `
                 SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count
                 FROM orders 
                 WHERE salesperson_id = ? AND created_at >= ?
                 GROUP BY DATE(created_at / 1000, 'unixepoch', '+8 hours')
                 ORDER BY date ASC
             `
-        )
-        .bind(salespersonId, monthStart)
-        .all(),
+        ,
+        [salespersonId, monthStart],
+        'order.stats.salesFull.trend'
+      ),
     ]);
 
     return {
@@ -218,50 +227,51 @@ export class OrderStatsRepository {
       recentTrend,
     ] =
       await Promise.all([
-        this.db
-          .prepare(
-            `
+        this.runQueryFirst(
+          `
                 SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
             `
-          )
-          .bind(todayStart)
-          .first(),
-        this.db
-          .prepare(
-            `
+          ,
+          [todayStart],
+          'order.stats.admin.today'
+        ),
+        this.runQueryFirst(
+          `
                 SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
             `
-          )
-          .bind(weekStart)
-          .first(),
-        this.db
-          .prepare(
-            `
+          ,
+          [weekStart],
+          'order.stats.admin.week'
+        ),
+        this.runQueryFirst(
+          `
                 SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
             `
-          )
-          .bind(monthStart)
-          .first(),
-        this.db
-          .prepare(
-            `
+          ,
+          [monthStart],
+          'order.stats.admin.month'
+        ),
+        this.runQuery(
+          `
                 SELECT status, COUNT(*) as count FROM orders GROUP BY status
             `
-          )
-          .all(),
-        this.db
-          .prepare(
-            `
+          ,
+          [],
+          'order.stats.admin.statusDistribution'
+        ),
+        this.runQuery(
+          `
                 SELECT ${ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL} as status, COUNT(*) as count
                 FROM orders o
                 ${ORDER_SUMMARY_PROJECTION_JOIN}
                 GROUP BY ${ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL}
             `
-          )
-          .all(),
-        this.db
-          .prepare(
-            `
+          ,
+          [],
+          'order.stats.admin.deliveryStatusDistribution'
+        ),
+        this.runQueryFirst(
+          `
                 SELECT COUNT(*) as count
                 FROM (
                     SELECT
@@ -273,19 +283,21 @@ export class OrderStatsRepository {
                 WHERE normalized_status IN ('fulfilled', 'delivered')
                   AND effective_delivery_status = 'in_transit'
             `
-          )
-          .first(),
-        this.db
-          .prepare(
-            `
+          ,
+          [],
+          'order.stats.admin.awaitingDelivery'
+        ),
+        this.runQuery(
+          `
                 SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count
                 FROM orders 
                 WHERE created_at >= ?
                 GROUP BY date ORDER BY date
             `
-          )
-          .bind(monthStart)
-          .all(),
+          ,
+          [monthStart],
+          'order.stats.admin.recentTrend'
+        ),
       ]);
     return {
       today: todayResult.count,
@@ -312,18 +324,18 @@ export class OrderStatsRepository {
    * @param {number} todayStart
    */
   async getTodayHourlyTrend(todayStart) {
-    const result = await this.db
-      .prepare(
-        `
+    const result = await this.runQuery(
+      `
             SELECT STRFTIME('%H', created_at / 1000, 'unixepoch', '+8 hours') as hour, COUNT(*) as count 
             FROM orders 
             WHERE created_at >= ?
             GROUP BY hour
             ORDER BY hour ASC
         `
-      )
-      .bind(todayStart)
-      .all();
+      ,
+      [todayStart],
+      'order.stats.todayHourlyTrend'
+    );
     return result.results;
   }
 
@@ -332,18 +344,18 @@ export class OrderStatsRepository {
    * @param {number} startTimestamp
    */
   async getLast7DaysOrderTrend(startTimestamp) {
-    const result = await this.db
-      .prepare(
-        `
+    const result = await this.runQuery(
+      `
             SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count 
             FROM orders 
             WHERE created_at >= ?
             GROUP BY date
             ORDER BY date ASC
         `
-      )
-      .bind(startTimestamp)
-      .all();
+      ,
+      [startTimestamp],
+      'order.stats.last7DaysOrderTrend'
+    );
     return result.results;
   }
 
@@ -354,18 +366,18 @@ export class OrderStatsRepository {
    * 修正：为了展示"待处理负载"，展示每天新产生的"待处理"订单。
    */
   async getLast7DaysPendingTrend(startTimestamp) {
-    const result = await this.db
-      .prepare(
-        `
+    const result = await this.runQuery(
+      `
             SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count 
             FROM orders 
             WHERE created_at >= ? AND status = 'pending'
             GROUP BY date
             ORDER BY date ASC
         `
-      )
-      .bind(startTimestamp)
-      .all();
+      ,
+      [startTimestamp],
+      'order.stats.last7DaysPendingTrend'
+    );
     return result.results;
   }
 
@@ -375,18 +387,18 @@ export class OrderStatsRepository {
    * @param {number} startTimestamp
    */
   async getLast7DaysShareTrend(startTimestamp) {
-    const result = await this.db
-      .prepare(
-        `
+    const result = await this.runQuery(
+      `
             SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count 
             FROM folders 
             WHERE is_public = 1 AND created_at >= ?
             GROUP BY date
             ORDER BY date ASC
         `
-      )
-      .bind(startTimestamp)
-      .all();
+      ,
+      [startTimestamp],
+      'order.stats.last7DaysShareTrend'
+    );
     return result.results;
   }
 }
