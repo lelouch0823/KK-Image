@@ -40,10 +40,16 @@ export class WebhookDeliveryService {
 
   async deliverDomainEvent(event) {
     const endpoints = await this.webhookRepo.listActiveByEvent(event.event_type);
+    const deliveryStates = typeof this.webhookRepo.getDeliveryStates === 'function'
+      ? await this.webhookRepo.getDeliveryStates(
+        endpoints.map((endpoint) => `${event.event_id || event.id}:${endpoint.id}:v1`)
+      )
+      : null;
     const deliveries = await runConcurrent(endpoints, async (endpoint) => {
       const deliveryKey = `${event.event_id || event.id}:${endpoint.id}:v1`;
+      const deliveryState = deliveryStates?.get?.(deliveryKey) || null;
 
-      if (await this.webhookRepo.hasSuccessfulDelivery(endpoint.id, deliveryKey)) {
+      if (deliveryState?.hasSuccess || await this.webhookRepo.hasSuccessfulDelivery?.(endpoint.id, deliveryKey)) {
         return {
           webhookId: endpoint.id,
           deliveryKey,
@@ -52,7 +58,9 @@ export class WebhookDeliveryService {
         };
       }
 
-      const latestAttempt = await this.webhookRepo.getLatestAttempt(endpoint.id, deliveryKey);
+      const latestAttempt = deliveryState
+        ? { attempt_number: deliveryState.latestAttemptNumber }
+        : await this.webhookRepo.getLatestAttempt?.(endpoint.id, deliveryKey);
       const attemptNumber = Number(latestAttempt?.attempt_number || 0) + 1;
       const payload = this.buildEnvelope(event);
       const body = JSON.stringify(payload);

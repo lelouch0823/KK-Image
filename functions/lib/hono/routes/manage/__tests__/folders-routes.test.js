@@ -159,8 +159,8 @@ describe('manage folders routes', () => {
         payload: { folder_id: 'folder-1' },
       }),
     ]);
-    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
-    expect(waitUntil).toHaveBeenCalled();
+    expect(mocks.runOutboxPoller).not.toHaveBeenCalled();
+    expect(waitUntil).not.toHaveBeenCalled();
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -258,8 +258,8 @@ describe('manage folders routes', () => {
         payload: { folder_id: 'folder-1' },
       }),
     ]);
-    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
-    expect(waitUntil).toHaveBeenCalled();
+    expect(mocks.runOutboxPoller).not.toHaveBeenCalled();
+    expect(waitUntil).not.toHaveBeenCalled();
   });
 
   it('returns updated folder payload even when repository update itself does not return a row', async () => {

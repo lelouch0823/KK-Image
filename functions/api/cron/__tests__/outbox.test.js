@@ -3,8 +3,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   isCronAuthorized: vi.fn(),
   claimJobs: vi.fn(),
+  countAvailableJobs: vi.fn(async () => 0),
   markPublished: vi.fn(async () => ({})),
   markFailed: vi.fn(async () => ({})),
+  tryAcquire: vi.fn(async () => ({
+    scope: 'default',
+    leaseToken: 'lease-1',
+    workerId: 'worker-1',
+    leaseUntil: 1710000030000,
+  })),
+  finishLease: vi.fn(async () => ({})),
   auditConsumer: vi.fn(async () => {}),
   cacheConsumer: vi.fn(async () => {}),
   notificationConsumer: vi.fn(async () => {}),
@@ -22,8 +30,16 @@ vi.mock('../../utils/cron-auth.js', async () => {
 vi.mock('../../../services/DomainOutboxDispatchService.js', () => ({
   DomainOutboxDispatchService: vi.fn(() => ({
     claimJobs: mocks.claimJobs,
+    countAvailableJobs: mocks.countAvailableJobs,
     markPublished: mocks.markPublished,
     markFailed: mocks.markFailed,
+  })),
+}));
+
+vi.mock('../../../repositories/OutboxRuntimeStateRepository.js', () => ({
+  OutboxRuntimeStateRepository: vi.fn(() => ({
+    tryAcquire: mocks.tryAcquire,
+    finishLease: mocks.finishLease,
   })),
 }));
 
@@ -42,6 +58,13 @@ describe('cron outbox poller', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isCronAuthorized.mockReturnValue(true);
+    mocks.countAvailableJobs.mockResolvedValue(0);
+    mocks.tryAcquire.mockResolvedValue({
+      scope: 'default',
+      leaseToken: 'lease-1',
+      workerId: 'worker-1',
+      leaseUntil: 1710000030000,
+    });
     mocks.claimJobs
       .mockResolvedValueOnce([{
         id: 'job-audit-1',
@@ -70,7 +93,11 @@ describe('cron outbox poller', () => {
         event_id: 'evt-4',
         event_type: 'purchase_receipt_recorded',
         payload_json: '{"purchase_order_id":"po-1","receipt_id":"receipt-1"}',
-      }]);
+      }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
   });
 
   it('runs the outbox poller and returns processed counts', async () => {
@@ -91,26 +118,42 @@ describe('cron outbox poller', () => {
         claimed: 4,
         published: 4,
         failed: 0,
+        rounds: 1,
+        skipped: false,
+        backlog: 0,
       }),
     }));
     expect(mocks.auditConsumer).toHaveBeenCalledWith(expect.objectContaining({
       event: expect.objectContaining({ id: 'job-audit-1' }),
       baseUrl: 'https://kk.example.com',
+      state: expect.any(Object),
     }));
     expect(mocks.cacheConsumer).toHaveBeenCalledWith(expect.objectContaining({
       event: expect.objectContaining({ id: 'job-cache-1' }),
       baseUrl: 'https://kk.example.com',
+      state: expect.any(Object),
     }));
     expect(mocks.notificationConsumer).toHaveBeenCalledWith(expect.objectContaining({
       event: expect.objectContaining({ id: 'job-notification-1', event_id: 'evt-3' }),
       baseUrl: 'https://kk.example.com',
+      state: expect.any(Object),
     }));
     expect(mocks.webhookConsumer).toHaveBeenCalledWith(expect.objectContaining({
       event: expect.objectContaining({ id: 'job-webhook-1', event_id: 'evt-4' }),
       baseUrl: 'https://kk.example.com',
+      state: expect.any(Object),
     }));
     expect(mocks.markPublished).toHaveBeenCalledTimes(4);
     expect(mocks.markFailed).not.toHaveBeenCalled();
+    expect(mocks.finishLease).toHaveBeenCalledWith(expect.objectContaining({
+      scope: 'default',
+      leaseToken: 'lease-1',
+      claimed: 4,
+      published: 4,
+      failed: 0,
+      rounds: 1,
+      backlog: 0,
+    }));
   });
 
   it('processes jobs within a consumer under the configured concurrency limit', async () => {
@@ -146,6 +189,10 @@ describe('cron outbox poller', () => {
       ])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
 
     mocks.auditConsumer.mockImplementation(async ({ job }) => {
@@ -179,7 +226,41 @@ describe('cron outbox poller', () => {
     releases.splice(0).forEach((release) => release());
 
     const result = await pollerPromise;
-    expect(result).toEqual({ claimed: 3, published: 3, failed: 0 });
+    expect(result).toEqual(expect.objectContaining({
+      claimed: 3,
+      published: 3,
+      failed: 0,
+      rounds: 1,
+      skipped: false,
+      backlog: 0,
+    }));
     expect(maxActiveCount).toBe(2);
+  });
+
+  it('skips processing when another poller lease is still active', async () => {
+    mocks.tryAcquire.mockResolvedValueOnce(null);
+    mocks.claimJobs.mockReset();
+
+    const result = await runOutboxPoller({
+      env: { DB: {} },
+      requestUrl: 'https://kk.example.com/api/cron/outbox',
+    });
+
+    expect(result).toEqual({
+      claimed: 0,
+      published: 0,
+      failed: 0,
+      rounds: 0,
+      skipped: true,
+      backlog: null,
+      consumers: {
+        audit: { claimed: 0, published: 0, failed: 0 },
+        cache: { claimed: 0, published: 0, failed: 0 },
+        notification: { claimed: 0, published: 0, failed: 0 },
+        webhook: { claimed: 0, published: 0, failed: 0 },
+      },
+    });
+    expect(mocks.claimJobs).not.toHaveBeenCalled();
+    expect(mocks.finishLease).not.toHaveBeenCalled();
   });
 });

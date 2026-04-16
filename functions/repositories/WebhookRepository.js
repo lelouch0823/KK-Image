@@ -1,5 +1,6 @@
 import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { generatePrefixedId } from '../_shared/utils.js';
+import { inClause } from '../api/utils/sql.js';
 
 function rowToWebhook(row, { includeSecret = false } = {}) {
   if (!row) return null;
@@ -30,16 +31,17 @@ export class WebhookRepository {
   async listActiveByEvent(eventType) {
     const { results } = await this.db
       .prepare(
-        `SELECT *
-         FROM webhooks
-         WHERE enabled = 1
-           AND events LIKE ?
-         ORDER BY created_at DESC`
+        `SELECT w.*
+         FROM webhook_event_subscriptions wes
+         JOIN webhooks w ON w.id = wes.webhook_id
+         WHERE wes.event_type = ?
+           AND w.enabled = 1
+         ORDER BY w.created_at DESC`
       )
-      .bind(`%"${eventType}"%`)
+      .bind(eventType)
       .all();
 
-    return (results || []).map((row) => rowToWebhook(row, { includeSecret: true })).filter((row) => row.events.includes(eventType));
+    return (results || []).map((row) => rowToWebhook(row, { includeSecret: true }));
   }
 
   async listAll() {
@@ -208,6 +210,37 @@ export class WebhookRepository {
       )
       .bind(webhookId, deliveryKey)
       .first();
+  }
+
+  async getDeliveryStates(deliveryKeys = []) {
+    const keys = [...new Set((deliveryKeys || []).filter(Boolean))];
+    if (keys.length === 0) {
+      return new Map();
+    }
+
+    const { results } = await this.db
+      .prepare(
+        `SELECT
+           delivery_key,
+           MAX(CASE WHEN success = 1 THEN 1 ELSE 0 END) AS has_success,
+           MAX(attempt_number) AS latest_attempt_number
+         FROM webhook_logs
+         WHERE delivery_key IN ${inClause(keys)}
+         GROUP BY delivery_key`
+      )
+      .bind(...keys)
+      .all();
+
+    return new Map(
+      (results || []).map((row) => [
+        row.delivery_key,
+        {
+          deliveryKey: row.delivery_key,
+          hasSuccess: Boolean(row.has_success),
+          latestAttemptNumber: Number(row.latest_attempt_number || 0),
+        },
+      ])
+    );
   }
 }
 

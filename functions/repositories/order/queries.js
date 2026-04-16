@@ -149,6 +149,32 @@ export async function findStalePending(db, thresholdTimestamp) {
 }
 
 /**
+ * 获取临近交期订单（直接使用 sidecar deadline_date）
+ * @param {D1Database} db
+ * @param {string} startDate
+ * @param {string} endDate
+ * @returns {Promise<Array<Object>>}
+ */
+export async function findApproachingDeadline(db, startDate, endDate) {
+    const { results } = await query(
+        db,
+        `
+      SELECT o.id, o.order_no, o.salesperson_id, o.deadline_date
+      FROM orders o
+      WHERE o.status IN ('confirmed', 'in_progress')
+        AND o.deadline_date IS NOT NULL
+        AND o.deadline_date BETWEEN ? AND ?
+      ORDER BY o.deadline_date ASC, o.created_at ASC
+      `
+        ,
+        [startDate, endDate],
+        { label: 'order.findApproachingDeadline' }
+    );
+
+    return results || [];
+}
+
+/**
  * 销售员订单列表（带 SOTA 多级排序）
  * @param {D1Database} db
  * @param {string} salespersonId

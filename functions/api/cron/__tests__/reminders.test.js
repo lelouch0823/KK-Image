@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   isCronAuthorized: vi.fn(),
   findStalePending: vi.fn(),
+  findApproachingDeadline: vi.fn(),
   publish: vi.fn(async () => []),
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
@@ -18,6 +19,7 @@ vi.mock('../../utils/cron-auth.js', async () => {
 vi.mock('../../../repositories/OrderRepository.js', () => ({
   OrderRepository: vi.fn(() => ({
     findStalePending: mocks.findStalePending,
+    findApproachingDeadline: mocks.findApproachingDeadline,
   })),
 }));
 
@@ -36,27 +38,10 @@ import { onRequest } from '../reminders.js';
 function createDbMock() {
   return {
     prepare: vi.fn((sql) => {
-      if (sql.includes('FROM notifications') || sql.includes('FROM domain_outbox')) {
+      if (sql.includes('FROM domain_outbox')) {
         return {
           bind: vi.fn(() => ({
-            first: vi.fn(async () => null),
-          })),
-        };
-      }
-
-      if (sql.includes('FROM orders') && sql.includes("json_extract(current_data, '$.deadline')")) {
-        return {
-          bind: vi.fn(() => ({
-            all: vi.fn(async () => ({
-              results: [
-                {
-                  id: 'o-deadline',
-                  order_no: 'SO-DEADLINE',
-                  salesperson_id: 'sp-2',
-                  current_data: JSON.stringify({ deadline: '2026-04-01' }),
-                },
-              ],
-            })),
+            all: vi.fn(async () => ({ results: [] })),
           })),
         };
       }
@@ -72,6 +57,14 @@ describe('cron reminders outbox publishing', () => {
     mocks.isCronAuthorized.mockReturnValue(true);
     mocks.findStalePending.mockResolvedValue([
       { id: 'o-pending', order_no: 'SO-PENDING' },
+    ]);
+    mocks.findApproachingDeadline.mockResolvedValue([
+      {
+        id: 'o-deadline',
+        order_no: 'SO-DEADLINE',
+        salesperson_id: 'sp-2',
+        deadline_date: '2026-04-01',
+      },
     ]);
   });
 
@@ -131,5 +124,32 @@ describe('cron reminders outbox publishing', () => {
         }),
       }),
     }));
+  });
+
+  it('loads approaching deadlines from the repository instead of ad-hoc SQL', async () => {
+    const response = await onRequest({
+      env: {
+        DB: {
+          prepare: vi.fn((sql) => {
+            if (sql.includes('FROM domain_outbox')) {
+              return {
+                bind: vi.fn(() => ({
+                  all: vi.fn(async () => ({ results: [] })),
+                })),
+              };
+            }
+            throw new Error(`Unexpected SQL: ${sql}`);
+          }),
+        },
+        CRON_SECRET: 'secret',
+      },
+      request: new Request('https://kk.example.com/api/cron/reminders', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer secret' },
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(mocks.findApproachingDeadline).toHaveBeenCalledTimes(1);
   });
 });

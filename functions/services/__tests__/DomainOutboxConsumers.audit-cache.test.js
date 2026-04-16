@@ -5,6 +5,9 @@ const mocks = vi.hoisted(() => ({
   invalidateCache: vi.fn(async () => {}),
   getSalespersonAccessTokens: vi.fn(async () => []),
   getAllSalespersonAccessTokens: vi.fn(async () => []),
+  refreshSystemStats: vi.fn(async () => ({})),
+  refreshVariantSnapshotByOrderId: vi.fn(async () => []),
+  refreshVariantSnapshotAll: vi.fn(async () => []),
 }));
 
 vi.mock('../../lib/hono/_shared/audit-helpers.js', async () => {
@@ -31,6 +34,23 @@ vi.mock('../../lib/hono/_shared/route-helpers.js', async () => {
     getAllSalespersonAccessTokens: mocks.getAllSalespersonAccessTokens,
   };
 });
+
+vi.mock('../SystemStatsProjectionRefreshService.js', () => ({
+  STATS_PROJECTION_SCOPES: {
+    MANAGE_STATS: 'manage.stats',
+    DASHBOARD_OVERVIEW: 'manage.dashboard.overview',
+  },
+  SystemStatsProjectionRefreshService: vi.fn(() => ({
+    refresh: mocks.refreshSystemStats,
+  })),
+}));
+
+vi.mock('../VariantSnapshotProjectionRefreshService.js', () => ({
+  VariantSnapshotProjectionRefreshService: vi.fn(() => ({
+    refreshByOrderId: mocks.refreshVariantSnapshotByOrderId,
+    refreshAll: mocks.refreshVariantSnapshotAll,
+  })),
+}));
 
 import { DOMAIN_OUTBOX_CONSUMERS } from '../DomainOutboxConsumers.js';
 
@@ -318,6 +338,35 @@ describe('DomainOutboxConsumers audit and cache', () => {
       'https://kk.example.com/api/v1/folders/folder-2',
       'https://kk.example.com/api/v1/files/file-1',
     ]));
+  });
+
+  it('refreshes manage stats and dashboard projections for plain file uploads', async () => {
+    const state = {
+      invalidatedUrls: new Set(),
+      allSalesTokens: null,
+      salesTokensById: new Map(),
+      refreshedReadModels: new Set(),
+      readModelRefreshes: new Map(),
+      services: {},
+    };
+
+    await DOMAIN_OUTBOX_CONSUMERS.cache({
+      db: {},
+      event: {
+        id: 'evt-file-upload-1',
+        event_type: 'file_uploaded',
+        aggregate_type: 'file',
+        aggregate_id: 'file-1',
+        payload_json: JSON.stringify({
+          file: { id: 'file-1', filename: 'asset.png' },
+        }),
+      },
+      baseUrl: 'https://kk.example.com',
+      state,
+    });
+
+    expect(mocks.refreshSystemStats).toHaveBeenCalledWith('manage.stats');
+    expect(mocks.refreshSystemStats).toHaveBeenCalledWith('manage.dashboard.overview');
   });
 
   it('invalidates v1 folder caches together with share caches for v1 folder events', async () => {

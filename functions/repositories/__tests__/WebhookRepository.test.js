@@ -15,14 +15,28 @@ function createWebhookDbStub(seedRows = [], seedLogs = []) {
         return statement;
       }),
       all: vi.fn(async () => {
-        if (normalizedSql.includes('FROM webhooks') && normalizedSql.includes('enabled = 1')) {
-          const [eventFilter] = statement.params;
-          const eventType = String(eventFilter || '').replace(/%|"/g, '');
+        if (normalizedSql.includes('FROM webhook_event_subscriptions')) {
+          const [eventType] = statement.params;
           return {
             results: rows.filter((row) => (
               Number(row.enabled) === 1
               && JSON.parse(row.events || '[]').includes(eventType)
             )),
+          };
+        }
+
+        if (normalizedSql.includes('FROM webhook_logs') && normalizedSql.includes('GROUP BY delivery_key')) {
+          const deliveryKeys = statement.params;
+          return {
+            results: deliveryKeys.map((deliveryKey) => {
+              const matched = logs.filter((row) => row.delivery_key === deliveryKey);
+              if (matched.length === 0) return null;
+              return {
+                delivery_key: deliveryKey,
+                has_success: matched.some((row) => Number(row.success) === 1) ? 1 : 0,
+                latest_attempt_number: Math.max(...matched.map((row) => Number(row.attempt_number || 0))),
+              };
+            }).filter(Boolean),
           };
         }
 
@@ -193,6 +207,39 @@ describe('WebhookRepository', () => {
         updatedAt: null,
       },
     ]);
+  });
+
+  it('batches delivery-state lookups by delivery key', async () => {
+    const db = createWebhookDbStub([], [
+      {
+        id: 'whlog-1',
+        webhook_id: 'wh-1',
+        delivery_key: 'evt-1:wh-1:v1',
+        success: 1,
+        attempt_number: 2,
+      },
+      {
+        id: 'whlog-2',
+        webhook_id: 'wh-2',
+        delivery_key: 'evt-1:wh-2:v1',
+        success: 0,
+        attempt_number: 3,
+      },
+    ]);
+    const repo = new WebhookRepository(db);
+
+    const states = await repo.getDeliveryStates(['evt-1:wh-1:v1', 'evt-1:wh-2:v1']);
+
+    expect(states.get('evt-1:wh-1:v1')).toEqual({
+      deliveryKey: 'evt-1:wh-1:v1',
+      hasSuccess: true,
+      latestAttemptNumber: 2,
+    });
+    expect(states.get('evt-1:wh-2:v1')).toEqual({
+      deliveryKey: 'evt-1:wh-2:v1',
+      hasSuccess: false,
+      latestAttemptNumber: 3,
+    });
   });
 
   it('creates and updates manage webhook configs', async () => {

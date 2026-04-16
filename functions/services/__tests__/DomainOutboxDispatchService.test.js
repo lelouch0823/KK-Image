@@ -10,18 +10,26 @@ function createPreparedStatement(sql, { allResult = { results: [] }, runResult =
       return statement;
     }),
     all: vi.fn(async () => allResult),
+    first: vi.fn(async () => allResult?.results?.[0] || null),
     run: vi.fn(async () => runResult),
   };
   return statement;
 }
 
-function createMockDb({ pendingJobs = [], staleJobs = [] } = {}) {
+function createMockDb({ pendingJobs = [], staleJobs = [], availableJobsCount = null } = {}) {
   return {
     prepare: vi.fn((sql) => {
       if (sql.includes('FROM outbox_consumer_jobs jobs') && sql.includes('jobs.status IN')) {
         return createPreparedStatement(sql, {
           allResult: {
             results: [...pendingJobs, ...staleJobs],
+          },
+        });
+      }
+      if (sql.includes('SELECT COUNT(*) AS total') && sql.includes('FROM outbox_consumer_jobs')) {
+        return createPreparedStatement(sql, {
+          allResult: {
+            results: [{ total: availableJobsCount ?? pendingJobs.length + staleJobs.length }],
           },
         });
       }
@@ -151,5 +159,17 @@ describe('DomainOutboxDispatchService', () => {
     expect(claimed).toHaveLength(205);
     expect(db.batch).toHaveBeenCalledTimes(3);
     expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 100, 5]);
+  });
+
+  it('counts immediately available and expired leased jobs', async () => {
+    const db = createMockDb({ availableJobsCount: 7 });
+    const service = new DomainOutboxDispatchService(db, {
+      now: () => 1710000000000,
+    });
+
+    const total = await service.countAvailableJobs(1710000000000);
+
+    expect(total).toBe(7);
+    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('SELECT COUNT(*) AS total'));
   });
 });

@@ -3,11 +3,14 @@ import { isCronAuthorized } from '../utils/cron-auth.js';
 import { DomainOutboxDispatchService } from '../../services/DomainOutboxDispatchService.js';
 import { DOMAIN_OUTBOX_CONSUMERS } from '../../services/DomainOutboxConsumers.js';
 import { runConcurrent } from '../../lib/async/runConcurrent.js';
+import { OutboxRuntimeStateRepository } from '../../repositories/OutboxRuntimeStateRepository.js';
 
 const ACTIVE_CONSUMERS = ['audit', 'cache', 'notification', 'webhook'];
 const DEFAULT_JOB_CONCURRENCY = 4;
+const DEFAULT_MAX_ROUNDS = 4;
+const DEFAULT_CLAIM_BATCH_SIZE = 50;
 
-async function processOutboxJob({ consumerName, job, env, baseUrl, dispatchService, nowTs }) {
+async function processOutboxJob({ consumerName, job, env, baseUrl, dispatchService, nowTs, state }) {
   try {
     const consumer = DOMAIN_OUTBOX_CONSUMERS[consumerName];
     if (typeof consumer !== 'function') {
@@ -29,6 +32,7 @@ async function processOutboxJob({ consumerName, job, env, baseUrl, dispatchServi
       },
       job,
       baseUrl,
+      state,
     });
 
     await dispatchService.markPublished(job.id, nowTs);
@@ -45,32 +49,116 @@ export async function runOutboxPoller({
   workerId = null,
   nowTs = Date.now(),
   jobConcurrency = DEFAULT_JOB_CONCURRENCY,
+  maxRounds = DEFAULT_MAX_ROUNDS,
+  claimBatchSize = DEFAULT_CLAIM_BATCH_SIZE,
+  force = workerId != null,
 }) {
   const dispatchService = new DomainOutboxDispatchService(env.DB);
+  const runtimeStateRepo = new OutboxRuntimeStateRepository(env.DB);
   const baseUrl = new URL(requestUrl).origin;
   const resolvedWorkerId = workerId || `cron:${nowTs}`;
+  const lease = await runtimeStateRepo.tryAcquire({
+    workerId: resolvedWorkerId,
+    nowTs,
+    force,
+  });
 
+  const consumerStats = Object.fromEntries(
+    ACTIVE_CONSUMERS.map((consumerName) => [consumerName, {
+      claimed: 0,
+      published: 0,
+      failed: 0,
+    }])
+  );
+
+  if (!lease) {
+    return {
+      claimed: 0,
+      published: 0,
+      failed: 0,
+      rounds: 0,
+      skipped: true,
+      backlog: null,
+      consumers: consumerStats,
+    };
+  }
+
+  let rounds = 0;
   let claimedCount = 0;
   let publishedCount = 0;
   let failedCount = 0;
-
-  for (const consumerName of ACTIVE_CONSUMERS) {
-    const jobs = await dispatchService.claimJobs(consumerName, resolvedWorkerId, nowTs, 25);
-    claimedCount += jobs.length;
-    const outcomes = await runConcurrent(
-      jobs,
-      (job) => processOutboxJob({ consumerName, job, env, baseUrl, dispatchService, nowTs }),
-      jobConcurrency
-    );
-    publishedCount += outcomes.reduce((sum, outcome) => sum + Number(outcome?.published || 0), 0);
-    failedCount += outcomes.reduce((sum, outcome) => sum + Number(outcome?.failed || 0), 0);
-  }
-
-  return {
-    claimed: claimedCount,
-    published: publishedCount,
-    failed: failedCount,
+  const state = {
+    invalidatedUrls: new Set(),
+    allSalesTokens: null,
+    salesTokensById: new Map(),
+    refreshedReadModels: new Set(),
+    readModelRefreshes: new Map(),
+    services: {},
   };
+
+  try {
+    while (rounds < maxRounds) {
+      let roundClaimedCount = 0;
+
+      for (const consumerName of ACTIVE_CONSUMERS) {
+        const jobs = await dispatchService.claimJobs(consumerName, resolvedWorkerId, nowTs, claimBatchSize);
+        claimedCount += jobs.length;
+        roundClaimedCount += jobs.length;
+        consumerStats[consumerName].claimed += jobs.length;
+        const outcomes = await runConcurrent(
+          jobs,
+          (job) => processOutboxJob({ consumerName, job, env, baseUrl, dispatchService, nowTs, state }),
+          jobConcurrency
+        );
+        const consumerPublished = outcomes.reduce((sum, outcome) => sum + Number(outcome?.published || 0), 0);
+        const consumerFailed = outcomes.reduce((sum, outcome) => sum + Number(outcome?.failed || 0), 0);
+        publishedCount += consumerPublished;
+        failedCount += consumerFailed;
+        consumerStats[consumerName].published += consumerPublished;
+        consumerStats[consumerName].failed += consumerFailed;
+      }
+
+      if (roundClaimedCount === 0) {
+        break;
+      }
+
+      rounds += 1;
+    }
+
+    const backlog = await dispatchService.countAvailableJobs(nowTs);
+    await runtimeStateRepo.finishLease({
+      scope: lease.scope,
+      leaseToken: lease.leaseToken,
+      nowTs,
+      claimed: claimedCount,
+      published: publishedCount,
+      failed: failedCount,
+      backlog,
+      rounds,
+    });
+
+    return {
+      claimed: claimedCount,
+      published: publishedCount,
+      failed: failedCount,
+      rounds,
+      skipped: false,
+      backlog,
+      consumers: consumerStats,
+    };
+  } catch (error) {
+    await runtimeStateRepo.finishLease({
+      scope: lease.scope,
+      leaseToken: lease.leaseToken,
+      nowTs,
+      claimed: claimedCount,
+      published: publishedCount,
+      failed: failedCount,
+      backlog: null,
+      rounds,
+    });
+    throw error;
+  }
 }
 
 export async function onRequest(context) {

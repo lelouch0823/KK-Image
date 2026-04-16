@@ -1,5 +1,5 @@
 import { executeBatchChunks } from '../lib/db/batch.js';
-import { execute, query } from '../lib/db/query.js';
+import { execute, query, queryFirst } from '../lib/db/query.js';
 
 export class DomainOutboxDispatchService {
   constructor(db, deps = {}) {
@@ -108,5 +108,19 @@ export class DomainOutboxDispatchService {
       ],
       { label: 'outbox.markFailed' }
     );
+  }
+
+  async countAvailableJobs(nowTs = this.now()) {
+    const row = await queryFirst(
+      this.db,
+      `SELECT COUNT(*) AS total
+         FROM outbox_consumer_jobs
+         WHERE (status IN ('pending', 'failed') AND available_at <= ?)
+            OR (status = 'processing' AND COALESCE(leased_until, 0) < ?)`,
+      [nowTs, nowTs],
+      { label: 'outbox.countAvailableJobs' }
+    );
+
+    return Number(row?.total || 0);
   }
 }

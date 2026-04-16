@@ -48,6 +48,11 @@ export class OrderRepository {
     return queries.findStalePending(this.db, thresholdTimestamp);
   }
 
+  /** @see queries.findApproachingDeadline */
+  async findApproachingDeadline(startDate, endDate) {
+    return queries.findApproachingDeadline(this.db, startDate, endDate);
+  }
+
   /** @see queries.listForAdmin */
   async listForAdmin(options) {
     return queries.listForAdmin(this.db, options);

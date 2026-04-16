@@ -6,19 +6,26 @@
 
 import { success, error } from '../utils/response.js';
 import { OrderRepository } from '../../repositories/OrderRepository.js';
-import { parseJsonObject } from '../utils/json.js';
 import { isCronAuthorized } from '../utils/cron-auth.js';
 import { DomainOutboxPublisher } from '../../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from './outbox.js';
+import { inClause } from '../utils/sql.js';
 
-async function reminderAlreadyEnqueued(db, idempotencyKey) {
-  const existing = await db.prepare(
-    'SELECT 1 FROM domain_outbox WHERE idempotency_key = ? LIMIT 1'
+async function listExistingIdempotencyKeys(db, idempotencyKeys = []) {
+  const keys = [...new Set((idempotencyKeys || []).filter(Boolean))];
+  if (keys.length === 0) {
+    return new Set();
+  }
+
+  const { results } = await db.prepare(
+    `SELECT idempotency_key
+     FROM domain_outbox
+     WHERE idempotency_key IN ${inClause(keys)}`
   )
-    .bind(idempotencyKey)
-    .first();
+    .bind(...keys)
+    .all();
 
-  return Boolean(existing);
+  return new Set((results || []).map((row) => row.idempotency_key).filter(Boolean));
 }
 
 function buildReminderEvent({ eventType, orderId, orderNo, receiver, salespersonId = null, deadline = null, subType = null, idempotencyKey }) {
@@ -57,21 +64,20 @@ export async function onRequest(context) {
     // 2. 检查超时未处理订单 (Pending > 24h) - 使用 Repository
     const pendingThreshold = now - ONE_DAY;
     const pendingOrders = await orderRepo.findStalePending(pendingThreshold);
+    const todayKey = new Date(now).toISOString().split('T')[0];
 
     for (const order of pendingOrders) {
-      const idempotencyKey = `order_pending_reminder_due:${order.id}:${new Date(now).toISOString().split('T')[0]}`;
-      if (!(await reminderAlreadyEnqueued(env.DB, idempotencyKey))) {
-        outboxEvents.push(
-          buildReminderEvent({
-            eventType: 'order_pending_reminder_due',
-            orderId: order.id,
-            orderNo: order.order_no,
-            receiver: 'admin',
-            subType: 'pending_timeout',
-            idempotencyKey,
-          })
-        );
-      }
+      const idempotencyKey = `order_pending_reminder_due:${order.id}:${todayKey}`;
+      outboxEvents.push(
+        buildReminderEvent({
+          eventType: 'order_pending_reminder_due',
+          orderId: order.id,
+          orderNo: order.order_no,
+          receiver: 'admin',
+          subType: 'pending_timeout',
+          idempotencyKey,
+        })
+      );
     }
 
     // 3. 检查临近交货期 (3天内) - 使用 Repository
@@ -80,59 +86,50 @@ export async function onRequest(context) {
     const todayStr = today.toISOString().split('T')[0];
     const targetStr = targetDate.toISOString().split('T')[0];
 
-    // 注意：findApproachingDeadline 使用 LIKE 查询单个日期，这里需要扩展为范围查询
-    // 暂时保留直接 SQL，后续可升级 Repository
-    const { results: deadlineOrders } = await env.DB.prepare(
-      `
-            SELECT id, order_no, salesperson_id, current_data FROM orders 
-            WHERE status IN ('confirmed', 'in_progress')
-            AND json_extract(current_data, '$.deadline') BETWEEN ? AND ?
-        `
-    )
-      .bind(todayStr, targetStr)
-      .all();
+    const deadlineOrders = await orderRepo.findApproachingDeadline(todayStr, targetStr);
 
     for (const order of deadlineOrders) {
-      const data = parseJsonObject(order.current_data, {});
-      const deadline = data.deadline;
+      const deadline = order.deadline_date;
 
       const salesIdempotencyKey = `order_deadline_reminder_due:sales:${order.salesperson_id || ''}:${order.id}:${deadline}`;
-      if (!(await reminderAlreadyEnqueued(env.DB, salesIdempotencyKey))) {
-        outboxEvents.push(
-          buildReminderEvent({
-            eventType: 'order_deadline_reminder_due',
-            orderId: order.id,
-            orderNo: order.order_no,
-            receiver: 'sales',
-            salespersonId: order.salesperson_id,
-            deadline,
-            idempotencyKey: salesIdempotencyKey,
-          })
-        );
-      }
+      outboxEvents.push(
+        buildReminderEvent({
+          eventType: 'order_deadline_reminder_due',
+          orderId: order.id,
+          orderNo: order.order_no,
+          receiver: 'sales',
+          salespersonId: order.salesperson_id,
+          deadline,
+          idempotencyKey: salesIdempotencyKey,
+        })
+      );
 
       const adminIdempotencyKey = `order_deadline_reminder_due:admin:${order.id}:${deadline}`;
-      if (!(await reminderAlreadyEnqueued(env.DB, adminIdempotencyKey))) {
-        outboxEvents.push(
-          buildReminderEvent({
-            eventType: 'order_deadline_reminder_due',
-            orderId: order.id,
-            orderNo: order.order_no,
-            receiver: 'admin',
-            deadline,
-            idempotencyKey: adminIdempotencyKey,
-          })
-        );
-      }
+      outboxEvents.push(
+        buildReminderEvent({
+          eventType: 'order_deadline_reminder_due',
+          orderId: order.id,
+          orderNo: order.order_no,
+          receiver: 'admin',
+          deadline,
+          idempotencyKey: adminIdempotencyKey,
+        })
+      );
     }
 
-    if (outboxEvents.length > 0) {
+    const existingKeys = await listExistingIdempotencyKeys(
+      env.DB,
+      outboxEvents.map((event) => event.idempotency_key)
+    );
+    const freshEvents = outboxEvents.filter((event) => !existingKeys.has(event.idempotency_key));
+
+    if (freshEvents.length > 0) {
       const publisher = new DomainOutboxPublisher(env.DB);
-      await publisher.publish(outboxEvents);
+      await publisher.publish(freshEvents);
       await runOutboxPoller({
         env,
         requestUrl: request.url,
-        workerId: `reminders:${new Date(now).toISOString().split('T')[0]}`,
+        workerId: `reminders:${todayKey}`,
       });
     }
 
@@ -140,7 +137,7 @@ export async function onRequest(context) {
       processed: {
         pending: pendingOrders.length,
         approaching: deadlineOrders.length,
-        notificationsSent: outboxEvents.length,
+        notificationsSent: freshEvents.length,
       },
     });
   } catch (err) {

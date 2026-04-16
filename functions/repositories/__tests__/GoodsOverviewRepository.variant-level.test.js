@@ -48,8 +48,10 @@ describe('GoodsOverviewRepository variant-level', () => {
 
     const sql = db.prepare.mock.calls[0][0];
     expect(sql).toContain('FROM variant_demand_projection vdp');
+    expect(sql).toContain('LEFT JOIN variant_snapshot_projection demand_snapshot');
     expect(sql).toContain('vdp.variant_id');
     expect(sql).not.toContain('FROM order_lines ol');
+    expect(sql).not.toContain('FROM order_lines AS ol');
     expect(sql).not.toContain('JOIN orders o ON o.id = ol.order_id');
     expect(sql).not.toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)');
     expect(sql).toContain('inventory_balances');
@@ -100,6 +102,7 @@ describe('GoodsOverviewRepository variant-level', () => {
 
     expect(db.prepare.mock.calls[0][0]).toContain('FROM variant_demand_projection vdp');
     expect(db.prepare.mock.calls[0][0]).not.toContain('FROM order_lines ol');
+    expect(db.prepare.mock.calls[0][0]).not.toContain('FROM order_lines AS ol');
     expect(db.prepare.mock.calls[0][0]).not.toContain('JOIN orders o ON o.id = ol.order_id');
     expect(db.prepare.mock.calls[0][0]).not.toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)');
     expect(summary.totalDemand).toBe(2);
@@ -127,8 +130,10 @@ describe('GoodsOverviewRepository variant-level', () => {
 
     expect(db.prepare.mock.calls[0][0]).toContain('FROM variant_demand_projection vdp');
     expect(db.prepare.mock.calls[0][0]).not.toContain('FROM order_lines ol');
+    expect(db.prepare.mock.calls[0][0]).not.toContain('FROM order_lines AS ol');
     expect(db.prepare.mock.calls[1][0]).toContain('FROM variant_demand_projection vdp');
     expect(db.prepare.mock.calls[1][0]).not.toContain('FROM order_lines ol');
+    expect(db.prepare.mock.calls[1][0]).not.toContain('FROM order_lines AS ol');
     expect(filters).toEqual({
       categories: ['Top'],
       brands: ['KK'],
@@ -238,12 +243,13 @@ describe('GoodsOverviewRepository variant-level', () => {
     const list = await repo.getList({ sort: 'shortage' });
     const sql = db.prepare.mock.calls[0][0];
 
+    expect(sql).toContain('LEFT JOIN variant_snapshot_projection demand_snapshot');
     expect(sql).toContain('snapshot_name');
     expect(sql).toContain('snapshot_sku');
-    expect(sql).toContain("json_extract(ol.snapshot_specs, '$.brand')");
-    expect(sql).toContain("json_extract(ol.snapshot_specs, '$.category')");
-    expect(sql).toContain("json_extract(o.current_data, '$.category')");
-    expect(sql).toContain("json_extract(o.original_data, '$.category')");
+    expect(sql).toContain('snapshot_brand');
+    expect(sql).toContain('snapshot_category');
+    expect(sql).toContain('current_category');
+    expect(sql).toContain('original_category');
     expect(sql).toContain('snapshot_image');
     expect(sql).toContain('snapshot_specs');
     expect(list[0]).toEqual(expect.objectContaining({

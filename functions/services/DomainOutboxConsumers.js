@@ -26,6 +26,11 @@ import {
   getV1FolderCacheUrls,
   getV1FolderDetailCacheUrls,
 } from '../lib/hono/routes/v1/cache-urls.js';
+import {
+  STATS_PROJECTION_SCOPES,
+  SystemStatsProjectionRefreshService,
+} from './SystemStatsProjectionRefreshService.js';
+import { VariantSnapshotProjectionRefreshService } from './VariantSnapshotProjectionRefreshService.js';
 
 function createCacheContext(baseUrl, purchaseOrderId = null) {
   const url = purchaseOrderId
@@ -74,6 +79,223 @@ function isOrderMutationEvent(eventType) {
 
 function isReminderDomainEvent(eventType) {
   return eventType === 'order_pending_reminder_due' || eventType === 'order_deadline_reminder_due';
+}
+
+function shouldRefreshManageStatsProjection(eventType) {
+  return [
+    'file_uploaded',
+    'folder_created',
+    'folder_updated',
+    'folder_deleted',
+    'space_created',
+    'space_updated',
+    'space_deleted',
+    'space_file_added',
+    'space_file_removed',
+    'space_file_reordered',
+    'space_subspace_created',
+    'v1_folder_created',
+    'v1_folder_updated',
+    'v1_folder_deleted',
+    'v1_folder_share_updated',
+    'v1_file_created',
+    'v1_file_updated',
+    'v1_file_deleted',
+    'v1_file_batch_deleted',
+    'v1_file_batch_moved',
+  ].includes(eventType);
+}
+
+function shouldRefreshDashboardProjection(eventType) {
+  return [
+    'order_created_by_admin',
+    'order_created_by_sales',
+    'order_updated_by_admin',
+    'order_updated_by_sales',
+    'order_deleted_by_admin',
+    'order_status_changed_by_admin',
+    'order_status_changed_by_sales',
+  ].includes(eventType)
+    || shouldRefreshManageStatsProjection(eventType);
+}
+
+function getVariantSnapshotRefreshTarget(eventType, event, payload) {
+  if (['order_created_by_admin', 'order_created_by_sales'].includes(eventType)) {
+    const orderId = resolveOrderId(event, payload);
+    return orderId ? `variant:order:${orderId}` : null;
+  }
+
+  if (['order_updated_by_admin', 'order_updated_by_sales', 'order_deleted_by_admin'].includes(eventType)) {
+    return 'variant:all';
+  }
+
+  return null;
+}
+
+function getPollerState(state) {
+  if (!state || typeof state !== 'object') {
+    return null;
+  }
+
+  if (!(state.invalidatedUrls instanceof Set)) {
+    state.invalidatedUrls = new Set();
+  }
+  if (state.allSalesTokens === undefined) {
+    state.allSalesTokens = null;
+  }
+  if (!(state.salesTokensById instanceof Map)) {
+    state.salesTokensById = new Map();
+  }
+  if (!(state.refreshedReadModels instanceof Set)) {
+    state.refreshedReadModels = new Set();
+  }
+  if (!(state.readModelRefreshes instanceof Map)) {
+    state.readModelRefreshes = new Map();
+  }
+  if (!state.services || typeof state.services !== 'object') {
+    state.services = {};
+  }
+
+  return state;
+}
+
+async function getMemoizedSalespersonAccessTokens(db, salespersonIds = [], state) {
+  const sharedState = getPollerState(state);
+  const ids = [...new Set((salespersonIds || []).filter(Boolean))].sort();
+  if (ids.length === 0) {
+    return [];
+  }
+
+  if (!sharedState) {
+    return getSalespersonAccessTokens(db, ids);
+  }
+
+  const cacheKey = ids.join(',');
+  if (sharedState.salesTokensById.has(cacheKey)) {
+    return await sharedState.salesTokensById.get(cacheKey);
+  }
+
+  const tokensPromise = Promise.resolve(getSalespersonAccessTokens(db, ids))
+    .then((tokens) => {
+      sharedState.salesTokensById.set(cacheKey, tokens);
+      return tokens;
+    })
+    .catch((error) => {
+      sharedState.salesTokensById.delete(cacheKey);
+      throw error;
+    });
+
+  sharedState.salesTokensById.set(cacheKey, tokensPromise);
+  return await tokensPromise;
+}
+
+async function getMemoizedAllSalespersonAccessTokens(db, state) {
+  const sharedState = getPollerState(state);
+  if (!sharedState) {
+    return getAllSalespersonAccessTokens(db);
+  }
+
+  if (Array.isArray(sharedState.allSalesTokens)) {
+    return sharedState.allSalesTokens;
+  }
+  if (sharedState.allSalesTokens) {
+    return await sharedState.allSalesTokens;
+  }
+
+  const tokensPromise = Promise.resolve(getAllSalespersonAccessTokens(db))
+    .then((tokens) => {
+      sharedState.allSalesTokens = tokens;
+      return tokens;
+    })
+    .catch((error) => {
+      sharedState.allSalesTokens = null;
+      throw error;
+    });
+
+  sharedState.allSalesTokens = tokensPromise;
+  return await tokensPromise;
+}
+
+async function invalidateCacheOnce(urls, state) {
+  const sharedState = getPollerState(state);
+  const uniqueUrls = [...new Set((urls || []).filter(Boolean))];
+  if (!sharedState) {
+    if (uniqueUrls.length > 0) {
+      await invalidateCache(uniqueUrls);
+    }
+    return uniqueUrls;
+  }
+
+  const freshUrls = uniqueUrls.filter((url) => {
+    if (sharedState.invalidatedUrls.has(url)) {
+      return false;
+    }
+    sharedState.invalidatedUrls.add(url);
+    return true;
+  });
+
+  if (freshUrls.length > 0) {
+    await invalidateCache(freshUrls);
+  }
+
+  return freshUrls;
+}
+
+async function refreshReadModels({ db, event, state }) {
+  const sharedState = getPollerState(state);
+  if (!sharedState) {
+    return;
+  }
+
+  const eventType = String(event?.event_type || '');
+  const refreshTargets = [];
+  const payload = safeJsonParse(
+    typeof event?.payload_json === 'string' ? event.payload_json || null : null,
+    {}
+  );
+
+  if (shouldRefreshManageStatsProjection(eventType)) {
+    refreshTargets.push(`system:${STATS_PROJECTION_SCOPES.MANAGE_STATS}`);
+  }
+  if (shouldRefreshDashboardProjection(eventType)) {
+    refreshTargets.push(`system:${STATS_PROJECTION_SCOPES.DASHBOARD_OVERVIEW}`);
+  }
+  const variantSnapshotTarget = getVariantSnapshotRefreshTarget(eventType, event, payload);
+  if (variantSnapshotTarget) {
+    refreshTargets.push(variantSnapshotTarget);
+  }
+
+  for (const target of refreshTargets) {
+    if (sharedState.refreshedReadModels.has(target)) {
+      continue;
+    }
+    if (sharedState.readModelRefreshes.has(target)) {
+      await sharedState.readModelRefreshes.get(target);
+      continue;
+    }
+
+    const refreshPromise = (async () => {
+      if (target.startsWith('system:')) {
+        sharedState.services.systemStats ||= new SystemStatsProjectionRefreshService(db);
+        await sharedState.services.systemStats.refresh(target.replace('system:', ''));
+      } else if (target === 'variant:all') {
+        sharedState.services.variantSnapshot ||= new VariantSnapshotProjectionRefreshService(db);
+        await sharedState.services.variantSnapshot.refreshAll();
+      } else if (target.startsWith('variant:order:')) {
+        sharedState.services.variantSnapshot ||= new VariantSnapshotProjectionRefreshService(db);
+        await sharedState.services.variantSnapshot.refreshByOrderId(target.replace('variant:order:', ''));
+      }
+
+      sharedState.refreshedReadModels.add(target);
+    })();
+
+    sharedState.readModelRefreshes.set(target, refreshPromise);
+    try {
+      await refreshPromise;
+    } finally {
+      sharedState.readModelRefreshes.delete(target);
+    }
+  }
 }
 
 function resolveOrderId(event, payload) {
@@ -173,7 +395,7 @@ function isProductCacheEvent(eventType) {
   ].includes(eventType);
 }
 
-async function resolveExpandedCacheUrls({ db, event, baseUrl, payload }) {
+async function resolveExpandedCacheUrls({ db, event, baseUrl, payload, state }) {
   const ctx = createBaseContext(baseUrl);
 
   if (['customer_created', 'customer_updated', 'customer_deleted'].includes(event.event_type)) {
@@ -192,12 +414,12 @@ async function resolveExpandedCacheUrls({ db, event, baseUrl, payload }) {
   }
 
   if (event.event_type === 'notification_read_by_sales') {
-    const salesTokens = await getSalespersonAccessTokens(db, [resolveSalespersonId(payload)].filter(Boolean));
+    const salesTokens = await getMemoizedSalespersonAccessTokens(db, [resolveSalespersonId(payload)].filter(Boolean), state);
     return getSalesNotificationCacheUrls(ctx, salesTokens[0]);
   }
 
   if (String(event.event_type || '').startsWith('order_procurement_')) {
-    const salesTokens = await getAllSalespersonAccessTokens(db);
+    const salesTokens = await getMemoizedAllSalespersonAccessTokens(db, state);
     const purchaseOrderId = resolvePurchaseOrderId(event, payload);
     return [
       ...new Set([
@@ -221,7 +443,7 @@ async function resolveExpandedCacheUrls({ db, event, baseUrl, payload }) {
   }
 
   if (event.event_type === 'order_read_by_sales') {
-    const salesTokens = await getSalespersonAccessTokens(db, [resolveSalespersonId(payload)].filter(Boolean));
+    const salesTokens = await getMemoizedSalespersonAccessTokens(db, [resolveSalespersonId(payload)].filter(Boolean), state);
     return getSalesOrderCacheUrls(ctx, { salesTokens });
   }
 
@@ -247,7 +469,7 @@ async function resolveExpandedCacheUrls({ db, event, baseUrl, payload }) {
   }
 
   if (isSpaceCacheEvent(event.event_type)) {
-    const salesTokens = await getAllSalespersonAccessTokens(db);
+    const salesTokens = await getMemoizedAllSalespersonAccessTokens(db, state);
     const spaceId = payload.space_id || event.aggregate_id || null;
     return [
       ...new Set([
@@ -262,7 +484,7 @@ async function resolveExpandedCacheUrls({ db, event, baseUrl, payload }) {
   }
 
   if (isProductCacheEvent(event.event_type)) {
-    const salesTokens = await getAllSalespersonAccessTokens(db);
+    const salesTokens = await getMemoizedAllSalespersonAccessTokens(db, state);
     const productId = payload.product_id || event.aggregate_id || null;
     const urls = new Set([
       ...getProductCacheUrls(ctx),
@@ -313,8 +535,9 @@ async function auditOutboxEvent({ db, event }) {
   });
 }
 
-async function invalidateReceiptCaches({ db, event, baseUrl }) {
+async function invalidateReceiptCaches({ db, event, baseUrl, state }) {
   if (!baseUrl) return;
+  await refreshReadModels({ db, event, state });
 
   const payload = safeJsonParse(
     typeof event?.payload_json === 'string' ? event.payload_json || null : null,
@@ -322,19 +545,19 @@ async function invalidateReceiptCaches({ db, event, baseUrl }) {
   );
   if (isOrderMutationEvent(event?.event_type)) {
     const ctx = createCacheContext(baseUrl);
-    const salesTokens = await getSalespersonAccessTokens(db, [resolveSalespersonId(payload)].filter(Boolean));
+    const salesTokens = await getMemoizedSalespersonAccessTokens(db, [resolveSalespersonId(payload)].filter(Boolean), state);
     const urls = [
       ...getOrderAndSalespersonCacheUrls(ctx, { salesTokens }),
       ...getOrderNotificationCacheUrls(ctx, { salesTokens }),
     ];
 
-    await invalidateCache([...new Set(urls)]);
+    await invalidateCacheOnce(urls, state);
     return;
   }
 
-  const expandedUrls = await resolveExpandedCacheUrls({ db, event, baseUrl, payload });
+  const expandedUrls = await resolveExpandedCacheUrls({ db, event, baseUrl, payload, state });
   if (expandedUrls.length > 0) {
-    await invalidateCache([...new Set(expandedUrls)]);
+    await invalidateCacheOnce(expandedUrls, state);
     return;
   }
 
@@ -345,7 +568,7 @@ async function invalidateReceiptCaches({ db, event, baseUrl }) {
     ...getOrderAnalyticsCacheUrls(ctx),
   ];
 
-  await invalidateCache([...new Set(urls)]);
+  await invalidateCacheOnce(urls, state);
 }
 
 function resolveNotificationTitle(eventType) {
@@ -541,7 +764,7 @@ function shouldMaterializeNotification(eventType) {
   return eventType !== 'order_return_restocked';
 }
 
-async function notifyOutboxEvent({ db, event, baseUrl }) {
+async function notifyOutboxEvent({ db, event, baseUrl, state }) {
   if (!shouldMaterializeNotification(event?.event_type)) {
     return {
       skipped: true,
@@ -580,12 +803,12 @@ async function notifyOutboxEvent({ db, event, baseUrl }) {
   if (baseUrl) {
     const ctx = createCacheContext(baseUrl);
     const salesTokens = recipient.salespersonId
-      ? await getSalespersonAccessTokens(db, [recipient.salespersonId])
+      ? await getMemoizedSalespersonAccessTokens(db, [recipient.salespersonId], state)
       : [];
     const urls = recipient.receiver === 'sales'
       ? getOrderNotificationCacheUrls(ctx, { salesTokens })
       : getManageNotificationCacheUrls(ctx);
-    await invalidateCache([...new Set(urls)]);
+    await invalidateCacheOnce(urls, state);
   }
 
   return result;

@@ -3,37 +3,36 @@ import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
 import { getChinaDayStart } from '../../../../_shared/utils.js';
 import { StatsRepository } from '../../../../repositories/StatsRepository.js';
+import { SystemStatsProjectionRepository } from '../../../../repositories/SystemStatsProjectionRepository.js';
+import {
+  STATS_PROJECTION_SCOPES,
+  SystemStatsProjectionRefreshService,
+} from '../../../../services/SystemStatsProjectionRefreshService.js';
 
 const app = new Hono();
+
+async function loadStatsProjection(db) {
+  const projectionRepo = new SystemStatsProjectionRepository(db);
+  const cachedProjection = await projectionRepo.get(STATS_PROJECTION_SCOPES.MANAGE_STATS);
+  if (cachedProjection?.payload) {
+    return cachedProjection.payload;
+  }
+
+  const refreshService = new SystemStatsProjectionRefreshService(db, {
+    projectionRepo,
+  });
+  const refreshedProjection = await refreshService.refresh(STATS_PROJECTION_SCOPES.MANAGE_STATS);
+  return refreshedProjection?.payload || { data: null };
+}
 
 /**
  * GET /api/manage/stats - 获取系统统计信息
  */
 app.get('/', requirePermission('stats:read'), withCache(60), async (c) => {
-  const { env } = c;
-
-  const todayStart = getChinaDayStart();
-  const repo = new StatsRepository(env.DB);
-  const data = await repo.getGlobalStats(todayStart);
-
+  const projection = await loadStatsProjection(c.env.DB);
   return c.json({
     success: true,
-    data: {
-      // 转换为前端 Stats.vue 所需格式
-      storage: {
-        totalFiles: data.files.total,
-        totalSize: data.files.totalSize,
-        todayUploads: data.files.todayUploads,
-        used: data.files.totalSize,
-        limit: null
-      },
-      traffic: data.traffic,
-      health: {
-        status: data.status,
-        fileTypes: data.fileTypes
-      },
-      generatedAt: new Date().toISOString(),
-    },
+    ...(projection || {}),
   });
 });
 

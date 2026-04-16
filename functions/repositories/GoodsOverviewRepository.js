@@ -14,25 +14,8 @@ function projectInventoryGap(totalDemand, stockQuantity) {
 }
 
 const SNAPSHOT_JOIN_SQL = `
-  LEFT JOIN (
-    SELECT
-      ol.variant_id AS variant_id,
-      MAX(ol.product_id) AS product_id,
-      MAX(ol.snapshot_name) AS snapshot_name,
-      MAX(ol.snapshot_sku) AS snapshot_sku,
-      MAX(json_extract(ol.snapshot_specs, '$.brand')) AS snapshot_brand,
-      MAX(json_extract(ol.snapshot_specs, '$.category')) AS snapshot_category,
-      MAX(json_extract(o.current_data, '$.brand')) AS current_brand,
-      MAX(json_extract(o.original_data, '$.brand')) AS original_brand,
-      MAX(json_extract(o.current_data, '$.category')) AS current_category,
-      MAX(json_extract(o.original_data, '$.category')) AS original_category,
-      MAX(ol.snapshot_specs) AS snapshot_specs,
-      MAX(ol.snapshot_image) AS snapshot_image
-    FROM order_lines AS ol
-    JOIN orders AS o ON o.id = ol.order_id
-    WHERE ol.variant_id IS NOT NULL
-    GROUP BY ol.variant_id
-  ) demand_snapshot ON demand_snapshot.variant_id = vdp.variant_id
+  LEFT JOIN variant_snapshot_projection demand_snapshot
+    ON demand_snapshot.variant_id = vdp.variant_id
 `;
 
 const COST_JOIN_SQL = `

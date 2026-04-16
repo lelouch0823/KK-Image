@@ -4,6 +4,7 @@ import { WebhookDeliveryService } from '../WebhookDeliveryService.js';
 function createWebhookRepoStub(overrides = {}) {
   return {
     listActiveByEvent: vi.fn(async () => []),
+    getDeliveryStates: vi.fn(async () => new Map()),
     hasSuccessfulDelivery: vi.fn(async () => false),
     getLatestAttempt: vi.fn(async () => null),
     logAttempt: vi.fn(async (input) => ({ id: 'whlog-1', ...input })),
@@ -55,6 +56,7 @@ describe('WebhookDeliveryService', () => {
     });
 
     expect(signPayload).toHaveBeenCalledTimes(1);
+    expect(webhookRepo.getDeliveryStates).toHaveBeenCalledWith(['evt-1:wh-1:v1']);
     expect(fetchMock).toHaveBeenCalledWith(
       'https://example.com/hook',
       expect.objectContaining({
@@ -124,7 +126,9 @@ describe('WebhookDeliveryService', () => {
           enabled: true,
         },
       ]),
-      hasSuccessfulDelivery: vi.fn(async () => true),
+      getDeliveryStates: vi.fn(async () => new Map([
+        ['evt-2:wh-1:v1', { deliveryKey: 'evt-2:wh-1:v1', hasSuccess: true, latestAttemptNumber: 1 }],
+      ])),
     });
     const fetchMock = vi.fn();
     const service = new WebhookDeliveryService(
@@ -148,6 +152,7 @@ describe('WebhookDeliveryService', () => {
     });
 
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(webhookRepo.hasSuccessfulDelivery).not.toHaveBeenCalled();
     expect(webhookRepo.logAttempt).not.toHaveBeenCalled();
     expect(result).toEqual(
       expect.objectContaining({

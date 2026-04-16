@@ -24,6 +24,8 @@
 - [API 总览](API_REFERENCE.md)
 - [授权策略系统（OPA / Rego）](developer-guide/authz-policy-system.md)
 - [前端请求内核](architecture/frontend-request-core.md)
+- [后端性能优化审查](architecture/backend-performance-optimization-review.md)
+- [后端性能优化实施计划](architecture/backend-performance-optimization-plan.md)
 
 ## 当前产品入口
 

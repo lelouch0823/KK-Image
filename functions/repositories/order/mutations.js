@@ -50,6 +50,11 @@ function buildSnapshotSpecs(data) {
     return Object.keys(specs).length ? specs : null;
 }
 
+function extractDeadlineDate(data) {
+    const value = typeof data?.deadline === 'string' ? data.deadline.trim() : data?.deadline;
+    return value || null;
+}
+
 function normalizeQuantity(quantity) {
     const parsed = Number(quantity);
     if (!Number.isFinite(parsed) || parsed <= 0) return 1;
@@ -352,6 +357,7 @@ export async function create(
     const normalizedQuantity = normalizeQuantity(quantity);
     const normalizedStatus = normalizeOrderLifecycleStatus(status || 'pending') || 'pending';
     const orderData = JSON.stringify(data);
+    const deadlineDate = extractDeadlineDate(data);
     const { summaryName, summaryBrand, summarySku } = deriveOrderSummaryFields(data);
     const batchStatements = [];
 
@@ -360,11 +366,11 @@ export async function create(
         db
             .prepare(
                 `
-        INSERT INTO orders (id, order_no, salesperson_id, original_data, current_data, status, main_image_id, quantity, summary_name, summary_brand, summary_sku, unread_by_admin, unread_by_sales, created_at, updated_at, product_id, variant_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?, ?, ?)
+        INSERT INTO orders (id, order_no, salesperson_id, original_data, current_data, status, main_image_id, quantity, summary_name, summary_brand, summary_sku, unread_by_admin, unread_by_sales, deadline_date, created_at, updated_at, product_id, variant_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?, ?, ?, ?)
         `
             )
-            .bind(id, orderNo, salespersonId, orderData, orderData, normalizedStatus, mainImageId, normalizedQuantity, summaryName, summaryBrand, summarySku, timestamp, timestamp, productId, variantId)
+            .bind(id, orderNo, salespersonId, orderData, orderData, normalizedStatus, mainImageId, normalizedQuantity, summaryName, summaryBrand, summarySku, deadlineDate, timestamp, timestamp, productId, variantId)
     );
 
     const snapshotSpecs = buildSnapshotSpecs(data);
@@ -461,11 +467,12 @@ export async function create(
 export async function updateData(db, id, newData, actorType, productId = undefined, variantId = undefined) {
     const timestamp = now();
     const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
+    const deadlineDate = extractDeadlineDate(newData);
     const { summaryName, summaryBrand, summarySku } = deriveOrderSummaryFields(newData);
 
-    const params = [JSON.stringify(newData), timestamp, summaryName, summaryBrand, summarySku];
+    const params = [JSON.stringify(newData), timestamp, summaryName, summaryBrand, summarySku, deadlineDate];
 
-    const colsToUpdate = ['current_data = ?', `${updateField} = 1`, 'updated_at = ?', 'summary_name = ?', 'summary_brand = ?', 'summary_sku = ?'];
+    const colsToUpdate = ['current_data = ?', `${updateField} = 1`, 'updated_at = ?', 'summary_name = ?', 'summary_brand = ?', 'summary_sku = ?', 'deadline_date = ?'];
 
     // SOTA: Fix update quantity column from JSON
     if (newData.quantity !== undefined) {
@@ -584,8 +591,9 @@ export async function updateComposite(db, {
     }
 
     const { summaryName, summaryBrand, summarySku } = deriveOrderSummaryFields(newData);
-    const colsToUpdate = ['current_data = ?', `${updateField} = 1`, 'updated_at = ?', 'summary_name = ?', 'summary_brand = ?', 'summary_sku = ?'];
-    const params = [JSON.stringify(newData), timestamp, summaryName, summaryBrand, summarySku];
+    const deadlineDate = extractDeadlineDate(newData);
+    const colsToUpdate = ['current_data = ?', `${updateField} = 1`, 'updated_at = ?', 'summary_name = ?', 'summary_brand = ?', 'summary_sku = ?', 'deadline_date = ?'];
+    const params = [JSON.stringify(newData), timestamp, summaryName, summaryBrand, summarySku, deadlineDate];
 
     if (newData?.quantity !== undefined) {
         colsToUpdate.push('quantity = ?');
