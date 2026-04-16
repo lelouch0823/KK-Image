@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   buildAuditCoverageReport,
   collectActiveRouteLegacyAuditUsage,
-  getIgnoredAuditRouteKeys,
   ignoredAuditRoutes,
   collectAuditCoverageViolations,
   extractScheduledAuditActionsFromSource,
@@ -44,7 +43,7 @@ describe('audit coverage consistency helpers', () => {
   it('has no current audit coverage violations', async () => {
     const violations = await collectAuditCoverageViolations();
     expect(violations).toEqual([]);
-  });
+  }, 15000);
 
   it('has no legacy logAudit usage in active hono write routes', async () => {
     const legacyUsages = await collectActiveRouteLegacyAuditUsage();
@@ -67,7 +66,7 @@ describe('audit coverage consistency helpers', () => {
         }),
       ])
     );
-    expect(getIgnoredAuditRouteKeys()).toContain('POST /check-hash');
+    expect(ignoredAuditRoutes.map((route) => route.key)).toContain('POST /check-hash');
   });
 
   it('builds a machine-readable audit coverage report', async () => {

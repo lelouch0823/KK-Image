@@ -5,6 +5,12 @@ import { PurchaseReceiptRepository } from '../repositories/PurchaseReceiptReposi
 import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
+import { VariantDemandProjectionRefreshService } from './VariantDemandProjectionRefreshService.js';
+import {
+  acquireProcurementResourceLocks,
+  buildProcurementResourceLockReleaseStatements,
+  releaseProcurementResourceLocks,
+} from './order-procurement-resource-locks.js';
 import {
   buildReversalRequestFingerprint,
   buildCompatibilityOrderProcurementStatusStatement,
@@ -44,6 +50,8 @@ export class OrderProcurementReceiptReversalService {
       deps.commandIdempotencyRepo || new CommandIdempotencyRepository(db, { now: deps.now });
     this.domainOutboxRepo =
       deps.domainOutboxRepo || new DomainOutboxRepository(db, { now: deps.now });
+    this.variantDemandProjectionRefreshService =
+      deps.variantDemandProjectionRefreshService || new VariantDemandProjectionRefreshService(db);
     this.now = deps.now || (() => Date.now());
   }
 
@@ -150,6 +158,7 @@ export class OrderProcurementReceiptReversalService {
     const timestamp = this.now();
     const reversalId = crypto.randomUUID();
     const commandRecord = reservation.record;
+    let receiptLocks = [];
     const statements = [];
     const guardedStatementIndexes = [];
     let sequenceInCommand = 1;
@@ -175,6 +184,24 @@ export class OrderProcurementReceiptReversalService {
           })
         : null);
 
+    try {
+      receiptLocks = await acquireProcurementResourceLocks({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        resourceType: 'receipt',
+        resourceIds: [receiptId],
+        timestamp,
+        commandId: commandRecord.command_id,
+      });
+    } catch (error) {
+      await cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandRecord.command_id,
+      });
+      throw error;
+    }
+
     if (reservation.insertStatement) {
       statements.push(reservation.insertStatement);
     }
@@ -194,7 +221,6 @@ export class OrderProcurementReceiptReversalService {
           timestamp
         )
       );
-      guardedStatementIndexes.push(statements.length - 1);
     }
 
     let nextProcurementStatus = null;
@@ -220,7 +246,6 @@ export class OrderProcurementReceiptReversalService {
           guardProjectionState: true,
         })
       );
-      guardedStatementIndexes.push(statements.length - 1);
 
       const aggregate = await queryCompatibilityProcurementAggregate(
         this.db,
@@ -361,6 +386,11 @@ export class OrderProcurementReceiptReversalService {
         leadingStatements: this.domainOutboxRepo.buildInsertStatements(
           outboxEvents,
           (event) => getDomainEventDefinition(event.event_type).consumers
+        ).concat(
+          buildProcurementResourceLockReleaseStatements({
+            commandIdempotencyRepo: this.commandIdempotencyRepo,
+            lockRecords: receiptLocks,
+          })
         ),
       })
     );
@@ -369,6 +399,10 @@ export class OrderProcurementReceiptReversalService {
     try {
       batchResults = await this.db.batch(statements);
     } catch (error) {
+      await releaseProcurementResourceLocks({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        lockRecords: receiptLocks,
+      });
       await cleanupReservedCommand({
         commandIdempotencyRepo: this.commandIdempotencyRepo,
         db: this.db,
@@ -393,6 +427,10 @@ export class OrderProcurementReceiptReversalService {
       });
       throw new BadRequestError('采购单收货进度已变化，请刷新后重试');
     }
+
+    await this.variantDemandProjectionRefreshService.refreshByVariantIds([
+      originalReceipt.variant_id,
+    ]);
 
     return response;
   }

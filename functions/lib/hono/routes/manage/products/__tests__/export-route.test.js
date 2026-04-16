@@ -129,6 +129,8 @@ describe('manage product export route', () => {
       sortOrder: 'asc',
       page: 1,
       limit: 100,
+    }, {
+      includeFilters: false,
     });
 
     const csv = await res.text();

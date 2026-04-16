@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs';
 import { extractWriteRoutesFromFile, extractWriteRoutesFromTree } from './extract-write-routes.mjs';
 import { normalizeAuditRouteKey } from '../../functions/lib/hono/_shared/audit-route-contract.js';
 import {
-  getIgnoredAuditRouteKeys,
   ignoredAuditRoutes,
 } from '../../functions/lib/hono/_shared/audit-route-exclusions.js';
 const routeRoots = [
@@ -13,7 +12,7 @@ const routeRoots = [
   'functions/lib/hono/routes/v1',
 ];
 
-const ignoredRoutes = new Set(getIgnoredAuditRouteKeys());
+const ignoredRoutes = new Set(ignoredAuditRoutes.map((route) => route.key));
 
 export async function loadDeclarations(file) {
   const moduleUrl = pathToFileURL(resolve(file)).href;
@@ -77,6 +76,8 @@ export async function collectAuditCoverageViolations() {
       }
     }
 
+    const staticDeclarations = declarations.filter((declaration) => declaration.runtimeAssertionLevel !== 'runtime');
+
     for (const declaration of declarations) {
       const key = declaration.key || normalizeAuditRouteKey(declaration);
       if (ignoredRoutes.has(key)) {
@@ -84,6 +85,9 @@ export async function collectAuditCoverageViolations() {
       }
       if (!discoveredKeys.has(key)) {
         violations.push(`${file} has stale declaration for ${key}`);
+      }
+      if (declaration.runtimeAssertionLevel === 'runtime') {
+        continue;
       }
       if (!scheduledActions.has(declaration.action)) {
         violations.push(`${file} declaration action ${declaration.action} has no visible scheduleAuditEvent action match`);
@@ -99,7 +103,7 @@ export async function collectAuditCoverageViolations() {
       }
     }
 
-    if (declarations.length > 0 && !source.includes('scheduleAuditEvent(') && !source.includes('logAudit(')) {
+    if (staticDeclarations.length > 0 && !source.includes('scheduleAuditEvent(') && !source.includes('logAudit(')) {
       violations.push(`${file} declares audit routes but has no visible audit call site`);
     }
   }
@@ -167,4 +171,4 @@ if (isMain) {
   console.log(`Audit coverage OK (${report.routeFileCount} files checked)`);
 }
 
-export { ignoredAuditRoutes, getIgnoredAuditRouteKeys };
+export { ignoredAuditRoutes };

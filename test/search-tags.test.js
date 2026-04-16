@@ -39,7 +39,8 @@ describe('Search & Tagging API', () => {
             const spyData = vi.spyOn(mockEnv.DB, 'prepare').mockReturnValue({
                 bind: vi.fn().mockReturnValue({
                     run: vi.fn().mockResolvedValue({ success: true }),
-                    first: vi.fn().mockResolvedValue({ id: 'tag_1' })
+                    first: vi.fn().mockResolvedValue({ id: 'tag_1' }),
+                    all: vi.fn().mockResolvedValue({ results: [] })
                 })
             });
 

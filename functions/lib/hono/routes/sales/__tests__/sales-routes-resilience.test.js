@@ -314,6 +314,8 @@ describe('sales routes resilience', () => {
       hasStock: 'in_stock',
       page: 1,
       limit: 12,
+    }, {
+      includeFilters: false,
     });
   });
 

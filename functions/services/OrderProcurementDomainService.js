@@ -6,6 +6,12 @@ import { executeBatchChunks } from '../lib/db/batch.js';
 import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
+import { VariantDemandProjectionRefreshService } from './VariantDemandProjectionRefreshService.js';
+import {
+  acquireProcurementResourceLocks,
+  buildProcurementResourceLockReleaseStatements,
+  releaseProcurementResourceLocks,
+} from './order-procurement-resource-locks.js';
 import {
   buildReceiptRequestFingerprint,
   buildCompatibilityOrderProcurementStatusStatement,
@@ -82,6 +88,8 @@ export class OrderProcurementDomainService {
       deps.commandIdempotencyRepo || new CommandIdempotencyRepository(db, { now: deps.now });
     this.domainOutboxRepo =
       deps.domainOutboxRepo || new DomainOutboxRepository(db, { now: deps.now });
+    this.variantDemandProjectionRefreshService =
+      deps.variantDemandProjectionRefreshService || new VariantDemandProjectionRefreshService(db);
     this.now = deps.now || (() => Date.now());
   }
 
@@ -226,6 +234,7 @@ export class OrderProcurementDomainService {
     const outboxEvents = [];
     const purchaseItemGuardResultIndexes = [];
     const preparedReceipts = [];
+    let receiptItemLocks = [];
     let sequenceInCommand = 1;
 
     if (commandReservation.insertStatement) {
@@ -297,6 +306,24 @@ export class OrderProcurementDomainService {
         commandId: commandRecord.command_id,
       });
       throw new BadRequestError('本次收货包含的写入过多，请拆分后重试');
+    }
+
+    try {
+      receiptItemLocks = await acquireProcurementResourceLocks({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        resourceType: 'purchase_order_item',
+        resourceIds: preparedReceipts.map((prepared) => prepared.purchaseOrderItemId),
+        timestamp,
+        commandId: commandRecord.command_id,
+      });
+    } catch (error) {
+      await cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandRecord.command_id,
+      });
+      throw error;
     }
 
     try {
@@ -512,12 +539,17 @@ export class OrderProcurementDomainService {
           commandIdempotencyRepo: this.commandIdempotencyRepo,
           purchaseOrderId: poId,
           timestamp,
-          commandId: commandRecord.command_id,
-          response,
-          leadingStatements: this.domainOutboxRepo.buildInsertStatements(
-            outboxEvents,
-            (event) => getDomainEventDefinition(event.event_type).consumers
-          ),
+        commandId: commandRecord.command_id,
+        response,
+        leadingStatements: this.domainOutboxRepo.buildInsertStatements(
+          outboxEvents,
+          (event) => getDomainEventDefinition(event.event_type).consumers
+        ).concat(
+          buildProcurementResourceLockReleaseStatements({
+            commandIdempotencyRepo: this.commandIdempotencyRepo,
+            lockRecords: receiptItemLocks,
+          })
+        ),
         })
       );
 
@@ -528,8 +560,15 @@ export class OrderProcurementDomainService {
       if (hasGuardMismatch) {
         throw new BadRequestError('采购单明细收货进度已变化，请刷新后重试');
       }
+      await this.variantDemandProjectionRefreshService.refreshByVariantIds(
+        preparedReceipts.map((prepared) => prepared.poItem?.variant_id)
+      );
       return response;
     } catch (error) {
+      await releaseProcurementResourceLocks({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        lockRecords: receiptItemLocks,
+      });
       await cleanupReservedCommand({
         commandIdempotencyRepo: this.commandIdempotencyRepo,
         db: this.db,

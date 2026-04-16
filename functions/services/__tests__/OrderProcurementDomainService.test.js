@@ -47,6 +47,7 @@ function createDbHarness({
     cancelled_qty: 0,
   },
   purchaseOrderItemUpdateResult = { meta: { changes: 1 } },
+  receiptItemLockInsertResult = { meta: { changes: 1 } },
   purchaseOrderItemUpdateError = null,
   batchError = null,
   batchErrorMatcher = null,
@@ -85,6 +86,12 @@ function createDbHarness({
 
       statement.run = vi.fn(async () => {
         calls.runStatements.push(statement);
+        if (
+          statement.sql?.includes('INSERT INTO command_idempotency')
+          && statement.params?.[1] === 'purchase_receipt_item_lock'
+        ) {
+          return receiptItemLockInsertResult;
+        }
         if (statement.sql?.includes('UPDATE purchase_order_items')) {
           if (purchaseOrderItemUpdateError) throw purchaseOrderItemUpdateError;
           return purchaseOrderItemUpdateResult;
@@ -187,6 +194,24 @@ function createDbHarness({
   };
 
   const commandIdempotencyRepo = {
+    buildInsertStatement: vi.fn((record) => (
+      db.prepare(
+        `INSERT INTO command_idempotency (
+          id, command_type, scope_key, idempotency_key, command_id, request_fingerprint, response_json, status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        record.id,
+        record.command_type,
+        record.scope_key,
+        record.idempotency_key,
+        record.command_id,
+        record.request_fingerprint,
+        record.response_json,
+        record.status,
+        record.created_at,
+        record.updated_at
+      )
+    )),
     reserveReceiptCommand: vi.fn(async (_scopeKey, _idempotencyKey, requestFingerprint) => ({
       existing: false,
       record: {
@@ -205,6 +230,9 @@ function createDbHarness({
       db.prepare('UPDATE command_idempotency SET response_json = ?, status = ?, updated_at = ? WHERE command_id = ?')
         .bind(JSON.stringify(responseJson), status, 1710000000000, commandId)
     )),
+    buildDeleteStatement: vi.fn((commandId) =>
+      db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId)
+    ),
   };
 
   const domainOutboxRepo = {
@@ -254,7 +282,19 @@ function createDbHarness({
     }),
   };
 
-  return { db, calls, purchaseReceiptRepo, inventoryService, commandIdempotencyRepo, domainOutboxRepo };
+  const variantDemandProjectionRefreshService = {
+    refreshByVariantIds: vi.fn(async () => []),
+  };
+
+  return {
+    db,
+    calls,
+    purchaseReceiptRepo,
+    inventoryService,
+    commandIdempotencyRepo,
+    domainOutboxRepo,
+    variantDemandProjectionRefreshService,
+  };
 }
 
 describe('OrderProcurementDomainService', () => {
@@ -269,6 +309,7 @@ describe('OrderProcurementDomainService', () => {
       inventoryService: harness.inventoryService,
       commandIdempotencyRepo: harness.commandIdempotencyRepo,
       domainOutboxRepo: harness.domainOutboxRepo,
+      variantDemandProjectionRefreshService: harness.variantDemandProjectionRefreshService,
       now: () => 1710000000000,
     });
   });
@@ -301,6 +342,9 @@ describe('OrderProcurementDomainService', () => {
       'purchase_receipt_recorded',
       'inventory_received',
       'order_procurement_progressed',
+    ]);
+    expect(harness.variantDemandProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
+      'var-1',
     ]);
   });
 
@@ -588,6 +632,33 @@ describe('OrderProcurementDomainService', () => {
     expect(concurrentHarness.calls.batchedStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))).toBe(true);
     expect(concurrentHarness.calls.batchedStatements.some((statement) => statement.sql.includes('UPDATE order_lines'))).toBe(true);
     expect(concurrentHarness.calls.runStatements.some((statement) => statement.sql.includes('DELETE FROM command_idempotency'))).toBe(true);
+  });
+
+  it('rejects concurrent receipt writes before downstream side effects when a purchase-item lock is already held', async () => {
+    const lockedHarness = createDbHarness({
+      receiptItemLockInsertResult: { meta: { changes: 0 } },
+    });
+    const lockedService = new OrderProcurementDomainService(lockedHarness.db, {
+      purchaseReceiptRepo: lockedHarness.purchaseReceiptRepo,
+      inventoryService: lockedHarness.inventoryService,
+      commandIdempotencyRepo: lockedHarness.commandIdempotencyRepo,
+      domainOutboxRepo: lockedHarness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await expect(lockedService.recordPurchaseOrderReceipts('po-1', {
+      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
+    }, {
+      idempotencyKey: 'idem-1',
+    })).rejects.toBeInstanceOf(BadRequestError);
+
+    expect(lockedHarness.purchaseReceiptRepo.createInsertStatement).not.toHaveBeenCalled();
+    expect(lockedHarness.inventoryService.buildMutationStatements).not.toHaveBeenCalled();
+    expect(
+      lockedHarness.calls.runStatements.some((statement) =>
+        statement.sql.includes('DELETE FROM command_idempotency')
+      )
+    ).toBe(true);
   });
 
   it('does not trigger compensating rollback batches when finalize write fails', async () => {

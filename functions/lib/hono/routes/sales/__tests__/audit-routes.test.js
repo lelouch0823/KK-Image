@@ -96,12 +96,15 @@ describe('sales audit routes', () => {
 
     expect(res.status).toBe(200);
     expect(mocks.markAllAsReadForSalesperson).toHaveBeenCalledWith('sales-1');
-    expect(mocks.publish).toHaveBeenCalledWith([
+    const [publishedEvents, publishContext] = mocks.publish.mock.calls[0];
+    expect(publishContext).toBeUndefined();
+    expect(publishedEvents).toEqual([
       expect.objectContaining({
         event_type: 'notification_read_by_sales',
         aggregate_type: 'notification',
         aggregate_id: 'all',
         payload: expect.objectContaining({
+          notification_id: 'all',
           salesperson_id: 'sales-1',
         }),
       }),

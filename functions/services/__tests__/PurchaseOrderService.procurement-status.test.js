@@ -52,7 +52,7 @@ describe('PurchaseOrderService procurement status cascade', () => {
     await service.updateStatus('po-1', 'shipping');
 
     const joinedSql = db.__sqls.join('\n');
-    expect(joinedSql).toContain(`status NOT IN ('delivered', 'void')`);
+    expect(joinedSql).toContain(`status NOT IN ('fulfilled', 'delivered', 'void')`);
     expect(joinedSql).toContain(`COALESCE(procurement_status, 'none') = 'none'`);
     expect(joinedSql).not.toContain(`COALESCE(procurement_status, 'none') != ?`);
   });

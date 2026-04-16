@@ -6,6 +6,7 @@ import Dashboard from '../Dashboard.vue';
 const mocks = vi.hoisted(() => ({
   authFetchJson: vi.fn(),
   getOrder: vi.fn(),
+  routerPush: vi.fn(),
 }));
 
 vi.mock('@/composables/useAuth', () => ({
@@ -34,7 +35,7 @@ vi.mock('@/composables/useAI', () => ({
 }));
 
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mocks.routerPush }),
 }));
 
 vi.mock('chart.js/auto', () => ({
@@ -150,9 +151,11 @@ describe('Dashboard order detail workflow', () => {
   it('links pending orders card to the named admin orders route', () => {
     const wrapper = createWrapper();
 
-    expect(wrapper.get('a').attributes('data-to')).toBe(JSON.stringify({
+    wrapper.findAll('button')[1].trigger('click');
+
+    expect(mocks.routerPush).toHaveBeenCalledWith({
       name: 'Orders',
       query: { status: 'pending' },
-    }));
+    });
   });
 });

@@ -24,6 +24,10 @@ function createMockDb() {
   return { db };
 }
 
+function isVariantLookupSql(sql) {
+  return sql.includes('FROM product_variants pv') && sql.includes('pv.variant_signature');
+}
+
 describe('ProductVariantRepository external codes', () => {
   let db;
   let repo;
@@ -48,7 +52,7 @@ describe('ProductVariantRepository external codes', () => {
     }]);
 
     const statements = db.batch.mock.calls[0][0];
-    const upsertStmt = statements[1];
+    const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
     expect(upsertStmt.sql).toContain('barcode');
     expect(upsertStmt.sql).toContain('supplier_sku');
     expect(upsertStmt.sql).toContain('variant_signature');
@@ -59,7 +63,7 @@ describe('ProductVariantRepository external codes', () => {
   it('syncVariants should update stock_quantity in the upsert update clause', async () => {
     db.prepare.mockImplementation((sql) => {
       const stmt = createPreparedStatement(sql);
-      if (sql.includes('SELECT id, variant_signature')) {
+      if (isVariantLookupSql(sql)) {
         stmt.all.mockResolvedValue({
           results: [
             { id: 'variant-1', variant_signature: '{"color":"Yellow"}', status: 'active' },
@@ -81,7 +85,7 @@ describe('ProductVariantRepository external codes', () => {
     }]);
 
     const statements = db.batch.mock.calls[0][0];
-    const upsertStmt = statements[1];
+    const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
     expect(upsertStmt.sql).toContain('stock_quantity = excluded.stock_quantity');
   });
 
@@ -124,7 +128,7 @@ describe('ProductVariantRepository external codes', () => {
   it('syncVariants should archive removed variants instead of hard deleting', async () => {
     db.prepare.mockImplementation((sql) => {
       const stmt = createPreparedStatement(sql);
-      if (sql.includes('SELECT id, variant_signature')) {
+      if (isVariantLookupSql(sql)) {
         stmt.all.mockResolvedValue({
           results: [
             { id: 'variant-1', variant_signature: '{"color":"Yellow"}' },
@@ -154,10 +158,10 @@ describe('ProductVariantRepository external codes', () => {
     expect(statements[0].sql).toContain("SET status = 'archived'");
   });
 
-  it('syncVariants should generate new id when incoming signature changed for existing id', async () => {
+  it('syncVariants should keep existing id when incoming signature changed for existing id', async () => {
     db.prepare.mockImplementation((sql) => {
       const stmt = createPreparedStatement(sql);
-      if (sql.includes('SELECT id, variant_signature')) {
+      if (isVariantLookupSql(sql)) {
         stmt.all.mockResolvedValue({
           results: [
             { id: 'variant-1', variant_signature: '{"color":"Yellow"}' },
@@ -181,17 +185,18 @@ describe('ProductVariantRepository external codes', () => {
     }]);
 
     expect(rows).toHaveLength(1);
-    expect(rows[0].id).not.toBe('variant-1');
+    expect(rows[0].id).toBe('variant-1');
 
     const statements = db.batch.mock.calls[0][0];
     const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
-    expect(upsertStmt.params[0]).not.toBe('variant-1');
+    expect(upsertStmt.params[0]).toBe('variant-1');
+    expect(upsertStmt.params[8]).toBe('{"color":"Blue"}');
   });
 
   it('syncVariants should reactivate archived variant with same signature and keep id', async () => {
     db.prepare.mockImplementation((sql) => {
       const stmt = createPreparedStatement(sql);
-      if (sql.includes('SELECT id, variant_signature')) {
+      if (isVariantLookupSql(sql)) {
         stmt.all.mockResolvedValue({
           results: [
             { id: 'variant-archived-1', variant_signature: '{"color":"Blue"}', status: 'archived' },
@@ -218,7 +223,7 @@ describe('ProductVariantRepository external codes', () => {
   it('syncVariants should expose created/updated/archived/reactivated counters', async () => {
     db.prepare.mockImplementation((sql) => {
       const stmt = createPreparedStatement(sql);
-      if (sql.includes('SELECT id, variant_signature')) {
+      if (isVariantLookupSql(sql)) {
         stmt.all.mockResolvedValue({
           results: [
             { id: 'variant-keep', variant_signature: '{"color":"Yellow"}', status: 'active' },
@@ -289,7 +294,7 @@ describe('ProductVariantRepository external codes', () => {
   it('syncVariants should allow barcode reuse when matched archived variant is not retained', async () => {
     db.prepare.mockImplementation((sql) => {
       const stmt = createPreparedStatement(sql);
-      if (sql.includes('SELECT id, variant_signature')) {
+      if (isVariantLookupSql(sql)) {
         stmt.all.mockResolvedValue({
           results: [
             { id: 'variant-archived-old', variant_signature: '{"color":"Old"}', status: 'archived' },

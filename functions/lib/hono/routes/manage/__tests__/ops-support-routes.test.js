@@ -173,10 +173,13 @@ describe('manage ops support audit routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.publish).toHaveBeenCalledWith([
+    const [publishedEvents, publishContext] = mocks.publish.mock.calls[0];
+    expect(publishContext).toBeUndefined();
+    expect(publishedEvents).toEqual([
       expect.objectContaining({
         event_type: 'admin_notification_created',
         aggregate_type: 'notification',
+        aggregate_id: 'order-1',
         payload: expect.objectContaining({
           title: 'Alert',
           type: 'system',
@@ -209,11 +212,14 @@ describe('manage ops support audit routes', () => {
 
     expect(res.status).toBe(200);
     expect(mocks.notificationMarkAllAsReadForAdmin).toHaveBeenCalledTimes(1);
-    expect(mocks.publish).toHaveBeenCalledWith([
+    const [publishedEvents, publishContext] = mocks.publish.mock.calls[0];
+    expect(publishContext).toBeUndefined();
+    expect(publishedEvents).toEqual([
       expect.objectContaining({
         event_type: 'notification_read_by_admin',
         aggregate_type: 'notification',
         aggregate_id: 'all',
+        payload: { notification_id: 'all' },
       }),
     ]);
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
@@ -243,11 +249,16 @@ describe('manage ops support audit routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.publish).toHaveBeenCalledWith([
+    const data = await res.json();
+    const tagId = data?.tag?.id;
+    const [publishedEvents, publishContext] = mocks.publish.mock.calls[0];
+    expect(publishContext).toBeUndefined();
+    expect(publishedEvents).toEqual([
       expect.objectContaining({
         event_type: 'tag_created',
         aggregate_type: 'tag',
-        aggregate_id: 'tag-1',
+        aggregate_id: tagId,
+        payload: { tag_id: tagId },
       }),
     ]);
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
@@ -256,7 +267,7 @@ describe('manage ops support audit routes', () => {
       expect.anything(),
       expect.objectContaining({
         action: 'tag.create',
-        targetId: 'tag-1',
+        targetId: tagId,
         target_label: 'Important',
       })
     );

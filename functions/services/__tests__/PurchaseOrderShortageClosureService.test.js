@@ -160,10 +160,15 @@ function createDbHarness({
     ),
   };
 
+  const variantDemandProjectionRefreshService = {
+    refreshByVariantIds: vi.fn(async () => []),
+  };
+
   return {
     db,
     calls,
     commandIdempotencyRepo,
+    variantDemandProjectionRefreshService,
   };
 }
 
@@ -175,6 +180,7 @@ describe('PurchaseOrderShortageClosureService', () => {
     harness = createDbHarness();
     service = new PurchaseOrderShortageClosureService(harness.db, {
       commandIdempotencyRepo: harness.commandIdempotencyRepo,
+      variantDemandProjectionRefreshService: harness.variantDemandProjectionRefreshService,
       now: () => 1710000000000,
     });
   });
@@ -253,6 +259,10 @@ describe('PurchaseOrderShortageClosureService', () => {
       0,
     ]);
     expect(flattenedStatements.some((statement) => statement.sql.includes('UPDATE purchase_orders SET updated_at = ?'))).toBe(true);
+    expect(harness.variantDemandProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
+      'var-1',
+      'var-2',
+    ]);
   });
 
   it('rejects closing more than the remaining receivable quantity', async () => {

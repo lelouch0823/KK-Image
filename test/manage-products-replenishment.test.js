@@ -107,6 +107,31 @@ describeIfRealApi('Manage Products Real API Replenishment Signal', function () {
     assert.strictEqual(Number(variantShipping.replenishment_quantity || 0), 7);
     assert.strictEqual(Number(variantShipping.replenishment_po_count || 0), 1);
 
+    const poDetail = await apiRequest(`/api/manage/purchase-orders/${poId}`, {
+      bearerToken: token,
+      expectedStatus: 200,
+    });
+    const poItemId = poDetail.json?.data?.items?.[0]?.id;
+    assert.ok(poItemId, 'purchase order item id missing');
+
+    await apiRequest(`/api/manage/purchase-orders/${poId}/receipts`, {
+      bearerToken: token,
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': `${seed}-receipt`,
+      },
+      body: {
+        items: [
+          {
+            purchase_order_item_id: poItemId,
+            received_qty: 7,
+            note: 'replenishment lifecycle receipt',
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+
     await apiRequest(`/api/manage/purchase-orders/${poId}/status`, {
       bearerToken: token,
       method: 'PATCH',

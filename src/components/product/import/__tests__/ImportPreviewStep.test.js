@@ -185,8 +185,8 @@ describe('ImportPreviewStep', () => {
             }
         });
 
-        const select = wrapper.get('[data-testid="conflict-level-select"]');
-        await select.setValue('variant');
+        wrapper.getComponent('[data-testid="conflict-level-select"]').vm.$emit('update:modelValue', 'variant');
+        await wrapper.vm.$nextTick();
         expect(wrapper.text()).toContain('SKU-V');
         expect(wrapper.text()).not.toContain('SPU-P');
 
