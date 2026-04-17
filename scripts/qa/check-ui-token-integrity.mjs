@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const normalizePath = (filePath) => filePath.replace(/\\/g, '/');
 
@@ -152,4 +153,7 @@ export const runUiTokenIntegrityCheck = (rootDir = process.cwd()) => {
   return 0;
 };
 
-process.exit(runUiTokenIntegrityCheck());
+const isMain = fileURLToPath(import.meta.url) === path.resolve(process.argv[1] || '');
+if (isMain) {
+  process.exit(runUiTokenIntegrityCheck());
+}
