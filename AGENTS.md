@@ -122,7 +122,9 @@ Run focused checks that match the files you changed. Common commands:
 - `pnpm test`
 - `pnpm test:unit:run`
 - `pnpm test:real-api`
+- `pnpm test:real-api:blackbox`
 - `pnpm test:real-api:full-chain`
+- `pnpm test:real-api:full-chain:blackbox`
 - `pnpm qa:check-ui-token-integrity`
 - `pnpm qa:check-ui-foundation-usage`
 - `pnpm qa:check-design-system`
@@ -131,8 +133,12 @@ Required validation rules:
 
 - Treat `pnpm test` as the default repo test suite for code changes, but do not describe it as real API coverage. Today it runs unit tests plus the mocha-based suite; it does not prove the Cloudflare local server path or full business-chain behavior.
 - Use `pnpm test:unit:run` for tight, file-scoped verification while iterating. Before handoff or merge, prefer `pnpm test` unless the task is docs-only or the user explicitly narrows scope.
+- Treat `pnpm test:real-api` as the fast local real-API regression path. It may enable direct in-process transport for selected heavy sales flows, so do not describe it as the highest-fidelity HTTP/runtime verification path.
+- Use `pnpm test:real-api:blackbox` when you need local high-fidelity Worker + HTTP validation through `wrangler pages dev`, especially before claiming deployment-shape behavior, runtime recovery behavior, header/cookie behavior, or black-box API realism.
 - Add `pnpm test:real-api` or `pnpm test:real-api:full-chain` when the change touches cross-route business flows or server-client integration boundaries, especially orders, purchase flows, notifications, uploads, or webhooks.
+- Escalate to `pnpm test:real-api:blackbox` or `pnpm test:real-api:full-chain:blackbox` when the user asks for maximum realism, when the change targets transport/runtime behavior, or when a fast real-API pass is not sufficient evidence.
 - Before running real API tests, make sure the local runtime is actually healthy: run `pnpm build`, ensure local migrations are applied, start the local server, confirm port `8080` is not occupied by a stale `workerd` / `wrangler pages dev` process, and verify `http://127.0.0.1:8080/api/v1/health` responds before blaming the tests.
+- Blackbox real-API profiles intentionally run files in isolated Vitest processes to reduce long-chain local runtime interference. Expect them to be slower than `pnpm test:real-api`.
 - When a test fails, first classify the failure: production-source bug, stale/incorrect test, or local test-environment issue. Do not change production code just to satisfy an outdated selector, broken stub, or noisy local runtime.
 - Treat expected warning/error output carefully. Distinguish intentional rejection-path logs or framework noise from actual regressions before deciding a test or implementation is wrong.
 - Do not claim completion without fresh verification evidence. Report the exact commands you ran, the result, what you intentionally did not run, and whether any important behavior was only validated through real API tests or was not validated end-to-end.

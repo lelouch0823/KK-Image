@@ -82,6 +82,19 @@ pnpm start
 pnpm test:real-api:full-chain
 ```
 
+如果你要在本地保留更接近部署形态的黑盒 Worker / HTTP 验收口径，请改用：
+
+```bash
+pnpm build
+pnpm start
+pnpm test:real-api:blackbox
+```
+
+补充说明：
+
+- `pnpm test:real-api` / `pnpm test:real-api:fast` 偏向开发期快速回归，部分重销售链路会启用 direct in-process transport。
+- `pnpm test:real-api:blackbox`、`pnpm test:real-api:coverage:blackbox`、`pnpm test:real-api:full-chain:blackbox` 保留本地 `wrangler pages dev` 黑盒 HTTP 口径，更适合做高保真验收。
+
 开始前请先确认：
 
 - 本地迁移已应用
