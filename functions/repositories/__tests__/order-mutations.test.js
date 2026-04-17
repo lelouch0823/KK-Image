@@ -271,7 +271,7 @@ describe('Order Mutations SQL Binding', () => {
             const orderBindArgs = db.bind.mock.calls[0];
             const orderLineBindArgs = db.bind.mock.calls[1];
 
-            expect(orderBindArgs[7]).toBe(1);
+            expect(orderBindArgs[8]).toBe(1);
             expect(orderLineBindArgs[8]).toBe(1);
         });
 

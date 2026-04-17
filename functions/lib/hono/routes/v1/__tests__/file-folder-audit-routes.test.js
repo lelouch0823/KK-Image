@@ -176,8 +176,8 @@ describe('v1 file and folder audit routes', () => {
         aggregate_type: 'file',
       }),
     ], undefined);
-    expect(fileMocks.runOutboxPoller).not.toHaveBeenCalled();
-    expect(waitUntil).not.toHaveBeenCalled();
+    expect(fileMocks.runOutboxPoller).toHaveBeenCalledTimes(2);
+    expect(waitUntil).toHaveBeenCalledTimes(2);
 
     expect(fileMocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
@@ -219,8 +219,8 @@ describe('v1 file and folder audit routes', () => {
         aggregate_id: 'folder-1',
       }),
     ], undefined);
-    expect(fileMocks.runOutboxPoller).not.toHaveBeenCalled();
-    expect(waitUntil).not.toHaveBeenCalled();
+    expect(fileMocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalledTimes(1);
     expect(fileMocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({

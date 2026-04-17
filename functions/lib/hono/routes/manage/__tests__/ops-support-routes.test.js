@@ -261,8 +261,8 @@ describe('manage ops support audit routes', () => {
         payload: { tag_id: tagId },
       }),
     ]);
-    expect(mocks.runOutboxPoller).not.toHaveBeenCalled();
-    expect(waitUntil).not.toHaveBeenCalled();
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalledTimes(1);
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({

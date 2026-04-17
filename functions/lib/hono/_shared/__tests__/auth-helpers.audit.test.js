@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   recordLoginFailure: vi.fn(),
   clearLoginFailures: vi.fn(),
   formatRetryAfter: vi.fn(() => '5 minutes'),
+  resolveRequestIp: vi.fn(() => '127.0.0.1'),
   scheduleAuditEvent: vi.fn(),
 }));
 
@@ -13,6 +14,7 @@ vi.mock('../../middleware/rateLimit.js', () => ({
   recordLoginFailure: mocks.recordLoginFailure,
   clearLoginFailures: mocks.clearLoginFailures,
   formatRetryAfter: mocks.formatRetryAfter,
+  resolveRequestIp: mocks.resolveRequestIp,
 }));
 
 vi.mock('../audit-helpers.js', async () => {

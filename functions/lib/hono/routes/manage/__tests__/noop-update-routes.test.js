@@ -135,8 +135,8 @@ describe('manage no-op update routes', () => {
         payload: { customer_id: 'customer-1' },
       }),
     ]);
-    expect(mocks.runOutboxPoller).not.toHaveBeenCalled();
-    expect(waitUntil).not.toHaveBeenCalled();
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalledTimes(2);
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ action: 'customer.update', domain: 'customers' })
@@ -170,8 +170,8 @@ describe('manage no-op update routes', () => {
         payload: { salesperson_id: 'sales-1' },
       }),
     ]);
-    expect(mocks.runOutboxPoller).not.toHaveBeenCalled();
-    expect(waitUntil).not.toHaveBeenCalled();
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalledTimes(1);
   });
 
   it('returns 200 for file rename no-op and skips conflict check', async () => {

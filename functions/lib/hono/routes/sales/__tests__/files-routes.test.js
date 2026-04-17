@@ -87,6 +87,7 @@ describe('sales files routes', () => {
               first: vi.fn(async () => ({ order_no: 'SO-1001' })),
             })),
           })),
+          batch: vi.fn(async () => []),
         },
       },
       { waitUntil: vi.fn() }

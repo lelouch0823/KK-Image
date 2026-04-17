@@ -40,7 +40,7 @@ describe('domain outbox helper', () => {
     mocks.countAvailableJobs.mockResolvedValue(1);
   });
 
-  it('does not eagerly schedule the poller for low-backlog non-order events', async () => {
+  it('schedules the poller immediately for cache-only events', async () => {
     const c = createContext();
 
     await publishDomainEventsAndPoll(c, [{
@@ -51,9 +51,9 @@ describe('domain outbox helper', () => {
     }]);
 
     expect(mocks.publish).toHaveBeenCalledTimes(1);
-    expect(mocks.countAvailableJobs).toHaveBeenCalledTimes(1);
-    expect(c.executionCtx.waitUntil).not.toHaveBeenCalled();
-    expect(mocks.runOutboxPoller).not.toHaveBeenCalled();
+    expect(mocks.countAvailableJobs).not.toHaveBeenCalled();
+    expect(c.executionCtx.waitUntil).toHaveBeenCalledTimes(1);
+    expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
   });
 
   it('still schedules the poller immediately for order-domain events', async () => {
