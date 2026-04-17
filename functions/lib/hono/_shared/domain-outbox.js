@@ -21,7 +21,9 @@ function shouldPollImmediately(eventType) {
 
   try {
     const definition = getDomainEventDefinition(normalized);
-    return definition.consumers.includes('notification') || definition.consumers.includes('webhook');
+    return definition.consumers.includes('notification')
+      || definition.consumers.includes('webhook')
+      || (definition.consumers.length === 1 && definition.consumers[0] === 'cache');
   } catch {
     return false;
   }

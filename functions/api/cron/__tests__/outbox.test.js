@@ -237,6 +237,88 @@ describe('cron outbox poller', () => {
     expect(maxActiveCount).toBe(2);
   });
 
+  it('uses bounded request-path defaults when forced by a route worker id', async () => {
+    mocks.claimJobs.mockReset();
+    mocks.claimJobs
+      .mockResolvedValueOnce([{
+        id: 'job-audit-1',
+        consumer_name: 'audit',
+        event_id: 'evt-1',
+        event_type: 'purchase_order_status_changed',
+        payload_json: '{}',
+      }])
+      .mockResolvedValueOnce([{
+        id: 'job-cache-1',
+        consumer_name: 'cache',
+        event_id: 'evt-2',
+        event_type: 'purchase_order_status_changed',
+        payload_json: '{}',
+      }])
+      .mockResolvedValueOnce([{
+        id: 'job-notification-1',
+        consumer_name: 'notification',
+        event_id: 'evt-3',
+        event_type: 'order_procurement_progressed',
+        payload_json: '{}',
+      }])
+      .mockResolvedValueOnce([{
+        id: 'job-webhook-1',
+        consumer_name: 'webhook',
+        event_id: 'evt-4',
+        event_type: 'order_procurement_progressed',
+        payload_json: '{}',
+      }]);
+
+    const result = await runOutboxPoller({
+      env: { DB: {} },
+      requestUrl: 'https://kk.example.com/api/manage/purchase-orders/po-1/status',
+      workerId: 'purchase_order_status_changed:po-1',
+    });
+
+    expect(result).toEqual(expect.objectContaining({
+      claimed: 4,
+      published: 4,
+      failed: 0,
+      rounds: 1,
+      skipped: false,
+      backlog: 0,
+    }));
+    expect(mocks.claimJobs).toHaveBeenCalledTimes(4);
+    expect(mocks.claimJobs).toHaveBeenNthCalledWith(
+      1,
+      'audit',
+      'purchase_order_status_changed:po-1',
+      expect.any(Number),
+      10
+    );
+    expect(mocks.claimJobs).toHaveBeenNthCalledWith(
+      2,
+      'cache',
+      'purchase_order_status_changed:po-1',
+      expect.any(Number),
+      10
+    );
+    expect(mocks.claimJobs).toHaveBeenNthCalledWith(
+      3,
+      'notification',
+      'purchase_order_status_changed:po-1',
+      expect.any(Number),
+      10
+    );
+    expect(mocks.claimJobs).toHaveBeenNthCalledWith(
+      4,
+      'webhook',
+      'purchase_order_status_changed:po-1',
+      expect.any(Number),
+      10
+    );
+    expect(mocks.tryAcquire).toHaveBeenCalledWith(expect.objectContaining({
+      workerId: 'purchase_order_status_changed:po-1',
+      force: false,
+      minRunIntervalMs: 0,
+    }));
+  });
+
   it('skips processing when another poller lease is still active', async () => {
     mocks.tryAcquire.mockResolvedValueOnce(null);
     mocks.claimJobs.mockReset();

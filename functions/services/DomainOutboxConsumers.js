@@ -1,15 +1,18 @@
 import { recordAuditEvent } from '../lib/hono/_shared/audit-helpers.js';
 import { safeJsonParse } from '../api/utils/json.js';
+import { inClause } from '../api/utils/sql.js';
 import { NotificationRepository } from '../repositories/NotificationRepository.js';
 import { WebhookDeliveryService } from './WebhookDeliveryService.js';
 import {
   getManageCustomerCacheUrls,
+  getManageStatsCacheUrls,
   getManageNotificationCacheUrls,
   getManageOrderCacheUrls,
   getManageSalespersonCacheUrls,
   getManageShareCacheUrls,
   getManageSpaceCacheUrls,
   getManageTagCacheUrls,
+  getDashboardCacheUrls,
   getOrderAndSalespersonCacheUrls,
   getOrderNotificationCacheUrls,
   getOrderAnalyticsCacheUrls,
@@ -157,6 +160,20 @@ function getPollerState(state) {
   }
 
   return state;
+}
+
+function resetMemoizedSalespersonTokens(state) {
+  const sharedState = getPollerState(state);
+  if (!sharedState) {
+    return;
+  }
+
+  sharedState.allSalesTokens = null;
+  if (sharedState.salesTokensById instanceof Map) {
+    sharedState.salesTokensById.clear();
+  } else {
+    sharedState.salesTokensById = new Map();
+  }
 }
 
 async function getMemoizedSalespersonAccessTokens(db, salespersonIds = [], state) {
@@ -395,6 +412,200 @@ function isProductCacheEvent(eventType) {
   ].includes(eventType);
 }
 
+function isInventoryAvailabilityCacheEvent(eventType) {
+  return [
+    'purchase_receipt_recorded',
+    'purchase_receipt_reversed',
+    'inventory_received',
+    'inventory_receipt_reversed',
+  ].includes(eventType);
+}
+
+async function findAffectedSpaceBindingsByProductIds(db, productIds = []) {
+  const normalizedProductIds = [...new Set((productIds || []).filter(Boolean))];
+  if (!db || typeof db.prepare !== 'function' || normalizedProductIds.length === 0) {
+    return {
+      spaceIds: [],
+      parentIds: [],
+    };
+  }
+
+  const placeholders = normalizedProductIds.map(() => '?').join(', ');
+  const { results } = await db
+    .prepare(
+      `
+        SELECT id, parent_id
+        FROM spaces
+        WHERE product_id IN (${placeholders})
+      `
+    )
+    .bind(...normalizedProductIds)
+    .all();
+
+  const spaceIds = new Set();
+  const parentIds = new Set();
+
+  for (const row of results || []) {
+    if (row?.id) {
+      spaceIds.add(row.id);
+    }
+    if (row?.parent_id) {
+      parentIds.add(row.parent_id);
+    }
+  }
+
+  return {
+    spaceIds: [...spaceIds],
+    parentIds: [...parentIds],
+  };
+}
+
+async function findProductIdsByVariantIds(db, variantIds = []) {
+  const normalizedVariantIds = [...new Set((variantIds || []).filter(Boolean))];
+  if (!db || typeof db.prepare !== 'function' || normalizedVariantIds.length === 0) {
+    return [];
+  }
+
+  const { results } = await db
+    .prepare(`
+      SELECT DISTINCT product_id
+      FROM product_variants
+      WHERE id IN ${inClause(normalizedVariantIds)}
+        AND product_id IS NOT NULL
+    `)
+    .bind(...normalizedVariantIds)
+    .all();
+
+  return [...new Set((results || []).map((row) => row?.product_id).filter(Boolean))];
+}
+
+async function findReceiptBindingsByIds(db, receiptIds = []) {
+  const normalizedReceiptIds = [...new Set((receiptIds || []).filter(Boolean))];
+  if (!db || typeof db.prepare !== 'function' || normalizedReceiptIds.length === 0) {
+    return [];
+  }
+
+  const { results } = await db
+    .prepare(`
+      SELECT DISTINCT product_id, variant_id
+      FROM purchase_receipts
+      WHERE id IN ${inClause(normalizedReceiptIds)}
+    `)
+    .bind(...normalizedReceiptIds)
+    .all();
+
+  return results || [];
+}
+
+async function findOrderBindingsByIds(db, orderIds = []) {
+  const normalizedOrderIds = [...new Set((orderIds || []).filter(Boolean))];
+  if (!db || typeof db.prepare !== 'function' || normalizedOrderIds.length === 0) {
+    return [];
+  }
+
+  const { results } = await db
+    .prepare(`
+      SELECT DISTINCT product_id, variant_id
+      FROM orders
+      WHERE id IN ${inClause(normalizedOrderIds)}
+    `)
+    .bind(...normalizedOrderIds)
+    .all();
+
+  return results || [];
+}
+
+async function resolveOrderAffectedProductIds(db, event, payload = {}) {
+  const productIds = new Set(asArray(payload.product_ids || payload.product_id));
+  const variantIds = new Set(asArray(payload.variant_ids || payload.variant_id));
+  const orderIds = [
+    ...asArray(payload.order_ids),
+    ...asArray(payload.order_id),
+    ...(event?.aggregate_type === 'order' && event?.aggregate_id ? [event.aggregate_id] : []),
+  ];
+
+  for (const row of await findOrderBindingsByIds(db, orderIds)) {
+    if (row?.product_id) {
+      productIds.add(row.product_id);
+    }
+    if (row?.variant_id) {
+      variantIds.add(row.variant_id);
+    }
+  }
+
+  for (const productId of await findProductIdsByVariantIds(db, [...variantIds])) {
+    productIds.add(productId);
+  }
+
+  return [...productIds];
+}
+
+async function resolveInventoryAffectedProductIds(db, payload = {}) {
+  const productIds = new Set(asArray(payload.product_ids || payload.product_id));
+  const variantIds = new Set(asArray(payload.variant_ids || payload.variant_id));
+  const receiptIds = [
+    ...asArray(payload.purchase_receipt_id),
+    ...asArray(payload.original_receipt_id),
+    ...asArray(payload.receipt_id),
+  ];
+
+  for (const row of await findReceiptBindingsByIds(db, receiptIds)) {
+    if (row?.product_id) {
+      productIds.add(row.product_id);
+    }
+    if (row?.variant_id) {
+      variantIds.add(row.variant_id);
+    }
+  }
+
+  for (const productId of await findProductIdsByVariantIds(db, [...variantIds])) {
+    productIds.add(productId);
+  }
+
+  return [...productIds];
+}
+
+async function collectProductSurfaceCacheUrls({ db, ctx, salesTokens = [], productIds = [] }) {
+  const normalizedProductIds = [...new Set((productIds || []).filter(Boolean))];
+  if (normalizedProductIds.length === 0) {
+    return [];
+  }
+
+  const affectedSpaces = await findAffectedSpaceBindingsByProductIds(db, normalizedProductIds);
+  const urls = new Set([
+    ...getProductCacheUrls(ctx),
+    ...getSalesProductCacheUrls(ctx, { salesTokens }),
+    ...getManageSpaceCacheUrls(ctx, { productIds: normalizedProductIds }),
+    ...getSalesSpaceCacheUrls(ctx, { salesTokens }),
+  ]);
+
+  for (const productId of normalizedProductIds) {
+    for (const url of getSalesProductCacheUrls(ctx, { salesTokens, productId })) {
+      urls.add(url);
+    }
+  }
+
+  for (const spaceId of affectedSpaces.spaceIds) {
+    for (const url of getManageSpaceCacheUrls(ctx, { spaceId })) {
+      urls.add(url);
+    }
+    for (const url of getSalesSpaceCacheUrls(ctx, { salesTokens, spaceId })) {
+      urls.add(url);
+    }
+  }
+
+  for (const parentId of affectedSpaces.parentIds) {
+    for (const url of getManageSpaceCacheUrls(ctx, { parentId })) {
+      urls.add(url);
+    }
+    for (const url of getSalesSpaceCacheUrls(ctx, { salesTokens, spaceId: parentId })) {
+      urls.add(url);
+    }
+  }
+
+  return [...urls];
+}
+
 async function resolveExpandedCacheUrls({ db, event, baseUrl, payload, state }) {
   const ctx = createBaseContext(baseUrl);
 
@@ -485,16 +696,23 @@ async function resolveExpandedCacheUrls({ db, event, baseUrl, payload, state }) 
 
   if (isProductCacheEvent(event.event_type)) {
     const salesTokens = await getMemoizedAllSalespersonAccessTokens(db, state);
-    const productId = payload.product_id || event.aggregate_id || null;
+    const productIds = asArray(payload.product_ids || payload.product_id || event.aggregate_id);
+    return collectProductSurfaceCacheUrls({ db, ctx, salesTokens, productIds });
+  }
+
+  if (isInventoryAvailabilityCacheEvent(event.event_type)) {
+    const salesTokens = await getMemoizedAllSalespersonAccessTokens(db, state);
+    const purchaseOrderId = resolvePurchaseOrderId(event, payload);
+    const productIds = await resolveInventoryAffectedProductIds(db, payload);
     const urls = new Set([
-      ...getProductCacheUrls(ctx),
-      ...getSalesProductCacheUrls(ctx, { salesTokens }),
+      ...getPurchaseOrderCacheUrls(ctx, purchaseOrderId),
+      ...getOrderAnalyticsCacheUrls(ctx),
     ]);
-    if (productId) {
-      for (const url of getSalesProductCacheUrls(ctx, { salesTokens, productId })) {
-        urls.add(url);
-      }
+
+    for (const url of await collectProductSurfaceCacheUrls({ db, ctx, salesTokens, productIds })) {
+      urls.add(url);
     }
+
     return [...urls];
   }
 
@@ -543,21 +761,52 @@ async function invalidateReceiptCaches({ db, event, baseUrl, state }) {
     typeof event?.payload_json === 'string' ? event.payload_json || null : null,
     {}
   );
+
+  if (isSalespersonCacheEvent(event?.event_type)) {
+    resetMemoizedSalespersonTokens(state);
+  }
+
+  const projectionUrls = [];
+  if (shouldRefreshManageStatsProjection(event?.event_type) || shouldRefreshDashboardProjection(event?.event_type)) {
+    const projectionCtx = createBaseContext(baseUrl);
+    if (shouldRefreshManageStatsProjection(event?.event_type)) {
+      projectionUrls.push(...getManageStatsCacheUrls(projectionCtx));
+    }
+    if (shouldRefreshDashboardProjection(event?.event_type)) {
+      projectionUrls.push(...getDashboardCacheUrls(projectionCtx));
+    }
+  }
+
   if (isOrderMutationEvent(event?.event_type)) {
     const ctx = createCacheContext(baseUrl);
     const salesTokens = await getMemoizedSalespersonAccessTokens(db, [resolveSalespersonId(payload)].filter(Boolean), state);
+    const allSalesTokens = await getMemoizedAllSalespersonAccessTokens(db, state);
+    const affectedProductIds = await resolveOrderAffectedProductIds(db, event, payload);
     const urls = [
       ...getOrderAndSalespersonCacheUrls(ctx, { salesTokens }),
       ...getOrderNotificationCacheUrls(ctx, { salesTokens }),
+      ...projectionUrls,
     ];
 
-    await invalidateCacheOnce(urls, state);
+    for (const url of await collectProductSurfaceCacheUrls({
+      db,
+      ctx,
+      salesTokens: allSalesTokens,
+      productIds: affectedProductIds,
+    })) {
+      urls.push(url);
+    }
+
+    await invalidateCacheOnce([...new Set(urls)], state);
     return;
   }
 
   const expandedUrls = await resolveExpandedCacheUrls({ db, event, baseUrl, payload, state });
-  if (expandedUrls.length > 0) {
-    await invalidateCacheOnce(expandedUrls, state);
+  if (expandedUrls.length > 0 || projectionUrls.length > 0) {
+    await invalidateCacheOnce([...new Set([
+      ...expandedUrls,
+      ...projectionUrls,
+    ])], state);
     return;
   }
 
@@ -566,9 +815,10 @@ async function invalidateReceiptCaches({ db, event, baseUrl, state }) {
   const urls = [
     ...getPurchaseOrderCacheUrls(ctx, purchaseOrderId),
     ...getOrderAnalyticsCacheUrls(ctx),
+    ...projectionUrls,
   ];
 
-  await invalidateCacheOnce(urls, state);
+  await invalidateCacheOnce([...new Set(urls)], state);
 }
 
 function resolveNotificationTitle(eventType) {

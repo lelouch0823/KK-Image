@@ -33,6 +33,23 @@ function hasBindingSnapshotFallback(space = {}) {
   return bindingState !== 'unbound' && bindingState !== 'active';
 }
 
+function normalizeProjectedVariantOptions(space = {}) {
+  const rawOptions = parseJsonObject(space.pv_options_values, {});
+  const dimensionMap = parseJsonObject(space.p_dimension_map, {});
+  if (!dimensionMap || Object.keys(dimensionMap).length === 0) {
+    return normalizeVariantOptions(rawOptions);
+  }
+
+  const readableOptions = Object.entries(rawOptions).reduce((acc, [key, value]) => {
+    const readableKey = String(dimensionMap[key] || key || '').trim();
+    if (!readableKey) return acc;
+    acc[readableKey] = value;
+    return acc;
+  }, {});
+
+  return normalizeVariantOptions(readableOptions);
+}
+
 /**
  * 投影商品字段到空间模版数据中
  * @param {Object} space 
@@ -61,7 +78,7 @@ export function projectSpaceTemplateData(space) {
     }
 
     if (space.variant_id && space.pv_options_values) {
-      const variantOptions = normalizeVariantOptions(parseJsonObject(space.pv_options_values, {}));
+      const variantOptions = normalizeProjectedVariantOptions(space);
       if (variantOptions.material) {
         templateData.material = variantOptions.material;
       }

@@ -189,7 +189,7 @@ export const DOMAIN_EVENT_CATALOG = {
   },
   file_uploaded: {
     version: 1,
-    consumers: ['webhook'],
+    consumers: ['cache', 'webhook'],
   },
   v1_folder_created: {
     version: 1,

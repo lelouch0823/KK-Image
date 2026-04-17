@@ -5,11 +5,12 @@ import { CustomerRepository } from '../../../../repositories/CustomerRepository.
 import { MSG } from '../../../../_shared/utils.js';
 import { withCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
-import { parsePagination, requireEntity } from '../../_shared/route-helpers.js';
+import { parsePagination, requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
+import { getManageCustomerCacheUrls } from '../_shared/cache-urls.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -92,6 +93,7 @@ app.post('/', zValidator('json', CreateCustomerSchema), async (c) => {
             customer_id: customer.id,
         },
     }, `customer-create:${customer.id}`);
+    scheduleCacheInvalidation(c, getManageCustomerCacheUrls(c));
     scheduleAuditEvent(c, {
         domain: 'customers',
         action: 'customer.create',
@@ -166,6 +168,7 @@ app.put('/:id', zValidator('json', UpdateCustomerSchema), async (c) => {
             customer_id: id,
         },
     }, `customer-update:${id}`);
+    scheduleCacheInvalidation(c, getManageCustomerCacheUrls(c));
     scheduleAuditEvent(c, {
         domain: 'customers',
         action: 'customer.update',
@@ -212,6 +215,7 @@ app.delete('/:id', async (c) => {
             customer_id: id,
         },
     }, `customer-delete:${id}`);
+    scheduleCacheInvalidation(c, getManageCustomerCacheUrls(c));
     scheduleAuditEvent(c, {
         domain: 'customers',
         action: 'customer.delete',

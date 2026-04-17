@@ -6,10 +6,30 @@
 
 import { sha256Hex } from '../../../_shared/utils.js';
 
+function normalizeCacheUrl(url) {
+  const normalized = new URL(url);
+  if (normalized.hostname === '127.0.0.1') {
+    normalized.hostname = 'localhost';
+  }
+  if (normalized.hostname === 'localhost' && !normalized.port && normalized.protocol === 'http:') {
+    normalized.port = '8080';
+  }
+  normalized.searchParams.sort();
+  return normalized.toString();
+}
+
+function normalizeAcceptHeader(accept) {
+  const normalized = String(accept || '').trim();
+  if (!normalized || normalized === '*/*') {
+    return 'application/json';
+  }
+  return normalized;
+}
+
 function createCacheRequest(url, accept = 'application/json') {
-  return new Request(url, {
+  return new Request(normalizeCacheUrl(url), {
     method: 'GET',
-    headers: { Accept: accept || 'application/json' },
+    headers: { Accept: normalizeAcceptHeader(accept) },
   });
 }
 
@@ -72,7 +92,10 @@ export async function invalidateCache(urls) {
   const cache = caches.default;
   const urlArray = Array.isArray(urls) ? urls : [urls];
 
-  await Promise.all(urlArray.map((url) => cache.delete(createCacheRequest(url))));
+  await Promise.all(urlArray.flatMap((url) => ([
+    cache.delete(createCacheRequest(url)),
+    cache.delete(createCacheRequest(url, '*/*')),
+  ])));
 }
 
 /**

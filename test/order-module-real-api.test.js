@@ -6,6 +6,7 @@ import {
   apiRequest,
   uniqueSeed,
   waitFor,
+  withRealApiTestHeaders,
 } from './utils/manage-products-real-api.js';
 import {
   ensureSalespersonId,
@@ -15,7 +16,9 @@ import {
 
 async function textRequest(path, { bearerToken, expectedStatus = 200 } = {}) {
   const response = await fetch(`${getBaseUrl()}${path}`, {
-    headers: bearerToken ? { Authorization: `Bearer ${bearerToken}` } : undefined,
+    headers: withRealApiTestHeaders(
+      bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}
+    ),
   });
   const text = await response.text();
   assert.strictEqual(

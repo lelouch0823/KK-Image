@@ -82,10 +82,10 @@ describe('DomainOutboxRepository event catalog fan-out', () => {
     ]);
   });
 
-  it('routes cache-only, notification-only, and webhook-only expansion events to their declared consumers', () => {
+  it('routes cache-only, notification-only, and mixed-consumer expansion events to their declared consumers', () => {
     expect(getDomainEventDefinition('customer_created').consumers).toEqual(['cache']);
     expect(getDomainEventDefinition('admin_notification_created').consumers).toEqual(['notification']);
-    expect(getDomainEventDefinition('file_uploaded').consumers).toEqual(['webhook']);
+    expect(getDomainEventDefinition('file_uploaded').consumers).toEqual(['cache', 'webhook']);
     expect(getDomainEventDefinition('product_updated').consumers).toEqual(['cache']);
     expect(getDomainEventDefinition('space_file_reordered').consumers).toEqual(['cache']);
   });

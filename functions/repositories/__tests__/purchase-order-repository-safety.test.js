@@ -105,6 +105,31 @@ describe('PurchaseOrderRepository safety guards', () => {
     }
   });
 
+  it('generatePoNo orders daily suffixes numerically after 999', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-03-30T04:00:00.000Z'));
+
+      const first = vi.fn(async () => ({ po_no: 'PO-20260330-1000' }));
+      let capturedSql = '';
+      const db = {
+        prepare: vi.fn((sql) => {
+          capturedSql = sql;
+          return {
+            bind: vi.fn(() => ({ first })),
+          };
+        }),
+      };
+      const repo = new PurchaseOrderRepository(db);
+
+      await expect(repo.generatePoNo()).resolves.toBe('PO-20260330-1001');
+      expect(capturedSql).toContain('CAST');
+      expect(capturedSql).toContain('SUBSTR');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('retries purchase-order number allocation when a concurrent insert wins the same po_no', async () => {
     vi.useFakeTimers();
     try {

@@ -90,6 +90,11 @@ async function getSpaceData(space, env, { includePrivateSubspaces = false, fileU
               (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
               f.storage_key as cover_storage_key,
               p.spu as p_sku, NULL as p_status, p.brand as p_brand, p.series as p_series,
+              (
+                SELECT json_group_object(pd.id, pd.name)
+                FROM product_dimensions pd
+                WHERE pd.product_id = p.id
+              ) as p_dimension_map,
               COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
               p.specifications as p_specs, p.images as p_images,
               pv.sku as pv_sku,
@@ -273,6 +278,11 @@ export async function onRequestGet(context) {
     const space = await env.DB.prepare(`
         SELECT s.*,
             p.spu as p_sku, NULL as p_status, p.brand as p_brand, p.series as p_series,
+            (
+              SELECT json_group_object(pd.id, pd.name)
+              FROM product_dimensions pd
+              WHERE pd.product_id = p.id
+            ) as p_dimension_map,
             COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
             p.specifications as p_specs, p.images as p_images,
             pv.sku as pv_sku,
@@ -358,6 +368,11 @@ export async function onRequestPost(context) {
     const space = await env.DB.prepare(`
         SELECT s.*,
             p.spu as p_sku, NULL as p_status, p.brand as p_brand, p.series as p_series,
+            (
+              SELECT json_group_object(pd.id, pd.name)
+              FROM product_dimensions pd
+              WHERE pd.product_id = p.id
+            ) as p_dimension_map,
             COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
             p.specifications as p_specs, p.images as p_images,
             pv.sku as pv_sku,

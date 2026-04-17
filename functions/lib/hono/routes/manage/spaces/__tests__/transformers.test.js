@@ -38,6 +38,27 @@ describe('space transformers', () => {
     ]);
   });
 
+  it('maps variant dimension ids through dimension_map before applying semantic option aliases', () => {
+    const templateData = projectSpaceTemplateData({
+      product_id: 'prod-1',
+      variant_id: 'var-1',
+      template_data: '{}',
+      p_sku: 'SPU-001',
+      pv_sku: 'SKU-LEATHER',
+      p_price: 199,
+      p_specs: '{"material":"Cotton"}',
+      p_dimension_map: '{"dim-material":"材质"}',
+      pv_options_values: '{"dim-material":"Leather"}',
+      p_images: '["product-1.jpg"]',
+      display_image_id: 'variant-primary.jpg',
+    });
+
+    expect(templateData).toMatchObject({
+      sku: 'SKU-LEATHER',
+      material: 'Leather',
+    });
+  });
+
   it('falls back to stored template data when bound product or variant is archived', () => {
     const templateData = projectSpaceTemplateData({
       product_id: 'prod-1',

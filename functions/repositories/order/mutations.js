@@ -348,7 +348,21 @@ function buildInitialOrderLineProgress(status, orderedQty) {
 export async function create(
     db,
     timelineRepo,
-    { id, orderNo, salespersonId, data, status = 'pending', mainImageId, quantity = 1, fileIds = [], timeline, productId = null, variantId = null, enforceSalesFileScope = false }
+    {
+        id,
+        orderNo,
+        salespersonId,
+        customerId = null,
+        data,
+        status = 'pending',
+        mainImageId,
+        quantity = 1,
+        fileIds = [],
+        timeline,
+        productId = null,
+        variantId = null,
+        enforceSalesFileScope = false,
+    }
 ) {
     const timestamp = now();
     if (enforceSalesFileScope) {
@@ -366,11 +380,29 @@ export async function create(
         db
             .prepare(
                 `
-        INSERT INTO orders (id, order_no, salesperson_id, original_data, current_data, status, main_image_id, quantity, summary_name, summary_brand, summary_sku, unread_by_admin, unread_by_sales, deadline_date, created_at, updated_at, product_id, variant_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?, ?, ?, ?)
+        INSERT INTO orders (id, order_no, salesperson_id, customer_id, original_data, current_data, status, main_image_id, quantity, summary_name, summary_brand, summary_sku, unread_by_admin, unread_by_sales, deadline_date, created_at, updated_at, product_id, variant_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?, ?, ?, ?)
         `
             )
-            .bind(id, orderNo, salespersonId, orderData, orderData, normalizedStatus, mainImageId, normalizedQuantity, summaryName, summaryBrand, summarySku, deadlineDate, timestamp, timestamp, productId, variantId)
+            .bind(
+                id,
+                orderNo,
+                salespersonId,
+                customerId,
+                orderData,
+                orderData,
+                normalizedStatus,
+                mainImageId,
+                normalizedQuantity,
+                summaryName,
+                summaryBrand,
+                summarySku,
+                deadlineDate,
+                timestamp,
+                timestamp,
+                productId,
+                variantId
+            )
     );
 
     const snapshotSpecs = buildSnapshotSpecs(data);

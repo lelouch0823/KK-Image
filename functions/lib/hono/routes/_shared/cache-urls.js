@@ -112,6 +112,11 @@ export function getDashboardCacheUrls(c) {
   return [`${origin}/api/manage/dashboard/overview`];
 }
 
+export function getManageStatsCacheUrls(c) {
+  const origin = getOrigin(c);
+  return [`${origin}/api/manage/stats`];
+}
+
 export function getGoodsOverviewCacheUrls(c) {
   const origin = getOrigin(c);
   return [

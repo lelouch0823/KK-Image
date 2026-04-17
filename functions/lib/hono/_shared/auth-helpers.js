@@ -17,6 +17,7 @@ import {
   recordLoginFailure,
   clearLoginFailures,
   formatRetryAfter,
+  resolveRequestIp,
 } from '../middleware/rateLimit.js';
 import { setCookie } from 'hono/cookie';
 import { scheduleAuditEvent } from './audit-helpers.js';
@@ -33,7 +34,7 @@ export const SALES_COOKIE_MAX_AGE = 7 * 24 * 3600; // 7 天
  * @returns {string}
  */
 function getClientIp(c) {
-  return c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+  return resolveRequestIp(c.req);
 }
 
 /**

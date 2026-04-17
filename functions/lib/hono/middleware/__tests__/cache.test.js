@@ -37,6 +37,15 @@ describe('cache middleware helpers', () => {
     expect(request.headers.get('Accept')).toBe('application/json');
   });
 
+  it('normalizes query parameter ordering for cache invalidation keys', async () => {
+    await invalidateCache('https://example.com/api/manage/customers?page=1&limit=20');
+
+    expect(deleteMock).toHaveBeenCalledWith(expect.any(Request));
+
+    const request = deleteMock.mock.calls[0][0];
+    expect(request.url).toBe('https://example.com/api/manage/customers?limit=20&page=1');
+  });
+
   it('does not hash response bodies when default cache mode is used', async () => {
     const middleware = withCache(60);
     const waitUntil = vi.fn();

@@ -6,10 +6,15 @@ import {
   uniqueSeed,
   apiRequest,
   multipartRequest,
+  waitFor,
+  withRealApiTestHeaders,
 } from './utils/manage-products-real-api.js';
 
 async function fetchWithOptionalJson(url, init = {}) {
-  const response = await fetch(url, init);
+  const response = await fetch(url, {
+    ...init,
+    headers: withRealApiTestHeaders(init.headers || {}),
+  });
   let json = null;
 
   try {
@@ -251,5 +256,239 @@ describeIfRealApi('Public Space Real API', function () {
       `${getBaseUrl()}/file/${outsiderFileId}?access=${encodeURIComponent(accessToken)}`
     );
     assert.strictEqual(unauthorized.response.status, 401);
+  });
+
+  it('exposes only public non-expired subspaces from collection spaces', async () => {
+    const bearerToken = await getBearerToken();
+    const seed = uniqueSeed('collection-space');
+
+    const parentSpace = await apiRequest('/api/manage/spaces', {
+      bearerToken,
+      method: 'POST',
+      body: {
+        name: `Collection Space ${seed}`,
+        description: 'real api collection subspace coverage',
+        isPublic: true,
+        template: 'collection',
+        templateData: {},
+      },
+      expectedStatus: 201,
+    });
+    const parentSpaceId = parentSpace.json?.data?.id;
+    const parentShareToken = parentSpace.json?.data?.shareToken;
+    assert.ok(parentSpaceId, 'collection parent space id missing');
+    assert.ok(parentShareToken, 'collection parent share token missing');
+
+    const publicChild = await apiRequest(`/api/manage/spaces/${parentSpaceId}/subspaces`, {
+      bearerToken,
+      method: 'POST',
+      body: {
+        name: `Public Subspace ${seed}`,
+        description: 'public subspace',
+        isPublic: true,
+        template: 'gallery',
+        templateData: {},
+      },
+      expectedStatus: 201,
+    });
+    const publicChildToken = publicChild.json?.data?.shareToken;
+    assert.ok(publicChildToken, 'public subspace share token missing');
+
+    await apiRequest(`/api/manage/spaces/${parentSpaceId}/subspaces`, {
+      bearerToken,
+      method: 'POST',
+      body: {
+        name: `Private Subspace ${seed}`,
+        description: 'private subspace',
+        isPublic: false,
+        template: 'gallery',
+        templateData: {},
+      },
+      expectedStatus: 201,
+    });
+
+    await apiRequest(`/api/manage/spaces/${parentSpaceId}/subspaces`, {
+      bearerToken,
+      method: 'POST',
+      body: {
+        name: `Expired Subspace ${seed}`,
+        description: 'expired subspace',
+        isPublic: true,
+        expiresAt: Date.now() - 60_000,
+        template: 'gallery',
+        templateData: {},
+      },
+      expectedStatus: 201,
+    });
+
+    const publicView = await fetchWithOptionalJson(`${getBaseUrl()}/api/space/${parentShareToken}`);
+    assert.strictEqual(publicView.response.status, 200);
+    assert.strictEqual(publicView.json?.success, true);
+    assert.ok(Array.isArray(publicView.json?.data?.subspaces), 'collection subspaces missing');
+
+    const subspaces = publicView.json.data.subspaces;
+    assert.ok(
+      subspaces.some(
+        (subspace) =>
+          subspace.name === `Public Subspace ${seed}` && subspace.shareUrl === `/space/${publicChildToken}`
+      ),
+      'public subspace missing from collection payload'
+    );
+    assert.ok(
+      !subspaces.some((subspace) => subspace.name === `Private Subspace ${seed}`),
+      'private subspace should not be exposed publicly'
+    );
+    assert.ok(
+      !subspaces.some((subspace) => subspace.name === `Expired Subspace ${seed}`),
+      'expired subspace should not be exposed publicly'
+    );
+  });
+
+  it('reflects product binding changes in public space payloads and falls back to snapshot after archive', async () => {
+    const bearerToken = await getBearerToken();
+    const seed = uniqueSeed('space-binding');
+
+    const createdProduct = await apiRequest('/api/manage/products', {
+      bearerToken,
+      method: 'POST',
+      body: {
+        name: `Space Binding Product ${seed}`,
+        spu: `SPACE-${seed}`,
+        currency: 'CNY',
+        brand: 'KK Live',
+        series: 'Series Live',
+        specifications: {
+          material: 'Cotton',
+        },
+        dimensions: [{ name: '材质', values: ['Leather'] }],
+        variants: [
+          {
+            sku: `SPACE-LIVE-${seed}`,
+            price: 168,
+            cost_price: 80,
+            stock_quantity: 3,
+            alert_threshold: 1,
+            status: 'active',
+            options_values: { 材质: 'Leather' },
+          },
+        ],
+      },
+      expectedStatus: 201,
+    });
+    const productId = createdProduct.json?.data?.id;
+    assert.ok(productId, 'space binding product id missing');
+
+    const productDetail = await apiRequest(`/api/manage/products/${productId}`, {
+      bearerToken,
+      expectedStatus: 200,
+    });
+    const variantId = productDetail.json?.data?.variants?.[0]?.id;
+    assert.ok(variantId, 'space binding variant id missing');
+
+    const imageA = await apiRequest('/api/v1/files', {
+      bearerToken,
+      method: 'POST',
+      body: {
+        name: `space-binding-primary-${seed}.txt`,
+        isPublic: false,
+      },
+      expectedStatus: 201,
+    });
+    const imageAId = imageA.json?.data?.id;
+    assert.ok(imageAId, 'space binding primary image id missing');
+
+    const imageB = await apiRequest('/api/v1/files', {
+      bearerToken,
+      method: 'POST',
+      body: {
+        name: `space-binding-secondary-${seed}.txt`,
+        isPublic: false,
+      },
+      expectedStatus: 201,
+    });
+    const imageBId = imageB.json?.data?.id;
+    assert.ok(imageBId, 'space binding secondary image id missing');
+
+    await apiRequest(`/api/manage/products/${productId}/variants/${variantId}/images`, {
+      bearerToken,
+      method: 'POST',
+      body: { imageId: imageAId, isPrimary: true },
+      expectedStatus: 201,
+    });
+    await apiRequest(`/api/manage/products/${productId}/variants/${variantId}/images`, {
+      bearerToken,
+      method: 'POST',
+      body: { imageId: imageBId, isPrimary: false },
+      expectedStatus: 201,
+    });
+
+    const createdSpace = await apiRequest('/api/manage/spaces', {
+      bearerToken,
+      method: 'POST',
+      body: {
+        name: `Binding Space ${seed}`,
+        description: 'business linkage public space coverage',
+        isPublic: true,
+        template: 'product',
+        productId,
+        variantId,
+        templateData: {
+          sku: 'SNAPSHOT-SKU',
+          material: 'Snapshot Material',
+          images: ['snapshot-main.jpg'],
+          brand: 'Snapshot Brand',
+          series: 'Snapshot Series',
+        },
+      },
+      expectedStatus: 201,
+    });
+    const shareToken = createdSpace.json?.data?.shareToken;
+    assert.ok(shareToken, 'binding space share token missing');
+
+    await waitFor(async () => {
+      const publicView = await fetchWithOptionalJson(`${getBaseUrl()}/api/space/${shareToken}`);
+      assert.strictEqual(publicView.response.status, 200);
+      assert.strictEqual(publicView.json?.success, true);
+      assert.strictEqual(publicView.json?.data?.templateData?.sku, `SPACE-LIVE-${seed}`);
+      assert.strictEqual(publicView.json?.data?.templateData?.material, 'Leather');
+      assert.strictEqual(publicView.json?.data?.templateData?.brand, 'KK Live');
+      assert.strictEqual(publicView.json?.data?.templateData?.series, 'Series Live');
+      assert.strictEqual(publicView.json?.data?.templateData?.images?.[0], imageAId);
+      assert.ok(
+        String(publicView.json?.data?.coverImage || '').includes(`/file/${imageAId}`),
+        'live binding cover image did not project variant primary image'
+      );
+      return publicView.json?.data;
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'public space did not project live bound product data',
+    });
+
+    await apiRequest(`/api/manage/products/${productId}`, {
+      bearerToken,
+      method: 'DELETE',
+      expectedStatus: 200,
+    });
+
+    await waitFor(async () => {
+      const archivedView = await fetchWithOptionalJson(`${getBaseUrl()}/api/space/${shareToken}`);
+      assert.strictEqual(archivedView.response.status, 200);
+      assert.strictEqual(archivedView.json?.success, true);
+      assert.strictEqual(archivedView.json?.data?.templateData?.sku, 'SNAPSHOT-SKU');
+      assert.strictEqual(archivedView.json?.data?.templateData?.material, 'Snapshot Material');
+      assert.strictEqual(archivedView.json?.data?.templateData?.brand, 'Snapshot Brand');
+      assert.strictEqual(archivedView.json?.data?.templateData?.series, 'Snapshot Series');
+      assert.strictEqual(archivedView.json?.data?.templateData?.images?.[0], 'snapshot-main.jpg');
+      assert.ok(
+        String(archivedView.json?.data?.coverImage || '').includes('/file/snapshot-main.jpg'),
+        'archived binding did not fall back to snapshot cover image'
+      );
+      return archivedView.json?.data;
+    }, {
+      timeoutMs: 15000,
+      intervalMs: 500,
+      onTimeoutMessage: 'public space did not fall back to snapshot data after product archive',
+    });
   });
 });

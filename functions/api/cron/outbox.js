@@ -9,6 +9,9 @@ const ACTIVE_CONSUMERS = ['audit', 'cache', 'notification', 'webhook'];
 const DEFAULT_JOB_CONCURRENCY = 4;
 const DEFAULT_MAX_ROUNDS = 4;
 const DEFAULT_CLAIM_BATCH_SIZE = 50;
+const REQUEST_JOB_CONCURRENCY = 1;
+const REQUEST_MAX_ROUNDS = 1;
+const REQUEST_CLAIM_BATCH_SIZE = 10;
 
 async function processOutboxJob({ consumerName, job, env, baseUrl, dispatchService, nowTs, state }) {
   try {
@@ -48,11 +51,18 @@ export async function runOutboxPoller({
   requestUrl,
   workerId = null,
   nowTs = Date.now(),
-  jobConcurrency = DEFAULT_JOB_CONCURRENCY,
-  maxRounds = DEFAULT_MAX_ROUNDS,
-  claimBatchSize = DEFAULT_CLAIM_BATCH_SIZE,
-  force = workerId != null,
+  jobConcurrency = undefined,
+  maxRounds = undefined,
+  claimBatchSize = undefined,
+  minRunIntervalMs = undefined,
+  force = undefined,
 }) {
+  const isRequestPathRun = workerId != null;
+  const resolvedForce = force ?? false;
+  const resolvedJobConcurrency = jobConcurrency ?? (isRequestPathRun ? REQUEST_JOB_CONCURRENCY : DEFAULT_JOB_CONCURRENCY);
+  const resolvedMaxRounds = maxRounds ?? (isRequestPathRun ? REQUEST_MAX_ROUNDS : DEFAULT_MAX_ROUNDS);
+  const resolvedClaimBatchSize = claimBatchSize ?? (isRequestPathRun ? REQUEST_CLAIM_BATCH_SIZE : DEFAULT_CLAIM_BATCH_SIZE);
+  const resolvedMinRunIntervalMs = minRunIntervalMs ?? (isRequestPathRun ? 0 : undefined);
   const dispatchService = new DomainOutboxDispatchService(env.DB);
   const runtimeStateRepo = new OutboxRuntimeStateRepository(env.DB);
   const baseUrl = new URL(requestUrl).origin;
@@ -60,7 +70,8 @@ export async function runOutboxPoller({
   const lease = await runtimeStateRepo.tryAcquire({
     workerId: resolvedWorkerId,
     nowTs,
-    force,
+    force: resolvedForce,
+    ...(resolvedMinRunIntervalMs === undefined ? {} : { minRunIntervalMs: resolvedMinRunIntervalMs }),
   });
 
   const consumerStats = Object.fromEntries(
@@ -97,18 +108,23 @@ export async function runOutboxPoller({
   };
 
   try {
-    while (rounds < maxRounds) {
+    while (rounds < resolvedMaxRounds) {
       let roundClaimedCount = 0;
 
       for (const consumerName of ACTIVE_CONSUMERS) {
-        const jobs = await dispatchService.claimJobs(consumerName, resolvedWorkerId, nowTs, claimBatchSize);
+        const jobs = await dispatchService.claimJobs(
+          consumerName,
+          resolvedWorkerId,
+          nowTs,
+          resolvedClaimBatchSize
+        );
         claimedCount += jobs.length;
         roundClaimedCount += jobs.length;
         consumerStats[consumerName].claimed += jobs.length;
         const outcomes = await runConcurrent(
           jobs,
           (job) => processOutboxJob({ consumerName, job, env, baseUrl, dispatchService, nowTs, state }),
-          jobConcurrency
+          resolvedJobConcurrency
         );
         const consumerPublished = outcomes.reduce((sum, outcome) => sum + Number(outcome?.published || 0), 0);
         const consumerFailed = outcomes.reduce((sum, outcome) => sum + Number(outcome?.failed || 0), 0);

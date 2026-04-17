@@ -99,6 +99,7 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
     id: orderId,
     orderNo,
     salespersonId: body.salespersonId,
+    customerId: body.customerId || null,
     data: {
       name: boundSnapshot.name,
       brand: boundSnapshot.brand,

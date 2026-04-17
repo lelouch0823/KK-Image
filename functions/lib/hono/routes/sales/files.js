@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { MSG, getFileUrl, timestampToIso } from '../../../../_shared/utils.js';
+import { MSG, generateId, getFileUrl, timestampToIso } from '../../../../_shared/utils.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
@@ -41,6 +41,24 @@ app.post('/upload', async (c) => {
         folderId,
         createdBy: salesperson.id,
     });
+
+    if (orderId && result?.id) {
+        const timestamp = Date.now();
+        const maxOrderRow = await env.DB.prepare(
+          'SELECT MAX(sort_order) as max_order FROM order_files WHERE order_id = ?'
+        ).bind(orderId).first();
+        const nextOrder = (maxOrderRow?.max_order ?? -1) + 1;
+
+        await env.DB.batch([
+          env.DB.prepare(
+            `
+              INSERT OR IGNORE INTO order_files (id, order_id, file_id, section, sort_order, added_at)
+              VALUES (?, ?, ?, 'product', ?, ?)
+            `
+          ).bind(generateId(), orderId, result.id, nextOrder, timestamp),
+          env.DB.prepare('UPDATE orders SET updated_at = ? WHERE id = ?').bind(timestamp, orderId),
+        ]);
+    }
     scheduleAuditEvent(c, {
         domain: 'sales-files',
         action: 'sales.file.upload',

@@ -1,9 +1,13 @@
 import assert from 'assert';
 import {
   apiRequest,
+  createRealApiIsolatedIp,
   getBaseUrl,
   multipartRequest,
+  shouldRetryRealApiLoopbackMidRequest,
   sleep,
+  waitForRealApiRuntimeRecovery,
+  withRealApiTestHeaders,
 } from './manage-products-real-api.js';
 
 function getRetryDelayMs(response, payload, attempt) {
@@ -53,33 +57,60 @@ export async function createSalespersonFixture(adminToken, seed, {
 export async function loginSalesperson(accessToken, password = '123456') {
   let response = null;
   let json = null;
+  let text = null;
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
     response = await fetch(`${getBaseUrl()}/api/sales/${accessToken}/auth`, {
       method: 'POST',
-      headers: {
+      headers: withRealApiTestHeaders({
         'Content-Type': 'application/json',
-      },
+        'X-Forwarded-For': createRealApiIsolatedIp(),
+      }),
       body: JSON.stringify({ password }),
     });
 
+    const jsonSource = typeof response?.clone === 'function' ? response.clone() : response;
     try {
-      json = await response.json();
+      json = await jsonSource.json();
     } catch {
       json = null;
     }
 
-    if (response.status !== 429 || attempt === 3) {
+    if (json == null) {
+      const textSource = typeof response?.clone === 'function' ? response.clone() : response;
+      try {
+        text = await textSource.text();
+      } catch {
+        text = null;
+      }
+    } else {
+      text = null;
+    }
+
+    const shouldRetryRateLimit = response.status === 429;
+    const shouldRetryRestart = shouldRetryRealApiLoopbackMidRequest(
+      `/api/sales/${accessToken}/auth`,
+      'POST',
+      response.status,
+      text
+    );
+
+    if ((!shouldRetryRateLimit && !shouldRetryRestart) || attempt === 3) {
       break;
     }
 
-    await sleep(getRetryDelayMs(response, json, attempt));
+    if (shouldRetryRateLimit) {
+      await sleep(getRetryDelayMs(response, json, attempt));
+      continue;
+    }
+
+    await waitForRealApiRuntimeRecovery();
   }
 
   assert.strictEqual(
     response.status,
     200,
-    `sales login failed: status=${response.status}, body=${JSON.stringify(json)}`
+    `sales login failed: status=${response.status}, body=${JSON.stringify(json ?? text ?? null)}`
   );
 
   const setCookie = response.headers.get('set-cookie') || '';

@@ -18,14 +18,52 @@ async function loadSalesRealApiUtils({ fetchImpl, multipartFetchImpl } = {}) {
 }
 
 function createJsonResponse(status, payload, headers = {}) {
+  const createHeaders = () => ({
+    get(name) {
+      return headers[name.toLowerCase()] ?? null;
+    },
+  });
+
   return {
     status,
-    headers: {
-      get(name) {
-        return headers[name.toLowerCase()] ?? null;
-      },
-    },
+    headers: createHeaders(),
     json: async () => payload,
+    text: async () => JSON.stringify(payload),
+    clone() {
+      return {
+        status,
+        headers: createHeaders(),
+        json: async () => payload,
+        text: async () => JSON.stringify(payload),
+      };
+    },
+  };
+}
+
+function createTextResponse(status, text, headers = {}) {
+  const createHeaders = () => ({
+    get(name) {
+      return headers[name.toLowerCase()] ?? null;
+    },
+  });
+
+  return {
+    status,
+    headers: createHeaders(),
+    json: async () => {
+      throw new Error('not json');
+    },
+    text: async () => text,
+    clone() {
+      return {
+        status,
+        headers: createHeaders(),
+        json: async () => {
+          throw new Error('not json');
+        },
+        text: async () => text,
+      };
+    },
   };
 }
 
@@ -62,6 +100,8 @@ describe('sales-real-api utils', () => {
 
   it('rebuilds sales multipart form data for each retry after rate limiting', async () => {
     vi.useFakeTimers();
+    const healthFetchMock = vi.fn().mockResolvedValue(createJsonResponse(200, { status: 'healthy' }));
+    vi.stubGlobal('fetch', healthFetchMock);
     const multipartFetchMock = vi.fn()
       .mockResolvedValueOnce(createJsonResponse(429, { success: false }, { 'retry-after': '1' }))
       .mockResolvedValueOnce(createJsonResponse(200, { success: true }));
@@ -87,6 +127,8 @@ describe('sales-real-api utils', () => {
     expect(multipartFetchMock.mock.calls[0][0]).toBe('http://127.0.0.1:8080/api/sales/access/upload');
     expect(multipartFetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer sales-jwt-token');
     expect(multipartFetchMock.mock.calls[0][1].body).not.toBe(multipartFetchMock.mock.calls[1][1].body);
+    expect(healthFetchMock).toHaveBeenCalledTimes(1);
+    expect(healthFetchMock.mock.calls[0][0]).toBe('http://127.0.0.1:8080/api/v1/health');
   });
 
   it('retries sales login after rate limiting and returns auth artifacts', async () => {
@@ -109,5 +151,32 @@ describe('sales-real-api utils', () => {
     expect(login.cookie).toBe('SALES_AUTH=sales-cookie');
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[0][0]).toBe('http://127.0.0.1:8080/api/sales/sales-access-token/auth');
+    expect(fetchMock.mock.calls[0][1].headers['X-Forwarded-For']).toMatch(/^10\.\d+\.\d+\.\d+$/);
+  });
+
+  it('retries sales login after loopback workerd restarts mid-request', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(
+        createTextResponse(
+          503,
+          'Your worker restarted mid-request. Please try sending the request again. Only GET or HEAD requests are retried automatically.'
+        )
+      )
+      .mockResolvedValueOnce(createJsonResponse(200, { status: 'healthy' }))
+      .mockResolvedValueOnce(createJsonResponse(
+        200,
+        { success: true, data: { token: 'sales-jwt-token' } },
+        { 'set-cookie': 'SALES_AUTH=sales-cookie; Path=/; HttpOnly' }
+      ));
+    const salesRealApiUtils = await loadSalesRealApiUtils({ fetchImpl: fetchMock });
+
+    const login = await salesRealApiUtils.loginSalesperson('sales-access-token', '123456');
+
+    expect(login.token).toBe('sales-jwt-token');
+    expect(login.cookie).toBe('SALES_AUTH=sales-cookie');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[0][0]).toBe('http://127.0.0.1:8080/api/sales/sales-access-token/auth');
+    expect(fetchMock.mock.calls[1][0]).toBe('http://127.0.0.1:8080/api/v1/health');
+    expect(fetchMock.mock.calls[2][0]).toBe('http://127.0.0.1:8080/api/sales/sales-access-token/auth');
   });
 });

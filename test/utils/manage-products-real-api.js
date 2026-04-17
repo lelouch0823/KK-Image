@@ -7,6 +7,9 @@ const BASIC_USER = process.env.BASIC_USER || 'admin';
 const BASIC_PASS = process.env.BASIC_PASS || '123';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const BEARER_TOKEN_PROMISE_KEY = '__kkImageRealApiBearerTokenPromise';
+const LOOPBACK_MID_REQUEST_RESTART_MESSAGE = 'Your worker restarted mid-request';
+export const REAL_API_RATE_LIMIT_BYPASS_HEADER = 'X-Test-Bypass-RateLimit';
+let REAL_API_ISOLATED_IP_COUNTER = 0;
 
 export function getBaseUrl() {
   const configured = String(process.env.BASE_URL || '').trim();
@@ -17,6 +20,75 @@ export function getBaseUrl() {
 }
 
 export const BASE_URL = getBaseUrl();
+
+function isLoopbackRuntime() {
+  try {
+    const url = new URL(getBaseUrl());
+    return url.hostname === '127.0.0.1' || url.hostname === 'localhost';
+  } catch {
+    return false;
+  }
+}
+
+function isLoopbackWriteApiRequest(path, method) {
+  if (!isLoopbackRuntime()) return false;
+  const normalizedMethod = String(method || 'GET').toUpperCase();
+  if (normalizedMethod === 'GET' || normalizedMethod === 'HEAD') return false;
+  return String(path || '').startsWith('/api/');
+}
+
+function shouldWaitForRuntimeStability(path, method, status) {
+  if (status < 200 || status >= 300) return false;
+  return isLoopbackWriteApiRequest(path, method);
+}
+
+export function shouldRetryRealApiLoopbackMidRequest(path, method, status, responseText) {
+  if (Number(status) !== 503) return false;
+  if (!isLoopbackWriteApiRequest(path, method)) return false;
+  return String(responseText || '').includes(LOOPBACK_MID_REQUEST_RESTART_MESSAGE);
+}
+
+export async function waitForRealApiRuntimeRecovery() {
+  await waitFor(async () => {
+    const response = await Promise.race([
+      fetch(`${getBaseUrl()}/api/v1/health`, {
+        headers: withRealApiTestHeaders(),
+      }),
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('health check timeout')), 5000);
+      }),
+    ]);
+    assert.strictEqual(response.status, 200, 'loopback runtime is still restarting');
+    return response;
+  }, {
+    timeoutMs: 30000,
+    intervalMs: 500,
+    onTimeoutMessage: 'loopback runtime did not recover after loopback write request',
+  });
+}
+
+async function readResponsePayload(response) {
+  let json = null;
+  let text = null;
+  const jsonSource = typeof response?.clone === 'function' ? response.clone() : response;
+
+  try {
+    json = await jsonSource?.json?.();
+  } catch {
+    json = null;
+  }
+
+  if (json == null) {
+    const textSource = typeof response?.clone === 'function' ? response.clone() : response;
+    try {
+      text = await textSource?.text?.();
+    } catch {
+      text = null;
+    }
+  }
+
+  return { json, text };
+}
 
 export function describeIfRealApi(name, suiteFn) {
   const runner = RUN_REAL_API_TESTS ? globalThis.describe : globalThis.describe.skip;
@@ -42,6 +114,26 @@ export const uniqueSeed = (prefix = 'wf') =>
 
 export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export function createRealApiIsolatedIp(firstOctet = 10) {
+  REAL_API_ISOLATED_IP_COUNTER += 1;
+  const seed = Date.now() + REAL_API_ISOLATED_IP_COUNTER;
+  return [
+    firstOctet,
+    (Math.floor(seed / 65536) % 250) + 1,
+    (Math.floor(seed / 256) % 250) + 1,
+    (seed % 250) + 1,
+  ].join('.');
+}
+
+export function withRealApiTestHeaders(headers = {}) {
+  const normalizedHeaders = { ...(headers || {}) };
+  if (!RUN_REAL_API_TESTS) return normalizedHeaders;
+  if (!(REAL_API_RATE_LIMIT_BYPASS_HEADER in normalizedHeaders)) {
+    normalizedHeaders[REAL_API_RATE_LIMIT_BYPASS_HEADER] = '1';
+  }
+  return normalizedHeaders;
 }
 
 function getRetryDelayMs(response, payload, attempt) {
@@ -88,23 +180,35 @@ export async function getBearerToken() {
       for (let attempt = 0; attempt < 5; attempt += 1) {
         const response = await fetch(`${getBaseUrl()}/api/v1/auth/login`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: withRealApiTestHeaders({
+            'Content-Type': 'application/json',
+            'X-Forwarded-For': createRealApiIsolatedIp(),
+          }),
           body: JSON.stringify({
             username: BASIC_USER,
             password: BASIC_PASS,
           }),
         });
 
-        let payload = null;
-        try {
-          payload = await response.clone().json();
-        } catch {
-          payload = null;
-        }
+        const payload = await readResponsePayload(response);
+        const json = payload.json;
+        const text = payload.text;
 
         lastStatus = response.status;
         if (response.status === 429) {
-          await sleep(getRetryDelayMs(response, payload, attempt));
+          await sleep(getRetryDelayMs(response, json, attempt));
+          continue;
+        }
+
+        if (
+          shouldRetryRealApiLoopbackMidRequest(
+            '/api/v1/auth/login',
+            'POST',
+            response.status,
+            text
+          )
+        ) {
+          await waitForRealApiRuntimeRecovery();
           continue;
         }
 
@@ -137,11 +241,12 @@ export async function apiRequest(path, {
   const finalAuth = authHeader || (bearerToken ? `Bearer ${bearerToken}` : '');
   const headers = {
     'Content-Type': 'application/json',
-    ...(extraHeaders || {}),
+    ...withRealApiTestHeaders(extraHeaders || {}),
   };
   if (finalAuth) headers.Authorization = finalAuth;
   let response = null;
   let json = null;
+  let text = null;
 
   do {
     response = await fetch(`${getBaseUrl()}${path}`, {
@@ -150,13 +255,19 @@ export async function apiRequest(path, {
       body: body ? JSON.stringify(body) : undefined,
     });
 
-    try {
-      json = await response.json();
-    } catch {
-      json = null;
-    }
+    const payload = await readResponsePayload(response);
+    json = payload.json;
+    text = payload.text;
 
-    if (response.status !== 429) {
+    const shouldRetryRateLimit = response.status === 429;
+    const shouldRetryRestart = shouldRetryRealApiLoopbackMidRequest(
+      path,
+      method,
+      response.status,
+      text
+    );
+
+    if (!shouldRetryRateLimit && !shouldRetryRestart) {
       break;
     }
 
@@ -165,16 +276,26 @@ export async function apiRequest(path, {
       break;
     }
 
-    await sleep(getRetryDelayMs(response, json, attempts - 1));
+    if (shouldRetryRateLimit) {
+      await sleep(getRetryDelayMs(response, json, attempts - 1));
+      continue;
+    }
+
+    await waitForRealApiRuntimeRecovery();
   } while (true);
 
   if (expectedStatus !== undefined) {
     assert.strictEqual(
       response.status,
       expectedStatus,
-      `Unexpected status for ${method} ${path}: ${response.status}, body=${JSON.stringify(json)}`
+      `Unexpected status for ${method} ${path}: ${response.status}, body=${JSON.stringify(json ?? text ?? null)}`
     );
   }
+
+  if (shouldWaitForRuntimeStability(path, method, response.status)) {
+    await waitForRealApiRuntimeRecovery();
+  }
+
   return { response, json };
 }
 
@@ -222,12 +343,13 @@ export async function multipartRequest(path, {
   let attempts = 0;
   const finalAuth = authHeader || (bearerToken ? `Bearer ${bearerToken}` : '');
   const baseHeaders = {
-    ...(extraHeaders || {}),
+    ...withRealApiTestHeaders(extraHeaders || {}),
   };
   if (finalAuth) baseHeaders.Authorization = finalAuth;
 
   let response = null;
   let json = null;
+  let text = null;
 
   do {
     const { formData, headers } = buildMultipartPayload(fields, baseHeaders);
@@ -237,13 +359,19 @@ export async function multipartRequest(path, {
       body: formData,
     });
 
-    try {
-      json = await response.json();
-    } catch {
-      json = null;
-    }
+    const payload = await readResponsePayload(response);
+    json = payload.json;
+    text = payload.text;
 
-    if (response.status !== 429) {
+    const shouldRetryRateLimit = response.status === 429;
+    const shouldRetryRestart = shouldRetryRealApiLoopbackMidRequest(
+      path,
+      method,
+      response.status,
+      text
+    );
+
+    if (!shouldRetryRateLimit && !shouldRetryRestart) {
       break;
     }
 
@@ -252,15 +380,24 @@ export async function multipartRequest(path, {
       break;
     }
 
-    await sleep(getRetryDelayMs(response, json, attempts - 1));
+    if (shouldRetryRateLimit) {
+      await sleep(getRetryDelayMs(response, json, attempts - 1));
+      continue;
+    }
+
+    await waitForRealApiRuntimeRecovery();
   } while (true);
 
   if (expectedStatus !== undefined) {
     assert.strictEqual(
       response.status,
       expectedStatus,
-      `Unexpected status for ${method} ${path}: ${response.status}, body=${JSON.stringify(json)}`
+      `Unexpected status for ${method} ${path}: ${response.status}, body=${JSON.stringify(json ?? text ?? null)}`
     );
+  }
+
+  if (shouldWaitForRuntimeStability(path, method, response.status)) {
+    await waitForRealApiRuntimeRecovery();
   }
 
   return { response, json };

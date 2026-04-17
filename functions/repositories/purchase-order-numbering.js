@@ -16,10 +16,10 @@ export async function generatePurchaseOrderNo(db) {
       `SELECT po_no
        FROM purchase_orders
        WHERE po_no LIKE ?
-       ORDER BY po_no DESC
+       ORDER BY CAST(SUBSTR(po_no, LENGTH(?) + 2) AS INTEGER) DESC, po_no DESC
        LIMIT 1`
     )
-    .bind(`${prefix}-%`)
+    .bind(`${prefix}-%`, prefix)
     .first();
 
   const seq = Number(String(latest?.po_no || '').split('-').at(-1) || 0) + 1;

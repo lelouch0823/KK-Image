@@ -28,7 +28,7 @@ export async function authenticateSalesperson(request, env, accessToken) {
 
   const salesperson = await env.DB.prepare(
     `
-        SELECT id, name, store, is_active
+        SELECT id, name, store, phone, is_active
         FROM salespersons WHERE id = ? AND access_token = ?
     `
   )
