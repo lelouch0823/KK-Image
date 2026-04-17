@@ -29,6 +29,29 @@ export function isDirectRealApiTransportEnabled() {
   );
 }
 
+export function shouldUseDirectSalesFlowTransport() {
+  return String(process.env.REAL_API_SALES_DIRECT || '').trim() === '1';
+}
+
+export async function withScopedRealApiTransport(transport, run) {
+  if (!transport) {
+    return run();
+  }
+
+  const originalTransport = process.env.REAL_API_TRANSPORT;
+  process.env.REAL_API_TRANSPORT = transport;
+
+  try {
+    return await run();
+  } finally {
+    if (originalTransport === undefined) {
+      delete process.env.REAL_API_TRANSPORT;
+      return;
+    }
+    process.env.REAL_API_TRANSPORT = originalTransport;
+  }
+}
+
 function isLoopbackRuntime() {
   if (isDirectRealApiTransportEnabled()) return false;
   try {

@@ -36,6 +36,14 @@ pnpm start
 pnpm test:real-api:full-chain
 ```
 
+如果要保留本地黑盒 Worker / HTTP 口径，请改用：
+
+```bash
+pnpm build
+pnpm start
+pnpm test:real-api:blackbox
+```
+
 ### 生产部署
 
 1. 在 Cloudflare 创建 D1 数据库和 R2 Bucket
@@ -55,7 +63,9 @@ pnpm test:real-api:full-chain
 ## 验证口径提醒
 
 - `pnpm test` 代表默认仓库测试套件通过，不等于真实 API 链路已经验证。
-- `pnpm test:real-api:full-chain` 依赖本地 Worker 在 `127.0.0.1:8080` 正常启动，并且 `/api/v1/health` 可访问。
+- `pnpm test:real-api` 默认是本地快速回归口径，不等于黑盒 HTTP 真实性验证。
+- `pnpm test:real-api:blackbox` 与 `pnpm test:real-api:full-chain:blackbox` 更接近本地真实 Worker / HTTP 形态。
+- 所有 real API 套件都依赖本地 Worker 在 `127.0.0.1:8080` 正常启动，并且 `/api/v1/health` 可访问。
 
 ## 下一步阅读
 

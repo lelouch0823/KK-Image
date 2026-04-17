@@ -64,6 +64,7 @@ function createTextResponse(status, text, headers = {}) {
 describe('manage-products-real-api utils', () => {
   afterEach(() => {
     delete globalThis.__kkImageRealApiBearerTokenPromise;
+    delete process.env.REAL_API_SALES_DIRECT;
     delete process.env.REAL_API_TRANSPORT;
     vi.unstubAllGlobals();
     vi.useRealTimers();
@@ -297,5 +298,28 @@ describe('manage-products-real-api utils', () => {
         },
       })
     );
+  });
+
+  it('enables direct sales-flow transport only when REAL_API_SALES_DIRECT=1', async () => {
+    process.env.REAL_API_SALES_DIRECT = '1';
+    const realApiUtils = await loadRealApiUtils();
+    expect(realApiUtils.shouldUseDirectSalesFlowTransport()).toBe(true);
+
+    delete process.env.REAL_API_SALES_DIRECT;
+    const reloaded = await loadRealApiUtils();
+    expect(reloaded.shouldUseDirectSalesFlowTransport()).toBe(false);
+  });
+
+  it('temporarily scopes REAL_API_TRANSPORT for a callback and restores the previous value', async () => {
+    process.env.REAL_API_TRANSPORT = 'http';
+    const realApiUtils = await loadRealApiUtils();
+    const seen = [];
+
+    await realApiUtils.withScopedRealApiTransport('direct', async () => {
+      seen.push(process.env.REAL_API_TRANSPORT);
+    });
+
+    expect(seen).toEqual(['direct']);
+    expect(process.env.REAL_API_TRANSPORT).toBe('http');
   });
 });

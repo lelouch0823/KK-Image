@@ -43,9 +43,17 @@ pnpm dev:all
 
 ```bash
 pnpm test:unit
+pnpm test:real-api
+pnpm test:real-api:blackbox
 pnpm test:real-api:full-chain
 pnpm build
 ```
+
+说明：
+
+- `pnpm test:real-api` / `pnpm test:real-api:fast`：本地快速回归，部分重销售链路会启用 direct transport 加速。
+- `pnpm test:real-api:blackbox`：本地高保真黑盒 Worker / HTTP 冒烟，保留真实 `wrangler pages dev` 请求路径。
+- `pnpm test:real-api:coverage:blackbox` 与 `pnpm test:real-api:full-chain:blackbox`：更慢，但更接近本地真实部署形态。
 
 `pnpm dev:all` 会先应用本地 D1 迁移，再启动 Vite 和 Pages Worker。
 
