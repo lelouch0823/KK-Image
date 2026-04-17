@@ -17,12 +17,13 @@
 import { createReadStream, existsSync, writeFileSync } from 'fs';
 import { createGunzip } from 'zlib';
 import { execSync } from 'child_process';
-import { basename } from 'path';
+import { basename, resolve } from 'path';
+import { fileURLToPath } from 'url';
 
 // ============================================================================
 // SOTA: 表恢复顺序 (按外键依赖关系排序)
 // ============================================================================
-const RESTORE_ORDER = [
+export const RESTORE_ORDER = [
     // 第 1 层: 无依赖的基础表
     'blobs',
     'users',
@@ -58,7 +59,7 @@ const RESTORE_ORDER = [
 // 工具函数
 // ============================================================================
 
-function log(message, type = 'info') {
+export function log(message, type = 'info') {
     const prefix = {
         info: '\x1b[36m[INFO]\x1b[0m',
         success: '\x1b[32m[OK]\x1b[0m',
@@ -68,7 +69,7 @@ function log(message, type = 'info') {
     console.log(`${prefix[type] || prefix.info} ${message}`);
 }
 
-function parseArgs(args) {
+export function parseArgs(args) {
     const options = {
         backupFile: null,
         database: 'kk-life-db',
@@ -95,7 +96,7 @@ function parseArgs(args) {
     return options;
 }
 
-async function readGzipJson(filePath) {
+export async function readGzipJson(filePath) {
     return new Promise((resolve, reject) => {
         const chunks = [];
         const gunzip = createGunzip();
@@ -117,7 +118,7 @@ async function readGzipJson(filePath) {
 /**
  * 将 JavaScript 值转换为 SQL 字面量
  */
-function toSqlValue(value) {
+export function toSqlValue(value) {
     if (value === null || value === undefined) return 'NULL';
     if (typeof value === 'number') return String(value);
     if (typeof value === 'boolean') return value ? '1' : '0';
@@ -129,7 +130,7 @@ function toSqlValue(value) {
 /**
  * 生成 INSERT 语句
  */
-function generateInsertSql(tableName, row) {
+export function generateInsertSql(tableName, row) {
     const columns = Object.keys(row);
     const values = columns.map(col => toSqlValue(row[col]));
     return `INSERT OR IGNORE INTO "${tableName}" (${columns.map(c => `"${c}"`).join(', ')}) VALUES (${values.join(', ')});`;
@@ -139,7 +140,7 @@ function generateInsertSql(tableName, row) {
 // 主流程
 // ============================================================================
 
-async function main() {
+export async function main() {
     const args = process.argv.slice(2);
     const options = parseArgs(args);
 
@@ -269,7 +270,10 @@ SOTA 数据库恢复脚本
     log('🎉 数据库恢复完成!', 'success');
 }
 
-main().catch(e => {
+const isMain = fileURLToPath(import.meta.url) === resolve(process.argv[1] || '');
+if (isMain) {
+  main().catch((e) => {
     log(`恢复失败: ${e.message}`, 'error');
     process.exit(1);
-});
+  });
+}
