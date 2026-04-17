@@ -44,7 +44,7 @@ export function useFileManager() {
       error.value = message || t('fileOps.loadFailed');
     }
     if (!silent && (!setGlobal || (code !== 'FORBIDDEN' && code !== 'UNAUTHORIZED'))) {
-      toast.error(toastMessage || error.value);
+      toast.error(toastMessage || message || error.value || t('fileOps.loadFailed'));
     }
   };
 
