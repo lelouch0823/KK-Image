@@ -64,10 +64,12 @@ function createTextResponse(status, text, headers = {}) {
 describe('manage-products-real-api utils', () => {
   afterEach(() => {
     delete globalThis.__kkImageRealApiBearerTokenPromise;
+    delete process.env.REAL_API_TRANSPORT;
     vi.unstubAllGlobals();
     vi.useRealTimers();
     vi.resetModules();
     vi.doUnmock('node-fetch');
+    vi.doUnmock('./utils/direct-pages-real-api.js');
   });
 
   it('exports multipartRequest for multipart real-api workflows', async () => {
@@ -77,9 +79,12 @@ describe('manage-products-real-api utils', () => {
 
   it('rebuilds multipart form data for each retry after rate limiting', async () => {
     vi.useFakeTimers();
-    const healthFetchMock = vi.fn().mockResolvedValue(createJsonResponse(200, { status: 'healthy' }));
+    const healthFetchMock = vi
+      .fn()
+      .mockResolvedValue(createJsonResponse(200, { status: 'healthy' }));
     vi.stubGlobal('fetch', healthFetchMock);
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(createJsonResponse(429, { success: false }))
       .mockResolvedValueOnce(createJsonResponse(200, { success: true }));
     const realApiUtils = await loadRealApiUtils({ fetchImpl: fetchMock });
@@ -110,7 +115,8 @@ describe('manage-products-real-api utils', () => {
 
   it('waits for loopback runtime recovery after successful purchase-order status mutations', async () => {
     vi.useFakeTimers();
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(createJsonResponse(200, { success: true }))
       .mockResolvedValueOnce(createJsonResponse(503, { success: false }))
       .mockResolvedValueOnce(createJsonResponse(200, { status: 'healthy' }));
@@ -129,13 +135,16 @@ describe('manage-products-real-api utils', () => {
     await requestPromise;
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock.mock.calls[0][0]).toBe('http://127.0.0.1:8080/api/manage/purchase-orders/po-1/status');
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'http://127.0.0.1:8080/api/manage/purchase-orders/po-1/status'
+    );
     expect(fetchMock.mock.calls[1][0]).toBe('http://127.0.0.1:8080/api/v1/health');
     expect(fetchMock.mock.calls[2][0]).toBe('http://127.0.0.1:8080/api/v1/health');
   });
 
   it('retries loopback api write requests after workerd restarts mid-request', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(
         createTextResponse(
           503,
@@ -166,13 +175,15 @@ describe('manage-products-real-api utils', () => {
   });
 
   it('sends a dedicated forwarded ip when logging in for real api tests', async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(
-      createJsonResponse(
-        200,
-        { success: true, data: { ok: true } },
-        { 'set-cookie': 'ADMIN_AUTH=test-cookie-token; Path=/; HttpOnly' }
-      )
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        createJsonResponse(
+          200,
+          { success: true, data: { ok: true } },
+          { 'set-cookie': 'ADMIN_AUTH=test-cookie-token; Path=/; HttpOnly' }
+        )
+      );
     vi.stubGlobal('fetch', fetchMock);
     delete process.env.ADMIN_TOKEN;
     process.env.BASE_URL = 'http://127.0.0.1:8080';
@@ -186,7 +197,8 @@ describe('manage-products-real-api utils', () => {
   });
 
   it('retries admin login after loopback workerd restarts mid-request', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(
         createTextResponse(
           503,
@@ -213,5 +225,77 @@ describe('manage-products-real-api utils', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('http://127.0.0.1:8080/api/v1/auth/login');
     expect(fetchMock.mock.calls[1][0]).toBe('http://127.0.0.1:8080/api/v1/health');
     expect(fetchMock.mock.calls[2][0]).toBe('http://127.0.0.1:8080/api/v1/auth/login');
+  });
+
+  it('routes json api requests through direct pages transport when REAL_API_TRANSPORT=direct', async () => {
+    process.env.REAL_API_TRANSPORT = 'direct';
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const directPageRequest = vi.fn().mockResolvedValue({
+      response: createJsonResponse(201, { success: true, data: { id: 'product-1' } }),
+      json: { success: true, data: { id: 'product-1' } },
+      text: null,
+    });
+    vi.doMock('./utils/direct-pages-real-api.js', () => ({
+      directPageRequest,
+    }));
+
+    const realApiUtils = await loadRealApiUtils();
+    const result = await realApiUtils.apiRequest('/api/manage/products', {
+      method: 'POST',
+      body: { name: 'Direct Product' },
+      expectedStatus: 201,
+      bearerToken: 'token-123',
+    });
+
+    expect(result.json?.data?.id).toBe('product-1');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(directPageRequest).toHaveBeenCalledWith(
+      '/api/manage/products',
+      expect.objectContaining({
+        method: 'POST',
+        body: { name: 'Direct Product' },
+        flushWaitUntil: true,
+        headers: expect.objectContaining({
+          Authorization: 'Bearer token-123',
+          'Content-Type': 'application/json',
+        }),
+      })
+    );
+  });
+
+  it('uses direct pages transport for admin login when REAL_API_TRANSPORT=direct', async () => {
+    process.env.REAL_API_TRANSPORT = 'direct';
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const directPageRequest = vi.fn().mockResolvedValue({
+      response: createJsonResponse(
+        200,
+        { success: true },
+        { 'set-cookie': 'ADMIN_AUTH=direct-cookie-token; Path=/; HttpOnly' }
+      ),
+      json: { success: true },
+      text: null,
+    });
+    vi.doMock('./utils/direct-pages-real-api.js', () => ({
+      directPageRequest,
+    }));
+
+    const realApiUtils = await loadRealApiUtils();
+    const token = await realApiUtils.getBearerToken();
+
+    expect(token).toBe('direct-cookie-token');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(directPageRequest).toHaveBeenCalledWith(
+      '/api/v1/auth/login',
+      expect.objectContaining({
+        method: 'POST',
+        flushWaitUntil: true,
+        body: {
+          username: 'admin',
+          password: '123',
+        },
+      })
+    );
   });
 });

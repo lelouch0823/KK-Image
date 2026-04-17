@@ -21,7 +21,16 @@ export function getBaseUrl() {
 
 export const BASE_URL = getBaseUrl();
 
+export function isDirectRealApiTransportEnabled() {
+  return (
+    String(process.env.REAL_API_TRANSPORT || '')
+      .trim()
+      .toLowerCase() === 'direct'
+  );
+}
+
 function isLoopbackRuntime() {
+  if (isDirectRealApiTransportEnabled()) return false;
   try {
     const url = new URL(getBaseUrl());
     return url.hostname === '127.0.0.1' || url.hostname === 'localhost';
@@ -38,33 +47,39 @@ function isLoopbackWriteApiRequest(path, method) {
 }
 
 function shouldWaitForRuntimeStability(path, method, status) {
+  if (isDirectRealApiTransportEnabled()) return false;
   if (status < 200 || status >= 300) return false;
   return isLoopbackWriteApiRequest(path, method);
 }
 
 export function shouldRetryRealApiLoopbackMidRequest(path, method, status, responseText) {
+  if (isDirectRealApiTransportEnabled()) return false;
   if (Number(status) !== 503) return false;
   if (!isLoopbackWriteApiRequest(path, method)) return false;
   return String(responseText || '').includes(LOOPBACK_MID_REQUEST_RESTART_MESSAGE);
 }
 
 export async function waitForRealApiRuntimeRecovery() {
-  await waitFor(async () => {
-    const response = await Promise.race([
-      fetch(`${getBaseUrl()}/api/v1/health`, {
-        headers: withRealApiTestHeaders(),
-      }),
-      new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('health check timeout')), 5000);
-      }),
-    ]);
-    assert.strictEqual(response.status, 200, 'loopback runtime is still restarting');
-    return response;
-  }, {
-    timeoutMs: 30000,
-    intervalMs: 500,
-    onTimeoutMessage: 'loopback runtime did not recover after loopback write request',
-  });
+  if (isDirectRealApiTransportEnabled()) return;
+  await waitFor(
+    async () => {
+      const response = await Promise.race([
+        fetch(`${getBaseUrl()}/api/v1/health`, {
+          headers: withRealApiTestHeaders(),
+        }),
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('health check timeout')), 5000);
+        }),
+      ]);
+      assert.strictEqual(response.status, 200, 'loopback runtime is still restarting');
+      return response;
+    },
+    {
+      timeoutMs: 30000,
+      intervalMs: 500,
+      onTimeoutMessage: 'loopback runtime did not recover after loopback write request',
+    }
+  );
 }
 
 async function readResponsePayload(response) {
@@ -88,6 +103,36 @@ async function readResponsePayload(response) {
   }
 
   return { json, text };
+}
+
+function shouldFlushDirectWaitUntil(method) {
+  if (!isDirectRealApiTransportEnabled()) return false;
+  const normalizedMethod = String(method || 'GET').toUpperCase();
+  return normalizedMethod !== 'GET' && normalizedMethod !== 'HEAD';
+}
+
+export async function jsonRequest(path, { method = 'GET', headers = {}, body } = {}) {
+  if (isDirectRealApiTransportEnabled()) {
+    const { directPageRequest } = await import('./direct-pages-real-api.js');
+    return directPageRequest(path, {
+      method,
+      headers,
+      body,
+      flushWaitUntil: shouldFlushDirectWaitUntil(method),
+    });
+  }
+
+  const response = await fetch(`${getBaseUrl()}${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const payload = await readResponsePayload(response);
+  return {
+    response,
+    json: payload.json,
+    text: payload.text,
+  };
 }
 
 export function describeIfRealApi(name, suiteFn) {
@@ -139,9 +184,8 @@ export function withRealApiTestHeaders(headers = {}) {
 function getRetryDelayMs(response, payload, attempt) {
   const headerValue = Number(response?.headers?.get('retry-after'));
   const payloadValue = Number(payload?.retryAfter);
-  const retryAfterSeconds = Number.isFinite(headerValue) && headerValue > 0
-    ? headerValue
-    : payloadValue;
+  const retryAfterSeconds =
+    Number.isFinite(headerValue) && headerValue > 0 ? headerValue : payloadValue;
 
   if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
     return retryAfterSeconds * 1000;
@@ -150,11 +194,10 @@ function getRetryDelayMs(response, payload, attempt) {
   return 400 * (attempt + 1);
 }
 
-export async function waitFor(assertion, {
-  timeoutMs = 15000,
-  intervalMs = 500,
-  onTimeoutMessage = 'waitFor timeout',
-} = {}) {
+export async function waitFor(
+  assertion,
+  { timeoutMs = 15000, intervalMs = 500, onTimeoutMessage = 'waitFor timeout' } = {}
+) {
   const startedAt = Date.now();
   let lastError = null;
 
@@ -178,19 +221,18 @@ export async function getBearerToken() {
       let lastStatus = null;
 
       for (let attempt = 0; attempt < 5; attempt += 1) {
-        const response = await fetch(`${getBaseUrl()}/api/v1/auth/login`, {
+        const payload = await jsonRequest('/api/v1/auth/login', {
           method: 'POST',
           headers: withRealApiTestHeaders({
             'Content-Type': 'application/json',
             'X-Forwarded-For': createRealApiIsolatedIp(),
           }),
-          body: JSON.stringify({
+          body: {
             username: BASIC_USER,
             password: BASIC_PASS,
-          }),
+          },
         });
-
-        const payload = await readResponsePayload(response);
+        const response = payload.response;
         const json = payload.json;
         const text = payload.text;
 
@@ -201,12 +243,7 @@ export async function getBearerToken() {
         }
 
         if (
-          shouldRetryRealApiLoopbackMidRequest(
-            '/api/v1/auth/login',
-            'POST',
-            response.status,
-            text
-          )
+          shouldRetryRealApiLoopbackMidRequest('/api/v1/auth/login', 'POST', response.status, text)
         ) {
           await waitForRealApiRuntimeRecovery();
           continue;
@@ -219,7 +256,9 @@ export async function getBearerToken() {
         return match[1];
       }
 
-      throw new Error(`failed to login for real API tests after retries, last status=${lastStatus}`);
+      throw new Error(
+        `failed to login for real API tests after retries, last status=${lastStatus}`
+      );
     })().catch((error) => {
       globalThis[BEARER_TOKEN_PROMISE_KEY] = null;
       throw error;
@@ -229,14 +268,10 @@ export async function getBearerToken() {
   return globalThis[BEARER_TOKEN_PROMISE_KEY];
 }
 
-export async function apiRequest(path, {
-  method = 'GET',
-  body,
-  expectedStatus,
-  bearerToken,
-  authHeader,
-  headers: extraHeaders,
-} = {}) {
+export async function apiRequest(
+  path,
+  { method = 'GET', body, expectedStatus, bearerToken, authHeader, headers: extraHeaders } = {}
+) {
   let attempts = 0;
   const finalAuth = authHeader || (bearerToken ? `Bearer ${bearerToken}` : '');
   const headers = {
@@ -249,13 +284,12 @@ export async function apiRequest(path, {
   let text = null;
 
   do {
-    response = await fetch(`${getBaseUrl()}${path}`, {
+    const payload = await jsonRequest(path, {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      body,
     });
-
-    const payload = await readResponsePayload(response);
+    response = payload.response;
     json = payload.json;
     text = payload.text;
 
@@ -303,9 +337,9 @@ function appendMultipartField(formData, key, value) {
   if (value === undefined || value === null) return;
 
   if (
-    typeof value === 'object'
-    && value !== null
-    && Object.prototype.hasOwnProperty.call(value, 'value')
+    typeof value === 'object' &&
+    value !== null &&
+    Object.prototype.hasOwnProperty.call(value, 'value')
   ) {
     formData.append(key, value.value, {
       filename: value.filename || undefined,
@@ -332,14 +366,17 @@ function buildMultipartPayload(fields, headers = {}) {
   };
 }
 
-export async function multipartRequest(path, {
-  method = 'POST',
-  fields = {},
-  expectedStatus,
-  bearerToken,
-  authHeader,
-  headers: extraHeaders,
-} = {}) {
+export async function multipartRequest(
+  path,
+  {
+    method = 'POST',
+    fields = {},
+    expectedStatus,
+    bearerToken,
+    authHeader,
+    headers: extraHeaders,
+  } = {}
+) {
   let attempts = 0;
   const finalAuth = authHeader || (bearerToken ? `Bearer ${bearerToken}` : '');
   const baseHeaders = {
