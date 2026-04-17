@@ -89,7 +89,7 @@ async function getSpaceData(space, env, { includePrivateSubspaces = false, fileU
       `SELECT s.id, s.name, s.template, s.share_token, s.description, s.template_data, s.product_id, s.variant_id, s.expires_at,
               (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
               f.storage_key as cover_storage_key,
-              p.spu as p_sku, p.status as p_status, p.brand as p_brand, p.series as p_series,
+              p.spu as p_sku, NULL as p_status, p.brand as p_brand, p.series as p_series,
               COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
               p.specifications as p_specs, p.images as p_images,
               pv.sku as pv_sku,
@@ -272,7 +272,7 @@ export async function onRequestGet(context) {
     // 查找空间
     const space = await env.DB.prepare(`
         SELECT s.*,
-            p.spu as p_sku, p.status as p_status, p.brand as p_brand, p.series as p_series,
+            p.spu as p_sku, NULL as p_status, p.brand as p_brand, p.series as p_series,
             COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
             p.specifications as p_specs, p.images as p_images,
             pv.sku as pv_sku,
@@ -357,7 +357,7 @@ export async function onRequestPost(context) {
     // 查找空间
     const space = await env.DB.prepare(`
         SELECT s.*,
-            p.spu as p_sku, p.status as p_status, p.brand as p_brand, p.series as p_series,
+            p.spu as p_sku, NULL as p_status, p.brand as p_brand, p.series as p_series,
             COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
             p.specifications as p_specs, p.images as p_images,
             pv.sku as pv_sku,

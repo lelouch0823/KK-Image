@@ -21,7 +21,7 @@ export class SpaceRepository {
         return `
           p.id as p_bound_id,
           p.spu as p_sku,
-          p.status as p_status,
+          NULL as p_status,
           p.brand as p_brand,
           p.series as p_series,
           COALESCE(pv.price, (SELECT MIN(price) FROM product_variants WHERE product_id = p.id), 0) as p_price,
