@@ -1,5 +1,5 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite';
+import { coverageConfigDefaults, defineConfig } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'node:url';
 
@@ -10,6 +10,13 @@ export default defineConfig({
         environment: 'jsdom',
         clearMocks: true,
         restoreMocks: true,
+        coverage: {
+            exclude: [
+                ...coverageConfigDefaults.exclude,
+                'minisales/**',
+                '.worktrees/**',
+            ],
+        },
         include: [
             'src/**/__tests__/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
             'functions/**/__tests__/*.{test,spec}.js',
