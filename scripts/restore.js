@@ -140,13 +140,7 @@ export function generateInsertSql(tableName, row) {
 // 主流程
 // ============================================================================
 
-export async function main() {
-    const args = process.argv.slice(2);
-    const options = parseArgs(args);
-
-    // 参数校验
-    if (!options.backupFile) {
-        console.log(`
+const USAGE_TEXT = `
 SOTA 数据库恢复脚本
 
 使用方法:
@@ -160,27 +154,42 @@ SOTA 数据库恢复脚本
 
 示例:
   node scripts/restore.js backup_2026-01-01.json.gz --remote
-`);
-        process.exit(1);
+`;
+
+export async function runRestoreCli(options = {}) {
+    const args = options.args || process.argv.slice(2);
+    const parsed = options.parsedOptions || parseArgs(args);
+    const existsSyncImpl = options.existsSyncImpl || existsSync;
+    const readGzipJsonImpl = options.readGzipJsonImpl || readGzipJson;
+    const writeFileSyncImpl = options.writeFileSyncImpl || writeFileSync;
+    const execSyncImpl = options.execSyncImpl || execSync;
+    const sleepImpl = options.sleepImpl || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    const logImpl = options.logImpl || log;
+    const printLine = options.printLine || console.log;
+
+    // 参数校验
+    if (!parsed.backupFile) {
+        printLine(USAGE_TEXT);
+        return 1;
     }
 
-    if (!existsSync(options.backupFile)) {
-        log(`备份文件不存在: ${options.backupFile}`, 'error');
-        process.exit(1);
+    if (!existsSyncImpl(parsed.backupFile)) {
+        logImpl(`备份文件不存在: ${parsed.backupFile}`, 'error');
+        return 1;
     }
 
-    log(`正在读取备份文件: ${basename(options.backupFile)}`);
-    const backup = await readGzipJson(options.backupFile);
+    logImpl(`正在读取备份文件: ${basename(parsed.backupFile)}`);
+    const backup = await readGzipJsonImpl(parsed.backupFile);
 
     // 校验备份格式
     if (!backup.metadata || !backup.data) {
-        log('备份文件格式无效 (缺少 metadata 或 data)', 'error');
-        process.exit(1);
+        logImpl('备份文件格式无效 (缺少 metadata 或 data)', 'error');
+        return 1;
     }
 
-    log(`备份时间: ${backup.metadata.createdAt}`);
-    log(`备份版本: ${backup.metadata.version}`);
-    log(`包含表: ${Object.keys(backup.data).length} 个`);
+    logImpl(`备份时间: ${backup.metadata.createdAt}`);
+    logImpl(`备份版本: ${backup.metadata.version}`);
+    logImpl(`包含表: ${Object.keys(backup.data).length} 个`);
 
     // 统计
     let totalRows = 0;
@@ -190,44 +199,44 @@ SOTA 数据库恢复脚本
         tableStats[table] = count;
         totalRows += count;
     }
-    log(`总记录数: ${totalRows}`);
+    logImpl(`总记录数: ${totalRows}`);
 
-    if (options.dryRun) {
-        log('Dry-run 模式，以下是恢复计划:', 'info');
+    if (parsed.dryRun) {
+        logImpl('Dry-run 模式，以下是恢复计划:', 'info');
         for (const table of RESTORE_ORDER) {
             if (tableStats[table] !== undefined) {
-                console.log(`  ${table}: ${tableStats[table]} 条`);
+                printLine(`  ${table}: ${tableStats[table]} 条`);
             }
         }
         // 检查是否有未在顺序表中的表
         for (const table of Object.keys(backup.data)) {
             if (!RESTORE_ORDER.includes(table)) {
-                log(`未知表 "${table}" 将被跳过`, 'warn');
+                logImpl(`未知表 "${table}" 将被跳过`, 'warn');
             }
         }
-        process.exit(0);
+        return 0;
     }
 
     // 确认远程操作
-    if (options.remote && !options.dryRun) {
-        log(`⚠️  即将恢复到 远程生产数据库: ${options.database}`, 'warn');
-        log('按 Ctrl+C 取消，或等待 5 秒继续...', 'warn');
-        await new Promise(r => setTimeout(r, 5000));
+    if (parsed.remote && !parsed.dryRun) {
+        logImpl(`⚠️  即将恢复到 远程生产数据库: ${parsed.database}`, 'warn');
+        logImpl('按 Ctrl+C 取消，或等待 5 秒继续...', 'warn');
+        await sleepImpl(5000);
     }
 
     // 清空数据库 (可选)
-    if (options.clearFirst) {
-        log('正在清空目标数据库...', 'warn');
+    if (parsed.clearFirst) {
+        logImpl('正在清空目标数据库...', 'warn');
         const dropTables = RESTORE_ORDER.slice().reverse().map(t => `DROP TABLE IF EXISTS "${t}";`).join('\n');
         const tmpDropFile = '/tmp/restore_drop.sql';
-        writeFileSync(tmpDropFile, dropTables, 'utf-8');
+        writeFileSyncImpl(tmpDropFile, dropTables, 'utf-8');
 
-        const remoteFlag = options.remote ? '--remote' : '--local';
+        const remoteFlag = parsed.remote ? '--remote' : '--local';
         try {
-            execSync(`npx wrangler d1 execute ${options.database} ${remoteFlag} --file=${tmpDropFile}`, { stdio: 'pipe' });
-            log('表已清空，请手动运行 init-database.sql 重建表结构', 'warn');
+            execSyncImpl(`npx wrangler d1 execute ${parsed.database} ${remoteFlag} --file=${tmpDropFile}`, { stdio: 'pipe' });
+            logImpl('表已清空，请手动运行 init-database.sql 重建表结构', 'warn');
         } catch (e) {
-            log(`清空失败: ${e.message}`, 'error');
+            logImpl(`清空失败: ${e.message}`, 'error');
         }
     }
 
@@ -240,7 +249,7 @@ SOTA 数据库恢复脚本
             continue;
         }
 
-        log(`恢复表 ${table}: ${info.rows.length} 条...`);
+        logImpl(`恢复表 ${table}: ${info.rows.length} 条...`);
 
         // 分批处理 (每批 100 条)
         const BATCH_SIZE = 100;
@@ -250,24 +259,30 @@ SOTA 数据库恢复脚本
             const batch = info.rows.slice(i, i + BATCH_SIZE);
             const sqlStatements = batch.map(row => generateInsertSql(table, row)).join('\n');
 
-            writeFileSync(tmpFile, sqlStatements, 'utf-8');
+            writeFileSyncImpl(tmpFile, sqlStatements, 'utf-8');
 
-            const remoteFlag = options.remote ? '--remote' : '--local';
-            const cmd = `npx wrangler d1 execute ${options.database} ${remoteFlag} --file=${tmpFile}`;
+            const remoteFlag = parsed.remote ? '--remote' : '--local';
+            const cmd = `npx wrangler d1 execute ${parsed.database} ${remoteFlag} --file=${tmpFile}`;
 
             try {
-                execSync(cmd, { stdio: 'pipe' });
+                execSyncImpl(cmd, { stdio: 'pipe' });
                 successCount += batch.length;
             } catch (e) {
-                log(`批次 ${Math.floor(i / BATCH_SIZE) + 1} 执行失败`, 'warn');
+                logImpl(`批次 ${Math.floor(i / BATCH_SIZE) + 1} 执行失败`, 'warn');
                 // 继续下一批，不中断
             }
         }
 
-        log(`${table}: ${successCount}/${info.rows.length} 条恢复成功`, 'success');
+        logImpl(`${table}: ${successCount}/${info.rows.length} 条恢复成功`, 'success');
     }
 
-    log('🎉 数据库恢复完成!', 'success');
+    logImpl('🎉 数据库恢复完成!', 'success');
+    return 0;
+}
+
+export async function main() {
+    const exitCode = await runRestoreCli();
+    process.exit(exitCode);
 }
 
 const isMain = fileURLToPath(import.meta.url) === resolve(process.argv[1] || '');
