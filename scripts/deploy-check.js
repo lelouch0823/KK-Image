@@ -6,326 +6,317 @@
  */
 
 import fetch from 'node-fetch';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-// 配置
-const CONFIG = {
-  // 默认本地开发环境，可通过环境变量覆盖
-  BASE_URL: process.env.DEPLOY_URL || 'http://localhost:8080',
-  API_BASE: process.env.API_BASE || 'http://localhost:8080/api/v1',
-  TIMEOUT: 10000, // 10秒超时
-
-  // 测试用户凭据
-  TEST_USERNAME: process.env.TEST_USERNAME || 'admin',
-  TEST_PASSWORD: process.env.TEST_PASSWORD || '123'
-};
-
-// 颜色输出
-const colors = {
+export const colors = {
   green: '\x1b[32m',
   red: '\x1b[31m',
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   reset: '\x1b[0m',
-  bold: '\x1b[1m'
+  bold: '\x1b[1m',
 };
 
-function log(message, color = 'reset') {
-  console.log(`${colors[color]}${message}${colors.reset}`);
+export function createConfig(env = process.env) {
+  return {
+    BASE_URL: env.DEPLOY_URL || 'http://localhost:8080',
+    API_BASE: env.API_BASE || 'http://localhost:8080/api/v1',
+    TIMEOUT: 10000,
+    TEST_USERNAME: env.TEST_USERNAME || 'admin',
+    TEST_PASSWORD: env.TEST_PASSWORD || '123',
+  };
 }
 
-function success(message) {
-  log(`✅ ${message}`, 'green');
+export function createLogger(options = {}) {
+  const writeLine = options.writeLine || ((line) => process.stdout.write(`${line}\n`));
+  const counters = { passed: 0, failed: 0, warnings: 0 };
+
+  function log(message, color = 'reset') {
+    writeLine(`${colors[color] || colors.reset}${message}${colors.reset}`);
+  }
+
+  function success(message) {
+    counters.passed += 1;
+    log(`✅ ${message}`, 'green');
+  }
+
+  function error(message) {
+    counters.failed += 1;
+    log(`❌ ${message}`, 'red');
+  }
+
+  function warning(message) {
+    counters.warnings += 1;
+    log(`⚠️  ${message}`, 'yellow');
+  }
+
+  function info(message) {
+    log(`ℹ️  ${message}`, 'blue');
+  }
+
+  return { counters, log, success, error, warning, info };
 }
 
-function error(message) {
-  log(`❌ ${message}`, 'red');
-}
-
-function warning(message) {
-  log(`⚠️  ${message}`, 'yellow');
-}
-
-function info(message) {
-  log(`ℹ️  ${message}`, 'blue');
-}
-
-// HTTP 请求封装
-async function request(url, options = {}) {
+export async function request(url, options = {}, deps = {}) {
+  const config = deps.config || createConfig();
+  const fetchImpl = deps.fetchImpl || fetch;
+  const setTimeoutImpl = deps.setTimeoutImpl || setTimeout;
+  const clearTimeoutImpl = deps.clearTimeoutImpl || clearTimeout;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT);
+  const timeoutId = setTimeoutImpl(() => controller.abort(), config.TIMEOUT);
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchImpl(url, {
       ...options,
-      signal: controller.signal
+      signal: controller.signal,
     });
-    clearTimeout(timeoutId);
+    clearTimeoutImpl(timeoutId);
     return response;
-  } catch (err) {
-    clearTimeout(timeoutId);
-    if (err.name === 'AbortError') {
-      throw new Error(`Request timeout after ${CONFIG.TIMEOUT}ms`);
+  } catch (error) {
+    clearTimeoutImpl(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timeout after ${config.TIMEOUT}ms`);
     }
-    throw err;
+    throw error;
   }
 }
 
-// 检查基础页面
-async function checkBasicPages() {
-  info('检查基础页面...');
+export async function checkBasicPages(deps = {}) {
+  const config = deps.config || createConfig();
+  const logger = deps.logger || createLogger();
+  logger.info('检查基础页面...');
 
   const pages = [
     { path: '/', name: '主页' },
-    { path: '/admin', name: '管理页面' }
+    { path: '/admin', name: '管理页面' },
   ];
 
   for (const page of pages) {
     try {
-      const response = await request(`${CONFIG.BASE_URL}${page.path}`);
+      const response = await request(`${config.BASE_URL}${page.path}`, {}, deps);
       if (response.ok) {
-        success(`${page.name} (${page.path}) - 状态: ${response.status}`);
+        logger.success(`${page.name} (${page.path}) - 状态: ${response.status}`);
       } else {
-        warning(`${page.name} (${page.path}) - 状态: ${response.status}`);
+        logger.warning(`${page.name} (${page.path}) - 状态: ${response.status}`);
       }
-    } catch (err) {
-      error(`${page.name} (${page.path}) - 错误: ${err.message}`);
+    } catch (error) {
+      logger.error(`${page.name} (${page.path}) - 错误: ${error.message}`);
     }
   }
 }
 
-// 检查静态资源
-async function checkStaticAssets() {
-  info('检查静态资源...');
+export async function checkStaticAssets(deps = {}) {
+  const config = deps.config || createConfig();
+  const logger = deps.logger || createLogger();
+  logger.info('检查静态资源...');
 
-  const assets = ['/favicon.ico'];
-
-  for (const asset of assets) {
+  for (const asset of ['/favicon.ico']) {
     try {
-      const response = await request(`${CONFIG.BASE_URL}${asset}`);
+      const response = await request(`${config.BASE_URL}${asset}`, {}, deps);
       if (response.ok) {
-        success(`静态资源 ${asset} - 状态: ${response.status}`);
+        logger.success(`静态资源 ${asset} - 状态: ${response.status}`);
       } else {
-        warning(`静态资源 ${asset} - 状态: ${response.status}`);
+        logger.warning(`静态资源 ${asset} - 状态: ${response.status}`);
       }
-    } catch (err) {
-      error(`静态资源 ${asset} - 错误: ${err.message}`);
+    } catch (error) {
+      logger.error(`静态资源 ${asset} - 错误: ${error.message}`);
     }
   }
 }
 
-
-// 检查 API 健康状态
-async function checkAPIHealth() {
-  info('检查 API 健康状态...');
+export async function checkAPIHealth(deps = {}) {
+  const config = deps.config || createConfig();
+  const logger = deps.logger || createLogger();
+  logger.info('检查 API 健康状态...');
 
   try {
-    const response = await request(`${CONFIG.API_BASE}/health`);
-    if (response.ok) {
-      const data = await response.json();
-      success(`API 健康检查 - 状态: ${data.status}`);
-      return true;
-    } else {
-      error(`API 健康检查失败 - 状态: ${response.status}`);
+    const response = await request(`${config.API_BASE}/health`, {}, deps);
+    if (!response.ok) {
+      logger.error(`API 健康检查失败 - 状态: ${response.status}`);
       return false;
     }
-  } catch (err) {
-    error(`API 健康检查错误: ${err.message}`);
+
+    const data = await response.json();
+    logger.success(`API 健康检查 - 状态: ${data.status}`);
+    return true;
+  } catch (error) {
+    logger.error(`API 健康检查错误: ${error.message}`);
     return false;
   }
 }
 
-// 检查认证系统
-async function checkAuthentication() {
-  info('检查认证系统...');
+export async function checkAuthentication(deps = {}) {
+  const config = deps.config || createConfig();
+  const logger = deps.logger || createLogger();
+  logger.info('检查认证系统...');
 
   try {
-    // 测试 JWT 认证
-    const response = await request(`${CONFIG.API_BASE}/auth/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: CONFIG.TEST_USERNAME,
-        password: CONFIG.TEST_PASSWORD
-      })
-    });
+    const response = await request(
+      `${config.API_BASE}/auth/token`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: config.TEST_USERNAME,
+          password: config.TEST_PASSWORD,
+        }),
+      },
+      deps
+    );
 
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success && data.data.token) {
-        success('JWT 认证系统正常');
-        return data.data.token;
-      } else {
-        error('JWT 认证响应格式错误');
-        return null;
-      }
-    } else {
-      error(`JWT 认证失败 - 状态: ${response.status}`);
+    if (!response.ok) {
+      logger.error(`JWT 认证失败 - 状态: ${response.status}`);
       return null;
     }
-  } catch (err) {
-    error(`认证系统错误: ${err.message}`);
+
+    const data = await response.json();
+    if (data.success && data.data.token) {
+      logger.success('JWT 认证系统正常');
+      return data.data.token;
+    }
+
+    logger.error('JWT 认证响应格式错误');
+    return null;
+  } catch (error) {
+    logger.error(`认证系统错误: ${error.message}`);
     return null;
   }
 }
 
-// 检查 API 端点
-async function checkAPIEndpoints(token) {
+export async function checkAPIEndpoints(token, deps = {}) {
+  const config = deps.config || createConfig();
+  const logger = deps.logger || createLogger();
+
   if (!token) {
-    warning('跳过 API 端点检查（无有效 token）');
+    logger.warning('跳过 API 端点检查（无有效 token）');
     return;
   }
 
-  info('检查 API 端点...');
+  logger.info('检查 API 端点...');
 
   const endpoints = [
     { method: 'GET', path: '/files', name: '文件列表' },
     { method: 'GET', path: '/webhooks', name: 'Webhook 列表' },
-    { method: 'GET', path: '/info', name: '系统信息' }
+    { method: 'GET', path: '/info', name: '系统信息' },
   ];
 
   for (const endpoint of endpoints) {
     try {
-      const response = await request(`${CONFIG.API_BASE}${endpoint.path}`, {
-        method: endpoint.method,
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await request(
+        `${config.API_BASE}${endpoint.path}`,
+        {
+          method: endpoint.method,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+        deps
+      );
 
       if (response.ok) {
-        success(`${endpoint.name} API - 状态: ${response.status}`);
+        logger.success(`${endpoint.name} API - 状态: ${response.status}`);
       } else {
-        warning(`${endpoint.name} API - 状态: ${response.status}`);
+        logger.warning(`${endpoint.name} API - 状态: ${response.status}`);
       }
-    } catch (err) {
-      error(`${endpoint.name} API - 错误: ${err.message}`);
+    } catch (error) {
+      logger.error(`${endpoint.name} API - 错误: ${error.message}`);
     }
   }
 }
 
-// 检查环境配置
-async function checkEnvironmentConfig() {
-  info('检查环境配置...');
+export async function checkEnvironmentConfig(deps = {}) {
+  const logger = deps.logger || createLogger();
+  const readFileSyncImpl = deps.readFileSyncImpl || readFileSync;
+  logger.info('检查环境配置...');
 
   try {
-    // 读取 wrangler.toml 检查配置
-    const wranglerPath = join(__dirname, '..', 'wrangler.toml');
-    const wranglerContent = readFileSync(wranglerPath, 'utf8');
-
-    // 检查关键配置项
-    const requiredConfigs = [
-      'BASIC_USER',
-      'BASIC_PASS',
-      'TG_Bot_Token',
-      'TG_Chat_ID'
-    ];
-
+    const wranglerPath = path.join(__dirname, '..', 'wrangler.toml');
+    const wranglerContent = readFileSyncImpl(wranglerPath, 'utf8');
     let configOk = true;
-    for (const config of requiredConfigs) {
-      if (wranglerContent.includes(config)) {
-        success(`环境变量 ${config} 已配置`);
+
+    for (const configKey of ['BASIC_USER', 'BASIC_PASS', 'TG_Bot_Token', 'TG_Chat_ID']) {
+      if (wranglerContent.includes(configKey)) {
+        logger.success(`环境变量 ${configKey} 已配置`);
       } else {
-        warning(`环境变量 ${config} 未找到`);
+        logger.warning(`环境变量 ${configKey} 未找到`);
         configOk = false;
       }
     }
 
-    // 检查 KV 命名空间
-    const kvNamespaces = ['img_url', 'WEBHOOKS_KV', 'WEBHOOK_LOGS_KV'];
-    for (const ns of kvNamespaces) {
-      if (wranglerContent.includes(ns)) {
-        success(`KV 命名空间 ${ns} 已配置`);
+    for (const namespace of ['img_url', 'WEBHOOKS_KV', 'WEBHOOK_LOGS_KV']) {
+      if (wranglerContent.includes(namespace)) {
+        logger.success(`KV 命名空间 ${namespace} 已配置`);
       } else {
-        warning(`KV 命名空间 ${ns} 未找到`);
+        logger.warning(`KV 命名空间 ${namespace} 未找到`);
         configOk = false;
       }
     }
 
     return configOk;
-  } catch (err) {
-    error(`环境配置检查错误: ${err.message}`);
+  } catch (error) {
+    logger.error(`环境配置检查错误: ${error.message}`);
     return false;
   }
 }
 
-// 生成部署报告
-function generateReport(results) {
-  log('\n' + '='.repeat(50), 'bold');
-  log('📋 部署验证报告', 'bold');
-  log('='.repeat(50), 'bold');
+export function generateReport(results, deps = {}) {
+  const logger = deps.logger || createLogger();
+  logger.log(`\n${'='.repeat(50)}`, 'bold');
+  logger.log('📋 部署验证报告', 'bold');
+  logger.log('='.repeat(50), 'bold');
 
-  const { passed, failed, warnings } = results;
+  logger.log(`\n✅ 通过: ${results.passed} 项`);
+  logger.log(`❌ 失败: ${results.failed} 项`);
+  logger.log(`⚠️  警告: ${results.warnings} 项`);
 
-  log(`\n✅ 通过: ${passed} 项`);
-  log(`❌ 失败: ${failed} 项`);
-  log(`⚠️  警告: ${warnings} 项`);
-
-  if (failed === 0) {
-    log('\n🎉 部署验证通过！系统运行正常。', 'green');
-  } else if (failed <= 2) {
-    log('\n⚠️  部署基本正常，但存在一些问题需要关注。', 'yellow');
+  if (results.failed === 0) {
+    logger.log('\n🎉 部署验证通过！系统运行正常。', 'green');
+  } else if (results.failed <= 2) {
+    logger.log('\n⚠️  部署基本正常，但存在一些问题需要关注。', 'yellow');
   } else {
-    log('\n❌ 部署存在严重问题，需要立即修复。', 'red');
+    logger.log('\n❌ 部署存在严重问题，需要立即修复。', 'red');
   }
 
-  log('\n💡 建议：');
-  log('- 检查所有失败的项目并修复');
-  log('- 确保环境变量正确配置');
-  log('- 验证 KV 命名空间已创建');
-  log('- 测试核心功能是否正常工作');
+  logger.log('\n💡 建议：');
+  logger.log('- 检查所有失败的项目并修复');
+  logger.log('- 确保环境变量正确配置');
+  logger.log('- 验证 KV 命名空间已创建');
+  logger.log('- 测试核心功能是否正常工作');
 }
 
-// 主函数
-async function main() {
-  log('🚀 开始 kk-life 部署验证...', 'bold');
-  log(`📍 目标地址: ${CONFIG.BASE_URL}\n`);
+export async function runDeployCheckCli(options = {}) {
+  const config = options.config || createConfig(options.env);
+  const logger = options.logger || createLogger({ writeLine: options.writeLine });
 
-  let passed = 0, failed = 0, warnings = 0;
-
-  // 统计结果的辅助函数
-  const originalLog = console.log;
-  console.log = (...args) => {
-    const message = args.join(' ');
-    if (message.includes('✅')) passed++;
-    else if (message.includes('❌')) failed++;
-    else if (message.includes('⚠️')) warnings++;
-    originalLog(...args);
-  };
+  logger.log('🚀 开始 kk-life 部署验证...', 'bold');
+  logger.log(`📍 目标地址: ${config.BASE_URL}\n`);
 
   try {
-    // 执行各项检查
-    await checkBasicPages();
-    await checkStaticAssets();
-    await checkAPIHealth();
-    const token = await checkAuthentication();
-    await checkAPIEndpoints(token);
-    await checkEnvironmentConfig();
+    await checkBasicPages({ ...options, config, logger });
+    await checkStaticAssets({ ...options, config, logger });
+    await checkAPIHealth({ ...options, config, logger });
+    const token = await checkAuthentication({ ...options, config, logger });
+    await checkAPIEndpoints(token, { ...options, config, logger });
+    await checkEnvironmentConfig({ ...options, config, logger });
 
-    // 恢复原始 console.log
-    console.log = originalLog;
-
-    // 生成报告
-    generateReport({ passed, failed, warnings });
-
-    // 设置退出码
-    process.exit(failed > 2 ? 1 : 0);
-
-  } catch (err) {
-    console.log = originalLog;
-    error(`部署验证过程中发生错误: ${err.message}`);
-    process.exit(1);
+    generateReport(logger.counters, { logger });
+    return logger.counters.failed > 2 ? 1 : 0;
+  } catch (error) {
+    logger.error(`部署验证过程中发生错误: ${error.message}`);
+    return 1;
   }
 }
 
-// 运行脚本
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch(console.error);
-}
+const isDirectExecution =
+  process.argv[1] && path.resolve(process.argv[1]) === __filename;
 
-export { main as runDeployCheck };
+if (isDirectExecution) {
+  const exitCode = await runDeployCheckCli();
+  process.exit(exitCode);
+}
