@@ -20,624 +20,766 @@
  *   node scripts/check-i18n.mjs --no-color      # 禁用颜色
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { createRequire } from 'module';
-import { build } from 'esbuild';
+import fs from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ROOT = path.resolve(__dirname, '..');
+const DEFAULT_ROOT = path.resolve(__dirname, '..');
+const DEFAULT_REQUIRE = createRequire(import.meta.url);
 
-const require = createRequire(import.meta.url);
+async function loadEsbuildBuild() {
+  const importModule = new Function('specifier', 'return import(specifier);');
+  const mod = await importModule('esbuild');
+  return mod.build;
+}
 
-// ─── CLI 参数 ───────────────────────────────────────────────
-const args = new Set(process.argv.slice(2));
-const JSON_MODE = args.has('--json');
-const FIX_REPORT = args.has('--fix-report');
-const STRICT = args.has('--strict');
-const NO_COLOR = args.has('--no-color') || !process.stdout.isTTY;
+export function parseCliArgs(argv = [], options = {}) {
+  const args = new Set(argv);
+  const isTTY = options.isTTY ?? process.stdout.isTTY;
 
-// ─── 颜色工具 ───────────────────────────────────────────────
-const c = NO_COLOR
-    ? { red: s => s, green: s => s, yellow: s => s, cyan: s => s, dim: s => s, bold: s => s, magenta: s => s, reset: '' }
+  return {
+    jsonMode: args.has('--json'),
+    fixReport: args.has('--fix-report'),
+    strict: args.has('--strict'),
+    noColor: args.has('--no-color') || !isTTY,
+  };
+}
+
+export function createColorTools(noColor = false) {
+  return noColor
+    ? {
+        red: (text) => text,
+        green: (text) => text,
+        yellow: (text) => text,
+        cyan: (text) => text,
+        dim: (text) => text,
+        bold: (text) => text,
+        magenta: (text) => text,
+        reset: '',
+      }
     : {
-        red: s => `\x1b[31m${s}\x1b[0m`,
-        green: s => `\x1b[32m${s}\x1b[0m`,
-        yellow: s => `\x1b[33m${s}\x1b[0m`,
-        cyan: s => `\x1b[36m${s}\x1b[0m`,
-        dim: s => `\x1b[2m${s}\x1b[0m`,
-        bold: s => `\x1b[1m${s}\x1b[0m`,
-        magenta: s => `\x1b[35m${s}\x1b[0m`,
+        red: (text) => `\x1b[31m${text}\x1b[0m`,
+        green: (text) => `\x1b[32m${text}\x1b[0m`,
+        yellow: (text) => `\x1b[33m${text}\x1b[0m`,
+        cyan: (text) => `\x1b[36m${text}\x1b[0m`,
+        dim: (text) => `\x1b[2m${text}\x1b[0m`,
+        bold: (text) => `\x1b[1m${text}\x1b[0m`,
+        magenta: (text) => `\x1b[35m${text}\x1b[0m`,
         reset: '\x1b[0m',
-    };
+      };
+}
 
-// ─── 配置 ───────────────────────────────────────────────────
-const CONFIG = {
-    // 扫描源码目录
-    scanDirs: [path.join(ROOT, 'src')],
-    // 扫描文件扩展名
+export function createConfig(root = DEFAULT_ROOT) {
+  return {
+    scanDirs: [path.join(root, 'src')],
     extensions: ['.vue', '.js', '.ts', '.jsx', '.tsx'],
-    // 忽略的目录名
     ignoreDirs: new Set(['node_modules', '.git', 'dist', '__tests__', '__mocks__']),
-    // 语言包入口
     locales: {
-        'zh-CN': path.join(ROOT, 'src/locales/zh-CN/index.js'),
-        'en': path.join(ROOT, 'src/locales/en/index.js'),
+      'zh-CN': path.join(root, 'src/locales/zh-CN/index.js'),
+      en: path.join(root, 'src/locales/en/index.js'),
     },
-    // 主语言（其他语言的键位应与此保持一致）
     primaryLocale: 'zh-CN',
-    // 已知的误报键（非真实 i18n 键）
-    ignoreKeys: new Set([
-        '.', '..', '.select-dropdown', 'html2pdf.js',
-    ]),
-    // 忽略键的正则模式（匹配则跳过）
+    ignoreKeys: new Set(['.', '..', '.select-dropdown', 'html2pdf.js']),
     ignorePatterns: [
-        /^\d/,                    // 以数字开头的误报
-        /^https?:\/\//,           // URL
-        /^[A-Z_]+$/,              // 全大写常量
-        /\.(vue|js|ts|css|json)$/,// 文件扩展名
-        /^\/\w/,                  // 路径
+      /^\d/,
+      /^https?:\/\//,
+      /^[A-Z_]+$/,
+      /\.(vue|js|ts|css|json)$/,
+      /^\/\w/,
     ],
-};
+  };
+}
 
-// ─── 工具函数 ────────────────────────────────────────────────
+export async function bundleAndLoad(filePath, options = {}) {
+  const buildImpl = options.buildImpl || (await loadEsbuildBuild());
+  const requireFn = options.requireFn || DEFAULT_REQUIRE;
+  const result = await buildImpl({
+    entryPoints: [filePath],
+    bundle: true,
+    write: false,
+    format: 'cjs',
+    platform: 'node',
+    logLevel: 'silent',
+  });
 
-/**
- * 使用 esbuild 将 ES Module 语言包打包为 CommonJS 后加载
- */
-async function bundleAndLoad(filePath) {
-    const result = await build({
-        entryPoints: [filePath],
-        bundle: true,
-        write: false,
-        format: 'cjs',
-        platform: 'node',
-        logLevel: 'silent',
+  const moduleRecord = { exports: {} };
+  const wrapper = new Function('module', 'exports', 'require', result.outputFiles[0].text);
+  wrapper(moduleRecord, moduleRecord.exports, requireFn);
+  return moduleRecord.exports.default || moduleRecord.exports;
+}
+
+export function walkDir(dir, callback, options = {}) {
+  const fsModule = options.fsModule || fs;
+  const pathModule = options.pathModule || path;
+  const ignoreDirs = options.ignoreDirs || new Set();
+  const extensions = options.extensions || [];
+
+  if (!fsModule.existsSync(dir)) {
+    return;
+  }
+
+  for (const entry of fsModule.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = pathModule.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (!ignoreDirs.has(entry.name)) {
+        walkDir(fullPath, callback, options);
+      }
+      continue;
+    }
+
+    if (extensions.some((ext) => entry.name.endsWith(ext))) {
+      callback(fullPath);
+    }
+  }
+}
+
+export function flattenKeys(obj, prefix = '') {
+  const keys = [];
+
+  for (const [key, value] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      keys.push(...flattenKeys(value, fullKey));
+    } else if (Array.isArray(value)) {
+      keys.push(fullKey);
+      value.forEach((_, index) => keys.push(`${fullKey}.${index}`));
+    } else {
+      keys.push(fullKey);
+    }
+  }
+
+  return keys;
+}
+
+export function getByPath(obj, keyPath) {
+  const parts = keyPath.split('.');
+  let current = obj;
+
+  for (const part of parts) {
+    if (current && typeof current === 'object' && part in current) {
+      current = current[part];
+    } else {
+      return undefined;
+    }
+  }
+
+  return current;
+}
+
+export function extractParams(value) {
+  if (typeof value !== 'string') {
+    return new Set();
+  }
+
+  const params = new Set();
+  const matcher = /\{\s*(\w+)\s*\}/g;
+  let match;
+
+  while ((match = matcher.exec(value)) !== null) {
+    params.add(match[1]);
+  }
+
+  return params;
+}
+
+export function shouldIgnoreKey(key, config) {
+  if (config.ignoreKeys.has(key)) {
+    return true;
+  }
+
+  return config.ignorePatterns.some((pattern) => pattern.test(key));
+}
+
+export function scanSourceKeys(options = {}) {
+  const config = options.config || createConfig(options.root || DEFAULT_ROOT);
+  const fsModule = options.fsModule || fs;
+  const pathModule = options.pathModule || path;
+  const root = options.root || DEFAULT_ROOT;
+  const staticKeys = new Map();
+  const dynamicPatterns = [];
+  const staticRe = /\bt\(\s*['"]([a-zA-Z0-9_][\w.-]*)['"]/g;
+  const dynamicRe = /\bt\(\s*`([^`]*\$\{[^}]+\}[^`]*)`/g;
+
+  for (const dir of config.scanDirs) {
+    walkDir(dir, (filePath) => {
+      const content = fsModule.readFileSync(filePath, 'utf8');
+      const relPath = pathModule.relative(root, filePath);
+
+      let match;
+      while ((match = staticRe.exec(content)) !== null) {
+        const key = match[1];
+        if (shouldIgnoreKey(key, config)) {
+          continue;
+        }
+
+        if (!staticKeys.has(key)) {
+          staticKeys.set(key, new Set());
+        }
+        staticKeys.get(key).add(relPath);
+      }
+
+      while ((match = dynamicRe.exec(content)) !== null) {
+        const template = match[1];
+        const parts = template.split(/\$\{[^}]+\}/);
+        const prefix = parts[0]?.replace(/\.$/, '') || '';
+        const suffix = parts[1]?.replace(/^\./, '') || '';
+        const lineNum = (content.substring(0, match.index).match(/\n/g) || []).length + 1;
+        dynamicPatterns.push({
+          prefix,
+          suffix,
+          template,
+          file: relPath,
+          line: lineNum,
+        });
+      }
+    }, {
+      fsModule,
+      pathModule,
+      ignoreDirs: config.ignoreDirs,
+      extensions: config.extensions,
     });
-    const m = { exports: {} };
-    const wrapper = new Function('module', 'exports', 'require', result.outputFiles[0].text);
-    wrapper(m, m.exports, require);
-    return m.exports.default || m.exports;
+  }
+
+  return { staticKeys, dynamicPatterns };
 }
 
-/**
- * 递归遍历目录
- */
-function walkDir(dir, callback) {
-    if (!fs.existsSync(dir)) return;
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        const fullPath = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-            if (!CONFIG.ignoreDirs.has(entry.name)) walkDir(fullPath, callback);
-        } else if (CONFIG.extensions.some(ext => entry.name.endsWith(ext))) {
-            callback(fullPath);
+export function analyzeDynamicKeys(dynamicPatterns, allLocaleKeys) {
+  const coveredPatterns = [];
+  const uncoveredPatterns = [];
+
+  for (const pattern of dynamicPatterns) {
+    const { prefix, suffix } = pattern;
+    const matchingKeys = allLocaleKeys.filter((key) => {
+      if (!key.startsWith(`${prefix}.`)) {
+        return false;
+      }
+
+      if (suffix && !key.endsWith(`.${suffix}`)) {
+        return false;
+      }
+
+      return true;
+    });
+
+    if (matchingKeys.length > 0) {
+      coveredPatterns.push({
+        ...pattern,
+        matchedCount: matchingKeys.length,
+        matchedKeys: matchingKeys.slice(0, 5),
+      });
+    } else {
+      uncoveredPatterns.push(pattern);
+    }
+  }
+
+  return { coveredPatterns, uncoveredPatterns };
+}
+
+export function buildAuditReport({ locales, localeKeys, staticKeys, dynamicPatterns, coveredPatterns, uncoveredPatterns, config }) {
+  const localeNames = Object.keys(locales);
+  const primaryKeys = localeKeys[config.primaryLocale];
+  const report = {
+    missingKeys: {},
+    asymmetricKeys: {},
+    orphanKeys: {},
+    paramMismatches: [],
+    emptyValues: {},
+    dynamicAnalysis: {
+      covered: coveredPatterns.length,
+      uncovered: uncoveredPatterns,
+      total: dynamicPatterns.length,
+    },
+  };
+
+  for (const localeName of localeNames) {
+    const missing = [];
+    for (const [key, files] of staticKeys) {
+      if (getByPath(locales[localeName], key) === undefined) {
+        missing.push({ key, usedIn: [...files].slice(0, 3) });
+      }
+    }
+    report.missingKeys[localeName] = missing;
+  }
+
+  for (const localeName of localeNames) {
+    if (localeName === config.primaryLocale) {
+      continue;
+    }
+
+    const missing = [];
+    for (const key of primaryKeys) {
+      if (!localeKeys[localeName].has(key)) {
+        missing.push(key);
+      }
+    }
+
+    const extra = [];
+    for (const key of localeKeys[localeName]) {
+      if (!primaryKeys.has(key)) {
+        extra.push(key);
+      }
+    }
+
+    report.asymmetricKeys[localeName] = { missing, extra };
+  }
+
+  for (const localeName of localeNames) {
+    const orphans = [];
+    for (const key of localeKeys[localeName]) {
+      if (staticKeys.has(key)) {
+        continue;
+      }
+
+      const coveringPattern = coveredPatterns.find(
+        (pattern) =>
+          key.startsWith(`${pattern.prefix}.`) &&
+          (!pattern.suffix || key.endsWith(`.${pattern.suffix}`))
+      );
+
+      if (!coveringPattern) {
+        orphans.push(key);
+      }
+    }
+    report.orphanKeys[localeName] = orphans;
+  }
+
+  for (const key of primaryKeys) {
+    const paramsPerLocale = {};
+    let hasInconsistency = false;
+    let referenceParams = null;
+
+    for (const localeName of localeNames) {
+      const value = getByPath(locales[localeName], key);
+      const params = extractParams(value);
+      paramsPerLocale[localeName] = [...params];
+
+      if (referenceParams === null) {
+        referenceParams = params;
+      } else if (
+        params.size !== referenceParams.size ||
+        ![...params].every((param) => referenceParams.has(param))
+      ) {
+        hasInconsistency = true;
+      }
+    }
+
+    if (hasInconsistency) {
+      report.paramMismatches.push({ key, locales: paramsPerLocale });
+    }
+  }
+
+  for (const localeName of localeNames) {
+    const empties = [];
+    for (const key of localeKeys[localeName]) {
+      const value = getByPath(locales[localeName], key);
+      if (value === '' || value === null || value === undefined) {
+        empties.push(key);
+      }
+    }
+    report.emptyValues[localeName] = empties;
+  }
+
+  return report;
+}
+
+export function createJsonReport({ localeNames, localeKeys, staticKeys, dynamicPatterns, report, elapsed, timestamp }) {
+  return {
+    timestamp,
+    elapsedMs: elapsed,
+    summary: {
+      locales: localeNames,
+      staticKeysFound: staticKeys.size,
+      dynamicPatternsFound: dynamicPatterns.length,
+      totalLocaleKeys: Object.fromEntries(localeNames.map((name) => [name, localeKeys[name].size])),
+    },
+    missingKeys: Object.fromEntries(
+      localeNames.map((name) => [name, report.missingKeys[name].map((item) => item.key)])
+    ),
+    asymmetricKeys: report.asymmetricKeys,
+    orphanKeys: report.orphanKeys,
+    emptyValues: report.emptyValues,
+    paramMismatches: report.paramMismatches,
+    dynamicAnalysis: report.dynamicAnalysis,
+  };
+}
+
+export function evaluateReport(report, localeNames, strict) {
+  const hasMissing = localeNames.some((name) => report.missingKeys[name].length > 0);
+  const hasAsymmetric = Object.values(report.asymmetricKeys).some(
+    (value) => (value.missing?.length || 0) > 0
+  );
+  const hasEmpty = localeNames.some((name) => report.emptyValues[name].length > 0);
+  const hasOrphans = strict && localeNames.some((name) => report.orphanKeys[name].length > 0);
+
+  return {
+    hasMissing,
+    hasAsymmetric,
+    hasEmpty,
+    hasOrphans,
+    hasIssues: hasMissing || hasAsymmetric || hasEmpty || hasOrphans,
+  };
+}
+
+export function printReport({ report, localeNames, staticKeys, localeKeys, dynamicPatterns, elapsed, strict, colors, log }) {
+  const line = '─'.repeat(60);
+
+  log('');
+  log(colors.cyan(`╔${'═'.repeat(58)}╗`));
+  log(`${colors.cyan('║')}  ${colors.bold('🌐 KK-Image i18n 完整性审计报告')}                       ${colors.cyan('║')}`);
+  log(`${colors.cyan(`╚${'═'.repeat(58)}╝`)}`);
+  log('');
+
+  log(colors.bold('📊 概览'));
+  log(colors.dim(line));
+  log(`  语言包数量:    ${colors.cyan(localeNames.length)} (${localeNames.join(', ')})`);
+  log(`  静态键总数:    ${colors.cyan(staticKeys.size)}`);
+  log(`  动态模式总数:  ${colors.cyan(dynamicPatterns.length)}`);
+  for (const name of localeNames) {
+    log(`  ${name} 键位总数: ${colors.cyan(localeKeys[name].size)}`);
+  }
+  log(`  耗时:          ${colors.dim(`${elapsed}ms`)}`);
+  log('');
+
+  const totalMissing = localeNames.reduce(
+    (sum, name) => sum + report.missingKeys[name].length,
+    0
+  );
+  if (totalMissing === 0) {
+    log(`${colors.green('✅ 缺失键检查')} — 所有源码中的 t() 调用均已在语言包中定义`);
+    log('');
+  } else {
+    log(`${colors.red('❌ 缺失键检查')} — 源码中使用但语言包中缺失的键:`);
+    log(colors.dim(line));
+    for (const name of localeNames) {
+      const missing = report.missingKeys[name];
+      if (missing.length === 0) {
+        log(`  ${colors.green('✓')} ${name}: 全部覆盖`);
+        continue;
+      }
+
+      log(`  ${colors.red('✗')} ${name}: 缺失 ${colors.red(missing.length)} 个键`);
+      for (const { key, usedIn } of missing) {
+        log(`    ${colors.yellow('→')} ${colors.bold(key)}`);
+        log(`      ${colors.dim(`使用于: ${usedIn.join(', ')}`)}`);
+      }
+    }
+    log('');
+  }
+
+  const totalAsymmetric = Object.values(report.asymmetricKeys).reduce(
+    (sum, data) => sum + (data.missing?.length || 0) + (data.extra?.length || 0),
+    0
+  );
+  if (totalAsymmetric === 0) {
+    log(`${colors.green('✅ 跨语言对称性')} — 所有语言包键位完全同步`);
+    log('');
+  } else {
+    log(`${colors.red('❌ 跨语言对称性')} — 语言包之间键位不一致:`);
+    log(colors.dim(line));
+    for (const [name, data] of Object.entries(report.asymmetricKeys)) {
+      if (data.missing?.length > 0) {
+        log(
+          `  ${colors.red('✗')} ${name} 缺失 (${colors.cyan('zh-CN')} 中有): ${colors.red(
+            data.missing.length
+          )} 个`
+        );
+        data.missing.slice(0, 10).forEach((key) => log(`    ${colors.yellow('→')} ${key}`));
+        if (data.missing.length > 10) {
+          log(`    ${colors.dim(`... 还有 ${data.missing.length - 10} 个`)}`);
         }
-    }
-}
-
-/**
- * 将嵌套对象展平为 dot-notation 键路径
- * { a: { b: 'x' } } -> ['a.b']
- */
-function flattenKeys(obj, prefix = '') {
-    const keys = [];
-    for (const [k, v] of Object.entries(obj)) {
-        const fullKey = prefix ? `${prefix}.${k}` : k;
-        if (v && typeof v === 'object' && !Array.isArray(v)) {
-            keys.push(...flattenKeys(v, fullKey));
-        } else if (Array.isArray(v)) {
-            keys.push(fullKey);
-            v.forEach((_, i) => keys.push(`${fullKey}.${i}`));
-        } else {
-            keys.push(fullKey);
+      }
+      if (data.extra?.length > 0) {
+        log(
+          `  ${colors.magenta('⚠')} ${name} 多余 (${colors.cyan('zh-CN')} 中没有): ${colors.magenta(
+            data.extra.length
+          )} 个`
+        );
+        data.extra.slice(0, 5).forEach((key) => log(`    ${colors.dim(`→ ${key}`)}`));
+        if (data.extra.length > 5) {
+          log(`    ${colors.dim(`... 还有 ${data.extra.length - 5} 个`)}`);
         }
+      }
     }
-    return keys;
-}
+    log('');
+  }
 
-/**
- * 根据 dot-notation 路径获取嵌套对象的值
- */
-function getByPath(obj, keyPath) {
-    const parts = keyPath.split('.');
-    let current = obj;
-    for (const part of parts) {
-        if (current && typeof current === 'object' && part in current) {
-            current = current[part];
-        } else {
-            return undefined;
+  if (report.paramMismatches.length === 0) {
+    log(`${colors.green('✅ 插值参数一致性')} — 所有 {param} 占位符跨语言一致`);
+    log('');
+  } else {
+    log(`${colors.yellow('⚠️  插值参数不一致')} — 以下键的 {param} 占位符跨语言不同:`);
+    log(colors.dim(line));
+    for (const { key, locales: localeParams } of report.paramMismatches.slice(0, 15)) {
+      log(`  ${colors.yellow('→')} ${colors.bold(key)}`);
+      for (const [locale, params] of Object.entries(localeParams)) {
+        log(`    ${locale}: {${params.join(', ') || colors.dim('无')}}`);
+      }
+    }
+    if (report.paramMismatches.length > 15) {
+      log(`  ${colors.dim(`... 还有 ${report.paramMismatches.length - 15} 个`)}`);
+    }
+    log('');
+  }
+
+  const totalEmpty = localeNames.reduce((sum, name) => sum + report.emptyValues[name].length, 0);
+  if (totalEmpty === 0) {
+    log(`${colors.green('✅ 空值检测')} — 无空翻译值`);
+    log('');
+  } else {
+    log(`${colors.yellow('⚠️  空值检测')} — 以下键的翻译值为空:`);
+    log(colors.dim(line));
+    for (const name of localeNames) {
+      const empties = report.emptyValues[name];
+      if (empties.length > 0) {
+        log(`  ${name}: ${colors.yellow(empties.length)} 个空值`);
+        empties.slice(0, 5).forEach((key) => log(`    ${colors.dim(`→ ${key}`)}`));
+        if (empties.length > 5) {
+          log(`    ${colors.dim(`... 还有 ${empties.length - 5} 个`)}`);
         }
+      }
     }
-    return current;
-}
+    log('');
+  }
 
-/**
- * 从字符串中提取 {param} 占位符
- */
-function extractParams(str) {
-    if (typeof str !== 'string') return new Set();
-    const params = new Set();
-    const re = /\{\s*(\w+)\s*\}/g;
-    let m;
-    while ((m = re.exec(str)) !== null) params.add(m[1]);
-    return params;
-}
-
-/**
- * 判断键是否应被忽略
- */
-function shouldIgnoreKey(key) {
-    if (CONFIG.ignoreKeys.has(key)) return true;
-    return CONFIG.ignorePatterns.some(re => re.test(key));
-}
-
-// ─── 核心扫描 ────────────────────────────────────────────────
-
-/**
- * 扫描源码中的 t() 调用, 提取静态和动态键
- */
-function scanSourceKeys() {
-    const staticKeys = new Map();      // key -> Set<filePath>
-    const dynamicPatterns = [];        // { pattern, prefix, suffix, file, line }
-
-    // 静态键正则: t('key.path') 或 t("key.path")
-    const staticRe = /\bt\(\s*['"]([a-zA-Z0-9_][\w.-]*)['"]/g;
-
-    // 动态键正则: t(`prefix.${...}`) 或 t(`prefix.${...}.suffix`)
-    const dynamicRe = /\bt\(\s*`([^`]*\$\{[^}]+\}[^`]*)`/g;
-
-    for (const dir of CONFIG.scanDirs) {
-        walkDir(dir, (filePath) => {
-            const content = fs.readFileSync(filePath, 'utf8');
-            const relPath = path.relative(ROOT, filePath);
-
-            // 静态键
-            let match;
-            while ((match = staticRe.exec(content)) !== null) {
-                const key = match[1];
-                if (!shouldIgnoreKey(key)) {
-                    if (!staticKeys.has(key)) staticKeys.set(key, new Set());
-                    staticKeys.get(key).add(relPath);
-                }
-            }
-
-            // 动态键（模板字符串）
-            while ((match = dynamicRe.exec(content)) !== null) {
-                const template = match[1];
-                // 提取确定性的前缀/后缀
-                const parts = template.split(/\$\{[^}]+\}/);
-                const prefix = parts[0]?.replace(/\.$/, '') || '';
-                const suffix = parts[1]?.replace(/^\./, '') || '';
-                // 找到所在行号
-                const upToMatch = content.substring(0, match.index);
-                const lineNum = (upToMatch.match(/\n/g) || []).length + 1;
-                dynamicPatterns.push({ prefix, suffix, template, file: relPath, line: lineNum });
-            }
-        });
-    }
-
-    return { staticKeys, dynamicPatterns };
-}
-
-/**
- * 尝试将动态模式与实际已定义的键匹配
- * 返回已覆盖和未覆盖的模式分析
- */
-function analyzeDynamicKeys(dynamicPatterns, allLocaleKeys) {
-    const coveredPatterns = [];
-    const uncoveredPatterns = [];
-
-    for (const pattern of dynamicPatterns) {
-        const { prefix, suffix } = pattern;
-        // 找到语言包中所有匹配 prefix.*.suffix 的键
-        const matchingKeys = allLocaleKeys.filter(k => {
-            if (!k.startsWith(prefix + '.')) return false;
-            if (suffix && !k.endsWith('.' + suffix)) return false;
-            return true;
-        });
-
-        if (matchingKeys.length > 0) {
-            coveredPatterns.push({ ...pattern, matchedCount: matchingKeys.length, matchedKeys: matchingKeys.slice(0, 5) });
-        } else {
-            uncoveredPatterns.push(pattern);
+  const totalOrphans = localeNames.reduce(
+    (sum, name) => sum + report.orphanKeys[name].length,
+    0
+  );
+  if (totalOrphans === 0) {
+    log(`${colors.green('✅ 孤儿键检测')} — 所有语言包键位均有对应的 t() 调用`);
+    log('');
+  } else {
+    const icon = strict ? colors.red('❌') : colors.yellow('⚠️ ');
+    log(`${icon} ${colors.bold('孤儿键检测')} — 语言包中定义但源码中未直接引用的键:`);
+    log(colors.dim(line));
+    log(colors.dim('  注: 部分键可能通过动态模板 t(`...${var}...`) 间接使用'));
+    for (const name of localeNames) {
+      const orphans = report.orphanKeys[name];
+      if (orphans.length > 0) {
+        log(`  ${name}: ${colors.yellow(orphans.length)} 个可能的孤儿键`);
+        orphans.slice(0, 10).forEach((key) => log(`    ${colors.dim(`→ ${key}`)}`));
+        if (orphans.length > 10) {
+          log(`    ${colors.dim(`... 还有 ${orphans.length - 10} 个`)}`);
         }
+      }
     }
+    log('');
+  }
 
-    return { coveredPatterns, uncoveredPatterns };
+  const dynamicAnalysis = report.dynamicAnalysis;
+  if (dynamicAnalysis.total > 0) {
+    log(colors.bold('🔮 动态键分析'));
+    log(colors.dim(line));
+    log(`  已覆盖模式: ${colors.green(dynamicAnalysis.covered)} / ${dynamicAnalysis.total}`);
+    if (dynamicAnalysis.uncovered.length > 0) {
+      log(`  未覆盖模式: ${colors.yellow(dynamicAnalysis.uncovered.length)}`);
+      dynamicAnalysis.uncovered.slice(0, 5).forEach((pattern) => {
+        log(`    ${colors.dim(`→ t(\`${pattern.template}\`)  at ${pattern.file}:${pattern.line}`)}`);
+      });
+    }
+    log('');
+  }
+
+  log(colors.dim(line));
+  const exitOk =
+    totalMissing === 0 &&
+    totalAsymmetric === 0 &&
+    totalEmpty === 0 &&
+    !(strict && totalOrphans > 0);
+  if (exitOk) {
+    log(`${colors.green(colors.bold('🎉 全部检查通过!'))} ${colors.dim(`(${elapsed}ms)`)}`);
+  } else {
+    log(`${colors.red(colors.bold('🚨 存在问题需要修复'))} ${colors.dim(`(${elapsed}ms)`)}`);
+  }
+  log('');
 }
 
-// ─── 主检查逻辑 ──────────────────────────────────────────────
+export function generateFixReport(report, localeNames, locales, options = {}) {
+  const config = options.config || createConfig(options.root || DEFAULT_ROOT);
+  const fsModule = options.fsModule || fs;
+  const pathModule = options.pathModule || path;
+  const root = options.root || DEFAULT_ROOT;
+  const colors = options.colors || createColorTools(true);
+  const log = options.log || (() => {});
+  const createTimestamp = options.createTimestamp || (() => new Date().toISOString());
+  const lines = ['# i18n 修复建议报告', `> 生成时间: ${createTimestamp()}`, ''];
 
-async function run() {
-    const startTime = Date.now();
+  for (const name of localeNames) {
+    const missing = report.missingKeys[name];
+    if (missing.length === 0) {
+      continue;
+    }
 
-    // 1. 加载所有语言包
+    lines.push(`## ${name} — 缺失键 (${missing.length})`, '');
+    lines.push('```javascript');
+    lines.push('// 将以下键添加到对应的语言包文件中');
+    for (const { key } of missing) {
+      lines.push(`// ${key}: '${key.split('.').pop()}',  // TODO: 翻译`);
+    }
+    lines.push('```', '');
+  }
+
+  for (const [name, data] of Object.entries(report.asymmetricKeys)) {
+    if (data.missing?.length > 0) {
+      lines.push(`## ${name} — 从 ${config.primaryLocale} 同步缺失 (${data.missing.length})`, '');
+      lines.push('```');
+      for (const key of data.missing) {
+        const value = getByPath(locales[config.primaryLocale], key);
+        lines.push(`${key}: ${JSON.stringify(value)}  // 需翻译`);
+      }
+      lines.push('```', '');
+    }
+  }
+
+  for (const name of localeNames) {
+    const orphans = report.orphanKeys[name];
+    if (orphans?.length > 0) {
+      lines.push(`## ${name} — 建议清理的孤儿键 (${orphans.length})`, '');
+      lines.push('```javascript');
+      lines.push('// 以下键在源码中未发现明确的引用，可考虑移除（注意是否有隐式动态调用）：');
+      for (const key of orphans.slice(0, 50)) {
+        lines.push(`// ${key}`);
+      }
+      if (orphans.length > 50) {
+        lines.push(`// ... 还有 ${orphans.length - 50} 个未显示`);
+      }
+      lines.push('```', '');
+    }
+  }
+
+  const uncovered = report.dynamicAnalysis?.uncovered;
+  if (uncovered?.length > 0) {
+    lines.push(`## ⚠️ 动态模版未覆盖 (${uncovered.length})`, '');
+    lines.push('```javascript');
+    lines.push('// 以下 t(`...`) 动态调用在语言包中没有匹配到可能对应的前/后半段组合：');
+    for (const pattern of uncovered.slice(0, 50)) {
+      lines.push(`// t(\`${pattern.template}\`)  -> file: ${pattern.file}:${pattern.line}`);
+    }
+    lines.push('```', '');
+  }
+
+  const reportPath = pathModule.join(root, 'i18n-fix-report.md');
+  fsModule.writeFileSync(reportPath, lines.join('\n'), 'utf8');
+  log(`${colors.green('📝')} 修复建议已写入 ${colors.cyan(reportPath)}`);
+  return reportPath;
+}
+
+export async function runI18nAuditCli(options = {}) {
+  const root = options.root || DEFAULT_ROOT;
+  const argv = options.argv || process.argv.slice(2);
+  const cli = parseCliArgs(argv, { isTTY: options.isTTY ?? process.stdout.isTTY });
+  const config = options.config || createConfig(root);
+  const colors = options.colors || createColorTools(cli.noColor);
+  const fsModule = options.fsModule || fs;
+  const bundleAndLoadImpl = options.bundleAndLoadImpl || ((filePath) => bundleAndLoad(filePath, {
+    buildImpl: options.buildImpl,
+    requireFn: options.requireFn || DEFAULT_REQUIRE,
+  }));
+  const writeStdout = options.writeStdout || ((text) => process.stdout.write(text));
+  const writeStderr = options.writeStderr || ((text) => process.stderr.write(text));
+  const log = options.log || ((line) => writeStdout(`${line}\n`));
+  const now = options.now || (() => Date.now());
+  const createTimestamp = options.createTimestamp || (() => new Date().toISOString());
+
+  try {
+    const startTime = now();
     const locales = {};
-    const localeKeys = {}; // locale -> Set<flatKey>
-    for (const [name, entryPath] of Object.entries(CONFIG.locales)) {
-        locales[name] = await bundleAndLoad(entryPath);
-        localeKeys[name] = new Set(flattenKeys(locales[name]));
+    const localeKeys = {};
+
+    for (const [name, entryPath] of Object.entries(config.locales)) {
+      locales[name] = await bundleAndLoadImpl(entryPath);
+      localeKeys[name] = new Set(flattenKeys(locales[name]));
     }
 
     const localeNames = Object.keys(locales);
-    const primaryKeys = localeKeys[CONFIG.primaryLocale];
+    const { staticKeys, dynamicPatterns } = scanSourceKeys({
+      config,
+      fsModule,
+      pathModule: path,
+      root,
+    });
 
-    // 2. 扫描源码
-    const { staticKeys, dynamicPatterns } = scanSourceKeys();
-
-    // 3. 分析动态键
     const allKeysUnion = new Set();
     for (const keys of Object.values(localeKeys)) {
-        for (const k of keys) allKeysUnion.add(k);
-    }
-    const { coveredPatterns, uncoveredPatterns } = analyzeDynamicKeys(dynamicPatterns, [...allKeysUnion]);
-
-    // ─── 检查项 ──────────────────────────────────────────────
-
-    const report = {
-        // 4a. 缺失键：源码中使用但语言包中不存在
-        missingKeys: {},  // locale -> [{key, usedIn}]
-        // 4b. 跨语言不对称：主语言有但其他语言缺失的键
-        asymmetricKeys: {}, // locale -> string[]
-        // 4c. 孤儿键：语言包中定义但源码中从未使用
-        orphanKeys: {},     // locale -> string[]
-        // 4d. 插值参数不一致
-        paramMismatches: [],// [{key, locales: {locale: params[]}}]
-        // 4e. 空值翻译
-        emptyValues: {},    // locale -> string[]
-        // 动态键分析
-        dynamicAnalysis: { covered: coveredPatterns.length, uncovered: uncoveredPatterns, total: dynamicPatterns.length },
-    };
-
-    // 4a. 检查缺失键（源码 vs 各语言包）
-    for (const localeName of localeNames) {
-        const missing = [];
-        for (const [key, files] of staticKeys) {
-            if (getByPath(locales[localeName], key) === undefined) {
-                missing.push({ key, usedIn: [...files].slice(0, 3) });
-            }
-        }
-        report.missingKeys[localeName] = missing;
+      for (const key of keys) {
+        allKeysUnion.add(key);
+      }
     }
 
-    // 4b. 跨语言键位对称性
-    for (const localeName of localeNames) {
-        if (localeName === CONFIG.primaryLocale) continue;
-        const missing = [];
-        for (const key of primaryKeys) {
-            if (!localeKeys[localeName].has(key)) {
-                missing.push(key);
-            }
-        }
-        // 反向：其他语言有但主语言没有的
-        const extra = [];
-        for (const key of localeKeys[localeName]) {
-            if (!primaryKeys.has(key)) {
-                extra.push(key);
-            }
-        }
-        report.asymmetricKeys[localeName] = { missing, extra };
-    }
+    const { coveredPatterns, uncoveredPatterns } = analyzeDynamicKeys(
+      dynamicPatterns,
+      [...allKeysUnion]
+    );
+    const report = buildAuditReport({
+      locales,
+      localeKeys,
+      staticKeys,
+      dynamicPatterns,
+      coveredPatterns,
+      uncoveredPatterns,
+      config,
+    });
+    const elapsed = now() - startTime;
 
-    // 4c. 孤儿键
-    for (const localeName of localeNames) {
-        const orphans = [];
-        for (const key of localeKeys[localeName]) {
-            if (!staticKeys.has(key)) {
-                // 检查是否被动态模式覆盖
-                const coveringPattern = coveredPatterns.find(p =>
-                    key.startsWith(p.prefix + '.') && (!p.suffix || key.endsWith('.' + p.suffix))
-                );
-                if (!coveringPattern) {
-                    orphans.push(key);
-                }
-            }
-        }
-        report.orphanKeys[localeName] = orphans;
-    }
-
-    // 4d. 插值参数一致性
-    for (const key of primaryKeys) {
-        const paramsPerLocale = {};
-        let hasInconsistency = false;
-        let referenceParams = null;
-
-        for (const localeName of localeNames) {
-            const val = getByPath(locales[localeName], key);
-            const params = extractParams(val);
-            paramsPerLocale[localeName] = [...params];
-
-            if (referenceParams === null) {
-                referenceParams = params;
-            } else if (params.size !== referenceParams.size || ![...params].every(p => referenceParams.has(p))) {
-                hasInconsistency = true;
-            }
-        }
-
-        if (hasInconsistency) {
-            report.paramMismatches.push({ key, locales: paramsPerLocale });
-        }
-    }
-
-    // 4e. 空值检测
-    for (const localeName of localeNames) {
-        const empties = [];
-        for (const key of localeKeys[localeName]) {
-            const val = getByPath(locales[localeName], key);
-            if (val === '' || val === null || val === undefined) {
-                empties.push(key);
-            }
-        }
-        report.emptyValues[localeName] = empties;
-    }
-
-    // ─── 输出 ──────────────────────────────────────────────
-
-    const elapsed = Date.now() - startTime;
-
-    if (JSON_MODE) {
-        // JSON 纯数据输出
-        const jsonReport = {
-            timestamp: new Date().toISOString(),
-            elapsedMs: elapsed,
-            summary: {
-                locales: localeNames,
-                staticKeysFound: staticKeys.size,
-                dynamicPatternsFound: dynamicPatterns.length,
-                totalLocaleKeys: Object.fromEntries(localeNames.map(n => [n, localeKeys[n].size])),
-            },
-            missingKeys: Object.fromEntries(localeNames.map(n => [n, report.missingKeys[n].map(m => m.key)])),
-            asymmetricKeys: report.asymmetricKeys,
-            orphanKeys: report.orphanKeys,
-            emptyValues: report.emptyValues,
-            paramMismatches: report.paramMismatches,
-            dynamicAnalysis: report.dynamicAnalysis,
-        };
-        process.stdout.write(JSON.stringify(jsonReport, null, 2) + '\n');
+    if (cli.jsonMode) {
+      writeStdout(
+        `${JSON.stringify(
+          createJsonReport({
+            localeNames,
+            localeKeys,
+            staticKeys,
+            dynamicPatterns,
+            report,
+            elapsed,
+            timestamp: createTimestamp(),
+          }),
+          null,
+          2
+        )}\n`
+      );
     } else {
-        printReport(report, localeNames, staticKeys, localeKeys, dynamicPatterns, elapsed);
+      printReport({
+        report,
+        localeNames,
+        staticKeys,
+        localeKeys,
+        dynamicPatterns,
+        elapsed,
+        strict: cli.strict,
+        colors,
+        log,
+      });
     }
 
-    // 退出码前置判断
-    const hasMissing = localeNames.some(n => report.missingKeys[n].length > 0);
-    const hasAsymmetric = Object.values(report.asymmetricKeys).some(v => v.missing?.length > 0);
-    const hasEmpty = localeNames.some(n => report.emptyValues[n].length > 0);
-    const hasOrphans = STRICT && localeNames.some(n => report.orphanKeys[n].length > 0);
-    const hasIssues = hasMissing || hasAsymmetric || hasEmpty || hasOrphans;
-
-    // 仅在发现问题且启用了修复报告时，才生成修复建议文件
-    if (FIX_REPORT && hasIssues) {
-        generateFixReport(report, localeNames, locales);
+    const status = evaluateReport(report, localeNames, cli.strict);
+    if (cli.fixReport && status.hasIssues) {
+      generateFixReport(report, localeNames, locales, {
+        config,
+        fsModule,
+        pathModule: path,
+        root,
+        colors,
+        log,
+        createTimestamp,
+      });
     }
 
-    if (hasIssues) {
-        process.exit(1);
-    }
+    return status.hasIssues ? 1 : 0;
+  } catch (error) {
+    writeStderr(`${colors.red('脚本执行失败:')} ${error}\n`);
+    return 2;
+  }
 }
 
-// ─── 终端报告格式化 ──────────────────────────────────────────
+const isDirectExecution =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-function printReport(report, localeNames, staticKeys, localeKeys, dynamicPatterns, elapsed) {
-    const line = '─'.repeat(60);
-
-    console.log(`\n${c.cyan('╔' + '═'.repeat(58) + '╗')}`);
-    console.log(`${c.cyan('║')}  ${c.bold('🌐 KK-Image i18n 完整性审计报告')}                       ${c.cyan('║')}`);
-    console.log(`${c.cyan('╚' + '═'.repeat(58) + '╝')}\n`);
-
-    // 概览
-    console.log(c.bold('📊 概览'));
-    console.log(c.dim(line));
-    console.log(`  语言包数量:    ${c.cyan(localeNames.length)} (${localeNames.join(', ')})`);
-    console.log(`  静态键总数:    ${c.cyan(staticKeys.size)}`);
-    console.log(`  动态模式总数:  ${c.cyan(dynamicPatterns.length)}`);
-    for (const name of localeNames) {
-        console.log(`  ${name} 键位总数: ${c.cyan(localeKeys[name].size)}`);
-    }
-    console.log(`  耗时:          ${c.dim(elapsed + 'ms')}\n`);
-
-    // 4a. 缺失键
-    let totalMissing = 0;
-    for (const name of localeNames) {
-        const missing = report.missingKeys[name];
-        totalMissing += missing.length;
-    }
-
-    if (totalMissing === 0) {
-        console.log(`${c.green('✅ 缺失键检查')} — 所有源码中的 t() 调用均已在语言包中定义\n`);
-    } else {
-        console.log(`${c.red('❌ 缺失键检查')} — 源码中使用但语言包中缺失的键:`);
-        console.log(c.dim(line));
-        for (const name of localeNames) {
-            const missing = report.missingKeys[name];
-            if (missing.length === 0) {
-                console.log(`  ${c.green('✓')} ${name}: 全部覆盖`);
-            } else {
-                console.log(`  ${c.red('✗')} ${name}: 缺失 ${c.red(missing.length)} 个键`);
-                for (const { key, usedIn } of missing) {
-                    console.log(`    ${c.yellow('→')} ${c.bold(key)}`);
-                    console.log(`      ${c.dim('使用于: ' + usedIn.join(', '))}`);
-                }
-            }
-        }
-        console.log();
-    }
-
-    // 4b. 跨语言对称性
-    let totalAsymmetric = 0;
-    for (const data of Object.values(report.asymmetricKeys)) {
-        totalAsymmetric += (data.missing?.length || 0) + (data.extra?.length || 0);
-    }
-
-    if (totalAsymmetric === 0) {
-        console.log(`${c.green('✅ 跨语言对称性')} — 所有语言包键位完全同步\n`);
-    } else {
-        console.log(`${c.red('❌ 跨语言对称性')} — 语言包之间键位不一致:`);
-        console.log(c.dim(line));
-        for (const [name, data] of Object.entries(report.asymmetricKeys)) {
-            if (data.missing?.length > 0) {
-                console.log(`  ${c.red('✗')} ${name} 缺失 (${CONFIG.primaryLocale} 中有): ${c.red(data.missing.length)} 个`);
-                data.missing.slice(0, 10).forEach(k => console.log(`    ${c.yellow('→')} ${k}`));
-                if (data.missing.length > 10) console.log(`    ${c.dim(`... 还有 ${data.missing.length - 10} 个`)}`);
-            }
-            if (data.extra?.length > 0) {
-                console.log(`  ${c.magenta('⚠')} ${name} 多余 (${CONFIG.primaryLocale} 中没有): ${c.magenta(data.extra.length)} 个`);
-                data.extra.slice(0, 5).forEach(k => console.log(`    ${c.dim('→')} ${k}`));
-                if (data.extra.length > 5) console.log(`    ${c.dim(`... 还有 ${data.extra.length - 5} 个`)}`);
-            }
-        }
-        console.log();
-    }
-
-    // 4d. 插值参数
-    if (report.paramMismatches.length === 0) {
-        console.log(`${c.green('✅ 插值参数一致性')} — 所有 {param} 占位符跨语言一致\n`);
-    } else {
-        console.log(`${c.yellow('⚠️  插值参数不一致')} — 以下键的 {param} 占位符跨语言不同:`);
-        console.log(c.dim(line));
-        for (const { key, locales: localeParams } of report.paramMismatches.slice(0, 15)) {
-            console.log(`  ${c.yellow('→')} ${c.bold(key)}`);
-            for (const [locale, params] of Object.entries(localeParams)) {
-                console.log(`    ${locale}: {${params.join(', ') || c.dim('无')}}`);
-            }
-        }
-        if (report.paramMismatches.length > 15) {
-            console.log(`  ${c.dim(`... 还有 ${report.paramMismatches.length - 15} 个`)}`);
-        }
-        console.log();
-    }
-
-    // 4e. 空值
-    const totalEmpty = localeNames.reduce((sum, n) => sum + report.emptyValues[n].length, 0);
-    if (totalEmpty === 0) {
-        console.log(`${c.green('✅ 空值检测')} — 无空翻译值\n`);
-    } else {
-        console.log(`${c.yellow('⚠️  空值检测')} — 以下键的翻译值为空:`);
-        console.log(c.dim(line));
-        for (const name of localeNames) {
-            const empties = report.emptyValues[name];
-            if (empties.length > 0) {
-                console.log(`  ${name}: ${c.yellow(empties.length)} 个空值`);
-                empties.slice(0, 5).forEach(k => console.log(`    ${c.dim('→')} ${k}`));
-                if (empties.length > 5) console.log(`    ${c.dim(`... 还有 ${empties.length - 5} 个`)}`);
-            }
-        }
-        console.log();
-    }
-
-    // 4c. 孤儿键
-    const totalOrphans = localeNames.reduce((sum, n) => sum + report.orphanKeys[n].length, 0);
-    if (totalOrphans === 0) {
-        console.log(`${c.green('✅ 孤儿键检测')} — 所有语言包键位均有对应的 t() 调用\n`);
-    } else {
-        const icon = STRICT ? c.red('❌') : c.yellow('⚠️ ');
-        console.log(`${icon} ${c.bold('孤儿键检测')} — 语言包中定义但源码中未直接引用的键:`);
-        console.log(c.dim(line));
-        console.log(c.dim('  注: 部分键可能通过动态模板 t(`...${var}...`) 间接使用'));
-        for (const name of localeNames) {
-            const orphans = report.orphanKeys[name];
-            if (orphans.length > 0) {
-                console.log(`  ${name}: ${c.yellow(orphans.length)} 个可能的孤儿键`);
-                orphans.slice(0, 10).forEach(k => console.log(`    ${c.dim('→')} ${k}`));
-                if (orphans.length > 10) console.log(`    ${c.dim(`... 还有 ${orphans.length - 10} 个`)}`);
-            }
-        }
-        console.log();
-    }
-
-    // 动态键分析
-    const da = report.dynamicAnalysis;
-    if (da.total > 0) {
-        console.log(c.bold('🔮 动态键分析'));
-        console.log(c.dim(line));
-        console.log(`  已覆盖模式: ${c.green(da.covered)} / ${da.total}`);
-        if (da.uncovered.length > 0) {
-            console.log(`  未覆盖模式: ${c.yellow(da.uncovered.length)}`);
-            da.uncovered.slice(0, 5).forEach(p =>
-                console.log(`    ${c.dim('→')} t(\`${p.template}\`)  ${c.dim(`at ${p.file}:${p.line}`)}`)
-            );
-        }
-        console.log();
-    }
-
-    // 最终摘要
-    console.log(c.dim(line));
-    const exitOk = totalMissing === 0 && totalAsymmetric === 0 && totalEmpty === 0 && !(STRICT && totalOrphans > 0);
-    if (exitOk) {
-        console.log(`${c.green(c.bold('🎉 全部检查通过!'))} ${c.dim(`(${elapsed}ms)`)}\n`);
-    } else {
-        console.log(`${c.red(c.bold('🚨 存在问题需要修复'))} ${c.dim(`(${elapsed}ms)`)}\n`);
-    }
+if (isDirectExecution) {
+  const exitCode = await runI18nAuditCli();
+  process.exit(exitCode);
 }
-
-// ─── 修复建议文件生成 ────────────────────────────────────────
-
-function generateFixReport(report, localeNames, locales) {
-    const lines = ['# i18n 修复建议报告', `> 生成时间: ${new Date().toISOString()}`, ''];
-
-    // 缺失键
-    for (const name of localeNames) {
-        const missing = report.missingKeys[name];
-        if (missing.length === 0) continue;
-        lines.push(`## ${name} — 缺失键 (${missing.length})`, '');
-        lines.push('```javascript');
-        lines.push('// 将以下键添加到对应的语言包文件中');
-        for (const { key } of missing) {
-            lines.push(`// ${key}: '${key.split('.').pop()}',  // TODO: 翻译`);
-        }
-        lines.push('```', '');
-    }
-
-    // 不对称键
-    for (const [name, data] of Object.entries(report.asymmetricKeys)) {
-        if (data.missing?.length > 0) {
-            lines.push(`## ${name} — 从 ${CONFIG.primaryLocale} 同步缺失 (${data.missing.length})`, '');
-            lines.push('```');
-            for (const key of data.missing) {
-                const val = getByPath(locales[CONFIG.primaryLocale], key);
-                lines.push(`${key}: ${JSON.stringify(val)}  // 需翻译`);
-            }
-            lines.push('```', '');
-        }
-    }
-
-    // 孤儿键
-    for (const name of localeNames) {
-        const orphans = report.orphanKeys[name];
-        if (orphans?.length > 0) {
-            lines.push(`## ${name} — 建议清理的孤儿键 (${orphans.length})`, '');
-            lines.push('```javascript');
-            lines.push('// 以下键在源码中未发现明确的引用，可考虑移除（注意是否有隐式动态调用）：');
-            for (const key of orphans.slice(0, 50)) {
-                lines.push(`// ${key}`);
-            }
-            if (orphans.length > 50) {
-                lines.push(`// ... 还有 ${orphans.length - 50} 个未显示`);
-            }
-            lines.push('```', '');
-        }
-    }
-
-    // 动态模式未覆盖
-    const uncovered = report.dynamicAnalysis?.uncovered;
-    if (uncovered?.length > 0) {
-        lines.push(`## ⚠️ 动态模版未覆盖 (${uncovered.length})`, '');
-        lines.push('```javascript');
-        lines.push('// 以下 t(`...`) 动态调用在语言包中没有匹配到可能对应的前/后半段组合：');
-        for (const p of uncovered.slice(0, 50)) {
-            lines.push(`// t(\`${p.template}\`)  -> file: ${p.file}:${p.line}`);
-        }
-        lines.push('```', '');
-    }
-
-    const reportPath = path.join(ROOT, 'i18n-fix-report.md');
-    fs.writeFileSync(reportPath, lines.join('\n'), 'utf8');
-    console.log(`${c.green('📝')} 修复建议已写入 ${c.cyan(reportPath)}\n`);
-}
-
-// ─── 启动 ────────────────────────────────────────────────────
-run().catch(err => {
-    console.error(c.red('脚本执行失败:'), err);
-    process.exit(2);
-});
