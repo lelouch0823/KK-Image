@@ -1,11 +1,9 @@
 import { spawn } from 'node:child_process';
+import process from 'node:process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const SHARED_ENV = {
-  BASE_URL: process.env.BASE_URL || 'http://127.0.0.1:8080',
-  RUN_REAL_API_TESTS: process.env.RUN_REAL_API_TESTS || '1',
-};
-
-const fileSets = {
+export const fileSets = {
   smoke: [
     'test/manage-products-authz.test.js',
     'test/manage-products-barcode-rule.test.js',
@@ -79,7 +77,7 @@ const fileSets = {
   ],
 };
 
-const profiles = {
+export const profiles = {
   smoke: {
     fileSet: 'smoke',
     env: {
@@ -118,75 +116,121 @@ const profiles = {
   },
 };
 
-const requestedProfile = process.env.REAL_API_PROFILE || process.argv[2] || 'smoke';
-const selectedProfile = profiles[requestedProfile];
+export function resolveRealApiProfile(options = {}) {
+  const env = options.env || process.env;
+  const argv = options.argv || process.argv.slice(2);
+  const requestedProfile = env.REAL_API_PROFILE || argv[0] || 'smoke';
+  const selectedProfile = profiles[requestedProfile];
+  const overrideFiles = String(env.REAL_API_FILES || '')
+    .split(',')
+    .map((file) => file.trim())
+    .filter(Boolean);
 
-if (!selectedProfile) {
-  console.error(
-    `Unknown REAL_API_PROFILE "${requestedProfile}". Available profiles: ${Object.keys(profiles).join(', ')}`
-  );
-  process.exit(1);
+  return {
+    requestedProfile,
+    selectedProfile,
+    overrideFiles,
+    selectedFiles:
+      overrideFiles.length > 0
+        ? overrideFiles
+        : selectedProfile
+          ? fileSets[selectedProfile.fileSet]
+          : [],
+  };
 }
 
-const overrideFiles = String(process.env.REAL_API_FILES || '')
-  .split(',')
-  .map((file) => file.trim())
-  .filter(Boolean);
-const selectedFiles = overrideFiles.length > 0 ? overrideFiles : fileSets[selectedProfile.fileSet];
-const profileEnv = selectedProfile.env || {};
+export function createVitestSpawner(options = {}) {
+  const spawnImpl = options.spawn || spawn;
+  const nodeExecPath = options.nodeExecPath || process.execPath;
+  const baseEnv = options.baseEnv || process.env;
 
-console.log(
-  `[real-api] profile=${requestedProfile} fileSet=${selectedProfile.fileSet} directSales=${profileEnv.REAL_API_SALES_DIRECT === '1' ? 'on' : 'off'} isolateFiles=${selectedProfile.isolateFiles ? 'on' : 'off'} overrideFiles=${overrideFiles.length > 0 ? overrideFiles.length : 'off'}`
-);
+  return function spawnVitest(files, runtimeEnv = {}) {
+    return new Promise((resolve) => {
+      const child = spawnImpl(
+        nodeExecPath,
+        ['node_modules/vitest/vitest.mjs', '--maxWorkers', '1', ...files],
+        {
+          stdio: 'inherit',
+          env: {
+            ...baseEnv,
+            ...runtimeEnv,
+          },
+        }
+      );
 
-function spawnVitest(files) {
-  return new Promise((resolve) => {
-    const child = spawn(
-      process.execPath,
-      ['node_modules/vitest/vitest.mjs', '--maxWorkers', '1', ...files],
-      {
-        stdio: 'inherit',
-        env: {
-          ...process.env,
-          ...SHARED_ENV,
-          ...profileEnv,
-        },
-      }
-    );
-
-    child.on('exit', (code, signal) => {
-      resolve({ code: code ?? 1, signal });
+      child.on('exit', (code, signal) => {
+        resolve({ code: code ?? 1, signal });
+      });
     });
-  });
+  };
 }
 
-async function run() {
+export async function runRealApiCli(options = {}) {
+  const env = options.env || process.env;
+  const writeStdout = options.writeStdout || ((text) => process.stdout.write(text));
+  const writeStderr = options.writeStderr || ((text) => process.stderr.write(text));
+  const killProcess = options.killProcess || ((pid, signal) => process.kill(pid, signal));
+  const sharedEnv = {
+    BASE_URL: env.BASE_URL || 'http://127.0.0.1:8080',
+    RUN_REAL_API_TESTS: env.RUN_REAL_API_TESTS || '1',
+  };
+
+  const { requestedProfile, selectedProfile, overrideFiles, selectedFiles } =
+    resolveRealApiProfile({
+      env,
+      argv: options.argv,
+    });
+
+  if (!selectedProfile) {
+    writeStderr(
+      `Unknown REAL_API_PROFILE "${requestedProfile}". Available profiles: ${Object.keys(
+        profiles
+      ).join(', ')}\n`
+    );
+    return 1;
+  }
+
+  const profileEnv = selectedProfile.env || {};
+  const spawnVitest =
+    options.spawnVitest || createVitestSpawner({ spawn: options.spawn, baseEnv: process.env });
+
+  writeStdout(
+    `[real-api] profile=${requestedProfile} fileSet=${selectedProfile.fileSet} directSales=${profileEnv.REAL_API_SALES_DIRECT === '1' ? 'on' : 'off'} isolateFiles=${selectedProfile.isolateFiles ? 'on' : 'off'} overrideFiles=${overrideFiles.length > 0 ? overrideFiles.length : 'off'}\n`
+  );
+
+  const runtimeEnv = {
+    ...sharedEnv,
+    ...profileEnv,
+  };
+
   if (!selectedProfile.isolateFiles) {
-    const result = await spawnVitest(selectedFiles);
+    const result = await spawnVitest(selectedFiles, runtimeEnv);
     if (result.signal) {
-      process.kill(process.pid, result.signal);
-      return;
+      killProcess(process.pid, result.signal);
+      return null;
     }
-    process.exit(result.code);
+    return result.code;
   }
 
   for (const file of selectedFiles) {
-    console.log(`[real-api] running ${file}`);
-    const result = await spawnVitest([file]);
+    writeStdout(`[real-api] running ${file}\n`);
+    const result = await spawnVitest([file], runtimeEnv);
     if (result.signal) {
-      process.kill(process.pid, result.signal);
-      return;
+      killProcess(process.pid, result.signal);
+      return null;
     }
     if (result.code !== 0) {
-      process.exit(result.code);
-      return;
+      return result.code;
     }
   }
 
-  process.exit(0);
+  return 0;
 }
 
-run().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+const isDirectExecution =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isDirectExecution) {
+  const exitCode = await runRealApiCli();
+  process.exit(exitCode ?? 1);
+}
