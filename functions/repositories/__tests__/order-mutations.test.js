@@ -314,6 +314,40 @@ describe('Order Mutations SQL Binding', () => {
             expect(batchDb.batch).toHaveBeenCalledTimes(3);
             expect(Math.max(...batchDb.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(100);
         });
+
+        it('creates multiple order_lines rows and rolls total quantity into the order header when lines are provided', async () => {
+            const batchDb = createBatchAwareDb();
+
+            await create(batchDb, timelineRepo, {
+                id: 'o_multi',
+                orderNo: 'no_multi',
+                salespersonId: 's_multi',
+                data: {
+                    name: 'Header Placeholder',
+                    lines: [
+                        { name: 'Line A', sku: 'SKU-A', quantity: 2, color: 'Red' },
+                        { name: 'Line B', sku: 'SKU-B', quantity: 3, size: 'L' },
+                    ],
+                },
+                status: 'pending',
+                quantity: 999,
+            });
+
+            const orderBindArgs = batchDb.batchCalls[0][0].params;
+            expect(orderBindArgs[8]).toBe(5);
+
+            const lineInsertStatements = batchDb.batchCalls[0].filter((statement) =>
+                statement.sql.includes('INSERT INTO order_lines')
+            );
+
+            expect(lineInsertStatements).toHaveLength(2);
+            expect(lineInsertStatements[0].params[4]).toBe('Line A');
+            expect(lineInsertStatements[0].params[5]).toBe('SKU-A');
+            expect(lineInsertStatements[0].params[8]).toBe(2);
+            expect(lineInsertStatements[1].params[4]).toBe('Line B');
+            expect(lineInsertStatements[1].params[5]).toBe('SKU-B');
+            expect(lineInsertStatements[1].params[8]).toBe(3);
+        });
     });
 
     describe('compatibility line sync', () => {
@@ -423,6 +457,123 @@ describe('Order Mutations SQL Binding', () => {
             expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('summary_name = ?');
             expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('summary_brand = ?');
             expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('summary_sku = ?');
+        });
+
+        it('updateComposite keeps single-line current_data.lines quantity and binding aligned during ordinary edits', async () => {
+            const inventoryService = {
+                assertSufficient: vi.fn(),
+                applyMutation: vi.fn(),
+            };
+            db.all.mockResolvedValueOnce({
+                results: [{
+                    order_id: 'o-json-sync',
+                    id: 'line-1',
+                    product_id: 'prod-1',
+                    variant_id: 'var-1',
+                    ordered_qty: 1,
+                    procured_qty: 0,
+                    received_qty: 0,
+                    reserved_qty: 0,
+                    shipped_qty: 0,
+                    cancelled_qty: 0,
+                    line_count: 1,
+                    total_ordered_qty: 1,
+                    total_shipped_qty: 0,
+                    total_cancelled_qty: 0,
+                    row_num: 1,
+                }],
+            });
+
+            await updateComposite(db, {
+                id: 'o-json-sync',
+                actorType: 'admin',
+                newData: {
+                    name: 'Updated Item',
+                    brand: 'KK',
+                    sku: 'SKU-2',
+                    quantity: 2,
+                    lines: [
+                        {
+                            name: 'Updated Item',
+                            quantity: 1,
+                            productId: 'prod-1',
+                            variantId: 'var-1',
+                        },
+                    ],
+                },
+                productId: 'prod-1',
+                variantId: 'var-1',
+                inventoryService,
+                explicitLineMutation: false,
+            });
+
+            const orderUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) => sql.includes('UPDATE orders SET'));
+            expect(orderUpdateIndex).toBeGreaterThanOrEqual(0);
+
+            const orderBindArgs = db.bind.mock.calls[orderUpdateIndex];
+            const persistedData = JSON.parse(orderBindArgs[0]);
+            expect(persistedData.quantity).toBe(2);
+            expect(persistedData.lines).toEqual([
+                expect.objectContaining({
+                    quantity: 2,
+                    productId: 'prod-1',
+                    variantId: 'var-1',
+                }),
+            ]);
+        });
+
+        it('updateComposite rewrites order_lines and rolls up header quantity when multiple lines are provided', async () => {
+            const batchDb = createBatchAwareDb({
+                allHandler: async (statement) => ({
+                    results: isOrderLinePrefetchSql(statement.sql)
+                        ? [{
+                            order_id: 'o-multi-update',
+                            id: 'line-existing',
+                            product_id: null,
+                            variant_id: null,
+                            ordered_qty: 1,
+                            procured_qty: 0,
+                            received_qty: 0,
+                            reserved_qty: 0,
+                            shipped_qty: 0,
+                            cancelled_qty: 0,
+                            line_count: 1,
+                            total_ordered_qty: 1,
+                            total_shipped_qty: 0,
+                            total_cancelled_qty: 0,
+                            row_num: 1,
+                        }]
+                        : [],
+                }),
+            });
+
+            await updateComposite(batchDb, {
+                id: 'o-multi-update',
+                actorType: 'admin',
+                newData: {
+                    lines: [
+                        { name: 'Line A', sku: 'SKU-A', quantity: 2, color: 'Red' },
+                        { name: 'Line B', sku: 'SKU-B', quantity: 3, size: 'L' },
+                    ],
+                },
+            });
+
+            const statements = batchDb.batchCalls.flat();
+            const orderUpdateStatement = statements.find((statement) => statement.sql.includes('UPDATE orders SET'));
+            const deleteLineStatement = statements.find((statement) => statement.sql.includes('DELETE FROM order_lines WHERE order_id = ?'));
+            const lineInsertStatements = statements.filter((statement) => statement.sql.includes('INSERT INTO order_lines'));
+
+            expect(orderUpdateStatement).toBeTruthy();
+            expect(orderUpdateStatement.params).toContain(5);
+            expect(deleteLineStatement).toBeTruthy();
+            expect(deleteLineStatement.params).toEqual(['o-multi-update']);
+            expect(lineInsertStatements).toHaveLength(2);
+            expect(lineInsertStatements[0].params[4]).toBe('Line A');
+            expect(lineInsertStatements[0].params[5]).toBe('SKU-A');
+            expect(lineInsertStatements[0].params[8]).toBe(2);
+            expect(lineInsertStatements[1].params[4]).toBe('Line B');
+            expect(lineInsertStatements[1].params[5]).toBe('SKU-B');
+            expect(lineInsertStatements[1].params[8]).toBe(3);
         });
 
         it('updateComposite persists salesperson reassignment on the order header', async () => {

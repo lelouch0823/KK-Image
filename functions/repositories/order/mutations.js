@@ -61,6 +61,112 @@ function normalizeQuantity(quantity) {
     return Math.trunc(parsed);
 }
 
+function normalizeLineText(value, fallback = '') {
+    if (value === undefined || value === null) return fallback;
+    const normalized = String(value).trim();
+    return normalized || fallback;
+}
+
+function normalizeCreateLine(line = {}, fallback = {}) {
+    return {
+        productId: line.productId ?? fallback.productId ?? null,
+        variantId: line.variantId ?? fallback.variantId ?? null,
+        mainImageId: line.mainImageId ?? fallback.mainImageId ?? null,
+        quantity: normalizeQuantity(line.quantity ?? line.orderedQuantity ?? fallback.quantity ?? 1),
+        data: {
+            name: normalizeLineText(line.name ?? line.productName, fallback.data?.name || ''),
+            brand: normalizeLineText(line.brand, fallback.data?.brand || ''),
+            category: normalizeLineText(line.category, fallback.data?.category || ''),
+            series: normalizeLineText(line.series, fallback.data?.series || ''),
+            sku: normalizeLineText(line.sku, fallback.data?.sku || ''),
+            size: normalizeLineText(line.size, fallback.data?.size || ''),
+            color: normalizeLineText(line.color, fallback.data?.color || ''),
+            material: normalizeLineText(line.material, fallback.data?.material || ''),
+            remark: normalizeLineText(line.remark, fallback.data?.remark || ''),
+            deadline: normalizeLineText(line.deadline, fallback.data?.deadline || ''),
+        },
+    };
+}
+
+function buildCreateLines({
+    lines,
+    data,
+    quantity,
+    productId,
+    variantId,
+    mainImageId,
+}) {
+    const candidateLines = Array.isArray(lines) && lines.length > 0
+        ? lines
+        : (Array.isArray(data?.lines) ? data.lines : []);
+    const fallback = {
+        productId: productId ?? null,
+        variantId: variantId ?? null,
+        mainImageId: mainImageId ?? null,
+        quantity,
+        data,
+    };
+
+    if (candidateLines.length > 0) {
+        return candidateLines.map((line) => normalizeCreateLine(line, fallback));
+    }
+
+    return [normalizeCreateLine({}, fallback)];
+}
+
+function serializeNormalizedLines(lines = []) {
+    return lines.map((line) => ({
+        name: line.data.name,
+        brand: line.data.brand,
+        category: line.data.category,
+        series: line.data.series,
+        sku: line.data.sku,
+        size: line.data.size,
+        color: line.data.color,
+        material: line.data.material,
+        remark: line.data.remark,
+        deadline: line.data.deadline,
+        quantity: line.quantity,
+        productId: line.productId,
+        variantId: line.variantId,
+    }));
+}
+
+function buildHeaderDataFromLines(baseData = {}, normalizedLines = []) {
+    const primaryLine = normalizedLines[0] || normalizeCreateLine({}, { data: baseData });
+    return {
+        ...baseData,
+        ...primaryLine.data,
+        lines: serializeNormalizedLines(normalizedLines),
+    };
+}
+
+function syncImplicitSingleLineData(data = {}, {
+    productId = undefined,
+    variantId = undefined,
+    quantity = undefined,
+} = {}, existingLineState = null) {
+    const rawLines = Array.isArray(data?.lines) ? data.lines.filter(Boolean) : [];
+    if (rawLines.length !== 1) return data;
+    if (existingLineState && Number(existingLineState.line_count ?? 0) !== 1) return data;
+
+    const [rawLine] = rawLines;
+    const normalizedLine = normalizeCreateLine({}, {
+        productId: productId !== undefined ? productId : (rawLine.productId ?? null),
+        variantId: variantId !== undefined ? variantId : (rawLine.variantId ?? null),
+        quantity: quantity !== undefined ? quantity : (rawLine.quantity ?? rawLine.orderedQuantity ?? 1),
+        data: {
+            ...rawLine,
+            ...data,
+        },
+    });
+
+    return {
+        ...data,
+        lines: serializeNormalizedLines([normalizedLine]),
+    };
+}
+
 async function getOrderLineState(db, orderId, prefetchedStates = null) {
     const prefetchedState = getPrefetchedOrderLineState(prefetchedStates, orderId);
     if (prefetchedState) return prefetchedState;
@@ -338,6 +444,65 @@ function buildInitialOrderLineProgress(status, orderedQty) {
     return progress;
 }
 
+function buildOrderLineInsertStatement(db, {
+    orderId,
+    line,
+    status,
+    mainImageId,
+    timestamp,
+}) {
+    const snapshotSpecs = buildSnapshotSpecs(line.data);
+    const snapshotSpecsJson = snapshotSpecs ? JSON.stringify(snapshotSpecs) : null;
+    const orderedQty = normalizeQuantity(line.quantity);
+    const lineProgress = buildInitialOrderLineProgress(status, orderedQty);
+    const orderLineId = generateId();
+
+    return db
+        .prepare(
+            `
+        INSERT INTO order_lines (
+            id,
+            order_id,
+            product_id,
+            variant_id,
+            snapshot_name,
+            snapshot_sku,
+            snapshot_specs,
+            snapshot_image,
+            ordered_qty,
+            procured_qty,
+            received_qty,
+            reserved_qty,
+            shipped_qty,
+            cancelled_qty,
+            display_status,
+            created_at,
+            updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `
+        )
+        .bind(
+            orderLineId,
+            orderId,
+            line.productId,
+            line.variantId || null,
+            line.data.name || '',
+            line.data.sku || null,
+            snapshotSpecsJson,
+            line.mainImageId || mainImageId || null,
+            orderedQty,
+            lineProgress.procured_qty,
+            lineProgress.received_qty,
+            lineProgress.reserved_qty,
+            lineProgress.shipped_qty,
+            lineProgress.cancelled_qty,
+            lineProgress.display_status,
+            timestamp,
+            timestamp
+        );
+}
+
 /**
  * 创建新订单
  * @param {D1Database} db
@@ -361,6 +526,7 @@ export async function create(
         timeline,
         productId = null,
         variantId = null,
+        lines = [],
         enforceSalesFileScope = false,
     }
 ) {
@@ -368,11 +534,21 @@ export async function create(
     if (enforceSalesFileScope) {
         await assertSalesScopedFileIds(db, fileIds, salespersonId);
     }
-    const normalizedQuantity = normalizeQuantity(quantity);
+    const normalizedLines = buildCreateLines({
+        lines,
+        data,
+        quantity,
+        productId,
+        variantId,
+        mainImageId,
+    });
+    const primaryLine = normalizedLines[0] || normalizeCreateLine({}, { data, quantity, productId, variantId, mainImageId });
+    const normalizedQuantity = normalizedLines.reduce((sum, line) => sum + normalizeQuantity(line.quantity), 0);
     const normalizedStatus = normalizeOrderLifecycleStatus(status || 'pending') || 'pending';
-    const orderData = JSON.stringify(data);
-    const deadlineDate = extractDeadlineDate(data);
-    const { summaryName, summaryBrand, summarySku } = deriveOrderSummaryFields(data);
+    const headerData = buildHeaderDataFromLines({}, normalizedLines);
+    const orderData = JSON.stringify(headerData);
+    const deadlineDate = extractDeadlineDate(primaryLine.data);
+    const { summaryName, summaryBrand, summarySku } = deriveOrderSummaryFields(primaryLine.data);
     const batchStatements = [];
 
     // 1. 插入订单
@@ -400,62 +576,20 @@ export async function create(
                 deadlineDate,
                 timestamp,
                 timestamp,
-                productId,
-                variantId
+                normalizedLines.length === 1 ? primaryLine.productId : null,
+                normalizedLines.length === 1 ? primaryLine.variantId : null
             )
     );
 
-    const snapshotSpecs = buildSnapshotSpecs(data);
-    const snapshotSpecsJson = snapshotSpecs ? JSON.stringify(snapshotSpecs) : null;
-    const orderedQty = normalizedQuantity;
-    const lineProgress = buildInitialOrderLineProgress(normalizedStatus, orderedQty);
-    const orderLineId = generateId();
-    batchStatements.push(
-        db
-            .prepare(
-                `
-        INSERT INTO order_lines (
-            id,
-            order_id,
-            product_id,
-            variant_id,
-            snapshot_name,
-            snapshot_sku,
-            snapshot_specs,
-            snapshot_image,
-            ordered_qty,
-            procured_qty,
-            received_qty,
-            reserved_qty,
-            shipped_qty,
-            cancelled_qty,
-            display_status,
-            created_at,
-            updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `
-            )
-            .bind(
-                orderLineId,
-                id,
-                productId,
-                variantId || null,
-                (data && data.name) || '',
-                (data && data.sku) || null,
-                snapshotSpecsJson,
-                mainImageId || null,
-                orderedQty,
-                lineProgress.procured_qty,
-                lineProgress.received_qty,
-                lineProgress.reserved_qty,
-                lineProgress.shipped_qty,
-                lineProgress.cancelled_qty,
-                lineProgress.display_status,
-                timestamp,
-                timestamp
-            )
-    );
+    normalizedLines.forEach((line) => {
+        batchStatements.push(buildOrderLineInsertStatement(db, {
+            orderId: id,
+            line,
+            status: normalizedStatus,
+            mainImageId,
+            timestamp,
+        }));
+    });
 
     batchStatements.push(createOrderPayloadUpsertStatement(db, {
         orderId: id,
@@ -574,6 +708,7 @@ export async function updateComposite(db, {
     id,
     actorType,
     newData,
+    explicitLineMutation = undefined,
     productId = undefined,
     variantId = undefined,
     salespersonId = undefined,
@@ -594,6 +729,37 @@ export async function updateComposite(db, {
         ? (normalizeOrderLifecycleStatus(status) || status)
         : undefined;
     const orderLineStates = await prefetchOrderLineStates(db, [id]);
+    const primaryOrderLineState = getPrefetchedOrderLineState(orderLineStates, id);
+    const rawLines = Array.isArray(newData?.lines) ? newData.lines.filter(Boolean) : [];
+    const hasExplicitLines = explicitLineMutation === undefined
+        ? rawLines.length > 0
+        : (Boolean(explicitLineMutation) && rawLines.length > 0);
+    const normalizedLines = hasExplicitLines
+        ? buildCreateLines({
+            lines: rawLines,
+            data: newData,
+            quantity: newData?.quantity,
+            productId,
+            variantId,
+            mainImageId: Array.isArray(fileIds) && fileIds.length > 0 ? fileIds[0] : undefined,
+        })
+        : [];
+    const effectiveData = hasExplicitLines
+        ? buildHeaderDataFromLines(newData, normalizedLines)
+        : syncImplicitSingleLineData(newData, {
+            productId,
+            variantId,
+            quantity: newData?.quantity,
+        }, primaryOrderLineState);
+    const effectiveQuantity = hasExplicitLines
+        ? normalizedLines.reduce((sum, line) => sum + normalizeQuantity(line.quantity), 0)
+        : newData?.quantity;
+    const effectiveProductId = hasExplicitLines && normalizedLines.length > 1
+        ? null
+        : productId;
+    const effectiveVariantId = hasExplicitLines && normalizedLines.length > 1
+        ? null
+        : variantId;
 
     if (status !== undefined) {
         await assertOrderStatusCompatibleWithLines(db, id, normalizedStatus, orderLineStates);
@@ -622,22 +788,22 @@ export async function updateComposite(db, {
         }
     }
 
-    const { summaryName, summaryBrand, summarySku } = deriveOrderSummaryFields(newData);
-    const deadlineDate = extractDeadlineDate(newData);
+    const { summaryName, summaryBrand, summarySku } = deriveOrderSummaryFields(effectiveData);
+    const deadlineDate = extractDeadlineDate(effectiveData);
     const colsToUpdate = ['current_data = ?', `${updateField} = 1`, 'updated_at = ?', 'summary_name = ?', 'summary_brand = ?', 'summary_sku = ?', 'deadline_date = ?'];
-    const params = [JSON.stringify(newData), timestamp, summaryName, summaryBrand, summarySku, deadlineDate];
+    const params = [JSON.stringify(effectiveData), timestamp, summaryName, summaryBrand, summarySku, deadlineDate];
 
-    if (newData?.quantity !== undefined) {
+    if (effectiveQuantity !== undefined) {
         colsToUpdate.push('quantity = ?');
-        params.push(newData.quantity);
+        params.push(effectiveQuantity);
     }
-    if (productId !== undefined) {
+    if (effectiveProductId !== undefined) {
         colsToUpdate.push('product_id = ?');
-        params.push(productId);
+        params.push(effectiveProductId);
     }
-    if (variantId !== undefined) {
+    if (effectiveVariantId !== undefined) {
         colsToUpdate.push('variant_id = ?');
-        params.push(variantId === '' ? null : variantId);
+        params.push(effectiveVariantId === '' ? null : effectiveVariantId);
     }
     if (salespersonId !== undefined) {
         colsToUpdate.push('salesperson_id = ?');
@@ -659,31 +825,45 @@ export async function updateComposite(db, {
 
     statements.push(createOrderPayloadUpsertStatement(db, {
         orderId: id,
-        originalData: JSON.stringify(newData),
-        currentData: JSON.stringify(newData),
+        originalData: JSON.stringify(effectiveData),
+        currentData: JSON.stringify(effectiveData),
         createdAt: timestamp,
         updatedAt: timestamp,
     }));
 
-    statements.push(
-        await syncCompatibilityOrderLineSnapshot(db, {
-            orderId: id,
-            data: newData,
-            productId,
-            variantId,
-            quantity: newData?.quantity,
-            mainImageId: Array.isArray(fileIds) ? (fileIds.length > 0 ? fileIds[0] : null) : undefined,
-            timestamp,
-            prefetchedStates: orderLineStates,
-        })
-    );
+    if (hasExplicitLines) {
+        const lineStatus = normalizeOrderLifecycleStatus(normalizedStatus || effectiveData?.status || 'pending') || 'pending';
+        statements.push(db.prepare('DELETE FROM order_lines WHERE order_id = ?').bind(id));
+        normalizedLines.forEach((line) => {
+            statements.push(buildOrderLineInsertStatement(db, {
+                orderId: id,
+                line,
+                status: lineStatus,
+                mainImageId: Array.isArray(fileIds) ? (fileIds.length > 0 ? fileIds[0] : null) : undefined,
+                timestamp,
+            }));
+        });
+    } else {
+        statements.push(
+            await syncCompatibilityOrderLineSnapshot(db, {
+                orderId: id,
+                data: effectiveData,
+                productId: effectiveProductId,
+                variantId: effectiveVariantId,
+                quantity: effectiveQuantity,
+                mainImageId: Array.isArray(fileIds) ? (fileIds.length > 0 ? fileIds[0] : null) : undefined,
+                timestamp,
+                prefetchedStates: orderLineStates,
+            })
+        );
+    }
 
-    if (status !== undefined) {
+    if (status !== undefined && !hasExplicitLines) {
         statements.push(await buildCompatibilityLineProgressStatement(
             db,
             id,
             normalizedStatus,
-            newData?.quantity,
+            effectiveQuantity,
             timestamp,
             orderLineStates
         ));
