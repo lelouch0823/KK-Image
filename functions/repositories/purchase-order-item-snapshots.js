@@ -12,14 +12,20 @@ export async function loadOrderLineSnapshotMap({ db, items = [] }) {
   const orderIds = [
     ...new Set(items.map((item) => String(item?.pre_order_id || '').trim()).filter(Boolean)),
   ];
+  const orderLineIds = [
+    ...new Set(items.map((item) => String(item?.order_line_id || '').trim()).filter(Boolean)),
+  ];
   const snapshotMap = new Map();
-  if (orderIds.length === 0) return snapshotMap;
+  if (orderIds.length === 0 && orderLineIds.length === 0) return snapshotMap;
 
-  for (const chunk of chunkArray(orderIds, D1_MAX_IN_CLAUSE_SIZE)) {
-    const placeholders = chunk.map(() => '?').join(',');
+  for (const chunk of chunkArray(orderIds.length > 0 ? orderIds : orderLineIds, D1_MAX_IN_CLAUSE_SIZE)) {
+    const whereClause = orderIds.length > 0
+      ? `order_id IN (${chunk.map(() => '?').join(',')})`
+      : `id IN (${chunk.map(() => '?').join(',')})`;
     const { results = [] } = await db
       .prepare(
         `SELECT
+          id,
           order_id,
           product_id,
           variant_id,
@@ -28,13 +34,14 @@ export async function loadOrderLineSnapshotMap({ db, items = [] }) {
           MAX(snapshot_specs) AS snapshot_specs,
           MAX(snapshot_image) AS snapshot_image
          FROM order_lines
-         WHERE order_id IN (${placeholders})
-         GROUP BY order_id, product_id, variant_id`
+         WHERE ${whereClause}
+         GROUP BY id, order_id, product_id, variant_id`
       )
       .bind(...chunk)
       .all();
 
     for (const row of results) {
+      snapshotMap.set(`line::${row.id}`, row);
       snapshotMap.set(`${row.order_id}::${row.product_id || ''}::${row.variant_id || ''}`, row);
     }
   }
@@ -133,9 +140,12 @@ export async function hydratePurchaseItemSnapshots({ db, items = [] }) {
         : null,
       snapshot_image: item.snapshot_image || null,
     };
-    const orderLineSnapshot = orderLineSnapshotMap.get(
-      `${item.pre_order_id || ''}::${item.product_id || ''}::${item.variant_id || ''}`
-    ) || null;
+    const orderLineSnapshot =
+      orderLineSnapshotMap.get(`line::${item.order_line_id || ''}`) ||
+      orderLineSnapshotMap.get(
+        `${item.pre_order_id || ''}::${item.product_id || ''}::${item.variant_id || ''}`
+      ) ||
+      null;
     const liveSnapshot = liveSnapshotMap.get(
       `${item.product_id || ''}::${item.variant_id || ''}`
     ) || null;

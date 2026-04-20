@@ -612,6 +612,83 @@ describe('OrderProcurementDomainService', () => {
     expect(orderLineUpdateStatement.sql).toContain('WHERE id = ? AND order_id = ?');
   });
 
+  it('prefers the persisted purchase-order order_line_id when duplicate variant lines exist on the same order', async () => {
+    const duplicateHarness = createDbHarness({
+      purchaseOrderItemRow: {
+        id: 'poi-1',
+        po_id: 'po-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        pre_order_id: 'o-1',
+        order_line_id: 'line-2',
+        quantity: 10,
+        received_qty: 2,
+        cancelled_qty: 0,
+      },
+      orderLineProgressRow: {
+        id: 'line-2',
+        order_id: 'o-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 5,
+        procured_qty: 0,
+        received_qty: 1,
+        reserved_qty: 0,
+        shipped_qty: 0,
+        cancelled_qty: 0,
+      },
+      matchingOrderLines: [
+        {
+          id: 'line-1',
+          order_id: 'o-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          ordered_qty: 5,
+          procured_qty: 0,
+          received_qty: 0,
+          reserved_qty: 0,
+          shipped_qty: 0,
+          cancelled_qty: 0,
+        },
+        {
+          id: 'line-2',
+          order_id: 'o-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          ordered_qty: 5,
+          procured_qty: 0,
+          received_qty: 1,
+          reserved_qty: 0,
+          shipped_qty: 0,
+          cancelled_qty: 0,
+        },
+      ],
+    });
+    const duplicateService = new OrderProcurementDomainService(duplicateHarness.db, {
+      purchaseReceiptRepo: duplicateHarness.purchaseReceiptRepo,
+      inventoryService: duplicateHarness.inventoryService,
+      commandIdempotencyRepo: duplicateHarness.commandIdempotencyRepo,
+      domainOutboxRepo: duplicateHarness.domainOutboxRepo,
+      variantDemandProjectionRefreshService: duplicateHarness.variantDemandProjectionRefreshService,
+      now: () => 1710000000000,
+    });
+
+    await expect(duplicateService.recordPurchaseOrderReceipts('po-1', {
+      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
+    }, {
+      idempotencyKey: 'idem-duplicate-line',
+    })).resolves.toEqual(expect.objectContaining({
+      purchase_order_id: 'po-1',
+      receipt_count: 1,
+    }));
+
+    expect(duplicateHarness.purchaseReceiptRepo.createInsertStatement).toHaveBeenCalledWith(
+      expect.objectContaining({
+        order_line_id: 'line-2',
+      })
+    );
+  });
+
   it('does not trigger compensating rollback batches when receipt guard fails', async () => {
     const concurrentHarness = createDbHarness({
       purchaseOrderItemUpdateResult: { meta: { changes: 0 } },

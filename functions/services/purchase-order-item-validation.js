@@ -78,14 +78,17 @@ export async function validatePurchaseOrderPreOrderBinding(db, items = [], { rep
   const linkedItems = items.filter((item) => item.pre_order_id);
   if (linkedItems.length === 0) return;
 
-  const seenOrderIds = new Set();
+  const seenOrderLineKeys = new Set();
   for (const item of linkedItems) {
     const orderId = String(item.pre_order_id || '').trim();
+    const orderLineId = String(item.order_line_id || '').trim();
     if (!orderId) continue;
-    if (seenOrderIds.has(orderId)) {
-      throw new BadRequestError('同一个 pre_order_id 不能重复绑定到多条采购明细');
+    if (!orderLineId) continue;
+    const dedupeKey = `${orderId}::${orderLineId}`;
+    if (seenOrderLineKeys.has(dedupeKey)) {
+      throw new BadRequestError('同一个 order_line_id 不能重复绑定到多条采购明细');
     }
-    seenOrderIds.add(orderId);
+    seenOrderLineKeys.add(dedupeKey);
   }
 
   const poRepo = repo || new PurchaseOrderRepository(db);
@@ -103,6 +106,35 @@ export async function validatePurchaseOrderPreOrderBinding(db, items = [], { rep
     }
   }
 
+  const orderLineMap = new Map();
+  const orderLineCandidatesByOrderAndVariant = new Map();
+  for (const orderIdChunk of chunkArray(orderIds, D1_MAX_IN_CLAUSE_SIZE)) {
+    const placeholders = orderIdChunk.map(() => '?').join(',');
+    const { results } = await db.prepare(`
+      SELECT
+        ol.id,
+        ol.order_id,
+        o.order_no,
+        o.status,
+        ol.product_id,
+        ol.variant_id,
+        ol.ordered_qty,
+        ol.cancelled_qty,
+        ol.shipped_qty
+      FROM order_lines ol
+      JOIN orders o ON o.id = ol.order_id
+      WHERE ol.order_id IN (${placeholders})
+    `).bind(...orderIdChunk).all();
+
+    for (const row of results || []) {
+      orderLineMap.set(`${row.order_id}::${row.id}`, row);
+      const candidateKey = `${row.order_id}::${row.product_id || ''}::${row.variant_id || ''}`;
+      const existing = orderLineCandidatesByOrderAndVariant.get(candidateKey) || [];
+      existing.push(row);
+      orderLineCandidatesByOrderAndVariant.set(candidateKey, existing);
+    }
+  }
+
   const activeBindings = await poRepo.findActiveBindingsByPreOrderIds(orderIds);
   const bindingMap = new Map(activeBindings.map((binding) => [binding.pre_order_id, binding]));
 
@@ -114,10 +146,45 @@ export async function validatePurchaseOrderPreOrderBinding(db, items = [], { rep
     if (order.status !== 'confirmed') {
       throw new BadRequestError('仅可关联 confirmed 状态的预订单');
     }
-    if (order.product_id !== item.product_id || order.variant_id !== item.variant_id) {
+    const explicitOrderLineId = String(item.order_line_id || '').trim();
+    const explicitLine = explicitOrderLineId
+      ? orderLineMap.get(`${item.pre_order_id}::${explicitOrderLineId}`) || null
+      : null;
+    const matchedCandidates = orderLineCandidatesByOrderAndVariant.get(
+      `${item.pre_order_id}::${item.product_id || ''}::${item.variant_id || ''}`
+    ) || [];
+    const matchedOrderLine = explicitLine || (
+      matchedCandidates.length === 1
+        ? matchedCandidates[0]
+        : null
+    );
+
+    if (explicitOrderLineId && !matchedOrderLine) {
+      throw new BadRequestError('pre_order_id 与 order_line_id 不匹配');
+    }
+    if (!explicitOrderLineId && matchedCandidates.length > 1) {
+      throw new BadRequestError('同一订单内存在多条相同商品/变体的订单行，请提供 order_line_id');
+    }
+
+    if (matchedOrderLine) {
+      if (matchedOrderLine.product_id !== item.product_id || matchedOrderLine.variant_id !== item.variant_id) {
+        throw new BadRequestError('pre_order_id 与商品/变体不匹配');
+      }
+    } else if (order.product_id !== item.product_id || order.variant_id !== item.variant_id) {
       throw new BadRequestError('pre_order_id 与商品/变体不匹配');
     }
-    const expectedQuantity = normalizeComparableQuantity(order.quantity, 1);
+
+    const expectedQuantity = matchedOrderLine
+      ? normalizeComparableQuantity(
+        Math.max(
+          Number(matchedOrderLine.ordered_qty || 0) -
+          Number(matchedOrderLine.cancelled_qty || 0) -
+          Number(matchedOrderLine.shipped_qty || 0),
+          0
+        ),
+        1
+      )
+      : normalizeComparableQuantity(order.quantity, 1);
     const requestedQuantity = normalizeComparableQuantity(item.quantity, 1);
     if (requestedQuantity !== expectedQuantity) {
       throw new BadRequestError('pre_order_id 与订单数量不匹配');

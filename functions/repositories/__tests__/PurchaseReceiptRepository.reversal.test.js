@@ -76,7 +76,7 @@ describe('PurchaseReceiptRepository reversals', () => {
 
     const sql = db.prepare.mock.calls[0][0];
     expect(sql).toContain('pr.order_line_id');
-    expect(sql).toContain('COALESCE(pr.order_line_id, ie.order_line_id) AS order_line_id');
+    expect(sql).toContain('COALESCE(pr.order_line_id, poi.order_line_id, ie.order_line_id) AS order_line_id');
     expect(sql).not.toContain('LEFT JOIN order_lines ol ON ol.order_id = poi.pre_order_id');
   });
 

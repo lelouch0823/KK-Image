@@ -84,16 +84,32 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
 
     const orderId = generateId();
     const orderNo = generateOrderNo();
-    const variantId = data.variantId ?? null;
+    const normalizedLines = Array.isArray(data.lines) ? data.lines.filter(Boolean).map((line) => ({
+        name: String(line.name || '').trim(),
+        brand: String(line.brand || '').trim(),
+        category: String(line.category || '').trim(),
+        series: String(line.series || '').trim(),
+        sku: String(line.sku || '').trim(),
+        size: String(line.size || '').trim(),
+        color: String(line.color || '').trim(),
+        material: String(line.material || '').trim(),
+        remark: String(line.remark || '').trim(),
+        deadline: String(line.deadline || '').trim(),
+        quantity: Math.max(1, Math.trunc(Number(line.quantity || 1))),
+        productId: line.productId || null,
+        variantId: line.variantId ?? null,
+    })) : [];
+    const primaryLine = normalizedLines[0] || null;
+    const variantId = primaryLine ? (primaryLine.variantId ?? null) : (data.variantId ?? null);
 
-    const binding = await validateProductVariantBinding(env.DB, data.productId || null, variantId, {
+    const binding = await validateProductVariantBinding(env.DB, primaryLine ? (primaryLine.productId || null) : (data.productId || null), variantId, {
         checkActive: true,
         variantSelectPolicy: 'in_stock_only',
     });
     const boundSnapshot = buildOrderBindingSnapshot({
         product: binding.product,
         variant: binding.variant,
-        fallback: {
+        fallback: primaryLine || {
             name: data.name,
             brand: data.brand,
             series: data.series,
@@ -103,6 +119,9 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
             material: data.material,
         },
     });
+    const totalQuantity = normalizedLines.length > 0
+        ? normalizedLines.reduce((sum, line) => sum + line.quantity, 0)
+        : data.quantity;
 
     // 1. 创建订单（事务）
     const createdOrder = await orderRepo.create({
@@ -122,11 +141,12 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
             series: boundSnapshot.series,
             sku: boundSnapshot.sku,
         },
-        quantity: data.quantity,
+        quantity: totalQuantity,
         mainImageId: data.fileIds[0] || null,
         fileIds: data.fileIds,
-        productId: data.productId || null,
-        variantId,
+        productId: normalizedLines.length === 1 ? (primaryLine?.productId || data.productId || null) : (data.productId || null),
+        variantId: normalizedLines.length === 1 ? variantId : null,
+        lines: normalizedLines,
         timeline: {
             actionType: 'created',
             actorType: 'salesperson',
@@ -142,8 +162,8 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
         orderId: persistedOrderId,
         fromStatus: null,
         toStatus: 'pending',
-        quantity: data.quantity,
-        variantId,
+        quantity: totalQuantity,
+        variantId: normalizedLines.length === 1 ? variantId : null,
     });
 
     // 创建订单后将临时上传文件归档到订单目录，避免文件滞留在根目录

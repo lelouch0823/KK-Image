@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   publish: vi.fn(async () => []),
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
   randomUUID: vi.fn(),
+  syncOrderTransition: vi.fn(async () => ({})),
 }));
 
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
@@ -64,6 +65,12 @@ vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
   })),
 }));
 
+vi.mock('../../../../../services/DemandService.js', () => ({
+  DemandService: vi.fn(() => ({
+    syncOrderTransition: mocks.syncOrderTransition,
+  })),
+}));
+
 vi.mock('../../../../../api/cron/outbox.js', () => ({
   runOutboxPoller: mocks.runOutboxPoller,
 }));
@@ -104,6 +111,7 @@ describe('manage order create route', () => {
     mocks.getSalespersonAccessTokens.mockResolvedValue([]);
     mocks.ensureOrderFolder.mockResolvedValue('folder-order-1');
     mocks.moveFilesToFolder.mockResolvedValue(undefined);
+    mocks.syncOrderTransition.mockResolvedValue({});
   });
 
   it('archives uploaded files into order folder after creating order', async () => {
@@ -263,6 +271,73 @@ describe('manage order create route', () => {
       { checkActive: true }
     );
     expect(mocks.orderCreate).not.toHaveBeenCalled();
+  });
+
+  it('syncs confirmed multi-line demand per bound line instead of dropping header-level variant linkage', async () => {
+    mocks.validateProductVariantBinding
+      .mockResolvedValueOnce({
+        normalizedProductId: 'p-1',
+        normalizedVariantId: 'v-1',
+        product: { id: 'p-1', name: 'Line A', brand: 'KK', category: 'Workflow', series: 'S1' },
+        variant: { id: 'v-1', sku: 'SKU-A' },
+      })
+      .mockResolvedValueOnce({
+        normalizedProductId: 'p-2',
+        normalizedVariantId: 'v-2',
+        product: { id: 'p-2', name: 'Line B', brand: 'KK', category: 'Workflow', series: 'S2' },
+        variant: { id: 'v-2', sku: 'SKU-B' },
+      })
+      .mockResolvedValueOnce({
+        normalizedProductId: null,
+        normalizedVariantId: null,
+        product: null,
+        variant: null,
+      });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          salespersonId: 'sales-1',
+          status: 'confirmed',
+          fileIds: [],
+          lines: [
+            { productName: 'Line A', quantity: 2, productId: 'p-1', variantId: 'v-1' },
+            { productName: 'Line B', quantity: 3, productId: 'p-2', variantId: 'v-2' },
+          ],
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.syncOrderTransition).toHaveBeenCalledTimes(2);
+    expect(mocks.syncOrderTransition).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        orderId: 'order-1',
+        fromStatus: null,
+        toStatus: 'confirmed',
+        quantity: 2,
+        productId: 'p-1',
+        variantId: 'v-1',
+      })
+    );
+    expect(mocks.syncOrderTransition).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        orderId: 'order-1',
+        fromStatus: null,
+        toStatus: 'confirmed',
+        quantity: 3,
+        productId: 'p-2',
+        variantId: 'v-2',
+      })
+    );
   });
 
   it('enqueues order-created side effects through outbox instead of inline notifications', async () => {

@@ -1,16 +1,32 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
 import { MSG } from '../../../../_shared/utils.js';
-import { NotFoundError } from '../../errors.js';
+import { ForbiddenError, NotFoundError } from '../../errors.js';
 import { requireEntity } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { BackupRestoreService } from '../../../../services/BackupRestoreService.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'POST', path: '/', domain: 'backups', action: 'backup.create', severity: 'critical', targetType: 'backup', runtimeAssertionLevel: 'runtime', highRisk: true },
+    { method: 'POST', path: '/:filename/validate', domain: 'backups', action: 'backup.restore.validate', severity: 'high', targetType: 'backup' },
+    { method: 'POST', path: '/:filename/dry-run', domain: 'backups', action: 'backup.restore.dry_run', severity: 'high', targetType: 'backup' },
+    { method: 'POST', path: '/:filename/restore', domain: 'backups', action: 'backup.restore.execute', severity: 'critical', targetType: 'backup', runtimeAssertionLevel: 'runtime', highRisk: true },
     { method: 'DELETE', path: '/:filename', domain: 'backups', action: 'backup.delete', severity: 'critical', targetType: 'backup', highRisk: true },
 ]);
+
+function buildRestoreAuditMetadata(result, extras = {}) {
+    return {
+        allowed: result.allowed,
+        environment: result.environment,
+        branch: result.branch,
+        mode: result.mode,
+        dryRun: Boolean(result.dryRun),
+        restoreMode: result.restoreMode || null,
+        ...extras,
+    };
+}
 
 /**
  * GET / - 列出所有备份
@@ -80,6 +96,94 @@ app.get('/:filename', requirePermission('admin:full'), async (c) => {
     headers.set('Content-Disposition', `attachment; filename="${filename}"`);
 
     return new Response(object.body, { headers });
+});
+
+/**
+ * POST /:filename/validate - 校验备份是否可用于恢复规划
+ */
+app.post('/:filename/validate', requirePermission('admin:full'), async (c) => {
+    const filename = c.req.param('filename');
+    const service = new BackupRestoreService(c.env);
+    const result = await service.validateBackup(filename);
+
+    scheduleAuditEvent(c, {
+        domain: 'backups',
+        action: 'backup.restore.validate',
+        result: 'success',
+        severity: 'high',
+        targetType: 'backup',
+        targetId: filename,
+        target_label: filename,
+        summary: `Validated backup ${filename} for restore planning`,
+        metadata: buildRestoreAuditMetadata(result),
+    });
+
+    return c.json({ success: true, data: result });
+});
+
+/**
+ * POST /:filename/dry-run - 返回恢复预演摘要
+ */
+app.post('/:filename/dry-run', requirePermission('admin:full'), async (c) => {
+    const filename = c.req.param('filename');
+    const user = c.get('user');
+    const service = new BackupRestoreService(c.env);
+    const result = await service.dryRunRestore(filename, { requestedBy: user?.id || null });
+
+    scheduleAuditEvent(c, {
+        domain: 'backups',
+        action: 'backup.restore.dry_run',
+        result: 'success',
+        severity: 'high',
+        targetType: 'backup',
+        targetId: filename,
+        target_label: filename,
+        summary: `Prepared restore dry run for ${filename}`,
+        metadata: buildRestoreAuditMetadata(result, { requestedBy: user?.id || null }),
+    });
+
+    return c.json({ success: true, data: result });
+});
+
+/**
+ * POST /:filename/restore - 执行受控恢复（当前仅输出审计摘要）
+ */
+app.post('/:filename/restore', requirePermission('admin:full'), async (c) => {
+    const filename = c.req.param('filename');
+    const user = c.get('user');
+    const service = new BackupRestoreService(c.env);
+    const validation = await service.validateBackup(filename);
+
+    if (!validation.allowed) {
+        scheduleAuditEvent(c, {
+            domain: 'backups',
+            action: 'backup.restore.execute',
+            result: 'denied',
+            severity: 'critical',
+            targetType: 'backup',
+            targetId: filename,
+            target_label: filename,
+            summary: `Blocked restore execution for ${filename}`,
+            metadata: buildRestoreAuditMetadata(validation, { requestedBy: user?.id || null }),
+        });
+        throw new ForbiddenError('Restore execution is disabled in production environments. Use validate or dry-run instead.');
+    }
+
+    const result = await service.executeRestore(filename, { requestedBy: user?.id || null });
+
+    scheduleAuditEvent(c, {
+        domain: 'backups',
+        action: 'backup.restore.execute',
+        result: 'success',
+        severity: 'critical',
+        targetType: 'backup',
+        targetId: filename,
+        target_label: filename,
+        summary: `Prepared restore execution summary for ${filename}`,
+        metadata: buildRestoreAuditMetadata(result, { requestedBy: user?.id || null }),
+    });
+
+    return c.json({ success: true, data: result });
 });
 
 /**

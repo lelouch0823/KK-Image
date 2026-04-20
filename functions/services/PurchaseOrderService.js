@@ -613,36 +613,36 @@ export class PurchaseOrderService {
     for (const orderIdChunk of chunkArray(uniqueOrderIds, snapshotScopedChunkSize)) {
       const placeholders = orderIdChunk.map(() => '?').join(',');
       const { results } = await this.db.prepare(`
-        SELECT o.id, o.order_no, o.product_id, o.variant_id, o.quantity,
+        SELECT o.id, o.order_no, ol.order_line_id, ol.product_id, ol.variant_id, ol.quantity,
                o.current_data, o.original_data, o.main_image_id,
                p.name, pv.sku AS sku,
                COALESCE(pv.cost_price, 0) AS cost_price,
-               order_line_snapshot.snapshot_name,
-               order_line_snapshot.snapshot_sku,
-               order_line_snapshot.snapshot_specs,
-               order_line_snapshot.snapshot_image
+               ol.snapshot_name,
+               ol.snapshot_sku,
+               ol.snapshot_specs,
+               ol.snapshot_image
         FROM orders o
-        LEFT JOIN products p ON o.product_id = p.id
-        LEFT JOIN product_variants pv ON pv.id = o.variant_id
-        LEFT JOIN (
+        JOIN (
           SELECT
+            ol.id AS order_line_id,
             order_id,
             product_id,
             variant_id,
-            MAX(snapshot_name) AS snapshot_name,
-            MAX(snapshot_sku) AS snapshot_sku,
-            MAX(snapshot_specs) AS snapshot_specs,
-            MAX(snapshot_image) AS snapshot_image
-          FROM order_lines
+            MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0) AS quantity,
+            ol.snapshot_name,
+            ol.snapshot_sku,
+            ol.snapshot_specs,
+            ol.snapshot_image
+          FROM order_lines ol
           WHERE order_id IN (${placeholders})
-          GROUP BY order_id, product_id, variant_id
-        ) order_line_snapshot ON order_line_snapshot.order_id = o.id
-          AND order_line_snapshot.product_id = o.product_id
-          AND order_line_snapshot.variant_id = o.variant_id
+            AND ol.product_id IS NOT NULL
+            AND ol.variant_id IS NOT NULL
+        ) ol ON ol.order_id = o.id
+        LEFT JOIN products p ON ol.product_id = p.id
+        LEFT JOIN product_variants pv ON pv.id = ol.variant_id
         WHERE o.id IN (${placeholders})
           AND o.status = 'confirmed'
-          AND o.product_id IS NOT NULL
-          AND o.variant_id IS NOT NULL
+          AND ol.quantity > 0
       `).bind(...orderIdChunk, ...orderIdChunk).all();
       orders.push(...(results || []));
     }
@@ -677,6 +677,7 @@ export class PurchaseOrderService {
       product_id: order.product_id,
       variant_id: order.variant_id,
       pre_order_id: order.id,
+      order_line_id: order.order_line_id || null,
       quantity: order.quantity || 1,
       unit_cost: order.cost_price || 0,
       ...resolveCreateFromOrdersSnapshot(order),

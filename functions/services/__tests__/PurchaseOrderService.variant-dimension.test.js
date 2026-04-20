@@ -77,6 +77,81 @@ describe('PurchaseOrderService variant dimension', () => {
     ]);
   });
 
+  it('createFromOrders should expand a multi-line order into purchase-order items per bound line', async () => {
+    const db = {
+      prepare: vi.fn((sql) => ({
+        bind: (..._args) => ({
+          all: vi.fn(async () => ({
+            results: sql.includes('FROM order_lines ol')
+              ? [
+                  {
+                    id: 'o-1',
+                    order_no: 'SO-1',
+                    order_line_id: 'line-1',
+                    product_id: 'prod-1',
+                    variant_id: 'var-1',
+                    quantity: 2,
+                    current_data: '{}',
+                    original_data: '{}',
+                    main_image_id: null,
+                    snapshot_name: 'Line A',
+                    snapshot_sku: 'SKU-A',
+                    snapshot_specs: JSON.stringify({ color: 'Black' }),
+                    snapshot_image: 'img-a',
+                    cost_price: 11,
+                  },
+                  {
+                    id: 'o-1',
+                    order_no: 'SO-1',
+                    order_line_id: 'line-2',
+                    product_id: 'prod-2',
+                    variant_id: 'var-2',
+                    quantity: 3,
+                    current_data: '{}',
+                    original_data: '{}',
+                    main_image_id: null,
+                    snapshot_name: 'Line B',
+                    snapshot_sku: 'SKU-B',
+                    snapshot_specs: JSON.stringify({ color: 'White' }),
+                    snapshot_image: 'img-b',
+                    cost_price: 12,
+                  },
+                ]
+              : [],
+          })),
+        }),
+      })),
+    };
+    const service = new PurchaseOrderService(db);
+    service.repo = {
+      create: vi.fn(async () => ({ id: 'po-1' })),
+      addItems: vi.fn(async () => []),
+      findById: vi.fn(async () => ({ id: 'po-1', items: [] })),
+      findActiveBindingsByPreOrderIds: vi.fn(async () => []),
+    };
+
+    await service.createFromOrders(['o-1']);
+
+    expect(service.repo.addItems).toHaveBeenCalledWith('po-1', [
+      expect.objectContaining({
+        pre_order_id: 'o-1',
+        order_line_id: 'line-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        quantity: 2,
+        snapshot_name: 'Line A',
+      }),
+      expect.objectContaining({
+        pre_order_id: 'o-1',
+        order_line_id: 'line-2',
+        product_id: 'prod-2',
+        variant_id: 'var-2',
+        quantity: 3,
+        snapshot_name: 'Line B',
+      }),
+    ]);
+  });
+
   it('createFromOrders chunks order lookups beyond the D1 variable limit', async () => {
     const queryBinds = [];
     const db = {
@@ -337,6 +412,7 @@ describe('PurchaseOrderService variant dimension', () => {
       status: 'draft',
       items: [
         {
+          order_line_id: null,
           product_id: 'prod-1',
           variant_id: 'var-1',
           pre_order_id: 'o-1',
@@ -445,6 +521,7 @@ describe('PurchaseOrderService variant dimension', () => {
       status: 'draft',
       items: [
         {
+          order_line_id: null,
           product_id: 'prod-1',
           variant_id: 'var-1',
           pre_order_id: 'o-1',
@@ -640,6 +717,13 @@ describe('PurchaseOrderService variant dimension', () => {
                   moq: 1,
                   pack_size: 1,
                   order_step: 1,
+                }, {
+                  id: 'var-2',
+                  product_id: 'prod-2',
+                  status: 'active',
+                  moq: 1,
+                  pack_size: 1,
+                  order_step: 1,
                 }]
               : [],
           })),
@@ -744,7 +828,7 @@ describe('PurchaseOrderService variant dimension', () => {
     expect(service.repo.addItems).not.toHaveBeenCalled();
   });
 
-  it('createManual rejects duplicate pre_order bindings within the same request', async () => {
+  it('createManual accepts multi-line bindings from the same order when each item targets a distinct order line', async () => {
     const db = {
       prepare: vi.fn((sql) => ({
         bind: vi.fn(() => ({
@@ -757,15 +841,40 @@ describe('PurchaseOrderService variant dimension', () => {
                   moq: 1,
                   pack_size: 1,
                   order_step: 1,
+                }, {
+                  id: 'var-2',
+                  product_id: 'prod-2',
+                  status: 'active',
+                  moq: 1,
+                  pack_size: 1,
+                  order_step: 1,
                 }]
-              : sql.includes('FROM orders')
+              : sql.includes('FROM order_lines')
                 ? [{
-                    id: 'o-1',
+                    id: 'line-1',
+                    order_id: 'o-1',
                     order_no: 'SO-1',
                     status: 'confirmed',
                     product_id: 'prod-1',
                     variant_id: 'var-1',
-                    quantity: 1,
+                    ordered_qty: 1,
+                  }, {
+                    id: 'line-2',
+                    order_id: 'o-1',
+                    order_no: 'SO-1',
+                    status: 'confirmed',
+                    product_id: 'prod-2',
+                    variant_id: 'var-2',
+                    ordered_qty: 1,
+                  }]
+                : sql.includes('FROM orders')
+                  ? [{
+                    id: 'o-1',
+                    order_no: 'SO-1',
+                    status: 'confirmed',
+                    product_id: null,
+                    variant_id: null,
+                    quantity: 2,
                   }]
                 : [],
           })),
@@ -781,15 +890,18 @@ describe('PurchaseOrderService variant dimension', () => {
     };
 
     await expect(service.createManual(
-      { remark: 'duplicate pre-order' },
+      { remark: 'multi-line pre-order' },
       [
-        { product_id: 'prod-1', variant_id: 'var-1', pre_order_id: 'o-1', quantity: 1, unit_cost: 11 },
-        { product_id: 'prod-1', variant_id: 'var-1', pre_order_id: 'o-1', quantity: 1, unit_cost: 11 },
+        { product_id: 'prod-1', variant_id: 'var-1', pre_order_id: 'o-1', order_line_id: 'line-1', quantity: 1, unit_cost: 11 },
+        { product_id: 'prod-2', variant_id: 'var-2', pre_order_id: 'o-1', order_line_id: 'line-2', quantity: 1, unit_cost: 12 },
       ]
-    )).rejects.toThrow(/pre_order_id|重复|同一/);
+    )).resolves.toEqual({ id: 'po-1', items: [] });
 
-    expect(service.repo.create).not.toHaveBeenCalled();
-    expect(service.repo.addItems).not.toHaveBeenCalled();
+    expect(service.repo.create).toHaveBeenCalled();
+    expect(service.repo.addItems).toHaveBeenCalledWith('po-1', expect.arrayContaining([
+      expect.objectContaining({ pre_order_id: 'o-1', order_line_id: 'line-1', variant_id: 'var-1' }),
+      expect.objectContaining({ pre_order_id: 'o-1', order_line_id: 'line-2', variant_id: 'var-2' }),
+    ]));
   });
 
   it('createManual falls back to a shell with submitted items when the read-after-write lookup misses', async () => {

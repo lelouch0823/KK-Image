@@ -370,6 +370,28 @@ describe('PurchaseOrderRepository safety guards', () => {
     ]));
   });
 
+  it('addItems persists order_line_id when procurement items are bound to a specific order line', async () => {
+    const db = createBatchDb();
+    const repo = new PurchaseOrderRepository(db);
+
+    await repo.addItems('po-1', [{
+      product_id: 'prod-1',
+      variant_id: 'var-1',
+      pre_order_id: 'o-1',
+      order_line_id: 'line-1',
+      quantity: 2,
+      unit_cost: 10,
+      snapshot_name: 'Snapshot Product',
+      snapshot_sku: 'SNAP-001',
+      snapshot_specs: JSON.stringify({ brand: 'Snapshot Brand' }),
+      snapshot_image: 'snapshot-image',
+    }]);
+
+    const insertStmt = db.batch.mock.calls[0][0][0];
+    expect(insertStmt.sql).toContain('order_line_id');
+    expect(insertStmt.params).toContain('line-1');
+  });
+
   it('updateAllocations batches large updates into D1-safe chunks', async () => {
     const db = createBatchDb();
     const repo = new PurchaseOrderRepository(db);

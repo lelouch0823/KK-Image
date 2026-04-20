@@ -1,8 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = process.cwd();
-const HOT_PATHS = [
+export const HOT_PATHS = [
   'functions/repositories/StatsRepository.js',
   'functions/repositories/OrderStatsRepository.js',
   'functions/repositories/GoodsOverviewRepository.js',
@@ -13,29 +14,34 @@ const HOT_PATHS = [
   'functions/api/gallery/[token].js',
 ];
 
-const COMMANDS = [
+export const COMMANDS = [
   'pnpm test:unit:run functions/lib/db/__tests__/query-observability.test.js',
   'pnpm test:unit:run functions/lib/hono/routes/manage/__tests__/stats-routes.test.js functions/lib/hono/routes/manage/__tests__/dashboard-routes.test.js functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js',
   'pnpm test:unit:run functions/api/cron/__tests__/outbox.test.js functions/api/cron/__tests__/reminders.test.js functions/services/__tests__/WebhookDeliveryService.test.js',
   'pnpm build',
 ];
 
-function uniqueSorted(values = []) {
+export function uniqueSorted(values = []) {
   return [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
 }
 
-function extractLabels(source) {
+export function extractLabels(source) {
   const matches = source.match(/label:\s*['"`]([^'"`]+)['"`]/g) || [];
   return matches.map((entry) => entry.replace(/^[^'"`]+['"`]/, '').replace(/['"`]$/, ''));
 }
 
-async function readHotspotLabels() {
+export async function readHotspotLabels({
+  fsImpl = fs,
+  pathImpl = path,
+  repoRoot = REPO_ROOT,
+  hotPaths = HOT_PATHS,
+} = {}) {
   const collected = [];
 
-  for (const relativePath of HOT_PATHS) {
-    const absolutePath = path.join(REPO_ROOT, relativePath);
+  for (const relativePath of hotPaths) {
+    const absolutePath = pathImpl.join(repoRoot, relativePath);
     try {
-      const source = await fs.readFile(absolutePath, 'utf8');
+      const source = await fsImpl.readFile(absolutePath, 'utf8');
       const labels = uniqueSorted(extractLabels(source));
       collected.push({
         path: relativePath,
@@ -53,16 +59,23 @@ async function readHotspotLabels() {
   return collected;
 }
 
-function formatSection(title, lines = []) {
+export function formatSection(title, lines = []) {
   return [`## ${title}`, ...lines, ''].join('\n');
 }
 
-async function main() {
-  const hotspotLabels = await readHotspotLabels();
+export async function buildBaselineSnapshot({
+  fsImpl = fs,
+  pathImpl = path,
+  repoRoot = REPO_ROOT,
+  hotPaths = HOT_PATHS,
+  commands = COMMANDS,
+  date = new Date(),
+} = {}) {
+  const hotspotLabels = await readHotspotLabels({ fsImpl, pathImpl, repoRoot, hotPaths });
   const allLabels = uniqueSorted(hotspotLabels.flatMap((item) => item.labels));
-  const generatedAt = new Date().toISOString();
+  const generatedAt = date.toISOString();
 
-  const output = [
+  return [
     '# Backend Performance Baseline Snapshot',
     '',
     `Generated At: ${generatedAt}`,
@@ -81,7 +94,7 @@ async function main() {
     ),
     formatSection(
       'Sampling Commands',
-      COMMANDS.map((command) => `- \`${command}\``)
+      commands.map((command) => `- \`${command}\``)
     ),
     formatSection(
       'Capture Template',
@@ -98,11 +111,23 @@ async function main() {
       allLabels.map((label) => `- ${label}`)
     ),
   ].join('\n');
-
-  process.stdout.write(`${output}\n`);
 }
 
-main().catch((error) => {
-  console.error('[collect-backend-baseline] failed:', error);
-  process.exitCode = 1;
-});
+export async function main({
+  stdout = process.stdout,
+  ...options
+} = {}) {
+  const output = await buildBaselineSnapshot(options);
+  stdout.write(`${output}\n`);
+  return output;
+}
+
+const isMain =
+  process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+
+if (isMain) {
+  main().catch((error) => {
+    console.error('[collect-backend-baseline] failed:', error);
+    process.exitCode = 1;
+  });
+}

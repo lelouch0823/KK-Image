@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  clearLoginFailures,
+  formatRetryAfter,
   rateLimitMiddleware,
   rateLimit,
   checkLoginLockout,
+  loginRateLimitMiddleware,
   recordLoginFailure,
   resolveRequestIp,
 } from '../rateLimit.js';
@@ -89,5 +92,84 @@ describe('rateLimit middleware', () => {
     await expect(recordLoginFailure(null, '127.0.0.1', 'user')).resolves.toMatchObject({
       unavailable: true,
     });
+  });
+
+  it('records successful global rate-limit usage and returns 429 when the window is exhausted', async () => {
+    const c = createContext({
+      RATE_LIMIT_KV: {
+        get: vi.fn().mockResolvedValueOnce('2').mockResolvedValueOnce('100'),
+        put: vi.fn(async () => undefined),
+      },
+    });
+    const next = vi.fn(async () => undefined);
+
+    await expect(rateLimitMiddleware(c, next)).resolves.toBeUndefined();
+    expect(c.executionCtx.waitUntil).toHaveBeenCalled();
+    expect(c.header).toHaveBeenCalledWith('X-RateLimit-Limit', '100');
+    expect(c.header).toHaveBeenCalledWith('X-RateLimit-Remaining', '97');
+
+    const limited = await rateLimitMiddleware(c, next);
+    expect(limited.status).toBe(429);
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  it('supports login-scoped rate limits, lockout state transitions, and cleanup', async () => {
+    const now = Date.now();
+    const kv = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce('0')
+        .mockResolvedValueOnce({ attempts: 2, lockedUntil: null })
+        .mockResolvedValueOnce({ attempts: 5, lockedUntil: now + 60_000 })
+        .mockResolvedValueOnce({ attempts: 5, lockedUntil: now - 1 }),
+      put: vi.fn(async () => undefined),
+      delete: vi.fn(async () => undefined),
+    };
+
+    const c = createContext({ RATE_LIMIT_KV: kv });
+    const next = vi.fn(async () => undefined);
+    await expect(loginRateLimitMiddleware(c, next)).resolves.toBeUndefined();
+
+    await expect(checkLoginLockout(kv, '127.0.0.1', 'demo')).resolves.toEqual({
+      locked: false,
+      remaining: 3,
+      retryAfter: 0,
+    });
+    await expect(checkLoginLockout(kv, '127.0.0.1', 'demo')).resolves.toMatchObject({
+      locked: true,
+      retryAfter: 60,
+    });
+    await expect(checkLoginLockout(kv, '127.0.0.1', 'demo')).resolves.toEqual({
+      locked: false,
+      remaining: 5,
+      retryAfter: 0,
+    });
+
+    await expect(recordLoginFailure(kv, '127.0.0.1', 'demo', c.executionCtx)).resolves.toEqual({
+      locked: false,
+      remaining: 4,
+      retryAfter: 0,
+    });
+
+    const lockKv = {
+      get: vi.fn(async () => ({ attempts: 4, lockedUntil: null })),
+      put: vi.fn(async () => undefined),
+    };
+    await expect(recordLoginFailure(lockKv, '127.0.0.1', 'demo', null)).resolves.toEqual({
+      locked: true,
+      remaining: 0,
+      retryAfter: 900,
+    });
+
+    await clearLoginFailures(kv, '127.0.0.1', 'demo', c.executionCtx);
+    expect(kv.delete).toHaveBeenCalledWith('login_lockout:127.0.0.1:demo');
+  });
+
+  it('formats retry durations for seconds, minutes, and hours', () => {
+    expect(formatRetryAfter(0)).toBe('现在');
+    expect(formatRetryAfter(8)).toBe('8秒');
+    expect(formatRetryAfter(90)).toBe('1分30秒');
+    expect(formatRetryAfter(3600)).toBe('1小时');
+    expect(formatRetryAfter(3660)).toBe('1小时1分钟');
   });
 });

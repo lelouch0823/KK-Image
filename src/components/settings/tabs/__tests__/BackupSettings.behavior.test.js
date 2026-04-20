@@ -62,6 +62,20 @@ describe('BackupSettings behavior', () => {
             props: ['name'],
             template: '<i :data-icon="name" />',
           },
+          BackupRestoreDialog: {
+            props: ['modelValue', 'backup', 'result', 'loading'],
+            emits: ['update:modelValue', 'validate', 'dry-run', 'restore'],
+            template: `
+              <div v-if="modelValue" data-testid="restore-dialog">
+                <div data-testid="restore-dialog-backup">{{ backup?.name }}</div>
+                <div data-testid="restore-dialog-mode">{{ result?.mode || 'none' }}</div>
+                <button data-testid="dialog-validate" @click="$emit('validate')">Dialog Validate</button>
+                <button data-testid="dialog-dry-run" @click="$emit('dry-run')">Dialog Dry Run</button>
+                <button data-testid="dialog-restore" @click="$emit('restore')">Dialog Restore</button>
+                <button data-testid="dialog-close" @click="$emit('update:modelValue', false)">Close</button>
+              </div>
+            `,
+          },
           AppTable: {
             props: ['columns', 'data', 'loading', 'emptyText'],
             template: `
@@ -158,8 +172,8 @@ describe('BackupSettings behavior', () => {
     const wrapper = createWrapper();
     await flushPromises();
 
-    const buttons = wrapper.findAll('button');
-    await buttons[1].trigger('click');
+    const downloadButton = wrapper.findAll('button').find((button) => button.text().includes('Download'));
+    await downloadButton.trigger('click');
     await flushPromises();
 
     expect(mocks.authFetch).toHaveBeenNthCalledWith(2, '/api/manage/backups/download-me.zip');
@@ -169,5 +183,119 @@ describe('BackupSettings behavior', () => {
 
     clickSpy.mockRestore();
     vi.unstubAllGlobals();
+  });
+
+  it('opens the restore dialog and loads validation details for one backup', async () => {
+    mocks.authFetch
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: [{ name: 'restore-me.zip', size: 1024, uploadedAt: '2026-04-18T14:00:00.000Z' }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            name: 'restore-me.zip',
+            mode: 'validate',
+            allowed: true,
+          },
+        }),
+      });
+
+    const wrapper = createWrapper();
+    await flushPromises();
+
+    const buttons = wrapper.findAll('button');
+    await buttons[1].trigger('click');
+    await flushPromises();
+
+    expect(mocks.authFetch).toHaveBeenNthCalledWith(2, '/api/manage/backups/restore-me.zip/validate', { method: 'POST' });
+    expect(wrapper.get('[data-testid="restore-dialog-backup"]').text()).toBe('restore-me.zip');
+    expect(wrapper.get('[data-testid="restore-dialog-mode"]').text()).toBe('validate');
+  });
+
+  it('submits restore from the dialog and refreshes the list on success', async () => {
+    mocks.authFetch
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: [{ name: 'restore-me.zip', size: 1024, uploadedAt: '2026-04-18T14:00:00.000Z' }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            name: 'restore-me.zip',
+            mode: 'validate',
+            allowed: true,
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            name: 'restore-me.zip',
+            mode: 'restore',
+            allowed: true,
+            executed: false,
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: [{ name: 'restore-me.zip', size: 1024, uploadedAt: '2026-04-18T14:00:00.000Z' }],
+        }),
+      });
+
+    const wrapper = createWrapper();
+    await flushPromises();
+
+    await wrapper.findAll('button')[1].trigger('click');
+    await flushPromises();
+    await wrapper.get('[data-testid="dialog-restore"]').trigger('click');
+    await flushPromises();
+
+    expect(mocks.authFetch).toHaveBeenNthCalledWith(3, '/api/manage/backups/restore-me.zip/restore', { method: 'POST' });
+    expect(mocks.authFetch).toHaveBeenNthCalledWith(4, '/api/manage/backups');
+    expect(mocks.addToast).toHaveBeenCalledWith({ type: 'success', message: 'settings.backup.restoreSuccess' });
+  });
+
+  it('shows an error toast when restore execution is blocked', async () => {
+    mocks.authFetch
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: [{ name: 'restore-me.zip', size: 1024, uploadedAt: '2026-04-18T14:00:00.000Z' }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            name: 'restore-me.zip',
+            mode: 'validate',
+            allowed: false,
+          },
+        }),
+      })
+      .mockRejectedValueOnce(new Error('Restore execution is disabled in production'));
+
+    const wrapper = createWrapper();
+    await flushPromises();
+
+    await wrapper.findAll('button')[1].trigger('click');
+    await flushPromises();
+    await wrapper.get('[data-testid="dialog-restore"]').trigger('click');
+    await flushPromises();
+
+    expect(mocks.addToast).toHaveBeenCalledWith({
+      type: 'error',
+      message: 'Restore execution is disabled in production',
+    });
   });
 });

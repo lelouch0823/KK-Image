@@ -212,6 +212,7 @@ export async function processOrderUpdate(options) {
       id: orderId,
       actorType: actorTypeStr,
       newData,
+      explicitLineMutation: updates?.lines !== undefined,
       productId: options.productId,
       variantId: options.variantId,
       salespersonId: options.salespersonIdUpdate,

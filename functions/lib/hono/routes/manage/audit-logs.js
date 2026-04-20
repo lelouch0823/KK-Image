@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { safeJsonParse } from '../../../../api/utils/json.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
+import { AuditAlertService } from '../../../../services/AuditAlertService.js';
 
 const app = new Hono();
 const EXPORT_LIMIT = 5000;
@@ -234,6 +235,13 @@ app.get('/export', requirePermission('audit:export'), async (c) => {
         result: 'success',
         severity: 'high',
         targetType: 'audit_log',
+        summary: `Exported ${normalizedRows.length} audit logs`,
+        metadata: { ...filters, format, count: normalizedRows.length },
+    });
+    const alertService = new AuditAlertService(env.DB);
+    await alertService.createAlert({
+        alertType: 'audit.export',
+        severity: 'high',
         summary: `Exported ${normalizedRows.length} audit logs`,
         metadata: { ...filters, format, count: normalizedRows.length },
     });

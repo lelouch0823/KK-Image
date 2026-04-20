@@ -159,6 +159,12 @@ const routes = [
                 meta: { titleKey: 'router.stats_analysis', permission: 'stats:read' },
             },
             {
+                path: 'reminders',
+                name: 'Reminders',
+                component: () => import('@/views/ReminderCenter.vue'),
+                meta: { titleKey: 'router.reminders', permission: 'notifications:read' },
+            },
+            {
                 path: 'settings',
                 name: 'Settings',
                 component: () => import('@/views/Settings.vue'),

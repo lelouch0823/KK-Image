@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
   isInsufficientStockError: vi.fn(() => false),
   isInvalidStatusTransitionError: vi.fn(() => false),
+  syncOrderTransition: vi.fn(async () => ({})),
 }));
 
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
@@ -96,6 +97,12 @@ vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
   })),
 }));
 
+vi.mock('../../../../../services/DemandService.js', () => ({
+  DemandService: vi.fn(() => ({
+    syncOrderTransition: mocks.syncOrderTransition,
+  })),
+}));
+
 vi.mock('../../../../../api/cron/outbox.js', () => ({
   runOutboxPoller: mocks.runOutboxPoller,
 }));
@@ -151,6 +158,7 @@ describe('manage order detail routes', () => {
       series: 'S',
       status: 'active',
       specifications: {},
+      dimension_map: {},
     });
     mocks.variantFindByIdAndProductId.mockResolvedValue({
       id: 'v-1',
@@ -160,6 +168,7 @@ describe('manage order detail routes', () => {
     });
     mocks.isInsufficientStockError.mockReturnValue(false);
     mocks.isInvalidStatusTransitionError.mockReturnValue(false);
+    mocks.syncOrderTransition.mockResolvedValue({});
   });
 
   it('enqueues admin read cache invalidation through outbox after GET /:id', async () => {
@@ -467,6 +476,61 @@ describe('manage order detail routes', () => {
     expect(mocks.publish).not.toHaveBeenCalled();
   });
 
+  it('syncs multi-line demand per bound line after status changes', async () => {
+    mocks.findById.mockResolvedValueOnce({
+      id: 'order-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      salespersonId: 'sp-1',
+      variantId: null,
+      quantity: 5,
+      currentData: {},
+      lines: [
+        { id: 'line-1', productId: 'p-1', variantId: 'v-1', quantity: 2 },
+        { id: 'line-2', productId: 'p-2', variantId: 'v-2', quantity: 3 },
+      ],
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/status',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'confirmed' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.syncOrderTransition).toHaveBeenCalledTimes(2);
+    expect(mocks.syncOrderTransition).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        orderId: 'order-1',
+        orderLineId: 'line-1',
+        fromStatus: 'pending',
+        toStatus: 'confirmed',
+        quantity: 2,
+        productId: 'p-1',
+        variantId: 'v-1',
+      })
+    );
+    expect(mocks.syncOrderTransition).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        orderId: 'order-1',
+        orderLineId: 'line-2',
+        fromStatus: 'pending',
+        toStatus: 'confirmed',
+        quantity: 3,
+        productId: 'p-2',
+        variantId: 'v-2',
+      })
+    );
+  });
+
   it('returns 404 when GET /:id cannot find the order', async () => {
     mocks.findById.mockResolvedValueOnce(null);
     const app = createApp();
@@ -730,6 +794,95 @@ describe('manage order detail routes', () => {
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ action: 'order.update', domain: 'orders' })
+    );
+  });
+
+  it('normalizes multi-line updates before forwarding them into the shared order update flow', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          updates: {
+            lines: [
+              { productName: 'Line A', quantity: 2, sku: 'SKU-A' },
+              { productName: 'Line B', quantity: 3, sku: 'SKU-B' },
+            ],
+          },
+          reason: 'reshape order lines',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.processOrderUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        updates: expect.objectContaining({
+          name: 'Line A',
+          sku: 'SKU-A',
+          quantity: 5,
+          lines: [
+            expect.objectContaining({ name: 'Line A', sku: 'SKU-A', quantity: 2 }),
+            expect.objectContaining({ name: 'Line B', sku: 'SKU-B', quantity: 3 }),
+          ],
+        }),
+        productId: null,
+        variantId: null,
+      })
+    );
+  });
+
+  it('backfills header-level binding when multi-line orders are reshaped into a single bound line', async () => {
+    mocks.findById.mockResolvedValueOnce({
+      id: 'order-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      salespersonId: 'sp-1',
+      productId: null,
+      variantId: null,
+      quantity: 5,
+      currentData: {},
+      lines: [
+        { id: 'line-1', productId: 'p-1', variantId: 'v-1', quantity: 2 },
+        { id: 'line-2', productId: 'p-2', variantId: 'v-2', quantity: 3 },
+      ],
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          updates: {
+            lines: [
+              { productName: 'Line A', quantity: 2, sku: 'SKU-A', productId: 'p-1', variantId: 'v-1' },
+            ],
+          },
+          reason: 'collapse to one line',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.processOrderUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        updates: expect.objectContaining({
+          quantity: 2,
+          lines: [
+            expect.objectContaining({ productId: 'p-1', variantId: 'v-1', quantity: 2 }),
+          ],
+        }),
+        productId: 'p-1',
+        variantId: 'v-1',
+      })
     );
   });
 

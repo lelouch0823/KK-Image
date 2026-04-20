@@ -15,6 +15,7 @@
 - [订货总览](goods-overview.md)
 - [采购单管理](purchase-orders.md)
 - [客户管理](customers.md)
+- [提醒中心](reminders.md)
 - [统计分析](stats.md)
 - [系统设置](settings.md)
 - [审计日志](audit-logs.md)

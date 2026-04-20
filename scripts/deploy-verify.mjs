@@ -2,18 +2,20 @@
 
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import waitOn from 'wait-on';
 
-function createWaitResource(baseUrl) {
+export function createWaitResource(baseUrl) {
   const healthUrl = new URL('/api/v1/health', baseUrl);
   return `http-get://${healthUrl.host}${healthUrl.pathname}`;
 }
 
-function runCommand(command, args, options = {}) {
+export function runCommand(command, args, options = {}, { spawnImpl = spawn, env = process.env } = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    const child = spawnImpl(command, args, {
       stdio: 'inherit',
-      env: process.env,
+      env,
       ...options,
     });
 
@@ -32,74 +34,87 @@ function runCommand(command, args, options = {}) {
   });
 }
 
-async function stopChild(child) {
+export async function stopChild(child, { onceImpl = once, setTimeoutImpl = setTimeout, clearTimeoutImpl = clearTimeout } = {}) {
   if (!child || child.exitCode !== null || child.killed) return;
 
   child.kill('SIGTERM');
-  const killTimer = setTimeout(() => {
+  const killTimer = setTimeoutImpl(() => {
     if (child.exitCode === null && !child.killed) {
       child.kill('SIGKILL');
     }
   }, 5000);
 
   try {
-    await once(child, 'exit');
+    await onceImpl(child, 'exit');
   } finally {
-    clearTimeout(killTimer);
+    clearTimeoutImpl(killTimer);
   }
 }
 
-async function main() {
-  const baseUrl = process.env.DEPLOY_URL || 'http://localhost:8080';
-  const waitResource = process.env.DEPLOY_VERIFY_WAIT_ON || createWaitResource(baseUrl);
+export async function main({
+  env = process.env,
+  processImpl = process,
+  consoleImpl = console,
+  spawnImpl = spawn,
+  waitOnImpl = waitOn,
+  runCommandImpl = runCommand,
+  stopChildImpl = stopChild,
+} = {}) {
+  const baseUrl = env.DEPLOY_URL || 'http://localhost:8080';
+  const waitResource = env.DEPLOY_VERIFY_WAIT_ON || createWaitResource(baseUrl);
   let serverProcess = null;
 
   const shutdown = async (exitCode = 0) => {
-    await stopChild(serverProcess);
-    process.exit(exitCode);
+    await stopChildImpl(serverProcess);
+    processImpl.exit(exitCode);
   };
 
-  process.on('SIGINT', () => {
+  processImpl.on('SIGINT', () => {
     shutdown(130).catch((error) => {
-      console.error(error);
-      process.exit(1);
+      consoleImpl.error(error);
+      processImpl.exit(1);
     });
   });
-  process.on('SIGTERM', () => {
+  processImpl.on('SIGTERM', () => {
     shutdown(143).catch((error) => {
-      console.error(error);
-      process.exit(1);
+      consoleImpl.error(error);
+      processImpl.exit(1);
     });
   });
 
   try {
-    await runCommand('pnpm', ['build']);
+    await runCommandImpl('pnpm', ['build'], {}, { spawnImpl, env });
 
-    serverProcess = spawn('pnpm', ['start'], {
+    serverProcess = spawnImpl('pnpm', ['start'], {
       stdio: 'inherit',
-      env: process.env,
+      env,
     });
 
     serverProcess.on('error', (error) => {
-      console.error(error);
+      consoleImpl.error(error);
     });
 
-    await waitOn({
+    await waitOnImpl({
       resources: [waitResource],
       timeout: 30000,
       interval: 500,
       tcpTimeout: 1000,
     });
 
-    await runCommand('pnpm', ['deploy:check']);
+    await runCommandImpl('pnpm', ['deploy:check'], {}, { spawnImpl, env });
     await shutdown(0);
   } catch (error) {
-    console.error(error instanceof Error ? error.message : error);
+    consoleImpl.error(error instanceof Error ? error.message : error);
     await shutdown(1);
   }
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+const isMain =
+  process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+
+if (isMain) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

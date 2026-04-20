@@ -42,7 +42,28 @@
             <span class="text-(--text-secondary)">{{ formatDate(backup.uploadedAt) }}</span>
           </template>
           <template #cell-actions="{ row: backup }">
-            <div class="flex justify-end pr-2">
+            <div class="flex flex-wrap justify-end gap-2 pr-2">
+              <AppButton
+                variant="secondary"
+                size="sm"
+                @click="handleValidateBackup(backup)"
+              >
+                {{ t('settings.backup.validate', 'Validate') }}
+              </AppButton>
+              <AppButton
+                variant="secondary"
+                size="sm"
+                @click="handleDryRunBackup(backup)"
+              >
+                {{ t('settings.backup.dryRun', 'Dry Run') }}
+              </AppButton>
+              <AppButton
+                variant="danger"
+                size="sm"
+                @click="openRestoreDialog(backup)"
+              >
+                {{ t('common.restore', 'Restore') }}
+              </AppButton>
               <AppButton
                 variant="white"
                 size="sm"
@@ -58,12 +79,23 @@
         </AppTable>
       </div>
     </SettingsSection>
+
+    <BackupRestoreDialog
+      v-model="restoreDialogVisible"
+      :backup="selectedBackup"
+      :result="restoreResult"
+      :loading="restoreLoading"
+      @validate="handleValidateBackup()"
+      @dry-run="handleDryRunBackup()"
+      @restore="handleRestoreBackup()"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import SettingsSection from '../SettingsSection.vue';
+import BackupRestoreDialog from '@/components/settings/backup/BackupRestoreDialog.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppTable from '@/components/ui/AppTable.vue';
@@ -79,12 +111,16 @@ const { authFetch } = useAuth();
 const backups = ref([]);
 const loading = ref(true);
 const creating = ref(false);
+const selectedBackup = ref(null);
+const restoreDialogVisible = ref(false);
+const restoreResult = ref(null);
+const restoreLoading = ref(false);
 
 const columns = computed(() => [
   { key: 'name', label: t('settings.backup.filename', 'Filename'), width: '320px', minWidth: '320px' },
   { key: 'size', label: t('settings.backup.size', 'Size'), kind: 'numeric', width: '120px', maxWidth: '120px' },
   { key: 'date', label: t('settings.backup.date', 'Date'), kind: 'datetime', width: '180px', maxWidth: '180px' },
-  { key: 'actions', label: t('common.actions', 'Actions'), align: 'right', width: '140px', maxWidth: '140px', nowrap: true },
+  { key: 'actions', label: t('common.actions', 'Actions'), align: 'right', width: '320px', maxWidth: '320px', nowrap: true },
 ]);
 
 const fetchBackups = async () => {
@@ -121,6 +157,53 @@ const createBackup = async () => {
   } finally {
     creating.value = false;
   }
+};
+
+const executeRestoreAction = async (action, backup = selectedBackup.value) => {
+  if (!backup?.name) return;
+
+  selectedBackup.value = backup;
+  restoreDialogVisible.value = true;
+
+  try {
+    restoreLoading.value = true;
+    const endpoint = `/api/manage/backups/${encodeURIComponent(backup.name)}/${action}`;
+    const res = await authFetch(endpoint, { method: 'POST' });
+    const json = await res.json();
+
+    if (json.success) {
+      restoreResult.value = json.data;
+      if (action === 'restore') {
+        addToast({ type: 'success', message: t('settings.backup.restoreSuccess') });
+        await fetchBackups();
+      }
+    } else {
+      addToast({ type: 'error', message: json.error || t('settings.backup.restoreFailed', 'Backup restore failed') });
+    }
+  } catch (e) {
+    addToast({ type: 'error', message: e.message });
+  } finally {
+    restoreLoading.value = false;
+  }
+};
+
+const openRestoreDialog = async (backup) => {
+  selectedBackup.value = backup;
+  restoreResult.value = null;
+  restoreDialogVisible.value = true;
+  await executeRestoreAction('validate', backup);
+};
+
+const handleValidateBackup = async (backup = selectedBackup.value) => {
+  await executeRestoreAction('validate', backup);
+};
+
+const handleDryRunBackup = async (backup = selectedBackup.value) => {
+  await executeRestoreAction('dry-run', backup);
+};
+
+const handleRestoreBackup = async (backup = selectedBackup.value) => {
+  await executeRestoreAction('restore', backup);
 };
 
 const downloadBackup = async (backup) => {

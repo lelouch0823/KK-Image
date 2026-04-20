@@ -255,10 +255,14 @@ export class OrderProcurementDomainService {
       }
 
       const compatibilityOrderLine = poItem.pre_order_id
-        ? await this.resolveCompatibilityOrderLine(poItem.pre_order_id, {
-            productId: poItem.product_id || null,
-            variantId: poItem.variant_id || null,
-          })
+        ? (
+          poItem.order_line_id
+            ? await requireOrderLine(this.db, poItem.pre_order_id, poItem.order_line_id)
+            : await this.resolveCompatibilityOrderLine(poItem.pre_order_id, {
+              productId: poItem.product_id || null,
+              variantId: poItem.variant_id || null,
+            })
+        )
         : null;
       if (!compatibilityOrderLine && poItem.pre_order_id) {
         throw new BadRequestError('关联订单缺少唯一可投影的订单行');

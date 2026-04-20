@@ -46,6 +46,11 @@ vi.mock('@/composables/useI18n', () => ({
         'dashboard.todayOrders': 'Today',
         'stats.trafficTrend': 'Traffic Trend',
         'stats.fileTypes': 'File Types',
+        'stats.businessOverview': 'Business Overview',
+        'stats.totalOrders': 'Total Orders',
+        'stats.pendingOrders': 'Pending Orders',
+        'stats.fulfilledOrders': 'Fulfilled Orders',
+        'stats.activeSalespersons': 'Active Salespersons',
         'stats.topSpaces': 'Top Spaces',
         'stats.views': 'Views',
         'stats.noData': 'No data',
@@ -208,6 +213,12 @@ describe('Stats view behavior', () => {
               { id: 'file-1', name: 'hero.png', type: 'image/png', size: 1024 },
             ],
           },
+          business: {
+            totalOrders: 64,
+            pendingOrders: 9,
+            fulfilledOrders: 42,
+            activeSalespersons: 5,
+          },
           traffic: {
             monthTotal: 5600,
             daily: {
@@ -245,6 +256,9 @@ describe('Stats view behavior', () => {
 
     expect(mocks.authFetch).toHaveBeenCalledWith('/api/manage/stats');
     expect(wrapper.text()).toContain('Status Overview');
+    expect(wrapper.text()).toContain('Business Overview');
+    expect(wrapper.text()).toContain('Total Orders');
+    expect(wrapper.text()).toContain('64');
     expect(wrapper.text()).toContain('Total Files');
     expect(wrapper.text()).toContain('1200');
     expect(wrapper.text()).toContain('Main Space');

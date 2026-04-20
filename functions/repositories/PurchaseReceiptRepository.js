@@ -123,7 +123,7 @@ export class PurchaseReceiptRepository {
             pr.variant_id,
             pr.received_qty,
             poi.pre_order_id,
-            COALESCE(pr.order_line_id, ie.order_line_id) AS order_line_id,
+            COALESCE(pr.order_line_id, poi.order_line_id, ie.order_line_id) AS order_line_id,
             ie.id AS inventory_event_id
          FROM purchase_receipts pr
          LEFT JOIN purchase_order_items poi ON poi.id = pr.purchase_order_item_id

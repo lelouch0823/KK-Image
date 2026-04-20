@@ -20,7 +20,8 @@ export class StatsRepository {
             fileStatusStats,
             typeStatsResult,
             topSpacesResult,
-            trafficLogsResult
+            trafficLogsResult,
+            businessCounts,
         ] = await Promise.all([
             this.db.prepare(
                 `SELECT 
@@ -63,7 +64,23 @@ export class StatsRepository {
                 WHERE accessed_at >= ?
                 GROUP BY date
                 ORDER BY date ASC
-            `).bind(thirtyDaysAgo).all()
+            `).bind(thirtyDaysAgo).all(),
+            this.db.prepare(
+                `SELECT
+                    (SELECT COUNT(*) FROM orders) as total_orders,
+                    (SELECT COUNT(*) FROM orders WHERE status = 'pending') as pending_orders,
+                    (SELECT COUNT(*) FROM orders WHERE status IN ('fulfilled', 'delivered')) as fulfilled_orders,
+                    (SELECT COUNT(DISTINCT salesperson_id) FROM orders WHERE salesperson_id IS NOT NULL AND salesperson_id != '') as active_salespersons,
+                    (
+                      SELECT COUNT(*)
+                      FROM (
+                        SELECT order_id
+                        FROM order_lines
+                        GROUP BY order_id
+                        HAVING COUNT(*) > 1
+                      )
+                    ) as multiline_orders`
+            ).first(),
         ]);
 
         const typeStats = typeStatsResult.results;
@@ -105,7 +122,14 @@ export class StatsRepository {
                 topSpaces: topSpaces
             },
             
-            recentFiles: recentFiles.results
+            recentFiles: recentFiles.results,
+            business: {
+                totalOrders: businessCounts?.total_orders || 0,
+                pendingOrders: businessCounts?.pending_orders || 0,
+                fulfilledOrders: businessCounts?.fulfilled_orders || 0,
+                activeSalespersons: businessCounts?.active_salespersons || 0,
+                multilineOrders: businessCounts?.multiline_orders || 0,
+            }
         };
     }
 

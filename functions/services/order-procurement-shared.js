@@ -4,7 +4,7 @@ import { toNonNegativeInt } from './purchase-order-projection.js';
 export { buildOrderLineProjectionStatement, queryInventoryBalance } from './order-line-shared.js';
 
 const DEFAULT_PURCHASE_ORDER_ITEM_SELECT =
-  'id, po_id, product_id, variant_id, pre_order_id, quantity, received_qty, cancelled_qty';
+  'id, po_id, product_id, variant_id, pre_order_id, order_line_id, quantity, received_qty, cancelled_qty';
 
 function normalizeFingerprintItemId(value) {
   return String(value || '').trim();

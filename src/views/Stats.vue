@@ -101,6 +101,40 @@
             </AppStatCard>
           </div>
 
+          <SurfaceSection
+            :title="t('stats.businessOverview', 'Business Overview')"
+            body-class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4"
+          >
+            <MetricTile
+              :label="t('stats.totalOrders', 'Total Orders')"
+              :value="formatNumber(stats.business?.totalOrders)"
+              icon="clipboard-document-list"
+              tone="primary"
+              flat
+            />
+            <MetricTile
+              :label="t('stats.pendingOrders', 'Pending Orders')"
+              :value="formatNumber(stats.business?.pendingOrders)"
+              icon="clock"
+              tone="warning"
+              flat
+            />
+            <MetricTile
+              :label="t('stats.fulfilledOrders', 'Fulfilled Orders')"
+              :value="formatNumber(stats.business?.fulfilledOrders)"
+              icon="check-circle"
+              tone="success"
+              flat
+            />
+            <MetricTile
+              :label="t('stats.activeSalespersons', 'Active Salespersons')"
+              :value="formatNumber(stats.business?.activeSalespersons)"
+              icon="users"
+              tone="info"
+              flat
+            />
+          </SurfaceSection>
+
           <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <StatsChartWrapper class="lg:col-span-2" :title="t('stats.trafficTrend')">
               <canvas ref="trendChartRef"></canvas>

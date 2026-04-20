@@ -8,6 +8,7 @@ import { DemandService } from '../../../../../services/DemandService.js';
 import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { buildOrderBindingSnapshot } from '../../../../../api/utils/order-binding-snapshot.js';
+import { syncOrderDemandTransitionsByLines } from '../../../../../api/utils/order-demand-sync.js';
 
 function isDuplicateOutboxIdempotencyError(error) {
   const message = String(error?.message || error || '').toLowerCase();
@@ -183,12 +184,18 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
   const persistedOrderNo = createdOrder?.orderNo || orderNo;
 
   const demandService = new DemandService(env.DB);
-  await demandService.syncOrderTransition({
+  await syncOrderDemandTransitionsByLines(demandService, {
     orderId: persistedOrderId,
-    fromStatus: null,
-    toStatus: body.status || 'pending',
-    quantity: totalQuantity,
-    variantId: hydratedLines.length === 1 ? variantId : null,
+    previousStatus: null,
+    nextStatus: body.status || 'pending',
+    previousLines: [],
+    nextLines: hydratedLines,
+    previousFallback: {},
+    nextFallback: {
+      productId: hydratedLines.length === 1 ? (primaryLine?.productId || body.productId || null) : null,
+      variantId: hydratedLines.length === 1 ? variantId : null,
+      quantity: totalQuantity,
+    },
   });
 
   const fileIds = Array.isArray(body.fileIds) ? body.fileIds.filter(Boolean) : [];

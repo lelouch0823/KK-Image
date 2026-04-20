@@ -35,6 +35,37 @@
           @unbind="unbindProduct"
         />
 
+        <div
+          v-if="canEditBinding && !boundProduct"
+          class="flex items-center justify-between rounded-xl border border-(--border-color) bg-(--bg-muted)/50 px-3 py-2"
+        >
+          <div>
+            <div class="text-sm font-medium text-(--text-main)">
+              {{
+                showLineEditor
+                  ? t('order.form.multilineEnabled', '当前为多商品订单模式')
+                  : t('order.form.singleLineEnabled', '当前为单商品订单模式')
+              }}
+            </div>
+            <div class="text-xs text-(--text-secondary)">
+              {{
+                showLineEditor
+                  ? t('order.form.multilineHint', '保存时会按明细重写订单行与总数量。')
+                  : t('order.form.singleLineHint', '需要多个商品时可切换到多行明细模式。')
+              }}
+            </div>
+          </div>
+          <AppButton type="button" variant="secondary" size="sm" @click="toggleLineEditor">
+            {{
+              showLineEditor
+                ? t('order.form.backToSingleLine', '切回单行')
+                : t('order.form.enableMultiline', '启用多行')
+            }}
+          </AppButton>
+        </div>
+
+        <OrderLinesEditor v-if="showLineEditor" v-model="lines" />
+
         <OrderFormFields
           :model-value="form"
           :show-status="mode === 'admin'"
@@ -42,6 +73,7 @@
           :salespersons="salespersons"
           :disabled-fields="disabledFields"
           :bound-product-variant="boundProductVariant"
+          :line-mode="showLineEditor"
           @update:model-value="updateForm"
         />
       </div>
@@ -144,6 +176,8 @@ import OrderOriginalInfo from './order/OrderOriginalInfo.vue';
 import ImageUploader from '@/components/common/ImageUploader.vue';
 import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import OrderLinesEditor from '@/components/order/OrderLinesEditor.vue';
+import { createEmptyOrderLine } from '@/composables/useOrderForm';
 
 const props = defineProps({
   order: { type: Object, required: true },
@@ -175,6 +209,8 @@ const emit = defineEmits(['close', 'submit', 'delete-order']);
 const { t } = useI18n();
 const editReason = ref('');
 const uploadedFiles = ref([]);
+const lines = ref([createEmptyOrderLine()]);
+const lineEditorEnabled = ref(false);
 
 // 商品绑定状态
 const boundProduct = ref(null);
@@ -223,9 +259,64 @@ const disabledFields = computed(() => {
 });
 
 const boundProductVariant = ref(null);
+const showLineEditor = computed(
+  () => canEditBinding.value && !boundProduct.value && (lineEditorEnabled.value || lines.value.length > 1)
+);
 
 const updateForm = (newVal) => {
   Object.assign(form, newVal);
+};
+
+const normalizeEditableLine = (line = {}) =>
+  createEmptyOrderLine({
+    name: String(line.name ?? line.snapshotName ?? '').trim(),
+    brand: String(line.brand ?? '').trim(),
+    series: String(line.series ?? '').trim(),
+    sku: String(line.sku ?? '').trim(),
+    size: String(line.size ?? '').trim(),
+    color: String(line.color ?? '').trim(),
+    material: String(line.material ?? '').trim(),
+    quantity: Math.max(1, Math.trunc(Number(line.quantity ?? line.orderedQuantity ?? 1) || 1)),
+  });
+
+const buildEditableLinesFromOrder = (order = {}) => {
+  const rawLines = Array.isArray(order.currentData?.lines) ? order.currentData.lines.filter(Boolean) : [];
+  if (rawLines.length > 0) {
+    return rawLines.map((line) => normalizeEditableLine(line));
+  }
+  return [normalizeEditableLine({
+    name: resolveHistoricalOrderProductName(order),
+    brand: resolveOrderSnapshotField(order, 'brand'),
+    series: resolveOrderSnapshotField(order, 'series'),
+    sku: resolveOrderSnapshotField(order, 'sku'),
+    size: resolveOrderSnapshotField(order, 'size'),
+    color: resolveOrderSnapshotField(order, 'color'),
+    material: resolveOrderSnapshotField(order, 'material'),
+    quantity: resolveOrderQuantity(order),
+  })];
+};
+
+const buildCurrentLineFromForm = () =>
+  createEmptyOrderLine({
+    name: form.name,
+    brand: form.brand,
+    series: form.series,
+    sku: form.sku,
+    size: form.size,
+    color: form.color,
+    material: form.material,
+    quantity: form.quantity,
+  });
+
+const applyLineToForm = (line = {}) => {
+  form.name = line.name || '';
+  form.brand = line.brand || '';
+  form.series = line.series || '';
+  form.sku = line.sku || '';
+  form.size = line.size || '';
+  form.color = line.color || '';
+  form.material = line.material || '';
+  form.quantity = Number(line.quantity || 1);
 };
 
 const buildBoundVariantSnapshot = (currentData = {}) => {
@@ -284,6 +375,8 @@ const handleProductSelect = (product) => {
   form.material = extractedMaterial;
   form.size = otherSpecs.join('，') || '';
   boundProductVariant.value = mappedOptions;
+  lines.value = [buildCurrentLineFromForm()];
+  lineEditorEnabled.value = false;
 
   // Auto-fill image
   const mainImage = getProductMainImage(product);
@@ -330,6 +423,7 @@ const initialValues = ref({
   fileIds: '',
   productId: null,
   variantId: null,
+  lineSignature: '',
 });
 
 const initializedId = ref(null);
@@ -363,6 +457,8 @@ watch(
       form.quantity = resolveOrderQuantity(newOrder);
       form.remark = historicalRemark;
       form.deadline = historicalDeadline;
+      lines.value = buildEditableLinesFromOrder(newOrder);
+      lineEditorEnabled.value = lines.value.length > 1;
 
       // 初始化已绑定商品
       if (newOrder.productId) {
@@ -401,6 +497,7 @@ watch(
         productId: newOrder.productId || null,
         variantId: newOrder.variantId || null,
         salespersonId: newOrder.salespersonId || '',
+        lineSignature: JSON.stringify(lines.value),
       };
 
       form.salespersonId = newOrder.salespersonId || '';
@@ -444,6 +541,7 @@ const hasChanges = computed(() => {
   // 检查商品绑定变更
   if (currentBinding.productId !== init.productId) return true;
   if (currentBinding.variantId !== init.variantId) return true;
+  if (showLineEditor.value && JSON.stringify(lines.value) !== init.lineSignature) return true;
 
   const fieldsChanged =
     form.name !== init.name ||
@@ -484,8 +582,23 @@ const uploadEndpoint = computed(() => {
 
 const isValid = computed(() => {
   if (!hasChanges.value) return false;
+  if (showLineEditor.value) {
+    return lines.value.some((line) => String(line?.name || '').trim());
+  }
   return true;
 });
+
+const toggleLineEditor = () => {
+  if (!canEditBinding.value || boundProduct.value) return;
+  if (showLineEditor.value) {
+    applyLineToForm(lines.value[0] || {});
+    lineEditorEnabled.value = false;
+    return;
+  }
+
+  lines.value = [buildCurrentLineFromForm(), createEmptyOrderLine()];
+  lineEditorEnabled.value = true;
+};
 
 const handleSaveClick = () => {
   if (!isValid.value) return;
@@ -525,14 +638,33 @@ const handleSubmit = async () => {
 
   const updates = {};
   const init = initialValues.value;
-  if (form.name !== init.name) updates.name = form.name;
-  if (form.brand !== init.brand) updates.brand = form.brand;
-  if (form.series !== init.series) updates.series = form.series;
-  if (form.sku !== init.sku) updates.sku = form.sku;
-  if (form.size !== init.size) updates.size = form.size;
-  if (form.color !== init.color) updates.color = form.color;
-  if (form.material !== init.material) updates.material = form.material;
-  if (form.quantity !== init.quantity) updates.quantity = form.quantity;
+  if (showLineEditor.value) {
+    const normalizedLines = lines.value
+      .map((line) => normalizeEditableLine(line))
+      .filter((line) => Boolean(line.name || line.sku || line.brand || line.series));
+
+    if (normalizedLines.length > 0 && JSON.stringify(normalizedLines) !== init.lineSignature) {
+      const primaryLine = normalizedLines[0];
+      updates.name = primaryLine.name;
+      updates.brand = primaryLine.brand;
+      updates.series = primaryLine.series;
+      updates.sku = primaryLine.sku;
+      updates.size = primaryLine.size;
+      updates.color = primaryLine.color;
+      updates.material = primaryLine.material;
+      updates.quantity = normalizedLines.reduce((sum, line) => sum + Number(line.quantity || 0), 0);
+      updates.lines = normalizedLines;
+    }
+  } else {
+    if (form.name !== init.name) updates.name = form.name;
+    if (form.brand !== init.brand) updates.brand = form.brand;
+    if (form.series !== init.series) updates.series = form.series;
+    if (form.sku !== init.sku) updates.sku = form.sku;
+    if (form.size !== init.size) updates.size = form.size;
+    if (form.color !== init.color) updates.color = form.color;
+    if (form.material !== init.material) updates.material = form.material;
+    if (form.quantity !== init.quantity) updates.quantity = form.quantity;
+  }
   if (form.remark !== init.remark) updates.remark = form.remark;
   if (form.deadline !== init.deadline) updates.deadline = form.deadline;
 

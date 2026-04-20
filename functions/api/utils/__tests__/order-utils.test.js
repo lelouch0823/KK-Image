@@ -166,6 +166,51 @@ describe('Order Utils Full Coverage Final', () => {
       }
     });
 
+    it('should not treat persisted currentData.lines as an explicit line rewrite during ordinary quantity edits', async () => {
+      const updateCompositeSpy = vi.spyOn(OrderRepository.prototype, 'updateComposite').mockResolvedValue({ success: true });
+      try {
+        const options = {
+          env,
+          orderId: 'o-lines',
+          orderNo: 'n-lines',
+          currentData: {
+            status: 'pending',
+            quantity: 1,
+            lines: [
+              {
+                name: 'Line A',
+                quantity: 1,
+                productId: 'p-1',
+                variantId: 'v-1',
+              },
+            ],
+          },
+          updates: { quantity: 2, remark: 'updated' },
+          allowedFields: ['status', 'quantity', 'remark', 'lines'],
+          actor: { id: 'a1', type: 'admin', name: 'Admin' },
+          deferNotifications: true,
+        };
+
+        const result = await processOrderUpdate(options);
+        expect(result.hasChanges).toBe(true);
+        expect(updateCompositeSpy).toHaveBeenCalledWith(expect.objectContaining({
+          id: 'o-lines',
+          explicitLineMutation: false,
+          newData: expect.objectContaining({
+            quantity: 2,
+            lines: [
+              expect.objectContaining({
+                quantity: 1,
+                variantId: 'v-1',
+              }),
+            ],
+          }),
+        }));
+      } finally {
+        updateCompositeSpy.mockRestore();
+      }
+    });
+
     it('should not create notification when composite write fails', async () => {
       expect(typeof OrderRepository.prototype.updateComposite).toBe('function');
       const updateCompositeSpy = vi.spyOn(OrderRepository.prototype, 'updateComposite').mockRejectedValue(new Error('db failed'));

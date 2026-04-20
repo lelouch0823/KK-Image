@@ -216,7 +216,7 @@ export class PurchaseOrderRepository {
   async findItemById(poId, itemId) {
     return this.db
       .prepare(
-        `SELECT id, po_id, product_id, variant_id, pre_order_id, quantity, unit_cost
+        `SELECT id, po_id, product_id, variant_id, pre_order_id, order_line_id, quantity, unit_cost
          FROM purchase_order_items
          WHERE id = ? AND po_id = ?`
       )

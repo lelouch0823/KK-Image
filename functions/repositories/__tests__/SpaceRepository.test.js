@@ -164,6 +164,110 @@ describe('SpaceRepository', () => {
         });
     });
 
+    describe('read models', () => {
+        it('returns all top-level spaces from findAll', async () => {
+            const mockAll = vi.fn().mockResolvedValue({ results: [{ id: 'space-1' }] });
+            const mockPrepare = vi.fn().mockReturnValue({ all: mockAll });
+            const mockDb = { prepare: mockPrepare };
+
+            const repo = new SpaceRepository(mockDb);
+            const result = await repo.findAll();
+
+            expect(mockPrepare).toHaveBeenCalledWith(expect.stringContaining('WHERE s.parent_id IS NULL'));
+            expect(result).toEqual([{ id: 'space-1' }]);
+        });
+
+        it('returns space files when getWithFiles finds a space', async () => {
+            const mockFirst = vi.fn().mockResolvedValue({ id: 'space-1', name: 'Main space' });
+            const firstBind = vi.fn().mockReturnValue({ first: mockFirst });
+            const mockAll = vi.fn().mockResolvedValue({ results: [{ id: 'file-1' }] });
+            const secondBind = vi.fn().mockReturnValue({ all: mockAll });
+            const mockDb = {
+                prepare: vi
+                    .fn()
+                    .mockReturnValueOnce({ bind: firstBind })
+                    .mockReturnValueOnce({ bind: secondBind }),
+            };
+
+            const repo = new SpaceRepository(mockDb);
+            await expect(repo.getWithFiles('space-1')).resolves.toEqual({
+                space: { id: 'space-1', name: 'Main space' },
+                files: [{ id: 'file-1' }],
+            });
+
+            expect(secondBind).toHaveBeenCalledWith('space-1');
+        });
+
+        it('returns null when getWithFiles cannot find the space', async () => {
+            const mockFirst = vi.fn().mockResolvedValue(null);
+            const mockDb = {
+                prepare: vi.fn().mockReturnValue({ bind: vi.fn().mockReturnValue({ first: mockFirst }) }),
+            };
+
+            const repo = new SpaceRepository(mockDb);
+            await expect(repo.getWithFiles('missing-space')).resolves.toBeNull();
+            expect(mockDb.prepare).toHaveBeenCalledTimes(1);
+        });
+
+        it('returns space stats with trend rows and zero-safe counters', async () => {
+            const firstSpace = vi.fn().mockResolvedValue({ view_count: 7, download_count: 3 });
+            const bindSpace = vi.fn().mockReturnValue({ first: firstSpace });
+            const firstFileStats = vi.fn().mockResolvedValue({ file_count: 2, total_size: 4096 });
+            const bindFileStats = vi.fn().mockReturnValue({ first: firstFileStats });
+            const allTrend = vi.fn().mockResolvedValue({ results: [{ date: '2026-04-18', count: 5 }] });
+            const bindTrend = vi.fn().mockReturnValue({ all: allTrend });
+            const mockDb = {
+                prepare: vi
+                    .fn()
+                    .mockReturnValueOnce({ bind: bindSpace })
+                    .mockReturnValueOnce({ bind: bindFileStats })
+                    .mockReturnValueOnce({ bind: bindTrend }),
+            };
+
+            const repo = new SpaceRepository(mockDb);
+            await expect(repo.getStats('space-1', 7, 123)).resolves.toEqual({
+                viewCount: 7,
+                downloadCount: 3,
+                fileCount: 2,
+                totalSize: 4096,
+                trendData: [{ date: '2026-04-18', count: 5 }],
+            });
+
+            expect(bindTrend).toHaveBeenCalledWith('space-1', 123);
+        });
+
+        it('returns null when getStats cannot find the space', async () => {
+            const mockFirst = vi.fn().mockResolvedValue(null);
+            const mockDb = {
+                prepare: vi.fn().mockReturnValue({ bind: vi.fn().mockReturnValue({ first: mockFirst }) }),
+            };
+
+            const repo = new SpaceRepository(mockDb);
+            await expect(repo.getStats('missing-space', 7, 0)).resolves.toBeNull();
+            expect(mockDb.prepare).toHaveBeenCalledTimes(1);
+        });
+
+        it('returns subspaces and shared salespersons lists', async () => {
+            const subspaceAll = vi.fn().mockResolvedValue({ results: [{ id: 'sub-1' }] });
+            const subspaceBind = vi.fn().mockReturnValue({ all: subspaceAll });
+            const sharedAll = vi.fn().mockResolvedValue({ results: [{ id: 'sp-1', name: 'Alice' }] });
+            const sharedBind = vi.fn().mockReturnValue({ all: sharedAll });
+            const mockDb = {
+                prepare: vi
+                    .fn()
+                    .mockReturnValueOnce({ bind: subspaceBind })
+                    .mockReturnValueOnce({ bind: sharedBind }),
+            };
+
+            const repo = new SpaceRepository(mockDb);
+            await expect(repo.findSubspaces('parent-1')).resolves.toEqual([{ id: 'sub-1' }]);
+            await expect(repo.getSharedSalespersons('space-1')).resolves.toEqual([{ id: 'sp-1', name: 'Alice' }]);
+
+            expect(subspaceBind).toHaveBeenCalledWith('parent-1');
+            expect(sharedBind).toHaveBeenCalledWith('space-1');
+        });
+    });
+
     describe('salesperson visibility', () => {
         it('filters expired spaces in salesperson list queries at repository level', async () => {
             vi.useFakeTimers();
@@ -224,6 +328,34 @@ describe('SpaceRepository', () => {
 
             vi.useRealTimers();
         });
+
+        it('returns visible salesperson space details with files', async () => {
+            vi.useFakeTimers();
+            vi.setSystemTime(new Date('2026-04-12T00:00:00.000Z'));
+
+            const mockFirst = vi.fn().mockResolvedValue({ id: 'space-1', share_mode: 'selected' });
+            const detailBind = vi.fn().mockReturnValue({ first: mockFirst });
+            const mockAll = vi.fn().mockResolvedValue({ results: [{ id: 'file-1', section: 'hero' }] });
+            const filesBind = vi.fn().mockReturnValue({ all: mockAll });
+            const mockDb = {
+                prepare: vi
+                    .fn()
+                    .mockReturnValueOnce({ bind: detailBind })
+                    .mockReturnValueOnce({ bind: filesBind }),
+            };
+
+            const repo = new SpaceRepository(mockDb);
+            await expect(repo.findByIdForSalesperson('space-1', 'sp-1')).resolves.toEqual({
+                id: 'space-1',
+                share_mode: 'selected',
+                files: [{ id: 'file-1', section: 'hero' }],
+            });
+
+            expect(detailBind).toHaveBeenCalledWith('space-1', Date.now(), 'sp-1');
+            expect(filesBind).toHaveBeenCalledWith('space-1');
+
+            vi.useRealTimers();
+        });
     });
 
     describe('batch safety', () => {
@@ -264,6 +396,69 @@ describe('SpaceRepository', () => {
 
             expect(db.batch).toHaveBeenCalledTimes(3);
             expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 100, 6]);
+        });
+
+        it('updates space timestamps after addFiles', async () => {
+            vi.useFakeTimers();
+            vi.setSystemTime(new Date('2026-04-12T00:00:00.000Z'));
+
+            const db = {
+                prepare: vi.fn((sql) => createStatement(sql)),
+                batch: vi.fn(async (statements = []) => statements.map(() => ({ meta: { changes: 1 } }))),
+            };
+            const repo = new SpaceRepository(db);
+
+            await repo.addFiles('space-1', ['file-1', 'file-2']);
+
+            expect(db.batch).toHaveBeenCalledTimes(1);
+            const updateStatement = db.prepare.mock.results.at(-1).value;
+            expect(updateStatement.sql).toContain('UPDATE spaces SET updated_at = ?');
+            expect(updateStatement.params).toEqual([Date.now(), 'space-1']);
+
+            vi.useRealTimers();
+        });
+
+        it('chunks removeFiles into D1-safe delete batches', async () => {
+            const runStatements = [];
+            const db = {
+                prepare: vi.fn((sql) => {
+                    const statement = createStatement(sql);
+                    statement.run = vi.fn(async () => {
+                        runStatements.push(statement.params);
+                        return { success: true, meta: { changes: 1 } };
+                    });
+                    return statement;
+                }),
+            };
+            const repo = new SpaceRepository(db);
+
+            await repo.removeFiles('space-1', Array.from({ length: 205 }, (_, index) => `file-${index}`));
+
+            expect(db.prepare).toHaveBeenCalledTimes(3);
+            expect(runStatements.map((params) => params.length)).toEqual([99, 99, 10]);
+        });
+
+        it('updates shared salesperson bindings with delete-only and insert batches', async () => {
+            vi.useFakeTimers();
+            vi.setSystemTime(new Date('2026-04-12T00:00:00.000Z'));
+
+            const db = {
+                prepare: vi.fn((sql) => createStatement(sql)),
+                batch: vi.fn(async (statements = []) => statements.map(() => ({ meta: { changes: 1 } }))),
+            };
+            const repo = new SpaceRepository(db);
+
+            await repo.updateSharedSalespersons('space-1', []);
+            await repo.updateSharedSalespersons('space-1', ['sp-1', 'sp-2']);
+
+            expect(db.batch).toHaveBeenCalledTimes(2);
+            expect(db.batch.mock.calls[0][0]).toHaveLength(1);
+            expect(db.batch.mock.calls[1][0]).toHaveLength(3);
+            const insertStatement = db.prepare.mock.results[2].value;
+            expect(insertStatement.bind).toHaveBeenNthCalledWith(1, 'space-1', 'sp-1', Date.now());
+            expect(insertStatement.bind).toHaveBeenNthCalledWith(2, 'space-1', 'sp-2', Date.now());
+
+            vi.useRealTimers();
         });
     });
 
@@ -315,6 +510,58 @@ describe('SpaceRepository', () => {
                 100
             );
             expect(mockRun).toHaveBeenCalled();
+        });
+    });
+
+    describe('mutations', () => {
+        it('updates spaces through dynamic update clauses and reloads the record', async () => {
+            const mockRun = vi.fn().mockResolvedValue({ success: true });
+            const updateBind = vi.fn().mockReturnValue({ run: mockRun });
+            const mockFirst = vi.fn().mockResolvedValue({ id: 'space-1', name: 'Updated space' });
+            const reloadBind = vi.fn().mockReturnValue({ first: mockFirst });
+            const mockDb = {
+                prepare: vi
+                    .fn()
+                    .mockReturnValueOnce({ bind: updateBind })
+                    .mockReturnValueOnce({ bind: reloadBind }),
+            };
+
+            const repo = new SpaceRepository(mockDb);
+            await expect(
+                repo.update('space-1', ['name = ?', 'updated_at = ?'], ['Updated space', 123, 'space-1'])
+            ).resolves.toEqual({ id: 'space-1', name: 'Updated space' });
+
+            expect(mockDb.prepare).toHaveBeenNthCalledWith(1, 'UPDATE spaces SET name = ?, updated_at = ? WHERE id = ?');
+            expect(updateBind).toHaveBeenCalledWith('Updated space', 123, 'space-1');
+        });
+
+        it('deletes space files before deleting the space row', async () => {
+            const statements = [];
+            const db = {
+                prepare: vi.fn((sql) => {
+                    const statement = {
+                        sql,
+                        params: [],
+                        bind: vi.fn((...params) => {
+                            statement.params = params;
+                            return statement;
+                        }),
+                    };
+                    statements.push(statement);
+                    return statement;
+                }),
+                batch: vi.fn(async () => []),
+            };
+            const repo = new SpaceRepository(db);
+
+            await repo.delete('space-1');
+
+            expect(db.batch).toHaveBeenCalledTimes(1);
+            expect(statements.map((statement) => statement.sql)).toEqual([
+                'DELETE FROM space_files WHERE space_id = ?',
+                'DELETE FROM spaces WHERE id = ?',
+            ]);
+            expect(statements.map((statement) => statement.params)).toEqual([['space-1'], ['space-1']]);
         });
     });
 });

@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 const mocks = vi.hoisted(() => ({
   scheduleAuditEvent: vi.fn(),
   requiredPermissions: [],
+  createAuditAlert: vi.fn(),
 }));
 
 vi.mock('../../../middleware/auth.js', () => ({
@@ -20,6 +21,12 @@ vi.mock('../../../_shared/audit-helpers.js', async () => {
     scheduleAuditEvent: mocks.scheduleAuditEvent,
   };
 });
+
+vi.mock('../../../../../services/AuditAlertService.js', () => ({
+  AuditAlertService: vi.fn(() => ({
+    createAlert: mocks.createAuditAlert,
+  })),
+}));
 
 import auditLogsApp from '../audit-logs.js';
 
@@ -95,6 +102,13 @@ describe('manage audit log routes', () => {
         action: 'audit.export',
         domain: 'audit-logs',
         metadata: expect.objectContaining({ format: 'csv', domain: 'orders', count: 1 }),
+      })
+    );
+    expect(mocks.createAuditAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        alertType: 'audit.export',
+        severity: 'high',
+        summary: expect.stringContaining('Exported 1 audit logs'),
       })
     );
   });

@@ -25,15 +25,16 @@ export async function addPurchaseOrderItems({ db, poId, items }) {
     statements.push(
       db.prepare(`
         INSERT INTO purchase_order_items (
-          id, po_id, product_id, variant_id, pre_order_id, quantity, unit_cost, snapshot_name, snapshot_sku, snapshot_specs, snapshot_image, created_at
+          id, po_id, product_id, variant_id, pre_order_id, order_line_id, quantity, unit_cost, snapshot_name, snapshot_sku, snapshot_specs, snapshot_image, created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         id,
         poId,
         item.product_id,
         item.variant_id,
         item.pre_order_id || null,
+        item.order_line_id || null,
         item.quantity || 1,
         item.unit_cost || 0,
         item.snapshot_name || null,

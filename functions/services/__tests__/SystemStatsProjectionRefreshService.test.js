@@ -22,6 +22,12 @@ describe('SystemStatsProjectionRefreshService', () => {
           daily: {},
           topSpaces: [],
         },
+        business: {
+          totalOrders: 32,
+          pendingOrders: 6,
+          fulfilledOrders: 18,
+          activeSalespersons: 4,
+        },
         status: { normal: 9, blocked: 1 },
         fileTypes: [{ type: 'image/jpeg', count: 10 }],
       })),
@@ -38,6 +44,12 @@ describe('SystemStatsProjectionRefreshService', () => {
       STATS_PROJECTION_SCOPES.MANAGE_STATS,
       expect.objectContaining({
         data: expect.objectContaining({
+          business: expect.objectContaining({
+            totalOrders: 32,
+            pendingOrders: 6,
+            fulfilledOrders: 18,
+            activeSalespersons: 4,
+          }),
           storage: expect.objectContaining({
             totalFiles: 10,
             totalSize: 1024,

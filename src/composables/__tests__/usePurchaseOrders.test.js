@@ -608,4 +608,117 @@ describe('usePurchaseOrders authz handling', () => {
       }),
     }));
   });
+
+  it('covers purchase-order create and line-item CRUD flows', async () => {
+    mockAuthFetch
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({ success: true, data: { id: 'po-1' } }),
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({ success: true }),
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({ success: true }),
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({ success: true }),
+      });
+
+    const purchaseOrders = usePurchaseOrders();
+
+    await expect(purchaseOrders.createPO({ remark: 'memo' })).resolves.toEqual({ id: 'po-1' });
+    await expect(
+      purchaseOrders.addItems('po-1', [{ product_id: 'prod-1', quantity: 2 }])
+    ).resolves.toBe(true);
+    await expect(
+      purchaseOrders.updateItem('po-1', 'item-1', { quantity: 3 })
+    ).resolves.toBe(true);
+    await expect(purchaseOrders.removeItem('po-1', 'item-1')).resolves.toBe(true);
+
+    expect(mocks.addToast).toHaveBeenCalledWith({
+      message: 'purchaseOrder.toast.created',
+      type: 'success',
+    });
+    expect(mocks.addToast).toHaveBeenCalledWith({
+      message: 'purchaseOrder.toast.itemsAdded',
+      type: 'success',
+    });
+    expect(mocks.addToast).toHaveBeenCalledWith({
+      message: 'purchaseOrder.toast.itemUpdated',
+      type: 'success',
+    });
+    expect(mocks.addToast).toHaveBeenCalledWith({
+      message: 'purchaseOrder.toast.itemRemoved',
+      type: 'success',
+    });
+  });
+
+  it('surfaces create and line-item failures without mutating state', async () => {
+    mockAuthFetch
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({ success: false, error: 'create failed' }),
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({ success: false, error: 'add failed' }),
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({ success: false, error: 'update failed' }),
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({ success: false, error: 'remove failed' }),
+      });
+
+    const purchaseOrders = usePurchaseOrders();
+
+    await expect(purchaseOrders.createPO({})).resolves.toBeNull();
+    await expect(purchaseOrders.addItems('po-1', [])).resolves.toBe(false);
+    await expect(purchaseOrders.updateItem('po-1', 'item-1', {})).resolves.toBe(false);
+    await expect(purchaseOrders.removeItem('po-1', 'item-1')).resolves.toBe(false);
+
+    expect(mocks.addToast).toHaveBeenCalledWith({ message: 'create failed', type: 'error' });
+    expect(mocks.addToast).toHaveBeenCalledWith({ message: 'add failed', type: 'error' });
+    expect(mocks.addToast).toHaveBeenCalledWith({ message: 'update failed', type: 'error' });
+    expect(mocks.addToast).toHaveBeenCalledWith({ message: 'remove failed', type: 'error' });
+  });
+
+  it('refreshes overview only when no detail id is provided', async () => {
+    mockAuthFetch
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          success: true,
+          data: { items: [{ id: 'po-1' }], total: 1 },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          success: true,
+          data: { draft_count: 1 },
+        }),
+      });
+
+    const { refreshPurchaseOrderViews } = usePurchaseOrders();
+    const result = await refreshPurchaseOrderViews();
+
+    expect(result).toEqual({
+      detailLoaded: false,
+      listLoaded: true,
+      statsLoaded: true,
+    });
+    expect(mockAuthFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps detail falsey when loadDetail receives backend and network failures', async () => {
+    mockAuthFetch
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({ success: false, error: 'missing' }),
+      })
+      .mockRejectedValueOnce(new Error('network down'));
+
+    const { loadDetail, detail } = usePurchaseOrders();
+
+    await expect(loadDetail('po-404')).resolves.toBe(false);
+    await expect(loadDetail('po-net')).resolves.toBe(false);
+    expect(detail.value).toBeNull();
+    expect(mocks.addToast).toHaveBeenCalledWith({ message: 'missing', type: 'error' });
+  });
 });

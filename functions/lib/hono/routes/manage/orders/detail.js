@@ -16,7 +16,7 @@ import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { publishSingleDomainEventAndPoll } from '../../../_shared/domain-outbox.js';
-import { syncOrderDemandTransitions } from '../../../../../api/utils/order-demand-sync.js';
+import { syncOrderDemandTransitions, syncOrderDemandTransitionsByLines } from '../../../../../api/utils/order-demand-sync.js';
 import { buildOrderBindingSnapshot } from '../../../../../api/utils/order-binding-snapshot.js';
 import { OrderDeliveryService } from '../../../../../services/OrderDeliveryService.js';
 import { listOrderReturnHistory, listOrderShipmentHistory } from '../../../../../repositories/order/history-queries.js';
@@ -29,10 +29,40 @@ export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'POST', path: '/:id/comment', domain: 'orders', action: 'order.comment.create', severity: 'normal', targetType: 'order' },
     { method: 'DELETE', path: '/:id', domain: 'orders', action: 'order.delete', severity: 'critical', targetType: 'order' },
 ]);
-const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'category', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
+const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'category', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity', 'lines'];
 const STRUCTURAL_EDITABLE_STATUSES = new Set(['pending', 'rejected', 'void']);
 const QUANTITY_EDITABLE_STATUSES = new Set(['pending', 'confirmed', 'rejected', 'void']);
 const ORDER_BOUND_SNAPSHOT_FIELDS = Object.freeze(['name', 'brand', 'category', 'series', 'sku', 'size', 'color', 'material']);
+
+function normalizeLineText(value, fallback = '') {
+    if (value === undefined || value === null) return fallback;
+    const normalized = String(value).trim();
+    return normalized || fallback;
+}
+
+function normalizeLineQuantity(value, fallback = 1) {
+    const parsed = Number(value ?? fallback);
+    if (!Number.isFinite(parsed) || parsed <= 0) return 1;
+    return Math.trunc(parsed);
+}
+
+function normalizeEditableLines(lines = []) {
+    return lines.map((line) => ({
+        name: normalizeLineText(line.name ?? line.productName),
+        brand: normalizeLineText(line.brand),
+        category: normalizeLineText(line.category),
+        series: normalizeLineText(line.series),
+        sku: normalizeLineText(line.sku),
+        size: normalizeLineText(line.size),
+        color: normalizeLineText(line.color),
+        material: normalizeLineText(line.material),
+        remark: normalizeLineText(line.remark),
+        deadline: normalizeLineText(line.deadline),
+        quantity: normalizeLineQuantity(line.quantity ?? line.orderedQuantity),
+        productId: line.productId ?? null,
+        variantId: line.variantId ?? null,
+    }));
+}
 
 function getAdminActor(user) {
     return {
@@ -137,17 +167,58 @@ app.patch('/:id', async (c) => {
 
     // 如果绑定了商品，从商品库获取信息覆盖提交的字段
     let finalUpdates = { ...updates };
-    const hasProductIdPayload = productId !== undefined;
-    const hasVariantIdPayload = variantId !== undefined;
+    const rawLines = Array.isArray(updates.lines) ? updates.lines.filter(Boolean) : null;
+    let normalizedLines = null;
+    let payloadProductId = productId;
+    let payloadVariantId = variantId;
+
+    if (rawLines) {
+        if (rawLines.length === 0) {
+            throw new BadRequestError('lines must include at least one item');
+        }
+        normalizedLines = normalizeEditableLines(rawLines);
+        const primaryLine = normalizedLines[0];
+        const totalQuantity = normalizedLines.reduce((sum, line) => sum + line.quantity, 0);
+        finalUpdates = {
+            ...finalUpdates,
+            name: primaryLine.name,
+            brand: primaryLine.brand,
+            category: primaryLine.category,
+            series: primaryLine.series,
+            sku: primaryLine.sku,
+            size: primaryLine.size,
+            color: primaryLine.color,
+            material: primaryLine.material,
+            remark: primaryLine.remark || finalUpdates.remark || '',
+            deadline: primaryLine.deadline || finalUpdates.deadline || '',
+            quantity: totalQuantity,
+            lines: normalizedLines,
+        };
+
+        if (normalizedLines.length === 1) {
+            if (payloadProductId === undefined && primaryLine.productId) payloadProductId = primaryLine.productId;
+            if (payloadVariantId === undefined && primaryLine.variantId) payloadVariantId = primaryLine.variantId;
+        } else if (normalizedLines.length > 1) {
+            if (payloadProductId === undefined) payloadProductId = null;
+            if (payloadVariantId === undefined) payloadVariantId = null;
+        }
+    }
+
+    const hasProductIdPayload = payloadProductId !== undefined;
+    const hasVariantIdPayload = payloadVariantId !== undefined;
     const hasBindingMutation = hasProductIdPayload || hasVariantIdPayload;
     const hasQuantityMutation = updates.quantity !== undefined;
-    const effectiveProductId = hasProductIdPayload ? productId : order.productId;
+    const hasLineMutation = Boolean(normalizedLines);
+    const effectiveProductId = hasProductIdPayload ? payloadProductId : order.productId;
     const hasExistingBinding = Boolean(order.productId && order.variantId);
-    let normalizedVariantId = hasVariantIdPayload ? (variantId || null) : undefined;
+    let normalizedVariantId = hasVariantIdPayload ? (payloadVariantId || null) : undefined;
     let validatedBinding = null;
 
     if (hasBindingMutation && !STRUCTURAL_EDITABLE_STATUSES.has(String(order.status || '').trim().toLowerCase())) {
         throw new BadRequestError('product binding can only be changed while order is pending, rejected, or void');
+    }
+    if (hasLineMutation && !STRUCTURAL_EDITABLE_STATUSES.has(String(order.status || '').trim().toLowerCase())) {
+        throw new BadRequestError('order lines can only be changed while order is pending, rejected, or void');
     }
     if (hasQuantityMutation && !QUANTITY_EDITABLE_STATUSES.has(String(order.status || '').trim().toLowerCase())) {
         throw new BadRequestError('quantity can only be changed while order is pending, confirmed, rejected, or void');
@@ -195,7 +266,7 @@ app.patch('/:id', async (c) => {
         currentStatus: order.status,
         updates: finalUpdates,
         fileIds,
-        productId, // 传入 product_id 以更新列
+        productId: payloadProductId,
         variantId: normalizedVariantId,
         currentProductId: order.productId,
         currentVariantId: order.variantId,
@@ -219,15 +290,38 @@ app.patch('/:id', async (c) => {
     const nextVariantId = hasVariantIdPayload ? normalizedVariantId : order.variantId;
     const nextQuantity = finalUpdates?.quantity ?? order.quantity;
     const demandService = new DemandService(env.DB);
-    await syncOrderDemandTransitions(demandService, {
-        orderId: id,
-        previousStatus: order.status,
-        nextStatus,
-        previousQuantity: order.quantity,
-        nextQuantity,
-        previousVariantId: order.variantId,
-        nextVariantId,
-    });
+    const hasMultiLineDemandContext =
+        (Array.isArray(order.lines) && order.lines.length > 1) ||
+        (Array.isArray(normalizedLines) && normalizedLines.length > 1);
+    if (hasMultiLineDemandContext) {
+        await syncOrderDemandTransitionsByLines(demandService, {
+            orderId: id,
+            previousStatus: order.status,
+            nextStatus,
+            previousLines: order.lines || [],
+            nextLines: normalizedLines || order.lines || [],
+            previousFallback: {
+                productId: order.productId,
+                variantId: order.variantId,
+                quantity: order.quantity,
+            },
+            nextFallback: {
+                productId: hasProductIdPayload ? payloadProductId : order.productId,
+                variantId: nextVariantId,
+                quantity: nextQuantity,
+            },
+        });
+    } else {
+        await syncOrderDemandTransitions(demandService, {
+            orderId: id,
+            previousStatus: order.status,
+            nextStatus,
+            previousQuantity: order.quantity,
+            nextQuantity,
+            previousVariantId: order.variantId,
+            nextVariantId,
+        });
+    }
 
     const updatedOrder = await orderRepo.findById(id);
     scheduleAuditEvent(c, {
@@ -290,13 +384,33 @@ app.patch('/:id/status', async (c) => {
 
     if (success) {
         const demandService = new DemandService(env.DB);
-        await demandService.syncOrderTransition({
-            orderId: id,
-            fromStatus: oldStatus,
-            toStatus: status,
-            quantity: order.quantity,
-            variantId: order.variantId,
-        });
+        if (Array.isArray(order.lines) && order.lines.length > 1) {
+            await syncOrderDemandTransitionsByLines(demandService, {
+                orderId: id,
+                previousStatus: oldStatus,
+                nextStatus: status,
+                previousLines: order.lines,
+                nextLines: order.lines,
+                previousFallback: {
+                    productId: order.productId,
+                    variantId: order.variantId,
+                    quantity: order.quantity,
+                },
+                nextFallback: {
+                    productId: order.productId,
+                    variantId: order.variantId,
+                    quantity: order.quantity,
+                },
+            });
+        } else {
+            await demandService.syncOrderTransition({
+                orderId: id,
+                fromStatus: oldStatus,
+                toStatus: status,
+                quantity: order.quantity,
+                variantId: order.variantId,
+            });
+        }
 
         // 记录状态变更到时间轴
         await repo.timelineRepo.addTimelineEntry(id, {

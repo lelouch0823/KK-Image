@@ -7,95 +7,90 @@
     </h4>
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <!-- 商品名称 (全宽) -->
-      <div class="md:col-span-2">
+      <template v-if="!lineMode">
+        <!-- 商品名称 (全宽) -->
+        <div class="md:col-span-2">
+          <AppInput
+            :model-value="modelValue.name"
+            :label="t('order.form.productName')"
+            :disabled="disabledFields.includes('name')"
+            @update:model-value="updateField('name', $event)"
+          />
+        </div>
+
+        <!-- 品牌 -->
         <AppInput
-          :model-value="modelValue.name"
-          :label="t('order.form.productName')"
-          :disabled="disabledFields.includes('name')"
-          @update:model-value="updateField('name', $event)"
+          :model-value="modelValue.brand"
+          :label="t('order.form.brand')"
+          :disabled="disabledFields.includes('brand')"
+          @update:model-value="updateField('brand', $event)"
         />
-      </div>
 
-      <!-- 品牌 -->
-      <AppInput
-        :model-value="modelValue.brand"
-        :label="t('order.form.brand')"
-        :disabled="disabledFields.includes('brand')"
-        @update:model-value="updateField('brand', $event)"
-      />
+        <!-- 系列 -->
+        <AppInput
+          :model-value="modelValue.series"
+          :label="t('order.form.series')"
+          :disabled="disabledFields.includes('series')"
+          @update:model-value="updateField('series', $event)"
+        />
 
-      <!-- 系列 -->
-      <AppInput
-        :model-value="modelValue.series"
-        :label="t('order.form.series')"
-        :disabled="disabledFields.includes('series')"
-        @update:model-value="updateField('series', $event)"
-      />
+        <!-- 款号 (SKU) -->
+        <AppInput
+          :model-value="modelValue.sku"
+          :label="t('order.form.sku')"
+          :disabled="disabledFields.includes('sku')"
+          @update:model-value="updateField('sku', $event)"
+        />
 
-      <!-- 款号 (SKU) -->
-      <AppInput
-        :model-value="modelValue.sku"
-        :label="t('order.form.sku')"
-        :disabled="disabledFields.includes('sku')"
-        @update:model-value="updateField('sku', $event)"
-      />
+        <!-- 数量 -->
+        <AppInput
+          :model-value="modelValue.quantity"
+          type="number"
+          :label="t('order.form.quantity')"
+          min="1"
+          @update:model-value="updateField('quantity', parseInt($event) || 1)"
+        />
 
-      <!-- 数量 -->
-      <AppInput
-        :model-value="modelValue.quantity"
-        type="number"
-        :label="t('order.form.quantity')"
-        min="1"
-        @update:model-value="updateField('quantity', parseInt($event) || 1)"
-      />
-
-      <!-- 如果已绑定商品，显示只读的规格属性列表，否则显示原有的输入框 -->
-      <template v-if="boundProductVariant">
-        <div class="border-primary/20 bg-primary/5 mt-4 space-y-3 rounded-lg border p-4 md:col-span-2">
-          <h5 class="text-primary text-sm font-medium">{{ t('product.variant.title') || '商品规格' }}</h5>
-          <div class="grid [grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr))] gap-3">
-            <div v-for="(value, key) in boundProductVariant" :key="key" class="min-w-0 rounded-md bg-(--bg-card)/70 p-2">
-              <span class="block truncate text-xs text-(--text-secondary)" :title="String(key)">
-                {{ key }}
-              </span>
-              <span
-                class="mt-1 block text-sm font-medium break-all text-(--text-main)"
-                :title="String(value ?? '')"
-              >
-                {{ value }}
-              </span>
-            </div>
-            <!-- 如果没有规格内容，显示占位符 -->
-            <div v-if="Object.keys(boundProductVariant).length === 0" class="[grid-column:1/-1] text-sm text-(--text-muted)">
-              {{ t('product.variant.noSpecs') || '无规格信息' }}
+        <!-- 如果已绑定商品，显示只读的规格属性列表，否则显示原有的输入框 -->
+        <template v-if="boundProductVariant">
+          <div class="border-primary/20 bg-primary/5 mt-4 space-y-3 rounded-lg border p-4 md:col-span-2">
+            <h5 class="text-primary text-sm font-medium">{{ t('product.variant.title') || '商品规格' }}</h5>
+            <div class="grid [grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr))] gap-3">
+              <div v-for="(value, key) in boundProductVariant" :key="key" class="min-w-0 rounded-md bg-(--bg-card)/70 p-2">
+                <span class="block truncate text-xs text-(--text-secondary)" :title="String(key)">
+                  {{ key }}
+                </span>
+                <span
+                  class="mt-1 block text-sm font-medium break-all text-(--text-main)"
+                  :title="String(value ?? '')"
+                >
+                  {{ value }}
+                </span>
+              </div>
+              <div v-if="Object.keys(boundProductVariant).length === 0" class="[grid-column:1/-1] text-sm text-(--text-muted)">
+                {{ t('product.variant.noSpecs') || '无规格信息' }}
+              </div>
             </div>
           </div>
-        </div>
-      </template>
+        </template>
 
-      <!-- 未绑定商品时，允许手动输入颜色、材质、规格尺寸 -->
-      <template v-else>
-        <!-- 规格尺寸 -->
-        <AppInput
-          :model-value="modelValue.size"
-          :label="t('order.form.size')"
-          @update:model-value="updateField('size', $event)"
-        />
-
-        <!-- 颜色 -->
-        <AppInput
-          :model-value="modelValue.color"
-          :label="t('order.form.color')"
-          @update:model-value="updateField('color', $event)"
-        />
-
-        <!-- 材质 -->
-        <AppInput
-          :model-value="modelValue.material"
-          :label="t('order.form.material')"
-          @update:model-value="updateField('material', $event)"
-        />
+        <template v-else>
+          <AppInput
+            :model-value="modelValue.size"
+            :label="t('order.form.size')"
+            @update:model-value="updateField('size', $event)"
+          />
+          <AppInput
+            :model-value="modelValue.color"
+            :label="t('order.form.color')"
+            @update:model-value="updateField('color', $event)"
+          />
+          <AppInput
+            :model-value="modelValue.material"
+            :label="t('order.form.material')"
+            @update:model-value="updateField('material', $event)"
+          />
+        </template>
       </template>
 
       <!-- 期望到货时间 -->
@@ -176,6 +171,10 @@ const props = defineProps({
   boundProductVariant: {
     type: Object,
     default: null,
+  },
+  lineMode: {
+    type: Boolean,
+    default: false,
   }
 });
 

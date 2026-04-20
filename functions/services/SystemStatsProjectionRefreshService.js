@@ -34,8 +34,15 @@ export class SystemStatsProjectionRefreshService {
     const todayStart = getChinaDayStart();
     const data = await this.statsRepo.getGlobalStats(todayStart);
 
-    return this.projectionRepo.upsert(STATS_PROJECTION_SCOPES.MANAGE_STATS, {
+        return this.projectionRepo.upsert(STATS_PROJECTION_SCOPES.MANAGE_STATS, {
       data: {
+        business: {
+          totalOrders: data.business?.totalOrders || 0,
+          pendingOrders: data.business?.pendingOrders || 0,
+          fulfilledOrders: data.business?.fulfilledOrders || 0,
+          activeSalespersons: data.business?.activeSalespersons || 0,
+          multilineOrders: data.business?.multilineOrders || 0,
+        },
         storage: {
           totalFiles: data.files.total,
           totalSize: data.files.totalSize,
