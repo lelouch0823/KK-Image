@@ -457,13 +457,21 @@ export function useOrders() {
     const result = await salesOrderApi.create(token, payload);
 
     if (!result.ok) {
-      addToast({ message: result.error || t('common.networkError'), type: 'error' });
-      return false;
+      const message = result.error || t('common.networkError');
+      addToast({ message, type: 'error' });
+      return {
+        ok: false,
+        error: message,
+      };
     }
 
     onProgress('done', 0, 0);
     addToast({ message: t('order.portal.submitSuccess'), type: 'success' });
-    return true;
+    return {
+      ok: true,
+      error: null,
+      data: result.data ?? null,
+    };
   };
 
   /**

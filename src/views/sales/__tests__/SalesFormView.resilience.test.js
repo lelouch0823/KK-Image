@@ -123,4 +123,18 @@ describe('SalesFormView resilience', () => {
       expect.any(Function)
     );
   });
+
+  it('surfaces server rejection message when bound product becomes unavailable on submit', async () => {
+    mocks.createSalesOrder.mockResolvedValue({
+      ok: false,
+      error: 'variant must be in stock',
+    });
+    const wrapper = mountView();
+
+    await wrapper.get('[data-testid="bind-product"]').trigger('click');
+    await wrapper.get('[data-testid="submit-order"]').trigger('click');
+
+    expect(wrapper.get('[data-testid="submit-error"]').text()).toBe('variant must be in stock');
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
 });

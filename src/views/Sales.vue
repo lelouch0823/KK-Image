@@ -231,8 +231,13 @@ const salesOrderStateMachine = useSalesOrderStateMachine({
     return { ok: true, data: { orders: orders.value } };
   },
   createOrder: async (payload) => {
-    const ok = await createSalesOrder(accessToken.value, payload);
-    return ok ? { ok: true, data: null } : { ok: false, error: t('common.networkError') };
+    const result = await createSalesOrder(accessToken.value, payload);
+    if (result === true) {
+      return { ok: true, data: null };
+    }
+    return result?.ok
+      ? { ok: true, data: result.data ?? null }
+      : { ok: false, error: result?.error || t('common.networkError') };
   },
   loadDetail: async ({ id } = {}) => {
     if (!id) return { ok: false, error: t('common.loadFailed') };

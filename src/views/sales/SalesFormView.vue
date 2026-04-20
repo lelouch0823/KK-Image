@@ -87,7 +87,6 @@ const boundProductVariant = ref(null);
 const formData = ref({});
 const productFetchError = ref('');
 const submitError = ref('');
-const pendingSubmitPayload = ref(null);
 const productBindingKey = ref(0);
 
 const disabledFields = computed(() => (boundProduct.value ? LOCKED_FIELDS : []));
@@ -201,18 +200,17 @@ const handleSubmit = async (payload) => {
   }
 
   const result = await createSalesOrder(route.params.token, nextPayload, handleProgress);
+  const isSuccess = result === true || result?.ok === true;
 
   submitProgress.value = { step: '', current: 0, total: 0 };
 
-  if (result) {
-    pendingSubmitPayload.value = null;
+  if (isSuccess) {
     if (loadOrders) await loadOrders();
     router.push(`/sales/${route.params.token}`);
     return true;
   }
 
-  pendingSubmitPayload.value = nextPayload;
-  submitError.value = t('common.loadFailed');
+  submitError.value = result?.error || t('common.loadFailed');
   return false;
 };
 

@@ -27,6 +27,10 @@ export const CreateOrderSchema = z.object({
     fileIds: z.array(z.string()).optional().default([]),
     productId: z.string().nullable().optional(),
     variantId: z.string().nullable().optional(),
+    lines: z
+        .unknown()
+        .optional()
+        .refine((value) => value === undefined, '销售端暂不支持多商品明细'),
 });
 
 export const AddCommentSchema = z.object({

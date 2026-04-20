@@ -22,41 +22,6 @@
 
       <!-- 商品信息 -->
       <div class="space-y-4 rounded-xl border border-(--border-color) bg-(--bg-card) p-3 sm:p-5">
-        <div
-          v-if="mode !== 'admin' && !boundProductVariant"
-          class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-(--border-color) bg-(--bg-muted)/50 px-3 py-2"
-        >
-          <div>
-            <div class="text-sm font-medium text-(--text-main)">
-              {{
-                showLineEditor
-                  ? t('order.form.multilineEnabled', '当前为多商品订单模式')
-                  : t('order.form.singleLineEnabled', '当前为单商品订单模式')
-              }}
-            </div>
-            <div class="text-xs text-(--text-secondary)">
-              {{
-                showLineEditor
-                  ? t('order.form.multilineHint', '提交时会自动汇总总数量并保留每条商品明细。')
-                  : t('order.form.singleLineHint', '需要多个商品时可切换到多行明细模式。')
-              }}
-            </div>
-          </div>
-          <AppButton
-            type="button"
-            variant="secondary"
-            size="sm"
-            data-testid="toggle-order-lines"
-            @click="toggleLineEditor"
-          >
-            {{
-              showLineEditor
-                ? t('order.form.backToSingleLine', '切回单行')
-                : t('order.form.enableMultiline', '启用多行')
-            }}
-          </AppButton>
-        </div>
-
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div v-if="mode === 'admin'">
             <label class="text-primary mb-2 block text-sm font-medium">
@@ -392,11 +357,7 @@ const {
   isSalesMode: props.mode === 'sales', // Pass mode hint if needed
 });
 
-const lineEditorEnabled = ref(false);
-const showLineEditor = computed(
-  () =>
-    props.mode === 'admin' || (!props.boundProductVariant && (lineEditorEnabled.value || lines.value.length > 1))
-);
+const showLineEditor = computed(() => props.mode === 'admin');
 
 const isValid = computed(() => {
   if (!isFormValid.value) return false;
@@ -422,7 +383,9 @@ watch(
   () => props.prefill,
   (data) => {
     fillForm(data);
-    lineEditorEnabled.value = Array.isArray(data?.lines) && data.lines.length > 1;
+    if (props.mode !== 'admin' && lines.value.length > 1) {
+      collapseLinesToSingleLine();
+    }
     if (data && props.mode === 'admin') {
       if (data.salespersonId) adminForm.salespersonId = data.salespersonId;
       if (data.status) adminForm.status = data.status;
@@ -443,8 +406,8 @@ watch(
 // 提交表单
 const uploaderRef = ref(null);
 
-const buildCurrentLineFromForm = () =>
-  createEmptyOrderLine({
+function buildCurrentLineFromForm() {
+  return createEmptyOrderLine({
     name: form.name,
     brand: form.brand,
     series: form.series,
@@ -454,8 +417,9 @@ const buildCurrentLineFromForm = () =>
     material: form.material,
     quantity: form.quantity,
   });
+}
 
-const applyLineToForm = (line = {}) => {
+function applyLineToForm(line = {}) {
   form.name = line.name || '';
   form.brand = line.brand || '';
   form.series = line.series || '';
@@ -464,19 +428,17 @@ const applyLineToForm = (line = {}) => {
   form.color = line.color || '';
   form.material = line.material || '';
   form.quantity = Number(line.quantity || 1);
-};
+}
 
-const toggleLineEditor = () => {
-  if (props.mode === 'admin') return;
-  if (showLineEditor.value) {
-    applyLineToForm(lines.value[0] || {});
-    lineEditorEnabled.value = false;
+function collapseLinesToSingleLine() {
+  const primaryLine = lines.value[0];
+  if (primaryLine) {
+    applyLineToForm(primaryLine);
+    setLines([primaryLine]);
     return;
   }
-
-  setLines([buildCurrentLineFromForm(), createEmptyOrderLine()]);
-  lineEditorEnabled.value = true;
-};
+  setLines([buildCurrentLineFromForm()]);
+}
 
 const handleSubmit = async () => {
   if (!isValid.value) {
@@ -521,6 +483,10 @@ const handleSubmit = async () => {
 
     // 2. 获取提交数据 (此时 uploadedFiles 已包含服务器 ID)
     const data = getSubmitData();
+
+    if (props.mode !== 'admin') {
+      delete data.lines;
+    }
 
     if (props.mode === 'admin') {
       data.salespersonId = adminForm.salespersonId;

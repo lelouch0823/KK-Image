@@ -114,6 +114,36 @@ describe('OrderForm multiline payload', () => {
     expect(wrapper.get('[data-testid="order-line-quantity-1"]').element.value).toBe('1');
   });
 
+  it('keeps sales mode on the single-line contract even when prefill contains multiple lines', async () => {
+    const wrapper = buildWrapper({
+      mode: 'sales',
+      salespersons: [],
+      statuses: [],
+      prefill: {
+        files: [{ id: 'file-1', url: '/file/file-1' }],
+        lines: [
+          { name: 'Desk', quantity: 2, sku: 'SKU-DESK', color: 'Black' },
+          { name: 'Chair', quantity: 3, sku: 'SKU-CHAIR', color: 'White' },
+        ],
+      },
+    });
+
+    expect(wrapper.find('[data-testid="toggle-order-lines"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="order-lines-summary"]').exists()).toBe(false);
+
+    await wrapper.get('form').trigger('submit.prevent');
+
+    const [[payload]] = wrapper.emitted('submit');
+    expect(payload).toMatchObject({
+      name: 'Desk',
+      quantity: 2,
+      sku: 'SKU-DESK',
+      color: 'Black',
+      fileIds: ['file-1'],
+    });
+    expect(payload).not.toHaveProperty('lines');
+  });
+
   it('defaults the salesperson when a sole option arrives after mount', async () => {
     const wrapper = buildWrapper({
       salespersons: [],
