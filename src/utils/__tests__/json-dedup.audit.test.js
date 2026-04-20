@@ -8,7 +8,6 @@ const TARGETS = [
   'src/composables/useProductForm.js',
   'src/components/product/ProductDetail.vue',
   'src/views/sales/SalesFormView.vue',
-  'src/components/OrderCreateModal.vue',
   'src/components/OrderEditModal.vue',
   'src/composables/useUploadQueue.js',
 ];

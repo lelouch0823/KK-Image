@@ -68,19 +68,68 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
     orderCreatedEventCorrelationId,
   } = options;
 
-  if (!body.productName || !body.salespersonId) {
+  const rawLines = Array.isArray(body.lines) ? body.lines.filter(Boolean) : [];
+  if ((!body.productName && rawLines.length === 0) || !body.salespersonId) {
     throw new BadRequestError('Product Name and Salesperson are required');
   }
 
   const orderRepo = new OrderRepository(env.DB);
   const orderId = generateId();
   const orderNo = generateOrderNo();
-  const variantId = body.variantId ?? null;
-  const binding = await validateProductVariantBinding(env.DB, body.productId || null, variantId, { checkActive: true });
+  const normalizedLines = rawLines.map((line) => ({
+    name: String(line.name || line.productName || '').trim(),
+    brand: String(line.brand || '').trim(),
+    category: String(line.category || '').trim(),
+    series: String(line.series || '').trim(),
+    sku: String(line.sku || '').trim(),
+    size: String(line.size || '').trim(),
+    color: String(line.color || '').trim(),
+    material: String(line.material || '').trim(),
+    remark: String(line.remark || '').trim(),
+    deadline: String(line.deadline || '').trim(),
+    quantity: Math.max(1, Math.trunc(Number(line.quantity || 1))),
+    productId: line.productId || null,
+    variantId: line.variantId ?? null,
+  }));
+  const hydratedLines = [];
+  for (const line of normalizedLines) {
+    const binding = await validateProductVariantBinding(
+      env.DB,
+      line.productId || null,
+      line.variantId ?? null,
+      { checkActive: true }
+    );
+    const boundSnapshot = buildOrderBindingSnapshot({
+      product: binding.product,
+      variant: binding.variant,
+      fallback: line,
+    });
+    hydratedLines.push({
+      ...line,
+      name: boundSnapshot.name,
+      brand: boundSnapshot.brand,
+      category: boundSnapshot.category,
+      series: boundSnapshot.series,
+      sku: boundSnapshot.sku,
+      size: boundSnapshot.size,
+      color: boundSnapshot.color,
+      material: boundSnapshot.material,
+      productId: binding.normalizedProductId,
+      variantId: binding.normalizedVariantId,
+    });
+  }
+  const primaryLine = hydratedLines[0] || null;
+  const variantId = primaryLine ? (primaryLine.variantId ?? null) : (body.variantId ?? null);
+  const binding = await validateProductVariantBinding(
+    env.DB,
+    primaryLine ? (primaryLine.productId || null) : (body.productId || null),
+    variantId,
+    { checkActive: true }
+  );
   const boundSnapshot = buildOrderBindingSnapshot({
     product: binding.product,
     variant: binding.variant,
-    fallback: {
+    fallback: primaryLine || {
       name: body.productName,
       brand: body.brand,
       series: body.series,
@@ -90,6 +139,9 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
       material: body.material,
     },
   });
+  const totalQuantity = hydratedLines.length > 0
+    ? hydratedLines.reduce((sum, line) => sum + line.quantity, 0)
+    : (body.quantity || 1);
 
   if (body.status && !ORDER_STATUSES.includes(body.status)) {
     throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
@@ -98,27 +150,28 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
   const createdOrder = await orderRepo.create({
     id: orderId,
     orderNo,
-    salespersonId: body.salespersonId,
-    customerId: body.customerId || null,
-    data: {
-      name: boundSnapshot.name,
+        salespersonId: body.salespersonId,
+        customerId: body.customerId || null,
+        data: {
+          name: boundSnapshot.name,
       brand: boundSnapshot.brand,
       category: boundSnapshot.category,
       series: boundSnapshot.series,
       sku: boundSnapshot.sku,
       size: boundSnapshot.size,
       color: boundSnapshot.color,
-      material: boundSnapshot.material,
-      remark: body.remark || '',
-      deadline: body.deadline || '',
-    },
-    quantity: body.quantity || 1,
-    status: body.status || 'pending',
-    productId: body.productId || null,
-    variantId,
-    mainImageId: body.fileIds?.[0] || null,
-    fileIds: body.fileIds || [],
-    timeline: {
+          material: boundSnapshot.material,
+          remark: body.remark || '',
+          deadline: body.deadline || '',
+        },
+        quantity: totalQuantity,
+        status: body.status || 'pending',
+        productId: hydratedLines.length > 1 ? null : (primaryLine?.productId || body.productId || null),
+        variantId: hydratedLines.length > 1 ? null : variantId,
+        lines: hydratedLines,
+        mainImageId: body.fileIds?.[0] || null,
+        fileIds: body.fileIds || [],
+        timeline: {
       actionType: 'created',
       actorType: 'admin',
       actorId: user?.id || 'admin',
@@ -134,8 +187,8 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
     orderId: persistedOrderId,
     fromStatus: null,
     toStatus: body.status || 'pending',
-    quantity: body.quantity || 1,
-    variantId,
+    quantity: totalQuantity,
+    variantId: hydratedLines.length === 1 ? variantId : null,
   });
 
   const fileIds = Array.isArray(body.fileIds) ? body.fileIds.filter(Boolean) : [];

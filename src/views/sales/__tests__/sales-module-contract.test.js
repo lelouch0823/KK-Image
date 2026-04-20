@@ -88,4 +88,28 @@ describe('sales module contract', () => {
     expect(secondBody).not.toHaveProperty('productId');
     expect(secondBody).not.toHaveProperty('variantId');
   });
+
+  it('returns server error details when sales create is rejected', async () => {
+    mocks.authFetch.mockResolvedValueOnce({
+      json: async () => ({ success: false, error: 'variant must be in stock' }),
+    });
+
+    const { createSalesOrder } = useOrders();
+    const result = await createSalesOrder('sales-token', {
+      name: 'Bound Product',
+      quantity: 1,
+      productId: 'p-1',
+      variantId: 'v-1',
+      fileIds: [],
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      error: 'variant must be in stock',
+    });
+    expect(mocks.addToast).toHaveBeenCalledWith({
+      message: 'variant must be in stock',
+      type: 'error',
+    });
+  });
 });

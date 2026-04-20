@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   routerPush: vi.fn(),
   stateMachineLoadOrders: vi.fn(async () => ({ ok: true, data: { orders: [] } })),
   stateMachineRetry: vi.fn(),
+  capturedStateMachineActions: null,
 }));
 
 vi.mock('vue-router', () => ({
@@ -54,11 +55,14 @@ vi.mock('@/composables/usePushNotification', () => ({
 }));
 
 vi.mock('@/composables/sales/useSalesOrderStateMachine', () => ({
-  useSalesOrderStateMachine: () => ({
-    loadOrders: mocks.stateMachineLoadOrders,
-    retry: mocks.stateMachineRetry,
-    error: ref(''),
-  }),
+  useSalesOrderStateMachine: (actions) => {
+    mocks.capturedStateMachineActions = actions;
+    return {
+      loadOrders: mocks.stateMachineLoadOrders,
+      retry: mocks.stateMachineRetry,
+      error: ref(''),
+    };
+  },
 }));
 
 vi.mock('@/composables/useNotifications', () => ({
@@ -92,6 +96,7 @@ vi.mock('@vueuse/core', () => ({
 describe('Sales notification mode lifecycle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.capturedStateMachineActions = null;
     routeState.params.token = 'sales-token-a';
     routeState.path = '/sales/sales-token-a';
     routeState.fullPath = '/sales/sales-token-a';
@@ -182,5 +187,31 @@ describe('Sales notification mode lifecycle', () => {
     expect(wrapper.text()).not.toContain('Alice');
 
     wrapper.unmount();
+  });
+
+  it('keeps createOrder compatible with legacy boolean success results', async () => {
+    mocks.createSalesOrder.mockResolvedValue(true);
+
+    mount(Sales, {
+      global: {
+        stubs: {
+          OrderLogin: true,
+          SalesNotificationList: true,
+          AppErrorBoundary: { template: '<div><slot /></div>' },
+          AsyncStatePanel: true,
+          AppButton: { template: '<button><slot name="icon-left" /><slot /></button>' },
+          AppIcon: true,
+          MobileSalesShell: { template: '<div><slot /></div>' },
+          'router-view': true,
+          'router-link': true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const result = await mocks.capturedStateMachineActions.createOrder({ name: 'Desk', quantity: 1 });
+
+    expect(result).toEqual({ ok: true, data: null });
   });
 });

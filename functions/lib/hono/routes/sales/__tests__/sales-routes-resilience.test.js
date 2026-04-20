@@ -415,6 +415,36 @@ describe('sales routes resilience', () => {
     );
   });
 
+  it('rejects salesperson create when request payload includes unexpected lines', async () => {
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Header Product',
+          quantity: 1,
+          sku: 'SKU-HEADER',
+          fileIds: [],
+          lines: [
+            { name: 'Line A', quantity: 2, sku: 'SKU-A' },
+            { name: 'Line B', quantity: 3, sku: 'SKU-B' },
+          ],
+        }),
+      },
+      { DB: createDbMock() },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const payload = await res.json();
+    expect(payload.success).toBe(false);
+    expect(payload.error).toBeTruthy();
+    expect(mocks.orderCreate).not.toHaveBeenCalled();
+    expect(mocks.demandSyncOrderTransition).not.toHaveBeenCalled();
+  });
+
   it('hydrates binding snapshot fields from repository dimension_map when product payload omits it', async () => {
     mocks.productVariantFindByIdAndProductId.mockResolvedValue({
       id: 'v-1',

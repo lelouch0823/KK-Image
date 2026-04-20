@@ -14,4 +14,15 @@ describe('CreateOrderSchema', () => {
     expect(payload.variantId).toBe('v1');
     expect(payload.productId).toBe('p1');
   });
+
+  it('rejects multiline order payloads for salesperson create', () => {
+    expect(() => CreateOrderSchema.parse({
+      name: 'Product A',
+      quantity: 1,
+      fileIds: [],
+      lines: [
+        { name: 'Line A', quantity: 2 },
+      ],
+    })).toThrow();
+  });
 });

@@ -9,7 +9,7 @@
       </p>
     </div>
 
-    <form class="space-y-4" @submit.prevent="handleSubmit">
+    <form class="space-y-4" data-testid="submit-order-form" @submit.prevent="handleSubmit">
       <!-- 图片上传 -->
       <ImageUploader
         ref="uploaderRef"
@@ -22,55 +22,6 @@
 
       <!-- 商品信息 -->
       <div class="space-y-4 rounded-xl border border-(--border-color) bg-(--bg-card) p-3 sm:p-5">
-        <!-- 商品名称 -->
-        <div>
-          <label class="text-primary mb-2 block text-sm font-medium">
-            {{ t('order.form.productName') }} <span class="text-(--color-danger-text)">*</span>
-          </label>
-          <AutocompleteInput
-            v-model="form.name"
-            :suggestions="nameSuggestions"
-            :placeholder="t('order.form.productNamePlaceholder')"
-            :label="t('order.form.recentInputs')"
-            :filter-mode="false"
-            input-class="input h-11"
-            :disabled="isDisabled('name')"
-          />
-        </div>
-
-        <!-- 品牌和系列 -->
-        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <div>
-            <label class="text-primary mb-2 block text-sm font-medium">
-              {{ t('order.form.brand') }}
-            </label>
-            <AutocompleteInput
-              v-model="form.brand"
-              :suggestions="brandSuggestions"
-              :placeholder="t('order.form.brandPlaceholder')"
-              :label="t('order.form.recentInputs')"
-              :filter-mode="false"
-              input-class="input h-11"
-              :disabled="isDisabled('brand')"
-            />
-          </div>
-          <div>
-            <label class="text-primary mb-2 block text-sm font-medium">
-              {{ t('order.form.series') }}
-            </label>
-            <AutocompleteInput
-              v-model="form.series"
-              :suggestions="seriesSuggestions"
-              :placeholder="t('order.form.seriesPlaceholder')"
-              :label="t('order.form.recentInputs')"
-              :filter-mode="false"
-              input-class="input h-11"
-              :disabled="isDisabled('series')"
-            />
-          </div>
-        </div>
-
-        <!-- Admin: 销售员 | SKU -->
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div v-if="mode === 'admin'">
             <label class="text-primary mb-2 block text-sm font-medium">
@@ -82,76 +33,118 @@
               :placeholder="t('salesperson.selectPlaceholder')"
             />
           </div>
-          <div :class="{ 'md:col-span-2': mode !== 'admin' }">
-            <AppInput
-              v-model="form.sku"
-              :label="t('order.form.sku')"
-              type="text"
-              :placeholder="t('order.form.skuPlaceholder')"
-              :disabled="isDisabled('sku')"
-              size="lg"
-            />
+          <div v-if="mode === 'admin'" :class="{ 'md:col-span-1': mode === 'admin' }">
+            <label class="text-primary mb-2 block text-sm font-medium">
+              {{ t('order.status') }}
+            </label>
+            <StatusSelector v-model="adminForm.status" :options="statuses" class="w-full" />
           </div>
         </div>
 
-        <!-- 如果已绑定商品，显示只读的规格属性列表，否则显示原有的输入框 -->
-        <template v-if="boundProductVariant">
-          <div class="border-primary/20 bg-primary/5 mt-4 space-y-3 rounded-lg border p-4">
-            <h5 class="text-primary text-sm font-medium">
-              {{ t('product.variant.title') || '商品规格' }}
-            </h5>
-            <div class="grid [grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr))] gap-3">
-              <div
-                v-for="(value, key) in boundProductVariant"
-                :key="key"
-                class="min-w-0 rounded-md bg-(--bg-card)/70 p-2"
-              >
-                <span class="block truncate text-xs text-(--text-secondary)" :title="String(key)">
-                  {{ key }}
-                </span>
-                <span
-                  class="mt-1 block text-sm font-medium break-all text-(--text-main)"
-                  :title="String(value ?? '')"
-                >
-                  {{ value }}
-                </span>
-              </div>
-              <!-- 如果没有规格内容，显示占位符 -->
-              <div
-                v-if="Object.keys(boundProductVariant).length === 0"
-                class="[grid-column:1/-1] text-sm text-(--text-muted)"
-              >
-                {{ t('product.variant.noSpecs') || '无规格信息' }}
-              </div>
-            </div>
-          </div>
-          <!-- 数量 (绑定的情况下仍需数量字段) -->
-          <div>
-            <AppInput
-              :model-value="form.quantity"
-              :label="`${t('order.form.quantity')} *`"
-              type="number"
-              inputmode="numeric"
-              min="1"
-              required
-              size="lg"
-              @update:model-value="form.quantity = Number($event || 0)"
-            />
-          </div>
+        <template v-if="showLineEditor && !boundProductVariant">
+          <OrderLinesSummaryBar :summary="summaryMetrics" />
+          <OrderLinesEditor
+            :model-value="lines"
+            :line-states="lineStates"
+            @add-line="addLineAfter(lines.length - 1)"
+            @add-line-after="addLineAfter"
+            @copy-line="copyLine"
+            @remove-line="removeLine"
+            @update-line="updateLine"
+          />
         </template>
 
-        <!-- 未绑定商品时，允许手动输入颜色、材质、规格尺寸 -->
         <template v-else>
-          <!-- 规格尺寸 & 数量 -->
+          <div>
+            <label class="text-primary mb-2 block text-sm font-medium">
+              {{ t('order.form.productName') }} <span class="text-(--color-danger-text)">*</span>
+            </label>
+            <AutocompleteInput
+              v-model="form.name"
+              :suggestions="nameSuggestions"
+              :placeholder="t('order.form.productNamePlaceholder')"
+              :label="t('order.form.recentInputs')"
+              :filter-mode="false"
+              input-class="input h-11"
+              :disabled="isDisabled('name')"
+            />
+          </div>
+
           <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
+              <label class="text-primary mb-2 block text-sm font-medium">
+                {{ t('order.form.brand') }}
+              </label>
+              <AutocompleteInput
+                v-model="form.brand"
+                :suggestions="brandSuggestions"
+                :placeholder="t('order.form.brandPlaceholder')"
+                :label="t('order.form.recentInputs')"
+                :filter-mode="false"
+                input-class="input h-11"
+                :disabled="isDisabled('brand')"
+              />
+            </div>
+            <div>
+              <label class="text-primary mb-2 block text-sm font-medium">
+                {{ t('order.form.series') }}
+              </label>
+              <AutocompleteInput
+                v-model="form.series"
+                :suggestions="seriesSuggestions"
+                :placeholder="t('order.form.seriesPlaceholder')"
+                :label="t('order.form.recentInputs')"
+                :filter-mode="false"
+                input-class="input h-11"
+                :disabled="isDisabled('series')"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div :class="{ 'md:col-span-2': mode !== 'admin' }">
               <AppInput
-                v-model="form.size"
-                :label="t('order.form.size')"
+                v-model="form.sku"
+                :label="t('order.form.sku')"
                 type="text"
-                :placeholder="t('order.form.sizePlaceholder')"
+                :placeholder="t('order.form.skuPlaceholder')"
+                :disabled="isDisabled('sku')"
                 size="lg"
               />
+            </div>
+          </div>
+
+          <template v-if="boundProductVariant">
+            <div class="border-primary/20 bg-primary/5 mt-4 space-y-3 rounded-lg border p-4">
+              <h5 class="text-primary text-sm font-medium">
+                {{ t('product.variant.title') || '商品规格' }}
+              </h5>
+              <div class="grid [grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr))] gap-3">
+                <div
+                  v-for="(value, key) in boundProductVariant"
+                  :key="key"
+                  class="min-w-0 rounded-md bg-(--bg-card)/70 p-2"
+                >
+                  <span
+                    class="block truncate text-xs text-(--text-secondary)"
+                    :title="String(key)"
+                  >
+                    {{ key }}
+                  </span>
+                  <span
+                    class="mt-1 block text-sm font-medium break-all text-(--text-main)"
+                    :title="String(value ?? '')"
+                  >
+                    {{ value }}
+                  </span>
+                </div>
+                <div
+                  v-if="Object.keys(boundProductVariant).length === 0"
+                  class="[grid-column:1/-1] text-sm text-(--text-muted)"
+                >
+                  {{ t('product.variant.noSpecs') || '无规格信息' }}
+                </div>
+              </div>
             </div>
             <div>
               <AppInput
@@ -165,40 +158,64 @@
                 @update:model-value="form.quantity = Number($event || 0)"
               />
             </div>
-          </div>
+          </template>
 
-          <!-- 颜色材质 -->
-          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
-              <label class="text-primary mb-2 block text-sm font-medium">
-                {{ t('order.form.color') }}
-              </label>
-              <AutocompleteInput
-                v-model="form.color"
-                :suggestions="colorSuggestions"
-                :placeholder="t('order.form.colorPlaceholder')"
-                :label="t('order.form.recentInputs')"
-                :filter-mode="false"
-                input-class="input h-11"
-              />
+          <template v-else>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div>
+                <AppInput
+                  v-model="form.size"
+                  :label="t('order.form.size')"
+                  type="text"
+                  :placeholder="t('order.form.sizePlaceholder')"
+                  size="lg"
+                />
+              </div>
+              <div>
+                <AppInput
+                  :model-value="form.quantity"
+                  :label="`${t('order.form.quantity')} *`"
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  required
+                  size="lg"
+                  @update:model-value="form.quantity = Number($event || 0)"
+                />
+              </div>
             </div>
-            <div>
-              <label class="text-primary mb-2 block text-sm font-medium">
-                {{ t('order.form.material') }}
-              </label>
-              <AutocompleteInput
-                v-model="form.material"
-                :suggestions="materialSuggestions"
-                :placeholder="t('order.form.materialPlaceholder')"
-                :label="t('order.form.recentInputs')"
-                :filter-mode="false"
-                input-class="input h-11"
-              />
+
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div>
+                <label class="text-primary mb-2 block text-sm font-medium">
+                  {{ t('order.form.color') }}
+                </label>
+                <AutocompleteInput
+                  v-model="form.color"
+                  :suggestions="colorSuggestions"
+                  :placeholder="t('order.form.colorPlaceholder')"
+                  :label="t('order.form.recentInputs')"
+                  :filter-mode="false"
+                  input-class="input h-11"
+                />
+              </div>
+              <div>
+                <label class="text-primary mb-2 block text-sm font-medium">
+                  {{ t('order.form.material') }}
+                </label>
+                <AutocompleteInput
+                  v-model="form.material"
+                  :suggestions="materialSuggestions"
+                  :placeholder="t('order.form.materialPlaceholder')"
+                  :label="t('order.form.recentInputs')"
+                  :filter-mode="false"
+                  input-class="input h-11"
+                />
+              </div>
             </div>
-          </div>
+          </template>
         </template>
 
-        <!-- 备注 -->
         <div>
           <AppInput
             v-model="form.remark"
@@ -210,24 +227,15 @@
           />
         </div>
 
-        <!-- Admin: 状态 | 到货时间 -->
-        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <div v-if="mode === 'admin'">
-            <label class="text-primary mb-2 block text-sm font-medium">
-              {{ t('order.status') }}
-            </label>
-            <StatusSelector v-model="adminForm.status" :options="statuses" class="w-full" />
-          </div>
-          <div :class="{ 'md:col-span-2': mode !== 'admin' }">
-            <AppInput
-              v-model="form.deadline"
-              :label="t('order.form.expectedArrival')"
-              type="date"
-              :min="minDate"
-              size="lg"
-              :class="{ 'text-muted': !form.deadline }"
-            />
-          </div>
+        <div :class="{ 'md:col-span-2': mode !== 'admin' }">
+          <AppInput
+            v-model="form.deadline"
+            :label="t('order.form.expectedArrival')"
+            type="date"
+            :min="minDate"
+            size="lg"
+            :class="{ 'text-muted': !form.deadline }"
+          />
         </div>
       </div>
 
@@ -280,6 +288,9 @@ import Select from '@/components/ui/Select.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
+import OrderLinesEditor from '@/components/order/OrderLinesEditor.vue';
+import OrderLinesSummaryBar from '@/components/order/OrderLinesSummaryBar.vue';
+import { createEmptyOrderLine } from '@/composables/useOrderForm';
 
 const props = defineProps({
   prefill: { type: Object, default: null },
@@ -333,10 +344,20 @@ const {
   getSubmitData,
   saveHistory,
   setSubmitting,
+  lines,
+  setLines,
+  updateLine,
+  addLineAfter,
+  copyLine,
+  removeLine,
+  summaryMetrics,
+  lineStates,
 } = useOrderForm({
   submitProgress: toRef(props, 'submitProgress'),
   isSalesMode: props.mode === 'sales', // Pass mode hint if needed
 });
+
+const showLineEditor = computed(() => props.mode === 'admin');
 
 const isValid = computed(() => {
   if (!isFormValid.value) return false;
@@ -347,26 +368,77 @@ const isValid = computed(() => {
 });
 
 const actionBarClass = computed(() =>
-  props.mode === 'sales'
-    ? 'sticky bottom-0 z-20 -mx-3 flex gap-3 border-t border-(--border-color) bg-(--bg-card)/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur'
-    : 'flex gap-3'
+  'sticky bottom-0 z-20 -mx-3 flex gap-3 border-t border-(--border-color) bg-(--bg-card)/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur'
 );
+
+const applyDefaultAdminSalesperson = (salespersons = props.salespersons) => {
+  if (props.mode !== 'admin' || adminForm.salespersonId) return;
+  if (salespersons.length === 1) {
+    adminForm.salespersonId = salespersons[0]?.id || '';
+  }
+};
 
 // 监听预填充数据变化
 watch(
   () => props.prefill,
   (data) => {
     fillForm(data);
+    if (props.mode !== 'admin' && lines.value.length > 1) {
+      collapseLinesToSingleLine();
+    }
     if (data && props.mode === 'admin') {
       if (data.salespersonId) adminForm.salespersonId = data.salespersonId;
       if (data.status) adminForm.status = data.status;
     }
+    applyDefaultAdminSalesperson();
+  },
+  { immediate: true }
+);
+
+watch(
+  () => props.salespersons,
+  (salespersons) => {
+    applyDefaultAdminSalesperson(salespersons);
   },
   { immediate: true }
 );
 
 // 提交表单
 const uploaderRef = ref(null);
+
+function buildCurrentLineFromForm() {
+  return createEmptyOrderLine({
+    name: form.name,
+    brand: form.brand,
+    series: form.series,
+    sku: form.sku,
+    size: form.size,
+    color: form.color,
+    material: form.material,
+    quantity: form.quantity,
+  });
+}
+
+function applyLineToForm(line = {}) {
+  form.name = line.name || '';
+  form.brand = line.brand || '';
+  form.series = line.series || '';
+  form.sku = line.sku || '';
+  form.size = line.size || '';
+  form.color = line.color || '';
+  form.material = line.material || '';
+  form.quantity = Number(line.quantity || 1);
+}
+
+function collapseLinesToSingleLine() {
+  const primaryLine = lines.value[0];
+  if (primaryLine) {
+    applyLineToForm(primaryLine);
+    setLines([primaryLine]);
+    return;
+  }
+  setLines([buildCurrentLineFromForm()]);
+}
 
 const handleSubmit = async () => {
   if (!isValid.value) {
@@ -375,7 +447,12 @@ const handleSubmit = async () => {
         message: t('order.form.pleaseUploadImage', '请至少上传一张商品图片'),
         type: 'warning',
       });
-    } else if (!form.name) {
+    } else if (summaryMetrics.value.pendingLineCount > 0) {
+      addToast({
+        message: t('order.form.pendingLines', `还有 ${summaryMetrics.value.pendingLineCount} 行待完善`),
+        type: 'warning',
+      });
+    } else if (!form.name && !lines.value.some((line) => String(line?.name || '').trim())) {
       addToast({ message: t('order.form.pleaseEnterName', '请填写商品名称'), type: 'warning' });
     } else if (props.mode === 'admin' && !adminForm.salespersonId) {
       addToast({
@@ -406,6 +483,10 @@ const handleSubmit = async () => {
 
     // 2. 获取提交数据 (此时 uploadedFiles 已包含服务器 ID)
     const data = getSubmitData();
+
+    if (props.mode !== 'admin') {
+      delete data.lines;
+    }
 
     if (props.mode === 'admin') {
       data.salespersonId = adminForm.salespersonId;

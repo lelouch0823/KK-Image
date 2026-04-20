@@ -134,6 +134,137 @@ describe('manage order create route', () => {
     );
   });
 
+  it('normalizes multi-line admin create payloads before calling repository create', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          salespersonId: 'sales-1',
+          fileIds: ['file-1'],
+          lines: [
+            { productName: 'Line A', quantity: 2, sku: 'SKU-A' },
+            { productName: 'Line B', quantity: 3, sku: 'SKU-B' },
+          ],
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.orderCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        quantity: 5,
+        data: expect.objectContaining({
+          name: 'Line A',
+          sku: 'SKU-A',
+        }),
+        lines: [
+          expect.objectContaining({ name: 'Line A', sku: 'SKU-A', quantity: 2 }),
+          expect.objectContaining({ name: 'Line B', sku: 'SKU-B', quantity: 3 }),
+        ],
+      })
+    );
+  });
+
+  it('forwards variant binding for ordinary single-line create payloads without explicit lines', async () => {
+    mocks.validateProductVariantBinding.mockResolvedValueOnce({
+      normalizedVariantId: 'v-1',
+      product: {
+        id: 'p-1',
+        name: 'Bound Product',
+        brand: 'KK',
+        category: 'Workflow',
+        series: 'S1',
+      },
+      variant: {
+        id: 'v-1',
+        sku: 'SKU-V1',
+        size: 'L',
+        color: 'Black',
+        material: 'Cotton',
+      },
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: 'Bound Product',
+          salespersonId: 'sales-1',
+          productId: 'p-1',
+          variantId: 'v-1',
+          quantity: 2,
+          fileIds: [],
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.orderCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: 'p-1',
+        variantId: 'v-1',
+        quantity: 2,
+      })
+    );
+  });
+
+  it('validates every bound line in a multi-line create payload before persisting order lines', async () => {
+    mocks.validateProductVariantBinding
+      .mockResolvedValueOnce({
+        normalizedVariantId: 'v-1',
+        product: { id: 'p-1', name: 'Line A', brand: 'KK', category: 'Workflow', series: 'S1' },
+        variant: { id: 'v-1', sku: 'SKU-A', size: 'L', color: 'Black', material: 'Cotton' },
+      })
+      .mockRejectedValueOnce(Object.assign(new Error('variant must be active'), { statusCode: 400 }));
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          salespersonId: 'sales-1',
+          fileIds: [],
+          lines: [
+            { productName: 'Line A', quantity: 1, productId: 'p-1', variantId: 'v-1' },
+            { productName: 'Line B', quantity: 1, productId: 'p-2', variantId: 'v-2' },
+          ],
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.validateProductVariantBinding).toHaveBeenCalledTimes(2);
+    expect(mocks.validateProductVariantBinding).toHaveBeenNthCalledWith(
+      1,
+      {},
+      'p-1',
+      'v-1',
+      { checkActive: true }
+    );
+    expect(mocks.validateProductVariantBinding).toHaveBeenNthCalledWith(
+      2,
+      {},
+      'p-2',
+      'v-2',
+      { checkActive: true }
+    );
+    expect(mocks.orderCreate).not.toHaveBeenCalled();
+  });
+
   it('enqueues order-created side effects through outbox instead of inline notifications', async () => {
     const waitUntil = vi.fn();
     const app = createApp();
