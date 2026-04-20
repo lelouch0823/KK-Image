@@ -159,11 +159,12 @@ function normalizePurchaseOrderCreateItems(items = []) {
       product_id: normalizeScalarFingerprintValue(item.product_id),
       variant_id: normalizeScalarFingerprintValue(item.variant_id),
       pre_order_id: normalizeScalarFingerprintValue(item.pre_order_id),
+      order_line_id: normalizeScalarFingerprintValue(item.order_line_id),
       quantity: normalizeNumericFingerprintValue(item.quantity),
       unit_cost: normalizeNumericFingerprintValue(item.unit_cost),
     }))
     .sort((left, right) => {
-      const keys = ['product_id', 'variant_id', 'pre_order_id'];
+      const keys = ['product_id', 'variant_id', 'pre_order_id', 'order_line_id'];
       for (const key of keys) {
         const compare = String(left[key] || '').localeCompare(String(right[key] || ''));
         if (compare !== 0) return compare;
@@ -268,16 +269,46 @@ async function validateExistingItemQuantityUpdate(db, item, nextQuantity) {
       .all();
     const linkedOrder = (results || [])[0] || null;
 
-    const orderStillMatchesBinding = linkedOrder
-      && linkedOrder.status === 'confirmed'
-      && linkedOrder.product_id === item.product_id
-      && linkedOrder.variant_id === item.variant_id;
+    let matchedOrderLine = null;
+    if (linkedOrder?.status === 'confirmed') {
+      if (item?.order_line_id) {
+        const { results: lineResults } = await db
+          .prepare(`
+            SELECT id, order_id, product_id, variant_id, ordered_qty, cancelled_qty, shipped_qty
+            FROM order_lines
+            WHERE order_id = ? AND id = ?
+          `)
+          .bind(item.pre_order_id, item.order_line_id)
+          .all();
+        matchedOrderLine = (lineResults || [])[0] || null;
+        if (!matchedOrderLine) {
+          throw new BadRequestError('pre_order_id 与 order_line_id 不匹配');
+        }
+        if (matchedOrderLine.product_id !== item.product_id || matchedOrderLine.variant_id !== item.variant_id) {
+          throw new BadRequestError('pre_order_id 与商品/变体不匹配');
+        }
+      }
 
-    if (orderStillMatchesBinding) {
-      const requestedQuantity = Number.parseInt(String(nextQuantity ?? '').trim(), 10);
-      const expectedQuantity = Number.parseInt(String(linkedOrder.quantity ?? '').trim(), 10);
-      if (requestedQuantity !== expectedQuantity) {
-        throw new BadRequestError('pre_order_id 与订单数量不匹配');
+      const expectedQuantity = matchedOrderLine
+        ? Number.parseInt(String(
+          Math.max(
+            Number(matchedOrderLine.ordered_qty || 0) -
+            Number(matchedOrderLine.cancelled_qty || 0) -
+            Number(matchedOrderLine.shipped_qty || 0),
+            0
+          )
+        ).trim(), 10)
+        : (
+          linkedOrder.product_id === item.product_id && linkedOrder.variant_id === item.variant_id
+            ? Number.parseInt(String(linkedOrder.quantity ?? '').trim(), 10)
+            : null
+        );
+
+      if (expectedQuantity !== null && Number.isFinite(expectedQuantity)) {
+        const requestedQuantity = Number.parseInt(String(nextQuantity ?? '').trim(), 10);
+        if (requestedQuantity !== expectedQuantity) {
+          throw new BadRequestError('pre_order_id 与订单数量不匹配');
+        }
       }
     }
   }
@@ -902,7 +933,7 @@ app.post('/:id/items', async (c) => {
     throw new BadRequestError('请提供至少一条明细项');
   }
   await validatePurchaseOrderVariantItems(c.env.DB, body.items);
-  await validatePurchaseOrderPreOrderBinding(c.env.DB, body.items);
+  await validatePurchaseOrderPreOrderBinding(c.env.DB, body.items, { currentPoId: poId, repo });
 
   const ids = await repo.addItems(poId, body.items);
 

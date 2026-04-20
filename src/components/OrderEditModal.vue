@@ -29,14 +29,17 @@
       <div class="space-y-5">
         <!-- 商品绑定区域 -->
         <ProductBindingSection
+          v-if="showBindingSection"
           :bound-product="boundProduct"
+          :mode="mode"
+          :sales-token="salesTokenValue"
           :variant-select-policy="variantSelectPolicy"
           @select="handleProductSelect"
           @unbind="unbindProduct"
         />
 
         <div
-          v-if="canEditBinding && !boundProduct"
+          v-if="canShowLineModeToggle && !boundProduct"
           class="flex items-center justify-between rounded-xl border border-(--border-color) bg-(--bg-muted)/50 px-3 py-2"
         >
           <div>
@@ -73,7 +76,7 @@
           :salespersons="salespersons"
           :disabled-fields="disabledFields"
           :bound-product-variant="boundProductVariant"
-          :line-mode="showLineEditor"
+          :line-mode="effectiveLineMode"
           @update:model-value="updateForm"
         />
       </div>
@@ -245,6 +248,8 @@ const STRUCTURAL_EDITABLE_STATUSES = new Set(['pending', 'rejected', 'void']);
 const canEditBinding = computed(() =>
   STRUCTURAL_EDITABLE_STATUSES.has(String(props.order?.status || '').trim().toLowerCase())
 );
+const supportsLineEditing = computed(() => props.mode === 'admin');
+const canShowLineModeToggle = computed(() => supportsLineEditing.value && canEditBinding.value);
 const QUANTITY_EDITABLE_STATUSES = new Set(['pending', 'confirmed', 'rejected', 'void']);
 const canEditQuantity = computed(() =>
   QUANTITY_EDITABLE_STATUSES.has(String(props.order?.status || '').trim().toLowerCase())
@@ -260,29 +265,94 @@ const disabledFields = computed(() => {
 
 const boundProductVariant = ref(null);
 const showLineEditor = computed(
-  () => canEditBinding.value && !boundProduct.value && (lineEditorEnabled.value || lines.value.length > 1)
+  () => canShowLineModeToggle.value && !boundProduct.value && lineEditorEnabled.value
 );
 
 const updateForm = (newVal) => {
   Object.assign(form, newVal);
 };
 
-const normalizeEditableLine = (line = {}) =>
+const normalizeEditableText = (value, fallback = '') => {
+  if (value === undefined || value === null) return fallback;
+  const normalized = String(value).trim();
+  return normalized || fallback;
+};
+
+const buildLineBoundProduct = (line = {}, fallback = {}) => {
+  const source = line.boundProduct || fallback.boundProduct;
+  if (source) return source;
+
+  const productId = line.productId ?? fallback.productId ?? null;
+  const variantId = line.variantId ?? fallback.variantId ?? null;
+  if (!productId && !variantId) return null;
+
+  return {
+    id: productId,
+    name: normalizeEditableText(
+      line.name ?? line.snapshotName ?? line.productName,
+      normalizeEditableText(fallback.name ?? fallback.snapshotName ?? fallback.productName)
+    ),
+    sku: normalizeEditableText(line.sku, normalizeEditableText(fallback.sku)),
+    brand: normalizeEditableText(line.brand, normalizeEditableText(fallback.brand)),
+    series: normalizeEditableText(line.series, normalizeEditableText(fallback.series)),
+    variantId,
+    mainImage: line.mainImage ?? fallback.mainImage ?? null,
+  };
+};
+
+const normalizeEditableLine = (line = {}, fallback = {}) =>
   createEmptyOrderLine({
-    name: String(line.name ?? line.snapshotName ?? '').trim(),
-    brand: String(line.brand ?? '').trim(),
-    series: String(line.series ?? '').trim(),
-    sku: String(line.sku ?? '').trim(),
-    size: String(line.size ?? '').trim(),
-    color: String(line.color ?? '').trim(),
-    material: String(line.material ?? '').trim(),
+    clientId: line.clientId ?? fallback.clientId,
+    name: normalizeEditableText(
+      line.name ?? line.snapshotName ?? line.productName,
+      normalizeEditableText(fallback.name ?? fallback.snapshotName ?? fallback.productName)
+    ),
+    brand: normalizeEditableText(line.brand, normalizeEditableText(fallback.brand)),
+    category: normalizeEditableText(line.category, normalizeEditableText(fallback.category)),
+    series: normalizeEditableText(line.series, normalizeEditableText(fallback.series)),
+    sku: normalizeEditableText(line.sku, normalizeEditableText(fallback.sku)),
+    size: normalizeEditableText(line.size, normalizeEditableText(fallback.size)),
+    color: normalizeEditableText(line.color, normalizeEditableText(fallback.color)),
+    material: normalizeEditableText(line.material, normalizeEditableText(fallback.material)),
+    remark: normalizeEditableText(line.remark, normalizeEditableText(fallback.remark)),
+    deadline: normalizeEditableText(line.deadline, normalizeEditableText(fallback.deadline)),
     quantity: Math.max(1, Math.trunc(Number(line.quantity ?? line.orderedQuantity ?? 1) || 1)),
+    productId: line.productId ?? fallback.productId ?? null,
+    variantId: line.variantId ?? fallback.variantId ?? null,
+    boundProduct: buildLineBoundProduct(line, fallback),
+    boundProductVariant: line.boundProductVariant ?? fallback.boundProductVariant ?? null,
   });
+
+const serializeEditableLine = (line = {}) => {
+  const normalized = normalizeEditableLine(line);
+  return {
+    name: normalized.name,
+    brand: normalized.brand,
+    category: normalizeEditableText(normalized.category),
+    series: normalized.series,
+    sku: normalized.sku,
+    size: normalized.size,
+    color: normalized.color,
+    material: normalized.material,
+    remark: normalizeEditableText(normalized.remark),
+    deadline: normalizeEditableText(normalized.deadline),
+    quantity: Math.max(1, Math.trunc(Number(normalized.quantity ?? 1) || 1)),
+    productId: normalized.productId ?? null,
+    variantId: normalized.variantId ?? null,
+  };
+};
+
+const serializeEditableLineSignature = (value = []) =>
+  JSON.stringify((Array.isArray(value) ? value : []).map((line) => serializeEditableLine(line)));
 
 const buildEditableLinesFromOrder = (order = {}) => {
   const rawLines = Array.isArray(order.currentData?.lines) ? order.currentData.lines.filter(Boolean) : [];
+  const persistedLines = Array.isArray(order.lines) ? order.lines.filter(Boolean) : [];
   if (rawLines.length > 0) {
-    return rawLines.map((line) => normalizeEditableLine(line));
+    return rawLines.map((line, index) => normalizeEditableLine(line, persistedLines[index] || {}));
+  }
+  if (persistedLines.length > 0) {
+    return persistedLines.map((line) => normalizeEditableLine(line));
   }
   return [normalizeEditableLine({
     name: resolveHistoricalOrderProductName(order),
@@ -296,6 +366,11 @@ const buildEditableLinesFromOrder = (order = {}) => {
   })];
 };
 
+const buildNormalizedSubmitLines = (value = lines.value) =>
+  (Array.isArray(value) ? value : [])
+    .map((line) => serializeEditableLine(line))
+    .filter((line) => Boolean(line.name || line.sku || line.brand || line.series));
+
 const buildCurrentLineFromForm = () =>
   createEmptyOrderLine({
     name: form.name,
@@ -306,6 +381,10 @@ const buildCurrentLineFromForm = () =>
     color: form.color,
     material: form.material,
     quantity: form.quantity,
+    productId: selectedProductId.value ?? null,
+    variantId: selectedProductId.value ? (boundProduct.value?.variantId ?? null) : null,
+    boundProduct: boundProduct.value ? { ...boundProduct.value } : null,
+    boundProductVariant: boundProductVariant.value ?? null,
   });
 
 const applyLineToForm = (line = {}) => {
@@ -387,12 +466,8 @@ const handleProductSelect = (product) => {
       uploadedFiles.value.push({
         url: mainImage,
         isLocal: false, // Treat as remote/pre-filled
-        id: generateRandomId('prefill'), 
-        // NOTE: In Edit mode, ImageUploader usually deals with existing (ID+URL) and new (File object).
-        // If we pass an object with just URL and no ID, ImageUploader might treat it as a preview?
-        // We need to ensure ImageUploader handles { url, isLocal: false } correctly.
-        // Assuming it does based on OrderCreateModal logic.
-        // Assuming it does based on OrderCreateModal logic.
+        isPrefill: true,
+        id: generateRandomId('prefill'),
       });
     }
   }
@@ -424,9 +499,28 @@ const initialValues = ref({
   productId: null,
   variantId: null,
   lineSignature: '',
+  lineCount: 1,
 });
 
 const initializedId = ref(null);
+const initialLineCount = computed(() => Number(initialValues.value.lineCount || 1));
+const isInitiallyMultiline = computed(() => initialLineCount.value > 1);
+const showBindingSection = computed(() => props.mode === 'admin' || !isInitiallyMultiline.value);
+const effectiveLineMode = computed(
+  () => showLineEditor.value || (props.mode === 'sales' && isInitiallyMultiline.value)
+);
+const getStructuralSubmitLines = () => {
+  if (showLineEditor.value) return buildNormalizedSubmitLines(lines.value);
+  if (supportsLineEditing.value && isInitiallyMultiline.value) {
+    return buildNormalizedSubmitLines([buildCurrentLineFromForm()]);
+  }
+  return [];
+};
+const hasExplicitLineMutation = computed(() => {
+  const structuralLines = getStructuralSubmitLines();
+  if (structuralLines.length === 0) return false;
+  return serializeEditableLineSignature(structuralLines) !== initialValues.value.lineSignature;
+});
 
 // 初始化数据
 watch(
@@ -457,8 +551,9 @@ watch(
       form.quantity = resolveOrderQuantity(newOrder);
       form.remark = historicalRemark;
       form.deadline = historicalDeadline;
-      lines.value = buildEditableLinesFromOrder(newOrder);
-      lineEditorEnabled.value = lines.value.length > 1;
+      const editableLines = buildEditableLinesFromOrder(newOrder);
+      lines.value = editableLines;
+      lineEditorEnabled.value = editableLines.length > 1;
 
       // 初始化已绑定商品
       if (newOrder.productId) {
@@ -497,7 +592,8 @@ watch(
         productId: newOrder.productId || null,
         variantId: newOrder.variantId || null,
         salespersonId: newOrder.salespersonId || '',
-        lineSignature: JSON.stringify(lines.value),
+        lineSignature: serializeEditableLineSignature(editableLines),
+        lineCount: editableLines.length,
       };
 
       form.salespersonId = newOrder.salespersonId || '';
@@ -541,7 +637,7 @@ const hasChanges = computed(() => {
   // 检查商品绑定变更
   if (currentBinding.productId !== init.productId) return true;
   if (currentBinding.variantId !== init.variantId) return true;
-  if (showLineEditor.value && JSON.stringify(lines.value) !== init.lineSignature) return true;
+  if (hasExplicitLineMutation.value) return true;
 
   const fieldsChanged =
     form.name !== init.name ||
@@ -561,20 +657,25 @@ const hasChanges = computed(() => {
 
   // Check for new files (no ID) or count mismatch
   const currentFiles = uploadedFiles.value;
-  const newLocalFiles = currentFiles.filter(f => !f.id).length > 0;
+  const newLocalFiles = currentFiles.some((f) => !f.id && f.isLocal);
   if (newLocalFiles) return true;
 
   // Check for removed files (ID mismatch)
-  const newIds = currentFiles.map((f) => f.id).filter(Boolean).sort().join(',');
+  const newIds = currentFiles
+    .filter((f) => f.id && !f.isLocal && !f.isPrefill)
+    .map((f) => f.id)
+    .sort()
+    .join(',');
   return init.fileIds !== newIds;
 });
 
 const { token: salesToken } = useSalesToken();
+const salesTokenValue = computed(() => salesToken.value || '');
 
 const uploadEndpoint = computed(() => {
   const orderId = props.order?.id;
   if (props.mode === 'sales') {
-    const base = API.SALES_UPLOAD(salesToken.value || '');
+    const base = API.SALES_UPLOAD(salesTokenValue.value);
     return orderId ? `${base}?orderId=${orderId}` : base;
   }
   return orderId ? `${API.MANAGE_UPLOAD}?orderId=${orderId}` : API.MANAGE_UPLOAD;
@@ -585,13 +686,18 @@ const isValid = computed(() => {
   if (showLineEditor.value) {
     return lines.value.some((line) => String(line?.name || '').trim());
   }
+  if (hasExplicitLineMutation.value) {
+    return getStructuralSubmitLines().length > 0;
+  }
   return true;
 });
 
 const toggleLineEditor = () => {
-  if (!canEditBinding.value || boundProduct.value) return;
+  if (!canShowLineModeToggle.value || boundProduct.value) return;
   if (showLineEditor.value) {
-    applyLineToForm(lines.value[0] || {});
+    const collapsedLine = normalizeEditableLine(lines.value[0] || buildCurrentLineFromForm());
+    applyLineToForm(collapsedLine);
+    lines.value = [collapsedLine];
     lineEditorEnabled.value = false;
     return;
   }
@@ -638,23 +744,19 @@ const handleSubmit = async () => {
 
   const updates = {};
   const init = initialValues.value;
-  if (showLineEditor.value) {
-    const normalizedLines = lines.value
-      .map((line) => normalizeEditableLine(line))
-      .filter((line) => Boolean(line.name || line.sku || line.brand || line.series));
-
-    if (normalizedLines.length > 0 && JSON.stringify(normalizedLines) !== init.lineSignature) {
-      const primaryLine = normalizedLines[0];
-      updates.name = primaryLine.name;
-      updates.brand = primaryLine.brand;
-      updates.series = primaryLine.series;
-      updates.sku = primaryLine.sku;
-      updates.size = primaryLine.size;
-      updates.color = primaryLine.color;
-      updates.material = primaryLine.material;
-      updates.quantity = normalizedLines.reduce((sum, line) => sum + Number(line.quantity || 0), 0);
-      updates.lines = normalizedLines;
-    }
+  const structuralLines = getStructuralSubmitLines();
+  if (hasExplicitLineMutation.value) {
+    const primaryLine = structuralLines[0];
+    updates.name = primaryLine.name;
+    updates.brand = primaryLine.brand;
+    updates.category = primaryLine.category;
+    updates.series = primaryLine.series;
+    updates.sku = primaryLine.sku;
+    updates.size = primaryLine.size;
+    updates.color = primaryLine.color;
+    updates.material = primaryLine.material;
+    updates.quantity = structuralLines.reduce((sum, line) => sum + Number(line.quantity || 0), 0);
+    updates.lines = structuralLines;
   } else {
     if (form.name !== init.name) updates.name = form.name;
     if (form.brand !== init.brand) updates.brand = form.brand;
@@ -680,7 +782,7 @@ const handleSubmit = async () => {
     .map((f) => f.id)
     .sort()
     .join(',');
-  const currentFiles = uploadedFiles.value.filter((f) => f.id && !f.isLocal);
+  const currentFiles = uploadedFiles.value.filter((f) => f.id && !f.isLocal && !f.isPrefill);
 
   const newIds = currentFiles
     .map((f) => f.id)

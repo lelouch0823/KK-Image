@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   createManagedOrder: vi.fn(),
   publishOrderCreatedByAdmin: vi.fn(),
   repoBatchUpdateStatus: vi.fn(),
+  repoFindById: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   publish: vi.fn(async () => []),
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
@@ -14,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   commandBuildFinalizeStatement: vi.fn(),
   commandFinalizeRun: vi.fn(async () => ({ meta: { changes: 1 } })),
   randomUUID: vi.fn(),
+  syncOrderTransition: vi.fn(async () => ({})),
 }));
 
 vi.mock('../create-order.js', () => ({
@@ -32,6 +34,7 @@ vi.mock('../../../../../../repositories/CommandIdempotencyRepository.js', () => 
 vi.mock('../../../../../../repositories/OrderRepository.js', () => ({
   OrderRepository: vi.fn(() => ({
     batchUpdateStatus: mocks.repoBatchUpdateStatus,
+    findById: mocks.repoFindById,
   })),
 }));
 
@@ -81,6 +84,12 @@ vi.mock('../../../../../../api/cron/outbox.js', () => ({
   runOutboxPoller: mocks.runOutboxPoller,
 }));
 
+vi.mock('../../../../../../services/DemandService.js', () => ({
+  DemandService: vi.fn(() => ({
+    syncOrderTransition: mocks.syncOrderTransition,
+  })),
+}));
+
 import createRoutesApp from '../create.js';
 
 function createApp() {
@@ -104,6 +113,15 @@ describe('manage order create routes', () => {
     mocks.createManagedOrder.mockResolvedValue({ id: 'order-1', orderNo: 'SO-1' });
     mocks.publishOrderCreatedByAdmin.mockResolvedValue([]);
     mocks.repoBatchUpdateStatus.mockResolvedValue(undefined);
+    mocks.repoFindById.mockResolvedValue({
+      id: 'order-1',
+      orderNo: 'SO-1',
+      status: 'confirmed',
+      quantity: 1,
+      productId: null,
+      variantId: null,
+      lines: [],
+    });
     mocks.commandReserve.mockResolvedValue({
       existing: false,
       ownsReservation: true,
@@ -115,6 +133,7 @@ describe('manage order create routes', () => {
     mocks.commandBuildFinalizeStatement.mockReturnValue({
       run: mocks.commandFinalizeRun,
     });
+    mocks.syncOrderTransition.mockResolvedValue({});
   });
 
   it('audits managed order creation', async () => {
@@ -249,6 +268,96 @@ describe('manage order create routes', () => {
       error: '同一个幂等键不能提交不同的订单创建请求',
     }));
     expect(mocks.createManagedOrder).not.toHaveBeenCalled();
+  });
+
+  it('stores partial create results as failed idempotency state and resumes side effects on retry', async () => {
+    const app = createApp();
+    const commandState = new Map();
+
+    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+      const existing = commandState.get(idempotencyKey);
+      if (existing) {
+        return {
+          existing: true,
+          ownsReservation: false,
+          record: {
+            command_id: existing.commandId,
+            scope_key: scopeKey,
+            idempotency_key: idempotencyKey,
+            request_fingerprint: existing.requestFingerprint,
+            response_json: existing.responseJson,
+            status: existing.status,
+          },
+        };
+      }
+
+      return {
+        existing: false,
+        ownsReservation: true,
+        record: {
+          command_id: 'cmd-order-partial-1',
+          scope_key: scopeKey,
+          idempotency_key: idempotencyKey,
+          request_fingerprint: requestFingerprint,
+        },
+      };
+    });
+    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
+      run: vi.fn(async () => {
+        commandState.set('order-key-partial-1', {
+          commandId,
+          requestFingerprint: commandState.get('order-key-partial-1')?.requestFingerprint || JSON.stringify({
+            productName: 'Sample Product',
+            quantity: 1,
+            salespersonId: 'sales-1',
+          }),
+          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+          status,
+        });
+        return { meta: { changes: 1 } };
+      }),
+    }));
+    mocks.createManagedOrder.mockRejectedValueOnce(
+      Object.assign(new Error('demand sync failed after persist'), {
+        partialResult: { id: 'order-partial-1', orderNo: 'SO-PARTIAL-1' },
+      })
+    );
+
+    const request = () => app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'order-key-partial-1',
+        },
+        body: JSON.stringify({
+          productName: 'Sample Product',
+          salespersonId: 'sales-1',
+          quantity: 1,
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    const first = await request();
+    const second = await request();
+
+    expect(first.status).toBe(500);
+    expect(second.status).toBe(201);
+    expect(mocks.createManagedOrder).toHaveBeenCalledTimes(1);
+    expect(mocks.publishOrderCreatedByAdmin).toHaveBeenCalledTimes(1);
+    expect(mocks.commandBuildFinalizeStatement).toHaveBeenCalledWith(
+      'cmd-order-partial-1',
+      expect.objectContaining({ id: 'order-partial-1', orderNo: 'SO-PARTIAL-1' }),
+      'failed'
+    );
+    expect(mocks.commandBuildDeleteStatement).not.toHaveBeenCalled();
+    expect(await second.json()).toEqual({
+      success: true,
+      data: { id: 'order-partial-1', orderNo: 'SO-PARTIAL-1' },
+    });
   });
 
   it('retries order-create side effects without duplicating the order after an outbox failure', async () => {

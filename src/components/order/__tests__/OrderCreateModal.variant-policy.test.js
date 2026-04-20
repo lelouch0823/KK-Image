@@ -30,4 +30,29 @@ describe('OrderCreateModal contract', () => {
     expect(wrapper.get('[data-testid="order-form-mode"]').text()).toBe('admin');
     expect(wrapper.html()).not.toContain('variant-policy');
   });
+
+  it('passes only creatable admin statuses to OrderForm', () => {
+    const wrapper = mount(OrderCreateModal, {
+      props: {
+        modelValue: true,
+        salespersons: [],
+        statuses: ['pending', 'confirmed', 'production', 'shipping', 'arrived', 'fulfilled', 'void'],
+      },
+      global: {
+        stubs: {
+          Modal: {
+            template: '<div><slot /></div>',
+          },
+          OrderForm: {
+            props: ['statuses'],
+            template: '<div data-testid="status-options">{{ JSON.stringify(statuses) }}</div>',
+          },
+        },
+      },
+    });
+
+    expect(wrapper.get('[data-testid="status-options"]').text()).toBe(
+      JSON.stringify(['pending', 'confirmed', 'void'])
+    );
+  });
 });

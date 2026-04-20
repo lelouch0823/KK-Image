@@ -879,6 +879,46 @@ describe('sales routes resilience', () => {
     }));
   });
 
+  it('rejects salesperson patch when request payload includes multiline lines', async () => {
+    mocks.orderFindByIdAndSalesperson.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      quantity: 5,
+      variantId: null,
+      productId: null,
+      currentData: {
+        name: 'Desk',
+        lines: [
+          { name: 'Desk', quantity: 2, sku: 'SKU-DESK' },
+          { name: 'Chair', quantity: 3, sku: 'SKU-CHAIR' },
+        ],
+      },
+    });
+
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders/o-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: 'rewrite lines',
+          updates: {
+            lines: [{ name: 'Single Bound Item', quantity: 5, sku: 'SKU-BOUND' }],
+          },
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    const payload = await res.json();
+    expect(payload.error).toContain('销售端暂不支持多商品明细');
+    expect(mocks.processOrderUpdate).not.toHaveBeenCalled();
+  });
+
   it('rejects salesperson patch when rebinding to an out-of-stock variant', async () => {
     mocks.orderFindByIdAndSalesperson.mockResolvedValue({
       id: 'o-1',

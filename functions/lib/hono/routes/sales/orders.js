@@ -328,6 +328,10 @@ app.patch('/:id', async (c) => {
         throw new BadRequestError(MSG.ORDER.REASON_REQUIRED);
     }
 
+    if (Object.prototype.hasOwnProperty.call(updates, 'lines')) {
+        throw new BadRequestError('销售端暂不支持多商品明细');
+    }
+
     const { processOrderUpdate } = await import('../../../../api/utils/order-utils.js');
 
     const hasProductIdPayload = productId !== undefined;

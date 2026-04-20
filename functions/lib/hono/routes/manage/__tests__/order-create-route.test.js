@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 
 const mocks = vi.hoisted(() => ({
   orderCreate: vi.fn(),
+  orderFindById: vi.fn(),
   commandReserve: vi.fn(),
   commandBuildDeleteStatement: vi.fn(),
   commandDeleteRun: vi.fn(async () => ({ meta: { changes: 1 } })),
@@ -22,6 +23,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
   OrderRepository: vi.fn(() => ({
     create: mocks.orderCreate,
+    findById: mocks.orderFindById,
   })),
 }));
 
@@ -96,6 +98,7 @@ describe('manage order create route', () => {
     vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => mocks.randomUUID());
     mocks.randomUUID.mockReturnValue('generated-order-idempotency-key');
     mocks.orderCreate.mockResolvedValue({ id: 'order-1', orderNo: 'SO-1001' });
+    mocks.orderFindById.mockResolvedValue(null);
     mocks.commandReserve.mockResolvedValue({
       existing: false,
       ownsReservation: true,
@@ -418,6 +421,58 @@ describe('manage order create route', () => {
     expect(mocks.orderCreate).not.toHaveBeenCalled();
   });
 
+  it.each(['production', 'shipping', 'arrived', 'fulfilled', 'delivered'])(
+    'rejects admin create payloads that start directly in %s',
+    async (status) => {
+      const app = createApp();
+      const res = await app.request(
+        'http://localhost/api/manage/orders',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productName: 'Sample Product',
+            salespersonId: 'sales-1',
+            status,
+          }),
+        },
+        { DB: {} },
+        { waitUntil: vi.fn() }
+      );
+
+      expect(res.status).toBe(400);
+      expect(mocks.orderCreate).not.toHaveBeenCalled();
+    }
+  );
+
+  it('preserves manual category snapshot for unbound single-line creates', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: 'Manual Product',
+          salespersonId: 'sales-1',
+          category: 'Manual Category',
+          quantity: 1,
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.orderCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          category: 'Manual Category',
+        }),
+      })
+    );
+  });
+
   it('rejects create order when bound product is archived', async () => {
     const error = new Error('product must be active');
     error.statusCode = 400;
@@ -531,6 +586,80 @@ describe('manage order create route', () => {
     expect(mocks.publish).toHaveBeenCalledTimes(1);
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
     expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('syncs confirmed duplicate-variant lines with persisted orderLineId values', async () => {
+    mocks.validateProductVariantBinding
+      .mockResolvedValueOnce({
+        normalizedProductId: 'p-1',
+        normalizedVariantId: 'v-1',
+        product: { id: 'p-1', name: 'Line A', brand: 'KK', category: 'Workflow', series: 'S1' },
+        variant: { id: 'v-1', sku: 'SKU-A' },
+      })
+      .mockResolvedValueOnce({
+        normalizedProductId: 'p-1',
+        normalizedVariantId: 'v-1',
+        product: { id: 'p-1', name: 'Line B', brand: 'KK', category: 'Workflow', series: 'S1' },
+        variant: { id: 'v-1', sku: 'SKU-A' },
+      })
+      .mockResolvedValueOnce({
+        normalizedProductId: 'p-1',
+        normalizedVariantId: 'v-1',
+        product: { id: 'p-1', name: 'Line A', brand: 'KK', category: 'Workflow', series: 'S1' },
+        variant: { id: 'v-1', sku: 'SKU-A' },
+      });
+    mocks.orderFindById.mockResolvedValue({
+      id: 'order-1',
+      orderNo: 'SO-1001',
+      lines: [
+        { id: 'line-1', productId: 'p-1', variantId: 'v-1', quantity: 2 },
+        { id: 'line-2', productId: 'p-1', variantId: 'v-1', quantity: 3 },
+      ],
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          salespersonId: 'sales-1',
+          status: 'confirmed',
+          fileIds: [],
+          lines: [
+            { productName: 'Line A', quantity: 2, productId: 'p-1', variantId: 'v-1' },
+            { productName: 'Line B', quantity: 3, productId: 'p-1', variantId: 'v-1' },
+          ],
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.orderFindById).toHaveBeenCalledWith('order-1');
+    expect(mocks.syncOrderTransition).toHaveBeenCalledTimes(2);
+    expect(mocks.syncOrderTransition).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        orderId: 'order-1',
+        orderLineId: 'line-1',
+        productId: 'p-1',
+        variantId: 'v-1',
+        quantity: 2,
+      })
+    );
+    expect(mocks.syncOrderTransition).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        orderId: 'order-1',
+        orderLineId: 'line-2',
+        productId: 'p-1',
+        variantId: 'v-1',
+        quantity: 3,
+      })
+    );
   });
 
   it('retries order-create side effects without duplicating the order after an outbox failure', async () => {

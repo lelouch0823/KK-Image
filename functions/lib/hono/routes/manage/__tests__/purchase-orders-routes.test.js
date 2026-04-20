@@ -123,13 +123,14 @@ vi.mock('../../../../../api/cron/outbox.js', () => ({
 
 import purchaseOrdersApp from '../purchase-orders.js';
 
-function createDb({ variantRows = [], orderRows = [], poBindingRows = [] } = {}) {
+function createDb({ variantRows = [], orderRows = [], orderLineRows = [], poBindingRows = [] } = {}) {
   return {
     prepare: vi.fn((sql) => ({
       bind: vi.fn(() => ({
         all: vi.fn(async () => {
           if (sql.includes('FROM product_variants')) return { results: variantRows };
           if (sql.includes('FROM orders')) return { results: orderRows };
+          if (sql.includes('FROM order_lines')) return { results: orderLineRows };
           if (sql.includes('FROM purchase_order_items poi')) return { results: poBindingRows };
           return { results: [] };
         }),
@@ -163,10 +164,21 @@ function buildCreateFingerprintForTest(body = {}) {
         product_id: normalizeScalarFingerprintValue(item.product_id),
         variant_id: normalizeScalarFingerprintValue(item.variant_id),
         pre_order_id: normalizeScalarFingerprintValue(item.pre_order_id),
+        order_line_id: normalizeScalarFingerprintValue(item.order_line_id),
         quantity: normalizeNumericFingerprintValue(item.quantity),
         unit_cost: normalizeNumericFingerprintValue(item.unit_cost),
       }))
-      .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))),
+      .sort((left, right) => {
+        const keys = ['product_id', 'variant_id', 'pre_order_id', 'order_line_id'];
+        for (const key of keys) {
+          const compare = String(left[key] || '').localeCompare(String(right[key] || ''));
+          if (compare !== 0) return compare;
+        }
+
+        const quantityCompare = Number(left.quantity || 0) - Number(right.quantity || 0);
+        if (quantityCompare !== 0) return quantityCompare;
+        return Number(left.unit_cost || 0) - Number(right.unit_cost || 0);
+      }),
   });
 }
 
@@ -405,6 +417,114 @@ describe('manage purchase-orders routes', () => {
           'Idempotency-Key': 'create-key-2',
         },
         body: JSON.stringify({ remark: 'second payload' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(400);
+    expect((await second.json()).error).toContain('同一个幂等键不能提交不同的建单请求');
+    expect(mocks.repoCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats order_line_id as part of the draft-create idempotency fingerprint', async () => {
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+      orderRows: [{ id: 'o-1', order_no: 'SO-1', product_id: 'prod-1', variant_id: 'var-1', status: 'confirmed', quantity: 2 }],
+      orderLineRows: [
+        {
+          id: 'line-1',
+          order_id: 'o-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          ordered_qty: 1,
+          cancelled_qty: 0,
+          shipped_qty: 0,
+        },
+        {
+          id: 'line-2',
+          order_id: 'o-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          ordered_qty: 1,
+          cancelled_qty: 0,
+          shipped_qty: 0,
+        },
+      ],
+    });
+    let reservedFingerprint = null;
+
+    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+      if (idempotencyKey === 'create-key-order-line-1' && reservedFingerprint) {
+        return {
+          existing: true,
+          ownsReservation: false,
+          record: {
+            command_id: 'cmd-line-1',
+            scope_key: scopeKey,
+            idempotency_key: idempotencyKey,
+            request_fingerprint: reservedFingerprint,
+            response_json: null,
+            status: 'in_flight',
+          },
+        };
+      }
+      reservedFingerprint = requestFingerprint;
+      return {
+        existing: false,
+        ownsReservation: true,
+        record: {
+          command_id: 'cmd-line-1',
+          scope_key: scopeKey,
+          idempotency_key: idempotencyKey,
+          request_fingerprint: requestFingerprint,
+        },
+      };
+    });
+
+    const first = await app.request(
+      'http://localhost/api/manage/purchase-orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'create-key-order-line-1',
+        },
+        body: JSON.stringify({
+          items: [{
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            pre_order_id: 'o-1',
+            order_line_id: 'line-1',
+            quantity: 1,
+            unit_cost: 10,
+          }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    const second = await app.request(
+      'http://localhost/api/manage/purchase-orders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'create-key-order-line-1',
+        },
+        body: JSON.stringify({
+          items: [{
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            pre_order_id: 'o-1',
+            order_line_id: 'line-2',
+            quantity: 1,
+            unit_cost: 10,
+          }],
+        }),
       },
       { DB: db },
       { waitUntil: vi.fn() }
@@ -1108,6 +1228,63 @@ describe('manage purchase-orders routes', () => {
     expect(mocks.repoAddItems).not.toHaveBeenCalled();
   });
 
+  it('allows adding another bound order line when the existing binding is on the same purchase order', async () => {
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+      orderRows: [{ id: 'o-1', order_no: 'SO-1', product_id: 'prod-1', variant_id: 'var-1', status: 'confirmed', quantity: 3 }],
+      orderLineRows: [
+        {
+          id: 'line-1',
+          order_id: 'o-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          ordered_qty: 1,
+          cancelled_qty: 0,
+          shipped_qty: 0,
+        },
+        {
+          id: 'line-2',
+          order_id: 'o-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          ordered_qty: 2,
+          cancelled_qty: 0,
+          shipped_qty: 0,
+        },
+      ],
+      poBindingRows: [{ pre_order_id: 'o-1', po_id: 'po-1', po_no: 'PO-001', po_status: 'draft' }],
+    });
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            pre_order_id: 'o-1',
+            order_line_id: 'line-2',
+            quantity: 2,
+            unit_cost: 10,
+          }],
+        }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.repoAddItems).toHaveBeenCalledWith('po-1', [
+      expect.objectContaining({
+        pre_order_id: 'o-1',
+        order_line_id: 'line-2',
+      }),
+    ]);
+  });
+
   it('rejects adding item when pre_order_id quantity does not match the linked order', async () => {
     const app = createApp();
     const db = createDb({
@@ -1455,6 +1632,48 @@ describe('manage purchase-orders routes', () => {
     }));
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('rejects purchase-order item quantity updates that exceed the bound order line quantity', async () => {
+    mocks.repoFindItemById.mockResolvedValue({
+      id: 'item-1',
+      po_id: 'po-1',
+      product_id: 'prod-1',
+      variant_id: 'var-1',
+      pre_order_id: 'order-1',
+      order_line_id: 'line-2',
+      quantity: 2,
+      unit_cost: 5,
+    });
+
+    const app = createApp();
+    const db = createDb({
+      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+      orderRows: [{ id: 'order-1', status: 'confirmed', product_id: null, variant_id: null, quantity: 99 }],
+      orderLineRows: [{
+        id: 'line-2',
+        order_id: 'order-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 2,
+        cancelled_qty: 0,
+        shipped_qty: 0,
+      }],
+    });
+
+    const res = await app.request(
+      'http://localhost/api/manage/purchase-orders/po-1/items/item-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 5 }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.repoUpdateItem).not.toHaveBeenCalled();
   });
 
   it('enqueues purchase-order item delete cache side effects through outbox', async () => {

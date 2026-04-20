@@ -64,6 +64,37 @@ function normalizeEditableLines(lines = []) {
     }));
 }
 
+async function hydrateEditableLines(db, lines = []) {
+    const hydratedLines = [];
+    for (const line of normalizeEditableLines(lines)) {
+        const binding = await validateProductVariantBinding(
+            db,
+            line.productId || null,
+            line.variantId ?? null,
+            { checkActive: true }
+        );
+        const boundSnapshot = buildOrderBindingSnapshot({
+            product: binding.product,
+            variant: binding.variant,
+            fallback: line,
+        });
+        hydratedLines.push({
+            ...line,
+            name: boundSnapshot.name,
+            brand: boundSnapshot.brand,
+            category: boundSnapshot.category,
+            series: boundSnapshot.series,
+            sku: boundSnapshot.sku,
+            size: boundSnapshot.size,
+            color: boundSnapshot.color,
+            material: boundSnapshot.material,
+            productId: binding.normalizedProductId,
+            variantId: binding.normalizedVariantId,
+        });
+    }
+    return hydratedLines;
+}
+
 function getAdminActor(user) {
     return {
         id: user?.id || 'admin',
@@ -176,7 +207,7 @@ app.patch('/:id', async (c) => {
         if (rawLines.length === 0) {
             throw new BadRequestError('lines must include at least one item');
         }
-        normalizedLines = normalizeEditableLines(rawLines);
+        normalizedLines = await hydrateEditableLines(env.DB, rawLines);
         const primaryLine = normalizedLines[0];
         const totalQuantity = normalizedLines.reduce((sum, line) => sum + line.quantity, 0);
         finalUpdates = {
@@ -196,8 +227,8 @@ app.patch('/:id', async (c) => {
         };
 
         if (normalizedLines.length === 1) {
-            if (payloadProductId === undefined && primaryLine.productId) payloadProductId = primaryLine.productId;
-            if (payloadVariantId === undefined && primaryLine.variantId) payloadVariantId = primaryLine.variantId;
+            if (payloadProductId === undefined) payloadProductId = primaryLine.productId ?? null;
+            if (payloadVariantId === undefined) payloadVariantId = primaryLine.variantId ?? null;
         } else if (normalizedLines.length > 1) {
             if (payloadProductId === undefined) payloadProductId = null;
             if (payloadVariantId === undefined) payloadVariantId = null;
@@ -286,6 +317,7 @@ app.patch('/:id', async (c) => {
         scheduleOutboxProcessing(c, `order-update:${id}`);
     }
 
+    let updatedOrder = null;
     const nextStatus = finalUpdates?.status ?? order.status;
     const nextVariantId = hasVariantIdPayload ? normalizedVariantId : order.variantId;
     const nextQuantity = finalUpdates?.quantity ?? order.quantity;
@@ -294,21 +326,30 @@ app.patch('/:id', async (c) => {
         (Array.isArray(order.lines) && order.lines.length > 1) ||
         (Array.isArray(normalizedLines) && normalizedLines.length > 1);
     if (hasMultiLineDemandContext) {
+        updatedOrder = await orderRepo.findById(id);
+        const persistedNextLines =
+            Array.isArray(updatedOrder?.lines) && updatedOrder.lines.length > 0
+                ? updatedOrder.lines
+                : (normalizedLines || order.lines || []);
+        const persistedNextStatus = updatedOrder?.status ?? nextStatus;
+        const persistedNextProductId = updatedOrder?.productId ?? (hasProductIdPayload ? payloadProductId : order.productId);
+        const persistedNextVariantId = updatedOrder?.variantId ?? nextVariantId;
+        const persistedNextQuantity = updatedOrder?.quantity ?? nextQuantity;
         await syncOrderDemandTransitionsByLines(demandService, {
             orderId: id,
             previousStatus: order.status,
-            nextStatus,
+            nextStatus: persistedNextStatus,
             previousLines: order.lines || [],
-            nextLines: normalizedLines || order.lines || [],
+            nextLines: persistedNextLines,
             previousFallback: {
                 productId: order.productId,
                 variantId: order.variantId,
                 quantity: order.quantity,
             },
             nextFallback: {
-                productId: hasProductIdPayload ? payloadProductId : order.productId,
-                variantId: nextVariantId,
-                quantity: nextQuantity,
+                productId: persistedNextProductId,
+                variantId: persistedNextVariantId,
+                quantity: persistedNextQuantity,
             },
         });
     } else {
@@ -323,7 +364,7 @@ app.patch('/:id', async (c) => {
         });
     }
 
-    const updatedOrder = await orderRepo.findById(id);
+    updatedOrder = updatedOrder || await orderRepo.findById(id);
     scheduleAuditEvent(c, {
         domain: 'orders',
         action: 'order.update',

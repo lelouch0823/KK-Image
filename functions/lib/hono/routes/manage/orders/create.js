@@ -5,6 +5,7 @@ import { CommandIdempotencyRepository } from '../../../../../repositories/Comman
 import {
     canTransitionOrderStatus
 } from '../../../../../api/utils/order-state-machine.js';
+import { DemandService } from '../../../../../services/DemandService.js';
 import { MSG, ORDER_STATUSES } from '../../../../../_shared/utils.js';
 import { BadRequestError } from '../../../errors.js';
 import { assertForceStatusTransitionAllowed } from './authz-helpers.js';
@@ -20,6 +21,7 @@ import {
     replayReservedCommand,
     resolveReservationOwnership,
 } from '../../../../../services/order-procurement-shared.js';
+import { syncOrderDemandTransitions, syncOrderDemandTransitionsByLines } from '../../../../../api/utils/order-demand-sync.js';
 
 const app = new Hono();
 const ORDER_CREATE_COMMAND_TYPE = 'order_create';
@@ -178,10 +180,11 @@ app.post('/', async (c) => {
             .buildFinalizeStatement(reservation.record?.command_id, result)
             .run();
     } catch (error) {
-        if (result) {
+        const partialResult = result || error?.partialResult || null;
+        if (partialResult) {
             try {
                 await commandIdempotencyRepo
-                    .buildFinalizeStatement(reservation.record?.command_id, result, 'failed')
+                    .buildFinalizeStatement(reservation.record?.command_id, partialResult, 'failed')
                     .run();
             } catch (finalizeError) {
                 console.error('Order create idempotency finalize failed:', finalizeError);
@@ -260,6 +263,44 @@ app.post('/batch', async (c) => {
                 throw new BadRequestError(`Invalid status transition in batch to ${normalizedStatus}`);
             }
             throw error;
+        }
+
+        if (orders && orders.length > 0) {
+            const demandService = new DemandService(env.DB);
+            for (const order of orders) {
+                const detail = await repo.findById(order.id);
+                if (!detail) continue;
+
+                if (Array.isArray(detail.lines) && detail.lines.length > 1) {
+                    await syncOrderDemandTransitionsByLines(demandService, {
+                        orderId: order.id,
+                        previousStatus: order.status,
+                        nextStatus: normalizedStatus,
+                        previousLines: detail.lines,
+                        nextLines: detail.lines,
+                        previousFallback: {
+                            productId: detail.productId,
+                            variantId: detail.variantId,
+                            quantity: detail.quantity,
+                        },
+                        nextFallback: {
+                            productId: detail.productId,
+                            variantId: detail.variantId,
+                            quantity: detail.quantity,
+                        },
+                    });
+                } else {
+                    await syncOrderDemandTransitions(demandService, {
+                        orderId: order.id,
+                        previousStatus: order.status,
+                        nextStatus: normalizedStatus,
+                        previousQuantity: detail.quantity,
+                        nextQuantity: detail.quantity,
+                        previousVariantId: detail.variantId,
+                        nextVariantId: detail.variantId,
+                    });
+                }
+            }
         }
 
         if (orders && orders.length > 0) {

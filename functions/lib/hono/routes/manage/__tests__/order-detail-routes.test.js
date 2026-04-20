@@ -886,6 +886,55 @@ describe('manage order detail routes', () => {
     );
   });
 
+  it('clears header-level binding when a single bound order is reshaped into one manual line', async () => {
+    mocks.findById.mockResolvedValueOnce({
+      id: 'order-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      salespersonId: 'sp-1',
+      productId: 'p-legacy',
+      variantId: 'v-legacy',
+      quantity: 1,
+      currentData: {},
+      lines: [
+        { id: 'line-1', productId: 'p-legacy', variantId: 'v-legacy', quantity: 1 },
+      ],
+    });
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          updates: {
+            lines: [
+              { productName: 'Manual Line', quantity: 1, sku: 'SKU-MANUAL' },
+            ],
+          },
+          reason: 'unbind collapsed line',
+        }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.processOrderUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        updates: expect.objectContaining({
+          quantity: 1,
+          lines: [
+            expect.objectContaining({ productId: null, variantId: null, quantity: 1 }),
+          ],
+        }),
+        productId: null,
+        variantId: null,
+      })
+    );
+  });
+
   it('rejects PATCH /:id status jump without force override', async () => {
     const app = createApp();
     const res = await app.request(

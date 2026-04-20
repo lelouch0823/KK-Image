@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   batchUpdateStatus: vi.fn(),
+  findById: vi.fn(),
   productFindById: vi.fn(),
   variantFindByIdAndProductId: vi.fn(),
   invalidateCache: vi.fn(async () => {}),
@@ -12,12 +13,14 @@ const mocks = vi.hoisted(() => ({
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
   isInsufficientStockError: vi.fn(() => false),
   isInvalidStatusTransitionError: vi.fn(() => false),
+  syncOrderTransition: vi.fn(async () => ({})),
 }));
 
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
   OrderRepository: vi.fn(() => ({
     create: mocks.create,
     batchUpdateStatus: mocks.batchUpdateStatus,
+    findById: mocks.findById,
   })),
 }));
 
@@ -65,6 +68,12 @@ vi.mock('../orders/error-helpers.js', () => ({
   isInvalidStatusTransitionError: mocks.isInvalidStatusTransitionError,
 }));
 
+vi.mock('../../../../../services/DemandService.js', () => ({
+  DemandService: vi.fn(() => ({
+    syncOrderTransition: mocks.syncOrderTransition,
+  })),
+}));
+
 import createAppRoutes from '../orders/create.js';
 
 const createApp = (user = { id: 'u-1', name: 'Admin', type: 'admin', permissions: ['admin:full'] }) => {
@@ -88,12 +97,25 @@ describe('manage order batch route', () => {
     vi.clearAllMocks();
     mocks.create.mockResolvedValue(true);
     mocks.batchUpdateStatus.mockResolvedValue(true);
+    mocks.findById.mockResolvedValue({
+      id: 'o-1',
+      orderNo: 'SO-1',
+      status: 'confirmed',
+      quantity: 2,
+      productId: null,
+      variantId: null,
+      lines: [
+        { id: 'line-1', productId: 'p-1', variantId: 'v-1', quantity: 1 },
+        { id: 'line-2', productId: 'p-2', variantId: 'v-2', quantity: 1 },
+      ],
+    });
     mocks.productFindById.mockResolvedValue({ id: 'p-1', status: 'active' });
     mocks.variantFindByIdAndProductId.mockResolvedValue({ id: 'v-1', product_id: 'p-1', status: 'active' });
     mocks.publish.mockResolvedValue([]);
     mocks.runOutboxPoller.mockResolvedValue({ claimed: 0, published: 0, failed: 0 });
     mocks.isInsufficientStockError.mockReturnValue(false);
     mocks.isInvalidStatusTransitionError.mockReturnValue(false);
+    mocks.syncOrderTransition.mockResolvedValue({});
   });
 
   it('maps frontend confirm action to status=confirmed', async () => {
@@ -445,5 +467,57 @@ describe('manage order batch route', () => {
     ]);
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
     expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('syncs demand per bound line after batch status updates', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/batch',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: ['o-1'],
+          action: 'status',
+          value: 'confirmed',
+        }),
+      },
+      {
+        DB: {
+          prepare: vi.fn(() => ({
+            bind: vi.fn(() => ({
+              all: vi.fn(async () => ({
+                results: [{ id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' }],
+              })),
+            })),
+          })),
+        },
+      },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.findById).toHaveBeenCalledWith('o-1');
+    expect(mocks.syncOrderTransition).toHaveBeenCalledTimes(2);
+    expect(mocks.syncOrderTransition).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        orderId: 'o-1',
+        fromStatus: 'pending',
+        toStatus: 'confirmed',
+        orderLineId: 'line-1',
+        variantId: 'v-1',
+      })
+    );
+    expect(mocks.syncOrderTransition).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        orderId: 'o-1',
+        fromStatus: 'pending',
+        toStatus: 'confirmed',
+        orderLineId: 'line-2',
+        variantId: 'v-2',
+      })
+    );
   });
 });

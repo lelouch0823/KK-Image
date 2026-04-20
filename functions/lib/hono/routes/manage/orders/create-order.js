@@ -9,6 +9,7 @@ import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPubli
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { buildOrderBindingSnapshot } from '../../../../../api/utils/order-binding-snapshot.js';
 import { syncOrderDemandTransitionsByLines } from '../../../../../api/utils/order-demand-sync.js';
+import { canTransitionOrderStatus, normalizeOrderStatus } from '../../../../../api/utils/order-state-machine.js';
 
 function isDuplicateOutboxIdempotencyError(error) {
   const message = String(error?.message || error || '').toLowerCase();
@@ -19,6 +20,22 @@ function isDuplicateOutboxIdempotencyError(error) {
       || message.includes('idx_domain_outbox_idempotency_key')
     )
   );
+}
+
+function isCreatableManagedOrderStatus(status) {
+  if (!status) return true;
+  const normalizedStatus = normalizeOrderStatus(status);
+  return normalizedStatus === 'pending' || canTransitionOrderStatus('pending', normalizedStatus);
+}
+
+function attachPartialResult(error, partialResult) {
+  if (!error || typeof error !== 'object') {
+    return Object.assign(new Error(String(error || 'Order create failed')), { partialResult });
+  }
+  if (!error.partialResult) {
+    error.partialResult = partialResult;
+  }
+  return error;
 }
 
 export async function publishOrderCreatedByAdmin(c, {
@@ -133,6 +150,7 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
     fallback: primaryLine || {
       name: body.productName,
       brand: body.brand,
+      category: body.category,
       series: body.series,
       sku: body.sku,
       size: body.size,
@@ -147,6 +165,11 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
   if (body.status && !ORDER_STATUSES.includes(body.status)) {
     throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
   }
+  if (body.status && !isCreatableManagedOrderStatus(body.status)) {
+    throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
+  }
+
+  const nextStatus = body.status || 'pending';
 
   const createdOrder = await orderRepo.create({
     id: orderId,
@@ -166,7 +189,7 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
           deadline: body.deadline || '',
         },
         quantity: totalQuantity,
-        status: body.status || 'pending',
+        status: nextStatus,
         productId: hydratedLines.length > 1 ? null : (primaryLine?.productId || body.productId || null),
         variantId: hydratedLines.length > 1 ? null : variantId,
         lines: hydratedLines,
@@ -182,42 +205,54 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
   });
   const persistedOrderId = createdOrder?.id || orderId;
   const persistedOrderNo = createdOrder?.orderNo || orderNo;
+  const result = { id: persistedOrderId, orderNo: persistedOrderNo };
 
-  const demandService = new DemandService(env.DB);
-  await syncOrderDemandTransitionsByLines(demandService, {
-    orderId: persistedOrderId,
-    previousStatus: null,
-    nextStatus: body.status || 'pending',
-    previousLines: [],
-    nextLines: hydratedLines,
-    previousFallback: {},
-    nextFallback: {
-      productId: hydratedLines.length === 1 ? (primaryLine?.productId || body.productId || null) : null,
-      variantId: hydratedLines.length === 1 ? variantId : null,
-      quantity: totalQuantity,
-    },
-  });
+  try {
+    const persistedOrderDetail = typeof orderRepo.findById === 'function'
+      ? await orderRepo.findById(persistedOrderId)
+      : null;
+    const persistedLines = Array.isArray(persistedOrderDetail?.lines) ? persistedOrderDetail.lines : [];
+    const demandLines = persistedLines.length > 0 ? persistedLines : hydratedLines;
+    const demandPrimaryLine = demandLines[0] || primaryLine;
 
-  const fileIds = Array.isArray(body.fileIds) ? body.fileIds.filter(Boolean) : [];
-  if (fileIds.length > 0) {
-    try {
-      const orderFolderId = await ensureOrderFolder(env, persistedOrderNo);
-      await moveFilesToFolder(env, fileIds, orderFolderId);
-    } catch (error) {
-      console.error('Order file archiving error (manage create):', error);
-    }
-  }
-
-  if (!skipOrderCreatedEvent) {
-    await publishOrderCreatedByAdmin(c, {
+    const demandService = new DemandService(env.DB);
+    await syncOrderDemandTransitionsByLines(demandService, {
       orderId: persistedOrderId,
-      orderNo: persistedOrderNo,
-      salespersonId: body.salespersonId,
-      actorName: user?.name || 'Admin',
-      commandId: orderCreatedEventCommandId,
-      correlationId: orderCreatedEventCorrelationId,
+      previousStatus: null,
+      nextStatus,
+      previousLines: [],
+      nextLines: demandLines,
+      previousFallback: {},
+      nextFallback: {
+        productId: demandLines.length === 1 ? (demandPrimaryLine?.productId || body.productId || null) : null,
+        variantId: demandLines.length === 1 ? (demandPrimaryLine?.variantId ?? variantId) : null,
+        quantity: totalQuantity,
+      },
     });
+
+    const fileIds = Array.isArray(body.fileIds) ? body.fileIds.filter(Boolean) : [];
+    if (fileIds.length > 0) {
+      try {
+        const orderFolderId = await ensureOrderFolder(env, persistedOrderNo);
+        await moveFilesToFolder(env, fileIds, orderFolderId);
+      } catch (error) {
+        console.error('Order file archiving error (manage create):', error);
+      }
+    }
+
+    if (!skipOrderCreatedEvent) {
+      await publishOrderCreatedByAdmin(c, {
+        orderId: persistedOrderId,
+        orderNo: persistedOrderNo,
+        salespersonId: body.salespersonId,
+        actorName: user?.name || 'Admin',
+        commandId: orderCreatedEventCommandId,
+        correlationId: orderCreatedEventCorrelationId,
+      });
+    }
+  } catch (error) {
+    throw attachPartialResult(error, result);
   }
 
-  return { id: persistedOrderId, orderNo: persistedOrderNo };
+  return result;
 }
