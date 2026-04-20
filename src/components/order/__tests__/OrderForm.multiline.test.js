@@ -21,20 +21,25 @@ vi.mock('@/composables/useSalesToken', () => ({
   useSalesToken: () => ({ token: { value: 'sales-token' } }),
 }));
 
-const buildWrapper = () =>
+const defaultProps = {
+  mode: 'admin',
+  salespersons: [{ id: 'sp-1', name: 'Alice' }],
+  statuses: [{ label: '待处理', value: 'pending' }],
+  prefill: {
+    salespersonId: 'sp-1',
+    files: [{ id: 'file-1', url: '/file/file-1' }],
+    lines: [
+      { name: 'Desk', quantity: 2, sku: 'SKU-DESK' },
+      { sku: 'SKU-PENDING', quantity: 3 },
+    ],
+  },
+};
+
+const buildWrapper = (propOverrides = {}) =>
   mount(OrderForm, {
     props: {
-      mode: 'admin',
-      salespersons: [{ id: 'sp-1', name: 'Alice' }],
-      statuses: [{ label: '待处理', value: 'pending' }],
-      prefill: {
-        salespersonId: 'sp-1',
-        files: [{ id: 'file-1', url: '/file/file-1' }],
-        lines: [
-          { name: 'Desk', quantity: 2, sku: 'SKU-DESK' },
-          { sku: 'SKU-PENDING', quantity: 3 },
-        ],
-      },
+      ...defaultProps,
+      ...propOverrides,
     },
     global: {
       stubs: {
@@ -80,7 +85,8 @@ const buildWrapper = () =>
         },
         Select: {
           props: ['modelValue'],
-          template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+          template:
+            '<input data-testid="salesperson-select" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
         AppIcon: true,
         ProductBindingSection: {
@@ -106,5 +112,20 @@ describe('OrderForm multiline payload', () => {
 
     expect(wrapper.findAll('[data-testid^="order-line-name-"]').length).toBeGreaterThanOrEqual(3);
     expect(wrapper.get('[data-testid="order-line-quantity-1"]').element.value).toBe('1');
+  });
+
+  it('defaults the salesperson when a sole option arrives after mount', async () => {
+    const wrapper = buildWrapper({
+      salespersons: [],
+      prefill: null,
+    });
+
+    expect(wrapper.get('[data-testid="salesperson-select"]').element.value).toBe('');
+
+    await wrapper.setProps({
+      salespersons: [{ id: 'sp-1', name: 'Alice' }],
+    });
+
+    expect(wrapper.get('[data-testid="salesperson-select"]').element.value).toBe('sp-1');
   });
 });

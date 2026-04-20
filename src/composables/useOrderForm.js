@@ -12,6 +12,13 @@ import { useSalesToken } from '@/composables/useSalesToken';
 import { getTodayISOString } from '@/utils/common';
 import { API } from '@/utils/constants';
 
+let orderLineClientIdSeed = 0;
+
+function createOrderLineClientId() {
+  orderLineClientIdSeed += 1;
+  return `order-line-${orderLineClientIdSeed}`;
+}
+
 function normalizeLineText(value, fallback = '') {
   if (value === undefined || value === null) return fallback;
   const normalized = String(value).trim();
@@ -25,7 +32,9 @@ function normalizeLineQuantity(value, fallback = 1) {
 }
 
 export function createEmptyOrderLine(overrides = {}) {
+  const { clientId, ...restOverrides } = overrides;
   return {
+    clientId: clientId ?? createOrderLineClientId(),
     name: '',
     brand: '',
     series: '',
@@ -38,12 +47,13 @@ export function createEmptyOrderLine(overrides = {}) {
     variantId: null,
     boundProduct: null,
     boundProductVariant: null,
-    ...overrides,
+    ...restOverrides,
   };
 }
 
 function normalizeOrderLine(line = {}, fallback = {}) {
   return createEmptyOrderLine({
+    clientId: line.clientId ?? fallback.clientId,
     name: normalizeLineText(line.name ?? line.productName, fallback.name || ''),
     brand: normalizeLineText(line.brand, fallback.brand || ''),
     series: normalizeLineText(line.series, fallback.series || ''),
@@ -243,7 +253,13 @@ export function useOrderForm(options = {}) {
 
   const updateLine = (index, nextLine) => {
     lines.value = lines.value.map((line, lineIndex) =>
-      lineIndex === index ? normalizeOrderLine(nextLine, form) : line
+      lineIndex === index
+        ? normalizeOrderLine(nextLine, {
+            ...form,
+            ...line,
+            clientId: line.clientId,
+          })
+        : line
     );
   };
 
@@ -263,6 +279,7 @@ export function useOrderForm(options = {}) {
       normalizeOrderLine(
         {
           ...source,
+          clientId: createOrderLineClientId(),
           quantity: 1,
         },
         form

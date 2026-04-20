@@ -63,4 +63,17 @@ describe('useOrderForm multiline helpers', () => {
       ],
     });
   });
+
+  it('does not advance the client id sequence when normalizing an existing line', () => {
+    const state = useOrderForm({ isSalesMode: false });
+    const originalLine = { ...state.lines.value[0] };
+    const originalIdNumber = Number(String(originalLine.clientId).split('-').pop());
+
+    state.setLines([originalLine]);
+    state.addLineAfter(0);
+
+    const nextIdNumber = Number(String(state.lines.value[1].clientId).split('-').pop());
+
+    expect(nextIdNumber).toBe(originalIdNumber + 1);
+  });
 });

@@ -23,7 +23,7 @@
     <div class="space-y-4">
       <OrderLineEditor
         v-for="(line, index) in modelValue"
-        :key="index"
+        :key="line.clientId || index"
         :model-value="line"
         :index="index"
         :state="lineStates[index]"

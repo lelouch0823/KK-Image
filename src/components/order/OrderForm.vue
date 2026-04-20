@@ -410,6 +410,13 @@ const actionBarClass = computed(() =>
   'sticky bottom-0 z-20 -mx-3 flex gap-3 border-t border-(--border-color) bg-(--bg-card)/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur'
 );
 
+const applyDefaultAdminSalesperson = (salespersons = props.salespersons) => {
+  if (props.mode !== 'admin' || adminForm.salespersonId) return;
+  if (salespersons.length === 1) {
+    adminForm.salespersonId = salespersons[0]?.id || '';
+  }
+};
+
 // 监听预填充数据变化
 watch(
   () => props.prefill,
@@ -420,9 +427,15 @@ watch(
       if (data.salespersonId) adminForm.salespersonId = data.salespersonId;
       if (data.status) adminForm.status = data.status;
     }
-    if (props.mode === 'admin' && !adminForm.salespersonId && props.salespersons.length === 1) {
-      adminForm.salespersonId = props.salespersons[0]?.id || '';
-    }
+    applyDefaultAdminSalesperson();
+  },
+  { immediate: true }
+);
+
+watch(
+  () => props.salespersons,
+  (salespersons) => {
+    applyDefaultAdminSalesperson(salespersons);
   },
   { immediate: true }
 );
