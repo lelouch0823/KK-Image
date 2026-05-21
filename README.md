@@ -36,6 +36,8 @@ Finally, go to the Cloudflare Pages backend to set the relevant environment vari
 |---------------------|---------------------------|----------------------------------------------------------------------------------------|
 | `TG_Bot_Token`      | `123468:AAxxxGKrn5`        | Telegram Bot Token obtained from [@BotFather](https://t.me/BotFather).                |
 | `TG_Chat_ID`        | `-1234567`                 | Channel ID, ensure the TG Bot is an administrator of the channel or group.           |
+| `UPLOAD_BASIC_USER` | `uploader`                | Optional username for protecting the public upload endpoint. Leave unset to keep uploads public. |
+| `UPLOAD_BASIC_PASS` | `strong-password`         | Optional password for protecting the public upload endpoint. Must be set together with `UPLOAD_BASIC_USER`. |
 
 ## How to Deploy
 
@@ -149,6 +151,8 @@ January 18, 2023 - Image Management Feature Update
 
 Of course, you can also choose not to set these two values, so that accessing the backend management page will not require verification and will skip the login step directly. This design allows you to use it in combination with Cloudflare Access to achieve email verification code login, Microsoft account login, Github account login, and other functions. It can be integrated with the existing login method on your domain without having to remember another set of backend credentials. For adding Cloudflare Access, please refer to the official documentation. Note that the protected path needs to include /admin and /api/manage/\*
 
+You can also protect the public upload endpoint separately by setting both `UPLOAD_BASIC_USER` and `UPLOAD_BASIC_PASS`. When these two variables are not set, uploads remain public for compatibility with existing deployments.
+
 3. Added image total count statistics
 When the image management feature is enabled, you can view the number of images in the record at the top of the backend
 
@@ -176,7 +180,7 @@ When the image management feature is enabled, you can manually add images to the
 ![](https://im.gurl.eu.org/file/2193409107d4f2bcd00ee.png)
 
 8. Added record deletion feature
-When the image management feature is enabled, you can manually delete image records in the backend, which means the image will no longer be displayed in the backend unless someone uploads and loads the image again. Note that since images are stored on telegraph's server, we cannot delete the originally uploaded images. We can only block image loading through the blacklist feature mentioned in point 6 above
+When the image management feature is enabled, you can manually delete image records in the backend. This only removes the item from the backend list; it does not delete the original file from Telegraph or Telegram. If the file is uploaded and loaded again later, a record may be created again. To prevent the file from loading, use the blacklist feature mentioned in point 6 above.
 
 9. Added program running mode: Whitelist mode
 When the image management feature is enabled, in addition to the default mode, this update also adds a new running mode. In this mode, only images added to the whitelist will be loaded. Uploaded images need to be approved before they can be displayed, which prevents inappropriate images from loading to the greatest extent. To enable, please set the environment variable: WhiteList_Mode=="true"

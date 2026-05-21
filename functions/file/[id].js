@@ -39,13 +39,13 @@ export async function onRequest(context) {
     // Allow the admin page to directly view the image
     const isAdmin = request.headers.get('Referer')?.includes(`${url.origin}/admin`);
     if (isAdmin) {
-        return response;
+        return withInlineDisposition(response, params.id);
     }
 
     // Check if KV storage is available
     if (!env.img_url) {
         console.log("KV storage not available, returning image directly");
-        return response;  // Directly return image response, terminate execution
+        return withInlineDisposition(response, params.id);  // Directly return image response, terminate execution
     }
 
     // The following code executes only if KV is available
@@ -77,7 +77,7 @@ export async function onRequest(context) {
 
     // Handle based on ListType and Label
     if (metadata.ListType === "White") {
-        return response;
+        return withInlineDisposition(response, params.id);
     } else if (metadata.ListType === "Block" || metadata.Label === "adult") {
         const referer = request.headers.get('Referer');
         const redirectUrl = referer ? "https://static-res.pages.dev/teleimage/img-block-compressed.png" : `${url.origin}/block-img.html`;
@@ -124,7 +124,7 @@ export async function onRequest(context) {
     await env.img_url.put(params.id, "", { metadata });
 
     // Return file content
-    return response;
+    return withInlineDisposition(response, params.id);
 }
 
 async function getFilePath(env, file_id) {
@@ -152,4 +152,36 @@ async function getFilePath(env, file_id) {
         console.error('Error fetching file path:', error.message);
         return null;
     }
+}
+
+function withInlineDisposition(response, filename) {
+    const contentType = response.headers.get('Content-Type') || '';
+
+    if (!isPreviewableContent(contentType) && !isPreviewableFilename(filename)) {
+        return response;
+    }
+
+    const headers = new Headers(response.headers);
+    headers.set('Content-Disposition', `inline; filename="${escapeFilename(filename)}"`);
+
+    return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+    });
+}
+
+function isPreviewableContent(contentType) {
+    return contentType.startsWith('image/')
+        || contentType.startsWith('video/')
+        || contentType.startsWith('audio/')
+        || contentType.startsWith('application/pdf');
+}
+
+function isPreviewableFilename(filename) {
+    return /\.(?:avif|bmp|gif|ico|jpe?g|png|svg|webp|apng|mp4|m4v|mov|webm|ogv|mp3|m4a|ogg|oga|wav|flac|aac|pdf)$/i.test(String(filename));
+}
+
+function escapeFilename(filename) {
+    return String(filename).replace(/["\\]/g, '_');
 }
