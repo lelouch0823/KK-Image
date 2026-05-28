@@ -28,8 +28,18 @@ import { useI18n } from './useI18n';
  * @property {Function} abort - 取消请求
  */
 
-// 全局缓存 Map
+// 全局缓存 Map（带 LRU 淘汰）
+const CACHE_MAX_SIZE = 100;
 const resourceCache = new Map();
+
+function evictOldCacheEntries() {
+    if (resourceCache.size <= CACHE_MAX_SIZE) return;
+    const entriesToDelete = resourceCache.size - CACHE_MAX_SIZE;
+    const keys = resourceCache.keys();
+    for (let i = 0; i < entriesToDelete; i++) {
+        resourceCache.delete(keys.next().value);
+    }
+}
 
 /**
  * SOTA 统一资源管理 Composable
@@ -103,6 +113,7 @@ export function useResource(apiEndpoint, options = {}) {
      */
     const setCache = (key, data) => {
         if (!cache) return;
+        evictOldCacheEntries();
         resourceCache.set(key, {
             data,
             timestamp: Date.now(),

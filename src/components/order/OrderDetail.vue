@@ -464,8 +464,13 @@ const handleSavePdf = () => {
       .set(opt)
       .from(clone)
       .save()
-      .then(() => {
-        document.body.removeChild(clone);
+      .catch((err) => {
+        console.error('[PDF] 生成失败:', err);
+      })
+      .finally(() => {
+        if (clone.parentNode) {
+          document.body.removeChild(clone);
+        }
       });
   });
 };
