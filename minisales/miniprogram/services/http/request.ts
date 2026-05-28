@@ -66,6 +66,7 @@ export async function salesRequest<T>({
       method: method as any,
       data: toRequestData(data),
       header: requestHeader,
+      timeout: 30000,
       success: (res) => {
         const payload = toRecord(res.data);
         const status = Number(res.statusCode || 0);

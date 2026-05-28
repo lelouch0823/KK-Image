@@ -2,10 +2,29 @@
  * API 常量定义
  */
 
-// 开发环境: 使用本地 wrangler 服务器
-// 生产环境: 请替换为您的实际域名
+// API 基础地址
+// 开发环境: 本地 wrangler 服务器
+// 生产环境: 通过 env-config.js 配置（见项目根目录）
 // 注意: 微信开发者工具中需要在 "详情" -> "本地设置" 勾选 "不校验合法域名"
-export const API_BASE_URL = 'http://127.0.0.1:8080';
+declare const __wxConfig: { envVersion?: string } | undefined;
+
+function resolveBaseUrl(): string {
+  // 优先使用全局配置（生产环境通过 env-config.js 注入）
+  const globalConfig = (globalThis as any).__MINISALES_CONFIG__;
+  if (globalConfig?.API_BASE_URL) return globalConfig.API_BASE_URL;
+
+  // 小程序正式版/体验版使用生产域名
+  try {
+    const envVersion = typeof __wxConfig !== 'undefined' ? __wxConfig.envVersion : undefined;
+    if (envVersion === 'release' || envVersion === 'trial') {
+      return 'https://kk-life.pages.dev';
+    }
+  } catch { /* ignore */ }
+
+  return 'http://127.0.0.1:8080';
+}
+
+export const API_BASE_URL = resolveBaseUrl();
 
 export const SALES_API = {
   login: '/api/sales/login',
