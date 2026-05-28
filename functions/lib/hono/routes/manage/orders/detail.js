@@ -1,5 +1,7 @@
 
 import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { UpdateAdminOrderSchema, UpdateOrderStatusSchema, AddOrderCommentSchema, DeliveryConfirmationSchema } from '../../../schemas/order.js';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
 import {
@@ -169,12 +171,12 @@ app.get('/:id', async (c) => {
 /**
  * PATCH /:id - 修改订单
  */
-app.patch('/:id', async (c) => {
+app.patch('/:id', zValidator('json', UpdateAdminOrderSchema), async (c) => {
     const { env } = c;
     const user = c.get('user'); // 从 JWT 获取管理员信息
     const actor = getAdminActor(user);
     const id = c.req.param('id');
-    const body = await c.req.json();
+    const body = c.req.valid('json');
 
     const orderRepo = new OrderRepository(env.DB);
     const order = await requireEntity(
@@ -383,12 +385,12 @@ app.patch('/:id', async (c) => {
 /**
  * PATCH /:id/status - 更新订单状态
  */
-app.patch('/:id/status', async (c) => {
+app.patch('/:id/status', zValidator('json', UpdateOrderStatusSchema), async (c) => {
     const { env } = c;
     const user = c.get('user');
     const actor = getAdminActor(user);
     const id = c.req.param('id');
-    const { status, note, force } = await c.req.json();
+    const { status, note, force } = c.req.valid('json');
     if (!ORDER_STATUSES.includes(status)) {
         throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
     }
@@ -500,12 +502,12 @@ app.patch('/:id/status', async (c) => {
     return c.json({ success: true, message: MSG.ORDER.STATUS_CHANGED });
 });
 
-app.post('/:id/delivery-confirmation', async (c) => {
+app.post('/:id/delivery-confirmation', zValidator('json', DeliveryConfirmationSchema), async (c) => {
     const { env } = c;
     const user = c.get('user');
     const actor = getAdminActor(user);
     const id = c.req.param('id');
-    const { note = '' } = await c.req.json();
+    const { note = '' } = c.req.valid('json');
 
     const repo = new OrderRepository(env.DB);
     const beforeOrder = await requireEntity(
@@ -578,13 +580,13 @@ app.post('/:id/delivery-confirmation', async (c) => {
 /**
  * POST /:id/comment - 添加订单备注/留言
  */
-app.post('/:id/comment', async (c) => {
+app.post('/:id/comment', zValidator('json', AddOrderCommentSchema), async (c) => {
     const { env } = c;
     const user = c.get('user');
     const actor = getAdminActor(user);
     const id = c.req.param('id');
     // SOTA: Payload key mismatch fix (frontend sends 'comment', backend expected 'content')
-    const { comment } = await c.req.json();
+    const { comment } = c.req.valid('json');
 
     if (!comment) {
         throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);

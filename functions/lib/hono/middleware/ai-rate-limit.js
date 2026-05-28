@@ -43,7 +43,8 @@ export function createAIRateLimitMiddleware(options = {}) {
       return next();
     }
 
-    if (testDenyReason) {
+    // 生产环境忽略测试拒绝 header
+    if (testDenyReason && c.env?.ENVIRONMENT !== 'production') {
       c.header('X-AI-RateLimit-Requests-Limit', String(config.requestsPerMinute));
       c.header('X-AI-RateLimit-Requests-Remaining', '0');
       c.header('X-AI-RateLimit-Tokens-Limit', String(config.tokensPerDay));

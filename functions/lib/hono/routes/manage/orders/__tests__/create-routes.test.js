@@ -143,7 +143,7 @@ describe('manage order create routes', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerName: 'A' }),
+        body: JSON.stringify({ productName: 'A', salespersonId: 'sales-1' }),
       },
       { DB: {} },
       { waitUntil: vi.fn() }

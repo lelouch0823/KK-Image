@@ -248,8 +248,9 @@ export function generateOrderNo() {
   const mins = String(now.getUTCMinutes()).padStart(2, '0');
   const secs = String(now.getUTCSeconds()).padStart(2, '0');
   const timePart = `${hours}${mins}${secs}`;
-  // 随机: 3位 Base36 大写
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+  // 随机: 3位大写字母+数字（使用 crypto 避免碰撞）
+  const bytes = crypto.getRandomValues(new Uint8Array(2));
+  const random = ((bytes[0] << 8) | bytes[1]).toString(36).toUpperCase().padStart(3, '0').slice(-3);
   return `ORD-${datePart}-${timePart}-${random}`;
 }
 

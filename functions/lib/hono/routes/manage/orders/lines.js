@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { OrderLineCommandSchema } from '../../../schemas/order.js';
+import { BadRequestError } from '../../../errors.js';
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { OrderLineFulfillmentService } from '../../../../../services/OrderLineFulfillmentService.js';
 import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
@@ -72,7 +74,13 @@ async function handleLineCommand(c, action, executor) {
   const orderId = c.req.param('id');
   const lineId = c.req.param('lineId');
   const user = c.get('user');
-  const body = await c.req.json();
+  const rawBody = await c.req.json();
+  // 校验请求体
+  const parsed = OrderLineCommandSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    throw new BadRequestError(parsed.error.issues.map(i => i.message).join('; '));
+  }
+  const body = parsed.data;
   const quantity = parsePositiveLineCommandQuantity(body);
   const payload = {
     ...body,

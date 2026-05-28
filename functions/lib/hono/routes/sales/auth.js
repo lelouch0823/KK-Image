@@ -107,7 +107,8 @@ app.post('/wechat-login', loginRateLimitMiddleware, zValidator('json', WechatLog
         return c.json({ success: false, error: '微信登录未配置' }, 503);
     }
 
-    const wxUrl = `https://api.weixin.qq.com/sns/jscode2session?appid=${env.WECHAT_APPID}&secret=${env.WECHAT_SECRET}&js_code=${code}&grant_type=authorization_code`;
+    const wxParams = new URLSearchParams({ appid: env.WECHAT_APPID, secret: env.WECHAT_SECRET, js_code: code, grant_type: 'authorization_code' });
+    const wxUrl = `https://api.weixin.qq.com/sns/jscode2session?${wxParams}`;
     const wxRes = await fetch(wxUrl);
     const wxData = await wxRes.json();
 

@@ -89,8 +89,8 @@ export class BaseStorageProvider {
    */
   generateFileId(fileName) {
     const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 10);
+    const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 12);
     const ext = fileName.split('.').pop()?.toLowerCase() || '';
-    return `${timestamp}-${random}${ext ? '.' + ext : ''}`;
+    return `${timestamp}-${uuid}${ext ? '.' + ext : ''}`;
   }
 }

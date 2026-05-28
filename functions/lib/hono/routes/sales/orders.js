@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { CreateOrderSchema, AddCommentSchema } from '../../schemas/sales.js';
+import { CreateOrderSchema, AddCommentSchema, UpdateSalesOrderSchema } from '../../schemas/sales.js';
 import { MSG, generateId, generateOrderNo } from '../../../../_shared/utils.js';
 import { normalizeOrderStatusFilter } from '../../../../api/utils/constants.js';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
@@ -296,10 +296,10 @@ app.patch('/:id/read', async (c) => {
 /**
  * PATCH /:id - 修改订单
  */
-app.patch('/:id', async (c) => {
+app.patch('/:id', zValidator('json', UpdateSalesOrderSchema), async (c) => {
     const salesperson = c.get('salesperson');
     const orderId = c.req.param('id');
-    const body = await c.req.json();
+    const body = c.req.valid('json');
     const { env } = c;
 
     const orderRepo = new OrderRepository(env.DB);

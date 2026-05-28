@@ -1,5 +1,7 @@
 
 import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { CreateAdminOrderSchema, BatchCreateOrderSchema } from '../../../schemas/order.js';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { CommandIdempotencyRepository } from '../../../../../repositories/CommandIdempotencyRepository.js';
 import {
@@ -132,8 +134,8 @@ async function reserveOrderCreateCommand(c, { requestFingerprint }) {
 /**
  * POST / - 管理端创建订单
  */
-app.post('/', async (c) => {
-    const body = await c.req.json();
+app.post('/', zValidator('json', CreateAdminOrderSchema), async (c) => {
+    const body = c.req.valid('json');
     const requestFingerprint = buildOrderCreateRequestFingerprint(body);
     const {
         replay,
@@ -216,10 +218,10 @@ app.post('/', async (c) => {
 /**
  * POST /batch - 批量操作接口
  */
-app.post('/batch', async (c) => {
+app.post('/batch', zValidator('json', BatchCreateOrderSchema), async (c) => {
     const { env } = c;
     const user = c.get('user');
-    const { ids, action, value, reason, force } = await c.req.json();
+    const { ids, action, value, reason, force } = c.req.valid('json');
     const repo = new OrderRepository(env.DB);
     const actorName = user?.name || 'Admin';
     const normalizedIds = Array.isArray(ids) ? ids.filter(Boolean) : [];

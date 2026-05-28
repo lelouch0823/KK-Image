@@ -36,3 +36,30 @@ export const CreateOrderSchema = z.object({
 export const AddCommentSchema = z.object({
     comment: z.string().min(1, '内容必填'),
 });
+
+/** 销售端修改订单请求体 */
+export const UpdateSalesOrderSchema = z.object({
+    reason: z.string().min(1).max(500),
+    productId: z.string().nullable().optional(),
+    variantId: z.string().nullable().optional(),
+    fileIds: z.array(z.string()).max(50).optional(),
+    updates: z
+        .object({
+            name: z.string().max(200).optional(),
+            brand: z.string().max(100).optional(),
+            category: z.string().max(100).optional(),
+            series: z.string().max(100).optional(),
+            sku: z.string().max(100).optional(),
+            size: z.string().max(50).optional(),
+            color: z.string().max(50).optional(),
+            material: z.string().max(100).optional(),
+            remark: z.string().max(1000).optional(),
+            deadline: z.string().optional(),
+            quantity: z.number().int().positive().max(99999).optional(),
+            image: z.string().optional(),
+            image_url: z.string().optional(),
+            // 允许 lines 通过验证，由 handler 检查并返回自定义错误
+            lines: z.any().optional(),
+        })
+        .optional(),
+}).strict();

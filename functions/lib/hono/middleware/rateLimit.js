@@ -14,18 +14,21 @@ export function resolveRequestIp(req) {
   try {
     const url = new URL(req?.url || '');
     if (isLoopbackHostname(url.hostname) && forwardedIp) {
-      return forwardedIp;
+      return forwardedIp.split(',')[0].trim();
     }
   } catch {
     // fall through to header priority fallback
   }
 
-  return cfIp || forwardedIp || 'unknown';
+  return cfIp || forwardedIp.split(',')[0].trim() || 'unknown';
 }
 
 function shouldBypassGlobalRateLimit(c) {
   const bypassHeader = c.req.header('X-Test-Bypass-RateLimit');
   if (String(bypassHeader || '').trim() !== '1') return false;
+
+  // 生产环境禁止通过 header 旁路限流
+  if (c.env?.ENVIRONMENT === 'production') return false;
 
   try {
     const url = new URL(c.req.url);
@@ -56,7 +59,8 @@ export async function rateLimitMiddleware(c, next) {
 
   const kv = getRateLimitKv(c.env);
   if (!kv) {
-    return rateLimitUnavailableResponse(c);
+    // KV 不可用时放行请求（降级策略）
+    return next();
   }
   const ip = resolveRequestIp(c.req);
   const windowMs = 60000; // 1 分钟窗口
@@ -110,7 +114,7 @@ export function rateLimit(options = {}) {
 
   return async (c, next) => {
     const kv = getRateLimitKv(c.env);
-    if (!kv) return rateLimitUnavailableResponse(c);
+    if (!kv) return next(); // KV 不可用时放行
 
     const ip = resolveRequestIp(c.req);
     const windowKey = Math.floor(Date.now() / window);

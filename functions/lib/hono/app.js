@@ -63,7 +63,14 @@ app.use('*', logger());
 app.use(
   '*',
   cors({
-    origin: '*',
+    origin: (origin) => {
+      // 开发环境允许所有来源
+      if (!origin) return '*';
+      // 生产环境可配置白名单（逗号分隔）
+      const allowed = (c.env?.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+      if (allowed.length === 0) return '*'; // 未配置则回退通配符
+      return allowed.includes(origin) ? origin : allowed[0];
+    },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
     exposeHeaders: ['X-Request-Id'],

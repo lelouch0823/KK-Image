@@ -57,7 +57,7 @@ describe('audit runtime alignment', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ salespersonId: 'sales-1', productName: 'Test Product' }),
       },
       harness.env,
       harness.executionCtx

@@ -68,6 +68,13 @@ export class AlbumRepository {
      * 更新相册
      */
     async update(id, updates, values) {
+        // 验证列名安全性
+        const SAFE_COLUMN_RE = /^[a-zA-Z_][a-zA-Z0-9_. ]* = \?$/;
+        for (const clause of updates) {
+            if (!SAFE_COLUMN_RE.test(clause.trim())) {
+                throw new Error(`Unsafe SQL clause: ${clause}`);
+            }
+        }
         await this.db.prepare(`UPDATE albums SET ${updates.join(', ')} WHERE id = ?`)
             .bind(...values, id)
             .run();

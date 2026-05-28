@@ -46,16 +46,18 @@ export class S3StorageProvider extends BaseStorageProvider {
     const contentType = file.type || options.contentType || 'application/octet-stream';
 
     try {
+      // 使用流式上传避免大文件 OOM
       const arrayBuffer = await file.arrayBuffer();
       const url = this._buildUrl(fileId);
       const method = 'PUT';
+      const contentLength = arrayBuffer.byteLength;
 
       const headers = await this._signRequest(
         method,
         `/${fileId}`,
         {
           'Content-Type': contentType,
-          'Content-Length': arrayBuffer.byteLength.toString(),
+          'Content-Length': contentLength.toString(),
           'x-amz-content-sha256': await this._sha256Hex(arrayBuffer),
         },
         arrayBuffer
@@ -97,7 +99,7 @@ export class S3StorageProvider extends BaseStorageProvider {
    * @param {Request} [request]
    * @returns {Promise<Response>}
    */
-  async getFile(fileId, _request) {
+  async getFile(fileId, request) {
     if (!this.isConfigured()) {
       return new Response('S3 not configured', { status: 500 });
     }
@@ -106,8 +108,18 @@ export class S3StorageProvider extends BaseStorageProvider {
       const url = this._buildUrl(fileId);
       const method = 'GET';
 
+      // 传递 Range/条件请求 headers
+      const passthroughHeaders = {};
+      if (request) {
+        for (const h of ['Range', 'If-None-Match', 'If-Modified-Since', 'If-Match', 'If-Unmodified-Since']) {
+          const val = request.headers.get(h);
+          if (val) passthroughHeaders[h] = val;
+        }
+      }
+
       const headers = await this._signRequest(method, `/${fileId}`, {
         'x-amz-content-sha256': 'UNSIGNED-PAYLOAD',
+        ...passthroughHeaders,
       });
 
       const response = await fetch(url, { method, headers });

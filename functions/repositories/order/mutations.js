@@ -664,18 +664,15 @@ export async function updateData(db, id, newData, actorType, productId = undefin
     query += ` WHERE id = ?`;
     params.push(id);
 
-    const updateResult = await db
-        .prepare(query)
-        .bind(...params)
-        .run();
+    const updateStmt = db.prepare(query).bind(...params);
 
-    await createOrderPayloadUpsertStatement(db, {
+    const payloadStmt = createOrderPayloadUpsertStatement(db, {
         orderId: id,
         originalData: JSON.stringify(newData),
         currentData: JSON.stringify(newData),
         createdAt: timestamp,
         updatedAt: timestamp,
-    }).run();
+    });
 
     const lineSnapshotStatement = await syncCompatibilityOrderLineSnapshot(db, {
         orderId: id,
@@ -686,9 +683,10 @@ export async function updateData(db, id, newData, actorType, productId = undefin
         mainImageId: newData?.image || newData?.image_url || null,
         timestamp,
     });
-    await lineSnapshotStatement.run();
 
-    return updateResult;
+    // 原子执行：所有写操作在同一个 batch 中
+    const results = await db.batch([updateStmt, payloadStmt, lineSnapshotStatement]);
+    return results[0];
 }
 
 /**
@@ -1121,6 +1119,11 @@ export async function deleteWithRelations(db, id) {
     const statements = [
         db.prepare('DELETE FROM order_timeline WHERE order_id = ?').bind(id),
         db.prepare('DELETE FROM order_files WHERE order_id = ?').bind(id),
+        db.prepare('DELETE FROM order_line_allocations WHERE order_id = ?').bind(id),
+        db.prepare('DELETE FROM order_lines WHERE order_id = ?').bind(id),
+        db.prepare('DELETE FROM order_payloads WHERE order_id = ?').bind(id),
+        db.prepare('DELETE FROM order_shipments WHERE order_id = ?').bind(id),
+        db.prepare('DELETE FROM order_returns WHERE order_id = ?').bind(id),
         db.prepare('DELETE FROM orders WHERE id = ?').bind(id)
     ];
 

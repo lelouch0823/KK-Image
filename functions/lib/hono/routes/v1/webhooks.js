@@ -15,6 +15,27 @@ export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'POST', path: '/:id/test', domain: 'v1-webhooks', action: 'v1.webhook.test', severity: 'high', targetType: 'webhook', runtimeAssertionLevel: 'runtime' },
 ]);
 
+/**
+ * 验证 Webhook URL 安全性（防止 SSRF）
+ */
+function validateWebhookUrl(urlStr) {
+  let url;
+  try {
+    url = new URL(urlStr);
+  } catch {
+    throw new BadRequestError('无效的 URL 格式');
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new BadRequestError('URL 必须使用 http 或 https 协议');
+  }
+  // 禁止内网地址（SSRF 防护）
+  const hostname = url.hostname;
+  const isPrivate = /^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|0\.|localhost|::1|\[::1\])/i.test(hostname);
+  if (isPrivate) {
+    throw new BadRequestError('不允许使用内网地址');
+  }
+}
+
 const WEBHOOK_EVENTS = [
   'file.uploaded',
   'file.deleted',
@@ -84,6 +105,7 @@ app.post('/', requirePermission('webhooks:write'), async (c) => {
   const { env } = c;
 
   if (!data.url) throw new BadRequestError(MSG.WEBHOOK.URL_REQUIRED);
+  validateWebhookUrl(data.url);
 
   // 验证事件类型
   if (data.events?.length) {
@@ -153,6 +175,7 @@ app.put('/:id', requirePermission('webhooks:write'), async (c) => {
   const updates = [];
   const values = [];
 
+  if (data.url) validateWebhookUrl(data.url);
   appendOptionalUpdate(updates, values, 'url = ?', data.url);
   appendOptionalUpdate(updates, values, 'events = ?', data.events, (value) => JSON.stringify(value));
   appendOptionalUpdate(updates, values, 'secret = ?', data.secret);

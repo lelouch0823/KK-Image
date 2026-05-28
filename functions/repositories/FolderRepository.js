@@ -138,6 +138,12 @@ export class FolderRepository {
      * 更新文件夹
      */
     async update(id, updates, values) {
+        const SAFE_COLUMN_RE = /^[a-zA-Z_][a-zA-Z0-9_. ]* = \?$/;
+        for (const clause of updates) {
+            if (!SAFE_COLUMN_RE.test(clause.trim())) {
+                throw new Error(`Unsafe SQL clause: ${clause}`);
+            }
+        }
         await this.db.prepare(`UPDATE folders SET ${updates.join(', ')} WHERE id = ?`)
             .bind(...values, id)
             .run();

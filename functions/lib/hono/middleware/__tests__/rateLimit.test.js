@@ -28,24 +28,24 @@ function createContext(env = {}) {
 }
 
 describe('rateLimit middleware', () => {
-  it('fails closed when global rate limit storage is unavailable', async () => {
+  it('fails open when global rate limit storage is unavailable', async () => {
     const c = createContext({});
     const next = vi.fn();
 
     const res = await rateLimitMiddleware(c, next);
 
-    expect(next).not.toHaveBeenCalled();
-    expect(res.status).toBe(503);
+    expect(next).toHaveBeenCalled();
+    expect(res).toBeUndefined();
   });
 
-  it('fails closed when route-scoped rate limit storage is unavailable', async () => {
+  it('fails open when route-scoped rate limit storage is unavailable', async () => {
     const c = createContext({});
     const next = vi.fn();
 
     const res = await rateLimit({ window: 1000, max: 1 })(c, next);
 
-    expect(next).not.toHaveBeenCalled();
-    expect(res.status).toBe(503);
+    expect(next).toHaveBeenCalled();
+    expect(res).toBeUndefined();
   });
 
   it('skips global rate limit only for loopback requests carrying the real-api bypass header', async () => {
@@ -60,6 +60,26 @@ describe('rateLimit middleware', () => {
 
     expect(next).toHaveBeenCalledTimes(1);
     expect(res).toBeUndefined();
+  });
+
+  it('does not bypass rate limit in production environment even with bypass header', async () => {
+    const c = createContext({
+      ENVIRONMENT: 'production',
+      RATE_LIMIT_KV: {
+        get: vi.fn().mockResolvedValue('0'),
+        put: vi.fn(async () => undefined),
+      },
+    });
+    c.req.header = (name) => {
+      if (name === 'X-Test-Bypass-RateLimit') return '1';
+      return null;
+    };
+    const next = vi.fn(async () => undefined);
+
+    // production 环境下 bypass header 不生效，正常执行限流逻辑
+    const res = await rateLimitMiddleware(c, next);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(c.header).toHaveBeenCalledWith('X-RateLimit-Limit', '100');
   });
 
   it('prefers forwarded test ip over CF loopback ip when resolving loopback requests', () => {

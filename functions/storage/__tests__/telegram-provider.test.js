@@ -117,11 +117,11 @@ describe('TelegramStorageProvider', () => {
     expect(missing.status).toBe(404);
   });
 
-  it('warns and returns true for deleteFile because telegram cannot delete uploads', async () => {
+  it('warns and returns false for deleteFile because telegram cannot delete uploads', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const provider = new TelegramStorageProvider({ TG_Bot_Token: 'bot', TG_Chat_ID: 'chat' });
 
-    await expect(provider.deleteFile('file-1')).resolves.toBe(true);
+    await expect(provider.deleteFile('file-1')).resolves.toBe(false);
     expect(warnSpy).toHaveBeenCalledWith('Telegram does not support file deletion');
   });
 

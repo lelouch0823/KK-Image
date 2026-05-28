@@ -23,6 +23,9 @@ mode = "smart"
 # =============================================================================
 [vars]
 
+# 环境标识：development / production
+ENVIRONMENT = "development"
+
 # 存储配置
 STORAGE_MODE = "single"
 # 主存储提供者：telegram, r2, s3
@@ -80,6 +83,7 @@ AI_MODEL_SWITCH_THRESHOLD = "5"
 #   - WECHAT_APPID, WECHAT_SECRET (微信登录)
 # =============================================================================
 [env.production.vars]
+ENVIRONMENT = "production"
 COMPRESS_STATIC_ASSETS = "true"
 STORAGE_MODE = "single"
 STORAGE_PROVIDER = "r2"
