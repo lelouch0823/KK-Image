@@ -30,14 +30,14 @@ describe('useSalesProducts', () => {
         json: vi.fn().mockResolvedValue({
           success: true,
           data: [{ id: 'prod-a' }],
-          meta: { total: 1, page: 1, limit: 12 },
+          pagination: { total: 1, page: 1, limit: 12 },
         }),
       })
       .mockResolvedValueOnce({
         json: vi.fn().mockResolvedValue({
           success: true,
           data: [{ id: 'prod-b' }],
-          meta: { total: 1, page: 1, limit: 12 },
+          pagination: { total: 1, page: 1, limit: 12 },
         }),
       });
 

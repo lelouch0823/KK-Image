@@ -14,9 +14,7 @@ export function useSalespersons() {
   const { t } = useI18n();
 
   // 使用 useResource 管理基础 CRUD
-  const resource = useResource(API.SALESPERSONS, {
-    listPath: 'data.salespersons',
-  });
+  const resource = useResource(API.SALESPERSONS);
 
   /**
    * 重置访问链接

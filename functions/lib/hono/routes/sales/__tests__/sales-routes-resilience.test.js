@@ -522,7 +522,7 @@ describe('sales routes resilience', () => {
       expect.objectContaining({
         success: true,
         data: [],
-        meta: expect.objectContaining({ total: 0, page: 1, limit: 12 }),
+        pagination: expect.objectContaining({ total: 0, page: 1, limit: 12 }),
       })
     );
 

@@ -113,8 +113,8 @@ export function useGoodsOverview() {
             }
 
             if (json.success) {
-                items.value = json.data.items;
-                availableFilters.value = json.data.filters || { categories: [], brands: [] };
+                items.value = json.data;
+                availableFilters.value = json.filters || { categories: [], brands: [] };
                 return true;
             }
 

@@ -56,7 +56,8 @@ app.get('/', withCache(20), async (c) => {
 
     return c.json({
         success: true,
-        data: { items, filters: availableFilters },
+        data: items,
+        filters: availableFilters,
     });
 });
 

@@ -91,14 +91,12 @@ describe('useOrders extra coverage', () => {
     mocks.authFetch.mockResolvedValueOnce({
       json: async () => ({
         success: true,
-        data: {
-          orders: [{ id: 'new-1' }],
-          salespersons: [{ id: 'sp-1' }],
-          statuses: ['draft'],
-          procurementStatuses: ['new'],
-          deliveryStatuses: ['queued'],
-          pagination: { page: 2, limit: 20, total: 201, totalPages: 11 },
-        },
+        data: [{ id: 'new-1' }],
+        salespersons: [{ id: 'sp-1' }],
+        statuses: ['draft'],
+        procurementStatuses: ['new'],
+        deliveryStatuses: ['queued'],
+        pagination: { page: 2, limit: 20, total: 201, totalPages: 11 },
       }),
     });
 
@@ -119,10 +117,8 @@ describe('useOrders extra coverage', () => {
     mocks.authFetch.mockResolvedValueOnce({
       json: async () => ({
         success: true,
-        data: {
-          orders: [{ id: 'order-1' }],
-          total: '5',
-        },
+        data: [{ id: 'order-1' }],
+        pagination: { page: 3, limit: 15, total: 5, totalPages: 1 },
       }),
     });
 
@@ -190,10 +186,8 @@ describe('useOrders extra coverage', () => {
     resolveSecond({
       json: async () => ({
         success: true,
-        data: {
-          orders: [{ id: 'fresh' }],
-          pagination: { page: 2, limit: 20, total: 1, totalPages: 1 },
-        },
+        data: [{ id: 'fresh' }],
+        pagination: { page: 2, limit: 20, total: 1, totalPages: 1 },
       }),
     });
 
@@ -292,10 +286,8 @@ describe('useOrders extra coverage', () => {
       .mockResolvedValueOnce({ ok: false, error: 'list fail' })
       .mockResolvedValueOnce({
         ok: true,
-        data: {
-          orders: Array.from({ length: 101 }, (_, index) => ({ id: `sales-${index + 1}` })),
-          pagination: { page: 2, limit: 10, total: 101, totalPages: 11 },
-        },
+        data: Array.from({ length: 101 }, (_, index) => ({ id: `sales-${index + 1}` })),
+        pagination: { page: 2, limit: 10, total: 101, totalPages: 11 },
       });
     mocks.salesOrderApi.detail
       .mockResolvedValueOnce({ ok: false, error: 'detail fail' })

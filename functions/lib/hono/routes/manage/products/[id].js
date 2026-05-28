@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../../../../../repositories/ProductVariantRepository.js';
 import { ProductDimensionRepository } from '../../../../../repositories/ProductDimensionRepository.js';
@@ -20,6 +21,16 @@ import {
     cleanupReservedCommand,
     resolveReservationOwnership,
 } from '../../../../../services/order-procurement-shared.js';
+import {
+    UpdateProductSchema,
+    CreateDimensionSchema,
+    UpdateDimensionSchema,
+    ArchiveDimensionSchema,
+    CreateDimensionValueSchema,
+    DimensionImpactPreviewSchema,
+    AddVariantImageSchema,
+    SortVariantImagesSchema,
+} from '../../../schemas/product.js';
 
 const app = new Hono();
 const PRODUCT_ARCHIVE_COMMAND_TYPE = 'product_archive';
@@ -193,10 +204,10 @@ app.get('/:id', async (c) => {
     return c.json({ success: true, data: product });
 });
 
-app.post('/:id/dimensions', async (c) => {
+app.post('/:id/dimensions', zValidator('json', CreateDimensionSchema), async (c) => {
     const { env } = c;
     const productId = c.req.param('id');
-    const body = await c.req.json();
+    const body = c.req.valid('json');
     const requestFingerprint = buildProductMutationRequestFingerprint({ productId, body });
     const productRepo = new ProductRepository(env.DB);
     const dimensionRepo = new ProductDimensionRepository(env.DB);
@@ -239,11 +250,11 @@ app.post('/:id/dimensions', async (c) => {
     });
 });
 
-app.patch('/:id/dimensions/:dimensionId', async (c) => {
+app.patch('/:id/dimensions/:dimensionId', zValidator('json', UpdateDimensionSchema), async (c) => {
     const { env } = c;
     const productId = c.req.param('id');
     const dimensionId = c.req.param('dimensionId');
-    const body = await c.req.json();
+    const body = c.req.valid('json');
     const requestFingerprint = buildProductMutationRequestFingerprint({ productId, dimensionId, body });
     const productRepo = new ProductRepository(env.DB);
     const dimensionRepo = new ProductDimensionRepository(env.DB);
@@ -284,11 +295,11 @@ app.patch('/:id/dimensions/:dimensionId', async (c) => {
     });
 });
 
-app.patch('/:id/dimensions/:dimensionId/archive', async (c) => {
+app.patch('/:id/dimensions/:dimensionId/archive', zValidator('json', ArchiveDimensionSchema), async (c) => {
     const { env } = c;
     const productId = c.req.param('id');
     const dimensionId = c.req.param('dimensionId');
-    const body = await c.req.json().catch(() => ({}));
+    const body = c.req.valid('json');
     const mode = String(body?.mode || 'archive_variants').trim();
     const requestFingerprint = buildProductMutationRequestFingerprint({ productId, dimensionId, mode });
     const productRepo = new ProductRepository(env.DB);
@@ -337,11 +348,11 @@ app.patch('/:id/dimensions/:dimensionId/archive', async (c) => {
     });
 });
 
-app.post('/:id/dimensions/:dimensionId/values', async (c) => {
+app.post('/:id/dimensions/:dimensionId/values', zValidator('json', CreateDimensionValueSchema), async (c) => {
     const { env } = c;
     const productId = c.req.param('id');
     const dimensionId = c.req.param('dimensionId');
-    const body = await c.req.json();
+    const body = c.req.valid('json');
     const requestFingerprint = buildProductMutationRequestFingerprint({ productId, dimensionId, body });
     const productRepo = new ProductRepository(env.DB);
     const dimensionRepo = new ProductDimensionRepository(env.DB);
@@ -475,10 +486,10 @@ app.patch('/:id/values/:valueId/restore', async (c) => {
     });
 });
 
-app.post('/:id/dimensions/impact', async (c) => {
+app.post('/:id/dimensions/impact', zValidator('json', DimensionImpactPreviewSchema), async (c) => {
     const { env } = c;
     const productId = c.req.param('id');
-    const body = await c.req.json();
+    const body = c.req.valid('json');
     const productRepo = new ProductRepository(env.DB);
     await ensureProductExists(productRepo, productId);
 
@@ -491,15 +502,11 @@ app.post('/:id/dimensions/impact', async (c) => {
     }
 });
 
-app.post('/:id/variants/:variantId/images', async (c) => {
+app.post('/:id/variants/:variantId/images', zValidator('json', AddVariantImageSchema), async (c) => {
     const { env } = c;
     const productId = c.req.param('id');
     const variantId = c.req.param('variantId');
-    const body = await c.req.json();
-
-    if (!body?.imageId) {
-        throw new BadRequestError('imageId is required');
-    }
+    const body = c.req.valid('json');
 
     const requestFingerprint = buildProductMutationRequestFingerprint({ productId, variantId, body });
     const productRepo = new ProductRepository(env.DB);
@@ -545,15 +552,11 @@ app.post('/:id/variants/:variantId/images', async (c) => {
     });
 });
 
-app.patch('/:id/variants/:variantId/images/sort', async (c) => {
+app.patch('/:id/variants/:variantId/images/sort', zValidator('json', SortVariantImagesSchema), async (c) => {
     const { env } = c;
     const productId = c.req.param('id');
     const variantId = c.req.param('variantId');
-    const body = await c.req.json();
-
-    if (!Array.isArray(body?.imageIds) || body.imageIds.length === 0) {
-        throw new BadRequestError('imageIds must be a non-empty array');
-    }
+    const body = c.req.valid('json');
 
     const requestFingerprint = buildProductMutationRequestFingerprint({ productId, variantId, imageIds: body.imageIds });
     const productRepo = new ProductRepository(env.DB);
@@ -700,9 +703,9 @@ app.delete('/:id/variants/:variantId/images/:imageId', async (c) => {
 /**
  * PATCH /:id - 更新商品 (Partial Update)
  */
-app.patch('/:id', async (c) => {
+app.patch('/:id', zValidator('json', UpdateProductSchema), async (c) => {
     const id = c.req.param('id');
-    const body = await c.req.json();
+    const body = c.req.valid('json');
     const service = new ProductCatalogService(c.env.DB);
     const requestFingerprint = buildProductMutationRequestFingerprint({
         productId: id,
@@ -755,9 +758,9 @@ app.patch('/:id', async (c) => {
 /**
  * PUT /:id - 更新商品 (Full Update)
  */
-app.put('/:id', async (c) => {
+app.put('/:id', zValidator('json', UpdateProductSchema), async (c) => {
     const id = c.req.param('id');
-    const body = await c.req.json();
+    const body = c.req.valid('json');
     const service = new ProductCatalogService(c.env.DB);
     const requestFingerprint = buildProductMutationRequestFingerprint({
         productId: id,

@@ -61,11 +61,11 @@ app.get('/', withCache(60), async (c) => {
 
     return c.json({
         success: true,
-        data: {
-            list,
-            total,
+        data: list,
+        pagination: {
             page,
             limit,
+            total,
             totalPages: pages,
         },
     });

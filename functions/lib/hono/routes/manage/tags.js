@@ -19,7 +19,7 @@ export const auditRouteDeclarations = declareAuditRoutes([
 tagsRoute.get('/', requirePermission('files:read'), withCache(30), async (c) => {
     const repo = new TagRepository(c.env.DB);
     const results = await repo.findAll();
-    return c.json({ success: true, tags: results });
+    return c.json({ success: true, data: results });
 });
 
 // POST 创建标签
@@ -61,7 +61,7 @@ tagsRoute.post('/', requirePermission('files:write'), async (c) => {
         summary: `Created tag ${name.trim()}`,
     });
 
-    return c.json({ success: true, tag: { id, name: name.trim(), color } });
+    return c.json({ success: true, data: { id, name: name.trim(), color } });
 });
 
 // POST 分配标签到文件

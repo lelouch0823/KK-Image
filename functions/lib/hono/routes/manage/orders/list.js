@@ -66,23 +66,21 @@ app.get('/', withCache(20), async (c) => {
 
     return c.json({
         success: true,
-        data: {
-            orders: result.items,
-            salespersons: salespersons.map((s) => ({
-                id: s.id,
-                name: s.name,
-                store: s.store,
-            })),
-            statuses: ORDER_FILTER_STATUSES,
-            procurementStatuses: ORDER_PROCUREMENT_STATUSES,
-            deliveryStatuses: ORDER_DELIVERY_STATUSES,
-            pagination: {
-                page: result.page,
-                limit: result.limit,
-                total: result.total,
-                totalPages: result.totalPages,
-            },
+        data: result.items,
+        pagination: {
+            page: result.page,
+            limit: result.limit,
+            total: result.total,
+            totalPages: result.totalPages,
         },
+        salespersons: salespersons.map((s) => ({
+            id: s.id,
+            name: s.name,
+            store: s.store,
+        })),
+        statuses: ORDER_FILTER_STATUSES,
+        procurementStatuses: ORDER_PROCUREMENT_STATUSES,
+        deliveryStatuses: ORDER_DELIVERY_STATUSES,
     });
 });
 

@@ -250,7 +250,7 @@ describe('manage ops support audit routes', () => {
 
     expect(res.status).toBe(200);
     const data = await res.json();
-    const tagId = data?.tag?.id;
+    const tagId = data?.data?.id;
     const [publishedEvents, publishContext] = mocks.publish.mock.calls[0];
     expect(publishContext).toBeUndefined();
     expect(publishedEvents).toEqual([

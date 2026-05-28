@@ -211,8 +211,8 @@ export function useResource(apiEndpoint, options = {}) {
 
                 items.value = finalItems;
 
-                // 处理分页
-                const meta = res.meta || res.data?.pagination || res.pagination;
+                // 处理分页（统一使用顶层 pagination 字段）
+                const meta = res.pagination;
                 if (meta) {
                     pagination.page = meta.page || pagination.page;
                     pagination.limit = meta.limit || pagination.limit;

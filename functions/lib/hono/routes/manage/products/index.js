@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
 import { ProductRepository } from '../../../../../repositories/ProductRepository.js';
 import { parseJsonArray, parseJsonObject } from '../../../../../api/utils/json.js';
 import { withCache } from '../../../middleware/cache.js';
@@ -10,6 +11,7 @@ import exportRoute from './export.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { buildRequestFingerprint, publishProductCacheEvent, runIdempotentCommand } from './idempotency-helpers.js';
+import { CreateProductSchema } from '../../../schemas/product.js';
 
 const app = new Hono();
 const PRODUCT_CREATE_COMMAND_TYPE = 'product_create';
@@ -64,10 +66,11 @@ app.get('/', withCache(60), async (c) => {
     return c.json({
         success: true,
         data: items,
-        meta: {
-            total: result.total,
+        pagination: {
             page: result.page,
-            limit: result.limit
+            limit: result.limit,
+            total: result.total,
+            totalPages: Math.ceil(result.total / result.limit),
         },
         filters: result.filters || { brands: [], categories: [] },
     });
@@ -156,10 +159,11 @@ app.get('/variants', withCache(30), async (c) => {
     return c.json({
         success: true,
         data: items,
-        meta: {
-            total,
+        pagination: {
             page,
             limit,
+            total,
+            totalPages: Math.ceil(total / limit),
         },
     });
 });
@@ -167,8 +171,8 @@ app.get('/variants', withCache(30), async (c) => {
 /**
  * POST / - 创建商品
  */
-app.post('/', async (c) => {
-    const body = await c.req.json();
+app.post('/', zValidator('json', CreateProductSchema), async (c) => {
+    const body = c.req.valid('json');
     const requestFingerprint = buildProductCreateRequestFingerprint(body);
     return runIdempotentCommand(c, {
         commandType: PRODUCT_CREATE_COMMAND_TYPE,

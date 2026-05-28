@@ -93,8 +93,8 @@ describe('useResource Composable Full Coverage', () => {
           success: true,
           data: {
             orders: [{ id: 'order-1' }],
-            pagination: { page: 2, limit: 5, total: 7, totalPages: 2 },
           },
+          pagination: { page: 2, limit: 5, total: 7, totalPages: 2 },
         }),
     });
 

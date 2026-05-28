@@ -161,10 +161,10 @@ describe('manage order list routes', () => {
 
     const payload = await res.json();
 
-    expect(payload.data.procurementStatuses).toContain('unprocured');
-    expect(payload.data.procurementStatuses).toContain('partially_received');
-    expect(payload.data.procurementStatuses).not.toContain('none');
-    expect(payload.data.procurementStatuses).not.toContain('partially_arrived');
+    expect(payload.procurementStatuses).toContain('unprocured');
+    expect(payload.procurementStatuses).toContain('partially_received');
+    expect(payload.procurementStatuses).not.toContain('none');
+    expect(payload.procurementStatuses).not.toContain('partially_arrived');
   });
 
   it('normalizes legacy delivered status filter to canonical fulfilled query', async () => {
@@ -193,8 +193,8 @@ describe('manage order list routes', () => {
 
     const payload = await res.json();
 
-    expect(payload.data.statuses).toContain('fulfilled');
-    expect(payload.data.statuses).not.toContain('delivered');
+    expect(payload.statuses).toContain('fulfilled');
+    expect(payload.statuses).not.toContain('delivered');
   });
 
   it('passes deliveryStatus through to repository query options and exposes delivery filter options', async () => {
@@ -212,7 +212,7 @@ describe('manage order list routes', () => {
     );
 
     const payload = await res.json();
-    expect(payload.data.deliveryStatuses).toEqual([
+    expect(payload.deliveryStatuses).toEqual([
       'not_shipped',
       'in_transit',
       'delivered',

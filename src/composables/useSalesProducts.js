@@ -29,7 +29,7 @@ export function useSalesProducts() {
       }
       if (res.success) {
         products.value = Array.isArray(res.data) ? res.data : [];
-        meta.value = res.meta || { total: products.value.length, page: 1, limit: Number(limit || 12) };
+        meta.value = res.pagination || { total: products.value.length, page: 1, limit: Number(limit || 12) };
         return { ok: true, items: products.value, meta: meta.value, error: null };
       }
       error.value = res.error || res.message || 'Load products failed';

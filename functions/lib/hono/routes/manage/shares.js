@@ -32,10 +32,11 @@ app.get(
 
     return c.json({
       success: true,
-      data: {
-        items,
-        total: result.total,
+      data: items,
+      pagination: {
         page: result.page,
+        limit: result.limit || limit,
+        total: result.total,
         totalPages: result.totalPages,
       },
     });

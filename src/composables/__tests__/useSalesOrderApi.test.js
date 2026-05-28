@@ -28,6 +28,7 @@ describe('useSalesOrderApi', () => {
       ok: true,
       data: { items: [] },
       error: null,
+      pagination: null,
       status: 200,
     });
 

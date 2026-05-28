@@ -60,13 +60,15 @@ app.get('/', withCache(20), async (c) => {
     };
   });
 
+  const resolvedTotal = Number(result.total || 0);
   return c.json({
     success: true,
     data: items,
-    meta: {
-      total: Number(result.total || 0),
+    pagination: {
       page: result.page ?? page,
       limit: result.limit ?? limit,
+      total: resolvedTotal,
+      totalPages: Math.ceil(resolvedTotal / (result.limit ?? limit)),
     },
   });
 });

@@ -50,24 +50,22 @@ app.get('/', withCache(60), async (c) => {
 
     return c.json({
         success: true,
-        data: {
-            salespersons: results.map((s) => ({
-                id: s.id,
-                name: s.name,
-                store: s.store,
-                phone: s.phone,
-                accessToken: s.access_token,
-                isActive: !!s.is_active,
-                orderCount: s.order_count,
-                createdAt: s.created_at,
-                updatedAt: s.updated_at,
-            })),
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages: pages,
-            },
+        data: results.map((s) => ({
+            id: s.id,
+            name: s.name,
+            store: s.store,
+            phone: s.phone,
+            accessToken: s.access_token,
+            isActive: !!s.is_active,
+            orderCount: s.order_count,
+            createdAt: s.created_at,
+            updatedAt: s.updated_at,
+        })),
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: pages,
         },
     });
 });

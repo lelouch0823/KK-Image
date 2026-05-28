@@ -179,7 +179,7 @@ app.get('/', requirePermission('audit:read'), async (c) => {
             data: (results || []).map(normalizeRow),
             pagination: {
                 page,
-                pageSize,
+                limit: pageSize,
                 total: countResult?.total || 0,
                 totalPages: Math.ceil((countResult?.total || 0) / pageSize),
             },

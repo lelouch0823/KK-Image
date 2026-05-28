@@ -85,12 +85,12 @@ describe('light composables behavior', () => {
     const tags = useTags();
     authFetchMock
       .mockResolvedValueOnce({
-        json: vi.fn().mockResolvedValue({ success: true, tags: [{ id: 't-1', name: 'Beta' }] }),
+        json: vi.fn().mockResolvedValue({ success: true, data: [{ id: 't-1', name: 'Beta' }] }),
       })
       .mockResolvedValueOnce({
         json: vi.fn().mockResolvedValue({
           success: true,
-          tag: { id: 't-2', name: 'Alpha', color: '#fff' },
+          data: { id: 't-2', name: 'Alpha', color: '#fff' },
         }),
       })
       .mockResolvedValueOnce({

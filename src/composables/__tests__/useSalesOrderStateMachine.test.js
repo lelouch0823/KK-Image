@@ -4,7 +4,7 @@ import { useSalesOrderStateMachine } from '@/composables/sales/useSalesOrderStat
 describe('useSalesOrderStateMachine', () => {
   it('transitions idle -> loading -> ready', async () => {
     const machine = useSalesOrderStateMachine({
-      loadOrders: vi.fn().mockResolvedValue({ ok: true, data: { orders: [{ id: 'o-1' }] } }),
+      loadOrders: vi.fn().mockResolvedValue({ ok: true, data: [{ id: 'o-1' }] }),
       createOrder: vi.fn(),
       loadDetail: vi.fn(),
       comment: vi.fn(),
@@ -21,7 +21,7 @@ describe('useSalesOrderStateMachine', () => {
     const loadOrders = vi
       .fn()
       .mockResolvedValueOnce({ ok: false, error: 'boom' })
-      .mockResolvedValueOnce({ ok: true, data: { orders: [{ id: 'o-1' }] } });
+      .mockResolvedValueOnce({ ok: true, data: [{ id: 'o-1' }] });
 
     const machine = useSalesOrderStateMachine({
       loadOrders,
@@ -64,7 +64,7 @@ describe('useSalesOrderStateMachine', () => {
     const firstPending = machine.loadOrders({ search: 'old' });
     const secondPending = machine.loadOrders({ search: 'new' });
 
-    resolveSecond({ ok: true, data: { orders: [{ id: 'o-new' }] } });
+    resolveSecond({ ok: true, data: [{ id: 'o-new' }] });
     await secondPending;
 
     expect(machine.state.value).toBe('ready');

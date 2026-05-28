@@ -9,6 +9,7 @@
  */
 
 import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
 import { CommandIdempotencyRepository } from '../../../../repositories/CommandIdempotencyRepository.js';
 import { PurchaseOrderRepository } from '../../../../repositories/PurchaseOrderRepository.js';
 import { PurchaseOrderService } from '../../../../services/PurchaseOrderService.js';
@@ -35,6 +36,17 @@ import {
   replayReservedCommand,
   resolveReservationOwnership,
 } from '../../../../services/order-procurement-shared.js';
+import {
+  CreatePurchaseOrderSchema,
+  UpdatePurchaseOrderSchema,
+  UpdatePurchaseOrderStatusSchema,
+  PurchaseOrderReceiptSchema,
+  PurchaseOrderReceiptReversalSchema,
+  ShortageClosureSchema,
+  CreateFromOrdersSchema,
+  AddPurchaseOrderItemsSchema,
+  UpdatePurchaseOrderItemSchema,
+} from '../../schemas/purchase-order.js';
 
 const app = new Hono();
 const PURCHASE_ORDER_CREATE_COMMAND_TYPE = 'purchase_order_create';
@@ -392,9 +404,9 @@ app.get('/:id', withCache(20), async (c) => {
  * POST /:id/receipts — 采购收货 (partial receipts)
  * Body: { items: [{ purchase_order_item_id, received_qty, note? }] }
  */
-app.post('/:id/receipts', async (c) => {
+app.post('/:id/receipts', zValidator('json', PurchaseOrderReceiptSchema), async (c) => {
   const poId = c.req.param('id');
-  const body = await c.req.json();
+  const body = c.req.valid('json');
   const idempotencyKey = getIdempotencyKey(c);
 
   const repo = new PurchaseOrderRepository(c.env.DB);
@@ -413,10 +425,10 @@ app.post('/:id/receipts', async (c) => {
   return c.json({ success: true, data: result }, 201);
 });
 
-app.post('/:id/receipts/:receiptId/reversal', async (c) => {
+app.post('/:id/receipts/:receiptId/reversal', zValidator('json', PurchaseOrderReceiptReversalSchema), async (c) => {
   const poId = c.req.param('id');
   const receiptId = c.req.param('receiptId');
-  const body = await c.req.json();
+  const body = c.req.valid('json');
   const idempotencyKey = getIdempotencyKey(c);
 
   const repo = new PurchaseOrderRepository(c.env.DB);
@@ -450,9 +462,9 @@ app.post('/:id/receipts/:receiptId/reversal', async (c) => {
   return c.json({ success: true, data: result }, 201);
 });
 
-app.post('/:id/shortage-closures', async (c) => {
+app.post('/:id/shortage-closures', zValidator('json', ShortageClosureSchema), async (c) => {
   const poId = c.req.param('id');
-  const body = await c.req.json();
+  const body = c.req.valid('json');
   const idempotencyKey = getIdempotencyKey(c);
 
   const repo = new PurchaseOrderRepository(c.env.DB);
@@ -535,8 +547,8 @@ app.post('/:id/shortage-closures', async (c) => {
  * POST / — 创建采购单 (草稿)
  * Body: { remark?, currency?, allocation_method?, estimated_shipping_cost?, estimated_tariff_cost?, items? }
  */
-app.post('/', async (c) => {
-  const body = await c.req.json();
+app.post('/', zValidator('json', CreatePurchaseOrderSchema), async (c) => {
+  const body = c.req.valid('json');
   const repo = new PurchaseOrderRepository(c.env.DB);
   const requestFingerprint = buildPurchaseOrderCreateRequestFingerprint(body);
   const {
@@ -663,13 +675,9 @@ app.post('/', async (c) => {
  * POST /from-orders — 从预订单快速创建采购单
  * Body: { order_ids: string[], remark?, allocation_method? }
  */
-app.post('/from-orders', async (c) => {
-  const body = await c.req.json();
+app.post('/from-orders', zValidator('json', CreateFromOrdersSchema), async (c) => {
+  const body = c.req.valid('json');
   const orderIds = [...new Set((body.order_ids || []).filter(Boolean))];
-
-  if (orderIds.length === 0) {
-    throw new BadRequestError('请至少选择一个预订单');
-  }
 
   const service = new PurchaseOrderService(c.env.DB);
   const requestFingerprint = buildPurchaseOrderCreateFromOrdersRequestFingerprint(orderIds, body);
@@ -769,8 +777,8 @@ app.post('/from-orders', async (c) => {
  * PUT /:id — 更新采购单基本信息
  * Body: { remark?, currency?, allocation_method?, estimated_shipping_cost?, estimated_tariff_cost?, actual_shipping_cost?, actual_tariff_cost? }
  */
-app.put('/:id', async (c) => {
-  const body = await c.req.json();
+app.put('/:id', zValidator('json', UpdatePurchaseOrderSchema), async (c) => {
+  const body = c.req.valid('json');
   const repo = new PurchaseOrderRepository(c.env.DB);
   const currentPo = await requireEntity(
     repo.findById(c.req.param('id')),
@@ -836,10 +844,8 @@ app.put('/:id', async (c) => {
  * PATCH /:id/status — 变更采购单状态 (触发级联)
  * Body: { status: 'ordered' | 'shipping' | 'arrived' | 'completed' | 'cancelled' }
  */
-app.patch('/:id/status', async (c) => {
-  const body = await c.req.json();
-
-  if (!body.status) throw new BadRequestError('缺少目标状态 status 字段');
+app.patch('/:id/status', zValidator('json', UpdatePurchaseOrderStatusSchema), async (c) => {
+  const body = c.req.valid('json');
 
   const service = new PurchaseOrderService(c.env.DB);
   // Service 内部会校验合法性并抛出 BadRequestError / NotFoundError
@@ -921,9 +927,9 @@ app.patch('/:id/status', async (c) => {
  * POST /:id/items — 添加明细
  * Body: { items: [{ product_id, pre_order_id?, quantity, unit_cost }] }
  */
-app.post('/:id/items', async (c) => {
+app.post('/:id/items', zValidator('json', AddPurchaseOrderItemsSchema), async (c) => {
   const poId = c.req.param('id');
-  const body = await c.req.json();
+  const body = c.req.valid('json');
   const repo = new PurchaseOrderRepository(c.env.DB);
 
   // 校验采购单存在且为草稿状态
@@ -963,9 +969,9 @@ app.post('/:id/items', async (c) => {
  * PATCH /:id/items/:itemId — 更新单条明细（数量/单价）
  * Body: { quantity?, unit_cost? }
  */
-app.patch('/:id/items/:itemId', async (c) => {
+app.patch('/:id/items/:itemId', zValidator('json', UpdatePurchaseOrderItemSchema), async (c) => {
   const poId = c.req.param('id');
-  const body = await c.req.json();
+  const body = c.req.valid('json');
   const repo = new PurchaseOrderRepository(c.env.DB);
 
   // 校验采购单存在且为草稿状态

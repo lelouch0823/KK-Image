@@ -200,7 +200,7 @@ describe('manage product detail create routes idempotency', () => {
           'Content-Type': 'application/json',
           'Idempotency-Key': 'detail-dimension-key-1',
         },
-        body: JSON.stringify({ name: 'Size', sortOrder: 2 }),
+        body: JSON.stringify({ name: 'Size', sort_order: 2 }),
       },
       { DB: {} },
       { waitUntil: vi.fn() }
@@ -228,7 +228,7 @@ describe('manage product detail create routes idempotency', () => {
         idempotency_key: 'detail-dimension-key-2',
         request_fingerprint: buildDetailCreateFingerprint({
           productId: 'prod-1',
-          body: { name: 'Size', sortOrder: 1 },
+          body: { name: 'Size', sort_order: 1 },
         }),
         response_json: null,
         status: 'in_flight',
@@ -243,7 +243,7 @@ describe('manage product detail create routes idempotency', () => {
           'Content-Type': 'application/json',
           'Idempotency-Key': 'detail-dimension-key-2',
         },
-        body: JSON.stringify({ name: 'Color', sortOrder: 1 }),
+        body: JSON.stringify({ name: 'Color', sort_order: 1 }),
       },
       { DB: {} },
       { waitUntil: vi.fn() }
@@ -294,7 +294,7 @@ describe('manage product detail create routes idempotency', () => {
           commandId,
           requestFingerprint: buildDetailCreateFingerprint({
             productId: 'prod-1',
-            body: { name: 'Size', sortOrder: 2 },
+            body: { name: 'Size', sort_order: 2 },
           }),
           responseJson: responseJson == null ? null : JSON.stringify(responseJson),
           status,
@@ -314,7 +314,7 @@ describe('manage product detail create routes idempotency', () => {
           'Content-Type': 'application/json',
           'Idempotency-Key': 'detail-dimension-key-retry-1',
         },
-        body: JSON.stringify({ name: 'Size', sortOrder: 2 }),
+        body: JSON.stringify({ name: 'Size', sort_order: 2 }),
       },
       { DB: {} },
       { waitUntil: vi.fn() }
@@ -382,7 +382,7 @@ describe('manage product detail create routes idempotency', () => {
           commandId,
           requestFingerprint: buildDetailCreateFingerprint({
             productId: 'prod-1',
-            body: { name: 'Size', sortOrder: 2 },
+            body: { name: 'Size', sort_order: 2 },
           }),
           responseJson: responseJson == null ? null : JSON.stringify(responseJson),
           status,
@@ -402,7 +402,7 @@ describe('manage product detail create routes idempotency', () => {
           'Content-Type': 'application/json',
           'Idempotency-Key': 'detail-dimension-key-finalize-1',
         },
-        body: JSON.stringify({ name: 'Size', sortOrder: 2 }),
+        body: JSON.stringify({ name: 'Size', sort_order: 2 }),
       },
       { DB: {} },
       { waitUntil: vi.fn() }

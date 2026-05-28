@@ -61,15 +61,13 @@ app.get('/', withCache(20), async (c) => {
 
     return c.json({
         success: true,
-        data: {
-            orders: result.items,
-            pagination: {
-                page: result.page,
-                limit: result.limit,
-                total: result.total,
-                totalPages: result.totalPages,
-            }
-        }
+        data: result.items,
+        pagination: {
+            page: result.page,
+            limit: result.limit,
+            total: result.total,
+            totalPages: result.totalPages,
+        },
     });
 });
 

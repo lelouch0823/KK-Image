@@ -12,7 +12,7 @@ export function useTags() {
             const res = await authFetch('/api/manage/tags');
             const data = await res.json();
             if (data.success) {
-                tags.value = data.tags;
+                tags.value = data.data;
             }
         } catch (err) {
             console.error('Failed to fetch tags', err);
@@ -30,10 +30,10 @@ export function useTags() {
             });
             const data = await res.json();
             if (data.success) {
-                tags.value.push(data.tag);
+                tags.value.push(data.data);
                 // Sort tags alphabetically
                 tags.value.sort((a, b) => a.name.localeCompare(b.name));
-                return data.tag;
+                return data.data;
             }
             throw new Error(data.error);
         } catch (err) {

@@ -29,10 +29,8 @@ describe('useGoodsOverview composable', () => {
       json: () =>
         Promise.resolve({
           success: true,
-          data: {
-            items: [{ id: 'v-1', name: 'Variant 1' }],
-            filters: { categories: ['tops'], brands: ['kk'] },
-          },
+          data: [{ id: 'v-1', name: 'Variant 1' }],
+          filters: { categories: ['tops'], brands: ['kk'] },
         }),
     });
 
@@ -79,10 +77,8 @@ describe('useGoodsOverview composable', () => {
         json: () =>
           Promise.resolve({
             success: true,
-            data: {
-              items: [{ id: 'v-1', name: 'Variant 1' }],
-              filters: { categories: ['tops'], brands: ['kk'] },
-            },
+            data: [{ id: 'v-1', name: 'Variant 1' }],
+            filters: { categories: ['tops'], brands: ['kk'] },
           }),
       })
       .mockRejectedValueOnce(new Error('network down'));
@@ -145,10 +141,8 @@ describe('useGoodsOverview composable', () => {
       json: () =>
         Promise.resolve({
           success: true,
-          data: {
-            items: [{ id: 'v-new', name: 'Pants Variant' }],
-            filters: { categories: ['pants'], brands: [] },
-          },
+          data: [{ id: 'v-new', name: 'Pants Variant' }],
+          filters: { categories: ['pants'], brands: [] },
         }),
     });
     await vi.waitFor(() => {
@@ -159,10 +153,8 @@ describe('useGoodsOverview composable', () => {
       json: () =>
         Promise.resolve({
           success: true,
-          data: {
-            items: [{ id: 'v-old', name: 'Top Variant' }],
-            filters: { categories: ['tops'], brands: [] },
-          },
+          data: [{ id: 'v-old', name: 'Top Variant' }],
+          filters: { categories: ['tops'], brands: [] },
         }),
     });
     await vi.waitFor(() => {
@@ -220,10 +212,8 @@ describe('useGoodsOverview composable', () => {
         json: () =>
           Promise.resolve({
             success: true,
-            data: {
-              items: [{ id: 'var-1', productId: 'prod-1', name: 'Tee', sku: 'TEE-S', shortage: 5, avgUnitCost: 8.8 }],
-              filters: { categories: [], brands: [] },
-            },
+            data: [{ id: 'var-1', productId: 'prod-1', name: 'Tee', sku: 'TEE-S', shortage: 5, avgUnitCost: 8.8 }],
+            filters: { categories: [], brands: [] },
           }),
       })
       .mockResolvedValueOnce({
@@ -260,19 +250,17 @@ describe('useGoodsOverview composable', () => {
         json: () =>
           Promise.resolve({
             success: true,
-            data: {
-              items: [{
-                id: 'var-archived',
-                variantId: 'var-archived',
-                productId: 'prod-1',
-                name: 'Archived Tee',
-                sku: 'TEE-ARCHIVED',
-                shortage: 5,
-                avgUnitCost: 8.8,
-                orderIds: ['o-2', 'o-1', 'o-2'],
-              }],
-              filters: { categories: [], brands: [] },
-            },
+            data: [{
+              id: 'var-archived',
+              variantId: 'var-archived',
+              productId: 'prod-1',
+              name: 'Archived Tee',
+              sku: 'TEE-ARCHIVED',
+              shortage: 5,
+              avgUnitCost: 8.8,
+              orderIds: ['o-2', 'o-1', 'o-2'],
+            }],
+            filters: { categories: [], brands: [] },
           }),
       })
       .mockResolvedValueOnce({
@@ -307,7 +295,7 @@ describe('useGoodsOverview composable', () => {
 
   it('builds export url from current filters', () => {
     mockAuthFetch.mockResolvedValue({
-      json: () => Promise.resolve({ success: true, data: { items: [], filters: { categories: [], brands: [] } } }),
+      json: () => Promise.resolve({ success: true, data: [], filters: { categories: [], brands: [] } }),
     });
     const appendChild = vi.spyOn(document.body, 'appendChild').mockImplementation(() => {});
     const removeChild = vi.spyOn(document.body, 'removeChild').mockImplementation(() => {});
@@ -340,10 +328,8 @@ describe('useGoodsOverview composable', () => {
       json: () =>
         Promise.resolve({
           success: true,
-          data: {
-            items: [{ id: 'var-1', productId: 'prod-1', name: 'Tee', sku: 'TEE-S', shortage: 0, avgUnitCost: 8.8 }],
-            filters: { categories: [], brands: [] },
-          },
+          data: [{ id: 'var-1', productId: 'prod-1', name: 'Tee', sku: 'TEE-S', shortage: 0, avgUnitCost: 8.8 }],
+          filters: { categories: [], brands: [] },
         }),
     });
 

@@ -106,10 +106,8 @@ describe('useOrders list isolation', () => {
     resolveSecond({
       json: async () => ({
         success: true,
-        data: {
-          orders: [{ id: 'order-new' }],
-          pagination: { page: 2, limit: 20, total: 1, totalPages: 1 },
-        },
+        data: [{ id: 'order-new' }],
+        pagination: { page: 2, limit: 20, total: 1, totalPages: 1 },
       }),
     });
     await secondPending;
@@ -120,10 +118,8 @@ describe('useOrders list isolation', () => {
     resolveFirst({
       json: async () => ({
         success: true,
-        data: {
-          orders: [{ id: 'order-old' }],
-          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
-        },
+        data: [{ id: 'order-old' }],
+        pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
       }),
     });
     await firstPending;
@@ -155,10 +151,8 @@ describe('useOrders list isolation', () => {
 
     resolveSecond({
       ok: true,
-      data: {
-        orders: [{ id: 'sales-new' }],
-        pagination: { page: 2, limit: 10, total: 1, totalPages: 1 },
-      },
+      data: [{ id: 'sales-new' }],
+      pagination: { page: 2, limit: 10, total: 1, totalPages: 1 },
     });
     await secondPending;
 
@@ -167,10 +161,8 @@ describe('useOrders list isolation', () => {
 
     resolveFirst({
       ok: true,
-      data: {
-        orders: [{ id: 'sales-old' }],
-        pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
-      },
+      data: [{ id: 'sales-old' }],
+      pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
     });
     await firstPending;
 
@@ -182,18 +174,14 @@ describe('useOrders list isolation', () => {
     mocks.authFetch.mockResolvedValueOnce({
       json: async () => ({
         success: true,
-        data: {
-          orders: [{ id: 'manage-order' }],
-          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
-        },
+        data: [{ id: 'manage-order' }],
+        pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
       }),
     });
     mocks.salesOrderApi.list.mockResolvedValueOnce({
       ok: true,
-      data: {
-        orders: [{ id: 'sales-order' }],
-        pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
-      },
+      data: [{ id: 'sales-order' }],
+      pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
     });
 
     const {

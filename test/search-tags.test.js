@@ -77,7 +77,7 @@ describe('Search & Tagging API', () => {
             expect(res.status).toBe(200);
             const data = await res.json();
             expect(data.success).toBe(true);
-            expect(data.tags).toContainEqual(expect.objectContaining({ name: 'tagA' }));
+            expect(data.data).toContainEqual(expect.objectContaining({ name: 'tagA' }));
             spy.mockRestore();
         });
     });

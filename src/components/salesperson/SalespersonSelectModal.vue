@@ -175,7 +175,7 @@ const loadSalespersons = async () => {
     const response = await authFetch(API.SALESPERSONS);
     const result = await response.json();
     if (result.success && result.data) {
-      salespersons.value = result.data.salespersons || result.data || [];
+      salespersons.value = Array.isArray(result.data) ? result.data : [];
     }
   } catch (err) {
     console.error('Load salespersons failed:', err);

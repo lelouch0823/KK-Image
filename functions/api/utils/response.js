@@ -38,6 +38,37 @@ export function success(data, message = 'Success', status = 200, headers = {}) {
 }
 
 /**
+ * 标准分页列表响应（纯 JSON 对象，供 Hono c.json() 使用）
+ * @param {Array} data - 列表数据
+ * @param {object} pagination - 分页信息 { page, limit, total, totalPages? }
+ * @param {object} [extra={}] - 额外字段
+ * @returns {object}
+ */
+export function paginatedList(data, pagination, extra = {}) {
+  return {
+    success: true,
+    data,
+    pagination: {
+      page: pagination.page,
+      limit: pagination.limit,
+      total: pagination.total,
+      totalPages: pagination.totalPages ?? Math.ceil(pagination.total / pagination.limit),
+    },
+    ...extra,
+  };
+}
+
+/**
+ * 无分页列表响应（纯 JSON 对象，供 Hono c.json() 使用）
+ * @param {Array} data - 列表数据
+ * @param {object} [extra={}] - 额外字段
+ * @returns {object}
+ */
+export function list(data, extra = {}) {
+  return { success: true, data, ...extra };
+}
+
+/**
  * 错误响应封装
  * @param {string} message - 错误信息
  * @param {number} [status=400] - 状态码

@@ -78,12 +78,8 @@ describe('Customers create success UX', () => {
       .mockResolvedValueOnce(
         jsonResponse({
           success: true,
-          data: {
-            list: [{ id: 'cus-1', name: 'Alice' }],
-            total: 1,
-            totalPages: 1,
-            page: 1,
-          },
+          data: [{ id: 'cus-1', name: 'Alice' }],
+          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
         })
       );
 

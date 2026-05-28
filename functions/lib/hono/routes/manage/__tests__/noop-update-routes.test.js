@@ -200,7 +200,7 @@ describe('manage no-op update routes', () => {
     expect(res.status).toBe(200);
     expect(mocks.customerList).toHaveBeenCalledWith({ page: 2, limit: 5, search: 'ali' });
     const body = await res.json();
-    expect(body.data.list).toEqual([
+    expect(body.data).toEqual([
       expect.objectContaining({
         id: 'customer-1',
         createdBy: 'admin',
@@ -208,7 +208,7 @@ describe('manage no-op update routes', () => {
         updatedAt: 2,
       }),
     ]);
-    expect(body.data.totalPages).toBe(1);
+    expect(body.pagination.totalPages).toBe(1);
   });
 
   it('returns customer detail with camelCase response fields', async () => {
@@ -315,7 +315,7 @@ describe('manage no-op update routes', () => {
     expect(res.status).toBe(200);
     expect(mocks.salespersonList).toHaveBeenCalledWith({ page: 3, limit: 7, search: 'bob' });
     const body = await res.json();
-    expect(body.data.salespersons).toEqual([
+    expect(body.data).toEqual([
       expect.objectContaining({
         id: 'sales-1',
         accessToken: 'token-1',

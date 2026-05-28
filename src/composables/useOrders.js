@@ -13,9 +13,7 @@ import { API, SALES_ORDER_PAGE_SIZE } from '@/utils/constants';
 // ============================================================
 // 全局共享状态 (Single Source of Truth)
 // ============================================================
-const sharedResource = useResource(API.MANAGE_ORDERS, {
-  listPath: 'data.orders',
-});
+const sharedResource = useResource(API.MANAGE_ORDERS);
 const sharedSalesResource = useResource('/api/sales/__shared__/orders', {
   cache: false,
 });
@@ -77,40 +75,32 @@ export function useOrders() {
       if (res.success) {
         // 追加模式：合并新数据，限制最大长度
         if (append) {
-          const combined = [...resource.items.value, ...res.data.orders];
+          const combined = [...resource.items.value, ...res.data];
           resource.items.value = combined.length > MAX_ITEMS
             ? combined.slice(-MAX_ITEMS)
             : combined;
         } else {
           // 替换模式：直接赋值
-          resource.items.value = res.data.orders;
+          resource.items.value = res.data;
         }
 
         // 提取额外数据（元数据几乎不随分页变化，仅在缺失时加载）
-        if (res.data.salespersons && salespersons.value.length === 0) {
-          salespersons.value = res.data.salespersons;
+        if (res.salespersons && salespersons.value.length === 0) {
+          salespersons.value = res.salespersons;
         }
-        if (res.data.statuses && statuses.value.length === 0) {
-          statuses.value = res.data.statuses;
+        if (res.statuses && statuses.value.length === 0) {
+          statuses.value = res.statuses;
         }
-        if (res.data.procurementStatuses && procurementStatuses.value.length === 0) {
-          procurementStatuses.value = res.data.procurementStatuses;
+        if (res.procurementStatuses && procurementStatuses.value.length === 0) {
+          procurementStatuses.value = res.procurementStatuses;
         }
-        if (res.data.deliveryStatuses && deliveryStatuses.value.length === 0) {
-          deliveryStatuses.value = res.data.deliveryStatuses;
+        if (res.deliveryStatuses && deliveryStatuses.value.length === 0) {
+          deliveryStatuses.value = res.deliveryStatuses;
         }
 
         // Update pagination
-        if (res.data.pagination) {
-          Object.assign(resource.pagination, res.data.pagination);
-        } else if (res.data.total !== undefined) {
-          // Fallback: Manually calculate pagination if only total is provided
-          const currentLimit = parseInt(params.limit || resource.pagination.limit) || 20;
-          const total = parseInt(res.data.total) || 0;
-          resource.pagination.page = parseInt(params.page || resource.pagination.page) || 1;
-          resource.pagination.limit = currentLimit;
-          resource.pagination.total = total;
-          resource.pagination.totalPages = Math.ceil(total / currentLimit) || 1;
+        if (res.pagination) {
+          Object.assign(resource.pagination, res.pagination);
         }
 
         // Ensure totalPages is valid
@@ -407,7 +397,7 @@ export function useOrders() {
     }
 
     if (result.ok) {
-      const nextOrders = result.data?.orders || [];
+      const nextOrders = Array.isArray(result.data) ? result.data : [];
       if (append) {
         const combined = [...salesResource.items.value, ...nextOrders];
         salesResource.items.value = combined.length > MAX_ITEMS
@@ -417,8 +407,8 @@ export function useOrders() {
         salesResource.items.value = nextOrders;
       }
 
-      if (result.data?.pagination) {
-        Object.assign(salesResource.pagination, result.data.pagination);
+      if (result.pagination) {
+        Object.assign(salesResource.pagination, result.pagination);
       }
       salesResource.loading.value = false;
       return true;

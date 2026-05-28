@@ -58,7 +58,7 @@ export function useProducts() {
         }
         return {
             items: Array.isArray(res.data) ? res.data : [],
-            meta: res.meta || { total: 0, page: Number(page || 1), limit: Number(limit || 50) },
+            meta: res.pagination || { total: 0, page: Number(page || 1), limit: Number(limit || 50) },
         };
     };
 

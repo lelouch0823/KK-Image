@@ -176,9 +176,9 @@ const fetchShares = async () => {
     const res = await authFetchJson(`${API.SHARES}?page=${page.value}&limit=20`);
 
     if (res.success) {
-      shares.value = res.data.items;
-      total.value = res.data.total;
-      totalPages.value = res.data.totalPages;
+      shares.value = res.data;
+      total.value = res.pagination.total;
+      totalPages.value = res.pagination.totalPages;
     }
   } catch (_e) {
     error(t('common.loadFailed'));

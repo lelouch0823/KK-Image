@@ -42,7 +42,7 @@ export function useSalesOrderStateMachine(actions = {}) {
     }
 
     if (actionName === 'loadOrders') {
-      const orders = Array.isArray(result.data?.orders) ? result.data.orders : [];
+      const orders = Array.isArray(result.data) ? result.data : [];
       state.value = orders.length > 0 ? STATES.READY : STATES.EMPTY;
       return result;
     }

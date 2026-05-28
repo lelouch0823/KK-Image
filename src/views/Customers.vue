@@ -266,10 +266,10 @@ const loadCustomers = async (params = {}) => {
     const result = await res.json();
 
     if (result.success) {
-      customers.value = result.data.list;
-      pagination.total = result.data.total;
-      pagination.totalPages = result.data.totalPages;
-      pagination.page = result.data.page;
+      customers.value = result.data;
+      pagination.total = result.pagination.total;
+      pagination.totalPages = result.pagination.totalPages;
+      pagination.page = result.pagination.page;
       return;
     }
     if ((result.error || result.message || '').includes('权限不足')) {

@@ -26,6 +26,7 @@ export function useSalesOrderApi() {
         return {
           ok: true,
           data: payload.data ?? null,
+          pagination: payload.pagination ?? null,
           error: null,
           status,
         };
