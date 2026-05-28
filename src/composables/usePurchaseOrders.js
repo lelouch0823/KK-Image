@@ -106,8 +106,8 @@ export function usePurchaseOrders() {
       }
 
       if (json.success) {
-        list.value = json.data.items;
-        total.value = json.data.total;
+        list.value = json.data;
+        total.value = json.pagination?.total ?? 0;
         return true;
       }
 

@@ -67,7 +67,7 @@ describe('usePurchaseOrders authz handling', () => {
     statsForbidden.data = { error: '权限不足: purchase_orders:stats' };
     mockAuthFetch
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({ success: true, data: { items: [], total: 0 } }),
+        json: () => Promise.resolve({ success: true, data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } }),
       })
       .mockRejectedValueOnce(statsForbidden);
 
@@ -126,7 +126,8 @@ describe('usePurchaseOrders authz handling', () => {
       json: () =>
         Promise.resolve({
           success: true,
-          data: { items: [{ id: 'po-new', status: 'ordered' }], total: 1 },
+          data: [{ id: 'po-new', status: 'ordered' }],
+          pagination: { page: 2, limit: 20, total: 1, totalPages: 1 },
         }),
     });
     await secondPending;
@@ -137,7 +138,8 @@ describe('usePurchaseOrders authz handling', () => {
       json: () =>
         Promise.resolve({
           success: true,
-          data: { items: [{ id: 'po-old', status: 'draft' }], total: 1 },
+          data: [{ id: 'po-old', status: 'draft' }],
+          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
         }),
     });
     await firstPending;
@@ -365,7 +367,8 @@ describe('usePurchaseOrders authz handling', () => {
       .mockResolvedValueOnce({
         json: () => Promise.resolve({
           success: true,
-          data: { items: [{ id: 'po-1' }], total: 1 },
+          data: [{ id: 'po-1' }],
+          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
         }),
       })
       .mockResolvedValueOnce({
@@ -401,7 +404,8 @@ describe('usePurchaseOrders authz handling', () => {
       .mockResolvedValueOnce({
         json: () => Promise.resolve({
           success: true,
-          data: { items: [{ id: 'po-1' }], total: 1 },
+          data: [{ id: 'po-1' }],
+          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
         }),
       })
       .mockResolvedValueOnce({
@@ -686,7 +690,8 @@ describe('usePurchaseOrders authz handling', () => {
       .mockResolvedValueOnce({
         json: () => Promise.resolve({
           success: true,
-          data: { items: [{ id: 'po-1' }], total: 1 },
+          data: [{ id: 'po-1' }],
+          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
         }),
       })
       .mockResolvedValueOnce({
