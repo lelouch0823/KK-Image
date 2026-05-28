@@ -181,7 +181,7 @@ export async function findApproachingDeadline(db, startDate, endDate) {
  * @param {Object} options
  * @returns {Promise<Object>}
  */
-export async function listBySalesperson(db, salespersonId, { status, page = 1, limit = 20 } = {}) {
+export async function listBySalesperson(db, salespersonId, { status, search, page = 1, limit = 20 } = {}) {
     const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
         { page, limit },
         { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
@@ -197,6 +197,12 @@ export async function listBySalesperson(db, salespersonId, { status, page = 1, l
     } else if (statusValues.length > 1) {
         where += ` AND o.status IN (${statusValues.map(() => '?').join(', ')})`;
         params.push(...statusValues);
+    }
+
+    if (search) {
+        where += ' AND (o.order_no LIKE ? OR o.summary_name LIKE ? OR o.summary_brand LIKE ? OR o.summary_sku LIKE ?)';
+        const like = `%${search}%`;
+        params.push(like, like, like, like);
     }
 
     const countResult = await queryFirst(

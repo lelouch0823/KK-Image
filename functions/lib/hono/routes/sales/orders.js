@@ -51,10 +51,12 @@ app.get('/', withCache(20), async (c) => {
     const { env } = c;
     const { page, limit } = parsePagination(c);
     const status = c.req.query('status');
+    const search = c.req.query('search') || '';
 
     const orderRepo = new OrderRepository(env.DB);
     const result = await orderRepo.listBySalesperson(salesperson.id, {
         status: normalizeOrderStatusFilter(status),
+        search: search.trim(),
         page,
         limit
     });
