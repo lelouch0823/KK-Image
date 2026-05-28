@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
+import { zValidator } from '@hono/zod-validator';
 import { requirePermission } from '../../middleware/auth.js';
 import { generateId, now } from '../../../../_shared/utils.js';
 import { BadRequestError, ConflictError } from '../../errors.js';
@@ -7,6 +9,16 @@ import { withCache } from '../../middleware/cache.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
+
+const CreateTagSchema = z.object({
+    name: z.string().min(1, '标签名不能为空').max(100),
+    color: z.string().max(20).optional(),
+}).strict();
+
+const AssignTagSchema = z.object({
+    file_id: z.string().min(1),
+    tag_id: z.string().min(1),
+}).strict();
 
 const tagsRoute = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -23,11 +35,8 @@ tagsRoute.get('/', requirePermission('files:read'), withCache(30), async (c) => 
 });
 
 // POST 创建标签
-tagsRoute.post('/', requirePermission('files:write'), async (c) => {
-    const { name, color } = await c.req.json();
-    if (!name || name.trim() === '') {
-        throw new BadRequestError('Name is required');
-    }
+tagsRoute.post('/', requirePermission('files:write'), zValidator('json', CreateTagSchema), async (c) => {
+    const { name, color } = c.req.valid('json');
 
     const id = generateId();
     const repo = new TagRepository(c.env.DB);
@@ -65,9 +74,8 @@ tagsRoute.post('/', requirePermission('files:write'), async (c) => {
 });
 
 // POST 分配标签到文件
-tagsRoute.post('/assign', requirePermission('files:write'), async (c) => {
-    const { file_id, tag_id } = await c.req.json();
-    if (!file_id || !tag_id) throw new BadRequestError('Missing IDs');
+tagsRoute.post('/assign', requirePermission('files:write'), zValidator('json', AssignTagSchema), async (c) => {
+    const { file_id, tag_id } = c.req.valid('json');
 
     const repo = new TagRepository(c.env.DB);
     await repo.assignToFile({ fileId: file_id, tagId: tag_id, createdAt: now() });
@@ -94,8 +102,8 @@ tagsRoute.post('/assign', requirePermission('files:write'), async (c) => {
 });
 
 // DELETE 从文件移除标签
-tagsRoute.delete('/assign', requirePermission('files:write'), async (c) => {
-    const { file_id, tag_id } = await c.req.json();
+tagsRoute.delete('/assign', requirePermission('files:write'), zValidator('json', AssignTagSchema), async (c) => {
+    const { file_id, tag_id } = c.req.valid('json');
 
     const repo = new TagRepository(c.env.DB);
     await repo.removeFromFile(file_id, tag_id);

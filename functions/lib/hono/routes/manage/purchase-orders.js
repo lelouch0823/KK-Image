@@ -363,7 +363,17 @@ app.get('/', withCache(20), async (c) => {
   const repo = new PurchaseOrderRepository(c.env.DB);
   const result = await repo.list(filters);
 
-  return c.json({ success: true, data: result });
+  const totalPages = Math.ceil((result.total || 0) / (result.limit || 20));
+  return c.json({
+    success: true,
+    data: result.items,
+    pagination: {
+      page: result.page,
+      limit: result.limit,
+      total: result.total,
+      totalPages,
+    },
+  });
 });
 
 /**

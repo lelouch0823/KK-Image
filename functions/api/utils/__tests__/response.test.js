@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { jsonResponse, success, error } from '../response';
+import { jsonResponse, success, error, paginatedList, list } from '../response';
 
 // 模拟 Global Response 对象，因为 Vitest 环境中默认没有 Response
 // 实际上 Vitest 的 jsdom 环境可能已经提供了 Response，我们先尝试直接使用
@@ -60,5 +60,51 @@ describe('Backend Response Utils', () => {
   it('error should use default status 400 if not provided', () => {
     const response = error('Bad Request');
     expect(response.status).toBe(400);
+  });
+
+  describe('paginatedList', () => {
+    it('should return a standard paginated list response', () => {
+      const data = [{ id: 1 }, { id: 2 }];
+      const pagination = { page: 1, limit: 20, total: 50, totalPages: 3 };
+
+      const result = paginatedList(data, pagination);
+
+      expect(result).toEqual({
+        success: true,
+        data,
+        pagination: { page: 1, limit: 20, total: 50, totalPages: 3 },
+      });
+    });
+
+    it('should auto-calculate totalPages when not provided', () => {
+      const data = [{ id: 1 }];
+      const pagination = { page: 1, limit: 10, total: 25 };
+
+      const result = paginatedList(data, pagination);
+
+      expect(result.pagination.totalPages).toBe(3);
+    });
+
+    it('should spread extra fields into the response', () => {
+      const result = paginatedList([], { page: 1, limit: 10, total: 0, totalPages: 0 }, { filters: { category: 'test' } });
+
+      expect(result.filters).toEqual({ category: 'test' });
+    });
+  });
+
+  describe('list', () => {
+    it('should return a standard list response', () => {
+      const data = [{ id: 1 }, { id: 2 }];
+
+      const result = list(data);
+
+      expect(result).toEqual({ success: true, data });
+    });
+
+    it('should spread extra fields into the response', () => {
+      const result = list([], { filters: { brands: ['a'] } });
+
+      expect(result).toEqual({ success: true, data: [], filters: { brands: ['a'] } });
+    });
   });
 });
