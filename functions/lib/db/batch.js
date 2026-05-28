@@ -7,10 +7,11 @@ const D1_MAX_BATCH_SIZE = 100;
 
 export function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
   if (!Array.isArray(items) || items.length === 0) return [];
+  const size = Math.max(1, Math.floor(chunkSize));
 
   const chunks = [];
-  for (let index = 0; index < items.length; index += chunkSize) {
-    chunks.push(items.slice(index, index + chunkSize));
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
   }
   return chunks;
 }

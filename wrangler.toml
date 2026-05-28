@@ -44,11 +44,10 @@ STORAGE_FALLBACK_TIMEOUT = "3000"
 # -----------------------------------------------------------------------------
 # 🔐 管理员认证（生产环境通过 Dashboard 设置）
 # -----------------------------------------------------------------------------
+# 开发环境默认凭据（仅用于本地开发，生产环境通过 Dashboard 设置）
 BASIC_USER = "admin"
-BASIC_PASS = "123"
-
-# JWT 密钥（生产环境必须通过 Dashboard 设置安全随机字符串）
-JWT_SECRET = "kk-image-jwt-secret-change-in-production"
+BASIC_PASS = "dev-only-password"
+JWT_SECRET = "dev-only-jwt-secret-change-in-production"
 
 # -----------------------------------------------------------------------------
 # 🛡️ 功能开关（可选）
