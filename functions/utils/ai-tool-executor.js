@@ -342,6 +342,6 @@ export async function executeAITool(name, args, repos) {
         }
     } catch (err) {
         console.error(`[AI Tool] Error executing ${name}:`, err.message);
-        return { error: true, message: `工具执行失败: ${err.message}` };
+        return { error: true, message: '工具执行失败，请稍后重试' };
     }
 }

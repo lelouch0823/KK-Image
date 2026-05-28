@@ -28,10 +28,20 @@ export function generatePrefixedId(prefix) {
  * @returns {string}
  */
 export function generateShareToken(length = 12) {
-  const array = new Uint8Array(length);
-  crypto.getRandomValues(array);
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  return Array.from(array, (byte) => chars[byte % chars.length]).join('');
+  // 使用拒绝采样避免模偏差
+  const result = [];
+  while (result.length < length) {
+    const array = new Uint8Array(length * 2);
+    crypto.getRandomValues(array);
+    for (const byte of array) {
+      if (byte < 248) { // 248 = 62 * 4，拒绝 248-255 避免模偏差
+        result.push(chars[byte % 62]);
+        if (result.length === length) break;
+      }
+    }
+  }
+  return result.join('');
 }
 
 // ==================== 时间戳 ====================

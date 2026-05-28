@@ -110,11 +110,17 @@ function resolveAllowedMimes(options) {
 async function generateUniqueName(repo, folderId, fileName) {
   let name = fileName;
   const ext = getExtension(name);
-  // 如果没有扩展名，base 就是 name，否则去掉 .ext
   const base = ext ? name.substring(0, name.lastIndexOf('.')) : name;
   let counter = 1;
+  const MAX_RETRIES = 1000;
 
   while (await repo.findByNameInFolder(folderId, name)) {
+    if (counter >= MAX_RETRIES) {
+      // 超过重试上限，使用 UUID 后缀确保唯一
+      const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8);
+      name = `${base}_${uuid}${ext ? '.' + ext : ''}`;
+      break;
+    }
     name = `${base} (${counter})${ext ? '.' + ext : ''}`;
     counter++;
   }
