@@ -6,6 +6,26 @@ import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
+/**
+ * 验证外部 API URL 安全性（防止 SSRF）
+ */
+function assertSafeExternalUrl(urlStr) {
+  let url;
+  try {
+    url = new URL(urlStr);
+  } catch {
+    throw new BadRequestError('无效的 URL 格式');
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new BadRequestError('URL 必须使用 http 或 https 协议');
+  }
+  const hostname = url.hostname;
+  const isPrivate = /^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|0\.|localhost|::1|\[::1\])/i.test(hostname);
+  if (isPrivate) {
+    throw new BadRequestError('不允许使用内网地址');
+  }
+}
+
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'POST', path: '/batch', domain: 'settings', action: 'settings.batch_upsert', severity: 'high', targetType: 'setting' },
@@ -157,6 +177,7 @@ app.post('/ai/models', async (c) => {
   const apiUrl = normalizeApiBaseUrl(body.apiUrl);
   const apiKey = String(body.apiKey || '').trim();
   ensureRequiredAiConfig({ apiUrl, apiKey });
+  assertSafeExternalUrl(apiUrl);
 
   const { response, data } = await fetchJsonWithAuth(`${apiUrl}/models`, apiKey, { method: 'GET' });
 
@@ -180,6 +201,7 @@ app.post('/ai/test', async (c) => {
   const apiKey = String(body.apiKey || '').trim();
   const model = String(body.model || '').trim();
   ensureRequiredAiConfig({ apiUrl, apiKey });
+  assertSafeExternalUrl(apiUrl);
 
   const startedAt = Date.now();
   const modelListResult = await fetchJsonWithAuth(`${apiUrl}/models`, apiKey, { method: 'GET' });

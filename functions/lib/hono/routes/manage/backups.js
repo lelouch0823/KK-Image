@@ -85,6 +85,10 @@ app.post('/', requirePermission('admin:full'), async (c) => {
 app.get('/:filename', requirePermission('admin:full'), async (c) => {
     const { env } = c;
     const filename = c.req.param('filename');
+    // 路径遍历防护：仅允许字母、数字、连字符、下划线、点号
+    if (!/^[a-zA-Z0-9_.\-]+$/.test(filename) || filename.includes('..')) {
+        throw new BadRequestError('无效的文件名');
+    }
     const object = await requireEntity(
         env.R2_BACKUP_BUCKET.get(filename),
         () => new NotFoundError(MSG.COMMON.NOT_FOUND)
