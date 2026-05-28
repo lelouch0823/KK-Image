@@ -60,8 +60,8 @@ export async function authMiddleware(c, next) {
     }));
   };
 
-  // 跳过公开路由
-  if (isPublicRoute(path) || /^\/api\/sales\/[^/]+\/auth$/.test(path)) {
+  // 跳过公开路由（仅匹配 /api/sales/:token/auth，其中 token 为字母数字格式）
+  if (isPublicRoute(path) || /^\/api\/sales\/[A-Za-z0-9]+\/auth$/.test(path)) {
     return next();
   }
 

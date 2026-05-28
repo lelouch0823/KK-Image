@@ -24,6 +24,7 @@ export const POLICY_METADATA = {
         "products:manage",
         "orders:manage",
         "users:read",
+        "webhooks:read",
         "stats:read"
       ]
     },

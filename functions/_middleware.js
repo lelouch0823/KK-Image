@@ -9,7 +9,8 @@ export const onRequest = [
   sentryPagesPlugin((context) => ({
     dsn: context.env.SENTRY_DSN,
     tracesSampleRate: Number(context.env.SENTRY_TRACES_SAMPLE_RATE || 0.2), // Default 20% sampling
-    environment: context.env.ENVIRONMENT || 'production',
+    // 未配置 ENVIRONMENT 时使用 'unknown'，避免误报为生产环境
+    environment: context.env.ENVIRONMENT || 'unknown',
     attachStacktrace: true,
   })),
 

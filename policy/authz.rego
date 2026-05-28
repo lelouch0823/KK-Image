@@ -1,5 +1,7 @@
 package kk.authz
 
+import rego.v1
+
 default allow := false
 
 role_permissions := {
@@ -12,6 +14,7 @@ role_permissions := {
     "products:manage",
     "orders:manage",
     "users:read",
+    "webhooks:read",
     "stats:read"
   },
   "sales": {

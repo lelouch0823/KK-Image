@@ -21,6 +21,7 @@
         "products:manage",
         "orders:manage",
         "users:read",
+        "webhooks:read",
         "stats:read"
       ]
     },
