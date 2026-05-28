@@ -38,7 +38,7 @@ describe('turnstile verify config route', () => {
 
     const request = new Request('https://example.com/api/turnstile/verify', {
       headers: {
-        Cookie: 'auth_token="jwt.admin.quoted"',
+        Cookie: 'ADMIN_AUTH="jwt.admin.quoted"',
       },
     });
 

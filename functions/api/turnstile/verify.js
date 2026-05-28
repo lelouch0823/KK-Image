@@ -63,7 +63,7 @@ export async function onRequestGet(context) {
   let isAdmin = false;
   try {
     const { verifyJWT, extractRequestToken } = await import('../utils/auth.js');
-    const token = extractRequestToken(request, { cookieName: 'auth_token', includeBearer: false });
+    const token = extractRequestToken(request, { cookieName: 'ADMIN_AUTH', includeBearer: false });
     if (token) {
       await verifyJWT(token, env);
       isAdmin = true;
