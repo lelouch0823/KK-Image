@@ -156,7 +156,7 @@ import { computed } from 'vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import { useI18n } from '@/composables/useI18n';
 import { formatTimelineTime } from '@/utils/formatters';
-import { resolveOrderProductName, resolveOrderQuantity, resolveOrderSnapshotField } from '@/utils/order-display';
+import { buildOrderDetailDisplayData, isMultilineOrder, resolveOrderQuantity } from '@/utils/order-display';
 import OrderLineProcurementState from './OrderLineProcurementState.vue';
 import OrderTimeline from './OrderTimeline.vue';
 
@@ -169,20 +169,16 @@ const props = defineProps({
 
 const { t } = useI18n();
 
-const currentData = computed(() => props.order.currentData || {});
 const orderLines = computed(() => (Array.isArray(props.order.lines) ? props.order.lines : []));
 const orderQuantity = computed(() => resolveOrderQuantity(props.order));
-const displayData = computed(() => ({
-  ...currentData.value,
-  name: resolveOrderProductName(props.order),
-  brand: resolveOrderSnapshotField(props.order, 'brand'),
-  series: resolveOrderSnapshotField(props.order, 'series'),
-  size: resolveOrderSnapshotField(props.order, 'size'),
-  color: resolveOrderSnapshotField(props.order, 'color'),
-  material: resolveOrderSnapshotField(props.order, 'material'),
-  remark: resolveOrderSnapshotField(props.order, 'remark'),
-  deadline: resolveOrderSnapshotField(props.order, 'deadline'),
-}));
+const multilineSummaryName = computed(() =>
+  isMultilineOrder(props.order) ? t('order.detail.multilineSummary', { count: orderLines.value.length }) : ''
+);
+const displayData = computed(() =>
+  buildOrderDetailDisplayData(props.order, {
+    multilineSummaryName: multilineSummaryName.value,
+  })
+);
 
 const formatTime = (timestamp) => formatTimelineTime(timestamp);
 </script>

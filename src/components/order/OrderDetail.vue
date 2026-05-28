@@ -204,11 +204,11 @@ import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import Lightbox from '@/components/ui/Lightbox.vue';
 import {
+  buildOrderDetailDisplayData,
+  isMultilineOrder,
   resolveOrderDeliveryStatus,
-  resolveOrderProductName,
   resolveOrderProgressStatus,
   resolveOrderQuantity,
-  resolveOrderSnapshotField,
 } from '@/utils/order-display';
 
 const props = defineProps({
@@ -289,31 +289,26 @@ const hasCustomerInfo = computed(() => {
 });
 
 // 当前数据
-const currentData = computed(() => props.order.currentData || {});
 const orderLines = computed(() => (Array.isArray(props.order.lines) ? props.order.lines : []));
 const orderShipments = computed(() => (Array.isArray(props.order.shipments) ? props.order.shipments : []));
 const orderReturns = computed(() => (Array.isArray(props.order.returns) ? props.order.returns : []));
 const orderQuantity = computed(() => resolveOrderQuantity(props.order));
 const progressStatus = computed(() => resolveOrderProgressStatus(props.order));
 const deliveryStatus = computed(() => resolveOrderDeliveryStatus(props.order));
+const multilineSummaryName = computed(() =>
+  isMultilineOrder(props.order) ? t('order.detail.multilineSummary', { count: orderLines.value.length }) : ''
+);
 const canConfirmDelivery = computed(() =>
   props.mode === 'admin'
   && String(props.order?.status || '').trim().toLowerCase() === 'fulfilled'
   && deliveryStatus.value === 'in_transit'
 );
-const productName = computed(() => resolveOrderProductName(props.order));
-const displayData = computed(() => ({
-  ...currentData.value,
-  name: productName.value,
-  brand: resolveOrderSnapshotField(props.order, 'brand'),
-  series: resolveOrderSnapshotField(props.order, 'series'),
-  sku: resolveOrderSnapshotField(props.order, 'sku'),
-  size: resolveOrderSnapshotField(props.order, 'size'),
-  color: resolveOrderSnapshotField(props.order, 'color'),
-  material: resolveOrderSnapshotField(props.order, 'material'),
-  remark: resolveOrderSnapshotField(props.order, 'remark'),
-  deadline: resolveOrderSnapshotField(props.order, 'deadline'),
-}));
+const displayData = computed(() =>
+  buildOrderDetailDisplayData(props.order, {
+    multilineSummaryName: multilineSummaryName.value,
+  })
+);
+const productName = computed(() => displayData.value.name);
 
 // 是否有修正
 const hasCorrection = computed(() => {

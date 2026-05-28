@@ -233,4 +233,108 @@ describe('order helpers procurement status mapping', () => {
     expect(mapped.originalData).toEqual({});
     expect(mapped.currentData).toEqual({});
   });
+
+  it('hydrates fallback detail lines from current_data.lines when persisted order lines are missing', () => {
+    const mapped = mapOrderDetail({
+      id: 'o-legacy-lines',
+      order_no: 'SO-2001',
+      salesperson_id: 's-1',
+      customer_id: 'c-1',
+      product_id: null,
+      variant_id: null,
+      status: 'confirmed',
+      procurement_status: 'ordered',
+      unread_by_admin: 0,
+      unread_by_sales: 0,
+      original_data: '{}',
+      current_data: JSON.stringify({
+        name: 'Header Snapshot',
+        lines: [
+          {
+            name: 'Desk',
+            quantity: 2,
+            productId: 'p-1',
+            variantId: 'v-1',
+          },
+          {
+            name: 'Chair',
+            quantity: 3,
+            productId: 'p-2',
+            variantId: 'v-2',
+          },
+        ],
+      }),
+      main_image_key: null,
+      main_image_blurhash: null,
+      main_image_id: null,
+      quantity: 5,
+      created_at: 1,
+      updated_at: 2,
+      customer_name: null,
+      customer_company: null,
+      customer_phone: null,
+      lines: [],
+    });
+
+    expect(mapped.displayStatus).toBe('ordered');
+    expect(mapped.lines).toEqual([
+      expect.objectContaining({
+        snapshotName: 'Desk',
+        orderedQuantity: 2,
+        productId: 'p-1',
+        variantId: 'v-1',
+        displayStatus: 'ordered',
+      }),
+      expect.objectContaining({
+        snapshotName: 'Chair',
+        orderedQuantity: 3,
+        productId: 'p-2',
+        variantId: 'v-2',
+        displayStatus: 'ordered',
+      }),
+    ]);
+  });
+
+  it('builds a single fallback detail line from header snapshot data without overriding explicit lifecycle status', () => {
+    const mapped = mapOrderDetail({
+      id: 'o-legacy-header',
+      order_no: 'SO-2002',
+      salesperson_id: 's-1',
+      customer_id: 'c-1',
+      product_id: 'p-header',
+      variant_id: 'v-header',
+      status: 'shipping',
+      procurement_status: 'arrived',
+      fulfillment_status: 'fulfilled',
+      delivery_status: 'in_transit',
+      unread_by_admin: 0,
+      unread_by_sales: 0,
+      original_data: '{}',
+      current_data: JSON.stringify({
+        name: 'Header Chair',
+      }),
+      main_image_key: null,
+      main_image_blurhash: null,
+      main_image_id: null,
+      quantity: 4,
+      created_at: 1,
+      updated_at: 2,
+      customer_name: null,
+      customer_company: null,
+      customer_phone: null,
+      lines: [],
+    });
+
+    expect(mapped.fulfillmentStatus).toBe('fulfilled');
+    expect(mapped.deliveryStatus).toBe('in_transit');
+    expect(mapped.lines).toEqual([
+      expect.objectContaining({
+        snapshotName: 'Header Chair',
+        orderedQuantity: 4,
+        productId: 'p-header',
+        variantId: 'v-header',
+        displayStatus: 'arrived',
+      }),
+    ]);
+  });
 });

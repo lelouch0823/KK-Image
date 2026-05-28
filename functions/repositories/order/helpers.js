@@ -57,6 +57,72 @@ function mapOrderLine(line) {
     };
 }
 
+function toNonNegativeNumber(value, fallback = 0) {
+    const normalized = Number(value);
+    if (!Number.isFinite(normalized) || normalized < 0) return fallback;
+    return normalized;
+}
+
+function normalizeSnapshotText(value, fallback = '') {
+    if (value === undefined || value === null) return fallback;
+    const normalized = String(value).trim();
+    return normalized || fallback;
+}
+
+function mapFallbackOrderLine(line = {}, order = {}, index = 0, fallbackStatus = 'none') {
+    return {
+        id: line.id || `${order.id || order.order_no || 'order'}-compat-line-${index + 1}`,
+        orderId: order.id || null,
+        productId: line.productId ?? line.product_id ?? order.product_id ?? null,
+        variantId: line.variantId ?? line.variant_id ?? order.variant_id ?? null,
+        snapshotName: normalizeSnapshotText(
+            line.snapshotName ?? line.snapshot_name ?? line.name ?? line.productName,
+            ''
+        ),
+        snapshotImage: line.snapshotImage ?? line.snapshot_image ?? null,
+        orderedQuantity: toNonNegativeNumber(line.orderedQuantity ?? line.ordered_qty ?? line.quantity, 0),
+        procuredQuantity: toNonNegativeNumber(line.procuredQuantity ?? line.procured_qty, 0),
+        receivedQuantity: toNonNegativeNumber(line.receivedQuantity ?? line.received_qty, 0),
+        reservedQuantity: toNonNegativeNumber(line.reservedQuantity ?? line.reserved_qty, 0),
+        shippedQuantity: toNonNegativeNumber(line.shippedQuantity ?? line.shipped_qty, 0),
+        returnedQuantity: toNonNegativeNumber(line.returnedQuantity ?? line.returned_qty, 0),
+        cancelledQuantity: toNonNegativeNumber(line.cancelledQuantity ?? line.cancelled_qty, 0),
+        displayStatus: line.displayStatus || line.display_status || fallbackStatus,
+        createdAt: order.created_at || null,
+        updatedAt: order.updated_at || null,
+    };
+}
+
+function buildFallbackOrderLines(order = {}, currentData = {}, originalData = {}, fallbackStatus = 'none') {
+    const rawLines = Array.isArray(currentData?.lines) && currentData.lines.length > 0
+        ? currentData.lines
+        : (Array.isArray(originalData?.lines) && originalData.lines.length > 0 ? originalData.lines : []);
+
+    if (rawLines.length > 0) {
+        return rawLines
+            .filter(Boolean)
+            .map((line, index) => mapFallbackOrderLine(line, order, index, fallbackStatus));
+    }
+
+    const snapshotName = normalizeSnapshotText(
+        currentData?.name ?? originalData?.name,
+        ''
+    );
+
+    if (!snapshotName && !order?.product_id && !order?.variant_id && !(Number(order?.quantity) > 0)) {
+        return [];
+    }
+
+    return [
+        mapFallbackOrderLine({
+            name: snapshotName,
+            quantity: order?.quantity ?? currentData?.quantity ?? originalData?.quantity ?? 1,
+            productId: order?.product_id ?? null,
+            variantId: order?.variant_id ?? null,
+        }, order, 0, fallbackStatus),
+    ];
+}
+
 function aggregateOrderDisplayStatus(lines = []) {
     if (!Array.isArray(lines) || lines.length === 0) return null;
 
@@ -176,9 +242,12 @@ export function mapOrderDetail(order) {
     const originalData = parseJsonObject(order.original_data, {});
     const currentData = parseJsonObject(order.current_data, {});
     const procurementStatus = order.procurement_status || 'none';
-    const lines = Array.isArray(order.lines) ? order.lines.map(mapOrderLine) : [];
-    const displayStatus = order.display_status || aggregateOrderDisplayStatus(lines) || procurementStatus;
-    const rolledUpLineTotals = lines.reduce((acc, line) => ({
+    const persistedLines = Array.isArray(order.lines) ? order.lines.map(mapOrderLine) : [];
+    const lines = persistedLines.length > 0
+        ? persistedLines
+        : buildFallbackOrderLines(order, currentData, originalData, order.display_status || procurementStatus);
+    const displayStatus = order.display_status || aggregateOrderDisplayStatus(persistedLines) || procurementStatus;
+    const rolledUpLineTotals = persistedLines.reduce((acc, line) => ({
         orderedQty: acc.orderedQty + Number(line?.orderedQuantity || 0),
         shippedQty: acc.shippedQty + Number(line?.shippedQuantity || 0),
         returnedQty: acc.returnedQty + Number(line?.returnedQuantity || 0),
@@ -191,7 +260,7 @@ export function mapOrderDetail(order) {
     });
     const derivedFulfillmentStatus = deriveFulfillmentStatus(rolledUpLineTotals);
     const explicitFulfillmentStatus = normalizeExplicitFulfillmentStatus(order?.fulfillment_status);
-    const fulfillmentStatus = lines.length > 0
+    const fulfillmentStatus = persistedLines.length > 0
         ? derivedFulfillmentStatus
         : (explicitFulfillmentStatus || derivedFulfillmentStatus);
     const deliveryStatus = deriveDeliveryStatus(order, fulfillmentStatus, rolledUpLineTotals);

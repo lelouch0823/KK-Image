@@ -3,7 +3,14 @@ import { mount } from '@vue/test-utils';
 import OrderDetail from '@/components/order/OrderDetail.vue';
 
 vi.mock('@/composables/useI18n', () => ({
-  useI18n: () => ({ t: (key) => key }),
+  useI18n: () => ({
+    t: (key, paramsOrFallback) => {
+      if (key === 'order.detail.multilineSummary' && paramsOrFallback && typeof paramsOrFallback === 'object') {
+        return `多商品订单（${paramsOrFallback.count}项）`;
+      }
+      return key;
+    },
+  }),
 }));
 
 vi.mock('@/composables/useToast', () => ({
@@ -121,5 +128,88 @@ describe('OrderDetail line-level rendering', () => {
     expect(wrapper.get('[data-testid="order-lines-card"]').text()).toBe('admin-1-Line A');
     expect(wrapper.get('[data-testid="shipment-history-card"]').text()).toBe('1');
     expect(wrapper.get('[data-testid="return-history-card"]').text()).toBe('1');
+  });
+
+  it('uses a multiline summary for detail header fields instead of reusing the first line snapshot', () => {
+    const wrapper = mount(OrderDetail, {
+      props: {
+        order: {
+          ...order,
+          quantity: 5,
+          currentData: {
+            name: 'Header Snapshot',
+            brand: 'KK',
+            series: 'Series A',
+            sku: 'SKU-HEADER',
+            size: '200x90',
+            color: 'Walnut',
+            material: 'Wood',
+            remark: 'keep this note',
+          },
+          lines: [
+            {
+              id: 'line-1',
+              snapshotName: 'Desk',
+              orderedQuantity: 2,
+              procuredQuantity: 2,
+              receivedQuantity: 2,
+              shippedQuantity: 0,
+              cancelledQuantity: 0,
+              displayStatus: 'partially_received',
+            },
+            {
+              id: 'line-2',
+              snapshotName: 'Chair',
+              orderedQuantity: 3,
+              procuredQuantity: 0,
+              receivedQuantity: 0,
+              shippedQuantity: 0,
+              cancelledQuantity: 0,
+              displayStatus: 'ordered',
+            },
+          ],
+        },
+        mode: 'admin',
+      },
+      global: {
+        stubs: {
+          OrderTimeline: true,
+          OrderFileGrid: true,
+          OrderInfoCard: {
+            props: ['data', 'quantity'],
+            template: '<div data-testid="order-info-card">{{ JSON.stringify({ data, quantity }) }}</div>',
+          },
+          OrderPersonCard: true,
+          OrderStatusHeader: {
+            props: ['productName', 'quantity'],
+            template: '<div data-testid="status-header">{{ productName }}|{{ quantity }}</div>',
+          },
+          OrderShipmentHistoryCard: true,
+          OrderReturnHistoryCard: true,
+          OrderLinesCard: true,
+          OrderCommentInput: true,
+          OrderPrintView: true,
+          OrderEditModal: true,
+          Modal: true,
+          ConfirmDialog: true,
+          Lightbox: true,
+          AppIcon: true,
+        },
+      },
+    });
+
+    const infoCard = JSON.parse(wrapper.get('[data-testid="order-info-card"]').text());
+    expect(wrapper.get('[data-testid="status-header"]').text()).toBe('多商品订单（2项）|5');
+    expect(infoCard.quantity).toBe(5);
+    expect(infoCard.data).toMatchObject({
+      name: '多商品订单（2项）',
+      brand: '',
+      series: '',
+      sku: '',
+      size: '',
+      color: '',
+      material: '',
+      remark: 'keep this note',
+    });
   });
 });

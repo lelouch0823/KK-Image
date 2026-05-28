@@ -114,6 +114,7 @@ export default {
     notFound: 'Order not found',
     backToList: 'Back to List',
     status: 'Status',
+    multilineSummary: 'Multi-item order ({count} lines)',
     lineItems: 'Order Lines',
     orderedQty: 'Ordered',
     procuredQty: 'Procured',

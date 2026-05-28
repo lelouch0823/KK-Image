@@ -114,6 +114,7 @@ export default {
     notFound: '未找到订单',
     backToList: '返回列表',
     status: '状态',
+    multilineSummary: '多商品订单（{count}项）',
     lineItems: '订单行',
     orderedQty: '下单',
     procuredQty: '已采',
