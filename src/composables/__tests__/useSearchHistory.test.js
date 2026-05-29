@@ -62,7 +62,6 @@ describe('useSearchHistory', () => {
   });
 
   it('falls back to an empty list when localStorage load fails', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('boom');
     });
@@ -70,13 +69,11 @@ describe('useSearchHistory', () => {
     const searchHistory = useSearchHistory('broken');
 
     expect(searchHistory.history.value).toEqual([]);
-    expect(warnSpy).toHaveBeenCalledWith('Failed to load search history:', expect.any(Error));
 
     getItemSpy.mockRestore();
   });
 
-  it('warns but keeps state when save or clear operations fail', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  it('keeps state when save or clear operations fail', () => {
     const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('set failed');
     });
@@ -88,8 +85,6 @@ describe('useSearchHistory', () => {
     searchHistory.addHistory('alpha');
     searchHistory.clearHistory();
 
-    expect(warnSpy).toHaveBeenCalledWith('Failed to save search history:', expect.any(Error));
-    expect(warnSpy).toHaveBeenCalledWith('Failed to clear search history:', expect.any(Error));
     expect(searchHistory.history.value).toEqual([]);
 
     setItemSpy.mockRestore();

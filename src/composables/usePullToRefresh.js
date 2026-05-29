@@ -12,7 +12,7 @@ export function usePullToRefresh(onRefresh, options = {}) {
     const isPulling = ref(false);
     const pullDistance = ref(0);
     const startY = ref(0);
-    const isDragging = ref(0);
+    const isDragging = ref(false);
 
     const handleTouchStart = (e) => {
         // Only enable if at the top of the page/container

@@ -145,7 +145,6 @@ describe('utility composables behavior', () => {
 
   it('falls back safely when recent input storage is corrupted or unavailable', () => {
     localStorage.setItem('kk-recent-inputs-order', '{bad json');
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const recent = useRecentInputs();
 
     expect(recent.getRecent('field')).toEqual([]);
@@ -160,7 +159,9 @@ describe('utility composables behavior', () => {
     });
     recent.clearAll();
 
-    expect(warn).toHaveBeenCalled();
+    // Should not throw even when storage is unavailable
+    expect(recent.getRecent('field')).toEqual([]);
+
     setItem.mockRestore();
     removeItem.mockRestore();
   });

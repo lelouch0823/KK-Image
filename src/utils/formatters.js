@@ -39,14 +39,15 @@ export const formatDuration = (seconds, t) => {
  */
 export const formatDate = (timestamp, options = {}) => {
   if (!timestamp) return '-';
+  const { locale, ...restOptions } = options;
   const date = new Date(Number(timestamp));
-  return date.toLocaleString('zh-CN', {
+  return date.toLocaleString(locale || 'zh-CN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-    ...options,
+    ...restOptions,
   });
 };
 
