@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { requirePermission } from '../../middleware/auth.js';
 import { generateId, now } from '../../../../_shared/utils.js';
-import { BadRequestError, ConflictError } from '../../errors.js';
+import { ConflictError } from '../../errors.js';
 import { TagRepository } from '../../../../repositories/TagRepository.js';
 import { withCache } from '../../middleware/cache.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';

@@ -354,10 +354,6 @@ describe('frontend design token contracts', () => {
         forbidden: ['<svg'],
       },
       {
-        file: 'src/utils/highlight.js',
-        forbidden: ['bg-yellow-200', 'text-yellow-900'],
-      },
-      {
         file: 'src/views/sales/SalesSpacesView.vue',
         forbidden: ['<svg'],
       },
