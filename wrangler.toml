@@ -157,11 +157,8 @@ AI_API_URL = "https://api.openai.com/v1"
 AI_MODELS = "gpt-4o"
 AI_MODEL_SWITCH_THRESHOLD = "5"
 
-# SOTA: 预览环境敏感变量应通过 .dev.vars.preview 或 Dashboard 设置
-# 以下为测试占位符，实际值不应提交到代码库
-BASIC_USER = "admin"
-BASIC_PASS = "preview123"
-JWT_SECRET = "kk-image-jwt-secret-preview"
+# 预览环境凭据必须通过 Cloudflare Dashboard 设置，不在此硬编码
+# BASIC_USER, BASIC_PASS, JWT_SECRET
 TG_Bot_Token = ""
 TG_Chat_ID = ""
 S3_ENDPOINT = ""
