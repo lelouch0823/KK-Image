@@ -20,9 +20,9 @@ ALTER TABLE notifications ADD COLUMN order_id TEXT;
 -- =============================================================================
 
 -- 按接收方和销售员查询（销售端通知列表）
-CREATE INDEX IF NOT EXISTS idx_notifications_receiver_sales 
+CREATE INDEX IF NOT EXISTS idx_notifications_receiver_sales
   ON notifications(receiver, salesperson_id, is_read, created_at DESC);
 
 -- 按订单查询（去重检查）
-CREATE INDEX IF NOT EXISTS idx_notifications_order 
+CREATE INDEX IF NOT EXISTS idx_notifications_order
   ON notifications(order_id);
