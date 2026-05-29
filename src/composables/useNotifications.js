@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, onScopeDispose } from 'vue';
 import { API } from '@/utils/constants';
 import { useAuth } from '@/composables/useAuth';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
@@ -185,6 +185,11 @@ export function useNotifications() {
       pollInterval = null;
     }
   };
+
+  // 组件卸载时自动停止轮询
+  onScopeDispose(() => {
+    stopPolling();
+  });
 
   return {
     notifications,

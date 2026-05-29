@@ -173,7 +173,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useClipboard } from '@/composables/useClipboard';
@@ -324,5 +324,10 @@ watch(token, () => {
 
 onMounted(() => {
   loadAlbum();
+});
+
+onBeforeUnmount(() => {
+  // 组件卸载时复位 body overflow
+  document.body.style.overflow = '';
 });
 </script>

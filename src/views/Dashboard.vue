@@ -320,7 +320,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onActivated, computed, watch, nextTick } from 'vue';
+import { ref, onMounted, onActivated, onBeforeUnmount, computed, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
@@ -720,6 +720,14 @@ onMounted(async () => {
   nextTick(() => {
     initCharts();
   });
+});
+
+onBeforeUnmount(() => {
+  // 销毁所有 Chart.js 实例防止内存泄漏
+  for (const chart of Object.values(charts)) {
+    chart?.destroy?.();
+  }
+  charts = {};
 });
 
 onActivated(() => {
