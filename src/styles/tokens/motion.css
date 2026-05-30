@@ -1,3 +1,13 @@
 :root {
-    --transition-base: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    /* 动效 token 系统 - 四级过渡 */
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+    --transition-fast: 100ms var(--ease-in-out);      /* 微交互：按钮 hover、焦点环 */
+    --transition-base: 150ms var(--ease-in-out);      /* 标准：折叠、切换 */
+    --transition-smooth: 250ms var(--ease-out-expo);   /* 流畅：面板展开、路由切换 */
+    --transition-slow: 400ms var(--ease-out-expo);     /* 强调：模态框进场、大面积动画 */
+
+    /* 交错动画延迟基数 */
+    --stagger-base: 40ms;
 }

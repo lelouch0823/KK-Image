@@ -2,6 +2,8 @@
 export default {
   title: 'Sales Management',
   subtitle: 'Manage accounts and access permissions',
+  permissionDenied: 'Permission Denied for Salesperson Management',
+  permissionDeniedDesc: 'Your account does not have salesperson management access. Please contact the admin to assign salespersons:manage.',
   create: 'New Salesperson',
   edit: 'Edit Salesperson',
   name: 'Name',

@@ -14,7 +14,7 @@
           <!-- 图标/背景装饰 -->
           <div
             :class="[
-              'relative flex h-24 items-center justify-center overflow-hidden',
+              'relative flex h-20 items-center justify-center overflow-hidden',
               typeClasses.bg,
             ]"
           >
@@ -25,42 +25,41 @@
 
             <div
               :class="[
-                'relative z-10 flex size-14  items-center justify-center rounded-full',
+                'relative z-10 flex size-12 items-center justify-center rounded-full',
                 typeClasses.iconBg,
                 typeClasses.iconText,
               ]"
             >
               <!-- Success -->
-              <!-- Success -->
               <AppIcon
                 v-if="type === 'success'"
                 name="check"
-                class="size-8"
+                class="size-6"
               />
               <!-- Danger -->
               <AppIcon
                 v-else-if="type === 'danger'"
                 name="exclamation-triangle"
-                class="size-8"
+                class="size-6"
               />
               <!-- Warning -->
               <AppIcon
                 v-else-if="type === 'warning'"
                 name="exclamation-circle"
-                class="size-8"
+                class="size-6"
               />
               <!-- Info / Primary (default) -->
               <AppIcon
                 v-else
                 name="information-circle"
-                class="size-8"
+                class="size-6"
               />
             </div>
           </div>
 
           <!-- 内容 -->
-          <div class="p-6 text-center">
-            <h3 class="mb-2 text-xl font-bold text-(--text-main)">
+          <div class="px-6 pt-4 pb-2 text-center">
+            <h3 class="mb-1.5 text-base font-semibold text-(--text-main)">
               {{ title || t('common.confirmTitle') }}
             </h3>
             <p class="text-sm leading-relaxed text-(--text-secondary)">
@@ -87,7 +86,7 @@
           </div>
 
           <!-- 操作按钮 -->
-          <div class="flex justify-end gap-3 px-6 pb-6">
+          <div class="flex justify-end gap-3 px-6 pb-5 pt-2">
             <AppButton
               variant="secondary"
               :text="cancelText || t('common.cancel')"
@@ -267,7 +266,7 @@ const handleConfirm = () => {
 
 // ESC key to close
 const handleKeyDown = (e) => {
-  if (!props.modelValue) return;
+  if (!props.modelValue || !isTopModal(modalId.value)) return;
   if (e.key === 'Escape' && !props.loading) {
     handleCancel();
   }
@@ -285,16 +284,22 @@ onUnmounted(() => {
 <style scoped>
 .fade-scale-enter-active,
 .fade-scale-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity 250ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .fade-scale-enter-from,
 .fade-scale-leave-to {
   opacity: 0;
 }
 .fade-scale-enter-active .transform {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fade-scale-leave-active .transform {
+  transition: transform 200ms ease-in;
 }
 .fade-scale-enter-from .transform {
-  transform: scale(0.9);
+  transform: scale(0.95) translateY(8px);
+}
+.fade-scale-leave-to .transform {
+  transform: scale(0.97) translateY(4px);
 }
 </style>

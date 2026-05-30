@@ -2,6 +2,8 @@
 export default {
   title: '销售管理',
   subtitle: '管理销售人员账户和访问权限',
+  permissionDenied: '销售人员管理权限不足',
+  permissionDeniedDesc: '当前账号没有销售人员管理权限，请联系管理员分配 salespersons:manage。',
   create: '新建销售',
   edit: '编辑销售',
   name: '姓名',

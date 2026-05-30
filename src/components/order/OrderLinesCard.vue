@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="normalizedLines.length > 0"
-    class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4"
+    class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4"
     data-testid="order-lines-card"
   >
     <div class="mb-4 flex items-center justify-between gap-3">

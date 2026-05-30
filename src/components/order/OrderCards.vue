@@ -19,9 +19,10 @@
           <div
             class="size-16 shrink-0 overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-muted)"
           >
-            <AppImage 
-              v-if="order.mainImage" 
-              :src="order.mainImage" 
+            <AppImage
+              v-if="order.mainImage"
+              :src="order.mainImage"
+              :alt="order.name || order.orderNo"
               :blurhash="order.mainImageBlurhash"
               fit="cover"
               class="order-card-image size-full"

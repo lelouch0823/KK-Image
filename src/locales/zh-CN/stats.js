@@ -30,6 +30,8 @@ export default {
   dailyUpload: '每日上传',
   refreshSuccess: '统计刷新成功',
   loadError: '数据加载失败',
+  permissionDenied: '统计分析权限不足',
+  permissionDeniedDesc: '当前账号没有统计读取权限，请联系管理员分配 stats:read。',
   justNow: '刚刚',
   minutesAgo: '{count}分钟前',
   hoursAgo: '{count}小时前',

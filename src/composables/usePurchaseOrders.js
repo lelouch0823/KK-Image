@@ -16,6 +16,7 @@ import {
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
+import { handleApiError } from '@/utils/api-helpers';
 
 export function usePurchaseOrders() {
   const { addToast } = useToast();
@@ -119,20 +120,9 @@ export function usePurchaseOrders() {
         return false;
       }
       console.error('loadPurchaseOrders failed:', e);
-      const status = Number(e?.status || 0);
-      if (status === 403) {
-        errorCode.value = 'FORBIDDEN';
-        error.value = e?.data?.error || e?.message || '权限不足';
-        return false;
-      }
-      if (status === 401) {
-        errorCode.value = 'UNAUTHORIZED';
-        error.value = e?.data?.error || e?.message || '未授权';
-        return false;
-      }
-      errorCode.value = 'NETWORK_ERROR';
-      error.value = e?.message || t('purchaseOrder.error.loadFailed');
-      addToast({ message: t('purchaseOrder.error.loadFailed'), type: 'error' });
+      const { code, message } = handleApiError(e, { t, addToast, fallbackKey: 'purchaseOrder.error.loadFailed' });
+      errorCode.value = code;
+      error.value = message;
       return false;
     } finally {
       if (requestId === listRequestId) {

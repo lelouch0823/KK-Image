@@ -22,9 +22,7 @@
 
         <!-- Loading State -->
         <div v-if="verifying" class="flex items-center justify-center gap-2 text-(--text-secondary)">
-          <div
-            class="border-t-primary size-4 animate-spin rounded-full border-2 border-(--border-subtle)"
-          ></div>
+          <AppIcon name="spinner" class="text-primary size-4 animate-spin" />
           <span class="text-sm">{{ t('spacePublic.verifying') }}</span>
         </div>
       </div>

@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-xl border border-(--border-subtle) bg-(--bg-card) shadow-sm">
+  <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card) shadow-card">
     <div
       data-testid="binding-header"
       class="rounded-t-xl border-b border-(--border-subtle) bg-(--bg-muted)/25 px-3 py-2.5 sm:px-5 sm:py-3.5"
@@ -23,6 +23,7 @@
             <AppImage
               v-if="boundProduct.mainImage"
               :src="boundProduct.mainImage"
+              :alt="boundProduct.name || '商品图片'"
               fit="cover"
               class="size-full cursor-pointer object-cover transition-transform hover:scale-105"
               @click="openLightbox"

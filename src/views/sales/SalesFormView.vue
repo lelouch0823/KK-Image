@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto w-full max-w-2xl space-y-4 pb-8" :data-sales-order-mode="salesOrderEntry">
-    <div class="rounded-xl border border-(--border-subtle) bg-(--bg-card) p-3">
+    <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-3">
       <p class="text-xs font-medium text-(--text-secondary)">
         {{ t('order.binding.salesGuide') }}
       </p>

@@ -8,6 +8,7 @@ export default {
     createDesc: 'Create a space to organize and share your files',
     emptyTitle: 'No Shared Spaces',
     loadFailed: 'Failed to load spaces',
+    loadFailedDesc: 'Failed to load resources. Please check your network or try again later.',
     loadDetailFailed: 'Failed to load space details',
     createSuccess: 'Space created successfully',
     createFailed: 'Failed to create space',

@@ -1,21 +1,15 @@
 <template>
-  <div class="animate-fade-in-up flex flex-col items-center justify-center py-12 text-center md:py-16" :class="containerClass">
-    <!-- Icon Container with Blob Background -->
-    <div class="relative mb-6">
-      <!-- Decorative Blob -->
-      <div 
-        class="from-primary-bg absolute inset-0 scale-150 rounded-full to-transparent opacity-60 blur-xl"
-      ></div>
-      
-      <!-- Icon Circle -->
-      <div 
-        class="shadow-soft relative flex items-center justify-center rounded-2xl bg-(--bg-card) transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:shadow-lg" 
+  <div class="flex flex-col items-center justify-center py-10 text-center md:py-14" :class="containerClass">
+    <!-- Icon Container -->
+    <div class="relative mb-5">
+      <div
+        class="flex items-center justify-center rounded-2xl border border-(--border-subtle) bg-(--bg-muted)/50 transition-all duration-200"
         :class="iconContainerClass"
       >
         <slot name="icon">
           <AppIcon
             :name="appIconName"
-            class="text-primary-light transition-colors duration-300 group-hover:text-primary"
+            class="text-(--text-muted)"
             :class="[iconClass, iconSizeClass]"
           />
         </slot>
@@ -23,21 +17,21 @@
     </div>
 
     <!-- Title -->
-    <h3 class="text-main text-lg font-semibold tracking-tight" :class="titleClass">
+    <h3 class="text-sm font-medium text-(--text-main)" :class="titleClass">
       <slot name="title">{{ title }}</slot>
     </h3>
 
     <!-- Description -->
     <p
       v-if="description || $slots.description"
-      class="text-muted mt-2 max-w-sm text-sm leading-relaxed"
+      class="text-(--text-muted) mt-1.5 max-w-xs text-xs leading-relaxed"
       :class="descriptionClass"
     >
       <slot name="description">{{ description }}</slot>
     </p>
 
     <!-- Action -->
-    <div v-if="$slots.action" class="animate-scale-in mt-6" style="animation-delay: 0.1s">
+    <div v-if="$slots.action" class="mt-5">
       <slot name="action"></slot>
     </div>
   </div>

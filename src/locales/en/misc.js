@@ -135,6 +135,7 @@ export default {
     empty: 'No notifications',
     newFeedback: 'New order feedback',
     permissionDenied: 'Please allow notifications for updates',
+    readPermissionDenied: 'Notification read permission denied',
     newOrder: 'New order received',
     purchase_receipt_recorded: 'Purchase Receipt Recorded',
     purchase_receipt_recorded_desc: 'Purchase order {purchaseOrderId} received {qty} unit(s).',
@@ -272,6 +273,11 @@ export default {
   // Audit Logs
   auditLogs: {
     title: 'Audit Logs',
+    permissionDenied: 'Permission Denied for Audit Logs',
+    permissionDeniedDesc: 'Your account does not have audit log read access. Please contact the admin to assign audit:read or admin:full.',
+    loadFailed: 'Failed to Load Audit Logs',
+    loadFailedDesc: 'Request failed. Please check your network and try again.',
+    sessionExpired: 'Session expired. Please log in again.',
     allActions: 'All Actions',
     allResults: 'All Results',
     allSeverities: 'All Severities',

@@ -45,6 +45,8 @@ export default {
     },
     export: 'Export CSV',
     empty: 'No products require ordering',
+    permissionDenied: 'Permission Denied for Goods Overview',
+    permissionDeniedDesc: 'Your account does not have goods overview read access. Please contact the admin to assign products:manage.',
 
     // Batch operations
     batch: {

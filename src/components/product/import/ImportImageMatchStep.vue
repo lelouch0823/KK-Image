@@ -37,7 +37,7 @@
         </div>
 
         <!-- Match Stats -->
-        <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4 shadow-sm">
+        <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4 shadow-card">
             <div class="mb-3 flex items-center justify-between">
                 <span class="text-sm font-semibold text-(--text-main)">{{ t('product.import.auto_matched', '匹配结果') }}</span>
                 <span class="bg-primary-bg text-primary rounded-full px-2 py-0.5 text-xs font-medium">

@@ -4,7 +4,7 @@
     :data-sales-order-mode="salesOrderEntry"
   >
     <!-- 加载状态 -->
-    <div v-if="loading" class="flex min-h-screen items-center justify-center bg-(--bg-page)">
+    <div v-if="loading" class="flex min-h-[70vh] items-center justify-center bg-(--bg-page)">
       <AsyncStatePanel state="loading" class="w-full max-w-md" />
     </div>
 
@@ -15,7 +15,7 @@
     <div v-else>
       <!-- 顶部导航 -->
       <header
-        class="sticky top-0 z-40 border-b border-(--border-color) bg-(--bg-card)/90 backdrop-blur-lg transition-all"
+        class="sticky top-0 z-40 border-b border-(--border-color) bg-(--bg-card) transition-colors duration-200"
       >
         <div class="mx-auto flex h-14 max-w-screen-xl items-center justify-between px-4 sm:px-6">
           <div class="flex items-center gap-3">
@@ -71,12 +71,12 @@
 
               <!-- 下拉弹窗 -->
               <Transition
-                enter-active-class="transition duration-100 ease-out"
-                enter-from-class="transform scale-95 opacity-0"
+                enter-active-class="transition duration-150 ease-out-expo"
+                enter-from-class="transform scale-[0.97] opacity-0"
                 enter-to-class="transform scale-100 opacity-100"
-                leave-active-class="transition duration-75 ease-in"
+                leave-active-class="transition duration-100"
                 leave-from-class="transform scale-100 opacity-100"
-                leave-to-class="transform scale-95 opacity-0"
+                leave-to-class="transform scale-[0.98] opacity-0"
               >
                 <div
                   v-if="showNotifications"
@@ -130,7 +130,7 @@
       </AppErrorBoundary>
 
       <!-- Bottom TabBar -->
-      <nav class="fixed right-0 bottom-0 left-0 z-40 border-t border-(--border-color) bg-(--bg-card)/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg">
+      <nav class="fixed right-0 bottom-0 left-0 z-40 border-t border-(--border-color) bg-(--bg-card) pb-[env(safe-area-inset-bottom)]">
         <div class="mx-auto flex h-14 max-w-screen-xl items-center justify-around">
           <router-link
             :to="`/sales/${accessToken}`"

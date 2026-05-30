@@ -161,6 +161,7 @@
                 <AppImage
                   v-if="order.mainImage"
                   :src="order.mainImage"
+                  :alt="order.name || order.orderNo"
                   :blurhash="order.mainImageBlurhash"
                   class="size-12"
                   fit="cover"

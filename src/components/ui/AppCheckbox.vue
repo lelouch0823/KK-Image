@@ -3,7 +3,7 @@
     <input
       ref="inputEl"
       type="checkbox"
-      class="peer size-5 cursor-pointer appearance-none rounded-md border-2 border-(--border-color) bg-(--bg-card) transition-all duration-200 ease-in-out checked:border-primary! checked:bg-primary! hover:border-primary/50 focus:ring-primary/20 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+      class="peer size-5 cursor-pointer appearance-none rounded-md border-2 border-(--border-color) bg-(--bg-card) transition-all duration-200 ease-in-out checked:border-primary! checked:bg-primary! hover:border-primary/50 focus-visible:ring-primary/20 focus-visible:ring-2 focus-visible:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       :checked="isChecked"
       :value="value"
       :disabled="disabled"

@@ -71,8 +71,8 @@ vi.mock('@/composables/useI18n', () => ({
   }),
 }));
 
-vi.mock('chart.js/auto', () => ({
-  default: mocks.Chart,
+vi.mock('@/utils/chart-setup', () => ({
+  Chart: mocks.Chart,
 }));
 
 describe('Stats view behavior', () => {

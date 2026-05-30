@@ -12,6 +12,7 @@
           <AppImage
             v-if="currentFile && isImage(currentFile)"
             :src="currentFile.url"
+            :alt="currentFile.name"
             :blurhash="currentFile.blurhash"
             fit="contain"
             class="bg-surface size-full select-none"
@@ -184,6 +185,7 @@
             <AppImage
               v-if="isImage(file)"
               :src="file.url"
+              :alt="file.name"
               :blurhash="file.blurhash"
               fit="cover"
               class="size-full"

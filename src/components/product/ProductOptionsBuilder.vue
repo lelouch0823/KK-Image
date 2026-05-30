@@ -40,7 +40,7 @@
       <div
         v-for="(opt, idx) in options"
         :key="idx"
-        class="group relative overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) shadow-sm transition-all"
+        class="group relative overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) shadow-card transition-all"
       >
         <div class="flex items-start p-5 sm:p-6">
           <!-- 拖拽把手图标 Placeholder -->

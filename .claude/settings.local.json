@@ -19,7 +19,8 @@
       "Bash(pnpm vitest:*)",
       "Bash(git checkout:*)",
       "Bash(git log:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(python3 *)"
     ]
   }
 }

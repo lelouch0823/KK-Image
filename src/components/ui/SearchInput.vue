@@ -8,6 +8,7 @@
       class="input pl-9"
       :class="[inputClass, { 'pr-8': clearable && modelValue }]"
       @input="handleInput"
+      @keydown="handleKeydown"
     />
     <!-- 搜索图标 -->
     <AppIcon name="magnifying-glass" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-(--text-muted)" />
@@ -62,6 +63,13 @@ const handleInput = (e) => {
     }, props.debounce);
   } else {
     emit('search', value);
+  }
+};
+
+const handleKeydown = (e) => {
+  if (e.key === 'Enter') {
+    clearTimeout(debounceTimer);
+    emit('search', props.modelValue);
   }
 };
 

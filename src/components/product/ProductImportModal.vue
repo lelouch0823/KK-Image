@@ -129,7 +129,6 @@
 import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
-import * as XLSX from 'xlsx';
 import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
@@ -387,8 +386,15 @@ watch(() => props.modelValue, (visible) => {
 });
 
 // --- Parsers ---
+let _xlsx = null;
+async function getXLSX() {
+    if (!_xlsx) _xlsx = await import('xlsx');
+    return _xlsx;
+}
+
 const processFile = async (file) => {
     if (!file) return;
+    const XLSX = await getXLSX();
     const requestId = ++fileParseRequestId;
     
     // Basic validations

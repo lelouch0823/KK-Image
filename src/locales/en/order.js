@@ -210,6 +210,8 @@ export default {
   manage: {
     title: 'Orders',
     subtitle: 'Manage and review pre-order requests',
+    permissionDenied: 'Permission Denied for Order Management',
+    permissionDeniedDesc: 'Your account does not have order read access. Please contact the admin to assign orders:read.',
     create: 'New Order',
     createTitle: 'Create New Order',
     createSuccess: 'Order created successfully',

@@ -2,10 +2,10 @@
   <!-- 添加到组件根部的外层包装，不限制拖拽溢出，让窗口可以全屏移动 -->
   <div class="pointer-events-none fixed inset-0 z-9999 overflow-hidden">
     <transition
-      enter-active-class="transition duration-300 ease-out"
+      enter-active-class="transition duration-300 ease-out-expo"
       enter-from-class="translate-y-4 transform scale-95 opacity-0"
       enter-to-class="translate-y-0 transform scale-100 opacity-100"
-      leave-active-class="transition duration-200 ease-in"
+      leave-active-class="transition duration-200 ease-out-expo"
       leave-from-class="translate-y-0 transform scale-100 opacity-100"
       leave-to-class="translate-y-4 transform scale-95 opacity-0"
     >

@@ -1,13 +1,18 @@
 import { ref } from 'vue';
 import { useAuth } from '@/composables/useAuth';
+import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 
 const tags = ref([]);
 const loadingTags = ref(false);
 
 export function useTags() {
     const { authFetch } = useAuth();
+    const error = ref(null);
+    const errorCode = ref(null);
     const fetchTags = async () => {
         loadingTags.value = true;
+        error.value = null;
+        errorCode.value = null;
         try {
             const res = await authFetch('/api/manage/tags');
             const data = await res.json();
@@ -16,6 +21,8 @@ export function useTags() {
             }
         } catch (err) {
             console.error('Failed to fetch tags', err);
+            errorCode.value = classifyError(err);
+            error.value = extractErrorMessage(err, '加载标签失败');
         } finally {
             loadingTags.value = false;
         }
@@ -63,6 +70,8 @@ export function useTags() {
     return {
         tags,
         loadingTags,
+        error,
+        errorCode,
         fetchTags,
         createTag,
         assignTag,

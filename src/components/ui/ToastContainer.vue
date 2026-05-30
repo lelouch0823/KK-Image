@@ -1,12 +1,12 @@
 <template>
   <Teleport to="body">
-    <div class="pointer-events-none fixed top-4 right-4 z-[1000] flex flex-col gap-2">
+    <div class="pointer-events-none fixed top-4 right-4 z-[1000] flex flex-col gap-2" aria-live="polite" aria-atomic="false">
       <transition-group name="toast-slide">
         <div
           v-for="toast in toasts"
           :key="toast.id"
-          class="shadow-soft pointer-events-auto flex w-full max-w-xs items-center rounded-lg border border-(--border-color) bg-(--bg-card)/95 p-4 backdrop-blur-sm"
-          role="alert"
+          class="pointer-events-auto flex w-full max-w-xs items-center rounded-xl border border-(--border-color) bg-(--bg-card)/95 p-3.5 shadow-lg backdrop-blur-sm"
+          :role="toast.type === 'error' ? 'alert' : 'status'"
         >
           <div
             class="inline-flex size-8 flex-shrink-0 items-center justify-center rounded-lg"
@@ -40,7 +40,7 @@
           <div class="ml-3 text-sm font-normal text-(--text-main)">{{ toast.message }}</div>
           <button
             type="button"
-            class="-m-1.5 ml-auto inline-flex size-8 rounded-lg bg-transparent p-1.5 text-(--text-secondary) hover:bg-(--bg-hover) hover:text-(--text-main) focus:ring-2 focus:ring-(--border-color)"
+            class="-m-1 ml-auto inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-transparent text-(--text-muted) transition-colors hover:bg-(--bg-hover) hover:text-(--text-main)"
             @click="removeToast(toast.id)"
           >
             <span class="sr-only">{{ t('common.close') }}</span>
@@ -60,3 +60,27 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 const { toasts, removeToast } = useToast();
 const { t } = useI18n();
 </script>
+
+<style scoped>
+.toast-slide-enter-active {
+  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-slide-leave-active {
+  transition: all 200ms ease-in;
+}
+
+.toast-slide-enter-from {
+  opacity: 0;
+  transform: translateX(100%) scale(0.95);
+}
+
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translateX(100%) scale(0.95);
+}
+
+.toast-slide-move {
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+</style>

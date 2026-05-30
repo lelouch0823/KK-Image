@@ -9,6 +9,7 @@ export default {
     createDesc: '创建一个空间来整理和分享您的文件',
     emptyTitle: '暂无共享空间',
     loadFailed: '加载空间列表失败',
+    loadFailedDesc: '资源加载失败，请检查网络或稍后重试。',
     loadDetailFailed: '加载空间详情失败',
     createSuccess: '创建空间成功',
     createFailed: '创建空间失败',

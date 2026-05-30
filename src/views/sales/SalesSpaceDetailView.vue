@@ -2,11 +2,11 @@
   <div class="flex min-h-full flex-col">
     <div v-if="loading" class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mb-8 space-y-4">
-        <Skeleton type="text" width="w-64" class="h-8" />
-        <Skeleton type="text" width="w-80" class="h-4" />
+        <Skeleton width="16rem" height="8" />
+        <Skeleton width="20rem" />
       </div>
       <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        <Skeleton v-for="i in 8" :key="i" type="custom" custom-class="aspect-square w-full rounded-xl" />
+        <Skeleton v-for="i in 8" :key="i" container-class="aspect-square w-full rounded-xl" />
       </div>
     </div>
 

@@ -42,9 +42,7 @@
         v-else-if="loading && notifications.length === 0"
         class="flex flex-col items-center justify-center p-12 text-center text-(--text-muted)"
       >
-        <div
-          class="border-primary mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-t-transparent"
-        ></div>
+        <AppIcon name="spinner" class="text-primary mx-auto mb-3 size-6 animate-spin" />
         <span class="text-xs font-medium">{{ t('common.loading') }}</span>
       </div>
 

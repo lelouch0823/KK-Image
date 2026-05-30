@@ -15,7 +15,7 @@
       </template>
 
       <template #summary>
-        <div v-if="dashboardErrorCode === 'FORBIDDEN'" class="mb-8">
+        <div v-if="dashboardErrorCode === ErrorCode.FORBIDDEN" class="mb-8">
           <PermissionDeniedState
             :reason="dashboardError"
             home-to="/admin/forbidden"
@@ -47,7 +47,7 @@
 
       <template #main>
         <div
-          v-if="dashboardErrorCode !== 'FORBIDDEN'"
+          v-if="dashboardErrorCode !== ErrorCode.FORBIDDEN"
           class="grid h-full grid-cols-1 gap-6 pb-8 lg:grid-cols-12"
         >
           <div class="lg:col-span-5">
@@ -77,7 +77,7 @@
                   <div
                     v-for="order in orderStats.recentPendingOrders"
                     :key="order.id"
-                    class="group cursor-pointer border-l-2 border-transparent p-4 transition-colors hover:border-warning/40 hover:bg-(--bg-hover)"
+                    class="group cursor-pointer border-l-2 border-transparent p-4 transition-all duration-200 hover:border-warning/50 hover:bg-(--bg-hover) hover:pl-5"
                     @click="viewOrder(order)"
                   >
                     <div class="mb-1 flex items-start justify-between gap-3">
@@ -164,7 +164,7 @@
                   <li
                     v-for="item in recentShares"
                     :key="item.id"
-                    class="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-(--bg-hover)"
+                    class="flex items-center justify-between gap-3 p-4 transition-all duration-200 hover:bg-(--bg-hover)"
                   >
                     <div class="flex min-w-0 items-center gap-3">
                       <div
@@ -234,7 +234,7 @@
                   <li
                     v-for="(file, index) in recentFiles"
                     :key="index"
-                    class="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-(--bg-hover)"
+                    class="flex items-center justify-between gap-3 p-4 transition-all duration-200 hover:bg-(--bg-hover)"
                   >
                     <div class="flex min-w-0 items-center gap-3 overflow-hidden">
                       <div
@@ -243,6 +243,7 @@
                         <AppImage
                           v-if="isImage(file)"
                           :src="file.url"
+                          :alt="file.name"
                           class="size-full"
                           fit="cover"
                         />
@@ -283,8 +284,8 @@
 
       <template #secondary>
         <footer
-          v-if="dashboardErrorCode !== 'FORBIDDEN'"
-          class="py-4 text-center text-[10px] text-(--text-muted)"
+          v-if="dashboardErrorCode !== ErrorCode.FORBIDDEN"
+          class="border-t border-(--border-subtle) bg-(--bg-card) py-4 text-center text-xs text-(--text-muted)"
         >
           {{ t('dashboard.footer') }}
         </footer>
@@ -349,7 +350,9 @@ import AppStatCard from '@/components/ui/AppStatCard.vue';
 import SurfaceSection from '@/design-system/composed/SurfaceSection.vue';
 import DashboardShell from '@/design-system/patterns/DashboardShell.vue';
 import StatGroup from '@/design-system/composed/StatGroup.vue';
-import Chart from 'chart.js/auto';
+import { Chart } from '@/utils/chart-setup';
+import { ErrorCode } from '@/utils/error-codes';
+import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 
 const router = useRouter();
 const { authFetchJson } = useAuth();
@@ -537,7 +540,9 @@ const handleComment = async (comment) => {
 };
 
 // Data Fetching
-const fetchDashboardData = async () => {
+let fetchPromise = null;
+
+const _fetchDashboardData = async () => {
   try {
     dashboardErrorCode.value = null;
     dashboardError.value = '';
@@ -566,15 +571,25 @@ const fetchDashboardData = async () => {
       lastUpdatedTime.value = new Date().toLocaleTimeString();
     }
   } catch (e) {
-    const status = Number(e?.status);
-    if (status === 403) {
-      dashboardErrorCode.value = 'FORBIDDEN';
-      dashboardError.value = e?.data?.error || e?.message || '权限不足';
+    const code = classifyError(e);
+    if (code === ErrorCode.FORBIDDEN) {
+      dashboardErrorCode.value = ErrorCode.FORBIDDEN;
+      dashboardError.value = extractErrorMessage(e, t('common.error.forbidden'));
       return;
     }
-    dashboardErrorCode.value = 'ERROR';
-    dashboardError.value = e?.data?.error || e?.message || '加载失败';
+    dashboardErrorCode.value = ErrorCode.NETWORK_ERROR;
+    dashboardError.value = extractErrorMessage(e, t('common.loadFailed'));
     console.error('Dashboard data load failed', e);
+  }
+};
+
+const fetchDashboardData = async () => {
+  if (fetchPromise) return fetchPromise;
+  try {
+    fetchPromise = _fetchDashboardData();
+    return await fetchPromise;
+  } finally {
+    fetchPromise = null;
   }
 };
 

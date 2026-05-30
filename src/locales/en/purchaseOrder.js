@@ -2,6 +2,8 @@
 export default {
   title: 'Procurement',
   subtitle: 'Manage overseas purchase orders, track freight/tariff allocation and order sync',
+  permissionDenied: 'Permission Denied for Purchase Orders',
+  permissionDeniedDesc: 'Your account does not have purchase order read access. Please contact the admin to assign purchase_orders:read.',
 
   status: {
     draft: 'Draft',

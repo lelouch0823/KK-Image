@@ -1,16 +1,16 @@
 <template>
   <div
     v-if="isLoading"
-    class="flex min-h-[12rem] flex-col items-center justify-center gap-3 rounded-xl border border-(--border-color) bg-(--bg-card) p-6 text-center"
+    class="flex min-h-[12rem] flex-col items-center justify-center gap-3 rounded-2xl border border-(--border-color) bg-(--bg-card) p-6 text-center"
     data-testid="async-loading"
   >
-    <div class="border-t-primary size-8 animate-spin rounded-full border-2 border-(--border-color)"></div>
+    <AppIcon name="spinner" class="text-primary size-8 animate-spin" />
     <p class="text-sm text-(--text-secondary)">{{ loadingText }}</p>
   </div>
 
   <div
     v-else-if="isError"
-    class="flex min-h-[12rem] flex-col items-center justify-center gap-3 rounded-xl border border-(--color-danger-text)/20 bg-(--color-danger-bg)/40 p-6 text-center"
+    class="flex min-h-[12rem] flex-col items-center justify-center gap-3 rounded-2xl border border-(--color-danger-text)/20 bg-(--color-danger-bg)/40 p-6 text-center"
     data-testid="async-error"
   >
     <p class="text-base font-semibold text-(--text-main)">{{ titleText }}</p>
@@ -27,7 +27,7 @@
 
   <div
     v-else-if="isEmpty"
-    class="flex min-h-[12rem] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-(--border-color) bg-(--bg-card) p-6 text-center"
+    class="flex min-h-[12rem] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-(--border-color) bg-(--bg-card) p-6 text-center"
     data-testid="async-empty"
   >
     <p class="text-base font-semibold text-(--text-main)">{{ titleText }}</p>
@@ -42,6 +42,7 @@
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   state: { type: String, default: 'ready' },

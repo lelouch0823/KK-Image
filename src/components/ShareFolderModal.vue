@@ -217,7 +217,7 @@ const generateLink = async () => {
       error(res.message || t('share.generateFailed'));
     }
   } catch (_e) {
-    error(t('common.networkError') || '网络错误');
+    error(t('common.networkError'));
   } finally {
     loading.value = false;
   }

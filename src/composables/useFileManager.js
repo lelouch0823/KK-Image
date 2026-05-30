@@ -4,6 +4,8 @@ import { useAuth } from './useAuth';
 import { useI18n } from './useI18n';
 import { formatSize, formatDate, getFileExtension, isImage } from '@/utils/formatters';
 import { API } from '@/utils/constants';
+import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
+import { ErrorCode, isAuthError } from '@/utils/error-codes';
 
 export function useFileManager() {
   const toast = useToast();
@@ -20,16 +22,15 @@ export function useFileManager() {
   const breadcrumbs = ref([]);
   const selectedFiles = ref([]);
 
-  const resolveErrorCode = (status, message = '') => {
-    const normalized = String(message || '');
-    if (Number(status) === 403 || normalized.includes('权限不足')) return 'FORBIDDEN';
-    if (Number(status) === 401 || normalized.includes('未授权')) return 'UNAUTHORIZED';
+  const resolveErrorCode = (status, _message = '') => {
+    const code = classifyError({ status });
+    if (code === ErrorCode.FORBIDDEN || code === ErrorCode.UNAUTHORIZED) return code;
     return null;
   };
 
-  const getErrorMessage = (err) => err?.data?.error || err?.message || t('fileOps.loadFailed');
-  const isForbiddenError = (status, message = '') =>
-    resolveErrorCode(status, message) === 'FORBIDDEN';
+  const getErrorMessage = (err) => extractErrorMessage(err, t('fileOps.loadFailed'));
+  const isForbiddenError = (status, _message = '') =>
+    resolveErrorCode(status, _message) === ErrorCode.FORBIDDEN;
   const normalizeFileList = (payload) => {
     if (Array.isArray(payload)) return payload;
     if (Array.isArray(payload?.data)) return payload.data;
@@ -43,7 +44,7 @@ export function useFileManager() {
       errorCode.value = code;
       error.value = message || t('fileOps.loadFailed');
     }
-    if (!silent && (!setGlobal || (code !== 'FORBIDDEN' && code !== 'UNAUTHORIZED'))) {
+    if (!silent && (!setGlobal || !isAuthError(code))) {
       toast.error(toastMessage || message || error.value || t('fileOps.loadFailed'));
     }
   };

@@ -1,5 +1,5 @@
 <template>
-  <section class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4">
+  <section class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4">
     <div class="flex items-center gap-2">
       <AppIcon name="arrow-uturn-left" class="size-4 text-success" />
       <h3 class="text-sm font-semibold text-(--text-main)">

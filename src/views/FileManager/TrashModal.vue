@@ -74,9 +74,7 @@
       <div class="flex-1 overflow-hidden p-6">
         <!-- Loading 状态 -->
         <div v-if="loading" class="flex h-full items-center justify-center">
-          <div
-            class="border-primary size-10 animate-spin rounded-full border-2 border-t-transparent"
-          ></div>
+          <AppIcon name="spinner" class="text-primary size-10 animate-spin" />
         </div>
 
         <!-- 空状态 -->
@@ -120,6 +118,7 @@
                   <AppImage
                     v-if="isImage(file.name) && file.thumbnail"
                     :src="file.thumbnail"
+                    :alt="file.name"
                     :blurhash="file.blurhash"
                     class="size-full"
                     fit="cover"
@@ -377,7 +376,7 @@ const handleEmptyTrash = async () => {
 <style scoped>
 /* 列表项交错进入动画 */
 tr {
-  animation: slideIn 0.3s ease-out forwards;
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   opacity: 0;
   transform: translateY(10px);
 }

@@ -49,7 +49,7 @@
       </div>
 
       <!-- Chart with Time Range Selector -->
-      <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-sm">
+      <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-4 shadow-card">
         <div class="mb-4 flex items-center justify-between">
           <h3 class="text-sm font-medium text-(--text-main)">
             {{ t('spaceAnalytics.visitorTrend') }}
@@ -93,7 +93,7 @@
             v-if="chartLoading"
             class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-(--bg-card)/80"
           >
-            <div class="border-primary size-6 animate-spin rounded-full border-b-2"></div>
+            <AppIcon name="spinner" class="text-primary size-6 animate-spin" />
           </div>
 
           <!-- Chart or Empty State -->
@@ -137,6 +137,7 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppStatCard from '@/components/ui/AppStatCard.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import {
   Chart as ChartJS,
   CategoryScale,

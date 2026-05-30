@@ -5,7 +5,7 @@
     <div class="w-full max-w-md">
       <!-- 登录卡片 -->
       <div
-        class="animate-scale-in shadow-glass overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)/90 ring-1 ring-(--border-color)/50 backdrop-blur-xl"
+        class="animate-scale-in shadow-glass overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)/95 ring-1 ring-(--border-color)/50 backdrop-blur-xl"
       >
         <!-- 头部 -->
         <div class="px-8 pt-10 pb-6 text-center">
@@ -119,7 +119,7 @@
                   <AppIcon name="check" class="size-8" stroke-width="3" />
                 </div>
               </div>
-              <h2 class="text-primary mb-2 text-xl font-bold italic">
+              <h2 class="text-primary mb-2 text-xl font-bold italic leading-tight pb-0.5">
                 {{ t('auth.loginSuccess') }}
               </h2>
               <div class="flex items-center gap-2 text-sm text-(--text-secondary)">
@@ -291,18 +291,18 @@ onMounted(() => {
 </script>
 
 <style>
-/* 背景动画 */
+/* 背景 - 柔和的双色渐变 */
 .bg-pattern {
   background-image:
-    radial-gradient(circle at 25% 25%, var(--color-primary-bg) 0%, transparent 50%),
-    radial-gradient(circle at 75% 75%, var(--color-info-bg) 0%, transparent 50%);
+    radial-gradient(ellipse at 30% 20%, var(--color-primary-bg) 0%, transparent 60%),
+    radial-gradient(ellipse at 70% 80%, var(--color-info-bg) 0%, transparent 60%);
 }
 
-/* 进场动画：由下而上渐显 */
+/* 进场动画：由下而上渐显 + 微缩放 */
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.95) translateY(10px);
+    transform: scale(0.96) translateY(12px);
   }
   to {
     opacity: 1;
@@ -311,22 +311,22 @@ onMounted(() => {
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: scaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* 转场动画 */
+/* 转场动画 - 使用 expo 缓动 */
 .fade-slide-up-enter-active,
 .fade-slide-up-leave-active {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .fade-slide-up-enter-from {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(16px);
 }
 
 .fade-slide-up-leave-to {
   opacity: 0;
-  transform: translateY(-20px);
+  transform: translateY(-12px);
 }
 </style>

@@ -68,13 +68,13 @@
 
         <div
           v-if="result"
-          class="mt-4 overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-page)"
+          class="mt-4 overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-page)"
         >
           <pre class="max-h-72 overflow-auto p-4 text-xs text-(--text-main)">{{ formattedResult }}</pre>
         </div>
         <div
           v-else
-          class="mt-4 rounded-xl border border-dashed border-(--border-color) p-4 text-sm text-(--text-secondary)"
+          class="mt-4 rounded-2xl border border-dashed border-(--border-color) p-4 text-sm text-(--text-secondary)"
         >
           {{ t('settings.backup.restoreEmpty', 'No restore summary yet. Use Validate or Dry Run to inspect this backup first.') }}
         </div>

@@ -25,9 +25,7 @@
         v-if="loading && notifications.length === 0"
         class="p-8 text-center text-(--text-muted)"
       >
-        <div
-          class="border-primary mx-auto mb-2 size-5 animate-spin rounded-full border-2 border-t-transparent"
-        ></div>
+        <AppIcon name="spinner" class="text-primary mx-auto mb-2 size-5 animate-spin" />
         <span class="text-xs">{{ t('common.loading') }}</span>
       </div>
 

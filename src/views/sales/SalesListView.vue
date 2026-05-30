@@ -7,12 +7,12 @@
     @touchend="handleTouchEnd"
   >
     <!-- Search Bar -->
-    <div class="sticky top-14 z-20 -mx-4 mb-4 border-b border-(--border-color) bg-(--bg-page)/85 px-4 py-3 backdrop-blur-md transition-all sm:top-20 sm:mx-0 sm:rounded-xl sm:border sm:bg-(--bg-card)/90 sm:shadow-sm">
+    <div class="sticky top-14 z-20 -mx-4 mb-4 border-b border-(--border-color) bg-(--bg-page) px-4 py-3 transition-[background-color,box-shadow,border-radius] duration-200 sm:top-20 sm:mx-0 sm:rounded-xl sm:border sm:bg-(--bg-card) sm:shadow-card">
       <SearchInput
         v-model="searchQuery"
         :placeholder="t('common.searchPlaceholder')"
         input-class="!h-11 !rounded-xl !bg-(--bg-muted) shadow-sm"
-        :debounce="0"
+        :debounce="300"
       />
     </div>
 

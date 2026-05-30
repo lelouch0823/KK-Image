@@ -1,6 +1,8 @@
 // 文件管理
 export default {
   title: '文件管理',
+  permissionDenied: '文件管理权限不足',
+  permissionDeniedDesc: '当前账号没有文件管理读取权限，请联系管理员分配 files:read。',
   upload: '上传文件',
   newFolder: '新建文件夹',
   shareFolder: '分享文件夹',

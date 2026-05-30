@@ -15,6 +15,7 @@
         <AppImage
           v-if="isImage(file)"
           :src="file.url"
+          :alt="file.name"
           class="size-full transition-transform duration-500 group-active:scale-110"
           width="56"
           height="56"

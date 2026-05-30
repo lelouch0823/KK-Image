@@ -21,7 +21,7 @@
       />
 
       <!-- 商品信息 -->
-      <div class="space-y-4 rounded-xl border border-(--border-color) bg-(--bg-card) p-3 sm:p-5">
+      <div class="space-y-4 rounded-2xl border border-(--border-color) bg-(--bg-card) p-3 sm:p-5">
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div v-if="mode === 'admin'">
             <label class="text-primary mb-2 block text-sm font-medium">
@@ -368,7 +368,7 @@ const isValid = computed(() => {
 });
 
 const actionBarClass = computed(() =>
-  'sticky bottom-0 z-20 -mx-3 flex gap-3 border-t border-(--border-color) bg-(--bg-card)/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur'
+  'sticky bottom-0 z-20 -mx-3 flex gap-3 border-t border-(--border-color) bg-(--bg-card) px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]'
 );
 
 const applyDefaultAdminSalesperson = (salespersons = props.salespersons) => {

@@ -27,6 +27,7 @@
           <AppImage
             v-if="getSubspaceCover(sub)"
             :src="getSubspaceCover(sub)"
+            :alt="sub.name || '子空间封面'"
             class="size-full transition-transform group-hover:scale-110"
             fit="cover"
             rounded="none"

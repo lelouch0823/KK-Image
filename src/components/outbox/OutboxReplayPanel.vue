@@ -1,7 +1,7 @@
 <template>
   <div
     data-testid="outbox-replay-panel"
-    class="space-y-4 rounded-2xl border border-(--border-color) bg-(--bg-card) p-4 shadow-sm"
+    class="space-y-4 rounded-2xl border border-(--border-color) bg-(--bg-card) p-4 shadow-card"
   >
     <div class="flex items-start justify-between gap-3">
       <div>
@@ -46,19 +46,19 @@
         </div>
 
         <div class="grid gap-3 sm:grid-cols-3">
-          <div class="rounded-xl border border-(--border-color)/60 bg-(--bg-card) p-3">
+          <div class="rounded-2xl border border-(--border-color)/60 bg-(--bg-card) p-3">
             <div class="text-xs font-semibold tracking-[0.12em] text-(--text-muted) uppercase">
               {{ t('outboxOps.replay.aggregateId', '聚合 ID') }}
             </div>
             <div class="mt-2 text-sm font-medium text-(--text-main)">{{ event.aggregate_id || '-' }}</div>
           </div>
-          <div class="rounded-xl border border-(--border-color)/60 bg-(--bg-card) p-3">
+          <div class="rounded-2xl border border-(--border-color)/60 bg-(--bg-card) p-3">
             <div class="text-xs font-semibold tracking-[0.12em] text-(--text-muted) uppercase">
               {{ t('outboxOps.replay.consumerCount', '消费者数量') }}
             </div>
             <div class="mt-2 text-sm font-medium text-(--text-main)">{{ consumerJobs.length }}</div>
           </div>
-          <div class="rounded-xl border border-(--border-color)/60 bg-(--bg-card) p-3">
+          <div class="rounded-2xl border border-(--border-color)/60 bg-(--bg-card) p-3">
             <div class="text-xs font-semibold tracking-[0.12em] text-(--text-muted) uppercase">
               {{ t('outboxOps.replay.failedCount', '失败消费者') }}
             </div>
@@ -106,7 +106,7 @@
           :placeholder="t('outboxOps.replay.consumerPlaceholder', '可选：只重放指定 consumer')"
         />
 
-        <div class="rounded-xl border border-warning/25 bg-warning/8 p-3 text-sm text-(--text-secondary)">
+        <div class="rounded-2xl border border-warning/25 bg-warning/8 p-3 text-sm text-(--text-secondary)">
           <div class="flex items-start gap-2">
             <AppIcon name="information-circle" class="mt-0.5 size-4 shrink-0 text-warning" />
             <p>
@@ -163,11 +163,11 @@
 
         <div
           v-if="lastReplayResult"
-          class="overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-page)"
+          class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-page)"
         >
           <pre class="max-h-72 overflow-x-auto overflow-y-auto p-4 text-xs text-(--text-main)">{{ formattedReplayResult }}</pre>
         </div>
-        <div v-else class="rounded-xl border border-dashed border-(--border-color) p-4 text-sm text-(--text-secondary)">
+        <div v-else class="rounded-2xl border border-dashed border-(--border-color) p-4 text-sm text-(--text-secondary)">
           {{ t('outboxOps.replay.resultEmpty', '尚未执行 Dry Run 或 Replay，最近结果会展示在这里。') }}
         </div>
       </section>

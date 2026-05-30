@@ -15,6 +15,7 @@
           <AppImage
             v-if="fileIsImage"
             :src="file?.url"
+            :alt="file?.name"
             :blurhash="file?.blurhash"
             class="size-8"
             fit="cover"

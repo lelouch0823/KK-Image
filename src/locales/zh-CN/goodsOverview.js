@@ -45,6 +45,8 @@ export default {
     },
     export: '导出 CSV',
     empty: '暂无需要订货的商品',
+    permissionDenied: '订货总览权限不足',
+    permissionDeniedDesc: '当前账号没有订货总览读取权限，请联系管理员分配 products:manage。',
 
     // 批量操作
     batch: {

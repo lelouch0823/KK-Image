@@ -13,6 +13,7 @@
       >
         <AppImage
           :src="imgSrc"
+          :alt="`商品图 ${index + 1}`"
           class="size-full opacity-90 transition-opacity hover:opacity-100"
           fit="cover"
           rounded="none"
@@ -38,6 +39,7 @@
         <AppImage
           v-if="isImageFile(file)"
           :src="file.url"
+          :alt="file.name || '空间文件'"
           :blurhash="file.blurhash"
           class="size-full"
           fit="cover"

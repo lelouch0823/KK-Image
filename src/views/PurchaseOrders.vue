@@ -2,16 +2,14 @@
   <div class="space-y-6">
     <!-- 无采购单读取权限时，直接展示权限说明并提供重试入口。 -->
     <div
-      v-if="errorCode === 'FORBIDDEN'"
-      class="rounded-xl border border-(--border-color) bg-(--bg-card) p-8"
+      v-if="errorCode === ErrorCode.FORBIDDEN"
+      class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8"
     >
       <PermissionDeniedState
-        title="采购单权限不足"
-        :description="
-          error || '当前账号没有采购单读取权限，请联系管理员分配 purchase_orders:read。'
-        "
+        :title="t('purchaseOrder.permissionDenied')"
+        :description="error || t('purchaseOrder.permissionDeniedDesc')"
         home-to="/admin/forbidden"
-        home-text="查看权限说明"
+        :home-text="t('common.viewDetails')"
         @retry="loadList"
       />
     </div>
@@ -341,6 +339,7 @@ import PurchaseOrderSupportOverlays from '@/components/purchase-order/PurchaseOr
 import AppButton from '@/components/ui/AppButton.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
+import { ErrorCode } from '@/utils/error-codes';
 
 // 页面级基础依赖：国际化、路由、toast、AI 上下文、刷新总线。
 const { t } = useI18n();
@@ -825,7 +824,7 @@ onUnmounted(() => {
 /* 侧滑动画 */
 .slide-enter-active,
 .slide-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .slide-enter-from,
 .slide-leave-to {
@@ -836,7 +835,7 @@ onUnmounted(() => {
 /* 淡入淡出 */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .fade-enter-from,
 .fade-leave-to {

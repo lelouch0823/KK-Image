@@ -1,5 +1,3 @@
-import XLSX from 'xlsx-js-style';
-
 export const PRODUCT_EXPORT_FILTER_KEYS = Object.freeze([
   'search',
   'status',
@@ -266,7 +264,14 @@ const colToExcelName = (index) => {
   return name;
 };
 
-export const buildExcelWorkbook = (rows = [], columns = EXPORT_COLUMNS, meta = {}) => {
+let _xlsx = null;
+async function getXLSX() {
+  if (!_xlsx) _xlsx = await import('xlsx-js-style');
+  return _xlsx;
+}
+
+export const buildExcelWorkbook = async (rows = [], columns = EXPORT_COLUMNS, meta = {}) => {
+  const XLSX = await getXLSX();
   const generatedAt = meta.generatedAt || new Date().toISOString();
   const scopeLabel = meta.scopeLabel || 'All products';
   const filtersLabel = meta.filtersLabel || '-';

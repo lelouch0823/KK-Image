@@ -30,6 +30,8 @@ export default {
   dailyUpload: 'Daily Upload',
   refreshSuccess: 'Stats refreshed',
   loadError: 'Failed to load data',
+  permissionDenied: 'Permission Denied for Statistics',
+  permissionDeniedDesc: 'Your account does not have statistics read access. Please contact the admin to assign stats:read.',
   justNow: 'Just now',
   minutesAgo: '{count}m ago',
   hoursAgo: '{count}h ago',

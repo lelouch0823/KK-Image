@@ -2,6 +2,7 @@ import { ref, onScopeDispose } from 'vue';
 import { API } from '@/utils/constants';
 import { useAuth } from '@/composables/useAuth';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
+import { useI18n } from '@/composables/useI18n';
 
 // Global state to share across components (e.g. Header and List)
 const notifications = ref([]);
@@ -25,6 +26,7 @@ let salesToken = null;
 export function useNotifications() {
   const { authFetch } = useAuth();
   const { publishRefresh } = useAppRefreshBus();
+  const { t } = useI18n();
 
   /**
    * 设置销售端模式
@@ -111,7 +113,7 @@ export function useNotifications() {
       }
       if (Number(e?.status) === 403) {
         permissionDenied.value = true;
-        permissionDeniedReason.value = e?.data?.error || e?.message || '权限不足';
+        permissionDeniedReason.value = e?.data?.error || e?.message || t('common.error.forbidden');
         stopPolling();
         return;
       }

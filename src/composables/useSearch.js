@@ -1,9 +1,11 @@
 import { ref, watch } from 'vue';
 import { useAuth } from '@/composables/useAuth';
+import { extractErrorMessage } from '@/utils/api-helpers';
 
 const searchQuery = ref('');
 const searchResults = ref([]);
 const isSearching = ref(false);
+const searchError = ref(null);
 
 let searchTimeout = null;
 const { authFetch } = useAuth();
@@ -11,10 +13,12 @@ const { authFetch } = useAuth();
 const performSearch = async (query) => {
     if (!query) {
         searchResults.value = [];
+        searchError.value = null;
         return;
     }
 
     isSearching.value = true;
+    searchError.value = null;
     try {
         const res = await authFetch(`/api/manage/search?q=${encodeURIComponent(query)}`);
         const data = await res.json();
@@ -25,6 +29,7 @@ const performSearch = async (query) => {
         }
     } catch (err) {
         console.error('Search failed', err);
+        searchError.value = extractErrorMessage(err, '搜索失败');
         searchResults.value = [];
     } finally {
         isSearching.value = false;
@@ -43,6 +48,7 @@ export function useSearch() {
         searchQuery,
         searchResults,
         isSearching,
+        searchError,
         performSearch
     };
 }

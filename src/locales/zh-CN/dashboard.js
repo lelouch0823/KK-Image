@@ -48,4 +48,6 @@ export default {
   browseAllFiles: '浏览所有文件',
   noRecentFilesDesc: '最近没有上传或更新的文件',
   footer: 'KK-Image 版权所有',
+  permissionDenied: '控制台权限不足',
+  permissionDeniedDesc: '当前账号没有控制台读取权限，请联系管理员。',
 };

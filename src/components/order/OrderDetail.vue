@@ -68,7 +68,7 @@
           />
 
           <!-- 时间轴 (PC端窄栏显示，移动端通用) -->
-          <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4">
+          <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4">
             <h3 class="text-primary mb-4 text-sm font-medium">{{ t('order.detail.timeline') }}</h3>
             <OrderTimeline :timeline="order.timeline" />
           </div>

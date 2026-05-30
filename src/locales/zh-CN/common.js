@@ -42,8 +42,11 @@ export default {
   validation_error: '验证错误',
   error: {
     unauthorized: '未授权，请重新登录',
+    forbidden: '权限不足',
     server_error: '服务器错误，请稍后重试',
     network_error: '网络错误，请稍后重试',
+    requestFailed: '请求失败',
+    requestTimeout: '请求超时',
   },
   complete: '完成',
   invalidCredentials: '用户名或密码错误',

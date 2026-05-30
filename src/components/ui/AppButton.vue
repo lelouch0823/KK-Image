@@ -1,7 +1,7 @@
 <template>
   <button
     :type="type"
-    class="relative inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all focus:ring-2 focus:ring-offset-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+    class="relative inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-150 ease-out-expo focus-visible:ring-2 focus-visible:ring-offset-1 focus:outline-none active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
     :class="[
       variantClasses,
       sizeClasses,
@@ -76,13 +76,13 @@ defineEmits(['click']);
 
 const variantClasses = computed(() => {
   const variants = {
-    primary: 'bg-primary text-(--text-inverse) hover:bg-(--color-primary-hover) focus:ring-primary/50',
-    secondary: 'bg-(--bg-muted) text-(--text-secondary) hover:bg-(--bg-hover) hover:text-(--text-main) focus:ring-primary/20',
-    danger: 'bg-danger text-(--text-inverse) hover:opacity-90 focus:ring-danger/50',
-    ghost: 'bg-transparent text-(--text-secondary) hover:bg-(--bg-muted) hover:text-(--text-main) focus:ring-primary/15',
+    primary: 'bg-primary text-(--text-inverse) hover:bg-(--color-primary-hover) focus-visible:ring-primary/40 shadow-sm hover:shadow-md',
+    secondary: 'bg-(--bg-muted) text-(--text-secondary) hover:bg-(--bg-hover) hover:text-(--text-main) focus-visible:ring-primary/20',
+    danger: 'bg-danger text-(--text-inverse) hover:opacity-90 focus-visible:ring-danger/40',
+    ghost: 'bg-transparent text-(--text-secondary) hover:bg-(--bg-muted) hover:text-(--text-main) focus-visible:ring-primary/15',
     link: 'bg-transparent text-primary hover:underline p-0 h-auto',
     outline: 'border border-(--border-color) bg-transparent text-(--text-secondary) hover:border-(--text-secondary) hover:text-(--text-main)',
-    white: 'border border-(--border-color) bg-(--bg-card) text-(--text-main) hover:bg-(--bg-hover) dark:bg-(--bg-muted) dark:text-(--text-main) focus:ring-primary/20',
+    white: 'border border-(--border-color) bg-(--bg-card) text-(--text-main) hover:bg-(--bg-hover) dark:bg-(--bg-muted) dark:text-(--text-main) focus-visible:ring-primary/20',
   };
   return variants[props.variant];
 });

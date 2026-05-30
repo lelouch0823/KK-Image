@@ -28,6 +28,6 @@ const panelClass = computed(() => {
     return 'bg-(--bg-card)/70 px-4 py-4 shadow-none ring-1 ring-(--border-color)/50 backdrop-blur-sm sm:px-5';
   }
 
-  return 'bg-(--bg-card) p-5 shadow-sm ring-1 ring-(--border-color)/40 sm:p-6';
+  return 'bg-(--bg-card) p-5 shadow-card ring-1 ring-(--border-color)/40 sm:p-6';
 });
 </script>

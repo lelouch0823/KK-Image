@@ -1,5 +1,5 @@
 <template>
-  <div class="border-primary/20 bg-primary/5 rounded-2xl border p-4 shadow-sm">
+  <div class="border-primary/20 bg-primary/5 rounded-2xl border p-4 shadow-card">
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">

@@ -1,16 +1,17 @@
 <template>
-  <div class="flex h-screen w-full items-center justify-center bg-(--bg-page)">
+  <div class="flex min-h-[70vh] w-full items-center justify-center bg-(--bg-page) px-4">
     <EmptyState
       icon="file"
       :title="t('common.fileNotFound')"
       :description="t('common.fileNotFoundDesc')"
     >
       <template #action>
-        <router-link
-          to="/"
-          class="bg-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-(--text-inverse) transition-all hover:bg-(--color-primary-hover) active:scale-95"
-        >
-          {{ t('common.backHome') }}
+        <router-link to="/">
+          <AppButton variant="primary" :text="t('common.backHome')">
+            <template #icon-left>
+              <AppIcon name="home" class="size-4" />
+            </template>
+          </AppButton>
         </router-link>
       </template>
     </EmptyState>
@@ -19,6 +20,8 @@
 
 <script setup>
 import EmptyState from '@/components/ui/EmptyState.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();

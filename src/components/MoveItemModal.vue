@@ -9,7 +9,7 @@
     <!-- Tree Content -->
     <div class="flex-1 overflow-y-auto p-4">
       <div v-if="loading" class="flex justify-center py-8">
-        <div class="border-primary size-8 animate-spin rounded-full border-b-2"></div>
+        <AppIcon name="spinner" class="text-primary size-8 animate-spin" />
       </div>
       <div v-else class="space-y-1">
         <!-- Root Option -->

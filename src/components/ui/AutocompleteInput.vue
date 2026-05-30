@@ -14,12 +14,12 @@
 
     <!-- 下拉建议列表 -->
     <Transition
-      enter-active-class="transition duration-100 ease-out"
-      enter-from-class="transform scale-95 opacity-0"
-      enter-to-class="transform scale-100 opacity-100"
-      leave-active-class="transition duration-75 ease-in"
+      enter-active-class="transition duration-150 ease-out-expo"
+      enter-from-class="transform scale-[0.97] opacity-0 -translate-y-1"
+      enter-to-class="transform scale-100 opacity-100 translate-y-0"
+      leave-active-class="transition duration-100"
       leave-from-class="transform scale-100 opacity-100"
-      leave-to-class="transform scale-95 opacity-0"
+      leave-to-class="transform scale-[0.98] opacity-0"
     >
       <div
         v-if="showDropdown && filteredSuggestions.length > 0"

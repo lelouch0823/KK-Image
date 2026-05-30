@@ -5,13 +5,13 @@
     <div v-if="loading" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mb-8 flex items-end justify-between">
         <div class="space-y-4">
-          <Skeleton type="text" width="w-64" class="h-8" />
-          <Skeleton type="text" width="w-96" class="h-4" />
+          <Skeleton width="16rem" height="8" />
+          <Skeleton width="24rem" />
         </div>
-        <Skeleton type="custom" custom-class="h-10 w-32 rounded-lg" />
+        <Skeleton container-class="h-10 w-32 rounded-lg" />
       </div>
       <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        <Skeleton v-for="i in 8" :key="i" type="custom" custom-class="aspect-square w-full rounded-xl" />
+        <Skeleton v-for="i in 8" :key="i" container-class="aspect-square w-full rounded-xl" />
       </div>
     </div>
 
@@ -30,7 +30,7 @@
     />
 
     <!-- 错误状态 -->
-    <div v-else-if="error" class="flex min-h-screen items-center justify-center px-4">
+    <div v-else-if="error" class="flex min-h-[70vh] items-center justify-center px-4">
       <EmptyState
         icon="search"
         :title="t('spacePublic.cannotLoad')"
@@ -45,9 +45,9 @@
 
       <!-- Footer -->
       <footer
-        class="text-secondary mt-auto border-t border-(--border-color) bg-(--bg-card) py-8 text-center text-sm"
+        class="mt-auto border-t border-(--border-subtle) bg-(--bg-card) py-6 text-center text-xs text-(--text-muted)"
       >
-        <a href="/" class="hover:text-primary transition-colors">{{ t('gallery.poweredBy') }}</a>
+        <a href="/" class="transition-colors hover:text-(--text-secondary)">{{ t('gallery.poweredBy') }}</a>
       </footer>
     </template>
   </div>

@@ -49,10 +49,10 @@
     />
 
     <!-- Error State -->
-    <div v-if="errorCode === 'FORBIDDEN'" class="flex flex-1 flex-col items-center justify-center p-6">
+    <div v-if="errorCode === ErrorCode.FORBIDDEN" class="flex flex-1 flex-col items-center justify-center p-6">
       <PermissionDeniedState
-        title="文件管理权限不足"
-        :description="error || '当前账号没有文件管理读取权限，请联系管理员分配 files:read。'"
+        :title="t('fileManager.permissionDenied')"
+        :description="error || t('fileManager.permissionDeniedDesc')"
         required-permission="files:read"
         @retry="loadFolderData(currentFolder?.id)"
       />
@@ -94,10 +94,10 @@
     <!-- Loading State -->
     <div v-if="loading" class="p-6">
       <div v-if="viewMode === 'list'" class="space-y-4">
-        <Skeleton v-for="i in 5" :key="i" type="custom" custom-class="h-12 w-full rounded-lg" />
+        <Skeleton v-for="i in 5" :key="i" container-class="h-12 w-full rounded-lg" />
       </div>
       <div v-else class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-        <Skeleton v-for="i in 10" :key="i" type="custom" custom-class="aspect-square w-full rounded-xl" />
+        <Skeleton v-for="i in 10" :key="i" container-class="aspect-square w-full rounded-xl" />
       </div>
     </div>
 
@@ -163,6 +163,7 @@
                              <AppImage
                                v-if="isImage(file)"
                                :src="file.url"
+                               :alt="file.name"
                                class="mb-2 size-20 shadow-sm"
                                fit="cover"
                              />
@@ -271,6 +272,7 @@ import { useAccessControl } from '@/composables/useAccessControl';
 import { useFileDrag } from '@/composables/file-manager/useFileDrag';
 import { useFileSelection } from '@/composables/file-manager/useFileSelection';
 import { useFileNavigation } from '@/composables/file-manager/useFileNavigation';
+import { ErrorCode } from '@/utils/error-codes';
 
 const { addToast } = useToast();
 const { addFiles, registerFolderRefresh, unregisterFolderRefresh } = useUploadQueue();

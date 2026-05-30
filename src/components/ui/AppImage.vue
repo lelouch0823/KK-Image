@@ -288,7 +288,7 @@ function handleRetry() {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.3s ease;
+  transition: opacity 250ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .app-image--no-transition .app-image__placeholder {
@@ -322,11 +322,17 @@ function handleRetry() {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .app-image__skeleton {
+    animation: none;
+  }
+}
+
 /* 实际图片 */
 .app-image__img {
   width: 100%;
   height: 100%;
-  transition: opacity 0.3s ease;
+  transition: opacity 300ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .app-image--no-transition .app-image__img {
@@ -432,5 +438,20 @@ function handleRetry() {
   color: var(--text-inverse);
   background-color: var(--color-primary);
   border-radius: 0.25rem;
+}
+
+.app-image__retry-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 16px;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-inverse);
+  background-color: var(--color-primary);
+  transition: background-color 150ms;
+}
+.app-image__retry-btn:hover {
+  background-color: var(--color-primary-hover);
 }
 </style>

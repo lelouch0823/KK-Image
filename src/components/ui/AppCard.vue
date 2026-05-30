@@ -6,7 +6,7 @@
       borderClass,
       clickable
         ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99] active:shadow-sm'
-        : 'shadow-sm',
+        : 'shadow-card',
     ]"
     @click="clickable && $emit('click', $event)"
   >

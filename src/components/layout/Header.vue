@@ -35,7 +35,7 @@
           v-model="searchQuery"
           :placeholder="t('header.searchPlaceholder')"
           input-class="h-9 w-64 !bg-(--bg-page)"
-          :debounce="0"
+          :debounce="300"
         />
       </div>
       <!-- 通知铃铛 (桌面端) -->
@@ -62,7 +62,7 @@
           variant="white"
           size="sm"
           class="relative !h-9 !w-9 !gap-0 !px-0 border-warning/25 bg-(--color-warning-bg) text-(--color-warning-text) [&_span]:hidden"
-          :title="permissionDeniedReason || '通知读取权限不足'"
+          :title="permissionDeniedReason || t('notification.readPermissionDenied')"
           disabled
         >
           <template #icon-left>
@@ -73,16 +73,16 @@
         <!-- 下拉弹窗 (PC端) -->
         <Transition
           v-if="!permissionDenied"
-          enter-active-class="transition duration-100 ease-out"
-          enter-from-class="transform scale-95 opacity-0"
+          enter-active-class="transition duration-150 ease-out-expo"
+          enter-from-class="transform scale-[0.97] opacity-0"
           enter-to-class="transform scale-100 opacity-100"
-          leave-active-class="transition duration-75 ease-in"
+          leave-active-class="transition duration-100"
           leave-from-class="transform scale-100 opacity-100"
-          leave-to-class="transform scale-95 opacity-0"
+          leave-to-class="transform scale-[0.98] opacity-0"
         >
           <div
             v-if="showNotifications"
-            class="absolute top-full right-0 z-50 mt-2 origin-top-right shadow-2xl"
+            class="absolute top-full right-0 z-50 mt-2 origin-top-right shadow-lg"
           >
             <NotificationList :close="() => (showNotifications = false)" />
           </div>
@@ -145,7 +145,7 @@
               v-model="searchQuery"
               :placeholder="t('header.searchPlaceholder')"
               input-class="h-10 !bg-(--bg-page)"
-              :debounce="0"
+              :debounce="300"
               @clear="closeMobileSearch"
             />
         </div>

@@ -24,10 +24,10 @@
     </template>
 
     <template #content>
-    <div v-if="errorCode === 'FORBIDDEN'" class="p-2 sm:p-4">
+    <div v-if="errorCode === ErrorCode.FORBIDDEN" class="p-2 sm:p-4">
       <PermissionDeniedState
-        title="销售人员管理权限不足"
-        :description="error || '当前账号没有销售人员管理权限，请联系管理员分配 salespersons:manage。'"
+        :title="t('salesperson.permissionDenied')"
+        :description="error || t('salesperson.permissionDeniedDesc')"
         required-permission="users:read"
         @retry="loadSalespersons()"
       />
@@ -121,6 +121,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
+import { ErrorCode } from '@/utils/error-codes';
 import SalespersonTable from './salesperson/SalespersonTable.vue';
 import SalespersonCards from './salesperson/SalespersonCards.vue';
 import SalespersonForm from './salesperson/SalespersonForm.vue';

@@ -6,6 +6,7 @@
     :row-class="rowClass"
     row-key="id"
     :empty-text="t('salesperson.emptyList')"
+    :virtual="data.length > 50"
     no-border
     clickable
     @row-click="$emit('view-detail', $event)"

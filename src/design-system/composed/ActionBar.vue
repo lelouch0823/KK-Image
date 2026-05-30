@@ -1,7 +1,7 @@
 <template>
   <div
     data-action-bar
-    class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-(--border-color) bg-(--bg-card) px-4 py-3 shadow-sm"
+    class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-(--border-color) bg-(--bg-card) px-4 py-3 shadow-card"
   >
     <div v-if="$slots.leading" class="flex items-center gap-2">
       <slot name="leading" />

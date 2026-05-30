@@ -22,12 +22,12 @@
         </div>
 
         <div
-          v-else-if="errorCode === 'FORBIDDEN'"
+          v-else-if="errorCode === ErrorCode.FORBIDDEN"
           class="flex h-96 flex-col items-center justify-center"
         >
           <PermissionDeniedState
-            title="统计分析权限不足"
-            :description="error || '当前账号没有统计读取权限，请联系管理员分配 stats:read。'"
+            :title="t('stats.permissionDenied')"
+            :description="error || t('stats.permissionDeniedDesc')"
             required-permission="stats:read"
             @retry="loadStats"
           />
@@ -255,7 +255,7 @@ import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
 import { formatSize } from '@/utils/formatters';
 import { API } from '@/utils/constants';
-import Chart from 'chart.js/auto';
+import { Chart } from '@/utils/chart-setup';
 import 'chartjs-adapter-date-fns';
 import AppStatCard from '@/components/ui/AppStatCard.vue';
 import AppTable from '@/components/ui/AppTable.vue';
@@ -268,6 +268,8 @@ import MetricTile from '@/design-system/composed/MetricTile.vue';
 import SurfaceSection from '@/design-system/composed/SurfaceSection.vue';
 import DashboardShell from '@/design-system/patterns/DashboardShell.vue';
 import StatsChartWrapper from '@/views/stats/StatsChartWrapper.vue';
+import { ErrorCode, isAuthError } from '@/utils/error-codes';
+import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 
 const readCssColor = (token, fallback) => {
   if (typeof document === 'undefined') return fallback;
@@ -511,21 +513,17 @@ const loadStats = async () => {
     // addToast({ message: t('stats.refreshSuccess'), type: 'success' });
   } catch (err) {
     console.error(err);
-    const status = Number(err?.status || 0);
-    if (status === 403) {
-      errorCode.value = 'FORBIDDEN';
-      error.value = err?.data?.error || err?.message || t('common.error.forbidden') || '权限不足';
-      return;
-    }
-    if (status === 401) {
-      errorCode.value = 'UNAUTHORIZED';
-      error.value = err?.data?.error || err?.message || t('common.error.unauthorized') || '未授权';
-      return;
-    }
-    errorCode.value = 'NETWORK_ERROR';
+    const code = classifyError(err);
+    errorCode.value = code;
     // Don't clear stats if refresh fails, just show error toast
-    if (!stats.value) error.value = t('stats.loadError');
-    addToast({ message: t('stats.loadError'), type: 'error' });
+    if (!isAuthError(code)) {
+      if (!stats.value) {
+        error.value = t('stats.loadError');
+      }
+      addToast({ message: t('stats.loadError'), type: 'error' });
+    } else {
+      error.value = extractErrorMessage(err, t('common.error.forbidden'));
+    }
   } finally {
     loading.value = false;
   }

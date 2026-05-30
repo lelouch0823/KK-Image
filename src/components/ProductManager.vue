@@ -200,7 +200,7 @@
       <!-- Empty State / Error State -->
       <div v-if="!loading && (products.length === 0 || error)" class="flex h-full items-center justify-center p-8">
         <PermissionDeniedState
-            v-if="error && errorCode === 'FORBIDDEN'"
+            v-if="error && errorCode === ErrorCode.FORBIDDEN"
             :reason="error"
             @retry="reloadProducts"
         />
@@ -278,6 +278,7 @@ import { useI18n } from '@/composables/useI18n';
 import { resolveBoundProductMainImageSrc } from '@/utils/product-image.js';
 import { findDefaultCatalogActiveVariant } from '@/utils/product-variants.js';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
+import { ErrorCode } from '@/utils/error-codes';
 
 const { t } = useI18n();
 const route = useRoute();

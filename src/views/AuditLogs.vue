@@ -1,16 +1,16 @@
 <template>
-  <div v-if="errorCode === 'FORBIDDEN'" class="rounded-xl border border-(--border-color) bg-(--bg-card) p-8">
+  <div v-if="errorCode === ErrorCode.FORBIDDEN" class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8">
     <PermissionDeniedState
-      title="审计日志权限不足"
-      :description="error || '当前账号没有审计日志读取权限，请联系管理员分配 audit:read 或 admin:full。'"
+      :title="t('auditLogs.permissionDenied')"
+      :description="error || t('auditLogs.permissionDeniedDesc')"
       required-permission="audit:read"
       @retry="fetchLogs"
     />
   </div>
-  <div v-else-if="error" class="rounded-xl border border-(--border-color) bg-(--bg-card) p-8">
+  <div v-else-if="error" class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8">
     <PermissionDeniedState
-      title="审计日志加载失败"
-      :description="errorCode === 'UNAUTHORIZED' ? '登录状态失效，请重新登录后重试。' : '请求失败，请检查网络后重试。'"
+      :title="t('auditLogs.loadFailed')"
+      :description="errorCode === ErrorCode.UNAUTHORIZED ? t('auditLogs.sessionExpired') : t('auditLogs.loadFailedDesc')"
       :reason="error"
       @retry="fetchLogs"
     />
@@ -135,6 +135,8 @@ import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import { formatAuditDetails, normalizeAuditRow } from '@/utils/audit-log';
+import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
+import { ErrorCode } from '@/utils/error-codes';
 
 const { t } = useI18n();
 const { authFetch } = useAuth();
@@ -220,19 +222,9 @@ const fetchLogs = async () => {
     }
     error.value = json.error || json.message || t('common.loadFailed');
   } catch (_err) {
-    const status = Number(_err?.status || 0);
-    if (status === 403) {
-      errorCode.value = 'FORBIDDEN';
-      error.value = _err?.data?.error || _err?.message || '权限不足';
-      return;
-    }
-    if (status === 401) {
-      errorCode.value = 'UNAUTHORIZED';
-      error.value = _err?.data?.error || _err?.message || '未授权';
-      return;
-    }
-    errorCode.value = 'NETWORK_ERROR';
-    error.value = _err?.message || t('common.loadFailed');
+    const code = classifyError(_err);
+    errorCode.value = code;
+    error.value = extractErrorMessage(_err, t('common.loadFailed'));
     console.error('[AuditLogs] fetch error', _err);
   } finally {
     loading.value = false;

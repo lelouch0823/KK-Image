@@ -2,7 +2,7 @@
   <transition name="slide-up">
     <div
       v-if="hasItems"
-      class="ease-spring shadow-glass fixed right-6 bottom-6 z-[60] flex max-h-[500px] w-96 flex-col overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)/90 backdrop-blur-md transition-all duration-300"
+      class="ease-spring shadow-glass fixed right-6 bottom-6 z-[60] flex max-h-[500px] w-96 flex-col overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)/90 backdrop-blur-md transition-[transform,opacity] duration-300"
       :class="{ 'w-auto rounded-full': isMinimized }"
     >
       <!-- Header -->
@@ -99,7 +99,7 @@
             <li
               v-for="item in queue"
               :key="item.id"
-              class="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) p-3 shadow-sm transition-all hover:bg-(--bg-hover) hover:shadow-md"
+              class="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) p-3 shadow-card transition-all hover:bg-(--bg-hover) hover:shadow-md"
             >
               <!-- Icon -->
               <div

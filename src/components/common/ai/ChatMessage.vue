@@ -5,10 +5,10 @@
       <div
         v-if="message.content || message.html || isThinking || toolStatus"
         :class="[
-          'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm transition-all',
+          'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-card transition-all',
           message.role === 'user'
             ? 'bg-primary shadow-primary/20 rounded-br-none font-medium text-(--text-inverse)'
-            : 'rounded-bl-none border border-(--border-color) bg-(--bg-card) text-(--text-main) shadow-sm',
+            : 'rounded-bl-none border border-(--border-color) bg-(--bg-card) text-(--text-main) shadow-card',
         ]"
       >
         <!-- Assistant Message (Markdown) -->
@@ -63,7 +63,7 @@
 
     <!-- Report Button (below this specific message bubble with marker) -->
     <transition
-      enter-active-class="transition-all duration-500 ease-out"
+      enter-active-class="transition-all duration-500 ease-out-expo"
       enter-from-class="opacity-0 translate-y-2"
       enter-to-class="opacity-100 translate-y-0"
     >

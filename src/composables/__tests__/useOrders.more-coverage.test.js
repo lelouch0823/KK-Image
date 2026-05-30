@@ -164,7 +164,7 @@ describe('useOrders extra coverage', () => {
 
     await expect(loadOrders()).resolves.toBe(false);
     expect(errorCode.value).toBe('UNAUTHORIZED');
-    expect(error.value).toBe('common.error.unauthorized');
+    expect(error.value).toBe('unauthorized');
   });
 
   it('ignores stale rejected manage requests after a newer request wins', async () => {

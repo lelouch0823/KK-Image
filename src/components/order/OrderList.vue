@@ -34,7 +34,7 @@
         <div
           v-for="order in visibleItems"
           :key="order.id"
-          class="order-item group relative cursor-pointer overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) p-3 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:scale-[0.98]"
+          class="order-item group relative cursor-pointer overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) p-3 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:scale-[0.98]"
           :style="{ height: `${ITEM_HEIGHT - 12}px` }"
           @click="$emit('view', order)"
         >
@@ -54,6 +54,7 @@
               <AppImage
                 v-if="order.mainImage"
                 :src="order.mainImage"
+                :alt="order.name || order.orderNo"
                 :blurhash="order.mainImageBlurhash"
                 fit="cover"
                 class="order-list-image size-full transition-transform duration-500 group-hover:scale-110"
@@ -101,7 +102,7 @@
 
     <!-- 加载状态 -->
     <div v-if="loading" class="space-y-3">
-      <Skeleton v-for="i in 3" :key="i" type="card" />
+      <Skeleton v-for="i in 3" :key="i" template="list-card" />
     </div>
 
     <!-- 加载更多 -->

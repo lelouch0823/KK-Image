@@ -13,7 +13,7 @@
     @touchmove="$emit('touch-move', $event)"
     @touchend="$emit('touch-end')"
   >
-    <AppImage :src="file.url" :lazy="false" class="pointer-events-none size-full" />
+    <AppImage :src="file.url" :alt="file.name || '上传文件'" :lazy="false" class="pointer-events-none size-full" />
 
     <!-- 操作遮罩层 -->
     <div

@@ -41,9 +41,10 @@
         <div
           class="size-10 shrink-0 overflow-hidden rounded border border-(--border-color) bg-(--bg-muted)"
         >
-          <AppImage 
-            v-if="row.mainImage" 
-            :src="row.mainImage" 
+          <AppImage
+            v-if="row.mainImage"
+            :src="row.mainImage"
+            :alt="row.productName || '商品图片'"
             :blurhash="row.mainImageBlurhash"
             fit="cover"
             class="size-full"

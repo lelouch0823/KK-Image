@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4 shadow-sm">
+  <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4 shadow-card">
     <h3 class="mb-3 text-xs font-medium tracking-wider text-(--text-secondary) uppercase">
       {{ title }}
     </h3>

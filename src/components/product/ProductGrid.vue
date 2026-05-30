@@ -13,9 +13,10 @@
         <div class="flex items-start gap-3 p-3">
             <!-- Image (Larger for better visual appeal) -->
             <div class="size-20 shrink-0 overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-muted)">
-                 <AppImage 
-                    v-if="getMainImageSrc(product)" 
-                    :src="getMainImageSrc(product)" 
+                 <AppImage
+                    v-if="getMainImageSrc(product)"
+                    :src="getMainImageSrc(product)"
+                    :alt="product.name" 
                     fit="cover"
                     class="size-full"
                     rounded="none"

@@ -10,9 +10,12 @@
 import { ref, reactive, computed, watch } from 'vue';
 import { API } from '@/utils/constants';
 import { useAuth } from '@/composables/useAuth';
+import { useI18n } from '@/composables/useI18n';
+import { handleApiError } from '@/utils/api-helpers';
 
 export function useGoodsOverview() {
     const { authFetch } = useAuth();
+    const { t } = useI18n();
     const items = ref([]);
     const summary = ref(null);
     const loading = ref(false);
@@ -119,7 +122,7 @@ export function useGoodsOverview() {
             }
 
             resetOverviewState();
-            error.value = json.error || '加载失败';
+            error.value = json.error || t('common.loadFailed');
             return false;
         } catch (e) {
             if (requestId !== listRequestId) {
@@ -127,19 +130,9 @@ export function useGoodsOverview() {
             }
             console.error('loadGoodsOverview failed:', e);
             resetOverviewState();
-            const status = Number(e?.status || 0);
-            if (status === 403) {
-                errorCode.value = 'FORBIDDEN';
-                error.value = e?.data?.error || e?.message || '权限不足';
-                return false;
-            }
-            if (status === 401) {
-                errorCode.value = 'UNAUTHORIZED';
-                error.value = e?.data?.error || e?.message || '未授权';
-                return false;
-            }
-            errorCode.value = 'NETWORK_ERROR';
-            error.value = e.message;
+            const { code, message } = handleApiError(e, { t, addToast: undefined, fallbackKey: 'common.loadFailed' });
+            errorCode.value = code;
+            error.value = message;
             return false;
         } finally {
             if (requestId === listRequestId) {

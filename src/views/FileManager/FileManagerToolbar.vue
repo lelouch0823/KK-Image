@@ -66,7 +66,7 @@
     <div class="flex items-center gap-2 lg:gap-3">
       <!-- Batch Actions -->
       <Transition
-        enter-active-class="transition duration-200 ease-out"
+        enter-active-class="transition duration-200 ease-out-expo"
         enter-from-class="transform translate-x-4 opacity-0"
         enter-to-class="transform translate-x-0 opacity-100"
         leave-active-class="transition duration-150 ease-in"

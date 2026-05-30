@@ -48,4 +48,6 @@ export default {
   lastUpdated: 'Last Updated',
   viewAllPending: 'View all pending orders',
   footer: 'KK-Image All Rights Reserved',
+  permissionDenied: 'Permission Denied for Dashboard',
+  permissionDeniedDesc: 'Your account does not have dashboard read access. Please contact the admin.',
 };

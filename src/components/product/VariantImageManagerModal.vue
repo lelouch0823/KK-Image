@@ -112,7 +112,7 @@
             <main class="flex flex-1 flex-col overflow-y-auto bg-(--bg-card)">
               <!-- Action Bar -->
               <div
-                class="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 border-b border-(--border-color) bg-(--bg-card)/80 p-6 backdrop-blur-md"
+                class="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 border-b border-(--border-color) bg-(--bg-card) p-6"
               >
                 <div v-if="selectedVariantKey">
                   <h3 class="text-lg font-bold text-(--text-main)">

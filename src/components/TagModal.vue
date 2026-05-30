@@ -25,7 +25,7 @@
 
       <!-- Tag List Loading -->
       <div v-if="loadingTags" class="flex justify-center p-4">
-        <div class="border-primary size-6 animate-spin rounded-full border-2 border-t-transparent"></div>
+        <AppIcon name="spinner" class="text-primary size-6 animate-spin" />
       </div>
 
       <!-- Tag List -->
@@ -71,6 +71,7 @@ import { useToast } from '@/composables/useToast';
 import Modal from '@/components/ui/Modal.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

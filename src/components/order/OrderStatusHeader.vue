@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4 shadow-sm">
+  <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4 shadow-card">
     <div class="flex items-start justify-between gap-4">
       <div class="min-w-0 flex-1">
         <p class="mb-1 truncate font-mono text-xs text-(--text-secondary)">{{ orderNo }}</p>

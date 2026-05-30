@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4 shadow-sm">
+  <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4 shadow-card">
     <div class="flex flex-wrap items-center gap-2">
       <span class="bg-primary/12 text-primary rounded-full px-2.5 py-1 text-[11px] font-medium">Step 1 · 补全信息</span>
       <span class="rounded-full bg-(--bg-muted) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)">

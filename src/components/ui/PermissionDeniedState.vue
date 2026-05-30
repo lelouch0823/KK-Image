@@ -2,7 +2,7 @@
   <section
     id="permission-denied-state"
     data-testid="permission-denied-state"
-    class="mx-auto w-full max-w-3xl rounded-2xl border border-warning/25 bg-(--color-warning-bg) p-6 shadow-sm"
+    class="mx-auto w-full max-w-3xl rounded-2xl border border-warning/25 bg-(--color-warning-bg) p-6 shadow-card"
     role="alert"
     aria-live="polite"
   >

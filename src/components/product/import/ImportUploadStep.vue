@@ -87,7 +87,6 @@
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
-import * as XLSX from 'xlsx';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
@@ -98,7 +97,14 @@ const isDragOver = ref(false);
 const fileInput = ref(null);
 
 // --- Template Download ---
-const downloadTemplate = () => {
+let _xlsx = null;
+async function getXLSX() {
+    if (!_xlsx) _xlsx = await import('xlsx');
+    return _xlsx;
+}
+
+const downloadTemplate = async () => {
+    const XLSX = await getXLSX();
     const ws = XLSX.utils.json_to_sheet([
         { name: 'Example Product', sku: 'SKU-001', price: 99.00, stock_quantity: 100, image_url: 'https://example.com/img.jpg', description: 'Optional desc' }
     ]);

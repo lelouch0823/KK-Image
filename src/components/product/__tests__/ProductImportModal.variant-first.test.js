@@ -1049,7 +1049,8 @@ describe('ProductImportModal Variant-First Payload', () => {
         };
 
         const pending = wrapper.vm.processFile(fakeFile);
-        await Promise.resolve();
+        // Wait for dynamic XLSX import to resolve before file.arrayBuffer() is called
+        await new Promise(resolve => setTimeout(resolve, 50));
 
         await wrapper.setProps({ modelValue: false });
         await wrapper.vm.$nextTick();

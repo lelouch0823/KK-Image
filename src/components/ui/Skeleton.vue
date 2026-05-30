@@ -19,7 +19,7 @@
       <!-- Stat Card Template -->
       <div
         v-else-if="template === 'stat-card'"
-        class="skeleton-shimmer rounded-xl border border-(--border-color) bg-(--bg-muted) p-4"
+        class="skeleton-shimmer rounded-2xl border border-(--border-color) bg-(--bg-muted) p-4"
       >
         <div class="mb-2 h-4 w-16 rounded bg-(--border-color)" />
         <div class="h-8 w-24 rounded bg-(--border-color)" />
@@ -28,7 +28,7 @@
       <!-- List Card Template (for Order/Customer lists) -->
       <div
         v-else-if="template === 'list-card'"
-        class="skeleton-shimmer rounded-xl border border-(--border-color) bg-(--bg-card) p-4"
+        class="skeleton-shimmer rounded-2xl border border-(--border-color) bg-(--bg-card) p-4"
         :class="{ 'mb-3': i < count }"
       >
         <div class="flex gap-3">

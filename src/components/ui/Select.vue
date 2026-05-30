@@ -4,12 +4,17 @@
     <button
       :id="triggerId"
       type="button"
-      class="focus:border-primary focus:ring-primary/10 focus:outline-none flex w-full items-center justify-between border border-(--border-color) bg-(--bg-card) text-left text-sm transition-all dark:bg-(--bg-muted)"
+      role="combobox"
+      aria-haspopup="listbox"
+      :aria-expanded="isOpen"
+      :aria-activedescendant="isOpen && highlightIndex >= 0 ? `${triggerId}-option-${highlightIndex}` : undefined"
+      class="focus-visible:border-primary focus-visible:ring-primary/10 focus:outline-none flex w-full items-center justify-between border border-(--border-color) bg-(--bg-card) text-left text-sm transition-all dark:bg-(--bg-muted)"
       :class="[
-        size === 'sm' ? 'h-9 rounded-lg px-2 focus:ring-2' : 'h-11 rounded-xl px-4 focus:ring-4',
+        size === 'sm' ? 'h-9 rounded-lg px-2 focus-visible:ring-2' : 'h-11 rounded-xl px-4 focus-visible:ring-4',
         !modelValue ? 'text-(--text-secondary)' : 'text-(--text-main)'
       ]"
       @click="toggle"
+      @keydown="handleKeydown"
     >
       <span class="truncate">{{ selectedLabel || placeholder }}</span>
       <AppIcon
@@ -25,15 +30,17 @@
     <!-- Dropdown -->
     <Teleport to="body">
       <Transition
-        enter-active-class="transition duration-100 ease-out"
-        enter-from-class="transform scale-95 opacity-0"
-        enter-to-class="transform scale-100 opacity-100"
-        leave-active-class="transition duration-75 ease-in"
+        enter-active-class="transition duration-150 ease-out-expo"
+        enter-from-class="transform scale-[0.97] opacity-0 -translate-y-1"
+        enter-to-class="transform scale-100 opacity-100 translate-y-0"
+        leave-active-class="transition duration-100"
         leave-from-class="transform scale-100 opacity-100"
-        leave-to-class="transform scale-95 opacity-0"
+        leave-to-class="transform scale-[0.98] opacity-0"
       >
         <div
           v-if="isOpen"
+          :id="`${triggerId}-listbox`"
+          role="listbox"
           :data-select-id="triggerId"
           class="fixed z-[9999] overflow-auto rounded-lg border border-(--border-color) bg-(--bg-card) shadow-lg focus:outline-none"
           :style="dropdownStyle"
@@ -49,16 +56,21 @@
               {{ emptyText }}
             </div>
             <button
-              v-for="option in options"
+              v-for="(option, index) in options"
               v-else
+              :id="`${triggerId}-option-${index}`"
               :key="option.value"
               type="button"
+              role="option"
+              :aria-selected="modelValue === option.value"
               class="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors hover:bg-(--bg-hover)"
               :class="{
                 'bg-(--bg-muted) text-(--text-main)': modelValue === option.value,
                 'text-(--text-main)': modelValue !== option.value,
+                'bg-(--bg-hover)': highlightIndex === index,
               }"
               @click="select(option)"
+              @mouseenter="highlightIndex = index"
             >
               <span class="block flex-1 truncate text-left">{{ option.label }}</span>
               <AppIcon
@@ -105,6 +117,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'change']);
 
 const isOpen = ref(false);
+const highlightIndex = ref(-1);
 const containerRef = useTemplateRef('container');
 const triggerId = useId();
 
@@ -138,20 +151,24 @@ const selectedLabel = computed(() => {
 const toggle = async () => {
   if (!isOpen.value) {
     update(); // Force update bounds
-    
+
     // Calculate position preference
     const spaceBelow = window.innerHeight - bottom.value;
     const spaceAbove = top.value;
-    
+
     if (spaceBelow < 200 && spaceAbove > spaceBelow) {
       dropdownPosition.value = 'top';
     } else {
       dropdownPosition.value = 'bottom';
     }
-    
+
     isOpen.value = true;
+    // 高亮当前选中项，若无选中项则高亮第一项
+    const selectedIndex = props.options.findIndex((o) => o.value === props.modelValue);
+    highlightIndex.value = selectedIndex >= 0 ? selectedIndex : 0;
   } else {
     isOpen.value = false;
+    highlightIndex.value = -1;
   }
 };
 
@@ -159,6 +176,79 @@ const select = (option) => {
   emit('update:modelValue', option.value);
   emit('change', option.value);
   isOpen.value = false;
+  highlightIndex.value = -1;
+};
+
+const handleKeydown = (event) => {
+  const { key } = event;
+  const optionCount = props.options.length;
+
+  if (optionCount === 0) return;
+
+  switch (key) {
+    case 'ArrowDown': {
+      event.preventDefault();
+      if (!isOpen.value) {
+        toggle();
+      } else {
+        highlightIndex.value = (highlightIndex.value + 1) % optionCount;
+        scrollToHighlighted();
+      }
+      break;
+    }
+    case 'ArrowUp': {
+      event.preventDefault();
+      if (!isOpen.value) {
+        toggle();
+      } else {
+        highlightIndex.value = (highlightIndex.value - 1 + optionCount) % optionCount;
+        scrollToHighlighted();
+      }
+      break;
+    }
+    case 'Enter': {
+      event.preventDefault();
+      if (isOpen.value && highlightIndex.value >= 0 && highlightIndex.value < optionCount) {
+        select(props.options[highlightIndex.value]);
+      } else if (!isOpen.value) {
+        toggle();
+      }
+      break;
+    }
+    case 'Escape': {
+      if (isOpen.value) {
+        event.preventDefault();
+        isOpen.value = false;
+        highlightIndex.value = -1;
+      }
+      break;
+    }
+    case 'Home': {
+      if (isOpen.value) {
+        event.preventDefault();
+        highlightIndex.value = 0;
+        scrollToHighlighted();
+      }
+      break;
+    }
+    case 'End': {
+      if (isOpen.value) {
+        event.preventDefault();
+        highlightIndex.value = optionCount - 1;
+        scrollToHighlighted();
+      }
+      break;
+    }
+  }
+};
+
+const scrollToHighlighted = () => {
+  const listboxEl = document.getElementById(`${triggerId}-listbox`);
+  if (!listboxEl) return;
+  const optionEl = document.getElementById(`${triggerId}-option-${highlightIndex.value}`);
+  if (optionEl) {
+    optionEl.scrollIntoView({ block: 'nearest' });
+  }
 };
 
 // Close on scroll or resize to prevent detached dropdown
@@ -173,7 +263,10 @@ watch(isOpen, (val) => {
 });
 
 const close = () => {
-    if (isOpen.value) isOpen.value = false;
+    if (isOpen.value) {
+      isOpen.value = false;
+      highlightIndex.value = -1;
+    }
 }
 
 const handleClickOutside = (event) => {
@@ -191,6 +284,7 @@ const handleClickOutside = (event) => {
       if (dropdownEl && dropdownEl.contains(event.target)) return;
       
       isOpen.value = false;
+      highlightIndex.value = -1;
   }
 };
 

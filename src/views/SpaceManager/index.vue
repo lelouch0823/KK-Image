@@ -24,30 +24,30 @@
           :key="i"
           class="overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card)"
         >
-          <Skeleton type="custom" custom-class="aspect-video w-full rounded-none" />
+          <Skeleton container-class="aspect-video w-full rounded-none" />
           <div class="space-y-3 p-4">
-            <Skeleton type="text" width="3/4" />
-            <Skeleton type="text" width="1/2" />
+            <Skeleton width="3/4" />
+            <Skeleton width="1/2" />
             <div class="flex gap-3">
-              <Skeleton type="text" width="80px" />
-              <Skeleton type="text" width="72px" />
+              <Skeleton width="80px" />
+              <Skeleton width="72px" />
             </div>
             <div class="flex justify-end gap-2 pt-2">
-              <Skeleton type="custom" custom-class="h-8 w-20 rounded-lg" />
-              <Skeleton type="custom" custom-class="h-8 w-20 rounded-lg" />
+              <Skeleton container-class="h-8 w-20 rounded-lg" />
+              <Skeleton container-class="h-8 w-20 rounded-lg" />
             </div>
           </div>
         </div>
       </div>
 
-      <div v-else-if="errorCode === 'FORBIDDEN'" class="py-6">
+      <div v-else-if="errorCode === ErrorCode.FORBIDDEN" class="py-6">
         <PermissionDeniedState :reason="error" @retry="loadSpaces()" />
       </div>
 
       <div v-else-if="error" class="py-6">
         <PermissionDeniedState
-          title="加载失败"
-          description="资源加载失败，请检查网络或稍后重试。"
+          :title="t('spaceManager.loadFailed')"
+          :description="t('spaceManager.loadFailedDesc')"
           :reason="error"
           @retry="loadSpaces()"
         />
@@ -235,6 +235,7 @@ import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
+import { ErrorCode } from '@/utils/error-codes';
 
 const { spaces, loading, error, errorCode, loadSpaces, deleteSpace } = useSpaces();
 const { t } = useI18n();

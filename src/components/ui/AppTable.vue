@@ -6,7 +6,7 @@
     :class="[
       noBorder
         ? 'app-table--plain'
-        : 'app-table--card rounded-2xl border border-(--border-color)/70 bg-(--bg-card) shadow-sm',
+        : 'app-table--card rounded-2xl border border-(--border-color)/70 bg-(--bg-card) shadow-card',
     ]"
   >
     <!-- Toolbar / Header Slot -->
@@ -27,7 +27,7 @@
       >
         <table class="w-full text-left text-sm" :style="{ tableLayout }">
           <thead
-            class="app-table__head sticky top-0 z-10 bg-(--bg-card)/92 font-medium text-(--text-secondary) backdrop-blur-sm"
+            class="app-table__head sticky top-0 z-10 bg-(--bg-card) font-medium text-(--text-secondary)"
             :class="{ 'app-table__head--plain': noBorder }"
           >
             <tr

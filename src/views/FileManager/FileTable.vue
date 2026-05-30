@@ -30,6 +30,7 @@
             <AppImage
               v-if="isImage(row)"
               :src="row.url"
+              :alt="row.originalName || row.name"
               class="size-full"
               fit="cover"
             />

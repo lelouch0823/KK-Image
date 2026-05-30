@@ -43,4 +43,12 @@
     --color-modal-bg: #11141d;
 
     --color-chart-grid: rgba(255, 255, 255, 0.05);
+
+    /* 暗色模式专用阴影 - 更柔和，带色调 */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.15), 0 0 0 1px rgba(255, 255, 255, 0.03);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.5);
 }

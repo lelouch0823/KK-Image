@@ -4,6 +4,7 @@
     :data="list"
     :loading="loading"
     :empty-text="emptyText"
+    :virtual="list.length > 50"
     no-border
     clickable
     @row-click="$emit('row-click', $event)"

@@ -210,6 +210,8 @@ export default {
   manage: {
     title: '订单管理',
     subtitle: '审核和管理预定订单',
+    permissionDenied: '订单管理权限不足',
+    permissionDeniedDesc: '当前账号没有订单读取权限，请联系管理员分配 orders:read。',
     create: '新建订单',
     createTitle: '创建新订单',
     createSuccess: '订单创建成功',

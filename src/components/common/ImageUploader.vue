@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4">
+  <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4">
     <label v-if="label" class="text-secondary mb-3 block text-sm font-medium">
       {{ label }}
     </label>

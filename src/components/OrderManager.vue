@@ -1,9 +1,9 @@
 <template>
   <ManagementListShell :title="t('order.manage.title')" :description="t('order.manage.subtitle') || t('order.manage.title')">
-    <div v-if="errorCode === 'FORBIDDEN'" class="flex flex-1 items-center justify-center py-12">
+    <div v-if="errorCode === ErrorCode.FORBIDDEN" class="flex flex-1 items-center justify-center py-12">
       <PermissionDeniedState
-        title="订单管理权限不足"
-        :description="error || '当前账号没有订单读取权限，请联系管理员分配 orders:read。'"
+        :title="t('order.manage.permissionDenied')"
+        :description="error || t('order.manage.permissionDeniedDesc')"
         required-permission="orders:manage"
         @retry="refreshOrders"
       />
@@ -12,13 +12,13 @@
     <!-- 订单统计仪表盘 (Desktop only inline) - NOTE: This seems unused or legacy comment, keeping structure but cleaning up -->
     
     <!-- Mobile Stats Modal -->
-    <Modal v-if="errorCode !== 'FORBIDDEN'" v-model="showStatsModal" :title="t('dashboard.stats')" size="xl">
+    <Modal v-if="errorCode !== ErrorCode.FORBIDDEN" v-model="showStatsModal" :title="t('dashboard.stats')" size="xl">
       <OrderDashboard @filter="(type) => { handleDashboardFilter(type); showStatsModal = false; }" />
     </Modal>
 
     <!-- 订单列表 -->
     <template #content>
-    <div v-if="errorCode !== 'FORBIDDEN'" class="lg:overflow-y-auto">
+    <div v-if="errorCode !== ErrorCode.FORBIDDEN" class="lg:overflow-y-auto">
       <!-- 桌面表格视图 (lg+) -->
       <div class="hidden lg:block">
         <OrderTable
@@ -139,7 +139,7 @@
 
     <!-- Create Modal -->
     <OrderCreateModal
-      v-if="errorCode !== 'FORBIDDEN' && showCreateModal"
+      v-if="errorCode !== ErrorCode.FORBIDDEN && showCreateModal"
       v-model="showCreateModal"
       :salespersons="salespersons"
       :statuses="statuses"
@@ -148,7 +148,7 @@
 
     <!-- 订单详情弹窗 -->
     <OrderWorkflowModal
-      v-if="errorCode !== 'FORBIDDEN'"
+      v-if="errorCode !== ErrorCode.FORBIDDEN"
       v-model:show="showDetailModal"
       :order="viewingOrder"
       :hydrating="detailHydrating"
@@ -169,7 +169,7 @@
 
     <!-- 订单编辑弹窗 -->
     <OrderEditModal
-      v-if="errorCode !== 'FORBIDDEN' && showEditModal && editingOrder"
+      v-if="errorCode !== ErrorCode.FORBIDDEN && showEditModal && editingOrder"
       :order="editingOrder"
       :submitting="isEditing"
       :statuses="statuses"
@@ -179,7 +179,7 @@
     />
     <!-- Confirm Dialog -->
     <ConfirmDialog
-      v-if="errorCode !== 'FORBIDDEN'"
+      v-if="errorCode !== ErrorCode.FORBIDDEN"
       v-model="lineCommandConfirm.show"
       :title="lineCommandConfirm.title"
       :message="lineCommandConfirm.message"
@@ -191,7 +191,7 @@
     />
 
     <ConfirmDialog
-      v-if="errorCode !== 'FORBIDDEN'"
+      v-if="errorCode !== ErrorCode.FORBIDDEN"
       v-model="confirmData.show"
       :title="confirmData.title"
       :message="confirmData.message"
@@ -201,7 +201,7 @@
     />
 
     <ConfirmDialog
-      v-if="errorCode !== 'FORBIDDEN'"
+      v-if="errorCode !== ErrorCode.FORBIDDEN"
       v-model="deliveryConfirm.show"
       :title="deliveryConfirm.title"
       :message="deliveryConfirm.message"
@@ -213,7 +213,7 @@
     />
 
     <OrderReturnDialog
-      v-if="errorCode !== 'FORBIDDEN'"
+      v-if="errorCode !== ErrorCode.FORBIDDEN"
       v-model="returnDialog.show"
       :quantity="returnDialog.quantity"
       :line-label="returnDialog.lineLabel"
@@ -224,7 +224,7 @@
 
     <!-- Destructive Delete Modal -->
     <DestructiveConfirmModal
-      v-if="errorCode !== 'FORBIDDEN'"
+      v-if="errorCode !== ErrorCode.FORBIDDEN"
       v-model="showDeleteModal"
       :title="t('order.detail.deletePermanently')"
       :description="t('order.detail.dangerWarning')"
@@ -238,7 +238,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, onActivated, watch, reactive, ref } from 'vue';
+import { onMounted, onUnmounted, onActivated, watch, reactive, ref, defineAsyncComponent } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useNotifications } from '@/composables/useNotifications';
@@ -258,18 +258,19 @@ import OrderFilters from './order/OrderFilters.vue';
 import OrderTable from './order/OrderTable.vue';
 import OrderCards from './order/OrderCards.vue';
 import OrderListStatusStack from './order/OrderListStatusStack.vue';
-import OrderEditModal from './OrderEditModal.vue';
-import OrderWorkflowModal from './order/OrderWorkflowModal.vue';
-import OrderReturnDialog from './order/OrderReturnDialog.vue';
-import OrderDashboard from './order/OrderDashboard.vue';
-import OrderCreateModal from '@/components/OrderCreateModal.vue';
-import DestructiveConfirmModal from '@/components/common/DestructiveConfirmModal.vue';
+const OrderEditModal = defineAsyncComponent(() => import('./OrderEditModal.vue'));
+const OrderWorkflowModal = defineAsyncComponent(() => import('./order/OrderWorkflowModal.vue'));
+const OrderReturnDialog = defineAsyncComponent(() => import('./order/OrderReturnDialog.vue'));
+const OrderDashboard = defineAsyncComponent(() => import('./order/OrderDashboard.vue'));
+const OrderCreateModal = defineAsyncComponent(() => import('@/components/OrderCreateModal.vue'));
+const DestructiveConfirmModal = defineAsyncComponent(() => import('@/components/common/DestructiveConfirmModal.vue'));
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
 import { API } from '@/utils/constants';
 import { resolveOrderDeliveryStatus, resolveOrderProgressStatus } from '@/utils/order-display';
+import { ErrorCode } from '@/utils/error-codes';
 
 const {
   orders,

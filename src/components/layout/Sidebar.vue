@@ -8,7 +8,7 @@
 
   <aside
     :class="[
-      'z-50 flex shrink-0 flex-col border-r border-(--border-color) bg-(--bg-card) transition-all duration-300',
+      'z-50 flex shrink-0 flex-col border-r border-(--border-color) bg-(--bg-card) transition-all duration-300 ease-out-expo',
       // 桌面端：根据折叠状态切换宽度
       isCollapsed ? 'lg:w-[72px]' : 'lg:w-(--sidebar-width)',
       'lg:relative lg:translate-x-0',
@@ -73,7 +73,7 @@
         <transition name="fade">
           <div
             v-if="!isCollapsed"
-            class="text-secondary mb-2 px-3 text-xs font-semibold tracking-wider uppercase"
+            class="text-muted mb-2 px-3 text-[11px] font-medium tracking-wider uppercase"
           >
             {{ t('sidebar.menu') }}
           </div>
@@ -85,12 +85,12 @@
           size="sm"
           block
           :title="isCollapsed ? item.label : ''"
-          class="mb-1 !h-auto !justify-start !px-3 !py-2.5 text-sm font-medium"
+          class="mb-1 !h-auto !justify-start !px-3 !py-2.5 text-sm font-medium transition-all duration-200"
           :class="[
             currentView === item.key
-              ? 'text-primary bg-primary/5 ring-primary/10 font-semibold shadow-sm ring-1'
-              : 'text-secondary hover:text-primary hover:bg-(--bg-hover)',
-            isCollapsed ? '!justify-center' : '',
+              ? 'text-primary bg-primary/8 font-semibold shadow-sm border-l-2 border-primary -ml-0.5 pl-[14px]'
+              : 'text-secondary hover:text-main hover:bg-(--bg-hover) border-l-2 border-transparent -ml-0.5 pl-[14px]',
+            isCollapsed ? '!justify-center !border-l-0 !ml-0 !pl-3' : '',
           ]"
           @click="handleMenuClick(item.key)"
         >
@@ -107,7 +107,7 @@
         <transition name="fade">
           <div
             v-if="!isCollapsed"
-            class="text-secondary mb-2 px-3 text-xs font-semibold tracking-wider uppercase"
+            class="text-muted mb-2 px-3 text-[11px] font-medium tracking-wider uppercase"
           >
             {{ t('sidebar.manage') }}
           </div>
@@ -137,14 +137,14 @@
     <div class="border-t border-(--border-color) p-4">
       <div class="flex items-center gap-3" :class="isCollapsed ? 'justify-center' : ''">
         <div
-          class="text-secondary flex size-9 shrink-0 items-center justify-center rounded-full bg-(--bg-muted) text-sm font-semibold uppercase"
+          class="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-bold"
         >
-          {{ currentUser?.name ? currentUser.name.charAt(0) : 'U' }}
+          {{ currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U' }}
         </div>
         <transition name="fade-slide">
           <div v-if="!isCollapsed" class="min-w-0 flex-1">
-            <div class="text-primary truncate text-sm font-medium">{{ currentUser?.name || t('sidebar.role') }}</div>
-            <div class="text-secondary text-xs capitalize">{{ currentUser?.role || t('sidebar.role') }}</div>
+            <div class="truncate text-sm font-medium text-(--text-main)">{{ currentUser?.name || t('sidebar.role') }}</div>
+            <div class="text-muted text-xs capitalize">{{ currentUser?.role || t('sidebar.role') }}</div>
           </div>
         </transition>
       </div>
@@ -359,20 +359,20 @@ const confirmLogout = async () => {
 .fade-slide-enter-active,
 .fade-slide-leave-active {
   transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+    opacity 200ms var(--ease-out-expo),
+    transform 200ms var(--ease-out-expo);
 }
 
 .fade-slide-enter-from,
 .fade-slide-leave-to {
   opacity: 0;
-  transform: translateX(-8px);
+  transform: translateX(-6px);
 }
 
 /* 淡入淡出动画 */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.15s ease;
+  transition: opacity 150ms var(--ease-in-out);
 }
 
 .fade-enter-from,

@@ -143,7 +143,6 @@
 
 <script setup>
 import { reactive, ref, watch } from 'vue';
-import XLSX from 'xlsx-js-style';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppCard from '@/components/ui/AppCard.vue';
 import Modal from '@/components/ui/Modal.vue';
@@ -288,6 +287,12 @@ const hydrateProducts = async (products, requestId) => {
   return result;
 };
 
+let _xlsxStyle = null;
+async function getXLSXStyle() {
+  if (!_xlsxStyle) _xlsxStyle = await import('xlsx-js-style');
+  return _xlsxStyle;
+}
+
 const createBlobFromRows = async (rows) => {
   const date = new Date().toISOString().slice(0, 10);
   if (form.format === 'csv') {
@@ -297,7 +302,7 @@ const createBlobFromRows = async (rows) => {
       fileName: `products_variants_${date}.csv`,
     };
   }
-  const wb = buildExcelWorkbook(rows, EXPORT_COLUMNS, {
+  const wb = await buildExcelWorkbook(rows, EXPORT_COLUMNS, {
     generatedAt: new Date().toISOString(),
     scopeLabel: form.scope === 'filtered'
       ? t('product.exportModal.scope_filtered', '当前筛选结果')
@@ -306,7 +311,8 @@ const createBlobFromRows = async (rows) => {
       ? `search=${props.filters?.search || '-'}, status=${props.filters?.status || '-'}, brand=${props.filters?.brand || '-'}, category=${props.filters?.category || '-'}, hasStock=${props.filters?.hasStock || '-'}`
       : '-',
   });
-  const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  const XLSXStyle = await getXLSXStyle();
+  const buffer = XLSXStyle.write(wb, { type: 'array', bookType: 'xlsx' });
   return {
     blob: new Blob([buffer], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

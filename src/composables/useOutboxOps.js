@@ -3,6 +3,7 @@ import { API } from '@/utils/constants';
 import { useToast } from './useToast';
 import { useI18n } from './useI18n';
 import { useAuth } from './useAuth';
+import { handleApiError } from '@/utils/api-helpers';
 
 function buildQuery(filters = {}) {
   const params = new URLSearchParams();
@@ -68,21 +69,9 @@ export function useOutboxOps() {
       if (requestId !== latestListRequestId) {
         return false;
       }
-      const status = Number(e?.status || 0);
-      if (status === 403) {
-        errorCode.value = 'FORBIDDEN';
-        error.value = e?.data?.error || e?.message || t('common.error.forbidden') || '权限不足';
-        return false;
-      }
-      if (status === 401) {
-        errorCode.value = 'UNAUTHORIZED';
-        error.value = e?.data?.error || e?.message || t('common.error.unauthorized') || '未授权';
-        return false;
-      }
-
-      errorCode.value = 'NETWORK_ERROR';
-      error.value = e?.message || t('common.networkError');
-      addToast({ message: error.value, type: 'error' });
+      const { code, message } = handleApiError(e, { t, addToast, fallbackKey: 'common.networkError' });
+      errorCode.value = code;
+      error.value = message;
       return false;
     } finally {
       if (requestId === latestListRequestId) {

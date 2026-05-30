@@ -2,6 +2,8 @@
 export default {
   title: '采购管理',
   subtitle: '管理境外采购单，跟踪运费/关税分摊与订单联动',
+  permissionDenied: '采购单权限不足',
+  permissionDeniedDesc: '当前账号没有采购单读取权限，请联系管理员分配 purchase_orders:read。',
 
   // 采购单状态 (管理端视角)
   status: {

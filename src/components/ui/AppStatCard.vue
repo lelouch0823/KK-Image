@@ -1,6 +1,6 @@
 <template>
   <div
-    class="group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all duration-200"
+    class="group relative overflow-hidden rounded-2xl border p-4 shadow-card transition-all duration-200"
     :data-tone="resolvedTone"
     :class="[
       variantClass,

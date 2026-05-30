@@ -1,14 +1,14 @@
 <template>
   <div class="space-y-6">
     <div
-      v-if="errorCode === 'FORBIDDEN'"
-      class="rounded-xl border border-(--border-color) bg-(--bg-card) p-8"
+      v-if="errorCode === ErrorCode.FORBIDDEN"
+      class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8"
     >
       <PermissionDeniedState
-        title="订货总览权限不足"
-        :description="error || '当前账号没有订货总览读取权限，请联系管理员分配 products:manage。'"
+        :title="t('goodsOverview.permissionDenied')"
+        :description="error || t('goodsOverview.permissionDeniedDesc')"
         home-to="/admin/forbidden"
-        home-text="查看权限说明"
+        :home-text="t('common.viewDetails')"
         @retry="init"
       />
     </div>
@@ -219,6 +219,7 @@
                     <AppImage
                       v-if="getItemImageSrc(item)"
                       :src="getItemImageSrc(item)"
+                      :alt="item.name"
                       class="size-full"
                     />
                     <div
@@ -396,6 +397,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useAI } from '@/composables/useAI';
 import { useGoodsOverview } from '@/composables/useGoodsOverview';
+import { ErrorCode } from '@/utils/error-codes';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppButton from '@/components/ui/AppButton.vue';
@@ -566,7 +568,7 @@ const summaryByStatus = computed(() => ({
 }));
 
 const showRequestErrorState = computed(
-  () => !loading.value && Boolean(error.value) && errorCode.value !== 'FORBIDDEN'
+  () => !loading.value && Boolean(error.value) && errorCode.value !== ErrorCode.FORBIDDEN
 );
 
 const getItemImageSrc = (item) => resolvePrimaryProductImageSrc({ images: item?.images || [] });

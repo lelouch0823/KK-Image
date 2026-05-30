@@ -1,7 +1,7 @@
 <template>
   <div :data-sales-order-mode="salesOrderEntry">
     <div v-if="loading" class="flex h-64 items-center justify-center">
-      <div class="border-t-primary size-8 animate-spin rounded-full border-4 border-(--border-color)"></div>
+      <AppIcon name="spinner" class="text-primary size-8 animate-spin" />
     </div>
     <OrderDetail
       v-else-if="order"
@@ -22,7 +22,7 @@
       :description="detailError"
       @retry="fetchOrder"
     />
-    <div v-else class="flex h-screen items-center justify-center">
+    <div v-else class="flex min-h-[70vh] items-center justify-center px-4">
       <EmptyState
         icon="search"
         :title="t('common.orderNotFound')"
@@ -50,6 +50,8 @@ import { resolveOrderProductName, resolveOrderQuantity, resolveOrderSnapshotFiel
 import OrderDetail from '@/components/order/OrderDetail.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AsyncStatePanel from '@/components/common/AsyncStatePanel.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
+import { extractErrorMessage } from '@/utils/api-helpers';
 
 const route = useRoute();
 const router = useRouter();
@@ -103,6 +105,10 @@ const fetchOrder = async () => {
       detailError.value = t('common.loadFailed');
       return false;
     }
+  } catch (e) {
+    order.value = null;
+    detailError.value = extractErrorMessage(e, t('common.loadFailed'));
+    return false;
   } finally {
     if (requestId === detailRequestId) {
       loading.value = false;

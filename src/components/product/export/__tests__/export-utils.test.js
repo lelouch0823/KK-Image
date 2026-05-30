@@ -146,8 +146,8 @@ describe('product export utils', () => {
     });
   });
 
-  it('builds excel workbook with grouped headers', () => {
-    const wb = buildExcelWorkbook([
+  it('builds excel workbook with grouped headers', async () => {
+    const wb = await buildExcelWorkbook([
       { product_id: 'p1', product_name: 'Test', stock_flag: 'LOW_STOCK' },
     ], EXPORT_COLUMNS.slice(0, 2), {
       generatedAt: '2026-02-27T12:00:00.000Z',

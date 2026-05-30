@@ -3,7 +3,7 @@
     <!-- Left: Gallery -->
     <div class="space-y-4 lg:col-span-7">
       <div
-        class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) p-1 shadow-sm"
+        class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) p-1 shadow-card"
       >
         <!-- Main Image -->
         <div
@@ -75,7 +75,7 @@
 
       <!-- Description (Desktop) -->
       <div
-        class="hidden rounded-2xl border border-(--border-color) bg-(--bg-card) p-6 shadow-sm lg:block"
+        class="hidden rounded-2xl border border-(--border-color) bg-(--bg-card) p-6 shadow-card lg:block"
       >
         <h3 class="mb-3 font-bold text-(--text-main)">{{ t('product.form.description') }}</h3>
         <p class="text-sm leading-relaxed whitespace-pre-wrap text-(--text-secondary)">
@@ -235,7 +235,7 @@
       <!-- Variants or Specs -->
       <div
         v-if="activeVariants.length > 0"
-        class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-sm"
+        class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-card"
       >
         <h3 class="mb-4 text-sm font-bold tracking-wider text-(--text-main) uppercase opacity-80">
           {{ t('product.form.variants_title', 'Variants') }}
@@ -314,7 +314,7 @@
           </div>
         </div>
       </div>
-      <div v-else class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-sm">
+      <div v-else class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-card">
         <h3 class="mb-4 text-sm font-bold tracking-wider text-(--text-main) uppercase opacity-80">
           {{ t('product.form.specifications') }}
         </h3>
@@ -347,7 +347,7 @@
       </div>
 
       <!-- Inventory -->
-      <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-sm">
+      <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-card">
         <h3 class="mb-4 text-sm font-bold tracking-wider text-(--text-main) uppercase opacity-80">
           {{ t('product.form.inventory') }}
         </h3>
@@ -383,7 +383,7 @@
 
       <!-- Mobile Description -->
       <div
-        class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-sm lg:hidden"
+        class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-card lg:hidden"
       >
         <h3 class="mb-2 font-bold text-(--text-main)">{{ t('product.form.description') }}</h3>
         <p class="text-sm leading-relaxed whitespace-pre-wrap text-(--text-secondary)">

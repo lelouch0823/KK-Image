@@ -126,7 +126,7 @@
           </div>
           <p
             v-if="receipt.note"
-            class="mt-2 rounded-xl bg-(--bg-muted)/55 px-3 py-2 text-xs leading-5 break-all whitespace-pre-wrap text-(--text-secondary)"
+            class="mt-2 rounded-2xl bg-(--bg-muted)/55 px-3 py-2 text-xs leading-5 break-all whitespace-pre-wrap text-(--text-secondary)"
           >
             {{ receipt.note }}
           </p>

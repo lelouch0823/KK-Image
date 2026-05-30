@@ -1,10 +1,10 @@
 <template>
   <Teleport to="body">
     <transition
-      enter-active-class="transition ease-out duration-200"
+      enter-active-class="transition ease-out-expo duration-200"
       enter-from-class="opacity-0"
       enter-to-class="opacity-100"
-      leave-active-class="transition ease-in duration-150"
+      leave-active-class="transition duration-150"
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
@@ -15,12 +15,12 @@
         @click.self="handleBackdropClick"
       >
         <transition
-          enter-active-class="transition ease-out duration-200"
-          enter-from-class="opacity-0 scale-95 translate-y-4"
+          enter-active-class="transition ease-out-expo duration-250"
+          enter-from-class="opacity-0 scale-[0.97] translate-y-3"
           enter-to-class="opacity-100 scale-100 translate-y-0"
-          leave-active-class="transition ease-in duration-150"
+          leave-active-class="transition duration-150"
           leave-from-class="opacity-100 scale-100 translate-y-0"
-          leave-to-class="opacity-0 scale-95 translate-y-4"
+          leave-to-class="opacity-0 scale-[0.97] translate-y-2"
         >
           <div
             v-if="modelValue"
@@ -28,7 +28,7 @@
             aria-modal="true"
             :aria-labelledby="labelledBy || (title ? modalTitleId : undefined)"
             data-modal-surface="base"
-            class="animate-in flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl border border-(--border-color) bg-(--color-modal-bg) shadow-2xl ring-1 ring-(--border-color)/40"
+            class="animate-in flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-(--border-color) bg-(--color-modal-bg) shadow-2xl"
             :class="sizeClass"
           >
             <!-- Header -->
@@ -58,7 +58,7 @@
             <!-- Footer -->
             <div
               v-if="$slots.footer"
-              class="flex justify-end gap-3 border-t border-(--border-color) bg-(--bg-muted) px-6 py-4"
+              class="flex justify-end gap-3 border-t border-(--border-color) bg-(--bg-muted)/50 px-6 py-4"
             >
               <slot name="footer"></slot>
             </div>
@@ -70,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue';
+import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { useModalStack } from '@/composables/useModalStack';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
@@ -191,9 +191,40 @@ const syncBodyScrollLock = () => {
 
 // ESC 键关闭（仅最顶层响应）
 const handleKeydown = (e) => {
-  if (e.key === 'Escape' && props.modelValue && props.closable && isTopModal(modalId.value)) {
+  if (!props.modelValue || !isTopModal(modalId.value)) return;
+
+  if (e.key === 'Escape' && props.closable) {
     close();
+    return;
   }
+
+  // 焦点陷阱：Tab 时焦点在 Modal 内循环
+  if (e.key === 'Tab') {
+    const focusableEls = getFocusableElements();
+    if (focusableEls.length === 0) return;
+
+    const first = focusableEls[0];
+    const last = focusableEls[focusableEls.length - 1];
+
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+};
+
+// 获取 Modal 内可聚焦元素
+const getFocusableElements = () => {
+  const modalEl = document.querySelector(`[data-modal-surface="base"]`);
+  if (!modalEl) return [];
+  return Array.from(
+    modalEl.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+  );
 };
 
 // 注册/注销 Modal
@@ -204,6 +235,13 @@ watch(
       register(modalId.value);
       syncBodyScrollLock();
       document.addEventListener('keydown', handleKeydown);
+      // 自动聚焦到第一个可交互元素
+      nextTick(() => {
+        const focusableEls = getFocusableElements();
+        if (focusableEls.length > 0) {
+          focusableEls[0].focus();
+        }
+      });
     } else {
       unregister(modalId.value);
       syncBodyScrollLock();

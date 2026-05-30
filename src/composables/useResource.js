@@ -2,6 +2,7 @@ import { ref, reactive, onScopeDispose, getCurrentScope } from 'vue';
 import { useAuth } from './useAuth';
 import { useToast } from './useToast';
 import { useI18n } from './useI18n';
+import { ErrorCode, isAuthError } from '@/utils/error-codes';
 
 /**
  * @typedef {Object} ResourceOptions
@@ -251,20 +252,20 @@ export function useResource(apiEndpoint, options = {}) {
 
             const status = Number(e?.status);
             if (status === 401) {
-                errorCode.value = 'UNAUTHORIZED';
-                error.value = t('common.error.unauthorized') || '未授权';
+                errorCode.value = ErrorCode.UNAUTHORIZED;
+                error.value = t('common.error.unauthorized');
             } else if (status === 403) {
-                errorCode.value = 'FORBIDDEN';
-                error.value = e?.data?.error || e?.message || t('common.error.forbidden') || '权限不足';
+                errorCode.value = ErrorCode.FORBIDDEN;
+                error.value = e?.data?.error || e?.message || t('common.error.forbidden');
             } else if (status >= 500) {
-                errorCode.value = 'SERVER_ERROR';
-                error.value = t('common.error.server_error') || '服务器错误';
+                errorCode.value = ErrorCode.SERVER_ERROR;
+                error.value = t('common.error.server_error');
             } else {
-                errorCode.value = 'NETWORK_ERROR';
+                errorCode.value = ErrorCode.NETWORK_ERROR;
                 error.value = e?.data?.error || e?.message || t('common.networkError');
             }
 
-            if (errorCode.value !== 'FORBIDDEN' && errorCode.value !== 'UNAUTHORIZED') {
+            if (!isAuthError(errorCode.value)) {
                 console.error(`useResource load error [${apiEndpoint}]:`, e);
                 addToast({ message: error.value, type: 'error' });
             }

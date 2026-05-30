@@ -60,6 +60,6 @@ const sectionClass = computed(() => {
     return 'bg-(--bg-muted)/35';
   }
 
-  return 'shadow-sm';
+  return 'shadow-card transition-shadow duration-200 hover:shadow-md';
 });
 </script>

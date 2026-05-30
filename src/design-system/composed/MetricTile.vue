@@ -5,7 +5,7 @@
     :class="[
       clickable ? 'cursor-pointer' : '',
       active ? 'ring-primary/20 ring-2' : '',
-      flat ? 'shadow-none' : 'shadow-sm hover:-translate-y-0.5 hover:shadow-md',
+      flat ? 'shadow-none' : 'shadow-card hover:-translate-y-0.5 hover:shadow-md',
     ]"
     @click="clickable && $emit('click')"
   >
@@ -36,7 +36,7 @@
       <slot name="meta">{{ meta }}</slot>
     </div>
     <div
-      class="absolute -top-4 -right-4 z-0 size-24 rounded-full opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-100"
+      class="absolute -top-4 -right-4 z-0 size-20 rounded-full opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-40"
       :class="blobClass"
     ></div>
   </div>

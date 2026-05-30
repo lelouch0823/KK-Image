@@ -1,7 +1,7 @@
 <template>
   <div class="w-full">
     <!-- Label -->
-    <label v-if="label" :for="inputId" class="mb-1 block text-sm font-medium text-(--text-secondary)">
+    <label v-if="label" :for="inputId" class="mb-1.5 block text-xs font-medium text-(--text-secondary)">
       {{ label }}
       <span v-if="required" class="text-danger">*</span>
     </label>
@@ -23,10 +23,10 @@
         :disabled="disabled"
         :required="required"
         :aria-invalid="error ? 'true' : 'false'"
-        class="focus:border-primary focus:ring-primary focus:ring-1 focus:outline-none block w-full rounded-lg border bg-(--bg-card) text-(--text-main) placeholder-(--text-muted) transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+        class="block w-full rounded-lg border bg-(--bg-card) text-(--text-main) placeholder-(--text-muted) transition-all duration-150 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
         :class="[
           inputClasses,
-          error ? 'border-danger focus:border-danger focus:ring-danger' : 'border-(--border-color)',
+          error ? 'border-danger focus-visible:border-danger focus-visible:ring-danger/15' : 'border-(--border-color)',
           textarea ? 'resize-y' : ''
         ]"
         @input="$emit('update:modelValue', $event.target.value)"

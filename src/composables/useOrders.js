@@ -9,6 +9,7 @@ import { useToast } from './useToast';
 import { useI18n } from './useI18n';
 import { useSalesOrderApi } from '@/composables/sales/useSalesOrderApi';
 import { API, SALES_ORDER_PAGE_SIZE } from '@/utils/constants';
+import { handleApiError } from '@/utils/api-helpers';
 
 // ============================================================
 // 全局共享状态 (Single Source of Truth)
@@ -118,20 +119,9 @@ export function useOrders() {
         return false;
       }
       if (e.name === 'AbortError') return false;
-      const status = Number(e?.status);
-      if (status === 403) {
-        resource.errorCode.value = 'FORBIDDEN';
-        resource.error.value = e?.data?.error || e?.message || t('common.error.forbidden') || '权限不足';
-        return false;
-      }
-      if (status === 401) {
-        resource.errorCode.value = 'UNAUTHORIZED';
-        resource.error.value = t('common.error.unauthorized') || '未授权';
-        return false;
-      }
-      resource.errorCode.value = 'NETWORK_ERROR';
-      resource.error.value = e?.data?.error || t('common.networkError');
-      addToast({ message: resource.error.value, type: 'error' });
+      const { code, message } = handleApiError(e, { t, addToast, fallbackKey: 'common.networkError' });
+      resource.errorCode.value = code;
+      resource.error.value = message;
       return false;
     } finally {
       if (requestId === manageListRequestId) {

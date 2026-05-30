@@ -8,6 +8,7 @@ import { API } from '@/utils/constants';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
+import { handleApiError } from '@/utils/api-helpers';
 
 // 全局状态：当前空间详情
 const currentSpace = ref(null);
@@ -54,7 +55,7 @@ export function useSpaces() {
         return null;
       }
     } catch (_err) {
-      addToast({ message: t('spaces.networkError'), type: 'error' });
+      handleApiError(_err, { t, addToast, fallbackKey: 'spaces.networkError' });
       return null;
     }
   };
@@ -80,7 +81,7 @@ export function useSpaces() {
         return false;
       }
     } catch (_err) {
-      addToast({ message: t('spaces.networkError'), type: 'error' });
+      handleApiError(_err, { t, addToast, fallbackKey: 'spaces.networkError' });
       return false;
     }
   };
@@ -104,7 +105,7 @@ export function useSpaces() {
         return false;
       }
     } catch (_err) {
-      addToast({ message: t('spaces.networkError'), type: 'error' });
+      handleApiError(_err, { t, addToast, fallbackKey: 'spaces.networkError' });
       return false;
     }
   };
@@ -129,7 +130,7 @@ export function useSpaces() {
         return false;
       }
     } catch (_err) {
-      addToast({ message: t('spaces.networkError'), type: 'error' });
+      handleApiError(_err, { t, addToast, fallbackKey: 'spaces.networkError' });
       return false;
     }
   };
@@ -148,7 +149,7 @@ export function useSpaces() {
         return [];
       }
     } catch (_err) {
-      addToast({ message: t('spaces.networkError'), type: 'error' });
+      handleApiError(_err, { t, addToast, fallbackKey: 'spaces.networkError' });
       return [];
     }
   };
@@ -172,7 +173,7 @@ export function useSpaces() {
         return null;
       }
     } catch (_err) {
-      addToast({ message: t('spaces.networkError'), type: 'error' });
+      handleApiError(_err, { t, addToast, fallbackKey: 'spaces.networkError' });
       return null;
     }
   };

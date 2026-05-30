@@ -23,12 +23,12 @@
 
     <template #content>
       <div class="flex h-full min-h-[28rem] overflow-hidden">
-        <div v-if="errorCode === 'FORBIDDEN'" class="flex w-full items-center justify-center p-8">
+        <div v-if="errorCode === ErrorCode.FORBIDDEN" class="flex w-full items-center justify-center p-8">
           <PermissionDeniedState
-            title="客户管理权限不足"
-            :description="error || '当前账号没有客户读取权限，请联系管理员分配 customers:read。'"
+            :title="t('customer.manage.permissionDenied')"
+            :description="error || t('customer.manage.permissionDeniedDesc')"
             home-to="/admin/forbidden"
-            home-text="查看权限说明"
+            :home-text="t('common.viewDetails')"
             @retry="loadCustomers"
           />
         </div>
@@ -45,6 +45,7 @@
             :loading="loading"
             :empty-text="t('customer.manage.empty')"
             :row-class="getRowClass"
+            :virtual="customers.length > 50"
             no-border
             clickable
             @row-click="openDetail"
@@ -149,7 +150,7 @@
         <!-- Right Side: Detail Panel (Desktop Push) -->
         <div
           v-if="showDetailPanel"
-          class="hidden w-96 shrink-0 flex-col border-l border-(--border-color) bg-(--bg-card) transition-all duration-300 ease-in-out lg:flex"
+          class="hidden w-96 shrink-0 flex-col border-l border-(--border-color) bg-(--bg-card) transition-all duration-300 ease-out-expo lg:flex"
         >
           <CustomerDetailContent
             :customer="viewingCustomer"
@@ -209,6 +210,8 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
+import { ErrorCode, isAuthError } from '@/utils/error-codes';
+import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -273,27 +276,19 @@ const loadCustomers = async (params = {}) => {
       return;
     }
     if ((result.error || result.message || '').includes('权限不足')) {
-      errorCode.value = 'FORBIDDEN';
-      error.value = result.error || result.message || '权限不足';
+      errorCode.value = ErrorCode.FORBIDDEN;
+      error.value = result.error || result.message || t('common.error.forbidden');
       return;
     }
     error.value = result.error || result.message || t('common.loadFailed');
     addToast({ message: error.value, type: 'error' });
   } catch (_e) {
-    const status = Number(_e?.status || 0);
-    if (status === 403) {
-      errorCode.value = 'FORBIDDEN';
-      error.value = _e?.data?.error || _e?.message || '权限不足';
-      return;
+    const code = classifyError(_e);
+    errorCode.value = code;
+    error.value = extractErrorMessage(_e, t('common.loadFailed'));
+    if (!isAuthError(code)) {
+      addToast({ message: error.value, type: 'error' });
     }
-    if (status === 401) {
-      errorCode.value = 'UNAUTHORIZED';
-      error.value = _e?.data?.error || _e?.message || '未授权';
-      return;
-    }
-    errorCode.value = 'NETWORK_ERROR';
-    error.value = _e?.message || t('common.loadFailed');
-    addToast({ message: t('common.loadFailed'), type: 'error' });
   } finally {
     loading.value = false;
   }

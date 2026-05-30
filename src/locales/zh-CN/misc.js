@@ -135,6 +135,7 @@ export default {
     empty: '暂无通知',
     newFeedback: '您有新的订单反馈',
     permissionDenied: '请允许浏览器通知以接收新消息提醒',
+    readPermissionDenied: '通知读取权限不足',
     newOrder: '收到新订单',
     purchase_receipt_recorded: '采购收货已登记',
     purchase_receipt_recorded_desc: '采购单 {purchaseOrderId} 新登记到货 {qty} 件。',
@@ -272,6 +273,11 @@ export default {
   // 审计日志
   auditLogs: {
     title: '操作审计',
+    permissionDenied: '审计日志权限不足',
+    permissionDeniedDesc: '当前账号没有审计日志读取权限，请联系管理员分配 audit:read 或 admin:full。',
+    loadFailed: '审计日志加载失败',
+    loadFailedDesc: '请求失败，请检查网络后重试。',
+    sessionExpired: '登录状态失效，请重新登录后重试。',
     allActions: '全部操作',
     allResults: '全部结果',
     allSeverities: '全部级别',

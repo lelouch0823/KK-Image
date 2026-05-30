@@ -3,6 +3,8 @@ export default {
   manage: {
     title: '客户管理',
     subtitle: '管理客户档案及查看历史订单',
+    permissionDenied: '客户管理权限不足',
+    permissionDeniedDesc: '当前账号没有客户读取权限，请联系管理员分配 customers:read。',
     searchPlaceholder: '搜索客户名称/电话/公司...',
     addCustomer: '新建客户',
     editTitle: '编辑客户',

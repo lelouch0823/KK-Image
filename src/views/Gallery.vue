@@ -1,12 +1,12 @@
 <template>
   <div class="min-h-screen bg-(--bg-page) font-sans text-(--text-main) antialiased">
     <!-- 加载状态 -->
-    <div v-if="loading" class="flex min-h-screen items-center justify-center">
+    <div v-if="loading" class="flex min-h-[70vh] items-center justify-center">
       <div class="text-center">
-        <div
-          class="border-t-primary mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-(--border-color)"
-        ></div>
-        <p class="text-(--text-secondary)">{{ t('gallery.loading') }}</p>
+        <div class="mx-auto mb-4 flex size-10 items-center justify-center rounded-xl bg-(--color-primary-bg)">
+          <AppIcon name="photo" class="size-5 text-primary animate-pulse" />
+        </div>
+        <p class="text-sm text-(--text-muted)">{{ t('gallery.loading') }}</p>
       </div>
     </div>
 
@@ -23,7 +23,7 @@
     />
 
     <!-- 错误状态 -->
-    <div v-else-if="error" class="flex min-h-screen items-center justify-center px-4">
+    <div v-else-if="error" class="flex min-h-[70vh] items-center justify-center px-4">
       <EmptyState
         icon="search"
         :title="t('gallery.cannotLoad')"
@@ -49,7 +49,7 @@
 
       <!-- Header -->
       <header
-        class="sticky top-0 z-40 border-b border-(--border-color) bg-(--bg-card)/95 backdrop-blur-sm"
+        class="sticky top-0 z-40 border-b border-(--border-color) bg-(--bg-card)"
       >
         <div class="mx-auto flex max-w-7xl items-center justify-between p-4 sm:px-6 lg:px-8">
           <div>
@@ -98,7 +98,7 @@
               v-if="file.type === 'image'"
               :src="file.thumbnailUrl || file.url"
               :alt="file.name"
-              class="size-full transition-transform duration-500 group-hover:scale-110"
+              class="size-full transition-transform duration-300 ease-out-expo group-hover:scale-105"
               rounded="none"
             />
 
@@ -134,7 +134,8 @@
 
             <!-- Hover Overlay -->
             <div
-              class="absolute inset-0 flex items-end bg-(--color-overlay-dim) p-3 opacity-0 transition-opacity group-hover:opacity-100"
+              class="absolute inset-0 flex items-end p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              style="background: linear-gradient(to top, var(--color-overlay-dim), transparent);"
             >
               <span class="w-full truncate text-xs font-medium text-(--text-inverse)">{{ file.name }}</span>
             </div>
@@ -152,9 +153,9 @@
 
       <!-- Footer -->
       <footer
-        class="border-t border-(--border-color) bg-(--bg-card) py-8 text-center text-sm text-(--text-secondary)"
+        class="border-t border-(--border-subtle) bg-(--bg-card) py-6 text-center text-xs text-(--text-muted)"
       >
-        <a href="/" class="hover:text-primary transition-colors">{{ t('gallery.poweredBy') }}</a>
+        <a href="/" class="transition-colors hover:text-(--text-secondary)">{{ t('gallery.poweredBy') }}</a>
       </footer>
       </PublicViewerShell>
     </template>

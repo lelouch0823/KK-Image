@@ -1,5 +1,5 @@
 <template>
-  <div class="overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card)">
+  <div class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) shadow-card">
     <div
       v-if="error"
       class="border-b border-(--color-danger-text)/20 bg-(--color-danger-bg)/40 px-3 py-2"

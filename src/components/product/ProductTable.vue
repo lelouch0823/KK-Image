@@ -30,6 +30,7 @@
           <AppImage
             v-if="getMainImageSrc(row)"
             :src="getMainImageSrc(row)"
+            :alt="row.name"
             fit="cover"
             class="product-table-image size-full"
             rounded="none"

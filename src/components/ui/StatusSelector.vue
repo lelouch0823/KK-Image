@@ -3,7 +3,7 @@
     <!-- Trigger -->
     <button
       type="button"
-      class="focus:ring-primary/20 focus:ring-2 focus:outline-none flex items-center gap-2 rounded-full border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-sm font-medium transition-colors hover:bg-(--bg-hover)"
+      class="focus-visible:ring-primary/20 focus-visible:ring-2 focus:outline-none flex items-center gap-2 rounded-full border border-(--border-color) bg-(--bg-card) px-3 py-1.5 text-sm font-medium transition-colors hover:bg-(--bg-hover)"
       @click="toggle"
     >
       <span class="size-2 rounded-full" :class="getStatusColorClass(modelValue)"></span>

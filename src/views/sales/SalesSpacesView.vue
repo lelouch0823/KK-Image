@@ -17,7 +17,7 @@
       class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-(--border-color) bg-(--bg-muted) px-6 py-16 text-center"
     >
       <div
-        class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-(--bg-card) shadow-sm"
+        class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-(--bg-card) shadow-card"
       >
         <AppIcon name="photo" class="size-8 text-(--text-muted)" />
       </div>
@@ -31,13 +31,14 @@
         v-for="space in spaces"
         :key="space.id"
         :href="getSpaceHref(space)"
-        class="group overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) shadow-sm transition-all hover:-translate-y-[1px] hover:shadow-md active:translate-y-0"
+        class="group overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) shadow-card transition-all hover:-translate-y-[1px] hover:shadow-md active:translate-y-0"
       >
         <!-- Cover Image -->
         <div class="relative aspect-video overflow-hidden bg-(--bg-muted)">
           <AppImage
             v-if="getCoverUrl(space)"
             :src="getCoverUrl(space)"
+            :alt="space.name"
             fit="cover"
             class="size-full transition-transform duration-300 group-hover:scale-105"
             rounded="none"

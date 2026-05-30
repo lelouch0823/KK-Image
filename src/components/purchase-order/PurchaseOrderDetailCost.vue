@@ -40,7 +40,7 @@
       </div>
     </div>
     <div class="grid grid-cols-2 gap-3">
-      <div class="rounded-xl bg-(--bg-muted)/55 p-3">
+      <div class="rounded-2xl bg-(--bg-muted)/55 p-3">
         <div class="text-xs text-(--text-secondary)">
           {{ t('purchaseOrder.form.estimatedShipping') }}
         </div>
@@ -48,7 +48,7 @@
           {{ helpers.formatPurchaseCurrency(detail.estimated_shipping_cost, detail.currency) }}
         </div>
       </div>
-      <div class="rounded-xl bg-(--bg-muted)/55 p-3">
+      <div class="rounded-2xl bg-(--bg-muted)/55 p-3">
         <div class="text-xs text-(--text-secondary)">
           {{ t('purchaseOrder.form.estimatedTariff') }}
         </div>
@@ -56,7 +56,7 @@
           {{ helpers.formatPurchaseCurrency(detail.estimated_tariff_cost, detail.currency) }}
         </div>
       </div>
-      <div class="rounded-xl bg-(--bg-muted)/40 p-3">
+      <div class="rounded-2xl bg-(--bg-muted)/40 p-3">
         <div class="text-xs text-(--text-secondary)">
           {{ t('purchaseOrder.table.actualShipping') }}
         </div>
@@ -64,7 +64,7 @@
           {{ helpers.formatPurchaseCurrency(detail.actual_shipping_cost, detail.currency) }}
         </div>
       </div>
-      <div class="rounded-xl bg-(--bg-muted)/40 p-3">
+      <div class="rounded-2xl bg-(--bg-muted)/40 p-3">
         <div class="text-xs text-(--text-secondary)">
           {{ t('purchaseOrder.table.actualTariff') }}
         </div>

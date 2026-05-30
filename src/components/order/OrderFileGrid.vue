@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-xl border border-(--border-color) bg-(--bg-card) p-4">
+  <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4">
     <div v-if="files && files.length > 0">
       <h3 class="text-primary mb-3 text-sm font-medium">{{ t('order.detail.images') }}</h3>
       <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -9,8 +9,9 @@
           class="aspect-square cursor-pointer overflow-hidden rounded-lg bg-(--bg-muted) transition-opacity hover:opacity-90"
           @click="$emit('preview', file)"
         >
-          <AppImage 
-            :src="file.url" 
+          <AppImage
+            :src="file.url"
+            :alt="file.name || '订单文件'"
             :blurhash="file.blurhash"
             fit="cover"
             class="size-full"

@@ -41,8 +41,11 @@ export default {
   validation_error: 'Validation Error',
   error: {
     unauthorized: 'Unauthorized, please login again',
+    forbidden: 'Permission Denied',
     server_error: 'Server error, please try again later',
     network_error: 'Network error, please try again later',
+    requestFailed: 'Request Failed',
+    requestTimeout: 'Request Timeout',
   },
   complete: 'Complete',
   invalidCredentials: 'Invalid username or password',

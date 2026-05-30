@@ -119,7 +119,7 @@ describe('useSpaces Composable', () => {
         expect(mockAddToast).toHaveBeenCalledWith({ message: 'detail failed', type: 'error' });
 
         await expect(loadSpace('space-3')).resolves.toBeNull();
-        expect(mockAddToast).toHaveBeenCalledWith({ message: 'spaces.networkError', type: 'error' });
+        expect(mockAddToast).toHaveBeenCalledWith({ message: 'network down', type: 'error' });
     });
 
     it('handles add/remove/reorder flows for space files', async () => {
@@ -177,7 +177,7 @@ describe('useSpaces Composable', () => {
         expect(mockAddToast).toHaveBeenCalledWith({ message: 'remove failed', type: 'error' });
 
         await expect(removeFilesFromSpace('space-1', ['file-2'])).resolves.toBe(false);
-        expect(mockAddToast).toHaveBeenCalledWith({ message: 'spaces.networkError', type: 'error' });
+        expect(mockAddToast).toHaveBeenCalledWith({ message: 'network down', type: 'error' });
 
         await expect(reorderSpaceFiles('space-1', ['file-2', 'file-1'])).resolves.toBe(true);
         await expect(reorderSpaceFiles('space-1', ['file-1'])).resolves.toBe(false);
@@ -212,6 +212,6 @@ describe('useSpaces Composable', () => {
 
         expect(mockAddToast).toHaveBeenCalledWith({ message: 'spaces.createSuccess', type: 'success' });
         expect(mockAddToast).toHaveBeenCalledWith({ message: 'create failed', type: 'error' });
-        expect(mockAddToast).toHaveBeenCalledWith({ message: 'spaces.networkError', type: 'error' });
+        expect(mockAddToast).toHaveBeenCalledWith({ message: 'network down', type: 'error' });
     });
 });

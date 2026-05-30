@@ -1,5 +1,5 @@
 <template>
-  <div v-if="errorCode === 'FORBIDDEN'" class="rounded-xl border border-(--border-color) bg-(--bg-card) p-8">
+  <div v-if="errorCode === ErrorCode.FORBIDDEN" class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8">
     <PermissionDeniedState
       :title="t('outboxOps.permissionDenied', 'Outbox 运维权限不足')"
       :description="error || t('outboxOps.permissionDeniedDesc', '当前账号没有 outbox 运维读取权限，请联系管理员分配 audit:read。')"
@@ -287,6 +287,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue';
 import OutboxEventTable from '@/components/outbox/OutboxEventTable.vue';
 import OutboxReplayPanel from '@/components/outbox/OutboxReplayPanel.vue';
 import { buildOutboxOpsMetrics } from '@/components/outbox/outboxOpsSummary';
+import { ErrorCode } from '@/utils/error-codes';
 
 const { t } = useI18n();
 const healthOps = useOutboxOps();
