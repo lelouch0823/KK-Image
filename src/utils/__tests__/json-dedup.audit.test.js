@@ -4,12 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = process.cwd();
 const TARGETS = [
-  'src/utils/sales-space.js',
-  'src/composables/useProductForm.js',
+  'src/utils/sales-space.ts',
+  'src/composables/useProductForm.ts',
   'src/components/product/ProductDetail.vue',
   'src/views/sales/SalesFormView.vue',
   'src/components/OrderEditModal.vue',
-  'src/composables/useUploadQueue.js',
+  'src/composables/useUploadQueue.ts',
 ];
 
 describe('frontend json parse helper dedup audit', () => {

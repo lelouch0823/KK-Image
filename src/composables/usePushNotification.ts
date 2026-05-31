@@ -82,7 +82,7 @@ export function usePushNotification() {
         notification.onclick = (e) => {
           e.preventDefault();
           window.focus();
-          onClick(e);
+          onClick(e as MouseEvent);
           notification.close();
         };
       }

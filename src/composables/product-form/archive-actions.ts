@@ -112,7 +112,7 @@ export function createProductFormArchiveActions({
       });
       if (!isAsyncActionActive(requestId)) return;
       if (!response?.success) {
-        addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
+        addToast({ message: (response?.error as string) || t('common.operationFailed'), type: 'error' });
         return;
       }
       if (dimensionArchiveWizard.optionIndex >= 0) {
@@ -166,7 +166,7 @@ export function createProductFormArchiveActions({
       const response = await archiveDimensionValue(initialData.value.id as string, valueArchiveWizard.valueId);
       if (!isAsyncActionActive(requestId)) return;
       if (!response?.success) {
-        addToast({ message: response?.error || t('common.operationFailed'), type: 'error' });
+        addToast({ message: (response?.error as string) || t('common.operationFailed'), type: 'error' });
         return;
       }
       if (valueArchiveWizard.optionIndex >= 0 && valueArchiveWizard.valueIndex >= 0) {

@@ -3,6 +3,6 @@ import { expectFileUnderEffectiveLineBudget } from '../../../test/utils/line-bud
 
 describe('useProductForm line budget', () => {
   it('keeps useProductForm under 650 effective lines', () => {
-    expectFileUnderEffectiveLineBudget('src/composables/useProductForm.js', 650);
+    expectFileUnderEffectiveLineBudget('src/composables/useProductForm.ts', 650);
   });
 });

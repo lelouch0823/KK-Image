@@ -178,7 +178,7 @@ export function usePurchaseOrderCreateFlow({
     if (validItems.length === 0) return;
 
     if (pickerTarget.value === 'create') {
-      poItems.push(...validItems);
+      poItems.push(...(validItems as any[]));
       return;
     }
 

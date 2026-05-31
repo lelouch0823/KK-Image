@@ -63,10 +63,10 @@ export function useBatchDownload() {
       // 生成 ZIP
       const content = await zip.generateAsync({
         type: 'blob',
-        onUpdate: (metadata) => {
+        onUpdate: (metadata: { percent: number }) => {
           downloadProgress.value = 50 + Math.floor(metadata.percent / 2);
         },
-      });
+      } as any);
 
       // 触发下载
       const url = URL.createObjectURL(content);

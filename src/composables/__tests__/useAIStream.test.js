@@ -52,7 +52,7 @@ describe('classifyAIStreamError', () => {
 
 describe('request path guard', () => {
   it('routes protected AI stream calls through request adapters instead of useAuth.authFetch', () => {
-    const source = fs.readFileSync(path.resolve(cwd(), 'src/composables/useAIStream.js'), 'utf8');
+    const source = fs.readFileSync(path.resolve(cwd(), 'src/composables/useAIStream.ts'), 'utf8');
     expect(source).toContain('useRequestAdapters');
     expect(source).not.toContain('const { authFetch } = useAuth()');
     expect(source).not.toContain('authFetch(API_URLS.AI.STREAM');

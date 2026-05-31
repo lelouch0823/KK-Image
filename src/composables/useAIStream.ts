@@ -220,7 +220,7 @@ export function useAIStream() {
         sessionState.value = reduceAIChatSessionEvent({ type: 'request_started' }, sessionState.value);
         resetTypewriter();
 
-        const syncSessionState = (nextState: Record<string, unknown>): void => {
+        const syncSessionState = (nextState: ReturnType<typeof createInitialAIChatSessionState>): void => {
             sessionState.value = nextState;
             toolStatus.value = nextState.toolStatus as string;
             actionCard.value = nextState.actionState?.card as Record<string, unknown> | null;

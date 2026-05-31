@@ -7,14 +7,14 @@ const ROOT = process.cwd();
 describe('useProductForm decomposition audit', () => {
   it('moves product-form pure helpers into dedicated modules', () => {
     const offenders = [];
-    const mainPath = path.join(ROOT, 'src', 'composables', 'useProductForm.js');
+    const mainPath = path.join(ROOT, 'src', 'composables', 'useProductForm.ts');
     const helperPaths = [
-      path.join(ROOT, 'src', 'composables', 'product-form', 'helpers.js'),
-      path.join(ROOT, 'src', 'composables', 'product-form', 'dimensions.js'),
-      path.join(ROOT, 'src', 'composables', 'product-form', 'variants.js'),
-      path.join(ROOT, 'src', 'composables', 'product-form', 'archives.js'),
-      path.join(ROOT, 'src', 'composables', 'product-form', 'archive-actions.js'),
-      path.join(ROOT, 'src', 'composables', 'product-form', 'submission.js'),
+      path.join(ROOT, 'src', 'composables', 'product-form', 'helpers.ts'),
+      path.join(ROOT, 'src', 'composables', 'product-form', 'dimensions.ts'),
+      path.join(ROOT, 'src', 'composables', 'product-form', 'variants.ts'),
+      path.join(ROOT, 'src', 'composables', 'product-form', 'archives.ts'),
+      path.join(ROOT, 'src', 'composables', 'product-form', 'archive-actions.ts'),
+      path.join(ROOT, 'src', 'composables', 'product-form', 'submission.ts'),
     ];
     const source = fs.readFileSync(mainPath, 'utf8');
 
