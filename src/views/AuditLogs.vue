@@ -59,8 +59,8 @@
         </template>
         
         <template #cell-actor_display="{ value, row }">
-          <span class="font-medium text-(--text-primary)">{{ value }}</span>
-          <div class="text-xs text-(--text-tertiary)">{{ row.actor_type || '-' }}</div>
+          <span class="font-medium text-(--text-main)">{{ value }}</span>
+          <div class="text-xs text-(--text-muted)">{{ row.actor_type || '-' }}</div>
         </template>
         
         <template #cell-action="{ value }">
@@ -83,16 +83,16 @@
 
         <template #cell-target="{ row }">
           <span class="text-(--text-secondary)">
-            {{ row.target_type }}<span v-if="row.target_label || row.target_id" class="text-(--text-tertiary)"> / {{ row.target_label || row.target_id }}</span>
+            {{ row.target_type }}<span v-if="row.target_label || row.target_id" class="text-(--text-muted)"> / {{ row.target_label || row.target_id }}</span>
           </span>
         </template>
 
         <template #cell-summary_display="{ value }">
-          <div class="max-w-sm text-sm text-(--text-primary)">{{ value }}</div>
+          <div class="max-w-sm text-sm text-(--text-main)">{{ value }}</div>
         </template>
         
         <template #cell-details="{ row }">
-          <div class="max-w-xs truncate text-xs text-(--text-tertiary)">
+          <div class="max-w-xs truncate text-xs text-(--text-muted)">
             {{ formatAuditDetails(row) }}
           </div>
         </template>

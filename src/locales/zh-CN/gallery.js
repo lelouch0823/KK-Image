@@ -17,6 +17,7 @@ export default {
   noFilesDesc: '该相册还没有添加任何文件',
   previewNotSupported: '此文件不支持预览',
   scrollHint: '支持滚轮切换 • ESC 关闭',
+  swipeHint: '左右滑动切换 • ESC 关闭',
   linkCopied: '链接已复制',
   copyFailed: '复制失败',
   passwordError: '密码错误',

@@ -109,4 +109,10 @@ export default {
     empty_data: '这里什么也没有',
     no_description: '暂无描述',
   },
+  forbidden: {
+    title: '无权访问该页面',
+    description: '当前账号缺少访问该页面所需权限。你可以返回仪表盘，或联系管理员调整权限。',
+    reason: '缺少权限：{permission}',
+    backToDashboard: '返回仪表盘',
+  },
 };

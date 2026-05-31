@@ -108,4 +108,10 @@ export default {
     empty_data: 'Nothing here',
     no_description: 'No description',
   },
+  forbidden: {
+    title: 'Access Denied',
+    description: 'Your account lacks the required permissions to access this page. You can return to the dashboard or contact an administrator to adjust permissions.',
+    reason: 'Missing permission: {permission}',
+    backToDashboard: 'Back to Dashboard',
+  },
 };

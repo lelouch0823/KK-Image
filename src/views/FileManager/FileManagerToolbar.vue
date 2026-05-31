@@ -217,7 +217,7 @@
           :key="mode"
           size="sm"
           variant="ghost"
-          class="!h-7 !p-1.5"
+          class="!h-9 !p-1.5"
           :class="{ 'text-primary bg-(--bg-card) shadow-sm': viewMode === mode }"
           @click="$emit('update:viewMode', mode)"
         >

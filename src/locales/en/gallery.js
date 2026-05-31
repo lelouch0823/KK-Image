@@ -17,6 +17,7 @@ export default {
   noFilesDesc: 'No files have been added to this gallery yet',
   previewNotSupported: 'Preview not supported',
   scrollHint: 'Wheel to switch • ESC to close',
+  swipeHint: 'Swipe to browse • ESC to close',
   linkCopied: 'Link copied',
   copyFailed: 'Copy failed',
   passwordError: 'Incorrect password',

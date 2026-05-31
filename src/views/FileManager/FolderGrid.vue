@@ -35,7 +35,7 @@
       <AppButton
         variant="white"
         size="sm"
-        class="text-secondary absolute top-1.5 right-1.5 z-10 !h-7 !w-7 !px-0 shadow-sm sm:top-2 sm:right-2 sm:!h-8 sm:!w-8 lg:opacity-0 lg:group-hover:opacity-100"
+        class="text-secondary absolute top-1.5 right-1.5 z-10 !h-9 !w-9 !px-0 shadow-sm sm:top-2 sm:right-2 sm:!h-9 sm:!w-9 lg:opacity-0 lg:group-hover:opacity-100"
         @click.stop="$emit('context-menu', $event, folder)"
       >
         <template #icon-left>

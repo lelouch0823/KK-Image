@@ -143,11 +143,12 @@
           </div>
         </div>
 
-        <!-- Hint -->
+        <!-- Hint: 移动端显示 swipe, 桌面端显示 scroll -->
         <div
           class="absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full bg-(--bg-card)/15 px-3 py-1 text-sm text-(--text-inverse) opacity-80 backdrop-blur-md"
         >
-          {{ t('gallery.scrollHint') }}
+          <span class="hidden sm:inline">{{ t('gallery.scrollHint') }}</span>
+          <span class="sm:hidden">{{ t('gallery.swipeHint') }}</span>
         </div>
       </div>
     </transition>

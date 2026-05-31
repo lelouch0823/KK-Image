@@ -16,6 +16,8 @@
               'bg-(--color-danger-bg) text-(--color-danger-text)': toast.type === 'error',
               'bg-(--color-warning-bg) text-(--color-warning-text)':
                 toast.type === 'warning',
+              'bg-(--color-info-bg) text-(--color-info-text)':
+                toast.type === 'info',
             }"
           >
             <!-- Success Icon -->
@@ -34,6 +36,12 @@
             <AppIcon
               v-else-if="toast.type === 'warning'"
               name="exclamation-triangle-solid"
+              class="size-5"
+            />
+            <!-- Info Icon -->
+            <AppIcon
+              v-else-if="toast.type === 'info'"
+              name="information-circle"
               class="size-5"
             />
           </div>

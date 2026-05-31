@@ -8,7 +8,7 @@
       <Header @open-sidebar="sidebarRef?.openSidebar?.()" />
 
       <!-- 路由视图（带错误边界） -->
-      <div class="scrollbar-thin relative flex-1 overflow-y-auto p-6">
+      <div class="scrollbar-thin relative flex-1 overflow-y-auto p-4 sm:p-6">
         <AppErrorBoundary @back="$router.push('/admin/dashboard')">
           <router-view v-slot="{ Component, route }">
             <transition name="slide-up" mode="out-in">

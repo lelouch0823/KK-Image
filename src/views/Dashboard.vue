@@ -395,8 +395,8 @@ const summaryCards = computed(() => [
     variant: 'info',
     icon: 'clock',
     footer: t('dashboard.liveStatus'),
-    meta: `+12% ${t('dashboard.vsYesterday')}`,
-    metaClass: 'text-success',
+    meta: '',
+    metaClass: '',
   },
   {
     key: 'pending',

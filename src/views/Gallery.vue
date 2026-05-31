@@ -47,32 +47,6 @@
           </AppButton>
         </template>
 
-      <!-- Header -->
-      <header
-        class="sticky top-0 z-40 border-b border-(--border-color) bg-(--bg-card)"
-      >
-        <div class="mx-auto flex max-w-7xl items-center justify-between p-4 sm:px-6 lg:px-8">
-          <div>
-            <h1 class="px-1 text-xl font-semibold text-(--text-main)">{{ album.name }}</h1>
-            <p class="mt-0.5 px-1 text-sm text-(--text-secondary)">
-              {{ t('gallery.files', { count: album.fileCount }) }}
-            </p>
-          </div>
-          <div class="flex items-center gap-3">
-            <AppButton
-              variant="secondary"
-              size="sm"
-              :text="t('gallery.share')"
-              @click="shareAlbum"
-            >
-              <template #icon-left>
-                <AppIcon name="share" class="size-4" />
-              </template>
-            </AppButton>
-          </div>
-        </div>
-      </header>
-
       <!-- Description -->
       <div v-if="album.description" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <p

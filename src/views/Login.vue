@@ -80,6 +80,15 @@
                 ></div>
               </div>
 
+              <!-- 错误提示 -->
+              <div
+                v-if="error"
+                class="mb-4 flex items-center gap-2 rounded-lg bg-(--color-danger-bg) px-3 py-2 text-sm text-(--color-danger-text)"
+              >
+                <AppIcon name="exclamation-triangle" class="size-4 shrink-0" />
+                <span>{{ error }}</span>
+              </div>
+
               <!-- 登录按钮 -->
               <AppButton
                 type="submit"
