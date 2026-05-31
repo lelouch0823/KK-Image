@@ -48,6 +48,17 @@ interface TrackedDimension {
   [key: string]: unknown;
 }
 
+interface BuildVariantsAfterDimensionArchiveOptions {
+  variants?: ProductVariant[];
+  archivedOption: ProductOption;
+  mode?: string;
+  removeDimensionFromVariant: (variant: ProductVariant, option: ProductOption) => ProductVariant;
+  getVariantOptionValue: (variant: ProductVariant, option: ProductOption) => string | undefined;
+  buildVariantOptionsKey: (optionsValues: Record<string, string>) => string;
+  markVariantCompleteness: (variant: ProductVariant, dimensionNames?: string[]) => ProductVariant;
+  getNextDimensionNames: () => string[];
+}
+
 interface CreateProductFormArchiveActionsOptions {
   initialData: { value: Record<string, unknown> | null };
   form: { options: ProductOption[]; variants: ProductVariant[] };
@@ -62,7 +73,7 @@ interface CreateProductFormArchiveActionsOptions {
   isAsyncActionActive: (requestId: number) => boolean;
   resolveActionErrorMessage: (error: unknown) => string;
   updateTrackedDimensionValue: (dimensionId: string, valueLabel: string, updater: (current: Record<string, unknown> | null) => Record<string, unknown> | null) => void;
-  buildVariantsAfterDimensionArchive: (options: Record<string, unknown>) => ProductVariant[];
+  buildVariantsAfterDimensionArchive: (options: BuildVariantsAfterDimensionArchiveOptions) => ProductVariant[];
   removeDimensionFromVariant: (variant: ProductVariant, option: ProductOption) => ProductVariant;
   getVariantOptionValue: (variant: ProductVariant, option: ProductOption) => string | undefined;
   buildVariantOptionsKey: (optionsValues: Record<string, string>) => string;

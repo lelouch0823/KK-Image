@@ -7,6 +7,14 @@ import { API } from '@/utils/constants';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
 
+/** 后端 API 通用响应结构 */
+interface ApiResponse {
+  success: boolean;
+  message?: string;
+  data?: Record<string, unknown> | Record<string, unknown>[];
+  [key: string]: unknown;
+}
+
 export function useFileManager() {
   const toast = useToast();
   const { authFetch } = useAuth();
@@ -28,7 +36,7 @@ export function useFileManager() {
     return null;
   };
 
-  const getErrorMessage = (err: any): string => extractErrorMessage(err, t('fileOps.loadFailed'));
+  const getErrorMessage = (err: unknown): string => extractErrorMessage(err, t('fileOps.loadFailed'));
   const isForbiddenError = (status: number, _message: string = ''): boolean =>
     resolveErrorCode(status, _message) === ErrorCode.FORBIDDEN;
   const normalizeFileList = (payload: any): any[] => {
@@ -103,34 +111,34 @@ export function useFileManager() {
           authFetch(API.FILES, { signal: abortController.signal }).then((r) => r.json()),
         ]);
 
-        if (foldersRes.status === 'rejected' && (foldersRes.reason as any)?.name === 'AbortError') return;
-        if (filesRes.status === 'rejected' && (filesRes.reason as any)?.name === 'AbortError') return;
+        if (foldersRes.status === 'rejected' && foldersRes.reason instanceof Error && foldersRes.reason.name === 'AbortError') return;
+        if (filesRes.status === 'rejected' && filesRes.reason instanceof Error && filesRes.reason.name === 'AbortError') return;
 
-        let folderError: any = null;
+        let folderError: { status: number; message: string } | null = null;
 
-        if (foldersRes.status === 'fulfilled' && (foldersRes.value as any)?.success) {
-          subfolders.value = (foldersRes.value as any).data || [];
+        if (foldersRes.status === 'fulfilled' && foldersRes.value && typeof foldersRes.value === 'object' && 'success' in foldersRes.value && (foldersRes.value as ApiResponse).success) {
+          subfolders.value = ((foldersRes.value as ApiResponse).data as Record<string, unknown>[]) || [];
         } else {
           subfolders.value = [];
           if (foldersRes.status === 'fulfilled') {
             folderError = {
               status: 0,
-              message: (foldersRes.value as any)?.message || t('fileOps.loadFailed'),
+              message: (foldersRes.value as ApiResponse)?.message || t('fileOps.loadFailed'),
             };
           } else {
             folderError = {
-              status: Number((foldersRes.reason as any)?.status || 0),
+              status: (typeof foldersRes.reason === 'object' && foldersRes.reason !== null && 'status' in foldersRes.reason) ? Number((foldersRes.reason as Record<string, unknown>).status) : 0,
               message: getErrorMessage(foldersRes.reason),
             };
           }
         }
 
-        if (filesRes.status === 'fulfilled' && (filesRes.value as any)?.success) {
-          files.value = normalizeFileList((filesRes.value as any).data);
+        if (filesRes.status === 'fulfilled' && filesRes.value && typeof filesRes.value === 'object' && 'success' in filesRes.value && (filesRes.value as ApiResponse).success) {
+          files.value = normalizeFileList((filesRes.value as ApiResponse).data);
         } else {
-          const status = filesRes.status === 'fulfilled' ? 0 : Number((filesRes.reason as any)?.status || 0);
+          const status = filesRes.status === 'fulfilled' ? 0 : (typeof filesRes.reason === 'object' && filesRes.reason !== null && 'status' in filesRes.reason) ? Number((filesRes.reason as Record<string, unknown>).status) : 0;
           const msg = filesRes.status === 'fulfilled'
-            ? (filesRes.value as any)?.message || t('fileOps.loadFailed')
+            ? (filesRes.value as ApiResponse)?.message || t('fileOps.loadFailed')
             : getErrorMessage(filesRes.reason);
           files.value = [];
           setErrorState(msg, status, { silent, toastMessage: t('fileOps.loadFailed') });
@@ -145,9 +153,9 @@ export function useFileManager() {
           });
         }
       }
-    } catch (_e: any) {
-      if (_e.name === 'AbortError') return;
-      const status = Number(_e?.status || 0);
+    } catch (_e: unknown) {
+      if (_e instanceof Error && _e.name === 'AbortError') return;
+      const status = (typeof _e === 'object' && _e !== null && 'status' in _e) ? Number((_e as Record<string, unknown>).status) : 0;
       const msg = getErrorMessage(_e);
       setErrorState(msg, status, { silent, toastMessage: t('fileOps.loadFailed') });
     } finally {
@@ -178,7 +186,7 @@ export function useFileManager() {
         setErrorState(res.message, 0, { setGlobal: false });
         return false;
       }
-    } catch (_e: any) {
+    } catch (_e: unknown) {
       setErrorState(t('fileOps.createFailed'), 0, { setGlobal: false });
       return false;
     }
@@ -200,7 +208,7 @@ export function useFileManager() {
         setErrorState(res.message, 0, { setGlobal: false });
         return false;
       }
-    } catch (_e: any) {
+    } catch (_e: unknown) {
       setErrorState(t('fileOps.updateFailed'), 0, { setGlobal: false });
       return false;
     }
@@ -224,7 +232,7 @@ export function useFileManager() {
         setErrorState(res.message, 0, { setGlobal: false });
         return false;
       }
-    } catch (_e: any) {
+    } catch (_e: unknown) {
       setErrorState(t('fileOps.deleteFailed'), 0, { setGlobal: false });
       return false;
     }
@@ -243,7 +251,7 @@ export function useFileManager() {
       } else {
         setErrorState(res.message, 0, { setGlobal: false });
       }
-    } catch (_e: any) {
+    } catch (_e: unknown) {
       setErrorState(t('fileOps.deleteFailed'), 0, { setGlobal: false });
     }
   };
@@ -283,7 +291,7 @@ export function useFileManager() {
           setErrorState(res.message, 0, { setGlobal: false });
           return false;
         }
-      } catch (_e: any) {
+      } catch (_e: unknown) {
         setErrorState(t('fileOps.renameFailed'), 0, { setGlobal: false });
         return false;
       }
@@ -313,7 +321,7 @@ export function useFileManager() {
           setErrorState(res.message, 0, { setGlobal: false });
           return false;
         }
-      } catch (_e: any) {
+      } catch (_e: unknown) {
         setErrorState(t('fileOps.deleteFailed'), 0, { setGlobal: false });
         return false;
       }
@@ -335,7 +343,7 @@ export function useFileManager() {
           setErrorState(res.message, 0, { setGlobal: false });
           return false;
         }
-      } catch (_e: any) {
+      } catch (_e: unknown) {
         setErrorState(t('fileOps.moveFailed'), 0, { setGlobal: false });
         return false;
       }
@@ -361,9 +369,9 @@ export function useFileManager() {
         } else {
           setErrorState(res.message, 0, { silent });
         }
-      } catch (_e: any) {
-        const status = Number(_e?.status || 0);
-        const msg = _e?.data?.error || _e?.message || t('fileOps.loadFailed');
+      } catch (_e: unknown) {
+        const status = (typeof _e === 'object' && _e !== null && 'status' in _e) ? Number((_e as Record<string, unknown>).status) : 0;
+        const msg = getErrorMessage(_e);
         setErrorState(msg, status, { silent, toastMessage: t('fileOps.loadFailed') });
       } finally {
         if (!silent) loading.value = false;
@@ -389,7 +397,7 @@ export function useFileManager() {
           toast.error(res.message);
           return false;
         }
-      } catch (_e: any) {
+      } catch (_e: unknown) {
         toast.error(t('common.networkError'));
         return false;
       }
@@ -413,7 +421,7 @@ export function useFileManager() {
           toast.error(res.message);
           return false;
         }
-      } catch (_e: any) {
+      } catch (_e: unknown) {
         toast.error(t('common.networkError'));
         return false;
       }
@@ -432,7 +440,7 @@ export function useFileManager() {
           toast.error(res.message);
           return false;
         }
-      } catch (_e: any) {
+      } catch (_e: unknown) {
         toast.error(t('common.networkError'));
         return false;
       }

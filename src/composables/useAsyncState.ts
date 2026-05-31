@@ -19,11 +19,11 @@
 
 import { ref, type Ref } from 'vue';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
-import { classifyError, extractErrorMessage, handleApiError } from '@/utils/api-helpers';
+import { classifyError, extractErrorMessage, handleApiError, type AddToastFn } from '@/utils/api-helpers';
 
 interface AsyncStateOptions {
-  t?: (...args: any[]) => string;
-  addToast?: (message: string, type?: string, duration?: number) => string;
+  t?: (key: string) => string;
+  addToast?: AddToastFn;
   showToast?: boolean;
   fallbackKey?: string;
 }
@@ -108,16 +108,16 @@ export function useAsyncState(options: AsyncStateOptions = {}): AsyncStateResult
       }
 
       return result;
-    } catch (e: any) {
+    } catch (e: unknown) {
       // AbortError 静默处理
-      if (e.name === 'AbortError') return undefined;
+      if (e instanceof Error && e.name === 'AbortError') return undefined;
 
       // 竞态检查
       if (shouldAbort?.()) return undefined;
 
       const { code, message } = handleApiError(e, {
         t,
-        addToast: (!silent && showToast) ? addToast as any : undefined,
+        addToast: (!silent && showToast) ? addToast : undefined,
         fallbackKey,
       });
 

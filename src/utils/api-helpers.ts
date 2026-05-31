@@ -6,23 +6,31 @@
  */
 
 import { ErrorCode } from './error-codes';
+import { AppError, isAppError } from './app-error';
+
+/**
+ * addToast / showToast 回调函数类型
+ *
+ * 与 useToast 的 showToast 签名一致，支持字符串传参和对象传参两种形式。
+ */
+export type AddToastFn = (message: string | { message: string; type?: string }, type?: string, duration?: number) => string;
 
 /**
  * 从异常对象中分类错误码
  *
  * 支持两种异常格式：
- * - http-core 抛出的 Error（带 .status, .data 属性）
+ * - http-core 抛出的 AppError（带 .status, .data 属性）
  * - 原生 fetch 抛出的 TypeError（网络异常，无 status）
  *
  * @param error - 捕获的异常
  * @returns ErrorCode 枚举值
  */
-export function classifyError(error: any): string {
-  const status = Number(error?.status);
+export function classifyError(error: unknown): string {
+  const status = isAppError(error) ? error.status : undefined;
 
   if (status === 401) return ErrorCode.UNAUTHORIZED;
   if (status === 403) return ErrorCode.FORBIDDEN;
-  if (status >= 500) return ErrorCode.SERVER_ERROR;
+  if (status !== undefined && status >= 500) return ErrorCode.SERVER_ERROR;
   return ErrorCode.NETWORK_ERROR;
 }
 
@@ -34,12 +42,14 @@ export function classifyError(error: any): string {
  * @param error - 捕获的异常
  * @param fallback - 兜底消息
  */
-export function extractErrorMessage(error: any, fallback: string = ''): string {
-  return (
-    error?.data?.error ||
-    error?.message ||
-    fallback
-  );
+export function extractErrorMessage(error: unknown, fallback: string = ''): string {
+  if (isAppError(error)) {
+    return error.data.error || error.message || fallback;
+  }
+  if (error instanceof Error) {
+    return error.message || fallback;
+  }
+  return fallback;
 }
 
 /**
@@ -52,14 +62,11 @@ export function extractErrorMessage(error: any, fallback: string = ''): string {
  * @returns 解析后的 JSON 数据
  * @throws 如果 success 为 false，抛出带 status 和 data 的 Error
  */
-export async function parseApiResponse(response: Response): Promise<any> {
+export async function parseApiResponse(response: Response): Promise<unknown> {
   const json = await response.json();
 
   if (!json.success) {
-    const err = new Error(json.error || json.message || '请求失败') as any;
-    err.status = response.status;
-    err.data = json;
-    throw err;
+    throw new AppError(json.error || json.message || '请求失败', response.status, json);
   }
 
   return json;
@@ -72,13 +79,12 @@ export async function parseApiResponse(response: Response): Promise<any> {
  * @param ms - 超时毫秒数（默认 30000）
  * @returns 带超时的 Promise
  */
-export function withTimeout(promise: Promise<any>, ms: number = 30000): Promise<any> {
+export function withTimeout(promise: Promise<unknown>, ms: number = 30000): Promise<unknown> {
   return Promise.race([
     promise,
-    new Promise((_, reject) => {
+    new Promise<never>((_, reject) => {
       setTimeout(() => {
-        const err = new Error('请求超时') as any;
-        err.status = 0;
+        const err = new AppError('请求超时', 0);
         err.code = 'TIMEOUT';
         reject(err);
       }, ms);
@@ -96,10 +102,10 @@ export function withTimeout(promise: Promise<any>, ms: number = 30000): Promise<
  * @param options - 配置项
  */
 export function handleApiError(
-  error: any,
+  error: unknown,
   options: {
     t?: (key: string) => string;
-    addToast?: (toast: { message: string; type: string }) => void;
+    addToast?: AddToastFn;
     fallbackKey?: string;
   } = {}
 ): { code: string; message: string } {

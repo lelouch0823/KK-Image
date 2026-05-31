@@ -5,6 +5,8 @@
  * 超时、重试、认证等逻辑由上层（useAuth / useResource）处理。
  */
 
+import { AppError } from './app-error';
+
 const DEFAULT_TIMEOUT = 30000; // 30 秒
 
 /**
@@ -38,18 +40,14 @@ export async function request(
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      const err = new Error(data.error || data.message || res.statusText) as any;
-      err.status = res.status;
-      err.data = data;
-      throw err;
+      throw new AppError(data.error || data.message || res.statusText, res.status, data);
     }
 
     return res;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // 将 AbortError（超时触发）转为更友好的错误格式
-    if (error.name === 'AbortError' && shouldTimeout) {
-      const err = new Error('请求超时') as any;
-      err.status = 0;
+    if (error instanceof Error && error.name === 'AbortError' && shouldTimeout) {
+      const err = new AppError('请求超时', 0);
       err.code = 'TIMEOUT';
       throw err;
     }

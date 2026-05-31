@@ -53,9 +53,7 @@ interface CreateFormData {
   [key: string]: unknown;
 }
 
-interface POItem extends OrderDraft {
-  [key: string]: unknown;
-}
+type POItem = OrderDraft;
 
 interface DetailData {
   id: string;
@@ -178,7 +176,7 @@ export function usePurchaseOrderCreateFlow({
     if (validItems.length === 0) return;
 
     if (pickerTarget.value === 'create') {
-      poItems.push(...(validItems as any[]));
+      poItems.push(...validItems);
       return;
     }
 

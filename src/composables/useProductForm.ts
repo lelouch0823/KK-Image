@@ -1,4 +1,3 @@
-// @ts-nocheck -- 复杂数据转换层，类型在后续迭代中逐步收紧
 // useProductForm — ProductCreateModal 的表单状态与逻辑层
 import { ref, reactive, computed, watch, type Ref, type ComputedRef } from 'vue';
 import { useProducts } from '@/composables/useProducts';
@@ -17,6 +16,7 @@ import {
   buildOptionsFromDimensions,
   cloneDimensions,
   normalizeVariantOptionKeysToNames,
+  type Dimension,
 } from '@/composables/product-form/dimensions.js';
 import {
   buildGeneratedVariants,
@@ -289,7 +289,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     const nextOptions = buildOptionsFromDimensions(data);
     const nextDimensionNames = getNextDimensionNames(nextOptions as ProductOption[]);
     const dimensionNameLookup = buildDimensionNameLookup(data);
-    trackedDimensions.value = cloneDimensions((data?.dimensions as any[]) || []) as TrackedDimension[];
+    trackedDimensions.value = cloneDimensions((data?.dimensions as Dimension[]) || []) as TrackedDimension[];
 
     Object.assign(form, {
       name: data.name || '',
@@ -311,7 +311,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
           barcode: (variant.barcode as string) || '',
           supplier_sku: (variant.supplier_sku as string) || '',
           images: Array.isArray(variant.images) ? variant.images : [],
-        } as any, nextDimensionNames)
+        } as ProductVariant, nextDimensionNames)
       ),
     });
 

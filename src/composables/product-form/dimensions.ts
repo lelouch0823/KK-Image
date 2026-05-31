@@ -7,7 +7,7 @@ interface DimensionValue {
   [key: string]: unknown;
 }
 
-interface Dimension {
+export interface Dimension {
   id?: string;
   name?: string;
   status?: string;
