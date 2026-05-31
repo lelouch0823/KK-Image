@@ -32,7 +32,7 @@ export async function request(
   if (shouldTimeout) {
     abortController = new AbortController();
     fetchOptions.signal = abortController.signal;
-    timeoutId = setTimeout(() => abortController!.abort(), timeout);
+    timeoutId = setTimeout(() => abortController?.abort(), timeout);
   }
 
   try {

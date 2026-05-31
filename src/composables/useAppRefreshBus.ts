@@ -51,11 +51,11 @@ export function useAppRefreshBus() {
       return () => {};
     }
 
-    if (!listenersByModule.has(key)) {
-      listenersByModule.set(key, new Set());
+    let listeners = listenersByModule.get(key);
+    if (!listeners) {
+      listeners = new Set();
+      listenersByModule.set(key, listeners);
     }
-
-    const listeners = listenersByModule.get(key)!;
     listeners.add(handler);
 
     return () => {

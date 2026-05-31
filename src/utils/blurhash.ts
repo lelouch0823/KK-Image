@@ -149,7 +149,8 @@ export function blurhashToDataURL(blurhash: string, width: number = 32, height: 
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d')!;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return '';
         const imageData = ctx.createImageData(width, height);
         imageData.data.set(pixels);
         ctx.putImageData(imageData, 0, 0);

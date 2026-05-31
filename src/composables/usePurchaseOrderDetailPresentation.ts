@@ -137,7 +137,7 @@ export function usePurchaseOrderDetailPresentation({
   });
 
   const receiptTimeline: ComputedRef<unknown[]> = computed(() =>
-    Array.isArray(detail.value?.receipts) ? detail.value!.receipts! : []
+    Array.isArray(detail.value?.receipts) ? detail.value.receipts : []
   );
 
   const receiptCandidates: ComputedRef<ReceiptCandidate[]> = computed(() => {
