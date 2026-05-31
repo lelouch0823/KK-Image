@@ -300,7 +300,7 @@ import { usePurchaseOrderSuggestionPresentation } from '@/composables/usePurchas
 import { useToast } from '@/composables/useToast';
 import { useAI } from '@/composables/useAI';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
-import { CURRENCY_OPTIONS } from '@/constants/currency.js';
+import { CURRENCY_OPTIONS } from '@/constants/currency';
 import { validateOrderQuantity } from '@/utils/purchase-order-constraints';
 import {
   getPurchaseOrderOutstandingQty,
@@ -801,13 +801,10 @@ onUnmounted(() => {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.06) 50%,
+    var(--shimmer-from) 50%,
     transparent 100%
   );
   animation: shimmer 1.8s infinite;
-}
-[data-theme='light'] .skeleton-shimmer::after {
-  background: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.04) 50%, transparent 100%);
 }
 @keyframes shimmer {
   100% {

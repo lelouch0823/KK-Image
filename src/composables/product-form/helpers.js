@@ -1,4 +1,4 @@
-import { CURRENCY_CODE_SET } from '@/constants/currency.js';
+import { CURRENCY_CODE_SET } from '@/constants/currency';
 
 export function normalizeCurrencyCode(value) {
   const code = String(value || '').trim().toUpperCase();

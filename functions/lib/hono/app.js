@@ -63,7 +63,7 @@ app.use('*', logger());
 app.use(
   '*',
   cors({
-    origin: (origin) => {
+    origin: (origin, c) => {
       // 开发环境允许所有来源
       if (!origin) return '*';
       // 生产环境可配置白名单（逗号分隔）

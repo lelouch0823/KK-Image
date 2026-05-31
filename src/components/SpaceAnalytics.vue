@@ -211,7 +211,7 @@ const chartOptions = computed(() => ({
   plugins: {
     legend: { display: false },
     tooltip: {
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      backgroundColor: getCssVar('--color-overlay-blur'),
       padding: 12,
       cornerRadius: 8,
       titleFont: { size: 12 },

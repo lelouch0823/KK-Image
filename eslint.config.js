@@ -39,7 +39,16 @@ const browserGlobals = {
     Notification: "readonly",
     XMLHttpRequest: "readonly",
     getComputedStyle: "readonly",
-    crypto: "readonly"
+    crypto: "readonly",
+    HTMLElement: "readonly",
+    HTMLDivElement: "readonly",
+    HTMLAnchorElement: "readonly",
+    HTMLInputElement: "readonly",
+    HTMLCanvasElement: "readonly",
+    KeyboardEvent: "readonly",
+    TextEncoder: "readonly",
+    Storage: "readonly",
+    queueMicrotask: "readonly"
 };
 
 const nodeGlobals = {
@@ -100,6 +109,8 @@ const workersGlobals = {
     setInterval: "readonly",
     clearTimeout: "readonly",
     clearInterval: "readonly",
+    queueMicrotask: "readonly",
+    URLSearchParams: "readonly",
     // Console & Performance
     console: "readonly",
     performance: "readonly",

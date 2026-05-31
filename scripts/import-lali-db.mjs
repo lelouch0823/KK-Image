@@ -246,7 +246,7 @@ async function main() {
       // 清理临时文件
       try {
         execSync(`rm -f "${batchFile}"`);
-      } catch {}
+      } catch { /* 清理失败可忽略 */ }
     }
 
     console.log('\n✨ 导入完成！');

@@ -60,4 +60,8 @@
 
     --ring-offset: 2px;
     --ring-opacity: 0.5;
+
+    /* Shimmer 动画 */
+    --shimmer-from: rgba(0, 0, 0, 0.04);
+    --shimmer-to: rgba(0, 0, 0, 0.02);
 }

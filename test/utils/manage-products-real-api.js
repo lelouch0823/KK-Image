@@ -46,9 +46,9 @@ export async function withScopedRealApiTransport(transport, run) {
   } finally {
     if (originalTransport === undefined) {
       delete process.env.REAL_API_TRANSPORT;
-      return;
+    } else {
+      process.env.REAL_API_TRANSPORT = originalTransport;
     }
-    process.env.REAL_API_TRANSPORT = originalTransport;
   }
 }
 

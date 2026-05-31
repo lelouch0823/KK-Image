@@ -50,7 +50,7 @@
 
           <div class="flex h-full gap-3">
             <!-- 主图 -->
-            <div class="size-20 shrink-0 overflow-hidden rounded-lg bg-(--bg-muted) shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)]">
+            <div class="size-20 shrink-0 overflow-hidden rounded-lg bg-(--bg-muted) ring-1 ring-(--border-color)/10">
               <AppImage
                 v-if="order.mainImage"
                 :src="order.mainImage"

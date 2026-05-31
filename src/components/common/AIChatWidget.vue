@@ -726,7 +726,7 @@ const generateReport = async () => {
   margin-top: 0;
   margin-bottom: 0.75em;
   border: 1px solid var(--border-color);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: inset 0 1px 2px var(--shadow-sm);
 }
 .markdown-body pre code {
   color: var(--text-main);

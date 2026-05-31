@@ -1,7 +1,7 @@
 <template>
   <section
     data-testid="purchase-order-console-banner"
-    class="relative overflow-hidden rounded-[1.75rem] border border-(--border-color)/60 bg-(--bg-card) p-4 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.28)] sm:p-5"
+    class="relative overflow-hidden rounded-[1.75rem] border border-(--border-color)/60 bg-(--bg-card) p-4 shadow-card sm:p-5"
   >
     <div
       class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.06),transparent_24%)]"

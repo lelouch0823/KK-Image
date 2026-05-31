@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
 import { MSG } from '../../../../_shared/utils.js';
-import { ForbiddenError, NotFoundError } from '../../errors.js';
+import { BadRequestError, ForbiddenError, NotFoundError } from '../../errors.js';
 import { requireEntity } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
@@ -86,7 +86,7 @@ app.get('/:filename', requirePermission('admin:full'), async (c) => {
     const { env } = c;
     const filename = c.req.param('filename');
     // 路径遍历防护：仅允许字母、数字、连字符、下划线、点号
-    if (!/^[a-zA-Z0-9_.\-]+$/.test(filename) || filename.includes('..')) {
+    if (!/^[a-zA-Z0-9_.-]+$/.test(filename) || filename.includes('..')) {
         throw new BadRequestError('无效的文件名');
     }
     const object = await requireEntity(

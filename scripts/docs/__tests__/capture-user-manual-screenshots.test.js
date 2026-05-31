@@ -86,7 +86,6 @@ describe('capture-user-manual-screenshots-lib', () => {
       addStyleTag: vi.fn(async () => undefined),
       waitForTimeout: vi.fn(async () => undefined),
       goto: vi.fn(async () => undefined),
-      locator: vi.fn(() => createVisibleLocator(vi.fn(async () => undefined))),
       screenshot: vi.fn(async () => undefined),
       getByRole: vi.fn(() => ({ click: vi.fn(async () => undefined) })),
       waitForURL: vi.fn(async () => undefined),

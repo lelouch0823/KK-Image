@@ -283,7 +283,7 @@ import ValueArchiveModal from '@/components/product/ValueArchiveModal.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import Modal from '@/components/ui/Modal.vue';
-import { CURRENCY_OPTIONS, CURRENCY_SYMBOLS } from '@/constants/currency.js';
+import { CURRENCY_OPTIONS, CURRENCY_SYMBOLS } from '@/constants/currency';
 import { API } from '@/utils/constants';
 
 const { t } = useI18n();

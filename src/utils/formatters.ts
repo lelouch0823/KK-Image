@@ -1,0 +1,259 @@
+// No hardcoded default messages here
+
+/**
+ * 格式化文件大小
+ * @param bytes - 字节数
+ * @param t - i18n translate function (可选)
+ * @returns 格式化后的大小字符串
+ */
+export const formatSize = (bytes: number, t?: (key: string) => string): string => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  const value = parseFloat((bytes / Math.pow(k, i)).toFixed(2));
+  const unit = t ? t(`formatters.units.${sizes[i]}`) : sizes[i];
+
+  return `${value} ${unit}`;
+};
+
+/**
+ * 格式化时长 (秒 -> 时:分:秒)
+ * @param seconds - 秒数
+ * @param t - i18n translate function
+ */
+export const formatDuration = (seconds: number, t?: (key: string) => string): string => {
+  if (!t) return `${seconds}s`;
+  if (seconds < 60) return `${seconds}${t('formatters.seconds')}`;
+  if (seconds < 3600)
+    return `${Math.floor(seconds / 60)}${t('formatters.minutes')}${seconds % 60}${t('formatters.seconds')}`;
+  return `${Math.floor(seconds / 3600)}${t('formatters.hours')}${Math.floor((seconds % 3600) / 60)}${t('formatters.minutes')}`;
+};
+
+/**
+ * 格式化日期时间
+ * @param timestamp - 时间戳
+ * @param options - Intl.DateTimeFormat 选项
+ * @returns 格式化后的日期字符串
+ */
+export const formatDate = (
+  timestamp: number | string | null | undefined,
+  options: { locale?: string; [key: string]: any } = {},
+): string => {
+  if (!timestamp) return '-';
+  const { locale, ...restOptions } = options;
+  const date = new Date(Number(timestamp));
+  return date.toLocaleString(locale || 'zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    ...restOptions,
+  });
+};
+
+/**
+ * 格式化过期时间
+ * @param ts - 过期时间戳
+ * @param t - 国际化翻译函数
+ * @returns 格式化后的过期时间描述
+ */
+export const formatExpiry = (ts: number | null | undefined, t?: (key: string, fallback?: any) => string): string => {
+  if (!t) {
+    if (!ts) return '-';
+    return new Date(Number(ts)).toLocaleDateString();
+  }
+
+  if (!ts) return t('formatters.forever', '永久有效');
+  const date = new Date(Number(ts));
+  const now = Date.now();
+  const days = Math.ceil((ts - now) / (1000 * 60 * 60 * 24));
+
+  if (ts < now) return t('formatters.expired', '已过期');
+  const dateStr = date.toLocaleDateString();
+  return t('formatters.daysLeft', { days, date: dateStr });
+};
+
+/**
+ * 获取文件扩展名
+ * @param filename - 文件名
+ * @returns 大写的扩展名
+ */
+export const getFileExtension = (filename: string): string => {
+  if (!filename) return '';
+  return filename.slice(((filename.lastIndexOf('.') - 1) >>> 0) + 2).toUpperCase();
+};
+
+import { IMAGE_EXTENSIONS } from './constants';
+
+/**
+ * 判断是否为图片文件
+ * @param file - 文件对象或文件名
+ * @returns 是否为图片
+ */
+export const isImage = (file: any): boolean => {
+  if (!file) return false;
+
+  // 支持传入文件对象或字符串
+  const filename = typeof file === 'string' ? file : file.name || file.originalName || '';
+  if (!filename) return false;
+
+  const ext = getFileExtension(filename).toLowerCase();
+  return IMAGE_EXTENSIONS.includes(ext);
+};
+
+/**
+ * 判断是否为 PDF 文件
+ * @param file - 文件对象或文件名
+ * @returns 是否为 PDF
+ */
+export const isPdf = (file: any): boolean => {
+  if (!file) return false;
+  const filename = typeof file === 'string' ? file : file.name || file.originalName || '';
+  if (!filename) return false;
+  return getFileExtension(filename).toLowerCase() === 'pdf';
+};
+
+/**
+ * 格式化相对时间 (刚刚, x分钟前, x小时前, 或日期)
+ * @param timestamp - 时间戳
+ * @param t - i18n t function
+ * @returns Relative time string
+ */
+export const formatRelativeTime = (timestamp: number | string | null | undefined, t?: (key: string, params?: any) => string): string => {
+  if (!timestamp) return t ? t('common.unknown') : '';
+  const date = new Date(Number(timestamp));
+  const now = new Date();
+  const diff: number = now.getTime() - date.getTime();
+
+  // 必须提供 t 函数，否则返回空字符串 (SOTA: 避免硬编码)
+  if (!t) return '';
+
+  // 一分钟内
+  if (diff < 60000) return t('common.justNow');
+  // 一小时内
+  if (diff < 3600000) {
+    const count = Math.floor(diff / 60000);
+    return t('common.minutesAgo', { count });
+  }
+  // 一天内
+  if (diff < 86400000) {
+    const count = Math.floor(diff / 3600000);
+    return t('common.hoursAgo', { count });
+  }
+
+  // 超过一天，显示日期 (MM/DD)
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+};
+
+/**
+ * 格式化详细时间 (MM/DD HH:mm) - 用于时间轴
+ * @param timestamp - 时间戳
+ */
+export const formatTimelineTime = (timestamp: number | string | null | undefined): string => {
+  if (!timestamp) return '';
+  const date = new Date(Number(timestamp));
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+
+  const timeStr = `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+  if (isToday) {
+    return timeStr;
+  }
+  return `${date.getMonth() + 1}/${date.getDate()} ${timeStr}`;
+};
+
+/**
+ * formatTime 别名 - 用于排序列表的时间显示
+ */
+export const formatTime = formatTimelineTime;
+
+/**
+ * 获取 CSS 变量值
+ * @param varName - CSS 变量名 (如 '--color-chart-1')
+ */
+export const getCssVar = (varName: string): string => {
+  if (typeof document === 'undefined') return '';
+  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+};
+
+/**
+ * 获取图表颜色数组
+ * @param count - 需要的颜色数量
+ */
+export const getChartColors = (count: number = 6): string[] => {
+  const colors: string[] = [];
+  for (let i = 1; i <= Math.min(count, 6); i++) {
+    colors.push(getCssVar(`--color-chart-${i}`));
+  }
+  return colors;
+};
+
+/**
+ * 将 Hex 颜色转为 RGBA
+ * @param hex - Hex 颜色值
+ * @param alpha - 透明度 (0-1)
+ */
+export const hexToRgba = (hex: string, alpha: number = 1): string => {
+  if (!hex) return `rgba(0, 0, 0, ${alpha})`;
+  hex = hex.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+/**
+ * 获取图表背景色 (带透明度)
+ * @param index - 颜色索引 (1-6)
+ * @param alpha - 透明度 (0-1)
+ */
+export const getChartBgColor = (index: number = 1, alpha: number = 0.1): string => {
+  const hex = getCssVar(`--color-chart-${index}`);
+  return hexToRgba(hex, alpha);
+};
+
+/**
+ * 格式化日期+星期
+ * @param dateString YYYY-MM-DD
+ * @param t i18n translate function
+ * @returns YYYY-MM-DD (周X)
+ */
+export function formatDateWithWeekday(dateString: string, t?: (key: string) => string): string {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+
+  let dayStr: string;
+  if (t) {
+    dayStr = t(`common.weekdays.${date.getDay()}`);
+  } else {
+    // SOTA: Fallback to non-localized if t not available, but avoid hardcoded arrays
+    return dateString;
+  }
+
+  return `${dateString} (${dayStr})`;
+}
+
+/**
+ * 格式化金额
+ * @param amount - 金额
+ * @param currency - 货币代码 (默认 CNY)
+ * @returns 格式化后的金额字符串
+ */
+export const formatCurrency = (amount: number | string | null | undefined, currency: string = 'CNY'): string => {
+  if (amount === undefined || amount === null || amount === '') return '-';
+
+  // 确保是数字
+  const num = Number(amount);
+  if (isNaN(num)) return String(amount);
+
+  return new Intl.NumberFormat('zh-CN', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+};

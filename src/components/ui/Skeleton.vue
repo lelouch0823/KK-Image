@@ -109,19 +109,10 @@ const avatarSizeClass = computed(() => {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.05) 50%,
+    var(--shimmer-from) 50%,
     transparent 100%
   );
   animation: shimmer 2s infinite;
-}
-
-[data-theme='light'] .skeleton-shimmer::after {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(0, 0, 0, 0.05) 50%,
-    transparent 100%
-  );
 }
 
 @keyframes shimmer {
