@@ -237,7 +237,10 @@ export function useAIStream() {
             isLoading.value = false;
             isStreaming.value = true;
 
-            const reader = response.body!.getReader();
+            if (!response.body) {
+                throw new Error('响应体为空，无法读取流数据');
+            }
+            const reader = response.body.getReader();
             const decoder = new TextDecoder();
             const parser = new SSEParser();
             const sanitizer = createStreamSanitizer();

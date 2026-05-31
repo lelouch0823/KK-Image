@@ -13,6 +13,7 @@
         :placeholder="t('common.searchPlaceholder')"
         input-class="!h-11 !rounded-xl !bg-(--bg-muted) shadow-sm"
         :debounce="300"
+        @search="handleSearch"
       />
     </div>
 
@@ -54,7 +55,7 @@
 </template>
 
 <script setup>
-import { inject, computed, watch, ref } from 'vue';
+import { inject, computed, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePullToRefresh } from '@/composables/usePullToRefresh';
@@ -109,9 +110,9 @@ const infiniteScroll = useInfiniteScroll(async () => {
   infiniteScroll.setCanLoadMore(pagination.page < pagination.totalPages);
 }, { rootMargin: '200px' });
 
-// Search goes through the server so later pages are still reachable for the current query.
-watch(searchQuery, async () => {
+// 搜索通过服务端执行，确保后续页码在当前查询下仍可访问
+const handleSearch = async () => {
   await loadOrders(1, false, searchQuery.value.trim());
   infiniteScroll.setCanLoadMore(pagination?.page < pagination?.totalPages);
-});
+};
 </script>

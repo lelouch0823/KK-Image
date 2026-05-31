@@ -176,7 +176,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, defineAsyncComponent } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useRequestAdapters } from '@/composables/useRequestAdapters';
@@ -199,7 +199,7 @@ import OrderShipmentHistoryCard from './OrderShipmentHistoryCard.vue';
 import OrderReturnHistoryCard from './OrderReturnHistoryCard.vue';
 import OrderPrintView from './OrderPrintView.vue';
 import OrderLinesCard from './OrderLinesCard.vue';
-import OrderEditModal from '../OrderEditModal.vue';
+const OrderEditModal = defineAsyncComponent(() => import('../OrderEditModal.vue'));
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import Lightbox from '@/components/ui/Lightbox.vue';
@@ -472,6 +472,8 @@ const handleSavePdf = () => {
           document.body.removeChild(clone);
         }
       });
+  }).catch((err) => {
+    console.error('[PDF] html2pdf 加载失败:', err);
   });
 };
 

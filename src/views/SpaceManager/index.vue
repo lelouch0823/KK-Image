@@ -338,14 +338,14 @@ watch(selectedSpace, (space) => {
 onMounted(() => {
   loadPermissions().then(() => {
     canManageSpaces.value = hasPermission('spaces:manage');
-  });
+  }).catch(console.error);
   loadSpaces();
 });
 
 onActivated(() => {
   loadPermissions().then(() => {
     canManageSpaces.value = hasPermission('spaces:manage');
-  });
+  }).catch(console.error);
   loadSpaces();
 });
 </script>

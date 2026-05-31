@@ -690,6 +690,6 @@ const fetchHealthStats = async () => {
 };
 
 onMounted(() => {
-  fetchSettings().then(() => fetchHealthStats());
+  fetchSettings().then(() => fetchHealthStats()).catch(console.error);
 });
 </script>

@@ -278,7 +278,7 @@ onMounted(() => {
     if (!canManageProducts.value && !props.initialProduct && form.value.template === 'product') {
       form.value.template = 'gallery';
     }
-  });
+  }).catch(console.error);
 
   if (props.initialProduct) {
     const didBindInitialProduct = handleProductSelect(props.initialProduct);

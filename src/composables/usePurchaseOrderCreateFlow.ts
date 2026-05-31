@@ -227,7 +227,7 @@ export function usePurchaseOrderCreateFlow({
       });
 
       if (toRemoveItemIds.length > 0) {
-        await Promise.all(toRemoveItemIds.map((itemId: string) => removeItem(detail.value!.id, itemId)));
+        await Promise.all(toRemoveItemIds.map((itemId: string) => removeItem(detail.value?.id, itemId)));
       }
       if (toAdd.length > 0) {
         const newItems = toAdd.map((item: Record<string, unknown>) => ({

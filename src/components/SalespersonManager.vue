@@ -186,7 +186,7 @@ const refreshCurrentList = (forceRefresh = false) => {
 onMounted(() => {
   loadPermissions().then(() => {
     canManageSalespersons.value = hasPermission('users:write');
-  });
+  }).catch(console.error);
 
   stopSalespersonsRefreshSubscription = subscribeModule('salespersons', () => {
     if (!showModal.value && !showDetailModal.value) {

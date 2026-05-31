@@ -247,7 +247,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, onUnmounted, onActivated, watch, computed, useTemplateRef, onWatcherCleanup } from 'vue';
+import { onMounted, ref, onUnmounted, onActivated, watch, computed, useTemplateRef, onWatcherCleanup, h } from 'vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import ContextMenu from '@/components/ui/ContextMenu.vue';
 import FolderGrid from './FolderGrid.vue';
@@ -546,8 +546,13 @@ watch(
   { immediate: true }
 );
 
-// Lifecycle
-onMounted(() => {
+// 点击空白处关闭右键菜单
+const handleClickOutside = () => {
+  contextMenuData.value.show = false;
+};
+
+// 同步权限状态
+const syncPermissions = () => {
   loadPermissions().then(() => {
     canWriteFiles.value = hasPermission('files:write');
     canDeleteFiles.value = hasPermission('files:delete');
@@ -555,29 +560,26 @@ onMounted(() => {
     canManageFolders.value = hasPermission('folders:write');
     canDeleteFolders.value = hasPermission('folders:delete');
     canMoveFiles.value = canWriteFiles.value && canBrowseFolders.value;
-  });
+  }).catch(console.error);
+};
+
+// Lifecycle
+onMounted(() => {
+  syncPermissions();
   loadFolderData();
-  window.addEventListener('click', () => contextMenuData.value.show = false);
+  window.addEventListener('click', handleClickOutside);
 });
 
 onActivated(() => {
-  loadPermissions().then(() => {
-    canWriteFiles.value = hasPermission('files:write');
-    canDeleteFiles.value = hasPermission('files:delete');
-    canBrowseFolders.value = hasPermission('folders:read');
-    canManageFolders.value = hasPermission('folders:write');
-    canDeleteFolders.value = hasPermission('folders:delete');
-    canMoveFiles.value = canWriteFiles.value && canBrowseFolders.value;
-  });
+  syncPermissions();
   loadFolderData(currentFolder.value?.id);
 });
 
 onUnmounted(() => {
-  // Cleanup handled by onWatcherCleanup
+  window.removeEventListener('click', handleClickOutside);
 });
 
 // Context Menu Logic
-import { h } from 'vue';
 const createIcon = (d) => {
   return {
     render: () => h('svg', { class: 'size-4', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [

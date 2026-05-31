@@ -204,9 +204,9 @@ export function createProductFormSubmitHandler({
       let response;
       if (editMode.value) {
         if (typeof updateProductWithMeta === 'function') {
-          response = await updateProductWithMeta(initialData.value!.id as string, payload);
+          response = await updateProductWithMeta(initialData.value?.id as string, payload);
         } else {
-          response = await updateProduct(initialData.value!.id as string, payload);
+          response = await updateProduct(initialData.value?.id as string, payload);
         }
       } else if (typeof createProductWithMeta === 'function') {
         response = await createProductWithMeta(payload);

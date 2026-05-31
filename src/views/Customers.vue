@@ -16,6 +16,7 @@
       <SearchInput
         v-model="searchQuery"
         :placeholder="t('customer.manage.searchPlaceholder')"
+        :debounce="300"
         class="w-full sm:w-64"
         @search="handleSearch"
       />
