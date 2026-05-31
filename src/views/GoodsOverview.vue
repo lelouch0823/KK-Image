@@ -412,7 +412,7 @@ import FloatingSelectionBar from '@/design-system/composed/FloatingSelectionBar.
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import AppTableCodeChip from '@/components/ui/AppTableCodeChip.vue';
 import AppTableStatusPill from '@/components/ui/AppTableStatusPill.vue';
-import { resolvePrimaryProductImageSrc } from '@/components/product/image-resolver.js';
+import { resolvePrimaryProductImageSrc } from '@/components/product/image-resolver';
 
 const { t } = useI18n();
 const { addToast } = useToast();

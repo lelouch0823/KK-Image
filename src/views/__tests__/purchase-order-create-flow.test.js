@@ -6,7 +6,7 @@ import {
   getSelectedVariantIdsForPicker,
   getShortageItems,
   getTotalCreateQty,
-} from '../purchase-orders/create-flow.js';
+} from '../purchase-orders/create-flow';
 
 describe('purchase-order create-flow helpers', () => {
   it('derives picker ids and summary metrics from create items', () => {

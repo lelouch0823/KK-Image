@@ -183,7 +183,7 @@ import AppTableStatusPill from '@/components/ui/AppTableStatusPill.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import { formatRelativeTime } from '@/utils/formatters';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core';
-import { resolvePrimaryProductImageSrc } from './image-resolver.js';
+import { resolvePrimaryProductImageSrc } from './image-resolver';
 import { getProductStatusVariant } from '@/utils/product-status';
 
 const { t } = useI18n();

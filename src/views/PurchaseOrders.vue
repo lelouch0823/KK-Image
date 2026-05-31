@@ -307,17 +307,17 @@ import {
   getPurchaseOrderReceivedQty,
 } from '@/utils/purchase-order-progress';
 import { formatCurrency as formatMoney } from '@/utils/formatters';
-import { formatDate, formatDateTime } from "@/views/purchase-orders/formatters.js";
+import { formatDate, formatDateTime } from "@/views/purchase-orders/formatters";
 import {
   createReceiptMetaBuilder,
   hasReceiptMeta,
-} from "@/views/purchase-orders/progress.js";
+} from "@/views/purchase-orders/progress";
 import {
   createPurchaseOrderSteps,
   getStepIconClasses,
   getStepperProgress,
   isStepCompleted,
-} from "@/views/purchase-orders/stepper.js";
+} from "@/views/purchase-orders/stepper";
 import {
   buildSuggestionMeta,
   buildSuggestionVariantLabel,
@@ -325,7 +325,7 @@ import {
   isReceiptDraftInvalid,
   isShortageDraftInvalid,
   normalizeReceiptQty,
-} from "@/views/purchase-orders/drafts.js";
+} from "@/views/purchase-orders/drafts";
 import PurchaseOrderCostModal from '@/components/purchase-order/PurchaseOrderCostModal.vue';
 import PurchaseOrderCreateDrawer from '@/components/purchase-order/PurchaseOrderCreateDrawer.vue';
 import PurchaseOrderDetailDrawer from '@/components/purchase-order/PurchaseOrderDetailDrawer.vue';

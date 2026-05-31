@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildVariantSku } from '../variant-sku.js';
+import { buildVariantSku } from '../variant-sku';
 
 describe('buildVariantSku', () => {
     it('uses spu prefix when provided', () => {

@@ -85,7 +85,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
-import { resolvePrimaryProductImageSrc } from './image-resolver.js';
+import { resolvePrimaryProductImageSrc } from './image-resolver';
 
 const { t } = useI18n();
 defineProps({

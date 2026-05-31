@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractInternalCodes, getItemMatchKey } from '../match-keys.js';
+import { extractInternalCodes, getItemMatchKey } from '../match-keys';
 
 describe('import match keys', () => {
     it('getItemMatchKey should prioritize variant_code then product_code then spu then name', () => {

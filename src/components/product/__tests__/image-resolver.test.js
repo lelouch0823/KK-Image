@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolvePrimaryProductImageSrc } from '../image-resolver.js';
+import { resolvePrimaryProductImageSrc } from '../image-resolver';
 
 describe('resolvePrimaryProductImageSrc', () => {
   it('returns file url when first image is a string id', () => {

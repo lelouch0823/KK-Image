@@ -5,7 +5,7 @@ import {
   EXPORT_COLUMNS,
   flattenProductsToVariantRows,
   normalizeProductExportFilters,
-} from '../export-utils.js';
+} from '../export-utils';
 
 describe('product export utils', () => {
   it('flattens products into variant rows', () => {

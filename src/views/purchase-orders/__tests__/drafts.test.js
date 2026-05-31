@@ -8,7 +8,7 @@ import {
   normalizeDecimal,
   normalizeNullableDecimal,
   normalizeReceiptQty,
-} from '../drafts.js';
+} from '../drafts';
 
 describe('purchase order draft helpers', () => {
   it('normalizes receipt quantities into non-negative integers', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { featureFlags, isSalesOrderV2Enabled, resolveSalesOrderEntry } from '../feature-flags.js';
+import { featureFlags, isSalesOrderV2Enabled, resolveSalesOrderEntry } from '../feature-flags';
 
 describe('feature flags', () => {
   it('exposes a boolean feature flag snapshot', () => {

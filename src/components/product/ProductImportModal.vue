@@ -141,7 +141,7 @@ import ImportUploadStep from '@/components/product/import/ImportUploadStep.vue';
 import ImportMappingStep from '@/components/product/import/ImportMappingStep.vue';
 import ImportImageMatchStep from '@/components/product/import/ImportImageMatchStep.vue';
 import ImportPreviewStep from '@/components/product/import/ImportPreviewStep.vue';
-import { extractInternalCodes, getItemMatchKey } from '@/components/product/import/match-keys.js';
+import { extractInternalCodes, getItemMatchKey } from '@/components/product/import/match-keys';
 
 const props = defineProps({
     modelValue: {

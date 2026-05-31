@@ -156,7 +156,7 @@ import {
   EXPORT_COLUMNS,
   flattenProductsToVariantRows,
   normalizeProductExportFilters,
-} from './export/export-utils.js';
+} from './export/export-utils';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
