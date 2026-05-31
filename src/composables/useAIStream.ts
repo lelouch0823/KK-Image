@@ -32,7 +32,7 @@ interface AIStreamEvent {
 }
 
 interface StreamState {
-    actionCard?: Record<string, unknown> | null;
+    actionCard?: { type: string; [key: string]: unknown } | null;
     toolStatus?: string;
     fullContent?: string;
     displayedContent?: string;
@@ -181,7 +181,7 @@ export function useAIStream() {
     const isLoading = ref(false);
     const isStreaming = ref(false);
     const toolStatus = ref('');
-    const actionCard = ref<Record<string, unknown> | null>(null);
+    const actionCard = ref<{ type: string; [key: string]: unknown } | null>(null);
     const sessionState = ref(createInitialAIChatSessionState());
 
     // 请求取消控制器
@@ -223,7 +223,7 @@ export function useAIStream() {
         const syncSessionState = (nextState: ReturnType<typeof createInitialAIChatSessionState>): void => {
             sessionState.value = nextState;
             toolStatus.value = nextState.toolStatus as string;
-            actionCard.value = nextState.actionState?.card as Record<string, unknown> | null;
+            actionCard.value = nextState.actionState?.card ?? null;
         };
 
         try {
@@ -266,18 +266,18 @@ export function useAIStream() {
                         continue;
                     }
 
-                    if (event.type === 'text_delta' && event.data?.content) {
+                    if (event.type === 'text_delta' && typeof event.data?.content === 'string') {
                         const cleaned = sanitizer.push(event.data.content);
                         if (cleaned) {
                             syncSessionState(reduceAIChatSessionEvent({ type: 'text_delta', data: { content: cleaned } }, sessionState.value));
                             pushToTypewriter(cleaned);
                         }
                     } else if (event.type === 'content_block') {
-                        if (event.data?.type === 'table' && event.data?.content) {
+                        if (event.data?.type === 'table' && typeof event.data?.content === 'string') {
                             // 表格内容（工具调用结果）直接推送
                             syncSessionState(reduceAIChatSessionEvent({ type: 'content_block', data: { content: event.data.content } }, sessionState.value));
                             pushToTypewriter(event.data.content);
-                        } else if (event.data?.content) {
+                        } else if (typeof event.data?.content === 'string') {
                             syncSessionState(reduceAIChatSessionEvent({ type: 'content_block', data: { content: event.data.content } }, sessionState.value));
                             pushToTypewriter(event.data.content);
                         }
@@ -301,7 +301,8 @@ export function useAIStream() {
                             (structuredError as Error & { isHandled: boolean; category: string }).category = structured.category;
                             throw structuredError;
                         }
-                        const classified = classifyAIStreamError(event.data?.message || '');
+                        const errorMessage = typeof event.data?.message === 'string' ? event.data.message : '';
+                        const classified = classifyAIStreamError(errorMessage);
                         if (classified.kind === 'image_input_format') {
                             addToast({
                                 message: t(

@@ -4,21 +4,21 @@ import zhCN from '@/locales/zh-CN/index';
 import enUS from '@/locales/en/index';
 
 const currentLocale: Ref<string> = ref('zh-CN');
-const messages: Record<string, any> = {
-  'zh-CN': zhCN,
-  'en-US': enUS,
+const messages: Record<string, Record<string, unknown>> = {
+  'zh-CN': zhCN as Record<string, unknown>,
+  'en-US': enUS as Record<string, unknown>,
 };
 
 export function useI18n() {
-  const t = (path: string, paramsOrFallback: Record<string, any> | string = {}): string => {
+  const t = (path: string, paramsOrFallback: Record<string, unknown> | string = {}): string => {
     const hasFallback = typeof paramsOrFallback === 'string';
     const fallback: string | undefined = hasFallback ? paramsOrFallback : undefined;
-    const params: Record<string, any> = !hasFallback && paramsOrFallback && typeof paramsOrFallback === 'object'
+    const params: Record<string, unknown> = !hasFallback && paramsOrFallback && typeof paramsOrFallback === 'object'
       ? paramsOrFallback
       : {};
 
     const keys = path.split('.');
-    let value: any = messages[currentLocale.value];
+    let value: unknown = messages[currentLocale.value];
 
     for (const key of keys) {
       if (value && typeof value === 'object' && key in value) {
@@ -30,12 +30,13 @@ export function useI18n() {
 
     // Simple interpolation: {count} -> 10
     if (typeof value === 'string' && Object.keys(params).length > 0) {
-      return value.replace(/{(\w+)}/g, (_, key) => {
-        return params[key] !== undefined ? params[key] : `{${key}}`;
+      return value.replace(/{(\w+)}/g, (_, key: string) => {
+        const paramValue = params[key];
+        return paramValue !== undefined ? String(paramValue) : `{${key}}`;
       });
     }
 
-    if (value !== undefined) {
+    if (typeof value === 'string') {
       return value;
     }
     return fallback ?? path;

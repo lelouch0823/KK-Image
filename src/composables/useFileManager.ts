@@ -7,11 +7,62 @@ import { API } from '@/utils/constants';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
 
+/** 文件夹信息接口 */
+interface FolderInfo {
+  id: string;
+  name: string;
+  parentId?: string;
+  isTrash?: boolean;
+  [key: string]: unknown;
+}
+
+/** 面包屑项接口 */
+interface Breadcrumb {
+  id?: string;
+  name: string;
+  path?: string;
+  [key: string]: unknown;
+}
+
+/** 文件/文件夹列表项接口 */
+interface FileItem {
+  id: string;
+  name: string;
+  type: 'file' | 'folder';
+  url?: string;
+  size?: number;
+  [key: string]: unknown;
+}
+
 /** 后端 API 通用响应结构 */
 interface ApiResponse {
   success: boolean;
   message?: string;
-  data?: Record<string, unknown> | Record<string, unknown>[];
+  data?: FolderInfo | FileItem[] | Record<string, unknown> | Record<string, unknown>[];
+  [key: string]: unknown;
+}
+
+/** 文件夹详情响应 */
+interface FolderDetailResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    id: string;
+    name: string;
+    parentId?: string;
+    subfolders: FileItem[];
+    files: FileItem[];
+    breadcrumbs: Breadcrumb[];
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+/** 回收站响应 */
+interface TrashResponse {
+  success: boolean;
+  message?: string;
+  data?: FileItem[];
   [key: string]: unknown;
 }
 
@@ -24,11 +75,11 @@ export function useFileManager() {
   const loading = ref<boolean>(false);
   const error = ref<string | null>(null);
   const errorCode = ref<string | null>(null);
-  const currentFolder = ref<any>(null); // null = root
-  const subfolders = ref<any[]>([]);
-  const files = ref<any[]>([]);
-  const breadcrumbs = ref<any[]>([]);
-  const selectedFiles = ref<any[]>([]);
+  const currentFolder = ref<FolderInfo | null>(null); // null = root
+  const subfolders = ref<FileItem[]>([]);
+  const files = ref<FileItem[]>([]);
+  const breadcrumbs = ref<Breadcrumb[]>([]);
+  const selectedFiles = ref<FileItem[]>([]);
 
   const resolveErrorCode = (status: number, _message: string = ''): string | null => {
     const code = classifyError({ status });
@@ -39,13 +90,15 @@ export function useFileManager() {
   const getErrorMessage = (err: unknown): string => extractErrorMessage(err, t('fileOps.loadFailed'));
   const isForbiddenError = (status: number, _message: string = ''): boolean =>
     resolveErrorCode(status, _message) === ErrorCode.FORBIDDEN;
-  const normalizeFileList = (payload: any): any[] => {
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.data)) return payload.data;
+  const normalizeFileList = (payload: unknown): FileItem[] => {
+    if (Array.isArray(payload)) return payload as FileItem[];
+    if (payload && typeof payload === 'object' && 'data' in payload && Array.isArray((payload as Record<string, unknown>).data)) {
+      return (payload as Record<string, FileItem[]>).data;
+    }
     return [];
   };
 
-  const setErrorState = (message: string, status: number = 0, options: Record<string, any> = {}): void => {
+  const setErrorState = (message: string, status: number = 0, options: Record<string, unknown> = {}): void => {
     const { silent = false, toastMessage = null, setGlobal = true } = options;
     const code = resolveErrorCode(status, message);
     if (setGlobal) {
@@ -53,7 +106,7 @@ export function useFileManager() {
       error.value = message || t('fileOps.loadFailed');
     }
     if (!silent && (!setGlobal || !isAuthError(code))) {
-      toast.error(toastMessage || message || error.value || t('fileOps.loadFailed'));
+      toast.error((toastMessage as string) || message || error.value || t('fileOps.loadFailed'));
     }
   };
 
@@ -72,7 +125,7 @@ export function useFileManager() {
    * @param folderId - 文件夹ID，null表示根目录
    * @param options - 选项
    */
-  const loadFolderData = async (folderId: string | null = null, options: Record<string, any> = {}): Promise<void> => {
+  const loadFolderData = async (folderId: string | null = null, options: Record<string, unknown> = {}): Promise<void> => {
     const { silent = false } = options;
 
     if (!silent) {
@@ -90,16 +143,16 @@ export function useFileManager() {
 
     try {
       if (folderId) {
-        const res: any = await authFetch(API.FOLDER_BY_ID(folderId), {
+        const res: FolderDetailResponse = await authFetch(API.FOLDER_BY_ID(folderId), {
           signal: abortController.signal
         }).then((r) => r.json());
-        if (res.success) {
-          currentFolder.value = res.data;
+        if (res.success && res.data) {
+          currentFolder.value = { id: res.data.id, name: res.data.name, parentId: res.data.parentId };
           subfolders.value = res.data.subfolders;
           files.value = res.data.files;
           breadcrumbs.value = res.data.breadcrumbs || [];
         } else {
-          setErrorState(res.message);
+          setErrorState(res.message || '');
         }
       } else {
         currentFolder.value = null;
@@ -117,7 +170,7 @@ export function useFileManager() {
         let folderError: { status: number; message: string } | null = null;
 
         if (foldersRes.status === 'fulfilled' && foldersRes.value && typeof foldersRes.value === 'object' && 'success' in foldersRes.value && (foldersRes.value as ApiResponse).success) {
-          subfolders.value = ((foldersRes.value as ApiResponse).data as Record<string, unknown>[]) || [];
+          subfolders.value = ((foldersRes.value as ApiResponse).data as FileItem[]) || [];
         } else {
           subfolders.value = [];
           if (foldersRes.status === 'fulfilled') {
@@ -165,14 +218,14 @@ export function useFileManager() {
     }
   };
 
-  const createFolder = async (data: Record<string, any>): Promise<boolean> => {
+  const createFolder = async (data: Record<string, unknown>): Promise<boolean> => {
     try {
       const payload = { ...data };
       if (!data.parentId && currentFolder.value) {
         payload.parentId = currentFolder.value.id;
       }
 
-      const res: any = await authFetch(API.FOLDERS, {
+      const res: ApiResponse = await authFetch(API.FOLDERS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -183,7 +236,7 @@ export function useFileManager() {
         loadFolderData(currentFolder.value?.id);
         return true;
       } else {
-        setErrorState(res.message, 0, { setGlobal: false });
+        setErrorState(res.message || '', 0, { setGlobal: false });
         return false;
       }
     } catch (_e: unknown) {
@@ -192,9 +245,9 @@ export function useFileManager() {
     }
   };
 
-  const updateFolder = async (id: string, data: Record<string, any>): Promise<boolean> => {
+  const updateFolder = async (id: string, data: Record<string, unknown>): Promise<boolean> => {
     try {
-      const res: any = await authFetch(API.FOLDER_BY_ID(id), {
+      const res: ApiResponse = await authFetch(API.FOLDER_BY_ID(id), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -205,7 +258,7 @@ export function useFileManager() {
         loadFolderData(currentFolder.value?.id);
         return true;
       } else {
-        setErrorState(res.message, 0, { setGlobal: false });
+        setErrorState(res.message || '', 0, { setGlobal: false });
         return false;
       }
     } catch (_e: unknown) {
@@ -216,7 +269,7 @@ export function useFileManager() {
 
   const deleteFolder = async (id: string): Promise<boolean> => {
     try {
-      const res: any = await authFetch(API.FOLDER_BY_ID(id), {
+      const res: ApiResponse = await authFetch(API.FOLDER_BY_ID(id), {
         method: 'DELETE',
       }).then((r) => r.json());
 
@@ -229,7 +282,7 @@ export function useFileManager() {
         }
         return true;
       } else {
-        setErrorState(res.message, 0, { setGlobal: false });
+        setErrorState(res.message || '', 0, { setGlobal: false });
         return false;
       }
     } catch (_e: unknown) {
@@ -240,7 +293,7 @@ export function useFileManager() {
 
   const deleteFile = async (fileId: string): Promise<void> => {
     try {
-      const res: any = await authFetch(`${API.FILES}/${fileId}`, {
+      const res: ApiResponse = await authFetch(`${API.FILES}/${fileId}`, {
         method: 'DELETE',
       }).then((r) => r.json());
 
@@ -249,7 +302,7 @@ export function useFileManager() {
         // Refresh current view (works for root too since id will be null/undefined)
         loadFolderData(currentFolder.value?.id);
       } else {
-        setErrorState(res.message, 0, { setGlobal: false });
+        setErrorState(res.message || '', 0, { setGlobal: false });
       }
     } catch (_e: unknown) {
       setErrorState(t('fileOps.deleteFailed'), 0, { setGlobal: false });
@@ -277,7 +330,7 @@ export function useFileManager() {
     // New Operations
     renameFile: async (id: string, name: string): Promise<boolean> => {
       try {
-        const res: any = await authFetch(`${API.FILES}/${id}`, {
+        const res: ApiResponse = await authFetch(`${API.FILES}/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name }),
@@ -288,7 +341,7 @@ export function useFileManager() {
           loadFolderData(currentFolder.value?.id);
           return true;
         } else {
-          setErrorState(res.message, 0, { setGlobal: false });
+          setErrorState(res.message || '', 0, { setGlobal: false });
           return false;
         }
       } catch (_e: unknown) {
@@ -307,18 +360,18 @@ export function useFileManager() {
 
     batchDeleteFiles: async (ids: string[]): Promise<boolean> => {
       try {
-        const res: any = await authFetch(`${API.FILES}/batch/delete`, {
+        const res: ApiResponse = await authFetch(`${API.FILES}/batch/delete`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ids }),
         }).then((r) => r.json());
 
         if (res.success) {
-          toast.success(res.message);
+          toast.success(res.message || '');
           loadFolderData(currentFolder.value?.id);
           return true;
         } else {
-          setErrorState(res.message, 0, { setGlobal: false });
+          setErrorState(res.message || '', 0, { setGlobal: false });
           return false;
         }
       } catch (_e: unknown) {
@@ -329,18 +382,18 @@ export function useFileManager() {
 
     batchMoveFiles: async (ids: string[], targetFolderId: string): Promise<boolean> => {
       try {
-        const res: any = await authFetch(`${API.FILES}/batch/move`, {
+        const res: ApiResponse = await authFetch(`${API.FILES}/batch/move`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ids, targetFolderId }),
         }).then((r) => r.json());
 
         if (res.success) {
-          toast.success(res.message);
+          toast.success(res.message || '');
           loadFolderData(currentFolder.value?.id);
           return true;
         } else {
-          setErrorState(res.message, 0, { setGlobal: false });
+          setErrorState(res.message || '', 0, { setGlobal: false });
           return false;
         }
       } catch (_e: unknown) {
@@ -350,7 +403,7 @@ export function useFileManager() {
     },
 
     // 🗑️ 回收站操作
-    loadTrashData: async (options: Record<string, any> = {}): Promise<void> => {
+    loadTrashData: async (options: Record<string, unknown> = {}): Promise<void> => {
       const { silent = false } = options;
       if (!silent) {
         loading.value = true;
@@ -360,14 +413,14 @@ export function useFileManager() {
       }
 
       try {
-        const res: any = await authFetch(API.TRASH).then((r) => r.json());
-        if (res.success) {
+        const res: TrashResponse = await authFetch(API.TRASH).then((r) => r.json());
+        if (res.success && Array.isArray(res.data)) {
           // 回收站模式下，files.value 存储回收站项目
           files.value = res.data;
-          currentFolder.value = { isTrash: true, name: t('trash.title') };
+          currentFolder.value = { id: 'trash', isTrash: true, name: t('trash.title') };
           breadcrumbs.value = [{ name: t('trash.title'), path: '/admin/trash' }];
         } else {
-          setErrorState(res.message, 0, { silent });
+          setErrorState(res.message || '', 0, { silent });
         }
       } catch (_e: unknown) {
         const status = (typeof _e === 'object' && _e !== null && 'status' in _e) ? Number((_e as Record<string, unknown>).status) : 0;
@@ -380,10 +433,10 @@ export function useFileManager() {
 
     restoreTrashItems: async (ids: string[]): Promise<boolean> => {
       try {
-        const fileIds = ids.filter((id: string) => files.value.find((f: any) => f.id === id && f.type === 'file'));
-        const folderIds = ids.filter((id: string) => files.value.find((f: any) => f.id === id && f.type === 'folder'));
+        const fileIds = ids.filter((id: string) => files.value.find((f) => f.id === id && f.type === 'file'));
+        const folderIds = ids.filter((id: string) => files.value.find((f) => f.id === id && f.type === 'folder'));
 
-        const res: any = await authFetch(API.TRASH_RESTORE, {
+        const res: ApiResponse = await authFetch(API.TRASH_RESTORE, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fileIds, folderIds }),
@@ -394,7 +447,7 @@ export function useFileManager() {
           // 重新加载回收站
           return true;
         } else {
-          toast.error(res.message);
+          toast.error(res.message || '');
           return false;
         }
       } catch (_e: unknown) {
@@ -405,10 +458,10 @@ export function useFileManager() {
 
     deleteTrashItems: async (ids: string[]): Promise<boolean> => {
       try {
-        const fileIds = ids.filter((id: string) => files.value.find((f: any) => f.id === id && f.type === 'file'));
-        const folderIds = ids.filter((id: string) => files.value.find((f: any) => f.id === id && f.type === 'folder'));
+        const fileIds = ids.filter((id: string) => files.value.find((f) => f.id === id && f.type === 'file'));
+        const folderIds = ids.filter((id: string) => files.value.find((f) => f.id === id && f.type === 'folder'));
 
-        const res: any = await authFetch(API.TRASH_DELETE, {
+        const res: ApiResponse = await authFetch(API.TRASH_DELETE, {
           method: 'POST', // 或 DELETE with body
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fileIds, folderIds }),
@@ -418,7 +471,7 @@ export function useFileManager() {
           toast.success(t('trash.deleteSuccess'));
           return true;
         } else {
-          toast.error(res.message);
+          toast.error(res.message || '');
           return false;
         }
       } catch (_e: unknown) {
@@ -429,7 +482,7 @@ export function useFileManager() {
 
     emptyTrash: async (): Promise<boolean> => {
       try {
-        const res: any = await authFetch(API.TRASH_EMPTY, {
+        const res: ApiResponse = await authFetch(API.TRASH_EMPTY, {
           method: 'DELETE',
         }).then((r) => r.json());
 
@@ -437,7 +490,7 @@ export function useFileManager() {
           toast.success(t('trash.emptySuccess'));
           return true;
         } else {
-          toast.error(res.message);
+          toast.error(res.message || '');
           return false;
         }
       } catch (_e: unknown) {

@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import nprogress from 'nprogress';
 import 'nprogress/nprogress.css';
 import { useAuth } from '@/composables/useAuth';
@@ -17,7 +17,7 @@ const DASHBOARD_ROUTE_NAME = 'Dashboard';
 const FORBIDDEN_ROUTE_NAME = 'Forbidden';
 
 // 路由定义
-const routes: any[] = [
+const routes: RouteRecordRaw[] = [
     {
         path: '/',
         redirect: '/login', // 默认重定向到登录
@@ -221,7 +221,7 @@ const adminFallbackCandidates = adminChildRoutes.filter((route) => {
 async function resolveFirstAllowedAdminRoute(can: (permission: string) => Promise<boolean>): Promise<{ name: string } | null> {
     for (const route of adminFallbackCandidates) {
         const requiredPermission = route.meta?.permission;
-        if (!requiredPermission || await can(requiredPermission)) {
+        if (typeof requiredPermission !== 'string' || await can(requiredPermission)) {
             return { name: route.name as string };
         }
     }

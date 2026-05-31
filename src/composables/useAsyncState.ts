@@ -28,8 +28,8 @@ interface AsyncStateOptions {
   fallbackKey?: string;
 }
 
-interface ExecuteOptions {
-  onSuccess?: (result: any) => void;
+interface ExecuteOptions<T = unknown> {
+  onSuccess?: (result: T) => void;
   onError?: (error: { code: string; message: string }) => void;
   silent?: boolean;
   shouldAbort?: () => boolean;
@@ -41,7 +41,7 @@ interface AsyncStateResult {
   errorCode: Ref<string | null>;
   clearError: () => void;
   reset: () => void;
-  execute: (asyncFn: () => Promise<any>, opts?: ExecuteOptions) => Promise<any>;
+  execute: <T = unknown>(asyncFn: () => Promise<T>, opts?: ExecuteOptions<T>) => Promise<T | undefined>;
   setError: (code: string, message: string) => void;
 }
 
@@ -91,7 +91,7 @@ export function useAsyncState(options: AsyncStateOptions = {}): AsyncStateResult
    * @param opts
    * @returns asyncFn 的返回值，失败时返回 undefined
    */
-  const execute = async (asyncFn: () => Promise<any>, opts: ExecuteOptions = {}): Promise<any> => {
+  const execute = async <T = unknown>(asyncFn: () => Promise<T>, opts: ExecuteOptions<T> = {}): Promise<T | undefined> => {
     const { onSuccess, onError, silent = false, shouldAbort } = opts;
 
     loading.value = true;
@@ -174,7 +174,7 @@ export function useAsyncStateWithRace(options: AsyncStateOptions = {}): AsyncSta
    * @param asyncFn - 异步函数
    * @param opts - 同 execute 的选项
    */
-  const executeWithRace = async (asyncFn: () => Promise<any>, opts: ExecuteOptions = {}): Promise<any> => {
+  const executeWithRace = async <T = unknown>(asyncFn: () => Promise<T>, opts: ExecuteOptions<T> = {}): Promise<T | undefined> => {
     const currentRequestId = ++requestId;
 
     return state.execute(asyncFn, {

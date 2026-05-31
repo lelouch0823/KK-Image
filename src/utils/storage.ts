@@ -6,7 +6,7 @@
 /**
  * 安全读取 localStorage
  */
-export function storageGet(key: string, defaultValue: any = null): any {
+export function storageGet<T = unknown>(key: string, defaultValue: T | null = null): T | null {
   try {
     const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : defaultValue;
@@ -18,7 +18,7 @@ export function storageGet(key: string, defaultValue: any = null): any {
 /**
  * 安全写入 localStorage
  */
-export function storageSet(key: string, value: any): void {
+export function storageSet(key: string, value: unknown): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch { /* quota exceeded or private mode */ }
@@ -36,7 +36,7 @@ export function storageRemove(key: string): void {
 /**
  * 向列表头部添加值（去重、截断）
  */
-export function addToHistoryList(list: string[], value: any, maxItems: number = 5): string[] {
+export function addToHistoryList(list: string[], value: unknown, maxItems: number = 5): string[] {
   if (!value || typeof value !== 'string') return list;
   const trimmed = value.trim();
   if (!trimmed) return list;

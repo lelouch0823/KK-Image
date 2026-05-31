@@ -8,7 +8,7 @@ const findHeaderIndex = (headers: string[], aliases: string[]): number => {
     });
 };
 
-export const extractInternalCodes = (headers: string[], row: any[]): { product_code?: string; variant_code?: string } => {
+export const extractInternalCodes = (headers: string[], row: unknown[]): { product_code?: string; variant_code?: string } => {
     const productCodeIndex = findHeaderIndex(headers, PRODUCT_CODE_ALIASES);
     const variantCodeIndex = findHeaderIndex(headers, VARIANT_CODE_ALIASES);
 
@@ -21,6 +21,13 @@ export const extractInternalCodes = (headers: string[], row: any[]): { product_c
     };
 };
 
-export const getItemMatchKey = (item: any): string => {
-    return item.variant_code || item.product_code || item.spu || item.name;
+interface MatchKeyItem {
+    variant_code?: string;
+    product_code?: string;
+    spu?: string;
+    name?: string;
+}
+
+export const getItemMatchKey = (item: MatchKeyItem): string => {
+    return item.variant_code || item.product_code || item.spu || item.name || '';
 };

@@ -1,12 +1,21 @@
 // No hardcoded default messages here
 
+/** i18n 翻译函数类型 */
+type TranslateFn = (key: string, ...args: unknown[]) => string;
+
+/** 可识别的文件对象 (包含 name/originalName 属性) */
+interface FileLike {
+  name?: string;
+  originalName?: string;
+}
+
 /**
  * 格式化文件大小
  * @param bytes - 字节数
  * @param t - i18n translate function (可选)
  * @returns 格式化后的大小字符串
  */
-export const formatSize = (bytes: number, t?: (key: string) => string): string => {
+export const formatSize = (bytes: number, t?: TranslateFn): string => {
   if (bytes === 0) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -23,7 +32,7 @@ export const formatSize = (bytes: number, t?: (key: string) => string): string =
  * @param seconds - 秒数
  * @param t - i18n translate function
  */
-export const formatDuration = (seconds: number, t?: (key: string) => string): string => {
+export const formatDuration = (seconds: number, t?: TranslateFn): string => {
   if (!t) return `${seconds}s`;
   if (seconds < 60) return `${seconds}${t('formatters.seconds')}`;
   if (seconds < 3600)
@@ -39,7 +48,7 @@ export const formatDuration = (seconds: number, t?: (key: string) => string): st
  */
 export const formatDate = (
   timestamp: number | string | null | undefined,
-  options: { locale?: string; [key: string]: any } = {},
+  options: Intl.DateTimeFormatOptions & { locale?: string } = {},
 ): string => {
   if (!timestamp) return '-';
   const { locale, ...restOptions } = options;
@@ -60,7 +69,7 @@ export const formatDate = (
  * @param t - 国际化翻译函数
  * @returns 格式化后的过期时间描述
  */
-export const formatExpiry = (ts: number | null | undefined, t?: (key: string, fallback?: any) => string): string => {
+export const formatExpiry = (ts: number | null | undefined, t?: TranslateFn): string => {
   if (!t) {
     if (!ts) return '-';
     return new Date(Number(ts)).toLocaleDateString();
@@ -93,7 +102,7 @@ import { IMAGE_EXTENSIONS } from './constants';
  * @param file - 文件对象或文件名
  * @returns 是否为图片
  */
-export const isImage = (file: any): boolean => {
+export const isImage = (file: string | FileLike | null | undefined): boolean => {
   if (!file) return false;
 
   // 支持传入文件对象或字符串
@@ -109,7 +118,7 @@ export const isImage = (file: any): boolean => {
  * @param file - 文件对象或文件名
  * @returns 是否为 PDF
  */
-export const isPdf = (file: any): boolean => {
+export const isPdf = (file: string | FileLike | null | undefined): boolean => {
   if (!file) return false;
   const filename = typeof file === 'string' ? file : file.name || file.originalName || '';
   if (!filename) return false;
@@ -122,7 +131,7 @@ export const isPdf = (file: any): boolean => {
  * @param t - i18n t function
  * @returns Relative time string
  */
-export const formatRelativeTime = (timestamp: number | string | null | undefined, t?: (key: string, params?: any) => string): string => {
+export const formatRelativeTime = (timestamp: number | string | null | undefined, t?: TranslateFn): string => {
   if (!timestamp) return t ? t('common.unknown') : '';
   const date = new Date(Number(timestamp));
   const now = new Date();
@@ -221,7 +230,7 @@ export const getChartBgColor = (index: number = 1, alpha: number = 0.1): string 
  * @param t i18n translate function
  * @returns YYYY-MM-DD (周X)
  */
-export function formatDateWithWeekday(dateString: string, t?: (key: string) => string): string {
+export function formatDateWithWeekday(dateString: string, t?: TranslateFn): string {
   if (!dateString) return '-';
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString;

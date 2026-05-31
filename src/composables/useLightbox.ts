@@ -1,30 +1,38 @@
 import { ref, computed, onMounted, onScopeDispose, type Ref } from 'vue';
 
+/** 灯箱文件项接口 */
+interface LightboxFile {
+  id?: string;
+  url: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
 interface LightboxOptions {
-  onOpen?: (file: any, index: number) => void;
+  onOpen?: (file: LightboxFile, index: number) => void;
   onClose?: () => void;
-  onNext?: (file: any, index: number) => void;
-  onPrev?: (file: any, index: number) => void;
+  onNext?: (file: LightboxFile, index: number) => void;
+  onPrev?: (file: LightboxFile, index: number) => void;
 }
 
 /**
  * 灯箱预览 Composable
  * 用于图片画廊的全屏预览
  */
-export function useLightbox(files: Ref<any[]> | any[], options: LightboxOptions = {}) {
+export function useLightbox(files: Ref<LightboxFile[]> | LightboxFile[], options: LightboxOptions = {}) {
   const { onOpen, onClose, onNext, onPrev } = options;
 
   const visible = ref<boolean>(false);
-  const currentFile = ref<any>(null);
+  const currentFile = ref<LightboxFile | null>(null);
   const currentIndex = ref<number>(0);
 
   // 统一获取数组的辅助函数
-  const getFilesArray = (): any[] => {
-    return Array.isArray(files) ? files : (files as Ref<any[]>).value || [];
+  const getFilesArray = (): LightboxFile[] => {
+    return Array.isArray(files) ? files : (files as Ref<LightboxFile[]>).value || [];
   };
 
   // 打开灯箱
-  const open = (file: any, index: number = 0): void => {
+  const open = (file: LightboxFile, index: number = 0): void => {
     currentFile.value = file;
     currentIndex.value = index;
     visible.value = true;
@@ -122,7 +130,7 @@ export function useLightbox(files: Ref<any[]> | any[], options: LightboxOptions 
   });
 
   // 下载助手
-  const download = (file: any): void => {
+  const download = (file: LightboxFile): void => {
     if (!file?.url) return;
 
     const a = document.createElement('a');

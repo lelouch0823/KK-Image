@@ -6,23 +6,28 @@ const ACTION_STATUS_BY_EVENT: Record<string, string> = {
   action_error: 'failed',
 };
 
+interface AIActionCard {
+  type: string;
+  [key: string]: unknown;
+}
+
 interface AIChatSessionState {
   fullContent: string;
   displayedContent: string;
   streamPhase: string;
   toolStatus: string;
-  error: any;
+  error: unknown;
   actionState: {
     status: string;
-    card: any;
-    error: any;
+    card: AIActionCard | null;
+    error: unknown;
   };
   finalAssistantContent?: string;
 }
 
 interface AIChatEvent {
   type: string;
-  data?: any;
+  data?: Record<string, unknown>;
   message?: string;
 }
 
@@ -59,17 +64,20 @@ export function reduceAIChatSessionEvent(event: AIChatEvent, state: AIChatSessio
   }
 
   if (event.type === 'text_delta') {
-    return appendContent(state, event.data?.content || '');
+    const content = typeof event.data?.content === 'string' ? event.data.content : '';
+    return appendContent(state, content);
   }
 
   if (event.type === 'content_block') {
-    return appendContent(state, event.data?.content || '');
+    const content = typeof event.data?.content === 'string' ? event.data.content : '';
+    return appendContent(state, content);
   }
 
   if (event.type === 'tool_call') {
+    const name = typeof event.data?.name === 'string' ? event.data.name : '';
     return {
       ...state,
-      toolStatus: event.data?.name || '',
+      toolStatus: name,
       streamPhase: 'tool_running',
     };
   }

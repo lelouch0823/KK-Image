@@ -1,9 +1,15 @@
 import { ref, computed, type Ref } from 'vue';
 
-export function useFileSelection(displayedItems: Ref<any[]>) {
-    const selectedIds = ref<Set<any>>(new Set());
+/** 可选择项接口 */
+interface SelectableItem {
+    id: string;
+    [key: string]: unknown;
+}
 
-    const toggleSelect = (item: any): void => {
+export function useFileSelection(displayedItems: Ref<SelectableItem[]>) {
+    const selectedIds = ref<Set<string>>(new Set());
+
+    const toggleSelect = (item: SelectableItem): void => {
         if (selectedIds.value.has(item.id)) {
             selectedIds.value.delete(item.id);
         } else {
@@ -15,7 +21,7 @@ export function useFileSelection(displayedItems: Ref<any[]>) {
         if (selectedIds.value.size === displayedItems.value.length) {
             selectedIds.value.clear();
         } else {
-            displayedItems.value.forEach((f: any) => selectedIds.value.add(f.id));
+            displayedItems.value.forEach((f) => selectedIds.value.add(f.id));
         }
     };
 
@@ -25,11 +31,11 @@ export function useFileSelection(displayedItems: Ref<any[]>) {
 
     const selectedCount = computed(() => selectedIds.value.size);
 
-    const getSelectedItems = (): any[] => {
-        return displayedItems.value.filter((item: any) => selectedIds.value.has(item.id));
+    const getSelectedItems = (): SelectableItem[] => {
+        return displayedItems.value.filter((item) => selectedIds.value.has(item.id));
     };
 
-    const getSelectedIdsArray = (): any[] => {
+    const getSelectedIdsArray = (): string[] => {
         return Array.from(selectedIds.value);
     };
 

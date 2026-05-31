@@ -15,19 +15,19 @@ export const ORDER_STATUS_TRANSITIONS: Record<string, string[]> = Object.freeze(
 
 export const ORDER_HIGH_RISK_STATUSES: readonly string[] = Object.freeze(['fulfilled', 'delivered', 'void']);
 
-export function normalizeOrderStatus(status: any): string {
+export function normalizeOrderStatus(status: unknown): string {
   if (!status) return '';
   const normalized = String(status).trim().toLowerCase();
   return ORDER_STATUS_ALIASES[normalized] || normalized;
 }
 
-export function getAllowedOrderTransitions(status: any): string[] {
+export function getAllowedOrderTransitions(status: unknown): string[] {
   const normalizedStatus = normalizeOrderStatus(status);
   if (!normalizedStatus) return [];
   return ORDER_STATUS_TRANSITIONS[normalizedStatus] || [];
 }
 
-export function canTransitionOrderStatus(fromStatus: any, toStatus: any): boolean {
+export function canTransitionOrderStatus(fromStatus: unknown, toStatus: unknown): boolean {
   if (!fromStatus || !toStatus) return false;
   const normalizedFromStatus = normalizeOrderStatus(fromStatus);
   const normalizedToStatus = normalizeOrderStatus(toStatus);
@@ -35,7 +35,7 @@ export function canTransitionOrderStatus(fromStatus: any, toStatus: any): boolea
   return getAllowedOrderTransitions(normalizedFromStatus).includes(normalizedToStatus);
 }
 
-export function isHighRiskOrderStatus(status: any): boolean {
+export function isHighRiskOrderStatus(status: unknown): boolean {
   return ORDER_HIGH_RISK_STATUSES.includes(normalizeOrderStatus(status));
 }
 

@@ -3,8 +3,8 @@ import { ref } from 'vue';
 interface AIContext {
     path: string;
     pageTitle: string;
-    selectedId: any;
-    selectedType: any;
+    selectedId: string | null;
+    selectedType: string | null;
 }
 
 const isOpen = ref<boolean>(false);

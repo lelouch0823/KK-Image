@@ -162,7 +162,7 @@ export function blurhashToDataURL(blurhash: string, width: number = 32, height: 
 /**
  * 验证 Blurhash 字符串是否有效
  */
-export function isBlurhashValid(blurhash: any): boolean {
+export function isBlurhashValid(blurhash: unknown): boolean {
     if (!blurhash || typeof blurhash !== 'string') return false;
     if (blurhash.length < 6) return false;
 

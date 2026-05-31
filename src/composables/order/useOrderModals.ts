@@ -1,10 +1,41 @@
-import { ref } from 'vue';
+import { ref, type Ref } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { useAuth } from '@/composables/useAuth';
 
-export function useOrderModals(orders: any, refreshOrders: (page: number) => void, getOrder: (id: string) => Promise<any>, updateOrder: (id: string, updates: any, reason?: string, fileIds?: string[], productId?: string, variantId?: string) => Promise<boolean>, addComment: (id: string, comment: string) => Promise<boolean>) {
+/** 订单基础接口 */
+interface Order {
+    id: string;
+    name?: string;
+    hasNewFeedback?: boolean;
+    [key: string]: unknown;
+}
+
+/** API 响应结构 */
+interface OrderApiResponse {
+    success: boolean;
+    error?: string;
+    data?: unknown;
+    [key: string]: unknown;
+}
+
+/** 编辑提交参数 */
+interface EditSubmitParams {
+    updates: Record<string, unknown>;
+    reason?: string;
+    fileIds?: string[];
+    productId?: string;
+    variantId?: string;
+}
+
+export function useOrderModals(
+    orders: Ref<Order[]>,
+    refreshOrders: (page: number) => void,
+    getOrder: (id: string) => Promise<Order | null>,
+    updateOrder: (id: string, updates: Record<string, unknown>, reason?: string, fileIds?: string[], productId?: string, variantId?: string) => Promise<boolean>,
+    addComment: (id: string, comment: string) => Promise<boolean>
+) {
     const { t } = useI18n();
     const { addToast } = useToast();
     const { authFetch } = useAuth();
@@ -14,8 +45,8 @@ export function useOrderModals(orders: any, refreshOrders: (page: number) => voi
     const showDetailModal = ref<boolean>(false);
     const showStatsModal = ref<boolean>(false);
 
-    const editingOrder = ref<any>(null);
-    const viewingOrder = ref<any>(null);
+    const editingOrder = ref<Order | null>(null);
+    const viewingOrder = ref<Order | null>(null);
     const isEditing = ref<boolean>(false);
     const commenting = ref<boolean>(false);
     const detailHydrating = ref<boolean>(false);
@@ -25,9 +56,9 @@ export function useOrderModals(orders: any, refreshOrders: (page: number) => voi
     let editRequestId = 0;
 
     // --- Create ---
-    const handleCreateOrder = async (data: Record<string, any>): Promise<void> => {
+    const handleCreateOrder = async (data: Record<string, unknown>): Promise<void> => {
         try {
-            const res: any = await authFetch(API.MANAGE_ORDERS, {
+            const res: OrderApiResponse = await authFetch(API.MANAGE_ORDERS, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -43,13 +74,13 @@ export function useOrderModals(orders: any, refreshOrders: (page: number) => voi
             } else {
                 addToast({ message: res.error || t('common.operationFailed'), type: 'error' });
             }
-        } catch (_e: any) {
+        } catch (_e: unknown) {
             addToast({ message: t('common.networkError'), type: 'error' });
         }
     };
 
     // --- Edit ---
-    const openEditModal = async (order: any): Promise<boolean> => {
+    const openEditModal = async (order: Order): Promise<boolean> => {
         const requestId = ++editRequestId;
         const fullOrder = await getOrder(order.id);
         if (requestId !== editRequestId) return false;
@@ -78,7 +109,7 @@ export function useOrderModals(orders: any, refreshOrders: (page: number) => voi
                 } else {
                     detailHydrationError.value = t('common.loadFailed');
                 }
-            } catch (_e: any) {
+            } catch (_e: unknown) {
                 if (requestId !== detailRequestId || !showDetailModal.value) return;
                 detailHydrationError.value = t('common.networkError');
             } finally {
@@ -89,11 +120,11 @@ export function useOrderModals(orders: any, refreshOrders: (page: number) => voi
         }
     };
 
-    const handleEditSubmit = async ({ updates, reason, fileIds, productId, variantId }: Record<string, any>, paginationPage: number): Promise<void> => {
+    const handleEditSubmit = async ({ updates, reason, fileIds, productId, variantId }: EditSubmitParams, paginationPage: number): Promise<void> => {
         if (isEditing.value) return;
         isEditing.value = true;
         try {
-            const success = await updateOrder(editingOrder.value.id, updates, reason, fileIds, productId, variantId);
+            const success = await updateOrder(editingOrder.value!.id, updates, reason, fileIds, productId, variantId);
             if (success) {
                 closeEditModal();
                 refreshOrders(paginationPage);
@@ -104,14 +135,14 @@ export function useOrderModals(orders: any, refreshOrders: (page: number) => voi
     };
 
     // --- Detail ---
-    const openDetailModal = async (order: any): Promise<boolean> => {
+    const openDetailModal = async (order: Order): Promise<boolean> => {
         const requestId = ++detailRequestId;
         viewingOrder.value = order ? { ...order } : null;
         showDetailModal.value = true;
         detailHydrationError.value = '';
         detailHydrating.value = true;
 
-        const idx = orders.value.findIndex((o: any) => o.id === order.id);
+        const idx = orders.value.findIndex((o) => o.id === order.id);
         if (idx !== -1 && orders.value[idx].hasNewFeedback) {
             orders.value[idx].hasNewFeedback = false;
         }
@@ -125,7 +156,7 @@ export function useOrderModals(orders: any, refreshOrders: (page: number) => voi
             }
             detailHydrationError.value = t('common.loadFailed');
             return false;
-        } catch (_e: any) {
+        } catch (_e: unknown) {
             if (requestId !== detailRequestId || !showDetailModal.value) return false;
             detailHydrationError.value = t('common.networkError');
             return false;
@@ -171,7 +202,7 @@ export function useOrderModals(orders: any, refreshOrders: (page: number) => voi
             } else {
                 detailHydrationError.value = t('common.loadFailed');
             }
-        } catch (_e: any) {
+        } catch (_e: unknown) {
             if (requestId !== detailRequestId || !showDetailModal.value) return;
             detailHydrationError.value = t('common.networkError');
         } finally {
@@ -181,7 +212,7 @@ export function useOrderModals(orders: any, refreshOrders: (page: number) => voi
         }
     };
 
-    const handleEditFromDetail = async (order: any): Promise<void> => {
+    const handleEditFromDetail = async (order: Order): Promise<void> => {
         if (!order?.id || detailEditLoading.value) return;
         detailEditLoading.value = true;
         try {

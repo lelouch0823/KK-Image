@@ -6,9 +6,24 @@ import { ref, type Ref } from 'vue';
 import { API } from '@/utils/constants';
 import { request } from '@/utils/http-core';
 
+/** 用户信息接口 */
+interface UserInfo {
+  id?: string;
+  username?: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
+/** API 通用响应结构 */
+interface AuthApiResponse {
+  success: boolean;
+  data?: UserInfo;
+  [key: string]: unknown;
+}
+
 // 全局状态
 const isAuthenticated: Ref<boolean> = ref(false);
-const currentUser: Ref<any> = ref(null);
+const currentUser: Ref<UserInfo | null> = ref(null);
 const isLoading: Ref<boolean> = ref(true);
 
 // 全局 AbortController，用于管理所有认证相关的请求
@@ -36,10 +51,10 @@ export function useAuth() {
       });
 
       if (response.ok) {
-        const result = await response.json();
+        const result: AuthApiResponse = await response.json();
         if (result.success) {
           isAuthenticated.value = true;
-          currentUser.value = result.data;
+          currentUser.value = result.data ?? null;
           return true;
         }
       }
@@ -48,8 +63,8 @@ export function useAuth() {
       isAuthenticated.value = false;
       currentUser.value = null;
       return false;
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
         // 请求被中止（例如退出登录），忽略错误
         console.debug('Auth check aborted');
         return false;
@@ -83,12 +98,12 @@ export function useAuth() {
 
     try {
       return await request(url, opts);
-    } catch (error: any) {
-      if (error.status === 401) {
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null && 'status' in error && (error as Record<string, unknown>).status === 401) {
         isAuthenticated.value = false;
         currentUser.value = null;
       }
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         console.debug(`Request to ${url} aborted`);
         // 抛出或返回特定的中止对象，视具体需求而定
         // 这里重新抛出以便调用者（如果需要）也能感知
@@ -104,9 +119,9 @@ export function useAuth() {
    * @param options - fetch 选项
    * @returns 解析后的 JSON 数据
    */
-  const authFetchJson = async (url: string, options: RequestInit & { timeout?: number } = {}): Promise<any> => {
+  const authFetchJson = async <T = unknown>(url: string, options: RequestInit & { timeout?: number } = {}): Promise<T> => {
     const response = await authFetch(url, options);
-    return response.json();
+    return response.json() as Promise<T>;
   };
 
   /**

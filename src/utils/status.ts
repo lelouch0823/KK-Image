@@ -23,7 +23,7 @@ const INTERACTIVE_TONE_CLASSES: Record<string, string> = {
   info: 'bg-(--color-info-bg) text-(--color-info-text) border-info/20 hover:brightness-95',
 };
 
-const resolveStatusTone = (status: any): string => getStatusTone(status);
+const resolveStatusTone = (status: unknown): string => getStatusTone(status as string);
 
 export const STATUS_STYLES: Record<string, string> = Object.fromEntries(
   STATUS_OPTIONS.map((status) => {
@@ -39,7 +39,7 @@ export const STATUS_DOTS: Record<string, string> = Object.fromEntries(
   })
 );
 
-export const getStatusVariant = (status: any): string => {
+export const getStatusVariant = (status: unknown): string => {
   return resolveStatusTone(status);
 };
 
@@ -59,13 +59,13 @@ const TONE_HEX_VARS: Record<string, string> = {
 /**
  * 获取状态对应的 hex 颜色值
  */
-export const getStatusHexColor = (status: any): string => {
+export const getStatusHexColor = (status: unknown): string => {
   return TONE_HEX_VARS[resolveStatusTone(status)] || 'var(--border-color)';
 };
 
 /**
  * 状态徽章样式类 (用于 Tailwind 类)
  */
-export const getStatusBadgeClass = (status: any): string => {
+export const getStatusBadgeClass = (status: unknown): string => {
   return getToneClasses(resolveStatusTone(status)).badge;
 };

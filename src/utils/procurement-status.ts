@@ -14,12 +14,12 @@ export const PROCUREMENT_STATUS_OPTIONS: string[] = [
   'cancelled',
 ];
 
-export const normalizeProcurementStatus = (status: any): string => {
-  if (!status) return 'none';
+export const normalizeProcurementStatus = (status: unknown): string => {
+  if (!status || typeof status !== 'string') return 'none';
   return PROCUREMENT_STATUS_OPTIONS.includes(status) ? status : 'none';
 };
 
-export const getProcurementStatusVariant = (status: any): string => {
+export const getProcurementStatusVariant = (status: unknown): string => {
   const normalized = normalizeProcurementStatus(status);
   const map: Record<string, string> = {
     none: 'default',

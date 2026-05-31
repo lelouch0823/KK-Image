@@ -342,7 +342,7 @@ export function useUploadQueue() {
           }
         } else {
           item.status = 'error';
-          item.error = res.message || t('uploadQueue.uploadFailed');
+          item.error = typeof res.message === 'string' ? res.message : t('uploadQueue.uploadFailed');
         }
       } else {
         item.status = 'error';

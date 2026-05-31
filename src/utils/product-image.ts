@@ -2,7 +2,42 @@ import { parseJsonArray } from '@/utils/json.js';
 
 const ABSOLUTE_SRC_PATTERN = /^(https?:)?\/\//i;
 
-export const parseProductImages = (rawImages: any): any[] => {
+/** 图片引用对象 (可能包含多种标识字段) */
+interface ImageRefObject {
+  image_id?: string;
+  id?: string;
+  url?: string;
+  storage_key?: string;
+  path?: string;
+  is_primary?: number;
+  [key: string]: unknown;
+}
+
+/** 产品对象 (用于图片解析) */
+export interface ProductWithImages {
+  images?: string | unknown[];
+  primaryImage?: string | ImageRefObject;
+  mainImage?: string | ImageRefObject;
+  display_image_id?: string;
+  selectedVariant?: VariantWithImages;
+  variant?: VariantWithImages;
+  [key: string]: unknown;
+}
+
+/** 变体对象 (用于图片解析) */
+export interface VariantWithImages {
+  primaryImage?: string | ImageRefObject;
+  image_id?: string;
+  images?: ImageRefObject[];
+  [key: string]: unknown;
+}
+
+/** 判断值是否为图片引用对象 */
+function isImageRefObject(value: unknown): value is ImageRefObject {
+  return typeof value === 'object' && value !== null;
+}
+
+export const parseProductImages = (rawImages: unknown): unknown[] => {
   if (!rawImages) return [];
   if (Array.isArray(rawImages)) return rawImages;
   if (typeof rawImages !== 'string') return [];
@@ -10,13 +45,13 @@ export const parseProductImages = (rawImages: any): any[] => {
   return parseJsonArray(rawImages, []);
 };
 
-export const normalizeImageRef = (image: any): string | null => {
+export const normalizeImageRef = (image: unknown): string | null => {
   if (typeof image === 'string') {
     const normalized = image.trim();
     return normalized || null;
   }
 
-  if (!image || typeof image !== 'object') return null;
+  if (!isImageRefObject(image)) return null;
 
   const candidates = [
     image.image_id,
@@ -36,7 +71,7 @@ export const normalizeImageRef = (image: any): string | null => {
   return null;
 };
 
-const firstValidImageRef = (images: any[] = []): string | null => {
+const firstValidImageRef = (images: unknown[] = []): string | null => {
   for (const image of images) {
     const ref = normalizeImageRef(image);
     if (ref) return ref;
@@ -44,7 +79,7 @@ const firstValidImageRef = (images: any[] = []): string | null => {
   return null;
 };
 
-export const toImageSrc = (imageRef: any): string | null => {
+export const toImageSrc = (imageRef: unknown): string | null => {
   if (!imageRef) return null;
   const normalized = String(imageRef).trim();
   if (!normalized) return null;
@@ -59,21 +94,21 @@ export const toImageSrc = (imageRef: any): string | null => {
   return `/file/${normalized}`;
 };
 
-export const resolvePrimaryProductImageRef = (product: any): string | null => {
+export const resolvePrimaryProductImageRef = (product: ProductWithImages | null | undefined): string | null => {
   const images = parseProductImages(product?.images);
   return firstValidImageRef(images);
 };
 
-export const resolvePrimaryProductImageSrc = (product: any): string | null =>
+export const resolvePrimaryProductImageSrc = (product: ProductWithImages | null | undefined): string | null =>
   toImageSrc(resolvePrimaryProductImageRef(product));
 
-export const resolveProductPreviewImageSrc = (product: any): string | null => {
+export const resolveProductPreviewImageSrc = (product: ProductWithImages | null | undefined): string | null => {
   const preview = toImageSrc(normalizeImageRef(product?.primaryImage));
   if (preview) return preview;
   return resolvePrimaryProductImageSrc(product);
 };
 
-export const resolveVariantPrimaryImageRef = (variant: any): string | null => {
+export const resolveVariantPrimaryImageRef = (variant: VariantWithImages | null | undefined): string | null => {
   if (!variant || typeof variant !== 'object') return null;
   const candidates = [variant.primaryImage, variant.image_id];
   for (const candidate of candidates) {
@@ -83,24 +118,24 @@ export const resolveVariantPrimaryImageRef = (variant: any): string | null => {
 
   const images = Array.isArray(variant.images) ? variant.images : [];
   if (images.length === 0) return null;
-  const primary = images.find((img: any) => Number(img?.is_primary) === 1);
+  const primary = images.find((img) => Number(img?.is_primary) === 1);
   const primaryRef = normalizeImageRef(primary);
   if (primaryRef) return primaryRef;
   return firstValidImageRef(images);
 };
 
-export const resolveVariantPrimaryImageSrc = (variant: any): string | null =>
+export const resolveVariantPrimaryImageSrc = (variant: VariantWithImages | null | undefined): string | null =>
   toImageSrc(resolveVariantPrimaryImageRef(variant));
 
-export const resolveSelectedVariantMainImageSrc = (product: any): string | null => {
+export const resolveSelectedVariantMainImageSrc = (product: ProductWithImages | null | undefined): string | null => {
   const emittedMain = toImageSrc(normalizeImageRef(product?.mainImage));
   if (emittedMain) return emittedMain;
 
   const selectedVariant = product?.selectedVariant || product?.variant || product;
-  return resolveVariantPrimaryImageSrc(selectedVariant);
+  return resolveVariantPrimaryImageSrc(selectedVariant as VariantWithImages);
 };
 
-export const resolveBoundProductMainImageSrc = (product: any): string | null => {
+export const resolveBoundProductMainImageSrc = (product: ProductWithImages | null | undefined): string | null => {
   const productMain = toImageSrc(normalizeImageRef(product?.mainImage));
   if (productMain) return productMain;
 
@@ -117,10 +152,10 @@ export const resolveBoundProductMainImageSrc = (product: any): string | null => 
   return toImageSrc(normalizeImageRef(product?.display_image_id));
 };
 
-export const resolveProductImageSrcList = (product: any): string[] => {
+export const resolveProductImageSrcList = (product: ProductWithImages | null | undefined): string[] => {
   const images = parseProductImages(product?.images);
   const srcList = images
-    .map((image: any) => toImageSrc(normalizeImageRef(image)))
+    .map((image) => toImageSrc(normalizeImageRef(image)))
     .filter(Boolean);
   return [...new Set(srcList)] as string[];
 };

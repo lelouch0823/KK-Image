@@ -13,11 +13,71 @@ import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
 import { handleApiError } from '@/utils/api-helpers';
 
+/** 货品概览项接口 */
+interface GoodsOverviewItem {
+    id: string;
+    name: string;
+    sku?: string;
+    category?: string;
+    brand?: string;
+    shortage?: number;
+    avgUnitCost?: number;
+    productId?: string;
+    variantId?: string;
+    orderIds?: string[];
+    [key: string]: unknown;
+}
+
+/** 概览统计接口 */
+interface GoodsSummary {
+    totalProducts?: number;
+    totalShortage?: number;
+    totalValue?: number;
+    [key: string]: unknown;
+}
+
+/** 可用筛选项接口 */
+interface AvailableFilters {
+    categories: string[];
+    brands: string[];
+}
+
+/** 概览 API 响应 */
+interface GoodsOverviewApiResponse {
+    success: boolean;
+    data?: GoodsOverviewItem[];
+    filters?: AvailableFilters;
+    error?: string;
+    [key: string]: unknown;
+}
+
+/** 统计 API 响应 */
+interface GoodsSummaryApiResponse {
+    success: boolean;
+    data?: GoodsSummary;
+    [key: string]: unknown;
+}
+
+/** 采购单创建结果 */
+interface POResult {
+    success: boolean;
+    data?: unknown;
+    error?: string;
+}
+
+/** 采购单 API 响应 */
+interface POApiResponse {
+    success: boolean;
+    data?: unknown;
+    error?: string;
+    [key: string]: unknown;
+}
+
 export function useGoodsOverview() {
     const { authFetch } = useAuth();
     const { t } = useI18n();
-    const items = ref<any[]>([]);
-    const summary = ref<any>(null);
+    const items = ref<GoodsOverviewItem[]>([]);
+    const summary = ref<GoodsSummary | null>(null);
     const loading = ref<boolean>(false);
     const error = ref<string | null>(null);
     const errorCode = ref<string | null>(null);
@@ -32,10 +92,10 @@ export function useGoodsOverview() {
     });
 
     /** 可选的品牌和分类列表（从 API 返回） */
-    const availableFilters = ref<any>({ categories: [], brands: [] });
+    const availableFilters = ref<AvailableFilters>({ categories: [], brands: [] });
 
     // ─── 多选状态 ────────────────────────────────────
-    const selectedIds = ref<Set<any>>(new Set());
+    const selectedIds = ref<Set<string>>(new Set());
 
     /** 当前选中的完整 item 对象列表 */
     const selectedItems = computed(() =>
@@ -48,7 +108,7 @@ export function useGoodsOverview() {
     );
 
     /** 切换单个 item 的选中状态 */
-    const toggleSelect = (item: any): void => {
+    const toggleSelect = (item: GoodsOverviewItem): void => {
         const next = new Set(selectedIds.value);
         if (next.has(item.id)) {
             next.delete(item.id);
@@ -68,7 +128,7 @@ export function useGoodsOverview() {
     };
 
     /** 判断某 item 是否被选中 */
-    const isSelected = (item: any): boolean => selectedIds.value.has(item.id);
+    const isSelected = (item: GoodsOverviewItem): boolean => selectedIds.value.has(item.id);
 
     /** 清空选择 */
     const clearSelection = (): void => {
@@ -110,13 +170,13 @@ export function useGoodsOverview() {
             const url = queryStr ? `${API.MANAGE_GOODS_OVERVIEW}?${queryStr}` : API.MANAGE_GOODS_OVERVIEW;
 
             const res = await authFetch(url);
-            const json: any = await res.json();
+            const json: GoodsOverviewApiResponse = await res.json();
             if (requestId !== listRequestId) {
                 return false;
             }
 
             if (json.success) {
-                items.value = json.data;
+                items.value = json.data || [];
                 availableFilters.value = json.filters || { categories: [], brands: [] };
                 return true;
             }
@@ -124,7 +184,7 @@ export function useGoodsOverview() {
             resetOverviewState();
             error.value = json.error || t('common.loadFailed');
             return false;
-        } catch (e: any) {
+        } catch (e: unknown) {
             if (requestId !== listRequestId) {
                 return false;
             }
@@ -148,16 +208,16 @@ export function useGoodsOverview() {
         const requestId = ++summaryRequestId;
         try {
             const res = await authFetch(API.MANAGE_GOODS_OVERVIEW_SUMMARY);
-            const json: any = await res.json();
+            const json: GoodsSummaryApiResponse = await res.json();
             if (requestId !== summaryRequestId) {
                 return false;
             }
             if (json.success) {
-                summary.value = json.data;
+                summary.value = json.data || null;
                 return true;
             }
             resetSummaryState();
-        } catch (e: any) {
+        } catch (e: unknown) {
             if (requestId !== summaryRequestId) {
                 return false;
             }
@@ -192,21 +252,21 @@ export function useGoodsOverview() {
     /**
      * 从选中变体创建采购单
      */
-    const createPOFromSelected = async (): Promise<any> => {
+    const createPOFromSelected = async (): Promise<POResult> => {
         if (selectedItems.value.length === 0) return { success: false, error: '请选择变体' };
-        if (selectedItems.value.some((item: any) => Number(item?.shortage || 0) <= 0)) {
+        if (selectedItems.value.some((item) => Number(item?.shortage || 0) <= 0)) {
             return { success: false, error: '仅可为存在缺货的变体创建采购单' };
         }
 
         isCreatingPO.value = true;
         try {
             // 构建采购单项
-            const poItems = selectedItems.value.map((item: any) => ({
+            const poItems = selectedItems.value.map((item) => ({
                 product_id: item.productId || null,
                 variant_id: item.variantId || item.id,
                 product_name: item.name,
                 product_sku: item.sku,
-                quantity: Math.max(item.shortage, 0),
+                quantity: Math.max(item.shortage || 0, 0),
                 unit_cost: item.avgUnitCost || 0,
             }));
 
@@ -218,18 +278,18 @@ export function useGoodsOverview() {
                     items: poItems,
                 }),
             });
-            const json: any = await res.json();
+            const json: POApiResponse = await res.json();
             if (json.success) {
                 clearSelection();
                 return { success: true, data: json.data };
             }
 
             const fallbackOrderIds = [...new Set(
-                selectedItems.value.flatMap((item: any) => (
+                selectedItems.value.flatMap((item) => (
                     Array.isArray(item?.orderIds) ? item.orderIds.filter(Boolean) : []
                 ))
             )];
-            if (canRetryHistoricalOrders(json.error) && fallbackOrderIds.length > 0) {
+            if (canRetryHistoricalOrders(json.error || '') && fallbackOrderIds.length > 0) {
                 const retryRes = await authFetch(API.MANAGE_PURCHASE_ORDER_FROM_ORDERS, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -238,7 +298,7 @@ export function useGoodsOverview() {
                         allocation_method: 'by_quantity',
                     }),
                 });
-                const retryJson: any = await retryRes.json();
+                const retryJson: POApiResponse = await retryRes.json();
                 if (retryJson.success) {
                     clearSelection();
                     return { success: true, data: retryJson.data };
@@ -246,9 +306,10 @@ export function useGoodsOverview() {
                 return { success: false, error: retryJson.error || '生成失败' };
             }
             return { success: false, error: json.error || '生成失败' };
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error('createPOFromSelected failed:', e);
-            return { success: false, error: e.message };
+            const message = e instanceof Error ? e.message : '生成失败';
+            return { success: false, error: message };
         } finally {
             isCreatingPO.value = false;
         }

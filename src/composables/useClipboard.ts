@@ -58,7 +58,7 @@ export function useClipboard() {
         addToast({ message: successMessage, type: 'success' });
       }
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Copy to clipboard failed:', err);
       if (showToast) {
         addToast({ message: errorMessage, type: 'error' });
@@ -77,7 +77,7 @@ export function useClipboard() {
         return await navigator.clipboard.readText();
       }
       return null;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Paste from clipboard failed:', err);
       return null;
     }

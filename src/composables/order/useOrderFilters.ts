@@ -10,7 +10,7 @@ function formatBeijingDate(timestamp: number): string {
     return new Date(Number(timestamp) + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
-export function useOrderFilters(loadOrders: (params: Record<string, any>) => void) {
+export function useOrderFilters(loadOrders: (params: Record<string, unknown>) => void) {
     const { t } = useI18n();
     const { addToast } = useToast();
     const { authFetch } = useAuth();
@@ -117,7 +117,7 @@ export function useOrderFilters(loadOrders: (params: Record<string, any>) => voi
             window.URL.revokeObjectURL(downloadUrl);
 
             addToast({ message: t('order.manage.exportSuccess'), type: 'success' });
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error('Export error:', e);
             addToast({ message: t('order.manage.exportFailed'), type: 'error' });
         } finally {

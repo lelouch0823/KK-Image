@@ -2,8 +2,13 @@ import { ref, watch } from 'vue';
 import { useAuth } from '@/composables/useAuth';
 import { extractErrorMessage } from '@/utils/api-helpers';
 
+interface SearchResponse {
+    success: boolean;
+    data?: unknown[];
+}
+
 const searchQuery = ref<string>('');
-const searchResults = ref<any[]>([]);
+const searchResults = ref<unknown[]>([]);
 const isSearching = ref<boolean>(false);
 const searchError = ref<string | null>(null);
 
@@ -21,13 +26,13 @@ const performSearch = async (query: string): Promise<void> => {
     searchError.value = null;
     try {
         const res = await authFetch(`/api/manage/search?q=${encodeURIComponent(query)}`);
-        const data: any = await res.json();
+        const data: SearchResponse = await res.json() as SearchResponse;
         if (data.success) {
-            searchResults.value = data.data;
+            searchResults.value = data.data ?? [];
         } else {
             searchResults.value = [];
         }
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error('Search failed', err);
         searchError.value = extractErrorMessage(err, '搜索失败');
         searchResults.value = [];

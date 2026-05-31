@@ -1,22 +1,22 @@
-export function safeParseJson(value: any, fallback: any = null): any {
+export function safeParseJson<T = unknown>(value: unknown, fallback: T | null = null): T | null {
   if (typeof value !== 'string') {
-    return value ?? fallback;
+    return (value as T | null) ?? fallback;
   }
 
   try {
-    return JSON.parse(value);
+    return JSON.parse(value) as T;
   } catch {
     return fallback;
   }
 }
 
-export function parseJsonArray(value: any, fallback: any[] = []): any[] {
-  const parsed = safeParseJson(value, fallback);
+export function parseJsonArray<T = unknown>(value: unknown, fallback: T[] = []): T[] {
+  const parsed = safeParseJson<T[]>(value, fallback);
   return Array.isArray(parsed) ? parsed : fallback;
 }
 
-export function parseJsonObject(value: any, fallback: Record<string, any> = {}): Record<string, any> {
-  const parsed = safeParseJson(value, fallback);
+export function parseJsonObject(value: unknown, fallback: Record<string, unknown> = {}): Record<string, unknown> {
+  const parsed = safeParseJson<Record<string, unknown>>(value, fallback);
   if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
     return fallback;
   }

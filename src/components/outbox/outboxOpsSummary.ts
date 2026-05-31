@@ -1,12 +1,35 @@
+interface OutboxConsumerJob {
+  status?: string;
+  [key: string]: unknown;
+}
+
+interface OutboxEvent {
+  consumerJobs?: OutboxConsumerJob[];
+  created_at?: string;
+  [key: string]: unknown;
+}
+
+interface OutboxFilters {
+  eventType?: string;
+  consumerName?: string;
+  status?: string;
+}
+
+interface OutboxOptions {
+  isLoading?: boolean;
+  isStale?: boolean;
+  refreshFailed?: boolean;
+}
+
 function toTimestamp(value: unknown): number | null {
   const timestamp = new Date(value as string | number | Date).getTime();
   return Number.isFinite(timestamp) ? timestamp : null;
 }
 
 export function buildOutboxOpsMetrics(
-  events: any[] = [],
-  filters: Record<string, any> = {},
-  options: Record<string, any> = {}
+  events: OutboxEvent[] = [],
+  filters: OutboxFilters = {},
+  options: OutboxOptions = {}
 ): {
   totalEvents: number;
   failedJobs: number;
@@ -34,7 +57,7 @@ export function buildOutboxOpsMetrics(
     const timestamp = toTimestamp(event?.created_at);
     if (timestamp !== null && (latestTimestamp === null || timestamp > latestTimestamp)) {
       latestTimestamp = timestamp;
-      latestCreatedAt = event.created_at;
+      latestCreatedAt = event.created_at ?? null;
     }
   }
 
@@ -42,7 +65,7 @@ export function buildOutboxOpsMetrics(
     filters?.eventType,
     filters?.consumerName,
     filters?.status,
-  ].filter(Boolean);
+  ].filter((f): f is string => typeof f === 'string' && f.length > 0);
 
   return {
     totalEvents: events.length,

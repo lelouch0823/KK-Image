@@ -8,7 +8,20 @@ export const PRODUCT_EXPORT_FILTER_KEYS: readonly string[] = Object.freeze([
   'sortOrder',
 ]);
 
-export const EXPORT_COLUMNS: readonly any[] = [
+interface ExportColumn {
+  key: string;
+  label: string;
+  group: string;
+  width: number;
+  type?: 'number' | 'string';
+}
+
+interface ExportMergeCell {
+  s: { r: number; c: number };
+  e: { r: number; c: number };
+}
+
+export const EXPORT_COLUMNS: readonly ExportColumn[] = [
   { key: 'product_id', label: 'Product ID', group: 'Product', width: 22 },
   { key: 'product_name', label: 'Product Name', group: 'Product', width: 20 },
   { key: 'spu', label: 'SPU', group: 'Product', width: 14 },
@@ -45,7 +58,7 @@ export const EXPORT_COLUMNS: readonly any[] = [
 ];
 
 const normalizeOptions = (value: unknown): Record<string, string> => {
-  const options = value && typeof value === 'object' ? value as Record<string, any> : {};
+  const options = value && typeof value === 'object' ? value as Record<string, unknown> : {};
   return Object.fromEntries(
     Object.entries(options).map(([k, v]) => [String(k || '').toLowerCase(), String(v ?? '')])
   );
@@ -57,7 +70,7 @@ const MATERIAL_LABELS = new Set(['material', '材质', '材質']);
 
 const normalizeLabel = (value: unknown): string => String(value || '').trim().toLowerCase();
 
-const resolveMappedOptionColumns = (product: any, variant: any): { color: string; size: string; material: string } => {
+const resolveMappedOptionColumns = (product: Record<string, unknown>, variant: Record<string, unknown>): { color: string; size: string; material: string } => {
   const rawOptions = variant?.options_values && typeof variant.options_values === 'object'
     ? variant.options_values
     : {};
@@ -103,7 +116,7 @@ const toNumericOrEmpty = (value: unknown): number | '' => {
   return Number.isFinite(numeric) ? numeric : '';
 };
 
-const resolveProjectedStock = ({ available_quantity, available, on_hand, stock_quantity }: Record<string, any>): number => {
+const resolveProjectedStock = ({ available_quantity, available, on_hand, stock_quantity }: Record<string, unknown>): number => {
   if (available_quantity !== undefined && available_quantity !== null && available_quantity !== '') {
     return Number(available_quantity) || 0;
   }
@@ -116,21 +129,21 @@ const resolveProjectedStock = ({ available_quantity, available, on_hand, stock_q
   return Number(stock_quantity || 0) || 0;
 };
 
-const resolveStockFlag = (variant: any): string => {
+const resolveStockFlag = (variant: Record<string, unknown>): string => {
   const stock = resolveProjectedStock(variant || {});
   const alert = Number(variant?.alert_threshold || 0);
   if (stock <= 0) return 'OUT_OF_STOCK';
   if (alert > 0 && stock <= alert) return 'LOW_STOCK';
   return 'NORMAL';
 };
-const normalizeVariantStatus = (variant: any): string => String(variant?.status || '').trim().toLowerCase();
+const normalizeVariantStatus = (variant: Record<string, unknown>): string => String(variant?.status || '').trim().toLowerCase();
 
 const neutralizeSpreadsheetFormula = (value: unknown): string => {
   const normalized = value === null || value === undefined ? '' : String(value);
   return /^[=+\-@]/.test(normalized) ? `'${normalized}` : normalized;
 };
 
-const variantMatchesExportFilters = (variant: any, filters: Record<string, any> = {}): boolean => {
+const variantMatchesExportFilters = (variant: Record<string, unknown> | null, filters: Record<string, unknown> = {}): boolean => {
   const normalizedStatus = String(filters?.status || '').trim().toLowerCase();
   const normalizedHasStock = String(filters?.hasStock || '').trim().toLowerCase();
 
@@ -154,7 +167,7 @@ const variantMatchesExportFilters = (variant: any, filters: Record<string, any> 
 };
 
 
-export const normalizeProductExportFilters = (scope: string = 'all', filters: Record<string, any> = {}): Record<string, string> => {
+export const normalizeProductExportFilters = (scope: string = 'all', filters: Record<string, unknown> = {}): Record<string, string> => {
   const normalized = Object.fromEntries(
     PRODUCT_EXPORT_FILTER_KEYS.map((key) => [key, String(filters?.[key] || '').trim()])
   );
@@ -166,12 +179,13 @@ export const normalizeProductExportFilters = (scope: string = 'all', filters: Re
   return normalized;
 };
 
-export const flattenProductsToVariantRows = (products: any[] = [], filters: Record<string, any> = {}): any[] => {
-  const rows: any[] = [];
+export const flattenProductsToVariantRows = (products: Record<string, unknown>[] = [], filters: Record<string, unknown> = {}): Record<string, unknown>[] => {
+  const rows: Record<string, unknown>[] = [];
   for (const product of products) {
-    const productVariants = Array.isArray(product?.variants) && product.variants.length > 0
-      ? product.variants.filter((variant: any) => variantMatchesExportFilters(variant, filters))
-      : [null].filter((variant: any) => variantMatchesExportFilters(variant, filters));
+    const variants = Array.isArray(product?.variants) ? product.variants as Record<string, unknown>[] : [];
+    const productVariants = variants.length > 0
+      ? variants.filter((variant) => variantMatchesExportFilters(variant, filters))
+      : ([null] as (Record<string, unknown> | null)[]).filter((variant) => variantMatchesExportFilters(variant, filters));
     if (Array.isArray(product?.variants) && product.variants.length > 0 && productVariants.length === 0) {
       continue;
     }
@@ -219,7 +233,7 @@ export const flattenProductsToVariantRows = (products: any[] = [], filters: Reco
   return rows;
 };
 
-export const buildCsvContent = (rows: any[] = [], columns: readonly any[] = EXPORT_COLUMNS): string => {
+export const buildCsvContent = (rows: Record<string, unknown>[] = [], columns: readonly ExportColumn[] = EXPORT_COLUMNS): string => {
   const escapeCell = (value: unknown): string => {
     const str = neutralizeSpreadsheetFormula(value);
     const escaped = str.replace(/"/g, '""');
@@ -236,8 +250,8 @@ export const buildCsvContent = (rows: any[] = [], columns: readonly any[] = EXPO
   return `﻿${header}\n${body}`;
 };
 
-const getGroupMerges = (columns: readonly any[], row: number = 0): any[] => {
-  const merges: any[] = [];
+const getGroupMerges = (columns: readonly ExportColumn[], row: number = 0): ExportMergeCell[] => {
+  const merges: ExportMergeCell[] = [];
   let start = 0;
   while (start < columns.length) {
     const group = columns[start].group;
@@ -264,13 +278,15 @@ const colToExcelName = (index: number): string => {
   return name;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _xlsx: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getXLSX(): Promise<any> {
   if (!_xlsx) _xlsx = await import('xlsx-js-style');
   return _xlsx;
 }
 
-export const buildExcelWorkbook = async (rows: any[] = [], columns: readonly any[] = EXPORT_COLUMNS, meta: Record<string, any> = {}): Promise<any> => {
+export const buildExcelWorkbook = async (rows: Record<string, unknown>[] = [], columns: readonly ExportColumn[] = EXPORT_COLUMNS, meta: Record<string, unknown> = {}): Promise<unknown> => {
   const XLSX = await getXLSX();
   const generatedAt = meta.generatedAt || new Date().toISOString();
   const scopeLabel = meta.scopeLabel || 'All products';
@@ -356,7 +372,7 @@ export const buildExcelWorkbook = async (rows: any[] = [], columns: readonly any
     font: { color: { rgb: '991B1B' }, bold: true },
   };
 
-  columns.forEach((_: any, colIndex: number) => {
+  columns.forEach((_: ExportColumn, colIndex: number) => {
     const groupCellAddress = `${colToExcelName(colIndex)}3`;
     if (ws[groupCellAddress]) ws[groupCellAddress].s = groupHeaderStyle;
     const fieldCellAddress = `${colToExcelName(colIndex)}4`;
@@ -365,7 +381,7 @@ export const buildExcelWorkbook = async (rows: any[] = [], columns: readonly any
   if (ws.A1) ws.A1.s = titleStyle;
   if (ws.A2) ws.A2.s = metaStyle;
 
-  const stockFlagIndex = columns.findIndex((col: any) => col.key === 'stock_flag');
+  const stockFlagIndex = columns.findIndex((col: ExportColumn) => col.key === 'stock_flag');
   const dataStartRow = 5;
   for (let sheetRow = dataStartRow; sheetRow <= sheetData.length; sheetRow += 1) {
     const dataIndex = sheetRow - dataStartRow;
@@ -386,7 +402,7 @@ export const buildExcelWorkbook = async (rows: any[] = [], columns: readonly any
     }
   }
 
-  columns.forEach((col: any, colIndex: number) => {
+  columns.forEach((col: ExportColumn, colIndex: number) => {
     for (let rowIndex = 4; rowIndex < sheetData.length; rowIndex++) {
       const address = `${colToExcelName(colIndex)}${rowIndex + 1}`;
       const cell = ws[address];

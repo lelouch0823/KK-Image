@@ -1,9 +1,9 @@
-export const getProductStatusVariant = (status: any): string => {
+export const getProductStatusVariant = (status: unknown): string => {
   const map: Record<string, string> = {
     active: 'success',
     draft: 'neutral',
     archived: 'warning',
   };
 
-  return map[status] || 'neutral';
+  return typeof status === 'string' ? (map[status] || 'neutral') : 'neutral';
 };

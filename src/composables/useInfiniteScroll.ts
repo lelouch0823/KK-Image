@@ -65,9 +65,9 @@ export function useInfiniteScroll(loadMoreFn: () => Promise<void>, options: UseI
     try {
       await loadMoreFn();
       currentRetry = 0; // 成功后重置重试计数
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[useInfiniteScroll] Load error:', err);
-      error.value = err;
+      error.value = err instanceof Error ? err : new Error(String(err));
 
       // 自动重试
       if (currentRetry < retryCount && !isUnmounted) {

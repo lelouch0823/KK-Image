@@ -4,6 +4,36 @@ import { useToast } from './useToast';
 import { useI18n } from './useI18n';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
 
+/** 通用资源项基础约束：必须可索引访问 */
+export interface ResourceItem {
+    [key: string]: unknown;
+}
+
+/** API 通用响应结构 */
+export interface ApiResponse {
+    success: boolean;
+    data?: unknown;
+    error?: string;
+    message?: string;
+    pagination?: PaginationMeta;
+    [key: string]: unknown;
+}
+
+/** 分页元数据 */
+export interface PaginationMeta {
+    page?: number;
+    limit?: number;
+    total?: number;
+    totalPages?: number;
+}
+
+/** 缓存条目结构 */
+interface CacheEntry {
+    items: unknown[];
+    pagination: PaginationMeta;
+    timestamp: number;
+}
+
 interface ResourceOptions {
     listKey?: string;
     listPath?: string;
@@ -14,16 +44,23 @@ interface ResourceOptions {
     cacheTTL?: number;
 }
 
+/** 带状态信息的错误对象 */
+interface ErrorWithStatus extends Error {
+    status?: number;
+    data?: { error?: string };
+}
+
 // 全局缓存 Map（带 LRU 淘汰）
 const CACHE_MAX_SIZE = 100;
-const resourceCache = new Map<string, { data: any; timestamp: number }>();
+const resourceCache = new Map<string, CacheEntry>();
 
 function evictOldCacheEntries(): void {
     if (resourceCache.size <= CACHE_MAX_SIZE) return;
     const entriesToDelete = resourceCache.size - CACHE_MAX_SIZE;
     const keys = resourceCache.keys();
     for (let i = 0; i < entriesToDelete; i++) {
-        resourceCache.delete(keys.next().value);
+        const next = keys.next();
+        if (next.value) resourceCache.delete(next.value);
     }
 }
 
@@ -33,7 +70,7 @@ function evictOldCacheEntries(): void {
  * @param apiEndpoint - 基础 API 路径
  * @param options - 配置项
  */
-export function useResource(apiEndpoint: string, options: ResourceOptions = {}) {
+export function useResource<T extends ResourceItem = ResourceItem>(apiEndpoint: string, options: ResourceOptions = {}) {
     const {
         listKey = 'data',
         listPath,
@@ -48,11 +85,11 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
     const { addToast } = useToast();
     const { t } = useI18n();
 
-    const items = ref<any[]>([]);
+    const items = ref<T[]>([]) as import('vue').Ref<T[]>;
     const loading = ref<boolean>(false);
     const error = ref<string | null>(null);
     const errorCode = ref<string | null>(null);
-    const lastResponse = ref<any>(null);
+    const lastResponse = ref<ApiResponse | null>(null);
     const pagination = reactive({
         page: 1,
         limit: 20,
@@ -72,7 +109,7 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
     /**
      * 生成缓存键
      */
-    const getCacheKey = (params: Record<string, any>): string => {
+    const getCacheKey = (params: Record<string, string | number | boolean>): string => {
         const key = `${apiEndpoint}?${JSON.stringify(params)}`;
         return key;
     };
@@ -80,7 +117,7 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
     /**
      * 从缓存获取数据
      */
-    const getFromCache = (key: string): any => {
+    const getFromCache = (key: string): CacheEntry | null => {
         if (!cache) return null;
         const cached = resourceCache.get(key);
         if (!cached) return null;
@@ -90,19 +127,16 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
             resourceCache.delete(key);
             return null;
         }
-        return cached.data;
+        return cached;
     };
 
     /**
      * 写入缓存
      */
-    const setCache = (key: string, data: any): void => {
+    const setCache = (key: string, data: CacheEntry): void => {
         if (!cache) return;
         evictOldCacheEntries();
-        resourceCache.set(key, {
-            data,
-            timestamp: Date.now(),
-        });
+        resourceCache.set(key, data);
     };
 
     /**
@@ -120,12 +154,13 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
     /**
      * 指数退避重试
      */
-    const retryWithBackoff = async (fn: () => Promise<any>, attempt: number = 0): Promise<any> => {
+    const retryWithBackoff = async <R>(fn: () => Promise<R>, attempt: number = 0): Promise<R> => {
         try {
             return await fn();
-        } catch (err: any) {
-            if (err.name === 'AbortError') throw err;
-            const status = Number(err?.status);
+        } catch (err: unknown) {
+            const errorWithStatus = err as ErrorWithStatus;
+            if (errorWithStatus.name === 'AbortError') throw err;
+            const status = Number(errorWithStatus?.status);
             // 仅重试可恢复错误：网络异常(无 status)、429、5xx
             const shouldRetry = !Number.isFinite(status) || status === 429 || status >= 500;
             if (!shouldRetry) throw err;
@@ -142,8 +177,13 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
     /**
      * 辅助函数：根据路径获取对象值
      */
-    function getByPath(obj: any, path: string): any {
-        return path.split('.').reduce((p: any, c: string) => p?.[c], obj);
+    function getByPath(obj: unknown, path: string): unknown {
+        return path.split('.').reduce((p: unknown, c: string) => {
+            if (p !== null && p !== undefined && typeof p === 'object') {
+                return (p as Record<string, unknown>)?.[c];
+            }
+            return undefined;
+        }, obj);
     }
 
     /**
@@ -151,7 +191,7 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
      * @param params - 查询参数
      * @param forceRefresh - 强制刷新跳过缓存
      */
-    const loadItems = async (params: Record<string, any> = {}, forceRefresh: boolean = false): Promise<boolean> => {
+    const loadItems = async (params: Record<string, string | number | boolean> = {}, forceRefresh: boolean = false): Promise<boolean> => {
         // 取消之前的请求
         abort();
         abortController = new AbortController();
@@ -166,7 +206,7 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
         if (!forceRefresh) {
             const cached = getFromCache(cacheKey);
             if (cached) {
-                items.value = cached.items;
+                items.value = cached.items as T[];
                 Object.assign(pagination, cached.pagination);
                 loading.value = false;
                 return true;
@@ -183,13 +223,13 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
                 }).filter(([_, v]) => v !== undefined && v !== null && v !== '')
             );
 
-            const query = new URLSearchParams(cleanParams);
+            const query = new URLSearchParams(cleanParams as Record<string, string>);
 
-            const fetchFn = async (): Promise<any> => {
+            const fetchFn = async (): Promise<ApiResponse> => {
                 const res = await authFetch(`${apiEndpoint}?${query.toString()}`, {
                     signal: abortController.signal,
                 });
-                return res.json();
+                return res.json() as Promise<ApiResponse>;
             };
 
             const res = await retryWithBackoff(fetchFn);
@@ -198,13 +238,13 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
             if (res.success) {
                 const listData = listPath
                     ? getByPath(res, listPath)
-                    : res[listKey];
+                    : (res as Record<string, unknown>)[listKey];
 
                 const finalItems = Array.isArray(listData)
                     ? listData
-                    : (listData?.[subKey] || []);
+                    : (subKey && listData && typeof listData === 'object' ? (listData as Record<string, unknown[]>)[subKey] : []) || [];
 
-                items.value = finalItems;
+                items.value = finalItems as T[];
 
                 // 处理分页（统一使用顶层 pagination 字段）
                 const meta = res.pagination;
@@ -219,38 +259,40 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
                 setCache(cacheKey, {
                     items: finalItems,
                     pagination: { ...pagination },
+                    timestamp: Date.now(),
                 });
 
                 return true;
             } else {
                 error.value = res.error || res.message || t('common.loadFailed');
-                addToast({ message: error.value, type: 'error' });
+                addToast({ message: error.value as string, type: 'error' });
                 return false;
             }
-        } catch (e: any) {
-            if (e.name === 'AbortError') {
+        } catch (e: unknown) {
+            const err = e as ErrorWithStatus;
+            if (err.name === 'AbortError') {
                 console.debug('Request aborted');
                 return false;
             }
 
-            const status = Number(e?.status);
+            const status = Number(err?.status);
             if (status === 401) {
                 errorCode.value = ErrorCode.UNAUTHORIZED;
                 error.value = t('common.error.unauthorized');
             } else if (status === 403) {
                 errorCode.value = ErrorCode.FORBIDDEN;
-                error.value = e?.data?.error || e?.message || t('common.error.forbidden');
+                error.value = err?.data?.error || err?.message || t('common.error.forbidden');
             } else if (status >= 500) {
                 errorCode.value = ErrorCode.SERVER_ERROR;
                 error.value = t('common.error.server_error');
             } else {
                 errorCode.value = ErrorCode.NETWORK_ERROR;
-                error.value = e?.data?.error || e?.message || t('common.networkError');
+                error.value = err?.data?.error || err?.message || t('common.networkError');
             }
 
             if (!isAuthError(errorCode.value)) {
                 console.error(`useResource load error [${apiEndpoint}]:`, e);
-                addToast({ message: error.value, type: 'error' });
+                addToast({ message: error.value as string, type: 'error' });
             }
             return false;
         } finally {
@@ -262,25 +304,26 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
      * 创建资源
      * @param data
      */
-    const createItem = async (data: Record<string, any>): Promise<any> => {
+    const createItem = async (data: Record<string, unknown>): Promise<T | null> => {
         try {
             const res = await authFetch(apiEndpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
                 signal: abortController.signal,
-            }).then(r => r.json());
+            }).then(r => r.json() as Promise<ApiResponse>);
 
             if (res.success) {
                 addToast({ message: t('common.created'), type: 'success' });
                 clearCache(); // 清空缓存以触发重新加载
-                return res.data;
+                return res.data as T;
             } else {
                 addToast({ message: res.error || res.message || t('common.error'), type: 'error' });
                 return null;
             }
-        } catch (e: any) {
-            if (e.name === 'AbortError') return null;
+        } catch (e: unknown) {
+            const err = e as ErrorWithStatus;
+            if (err.name === 'AbortError') return null;
             addToast({ message: t('common.networkError'), type: 'error' });
             return null;
         }
@@ -292,7 +335,7 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
      * @param updates
      * @param idKey
      */
-    const updateItem = async (id: string | number, updates: Record<string, any>, idKey: string = 'id'): Promise<boolean> => {
+    const updateItem = async (id: string | number, updates: Record<string, unknown>, idKey: string = 'id'): Promise<boolean> => {
         const idx = items.value.findIndex(item => item[idKey] === id);
 
         // 1. 保存旧值 (仅当在缓存中找到时)
@@ -300,7 +343,7 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
 
         // 2. 乐观更新 (仅当在缓存中找到时)
         if (idx !== -1) {
-            items.value[idx] = { ...items.value[idx], ...updates };
+            (items.value as Record<string, unknown>[])[idx] = { ...items.value[idx], ...updates };
         }
 
         try {
@@ -309,7 +352,7 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updates),
                 signal: abortController.signal,
-            }).then(r => r.json());
+            }).then(r => r.json() as Promise<ApiResponse>);
 
             if (res.success) {
                 addToast({ message: t('common.updated'), type: 'success' });
@@ -318,16 +361,17 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
             } else {
                 // 3. 失败回滚 (仅当有旧值时)
                 if (oldItem && idx !== -1) {
-                    items.value[idx] = oldItem;
+                    (items.value as Record<string, unknown>[])[idx] = oldItem;
                 }
                 addToast({ message: res.error || t('common.operationFailed'), type: 'error' });
                 return false;
             }
-        } catch (e: any) {
-            if (e.name === 'AbortError') return false;
+        } catch (e: unknown) {
+            const err = e as ErrorWithStatus;
+            if (err.name === 'AbortError') return false;
             // 3. 失败回滚 (仅当有旧值时)
             if (oldItem && idx !== -1) {
-                items.value[idx] = oldItem;
+                (items.value as Record<string, unknown>[])[idx] = oldItem;
             }
             addToast({ message: t('common.networkError'), type: 'error' });
             return false;
@@ -355,7 +399,7 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
             const res = await authFetch(`${apiEndpoint}/${id}`, {
                 method: 'DELETE',
                 signal: abortController.signal,
-            }).then(r => r.json());
+            }).then(r => r.json() as Promise<ApiResponse>);
 
             if (res.success) {
                 addToast({ message: t('common.deleted'), type: 'success' });
@@ -363,15 +407,16 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
                 return true;
             } else {
                 // 3. 失败回滚
-                items.value.splice(idx, 0, oldItem);
+                items.value.splice(idx, 0, oldItem as T);
                 pagination.total = oldTotal;
                 addToast({ message: res.error || t('common.error'), type: 'error' });
                 return false;
             }
-        } catch (e: any) {
-            if (e.name === 'AbortError') return false;
+        } catch (e: unknown) {
+            const err = e as ErrorWithStatus;
+            if (err.name === 'AbortError') return false;
             // 3. 失败回滚
-            items.value.splice(idx, 0, oldItem);
+            items.value.splice(idx, 0, oldItem as T);
             pagination.total = oldTotal;
             addToast({ message: t('common.networkError'), type: 'error' });
             return false;
@@ -388,7 +433,7 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
     /**
      * 原始请求 (带 Auth 和 BaseURL)
      */
-    const rawRequest = async (subPath: string, options: RequestInit = {}): Promise<any> => {
+    const rawRequest = async (subPath: string, options: RequestInit = {}): Promise<ApiResponse> => {
         const url = subPath ? `${apiEndpoint}${subPath}` : apiEndpoint;
         const res = await authFetch(url, {
             ...options,
@@ -398,7 +443,7 @@ export function useResource(apiEndpoint: string, options: ResourceOptions = {}) 
             },
             signal: abortController.signal
         });
-        return res.json();
+        return res.json() as Promise<ApiResponse>;
     };
 
     return {

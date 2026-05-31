@@ -8,6 +8,7 @@
  */
 
 import { ref, reactive, computed } from 'vue';
+import { type ApiResponse } from './useResource';
 import { API } from '@/utils/constants';
 import {
   appendPurchaseOrderCacheBust,
@@ -18,22 +19,156 @@ import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import { handleApiError } from '@/utils/api-helpers';
 
+// ============================================================
+// 类型定义
+// ============================================================
+
+/** 采购单列表项 */
+interface PurchaseOrder {
+  id: string;
+  poNo: string;
+  status: string;
+  displayStatus?: string;
+  remark?: string;
+  currency?: string;
+  allocationMethod?: string;
+  estimatedShippingCost?: number;
+  estimatedTariffCost?: number;
+  itemCount?: number;
+  orderedQty?: number;
+  receivedQty?: number;
+  cancelledQty?: number;
+  outstandingQty?: number;
+  totalGoodsCost?: number;
+  receiptCount?: number;
+  createdAt?: number;
+  updatedAt?: number;
+  [key: string]: unknown;
+}
+
+/** 采购单明细项 */
+interface PurchaseOrderItem {
+  id: string;
+  poId: string;
+  productId: string | null;
+  variantId: string | null;
+  preOrderId?: string | null;
+  snapshotName?: string;
+  snapshotSku?: string;
+  snapshotSpecs?: string;
+  snapshotImage?: string | null;
+  snapshotBrand?: string;
+  productName?: string;
+  productSku?: string;
+  productBrand?: string;
+  variantSku?: string;
+  variantOptions?: string;
+  quantity: number;
+  unitCost?: number;
+  receivedQty?: number;
+  cancelledQty?: number;
+  receiptCount?: number;
+  lastReceivedAt?: number;
+  customerOrderNo?: string;
+  [key: string]: unknown;
+}
+
+/** 采购单收货记录 */
+interface PurchaseReceipt {
+  id: string;
+  purchaseOrderId: string;
+  purchaseOrderItemId: string;
+  productId: string | null;
+  variantId: string | null;
+  receivedQty: number;
+  reversedQty?: number;
+  reversalCount?: number;
+  lastReversedAt?: number;
+  availableReversalQty?: number;
+  isReversed?: boolean;
+  receivedAt?: number;
+  createdAt?: number;
+  [key: string]: unknown;
+}
+
+/** 采购单详情（含明细和收货记录） */
+interface PurchaseOrderDetail extends PurchaseOrder {
+  items: PurchaseOrderItem[];
+  receipts: PurchaseReceipt[];
+  [key: string]: unknown;
+}
+
+/** 采购单统计数据 */
+interface PurchaseOrderStats {
+  totalOrders?: number;
+  totalValue?: number;
+  pendingOrders?: number;
+  completedOrders?: number;
+  [key: string]: unknown;
+}
+
+/** 采购单智能建议 */
+interface PurchaseOrderSuggestion {
+  id: string;
+  type?: string;
+  message?: string;
+  productId?: string;
+  variantId?: string;
+  quantity?: number;
+  [key: string]: unknown;
+}
+
+/** 状态颜色配置 */
+interface StatusStyleConfig {
+  label: string;
+  color: string;
+  bg: string;
+}
+
+/** 添加明细载荷 */
+interface AddItemsPayload {
+  productId?: string;
+  variantId?: string;
+  quantity?: number;
+  unitCost?: number;
+  [key: string]: unknown;
+}
+
+/** 收货登记载荷 */
+interface RecordReceiptsPayload {
+  items?: { itemId: string; quantity: number }[];
+  [key: string]: unknown;
+}
+
+/** 缺口关闭载荷 */
+interface CloseShortagesPayload {
+  items?: { itemId: string; closeQty?: number }[];
+  [key: string]: unknown;
+}
+
+/** 创建结果 */
+interface CreateResult {
+  detailLoaded: boolean;
+  listLoaded: boolean;
+  statsLoaded: boolean;
+}
+
 export function usePurchaseOrders() {
   const { addToast } = useToast();
   const { t } = useI18n();
   const { authFetch } = useAuth();
 
   // ─── 状态 ────────────────────────────────────────────
-  const list = ref<any[]>([]);
+  const list = ref<PurchaseOrder[]>([]);
   const total = ref<number>(0);
   const loading = ref<boolean>(false);
   const error = ref<string | null>(null);
   const errorCode = ref<string | null>(null);
-  const detail = ref<any>(null);
+  const detail = ref<PurchaseOrderDetail | null>(null);
   const detailLoading = ref<boolean>(false);
-  const suggestions = ref<any[]>([]);
+  const suggestions = ref<PurchaseOrderSuggestion[]>([]);
   const suggestionsLoading = ref<boolean>(false);
-  const stats = ref<any>(null);
+  const stats = ref<PurchaseOrderStats | null>(null);
   let listRequestId = 0;
   let detailRequestId = 0;
   let suggestionsRequestId = 0;
@@ -52,7 +187,7 @@ export function usePurchaseOrders() {
 
   // ─── 状态颜色映射 ──────────────────────────────────────
 
-  const statusConfig = computed(() => ({
+  const statusConfig = computed<Record<string, StatusStyleConfig>>(() => ({
     draft: {
       label: t('purchaseOrder.status.draft'),
       color: 'var(--text-secondary)',
@@ -101,21 +236,21 @@ export function usePurchaseOrders() {
       const res = await authFetch(
         appendPurchaseOrderCacheBust(`${API.MANAGE_PURCHASE_ORDERS}?${params}`, { forceRefresh })
       );
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
       if (requestId !== listRequestId) {
         return false;
       }
 
       if (json.success) {
-        list.value = json.data;
-        total.value = json.pagination?.total ?? 0;
+        list.value = json.data as PurchaseOrder[];
+        total.value = (json.pagination as { total?: number })?.total ?? 0;
         return true;
       }
 
       error.value = json.error || t('purchaseOrder.error.loadFailed');
       addToast({ message: error.value, type: 'error' });
       return false;
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (requestId !== listRequestId) {
         return false;
       }
@@ -140,19 +275,19 @@ export function usePurchaseOrders() {
       const res = await authFetch(
         appendPurchaseOrderCacheBust(API.MANAGE_PURCHASE_ORDER_BY_ID(id), { forceRefresh })
       );
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
       if (requestId !== detailRequestId) {
         return false;
       }
 
       if (json.success) {
-        detail.value = json.data;
+        detail.value = json.data as PurchaseOrderDetail;
         return true;
       } else {
         addToast({ message: json.error || t('purchaseOrder.error.notFound'), type: 'error' });
         return false;
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (requestId !== detailRequestId) {
         return false;
       }
@@ -165,7 +300,7 @@ export function usePurchaseOrders() {
     }
   };
 
-  const loadPurchaseOrderOverview = async ({ forceRefresh = false }: { forceRefresh?: boolean } = {}): Promise<any> => {
+  const loadPurchaseOrderOverview = async ({ forceRefresh = false }: { forceRefresh?: boolean } = {}): Promise<{ listLoaded: boolean; statsLoaded: boolean }> => {
     const [listLoaded, statsLoaded] = await Promise.all([
       loadList({ forceRefresh }),
       loadStats({ forceRefresh }),
@@ -173,7 +308,7 @@ export function usePurchaseOrders() {
     return { listLoaded, statsLoaded };
   };
 
-  const refreshPurchaseOrderViews = async (purchaseOrderId: string | null = null): Promise<any> => {
+  const refreshPurchaseOrderViews = async (purchaseOrderId: string | null = null): Promise<CreateResult> => {
     if (purchaseOrderId) {
       const [detailLoaded, overview] = await Promise.all([
         loadDetail(purchaseOrderId, { forceRefresh: true }),
@@ -188,25 +323,26 @@ export function usePurchaseOrders() {
 
   // ─── 创建 ────────────────────────────────────────────
 
-  const createPO = async (data: Record<string, any>): Promise<any> => {
+  const createPO = async (data: Record<string, unknown>): Promise<PurchaseOrder | null> => {
     try {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDERS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
 
       if (json.success) {
         addToast({ message: t('purchaseOrder.toast.created'), type: 'success' });
-        return json.data;
+        return json.data as PurchaseOrder;
       } else {
-        addToast({ message: json.error, type: 'error' });
+        addToast({ message: json.error || '', type: 'error' });
         return null;
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('createPO failed:', e);
-      addToast({ message: e.message, type: 'error' });
+      const err = e as Error;
+      addToast({ message: err.message, type: 'error' });
       return null;
     }
   };
@@ -214,7 +350,7 @@ export function usePurchaseOrders() {
   /**
    * 从客户订单快速创建采购单
    */
-  const createFromOrders = async (orderIds: string[], poData: Record<string, any> = {}): Promise<any> => {
+  const createFromOrders = async (orderIds: string[], poData: Record<string, unknown> = {}): Promise<PurchaseOrder | null> => {
     const uniqueOrderIds = [...new Set((orderIds || []).filter(Boolean))];
     try {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_FROM_ORDERS, {
@@ -222,44 +358,45 @@ export function usePurchaseOrders() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_ids: uniqueOrderIds, ...poData }),
       });
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
 
       if (json.success) {
         addToast({ message: t('purchaseOrder.toast.createdFromOrders'), type: 'success' });
-        return json.data;
+        return json.data as PurchaseOrder;
       } else {
-        addToast({ message: json.error, type: 'error' });
+        addToast({ message: json.error || '', type: 'error' });
         return null;
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('createFromOrders failed:', e);
-      addToast({ message: e.message, type: 'error' });
+      const err = e as Error;
+      addToast({ message: err.message, type: 'error' });
       return null;
     }
   };
 
   // ─── 更新 ────────────────────────────────────────────
 
-  const updatePO = async (id: string, updates: Record<string, any>): Promise<boolean> => {
+  const updatePO = async (id: string, updates: Record<string, unknown>): Promise<boolean> => {
     try {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_BY_ID(id), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       });
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
 
       if (json.success) {
         if (canWriteThroughDetail(id)) {
-          detail.value = json.data;
+          detail.value = json.data as PurchaseOrderDetail;
         }
         addToast({ message: t('purchaseOrder.toast.updated'), type: 'success' });
         return true;
       } else {
-        addToast({ message: json.error, type: 'error' });
+        addToast({ message: json.error || '', type: 'error' });
         return false;
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('updatePO failed:', e);
       return false;
     }
@@ -274,56 +411,58 @@ export function usePurchaseOrders() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
 
       if (json.success) {
+        const data = json.data as { message?: string };
         addToast({
-          message: json.data.message || t('purchaseOrder.toast.statusUpdated'),
+          message: data?.message || t('purchaseOrder.toast.statusUpdated'),
           type: 'success',
         });
         return true;
       } else {
-        addToast({ message: json.error, type: 'error' });
+        addToast({ message: json.error || '', type: 'error' });
         return false;
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('updateStatus failed:', e);
-      addToast({ message: e.message, type: 'error' });
+      const err = e as Error;
+      addToast({ message: err.message, type: 'error' });
       return false;
     }
   };
 
   // ─── 明细操作 ────────────────────────────────────────
 
-  const addItems = async (poId: string, items: any[]): Promise<boolean> => {
+  const addItems = async (poId: string, items: AddItemsPayload[]): Promise<boolean> => {
     try {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_ITEMS(poId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items }),
       });
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
 
       if (json.success) {
         addToast({ message: t('purchaseOrder.toast.itemsAdded'), type: 'success' });
         return true;
       }
-      addToast({ message: json.error, type: 'error' });
+      addToast({ message: json.error || '', type: 'error' });
       return false;
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('addItems failed:', e);
       return false;
     }
   };
 
-  const updateItem = async (poId: string, itemId: string, updates: Record<string, any>): Promise<boolean> => {
+  const updateItem = async (poId: string, itemId: string, updates: Record<string, unknown>): Promise<boolean> => {
     try {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_ITEM(poId, itemId), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       });
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
 
       if (json.success) {
         addToast({
@@ -332,9 +471,9 @@ export function usePurchaseOrders() {
         });
         return true;
       }
-      addToast({ message: json.error, type: 'error' });
+      addToast({ message: json.error || '', type: 'error' });
       return false;
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('updateItem failed:', e);
       return false;
     }
@@ -345,28 +484,28 @@ export function usePurchaseOrders() {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_ITEM(poId, itemId), {
         method: 'DELETE',
       });
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
 
       if (json.success) {
         addToast({ message: t('purchaseOrder.toast.itemRemoved'), type: 'success' });
         return true;
       }
-      addToast({ message: json.error, type: 'error' });
+      addToast({ message: json.error || '', type: 'error' });
       return false;
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('removeItem failed:', e);
       return false;
     }
   };
 
-  const recordReceipts = async (poId: string, payload: any): Promise<any> => {
+  const recordReceipts = async (poId: string, payload: RecordReceiptsPayload): Promise<unknown> => {
     try {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_RECEIPTS(poId), {
         method: 'POST',
         headers: buildPurchaseOrderIdempotentJsonHeaders(),
         body: JSON.stringify(payload),
       });
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
 
       if (json.success) {
         addToast({
@@ -375,23 +514,24 @@ export function usePurchaseOrders() {
         });
         return json.data;
       }
-      addToast({ message: json.error, type: 'error' });
+      addToast({ message: json.error || '', type: 'error' });
       return null;
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('recordReceipts failed:', e);
-      addToast({ message: e.message, type: 'error' });
+      const err = e as Error;
+      addToast({ message: err.message, type: 'error' });
       return null;
     }
   };
 
-  const reverseReceipt = async (poId: string, receiptId: string, payload: Record<string, any> = {}): Promise<any> => {
+  const reverseReceipt = async (poId: string, receiptId: string, payload: Record<string, unknown> = {}): Promise<unknown> => {
     try {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_RECEIPT_REVERSAL(poId, receiptId), {
         method: 'POST',
         headers: buildPurchaseOrderIdempotentJsonHeaders(),
         body: JSON.stringify(payload),
       });
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
 
       if (json.success) {
         addToast({
@@ -400,23 +540,24 @@ export function usePurchaseOrders() {
         });
         return json.data;
       }
-      addToast({ message: json.error, type: 'error' });
+      addToast({ message: json.error || '', type: 'error' });
       return null;
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('reverseReceipt failed:', e);
-      addToast({ message: e.message, type: 'error' });
+      const err = e as Error;
+      addToast({ message: err.message, type: 'error' });
       return null;
     }
   };
 
-  const closeShortages = async (poId: string, payload: any): Promise<any> => {
+  const closeShortages = async (poId: string, payload: CloseShortagesPayload): Promise<unknown> => {
     try {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_SHORTAGE_CLOSURES(poId), {
         method: 'POST',
         headers: buildPurchaseOrderIdempotentJsonHeaders(),
         body: JSON.stringify(payload),
       });
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
 
       if (json.success) {
         addToast({
@@ -425,11 +566,12 @@ export function usePurchaseOrders() {
         });
         return json.data;
       }
-      addToast({ message: json.error, type: 'error' });
+      addToast({ message: json.error || '', type: 'error' });
       return null;
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('closeShortages failed:', e);
-      addToast({ message: e.message, type: 'error' });
+      const err = e as Error;
+      addToast({ message: err.message, type: 'error' });
       return null;
     }
   };
@@ -441,18 +583,18 @@ export function usePurchaseOrders() {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_ALLOCATE(poId), {
         method: 'POST',
       });
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
 
       if (json.success) {
         if (canWriteThroughDetail(poId)) {
-          detail.value = json.data;
+          detail.value = json.data as PurchaseOrderDetail;
         }
         addToast({ message: t('purchaseOrder.toast.allocated'), type: 'success' });
         return true;
       }
-      addToast({ message: json.error, type: 'error' });
+      addToast({ message: json.error || '', type: 'error' });
       return false;
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('allocateCosts failed:', e);
       return false;
     }
@@ -465,17 +607,17 @@ export function usePurchaseOrders() {
     suggestionsLoading.value = true;
     try {
       const res = await authFetch(API.MANAGE_PURCHASE_ORDER_SUGGESTIONS);
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
       if (requestId !== suggestionsRequestId) {
         return false;
       }
 
       if (json.success) {
-        suggestions.value = json.data;
+        suggestions.value = json.data as PurchaseOrderSuggestion[];
         return true;
       }
       suggestions.value = [];
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (requestId !== suggestionsRequestId) {
         return false;
       }
@@ -497,22 +639,23 @@ export function usePurchaseOrders() {
       const res = await authFetch(
         appendPurchaseOrderCacheBust(API.MANAGE_PURCHASE_ORDER_STATS, { forceRefresh })
       );
-      const json: any = await res.json();
+      const json = await res.json() as ApiResponse;
       if (requestId !== statsRequestId) {
         return false;
       }
       if (json.success) {
-        stats.value = json.data;
+        stats.value = json.data as PurchaseOrderStats;
         return true;
       }
 
       return false;
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (requestId !== statsRequestId) {
         return false;
       }
       console.error('loadStats failed:', e);
-      const status = Number(e?.status || 0);
+      const err = e as Error & { status?: number };
+      const status = Number(err?.status || 0);
       // 统计接口权限应只影响统计模块，不应覆盖列表权限态（避免整页误封）
       if (status === 401 || status === 403) {
         stats.value = null;

@@ -6,6 +6,11 @@
  * 支持处理碎片化数据包、多事件并行包以及缓冲区管理。
  */
 
+export interface SSEEvent {
+    type: string;
+    data: Record<string, unknown>;
+}
+
 export class SSEParser {
     /** 内部缓冲区，用于存储尚未构成完整事件的片段 */
     buffer: string;
@@ -19,9 +24,9 @@ export class SSEParser {
      * @param chunk - 从流中接收到的文本块。
      * @returns 解析出的完整事件数组。
      */
-    feed(chunk: string): Array<{ type: string; data: any }> {
+    feed(chunk: string): SSEEvent[] {
         this.buffer += chunk;
-        const events: Array<{ type: string; data: any }> = [];
+        const events: SSEEvent[] = [];
 
         // SSE 事件由双换行符 (\n\n) 分隔
         let eventEndIndex: number;
@@ -49,7 +54,7 @@ export class SSEParser {
      * @param text - 原始事件文本块。
      * @returns 解析后的事件对象，如果格式不正确则返回 null。
      */
-    parseEvent(text: string): { type: string; data: any } | null {
+    parseEvent(text: string): SSEEvent | null {
         let type = 'message'; // 默认事件类型
         let data = '';
 
@@ -79,7 +84,7 @@ export class SSEParser {
             return { type, data: parsedData };
         } catch (_e) {
             // 非 JSON 格式，按纯文本处理
-            return { type, data };
+            return { type, data: { raw: data } };
         }
     }
 

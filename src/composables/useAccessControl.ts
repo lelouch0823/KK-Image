@@ -7,9 +7,9 @@ const permissionsLoaded: Ref<boolean> = ref(false);
 const permissionsLoading: Ref<boolean> = ref(false);
 let inflightLoad: Promise<string[]> | null = null;
 
-function normalizePermissions(raw: any): string[] {
+function normalizePermissions(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
-  return raw.filter((item: any) => typeof item === 'string' && item.length > 0 && item !== '*');
+  return raw.filter((item: unknown) => typeof item === 'string' && item.length > 0 && item !== '*');
 }
 
 function hasPermissionSync(permission: string): boolean {

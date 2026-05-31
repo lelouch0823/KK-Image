@@ -1,10 +1,16 @@
-function normalizePositiveInt(value: any, fallback: number = 1): number {
+interface OrderConstraints {
+  moq?: unknown;
+  orderStep?: unknown;
+  packSize?: unknown;
+}
+
+function normalizePositiveInt(value: unknown, fallback: number = 1): number {
   const n = Number(value);
   if (!Number.isFinite(n) || n < 1) return fallback;
   return Math.floor(n);
 }
 
-export function getSuggestedOrderQuantity(requestedQty: any, constraints: any = {}): number {
+export function getSuggestedOrderQuantity(requestedQty: unknown, constraints: OrderConstraints = {}): number {
   const moq = normalizePositiveInt(constraints.moq, 1);
   const orderStep = normalizePositiveInt(constraints.orderStep, 1);
   const packSize = normalizePositiveInt(constraints.packSize, 1);
@@ -18,7 +24,7 @@ export function getSuggestedOrderQuantity(requestedQty: any, constraints: any = 
   return start;
 }
 
-export function validateOrderQuantity(quantity: any, constraints: any = {}): { valid: boolean; reason: string; suggestedQuantity: number } {
+export function validateOrderQuantity(quantity: unknown, constraints: OrderConstraints = {}): { valid: boolean; reason: string; suggestedQuantity: number } {
   const moq = normalizePositiveInt(constraints.moq, 1);
   const orderStep = normalizePositiveInt(constraints.orderStep, 1);
   const packSize = normalizePositiveInt(constraints.packSize, 1);

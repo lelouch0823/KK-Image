@@ -1,7 +1,7 @@
 import { useAuth } from '@/composables/useAuth';
 import { API, SALES_ORDER_PAGE_SIZE } from '@/utils/constants';
 
-const toQueryString = (params: Record<string, any> = {}): string => {
+const toQueryString = (params: Record<string, unknown> = {}): string => {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') return;
@@ -10,13 +10,28 @@ const toQueryString = (params: Record<string, any> = {}): string => {
   return query.toString();
 };
 
-const toErrorMessage = (payload: any, fallback: string = 'Request failed'): string =>
-  payload?.error || payload?.message || fallback;
+const toErrorMessage = (payload: unknown, fallback: string = 'Request failed'): string => {
+  if (payload && typeof payload === 'object') {
+    const obj = payload as Record<string, unknown>;
+    if (typeof obj.error === 'string') return obj.error;
+    if (typeof obj.message === 'string') return obj.message;
+  }
+  return fallback;
+};
+
+/** 分页信息接口 */
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages?: number;
+  [key: string]: unknown;
+}
 
 interface ApiResponse {
   ok: boolean;
-  data: any;
-  pagination?: any;
+  data: unknown;
+  pagination?: PaginationInfo | null;
   error: string | null;
   status: number;
 }
@@ -28,13 +43,13 @@ export function useSalesOrderApi() {
     try {
       const response = await authFetch(url, options);
       const status = response?.status ?? 0;
-      const payload: any = await response.json();
+      const payload: Record<string, unknown> = await response.json();
 
       if (payload?.success) {
         return {
           ok: true,
           data: payload.data ?? null,
-          pagination: payload.pagination ?? null,
+          pagination: (payload.pagination as PaginationInfo) ?? null,
           error: null,
           status,
         };
@@ -46,11 +61,12 @@ export function useSalesOrderApi() {
         error: toErrorMessage(payload),
         status,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Network error';
       return {
         ok: false,
         data: null,
-        error: error?.message || 'Network error',
+        error: message,
         status: 0,
       };
     }
@@ -65,7 +81,7 @@ export function useSalesOrderApi() {
       body: JSON.stringify({ password }),
     });
 
-  const list = (token: string, params: Record<string, any> = {}): Promise<ApiResponse> => {
+  const list = (token: string, params: Record<string, unknown> = {}): Promise<ApiResponse> => {
     const query = toQueryString({
       page: params.page ?? 1,
       limit: params.limit ?? SALES_ORDER_PAGE_SIZE,
@@ -76,7 +92,7 @@ export function useSalesOrderApi() {
 
   const detail = (token: string, id: string): Promise<ApiResponse> => request(API.SALES_ORDER_DETAIL(token, id));
 
-  const create = (token: string, payload: Record<string, any>): Promise<ApiResponse> =>
+  const create = (token: string, payload: Record<string, unknown>): Promise<ApiResponse> =>
     request(API.SALES_ORDER_CREATE(token), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -92,7 +108,7 @@ export function useSalesOrderApi() {
 
   const stats = (token: string): Promise<ApiResponse> => request(API.SALES_STATS(token));
 
-  const products = (token: string, params: Record<string, any> = {}): Promise<ApiResponse> => {
+  const products = (token: string, params: Record<string, unknown> = {}): Promise<ApiResponse> => {
     const query = toQueryString({
       search: params.search ?? '',
       page: params.page ?? 1,

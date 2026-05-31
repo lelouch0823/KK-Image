@@ -2,14 +2,28 @@ import { ref } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 
-export function useOrderBatch(refreshOrders: (page: number) => void, batchAction: (ids: string[], action: string, reason?: string) => Promise<any>, changeStatus: (id: string, status: string) => Promise<boolean>) {
+interface ConfirmDialogData {
+    show: boolean;
+    title: string;
+    message: string;
+    type: string;
+    loading: boolean;
+    onConfirm: () => void;
+}
+
+interface OrderWithStatus {
+    id: string;
+    status: string;
+}
+
+export function useOrderBatch(refreshOrders: (page: number) => void, batchAction: (ids: string[], action: string, reason?: string) => Promise<unknown>, changeStatus: (id: string, status: string) => Promise<boolean>) {
     const { t } = useI18n();
     const { addToast } = useToast();
 
     const selectedIds = ref<string[]>([]);
     const batchProcessing = ref<boolean>(false);
 
-    const confirmData = ref<any>({
+    const confirmData = ref<ConfirmDialogData>({
         show: false,
         title: '',
         message: '',
@@ -45,6 +59,7 @@ export function useOrderBatch(refreshOrders: (page: number) => void, batchAction
             title,
             message,
             type,
+            loading: false,
             onConfirm: async () => {
                 confirmData.value.loading = true;
                 try {
@@ -61,7 +76,7 @@ export function useOrderBatch(refreshOrders: (page: number) => void, batchAction
         };
     };
 
-    const handleVoidOrder = (order: any): void => {
+    const handleVoidOrder = (order: OrderWithStatus): void => {
         confirmData.value = {
             show: true,
             title: t('common.confirm'),

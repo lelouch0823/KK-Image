@@ -11,27 +11,38 @@ const STATES = {
 
 type StateValue = typeof STATES[keyof typeof STATES];
 
-interface StateMachineResult {
+/** 状态机结果接口 */
+interface StateMachineResult<T = unknown> {
   ok: boolean;
-  data: any;
+  data: T | null;
   error: string | null;
 }
 
+/** 状态机动作接口 */
 interface StateMachineActions {
-  loadOrders?: (payload: any) => Promise<any>;
-  createOrder?: (payload: any) => Promise<any>;
-  loadDetail?: (payload: any) => Promise<any>;
-  comment?: (payload: any) => Promise<any>;
+  loadOrders?: (payload: unknown) => Promise<StateMachineResult>;
+  createOrder?: (payload: unknown) => Promise<StateMachineResult>;
+  loadDetail?: (payload: unknown) => Promise<StateMachineResult>;
+  comment?: (payload: unknown) => Promise<StateMachineResult>;
 }
 
-const normalizeResult = (result: any): StateMachineResult => {
+/** API 返回的原始结果结构 */
+interface RawResult {
+  ok?: boolean;
+  data?: unknown;
+  error?: string | null;
+  [key: string]: unknown;
+}
+
+const normalizeResult = (result: unknown): StateMachineResult => {
   if (!result || typeof result !== 'object') {
     return { ok: false, data: null, error: 'Invalid result' };
   }
+  const raw = result as RawResult;
   return {
-    ok: Boolean(result.ok),
-    data: result.data ?? null,
-    error: result.error || null,
+    ok: Boolean(raw.ok),
+    data: raw.data ?? null,
+    error: raw.error || null,
   };
 };
 
@@ -40,7 +51,7 @@ export function useSalesOrderStateMachine(actions: StateMachineActions = {}) {
   const error = ref<string | null>(null);
   let transitionRequestId = 0;
 
-  const runTransition = async (actionName: string, actionRunner: () => Promise<any>, loadingState: StateValue = STATES.LOADING): Promise<StateMachineResult> => {
+  const runTransition = async (actionName: string, actionRunner: () => Promise<StateMachineResult | undefined>, loadingState: StateValue = STATES.LOADING): Promise<StateMachineResult> => {
     const requestId = ++transitionRequestId;
     state.value = loadingState;
     error.value = null;
@@ -66,19 +77,19 @@ export function useSalesOrderStateMachine(actions: StateMachineActions = {}) {
     return result;
   };
 
-  const loadOrders = (payload: any): Promise<StateMachineResult> =>
+  const loadOrders = (payload: unknown): Promise<StateMachineResult> =>
     runTransition('loadOrders', () => actions.loadOrders?.(payload), STATES.LOADING);
 
-  const createOrder = (payload: any): Promise<StateMachineResult> =>
+  const createOrder = (payload: unknown): Promise<StateMachineResult> =>
     runTransition('createOrder', () => actions.createOrder?.(payload), STATES.RECOVERING);
 
-  const loadDetail = (payload: any): Promise<StateMachineResult> =>
+  const loadDetail = (payload: unknown): Promise<StateMachineResult> =>
     runTransition('loadDetail', () => actions.loadDetail?.(payload), STATES.LOADING);
 
-  const comment = (payload: any): Promise<StateMachineResult> =>
+  const comment = (payload: unknown): Promise<StateMachineResult> =>
     runTransition('comment', () => actions.comment?.(payload), STATES.RECOVERING);
 
-  const retry = (targetAction: string = 'loadOrders', payload?: any): Promise<StateMachineResult> => {
+  const retry = (targetAction: string = 'loadOrders', payload?: unknown): Promise<StateMachineResult> => {
     if (targetAction === 'createOrder') return createOrder(payload);
     if (targetAction === 'loadDetail') return loadDetail(payload);
     if (targetAction === 'comment') return comment(payload);

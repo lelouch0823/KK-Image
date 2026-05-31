@@ -4,8 +4,30 @@ import { useAuth } from '@/composables/useAuth';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import { useI18n } from '@/composables/useI18n';
 
+/** 通知项接口 */
+interface Notification {
+  id: string;
+  title?: string;
+  message?: string;
+  is_read: number;
+  type?: string;
+  createdAt?: string;
+  [key: string]: unknown;
+}
+
+/** 通知 API 响应接口 */
+interface NotificationsApiResponse {
+  success: boolean;
+  data?: {
+    list: Notification[];
+    unreadCount: number;
+  };
+  error?: string;
+  [key: string]: unknown;
+}
+
 // Global state to share across components (e.g. Header and List)
-const notifications = ref<any[]>([]);
+const notifications = ref<Notification[]>([]);
 const unreadCount = ref<number>(0);
 const loading = ref<boolean>(false);
 const initialized = ref<boolean>(false);
@@ -84,11 +106,11 @@ export function useNotifications() {
     loading.value = true;
     try {
       const res = await authFetch(getApiUrl());
-      const result: any = await res.json();
+      const result: NotificationsApiResponse = await res.json();
       if (requestId !== notificationRequestId) {
         return false;
       }
-      if (result.success) {
+      if (result.success && result.data) {
         permissionDenied.value = false;
         permissionDeniedReason.value = '';
         const newUnreadCount = result.data.unreadCount;
@@ -107,13 +129,16 @@ export function useNotifications() {
         initialized.value = true;
         return true;
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (requestId !== notificationRequestId) {
         return false;
       }
-      if (Number(e?.status) === 403) {
+      if (typeof e === 'object' && e !== null && 'status' in e && Number((e as Record<string, unknown>).status) === 403) {
         permissionDenied.value = true;
-        permissionDeniedReason.value = e?.data?.error || e?.message || t('common.error.forbidden');
+        const errObj = e as Record<string, unknown>;
+        permissionDeniedReason.value = (typeof errObj.data === 'object' && errObj.data !== null && 'error' in (errObj.data as Record<string, unknown>))
+          ? String((errObj.data as Record<string, unknown>).error)
+          : (errObj.message as string) || t('common.error.forbidden');
         stopPolling();
         return false;
       }
@@ -132,14 +157,14 @@ export function useNotifications() {
    */
   const markAsRead = async (id: string): Promise<void> => {
     // 乐观更新
-    const item = notifications.value.find((n: any) => n.id === id);
+    const item = notifications.value.find((n) => n.id === id);
     if (item && item.is_read === 0) {
       item.is_read = 1;
       unreadCount.value = Math.max(0, unreadCount.value - 1);
 
       try {
         await authFetch(getReadApiUrl(id), { method: 'POST' });
-      } catch (e: any) {
+      } catch (e: unknown) {
         // Revert if failed (optional, usually ignore)
         console.error('Failed to mark as read', e);
       }
@@ -151,12 +176,12 @@ export function useNotifications() {
    */
   const markAllAsRead = async (): Promise<void> => {
     // 乐观更新
-    notifications.value.forEach((n: any) => (n.is_read = 1));
+    notifications.value.forEach((n) => (n.is_read = 1));
     unreadCount.value = 0;
 
     try {
       await authFetch(getReadApiUrl('all'), { method: 'POST' });
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Failed to mark all as read', e);
     }
   };

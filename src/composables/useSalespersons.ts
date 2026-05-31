@@ -8,6 +8,14 @@ import { useAuth } from './useAuth';
 import { useToast } from './useToast';
 import { useI18n } from './useI18n';
 
+/** 重置 Token 响应接口 */
+interface ResetTokenResponse {
+  success: boolean;
+  data?: { accessUrl?: string; [key: string]: unknown };
+  message?: string;
+  [key: string]: unknown;
+}
+
 export function useSalespersons() {
   const { authFetch } = useAuth();
   const { addToast } = useToast();
@@ -19,20 +27,20 @@ export function useSalespersons() {
   /**
    * 重置访问链接
    */
-  const resetToken = async (id: string): Promise<any> => {
+  const resetToken = async (id: string): Promise<ResetTokenResponse['data'] | null> => {
     try {
-      const res: any = await authFetch(API.SALESPERSON_RESET_TOKEN(id), {
+      const res: ResetTokenResponse = await authFetch(API.SALESPERSON_RESET_TOKEN(id), {
         method: 'POST',
       }).then(r => r.json());
 
       if (res.success) {
         addToast({ message: t('salesperson.linkReset'), type: 'success' });
-        return res.data;
+        return res.data ?? null;
       } else {
         addToast({ message: res.message, type: 'error' });
         return null;
       }
-    } catch (_e: any) {
+    } catch (_e: unknown) {
       addToast({ message: t('common.networkError'), type: 'error' });
       return null;
     }
@@ -51,7 +59,7 @@ export function useSalespersons() {
         addToast({ message: t('salesperson.linkCopied'), type: 'success' });
         return true;
       }
-    } catch (_e: any) {
+    } catch (_e: unknown) {
       console.warn('Clipboard API failed, trying fallback...');
     }
 
@@ -79,7 +87,7 @@ export function useSalespersons() {
       } else {
         throw new Error('execCommand returned false');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Copy failed', err);
       addToast({ message: t('common.copyFailed'), type: 'error' });
       return false;
