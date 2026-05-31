@@ -370,7 +370,7 @@ describe('frontend design token contracts', () => {
         forbidden: ["'purple'"],
       },
       {
-        file: 'src/composables/usePurchaseOrders.js',
+        file: 'src/composables/usePurchaseOrders.ts',
         forbidden: ['--color-purple', '--color-purple-bg'],
       },
     ];

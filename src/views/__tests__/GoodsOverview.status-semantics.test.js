@@ -11,7 +11,15 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/composables/useI18n', () => ({
-  useI18n: () => ({ t: (key) => key }),
+  useI18n: () => ({
+    t: (key) => {
+      const map = {
+        'goodsOverview.permissionDenied': '商品总览权限不足',
+        'goodsOverview.permissionDeniedDesc': '当前账号缺少 products:manage 权限，请联系管理员。',
+      };
+      return map[key] || key;
+    },
+  }),
 }));
 
 vi.mock('@/composables/useToast', () => ({

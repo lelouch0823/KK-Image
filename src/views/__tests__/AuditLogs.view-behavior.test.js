@@ -27,6 +27,11 @@ vi.mock('@/composables/useI18n', () => ({
       if (key === 'auditLogs.summary') return 'Summary';
       if (key === 'auditLogs.details') return 'Details';
       if (key === 'auditLogs.pagination') return `Page ${arg.page} / ${arg.total}`;
+      if (key === 'auditLogs.permissionDenied') return '审计日志权限不足';
+      if (key === 'auditLogs.permissionDeniedDesc') return '当前账号缺少审计日志读取权限。';
+      if (key === 'auditLogs.loadFailed') return '审计日志加载失败';
+      if (key === 'auditLogs.loadFailedDesc') return '审计日志加载失败，请稍后重试。';
+      if (key === 'auditLogs.sessionExpired') return '登录状态失效，请重新登录后重试。';
       if (key === 'common.loadFailed') return 'Load failed';
       return key;
     },

@@ -63,6 +63,8 @@ vi.mock('@/composables/useI18n', () => ({
         'stats.fileType': 'File Type',
         'stats.fileSize': 'File Size',
         'stats.loadError': 'Stats load error',
+        'stats.permissionDenied': '统计分析权限不足',
+        'stats.permissionDeniedDesc': '当前账号没有统计读取权限，请联系管理员分配 stats:read。',
         'common.error.forbidden': 'Forbidden',
         'common.error.unauthorized': 'Unauthorized',
       };
