@@ -11,6 +11,7 @@
     :empty-text="t('product.table.empty')"
     :virtual="products.length > 50"
     :estimate-size="64"
+    :sticky-first-column="true"
     table-layout="fixed"
     @row-click="$emit('view', $event)"
     @sort-change="$emit('sort-change', $event)"

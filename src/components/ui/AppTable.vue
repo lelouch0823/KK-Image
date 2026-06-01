@@ -38,10 +38,13 @@
               "
             >
               <th
-                v-for="col in normalizedColumns"
+                v-for="(col, colIndex) in normalizedColumns"
                 :key="col.key"
                 class="px-4 py-3.5 font-semibold whitespace-nowrap"
-                :class="col.headerClassList"
+                :class="[
+                  col.headerClassList,
+                  stickyFirstColumn && colIndex === 0 ? 'app-table__sticky-col sticky left-0 z-20 bg-(--bg-card)' : '',
+                ]"
                 :style="col.headerStyleValue"
                 @click="toggleSort(col)"
               >
@@ -70,9 +73,10 @@
             <template v-if="loading">
               <tr v-for="i in 5" :key="i">
                 <td
-                  v-for="col in normalizedColumns"
+                  v-for="(col, colIndex) in normalizedColumns"
                   :key="col.key"
                   class="p-4"
+                  :class="stickyFirstColumn && colIndex === 0 ? 'app-table__sticky-col sticky left-0 z-10 bg-(--bg-card)' : ''"
                   :style="col.cellStyleValue"
                 >
                   <div class="h-4 w-3/4 animate-pulse rounded bg-(--bg-muted)"></div>
@@ -117,10 +121,13 @@
                       <tbody>
                         <tr>
                           <td
-                            v-for="col in normalizedColumns"
+                            v-for="(col, colIndex) in normalizedColumns"
                             :key="col.key"
                             class="px-4 py-3 align-middle"
-                            :class="col.cellClassList"
+                            :class="[
+                              col.cellClassList,
+                              stickyFirstColumn && colIndex === 0 ? 'app-table__sticky-col sticky left-0 z-10 bg-(--bg-card) group-hover:bg-(--bg-hover)/70' : '',
+                            ]"
                             :style="col.cellStyleValue"
                           >
                             <slot
@@ -152,10 +159,13 @@
                 @click="$emit('row-click', row)"
               >
                 <td
-                  v-for="col in normalizedColumns"
+                  v-for="(col, colIndex) in normalizedColumns"
                   :key="col.key"
                   class="px-4 py-3 align-middle"
-                  :class="col.cellClassList"
+                  :class="[
+                    col.cellClassList,
+                    stickyFirstColumn && colIndex === 0 ? 'app-table__sticky-col sticky left-0 z-10 bg-(--bg-card) group-hover:bg-(--bg-hover)/70' : '',
+                  ]"
                   :style="col.cellStyleValue"
                 >
                   <slot :name="`cell-${col.key}`" :row="row" :index="index" :value="row[col.key]">
@@ -252,6 +262,10 @@ const props = defineProps({
   tableLayout: {
     type: String,
     default: 'auto',
+  },
+  stickyFirstColumn: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -434,3 +448,20 @@ defineExpose({
   },
 });
 </script>
+
+<style scoped>
+.app-table__sticky-col::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -8px;
+  bottom: 0;
+  width: 8px;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.06), transparent);
+  pointer-events: none;
+}
+
+:root.dark .app-table__sticky-col::after {
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.2), transparent);
+}
+</style>

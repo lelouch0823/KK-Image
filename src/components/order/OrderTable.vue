@@ -8,6 +8,7 @@
     no-border
     :virtual="data.length > 50"
     :estimate-size="64"
+    :sticky-first-column="true"
     @row-click="$emit('detail', $event)"
   >
     <template #toolbar>

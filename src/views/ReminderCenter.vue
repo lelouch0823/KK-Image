@@ -12,7 +12,7 @@
     </div>
 
     <div v-else class="space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-(--border-color) bg-(--bg-card) p-4">
+      <div class="flex flex-col gap-3 rounded-2xl border border-(--border-color) bg-(--bg-card) p-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-3">
           <StatusBadge variant="warning">
             {{ unreadCountValue }}
@@ -29,12 +29,14 @@
         <div class="flex gap-2">
           <AppButton
             variant="secondary"
+            size="md"
             :text="t('common.refresh')"
             :disabled="isLoading"
             @click="fetchNotifications"
           />
           <AppButton
             variant="primary"
+            size="md"
             :text="t('reminders.markAllRead', '全部标记已读')"
             :disabled="isLoading || unreadCountValue <= 0"
             @click="markAllAsRead"
@@ -76,7 +78,7 @@
               v-if="!notification.is_read"
               :data-testid="`mark-read-${notification.id}`"
               variant="secondary"
-              size="sm"
+              size="md"
               :text="t('reminders.markRead', '标记已读')"
               @click="markAsRead(notification.id)"
             />

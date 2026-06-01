@@ -52,7 +52,7 @@
         >
           <div class="lg:col-span-5">
             <SurfaceSection
-              class="flex h-full min-h-[400px] flex-col"
+              class="flex h-full min-h-[300px] flex-col sm:min-h-[400px]"
               body-class="flex flex-1 flex-col p-0"
             >
               <template #header>
@@ -289,7 +289,7 @@
           <!-- 销售趋势折线图 -->
           <div class="lg:col-span-8">
             <SurfaceSection
-              class="flex min-h-[320px] flex-col"
+              class="flex min-h-[260px] flex-col sm:min-h-[320px]"
               body-class="flex flex-1 flex-col p-0"
             >
               <template #header>
@@ -301,7 +301,7 @@
                 </div>
               </template>
 
-              <div class="relative flex-1 p-4">
+              <div class="relative flex-1 p-3 sm:p-4">
                 <div v-if="salesTrendData.length === 0" class="flex h-full items-center justify-center">
                   <EmptyState
                     icon="chart-bar"
@@ -309,7 +309,7 @@
                     container-class="w-full py-8"
                   />
                 </div>
-                <div v-else class="h-[250px]">
+                <div v-else class="h-[180px] sm:h-[250px]">
                   <canvas id="salesTrendChart"></canvas>
                 </div>
               </div>
@@ -319,7 +319,7 @@
           <!-- 订单状态分布饼图 -->
           <div class="lg:col-span-4">
             <SurfaceSection
-              class="flex min-h-[320px] flex-col"
+              class="flex min-h-[260px] flex-col sm:min-h-[320px]"
               body-class="flex flex-1 flex-col p-0"
             >
               <template #header>
@@ -331,7 +331,7 @@
                 </div>
               </template>
 
-              <div class="relative flex-1 p-4">
+              <div class="relative flex-1 p-3 sm:p-4">
                 <div v-if="statusDistributionData.length === 0" class="flex h-full items-center justify-center">
                   <EmptyState
                     icon="chart-pie"
@@ -339,7 +339,7 @@
                     container-class="w-full py-8"
                   />
                 </div>
-                <div v-else class="h-[250px]">
+                <div v-else class="h-[200px] sm:h-[250px]">
                   <canvas id="statusDistributionChart"></canvas>
                 </div>
               </div>
@@ -880,6 +880,8 @@ const initSalesTrendChart = () => {
   const labels = data.map((item) => item.date?.slice(5) || '');
   const values = data.map((item) => item.orderCount || 0);
 
+  const isMobileChart = window.innerWidth < 640;
+
   charts.salesTrendChart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -889,7 +891,7 @@ const initSalesTrendChart = () => {
           label: t('dashboard.orderCount'),
           data: values,
           borderColor: color,
-          borderWidth: 2,
+          borderWidth: isMobileChart ? 1.5 : 2,
           backgroundColor: gradient,
           fill: true,
           pointRadius: 0,
@@ -915,13 +917,22 @@ const initSalesTrendChart = () => {
       scales: {
         x: {
           grid: { display: false },
-          ticks: { maxTicksLimit: 8, color: '#9ca3af', font: { size: 11 } },
+          ticks: {
+            maxTicksLimit: isMobileChart ? 5 : 8,
+            color: '#9ca3af',
+            font: { size: isMobileChart ? 9 : 11 },
+            maxRotation: isMobileChart ? 45 : 0,
+          },
         },
         y: {
           border: { display: false },
           grid: { color: 'rgba(0,0,0,0.05)' },
           beginAtZero: true,
-          ticks: { color: '#9ca3af', font: { size: 11 } },
+          ticks: {
+            color: '#9ca3af',
+            font: { size: isMobileChart ? 9 : 11 },
+            maxTicksLimit: isMobileChart ? 5 : 8,
+          },
         },
       },
       interaction: { intersect: false, mode: 'index' },
@@ -963,6 +974,8 @@ const initStatusDistributionChart = () => {
     void: '已作废',
   };
 
+  const isMobileView = window.innerWidth < 640;
+
   charts.statusDistributionChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
@@ -982,12 +995,13 @@ const initStatusDistributionChart = () => {
       cutout: '65%',
       plugins: {
         legend: {
-          position: 'right',
+          position: isMobileView ? 'bottom' : 'right',
           labels: {
             usePointStyle: true,
-            padding: 12,
+            padding: isMobileView ? 8 : 12,
             color: '#6b7280',
-            font: { size: 11 },
+            font: { size: isMobileView ? 10 : 11 },
+            boxWidth: isMobileView ? 8 : 12,
           },
         },
         tooltip: {
