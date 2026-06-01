@@ -115,6 +115,10 @@ export const API: Record<string, any> = {
   MANAGE_CUSTOMERS: '/api/manage/customers',
   MANAGE_CUSTOMER: '/api/manage/customers',
   MANAGE_CUSTOMER_ORDERS: (id: string | number) => `/api/manage/customers/${id}/orders`,
+  MANAGE_CUSTOMER_STATS: (id: string | number) => `/api/manage/customers/${id}/stats`,
+  MANAGE_CUSTOMER_TAGS: (id: string | number) => `/api/manage/customers/${id}/tags`,
+  MANAGE_CUSTOMER_TAG: (id: string | number, tagName: string) => `/api/manage/customers/${id}/tags/${encodeURIComponent(tagName)}`,
+  MANAGE_CUSTOMER_ALL_TAGS: '/api/manage/customers/tags',
   MANAGE_CUSTOMER_BATCH_TAGS: '/api/manage/customers/batch/tags',
   MANAGE_CUSTOMER_BATCH_EXPORT: '/api/manage/customers/batch/export',
 

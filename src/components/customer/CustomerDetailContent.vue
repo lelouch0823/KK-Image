@@ -3,9 +3,24 @@
     <!-- 头部 -->
     <div class="border-b border-(--border-color) px-4 py-6 sm:px-6">
       <div class="flex items-start justify-between">
-        <h2 id="slide-over-title" class="text-lg font-medium text-(--text-primary)">
-          {{ customer?.name }}
-        </h2>
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 id="slide-over-title" class="text-lg font-medium text-(--text-primary)">
+              {{ customer?.name }}
+            </h2>
+            <!-- RFM 分段徽章 -->
+            <StatusBadge
+              v-if="stats?.segment"
+              :variant="segmentVariant"
+              dot
+            >
+              {{ t(`customer.detail.segment${segmentLabel}`) }}
+            </StatusBadge>
+          </div>
+          <p v-if="stats?.segment" class="mt-0.5 text-xs text-(--text-secondary)">
+            {{ t(`customer.detail.segment${segmentLabel}Desc`) }}
+          </p>
+        </div>
         <div class="ml-3 flex h-7 items-center">
           <AppButton variant="ghost" size="sm" class="!px-2" @click="$emit('close')">
             <template #icon-left>
@@ -50,8 +65,8 @@
 
       <!-- Tab Panels -->
       <div class="p-6">
-        <!-- 基本信息 -->
-        <div v-if="currentTab === 'info'" class="space-y-6">
+        <!-- 概览 Tab -->
+        <div v-if="currentTab === 'overview'" class="space-y-6">
           <!-- 操作栏 -->
           <ActionBar class="border-none bg-transparent px-0 py-0 shadow-none">
             <AppButton variant="white" :text="t('common.edit')" @click="$emit('edit', customer)">
@@ -66,6 +81,39 @@
             </AppButton>
           </ActionBar>
 
+          <!-- 统计卡片 -->
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <MetricTile
+              :label="t('customer.detail.orderCount')"
+              :value="stats?.orderCount ?? '-'"
+              icon="shopping-bag"
+              tone="primary"
+              flat
+            />
+            <MetricTile
+              :label="t('customer.detail.lastOrder')"
+              :value="stats?.lastOrderAt ? formatRecency(stats.recencyDays) : '-'"
+              icon="clock"
+              tone="info"
+              flat
+            />
+            <MetricTile
+              :label="t('customer.detail.firstOrder')"
+              :value="stats?.firstOrderAt ? formatDate(stats.firstOrderAt) : '-'"
+              icon="calendar"
+              tone="success"
+              flat
+            />
+            <MetricTile
+              :label="t('customer.detail.segment')"
+              :value="t(`customer.detail.segment${segmentLabel}`)"
+              :icon="segmentIcon"
+              :tone="segmentVariant"
+              flat
+            />
+          </div>
+
+          <!-- 基本信息 -->
           <AppCard padding="p-5">
             <template #header>
               <h4 class="text-sm font-medium text-(--text-secondary)">
@@ -128,9 +176,76 @@
               </div>
             </dl>
           </AppCard>
+
+          <!-- 常购商品 -->
+          <AppCard v-if="stats?.favoriteProducts?.length" padding="p-5">
+            <template #header>
+              <h4 class="text-sm font-medium text-(--text-secondary)">
+                {{ t('customer.detail.favoriteProducts') }}
+              </h4>
+            </template>
+            <div class="space-y-2">
+              <div
+                v-for="product in stats.favoriteProducts"
+                :key="product.productId"
+                class="flex items-center justify-between rounded-lg bg-(--bg-muted) px-3 py-2"
+              >
+                <span class="text-sm text-(--text-main)">{{ product.productName || '-' }}</span>
+                <span class="text-xs font-medium text-(--text-secondary)">
+                  {{ t('customer.detail.orderCountValue', { count: product.orderCount }) }}
+                </span>
+              </div>
+            </div>
+          </AppCard>
+
+          <!-- 最近订单 -->
+          <AppCard padding="p-5">
+            <template #header>
+              <div class="flex items-center justify-between">
+                <h4 class="text-sm font-medium text-(--text-secondary)">
+                  {{ t('customer.detail.historyOrders') }}
+                </h4>
+                <AppButton
+                  v-if="recentOrders.length > 0"
+                  variant="link"
+                  size="sm"
+                  @click="currentTab = 'orders'"
+                >
+                  {{ t('common.viewAll') }}
+                </AppButton>
+              </div>
+            </template>
+
+            <div v-if="loadingOrders" class="py-4 text-center">
+              <AppIcon name="spinner" class="text-primary mx-auto size-6 animate-spin" />
+            </div>
+
+            <EmptyState
+              v-else-if="recentOrders.length === 0"
+              icon="inbox"
+              :title="t('customer.detail.noOrders')"
+              size="sm"
+            />
+
+            <div v-else class="space-y-3">
+              <div
+                v-for="order in recentOrders"
+                :key="order.id"
+                class="flex items-center justify-between rounded-lg border border-(--border-color) px-3 py-2"
+              >
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium text-(--text-main)">{{ order.productName }}</p>
+                  <p class="text-xs text-(--text-secondary)">
+                    {{ order.orderNo }} - {{ formatDate(order.createdAt) }}
+                  </p>
+                </div>
+                <StatusBadge :status="order.status" class="ml-2 origin-right scale-90" />
+              </div>
+            </div>
+          </AppCard>
         </div>
 
-        <!-- 历史订单 -->
+        <!-- 历史订单 Tab -->
         <div v-if="currentTab === 'orders'" class="space-y-4">
           <div v-if="loadingOrders" class="py-8 text-center">
             <AppIcon name="spinner" class="text-primary mx-auto size-8 animate-spin" />
@@ -150,7 +265,7 @@
                 <div>
                   <p class="text-sm font-medium text-(--text-primary)">{{ order.productName }}</p>
                   <p class="text-xs text-(--text-secondary)">
-                    {{ order.orderNo }} • {{ formatDate(order.createdAt) }}
+                    {{ order.orderNo }} - {{ formatDate(order.createdAt) }}
                   </p>
                 </div>
                 <StatusBadge :status="order.status" class="origin-right scale-90" />
@@ -169,12 +284,95 @@
                 />
                 <div class="flex flex-1 flex-col justify-center">
                   <p>{{ t('common.salesperson') }}: {{ order.salespersonName || '-' }}</p>
-                  <p class="mt-1 font-medium text-(--text-primary)">
-                    {{ formatCurrency(order.totalAmount, order.currency) }}
+                  <p v-if="order.quantity" class="mt-1">
+                    {{ t('common.quantity') }}: {{ order.quantity }}
                   </p>
                 </div>
               </div>
             </AppCard>
+          </div>
+        </div>
+
+        <!-- 标签管理 Tab -->
+        <div v-if="currentTab === 'tags'" class="space-y-4">
+          <!-- 添加标签 -->
+          <div class="flex gap-2">
+            <input
+              v-model="newTagName"
+              type="text"
+              :placeholder="t('customer.detail.tagInputPlaceholder')"
+              class="flex-1 rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) placeholder-(--text-muted) focus:border-(--color-primary) focus:outline-none focus:ring-1 focus:ring-(--color-primary)"
+              @keydown.enter="handleAddTag"
+            />
+            <AppButton
+              variant="primary"
+              size="sm"
+              :disabled="!newTagName.trim() || addingTag"
+              @click="handleAddTag"
+            >
+              <template #icon-left>
+                <AppIcon
+                  v-if="addingTag"
+                  name="spinner"
+                  class="size-4 animate-spin"
+                />
+                <AppIcon v-else name="plus" class="size-4" />
+              </template>
+              {{ t('customer.detail.addTag') }}
+            </AppButton>
+          </div>
+
+          <!-- 标签列表 -->
+          <div v-if="loadingTags" class="py-4 text-center">
+            <AppIcon name="spinner" class="text-primary mx-auto size-6 animate-spin" />
+          </div>
+
+          <EmptyState
+            v-else-if="detailTags.length === 0"
+            icon="tag"
+            :title="t('common.empty')"
+            size="sm"
+          />
+
+          <div v-else class="space-y-2">
+            <div
+              v-for="tag in detailTags"
+              :key="tag.id"
+              class="flex items-center justify-between rounded-lg border border-(--border-color) px-3 py-2"
+            >
+              <div class="flex items-center gap-2">
+                <AppIcon name="tag" class="size-4 text-(--text-secondary)" />
+                <span class="text-sm text-(--text-main)">{{ tag.name }}</span>
+              </div>
+              <AppButton
+                variant="ghost"
+                size="sm"
+                class="!px-1.5"
+                @click="handleRemoveTag(tag.name)"
+              >
+                <template #icon-left>
+                  <AppIcon name="x-mark" class="size-4 text-(--text-muted)" />
+                </template>
+              </AppButton>
+            </div>
+          </div>
+
+          <!-- 常用标签推荐 -->
+          <div v-if="allTags.length > 0" class="border-t border-(--border-color) pt-4">
+            <p class="mb-2 text-xs font-medium text-(--text-secondary)">
+              {{ t('customer.form.tags') }}
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="tag in suggestedTags"
+                :key="tag.name"
+                class="rounded-full border border-(--border-color) px-3 py-1 text-xs text-(--text-secondary) transition-colors hover:border-(--color-primary) hover:text-(--color-primary)"
+                @click="handleAddSuggestedTag(tag.name)"
+              >
+                {{ tag.name }}
+                <span class="ml-1 text-(--text-muted)">({{ tag.usageCount }})</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -200,6 +398,7 @@ import { useAuth } from '@/composables/useAuth';
 import { formatDate, formatCurrency } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import ActionBar from '@/design-system/composed/ActionBar.vue';
+import MetricTile from '@/design-system/composed/MetricTile.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppCard from '@/components/ui/AppCard.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -218,9 +417,16 @@ const { t } = useI18n();
 const { addToast } = useToast();
 const { authFetch } = useAuth();
 
-const currentTab = ref('info');
+const currentTab = ref('overview');
 const orders = ref([]);
 const loadingOrders = ref(false);
+const stats = ref(null);
+const loadingStats = ref(false);
+const detailTags = ref([]);
+const loadingTags = ref(false);
+const allTags = ref([]);
+const newTagName = ref('');
+const addingTag = ref(false);
 
 const confirmData = ref({
   show: false,
@@ -232,13 +438,63 @@ const confirmData = ref({
 });
 
 const tabs = computed(() => [
-  { key: 'info', name: t('customer.form.basicInfo') },
+  { key: 'overview', name: t('customer.detail.overview') },
   { key: 'orders', name: t('customer.detail.historyOrders') },
+  { key: 'tags', name: t('customer.detail.tags') },
 ]);
+
+// RFM 分段相关计算属性
+const segmentLabel = computed(() => {
+  const map = { vip: 'Vip', active: 'Active', 'at-risk': 'AtRisk', lost: 'Lost', new: 'New' };
+  return map[stats.value?.segment] || 'New';
+});
+
+const segmentVariant = computed(() => {
+  const map = { vip: 'warning', active: 'success', 'at-risk': 'danger', lost: 'neutral', new: 'info' };
+  return map[stats.value?.segment] || 'info';
+});
+
+const segmentIcon = computed(() => {
+  const map = { vip: 'star', active: 'check-circle', 'at-risk': 'exclamation-triangle', lost: 'x-circle', new: 'user' };
+  return map[stats.value?.segment] || 'user';
+});
+
+// 最近订单（概览中显示前 3 条）
+const recentOrders = computed(() => orders.value.slice(0, 3));
+
+// 推荐标签（排除已有的）
+const suggestedTags = computed(() => {
+  const existingNames = new Set(detailTags.value.map((t) => t.name));
+  return allTags.value.filter((t) => !existingNames.has(t.name)).slice(0, 10);
+});
+
+/**
+ * 格式化距今天数
+ */
+const formatRecency = (days) => {
+  if (days === null || days === undefined) return '-';
+  if (days === 0) return t('common.today');
+  return t('customer.detail.daysAgo', { days });
+};
+
+const loadStats = async () => {
+  if (!props.customer?.id) return;
+  loadingStats.value = true;
+  try {
+    const res = await authFetch(API.MANAGE_CUSTOMER_STATS(props.customer.id));
+    const result = await res.json();
+    if (result.success) {
+      stats.value = result.data;
+    }
+  } catch (_e) {
+    // 静默失败，统计不影响主功能
+  } finally {
+    loadingStats.value = false;
+  }
+};
 
 const loadOrders = async () => {
   if (!props.customer?.id) return;
-
   loadingOrders.value = true;
   try {
     const res = await authFetch(API.MANAGE_CUSTOMER_ORDERS(props.customer.id));
@@ -250,6 +506,93 @@ const loadOrders = async () => {
     addToast({ message: t('common.loadFailed'), type: 'error' });
   } finally {
     loadingOrders.value = false;
+  }
+};
+
+const loadTags = async () => {
+  if (!props.customer?.id) return;
+  loadingTags.value = true;
+  try {
+    const res = await authFetch(API.MANAGE_CUSTOMER_TAGS(props.customer.id));
+    const result = await res.json();
+    if (result.success) {
+      detailTags.value = result.data || [];
+    }
+  } catch (_e) {
+    // 静默失败
+  } finally {
+    loadingTags.value = false;
+  }
+};
+
+const loadAllTags = async () => {
+  try {
+    const res = await authFetch(API.MANAGE_CUSTOMER_ALL_TAGS);
+    const result = await res.json();
+    if (result.success) {
+      allTags.value = result.data || [];
+    }
+  } catch (_e) {
+    // 静默失败
+  }
+};
+
+const handleAddTag = async () => {
+  if (addingTag.value || !newTagName.value.trim()) return;
+  addingTag.value = true;
+  try {
+    const res = await authFetch(API.MANAGE_CUSTOMER_TAGS(props.customer.id), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tag: newTagName.value.trim() }),
+    });
+    const result = await res.json();
+    if (result.success) {
+      newTagName.value = '';
+      await loadTags();
+      emit('refresh');
+      addToast({ message: t('common.createSuccess'), type: 'success' });
+    } else {
+      addToast({ message: result.message || t('common.operationFailed'), type: 'error' });
+    }
+  } catch (_e) {
+    addToast({ message: t('common.networkError'), type: 'error' });
+  } finally {
+    addingTag.value = false;
+  }
+};
+
+const handleAddSuggestedTag = async (tagName) => {
+  try {
+    const res = await authFetch(API.MANAGE_CUSTOMER_TAGS(props.customer.id), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tag: tagName }),
+    });
+    const result = await res.json();
+    if (result.success) {
+      await loadTags();
+      emit('refresh');
+    }
+  } catch (_e) {
+    addToast({ message: t('common.networkError'), type: 'error' });
+  }
+};
+
+const handleRemoveTag = async (tagName) => {
+  try {
+    const res = await authFetch(API.MANAGE_CUSTOMER_TAG(props.customer.id, tagName), {
+      method: 'DELETE',
+    });
+    const result = await res.json();
+    if (result.success) {
+      detailTags.value = detailTags.value.filter((t) => t.name !== tagName);
+      emit('refresh');
+    } else {
+      addToast({ message: result.message || t('common.operationFailed'), type: 'error' });
+    }
+  } catch (_e) {
+    addToast({ message: t('common.networkError'), type: 'error' });
   }
 };
 
@@ -288,20 +631,33 @@ const confirmDelete = async () => {
   }
 };
 
+// Tab 切换时懒加载数据
 watch(currentTab, (newTab) => {
   if (newTab === 'orders' && orders.value.length === 0) {
     loadOrders();
   }
+  if (newTab === 'tags' && detailTags.value.length === 0) {
+    loadTags();
+    if (allTags.value.length === 0) {
+      loadAllTags();
+    }
+  }
 });
 
+// 客户切换时重置所有数据
 watch(
   () => props.customer?.id,
   (newId) => {
     if (newId) {
-      // Reset on customer change
-      currentTab.value = 'info';
+      currentTab.value = 'overview';
       orders.value = [];
+      stats.value = null;
+      detailTags.value = [];
+      newTagName.value = '';
+      // 概览 tab 默认加载统计
+      loadStats();
     }
-  }
+  },
+  { immediate: true }
 );
 </script>

@@ -258,4 +258,231 @@ export class CustomerRepository {
       .first();
     return result.count > 0;
   }
+
+  /**
+   * 获取客户订单统计
+   * @param {string} id
+   * @returns {Promise<Object>}
+   */
+  async getOrderStats(id) {
+    const stats = await this.db
+      .prepare(
+        `
+          SELECT
+            COUNT(o.id) AS order_count,
+            MIN(o.created_at) AS first_order_at,
+            MAX(o.created_at) AS last_order_at
+          FROM orders o
+          WHERE o.customer_id = ?
+        `
+      )
+      .bind(id)
+      .first();
+
+    const now = Date.now();
+    const lastOrderAt = stats.last_order_at || null;
+    const recencyDays = lastOrderAt ? Math.floor((now - lastOrderAt) / (24 * 60 * 60 * 1000)) : null;
+
+    return {
+      orderCount: stats.order_count || 0,
+      firstOrderAt: stats.first_order_at || null,
+      lastOrderAt: lastOrderAt,
+      recencyDays,
+    };
+  }
+
+  /**
+   * 获取客户最常订购的商品
+   * @param {string} id
+   * @param {number} limit
+   * @returns {Promise<Array>}
+   */
+  async getFavoriteProducts(id, limit = 5) {
+    const { results } = await this.db
+      .prepare(
+        `
+          SELECT
+            o.product_id,
+            o.summary_name AS product_name,
+            COUNT(*) AS order_count
+          FROM orders o
+          WHERE o.customer_id = ? AND o.product_id IS NOT NULL
+          GROUP BY o.product_id
+          ORDER BY order_count DESC
+          LIMIT ?
+        `
+      )
+      .bind(id, limit)
+      .all();
+
+    return results.map((r) => ({
+      productId: r.product_id,
+      productName: r.product_name || '',
+      orderCount: r.order_count,
+    }));
+  }
+
+  /**
+   * RFM 分段：根据客户订单数据自动分类
+   * @param {string} id
+   * @returns {Promise<Object>} RFM 数据和分段标签
+   */
+  async getRfmSegment(id) {
+    const stats = await this.getOrderStats(id);
+    const { orderCount, recencyDays } = stats;
+
+    // RFM 分段逻辑
+    // R (Recency): 最近下单距今天数
+    // F (Frequency): 订单总数
+    // 分段规则:
+    //   VIP: 最近 90 天内有订单 且 订单数 >= 5
+    //   Active: 最近 90 天内有订单
+    //   At-risk: 最近 90-180 天内有订单
+    //   Lost: 超过 180 天无订单 或 从未下单
+    let segment = 'new'; // 默认：新客户（无订单）
+    if (orderCount === 0) {
+      segment = 'new';
+    } else if (recencyDays <= 90 && orderCount >= 5) {
+      segment = 'vip';
+    } else if (recencyDays <= 90) {
+      segment = 'active';
+    } else if (recencyDays <= 180) {
+      segment = 'at-risk';
+    } else {
+      segment = 'lost';
+    }
+
+    return {
+      ...stats,
+      segment,
+    };
+  }
+
+  /**
+   * 批量获取多个客户的 RFM 分段（用于列表展示）
+   * @param {string[]} ids
+   * @returns {Promise<Map<string, Object>>}
+   */
+  async getBatchRfmSegments(ids) {
+    if (!ids.length) return new Map();
+
+    const placeholders = ids.map(() => '?').join(',');
+    const { results } = await this.db
+      .prepare(
+        `
+          SELECT
+            c.id AS customer_id,
+            COUNT(o.id) AS order_count,
+            MAX(o.created_at) AS last_order_at
+          FROM customers c
+          LEFT JOIN orders o ON o.customer_id = c.id
+          WHERE c.id IN (${placeholders})
+          GROUP BY c.id
+        `
+      )
+      .bind(...ids)
+      .all();
+
+    const now = Date.now();
+    const segmentMap = new Map();
+
+    for (const row of results) {
+      const orderCount = row.order_count || 0;
+      const lastOrderAt = row.last_order_at || null;
+      const recencyDays = lastOrderAt ? Math.floor((now - lastOrderAt) / (24 * 60 * 60 * 1000)) : null;
+
+      let segment = 'new';
+      if (orderCount === 0) {
+        segment = 'new';
+      } else if (recencyDays <= 90 && orderCount >= 5) {
+        segment = 'vip';
+      } else if (recencyDays <= 90) {
+        segment = 'active';
+      } else if (recencyDays <= 180) {
+        segment = 'at-risk';
+      } else {
+        segment = 'lost';
+      }
+
+      segmentMap.set(row.customer_id, { segment, orderCount, lastOrderAt, recencyDays });
+    }
+
+    // 确保所有请求的 ID 都有结果
+    for (const id of ids) {
+      if (!segmentMap.has(id)) {
+        segmentMap.set(id, { segment: 'new', orderCount: 0, lastOrderAt: null, recencyDays: null });
+      }
+    }
+
+    return segmentMap;
+  }
+
+  // ========================================
+  // 标签管理 (Tags CRUD)
+  // ========================================
+
+  /**
+   * 获取客户的所有标签
+   * @param {string} customerId
+   * @returns {Promise<Array>}
+   */
+  async getTags(customerId) {
+    const { results } = await this.db
+      .prepare(
+        'SELECT id, tag_name, created_at FROM customer_tags WHERE customer_id = ? ORDER BY created_at DESC'
+      )
+      .bind(customerId)
+      .all();
+    return results.map((r) => ({ id: r.id, name: r.tag_name, createdAt: r.created_at }));
+  }
+
+  /**
+   * 添加标签
+   * @param {string} customerId
+   * @param {string} tagName
+   * @returns {Promise<Object>} 新标签
+   */
+  async addTag(customerId, tagName) {
+    const now = Date.now();
+    try {
+      await this.db
+        .prepare(
+          'INSERT INTO customer_tags (customer_id, tag_name, created_at) VALUES (?, ?, ?)'
+        )
+        .bind(customerId, tagName, now)
+        .run();
+      return { customer_id: customerId, tag_name: tagName, created_at: now };
+    } catch (e) {
+      // UNIQUE 约束冲突 → 标签已存在，忽略
+      if (e.message?.includes('UNIQUE')) return null;
+      throw e;
+    }
+  }
+
+  /**
+   * 删除标签
+   * @param {string} customerId
+   * @param {string} tagName
+   * @returns {Promise<boolean>}
+   */
+  async removeTag(customerId, tagName) {
+    const result = await this.db
+      .prepare('DELETE FROM customer_tags WHERE customer_id = ? AND tag_name = ?')
+      .bind(customerId, tagName)
+      .run();
+    return result.changes > 0;
+  }
+
+  /**
+   * 获取所有客户使用过的标签列表（去重）
+   * @returns {Promise<Array>}
+   */
+  async getAllTags() {
+    const { results } = await this.db
+      .prepare(
+        'SELECT DISTINCT tag_name, COUNT(*) as usage_count FROM customer_tags GROUP BY tag_name ORDER BY usage_count DESC'
+      )
+      .all();
+    return results.map((r) => ({ name: r.tag_name, usageCount: r.usage_count }));
+  }
 }

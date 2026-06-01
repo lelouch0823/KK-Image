@@ -103,6 +103,9 @@ export default {
   noResultsDesc: 'Failed to find matching content for "{query}"',
   clearSearch: 'Clear Search',
   total: 'Total',
+  viewAll: 'View All',
+  today: 'Today',
+  quantity: 'Quantity',
   requireTextLabel: 'Required confirmation text',
   text: {
     create_first_item: 'Click to create the first item',

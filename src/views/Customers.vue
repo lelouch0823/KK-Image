@@ -95,6 +95,17 @@
                <span class="text-(--text-secondary)">{{ value || '-' }}</span>
             </template>
 
+            <template #cell-segment="{ row }">
+              <StatusBadge
+                v-if="row.segment && row.segment !== 'new'"
+                :variant="segmentVariantMap[row.segment] || 'info'"
+                dot
+              >
+                {{ t(`customer.detail.segment${segmentLabelMap[row.segment]}`) }}
+              </StatusBadge>
+              <span v-else class="text-xs text-(--text-muted)">-</span>
+            </template>
+
             <template #cell-tags="{ value }">
               <div class="flex flex-wrap gap-1">
                 <StatusBadge
@@ -379,11 +390,28 @@ const newTag = ref('');
 const batchTagProcessing = ref(false);
 const batchExporting = ref(false);
 
+const segmentLabelMap = {
+  vip: 'Vip',
+  active: 'Active',
+  'at-risk': 'AtRisk',
+  lost: 'Lost',
+  new: 'New',
+};
+
+const segmentVariantMap = {
+  vip: 'warning',
+  active: 'success',
+  'at-risk': 'danger',
+  lost: 'neutral',
+  new: 'info',
+};
+
 const columns = [
   { key: 'selection', label: '', align: 'center', width: '48px', class: 'px-0' },
   { key: 'name', label: t('customer.form.name') },
   { key: 'contact', label: t('customer.manage.searchPlaceholder') || 'Contact' },
   { key: 'company', label: t('customer.form.company') },
+  { key: 'segment', label: t('customer.detail.segment'), width: '100px' },
   { key: 'tags', label: t('customer.form.tags') },
   { key: 'createdAt', label: t('common.createdAt', 'Created At') },
   { key: 'actions', label: '' },

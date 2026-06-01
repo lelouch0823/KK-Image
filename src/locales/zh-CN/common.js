@@ -104,6 +104,9 @@ export default {
   noResultsDesc: '未能找到与 "{query}" 匹配的内容',
   clearSearch: '清除搜索',
   total: '共',
+  viewAll: '查看全部',
+  today: '今天',
+  quantity: '数量',
   requireTextLabel: '要求输入的确认文本',
   text: {
     create_first_item: '点击创建第一个项目',

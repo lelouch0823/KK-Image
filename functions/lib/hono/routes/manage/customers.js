@@ -34,7 +34,7 @@ const CreateCustomerSchema = z.object({
 const UpdateCustomerSchema = CreateCustomerSchema.partial();
 
 /**
- * GET / - 分页查询客户列表
+ * GET / - 分页查询客户列表（含 RFM 分段）
  */
 app.get('/', async (c) => {
     const { env } = c;
@@ -44,20 +44,29 @@ app.get('/', async (c) => {
     const repo = new CustomerRepository(env.DB);
     const { results, total, pages } = await repo.list({ page, limit, search });
 
+    // 批量获取 RFM 分段
+    const ids = results.map((c) => c.id);
+    const segmentMap = await repo.getBatchRfmSegments(ids);
+
     // 转换 snake_case 为 camelCase 以兼容前端
-    const list = results.map((c) => ({
-        id: c.id,
-        name: c.name,
-        phone: c.phone,
-        company: c.company,
-        email: c.email,
-        address: c.address,
-        tags: c.tags,
-        remark: c.remark,
-        createdBy: c.created_by,
-        createdAt: c.created_at,
-        updatedAt: c.updated_at,
-    }));
+    const list = results.map((c) => {
+        const rfm = segmentMap.get(c.id) || { segment: 'new', orderCount: 0 };
+        return {
+            id: c.id,
+            name: c.name,
+            phone: c.phone,
+            company: c.company,
+            email: c.email,
+            address: c.address,
+            tags: c.tags,
+            remark: c.remark,
+            createdBy: c.created_by,
+            createdAt: c.created_at,
+            updatedAt: c.updated_at,
+            segment: rfm.segment,
+            orderCount: rfm.orderCount,
+        };
+    });
 
     return c.json({
         success: true,
@@ -203,6 +212,18 @@ app.post('/batch/export', async (c) => {
             'Content-Disposition': `attachment; filename="${filename}"`,
         },
     });
+});
+
+/**
+ * GET /tags - 获取所有标签（去重 + 使用统计）
+ * 注意：必须在 /:id 之前注册，避免 Hono 将 "tags" 匹配为 ID
+ */
+app.get('/tags', async (c) => {
+    const { env } = c;
+    const repo = new CustomerRepository(env.DB);
+    const tags = await repo.getAllTags();
+
+    return c.json({ success: true, data: tags });
 });
 
 /**
@@ -385,6 +406,108 @@ app.get('/:id/orders', async (c) => {
     });
 
     return c.json({ success: true, data: items });
+});
+
+/**
+ * GET /:id/stats - 获取客户订单统计 + RFM 分段
+ */
+app.get('/:id/stats', async (c) => {
+    const { env } = c;
+    const id = c.req.param('id');
+
+    const repo = new CustomerRepository(env.DB);
+    const customer = await repo.findById(id);
+    if (!customer) throw new NotFoundError(MSG.COMMON.NOT_FOUND);
+
+    const [rfm, favoriteProducts] = await Promise.all([
+        repo.getRfmSegment(id),
+        repo.getFavoriteProducts(id),
+    ]);
+
+    return c.json({
+        success: true,
+        data: {
+            ...rfm,
+            favoriteProducts,
+        },
+    });
+});
+
+/**
+ * GET /:id/tags - 获取客户标签列表
+ */
+app.get('/:id/tags', async (c) => {
+    const { env } = c;
+    const id = c.req.param('id');
+
+    const repo = new CustomerRepository(env.DB);
+    const tags = await repo.getTags(id);
+
+    return c.json({ success: true, data: tags });
+});
+
+/**
+ * POST /:id/tags - 添加客户标签
+ */
+app.post('/:id/tags', async (c) => {
+    const { env } = c;
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { tag } = body;
+
+    if (!tag || typeof tag !== 'string' || !tag.trim()) {
+        throw new BadRequestError('请输入标签名称');
+    }
+
+    const repo = new CustomerRepository(env.DB);
+    const customer = await repo.findById(id);
+    if (!customer) throw new NotFoundError(MSG.COMMON.NOT_FOUND);
+
+    const result = await repo.addTag(id, tag.trim());
+
+    scheduleCacheInvalidation(c, getManageCustomerCacheUrls(c));
+    scheduleAuditEvent(c, {
+        domain: 'customers',
+        action: 'customer.add_tag',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'customer',
+        targetId: id,
+        summary: `Added tag "${tag.trim()}" to customer ${id}`,
+    });
+
+    return c.json({
+        success: true,
+        message: '标签添加成功',
+        data: result,
+    });
+});
+
+/**
+ * DELETE /:id/tags/:tagName - 删除客户标签
+ */
+app.delete('/:id/tags/:tagName', async (c) => {
+    const { env } = c;
+    const id = c.req.param('id');
+    const tagName = decodeURIComponent(c.req.param('tagName'));
+
+    const repo = new CustomerRepository(env.DB);
+    const deleted = await repo.removeTag(id, tagName);
+
+    if (!deleted) throw new NotFoundError('标签不存在');
+
+    scheduleCacheInvalidation(c, getManageCustomerCacheUrls(c));
+    scheduleAuditEvent(c, {
+        domain: 'customers',
+        action: 'customer.remove_tag',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'customer',
+        targetId: id,
+        summary: `Removed tag "${tagName}" from customer ${id}`,
+    });
+
+    return c.json({ success: true, message: '标签已删除' });
 });
 
 export default app;
