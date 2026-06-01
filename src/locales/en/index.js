@@ -21,6 +21,7 @@ import purchaseOrder from './purchaseOrder';
 import commandPalette from './commandPalette';
 import formDraft from './formDraft';
 import inventoryDashboard from './inventoryDashboard';
+import keyboardShortcuts from './keyboardShortcuts';
 
 export default {
   common,
@@ -69,4 +70,5 @@ export default {
   commandPalette,
   formDraft,
   inventoryDashboard,
+  keyboardShortcuts,
 };
