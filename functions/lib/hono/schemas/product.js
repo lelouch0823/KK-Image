@@ -94,6 +94,13 @@ export const UpdateProductSchema = z.object({
 }).strict();
 
 /**
+ * 更新商品状态 Schema (PATCH /:id/status)
+ */
+export const UpdateProductStatusSchema = z.object({
+    status: z.enum(['draft', 'active', 'archived']),
+}).strict();
+
+/**
  * 创建规格维度 Schema (POST /:id/dimensions)
  */
 export const CreateDimensionSchema = z.object({

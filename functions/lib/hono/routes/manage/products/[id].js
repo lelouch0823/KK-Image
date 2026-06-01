@@ -24,6 +24,7 @@ import {
 } from '../../../../../services/order-procurement-shared.js';
 import {
     UpdateProductSchema,
+    UpdateProductStatusSchema,
     CreateDimensionSchema,
     UpdateDimensionSchema,
     ArchiveDimensionSchema,
@@ -58,6 +59,7 @@ export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'PATCH', path: '/:id/variants/:variantId/images/:imageId/primary', domain: 'products', action: 'product.variant_image.primary', severity: 'high', targetType: 'product' },
     { method: 'DELETE', path: '/:id/variants/:variantId/images/:imageId', domain: 'products', action: 'product.variant_image.delete', severity: 'high', targetType: 'product' },
     { method: 'PATCH', path: '/:id', domain: 'products', action: 'product.update', severity: 'high', targetType: 'product' },
+    { method: 'PATCH', path: '/:id/status', domain: 'products', action: 'product.status.update', severity: 'high', targetType: 'product' },
     { method: 'PUT', path: '/:id', domain: 'products', action: 'product.replace', severity: 'high', targetType: 'product' },
     { method: 'DELETE', path: '/:id', domain: 'products', action: 'product.archive', severity: 'critical', targetType: 'product' },
 ]);
@@ -203,6 +205,43 @@ app.get('/:id', async (c) => {
     product.dimension_map = dimensionMap;
 
     return c.json({ success: true, data: product });
+});
+
+/**
+ * PATCH /:id/status - 更新商品状态（生命周期管理）
+ */
+app.patch('/:id/status', zValidator('json', UpdateProductStatusSchema), async (c) => {
+    const { env } = c;
+    const id = c.req.param('id');
+    const body = c.req.valid('json');
+    const { status } = body;
+
+    const repo = new ProductRepository(env.DB);
+    const product = await ensureProductExists(repo, id);
+
+    const previousStatus = product.status;
+    if (previousStatus === status) {
+        return c.json({ success: true, message: 'Status unchanged', data: { id, status } });
+    }
+
+    const result = await repo.updateStatus(id, status);
+    if (!result.success) {
+        throw new BadRequestError(result.error || 'Status update failed');
+    }
+
+    scheduleAuditEvent(c, {
+        domain: 'products',
+        action: 'product.status.update',
+        result: 'success',
+        severity: 'high',
+        targetType: 'product',
+        targetId: id,
+        target_label: product.name || id,
+        summary: `Product status changed: ${previousStatus} -> ${status}`,
+        metadata: { previousStatus, newStatus: status, productName: product.name },
+    });
+
+    return c.json({ success: true, message: 'Status updated', data: { id, status, previousStatus } });
 });
 
 app.post('/:id/dimensions', zValidator('json', CreateDimensionSchema), async (c) => {
