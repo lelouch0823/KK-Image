@@ -38,15 +38,52 @@ async function searchFiles(db, query) {
 }
 
 /**
- * 搜索商品（LIKE 模糊匹配）
+ * 检查 FTS5 虚拟表是否存在（带缓存）
+ */
+const _ftsCache = { products: null, orders: null };
+
+async function hasFtsTable(db, tableName) {
+    if (_ftsCache[tableName] !== null) return _ftsCache[tableName];
+    try {
+        const result = await db.prepare(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?"
+        ).bind(tableName).first();
+        _ftsCache[tableName] = !!result;
+    } catch {
+        _ftsCache[tableName] = false;
+    }
+    return _ftsCache[tableName];
+}
+
+/**
+ * 搜索商品（FTS5 全文搜索，降级为 LIKE）
  */
 async function searchProducts(db, query) {
+    const hasFts = await hasFtsTable(db, 'products_fts');
+    if (hasFts) {
+        const sanitized = sanitizeFts5Query(query);
+        if (sanitized) {
+            const stmt = db.prepare(`
+              SELECT p.id, p.name, p.spu, p.created_at,
+                     'product' AS result_type
+              FROM products p
+              JOIN products_fts ON p.rowid = products_fts.rowid
+              WHERE products_fts MATCH ?
+              ORDER BY rank
+              LIMIT 10
+            `).bind(`"${sanitized}"*`);
+            const { results } = await stmt.all();
+            return results;
+        }
+    }
+
+    // 降级为 LIKE
     const pattern = `%${query}%`;
     const stmt = db.prepare(`
-      SELECT id, name, sku, status, created_at,
+      SELECT id, name, spu, created_at,
              'product' AS result_type
       FROM products
-      WHERE name LIKE ? OR sku LIKE ?
+      WHERE name LIKE ? OR spu LIKE ?
       ORDER BY created_at DESC
       LIMIT 10
     `).bind(pattern, pattern);
@@ -56,15 +93,37 @@ async function searchProducts(db, query) {
 }
 
 /**
- * 搜索订单（LIKE 模糊匹配）
+ * 搜索订单（FTS5 全文搜索，降级为 LIKE）
  */
 async function searchOrders(db, query) {
+    const hasFts = await hasFtsTable(db, 'orders_fts');
+    if (hasFts) {
+        const sanitized = sanitizeFts5Query(query);
+        if (sanitized) {
+            const stmt = db.prepare(`
+              SELECT o.id, o.order_no, o.status, o.created_at,
+                     c.name AS customer_name,
+                     'order' AS result_type
+              FROM orders o
+              LEFT JOIN customers c ON o.customer_id = c.id
+              WHERE o.rowid IN (SELECT rowid FROM orders_fts WHERE orders_fts MATCH ?)
+              ORDER BY o.created_at DESC
+              LIMIT 10
+            `).bind(`"${sanitized}"*`);
+            const { results } = await stmt.all();
+            return results;
+        }
+    }
+
+    // 降级为 LIKE
     const pattern = `%${query}%`;
     const stmt = db.prepare(`
-      SELECT o.id, o.order_no, o.status, o.created_at, o.customer_name,
+      SELECT o.id, o.order_no, o.status, o.created_at,
+             c.name AS customer_name,
              'order' AS result_type
       FROM orders o
-      WHERE o.order_no LIKE ? OR o.customer_name LIKE ?
+      LEFT JOIN customers c ON o.customer_id = c.id
+      WHERE o.order_no LIKE ? OR o.summary_name LIKE ?
       ORDER BY o.created_at DESC
       LIMIT 10
     `).bind(pattern, pattern);
@@ -74,9 +133,28 @@ async function searchOrders(db, query) {
 }
 
 /**
- * 搜索客户（LIKE 模糊匹配）
+ * 搜索客户（FTS5 全文搜索，降级为 LIKE）
  */
 async function searchCustomers(db, query) {
+    const hasFts = await hasFtsTable(db, 'customers_fts');
+    if (hasFts) {
+        const sanitized = sanitizeFts5Query(query);
+        if (sanitized) {
+            const stmt = db.prepare(`
+              SELECT c.id, c.name, c.phone, c.created_at,
+                     'customer' AS result_type
+              FROM customers c
+              JOIN customers_fts ON c.rowid = customers_fts.rowid
+              WHERE customers_fts MATCH ?
+              ORDER BY rank
+              LIMIT 10
+            `).bind(`"${sanitized}"*`);
+            const { results } = await stmt.all();
+            return results;
+        }
+    }
+
+    // 降级为 LIKE
     const pattern = `%${query}%`;
     const stmt = db.prepare(`
       SELECT id, name, phone, created_at,

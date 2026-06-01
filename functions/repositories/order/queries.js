@@ -19,6 +19,47 @@ import {
     appendOrderSummaryProgressStatusFilter,
 } from './summary-projection.js';
 
+/** @type {boolean|null} orders_fts 可用性缓存 */
+let _ordersFtsAvailable = null;
+
+/**
+ * 重置 FTS 缓存（仅测试用）
+ */
+export function _resetFtsCache() {
+    _ordersFtsAvailable = null;
+}
+
+/**
+ * 检查 orders_fts 虚拟表是否存在（带模块级缓存）
+ * @param {D1Database} db
+ * @returns {Promise<boolean>}
+ */
+async function hasOrdersFtsTable(db) {
+    if (_ordersFtsAvailable !== null) return _ordersFtsAvailable;
+    try {
+        const result = await db.prepare(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='orders_fts'"
+        ).first();
+        _ordersFtsAvailable = !!result;
+    } catch {
+        _ordersFtsAvailable = false;
+    }
+    return _ordersFtsAvailable;
+}
+
+/**
+ * 转义 FTS5 特殊字符，防止 MATCH 注入
+ * FTS5 特殊字符: " * ( ) ^ - + : OR AND NOT NEAR
+ */
+function sanitizeFts5Query(input) {
+    const sanitized = String(input || '')
+        .replace(/["*()\-+:]/g, ' ')
+        .replace(/\b(OR|AND|NOT|NEAR)\b/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return sanitized;
+}
+
 async function findOrderLines(db, orderId) {
     const { results } = await query(
         db,
@@ -200,9 +241,19 @@ export async function listBySalesperson(db, salespersonId, { status, search, pag
     }
 
     if (search) {
-        where += ' AND (o.order_no LIKE ? OR o.summary_name LIKE ? OR o.summary_brand LIKE ? OR o.summary_sku LIKE ?)';
-        const like = `%${search}%`;
-        params.push(like, like, like, like);
+        // 优先使用 FTS5 全文搜索（O(logN)），不可用时降级为 LIKE（O(N)）
+        const hasFts = await hasOrdersFtsTable(db);
+        if (hasFts) {
+            const sanitized = sanitizeFts5Query(search);
+            if (sanitized) {
+                where += ' AND o.rowid IN (SELECT rowid FROM orders_fts WHERE orders_fts MATCH ?)';
+                params.push(`"${sanitized}"*`);
+            }
+        } else {
+            where += ' AND (o.order_no LIKE ? OR o.summary_name LIKE ? OR o.summary_brand LIKE ? OR o.summary_sku LIKE ?)';
+            const like = `%${search}%`;
+            params.push(like, like, like, like);
+        }
     }
 
     const countResult = await queryFirst(
@@ -312,7 +363,19 @@ export async function listForAdmin(
         whereClause += ' AND o.created_at <= ?';
         bindParams.push(endTime);
     }
-    whereClause = appendOrderSummaryProductSearchFilter(whereClause, bindParams, search);
+    if (search) {
+        // 优先使用 FTS5 全文搜索（O(logN)），不可用时降级为 LIKE（O(N)）
+        const hasFts = await hasOrdersFtsTable(db);
+        if (hasFts) {
+            const sanitized = sanitizeFts5Query(search);
+            if (sanitized) {
+                whereClause += ' AND o.rowid IN (SELECT rowid FROM orders_fts WHERE orders_fts MATCH ?)';
+                bindParams.push(`"${sanitized}"*`);
+            }
+        } else {
+            whereClause = appendOrderSummaryProductSearchFilter(whereClause, bindParams, search);
+        }
+    }
 
     const countResult = await queryFirst(
         db,

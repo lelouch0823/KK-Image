@@ -8,6 +8,9 @@ import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { execute, query, queryFirst } from '../lib/db/query.js';
 
 export class ProductRepository {
+    /** @type {boolean|null} FTS5 可用性缓存 */
+    static _ftsAvailable = null;
+
     static PRODUCT_SORT_FIELDS = Object.freeze({
         price: 'price',
         stock: 'available_quantity',
@@ -17,6 +20,23 @@ export class ProductRepository {
 
     constructor(db) {
         this.db = db;
+    }
+
+    /**
+     * 检查 FTS5 虚拟表是否存在（带模块级缓存）
+     * @returns {Promise<boolean>}
+     */
+    async _hasFtsTable() {
+        if (ProductRepository._ftsAvailable !== null) return ProductRepository._ftsAvailable;
+        try {
+            const stmt = this.db.prepare?.("SELECT name FROM sqlite_master WHERE type='table' AND name='products_fts'");
+            if (!stmt) { ProductRepository._ftsAvailable = false; return false; }
+            const result = await stmt.first();
+            ProductRepository._ftsAvailable = !!result;
+        } catch {
+            ProductRepository._ftsAvailable = false;
+        }
+        return ProductRepository._ftsAvailable;
     }
 
     static PRODUCT_CURRENCY_SET = new Set(['CNY', 'USD', 'EUR', 'GBP', 'JPY']);
@@ -79,7 +99,7 @@ export class ProductRepository {
         `;
     }
 
-    buildProductFilterClause(filters = {}, { omit = [] } = {}) {
+    async buildProductFilterClause(filters = {}, { omit = [] } = {}) {
         const clauses = [];
         const params = [];
 
@@ -99,9 +119,18 @@ export class ProductRepository {
         }
 
         if (filters.search && !omit.includes('search')) {
-            clauses.push('(p.name LIKE ? OR p.spu LIKE ? OR p.series LIKE ?)');
-            const term = `%${filters.search}%`;
-            params.push(term, term, term);
+            // 优先使用 FTS5 全文搜索（O(logN)），不可用时降级为 LIKE（O(N)）
+            const hasFts = await this._hasFtsTable();
+            if (hasFts) {
+                const sanitized = String(filters.search).replace(/"/g, '""');
+                const ftsQuery = `"${sanitized}"*`;
+                clauses.push('p.rowid IN (SELECT rowid FROM products_fts WHERE products_fts MATCH ?)');
+                params.push(ftsQuery);
+            } else {
+                clauses.push('(p.name LIKE ? OR p.spu LIKE ? OR p.series LIKE ?)');
+                const term = `%${filters.search}%`;
+                params.push(term, term, term);
+            }
         }
 
         if (filters.hasStock === 'in_stock' && !omit.includes('hasStock')) {
@@ -117,7 +146,7 @@ export class ProductRepository {
     }
 
     async listAvailableBrands(filters = {}) {
-        const { clause, params } = this.buildProductFilterClause(filters, { omit: ['brand'] });
+        const { clause, params } = await this.buildProductFilterClause(filters, { omit: ['brand'] });
         const sql = `
             SELECT DISTINCT p.brand AS brand
             FROM products p
@@ -134,7 +163,7 @@ export class ProductRepository {
     }
 
     async listAvailableCategories(filters = {}) {
-        const { clause, params } = this.buildProductFilterClause(filters, { omit: ['category'] });
+        const { clause, params } = await this.buildProductFilterClause(filters, { omit: ['category'] });
         const sql = `
             SELECT DISTINCT p.category AS category
             FROM products p
@@ -543,7 +572,7 @@ export class ProductRepository {
         const normalizedSortOrder = String(filters.sortOrder || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
         const requestedSortField = ProductRepository.PRODUCT_SORT_FIELDS[filters.sortBy];
 
-        const { clause, params } = this.buildProductFilterClause(filters);
+        const { clause, params } = await this.buildProductFilterClause(filters);
         let listQuery = this._productSelectSQL(clause);
 
         const countQuery = this._productCountSQL(clause);

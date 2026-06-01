@@ -1,7 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
-import { findById, listForAdmin, listBySalesperson } from '../order/queries.js';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { findById, listForAdmin, listBySalesperson, _resetFtsCache } from '../order/queries.js';
 
 describe('order queries display model compatibility', () => {
+  beforeEach(() => {
+    _resetFtsCache();
+  });
+
   it('loads order lines into detail payload and aggregates displayStatus across lines', async () => {
     const firstStmt = {
       bind: vi.fn(() => firstStmt),
@@ -361,6 +365,10 @@ describe('order queries display model compatibility', () => {
   });
 
   it('extends admin search filters to order-line snapshot names when current_data name is missing', async () => {
+    const ftsCheckStmt = {
+      bind: vi.fn(() => ftsCheckStmt),
+      first: vi.fn(async () => null), // 无 FTS 表
+    };
     const countStmt = {
       bind: vi.fn(() => countStmt),
       first: vi.fn(async () => ({ total: 0 })),
@@ -370,19 +378,23 @@ describe('order queries display model compatibility', () => {
       all: vi.fn(async () => ({ results: [] })),
     };
     const db = {
-      prepare: vi.fn().mockReturnValueOnce(countStmt).mockReturnValueOnce(listStmt),
+      prepare: vi.fn()
+        .mockReturnValueOnce(ftsCheckStmt)
+        .mockReturnValueOnce(countStmt)
+        .mockReturnValueOnce(listStmt),
     };
 
     await listForAdmin(db, { search: 'Snapshot Chair', page: 1, limit: 20 });
 
-    expect(db.prepare.mock.calls[0][0]).toContain('o.summary_name LIKE ?');
-    expect(db.prepare.mock.calls[0][0]).toContain('o.summary_brand LIKE ?');
-    expect(db.prepare.mock.calls[0][0]).toContain('o.summary_sku LIKE ?');
-    expect(db.prepare.mock.calls[0][0]).toContain('order_summary.snapshot_name LIKE ?');
+    // calls[0] = FTS check, calls[1] = count, calls[2] = list
     expect(db.prepare.mock.calls[1][0]).toContain('o.summary_name LIKE ?');
     expect(db.prepare.mock.calls[1][0]).toContain('o.summary_brand LIKE ?');
     expect(db.prepare.mock.calls[1][0]).toContain('o.summary_sku LIKE ?');
     expect(db.prepare.mock.calls[1][0]).toContain('order_summary.snapshot_name LIKE ?');
+    expect(db.prepare.mock.calls[2][0]).toContain('o.summary_name LIKE ?');
+    expect(db.prepare.mock.calls[2][0]).toContain('o.summary_brand LIKE ?');
+    expect(db.prepare.mock.calls[2][0]).toContain('o.summary_sku LIKE ?');
+    expect(db.prepare.mock.calls[2][0]).toContain('order_summary.snapshot_name LIKE ?');
     expect(listStmt.bind).toHaveBeenCalledWith(
       '%Snapshot Chair%',
       '%Snapshot Chair%',
@@ -455,6 +467,10 @@ describe('order queries display model compatibility', () => {
   });
 
   it('keeps the admin count query on order_summary_projection even when line-derived filters are requested', async () => {
+    const ftsCheckStmt = {
+      bind: vi.fn(() => ftsCheckStmt),
+      first: vi.fn(async () => null), // 无 FTS 表
+    };
     const countStmt = {
       bind: vi.fn(() => countStmt),
       first: vi.fn(async () => ({ total: 0 })),
@@ -464,7 +480,10 @@ describe('order queries display model compatibility', () => {
       all: vi.fn(async () => ({ results: [] })),
     };
     const db = {
-      prepare: vi.fn().mockReturnValueOnce(countStmt).mockReturnValueOnce(listStmt),
+      prepare: vi.fn()
+        .mockReturnValueOnce(ftsCheckStmt)
+        .mockReturnValueOnce(countStmt)
+        .mockReturnValueOnce(listStmt),
     };
 
     await listForAdmin(db, {
@@ -474,9 +493,10 @@ describe('order queries display model compatibility', () => {
       limit: 20,
     });
 
-    expect(db.prepare.mock.calls[0][0]).toContain('order_summary_projection');
-    expect(db.prepare.mock.calls[0][0]).not.toContain('order_line_agg');
-    expect(db.prepare.mock.calls[0][0]).not.toContain('order_line_snapshot');
+    // calls[0] = FTS check, calls[1] = count, calls[2] = list
+    expect(db.prepare.mock.calls[1][0]).toContain('order_summary_projection');
+    expect(db.prepare.mock.calls[1][0]).not.toContain('order_line_agg');
+    expect(db.prepare.mock.calls[1][0]).not.toContain('order_line_snapshot');
   });
 
   it('keeps legacy procurement header filters available after switching list queries to projection', async () => {
