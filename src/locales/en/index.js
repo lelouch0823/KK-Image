@@ -18,6 +18,7 @@ import sales from './sales'; // New import
 import trash from './trash'; // New import
 import goodsOverview from './goodsOverview';
 import purchaseOrder from './purchaseOrder';
+import commandPalette from './commandPalette';
 
 export default {
   common,
@@ -63,4 +64,5 @@ export default {
   ai: misc.ai,
   auditLogs: misc.auditLogs,
   outboxOps: misc.outboxOps,
+  commandPalette,
 };

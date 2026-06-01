@@ -38,6 +38,21 @@
           :debounce="300"
         />
       </div>
+
+      <!-- 命令面板快捷入口 (桌面端) -->
+      <button
+        type="button"
+        class="hidden items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors hover:bg-(--bg-hover) lg:flex"
+        :style="{
+          borderColor: 'var(--border-color)',
+          color: 'var(--text-muted)',
+        }"
+        :title="t('commandPalette.shortcut')"
+        @click="openCommandPalette"
+      >
+        <AppIcon name="magnifying-glass" class="size-3.5" />
+        <kbd class="font-mono text-[10px]">⌘K</kbd>
+      </button>
       <!-- 通知铃铛 (桌面端) -->
       <div v-if="notificationsSupported" ref="notificationRef" class="relative">
         <AppButton
@@ -168,6 +183,7 @@ import { onClickOutside } from '@vueuse/core';
 import { useAI } from '@/composables/useAI';
 import { useAccessControl } from '@/composables/useAccessControl';
 import { useTheme } from '@/composables/useTheme';
+import { useCommandPalette } from '@/composables/useCommandPalette';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
@@ -183,6 +199,7 @@ const { unreadCount, startPolling, stopPolling, setAdminMode, permissionDenied, 
 const { isOpen, toggle: toggleAI } = useAI();
 const { hasPermission, loadPermissions } = useAccessControl();
 const { isDark, toggleTheme } = useTheme();
+const { open: openCommandPalette } = useCommandPalette();
 
 const showNotifications = ref(false);
 const notificationRef = ref(null);

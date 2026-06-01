@@ -20,6 +20,7 @@ import misc from './misc';
 import trash from './trash';
 import goodsOverview from './goodsOverview';
 import purchaseOrder from './purchaseOrder';
+import commandPalette from './commandPalette';
 
 export default {
   common,
@@ -68,4 +69,5 @@ export default {
   trash,
   goodsOverview,
   purchaseOrder,
+  commandPalette,
 };
