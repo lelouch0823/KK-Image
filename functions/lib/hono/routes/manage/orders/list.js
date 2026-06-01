@@ -143,40 +143,53 @@ app.get('/export', async (c) => {
     const fromDate = url.searchParams.get('from');
     const toDate = url.searchParams.get('to');
 
+    // 支持按 ID 列表筛选（批量导出选中订单）
+    const ids = url.searchParams.getAll('ids').filter(Boolean);
+
     let whereClause = '1=1';
     const bindParams = [];
 
-    if (salespersonId) {
+    // 如果指定了 IDs，优先使用 IDs 筛选
+    if (ids.length > 0) {
+        whereClause += ` AND o.id IN (${ids.map(() => '?').join(', ')})`;
+        bindParams.push(...ids);
+    }
+
+    if (salespersonId && ids.length === 0) {
         whereClause += ' AND o.salesperson_id = ?';
         bindParams.push(salespersonId);
     }
-    const statusValues = expandOrderStatusFilter(status);
-    if (statusValues.length === 1) {
-        whereClause += ' AND o.status = ?';
-        bindParams.push(statusValues[0]);
-    } else if (statusValues.length > 1) {
-        whereClause += ` AND o.status IN (${statusValues.map(() => '?').join(', ')})`;
-        bindParams.push(...statusValues);
-    }
-    whereClause = appendOrderProgressStatusFilter(
-        whereClause,
-        bindParams,
-        normalizeOrderProcurementStatus(procurementStatus)
-    );
-    whereClause = appendOrderDeliveryStatusFilter(
-        whereClause,
-        bindParams,
-        normalizeOrderDeliveryStatusFilter(deliveryStatus)
-    );
-    whereClause = appendOrderProductSearchFilter(whereClause, bindParams, search);
 
-    if (fromDate) {
-        whereClause += ' AND o.created_at >= ?';
-        bindParams.push(DateUtils.parseChinaDate(fromDate));
-    }
-    if (toDate) {
-        whereClause += ' AND o.created_at <= ?';
-        bindParams.push(DateUtils.parseChinaDate(toDate) + 86400000);
+    // 当指定 IDs 时，跳过其他筛选条件（精确导出选中订单）
+    if (ids.length === 0) {
+        const statusValues = expandOrderStatusFilter(status);
+        if (statusValues.length === 1) {
+            whereClause += ' AND o.status = ?';
+            bindParams.push(statusValues[0]);
+        } else if (statusValues.length > 1) {
+            whereClause += ` AND o.status IN (${statusValues.map(() => '?').join(', ')})`;
+            bindParams.push(...statusValues);
+        }
+        whereClause = appendOrderProgressStatusFilter(
+            whereClause,
+            bindParams,
+            normalizeOrderProcurementStatus(procurementStatus)
+        );
+        whereClause = appendOrderDeliveryStatusFilter(
+            whereClause,
+            bindParams,
+            normalizeOrderDeliveryStatusFilter(deliveryStatus)
+        );
+        whereClause = appendOrderProductSearchFilter(whereClause, bindParams, search);
+
+        if (fromDate) {
+            whereClause += ' AND o.created_at >= ?';
+            bindParams.push(DateUtils.parseChinaDate(fromDate));
+        }
+        if (toDate) {
+            whereClause += ' AND o.created_at <= ?';
+            bindParams.push(DateUtils.parseChinaDate(toDate) + 86400000);
+        }
     }
 
     const { results: orders } = await env.DB.prepare(`

@@ -234,6 +234,18 @@
       :loading="isDeleting"
       @confirm="executeOrderDeletion(viewingOrder)"
     />
+
+    <!-- 批量操作浮动栏 -->
+    <OrderBatchActions
+      v-if="errorCode !== ErrorCode.FORBIDDEN"
+      :selected-count="selectedIds.length"
+      :processing="batchProcessing"
+      :exporting="batchExporting"
+      :statuses="statuses"
+      @cancel="selectedIds = []"
+      @action="handleBatchAction"
+      @change-status="handleBatchChangeStatus"
+    />
   </ManagementListShell>
 </template>
 
@@ -258,6 +270,7 @@ import OrderFilters from './order/OrderFilters.vue';
 import OrderTable from './order/OrderTable.vue';
 import OrderCards from './order/OrderCards.vue';
 import OrderListStatusStack from './order/OrderListStatusStack.vue';
+import OrderBatchActions from './order/OrderBatchActions.vue';
 const OrderEditModal = defineAsyncComponent(() => import('./OrderEditModal.vue'));
 const OrderWorkflowModal = defineAsyncComponent(() => import('./order/OrderWorkflowModal.vue'));
 const OrderReturnDialog = defineAsyncComponent(() => import('./order/OrderReturnDialog.vue'));
@@ -343,9 +356,13 @@ const {
 
 const {
   selectedIds,
+  batchProcessing,
+  batchExporting,
   confirmData,
+  handleBatchAction,
+  handleBatchChangeStatus,
   handleVoidOrder,
-} = useOrderBatch(refreshOrders, batchAction, changeStatus);
+} = useOrderBatch(refreshOrders, batchAction, changeStatus, getOrder);
 
 // Status changing state (local UI state)
 const statusChanging = reactive({});

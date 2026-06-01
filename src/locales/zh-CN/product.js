@@ -124,6 +124,20 @@ export default {
     export: '导出',
     delete_confirm_message: '确定要删除该商品吗？此操作不可逆。',
   },
+  batch: {
+    selected: '已选择 {count} 项',
+    deselectAll: '取消选择',
+    activate: '批量上架',
+    activateConfirm: '确定要上架选中的 {count} 个商品规格吗？',
+    deactivate: '批量下架',
+    deactivateConfirm: '确定要下架选中的 {count} 个商品规格吗？',
+    exportSelected: '批量导出',
+    exportSelectedConfirm: '确定要导出选中的 {count} 个商品吗？',
+    activateSuccess: '批量上架成功',
+    deactivateSuccess: '批量下架成功',
+    exportSuccess: '批量导出成功',
+    exportFailed: '批量导出失败',
+  },
   create: {
     variants: {
       image_upload: '变体图片上传',

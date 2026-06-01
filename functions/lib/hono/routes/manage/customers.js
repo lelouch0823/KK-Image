@@ -72,6 +72,140 @@ app.get('/', async (c) => {
 });
 
 /**
+ * POST /batch/tags - 批量添加标签
+ */
+app.post('/batch/tags', async (c) => {
+    const { env } = c;
+    const body = await c.req.json();
+    const { ids, tag } = body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+        throw new BadRequestError('请选择至少一个客户');
+    }
+    if (!tag || typeof tag !== 'string' || !tag.trim()) {
+        throw new BadRequestError('请输入标签');
+    }
+
+    const repo = new CustomerRepository(env.DB);
+    const normalizedTag = tag.trim();
+    let successCount = 0;
+
+    // 使用事务批量更新
+    const statements = [];
+    for (const id of ids) {
+        const customer = await repo.findById(id);
+        if (!customer) continue;
+
+        const existingTags = Array.isArray(customer.tags) ? customer.tags : [];
+        if (existingTags.includes(normalizedTag)) continue;
+
+        const newTags = [...existingTags, normalizedTag];
+        statements.push(
+            env.DB.prepare('UPDATE customers SET tags = ?, updated_at = ? WHERE id = ?')
+                .bind(JSON.stringify(newTags), Date.now(), id)
+        );
+    }
+
+    if (statements.length > 0) {
+        await env.DB.batch(statements);
+        successCount = statements.length;
+    }
+
+    scheduleCacheInvalidation(c, getManageCustomerCacheUrls(c));
+    scheduleAuditEvent(c, {
+        domain: 'customers',
+        action: 'customer.batch_add_tag',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'customer',
+        summary: `Batch added tag "${normalizedTag}" to ${successCount} customers`,
+        metadata: { count: successCount, tag: normalizedTag },
+    });
+
+    return c.json({
+        success: true,
+        message: `成功为 ${successCount} 个客户添加标签`,
+        data: { count: successCount },
+    });
+});
+
+/**
+ * POST /batch/export - 批量导出选中客户
+ */
+app.post('/batch/export', async (c) => {
+    const { env } = c;
+    const body = await c.req.json();
+    const { ids } = body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+        throw new BadRequestError('请选择至少一个客户');
+    }
+
+    const repo = new CustomerRepository(env.DB);
+    const customers = [];
+    for (const id of ids) {
+        const customer = await repo.findById(id);
+        if (customer) customers.push(customer);
+    }
+
+    // CSV 列定义
+    const columns = [
+        { key: 'name', label: '客户名称' },
+        { key: 'phone', label: '电话' },
+        { key: 'company', label: '公司' },
+        { key: 'email', label: '邮箱' },
+        { key: 'address', label: '地址' },
+        { key: 'tags', label: '标签' },
+        { key: 'remark', label: '备注' },
+        { key: 'created_at', label: '创建时间' },
+    ];
+
+    const escapeCSV = (v) => {
+        const normalized = v === null || v === undefined ? '' : String(v);
+        return `"${normalized.replace(/"/g, '""')}"`;
+    };
+
+    const getChinaDateStr = (ts) => {
+        if (!ts) return '';
+        return new Date(Number(ts) + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    };
+
+    const header = columns.map(col => col.label).join(',');
+    const rows = customers.map(customer => {
+        return [
+            escapeCSV(customer.name),
+            escapeCSV(customer.phone),
+            escapeCSV(customer.company),
+            escapeCSV(customer.email),
+            escapeCSV(customer.address),
+            escapeCSV(Array.isArray(customer.tags) ? customer.tags.join('; ') : ''),
+            escapeCSV(customer.remark),
+            escapeCSV(getChinaDateStr(customer.created_at)),
+        ].join(',');
+    });
+
+    const csv = '﻿' + [header, ...rows].join('\n');
+    const filename = `customers_${getChinaDateStr(Date.now())}.csv`;
+
+    scheduleAuditEvent(c, {
+        domain: 'customers',
+        action: 'customer.batch_export',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'customer',
+        summary: `Batch exported ${customers.length} customers`,
+        metadata: { count: customers.length },
+    });
+
+    return new Response(csv, {
+        headers: {
+            'Content-Type': 'text/csv; charset=utf-8',
+            'Content-Disposition': `attachment; filename="${filename}"`,
+        },
+    });
+});
+
+/**
  * POST / - 创建新客户
  */
 app.post('/', zValidator('json', CreateCustomerSchema), async (c) => {

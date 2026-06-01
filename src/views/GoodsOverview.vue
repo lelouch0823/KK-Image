@@ -354,10 +354,11 @@
             <FloatingSelectionBar :visible="selectedItems.length > 0">
               <template #summary>
                 <span class="text-sm font-medium text-(--text-main)">
-                  {{ t('goodsOverview.batch.selected', { count: selectedItems.length }) }}
+                  {{ t('product.batch.selected', { count: selectedItems.length }) }}
                 </span>
               </template>
               <template #default>
+                <!-- 创建采购单 -->
                 <AppButton
                   variant="primary"
                   size="sm"
@@ -373,36 +374,95 @@
                   </template>
                   {{ t('goodsOverview.batch.createPO') }}
                 </AppButton>
+
+                <!-- 分隔线 -->
+                <div class="h-6 w-px bg-(--border-color)" />
+
+                <!-- 批量上架 -->
+                <AppButton
+                  variant="outline"
+                  size="sm"
+                  :disabled="batchStatusProcessing"
+                  class="border-success/30 bg-success/10 text-success shadow-success/10 hover:border-success/40 hover:bg-success/15 hover:text-success shadow-lg"
+                  @click="handleBatchActivate"
+                >
+                  <template #icon-left>
+                    <AppIcon
+                      v-if="batchStatusProcessing"
+                      name="spinner"
+                      class="size-4 animate-spin"
+                    />
+                    <AppIcon v-else name="check-circle" class="size-4" />
+                  </template>
+                  {{ t('product.batch.activate') }}
+                </AppButton>
+
+                <!-- 批量下架 -->
+                <AppButton
+                  variant="outline"
+                  size="sm"
+                  :disabled="batchStatusProcessing"
+                  class="border-warning/30 bg-warning/10 text-warning shadow-warning/10 hover:border-warning/40 hover:bg-warning/15 hover:text-warning shadow-lg"
+                  @click="handleBatchDeactivate"
+                >
+                  <template #icon-left>
+                    <AppIcon
+                      v-if="batchStatusProcessing"
+                      name="spinner"
+                      class="size-4 animate-spin"
+                    />
+                    <AppIcon v-else name="x-circle" class="size-4" />
+                  </template>
+                  {{ t('product.batch.deactivate') }}
+                </AppButton>
+
+                <!-- 分隔线 -->
+                <div class="h-6 w-px bg-(--border-color)" />
+
+                <!-- 取消选择 -->
                 <AppButton
                   variant="ghost"
                   size="sm"
-                  :disabled="isCreatingPO"
+                  :disabled="isCreatingPO || batchStatusProcessing"
                   @click="clearSelection"
                 >
-                  {{ t('goodsOverview.batch.deselectAll') }}
+                  {{ t('product.batch.deselectAll') }}
                 </AppButton>
               </template>
             </FloatingSelectionBar>
           </template>
         </template>
       </ManagementListShell>
+
+      <!-- 批量状态变更确认弹窗 -->
+      <ConfirmDialog
+        v-model="batchConfirmData.show"
+        :title="batchConfirmData.title"
+        :message="batchConfirmData.message"
+        :type="batchConfirmData.type"
+        :loading="batchConfirmData.loading"
+        @confirm="batchConfirmData.onConfirm"
+      />
     </template>
   </div>
 </template>
 
 <script setup>
-import { computed, onActivated, onDeactivated, watch } from 'vue';
+import { ref, computed, onActivated, onDeactivated, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
 import { useAI } from '@/composables/useAI';
 import { useGoodsOverview } from '@/composables/useGoodsOverview';
+import { API } from '@/utils/constants';
 import { ErrorCode } from '@/utils/error-codes';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppCheckbox from '@/components/ui/AppCheckbox.vue';
 import AppTable from '@/components/ui/AppTable.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import FilterSelect from '@/design-system/composed/FilterSelect.vue';
@@ -416,6 +476,7 @@ import { resolvePrimaryProductImageSrc } from '@/components/product/image-resolv
 
 const { t } = useI18n();
 const { addToast } = useToast();
+const { authFetch } = useAuth();
 const { setContext } = useAI();
 const router = useRouter();
 const {
@@ -437,6 +498,112 @@ const {
   isCreatingPO,
   init,
 } = useGoodsOverview();
+
+// 批量状态变更
+const batchStatusProcessing = ref(false);
+const batchConfirmData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'primary',
+  loading: false,
+  onConfirm: () => {},
+});
+
+/**
+ * 批量变更变体状态
+ */
+const handleBatchStatusChange = async (status) => {
+  if (batchStatusProcessing.value || selectedItems.value.length === 0) return;
+
+  const variantIds = selectedItems.value
+    .map(item => item.variantId)
+    .filter(Boolean);
+
+  if (variantIds.length === 0) {
+    addToast({ message: '请选择包含规格的商品', type: 'error' });
+    return;
+  }
+
+  batchStatusProcessing.value = true;
+  try {
+    const res = await authFetch(API.MANAGE_PRODUCT_BATCH_STATUS, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ variantIds, status }),
+    });
+    const result = await res.json();
+
+    if (result.success) {
+      addToast({
+        message: status === 'active'
+          ? t('product.batch.activateSuccess')
+          : t('product.batch.deactivateSuccess'),
+        type: 'success',
+      });
+      clearSelection();
+      // 刷新列表
+      init();
+    } else {
+      addToast({ message: result.message || result.error || t('common.operationFailed'), type: 'error' });
+    }
+  } catch (e) {
+    console.error('Batch status change error:', e);
+    addToast({ message: t('common.networkError'), type: 'error' });
+  } finally {
+    batchStatusProcessing.value = false;
+  }
+};
+
+/**
+ * 批量上架（带确认）
+ */
+const handleBatchActivate = () => {
+  if (batchStatusProcessing.value || selectedItems.value.length === 0) return;
+
+  const count = selectedItems.value.length;
+  batchConfirmData.value = {
+    show: true,
+    title: t('product.batch.activate'),
+    message: t('product.batch.activateConfirm', { count }),
+    type: 'primary',
+    loading: false,
+    onConfirm: async () => {
+      batchConfirmData.value.loading = true;
+      try {
+        await handleBatchStatusChange('active');
+        batchConfirmData.value.show = false;
+      } finally {
+        batchConfirmData.value.loading = false;
+      }
+    },
+  };
+};
+
+/**
+ * 批量下架（带确认）
+ */
+const handleBatchDeactivate = () => {
+  if (batchStatusProcessing.value || selectedItems.value.length === 0) return;
+
+  const count = selectedItems.value.length;
+  batchConfirmData.value = {
+    show: true,
+    title: t('product.batch.deactivate'),
+    message: t('product.batch.deactivateConfirm', { count }),
+    type: 'warning',
+    loading: false,
+    onConfirm: async () => {
+      batchConfirmData.value.loading = true;
+      try {
+        await handleBatchStatusChange('archived');
+        batchConfirmData.value.show = false;
+      } finally {
+        batchConfirmData.value.loading = false;
+      }
+    },
+  };
+};
 
 const columns = computed(() => [
   { key: 'selection', label: '', width: '40px' },

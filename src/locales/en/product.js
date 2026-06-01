@@ -124,6 +124,20 @@ export default {
     export: 'Export',
     delete_confirm_message: 'Are you sure you want to delete this product? This action is irreversible.',
   },
+  batch: {
+    selected: '{count} selected',
+    deselectAll: 'Deselect All',
+    activate: 'Batch Activate',
+    activateConfirm: 'Are you sure you want to activate {count} selected variants?',
+    deactivate: 'Batch Deactivate',
+    deactivateConfirm: 'Are you sure you want to deactivate {count} selected variants?',
+    exportSelected: 'Batch Export',
+    exportSelectedConfirm: 'Are you sure you want to export {count} selected products?',
+    activateSuccess: 'Batch activated successfully',
+    deactivateSuccess: 'Batch deactivated successfully',
+    exportSuccess: 'Batch export successful',
+    exportFailed: 'Batch export failed',
+  },
   create: {
     variants: {
       image_upload: 'Product Variant Image Upload',

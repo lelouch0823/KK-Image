@@ -52,10 +52,28 @@
             @row-click="openDetail"
           >
 
+            <!-- 复选框列头 -->
+            <template #header-selection>
+              <div class="flex items-center justify-center">
+                <AppCheckbox
+                  :checked="isAllSelected"
+                  :indeterminate="isPartialSelected"
+                  @change="toggleSelectAll"
+                />
+              </div>
+            </template>
+
+            <!-- 复选框列内容 -->
+            <template #cell-selection="{ row }">
+              <div class="flex items-center justify-center" @click.stop>
+                <AppCheckbox :checked="isIdSelected(row.id)" @change="toggleSelect(row.id)" />
+              </div>
+            </template>
+
             <template #cell-name="{ row }">
                <span class="font-medium text-(--text-main)">{{ row.name }}</span>
             </template>
-            
+
             <template #cell-contact="{ row }">
               <div class="flex flex-col gap-1 text-(--text-secondary)">
                 <!-- 电话 -->
@@ -72,7 +90,7 @@
                 <span v-if="!row.phone && !row.email" class="text-(--text-muted)">-</span>
               </div>
             </template>
-            
+
             <template #cell-company="{ value }">
                <span class="text-(--text-secondary)">{{ value || '-' }}</span>
             </template>
@@ -185,11 +203,119 @@
         @cancel="showFormModal = false"
       />
     </Modal>
+
+    <!-- 批量添加标签弹窗 -->
+    <Modal
+      v-model="showTagModal"
+      :title="t('customer.manage.batchAddTag')"
+    >
+      <div class="space-y-4 p-4">
+        <p class="text-sm text-(--text-secondary)">
+          {{ t('customer.manage.batchAddTagConfirm', { count: selectedIds.length, tag: newTag || '...' }) }}
+        </p>
+        <div>
+          <label class="mb-1 block text-sm font-medium text-(--text-main)">
+            {{ t('customer.form.tags') }}
+          </label>
+          <input
+            v-model="newTag"
+            type="text"
+            :placeholder="t('customer.manage.tagInputPlaceholder')"
+            class="w-full rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) placeholder-(--text-muted) focus:border-(--color-primary) focus:outline-none focus:ring-1 focus:ring-(--color-primary)"
+            @keydown.enter="handleBatchAddTag"
+          />
+        </div>
+        <div class="flex justify-end gap-2">
+          <AppButton
+            variant="ghost"
+            size="sm"
+            @click="showTagModal = false"
+          >
+            {{ t('common.cancel') }}
+          </AppButton>
+          <AppButton
+            variant="primary"
+            size="sm"
+            :disabled="!newTag.trim() || batchTagProcessing"
+            @click="handleBatchAddTag"
+          >
+            <template #icon-left>
+              <AppIcon
+                v-if="batchTagProcessing"
+                name="spinner"
+                class="size-4 animate-spin"
+              />
+            </template>
+            {{ t('common.confirm') }}
+          </AppButton>
+        </div>
+      </div>
+    </Modal>
+
+    <!-- 批量操作浮动栏 -->
+    <FloatingSelectionBar :visible="selectedIds.length > 0">
+      <template #summary>
+        <span class="text-sm font-medium text-(--text-main)">
+          {{ t('customer.manage.selectedCount', { count: selectedIds.length }) }}
+        </span>
+        <AppButton
+          variant="link"
+          size="sm"
+          @click="clearBatchSelection"
+        >
+          {{ t('customer.manage.cancelSelect') }}
+        </AppButton>
+      </template>
+
+      <template #default>
+        <!-- 批量添加标签 -->
+        <AppButton
+          variant="primary"
+          size="sm"
+          :disabled="batchTagProcessing || batchExporting"
+          @click="showTagModal = true"
+        >
+          <template #icon-left>
+            <AppIcon name="tag" class="size-4" />
+          </template>
+          {{ t('customer.manage.batchAddTag') }}
+        </AppButton>
+
+        <!-- 批量导出 -->
+        <AppButton
+          variant="outline"
+          size="sm"
+          :disabled="batchTagProcessing || batchExporting"
+          @click="handleBatchExport"
+        >
+          <template #icon-left>
+            <AppIcon
+              :name="batchExporting ? 'spinner' : 'document-arrow-down'"
+              :class="['size-4', { 'animate-spin': batchExporting }]"
+            />
+          </template>
+          {{ t('customer.manage.batchExport') }}
+        </AppButton>
+
+        <!-- 分隔线 -->
+        <div class="h-6 w-px bg-(--border-color)" />
+
+        <!-- 取消选择 -->
+        <AppButton
+          variant="ghost"
+          size="sm"
+          :disabled="batchTagProcessing || batchExporting"
+          @click="clearBatchSelection"
+        >
+          {{ t('customer.manage.cancelSelect') }}
+        </AppButton>
+      </template>
+    </FloatingSelectionBar>
   </ManagementListShell>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onActivated, onUnmounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, onActivated, onUnmounted, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
@@ -200,6 +326,7 @@ import { API } from '@/utils/constants';
 import { useManagedListSelection } from '@/composables/useManagedListSelection';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import AppTable from '@/components/ui/AppTable.vue';
+import AppCheckbox from '@/components/ui/AppCheckbox.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import Modal from '@/components/ui/Modal.vue';
 import CustomerForm from '@/components/customer/CustomerForm.vue';
@@ -210,6 +337,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import FloatingSelectionBar from '@/design-system/composed/FloatingSelectionBar.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
@@ -239,7 +367,15 @@ const showDetailPanel = ref(false);
 const viewingCustomer = ref(null);
 let stopCustomersRefreshSubscription = null;
 
+// 批量选择状态
+const selectedIds = ref([]);
+const showTagModal = ref(false);
+const newTag = ref('');
+const batchTagProcessing = ref(false);
+const batchExporting = ref(false);
+
 const columns = [
+  { key: 'selection', label: '', align: 'center', width: '48px', class: 'px-0' },
   { key: 'name', label: t('customer.form.name') },
   { key: 'contact', label: t('customer.manage.searchPlaceholder') || 'Contact' },
   { key: 'company', label: t('customer.form.company') },
@@ -254,6 +390,38 @@ const {
   handleCreated,
   selectItem,
 } = useManagedListSelection();
+
+// 批量选择计算属性
+const isAllSelected = computed(() =>
+  customers.value.length > 0 && selectedIds.value.length === customers.value.length
+);
+
+const isPartialSelected = computed(() =>
+  selectedIds.value.length > 0 && selectedIds.value.length < customers.value.length
+);
+
+const isIdSelected = (id) => selectedIds.value.includes(id);
+
+const toggleSelect = (id) => {
+  const index = selectedIds.value.indexOf(id);
+  if (index === -1) {
+    selectedIds.value = [...selectedIds.value, id];
+  } else {
+    selectedIds.value = selectedIds.value.filter(i => i !== id);
+  }
+};
+
+const toggleSelectAll = () => {
+  if (isAllSelected.value) {
+    selectedIds.value = [];
+  } else {
+    selectedIds.value = customers.value.map(c => c.id);
+  }
+};
+
+const clearBatchSelection = () => {
+  selectedIds.value = [];
+};
 
 const loadCustomers = async (params = {}) => {
   loading.value = true;
@@ -373,6 +541,83 @@ const handleFormSubmit = async (formData) => {
     }
   } catch (_e) {
     addToast({ message: t('common.networkError'), type: 'error' });
+  }
+};
+
+/**
+ * 批量添加标签
+ */
+const handleBatchAddTag = async () => {
+  if (batchTagProcessing.value || selectedIds.value.length === 0 || !newTag.value.trim()) return;
+
+  batchTagProcessing.value = true;
+  try {
+    const res = await authFetch(API.MANAGE_CUSTOMER_BATCH_TAGS, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ids: selectedIds.value,
+        tag: newTag.value.trim(),
+      }),
+    });
+    const result = await res.json();
+
+    if (result.success) {
+      addToast({
+        message: t('customer.manage.batchAddTagSuccess'),
+        type: 'success',
+      });
+      showTagModal.value = false;
+      newTag.value = '';
+      clearBatchSelection();
+      loadCustomers();
+    } else {
+      addToast({ message: result.message || result.error || t('common.operationFailed'), type: 'error' });
+    }
+  } catch (e) {
+    console.error('Batch add tag error:', e);
+    addToast({ message: t('common.networkError'), type: 'error' });
+  } finally {
+    batchTagProcessing.value = false;
+  }
+};
+
+/**
+ * 批量导出客户
+ */
+const handleBatchExport = async () => {
+  if (batchExporting.value || selectedIds.value.length === 0) return;
+
+  batchExporting.value = true;
+  try {
+    const res = await authFetch(API.MANAGE_CUSTOMER_BATCH_EXPORT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: selectedIds.value }),
+    });
+
+    const blob = await res.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+
+    const disposition = res.headers.get('Content-Disposition');
+    const filenameMatch = disposition && disposition.match(/filename="?(.+)"?/);
+    link.download = filenameMatch
+      ? filenameMatch[1]
+      : `customers_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+
+    addToast({ message: t('customer.manage.batchExportSuccess'), type: 'success' });
+  } catch (e) {
+    console.error('Batch export error:', e);
+    addToast({ message: t('customer.manage.batchExportFailed'), type: 'error' });
+  } finally {
+    batchExporting.value = false;
   }
 };
 

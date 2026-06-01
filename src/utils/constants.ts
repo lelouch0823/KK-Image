@@ -115,10 +115,13 @@ export const API: Record<string, any> = {
   MANAGE_CUSTOMERS: '/api/manage/customers',
   MANAGE_CUSTOMER: '/api/manage/customers',
   MANAGE_CUSTOMER_ORDERS: (id: string | number) => `/api/manage/customers/${id}/orders`,
+  MANAGE_CUSTOMER_BATCH_TAGS: '/api/manage/customers/batch/tags',
+  MANAGE_CUSTOMER_BATCH_EXPORT: '/api/manage/customers/batch/export',
 
   // 商品管理
   MANAGE_PRODUCTS: `${API_PREFIX}/products`,
   MANAGE_PRODUCT_BY_ID: (id: string | number) => `${API_PREFIX}/products/${id}`,
+  MANAGE_PRODUCT_BATCH_STATUS: `${API_PREFIX}/products/batch/status`,
 
   // 订货总览
   MANAGE_GOODS_OVERVIEW: `${API_PREFIX}/goods-overview`,
