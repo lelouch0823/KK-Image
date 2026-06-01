@@ -11,6 +11,9 @@ export class ProductRepository {
     /** @type {boolean|null} FTS5 可用性缓存 */
     static _ftsAvailable = null;
 
+    /** 商品生命周期状态常量 */
+    static VALID_STATUSES = Object.freeze(['draft', 'active', 'archived']);
+
     static PRODUCT_SORT_FIELDS = Object.freeze({
         price: 'price',
         stock: 'available_quantity',
@@ -82,8 +85,7 @@ export class ProductRepository {
                 COALESCE(pp.min_cost_price, 0) AS cost_price,
                 COALESCE(pp.total_stock, 0) AS stock_quantity,
                 COALESCE(pp.total_available, COALESCE(pp.total_stock, 0)) AS available_quantity,
-                COALESCE(pp.min_alert_threshold, 10) AS alert_threshold,
-                CASE WHEN COALESCE(pp.active_variant_count, 0) > 0 THEN 'active' ELSE 'archived' END AS derived_status
+                COALESCE(pp.min_alert_threshold, 10) AS alert_threshold
             FROM products p
             LEFT JOIN product_projection pp ON pp.product_id = p.id
             WHERE ${whereClause}
@@ -104,7 +106,7 @@ export class ProductRepository {
         const params = [];
 
         if (filters.status && !omit.includes('status')) {
-            clauses.push("(CASE WHEN COALESCE(pp.active_variant_count, 0) > 0 THEN 'active' ELSE 'archived' END) = ?");
+            clauses.push('p.status = ?');
             params.push(filters.status);
         }
 
@@ -204,6 +206,7 @@ export class ProductRepository {
             images: JSON.stringify(data.images || []),
             specifications: JSON.stringify(data.specifications || {}),
             options: JSON.stringify(data.options || []),
+            status: data.status || 'draft',
             created_at: now,
             updated_at: now
         };
@@ -230,7 +233,6 @@ export class ProductRepository {
             stock_quantity: 0,
             available_quantity: 0,
             alert_threshold: 10,
-            derived_status: 'archived',
         };
     }
     /**
@@ -278,6 +280,7 @@ export class ProductRepository {
                 images: JSON.stringify(data.images || []),
                 specifications: JSON.stringify(data.specifications || {}),
                 options: JSON.stringify(data.options || []),
+                status: data.status || 'draft',
                 created_at: now,
                 updated_at: now
             };
@@ -366,8 +369,36 @@ export class ProductRepository {
     }
 
     /**
+     * 更新商品状态
+     * @param {string} id
+     * @param {string} status - draft | active | archived
+     * @returns {Promise<{success: boolean, changes: number, error?: string}>}
+     */
+    async updateStatus(id, status) {
+        if (!ProductRepository.VALID_STATUSES.includes(status)) {
+            return { success: false, changes: 0, error: `Invalid status: ${status}. Valid values: ${ProductRepository.VALID_STATUSES.join(', ')}` };
+        }
+        const now = Date.now();
+        try {
+            const result = await execute(
+                this.db,
+                'UPDATE products SET status = ?, updated_at = ? WHERE id = ?',
+                [status, now, id],
+                { label: 'product.updateStatus' }
+            );
+            return {
+                success: result.success,
+                changes: hasChanges(result) ? (result.meta?.changes || 0) : 0,
+            };
+        } catch (e) {
+            console.error('[ProductRepository.updateStatus] Error:', e);
+            return { success: false, changes: 0, error: e.message };
+        }
+    }
+
+    /**
      * 根据 SPU 查找
-     * @param {string} spu 
+     * @param {string} spu
      */
     async findBySpu(spu) {
         const result = await queryFirst(
@@ -443,6 +474,7 @@ export class ProductRepository {
                         images: JSON.stringify(productData.images || []),
                         specifications: JSON.stringify(productData.specifications || {}),
                         options: JSON.stringify(productData.options || []),
+                        status: productData.status || 'draft',
                         created_at: now,
                         updated_at: now,
                     };
@@ -518,6 +550,7 @@ export class ProductRepository {
         const allowedFields = [
             'name', 'spu', 'slug', 'category', 'brand', 'series',
             'currency', 'description', 'images', 'specifications', 'options',
+            'status',
         ];
 
         const updateData = {};
@@ -531,6 +564,11 @@ export class ProductRepository {
                 const normalizedCurrency = this.normalizeCurrency(value, { allowEmpty: false });
                 if (!normalizedCurrency) return { clause: null, values: null, error: 'Invalid currency code' };
                 updateData[key] = normalizedCurrency;
+            } else if (key === 'status') {
+                if (!ProductRepository.VALID_STATUSES.includes(value)) {
+                    return { clause: null, values: null, error: `Invalid status: ${value}. Valid values: ${ProductRepository.VALID_STATUSES.join(', ')}` };
+                }
+                updateData[key] = value;
             } else {
                 updateData[key] = value;
             }
@@ -623,7 +661,6 @@ export class ProductRepository {
         try {
             return {
                 ...item,
-                status: item.derived_status || item.status,
                 images: parseJsonArray(item.images, []),
                 specifications: parseJsonObject(item.specifications, {}),
                 options: parseJsonArray(item.options, []),
@@ -633,7 +670,6 @@ export class ProductRepository {
             // 返回安全默认值，避免将未解析的字符串暴露给调用方
             return {
                 ...item,
-                status: item.derived_status || item.status,
                 images: [],
                 specifications: {},
                 options: [],
