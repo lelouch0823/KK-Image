@@ -401,4 +401,86 @@ export class OrderStatsRepository {
     );
     return result.results;
   }
+
+  /**
+   * 获取销售趋势（每日订单数）
+   * @param {number} startTimestamp - 开始时间戳
+   * @returns {Promise<Array<{date: string, orderCount: number}>>}
+   */
+  async getSalesTrend(startTimestamp) {
+    const result = await this.runQuery(
+      `
+            SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date,
+                   COUNT(*) as orderCount
+            FROM orders
+            WHERE created_at >= ?
+            GROUP BY date
+            ORDER BY date ASC
+        `,
+      [startTimestamp],
+      'order.stats.salesTrend'
+    );
+    return result.results;
+  }
+
+  /**
+   * 获取订单状态分布
+   * @returns {Promise<Array<{status: string, count: number}>>}
+   */
+  async getStatusDistribution() {
+    const result = await this.runQuery(
+      `
+            SELECT status, COUNT(*) as count
+            FROM orders
+            GROUP BY status
+            ORDER BY count DESC
+        `,
+      [],
+      'order.stats.statusDistribution'
+    );
+    return result.results;
+  }
+
+  /**
+   * 获取热销商品排行（按订单行数统计）
+   * @param {number} limit - 返回数量
+   * @returns {Promise<Array<{productName: string, orderCount: number}>>}
+   */
+  async getTopProducts(limit = 10) {
+    const result = await this.runQuery(
+      `
+            SELECT snapshot_name as productName,
+                   COUNT(*) as orderCount,
+                   SUM(ordered_qty) as totalQty
+            FROM order_lines
+            WHERE snapshot_name IS NOT NULL AND snapshot_name != ''
+            GROUP BY snapshot_name
+            ORDER BY orderCount DESC
+            LIMIT ?
+        `,
+      [limit],
+      'order.stats.topProducts'
+    );
+    return result.results;
+  }
+
+  /**
+   * 获取销售员业绩统计（按订单数）
+   * @returns {Promise<Array<{name: string, orderCount: number}>>}
+   */
+  async getSalespersonStats() {
+    const result = await this.runQuery(
+      `
+            SELECT COALESCE(s.name, '未知') as name,
+                   COUNT(*) as orderCount
+            FROM orders o
+            LEFT JOIN salespersons s ON s.id = o.salesperson_id
+            GROUP BY o.salesperson_id
+            ORDER BY orderCount DESC
+        `,
+      [],
+      'order.stats.salespersonStats'
+    );
+    return result.results;
+  }
 }

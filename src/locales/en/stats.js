@@ -40,4 +40,13 @@ export default {
   fileName: 'File Name',
   fileType: 'Type',
   fileSize: 'Size',
+  // New charts
+  salesTrend: 'Sales Trend (90D)',
+  orderCount: 'Order Count',
+  date: 'Date',
+  topProducts: 'Top 10 Products',
+  salespersonPerformance: 'Salesperson Performance',
+  totalOrders: 'Total Orders',
+  noOrders: 'No Orders',
+  salesperson: 'Salesperson',
 };

@@ -145,6 +145,27 @@
             </StatsChartWrapper>
           </div>
 
+          <!-- 销售趋势图 (90天) -->
+          <StatsChartWrapper :title="t('stats.salesTrend')">
+            <template #actions>
+              <StatusBadge variant="neutral" outline>
+                {{ stats.charts?.salesTrend?.length || 0 }} {{ t('stats.date') }}
+              </StatusBadge>
+            </template>
+            <canvas ref="salesTrendChartRef"></canvas>
+          </StatsChartWrapper>
+
+          <!-- 热销排行 + 销售员业绩 -->
+          <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <StatsChartWrapper :title="t('stats.topProducts')">
+              <canvas ref="topProductsChartRef"></canvas>
+            </StatsChartWrapper>
+
+            <StatsChartWrapper :title="t('stats.salespersonPerformance')">
+              <canvas ref="salespersonChartRef"></canvas>
+            </StatsChartWrapper>
+          </div>
+
           <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <SurfaceSection :title="t('stats.topSpaces')" body-class="space-y-4">
               <template v-if="stats.traffic?.topSpaces?.length > 0">
@@ -333,9 +354,15 @@ const errorCode = ref(null);
 const stats = ref(null);
 const trendChartRef = ref(null);
 const typeChartRef = ref(null);
+const salesTrendChartRef = ref(null);
+const topProductsChartRef = ref(null);
+const salespersonChartRef = ref(null);
 
 let trendChartInstance = null;
 let typeChartInstance = null;
+let salesTrendChartInstance = null;
+let topProductsChartInstance = null;
+let salespersonChartInstance = null;
 
 const largeFilesColumns = computed(() => [
   { key: 'index', label: '#', width: '60px' },
@@ -358,6 +385,9 @@ const createCharts = () => {
   // Destroy Old
   if (trendChartInstance) trendChartInstance.destroy();
   if (typeChartInstance) typeChartInstance.destroy();
+  if (salesTrendChartInstance) salesTrendChartInstance.destroy();
+  if (topProductsChartInstance) topProductsChartInstance.destroy();
+  if (salespersonChartInstance) salespersonChartInstance.destroy();
 
   // 1. Traffic Trend Chart
   if (trendChartRef.value) {
@@ -478,6 +508,180 @@ const createCharts = () => {
             backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),
             borderColor: palette.border,
             borderWidth: 1,
+          },
+        },
+      },
+    });
+  }
+
+  // 3. 销售趋势折线图 (90天)
+  if (salesTrendChartRef.value && stats.value.charts?.salesTrend) {
+    const ctx = salesTrendChartRef.value.getContext('2d');
+    const data = stats.value.charts.salesTrend;
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, withAlpha(palette.primary, 0.3));
+    gradient.addColorStop(1, withAlpha(palette.primary, 0));
+
+    salesTrendChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map((item) => item.date?.slice(5) || ''),
+        datasets: [
+          {
+            label: t('stats.orderCount'),
+            data: data.map((item) => item.orderCount || 0),
+            borderColor: palette.primary,
+            backgroundColor: gradient,
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            pointBackgroundColor: palette.primary,
+            pointBorderColor: palette.bgCard,
+            pointBorderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),
+            titleColor: palette.textMain,
+            bodyColor: palette.textSecondary,
+            borderColor: palette.border,
+            borderWidth: 1,
+            padding: 12,
+            displayColors: false,
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { maxTicksLimit: 10, color: palette.textSecondary, font: { size: 11 } },
+          },
+          y: {
+            border: { display: false },
+            grid: { color: withAlpha(palette.border, 0.4) },
+            beginAtZero: true,
+            ticks: { color: palette.textSecondary, font: { size: 11 } },
+          },
+        },
+        interaction: { intersect: false, mode: 'index' },
+      },
+    });
+  }
+
+  // 4. 热销商品排行 (水平条形图)
+  if (topProductsChartRef.value && stats.value.charts?.topProducts) {
+    const ctx = topProductsChartRef.value.getContext('2d');
+    const data = stats.value.charts.topProducts;
+
+    topProductsChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: data.map((item) => {
+          const name = item.productName || '';
+          return name.length > 12 ? name.slice(0, 12) + '...' : name;
+        }),
+        datasets: [
+          {
+            label: t('stats.orderCount'),
+            data: data.map((item) => item.orderCount || 0),
+            backgroundColor: [
+              withAlpha(palette.primary, 0.8),
+              withAlpha(palette.info, 0.8),
+              withAlpha(palette.success, 0.8),
+              withAlpha(palette.warning, 0.8),
+              withAlpha(palette.danger, 0.7),
+              withAlpha(palette.primary, 0.6),
+              withAlpha(palette.info, 0.6),
+              withAlpha(palette.success, 0.6),
+              withAlpha(palette.warning, 0.6),
+              withAlpha(palette.danger, 0.5),
+            ],
+            borderWidth: 0,
+            borderRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),
+            titleColor: palette.textMain,
+            bodyColor: palette.textSecondary,
+            borderColor: palette.border,
+            borderWidth: 1,
+          },
+        },
+        scales: {
+          x: {
+            border: { display: false },
+            grid: { color: withAlpha(palette.border, 0.3) },
+            beginAtZero: true,
+            ticks: { color: palette.textSecondary, font: { size: 11 } },
+          },
+          y: {
+            grid: { display: false },
+            ticks: { color: palette.textSecondary, font: { size: 11 } },
+          },
+        },
+      },
+    });
+  }
+
+  // 5. 销售员业绩柱状图
+  if (salespersonChartRef.value && stats.value.charts?.salespersonStats) {
+    const ctx = salespersonChartRef.value.getContext('2d');
+    const data = stats.value.charts.salespersonStats;
+
+    salespersonChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: data.map((item) => item.name || '未知'),
+        datasets: [
+          {
+            label: t('stats.orderCount'),
+            data: data.map((item) => item.orderCount || 0),
+            backgroundColor: withAlpha(palette.info, 0.7),
+            borderWidth: 0,
+            borderRadius: 4,
+            hoverBackgroundColor: withAlpha(palette.info, 0.9),
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),
+            titleColor: palette.textMain,
+            bodyColor: palette.textSecondary,
+            borderColor: palette.border,
+            borderWidth: 1,
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: palette.textSecondary, font: { size: 11 } },
+          },
+          y: {
+            border: { display: false },
+            grid: { color: withAlpha(palette.border, 0.3) },
+            beginAtZero: true,
+            ticks: { color: palette.textSecondary, font: { size: 11 } },
           },
         },
       },

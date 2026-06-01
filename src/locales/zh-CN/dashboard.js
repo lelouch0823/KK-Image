@@ -50,4 +50,9 @@ export default {
   footer: 'KK-Image 版权所有',
   permissionDenied: '控制台权限不足',
   permissionDeniedDesc: '当前账号没有控制台读取权限，请联系管理员。',
+  // 图表
+  salesTrend: '销售趋势 (30天)',
+  orderStatusDistribution: '订单状态分布',
+  orderCount: '订单数',
+  date: '日期',
 };

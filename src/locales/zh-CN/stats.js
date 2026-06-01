@@ -40,4 +40,13 @@ export default {
   fileName: '文件名',
   fileType: '类型',
   fileSize: '大小',
+  // 新增图表
+  salesTrend: '销售趋势 (90天)',
+  orderCount: '订单数',
+  date: '日期',
+  topProducts: '热销商品排行 TOP 10',
+  salespersonPerformance: '销售员业绩',
+  totalOrders: '总订单',
+  noOrders: '暂无订单',
+  salesperson: '销售员',
 };

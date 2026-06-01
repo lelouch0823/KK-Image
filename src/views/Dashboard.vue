@@ -280,6 +280,72 @@
             </SurfaceSection>
           </div>
         </div>
+
+        <!-- 新增图表区域 -->
+        <div
+          v-if="dashboardErrorCode !== ErrorCode.FORBIDDEN"
+          class="grid grid-cols-1 gap-6 pb-8 lg:grid-cols-12"
+        >
+          <!-- 销售趋势折线图 -->
+          <div class="lg:col-span-8">
+            <SurfaceSection
+              class="flex min-h-[320px] flex-col"
+              body-class="flex flex-1 flex-col p-0"
+            >
+              <template #header>
+                <div class="flex items-center gap-2">
+                  <AppIcon name="chart-bar" class="size-4 text-primary" />
+                  <h3 class="text-sm font-semibold text-(--text-main)">
+                    {{ t('dashboard.salesTrend') }}
+                  </h3>
+                </div>
+              </template>
+
+              <div class="relative flex-1 p-4">
+                <div v-if="salesTrendData.length === 0" class="flex h-full items-center justify-center">
+                  <EmptyState
+                    icon="chart-bar"
+                    :title="t('stats.noData')"
+                    container-class="w-full py-8"
+                  />
+                </div>
+                <div v-else class="h-[250px]">
+                  <canvas id="salesTrendChart"></canvas>
+                </div>
+              </div>
+            </SurfaceSection>
+          </div>
+
+          <!-- 订单状态分布饼图 -->
+          <div class="lg:col-span-4">
+            <SurfaceSection
+              class="flex min-h-[320px] flex-col"
+              body-class="flex flex-1 flex-col p-0"
+            >
+              <template #header>
+                <div class="flex items-center gap-2">
+                  <AppIcon name="chart-pie" class="size-4 text-info" />
+                  <h3 class="text-sm font-semibold text-(--text-main)">
+                    {{ t('dashboard.orderStatusDistribution') }}
+                  </h3>
+                </div>
+              </template>
+
+              <div class="relative flex-1 p-4">
+                <div v-if="statusDistributionData.length === 0" class="flex h-full items-center justify-center">
+                  <EmptyState
+                    icon="chart-pie"
+                    :title="t('stats.noData')"
+                    container-class="w-full py-8"
+                  />
+                </div>
+                <div v-else class="h-[250px]">
+                  <canvas id="statusDistributionChart"></canvas>
+                </div>
+              </div>
+            </SurfaceSection>
+          </div>
+        </div>
       </template>
 
       <template #secondary>
@@ -375,6 +441,10 @@ const orderStats = ref({
   activeSharesCount: 0,
   recentPendingOrders: [],
 });
+
+// 新增图表数据
+const salesTrendData = ref([]);
+const statusDistributionData = ref([]);
 
 const weekTrend = computed(() => {
   const current = orderStats.value.weekCount || 0;
@@ -566,6 +636,13 @@ const _fetchDashboardData = async () => {
           // If charts not initialized but we have data, we might be in early stage.
           // initCharts calls updateCharts eventually.
         }
+        // 存储新增图表数据
+        if (res.data.charts.salesTrend) {
+          salesTrendData.value = res.data.charts.salesTrend;
+        }
+        if (res.data.charts.statusDistribution) {
+          statusDistributionData.value = res.data.charts.statusDistribution;
+        }
       }
 
       lastUpdatedTime.value = new Date().toLocaleTimeString();
@@ -655,6 +732,36 @@ const updateCharts = (data) => {
   if (data.pending) updateChart('chart2', processTrend(data.pending, 'daily'));
   if (data.week) updateChart('chart3', processTrend(data.week, 'daily'));
   if (data.shares) updateChart('chart4', processTrend(data.shares, 'daily'));
+
+  // 更新销售趋势图
+  if (data.salesTrend && charts.salesTrendChart) {
+    const labels = data.salesTrend.map((item) => item.date?.slice(5) || '');
+    const values = data.salesTrend.map((item) => item.orderCount || 0);
+    charts.salesTrendChart.data.labels = labels;
+    charts.salesTrendChart.data.datasets[0].data = values;
+    charts.salesTrendChart.update();
+  }
+
+  // 更新状态分布图
+  if (data.statusDistribution && charts.statusDistributionChart) {
+    const statusLabels = {
+      pending: '待处理',
+      confirmed: '已确认',
+      production: '生产中',
+      shipping: '在途',
+      arrived: '已到货',
+      delivered: '已交付',
+      rejected: '已驳回',
+      void: '已作废',
+    };
+    charts.statusDistributionChart.data.labels = data.statusDistribution.map(
+      (item) => statusLabels[item.status] || item.status
+    );
+    charts.statusDistributionChart.data.datasets[0].data = data.statusDistribution.map(
+      (item) => item.count
+    );
+    charts.statusDistributionChart.update();
+  }
 };
 
 const resolveDashboardChartColor = (token, fallback) => {
@@ -724,10 +831,156 @@ const initCharts = () => {
   createChart('chart3', resolveDashboardChartColor('--color-success', '16, 185, 129'), [], []);
   createChart('chart4', resolveDashboardChartColor('--color-primary', '236, 91, 19'), [], []);
 
+  // 初始化销售趋势折线图
+  initSalesTrendChart();
+  // 初始化订单状态分布饼图
+  initStatusDistributionChart();
+
   // Check if we have data in orderStats from fetchDashboardData (which might have finished before nextTick)
   if (orderStats.value && orderStats.value.charts) {
     updateCharts(orderStats.value.charts);
   }
+};
+
+// 销售趋势折线图
+const initSalesTrendChart = () => {
+  const canvas = document.getElementById('salesTrendChart');
+  if (!canvas) return;
+
+  if (charts.salesTrendChart) {
+    charts.salesTrendChart.destroy();
+  }
+
+  const ctx = canvas.getContext('2d');
+  const color = resolveDashboardChartColor('--color-primary', '236, 91, 19');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+  gradient.addColorStop(0, color.replace('1)', '0.3)'));
+  gradient.addColorStop(1, color.replace('1)', '0.0)'));
+
+  const data = salesTrendData.value || [];
+  const labels = data.map((item) => item.date?.slice(5) || '');
+  const values = data.map((item) => item.orderCount || 0);
+
+  charts.salesTrendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: t('dashboard.orderCount'),
+          data: values,
+          borderColor: color,
+          borderWidth: 2,
+          backgroundColor: gradient,
+          fill: true,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          tension: 0.4,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          titleColor: '#1a1a1a',
+          bodyColor: '#666',
+          borderColor: '#e5e7eb',
+          borderWidth: 1,
+          padding: 10,
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { maxTicksLimit: 8, color: '#9ca3af', font: { size: 11 } },
+        },
+        y: {
+          border: { display: false },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          beginAtZero: true,
+          ticks: { color: '#9ca3af', font: { size: 11 } },
+        },
+      },
+      interaction: { intersect: false, mode: 'index' },
+    },
+  });
+};
+
+// 订单状态分布饼图
+const initStatusDistributionChart = () => {
+  const canvas = document.getElementById('statusDistributionChart');
+  if (!canvas) return;
+
+  if (charts.statusDistributionChart) {
+    charts.statusDistributionChart.destroy();
+  }
+
+  const ctx = canvas.getContext('2d');
+  const data = statusDistributionData.value || [];
+
+  const statusColors = {
+    pending: '#f59e0b',
+    confirmed: '#3b82f6',
+    production: '#8b5cf6',
+    shipping: '#06b6d4',
+    arrived: '#10b981',
+    delivered: '#22c55e',
+    rejected: '#ef4444',
+    void: '#6b7280',
+  };
+
+  const statusLabels = {
+    pending: '待处理',
+    confirmed: '已确认',
+    production: '生产中',
+    shipping: '在途',
+    arrived: '已到货',
+    delivered: '已交付',
+    rejected: '已驳回',
+    void: '已作废',
+  };
+
+  charts.statusDistributionChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: data.map((item) => statusLabels[item.status] || item.status),
+      datasets: [
+        {
+          data: data.map((item) => item.count),
+          backgroundColor: data.map((item) => statusColors[item.status] || '#9ca3af'),
+          borderWidth: 0,
+          hoverOffset: 8,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            usePointStyle: true,
+            padding: 12,
+            color: '#6b7280',
+            font: { size: 11 },
+          },
+        },
+        tooltip: {
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          titleColor: '#1a1a1a',
+          bodyColor: '#666',
+          borderColor: '#e5e7eb',
+          borderWidth: 1,
+        },
+      },
+    },
+  });
 };
 
 onMounted(async () => {

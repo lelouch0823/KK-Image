@@ -32,9 +32,17 @@ export class SystemStatsProjectionRefreshService {
   async refreshManageStats() {
     const generatedAt = new Date(this.now()).toISOString();
     const todayStart = getChinaDayStart();
-    const data = await this.statsRepo.getGlobalStats(todayStart);
+    const ninetyDaysAgo = todayStart - 89 * 24 * 60 * 60 * 1000;
 
-        return this.projectionRepo.upsert(STATS_PROJECTION_SCOPES.MANAGE_STATS, {
+    const [data, salesTrend, statusDistribution, topProducts, salespersonStats] = await Promise.all([
+      this.statsRepo.getGlobalStats(todayStart),
+      this.orderStatsRepo.getSalesTrend(ninetyDaysAgo),
+      this.orderStatsRepo.getStatusDistribution(),
+      this.orderStatsRepo.getTopProducts(10),
+      this.orderStatsRepo.getSalespersonStats(),
+    ]);
+
+    return this.projectionRepo.upsert(STATS_PROJECTION_SCOPES.MANAGE_STATS, {
       data: {
         business: {
           totalOrders: data.business?.totalOrders || 0,
@@ -55,6 +63,12 @@ export class SystemStatsProjectionRefreshService {
           status: data.status,
           fileTypes: data.fileTypes,
         },
+        charts: {
+          salesTrend,
+          statusDistribution,
+          topProducts,
+          salespersonStats,
+        },
         generatedAt,
       },
     }, this.now());
@@ -65,6 +79,7 @@ export class SystemStatsProjectionRefreshService {
     const todayStartTimestamp = getChinaDayStart();
     const weekStartTimestamp = todayStartTimestamp - 6 * 24 * 60 * 60 * 1000;
     const lastWeekStartTimestamp = weekStartTimestamp - 7 * 24 * 60 * 60 * 1000;
+    const thirtyDaysAgo = todayStartTimestamp - 29 * 24 * 60 * 60 * 1000;
     const now = this.now();
 
     const [
@@ -80,6 +95,8 @@ export class SystemStatsProjectionRefreshService {
       shareTrend,
       recentFiles,
       recentShares,
+      salesTrend,
+      statusDistribution,
     ] = await Promise.all([
       this.orderStatsRepo.countCreatedAfter(todayStartTimestamp),
       this.orderStatsRepo.countByStatus('pending'),
@@ -99,6 +116,8 @@ export class SystemStatsProjectionRefreshService {
         url: getFileUrl(file.storage_key),
       }))),
       this.folderRepo.findShared({ limit: 5 }).then((result) => result.items),
+      this.orderStatsRepo.getSalesTrend(thirtyDaysAgo),
+      this.orderStatsRepo.getStatusDistribution(),
     ]);
 
     return this.projectionRepo.upsert(STATS_PROJECTION_SCOPES.DASHBOARD_OVERVIEW, {
@@ -114,6 +133,8 @@ export class SystemStatsProjectionRefreshService {
           pending: pendingTrend,
           week: weekTrendData,
           shares: shareTrend,
+          salesTrend,
+          statusDistribution,
         },
         recentFiles,
         recentShares,
