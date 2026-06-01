@@ -178,6 +178,7 @@ import { useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useSearch } from '@/composables/useSearch';
 import { useNotifications } from '@/composables/useNotifications';
+import { useNotificationStream } from '@/composables/useNotificationStream';
 import NotificationList from '@/components/common/NotificationList.vue';
 import { onClickOutside } from '@vueuse/core';
 import { useAI } from '@/composables/useAI';
@@ -196,6 +197,7 @@ const viewTitle = computed(() => route.meta?.title || '管理后台');
 const { t } = useI18n();
 const { searchQuery } = useSearch();
 const { unreadCount, startPolling, stopPolling, setAdminMode, permissionDenied, permissionDeniedReason } = useNotifications();
+const { start: startStream, stop: stopStream } = useNotificationStream({ pollInterval: 30000, showToast: true });
 const { isOpen, toggle: toggleAI } = useAI();
 const { hasPermission, loadPermissions } = useAccessControl();
 const { isDark, toggleTheme } = useTheme();
@@ -239,9 +241,11 @@ onMounted(async () => {
   canUseAI.value = hasPermission('stats:read');
   setAdminMode();
   startPolling();
+  startStream();
 });
 
 onUnmounted(() => {
   stopPolling();
+  stopStream();
 });
 </script>

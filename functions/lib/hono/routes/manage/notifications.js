@@ -29,6 +29,27 @@ app.get('/', requirePermission('notifications:read'), withCache(15), async (c) =
 });
 
 /**
+ * GET /poll - 轮询端点：返回未读数量和最新通知 ID
+ * 用于前端轻量级轮询，避免每次都获取完整通知列表
+ */
+app.get('/poll', requirePermission('notifications:read'), async (c) => {
+    const { env } = c;
+    const lastId = c.req.query('last_id') || null;
+
+    const notifyRepo = new NotificationRepository(env.DB);
+    const { unreadCount, latestId, newNotifications } = await notifyRepo.pollForAdmin({ lastId });
+
+    return c.json({
+        success: true,
+        data: {
+            unreadCount,
+            latestId,
+            newNotifications,
+        },
+    });
+});
+
+/**
  * POST / - 创建通知
  */
 app.post('/', requirePermission('notifications:write'), async (c) => {

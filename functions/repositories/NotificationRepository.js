@@ -320,6 +320,88 @@ export class NotificationRepository {
     }
 
     /**
+     * 轮询管理端通知：返回未读数量、最新通知 ID、以及指定 lastId 之后的新通知
+     * @param {Object} options
+     * @param {string|null} [options.lastId=null] - 上次已知的最新通知 ID
+     * @param {number} [options.limit=5] - 新通知最大返回数
+     * @returns {Promise<{unreadCount: number, latestId: string|null, newNotifications: Array}>}
+     */
+    async pollForAdmin({ lastId = null, limit = 5 } = {}) {
+        // 获取未读数量
+        const unreadCount = await this._getAdminUnreadCount(true);
+
+        // 获取最新通知 ID
+        let latestSql = `SELECT id FROM notifications`;
+        try {
+            const hasReceiver = await this._checkColumnExists('receiver');
+            if (hasReceiver) {
+                latestSql += ` WHERE receiver = 'admin'`;
+            }
+        } catch {
+            // 无 receiver 字段，查询全部
+        }
+        latestSql += ` ORDER BY created_at DESC LIMIT 1`;
+        const latestRow = await this.db.prepare(latestSql).first();
+        const latestId = latestRow?.id || null;
+
+        // 如果提供了 lastId 且与最新相同，说明无新通知
+        if (lastId && latestId && lastId === latestId) {
+            return { unreadCount, latestId, newNotifications: [] };
+        }
+
+        // 获取 lastId 之后的新通知（如果提供了 lastId）
+        let newNotifications = [];
+        if (lastId) {
+            try {
+                let newSql = `SELECT id, type, title, content, is_read, metadata, link, created_at FROM notifications`;
+                const conditions = [];
+                const params = [];
+
+                try {
+                    const hasReceiver = await this._checkColumnExists('receiver');
+                    if (hasReceiver) {
+                        conditions.push(`receiver = 'admin'`);
+                    }
+                } catch {
+                    // 无 receiver 字段
+                }
+
+                conditions.push(`created_at > (SELECT created_at FROM notifications WHERE id = ?)`);
+                params.push(lastId);
+
+                if (conditions.length > 0) {
+                    newSql += ` WHERE ${conditions.join(' AND ')}`;
+                }
+                newSql += ` ORDER BY created_at DESC LIMIT ?`;
+                params.push(limit);
+
+                const { results } = await this.db.prepare(newSql).bind(...params).all();
+                newNotifications = results.map(this._mapNotification);
+            } catch {
+                // 如果 lastId 对应的通知已被删除，回退到返回最新通知
+                const { results } = await this.db
+                    .prepare(
+                        `SELECT id, type, title, content, is_read, metadata, link, created_at FROM notifications ORDER BY created_at DESC LIMIT ?`
+                    )
+                    .bind(limit)
+                    .all();
+                newNotifications = results.map(this._mapNotification);
+            }
+        } else {
+            // 首次轮询，返回最新通知
+            const { results } = await this.db
+                .prepare(
+                    `SELECT id, type, title, content, is_read, metadata, link, created_at FROM notifications ORDER BY created_at DESC LIMIT ?`
+                )
+                .bind(limit)
+                .all();
+            newNotifications = results.map(this._mapNotification);
+        }
+
+        return { unreadCount, latestId, newNotifications };
+    }
+
+    /**
      * 检查表中是否存在指定列
      * @private
      */
