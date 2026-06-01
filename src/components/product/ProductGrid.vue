@@ -113,6 +113,7 @@ const resolveAlertThreshold = (product) => {
 const getStatusVariant = (status) => {
     switch(status) {
         case 'active': return 'success';
+        case 'draft': return 'warning';
         case 'archived': return 'default'; // or info
         default: return 'default';
     }

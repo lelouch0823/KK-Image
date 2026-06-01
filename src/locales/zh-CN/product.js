@@ -123,6 +123,11 @@ export default {
     import: '导入',
     export: '导出',
     delete_confirm_message: '确定要删除该商品吗？此操作不可逆。',
+    activate: '上架',
+    archive: '归档',
+    status_change_title: '状态变更',
+    status_change_confirm: '确定要将商品"{name}"的状态更改为{status}吗？',
+    status_change_success: '商品状态已更新为{status}',
   },
   batch: {
     selected: '已选择 {count} 项',

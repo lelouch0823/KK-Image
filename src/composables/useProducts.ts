@@ -279,6 +279,15 @@ export function useProducts() {
         return res;
     };
 
+    const updateProductStatus = async (productId: string, status: string): Promise<ApiResponse> => {
+        const res = await resource.rawRequest(`/${productId}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status }),
+        });
+        if (res?.success) resource.clearCache();
+        return res;
+    };
+
     return {
         products: resource.items,
         loading: resource.loading,
@@ -307,5 +316,6 @@ export function useProducts() {
         restoreDimensionValue,
         createProductWithMeta,
         updateProductWithMeta,
+        updateProductStatus,
     };
 }

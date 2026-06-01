@@ -195,16 +195,17 @@
 
       <!-- Desktop Table (Show only if data exists) -->
       <div v-if="!loading && !error && products.length > 0" class="custom-scrollbar hidden h-full overflow-auto lg:block">
-         <ProductTable 
+         <ProductTable
            :products="products"
            :row-class="getRowClass"
            :sort-by="filters.sortBy"
            :sort-order="filters.sortOrder"
            @view="handleView"
-           @edit="handleEditWithHydration" 
-           @delete="handleDelete" 
+           @edit="handleEditWithHydration"
+           @delete="handleDelete"
            @share="handleShare"
            @sort-change="handleSortChange"
+           @status-change="handleStatusChange"
         />
       </div>
 
@@ -315,7 +316,7 @@ const { subscribeModule } = useAppRefreshBus();
 const { clearSelection, getRowClass, handleCreated, selectItem } = useManagedListSelection();
 const { addView: addRecentView } = useRecentViews();
 
-const { products, loading, error, errorCode, availableFilters, pagination, loadProducts, deleteProduct, loadProduct } = useProducts();
+const { products, loading, error, errorCode, availableFilters, pagination, loadProducts, deleteProduct, loadProduct, updateProductStatus } = useProducts();
 
 // 分类树管理
 const {
@@ -680,6 +681,30 @@ const handleDelete = (product) => {
                 await deleteProduct(product.id);
                 await reloadProducts();
                 confirmData.value.show = false;
+            } finally {
+                confirmData.value.loading = false;
+            }
+        },
+    };
+};
+
+const handleStatusChange = ({ product, status }) => {
+    const statusLabel = t(`product.filters.status.${status}`);
+    confirmData.value = {
+        show: true,
+        title: t('product.action.status_change_title', '状态变更'),
+        message: t('product.action.status_change_confirm', { name: product.name, status: statusLabel }),
+        type: status === 'archived' ? 'warning' : 'info',
+        loading: false,
+        onConfirm: async () => {
+            confirmData.value.loading = true;
+            try {
+                await updateProductStatus(product.id, status);
+                addToast({ type: 'success', message: t('product.action.status_change_success', { status: statusLabel }) });
+                await reloadProducts();
+                confirmData.value.show = false;
+            } catch (err) {
+                addToast({ type: 'error', message: err?.message || t('common.error.operation_failed') });
             } finally {
                 confirmData.value.loading = false;
             }

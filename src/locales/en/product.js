@@ -123,6 +123,11 @@ export default {
     import: 'Import',
     export: 'Export',
     delete_confirm_message: 'Are you sure you want to delete this product? This action is irreversible.',
+    activate: 'Activate',
+    archive: 'Archive',
+    status_change_title: 'Status Change',
+    status_change_confirm: 'Are you sure you want to change the status of "{name}" to {status}?',
+    status_change_success: 'Product status updated to {status}',
   },
   batch: {
     selected: '{count} selected',

@@ -140,6 +140,38 @@
       <div
         class="flex items-center justify-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
       >
+        <!-- Status toggle button -->
+        <AppButton
+          v-if="row.status === 'draft'"
+          variant="ghost"
+          size="sm"
+          class="!h-8 !px-2 text-xs text-success hover:!bg-success-bg hover:!text-success"
+          :title="t('product.action.activate')"
+          @click.stop="$emit('status-change', { product: row, status: 'active' })"
+        >
+          {{ t('product.action.activate') }}
+        </AppButton>
+        <AppButton
+          v-else-if="row.status === 'active'"
+          variant="ghost"
+          size="sm"
+          class="!h-8 !px-2 text-xs text-warning hover:!bg-warning-bg hover:!text-warning"
+          :title="t('product.action.archive')"
+          @click.stop="$emit('status-change', { product: row, status: 'archived' })"
+        >
+          {{ t('product.action.archive') }}
+        </AppButton>
+        <AppButton
+          v-else-if="row.status === 'archived'"
+          variant="ghost"
+          size="sm"
+          class="!h-8 !px-2 text-xs text-success hover:!bg-success-bg hover:!text-success"
+          :title="t('product.action.activate')"
+          @click.stop="$emit('status-change', { product: row, status: 'active' })"
+        >
+          {{ t('product.action.activate') }}
+        </AppButton>
+
         <AppButton
           variant="ghost"
           size="sm"
@@ -194,7 +226,7 @@ defineProps({
   sortBy: { type: String, default: '' },
   sortOrder: { type: String, default: '' },
 });
-defineEmits(['edit', 'delete', 'view', 'share', 'sort-change']);
+defineEmits(['edit', 'delete', 'view', 'share', 'sort-change', 'status-change']);
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isLargeScreen = breakpoints.greater('lg');
