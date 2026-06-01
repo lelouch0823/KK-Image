@@ -1,0 +1,427 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - generic [ref=e7]: KK
+          - generic [ref=e8]: kk-life
+        - generic [ref=e9]:
+          - button "收起侧边栏" [ref=e10]:
+            - img [ref=e11]
+          - button [ref=e13]:
+            - img [ref=e14]
+      - navigation [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: 菜单
+          - button "概览" [ref=e19]:
+            - img [ref=e20]
+            - generic [ref=e22]: 概览
+          - button "文件管理" [ref=e23]:
+            - img [ref=e24]
+            - generic [ref=e26]: 文件管理
+          - button "共享空间" [ref=e27]:
+            - img [ref=e28]
+            - generic [ref=e30]: 共享空间
+          - button "商品管理" [ref=e31]:
+            - img [ref=e32]
+            - generic [ref=e34]: 商品管理
+          - button "订单管理" [ref=e35]:
+            - img [ref=e36]
+            - generic [ref=e38]: 订单管理
+          - button "订货总览" [ref=e39]:
+            - img [ref=e40]
+            - generic [ref=e42]: 订货总览
+          - button "采购管理" [ref=e43]:
+            - img [ref=e44]
+            - generic [ref=e46]: 采购管理
+          - button "客户管理" [ref=e47]:
+            - img [ref=e48]
+            - generic [ref=e50]: 客户管理
+          - button "销售管理" [ref=e51]:
+            - img [ref=e52]
+            - generic [ref=e54]: 销售管理
+          - button "数据统计" [ref=e55]:
+            - img [ref=e56]
+            - generic [ref=e58]: 数据统计
+          - button "系统设置" [ref=e59]:
+            - img [ref=e60]
+            - generic [ref=e63]: 系统设置
+          - button "操作审计" [ref=e64]:
+            - img [ref=e65]
+            - generic [ref=e67]: 操作审计
+          - button "Outbox 运维" [ref=e68]:
+            - img [ref=e69]
+            - generic [ref=e71]: Outbox 运维
+        - generic [ref=e72]:
+          - generic [ref=e73]: 管理
+          - button "退出登录" [ref=e74]:
+            - img [ref=e75]
+            - generic [ref=e77]: 退出登录
+      - generic [ref=e79]:
+        - generic [ref=e80]: A
+        - generic [ref=e81]:
+          - generic [ref=e82]: Administrator
+          - generic [ref=e83]: admin
+    - main [ref=e84]:
+      - generic [ref=e85]:
+        - generic [ref=e86]:
+          - button [ref=e87]:
+            - img [ref=e88]
+          - heading "管理后台" [level=1] [ref=e90]
+        - generic [ref=e91]:
+          - button [ref=e92]:
+            - img [ref=e93]
+          - button [ref=e96]:
+            - img [ref=e97]
+          - button "切换暗色模式" [ref=e99]:
+            - img [ref=e100]
+          - button "AI 助手" [ref=e102]:
+            - img [ref=e103]
+          - button "刷新" [ref=e105]:
+            - img [ref=e106]
+      - generic [ref=e109]:
+        - generic [ref=e110]:
+          - generic [ref=e111]:
+            - heading "商品管理" [level=1] [ref=e112]
+            - paragraph [ref=e113]: 管理您的商品库存和价格
+          - generic [ref=e114]:
+            - button "创建商品" [ref=e115]:
+              - img [ref=e116]
+              - generic [ref=e118]: 创建商品
+            - button "导入" [ref=e119]:
+              - img [ref=e120]
+            - button "导出" [ref=e122]:
+              - img [ref=e123]
+            - button "统计概览" [ref=e125]:
+              - img [ref=e126]
+        - generic [ref=e130]:
+          - combobox [ref=e133]:
+            - generic [ref=e134]: 全部
+            - img [ref=e135]
+          - combobox [ref=e139]:
+            - generic [ref=e140]: 品牌
+            - img [ref=e141]
+          - combobox [ref=e145]:
+            - generic [ref=e146]: 商品分类
+            - img [ref=e147]
+          - combobox [ref=e151]:
+            - generic [ref=e152]: 库存
+            - img [ref=e153]
+          - generic [ref=e156]:
+            - textbox "搜索商品名称/SPU..." [ref=e157]
+            - img
+        - generic [ref=e158]:
+          - generic [ref=e893]:
+            - generic [ref=e895] [cursor=pointer]:
+              - img [ref=e898]
+              - generic [ref=e900]:
+                - heading "E2E完整测试商品" [level=3] [ref=e901]
+                - generic [ref=e902]:
+                  - generic "SPU-E2E-FULL" [ref=e903]
+                  - 'generic "库存: 30" [ref=e904]'
+                - generic [ref=e905]:
+                  - generic [ref=e906]: 上架
+                  - generic [ref=e908]:
+                    - button "快速分享" [ref=e909]:
+                      - img [ref=e910]
+                    - generic [ref=e912]: ¥89
+            - generic [ref=e914] [cursor=pointer]:
+              - img [ref=e917]
+              - generic [ref=e919]:
+                - heading "Dashboard Stats Product dash-stats-1780327891572-87508" [level=3] [ref=e920]
+                - generic [ref=e921]:
+                  - generic "DASHSTAT-dash-stats-1780327891572-87508" [ref=e922]
+                  - 'generic "库存: 3" [ref=e923]'
+                - generic [ref=e924]:
+                  - generic [ref=e925]: 上架
+                  - generic [ref=e927]:
+                    - button "快速分享" [ref=e928]:
+                      - img [ref=e929]
+                    - generic [ref=e931]: ¥99
+            - generic [ref=e933] [cursor=pointer]:
+              - img [ref=e936]
+              - generic [ref=e938]:
+                - heading "Product barcode-1780327821446-83650" [level=3] [ref=e939]
+                - generic [ref=e940]:
+                  - generic "SPU-barcode-1780327821446-83650" [ref=e941]
+                  - 'generic "库存: 9" [ref=e942]'
+                - generic [ref=e943]:
+                  - generic [ref=e944]: 上架
+                  - generic [ref=e946]:
+                    - button "快速分享" [ref=e947]:
+                      - img [ref=e948]
+                    - generic [ref=e950]: ¥110
+            - generic [ref=e952] [cursor=pointer]:
+              - img [ref=e955]
+              - generic [ref=e957]:
+                - heading "Customer Guard Product customer-guard-1780327818045-38042" [level=3] [ref=e958]
+                - generic [ref=e959]:
+                  - generic "CUSTGUARD-customer-guard-1780327818045-38042" [ref=e960]
+                  - 'generic "库存: 2" [ref=e961]'
+                - generic [ref=e962]:
+                  - generic [ref=e963]: 上架
+                  - generic [ref=e965]:
+                    - button "快速分享" [ref=e966]:
+                      - img [ref=e967]
+                    - generic [ref=e969]: ¥99
+            - generic [ref=e971] [cursor=pointer]:
+              - img [ref=e974]
+              - generic [ref=e976]:
+                - heading "Batch Safe Original batch-safe-merge-1780327816397-65544" [level=3] [ref=e977]
+                - generic [ref=e978]:
+                  - generic "BATCH-SAFE-batch-safe-merge-1780327816397-65544" [ref=e979]
+                  - 'generic "库存: 2" [ref=e980]'
+                - generic [ref=e981]:
+                  - generic [ref=e982]: 上架
+                  - generic [ref=e984]:
+                    - button "快速分享" [ref=e985]:
+                      - img [ref=e986]
+                    - generic [ref=e988]: ¥21
+            - generic [ref=e990] [cursor=pointer]:
+              - img [ref=e993]
+              - generic [ref=e995]:
+                - heading "Batch Reactivate batch-reactivate-1780327815651-93196 Updated" [level=3] [ref=e996]
+                - generic [ref=e997]:
+                  - generic "BATCH-R-batch-reactivate-1780327815651-93196" [ref=e998]
+                  - 'generic "库存: 2" [ref=e999]'
+                - generic [ref=e1000]:
+                  - generic [ref=e1001]: 上架
+                  - generic [ref=e1003]:
+                    - button "快速分享" [ref=e1004]:
+                      - img [ref=e1005]
+                    - generic [ref=e1007]: ¥10
+            - generic [ref=e1009] [cursor=pointer]:
+              - img [ref=e1012]
+              - generic [ref=e1014]:
+                - heading "Batch Product A batch-1780327815477-3953" [level=3] [ref=e1015]
+                - generic [ref=e1016]:
+                  - generic "BATCH-A-batch-1780327815477-3953" [ref=e1017]
+                  - 'generic "库存: 0" [ref=e1018]'
+                  - generic [ref=e1019]: 库存预警
+                - generic [ref=e1020]:
+                  - generic [ref=e1021]: 下架
+                  - generic [ref=e1023]:
+                    - button "快速分享" [ref=e1024]:
+                      - img [ref=e1025]
+                    - generic [ref=e1027]: ¥0
+            - generic [ref=e1029] [cursor=pointer]:
+              - img [ref=e1032]
+              - generic [ref=e1034]:
+                - heading "Batch Product B batch-1780327815477-3953" [level=3] [ref=e1035]
+                - generic [ref=e1036]:
+                  - generic "BATCH-B-batch-1780327815477-3953" [ref=e1037]
+                  - 'generic "库存: 0" [ref=e1038]'
+                  - generic [ref=e1039]: 库存预警
+                - generic [ref=e1040]:
+                  - generic [ref=e1041]: 下架
+                  - generic [ref=e1043]:
+                    - button "快速分享" [ref=e1044]:
+                      - img [ref=e1045]
+                    - generic [ref=e1047]: ¥0
+            - generic [ref=e1049] [cursor=pointer]:
+              - img [ref=e1052]
+              - generic [ref=e1054]:
+                - heading "Sales Profile Product sales-profile-1780327809822-70685" [level=3] [ref=e1055]
+                - generic [ref=e1056]:
+                  - generic "SALPRO-sales-profile-1780327809822-70685" [ref=e1057]
+                  - 'generic "库存: 3" [ref=e1058]'
+                - generic [ref=e1059]:
+                  - generic [ref=e1060]: 上架
+                  - generic [ref=e1062]:
+                    - button "快速分享" [ref=e1063]:
+                      - img [ref=e1064]
+                    - generic [ref=e1066]: ¥99
+            - generic [ref=e1068] [cursor=pointer]:
+              - img [ref=e1071]
+              - generic [ref=e1073]:
+                - heading "Sales Space Product sales-space-binding-1780327807326-98629" [level=3] [ref=e1074]
+                - generic [ref=e1075]:
+                  - generic "SALESPACE-sales-space-binding-1780327807326-98629" [ref=e1076]
+                  - 'generic "库存: 0" [ref=e1077]'
+                  - generic [ref=e1078]: 库存预警
+                - generic [ref=e1079]:
+                  - generic [ref=e1080]: 下架
+                  - generic [ref=e1082]:
+                    - button "快速分享" [ref=e1083]:
+                      - img [ref=e1084]
+                    - generic [ref=e1086]: ¥0
+            - generic [ref=e1088] [cursor=pointer]:
+              - img [ref=e1091]
+              - generic [ref=e1093]:
+                - heading "Order Guard Product order-module-guards-1780327803514-87868" [level=3] [ref=e1094]
+                - generic [ref=e1095]:
+                  - generic "ORDGUARD-order-module-guards-1780327803514-87868" [ref=e1096]
+                  - 'generic "库存: 3" [ref=e1097]'
+                - generic [ref=e1098]:
+                  - generic [ref=e1099]: 上架
+                  - generic [ref=e1101]:
+                    - button "快速分享" [ref=e1102]:
+                      - img [ref=e1103]
+                    - generic [ref=e1105]: ¥99
+            - generic [ref=e1107] [cursor=pointer]:
+              - img [ref=e1110]
+              - generic [ref=e1112]:
+                - heading "Order Module Product order-module-1780327800832-58731" [level=3] [ref=e1113]
+                - generic [ref=e1114]:
+                  - generic "ORDMOD-order-module-1780327800832-58731" [ref=e1115]
+                  - 'generic "库存: 5" [ref=e1116]'
+                - generic [ref=e1117]:
+                  - generic [ref=e1118]: 上架
+                  - generic [ref=e1120]:
+                    - button "快速分享" [ref=e1121]:
+                      - img [ref=e1122]
+                    - generic [ref=e1124]: ¥99
+            - generic [ref=e1126] [cursor=pointer]:
+              - img [ref=e1129]
+              - generic [ref=e1131]:
+                - heading "Space Binding Product space-binding-1780327798834-10189" [level=3] [ref=e1132]
+                - generic [ref=e1133]:
+                  - generic "SPACE-space-binding-1780327798834-10189" [ref=e1134]
+                  - 'generic "库存: 0" [ref=e1135]'
+                  - generic [ref=e1136]: 库存预警
+                - generic [ref=e1137]:
+                  - generic [ref=e1138]: 下架
+                  - generic [ref=e1140]:
+                    - button "快速分享" [ref=e1141]:
+                      - img [ref=e1142]
+                    - generic [ref=e1144]: ¥0
+            - generic [ref=e1146] [cursor=pointer]:
+              - img [ref=e1149]
+              - generic [ref=e1151]:
+                - heading "Inventory Edge Product inv-edge-1780327794167-96118" [level=3] [ref=e1152]
+                - generic [ref=e1153]:
+                  - generic "EDGE-inv-edge-1780327794167-96118" [ref=e1154]
+                  - 'generic "库存: 3" [ref=e1155]'
+                - generic [ref=e1156]:
+                  - generic [ref=e1157]: 上架
+                  - generic [ref=e1159]:
+                    - button "快速分享" [ref=e1160]:
+                      - img [ref=e1161]
+                    - generic [ref=e1163]: ¥99
+            - generic [ref=e1165] [cursor=pointer]:
+              - img [ref=e1168]
+              - generic [ref=e1170]:
+                - heading "Inventory Flow Product inv-flow-1780327791421-40811" [level=3] [ref=e1171]
+                - generic [ref=e1172]:
+                  - generic "INV-inv-flow-1780327791421-40811" [ref=e1173]
+                  - 'generic "库存: 10" [ref=e1174]'
+                - generic [ref=e1175]:
+                  - generic [ref=e1176]: 上架
+                  - generic [ref=e1178]:
+                    - button "快速分享" [ref=e1179]:
+                      - img [ref=e1180]
+                    - generic [ref=e1182]: ¥99
+            - generic [ref=e1184] [cursor=pointer]:
+              - img [ref=e1187]
+              - generic [ref=e1189]:
+                - heading "Variant Image Boundary variant-image-boundary-1780327789489-49332" [level=3] [ref=e1190]
+                - generic [ref=e1191]:
+                  - generic "IMG-B-variant-image-boundary-1780327789489-49332" [ref=e1192]
+                  - 'generic "库存: 2" [ref=e1193]'
+                - generic [ref=e1194]:
+                  - generic [ref=e1195]: 上架
+                  - generic [ref=e1197]:
+                    - button "快速分享" [ref=e1198]:
+                      - img [ref=e1199]
+                    - generic [ref=e1201]: ¥71
+            - generic [ref=e1203] [cursor=pointer]:
+              - img [ref=e1206]
+              - generic [ref=e1208]:
+                - heading "Variant Images variant-images-1780327788243-1174" [level=3] [ref=e1209]
+                - generic [ref=e1210]:
+                  - generic "IMG-variant-images-1780327788243-1174" [ref=e1211]
+                  - 'generic "库存: 2" [ref=e1212]'
+                - generic [ref=e1213]:
+                  - generic [ref=e1214]: 上架
+                  - generic [ref=e1216]:
+                    - button "快速分享" [ref=e1217]:
+                      - img [ref=e1218]
+                    - generic [ref=e1220]: ¥70
+            - generic [ref=e1222] [cursor=pointer]:
+              - img [ref=e1225]
+              - generic [ref=e1227]:
+                - heading "Dimension Merge dimension-merge-1780327787747-46558" [level=3] [ref=e1228]
+                - generic [ref=e1229]:
+                  - generic "DIM-MERGE-dimension-merge-1780327787747-46558" [ref=e1230]
+                  - 'generic "库存: 2" [ref=e1231]'
+                - generic [ref=e1232]:
+                  - generic [ref=e1233]: 上架
+                  - generic [ref=e1235]:
+                    - button "快速分享" [ref=e1236]:
+                      - img [ref=e1237]
+                    - generic [ref=e1239]: ¥60
+            - generic [ref=e1241] [cursor=pointer]:
+              - img [ref=e1244]
+              - generic [ref=e1246]:
+                - heading "Value Impact value-impact-1780327787068-23388" [level=3] [ref=e1247]
+                - generic [ref=e1248]:
+                  - generic "VALUE-IMPACT-value-impact-1780327787068-23388" [ref=e1249]
+                  - 'generic "库存: 5" [ref=e1250]'
+                - generic [ref=e1251]:
+                  - generic [ref=e1252]: 上架
+                  - generic [ref=e1254]:
+                    - button "快速分享" [ref=e1255]:
+                      - img [ref=e1256]
+                    - generic [ref=e1258]: ¥44
+            - generic [ref=e1260] [cursor=pointer]:
+              - img [ref=e1263]
+              - generic [ref=e1265]:
+                - heading "Dimension Rename dimension-rename-1780327786681-89222" [level=3] [ref=e1266]
+                - generic [ref=e1267]:
+                  - generic "DIM-RENAME-dimension-rename-1780327786681-89222" [ref=e1268]
+                  - 'generic "库存: 2" [ref=e1269]'
+                - generic [ref=e1270]:
+                  - generic [ref=e1271]: 上架
+                  - generic [ref=e1273]:
+                    - button "快速分享" [ref=e1274]:
+                      - img [ref=e1275]
+                    - generic [ref=e1277]: ¥66
+          - navigation "分页" [ref=e548]:
+            - generic [ref=e549]:
+              - button "上一页" [disabled] [ref=e550]:
+                - img [ref=e551]
+              - button "1" [ref=e553]
+              - button "2" [ref=e554]
+              - button "3" [ref=e555]
+              - button "4" [ref=e556]
+              - button "下一页" [ref=e557]:
+                - img [ref=e558]
+  - dialog [ref=e828]:
+    - generic [ref=e830]:
+      - heading "Batch Variant Builder" [level=3] [ref=e831]
+      - button "Close" [ref=e832]:
+        - img [ref=e834]
+    - generic [ref=e837]:
+      - generic [ref=e838]:
+        - generic [ref=e839]:
+          - generic [ref=e840]: 颜色 (comma-separated)
+          - textbox "颜色 (comma-separated)" [ref=e842]:
+            - /placeholder: 黄,蓝
+        - generic [ref=e843]:
+          - generic [ref=e844]: 材质 (optional)
+          - textbox "材质 (optional)" [ref=e846]:
+            - /placeholder: 棉,涤纶
+        - generic [ref=e847]:
+          - generic [ref=e848]: 尺码 (optional)
+          - textbox "尺码 (optional)" [ref=e850]:
+            - /placeholder: S,M,L
+      - generic [ref=e851]:
+        - generic [ref=e852]:
+          - generic [ref=e853]: Price
+          - spinbutton "Price" [ref=e855]: "0"
+        - generic [ref=e856]:
+          - generic [ref=e857]: Cost
+          - spinbutton "Cost" [ref=e859]: "0"
+        - generic [ref=e860]:
+          - generic [ref=e861]: Stock
+          - spinbutton "Stock" [ref=e863]: "0"
+        - generic [ref=e864]:
+          - generic [ref=e865]: Status
+          - combobox [ref=e867]:
+            - generic [ref=e868]: active
+            - img [ref=e869]
+    - generic [ref=e871]:
+      - button "Cancel" [ref=e872]:
+        - generic [ref=e873]: Cancel
+      - button "Apply" [ref=e874]:
+        - generic [ref=e875]: Apply

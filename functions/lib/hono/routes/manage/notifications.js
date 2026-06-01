@@ -7,6 +7,7 @@ import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
+import { parsePagination } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -19,7 +20,7 @@ export const auditRouteDeclarations = declareAuditRoutes([
  */
 app.get('/', requirePermission('notifications:read'), withCache(15), async (c) => {
     const { env } = c;
-    const limit = parseInt(c.req.query('limit') || '20');
+    const { limit } = parsePagination(c);
     const unreadOnly = c.req.query('unread_only') === 'true';
 
     const notifyRepo = new NotificationRepository(env.DB);

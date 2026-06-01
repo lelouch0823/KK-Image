@@ -36,7 +36,7 @@ const UpdateCustomerSchema = CreateCustomerSchema.partial();
 /**
  * GET / - 分页查询客户列表
  */
-app.get('/', withCache(60), async (c) => {
+app.get('/', async (c) => {
     const { env } = c;
     const { page, limit } = parsePagination(c);
     const search = c.req.query('search') || '';
@@ -93,6 +93,7 @@ app.post('/', zValidator('json', CreateCustomerSchema), async (c) => {
             customer_id: customer.id,
         },
     }, `customer-create:${customer.id}`);
+    // 异步失效缓存
     scheduleCacheInvalidation(c, getManageCustomerCacheUrls(c));
     scheduleAuditEvent(c, {
         domain: 'customers',
@@ -116,7 +117,7 @@ app.post('/', zValidator('json', CreateCustomerSchema), async (c) => {
 /**
  * GET /:id - 获取客户详情
  */
-app.get('/:id', async (c) => {
+app.get('/:id', withCache(30), async (c) => {
     const { env } = c;
     const id = c.req.param('id');
 
@@ -168,6 +169,7 @@ app.put('/:id', zValidator('json', UpdateCustomerSchema), async (c) => {
             customer_id: id,
         },
     }, `customer-update:${id}`);
+    // 异步失效缓存
     scheduleCacheInvalidation(c, getManageCustomerCacheUrls(c));
     scheduleAuditEvent(c, {
         domain: 'customers',
@@ -215,6 +217,7 @@ app.delete('/:id', async (c) => {
             customer_id: id,
         },
     }, `customer-delete:${id}`);
+    // 异步失效缓存
     scheduleCacheInvalidation(c, getManageCustomerCacheUrls(c));
     scheduleAuditEvent(c, {
         domain: 'customers',
@@ -236,7 +239,7 @@ app.delete('/:id', async (c) => {
 app.get('/:id/orders', async (c) => {
     const { env } = c;
     const id = c.req.param('id');
-    const limit = parseInt(c.req.query('limit') || '50');
+    const { limit } = parsePagination(c, { limit: 50 });
 
     const { OrderRepository } = await import('../../../../repositories/OrderRepository.js');
     const repo = new OrderRepository(env.DB);

@@ -498,12 +498,13 @@ export class SpaceRepository {
     async findAllForSalesperson(salespersonId) {
         const now = Date.now();
         const { results } = await this.db.prepare(`
-            SELECT s.*, 
-                (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
+            SELECT s.*,
+                COALESCE(sf_count.file_count, 0) as file_count,
                 f.storage_key as cover_storage_key,
                 ${this._productProjectionSQL()},
                 ${this._variantImageProjectionSQL()}
             FROM spaces s
+            ${this._spaceFileCountJoinSQL()}
             LEFT JOIN files f ON s.cover_file_id = f.id
             LEFT JOIN products p ON s.product_id = p.id
             LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
@@ -512,7 +513,7 @@ export class SpaceRepository {
               AND (
                s.share_mode = 'all'
                OR (s.share_mode = 'selected' AND EXISTS (
-                   SELECT 1 FROM space_salesperson_shares sss 
+                   SELECT 1 FROM space_salesperson_shares sss
                    WHERE sss.space_id = s.id AND sss.salesperson_id = ?
                ))
               )

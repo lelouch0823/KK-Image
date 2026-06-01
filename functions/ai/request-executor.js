@@ -19,6 +19,7 @@ import {
 import { MSG } from '../api/utils/messages.js';
 import { classifyAIError } from './retry-manager.js';
 import { createStructuredAbortError } from './request-context.js';
+import { getRateLimitStatus } from '../utils/ai-utils.js';
 
 /**
  * Sleep with abort support
@@ -57,20 +58,6 @@ function throwIfAborted(signal) {
 }
 
 /**
- * Get rate limit status from response headers
- * @param {Response} response - Fetch response
- * @returns {Object} Rate limit info
- */
-function getRateLimitStatus(response) {
-  return {
-    remaining: parseInt(response.headers.get('modelscope-ratelimit-requests-remaining') || '9999'),
-    limit: parseInt(response.headers.get('modelscope-ratelimit-requests-limit') || '9999'),
-    modelRemaining: parseInt(response.headers.get('modelscope-ratelimit-model-requests-remaining') || '9999'),
-    modelLimit: parseInt(response.headers.get('modelscope-ratelimit-model-requests-limit') || '9999'),
-  };
-}
-
-/**
  * Execute an AI request with abort support, retry, and model switching
  *
  * @param {Object} options
@@ -92,7 +79,7 @@ export async function executeAIRequest({
   throwIfAborted(signal);
 
   const { AI_API_KEY, AI_API_URL, AI_MODELS, AI_MODEL, AI_MODEL_SWITCH_THRESHOLD } = env;
-  const threshold = parseInt(AI_MODEL_SWITCH_THRESHOLD || '5');
+  const threshold = parseInt(AI_MODEL_SWITCH_THRESHOLD || '5', 10);
   const healthWindow = parseHealthWindow(env?.AI_MODEL_HEALTH_WINDOW);
   const retryAttempts = parseInt(env?.AI_RETRY_ATTEMPTS || '0', 10);
   const retryBaseDelayMs = parseInt(env?.AI_RETRY_BASE_DELAY_MS || '0', 10);
@@ -215,7 +202,7 @@ export async function executeAIRequest({
       // Check abort before model switch
       throwIfAborted(signal);
 
-      console.log(`[AI] Model ${currentModel} low quota (${rateLimit.modelRemaining}), switching...`);
+      console.warn(`[AI] Model ${currentModel} low quota (${rateLimit.modelRemaining}), switching...`);
       const switchedResult = await executeAIRequest({
         env,
         modelIndex: nextIndex,
@@ -241,7 +228,7 @@ export async function executeAIRequest({
       // Check abort before model switch
       throwIfAborted(signal);
 
-      console.log(`[AI] Model ${currentModel} 429 rate limited, switching...`);
+      console.warn(`[AI] Model ${currentModel} 429 rate limited, switching...`);
       const switchedResult = await executeAIRequest({
         env,
         modelIndex: nextIndex,

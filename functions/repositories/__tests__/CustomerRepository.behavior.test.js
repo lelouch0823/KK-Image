@@ -22,6 +22,7 @@ describe('CustomerRepository behavior coverage', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-18T10:00:00.000Z'));
+    CustomerRepository._ftsAvailable = null; // 重置 FTS 缓存
   });
 
   it('normalizes findById tags for missing, empty, and invalid payloads', async () => {
@@ -59,6 +60,9 @@ describe('CustomerRepository behavior coverage', () => {
   });
 
   it('lists customers with pagination-safe bindings and normalized tag arrays', async () => {
+    const ftsCheckStatement = createStatement('SELECT name FROM sqlite_master', {
+      first: null, // FTS 表不存在，降级为 LIKE
+    });
     const countStatement = createStatement('SELECT COUNT(*) as total FROM customers', {
       first: { total: 5 },
     });
@@ -74,6 +78,7 @@ describe('CustomerRepository behavior coverage', () => {
     const db = {
       prepare: vi
         .fn()
+        .mockReturnValueOnce(ftsCheckStatement)
         .mockReturnValueOnce(countStatement)
         .mockReturnValueOnce(listStatement),
     };
@@ -90,11 +95,12 @@ describe('CustomerRepository behavior coverage', () => {
       pages: 3,
     });
 
+    // FTS 表不存在时降级为 LIKE
     expect(countStatement.params).toEqual(['%Ali%', '%Ali%', '%Ali%']);
     expect(listStatement.params).toEqual(['%Ali%', '%Ali%', '%Ali%', 2, 2]);
     expect(db.prepare).toHaveBeenNthCalledWith(
       1,
-      expect.stringContaining('name LIKE ? OR phone LIKE ? OR company LIKE ?')
+      expect.stringContaining('sqlite_master')
     );
   });
 

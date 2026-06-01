@@ -192,8 +192,12 @@ export class InventoryService {
     const mutation = this.validateMutation(payload);
     if (typeof this.db?.prepare === 'function') {
       const { statements } = await this.buildMutationStatements(payload);
-      for (const statement of statements) {
-        await statement.run();
+      if (typeof this.db?.batch === 'function') {
+        await this.db.batch(statements);
+      } else {
+        for (const statement of statements) {
+          await statement.run();
+        }
       }
     } else if (typeof this.variantRepo?.adjustStock === 'function') {
       await this.variantRepo.adjustStock(mutation.variantId, mutation.quantityDelta);

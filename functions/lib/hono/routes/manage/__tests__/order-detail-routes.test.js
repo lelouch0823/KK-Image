@@ -64,6 +64,7 @@ vi.mock('../../../../../repositories/order/history-queries.js', () => ({
 
 vi.mock('../../../middleware/cache.js', () => ({
   invalidateCache: mocks.invalidateCache,
+  withCache: () => async (_c, next) => next(),
 }));
 
 vi.mock('../../_shared/cache-urls.js', () => ({

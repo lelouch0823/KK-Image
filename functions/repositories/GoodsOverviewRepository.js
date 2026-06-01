@@ -228,8 +228,6 @@ export class GoodsOverviewRepository {
         ) != ''
       ORDER BY category
     `;
-    const { results: categories } = await this.db.prepare(categorySql).bind().all();
-
     const brandSql = `
       SELECT DISTINCT COALESCE(
         demand_snapshot.snapshot_brand,
@@ -256,7 +254,12 @@ export class GoodsOverviewRepository {
         ) != ''
       ORDER BY brand
     `;
-    const { results: brands } = await this.db.prepare(brandSql).bind().all();
+
+    // 并行执行两个查询，减少总延迟
+    const [{ results: categories }, { results: brands }] = await Promise.all([
+      this.db.prepare(categorySql).bind().all(),
+      this.db.prepare(brandSql).bind().all(),
+    ]);
 
     return {
       categories: (categories || []).map((row) => row.category).filter(Boolean),

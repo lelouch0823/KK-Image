@@ -26,7 +26,13 @@ export type AddToastFn = (message: string | { message: string; type?: string }, 
  * @returns ErrorCode 枚举值
  */
 export function classifyError(error: unknown): string {
-  const status = isAppError(error) ? error.status : undefined;
+  // 兼容 AppError、普通 Error 对象、以及 { status } 普通对象
+  let status: number | undefined;
+  if (isAppError(error)) {
+    status = error.status;
+  } else if (error && typeof error === 'object' && 'status' in error) {
+    status = (error as { status: number }).status;
+  }
 
   if (status === 401) return ErrorCode.UNAUTHORIZED;
   if (status === 403) return ErrorCode.FORBIDDEN;
@@ -47,7 +53,14 @@ export function extractErrorMessage(error: unknown, fallback: string = ''): stri
     return error.data.error || error.message || fallback;
   }
   if (error instanceof Error) {
-    return error.message || fallback;
+    // 兼容普通 Error 对象带 data 属性的情况
+    const data = 'data' in error ? (error as Error & { data?: { error?: string } }).data : undefined;
+    return data?.error || error.message || fallback;
+  }
+  // 兼容普通对象（如 { data: { error: '...' }, message: '...' }）
+  if (error && typeof error === 'object') {
+    const obj = error as { data?: { error?: string }; message?: string };
+    return obj.data?.error || obj.message || fallback;
   }
   return fallback;
 }

@@ -12,7 +12,6 @@ import { inClause } from '../../api/utils/sql.js';
 import { assertOrderStatusTransition } from '../../api/utils/order-state-machine.js';
 import { chunkArray, executeBatchChunks } from '../../lib/db/batch.js';
 import { BadRequestError } from '../../lib/hono/errors.js';
-import { InventoryService } from '../../services/InventoryService.js';
 import { projectOrderLineStatus } from '../../services/OrderStatusProjectionService.js';
 import {
     getPrefetchedOrderLineState,
@@ -25,14 +24,23 @@ export const ORDER_SHIPPED_VOID_GUARD_ERROR = 'cannot void order while shipped l
 export const ORDER_DELIVERED_COMPLETENESS_ERROR =
     'cannot mark order delivered until all line quantities are shipped';
 
-function getDeliveryStockDelta(_oldStatus, _newStatus, _quantity) {
-    return 0;
+/**
+ * 安全获取 actorType 对应的未读字段名
+ * 使用白名单映射代替三元表达式，防止未来扩展时引入注入风险
+ */
+const UNREAD_SELF_FIELD_MAP = Object.freeze({ admin: 'unread_by_admin', sales: 'unread_by_sales' });
+const UNREAD_OTHER_FIELD_MAP = Object.freeze({ admin: 'unread_by_sales', sales: 'unread_by_admin' });
+
+function getUnreadSelfField(actorType) {
+    const field = UNREAD_SELF_FIELD_MAP[actorType];
+    if (!field) throw new BadRequestError(`Invalid actorType: ${actorType}`);
+    return field;
 }
 
-async function assertBatchDeliveryStockSufficient(inventoryService, requirementsByVariant) {
-    for (const [variantId, requiredQty] of requirementsByVariant.entries()) {
-        await inventoryService.assertSufficient(variantId, requiredQty);
-    }
+function getUnreadOtherField(actorType) {
+    const field = UNREAD_OTHER_FIELD_MAP[actorType];
+    if (!field) throw new BadRequestError(`Invalid actorType: ${actorType}`);
+    return field;
 }
 
 const SNAPSHOT_SPEC_KEYS = ['category', 'size', 'color', 'material', 'brand', 'series', 'remark', 'deadline'];
@@ -632,7 +640,7 @@ export async function create(
  */
 export async function updateData(db, id, newData, actorType, productId = undefined, variantId = undefined) {
     const timestamp = now();
-    const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
+    const updateField = getUnreadOtherField(actorType);
     const deadlineDate = extractDeadlineDate(newData);
     const { summaryName, summaryBrand, summarySku } = deriveOrderSummaryFields(newData);
 
@@ -720,9 +728,8 @@ export async function updateComposite(db, {
     if (enforceSalesFileScope) {
         await assertSalesScopedFileIds(db, fileIds, salespersonId, { orderId: id });
     }
-    const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
+    const updateField = getUnreadOtherField(actorType);
     const statements = [];
-    const stockService = inventoryService || new InventoryService(db);
     const normalizedStatus = status !== undefined
         ? (normalizeOrderLifecycleStatus(status) || status)
         : undefined;
@@ -768,22 +775,7 @@ export async function updateComposite(db, {
         if (currentOrder?.status) {
             assertOrderStatusTransition(currentOrder.status, normalizedStatus, { forceStatusTransition });
         }
-        const stockDelta = getDeliveryStockDelta(currentOrder?.status, normalizedStatus, currentOrder?.quantity);
-        if (currentOrder?.variant_id && stockDelta < 0) {
-            await stockService.assertSufficient(currentOrder.variant_id, Math.abs(stockDelta));
-        }
-        if (currentOrder?.variant_id && stockDelta !== 0) {
-            const orderLineId = await findOrderLineIdByOrderId(db, id, orderLineStates);
-            await stockService.applyMutation({
-                type: 'order_shipment',
-                variantId: currentOrder.variant_id,
-                quantityDelta: stockDelta,
-                orderId: id,
-                orderLineId,
-                referenceType: 'order',
-                referenceId: id,
-            });
-        }
+        // 注意：库存变更已迁移至行级命令 (lines.js)，此处不再处理 order-level stock delta
     }
 
     const { summaryName, summaryBrand, summarySku } = deriveOrderSummaryFields(effectiveData);
@@ -893,8 +885,7 @@ export async function updateComposite(db, {
 export async function updateStatus(db, id, newStatus, actorType, options = {}) {
     const { forceStatusTransition = false } = options;
     const timestamp = now();
-    const updateField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
-    const inventoryService = options.inventoryService || new InventoryService(db);
+    const updateField = getUnreadOtherField(actorType);
     const normalizedNextStatus = normalizeOrderLifecycleStatus(newStatus);
     const orderLineStates = await prefetchOrderLineStates(db, [id]);
     await assertOrderStatusCompatibleWithLines(db, id, normalizedNextStatus, orderLineStates);
@@ -905,47 +896,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
     if (currentOrder?.status) {
         assertOrderStatusTransition(currentOrder.status, normalizedNextStatus, { forceStatusTransition });
     }
-    const stockDelta = getDeliveryStockDelta(currentOrder?.status, normalizedNextStatus, currentOrder?.quantity);
-    const canAdjustVariantStock = Boolean(currentOrder?.variant_id) && stockDelta !== 0;
-
-    if (canAdjustVariantStock && stockDelta < 0) {
-        await inventoryService.assertSufficient(currentOrder.variant_id, Math.abs(stockDelta));
-    }
-
-    if (canAdjustVariantStock) {
-        const orderLineId = await findOrderLineIdByOrderId(db, id, orderLineStates);
-        await inventoryService.applyMutation({
-            type: 'order_shipment',
-            variantId: currentOrder.variant_id,
-            quantityDelta: stockDelta,
-            orderId: id,
-            orderLineId,
-            referenceType: 'order',
-            referenceId: id,
-        });
-        const lineProgressStatement = await buildCompatibilityLineProgressStatement(
-            db,
-            id,
-            normalizedNextStatus,
-            currentOrder?.quantity,
-            timestamp,
-            orderLineStates
-        );
-        const statements = [
-            db
-                .prepare(
-                    `
-      UPDATE orders 
-      SET status = ?, ${updateField} = 1, updated_at = ? 
-      WHERE id = ?
-      `
-                )
-                .bind(normalizedNextStatus, timestamp, id),
-            lineProgressStatement,
-        ];
-        await executeBatchChunks(db, statements);
-        return { success: true, meta: { changes: 1 } };
-    }
+    // 注意：库存变更已迁移至行级命令 (lines.js)，此处不再处理 order-level stock delta
 
     const lineProgressStatement = await buildCompatibilityLineProgressStatement(
         db,
@@ -1008,7 +959,6 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
     const { forceStatusTransition = false } = options;
     const timestamp = now();
     const batchStatements = [];
-    const inventoryService = options.inventoryService || new InventoryService(db);
     const normalizedNextStatus = normalizeOrderLifecycleStatus(newStatus);
     const existingOrders = [];
     for (const idChunk of chunkArray(ids)) {
@@ -1021,7 +971,6 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
     }
     const orderMap = new Map((existingOrders || []).map((row) => [row.id, row]));
     const orderLineStates = await prefetchOrderLineStates(db, ids);
-    const deliveryRequirementsByVariant = new Map();
 
     for (const id of ids) {
         await assertOrderStatusCompatibleWithLines(db, id, normalizedNextStatus, orderLineStates);
@@ -1029,30 +978,11 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
         if (order?.status) {
             assertOrderStatusTransition(order.status, normalizedNextStatus, { forceStatusTransition });
         }
-        const stockDelta = getDeliveryStockDelta(order?.status, normalizedNextStatus, order?.quantity);
-        if (order?.variant_id && stockDelta < 0) {
-            const requiredQty = Math.abs(stockDelta);
-            const prev = deliveryRequirementsByVariant.get(order.variant_id) || 0;
-            deliveryRequirementsByVariant.set(order.variant_id, prev + requiredQty);
-        }
     }
-    await assertBatchDeliveryStockSufficient(inventoryService, deliveryRequirementsByVariant);
-
-    const inventoryMutations = [];
 
     for (const id of ids) {
         const order = orderMap.get(id);
-        const stockDelta = getDeliveryStockDelta(order?.status, normalizedNextStatus, order?.quantity);
-        if (order?.variant_id && stockDelta !== 0) {
-            inventoryMutations.push({
-                type: 'order_shipment',
-                variantId: order.variant_id,
-                quantityDelta: stockDelta,
-                orderId: id,
-                referenceType: 'order',
-                referenceId: id,
-            });
-        }
+        // 注意：库存变更已迁移至行级命令 (lines.js)，此处不再处理 order-level stock delta
 
         batchStatements.push(
             db
@@ -1078,9 +1008,6 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
         }
     }
 
-    if (inventoryMutations.length > 0) {
-        await inventoryService.applyBatch(inventoryMutations);
-    }
     await executeBatchChunks(db, batchStatements);
 }
 
@@ -1091,7 +1018,7 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
  * @param {'admin'|'sales'} actorType
  */
 export async function markAsRead(db, id, actorType) {
-    const field = actorType === 'admin' ? 'unread_by_admin' : 'unread_by_sales';
+    const field = getUnreadSelfField(actorType);
     await db.prepare(`UPDATE orders SET ${field} = 0 WHERE id = ?`).bind(id).run();
 }
 
@@ -1102,7 +1029,7 @@ export async function markAsRead(db, id, actorType) {
  * @param {'admin'|'sales'} actorType
  */
 export async function setUnread(db, id, actorType) {
-    const targetField = actorType === 'admin' ? 'unread_by_sales' : 'unread_by_admin';
+    const targetField = getUnreadOtherField(actorType);
     const timestamp = now();
     await db
         .prepare(`UPDATE orders SET ${targetField} = 1, updated_at = ? WHERE id = ?`)
@@ -1116,10 +1043,11 @@ export async function setUnread(db, id, actorType) {
  * @param {string} id
  */
 export async function deleteWithRelations(db, id) {
+    // order_line_allocations 使用 order_line_id 而非 order_id，需要通过子查询关联
     const statements = [
         db.prepare('DELETE FROM order_timeline WHERE order_id = ?').bind(id),
         db.prepare('DELETE FROM order_files WHERE order_id = ?').bind(id),
-        db.prepare('DELETE FROM order_line_allocations WHERE order_id = ?').bind(id),
+        db.prepare('DELETE FROM order_line_allocations WHERE order_line_id IN (SELECT id FROM order_lines WHERE order_id = ?)').bind(id),
         db.prepare('DELETE FROM order_lines WHERE order_id = ?').bind(id),
         db.prepare('DELETE FROM order_payloads WHERE order_id = ?').bind(id),
         db.prepare('DELETE FROM order_shipments WHERE order_id = ?').bind(id),

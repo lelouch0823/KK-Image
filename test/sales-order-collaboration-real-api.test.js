@@ -18,7 +18,7 @@ import {
 import { createAuthenticatedSalesSession, salesApiRequest } from './utils/sales-real-api.js';
 
 function findSalesListOrder(payload, orderId) {
-  return (payload?.data?.orders || []).find((item) => item.id === orderId) || null;
+  return (payload?.data?.orders || payload?.data || []).find((item) => item.id === orderId) || null;
 }
 
 function findSalesProduct(payload, productId) {

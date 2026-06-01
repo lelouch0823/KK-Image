@@ -11,12 +11,13 @@ import {
 
 const app = new Hono();
 const EXPORT_PAGE_LIMIT = 100;
+const MAX_EXPORT_PAGES = 100; // 最多导出 10000 条 (100页 * 100条/页)
 
 const loadAllProductsForExport = async (repo, filters) => {
   const products = [];
   let page = 1;
 
-  while (true) {
+  while (page <= MAX_EXPORT_PAGES) {
     const result = await repo.search({
       ...filters,
       page,
@@ -29,6 +30,10 @@ const loadAllProductsForExport = async (repo, filters) => {
     }
     page += 1;
   }
+
+  // 达到最大页数限制，返回已加载的数据
+  console.warn(`[ProductExport] Reached max export pages (${MAX_EXPORT_PAGES}), returning partial results`);
+  return products;
 };
 
 app.get('/', async (c) => {

@@ -26,6 +26,12 @@ const DEFAULT_RULES = [
 ];
 
 /**
+ * 模块级规则缓存，避免每次实例化都重新解析环境变量
+ */
+let _cachedRulesKey = null;
+let _cachedRules = null;
+
+/**
  * 智能存储路由器
  */
 export class SmartRouter {
@@ -38,18 +44,22 @@ export class SmartRouter {
   }
 
   /**
-   * 解析路由规则
+   * 解析路由规则（带模块级缓存）
    * @private
    */
   _parseRules() {
+    const raw = this.env.STORAGE_RULES || '';
+    if (_cachedRulesKey === raw && _cachedRules) {
+      return _cachedRules;
+    }
     try {
-      if (this.env.STORAGE_RULES) {
-        return safeJsonParse(this.env.STORAGE_RULES, DEFAULT_RULES);
-      }
+      _cachedRules = raw ? safeJsonParse(raw, DEFAULT_RULES) : DEFAULT_RULES;
     } catch (error) {
       console.warn('Failed to parse STORAGE_RULES, using defaults:', error);
+      _cachedRules = DEFAULT_RULES;
     }
-    return DEFAULT_RULES;
+    _cachedRulesKey = raw;
+    return _cachedRules;
   }
 
   /**
@@ -123,7 +133,7 @@ export class SmartRouter {
     const sizeMatch = condition.match(/^size\s*([<>=!]+)\s*(\d+)$/);
     if (sizeMatch) {
       const [, operator, value] = sizeMatch;
-      return this._compareNumber(fileInfo.size, operator, parseInt(value));
+      return this._compareNumber(fileInfo.size, operator, parseInt(value, 10));
     }
 
     const typeStartsMatch = condition.match(/^type\s+startsWith\s+(.+)$/);

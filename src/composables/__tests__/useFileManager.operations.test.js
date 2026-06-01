@@ -465,7 +465,7 @@ describe('useFileManager operations', () => {
     await store.loadTrashData();
 
     expect(store.files.value).toEqual([{ id: 'trash-file-1', type: 'file', name: 'old.jpg' }]);
-    expect(store.currentFolder.value).toEqual({ isTrash: true, name: 'trash.title' });
+    expect(store.currentFolder.value).toEqual({ id: 'trash', isTrash: true, name: 'trash.title' });
     expect(store.breadcrumbs.value).toEqual([{ name: 'trash.title', path: '/admin/trash' }]);
   });
 

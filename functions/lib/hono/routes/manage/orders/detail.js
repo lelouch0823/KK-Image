@@ -13,6 +13,7 @@ import { assertAdminFull, assertForceStatusTransitionAllowed } from './authz-hel
 import { requireEntity } from '../../../_shared/route-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
 import { DemandService } from '../../../../../services/DemandService.js';
+import { withCache } from '../../../middleware/cache.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';

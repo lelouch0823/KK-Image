@@ -65,38 +65,9 @@ export class RedundancyManager {
         result.metadata = { storage: storageMetadata };
       }
 
-      if (this.router.isAsyncMirror()) {
-        // 异步镜像
-        this._mirrorAsync(file, options, secondaryMirrors, result.fileId, storageMetadata);
-      } else {
-        // 同步镜像 (即便失败也不影响主上传，但会记录)
-        await Promise.all(
-          secondaryMirrors.map(async (mirrorName) => {
-            try {
-              const provider = getStorageProvider(this.env, mirrorName);
-              if (!provider) return;
-
-              const mirrorResult = await provider.upload(file, options);
-              if (mirrorResult.success) {
-                storageMetadata.mirrors.push({
-                  provider: mirrorName,
-                  id: mirrorResult.fileId,
-                  status: 'synced',
-                });
-                await this._updateMirrorStatus(
-                  result.fileId,
-                  mirrorName,
-                  mirrorResult.fileId,
-                  'synced'
-                );
-              }
-            } catch (e) {
-              console.error(`Mirror to ${mirrorName} failed:`, e);
-              await this._updateMirrorStatus(result.fileId, mirrorName, null, 'failed', e.message);
-            }
-          })
-        );
-      }
+      // 镜像上传始终异步执行，不阻塞主上传响应
+      // 使用 context.waitUntil 确保后台任务完成
+      this._mirrorAsync(file, options, secondaryMirrors, result.fileId, storageMetadata);
     } else {
       // 即使没有镜像，也记录主存储信息
       if (!result.metadata) result.metadata = {};
@@ -238,35 +209,59 @@ export async function getFileWithFallback(env, fileId, request, metadata) {
   const chain = getFallbackChain(env, metadata);
   const timeout = parseInt(env.STORAGE_FALLBACK_TIMEOUT || '3000', 10);
 
-  for (const providerName of chain) {
-    try {
-      const provider = getStorageProvider(env, providerName);
-
-      // 获取该存储中的文件 ID
-      let targetFileId = fileId;
-      if (metadata?.storage) {
-        if (metadata.storage.primary === providerName) {
-          targetFileId = metadata.storage.primaryId || fileId;
-        } else {
-          // 从 D1 镜像表查找
-          const mirror = mirrors.find((m) => m.provider === providerName);
-          if (mirror?.provider_file_id) {
-            targetFileId = mirror.provider_file_id;
-          }
+  // 构建 provider 列表及其对应的 fileId
+  const providers = chain.map((providerName) => {
+    let targetFileId = fileId;
+    if (metadata?.storage) {
+      if (metadata.storage.primary === providerName) {
+        targetFileId = metadata.storage.primaryId || fileId;
+      } else {
+        const mirror = mirrors.find((m) => m.provider === providerName);
+        if (mirror?.provider_file_id) {
+          targetFileId = mirror.provider_file_id;
         }
       }
+    }
+    return { name: providerName, fileId: targetFileId };
+  });
 
-      // 使用超时控制
+  // 竞速策略：主存储超时后，同时请求镜像竞速
+  if (providers.length === 0) {
+    return new Response('File not found in any storage', { status: 404 });
+  }
+
+  // 1. 尝试主存储
+  const primary = providers[0];
+  try {
+    const provider = getStorageProvider(env, primary.name);
+    if (provider) {
       const response = await Promise.race([
-        provider.getFile(targetFileId, request),
+        provider.getFile(primary.fileId, request),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout)),
       ]);
+      if (response.ok) return response;
+    }
+  } catch (error) {
+    console.warn(`Fallback: ${primary.name} failed for ${fileId}:`, error.message);
+  }
 
-      if (response.ok) {
-        return response;
-      }
-    } catch (error) {
-      console.warn(`Fallback: ${providerName} failed for ${fileId}:`, error.message);
+  // 2. 主存储失败/超时，同时请求所有镜像竞速
+  if (providers.length > 1) {
+    const rest = providers.slice(1);
+    const restPromises = rest.map((r) => {
+      const p = getStorageProvider(env, r.name);
+      return p ? p.getFile(r.fileId, request) : Promise.reject(new Error('No provider'));
+    });
+
+    try {
+      const winner = await Promise.race(
+        restPromises
+          .map((p) => p.then((res) => (res.ok ? res : Promise.reject(new Error('Not OK')))))
+          .concat(new Promise((_, reject) => setTimeout(() => reject(new Error('All timeout')), timeout)))
+      );
+      if (winner?.ok) return winner;
+    } catch {
+      // 所有镜像都失败
     }
   }
 

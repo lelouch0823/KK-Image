@@ -9,6 +9,7 @@ import { decrementRefCount } from '../../../../api/utils/blob-utils.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishDomainEventsAndPoll } from '../../_shared/domain-outbox.js';
+import { withCache } from '../../middleware/cache.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -31,7 +32,7 @@ const DeleteTrashSchema = z.object({
 /**
  * GET /api/manage/trash - 获取回收站列表
  */
-app.get('/', requirePermission('files:read'), async (c) => {
+app.get('/', requirePermission('files:read'), withCache(15), async (c) => {
     const { env } = c;
 
     const fileRepo = new FileRepository(env.DB);

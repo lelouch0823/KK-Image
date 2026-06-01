@@ -9,13 +9,13 @@ describe('PurchaseOrders decomposition audit', () => {
     const offenders = [];
     const mainPath = path.join(ROOT, 'src', 'views', 'PurchaseOrders.vue');
     const helperPaths = [
-      path.join(ROOT, 'src', 'views', 'purchase-orders', 'formatters.js'),
-      path.join(ROOT, 'src', 'views', 'purchase-orders', 'progress.js'),
-      path.join(ROOT, 'src', 'views', 'purchase-orders', 'stepper.js'),
-      path.join(ROOT, 'src', 'views', 'purchase-orders', 'drafts.js'),
-      path.join(ROOT, 'src', 'views', 'purchase-orders', 'create-flow.js'),
-      path.join(ROOT, 'src', 'composables', 'usePurchaseOrderDetailActions.js'),
-      path.join(ROOT, 'src', 'composables', 'usePurchaseOrderCreateFlow.js'),
+      path.join(ROOT, 'src', 'views', 'purchase-orders', 'formatters.ts'),
+      path.join(ROOT, 'src', 'views', 'purchase-orders', 'progress.ts'),
+      path.join(ROOT, 'src', 'views', 'purchase-orders', 'stepper.ts'),
+      path.join(ROOT, 'src', 'views', 'purchase-orders', 'drafts.ts'),
+      path.join(ROOT, 'src', 'views', 'purchase-orders', 'create-flow.ts'),
+      path.join(ROOT, 'src', 'composables', 'usePurchaseOrderDetailActions.ts'),
+      path.join(ROOT, 'src', 'composables', 'usePurchaseOrderCreateFlow.ts'),
     ];
     const source = fs.readFileSync(mainPath, 'utf8');
 
@@ -25,19 +25,19 @@ describe('PurchaseOrders decomposition audit', () => {
       }
     }
 
-    if (!source.includes("@/views/purchase-orders/formatters.js")) {
+    if (!source.includes("@/views/purchase-orders/formatters")) {
       offenders.push('src/views/PurchaseOrders.vue: missing purchase-order formatter import');
     }
 
-    if (!source.includes("@/views/purchase-orders/progress.js")) {
+    if (!source.includes("@/views/purchase-orders/progress")) {
       offenders.push('src/views/PurchaseOrders.vue: missing purchase-order progress helper import');
     }
 
-    if (!source.includes("@/views/purchase-orders/stepper.js")) {
+    if (!source.includes("@/views/purchase-orders/stepper")) {
       offenders.push('src/views/PurchaseOrders.vue: missing purchase-order stepper helper import');
     }
 
-    if (!source.includes("@/views/purchase-orders/drafts.js")) {
+    if (!source.includes("@/views/purchase-orders/drafts")) {
       offenders.push('src/views/PurchaseOrders.vue: missing purchase-order draft helper import');
     }
 

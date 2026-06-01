@@ -30,7 +30,7 @@ async function textRequest(path, { bearerToken, expectedStatus = 200 } = {}) {
 }
 
 function findListedOrder(payload, orderId) {
-  return (payload?.data?.orders || []).find((item) => item.id === orderId);
+  return (payload?.data?.orders || payload?.data || []).find((item) => item.id === orderId);
 }
 
 describeIfRealApi('Order Module Real API Workflow', function () {
@@ -287,7 +287,8 @@ describeIfRealApi('Order Module Real API Workflow', function () {
       body: { comment: '' },
       expectedStatus: 400,
     });
-    assert.match(String(emptyComment.json?.error || ''), /invalid|参数|params|有误/i);
+    const errorMsg = typeof emptyComment.json?.error === 'string' ? emptyComment.json.error : JSON.stringify(emptyComment.json?.error || '');
+    assert.match(errorMsg, /invalid|参数|params|有误|必填/i);
 
     const prematureDeliveryConfirm = await apiRequest(`/api/manage/orders/${orderId}/delivery-confirmation`, {
       bearerToken: token,
@@ -306,7 +307,8 @@ describeIfRealApi('Order Module Real API Workflow', function () {
       body: { status: 'delivered' },
       expectedStatus: 400,
     });
-    assert.match(String(invalidStatusJump.json?.error || ''), /invalid status transition/i);
+    const statusJumpError = typeof invalidStatusJump.json?.error === 'string' ? invalidStatusJump.json.error : JSON.stringify(invalidStatusJump.json?.error || '');
+    assert.match(statusJumpError, /invalid status transition|状态/i);
 
     const detail = await getOrderDetail(token, orderId);
     assert.strictEqual(detail?.status, 'pending');

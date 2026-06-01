@@ -93,7 +93,7 @@ describe('storage redundancy', () => {
     });
   });
 
-  it('handles synchronous mirrors by collecting success metadata and failed status updates', async () => {
+  it('handles mirrors asynchronously and returns immediately after primary upload', async () => {
     const primaryProvider = {
       upload: vi.fn(async () => ({ success: true, fileId: 'primary-1', metadata: { legacy: true } })),
     };
@@ -120,20 +120,13 @@ describe('storage redundancy', () => {
 
     const result = await manager.upload({ name: 'demo.png' }, {});
 
+    // 镜像上传现在是异步的，响应立即返回空 mirrors 数组
     expect(result.metadata.storage).toEqual({
       primary: 'r2',
       primaryId: 'primary-1',
-      mirrors: [
-        {
-          provider: 's3',
-          id: 'mirror-s3',
-          status: 'synced',
-        },
-      ],
+      mirrors: [],
     });
-    expect(updateSpy).toHaveBeenCalledWith('primary-1', 's3', 'mirror-s3', 'synced');
-    expect(updateSpy).toHaveBeenCalledWith('primary-1', 'telegram', null, 'failed', 'telegram down');
-    expect(errorSpy).toHaveBeenCalledWith('Mirror to telegram failed:', expect.any(Error));
+    // 异步镜像任务已通过 _mirrorAsync 调度，不在此处验证异步结果
   });
 
   it('schedules async mirrors through waitUntil and updates status after completion', async () => {

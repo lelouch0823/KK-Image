@@ -10,6 +10,7 @@ import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../../errors.js';
 import { requirePermission } from '../../../middleware/auth.js';
 import { ProductCatalogService } from '../../../../../services/ProductCatalogService.js';
+import { withCache } from '../../../middleware/cache.js';
 import { loadVariantReplenishmentMap } from '../../_shared/variant-replenishment.js';
 import {
     buildRequestFingerprint,
@@ -319,6 +320,12 @@ app.patch('/:id/dimensions/:dimensionId/archive', zValidator('json', ArchiveDime
                 effect = { archivedVariants: await dimensionRepo.archiveVariantsByDimension(productId, dimensionId) };
             }
             const archivedDimension = await dimensionRepo.archiveDimension(productId, dimensionId);
+
+            // 刷新商品投影表
+            const { ProductProjectionRefreshService } = await import('../../../../../services/ProductProjectionRefreshService.js');
+            const refreshService = new ProductProjectionRefreshService(env.DB);
+            await refreshService.refreshByProductId(productId, c.executionCtx);
+
             return { success: true, data: { dimension: archivedDimension, effect } };
         },
         publish: async ({ reservation }) => {
@@ -894,6 +901,11 @@ app.delete('/:id', async (c) => {
             await auditRepo.createBatch(events);
             archiveState.variantAuditPersisted = true;
         }
+
+        // 刷新商品投影表，确保归档状态立即生效
+        const { ProductProjectionRefreshService } = await import('../../../../../services/ProductProjectionRefreshService.js');
+        const refreshService = new ProductProjectionRefreshService(env.DB);
+        await refreshService.refreshByProductId(id, c.executionCtx);
 
         await publishProductArchivedCacheEvent(c, id, {
             commandId: reservation.record?.command_id,

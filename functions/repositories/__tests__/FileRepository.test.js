@@ -42,7 +42,7 @@ describe('FileRepository', () => {
 
     await expect(repo.findByFolder('folder-1')).resolves.toEqual([{ id: 'file-1', folder_id: 'folder-1' }]);
     expect(db.prepare).toHaveBeenCalledWith(
-      'SELECT * FROM files WHERE folder_id = ? AND is_deleted = 0 ORDER BY created_at DESC'
+      'SELECT id, folder_id, name, original_name, mime_type, size, storage_key, content_hash, status, created_at FROM files WHERE folder_id = ? AND is_deleted = 0 ORDER BY created_at DESC'
     );
     expect(statement.bind).toHaveBeenCalledWith('folder-1');
   });

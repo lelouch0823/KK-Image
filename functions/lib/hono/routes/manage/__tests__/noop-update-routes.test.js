@@ -367,7 +367,7 @@ describe('manage no-op update routes', () => {
         aggregate_id: 'sales-2',
       }),
     ], undefined);
-    expect(waitUntil).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalledTimes(2);
   });
 
   it('returns 200 for salesperson no-op update', async () => {

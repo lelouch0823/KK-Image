@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 import {
   clearLoginFailures,
@@ -9,6 +9,7 @@ import {
   loginRateLimitMiddleware,
   recordLoginFailure,
   resolveRequestIp,
+  _resetMemoryCountersForTest,
 } from '../rateLimit.js';
 
 function createContext(env = {}) {
@@ -28,6 +29,9 @@ function createContext(env = {}) {
 }
 
 describe('rateLimit middleware', () => {
+  beforeEach(() => {
+    _resetMemoryCountersForTest();
+  });
   it('fails open when global rate limit storage is unavailable', async () => {
     const c = createContext({});
     const next = vi.fn();
@@ -115,22 +119,30 @@ describe('rateLimit middleware', () => {
   });
 
   it('records successful global rate-limit usage and returns 429 when the window is exhausted', async () => {
-    const c = createContext({
-      RATE_LIMIT_KV: {
-        get: vi.fn().mockResolvedValueOnce('2').mockResolvedValueOnce('100'),
-        put: vi.fn(async () => undefined),
-      },
-    });
+    const kv = {
+      get: vi.fn(),
+      put: vi.fn(async () => undefined),
+    };
+    const c = createContext({ RATE_LIMIT_KV: kv });
     const next = vi.fn(async () => undefined);
 
+    // 内存计数器从 0 开始，首次请求不读 KV
     await expect(rateLimitMiddleware(c, next)).resolves.toBeUndefined();
-    expect(c.executionCtx.waitUntil).toHaveBeenCalled();
     expect(c.header).toHaveBeenCalledWith('X-RateLimit-Limit', '100');
-    expect(c.header).toHaveBeenCalledWith('X-RateLimit-Remaining', '97');
+    expect(c.header).toHaveBeenCalledWith('X-RateLimit-Remaining', '99');
+    expect(next).toHaveBeenCalledTimes(1);
 
+    // 模拟窗口耗尽：直接设置内存计数器到上限
+    // 通过多次调用累加到 100
+    for (let i = 1; i < 100; i++) {
+      await rateLimitMiddleware(c, next);
+    }
+    expect(next).toHaveBeenCalledTimes(100);
+
+    // 第 101 次请求应被限流
     const limited = await rateLimitMiddleware(c, next);
     expect(limited.status).toBe(429);
-    expect(next).toHaveBeenCalledTimes(1);
+    expect(next).toHaveBeenCalledTimes(100);
   });
 
   it('supports login-scoped rate limits, lockout state transitions, and cleanup', async () => {

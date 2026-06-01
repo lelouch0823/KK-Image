@@ -1,0 +1,16 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7]: KK
+      - heading "欢迎回来" [level=1] [ref=e8]
+      - paragraph [ref=e9]: 登录以管理您的图片和文件
+    - link "KK-Image" [ref=e32] [cursor=pointer]:
+      - /url: https://github.com/cf-pages/KK-Image
+      - img [ref=e33]
+      - generic [ref=e35]: KK-Image
+  - status [ref=e36]:
+    - img [ref=e38]
+    - generic [ref=e40]: 登录成功
+    - button "关闭" [ref=e41]:
+      - generic [ref=e42]: 关闭
+      - img [ref=e43]

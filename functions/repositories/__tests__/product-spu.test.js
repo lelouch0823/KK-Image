@@ -93,17 +93,19 @@ describe('ProductRepository — SPU 重构', () => {
             db.prepare.mockImplementation((sql) => {
                 const stmt = createPreparedStatement(sql);
                 if (sql.includes('INSERT INTO products')) {
-                    stmt.run.mockResolvedValue({ meta: { changes: 1 } });
-                }
-                if (sql.includes('FROM products p') && sql.includes('WHERE p.id = ?')) {
-                    stmt.first.mockResolvedValue({
-                        id: 'test-uuid',
-                        name: 'Code Product',
-                        spu: null,
-                        product_code: 'PTESTUUID0000',
-                        images: '[]',
-                        specifications: '{}',
-                        options: '[]',
+                    // RETURNING * 模式：run() 返回插入的行数据
+                    stmt.run.mockResolvedValue({
+                        success: true,
+                        meta: { changes: 1 },
+                        results: [{
+                            id: 'test-uuid',
+                            name: 'Code Product',
+                            spu: null,
+                            product_code: 'PTESTUUID0000',
+                            images: '[]',
+                            specifications: '{}',
+                            options: '[]',
+                        }],
                     });
                 }
                 return stmt;
@@ -214,11 +216,10 @@ describe('ProductRepository — SPU 重构', () => {
             await repo.search({ hasStock: 'in_stock', status: 'active' });
 
             const listSql = db.prepare.mock.calls.find((call) => call[0].includes('ORDER BY'))?.[0] || '';
-            expect(listSql).toContain("MIN(CASE WHEN pv.status = 'active' THEN price END) AS min_price");
-            expect(listSql).toContain("MIN(CASE WHEN pv.status = 'active' THEN COALESCE(cost_price, 0) END) AS min_cost_price");
-            expect(listSql).toContain("SUM(CASE WHEN pv.status = 'active' THEN COALESCE(ib.on_hand, pv.stock_quantity, 0) ELSE 0 END) AS total_stock_quantity");
-            expect(listSql).toContain("SUM(CASE WHEN pv.status = 'active' THEN COALESCE(ib.available, pv.stock_quantity, 0) ELSE 0 END) AS total_available_quantity");
-            expect(listSql).toContain("MIN(CASE WHEN pv.status = 'active' THEN COALESCE(alert_threshold, 10) END) AS min_alert_threshold");
+            // 使用 product_projection 表替代 CTE 全表扫描
+            expect(listSql).toContain('LEFT JOIN product_projection pp ON pp.product_id = p.id');
+            expect(listSql).toContain('COALESCE(pp.min_price, 0) AS price');
+            expect(listSql).toContain('COALESCE(pp.total_available, COALESCE(pp.total_stock, 0))');
         });
 
         it('应支持组合品牌、分类、有库存和排序查询', async () => {
@@ -256,7 +257,7 @@ describe('ProductRepository — SPU 重构', () => {
             const listSql = db.prepare.mock.calls.find((call) => call[0].includes('ORDER BY'))?.[0] || '';
             expect(listSql).toContain('brand = ?');
             expect(listSql).toContain('category = ?');
-            expect(listSql).toContain('COALESCE(va.total_available_quantity, COALESCE(va.total_stock_quantity, 0)) > 0');
+            expect(listSql).toContain('COALESCE(pp.total_available, COALESCE(pp.total_stock, 0)) > 0');
             expect(listSql).toContain('ORDER BY available_quantity DESC');
         });
 

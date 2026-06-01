@@ -113,7 +113,8 @@ app.post('/wechat-login', loginRateLimitMiddleware, zValidator('json', WechatLog
     const wxData = await wxRes.json();
 
     if (wxData.errcode) {
-        throw new Error(wxData.errmsg);
+        console.error('[WeChat] API error:', wxData.errcode, wxData.errmsg);
+        throw new Error('微信登录失败，请稍后重试');
     }
 
     const { openid } = wxData;

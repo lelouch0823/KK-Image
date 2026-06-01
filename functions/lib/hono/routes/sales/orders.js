@@ -17,6 +17,7 @@ import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js'
 import { listOrderReturnHistory, listOrderShipmentHistory } from '../../../../repositories/order/history-queries.js';
 import { syncOrderDemandTransitions } from '../../../../api/utils/order-demand-sync.js';
 import { buildOrderBindingSnapshot } from '../../../../api/utils/order-binding-snapshot.js';
+import { OrderTimelineRepository } from '../../../../repositories/OrderTimelineRepository.js';
 
 const app = new Hono();
 const SALES_BOUND_SNAPSHOT_FIELDS = Object.freeze(['name', 'brand', 'category', 'series', 'sku', 'size', 'color', 'material']);
@@ -222,7 +223,6 @@ app.get('/:id', async (c) => {
         () => new NotFoundError(MSG.ORDER.NOT_FOUND)
     );
 
-    const { OrderTimelineRepository } = await import('../../../../repositories/OrderTimelineRepository.js');
     const tplRepo = new OrderTimelineRepository(env.DB);
 
     const [files, timeline, shipments, returns] = await Promise.all([
@@ -461,7 +461,6 @@ app.delete('/:id', async (c) => {
     });
 
     // SOTA: 记录时间轴
-    const { OrderTimelineRepository } = await import('../../../../repositories/OrderTimelineRepository.js');
     const tplRepo = new OrderTimelineRepository(env.DB);
     await tplRepo.addTimelineEntry(orderId, {
         actionType: 'status_changed',
@@ -519,7 +518,6 @@ app.post('/:id/comment', zValidator('json', AddCommentSchema), async (c) => {
         () => new NotFoundError(MSG.ORDER.NOT_FOUND)
     );
 
-    const { OrderTimelineRepository } = await import('../../../../repositories/OrderTimelineRepository.js');
     const tplRepo = new OrderTimelineRepository(env.DB);
 
     await tplRepo.addTimelineEntry(orderId, {

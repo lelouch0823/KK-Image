@@ -99,7 +99,8 @@ vi.mock('../../../../../../repositories/CommandIdempotencyRepository.js', () => 
   })),
 }));
 
-vi.mock('../../../../middleware/cache.js', () => ({
+vi.mock("../../../../middleware/cache.js", () => ({
+  withCache: () => async (_c, next) => next(),
   invalidateCache: vi.fn(async () => {}),
   getProductCacheUrls: vi.fn(() => []),
 }));

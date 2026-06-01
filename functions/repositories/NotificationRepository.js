@@ -281,51 +281,72 @@ export class NotificationRepository {
      * @returns {Promise<{list: Array, unreadCount: number}>}
      */
     async listForAdmin({ unreadOnly = false, limit = 20 } = {}) {
+        // 基础查询 - 只使用所有表版本都存在的核心列
+        let sql = `SELECT id, type, title, content, is_read, metadata, link, created_at FROM notifications`;
+        const params = [];
+
+        // 尝试使用 receiver 字段过滤，如果不存在则读取全部
         try {
-            let sql = `SELECT * FROM notifications WHERE receiver = 'admin'`;
-            const params = [];
-
+            const hasReceiver = await this._checkColumnExists('receiver');
+            if (hasReceiver) {
+                sql += ` WHERE receiver = 'admin'`;
+                if (unreadOnly) {
+                    sql += ` AND is_read = 0`;
+                }
+            } else {
+                if (unreadOnly) {
+                    sql += ` WHERE is_read = 0`;
+                }
+            }
+        } catch {
+            // 如果检查失败，使用无 receiver 的查询
             if (unreadOnly) {
-                sql += ` AND is_read = 0`;
+                sql += ` WHERE is_read = 0`;
             }
+        }
 
-            sql += ` ORDER BY is_read ASC, created_at DESC LIMIT ?`;
-            params.push(limit);
+        sql += ` ORDER BY is_read ASC, created_at DESC LIMIT ?`;
+        params.push(limit);
 
-            const { results } = await this.db.prepare(sql).bind(...params).all();
+        const [{ results }, unreadCount] = await Promise.all([
+            this.db.prepare(sql).bind(...params).all(),
+            this._getAdminUnreadCount(unreadOnly),
+        ]);
 
-            // 统计未读数量
-            const { count: unreadCount } = await this.db
-                .prepare(`SELECT COUNT(*) as count FROM notifications WHERE receiver = 'admin' AND is_read = 0`)
-                .first();
+        return {
+            list: results.map(this._mapNotification),
+            unreadCount,
+        };
+    }
 
-            return {
-                list: results.map(this._mapNotification),
-                unreadCount,
-            };
-        } catch (error) {
-            if (!isMissingColumnError(error, ['receiver'])) {
-                throw error;
-            }
+    /**
+     * 检查表中是否存在指定列
+     * @private
+     */
+    async _checkColumnExists(columnName) {
+        try {
+            await this.db.prepare(`SELECT ${columnName} FROM notifications LIMIT 1`).first();
+            return true;
+        } catch {
+            return false;
+        }
+    }
 
-            // 兼容旧表结构：历史库没有 receiver 字段时，管理端退化读取全部通知
-            let legacySql = `SELECT * FROM notifications`;
-            const params = [];
-            if (unreadOnly) {
-                legacySql += ` WHERE is_read = 0`;
-            }
-            legacySql += ` ORDER BY is_read ASC, created_at DESC LIMIT ?`;
-            params.push(limit);
-
-            const { results } = await this.db.prepare(legacySql).bind(...params).all();
-            const { count: unreadCount } = await this.db
-                .prepare(`SELECT COUNT(*) as count FROM notifications WHERE is_read = 0`)
-                .first();
-
-            return {
-                list: results.map(this._mapNotification),
-                unreadCount,
-            };
+    /**
+     * 获取管理员未读通知数量
+     * @private
+     */
+    async _getAdminUnreadCount(unreadOnly) {
+        if (!unreadOnly) return 0;
+        try {
+            const hasReceiver = await this._checkColumnExists('receiver');
+            const sql = hasReceiver
+                ? `SELECT COUNT(*) as count FROM notifications WHERE receiver = 'admin' AND is_read = 0`
+                : `SELECT COUNT(*) as count FROM notifications WHERE is_read = 0`;
+            const result = await this.db.prepare(sql).first();
+            return result?.count || 0;
+        } catch {
+            return 0;
         }
     }
 
@@ -338,41 +359,50 @@ export class NotificationRepository {
      * @returns {Promise<{list: Array, unreadCount: number}>}
      */
     async listForSalesperson(salespersonId, { unreadOnly = false, limit = 20 } = {}) {
+        // 检查是否有销售端相关字段
+        const hasReceiver = await this._checkColumnExists('receiver');
+        const hasSalespersonId = await this._checkColumnExists('salesperson_id');
+
+        // 如果缺少必要字段，返回空列表
+        if (!hasReceiver || !hasSalespersonId) {
+            return { list: [], unreadCount: 0 };
+        }
+
+        let sql = `SELECT id, type, title, content, is_read, metadata, link, created_at FROM notifications WHERE receiver = 'sales' AND salesperson_id = ?`;
+        const params = [salespersonId];
+
+        if (unreadOnly) {
+            sql += ` AND is_read = 0`;
+        }
+
+        sql += ` ORDER BY is_read ASC, created_at DESC LIMIT ?`;
+        params.push(limit);
+
+        const [{ results }, unreadCount] = await Promise.all([
+            this.db.prepare(sql).bind(...params).all(),
+            this._getSalespersonUnreadCount(salespersonId, unreadOnly),
+        ]);
+
+        return {
+            list: results.map(this._mapNotification),
+            unreadCount,
+        };
+    }
+
+    /**
+     * 获取销售员未读通知数量
+     * @private
+     */
+    async _getSalespersonUnreadCount(salespersonId, unreadOnly) {
+        if (!unreadOnly) return 0;
         try {
-            let sql = `SELECT * FROM notifications WHERE receiver = 'sales' AND salesperson_id = ?`;
-            const params = [salespersonId];
-
-            if (unreadOnly) {
-                sql += ` AND is_read = 0`;
-            }
-
-            sql += ` ORDER BY is_read ASC, created_at DESC LIMIT ?`;
-            params.push(limit);
-
-            const { results } = await this.db.prepare(sql).bind(...params).all();
-
-            // 统计未读数量
-            const { count: unreadCount } = await this.db
-                .prepare(
-                    `SELECT COUNT(*) as count FROM notifications WHERE receiver = 'sales' AND salesperson_id = ? AND is_read = 0`
-                )
+            const result = await this.db
+                .prepare(`SELECT COUNT(*) as count FROM notifications WHERE receiver = 'sales' AND salesperson_id = ? AND is_read = 0`)
                 .bind(salespersonId)
                 .first();
-
-            return {
-                list: results.map(this._mapNotification),
-                unreadCount,
-            };
-        } catch (error) {
-            if (!isMissingColumnError(error, ['receiver', 'salesperson_id'])) {
-                throw error;
-            }
-
-            // 兼容旧表结构：历史库无销售端归属信息，返回空列表而非抛异常
-            return {
-                list: [],
-                unreadCount: 0,
-            };
+            return result?.count || 0;
+        } catch {
+            return 0;
         }
     }
 

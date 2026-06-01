@@ -3,6 +3,7 @@ import { parseRepoPagination } from '../api/utils/pagination.js';
 import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { buildSetClause } from '../api/utils/sql.js';
 import { hasChanges } from '../api/utils/result.js';
+import { generateId } from '../api/utils/id.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { execute, query, queryFirst } from '../lib/db/query.js';
 
@@ -29,6 +30,9 @@ export class ProductRepository {
         return normalized;
     }
 
+    /**
+     * @deprecated 使用 product_projection 表替代，保留用于数据验证
+     */
     _variantAggregateCTE() {
         return `
             WITH variant_agg AS (
@@ -47,29 +51,30 @@ export class ProductRepository {
         `;
     }
 
+    /**
+     * 使用 product_projection 表的 SELECT SQL（O(1) 查找替代 O(M) 全表 GROUP BY）
+     */
     _productSelectSQL(whereClause = '1=1') {
         return `
-            ${this._variantAggregateCTE()}
             SELECT
                 p.*,
-                COALESCE(va.min_price, 0) AS price,
-                COALESCE(va.min_cost_price, 0) AS cost_price,
-                COALESCE(va.total_stock_quantity, 0) AS stock_quantity,
-                COALESCE(va.total_available_quantity, COALESCE(va.total_stock_quantity, 0)) AS available_quantity,
-                COALESCE(va.min_alert_threshold, 10) AS alert_threshold,
-                CASE WHEN COALESCE(va.active_variant_count, 0) > 0 THEN 'active' ELSE 'archived' END AS derived_status
+                COALESCE(pp.min_price, 0) AS price,
+                COALESCE(pp.min_cost_price, 0) AS cost_price,
+                COALESCE(pp.total_stock, 0) AS stock_quantity,
+                COALESCE(pp.total_available, COALESCE(pp.total_stock, 0)) AS available_quantity,
+                COALESCE(pp.min_alert_threshold, 10) AS alert_threshold,
+                CASE WHEN COALESCE(pp.active_variant_count, 0) > 0 THEN 'active' ELSE 'archived' END AS derived_status
             FROM products p
-            LEFT JOIN variant_agg va ON va.product_id = p.id
+            LEFT JOIN product_projection pp ON pp.product_id = p.id
             WHERE ${whereClause}
         `;
     }
 
     _productCountSQL(whereClause = '1=1') {
         return `
-            ${this._variantAggregateCTE()}
             SELECT COUNT(*) as total
             FROM products p
-            LEFT JOIN variant_agg va ON va.product_id = p.id
+            LEFT JOIN product_projection pp ON pp.product_id = p.id
             WHERE ${whereClause}
         `;
     }
@@ -79,7 +84,7 @@ export class ProductRepository {
         const params = [];
 
         if (filters.status && !omit.includes('status')) {
-            clauses.push("(CASE WHEN COALESCE(va.active_variant_count, 0) > 0 THEN 'active' ELSE 'archived' END) = ?");
+            clauses.push("(CASE WHEN COALESCE(pp.active_variant_count, 0) > 0 THEN 'active' ELSE 'archived' END) = ?");
             params.push(filters.status);
         }
 
@@ -100,9 +105,9 @@ export class ProductRepository {
         }
 
         if (filters.hasStock === 'in_stock' && !omit.includes('hasStock')) {
-            clauses.push('COALESCE(va.total_available_quantity, COALESCE(va.total_stock_quantity, 0)) > 0');
+            clauses.push('COALESCE(pp.total_available, COALESCE(pp.total_stock, 0)) > 0');
         } else if (filters.hasStock === 'out_of_stock' && !omit.includes('hasStock')) {
-            clauses.push('COALESCE(va.total_available_quantity, COALESCE(va.total_stock_quantity, 0)) <= 0');
+            clauses.push('COALESCE(pp.total_available, COALESCE(pp.total_stock, 0)) <= 0');
         }
 
         return {
@@ -114,10 +119,9 @@ export class ProductRepository {
     async listAvailableBrands(filters = {}) {
         const { clause, params } = this.buildProductFilterClause(filters, { omit: ['brand'] });
         const sql = `
-            ${this._variantAggregateCTE()}
             SELECT DISTINCT p.brand AS brand
             FROM products p
-            LEFT JOIN variant_agg va ON va.product_id = p.id
+            LEFT JOIN product_projection pp ON pp.product_id = p.id
             WHERE ${clause}
               AND p.brand IS NOT NULL
               AND p.brand != ''
@@ -132,10 +136,9 @@ export class ProductRepository {
     async listAvailableCategories(filters = {}) {
         const { clause, params } = this.buildProductFilterClause(filters, { omit: ['category'] });
         const sql = `
-            ${this._variantAggregateCTE()}
             SELECT DISTINCT p.category AS category
             FROM products p
-            LEFT JOIN variant_agg va ON va.product_id = p.id
+            LEFT JOIN product_projection pp ON pp.product_id = p.id
             WHERE ${clause}
               AND p.category IS NOT NULL
               AND p.category != ''
@@ -153,7 +156,7 @@ export class ProductRepository {
      */
     async create(data) {
         const now = Date.now();
-        const id = crypto.randomUUID();
+        const id = generateId();
         const currency = this.normalizeCurrency(data.currency);
         if (!currency) {
             throw new Error('Invalid currency code');
@@ -180,14 +183,26 @@ export class ProductRepository {
         const placeholders = keys.map(() => '?').join(', ');
         const values = Object.values(product);
 
-        const query = `INSERT INTO products (${keys.join(', ')}) VALUES (${placeholders})`;
+        const query = `INSERT INTO products (${keys.join(', ')}) VALUES (${placeholders}) RETURNING *`;
 
-        await execute(this.db, query, values, {
+        const result = await execute(this.db, query, values, {
             label: 'product.create',
         });
 
-        const inserted = await this.findById(id);
-        return inserted || product;
+        // 新创建的商品无 variants，派生字段使用默认值（省去写后读回的 findById 调用）
+        // product_code 由数据库 trigger 生成，应用层计算一致的值
+        const inserted = result.results?.[0] || product;
+        const product_code = 'P' + id.replace(/-/g, '').toUpperCase().slice(0, 12);
+        return {
+            ...inserted,
+            product_code: inserted.product_code || product_code,
+            price: 0,
+            cost_price: 0,
+            stock_quantity: 0,
+            available_quantity: 0,
+            alert_threshold: 10,
+            derived_status: 'archived',
+        };
     }
     /**
      * 批量创建商品
@@ -210,7 +225,7 @@ export class ProductRepository {
                 continue;
             }
 
-            const id = crypto.randomUUID();
+            const id = generateId();
             const currency = this.normalizeCurrency(data.currency);
             if (!currency) {
                 errors.push({ spu: data.spu || 'UNKNOWN', error: 'Invalid currency code' });
@@ -298,50 +313,22 @@ export class ProductRepository {
      * @returns {Promise<{success: boolean, changes: number, error?: string}>}
      */
     async updateWithMeta(id, updates) {
-        const allowedFields = [
-            'name', 'spu', 'slug', 'category', 'brand', 'series',
-            'currency', 'description', 'images', 'specifications', 'options'
-        ];
-
-        const updateData = {};
-        const now = Date.now();
-
-        for (const [key, value] of Object.entries(updates)) {
-            if (allowedFields.includes(key)) {
-                // Handle JSON fields
-                if (['images', 'specifications', 'options'].includes(key) && typeof value === 'object') {
-                    updateData[key] = JSON.stringify(value);
-                } else if (key === 'currency') {
-                    const normalizedCurrency = this.normalizeCurrency(value, { allowEmpty: false });
-                    if (!normalizedCurrency) {
-                        return { success: false, changes: 0, error: 'Invalid currency code' };
-                    }
-                    updateData[key] = normalizedCurrency;
-                } else {
-                    updateData[key] = value;
-                }
-            }
+        const built = this._buildUpdateParams(id, updates);
+        if (built.error) {
+            return { success: false, changes: 0, error: built.error };
         }
-
-        if (Object.keys(updateData).length === 0) {
-            return { success: false, changes: 0, error: 'No valid fields to update' };
-        }
-
-        updateData.updated_at = now;
-
-        const { clause, values } = buildSetClause(updateData);
 
         try {
             const result = await execute(
                 this.db,
-                `UPDATE products SET ${clause} WHERE id = ?`,
-                [...values, id],
+                `UPDATE products SET ${built.clause} WHERE id = ?`,
+                built.values,
                 { label: 'product.update' }
             );
 
             return {
                 success: result.success,
-                changes: hasChanges(result) ? (result.meta?.changes || 0) : 0
+                changes: hasChanges(result) ? (result.meta?.changes || 0) : 0,
             };
         } catch (e) {
             console.error('[ProductRepository.updateWithMeta] Error:', e);
@@ -391,31 +378,28 @@ export class ProductRepository {
     }
 
     async bulkUpsertFromImport(plans = []) {
+        const planList = Array.isArray(plans) ? plans : [];
         const successes = [];
         const failures = [];
+        const batchEntries = []; // { plan, statement }
 
-        for (const plan of Array.isArray(plans) ? plans : []) {
+        // Phase 1: 验证所有计划并构建 statements
+        for (const plan of planList) {
+            const operation = String(plan?.operation || '').trim();
+            const productId = String(plan?.productId || '').trim();
+            const productData = plan?.productData || {};
+            const needsProductUpsert = plan?.needsProductUpsert !== false;
+
+            if (!needsProductUpsert) {
+                successes.push({ itemKey: plan?.itemKey, operation, productId });
+                continue;
+            }
+
             try {
-                const operation = String(plan?.operation || '').trim();
-                const productId = String(plan?.productId || '').trim();
-                const productData = plan?.productData || {};
-                const needsProductUpsert = plan?.needsProductUpsert !== false;
-
-                if (!needsProductUpsert) {
-                    successes.push({
-                        itemKey: plan?.itemKey,
-                        operation,
-                        productId,
-                    });
-                    continue;
-                }
-
                 if (operation === 'created') {
                     const now = Date.now();
                     const currency = this.normalizeCurrency(productData.currency);
-                    if (!currency) {
-                        throw new Error('Invalid currency code');
-                    }
+                    if (!currency) throw new Error('Invalid currency code');
 
                     const payload = {
                         id: productId,
@@ -435,26 +419,24 @@ export class ProductRepository {
                     };
                     const keys = Object.keys(payload);
                     const placeholders = keys.map(() => '?').join(', ');
-                    await execute(
-                        this.db,
-                        `INSERT INTO products (${keys.join(', ')}) VALUES (${placeholders})`,
-                        Object.values(payload),
-                        { label: 'product.bulkImport.create' }
-                    );
+                    batchEntries.push({
+                        plan,
+                        statement: this.db
+                            .prepare(`INSERT INTO products (${keys.join(', ')}) VALUES (${placeholders})`)
+                            .bind(...Object.values(payload)),
+                    });
                 } else if (operation === 'updated') {
-                    const updateResult = await this.updateWithMeta(productId, productData);
-                    if (updateResult?.success === false) {
-                        throw new Error(updateResult.error || 'Update product failed');
-                    }
+                    const updateResult = this._buildUpdateParams(productId, productData);
+                    if (updateResult.error) throw new Error(updateResult.error);
+                    batchEntries.push({
+                        plan,
+                        statement: this.db
+                            .prepare(`UPDATE products SET ${updateResult.clause} WHERE id = ?`)
+                            .bind(...updateResult.values),
+                    });
                 } else {
                     throw new Error('Unsupported product import operation');
                 }
-
-                successes.push({
-                    itemKey: plan?.itemKey,
-                    operation,
-                    productId,
-                });
             } catch (error) {
                 failures.push({
                     itemKey: plan?.itemKey,
@@ -465,7 +447,73 @@ export class ProductRepository {
             }
         }
 
+        // Phase 2: 按 chunk 独立批量执行，区分已提交和未提交的条目
+        // 每个 chunk 独立 try/catch，chunk N 失败不影响 chunk N-1 的成功记录
+        if (batchEntries.length > 0) {
+            const chunks = chunkArray(batchEntries, 100);
+            for (const chunk of chunks) {
+                try {
+                    await executeBatchChunks(
+                        this.db,
+                        chunk.map((e) => e.statement)
+                    );
+                    for (const entry of chunk) {
+                        successes.push({
+                            itemKey: entry.plan?.itemKey,
+                            operation: entry.plan?.operation,
+                            productId: entry.plan?.productId,
+                        });
+                    }
+                } catch (error) {
+                    // 仅当前 chunk 的条目标记为失败，已提交的 chunk 保持成功
+                    for (const entry of chunk) {
+                        failures.push({
+                            itemKey: entry.plan?.itemKey,
+                            operation: entry.plan?.operation,
+                            productId: entry.plan?.productId || null,
+                            error,
+                        });
+                    }
+                }
+            }
+        }
+
         return { successes, failures };
+    }
+
+    /**
+     * 构建商品更新参数（不执行）
+     * @returns {{ clause: string, values: any[], error: null } | { clause: null, values: null, error: string }}
+     */
+    _buildUpdateParams(id, updates) {
+        const allowedFields = [
+            'name', 'spu', 'slug', 'category', 'brand', 'series',
+            'currency', 'description', 'images', 'specifications', 'options',
+        ];
+
+        const updateData = {};
+        const now = Date.now();
+
+        for (const [key, value] of Object.entries(updates)) {
+            if (!allowedFields.includes(key)) continue;
+            if (['images', 'specifications', 'options'].includes(key) && typeof value === 'object') {
+                updateData[key] = JSON.stringify(value);
+            } else if (key === 'currency') {
+                const normalizedCurrency = this.normalizeCurrency(value, { allowEmpty: false });
+                if (!normalizedCurrency) return { clause: null, values: null, error: 'Invalid currency code' };
+                updateData[key] = normalizedCurrency;
+            } else {
+                updateData[key] = value;
+            }
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            return { clause: null, values: null, error: 'No valid fields to update' };
+        }
+
+        updateData.updated_at = now;
+        const { clause, values } = buildSetClause(updateData);
+        return { clause, values: [...values, id], error: null };
     }
 
     /**
@@ -553,7 +601,14 @@ export class ProductRepository {
             };
         } catch (e) {
             console.error('Error parsing product JSON:', e);
-            return item;
+            // 返回安全默认值，避免将未解析的字符串暴露给调用方
+            return {
+                ...item,
+                status: item.derived_status || item.status,
+                images: [],
+                specifications: {},
+                options: [],
+            };
         }
     }
 }

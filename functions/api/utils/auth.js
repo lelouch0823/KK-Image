@@ -7,7 +7,7 @@ export const ADMIN_AUTH_COOKIE = 'ADMIN_AUTH';
 // Global Cache for API Keys (Worker 内存缓存)
 let cachedApiKeys = null;
 let lastCacheUpdate = 0;
-const CACHE_TTL = 60 * 1000; // 60 seconds TTL
+const CACHE_TTL = 15 * 1000; // 15 seconds TTL - 安全敏感场景缩短缓存窗口
 
 function resetApiKeyCache() {
   cachedApiKeys = null;

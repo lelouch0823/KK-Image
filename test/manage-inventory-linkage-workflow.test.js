@@ -38,7 +38,7 @@ function findSuggestion(payload, variantId) {
 }
 
 function findOverviewItem(payload, variantId) {
-  return (payload?.data?.items || []).find((item) => item.variantId === variantId || item.id === variantId);
+  return (payload?.data?.items || payload?.data || []).find((item) => item.variantId === variantId || item.id === variantId);
 }
 
 describeIfRealApi('Manage Inventory Linkage Real API Workflow', function () {

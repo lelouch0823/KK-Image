@@ -10,7 +10,9 @@ export async function findPurchaseOrderDetail({ db, id }) {
   const po = await db.prepare(`SELECT * FROM purchase_orders WHERE id = ?`).bind(id).first();
   if (!po) return null;
 
-  const { results: items } = await db.prepare(`
+  // items 和 receipts 查询无依赖关系，并行执行减少延迟
+  const [itemsResult, receiptsResult] = await Promise.all([
+    db.prepare(`
     SELECT
       poi.*,
       p.name AS product_name,
@@ -56,20 +58,8 @@ export async function findPurchaseOrderDetail({ db, id }) {
     ) pr ON pr.purchase_order_item_id = poi.id
     WHERE poi.po_id = ?
     ORDER BY poi.created_at ASC
-  `).bind(id).all();
-
-  const poItems = (items || []).map((item) => {
-    const mapped = mapPurchaseOrderSnapshotFields(item);
-    return {
-      ...mapped,
-      quantity: toNumber(item.quantity),
-      received_qty: toNumber(item.received_qty),
-      cancelled_qty: toNumber(item.cancelled_qty),
-      receipt_count: toNumber(item.receipt_count),
-    };
-  });
-
-  const { results: receipts } = await db.prepare(`
+  `).bind(id).all(),
+    db.prepare(`
     SELECT
       pr.*,
       p.name AS product_name,
@@ -102,9 +92,24 @@ export async function findPurchaseOrderDetail({ db, id }) {
     ) rr ON rr.original_receipt_id = pr.id
     WHERE pr.purchase_order_id = ?
     ORDER BY pr.received_at DESC, pr.created_at DESC
-  `).bind(id).all();
+  `).bind(id).all(),
+  ]);
 
-  const receiptRows = (receipts || []).map((receipt) => {
+  const items = itemsResult?.results || [];
+  const receipts = receiptsResult?.results || [];
+
+  const poItems = items.map((item) => {
+    const mapped = mapPurchaseOrderSnapshotFields(item);
+    return {
+      ...mapped,
+      quantity: toNumber(item.quantity),
+      received_qty: toNumber(item.received_qty),
+      cancelled_qty: toNumber(item.cancelled_qty),
+      receipt_count: toNumber(item.receipt_count),
+    };
+  });
+
+  const receiptRows = receipts.map((receipt) => {
     const mapped = mapPurchaseOrderSnapshotFields(receipt);
     const normalizedReceipt = normalizePurchaseOrderProgress({
       ...mapped,
@@ -150,12 +155,13 @@ export async function listPurchaseOrders({ db, filters = {} }) {
     params.push(like, like);
   }
 
-  const countResult = await db
-    .prepare(`SELECT COUNT(*) as total FROM purchase_orders WHERE ${where}`)
-    .bind(...params)
-    .first();
-
-  const { results } = await db
+  // count 和 list 查询无依赖关系，并行执行
+  const [countResult, { results }] = await Promise.all([
+    db
+      .prepare(`SELECT COUNT(*) as total FROM purchase_orders WHERE ${where}`)
+      .bind(...params)
+      .first(),
+    db
     .prepare(`
       SELECT po.*,
         COALESCE(agg.item_count, 0) AS item_count,
@@ -187,8 +193,9 @@ export async function listPurchaseOrders({ db, filters = {} }) {
       ORDER BY po.created_at DESC
       LIMIT ? OFFSET ?
     `)
-    .bind(...params, safeLimit, offset)
-    .all();
+      .bind(...params, safeLimit, offset)
+      .all(),
+  ]);
 
   return {
     items: results.map((row) => normalizePurchaseOrderProgress(row)),

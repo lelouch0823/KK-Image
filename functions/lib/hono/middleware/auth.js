@@ -36,14 +36,21 @@ function isPublicRoute(path) {
 export async function authMiddleware(c, next) {
   const path = c.req.path;
   const method = c.req.method;
-  const shouldAudit = shouldAuditRequest(method, path);
-  const auditContext = shouldAudit ? getRequestAuditContext(c) : null;
-  const scheduler = shouldAudit ? getAuditScheduler(c) : null;
-  const domain = shouldAudit ? inferAuditDomainFromPath(path) : null;
-  const targetId = shouldAudit ? inferAuditTargetFromPath(path) : null;
 
+  // 跳过公开路由（仅匹配 /api/sales/:token/auth，其中 token 为字母数字格式）
+  // 先做前缀匹配再走正则，避免对明显不匹配的路径执行正则
+  if (isPublicRoute(path) || (path.startsWith('/api/sales/') && path.endsWith('/auth') && /^\/api\/sales\/[A-Za-z0-9]+\/auth$/.test(path))) {
+    return next();
+  }
+
+  // 审计上下文延迟初始化：仅在认证失败时才计算，公开路由和成功认证均跳过
+  const shouldAudit = shouldAuditRequest(method, path);
   const recordUnauthorizedAttempt = (reason) => {
     if (!shouldAudit || !c.env?.DB) return;
+    const auditContext = getRequestAuditContext(c);
+    const scheduler = getAuditScheduler(c);
+    const domain = inferAuditDomainFromPath(path);
+    const targetId = inferAuditTargetFromPath(path);
     scheduler(recordAuditEvent(c.env.DB, {
       ...auditContext,
       userId: auditContext.actor_id,
@@ -59,11 +66,6 @@ export async function authMiddleware(c, next) {
       user_agent: auditContext.user_agent,
     }));
   };
-
-  // 跳过公开路由（仅匹配 /api/sales/:token/auth，其中 token 为字母数字格式）
-  if (isPublicRoute(path) || /^\/api\/sales\/[A-Za-z0-9]+\/auth$/.test(path)) {
-    return next();
-  }
 
   // 获取 Token（优先从 Authorization Header，其次从 Cookie）
   let token = extractAdminAuthToken(c.req.raw, { preferBearer: true });

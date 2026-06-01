@@ -5,11 +5,12 @@ import { SalespersonRepository } from '../../../../repositories/SalespersonRepos
 import { MSG } from '../../../../_shared/utils.js';
 import { withCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
-import { parsePagination, requireEntity } from '../../_shared/route-helpers.js';
+import { parsePagination, requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
+import { getManageSalespersonCacheUrls } from '../_shared/cache-urls.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -40,7 +41,7 @@ const UpdateSalespersonSchema = z.object({
 /**
  * GET / - 获取销售列表
  */
-app.get('/', withCache(60), async (c) => {
+app.get('/', async (c) => {
     const { env } = c;
     const { page, limit } = parsePagination(c, { limit: 50 });
     const search = c.req.query('search') || '';
@@ -84,6 +85,9 @@ app.post('/', requirePermission('users:write'), zValidator('json', CreateSalespe
         phone: body.phone || null,
         password: body.password,
     });
+
+    // 异步失效销售员列表缓存
+    scheduleCacheInvalidation(c, getManageSalespersonCacheUrls(c));
 
     await publishSingleDomainEventAndPoll(c, {
         event_type: 'salesperson_created',

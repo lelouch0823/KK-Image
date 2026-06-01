@@ -14,6 +14,7 @@ import {
     normalizeOrderProcurementStatus,
     getChinaDayStart,
     getChinaDateStr,
+    DateUtils,
 } from '../../../../../_shared/utils.js';
 import { parsePagination } from '../../../_shared/route-helpers.js';
 import { withCache } from '../../../middleware/cache.js';
@@ -25,6 +26,9 @@ import {
     appendOrderProgressStatusFilter,
 } from '../../../../../repositories/order/sql.js';
 
+/** 导出订单的最大行数 */
+const MAX_EXPORT_LIMIT = 10_000;
+
 const app = new Hono();
 
 const neutralizeSpreadsheetFormula = (value) => {
@@ -35,7 +39,7 @@ const neutralizeSpreadsheetFormula = (value) => {
 /**
  * GET / - 获取订单列表
  */
-app.get('/', withCache(20), async (c) => {
+app.get('/', async (c) => {
     const { env } = c;
     const { page, limit } = parsePagination(c);
     const salespersonId = c.req.query('salesperson');
@@ -166,7 +170,6 @@ app.get('/export', async (c) => {
     );
     whereClause = appendOrderProductSearchFilter(whereClause, bindParams, search);
 
-    const { DateUtils } = await import('../../../../../_shared/utils.js');
     if (fromDate) {
         whereClause += ' AND o.created_at >= ?';
         bindParams.push(DateUtils.parseChinaDate(fromDate));
@@ -192,7 +195,7 @@ app.get('/export', async (c) => {
     LEFT JOIN salespersons s ON o.salesperson_id = s.id
     WHERE ${whereClause}
     ORDER BY o.created_at DESC
-    LIMIT 10000
+    LIMIT ${MAX_EXPORT_LIMIT}
     `).bind(...bindParams).all();
 
     // CSV generation logic (concise)

@@ -9,6 +9,9 @@ import { createStructuredAbortError } from '../ai/request-context.js';
 
 export { getModelHealthSnapshot, parseModels, resetModelHealthStatsForTests };
 
+/** 默认限流上限值（当响应头缺失时使用） */
+const DEFAULT_RATE_LIMIT = 9999;
+
 /**
  * 从响应头中提取限流状态
  * @param {Response} response - fetch 响应对象
@@ -16,10 +19,10 @@ export { getModelHealthSnapshot, parseModels, resetModelHealthStatsForTests };
  */
 export function getRateLimitStatus(response) {
     return {
-        remaining: parseInt(response.headers.get('modelscope-ratelimit-requests-remaining') || '9999'),
-        limit: parseInt(response.headers.get('modelscope-ratelimit-requests-limit') || '9999'),
-        modelRemaining: parseInt(response.headers.get('modelscope-ratelimit-model-requests-remaining') || '9999'),
-        modelLimit: parseInt(response.headers.get('modelscope-ratelimit-model-requests-limit') || '9999'),
+        remaining: parseInt(response.headers.get('modelscope-ratelimit-requests-remaining') || String(DEFAULT_RATE_LIMIT), 10),
+        limit: parseInt(response.headers.get('modelscope-ratelimit-requests-limit') || String(DEFAULT_RATE_LIMIT), 10),
+        modelRemaining: parseInt(response.headers.get('modelscope-ratelimit-model-requests-remaining') || String(DEFAULT_RATE_LIMIT), 10),
+        modelLimit: parseInt(response.headers.get('modelscope-ratelimit-model-requests-limit') || String(DEFAULT_RATE_LIMIT), 10),
     };
 }
 
@@ -258,7 +261,7 @@ export async function callAIAuto({ messages, tools = [], env, preferStream = tru
             if (signal?.aborted) {
                 throw createStructuredAbortError(signal.reason || 'aborted');
             }
-            console.log('[AI Auto] Primary mode failed, switching to fallback mode...');
+            console.warn('[AI Auto] Primary mode failed, switching to fallback mode...');
             try {
                 return await fallbackFn();
             } catch (fallbackErr) {

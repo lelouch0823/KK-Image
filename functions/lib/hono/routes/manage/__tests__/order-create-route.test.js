@@ -54,6 +54,7 @@ vi.mock('../../../middleware/cache.js', () => ({
 vi.mock('../../_shared/cache-urls.js', () => ({
   getOrderAndSalespersonCacheUrls: vi.fn(() => []),
   getOrderNotificationCacheUrls: vi.fn(() => []),
+  getManageOrderCacheUrls: vi.fn(() => []),
 }));
 
 vi.mock('../../../../../api/utils/folder-utils.js', () => ({

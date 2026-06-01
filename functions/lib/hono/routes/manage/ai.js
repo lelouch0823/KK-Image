@@ -122,8 +122,8 @@ async function resolveAIRuntimeEnv(env) {
             AI_STREAM_GATE_ENABLED: String(streamGateEnabled !== undefined ? streamGateEnabled : env.AI_STREAM_GATE_ENABLED || 'true'),
             AI_STREAM_GATE_STRICT_MODE: String(streamGateStrictMode !== undefined ? streamGateStrictMode : env.AI_STREAM_GATE_STRICT_MODE || 'false'),
             // 将新配置注入到环境变量中供其他模块使用
-            AI_MAX_TOOL_ROUNDS: maxToolRounds !== undefined ? maxToolRounds : (env.AI_MAX_TOOL_ROUNDS ? parseInt(env.AI_MAX_TOOL_ROUNDS) : 3),
-            AI_MAX_TOOLS_PER_ROUND: maxToolsPerRound !== undefined ? maxToolsPerRound : (env.AI_MAX_TOOLS_PER_ROUND ? parseInt(env.AI_MAX_TOOLS_PER_ROUND) : 8),
+            AI_MAX_TOOL_ROUNDS: maxToolRounds !== undefined ? maxToolRounds : (env.AI_MAX_TOOL_ROUNDS ? parseInt(env.AI_MAX_TOOL_ROUNDS, 10) : 3),
+            AI_MAX_TOOLS_PER_ROUND: maxToolsPerRound !== undefined ? maxToolsPerRound : (env.AI_MAX_TOOLS_PER_ROUND ? parseInt(env.AI_MAX_TOOLS_PER_ROUND, 10) : 8),
         };
     } catch (error) {
         console.warn('[AI] Failed to load runtime AI settings from DB, fallback to env:', error?.message);
@@ -131,8 +131,8 @@ async function resolveAIRuntimeEnv(env) {
         const { DB: _db, ...serializableEnv } = env;
         return {
             ...serializableEnv,
-            AI_MAX_TOOL_ROUNDS: env.AI_MAX_TOOL_ROUNDS ? parseInt(env.AI_MAX_TOOL_ROUNDS) : 3,
-            AI_MAX_TOOLS_PER_ROUND: env.AI_MAX_TOOLS_PER_ROUND ? parseInt(env.AI_MAX_TOOLS_PER_ROUND) : 8,
+            AI_MAX_TOOL_ROUNDS: env.AI_MAX_TOOL_ROUNDS ? parseInt(env.AI_MAX_TOOL_ROUNDS, 10) : 3,
+            AI_MAX_TOOLS_PER_ROUND: env.AI_MAX_TOOLS_PER_ROUND ? parseInt(env.AI_MAX_TOOLS_PER_ROUND, 10) : 8,
         };
     }
 }

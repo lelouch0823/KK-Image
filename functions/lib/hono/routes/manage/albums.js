@@ -14,6 +14,7 @@ import { AlbumRepository } from '../../../../repositories/AlbumRepository.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { withCache } from '../../middleware/cache.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -79,7 +80,7 @@ const AlbumFilesSchema = z.object({
 /**
  * GET /api/manage/albums - 获取相册列表
  */
-app.get('/', async (c) => {
+app.get('/', withCache(30), async (c) => {
   const { env } = c;
   const repo = new AlbumRepository(env.DB);
   const results = await repo.findAll();
@@ -93,7 +94,7 @@ app.get('/', async (c) => {
 /**
  * GET /api/manage/albums/:id - 获取相册详情
  */
-app.get('/:id', async (c) => {
+app.get('/:id', withCache(30), async (c) => {
   const { env } = c;
   const albumId = c.req.param('id');
 

@@ -45,6 +45,7 @@ app.get('/', withCache(60), async (c) => {
     const hasStock = c.req.query('hasStock');
     const sortBy = c.req.query('sortBy');
     const sortOrder = c.req.query('sortOrder');
+    const includeFilters = c.req.query('includeFilters') !== 'false';
 
     const repo = new ProductRepository(env.DB);
     const result = await repo.search({
@@ -56,7 +57,8 @@ app.get('/', withCache(60), async (c) => {
         sortBy,
         sortOrder,
         page,
-        limit
+        limit,
+        includeFilters,
     });
     const items = (result.items || []).map((item) => ({
         ...item,
@@ -73,6 +75,23 @@ app.get('/', withCache(60), async (c) => {
             totalPages: Math.ceil(result.total / result.limit),
         },
         filters: result.filters || { brands: [], categories: [] },
+    });
+});
+
+/**
+ * GET /filters - 独立的过滤选项端点（更长缓存 TTL 300s）
+ * 前端可按需加载，避免每次搜索都携带 filter 数据
+ */
+app.get('/filters', withCache(300), async (c) => {
+    const { env } = c;
+    const repo = new ProductRepository(env.DB);
+    const [brands, categories] = await Promise.all([
+        repo.listAvailableBrands(),
+        repo.listAvailableCategories(),
+    ]);
+    return c.json({
+        success: true,
+        filters: { brands, categories },
     });
 });
 

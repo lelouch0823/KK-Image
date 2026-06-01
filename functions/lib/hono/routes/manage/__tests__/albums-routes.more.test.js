@@ -26,6 +26,10 @@ vi.mock('../../../middleware/auth.js', () => ({
   requirePermission: () => async (_c, next) => next(),
 }));
 
+vi.mock('../../../middleware/cache.js', () => ({
+  withCache: () => async (_c, next) => next(),
+}));
+
 vi.mock('../../../../../_shared/utils.js', () => ({
   generateId: vi.fn(() => 'album-new'),
   generateShareToken: vi.fn(() => 'share-token-new'),

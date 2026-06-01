@@ -28,7 +28,7 @@ export class FileRepository {
      */
     async findByFolder(folderId) {
         const { results } = await this.db.prepare(
-            "SELECT * FROM files WHERE folder_id = ? AND is_deleted = 0 ORDER BY created_at DESC"
+            "SELECT id, folder_id, name, original_name, mime_type, size, storage_key, content_hash, status, created_at FROM files WHERE folder_id = ? AND is_deleted = 0 ORDER BY created_at DESC"
         ).bind(folderId).all();
         return results;
     }
@@ -125,8 +125,6 @@ export class FileRepository {
             { defaultPage: 1, defaultLimit: 50, maxLimit: 100 }
         );
         const bindings = [];
-
-        let sql = "SELECT * FROM files";
         const where = ["(is_deleted IS NULL OR is_deleted = 0)"]; // Default filter: non-deleted
 
         if (filter.folderId) {
@@ -136,19 +134,16 @@ export class FileRepository {
             where.push("(folder_id = 'root' OR folder_id IS NULL)");
         }
 
-        if (where.length > 0) {
-            sql += ` WHERE ${where.join(' AND ')}`;
-        }
+        const whereClause = where.length > 0 ? ` WHERE ${where.join(' AND ')}` : '';
 
-        // Get total
-        const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as total');
+        // 独立构建 count SQL，避免 replace 方式的脆弱性
+        const countSql = `SELECT COUNT(*) as total FROM files${whereClause}`;
         const countResult = await this.db.prepare(countSql).bind(...bindings).first();
         const total = countResult?.total || 0;
 
-        sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-        bindings.push(safeLimit, offset);
-
-        const { results } = await this.db.prepare(sql).bind(...bindings).all();
+        const sql = `SELECT id, folder_id, name, original_name, mime_type, size, storage_key, content_hash, status, created_at FROM files${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+        const listBindings = [...bindings, safeLimit, offset];
+        const { results } = await this.db.prepare(sql).bind(...listBindings).all();
 
         return {
             items: results,
@@ -293,7 +288,7 @@ export class FileRepository {
      * @returns {Promise<Object|null>}
      */
     async findByNameInFolder(folderId, name) {
-        let sql = "SELECT * FROM files WHERE name = ? AND (is_deleted IS NULL OR is_deleted = 0)";
+        let sql = "SELECT id, folder_id, name, storage_key, mime_type, size, content_hash, original_hash, status, created_at FROM files WHERE name = ? AND (is_deleted IS NULL OR is_deleted = 0)";
         const bindings = [name];
 
         if (folderId && folderId !== 'root') {

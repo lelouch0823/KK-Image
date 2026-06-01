@@ -28,7 +28,7 @@ describe('SalesListView search contract', () => {
     const searchQuery = ref('');
     const loadOrders = vi.fn();
 
-    mount(SalesListView, {
+    const wrapper = mount(SalesListView, {
       global: {
         provide: {
           salesContext: {
@@ -44,11 +44,16 @@ describe('SalesListView search contract', () => {
         stubs: {
           OrderList: true,
           AppIcon: true,
+          SearchInput: {
+            template: '<input @input="$emit(\'search\')" />',
+            emits: ['search'],
+          },
         },
       },
     });
 
     searchQuery.value = 'desk';
+    await wrapper.find('input').trigger('input');
     await Promise.resolve();
 
     expect(loadOrders).toHaveBeenCalledWith(1, false, 'desk');

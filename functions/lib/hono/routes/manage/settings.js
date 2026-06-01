@@ -5,6 +5,7 @@ import { parseModels, getModelHealthSnapshot } from '../../../../utils/ai-utils.
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { withCache } from '../../middleware/cache.js';
 
 /**
  * 验证外部 API URL 安全性（防止 SSRF）
@@ -105,7 +106,7 @@ const extractModelIds = (payload) => {
 };
 
 // 获取所有设置
-app.get('/', async (c) => {
+app.get('/', withCache(120), async (c) => {
   const repo = new SettingsRepository(c.env.DB);
   const grouped = await repo.getAllGrouped();
 

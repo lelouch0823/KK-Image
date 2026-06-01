@@ -39,9 +39,9 @@ app.get('/', requirePermission('stats:read'), withCache(60), async (c) => {
 /**
  * GET /api/manage/stats/uploads - 上传统计（按日期）
  */
-app.get('/uploads', requirePermission('stats:read'), async (c) => {
+app.get('/uploads', requirePermission('stats:read'), withCache(120), async (c) => {
   const { env } = c;
-  const days = parseInt(c.req.query('days') || '30');
+  const days = Math.max(1, Math.min(365, parseInt(c.req.query('days') || '30', 10) || 30));
 
   const todayStart = getChinaDayStart();
   const startTime = todayStart - (days - 1) * 24 * 60 * 60 * 1000;

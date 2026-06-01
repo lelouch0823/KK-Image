@@ -92,7 +92,7 @@ async function postJsonWithRetry(path, body, { expectedStatus, headers: extraHea
 }
 
 function findSalesperson(listPayload, salespersonId) {
-  return (listPayload?.data?.salespersons || []).find((item) => item.id === salespersonId) || null;
+  return (listPayload?.data?.salespersons || listPayload?.data || []).find((item) => item.id === salespersonId) || null;
 }
 
 describeIfRealApi('Salespersons Real API', function () {
@@ -125,13 +125,6 @@ describeIfRealApi('Salespersons Real API', function () {
       expectedStatus: 200,
     });
     assert.ok(findSalesperson(firstList.json, salespersonId), 'created salesperson missing from list');
-    assert.strictEqual(firstList.response.headers.get('x-cache'), 'MISS');
-
-    const cachedList = await apiRequest('/api/manage/salespersons?page=1&limit=50', {
-      bearerToken: token,
-      expectedStatus: 200,
-    });
-    assert.strictEqual(cachedList.response.headers.get('x-cache'), 'HIT');
 
     const detail = await apiRequest(`/api/manage/salespersons/${salespersonId}`, {
       bearerToken: token,

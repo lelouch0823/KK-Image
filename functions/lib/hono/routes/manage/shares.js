@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { requirePermission } from '../../middleware/auth.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { withCache } from '../../middleware/cache.js';
+import { parsePagination } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 
@@ -14,8 +15,7 @@ app.get(
   withCache(30),
   async (c) => {
     const { env } = c;
-    const page = parseInt(c.req.query('page') || '1');
-    const limit = parseInt(c.req.query('limit') || '20');
+    const { page, limit } = parsePagination(c);
 
     const repo = new FolderRepository(env.DB);
     const result = await repo.findShared({ page, limit });

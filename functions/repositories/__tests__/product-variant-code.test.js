@@ -36,22 +36,12 @@ describe('ProductVariantRepository — variant_code', () => {
     it('createBatch 应返回数据库生成的 variant_code', async () => {
         db.prepare.mockImplementation((sql) => {
             const stmt = createPreparedStatement(sql);
-            if (sql.includes('FROM product_variants pv') && sql.includes('WHERE pv.product_id = ?')) {
-                stmt.all.mockResolvedValue({
-                    results: [{
-                        id: 'variant-1',
-                        product_id: 'product-1',
-                        sku: 'SKU-1',
-                        variant_code: 'VVARIANT10000',
-                        options_values: '{}',
-                    }]
-                });
-            }
             return stmt;
         });
 
+        // 应用层计算 variant_code（与数据库 trigger trg_variants_generate_variant_code 一致）
         const rows = await repo.createBatch('product-1', [{ id: 'variant-1', sku: 'SKU-1' }]);
-        expect(rows[0].variant_code).toBe('VVARIANT10000');
+        expect(rows[0].variant_code).toBe('VVARIANT1');
     });
 
     it('createBatch 在空 sku 时应自动生成非空 sku', async () => {

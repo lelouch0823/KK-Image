@@ -80,7 +80,7 @@ describe('storage redundancy fallback timeout', () => {
 
     expect(await response.text()).toBe('fallback-ok');
     expect(firstProvider.getFile).toHaveBeenCalledTimes(1);
+    // 主存储超时后，所有镜像同时竞速请求
     expect(secondProvider.getFile).toHaveBeenCalledTimes(1);
-    expect(thirdProvider.getFile).not.toHaveBeenCalled();
   });
 });

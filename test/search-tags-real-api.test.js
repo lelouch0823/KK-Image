@@ -60,7 +60,7 @@ describeIfRealApi('Search Tags Real API', function () {
       },
       expectedStatus: 200,
     });
-    const tagId = createdTag.json?.tag?.id;
+    const tagId = createdTag.json?.data?.id || createdTag.json?.tag?.id;
     assert.ok(tagId, 'created tag id missing');
 
     await waitFor(async () => {
@@ -68,7 +68,7 @@ describeIfRealApi('Search Tags Real API', function () {
         bearerToken: token,
         expectedStatus: 200,
       });
-      const matched = (listed.json?.tags || []).find((tag) => tag.id === tagId);
+      const matched = (listed.json?.data || listed.json?.tags || []).find((tag) => tag.id === tagId);
       assert.ok(matched, 'created tag missing from manage tags list');
       assert.strictEqual(matched.name, tagName);
       return matched;

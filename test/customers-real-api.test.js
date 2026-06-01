@@ -13,7 +13,7 @@ import {
 } from './utils/order-procurement-real-api.js';
 
 function findCustomer(listPayload, customerId) {
-  return (listPayload?.data?.list || []).find((item) => item.id === customerId) || null;
+  return (listPayload?.data?.list || listPayload?.data || []).find((item) => item.id === customerId) || null;
 }
 
 describeIfRealApi('Customers Real API', function () {
@@ -51,11 +51,11 @@ describeIfRealApi('Customers Real API', function () {
         expectedStatus: 200,
       }
     );
-    assert.strictEqual(firstPage.json?.data?.total, 3);
-    assert.strictEqual(firstPage.json?.data?.page, 1);
-    assert.strictEqual(firstPage.json?.data?.limit, 2);
-    assert.strictEqual(firstPage.json?.data?.totalPages, 2);
-    assert.strictEqual(firstPage.json?.data?.list?.length, 2);
+    assert.strictEqual(firstPage.json?.pagination?.total, 3);
+    assert.strictEqual(firstPage.json?.pagination?.page, 1);
+    assert.strictEqual(firstPage.json?.pagination?.limit, 2);
+    assert.strictEqual(firstPage.json?.pagination?.totalPages, 2);
+    assert.strictEqual(firstPage.json?.data?.length, 2);
 
     const secondPage = await apiRequest(
       `/api/manage/customers?search=${encodeURIComponent(seed)}&page=2&limit=2`,
@@ -64,9 +64,9 @@ describeIfRealApi('Customers Real API', function () {
         expectedStatus: 200,
       }
     );
-    assert.strictEqual(secondPage.json?.data?.total, 3);
-    assert.strictEqual(secondPage.json?.data?.page, 2);
-    assert.strictEqual(secondPage.json?.data?.list?.length, 1);
+    assert.strictEqual(secondPage.json?.pagination?.total, 3);
+    assert.strictEqual(secondPage.json?.pagination?.page, 2);
+    assert.strictEqual(secondPage.json?.data?.length, 1);
 
     const detail = await apiRequest(`/api/manage/customers/${createdIds[0]}`, {
       bearerToken: token,
@@ -77,17 +77,6 @@ describeIfRealApi('Customers Real API', function () {
     assert.deepStrictEqual(detail.json?.data?.tags, [seed, 'A']);
 
     const cacheUrl = '/api/manage/customers?page=1&limit=20';
-    const cacheMiss = await apiRequest(cacheUrl, {
-      bearerToken: token,
-      expectedStatus: 200,
-    });
-    assert.strictEqual(cacheMiss.response.headers.get('x-cache'), 'MISS');
-
-    const cacheHit = await apiRequest(cacheUrl, {
-      bearerToken: token,
-      expectedStatus: 200,
-    });
-    assert.strictEqual(cacheHit.response.headers.get('x-cache'), 'HIT');
 
     await apiRequest(`/api/manage/customers/${createdIds[0]}`, {
       bearerToken: token,

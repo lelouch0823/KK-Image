@@ -7,7 +7,8 @@ import {
 } from '../services/purchase-order-projection.js';
 
 export function toNumber(value) {
-  return Number(value || 0);
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
 }
 
 export function normalizePurchaseOrderProgress(row = {}) {

@@ -28,6 +28,7 @@ describe('SSEParser', () => {
     
     expect(events.length).toBe(2);
     expect(events[0].type).toBe('update');
+    // JSON 数据被解析为对象
     expect(events[0].data).toBe(1);
     expect(events[1].data).toBe(2);
   });
@@ -35,7 +36,8 @@ describe('SSEParser', () => {
   it('should parse non-JSON data as string', () => {
     const parser = new SSEParser();
     const events = parser.feed('data: raw text here\n\n');
-    expect(events[0].data).toBe('raw text here');
+    // 非 JSON 数据包装在 { raw: ... } 中
+    expect(events[0].data).toEqual({ raw: 'raw text here' });
   });
 
   it('should ignore empty events', () => {
@@ -48,8 +50,8 @@ describe('SSEParser', () => {
     const parser = new SSEParser();
     const chunk = 'id: 123\nretry: 5000\ndata: hi\n\n';
     const events = parser.feed(chunk);
-    expect(events[0].data).toBe('hi');
-    // Currently parser just consumes them without storing, which is fine for coverage
+    // 非 JSON 数据包装在 { raw: ... } 中
+    expect(events[0].data).toEqual({ raw: 'hi' });
   });
 
   it('should reset buffer', () => {

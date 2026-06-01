@@ -109,16 +109,31 @@ export class ProductVariantRepository {
                     timestamp
                 )
             );
-            results.push({ ...v, id, sku, product_id: productId });
+            const stockQuantity = Number(v.stock_quantity) || 0;
+            // 应用层计算 variant_code（与数据库 trigger trg_variants_generate_variant_code 一致）
+            const variant_code = 'V' + id.replace(/-/g, '').toUpperCase().slice(0, 12);
+            results.push({
+                ...v,
+                id,
+                sku,
+                variant_code,
+                product_id: productId,
+                stock_quantity: stockQuantity,
+                on_hand: stockQuantity,
+                reserved: 0,
+                available_quantity: stockQuantity,
+                options_values: optionsValues,
+                created_at: timestamp,
+                updated_at: timestamp,
+            });
         }
         try {
             await executeBatchChunks(this.db, statements);
         } catch (error) {
             this.wrapConstraintError(error);
         }
-        const insertedRows = await this.findByProductId(productId);
-        const idSet = new Set(results.map((item) => item.id));
-        return insertedRows.filter((row) => idSet.has(row.id));
+        // 批量执行后直接返回构建的结果，省去 findByProductId 的读回查询
+        return results;
     }
 
     async findByProductId(productId) {
@@ -381,11 +396,11 @@ export class ProductVariantRepository {
         return events;
     }
 
-    async syncVariantPlan(productId, variantsData, existingRows = null) {
+    async syncVariantPlan(productId, variantsData, existingRows = null, { collectMode = false, externalStatements = null } = {}) {
         const timestamp = now();
-        const statements = [];
+        const statements = collectMode ? externalStatements : [];
         const incomingList = Array.isArray(variantsData) ? variantsData : [];
-        const existingResult = existingRows == null
+        const existingResult = existingRows == null && !collectMode
             ? await this.db
                 .prepare(`
                     SELECT
@@ -530,10 +545,12 @@ export class ProductVariantRepository {
             statements.unshift(...archiveStatements);
         }
 
-        try {
-            await executeBatchChunks(this.db, statements);
-        } catch (error) {
-            this.wrapConstraintError(error);
+        if (!collectMode) {
+            try {
+                await executeBatchChunks(this.db, statements);
+            } catch (error) {
+                this.wrapConstraintError(error);
+            }
         }
         results.createdCount = createdCount;
         results.updatedCount = updatedCount;
@@ -548,10 +565,13 @@ export class ProductVariantRepository {
     }
 
     async bulkSyncFromImport(plans = []) {
+        const planList = Array.isArray(plans) ? plans : [];
         const successes = [];
         const failures = [];
 
-        for (const plan of Array.isArray(plans) ? plans : []) {
+        // 每产品独立执行 batch，保持原有的成功/失败粒度
+        // 单产品失败不影响其他产品
+        for (const plan of planList) {
             try {
                 const results = await this.syncVariantPlan(
                     plan.productId,

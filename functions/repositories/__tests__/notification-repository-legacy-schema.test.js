@@ -116,7 +116,7 @@ describe('NotificationRepository legacy schema compatibility', () => {
       ...db,
       prepare(sql) {
         const statement = db.prepare(sql);
-        if (String(sql || '').includes('SELECT * FROM notifications')) {
+        if (String(sql || '').includes('FROM notifications') && !String(sql || '').includes('COUNT(*)')) {
           return {
             ...statement,
             bind(...params) {

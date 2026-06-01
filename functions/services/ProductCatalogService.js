@@ -67,6 +67,13 @@ export class ProductCatalogService {
             dimensionRepo: this.dimensionRepo,
         });
 
+        // 刷新商品投影表，确保新创建的商品立即可查询
+        if (product?.id) {
+            const { ProductProjectionRefreshService } = await import('./ProductProjectionRefreshService.js');
+            const refreshService = new ProductProjectionRefreshService(this.db);
+            await refreshService.refreshByProductId(product.id, c.executionCtx);
+        }
+
         if (!skipCacheInvalidation) {
             await scheduleProductCacheInvalidation(c, {
                 eventType: 'product_created',
@@ -103,6 +110,11 @@ export class ProductCatalogService {
         });
 
         if ((result.changes > 0) || result.variantsUpdated || result.variantSync) {
+            // 刷新商品投影表
+            const { ProductProjectionRefreshService } = await import('./ProductProjectionRefreshService.js');
+            const refreshService = new ProductProjectionRefreshService(this.db);
+            await refreshService.refreshByProductId(productId, c.executionCtx);
+
             if (!skipCacheInvalidation) {
                 await scheduleProductCacheInvalidation(c, {
                     eventType: fullReplace ? 'product_replaced' : 'product_updated',

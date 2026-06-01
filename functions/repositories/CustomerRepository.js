@@ -8,8 +8,28 @@ import { buildSetClause } from '../api/utils/sql.js';
  * 处理客户的 CRUD 和数据转换
  */
 export class CustomerRepository {
+  /** @type {boolean|null} FTS5 可用性缓存 */
+  static _ftsAvailable = null;
+
   constructor(db) {
     this.db = db;
+  }
+
+  /**
+   * 检查 FTS5 虚拟表是否存在（带模块级缓存）
+   * @returns {Promise<boolean>}
+   */
+  async _hasFtsTable() {
+    if (CustomerRepository._ftsAvailable !== null) return CustomerRepository._ftsAvailable;
+    try {
+      const stmt = this.db.prepare?.("SELECT name FROM sqlite_master WHERE type='table' AND name='customers_fts'");
+      if (!stmt) { CustomerRepository._ftsAvailable = false; return false; }
+      const result = await stmt.first();
+      CustomerRepository._ftsAvailable = !!result;
+    } catch {
+      CustomerRepository._ftsAvailable = false;
+    }
+    return CustomerRepository._ftsAvailable;
   }
 
   /**
@@ -62,9 +82,17 @@ export class CustomerRepository {
     const bindings = [];
 
     if (search) {
-      whereClause += ' AND (name LIKE ? OR phone LIKE ? OR company LIKE ?)';
-      const term = `%${search}%`;
-      bindings.push(term, term, term);
+      // 优先使用 FTS5 全文搜索（O(logN)），不可用时降级为 LIKE（O(N)）
+      const hasFts = await this._hasFtsTable();
+      if (hasFts) {
+        const ftsQuery = `"${search.replace(/"/g, '""')}"*`;
+        whereClause += ` AND rowid IN (SELECT rowid FROM customers_fts WHERE customers_fts MATCH ?)`;
+        bindings.push(ftsQuery);
+      } else {
+        whereClause += ' AND (name LIKE ? OR phone LIKE ? OR company LIKE ?)';
+        const term = `%${search}%`;
+        bindings.push(term, term, term);
+      }
     }
 
     const [countResult, listResult] = await Promise.all([

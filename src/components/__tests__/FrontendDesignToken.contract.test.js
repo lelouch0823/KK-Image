@@ -366,7 +366,7 @@ describe('frontend design token contracts', () => {
         forbidden: ['backgroundColor:', ':style="{', 'color: statusConfig['],
       },
       {
-        file: 'src/composables/usePurchaseOrderListPresentation.js',
+        file: 'src/composables/usePurchaseOrderListPresentation.ts',
         forbidden: ["'purple'"],
       },
       {

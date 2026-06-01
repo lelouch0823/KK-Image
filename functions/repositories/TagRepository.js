@@ -14,7 +14,7 @@ export class TagRepository {
      */
     async findAll() {
         const { results } = await this.db.prepare(
-            'SELECT * FROM tags ORDER BY name ASC'
+            'SELECT id, name, color, created_at FROM tags ORDER BY name ASC'
         ).all();
         return results;
     }

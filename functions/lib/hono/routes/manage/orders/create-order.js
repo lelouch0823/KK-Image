@@ -10,6 +10,8 @@ import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { buildOrderBindingSnapshot } from '../../../../../api/utils/order-binding-snapshot.js';
 import { syncOrderDemandTransitionsByLines } from '../../../../../api/utils/order-demand-sync.js';
 import { canTransitionOrderStatus, normalizeOrderStatus } from '../../../../../api/utils/order-state-machine.js';
+import { scheduleCacheInvalidation } from '../../../_shared/route-helpers.js';
+import { getManageOrderCacheUrls } from '../../_shared/cache-urls.js';
 
 function isDuplicateOutboxIdempotencyError(error) {
   const message = String(error?.message || error || '').toLowerCase();
@@ -206,6 +208,9 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
   const persistedOrderId = createdOrder?.id || orderId;
   const persistedOrderNo = createdOrder?.orderNo || orderNo;
   const result = { id: persistedOrderId, orderNo: persistedOrderNo };
+
+  // 异步失效订单列表缓存
+  scheduleCacheInvalidation(c, getManageOrderCacheUrls(c));
 
   try {
     const persistedOrderDetail = typeof orderRepo.findById === 'function'

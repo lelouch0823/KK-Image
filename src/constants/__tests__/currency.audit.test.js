@@ -7,21 +7,21 @@ const ROOT = process.cwd();
 describe('currency constants ownership audit', () => {
   it('defines currency constants outside useProductForm and consumes the shared module directly', async () => {
     const offenders = [];
-    const currencyPath = path.join(ROOT, 'src/constants/currency.js');
+    const currencyPath = path.join(ROOT, 'src/constants/currency.ts');
 
     if (!fs.existsSync(currencyPath)) {
-      offenders.push('src/constants/currency.js: missing shared currency constants module');
+      offenders.push('src/constants/currency.ts: missing shared currency constants module');
     }
 
     const useProductFormSource = fs.readFileSync(
-      path.join(ROOT, 'src/composables/useProductForm.js'),
+      path.join(ROOT, 'src/composables/useProductForm.ts'),
       'utf8'
     );
     if (useProductFormSource.includes('export const CURRENCY_OPTIONS')) {
-      offenders.push('src/composables/useProductForm.js: still defines CURRENCY_OPTIONS');
+      offenders.push('src/composables/useProductForm.ts: still defines CURRENCY_OPTIONS');
     }
     if (useProductFormSource.includes('export const CURRENCY_SYMBOLS')) {
-      offenders.push('src/composables/useProductForm.js: still defines CURRENCY_SYMBOLS');
+      offenders.push('src/composables/useProductForm.ts: still defines CURRENCY_SYMBOLS');
     }
 
     const purchaseOrdersSource = fs.readFileSync(
