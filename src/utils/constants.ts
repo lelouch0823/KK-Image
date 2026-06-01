@@ -131,6 +131,11 @@ export const API: Record<string, any> = {
   MANAGE_PRODUCT_BY_ID: (id: string | number) => `${API_PREFIX}/products/${id}`,
   MANAGE_PRODUCT_BATCH_STATUS: `${API_PREFIX}/products/batch/status`,
 
+  // 分类管理
+  MANAGE_CATEGORIES: `${API_PREFIX}/categories`,
+  MANAGE_CATEGORY_BY_ID: (id: string) => `${API_PREFIX}/categories/${id}`,
+  MANAGE_CATEGORY_PRODUCTS: (id: string) => `${API_PREFIX}/categories/${id}/products`,
+
   // 订货总览
   MANAGE_GOODS_OVERVIEW: `${API_PREFIX}/goods-overview`,
   MANAGE_GOODS_OVERVIEW_SUMMARY: `${API_PREFIX}/goods-overview/summary`,

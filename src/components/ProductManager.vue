@@ -137,7 +137,15 @@
         v-model="showExportModal"
         :filters="filters"
     />
-    
+
+    <!-- Category Form Modal -->
+    <CategoryFormModal
+        v-model="showCategoryFormModal"
+        :category="editingCategory"
+        :parent-options="categoryTreeOptions"
+        @submit="handleCategoryFormSubmit"
+    />
+
     <!-- Create/Edit Modal -->
     <ProductCreateModal
         v-model="showCreateModal"
@@ -165,6 +173,20 @@
     />
 
       <template #content>
+    <!-- 分类树面板 -->
+    <div v-if="categoryTree.length > 0 || categoryLoading" class="mb-4 rounded-lg border border-(--border-color) bg-(--bg-card) p-3">
+      <CategoryTree
+        :nodes="categoryTree"
+        :selected-id="selectedCategoryId"
+        :total-product-count="pagination.total"
+        @select="handleCategorySelect"
+        @add="handleCategoryAdd"
+        @edit="handleCategoryEdit"
+        @add-child="handleCategoryAddChild"
+        @delete="handleCategoryDelete"
+      />
+    </div>
+
     <div class="relative lg:min-h-[400px] lg:overflow-hidden">
       <!-- Loading Overlay -->
       <div v-if="loading" class="absolute inset-0 z-10 flex items-center justify-center bg-(--bg-page)/50 backdrop-blur-[1px]">
@@ -254,6 +276,7 @@
 import { ref, reactive, onMounted, onUnmounted, defineAsyncComponent, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useProducts } from '@/composables/useProducts';
+import { useCategories } from '@/composables/useCategories';
 import { useAI } from '@/composables/useAI';
 import { useToast } from '@/composables/useToast';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
@@ -261,12 +284,14 @@ import { useManagedListSelection } from '@/composables/useManagedListSelection';
 const ProductStats = defineAsyncComponent(() => import('./product/ProductStats.vue'));
 import ProductFilters from './product/ProductFilters.vue';
 import ProductTable from './product/ProductTable.vue';
-import ProductCreateModal from './product/ProductCreateModal.vue'; 
-import ProductWorkflowModal from './product/ProductWorkflowModal.vue'; 
+import ProductCreateModal from './product/ProductCreateModal.vue';
+import ProductWorkflowModal from './product/ProductWorkflowModal.vue';
 const ProductImportModal = defineAsyncComponent(() => import('./product/ProductImportModal.vue'));
 const ProductExportModal = defineAsyncComponent(() => import('./product/ProductExportModal.vue'));
 import ProductGrid from './product/ProductGrid.vue';
 import SpaceCreateModal from '@/components/SpaceCreateModal.vue';
+import CategoryTree from '@/components/CategoryTree.vue';
+import CategoryFormModal from '@/components/CategoryFormModal.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
@@ -292,8 +317,113 @@ const { addView: addRecentView } = useRecentViews();
 
 const { products, loading, error, errorCode, availableFilters, pagination, loadProducts, deleteProduct, loadProduct } = useProducts();
 
+// 分类树管理
+const {
+  tree: categoryTree,
+  loading: categoryLoading,
+  categoryOptions: categoryTreeOptions,
+  loadCategories,
+  loadTree,
+  createCategory,
+  updateCategory,
+  deleteCategory: deleteCategoryApi,
+} = useCategories();
+const selectedCategoryId = ref(null);
+const showCategoryFormModal = ref(false);
+const editingCategory = ref(null);
+const categoryFormParentId = ref(null);
+
+const handleCategorySelect = (categoryId) => {
+  selectedCategoryId.value = categoryId;
+  // 当选择分类时，同步到 filters.category 并重新加载商品
+  if (categoryId) {
+    // 通过分类名过滤（现有产品表使用 category 字段存储分类名）
+    const findCategoryName = (nodes, id) => {
+      for (const node of nodes) {
+        if (node.id === id) return node.name;
+        if (node.children) {
+          const found = findCategoryName(node.children, id);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    const categoryName = findCategoryName(categoryTree.value, categoryId);
+    filters.category = categoryName || '';
+  } else {
+    filters.category = '';
+  }
+  reloadProducts({ page: 1 });
+};
+
+const handleCategoryAdd = () => {
+  editingCategory.value = null;
+  categoryFormParentId.value = null;
+  showCategoryFormModal.value = true;
+};
+
+const handleCategoryAddChild = (parent) => {
+  editingCategory.value = null;
+  categoryFormParentId.value = parent.id;
+  showCategoryFormModal.value = true;
+};
+
+const handleCategoryEdit = (category) => {
+  editingCategory.value = category;
+  categoryFormParentId.value = null;
+  showCategoryFormModal.value = true;
+};
+
+const handleCategoryDelete = async (category) => {
+  confirmData.value = {
+    show: true,
+    title: t('product.categoryTree.delete'),
+    message: t('product.categoryTree.delete_confirm', { name: category.name }),
+    type: 'danger',
+    loading: false,
+    onConfirm: async () => {
+      confirmData.value.loading = true;
+      const success = await deleteCategoryApi(category.id);
+      if (success) {
+        addToast({ type: 'success', message: t('common.action.delete_success', '删除成功') });
+        await loadTree();
+        if (selectedCategoryId.value === category.id) {
+          selectedCategoryId.value = null;
+          filters.category = '';
+          reloadProducts({ page: 1 });
+        }
+      }
+      confirmData.value.show = false;
+      confirmData.value.loading = false;
+    },
+  };
+};
+
+const handleCategoryFormSubmit = async (payload) => {
+  let success = false;
+  if (payload.id) {
+    success = await updateCategory(payload.id, {
+      name: payload.name,
+      parent_id: payload.parent_id,
+      sort_order: payload.sort_order,
+    });
+  } else {
+    const result = await createCategory({
+      name: payload.name,
+      parent_id: payload.parent_id || categoryFormParentId.value,
+      sort_order: payload.sort_order,
+    });
+    success = !!result;
+  }
+  if (success) {
+    addToast({ type: 'success', message: t('common.action.save_success', '保存成功') });
+    showCategoryFormModal.value = false;
+    await loadTree();
+  }
+};
+
 const showStatsModal = ref(false);
-const showCreateModal = ref(false); 
+const showCreateModal = ref(false);
 const showDetailModal = ref(false);
 const showImportModal = ref(false);
 const showExportModal = ref(false);
@@ -360,7 +490,8 @@ onMounted(async () => {
     });
 
     reloadProducts();
-    
+    loadTree(); // 加载分类树
+
     // Auto-open edit modal if query param is present
     if (route.query.edit) {
         handleQueryEditOpen(route.query.edit);
