@@ -166,6 +166,9 @@
             </StatsChartWrapper>
           </div>
 
+          <!-- 销售业绩排行榜 -->
+          <SalesRanking />
+
           <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <SurfaceSection :title="t('stats.topSpaces')" body-class="space-y-4">
               <template v-if="stats.traffic?.topSpaces?.length > 0">
@@ -289,6 +292,7 @@ import MetricTile from '@/design-system/composed/MetricTile.vue';
 import SurfaceSection from '@/design-system/composed/SurfaceSection.vue';
 import DashboardShell from '@/design-system/patterns/DashboardShell.vue';
 import StatsChartWrapper from '@/views/stats/StatsChartWrapper.vue';
+import SalesRanking from '@/views/stats/SalesRanking.vue';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 

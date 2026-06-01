@@ -173,6 +173,7 @@ export const API: Record<string, any> = {
   // 销售人员管理 API
   SALESPERSON_BY_ID: (id: string | number) => `${API_PREFIX}/salespersons/${id}`,
   SALESPERSON_RESET_TOKEN: (id: string | number) => `${API_PREFIX}/salespersons/${id}/reset-token`,
+  SALESPERSON_RANKING: `${API_PREFIX}/salespersons/ranking`,
 
   // 其他
   TURNSTILE_VERIFY: '/api/turnstile/verify',

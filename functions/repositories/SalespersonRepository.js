@@ -299,7 +299,7 @@ export class SalespersonRepository {
     const result = await this.db
       .prepare(
         `
-            UPDATE salespersons 
+            UPDATE salespersons
             SET last_login_at = ?, last_login_ip = ?, last_login_device = ?, updated_at = ?
             WHERE id = ?
         `
@@ -307,5 +307,63 @@ export class SalespersonRepository {
       .bind(now(), ip || null, device || null, now(), id)
       .run();
     return hasChanges(result);
+  }
+
+  /**
+   * 获取销售业绩排行榜
+   * @param {Object} params
+   * @param {number} [params.days] - 时间范围天数 (7/30/90)，不传则为全部
+   * @param {string} [params.sortBy] - 排序字段: order_count | avg_monthly (默认 order_count)
+   * @param {number} [params.limit] - 返回数量 (默认 20)
+   * @returns {Promise<Array>} 排行数据
+   */
+  async getRanking({ days, sortBy = 'order_count', limit = 20 } = {}) {
+    const safeLimit = Math.max(1, Math.min(100, limit || 20));
+
+    // 构建时间过滤条件
+    let timeFilter = '';
+    const bindings = [];
+    if (days && [7, 30, 90].includes(days)) {
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+      timeFilter = 'AND o.created_at >= ?';
+      bindings.push(cutoff);
+    }
+
+    // 排序字段映射
+    const sortColumn = sortBy === 'avg_monthly' ? 'avg_monthly' : 'order_count';
+
+    // 计算销售人员的活跃月数用于平均值
+    const sql = `
+      SELECT
+        s.id,
+        s.name,
+        s.store,
+        COALESCE(oc.order_count, 0) AS order_count,
+        CASE
+          WHEN COALESCE(oc.order_count, 0) = 0 THEN 0
+          ELSE ROUND(
+            CAST(COALESCE(oc.order_count, 0) AS REAL) /
+            MAX(1, CAST((julianday('now') - julianday(s.created_at / 1000, 'unixepoch')) / 30.0 AS INTEGER)),
+            2
+          )
+        END AS avg_monthly
+      FROM salespersons s
+      LEFT JOIN (
+        SELECT salesperson_id, COUNT(*) AS order_count
+        FROM orders o
+        WHERE 1=1 ${timeFilter}
+        GROUP BY salesperson_id
+      ) oc ON oc.salesperson_id = s.id
+      WHERE s.is_active = 1
+      ORDER BY ${sortColumn} DESC, s.name ASC
+      LIMIT ?
+    `;
+
+    const result = await this.db
+      .prepare(sql)
+      .bind(...bindings, safeLimit)
+      .all();
+
+    return result.results || [];
   }
 }

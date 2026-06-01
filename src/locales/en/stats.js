@@ -49,4 +49,17 @@ export default {
   totalOrders: 'Total Orders',
   noOrders: 'No Orders',
   salesperson: 'Salesperson',
+  // Sales ranking
+  salesRanking: 'Sales Performance Ranking',
+  rank: 'Rank',
+  salespersonName: 'Salesperson',
+  totalRevenue: 'Total Orders',
+  avgMonthly: 'Avg/Month',
+  last7Days: 'Last 7D',
+  last30Days: 'Last 30D',
+  last90Days: 'Last 90D',
+  allTime: 'All Time',
+  noRankingData: 'No ranking data',
+  sortByOrderCount: 'By Orders',
+  sortByAvgMonthly: 'By Avg/Month',
 };

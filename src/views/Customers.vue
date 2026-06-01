@@ -14,7 +14,7 @@
       </AppButton>
 
       <!-- 导出下拉菜单 -->
-      <div class="relative" ref="exportDropdownRef">
+      <div ref="exportDropdownRef" class="relative">
         <AppButton
           variant="outline"
           size="sm"

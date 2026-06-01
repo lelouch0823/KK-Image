@@ -22,6 +22,44 @@ export const auditRouteDeclarations = declareAuditRoutes([
 ]);
 app.use('*', requirePermission('users:read'));
 
+/**
+ * GET /ranking - 销售业绩排行榜
+ */
+app.get('/ranking', withCache(60), async (c) => {
+    const { env } = c;
+    const days = c.req.query('days') ? parseInt(c.req.query('days'), 10) : undefined;
+    const sortBy = c.req.query('sort') || 'order_count';
+    const limit = c.req.query('limit') ? parseInt(c.req.query('limit'), 10) : 20;
+
+    // 校验参数
+    const validDays = [7, 30, 90].includes(days) ? days : undefined;
+    const validSort = ['order_count', 'avg_monthly'].includes(sortBy) ? sortBy : 'order_count';
+
+    const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
+    const ranking = await repo.getRanking({
+        days: validDays,
+        sortBy: validSort,
+        limit,
+    });
+
+    return c.json({
+        success: true,
+        data: ranking.map((item, index) => ({
+            rank: index + 1,
+            id: item.id,
+            name: item.name,
+            store: item.store,
+            orderCount: item.order_count,
+            avgMonthly: item.avg_monthly,
+        })),
+        meta: {
+            days: validDays || 'all',
+            sortBy: validSort,
+            total: ranking.length,
+        },
+    });
+});
+
 // 验证 Schema
 const CreateSalespersonSchema = z.object({
     name: z.string().min(1, MSG.SALESPERSON.NAME_REQUIRED),

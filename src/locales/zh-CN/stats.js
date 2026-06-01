@@ -49,4 +49,17 @@ export default {
   totalOrders: '总订单',
   noOrders: '暂无订单',
   salesperson: '销售员',
+  // 销售业绩排行
+  salesRanking: '销售业绩排行',
+  rank: '排名',
+  salespersonName: '销售员',
+  totalRevenue: '总订单',
+  avgMonthly: '月均订单',
+  last7Days: '近7天',
+  last30Days: '近30天',
+  last90Days: '近90天',
+  allTime: '全部',
+  noRankingData: '暂无排行数据',
+  sortByOrderCount: '按订单数',
+  sortByAvgMonthly: '按月均',
 };
