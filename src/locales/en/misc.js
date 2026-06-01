@@ -203,6 +203,7 @@ export default {
     goods_overview: 'Goods Overview',
     purchase_orders: 'Procurement',
     inventory_dashboard: 'Inventory Dashboard',
+    stocktakes: 'Stocktake',
   },
 
   // PWA

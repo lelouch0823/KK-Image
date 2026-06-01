@@ -203,6 +203,7 @@ export default {
     goods_overview: '订货总览',
     purchase_orders: '采购管理',
     inventory_dashboard: '库存预警看板',
+    stocktakes: '库存盘点',
   },
 
   // PWA

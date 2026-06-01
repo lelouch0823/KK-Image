@@ -21,6 +21,7 @@ import purchaseOrder from './purchaseOrder';
 import commandPalette from './commandPalette';
 import formDraft from './formDraft';
 import inventoryDashboard from './inventoryDashboard';
+import stocktake from './stocktake';
 import keyboardShortcuts from './keyboardShortcuts';
 
 export default {
@@ -70,5 +71,6 @@ export default {
   commandPalette,
   formDraft,
   inventoryDashboard,
+  stocktake,
   keyboardShortcuts,
 };

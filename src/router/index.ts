@@ -153,6 +153,12 @@ const routes: RouteRecordRaw[] = [
                 meta: { titleKey: 'router.purchase_orders', permission: 'products:manage' },
             },
             {
+                path: 'stocktakes',
+                name: 'Stocktakes',
+                component: () => import('@/views/StocktakeManager.vue'),
+                meta: { titleKey: 'router.stocktakes', permission: 'products:manage' },
+            },
+            {
                 path: 'customers',
                 name: 'Customers',
                 component: () => import('@/views/Customers.vue'),

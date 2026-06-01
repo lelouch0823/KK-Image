@@ -296,6 +296,12 @@ const menuItems = computed(() => [
     permission: 'products:manage'
   },
   {
+    key: 'stocktakes',
+    label: t('stocktake.title'),
+    icon: 'clipboard-document-check',
+    permission: 'products:manage'
+  },
+  {
     key: 'customers',
     label: t('customer.manage.title'),
     icon: 'users',

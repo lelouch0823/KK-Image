@@ -158,6 +158,13 @@ export const API: Record<string, any> = {
   // 库存预警看板
   MANAGE_INVENTORY_DASHBOARD: `${API_PREFIX}/inventory-dashboard`,
 
+  // 库存盘点
+  MANAGE_STOCKTAKES: `${API_PREFIX}/stocktakes`,
+  MANAGE_STOCKTAKE_BY_ID: (id: string) => `${API_PREFIX}/stocktakes/${id}`,
+  MANAGE_STOCKTAKE_ITEMS: (id: string) => `${API_PREFIX}/stocktakes/${id}/items`,
+  MANAGE_STOCKTAKE_ADJUST: (id: string) => `${API_PREFIX}/stocktakes/${id}/adjust`,
+  MANAGE_STOCKTAKE_CANCEL: (id: string) => `${API_PREFIX}/stocktakes/${id}/cancel`,
+
   MANAGE_OUTBOX: `${API_PREFIX}/outbox`,
   MANAGE_OUTBOX_BY_ID: (id: string | number) => `${API_PREFIX}/outbox/${id}`,
   MANAGE_AUDIT_REPLAY_DRY_RUN: `${API_PREFIX}/audit-replay/dry-run`,
