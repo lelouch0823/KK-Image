@@ -22,6 +22,7 @@ import goodsOverview from './goodsOverview';
 import purchaseOrder from './purchaseOrder';
 import commandPalette from './commandPalette';
 import formDraft from './formDraft';
+import inventoryDashboard from './inventoryDashboard';
 
 export default {
   common,
@@ -72,4 +73,5 @@ export default {
   purchaseOrder,
   commandPalette,
   formDraft,
+  inventoryDashboard,
 };

@@ -47,6 +47,7 @@ import managePurchaseOrdersRoutes from './routes/manage/purchase-orders.js'; // 
 import manageWebhooksRoutes from './routes/manage/webhooks.js';
 import manageOutboxRoutes from './routes/manage/outbox.js';
 import manageAuditReplayRoutes from './routes/manage/audit-replay.js';
+import manageInventoryDashboardRoutes from './routes/manage/inventory-dashboard.js'; // NEW: 库存预警看板
 
 export const app = new Hono();
 
@@ -136,6 +137,7 @@ app.route('/api/manage/purchase-orders', managePurchaseOrdersRoutes); // NEW: �
 app.route('/api/manage/webhooks', manageWebhooksRoutes);
 app.route('/api/manage/outbox', manageOutboxRoutes);
 app.route('/api/manage/audit-replay', manageAuditReplayRoutes);
+app.route('/api/manage/inventory-dashboard', manageInventoryDashboardRoutes); // NEW: 库存预警看板
 app.route('/api/sales', salesRoutes);
 
 // ============================================

@@ -139,6 +139,9 @@ export const API: Record<string, any> = {
   MANAGE_PURCHASE_ORDER_SUGGESTIONS: `${API_PREFIX}/purchase-orders/suggestions`,
   MANAGE_PURCHASE_ORDER_STATS: `${API_PREFIX}/purchase-orders/stats`,
 
+  // 库存预警看板
+  MANAGE_INVENTORY_DASHBOARD: `${API_PREFIX}/inventory-dashboard`,
+
   MANAGE_OUTBOX: `${API_PREFIX}/outbox`,
   MANAGE_OUTBOX_BY_ID: (id: string | number) => `${API_PREFIX}/outbox/${id}`,
   MANAGE_AUDIT_REPLAY_DRY_RUN: `${API_PREFIX}/audit-replay/dry-run`,

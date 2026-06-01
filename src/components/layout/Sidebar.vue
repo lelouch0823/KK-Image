@@ -278,6 +278,12 @@ const menuItems = computed(() => [
     permission: 'products:manage'
   },
   {
+    key: 'inventory-dashboard',
+    label: t('sidebar.inventoryDashboard'),
+    icon: 'archive-box',
+    permission: 'products:manage'
+  },
+  {
     key: 'purchase-orders',
     label: t('purchaseOrder.title'),
     icon: 'shopping-cart',

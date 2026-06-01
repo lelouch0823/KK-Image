@@ -82,6 +82,7 @@ export default {
     trash: '回收站',
     goodsOverview: '订货总览',
     purchaseOrders: '采购管理',
+    inventoryDashboard: '库存预警',
   },
 
   // 视图
@@ -95,6 +96,7 @@ export default {
     trash: '回收站',
     goodsOverview: '订货总览',
     purchaseOrders: '采购管理',
+    inventoryDashboard: '库存预警',
   },
 
   // 文件操作 (Composables)
@@ -198,6 +200,7 @@ export default {
     sales_spaces: '共享空间',
     goods_overview: '订货总览',
     purchase_orders: '采购管理',
+    inventory_dashboard: '库存预警看板',
   },
 
   // PWA

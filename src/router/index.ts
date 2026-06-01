@@ -141,6 +141,12 @@ const routes: RouteRecordRaw[] = [
                 meta: { titleKey: 'router.goods_overview', permission: 'products:manage' },
             },
             {
+                path: 'inventory-dashboard',
+                name: 'InventoryDashboard',
+                component: () => import('@/views/InventoryDashboard.vue'),
+                meta: { titleKey: 'router.inventory_dashboard', permission: 'products:manage' },
+            },
+            {
                 path: 'purchase-orders',
                 name: 'PurchaseOrders',
                 component: () => import('@/views/PurchaseOrders.vue'),

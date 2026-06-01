@@ -82,6 +82,7 @@ export default {
     trash: 'Recycle Bin',
     goodsOverview: 'Goods Overview',
     purchaseOrders: 'Procurement',
+    inventoryDashboard: 'Inventory',
   },
 
   // Views
@@ -95,6 +96,7 @@ export default {
     trash: 'Recycle Bin',
     goodsOverview: 'Goods Overview',
     purchaseOrders: 'Procurement',
+    inventoryDashboard: 'Inventory',
   },
 
   // File Ops (Composables)
@@ -198,6 +200,7 @@ export default {
     sales_spaces: 'Shared Spaces',
     goods_overview: 'Goods Overview',
     purchase_orders: 'Procurement',
+    inventory_dashboard: 'Inventory Dashboard',
   },
 
   // PWA
