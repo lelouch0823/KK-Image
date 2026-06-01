@@ -69,5 +69,17 @@ export default {
     daysAgo: '{days} days ago',
     days: '{days} days',
     orderCountValue: '{count} orders',
+    // Communications
+    noCommunications: 'No communication records',
+    addCommunication: 'Add Communication',
+    communicationContent: 'Content',
+    communicationType: 'Type',
+    communicationPlaceholder: 'Record communication details...',
+    deleteCommunicationConfirm: 'Are you sure you want to delete this communication record?',
+    typeNote: 'Note',
+    typeCall: 'Phone Call',
+    typeEmail: 'Email',
+    typeMeeting: 'Meeting',
+    typeWechat: 'WeChat',
   },
 };

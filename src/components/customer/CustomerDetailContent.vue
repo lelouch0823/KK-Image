@@ -375,6 +375,108 @@
             </div>
           </div>
         </div>
+
+        <!-- 沟通记录 Tab -->
+        <div v-if="currentTab === 'communications'" class="space-y-4">
+          <!-- 添加沟通记录表单 -->
+          <AppCard padding="p-4">
+            <div class="space-y-3">
+              <div class="flex items-center gap-2">
+                <select
+                  v-model="newCommType"
+                  class="rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none focus:ring-1 focus:ring-(--color-primary)"
+                >
+                  <option v-for="opt in commTypeOptions" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
+              </div>
+              <textarea
+                v-model="newCommContent"
+                :placeholder="t('customer.detail.communicationPlaceholder')"
+                rows="3"
+                class="w-full rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) placeholder-(--text-muted) focus:border-(--color-primary) focus:outline-none focus:ring-1 focus:ring-(--color-primary)"
+              />
+              <div class="flex justify-end">
+                <AppButton
+                  variant="primary"
+                  size="sm"
+                  :disabled="!newCommContent.trim() || addingComm"
+                  @click="handleAddCommunication"
+                >
+                  <template #icon-left>
+                    <AppIcon
+                      v-if="addingComm"
+                      name="spinner"
+                      class="size-4 animate-spin"
+                    />
+                    <AppIcon v-else name="plus" class="size-4" />
+                  </template>
+                  {{ t('customer.detail.addCommunication') }}
+                </AppButton>
+              </div>
+            </div>
+          </AppCard>
+
+          <!-- 加载中 -->
+          <div v-if="loadingCommunications" class="py-8 text-center">
+            <AppIcon name="spinner" class="text-primary mx-auto size-8 animate-spin" />
+          </div>
+
+          <!-- 空状态 -->
+          <EmptyState
+            v-else-if="communications.length === 0"
+            icon="chat-bubble-left-right"
+            :title="t('customer.detail.noCommunications')"
+            size="sm"
+          />
+
+          <!-- 沟通记录列表 -->
+          <div v-else class="space-y-3">
+            <div
+              v-for="comm in communications"
+              :key="comm.id"
+              class="relative rounded-lg border border-(--border-color) px-4 py-3"
+            >
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-2">
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                    :class="{
+                      'bg-(--color-info-bg) text-(--color-info)': comm.type === 'note',
+                      'bg-(--color-success-bg) text-(--color-success)': comm.type === 'call',
+                      'bg-(--color-primary-bg) text-(--color-primary)': comm.type === 'email',
+                      'bg-(--color-warning-bg) text-(--color-warning)': comm.type === 'meeting',
+                      'bg-(--color-neutral-bg) text-(--color-neutral)': comm.type === 'wechat',
+                    }"
+                  >
+                    <AppIcon :name="getCommTypeInfo(comm.type).icon" class="size-3" />
+                    {{ getCommTypeInfo(comm.type).label }}
+                  </span>
+                  <span v-if="comm.created_by" class="text-xs text-(--text-secondary)">
+                    {{ comm.created_by }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-(--text-muted)">
+                    {{ formatDate(comm.created_at) }}
+                  </span>
+                  <AppButton
+                    variant="ghost"
+                    size="sm"
+                    class="!px-1"
+                    @click="handleDeleteCommunication(comm.id)"
+                  >
+                    <template #icon-left>
+                      <AppIcon name="trash" class="size-3.5 text-(--text-muted)" />
+                    </template>
+                  </AppButton>
+                </div>
+              </div>
+              <p class="mt-2 text-sm whitespace-pre-wrap text-(--text-main)">{{ comm.content }}</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -428,6 +530,14 @@ const allTags = ref([]);
 const newTagName = ref('');
 const addingTag = ref(false);
 
+// 沟通记录相关
+const communications = ref([]);
+const loadingCommunications = ref(false);
+const commTotal = ref(0);
+const newCommType = ref('note');
+const newCommContent = ref('');
+const addingComm = ref(false);
+
 const confirmData = ref({
   show: false,
   title: '',
@@ -441,6 +551,7 @@ const tabs = computed(() => [
   { key: 'overview', name: t('customer.detail.overview') },
   { key: 'orders', name: t('customer.detail.historyOrders') },
   { key: 'tags', name: t('customer.detail.tags') },
+  { key: 'communications', name: t('customer.detail.communications') },
 ]);
 
 // RFM 分段相关计算属性
@@ -534,6 +645,79 @@ const loadAllTags = async () => {
     }
   } catch (_e) {
     // 静默失败
+  }
+};
+
+// 沟通记录
+const commTypeOptions = computed(() => [
+  { value: 'note', label: t('customer.detail.typeNote'), icon: 'document-text' },
+  { value: 'call', label: t('customer.detail.typeCall'), icon: 'phone' },
+  { value: 'email', label: t('customer.detail.typeEmail'), icon: 'envelope' },
+  { value: 'meeting', label: t('customer.detail.typeMeeting'), icon: 'users' },
+  { value: 'wechat', label: t('customer.detail.typeWechat'), icon: 'chat-bubble-left-right' },
+]);
+
+const getCommTypeInfo = (type) => {
+  return commTypeOptions.value.find((o) => o.value === type) || commTypeOptions.value[0];
+};
+
+const loadCommunications = async () => {
+  if (!props.customer?.id) return;
+  loadingCommunications.value = true;
+  try {
+    const res = await authFetch(API.MANAGE_CUSTOMER_COMMUNICATIONS(props.customer.id));
+    const result = await res.json();
+    if (result.success) {
+      communications.value = result.data || [];
+      commTotal.value = result.pagination?.total || 0;
+    }
+  } catch (_e) {
+    addToast({ message: t('common.loadFailed'), type: 'error' });
+  } finally {
+    loadingCommunications.value = false;
+  }
+};
+
+const handleAddCommunication = async () => {
+  if (addingComm.value || !newCommContent.value.trim()) return;
+  addingComm.value = true;
+  try {
+    const res = await authFetch(API.MANAGE_CUSTOMER_COMMUNICATIONS(props.customer.id), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: newCommType.value, content: newCommContent.value.trim() }),
+    });
+    const result = await res.json();
+    if (result.success) {
+      newCommContent.value = '';
+      newCommType.value = 'note';
+      await loadCommunications();
+      addToast({ message: t('common.createSuccess'), type: 'success' });
+    } else {
+      addToast({ message: result.message || t('common.operationFailed'), type: 'error' });
+    }
+  } catch (_e) {
+    addToast({ message: t('common.networkError'), type: 'error' });
+  } finally {
+    addingComm.value = false;
+  }
+};
+
+const handleDeleteCommunication = async (commId) => {
+  try {
+    const res = await authFetch(API.MANAGE_CUSTOMER_COMMUNICATION(props.customer.id, commId), {
+      method: 'DELETE',
+    });
+    const result = await res.json();
+    if (result.success) {
+      communications.value = communications.value.filter((c) => c.id !== commId);
+      commTotal.value--;
+      addToast({ message: t('common.deleteSuccess'), type: 'success' });
+    } else {
+      addToast({ message: result.message || t('common.operationFailed'), type: 'error' });
+    }
+  } catch (_e) {
+    addToast({ message: t('common.networkError'), type: 'error' });
   }
 };
 
@@ -642,6 +826,9 @@ watch(currentTab, (newTab) => {
       loadAllTags();
     }
   }
+  if (newTab === 'communications' && communications.value.length === 0) {
+    loadCommunications();
+  }
 });
 
 // 客户切换时重置所有数据
@@ -654,6 +841,10 @@ watch(
       stats.value = null;
       detailTags.value = [];
       newTagName.value = '';
+      communications.value = [];
+      commTotal.value = 0;
+      newCommContent.value = '';
+      newCommType.value = 'note';
       // 概览 tab 默认加载统计
       loadStats();
     }

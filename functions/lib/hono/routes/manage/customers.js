@@ -433,6 +433,96 @@ app.get('/:id/stats', async (c) => {
     });
 });
 
+// ========================================
+// 沟通记录 (Communications)
+// ========================================
+
+const COMMUNICATION_TYPES = ['note', 'call', 'email', 'meeting', 'wechat'];
+
+const CreateCommunicationSchema = z.object({
+    type: z.enum(COMMUNICATION_TYPES).default('note'),
+    content: z.string().min(1, '沟通内容不能为空'),
+});
+
+/**
+ * GET /:id/communications - 获取客户沟通记录
+ */
+app.get('/:id/communications', async (c) => {
+    const { env } = c;
+    const id = c.req.param('id');
+    const { page, limit } = parsePagination(c, { limit: 20 });
+
+    const repo = new CustomerRepository(env.DB);
+    const customer = await repo.findById(id);
+    if (!customer) throw new NotFoundError(MSG.COMMON.NOT_FOUND);
+
+    const { results, total } = await repo.getCommunications(id, { page, limit });
+
+    return c.json({
+        success: true,
+        data: results,
+        pagination: { total },
+    });
+});
+
+/**
+ * POST /:id/communications - 添加沟通记录
+ */
+app.post('/:id/communications', zValidator('json', CreateCommunicationSchema), async (c) => {
+    const { env } = c;
+    const user = c.get('user');
+    const id = c.req.param('id');
+    const body = c.req.valid('json');
+
+    const repo = new CustomerRepository(env.DB);
+    const customer = await repo.findById(id);
+    if (!customer) throw new NotFoundError(MSG.COMMON.NOT_FOUND);
+
+    const comm = await repo.addCommunication(id, body.type, body.content, user.name);
+
+    scheduleAuditEvent(c, {
+        domain: 'customers',
+        action: 'customer.add_communication',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'customer',
+        targetId: id,
+        summary: `Added ${body.type} communication to customer ${id}`,
+        metadata: { type: body.type, content: body.content },
+    });
+
+    return c.json({
+        success: true,
+        message: '沟通记录添加成功',
+        data: comm,
+    });
+});
+
+/**
+ * DELETE /:id/communications/:commId - 删除沟通记录
+ */
+app.delete('/:id/communications/:commId', async (c) => {
+    const { env } = c;
+    const commId = c.req.param('commId');
+
+    const repo = new CustomerRepository(env.DB);
+    const deleted = await repo.deleteCommunication(commId);
+
+    if (!deleted) throw new NotFoundError('沟通记录不存在');
+
+    scheduleAuditEvent(c, {
+        domain: 'customers',
+        action: 'customer.delete_communication',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'customer',
+        targetId: c.req.param('id'),
+        summary: `Deleted communication ${commId}`,
+    });
+
+    return c.json({ success: true, message: '沟通记录已删除' });
+});
+
 /**
  * GET /:id/tags - 获取客户标签列表
  */

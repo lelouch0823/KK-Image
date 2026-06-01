@@ -69,5 +69,17 @@ export default {
     daysAgo: '{days} 天前',
     days: '{days} 天',
     orderCountValue: '{count} 单',
+    // 沟通记录
+    noCommunications: '暂无沟通记录',
+    addCommunication: '添加沟通',
+    communicationContent: '沟通内容',
+    communicationType: '沟通方式',
+    communicationPlaceholder: '记录沟通内容...',
+    deleteCommunicationConfirm: '确定要删除该沟通记录吗？',
+    typeNote: '备注',
+    typeCall: '电话',
+    typeEmail: '邮件',
+    typeMeeting: '面谈',
+    typeWechat: '微信',
   },
 };

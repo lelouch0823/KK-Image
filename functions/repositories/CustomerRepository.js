@@ -485,4 +485,76 @@ export class CustomerRepository {
       .all();
     return results.map((r) => ({ name: r.tag_name, usageCount: r.usage_count }));
   }
+
+  // ========================================
+  // 沟通记录 (Communications)
+  // ========================================
+
+  /**
+   * 获取客户沟通记录（分页）
+   * @param {string} customerId
+   * @param {Object} params
+   * @param {number} [params.page]
+   * @param {number} [params.limit]
+   * @returns {Promise<{results: Array, total: number}>}
+   */
+  async getCommunications(customerId, { page = 1, limit = 20 } = {}) {
+    const { limit: safeLimit, offset } = parseRepoPagination(
+      { page, limit },
+      { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
+    );
+
+    const [countResult, listResult] = await Promise.all([
+      this.db
+        .prepare('SELECT COUNT(*) as total FROM customer_communications WHERE customer_id = ?')
+        .bind(customerId)
+        .first(),
+      this.db
+        .prepare(
+          'SELECT * FROM customer_communications WHERE customer_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?'
+        )
+        .bind(customerId, safeLimit, offset)
+        .all(),
+    ]);
+
+    return {
+      results: listResult.results,
+      total: countResult.total,
+    };
+  }
+
+  /**
+   * 添加沟通记录
+   * @param {string} customerId
+   * @param {string} type - note/call/email/meeting/wechat
+   * @param {string} content
+   * @param {string} [createdBy]
+   * @returns {Promise<Object>} 新记录
+   */
+  async addCommunication(customerId, type, content, createdBy) {
+    const id = crypto.randomUUID();
+    const now = Date.now();
+
+    await this.db
+      .prepare(
+        'INSERT INTO customer_communications (id, customer_id, type, content, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?)'
+      )
+      .bind(id, customerId, type, content, now, createdBy || null)
+      .run();
+
+    return { id, customer_id: customerId, type, content, created_at: now, created_by: createdBy || null };
+  }
+
+  /**
+   * 删除沟通记录
+   * @param {string} id
+   * @returns {Promise<boolean>}
+   */
+  async deleteCommunication(id) {
+    const result = await this.db
+      .prepare('DELETE FROM customer_communications WHERE id = ?')
+      .bind(id)
+      .run();
+    return hasChanges(result);
+  }
 }
