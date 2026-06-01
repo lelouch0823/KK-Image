@@ -10,6 +10,28 @@
     </div>
 
     <form class="space-y-4" data-testid="submit-order-form" @submit.prevent="handleSubmit">
+      <!-- 草稿恢复提示 -->
+      <div
+        v-if="hasFormDraft"
+        class="flex items-center justify-between gap-3 rounded-xl border border-(--color-info-text)/20 bg-(--color-info-bg)/40 px-3 py-2"
+        data-testid="form-draft-banner"
+      >
+        <p class="text-sm text-(--text-main)">
+          {{ t('formDraft.found', '发现未保存的草稿') }}
+          <span v-if="getFormDraftAgeText()" class="text-(--text-secondary)">
+            ({{ getFormDraftAgeText() }})
+          </span>
+        </p>
+        <div class="flex items-center gap-2">
+          <AppButton variant="ghost" size="sm" data-testid="form-draft-restore" @click="handleRestoreFormDraft">
+            {{ t('formDraft.restore', '恢复') }}
+          </AppButton>
+          <AppButton variant="ghost" size="sm" data-testid="form-draft-discard" @click="clearFormDraft">
+            {{ t('formDraft.discard', '丢弃') }}
+          </AppButton>
+        </div>
+      </div>
+
       <!-- 图片上传 -->
       <ImageUploader
         ref="uploaderRef"
@@ -281,6 +303,7 @@ import { watch, toRef, reactive, computed, ref, nextTick } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useOrderForm } from '@/composables/useOrderForm';
+import { useFormDraft } from '@/composables/useFormDraft';
 import ImageUploader from '../common/ImageUploader.vue';
 import AutocompleteInput from '../ui/AutocompleteInput.vue';
 import StatusSelector from '@/components/ui/StatusSelector.vue';
@@ -358,6 +381,30 @@ const {
 });
 
 const showLineEditor = computed(() => props.mode === 'admin');
+
+// 表单草稿自动保存（仅 admin 模式）
+const draftDataSource = reactive({
+  get form() { return form; },
+  get lines() { return lines.value; },
+});
+
+const {
+  hasDraft: hasFormDraft,
+  restoreDraft: restoreFormDraft,
+  clearDraft: clearFormDraft,
+  getDraftAgeText: getFormDraftAgeText,
+} = useFormDraft({
+  key: `order-${props.mode}`,
+  data: draftDataSource,
+  debounce: 2000,
+  exclude: ['uploadedFiles'],
+});
+
+// 恢复草稿
+const handleRestoreFormDraft = () => {
+  restoreFormDraft();
+  addToast({ message: t('formDraft.restored', '草稿已恢复'), type: 'success' });
+};
 
 const isValid = computed(() => {
   if (!isFormValid.value) return false;
@@ -495,6 +542,7 @@ const handleSubmit = async () => {
 
     await emit('submit', data);
     saveHistory();
+    clearFormDraft();
   } finally {
     setSubmitting(false);
   }

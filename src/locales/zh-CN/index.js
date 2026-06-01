@@ -21,6 +21,7 @@ import trash from './trash';
 import goodsOverview from './goodsOverview';
 import purchaseOrder from './purchaseOrder';
 import commandPalette from './commandPalette';
+import formDraft from './formDraft';
 
 export default {
   common,
@@ -70,4 +71,5 @@ export default {
   goodsOverview,
   purchaseOrder,
   commandPalette,
+  formDraft,
 };

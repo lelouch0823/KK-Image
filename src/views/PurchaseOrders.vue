@@ -37,6 +37,28 @@
         </template>
 
         <template #content>
+          <!-- 草稿恢复提示 -->
+          <div
+            v-if="hasPoDraft"
+            class="flex items-center justify-between gap-3 rounded-xl border border-(--color-info-text)/20 bg-(--color-info-bg)/40 px-3 py-2"
+            data-testid="po-draft-banner"
+          >
+            <p class="text-sm text-(--text-main)">
+              {{ t('formDraft.poFound', '发现未保存的采购单草稿') }}
+              <span v-if="getPoDraftAgeText()" class="text-(--text-secondary)">
+                ({{ getPoDraftAgeText() }})
+              </span>
+            </p>
+            <div class="flex items-center gap-2">
+              <AppButton variant="ghost" size="sm" data-testid="po-draft-restore" @click="handleRestorePoDraft">
+                {{ t('formDraft.restore', '恢复') }}
+              </AppButton>
+              <AppButton variant="ghost" size="sm" data-testid="po-draft-discard" @click="clearPoDraft">
+                {{ t('formDraft.discard', '丢弃') }}
+              </AppButton>
+            </div>
+          </div>
+
           <!-- 横幅区域负责展示统计、状态信号和快捷筛选。 -->
           <PurchaseOrderOverviewBanner
             :title="t('purchaseOrder.title')"
@@ -298,6 +320,7 @@ import { usePurchaseOrderListPresentation } from '@/composables/usePurchaseOrder
 import { usePurchaseOrderDetailPresentation } from '@/composables/usePurchaseOrderDetailPresentation';
 import { usePurchaseOrderSuggestionPresentation } from '@/composables/usePurchaseOrderSuggestionPresentation';
 import { useToast } from '@/composables/useToast';
+import { useFormDraft } from '@/composables/useFormDraft';
 import { useAI } from '@/composables/useAI';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import { CURRENCY_OPTIONS } from '@/constants/currency';
@@ -414,6 +437,30 @@ const poItems = reactive([]);
 const selectedSuggestions = ref([]);
 const detailRequestId = ref('');
 let stopPurchaseOrdersRefreshSubscription = null;
+
+// 采购单草稿自动保存
+const poDraftDataSource = reactive({
+  get createForm() { return createForm; },
+  get items() { return poItems; },
+});
+
+const {
+  hasDraft: hasPoDraft,
+  restoreDraft: restorePoDraft,
+  clearDraft: clearPoDraft,
+  getDraftAgeText: getPoDraftAgeText,
+} = useFormDraft({
+  key: 'purchase-order-create',
+  data: poDraftDataSource,
+  debounce: 2000,
+  exclude: ['image'],
+});
+
+// 恢复草稿
+const handleRestorePoDraft = () => {
+  restorePoDraft();
+  addToast({ message: t('formDraft.restored', '草稿已恢复'), type: 'success' });
+};
 
 // 列表展示层：负责把 stats/list 组织成卡片、列定义、控制台信号等 UI 友好数据。
 const {
@@ -721,6 +768,13 @@ watch(showSuggestions, (v) => {
     return;
   }
   selectedSuggestions.value = [];
+});
+
+// 采购单创建弹窗关闭时清除草稿（创建成功或取消后表单已被重置）
+watch(showCreateModal, (isOpen) => {
+  if (!isOpen && hasPoDraft.value) {
+    clearPoDraft();
+  }
 });
 
 const detailFocusedVariantId = computed(() => getDetailFocusedVariantId(detail.value));
