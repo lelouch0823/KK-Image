@@ -86,6 +86,12 @@
             @payment-changed="handlePaymentChanged"
           />
 
+          <!-- 利润分析 (仅管理员可见) -->
+          <OrderProfitCard
+            v-if="mode === 'admin' && order.profit"
+            :profit="order.profit"
+          />
+
           <div
             v-if="markReadError"
             class="border-warning/30 rounded-xl border bg-(--color-warning-bg)/60 p-3"
@@ -207,6 +213,7 @@ import OrderStatusHeader from './OrderStatusHeader.vue';
 import OrderShipmentHistoryCard from './OrderShipmentHistoryCard.vue';
 import OrderReturnHistoryCard from './OrderReturnHistoryCard.vue';
 import OrderPaymentCard from './OrderPaymentCard.vue';
+import OrderProfitCard from './OrderProfitCard.vue';
 import OrderPrintView from './OrderPrintView.vue';
 import OrderLinesCard from './OrderLinesCard.vue';
 const OrderEditModal = defineAsyncComponent(() => import('../OrderEditModal.vue'));

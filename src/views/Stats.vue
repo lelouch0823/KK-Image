@@ -135,6 +135,53 @@
             />
           </SurfaceSection>
 
+          <!-- 利润概览 -->
+          <SurfaceSection
+            v-if="stats.profit"
+            :title="t('stats.profitOverview', '利润概览')"
+            body-class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4"
+          >
+            <MetricTile
+              :label="t('stats.totalRevenue', '总营收')"
+              :value="formatCurrency(stats.profit?.totalRevenue)"
+              icon="banknotes"
+              tone="primary"
+              flat
+            />
+            <MetricTile
+              :label="t('stats.totalCost', '总成本')"
+              :value="formatCurrency(stats.profit?.totalCost)"
+              icon="shopping-cart"
+              tone="warning"
+              flat
+            />
+            <MetricTile
+              :label="t('stats.totalProfit', '总利润')"
+              :value="formatCurrency(stats.profit?.totalProfit)"
+              icon="chart-bar"
+              :tone="(stats.profit?.totalProfit ?? 0) >= 0 ? 'success' : 'danger'"
+              flat
+            />
+            <MetricTile
+              :label="t('stats.profitMargin', '利润率')"
+              :value="stats.profit?.margin != null ? stats.profit.margin + '%' : '-'"
+              icon="presentation-chart-line"
+              :tone="(stats.profit?.margin ?? 0) >= 0 ? 'success' : 'danger'"
+              flat
+            />
+          </SurfaceSection>
+
+          <!-- 利润趋势图 -->
+          <div v-if="stats.charts?.profitTrend?.length" class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <StatsChartWrapper class="lg:col-span-2" :title="t('stats.profitTrend', '利润趋势')">
+              <canvas ref="profitTrendChartRef"></canvas>
+            </StatsChartWrapper>
+
+            <StatsChartWrapper :title="t('stats.profitByProduct', '商品利润排行')">
+              <canvas ref="profitByProductChartRef"></canvas>
+            </StatsChartWrapper>
+          </div>
+
           <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <StatsChartWrapper class="lg:col-span-2" :title="t('stats.trafficTrend')">
               <canvas ref="trendChartRef"></canvas>
@@ -361,12 +408,16 @@ const typeChartRef = ref(null);
 const salesTrendChartRef = ref(null);
 const topProductsChartRef = ref(null);
 const salespersonChartRef = ref(null);
+const profitTrendChartRef = ref(null);
+const profitByProductChartRef = ref(null);
 
 let trendChartInstance = null;
 let typeChartInstance = null;
 let salesTrendChartInstance = null;
 let topProductsChartInstance = null;
 let salespersonChartInstance = null;
+let profitTrendChartInstance = null;
+let profitByProductChartInstance = null;
 
 const largeFilesColumns = computed(() => [
   { key: 'index', label: '#', width: '60px' },
@@ -382,6 +433,13 @@ const formatNumber = (num) => {
   return num?.toString() || '0';
 };
 
+// 格式化货币
+const formatCurrency = (num) => {
+  if (num == null || !Number.isFinite(num)) return '-';
+  if (Math.abs(num) >= 10000) return (num / 10000).toFixed(1) + '万';
+  return num.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+};
+
 const createCharts = () => {
   if (!stats.value) return;
   const palette = getChartPalette();
@@ -392,6 +450,8 @@ const createCharts = () => {
   if (salesTrendChartInstance) salesTrendChartInstance.destroy();
   if (topProductsChartInstance) topProductsChartInstance.destroy();
   if (salespersonChartInstance) salespersonChartInstance.destroy();
+  if (profitTrendChartInstance) profitTrendChartInstance.destroy();
+  if (profitByProductChartInstance) profitByProductChartInstance.destroy();
 
   // 1. Traffic Trend Chart
   if (trendChartRef.value) {
@@ -685,6 +745,137 @@ const createCharts = () => {
             border: { display: false },
             grid: { color: withAlpha(palette.border, 0.3) },
             beginAtZero: true,
+            ticks: { color: palette.textSecondary, font: { size: 11 } },
+          },
+        },
+      },
+    });
+  }
+
+  // 6. 利润趋势图 (Revenue + Cost + Profit)
+  if (profitTrendChartRef.value && stats.value.charts?.profitTrend?.length) {
+    const ctx = profitTrendChartRef.value.getContext('2d');
+    const data = stats.value.charts.profitTrend;
+
+    profitTrendChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map((item) => item.date?.slice(5) || ''),
+        datasets: [
+          {
+            label: t('stats.revenue', '营收'),
+            data: data.map((item) => item.revenue || 0),
+            borderColor: palette.primary,
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+          },
+          {
+            label: t('stats.cost', '成本'),
+            data: data.map((item) => item.cost || 0),
+            borderColor: palette.warning,
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+          },
+          {
+            label: t('stats.profit', '利润'),
+            data: data.map((item) => item.profit || 0),
+            borderColor: palette.success,
+            backgroundColor: withAlpha(palette.success, 0.15),
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { usePointStyle: true, padding: 16, color: palette.textSecondary, font: { size: 11 } },
+          },
+          tooltip: {
+            backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),
+            titleColor: palette.textMain,
+            bodyColor: palette.textSecondary,
+            borderColor: palette.border,
+            borderWidth: 1,
+            padding: 12,
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { maxTicksLimit: 10, color: palette.textSecondary, font: { size: 11 } },
+          },
+          y: {
+            border: { display: false },
+            grid: { color: withAlpha(palette.border, 0.3) },
+            ticks: { color: palette.textSecondary, font: { size: 11 } },
+          },
+        },
+        interaction: { intersect: false, mode: 'index' },
+      },
+    });
+  }
+
+  // 7. 商品利润排行 (水平条形图)
+  if (profitByProductChartRef.value && stats.value.charts?.profitByProduct?.length) {
+    const ctx = profitByProductChartRef.value.getContext('2d');
+    const data = stats.value.charts.profitByProduct;
+
+    profitByProductChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: data.map((item) => {
+          const name = item.productName || '';
+          return name.length > 10 ? name.slice(0, 10) + '...' : name;
+        }),
+        datasets: [
+          {
+            label: t('stats.profit', '利润'),
+            data: data.map((item) => item.profit || 0),
+            backgroundColor: data.map((item) =>
+              (item.profit || 0) >= 0
+                ? withAlpha(palette.success, 0.7)
+                : withAlpha(palette.danger, 0.7)
+            ),
+            borderWidth: 0,
+            borderRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),
+            titleColor: palette.textMain,
+            bodyColor: palette.textSecondary,
+            borderColor: palette.border,
+            borderWidth: 1,
+          },
+        },
+        scales: {
+          x: {
+            border: { display: false },
+            grid: { color: withAlpha(palette.border, 0.3) },
+            ticks: { color: palette.textSecondary, font: { size: 11 } },
+          },
+          y: {
+            grid: { display: false },
             ticks: { color: palette.textSecondary, font: { size: 11 } },
           },
         },

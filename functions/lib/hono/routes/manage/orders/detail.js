@@ -24,6 +24,7 @@ import { syncOrderDemandTransitions, syncOrderDemandTransitionsByLines } from '.
 import { buildOrderBindingSnapshot } from '../../../../../api/utils/order-binding-snapshot.js';
 import { OrderDeliveryService } from '../../../../../services/OrderDeliveryService.js';
 import { listOrderReturnHistory, listOrderShipmentHistory } from '../../../../../repositories/order/history-queries.js';
+import { ProfitService } from '../../../../../services/ProfitService.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -140,13 +141,16 @@ app.get('/:id', async (c) => {
     const timelineRepo = new OrderTimelineRepository(env.DB);
     const paymentRepo = new PaymentRepository(env.DB);
 
-    const [files, timeline, shipments, returns, payments, totalPaid] = await Promise.all([
+    const profitService = new ProfitService(env.DB);
+
+    const [files, timeline, shipments, returns, payments, totalPaid, profit] = await Promise.all([
         repo.getFiles(id),
         timelineRepo.getTimeline(id),
         listOrderShipmentHistory(env.DB, id),
         listOrderReturnHistory(env.DB, id),
         paymentRepo.findByOrder(id),
         paymentRepo.getTotalPaid(id),
+        profitService.calculateOrderProfit(id),
     ]);
 
     // 计算付款汇总
@@ -179,6 +183,7 @@ app.get('/:id', async (c) => {
             returns,
             payments,
             paymentSummary,
+            profit,
         }
     });
 });

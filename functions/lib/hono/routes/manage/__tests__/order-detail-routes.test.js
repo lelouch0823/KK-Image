@@ -57,6 +57,13 @@ vi.mock('../../../../../repositories/OrderTimelineRepository.js', () => ({
   })),
 }));
 
+vi.mock('../../../../../repositories/PaymentRepository.js', () => ({
+  PaymentRepository: vi.fn(() => ({
+    findByOrder: vi.fn(async () => []),
+    getTotalPaid: vi.fn(async () => 0),
+  })),
+}));
+
 vi.mock('../../../../../repositories/order/history-queries.js', () => ({
   listOrderShipmentHistory: vi.fn(async () => []),
   listOrderReturnHistory: vi.fn(async () => []),
@@ -101,6 +108,19 @@ vi.mock('../../../../../services/DomainOutboxPublisher.js', () => ({
 vi.mock('../../../../../services/DemandService.js', () => ({
   DemandService: vi.fn(() => ({
     syncOrderTransition: mocks.syncOrderTransition,
+  })),
+}));
+
+vi.mock('../../../../../services/ProfitService.js', () => ({
+  ProfitService: vi.fn(() => ({
+    calculateOrderProfit: vi.fn(async () => ({
+      revenue: 0,
+      cost: 0,
+      profit: 0,
+      margin: null,
+      costComplete: false,
+      lines: [],
+    })),
   })),
 }));
 

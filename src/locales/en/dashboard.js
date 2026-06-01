@@ -55,4 +55,7 @@ export default {
   orderStatusDistribution: 'Order Status Distribution',
   orderCount: 'Order Count',
   date: 'Date',
+  // Profit
+  totalProfit: 'Total Profit',
+  profitMargin: 'Profit Margin',
 };

@@ -402,4 +402,32 @@ export default {
     viewAll: '查看全部 {count} 条记录',
     collapse: '收起',
   },
+
+  // 利润核算
+  profit: {
+    title: '利润分析',
+    revenue: '销售收入',
+    cost: '采购成本',
+    profit: '毛利润',
+    margin: '利润率',
+    costSource: '成本来源',
+    costSources: {
+      po: '采购单',
+      variant: '商品成本价',
+      missing: '成本未录入',
+    },
+    costMissing: '成本未录入',
+    costComplete: '成本数据完整',
+    costIncomplete: '部分商品成本未录入',
+    unitPrice: '售价',
+    unitCost: '成本价',
+    lineProfit: '行利润',
+    lineMargin: '行利润率',
+    breakdown: '利润明细',
+    noData: '暂无利润数据',
+    profitTrend: '利润趋势',
+    profitByProduct: '商品利润排行',
+    totalProfit: '总利润',
+    avgMargin: '平均利润率',
+  },
 };

@@ -34,12 +34,15 @@ export class SystemStatsProjectionRefreshService {
     const todayStart = getChinaDayStart();
     const ninetyDaysAgo = todayStart - 89 * 24 * 60 * 60 * 1000;
 
-    const [data, salesTrend, statusDistribution, topProducts, salespersonStats] = await Promise.all([
+    const [data, salesTrend, statusDistribution, topProducts, salespersonStats, profitSummary, profitTrend, profitByProduct] = await Promise.all([
       this.statsRepo.getGlobalStats(todayStart),
       this.orderStatsRepo.getSalesTrend(ninetyDaysAgo),
       this.orderStatsRepo.getStatusDistribution(),
       this.orderStatsRepo.getTopProducts(10),
       this.orderStatsRepo.getSalespersonStats(),
+      this.orderStatsRepo.getProfitSummary(),
+      this.orderStatsRepo.getProfitTrend(ninetyDaysAgo),
+      this.orderStatsRepo.getProfitByProduct(10),
     ]);
 
     return this.projectionRepo.upsert(STATS_PROJECTION_SCOPES.MANAGE_STATS, {
@@ -50,6 +53,14 @@ export class SystemStatsProjectionRefreshService {
           fulfilledOrders: data.business?.fulfilledOrders || 0,
           activeSalespersons: data.business?.activeSalespersons || 0,
           multilineOrders: data.business?.multilineOrders || 0,
+        },
+        profit: {
+          totalRevenue: profitSummary.totalRevenue,
+          totalCost: profitSummary.totalCost,
+          totalProfit: profitSummary.totalProfit,
+          margin: profitSummary.margin,
+          ordersWithCost: profitSummary.ordersWithCost,
+          ordersWithoutCost: profitSummary.ordersWithoutCost,
         },
         storage: {
           totalFiles: data.files.total,
@@ -68,6 +79,8 @@ export class SystemStatsProjectionRefreshService {
           statusDistribution,
           topProducts,
           salespersonStats,
+          profitTrend,
+          profitByProduct,
         },
         generatedAt,
       },
@@ -97,6 +110,7 @@ export class SystemStatsProjectionRefreshService {
       recentShares,
       salesTrend,
       statusDistribution,
+      profitSummary,
     ] = await Promise.all([
       this.orderStatsRepo.countCreatedAfter(todayStartTimestamp),
       this.orderStatsRepo.countByStatus('pending'),
@@ -118,6 +132,7 @@ export class SystemStatsProjectionRefreshService {
       this.folderRepo.findShared({ limit: 5 }).then((result) => result.items),
       this.orderStatsRepo.getSalesTrend(thirtyDaysAgo),
       this.orderStatsRepo.getStatusDistribution(),
+      this.orderStatsRepo.getProfitSummary(),
     ]);
 
     return this.projectionRepo.upsert(STATS_PROJECTION_SCOPES.DASHBOARD_OVERVIEW, {
@@ -128,6 +143,12 @@ export class SystemStatsProjectionRefreshService {
         weekCount,
         lastWeekCount,
         activeSharesCount,
+        profit: {
+          totalRevenue: profitSummary.totalRevenue,
+          totalCost: profitSummary.totalCost,
+          totalProfit: profitSummary.totalProfit,
+          margin: profitSummary.margin,
+        },
         charts: {
           today: todayHourlyTrend,
           pending: pendingTrend,

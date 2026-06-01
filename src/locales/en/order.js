@@ -402,4 +402,32 @@ export default {
     viewAll: 'View all {count} records',
     collapse: 'Collapse',
   },
+
+  // Profit
+  profit: {
+    title: 'Profit Analysis',
+    revenue: 'Revenue',
+    cost: 'Cost',
+    profit: 'Gross Profit',
+    margin: 'Margin',
+    costSource: 'Cost Source',
+    costSources: {
+      po: 'Purchase Order',
+      variant: 'Variant Cost',
+      missing: 'Cost Not Entered',
+    },
+    costMissing: 'Cost Not Entered',
+    costComplete: 'Cost Data Complete',
+    costIncomplete: 'Some items missing cost',
+    unitPrice: 'Unit Price',
+    unitCost: 'Unit Cost',
+    lineProfit: 'Line Profit',
+    lineMargin: 'Line Margin',
+    breakdown: 'Profit Breakdown',
+    noData: 'No profit data',
+    profitTrend: 'Profit Trend',
+    profitByProduct: 'Profit by Product',
+    totalProfit: 'Total Profit',
+    avgMargin: 'Avg Margin',
+  },
 };

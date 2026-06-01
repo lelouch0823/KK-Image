@@ -457,6 +457,13 @@ const dashboardDescription = computed(() => {
   return `${t('dashboard.liveStatus')} · ${t('dashboard.lastUpdated')}: ${lastUpdatedTime.value}`;
 });
 
+// 格式化利润值
+const formatProfitValue = (num) => {
+  if (num == null || !Number.isFinite(num)) return '-';
+  if (Math.abs(num) >= 10000) return (num / 10000).toFixed(1) + '万';
+  return num.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+};
+
 const summaryCards = computed(() => [
   {
     key: 'today',
@@ -500,6 +507,18 @@ const summaryCards = computed(() => [
     footer: t('dashboard.acrossProjects'),
     meta: '',
     metaClass: '',
+  },
+  {
+    key: 'profit',
+    label: t('dashboard.totalProfit'),
+    value: orderStats.value.profit?.totalProfit != null
+      ? formatProfitValue(orderStats.value.profit.totalProfit)
+      : '-',
+    variant: (orderStats.value.profit?.totalProfit ?? 0) >= 0 ? 'success' : 'danger',
+    icon: 'banknotes',
+    footer: t('dashboard.profitMargin'),
+    meta: orderStats.value.profit?.margin != null ? `${orderStats.value.profit.margin}%` : '',
+    metaClass: (orderStats.value.profit?.margin ?? 0) >= 0 ? 'text-success' : 'text-danger',
   },
 ]);
 

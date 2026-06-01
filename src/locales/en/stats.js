@@ -62,4 +62,17 @@ export default {
   noRankingData: 'No ranking data',
   sortByOrderCount: 'By Orders',
   sortByAvgMonthly: 'By Avg/Month',
+  // Profit Analysis
+  profitOverview: 'Profit Overview',
+  totalRevenue: 'Total Revenue',
+  totalCost: 'Total Cost',
+  totalProfit: 'Total Profit',
+  profitMargin: 'Profit Margin',
+  profitTrend: 'Profit Trend',
+  profitByProduct: 'Profit by Product',
+  costDataComplete: 'Cost Data Complete',
+  costDataIncomplete: 'Cost Data Incomplete',
+  revenue: 'Revenue',
+  cost: 'Cost',
+  profit: 'Profit',
 };

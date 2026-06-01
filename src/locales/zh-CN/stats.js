@@ -62,4 +62,17 @@ export default {
   noRankingData: '暂无排行数据',
   sortByOrderCount: '按订单数',
   sortByAvgMonthly: '按月均',
+  // 利润分析
+  profitOverview: '利润概览',
+  totalRevenue: '总营收',
+  totalCost: '总成本',
+  totalProfit: '总利润',
+  profitMargin: '利润率',
+  profitTrend: '利润趋势',
+  profitByProduct: '商品利润排行',
+  costDataComplete: '成本数据完整',
+  costDataIncomplete: '成本数据不完整',
+  revenue: '营收',
+  cost: '成本',
+  profit: '利润',
 };

@@ -55,4 +55,7 @@ export default {
   orderStatusDistribution: '订单状态分布',
   orderCount: '订单数',
   date: '日期',
+  // 利润
+  totalProfit: '总利润',
+  profitMargin: '利润率',
 };

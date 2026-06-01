@@ -483,4 +483,169 @@ export class OrderStatsRepository {
     );
     return result.results;
   }
+
+  /**
+   * 获取利润汇总统计
+   * 基于 order_lines + product_variants.price (售价) + purchase_order_items (采购成本)
+   *
+   * @param {number} [startTimestamp] - 可选，限定订单创建时间起始
+   * @returns {Promise<{totalRevenue: number, totalCost: number, totalProfit: number, margin: number|null, ordersWithCost: number, ordersWithoutCost: number}>}
+   */
+  async getProfitSummary(startTimestamp) {
+    let whereClause = "o.status NOT IN ('void', 'rejected')";
+    const params = [];
+
+    if (startTimestamp) {
+      whereClause += ' AND o.created_at >= ?';
+      params.push(startTimestamp);
+    }
+
+    const result = await this.runQueryFirst(
+      `
+      SELECT
+        COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS total_revenue,
+        COALESCE(SUM(
+          ol.ordered_qty * (
+            CASE
+              WHEN (COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)) > 0
+                THEN COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)
+              WHEN COALESCE(pv.cost_price, 0) > 0 THEN pv.cost_price
+              ELSE 0
+            END
+          )
+        ), 0) AS total_cost,
+        COUNT(DISTINCT CASE
+          WHEN (COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)) > 0
+            OR COALESCE(pv.cost_price, 0) > 0
+          THEN o.id
+        END) AS orders_with_cost,
+        COUNT(DISTINCT o.id) AS total_orders
+      FROM orders o
+      INNER JOIN order_lines ol ON ol.order_id = o.id
+      LEFT JOIN product_variants pv ON pv.id = ol.variant_id
+      LEFT JOIN purchase_order_items poi ON poi.pre_order_id = ol.order_id
+        AND poi.product_id = ol.product_id
+        AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))
+      WHERE ${whereClause}
+      `,
+      params,
+      'order.stats.profitSummary'
+    );
+
+    const totalRevenue = Number(result?.total_revenue) || 0;
+    const totalCost = Number(result?.total_cost) || 0;
+    const totalProfit = totalRevenue - totalCost;
+    const ordersWithCost = Number(result?.orders_with_cost) || 0;
+    const totalOrders = Number(result?.total_orders) || 0;
+
+    return {
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      totalCost: Math.round(totalCost * 100) / 100,
+      totalProfit: Math.round(totalProfit * 100) / 100,
+      margin: totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 10000) / 100 : null,
+      ordersWithCost,
+      ordersWithoutCost: totalOrders - ordersWithCost,
+    };
+  }
+
+  /**
+   * 获取利润趋势（按日）
+   * @param {number} startTimestamp
+   * @returns {Promise<Array<{date: string, revenue: number, cost: number, profit: number}>>}
+   */
+  async getProfitTrend(startTimestamp) {
+    const result = await this.runQuery(
+      `
+      SELECT
+        DATE(o.created_at / 1000, 'unixepoch', '+8 hours') AS date,
+        COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS revenue,
+        COALESCE(SUM(
+          ol.ordered_qty * (
+            CASE
+              WHEN (COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)) > 0
+                THEN COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)
+              WHEN COALESCE(pv.cost_price, 0) > 0 THEN pv.cost_price
+              ELSE 0
+            END
+          )
+        ), 0) AS cost
+      FROM orders o
+      INNER JOIN order_lines ol ON ol.order_id = o.id
+      LEFT JOIN product_variants pv ON pv.id = ol.variant_id
+      LEFT JOIN purchase_order_items poi ON poi.pre_order_id = ol.order_id
+        AND poi.product_id = ol.product_id
+        AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))
+      WHERE o.status NOT IN ('void', 'rejected')
+        AND o.created_at >= ?
+      GROUP BY date
+      ORDER BY date ASC
+      `,
+      [startTimestamp],
+      'order.stats.profitTrend'
+    );
+
+    return result.results.map((row) => {
+      const revenue = Number(row.revenue) || 0;
+      const cost = Number(row.cost) || 0;
+      return {
+        date: row.date,
+        revenue: Math.round(revenue * 100) / 100,
+        cost: Math.round(cost * 100) / 100,
+        profit: Math.round((revenue - cost) * 100) / 100,
+      };
+    });
+  }
+
+  /**
+   * 按商品统计利润排行
+   * @param {number} [limit=10]
+   * @returns {Promise<Array<{productName: string, revenue: number, cost: number, profit: number, margin: number|null, orderCount: number}>>}
+   */
+  async getProfitByProduct(limit = 10) {
+    const result = await this.runQuery(
+      `
+      SELECT
+        ol.snapshot_name AS product_name,
+        COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS revenue,
+        COALESCE(SUM(
+          ol.ordered_qty * (
+            CASE
+              WHEN (COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)) > 0
+                THEN COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)
+              WHEN COALESCE(pv.cost_price, 0) > 0 THEN pv.cost_price
+              ELSE 0
+            END
+          )
+        ), 0) AS cost,
+        COUNT(*) AS order_count
+      FROM orders o
+      INNER JOIN order_lines ol ON ol.order_id = o.id
+      LEFT JOIN product_variants pv ON pv.id = ol.variant_id
+      LEFT JOIN purchase_order_items poi ON poi.pre_order_id = ol.order_id
+        AND poi.product_id = ol.product_id
+        AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))
+      WHERE o.status NOT IN ('void', 'rejected')
+        AND ol.snapshot_name IS NOT NULL
+        AND ol.snapshot_name != ''
+      GROUP BY ol.snapshot_name
+      ORDER BY (revenue - cost) DESC
+      LIMIT ?
+      `,
+      [limit],
+      'order.stats.profitByProduct'
+    );
+
+    return result.results.map((row) => {
+      const revenue = Number(row.revenue) || 0;
+      const cost = Number(row.cost) || 0;
+      return {
+        productName: row.product_name,
+        revenue: Math.round(revenue * 100) / 100,
+        cost: Math.round(cost * 100) / 100,
+        profit: Math.round((revenue - cost) * 100) / 100,
+        margin: revenue > 0 ? Math.round(((revenue - cost) / revenue) * 10000) / 100 : null,
+        orderCount: Number(row.order_count) || 0,
+      };
+    });
+  }
 }
