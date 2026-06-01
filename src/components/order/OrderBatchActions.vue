@@ -55,7 +55,7 @@
     <div class="h-6 w-px bg-(--border-color)" />
 
     <!-- 批量变更状态下拉 -->
-    <div class="relative" ref="statusDropdownRef">
+    <div ref="statusDropdownRef" class="relative">
       <AppButton
         variant="outline"
         :disabled="processing"

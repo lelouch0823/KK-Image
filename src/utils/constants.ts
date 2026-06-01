@@ -123,6 +123,8 @@ export const API: Record<string, any> = {
   MANAGE_CUSTOMER_COMMUNICATION: (id: string | number, commId: string) => `/api/manage/customers/${id}/communications/${commId}`,
   MANAGE_CUSTOMER_BATCH_TAGS: '/api/manage/customers/batch/tags',
   MANAGE_CUSTOMER_BATCH_EXPORT: '/api/manage/customers/batch/export',
+  MANAGE_CUSTOMER_EXPORT: '/api/manage/customers/export',
+  MANAGE_CUSTOMER_IMPORT_CONFIRM: '/api/manage/customers/import/confirm',
 
   // 商品管理
   MANAGE_PRODUCTS: `${API_PREFIX}/products`,

@@ -215,6 +215,199 @@ app.post('/batch/export', async (c) => {
 });
 
 /**
+ * GET /export - 导出客户数据（CSV / XLSX）
+ */
+app.get('/export', async (c) => {
+    const { env } = c;
+    const format = String(c.req.query('format') || 'csv').trim().toLowerCase();
+    const search = c.req.query('search') || '';
+
+    try {
+        const repo = new CustomerRepository(env.DB);
+        const PAGE_LIMIT = 500;
+        let page = 1;
+        let allCustomers = [];
+
+        // 分页加载全部客户
+        while (true) {
+            const { results } = await repo.list({ page, limit: PAGE_LIMIT, search });
+            allCustomers.push(...results);
+            if (results.length < PAGE_LIMIT) break;
+            page += 1;
+            if (page > 200) break; // 安全上限 100000 条
+        }
+
+        // 批量获取 RFM 分段
+        const ids = allCustomers.map((c) => c.id);
+        const segmentMap = await repo.getBatchRfmSegments(ids);
+
+        // 组装导出行
+        const columns = [
+            { key: 'name', label: '客户名称' },
+            { key: 'phone', label: '电话' },
+            { key: 'company', label: '公司' },
+            { key: 'email', label: '邮箱' },
+            { key: 'address', label: '地址' },
+            { key: 'tags', label: '标签' },
+            { key: 'segment', label: '客户分段' },
+            { key: 'order_count', label: '订单数' },
+            { key: 'last_order_date', label: '最近下单' },
+            { key: 'remark', label: '备注' },
+        ];
+
+        const segmentLabels = { vip: 'VIP', active: '活跃', 'at-risk': '流失风险', lost: '已流失', new: '新客户' };
+        const formatDate = (ts) => {
+            if (!ts) return '';
+            return new Date(Number(ts) + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        };
+
+        const rows = allCustomers.map((cust) => {
+            const rfm = segmentMap.get(cust.id) || { segment: 'new', orderCount: 0, lastOrderAt: null };
+            return {
+                name: cust.name || '',
+                phone: cust.phone || '',
+                company: cust.company || '',
+                email: cust.email || '',
+                address: cust.address || '',
+                tags: Array.isArray(cust.tags) ? cust.tags.join('; ') : '',
+                segment: segmentLabels[rfm.segment] || rfm.segment,
+                order_count: rfm.orderCount || 0,
+                last_order_date: formatDate(rfm.lastOrderAt),
+                remark: cust.remark || '',
+            };
+        });
+
+        const date = new Date().toISOString().slice(0, 10);
+        const filename = `customers_${date}`;
+
+        if (format === 'xlsx') {
+            const XLSX = await import('xlsx');
+            const header = columns.map((col) => col.label);
+            const dataRows = rows.map((row) => columns.map((col) => row[col.key]));
+            const ws = XLSX.utils.aoa_to_sheet([header, ...dataRows]);
+            ws['!cols'] = columns.map((col) => ({ wch: Math.max(col.label.length * 2, 12) }));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '客户数据');
+            const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+
+            return new Response(buffer, {
+                headers: {
+                    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'Content-Disposition': `attachment; filename="${filename}.xlsx"`,
+                    'Cache-Control': 'no-cache',
+                },
+            });
+        }
+
+        // CSV 格式（默认）
+        const escapeCSV = (v) => {
+            const s = v === null || v === undefined ? '' : String(v);
+            return `"${s.replace(/"/g, '""')}"`;
+        };
+        const header = columns.map((col) => col.label).join(',');
+        const csvRows = rows.map((row) => columns.map((col) => escapeCSV(row[col.key])).join(','));
+        const csv = '﻿' + [header, ...csvRows].join('\n');
+
+        return new Response(csv, {
+            headers: {
+                'Content-Type': 'text/csv; charset=utf-8',
+                'Content-Disposition': `attachment; filename="${filename}.csv"`,
+                'Cache-Control': 'no-cache',
+            },
+        });
+    } catch (error) {
+        console.error('Customer export failed:', error);
+        return c.json({ success: false, error: error?.message || '导出失败' }, 500);
+    }
+});
+
+/**
+ * POST /import/confirm - 确认导入客户（批量插入）
+ */
+const ImportConfirmSchema = z.object({
+    rows: z.array(z.object({
+        name: z.string().min(1),
+        phone: z.string().optional().default(''),
+        company: z.string().optional().default(''),
+        email: z.string().optional().default(''),
+        address: z.string().optional().default(''),
+        tags: z.array(z.string()).optional().default([]),
+        remark: z.string().optional().default(''),
+    })).min(1, '请提供至少一条客户数据'),
+});
+
+app.post('/import/confirm', zValidator('json', ImportConfirmSchema), async (c) => {
+    const { env } = c;
+    const user = c.get('user');
+    const { rows } = c.req.valid('json');
+
+    const repo = new CustomerRepository(env.DB);
+    const now = Date.now();
+    let imported = 0;
+    let skipped = 0;
+    const statements = [];
+
+    for (const row of rows) {
+        // 重复检测：按 phone 或 name+company
+        let existing = null;
+        if (row.phone) {
+            const { results } = await env.DB.prepare(
+                'SELECT id FROM customers WHERE phone = ? AND phone != "" LIMIT 1'
+            ).bind(row.phone).all();
+            if (results.length > 0) existing = results[0];
+        }
+        if (!existing && row.name && row.company) {
+            const { results } = await env.DB.prepare(
+                'SELECT id FROM customers WHERE name = ? AND company = ? AND company != "" LIMIT 1'
+            ).bind(row.name, row.company).all();
+            if (results.length > 0) existing = results[0];
+        }
+
+        if (existing) {
+            skipped += 1;
+            continue;
+        }
+
+        const id = crypto.randomUUID();
+        const tags = JSON.stringify(row.tags || []);
+        statements.push(
+            env.DB.prepare(
+                `INSERT INTO customers (id, name, phone, company, email, address, tags, remark, created_by, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(id, row.name, row.phone || '', row.company || '', row.email || '',
+                row.address || '', tags, row.remark || '', user.name || 'admin', now, now)
+        );
+        imported += 1;
+    }
+
+    if (statements.length > 0) {
+        // 分批执行，每批最多 50 条
+        const BATCH_SIZE = 50;
+        for (let i = 0; i < statements.length; i += BATCH_SIZE) {
+            const batch = statements.slice(i, i + BATCH_SIZE);
+            await env.DB.batch(batch);
+        }
+    }
+
+    scheduleCacheInvalidation(c, getManageCustomerCacheUrls(c));
+    scheduleAuditEvent(c, {
+        domain: 'customers',
+        action: 'customer.import',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'customer',
+        summary: `Imported ${imported} customers, skipped ${skipped} duplicates`,
+        metadata: { imported, skipped, total: rows.length },
+    });
+
+    return c.json({
+        success: true,
+        message: `成功导入 ${imported} 个客户` + (skipped > 0 ? `，跳过 ${skipped} 个重复客户` : ''),
+        data: { imported, skipped, total: rows.length },
+    });
+});
+
+/**
  * GET /tags - 获取所有标签（去重 + 使用统计）
  * 注意：必须在 /:id 之前注册，避免 Hono 将 "tags" 匹配为 ID
  */

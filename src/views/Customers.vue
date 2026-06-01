@@ -1,6 +1,56 @@
 <template>
   <ManagementListShell :title="t('customer.manage.title')" :description="t('customer.manage.subtitle')">
     <template #actions>
+      <!-- 导入客户 -->
+      <AppButton
+        variant="outline"
+        size="sm"
+        @click="showImportModal = true"
+      >
+        <template #icon-left>
+          <AppIcon name="arrow-up-tray" class="size-4" />
+        </template>
+        {{ t('customer.manage.importCustomers') }}
+      </AppButton>
+
+      <!-- 导出下拉菜单 -->
+      <div class="relative" ref="exportDropdownRef">
+        <AppButton
+          variant="outline"
+          size="sm"
+          :disabled="exporting"
+          @click="showExportDropdown = !showExportDropdown"
+        >
+          <template #icon-left>
+            <AppIcon
+              :name="exporting ? 'spinner' : 'arrow-down-tray'"
+              :class="['size-4', { 'animate-spin': exporting }]"
+            />
+          </template>
+          {{ t('customer.manage.exportAll') }}
+          <AppIcon name="chevron-down" class="size-3 ml-1" />
+        </AppButton>
+        <div
+          v-if="showExportDropdown"
+          class="absolute right-0 z-20 mt-1 w-40 rounded-lg border border-(--border-color) bg-(--bg-card) py-1 shadow-lg"
+        >
+          <button
+            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-(--text-main) hover:bg-(--bg-hover)"
+            @click="handleExport('csv')"
+          >
+            <AppIcon name="document-text" class="size-4" />
+            {{ t('customer.manage.exportCsv') }}
+          </button>
+          <button
+            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-(--text-main) hover:bg-(--bg-hover)"
+            @click="handleExport('xlsx')"
+          >
+            <AppIcon name="document-chart-bar" class="size-4" />
+            {{ t('customer.manage.exportXlsx') }}
+          </button>
+        </div>
+      </div>
+
       <AppButton
         variant="primary"
         :text="t('customer.manage.addCustomer')"
@@ -263,6 +313,12 @@
       </div>
     </Modal>
 
+    <!-- 客户导入弹窗 -->
+    <CustomerImportModal
+      v-model="showImportModal"
+      @imported="loadCustomers"
+    />
+
     <!-- 批量操作浮动栏 -->
     <FloatingSelectionBar :visible="selectedIds.length > 0">
       <template #summary>
@@ -328,6 +384,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onActivated, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { onClickOutside } from '@vueuse/core';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
@@ -351,6 +408,7 @@ import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import FloatingSelectionBar from '@/design-system/composed/FloatingSelectionBar.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
+import CustomerImportModal from '@/components/customer/CustomerImportModal.vue';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 import { useRecentViews } from '@/composables/useRecentViews';
@@ -389,6 +447,12 @@ const showTagModal = ref(false);
 const newTag = ref('');
 const batchTagProcessing = ref(false);
 const batchExporting = ref(false);
+
+// 导入/导出状态
+const showImportModal = ref(false);
+const showExportDropdown = ref(false);
+const exporting = ref(false);
+const exportDropdownRef = ref(null);
 
 const segmentLabelMap = {
   vip: 'Vip',
@@ -655,6 +719,51 @@ const handleBatchExport = async () => {
     batchExporting.value = false;
   }
 };
+
+/**
+ * 导出全部客户
+ */
+const handleExport = async (format) => {
+  showExportDropdown.value = false;
+  if (exporting.value) return;
+  exporting.value = true;
+
+  try {
+    const query = new URLSearchParams({ format });
+    if (searchQuery.value) query.set('search', searchQuery.value);
+
+    const res = await authFetch(`${API.MANAGE_CUSTOMER_EXPORT}?${query}`);
+    const blob = await res.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+
+    const disposition = res.headers.get('Content-Disposition');
+    const filenameMatch = disposition && disposition.match(/filename="?(.+)"?/);
+    link.download = filenameMatch
+      ? filenameMatch[1]
+      : `customers_${new Date().toISOString().slice(0, 10)}.${format}`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+
+    addToast({ message: t('customer.manage.batchExportSuccess'), type: 'success' });
+  } catch (e) {
+    console.error('Export error:', e);
+    addToast({ message: t('customer.manage.batchExportFailed'), type: 'error' });
+  } finally {
+    exporting.value = false;
+  }
+};
+
+/**
+ * 点击外部关闭导出下拉菜单
+ */
+onClickOutside(exportDropdownRef, () => {
+  showExportDropdown.value = false;
+});
 
 onMounted(() => {
   stopCustomersRefreshSubscription = subscribeModule('customers', () => {

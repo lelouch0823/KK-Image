@@ -4,7 +4,7 @@
     :title="t('order.detail.returnDialogTitle', 'Confirm Return')"
     size="md"
     body-class="space-y-4"
-    @update:modelValue="$emit('update:modelValue', $event)"
+    @update:model-value="$emit('update:modelValue', $event)"
     @close="$emit('cancel')"
   >
     <div class="space-y-4">
