@@ -346,6 +346,21 @@
         </div>
       </div>
 
+      <!-- Multi-tier Pricing -->
+      <div
+        v-if="activeVariants.length > 0"
+        class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-card"
+      >
+        <h3 class="mb-4 text-sm font-bold tracking-wider text-(--text-main) uppercase opacity-80">
+          {{ t('product.price_rules.title', '多级价格') }}
+        </h3>
+        <PriceRuleManager
+          :product-id="product.id"
+          :variants="activeVariants"
+          :currency-symbol="currencySymbol"
+        />
+      </div>
+
       <!-- Inventory -->
       <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-card">
         <h3 class="mb-4 text-sm font-bold tracking-wider text-(--text-main) uppercase opacity-80">
@@ -402,11 +417,12 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppTable from '@/components/ui/AppTable.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
+import PriceRuleManager from '@/components/product/PriceRuleManager.vue';
 import { getProductStatusVariant } from '@/utils/product-status';
 import { useSpaces } from '@/composables/useSpaces';
 import { useToast } from '@/composables/useToast';
 import { useClipboard } from '@/composables/useClipboard';
-import AppIcon from '@/components/ui/AppIcon.vue';
 import { parseJsonObject } from '@/utils/json.js';
 import {
   resolveProductImageSrcList,
@@ -461,6 +477,10 @@ watch(images, (nextImages) => {
 });
 
 const currencyCode = computed(() => String(props.product.currency || 'CNY').toUpperCase());
+const currencySymbol = computed(() => {
+  const symbols = { CNY: '¥', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
+  return symbols[currencyCode.value] || '¥';
+});
 const currencyFormatter = computed(() => {
   try {
     return new Intl.NumberFormat('zh-CN', {

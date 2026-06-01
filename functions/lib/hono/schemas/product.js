@@ -155,3 +155,21 @@ export const AddVariantImageSchema = z.object({
 export const SortVariantImagesSchema = z.object({
     imageIds: z.array(z.string().min(1)).min(1, 'imageIds 不能为空'),
 }).strict();
+
+/**
+ * 价格类型枚举
+ */
+export const PriceTypeEnum = z.enum(['retail', 'wholesale', 'vip']);
+
+/**
+ * 批量更新价格规则 Schema (POST /:id/prices)
+ */
+export const UpsertPriceRulesSchema = z.object({
+    rules: z.array(z.object({
+        variantId: z.string().min(1, 'variantId 必填'),
+        priceType: PriceTypeEnum,
+        price: z.number().nonnegative('价格不能为负'),
+        validFrom: z.number().int().nullable().optional(),
+        validTo: z.number().int().nullable().optional(),
+    }).strict()).min(1, '至少需要一条价格规则'),
+}).strict();

@@ -32,7 +32,9 @@ import {
     DimensionImpactPreviewSchema,
     AddVariantImageSchema,
     SortVariantImagesSchema,
+    UpsertPriceRulesSchema,
 } from '../../../schemas/product.js';
+import { PriceRuleRepository } from '../../../../../repositories/PriceRuleRepository.js';
 
 const app = new Hono();
 const PRODUCT_ARCHIVE_COMMAND_TYPE = 'product_archive';
@@ -58,6 +60,8 @@ export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'PATCH', path: '/:id/variants/:variantId/images/sort', domain: 'products', action: 'product.variant_image.sort', severity: 'high', targetType: 'product' },
     { method: 'PATCH', path: '/:id/variants/:variantId/images/:imageId/primary', domain: 'products', action: 'product.variant_image.primary', severity: 'high', targetType: 'product' },
     { method: 'DELETE', path: '/:id/variants/:variantId/images/:imageId', domain: 'products', action: 'product.variant_image.delete', severity: 'high', targetType: 'product' },
+    { method: 'POST', path: '/:id/prices', domain: 'products', action: 'product.price_rules.upsert', severity: 'high', targetType: 'product' },
+    { method: 'DELETE', path: '/:id/prices/:ruleId', domain: 'products', action: 'product.price_rules.delete', severity: 'high', targetType: 'product' },
     { method: 'PATCH', path: '/:id', domain: 'products', action: 'product.update', severity: 'high', targetType: 'product' },
     { method: 'PATCH', path: '/:id/status', domain: 'products', action: 'product.status.update', severity: 'high', targetType: 'product' },
     { method: 'PUT', path: '/:id', domain: 'products', action: 'product.replace', severity: 'high', targetType: 'product' },
@@ -177,10 +181,12 @@ app.get('/:id', async (c) => {
     const variantRepo = new ProductVariantRepository(env.DB);
     const dimensionRepo = new ProductDimensionRepository(env.DB);
     const variantImageRepo = new VariantImageRepository(env.DB);
+    const priceRuleRepo = new PriceRuleRepository(env.DB);
     const variants = await variantRepo.findByProductId(id);
     const replenishmentMap = await loadVariantReplenishmentMap(env.DB, variants.map((variant) => variant.id));
     const dimensions = await dimensionRepo.listByProduct(id);
     const dimensionMap = await dimensionRepo.getDimensionMap(id);
+    const priceRulesMap = await priceRuleRepo.findByProductId(id);
     product.variants = await Promise.all(
         variants.map(async (variant) => {
             const images = await variantImageRepo.listByVariant({
@@ -192,12 +198,14 @@ app.get('/:id', async (c) => {
                 replenishment_quantity: 0,
                 replenishment_po_count: 0,
             };
+            const priceRules = priceRulesMap.get(variant.id) || [];
             return {
                 ...variant,
                 images,
                 primaryImage: primary?.image_id || variant.image_id || null,
                 replenishment_quantity: replenishment.replenishment_quantity,
                 replenishment_po_count: replenishment.replenishment_po_count,
+                price_rules: priceRules,
             };
         })
     );
@@ -744,6 +752,95 @@ app.delete('/:id/variants/:variantId/images/:imageId', async (c) => {
             rethrowVariantImageMutationError(error);
         },
     });
+});
+
+/**
+ * GET /:id/prices - 获取商品所有变体的价格规则
+ */
+app.get('/:id/prices', async (c) => {
+    const { env } = c;
+    const productId = c.req.param('id');
+    const productRepo = new ProductRepository(env.DB);
+    await ensureProductExists(productRepo, productId);
+
+    const priceRuleRepo = new PriceRuleRepository(env.DB);
+    const priceRulesMap = await priceRuleRepo.findByProductId(productId);
+
+    // 转换 Map 为普通对象
+    const data = {};
+    for (const [variantId, rules] of priceRulesMap) {
+        data[variantId] = rules;
+    }
+
+    return c.json({ success: true, data });
+});
+
+/**
+ * POST /:id/prices - 批量创建/更新价格规则
+ */
+app.post('/:id/prices', zValidator('json', UpsertPriceRulesSchema), async (c) => {
+    const { env } = c;
+    const productId = c.req.param('id');
+    const body = c.req.valid('json');
+
+    const productRepo = new ProductRepository(env.DB);
+    const product = await ensureProductExists(productRepo, productId);
+
+    const variantRepo = new ProductVariantRepository(env.DB);
+    const priceRuleRepo = new PriceRuleRepository(env.DB);
+
+    // 验证所有 variantId 属于该商品
+    for (const rule of body.rules) {
+        await variantRepo.assertBelongsToProduct(rule.variantId, productId);
+    }
+
+    const results = await priceRuleRepo.upsertBatch(body.rules);
+
+    scheduleAuditEvent(c, {
+        domain: 'products',
+        action: 'product.price_rules.upsert',
+        result: 'success',
+        severity: 'high',
+        targetType: 'product',
+        targetId: productId,
+        target_label: product.name || productId,
+        summary: `Updated ${results.length} price rules on product ${productId}`,
+        metadata: { ruleCount: results.length, priceTypes: [...new Set(results.map((r) => r.price_type))] },
+    });
+
+    return c.json({ success: true, data: results });
+});
+
+/**
+ * DELETE /:id/prices/:ruleId - 删除价格规则
+ */
+app.delete('/:id/prices/:ruleId', async (c) => {
+    const { env } = c;
+    const productId = c.req.param('id');
+    const ruleId = c.req.param('ruleId');
+
+    const productRepo = new ProductRepository(env.DB);
+    const product = await ensureProductExists(productRepo, productId);
+
+    const priceRuleRepo = new PriceRuleRepository(env.DB);
+    const deleted = await priceRuleRepo.delete(ruleId);
+
+    if (!deleted) {
+        throw new NotFoundError('Price rule not found');
+    }
+
+    scheduleAuditEvent(c, {
+        domain: 'products',
+        action: 'product.price_rules.delete',
+        result: 'success',
+        severity: 'high',
+        targetType: 'product',
+        targetId: productId,
+        target_label: product.name || productId,
+        summary: `Deleted price rule ${ruleId} from product ${productId}`,
+    });
+
+    return c.json({ success: true });
 });
 
 /**

@@ -81,6 +81,23 @@ vi.mock('../../../../../../repositories/VariantAuditRepository.js', () => ({
     },
 }));
 
+vi.mock('../../../../../../repositories/PriceRuleRepository.js', () => ({
+    PriceRuleRepository: class {
+        findByProductId() {
+            return new Map();
+        }
+        findByVariantIds() {
+            return new Map();
+        }
+        upsertBatch() {
+            return [];
+        }
+        delete() {
+            return true;
+        }
+    },
+}));
+
 vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
     ProductDimensionRepository: class {
         listByProduct(...args) {
