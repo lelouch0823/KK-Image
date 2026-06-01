@@ -279,6 +279,7 @@ import { resolveBoundProductMainImageSrc } from '@/utils/product-image.js';
 import { findDefaultCatalogActiveVariant } from '@/utils/product-variants.js';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import { ErrorCode } from '@/utils/error-codes';
+import { useRecentViews } from '@/composables/useRecentViews';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -287,6 +288,7 @@ const { setContext } = useAI();
 const { addToast } = useToast();
 const { subscribeModule } = useAppRefreshBus();
 const { clearSelection, getRowClass, handleCreated, selectItem } = useManagedListSelection();
+const { addView: addRecentView } = useRecentViews();
 
 const { products, loading, error, errorCode, availableFilters, pagination, loadProducts, deleteProduct, loadProduct } = useProducts();
 
@@ -468,6 +470,8 @@ const handleView = async (product) => {
     selectItem(product);
     viewingProduct.value = decorateProductPreview(product);
     showDetailModal.value = true;
+    // 记录最近访问
+    addRecentView('product', product.id, product.name || `商品 ${product.id}`);
 };
 
 const handleShare = async (product) => {
@@ -592,6 +596,28 @@ watch(showCreateModal, (isOpen) => {
             delete query.edit;
             router.replace({ query });
         }
+    }
+});
+
+// 监听路由 query 中 id 参数变化，支持从最近访问跳转
+watch(
+    () => route.query.id,
+    async (newId) => {
+        if (newId && products.value.length > 0) {
+            const product = products.value.find((p) => p.id === newId);
+            if (product) {
+                handleView(product);
+            }
+        }
+    }
+);
+
+// 当详情弹窗关闭时，自动清理 URL 中的 id 参数
+watch(showDetailModal, (isOpen) => {
+    if (!isOpen && route.query.id) {
+        const query = { ...route.query };
+        delete query.id;
+        router.replace({ query });
     }
 });
 </script>

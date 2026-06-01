@@ -3,6 +3,7 @@ import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { useAuth } from '@/composables/useAuth';
+import { useRecentViews } from '@/composables/useRecentViews';
 
 /** 订单基础接口 */
 interface Order {
@@ -39,6 +40,7 @@ export function useOrderModals(
     const { t } = useI18n();
     const { addToast } = useToast();
     const { authFetch } = useAuth();
+    const { addView } = useRecentViews();
 
     const showCreateModal = ref<boolean>(false);
     const showEditModal = ref<boolean>(false);
@@ -152,6 +154,9 @@ export function useOrderModals(
             if (requestId !== detailRequestId || !showDetailModal.value) return false;
             if (fullOrder) {
                 viewingOrder.value = fullOrder;
+                // 记录最近访问
+                const title = fullOrder.name || (fullOrder.customerName as string) || `订单 ${fullOrder.id}`;
+                addView('order', fullOrder.id, title);
                 return true;
             }
             detailHydrationError.value = t('common.loadFailed');

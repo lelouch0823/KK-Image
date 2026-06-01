@@ -103,6 +103,11 @@
         </AppButton>
       </div>
 
+      <!-- 最近访问（仅展开时显示） -->
+      <transition name="fade">
+        <RecentViews v-if="!isCollapsed" />
+      </transition>
+
       <div>
         <transition name="fade">
           <div
@@ -173,6 +178,7 @@ import { useToast } from '@/composables/useToast';
 import AppButton from '@/components/ui/AppButton.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import RecentViews from '@/components/layout/RecentViews.vue';
 
 const router = useRouter();
 const route = useRoute();

@@ -316,6 +316,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onActivated, onUnmounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
@@ -341,12 +342,16 @@ import FloatingSelectionBar from '@/design-system/composed/FloatingSelectionBar.
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
+import { useRecentViews } from '@/composables/useRecentViews';
 
+const route = useRoute();
+const router = useRouter();
 const { t } = useI18n();
 const { addToast } = useToast();
 const { authFetch } = useAuth();
 const { setContext } = useAI();
 const { subscribeModule } = useAppRefreshBus();
+const { addView: addRecentView } = useRecentViews();
 
 const loading = ref(false);
 const error = ref('');
@@ -488,6 +493,8 @@ const openDetail = (customer) => {
   selectItem(customer);
   viewingCustomer.value = customer;
   showDetailPanel.value = true;
+  // 记录最近访问
+  addRecentView('customer', customer.id, customer.name || `客户 ${customer.id}`);
 };
 
 const handleFormSubmit = async (formData) => {
@@ -655,5 +662,27 @@ watch([showDetailPanel, viewingCustomer], ([isOpen, customer]) => {
     selectedId: null,
     selectedType: null,
   });
+});
+
+// 监听路由 query 中 id 参数变化，支持从最近访问跳转
+watch(
+  () => route.query.id,
+  async (newId) => {
+    if (newId && customers.value.length > 0) {
+      const customer = customers.value.find((c) => c.id === newId);
+      if (customer) {
+        openDetail(customer);
+      }
+    }
+  }
+);
+
+// 当详情面板关闭时，自动清理 URL 中的 id 参数
+watch(showDetailPanel, (isOpen) => {
+  if (!isOpen && route.query.id) {
+    const query = { ...route.query };
+    delete query.id;
+    router.replace({ query });
+  }
 });
 </script>

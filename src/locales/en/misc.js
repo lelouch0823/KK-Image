@@ -83,6 +83,8 @@ export default {
     goodsOverview: 'Goods Overview',
     purchaseOrders: 'Procurement',
     inventoryDashboard: 'Inventory',
+    recentViews: 'Recent Views',
+    clearRecent: 'Clear',
   },
 
   // Views

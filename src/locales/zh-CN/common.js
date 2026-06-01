@@ -88,6 +88,7 @@ export default {
   weekdays: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
   minutesAgo: '{count} 分钟前',
   hoursAgo: '{count} 小时前',
+  daysAgo: '{count} 天前',
   optional: '选填',
   salesperson: '销售人员',
   close: '关闭',

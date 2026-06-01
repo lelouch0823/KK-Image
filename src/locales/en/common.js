@@ -87,6 +87,7 @@ export default {
   weekdays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
   minutesAgo: '{count} mins ago',
   hoursAgo: '{count} hours ago',
+  daysAgo: '{count} days ago',
   optional: 'Optional',
   salesperson: 'Salesperson',
   close: 'Close',

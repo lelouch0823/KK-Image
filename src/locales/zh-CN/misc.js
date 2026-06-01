@@ -83,6 +83,8 @@ export default {
     goodsOverview: '订货总览',
     purchaseOrders: '采购管理',
     inventoryDashboard: '库存预警',
+    recentViews: '最近访问',
+    clearRecent: '清空',
   },
 
   // 视图
