@@ -112,6 +112,14 @@ export const API: Record<string, any> = {
   MANAGE_DASHBOARD_STATS: '/api/manage/orders/stats',
   MANAGE_DASHBOARD_OVERVIEW: '/api/manage/dashboard/overview',
   MANAGE_ORDER_BATCH: `${API_PREFIX}/orders/batch`,
+
+  // 订单付款记录 API
+  MANAGE_ORDER_PAYMENTS: (id: string | number) => `/api/manage/orders/${id}/payments`,
+  MANAGE_ORDER_PAYMENT_DELETE: (id: string | number, paymentId: string) => `/api/manage/orders/${id}/payments/${paymentId}`,
+
+  // 应收账款 API
+  MANAGE_RECEIVABLES: '/api/manage/receivables',
+
   MANAGE_CUSTOMERS: '/api/manage/customers',
   MANAGE_CUSTOMER: '/api/manage/customers',
   MANAGE_CUSTOMER_ORDERS: (id: string | number) => `/api/manage/customers/${id}/orders`,

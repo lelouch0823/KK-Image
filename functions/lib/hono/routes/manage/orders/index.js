@@ -4,6 +4,7 @@ import listRoutes from './list.js';
 import createRoutes from './create.js';
 import lineRoutes from './lines.js';
 import detailRoutes from './detail.js';
+import paymentRoutes from './payments.js';
 import { requirePermission } from '../../../middleware/auth.js';
 
 const app = new Hono();
@@ -20,6 +21,9 @@ app.route('/', createRoutes);
 
 // Line commands (/:id/lines/...)
 app.route('/', lineRoutes);
+
+// Payment records (/:id/payments/...)
+app.route('/', paymentRoutes);
 
 // Detailed operations (/:id...)
 app.route('/', detailRoutes);

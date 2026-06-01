@@ -204,6 +204,7 @@ export default {
     purchase_orders: 'Procurement',
     inventory_dashboard: 'Inventory Dashboard',
     stocktakes: 'Stocktake',
+    receivables: 'Receivables',
   },
 
   // PWA

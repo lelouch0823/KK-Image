@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { UpdateAdminOrderSchema, UpdateOrderStatusSchema, AddOrderCommentSchema, DeliveryConfirmationSchema } from '../../../schemas/order.js';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
+import { PaymentRepository } from '../../../../../repositories/PaymentRepository.js';
 import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
 import {
     canTransitionOrderStatus
@@ -137,13 +138,24 @@ app.get('/:id', async (c) => {
     // SOTA: 获取关联的文件和时间轴
     const { OrderTimelineRepository } = await import('../../../../../repositories/OrderTimelineRepository.js');
     const timelineRepo = new OrderTimelineRepository(env.DB);
+    const paymentRepo = new PaymentRepository(env.DB);
 
-    const [files, timeline, shipments, returns] = await Promise.all([
+    const [files, timeline, shipments, returns, payments, totalPaid] = await Promise.all([
         repo.getFiles(id),
         timelineRepo.getTimeline(id),
         listOrderShipmentHistory(env.DB, id),
         listOrderReturnHistory(env.DB, id),
+        paymentRepo.findByOrder(id),
+        paymentRepo.getTotalPaid(id),
     ]);
+
+    // 计算付款汇总
+    const orderAmount = order.quantity ?? 0;
+    const paymentSummary = {
+        orderAmount,
+        totalPaid,
+        outstanding: Math.max(0, orderAmount - totalPaid),
+    };
 
     // 标记管理员已读
     await repo.markAsRead(id, 'admin');
@@ -165,6 +177,8 @@ app.get('/:id', async (c) => {
             timeline,
             shipments,
             returns,
+            payments,
+            paymentSummary,
         }
     });
 });

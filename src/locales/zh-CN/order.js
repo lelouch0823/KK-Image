@@ -324,6 +324,59 @@ export default {
     duplicateSuccess: '订单已复制，请修改后提交',
   },
 
+  // 付款记录
+  payment: {
+    title: '付款记录',
+    addPayment: '添加付款',
+    amount: '金额',
+    amountPlaceholder: '请输入付款金额',
+    method: '付款方式',
+    methodPlaceholder: '请选择付款方式',
+    methods: {
+      cash: '现金',
+      bank: '银行转账',
+      wechat: '微信',
+      alipay: '支付宝',
+      other: '其他',
+    },
+    referenceNo: '参考编号',
+    referenceNoPlaceholder: '如：转账单号、微信交易号',
+    notes: '备注',
+    notesPlaceholder: '付款备注...',
+    receivedAt: '付款时间',
+    createdBy: '记录人',
+    deleteConfirm: '确定要删除这条付款记录吗？',
+    deleteSuccess: '付款记录已删除',
+    addSuccess: '付款记录已添加',
+    orderAmount: '订单金额',
+    totalPaid: '已付金额',
+    outstanding: '待付金额',
+    noPayments: '暂无付款记录',
+    outstandingWarning: '该订单尚有未付款项',
+    amountExceeded: '付款金额超过订单剩余未付金额',
+  },
+
+  // 应收账款
+  receivables: {
+    title: '应收账款',
+    totalOutstanding: '应收总额',
+    totalPaid: '已收总额',
+    orderCount: '订单数',
+    aging: '账龄分析',
+    agingLabels: {
+      '0-30': '0-30天',
+      '31-60': '31-60天',
+      '61-90': '61-90天',
+      '90+': '90天以上',
+    },
+    topDebtors: '欠款客户排行',
+    customer: '客户',
+    company: '公司',
+    orderCountShort: '订单',
+    outstandingAmount: '欠款金额',
+    noDebtors: '暂无欠款客户',
+  },
+
   // 时间轴
   timeline: {
     created: '提交了初始预定申请',

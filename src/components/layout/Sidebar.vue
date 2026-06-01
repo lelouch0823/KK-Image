@@ -278,6 +278,12 @@ const menuItems = computed(() => [
     permission: 'orders:manage'
   },
   {
+    key: 'receivables',
+    label: t('order.receivables.title'),
+    icon: 'banknotes',
+    permission: 'orders:read'
+  },
+  {
     key: 'goods-overview',
     label: t('sidebar.goodsOverview'),
     icon: 'building-storefront',

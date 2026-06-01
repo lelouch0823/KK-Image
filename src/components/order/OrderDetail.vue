@@ -77,6 +77,15 @@
 
           <OrderReturnHistoryCard :returns="orderReturns" />
 
+          <!-- 付款记录 (仅管理员可见) -->
+          <OrderPaymentCard
+            v-if="mode === 'admin' && order.id"
+            :order-id="order.id"
+            :initial-payments="order.payments"
+            :initial-summary="order.paymentSummary"
+            @payment-changed="handlePaymentChanged"
+          />
+
           <div
             v-if="markReadError"
             class="border-warning/30 rounded-xl border bg-(--color-warning-bg)/60 p-3"
@@ -197,6 +206,7 @@ import OrderPersonCard from './OrderPersonCard.vue';
 import OrderStatusHeader from './OrderStatusHeader.vue';
 import OrderShipmentHistoryCard from './OrderShipmentHistoryCard.vue';
 import OrderReturnHistoryCard from './OrderReturnHistoryCard.vue';
+import OrderPaymentCard from './OrderPaymentCard.vue';
 import OrderPrintView from './OrderPrintView.vue';
 import OrderLinesCard from './OrderLinesCard.vue';
 const OrderEditModal = defineAsyncComponent(() => import('../OrderEditModal.vue'));
@@ -332,6 +342,11 @@ const retryComment = (text) => {
   const retryText = text || props.pendingComment || commentInputRef.value?.getText?.() || '';
   if (!retryText) return;
   emit('comment', retryText);
+};
+
+// 付款变更后刷新订单
+const handlePaymentChanged = () => {
+  emit('refresh');
 };
 
 // 预览图片

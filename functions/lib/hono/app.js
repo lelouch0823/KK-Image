@@ -50,6 +50,7 @@ import manageAuditReplayRoutes from './routes/manage/audit-replay.js';
 import manageInventoryDashboardRoutes from './routes/manage/inventory-dashboard.js'; // NEW: 库存预警看板
 import manageCategoriesRoutes from './routes/manage/categories.js'; // NEW: 分类管理
 import manageStocktakesRoutes from './routes/manage/stocktakes.js'; // NEW: 库存盘点
+import manageReceivablesRoutes from './routes/manage/receivables.js'; // NEW: 应收账款
 
 export const app = new Hono();
 
@@ -142,6 +143,7 @@ app.route('/api/manage/audit-replay', manageAuditReplayRoutes);
 app.route('/api/manage/inventory-dashboard', manageInventoryDashboardRoutes); // NEW: 库存预警看板
 app.route('/api/manage/categories', manageCategoriesRoutes); // NEW: 分类管理
 app.route('/api/manage/stocktakes', manageStocktakesRoutes); // NEW: 库存盘点
+app.route('/api/manage/receivables', manageReceivablesRoutes); // NEW: 应收账款
 app.route('/api/sales', salesRoutes);
 
 // ============================================

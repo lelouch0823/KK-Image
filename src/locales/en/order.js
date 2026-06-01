@@ -324,6 +324,59 @@ export default {
     duplicateSuccess: 'Order duplicated, please modify and submit',
   },
 
+  // Payments
+  payment: {
+    title: 'Payments',
+    addPayment: 'Add Payment',
+    amount: 'Amount',
+    amountPlaceholder: 'Enter payment amount',
+    method: 'Method',
+    methodPlaceholder: 'Select payment method',
+    methods: {
+      cash: 'Cash',
+      bank: 'Bank Transfer',
+      wechat: 'WeChat',
+      alipay: 'Alipay',
+      other: 'Other',
+    },
+    referenceNo: 'Reference No.',
+    referenceNoPlaceholder: 'e.g., transfer ID, WeChat transaction ID',
+    notes: 'Notes',
+    notesPlaceholder: 'Payment notes...',
+    receivedAt: 'Paid At',
+    createdBy: 'Recorded By',
+    deleteConfirm: 'Are you sure you want to delete this payment record?',
+    deleteSuccess: 'Payment record deleted',
+    addSuccess: 'Payment record added',
+    orderAmount: 'Order Amount',
+    totalPaid: 'Total Paid',
+    outstanding: 'Outstanding',
+    noPayments: 'No payment records',
+    outstandingWarning: 'This order has outstanding balance',
+    amountExceeded: 'Payment amount exceeds remaining balance',
+  },
+
+  // Receivables
+  receivables: {
+    title: 'Receivables',
+    totalOutstanding: 'Total Outstanding',
+    totalPaid: 'Total Paid',
+    orderCount: 'Orders',
+    aging: 'Aging Analysis',
+    agingLabels: {
+      '0-30': '0-30 days',
+      '31-60': '31-60 days',
+      '61-90': '61-90 days',
+      '90+': '90+ days',
+    },
+    topDebtors: 'Top Debtors',
+    customer: 'Customer',
+    company: 'Company',
+    orderCountShort: 'Orders',
+    outstandingAmount: 'Outstanding',
+    noDebtors: 'No debtors',
+  },
+
   // Timeline
   timeline: {
     created: 'submitted initial pre-order',

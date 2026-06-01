@@ -171,6 +171,12 @@ const routes: RouteRecordRaw[] = [
                 meta: { titleKey: 'router.stats_analysis', permission: 'stats:read' },
             },
             {
+                path: 'receivables',
+                name: 'Receivables',
+                component: () => import('@/components/ReceivablesDashboard.vue'),
+                meta: { titleKey: 'router.receivables', permission: 'orders:read' },
+            },
+            {
                 path: 'reminders',
                 name: 'Reminders',
                 component: () => import('@/views/ReminderCenter.vue'),
