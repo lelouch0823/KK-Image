@@ -246,14 +246,11 @@ export function useFormDraft<T extends Record<string, unknown>>(
   }
 
   // 监听数据变化，防抖自动保存
-  // 直接访问响应式数据（不用 toRaw），确保 Vue 能追踪依赖
+  // 使用 deep: true 监听深层变化，避免 JSON.stringify 开销
   watch(
-    () => {
-      const data = options.data && 'value' in (options.data as Record<string, unknown>)
-        ? (options.data as Ref<T>).value
-        : options.data;
-      return data ? JSON.stringify(data) : '';
-    },
+    () => (options.data && 'value' in (options.data as Record<string, unknown>))
+      ? (options.data as Ref<T>).value
+      : options.data,
     () => {
       debouncedSave();
     },
