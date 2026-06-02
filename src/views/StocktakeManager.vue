@@ -87,52 +87,44 @@
           </div>
 
           <!-- 列表表格 -->
-          <div v-else class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-              <thead>
-                <tr class="border-b border-(--border-color) text-secondary">
-                  <th class="px-4 py-3 font-medium">{{ t('stocktake.table.status') }}</th>
-                  <th class="px-4 py-3 font-medium">{{ t('stocktake.table.itemCount') }}</th>
-                  <th class="px-4 py-3 font-medium">{{ t('stocktake.table.countedItems') }}</th>
-                  <th class="px-4 py-3 font-medium">{{ t('stocktake.table.diffItems') }}</th>
-                  <th class="px-4 py-3 font-medium">{{ t('stocktake.table.createdAt') }}</th>
-                  <th class="px-4 py-3 font-medium">{{ t('stocktake.table.notes') }}</th>
-                  <th class="px-4 py-3 font-medium" />
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="st in stocktakes"
-                  :key="st.id"
-                  class="cursor-pointer border-b border-(--border-color) transition-colors hover:bg-(--bg-hover)"
-                  @click="openDetail(st.id)"
-                >
-                  <td class="px-4 py-3">
-                    <span
-                      class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                      :class="statusClass(st.status)"
-                    >
-                      {{ t(`stocktake.status.${st.status}`) }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-(--text-main)">{{ st.itemCount }}</td>
-                  <td class="px-4 py-3 text-(--text-main)">{{ st.countedItems }}</td>
-                  <td class="px-4 py-3">
-                    <span
-                      v-if="st.diffItems > 0"
-                      class="text-danger font-medium"
-                    >{{ st.diffItems }}</span>
-                    <span v-else class="text-secondary">0</span>
-                  </td>
-                  <td class="px-4 py-3 text-secondary">{{ formatTime(st.createdAt) }}</td>
-                  <td class="max-w-[200px] truncate px-4 py-3 text-secondary">{{ st.notes || '-' }}</td>
-                  <td class="px-4 py-3">
-                    <AppIcon name="chevron-right" class="size-4 text-(--text-muted)" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <AppTable
+            v-else
+            :columns="listColumns"
+            :data="stocktakes"
+            clickable
+            no-border
+            row-key="id"
+            :min-rows="5"
+            @row-click="(row) => openDetail(row.id)"
+          >
+            <template #cell-status="{ row }">
+              <span
+                class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                :class="statusClass(row.status)"
+              >
+                {{ t(`stocktake.status.${row.status}`) }}
+              </span>
+            </template>
+            <template #cell-itemCount="{ row }">
+              <span class="text-(--text-main)">{{ row.itemCount }}</span>
+            </template>
+            <template #cell-countedItems="{ row }">
+              <span class="text-(--text-main)">{{ row.countedItems }}</span>
+            </template>
+            <template #cell-diffItems="{ row }">
+              <span v-if="row.diffItems > 0" class="text-danger font-medium">{{ row.diffItems }}</span>
+              <span v-else class="text-secondary">0</span>
+            </template>
+            <template #cell-createdAt="{ row }">
+              <span class="text-secondary">{{ formatTime(row.createdAt) }}</span>
+            </template>
+            <template #cell-notes="{ row }">
+              <span class="max-w-[200px] truncate text-secondary">{{ row.notes || '-' }}</span>
+            </template>
+            <template #cell-actions>
+              <AppIcon name="chevron-right" class="size-4 text-(--text-muted)" />
+            </template>
+          </AppTable>
 
           <!-- 分页 -->
           <div
@@ -235,69 +227,65 @@
 
         <template #main>
           <!-- 盘点明细表格 -->
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-              <thead>
-                <tr class="border-b border-(--border-color) text-secondary">
-                  <th class="px-4 py-3 font-medium">{{ t('stocktake.detail.product') }}</th>
-                  <th class="px-4 py-3 font-medium">{{ t('stocktake.detail.sku') }}</th>
-                  <th class="px-4 py-3 font-medium">{{ t('stocktake.detail.systemQty') }}</th>
-                  <th class="px-4 py-3 font-medium">{{ t('stocktake.detail.actualQty') }}</th>
-                  <th class="px-4 py-3 font-medium">{{ t('stocktake.detail.difference') }}</th>
-                  <th class="px-4 py-3 font-medium">{{ t('stocktake.detail.notes') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="item in selectedStocktake.items"
-                  :key="item.id"
-                  class="border-b border-(--border-color)"
-                  :class="{ 'bg-danger/5': item.difference != null && item.difference !== 0 }"
+          <AppTable
+            :columns="detailColumns"
+            :data="selectedStocktake.items"
+            no-border
+            row-key="id"
+            :min-rows="5"
+          >
+            <template #cell-product="{ row }">
+              <div class="text-(--text-main)">
+                <div class="font-medium">{{ row.productName }}</div>
+                <div v-if="row.optionsValues" class="text-xs text-secondary">
+                  {{ formatVariantLabel(row.optionsValues) }}
+                </div>
+              </div>
+            </template>
+            <template #cell-sku="{ row }">
+              <span class="font-mono text-xs text-secondary">{{ row.sku }}</span>
+            </template>
+            <template #cell-systemQty="{ row }">
+              <span class="text-(--text-main)">{{ row.systemQty }}</span>
+            </template>
+            <template #cell-actualQty="{ row }">
+              <template v-if="isEditing">
+                <input
+                  v-model.number="editValues[row.id]"
+                  type="number"
+                  min="0"
+                  class="w-20 rounded-lg border border-(--border-color) bg-(--bg-card) px-2 py-1 text-sm text-(--text-main) focus:border-primary focus:outline-none"
+                  :placeholder="t('stocktake.form.actualQtyPlaceholder')"
+                />
+              </template>
+              <template v-else>
+                <span :class="{ 'font-medium': row.actualQty != null }">
+                  {{ row.actualQty != null ? row.actualQty : '-' }}
+                </span>
+              </template>
+            </template>
+            <template #cell-difference="{ row }">
+              <template v-if="row.difference != null">
+                <span
+                  class="font-medium"
+                  :class="{
+                    'text-danger': row.difference > 0,
+                    'text-success': row.difference < 0,
+                    'text-secondary': row.difference === 0,
+                  }"
                 >
-                  <td class="px-4 py-3 text-(--text-main)">
-                    <div class="font-medium">{{ item.productName }}</div>
-                    <div v-if="item.optionsValues" class="text-xs text-secondary">
-                      {{ formatVariantLabel(item.optionsValues) }}
-                    </div>
-                  </td>
-                  <td class="px-4 py-3 font-mono text-xs text-secondary">{{ item.sku }}</td>
-                  <td class="px-4 py-3 text-(--text-main)">{{ item.systemQty }}</td>
-                  <td class="px-4 py-3">
-                    <template v-if="isEditing">
-                      <input
-                        v-model.number="editValues[item.id]"
-                        type="number"
-                        min="0"
-                        class="w-20 rounded-lg border border-(--border-color) bg-(--bg-card) px-2 py-1 text-sm text-(--text-main) focus:border-primary focus:outline-none"
-                        :placeholder="t('stocktake.form.actualQtyPlaceholder')"
-                      />
-                    </template>
-                    <template v-else>
-                      <span :class="{ 'font-medium': item.actualQty != null }">
-                        {{ item.actualQty != null ? item.actualQty : '-' }}
-                      </span>
-                    </template>
-                  </td>
-                  <td class="px-4 py-3">
-                    <template v-if="item.difference != null">
-                      <span
-                        class="font-medium"
-                        :class="{
-                          'text-danger': item.difference > 0,
-                          'text-success': item.difference < 0,
-                          'text-secondary': item.difference === 0,
-                        }"
-                      >
-                        {{ item.difference > 0 ? '+' : '' }}{{ item.difference }}
-                      </span>
-                    </template>
-                    <template v-else>-</template>
-                  </td>
-                  <td class="px-4 py-3 text-secondary">{{ item.notes || '-' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                  {{ row.difference > 0 ? '+' : '' }}{{ row.difference }}
+                </span>
+              </template>
+              <template v-else>-</template>
+            </template>
+            <template #cell-notes="{ row }">
+              <span class="text-secondary">{{ row.notes || '-' }}</span>
+            </template>
+            <template #row="{ row }">
+              <tr :class="{ 'bg-danger/5': row.difference != null && row.difference !== 0 }" />
+            </template>
+          </AppTable>
 
           <!-- 编辑操作栏 -->
           <div
@@ -371,6 +359,7 @@ import StatGroup from '@/design-system/composed/StatGroup.vue';
 import MetricTile from '@/design-system/composed/MetricTile.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppTable from '@/components/ui/AppTable.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const { t } = useI18n();
@@ -405,6 +394,25 @@ const statusFilters = computed(() => [
   { value: 'counting', label: t('stocktake.filter.counting') },
   { value: 'adjusted', label: t('stocktake.filter.adjusted') },
   { value: 'cancelled', label: t('stocktake.filter.cancelled') },
+]);
+
+const listColumns = computed(() => [
+  { key: 'status', label: t('stocktake.table.status') },
+  { key: 'itemCount', label: t('stocktake.table.itemCount') },
+  { key: 'countedItems', label: t('stocktake.table.countedItems'), class: 'hidden md:table-cell' },
+  { key: 'diffItems', label: t('stocktake.table.diffItems'), class: 'hidden md:table-cell' },
+  { key: 'createdAt', label: t('stocktake.table.createdAt'), class: 'hidden lg:table-cell' },
+  { key: 'notes', label: t('stocktake.table.notes'), class: 'hidden lg:table-cell' },
+  { key: 'actions', label: '' },
+]);
+
+const detailColumns = computed(() => [
+  { key: 'product', label: t('stocktake.detail.product') },
+  { key: 'sku', label: t('stocktake.detail.sku'), class: 'hidden md:table-cell' },
+  { key: 'systemQty', label: t('stocktake.detail.systemQty'), class: 'hidden md:table-cell' },
+  { key: 'actualQty', label: t('stocktake.detail.actualQty') },
+  { key: 'difference', label: t('stocktake.detail.difference') },
+  { key: 'notes', label: t('stocktake.detail.notes'), class: 'hidden lg:table-cell' },
 ]);
 
 // ─── 详情状态 ───────────────────────────────────────────
