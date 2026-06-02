@@ -35,7 +35,7 @@
             </StatusBadge>
             <span
               data-testid="purchase-order-detail-progress-summary"
-              class="text-right text-[11px] text-(--text-secondary)"
+              class="text-right text-xs text-(--text-secondary)"
             >
               {{ helpers.buildReceiptProgressSummary(detail) }}
             </span>
@@ -50,7 +50,7 @@
         :key="card.key"
         class="rounded-[1.35rem] border border-(--border-color)/65 bg-(--bg-card) p-4 shadow-none"
       >
-        <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
+        <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
           {{ card.label }}
         </p>
         <div class="mt-3 font-mono text-2xl font-semibold text-(--text-main) tabular-nums">

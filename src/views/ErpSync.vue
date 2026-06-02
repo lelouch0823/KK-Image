@@ -37,8 +37,8 @@
                   :class="[
                     'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
                     conn.enabled
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                      : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+                      ? 'bg-success/10 text-success'
+                      : 'bg-(--color-muted-bg) text-(--text-muted)',
                   ]"
                 >
                   {{ conn.enabled ? t('erpSync.enabled') : t('erpSync.status') }}
@@ -58,7 +58,7 @@
                 <span v-if="conn.lastSyncStatus" :class="syncStatusClass(conn.lastSyncStatus)">
                   {{ t(`erpSync.syncStatus.${conn.lastSyncStatus}`, conn.lastSyncStatus) }}
                 </span>
-                <span v-if="conn.lastError" class="text-red-500" :title="conn.lastError">
+                <span v-if="conn.lastError" class="text-danger" :title="conn.lastError">
                   {{ t('erpSync.lastError') }}: {{ conn.lastError.slice(0, 60) }}
                 </span>
               </div>
@@ -86,7 +86,7 @@
                   <AppIcon name="document-text" class="size-4" />
                 </template>
               </AppButton>
-              <AppButton variant="outline" size="sm" class="text-red-500" @click="deleteConnection(conn.id)">
+              <AppButton variant="outline" size="sm" class="text-danger" @click="deleteConnection(conn.id)">
                 <template #icon-left>
                   <AppIcon name="trash" class="size-4" />
                 </template>
@@ -101,15 +101,15 @@
               <span class="ml-1 font-medium text-(--text-main)">{{ stats[conn.id].total }}</span>
             </div>
             <div class="text-xs">
-              <span class="text-green-600">{{ t('erpSync.stats.success') }}:</span>
+              <span class="text-success">{{ t('erpSync.stats.success') }}:</span>
               <span class="ml-1 font-medium">{{ stats[conn.id].success }}</span>
             </div>
             <div class="text-xs">
-              <span class="text-red-500">{{ t('erpSync.stats.failed') }}:</span>
+              <span class="text-danger">{{ t('erpSync.stats.failed') }}:</span>
               <span class="ml-1 font-medium">{{ stats[conn.id].failed }}</span>
             </div>
             <div class="text-xs">
-              <span class="text-yellow-500">{{ t('erpSync.stats.pending') }}:</span>
+              <span class="text-warning">{{ t('erpSync.stats.pending') }}:</span>
               <span class="ml-1 font-medium">{{ stats[conn.id].pending }}</span>
             </div>
           </div>
@@ -141,7 +141,7 @@
                 </span>
               </td>
               <td class="py-2 pr-3 font-mono text-xs">{{ log.entityId || '-' }}</td>
-              <td class="py-2 pr-3 text-xs text-red-500">{{ log.errorMessage || '-' }}</td>
+              <td class="py-2 pr-3 text-xs text-danger">{{ log.errorMessage || '-' }}</td>
               <td class="py-2 text-xs text-(--text-muted)">{{ formatTime(log.createdAt) }}</td>
             </tr>
           </tbody>
@@ -154,11 +154,11 @@
         <div class="space-y-4">
           <div>
             <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.name') }}</label>
-            <input
+            <AppInput
               v-model="form.name"
               type="text"
               :placeholder="t('erpSync.form.namePlaceholder')"
-              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+              size="sm"
             />
           </div>
           <div>
@@ -176,11 +176,11 @@
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.baseUrl') }}</label>
-            <input
+            <AppInput
               v-model="form.baseUrl"
               type="url"
               :placeholder="t('erpSync.form.baseUrlPlaceholder')"
-              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+              size="sm"
             />
           </div>
           <div>
@@ -196,28 +196,28 @@
           </div>
           <div v-if="form.authType === 'api_key'">
             <label class="mb-1 block text-xs font-medium text-(--text-muted)">API Key</label>
-            <input
+            <AppInput
               v-model="form.credentials.apiKey"
               type="password"
               :placeholder="t('erpSync.form.apiKeyPlaceholder')"
-              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+              size="sm"
             />
           </div>
           <div v-if="form.authType === 'basic'" class="grid grid-cols-2 gap-3">
             <div>
               <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.form.usernamePlaceholder') }}</label>
-              <input
+              <AppInput
                 v-model="form.credentials.username"
                 type="text"
-                class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+                size="sm"
               />
             </div>
             <div>
               <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.form.passwordPlaceholder') }}</label>
-              <input
+              <AppInput
                 v-model="form.credentials.password"
                 type="password"
-                class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+                size="sm"
               />
             </div>
           </div>
@@ -267,6 +267,7 @@ import { request } from '@/utils/http-core';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
@@ -453,17 +454,17 @@ function formatTime(ts) {
 }
 
 function syncStatusClass(status) {
-  if (status === 'success') return 'text-green-600';
-  if (status === 'failed') return 'text-red-500';
-  if (status === 'partial') return 'text-yellow-500';
+  if (status === 'success') return 'text-success';
+  if (status === 'failed') return 'text-danger';
+  if (status === 'partial') return 'text-warning';
   return 'text-(--text-muted)';
 }
 
 function logStatusClass(status) {
-  if (status === 'success') return 'text-green-600';
-  if (status === 'failed') return 'text-red-500';
-  if (status === 'pending') return 'text-yellow-500';
-  if (status === 'conflict') return 'text-orange-500';
+  if (status === 'success') return 'text-success';
+  if (status === 'failed') return 'text-danger';
+  if (status === 'pending') return 'text-warning';
+  if (status === 'conflict') return 'text-warning';
   return 'text-(--text-muted)';
 }
 

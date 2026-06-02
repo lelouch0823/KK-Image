@@ -37,8 +37,8 @@
                   :class="[
                     'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
                     client.enabled
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                      : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+                      ? 'bg-success/10 text-success'
+                      : 'bg-(--color-muted-bg) text-(--text-muted)',
                   ]"
                 >
                   {{ client.enabled ? t('oauth.enabled') : t('oauth.enabled') }}
@@ -49,9 +49,11 @@
                 <div class="flex items-center gap-2 text-xs">
                   <span class="text-(--text-muted)">{{ t('oauth.clientId') }}:</span>
                   <code class="rounded bg-(--bg-hover) px-1.5 py-0.5 font-mono text-(--text-main)">{{ client.clientId }}</code>
-                  <button class="text-(--text-muted) hover:text-(--text-main)" @click="copyToClipboard(client.clientId)">
-                    <AppIcon name="clipboard" class="size-3" />
-                  </button>
+                  <AppButton variant="ghost" size="sm" class="!size-6 !p-0" :title="t('oauth.copySuccess')" @click="copyToClipboard(client.clientId)">
+                    <template #icon-left>
+                      <AppIcon name="clipboard" class="size-3" />
+                    </template>
+                  </AppButton>
                 </div>
                 <div class="flex flex-wrap gap-1">
                   <span
@@ -66,7 +68,7 @@
                   <span
                     v-for="scope in client.scopes"
                     :key="scope"
-                    class="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                    class="rounded bg-info/10 px-1.5 py-0.5 text-xs text-info"
                   >
                     {{ scope }}
                   </span>
@@ -85,7 +87,7 @@
                 </template>
                 {{ t('oauth.actions.viewTokens') }}
               </AppButton>
-              <AppButton variant="outline" size="sm" class="text-red-500" @click="deleteClient(client.id)">
+              <AppButton variant="outline" size="sm" class="text-danger" @click="deleteClient(client.id)">
                 <template #icon-left>
                   <AppIcon name="trash" class="size-4" />
                 </template>
@@ -99,8 +101,8 @@
       <Modal v-model="showTokensModal" :title="t('oauth.tokens.title')" size="2xl">
         <template #header>
           <div class="flex items-center justify-between">
-            <h3 class="text-primary text-lg font-semibold">{{ t('oauth.tokens.title') }}</h3>
-            <AppButton variant="outline" size="sm" class="text-red-500" @click="revokeAllTokens">
+            <h3 class="text-lg font-semibold text-(--text-main)">{{ t('oauth.tokens.title') }}</h3>
+            <AppButton variant="outline" size="sm" class="text-danger" @click="revokeAllTokens">
               {{ t('oauth.actions.revokeTokens') }}
             </AppButton>
           </div>
@@ -118,7 +120,7 @@
             <tr v-for="token in tokens" :key="token.id" class="border-b border-(--border-color) last:border-0">
               <td class="py-2 pr-3 font-mono text-xs">{{ token.accessToken.slice(0, 20) }}...</td>
               <td class="py-2 pr-3">
-                <span v-for="s in token.scopes" :key="s" class="mr-1 rounded bg-blue-100 px-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                <span v-for="s in token.scopes" :key="s" class="mr-1 rounded bg-info/10 px-1 text-xs text-info">
                   {{ s }}
                 </span>
               </td>
@@ -135,38 +137,41 @@
         <div class="space-y-4">
           <div>
             <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('oauth.name') }}</label>
-            <input
+            <AppInput
               v-model="form.name"
               type="text"
               :placeholder="t('oauth.form.namePlaceholder')"
-              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+              size="sm"
             />
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('oauth.description') }}</label>
-            <input
+            <AppInput
               v-model="form.description"
               type="text"
               :placeholder="t('oauth.form.descriptionPlaceholder')"
-              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+              size="sm"
             />
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('oauth.redirectUris') }}</label>
             <div class="space-y-1">
               <div v-for="(uri, idx) in form.redirectUris" :key="idx" class="flex items-center gap-2">
-                <input
+                <AppInput
                   v-model="form.redirectUris[idx]"
                   type="url"
-                  class="flex-1 rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+                  class="flex-1"
+                  size="sm"
                 />
-                <button class="text-red-500 hover:text-red-700" @click="form.redirectUris.splice(idx, 1)">
-                  <AppIcon name="x-mark" class="size-4" />
-                </button>
+                <AppButton variant="ghost" size="sm" class="!size-6 !p-0 text-danger hover:text-danger" @click="form.redirectUris.splice(idx, 1)">
+                  <template #icon-left>
+                    <AppIcon name="x-mark" class="size-4" />
+                  </template>
+                </AppButton>
               </div>
-              <button class="text-xs text-(--color-primary) hover:underline" @click="form.redirectUris.push('')">
+              <AppButton variant="ghost" size="sm" class="!h-auto !p-0 text-xs text-(--color-primary) hover:underline" @click="form.redirectUris.push('')">
                 + {{ t('oauth.redirectUris') }}
-              </button>
+              </AppButton>
             </div>
           </div>
           <div>
@@ -181,13 +186,15 @@
         </div>
 
         <!-- 创建成功后显示密钥 -->
-        <div v-if="createdSecret" class="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 p-3 dark:border-yellow-700 dark:bg-yellow-900/20">
-          <p class="text-xs font-medium text-yellow-800 dark:text-yellow-300">{{ t('oauth.secretWarning') }}</p>
+        <div v-if="createdSecret" class="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-3">
+          <p class="text-xs font-medium text-warning">{{ t('oauth.secretWarning') }}</p>
           <div class="mt-2 flex items-center gap-2">
             <code class="flex-1 rounded bg-(--bg-hover) px-2 py-1 font-mono text-xs text-(--text-main)">{{ createdSecret }}</code>
-            <button class="text-(--text-muted) hover:text-(--text-main)" @click="copyToClipboard(createdSecret)">
-              <AppIcon name="clipboard" class="size-4" />
-            </button>
+            <AppButton variant="ghost" size="sm" class="!size-8 !p-0" :title="t('oauth.copySuccess')" @click="copyToClipboard(createdSecret)">
+              <template #icon-left>
+                <AppIcon name="clipboard" class="size-4" />
+              </template>
+            </AppButton>
           </div>
         </div>
 
@@ -235,6 +242,7 @@ import { request } from '@/utils/http-core';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 

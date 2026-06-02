@@ -5,7 +5,7 @@
   >
     <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <div>
-        <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
+        <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
           Line Items
         </p>
         <h3 class="mt-1 text-sm font-semibold text-(--text-main)">
@@ -150,7 +150,7 @@
             <div
               v-if="detail.status !== 'draft'"
               data-testid="purchase-order-detail-item-progress"
-              class="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] text-(--text-secondary)"
+              class="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)"
             >
               <StatusBadge
                 :variant="helpers.getProgressStatusVariant(item.display_status || detail.display_status)"
@@ -210,7 +210,7 @@
         >
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-3">
-              <span class="text-[11px] font-medium text-(--text-secondary)">
+              <span class="text-xs font-medium text-(--text-secondary)">
                 {{ t('purchaseOrder.table.quantity') }}
               </span>
               <span class="font-mono text-sm font-semibold text-(--text-main) tabular-nums">
@@ -218,7 +218,7 @@
               </span>
             </div>
             <div class="flex items-center justify-between gap-3">
-              <span class="text-[11px] font-medium text-(--text-secondary)">
+              <span class="text-xs font-medium text-(--text-secondary)">
                 {{ t('purchaseOrder.table.unitCost') }}
               </span>
               <span class="font-mono text-sm font-semibold text-(--text-main) tabular-nums">
@@ -226,7 +226,7 @@
               </span>
             </div>
             <div class="flex items-center justify-between gap-3">
-              <span class="text-[11px] font-medium text-(--text-secondary)">
+              <span class="text-xs font-medium text-(--text-secondary)">
                 {{ t('purchaseOrder.ui.goodsSubtotal', '商品小计') }}
               </span>
               <span class="font-mono text-sm font-semibold text-(--text-main) tabular-nums">
@@ -234,7 +234,7 @@
               </span>
             </div>
             <div class="flex items-center justify-between gap-3">
-              <span class="text-[11px] font-medium text-(--text-secondary)">
+              <span class="text-xs font-medium text-(--text-secondary)">
                 {{ t('purchaseOrder.ui.allocatedFreight', '分摊运费') }}
               </span>
               <span class="font-mono text-sm text-(--text-main) tabular-nums">
@@ -242,7 +242,7 @@
               </span>
             </div>
             <div class="flex items-center justify-between gap-3">
-              <span class="text-[11px] font-medium text-(--text-secondary)">
+              <span class="text-xs font-medium text-(--text-secondary)">
                 {{ t('purchaseOrder.ui.allocatedTariff', '分摊关税') }}
               </span>
               <span class="font-mono text-sm text-(--text-main) tabular-nums">

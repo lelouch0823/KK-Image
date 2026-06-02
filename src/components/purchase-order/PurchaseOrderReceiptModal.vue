@@ -61,7 +61,7 @@
 
           <div class="grid gap-3 lg:w-[19rem]">
             <AppCard class="p-3">
-              <label class="text-[11px] font-medium text-(--text-secondary)">
+              <label class="text-xs font-medium text-(--text-secondary)">
                 {{ t('purchaseOrder.form.receivedQty', '本次到货数量') }}
               </label>
               <AppInput
@@ -74,13 +74,13 @@
               />
               <p
                 v-if="isReceiptDraftInvalid(entry)"
-                class="text-danger mt-2 text-[11px] font-medium"
+                class="text-danger mt-2 text-xs font-medium"
               >
                 {{ t('purchaseOrder.ui.receiptQtyOverflow', '不能超过当前剩余可收数量。') }}
               </p>
             </AppCard>
             <AppCard class="p-3">
-              <label class="text-[11px] font-medium text-(--text-secondary)">
+              <label class="text-xs font-medium text-(--text-secondary)">
                 {{ t('purchaseOrder.form.note', '备注') }}
               </label>
               <AppInput

@@ -62,7 +62,7 @@
           </div>
           <div class="grid gap-3 lg:w-[19rem]">
             <AppCard class="p-3">
-              <label class="text-[11px] font-medium text-(--text-secondary)">
+              <label class="text-xs font-medium text-(--text-secondary)">
                 {{ t('purchaseOrder.ui.shortageCloseQty') }}
               </label>
               <AppInput
@@ -75,7 +75,7 @@
               />
               <p
                 v-if="isShortageDraftInvalid(entry)"
-                class="text-danger mt-2 text-[11px] font-medium"
+                class="text-danger mt-2 text-xs font-medium"
               >
                 {{ t('purchaseOrder.ui.shortageQtyOverflow') }}
               </p>

@@ -34,7 +34,7 @@
       </AppCard>
 
       <AppCard class="p-4">
-        <label class="text-[11px] font-medium text-(--text-secondary)">
+        <label class="text-xs font-medium text-(--text-secondary)">
           {{ t('purchaseOrder.form.reason') }}
         </label>
         <AppInput

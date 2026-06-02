@@ -30,7 +30,7 @@
     <template #cell-po_no="{ row: po }">
       <code
         data-testid="purchase-order-po-chip"
-        class="inline-flex items-center rounded-full border border-(--border-color)/70 bg-(--bg-muted) px-2.5 py-1 font-mono text-[11px] font-semibold tracking-[0.04em] text-(--text-main)"
+        class="inline-flex items-center rounded-full border border-(--border-color)/70 bg-(--bg-muted) px-2.5 py-1 font-mono text-xs font-semibold tracking-[0.04em] text-(--text-main)"
       >
         {{ po.po_no }}
       </code>
@@ -58,7 +58,7 @@
           </StatusBadge>
           <span
             data-testid="purchase-order-progress-summary"
-            class="text-[11px] text-(--text-secondary)"
+            class="text-xs text-(--text-secondary)"
           >
             {{ buildReceiptProgressSummary(po) }}
           </span>

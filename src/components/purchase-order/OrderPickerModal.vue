@@ -12,7 +12,7 @@
         class="flex items-start justify-between gap-4"
       >
         <div>
-          <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
+          <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
             Order Intake
           </p>
           <h2 class="mt-1 text-xl font-bold text-(--text-main)">

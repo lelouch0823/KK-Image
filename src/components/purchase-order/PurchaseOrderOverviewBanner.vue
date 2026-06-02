@@ -20,7 +20,7 @@
         </div>
         <div class="flex items-center lg:justify-end">
           <span
-            class="inline-flex items-center rounded-full border border-(--border-color)/70 bg-(--bg-card)/80 px-3 py-1 text-[11px] font-medium text-(--text-secondary)"
+            class="inline-flex items-center rounded-full border border-(--border-color)/70 bg-(--bg-card)/80 px-3 py-1 text-xs font-medium text-(--text-secondary)"
           >
             {{ totalLabel }}
           </span>
@@ -69,7 +69,7 @@
           :key="signal.key"
           class="rounded-[1.1rem] border border-(--border-color)/55 bg-(--bg-card)/92 p-4"
         >
-          <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
+          <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
             {{ signal.label }}
           </p>
           <div class="mt-2">

@@ -23,7 +23,7 @@
             <AppIcon name="exclamation-triangle" class="text-warning size-5" />
           </div>
           <div>
-            <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
+            <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
               Quantity Guardrail
             </p>
             <h3 class="mt-1 text-base font-bold text-(--text-main)">

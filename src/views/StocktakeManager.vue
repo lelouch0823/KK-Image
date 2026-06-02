@@ -56,19 +56,15 @@
         <template #main>
           <!-- 筛选 -->
           <div class="mb-4 flex flex-wrap items-center gap-2">
-            <button
+            <AppButton
               v-for="f in statusFilters"
               :key="f.value"
-              class="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
-              :class="[
-                currentFilter === f.value
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-secondary hover:text-main hover:bg-(--bg-hover)'
-              ]"
+              :variant="currentFilter === f.value ? 'primary' : 'ghost'"
+              size="sm"
               @click="currentFilter = f.value; loadList()"
             >
               {{ f.label }}
-            </button>
+            </AppButton>
           </div>
 
           <!-- 加载中 -->
@@ -250,11 +246,12 @@
             </template>
             <template #cell-actualQty="{ row }">
               <template v-if="isEditing">
-                <input
-                  v-model.number="editValues[row.id]"
+                <AppInput
+                  v-model="editValues[row.id]"
                   type="number"
                   min="0"
-                  class="w-20 rounded-lg border border-(--border-color) bg-(--bg-card) px-2 py-1 text-sm text-(--text-main) focus:border-primary focus:outline-none"
+                  size="sm"
+                  class="!w-20"
                   :placeholder="t('stocktake.form.actualQtyPlaceholder')"
                 />
               </template>
@@ -359,6 +356,7 @@ import StatGroup from '@/design-system/composed/StatGroup.vue';
 import MetricTile from '@/design-system/composed/MetricTile.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 

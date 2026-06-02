@@ -29,7 +29,7 @@
             </StatusBadge>
             <span
               data-testid="purchase-order-detail-progress-summary"
-              class="text-right text-[11px] text-(--text-secondary)"
+              class="text-right text-xs text-(--text-secondary)"
             >
               {{ helpers.buildReceiptProgressSummary(detail) }}
             </span>

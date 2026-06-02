@@ -14,12 +14,12 @@
       </div>
       <div class="flex flex-wrap items-center justify-end gap-2">
         <span
-          class="rounded-full border border-(--border-color) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)"
+          class="rounded-full border border-(--border-color) px-2.5 py-1 text-xs font-medium text-(--text-secondary)"
         >
           {{ detail.currency || 'CNY' }}
         </span>
         <span
-          class="rounded-full border border-(--border-color) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)"
+          class="rounded-full border border-(--border-color) px-2.5 py-1 text-xs font-medium text-(--text-secondary)"
         >
           {{
             detail.allocation_method === 'by_value'

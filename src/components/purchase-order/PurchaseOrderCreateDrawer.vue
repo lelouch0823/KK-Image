@@ -29,7 +29,7 @@
       <StatePanel>
         <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
+            <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
               Configuration
             </p>
             <h3 class="mt-1 text-sm font-semibold text-(--text-main)">
@@ -138,7 +138,7 @@
         <ActionBar class="mb-4 border-none bg-transparent px-0 py-0 shadow-none">
           <template #leading>
             <div>
-              <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
+              <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
                 Procurement Mix
               </p>
               <h3 class="mt-1 text-sm font-semibold text-(--text-main)">

@@ -5,7 +5,7 @@
   >
     <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <div>
-        <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
+        <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
           {{ t('purchaseOrder.detail.receipts') }}
         </p>
         <h3 class="mt-1 text-sm font-semibold text-(--text-main)">
@@ -133,7 +133,7 @@
           <div class="space-y-2 text-xs text-(--text-secondary)">
             <div class="flex items-center justify-between gap-3">
               <span>{{ t('purchaseOrder.ui.receiptRecordId') }}</span>
-              <code class="font-mono text-[11px] text-(--text-main)">{{ receipt.id }}</code>
+              <code class="font-mono text-xs text-(--text-main)">{{ receipt.id }}</code>
             </div>
             <div class="flex items-center justify-between gap-3">
               <span>{{ t('purchaseOrder.ui.receiptReversalCount') }}</span>

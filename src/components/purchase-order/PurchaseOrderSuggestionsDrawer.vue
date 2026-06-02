@@ -35,7 +35,7 @@
           :key="card.key"
           class="p-4"
         >
-          <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
+          <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
             {{ card.label }}
           </p>
           <div class="mt-2 font-mono text-2xl font-semibold tabular-nums text-(--text-main)">
