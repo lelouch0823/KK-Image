@@ -17,6 +17,8 @@
     "test:unit:run": "node node_modules/vitest/vitest.mjs run",
     "test:ui": "node node_modules/vitest/vitest.mjs --ui",
     "test:coverage": "node node_modules/vitest/vitest.mjs run --coverage",
+    "test:e2e": "node node_modules/playwright/cli.js test",
+    "test:e2e:ui": "node node_modules/playwright/cli.js test --ui",
     "test:minisales": "pnpm --dir minisales test:unit",
     "check:minisales": "pnpm test:minisales && pnpm typecheck:minisales",
     "test:audit": "node node_modules/vitest/vitest.mjs functions/lib/hono/_shared/__tests__/audit-route-contract-metadata.test.js functions/lib/hono/_shared/__tests__/audit-runtime-alignment.test.js functions/lib/hono/routes/manage/__tests__/audit-logs-routes.test.js functions/lib/hono/routes/manage/__tests__/albums-routes.test.js functions/lib/hono/routes/manage/__tests__/upload-route.test.js functions/lib/hono/routes/manage/__tests__/ops-support-routes.test.js functions/lib/hono/routes/manage/__tests__/folders-routes.test.js functions/lib/hono/routes/sales/__tests__/audit-routes.test.js functions/lib/hono/routes/manage/orders/__tests__/create-routes.test.js functions/lib/hono/routes/manage/products/__tests__/batch-routes.test.js functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js functions/lib/hono/routes/v1/__tests__/webhooks-routes.test.js functions/lib/hono/routes/v1/__tests__/file-folder-audit-routes.test.js scripts/qa/__tests__/audit-coverage-consistency.test.js functions/lib/hono/middleware/__tests__/auth-opa.test.js functions/lib/hono/middleware/__tests__/auth-public-routes.test.js",
