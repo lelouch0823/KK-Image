@@ -2,7 +2,7 @@
  * 最近访问记录管理
  * @module composables/useRecentViews
  */
-import { computed, type ComputedRef } from 'vue';
+import { ref, computed, type Ref, type ComputedRef } from 'vue';
 import { storageGet, storageSet } from '@/utils/storage';
 
 /** 访问记录类型 */
@@ -19,24 +19,24 @@ export interface RecentView {
 const STORAGE_KEY = 'kk-recent-views';
 const MAX_ITEMS = 10;
 
-// 模块级单例状态
-let recentViewsData: RecentView[] | null = null;
+// 模块级单例状态（使用 ref 保证响应式）
+const recentViewsData: Ref<RecentView[] | null> = ref(null);
 
 /**
  * 获取存储的最近访问记录（懒加载）
  */
 function loadViews(): RecentView[] {
-  if (recentViewsData === null) {
-    recentViewsData = storageGet<RecentView[]>(STORAGE_KEY, []) || [];
+  if (recentViewsData.value === null) {
+    recentViewsData.value = storageGet<RecentView[]>(STORAGE_KEY, []) || [];
   }
-  return recentViewsData;
+  return recentViewsData.value;
 }
 
 /**
  * 持久化到 localStorage
  */
 function saveViews(views: RecentView[]): void {
-  recentViewsData = views;
+  recentViewsData.value = views;
   storageSet(STORAGE_KEY, views);
 }
 
