@@ -77,6 +77,7 @@
     "spaces:manage",
     "products:manage",
     "orders:manage",
+    "orders:read",
     "users:read",
     "users:write",
     "webhooks:read",
@@ -106,6 +107,7 @@
     "spaces:read": "读取空间",
     "spaces:manage": "管理空间",
     "products:manage": "管理商品",
-    "orders:manage": "管理订单"
+    "orders:manage": "管理订单",
+    "orders:read": "查看订单"
   }
 }

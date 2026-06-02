@@ -84,9 +84,11 @@
           v-if="showStatusDropdown"
           class="absolute bottom-full left-0 mb-2 w-48 rounded-xl border border-(--border-color) bg-(--bg-card) py-1 shadow-xl"
         >
-          <button
+          <AppButton
             v-for="statusOption in statusOptions"
             :key="statusOption.value"
+            variant="ghost"
+            size="sm"
             class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-(--bg-hover)"
             :class="{ 'text-(--text-muted)': statusOption.disabled }"
             :disabled="statusOption.disabled"
@@ -97,7 +99,7 @@
               :class="statusOption.colorClass"
             />
             {{ statusOption.label }}
-          </button>
+          </AppButton>
         </div>
       </Transition>
     </div>

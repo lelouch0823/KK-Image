@@ -6,9 +6,11 @@ vi.mock('chart.js', () => ({
   Chart: { register: mockRegister },
   LineController: 'LineController',
   DoughnutController: 'DoughnutController',
+  BarController: 'BarController',
   LineElement: 'LineElement',
   PointElement: 'PointElement',
   ArcElement: 'ArcElement',
+  BarElement: 'BarElement',
   LinearScale: 'LinearScale',
   CategoryScale: 'CategoryScale',
   Filler: 'Filler',
@@ -37,13 +39,15 @@ describe('chart-setup', () => {
   it('应注册所有必需的 Chart.js 组件', async () => {
     await import('../chart-setup');
     const registeredComponents = mockRegister.mock.calls[0];
-    // 应包含 10 个组件
-    expect(registeredComponents).toHaveLength(10);
+    // 应包含 12 个组件
+    expect(registeredComponents).toHaveLength(12);
     expect(registeredComponents).toContain('LineController');
     expect(registeredComponents).toContain('DoughnutController');
+    expect(registeredComponents).toContain('BarController');
     expect(registeredComponents).toContain('LineElement');
     expect(registeredComponents).toContain('PointElement');
     expect(registeredComponents).toContain('ArcElement');
+    expect(registeredComponents).toContain('BarElement');
     expect(registeredComponents).toContain('LinearScale');
     expect(registeredComponents).toContain('CategoryScale');
     expect(registeredComponents).toContain('Filler');
