@@ -9,7 +9,7 @@ const searchRoute = new Hono();
  */
 function sanitizeFts5Query(input) {
     const sanitized = String(input || '')
-        .replace(/["*()\-+:]/g, ' ')  // 替换特殊字符为空格
+        .replace(/["*^()\-+:]/g, ' ')  // 替换特殊字符为空格
         .replace(/\b(OR|AND|NOT|NEAR)\b/gi, ' ')  // 移除布尔操作符
         .replace(/\s+/g, ' ')  // 合并连续空格
         .trim();
@@ -25,6 +25,7 @@ async function searchFiles(db, query) {
 
     const stmt = db.prepare(`
       SELECT f.id, f.name, f.path, f.type, f.size, f.created_at,
+             f.storage_key, f.folder_id, f.mime_type, f.owner_id, f.is_public,
              'file' AS result_type
       FROM files f
       JOIN files_fts ON f.rowid = files_fts.rowid
@@ -218,6 +219,7 @@ searchRoute.get('/', requirePermission('files:read'), async (c) => {
                 const pattern = `%${query}%`;
                 const fallback = await db.prepare(`
                   SELECT id, name, path, type, size, created_at,
+                         storage_key, folder_id, mime_type, owner_id, is_public,
                          'file' AS result_type
                   FROM files
                   WHERE name LIKE ?

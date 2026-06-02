@@ -41,6 +41,7 @@ function isUniqueConstraintError(error: unknown): boolean {
 
 export class NotificationRepository {
   protected db: D1Database;
+  private columnExistsCache: Map<string, boolean> = new Map();
 
   /**
    * 构造函数
@@ -327,22 +328,11 @@ export class NotificationRepository {
    * @returns 轮询结果
    */
   async pollForAdmin({ lastId = null, limit = 5 }: { lastId?: string | null; limit?: number } = {}): Promise<NotificationPollResult> {
-    // 获取未读数量
-    const unreadCount = await this._getAdminUnreadCount(true);
-
-    // 获取最新通知 ID
-    let latestSql = `SELECT id FROM notifications`;
-    try {
-      const hasReceiver = await this._checkColumnExists('receiver');
-      if (hasReceiver) {
-        latestSql += ` WHERE receiver = 'admin'`;
-      }
-    } catch {
-      // 无 receiver 字段，查询全部
-    }
-    latestSql += ` ORDER BY created_at DESC LIMIT 1`;
-    const latestRow = await this.db.prepare(latestSql).first<{ id: string }>();
-    const latestId = latestRow?.id || null;
+    // 并行获取未读数量和最新通知 ID
+    const [unreadCount, latestId] = await Promise.all([
+      this._getAdminUnreadCount(true),
+      this._getLatestNotificationId(),
+    ]);
 
     // 如果提供了 lastId 且与最新相同，说明无新通知
     if (lastId && latestId && lastId === latestId) {
@@ -402,14 +392,38 @@ export class NotificationRepository {
   }
 
   /**
-   * 检查表中是否存在指定列
+   * 获取最新通知 ID
+   * @private
+   */
+  async _getLatestNotificationId(): Promise<string | null> {
+    let sql = `SELECT id FROM notifications`;
+    try {
+      const hasReceiver = await this._checkColumnExists('receiver');
+      if (hasReceiver) {
+        sql += ` WHERE receiver = 'admin'`;
+      }
+    } catch {
+      // 无 receiver 字段，查询全部
+    }
+    sql += ` ORDER BY created_at DESC LIMIT 1`;
+    const latestRow = await this.db.prepare(sql).first<{ id: string }>();
+    return latestRow?.id || null;
+  }
+
+  /**
+   * 检查表中是否存在指定列（带缓存）
    * @private
    */
   async _checkColumnExists(columnName: string): Promise<boolean> {
+    if (this.columnExistsCache.has(columnName)) {
+      return this.columnExistsCache.get(columnName)!;
+    }
     try {
       await this.db.prepare(`SELECT ${columnName} FROM notifications LIMIT 1`).first();
+      this.columnExistsCache.set(columnName, true);
       return true;
     } catch {
+      this.columnExistsCache.set(columnName, false);
       return false;
     }
   }

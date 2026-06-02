@@ -309,8 +309,9 @@ const showRequestErrorState = computed(
   () => !loading.value && Boolean(error.value) && errorCode.value !== ErrorCode.FORBIDDEN
 );
 
-/** 格式化货币 */
+/** 格式化货币（万为单位） */
 const formatCurrency = (value) => {
+  if (value == null || value === undefined) return '-';
   if (value >= 10000) {
     return `¥${(value / 10000).toFixed(1)}万`;
   }

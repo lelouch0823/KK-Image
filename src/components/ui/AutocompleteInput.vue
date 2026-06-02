@@ -75,6 +75,7 @@
 
 <script setup>
 import { ref, computed, watch, useId, useTemplateRef } from 'vue';
+import { escapeHtml } from '@/utils/html';
 
 /**
  * @typedef {Object} SuggestionItem
@@ -152,14 +153,6 @@ function highlightMatch(text) {
     regex,
     '<mark class="bg-primary/20 text-(--text-main) rounded-sm px-0.5">$1</mark>'
   );
-}
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 // 同步外部值

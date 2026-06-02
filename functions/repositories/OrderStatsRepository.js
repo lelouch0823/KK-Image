@@ -485,6 +485,36 @@ export class OrderStatsRepository {
   }
 
   /**
+   * 成本计算 CASE 表达式
+   * 优先使用采购成本（unit_cost + allocated_freight + allocated_tariff），
+   * 其次使用变体成本价（cost_price），否则为 0
+   * @private
+   * @returns {string} SQL CASE 表达式
+   */
+  _costCaseExpression() {
+    return `CASE
+      WHEN (COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)) > 0
+        THEN COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)
+      WHEN COALESCE(pv.cost_price, 0) > 0 THEN pv.cost_price
+      ELSE 0
+    END`;
+  }
+
+  /**
+   * 利润查询的 JOIN 和基础 FROM 子句
+   * @private
+   * @returns {string} SQL FROM + JOIN 子句
+   */
+  _profitJoinClause() {
+    return `FROM orders o
+      INNER JOIN order_lines ol ON ol.order_id = o.id
+      LEFT JOIN product_variants pv ON pv.id = ol.variant_id
+      LEFT JOIN purchase_order_items poi ON poi.pre_order_id = ol.order_id
+        AND poi.product_id = ol.product_id
+        AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))`;
+  }
+
+  /**
    * 获取利润汇总统计
    * 基于 order_lines + product_variants.price (售价) + purchase_order_items (采购成本)
    *
@@ -500,32 +530,20 @@ export class OrderStatsRepository {
       params.push(startTimestamp);
     }
 
+    const costExpr = this._costCaseExpression();
+    const joinClause = this._profitJoinClause();
+
     const result = await this.runQueryFirst(
       `
       SELECT
         COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS total_revenue,
-        COALESCE(SUM(
-          ol.ordered_qty * (
-            CASE
-              WHEN (COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)) > 0
-                THEN COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)
-              WHEN COALESCE(pv.cost_price, 0) > 0 THEN pv.cost_price
-              ELSE 0
-            END
-          )
-        ), 0) AS total_cost,
+        COALESCE(SUM(ol.ordered_qty * (${costExpr})), 0) AS total_cost,
         COUNT(DISTINCT CASE
-          WHEN (COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)) > 0
-            OR COALESCE(pv.cost_price, 0) > 0
+          WHEN (${costExpr}) > 0
           THEN o.id
         END) AS orders_with_cost,
         COUNT(DISTINCT o.id) AS total_orders
-      FROM orders o
-      INNER JOIN order_lines ol ON ol.order_id = o.id
-      LEFT JOIN product_variants pv ON pv.id = ol.variant_id
-      LEFT JOIN purchase_order_items poi ON poi.pre_order_id = ol.order_id
-        AND poi.product_id = ol.product_id
-        AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))
+      ${joinClause}
       WHERE ${whereClause}
       `,
       params,
@@ -554,27 +572,16 @@ export class OrderStatsRepository {
    * @returns {Promise<Array<{date: string, revenue: number, cost: number, profit: number}>>}
    */
   async getProfitTrend(startTimestamp) {
+    const costExpr = this._costCaseExpression();
+    const joinClause = this._profitJoinClause();
+
     const result = await this.runQuery(
       `
       SELECT
         DATE(o.created_at / 1000, 'unixepoch', '+8 hours') AS date,
         COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS revenue,
-        COALESCE(SUM(
-          ol.ordered_qty * (
-            CASE
-              WHEN (COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)) > 0
-                THEN COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)
-              WHEN COALESCE(pv.cost_price, 0) > 0 THEN pv.cost_price
-              ELSE 0
-            END
-          )
-        ), 0) AS cost
-      FROM orders o
-      INNER JOIN order_lines ol ON ol.order_id = o.id
-      LEFT JOIN product_variants pv ON pv.id = ol.variant_id
-      LEFT JOIN purchase_order_items poi ON poi.pre_order_id = ol.order_id
-        AND poi.product_id = ol.product_id
-        AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))
+        COALESCE(SUM(ol.ordered_qty * (${costExpr})), 0) AS cost
+      ${joinClause}
       WHERE o.status NOT IN ('void', 'rejected')
         AND o.created_at >= ?
       GROUP BY date
@@ -602,28 +609,17 @@ export class OrderStatsRepository {
    * @returns {Promise<Array<{productName: string, revenue: number, cost: number, profit: number, margin: number|null, orderCount: number}>>}
    */
   async getProfitByProduct(limit = 10) {
+    const costExpr = this._costCaseExpression();
+    const joinClause = this._profitJoinClause();
+
     const result = await this.runQuery(
       `
       SELECT
         ol.snapshot_name AS product_name,
         COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS revenue,
-        COALESCE(SUM(
-          ol.ordered_qty * (
-            CASE
-              WHEN (COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)) > 0
-                THEN COALESCE(poi.unit_cost, 0) + COALESCE(poi.allocated_freight, 0) + COALESCE(poi.allocated_tariff, 0)
-              WHEN COALESCE(pv.cost_price, 0) > 0 THEN pv.cost_price
-              ELSE 0
-            END
-          )
-        ), 0) AS cost,
+        COALESCE(SUM(ol.ordered_qty * (${costExpr})), 0) AS cost,
         COUNT(*) AS order_count
-      FROM orders o
-      INNER JOIN order_lines ol ON ol.order_id = o.id
-      LEFT JOIN product_variants pv ON pv.id = ol.variant_id
-      LEFT JOIN purchase_order_items poi ON poi.pre_order_id = ol.order_id
-        AND poi.product_id = ol.product_id
-        AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))
+      ${joinClause}
       WHERE o.status NOT IN ('void', 'rejected')
         AND ol.snapshot_name IS NOT NULL
         AND ol.snapshot_name != ''

@@ -3,6 +3,7 @@ import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
+import { escapeHtml } from '@/utils/html';
 
 interface ConfirmDialogData {
     show: boolean;
@@ -208,16 +209,6 @@ export function useOrderBatch(
             batchProcessing.value = false;
         }
     };
-
-    /**
-     * HTML 转义（防止 XSS 注入）
-     */
-    const escapeHtml = (str: string): string =>
-        String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
 
     /**
      * 生成打印 HTML 内容
