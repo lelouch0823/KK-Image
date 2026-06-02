@@ -48,6 +48,9 @@ export type ShortcutString = string;
 const shortcutsMap = ref<Map<string, ShortcutItem>>(new Map());
 const enabled = ref(true);
 
+// useMagicKeys 在模块级别调用，全局共享
+const keys = useMagicKeys();
+
 // ---------- 输入元素检测 ----------
 
 /** 判断当前焦点是否在输入元素中 */
@@ -103,9 +106,6 @@ function parseShortcutString(str: ShortcutString): { key: string; modifiers: Sho
 // ---------- 主 composable ----------
 
 export function useKeyboardShortcuts() {
-  // useMagicKeys 返回的 keys 对象（可用于组合键监听）
-  const keys = useMagicKeys();
-
   // ---------- 注册 / 注销 ----------
 
   const register = (
