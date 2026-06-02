@@ -1,0 +1,15 @@
+{
+  "navigationBarTitleText": "扫码",
+  "usingComponents": {
+    "t-navbar": "tdesign-miniprogram/navbar/navbar",
+    "t-icon": "tdesign-miniprogram/icon/icon",
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-loading": "tdesign-miniprogram/loading/loading",
+    "t-tag": "tdesign-miniprogram/tag/tag",
+    "t-input": "tdesign-miniprogram/input/input",
+    "t-toast": "tdesign-miniprogram/toast/toast",
+    "t-cell": "tdesign-miniprogram/cell/cell",
+    "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",
+    "t-empty": "tdesign-miniprogram/empty/empty"
+  }
+}

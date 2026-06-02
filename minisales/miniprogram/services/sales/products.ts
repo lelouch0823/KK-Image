@@ -76,6 +76,27 @@ export async function loadProductDetail(
     return withData(result, normalizeSalesProductDetail(result.data));
 }
 
+export async function lookupProductByBarcode(
+    input: { accessToken: string; barcode: string },
+    request: RequestFn = salesRequest
+): Promise<SalesRequestResult<NormalizedSalesProductSummary | null>> {
+    const result = await request<unknown>({
+        path: `${SALES_API.products(input.accessToken)}?barcode=${encodeURIComponent(input.barcode)}&limit=1`,
+        method: 'GET',
+    });
+
+    if (!result.success || !result.data) {
+        return withData(result, null);
+    }
+
+    const items = Array.isArray(result.data) ? result.data : [];
+    if (items.length === 0) {
+        return withData(result, null);
+    }
+
+    return withData(result, normalizeSalesProductSummary(items[0]));
+}
+
 export function pickSelectableVariants(
     productOrVariants: NormalizedSalesProductDetail | NormalizedSalesProductVariant[] | null | undefined,
     policy: VariantSelectPolicy = 'in_stock_only'

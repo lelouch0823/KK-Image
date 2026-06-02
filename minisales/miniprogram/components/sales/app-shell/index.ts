@@ -49,6 +49,10 @@ Component({
       this.closeDrawer();
       this.triggerEvent('navigate', { target: 'stats' });
     },
+    onTapScan() {
+      this.closeDrawer();
+      this.triggerEvent('navigate', { target: 'scan' });
+    },
     onTapNotifications() {
       if (!this.properties.enableNotificationsDrawer) {
         this.triggerEvent('notifications');

@@ -12,6 +12,10 @@
     {
       "root": "pages/spaces_detail",
       "pages": ["detail"]
+    },
+    {
+      "root": "pages/scan",
+      "pages": ["scan"]
     }
   ],
   "window": {

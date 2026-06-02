@@ -1,0 +1,136 @@
+<view class="page">
+  <t-navbar title="扫码查询" left-arrow fixed placeholder bind:go-back="handleBack" />
+
+  <view class="page__content">
+    <!-- 空闲状态：扫码入口 -->
+    <view wx:if="{{state === 'idle'}}" class="scan-entry">
+      <view class="scan-entry__icon">
+        <t-icon name="scan" size="120rpx" color="#3b82f6" />
+      </view>
+      <text class="scan-entry__title">扫描商品条码</text>
+      <text class="scan-entry__subtitle">扫描商品条形码或二维码，快速查询商品信息</text>
+      <t-button theme="primary" size="large" block bind:tap="handleStartScan" class="scan-entry__btn">
+        开始扫码
+      </t-button>
+    </view>
+
+    <!-- 加载中 -->
+    <view wx:elif="{{state === 'loading'}}" class="scan-loading">
+      <t-loading size="80rpx" theme="circular" />
+      <text class="scan-loading__text">正在查询条码: {{scanCode}}</text>
+    </view>
+
+    <!-- 查询失败 -->
+    <view wx:elif="{{state === 'error'}}" class="scan-error">
+      <t-icon name="error-circle" size="80rpx" color="#ef4444" />
+      <text class="scan-error__text">{{errorMessage || '查询失败'}}</text>
+      <t-button theme="primary" variant="outline" bind:tap="handleRetry" class="scan-entry__btn">
+        重试
+      </t-button>
+    </view>
+
+    <!-- 未找到商品 -->
+    <view wx:elif="{{state === 'not_found'}}" class="scan-not-found">
+      <t-empty description="未找到匹配商品" />
+      <view class="scan-not-found__code">
+        <text class="scan-not-found__label">扫描条码</text>
+        <text class="scan-not-found__value">{{scanCode}}</text>
+      </view>
+      <view class="scan-actions">
+        <t-button theme="primary" variant="outline" block bind:tap="handleScanAgain">
+          重新扫码
+        </t-button>
+        <t-button theme="primary" block bind:tap="handleCreateOrder" class="scan-actions__btn">
+          手动创建订单
+        </t-button>
+      </view>
+    </view>
+
+    <!-- 查询成功 -->
+    <view wx:elif="{{state === 'result' && viewModel}}" class="scan-result">
+      <view class="result-card">
+        <view class="result-card__header">
+          <t-image
+            wx:if="{{viewModel.image}}"
+            class="result-card__image"
+            src="{{viewModel.image}}"
+            mode="aspectFill"
+            shape="round"
+          />
+          <view wx:else class="result-card__image result-card__image--placeholder">
+            <t-icon name="goods" size="48rpx" color="#9ca3af" />
+          </view>
+          <view class="result-card__info">
+            <text class="result-card__title">{{viewModel.title}}</text>
+            <text class="result-card__subtitle">{{viewModel.subtitle}}</text>
+            <t-tag theme="success" variant="light" class="result-card__tag">已匹配</t-tag>
+          </view>
+        </view>
+
+        <view class="result-card__details">
+          <view wx:for="{{viewModel.details}}" wx:key="label" class="result-detail-row">
+            <text class="result-detail-row__label">{{item.label}}</text>
+            <text class="result-detail-row__value">{{item.value}}</text>
+          </view>
+        </view>
+
+        <view class="result-card__code">
+          <text class="result-code__label">条码</text>
+          <text class="result-code__value">{{scanCode}}</text>
+        </view>
+      </view>
+
+      <!-- 快速操作 -->
+      <view class="quick-actions">
+        <view class="quick-actions__header">
+          <text class="quick-actions__title">快速操作</text>
+        </view>
+
+        <view class="direction-toggle">
+          <view
+            class="direction-toggle__item {{adjustDirection === 'in' ? 'direction-toggle__item--active' : ''}}"
+            data-direction="in"
+            bind:tap="onDirectionChange"
+          >
+            <t-icon name="arrow-down" size="32rpx" />
+            <text>入库</text>
+          </view>
+          <view
+            class="direction-toggle__item {{adjustDirection === 'out' ? 'direction-toggle__item--active direction-toggle__item--out' : ''}}"
+            data-direction="out"
+            bind:tap="onDirectionChange"
+          >
+            <t-icon name="arrow-up" size="32rpx" />
+            <text>出库</text>
+          </view>
+        </view>
+
+        <t-input
+          label="数量"
+          type="number"
+          value="{{adjustQuantity}}"
+          placeholder="请输入数量"
+          bind:change="onQuantityInput"
+        />
+
+        <t-input
+          label="备注"
+          value="{{adjustRemark}}"
+          placeholder="可选备注"
+          bind:change="onRemarkInput"
+        />
+      </view>
+
+      <view class="scan-result-actions">
+        <t-button theme="primary" variant="outline" block bind:tap="handleScanAgain">
+          重新扫码
+        </t-button>
+        <t-button theme="primary" block bind:tap="handleCreateOrder" class="scan-result-actions__btn">
+          创建订单
+        </t-button>
+      </view>
+    </view>
+  </view>
+
+  <t-toast id="t-toast" />
+</view>

@@ -5,6 +5,9 @@
       <text wx:if="{{subtitle}}" class="shell__subtitle">{{subtitle}}</text>
     </view>
     <view class="shell__actions">
+      <view class="shell__action sales-soft-action" bind:tap="onTapScan">
+        <t-icon name="scan" size="36rpx" />
+      </view>
       <view class="shell__action sales-soft-action" bind:tap="onTapStats">
         <t-icon name="chart" size="36rpx" />
       </view>
