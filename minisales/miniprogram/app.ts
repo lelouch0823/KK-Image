@@ -2,12 +2,14 @@ import { getToken, getAccessToken } from './utils/api';
 import { fetchCurrentSalesUser } from './utils/auth';
 import { applyInboundAccessToken, clearSalesSession, restoreSalesSession } from './services/auth/session';
 import { KEYS, store } from './utils/store';
+import { requestSubscribeAuth, SUBSCRIBE_TEMPLATES } from './services/sales/push';
 
 interface IAppOption {
   globalData: {
     userInfo: any;
   };
   restoreSession: () => Promise<void>;
+  initSubscribeMessages: () => Promise<void>;
 }
 
 App<IAppOption>({
@@ -27,6 +29,7 @@ App<IAppOption>({
     applyInboundAccessToken(typeof inboundToken === 'string' ? inboundToken : null);
 
     void this.restoreSession();
+    void this.initSubscribeMessages();
   },
 
   onShow(options: WechatMiniprogram.App.LaunchShowOption) {
@@ -35,6 +38,16 @@ App<IAppOption>({
       applyInboundAccessToken(options.query.token as string);
       void this.restoreSession();
     }
+  },
+
+  async initSubscribeMessages() {
+    const templateIds = Object.values(SUBSCRIBE_TEMPLATES).filter(Boolean);
+    if (templateIds.length === 0) {
+      return;
+    }
+
+    // 静默请求订阅授权，不阻塞启动
+    await requestSubscribeAuth(templateIds);
   },
 
   async restoreSession() {
