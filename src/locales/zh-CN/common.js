@@ -136,4 +136,9 @@ export default {
     pleaseEnter: '请输入{name}',
     pleaseSelect: '请选择{name}',
   },
+  autocomplete: {
+    searchFailed: '搜索失败',
+    noResults: '无匹配结果',
+    minCharsHint: '请输入至少 {count} 个字符',
+  },
 };

@@ -135,4 +135,9 @@ export default {
     pleaseEnter: 'Please enter {name}',
     pleaseSelect: 'Please select {name}',
   },
+  autocomplete: {
+    searchFailed: 'Search failed',
+    noResults: 'No matching results',
+    minCharsHint: 'Enter at least {count} characters',
+  },
 };
