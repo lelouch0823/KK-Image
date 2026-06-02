@@ -202,7 +202,7 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick, onMounted, onUnmounted, computed } from 'vue';
+import { ref, watch, nextTick, computed } from 'vue';
 import { useCommandPalette } from '@/composables/useCommandPalette';
 import { useI18n } from '@/composables/useI18n';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -292,23 +292,6 @@ watch(selectedIndex, () => {
   });
 });
 
-// 全局快捷键 ⌘K / Ctrl+K
-const handleGlobalKeydown = (e) => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-    e.preventDefault();
-    if (isOpen.value) {
-      close();
-    } else {
-      // 仅在已登录状态打开（不在登录页等）
-      const path = window.location.pathname;
-      if (path.startsWith('/admin')) {
-        const { open } = useCommandPalette();
-        open();
-      }
-    }
-  }
-};
-
 // 处理键盘事件（防止在输入框中拦截）
 const handleKeydown = (e) => {
   if (e.key === 'Escape') {
@@ -317,11 +300,6 @@ const handleKeydown = (e) => {
   }
 };
 
-onMounted(() => {
-  document.addEventListener('keydown', handleGlobalKeydown);
-});
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleGlobalKeydown);
-});
+// 注意：全局 ⌘K / Ctrl+K 快捷键已由 App.vue 的键盘快捷键系统统一处理，
+// 此处不再重复注册 document.addEventListener，避免重复触发。
 </script>
