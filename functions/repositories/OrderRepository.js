@@ -116,6 +116,16 @@ export class OrderRepository {
     return mutations.setUnread(this.db, id, actorType);
   }
 
+  /** @see mutations.archive */
+  async archive(id, archivedBy = null) {
+    return mutations.archive(this.db, id, archivedBy);
+  }
+
+  /** @see mutations.restore */
+  async restore(id) {
+    return mutations.restore(this.db, id);
+  }
+
   /** @see mutations.deleteWithRelations */
   async deleteOrderCascading(id) {
     return mutations.deleteWithRelations(this.db, id);

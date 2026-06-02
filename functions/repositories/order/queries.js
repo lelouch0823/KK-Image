@@ -106,6 +106,7 @@ export async function findById(db, id) {
              o.status, o.procurement_status, o.fulfillment_status, o.delivery_status,
              o.delivered_at, o.delivered_by, o.delivery_note,
              o.main_image_id, o.unread_by_admin, o.unread_by_sales, o.created_at, o.updated_at,
+             o.archived_at, o.archived_by,
              f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
              c.name as customer_name, c.company as customer_company, c.phone as customer_phone
       FROM orders o
@@ -145,6 +146,7 @@ export async function findByIdAndSalesperson(db, id, salespersonId) {
              o.status, o.procurement_status, o.fulfillment_status, o.delivery_status,
              o.delivered_at, o.delivered_by, o.delivery_note,
              o.main_image_id, o.unread_by_admin, o.unread_by_sales, o.created_at, o.updated_at,
+             o.archived_at, o.archived_by,
              f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
              c.name as customer_name, c.company as customer_company, c.phone as customer_phone
       FROM orders o
@@ -323,7 +325,7 @@ export async function listBySalesperson(db, salespersonId, { status, search, pag
  */
 export async function listForAdmin(
     db,
-    { salespersonId, customerId, status, procurementStatus, deliveryStatus, search, startTime, endTime, page = 1, limit = 20 } = {}
+    { salespersonId, customerId, status, procurementStatus, deliveryStatus, search, startTime, endTime, includeArchived = false, archivedOnly = false, page = 1, limit = 20 } = {}
 ) {
     const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
         { page, limit },
@@ -332,6 +334,13 @@ export async function listForAdmin(
 
     let whereClause = '1=1';
     const bindParams = [];
+
+    // 归档过滤：默认只显示未归档订单
+    if (archivedOnly) {
+        whereClause += ' AND o.archived_at IS NOT NULL';
+    } else if (!includeArchived) {
+        whereClause += ' AND o.archived_at IS NULL';
+    }
 
     if (salespersonId) {
         whereClause += ' AND o.salesperson_id = ?';
@@ -387,6 +396,7 @@ export async function listForAdmin(
     const listSql = `
       SELECT
           o.id, o.order_no, o.salesperson_id, o.summary_name, o.summary_brand, o.summary_sku, o.status, o.procurement_status, o.fulfillment_status, o.delivery_status, o.product_id, o.variant_id, o.quantity,
+          o.archived_at, o.archived_by,
           order_summary.display_status as display_status,
           order_summary.ordered_qty as line_ordered_qty,
           order_summary.shipped_qty as line_shipped_qty,

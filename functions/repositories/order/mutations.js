@@ -1038,6 +1038,54 @@ export async function setUnread(db, id, actorType) {
 }
 
 /**
+ * 归档订单（软删除）
+ * 设置 archived_at 时间戳，常规查询将自动过滤已归档订单
+ * @param {D1Database} db
+ * @param {string} id - 订单 ID
+ * @param {string} [archivedBy] - 操作人 ID
+ */
+export async function archive(db, id, archivedBy = null) {
+    const now = Date.now();
+    const result = await db.prepare(
+        'UPDATE orders SET archived_at = ?, archived_by = ?, updated_at = ? WHERE id = ? AND archived_at IS NULL'
+    ).bind(now, archivedBy, now, id).run();
+
+    if (result.meta?.changes === 0) {
+        // 可能已归档或订单不存在
+        const existing = await db.prepare('SELECT id, archived_at FROM orders WHERE id = ?').bind(id).first();
+        if (!existing) {
+            throw new BadRequestError(`订单不存在: ${id}`);
+        }
+        if (existing.archived_at) {
+            throw new BadRequestError(`订单已归档: ${id}`);
+        }
+    }
+
+    return { id, archived_at: now, archived_by: archivedBy };
+}
+
+/**
+ * 恢复已归档订单
+ * @param {D1Database} db
+ * @param {string} id - 订单 ID
+ */
+export async function restore(db, id) {
+    const result = await db.prepare(
+        'UPDATE orders SET archived_at = NULL, archived_by = NULL, updated_at = ? WHERE id = ? AND archived_at IS NOT NULL'
+    ).bind(Date.now(), id).run();
+
+    if (result.meta?.changes === 0) {
+        const existing = await db.prepare('SELECT id, archived_at FROM orders WHERE id = ?').bind(id).first();
+        if (!existing) {
+            throw new BadRequestError(`订单不存在: ${id}`);
+        }
+        throw new BadRequestError(`订单未归档，无需恢复: ${id}`);
+    }
+
+    return { id, archived_at: null };
+}
+
+/**
  * 彻底删除订单及其关联数据 (Cascading Delete)
  * @param {D1Database} db
  * @param {string} id

@@ -229,6 +229,8 @@ export function mapOrderListItem(order) {
         canFulfillComplete,
         fulfillmentStatus,
         deliveryStatus,
+        archivedAt: order.archived_at || null,
+        archivedBy: order.archived_by || null,
         ...mapDeliveryConfirmation(order),
     };
 }
@@ -294,6 +296,8 @@ export function mapOrderDetail(order) {
         mainImageBlurhash: order.main_image_blurhash,
         mainImageId: order.main_image_id,
         quantity: order.quantity || 1,
+        archivedAt: order.archived_at || null,
+        archivedBy: order.archived_by || null,
         createdAt: order.created_at,
         updatedAt: order.updated_at,
     };

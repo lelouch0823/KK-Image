@@ -32,6 +32,8 @@ export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'PATCH', path: '/:id/status', domain: 'orders', action: 'order.status.change', severity: 'high', targetType: 'order' },
     { method: 'POST', path: '/:id/delivery-confirmation', domain: 'orders', action: 'order.delivery.confirm', severity: 'high', targetType: 'order' },
     { method: 'POST', path: '/:id/comment', domain: 'orders', action: 'order.comment.create', severity: 'normal', targetType: 'order' },
+    { method: 'POST', path: '/:id/archive', domain: 'orders', action: 'order.archive', severity: 'normal', targetType: 'order' },
+    { method: 'POST', path: '/:id/restore', domain: 'orders', action: 'order.restore', severity: 'normal', targetType: 'order' },
     { method: 'DELETE', path: '/:id', domain: 'orders', action: 'order.delete', severity: 'critical', targetType: 'order' },
 ]);
 const ADMIN_EDITABLE_FIELDS = ['status', 'name', 'brand', 'category', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity', 'lines'];
@@ -652,6 +654,60 @@ app.post('/:id/comment', zValidator('json', AddOrderCommentSchema), async (c) =>
         metadata: { comment },
     });
     return c.json({ success: true, message: MSG.ORDER.COMMENT_ADDED });
+});
+
+/**
+ * POST /:id/archive - 归档订单（软删除）
+ */
+app.post('/:id/archive', async (c) => {
+    const { env } = c;
+    const user = c.get('user');
+    const id = c.req.param('id');
+    const orderRepo = new OrderRepository(env.DB);
+    const order = await orderRepo.findById(id);
+    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+
+    await orderRepo.archive(id, user?.id || null);
+
+    scheduleAuditEvent(c, {
+        domain: 'orders',
+        action: 'order.archive',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'order',
+        targetId: id,
+        target_label: order.orderNo,
+        summary: `${user?.name || 'Admin'} archived order ${order.orderNo}`,
+    });
+
+    return c.json({ success: true, message: '订单已归档' });
+});
+
+/**
+ * POST /:id/restore - 恢复已归档订单
+ */
+app.post('/:id/restore', async (c) => {
+    const { env } = c;
+    const user = c.get('user');
+    const id = c.req.param('id');
+    const orderRepo = new OrderRepository(env.DB);
+    const order = await orderRepo.findById(id);
+    if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+
+    await orderRepo.restore(id);
+
+    scheduleAuditEvent(c, {
+        domain: 'orders',
+        action: 'order.restore',
+        result: 'success',
+        severity: 'normal',
+        targetType: 'order',
+        targetId: id,
+        target_label: order.orderNo,
+        summary: `${user?.name || 'Admin'} restored order ${order.orderNo}`,
+    });
+
+    return c.json({ success: true, message: '订单已恢复' });
 });
 
 /**

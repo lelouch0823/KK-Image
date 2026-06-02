@@ -49,6 +49,8 @@ app.get('/', async (c) => {
     const search = c.req.query('search');
     const startTime = parseInt(c.req.query('startTime') || '0', 10);
     const endTime = parseInt(c.req.query('endTime') || '0', 10);
+    const includeArchived = c.req.query('includeArchived') === 'true';
+    const archivedOnly = c.req.query('archivedOnly') === 'true';
 
     const orderRepo = new OrderRepository(env.DB);
     const [result, { results: salespersons }] = await Promise.all([
@@ -60,6 +62,8 @@ app.get('/', async (c) => {
             search,
             startTime,
             endTime,
+            includeArchived,
+            archivedOnly,
             page,
             limit,
         }),
