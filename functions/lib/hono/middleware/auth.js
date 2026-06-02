@@ -23,7 +23,7 @@ export const publicRoutes = [
 ];
 
 // Routes that are intentionally public by prefix, with path-boundary matching.
-const publicRoutePrefixes = ['/api/v1/health', '/api/gallery', '/api/space'];
+const publicRoutePrefixes = ['/api/v1/health', '/api/v1/api-docs', '/api/gallery', '/api/space'];
 
 function isPublicRoute(path) {
   if (publicRoutes.includes(path)) return true;

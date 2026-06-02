@@ -52,6 +52,7 @@ import manageCategoriesRoutes from './routes/manage/categories.js'; // NEW: 分�
 import manageStocktakesRoutes from './routes/manage/stocktakes.js'; // NEW: 库存盘点
 import manageReceivablesRoutes from './routes/manage/receivables.js'; // NEW: 应收账款
 import manageFeatureFlagsRoutes from './routes/manage/feature-flags.js'; // NEW: 功能开关
+import apiDocsRoutes from './routes/v1/api-docs.js'; // NEW: API 文档
 
 export const app = new Hono();
 
@@ -104,6 +105,7 @@ app.use('/api/sales/*', authMiddleware);
 
 app.route('/api/v1/auth', authRoutes);
 app.route('/api/v1/health', healthRoutes);
+app.route('/api/v1/api-docs', apiDocsRoutes); // NEW: API 文档（公开访问）
 
 // V1 API 路由
 app.route('/api/v1/files', filesRoutes);
