@@ -42,9 +42,10 @@
       </div>
 
       <!-- 命令面板快捷入口 (桌面端) -->
-      <button
-        type="button"
-        class="hidden items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors hover:bg-(--bg-hover) lg:flex"
+      <AppButton
+        variant="ghost"
+        size="sm"
+        class="hidden items-center gap-1.5 border lg:flex"
         :style="{
           borderColor: 'var(--border-color)',
           color: 'var(--text-muted)',
@@ -54,7 +55,7 @@
       >
         <AppIcon name="magnifying-glass" class="size-3.5" />
         <kbd class="font-mono text-[10px]">⌘K</kbd>
-      </button>
+      </AppButton>
       <!-- 通知铃铛 (桌面端) -->
       <div v-if="notificationsSupported" ref="notificationRef" class="relative">
         <AppButton

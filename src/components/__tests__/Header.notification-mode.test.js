@@ -55,6 +55,38 @@ vi.mock('@vueuse/core', () => ({
   onClickOutside: vi.fn(),
 }));
 
+vi.mock('@/composables/useCommandPalette', () => ({
+  useCommandPalette: () => ({
+    openCommandPalette: vi.fn(),
+    isOpen: ref(false),
+  }),
+}));
+
+vi.mock('@/composables/useKeyboardShortcuts', () => ({
+  useKeyboardShortcuts: () => ({
+    register: vi.fn(),
+    unregister: vi.fn(),
+    attachListener: vi.fn(),
+    detachListener: vi.fn(),
+  }),
+}));
+
+vi.mock('@/composables/useRecentViews', () => ({
+  useRecentViews: () => ({
+    recentViews: ref([]),
+    addView: vi.fn(),
+    removeView: vi.fn(),
+    clearRecentViews: vi.fn(),
+  }),
+}));
+
+vi.mock('@/composables/useNotificationStream', () => ({
+  useNotificationStream: () => ({
+    startPolling: vi.fn(),
+    stopPolling: vi.fn(),
+  }),
+}));
+
 describe('Header notification mode', () => {
   beforeEach(() => {
     vi.clearAllMocks();

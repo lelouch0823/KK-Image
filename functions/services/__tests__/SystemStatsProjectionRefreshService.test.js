@@ -32,9 +32,19 @@ describe('SystemStatsProjectionRefreshService', () => {
         fileTypes: [{ type: 'image/jpeg', count: 10 }],
       })),
     };
+    const orderStatsRepo = {
+      getSalesTrend: vi.fn(async () => []),
+      getStatusDistribution: vi.fn(async () => []),
+      getProfitSummary: vi.fn(async () => ({ totalRevenue: 0, totalCost: 0, totalProfit: 0, margin: 0 })),
+      getProfitTrend: vi.fn(async () => []),
+      getProfitByProduct: vi.fn(async () => []),
+      getTopProducts: vi.fn(async () => []),
+      getSalespersonStats: vi.fn(async () => []),
+    };
     const service = new SystemStatsProjectionRefreshService({}, {
       now: () => 1710000000000,
       statsRepo,
+      orderStatsRepo,
       projectionRepo,
     });
 
@@ -78,6 +88,9 @@ describe('SystemStatsProjectionRefreshService', () => {
       getLast7DaysPendingTrend: vi.fn(async () => [{ date: '2026-04-10', count: 2 }]),
       getLast7DaysOrderTrend: vi.fn(async () => [{ date: '2026-04-10', count: 3 }]),
       getLast7DaysShareTrend: vi.fn(async () => [{ date: '2026-04-10', count: 1 }]),
+      getSalesTrend: vi.fn(async () => []),
+      getStatusDistribution: vi.fn(async () => []),
+      getProfitSummary: vi.fn(async () => ({ totalRevenue: 0, totalCost: 0, totalProfit: 0, margin: 0 })),
     };
     const statsRepo = {
       getRecentFiles: vi.fn(async () => [{

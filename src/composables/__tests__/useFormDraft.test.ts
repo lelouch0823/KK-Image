@@ -1,5 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { reactive, ref } from 'vue';
+
+// 模拟 useI18n - 返回 key 作为翻译结果
+vi.mock('@/composables/useI18n', () => ({
+  useI18n: () => ({
+    t: (key: string, params?: Record<string, unknown>) => {
+      if (params?.count !== undefined) return `${params.count}${key}`;
+      return key;
+    },
+    locale: ref('zh-CN'),
+  }),
+}));
+
 import { useFormDraft } from '../useFormDraft';
 
 /**
@@ -260,7 +272,7 @@ describe('useFormDraft', () => {
     const data = reactive({ name: '' });
     const { getDraftAgeText } = useFormDraft({ key: 'test', data });
 
-    expect(getDraftAgeText()).toBe('刚刚');
+    expect(getDraftAgeText()).toBe('formDraft.justNow');
   });
 
   it('should format minutes ago', () => {
@@ -274,7 +286,7 @@ describe('useFormDraft', () => {
     const data = reactive({ name: '' });
     const { getDraftAgeText } = useFormDraft({ key: 'test', data });
 
-    expect(getDraftAgeText()).toBe('5分钟前');
+    expect(getDraftAgeText()).toBe('5formDraft.minutesAgo');
   });
 
   it('should format hours ago', () => {
@@ -288,7 +300,7 @@ describe('useFormDraft', () => {
     const data = reactive({ name: '' });
     const { getDraftAgeText } = useFormDraft({ key: 'test', data });
 
-    expect(getDraftAgeText()).toBe('3小时前');
+    expect(getDraftAgeText()).toBe('3formDraft.hoursAgo');
   });
 
   it('should format days ago', () => {
@@ -302,7 +314,7 @@ describe('useFormDraft', () => {
     const data = reactive({ name: '' });
     const { getDraftAgeText } = useFormDraft({ key: 'test', data });
 
-    expect(getDraftAgeText()).toBe('2天前');
+    expect(getDraftAgeText()).toBe('2formDraft.daysAgo');
   });
 
   // ---- restoreDraft is idempotent ----
