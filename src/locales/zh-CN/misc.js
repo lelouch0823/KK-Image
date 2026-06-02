@@ -205,6 +205,8 @@ export default {
     inventory_dashboard: '库存预警看板',
     stocktakes: '库存盘点',
     receivables: '应收账款',
+    erp_sync: 'ERP 数据同步',
+    oauth_apps: 'OAuth 应用管理',
   },
 
   // PWA

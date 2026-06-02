@@ -24,6 +24,8 @@ import inventoryDashboard from './inventoryDashboard';
 import stocktake from './stocktake';
 import keyboardShortcuts from './keyboardShortcuts';
 import print from './print';
+import erpSync from './erpSync';
+import oauth from './oauth';
 
 export default {
   common,
@@ -75,4 +77,6 @@ export default {
   stocktake,
   keyboardShortcuts,
   print,
+  ...erpSync,
+  ...oauth,
 };

@@ -201,6 +201,18 @@ const routes: RouteRecordRaw[] = [
                 meta: { titleKey: 'router.outbox_ops', permission: 'audit:read' },
             },
             {
+                path: 'erp-sync',
+                name: 'ErpSync',
+                component: () => import('@/views/ErpSync.vue'),
+                meta: { titleKey: 'router.erp_sync', permission: 'admin:full' },
+            },
+            {
+                path: 'oauth-apps',
+                name: 'OAuthApps',
+                component: () => import('@/views/OAuthApps.vue'),
+                meta: { titleKey: 'router.oauth_apps', permission: 'admin:full' },
+            },
+            {
                 path: 'forbidden',
                 name: 'Forbidden',
                 component: () => import('@/views/Forbidden.vue'),

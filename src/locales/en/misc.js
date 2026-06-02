@@ -205,6 +205,8 @@ export default {
     inventory_dashboard: 'Inventory Dashboard',
     stocktakes: 'Stocktake',
     receivables: 'Receivables',
+    erp_sync: 'ERP Data Sync',
+    oauth_apps: 'OAuth Apps',
   },
 
   // PWA
