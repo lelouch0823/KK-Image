@@ -1,16 +1,16 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { CategoryRepository } from '../../../../repositories/CategoryRepository.js';
-import { requirePermission } from '../../../middleware/auth.js';
+import { requirePermission } from '../../middleware/auth.js';
 import { generateId, now } from '../../../../_shared/utils.js';
-import { ConflictError, NotFoundError, BadRequestError } from '../../../errors.js';
-import { withCache } from '../../../middleware/cache.js';
+import { ConflictError, NotFoundError, BadRequestError } from '../../errors.js';
+import { withCache } from '../../middleware/cache.js';
 import {
     CreateCategorySchema,
     UpdateCategorySchema,
     SetCategoryProductsSchema,
     SetProductCategoriesSchema,
-} from '../../../schemas/category.js';
+} from '../../schemas/category.js';
 
 const categoriesRoute = new Hono();
 categoriesRoute.use('*', requirePermission('products:manage'));

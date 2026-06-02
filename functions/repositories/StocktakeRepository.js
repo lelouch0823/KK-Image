@@ -10,6 +10,7 @@
 
 import { generateId, now } from '../api/utils/id.js';
 import { executeBatchChunks } from '../lib/db/batch.js';
+import { InventoryService } from '../services/InventoryService.js';
 
 export class StocktakeRepository {
   constructor(db) {
@@ -301,80 +302,23 @@ export class StocktakeRepository {
     }
 
     const timestamp = now();
-    const statements = [];
+    const inventoryService = new InventoryService(this.db);
 
-    for (const item of items) {
-      const delta = item.difference;
-
-      // 更新 product_variants.stock_quantity
-      statements.push(
-        this.db.prepare(
-          `UPDATE product_variants
-           SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ?
-           WHERE id = ?`
-        ).bind(delta, timestamp, item.variant_id)
-      );
-
-      // 更新 inventory_balances
-      statements.push(
-        this.db.prepare(
-          `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
-           VALUES (?, MAX(0, ?), 0, MAX(0, ?), ?)
-           ON CONFLICT(variant_id) DO UPDATE SET
-             on_hand = MAX(0, inventory_balances.on_hand + ?),
-             available = MAX(0, MAX(0, inventory_balances.on_hand + ?) - inventory_balances.reserved),
-             updated_at = excluded.updated_at`
-        ).bind(
-          item.variant_id,
-          delta,
-          delta,
-          timestamp,
-          delta,
-          delta
-        )
-      );
-
-      // 写入 inventory_ledger
-      statements.push(
-        this.db.prepare(
-          `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)
-           VALUES (?, ?, 'manual_adjustment', ?, 'stocktake', ?, ?, ?, ?)`
-        ).bind(
-          generateId(),
-          item.variant_id,
-          delta,
-          stocktakeId,
-          timestamp,
-          JSON.stringify({ source: 'stocktake', stocktakeId }),
-          timestamp
-        )
-      );
-
-      // 写入 inventory_events
-      statements.push(
-        this.db.prepare(
-          `INSERT INTO inventory_events (id, variant_id, event_type, quantity_delta, source_type, source_id, metadata, occurred_at, created_at)
-           VALUES (?, ?, 'manual_adjustment', ?, 'stocktake', ?, ?, ?, ?)`
-        ).bind(
-          generateId(),
-          item.variant_id,
-          delta,
-          stocktakeId,
-          JSON.stringify({ source: 'stocktake', stocktakeId }),
-          timestamp,
-          timestamp
-        )
-      );
-    }
+    // 通过 InventoryService 统一处理库存变更（更新 product_variants、inventory_balances、inventory_ledger、inventory_events）
+    const mutations = items.map((item) => ({
+      type: 'manual_adjustment',
+      variantId: item.variant_id,
+      quantityDelta: item.difference,
+      referenceType: 'stocktake',
+      referenceId: stocktakeId,
+      metadata: { source: 'stocktake', stocktakeId },
+    }));
+    await inventoryService.applyBatch(mutations);
 
     // 更新盘点单状态
-    statements.push(
-      this.db.prepare(
-        "UPDATE stocktakes SET status = 'adjusted', completed_at = ? WHERE id = ?"
-      ).bind(timestamp, stocktakeId)
-    );
-
-    await executeBatchChunks(this.db, statements);
+    await this.db.prepare(
+      "UPDATE stocktakes SET status = 'adjusted', completed_at = ? WHERE id = ?"
+    ).bind(timestamp, stocktakeId).run();
 
     return {
       adjustedCount: items.length,

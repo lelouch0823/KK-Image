@@ -222,11 +222,11 @@ export class ProductRepository {
             images: JSON.stringify(data.images || []),
             specifications: JSON.stringify(data.specifications || {}),
             options: JSON.stringify(data.options || []),
-            status: data.status || 'draft',
             created_at: now,
             updated_at: now
         };
 
+        // status 由数据库 DEFAULT 'active' 处理，不再写入 INSERT
         const keys = Object.keys(product);
         const placeholders = keys.map(() => '?').join(', ');
         const values = Object.values(product);

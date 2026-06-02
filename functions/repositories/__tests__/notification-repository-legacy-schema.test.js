@@ -49,6 +49,16 @@ function createLegacySchemaDbStub() {
             if (normalizedSql.includes('source_consumer') || normalizedSql.includes('dedupe_key')) {
               throw noSuchColumn('source_consumer');
             }
+            // Simulate _checkColumnExists: SELECT <column> FROM notifications LIMIT 1
+            if (normalizedSql.includes('SELECT RECEIVER FROM NOTIFICATIONS') || normalizedSql.includes('SELECT receiver FROM notifications')) {
+              throw noSuchColumn('receiver');
+            }
+            if (normalizedSql.includes('SELECT SALESPERSON_ID FROM NOTIFICATIONS') || normalizedSql.includes('SELECT salesperson_id FROM notifications')) {
+              throw noSuchColumn('salesperson_id');
+            }
+            if (normalizedSql.includes('SELECT SOURCE_CONSUMER FROM NOTIFICATIONS') || normalizedSql.includes('SELECT source_consumer FROM notifications')) {
+              throw noSuchColumn('source_consumer');
+            }
             return { count: 1 };
           },
           async run() {

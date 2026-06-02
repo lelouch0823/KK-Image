@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { OAuthRepository, hashSecret } from '../../../../repositories/OAuthRepository.js';
-import { requirePermission } from '../../../middleware/auth.js';
+import { requirePermission } from '../../middleware/auth.js';
 import { generatePrefixedId } from '../../../../_shared/utils.js';
 
 const app = new Hono();

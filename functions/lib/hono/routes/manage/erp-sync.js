@@ -6,8 +6,8 @@ import { ProductRepository } from '../../../../repositories/ProductRepository.ts
 import { CustomerRepository } from '../../../../repositories/CustomerRepository.ts';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 import { ErpSyncService } from '../../../../services/ErpSyncService.js';
-import { requirePermission } from '../../../middleware/auth.js';
-import { parsePagination } from '../../../_shared/route-helpers.js';
+import { requirePermission } from '../../middleware/auth.js';
+import { parsePagination } from '../../_shared/route-helpers.js';
 
 const app = new Hono();
 
