@@ -7,6 +7,7 @@
       <AppButton
         variant="ghost"
         size="sm"
+        :aria-label="t('sidebar.expand')"
         class="text-secondary -ml-2 !h-9 !w-9 !gap-0 !px-0 lg:hidden [&_span]:hidden"
         @click="$emit('openSidebar')"
       >
@@ -21,6 +22,7 @@
       <AppButton
         variant="ghost"
         size="sm"
+        :aria-label="t('header.searchPlaceholder')"
         class="text-secondary !h-9 !w-9 !gap-0 !px-0 lg:hidden [&_span]:hidden"
         @click="openMobileSearch"
       >
@@ -59,6 +61,7 @@
           v-if="!permissionDenied"
           variant="white"
           size="sm"
+          :aria-label="t('header.notifications')"
           class="relative !h-9 !w-9 !gap-0 !px-0 [&_span]:hidden"
           :class="{ 'bg-(--bg-hover)': showNotifications }"
           @click="toggleNotifications"
@@ -108,8 +111,9 @@
       <AppButton
         variant="white"
         size="sm"
+        :aria-label="isDark ? t('header.lightMode') : t('header.darkMode')"
         class="!h-9 !w-9 !gap-0 !px-0 [&_span]:hidden"
-        :title="isDark ? '切换亮色模式' : '切换暗色模式'"
+        :title="isDark ? t('header.lightMode') : t('header.darkMode')"
         @click="toggleTheme"
       >
         <template #icon-left>
@@ -121,6 +125,7 @@
       <!-- AI 助手按钮 -->
       <AppButton
         v-if="canUseAI"
+        :aria-label="t('ai.assistant')"
         :title="t('ai.assistant')"
         variant="white"
         size="sm"
@@ -141,6 +146,7 @@
       <AppButton
         variant="white"
         size="sm"
+        :aria-label="t('header.refresh')"
         :title="t('header.refresh')"
         class="!h-9 !w-9 !gap-0 !px-0 disabled:opacity-50 [&_span]:hidden"
         @click="handleRefresh"

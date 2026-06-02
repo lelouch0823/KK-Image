@@ -90,7 +90,7 @@
 
     <div class="px-6 pt-4 pb-2">
       <label class="mb-2 block text-sm font-medium text-(--text-main)">{{
-        t('spaceManager.shareSettings') || '销售可见性设置'
+        t('spaceManager.shareSettings')
       }}</label>
       <SpaceVisibilitySelector
         v-model="form.shareMode"
@@ -243,10 +243,7 @@ const handleSubmit = async () => {
   const isProductBindingComplete = !!form.value.productId && !!form.value.variantId;
   if (hasProductBinding && !isProductBindingComplete) {
     addToast({
-      message:
-        t('spaceManager.productBindingIncomplete') ||
-        t('spaces.productBindingIncomplete') ||
-        '商品绑定不完整，请重新选择商品规格后再创建',
+      message: t('spaceManager.productBindingIncomplete'),
       type: 'error',
     });
     return;

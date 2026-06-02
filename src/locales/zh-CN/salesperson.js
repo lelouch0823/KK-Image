@@ -46,6 +46,7 @@ export default {
   uuid: '唯一标识 (UUID)',
   noAvailable: '暂无可选销售员',
   selectPlaceholder: '选择销售员',
+  createdHiddenByFilters: '销售人员已创建，但当前筛选条件未显示该项',
   table: {
     orders: '关联订单',
   },

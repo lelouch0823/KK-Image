@@ -5,7 +5,7 @@ import process from 'node:process';
 import { mount } from '@vue/test-utils';
 import PurchaseOrderDetailDrawer from '../PurchaseOrderDetailDrawer.vue';
 
-const t = (_key, fallback) => fallback || '';
+const t = (key, fallback) => fallback || key;
 
 const helpers = {
   formatInteger: (value) => String(Number(value || 0)),
@@ -144,7 +144,7 @@ describe('PurchaseOrderDetailDrawer', () => {
       wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()
     ).toContain('Color: Black');
     expect(wrapper.get('[data-testid="purchase-order-open-reversal-modal"]').text()).toContain(
-      '冲销收货'
+      'purchaseOrder.action.reverseReceipt'
     );
   });
 

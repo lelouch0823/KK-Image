@@ -3,12 +3,9 @@
     :model-value="show"
     size="3xl"
     :eyebrow="'Settlement Config'"
-    :title="t('purchaseOrder.action.settle', '填写实际费用')"
+    :title="t('purchaseOrder.action.settle')"
     :description="
-      t(
-        'purchaseOrder.ui.costModalHint',
-        '同步币种、分摊方式、预估费用与实际费用，必要时立即重算每条采购明细的落地成本。'
-      )
+      t('purchaseOrder.ui.costModalHint')
     "
     @update:model-value="handleVisibilityChange"
     @close="$emit('close')"
@@ -115,10 +112,7 @@
         <template #leading>
           <p class="text-sm text-(--text-secondary)">
             {{
-              t(
-                'purchaseOrder.ui.costModalFooterHint',
-                '保存配置后可选择立即重算分摊，当前明细的运费/关税将按新的规则刷新。'
-              )
+              t('purchaseOrder.ui.costModalFooterHint')
             }}
           </p>
         </template>
@@ -128,21 +122,21 @@
         <AppButton
           variant="outline"
           :loading="costSubmitting"
-          :loading-text="t('purchaseOrder.ui.costSaving', '保存中...')"
+          :loading-text="t('purchaseOrder.ui.costSaving')"
           @click="$emit('save')"
         >
-          {{ t('common.save', '保存') }}
+          {{ t('common.save') }}
         </AppButton>
         <AppButton
           v-if="canAllocateCurrentPurchaseOrder"
           :loading="costSubmitting"
-          :loading-text="t('purchaseOrder.ui.costAllocating', '处理中...')"
+          :loading-text="t('purchaseOrder.ui.costAllocating')"
           @click="$emit('allocate')"
         >
           <template #icon-left>
             <AppIcon name="calculator" class="size-4" />
           </template>
-          {{ t('purchaseOrder.action.allocate', '执行成本分摊') }}
+          {{ t('purchaseOrder.action.allocate') }}
         </AppButton>
       </ActionBar>
     </template>

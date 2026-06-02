@@ -432,7 +432,7 @@ describe('OrderManager network workflow', () => {
     expect(result).toBe(false);
     expect(mocks.reserveOrderLine).not.toHaveBeenCalled();
     expect(wrapper.vm.lineCommandState.error).toBe(
-      'Bind a product variant before using fulfillment actions.'
+      'order.detail.lineCommandVariantRequired'
     );
   });
 

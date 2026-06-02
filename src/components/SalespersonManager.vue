@@ -256,7 +256,7 @@ const handleSubmit = async (formData) => {
         },
         onHiddenByFilters: () => {
           addToast({
-            message: t('salesperson.createdHiddenByFilters', '销售人员已创建，但当前筛选条件未显示该项'),
+            message: t('salesperson.createdHiddenByFilters'),
             type: 'info',
           });
         },

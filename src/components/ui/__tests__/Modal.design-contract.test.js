@@ -61,7 +61,7 @@ describe('Modal design contract', () => {
 
     const closeButton = wrapper.get('button');
     expect(closeButton.attributes('aria-label')).toBeTruthy();
-    expect(wrapper.get('[data-modal-surface="base"]').exists()).toBe(true);
+    expect(wrapper.get('[data-modal-surface="modal-test-1"]').exists()).toBe(true);
   });
 
   it('keeps body scroll locked while another stacked modal remains open', async () => {

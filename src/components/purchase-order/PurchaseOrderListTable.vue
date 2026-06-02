@@ -14,18 +14,15 @@
         class="mb-3 flex flex-col gap-2 border-b border-(--border-color)/35 px-1 pb-3 lg:flex-row lg:items-center lg:justify-between"
       >
         <div>
-          <h3 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.ui.tableTitle', 'Order Ledger') }}</h3>
+          <h3 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.ui.tableTitle') }}</h3>
           <p class="mt-1 text-xs text-(--text-secondary)">
             {{
-              t(
-                'purchaseOrder.ui.tableHint',
-                '主状态和到货进度在同一列聚合展示，便于快速扫读链路卡点。'
-              )
+              t('purchaseOrder.ui.tableHint')
             }}
           </p>
         </div>
         <div class="text-xs text-(--text-secondary) lg:text-right">
-          {{ t('purchaseOrder.ui.liveHint', '点击行可查看采购链路详情') }}
+          {{ t('purchaseOrder.ui.liveHint') }}
         </div>
       </div>
     </template>

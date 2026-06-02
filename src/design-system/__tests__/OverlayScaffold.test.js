@@ -48,7 +48,7 @@ describe('OverlayScaffold', () => {
       },
     });
 
-    expect(wrapper.get('[data-modal-surface="base"]').exists()).toBe(true);
+    expect(wrapper.get('[data-modal-surface="overlay-scaffold-test"]').exists()).toBe(true);
     expect(wrapper.get('[data-overlay-scaffold]').attributes('data-overlay-layout')).toBe('dialog');
     const dialog = wrapper.get('[role="dialog"]');
     const title = wrapper.get('[data-overlay-header] h2');

@@ -42,6 +42,7 @@ export default {
   uuid: 'UUID',
   noAvailable: 'No salespersons available',
   selectPlaceholder: 'Select salesperson',
+  createdHiddenByFilters: 'Salesperson created, but current filter settings are hiding this item',
   table: {
     orders: 'Linked Orders',
   },

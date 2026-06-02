@@ -9,26 +9,23 @@
           {{ t('purchaseOrder.detail.receipts') }}
         </p>
         <h3 class="mt-1 text-sm font-semibold text-(--text-main)">
-          {{ t('purchaseOrder.detail.receipts', '收货台账') }}
+          {{ t('purchaseOrder.detail.receipts') }}
           <span class="ml-1 font-mono text-xs font-normal text-(--text-secondary) tabular-nums">
             ({{ receiptTimeline.length }})
           </span>
         </h3>
         <p class="mt-1 text-xs text-(--text-secondary)">
           {{
-            t(
-              'purchaseOrder.ui.receiptLedgerHint',
-              '登记每次到货与冲销记录，确保采购、订单、库存三条投影保持一致。'
-            )
+            t('purchaseOrder.ui.receiptLedgerHint')
           }}
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2 lg:justify-end">
         <StatusBadge variant="default" class="text-[10px]">
-          {{ t('purchaseOrder.ui.receiptLedgerMeta', '支持部分到货与整笔冲销') }}
+          {{ t('purchaseOrder.ui.receiptLedgerMeta') }}
         </StatusBadge>
         <StatusBadge v-if="receiptReceivableCount > 0" variant="info" class="text-[10px]">
-          {{ t('purchaseOrder.ui.receiptReceivableLines', '待收行') }}
+          {{ t('purchaseOrder.ui.receiptReceivableLines') }}
           {{ receiptReceivableCount }}
         </StatusBadge>
         <AppButton
@@ -43,7 +40,7 @@
           <template #icon-left>
             <AppIcon name="archive-box-arrow-down" class="size-3.5" />
           </template>
-          {{ t('purchaseOrder.action.recordReceipt', '登记收货') }}
+          {{ t('purchaseOrder.action.recordReceipt') }}
         </AppButton>
         <AppButton
           v-if="canCloseShortages"
@@ -57,7 +54,7 @@
           <template #icon-left>
             <AppIcon name="minus-circle" class="size-3.5" />
           </template>
-          {{ t('purchaseOrder.action.closeOutstanding', '关闭待收') }}
+          {{ t('purchaseOrder.action.closeOutstanding') }}
         </AppButton>
       </div>
     </div>
@@ -85,8 +82,8 @@
             <StatusBadge :variant="receipt.is_reversed ? 'default' : 'success'" class="text-[10px]">
               {{
                 receipt.is_reversed
-                  ? t('purchaseOrder.ui.receiptReversedTag', '已冲销')
-                  : t('purchaseOrder.ui.receiptRecordedTag', '已入账')
+                  ? t('purchaseOrder.ui.receiptReversedTag')
+                  : t('purchaseOrder.ui.receiptRecordedTag')
               }}
             </StatusBadge>
             <StatusBadge
@@ -94,20 +91,20 @@
               variant="warning"
               class="text-[10px]"
             >
-              {{ t('purchaseOrder.ui.receiptReversibleTag', '可冲销') }}
+              {{ t('purchaseOrder.ui.receiptReversibleTag') }}
             </StatusBadge>
           </div>
           <div class="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)">
             <span>
-              {{ t('purchaseOrder.form.receivedQty', '本次到货') }}
+              {{ t('purchaseOrder.form.receivedQty') }}
               {{ helpers.formatInteger(receipt.received_qty) }}
             </span>
             <span v-if="receipt.available_reversal_qty > 0">
-              · {{ t('purchaseOrder.ui.availableReversalQty', '可冲销量') }}
+              · {{ t('purchaseOrder.ui.availableReversalQty') }}
               {{ helpers.formatInteger(receipt.available_reversal_qty) }}
             </span>
             <span v-if="receipt.reversed_qty > 0">
-              · {{ t('purchaseOrder.ui.reversedQty', '已冲销') }}
+              · {{ t('purchaseOrder.ui.reversedQty') }}
               {{ helpers.formatInteger(receipt.reversed_qty) }}
             </span>
             <span>· {{ helpers.formatDateTime(receipt.received_at) }}</span>
@@ -135,17 +132,17 @@
         <div class="flex flex-col justify-between rounded-2xl border border-(--border-subtle) bg-(--bg-page)/80 p-3">
           <div class="space-y-2 text-xs text-(--text-secondary)">
             <div class="flex items-center justify-between gap-3">
-              <span>{{ t('purchaseOrder.ui.receiptRecordId', '收货记录') }}</span>
+              <span>{{ t('purchaseOrder.ui.receiptRecordId') }}</span>
               <code class="font-mono text-[11px] text-(--text-main)">{{ receipt.id }}</code>
             </div>
             <div class="flex items-center justify-between gap-3">
-              <span>{{ t('purchaseOrder.ui.receiptReversalCount', '冲销次数') }}</span>
+              <span>{{ t('purchaseOrder.ui.receiptReversalCount') }}</span>
               <span class="font-mono text-sm font-semibold text-(--text-main) tabular-nums">
                 {{ helpers.formatInteger(receipt.reversal_count) }}
               </span>
             </div>
             <div class="flex items-center justify-between gap-3">
-              <span>{{ t('purchaseOrder.ui.receiptLastReversedAt', '最近冲销') }}</span>
+              <span>{{ t('purchaseOrder.ui.receiptLastReversedAt') }}</span>
               <span class="text-right text-(--text-main)">
                 {{ receipt.last_reversed_at ? helpers.formatDateTime(receipt.last_reversed_at) : '—' }}
               </span>
@@ -163,7 +160,7 @@
             <template #icon-left>
               <AppIcon name="arrow-uturn-left" class="size-3.5" />
             </template>
-            {{ t('purchaseOrder.action.reverseReceipt', '冲销收货') }}
+            {{ t('purchaseOrder.action.reverseReceipt') }}
           </AppButton>
         </div>
       </article>
@@ -177,19 +174,13 @@
         <AppIcon name="archive-box" class="size-5 text-(--text-muted)" />
       </div>
       <p class="mt-3 text-sm font-medium text-(--text-main)">
-        {{ t('purchaseOrder.ui.receiptLedgerEmptyTitle', '还没有收货记录') }}
+        {{ t('purchaseOrder.ui.receiptLedgerEmptyTitle') }}
       </p>
       <p class="mt-1 text-sm text-(--text-secondary)">
         {{
           canRecordReceipts
-            ? t(
-                'purchaseOrder.ui.receiptLedgerEmptyBody',
-                '当前采购单还有待收货明细，可以登记本次到货。'
-              )
-            : t(
-                'purchaseOrder.ui.receiptLedgerLockedBody',
-                '当前状态下没有可登记的收货明细。'
-              )
+            ? t('purchaseOrder.ui.receiptLedgerEmptyBody')
+            : t('purchaseOrder.ui.receiptLedgerLockedBody')
         }}
       </p>
     </div>

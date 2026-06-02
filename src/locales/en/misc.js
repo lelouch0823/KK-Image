@@ -64,6 +64,9 @@ export default {
   header: {
     searchPlaceholder: 'Search files...',
     refresh: 'Refresh',
+    notifications: 'Notifications',
+    lightMode: 'Switch to light mode',
+    darkMode: 'Switch to dark mode',
   },
 
   // Sidebar

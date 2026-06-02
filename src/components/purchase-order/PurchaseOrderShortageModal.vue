@@ -3,12 +3,9 @@
     :model-value="show"
     size="4xl"
     :eyebrow="'Shortage Closure'"
-    :title="t('purchaseOrder.action.closeOutstanding', '关闭待收')"
+    :title="t('purchaseOrder.action.closeOutstanding')"
     :description="
-      t(
-        'purchaseOrder.ui.shortageModalHint',
-        '将确认不会再到货的尾差数量转入采购单取消量，只关闭采购侧待收，不改客户订单需求。'
-      )
+      t('purchaseOrder.ui.shortageModalHint')
     "
     @update:model-value="handleVisibilityChange"
     @close="$emit('close')"
@@ -42,12 +39,12 @@
               </span>
             </div>
             <p class="mt-2 text-xs text-(--text-secondary)">
-              {{ t('purchaseOrder.progress.receivedPrefix', '已到') }}
+              {{ t('purchaseOrder.progress.receivedPrefix') }}
               {{ formatInteger(entry.received_qty_before) }} /
               {{ formatInteger(entry.ordered_qty) }} ·
-              {{ t('purchaseOrder.progress.cancelledPrefix', '取消') }}
+              {{ t('purchaseOrder.progress.cancelledPrefix') }}
               {{ formatInteger(entry.cancelled_qty_before) }} ·
-              {{ t('purchaseOrder.progress.outstandingPrefix', '待收') }}
+              {{ t('purchaseOrder.progress.outstandingPrefix') }}
               {{ formatInteger(entry.max_closable) }}
             </p>
             <div
@@ -66,7 +63,7 @@
           <div class="grid gap-3 lg:w-[19rem]">
             <AppCard class="p-3">
               <label class="text-[11px] font-medium text-(--text-secondary)">
-                {{ t('purchaseOrder.ui.shortageCloseQty', '本次关闭数量') }}
+                {{ t('purchaseOrder.ui.shortageCloseQty') }}
               </label>
               <AppInput
                 v-model="entry.close_qty"
@@ -80,7 +77,7 @@
                 v-if="isShortageDraftInvalid(entry)"
                 class="text-danger mt-2 text-[11px] font-medium"
               >
-                {{ t('purchaseOrder.ui.shortageQtyOverflow', '不能超过当前剩余待收数量。') }}
+                {{ t('purchaseOrder.ui.shortageQtyOverflow') }}
               </p>
             </AppCard>
           </div>
@@ -93,14 +90,14 @@
         <template #leading>
           <div class="flex flex-wrap items-center gap-2 text-sm text-(--text-secondary)">
             <span>
-              {{ t('purchaseOrder.ui.shortageSelectedLines', '已填关闭行') }}
+              {{ t('purchaseOrder.ui.shortageSelectedLines') }}
               <strong class="font-mono font-semibold tabular-nums text-(--text-main)">
                 {{ shortageDraftSelectedCount }}
               </strong>
             </span>
             <span>·</span>
             <span>
-              {{ t('purchaseOrder.ui.shortageSelectedQty', '已填关闭数量') }}
+              {{ t('purchaseOrder.ui.shortageSelectedQty') }}
               <strong class="font-mono font-semibold tabular-nums text-(--text-main)">
                 {{ formatInteger(shortageDraftSelectedQty) }}
               </strong>
@@ -113,10 +110,10 @@
         <AppButton
           :disabled="shortageSubmitDisabled"
           :loading="shortageSubmitting"
-          :loading-text="t('purchaseOrder.ui.shortageSubmitting', '提交中...')"
+          :loading-text="t('purchaseOrder.ui.shortageSubmitting')"
           @click="$emit('submit')"
         >
-          {{ t('purchaseOrder.action.closeOutstanding', '关闭待收') }}
+          {{ t('purchaseOrder.action.closeOutstanding') }}
         </AppButton>
       </ActionBar>
     </template>

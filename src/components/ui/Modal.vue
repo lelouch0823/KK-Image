@@ -27,7 +27,7 @@
             role="dialog"
             aria-modal="true"
             :aria-labelledby="labelledBy || (title ? modalTitleId : undefined)"
-            data-modal-surface="base"
+            :data-modal-surface="modalId"
             class="animate-in flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-(--border-color) bg-(--color-modal-bg) shadow-2xl"
             :class="sizeClass"
           >
@@ -185,6 +185,9 @@ const handleBackdropClick = () => {
   }
 };
 
+// 记录打开前的焦点元素，关闭时恢复
+let previouslyFocusedElement = null;
+
 const syncBodyScrollLock = () => {
   document.body.style.overflow = hasOpenModals.value ? 'hidden' : '';
 };
@@ -216,9 +219,9 @@ const handleKeydown = (e) => {
   }
 };
 
-// 获取 Modal 内可聚焦元素
+// 获取 Modal 内可聚焦元素（使用 modalId 精确匹配当前 Modal）
 const getFocusableElements = () => {
-  const modalEl = document.querySelector(`[data-modal-surface="base"]`);
+  const modalEl = document.querySelector(`[data-modal-surface="${modalId.value}"]`);
   if (!modalEl) return [];
   return Array.from(
     modalEl.querySelectorAll(
@@ -232,6 +235,8 @@ watch(
   () => props.modelValue,
   (visible) => {
     if (visible) {
+      // 保存当前焦点元素，关闭后恢复
+      previouslyFocusedElement = document.activeElement;
       register(modalId.value);
       syncBodyScrollLock();
       document.addEventListener('keydown', handleKeydown);
@@ -246,6 +251,11 @@ watch(
       unregister(modalId.value);
       syncBodyScrollLock();
       document.removeEventListener('keydown', handleKeydown);
+      // 恢复焦点到打开前的元素
+      if (previouslyFocusedElement && typeof previouslyFocusedElement.focus === 'function') {
+        previouslyFocusedElement.focus();
+        previouslyFocusedElement = null;
+      }
     }
   },
   { immediate: true }
@@ -269,7 +279,7 @@ onUnmounted(() => {
   }
 
   /* Remove modal card shadow and border */
-  :deep([data-modal-surface='base']) {
+  :deep([data-modal-surface]) {
     box-shadow: none !important;
     border: none !important;
     border-radius: 0 !important;

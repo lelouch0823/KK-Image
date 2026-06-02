@@ -64,6 +64,9 @@ export default {
   header: {
     searchPlaceholder: '搜索文件...',
     refresh: '刷新',
+    notifications: '通知',
+    lightMode: '切换亮色模式',
+    darkMode: '切换暗色模式',
   },
 
   // 侧边栏

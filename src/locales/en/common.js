@@ -16,6 +16,8 @@ export default {
   updated: 'Updated Successfully',
   deleted: 'Deleted Successfully',
   loading: 'Loading...',
+  loadMore: 'Load More',
+  loadingMore: 'Loading...',
   noData: 'No Data',
   saveSuccess: 'Save Successful',
   save_success: 'Save Successful',

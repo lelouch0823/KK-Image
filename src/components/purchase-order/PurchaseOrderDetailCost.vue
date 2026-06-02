@@ -35,7 +35,7 @@
           @click="$emit('open-cost-modal')"
         >
           <AppIcon name="pencil-square" class="size-3.5" />
-          {{ t('purchaseOrder.action.settle', '填写实际费用') }}
+          {{ t('purchaseOrder.action.settle') }}
         </AppButton>
       </div>
     </div>
@@ -75,10 +75,7 @@
     </div>
     <p class="mt-3 text-xs leading-5 text-(--text-secondary)">
       {{
-        t(
-          'purchaseOrder.ui.costFallbackHint',
-          '未填写实际费用时，成本分摊会回退使用预估运费与预估关税。'
-        )
+        t('purchaseOrder.ui.costFallbackHint')
       }}
     </p>
   </section>

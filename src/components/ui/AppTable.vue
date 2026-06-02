@@ -46,7 +46,11 @@
                   stickyFirstColumn && colIndex === 0 ? 'app-table__sticky-col sticky left-0 z-20 bg-(--bg-card)' : '',
                 ]"
                 :style="col.headerStyleValue"
+                :aria-sort="col.sortable && sortBy === col.key ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined"
+                :tabindex="col.sortable ? 0 : undefined"
                 @click="toggleSort(col)"
+                @keydown.enter="toggleSort(col)"
+                @keydown.space.prevent="toggleSort(col)"
               >
                 <slot :name="`header-${col.key}`" :column="col">
                   <span class="inline-flex items-center gap-1">

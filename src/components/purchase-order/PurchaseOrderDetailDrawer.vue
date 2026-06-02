@@ -13,7 +13,7 @@
             Detail Workspace
           </p>
           <h2 class="mt-1 text-xl font-bold text-(--text-main)">
-            {{ detail?.po_no || t('purchaseOrder.detail.title', '采购单详情') }}
+            {{ detail?.po_no || t('purchaseOrder.detail.title') }}
           </h2>
         </div>
         <AppButton
@@ -38,14 +38,11 @@
           <div class="skeleton-shimmer size-14 rounded-2xl bg-(--bg-muted)"></div>
           <div>
             <h3 class="text-sm font-semibold text-(--text-main)">
-              {{ t('purchaseOrder.detail.loadingTitle', '正在刷新采购单详情') }}
+              {{ t('purchaseOrder.detail.loadingTitle') }}
             </h3>
             <p class="mt-1 text-sm text-(--text-secondary)">
               {{
-                t(
-                  'purchaseOrder.detail.loadingBody',
-                  '请稍候，系统正在加载采购进度、费用与收货台账。'
-                )
+                t('purchaseOrder.detail.loadingBody')
               }}
             </p>
           </div>
@@ -59,17 +56,17 @@
       >
         <div class="text-center">
           <p class="text-sm font-medium text-(--text-main)">
-            {{ t('purchaseOrder.detail.loadFailedTitle', '采购单详情加载失败') }}
+            {{ t('purchaseOrder.detail.loadFailedTitle') }}
           </p>
           <p class="mt-1 text-sm text-(--text-secondary)">
-            {{ t('purchaseOrder.detail.loadFailedHint', '可以重试重新加载采购单详情。') }}
+            {{ t('purchaseOrder.detail.loadFailedHint') }}
           </p>
           <AppButton
             data-testid="purchase-order-detail-retry"
             class="mt-4"
             @click="$emit('retry-detail')"
           >
-            {{ t('common.retry', '重试') }}
+            {{ t('common.retry') }}
           </AppButton>
         </div>
       </StatePanel>

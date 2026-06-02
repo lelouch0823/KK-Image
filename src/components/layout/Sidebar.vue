@@ -40,6 +40,7 @@
         <AppButton
           variant="ghost"
           size="sm"
+          :aria-label="isCollapsed ? t('sidebar.expand') : t('sidebar.collapse')"
           class="text-secondary hidden !h-8 !w-8 !gap-0 !px-0 hover:text-primary lg:flex [&_span]:hidden"
           :title="isCollapsed ? t('sidebar.expand') : t('sidebar.collapse')"
           @click="toggleCollapse"
@@ -57,6 +58,7 @@
         <AppButton
           variant="ghost"
           size="sm"
+          :aria-label="t('common.close')"
           class="text-(--text-muted) !h-8 !w-8 !gap-0 !px-0 lg:hidden [&_span]:hidden"
           @click="closeSidebar"
         >

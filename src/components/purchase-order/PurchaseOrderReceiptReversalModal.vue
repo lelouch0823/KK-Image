@@ -3,12 +3,9 @@
     :model-value="show && !!activeReceiptForReversal"
     size="lg"
     :eyebrow="'Receipt Reversal'"
-    :title="t('purchaseOrder.action.reverseReceipt', '冲销收货')"
+    :title="t('purchaseOrder.action.reverseReceipt')"
     :description="
-      t(
-        'purchaseOrder.ui.reversalModalHint',
-        '当前接口会整笔回滚该次收货记录，请确认库存和订单投影都允许撤回。'
-      )
+      t('purchaseOrder.ui.reversalModalHint')
     "
     @update:model-value="handleVisibilityChange"
     @close="$emit('close')"
@@ -30,7 +27,7 @@
           </code>
         </div>
         <p class="mt-2 text-xs text-(--text-secondary)">
-          {{ t('purchaseOrder.form.receivedQty', '本次到货') }}
+          {{ t('purchaseOrder.form.receivedQty') }}
           {{ formatInteger(activeReceiptForReversal.received_qty) }} ·
           {{ formatDateTime(activeReceiptForReversal.received_at) }}
         </p>
@@ -38,13 +35,13 @@
 
       <AppCard class="p-4">
         <label class="text-[11px] font-medium text-(--text-secondary)">
-          {{ t('purchaseOrder.form.reason', '原因') }}
+          {{ t('purchaseOrder.form.reason') }}
         </label>
         <AppInput
           :model-value="reason"
           type="text"
           class="mt-2"
-          :placeholder="t('purchaseOrder.ui.reversalReasonPlaceholder', '例如：误登记、异常入库、库存校正')"
+          :placeholder="t('purchaseOrder.ui.reversalReasonPlaceholder')"
           @update:model-value="$emit('update:reason', $event)"
         />
       </AppCard>
@@ -58,10 +55,10 @@
         <AppButton
           variant="danger"
           :loading="receiptReversalSubmitting"
-          :loading-text="t('purchaseOrder.ui.reversalSubmitting', '提交中...')"
+          :loading-text="t('purchaseOrder.ui.reversalSubmitting')"
           @click="$emit('submit')"
         >
-          {{ t('purchaseOrder.action.reverseReceipt', '冲销收货') }}
+          {{ t('purchaseOrder.action.reverseReceipt') }}
         </AppButton>
       </ActionBar>
     </template>

@@ -120,7 +120,7 @@
           <!-- Loading More Indicator -->
           <div v-if="mobileInfiniteScroll.isLoading.value" class="flex items-center justify-center py-4 text-sm text-(--text-secondary)">
             <AppIcon name="spinner" class="mr-2 size-5 animate-spin" />
-            <span>{{ t('common.loadingMore') || '正在加载...' }}</span>
+            <span>{{ t('common.loadingMore') }}</span>
           </div>
           <!-- Intersection Observer Trigger -->
           <div 
@@ -229,7 +229,7 @@
       :title="t('order.detail.deletePermanently')"
       :description="t('order.detail.dangerWarning')"
       :required-text="viewingOrder?.orderNo || ''"
-      :require-text-label="t('order.detail.typeOrderNoToConfirm', '输入订单号确认:')"
+      :require-text-label="t('order.detail.typeOrderNoToConfirm', { orderNo: viewingOrder?.orderNo || '' })"
       :confirm-text="t('order.detail.deletePermanently')"
       :loading="isDeleting"
       @confirm="executeOrderDeletion(viewingOrder)"
@@ -423,12 +423,11 @@ function openDeliveryConfirm(payload = {}) {
 
   deliveryConfirm.show = true;
   deliveryConfirm.note = String(payload?.note || '').trim();
-  deliveryConfirm.title = t('order.detail.deliveryConfirmTitle', '确认签收');
+  deliveryConfirm.title = t('order.detail.deliveryConfirmTitle');
   deliveryConfirm.message = t(
     'order.detail.deliveryConfirmMessage',
-    '确认该订单已经由客户签收了吗？'
   );
-  deliveryConfirm.confirmText = t('order.detail.deliveryConfirmAction', '确认签收');
+  deliveryConfirm.confirmText = t('order.detail.deliveryConfirmAction');
   deliveryConfirm.type = 'primary';
   return true;
 }
@@ -447,48 +446,48 @@ function openLineCommandConfirm({ line, lineId, action, quantity }) {
   const lineLabel = String(line?.snapshotName || line?.id || lineId || '').trim();
   const actionConfig = {
     reserve: {
-      title: t('order.detail.reserveConfirmTitle', '确认预留'),
+      title: t('order.detail.reserveConfirmTitle'),
       message: t('order.detail.reserveConfirmMessage', {
         quantity,
         lineLabel: lineLabel || lineId,
       }),
-      confirmText: t('order.detail.reserveAction', '预留'),
+      confirmText: t('order.detail.reserveAction'),
       type: 'primary',
     },
     release: {
-      title: t('order.detail.releaseConfirmTitle', '确认释放'),
+      title: t('order.detail.releaseConfirmTitle'),
       message: t('order.detail.releaseConfirmMessage', {
         quantity,
         lineLabel: lineLabel || lineId,
       }),
-      confirmText: t('order.detail.releaseAction', '释放'),
+      confirmText: t('order.detail.releaseAction'),
       type: 'primary',
     },
     ship: {
-      title: t('order.detail.shipConfirmTitle', '确认出货'),
+      title: t('order.detail.shipConfirmTitle'),
       message: t('order.detail.shipConfirmMessage', {
         quantity,
         lineLabel: lineLabel || lineId,
       }),
-      confirmText: t('order.detail.shipAction', '出货'),
+      confirmText: t('order.detail.shipAction'),
       type: 'warning',
     },
     unship: {
-      title: t('order.detail.unshipConfirmTitle', '确认撤销出货'),
+      title: t('order.detail.unshipConfirmTitle'),
       message: t('order.detail.unshipConfirmMessage', {
         quantity,
         lineLabel: lineLabel || lineId,
       }),
-      confirmText: t('order.detail.unshipAction', '撤销出货'),
+      confirmText: t('order.detail.unshipAction'),
       type: 'warning',
     },
     return: {
-      title: t('order.detail.returnConfirmTitle', '确认退回'),
+      title: t('order.detail.returnConfirmTitle'),
       message: t('order.detail.returnConfirmMessage', {
         quantity,
         lineLabel: lineLabel || lineId,
       }),
-      confirmText: t('order.detail.returnAction', '退回'),
+      confirmText: t('order.detail.returnAction'),
       type: 'warning',
     },
   };
@@ -547,10 +546,7 @@ const handleOrderLineCommand = async ({ lineId, action, quantity }) => {
     lineCommandState.pending = false;
     lineCommandState.lineId = lineId;
     lineCommandState.action = action;
-    lineCommandState.error = t(
-      'order.detail.lineCommandVariantRequired',
-      'Bind a product variant before using fulfillment actions.'
-    );
+    lineCommandState.error = t('order.detail.lineCommandVariantRequired');
     return false;
   }
 
@@ -578,7 +574,7 @@ const confirmLineCommand = async () => {
   try {
     success = await executor(viewingOrder.value.id, lineId, quantity);
     if (!success) {
-      lineCommandState.error = t('order.detail.lineCommandFailed', '订单行操作未完成，请重试。');
+      lineCommandState.error = t('order.detail.lineCommandFailed');
       return false;
     }
 
@@ -632,7 +628,7 @@ const confirmReturn = async ({ reason, note }) => {
       note,
     });
     if (!success) {
-      lineCommandState.error = t('order.detail.lineCommandFailed', '订单行操作未完成，请重试。');
+      lineCommandState.error = t('order.detail.lineCommandFailed');
       return false;
     }
 
@@ -658,7 +654,7 @@ const executeOrderDeletion = async (order) => {
     }).then(r => r.json());
 
     if (res.success) {
-      addToast({ message: res.message || t('order.detail.deleteSuccess', '订单彻底删除成功'), type: 'success' });
+      addToast({ message: res.message || t('order.detail.deleteSuccess'), type: 'success' });
       showDeleteModal.value = false;
       closeDetailModal();
       refreshOrders();

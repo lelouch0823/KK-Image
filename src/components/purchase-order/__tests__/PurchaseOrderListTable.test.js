@@ -5,7 +5,7 @@ import PurchaseOrderListTable from '../PurchaseOrderListTable.vue';
 
 vi.mock('@/composables/useI18n', () => ({
   useI18n: () => ({
-    t: (_key, fallback) => fallback || '',
+    t: (key, fallback) => fallback || key,
   }),
 }));
 
@@ -75,7 +75,7 @@ describe('PurchaseOrderListTable', () => {
       },
     });
 
-    expect(wrapper.text()).toContain('Order Ledger');
+    expect(wrapper.text()).toContain('purchaseOrder.ui.tableTitle');
     expect(wrapper.text()).toContain('已下单');
     expect(wrapper.text()).toContain('部分到货');
     expect(wrapper.text()).toContain('已到 4 / 12');

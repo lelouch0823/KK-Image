@@ -1,6 +1,7 @@
 <template>
   <svg
     xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
     :viewBox="iconDef.viewBox"
     :fill="iconDef.fill"
     :stroke="iconDef.stroke"
