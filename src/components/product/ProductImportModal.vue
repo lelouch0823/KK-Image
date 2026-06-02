@@ -123,6 +123,14 @@
         </AppButton>
     </template>
   </Modal>
+  <ConfirmDialog
+    v-model="confirmData.show"
+    :title="confirmData.title"
+    :message="confirmData.message"
+    :type="confirmData.type"
+    :loading="confirmData.loading"
+    @confirm="confirmData.onConfirm"
+  />
 </template>
 
 <script setup>
@@ -135,6 +143,7 @@ import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 // Step Components
 import ImportUploadStep from '@/components/product/import/ImportUploadStep.vue';
@@ -156,6 +165,14 @@ const { addToast } = useToast();
 const { importProducts } = useProducts(); 
 const { authFetch } = useAuth();
 
+const confirmData = ref({
+    show: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    loading: false,
+    onConfirm: () => {},
+});
 const fileName = ref('');
 const fileSize = ref('');
 const parsedItems = ref([]);
@@ -729,8 +746,17 @@ const totalImagesCount = computed(() => parsedItems.value.filter(i => i.image_ur
 
 const handleUploadImagesAndNext = async () => {
     if (imageMatches.value.size === 0) {
-        if (!confirm(t('product.import.match_hint'))) return;
-        currentStep.value = 4;
+        confirmData.value = {
+            show: true,
+            title: t('common.confirmTitle'),
+            message: t('product.import.match_hint'),
+            type: 'warning',
+            loading: false,
+            onConfirm: () => {
+                confirmData.value.show = false;
+                currentStep.value = 4;
+            },
+        };
         return;
     }
 

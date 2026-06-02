@@ -24,6 +24,9 @@
           />
         </div>
 
+        <StatGroup v-if="dashboardLoading && !orderStats.todayCount" :columns="4">
+          <Skeleton v-for="i in 4" :key="'sk-summary-' + i" template="stat-card" />
+        </StatGroup>
         <StatGroup v-else :columns="4">
           <AppStatCard
             v-for="card in summaryCards"
@@ -70,8 +73,11 @@
               </template>
 
               <div class="custom-scrollbar flex-1 overflow-y-auto bg-(--bg-muted)/40">
+                <div v-if="dashboardLoading" class="space-y-3 p-4">
+                  <Skeleton v-for="i in 3" :key="'sk-order-' + i" template="list-card" />
+                </div>
                 <div
-                  v-if="orderStats.recentPendingOrders.length > 0"
+                  v-else-if="orderStats.recentPendingOrders.length > 0"
                   class="divide-y divide-(--border-color)"
                 >
                   <div
@@ -141,7 +147,10 @@
                 </div>
               </template>
 
-              <div v-if="recentShares.length === 0" class="flex flex-1 items-center">
+              <div v-if="dashboardLoading" class="flex-1 space-y-3 p-4">
+                <Skeleton v-for="i in 3" :key="'sk-share-' + i" template="list-card" />
+              </div>
+              <div v-else-if="recentShares.length === 0" class="flex flex-1 items-center">
                 <EmptyState
                   icon="no-symbol"
                   :title="t('dashboard.noActiveShares')"
@@ -220,7 +229,10 @@
                 </div>
               </template>
 
-              <div v-if="recentFiles.length === 0" class="flex flex-1 items-center">
+              <div v-if="dashboardLoading" class="flex-1 space-y-3 p-4">
+                <Skeleton v-for="i in 3" :key="'sk-file-' + i" template="list-card" />
+              </div>
+              <div v-else-if="recentFiles.length === 0" class="flex flex-1 items-center">
                 <EmptyState
                   icon="archive-box-x-mark"
                   :title="t('dashboard.noRecentFiles')"
@@ -413,6 +425,7 @@ import AppImage from '@/components/ui/AppImage.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppStatCard from '@/components/ui/AppStatCard.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
 import SurfaceSection from '@/design-system/composed/SurfaceSection.vue';
 import DashboardShell from '@/design-system/patterns/DashboardShell.vue';
 import StatGroup from '@/design-system/composed/StatGroup.vue';
@@ -427,6 +440,7 @@ const { getOrder, addComment } = useOrders();
 const { copyShareLink } = useClipboard();
 const { setContext } = useAI();
 const isRefreshing = ref(false);
+const dashboardLoading = ref(true);
 const lastUpdatedTime = ref(new Date().toLocaleTimeString());
 const dashboardErrorCode = ref(null);
 const dashboardError = ref('');
@@ -666,6 +680,7 @@ const _fetchDashboardData = async () => {
 
       lastUpdatedTime.value = new Date().toLocaleTimeString();
     }
+    dashboardLoading.value = false;
   } catch (e) {
     const code = classifyError(e);
     if (code === ErrorCode.FORBIDDEN) {
@@ -676,6 +691,7 @@ const _fetchDashboardData = async () => {
     dashboardErrorCode.value = ErrorCode.NETWORK_ERROR;
     dashboardError.value = extractErrorMessage(e, t('common.loadFailed'));
     console.error('Dashboard data load failed', e);
+    dashboardLoading.value = false;
   }
 };
 
@@ -764,14 +780,14 @@ const updateCharts = (data) => {
   // 更新状态分布图
   if (data.statusDistribution && charts.statusDistributionChart) {
     const statusLabels = {
-      pending: '待处理',
-      confirmed: '已确认',
-      production: '生产中',
-      shipping: '在途',
-      arrived: '已到货',
-      delivered: '已交付',
-      rejected: '已驳回',
-      void: '已作废',
+      pending: t('dashboard.statusPending'),
+      confirmed: t('dashboard.statusConfirmed'),
+      production: t('dashboard.statusProduction'),
+      shipping: t('dashboard.statusShipping'),
+      arrived: t('dashboard.statusArrived'),
+      delivered: t('dashboard.statusDelivered'),
+      rejected: t('dashboard.statusRejected'),
+      void: t('dashboard.statusVoid'),
     };
     charts.statusDistributionChart.data.labels = data.statusDistribution.map(
       (item) => statusLabels[item.status] || item.status
@@ -953,14 +969,14 @@ const initStatusDistributionChart = () => {
   const data = statusDistributionData.value || [];
 
   const statusColors = {
-    pending: '#f59e0b',
-    confirmed: '#3b82f6',
-    production: '#8b5cf6',
-    shipping: '#06b6d4',
-    arrived: '#10b981',
-    delivered: '#22c55e',
-    rejected: '#ef4444',
-    void: '#6b7280',
+    pending: resolveDashboardChartColor('--color-warning', '245, 158, 11'),
+    confirmed: resolveDashboardChartColor('--color-info', '59, 130, 246'),
+    production: resolveDashboardChartColor('--color-chart-production', '124, 100, 190'),
+    shipping: resolveDashboardChartColor('--color-chart-shipping', '6, 182, 212'),
+    arrived: resolveDashboardChartColor('--color-success', '16, 185, 129'),
+    delivered: resolveDashboardChartColor('--color-chart-delivered', '34, 197, 94'),
+    rejected: resolveDashboardChartColor('--color-danger', '239, 68, 68'),
+    void: resolveDashboardChartColor('--text-muted', '107, 114, 128'),
   };
 
   const statusLabels = {

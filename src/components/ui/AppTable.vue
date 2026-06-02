@@ -461,11 +461,11 @@ defineExpose({
   right: -8px;
   bottom: 0;
   width: 8px;
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.06), transparent);
+  background: linear-gradient(to right, var(--table-sticky-shadow, rgba(0, 0, 0, 0.06)), transparent);
   pointer-events: none;
 }
 
 :root.dark .app-table__sticky-col::after {
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.2), transparent);
+  background: linear-gradient(to right, var(--table-sticky-shadow-dark, rgba(0, 0, 0, 0.2)), transparent);
 }
 </style>

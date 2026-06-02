@@ -72,12 +72,13 @@
         <span class="text-secondary text-xs">
           {{ carrierName }} · {{ trackingNo }}
         </span>
-        <button
-          class="text-primary text-xs underline-offset-2 hover:underline"
+        <AppButton
+          variant="link"
+          size="sm"
           @click="refreshTracking"
         >
           {{ t('common.refresh') }}
-        </button>
+        </AppButton>
       </div>
 
       <div v-if="loading" class="flex items-center justify-center py-6">

@@ -39,26 +39,18 @@
         v-if="showStatusIcon && !textarea"
         class="absolute inset-y-0 right-0 flex items-center pr-3"
       >
-        <svg
+        <AppIcon
           v-if="validationState === 'success'"
+          name="check-circle"
           class="size-4 text-success"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-        <svg
+          aria-hidden="true"
+        />
+        <AppIcon
           v-else-if="validationState === 'error'"
+          name="x-circle"
           class="size-4 text-danger"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
+          aria-hidden="true"
+        />
       </div>
 
       <!-- Append Icon -->
@@ -76,6 +68,7 @@
 
 <script setup>
 import { computed, ref, watch, useSlots, useId, useTemplateRef } from 'vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 defineOptions({
   inheritAttrs: false,

@@ -53,7 +53,6 @@
               :label="t('stats.totalFiles')"
               :value="stats.storage?.totalFiles"
               variant="info"
-              glow
             >
               <template #icon>
                 <AppIcon name="document-text" class="size-6" />
@@ -72,7 +71,6 @@
               :label="t('stats.totalStorage')"
               :value="formatSize(stats.storage?.totalSize)"
               variant="success"
-              glow
             >
               <template #icon>
                 <AppIcon name="database" class="size-6" />
@@ -88,7 +86,6 @@
               :label="t('stats.monthVisits')"
               :value="stats.traffic?.monthTotal"
               variant="primary"
-              glow
             >
               <template #icon>
                 <AppIcon name="eye" class="size-6" />
@@ -138,32 +135,32 @@
           <!-- 利润概览 -->
           <SurfaceSection
             v-if="stats.profit"
-            :title="t('stats.profitOverview', '利润概览')"
+            :title="t('stats.profitOverview')"
             body-class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4"
           >
             <MetricTile
-              :label="t('stats.totalRevenue', '总营收')"
+              :label="t('stats.totalRevenue')"
               :value="formatCurrency(stats.profit?.totalRevenue)"
               icon="banknotes"
               tone="primary"
               flat
             />
             <MetricTile
-              :label="t('stats.totalCost', '总成本')"
+              :label="t('stats.totalCost')"
               :value="formatCurrency(stats.profit?.totalCost)"
               icon="shopping-cart"
               tone="warning"
               flat
             />
             <MetricTile
-              :label="t('stats.totalProfit', '总利润')"
+              :label="t('stats.totalProfit')"
               :value="formatCurrency(stats.profit?.totalProfit)"
               icon="chart-bar"
               :tone="(stats.profit?.totalProfit ?? 0) >= 0 ? 'success' : 'danger'"
               flat
             />
             <MetricTile
-              :label="t('stats.profitMargin', '利润率')"
+              :label="t('stats.profitMargin')"
               :value="stats.profit?.margin != null ? stats.profit.margin + '%' : '-'"
               icon="presentation-chart-line"
               :tone="(stats.profit?.margin ?? 0) >= 0 ? 'success' : 'danger'"
@@ -173,11 +170,11 @@
 
           <!-- 利润趋势图 -->
           <div v-if="stats.charts?.profitTrend?.length" class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <StatsChartWrapper class="lg:col-span-2" :title="t('stats.profitTrend', '利润趋势')">
+            <StatsChartWrapper class="lg:col-span-2" :title="t('stats.profitTrend')">
               <canvas ref="profitTrendChartRef"></canvas>
             </StatsChartWrapper>
 
-            <StatsChartWrapper :title="t('stats.profitByProduct', '商品利润排行')">
+            <StatsChartWrapper :title="t('stats.profitByProduct')">
               <canvas ref="profitByProductChartRef"></canvas>
             </StatsChartWrapper>
           </div>
@@ -763,7 +760,7 @@ const createCharts = () => {
         labels: data.map((item) => item.date?.slice(5) || ''),
         datasets: [
           {
-            label: t('stats.revenue', '营收'),
+            label: t('stats.revenue'),
             data: data.map((item) => item.revenue || 0),
             borderColor: palette.primary,
             backgroundColor: 'transparent',
@@ -773,7 +770,7 @@ const createCharts = () => {
             pointHoverRadius: 4,
           },
           {
-            label: t('stats.cost', '成本'),
+            label: t('stats.cost'),
             data: data.map((item) => item.cost || 0),
             borderColor: palette.warning,
             backgroundColor: 'transparent',
@@ -783,7 +780,7 @@ const createCharts = () => {
             pointHoverRadius: 4,
           },
           {
-            label: t('stats.profit', '利润'),
+            label: t('stats.profit'),
             data: data.map((item) => item.profit || 0),
             borderColor: palette.success,
             backgroundColor: withAlpha(palette.success, 0.15),
@@ -842,7 +839,7 @@ const createCharts = () => {
         }),
         datasets: [
           {
-            label: t('stats.profit', '利润'),
+            label: t('stats.profit'),
             data: data.map((item) => item.profit || 0),
             backgroundColor: data.map((item) =>
               (item.profit || 0) >= 0

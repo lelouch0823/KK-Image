@@ -42,8 +42,8 @@
               <button
                 v-if="closable"
                 type="button"
-                aria-label="Close modal"
-                class="-mr-1 p-1 text-(--text-muted) transition-colors hover:text-(--text-main)"
+                :aria-label="t('common.close')"
+                class="-mr-1 rounded-lg p-1 text-(--text-muted) transition-colors hover:text-(--text-main) focus-visible:ring-2 focus-visible:ring-primary/15 focus:outline-none"
                 @click="close"
               >
                 <AppIcon name="x-mark" class="size-5" />
@@ -71,6 +71,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 import { useModalStack } from '@/composables/useModalStack';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
@@ -112,6 +113,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue', 'close']);
+const { t } = useI18n();
 
 // 智能堆叠管理
 const {

@@ -34,20 +34,28 @@
           v-if="showExportDropdown"
           class="absolute right-0 z-20 mt-1 w-40 rounded-lg border border-(--border-color) bg-(--bg-card) py-1 shadow-lg"
         >
-          <button
-            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-(--text-main) hover:bg-(--bg-hover)"
+          <AppButton
+            variant="ghost"
+            size="sm"
+            class="w-full justify-start"
             @click="handleExport('csv')"
           >
-            <AppIcon name="document-text" class="size-4" />
+            <template #icon-left>
+              <AppIcon name="document-text" class="size-4" />
+            </template>
             {{ t('customer.manage.exportCsv') }}
-          </button>
-          <button
-            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-(--text-main) hover:bg-(--bg-hover)"
+          </AppButton>
+          <AppButton
+            variant="ghost"
+            size="sm"
+            class="w-full justify-start"
             @click="handleExport('xlsx')"
           >
-            <AppIcon name="document-chart-bar" class="size-4" />
+            <template #icon-left>
+              <AppIcon name="document-chart-bar" class="size-4" />
+            </template>
             {{ t('customer.manage.exportXlsx') }}
-          </button>
+          </AppButton>
         </div>
       </div>
 
@@ -275,14 +283,10 @@
           {{ t('customer.manage.batchAddTagConfirm', { count: selectedIds.length, tag: newTag || '...' }) }}
         </p>
         <div>
-          <label class="mb-1 block text-sm font-medium text-(--text-main)">
-            {{ t('customer.form.tags') }}
-          </label>
-          <input
+          <AppInput
             v-model="newTag"
-            type="text"
+            :label="t('customer.form.tags')"
             :placeholder="t('customer.manage.tagInputPlaceholder')"
-            class="w-full rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) placeholder-(--text-muted) focus:border-(--color-primary) focus:outline-none focus:ring-1 focus:ring-(--color-primary)"
             @keydown.enter="handleBatchAddTag"
           />
         </div>
@@ -404,6 +408,7 @@ import CustomerDetailContent from '@/components/customer/CustomerDetailContent.v
 import CustomerCards from '@/components/customer/CustomerCards.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppInput from '@/components/ui/AppInput.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import FloatingSelectionBar from '@/design-system/composed/FloatingSelectionBar.vue';

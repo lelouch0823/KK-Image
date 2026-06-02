@@ -75,7 +75,7 @@
         <transition name="fade">
           <div
             v-if="!isCollapsed"
-            class="text-muted mb-2 px-3 text-[11px] font-medium tracking-wider uppercase"
+            class="text-(--text-muted) mb-2 px-3 text-xs font-medium tracking-wider uppercase"
           >
             {{ t('sidebar.menu') }}
           </div>
@@ -114,7 +114,7 @@
         <transition name="fade">
           <div
             v-if="!isCollapsed"
-            class="text-muted mb-2 px-3 text-[11px] font-medium tracking-wider uppercase"
+            class="text-(--text-muted) mb-2 px-3 text-xs font-medium tracking-wider uppercase"
           >
             {{ t('sidebar.manage') }}
           </div>
@@ -151,7 +151,7 @@
         <transition name="fade-slide">
           <div v-if="!isCollapsed" class="min-w-0 flex-1">
             <div class="truncate text-sm font-medium text-(--text-main)">{{ currentUser?.name || t('sidebar.role') }}</div>
-            <div class="text-muted text-xs capitalize">{{ currentUser?.role || t('sidebar.role') }}</div>
+            <div class="text-(--text-muted) text-xs capitalize">{{ currentUser?.role || t('sidebar.role') }}</div>
           </div>
         </transition>
       </div>

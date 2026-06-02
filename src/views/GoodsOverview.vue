@@ -308,14 +308,14 @@
               <!-- 入货成本 -->
               <template #cell-avgUnitCost="{ row: item }">
                 <span class="font-mono text-(--text-secondary)">
-                  {{ item.avgUnitCost > 0 ? '¥' + item.avgUnitCost.toFixed(2) : '—' }}
+                  {{ item.avgUnitCost > 0 ? '¥' + item.avgUnitCost.toFixed(2) : '-' }}
                 </span>
               </template>
 
               <!-- 运费分摊 -->
               <template #cell-avgFreight="{ row: item }">
                 <span class="font-mono text-(--text-secondary)">
-                  {{ item.avgFreight > 0 ? '¥' + item.avgFreight.toFixed(2) : '—' }}
+                  {{ item.avgFreight > 0 ? '¥' + item.avgFreight.toFixed(2) : '-' }}
                 </span>
               </template>
 
@@ -324,7 +324,7 @@
                 <span v-if="item.landedCost > 0" class="font-mono font-semibold text-(--text-main)"
                   >¥{{ item.landedCost.toFixed(2) }}</span
                 >
-                <span v-else class="text-(--text-muted)">—</span>
+                <span v-else class="text-(--text-muted)">-</span>
               </template>
 
               <!-- 状态标签 -->
@@ -383,7 +383,7 @@
                   variant="outline"
                   size="sm"
                   :disabled="batchStatusProcessing"
-                  class="border-success/30 bg-success/10 text-success shadow-success/10 hover:border-success/40 hover:bg-success/15 hover:text-success shadow-lg"
+                  class="border-success/30 bg-success/10 text-success hover:border-success/40 hover:bg-success/15 hover:text-success"
                   @click="handleBatchActivate"
                 >
                   <template #icon-left>
@@ -402,7 +402,7 @@
                   variant="outline"
                   size="sm"
                   :disabled="batchStatusProcessing"
-                  class="border-warning/30 bg-warning/10 text-warning shadow-warning/10 hover:border-warning/40 hover:bg-warning/15 hover:text-warning shadow-lg"
+                  class="border-warning/30 bg-warning/10 text-warning hover:border-warning/40 hover:bg-warning/15 hover:text-warning"
                   @click="handleBatchDeactivate"
                 >
                   <template #icon-left>

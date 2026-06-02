@@ -50,18 +50,22 @@
     </div>
 
     <!-- 展开/收起明细 -->
-    <button
+    <AppButton
       v-if="profit.lines && profit.lines.length > 0"
-      class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs text-(--text-secondary) hover:bg-(--bg-secondary)"
+      variant="ghost"
+      size="sm"
+      class="flex w-full items-center justify-between"
       @click="showBreakdown = !showBreakdown"
     >
       <span>{{ t('order.profit.breakdown') }}</span>
-      <AppIcon
-        name="chevron-down"
-        class="size-3.5 transition-transform"
-        :class="{ 'rotate-180': showBreakdown }"
-      />
-    </button>
+      <template #icon-right>
+        <AppIcon
+          name="chevron-down"
+          class="size-3.5 transition-transform"
+          :class="{ 'rotate-180': showBreakdown }"
+        />
+      </template>
+    </AppButton>
 
     <!-- 利润明细列表 -->
     <div v-if="showBreakdown && profit.lines" class="mt-2 space-y-2">
@@ -112,6 +116,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({

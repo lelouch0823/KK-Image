@@ -45,11 +45,7 @@
       <AppButton
         variant="ghost"
         size="sm"
-        class="hidden items-center gap-1.5 border lg:flex"
-        :style="{
-          borderColor: 'var(--border-color)',
-          color: 'var(--text-muted)',
-        }"
+        class="hidden items-center gap-1.5 border border-(--border-color) text-(--text-muted) lg:flex"
         :title="t('commandPalette.shortcut')"
         @click="openCommandPalette"
       >

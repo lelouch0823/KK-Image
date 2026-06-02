@@ -82,7 +82,7 @@ const variantClasses = computed(() => {
     ghost: 'bg-transparent text-(--text-secondary) hover:bg-(--bg-muted) hover:text-(--text-main) focus-visible:ring-primary/15',
     link: 'bg-transparent text-primary hover:underline p-0 h-auto',
     outline: 'border border-(--border-color) bg-transparent text-(--text-secondary) hover:border-(--text-secondary) hover:text-(--text-main)',
-    white: 'border border-(--border-color) bg-(--bg-card) text-(--text-main) hover:bg-(--bg-hover) dark:bg-(--bg-muted) dark:text-(--text-main) focus-visible:ring-primary/20',
+    white: 'border border-(--border-color) bg-(--bg-card) text-(--text-main) hover:bg-(--bg-hover) focus-visible:ring-primary/20',
   };
   return variants[props.variant];
 });

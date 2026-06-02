@@ -3,13 +3,14 @@
     <!-- 标题栏 -->
     <div class="mb-4 flex items-center justify-between">
       <h3 class="text-primary text-sm font-medium">{{ t('order.payment.title') }}</h3>
-      <button
+      <AppButton
         v-if="!showAddForm"
-        class="text-primary hover:text-primary/80 text-xs font-medium"
+        variant="link"
+        size="sm"
         @click="showAddForm = true"
       >
         {{ t('order.payment.addPayment') }}
-      </button>
+      </AppButton>
     </div>
 
     <!-- 付款汇总 -->
@@ -106,19 +107,23 @@
 
         <!-- 操作按钮 -->
         <div class="flex justify-end gap-2">
-          <button
-            class="rounded-lg px-4 py-2 text-sm text-(--text-secondary) hover:bg-(--bg-secondary)"
+          <AppButton
+            variant="ghost"
+            size="sm"
             @click="cancelAdd"
           >
             {{ t('common.cancel') }}
-          </button>
-          <button
-            class="bg-primary hover:bg-primary/90 rounded-lg px-4 py-2 text-sm text-white disabled:opacity-50"
-            :disabled="!isValid || adding"
+          </AppButton>
+          <AppButton
+            variant="primary"
+            size="sm"
+            :disabled="!isValid"
+            :loading="adding"
+            :loading-text="t('common.submitting')"
             @click="handleSubmit"
           >
-            {{ adding ? t('common.submitting') : t('common.confirm') }}
-          </button>
+            {{ t('common.confirm') }}
+          </AppButton>
         </div>
       </div>
     </div>
@@ -145,12 +150,14 @@
             {{ payment.notes }}
           </div>
         </div>
-        <button
-          class="text-danger hover:text-danger/80 ml-2 text-xs"
+        <AppButton
+          variant="ghost"
+          size="sm"
+          class="ml-2 text-danger hover:text-danger/80"
           @click="handleDelete(payment.id)"
         >
           {{ t('common.delete') }}
-        </button>
+        </AppButton>
       </div>
     </div>
 
@@ -166,6 +173,15 @@
     <div v-if="loading" class="py-4 text-center">
       <div class="border-primary mx-auto h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" />
     </div>
+
+    <ConfirmDialog
+      v-model="confirmData.show"
+      :title="confirmData.title"
+      :message="confirmData.message"
+      :type="confirmData.type"
+      :loading="confirmData.loading"
+      @confirm="confirmData.onConfirm"
+    />
   </div>
 </template>
 
@@ -173,6 +189,8 @@
 import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { usePayments, type Payment, type PaymentSummary } from '@/composables/usePayments';
+import AppButton from '@/components/ui/AppButton.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const props = defineProps<{
   orderId: string;
@@ -197,6 +215,14 @@ const {
 } = usePayments(computed(() => props.orderId));
 
 const showAddForm = ref(false);
+const confirmData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'warning',
+  loading: false,
+  onConfirm: () => {},
+});
 const form = ref({
   amount: 0,
   method: 'cash',
@@ -299,11 +325,24 @@ async function handleSubmit(): Promise<void> {
  * 删除付款记录
  */
 async function handleDelete(paymentId: string): Promise<void> {
-  if (!confirm(t('order.payment.deleteConfirm'))) return;
-
-  const success = await deletePayment(paymentId);
-  if (success) {
-    emit('payment-changed');
-  }
+  confirmData.value = {
+    show: true,
+    title: t('common.confirmTitle'),
+    message: t('order.payment.deleteConfirm'),
+    type: 'warning',
+    loading: false,
+    onConfirm: async () => {
+      confirmData.value.loading = true;
+      try {
+        const success = await deletePayment(paymentId);
+        if (success) {
+          emit('payment-changed');
+        }
+        confirmData.value.show = false;
+      } finally {
+        confirmData.value.loading = false;
+      }
+    },
+  };
 }
 </script>

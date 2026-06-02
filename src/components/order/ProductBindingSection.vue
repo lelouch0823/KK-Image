@@ -212,7 +212,7 @@
           <div data-testid="inventory-stats" class="flex divide-x divide-(--border-subtle)/60">
             <div class="pr-4 sm:pr-5">
               <p
-                class="mb-1 text-[9px] font-bold tracking-[0.18em] text-(--text-secondary) uppercase sm:text-xs"
+                class="mb-1 text-[10px] font-bold tracking-[0.18em] text-(--text-secondary) uppercase sm:text-xs"
               >
                 {{ t('order.binding.stockLabel') }}
               </p>
@@ -222,7 +222,7 @@
             </div>
             <div class="pl-4 sm:pl-5">
               <p
-                class="mb-1 text-[9px] font-bold tracking-[0.18em] text-(--text-secondary) uppercase sm:text-xs"
+                class="mb-1 text-[10px] font-bold tracking-[0.18em] text-(--text-secondary) uppercase sm:text-xs"
               >
                 {{ t('order.binding.replenishmentLabel') }}
               </p>
