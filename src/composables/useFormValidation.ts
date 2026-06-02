@@ -5,7 +5,7 @@
  * @file src/composables/useFormValidation.ts
  */
 
-import { reactive, computed, watch, type ComputedRef, type UnwrapNestedRefs } from 'vue';
+import { reactive, computed, watch, onUnmounted, type ComputedRef, type UnwrapNestedRefs } from 'vue';
 import { z, type ZodSchema, type ZodError, type ZodIssue } from 'zod';
 import { useI18n } from '@/composables/useI18n';
 
@@ -365,6 +365,17 @@ export function useFormValidation(options: UseFormValidationOptions = {}): UseFo
   const hasErrors = computed(() => {
     return Object.keys(fieldStates).some((field) => fieldStates[field].error !== null);
   });
+
+  // 组件卸载时清除所有防抖定时器
+  try {
+    onUnmounted(() => {
+      for (const field of Object.keys(debounceTimers)) {
+        clearTimeout(debounceTimers[field]);
+      }
+    });
+  } catch {
+    // 在组件外调用时 onUnmounted 会抛出，忽略即可
+  }
 
   return {
     errors,
