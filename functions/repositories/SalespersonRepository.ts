@@ -2,23 +2,33 @@ import { generateId, generateShareToken, hashPassword, now } from '../api/utils/
 import { parseRepoPagination } from '../api/utils/pagination.js';
 import { hasChanges } from '../api/utils/result.js';
 import { buildSetClause } from '../api/utils/sql.js';
+import type { D1Database } from '../types/database.js';
+import type {
+  SalespersonRow,
+  CreateSalespersonData,
+  UpdateSalespersonData,
+  SalespersonRankingItem,
+} from '../types/entities.js';
 
 /**
  * 销售人员仓库
  * 处理销售人员的 CRUD、鉴权和密码管理
  */
 export class SalespersonRepository {
-  constructor(db, jwtSecret) {
+  protected db: D1Database;
+  protected jwtSecret: string;
+
+  constructor(db: D1Database, jwtSecret: string) {
     this.db = db;
     this.jwtSecret = jwtSecret; // 需要传入 JWT_SECRET 用于密码哈希
   }
 
   /**
    * 根据 ID 查找销售人员
-   * @param {string} id
-   * @returns {Promise<Object|null>}
+   * @param id 销售人员 ID
+   * @returns 销售人员对象，不存在时返回 null
    */
-  async findById(id) {
+  async findById(id: string): Promise<SalespersonRow | null> {
     return await this.db
       .prepare(
         `
@@ -26,15 +36,15 @@ export class SalespersonRepository {
         `
       )
       .bind(id)
-      .first();
+      .first<SalespersonRow>();
   }
 
   /**
    * 根据 AccessToken 查找销售人员
-   * @param {string} token
-   * @returns {Promise<Object|null>}
+   * @param token 访问令牌
+   * @returns 销售人员对象，不存在时返回 null
    */
-  async findByToken(token) {
+  async findByToken(token: string): Promise<SalespersonRow | null> {
     return await this.db
       .prepare(
         `
@@ -42,28 +52,28 @@ export class SalespersonRepository {
         `
       )
       .bind(token)
-      .first();
+      .first<SalespersonRow>();
   }
 
   /**
    * 根据微信 OpenID 查找销售人员
-   * @param {string} openid
-   * @returns {Promise<Object|null>}
+   * @param openid 微信 OpenID
+   * @returns 销售人员对象，不存在时返回 null
    */
-  async findByWechatOpenid(openid) {
+  async findByWechatOpenid(openid: string): Promise<SalespersonRow | null> {
     return await this.db
       .prepare('SELECT * FROM salespersons WHERE wechat_openid = ?')
       .bind(openid)
-      .first();
+      .first<SalespersonRow>();
   }
 
   /**
    * 绑定微信 OpenID 到销售人员
-   * @param {string} id - 销售人员 ID
-   * @param {string} openid - 微信 OpenID
-   * @returns {Promise<boolean>}
+   * @param id 销售人员 ID
+   * @param openid 微信 OpenID
+   * @returns 是否成功
    */
-  async updateWechatOpenid(id, openid) {
+  async updateWechatOpenid(id: string, openid: string): Promise<boolean> {
     const result = await this.db
       .prepare('UPDATE salespersons SET wechat_openid = ?, updated_at = ? WHERE id = ?')
       .bind(openid, now(), id)
@@ -75,20 +85,17 @@ export class SalespersonRepository {
 
   /**
    * 获取销售人员列表 (分页)
-   * @param {Object} params
-   * @param {number} params.page
-   * @param {number} params.limit
-   * @param {string} [params.search]
-   * @returns {Promise<{results: Array, total: number, pages: number}>}
+   * @param params 分页与搜索参数
+   * @returns 分页结果
    */
-  async list({ page = 1, limit = 50, search = '' }) {
+  async list({ page = 1, limit = 50, search = '' }: { page?: number; limit?: number; search?: string }): Promise<{ results: SalespersonRow[]; total: number; pages: number }> {
     const { limit: safeLimit, offset } = parseRepoPagination(
       { page, limit },
       { defaultPage: 1, defaultLimit: 50, maxLimit: 100 }
     );
 
     let whereClause = '1=1';
-    const bindings = [];
+    const bindings: unknown[] = [];
 
     if (search) {
       whereClause += ' AND (s.name LIKE ? OR s.store LIKE ? OR s.phone LIKE ?)';
@@ -104,7 +111,7 @@ export class SalespersonRepository {
             `
         )
         .bind(...bindings)
-        .first(),
+        .first<{ total: number }>(),
       this.db
         .prepare(
           `
@@ -123,26 +130,22 @@ export class SalespersonRepository {
             `
         )
         .bind(...bindings, safeLimit, offset)
-        .all(),
+        .all<SalespersonRow & { order_count: number }>(),
     ]);
 
     return {
       results: listResult.results,
-      total: countResult.total,
-      pages: Math.ceil(countResult.total / safeLimit),
+      total: countResult!.total,
+      pages: Math.ceil(countResult!.total / safeLimit),
     };
   }
 
   /**
    * 创建销售人员
-   * @param {Object} data
-   * @param {string} data.name
-   * @param {string} [data.store]
-   * @param {string} [data.phone]
-   * @param {string} data.password
-   * @returns {Promise<Object>} Created salesperson
+   * @param data 销售人员数据
+   * @returns 创建的销售人员信息
    */
-  async create({ name, store, phone, password }) {
+  async create({ name, store, phone, password }: CreateSalespersonData): Promise<{ id: string; name: string; store: string | undefined; phone: string | undefined; accessToken: string; accessUrl: string }> {
     const id = generateId();
     const accessToken = generateShareToken(12);
     const passwordHash = await hashPassword(password, this.jwtSecret);
@@ -171,7 +174,7 @@ export class SalespersonRepository {
           .run();
         break;
       } catch (e) {
-        if (e.message.includes('UNIQUE constraint failed') && retries > 1) {
+        if ((e as Error).message.includes('UNIQUE constraint failed') && retries > 1) {
           retries--;
           continue;
         }
@@ -191,12 +194,12 @@ export class SalespersonRepository {
 
   /**
    * 更新销售人员信息
-   * @param {string} id
-   * @param {Object} data
-   * @returns {Promise<boolean>}
+   * @param id 销售人员 ID
+   * @param data 更新数据
+   * @returns 是否成功
    */
-  async update(id, data) {
-    const updateData = {};
+  async update(id: string, data: UpdateSalespersonData): Promise<boolean> {
+    const updateData: Record<string, unknown> = {};
 
     if (data.name !== undefined) {
       updateData.name = data.name.trim();
@@ -236,10 +239,10 @@ export class SalespersonRepository {
 
   /**
    * 删除销售人员
-   * @param {string} id
-   * @returns {Promise<boolean>}
+   * @param id 销售人员 ID
+   * @returns 是否成功
    */
-  async delete(id) {
+  async delete(id: string): Promise<boolean> {
     const result = await this.db
       .prepare(
         `
@@ -253,10 +256,10 @@ export class SalespersonRepository {
 
   /**
    * 重置 Token
-   * @param {string} id
-   * @returns {Promise<string>} New token
+   * @param id 销售人员 ID
+   * @returns 新的访问令牌
    */
-  async resetAccessToken(id) {
+  async resetAccessToken(id: string): Promise<string> {
     const newToken = generateShareToken(12);
     const result = await this.db
       .prepare(
@@ -273,10 +276,10 @@ export class SalespersonRepository {
 
   /**
    * 验证该用户是否有关联订单
-   * @param {string} id
-   * @returns {Promise<boolean>}
+   * @param id 销售人员 ID
+   * @returns 是否有订单
    */
-  async hasOrders(id) {
+  async hasOrders(id: string): Promise<boolean> {
     const result = await this.db
       .prepare(
         `
@@ -284,18 +287,18 @@ export class SalespersonRepository {
         `
       )
       .bind(id)
-      .first();
-    return result.count > 0;
+      .first<{ count: number }>();
+    return result!.count > 0;
   }
 
   /**
    * 记录登录信息
-   * @param {string} id
-   * @param {string} ip
-   * @param {string} device
-   * @returns {Promise<boolean>}
+   * @param id 销售人员 ID
+   * @param ip 登录 IP
+   * @param device 登录设备
+   * @returns 是否成功
    */
-  async recordLogin(id, ip, device) {
+  async recordLogin(id: string, ip: string, device: string): Promise<boolean> {
     const result = await this.db
       .prepare(
         `
@@ -311,18 +314,15 @@ export class SalespersonRepository {
 
   /**
    * 获取销售业绩排行榜
-   * @param {Object} params
-   * @param {number} [params.days] - 时间范围天数 (7/30/90)，不传则为全部
-   * @param {string} [params.sortBy] - 排序字段: order_count | avg_monthly (默认 order_count)
-   * @param {number} [params.limit] - 返回数量 (默认 20)
-   * @returns {Promise<Array>} 排行数据
+   * @param params 排行参数
+   * @returns 排行数据
    */
-  async getRanking({ days, sortBy = 'order_count', limit = 20 } = {}) {
+  async getRanking({ days, sortBy = 'order_count', limit = 20 }: { days?: number; sortBy?: string; limit?: number } = {}): Promise<SalespersonRankingItem[]> {
     const safeLimit = Math.max(1, Math.min(100, limit || 20));
 
     // 构建时间过滤条件
     let timeFilter = '';
-    const bindings = [];
+    const bindings: unknown[] = [];
     if (days && [7, 30, 90].includes(days)) {
       const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
       timeFilter = 'AND o.created_at >= ?';
@@ -362,7 +362,7 @@ export class SalespersonRepository {
     const result = await this.db
       .prepare(sql)
       .bind(...bindings, safeLimit)
-      .all();
+      .all<SalespersonRankingItem>();
 
     return result.results || [];
   }

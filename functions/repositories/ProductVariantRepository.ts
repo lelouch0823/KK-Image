@@ -4,19 +4,34 @@ import { parseRepoPagination } from '../api/utils/pagination.js';
 import { hasChanges } from '../api/utils/result.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
+import type { D1Database, D1PreparedStatement } from '../types/database.js';
+import type {
+  ProductVariant,
+  ProductVariantRow,
+  CreateVariantData,
+  VariantAISearchFilters,
+  VariantAuditEvent,
+  SyncVariantPlan,
+  SyncVariantResult,
+  BulkSyncImportPlan,
+  BulkSyncResult,
+  VariantCreateBatchResult,
+} from '../types/entities.js';
 
 const D1_MAX_IN_CLAUSE_SIZE = 98;
-const normalizeAlertThreshold = (value, fallback = 10) => {
+const normalizeAlertThreshold = (value: unknown, fallback: number = 10): number => {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : fallback;
 };
 
 export class ProductVariantRepository {
-    constructor(db) {
+    protected db: D1Database;
+
+    constructor(db: D1Database) {
         this.db = db;
     }
 
-    buildFallbackVariantSku(variantId) {
+    buildFallbackVariantSku(variantId?: string): string {
         const normalizedId = String(variantId || '')
             .trim()
             .replace(/[^a-zA-Z0-9]+/g, '')
@@ -25,30 +40,30 @@ export class ProductVariantRepository {
         return `SKU-${String(generateId()).replace(/[^a-zA-Z0-9]+/g, '').toUpperCase()}`;
     }
 
-    buildVariantSku(inputSku, variantId) {
+    buildVariantSku(inputSku: string | undefined, variantId?: string): string {
         const normalized = String(inputSku || '').trim();
         if (normalized) return normalized;
         throw new Error(`variant sku is required${variantId ? ` (${variantId})` : ''}`);
     }
 
-    normalizeExternalCode(value) {
+    normalizeExternalCode(value: unknown): string | null {
         const normalized = String(value ?? '').trim();
         return normalized || null;
     }
 
-    normalizeOptionsValues(value) {
+    normalizeOptionsValues(value: Record<string, unknown> | null | undefined): Record<string, unknown> {
         const entries = Object.entries(value || {})
             .filter(([key, optionValue]) => String(key || '').trim() && optionValue !== undefined && optionValue !== null && String(optionValue).trim() !== '')
             .sort(([a], [b]) => a.localeCompare(b));
         return Object.fromEntries(entries);
     }
 
-    buildVariantSignature(value) {
+    buildVariantSignature(value: Record<string, unknown>): string {
         return JSON.stringify(this.normalizeOptionsValues(value));
     }
 
-    wrapConstraintError(error) {
-        const message = String(error?.message || '');
+    wrapConstraintError(error: unknown): never {
+        const message = String((error as Error)?.message || '');
         if (message.includes('product_variants.barcode')) {
             throw new Error('barcode must be unique');
         }
@@ -61,16 +76,16 @@ export class ProductVariantRepository {
         throw error;
     }
 
-    async createBatch(productId, variantsData) {
+    async createBatch(productId: string, variantsData: CreateVariantData[]): Promise<VariantCreateBatchResult[]> {
         if (!variantsData || variantsData.length === 0) return [];
         const timestamp = now();
-        const statements = [];
-        const results = [];
+        const statements: D1PreparedStatement[] = [];
+        const results: VariantCreateBatchResult[] = [];
 
         for (const v of variantsData) {
             const id = v.id || generateId();
             const sku = String(v.sku || '').trim() || this.buildFallbackVariantSku(id);
-            const optionsValues = this.normalizeOptionsValues(v.options_values || {});
+            const optionsValues = this.normalizeOptionsValues(v.options_values as Record<string, unknown> || {});
             const variantSignature = this.buildVariantSignature(optionsValues);
             statements.push(
                 this.db.prepare(
@@ -125,7 +140,7 @@ export class ProductVariantRepository {
                 options_values: optionsValues,
                 created_at: timestamp,
                 updated_at: timestamp,
-            });
+            } as VariantCreateBatchResult);
         }
         try {
             await executeBatchChunks(this.db, statements);
@@ -136,7 +151,7 @@ export class ProductVariantRepository {
         return results;
     }
 
-    async findByProductId(productId) {
+    async findByProductId(productId: string): Promise<ProductVariant[]> {
         const result = await this.db.prepare(`
             SELECT
                 pv.*,
@@ -148,15 +163,15 @@ export class ProductVariantRepository {
             LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
             WHERE pv.product_id = ?
             ORDER BY pv.created_at ASC
-        `).bind(productId).all();
+        `).bind(productId).all<ProductVariantRow>();
         return (result?.results || []).map((r) => ({ ...r, options_values: parseJsonObject(r.options_values, {}) }));
     }
 
-    async findByProductIds(productIds = []) {
+    async findByProductIds(productIds: string[] = []): Promise<Map<string, ProductVariant[]>> {
         const normalizedIds = [...new Set((Array.isArray(productIds) ? productIds : [])
             .map((productId) => String(productId || '').trim())
             .filter(Boolean))];
-        const rowsByProductId = new Map();
+        const rowsByProductId = new Map<string, ProductVariant[]>();
         if (normalizedIds.length === 0) return rowsByProductId;
 
         for (const idChunk of chunkArray(normalizedIds, D1_MAX_IN_CLAUSE_SIZE)) {
@@ -172,12 +187,12 @@ export class ProductVariantRepository {
                 LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
                 WHERE pv.product_id IN (${placeholders})
                 ORDER BY pv.product_id ASC, pv.created_at ASC
-            `).bind(...idChunk).all();
+            `).bind(...idChunk).all<ProductVariantRow & { product_id: string }>();
             for (const row of result?.results || []) {
                 const productId = String(row?.product_id || '').trim();
                 if (!productId) continue;
                 if (!rowsByProductId.has(productId)) rowsByProductId.set(productId, []);
-                rowsByProductId.get(productId).push({
+                rowsByProductId.get(productId)!.push({
                     ...row,
                     options_values: parseJsonObject(row.options_values, {}),
                 });
@@ -187,7 +202,7 @@ export class ProductVariantRepository {
         return rowsByProductId;
     }
 
-    async findById(variantId) {
+    async findById(variantId: string): Promise<ProductVariant | null> {
         const row = await this.db.prepare(`
             SELECT
                 pv.*,
@@ -198,12 +213,12 @@ export class ProductVariantRepository {
             FROM product_variants pv
             LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
             WHERE pv.id = ?
-        `).bind(variantId).first();
+        `).bind(variantId).first<ProductVariantRow>();
         if (!row) return null;
         return { ...row, options_values: parseJsonObject(row.options_values, {}) };
     }
 
-    async findByIdAndProductId(variantId, productId) {
+    async findByIdAndProductId(variantId: string, productId: string): Promise<ProductVariant | null> {
         const row = await this.db
             .prepare(`
                 SELECT
@@ -217,17 +232,17 @@ export class ProductVariantRepository {
                 WHERE pv.id = ? AND pv.product_id = ?
             `)
             .bind(variantId, productId)
-            .first();
+            .first<ProductVariantRow>();
         if (!row) return null;
         return { ...row, options_values: parseJsonObject(row.options_values, {}) };
     }
 
-    async searchForAI(filters = {}) {
+    async searchForAI(filters: VariantAISearchFilters = {}): Promise<{ items: Array<Record<string, unknown>>; total: number }> {
         const { limit: safeLimit } = parseRepoPagination(
             { limit: filters.limit },
             { defaultPage: 1, defaultLimit: 10, maxLimit: 20 }
         );
-        const params = [];
+        const params: unknown[] = [];
         let where = 'WHERE 1=1';
 
         if (filters.status) {
@@ -286,9 +301,9 @@ export class ProductVariantRepository {
             ${where}
         `;
 
-        const countResult = await this.db.prepare(countSql).bind(...params).first();
-        const result = await this.db.prepare(sql).bind(...params, safeLimit).all();
-        
+        const countResult = await this.db.prepare(countSql).bind(...params).first<{ total: number }>();
+        const result = await this.db.prepare(sql).bind(...params, safeLimit).all<Record<string, unknown>>();
+
         const items = (result.results || []).map((row) => {
             const optionsValues = parseJsonObject(row.options_values, {});
             return {
@@ -311,22 +326,22 @@ export class ProductVariantRepository {
         };
     }
 
-    async assertBelongsToProduct(variantId, productId) {
+    async assertBelongsToProduct(variantId: string, productId: string): Promise<ProductVariant> {
         const variant = await this.findByIdAndProductId(variantId, productId);
         if (!variant) {
             throw new Error('Variant does not belong to product');
         }
         return variant;
     }
-    
-    async updateMovingAverageCost(variantId, newlyArrivedQuantity, totalArrivedCost) {
+
+    async updateMovingAverageCost(variantId: string, newlyArrivedQuantity: number, totalArrivedCost: number): Promise<boolean> {
         const safeArrivedQty = Math.max(0, Number(newlyArrivedQuantity) || 0);
         if (!variantId || safeArrivedQty <= 0) return false;
 
         const row = await this.db
             .prepare('SELECT stock_quantity, cost_price FROM product_variants WHERE id = ?')
             .bind(variantId)
-            .first();
+            .first<{ stock_quantity: number; cost_price: number }>();
         if (!row) return false;
 
         const currentStockQty = Math.max(0, Number(row.stock_quantity) || 0);
@@ -344,19 +359,19 @@ export class ProductVariantRepository {
         return hasChanges(result);
     }
 
-    buildAuditEvents(productId, beforeVariants = [], afterVariants = []) {
+    buildAuditEvents(productId: string, beforeVariants: ProductVariant[] = [], afterVariants: ProductVariant[] = []): VariantAuditEvent[] {
         const beforeMap = new Map((beforeVariants || []).map((variant) => [variant.id, variant]));
         const afterMap = new Map((afterVariants || []).map((variant) => [variant.id, variant]));
-        const events = [];
+        const events: VariantAuditEvent[] = [];
 
         const trackedFields = [
             'sku', 'price', 'cost_price', 'stock_quantity', 'alert_threshold',
             'status', 'barcode', 'supplier_sku', 'options_values',
         ];
-        const pickTracked = (variant) => trackedFields.reduce((acc, field) => {
-            acc[field] = variant?.[field] ?? null;
+        const pickTracked = (variant: ProductVariant): Record<string, unknown> => trackedFields.reduce((acc, field) => {
+            acc[field] = (variant as Record<string, unknown>)?.[field] ?? null;
             return acc;
-        }, {});
+        }, {} as Record<string, unknown>);
 
         for (const afterVariant of afterVariants || []) {
             const beforeVariant = beforeMap.get(afterVariant.id);
@@ -396,9 +411,14 @@ export class ProductVariantRepository {
         return events;
     }
 
-    async syncVariantPlan(productId, variantsData, existingRows = null, { collectMode = false, externalStatements = null } = {}) {
+    async syncVariantPlan(
+        productId: string,
+        variantsData: SyncVariantPlan[],
+        existingRows: Record<string, unknown>[] | null = null,
+        { collectMode = false, externalStatements = null }: { collectMode?: boolean; externalStatements?: D1PreparedStatement[] | null } = {}
+    ): Promise<SyncVariantResult> {
         const timestamp = now();
-        const statements = collectMode ? externalStatements : [];
+        const statements: D1PreparedStatement[] = collectMode ? (externalStatements || []) : [];
         const incomingList = Array.isArray(variantsData) ? variantsData : [];
         const existingResult = existingRows == null && !collectMode
             ? await this.db
@@ -413,19 +433,19 @@ export class ProductVariantRepository {
                     WHERE pv.product_id = ?
                 `)
                 .bind(productId)
-                .all()
+                .all<Record<string, unknown>>()
             : null;
         const resolvedExistingRows = existingRows == null
             ? (existingResult?.results || [])
             : (Array.isArray(existingRows) ? existingRows : []);
-        const existingById = new Map(resolvedExistingRows.map((row) => [row.id, row]));
+        const existingById = new Map(resolvedExistingRows.map((row) => [row.id as string, row]));
         const existingBySignature = new Map(
             resolvedExistingRows
                 .filter((row) => String(row.variant_signature || '').trim() !== '')
-                .map((row) => [row.variant_signature, row])
+                .map((row) => [row.variant_signature as string, row])
         );
-        const retainedIds = new Set();
-        const incomingSignatures = new Set();
+        const retainedIds = new Set<string>();
+        const incomingSignatures = new Set<string>();
         let createdCount = 0;
         let updatedCount = 0;
         let archivedCount = 0;
@@ -436,7 +456,7 @@ export class ProductVariantRepository {
 
         // 2. Upsert each incoming variant
         // SQLite UPSERT syntax: INSERT INTO ... ON CONFLICT(id) DO UPDATE SET ...
-        const results = [];
+        const results = [] as unknown as SyncVariantResult;
         for (const v of incomingList) {
             const optionsValues = this.normalizeOptionsValues(v.options_values || {});
             const variantSignature = this.buildVariantSignature(optionsValues);
@@ -445,21 +465,21 @@ export class ProductVariantRepository {
             }
             incomingSignatures.add(variantSignature);
 
-            let targetExisting = null;
+            let targetExisting: Record<string, unknown> | null = null;
             const existingByIncomingId = v.id ? existingById.get(v.id) : null;
             if (
                 existingByIncomingId &&
-                !retainedIds.has(existingByIncomingId.id)
+                !retainedIds.has(existingByIncomingId.id as string)
             ) {
                 targetExisting = existingByIncomingId;
             } else {
                 const existingBySameSignature = existingBySignature.get(variantSignature);
-                if (existingBySameSignature && !retainedIds.has(existingBySameSignature.id)) {
+                if (existingBySameSignature && !retainedIds.has(existingBySameSignature.id as string)) {
                     targetExisting = existingBySameSignature;
                 }
             }
 
-            const id = targetExisting ? targetExisting.id : generateId();
+            const id = targetExisting ? targetExisting.id as string : generateId();
             if (!targetExisting) {
                 createdCount += 1;
             } else if (targetExisting.status === 'archived') {
@@ -522,16 +542,16 @@ export class ProductVariantRepository {
                     timestamp
                 )
             );
-            results.push({ ...v, id, sku, product_id: productId });
+            (results as unknown as Record<string, unknown>[]).push({ ...v, id, sku, product_id: productId });
         }
 
         const idsToArchive = resolvedExistingRows
-            .filter((row) => row.status !== 'archived' && !retainedIds.has(row.id))
-            .map((row) => row.id);
+            .filter((row) => row.status !== 'archived' && !retainedIds.has(row.id as string))
+            .map((row) => row.id as string);
         archivedCount = idsToArchive.length;
 
         if (idsToArchive.length > 0) {
-            const archiveStatements = [];
+            const archiveStatements: D1PreparedStatement[] = [];
             for (const archiveIdChunk of chunkArray(idsToArchive, D1_MAX_IN_CLAUSE_SIZE)) {
                 const placeholders = archiveIdChunk.map(() => '?').join(',');
                 archiveStatements.push(
@@ -560,14 +580,14 @@ export class ProductVariantRepository {
         return results;
     }
 
-    async syncVariants(productId, variantsData) {
+    async syncVariants(productId: string, variantsData: SyncVariantPlan[]): Promise<SyncVariantResult> {
         return this.syncVariantPlan(productId, variantsData);
     }
 
-    async bulkSyncFromImport(plans = []) {
+    async bulkSyncFromImport(plans: BulkSyncImportPlan[] = []): Promise<BulkSyncResult> {
         const planList = Array.isArray(plans) ? plans : [];
-        const successes = [];
-        const failures = [];
+        const successes: BulkSyncResult['successes'] = [];
+        const failures: BulkSyncResult['failures'] = [];
 
         // 每产品独立执行 batch，保持原有的成功/失败粒度
         // 单产品失败不影响其他产品

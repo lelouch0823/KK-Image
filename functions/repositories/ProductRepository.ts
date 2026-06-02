@@ -6,30 +6,45 @@ import { hasChanges } from '../api/utils/result.js';
 import { generateId } from '../api/utils/id.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { execute, query, queryFirst } from '../lib/db/query.js';
+import type { D1Database } from '../types/database.js';
+import type {
+  Product,
+  ProductRow,
+  CreateProductData,
+  UpdateProductData,
+  ProductFilters,
+  ProductSearchResult,
+  ProductSuggestion,
+  BatchCreateResult,
+  UpdateResultMeta,
+  UpdateParamsResult,
+} from '../types/entities.js';
 
 export class ProductRepository {
     /** @type {boolean|null} FTS5 可用性缓存 */
-    static _ftsAvailable = null;
+    static _ftsAvailable: boolean | null = null;
 
     /** 商品生命周期状态常量 */
-    static VALID_STATUSES = Object.freeze(['draft', 'active', 'archived']);
+    static VALID_STATUSES: readonly string[] = Object.freeze(['draft', 'active', 'archived']);
 
-    static PRODUCT_SORT_FIELDS = Object.freeze({
+    static PRODUCT_SORT_FIELDS: Record<string, string> = Object.freeze({
         price: 'price',
         stock: 'available_quantity',
         updatedAt: 'p.updated_at',
         name: 'p.name COLLATE NOCASE',
     });
 
-    constructor(db) {
+    protected db: D1Database;
+
+    constructor(db: D1Database) {
         this.db = db;
     }
 
     /**
      * 检查 FTS5 虚拟表是否存在（带模块级缓存）
-     * @returns {Promise<boolean>}
+     * @returns FTS5 表是否存在
      */
-    async _hasFtsTable() {
+    async _hasFtsTable(): Promise<boolean> {
         if (ProductRepository._ftsAvailable !== null) return ProductRepository._ftsAvailable;
         try {
             const stmt = this.db.prepare?.("SELECT name FROM sqlite_master WHERE type='table' AND name='products_fts'");
@@ -42,9 +57,9 @@ export class ProductRepository {
         return ProductRepository._ftsAvailable;
     }
 
-    static PRODUCT_CURRENCY_SET = new Set(['CNY', 'USD', 'EUR', 'GBP', 'JPY']);
+    static PRODUCT_CURRENCY_SET: Set<string> = new Set(['CNY', 'USD', 'EUR', 'GBP', 'JPY']);
 
-    normalizeCurrency(value, { allowEmpty = true } = {}) {
+    normalizeCurrency(value: unknown, { allowEmpty = true } = {}): string | null {
         const normalized = String(value ?? '').trim().toUpperCase();
         if (!normalized) return allowEmpty ? 'CNY' : null;
         if (!ProductRepository.PRODUCT_CURRENCY_SET.has(normalized)) {
@@ -56,7 +71,7 @@ export class ProductRepository {
     /**
      * @deprecated 使用 product_projection 表替代，保留用于数据验证
      */
-    _variantAggregateCTE() {
+    _variantAggregateCTE(): string {
         return `
             WITH variant_agg AS (
                 SELECT
@@ -77,7 +92,7 @@ export class ProductRepository {
     /**
      * 使用 product_projection 表的 SELECT SQL（O(1) 查找替代 O(M) 全表 GROUP BY）
      */
-    _productSelectSQL(whereClause = '1=1') {
+    _productSelectSQL(whereClause: string = '1=1'): string {
         return `
             SELECT
                 p.*,
@@ -92,7 +107,7 @@ export class ProductRepository {
         `;
     }
 
-    _productCountSQL(whereClause = '1=1') {
+    _productCountSQL(whereClause: string = '1=1'): string {
         return `
             SELECT COUNT(*) as total
             FROM products p
@@ -101,9 +116,9 @@ export class ProductRepository {
         `;
     }
 
-    async buildProductFilterClause(filters = {}, { omit = [] } = {}) {
-        const clauses = [];
-        const params = [];
+    async buildProductFilterClause(filters: ProductFilters = {}, { omit = [] }: { omit?: string[] } = {}): Promise<{ clause: string; params: unknown[] }> {
+        const clauses: string[] = [];
+        const params: unknown[] = [];
 
         if (filters.status && !omit.includes('status')) {
             clauses.push('p.status = ?');
@@ -147,7 +162,7 @@ export class ProductRepository {
         };
     }
 
-    async listAvailableBrands(filters = {}) {
+    async listAvailableBrands(filters: ProductFilters = {}): Promise<string[]> {
         const { clause, params } = await this.buildProductFilterClause(filters, { omit: ['brand'] });
         const sql = `
             SELECT DISTINCT p.brand AS brand
@@ -161,10 +176,10 @@ export class ProductRepository {
         const result = await query(this.db, sql, params, {
             label: 'product.search.filters.brands',
         });
-        return (result.results || []).map((row) => row.brand).filter(Boolean);
+        return (result.results || []).map((row: Record<string, unknown>) => row.brand as string).filter(Boolean);
     }
 
-    async listAvailableCategories(filters = {}) {
+    async listAvailableCategories(filters: ProductFilters = {}): Promise<string[]> {
         const { clause, params } = await this.buildProductFilterClause(filters, { omit: ['category'] });
         const sql = `
             SELECT DISTINCT p.category AS category
@@ -178,14 +193,15 @@ export class ProductRepository {
         const result = await query(this.db, sql, params, {
             label: 'product.search.filters.categories',
         });
-        return (result.results || []).map((row) => row.category).filter(Boolean);
+        return (result.results || []).map((row: Record<string, unknown>) => row.category as string).filter(Boolean);
     }
 
     /**
      * 创建商品
-     * @param {Object} data 
+     * @param data 商品数据
+     * @returns 创建的商品
      */
-    async create(data) {
+    async create(data: CreateProductData): Promise<Product> {
         const now = Date.now();
         const id = generateId();
         const currency = this.normalizeCurrency(data.currency);
@@ -193,7 +209,7 @@ export class ProductRepository {
             throw new Error('Invalid currency code');
         }
 
-        const product = {
+        const product: Record<string, unknown> = {
             id,
             name: data.name,
             spu: data.spu || null,
@@ -215,9 +231,9 @@ export class ProductRepository {
         const placeholders = keys.map(() => '?').join(', ');
         const values = Object.values(product);
 
-        const query = `INSERT INTO products (${keys.join(', ')}) VALUES (${placeholders}) RETURNING *`;
+        const querySql = `INSERT INTO products (${keys.join(', ')}) VALUES (${placeholders}) RETURNING *`;
 
-        const result = await execute(this.db, query, values, {
+        const result = await execute(this.db, querySql, values, {
             label: 'product.create',
         });
 
@@ -233,20 +249,20 @@ export class ProductRepository {
             stock_quantity: 0,
             available_quantity: 0,
             alert_threshold: 10,
-        };
+        } as unknown as Product;
     }
     /**
      * 批量创建商品
-     * @param {Array<Object>} items 
-     * @returns {Promise<{success: boolean, count: number, errors: Array}>}
+     * @param items 商品数据数组
+     * @returns 批量创建结果
      */
-    async createBatch(items) {
+    async createBatch(items: CreateProductData[]): Promise<BatchCreateResult> {
         if (!items || items.length === 0) return { success: true, count: 0, errors: [] };
 
         const now = Date.now();
         const stmts = [];
-        const errors = [];
-        const validItems = [];
+        const errors: Array<{ spu?: string; error: string }> = [];
+        const validItems: Array<{ data: CreateProductData; id: string }> = [];
 
         // 1. Prepare data
         for (const data of items) {
@@ -267,7 +283,7 @@ export class ProductRepository {
                 id
             });
 
-            const product = {
+            const product: Record<string, unknown> = {
                 id,
                 name: data.name,
                 spu: data.spu || null,
@@ -293,8 +309,8 @@ export class ProductRepository {
             // For now, let's try standard INSERT and let batch fail if strict.
             // Actually, D1 batch is all-or-nothing by default unless we handle it cautiously.
             // But to avoid one dup killing the whole batch, INSERT OR IGNORE is safer for "import".
-            const query = `INSERT OR IGNORE INTO products (${keys.join(', ')}) VALUES (${placeholders})`;
-            stmts.push(this.db.prepare(query).bind(...values));
+            const querySql = `INSERT OR IGNORE INTO products (${keys.join(', ')}) VALUES (${placeholders})`;
+            stmts.push(this.db.prepare(querySql).bind(...values));
         }
 
         if (stmts.length === 0) {
@@ -324,27 +340,28 @@ export class ProductRepository {
 
         } catch (e) {
             console.error('[ProductRepository.createBatch] Error:', e);
-            return { success: false, count: 0, errors: [{ error: e.message }] };
+            return { success: false, count: 0, errors: [{ error: (e as Error).message }] };
         }
     }
 
     /**
      * 更新商品
-     * @param {string} id 
-     * @param {Object} updates 
+     * @param id 商品 ID
+     * @param updates 更新数据
+     * @returns 是否成功
      */
-    async update(id, updates) {
+    async update(id: string, updates: UpdateProductData): Promise<boolean> {
         const result = await this.updateWithMeta(id, updates);
         return result.success && result.changes > 0;
     }
 
     /**
      * 更新商品 (带元数据)
-     * @param {string} id 
-     * @param {Object} updates 
-     * @returns {Promise<{success: boolean, changes: number, error?: string}>}
+     * @param id 商品 ID
+     * @param updates 更新数据
+     * @returns 更新结果元数据
      */
-    async updateWithMeta(id, updates) {
+    async updateWithMeta(id: string, updates: UpdateProductData): Promise<UpdateResultMeta> {
         const built = this._buildUpdateParams(id, updates);
         if (built.error) {
             return { success: false, changes: 0, error: built.error };
@@ -364,17 +381,17 @@ export class ProductRepository {
             };
         } catch (e) {
             console.error('[ProductRepository.updateWithMeta] Error:', e);
-            return { success: false, changes: 0, error: e.message };
+            return { success: false, changes: 0, error: (e as Error).message };
         }
     }
 
     /**
      * 更新商品状态
-     * @param {string} id
-     * @param {string} status - draft | active | archived
-     * @returns {Promise<{success: boolean, changes: number, error?: string}>}
+     * @param id 商品 ID
+     * @param status 新状态
+     * @returns 更新结果元数据
      */
-    async updateStatus(id, status) {
+    async updateStatus(id: string, status: string): Promise<UpdateResultMeta> {
         if (!ProductRepository.VALID_STATUSES.includes(status)) {
             return { success: false, changes: 0, error: `Invalid status: ${status}. Valid values: ${ProductRepository.VALID_STATUSES.join(', ')}` };
         }
@@ -392,15 +409,16 @@ export class ProductRepository {
             };
         } catch (e) {
             console.error('[ProductRepository.updateStatus] Error:', e);
-            return { success: false, changes: 0, error: e.message };
+            return { success: false, changes: 0, error: (e as Error).message };
         }
     }
 
     /**
      * 根据 SPU 查找
-     * @param {string} spu
+     * @param spu SPU 编码
+     * @returns 商品对象，不存在时返回 null
      */
-    async findBySpu(spu) {
+    async findBySpu(spu: string): Promise<Product | null> {
         const result = await queryFirst(
             this.db,
             this._productSelectSQL('p.spu = ?'),
@@ -410,11 +428,11 @@ export class ProductRepository {
         return this._parseResult(result);
     }
 
-    async findBySpuBatch(spus = []) {
+    async findBySpuBatch(spus: string[] = []): Promise<Map<string, Product>> {
         const normalizedSpus = [...new Set((Array.isArray(spus) ? spus : [])
             .map((spu) => String(spu || '').trim())
             .filter(Boolean))];
-        const productsBySpu = new Map();
+        const productsBySpu = new Map<string, Product>();
         if (normalizedSpus.length === 0) return productsBySpu;
 
         for (const spuChunk of chunkArray(normalizedSpus, 100)) {
@@ -429,7 +447,7 @@ export class ProductRepository {
                 const parsed = this._parseResult(row);
                 const key = String(parsed?.spu || '').trim();
                 if (key) {
-                    productsBySpu.set(key, parsed);
+                    productsBySpu.set(key, parsed!);
                 }
             }
         }
@@ -437,11 +455,17 @@ export class ProductRepository {
         return productsBySpu;
     }
 
-    async bulkUpsertFromImport(plans = []) {
+    async bulkUpsertFromImport(plans: Array<{
+        itemKey?: string;
+        operation: string;
+        productId: string;
+        productData: CreateProductData;
+        needsProductUpsert?: boolean;
+    }> = []): Promise<{ successes: Array<Record<string, unknown>>; failures: Array<Record<string, unknown>> }> {
         const planList = Array.isArray(plans) ? plans : [];
-        const successes = [];
-        const failures = [];
-        const batchEntries = []; // { plan, statement }
+        const successes: Array<Record<string, unknown>> = [];
+        const failures: Array<Record<string, unknown>> = [];
+        const batchEntries: Array<{ plan: Record<string, unknown>; statement: ReturnType<D1Database['prepare']> }> = [];
 
         // Phase 1: 验证所有计划并构建 statements
         for (const plan of planList) {
@@ -461,7 +485,7 @@ export class ProductRepository {
                     const currency = this.normalizeCurrency(productData.currency);
                     if (!currency) throw new Error('Invalid currency code');
 
-                    const payload = {
+                    const payload: Record<string, unknown> = {
                         id: productId,
                         name: productData.name,
                         spu: productData.spu || null,
@@ -481,7 +505,7 @@ export class ProductRepository {
                     const keys = Object.keys(payload);
                     const placeholders = keys.map(() => '?').join(', ');
                     batchEntries.push({
-                        plan,
+                        plan: plan as unknown as Record<string, unknown>,
                         statement: this.db
                             .prepare(`INSERT INTO products (${keys.join(', ')}) VALUES (${placeholders})`)
                             .bind(...Object.values(payload)),
@@ -490,7 +514,7 @@ export class ProductRepository {
                     const updateResult = this._buildUpdateParams(productId, productData);
                     if (updateResult.error) throw new Error(updateResult.error);
                     batchEntries.push({
-                        plan,
+                        plan: plan as unknown as Record<string, unknown>,
                         statement: this.db
                             .prepare(`UPDATE products SET ${updateResult.clause} WHERE id = ?`)
                             .bind(...updateResult.values),
@@ -520,18 +544,18 @@ export class ProductRepository {
                     );
                     for (const entry of chunk) {
                         successes.push({
-                            itemKey: entry.plan?.itemKey,
-                            operation: entry.plan?.operation,
-                            productId: entry.plan?.productId,
+                            itemKey: (entry.plan as Record<string, unknown>)?.itemKey,
+                            operation: (entry.plan as Record<string, unknown>)?.operation,
+                            productId: (entry.plan as Record<string, unknown>)?.productId,
                         });
                     }
                 } catch (error) {
                     // 仅当前 chunk 的条目标记为失败，已提交的 chunk 保持成功
                     for (const entry of chunk) {
                         failures.push({
-                            itemKey: entry.plan?.itemKey,
-                            operation: entry.plan?.operation,
-                            productId: entry.plan?.productId || null,
+                            itemKey: (entry.plan as Record<string, unknown>)?.itemKey,
+                            operation: (entry.plan as Record<string, unknown>)?.operation,
+                            productId: (entry.plan as Record<string, unknown>)?.productId || null,
                             error,
                         });
                     }
@@ -544,16 +568,16 @@ export class ProductRepository {
 
     /**
      * 构建商品更新参数（不执行）
-     * @returns {{ clause: string, values: any[], error: null } | { clause: null, values: null, error: string }}
+     * @returns 更新参数构建结果
      */
-    _buildUpdateParams(id, updates) {
+    _buildUpdateParams(id: string, updates: UpdateProductData): UpdateParamsResult {
         const allowedFields = [
             'name', 'spu', 'slug', 'category', 'brand', 'series',
             'currency', 'description', 'images', 'specifications', 'options',
             'status',
         ];
 
-        const updateData = {};
+        const updateData: Record<string, unknown> = {};
         const now = Date.now();
 
         for (const [key, value] of Object.entries(updates)) {
@@ -565,7 +589,7 @@ export class ProductRepository {
                 if (!normalizedCurrency) return { clause: null, values: null, error: 'Invalid currency code' };
                 updateData[key] = normalizedCurrency;
             } else if (key === 'status') {
-                if (!ProductRepository.VALID_STATUSES.includes(value)) {
+                if (!ProductRepository.VALID_STATUSES.includes(value as string)) {
                     return { clause: null, values: null, error: `Invalid status: ${value}. Valid values: ${ProductRepository.VALID_STATUSES.join(', ')}` };
                 }
                 updateData[key] = value;
@@ -585,9 +609,10 @@ export class ProductRepository {
 
     /**
      * 根据 ID 查找
-     * @param {string} id
+     * @param id 商品 ID
+     * @returns 商品对象，不存在时返回 null
      */
-    async findById(id) {
+    async findById(id: string): Promise<Product | null> {
         const result = await queryFirst(
             this.db,
             this._productSelectSQL('p.id = ?'),
@@ -599,16 +624,18 @@ export class ProductRepository {
 
     /**
      * 根据条件搜索
-     * @param {Object} filters { search, category, brand, status, page, limit }
+     * @param filters 搜索过滤器
+     * @param options 搜索选项
+     * @returns 搜索结果
      */
-    async search(filters = {}, options = {}) {
+    async search(filters: ProductFilters = {}, options: { includeFilters?: boolean } = {}): Promise<ProductSearchResult> {
         const { includeFilters = true } = options;
         const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
             { page: filters.page, limit: filters.limit },
             { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
         );
         const normalizedSortOrder = String(filters.sortOrder || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
-        const requestedSortField = ProductRepository.PRODUCT_SORT_FIELDS[filters.sortBy];
+        const requestedSortField = ProductRepository.PRODUCT_SORT_FIELDS[filters.sortBy || ''];
 
         const { clause, params } = await this.buildProductFilterClause(filters);
         let listQuery = this._productSelectSQL(clause);
@@ -626,8 +653,8 @@ export class ProductRepository {
 
         let results;
         let countResult;
-        let brands = [];
-        let categories = [];
+        let brands: string[] = [];
+        let categories: string[] = [];
 
         if (includeFilters) {
             [results, countResult, brands, categories] = await Promise.all([
@@ -644,11 +671,11 @@ export class ProductRepository {
         }
 
         return {
-            items: (results.results || []).map(item => this._parseResult(item)),
-            total: countResult.total,
+            items: ((results.results || []) as Record<string, unknown>[]).map(item => this._parseResult(item)!),
+            total: (countResult as unknown as { total: number }).total,
             page: safePage,
             limit: safeLimit,
-            totalPages: Math.ceil((countResult?.total || 0) / safeLimit),
+            totalPages: Math.ceil(((countResult as unknown as { total: number })?.total || 0) / safeLimit),
             filters: {
                 brands,
                 categories,
@@ -656,7 +683,7 @@ export class ProductRepository {
         };
     }
 
-    _parseResult(item) {
+    _parseResult(item: Record<string, unknown> | null): Product | null {
         if (!item) return null;
         try {
             return {
@@ -664,7 +691,7 @@ export class ProductRepository {
                 images: parseJsonArray(item.images, []),
                 specifications: parseJsonObject(item.specifications, {}),
                 options: parseJsonArray(item.options, []),
-            };
+            } as unknown as Product;
         } catch (e) {
             console.error('Error parsing product JSON:', e);
             // 返回安全默认值，避免将未解析的字符串暴露给调用方
@@ -673,24 +700,24 @@ export class ProductRepository {
                 images: [],
                 specifications: {},
                 options: [],
-            };
+            } as unknown as Product;
         }
     }
 
     /**
      * 商品名称搜索建议（轻量级，仅返回必要字段）
-     * @param {string} query 搜索关键词
-     * @param {number} [limit=10] 最大返回条数
-     * @returns {Promise<Array<{id: string, name: string, brand: string, spu: string}>>}
+     * @param query 搜索关键词
+     * @param limit 最大返回条数
+     * @returns 搜索建议列表
      */
-    async suggest(query, limit = 10) {
+    async suggest(query: string, limit: number = 10): Promise<ProductSuggestion[]> {
         if (!query || !query.trim()) return [];
         const term = `%${query.trim()}%`;
         const { results } = await this.db.prepare(
             `SELECT id, name, brand, spu FROM products
              WHERE name LIKE ? OR brand LIKE ? OR spu LIKE ?
              ORDER BY name ASC LIMIT ?`
-        ).bind(term, term, term, limit).all();
+        ).bind(term, term, term, limit).all<ProductSuggestion>();
         return results;
     }
 }
