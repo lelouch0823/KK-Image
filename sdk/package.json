@@ -1,0 +1,26 @@
+{
+  "name": "@kk-image/sdk",
+  "version": "0.1.0",
+  "description": "KK-Image API SDK - 自动生成的 TypeScript 客户端",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prepublish": "pnpm build"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  },
+  "license": "MIT"
+}

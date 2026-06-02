@@ -56,7 +56,9 @@
     "qa:check-ui-foundation-usage": "node scripts/qa/check-ui-foundation-usage.mjs",
     "qa:check-minisales-ui-contract": "node scripts/qa/check-minisales-ui-contract.mjs",
     "qa:check-design-system": "pnpm qa:check-ui-token-integrity && pnpm qa:check-ui-foundation-usage",
-    "qa:admin-flows": "node scripts/qa/admin-business-flow-smoke.cjs"
+    "qa:admin-flows": "node scripts/qa/admin-business-flow-smoke.cjs",
+    "sdk:generate": "node scripts/generate-sdk.js",
+    "sdk:build": "cd sdk && pnpm install && pnpm build"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.4.3",
