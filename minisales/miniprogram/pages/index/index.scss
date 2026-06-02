@@ -28,6 +28,35 @@
   box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.06);
 }
 
+.status-filter-bar {
+  margin-bottom: 20rpx;
+  white-space: nowrap;
+}
+
+.status-filter-bar__inner {
+  display: inline-flex;
+  gap: 16rpx;
+  padding: 4rpx 0;
+}
+
+.status-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 12rpx 28rpx;
+  border-radius: $border-radius-pill;
+  background: $bg-card;
+  border: 1rpx solid $border-color;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  transition: all 0.2s;
+}
+
+.status-filter-chip--active {
+  background: $color-primary;
+  border-color: $color-primary;
+  color: #ffffff;
+}
+
 .orders-list {
   display: flex;
   flex-direction: column;

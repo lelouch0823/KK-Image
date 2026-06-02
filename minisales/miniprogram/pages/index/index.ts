@@ -15,7 +15,7 @@ import {
 } from '../../services/sales/notifications';
 import type { NormalizedSalesOrderSummary } from '../../utils/normalize/order';
 import type { NormalizedSalesNotification } from '../../utils/normalize/notification';
-import { buildOrdersListState, filterOrdersBySearch } from './controller';
+import { buildOrdersListState, filterOrdersBySearch, filterOrdersByStatus, STATUS_FILTER_OPTIONS } from './controller';
 
 type PageState = 'loading' | 'ready' | 'empty' | 'error';
 
@@ -82,6 +82,8 @@ Page({
     pagination: defaultPagination(),
     canLoadMore: false,
     searchQuery: '',
+    statusFilter: '',
+    statusFilterOptions: STATUS_FILTER_OPTIONS,
 
     notifications: [] as NormalizedSalesNotification[],
     unreadCount: 0,
@@ -201,7 +203,7 @@ Page({
       }
 
       const nextState = buildOrdersListState([], ordersResult.data, false);
-      const visibleOrders = filterOrdersBySearch(nextState.orders, this.data.searchQuery);
+      const visibleOrders = this.applyFilters(nextState.orders, this.data.searchQuery, this.data.statusFilter);
       this.setData({
         ...nextState,
         visibleOrders,
@@ -259,8 +261,27 @@ Page({
     const searchQuery = normalizeInputValue(e);
     this.setData({
       searchQuery,
-      visibleOrders: filterOrdersBySearch(this.data.orders, searchQuery),
+      visibleOrders: this.applyFilters(this.data.orders, searchQuery, this.data.statusFilter),
     });
+  },
+
+  onStatusFilterChange(e: WechatMiniprogram.TouchEvent) {
+    const statusFilter = String(e.currentTarget?.dataset?.key || '');
+    this.setData({
+      statusFilter,
+      visibleOrders: this.applyFilters(this.data.orders, this.data.searchQuery, statusFilter),
+    });
+  },
+
+  applyFilters(orders: NormalizedSalesOrderSummary[], searchQuery: string, statusFilter: string): NormalizedSalesOrderSummary[] {
+    let filtered = orders;
+    if (statusFilter) {
+      filtered = filterOrdersByStatus(filtered, statusFilter);
+    }
+    if (searchQuery.trim()) {
+      filtered = filterOrdersBySearch(filtered, searchQuery);
+    }
+    return filtered;
   },
 
   async onLoadMore() {
@@ -295,7 +316,7 @@ Page({
       const nextState = buildOrdersListState(this.data.orders, result.data, true);
       this.setData({
         ...nextState,
-        visibleOrders: filterOrdersBySearch(nextState.orders, this.data.searchQuery),
+        visibleOrders: this.applyFilters(nextState.orders, this.data.searchQuery, this.data.statusFilter),
       });
     } finally {
       this.setData({ loadingMore: false });
@@ -325,6 +346,11 @@ Page({
 
     if (target === 'stats') {
       wx.navigateTo({ url: '/pages/stats/stats' });
+      return;
+    }
+
+    if (target === 'scan') {
+      wx.navigateTo({ url: '/pages/scan/scan' });
     }
   },
 

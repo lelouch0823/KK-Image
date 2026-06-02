@@ -43,6 +43,20 @@
       />
     </view>
 
+    <scroll-view class="status-filter-bar" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="status-filter-bar__inner">
+        <view
+          wx:for="{{statusFilterOptions}}"
+          wx:key="key"
+          class="status-filter-chip {{statusFilter === item.key ? 'status-filter-chip--active' : ''}}"
+          data-key="{{item.key}}"
+          bind:tap="onStatusFilterChange"
+        >
+          <text>{{item.label}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
     <sales-state-panel wx:if="{{state === 'loading'}}" loading="{{true}}" />
     <sales-state-panel
       wx:elif="{{state === 'error'}}"
