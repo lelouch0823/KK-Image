@@ -54,6 +54,8 @@ import manageStocktakesRoutes from './routes/manage/stocktakes.js'; // NEW: 库�
 import manageReceivablesRoutes from './routes/manage/receivables.js'; // NEW: 应收账款
 import manageFeatureFlagsRoutes from './routes/manage/feature-flags.js'; // NEW: 功能开关
 import apiDocsRoutes from './routes/v1/api-docs.js'; // NEW: API 文档
+import manageErpSyncRoutes from './routes/manage/erp-sync.js'; // NEW: ERP 数据同步
+import manageOAuthRoutes from './routes/manage/oauth.js'; // NEW: OAuth2.0 授权
 
 export const app = new Hono();
 
@@ -152,6 +154,8 @@ app.route('/api/manage/categories', manageCategoriesRoutes); // NEW: 分类管�
 app.route('/api/manage/stocktakes', manageStocktakesRoutes); // NEW: 库存盘点
 app.route('/api/manage/receivables', manageReceivablesRoutes); // NEW: 应收账款
 app.route('/api/manage/feature-flags', manageFeatureFlagsRoutes); // NEW: 功能开关
+app.route('/api/manage/erp-sync', manageErpSyncRoutes); // NEW: ERP 数据同步
+app.route('/api/manage/oauth', manageOAuthRoutes); // NEW: OAuth2.0 授权
 app.route('/api/sales', salesRoutes);
 
 // ============================================

@@ -20,6 +20,8 @@ export const publicRoutes = [
   '/api/v1/auth/token',
   '/api/sales/login',
   '/api/sales/wechat-login',
+  '/api/manage/oauth/token',
+  '/api/manage/oauth/revoke',
 ];
 
 // Routes that are intentionally public by prefix, with path-boundary matching.
