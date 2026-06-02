@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { SettingsRepository } from '../SettingsRepository.js';
+import { SettingsRepository } from '../SettingsRepository.ts';
 import { AlbumRepository } from '../AlbumRepository.js';
 import { FileRepository } from '../FileRepository.js';
 import { FolderRepository } from '../FolderRepository.js';

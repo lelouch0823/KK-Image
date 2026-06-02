@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { BadRequestError } from '../../errors.js';
-import { SettingsRepository } from '../../../../repositories/SettingsRepository.js';
+import { SettingsRepository } from '../../../../repositories/SettingsRepository.ts';
 import { parseModels, getModelHealthSnapshot } from '../../../../utils/ai-utils.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';

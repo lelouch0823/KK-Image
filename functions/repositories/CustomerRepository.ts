@@ -2,29 +2,46 @@ import { parseRepoPagination } from '../api/utils/pagination.js';
 import { safeJsonParse } from '../api/utils/json.js';
 import { hasChanges } from '../api/utils/result.js';
 import { buildSetClause } from '../api/utils/sql.js';
+import type { D1Database, D1Result } from '../types/database.js';
+import type {
+  Customer,
+  CreateCustomerData,
+  UpdateCustomerData,
+  CustomerSuggestion,
+  CustomerOrderStats,
+  RfmSegment,
+  RfmSegmentData,
+  CustomerTag,
+  Communication,
+  CommunicationType,
+  FavoriteProduct,
+  PaginatedResult,
+} from '../types/entities.js';
 
 /**
  * 客户仓库
  * 处理客户的 CRUD 和数据转换
  */
 export class CustomerRepository {
-  /** @type {boolean|null} FTS5 可用性缓存 */
-  static _ftsAvailable = null;
+  /** FTS5 可用性缓存 */
+  static _ftsAvailable: boolean | null = null;
 
-  constructor(db) {
+  protected db: D1Database;
+
+  constructor(db: D1Database) {
     this.db = db;
   }
 
   /**
    * 检查 FTS5 虚拟表是否存在（带模块级缓存）
-   * @returns {Promise<boolean>}
+   * @returns 是否存在 FTS5 表
    */
-  async _hasFtsTable() {
+  async _hasFtsTable(): Promise<boolean> {
     if (CustomerRepository._ftsAvailable !== null) return CustomerRepository._ftsAvailable;
     try {
       const stmt = this.db.prepare?.("SELECT name FROM sqlite_master WHERE type='table' AND name='customers_fts'");
       if (!stmt) { CustomerRepository._ftsAvailable = false; return false; }
-      const result = await stmt.first();
+      const result = await stmt.first<{ name: string }>();
       CustomerRepository._ftsAvailable = !!result;
     } catch {
       CustomerRepository._ftsAvailable = false;
@@ -34,10 +51,10 @@ export class CustomerRepository {
 
   /**
    * 根据 ID 查找客户
-   * @param {string} id
-   * @returns {Promise<Object|null>}
+   * @param id 客户 ID
+   * @returns 客户对象，不存在时返回 null
    */
-  async findById(id) {
+  async findById(id: string): Promise<Customer | null> {
     const customer = await this.db
       .prepare(
         `
@@ -45,20 +62,20 @@ export class CustomerRepository {
         `
       )
       .bind(id)
-      .first();
+      .first<Customer>();
 
     if (customer) {
       if (customer.tags) {
-        const parsedTags = safeJsonParse(customer.tags, customer.tags);
+        const parsedTags = safeJsonParse(customer.tags as unknown as string, customer.tags);
         if (Array.isArray(parsedTags)) {
-          customer.tags = parsedTags;
+          (customer as Record<string, unknown>).tags = parsedTags;
         } else if (parsedTags !== null && parsedTags !== undefined && parsedTags !== '') {
-          customer.tags = [parsedTags];
+          (customer as Record<string, unknown>).tags = [parsedTags];
         } else {
-          customer.tags = [];
+          (customer as Record<string, unknown>).tags = [];
         }
       } else {
-        customer.tags = [];
+        (customer as Record<string, unknown>).tags = [];
       }
     }
     return customer;
@@ -66,20 +83,17 @@ export class CustomerRepository {
 
   /**
    * 获取客户列表 (分页)
-   * @param {Object} params
-   * @param {number} params.page
-   * @param {number} params.limit
-   * @param {string} [params.search]
-   * @returns {Promise<{results: Array, total: number, pages: number}>}
+   * @param params 分页和搜索参数
+   * @returns 分页结果
    */
-  async list({ page = 1, limit = 20, search = '' }) {
+  async list({ page = 1, limit = 20, search = '' }: { page?: number; limit?: number; search?: string }): Promise<PaginatedResult<Customer>> {
     const { limit: safeLimit, offset } = parseRepoPagination(
       { page, limit },
       { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
     );
 
     let whereClause = '1=1';
-    const bindings = [];
+    const bindings: unknown[] = [];
 
     if (search) {
       // 优先使用 FTS5 全文搜索（O(logN)），不可用时降级为 LIKE（O(N)）
@@ -103,7 +117,7 @@ export class CustomerRepository {
             `
         )
         .bind(...bindings)
-        .first(),
+        .first<{ total: number }>(),
       this.db
         .prepare(
           `
@@ -114,13 +128,13 @@ export class CustomerRepository {
             `
         )
         .bind(...bindings, safeLimit, offset)
-        .all(),
+        .all<Customer>(),
     ]);
 
     const results = listResult.results.map((c) => {
-      let tags = [];
+      let tags: string[] = [];
       if (c.tags) {
-        const parsedTags = safeJsonParse(c.tags, c.tags);
+        const parsedTags = safeJsonParse(c.tags as unknown as string, c.tags);
         if (Array.isArray(parsedTags)) {
           tags = parsedTags;
         } else if (parsedTags !== null && parsedTags !== undefined && parsedTags !== '') {
@@ -132,42 +146,34 @@ export class CustomerRepository {
 
     return {
       results,
-      total: countResult.total,
-      pages: Math.ceil(countResult.total / safeLimit),
+      total: countResult!.total,
+      pages: Math.ceil(countResult!.total / safeLimit),
     };
   }
 
   /**
    * 客户名称/手机搜索建议（轻量级，仅返回必要字段）
-   * @param {string} query 搜索关键词
-   * @param {number} [limit=10] 最大返回条数
-   * @returns {Promise<Array<{id: string, name: string, phone: string, company: string}>>}
+   * @param query 搜索关键词
+   * @param limit 最大返回条数
+   * @returns 客户建议列表
    */
-  async suggest(query, limit = 10) {
+  async suggest(query: string, limit: number = 10): Promise<CustomerSuggestion[]> {
     if (!query || !query.trim()) return [];
     const term = `%${query.trim()}%`;
     const { results } = await this.db.prepare(
       `SELECT id, name, phone, company FROM customers
        WHERE name LIKE ? OR phone LIKE ? OR company LIKE ?
        ORDER BY name ASC LIMIT ?`
-    ).bind(term, term, term, limit).all();
+    ).bind(term, term, term, limit).all<CustomerSuggestion>();
     return results;
   }
 
   /**
    * 创建客户
-   * @param {Object} data
-   * @param {string} data.name
-   * @param {string} [data.phone]
-   * @param {string} [data.company]
-   * @param {string} [data.email]
-   * @param {string} [data.address]
-   * @param {Array} [data.tags]
-   * @param {string} [data.remark]
-   * @param {string} [data.createdBy]
-   * @returns {Promise<Object>} Created customer
+   * @param data 客户数据
+   * @returns 创建的客户对象
    */
-  async create(data) {
+  async create(data: CreateCustomerData): Promise<Customer> {
     const id = crypto.randomUUID();
     const now = Date.now();
     const tags = data.tags ? JSON.stringify(data.tags) : '[]';
@@ -200,19 +206,19 @@ export class CustomerRepository {
       tags: data.tags || [],
       created_at: now,
       updated_at: now,
-    };
+    } as Customer;
   }
 
   /**
    * 更新客户信息
-   * @param {string} id
-   * @param {Object} data
-   * @returns {Promise<boolean>}
+   * @param id 客户 ID
+   * @param data 更新数据
+   * @returns 是否成功更新
    */
-  async update(id, data) {
-    const updateData = {};
+  async update(id: string, data: UpdateCustomerData): Promise<boolean> {
+    const updateData: Record<string, unknown> = {};
 
-    const fields = ['name', 'phone', 'company', 'email', 'address', 'remark'];
+    const fields: Array<keyof UpdateCustomerData> = ['name', 'phone', 'company', 'email', 'address', 'remark'];
     fields.forEach((field) => {
       if (data[field] !== undefined) {
         updateData[field] = data[field];
@@ -238,16 +244,16 @@ export class CustomerRepository {
       .run();
 
     if (hasChanges(result)) return true;
-    const existing = await this.db.prepare('SELECT id FROM customers WHERE id = ?').bind(id).first();
+    const existing = await this.db.prepare('SELECT id FROM customers WHERE id = ?').bind(id).first<{ id: string }>();
     return Boolean(existing);
   }
 
   /**
    * 删除客户
-   * @param {string} id
-   * @returns {Promise<boolean>}
+   * @param id 客户 ID
+   * @returns 是否成功删除
    */
-  async delete(id) {
+  async delete(id: string): Promise<boolean> {
     const result = await this.db
       .prepare(
         `
@@ -261,10 +267,10 @@ export class CustomerRepository {
 
   /**
    * 检查是否有关联订单
-   * @param {string} id
-   * @returns {Promise<boolean>}
+   * @param id 客户 ID
+   * @returns 是否有订单
    */
-  async hasOrders(id) {
+  async hasOrders(id: string): Promise<boolean> {
     const result = await this.db
       .prepare(
         `
@@ -272,16 +278,16 @@ export class CustomerRepository {
         `
       )
       .bind(id)
-      .first();
-    return result.count > 0;
+      .first<{ count: number }>();
+    return result!.count > 0;
   }
 
   /**
    * 获取客户订单统计
-   * @param {string} id
-   * @returns {Promise<Object>}
+   * @param id 客户 ID
+   * @returns 订单统计数据
    */
-  async getOrderStats(id) {
+  async getOrderStats(id: string): Promise<CustomerOrderStats> {
     const stats = await this.db
       .prepare(
         `
@@ -294,15 +300,15 @@ export class CustomerRepository {
         `
       )
       .bind(id)
-      .first();
+      .first<{ order_count: number; first_order_at: number | null; last_order_at: number | null }>();
 
     const now = Date.now();
-    const lastOrderAt = stats.last_order_at || null;
+    const lastOrderAt = stats!.last_order_at || null;
     const recencyDays = lastOrderAt ? Math.floor((now - lastOrderAt) / (24 * 60 * 60 * 1000)) : null;
 
     return {
-      orderCount: stats.order_count || 0,
-      firstOrderAt: stats.first_order_at || null,
+      orderCount: stats!.order_count || 0,
+      firstOrderAt: stats!.first_order_at || null,
       lastOrderAt: lastOrderAt,
       recencyDays,
     };
@@ -310,11 +316,11 @@ export class CustomerRepository {
 
   /**
    * 获取客户最常订购的商品
-   * @param {string} id
-   * @param {number} limit
-   * @returns {Promise<Array>}
+   * @param id 客户 ID
+   * @param limit 返回数量限制
+   * @returns 常用商品列表
    */
-  async getFavoriteProducts(id, limit = 5) {
+  async getFavoriteProducts(id: string, limit: number = 5): Promise<FavoriteProduct[]> {
     const { results } = await this.db
       .prepare(
         `
@@ -330,7 +336,7 @@ export class CustomerRepository {
         `
       )
       .bind(id, limit)
-      .all();
+      .all<{ product_id: string; product_name: string; order_count: number }>();
 
     return results.map((r) => ({
       productId: r.product_id,
@@ -341,10 +347,10 @@ export class CustomerRepository {
 
   /**
    * RFM 分段：根据客户订单数据自动分类
-   * @param {string} id
-   * @returns {Promise<Object>} RFM 数据和分段标签
+   * @param id 客户 ID
+   * @returns RFM 数据和分段标签
    */
-  async getRfmSegment(id) {
+  async getRfmSegment(id: string): Promise<RfmSegmentData> {
     const stats = await this.getOrderStats(id);
     const { orderCount, recencyDays } = stats;
 
@@ -356,14 +362,14 @@ export class CustomerRepository {
     //   Active: 最近 90 天内有订单
     //   At-risk: 最近 90-180 天内有订单
     //   Lost: 超过 180 天无订单 或 从未下单
-    let segment = 'new'; // 默认：新客户（无订单）
+    let segment: RfmSegment = 'new'; // 默认：新客户（无订单）
     if (orderCount === 0) {
       segment = 'new';
-    } else if (recencyDays <= 90 && orderCount >= 5) {
+    } else if (recencyDays! <= 90 && orderCount >= 5) {
       segment = 'vip';
-    } else if (recencyDays <= 90) {
+    } else if (recencyDays! <= 90) {
       segment = 'active';
-    } else if (recencyDays <= 180) {
+    } else if (recencyDays! <= 180) {
       segment = 'at-risk';
     } else {
       segment = 'lost';
@@ -377,10 +383,10 @@ export class CustomerRepository {
 
   /**
    * 批量获取多个客户的 RFM 分段（用于列表展示）
-   * @param {string[]} ids
-   * @returns {Promise<Map<string, Object>>}
+   * @param ids 客户 ID 列表
+   * @returns 客户 ID 到 RFM 数据的映射
    */
-  async getBatchRfmSegments(ids) {
+  async getBatchRfmSegments(ids: string[]): Promise<Map<string, RfmSegmentData>> {
     if (!ids.length) return new Map();
 
     const placeholders = ids.map(() => '?').join(',');
@@ -398,24 +404,24 @@ export class CustomerRepository {
         `
       )
       .bind(...ids)
-      .all();
+      .all<{ customer_id: string; order_count: number; last_order_at: number | null }>();
 
     const now = Date.now();
-    const segmentMap = new Map();
+    const segmentMap = new Map<string, RfmSegmentData>();
 
     for (const row of results) {
       const orderCount = row.order_count || 0;
       const lastOrderAt = row.last_order_at || null;
       const recencyDays = lastOrderAt ? Math.floor((now - lastOrderAt) / (24 * 60 * 60 * 1000)) : null;
 
-      let segment = 'new';
+      let segment: RfmSegment = 'new';
       if (orderCount === 0) {
         segment = 'new';
-      } else if (recencyDays <= 90 && orderCount >= 5) {
+      } else if (recencyDays! <= 90 && orderCount >= 5) {
         segment = 'vip';
-      } else if (recencyDays <= 90) {
+      } else if (recencyDays! <= 90) {
         segment = 'active';
-      } else if (recencyDays <= 180) {
+      } else if (recencyDays! <= 180) {
         segment = 'at-risk';
       } else {
         segment = 'lost';
@@ -440,26 +446,26 @@ export class CustomerRepository {
 
   /**
    * 获取客户的所有标签
-   * @param {string} customerId
-   * @returns {Promise<Array>}
+   * @param customerId 客户 ID
+   * @returns 标签列表
    */
-  async getTags(customerId) {
+  async getTags(customerId: string): Promise<CustomerTag[]> {
     const { results } = await this.db
       .prepare(
         'SELECT id, tag_name, created_at FROM customer_tags WHERE customer_id = ? ORDER BY created_at DESC'
       )
       .bind(customerId)
-      .all();
+      .all<{ id: number; tag_name: string; created_at: number }>();
     return results.map((r) => ({ id: r.id, name: r.tag_name, createdAt: r.created_at }));
   }
 
   /**
    * 添加标签
-   * @param {string} customerId
-   * @param {string} tagName
-   * @returns {Promise<Object>} 新标签
+   * @param customerId 客户 ID
+   * @param tagName 标签名称
+   * @returns 新标签，已存在时返回 null
    */
-  async addTag(customerId, tagName) {
+  async addTag(customerId: string, tagName: string): Promise<{ customer_id: string; tag_name: string; created_at: number } | null> {
     const now = Date.now();
     try {
       await this.db
@@ -471,35 +477,35 @@ export class CustomerRepository {
       return { customer_id: customerId, tag_name: tagName, created_at: now };
     } catch (e) {
       // UNIQUE 约束冲突 → 标签已存在，忽略
-      if (e.message?.includes('UNIQUE')) return null;
+      if (e instanceof Error && e.message?.includes('UNIQUE')) return null;
       throw e;
     }
   }
 
   /**
    * 删除标签
-   * @param {string} customerId
-   * @param {string} tagName
-   * @returns {Promise<boolean>}
+   * @param customerId 客户 ID
+   * @param tagName 标签名称
+   * @returns 是否成功删除
    */
-  async removeTag(customerId, tagName) {
+  async removeTag(customerId: string, tagName: string): Promise<boolean> {
     const result = await this.db
       .prepare('DELETE FROM customer_tags WHERE customer_id = ? AND tag_name = ?')
       .bind(customerId, tagName)
       .run();
-    return result.changes > 0;
+    return result.meta.changes > 0;
   }
 
   /**
    * 获取所有客户使用过的标签列表（去重）
-   * @returns {Promise<Array>}
+   * @returns 标签列表（含使用次数）
    */
-  async getAllTags() {
+  async getAllTags(): Promise<Array<{ name: string; usageCount: number }>> {
     const { results } = await this.db
       .prepare(
         'SELECT DISTINCT tag_name, COUNT(*) as usage_count FROM customer_tags GROUP BY tag_name ORDER BY usage_count DESC'
       )
-      .all();
+      .all<{ tag_name: string; usage_count: number }>();
     return results.map((r) => ({ name: r.tag_name, usageCount: r.usage_count }));
   }
 
@@ -509,13 +515,11 @@ export class CustomerRepository {
 
   /**
    * 获取客户沟通记录（分页）
-   * @param {string} customerId
-   * @param {Object} params
-   * @param {number} [params.page]
-   * @param {number} [params.limit]
-   * @returns {Promise<{results: Array, total: number}>}
+   * @param customerId 客户 ID
+   * @param params 分页参数
+   * @returns 分页结果
    */
-  async getCommunications(customerId, { page = 1, limit = 20 } = {}) {
+  async getCommunications(customerId: string, { page = 1, limit = 20 }: { page?: number; limit?: number } = {}): Promise<{ results: Communication[]; total: number }> {
     const { limit: safeLimit, offset } = parseRepoPagination(
       { page, limit },
       { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
@@ -525,30 +529,30 @@ export class CustomerRepository {
       this.db
         .prepare('SELECT COUNT(*) as total FROM customer_communications WHERE customer_id = ?')
         .bind(customerId)
-        .first(),
+        .first<{ total: number }>(),
       this.db
         .prepare(
           'SELECT * FROM customer_communications WHERE customer_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?'
         )
         .bind(customerId, safeLimit, offset)
-        .all(),
+        .all<Communication>(),
     ]);
 
     return {
       results: listResult.results,
-      total: countResult.total,
+      total: countResult!.total,
     };
   }
 
   /**
    * 添加沟通记录
-   * @param {string} customerId
-   * @param {string} type - note/call/email/meeting/wechat
-   * @param {string} content
-   * @param {string} [createdBy]
-   * @returns {Promise<Object>} 新记录
+   * @param customerId 客户 ID
+   * @param type 记录类型
+   * @param content 记录内容
+   * @param createdBy 创建人
+   * @returns 新记录
    */
-  async addCommunication(customerId, type, content, createdBy) {
+  async addCommunication(customerId: string, type: CommunicationType, content: string, createdBy?: string): Promise<Communication> {
     const id = crypto.randomUUID();
     const now = Date.now();
 
@@ -564,10 +568,10 @@ export class CustomerRepository {
 
   /**
    * 删除沟通记录
-   * @param {string} id
-   * @returns {Promise<boolean>}
+   * @param id 记录 ID
+   * @returns 是否成功删除
    */
-  async deleteCommunication(id) {
+  async deleteCommunication(id: string): Promise<boolean> {
     const result = await this.db
       .prepare('DELETE FROM customer_communications WHERE id = ?')
       .bind(id)

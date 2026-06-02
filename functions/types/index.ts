@@ -1,0 +1,55 @@
+/**
+ * 类型定义入口
+ * 统一导出所有类型
+ */
+
+export type {
+  D1Meta,
+  D1Result,
+  D1FirstResult,
+  D1PreparedStatement,
+  D1Database,
+  D1ExecResult,
+  QueryPerf,
+  MonitoredResult,
+  PaginationParams,
+  PaginatedResult,
+  ParsedPagination,
+  PaginationOptions,
+} from './database.js';
+
+export type {
+  Tag,
+  CreateTagData,
+  AssignTagData,
+  TagSuggestion,
+  Customer,
+  CreateCustomerData,
+  UpdateCustomerData,
+  CustomerSuggestion,
+  CustomerOrderStats,
+  RfmSegment,
+  RfmSegmentData,
+  CustomerTag,
+  CommunicationType,
+  Communication,
+  FavoriteProduct,
+  SettingRow,
+  UpsertSettingData,
+  BatchSettingData,
+  GroupedSettings,
+  ProductStatus,
+  ProductCurrency,
+  ProductRow,
+  Product,
+  CreateProductData,
+  UpdateProductData,
+  ProductFilters,
+  ProductSearchResult,
+  ProductSuggestion,
+  BatchCreateResult,
+  UpdateResultMeta,
+  SetClauseResult,
+  UpdateParamsResult,
+  BatchResultItem,
+} from './entities.js';

@@ -9,7 +9,7 @@ import {
   resolveOrderVariantSlot,
   resolvePurchaseOrderItemsSlot,
 } from './slot-resolvers.js';
-import { CustomerRepository } from '../repositories/CustomerRepository.js';
+import { CustomerRepository } from '../repositories/CustomerRepository.ts';
 import { ProductRepository } from '../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../repositories/ProductVariantRepository.js';
 import { PurchaseOrderRepository } from '../repositories/PurchaseOrderRepository.js';

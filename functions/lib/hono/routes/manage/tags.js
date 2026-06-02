@@ -4,7 +4,7 @@ import { zValidator } from '@hono/zod-validator';
 import { requirePermission } from '../../middleware/auth.js';
 import { generateId, now } from '../../../../_shared/utils.js';
 import { ConflictError } from '../../errors.js';
-import { TagRepository } from '../../../../repositories/TagRepository.js';
+import { TagRepository } from '../../../../repositories/TagRepository.ts';
 import { withCache } from '../../middleware/cache.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';

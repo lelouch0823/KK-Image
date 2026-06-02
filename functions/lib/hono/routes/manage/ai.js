@@ -8,7 +8,7 @@ import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 import { OrderTimelineRepository } from '../../../../repositories/OrderTimelineRepository.js';
 import { ProductRepository } from '../../../../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../../../../repositories/ProductVariantRepository.js';
-import { CustomerRepository } from '../../../../repositories/CustomerRepository.js';
+import { CustomerRepository } from '../../../../repositories/CustomerRepository.ts';
 import { GoodsOverviewRepository } from '../../../../repositories/GoodsOverviewRepository.js';
 import { PurchaseOrderRepository } from '../../../../repositories/PurchaseOrderRepository.js';
 import { callAIStream, callAI, callAIAuto, parseSSEChunk, SYSTEM_PROMPT } from '../../../../utils/ai-utils.js';
