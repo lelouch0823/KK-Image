@@ -138,6 +138,23 @@ export class CustomerRepository {
   }
 
   /**
+   * 客户名称/手机搜索建议（轻量级，仅返回必要字段）
+   * @param {string} query 搜索关键词
+   * @param {number} [limit=10] 最大返回条数
+   * @returns {Promise<Array<{id: string, name: string, phone: string, company: string}>>}
+   */
+  async suggest(query, limit = 10) {
+    if (!query || !query.trim()) return [];
+    const term = `%${query.trim()}%`;
+    const { results } = await this.db.prepare(
+      `SELECT id, name, phone, company FROM customers
+       WHERE name LIKE ? OR phone LIKE ? OR company LIKE ?
+       ORDER BY name ASC LIMIT ?`
+    ).bind(term, term, term, limit).all();
+    return results;
+  }
+
+  /**
    * 创建客户
    * @param {Object} data
    * @param {string} data.name

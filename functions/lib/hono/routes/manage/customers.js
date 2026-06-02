@@ -420,6 +420,24 @@ app.get('/tags', async (c) => {
 });
 
 /**
+ * GET /suggest - 客户名称/手机搜索建议（轻量级）
+ */
+app.get('/suggest', async (c) => {
+    const { env } = c;
+    const q = c.req.query('q') || '';
+    const limit = Math.min(Number(c.req.query('limit')) || 10, 20);
+
+    if (!q.trim()) {
+        return c.json({ success: true, data: [] });
+    }
+
+    const repo = new CustomerRepository(env.DB);
+    const data = await repo.suggest(q, limit);
+
+    return c.json({ success: true, data });
+});
+
+/**
  * POST / - 创建新客户
  */
 app.post('/', zValidator('json', CreateCustomerSchema), async (c) => {

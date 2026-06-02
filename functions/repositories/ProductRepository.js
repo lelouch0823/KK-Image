@@ -676,4 +676,21 @@ export class ProductRepository {
             };
         }
     }
+
+    /**
+     * 商品名称搜索建议（轻量级，仅返回必要字段）
+     * @param {string} query 搜索关键词
+     * @param {number} [limit=10] 最大返回条数
+     * @returns {Promise<Array<{id: string, name: string, brand: string, spu: string}>>}
+     */
+    async suggest(query, limit = 10) {
+        if (!query || !query.trim()) return [];
+        const term = `%${query.trim()}%`;
+        const { results } = await this.db.prepare(
+            `SELECT id, name, brand, spu FROM products
+             WHERE name LIKE ? OR brand LIKE ? OR spu LIKE ?
+             ORDER BY name ASC LIMIT ?`
+        ).bind(term, term, term, limit).all();
+        return results;
+    }
 }

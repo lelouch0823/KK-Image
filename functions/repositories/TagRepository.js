@@ -50,4 +50,19 @@ export class TagRepository {
             'DELETE FROM file_tags WHERE file_id = ? AND tag_id = ?'
         ).bind(fileId, tagId).run();
     }
+
+    /**
+     * 标签名称搜索建议（轻量级）
+     * @param {string} query 搜索关键词
+     * @param {number} [limit=10] 最大返回条数
+     * @returns {Promise<Array<{id: string, name: string, color: string|null}>>}
+     */
+    async suggest(query, limit = 10) {
+        if (!query || !query.trim()) return [];
+        const term = `%${query.trim()}%`;
+        const { results } = await this.db.prepare(
+            'SELECT id, name, color FROM tags WHERE name LIKE ? ORDER BY name ASC LIMIT ?'
+        ).bind(term, limit).all();
+        return results;
+    }
 }

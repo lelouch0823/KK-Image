@@ -23,6 +23,24 @@ app.use('*', requirePermission('products:manage'));
 app.route('/batch', batch);
 app.route('/export', exportRoute);
 
+/**
+ * GET /suggest - 商品名称搜索建议（轻量级）
+ */
+app.get('/suggest', async (c) => {
+    const { env } = c;
+    const q = c.req.query('q') || '';
+    const limit = Math.min(Number(c.req.query('limit')) || 10, 20);
+
+    if (!q.trim()) {
+        return c.json({ success: true, data: [] });
+    }
+
+    const repo = new ProductRepository(env.DB);
+    const data = await repo.suggest(q, limit);
+
+    return c.json({ success: true, data });
+});
+
 function buildProductCreateRequestFingerprint(body = {}) {
     return buildRequestFingerprint(body);
 }

@@ -27,6 +27,23 @@ export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'DELETE', path: '/assign', domain: 'tags', action: 'tag.unassign', severity: 'normal', targetType: 'tag' },
 ]);
 
+/**
+ * GET /suggest - 标签名称搜索建议（轻量级）
+ */
+tagsRoute.get('/suggest', requirePermission('files:read'), async (c) => {
+    const q = c.req.query('q') || '';
+    const limit = Math.min(Number(c.req.query('limit')) || 10, 20);
+
+    if (!q.trim()) {
+        return c.json({ success: true, data: [] });
+    }
+
+    const repo = new TagRepository(c.env.DB);
+    const data = await repo.suggest(q, limit);
+
+    return c.json({ success: true, data });
+});
+
 // GET 获取所有标签
 tagsRoute.get('/', requirePermission('files:read'), withCache(30), async (c) => {
     const repo = new TagRepository(c.env.DB);
