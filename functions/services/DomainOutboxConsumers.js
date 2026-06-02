@@ -3,6 +3,8 @@ import { safeJsonParse } from '../api/utils/json.js';
 import { inClause } from '../api/utils/sql.js';
 import { NotificationRepository } from '../repositories/NotificationRepository.js';
 import { WebhookDeliveryService } from './WebhookDeliveryService.js';
+import { WebhookNotificationService } from './WebhookNotificationService.js';
+import { EmailService } from './EmailService.js';
 import {
   getManageCustomerCacheUrls,
   getManageStatsCacheUrls,
@@ -1075,9 +1077,65 @@ async function webhookOutboxEvent({ db, event }) {
   return result;
 }
 
+// 需要推送到通知渠道的事件类型
+const CHANNEL_NOTIFY_EVENTS = new Set([
+  'order_created_by_admin',
+  'order_created_by_sales',
+  'order_status_changed_by_admin',
+  'order_status_changed_by_sales',
+  'order_comment_created_by_admin',
+  'order_delivery_confirmed',
+]);
+
+async function channelNotifyOutboxEvent({ db, event }) {
+  const eventType = event?.event_type;
+  if (!CHANNEL_NOTIFY_EVENTS.has(eventType)) return null;
+
+  const payload = safeJsonParse(
+    typeof event?.payload_json === 'string' ? event.payload_json : null,
+    {}
+  );
+
+  const service = new WebhookNotificationService(db);
+  return service.notify(eventType, payload);
+}
+
+// 需要发送邮件通知的事件类型
+const EMAIL_NOTIFY_EVENTS = new Set([
+  'order_created_by_sales',
+  'order_status_changed_by_admin',
+  'order_delivery_confirmed',
+]);
+
+async function emailNotifyOutboxEvent({ db, env, event }) {
+  const eventType = event?.event_type;
+  if (!EMAIL_NOTIFY_EVENTS.has(eventType)) return null;
+
+  const payload = safeJsonParse(
+    typeof event?.payload_json === 'string' ? event.payload_json : null,
+    {}
+  );
+
+  // 获取客户邮箱（如果有）
+  const customerEmail = payload.customer_email || payload.email || '';
+  if (!customerEmail) return null;
+
+  const emailService = new EmailService(env, { settingsRepo: null });
+  const order = {
+    orderNo: payload.order_no || payload.order_id,
+    status: payload.status,
+    quantity: payload.quantity || 0,
+    createdAt: event?.occurred_at || Date.now(),
+  };
+
+  return emailService.sendOrderConfirmation(customerEmail, order);
+}
+
 export const DOMAIN_OUTBOX_CONSUMERS = {
   audit: auditOutboxEvent,
   cache: invalidateReceiptCaches,
   notification: notifyOutboxEvent,
   webhook: webhookOutboxEvent,
+  channelNotify: channelNotifyOutboxEvent,
+  emailNotify: emailNotifyOutboxEvent,
 };

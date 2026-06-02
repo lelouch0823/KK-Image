@@ -430,4 +430,17 @@ export default {
     totalProfit: '总利润',
     avgMargin: '平均利润率',
   },
+
+  // 物流跟踪
+  logistics: {
+    title: '物流跟踪',
+    carrier: '快递公司',
+    trackingNo: '运单号',
+    trackingNoPlaceholder: '输入运单号',
+    noTracking: '暂无物流信息',
+    clickToSet: '点击编辑按钮添加运单号',
+    noEvents: '暂无轨迹信息',
+    saveSuccess: '物流信息已更新',
+    saveFailed: '保存物流信息失败',
+  },
 };

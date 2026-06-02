@@ -77,6 +77,16 @@
 
           <OrderReturnHistoryCard :returns="orderReturns" />
 
+          <!-- 物流跟踪 -->
+          <OrderLogisticsCard
+            v-if="order.id"
+            :order-id="order.id"
+            :mode="mode"
+            :initial-tracking-no="order.currentData?.trackingNo || ''"
+            :initial-carrier="order.currentData?.carrier || 'express'"
+            @logistics-updated="$emit('refresh')"
+          />
+
           <!-- 付款记录 (仅管理员可见) -->
           <OrderPaymentCard
             v-if="mode === 'admin' && order.id"
@@ -214,6 +224,7 @@ import OrderShipmentHistoryCard from './OrderShipmentHistoryCard.vue';
 import OrderReturnHistoryCard from './OrderReturnHistoryCard.vue';
 import OrderPaymentCard from './OrderPaymentCard.vue';
 import OrderProfitCard from './OrderProfitCard.vue';
+import OrderLogisticsCard from './OrderLogisticsCard.vue';
 import OrderPrintView from './OrderPrintView.vue';
 import { usePdfExport } from '@/composables/usePdfExport';
 import OrderLinesCard from './OrderLinesCard.vue';
