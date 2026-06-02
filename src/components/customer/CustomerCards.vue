@@ -123,11 +123,11 @@ const segmentLabelMap = {
 // RFM 分段样式
 const segmentClasses = (segment) => {
   const map = {
-    vip: 'bg-amber-100 text-amber-800',
-    active: 'bg-green-100 text-green-800',
-    'at-risk': 'bg-red-100 text-red-800',
-    lost: 'bg-gray-100 text-gray-600',
-    new: 'bg-blue-100 text-blue-800',
+    vip: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+    active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    'at-risk': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+    lost: 'bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400',
+    new: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   };
   return map[segment] || map.new;
 };

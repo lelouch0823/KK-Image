@@ -344,11 +344,11 @@ const getPriceTypeLabel = (type) => {
 // 获取价格类型徽章样式
 const getPriceTypeBadgeClass = (type) => {
   const classes = {
-    retail: 'bg-blue-100 text-blue-800',
-    wholesale: 'bg-green-100 text-green-800',
-    vip: 'bg-purple-100 text-purple-800',
+    retail: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+    wholesale: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    vip: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
   };
-  return classes[type] || 'bg-gray-100 text-gray-800';
+  return classes[type] || 'bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400';
 };
 
 // 监听 productId 变化重新加载

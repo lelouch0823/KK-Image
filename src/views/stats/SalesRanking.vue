@@ -169,9 +169,9 @@ const sortOptions = [
 ];
 
 const medalClass = (rank) => {
-  if (rank === 1) return 'bg-yellow-100 text-yellow-700 ring-1 ring-yellow-300';
-  if (rank === 2) return 'bg-gray-100 text-gray-600 ring-1 ring-gray-300';
-  if (rank === 3) return 'bg-orange-100 text-orange-700 ring-1 ring-orange-300';
+  if (rank === 1) return 'bg-yellow-100 text-yellow-700 ring-1 ring-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:ring-yellow-600/30';
+  if (rank === 2) return 'bg-gray-100 text-gray-600 ring-1 ring-gray-300 dark:bg-gray-800/50 dark:text-gray-400 dark:ring-gray-600/30';
+  if (rank === 3) return 'bg-orange-100 text-orange-700 ring-1 ring-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:ring-orange-600/30';
   return '';
 };
 
