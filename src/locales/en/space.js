@@ -150,6 +150,10 @@ export default {
         snapshot: 'Snapshot Binding',
       },
     },
+    bindingNotice:
+      'This space is bound to a product. Brand, series, price and other core parameters are managed by the product system. To modify, click "Edit" above to go to the product library. Changes will take effect globally after saving.',
+    historicalProduct: 'Historical Product',
+    productBindingIncomplete: 'Product binding is incomplete. Please select a valid product variant before creating.',
   },
 
   // Public Space Page

@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
+import { zValidator } from '@hono/zod-validator';
 import { BadRequestError, NotFoundError } from '../../errors.js';
 import { SettingsRepository } from '../../../../repositories/SettingsRepository.ts';
 import { requirePermission } from '../../middleware/auth.js';
@@ -8,6 +10,23 @@ const CATEGORY = 'featureFlags';
 
 const app = new Hono();
 app.use('*', requirePermission('admin:full'));
+
+const FlagKeySchema = z.object({
+  key: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/, 'key 只允许字母、数字、下划线和连字符'),
+});
+
+const UpdateFlagSchema = z.object({
+  enabled: z.boolean().optional(),
+  description: z.string().max(500).optional(),
+}).strict();
+
+const BatchCreateFlagsSchema = z.object({
+  flags: z.array(z.object({
+    key: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/, 'key 只允许字母、数字、下划线和连字符'),
+    enabled: z.boolean(),
+    description: z.string().max(500).optional(),
+  })).min(1).max(50),
+}).strict();
 
 // 获取所有功能开关
 app.get('/', withCache(30), async (c) => {
@@ -25,10 +44,13 @@ app.get('/', withCache(30), async (c) => {
 });
 
 // 更新单个功能开关
-app.patch('/:key', async (c) => {
-  const key = c.req.param('key');
-  const body = await c.req.json().catch(() => ({}));
-  const { enabled, description } = body;
+app.patch('/:key', zValidator('json', UpdateFlagSchema), async (c) => {
+  const keyParse = FlagKeySchema.safeParse({ key: c.req.param('key') });
+  if (!keyParse.success) {
+    throw new BadRequestError('无效的 key 格式');
+  }
+  const key = keyParse.data.key;
+  const { enabled, description } = c.req.valid('json');
 
   if (enabled === undefined && description === undefined) {
     throw new BadRequestError('至少需要提供 enabled 或 description 字段');
@@ -62,19 +84,8 @@ app.patch('/:key', async (c) => {
 });
 
 // 创建/批量设置功能开关
-app.post('/', async (c) => {
-  const body = await c.req.json();
-  const { flags } = body;
-
-  if (!Array.isArray(flags)) {
-    throw new BadRequestError('flags 必须是数组');
-  }
-
-  for (const flag of flags) {
-    if (!flag.key || flag.enabled === undefined) {
-      throw new BadRequestError('每个 flag 必须包含 key 和 enabled 字段');
-    }
-  }
+app.post('/', zValidator('json', BatchCreateFlagsSchema), async (c) => {
+  const { flags } = c.req.valid('json');
 
   const repo = new SettingsRepository(c.env.DB);
   const settings = flags.map((f) => ({

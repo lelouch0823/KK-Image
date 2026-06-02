@@ -7,7 +7,7 @@
 import { ErpAdapterFactory } from './ErpAdapter.js';
 
 export class ErpSyncService {
-  constructor({ erpRepo, productRepo, customerRepo, orderRepo }) {
+  constructor({ erpRepo, productRepo = null, customerRepo = null, orderRepo = null }) {
     this.erpRepo = erpRepo;
     this.productRepo = productRepo;
     this.customerRepo = customerRepo;
@@ -187,11 +187,32 @@ export class ErpSyncService {
   /**
    * 处理 ERP webhook 回调
    * 当 ERP 系统数据变更时推送通知
+   * 通过 HMAC-SHA256 签名验证请求合法性
    */
-  async handleWebhook(connectionId, payload) {
+  async handleWebhook(connectionId, rawBody, signature) {
     const connection = await this.erpRepo.getConnectionById(connectionId);
     if (!connection || !connection.enabled) {
       throw new Error('连接不存在或已禁用');
+    }
+
+    // 验证 HMAC-SHA256 签名
+    const webhookSecret = connection.webhookSecret || connection.config?.webhook_secret;
+    if (!webhookSecret) {
+      throw new Error('连接未配置 webhook_secret，无法验证签名');
+    }
+    if (!signature) {
+      throw new Error('缺少 X-Webhook-Signature 请求头');
+    }
+    const expectedSig = await this._computeHmacHex(rawBody, webhookSecret);
+    if (!this._timingSafeEqual(expectedSig, signature)) {
+      throw new Error('webhook 签名验证失败');
+    }
+
+    let payload;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      throw new Error('webhook 请求体不是有效的 JSON');
     }
 
     const { entity_type, entity_id, action, data } = payload;
@@ -247,13 +268,16 @@ export class ErpSyncService {
   async _getLocalEntities(entityType) {
     const limit = 100;
     if (entityType === 'product') {
+      if (!this.productRepo) throw new Error('productRepo 未注入，无法同步商品');
       const result = await this.productRepo.search({ limit, page: 1, status: 'active' });
       return result.data || [];
     }
     if (entityType === 'customer') {
+      if (!this.customerRepo) throw new Error('customerRepo 未注入，无法同步客户');
       return this.customerRepo.listAll ? await this.customerRepo.listAll({ limit }) : [];
     }
     if (entityType === 'order') {
+      if (!this.orderRepo) throw new Error('orderRepo 未注入，无法同步订单');
       return this.orderRepo.listRecent ? await this.orderRepo.listRecent(limit) : [];
     }
     return [];
@@ -271,5 +295,30 @@ export class ErpSyncService {
 
   async _deleteLocalEntity(entityType, localId) {
     throw new Error(`删除本地 ${entityType} (ID: ${localId}) 需要具体实现`);
+  }
+
+  /**
+   * 计算 HMAC-SHA256（hex 编码）
+   */
+  async _computeHmacHex(message, secret) {
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    );
+    const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
+    return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  /**
+   * 常数时间字符串比较（防止时序攻击）
+   */
+  _timingSafeEqual(a, b) {
+    const ba = new TextEncoder().encode(a);
+    const bb = new TextEncoder().encode(b);
+    if (ba.length !== bb.length) return false;
+    return crypto.subtle.timingSafeEqual(ba, bb);
   }
 }

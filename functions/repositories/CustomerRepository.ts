@@ -50,6 +50,36 @@ export class CustomerRepository {
   }
 
   /**
+   * 批量根据 ID 查找客户
+   * @param ids 客户 ID 列表
+   * @returns 客户列表（仅返回存在的记录）
+   */
+  async findByIds(ids: string[]): Promise<Customer[]> {
+    if (!ids.length) return [];
+    const placeholders = ids.map(() => '?').join(',');
+    const { results } = await this.db
+      .prepare(`SELECT * FROM customers WHERE id IN (${placeholders})`)
+      .bind(...ids)
+      .all<Customer>();
+
+    return results.map((customer) => {
+      if (customer.tags) {
+        const parsedTags = safeJsonParse(customer.tags as unknown as string, customer.tags);
+        if (Array.isArray(parsedTags)) {
+          (customer as Record<string, unknown>).tags = parsedTags;
+        } else if (parsedTags !== null && parsedTags !== undefined && parsedTags !== '') {
+          (customer as Record<string, unknown>).tags = [parsedTags];
+        } else {
+          (customer as Record<string, unknown>).tags = [];
+        }
+      } else {
+        (customer as Record<string, unknown>).tags = [];
+      }
+      return customer;
+    });
+  }
+
+  /**
    * 根据 ID 查找客户
    * @param id 客户 ID
    * @returns 客户对象，不存在时返回 null

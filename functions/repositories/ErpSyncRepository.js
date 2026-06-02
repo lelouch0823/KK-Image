@@ -1,5 +1,6 @@
 import { generatePrefixedId } from '../_shared/utils.js';
 import { parseJsonObject } from '../api/utils/json.js';
+import { buildSetClause } from '../api/utils/sql.js';
 
 /**
  * ERP 同步数据访问层
@@ -51,22 +52,22 @@ export class ErpSyncRepository {
   }
 
   async updateConnection(id, { name, adapterType, baseUrl, authType, credentials, config, syncDirection, enabled, actorId }) {
-    const updates = [];
-    const values = [];
-    if (name !== undefined) { updates.push('name = ?'); values.push(name); }
-    if (adapterType !== undefined) { updates.push('adapter_type = ?'); values.push(adapterType); }
-    if (baseUrl !== undefined) { updates.push('base_url = ?'); values.push(baseUrl); }
-    if (authType !== undefined) { updates.push('auth_type = ?'); values.push(authType); }
-    if (credentials !== undefined) { updates.push('credentials = ?'); values.push(JSON.stringify(credentials)); }
-    if (config !== undefined) { updates.push('config = ?'); values.push(JSON.stringify(config)); }
-    if (syncDirection !== undefined) { updates.push('sync_direction = ?'); values.push(syncDirection); }
-    if (enabled !== undefined) { updates.push('enabled = ?'); values.push(enabled ? 1 : 0); }
-    if (updates.length === 0) return this.getConnectionById(id);
-    updates.push('updated_by = ?', 'updated_at = ?');
-    values.push(actorId, this.now(), id);
+    const dbUpdates = {};
+    if (name !== undefined) dbUpdates.name = name;
+    if (adapterType !== undefined) dbUpdates.adapter_type = adapterType;
+    if (baseUrl !== undefined) dbUpdates.base_url = baseUrl;
+    if (authType !== undefined) dbUpdates.auth_type = authType;
+    if (credentials !== undefined) dbUpdates.credentials = JSON.stringify(credentials);
+    if (config !== undefined) dbUpdates.config = JSON.stringify(config);
+    if (syncDirection !== undefined) dbUpdates.sync_direction = syncDirection;
+    if (enabled !== undefined) dbUpdates.enabled = enabled ? 1 : 0;
+    if (Object.keys(dbUpdates).length === 0) return this.getConnectionById(id);
+    dbUpdates.updated_by = actorId;
+    dbUpdates.updated_at = this.now();
+    const { clause, values } = buildSetClause(dbUpdates);
     await this.db
-      .prepare(`UPDATE erp_connections SET ${updates.join(', ')} WHERE id = ?`)
-      .bind(...values)
+      .prepare(`UPDATE erp_connections SET ${clause} WHERE id = ?`)
+      .bind(...values, id)
       .run();
     return this.getConnectionById(id);
   }
@@ -231,7 +232,7 @@ export class ErpSyncRepository {
       adapterType: row.adapter_type,
       baseUrl: row.base_url,
       authType: row.auth_type,
-      credentials: parseJsonObject(row.credentials, {}),
+      credentials: this._maskCredentials(parseJsonObject(row.credentials, {})),
       config: parseJsonObject(row.config, {}),
       syncDirection: row.sync_direction,
       enabled: Boolean(row.enabled),
@@ -243,6 +244,24 @@ export class ErpSyncRepository {
       updatedBy: row.updated_by || null,
       updatedAt: row.updated_at,
     };
+  }
+
+  /**
+   * 掩盖敏感凭据值，防止 API 响应泄露
+   * @param {Object} credentials
+   * @returns {Object}
+   */
+  _maskCredentials(credentials) {
+    if (!credentials || typeof credentials !== 'object') return credentials;
+    const masked = {};
+    for (const [key, value] of Object.entries(credentials)) {
+      if (typeof value === 'string' && value.length > 0) {
+        masked[key] = '***';
+      } else {
+        masked[key] = value;
+      }
+    }
+    return masked;
   }
 
   _rowToSyncLog(row) {

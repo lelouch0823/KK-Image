@@ -370,11 +370,12 @@ export function useCommandPalette() {
 // ---------- 辅助函数 ----------
 
 function getTitle(item: Record<string, unknown>, type: string): string {
-  if (type === 'file') return (item.name as string) || '未命名文件';
-  if (type === 'product') return (item.name as string) || '未命名商品';
-  if (type === 'order') return (item.order_no as string) || '未知订单';
-  if (type === 'customer') return (item.name as string) || '未知客户';
-  return '未知';
+  const { t } = useI18n();
+  if (type === 'file') return (item.name as string) || t('commandPalette.fallbacks.unnamedFile');
+  if (type === 'product') return (item.name as string) || t('commandPalette.fallbacks.unnamedProduct');
+  if (type === 'order') return (item.order_no as string) || t('commandPalette.fallbacks.unknownOrder');
+  if (type === 'customer') return (item.name as string) || t('commandPalette.fallbacks.unknownCustomer');
+  return t('commandPalette.fallbacks.unknown');
 }
 
 function getSubtitle(item: Record<string, unknown>, type: string): string {

@@ -225,19 +225,27 @@ export class StocktakeRepository {
       ).bind(stocktakeId).run();
     }
 
+    // 批量获取所有需要更新的 item 的 system_qty，避免 N+1 查询
+    const itemIds = updates
+      .map(u => u.itemId)
+      .filter(Boolean);
+    const placeholders = itemIds.map(() => '?').join(',');
+    const { results: existingItems = [] } = itemIds.length > 0
+      ? await this.db.prepare(
+          `SELECT id, system_qty FROM stocktake_items WHERE id IN (${placeholders}) AND stocktake_id = ?`
+        ).bind(...itemIds, stocktakeId).all()
+      : { results: [] };
+    const systemQtyMap = new Map(existingItems.map(item => [item.id, item.system_qty]));
+
     const statements = [];
     for (const update of updates) {
       const actualQty = Number(update.actualQty);
       if (!Number.isFinite(actualQty)) continue;
 
-      // 获取 system_qty 计算差异
-      const item = await this.db.prepare(
-        'SELECT system_qty FROM stocktake_items WHERE id = ? AND stocktake_id = ?'
-      ).bind(update.itemId, stocktakeId).first();
+      const systemQty = systemQtyMap.get(update.itemId);
+      if (systemQty === undefined) continue;
 
-      if (!item) continue;
-
-      const difference = actualQty - item.system_qty;
+      const difference = actualQty - systemQty;
 
       const setClauses = ['actual_qty = ?', 'difference = ?'];
       const values = [actualQty, difference];

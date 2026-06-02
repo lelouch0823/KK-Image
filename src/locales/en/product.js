@@ -377,4 +377,18 @@ export default {
     delete_failed: 'Failed to delete price rule',
     all_types_used: 'All price types have been added',
   },
+  variantBatchBuilder: {
+    title: 'Batch Variant Builder',
+    colors: 'Colors (comma-separated)',
+    colorsPlaceholder: 'Yellow,Blue',
+    materials: 'Materials (optional)',
+    materialsPlaceholder: 'Cotton,Polyester',
+    sizes: 'Sizes (optional)',
+    sizesPlaceholder: 'S,M,L',
+    price: 'Price',
+    cost: 'Cost',
+    stock: 'Stock',
+    status: 'Status',
+    apply: 'Apply',
+  },
 };

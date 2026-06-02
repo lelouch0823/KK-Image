@@ -1,11 +1,23 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { OAuthRepository } from '../../../../repositories/OAuthRepository.js';
+import { OAuthRepository, hashSecret } from '../../../../repositories/OAuthRepository.js';
 import { requirePermission } from '../../../middleware/auth.js';
 import { generatePrefixedId } from '../../../../_shared/utils.js';
 
 const app = new Hono();
+
+/**
+ * 常数时间比较两个字符串（防止时序攻击）
+ * 先计算输入的哈希，再与存储的哈希做常数时间比较
+ */
+async function verifySecret(inputSecret, storedHash) {
+  const inputHash = await hashSecret(inputSecret);
+  const a = new TextEncoder().encode(inputHash);
+  const b = new TextEncoder().encode(storedHash);
+  if (a.length !== b.length) return false;
+  return crypto.subtle.timingSafeEqual(a, b);
+}
 
 // ============================================
 // 应用管理（需要管理员权限）
@@ -46,7 +58,7 @@ app.get('/apps', async (c) => {
 app.post('/apps', zValidator('json', CreateAppSchema), async (c) => {
   const body = c.req.valid('json');
   const repo = new OAuthRepository(c.env.DB);
-  const client = await repo.createClient({ ...body, actorId: c.get('userId') });
+  const client = await repo.createClient({ ...body, actorId: c.get('user')?.id || c.get('user')?.sub });
   return c.json({ success: true, data: client }, 201);
 });
 
@@ -66,7 +78,7 @@ app.get('/apps/:id', async (c) => {
 app.put('/apps/:id', zValidator('json', UpdateAppSchema), async (c) => {
   const body = c.req.valid('json');
   const repo = new OAuthRepository(c.env.DB);
-  const client = await repo.updateClient(c.req.param('id'), { ...body, actorId: c.get('userId') });
+  const client = await repo.updateClient(c.req.param('id'), { ...body, actorId: c.get('user')?.id || c.get('user')?.sub });
   if (!client) return c.json({ success: false, error: '应用不存在' }, 404);
   return c.json({ success: true, data: client });
 });
@@ -119,6 +131,20 @@ const AuthorizeSchema = z.object({
   state: z.string().optional(),
 }).strict();
 
+const AuthorizeQuerySchema = z.object({
+  client_id: z.string().min(1),
+  redirect_uri: z.string().url(),
+  response_type: z.literal('code'),
+  scope: z.string().optional(),
+  state: z.string().optional(),
+});
+
+const RevokeSchema = z.object({
+  token: z.string().min(1),
+  client_id: z.string().min(1),
+  client_secret: z.string().min(1),
+}).strict();
+
 const TokenSchema = z.object({
   grant_type: z.enum(['authorization_code', 'refresh_token']),
   code: z.string().optional(),
@@ -132,24 +158,16 @@ const TokenSchema = z.object({
  * GET /authorize - 授权页面（返回授权信息供前端展示）
  * 前端调用此接口获取应用信息，用户确认后调用 POST /authorize
  */
-app.get('/authorize', async (c) => {
-  const clientId = c.req.query('client_id');
-  const redirectUri = c.req.query('redirect_uri');
-  const responseType = c.req.query('response_type');
-  const scope = c.req.query('scope');
-  const state = c.req.query('state');
-
-  if (responseType !== 'code') {
-    return c.json({ success: false, error: 'unsupported_response_type', error_description: '仅支持 code 授权类型' }, 400);
-  }
+app.get('/authorize', zValidator('query', AuthorizeQuerySchema), async (c) => {
+  const { client_id, redirect_uri, scope, state } = c.req.valid('query');
 
   const repo = new OAuthRepository(c.env.DB);
-  const client = await repo.getClientByClientId(clientId);
+  const client = await repo.getClientByClientId(client_id);
   if (!client || !client.enabled) {
     return c.json({ success: false, error: 'invalid_client', error_description: '客户端不存在或已禁用' }, 400);
   }
 
-  if (!client.redirectUris.includes(redirectUri)) {
+  if (!client.redirectUris.includes(redirect_uri)) {
     return c.json({ success: false, error: 'invalid_redirect_uri', error_description: '回调地址不匹配' }, 400);
   }
 
@@ -163,7 +181,7 @@ app.get('/authorize', async (c) => {
     success: true,
     data: {
       client: { name: client.name, description: client.description },
-      redirectUri,
+      redirectUri: redirect_uri,
       scopes: requestedScopes,
       state: state || null,
     },
@@ -175,7 +193,7 @@ app.get('/authorize', async (c) => {
  */
 app.post('/authorize', zValidator('json', AuthorizeSchema), async (c) => {
   const body = c.req.valid('json');
-  const userId = c.get('userId');
+  const userId = c.get('user')?.id || c.get('user')?.sub;
   if (!userId) return c.json({ success: false, error: 'unauthorized' }, 401);
 
   const repo = new OAuthRepository(c.env.DB);
@@ -210,7 +228,7 @@ app.post('/token', zValidator('json', TokenSchema), async (c) => {
   if (!client || !client.enabled) {
     return c.json({ success: false, error: 'invalid_client' }, 400);
   }
-  if (client.clientSecret !== body.client_secret) {
+  if (!(await verifySecret(body.client_secret, client.clientSecret))) {
     return c.json({ success: false, error: 'invalid_client' }, 400);
   }
 
@@ -288,15 +306,12 @@ app.post('/token', zValidator('json', TokenSchema), async (c) => {
 /**
  * POST /revoke - 撤销令牌
  */
-app.post('/revoke', async (c) => {
-  const { token, client_id, client_secret } = await c.req.json();
-  if (!token || !client_id || !client_secret) {
-    return c.json({ success: false, error: 'invalid_request' }, 400);
-  }
+app.post('/revoke', zValidator('json', RevokeSchema), async (c) => {
+  const { token, client_id, client_secret } = c.req.valid('json');
 
   const repo = new OAuthRepository(c.env.DB);
   const client = await repo.getClientByClientId(client_id);
-  if (!client || client.clientSecret !== client_secret) {
+  if (!client || !(await verifySecret(client_secret, client.clientSecret))) {
     return c.json({ success: false, error: 'invalid_client' }, 400);
   }
 

@@ -6,13 +6,12 @@ CREATE TABLE IF NOT EXISTS customer_tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     customer_id TEXT NOT NULL,
     tag_name TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
     UNIQUE(customer_id, tag_name)
 );
 
 -- 2. 创建索引
-CREATE INDEX IF NOT EXISTS idx_customer_tags_customer_id ON customer_tags(customer_id);
 CREATE INDEX IF NOT EXISTS idx_customer_tags_tag_name ON customer_tags(tag_name);
 
 -- 3. 创建客户统计视图（便于查询）

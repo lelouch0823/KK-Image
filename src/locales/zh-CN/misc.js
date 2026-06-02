@@ -217,6 +217,10 @@ export default {
     newContentDesc: '请点击刷新以获取最新功能。',
     reload: '立即刷新',
     close: '关闭',
+    installTitle: '安装应用',
+    installDescription: '将 KK Order 添加到主屏幕，获得更好的使用体验',
+    install: '安装',
+    dismiss: '稍后再说',
   },
 
   // 销售统计

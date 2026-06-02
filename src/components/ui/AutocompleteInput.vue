@@ -146,10 +146,10 @@ function highlightMatch(text) {
   if (!inputValue.value || !props.filterMode) return escapeHtml(text);
   const query = inputValue.value.trim();
   if (!query) return escapeHtml(text);
-  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapedQuery = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const regex = new RegExp(`(${escapedQuery})`, 'gi');
   return escapeHtml(text).replace(
-    new RegExp(`(${escapeHtml(query)})`, 'gi'),
+    regex,
     '<mark class="bg-primary/20 text-(--text-main) rounded-sm px-0.5">$1</mark>'
   );
 }

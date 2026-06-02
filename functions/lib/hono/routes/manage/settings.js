@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
+import { zValidator } from '@hono/zod-validator';
 import { BadRequestError } from '../../errors.js';
 import { SettingsRepository } from '../../../../repositories/SettingsRepository.ts';
 import { parseModels, getModelHealthSnapshot } from '../../../../utils/ai-utils.js';
@@ -6,6 +8,21 @@ import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { withCache } from '../../middleware/cache.js';
+
+const BatchSettingsSchema = z.object({
+  settings: z.array(z.object({
+    key: z.string().min(1).max(200),
+    value: z.string().max(10000),
+    category: z.string().max(100).optional(),
+    description: z.string().max(500).optional(),
+  })).min(1).max(100),
+}).strict();
+
+const UpdateSettingSchema = z.object({
+  value: z.string().max(10000).optional(),
+  category: z.string().max(100).optional(),
+  description: z.string().max(500).optional(),
+}).strict();
 
 /**
  * 验证外部 API URL 安全性（防止 SSRF）
@@ -128,13 +145,8 @@ app.get('/', withCache(120), async (c) => {
 });
 
 // 批量更新或创建设置
-app.post('/batch', async (c) => {
-  const body = await c.req.json();
-  const { settings } = body;
-
-  if (!Array.isArray(settings)) {
-    throw new BadRequestError('Invalid format. "settings" must be an array.');
-  }
+app.post('/batch', zValidator('json', BatchSettingsSchema), async (c) => {
+  const { settings } = c.req.valid('json');
 
   const repo = new SettingsRepository(c.env.DB);
   const count = await repo.batchUpsert(settings);
@@ -152,9 +164,9 @@ app.post('/batch', async (c) => {
 });
 
 // 单个更新
-app.put('/:key', async (c) => {
+app.put('/:key', zValidator('json', UpdateSettingSchema), async (c) => {
   const key = c.req.param('key');
-  const { value, category, description } = await c.req.json();
+  const { value, category, description } = c.req.valid('json');
 
   const repo = new SettingsRepository(c.env.DB);
   await repo.upsert(key, { value, category, description });

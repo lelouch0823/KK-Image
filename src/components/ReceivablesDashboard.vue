@@ -13,7 +13,7 @@
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5">
           <div class="text-sm text-(--text-secondary)">{{ t('order.receivables.totalOutstanding') }}</div>
-          <div class="text-danger mt-2 text-3xl font-bold">{{ summary.totalPaid }}</div>
+          <div class="text-danger mt-2 text-3xl font-bold">{{ summary.totalOutstanding }}</div>
           <div class="mt-1 text-xs text-(--text-secondary)">
             {{ summary.orderCount }} {{ t('order.receivables.orderCount') }}
           </div>
@@ -136,7 +136,9 @@ interface TopDebtor {
 
 interface ReceivablesData {
   orderCount: number;
+  totalQuantity: number;
   totalPaid: number;
+  totalOutstanding: number;
   aging: AgingBucket[];
   topDebtors: TopDebtor[];
 }
@@ -144,7 +146,9 @@ interface ReceivablesData {
 const loading = ref(true);
 const summary = ref<ReceivablesData>({
   orderCount: 0,
+  totalQuantity: 0,
   totalPaid: 0,
+  totalOutstanding: 0,
   aging: [],
   topDebtors: [],
 });

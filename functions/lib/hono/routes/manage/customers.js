@@ -33,6 +33,15 @@ const CreateCustomerSchema = z.object({
 
 const UpdateCustomerSchema = CreateCustomerSchema.partial();
 
+const BatchTagsSchema = z.object({
+    ids: z.array(z.string()).min(1).max(500),
+    tag: z.string().min(1).max(100),
+}).strict();
+
+const BatchExportSchema = z.object({
+    ids: z.array(z.string()).min(1).max(10000),
+}).strict();
+
 /**
  * GET / - 分页查询客户列表（含 RFM 分段）
  */
@@ -83,35 +92,27 @@ app.get('/', async (c) => {
 /**
  * POST /batch/tags - 批量添加标签
  */
-app.post('/batch/tags', async (c) => {
+app.post('/batch/tags', zValidator('json', BatchTagsSchema), async (c) => {
     const { env } = c;
-    const body = await c.req.json();
-    const { ids, tag } = body;
-
-    if (!Array.isArray(ids) || ids.length === 0) {
-        throw new BadRequestError('请选择至少一个客户');
-    }
-    if (!tag || typeof tag !== 'string' || !tag.trim()) {
-        throw new BadRequestError('请输入标签');
-    }
+    const { ids, tag } = c.req.valid('json');
 
     const repo = new CustomerRepository(env.DB);
     const normalizedTag = tag.trim();
     let successCount = 0;
 
+    // 批量查询所有目标客户，避免 N+1
+    const customers = await repo.findByIds(ids);
+
     // 使用事务批量更新
     const statements = [];
-    for (const id of ids) {
-        const customer = await repo.findById(id);
-        if (!customer) continue;
-
+    for (const customer of customers) {
         const existingTags = Array.isArray(customer.tags) ? customer.tags : [];
         if (existingTags.includes(normalizedTag)) continue;
 
         const newTags = [...existingTags, normalizedTag];
         statements.push(
             env.DB.prepare('UPDATE customers SET tags = ?, updated_at = ? WHERE id = ?')
-                .bind(JSON.stringify(newTags), Date.now(), id)
+                .bind(JSON.stringify(newTags), Date.now(), customer.id)
         );
     }
 
@@ -141,21 +142,12 @@ app.post('/batch/tags', async (c) => {
 /**
  * POST /batch/export - 批量导出选中客户
  */
-app.post('/batch/export', async (c) => {
+app.post('/batch/export', zValidator('json', BatchExportSchema), async (c) => {
     const { env } = c;
-    const body = await c.req.json();
-    const { ids } = body;
-
-    if (!Array.isArray(ids) || ids.length === 0) {
-        throw new BadRequestError('请选择至少一个客户');
-    }
+    const { ids } = c.req.valid('json');
 
     const repo = new CustomerRepository(env.DB);
-    const customers = [];
-    for (const id of ids) {
-        const customer = await repo.findById(id);
-        if (customer) customers.push(customer);
-    }
+    const customers = await repo.findByIds(ids);
 
     // CSV 列定义
     const columns = [

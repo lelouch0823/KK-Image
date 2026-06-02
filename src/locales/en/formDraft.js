@@ -9,4 +9,8 @@ export default {
   discarded: 'Draft discarded',
   banner: 'Unsaved draft data detected',
   autoSaved: 'Draft auto-saved',
+  justNow: 'Just now',
+  minutesAgo: '{count} min ago',
+  hoursAgo: '{count} hours ago',
+  daysAgo: '{count} days ago',
 };

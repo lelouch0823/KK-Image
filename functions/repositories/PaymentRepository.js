@@ -154,9 +154,14 @@ export class PaymentRepository {
     // 2. 获取账龄分析
     const aging = await this.getAgingAnalysis(options);
 
+    const totalQuantity = summary?.total_quantity ?? 0;
+    const totalPaid = summary?.total_paid ?? 0;
+
     return {
       orderCount: summary?.order_count ?? 0,
-      totalPaid: summary?.total_paid ?? 0,
+      totalQuantity,
+      totalPaid,
+      totalOutstanding: totalQuantity - totalPaid,
       aging,
     };
   }

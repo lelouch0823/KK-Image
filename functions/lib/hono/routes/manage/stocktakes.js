@@ -22,11 +22,11 @@ app.use('*', requirePermission('products:manage'));
 
 const CreateStocktakeSchema = z.object({
   notes: z.string().max(500).optional().nullable(),
-});
+}).strict();
 
 const UpdateStocktakeSchema = z.object({
   notes: z.string().max(500).optional().nullable(),
-});
+}).strict();
 
 const UpdateItemsSchema = z.object({
   items: z.array(z.object({
@@ -71,7 +71,7 @@ app.post('/', zValidator('json', CreateStocktakeSchema), async (c) => {
   const repo = new StocktakeRepository(env.DB);
   const stocktake = await repo.create({
     notes: body.notes,
-    createdBy: c.get('userId') || null,
+    createdBy: c.get('user')?.id || c.get('user')?.sub || null,
   });
 
   return c.json({ success: true, data: stocktake }, 201);
@@ -154,7 +154,7 @@ app.post('/:id/adjust', async (c) => {
   );
 
   const result = await repo.adjustInventory(id, {
-    adjustedBy: c.get('userId') || null,
+    adjustedBy: c.get('user')?.id || c.get('user')?.sub || null,
   });
 
   return c.json({ success: true, data: result });

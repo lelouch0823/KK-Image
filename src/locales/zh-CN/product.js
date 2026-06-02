@@ -377,4 +377,18 @@ export default {
     delete_failed: '删除价格规则失败',
     all_types_used: '已添加所有价格类型',
   },
+  variantBatchBuilder: {
+    title: '批量创建变体',
+    colors: '颜色 (逗号分隔)',
+    colorsPlaceholder: '黄,蓝',
+    materials: '材质 (选填)',
+    materialsPlaceholder: '棉,涤纶',
+    sizes: '尺码 (选填)',
+    sizesPlaceholder: 'S,M,L',
+    price: '价格',
+    cost: '成本',
+    stock: '库存',
+    status: '状态',
+    apply: '应用',
+  },
 };

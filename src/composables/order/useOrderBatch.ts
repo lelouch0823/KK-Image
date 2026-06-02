@@ -210,17 +210,27 @@ export function useOrderBatch(
     };
 
     /**
+     * HTML 转义（防止 XSS 注入）
+     */
+    const escapeHtml = (str: string): string =>
+        String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+
+    /**
      * 生成打印 HTML 内容
      */
     const generatePrintContent = (orders: OrderWithStatus[]): string => {
         const orderRows = orders.map(order => `
             <tr>
-                <td>${order.orderNo || order.id}</td>
-                <td>${order.productName || '-'}</td>
-                <td>${t(`order.statuses.${order.status}`, order.status)}</td>
-                <td>${order.quantity || 1}</td>
-                <td>${order.salespersonName || '-'}</td>
-                <td>${order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-'}</td>
+                <td>${escapeHtml(order.orderNo || order.id)}</td>
+                <td>${escapeHtml(order.productName || '-')}</td>
+                <td>${escapeHtml(t(`order.statuses.${order.status}`, order.status))}</td>
+                <td>${escapeHtml(String(order.quantity || 1))}</td>
+                <td>${escapeHtml(order.salespersonName || '-')}</td>
+                <td>${escapeHtml(order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-')}</td>
             </tr>
         `).join('');
 

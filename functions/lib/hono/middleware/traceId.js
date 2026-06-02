@@ -11,10 +11,15 @@ function generateTraceId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
-  // 回退：基于随机数生成 UUID 格式
-  const hex = () => Math.floor(Math.random() * 16).toString(16);
-  const seg = (len) => Array.from({ length: len }, hex).join('');
-  return `${seg(8)}-${seg(4)}-4${seg(3)}-${[8, 9, 'a', 'b'][Math.floor(Math.random() * 4)]}${seg(3)}-${seg(12)}`;
+  // 回退：基于 crypto.getRandomValues 生成 UUID 格式
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const hex = (offset) => bytes[offset].toString(16).padStart(2, '0');
+  const seg = (start, len) => Array.from({ length: len }, (_, i) => hex(start + i)).join('');
+  // 设置版本 4 和变体位
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  return `${seg(0, 4)}-${seg(4, 2)}-${seg(6, 2)}-${seg(8, 2)}-${seg(10, 6)}`;
 }
 
 /**

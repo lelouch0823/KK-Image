@@ -6,7 +6,7 @@
     <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <div>
         <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
-          Receipt Ledger
+          {{ t('purchaseOrder.detail.receipts') }}
         </p>
         <h3 class="mt-1 text-sm font-semibold text-(--text-main)">
           {{ t('purchaseOrder.detail.receipts', '收货台账') }}

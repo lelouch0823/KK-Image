@@ -34,7 +34,7 @@
       class="w-full !justify-between rounded-xl text-left shadow-sm hover:border-primary hover:bg-primary/5"
       @click="showModal = true"
     >
-      <span class="text-secondary">{{ placeholder }}</span>
+      <span class="text-secondary">{{ placeholder || t('salesperson.selectPlaceholder') }}</span>
       <span class="text-primary flex items-center gap-2 text-xs font-medium">
         <AppIcon name="plus" class="size-4" />
         {{ t('spaceManager.select') || '选择' }}
@@ -72,7 +72,7 @@ const props = defineProps({
   },
   placeholder: {
     type: String,
-    default: '点击选择销售员',
+    default: '',
   },
   multiple: {
     type: Boolean,

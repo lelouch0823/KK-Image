@@ -14,7 +14,7 @@
         class="mb-3 flex flex-col gap-2 border-b border-(--border-color)/35 px-1 pb-3 lg:flex-row lg:items-center lg:justify-between"
       >
         <div>
-          <h3 class="text-sm font-semibold text-(--text-main)">Order Ledger</h3>
+          <h3 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.ui.tableTitle', 'Order Ledger') }}</h3>
           <p class="mt-1 text-xs text-(--text-secondary)">
             {{
               t(

@@ -217,6 +217,10 @@ export default {
     newContentDesc: 'Please refresh to get the latest features.',
     reload: 'Refresh Now',
     close: 'Close',
+    installTitle: 'Install App',
+    installDescription: 'Add KK Order to your home screen for a better experience',
+    install: 'Install',
+    dismiss: 'Maybe Later',
   },
 
   // Sales Stats

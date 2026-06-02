@@ -141,4 +141,37 @@ export default {
     noResults: '无匹配结果',
     minCharsHint: '请输入至少 {count} 个字符',
   },
+  // AI 组件
+  ai: {
+    actionResult: {
+      created: '创建成功',
+      result: '创建结果',
+      goTo: '前往查看',
+      defaultSuccess: '已完成创建，请前往对应模块查看。',
+      defaultEntity: '已创建记录',
+      defaultModule: '对应模块',
+      modules: {
+        orders: '订单管理',
+        purchaseOrders: '采购单管理',
+        products: '商品管理',
+        customers: '客户管理',
+        salespersons: '销售员管理',
+      },
+    },
+    slotQuestion: {
+      step1: 'Step 1 · 补全信息',
+      canSelect: '可直接选择',
+      continueFilling: '继续补槽',
+      needMoreInfo: '还需要补充信息',
+      currentField: '当前补槽字段',
+      candidates: '候选项',
+      items: '项',
+      select: '选择',
+      selected: '已选择',
+      reselect: '重新选择',
+      replyHint: '回复序号、名称或 ID 即可选择。',
+      fillFields: '请补充以下字段：{fields}',
+      continueInfo: '请继续补充创建所需的信息。',
+    },
+  },
 };

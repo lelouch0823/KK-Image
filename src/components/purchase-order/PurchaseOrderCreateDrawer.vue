@@ -311,7 +311,7 @@ import AppSelect from '@/components/ui/Select.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 
-defineProps({
+const props = defineProps({
   show: { type: Boolean, default: false },
   t: { type: Function, required: true },
   createForm: { type: Object, required: true },
@@ -339,24 +339,24 @@ const handleModalVisibilityChange = (nextVisible) => {
 };
 
 const itemColumns = computed(() => [
-  { key: 'product', label: '商品', width: '38%' },
+  { key: 'product', label: props.t('purchaseOrder.table.product'), width: '38%' },
   {
     key: 'quantity',
-    label: '数量',
+    label: props.t('purchaseOrder.table.quantity'),
     width: '18%',
     headerClass: 'text-center',
     cellClass: 'text-center',
   },
   {
     key: 'unitCost',
-    label: '单价',
+    label: props.t('purchaseOrder.table.unitCost'),
     width: '18%',
     headerClass: 'text-right',
     cellClass: 'text-right',
   },
   {
     key: 'source',
-    label: '来源',
+    label: props.t('purchaseOrder.form.source'),
     width: '18%',
     headerClass: 'text-center',
     cellClass: 'text-center',

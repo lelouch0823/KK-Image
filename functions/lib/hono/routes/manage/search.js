@@ -38,11 +38,19 @@ async function searchFiles(db, query) {
 }
 
 /**
- * 检查 FTS5 虚拟表是否存在（带缓存）
+ * 检查 FTS5 虚拟表是否存在（带缓存，5 分钟 TTL）
  */
-const _ftsCache = { products: null, orders: null };
+const FTS_CACHE_TTL_MS = 5 * 60 * 1000;
+const _ftsCache = { products: null, orders: null, _timestamp: 0 };
 
 async function hasFtsTable(db, tableName) {
+    const now = Date.now();
+    if (now - _ftsCache._timestamp > FTS_CACHE_TTL_MS) {
+        // TTL 过期，重置缓存
+        _ftsCache.products = null;
+        _ftsCache.orders = null;
+        _ftsCache._timestamp = now;
+    }
     if (_ftsCache[tableName] !== null) return _ftsCache[tableName];
     try {
         const result = await db.prepare(

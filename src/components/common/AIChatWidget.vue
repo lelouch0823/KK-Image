@@ -507,7 +507,7 @@ const clearHistory = () => {
 
 const confirmAction = async () => {
   if (isStreamingLoading.value || isAIStreaming.value) return;
-  userInput.value = '确认';
+  userInput.value = t('common.confirm');
   await sendMessage();
 };
 

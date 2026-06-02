@@ -136,6 +136,25 @@ export default {
     addAll: '全部加入采购单',
     addSelected: '将选中项加入采购单',
     empty: '暂无符合采购条件的商品',
+    cost: '成本',
+    suggested: '建议',
+    recent: '最近',
+  },
+
+  // UI 文案
+  ui: {
+    tableTitle: '采购台账',
+    tableHint: '主状态和到货进度在同一列聚合展示，便于快速扫读链路卡点。',
+    liveHint: '点击行可查看采购链路详情',
+    costFallbackHint: '未填写实际费用时，成本分摊会回退使用预估运费与预估关税。',
+    costModalHint: '同步币种、分摊方式、预估费用与实际费用，必要时立即重算每条采购明细的落地成本。',
+    costModalFooterHint: '保存配置后可选择立即重算分摊，当前明细的运费/关税将按新的规则刷新。',
+    reversalModalHint: '当前接口会整笔回滚该次收货记录，请确认库存和订单投影都允许撤回。',
+    shortageModalHint: '将确认不会再到货的尾差数量转入采购单取消量，只关闭采购侧待收，不改客户订单需求。',
+    receiptLedgerHint: '登记每次到货与冲销记录，确保采购、订单、库存三条投影保持一致。',
+    receiptLedgerEmptyTitle: '还没有收货记录',
+    receiptLedgerEmptyBody: '当前采购单还有待收货明细，可以登记本次到货。',
+    receiptLedgerLockedBody: '当前状态下没有可登记的收货明细。',
   },
 
   // 分页

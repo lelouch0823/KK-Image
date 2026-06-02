@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS customer_communications (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
     customer_id TEXT NOT NULL,
-    type TEXT NOT NULL DEFAULT 'note',
+    type TEXT NOT NULL DEFAULT 'note' CHECK(type IN ('note','call','email','meeting','wechat','other')),
     content TEXT NOT NULL,
     created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
     created_by TEXT,

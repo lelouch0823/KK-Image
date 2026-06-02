@@ -87,13 +87,13 @@
                 {{ t('purchaseOrder.suggestions.stock') }} {{ s.available_quantity ?? s.stock_quantity }}
               </StatusBadge>
               <span class="rounded-full bg-(--bg-muted) px-2.5 py-1 font-mono tabular-nums text-(--text-secondary)">
-                成本 ¥{{ (s.variant_cost_price || s.cost_price || 0).toFixed(2) }}
+                {{ t('purchaseOrder.suggestions.cost') }} ¥{{ (s.variant_cost_price || s.cost_price || 0).toFixed(2) }}
               </span>
               <span class="bg-primary/8 text-primary rounded-full px-2.5 py-1 font-mono tabular-nums">
-                建议 ¥{{ (s.suggested_purchase_price || s.cost_price || 0).toFixed(2) }}
+                {{ t('purchaseOrder.suggestions.suggested') }} ¥{{ (s.suggested_purchase_price || s.cost_price || 0).toFixed(2) }}
               </span>
               <span v-if="s.last_purchase_price != null" class="font-mono tabular-nums text-(--text-secondary)">
-                最近 ¥{{ Number(s.last_purchase_price).toFixed(2) }}
+                {{ t('purchaseOrder.suggestions.recent') }} ¥{{ Number(s.last_purchase_price).toFixed(2) }}
               </span>
               <span
                 v-if="s.price_delta != null"

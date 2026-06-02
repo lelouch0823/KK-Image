@@ -22,4 +22,11 @@ export default {
     close: 'Close',
   },
   shortcut: '⌘K',
+  fallbacks: {
+    unnamedFile: 'Unnamed File',
+    unnamedProduct: 'Unnamed Product',
+    unknownOrder: 'Unknown Order',
+    unknownCustomer: 'Unknown Customer',
+    unknown: 'Unknown',
+  },
 };

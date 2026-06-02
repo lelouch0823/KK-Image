@@ -1,3 +1,5 @@
+import { buildSetClause } from '../api/utils/sql.js';
+
 /**
  * 分类仓库 (Category Repository)
  * ===================================
@@ -100,32 +102,22 @@ export class CategoryRepository {
      * @returns {Promise<boolean>}
      */
     async update(id, updates) {
-        const fields = [];
-        const params = [];
-
-        if (updates.name !== undefined) {
-            fields.push('name = ?');
-            params.push(updates.name);
-        }
-        if (updates.parentId !== undefined) {
-            // 防止循环引用：不能将自己设为自己的子节点
-            if (updates.parentId === id) {
-                throw new Error('不能将分类设为自己的子分类');
-            }
-            fields.push('parent_id = ?');
-            params.push(updates.parentId);
-        }
-        if (updates.sortOrder !== undefined) {
-            fields.push('sort_order = ?');
-            params.push(updates.sortOrder);
+        // 防止循环引用：不能将自己设为自己的子节点
+        if (updates.parentId !== undefined && updates.parentId === id) {
+            throw new Error('不能将分类设为自己的子分类');
         }
 
-        if (fields.length === 0) return false;
+        const dbUpdates = {};
+        if (updates.name !== undefined) dbUpdates.name = updates.name;
+        if (updates.parentId !== undefined) dbUpdates.parent_id = updates.parentId;
+        if (updates.sortOrder !== undefined) dbUpdates.sort_order = updates.sortOrder;
 
-        params.push(id);
+        if (Object.keys(dbUpdates).length === 0) return false;
+
+        const { clause, values } = buildSetClause(dbUpdates);
         const result = await this.db.prepare(
-            `UPDATE categories SET ${fields.join(', ')} WHERE id = ?`
-        ).bind(...params).run();
+            `UPDATE categories SET ${clause} WHERE id = ?`
+        ).bind(...values, id).run();
 
         return result.meta?.changes > 0;
     }

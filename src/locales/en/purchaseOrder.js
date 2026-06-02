@@ -127,6 +127,25 @@ export default {
     addAll: 'Add All to PO',
     empty: 'No products matching procurement criteria',
     addSelected: 'Add Selected to PO',
+    cost: 'Cost',
+    suggested: 'Suggested',
+    recent: 'Recent',
+  },
+
+  // UI Copy
+  ui: {
+    tableTitle: 'Order Ledger',
+    tableHint: 'Main status and receipt progress are aggregated in one column for quick scanning.',
+    liveHint: 'Click a row to view purchase order details',
+    costFallbackHint: 'When actual costs are not set, allocation falls back to estimated shipping and tariff.',
+    costModalHint: 'Sync currency, allocation method, estimated and actual costs. Recalculate landed cost per item if needed.',
+    costModalFooterHint: 'After saving, you can choose to recalculate allocation. Current freight/tariff will be refreshed.',
+    reversalModalHint: 'This will fully roll back the receipt record. Please confirm inventory and order projections allow reversal.',
+    shortageModalHint: 'Transfer tail-end quantities that will not arrive into PO cancellation. Only closes procurement side, does not change customer order demand.',
+    receiptLedgerHint: 'Record each receipt and reversal to keep procurement, order, and inventory projections consistent.',
+    receiptLedgerEmptyTitle: 'No receipt records yet',
+    receiptLedgerEmptyBody: 'This PO still has outstanding items. You can record a receipt now.',
+    receiptLedgerLockedBody: 'No receivable items available in the current status.',
   },
 
   // Pagination

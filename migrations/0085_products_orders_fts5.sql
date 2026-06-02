@@ -13,9 +13,8 @@ CREATE VIRTUAL TABLE IF NOT EXISTS products_fts USING fts5(
     content_rowid='rowid'
 );
 
--- 初始填充
-INSERT INTO products_fts(rowid, name, spu, description, series)
-    SELECT rowid, name, spu, description, series FROM products;
+-- 初始填充（使用 FTS5 rebuild 幂等写法，避免重复插入报错）
+INSERT INTO products_fts(products_fts) VALUES('rebuild');
 
 -- 同步触发器：INSERT
 CREATE TRIGGER IF NOT EXISTS products_fts_ai AFTER INSERT ON products BEGIN
@@ -48,9 +47,8 @@ CREATE VIRTUAL TABLE IF NOT EXISTS orders_fts USING fts5(
     content_rowid='rowid'
 );
 
--- 初始填充
-INSERT INTO orders_fts(rowid, order_no, summary_name, summary_brand, summary_sku)
-    SELECT rowid, order_no, summary_name, summary_brand, summary_sku FROM orders;
+-- 初始填充（使用 FTS5 rebuild 幂等写法，避免重复插入报错）
+INSERT INTO orders_fts(orders_fts) VALUES('rebuild');
 
 -- 同步触发器：INSERT
 CREATE TRIGGER IF NOT EXISTS orders_fts_ai AFTER INSERT ON orders BEGIN

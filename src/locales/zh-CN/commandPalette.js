@@ -22,4 +22,11 @@ export default {
     close: '关闭',
   },
   shortcut: '⌘K',
+  fallbacks: {
+    unnamedFile: '未命名文件',
+    unnamedProduct: '未命名商品',
+    unknownOrder: '未知订单',
+    unknownCustomer: '未知客户',
+    unknown: '未知',
+  },
 };

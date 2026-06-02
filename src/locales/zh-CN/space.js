@@ -147,6 +147,9 @@ export default {
         snapshot: '绑定快照',
       },
     },
+    bindingNotice: '该空间已绑定商品，品牌、系列、价格等核心参数由商品关联系统自动接管。如需修改，请点击上方的"编辑"按钮前往商品库修改。保存该空间后修改即可全局生效。',
+    historicalProduct: '历史商品',
+    productBindingIncomplete: '商品绑定不完整，请重新选择商品规格后再创建',
   },
 
   // spacePublic (公共空间页面)

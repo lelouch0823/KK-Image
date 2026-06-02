@@ -6,6 +6,7 @@
  */
 
 import { ref, watch, onUnmounted, toRaw, type Ref } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 
 /** 草稿快照结构 */
 interface DraftSnapshot<T> {
@@ -208,10 +209,11 @@ export function useFormDraft<T extends Record<string, unknown>>(
     const diffHour = Math.floor(diffMin / 60);
     const diffDay = Math.floor(diffHour / 24);
 
-    if (diffSec < 60) return '刚刚';
-    if (diffMin < 60) return `${diffMin}分钟前`;
-    if (diffHour < 24) return `${diffHour}小时前`;
-    return `${diffDay}天前`;
+    const { t } = useI18n();
+    if (diffSec < 60) return t('formDraft.justNow');
+    if (diffMin < 60) return t('formDraft.minutesAgo', { count: diffMin });
+    if (diffHour < 24) return t('formDraft.hoursAgo', { count: diffHour });
+    return t('formDraft.daysAgo', { count: diffDay });
   }
 
   /**

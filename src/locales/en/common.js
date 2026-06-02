@@ -140,4 +140,37 @@ export default {
     noResults: 'No matching results',
     minCharsHint: 'Enter at least {count} characters',
   },
+  // AI Components
+  ai: {
+    actionResult: {
+      created: 'Created Successfully',
+      result: 'Result',
+      goTo: 'Go To',
+      defaultSuccess: 'Created successfully. Go to the corresponding module to view.',
+      defaultEntity: 'Created record',
+      defaultModule: 'Module',
+      modules: {
+        orders: 'Orders',
+        purchaseOrders: 'Purchase Orders',
+        products: 'Products',
+        customers: 'Customers',
+        salespersons: 'Salespersons',
+      },
+    },
+    slotQuestion: {
+      step1: 'Step 1 · Fill Info',
+      canSelect: 'Ready to select',
+      continueFilling: 'Continue filling',
+      needMoreInfo: 'More information needed',
+      currentField: 'Current field',
+      candidates: 'candidates',
+      items: 'items',
+      select: 'Select',
+      selected: 'Selected',
+      reselect: 'Reselect',
+      replyHint: 'Reply with a number, name, or ID to select.',
+      fillFields: 'Please fill in: {fields}',
+      continueInfo: 'Please continue providing the required information.',
+    },
+  },
 };

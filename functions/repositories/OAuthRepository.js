@@ -1,5 +1,17 @@
 import { generatePrefixedId } from '../_shared/utils.js';
 import { parseJsonArray } from '../api/utils/json.js';
+import { buildSetClause } from '../api/utils/sql.js';
+
+/**
+ * 计算字符串的 SHA-256 哈希（hex 编码）
+ * @param {string} secret
+ * @returns {Promise<string>}
+ */
+export async function hashSecret(secret) {
+  const data = new TextEncoder().encode(secret);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 /**
  * OAuth2.0 数据访问层
@@ -39,6 +51,7 @@ export class OAuthRepository {
     const id = this.clientIdFactory();
     const clientId = generatePrefixedId('oc_');
     const clientSecret = generatePrefixedId('ocs_');
+    const hashedSecret = await hashSecret(clientSecret);
     const timestamp = this.now();
     await this.db
       .prepare(
@@ -46,7 +59,7 @@ export class OAuthRepository {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
-        id, clientId, clientSecret, name, description || null,
+        id, clientId, hashedSecret, name, description || null,
         JSON.stringify(redirectUris), JSON.stringify(grantTypes), JSON.stringify(scopes),
         actorId, timestamp, timestamp
       )
@@ -55,20 +68,19 @@ export class OAuthRepository {
   }
 
   async updateClient(id, { name, description, redirectUris, grantTypes, scopes, enabled, actorId: _actorId }) {
-    const updates = [];
-    const values = [];
-    if (name !== undefined) { updates.push('name = ?'); values.push(name); }
-    if (description !== undefined) { updates.push('description = ?'); values.push(description); }
-    if (redirectUris !== undefined) { updates.push('redirect_uris = ?'); values.push(JSON.stringify(redirectUris)); }
-    if (grantTypes !== undefined) { updates.push('grant_types = ?'); values.push(JSON.stringify(grantTypes)); }
-    if (scopes !== undefined) { updates.push('scopes = ?'); values.push(JSON.stringify(scopes)); }
-    if (enabled !== undefined) { updates.push('enabled = ?'); values.push(enabled ? 1 : 0); }
-    if (updates.length === 0) return this.getClientById(id);
-    updates.push('updated_at = ?');
-    values.push(this.now(), id);
+    const dbUpdates = {};
+    if (name !== undefined) dbUpdates.name = name;
+    if (description !== undefined) dbUpdates.description = description;
+    if (redirectUris !== undefined) dbUpdates.redirect_uris = JSON.stringify(redirectUris);
+    if (grantTypes !== undefined) dbUpdates.grant_types = JSON.stringify(grantTypes);
+    if (scopes !== undefined) dbUpdates.scopes = JSON.stringify(scopes);
+    if (enabled !== undefined) dbUpdates.enabled = enabled ? 1 : 0;
+    if (Object.keys(dbUpdates).length === 0) return this.getClientById(id);
+    dbUpdates.updated_at = this.now();
+    const { clause, values } = buildSetClause(dbUpdates);
     await this.db
-      .prepare(`UPDATE oauth_clients SET ${updates.join(', ')} WHERE id = ?`)
-      .bind(...values)
+      .prepare(`UPDATE oauth_clients SET ${clause} WHERE id = ?`)
+      .bind(...values, id)
       .run();
     return this.getClientById(id);
   }
@@ -79,9 +91,10 @@ export class OAuthRepository {
 
   async regenerateSecret(id) {
     const newSecret = generatePrefixedId('ocs_');
+    const hashedSecret = await hashSecret(newSecret);
     await this.db
       .prepare('UPDATE oauth_clients SET client_secret = ?, updated_at = ? WHERE id = ?')
-      .bind(newSecret, this.now(), id)
+      .bind(hashedSecret, this.now(), id)
       .run();
     return newSecret;
   }

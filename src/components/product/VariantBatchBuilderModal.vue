@@ -7,7 +7,7 @@
   >
     <template #header>
       <div class="flex items-center justify-between gap-3">
-        <h3 class="text-lg font-semibold text-(--text-main)">Batch Variant Builder</h3>
+        <h3 class="text-lg font-semibold text-(--text-main)">{{ t('product.variantBatchBuilder.title') }}</h3>
         <AppButton
           variant="ghost"
           size="sm"
@@ -25,25 +25,25 @@
         <AppInput
           v-model="colorsInput"
           data-testid="input-colors"
-          label="颜色 (comma-separated)"
+          :label="t('product.variantBatchBuilder.colors')"
           type="text"
-          placeholder="黄,蓝"
+          :placeholder="t('product.variantBatchBuilder.colorsPlaceholder')"
         />
 
         <AppInput
           v-model="materialsInput"
           data-testid="input-materials"
-          label="材质 (optional)"
+          :label="t('product.variantBatchBuilder.materials')"
           type="text"
-          placeholder="棉,涤纶"
+          :placeholder="t('product.variantBatchBuilder.materialsPlaceholder')"
         />
 
         <AppInput
           v-model="sizesInput"
           data-testid="input-sizes"
-          label="尺码 (optional)"
+          :label="t('product.variantBatchBuilder.sizes')"
           type="text"
-          placeholder="S,M,L"
+          :placeholder="t('product.variantBatchBuilder.sizesPlaceholder')"
         />
       </div>
 
@@ -51,30 +51,30 @@
         <AppInput
           v-model="defaults.price"
           data-testid="default-price"
-          label="Price"
+          :label="t('product.variantBatchBuilder.price')"
           type="number"
-          placeholder="Price"
+          :placeholder="t('product.variantBatchBuilder.price')"
         />
         <AppInput
           v-model="defaults.cost_price"
           data-testid="default-cost"
-          label="Cost"
+          :label="t('product.variantBatchBuilder.cost')"
           type="number"
-          placeholder="Cost"
+          :placeholder="t('product.variantBatchBuilder.cost')"
         />
         <AppInput
           v-model="defaults.stock_quantity"
           data-testid="default-stock"
-          label="Stock"
+          :label="t('product.variantBatchBuilder.stock')"
           type="number"
-          placeholder="Stock"
+          :placeholder="t('product.variantBatchBuilder.stock')"
         />
         <div class="flex flex-col gap-1 text-sm font-medium text-(--text-secondary)">
-          <span>Status</span>
+          <span>{{ t('product.variantBatchBuilder.status') }}</span>
           <Select
             :model-value="defaults.status"
             :options="statusOptions"
-            placeholder="Status"
+            :placeholder="t('product.variantBatchBuilder.status')"
             data-testid="default-status-select"
             @update:model-value="defaults.status = $event"
           />
@@ -83,19 +83,22 @@
     </div>
 
     <template #footer>
-      <AppButton variant="secondary" @click="$emit('update:modelValue', false)">Cancel</AppButton>
-      <AppButton data-testid="apply-btn" @click="handleApply">Apply</AppButton>
+      <AppButton variant="secondary" @click="$emit('update:modelValue', false)">{{ t('common.cancel') }}</AppButton>
+      <AppButton data-testid="apply-btn" @click="handleApply">{{ t('product.variantBatchBuilder.apply') }}</AppButton>
     </template>
   </Modal>
 </template>
 
 <script setup>
 import { reactive, ref } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import Modal from '@/components/ui/Modal.vue';
 import Select from '@/components/ui/Select.vue';
+
+const { t } = useI18n();
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

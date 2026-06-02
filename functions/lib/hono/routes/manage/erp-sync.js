@@ -2,11 +2,28 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { ErpSyncRepository } from '../../../../repositories/ErpSyncRepository.js';
+import { ProductRepository } from '../../../../repositories/ProductRepository.ts';
+import { CustomerRepository } from '../../../../repositories/CustomerRepository.ts';
+import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 import { ErpSyncService } from '../../../../services/ErpSyncService.js';
 import { requirePermission } from '../../../middleware/auth.js';
 import { parsePagination } from '../../../_shared/route-helpers.js';
 
 const app = new Hono();
+
+/**
+ * 创建完整的 ErpSyncService 实例（注入所有必需仓库）
+ * @param {D1Database} db
+ * @returns {ErpSyncService}
+ */
+function createErpSyncService(db) {
+  return new ErpSyncService({
+    erpRepo: new ErpSyncRepository(db),
+    productRepo: new ProductRepository(db),
+    customerRepo: new CustomerRepository(db),
+    orderRepo: new OrderRepository(db),
+  });
+}
 
 // 所有 ERP 同步路由需要管理员权限
 app.use('*', requirePermission('admin:full'));
@@ -51,7 +68,7 @@ app.get('/connections', async (c) => {
 app.post('/connections', zValidator('json', CreateConnectionSchema), async (c) => {
   const body = c.req.valid('json');
   const repo = new ErpSyncRepository(c.env.DB);
-  const connection = await repo.createConnection({ ...body, actorId: c.get('userId') });
+  const connection = await repo.createConnection({ ...body, actorId: c.get('user')?.id || c.get('user')?.sub });
   return c.json({ success: true, data: connection }, 201);
 });
 
@@ -71,7 +88,7 @@ app.get('/connections/:id', async (c) => {
 app.put('/connections/:id', zValidator('json', UpdateConnectionSchema), async (c) => {
   const body = c.req.valid('json');
   const repo = new ErpSyncRepository(c.env.DB);
-  const connection = await repo.updateConnection(c.req.param('id'), { ...body, actorId: c.get('userId') });
+  const connection = await repo.updateConnection(c.req.param('id'), { ...body, actorId: c.get('user')?.id || c.get('user')?.sub });
   if (!connection) return c.json({ success: false, error: '连接不存在' }, 404);
   return c.json({ success: true, data: connection });
 });
@@ -89,8 +106,7 @@ app.delete('/connections/:id', async (c) => {
  * POST /connections/:id/test - 测试连接
  */
 app.post('/connections/:id/test', async (c) => {
-  const repo = new ErpSyncRepository(c.env.DB);
-  const service = new ErpSyncService({ erpRepo: repo });
+  const service = createErpSyncService(c.env.DB);
   try {
     const result = await service.testConnection(c.req.param('id'));
     return c.json({ success: true, data: result });
@@ -113,8 +129,7 @@ const SyncSchema = z.object({
  */
 app.post('/connections/:id/sync', zValidator('json', SyncSchema), async (c) => {
   const body = c.req.valid('json');
-  const repo = new ErpSyncRepository(c.env.DB);
-  const service = new ErpSyncService({ erpRepo: repo });
+  const service = createErpSyncService(c.env.DB);
   try {
     const result = await service.syncAll(c.req.param('id'), body);
     return c.json({ success: true, data: result });
@@ -125,15 +140,15 @@ app.post('/connections/:id/sync', zValidator('json', SyncSchema), async (c) => {
 
 /**
  * POST /connections/:id/webhook - ERP webhook 回调入口
- * 此端点无需认证（由连接密钥验证）
+ * 此端点无需管理员认证，通过 HMAC-SHA256 签名验证请求合法性
  */
 app.post('/connections/:id/webhook', async (c) => {
   const connectionId = c.req.param('id');
-  const repo = new ErpSyncRepository(c.env.DB);
-  const service = new ErpSyncService({ erpRepo: repo });
+  const signature = c.req.header('X-Webhook-Signature') || '';
+  const rawBody = await c.req.text();
+  const service = createErpSyncService(c.env.DB);
   try {
-    const payload = await c.req.json();
-    const result = await service.handleWebhook(connectionId, payload);
+    const result = await service.handleWebhook(connectionId, rawBody, signature);
     return c.json({ success: true, data: result });
   } catch (err) {
     return c.json({ success: false, error: err.message }, 400);

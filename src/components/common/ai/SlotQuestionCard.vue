@@ -1,15 +1,15 @@
 <template>
   <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4 shadow-card">
     <div class="flex flex-wrap items-center gap-2">
-      <span class="bg-primary/12 text-primary rounded-full px-2.5 py-1 text-[11px] font-medium">Step 1 · 补全信息</span>
+      <span class="bg-primary/12 text-primary rounded-full px-2.5 py-1 text-[11px] font-medium">{{ t('common.ai.slotQuestion.step1') }}</span>
       <span class="rounded-full bg-(--bg-muted) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)">
-        {{ candidateGroups.length > 0 ? '可直接选择' : '继续补槽' }}
+        {{ candidateGroups.length > 0 ? t('common.ai.slotQuestion.canSelect') : t('common.ai.slotQuestion.continueFilling') }}
       </span>
     </div>
-    <p class="mt-3 text-sm font-semibold text-(--text-main)">还需要补充信息</p>
+    <p class="mt-3 text-sm font-semibold text-(--text-main)">{{ t('common.ai.slotQuestion.needMoreInfo') }}</p>
     <p class="mt-1 text-sm leading-6 text-(--text-secondary)">{{ promptText }}</p>
     <p v-if="currentFieldLabel" class="mt-2 text-xs font-medium text-(--text-main)">
-      当前补槽字段：{{ currentFieldLabel }}
+      {{ t('common.ai.slotQuestion.currentField') }}：{{ currentFieldLabel }}
     </p>
     <div class="mt-3 flex flex-wrap gap-2">
       <span
@@ -27,8 +27,8 @@
         class="rounded-xl bg-(--bg-muted) p-3"
       >
         <div class="flex items-center justify-between gap-3">
-          <p class="text-xs font-medium text-(--text-main)">{{ field.label }} 候选项</p>
-          <span class="text-[11px] text-(--text-secondary)">{{ field.candidates.length }} 项</span>
+          <p class="text-xs font-medium text-(--text-main)">{{ field.label }} {{ t('common.ai.slotQuestion.candidates') }}</p>
+          <span class="text-[11px] text-(--text-secondary)">{{ field.candidates.length }} {{ t('common.ai.slotQuestion.items') }}</span>
         </div>
         <div class="mt-2 space-y-2">
           <AppButton
@@ -55,7 +55,7 @@
               <span
                 class="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-1 text-[10px] font-medium"
               >
-                选择
+                {{ t('common.ai.slotQuestion.select') }}
               </span>
             </div>
           </AppButton>
@@ -65,13 +65,13 @@
           class="border-primary/20 bg-primary/5 mt-3 rounded-lg border px-3 py-2"
         >
           <div class="flex items-center justify-between gap-3">
-            <p class="text-xs font-medium text-(--text-main)">已选择</p>
+            <p class="text-xs font-medium text-(--text-main)">{{ t('common.ai.slotQuestion.selected') }}</p>
             <AppButton
               :data-testid="`reselect-${field.key}`"
               variant="link"
               size="sm"
               class="text-xs font-medium"
-              text="重新选择"
+              :text="t('common.ai.slotQuestion.reselect')"
               @click="clearSelection(field.key)"
             />
           </div>
@@ -80,7 +80,7 @@
             {{ selectedCandidates[field.key].description }}
           </p>
         </div>
-        <p class="mt-2 text-xs text-(--text-secondary)">回复序号、名称或 ID 即可选择。</p>
+        <p class="mt-2 text-xs text-(--text-secondary)">{{ t('common.ai.slotQuestion.replyHint') }}</p>
       </div>
     </div>
   </div>
@@ -88,8 +88,10 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
 
+const { t } = useI18n();
 const emit = defineEmits(['select']);
 
 const props = defineProps({
@@ -114,8 +116,8 @@ const currentFieldLabel = computed(() => {
 const promptText = computed(() => {
   if (typeof props.action?.prompt === 'string' && props.action.prompt.trim()) return props.action.prompt;
   return missingSlots.value.length > 0
-    ? `请补充以下字段：${missingSlots.value.join('、')}`
-    : '请继续补充创建所需的信息。';
+    ? t('common.ai.slotQuestion.fillFields', { fields: missingSlots.value.join('、') })
+    : t('common.ai.slotQuestion.continueInfo');
 });
 
 const handleSelect = (fieldKey, candidate, index) => {
