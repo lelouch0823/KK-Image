@@ -44,10 +44,11 @@ export function usePdfExport() {
     if (!element || isExporting.value) return;
 
     isExporting.value = true;
+    let clone: HTMLElement | null = null;
 
     try {
       // 克隆元素使其在屏幕外可见
-      const clone = element.cloneNode(true) as HTMLElement;
+      clone = element.cloneNode(true) as HTMLElement;
       clone.classList.remove('hidden');
       clone.style.display = 'block';
       clone.style.position = 'absolute';
@@ -77,10 +78,6 @@ export function usePdfExport() {
         .from(clone)
         .save();
 
-      if (clone.parentNode) {
-        document.body.removeChild(clone);
-      }
-
       addToast({
         message: t('print.pdfExportSuccess', 'PDF 导出成功'),
         type: 'success',
@@ -92,6 +89,10 @@ export function usePdfExport() {
         type: 'error',
       });
     } finally {
+      // 确保克隆元素始终被清理，即使 html2pdf 抛出异常
+      if (clone?.parentNode) {
+        document.body.removeChild(clone);
+      }
       isExporting.value = false;
     }
   };
