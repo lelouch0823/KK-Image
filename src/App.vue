@@ -15,6 +15,9 @@
   <!-- PWA 更新提示 -->
   <ReloadPrompt />
 
+  <!-- PWA 安装提示 -->
+  <PwaInstallPrompt />
+
   <!-- 全局 AI 助手 -->
   <AIChatWidget />
 
@@ -30,6 +33,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import ToastContainer from '@/components/ui/ToastContainer.vue';
 import UploadProgress from '@/components/ui/UploadProgress.vue';
 import ReloadPrompt from '@/components/ReloadPrompt.vue';
+import PwaInstallPrompt from '@/components/PwaInstallPrompt.vue';
 import AIChatWidget from '@/components/common/AIChatWidget.vue';
 import CommandPalette from '@/components/ui/CommandPalette.vue';
 import KeyboardShortcutsHelp from '@/components/ui/KeyboardShortcutsHelp.vue';
