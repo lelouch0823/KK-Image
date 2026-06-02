@@ -17,7 +17,7 @@
             {{ t('spaceManager.shareSettings') }}
           </h4>
           <p
-            class="text-[10px]"
+            class="text-xs"
             :class="isPublic ? 'text-success' : 'text-secondary'"
           >
             {{
@@ -91,7 +91,7 @@
         </div>
       </div>
     </div>
-    <div v-else class="text-center text-[10px] text-(--text-secondary) italic">
+    <div v-else class="text-center text-xs text-(--text-secondary) italic">
       {{ t('spaceManager.shareCard.publishHint') }}
     </div>
   </div>

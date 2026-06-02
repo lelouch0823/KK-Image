@@ -138,7 +138,7 @@
             :class="isOrderTab ? 'text-primary' : 'text-secondary'"
           >
             <AppIcon name="clipboard-document-list" class="size-5" :stroke-width="isOrderTab ? '2.5' : '1.5'" />
-            <span class="text-[10px] font-medium">{{ t('salesTab.orders') }}</span>
+            <span class="text-xs font-medium">{{ t('salesTab.orders') }}</span>
           </router-link>
           <router-link
             :to="`/sales/${accessToken}/spaces`"
@@ -146,7 +146,7 @@
             :class="isSpacesPage ? 'text-primary' : 'text-secondary'"
           >
             <AppIcon name="link" class="size-5" :stroke-width="isSpacesPage ? '2.5' : '1.5'" />
-            <span class="text-[10px] font-medium">{{ t('salesTab.spaces') }}</span>
+            <span class="text-xs font-medium">{{ t('salesTab.spaces') }}</span>
           </router-link>
         </div>
       </nav>

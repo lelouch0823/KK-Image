@@ -97,10 +97,10 @@
         </div>
         <!-- 成本来源标记 -->
         <div class="mt-1.5 flex items-center gap-1">
-          <span class="rounded px-1.5 py-0.5 text-[10px]" :class="costSourceClass(line.costSource)">
+          <span class="rounded px-1.5 py-0.5 text-xs" :class="costSourceClass(line.costSource)">
             {{ t(`order.profit.costSources.${line.costSource}`) }}
           </span>
-          <span v-if="line.margin !== null" class="text-[10px] text-(--text-muted)">
+          <span v-if="line.margin !== null" class="text-xs text-(--text-muted)">
             {{ t('order.profit.lineMargin') }}: {{ line.margin }}%
           </span>
         </div>

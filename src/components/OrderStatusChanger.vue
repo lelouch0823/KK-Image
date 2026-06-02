@@ -89,7 +89,7 @@
                 <StatusBadge
                   :variant="resolveTagVariant(s)"
                   :label="getStatusTagText(s)"
-                  class="text-[10px]"
+                  class="text-xs"
                 />
                 <AppIcon v-if="selectedStatus === s" name="check" class="size-4 text-primary" />
               </div>

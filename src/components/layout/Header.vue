@@ -54,7 +54,7 @@
         @click="openCommandPalette"
       >
         <AppIcon name="magnifying-glass" class="size-3.5" />
-        <kbd class="font-mono text-[10px]">⌘K</kbd>
+        <kbd class="font-mono text-xs">⌘K</kbd>
       </AppButton>
       <!-- 通知铃铛 (桌面端) -->
       <div v-if="notificationsSupported" ref="notificationRef" class="relative">

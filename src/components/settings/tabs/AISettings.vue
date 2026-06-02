@@ -163,7 +163,7 @@
                     </div>
                     <div class="mt-2 flex flex-wrap items-center gap-1.5">
                       <span
-                        class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                        class="shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold"
                         :class="
                           index === 0
                             ? 'bg-primary/15 text-primary'
@@ -177,7 +177,7 @@
                         }}
                       </span>
                       <span
-                        class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                        class="shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold"
                         :class="
                           isVisionModel(model)
                             ? 'bg-success/15 text-success'
@@ -199,7 +199,7 @@
                       type="button"
                       variant="ghost"
                       size="sm"
-                      class="!h-6 !px-2 text-[10px]"
+                      class="!h-6 !px-2 text-xs"
                       :text="t('settings.ai.setPrimary', 'Set Primary')"
                       @click="setPrimaryModel(model)"
                     />
@@ -289,7 +289,7 @@
               >
                 <span>{{ model }}</span>
                 <span
-                  class="rounded px-1 py-0.5 text-[10px] font-semibold"
+                  class="rounded px-1 py-0.5 text-xs font-semibold"
                   :class="
                     isVisionModel(model)
                       ? 'bg-success/15 text-success'
@@ -306,7 +306,7 @@
                   type="button"
                   variant="link"
                   size="sm"
-                  class="!h-auto !px-1 text-[10px]"
+                  class="!h-auto !px-1 text-xs"
                   :text="t('settings.ai.setPrimary', 'Set Primary')"
                   @click="pinModelAsPrimary(model)"
                 />

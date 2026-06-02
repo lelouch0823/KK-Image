@@ -36,7 +36,7 @@
           <span class="min-w-0 flex-1 truncate text-(--text-secondary) group-hover:text-(--text-main)">
             {{ item.title }}
           </span>
-          <span class="text-muted shrink-0 text-[10px]">
+          <span class="text-muted shrink-0 text-xs">
             {{ formatRelativeTime(item.timestamp) }}
           </span>
         </div>

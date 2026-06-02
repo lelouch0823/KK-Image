@@ -24,7 +24,7 @@
         v-if="wizard.sampleVariants.length > 0"
         class="mt-3 rounded-lg border border-(--border-color) bg-(--bg-page) p-2"
       >
-        <p class="mb-1 text-[10px] font-semibold text-(--text-secondary)">
+        <p class="mb-1 text-xs font-semibold text-(--text-secondary)">
           {{ t('product.form.sample_variants', 'Sample variants') }}
         </p>
         <div class="flex flex-wrap gap-1.5">

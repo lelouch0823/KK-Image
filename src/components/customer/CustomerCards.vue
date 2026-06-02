@@ -22,7 +22,7 @@
                 <!-- RFM 分段徽章 -->
                 <span
                   v-if="customer.segment && customer.segment !== 'new'"
-                  class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                  class="inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-bold"
                   :class="segmentClasses(customer.segment)"
                 >
                   {{ t(`customer.detail.segment${segmentLabelMap[customer.segment]}`) }}
@@ -62,7 +62,7 @@
               <span
                 v-for="tag in customer.tags"
                 :key="tag"
-                class="rounded bg-(--bg-muted) px-2 py-0.5 text-[10px] text-(--text-secondary)"
+                class="rounded bg-(--bg-muted) px-2 py-0.5 text-xs text-(--text-secondary)"
               >
                 {{ tag }}
               </span>

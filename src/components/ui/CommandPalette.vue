@@ -58,7 +58,7 @@
                 @keydown.escape.prevent="close"
               />
               <kbd
-                class="hidden rounded border px-1.5 py-0.5 text-[10px] font-medium sm:inline-block"
+                class="hidden rounded border px-1.5 py-0.5 text-xs font-medium sm:inline-block"
                 :style="{
                   borderColor: 'var(--border-color)',
                   color: 'var(--text-muted)',
@@ -138,7 +138,7 @@
                     </div>
                     <span
                       v-if="item.badge"
-                      class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                      class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
                       :style="{
                         backgroundColor: 'var(--bg-secondary)',
                         color: 'var(--text-secondary)',
@@ -162,13 +162,13 @@
             >
               <span class="flex items-center gap-1">
                 <kbd
-                  class="inline-block rounded border px-1 py-0.5 text-[10px]"
+                  class="inline-block rounded border px-1 py-0.5 text-xs"
                   :style="{ borderColor: 'var(--border-color)' }"
                 >
                   &uarr;
                 </kbd>
                 <kbd
-                  class="inline-block rounded border px-1 py-0.5 text-[10px]"
+                  class="inline-block rounded border px-1 py-0.5 text-xs"
                   :style="{ borderColor: 'var(--border-color)' }"
                 >
                   &darr;
@@ -177,7 +177,7 @@
               </span>
               <span class="flex items-center gap-1">
                 <kbd
-                  class="inline-block rounded border px-1 py-0.5 text-[10px]"
+                  class="inline-block rounded border px-1 py-0.5 text-xs"
                   :style="{ borderColor: 'var(--border-color)' }"
                 >
                   &crarr;
@@ -186,7 +186,7 @@
               </span>
               <span class="flex items-center gap-1">
                 <kbd
-                  class="inline-block rounded border px-1 py-0.5 text-[10px]"
+                  class="inline-block rounded border px-1 py-0.5 text-xs"
                   :style="{ borderColor: 'var(--border-color)' }"
                 >
                   Esc

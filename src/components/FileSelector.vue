@@ -123,7 +123,7 @@
             <span class="text-xs font-bold text-(--text-muted) uppercase">{{
               file.name?.split('.').pop()
             }}</span>
-            <span class="mt-1 w-full truncate px-2 text-center text-[10px] text-(--text-muted)">{{
+            <span class="mt-1 w-full truncate px-2 text-center text-xs text-(--text-muted)">{{
               file.originalName || file.name
             }}</span>
           </div>

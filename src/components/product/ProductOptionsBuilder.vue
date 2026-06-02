@@ -54,7 +54,7 @@
               <div class="max-w-sm flex-1">
                 <label class="mb-1.5 flex items-center gap-2 text-xs font-bold tracking-wider text-(--text-secondary) uppercase">
                   {{ t('product.form.dimension_label', 'Specification Name') }}
-                  <span class="rounded-full bg-(--bg-muted) px-2 py-0.5 text-[10px] font-semibold tracking-normal text-(--text-secondary) normal-case">
+                  <span class="rounded-full bg-(--bg-muted) px-2 py-0.5 text-xs font-semibold tracking-normal text-(--text-secondary) normal-case">
                     {{ t('product.form.dimension_label_short', '维度') }} {{ idx + 1 }}
                   </span>
                 </label>
@@ -84,7 +84,7 @@
             <div>
               <label class="mb-2 flex items-center gap-2 text-xs font-bold tracking-wider text-(--text-secondary) uppercase">
                 {{ t('product.form.option_values_label', 'Options / Values') }}
-                <StatusBadge variant="primary" class="rounded-full! px-2! py-0.5! text-[10px] tracking-normal normal-case">
+                <StatusBadge variant="primary" class="rounded-full! px-2! py-0.5! text-xs tracking-normal normal-case">
                   {{ opt.values.length }} {{ t('product.form.values_count', '值') }}
                 </StatusBadge>
               </label>
@@ -130,7 +130,7 @@
                     :key="`${archived.id || archived.value}-${aIdx}`"
                     class="flex max-w-full min-w-0 items-center gap-2 rounded-full border border-dashed border-(--border-strong) bg-(--bg-muted)/60 px-3 py-1.5 text-sm font-medium text-(--text-muted) transition-colors hover:border-(--border-color) hover:text-(--text-secondary)"
                   >
-                    <span class="text-[10px]">[{{ t('product.form.archived_values', '已归档') }}]</span>
+                    <span class="text-xs">[{{ t('product.form.archived_values', '已归档') }}]</span>
                     <span class="max-w-[10rem] truncate" :title="archived.value">{{ archived.value }}</span>
                     <AppButton
                       variant="link"

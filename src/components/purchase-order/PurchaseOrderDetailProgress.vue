@@ -23,7 +23,7 @@
             <StatusBadge
               data-testid="purchase-order-detail-progress-badge"
               :variant="helpers.getProgressStatusVariant(detail.display_status)"
-              class="text-[10px]"
+              class="text-xs"
             >
               {{ helpers.getProgressStatusLabel(detail.display_status) }}
             </StatusBadge>

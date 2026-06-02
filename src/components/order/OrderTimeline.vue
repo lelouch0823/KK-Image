@@ -48,7 +48,7 @@
                   }})</span
                 >
               </span>
-              <span class="text-[10px] text-(--text-secondary)">{{ formatTime(item.createdAt) }}</span>
+              <span class="text-xs text-(--text-secondary)">{{ formatTime(item.createdAt) }}</span>
             </div>
 
             <!-- 创建 -->
@@ -184,7 +184,7 @@
         <template #cell-role="{ row: item }">
           <div class="font-medium text-(--text-main)">
             {{ item.actorName }}
-            <div class="text-[10px] font-normal text-(--text-muted)">
+            <div class="text-xs font-normal text-(--text-muted)">
               {{
                 item.actorType === 'admin'
                   ? t('sidebar.admin')

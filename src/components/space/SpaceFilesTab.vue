@@ -72,7 +72,7 @@
           <!-- Cover Badge -->
           <div
             v-if="coverFileId === file.id"
-            class="bg-primary absolute top-1.5 left-1.5 z-10 flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium text-(--text-inverse) shadow-sm"
+            class="bg-primary absolute top-1.5 left-1.5 z-10 flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium text-(--text-inverse) shadow-sm"
           >
             <AppIcon name="photo-solid" class="size-3" />
             {{ t('spaceManager.cover') }}

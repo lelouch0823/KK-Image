@@ -52,7 +52,7 @@
           <StatusBadge
             data-testid="purchase-order-progress-badge"
             :variant="getProgressStatusVariant(po.display_status)"
-            class="text-[10px]"
+            class="text-xs"
           >
             {{ getProgressStatusLabel(po.display_status) }}
           </StatusBadge>

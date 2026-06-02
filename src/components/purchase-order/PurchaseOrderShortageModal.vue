@@ -28,12 +28,12 @@
               <span class="line-clamp-1 min-w-0 text-sm font-medium break-all text-(--text-main)" :title="entry.product_name">
                 {{ entry.product_name || '—' }}
               </span>
-              <code class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[10px] text-(--text-secondary)">
+              <code class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-xs text-(--text-secondary)">
                 {{ entry.variant_sku || '—' }}
               </code>
               <span
                 v-if="entry.customer_order_no"
-                class="bg-info/10 text-info inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+                class="bg-info/10 text-info inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
               >
                 {{ entry.customer_order_no }}
               </span>
@@ -54,7 +54,7 @@
               <span
                 v-for="(val, key) in entry.variant_options"
                 :key="`shortage-draft-${entry.purchase_order_item_id}-${key}`"
-                class="border-primary/20 bg-primary/8 text-primary rounded-full border px-2 py-0.5 text-[10px] font-medium break-all"
+                class="border-primary/20 bg-primary/8 text-primary rounded-full border px-2 py-0.5 text-xs font-medium break-all"
               >
                 {{ key }}: {{ val }}
               </span>

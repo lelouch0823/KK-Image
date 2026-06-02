@@ -224,7 +224,7 @@
               />
               <span
                 v-if="row.required_quantity && row.quantity < row.required_quantity"
-                class="mt-1 text-[10px] font-medium text-danger"
+                class="mt-1 text-xs font-medium text-danger"
               >
                 {{ t('purchaseOrder.form.quantityWarning') }} ({{ row.required_quantity }})
               </span>

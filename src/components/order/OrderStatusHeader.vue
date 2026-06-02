@@ -104,7 +104,7 @@
             <span v-else>{{ index + 1 }}</span>
           </div>
           <span
-            class="mt-1.5 text-center text-[10px] whitespace-nowrap"
+            class="mt-1.5 text-center text-xs whitespace-nowrap"
             :class="
               index <= currentStepIndex ? 'text-primary font-medium' : 'text-(--text-secondary)'
             "

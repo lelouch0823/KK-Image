@@ -48,14 +48,14 @@
     <!-- 主图/封面标记 -->
     <div
       v-if="isCover"
-      class="bg-primary absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] text-(--text-inverse) shadow-sm "
+      class="bg-primary absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-xs text-(--text-inverse) shadow-sm "
     >
       {{ coverText }}
     </div>
 
     <!-- 拖拽序号 -->
     <div
-      class="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-(--color-overlay-dim) text-[10px] text-(--text-inverse)"
+      class="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-(--color-overlay-dim) text-xs text-(--text-inverse)"
     >
       {{ index + 1 }}
     </div>

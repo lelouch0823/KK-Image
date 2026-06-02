@@ -58,4 +58,13 @@ export default {
   // 利润
   totalProfit: '总利润',
   profitMargin: '利润率',
+  // 订单状态
+  statusPending: '待处理',
+  statusConfirmed: '已确认',
+  statusProduction: '生产中',
+  statusShipping: '在途',
+  statusArrived: '已到货',
+  statusDelivered: '已交付',
+  statusRejected: '已驳回',
+  statusVoid: '已作废',
 };

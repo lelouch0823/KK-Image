@@ -197,7 +197,7 @@
             >
               <template v-if="isPdf(file)">
                 <AppIcon name="document-text" class="size-6 text-(--color-danger-text)" />
-                <span class="text-[10px]">PDF</span>
+                <span class="text-xs">PDF</span>
               </template>
               <span v-else>{{ file.name.split('.').pop() }}</span>
             </div>
@@ -345,15 +345,15 @@
           v-if="templateData.price && Number(templateData.price) > 0"
           class="mr-auto flex flex-col justify-center px-1"
         >
-          <span class="text-[10px] leading-none text-(--text-secondary)">{{
+          <span class="text-xs leading-none text-(--text-secondary)">{{
             t('spaceManager.price')
           }}</span>
           <div class="mt-0.5 flex items-baseline gap-0.5">
-            <span class="text-primary text-[10px]">¥</span>
+            <span class="text-primary text-xs">¥</span>
             <span class="text-primary text-lg leading-none font-bold tracking-tight">{{
               formatPrice(templateData.price).split('.')[0]
             }}</span>
-            <span class="text-primary text-[10px] font-medium opacity-80"
+            <span class="text-primary text-xs font-medium opacity-80"
               >.{{ formatPrice(templateData.price).split('.')[1] }}</span
             >
           </div>

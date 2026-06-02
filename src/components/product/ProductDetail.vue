@@ -219,7 +219,7 @@
               >{{ formatMoney(product.price) }}</span
             >
             <span
-              class="rounded bg-(--bg-muted) px-2 py-0.5 text-[10px] font-medium text-(--text-secondary)"
+              class="rounded bg-(--bg-muted) px-2 py-0.5 text-xs font-medium text-(--text-secondary)"
               >{{ currencyCode }}</span
             >
           </div>
@@ -246,7 +246,7 @@
               <div class="font-medium text-(--text-main)">
                 {{ formatVariantName(variant.options_values) }}
               </div>
-              <div class="mt-0.5 font-mono text-[10px] text-(--text-secondary) sm:text-xs">
+              <div class="mt-0.5 font-mono text-xs text-(--text-secondary) sm:text-xs">
                 {{ variant.sku }}
               </div>
             </template>
@@ -285,7 +285,7 @@
                 <p class="truncate text-sm font-medium text-(--text-main)">
                   {{ formatVariantName(variant.options_values) }}
                 </p>
-                <p class="mt-0.5 font-mono text-[10px] text-(--text-secondary)">
+                <p class="mt-0.5 font-mono text-xs text-(--text-secondary)">
                   {{ variant.sku }}
                 </p>
               </div>

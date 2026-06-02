@@ -91,7 +91,7 @@
                 <p class="text-secondary mt-0.5 line-clamp-2 text-xs leading-relaxed" :title="renderText(item.content)">
                   {{ renderText(item.content) }}
                 </p>
-                <p class="text-muted mt-2 flex items-center gap-1.5 text-[10px] font-medium tracking-wider uppercase">
+                <p class="text-muted mt-2 flex items-center gap-1.5 text-xs font-medium tracking-wider uppercase">
                   <AppIcon name="clock" class="size-3" />
                   {{ formatDate(item.created_at) }}
                 </p>

@@ -73,7 +73,7 @@
               </span>
               <span
                 v-if="item.product_brand"
-                class="max-w-[8rem] shrink-0 truncate rounded-full border border-(--border-color)/70 bg-(--bg-muted) px-2 py-0.5 text-[10px] font-medium text-(--text-secondary)"
+                class="max-w-[8rem] shrink-0 truncate rounded-full border border-(--border-color)/70 bg-(--bg-muted) px-2 py-0.5 text-xs font-medium text-(--text-secondary)"
                 :title="item.product_brand"
               >
                 {{ item.product_brand }}
@@ -95,7 +95,7 @@
 
             <div class="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)">
               <code
-                class="max-w-[10rem] truncate rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[10px]"
+                class="max-w-[10rem] truncate rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-xs"
                 :title="item.variant_sku || item.product_sku || '-'"
               >
                 {{ item.variant_sku || item.product_sku || '-' }}
@@ -103,7 +103,7 @@
               <span class="text-(--text-muted)">·</span>
               <span
                 v-if="item.customer_order_no"
-                class="bg-info/10 text-info inline-flex max-w-[12rem] items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                class="bg-info/10 text-info inline-flex max-w-[12rem] items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
                 :title="item.customer_order_no"
               >
                 <AppIcon name="shopping-bag" class="size-3" />
@@ -111,7 +111,7 @@
               </span>
               <span
                 v-else
-                class="bg-warning/10 text-warning inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                class="bg-warning/10 text-warning inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
               >
                 <AppIcon name="building-storefront" class="size-3" />
                 {{ t('purchaseOrder.detail.publicStock') }}
@@ -126,7 +126,7 @@
               <span
                 v-for="(val, key) in item.variant_options"
                 :key="`variant-${key}`"
-                class="border-primary/20 bg-primary/8 text-primary rounded-full border px-2 py-0.5 text-[10px] font-medium break-all"
+                class="border-primary/20 bg-primary/8 text-primary rounded-full border px-2 py-0.5 text-xs font-medium break-all"
                 :title="`${key}: ${val}`"
               >
                 {{ key }}: {{ val }}
@@ -140,7 +140,7 @@
               <span
                 v-for="(val, key) in item.product_specifications"
                 :key="key"
-                class="max-w-full rounded border border-(--border-subtle) bg-(--bg-page) px-1.5 py-0.5 text-[10px] break-all text-(--text-secondary)"
+                class="max-w-full rounded border border-(--border-subtle) bg-(--bg-page) px-1.5 py-0.5 text-xs break-all text-(--text-secondary)"
                 :title="`${key}: ${val}`"
               >
                 {{ key }}: {{ val }}
@@ -154,7 +154,7 @@
             >
               <StatusBadge
                 :variant="helpers.getProgressStatusVariant(item.display_status || detail.display_status)"
-                class="text-[10px]"
+                class="text-xs"
               >
                 {{ helpers.getProgressStatusLabel(item.display_status || detail.display_status) }}
               </StatusBadge>
@@ -170,7 +170,7 @@
         >
           <div class="grid grid-cols-2 gap-3">
             <div class="flex flex-col">
-              <span class="mb-1 text-[10px] text-(--text-secondary)">
+              <span class="mb-1 text-xs text-(--text-secondary)">
                 {{ t('purchaseOrder.table.quantity') }}
               </span>
               <AppInput
@@ -184,7 +184,7 @@
               />
             </div>
             <div class="flex flex-col">
-              <span class="mb-1 text-[10px] text-(--text-secondary)">
+              <span class="mb-1 text-xs text-(--text-secondary)">
                 {{ t('purchaseOrder.table.unitCost') }}
               </span>
               <div class="relative">

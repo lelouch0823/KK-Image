@@ -15,7 +15,7 @@
     :outline="outline"
     :class="badgeClass"
   >
-    <span v-if="resolvedShowLabel" class="mr-1 text-[10px] font-medium opacity-80">
+    <span v-if="resolvedShowLabel" class="mr-1 text-xs font-medium opacity-80">
       {{ t('order.procurementStatus') }}
     </span>
     {{ t(`order.procurementStatuses.${normalizedStatus}`) }}
@@ -93,7 +93,7 @@ const resolvedCompact = computed(() => {
 });
 
 const badgeClass = computed(() => {
-  if (resolvedCompact.value) return '!px-2 !py-0.5 !text-[10px] whitespace-nowrap';
+  if (resolvedCompact.value) return '!px-2 !py-0.5 !text-xs whitespace-nowrap';
   return 'whitespace-nowrap';
 });
 

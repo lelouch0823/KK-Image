@@ -17,7 +17,7 @@
             {{ activeReceiptForReversal.product_name || '—' }}
           </span>
           <code
-            class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[10px] text-(--text-secondary)"
+            class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-xs text-(--text-secondary)"
           >
             {{
               activeReceiptForReversal.variant_sku ||

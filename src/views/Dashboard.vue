@@ -94,7 +94,7 @@
                         <div class="bg-warning h-full w-1/3"></div>
                       </div>
                       <span
-                        class="text-[10px] font-bold tracking-wider text-(--text-muted) uppercase"
+                        class="text-xs font-bold tracking-wider text-(--text-muted) uppercase"
                       >
                         {{ t('dashboard.awaitingAction') }}
                       </span>
@@ -178,7 +178,7 @@
                         </div>
                         <AppButton
                           variant="link"
-                          class="!text-(--text-secondary) hover:!text-primary font-mono text-[10px]"
+                          class="!text-(--text-secondary) hover:!text-primary font-mono text-xs"
                           @click="handleCopyShareLink(item)"
                         >
                           {{ item.shareToken }}
@@ -255,7 +255,7 @@
                         >
                           {{ file.name }}
                         </div>
-                        <div class="text-[10px] text-(--text-secondary)">
+                        <div class="text-xs text-(--text-secondary)">
                           {{ formatSize(file.size) }} • {{ formatDate(file.timestamp) }}
                         </div>
                       </div>
@@ -906,10 +906,10 @@ const initSalesTrendChart = () => {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          titleColor: '#1a1a1a',
-          bodyColor: '#666',
-          borderColor: '#e5e7eb',
+          backgroundColor: resolveDashboardChartColor('--bg-elevated', '255, 255, 255'),
+          titleColor: resolveDashboardChartColor('--text-main', '26, 26, 26'),
+          bodyColor: resolveDashboardChartColor('--text-secondary', '102, 102, 102'),
+          borderColor: resolveDashboardChartColor('--border-color', '229, 231, 235'),
           borderWidth: 1,
           padding: 10,
         },
@@ -919,17 +919,17 @@ const initSalesTrendChart = () => {
           grid: { display: false },
           ticks: {
             maxTicksLimit: isMobileChart ? 5 : 8,
-            color: '#9ca3af',
+            color: resolveDashboardChartColor('--text-muted', '156, 163, 175'),
             font: { size: isMobileChart ? 9 : 11 },
             maxRotation: isMobileChart ? 45 : 0,
           },
         },
         y: {
           border: { display: false },
-          grid: { color: 'rgba(0,0,0,0.05)' },
+          grid: { color: resolveDashboardChartColor('--border-color', '229, 231, 235').replace(/, 1\)$/, ', 0.1)') },
           beginAtZero: true,
           ticks: {
-            color: '#9ca3af',
+            color: resolveDashboardChartColor('--text-muted', '156, 163, 175'),
             font: { size: isMobileChart ? 9 : 11 },
             maxTicksLimit: isMobileChart ? 5 : 8,
           },
@@ -964,14 +964,14 @@ const initStatusDistributionChart = () => {
   };
 
   const statusLabels = {
-    pending: '待处理',
-    confirmed: '已确认',
-    production: '生产中',
-    shipping: '在途',
-    arrived: '已到货',
-    delivered: '已交付',
-    rejected: '已驳回',
-    void: '已作废',
+    pending: t('dashboard.statusPending'),
+    confirmed: t('dashboard.statusConfirmed'),
+    production: t('dashboard.statusProduction'),
+    shipping: t('dashboard.statusShipping'),
+    arrived: t('dashboard.statusArrived'),
+    delivered: t('dashboard.statusDelivered'),
+    rejected: t('dashboard.statusRejected'),
+    void: t('dashboard.statusVoid'),
   };
 
   const isMobileView = window.innerWidth < 640;
@@ -999,16 +999,16 @@ const initStatusDistributionChart = () => {
           labels: {
             usePointStyle: true,
             padding: isMobileView ? 8 : 12,
-            color: '#6b7280',
+            color: resolveDashboardChartColor('--text-muted', '107, 114, 128'),
             font: { size: isMobileView ? 10 : 11 },
             boxWidth: isMobileView ? 8 : 12,
           },
         },
         tooltip: {
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          titleColor: '#1a1a1a',
-          bodyColor: '#666',
-          borderColor: '#e5e7eb',
+          backgroundColor: resolveDashboardChartColor('--bg-elevated', '255, 255, 255'),
+          titleColor: resolveDashboardChartColor('--text-main', '26, 26, 26'),
+          bodyColor: resolveDashboardChartColor('--text-secondary', '102, 102, 102'),
+          borderColor: resolveDashboardChartColor('--border-color', '229, 231, 235'),
           borderWidth: 1,
         },
       },

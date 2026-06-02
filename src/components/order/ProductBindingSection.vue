@@ -43,14 +43,14 @@
               </h2>
               <span
                 data-testid="bound-sku"
-                class="max-w-[10rem] truncate rounded-md border border-(--border-subtle)/80 bg-(--bg-muted)/45 px-1.5 py-0.5 font-mono text-[10px] font-medium tracking-[0.08em] text-(--text-secondary) uppercase sm:max-w-[16rem] sm:px-2 sm:text-xs"
+                class="max-w-[10rem] truncate rounded-md border border-(--border-subtle)/80 bg-(--bg-muted)/45 px-1.5 py-0.5 font-mono text-xs font-medium tracking-[0.08em] text-(--text-secondary) uppercase sm:max-w-[16rem] sm:px-2 sm:text-xs"
                 :title="displaySku || ''"
               >
                 {{ displaySku || '—' }}
               </span>
               <span
                 v-if="isSalesMode"
-                class="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-medium sm:text-[11px]"
+                class="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium sm:text-[11px]"
               >
                 {{ t('order.binding.bound') }}
               </span>
@@ -161,7 +161,7 @@
                 />
               </div>
               <span
-                class="max-w-14 truncate text-center text-[10px] font-medium transition-colors sm:max-w-16 sm:text-[11px]"
+                class="max-w-14 truncate text-center text-xs font-medium transition-colors sm:max-w-16 sm:text-[11px]"
                 :class="
                   isDimensionOptionSelected(dimension, option.value)
                     ? 'font-bold text-(--text-main)'
@@ -212,7 +212,7 @@
           <div data-testid="inventory-stats" class="flex divide-x divide-(--border-subtle)/60">
             <div class="pr-4 sm:pr-5">
               <p
-                class="mb-1 text-[9px] font-bold tracking-[0.18em] text-(--text-secondary) uppercase sm:text-[10px]"
+                class="mb-1 text-[9px] font-bold tracking-[0.18em] text-(--text-secondary) uppercase sm:text-xs"
               >
                 {{ t('order.binding.stockLabel') }}
               </p>
@@ -222,7 +222,7 @@
             </div>
             <div class="pl-4 sm:pl-5">
               <p
-                class="mb-1 text-[9px] font-bold tracking-[0.18em] text-(--text-secondary) uppercase sm:text-[10px]"
+                class="mb-1 text-[9px] font-bold tracking-[0.18em] text-(--text-secondary) uppercase sm:text-xs"
               >
                 {{ t('order.binding.replenishmentLabel') }}
               </p>

@@ -21,10 +21,10 @@
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2 lg:justify-end">
-        <StatusBadge variant="default" class="text-[10px]">
+        <StatusBadge variant="default" class="text-xs">
           {{ t('purchaseOrder.ui.receiptLedgerMeta') }}
         </StatusBadge>
-        <StatusBadge v-if="receiptReceivableCount > 0" variant="info" class="text-[10px]">
+        <StatusBadge v-if="receiptReceivableCount > 0" variant="info" class="text-xs">
           {{ t('purchaseOrder.ui.receiptReceivableLines') }}
           {{ receiptReceivableCount }}
         </StatusBadge>
@@ -75,11 +75,11 @@
               {{ receipt.product_name || '—' }}
             </span>
             <code
-              class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[10px] text-(--text-secondary)"
+              class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-xs text-(--text-secondary)"
             >
               {{ receipt.variant_sku || receipt.product_sku || '—' }}
             </code>
-            <StatusBadge :variant="receipt.is_reversed ? 'default' : 'success'" class="text-[10px]">
+            <StatusBadge :variant="receipt.is_reversed ? 'default' : 'success'" class="text-xs">
               {{
                 receipt.is_reversed
                   ? t('purchaseOrder.ui.receiptReversedTag')
@@ -89,7 +89,7 @@
             <StatusBadge
               v-if="helpers.canReverseReceipt(receipt)"
               variant="warning"
-              class="text-[10px]"
+              class="text-xs"
             >
               {{ t('purchaseOrder.ui.receiptReversibleTag') }}
             </StatusBadge>
@@ -116,7 +116,7 @@
             <span
               v-for="(val, key) in receipt.variant_options"
               :key="`receipt-variant-${receipt.id}-${key}`"
-              class="border-primary/20 bg-primary/8 text-primary rounded-full border px-2 py-0.5 text-[10px] font-medium break-all"
+              class="border-primary/20 bg-primary/8 text-primary rounded-full border px-2 py-0.5 text-xs font-medium break-all"
             >
               {{ key }}: {{ val }}
             </span>

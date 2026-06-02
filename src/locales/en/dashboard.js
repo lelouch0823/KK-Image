@@ -58,4 +58,13 @@ export default {
   // Profit
   totalProfit: 'Total Profit',
   profitMargin: 'Profit Margin',
+  // Order Status
+  statusPending: 'Pending',
+  statusConfirmed: 'Confirmed',
+  statusProduction: 'In Production',
+  statusShipping: 'Shipping',
+  statusArrived: 'Arrived',
+  statusDelivered: 'Delivered',
+  statusRejected: 'Rejected',
+  statusVoid: 'Void',
 };

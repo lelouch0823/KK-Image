@@ -27,7 +27,7 @@ describe('AppTableStatusPill', () => {
       },
     });
 
-    expect(wrapper.classes()).toContain('!text-[10px]');
+    expect(wrapper.classes()).toContain('!text-xs');
     expect(wrapper.classes()).toContain('!px-2');
   });
 });

@@ -4,7 +4,7 @@
     :dot="resolvedDot"
     :class="badgeClass"
   >
-    <span v-if="resolvedShowLabel" class="mr-1 text-[10px] font-medium opacity-80">
+    <span v-if="resolvedShowLabel" class="mr-1 text-xs font-medium opacity-80">
       {{ t('order.deliveryStatus') }}
     </span>
     {{ t(`order.deliveryStatuses.${normalizedStatus}`) }}
@@ -47,5 +47,5 @@ const variant = computed(() => {
 
 const resolvedShowLabel = computed(() => props.preset === 'detail');
 const resolvedDot = computed(() => props.preset === 'detail');
-const badgeClass = computed(() => (props.preset ? '!px-2 !py-0.5 !text-[10px] whitespace-nowrap' : 'whitespace-nowrap'));
+const badgeClass = computed(() => (props.preset ? '!px-2 !py-0.5 !text-xs whitespace-nowrap' : 'whitespace-nowrap'));
 </script>

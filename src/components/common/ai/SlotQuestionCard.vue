@@ -53,7 +53,7 @@
                 <p v-if="candidate.description" class="mt-1 text-xs text-(--text-secondary)">{{ candidate.description }}</p>
               </div>
               <span
-                class="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-1 text-[10px] font-medium"
+                class="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-1 text-xs font-medium"
               >
                 {{ t('common.ai.slotQuestion.select') }}
               </span>

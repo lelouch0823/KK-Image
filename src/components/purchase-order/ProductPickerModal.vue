@@ -184,7 +184,7 @@
             <StatusBadge
               v-if="isInitiallySelected(variant.variant_id)"
               variant="primary"
-              class="shrink-0 text-[10px]"
+              class="shrink-0 text-xs"
             >
               {{ t('purchaseOrder.selection.alreadyAdded', '已添加') }}
             </StatusBadge>

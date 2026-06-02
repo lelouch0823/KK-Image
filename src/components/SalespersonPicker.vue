@@ -9,7 +9,7 @@
         :key="sp.id"
         class="bg-primary/10 text-primary ring-primary/20 inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium shadow-sm ring-1 ring-inset"
       >
-        <span class="bg-primary/20 flex size-4 items-center justify-center rounded-full text-[10px]">
+        <span class="bg-primary/20 flex size-4 items-center justify-center rounded-full text-xs">
           {{ sp.name.charAt(0).toUpperCase() }}
         </span>
         {{ sp.name }}

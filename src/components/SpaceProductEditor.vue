@@ -57,12 +57,12 @@
               </h2>
               <span
                 v-if="form.isPublic"
-                class="text-success rounded-full bg-(--color-success-bg) px-1.5 py-0.5 text-[10px] font-medium"
+                class="text-success rounded-full bg-(--color-success-bg) px-1.5 py-0.5 text-xs font-medium"
                 >🌐 {{ t('spaceManager.publicOn') }}</span
               >
               <span
                 v-else
-                class="text-secondary rounded-full bg-(--bg-muted) px-1.5 py-0.5 text-[10px] font-medium"
+                class="text-secondary rounded-full bg-(--bg-muted) px-1.5 py-0.5 text-xs font-medium"
                 >🔒 {{ t('spaceManager.publicOff') }}</span
               >
             </div>

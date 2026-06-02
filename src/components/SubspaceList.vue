@@ -91,14 +91,14 @@
               <div class="mt-2 flex items-center gap-2">
                 <span
                   v-if="sub.isPublic"
-                  class="text-success inline-flex items-center gap-1 rounded-full bg-(--color-success-bg) px-2 py-0.5 text-[10px] font-medium"
+                  class="text-success inline-flex items-center gap-1 rounded-full bg-(--color-success-bg) px-2 py-0.5 text-xs font-medium"
                 >
                   <AppIcon name="check-circle" class="size-3" />
                   {{ t('spaceManager.publicOn') }}
                 </span>
                 <span
                   v-else
-                  class="inline-flex items-center gap-1 rounded-full bg-(--bg-muted) px-2 py-0.5 text-[10px] font-medium text-(--text-muted)"
+                  class="inline-flex items-center gap-1 rounded-full bg-(--bg-muted) px-2 py-0.5 text-xs font-medium text-(--text-muted)"
                 >
                   <AppIcon name="lock-closed" class="size-3" />
                   {{ t('spaceManager.publicOff') }}

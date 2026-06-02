@@ -26,7 +26,7 @@
           {{ folder.name }}
         </div>
         <!-- 项目数量 -->
-        <div class="mt-0.5 text-[10px] text-(--text-secondary) sm:mt-1 sm:text-xs">
+        <div class="mt-0.5 text-xs text-(--text-secondary) sm:mt-1 sm:text-xs">
           {{ (folder.fileCount || 0) + (folder.subfolderCount || 0) }} {{ t('common.items') }}
         </div>
       </div>

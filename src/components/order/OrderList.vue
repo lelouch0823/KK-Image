@@ -68,7 +68,7 @@
             <!-- 信息 -->
             <div class="flex min-w-0 flex-1 flex-col justify-between py-0.5">
                 <div class="flex items-center gap-2">
-                    <span class="truncate font-mono text-[10px] tracking-wide text-(--text-secondary)" :title="order.orderNo">{{ order.orderNo }}</span>
+                    <span class="truncate font-mono text-xs tracking-wide text-(--text-secondary)" :title="order.orderNo">{{ order.orderNo }}</span>
                     <!-- New Update Red Dot -->
                     <div v-if="order.hasNewFeedback" class="relative flex size-2 shrink-0">
                       <span class="bg-danger absolute inline-flex size-full animate-ping rounded-full opacity-75"></span>

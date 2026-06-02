@@ -45,7 +45,7 @@
               </div>
               <div>
                 <h3 class="text-sm font-bold">{{ t('ai.assistant') }}</h3>
-                <p class="text-[10px] opacity-70">{{ t('ai.subtitle') }}</p>
+                <p class="text-xs opacity-70">{{ t('ai.subtitle') }}</p>
               </div>
             </div>
             <ActionBar class="border-none bg-transparent px-0 py-0 shadow-none">

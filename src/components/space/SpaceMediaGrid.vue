@@ -19,7 +19,7 @@
           rounded="none"
         />
         <!-- 商品图标记 -->
-        <div class="bg-primary/90 absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] text-(--text-inverse) shadow-sm backdrop-blur-sm">
+        <div class="bg-primary/90 absolute top-2 left-2 rounded-full px-2 py-0.5 text-xs text-(--text-inverse) shadow-sm backdrop-blur-sm">
           {{ t('product.text.image') || '商品图' }}
         </div>
       </div>
@@ -81,7 +81,7 @@
         <!-- 封面标记 -->
         <div
           v-if="coverFileId === file.id"
-          class="bg-primary absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] text-(--text-inverse) shadow-sm"
+          class="bg-primary absolute top-2 left-2 rounded-full px-2 py-0.5 text-xs text-(--text-inverse) shadow-sm"
         >
           {{ t('spaceManager.cover') }}
         </div>

@@ -49,6 +49,6 @@ describe('OrderProcurementBadge', () => {
 
     expect(wrapper.text()).toContain('order.procurementStatuses.ordered');
     expect(wrapper.classes()).toContain('whitespace-nowrap');
-    expect(wrapper.classes()).toContain('!text-[10px]');
+    expect(wrapper.classes()).toContain('!text-xs');
   });
 });

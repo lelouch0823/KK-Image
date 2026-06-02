@@ -91,7 +91,7 @@
                     <span
                       v-for="tag in (row.tags || [])"
                       :key="tag"
-                      class="rounded bg-(--bg-muted) px-1.5 py-0.5 text-[10px] text-(--text-secondary)"
+                      class="rounded bg-(--bg-muted) px-1.5 py-0.5 text-xs text-(--text-secondary)"
                     >
                       {{ tag }}
                     </span>

@@ -80,10 +80,10 @@
               </div>
             </div>
             <div class="flex flex-wrap items-center gap-2 text-xs lg:justify-end">
-              <StatusBadge variant="danger" class="text-[10px]">
+              <StatusBadge variant="danger" class="text-xs">
                 {{ t('purchaseOrder.suggestions.shortage') }} {{ s.shortage }}
               </StatusBadge>
-              <StatusBadge variant="default" class="text-[10px]">
+              <StatusBadge variant="default" class="text-xs">
                 {{ t('purchaseOrder.suggestions.stock') }} {{ s.available_quantity ?? s.stock_quantity }}
               </StatusBadge>
               <span class="rounded-full bg-(--bg-muted) px-2.5 py-1 font-mono tabular-nums text-(--text-secondary)">

@@ -59,7 +59,7 @@ const pillClass = computed(() => {
     return '!px-2.5 !py-0.5 !text-xs !font-medium';
   }
 
-  return '!px-2 !py-0.5 !text-[10px] !font-medium';
+  return '!px-2 !py-0.5 !text-xs !font-medium';
 });
 
 const pillStyle = computed(() => {

@@ -92,7 +92,7 @@
                       </span>
                     </div>
                     <span
-                      class="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                      class="rounded-full px-1.5 py-0.5 text-xs font-bold"
                       :class="
                         getImageCountByKey(getVariantKey(variant, index)) > 0
                           ? selectedVariantKey === getVariantKey(variant, index)
