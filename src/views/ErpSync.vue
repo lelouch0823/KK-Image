@@ -117,154 +117,144 @@
       </div>
 
       <!-- 同步日志弹窗 -->
-      <div v-if="showLogsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="showLogsModal = false">
-        <div class="max-h-[80vh] w-full max-w-3xl overflow-hidden rounded-lg bg-(--bg-card) shadow-xl">
-          <div class="flex items-center justify-between border-b border-(--border-color) px-4 py-3">
-            <h2 class="text-sm font-medium text-(--text-main)">{{ t('erpSync.logs.title') }}</h2>
-            <button class="text-(--text-muted) hover:text-(--text-main)" @click="showLogsModal = false">
-              <AppIcon name="x-mark" class="size-5" />
-            </button>
-          </div>
-          <div class="overflow-y-auto p-4" style="max-height: 60vh;">
-            <table v-if="logs.length > 0" class="w-full text-sm">
-              <thead>
-                <tr class="border-b border-(--border-color) text-left text-xs text-(--text-muted)">
-                  <th class="pb-2 pr-3">{{ t('erpSync.logs.entityType') }}</th>
-                  <th class="pb-2 pr-3">{{ t('erpSync.logs.direction') }}</th>
-                  <th class="pb-2 pr-3">{{ t('erpSync.logs.action') }}</th>
-                  <th class="pb-2 pr-3">{{ t('erpSync.logs.status') }}</th>
-                  <th class="pb-2 pr-3">{{ t('erpSync.logs.entityId') }}</th>
-                  <th class="pb-2 pr-3">{{ t('erpSync.logs.error') }}</th>
-                  <th class="pb-2">{{ t('erpSync.logs.createdAt') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="log in logs" :key="log.id" class="border-b border-(--border-color) last:border-0">
-                  <td class="py-2 pr-3">{{ t(`erpSync.entity.${log.entityType}`, log.entityType) }}</td>
-                  <td class="py-2 pr-3">{{ t(`erpSync.direction.${log.direction}`, log.direction) }}</td>
-                  <td class="py-2 pr-3">{{ t(`erpSync.action.${log.action}`, log.action) }}</td>
-                  <td class="py-2 pr-3">
-                    <span :class="logStatusClass(log.status)">
-                      {{ t(`erpSync.logStatus.${log.status}`, log.status) }}
-                    </span>
-                  </td>
-                  <td class="py-2 pr-3 font-mono text-xs">{{ log.entityId || '-' }}</td>
-                  <td class="py-2 pr-3 text-xs text-red-500">{{ log.errorMessage || '-' }}</td>
-                  <td class="py-2 text-xs text-(--text-muted)">{{ formatTime(log.createdAt) }}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-else class="py-8 text-center text-(--text-muted)">{{ t('erpSync.logs.noData') }}</div>
-          </div>
-        </div>
-      </div>
+      <Modal v-model="showLogsModal" :title="t('erpSync.logs.title')" size="3xl">
+        <table v-if="logs.length > 0" class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-(--border-color) text-left text-xs text-(--text-muted)">
+              <th class="pb-2 pr-3">{{ t('erpSync.logs.entityType') }}</th>
+              <th class="pb-2 pr-3">{{ t('erpSync.logs.direction') }}</th>
+              <th class="pb-2 pr-3">{{ t('erpSync.logs.action') }}</th>
+              <th class="pb-2 pr-3">{{ t('erpSync.logs.status') }}</th>
+              <th class="pb-2 pr-3">{{ t('erpSync.logs.entityId') }}</th>
+              <th class="pb-2 pr-3">{{ t('erpSync.logs.error') }}</th>
+              <th class="pb-2">{{ t('erpSync.logs.createdAt') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="log in logs" :key="log.id" class="border-b border-(--border-color) last:border-0">
+              <td class="py-2 pr-3">{{ t(`erpSync.entity.${log.entityType}`, log.entityType) }}</td>
+              <td class="py-2 pr-3">{{ t(`erpSync.direction.${log.direction}`, log.direction) }}</td>
+              <td class="py-2 pr-3">{{ t(`erpSync.action.${log.action}`, log.action) }}</td>
+              <td class="py-2 pr-3">
+                <span :class="logStatusClass(log.status)">
+                  {{ t(`erpSync.logStatus.${log.status}`, log.status) }}
+                </span>
+              </td>
+              <td class="py-2 pr-3 font-mono text-xs">{{ log.entityId || '-' }}</td>
+              <td class="py-2 pr-3 text-xs text-red-500">{{ log.errorMessage || '-' }}</td>
+              <td class="py-2 text-xs text-(--text-muted)">{{ formatTime(log.createdAt) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="py-8 text-center text-(--text-muted)">{{ t('erpSync.logs.noData') }}</div>
+      </Modal>
 
       <!-- 创建/编辑连接弹窗 -->
-      <div v-if="showFormModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="showFormModal = false">
-        <div class="w-full max-w-lg rounded-lg bg-(--bg-card) shadow-xl">
-          <div class="flex items-center justify-between border-b border-(--border-color) px-4 py-3">
-            <h2 class="text-sm font-medium text-(--text-main)">
-              {{ editingConnection ? t('erpSync.editConnection') : t('erpSync.addConnection') }}
-            </h2>
-            <button class="text-(--text-muted) hover:text-(--text-main)" @click="showFormModal = false">
-              <AppIcon name="x-mark" class="size-5" />
-            </button>
+      <Modal v-model="showFormModal" :title="editingConnection ? t('erpSync.editConnection') : t('erpSync.addConnection')" size="lg">
+        <div class="space-y-4">
+          <div>
+            <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.name') }}</label>
+            <input
+              v-model="form.name"
+              type="text"
+              :placeholder="t('erpSync.form.namePlaceholder')"
+              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+            />
           </div>
-          <div class="space-y-4 p-4">
+          <div>
+            <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.adapterType') }}</label>
+            <select
+              v-model="form.adapterType"
+              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+            >
+              <option value="generic">{{ t('erpSync.adapter.generic') }}</option>
+              <option value="rest">{{ t('erpSync.adapter.rest') }}</option>
+              <option value="kingdee">{{ t('erpSync.adapter.kingdee') }}</option>
+              <option value="yonyou">{{ t('erpSync.adapter.yonyou') }}</option>
+              <option value="sap">{{ t('erpSync.adapter.sap') }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.baseUrl') }}</label>
+            <input
+              v-model="form.baseUrl"
+              type="url"
+              :placeholder="t('erpSync.form.baseUrlPlaceholder')"
+              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+            />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.authType') }}</label>
+            <select
+              v-model="form.authType"
+              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+            >
+              <option value="api_key">{{ t('erpSync.auth.api_key') }}</option>
+              <option value="basic">{{ t('erpSync.auth.basic') }}</option>
+              <option value="oauth2">{{ t('erpSync.auth.oauth2') }}</option>
+            </select>
+          </div>
+          <div v-if="form.authType === 'api_key'">
+            <label class="mb-1 block text-xs font-medium text-(--text-muted)">API Key</label>
+            <input
+              v-model="form.credentials.apiKey"
+              type="password"
+              :placeholder="t('erpSync.form.apiKeyPlaceholder')"
+              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+            />
+          </div>
+          <div v-if="form.authType === 'basic'" class="grid grid-cols-2 gap-3">
             <div>
-              <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.name') }}</label>
+              <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.form.usernamePlaceholder') }}</label>
               <input
-                v-model="form.name"
+                v-model="form.credentials.username"
                 type="text"
-                :placeholder="t('erpSync.form.namePlaceholder')"
                 class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
               />
             </div>
             <div>
-              <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.adapterType') }}</label>
-              <select
-                v-model="form.adapterType"
-                class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
-              >
-                <option value="generic">{{ t('erpSync.adapter.generic') }}</option>
-                <option value="rest">{{ t('erpSync.adapter.rest') }}</option>
-                <option value="kingdee">{{ t('erpSync.adapter.kingdee') }}</option>
-                <option value="yonyou">{{ t('erpSync.adapter.yonyou') }}</option>
-                <option value="sap">{{ t('erpSync.adapter.sap') }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.baseUrl') }}</label>
+              <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.form.passwordPlaceholder') }}</label>
               <input
-                v-model="form.baseUrl"
-                type="url"
-                :placeholder="t('erpSync.form.baseUrlPlaceholder')"
-                class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
-              />
-            </div>
-            <div>
-              <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.authType') }}</label>
-              <select
-                v-model="form.authType"
-                class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
-              >
-                <option value="api_key">{{ t('erpSync.auth.api_key') }}</option>
-                <option value="basic">{{ t('erpSync.auth.basic') }}</option>
-                <option value="oauth2">{{ t('erpSync.auth.oauth2') }}</option>
-              </select>
-            </div>
-            <div v-if="form.authType === 'api_key'">
-              <label class="mb-1 block text-xs font-medium text-(--text-muted)">API Key</label>
-              <input
-                v-model="form.credentials.apiKey"
+                v-model="form.credentials.password"
                 type="password"
-                :placeholder="t('erpSync.form.apiKeyPlaceholder')"
                 class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
               />
-            </div>
-            <div v-if="form.authType === 'basic'" class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.form.usernamePlaceholder') }}</label>
-                <input
-                  v-model="form.credentials.username"
-                  type="text"
-                  class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
-                />
-              </div>
-              <div>
-                <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.form.passwordPlaceholder') }}</label>
-                <input
-                  v-model="form.credentials.password"
-                  type="password"
-                  class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
-                />
-              </div>
-            </div>
-            <div>
-              <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.syncDirection') }}</label>
-              <select
-                v-model="form.syncDirection"
-                class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
-              >
-                <option value="bidirectional">{{ t('erpSync.direction.bidirectional') }}</option>
-                <option value="push">{{ t('erpSync.direction.push') }}</option>
-                <option value="pull">{{ t('erpSync.direction.pull') }}</option>
-              </select>
             </div>
           </div>
-          <div class="flex justify-end gap-2 border-t border-(--border-color) px-4 py-3">
-            <AppButton variant="outline" size="sm" @click="showFormModal = false">
-              {{ t('erpSync.form.cancel') }}
-            </AppButton>
-            <AppButton variant="primary" size="sm" :disabled="saving" @click="saveConnection">
-              <template #icon-left>
-                <AppIcon v-if="saving" name="spinner" class="size-4 animate-spin" />
-              </template>
-              {{ t('erpSync.form.save') }}
-            </AppButton>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('erpSync.syncDirection') }}</label>
+            <select
+              v-model="form.syncDirection"
+              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+            >
+              <option value="bidirectional">{{ t('erpSync.direction.bidirectional') }}</option>
+              <option value="push">{{ t('erpSync.direction.push') }}</option>
+              <option value="pull">{{ t('erpSync.direction.pull') }}</option>
+            </select>
           </div>
         </div>
-      </div>
+        <template #footer>
+          <AppButton variant="outline" size="sm" @click="showFormModal = false">
+            {{ t('erpSync.form.cancel') }}
+          </AppButton>
+          <AppButton variant="primary" size="sm" :disabled="saving" @click="saveConnection">
+            <template #icon-left>
+              <AppIcon v-if="saving" name="spinner" class="size-4 animate-spin" />
+            </template>
+            {{ t('erpSync.form.save') }}
+          </AppButton>
+        </template>
+      </Modal>
+
+      <!-- 删除确认弹窗 -->
+      <ConfirmDialog
+        v-model="showDeleteConfirm"
+        type="danger"
+        :title="t('erpSync.deleteConnection')"
+        :message="t('erpSync.deleteConfirm')"
+        :confirm-text="t('common.confirm')"
+        @confirm="confirmDelete"
+      />
     </template>
   </ManagementListShell>
 </template>
@@ -277,6 +267,8 @@ import { request } from '@/utils/http-core';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import Modal from '@/components/ui/Modal.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -290,6 +282,8 @@ const showLogsModal = ref(false);
 const showFormModal = ref(false);
 const editingConnection = ref(null);
 const saving = ref(false);
+const showDeleteConfirm = ref(false);
+const deleteTargetId = ref(null);
 
 const form = ref({
   name: '',
@@ -385,11 +379,18 @@ async function saveConnection() {
   }
 }
 
-async function deleteConnection(id) {
-  if (!confirm(t('erpSync.deleteConfirm'))) return;
+function deleteConnection(id) {
+  deleteTargetId.value = id;
+  showDeleteConfirm.value = true;
+}
+
+async function confirmDelete() {
+  if (!deleteTargetId.value) return;
   try {
-    await request(`/api/manage/erp-sync/connections/${id}`, { method: 'DELETE' });
+    await request(`/api/manage/erp-sync/connections/${deleteTargetId.value}`, { method: 'DELETE' });
     addToast({ type: 'success', message: t('erpSync.deleteConnection') });
+    showDeleteConfirm.value = false;
+    deleteTargetId.value = null;
     await loadConnections();
   } catch (err) {
     addToast({ type: 'error', message: err.message });

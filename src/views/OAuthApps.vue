@@ -96,130 +96,133 @@
       </div>
 
       <!-- 令牌弹窗 -->
-      <div v-if="showTokensModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="showTokensModal = false">
-        <div class="max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-lg bg-(--bg-card) shadow-xl">
-          <div class="flex items-center justify-between border-b border-(--border-color) px-4 py-3">
-            <h2 class="text-sm font-medium text-(--text-main)">{{ t('oauth.tokens.title') }}</h2>
-            <div class="flex items-center gap-2">
-              <AppButton variant="outline" size="sm" class="text-red-500" @click="revokeAllTokens">
-                {{ t('oauth.actions.revokeTokens') }}
-              </AppButton>
-              <button class="text-(--text-muted) hover:text-(--text-main)" @click="showTokensModal = false">
-                <AppIcon name="x-mark" class="size-5" />
-              </button>
-            </div>
+      <Modal v-model="showTokensModal" :title="t('oauth.tokens.title')" size="2xl">
+        <template #header>
+          <div class="flex items-center justify-between">
+            <h3 class="text-primary text-lg font-semibold">{{ t('oauth.tokens.title') }}</h3>
+            <AppButton variant="outline" size="sm" class="text-red-500" @click="revokeAllTokens">
+              {{ t('oauth.actions.revokeTokens') }}
+            </AppButton>
           </div>
-          <div class="overflow-y-auto p-4" style="max-height: 60vh;">
-            <table v-if="tokens.length > 0" class="w-full text-sm">
-              <thead>
-                <tr class="border-b border-(--border-color) text-left text-xs text-(--text-muted)">
-                  <th class="pb-2 pr-3">{{ t('oauth.tokens.accessToken') }}</th>
-                  <th class="pb-2 pr-3">{{ t('oauth.tokens.scopes') }}</th>
-                  <th class="pb-2 pr-3">{{ t('oauth.tokens.expiresAt') }}</th>
-                  <th class="pb-2">{{ t('oauth.tokens.createdAt') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="token in tokens" :key="token.id" class="border-b border-(--border-color) last:border-0">
-                  <td class="py-2 pr-3 font-mono text-xs">{{ token.accessToken.slice(0, 20) }}...</td>
-                  <td class="py-2 pr-3">
-                    <span v-for="s in token.scopes" :key="s" class="mr-1 rounded bg-blue-100 px-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                      {{ s }}
-                    </span>
-                  </td>
-                  <td class="py-2 pr-3 text-xs">{{ formatTime(token.expiresAt) }}</td>
-                  <td class="py-2 text-xs text-(--text-muted)">{{ formatTime(token.createdAt) }}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-else class="py-8 text-center text-(--text-muted)">{{ t('oauth.tokens.noData') }}</div>
-          </div>
-        </div>
-      </div>
+        </template>
+        <table v-if="tokens.length > 0" class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-(--border-color) text-left text-xs text-(--text-muted)">
+              <th class="pb-2 pr-3">{{ t('oauth.tokens.accessToken') }}</th>
+              <th class="pb-2 pr-3">{{ t('oauth.tokens.scopes') }}</th>
+              <th class="pb-2 pr-3">{{ t('oauth.tokens.expiresAt') }}</th>
+              <th class="pb-2">{{ t('oauth.tokens.createdAt') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="token in tokens" :key="token.id" class="border-b border-(--border-color) last:border-0">
+              <td class="py-2 pr-3 font-mono text-xs">{{ token.accessToken.slice(0, 20) }}...</td>
+              <td class="py-2 pr-3">
+                <span v-for="s in token.scopes" :key="s" class="mr-1 rounded bg-blue-100 px-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                  {{ s }}
+                </span>
+              </td>
+              <td class="py-2 pr-3 text-xs">{{ formatTime(token.expiresAt) }}</td>
+              <td class="py-2 text-xs text-(--text-muted)">{{ formatTime(token.createdAt) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="py-8 text-center text-(--text-muted)">{{ t('oauth.tokens.noData') }}</div>
+      </Modal>
 
       <!-- 创建/编辑应用弹窗 -->
-      <div v-if="showFormModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="showFormModal = false">
-        <div class="w-full max-w-lg rounded-lg bg-(--bg-card) shadow-xl">
-          <div class="flex items-center justify-between border-b border-(--border-color) px-4 py-3">
-            <h2 class="text-sm font-medium text-(--text-main)">
-              {{ editingClient ? t('oauth.editApp') : t('oauth.addApp') }}
-            </h2>
-            <button class="text-(--text-muted) hover:text-(--text-main)" @click="showFormModal = false">
-              <AppIcon name="x-mark" class="size-5" />
-            </button>
+      <Modal v-model="showFormModal" :title="editingClient ? t('oauth.editApp') : t('oauth.addApp')" size="lg">
+        <div class="space-y-4">
+          <div>
+            <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('oauth.name') }}</label>
+            <input
+              v-model="form.name"
+              type="text"
+              :placeholder="t('oauth.form.namePlaceholder')"
+              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+            />
           </div>
-          <div class="space-y-4 p-4">
-            <div>
-              <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('oauth.name') }}</label>
-              <input
-                v-model="form.name"
-                type="text"
-                :placeholder="t('oauth.form.namePlaceholder')"
-                class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
-              />
-            </div>
-            <div>
-              <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('oauth.description') }}</label>
-              <input
-                v-model="form.description"
-                type="text"
-                :placeholder="t('oauth.form.descriptionPlaceholder')"
-                class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
-              />
-            </div>
-            <div>
-              <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('oauth.redirectUris') }}</label>
-              <div class="space-y-1">
-                <div v-for="(uri, idx) in form.redirectUris" :key="idx" class="flex items-center gap-2">
-                  <input
-                    v-model="form.redirectUris[idx]"
-                    type="url"
-                    class="flex-1 rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
-                  />
-                  <button class="text-red-500 hover:text-red-700" @click="form.redirectUris.splice(idx, 1)">
-                    <AppIcon name="x-mark" class="size-4" />
-                  </button>
-                </div>
-                <button class="text-xs text-(--color-primary) hover:underline" @click="form.redirectUris.push('')">
-                  + {{ t('oauth.redirectUris') }}
+          <div>
+            <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('oauth.description') }}</label>
+            <input
+              v-model="form.description"
+              type="text"
+              :placeholder="t('oauth.form.descriptionPlaceholder')"
+              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+            />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('oauth.redirectUris') }}</label>
+            <div class="space-y-1">
+              <div v-for="(uri, idx) in form.redirectUris" :key="idx" class="flex items-center gap-2">
+                <input
+                  v-model="form.redirectUris[idx]"
+                  type="url"
+                  class="flex-1 rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
+                />
+                <button class="text-red-500 hover:text-red-700" @click="form.redirectUris.splice(idx, 1)">
+                  <AppIcon name="x-mark" class="size-4" />
                 </button>
               </div>
-            </div>
-            <div>
-              <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('oauth.scopes') }}</label>
-              <div class="flex flex-wrap gap-2">
-                <label v-for="scope in availableScopes" :key="scope" class="flex items-center gap-1 text-sm text-(--text-main)">
-                  <input v-model="form.scopes" type="checkbox" :value="scope" class="rounded" />
-                  {{ scope }}
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <!-- 创建成功后显示密钥 -->
-          <div v-if="createdSecret" class="mx-4 mb-4 rounded-lg border border-yellow-300 bg-yellow-50 p-3 dark:border-yellow-700 dark:bg-yellow-900/20">
-            <p class="text-xs font-medium text-yellow-800 dark:text-yellow-300">{{ t('oauth.secretWarning') }}</p>
-            <div class="mt-2 flex items-center gap-2">
-              <code class="flex-1 rounded bg-(--bg-hover) px-2 py-1 font-mono text-xs text-(--text-main)">{{ createdSecret }}</code>
-              <button class="text-(--text-muted) hover:text-(--text-main)" @click="copyToClipboard(createdSecret)">
-                <AppIcon name="clipboard" class="size-4" />
+              <button class="text-xs text-(--color-primary) hover:underline" @click="form.redirectUris.push('')">
+                + {{ t('oauth.redirectUris') }}
               </button>
             </div>
           </div>
-
-          <div class="flex justify-end gap-2 border-t border-(--border-color) px-4 py-3">
-            <AppButton variant="outline" size="sm" @click="showFormModal = false">
-              {{ t('oauth.form.cancel') }}
-            </AppButton>
-            <AppButton v-if="!createdSecret" variant="primary" size="sm" :disabled="saving" @click="saveClient">
-              <template #icon-left>
-                <AppIcon v-if="saving" name="spinner" class="size-4 animate-spin" />
-              </template>
-              {{ t('oauth.form.save') }}
-            </AppButton>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{ t('oauth.scopes') }}</label>
+            <div class="flex flex-wrap gap-2">
+              <label v-for="scope in availableScopes" :key="scope" class="flex items-center gap-1 text-sm text-(--text-main)">
+                <input v-model="form.scopes" type="checkbox" :value="scope" class="rounded" />
+                {{ scope }}
+              </label>
+            </div>
           </div>
         </div>
-      </div>
+
+        <!-- 创建成功后显示密钥 -->
+        <div v-if="createdSecret" class="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 p-3 dark:border-yellow-700 dark:bg-yellow-900/20">
+          <p class="text-xs font-medium text-yellow-800 dark:text-yellow-300">{{ t('oauth.secretWarning') }}</p>
+          <div class="mt-2 flex items-center gap-2">
+            <code class="flex-1 rounded bg-(--bg-hover) px-2 py-1 font-mono text-xs text-(--text-main)">{{ createdSecret }}</code>
+            <button class="text-(--text-muted) hover:text-(--text-main)" @click="copyToClipboard(createdSecret)">
+              <AppIcon name="clipboard" class="size-4" />
+            </button>
+          </div>
+        </div>
+
+        <template #footer>
+          <AppButton variant="outline" size="sm" @click="showFormModal = false">
+            {{ t('oauth.form.cancel') }}
+          </AppButton>
+          <AppButton v-if="!createdSecret" variant="primary" size="sm" :disabled="saving" @click="saveClient">
+            <template #icon-left>
+              <AppIcon v-if="saving" name="spinner" class="size-4 animate-spin" />
+            </template>
+            {{ t('oauth.form.save') }}
+          </AppButton>
+        </template>
+      </Modal>
+
+      <!-- 删除确认弹窗 -->
+      <ConfirmDialog
+        v-model="showDeleteConfirm"
+        type="danger"
+        :title="t('oauth.deleteApp')"
+        :message="t('oauth.deleteConfirm')"
+        :confirm-text="t('common.confirm')"
+        @confirm="confirmDelete"
+      />
+
+      <!-- 撤销令牌确认弹窗 -->
+      <ConfirmDialog
+        v-model="showRevokeConfirm"
+        type="warning"
+        :title="t('oauth.actions.revokeTokens')"
+        :message="t('oauth.actions.revokeTokensConfirm')"
+        :confirm-text="t('common.confirm')"
+        @confirm="confirmRevoke"
+      />
     </template>
   </ManagementListShell>
 </template>
@@ -232,6 +235,8 @@ import { request } from '@/utils/http-core';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import Modal from '@/components/ui/Modal.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -245,6 +250,9 @@ const editingClient = ref(null);
 const selectedClientId = ref(null);
 const saving = ref(false);
 const createdSecret = ref(null);
+const showDeleteConfirm = ref(false);
+const deleteTargetId = ref(null);
+const showRevokeConfirm = ref(false);
 
 const availableScopes = ['read', 'write', 'admin'];
 
@@ -343,11 +351,18 @@ async function saveClient() {
   }
 }
 
-async function deleteClient(id) {
-  if (!confirm(t('oauth.deleteConfirm'))) return;
+function deleteClient(id) {
+  deleteTargetId.value = id;
+  showDeleteConfirm.value = true;
+}
+
+async function confirmDelete() {
+  if (!deleteTargetId.value) return;
   try {
-    await request(`/api/manage/oauth/apps/${id}`, { method: 'DELETE' });
+    await request(`/api/manage/oauth/apps/${deleteTargetId.value}`, { method: 'DELETE' });
     addToast({ type: 'success', message: t('oauth.deleteApp') });
+    showDeleteConfirm.value = false;
+    deleteTargetId.value = null;
     await loadClients();
   } catch (err) {
     addToast({ type: 'error', message: err.message });
@@ -366,11 +381,15 @@ async function viewTokens(client) {
   }
 }
 
-async function revokeAllTokens() {
-  if (!confirm(t('oauth.actions.revokeTokensConfirm'))) return;
+function revokeAllTokens() {
+  showRevokeConfirm.value = true;
+}
+
+async function confirmRevoke() {
   try {
     await request(`/api/manage/oauth/apps/${selectedClientId.value}/revoke-tokens`, { method: 'POST' });
     addToast({ type: 'success', message: t('oauth.actions.tokensRevoked') });
+    showRevokeConfirm.value = false;
     tokens.value = [];
   } catch (err) {
     addToast({ type: 'error', message: err.message });
