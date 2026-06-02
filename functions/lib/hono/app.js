@@ -7,6 +7,7 @@ import { CORS_MAX_AGE } from '../../_shared/utils.js';
 import { authMiddleware } from './middleware/auth.js';
 import { rateLimitMiddleware } from './middleware/rateLimit.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { traceIdMiddleware } from './middleware/traceId.js';
 
 // V1 路由导入
 import authRoutes from './routes/v1/auth.js';
@@ -64,6 +65,9 @@ export const app = new Hono();
 
 // 2. 日志记录
 app.use('*', logger());
+
+// 2.5 请求追踪（生成 trace ID，贯穿整个请求生命周期）
+app.use('*', traceIdMiddleware);
 
 // 3. CORS
 app.use(
