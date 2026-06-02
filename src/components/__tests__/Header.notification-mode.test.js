@@ -82,6 +82,8 @@ vi.mock('@/composables/useRecentViews', () => ({
 
 vi.mock('@/composables/useNotificationStream', () => ({
   useNotificationStream: () => ({
+    start: vi.fn(),
+    stop: vi.fn(),
     startPolling: vi.fn(),
     stopPolling: vi.fn(),
   }),
