@@ -186,6 +186,10 @@ export const API: Record<string, any> = {
     REPORT: '/api/manage/ai/report',
   } as const,
 
+  // 功能开关
+  FEATURE_FLAGS: `${API_PREFIX}/feature-flags`,
+  FEATURE_FLAG_BY_KEY: (key: string) => `${API_PREFIX}/feature-flags/${key}`,
+
   // 销售端通知 API
   SALES_NOTIFICATIONS: (token: string) => `/api/sales/${token}/notifications`,
   SALES_NOTIFICATIONS_READ: (token: string, id: string | number) => `/api/sales/${token}/notifications/${id}/read`,

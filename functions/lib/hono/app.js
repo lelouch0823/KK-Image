@@ -51,6 +51,7 @@ import manageInventoryDashboardRoutes from './routes/manage/inventory-dashboard.
 import manageCategoriesRoutes from './routes/manage/categories.js'; // NEW: 分类管理
 import manageStocktakesRoutes from './routes/manage/stocktakes.js'; // NEW: 库存盘点
 import manageReceivablesRoutes from './routes/manage/receivables.js'; // NEW: 应收账款
+import manageFeatureFlagsRoutes from './routes/manage/feature-flags.js'; // NEW: 功能开关
 
 export const app = new Hono();
 
@@ -144,6 +145,7 @@ app.route('/api/manage/inventory-dashboard', manageInventoryDashboardRoutes); //
 app.route('/api/manage/categories', manageCategoriesRoutes); // NEW: 分类管理
 app.route('/api/manage/stocktakes', manageStocktakesRoutes); // NEW: 库存盘点
 app.route('/api/manage/receivables', manageReceivablesRoutes); // NEW: 应收账款
+app.route('/api/manage/feature-flags', manageFeatureFlagsRoutes); // NEW: 功能开关
 app.route('/api/sales', salesRoutes);
 
 // ============================================
