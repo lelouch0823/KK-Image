@@ -67,7 +67,7 @@ describe('Settings view behavior', () => {
     );
     expect(wrapper.get('[data-testid="tab-content"]').text()).toBe('Watermark Settings');
 
-    await buttons[2].trigger('click');
+    await buttons[5].trigger('click');
     expect(wrapper.get('[data-testid="title"]').text()).toBe('System Backups');
     expect(wrapper.get('[data-testid="description"]').text()).toBe(
       'Create and download full system backups including database and stored files.'

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
+import { ref } from 'vue';
 import Customers from '../Customers.vue';
 
 const mocks = vi.hoisted(() => ({
@@ -7,6 +8,11 @@ const mocks = vi.hoisted(() => ({
   addToast: vi.fn(),
   setContext: vi.fn(),
   subscribeModule: vi.fn(() => vi.fn()),
+}));
+
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ query: {} }),
+  useRouter: () => ({ push: vi.fn() }),
 }));
 
 vi.mock('@/composables/useI18n', () => ({
