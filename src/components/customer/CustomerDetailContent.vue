@@ -363,15 +363,17 @@
               {{ t('customer.form.tags') }}
             </p>
             <div class="flex flex-wrap gap-2">
-              <button
+              <AppButton
                 v-for="tag in suggestedTags"
                 :key="tag.name"
-                class="rounded-full border border-(--border-color) px-3 py-1 text-xs text-(--text-secondary) transition-colors hover:border-(--color-primary) hover:text-(--color-primary)"
+                variant="ghost"
+                size="sm"
+                class="rounded-full border border-(--border-color) text-xs"
                 @click="handleAddSuggestedTag(tag.name)"
               >
                 {{ tag.name }}
                 <span class="ml-1 text-(--text-muted)">({{ tag.usageCount }})</span>
-              </button>
+              </AppButton>
             </div>
           </div>
         </div>

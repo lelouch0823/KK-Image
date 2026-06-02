@@ -23,7 +23,7 @@ const mocks = vi.hoisted(() => ({
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
-vi.mock('../../../../../repositories/CustomerRepository.js', () => ({
+vi.mock('../../../../../repositories/CustomerRepository.ts', () => ({
   CustomerRepository: vi.fn(() => ({
     list: mocks.customerList,
     create: mocks.customerCreate,
@@ -31,6 +31,9 @@ vi.mock('../../../../../repositories/CustomerRepository.js', () => ({
     update: mocks.customerUpdate,
     hasOrders: mocks.customerHasOrders,
     delete: mocks.customerDelete,
+    getBatchRfmSegments: vi.fn(async () => new Map()),
+    suggest: vi.fn(async () => []),
+    getAllTags: vi.fn(async () => []),
   })),
 }));
 
@@ -197,6 +200,10 @@ describe('manage no-op update routes', () => {
 
     const res = await app.request('http://localhost/api/manage/customers?page=2&limit=5&search=ali', {}, env);
 
+    if (res.status !== 200) {
+      const errorBody = await res.text();
+      console.error('Customer list error:', res.status, errorBody);
+    }
     expect(res.status).toBe(200);
     expect(mocks.customerList).toHaveBeenCalledWith({ page: 2, limit: 5, search: 'ali' });
     const body = await res.json();
