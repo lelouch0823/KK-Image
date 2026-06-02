@@ -23,6 +23,7 @@ import formDraft from './formDraft';
 import inventoryDashboard from './inventoryDashboard';
 import stocktake from './stocktake';
 import keyboardShortcuts from './keyboardShortcuts';
+import print from './print';
 
 export default {
   common,
@@ -73,4 +74,5 @@ export default {
   inventoryDashboard,
   stocktake,
   keyboardShortcuts,
+  print,
 };

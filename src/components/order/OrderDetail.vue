@@ -215,6 +215,7 @@ import OrderReturnHistoryCard from './OrderReturnHistoryCard.vue';
 import OrderPaymentCard from './OrderPaymentCard.vue';
 import OrderProfitCard from './OrderProfitCard.vue';
 import OrderPrintView from './OrderPrintView.vue';
+import { usePdfExport } from '@/composables/usePdfExport';
 import OrderLinesCard from './OrderLinesCard.vue';
 const OrderEditModal = defineAsyncComponent(() => import('../OrderEditModal.vue'));
 import Modal from '@/components/ui/Modal.vue';
@@ -457,45 +458,13 @@ const handleUpdate = async (payload) => {
   }
 };
 
+const { exportToPdf } = usePdfExport();
+
 const handleSavePdf = () => {
   const element = printViewRef.value?.$el;
   if (!element) return;
-
-  const clone = element.cloneNode(true);
-  clone.classList.remove('hidden');
-  clone.style.display = 'block';
-  clone.style.position = 'absolute';
-  clone.style.top = '-9999px';
-  clone.style.left = '-9999px';
-  clone.style.width = '210mm';
-  clone.style.background = 'white';
-
-  document.body.appendChild(clone);
-
-  const opt = {
-    margin: [10, 10, 10, 10],
-    filename: `Order_${props.order.orderNo}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-  };
-
-  import('html2pdf.js').then((module) => {
-    const html2pdf = module.default;
-    html2pdf()
-      .set(opt)
-      .from(clone)
-      .save()
-      .catch((err) => {
-        console.error('[PDF] 生成失败:', err);
-      })
-      .finally(() => {
-        if (clone.parentNode) {
-          document.body.removeChild(clone);
-        }
-      });
-  }).catch((err) => {
-    console.error('[PDF] html2pdf 加载失败:', err);
+  exportToPdf(element, {
+    filename: `Order_${props.order.orderNo}`,
   });
 };
 

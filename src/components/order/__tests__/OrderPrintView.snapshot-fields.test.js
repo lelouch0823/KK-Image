@@ -8,9 +8,26 @@ vi.mock('@/composables/useI18n', () => ({
       if (key === 'order.detail.multilineSummary' && paramsOrFallback && typeof paramsOrFallback === 'object') {
         return `多商品订单（${paramsOrFallback.count}项）`;
       }
+      if (key === 'print.generatedBy' && paramsOrFallback && typeof paramsOrFallback === 'object') {
+        return `由 ${paramsOrFallback.name} 系统生成 · ${paramsOrFallback.date}`;
+      }
       if (typeof paramsOrFallback === 'string') return paramsOrFallback;
       return key;
     },
+  }),
+}));
+
+vi.mock('@/composables/usePrintTemplate', () => ({
+  usePrintTemplate: () => ({
+    getSettingsParsed: () => ({
+      companyName: 'KK-Image',
+      companyLogo: '',
+      companyAddress: '',
+      companyPhone: '',
+      footerText: '',
+      showQrCode: false,
+      accentColor: '#111827',
+    }),
   }),
 }));
 
@@ -43,6 +60,7 @@ describe('OrderPrintView historical snapshot fallback', () => {
           AppImage: true,
           OrderLineProcurementState: true,
           OrderTimeline: true,
+          PrintTemplate: { template: '<div><slot name="header-right" /><slot name="title-meta" /><slot /></div>' },
         },
       },
     });
@@ -89,6 +107,7 @@ describe('OrderPrintView historical snapshot fallback', () => {
           AppImage: true,
           OrderLineProcurementState: true,
           OrderTimeline: true,
+          PrintTemplate: { template: '<div><slot name="header-right" /><slot name="title-meta" /><slot /></div>' },
         },
       },
     });

@@ -33,6 +33,7 @@ import SettingsSidebar from '@/components/settings/SettingsSidebar.vue';
 import BackupSettings from '@/components/settings/tabs/BackupSettings.vue';
 import AISettings from '@/components/settings/tabs/AISettings.vue';
 import WatermarkSettings from '@/components/settings/tabs/WatermarkSettings.vue';
+import PrintTemplateSettings from '@/components/settings/tabs/PrintTemplateSettings.vue';
 
 const { t } = useI18n();
 
@@ -41,6 +42,7 @@ const currentTab = ref('ai');
 const tabs = {
   ai: AISettings,
   watermark: WatermarkSettings,
+  printTemplate: PrintTemplateSettings,
   backups: BackupSettings,
 };
 
@@ -48,6 +50,7 @@ const tabs = {
 const activeTitle = computed(() => {
   if (currentTab.value === 'ai') return t('settings.ai.title', 'AI Configuration');
   if (currentTab.value === 'watermark') return t('settings.watermark.title', 'Watermark Settings');
+  if (currentTab.value === 'printTemplate') return t('settings.printTemplate.title', 'Print Template');
   if (currentTab.value === 'backups') return t('settings.backup.title', 'System Backups');
   return t('settings.title', 'System Settings');
 });
@@ -55,26 +58,32 @@ const activeTitle = computed(() => {
 const activeDescription = computed(() => {
   if (currentTab.value === 'ai') return t('settings.ai.description', 'Manage API keys and model preferences for the AI assistant.');
   if (currentTab.value === 'watermark') return t('settings.watermark.description', 'Configure global text watermark applied to uploaded images.');
+  if (currentTab.value === 'printTemplate') return t('settings.printTemplate.description', 'Configure company branding and layout for printed documents and PDF exports.');
   if (currentTab.value === 'backups') return t('settings.backup.description', 'Create and download full system backups including database and stored files.');
   return t('settings.subtitle', 'Manage your application preferences, AI configurations, and system backups.');
 });
 
 const navigationItems = computed(() => [
-  { 
-    id: 'ai', 
-    label: t('settings.ai.title', 'AI Configuration'), 
+  {
+    id: 'ai',
+    label: t('settings.ai.title', 'AI Configuration'),
     icon: 'sparkles',
   },
-  { 
-    id: 'watermark', 
-    label: t('settings.watermark.title', 'Watermark'), 
+  {
+    id: 'watermark',
+    label: t('settings.watermark.title', 'Watermark'),
     icon: 'photo',
     badge: 'New'
   },
-  { 
-    id: 'backups', 
-    label: t('settings.backup.title', 'System Backups'), 
-    icon: 'cloud-arrow-up' 
+  {
+    id: 'printTemplate',
+    label: t('settings.printTemplate.title', 'Print Template'),
+    icon: 'document-text',
+  },
+  {
+    id: 'backups',
+    label: t('settings.backup.title', 'System Backups'),
+    icon: 'cloud-arrow-up'
   },
 ]);
 
