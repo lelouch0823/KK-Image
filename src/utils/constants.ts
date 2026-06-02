@@ -33,7 +33,7 @@ export const STATIC_EXTENSIONS: string[] = [
 export const API_PREFIX: string = '/api/manage';
 
 // API 端点
-export const API: Record<string, any> = {
+export const API = {
   // 文件夹
   FOLDERS: `${API_PREFIX}/folders`,
   FOLDER_BY_ID: (id: string | number) => `${API_PREFIX}/folders/${id}`,
@@ -201,16 +201,16 @@ export const API: Record<string, any> = {
 
   // 其他
   TURNSTILE_VERIFY: '/api/turnstile/verify',
-};
+} as const;
 
 // 前端路由 (用于跳转和生成分享链接)
-export const ROUTES: Record<string, any> = {
+export const ROUTES = {
   GALLERY: (token: string) => `/gallery/${token}`,
   SPACE: (token: string) => `/space/${token}`,
   FILE: (id: string | number) => `/file/${id}`,
   SALES_PORTAL: (token: string) => `/sales/${token}`,
   ADMIN: '/admin',
-};
+} as const;
 
 // 分页默认值
 export const DEFAULT_PAGE_SIZE: number = 20;
