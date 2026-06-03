@@ -60,7 +60,7 @@
         <template #footer>
           <div class="flex items-center justify-between" @click.stop>
             <span class="text-xs text-(--text-secondary)/50">{{
-              formatTime(order.createdAt)
+              formatDate(order.createdAt, { hour: undefined, minute: undefined })
             }}</span>
             <AppButton
               variant="secondary"
@@ -105,5 +105,4 @@ defineEmits(['detail', 'edit']);
 
 const { t } = useI18n();
 
-const formatTime = (timestamp) => formatDate(timestamp, { hour: undefined, minute: undefined });
 </script>

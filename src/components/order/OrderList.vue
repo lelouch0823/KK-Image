@@ -85,7 +85,7 @@
                     <AppIcon name="user" class="size-3.5 shrink-0 opacity-70" />
                     <span class="min-w-0 flex-1 truncate" :title="order.customer?.name || t('common.unknown')">{{ order.customer?.name || t('common.unknown') }}</span>
                     <span class="shrink-0 text-(--border-color)">|</span>
-                    <span class="shrink-0">{{ formatTime(order.createdAt) }}</span>
+                    <span class="shrink-0">{{ formatRelativeTime(order.createdAt, t) }}</span>
                 </div>
                 
                 <!-- 箭头 -->
@@ -197,8 +197,6 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
 });
 
-// 格式化时间
-const formatTime = (timestamp) => formatRelativeTime(timestamp, t);
 </script>
 
 <style scoped>

@@ -21,6 +21,6 @@ app.config.errorHandler = (err, instance, info) => {
 
 app.use(router);
 if (import.meta.env.DEV) {
-    (window as any).__VUE_APP__ = app;
+    (window as unknown as Record<string, unknown>).__VUE_APP__ = app;
 }
 app.mount('#app');

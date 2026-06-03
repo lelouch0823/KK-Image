@@ -55,7 +55,7 @@
         no-border
       >
         <template #cell-created_at="{ value }">
-          <span class="text-xs text-(--text-secondary)">{{ formatTime(value) }}</span>
+          <span class="text-xs text-(--text-secondary)">{{ formatDate(value) }}</span>
         </template>
         
         <template #cell-actor_display="{ value, row }">
@@ -135,6 +135,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import { formatAuditDetails, normalizeAuditRow } from '@/utils/audit-log';
+import { formatDate } from '@/utils/formatters';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 import { ErrorCode } from '@/utils/error-codes';
 
@@ -179,10 +180,6 @@ const columns = computed(() => [
   { key: 'details', label: t('auditLogs.details') },
 ]);
 
-const formatTime = (ts) => {
-  if (!ts) return '-';
-  return new Date(ts).toLocaleString();
-};
 
 const actionBadgeVariant = (action) => {
   if (action?.includes('delete')) return 'danger';

@@ -145,7 +145,7 @@ import AppImage from '@/components/ui/AppImage.vue';
 import PrintTemplate from '@/components/print/PrintTemplate.vue';
 import { useI18n } from '@/composables/useI18n';
 import { usePrintTemplate } from '@/composables/usePrintTemplate';
-import { formatTimelineTime } from '@/utils/formatters';
+import { formatTimelineTime as formatTime } from '@/utils/formatters';
 import { buildOrderDetailDisplayData, isMultilineOrder, resolveOrderQuantity } from '@/utils/order-display';
 import OrderLineProcurementState from './OrderLineProcurementState.vue';
 import OrderTimeline from './OrderTimeline.vue';
@@ -174,7 +174,6 @@ const displayData = computed(() =>
   })
 );
 
-const formatTime = (timestamp) => formatTimelineTime(timestamp);
 </script>
 
 <style scoped>

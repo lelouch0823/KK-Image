@@ -311,7 +311,7 @@ const {
 
 const { t } = useI18n();
 const { addToast } = useToast();
-const { authFetch, currentUser } = useAuth();
+const { authFetchJson, currentUser } = useAuth();
 const route = useRoute();
 const router = useRouter();
 const { setContext } = useAI();
@@ -649,9 +649,9 @@ const executeOrderDeletion = async (order) => {
   if (!order || isDeleting.value) return;
   isDeleting.value = true;
   try {
-    const res = await authFetch(API.MANAGE_ORDER_UPDATE(order.id), {
+    const res = await authFetchJson(API.MANAGE_ORDER_UPDATE(order.id), {
       method: 'DELETE',
-    }).then(r => r.json());
+    });
 
     if (res.success) {
       addToast({ message: res.message || t('order.detail.deleteSuccess'), type: 'success' });

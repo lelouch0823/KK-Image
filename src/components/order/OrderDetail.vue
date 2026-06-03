@@ -208,7 +208,7 @@ import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { API } from '@/utils/constants';
 import { useSalesToken } from '@/composables/useSalesToken';
 import { useLightbox } from '@/composables/useLightbox';
-import { formatTimelineTime } from '@/utils/formatters';
+import { formatTimelineTime as formatTime } from '@/utils/formatters';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
@@ -349,8 +349,6 @@ const corrections = computed(() => {
   return props.order.timeline?.filter((t) => t.actionType === 'field_updated') || [];
 });
 
-// 格式化时间
-const formatTime = (timestamp) => formatTimelineTime(timestamp);
 
 // 发送留言
 const sendComment = (text) => {

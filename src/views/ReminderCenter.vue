@@ -71,7 +71,7 @@
                 {{ notification.content || t('reminders.noContent', '暂无补充说明') }}
               </p>
               <div class="mt-3 text-xs text-(--text-muted)">
-                {{ formatTime(notification.created_at) }}
+                {{ formatDate(notification.created_at, { hour12: false }) }}
               </div>
             </div>
             <AppButton
@@ -98,6 +98,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
+import { formatDate } from '@/utils/formatters';
 
 const { t } = useI18n();
 const {
@@ -118,12 +119,6 @@ const isLoading = computed(() => Boolean(unref(loading)));
 const isPermissionDenied = computed(() => Boolean(unref(permissionDenied)));
 const permissionReason = computed(() => String(unref(permissionDeniedReason) || ''));
 
-const formatTime = (timestamp) => {
-  if (!timestamp) return '';
-  return new Date(Number(timestamp)).toLocaleString('zh-CN', {
-    hour12: false,
-  });
-};
 
 onMounted(() => {
   setAdminMode();

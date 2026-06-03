@@ -252,7 +252,7 @@
 import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { STATUS_STYLES, getStatusVariant } from '@/utils/status';
-import { formatTimelineTime } from '@/utils/formatters';
+import { formatTimelineTime as formatTime } from '@/utils/formatters';
 import AppButton from '@/components/ui/AppButton.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -417,8 +417,6 @@ const formatImageCount = (value) => {
   return value;
 };
 
-// 格式化时间
-const formatTime = (timestamp) => formatTimelineTime(timestamp);
 
 // 尝试翻译理由 (处理历史数据的 Key)
 const getReasonText = (reason) => {

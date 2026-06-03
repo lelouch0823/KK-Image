@@ -1,6 +1,6 @@
 import { ref, type Ref } from 'vue';
 
-export function useFileDrag(currentFolder: Ref<any>, onFilesDropped: (files: File[]) => void) {
+export function useFileDrag(currentFolder: Ref<Record<string, unknown> | null>, onFilesDropped: (files: File[]) => void) {
     const isDragging = ref<boolean>(false);
     const dragCounter = ref<number>(0);
 

@@ -36,7 +36,7 @@
               <template v-if="isUploading && totalSpeed > 0">
                 · {{ formatSpeed(totalSpeed) }}
                 <template v-if="estimatedTimeRemaining"
-                  >· {{ t('upload.remaining') }} {{ formatTime(estimatedTimeRemaining) }}</template
+                  >· {{ t('upload.remaining') }} {{ formatDuration(estimatedTimeRemaining, t) }}</template
                 >
               </template>
             </span>
@@ -229,8 +229,6 @@ const formatSpeed = (bytesPerSecond) => {
   return `${(bytesPerSecond / 1024 / 1024).toFixed(1)} MB/s`;
 };
 
-// 🔧 NEW: 格式化时间
-const formatTime = (seconds) => formatDuration(seconds, t);
 </script>
 
 <style scoped>

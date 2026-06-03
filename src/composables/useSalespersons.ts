@@ -17,7 +17,7 @@ interface ResetTokenResponse {
 }
 
 export function useSalespersons() {
-  const { authFetch } = useAuth();
+  const { authFetchJson } = useAuth();
   const { addToast } = useToast();
   const { t } = useI18n();
 
@@ -29,9 +29,9 @@ export function useSalespersons() {
    */
   const resetToken = async (id: string): Promise<ResetTokenResponse['data'] | null> => {
     try {
-      const res: ResetTokenResponse = await authFetch(API.SALESPERSON_RESET_TOKEN(id), {
+      const res: ResetTokenResponse = await authFetchJson<ResetTokenResponse>(API.SALESPERSON_RESET_TOKEN(id), {
         method: 'POST',
-      }).then(r => r.json());
+      });
 
       if (res.success) {
         addToast({ message: t('salesperson.linkReset'), type: 'success' });

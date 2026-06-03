@@ -116,6 +116,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import ActionBar from '@/design-system/composed/ActionBar.vue';
+import { formatDate } from '@/utils/formatters';
 
 const props = defineProps({
   modelValue: {
@@ -146,16 +147,4 @@ const viewOrders = () => {
   close();
 };
 
-const formatDate = (timestamp) => {
-  if (!timestamp) return '-';
-  // Check if timestamp is seconds or milliseconds. Usually Date.now() is ms.
-  // If it's small, it might be seconds.
-  // DB query `now()` often uses Date.now().
-  return new Date(timestamp).toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
 </script>
