@@ -3,6 +3,7 @@ import { ref } from 'vue';
 
 const mocks = vi.hoisted(() => ({
   authFetch: vi.fn(),
+  authFetchJson: vi.fn(),
   addToast: vi.fn(),
   t: vi.fn((key) => key),
   useResource: vi.fn(),
@@ -11,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../useAuth', () => ({
   useAuth: () => ({
     authFetch: mocks.authFetch,
+    authFetchJson: mocks.authFetchJson,
   }),
 }));
 
@@ -80,18 +82,14 @@ describe('useSalespersons', () => {
   });
 
   it('resets tokens and shows success or API error toasts', async () => {
-    mocks.authFetch
+    mocks.authFetchJson
       .mockResolvedValueOnce({
-        json: vi.fn().mockResolvedValue({
-          success: true,
-          data: { accessToken: 'new-token' },
-        }),
+        success: true,
+        data: { accessToken: 'new-token' },
       })
       .mockResolvedValueOnce({
-        json: vi.fn().mockResolvedValue({
-          success: false,
-          message: 'bad request',
-        }),
+        success: false,
+        message: 'bad request',
       });
 
     const salespersons = useSalespersons();
@@ -99,7 +97,7 @@ describe('useSalespersons', () => {
     await expect(salespersons.resetToken('sales-1')).resolves.toEqual({ accessToken: 'new-token' });
     await expect(salespersons.resetToken('sales-2')).resolves.toBeNull();
 
-    expect(mocks.authFetch).toHaveBeenNthCalledWith(1, '/api/salespersons/sales-1/reset-token', { method: 'POST' });
+    expect(mocks.authFetchJson).toHaveBeenNthCalledWith(1, '/api/salespersons/sales-1/reset-token', { method: 'POST' });
     expect(mocks.addToast).toHaveBeenNthCalledWith(1, { message: 'salesperson.linkReset', type: 'success' });
     expect(mocks.addToast).toHaveBeenNthCalledWith(2, { message: 'bad request', type: 'error' });
   });
