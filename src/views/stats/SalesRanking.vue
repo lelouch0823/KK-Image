@@ -6,35 +6,39 @@
         <div class="flex items-center gap-2">
           <!-- 时间范围选择 -->
           <div class="flex rounded-lg border border-(--border-color) bg-(--bg-muted)/40 p-0.5">
-            <button
+            <AppButton
               v-for="opt in timeRangeOptions"
               :key="opt.value"
-              class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
+              variant="ghost"
+              size="sm"
+              class="rounded-md"
               :class="
                 timeRange === opt.value
                   ? 'bg-(--bg-card) text-(--text-main) shadow-sm'
-                  : 'text-(--text-secondary) hover:text-(--text-main)'
+                  : 'text-(--text-secondary)'
               "
               @click="selectTimeRange(opt.value)"
             >
               {{ opt.label }}
-            </button>
+            </AppButton>
           </div>
           <!-- 排序选择 -->
           <div class="flex rounded-lg border border-(--border-color) bg-(--bg-muted)/40 p-0.5">
-            <button
+            <AppButton
               v-for="opt in sortOptions"
               :key="opt.value"
-              class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
+              variant="ghost"
+              size="sm"
+              class="rounded-md"
               :class="
                 sortBy === opt.value
                   ? 'bg-(--bg-card) text-(--text-main) shadow-sm'
-                  : 'text-(--text-secondary) hover:text-(--text-main)'
+                  : 'text-(--text-secondary)'
               "
               @click="selectSort(opt.value)"
             >
               {{ opt.label }}
-            </button>
+            </AppButton>
           </div>
         </div>
       </template>
