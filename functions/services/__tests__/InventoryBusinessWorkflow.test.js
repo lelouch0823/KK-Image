@@ -269,6 +269,15 @@ class WorkflowDb {
     };
     return stmt;
   }
+
+  async batch(statements) {
+    const results = [];
+    for (const stmt of statements) {
+      const result = await stmt.run();
+      results.push(result);
+    }
+    return results;
+  }
 }
 
 describe('inventory-demand-purchase workflow', () => {

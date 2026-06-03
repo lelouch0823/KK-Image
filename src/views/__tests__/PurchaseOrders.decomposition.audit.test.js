@@ -9,7 +9,6 @@ describe('PurchaseOrders decomposition audit', () => {
     const offenders = [];
     const mainPath = path.join(ROOT, 'src', 'views', 'PurchaseOrders.vue');
     const helperPaths = [
-      path.join(ROOT, 'src', 'views', 'purchase-orders', 'formatters.ts'),
       path.join(ROOT, 'src', 'views', 'purchase-orders', 'progress.ts'),
       path.join(ROOT, 'src', 'views', 'purchase-orders', 'stepper.ts'),
       path.join(ROOT, 'src', 'views', 'purchase-orders', 'drafts.ts'),
@@ -25,8 +24,8 @@ describe('PurchaseOrders decomposition audit', () => {
       }
     }
 
-    if (!source.includes("@/views/purchase-orders/formatters")) {
-      offenders.push('src/views/PurchaseOrders.vue: missing purchase-order formatter import');
+    if (!source.includes("@/utils/formatters")) {
+      offenders.push('src/views/PurchaseOrders.vue: missing formatter import from @/utils/formatters');
     }
 
     if (!source.includes("@/views/purchase-orders/progress")) {

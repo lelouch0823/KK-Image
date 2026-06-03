@@ -3,6 +3,11 @@ import { nextTick } from 'vue';
 
 const authFetchMock = vi.hoisted(() => vi.fn());
 
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ params: { token: 'test-token' } }),
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 vi.mock('@/composables/useAuth', () => ({
   useAuth: () => ({ authFetch: authFetchMock }),
 }));
