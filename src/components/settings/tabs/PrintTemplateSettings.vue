@@ -42,7 +42,7 @@
                 class="h-12 w-12 rounded border border-(--border-color) object-contain"
                 @error="logoError = true"
               />
-              <span v-if="logoError" class="text-xs text-red-500">
+              <span v-if="logoError" class="text-xs text-danger">
                 {{ t('settings.printTemplate.logoLoadFailed', 'Failed to load logo image') }}
               </span>
             </div>
@@ -129,19 +129,19 @@
                   <div class="font-bold" :style="{ color: form.PRINT_TEMPLATE_ACCENT_COLOR }">
                     {{ form.PRINT_COMPANY_NAME || 'Company Name' }}
                   </div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                  <div class="text-xs text-(--text-secondary)">
                     <span v-if="form.PRINT_COMPANY_ADDRESS">{{ form.PRINT_COMPANY_ADDRESS }}</span>
                     <span v-if="form.PRINT_COMPANY_ADDRESS && form.PRINT_COMPANY_PHONE"> · </span>
                     <span v-if="form.PRINT_COMPANY_PHONE">{{ form.PRINT_COMPANY_PHONE }}</span>
                   </div>
                 </div>
               </div>
-              <div class="text-right text-xs text-gray-500 dark:text-gray-400">#ORDER-001</div>
+              <div class="text-right text-xs text-(--text-secondary)">#ORDER-001</div>
             </div>
-            <div class="mt-2 text-[11px] text-gray-700 dark:text-gray-300">
+            <div class="mt-2 text-xs text-(--text-main)">
               {{ t('settings.printTemplate.previewContent', 'Document content area...') }}
             </div>
-            <div v-if="form.PRINT_FOOTER_TEXT" class="mt-2 border-t border-gray-200 pt-1 text-center text-[9px] text-gray-400 dark:border-gray-600 dark:text-gray-500">
+            <div v-if="form.PRINT_FOOTER_TEXT" class="mt-2 border-t border-(--border-color) pt-1 text-center text-xs text-(--text-muted)">
               {{ form.PRINT_FOOTER_TEXT }}
             </div>
           </div>

@@ -3,29 +3,34 @@
     <!-- 头部：标题 + 添加按钮 -->
     <div class="mb-3 flex items-center justify-between">
       <h3 class="text-sm font-semibold text-(--text-main)">{{ t('product.categoryTree.title') }}</h3>
-      <button
-        class="rounded-md p-1 text-(--text-muted) hover:bg-(--bg-muted) hover:text-(--text-main)"
+      <AppButton
+        variant="ghost"
+        size="sm"
         :title="t('product.categoryTree.add')"
         @click="$emit('add')"
       >
         <AppIcon name="plus" class="size-4" />
-      </button>
+      </AppButton>
     </div>
 
     <!-- 全部商品选项 -->
-    <button
-      class="mb-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors"
+    <AppButton
+      variant="ghost"
+      block
+      class="mb-1 justify-start"
       :class="selectedId === null
         ? 'bg-(--color-primary-50) text-(--color-primary-700) font-medium'
-        : 'text-(--text-secondary) hover:bg-(--bg-muted)'"
+        : ''"
+      :text="t('product.categoryTree.all')"
       @click="$emit('select', null)"
     >
-      <AppIcon name="squares-2x2" class="size-4 shrink-0" />
-      <span>{{ t('product.categoryTree.all') }}</span>
-      <span v-if="totalProductCount > 0" class="ml-auto text-xs text-(--text-muted)">
-        {{ totalProductCount }}
-      </span>
-    </button>
+      <template #icon-left>
+        <AppIcon name="squares-2x2" class="size-4 shrink-0" />
+      </template>
+      <template v-if="totalProductCount > 0" #icon-right>
+        <span class="text-xs text-(--text-muted)">{{ totalProductCount }}</span>
+      </template>
+    </AppButton>
 
     <!-- 树节点列表 -->
     <div v-if="nodes.length > 0" class="space-y-0.5">
@@ -52,6 +57,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import CategoryTreeNode from './CategoryTreeNode.vue';
 import type { CategoryNode } from '@/composables/useCategories';

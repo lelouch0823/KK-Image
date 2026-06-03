@@ -130,9 +130,9 @@
               </div>
               <div
                 class="mt-1.5 line-clamp-2 text-sm font-medium break-all text-(--text-main)"
-                :title="order.productName || '—'"
+                :title="order.productName || '-'"
               >
-                {{ order.productName || '—' }}
+                {{ order.productName || '-' }}
               </div>
               <div class="mt-1 flex items-center gap-2 text-xs text-(--text-secondary)">
                 <span v-if="order.customer?.name" class="flex min-w-0 items-center gap-1">

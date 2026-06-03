@@ -10,7 +10,7 @@
         <AppCard padding="p-4" class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="flex size-8 items-center justify-center rounded-lg bg-green-100 text-green-600">
+              <div class="flex size-8 items-center justify-center rounded-lg bg-(--color-success-bg) text-success">
                 <AppIcon name="chat-bubble-left-right" class="size-5" />
               </div>
               <div>
@@ -42,7 +42,7 @@
         <AppCard padding="p-4" class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="flex size-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+              <div class="flex size-8 items-center justify-center rounded-lg bg-(--color-info-bg) text-info">
                 <AppIcon name="paper-airplane" class="size-5" />
               </div>
               <div>
@@ -74,7 +74,7 @@
         <AppCard padding="p-4" class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="flex size-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+              <div class="flex size-8 items-center justify-center rounded-lg bg-(--color-primary-bg) text-primary">
                 <AppIcon name="paper-airplane" class="size-5" />
               </div>
               <div>
@@ -106,7 +106,7 @@
         <AppCard padding="p-4" class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="flex size-8 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
+              <div class="flex size-8 items-center justify-center rounded-lg bg-(--bg-muted) text-(--text-secondary)">
                 <AppIcon name="globe-alt" class="size-5" />
               </div>
               <div>

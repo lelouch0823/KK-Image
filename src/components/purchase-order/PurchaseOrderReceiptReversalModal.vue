@@ -14,7 +14,7 @@
       <AppCard class="p-4">
         <div class="flex flex-wrap items-center gap-2">
           <span class="text-sm font-medium text-(--text-main)">
-            {{ activeReceiptForReversal.product_name || '—' }}
+            {{ activeReceiptForReversal.product_name || '-' }}
           </span>
           <code
             class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-xs text-(--text-secondary)"
@@ -22,7 +22,7 @@
             {{
               activeReceiptForReversal.variant_sku ||
               activeReceiptForReversal.product_sku ||
-              '—'
+              '-'
             }}
           </code>
         </div>

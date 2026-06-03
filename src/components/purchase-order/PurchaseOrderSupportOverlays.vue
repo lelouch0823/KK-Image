@@ -55,9 +55,9 @@
         >
           <span
             class="min-w-0 flex-1 truncate text-(--text-main)"
-            :title="item.product_name || '—'"
+            :title="item.product_name || '-'"
           >
-            {{ item.product_name || '—' }}
+            {{ item.product_name || '-' }}
           </span>
           <span class="text-danger shrink-0 font-mono font-semibold tabular-nums">
             {{ item.quantity }} / {{ item.required_quantity }}

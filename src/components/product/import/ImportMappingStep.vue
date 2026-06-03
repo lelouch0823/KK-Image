@@ -4,19 +4,19 @@
         <p class="mb-4 text-sm text-(--text-secondary)">{{ t('product.import.mapping_desc', '请确认文件列与系统字段的对应关系') }}</p>
         <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-3 py-2">
-                <p class="text-[11px] text-(--text-secondary)">{{ t('product.import.meta.headers', '检测到列') }}</p>
+                <p class="text-xs text-(--text-secondary)">{{ t('product.import.meta.headers', '检测到列') }}</p>
                 <p class="mt-1 text-sm font-semibold text-(--text-main)">{{ fileHeaders.length }}</p>
             </div>
             <div class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-3 py-2">
-                <p class="text-[11px] text-(--text-secondary)">{{ t('product.import.meta.fields', '系统字段') }}</p>
+                <p class="text-xs text-(--text-secondary)">{{ t('product.import.meta.fields', '系统字段') }}</p>
                 <p class="mt-1 text-sm font-semibold text-(--text-main)">{{ systemFields.length }}</p>
             </div>
             <div class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-3 py-2">
-                <p class="text-[11px] text-(--text-secondary)">{{ t('product.import.meta.required', '必填字段') }}</p>
+                <p class="text-xs text-(--text-secondary)">{{ t('product.import.meta.required', '必填字段') }}</p>
                 <p class="mt-1 text-sm font-semibold text-(--text-main)">{{ requiredCount }}</p>
             </div>
             <div class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-3 py-2">
-                <p class="text-[11px] text-(--text-secondary)">{{ t('product.import.meta.mapped', '已映射') }}</p>
+                <p class="text-xs text-(--text-secondary)">{{ t('product.import.meta.mapped', '已映射') }}</p>
                 <p class="text-primary mt-1 text-sm font-semibold">{{ mappedCount }}</p>
             </div>
         </div>

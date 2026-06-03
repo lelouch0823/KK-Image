@@ -91,7 +91,7 @@ const props = defineProps({
 const currencySelectOptions = computed(() =>
   props.currencyOptions.map((c) => ({
     value: c.code,
-    label: `${c.symbol} ${c.code} — ${c.label}`,
+    label: `${c.symbol} ${c.code} - ${c.label}`,
   }))
 );
 </script>

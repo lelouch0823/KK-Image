@@ -2,24 +2,30 @@
   <div v-if="recentViews.length > 0" class="mb-4">
     <!-- 标题栏：折叠切换 + 清空按钮 -->
     <div class="mb-2 flex items-center justify-between px-3">
-      <button
-        class="text-muted flex items-center gap-1 text-[11px] font-medium tracking-wider uppercase transition-colors hover:text-(--text-main)"
+      <AppButton
+        variant="ghost"
+        size="sm"
+        class="tracking-wider uppercase"
         @click="isCollapsed = !isCollapsed"
       >
-        <AppIcon
-          name="chevron-right"
-          class="size-3 transition-transform duration-200"
-          :class="isCollapsed ? '' : 'rotate-90'"
-        />
+        <template #icon-left>
+          <AppIcon
+            name="chevron-right"
+            class="size-3 transition-transform duration-200"
+            :class="isCollapsed ? '' : 'rotate-90'"
+          />
+        </template>
         {{ t('sidebar.recentViews') }}
-      </button>
-      <button
+      </AppButton>
+      <AppButton
         v-if="!isCollapsed"
-        class="text-muted hover:text-danger text-[11px] transition-colors"
+        variant="ghost"
+        size="sm"
+        class="text-(--color-danger)"
         @click="handleClear"
       >
         {{ t('sidebar.clearRecent') }}
-      </button>
+      </AppButton>
     </div>
 
     <!-- 访问列表 -->
@@ -50,6 +56,7 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useRecentViews } from '@/composables/useRecentViews';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const router = useRouter();

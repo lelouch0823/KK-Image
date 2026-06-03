@@ -29,37 +29,37 @@
             <!-- Zoom/Rotate Toolbar (Only for images) - Hidden on mobile -->
             <div v-if="isImage" class="mr-4 hidden items-center gap-2 border-r border-(--bg-card)/20 pr-4 sm:flex">
               <!-- Rotate -->
-              <button
-                type="button"
-                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md transition-all duration-200 hover:bg-(--bg-card)/25 hover:opacity-100 focus-visible:outline-none"
+              <AppButton
+                variant="ghost"
+                class="size-10 rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md hover:bg-(--bg-card)/25 hover:opacity-100"
                 :aria-label="t('gallery.rotate')"
                 :title="t('gallery.rotate')"
                 @click.stop="rotate"
               >
                 <AppIcon name="arrow-path" class="size-5" />
-              </button>
+              </AppButton>
 
               <!-- Zoom In -->
-              <button
-                type="button"
-                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md transition-all duration-200 hover:bg-(--bg-card)/25 hover:opacity-100 focus-visible:outline-none"
+              <AppButton
+                variant="ghost"
+                class="size-10 rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md hover:bg-(--bg-card)/25 hover:opacity-100"
                 :aria-label="t('gallery.zoomIn')"
                 :title="t('gallery.zoomIn')"
                 @click.stop="zoomIn"
               >
                 <AppIcon name="magnifying-glass-plus" class="size-5" />
-              </button>
+              </AppButton>
 
               <!-- Zoom Out -->
-              <button
-                type="button"
-                class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md transition-all duration-200 hover:bg-(--bg-card)/25 hover:opacity-100 focus-visible:outline-none"
+              <AppButton
+                variant="ghost"
+                class="size-10 rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md hover:bg-(--bg-card)/25 hover:opacity-100"
                 :aria-label="t('gallery.zoomOut')"
                 :title="t('gallery.zoomOut')"
                 @click.stop="zoomOut"
               >
                 <AppIcon name="magnifying-glass-minus" class="size-5" />
-              </button>
+              </AppButton>
 
               <!-- Zoom indicator -->
               <span class="min-w-12 text-center text-sm font-medium text-(--text-inverse) opacity-80">
@@ -80,33 +80,36 @@
             </a>
 
             <!-- Close Button -->
-            <button
-              class="flex size-10 items-center justify-center rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md transition-colors hover:bg-(--bg-card)/25 hover:opacity-100 focus-visible:outline-none"
+            <AppButton
+              variant="ghost"
+              class="size-10 rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md hover:bg-(--bg-card)/25 hover:opacity-100"
               :aria-label="t('gallery.close')"
               @click="$emit('close')"
             >
               <AppIcon name="x-mark" class="size-6" />
-            </button>
+            </AppButton>
           </div>
         </div>
 
         <!-- Navigation Buttons -->
-        <button
+        <AppButton
           v-if="currentIndex > 0"
-          class="absolute top-1/2 left-4 z-10 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md transition-colors hover:bg-(--bg-card)/25 hover:opacity-100 focus-visible:outline-none sm:flex"
+          variant="ghost"
+          class="absolute top-1/2 left-4 z-10 hidden size-12 -translate-y-1/2 rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md hover:bg-(--bg-card)/25 hover:opacity-100 sm:flex"
           :aria-label="t('gallery.prev')"
           @click="$emit('prev')"
         >
           <AppIcon name="chevron-left" class="size-6" />
-        </button>
-        <button
+        </AppButton>
+        <AppButton
           v-if="currentIndex < total - 1"
-          class="absolute top-1/2 right-4 z-10 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md transition-colors hover:bg-(--bg-card)/25 hover:opacity-100 focus-visible:outline-none sm:flex"
+          variant="ghost"
+          class="absolute top-1/2 right-4 z-10 hidden size-12 -translate-y-1/2 rounded-full bg-(--bg-card)/15 text-(--text-inverse) opacity-80 backdrop-blur-md hover:bg-(--bg-card)/25 hover:opacity-100 sm:flex"
           :aria-label="t('gallery.next')"
           @click="$emit('next')"
         >
           <AppIcon name="chevron-right" class="size-6" />
-        </button>
+        </AppButton>
 
         <!-- Content -->
         <div
@@ -159,6 +162,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useModalStack } from '@/composables/useModalStack';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({

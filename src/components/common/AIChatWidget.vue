@@ -193,6 +193,13 @@
         </AppCard>
       </div>
     </transition>
+    <ConfirmDialog
+      v-model="showClearConfirm"
+      type="danger"
+      :title="t('ai.clearConfirm')"
+      :message="t('ai.clearConfirm')"
+      @confirm="handleClearConfirm"
+    />
   </div>
 </template>
 
@@ -217,6 +224,7 @@ import { useToast } from '@/composables/useToast';
 import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { inferCurrentView, inferAIEntityContext } from '@/components/common/ai/context-inference';
 import AIChatActionPanel from '@/components/common/ai/AIChatActionPanel.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 
 const { isOpen, close, context, setContext } = useAI();
 const { t } = useI18n();
@@ -499,10 +507,13 @@ watch([streamContent, fullContent, toolStatus, isAIStreaming, isAwaitingAssistan
   forceFollowBottom();
 });
 
+const showClearConfirm = ref(false);
 const clearHistory = () => {
-  if (confirm(t('ai.clearConfirm'))) {
-    resetMessages();
-  }
+  showClearConfirm.value = true;
+};
+const handleClearConfirm = () => {
+  resetMessages();
+  showClearConfirm.value = false;
 };
 
 const confirmAction = async () => {

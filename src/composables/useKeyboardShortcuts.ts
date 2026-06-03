@@ -163,7 +163,7 @@ export function useKeyboardShortcuts() {
   const handleKeydown = (event: KeyboardEvent) => {
     if (!enabled.value) return;
 
-    // 输入元素中不触发（除非是 Escape 键 —— 由 Modal 自行处理）
+    // 输入元素中不触发（除非是 Escape 键 -- 由 Modal 自行处理）
     if (isInInputElement() && event.key !== 'Escape') return;
 
     // 遍历已注册快捷键，查找匹配

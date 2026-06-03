@@ -48,25 +48,25 @@
 
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div class="rounded-xl border border-(--border-color) bg-(--bg-card) px-3 py-2">
-          <p class="text-[11px] text-(--text-secondary)">
+          <p class="text-xs text-(--text-secondary)">
             {{ t('product.table.variant.images', 'Images') }}
           </p>
           <p class="mt-1 text-lg font-semibold text-(--text-main)">{{ images.length }}</p>
         </div>
         <div class="rounded-xl border border-(--border-color) bg-(--bg-card) px-3 py-2">
-          <p class="text-[11px] text-(--text-secondary)">
+          <p class="text-xs text-(--text-secondary)">
             {{ t('product.form.variants_title', 'Variants') }}
           </p>
           <p class="mt-1 text-lg font-semibold text-(--text-main)">{{ activeVariantCount }}</p>
         </div>
         <div class="rounded-xl border border-(--border-color) bg-(--bg-card) px-3 py-2">
-          <p class="text-[11px] text-(--text-secondary)">
+          <p class="text-xs text-(--text-secondary)">
             {{ t('product.form.inventory', 'Inventory') }}
           </p>
           <p class="mt-1 text-lg font-semibold text-(--text-main)">{{ totalStock }}</p>
         </div>
         <div class="rounded-xl border border-(--border-color) bg-(--bg-card) px-3 py-2">
-          <p class="text-[11px] text-(--text-secondary)">
+          <p class="text-xs text-(--text-secondary)">
             {{ t('spaceManager.associatedLinks') || 'Associated Links' }}
           </p>
           <p class="mt-1 text-lg font-semibold text-(--text-main)">{{ associatedSpaces.length }}</p>
@@ -211,7 +211,7 @@
         </div>
 
         <div class="mt-6">
-          <p class="text-[11px] text-(--text-secondary)">{{ t('product.form.price', 'Price') }}</p>
+          <p class="text-xs text-(--text-secondary)">{{ t('product.form.price', 'Price') }}</p>
           <div class="mt-1 flex items-center gap-2">
             <span
               data-testid="product-detail-price"

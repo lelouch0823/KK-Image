@@ -68,8 +68,8 @@
                 :disabled="getSuggestionOrderIds(s).length === 0"
               />
               <div class="min-w-0">
-                <div class="truncate text-sm font-medium text-(--text-main)" :title="s.product_name || '—'">
-                  {{ s.product_name || '—' }}
+                <div class="truncate text-sm font-medium text-(--text-main)" :title="s.product_name || '-'">
+                  {{ s.product_name || '-' }}
                 </div>
                 <div class="truncate text-xs text-(--text-secondary)" :title="buildSuggestionMeta(s)">
                   {{ buildSuggestionMeta(s) }}

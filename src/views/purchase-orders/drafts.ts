@@ -32,7 +32,7 @@ export const buildSuggestionVariantLabel = (variantOptions: Record<string, unkno
 export const buildSuggestionMeta = (suggestion: Record<string, unknown>): string => {
   const sku = String(suggestion?.sku || '').trim();
   const brand = String(suggestion?.brand || '').trim();
-  return [sku || '—', brand || '-'].join(' · ');
+  return [sku || '-', brand || '-'].join(' · ');
 };
 
 export function getSuggestionOrderIds(suggestion: Record<string, unknown> = {}): string[] {

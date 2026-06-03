@@ -14,28 +14,17 @@
           <h3 class="text-sm font-semibold text-(--text-main)">{{ t('pwa.installTitle') }}</h3>
           <p class="mt-1 text-xs text-(--text-muted)">{{ t('pwa.installDescription') }}</p>
           <div class="mt-3 flex gap-2">
-            <button
-              class="bg-primary inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-medium text-(--text-inverse) hover:bg-(--color-primary-hover) focus:outline-none focus:ring-2 focus:ring-(--color-primary) focus:ring-offset-2"
-              @click="handleInstall"
-            >
+            <AppButton variant="primary" size="sm" @click="handleInstall">
               {{ t('pwa.install') }}
-            </button>
-            <button
-              class="inline-flex items-center rounded-lg bg-(--bg-muted) px-3 py-1.5 text-xs font-medium text-(--text-main) hover:bg-(--bg-hover) focus:outline-none focus:ring-2 focus:ring-(--border-color) focus:ring-offset-2"
-              @click="handleDismiss"
-            >
+            </AppButton>
+            <AppButton variant="secondary" size="sm" @click="handleDismiss">
               {{ t('pwa.dismiss') }}
-            </button>
+            </AppButton>
           </div>
         </div>
-        <button
-          class="flex-shrink-0 rounded-lg p-1 text-(--text-muted) hover:text-(--text-secondary)"
-          @click="handleDismiss"
-        >
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <AppButton variant="ghost" size="sm" @click="handleDismiss">
+          <AppIcon name="x-mark" class="size-4" />
+        </AppButton>
       </div>
     </div>
   </Transition>
@@ -44,6 +33,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 
 const { t } = useI18n();
 

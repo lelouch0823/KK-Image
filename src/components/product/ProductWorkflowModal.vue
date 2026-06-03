@@ -149,7 +149,7 @@
               </div>
 
               <div class="rounded-xl border border-(--border-color) bg-(--bg-muted)/50 p-4">
-                <p class="text-[11px] font-semibold tracking-[0.16em] text-(--text-secondary) uppercase">
+                <p class="text-xs font-semibold tracking-[0.16em] text-(--text-secondary) uppercase">
                   {{ t('product.workflow.skeleton_label', 'Editor Preview') }}
                 </p>
                 <div class="mt-3 space-y-3">

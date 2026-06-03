@@ -72,12 +72,12 @@
               class="line-clamp-1 min-w-0 text-sm font-medium break-all text-(--text-main)"
               :title="receipt.product_name"
             >
-              {{ receipt.product_name || '—' }}
+              {{ receipt.product_name || '-' }}
             </span>
             <code
               class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-xs text-(--text-secondary)"
             >
-              {{ receipt.variant_sku || receipt.product_sku || '—' }}
+              {{ receipt.variant_sku || receipt.product_sku || '-' }}
             </code>
             <StatusBadge :variant="receipt.is_reversed ? 'default' : 'success'" class="text-xs">
               {{
@@ -144,7 +144,7 @@
             <div class="flex items-center justify-between gap-3">
               <span>{{ t('purchaseOrder.ui.receiptLastReversedAt') }}</span>
               <span class="text-right text-(--text-main)">
-                {{ receipt.last_reversed_at ? helpers.formatDateTime(receipt.last_reversed_at) : '—' }}
+                {{ receipt.last_reversed_at ? helpers.formatDateTime(receipt.last_reversed_at) : '-' }}
               </span>
             </div>
           </div>

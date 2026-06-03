@@ -11,16 +11,17 @@
       @contextmenu.prevent="showContextMenu = !showContextMenu"
     >
       <!-- 展开/折叠按钮 -->
-      <button
+      <AppButton
         v-if="hasChildren"
-        class="shrink-0 rounded p-0.5 hover:bg-(--bg-muted)"
+        variant="ghost"
+        size="sm"
         @click.stop="expanded = !expanded"
       >
         <AppIcon
           :name="expanded ? 'chevron-down' : 'chevron-right'"
           class="size-3.5"
         />
-      </button>
+      </AppButton>
       <span v-else class="size-4.5 shrink-0" />
 
       <!-- 分类名称 -->
@@ -36,27 +37,31 @@
 
       <!-- 操作按钮（hover 显示） -->
       <div class="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-        <button
-          class="rounded p-0.5 hover:bg-(--bg-muted)"
+        <AppButton
+          variant="ghost"
+          size="sm"
           :title="t('product.categoryTree.add_child')"
           @click.stop="$emit('add-child', node)"
         >
-          <AppIcon name="plus" class="size-3" />
-        </button>
-        <button
-          class="rounded p-0.5 hover:bg-(--bg-muted)"
+          <AppIcon name="plus" class="size-3.5" />
+        </AppButton>
+        <AppButton
+          variant="ghost"
+          size="sm"
           :title="t('product.categoryTree.edit')"
           @click.stop="$emit('edit', node)"
         >
-          <AppIcon name="pencil" class="size-3" />
-        </button>
-        <button
-          class="rounded p-0.5 text-(--color-danger-500) hover:bg-(--color-danger-50)"
+          <AppIcon name="pencil" class="size-3.5" />
+        </AppButton>
+        <AppButton
+          variant="ghost"
+          size="sm"
+          class="text-(--color-danger-500) hover:bg-(--color-danger-50)"
           :title="t('product.categoryTree.delete')"
           @click.stop="$emit('delete', node)"
         >
-          <AppIcon name="trash" class="size-3" />
-        </button>
+          <AppIcon name="trash" class="size-3.5" />
+        </AppButton>
       </div>
     </div>
 
@@ -80,6 +85,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import type { CategoryNode } from '@/composables/useCategories';
 

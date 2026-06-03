@@ -38,7 +38,7 @@
         </div>
 
         <!-- 解析错误 -->
-        <div v-if="parseError" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-400">
+        <div v-if="parseError" class="rounded-lg border border-(--color-danger-border) bg-(--color-danger-bg) p-3 text-sm text-(--color-danger-text)">
           {{ parseError }}
         </div>
       </div>
@@ -47,11 +47,11 @@
       <div v-if="step === 2" class="space-y-4">
         <!-- 统计信息 -->
         <div class="flex items-center gap-4 text-sm">
-          <span class="flex items-center gap-1 text-green-600 dark:text-green-400">
+          <span class="flex items-center gap-1 text-success">
             <AppIcon name="check-circle" class="size-4" />
             {{ t('customer.import.valid') }}: {{ validRows.length }}
           </span>
-          <span v-if="rowsWithErrors.length > 0" class="flex items-center gap-1 text-red-600 dark:text-red-400">
+          <span v-if="rowsWithErrors.length > 0" class="flex items-center gap-1 text-danger">
             <AppIcon name="exclamation-circle" class="size-4" />
             {{ t('customer.import.errors') }}: {{ rowsWithErrors.length }}
           </span>
@@ -79,7 +79,7 @@
                 v-for="(row, idx) in previewRows"
                 :key="idx"
                 class="border-b border-(--border-color) last:border-0"
-                :class="{ 'bg-red-50/50 dark:bg-red-900/10': row._errors && row._errors.length > 0 }"
+                :class="{ 'bg-(--color-danger-bg)/50': row._errors && row._errors.length > 0 }"
               >
                 <td class="px-3 py-2 text-(--text-muted)">{{ idx + 1 }}</td>
                 <td class="px-3 py-2 font-medium text-(--text-main)">{{ row.name || '-' }}</td>
@@ -100,11 +100,11 @@
                 </td>
                 <td class="px-3 py-2">
                   <div v-if="row._errors && row._errors.length > 0" class="space-y-0.5">
-                    <p v-for="err in row._errors" :key="err" class="text-xs text-red-600 dark:text-red-400">
+                    <p v-for="err in row._errors" :key="err" class="text-xs text-danger">
                       {{ err }}
                     </p>
                   </div>
-                  <span v-else class="text-xs text-green-600 dark:text-green-400">OK</span>
+                  <span v-else class="text-xs text-success">OK</span>
                 </td>
               </tr>
             </tbody>
@@ -113,7 +113,7 @@
       </div>
 
       <!-- 导入结果 -->
-      <div v-if="importResult" class="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800 dark:border-green-800/30 dark:bg-green-900/20 dark:text-green-400">
+      <div v-if="importResult" class="rounded-lg border border-(--color-success-border) bg-(--color-success-bg) p-4 text-sm text-(--color-success-text)">
         <p class="font-medium">{{ t('customer.import.success', { imported: importResult.imported }) }}{{ importResult.skipped > 0 ? t('customer.import.skipped', { count: importResult.skipped }) : '' }}</p>
       </div>
     </div>

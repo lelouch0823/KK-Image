@@ -148,9 +148,9 @@
               <div class="flex items-center justify-between gap-2">
                 <span
                   class="truncate text-sm font-medium text-(--text-main)"
-                  :title="variant.product_name || '—'"
+                  :title="variant.product_name || '-'"
                 >
-                  {{ variant.product_name || '—' }}
+                  {{ variant.product_name || '-' }}
                 </span>
                 <span
                   class="shrink-0 rounded-full bg-(--bg-page) px-2 py-0.5 font-mono text-xs font-semibold text-(--text-secondary)"
@@ -161,9 +161,9 @@
               <div class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-(--text-secondary)">
                 <span
                   class="max-w-[12rem] truncate rounded-lg bg-(--bg-muted) px-1.5 py-0.5 font-mono"
-                  :title="variant.sku || '—'"
+                  :title="variant.sku || '-'"
                 >
-                  {{ variant.sku || '—' }}
+                  {{ variant.sku || '-' }}
                 </span>
                 <span
                   v-if="variant.brand"

@@ -197,7 +197,7 @@ const statusOptions = computed(() => {
 
   return statusList.map(s => ({
     ...s,
-    colorClass: colorMap[s.value] || 'bg-gray-400',
+    colorClass: colorMap[s.value] || 'bg-(--bg-muted)',
     disabled: false,
   }));
 });

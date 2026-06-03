@@ -29,7 +29,7 @@
               {{ t('order.detail.returnHistoryMeta', '{quantity} units · {status}', { quantity: entry.quantity, status: statusLabel(entry.status) }) }}
             </p>
           </div>
-          <p class="shrink-0 text-[11px] text-(--text-secondary)">
+          <p class="shrink-0 text-xs text-(--text-secondary)">
             {{ formatTimelineTime(entry.createdAt) }}
           </p>
         </div>

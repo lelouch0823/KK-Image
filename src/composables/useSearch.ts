@@ -7,7 +7,7 @@ interface SearchResponse {
     data?: unknown[];
 }
 
-// 模块级共享 ref — FileManagerToolbar（输入端）和 FileManager/index.vue（消费端）共享同一 searchQuery
+// 模块级共享 ref - FileManagerToolbar（输入端）和 FileManager/index.vue（消费端）共享同一 searchQuery
 const searchQuery = ref<string>('');
 const searchResults = ref<unknown[]>([]);
 const isSearching = ref<boolean>(false);

@@ -13,7 +13,7 @@
               {{ t('order.form.lineTitle', `商品明细 ${index + 1}`) }}
             </div>
             <span
-              class="rounded-full px-2 py-0.5 text-[11px] font-medium"
+              class="rounded-full px-2 py-0.5 text-xs font-medium"
               :class="statusBadgeClass"
             >
               {{ statusLabel }}

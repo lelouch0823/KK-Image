@@ -515,7 +515,7 @@ const currencyOptions = computed(() =>
 const formatInteger = (value) => Number(value || 0).toLocaleString('zh-CN');
 
 const formatPurchaseCurrency = (value, currency = 'CNY') => {
-  if (value === undefined || value === null || value === '') return '—';
+  if (value === undefined || value === null || value === '') return '-';
   return formatMoney(value, currency || 'CNY');
 };
 

@@ -93,8 +93,8 @@ function buildOrderSelectionDraft(order: OrderData): OrderDraft {
   return {
     product_id: order.productId || null,
     variant_id: order.variantId || null,
-    product_name: order.productName || (data.name as string) || '—',
-    sku: order.sku || (data.sku as string) || (data.variant_sku as string) || (data.spu as string) || '—',
+    product_name: order.productName || (data.name as string) || '-',
+    sku: order.sku || (data.sku as string) || (data.variant_sku as string) || (data.spu as string) || '-',
     brand: order.brand || (data.brand as string) || '',
     image: order.mainImage || (data.images as string[])?.[0] || null,
     quantity: order.quantity || 1,

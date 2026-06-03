@@ -6,7 +6,7 @@
           <h4 class="text-sm font-semibold text-(--text-main)">
             {{ t('order.detail.lineActions', '履约动作') }}
           </h4>
-          <span class="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+          <span class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
             {{ t('order.detail.remainingQty', '剩余') }} {{ limits.ship }}
           </span>
         </div>
@@ -53,26 +53,26 @@
         </p>
 
         <div class="mt-3 flex flex-wrap gap-2">
-          <span class="rounded-full bg-primary/8 px-2.5 py-1 text-[11px] font-medium text-primary">
+          <span class="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-medium text-primary">
             {{ t('order.detail.reservableQty', '可预留') }} {{ limits.reserve }}
           </span>
           <span
-            class="rounded-full border border-(--border-color) bg-(--bg-muted) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)"
+            class="rounded-full border border-(--border-color) bg-(--bg-muted) px-2.5 py-1 text-xs font-medium text-(--text-secondary)"
           >
             {{ t('order.detail.reservedQty', '已预留') }} {{ limits.release }}
           </span>
           <span
-            class="rounded-full border border-warning/20 bg-(--color-warning-bg) px-2.5 py-1 text-[11px] font-medium text-(--color-warning-text)"
+            class="rounded-full border border-warning/20 bg-(--color-warning-bg) px-2.5 py-1 text-xs font-medium text-(--color-warning-text)"
           >
             {{ t('order.detail.shippableQty', '可出货') }} {{ limits.ship }}
           </span>
           <span
-            class="rounded-full border border-info/20 bg-(--color-info-bg) px-2.5 py-1 text-[11px] font-medium text-(--color-info-text)"
+            class="rounded-full border border-info/20 bg-(--color-info-bg) px-2.5 py-1 text-xs font-medium text-(--color-info-text)"
           >
             {{ t('order.detail.unshippableQty', '可撤销出货') }} {{ limits.unship }}
           </span>
           <span
-            class="rounded-full border border-success/20 bg-(--color-success-bg) px-2.5 py-1 text-[11px] font-medium text-(--color-success-text)"
+            class="rounded-full border border-success/20 bg-(--color-success-bg) px-2.5 py-1 text-xs font-medium text-(--color-success-text)"
           >
             {{ t('order.detail.returnableQty', '可退回') }} {{ limits.return }}
           </span>

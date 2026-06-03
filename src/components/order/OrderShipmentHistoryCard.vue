@@ -29,7 +29,7 @@
               {{ t('order.detail.shipmentHistoryQuantity', '{quantity} units', { quantity: entry.quantity }) }}
             </p>
           </div>
-          <p class="shrink-0 text-[11px] text-(--text-secondary)">
+          <p class="shrink-0 text-xs text-(--text-secondary)">
             {{ formatTimelineTime(entry.createdAt) }}
           </p>
         </div>

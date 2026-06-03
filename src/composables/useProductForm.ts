@@ -1,4 +1,4 @@
-// useProductForm — ProductCreateModal 的表单状态与逻辑层
+// useProductForm - ProductCreateModal 的表单状态与逻辑层
 import { ref, reactive, computed, watch, type Ref, type ComputedRef } from 'vue';
 import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
@@ -128,7 +128,7 @@ interface UseProductFormOptions {
 }
 
 /**
- * useProductForm — 商品创建/编辑表单的 composable
+ * useProductForm - 商品创建/编辑表单的 composable
  */
 export function useProductForm({ editMode, initialData, modelValue = null, emit }: UseProductFormOptions) {
   const { t } = useI18n();
@@ -145,14 +145,14 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     restoreDimensionValue,
   } = useProducts();
 
-  // ——— 提交状态 ———
+  // --- 提交状态 ---
   const submitting: Ref<boolean> = ref(false);
 
-  // ——— 子弹窗显示状态 ———
+  // --- 子弹窗显示状态 ---
   const showVariantImageManager: Ref<boolean> = ref(false);
   const showVariantBatchBuilder: Ref<boolean> = ref(false);
 
-  // ——— 维度归档向导状态 ———
+  // --- 维度归档向导状态 ---
   const dimensionArchiveWizard: DimensionArchiveWizard = reactive({
     open: false,
     step: 1,
@@ -164,7 +164,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     loading: false,
   });
 
-  // ——— 值归档向导状态 ———
+  // --- 值归档向导状态 ---
   const valueArchiveWizard: ValueArchiveWizard = reactive({
     open: false,
     optionIndex: -1,
@@ -178,12 +178,12 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
   let asyncActionRequestId = 0;
   let submitRequestId = 0;
 
-  // ——— 图片与变体 key 种子 ———
+  // --- 图片与变体 key 种子 ---
   const imageObjects: Ref<ImageObject[]> = ref([]);
   const variantLocalKeySeed: Ref<number> = ref(0);
   const trackedDimensions: Ref<TrackedDimension[]> = ref([]);
 
-  // ——— 表单状态 ———
+  // --- 表单状态 ---
   const form: ProductForm = reactive({
     name: '',
     description: '',
@@ -198,7 +198,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     variants: [],
   });
 
-  // ——— 变体本地 key 辅助 ———
+  // --- 变体本地 key 辅助 ---
   const nextVariantLocalKey = createVariantLocalKeyFactory(variantLocalKeySeed);
   const ensureVariantLocalKeyWithFactory = (variant: ProductVariant = {} as ProductVariant) =>
     ensureVariantLocalKey(variant, nextVariantLocalKey);
@@ -283,7 +283,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     );
   }
 
-  // ——— 表单初始化 ———
+  // --- 表单初始化 ---
   function fillFormFromData(data: Record<string, unknown>): void {
     const imgs = parseJsonArray(data.images, []);
     const nextOptions = buildOptionsFromDimensions(data);
@@ -341,7 +341,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     variantLocalKeySeed.value = 0;
   }
 
-  // ——— 笛卡尔积生成变体 ———
+  // --- 笛卡尔积生成变体 ---
   const generateVariants = (): void => {
     form.variants = buildGeneratedVariants({
       options: form.options,
@@ -374,7 +374,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
       .find((dimension) => dimension.id === dimensionId)
       ?.values?.find((entry) => entry?.value === valueLabel);
 
-  // ——— 选项 CRUD ———
+  // --- 选项 CRUD ---
   const addOption = (): void => {
     if (form.options.length >= 3) {
       addToast({ message: t('common.validation_error', '最多 3 个维度'), type: 'error' });
@@ -412,7 +412,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     generateVariants();
   };
 
-  // ——— 选项值 CRUD ———
+  // --- 选项值 CRUD ---
   const addOptionValue = async (opt: ProductOption, extraMeta: Record<string, unknown> | null = null): Promise<void> => {
     if (!opt.inputValue) return;
     const vals = opt.inputValue
@@ -526,7 +526,7 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
     generateVariants();
   };
 
-  // ——— 变体辅助 ———
+  // --- 变体辅助 ---
   const formatVariantSample = (sample: Record<string, unknown>): string => {
     const raw = sample?.options_values || {};
     const optionsValues = typeof raw === 'string' ? parseJsonObject(raw, {}) : raw;

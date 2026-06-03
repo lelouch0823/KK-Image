@@ -7,7 +7,7 @@
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
           <p class="text-sm font-semibold text-(--text-main)">{{ t('common.ai.actionResult.created') }}</p>
-          <span class="rounded-full bg-(--bg-card) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)">
+          <span class="rounded-full bg-(--bg-card) px-2.5 py-1 text-xs font-medium text-(--text-secondary)">
             {{ moduleLabel }}
           </span>
         </div>
@@ -17,7 +17,7 @@
 
     <div class="mt-4 grid gap-3 sm:grid-cols-2">
       <div class="rounded-xl bg-(--bg-card) p-3 shadow-sm">
-        <p class="text-[11px] tracking-[0.08em] text-(--text-secondary) uppercase">{{ t('common.ai.actionResult.result') }}</p>
+        <p class="text-xs tracking-[0.08em] text-(--text-secondary) uppercase">{{ t('common.ai.actionResult.result') }}</p>
         <p class="mt-1 text-sm font-medium text-(--text-main)">{{ entityLabel }}</p>
       </div>
 
@@ -25,7 +25,7 @@
         data-testid="result-destination"
         class="border-primary/20 bg-primary/6 rounded-xl border p-3 shadow-sm"
       >
-        <p class="text-[11px] tracking-[0.08em] text-(--text-secondary) uppercase">{{ t('common.ai.actionResult.goTo') }}</p>
+        <p class="text-xs tracking-[0.08em] text-(--text-secondary) uppercase">{{ t('common.ai.actionResult.goTo') }}</p>
         <p class="mt-1 text-sm font-medium text-(--text-main)">{{ moduleLabel }}</p>
       </div>
     </div>

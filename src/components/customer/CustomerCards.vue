@@ -124,10 +124,10 @@ const segmentLabelMap = {
 const segmentClasses = (segment) => {
   const map = {
     vip: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-    active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-    'at-risk': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-    lost: 'bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400',
-    new: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+    active: 'bg-(--color-success-bg) text-(--color-success-text)',
+    'at-risk': 'bg-(--color-danger-bg) text-(--color-danger-text)',
+    lost: 'bg-(--bg-muted) text-(--text-muted)',
+    new: 'bg-(--color-info-bg) text-(--color-info-text)',
   };
   return map[segment] || map.new;
 };

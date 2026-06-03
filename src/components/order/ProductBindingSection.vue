@@ -46,11 +46,11 @@
                 class="max-w-[10rem] truncate rounded-md border border-(--border-subtle)/80 bg-(--bg-muted)/45 px-1.5 py-0.5 font-mono text-xs font-medium tracking-[0.08em] text-(--text-secondary) uppercase sm:max-w-[16rem] sm:px-2 sm:text-xs"
                 :title="displaySku || ''"
               >
-                {{ displaySku || '—' }}
+                {{ displaySku || '-' }}
               </span>
               <span
                 v-if="isSalesMode"
-                class="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium sm:text-[11px]"
+                class="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium sm:text-xs"
               >
                 {{ t('order.binding.bound') }}
               </span>
@@ -59,7 +59,7 @@
               <span
                 v-if="currentAvailabilityState"
                 data-testid="availability-badge"
-                class="flex items-center gap-1 rounded-full border border-current/10 px-2 py-0.5 text-[11px] font-medium sm:px-2.5 sm:text-xs"
+                class="flex items-center gap-1 rounded-full border border-current/10 px-2 py-0.5 text-xs font-medium sm:px-2.5 sm:text-xs"
                 :class="availabilityBadgeClass"
               >
                 <AppIcon
@@ -161,7 +161,7 @@
                 />
               </div>
               <span
-                class="max-w-14 truncate text-center text-xs font-medium transition-colors sm:max-w-16 sm:text-[11px]"
+                class="max-w-14 truncate text-center text-xs font-medium transition-colors sm:max-w-16 sm:text-xs"
                 :class="
                   isDimensionOptionSelected(dimension, option.value)
                     ? 'font-bold text-(--text-main)'
@@ -212,7 +212,7 @@
           <div data-testid="inventory-stats" class="flex divide-x divide-(--border-subtle)/60">
             <div class="pr-4 sm:pr-5">
               <p
-                class="mb-1 text-[10px] font-bold tracking-[0.18em] text-(--text-secondary) uppercase sm:text-xs"
+                class="mb-1 text-xs font-bold tracking-[0.18em] text-(--text-secondary) uppercase sm:text-xs"
               >
                 {{ t('order.binding.stockLabel') }}
               </p>
@@ -222,7 +222,7 @@
             </div>
             <div class="pl-4 sm:pl-5">
               <p
-                class="mb-1 text-[10px] font-bold tracking-[0.18em] text-(--text-secondary) uppercase sm:text-xs"
+                class="mb-1 text-xs font-bold tracking-[0.18em] text-(--text-secondary) uppercase sm:text-xs"
               >
                 {{ t('order.binding.replenishmentLabel') }}
               </p>

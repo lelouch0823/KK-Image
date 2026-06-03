@@ -198,9 +198,9 @@
               <div class="min-w-0">
                 <div
                   class="truncate text-sm font-medium text-(--text-main)"
-                  :title="row.product_name || '—'"
+                  :title="row.product_name || '-'"
                 >
-                  {{ row.product_name || '—' }}
+                  {{ row.product_name || '-' }}
                 </div>
                 <div class="flex min-w-0 items-center gap-1.5 text-xs text-(--text-secondary)">
                   <span class="max-w-[8rem] truncate font-mono" :title="row.sku || '-'">

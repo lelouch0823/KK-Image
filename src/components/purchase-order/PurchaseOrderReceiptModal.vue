@@ -26,10 +26,10 @@
           <div class="min-w-0">
             <div class="flex min-w-0 flex-wrap items-center gap-2">
               <span class="line-clamp-1 min-w-0 text-sm font-medium break-all text-(--text-main)" :title="entry.product_name">
-                {{ entry.product_name || '—' }}
+                {{ entry.product_name || '-' }}
               </span>
               <code class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-xs text-(--text-secondary)">
-                {{ entry.variant_sku || '—' }}
+                {{ entry.variant_sku || '-' }}
               </code>
               <span
                 v-if="entry.customer_order_no"

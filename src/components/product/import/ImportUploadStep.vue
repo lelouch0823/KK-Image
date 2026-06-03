@@ -74,7 +74,7 @@
                     <p class="mt-1 text-xs text-(--text-secondary)">
                         {{ t('product.import.file_limits', '支持 .xlsx, .csv 格式') }}
                     </p>
-                    <div class="mt-4 inline-flex items-center gap-2 rounded-full border border-(--border-color) bg-(--bg-card) px-3 py-1 text-[11px] text-(--text-secondary)">
+                    <div class="mt-4 inline-flex items-center gap-2 rounded-full border border-(--border-color) bg-(--bg-card) px-3 py-1 text-xs text-(--text-secondary)">
                         <AppIcon name="shield-check" class="text-success size-3.5" />
                         {{ t('product.import.upload_security', '文件仅用于本次导入，不会公开') }}
                     </div>

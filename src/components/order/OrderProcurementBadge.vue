@@ -1,7 +1,7 @@
 <template>
   <span
     v-if="resolvedAppearance === 'meta'"
-    class="inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-center text-[11px] font-medium"
+    class="inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-center text-xs font-medium"
     :class="metaClass"
   >
     <span class="size-1.5 rounded-full" :class="metaDotClass"></span>

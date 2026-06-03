@@ -41,10 +41,10 @@
                 
                 <!-- SPU + Stock Row -->
                 <div class="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
-                    <span class="max-w-[8.5rem] truncate rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono text-[11px] text-(--text-secondary)" :title="product.spu || '-'">
+                    <span class="max-w-[8.5rem] truncate rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono text-xs text-(--text-secondary)" :title="product.spu || '-'">
                         {{ product.spu }}
                     </span>
-                    <span class="max-w-[8rem] truncate text-[11px] text-(--text-secondary)" :title="`${t('product.table.header.stock')}: ${resolveDisplayStock(product)}`">
+                    <span class="max-w-[8rem] truncate text-xs text-(--text-secondary)" :title="`${t('product.table.header.stock')}: ${resolveDisplayStock(product)}`">
                         {{ t('product.table.header.stock') }}: {{ resolveDisplayStock(product) }}
                     </span>
                     <span v-if="resolveDisplayStock(product) <= resolveAlertThreshold(product)" class="bg-danger-bg text-danger-text rounded px-1.5 py-0.5 text-xs font-bold">

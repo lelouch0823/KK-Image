@@ -35,7 +35,7 @@
             <span
               v-for="sample in wizard.sampleVariants"
               :key="sample.id"
-              class="inline-flex items-center rounded-full border border-(--border-color) px-2 py-0.5 text-[11px] text-(--text-main)"
+              class="inline-flex items-center rounded-full border border-(--border-color) px-2 py-0.5 text-xs text-(--text-main)"
             >
               {{ formatVariantSample(sample) }}
             </span>

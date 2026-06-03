@@ -18,8 +18,8 @@
               <span
                 class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
                 :class="wh.enabled
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-gray-100 text-gray-500'"
+                  ? 'bg-(--color-success-bg) text-(--color-success-text)'
+                  : 'bg-(--bg-muted) text-(--text-muted)'"
               >
                 {{ wh.enabled ? t('common.active') : t('settings.webhooks.disabled', '已禁用') }}
               </span>
@@ -113,8 +113,8 @@
                 <span
                   class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
                   :class="log.success
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'"
+                    ? 'bg-(--color-success-bg) text-(--color-success-text)'
+                    : 'bg-(--color-danger-bg) text-(--color-danger-text)'"
                 >
                   {{ log.success ? '200 OK' : log.status_code || 'ERR' }}
                 </span>

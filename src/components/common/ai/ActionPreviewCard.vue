@@ -3,8 +3,8 @@
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="bg-primary/12 text-primary rounded-full px-2.5 py-1 text-[11px] font-medium">Step 2 · 确认预览</span>
-          <span class="rounded-full bg-(--bg-card) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)">{{ entityLabel }}</span>
+          <span class="bg-primary/12 text-primary rounded-full px-2.5 py-1 text-xs font-medium">Step 2 · 确认预览</span>
+          <span class="rounded-full bg-(--bg-card) px-2.5 py-1 text-xs font-medium text-(--text-secondary)">{{ entityLabel }}</span>
         </div>
         <p class="mt-3 text-sm font-semibold text-(--text-main)">{{ titleText }}</p>
         <p class="mt-1 text-sm text-(--text-secondary)">请确认以下信息后再创建。</p>
@@ -31,7 +31,7 @@
             :key="row.label"
             class="rounded-xl bg-(--bg-muted) px-3 py-2"
           >
-            <p class="text-[11px] text-(--text-secondary)">{{ row.label }}</p>
+            <p class="text-xs text-(--text-secondary)">{{ row.label }}</p>
             <p class="mt-1 text-sm font-medium text-(--text-main)">{{ row.value }}</p>
           </div>
         </div>
@@ -44,11 +44,11 @@
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <p class="text-[11px] text-(--text-secondary)">{{ row.label }}</p>
+                <p class="text-xs text-(--text-secondary)">{{ row.label }}</p>
                 <p class="mt-1 text-sm leading-6 font-medium text-(--text-main)">{{ row.value }}</p>
               </div>
               <div v-if="row.meta" class="shrink-0 text-right">
-                <p class="text-[11px] text-(--text-secondary)">单价</p>
+                <p class="text-xs text-(--text-secondary)">单价</p>
                 <p class="mt-1 text-sm font-medium text-(--text-main)">{{ row.meta }}</p>
               </div>
             </div>

@@ -24,7 +24,7 @@
               <AppIcon v-if="isWorkflowCompleted(step.order)" name="check" class="size-4" />
               <span v-else>{{ step.order }}</span>
             </div>
-            <span class="text-center text-[11px] leading-4" :class="isWorkflowActive(step.order) ? 'text-primary font-semibold' : 'text-(--text-secondary)'">
+            <span class="text-center text-xs leading-4" :class="isWorkflowActive(step.order) ? 'text-primary font-semibold' : 'text-(--text-secondary)'">
               {{ step.label }}
             </span>
           </div>

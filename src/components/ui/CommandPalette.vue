@@ -97,7 +97,7 @@
                 <template v-for="(group, groupIndex) in groupedResults" :key="group.category">
                   <!-- 分组标题 -->
                   <div
-                    class="sticky top-0 z-10 px-4 py-1.5 text-[11px] font-medium tracking-wider uppercase"
+                    class="sticky top-0 z-10 px-4 py-1.5 text-xs font-medium tracking-wider uppercase"
                     :style="{
                       backgroundColor: 'var(--bg-muted)',
                       color: 'var(--text-muted)',
@@ -153,7 +153,7 @@
 
             <!-- 底部提示 -->
             <div
-              class="flex items-center gap-4 border-t px-4 py-2 text-[11px]"
+              class="flex items-center gap-4 border-t px-4 py-2 text-xs"
               :style="{
                 borderColor: 'var(--border-color)',
                 color: 'var(--text-muted)',

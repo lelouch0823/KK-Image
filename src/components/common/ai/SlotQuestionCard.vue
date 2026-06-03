@@ -1,8 +1,8 @@
 <template>
   <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4 shadow-card">
     <div class="flex flex-wrap items-center gap-2">
-      <span class="bg-primary/12 text-primary rounded-full px-2.5 py-1 text-[11px] font-medium">{{ t('common.ai.slotQuestion.step1') }}</span>
-      <span class="rounded-full bg-(--bg-muted) px-2.5 py-1 text-[11px] font-medium text-(--text-secondary)">
+      <span class="bg-primary/12 text-primary rounded-full px-2.5 py-1 text-xs font-medium">{{ t('common.ai.slotQuestion.step1') }}</span>
+      <span class="rounded-full bg-(--bg-muted) px-2.5 py-1 text-xs font-medium text-(--text-secondary)">
         {{ candidateGroups.length > 0 ? t('common.ai.slotQuestion.canSelect') : t('common.ai.slotQuestion.continueFilling') }}
       </span>
     </div>
@@ -28,7 +28,7 @@
       >
         <div class="flex items-center justify-between gap-3">
           <p class="text-xs font-medium text-(--text-main)">{{ field.label }} {{ t('common.ai.slotQuestion.candidates') }}</p>
-          <span class="text-[11px] text-(--text-secondary)">{{ field.candidates.length }} {{ t('common.ai.slotQuestion.items') }}</span>
+          <span class="text-xs text-(--text-secondary)">{{ field.candidates.length }} {{ t('common.ai.slotQuestion.items') }}</span>
         </div>
         <div class="mt-2 space-y-2">
           <AppButton

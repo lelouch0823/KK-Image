@@ -146,8 +146,8 @@ export function usePurchaseOrderDetailPresentation({
     return detail.value.items
       .map((item) => ({
         purchase_order_item_id: item.id,
-        product_name: item.product_name || '—',
-        variant_sku: item.variant_sku || item.product_sku || '—',
+        product_name: item.product_name || '-',
+        variant_sku: item.variant_sku || item.product_sku || '-',
         ordered_qty: getPurchaseOrderOrderedQty(item),
         received_qty_before: getPurchaseOrderReceivedQty(item),
         max_receivable: getPurchaseOrderOutstandingQty(item),
@@ -174,8 +174,8 @@ export function usePurchaseOrderDetailPresentation({
     return detail.value.items
       .map((item) => ({
         purchase_order_item_id: item.id,
-        product_name: item.product_name || '—',
-        variant_sku: item.variant_sku || item.product_sku || '—',
+        product_name: item.product_name || '-',
+        variant_sku: item.variant_sku || item.product_sku || '-',
         ordered_qty: getPurchaseOrderOrderedQty(item),
         received_qty_before: getPurchaseOrderReceivedQty(item),
         cancelled_qty_before: getPurchaseOrderCancelledQty(item),

@@ -69,7 +69,7 @@
                 class="line-clamp-1 min-w-0 text-sm font-medium break-all text-(--text-main)"
                 :title="item.product_name"
               >
-                {{ item.product_name || '—' }}
+                {{ item.product_name || '-' }}
               </span>
               <span
                 v-if="item.product_brand"
