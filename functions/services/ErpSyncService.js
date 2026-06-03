@@ -112,6 +112,7 @@ export class ErpSyncService {
         });
         pushed++;
       } catch (err) {
+        console.error(`[ErpSync] push ${entityType} ${entity.id} failed:`, err.message);
         await this.erpRepo.updateSyncLog(logId, {
           status: 'failed',
           errorMessage: err.message,
@@ -170,9 +171,11 @@ export class ErpSyncService {
           }
         } catch (err) {
           if (err.message.includes('conflict')) {
+            console.warn(`[ErpSync] pull ${entityType} ${erpId} conflict:`, err.message);
             await this.erpRepo.updateSyncLog(logId, { status: 'conflict', errorMessage: err.message });
             conflicts++;
           } else {
+            console.error(`[ErpSync] pull ${entityType} ${erpId} failed:`, err.message);
             await this.erpRepo.updateSyncLog(logId, { status: 'failed', errorMessage: err.message });
             failed++;
           }

@@ -301,8 +301,10 @@ export class NotificationRepository {
           sql += ` WHERE is_read = 0`;
         }
       }
-    } catch {
-      // 如果检查失败，使用无 receiver 的查询
+    } catch (error) {
+      if (!isMissingColumnError(error, ['receiver'])) {
+        console.warn('[NotificationRepository] listForAdmin column check failed:', (error as Error)?.message);
+      }
       if (unreadOnly) {
         sql += ` WHERE is_read = 0`;
       }
@@ -352,8 +354,10 @@ export class NotificationRepository {
           if (hasReceiver) {
             conditions.push(`receiver = 'admin'`);
           }
-        } catch {
-          // 无 receiver 字段
+        } catch (error) {
+          if (!isMissingColumnError(error, ['receiver'])) {
+            console.warn('[NotificationRepository] pollForAdmin receiver check failed:', (error as Error)?.message);
+          }
         }
 
         conditions.push(`created_at > (SELECT created_at FROM notifications WHERE id = ?)`);
@@ -367,8 +371,8 @@ export class NotificationRepository {
 
         const { results } = await this.db.prepare(newSql).bind(...params).all<NotificationRow>();
         newNotifications = results.map(this._mapNotification);
-      } catch {
-        // 如果 lastId 对应的通知已被删除，回退到返回最新通知
+      } catch (error) {
+        console.warn('[NotificationRepository] pollForAdmin query failed:', (error as Error)?.message);
         const { results } = await this.db
           .prepare(
             `SELECT id, type, title, content, is_read, metadata, link, created_at FROM notifications ORDER BY created_at DESC LIMIT ?`
@@ -402,8 +406,10 @@ export class NotificationRepository {
       if (hasReceiver) {
         sql += ` WHERE receiver = 'admin'`;
       }
-    } catch {
-      // 无 receiver 字段，查询全部
+    } catch (error) {
+      if (!isMissingColumnError(error, ['receiver'])) {
+        console.warn('[NotificationRepository] _getLatestNotificationId check failed:', (error as Error)?.message);
+      }
     }
     sql += ` ORDER BY created_at DESC LIMIT 1`;
     const latestRow = await this.db.prepare(sql).first<{ id: string }>();
@@ -422,7 +428,10 @@ export class NotificationRepository {
       await this.db.prepare(`SELECT ${columnName} FROM notifications LIMIT 1`).first();
       this.columnExistsCache.set(columnName, true);
       return true;
-    } catch {
+    } catch (error) {
+      if (!isMissingColumnError(error, [columnName])) {
+        console.warn('[NotificationRepository] _checkColumnExists unexpected error:', (error as Error)?.message);
+      }
       this.columnExistsCache.set(columnName, false);
       return false;
     }
@@ -441,7 +450,10 @@ export class NotificationRepository {
         : `SELECT COUNT(*) as count FROM notifications WHERE is_read = 0`;
       const result = await this.db.prepare(sql).first<{ count: number }>();
       return result?.count || 0;
-    } catch {
+    } catch (error) {
+      if (!isMissingColumnError(error, ['receiver'])) {
+        console.warn('[NotificationRepository] _getAdminUnreadCount failed:', (error as Error)?.message);
+      }
       return 0;
     }
   }
@@ -495,7 +507,10 @@ export class NotificationRepository {
         .bind(salespersonId)
         .first<{ count: number }>();
       return result?.count || 0;
-    } catch {
+    } catch (error) {
+      if (!isMissingColumnError(error, ['receiver', 'salesperson_id'])) {
+        console.warn('[NotificationRepository] _getSalespersonUnreadCount failed:', (error as Error)?.message);
+      }
       return 0;
     }
   }

@@ -81,7 +81,7 @@ describe('InventoryService', () => {
     const run = vi.fn(async () => ({ meta: { changes: 1 } }));
     const bind = vi.fn(() => ({ run }));
     const prepare = vi.fn(() => ({ bind }));
-    const db = { prepare };
+    const db = { prepare, batch: vi.fn(async (statements) => statements.map(() => ({ success: true, meta: { changes: 1 } }))) };
     service = new InventoryService(db, variantRepo);
 
     await service.applyMutation({
@@ -132,6 +132,12 @@ describe('InventoryService', () => {
     const run = vi.fn(async () => ({ meta: { changes: 1 } }));
     let inventoryEventBindArgs = null;
     const db = {
+      batch: vi.fn(async (statements) => {
+        for (const stmt of statements) {
+          if (stmt.run) await stmt.run();
+        }
+        return statements.map(() => ({ success: true, meta: { changes: 1 } }));
+      }),
       prepare: vi.fn((sql) => {
         if (sql.includes('SELECT id FROM order_lines WHERE order_id = ?')) {
           const statement = {
@@ -172,6 +178,7 @@ describe('InventoryService', () => {
 
   it('rejects ambiguous multi-line order context without an explicit orderLineId', async () => {
     const db = {
+      batch: vi.fn(async (statements) => statements.map(() => ({ success: true, meta: { changes: 1 } }))),
       prepare: vi.fn((sql) => {
         if (sql.includes('SELECT id FROM order_lines WHERE order_id = ?')) {
           const statement = {

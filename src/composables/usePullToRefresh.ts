@@ -4,7 +4,7 @@
  *
  * @module composables/usePullToRefresh
  */
-import { ref, type Ref } from 'vue';
+import { ref, onScopeDispose, type Ref } from 'vue';
 
 interface PullToRefreshOptions {
     threshold?: number;
@@ -13,6 +13,9 @@ interface PullToRefreshOptions {
 
 export function usePullToRefresh(onRefresh: () => Promise<void>, options: PullToRefreshOptions = {}) {
     const { threshold = 100, containerRef = null } = options;
+
+    // 使用 ref 包裹回调，避免闭包捕获过期引用
+    const onRefreshRef = ref(onRefresh);
 
     const isPulling = ref<boolean>(false);
     const pullDistance = ref<number>(0);
@@ -55,7 +58,7 @@ export function usePullToRefresh(onRefresh: () => Promise<void>, options: PullTo
             isPulling.value = true;
             pullDistance.value = threshold; // Snap to threshold
             try {
-                await onRefresh();
+                await onRefreshRef.value();
             } finally {
                 isPulling.value = false;
                 pullDistance.value = 0;
@@ -65,9 +68,12 @@ export function usePullToRefresh(onRefresh: () => Promise<void>, options: PullTo
         }
     };
 
-    // Lifecycle hooks to attach/detach listeners
-    // Note: It's often better to attach these directly to the element in the component template
-    // for better control, but exposing handlers allows for flexibility.
+    // 作用域销毁时重置状态
+    onScopeDispose(() => {
+        isPulling.value = false;
+        pullDistance.value = 0;
+        isDragging.value = false;
+    });
 
     return {
         isPulling,

@@ -148,7 +148,7 @@ app.post('/delete', requirePermission('files:delete'), zValidator('json', Delete
             if (f.content_hash) {
                 await decrementRefCount(env, f.content_hash);
             } else if (env.R2_BUCKET && f.storage_key) {
-                await env.R2_BUCKET.delete(f.storage_key).catch(() => { });
+                await env.R2_BUCKET.delete(f.storage_key).catch((err) => console.warn('[Trash] R2 delete failed:', err.message));
             }
         }));
 
@@ -161,7 +161,7 @@ app.post('/delete', requirePermission('files:delete'), zValidator('json', Delete
         for (const folderId of folderIds) {
             const storageKeys = await folderRepo.getAllStorageKeysRecursive(folderId);
             if (env.R2_BUCKET && storageKeys.length > 0) {
-                await Promise.all(storageKeys.map(key => env.R2_BUCKET.delete(key).catch(() => { })));
+                await Promise.all(storageKeys.map(key => env.R2_BUCKET.delete(key).catch((err) => console.warn('[Trash] R2 delete failed:', err.message))));
             }
             await folderRepo.deleteRecursive(folderId);
         }
@@ -200,7 +200,7 @@ app.delete('/empty', requirePermission('files:delete'), async (c) => {
             if (f.content_hash) {
                 await decrementRefCount(env, f.content_hash);
             } else if (env.R2_BUCKET && f.storage_key) {
-                await env.R2_BUCKET.delete(f.storage_key).catch(() => { });
+                await env.R2_BUCKET.delete(f.storage_key).catch((err) => console.warn('[Trash] R2 delete failed:', err.message));
             }
         }));
         const fileIds = files.map(f => f.id);
@@ -216,7 +216,7 @@ app.delete('/empty', requirePermission('files:delete'), async (c) => {
 
             const storageKeys = await folderRepo.getAllStorageKeysRecursive(folder.id);
             if (env.R2_BUCKET && storageKeys.length > 0) {
-                await Promise.all(storageKeys.map(key => env.R2_BUCKET.delete(key).catch(() => { })));
+                await Promise.all(storageKeys.map(key => env.R2_BUCKET.delete(key).catch((err) => console.warn('[Trash] R2 delete failed:', err.message))));
             }
             await folderRepo.deleteRecursive(folder.id);
         }

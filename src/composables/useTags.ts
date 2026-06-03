@@ -20,27 +20,37 @@ interface TagsApiResponse {
 
 const tags = ref<Tag[]>([]);
 const loadingTags = ref<boolean>(false);
+const error = ref<string | null>(null);
+const errorCode = ref<string | null>(null);
+
+/** 请求 ID 守卫，防止过期请求覆盖最新数据 */
+let fetchRequestId = 0;
 
 export function useTags() {
     const { authFetch } = useAuth();
-    const error = ref<string | null>(null);
-    const errorCode = ref<string | null>(null);
+
     const fetchTags = async (): Promise<void> => {
+        const requestId = ++fetchRequestId;
         loadingTags.value = true;
         error.value = null;
         errorCode.value = null;
         try {
             const res = await authFetch('/api/manage/tags');
+            // 如果已有更新的请求发起，丢弃本次结果
+            if (requestId !== fetchRequestId) return;
             const data: TagsApiResponse = await res.json();
             if (data.success && Array.isArray(data.data)) {
                 tags.value = data.data;
             }
         } catch (err: unknown) {
+            if (requestId !== fetchRequestId) return;
             console.error('Failed to fetch tags', err);
             errorCode.value = classifyError(err);
             error.value = extractErrorMessage(err, '加载标签失败');
         } finally {
-            loadingTags.value = false;
+            if (requestId === fetchRequestId) {
+                loadingTags.value = false;
+            }
         }
     };
 
@@ -66,21 +76,35 @@ export function useTags() {
     };
 
     const assignTag = async (file_id: string, tag_id: string): Promise<TagsApiResponse> => {
-        const res = await authFetch('/api/manage/tags/assign', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ file_id, tag_id })
-        });
-        return res.json();
+        try {
+            const res = await authFetch('/api/manage/tags/assign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file_id, tag_id })
+            });
+            return res.json();
+        } catch (err: unknown) {
+            console.error('Failed to assign tag', err);
+            errorCode.value = classifyError(err);
+            error.value = extractErrorMessage(err, '分配标签失败');
+            throw err;
+        }
     };
 
     const removeTag = async (file_id: string, tag_id: string): Promise<TagsApiResponse> => {
-        const res = await authFetch('/api/manage/tags/assign', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ file_id, tag_id })
-        });
-        return res.json();
+        try {
+            const res = await authFetch('/api/manage/tags/assign', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file_id, tag_id })
+            });
+            return res.json();
+        } catch (err: unknown) {
+            console.error('Failed to remove tag', err);
+            errorCode.value = classifyError(err);
+            error.value = extractErrorMessage(err, '移除标签失败');
+            throw err;
+        }
     };
 
     return {

@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue';
+import { ref, onScopeDispose, type Ref } from 'vue';
 
 interface DragSortOptions<T> {
   onReorder?: (newItems: T[], fromIndex: number, toIndex: number) => void;
@@ -17,6 +17,14 @@ export function useDragSort<T>(items: Ref<T[]>, options: DragSortOptions<T> = {}
   // 触摸设备状态
   let touchStartTimer: ReturnType<typeof setTimeout> | null = null;
   let touchDragIndex: number | null = null;
+
+  // 清理定时器，防止内存泄漏
+  onScopeDispose(() => {
+    if (touchStartTimer) {
+      clearTimeout(touchStartTimer);
+      touchStartTimer = null;
+    }
+  });
 
   // ========== 桌面端拖拽 ==========
 

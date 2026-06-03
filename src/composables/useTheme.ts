@@ -1,4 +1,4 @@
-import { ref, onMounted, type Ref } from 'vue';
+import { ref, onMounted, onUnmounted, type Ref } from 'vue';
 
 const isDark: Ref<boolean> = ref(false);
 
@@ -31,8 +31,24 @@ export function useTheme() {
     updateTheme();
   };
 
+  // 监听系统主题变化
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const handleSystemThemeChange = (e: MediaQueryListEvent): void => {
+    // 仅在用户未手动设置主题时跟随系统
+    const savedTheme = localStorage.getItem('theme');
+    if (!savedTheme) {
+      isDark.value = e.matches;
+      updateTheme();
+    }
+  };
+
   onMounted(() => {
     initTheme();
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
+  });
+
+  onUnmounted(() => {
+    mediaQuery.removeEventListener('change', handleSystemThemeChange);
   });
 
   return {

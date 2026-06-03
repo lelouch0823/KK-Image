@@ -1,4 +1,4 @@
-import { BadRequestError, NotFoundError } from '../lib/hono/errors.js';
+import { BadRequestError, ConflictError, NotFoundError } from '../lib/hono/errors.js';
 import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.js';
 import { OrderLineAllocationRepository } from '../repositories/OrderLineAllocationRepository.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
@@ -144,9 +144,17 @@ export class OrderLineFulfillmentService {
         timestamp,
         actorName: options.actorName || null,
       }),
+      // CAS: 确保 order_lines.reserved_qty 未被并发修改
+      this.db
+        .prepare('UPDATE order_lines SET updated_at = updated_at WHERE id = ? AND reserved_qty = ?')
+        .bind(lineId, line.reserved_qty),
     ];
 
-    await this.db.batch(statements);
+    const result = await this.db.batch(statements);
+    const casResult = result[result.length - 1];
+    if (casResult.changes === 0) {
+      throw new ConflictError('order line was modified concurrently');
+    }
     return this.buildCommandResult({
       orderId,
       lineId,
@@ -224,10 +232,18 @@ export class OrderLineFulfillmentService {
         nextLineState,
         timestamp,
         actorName: options.actorName || null,
-      })
+      }),
+      // CAS: 确保 order_lines.reserved_qty 未被并发修改
+      this.db
+        .prepare('UPDATE order_lines SET updated_at = updated_at WHERE id = ? AND reserved_qty = ?')
+        .bind(lineId, line.reserved_qty),
     );
 
-    await this.db.batch(statements);
+    const result = await this.db.batch(statements);
+    const casResult = result[result.length - 1];
+    if (casResult.changes === 0) {
+      throw new ConflictError('order line was modified concurrently');
+    }
     const inventory = await queryInventoryBalance(this.db, line.variant_id);
     return this.buildCommandResult({
       orderId,
@@ -346,10 +362,18 @@ export class OrderLineFulfillmentService {
         nextLineState,
         timestamp,
         actorName: options.actorName || null,
-      })
+      }),
+      // CAS: 确保 order_lines 关键字段未被并发修改
+      this.db
+        .prepare('UPDATE order_lines SET updated_at = updated_at WHERE id = ? AND shipped_qty = ? AND reserved_qty = ?')
+        .bind(lineId, line.shipped_qty, line.reserved_qty),
     );
 
-    await this.db.batch(statements);
+    const result = await this.db.batch(statements);
+    const casResult = result[result.length - 1];
+    if (casResult.changes === 0) {
+      throw new ConflictError('order line was modified concurrently');
+    }
     await this.refreshDemandProjection(line.variant_id);
     return this.buildCommandResult({
       orderId,
@@ -428,9 +452,17 @@ export class OrderLineFulfillmentService {
         timestamp,
         actorName: options.actorName || null,
       }),
+      // CAS: 确保 order_lines.shipped_qty 未被并发修改
+      this.db
+        .prepare('UPDATE order_lines SET updated_at = updated_at WHERE id = ? AND shipped_qty = ?')
+        .bind(lineId, line.shipped_qty),
     ];
 
-    await this.db.batch(statements);
+    const result = await this.db.batch(statements);
+    const casResult = result[result.length - 1];
+    if (casResult.changes === 0) {
+      throw new ConflictError('order line was modified concurrently');
+    }
     await this.refreshDemandProjection(line.variant_id);
     return this.buildCommandResult({
       orderId,
@@ -514,9 +546,17 @@ export class OrderLineFulfillmentService {
         timestamp,
         actorName: options.actorName || null,
       }),
+      // CAS: 确保订单 delivery_status 未被并发修改
+      this.db
+        .prepare('UPDATE orders SET updated_at = updated_at WHERE id = ? AND delivery_status = ?')
+        .bind(orderId, line.delivery_status),
     ];
 
-    await this.db.batch(statements);
+    const result = await this.db.batch(statements);
+    const casResult = result[result.length - 1];
+    if (casResult.changes === 0) {
+      throw new ConflictError('order was modified concurrently');
+    }
     return this.buildCommandResult({
       orderId,
       lineId,
