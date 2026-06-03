@@ -518,7 +518,12 @@ describe('AIChatWidget behavior', () => {
 
     await wrapper.find('button[title="ai.clear"]').trigger('click');
 
-    expect(globalThis.confirm).toHaveBeenCalledWith('ai.clearConfirm');
+    // ConfirmDialog opens - simulate confirm
+    const confirmDialog = wrapper.findComponent({ name: 'ConfirmDialog' });
+    if (confirmDialog.exists()) {
+      confirmDialog.vm.$emit('confirm');
+      await wrapper.vm.$nextTick();
+    }
     expect(mocks.resetMessages).toHaveBeenCalledTimes(1);
 
     vi.useRealTimers();

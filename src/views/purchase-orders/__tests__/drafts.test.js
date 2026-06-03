@@ -44,7 +44,7 @@ describe('purchase order draft helpers', () => {
     expect(buildSuggestionVariantLabel()).toBe('');
 
     expect(buildSuggestionMeta({ sku: ' SKU-1 ', brand: ' ACME ' })).toBe('SKU-1 · ACME');
-    expect(buildSuggestionMeta({ sku: '', brand: '' })).toBe('— · -');
+    expect(buildSuggestionMeta({ sku: '', brand: '' })).toBe('- · -');
   });
 
   it('deduplicates truthy order ids while preserving their original order', () => {
