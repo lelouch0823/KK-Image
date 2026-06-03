@@ -401,6 +401,7 @@
 <script setup>
 import { ref, onMounted, onActivated, onBeforeUnmount, computed, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
+import { hasEntries } from '@/utils/object-utils';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
 import { useOrders } from '@/composables/useOrders';
@@ -663,7 +664,7 @@ const _fetchDashboardData = async () => {
 
       // Update Charts
       if (res.data.charts) {
-        if (Object.keys(charts).length > 0) {
+        if (hasEntries(charts)) {
           updateCharts(res.data.charts);
         } else {
           // If charts not initialized but we have data, we might be in early stage.

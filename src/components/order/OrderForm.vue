@@ -161,7 +161,7 @@
                   </span>
                 </div>
                 <div
-                  v-if="Object.keys(boundProductVariant).length === 0"
+                  v-if="!hasEntries(boundProductVariant)"
                   class="[grid-column:1/-1] text-sm text-(--text-muted)"
                 >
                   {{ t('product.variant.noSpecs') || '无规格信息' }}
@@ -301,6 +301,7 @@
 <script setup>
 import { watch, toRef, reactive, computed, ref, nextTick } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { hasEntries } from '@/utils/object-utils';
 import { useToast } from '@/composables/useToast';
 import { useOrderForm } from '@/composables/useOrderForm';
 import { useFormDraft } from '@/composables/useFormDraft';

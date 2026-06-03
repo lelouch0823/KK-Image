@@ -73,7 +73,7 @@
                 </div>
                 <div class="truncate text-xs text-(--text-secondary)" :title="buildSuggestionMeta(s)">
                   {{ buildSuggestionMeta(s) }}
-                  <template v-if="s.variant_options && Object.keys(s.variant_options).length > 0">
+                  <template v-if="hasEntries(s.variant_options)">
                     · {{ buildSuggestionVariantLabel(s.variant_options) }}
                   </template>
                 </div>
@@ -133,6 +133,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { hasEntries } from '@/utils/object-utils';
 import ActionBar from '@/design-system/composed/ActionBar.vue';
 import AppCheckbox from '@/components/ui/AppCheckbox.vue';
 import AppButton from '@/components/ui/AppButton.vue';

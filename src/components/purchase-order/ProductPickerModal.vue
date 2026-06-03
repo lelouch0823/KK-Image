@@ -173,7 +173,7 @@
                   {{ variant.brand }}
                 </span>
                 <span
-                  v-if="variant.variant_options && Object.keys(variant.variant_options).length > 0"
+                  v-if="hasEntries(variant.variant_options)"
                   class="min-w-0 flex-1 truncate"
                   :title="buildVariantOptionsLabel(variant)"
                 >
@@ -219,6 +219,7 @@
 import { computed, ref, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
 import { useI18n } from '@/composables/useI18n';
+import { hasEntries } from '@/utils/object-utils';
 import { useProducts } from '@/composables/useProducts';
 import { countUnavailableSelectedVariants } from '@/utils/purchase-order-variant-selection';
 import ActionBar from '@/design-system/composed/ActionBar.vue';

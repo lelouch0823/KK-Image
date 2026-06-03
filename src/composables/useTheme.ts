@@ -1,4 +1,5 @@
 import { ref, onMounted, onUnmounted, type Ref } from 'vue';
+import { getItem, setItem } from '@/utils/storage';
 
 const isDark: Ref<boolean> = ref(false);
 
@@ -12,15 +13,15 @@ export function useTheme() {
     const html = document.documentElement;
     if (isDark.value) {
       html.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
+      setItem('theme', 'dark');
     } else {
       html.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
+      setItem('theme', 'light');
     }
   };
 
   const initTheme = (): void => {
-    const savedTheme = localStorage.getItem('theme');
+    const savedTheme = getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
     if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
@@ -35,7 +36,7 @@ export function useTheme() {
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   const handleSystemThemeChange = (e: MediaQueryListEvent): void => {
     // 仅在用户未手动设置主题时跟随系统
-    const savedTheme = localStorage.getItem('theme');
+    const savedTheme = getItem('theme');
     if (!savedTheme) {
       isDark.value = e.matches;
       updateTheme();

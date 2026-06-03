@@ -46,7 +46,7 @@
               {{ formatInteger(entry.max_receivable) }}
             </p>
             <div
-              v-if="entry.variant_options && Object.keys(entry.variant_options).length > 0"
+              v-if="hasEntries(entry.variant_options)"
               class="mt-2 flex min-w-0 flex-wrap gap-1"
             >
               <span
@@ -134,6 +134,7 @@
 <script setup>
 import OverlayScaffold from '@/design-system/composed/OverlayScaffold.vue';
 import ActionBar from '@/design-system/composed/ActionBar.vue';
+import { hasEntries } from '@/utils/object-utils';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppCard from '@/components/ui/AppCard.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';

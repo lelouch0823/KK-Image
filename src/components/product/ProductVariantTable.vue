@@ -189,6 +189,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { hasEntries } from '@/utils/object-utils';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
@@ -282,7 +283,7 @@ const parseNumberInput = (rawValue) => {
 };
 
 const formatVariantName = (optionsValues) => {
-  if (!optionsValues || Object.keys(optionsValues).length === 0) return 'Default';
+  if (!hasEntries(optionsValues)) return 'Default';
   const keys = Object.keys(optionsValues).sort();
   return keys.map((key) => optionsValues[key]).join(' · ');
 };

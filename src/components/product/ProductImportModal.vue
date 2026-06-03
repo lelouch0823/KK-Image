@@ -136,6 +136,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { hasEntries } from '@/utils/object-utils';
 import Modal from '@/components/ui/Modal.vue';
 import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
@@ -294,7 +295,7 @@ const sanitizeOptionsValues = (value) => {
         if (key && val) acc[key] = val;
         return acc;
     }, {});
-    return Object.keys(next).length > 0 ? next : undefined;
+    return hasEntries(next) ? next : undefined;
 };
 
 const sanitizeMappedRow = (row) => {
@@ -565,7 +566,7 @@ const handleConfirmMapping = () => {
                 if (!value) return;
                 optionsValues[spec.name] = value;
             });
-            if (Object.keys(optionsValues).length > 0) {
+            if (hasEntries(optionsValues)) {
                 item.options_values = optionsValues;
             }
         }

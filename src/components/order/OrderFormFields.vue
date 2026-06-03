@@ -67,7 +67,7 @@
                   {{ value }}
                 </span>
               </div>
-              <div v-if="Object.keys(boundProductVariant).length === 0" class="[grid-column:1/-1] text-sm text-(--text-muted)">
+              <div v-if="!hasEntries(boundProductVariant)" class="[grid-column:1/-1] text-sm text-(--text-muted)">
                 {{ t('product.variant.noSpecs') || '无规格信息' }}
               </div>
             </div>
@@ -142,6 +142,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { hasEntries } from '@/utils/object-utils';
 import { getTodayISOString } from '@/utils/common';
 import StatusSelector from '@/components/ui/StatusSelector.vue';
 import AppInput from '@/components/ui/AppInput.vue';

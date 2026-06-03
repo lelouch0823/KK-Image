@@ -412,6 +412,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { hasEntries } from '@/utils/object-utils';
 import StatePanel from '@/design-system/composed/StatePanel.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
@@ -553,7 +554,7 @@ const stockBgClass = computed(() => {
 
 const formatVariantName = (optionsValues) => {
   const parsed = parseJsonObject(optionsValues, {});
-  if (Object.keys(parsed).length === 0) return 'Default';
+  if (!hasEntries(parsed)) return 'Default';
   return Object.values(parsed).join(' / ');
 };
 

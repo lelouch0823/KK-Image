@@ -24,6 +24,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useVModel } from '@vueuse/core';
+import { hasEntries } from '@/utils/object-utils';
 import { Pie } from 'vue-chartjs';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { useI18n } from '@/composables/useI18n';
@@ -50,7 +51,7 @@ const { t } = useI18n();
 const visible = useVModel(props, 'modelValue', emit);
 
 const hasData = computed(() => {
-  return props.distribution && Object.keys(props.distribution).length > 0;
+  return hasEntries(props.distribution);
 });
 
 const chartData = computed(() => {

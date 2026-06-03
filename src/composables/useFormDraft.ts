@@ -7,6 +7,7 @@
 
 import { ref, watch, onUnmounted, toRaw, type Ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { getItem, setItem, removeItem } from '@/utils/storage';
 
 /** 草稿快照结构 */
 interface DraftSnapshot<T> {
@@ -118,7 +119,7 @@ export function useFormDraft<T extends Record<string, unknown>>(
   function saveDraft(): void {
     try {
       const snapshot = buildSnapshot();
-      localStorage.setItem(storageKey, JSON.stringify(snapshot));
+      setItem(storageKey, JSON.stringify(snapshot));
     } catch {
       // QuotaExceededError 或其他存储错误，静默处理
     }
@@ -138,7 +139,7 @@ export function useFormDraft<T extends Record<string, unknown>>(
    */
   function loadSnapshot(): DraftSnapshot<Record<string, unknown>> | null {
     try {
-      const raw = localStorage.getItem(storageKey);
+      const raw = getItem(storageKey);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as DraftSnapshot<Record<string, unknown>>;
       // 验证基本结构
@@ -149,7 +150,7 @@ export function useFormDraft<T extends Record<string, unknown>>(
     } catch {
       // JSON 解析失败，清除损坏的草稿
       try {
-        localStorage.removeItem(storageKey);
+        removeItem(storageKey);
       } catch {
         // ignore
       }
@@ -187,7 +188,7 @@ export function useFormDraft<T extends Record<string, unknown>>(
    */
   function clearDraft(): void {
     try {
-      localStorage.removeItem(storageKey);
+      removeItem(storageKey);
     } catch {
       // ignore
     }

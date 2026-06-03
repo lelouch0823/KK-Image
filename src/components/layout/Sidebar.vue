@@ -177,6 +177,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import { useAccessControl } from '@/composables/useAccessControl';
 import { useToast } from '@/composables/useToast';
+import { getItem, setItem } from '@/utils/storage';
 import AppButton from '@/components/ui/AppButton.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -208,7 +209,7 @@ const STORAGE_KEY = 'sidebar-collapsed';
 
 onMounted(() => {
   // 从 localStorage 恢复折叠状态
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const saved = getItem(STORAGE_KEY);
   if (saved !== null) {
     isCollapsed.value = saved === 'true';
   }
@@ -228,7 +229,7 @@ watch(
 
 const toggleCollapse = () => {
   isCollapsed.value = !isCollapsed.value;
-  localStorage.setItem(STORAGE_KEY, isCollapsed.value.toString());
+  setItem(STORAGE_KEY, isCollapsed.value.toString());
 };
 
 const openSidebar = () => {

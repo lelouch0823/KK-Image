@@ -33,6 +33,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { getItem, setItem, removeItem } from '@/utils/storage';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
@@ -50,7 +51,7 @@ const DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 天
 
 function isDismissed(): boolean {
   try {
-    const dismissedAt = localStorage.getItem(DISMISS_KEY);
+    const dismissedAt = getItem(DISMISS_KEY);
     if (!dismissedAt) return false;
     return Date.now() - Number(dismissedAt) < DISMISS_DURATION;
   } catch {
@@ -71,7 +72,7 @@ function handleAppInstalled() {
   showInstallPrompt.value = false;
   deferredPrompt.value = null;
   try {
-    localStorage.removeItem(DISMISS_KEY);
+    removeItem(DISMISS_KEY);
   } catch {
     // ignore
   }
@@ -99,7 +100,7 @@ async function handleInstall() {
 function handleDismiss() {
   showInstallPrompt.value = false;
   try {
-    localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    setItem(DISMISS_KEY, String(Date.now()));
   } catch {
     // ignore
   }

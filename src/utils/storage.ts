@@ -4,6 +4,35 @@
  */
 
 /**
+ * 安全读取原始字符串（不经过 JSON 序列化）
+ */
+export function getItem(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 安全写入原始字符串（不经过 JSON 序列化）
+ */
+export function setItem(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch { /* quota exceeded or private mode */ }
+}
+
+/**
+ * 安全删除 localStorage 项
+ */
+export function removeItem(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch { /* ignore */ }
+}
+
+/**
  * 安全读取 localStorage
  */
 export function storageGet<T = unknown>(key: string, defaultValue: T | null = null): T | null {

@@ -2,6 +2,7 @@ import { ref, computed, type Ref, type ComputedRef } from 'vue';
 // 使用模块化的翻译文件
 import zhCN from '@/locales/zh-CN/index';
 import enUS from '@/locales/en/index';
+import { hasEntries } from '@/utils/object-utils';
 
 const currentLocale: Ref<string> = ref('zh-CN');
 const messages: Record<string, Record<string, unknown>> = {
@@ -29,7 +30,7 @@ export function useI18n() {
     }
 
     // Simple interpolation: {count} -> 10
-    if (typeof value === 'string' && Object.keys(params).length > 0) {
+    if (typeof value === 'string' && hasEntries(params)) {
       return value.replace(/{(\w+)}/g, (_, key: string) => {
         const paramValue = params[key];
         return paramValue !== undefined ? String(paramValue) : `{${key}}`;

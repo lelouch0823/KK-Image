@@ -119,7 +119,7 @@
             </div>
 
             <div
-              v-if="item.variant_options && Object.keys(item.variant_options).length > 0"
+              v-if="hasEntries(item.variant_options)"
               data-testid="purchase-order-detail-item-variant-options"
               class="mt-0.5 flex min-w-0 flex-wrap gap-1"
             >
@@ -134,7 +134,7 @@
             </div>
 
             <div
-              v-if="item.product_specifications && Object.keys(item.product_specifications).length > 0"
+              v-if="hasEntries(item.product_specifications)"
               class="mt-0.5 flex min-w-0 flex-wrap gap-1"
             >
               <span
@@ -269,6 +269,7 @@ import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import { hasEntries } from '@/utils/object-utils';
 
 defineProps({
   detail: {

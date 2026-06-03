@@ -110,7 +110,7 @@
             <span>· {{ helpers.formatDateTime(receipt.received_at) }}</span>
           </div>
           <div
-            v-if="receipt.variant_options && Object.keys(receipt.variant_options).length > 0"
+            v-if="hasEntries(receipt.variant_options)"
             class="mt-2 flex min-w-0 flex-wrap gap-1"
           >
             <span
@@ -191,6 +191,7 @@
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import { hasEntries } from '@/utils/object-utils';
 
 defineProps({
   receiptTimeline: {
