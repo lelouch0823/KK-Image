@@ -40,8 +40,8 @@ export function useCategories() {
       } else {
         error.value = res.error || '加载分类失败';
       }
-    } catch (e: any) {
-      error.value = e.message || '加载分类失败';
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : '加载分类失败';
     } finally {
       loading.value = false;
     }
@@ -60,8 +60,8 @@ export function useCategories() {
       } else {
         error.value = res.error || '加载分类树失败';
       }
-    } catch (e: any) {
-      error.value = e.message || '加载分类树失败';
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : '加载分类树失败';
     } finally {
       loading.value = false;
     }
@@ -82,8 +82,8 @@ export function useCategories() {
       }
       error.value = res.error || '创建分类失败';
       return null;
-    } catch (e: any) {
-      error.value = e.message || '创建分类失败';
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : '创建分类失败';
       return null;
     }
   };
@@ -103,8 +103,8 @@ export function useCategories() {
       }
       error.value = res.error || '更新分类失败';
       return false;
-    } catch (e: any) {
-      error.value = e.message || '更新分类失败';
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : '更新分类失败';
       return false;
     }
   };
@@ -123,8 +123,8 @@ export function useCategories() {
       }
       error.value = res.error || '删除分类失败';
       return false;
-    } catch (e: any) {
-      error.value = e.message || '删除分类失败';
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : '删除分类失败';
       return false;
     }
   };

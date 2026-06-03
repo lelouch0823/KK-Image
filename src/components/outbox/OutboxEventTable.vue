@@ -43,7 +43,7 @@
       </template>
 
       <template #cell-created_at="{ value }">
-        <span class="text-xs text-(--text-secondary)">{{ formatTime(value) }}</span>
+        <span class="text-xs text-(--text-secondary)">{{ formatDate(value) }}</span>
       </template>
     </AppTable>
   </div>
@@ -55,6 +55,8 @@ import { useI18n } from '@/composables/useI18n';
 import AppTable from '@/components/ui/AppTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppTableTextStack from '@/components/ui/AppTableTextStack.vue';
+import { formatDate } from '@/utils/formatters';
+import { resolveVariant } from '@/utils/outbox-status';
 
 defineEmits(['select']);
 
@@ -82,20 +84,5 @@ const columns = computed(() => ([
   { key: 'created_at', label: t('outboxOps.columns.createdAt', '创建时间'), kind: 'datetime', width: '180px' },
 ]));
 
-function formatTime(value) {
-  if (!value) return '-';
-  try {
-    return new Date(value).toLocaleString();
-  } catch {
-    return String(value);
-  }
-}
 
-function resolveVariant(status) {
-  if (status === 'failed') return 'danger';
-  if (status === 'pending' || status === 'processing') return 'warning';
-  if (status === 'published') return 'success';
-  if (status === 'skipped') return 'default';
-  return 'primary';
-}
 </script>

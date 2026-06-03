@@ -124,7 +124,7 @@
                 </span>
               </div>
               <p class="mt-1 text-xs text-(--text-tertiary)">
-                {{ formatTime(log.created_at) }}
+                {{ formatDate(log.created_at) }}
                 <span v-if="log.attempt_number > 1" class="ml-2">
                   #{{ log.attempt_number }}
                 </span>
@@ -188,6 +188,7 @@ import { useAuth } from '@/composables/useAuth';
 import SettingsSection from '@/components/settings/SettingsSection.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import { formatDate } from '@/utils/formatters';
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -207,17 +208,6 @@ const logFilter = ref({
   offset: 0,
 });
 
-function formatTime(timestamp) {
-  if (!timestamp) return '';
-  const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-}
 
 async function loadWebhooks() {
   try {

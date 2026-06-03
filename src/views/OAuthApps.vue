@@ -124,8 +124,8 @@
                   {{ s }}
                 </span>
               </td>
-              <td class="py-2 pr-3 text-xs">{{ formatTime(token.expiresAt) }}</td>
-              <td class="py-2 text-xs text-(--text-muted)">{{ formatTime(token.createdAt) }}</td>
+              <td class="py-2 pr-3 text-xs">{{ formatDate(token.expiresAt) }}</td>
+              <td class="py-2 text-xs text-(--text-muted)">{{ formatDate(token.createdAt) }}</td>
             </tr>
           </tbody>
         </table>
@@ -245,6 +245,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import { formatDate } from '@/utils/formatters';
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -410,10 +411,6 @@ function copyToClipboard(text) {
   });
 }
 
-function formatTime(ts) {
-  if (!ts) return '-';
-  return new Date(ts).toLocaleString('zh-CN');
-}
 
 onMounted(loadClients);
 </script>

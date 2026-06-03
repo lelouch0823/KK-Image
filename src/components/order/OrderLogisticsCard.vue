@@ -123,7 +123,7 @@
               {{ event.description }}
             </p>
             <div class="mt-1 flex items-center gap-2 text-xs text-(--text-tertiary)">
-              <span>{{ formatTime(event.timestamp) }}</span>
+              <span>{{ formatDate(event.timestamp) }}</span>
               <span v-if="event.location">· {{ event.location }}</span>
             </div>
           </div>
@@ -141,6 +141,7 @@ import { useAuth } from '@/composables/useAuth';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
+import { formatDate } from '@/utils/formatters';
 
 const props = defineProps({
   orderId: { type: String, required: true },
@@ -173,16 +174,6 @@ const carrierName = computed(() => {
   return found?.name || carrier.value;
 });
 
-function formatTime(timestamp) {
-  if (!timestamp) return '';
-  const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 async function loadTracking() {
   if (!props.orderId) return;

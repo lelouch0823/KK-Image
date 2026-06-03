@@ -112,7 +112,7 @@
               <span v-else class="text-secondary">0</span>
             </template>
             <template #cell-createdAt="{ row }">
-              <span class="text-secondary">{{ formatTime(row.createdAt) }}</span>
+              <span class="text-secondary">{{ formatDate(row.createdAt) }}</span>
             </template>
             <template #cell-notes="{ row }">
               <span class="max-w-[200px] truncate text-secondary">{{ row.notes || '-' }}</span>
@@ -359,6 +359,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import { formatDate } from '@/utils/formatters';
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -607,15 +608,6 @@ function statusTone(status) {
   return map[status] || 'muted';
 }
 
-function formatTime(ts) {
-  if (!ts) return '-';
-  return new Date(ts).toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function formatVariantLabel(optionsValues) {
   if (!optionsValues || typeof optionsValues !== 'object') return '';

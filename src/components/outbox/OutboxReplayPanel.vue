@@ -198,6 +198,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import { resolveVariant } from '@/utils/outbox-status';
 
 const props = defineProps({
   event: {
@@ -275,11 +276,4 @@ function emitReplay(type) {
   emit('execute', payload);
 }
 
-function resolveVariant(status) {
-  if (status === 'failed') return 'danger';
-  if (status === 'pending' || status === 'processing') return 'warning';
-  if (status === 'published') return 'success';
-  if (status === 'skipped') return 'default';
-  return 'primary';
-}
 </script>

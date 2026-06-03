@@ -53,7 +53,7 @@
               <p class="mt-1 text-xs text-(--text-muted)">{{ conn.baseUrl }}</p>
               <div class="mt-2 flex items-center gap-4 text-xs text-(--text-muted)">
                 <span v-if="conn.lastSyncAt">
-                  {{ t('erpSync.lastSyncAt') }}: {{ formatTime(conn.lastSyncAt) }}
+                  {{ t('erpSync.lastSyncAt') }}: {{ formatDate(conn.lastSyncAt) }}
                 </span>
                 <span v-if="conn.lastSyncStatus" :class="syncStatusClass(conn.lastSyncStatus)">
                   {{ t(`erpSync.syncStatus.${conn.lastSyncStatus}`, conn.lastSyncStatus) }}
@@ -142,7 +142,7 @@
               </td>
               <td class="py-2 pr-3 font-mono text-xs">{{ log.entityId || '-' }}</td>
               <td class="py-2 pr-3 text-xs text-danger">{{ log.errorMessage || '-' }}</td>
-              <td class="py-2 text-xs text-(--text-muted)">{{ formatTime(log.createdAt) }}</td>
+              <td class="py-2 text-xs text-(--text-muted)">{{ formatDate(log.createdAt) }}</td>
             </tr>
           </tbody>
         </table>
@@ -270,6 +270,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import { formatDate } from '@/utils/formatters';
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -448,10 +449,6 @@ async function viewLogs(connId) {
   }
 }
 
-function formatTime(ts) {
-  if (!ts) return '-';
-  return new Date(ts).toLocaleString('zh-CN');
-}
 
 function syncStatusClass(status) {
   if (status === 'success') return 'text-success';

@@ -240,7 +240,7 @@
                 :reason="receiptReversalReason"
                 :receipt-reversal-submitting="receiptReversalSubmitting"
                 :format-integer="formatInteger"
-                :format-date-time="formatDateTime"
+                :format-date-time="formatDate"
                 @close="closeReceiptReversalModal"
                 @update:reason="receiptReversalReason = $event"
                 @submit="submitReceiptReversal"
@@ -330,7 +330,7 @@ import {
   getPurchaseOrderReceivedQty,
 } from '@/utils/purchase-order-progress';
 import { formatCurrency as formatMoney } from '@/utils/formatters';
-import { formatDate, formatDateTime } from "@/views/purchase-orders/formatters";
+import { formatDate } from "@/utils/formatters";
 import {
   createReceiptMetaBuilder,
   hasReceiptMeta,
@@ -695,7 +695,7 @@ const {
 const detailHelpers = {
   formatInteger,
   formatPurchaseCurrency,
-  formatDateTime,
+  formatDate,
   getProgressStatusLabel,
   getProgressStatusVariant,
   buildReceiptProgressSummary,

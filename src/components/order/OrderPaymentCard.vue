@@ -143,7 +143,7 @@
             </span>
           </div>
           <div class="mt-1 flex items-center gap-2 text-xs text-(--text-secondary)">
-            <span>{{ formatTime(payment.receivedAt) }}</span>
+            <span>{{ formatDate(payment.receivedAt) }}</span>
             <span v-if="payment.referenceNo">· {{ payment.referenceNo }}</span>
           </div>
           <div v-if="payment.notes" class="mt-1 text-xs text-(--text-secondary)">
@@ -191,6 +191,7 @@ import { useI18n } from '@/composables/useI18n';
 import { usePayments, type Payment, type PaymentSummary } from '@/composables/usePayments';
 import AppButton from '@/components/ui/AppButton.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import { formatDate } from '@/utils/formatters';
 
 const props = defineProps<{
   orderId: string;
@@ -277,17 +278,6 @@ function getMethodLabel(method: string): string {
   return labels[method] || method;
 }
 
-/**
- * 格式化时间
- */
-function formatTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 /**
  * 取消添加
