@@ -4,7 +4,10 @@ import { nextTick } from 'vue';
 const authFetchMock = vi.hoisted(() => vi.fn());
 
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ params: { token: 'test-token' } }),
+  useRoute: () => {
+    const match = window.location.pathname.match(/^\/sales\/([^/]+)/);
+    return { params: { token: match ? match[1] : null } };
+  },
   useRouter: () => ({ push: vi.fn() }),
 }));
 
