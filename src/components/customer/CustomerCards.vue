@@ -123,7 +123,7 @@ const segmentLabelMap = {
 // RFM 分段样式
 const segmentClasses = (segment) => {
   const map = {
-    vip: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+    vip: 'bg-(--color-warning-bg) text-(--color-warning-text)',
     active: 'bg-(--color-success-bg) text-(--color-success-text)',
     'at-risk': 'bg-(--color-danger-bg) text-(--color-danger-text)',
     lost: 'bg-(--bg-muted) text-(--text-muted)',
