@@ -1,3 +1,4 @@
+import { buildSetClause } from '../api/utils/sql.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import type { D1Database } from '../types/database.js';
 import type {
@@ -18,9 +19,17 @@ import type {
 
 export class SpaceRepository {
   protected db: D1Database;
+  protected now: () => number;
 
-  constructor(db: D1Database) {
+  /**
+   * 构造函数
+   * @param db Cloudflare D1 数据库实例
+   * @param deps 依赖注入
+   * @param deps.now 时间戳函数，默认 Date.now
+   */
+  constructor(db: D1Database, deps: { now?: () => number } = {}) {
     this.db = db;
+    this.now = deps.now || (() => Date.now());
   }
 
   _nonExpiredSpaceWhereClause(alias: string = 's'): string {
@@ -236,8 +245,9 @@ export class SpaceRepository {
   /**
    * 创建空间
    * @param data 空间数据
+   * @returns 创建结果
    */
-  async create(data: CreateSpaceData): Promise<void> {
+  async create(data: CreateSpaceData): Promise<{ id: string }> {
     await this.db
       .prepare(
         `
@@ -262,39 +272,42 @@ export class SpaceRepository {
         data.updatedAt
       )
       .run();
+
+    return { id: data.id };
   }
 
   /**
    * 更新空间
    * @param id 空间 ID
-   * @param updates SQL update clauses
-   * @param values SQL update values
-   * @returns 更新后的空间详情
+   * @param updates 列名 -> 值的映射
+   * @returns 是否实际更新
    */
-  async update(id: string, updates: string[], values: unknown[]): Promise<Record<string, unknown> | null> {
-    const SAFE_COLUMN_RE = /^[a-zA-Z_][a-zA-Z0-9_. ]* = \?$/;
-    for (const clause of updates) {
-      if (!SAFE_COLUMN_RE.test(clause.trim())) {
-        throw new Error(`Unsafe SQL clause: ${clause}`);
-      }
-    }
-    await this.db
-      .prepare(`UPDATE spaces SET ${updates.join(', ')} WHERE id = ?`)
-      .bind(...values)
+  async update(id: string, updates: Record<string, unknown>): Promise<boolean> {
+    if (!updates || Object.keys(updates).length === 0) return false;
+
+    const updateData = { ...updates };
+    updateData.updated_at = this.now();
+    const { clause, values } = buildSetClause(updateData);
+
+    const result = await this.db
+      .prepare(`UPDATE spaces SET ${clause} WHERE id = ?`)
+      .bind(...values, id)
       .run();
 
-    return await this.findById(id);
+    return (result?.meta?.changes || 0) > 0;
   }
 
   /**
    * 删除空间 (Transaction)
    * @param id 空间 ID
+   * @returns 是否实际删除
    */
-  async delete(id: string): Promise<void> {
+  async delete(id: string): Promise<boolean> {
     await this.db.batch([
       this.db.prepare('DELETE FROM space_files WHERE space_id = ?').bind(id),
       this.db.prepare('DELETE FROM spaces WHERE id = ?').bind(id),
     ]);
+    return true;
   }
 
   /**
@@ -424,8 +437,9 @@ export class SpaceRepository {
   /**
    * 创建子空间
    * @param data 子空间数据
+   * @returns 创建结果
    */
-  async createSubspace(data: CreateSubspaceData): Promise<void> {
+  async createSubspace(data: CreateSubspaceData): Promise<{ id: string }> {
     await this.db
       .prepare(
         `
@@ -451,6 +465,8 @@ export class SpaceRepository {
         data.updatedAt
       )
       .run();
+
+    return { id: data.id };
   }
   /**
    * 获取空间分享的销售员列表

@@ -10,6 +10,8 @@
 import { parseRepoPagination } from '../../api/utils/pagination.js';
 import { expandOrderStatusFilter } from '../../api/utils/constants.js';
 import { query, queryFirst } from '../../lib/db/query.js';
+import { ORDER_STATUS_PRIORITY_CASE } from '../../lib/db/order-sort-sql.js';
+import { checkFtsTable, sanitizeFts5Query } from '../../api/utils/fts.js';
 import { mapOrderDetail, mapOrderListItem } from './helpers.js';
 import { ORDER_PAYLOADS_JOIN_SQL, ORDER_PAYLOADS_SELECT_SQL } from './payloads.js';
 import {
@@ -19,46 +21,10 @@ import {
     appendOrderSummaryProgressStatusFilter,
 } from './summary-projection.js';
 
-/** @type {boolean|null} orders_fts 可用性缓存 */
-let _ordersFtsAvailable = null;
-
 /**
- * 重置 FTS 缓存（仅测试用）
+ * 重置 FTS 缓存（仅测试用，代理到共享缓存）
  */
-export function _resetFtsCache() {
-    _ordersFtsAvailable = null;
-}
-
-/**
- * 检查 orders_fts 虚拟表是否存在（带模块级缓存）
- * @param {D1Database} db
- * @returns {Promise<boolean>}
- */
-async function hasOrdersFtsTable(db) {
-    if (_ordersFtsAvailable !== null) return _ordersFtsAvailable;
-    try {
-        const result = await db.prepare(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='orders_fts'"
-        ).first();
-        _ordersFtsAvailable = !!result;
-    } catch {
-        _ordersFtsAvailable = false;
-    }
-    return _ordersFtsAvailable;
-}
-
-/**
- * 转义 FTS5 特殊字符，防止 MATCH 注入
- * FTS5 特殊字符: " * ( ) ^ - + : OR AND NOT NEAR
- */
-function sanitizeFts5Query(input) {
-    const sanitized = String(input || '')
-        .replace(/["*()\-+:]/g, ' ')
-        .replace(/\b(OR|AND|NOT|NEAR)\b/gi, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-    return sanitized;
-}
+export { clearFtsCache as _resetFtsCache } from '../../api/utils/fts.js';
 
 async function findOrderLines(db, orderId) {
     const { results } = await query(
@@ -244,7 +210,7 @@ export async function listBySalesperson(db, salespersonId, { status, search, pag
 
     if (search) {
         // 优先使用 FTS5 全文搜索（O(logN)），不可用时降级为 LIKE（O(N)）
-        const hasFts = await hasOrdersFtsTable(db);
+        const hasFts = await checkFtsTable(db, 'orders_fts');
         if (hasFts) {
             const sanitized = sanitizeFts5Query(search);
             if (sanitized) {
@@ -278,18 +244,7 @@ export async function listBySalesperson(db, salespersonId, { status, search, pag
           o.unread_by_sales as is_unread,
           o.main_image_id, o.created_at, o.updated_at,
           f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
-          CASE o.status
-              WHEN 'pending' THEN 1
-              WHEN 'production' THEN 2
-              WHEN 'shipping' THEN 3
-              WHEN 'confirmed' THEN 4
-              WHEN 'arrived' THEN 5
-              WHEN 'fulfilled' THEN 6
-              WHEN 'delivered' THEN 6
-              WHEN 'rejected' THEN 7
-              WHEN 'void' THEN 99
-              ELSE 50
-          END as status_priority
+          ${ORDER_STATUS_PRIORITY_CASE} as status_priority
       FROM orders o
       ${ORDER_SUMMARY_PROJECTION_JOIN}
       LEFT JOIN files f ON o.main_image_id = f.id
@@ -374,7 +329,7 @@ export async function listForAdmin(
     }
     if (search) {
         // 优先使用 FTS5 全文搜索（O(logN)），不可用时降级为 LIKE（O(N)）
-        const hasFts = await hasOrdersFtsTable(db);
+        const hasFts = await checkFtsTable(db, 'orders_fts');
         if (hasFts) {
             const sanitized = sanitizeFts5Query(search);
             if (sanitized) {
@@ -407,18 +362,7 @@ export async function listForAdmin(
           o.main_image_id, o.created_at, o.updated_at,
           s.name as salesperson_name, s.store as salesperson_store,
           f.storage_key as main_image_key, f.blurhash as main_image_blurhash,
-          CASE o.status
-              WHEN 'pending' THEN 1
-              WHEN 'production' THEN 2
-              WHEN 'shipping' THEN 3
-              WHEN 'confirmed' THEN 4
-              WHEN 'arrived' THEN 5
-              WHEN 'fulfilled' THEN 6
-              WHEN 'delivered' THEN 6
-              WHEN 'rejected' THEN 7
-              WHEN 'void' THEN 99
-              ELSE 50
-          END as status_priority
+          ${ORDER_STATUS_PRIORITY_CASE} as status_priority
       FROM orders o
       ${ORDER_SUMMARY_PROJECTION_JOIN}
       LEFT JOIN salespersons s ON o.salesperson_id = s.id

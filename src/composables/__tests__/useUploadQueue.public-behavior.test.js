@@ -196,7 +196,7 @@ describe('useUploadQueue public behavior', () => {
 
     expect(queueApi.isMinimized.value).toBe(false);
     expect(mocks.compressImage).toHaveBeenCalledTimes(1);
-    expect(mocks.requestAuth).toHaveBeenCalledWith('/api/v1/files/check-hash', {
+    expect(mocks.requestAuth).toHaveBeenCalledWith('/api/manage/files/check-hash', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ original_hash: 'original-hash' }),

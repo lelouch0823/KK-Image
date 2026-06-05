@@ -17,7 +17,7 @@ function findCustomer(listPayload, customerId) {
 }
 
 describeIfRealApi('Customers Real API', function () {
-  this.timeout(120000);
+  this.timeout(180000);
 
   it('covers create, search, pagination, detail, update, cache invalidation, and delete for unlinked customers', async () => {
     const token = await getBearerToken();

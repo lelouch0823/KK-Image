@@ -4,10 +4,18 @@ import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
  * 相册仓库 (Album Repository)
  * ===================================
  */
+import { buildSetClause } from '../api/utils/sql.js';
 
 export class AlbumRepository {
-    constructor(db) {
+    /**
+     * 构造函数
+     * @param {D1Database} db - Cloudflare D1 数据库实例
+     * @param {Object} [deps] - 依赖注入
+     * @param {Function} [deps.now] - 时间戳函数，默认 Date.now
+     */
+    constructor(db, deps = {}) {
         this.db = db;
+        this.now = deps.now || Date.now;
     }
 
     /**
@@ -15,21 +23,31 @@ export class AlbumRepository {
      */
     async findAll() {
         const { results } = await this.db.prepare(`
-            SELECT a.*, 
-                (SELECT COUNT(*) FROM album_files WHERE album_id = a.id) as file_count,
-                (SELECT f.storage_key FROM files f 
-                 JOIN album_files af ON f.id = af.file_id 
-                 WHERE af.album_id = a.id LIMIT 1) as cover_key
-            FROM albums a ORDER BY a.updated_at DESC
+            SELECT a.*,
+                COALESCE(af_agg.file_count, 0) as file_count,
+                af_agg.cover_key
+            FROM albums a
+            LEFT JOIN (
+                SELECT af.album_id,
+                    COUNT(*) as file_count,
+                    MIN(f.storage_key) as cover_key
+                FROM album_files af
+                JOIN files f ON f.id = af.file_id
+                GROUP BY af.album_id
+            ) af_agg ON af_agg.album_id = a.id
+            ORDER BY a.updated_at DESC
         `).all();
         return results;
     }
 
     /**
      * 根据 ID 获取相册
+     * @param {string} id
+     * @returns {Promise<Object|null>}
      */
     async findById(id) {
-        return await this.db.prepare('SELECT * FROM albums WHERE id = ?').bind(id).first();
+        const result = await this.db.prepare('SELECT * FROM albums WHERE id = ?').bind(id).first();
+        return result || null;
     }
 
     /**
@@ -47,6 +65,8 @@ export class AlbumRepository {
 
     /**
      * 创建相册
+     * @param {Object} data
+     * @returns {Promise<{ id: string }>}
      */
     async create(data) {
         await this.db.prepare(`
@@ -59,36 +79,44 @@ export class AlbumRepository {
             data.isPublic ? 1 : 0,
             data.shareToken,
             data.coverFileId || null,
-            data.createdAt,
-            data.updatedAt
+            data.createdAt || this.now(),
+            data.updatedAt || this.now()
         ).run();
+
+        return { id: data.id };
     }
 
     /**
      * 更新相册
+     * @param {string} id
+     * @param {Object} updates - 列名 -> 值的映射
+     * @returns {Promise<boolean>} 是否实际更新
      */
-    async update(id, updates, values) {
-        // 验证列名安全性
-        const SAFE_COLUMN_RE = /^[a-zA-Z_][a-zA-Z0-9_. ]* = \?$/;
-        for (const clause of updates) {
-            if (!SAFE_COLUMN_RE.test(clause.trim())) {
-                throw new Error(`Unsafe SQL clause: ${clause}`);
-            }
-        }
-        await this.db.prepare(`UPDATE albums SET ${updates.join(', ')} WHERE id = ?`)
+    async update(id, updates) {
+        if (!updates || Object.keys(updates).length === 0) return false;
+
+        const updateData = { ...updates };
+        updateData.updated_at = this.now();
+        const { clause, values } = buildSetClause(updateData);
+
+        const result = await this.db.prepare(`UPDATE albums SET ${clause} WHERE id = ?`)
             .bind(...values, id)
             .run();
-        return await this.findById(id);
+
+        return (result?.meta?.changes || 0) > 0;
     }
 
     /**
      * 删除相册 (事务)
+     * @param {string} id
+     * @returns {Promise<boolean>} 是否实际删除
      */
     async delete(id) {
         await this.db.batch([
             this.db.prepare('DELETE FROM album_files WHERE album_id = ?').bind(id),
             this.db.prepare('DELETE FROM albums WHERE id = ?').bind(id),
         ]);
+        return true;
     }
 
     /**

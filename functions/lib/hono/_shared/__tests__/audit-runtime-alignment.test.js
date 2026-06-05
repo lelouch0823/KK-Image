@@ -118,12 +118,20 @@ describe('audit runtime alignment', () => {
         await next();
       },
     }));
+    vi.doMock('../../../../repositories/WebhookRepository.js', () => ({
+      WebhookRepository: vi.fn(() => ({
+        create: vi.fn(async () => ({ id: 'wh_1', url: 'https://example.com/hook' })),
+        listAll: vi.fn(async () => []),
+        getById: vi.fn(async () => null),
+      })),
+    }));
+    vi.doMock('../../../../services/DomainEventCatalog.js', () => ({
+      DOMAIN_EVENT_CATALOG: {},
+    }));
 
     const mod = await import('../../routes/v1/webhooks.js');
     const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'POST' && item.path === '/');
-    const harness = createAuditRuntimeHarness({
-      randomIds: ['wh_1'],
-    });
+    const harness = createAuditRuntimeHarness();
     const app = new Hono();
     app.route('/api/v1/webhooks', mod.default);
 
@@ -158,6 +166,14 @@ describe('audit runtime alignment', () => {
     vi.doMock('../../routes/manage/orders/error-helpers.js', () => ({
       isInsufficientStockError: vi.fn(() => false),
       isInvalidStatusTransitionError: vi.fn(() => false),
+    }));
+    vi.doMock('../../../../services/DomainOutboxPublisher.js', () => ({
+      DomainOutboxPublisher: vi.fn(() => ({
+        publish: vi.fn(async () => []),
+      })),
+    }));
+    vi.doMock('../../../../api/cron/outbox.js', () => ({
+      runOutboxPoller: vi.fn(async () => {}),
     }));
 
     const mod = await import('../../routes/manage/orders/create.js');
@@ -204,39 +220,20 @@ describe('audit runtime alignment', () => {
         await next();
       },
     }));
+    vi.doMock('../../../../repositories/WebhookRepository.js', () => ({
+      WebhookRepository: vi.fn(() => ({
+        getById: vi.fn(async () => ({ id: 'wh_1', url: 'https://example.com/hook' })),
+        update: vi.fn(async () => ({ id: 'wh_1', url: 'https://example.com/hook' })),
+        listAll: vi.fn(async () => []),
+      })),
+    }));
+    vi.doMock('../../../../services/DomainEventCatalog.js', () => ({
+      DOMAIN_EVENT_CATALOG: {},
+    }));
 
     const mod = await import('../../routes/v1/webhooks.js');
     const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'PUT' && item.path === '/:id');
-    const harness = createAuditRuntimeHarness({
-      prepare(sql) {
-        if (sql.includes('SELECT id FROM webhooks WHERE id = ?')) {
-          return {
-            bind: () => ({
-              first: async () => ({ id: 'wh_1' }),
-            }),
-          };
-        }
-        if (sql.includes('SELECT * FROM webhooks WHERE id = ?')) {
-          return {
-            bind: () => ({
-              first: async () => ({
-                id: 'wh_1',
-                url: 'https://example.com/hook',
-                events: JSON.stringify(['webhook.test']),
-                secret: null,
-                headers: JSON.stringify({}),
-                enabled: 1,
-                created_by: 'Admin',
-                created_at: 1,
-                updated_by: 'Admin',
-                updated_at: 2,
-              }),
-            }),
-          };
-        }
-        return harness.createStatement(sql);
-      },
-    });
+    const harness = createAuditRuntimeHarness();
     const app = new Hono();
     app.route('/api/v1/webhooks', mod.default);
 
@@ -378,21 +375,20 @@ describe('audit runtime alignment', () => {
         await next();
       },
     }));
+    vi.doMock('../../../../repositories/WebhookRepository.js', () => ({
+      WebhookRepository: vi.fn(() => ({
+        getById: vi.fn(async () => ({ id: 'wh_1', url: 'https://example.com/hook' })),
+        delete: vi.fn(async () => true),
+        listAll: vi.fn(async () => []),
+      })),
+    }));
+    vi.doMock('../../../../services/DomainEventCatalog.js', () => ({
+      DOMAIN_EVENT_CATALOG: {},
+    }));
 
     const mod = await import('../../routes/v1/webhooks.js');
     const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'DELETE' && item.path === '/:id');
-    const harness = createAuditRuntimeHarness({
-      prepare(sql) {
-        if (sql.includes('SELECT id FROM webhooks WHERE id = ?')) {
-          return {
-            bind: () => ({
-              first: async () => ({ id: 'wh_1' }),
-            }),
-          };
-        }
-        return harness.createStatement(sql);
-      },
-    });
+    const harness = createAuditRuntimeHarness();
     const app = new Hono();
     app.route('/api/v1/webhooks', mod.default);
 
@@ -453,22 +449,22 @@ describe('audit runtime alignment', () => {
   });
 
   it('matches sales order create runtime event to its declaration', async () => {
-    vi.doMock('../../../../../repositories/OrderRepository.js', () => ({
-      OrderRepository: vi.fn(() => ({
-        create: vi.fn(async () => undefined),
+    vi.doMock('../../../../services/OrderCreationService.js', () => ({
+      OrderCreationService: vi.fn(() => ({
+        prepareCreateOrder: vi.fn(async () => ({
+          normalizedLines: [{ productId: null, variantId: null }],
+          primaryLine: { productId: null, variantId: null },
+          bindingSnapshot: { name: 'Product', brand: '', category: '', series: '', sku: '', size: '', color: '', material: '' },
+          totalQuantity: 1,
+          effectiveVariantId: null,
+        })),
+        syncDemand: vi.fn(async () => undefined),
+        archiveFiles: vi.fn(async () => undefined),
+        publishEvents: vi.fn(async () => []),
       })),
     }));
-    vi.doMock('../../../../../api/utils/validation.js', () => ({
-      validateProductVariantBinding: vi.fn(async () => ({ normalizedVariantId: null })),
-    }));
-    vi.doMock('../../../../../services/DemandService.js', () => ({
-      DemandService: vi.fn(() => ({
-        syncOrderTransition: vi.fn(async () => undefined),
-      })),
-    }));
-    vi.doMock('../../../../../api/utils/folder-utils.js', () => ({
-      ensureOrderFolder: vi.fn(async () => 'folder-order-1'),
-      moveFilesToFolder: vi.fn(async () => undefined),
+    vi.doMock('../../../../api/cron/outbox.js', () => ({
+      runOutboxPoller: vi.fn(async () => {}),
     }));
     vi.doMock('../../../../_shared/utils.js', async () => {
       const actual = await vi.importActual('../../../../_shared/utils.js');

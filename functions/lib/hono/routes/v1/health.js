@@ -55,10 +55,10 @@ app.get('/info', async (c) => {
     description: 'RESTful API for kk-life file management system',
     documentation: 'https://github.com/x-dr/kk-image',
     endpoints: {
-      files: '/api/v1/files',
-      folders: '/api/v1/folders',
+      files: '/api/manage/files',
+      folders: '/api/manage/folders',
       users: '/api/v1/users',
-      webhooks: '/api/v1/webhooks',
+      webhooks: '/api/manage/webhooks',
       auth: '/api/v1/auth',
       health: '/api/v1/health',
     },

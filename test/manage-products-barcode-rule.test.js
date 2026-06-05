@@ -7,7 +7,7 @@ import {
 } from './utils/manage-products-real-api.js';
 
 describeIfRealApi('Manage Products Real API Barcode Rule', function () {
-  this.timeout(120000);
+  this.timeout(180000);
 
   it('allows reusing barcode after previous variant is archived', async () => {
     const token = await getBearerToken();

@@ -1,21 +1,19 @@
-function toNonNegativeNumber(value) {
-  return Math.max(0, Number(value) || 0);
-}
+import { toNonNegativeInt } from '../api/utils/number.js';
 
 export function projectOrderLineStatus(line = {}) {
-  const ordered = toNonNegativeNumber(
+  const ordered = toNonNegativeInt(
     line.orderedQuantity ?? line.ordered_quantity ?? line.ordered_qty ?? line.quantity
   );
-  const procured = toNonNegativeNumber(
+  const procured = toNonNegativeInt(
     line.procuredQuantity ?? line.procured_quantity ?? line.procured_qty
   );
-  const received = toNonNegativeNumber(
+  const received = toNonNegativeInt(
     line.receivedQuantity ?? line.received_quantity ?? line.received_qty
   );
-  const shipped = toNonNegativeNumber(
+  const shipped = toNonNegativeInt(
     line.shippedQuantity ?? line.shipped_quantity ?? line.shipped_qty
   );
-  const cancelled = toNonNegativeNumber(
+  const cancelled = toNonNegativeInt(
     line.cancelledQuantity ?? line.cancelled_quantity ?? line.cancelled_qty
   );
   const remaining = Math.max(ordered - cancelled, 0);

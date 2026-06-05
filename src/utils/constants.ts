@@ -39,8 +39,8 @@ export const API = {
   FOLDER_BY_ID: (id: string | number) => `${API_PREFIX}/folders/${id}`,
   FOLDER_UPLOAD: (id: string | number) => `${API_PREFIX}/folders/${id}/upload`,
 
-  // v1 API (RESTful)
-  FILES: '/api/v1/files',
+  // 文件管理
+  FILES: `${API_PREFIX}/files`,
 
   // 分享
   SHARES: `${API_PREFIX}/shares`,
@@ -66,7 +66,7 @@ export const API = {
   // 文件操作
   MOVE: `${API_PREFIX}/move`,
   MANAGE_UPLOAD: `${API_PREFIX}/upload`,
-  CHECK_HASH: '/api/v1/files/check-hash', // 原始文件 hash 预检查
+  CHECK_HASH: `${API_PREFIX}/files/check-hash`, // 原始文件 hash 预检查
 
   // 回收站
   TRASH: `${API_PREFIX}/trash`,

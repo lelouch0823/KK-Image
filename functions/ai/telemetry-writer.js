@@ -1,9 +1,4 @@
-function createSpanId(index) {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `span-${Date.now()}-${index}`;
-}
+import { generateId } from '../api/utils/id.js';
 
 export function createAITelemetryWriter({ db } = {}) {
   return {
@@ -33,21 +28,27 @@ export function createAITelemetryWriter({ db } = {}) {
 
     async writeSpans(spans = []) {
       if (!db?.prepare || !Array.isArray(spans) || spans.length === 0) return [];
-      for (let index = 0; index < spans.length; index += 1) {
-        const span = spans[index];
-        await db.prepare(`
+      const statements = spans.map((span) =>
+        db.prepare(`
           INSERT INTO ai_request_spans (
             id, request_id, span_type, status, detail, duration_ms, created_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?)
         `).bind(
-          span.id || createSpanId(index),
+          span.id || generateId(),
           span.requestId,
           span.spanType,
           span.status || null,
           span.detail ? JSON.stringify(span.detail) : null,
           span.durationMs ?? null,
           Number(span.createdAt || Date.now())
-        ).run();
+        )
+      );
+      if (typeof db.batch === 'function') {
+        await db.batch(statements);
+      } else {
+        for (const stmt of statements) {
+          await stmt.run();
+        }
       }
       return spans;
     },

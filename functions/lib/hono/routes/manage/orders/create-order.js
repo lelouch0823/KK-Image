@@ -12,17 +12,7 @@ import { syncOrderDemandTransitionsByLines } from '../../../../../api/utils/orde
 import { canTransitionOrderStatus, normalizeOrderStatus } from '../../../../../api/utils/order-state-machine.js';
 import { scheduleCacheInvalidation } from '../../../_shared/route-helpers.js';
 import { getManageOrderCacheUrls } from '../../_shared/cache-urls.js';
-
-function isDuplicateOutboxIdempotencyError(error) {
-  const message = String(error?.message || error || '').toLowerCase();
-  return (
-    message.includes('unique constraint failed')
-    && (
-      message.includes('domain_outbox.idempotency_key')
-      || message.includes('idx_domain_outbox_idempotency_key')
-    )
-  );
-}
+import { isDuplicateOutboxIdempotencyError } from '../products/idempotency-helpers.js';
 
 function isCreatableManagedOrderStatus(status) {
   if (!status) return true;

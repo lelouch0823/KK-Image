@@ -1,6 +1,7 @@
 import { executeBatchChunks } from '../lib/db/batch.js';
 import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
+import { runOutboxPoller } from '../api/cron/outbox.js';
 
 const D1_MAX_BATCH_SIZE = 100;
 
@@ -90,4 +91,26 @@ export class DomainOutboxPublisher {
 
     return normalizedEvents;
   }
+}
+
+/**
+ * 发布 outbox 事件并调度 poller 执行
+ * 封装常见的 "publish + waitUntil(runOutboxPoller)" 模式
+ * @param {object} c - Hono context
+ * @param {object} options
+ * @param {Array} options.events - 要发布的事件列表
+ * @param {string} [options.workerId] - outbox poller worker ID
+ * @param {string} [options.commandId] - 命令 ID
+ * @param {string} [options.correlationId] - 关联 ID
+ * @returns {Promise<Array>} 发布的事件列表
+ */
+export async function publishAndSchedulePoll(c, { events, workerId, commandId, correlationId } = {}) {
+  const publisher = new DomainOutboxPublisher(c.env.DB);
+  const published = await publisher.publish(events, { commandId, correlationId });
+  c.executionCtx?.waitUntil?.(runOutboxPoller({
+    env: c.env,
+    requestUrl: c.req?.url || 'unknown://publish',
+    workerId: workerId || `outbox:${Date.now()}`,
+  }));
+  return published;
 }

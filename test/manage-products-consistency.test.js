@@ -7,7 +7,7 @@ import {
 } from './utils/manage-products-real-api.js';
 
 describeIfRealApi('Manage Products Real API Query Consistency', function () {
-  this.timeout(120000);
+  this.timeout(180000);
 
   it('keeps list/detail/variants picker consistent on active vs archived variants', async () => {
     const token = await getBearerToken();

@@ -9,32 +9,14 @@
 
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
 import { StocktakeRepository } from '../../../../repositories/StocktakeRepository.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { requireEntity } from '../../_shared/route-helpers.js';
+import { CreateStocktakeSchema, UpdateStocktakeSchema, UpdateItemsSchema } from '../../schemas/stocktake.js';
 
 const app = new Hono();
 app.use('*', requirePermission('products:manage'));
-
-// ─── Schemas ───────────────────────────────────────────────
-
-const CreateStocktakeSchema = z.object({
-  notes: z.string().max(500).optional().nullable(),
-}).strict();
-
-const UpdateStocktakeSchema = z.object({
-  notes: z.string().max(500).optional().nullable(),
-}).strict();
-
-const UpdateItemsSchema = z.object({
-  items: z.array(z.object({
-    itemId: z.string().min(1),
-    actualQty: z.number().int(),
-    notes: z.string().max(200).optional(),
-  })).min(1).max(500),
-});
 
 // ─── 盘点单列表 ───────────────────────────────────────────
 

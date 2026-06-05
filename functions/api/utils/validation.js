@@ -41,9 +41,7 @@ export async function validateProductVariantBinding(db, productId, variantId, op
   if (!product) {
     throw new BadRequestError('productId does not exist');
   }
-  if (checkActive && product.status !== 'active') {
-    throw new BadRequestError('product must be active');
-  }
+  // products 表自迁移 0043 起不再包含 status 列，产品状态由变体级别管理
 
   const variantRepo = new ProductVariantRepository(db);
   const variant = await variantRepo.findByIdAndProductId(normalizedVariantId, normalizedProductId);

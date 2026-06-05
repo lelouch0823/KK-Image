@@ -1,4 +1,4 @@
-function normalizeConcurrency(value, itemCount) {
+export function normalizeConcurrency(value, itemCount) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
   if (!Number.isFinite(parsed) || parsed < 1) {
     return Math.min(Math.max(itemCount, 1), 1);

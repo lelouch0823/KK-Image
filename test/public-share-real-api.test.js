@@ -26,7 +26,7 @@ async function fetchWithOptionalJson(url, init = {}) {
 }
 
 describeIfRealApi('Public Share Real API', function () {
-  this.timeout(120000);
+  this.timeout(180000);
 
   it('reuses one gallery access token across shared files and rejects files outside the share', async () => {
     const bearerToken = await getBearerToken();

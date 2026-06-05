@@ -1,6 +1,47 @@
 import { BadRequestError } from '../lib/hono/errors.js';
 import { toNonNegativeInt } from './purchase-order-projection.js';
 
+/**
+ * 查询候选订单行（DemandService / InventoryService / OrderProcurementDomainService 共享）
+ *
+ * @param {D1Database} db
+ * @param {object} payload
+ * @param {boolean} includeScopedFilters - 是否包含 variantId/productId 范围过滤
+ * @param {object} [options]
+ * @param {string} [options.selectColumns] - 自定义 SELECT 列，默认 'id'
+ * @returns {Promise<Array>}
+ */
+export async function queryOrderLineCandidates(db, payload = {}, includeScopedFilters = true, options = {}) {
+  if (!payload.orderId || typeof db?.prepare !== 'function') return [];
+
+  const selectColumns = options.selectColumns || 'id';
+  const filters = ['order_id = ?'];
+  const params = [payload.orderId];
+
+  if (includeScopedFilters && payload.variantId) {
+    filters.push('variant_id = ?');
+    params.push(payload.variantId);
+  }
+  if (includeScopedFilters && payload.productId) {
+    filters.push('product_id = ?');
+    params.push(payload.productId);
+  }
+
+  const statement = db
+    .prepare(`SELECT ${selectColumns} FROM order_lines WHERE ${filters.join(' AND ')} ORDER BY created_at ASC LIMIT 2`)
+    .bind(...params);
+
+  if (typeof statement?.all === 'function') {
+    const { results } = await statement.all();
+    return results || [];
+  }
+  if (typeof statement?.first === 'function') {
+    const row = await statement.first();
+    return row ? [row] : [];
+  }
+  return [];
+}
+
 export function parsePositiveLineCommandQuantity(payload = {}) {
   const quantity = Number(payload.quantity ?? payload.qty ?? payload.amount);
   if (!Number.isFinite(quantity) || quantity <= 0) {

@@ -5,6 +5,54 @@ const dedupe = (urls = []) => [...new Set(urls.filter(Boolean))];
 
 const SALES_ORDER_STATUSES = ['pending', 'confirmed', 'rejected', 'void'];
 
+/**
+ * 获取 manage/files 相关的缓存 URL 列表
+ */
+export function getManageFileCacheUrls(c) {
+  const origin = getOrigin(c);
+  return [
+    `${origin}/api/manage/files`,
+    `${origin}/api/manage/files?page=1&limit=20`,
+  ];
+}
+
+/**
+ * 获取 manage/files/:id 的缓存 URL
+ */
+export function getManageFileDetailCacheUrls(c, fileIds = []) {
+  const origin = getOrigin(c);
+  return dedupe(
+    (Array.isArray(fileIds) ? fileIds : [fileIds])
+      .filter(Boolean)
+      .map((id) => `${origin}/api/manage/files/${id}`)
+  );
+}
+
+/**
+ * 获取 manage/folders 相关的缓存 URL 列表
+ */
+export function getManageFolderCacheUrls(c, parentIds = []) {
+  const origin = getOrigin(c);
+  return dedupe([
+    `${origin}/api/manage/folders`,
+    ...getManageFolderDetailCacheUrls(c, parentIds),
+  ]);
+}
+
+/**
+ * 获取 manage/folders/:id 的缓存 URL
+ */
+export function getManageFolderDetailCacheUrls(c, parentIds = []) {
+  const origin = getOrigin(c);
+  const ids = Array.isArray(parentIds) ? parentIds : [parentIds];
+  return dedupe(
+    ids.map((parentId) => {
+      if (!parentId || parentId === 'root') return null;
+      return `${origin}/api/manage/folders/${parentId}`;
+    })
+  );
+}
+
 export function getManageNotificationCacheUrls(c) {
   const origin = getOrigin(c);
   return [

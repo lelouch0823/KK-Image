@@ -9,7 +9,7 @@ import {
   getShareUrl,
   getFileUrl,
 } from '../../../../_shared/utils.js';
-import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
+import { requireEntity } from '../../_shared/route-helpers.js';
 import { AlbumRepository } from '../../../../repositories/AlbumRepository.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
@@ -174,22 +174,22 @@ app.put(
       () => new NotFoundError(MSG.ALBUM.NOT_FOUND)
     );
 
-    const updates = [];
-    const values = [];
+    const updates = {};
 
-    appendOptionalUpdate(updates, values, 'name = ?', data.name, (value) => value.trim());
-    appendOptionalUpdate(updates, values, 'description = ?', data.description, (value) => value.trim());
-    appendOptionalUpdate(updates, values, 'is_public = ?', data.isPublic, (value) => (value ? 1 : 0));
+    if (data.name !== undefined) updates.name = data.name.trim();
+    if (data.description !== undefined) updates.description = data.description.trim();
+    if (data.isPublic !== undefined) updates.is_public = data.isPublic ? 1 : 0;
     if (data.isPublic && !album.share_token) {
-      updates.push('share_token = ?');
-      values.push(generateShareToken());
+      updates.share_token = generateShareToken();
     }
-    appendOptionalUpdate(updates, values, 'cover_file_id = ?', data.coverFileId);
+    if (data.coverFileId !== undefined) updates.cover_file_id = data.coverFileId;
 
-    updates.push('updated_at = ?');
-    values.push(Date.now());
+    await repo.update(albumId, updates);
 
-    const updated = await repo.update(albumId, updates, values);
+    const updated = await requireEntity(
+      repo.findById(albumId),
+      () => new NotFoundError(MSG.ALBUM.NOT_FOUND)
+    );
     scheduleAuditEvent(c, {
       domain: 'albums',
       action: 'album.update',

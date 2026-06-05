@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { safeJsonParse } from '../../../../api/utils/json.js';
+import { escapeCSV } from '../../../../api/utils/csv.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { AuditAlertService } from '../../../../services/AuditAlertService.js';
@@ -104,16 +105,6 @@ function buildAuditLogFilters(c) {
     };
 }
 
-function toCsvValue(value) {
-    const normalized = value === null || value === undefined
-        ? ''
-        : typeof value === 'object'
-            ? JSON.stringify(value)
-            : String(value);
-    const sanitized = /^[=+\-@]/.test(normalized) ? `'${normalized}` : normalized;
-    return `"${sanitized.replaceAll('"', '""')}"`;
-}
-
 function buildAuditCsv(rows = []) {
     const columns = [
         'id',
@@ -131,7 +122,7 @@ function buildAuditCsv(rows = []) {
     ];
     const lines = [columns.join(',')];
     for (const row of rows) {
-        lines.push(columns.map((column) => toCsvValue(row[column])).join(','));
+        lines.push(columns.map((column) => escapeCSV(row[column])).join(','));
     }
     return lines.join('\n');
 }

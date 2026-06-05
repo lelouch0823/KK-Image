@@ -116,12 +116,7 @@ describe('manage albums routes extra coverage', () => {
       },
     ]);
     mocks.create.mockResolvedValue(undefined);
-    mocks.update.mockResolvedValue({
-      id: 'album-1',
-      name: 'Updated Album',
-      is_public: 1,
-      share_token: 'share-token-new',
-    });
+    mocks.update.mockResolvedValue(true);
     mocks.removeFiles.mockResolvedValue(undefined);
   });
 
@@ -200,8 +195,7 @@ describe('manage albums routes extra coverage', () => {
     expect(response.status).toBe(200);
     expect(mocks.update).toHaveBeenCalledWith(
       'album-1',
-      ['is_public = ?', 'share_token = ?', 'updated_at = ?'],
-      [1, 'share-token-new', expect.any(Number)]
+      { is_public: 1, share_token: 'share-token-new' }
     );
   });
 

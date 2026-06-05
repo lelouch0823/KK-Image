@@ -187,6 +187,30 @@ export const DOMAIN_EVENT_CATALOG = {
     version: 1,
     consumers: ['cache'],
   },
+  file_created: {
+    version: 1,
+    consumers: ['cache'],
+  },
+  file_updated: {
+    version: 1,
+    consumers: ['cache'],
+  },
+  file_deleted: {
+    version: 1,
+    consumers: ['cache'],
+  },
+  file_batch_deleted: {
+    version: 1,
+    consumers: ['cache'],
+  },
+  file_batch_moved: {
+    version: 1,
+    consumers: ['cache'],
+  },
+  folder_share_updated: {
+    version: 1,
+    consumers: ['cache'],
+  },
   file_uploaded: {
     version: 1,
     consumers: ['cache', 'webhook'],

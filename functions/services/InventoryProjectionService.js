@@ -1,3 +1,5 @@
+import { toNumber } from '../api/utils/number.js';
+
 const STOCK_EVENT_TYPES = new Set([
   'purchase_received',
   'purchase_arrival',
@@ -15,10 +17,6 @@ const RESERVATION_EVENT_TYPES = new Set([
   'inventory_released',
   'reservation_release',
 ]);
-
-function toNumber(value) {
-  return Number(value) || 0;
-}
 
 function getEventType(event = {}) {
   return String(event.event_type || event.eventType || event.type || '').trim();

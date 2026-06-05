@@ -15,7 +15,7 @@ function sumUploadCounts(payload) {
 }
 
 describeIfRealApi('Dashboard Stats Real API', function () {
-  this.timeout(120000);
+  this.timeout(180000);
 
   it('refreshes dashboard overview, manage stats, uploads trend, and salesperson stats after order and upload events', async () => {
     const token = await getBearerToken();

@@ -42,6 +42,10 @@ vi.mock('../../../middleware/auth.js', () => ({
   },
 }));
 
+vi.mock('../../../middleware/cache.js', () => ({
+  withCache: () => async (_c, next) => next(),
+}));
+
 vi.mock('../../../_shared/audit-helpers.js', async () => {
   const actual = await vi.importActual('../../../_shared/audit-helpers.js');
   return {
@@ -107,7 +111,7 @@ describe('manage files outbox routes', () => {
     expect(mocks.publishSingleDomainEventAndPoll).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        event_type: 'v1_file_updated',
+        event_type: 'file_updated',
         aggregate_type: 'file',
         aggregate_id: 'file-1',
         payload: expect.objectContaining({
@@ -133,7 +137,7 @@ describe('manage files outbox routes', () => {
     expect(mocks.publishSingleDomainEventAndPoll).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        event_type: 'v1_file_deleted',
+        event_type: 'file_deleted',
         aggregate_type: 'file',
         aggregate_id: 'file-1',
         payload: expect.objectContaining({
@@ -163,7 +167,7 @@ describe('manage files outbox routes', () => {
     expect(mocks.publishSingleDomainEventAndPoll).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        event_type: 'v1_file_batch_deleted',
+        event_type: 'file_batch_deleted',
         aggregate_type: 'file',
         payload: expect.objectContaining({
           file_ids: ['file-1', 'file-2'],
@@ -192,7 +196,7 @@ describe('manage files outbox routes', () => {
     expect(mocks.publishSingleDomainEventAndPoll).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        event_type: 'v1_file_batch_moved',
+        event_type: 'file_batch_moved',
         aggregate_type: 'file',
         payload: expect.objectContaining({
           file_ids: ['file-1', 'file-2'],

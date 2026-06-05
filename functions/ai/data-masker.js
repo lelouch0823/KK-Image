@@ -1,4 +1,4 @@
-const SENSITIVE_KEY_PATTERN = /password|token|secret|cookie|authorization|jwt|api[-_]?key/i;
+import { SENSITIVE_KEY_PATTERN } from '../api/utils/sanitize.js';
 
 export function maskSensitiveData(input) {
   if (Array.isArray(input)) return input.map(maskSensitiveData);

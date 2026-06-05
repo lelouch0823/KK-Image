@@ -125,7 +125,7 @@ describe('manage folders routes', () => {
       is_public: 0,
     });
     mocks.softDelete.mockResolvedValue(undefined);
-    mocks.updateFolder.mockResolvedValue({ id: 'folder-1', name: 'Updated Folder', is_public: 0, share_token: null });
+    mocks.updateFolder.mockResolvedValue(true);
     mocks.storeFile.mockResolvedValue({
       id: 'file-1',
       name: 'asset.png',
@@ -245,8 +245,7 @@ describe('manage folders routes', () => {
     expect(res.status).toBe(200);
     expect(mocks.updateFolder).toHaveBeenCalledWith(
       'folder-1',
-      ['name = ?', 'updated_at = ?'],
-      ['Updated Folder', expect.any(Number)]
+      { name: 'Updated Folder' }
     );
     const [publishedEvents, publishContext] = mocks.publish.mock.calls[0];
     expect(publishContext).toBeUndefined();

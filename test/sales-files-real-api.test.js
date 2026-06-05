@@ -20,7 +20,7 @@ import {
 } from './utils/webhook-real-api.js';
 
 describeIfRealApi('Sales Files Real API', function () {
-  this.timeout(120000);
+  this.timeout(180000);
 
   it('covers root upload, own-order upload visibility, foreign-order denial, and file_uploaded outbox/webhook delivery', async () => {
     const token = await getBearerToken();

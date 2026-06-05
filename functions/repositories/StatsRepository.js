@@ -3,6 +3,8 @@
  * ===================================
  */
 
+import { chinaDateExpr } from '../lib/db/date-sql.js';
+
 export class StatsRepository {
     constructor(db) {
         this.db = db;
@@ -57,8 +59,8 @@ export class StatsRepository {
                  LIMIT 5`
             ).all(),
             this.db.prepare(`
-                SELECT 
-                    DATE(accessed_at / 1000, 'unixepoch', '+8 hours') as date,
+                SELECT
+                    ${chinaDateExpr('accessed_at')} as date,
                     COUNT(*) as count
                 FROM space_access_logs
                 WHERE accessed_at >= ?
@@ -138,11 +140,11 @@ export class StatsRepository {
      */
     async getUploadTrends(startTime) {
         const { results } = await this.db.prepare(`
-            SELECT 
-                DATE(created_at / 1000, 'unixepoch', '+8 hours') as date,
+            SELECT
+                ${chinaDateExpr()} as date,
                 COUNT(*) as count,
                 COALESCE(SUM(size), 0) as size
-            FROM files 
+            FROM files
             WHERE created_at >= ?
             GROUP BY date
             ORDER BY date DESC

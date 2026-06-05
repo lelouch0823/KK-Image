@@ -29,7 +29,7 @@ function parseJson(value, fallback = {}) {
 }
 
 describeIfRealApi('Uploads Real API', function () {
-  this.timeout(120000);
+  this.timeout(180000);
 
   it('emits manage and sales file upload webhooks and records space upload outbox cache fan-out', async () => {
     const token = await getBearerToken();

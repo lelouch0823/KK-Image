@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { SalesLoginSchema, WechatLoginSchema } from '../../schemas/sales.js';
-import { MSG, hashPassword, verifyPassword, passwordHashNeedsMigration } from '../../../../_shared/utils.js';
+import { MSG } from '../../../../_shared/utils.js';
 import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
+import { getWeChatOpenid } from '../../../../services/WeChatService.js';
 import { loginRateLimitMiddleware } from '../../middleware/rateLimit.js';
 import { NotFoundError, ForbiddenError } from '../../errors.js';
 import { requireEntity } from '../../_shared/route-helpers.js';
@@ -47,17 +48,11 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', SalesLoginSchema
         return handleLoginFailure(c, username);
     }
 
-    const passwordMatches = await verifyPassword(password, salesperson.password_hash, env.JWT_SECRET);
+    const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
+    const passwordMatches = await repo.verifyAndMigratePassword(salesperson.id, password, salesperson.password_hash);
 
     if (!passwordMatches) {
         return handleLoginFailure(c, username);
-    }
-
-    if (passwordHashNeedsMigration(salesperson.password_hash)) {
-        const upgradedHash = await hashPassword(password, env.JWT_SECRET);
-        await env.DB.prepare('UPDATE salespersons SET password_hash = ?, updated_at = ? WHERE id = ?')
-          .bind(upgradedHash, Date.now(), salesperson.id)
-          .run();
     }
 
     // 登录成功，清除失败记录
@@ -67,7 +62,6 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', SalesLoginSchema
     const token = await generateSalesToken(c, salesperson);
 
     // 记录登录信息
-    const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
     const ip = getClientIp(c);
     const userAgent = getUserAgent(c);
     await repo.recordLogin(salesperson.id, ip, userAgent);
@@ -103,21 +97,16 @@ app.post('/wechat-login', loginRateLimitMiddleware, zValidator('json', WechatLog
     const { code } = c.req.valid('json');
     const { env } = c;
 
-    if (!env.WECHAT_APPID || !env.WECHAT_SECRET) {
-        return c.json({ success: false, error: '微信登录未配置' }, 503);
+    let openid;
+    try {
+        const wxData = await getWeChatOpenid(env, code);
+        openid = wxData.openid;
+    } catch (err) {
+        if (err.message === '微信登录未配置') {
+            return c.json({ success: false, error: '微信登录未配置' }, 503);
+        }
+        throw err;
     }
-
-    const wxParams = new URLSearchParams({ appid: env.WECHAT_APPID, secret: env.WECHAT_SECRET, js_code: code, grant_type: 'authorization_code' });
-    const wxUrl = `https://api.weixin.qq.com/sns/jscode2session?${wxParams}`;
-    const wxRes = await fetch(wxUrl);
-    const wxData = await wxRes.json();
-
-    if (wxData.errcode) {
-        console.error('[WeChat] API error:', wxData.errcode, wxData.errmsg);
-        throw new Error('微信登录失败，请稍后重试');
-    }
-
-    const { openid } = wxData;
     const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
     const salesperson = await repo.findByWechatOpenid(openid);
 
@@ -176,17 +165,10 @@ app.post('/:token/auth', loginRateLimitMiddleware, async (c) => {
     );
     if (!salesperson.is_active) throw new ForbiddenError(MSG.SALESPERSON.DISABLED);
 
-    const passwordMatches = await verifyPassword(password, salesperson.password_hash, env.JWT_SECRET);
+    const passwordMatches = await repo.verifyAndMigratePassword(salesperson.id, password, salesperson.password_hash);
 
     if (!passwordMatches) {
         return handleLoginFailure(c, accessToken, MSG.SALESPERSON.INVALID_PASSWORD);
-    }
-
-    if (passwordHashNeedsMigration(salesperson.password_hash)) {
-        const upgradedHash = await hashPassword(password, env.JWT_SECRET);
-        await env.DB.prepare('UPDATE salespersons SET password_hash = ?, updated_at = ? WHERE id = ?')
-          .bind(upgradedHash, Date.now(), salesperson.id)
-          .run();
     }
 
     // 登录成功，清除失败记录

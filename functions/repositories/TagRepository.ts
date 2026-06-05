@@ -8,9 +8,17 @@ import type { Tag, CreateTagData, AssignTagData, TagSuggestion } from '../types/
 
 export class TagRepository {
   protected db: D1Database;
+  protected now: () => number;
 
-  constructor(db: D1Database) {
+  /**
+   * 构造函数
+   * @param db Cloudflare D1 数据库实例
+   * @param deps 依赖注入
+   * @param deps.now 时间戳函数，默认 Date.now
+   */
+  constructor(db: D1Database, deps: { now?: () => number } = {}) {
     this.db = db;
+    this.now = deps.now || (() => Date.now());
   }
 
   /**
@@ -27,12 +35,15 @@ export class TagRepository {
   /**
    * 创建标签
    * @param data 标签数据
+   * @returns 创建结果
    * @throws 如果标签名已存在（UNIQUE 约束）
    */
-  async create(data: CreateTagData): Promise<void> {
+  async create(data: CreateTagData): Promise<{ id: string }> {
     await this.db.prepare(
       'INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?)'
-    ).bind(data.id, data.name, data.color || null, data.createdAt).run();
+    ).bind(data.id, data.name, data.color || null, data.createdAt || this.now()).run();
+
+    return { id: data.id };
   }
 
   /**
@@ -49,11 +60,14 @@ export class TagRepository {
    * 从文件移除标签
    * @param fileId 文件 ID
    * @param tagId 标签 ID
+   * @returns 是否实际删除
    */
-  async removeFromFile(fileId: string, tagId: string): Promise<void> {
-    await this.db.prepare(
+  async removeFromFile(fileId: string, tagId: string): Promise<boolean> {
+    const result = await this.db.prepare(
       'DELETE FROM file_tags WHERE file_id = ? AND tag_id = ?'
     ).bind(fileId, tagId).run();
+
+    return (result?.meta?.changes || 0) > 0;
   }
 
   /**

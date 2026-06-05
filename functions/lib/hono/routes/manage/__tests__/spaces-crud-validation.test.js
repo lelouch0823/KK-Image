@@ -199,9 +199,9 @@ describe('manage spaces crud validation', () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 
-  it('rejects create when the bound product is archived', async () => {
-    mocks.productFindById.mockResolvedValueOnce({
-      id: 'p-1',
+  it('rejects create when the bound variant is archived', async () => {
+    mocks.variantFindByIdAndProductId.mockResolvedValueOnce({
+      id: 'v-1',
       status: 'archived',
     });
 
@@ -212,7 +212,7 @@ describe('manage spaces crud validation', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: 'Archived Product Space',
+          name: 'Archived Variant Space',
           productId: 'p-1',
           variantId: 'v-1',
         }),
@@ -223,7 +223,7 @@ describe('manage spaces crud validation', () => {
 
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toContain('product must be active');
+    expect(body.error).toContain('variant must be active');
     expect(mocks.create).not.toHaveBeenCalled();
   });
 

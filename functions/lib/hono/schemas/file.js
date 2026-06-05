@@ -34,3 +34,13 @@ export const MoveFileSchema = z.object({
   ids: z.array(z.string()).min(1).max(100),
   targetFolderId: z.string().nullable(),
 });
+
+export const DeleteFilesSchema = z.object({
+  ids: z.array(z.string()).min(1).max(100),
+});
+
+export const MoveFilesSchema = MoveFileSchema;
+
+export const RenameFileSchema = z.object({
+  name: z.string().min(1).max(255),
+});

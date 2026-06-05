@@ -257,8 +257,8 @@ describe('DomainOutboxConsumers notifications', () => {
       created: true,
     });
     expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Delivery confirmed',
-      content: 'Order SO-DELIVERY delivery has been confirmed',
+      title: JSON.stringify({ key: 'notification.order.deliveryConfirmed' }),
+      content: JSON.stringify({ key: 'notification.order.deliveryConfirmed_desc', params: { orderNo: 'SO-DELIVERY' } }),
       receiver: 'sales',
       salespersonId: 'sp-delivery',
       orderId: 'o-delivery',
@@ -295,8 +295,8 @@ describe('DomainOutboxConsumers notifications', () => {
       created: true,
     });
     expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Return created',
-      content: 'Order SO-RETURN has a return for 2 unit(s)',
+      title: JSON.stringify({ key: 'notification.order.returnCreated' }),
+      content: JSON.stringify({ key: 'notification.order.returnCreated_desc', params: { orderNo: 'SO-RETURN', quantity: 2 } }),
       receiver: 'sales',
       salespersonId: 'sp-return',
       orderId: 'o-return',

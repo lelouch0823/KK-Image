@@ -9,7 +9,23 @@ const TARGETS = [
     helperNames: ['parseSummaryJson'],
   },
   {
-    file: path.join(ROOT, 'functions', 'services', 'DomainOutboxConsumers.js'),
+    file: path.join(ROOT, 'functions', 'services', 'consumers', 'audit-consumer.js'),
+    helperNames: ['parsePayload'],
+  },
+  {
+    file: path.join(ROOT, 'functions', 'services', 'consumers', 'cache-consumer.js'),
+    helperNames: ['parsePayload'],
+  },
+  {
+    file: path.join(ROOT, 'functions', 'services', 'consumers', 'notification-consumer.js'),
+    helperNames: ['parsePayload'],
+  },
+  {
+    file: path.join(ROOT, 'functions', 'services', 'consumers', 'channel-notify-consumer.js'),
+    helperNames: ['parsePayload'],
+  },
+  {
+    file: path.join(ROOT, 'functions', 'services', 'consumers', 'email-consumer.js'),
     helperNames: ['parsePayload'],
   },
   {

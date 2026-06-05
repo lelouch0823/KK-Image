@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { CustomerRepository } from '../../../../repositories/CustomerRepository.ts';
 import { MSG } from '../../../../_shared/utils.js';
@@ -11,6 +10,16 @@ import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 import { getManageCustomerCacheUrls } from '../_shared/cache-urls.js';
+import { escapeCSV } from '../../../../api/utils/csv.js';
+import {
+    CreateCustomerSchema,
+    UpdateCustomerSchema,
+    BatchTagsSchema,
+    BatchExportSchema,
+    AddTagSchema,
+    ImportConfirmSchema,
+    CreateCommunicationSchema,
+} from '../../schemas/customer.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -19,28 +28,6 @@ export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'DELETE', path: '/:id', domain: 'customers', action: 'customer.delete', severity: 'high', targetType: 'customer' },
 ]);
 app.use('*', requirePermission('orders:manage'));
-
-// 验证 Schema
-const CreateCustomerSchema = z.object({
-    name: z.string().min(1, MSG.COMMON.REQUIRED),
-    phone: z.string().optional().default(''),
-    company: z.string().optional().default(''),
-    email: z.string().email().optional().or(z.literal('')).default(''),
-    address: z.string().optional().default(''),
-    tags: z.array(z.string()).optional().default([]),
-    remark: z.string().optional().default(''),
-});
-
-const UpdateCustomerSchema = CreateCustomerSchema.partial();
-
-const BatchTagsSchema = z.object({
-    ids: z.array(z.string()).min(1).max(500),
-    tag: z.string().min(1).max(100),
-}).strict();
-
-const BatchExportSchema = z.object({
-    ids: z.array(z.string()).min(1).max(10000),
-}).strict();
 
 /**
  * GET / - 分页查询客户列表（含 RFM 分段）
@@ -160,11 +147,6 @@ app.post('/batch/export', zValidator('json', BatchExportSchema), async (c) => {
         { key: 'remark', label: '备注' },
         { key: 'created_at', label: '创建时间' },
     ];
-
-    const escapeCSV = (v) => {
-        const normalized = v === null || v === undefined ? '' : String(v);
-        return `"${normalized.replace(/"/g, '""')}"`;
-    };
 
     const getChinaDateStr = (ts) => {
         if (!ts) return '';
@@ -292,10 +274,6 @@ app.get('/export', async (c) => {
         }
 
         // CSV 格式（默认）
-        const escapeCSV = (v) => {
-            const s = v === null || v === undefined ? '' : String(v);
-            return `"${s.replace(/"/g, '""')}"`;
-        };
         const header = columns.map((col) => col.label).join(',');
         const csvRows = rows.map((row) => columns.map((col) => escapeCSV(row[col.key])).join(','));
         const csv = '﻿' + [header, ...csvRows].join('\n');
@@ -316,18 +294,6 @@ app.get('/export', async (c) => {
 /**
  * POST /import/confirm - 确认导入客户（批量插入）
  */
-const ImportConfirmSchema = z.object({
-    rows: z.array(z.object({
-        name: z.string().min(1),
-        phone: z.string().optional().default(''),
-        company: z.string().optional().default(''),
-        email: z.string().optional().default(''),
-        address: z.string().optional().default(''),
-        tags: z.array(z.string()).optional().default([]),
-        remark: z.string().optional().default(''),
-    })).min(1, '请提供至少一条客户数据'),
-});
-
 app.post('/import/confirm', zValidator('json', ImportConfirmSchema), async (c) => {
     const { env } = c;
     const user = c.get('user');
@@ -639,13 +605,6 @@ app.get('/:id/stats', async (c) => {
 // ========================================
 // 沟通记录 (Communications)
 // ========================================
-
-const COMMUNICATION_TYPES = ['note', 'call', 'email', 'meeting', 'wechat'];
-
-const CreateCommunicationSchema = z.object({
-    type: z.enum(COMMUNICATION_TYPES).default('note'),
-    content: z.string().min(1, '沟通内容不能为空'),
-});
 
 /**
  * GET /:id/communications - 获取客户沟通记录

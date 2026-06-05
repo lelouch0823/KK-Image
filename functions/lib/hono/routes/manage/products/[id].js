@@ -35,6 +35,7 @@ import {
     UpsertPriceRulesSchema,
 } from '../../../schemas/product.js';
 import { PriceRuleRepository } from '../../../../../repositories/PriceRuleRepository.js';
+import { parseBooleanFlag } from '../../../../../ai/config-schema.js';
 
 const app = new Hono();
 const PRODUCT_ARCHIVE_COMMAND_TYPE = 'product_archive';
@@ -77,13 +78,6 @@ const isVariantImageMissingError = (error) =>
     error?.message?.includes('Variant image does not exist');
 const isVariantImageSortContractError = (error) =>
     error?.message?.includes('imageIds must include each variant image exactly once');
-const parseBooleanFlag = (value) => {
-    if (typeof value === 'string') {
-        const normalized = value.trim().toLowerCase();
-        return normalized === 'true' || normalized === '1';
-    }
-    return value === true || value === 1;
-};
 
 const rethrowVariantImageMutationError = (error) => {
     if (

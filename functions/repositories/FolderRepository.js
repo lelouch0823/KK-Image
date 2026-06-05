@@ -1,16 +1,40 @@
 /**
  * 文件夹仓库 (Folder Repository)
  * ===================================
- * 
+ *
  * 涉及文件夹的 CRUD、层级统计及物理存储清理关联逻辑。
  */
-import { inClause } from '../api/utils/sql.js';
+import { inClause, buildSetClause } from '../api/utils/sql.js';
 import { parseRepoPagination } from '../api/utils/pagination.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
+import { FOLDER_PATHS_CTE } from '../lib/db/trash-paths-cte.js';
+
+/** 子文件夹计数 JOIN 子查询 */
+const SUBFOLDER_COUNT_JOIN = `LEFT JOIN (
+    SELECT parent_id, COUNT(*) as subfolder_count
+    FROM folders
+    WHERE is_deleted = 0
+    GROUP BY parent_id
+) sub ON sub.parent_id = f.id`;
+
+/** 文件计数 JOIN 子查询 */
+const FILE_COUNT_JOIN = `LEFT JOIN (
+    SELECT folder_id, COUNT(*) as file_count
+    FROM files
+    WHERE is_deleted = 0
+    GROUP BY folder_id
+) fc ON fc.folder_id = f.id`;
 
 export class FolderRepository {
-    constructor(db) {
+    /**
+     * 构造函数
+     * @param {D1Database} db - Cloudflare D1 数据库实例
+     * @param {Object} [deps] - 依赖注入
+     * @param {Function} [deps.now] - 时间戳函数，默认 Date.now
+     */
+    constructor(db, deps = {}) {
         this.db = db;
+        this.now = deps.now || Date.now;
     }
 
     /**
@@ -32,18 +56,8 @@ export class FolderRepository {
                 COALESCE(sub.subfolder_count, 0) as subfolder_count,
                 COALESCE(fc.file_count, 0) as file_count
             FROM folders f
-            LEFT JOIN (
-                SELECT parent_id, COUNT(*) as subfolder_count
-                FROM folders
-                WHERE is_deleted = 0
-                GROUP BY parent_id
-            ) sub ON sub.parent_id = f.id
-            LEFT JOIN (
-                SELECT folder_id, COUNT(*) as file_count
-                FROM files
-                WHERE is_deleted = 0
-                GROUP BY folder_id
-            ) fc ON fc.folder_id = f.id
+            ${SUBFOLDER_COUNT_JOIN}
+            ${FILE_COUNT_JOIN}
             WHERE (f.parent_id IS NULL OR f.parent_id = 'root')
               AND f.is_deleted = 0
             ORDER BY f.created_at DESC
@@ -60,18 +74,8 @@ export class FolderRepository {
                 COALESCE(sub.subfolder_count, 0) as subfolder_count,
                 COALESCE(fc.file_count, 0) as file_count
             FROM folders f
-            LEFT JOIN (
-                SELECT parent_id, COUNT(*) as subfolder_count
-                FROM folders
-                WHERE is_deleted = 0
-                GROUP BY parent_id
-            ) sub ON sub.parent_id = f.id
-            LEFT JOIN (
-                SELECT folder_id, COUNT(*) as file_count
-                FROM files
-                WHERE is_deleted = 0
-                GROUP BY folder_id
-            ) fc ON fc.folder_id = f.id
+            ${SUBFOLDER_COUNT_JOIN}
+            ${FILE_COUNT_JOIN}
             WHERE f.parent_id = ?
               AND f.is_deleted = 0
             ORDER BY f.created_at DESC
@@ -80,12 +84,13 @@ export class FolderRepository {
     }
 
     /**
-     * 根据 ID 获取文件夹 (可能需要获取 deleted 的，所以不强制 status='active'，让上层决定)
-     * 但 Breadcrumbs 可能会用到，这里暂时保持原样，或者上层业务逻辑判断 status。
-     * 一般 findById 用于鉴权等，不应限制。
+     * 根据 ID 获取文件夹
+     * @param {string} id
+     * @returns {Promise<Object|null>}
      */
     async findById(id) {
-        return await this.db.prepare('SELECT * FROM folders WHERE id = ?').bind(id).first();
+        const result = await this.db.prepare('SELECT * FROM folders WHERE id = ?').bind(id).first();
+        return result || null;
     }
 
     /**
@@ -116,6 +121,8 @@ export class FolderRepository {
 
     /**
      * 创建文件夹
+     * @param {Object} data
+     * @returns {Promise<{ id: string }>}
      */
     async create(data) {
         await this.db.prepare(
@@ -129,24 +136,31 @@ export class FolderRepository {
             data.shareToken || null,
             data.isPublic ? 1 : 0,
             data.password || null,
-            data.createdAt || Date.now(),
-            data.updatedAt || Date.now()
+            data.createdAt || this.now(),
+            data.updatedAt || this.now()
         ).run();
+
+        return { id: data.id };
     }
 
     /**
      * 更新文件夹
+     * @param {string} id
+     * @param {Object} updates - 列名 -> 值的映射
+     * @returns {Promise<boolean>} 是否实际更新
      */
-    async update(id, updates, values) {
-        const SAFE_COLUMN_RE = /^[a-zA-Z_][a-zA-Z0-9_. ]* = \?$/;
-        for (const clause of updates) {
-            if (!SAFE_COLUMN_RE.test(clause.trim())) {
-                throw new Error(`Unsafe SQL clause: ${clause}`);
-            }
-        }
-        await this.db.prepare(`UPDATE folders SET ${updates.join(', ')} WHERE id = ?`)
+    async update(id, updates) {
+        if (!updates || Object.keys(updates).length === 0) return false;
+
+        const updateData = { ...updates };
+        updateData.updated_at = this.now();
+        const { clause, values } = buildSetClause(updateData);
+
+        const result = await this.db.prepare(`UPDATE folders SET ${clause} WHERE id = ?`)
             .bind(...values, id)
             .run();
+
+        return (result?.meta?.changes || 0) > 0;
     }
 
     // --- 回收站相关 ---
@@ -181,17 +195,7 @@ export class FolderRepository {
      */
     async findTrashWithPaths() {
         const { results } = await this.db.prepare(`
-            WITH RECURSIVE folder_paths(id, path) AS (
-                SELECT id, name
-                FROM folders
-                WHERE parent_id IS NULL OR parent_id = 'root'
-                
-                UNION ALL
-                
-                SELECT f.id, fp.path || '/' || f.name
-                FROM folders f
-                JOIN folder_paths fp ON f.parent_id = fp.id
-            )
+            ${FOLDER_PATHS_CTE}
             SELECT f.*,
                 CASE
                     WHEN f.parent_id = 'root' OR f.parent_id IS NULL THEN '/'
@@ -321,16 +325,8 @@ export class FolderRepository {
                 COALESCE(sub.subfolder_count, 0) as subfolderCount,
                 COALESCE(fc.file_count, 0) as fileCount
             FROM folders f
-            LEFT JOIN (
-                SELECT parent_id, COUNT(*) as subfolder_count
-                FROM folders WHERE is_deleted = 0
-                GROUP BY parent_id
-            ) sub ON sub.parent_id = f.id
-            LEFT JOIN (
-                SELECT folder_id, COUNT(*) as file_count
-                FROM files WHERE is_deleted = 0
-                GROUP BY folder_id
-            ) fc ON fc.folder_id = f.id
+            ${SUBFOLDER_COUNT_JOIN}
+            ${FILE_COUNT_JOIN}
             WHERE ${where}
             ORDER BY f.name ASC
             LIMIT ? OFFSET ?

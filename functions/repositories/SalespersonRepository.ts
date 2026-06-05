@@ -1,4 +1,4 @@
-import { generateId, generateShareToken, hashPassword, now } from '../api/utils/id.js';
+import { generateId, generateShareToken, hashPassword, verifyPassword, passwordHashNeedsMigration, now } from '../api/utils/id.js';
 import { parseRepoPagination } from '../api/utils/pagination.js';
 import { hasChanges } from '../api/utils/result.js';
 import { buildSetClause } from '../api/utils/sql.js';
@@ -18,9 +18,21 @@ export class SalespersonRepository {
   protected db: D1Database;
   protected jwtSecret: string;
 
-  constructor(db: D1Database, jwtSecret: string) {
+  /**
+   * 构造函数
+   * @param db Cloudflare D1 数据库实例
+   * @param deps 依赖注入
+   * @param deps.jwtSecret JWT 密钥，用于密码哈希
+   * @param deps.now 时间戳函数，默认 Date.now
+   */
+  constructor(db: D1Database, deps: { jwtSecret?: string; now?: () => number } | string = {}) {
     this.db = db;
-    this.jwtSecret = jwtSecret; // 需要传入 JWT_SECRET 用于密码哈希
+    // 向后兼容：支持直接传入 jwtSecret 字符串
+    if (typeof deps === 'string') {
+      this.jwtSecret = deps;
+    } else {
+      this.jwtSecret = deps.jwtSecret || '';
+    }
   }
 
   /**
@@ -310,6 +322,26 @@ export class SalespersonRepository {
       .bind(now(), ip || null, device || null, now(), id)
       .run();
     return hasChanges(result);
+  }
+
+  /**
+   * 验证密码并在需要时自动迁移哈希格式
+   * @param salespersonId 销售人员 ID
+   * @param password 原始密码
+   * @param encodedHash 存储的密码哈希
+   * @returns 密码是否匹配
+   */
+  async verifyAndMigratePassword(salespersonId: string, password: string, encodedHash: string): Promise<boolean> {
+    const matches = await verifyPassword(password, encodedHash, this.jwtSecret);
+    if (!matches) return false;
+
+    if (passwordHashNeedsMigration(encodedHash)) {
+      const upgradedHash = await hashPassword(password, this.jwtSecret);
+      await this.db.prepare('UPDATE salespersons SET password_hash = ?, updated_at = ? WHERE id = ?')
+        .bind(upgradedHash, now(), salespersonId)
+        .run();
+    }
+    return true;
   }
 
   /**

@@ -1,18 +1,5 @@
 import { generateId, now } from '../../../api/utils/id.js';
-
-const REDACTED = '[REDACTED]';
-const SENSITIVE_KEY_PATTERN = /password|token|secret|cookie|authorization|jwt|api[-_]?key/i;
-const PARTIAL_MASK_PATTERN = /email|phone|mobile/i;
-
-function maskPartialValue(value) {
-  if (typeof value !== 'string' || value.length < 3) return REDACTED;
-  if (value.includes('@')) {
-    const [name, domain] = value.split('@');
-    const safeName = `${name.slice(0, 1)}***`;
-    return `${safeName}@${domain}`;
-  }
-  return `${value.slice(0, 2)}***${value.slice(-2)}`;
-}
+import { SENSITIVE_KEY_PATTERN, PARTIAL_MASK_PATTERN, maskPartialValue } from '../../../api/utils/sanitize.js';
 
 export function sanitizeAuditData(input) {
   if (Array.isArray(input)) return input.map((item) => sanitizeAuditData(item));
@@ -50,7 +37,7 @@ export function getRequestAuditContext(c) {
     ip_address: ip,
     user_agent: c?.req?.header?.('User-Agent') || 'unknown',
     request_id: c?.req?.header?.('CF-Ray') || null,
-    trace_id: null,
+    trace_id: c?.get?.('traceId') || null,
     source_app: inferSourceApp(c),
   };
 }

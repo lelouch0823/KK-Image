@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
 import { MSG } from '../../../../_shared/utils.js';
@@ -11,6 +10,7 @@ import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 import { getManageSalespersonCacheUrls } from '../_shared/cache-urls.js';
+import { CreateSalespersonSchema, UpdateSalespersonSchema } from '../../schemas/salesperson.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -58,22 +58,6 @@ app.get('/ranking', withCache(60), async (c) => {
             total: ranking.length,
         },
     });
-});
-
-// 验证 Schema
-const CreateSalespersonSchema = z.object({
-    name: z.string().min(1, MSG.SALESPERSON.NAME_REQUIRED),
-    store: z.string().optional().nullable(),
-    phone: z.string().optional().nullable(),
-    password: z.string().min(1, MSG.SALESPERSON.PASSWORD_REQUIRED),
-});
-
-const UpdateSalespersonSchema = z.object({
-    name: z.string().optional(),
-    store: z.string().optional().nullable(),
-    phone: z.string().optional().nullable(),
-    password: z.string().optional(),
-    isActive: z.boolean().optional(),
 });
 
 /**

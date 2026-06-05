@@ -1,9 +1,4 @@
-function createId(prefix) {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `${prefix}-${Date.now()}`;
-}
+import { generateId } from '../api/utils/id.js';
 
 function createAbortError(reason) {
   const error = new Error(`AI request aborted: ${reason}`);
@@ -17,8 +12,8 @@ export function createAIRequestContext(input = {}) {
   const controller = input.controller instanceof AbortController ? input.controller : new AbortController();
   let abortReason = null;
   const spans = [];
-  const requestId = input.requestId || createId('req');
-  const traceId = input.traceId || createId('trace');
+  const requestId = input.requestId || generateId();
+  const traceId = input.traceId || generateId();
 
   // Helper to set abort reason only if not already set (sticky behavior)
   const setAbortReason = (reason) => {

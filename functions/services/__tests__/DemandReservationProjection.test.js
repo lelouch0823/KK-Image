@@ -21,6 +21,7 @@ function createProjectionAwareDb() {
         },
       };
     },
+    batch: async (stmts) => stmts.map(() => ({ meta: { changes: 1 } })),
   };
 }
 

@@ -6,6 +6,7 @@
  */
 
 import { parseJsonObject } from '../api/utils/json.js';
+import { chinaDateExpr, chinaDateExprAliased, chinaHourExpr } from '../lib/db/date-sql.js';
 import { query, queryFirst } from '../lib/db/query.js';
 import {
   ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL,
@@ -190,10 +191,10 @@ export class OrderStatsRepository {
       // 近30天趋势
       this.runQuery(
         `
-                SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count
-                FROM orders 
+                SELECT ${chinaDateExpr()} as date, COUNT(*) as count
+                FROM orders
                 WHERE salesperson_id = ? AND created_at >= ?
-                GROUP BY DATE(created_at / 1000, 'unixepoch', '+8 hours')
+                GROUP BY ${chinaDateExpr()}
                 ORDER BY date ASC
             `
         ,
@@ -289,8 +290,8 @@ export class OrderStatsRepository {
         ),
         this.runQuery(
           `
-                SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count
-                FROM orders 
+                SELECT ${chinaDateExpr()} as date, COUNT(*) as count
+                FROM orders
                 WHERE created_at >= ?
                 GROUP BY date ORDER BY date
             `
@@ -326,8 +327,8 @@ export class OrderStatsRepository {
   async getTodayHourlyTrend(todayStart) {
     const result = await this.runQuery(
       `
-            SELECT STRFTIME('%H', created_at / 1000, 'unixepoch', '+8 hours') as hour, COUNT(*) as count 
-            FROM orders 
+            SELECT ${chinaHourExpr()} as hour, COUNT(*) as count
+            FROM orders
             WHERE created_at >= ?
             GROUP BY hour
             ORDER BY hour ASC
@@ -346,8 +347,8 @@ export class OrderStatsRepository {
   async getLast7DaysOrderTrend(startTimestamp) {
     const result = await this.runQuery(
       `
-            SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count 
-            FROM orders 
+            SELECT ${chinaDateExpr()} as date, COUNT(*) as count
+            FROM orders
             WHERE created_at >= ?
             GROUP BY date
             ORDER BY date ASC
@@ -368,8 +369,8 @@ export class OrderStatsRepository {
   async getLast7DaysPendingTrend(startTimestamp) {
     const result = await this.runQuery(
       `
-            SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count 
-            FROM orders 
+            SELECT ${chinaDateExpr()} as date, COUNT(*) as count
+            FROM orders
             WHERE created_at >= ? AND status = 'pending'
             GROUP BY date
             ORDER BY date ASC
@@ -389,8 +390,8 @@ export class OrderStatsRepository {
   async getLast7DaysShareTrend(startTimestamp) {
     const result = await this.runQuery(
       `
-            SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date, COUNT(*) as count 
-            FROM folders 
+            SELECT ${chinaDateExpr()} as date, COUNT(*) as count
+            FROM folders
             WHERE is_public = 1 AND created_at >= ?
             GROUP BY date
             ORDER BY date ASC
@@ -410,7 +411,7 @@ export class OrderStatsRepository {
   async getSalesTrend(startTimestamp) {
     const result = await this.runQuery(
       `
-            SELECT DATE(created_at / 1000, 'unixepoch', '+8 hours') as date,
+            SELECT ${chinaDateExpr()} as date,
                    COUNT(*) as orderCount
             FROM orders
             WHERE created_at >= ?
@@ -578,7 +579,7 @@ export class OrderStatsRepository {
     const result = await this.runQuery(
       `
       SELECT
-        DATE(o.created_at / 1000, 'unixepoch', '+8 hours') AS date,
+        ${chinaDateExprAliased('o')} AS date,
         COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS revenue,
         COALESCE(SUM(ol.ordered_qty * (${costExpr})), 0) AS cost
       ${joinClause}

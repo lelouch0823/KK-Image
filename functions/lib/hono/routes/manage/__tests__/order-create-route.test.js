@@ -474,8 +474,8 @@ describe('manage order create route', () => {
     );
   });
 
-  it('rejects create order when bound product is archived', async () => {
-    const error = new Error('product must be active');
+  it('rejects create order when bound variant is out of stock', async () => {
+    const error = new Error('variant must be in stock');
     error.statusCode = 400;
     mocks.validateProductVariantBinding.mockRejectedValueOnce(error);
 

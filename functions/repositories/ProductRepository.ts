@@ -6,6 +6,7 @@ import { hasChanges } from '../api/utils/result.js';
 import { generateId } from '../api/utils/id.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { execute, query, queryFirst } from '../lib/db/query.js';
+import { checkFtsTable, sanitizeFts5Query } from '../api/utils/fts.js';
 import type { D1Database } from '../types/database.js';
 import type {
   Product,
@@ -21,9 +22,6 @@ import type {
 } from '../types/entities.js';
 
 export class ProductRepository {
-    /** @type {boolean|null} FTS5 可用性缓存 */
-    static _ftsAvailable: boolean | null = null;
-
     /** 商品生命周期状态常量 */
     static VALID_STATUSES: readonly string[] = Object.freeze(['draft', 'active', 'archived']);
 
@@ -38,23 +36,6 @@ export class ProductRepository {
 
     constructor(db: D1Database) {
         this.db = db;
-    }
-
-    /**
-     * 检查 FTS5 虚拟表是否存在（带模块级缓存）
-     * @returns FTS5 表是否存在
-     */
-    async _hasFtsTable(): Promise<boolean> {
-        if (ProductRepository._ftsAvailable !== null) return ProductRepository._ftsAvailable;
-        try {
-            const stmt = this.db.prepare?.("SELECT name FROM sqlite_master WHERE type='table' AND name='products_fts'");
-            if (!stmt) { ProductRepository._ftsAvailable = false; return false; }
-            const result = await stmt.first();
-            ProductRepository._ftsAvailable = !!result;
-        } catch {
-            ProductRepository._ftsAvailable = false;
-        }
-        return ProductRepository._ftsAvailable;
     }
 
     static PRODUCT_CURRENCY_SET: Set<string> = new Set(['CNY', 'USD', 'EUR', 'GBP', 'JPY']);
@@ -137,12 +118,13 @@ export class ProductRepository {
 
         if (filters.search && !omit.includes('search')) {
             // 优先使用 FTS5 全文搜索（O(logN)），不可用时降级为 LIKE（O(N)）
-            const hasFts = await this._hasFtsTable();
+            const hasFts = await checkFtsTable(this.db, 'products_fts');
             if (hasFts) {
-                const sanitized = String(filters.search).replace(/"/g, '""');
-                const ftsQuery = `"${sanitized}"*`;
-                clauses.push('p.rowid IN (SELECT rowid FROM products_fts WHERE products_fts MATCH ?)');
-                params.push(ftsQuery);
+                const sanitized = sanitizeFts5Query(filters.search);
+                if (sanitized) {
+                    clauses.push('p.rowid IN (SELECT rowid FROM products_fts WHERE products_fts MATCH ?)');
+                    params.push(`"${sanitized}"*`);
+                }
             } else {
                 clauses.push('(p.name LIKE ? OR p.spu LIKE ? OR p.series LIKE ?)');
                 const term = `%${filters.search}%`;
@@ -702,6 +684,92 @@ export class ProductRepository {
                 options: [],
             } as unknown as Product;
         }
+    }
+
+    /**
+     * 搜索商品变体（分页）
+     * @param options 搜索选项
+     * @returns 分页的变体列表
+     */
+    async searchVariants(options: { search?: string; page?: number; limit?: number } = {}): Promise<{
+        items: Array<Record<string, unknown>>;
+        total: number;
+        page: number;
+        limit: number;
+    }> {
+        const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
+            { page: options.page, limit: options.limit },
+            { defaultPage: 1, defaultLimit: 50, maxLimit: 100 }
+        );
+
+        const conditions = ['pv.status = ?'];
+        const countParams: unknown[] = ['active'];
+        const listParams: unknown[] = ['active'];
+
+        if (options.search && options.search.trim()) {
+            const term = `%${options.search.trim()}%`;
+            conditions.push('(p.name LIKE ? OR p.brand LIKE ? OR p.spu LIKE ?)');
+            countParams.push(term, term, term);
+            listParams.push(term, term, term);
+        }
+
+        const whereClause = conditions.join(' AND ');
+
+        const countSql = `
+            SELECT COUNT(*) as total
+            FROM product_variants pv
+            LEFT JOIN products p ON p.id = pv.product_id
+            WHERE ${whereClause}
+        `;
+
+        const listSql = `
+            SELECT
+                pv.id AS variant_id,
+                pv.product_id,
+                p.name AS product_name,
+                p.brand,
+                p.spu,
+                p.images AS product_images,
+                pv.sku AS variant_sku,
+                pv.variant_code,
+                pv.options AS variant_options,
+                pv.cost_price,
+                pv.stock_quantity,
+                COALESCE(ib.available, pv.stock_quantity, 0) AS available_quantity,
+                pv.alert_threshold,
+                pv.moq,
+                pv.pack_size,
+                pv.order_step,
+                pv.image_id AS variant_image_id
+            FROM product_variants pv
+            LEFT JOIN products p ON p.id = pv.product_id
+            LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
+            WHERE ${whereClause}
+            ORDER BY p.name ASC, pv.sku ASC
+            LIMIT ? OFFSET ?
+        `;
+        listParams.push(safeLimit, offset);
+
+        const [countResult, listResult] = await Promise.all([
+            this.db.prepare(countSql).bind(...countParams).first<{ total: number }>(),
+            this.db.prepare(listSql).bind(...listParams).all(),
+        ]);
+
+        const items = ((listResult.results || []) as Array<Record<string, unknown>>).map((row) => ({
+            ...row,
+            sku: row.variant_sku,
+            unit_cost: row.cost_price,
+            image: row.variant_image_id || null,
+            variant_options: parseJsonObject(row.variant_options, {}),
+            product_images: parseJsonArray(row.product_images, []),
+        }));
+
+        return {
+            items,
+            total: countResult?.total || 0,
+            page: safePage,
+            limit: safeLimit,
+        };
     }
 
     /**

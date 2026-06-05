@@ -316,7 +316,7 @@ const displayedFiles = computed(() => {
     // Re-map format if necessary, assuming server returns standard file obj
     return {
       ...file,
-      url: `/api/v1/files/${file.id}` // basic standard resolution mapping 
+      url: `/api/manage/files/${file.id}` // basic standard resolution mapping
     };
   });
 });

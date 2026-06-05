@@ -4,23 +4,20 @@ import { CreateOrderSchema, AddCommentSchema, UpdateSalesOrderSchema } from '../
 import { MSG, generateId, generateOrderNo } from '../../../../_shared/utils.js';
 import { normalizeOrderStatusFilter } from '../../../../api/utils/constants.js';
 import { OrderRepository } from '../../../../repositories/OrderRepository.js';
-import { validateProductVariantBinding } from '../../../../api/utils/validation.js';
 import { parsePagination, requireEntity } from '../../_shared/route-helpers.js';
-import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors.js';
+import { NotFoundError, ForbiddenError } from '../../errors.js';
 import { withCache } from '../../middleware/cache.js';
-import { DemandService } from '../../../../services/DemandService.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
-import { DomainOutboxPublisher } from '../../../../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../../../../api/cron/outbox.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 import { listOrderReturnHistory, listOrderShipmentHistory } from '../../../../repositories/order/history-queries.js';
-import { syncOrderDemandTransitions } from '../../../../api/utils/order-demand-sync.js';
-import { buildOrderBindingSnapshot } from '../../../../api/utils/order-binding-snapshot.js';
+import { processOrderUpdate } from '../../../../api/utils/order-utils.js';
 import { OrderTimelineRepository } from '../../../../repositories/OrderTimelineRepository.js';
+import { OrderCreationService } from '../../../../services/OrderCreationService.js';
 
 const app = new Hono();
-const SALES_BOUND_SNAPSHOT_FIELDS = Object.freeze(['name', 'brand', 'category', 'series', 'sku', 'size', 'color', 'material']);
+
 export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'POST', path: '/', domain: 'sales-orders', action: 'sales.order.create', severity: 'high', targetType: 'order' },
     { method: 'PATCH', path: '/:id/read', domain: 'sales-orders', action: 'sales.order.read', severity: 'normal', targetType: 'order' },
@@ -82,47 +79,15 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
     const data = c.req.valid('json');
     const { env } = c;
     const orderRepo = new OrderRepository(env.DB);
+    const service = new OrderCreationService(env.DB);
 
     const orderId = generateId();
     const orderNo = generateOrderNo();
-    const normalizedLines = Array.isArray(data.lines) ? data.lines.filter(Boolean).map((line) => ({
-        name: String(line.name || '').trim(),
-        brand: String(line.brand || '').trim(),
-        category: String(line.category || '').trim(),
-        series: String(line.series || '').trim(),
-        sku: String(line.sku || '').trim(),
-        size: String(line.size || '').trim(),
-        color: String(line.color || '').trim(),
-        material: String(line.material || '').trim(),
-        remark: String(line.remark || '').trim(),
-        deadline: String(line.deadline || '').trim(),
-        quantity: Math.max(1, Math.trunc(Number(line.quantity || 1))),
-        productId: line.productId || null,
-        variantId: line.variantId ?? null,
-    })) : [];
-    const primaryLine = normalizedLines[0] || null;
-    const variantId = primaryLine ? (primaryLine.variantId ?? null) : (data.variantId ?? null);
 
-    const binding = await validateProductVariantBinding(env.DB, primaryLine ? (primaryLine.productId || null) : (data.productId || null), variantId, {
-        checkActive: true,
-        variantSelectPolicy: 'in_stock_only',
-    });
-    const boundSnapshot = buildOrderBindingSnapshot({
-        product: binding.product,
-        variant: binding.variant,
-        fallback: primaryLine || {
-            name: data.name,
-            brand: data.brand,
-            series: data.series,
-            sku: data.sku,
-            size: data.size,
-            color: data.color,
-            material: data.material,
-        },
-    });
-    const totalQuantity = normalizedLines.length > 0
-        ? normalizedLines.reduce((sum, line) => sum + line.quantity, 0)
-        : data.quantity;
+    // 业务逻辑：规范化 + 绑定验证 + 快照构建
+    const { normalizedLines, bindingSnapshot, totalQuantity, effectiveVariantId } =
+        await service.prepareCreateOrder(salesperson, data);
+    const primaryLine = normalizedLines[0] || null;
 
     // 1. 创建订单（事务）
     const createdOrder = await orderRepo.create({
@@ -131,22 +96,22 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
         salespersonId: salesperson.id,
         enforceSalesFileScope: true,
         data: {
-            name: boundSnapshot.name,
-            size: boundSnapshot.size,
-            color: boundSnapshot.color,
-            material: boundSnapshot.material,
+            name: bindingSnapshot.name,
+            size: bindingSnapshot.size,
+            color: bindingSnapshot.color,
+            material: bindingSnapshot.material,
             remark: data.remark,
             deadline: data.deadline,
-            brand: boundSnapshot.brand,
-            category: boundSnapshot.category,
-            series: boundSnapshot.series,
-            sku: boundSnapshot.sku,
+            brand: bindingSnapshot.brand,
+            category: bindingSnapshot.category,
+            series: bindingSnapshot.series,
+            sku: bindingSnapshot.sku,
         },
         quantity: totalQuantity,
         mainImageId: data.fileIds[0] || null,
         fileIds: data.fileIds,
         productId: normalizedLines.length === 1 ? (primaryLine?.productId || data.productId || null) : (data.productId || null),
-        variantId: normalizedLines.length === 1 ? variantId : null,
+        variantId: normalizedLines.length === 1 ? effectiveVariantId : null,
         lines: normalizedLines,
         timeline: {
             actionType: 'created',
@@ -158,29 +123,14 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
     const persistedOrderId = createdOrder?.id || orderId;
     const persistedOrderNo = createdOrder?.orderNo || orderNo;
 
-    const demandService = new DemandService(env.DB);
-    await demandService.syncOrderTransition({
-        orderId: persistedOrderId,
-        fromStatus: null,
-        toStatus: 'pending',
-        quantity: totalQuantity,
-        variantId: normalizedLines.length === 1 ? variantId : null,
-    });
+    // 2. 需求同步
+    await service.syncDemand(persistedOrderId, 'pending', totalQuantity, normalizedLines.length === 1 ? effectiveVariantId : null);
 
-    // 创建订单后将临时上传文件归档到订单目录，避免文件滞留在根目录
-    const fileIds = Array.isArray(data.fileIds) ? data.fileIds.filter(Boolean) : [];
-    if (fileIds.length > 0) {
-        try {
-            const { ensureOrderFolder, moveFilesToFolder } = await import('../../../../api/utils/folder-utils.js');
-            const orderFolderId = await ensureOrderFolder(env, persistedOrderNo);
-            await moveFilesToFolder(env, fileIds, orderFolderId);
-        } catch (error) {
-            console.error('Order file archiving error (sales create):', error);
-        }
-    }
+    // 3. 文件归档
+    await service.archiveFiles(env, data.fileIds, persistedOrderNo);
 
-    const publisher = new DomainOutboxPublisher(env.DB);
-    await publisher.publish([
+    // 4. 发布领域事件
+    await service.publishEvents([
         {
             event_type: 'order_created_by_sales',
             aggregate_type: 'order',
@@ -203,7 +153,7 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
         targetId: persistedOrderId,
         target_label: persistedOrderNo,
         summary: `${salesperson.name} created order ${persistedOrderNo}`,
-        metadata: { salespersonId: salesperson.id, productId: data.productId || null, variantId },
+        metadata: { salespersonId: salesperson.id, productId: data.productId || null, variantId: effectiveVariantId },
     });
 
     return c.json({ success: true, data: { id: persistedOrderId, orderNo: persistedOrderNo } }, 201);
@@ -313,65 +263,11 @@ app.patch('/:id', zValidator('json', UpdateSalesOrderSchema), async (c) => {
         throw new ForbiddenError(MSG.ORDER.ONLY_PENDING_CAN_EDIT);
     }
 
-    const { updates: updatesFromBody, reason, fileIds, productId, variantId } = body;
-    const updatesObj = updatesFromBody || body;
-    const {
-        reason: _unusedReason,
-        fileIds: _unusedFileIds,
-        updates: _unusedUpdates,
-        productId: _unusedProductId,
-        variantId: _unusedVariantId,
-        ...updates
-    } = updatesObj;
+    const service = new OrderCreationService(env.DB);
 
-    if (!reason || !reason.trim()) {
-        throw new BadRequestError(MSG.ORDER.REASON_REQUIRED);
-    }
-
-    if (Object.prototype.hasOwnProperty.call(updates, 'lines')) {
-        throw new BadRequestError('销售端暂不支持多商品明细');
-    }
-
-    const { processOrderUpdate } = await import('../../../../api/utils/order-utils.js');
-
-    const hasProductIdPayload = productId !== undefined;
-    const hasVariantIdPayload = variantId !== undefined;
-    const hasBindingMutation = hasProductIdPayload || hasVariantIdPayload;
-    const effectiveProductId = hasProductIdPayload ? productId : order.productId;
-    const hasExistingBinding = Boolean(order.productId && order.variantId);
-    let normalizedVariantId = hasVariantIdPayload ? (variantId || null) : undefined;
-    const finalUpdates = { ...updates };
-
-    if (hasExistingBinding && !hasBindingMutation) {
-        for (const field of SALES_BOUND_SNAPSHOT_FIELDS) {
-            delete finalUpdates[field];
-        }
-    }
-
-    if (hasBindingMutation) {
-        const binding = await validateProductVariantBinding(env.DB, effectiveProductId, normalizedVariantId, {
-            checkActive: true,
-            variantSelectPolicy: 'in_stock_only',
-        });
-        normalizedVariantId = binding.normalizedVariantId;
-        const boundSnapshot = buildOrderBindingSnapshot({
-            product: binding.product,
-            variant: binding.variant,
-            fallback: finalUpdates,
-        });
-        finalUpdates.name = boundSnapshot.name;
-        finalUpdates.brand = boundSnapshot.brand;
-        finalUpdates.category = boundSnapshot.category;
-        finalUpdates.series = boundSnapshot.series;
-        finalUpdates.sku = boundSnapshot.sku;
-        finalUpdates.size = boundSnapshot.size;
-        finalUpdates.color = boundSnapshot.color;
-        finalUpdates.material = boundSnapshot.material;
-    }
-
-    // 销售端允许修改的字段
-    // SOTA: productId 是顶级表列，通过 options.productId 单独传递处理，不应加入 JSON data 字段列表
-    const SALES_EDITABLE_FIELDS = ['name', 'brand', 'category', 'series', 'sku', 'size', 'color', 'material', 'remark', 'deadline', 'quantity'];
+    // 业务逻辑：字段过滤 + 绑定验证 + 快照构建
+    const { finalUpdates, normalizedVariantId, reason, fileIds, productId } =
+        await service.prepareUpdateOrder(order, body);
 
     const updateResult = await processOrderUpdate({
         env,
@@ -385,27 +281,26 @@ app.patch('/:id', zValidator('json', UpdateSalesOrderSchema), async (c) => {
         variantId: normalizedVariantId,
         currentProductId: order.productId,
         currentVariantId: order.variantId,
-        allowedFields: SALES_EDITABLE_FIELDS,
+        allowedFields: service.getSalesEditableFields(),
         actor: { type: 'salesperson', id: salesperson.id, name: salesperson.name },
         salespersonId: salesperson.id,
         enforceSalesFileScope: true,
-        reason: reason.trim(),
+        reason,
         deferNotifications: true,
     });
 
     if (updateResult?.outboxEvents?.length) {
-        const publisher = new DomainOutboxPublisher(env.DB);
-        await publisher.publish(updateResult.outboxEvents);
+        await service.publishEvents(updateResult.outboxEvents);
         scheduleOutboxProcessing(c, `sales-order-update:${orderId}`);
     }
 
+    // 需求同步
     const nextStatus = ['rejected', 'void'].includes(order.status)
         ? 'pending'
         : (finalUpdates?.status ?? order.status);
-    const nextVariantId = hasVariantIdPayload ? normalizedVariantId : order.variantId;
+    const nextVariantId = normalizedVariantId !== undefined ? normalizedVariantId : order.variantId;
     const nextQuantity = finalUpdates?.quantity ?? order.quantity;
-    const demandService = new DemandService(env.DB);
-    await syncOrderDemandTransitions(demandService, {
+    await service.syncDemandTransitions({
         orderId,
         previousStatus: order.status,
         nextStatus,
@@ -428,7 +323,7 @@ app.patch('/:id', zValidator('json', UpdateSalesOrderSchema), async (c) => {
         targetId: orderId,
         target_label: order.orderNo,
         summary: `${salesperson.name} updated order ${order.orderNo}`,
-        metadata: { reason: reason.trim(), productId: productId || null, variantId: normalizedVariantId ?? order.variantId },
+        metadata: { reason, productId: productId || null, variantId: normalizedVariantId ?? order.variantId },
     });
 
     return c.json({ success: true, message: MSG.ORDER.UPDATE_SUCCESS });
@@ -451,14 +346,8 @@ app.delete('/:id', async (c) => {
 
     await orderRepo.updateStatus(orderId, 'void', 'sales');
 
-    const demandService = new DemandService(env.DB);
-    await demandService.syncOrderTransition({
-        orderId,
-        fromStatus: order.status,
-        toStatus: 'void',
-        quantity: order.quantity,
-        variantId: order.variantId,
-    });
+    const service = new OrderCreationService(env.DB);
+    await service.syncDemand(orderId, 'void', order.quantity, order.variantId);
 
     // SOTA: 记录时间轴
     const tplRepo = new OrderTimelineRepository(env.DB);
@@ -472,8 +361,7 @@ app.delete('/:id', async (c) => {
         reason: 'Salesperson voided the order',
     });
 
-    const publisher = new DomainOutboxPublisher(env.DB);
-    await publisher.publish([
+    await service.publishEvents([
         {
             event_type: 'order_status_changed_by_sales',
             aggregate_type: 'order',
@@ -530,8 +418,8 @@ app.post('/:id/comment', zValidator('json', AddCommentSchema), async (c) => {
 
     await orderRepo.setUnread(orderId, 'sales');
 
-    const publisher = new DomainOutboxPublisher(env.DB);
-    await publisher.publish([
+    const service = new OrderCreationService(env.DB);
+    await service.publishEvents([
         {
             event_type: 'order_comment_created_by_sales',
             aggregate_type: 'order',

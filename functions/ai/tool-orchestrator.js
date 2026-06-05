@@ -1,11 +1,7 @@
+import { normalizeConcurrency } from '../lib/async/runConcurrent.js';
+
 function getAbortReason(requestContext) {
   return requestContext?.getAbortReason?.() || requestContext?.signal?.reason || 'aborted';
-}
-
-function normalizeConcurrency(value) {
-  const num = Number.parseInt(String(value ?? ''), 10);
-  if (!Number.isFinite(num) || num < 1) return 1;
-  return num;
 }
 
 async function withToolTimeout(task, timeoutMs) {
@@ -49,7 +45,7 @@ export async function runToolOrchestration({
 } = {}) {
   const normalizedCalls = Array.isArray(toolCalls) ? toolCalls : [];
   const results = new Array(normalizedCalls.length);
-  const limit = Math.min(normalizeConcurrency(concurrency), normalizedCalls.length || 1);
+  const limit = normalizeConcurrency(concurrency, normalizedCalls.length || 1);
   let nextIndex = 0;
 
   const worker = async () => {

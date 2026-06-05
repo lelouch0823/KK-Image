@@ -24,6 +24,16 @@ const normalizeAlertThreshold = (value: unknown, fallback: number = 10): number 
     return Number.isFinite(numeric) ? numeric : fallback;
 };
 
+/** 库存余额 JOIN 子句 */
+const VARIANT_INVENTORY_JOIN = 'LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id';
+
+/** 库存余额 SELECT 字段 */
+const VARIANT_INVENTORY_SELECT = `
+    COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity,
+    COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
+    COALESCE(ib.reserved, 0) AS reserved,
+    COALESCE(ib.available, COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS available_quantity`;
+
 export class ProductVariantRepository {
     protected db: D1Database;
 
@@ -153,14 +163,9 @@ export class ProductVariantRepository {
 
     async findByProductId(productId: string): Promise<ProductVariant[]> {
         const result = await this.db.prepare(`
-            SELECT
-                pv.*,
-                COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity,
-                COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
-                COALESCE(ib.reserved, 0) AS reserved,
-                COALESCE(ib.available, COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS available_quantity
+            SELECT pv.*, ${VARIANT_INVENTORY_SELECT}
             FROM product_variants pv
-            LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
+            ${VARIANT_INVENTORY_JOIN}
             WHERE pv.product_id = ?
             ORDER BY pv.created_at ASC
         `).bind(productId).all<ProductVariantRow>();
@@ -177,14 +182,9 @@ export class ProductVariantRepository {
         for (const idChunk of chunkArray(normalizedIds, D1_MAX_IN_CLAUSE_SIZE)) {
             const placeholders = idChunk.map(() => '?').join(',');
             const result = await this.db.prepare(`
-                SELECT
-                    pv.*,
-                    COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity,
-                    COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
-                    COALESCE(ib.reserved, 0) AS reserved,
-                    COALESCE(ib.available, COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS available_quantity
+                SELECT pv.*, ${VARIANT_INVENTORY_SELECT}
                 FROM product_variants pv
-                LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
+                ${VARIANT_INVENTORY_JOIN}
                 WHERE pv.product_id IN (${placeholders})
                 ORDER BY pv.product_id ASC, pv.created_at ASC
             `).bind(...idChunk).all<ProductVariantRow & { product_id: string }>();
@@ -204,14 +204,9 @@ export class ProductVariantRepository {
 
     async findById(variantId: string): Promise<ProductVariant | null> {
         const row = await this.db.prepare(`
-            SELECT
-                pv.*,
-                COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity,
-                COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
-                COALESCE(ib.reserved, 0) AS reserved,
-                COALESCE(ib.available, COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS available_quantity
+            SELECT pv.*, ${VARIANT_INVENTORY_SELECT}
             FROM product_variants pv
-            LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
+            ${VARIANT_INVENTORY_JOIN}
             WHERE pv.id = ?
         `).bind(variantId).first<ProductVariantRow>();
         if (!row) return null;
@@ -221,14 +216,9 @@ export class ProductVariantRepository {
     async findByIdAndProductId(variantId: string, productId: string): Promise<ProductVariant | null> {
         const row = await this.db
             .prepare(`
-                SELECT
-                    pv.*,
-                    COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity,
-                    COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
-                    COALESCE(ib.reserved, 0) AS reserved,
-                    COALESCE(ib.available, COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS available_quantity
+                SELECT pv.*, ${VARIANT_INVENTORY_SELECT}
                 FROM product_variants pv
-                LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
+                ${VARIANT_INVENTORY_JOIN}
                 WHERE pv.id = ? AND pv.product_id = ?
             `)
             .bind(variantId, productId)
@@ -276,19 +266,14 @@ export class ProductVariantRepository {
         }
 
         const sql = `
-            SELECT
-                pv.*,
-                COALESCE(ib.on_hand, pv.stock_quantity, 0) AS stock_quantity,
-                COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
-                COALESCE(ib.reserved, 0) AS reserved,
-                COALESCE(ib.available, COALESCE(ib.on_hand, pv.stock_quantity, 0)) AS available_quantity,
+            SELECT pv.*, ${VARIANT_INVENTORY_SELECT},
                 p.name AS product_name,
                 p.spu AS product_spu,
                 p.brand AS product_brand,
                 p.category AS product_category
             FROM product_variants pv
             JOIN products p ON p.id = pv.product_id
-            LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
+            ${VARIANT_INVENTORY_JOIN}
             ${where}
             ORDER BY p.updated_at DESC, p.created_at DESC, pv.created_at ASC
             LIMIT ?

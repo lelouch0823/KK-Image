@@ -7,7 +7,7 @@ import {
 } from './utils/manage-products-real-api.js';
 
 describeIfRealApi('Manage Products Real API Batch', function () {
-  this.timeout(120000);
+  this.timeout(180000);
 
   it('imports products in replace mode with summary counters', async () => {
     const token = await getBearerToken();

@@ -7,6 +7,7 @@ import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 import { VariantDemandProjectionRefreshService } from './VariantDemandProjectionRefreshService.js';
+import { queryOrderLineCandidates } from './order-line-shared.js';
 import {
   acquireProcurementResourceLocks,
   buildProcurementResourceLockReleaseStatements,
@@ -99,31 +100,14 @@ export class OrderProcurementDomainService {
     includeScopedFilters = true
   ) {
     if (!orderId) return [];
-
-    const filters = ['order_id = ?'];
-    const params = [orderId];
-
-    if (includeScopedFilters && variantId) {
-      filters.push('variant_id = ?');
-      params.push(variantId);
-    }
-    if (includeScopedFilters && productId) {
-      filters.push('product_id = ?');
-      params.push(productId);
-    }
-
-    const { results } = await this.db
-      .prepare(
-        `SELECT id, order_id, product_id, variant_id, ordered_qty, procured_qty, received_qty, reserved_qty, shipped_qty, cancelled_qty
-         FROM order_lines
-         WHERE ${filters.join(' AND ')}
-         ORDER BY created_at ASC
-         LIMIT 2`
-      )
-      .bind(...params)
-      .all();
-
-    return results || [];
+    return queryOrderLineCandidates(
+      this.db,
+      { orderId, productId, variantId },
+      includeScopedFilters,
+      {
+        selectColumns: 'id, order_id, product_id, variant_id, ordered_qty, procured_qty, received_qty, reserved_qty, shipped_qty, cancelled_qty',
+      }
+    );
   }
 
   async resolveCompatibilityOrderLine(orderId, criteria = {}) {

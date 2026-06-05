@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
+import { withCache } from '../../middleware/cache.js';
 
 import {
   generateId,
@@ -15,16 +15,18 @@ import {
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { NotFoundError, BadRequestError, ForbiddenError, ConflictError } from '../../errors.js';
-import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers.js';
+import { requireEntity } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
+import { CreateFolderSchema, UpdateFolderSchema, ShareSettingsSchema } from '../../schemas/folder.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'POST', path: '/', domain: 'folders', action: 'folder.create', severity: 'high', targetType: 'folder' },
   { method: 'PUT', path: '/:id', domain: 'folders', action: 'folder.update', severity: 'high', targetType: 'folder' },
   { method: 'DELETE', path: '/:id', domain: 'folders', action: 'folder.delete', severity: 'critical', targetType: 'folder' },
+  { method: 'PUT', path: '/:id/share', domain: 'folders', action: 'folder.share_update', severity: 'high', targetType: 'folder' },
   { method: 'POST', path: '/:id/upload', domain: 'folders', action: 'folder.upload', severity: 'normal', targetType: 'folder' },
 ]);
 app.use('*', requirePermission('folders:read'));
@@ -40,23 +42,10 @@ function toFolderListItem(folder) {
   };
 }
 
-// Schemas
-const CreateFolderSchema = z.object({
-  name: z.string().min(1).max(100),
-  description: z.string().max(500).optional().default(''),
-  parentId: z.string().optional().nullable(),
-  isPublic: z.boolean().optional().default(false),
-  password: z.string().min(4).max(50).optional().nullable(),
-});
-
-const UpdateFolderSchema = CreateFolderSchema.partial().extend({
-  shareExpiresAt: z.number().optional().nullable(),
-});
-
 /**
  * GET /api/manage/folders - 获取文件夹列表
  */
-app.get('/', async (c) => {
+app.get('/', withCache(30), async (c) => {
   const { env } = c;
   const url = new URL(c.req.url);
   const parentId = url.searchParams.get('parent_id') || null;
@@ -81,7 +70,7 @@ app.get('/', async (c) => {
 /**
  * GET /api/manage/folders/:id - 获取文件夹详情
  */
-app.get('/:id', async (c) => {
+app.get('/:id', withCache(60), async (c) => {
   const { env } = c;
   const folderId = c.req.param('id');
   const folderRepo = new FolderRepository(env.DB);
@@ -227,8 +216,7 @@ app.put(
       () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
     );
 
-    const updates = [];
-    const values = [];
+    const updates = {};
 
     // 判断是否需要进行重名校验
     let checkParentId = folder.parent_id;
@@ -243,10 +231,10 @@ app.put(
       }
     }
 
-    appendOptionalUpdate(updates, values, 'name = ?', data.name, (value) => value.trim());
-    appendOptionalUpdate(updates, values, 'description = ?', data.description, (value) => value.trim());
-    appendOptionalUpdate(updates, values, 'is_public = ?', data.isPublic, (value) => (value ? 1 : 0));
-    appendOptionalUpdate(updates, values, 'password = ?', data.password, (value) => value || null);
+    if (data.name !== undefined) updates.name = data.name.trim();
+    if (data.description !== undefined) updates.description = data.description.trim();
+    if (data.isPublic !== undefined) updates.is_public = data.isPublic ? 1 : 0;
+    if (data.password !== undefined) updates.password = data.password || null;
     if (data.parentId !== undefined) {
       if (data.parentId) {
         const isDescendant = await folderRepo.isDescendantOrSelf(folderId, data.parentId);
@@ -254,20 +242,16 @@ app.put(
           throw new BadRequestError(MSG.FOLDER.MOVE_TO_SELF);
         }
       }
-      appendOptionalUpdate(updates, values, 'parent_id = ?', data.parentId);
+      updates.parent_id = data.parentId;
     }
-    appendOptionalUpdate(updates, values, 'share_expires_at = ?', data.shareExpiresAt);
+    if (data.shareExpiresAt !== undefined) updates.share_expires_at = data.shareExpiresAt;
 
     // 自动生成分享令牌
     if ((data.isPublic === true || data.shareExpiresAt !== undefined) && !folder.share_token) {
-      updates.push('share_token = ?');
-      values.push(generateShareToken());
+      updates.share_token = generateShareToken();
     }
 
-    updates.push('updated_at = ?');
-    values.push(Date.now());
-
-    await folderRepo.update(folderId, updates, values);
+    await folderRepo.update(folderId, updates);
     const updated = await requireEntity(
       folderRepo.findById(folderId),
       () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
@@ -344,6 +328,53 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
 
   return c.json({ success: true, message: MSG.FOLDER.DELETE_SUCCESS });
 });
+
+/**
+ * PUT /api/manage/folders/:id/share - 更新分享设置
+ */
+app.put(
+  '/:id/share',
+  requirePermission('folders:write'),
+  zValidator('json', ShareSettingsSchema),
+  async (c) => {
+    const id = c.req.param('id');
+    const { isPublic, password, expiresAt } = c.req.valid('json');
+    const repo = new FolderRepository(c.env.DB);
+
+    // 使用 Repository 封装的分享设置更新
+    const shareInfo = await repo.updateShareSettings(id, { isPublic, password, expiresAt });
+
+    await publishSingleDomainEventAndPoll(c, {
+      event_type: 'folder_share_updated',
+      aggregate_type: 'folder',
+      aggregate_id: id,
+      payload: {
+        folder_id: id,
+        parent_ids: [id],
+      },
+    }, `folder-share:${id}`);
+    scheduleAuditEvent(c, {
+      domain: 'folders',
+      action: 'folder.share_update',
+      result: 'success',
+      severity: 'high',
+      targetType: 'folder',
+      targetId: id,
+      target_label: id,
+      summary: `Updated folder share settings ${id}`,
+    });
+
+    return c.json({
+      success: true,
+      data: {
+        shareToken: shareInfo?.share_token,
+        isPublic: !!shareInfo?.is_public,
+        hasPassword: !!shareInfo?.password,
+        expiresAt: shareInfo?.share_expires_at,
+      },
+    });
+  }
+);
 
 import { storeFile } from '../../../../api/utils/file-utils.js';
 

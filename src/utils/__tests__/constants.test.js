@@ -67,9 +67,9 @@ describe('constants', () => {
       expect(API.AI.REPORT).toBe('/api/manage/ai/report');
     });
 
-    it('应包含 v1 文件端点', () => {
-      expect(API.FILES).toBe('/api/v1/files');
-      expect(API.CHECK_HASH).toBe('/api/v1/files/check-hash');
+    it('应包含文件管理端点', () => {
+      expect(API.FILES).toBe('/api/manage/files');
+      expect(API.CHECK_HASH).toBe('/api/manage/files/check-hash');
     });
   });
 

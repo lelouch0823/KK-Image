@@ -31,7 +31,7 @@ function extractAccessToken(fileUrl) {
 }
 
 describeIfRealApi('Public Space Real API', function () {
-  this.timeout(120000);
+  this.timeout(180000);
 
   it('serves public spaces with file-scoped signed urls and rejects files outside the space', async () => {
     const bearerToken = await getBearerToken();

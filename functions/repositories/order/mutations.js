@@ -18,6 +18,7 @@ import {
     prefetchOrderLineStates,
 } from '../../services/order-procurement/order-line-prefetch.js';
 import { createOrderPayloadUpsertStatement, deriveOrderSummaryFields } from './payloads.js';
+import { normalizeOrderStatus, normalizeSnapshotText } from './helpers.js';
 
 export const INSUFFICIENT_VARIANT_STOCK_ERROR = 'insufficient variant stock for delivery';
 export const ORDER_SHIPPED_VOID_GUARD_ERROR = 'cannot void order while shipped line quantities remain';
@@ -69,12 +70,6 @@ function normalizeQuantity(quantity) {
     return Math.trunc(parsed);
 }
 
-function normalizeLineText(value, fallback = '') {
-    if (value === undefined || value === null) return fallback;
-    const normalized = String(value).trim();
-    return normalized || fallback;
-}
-
 function normalizeCreateLine(line = {}, fallback = {}) {
     return {
         productId: line.productId ?? fallback.productId ?? null,
@@ -82,16 +77,16 @@ function normalizeCreateLine(line = {}, fallback = {}) {
         mainImageId: line.mainImageId ?? fallback.mainImageId ?? null,
         quantity: normalizeQuantity(line.quantity ?? line.orderedQuantity ?? fallback.quantity ?? 1),
         data: {
-            name: normalizeLineText(line.name ?? line.productName, fallback.data?.name || ''),
-            brand: normalizeLineText(line.brand, fallback.data?.brand || ''),
-            category: normalizeLineText(line.category, fallback.data?.category || ''),
-            series: normalizeLineText(line.series, fallback.data?.series || ''),
-            sku: normalizeLineText(line.sku, fallback.data?.sku || ''),
-            size: normalizeLineText(line.size, fallback.data?.size || ''),
-            color: normalizeLineText(line.color, fallback.data?.color || ''),
-            material: normalizeLineText(line.material, fallback.data?.material || ''),
-            remark: normalizeLineText(line.remark, fallback.data?.remark || ''),
-            deadline: normalizeLineText(line.deadline, fallback.data?.deadline || ''),
+            name: normalizeSnapshotText(line.name ?? line.productName, fallback.data?.name || ''),
+            brand: normalizeSnapshotText(line.brand, fallback.data?.brand || ''),
+            category: normalizeSnapshotText(line.category, fallback.data?.category || ''),
+            series: normalizeSnapshotText(line.series, fallback.data?.series || ''),
+            sku: normalizeSnapshotText(line.sku, fallback.data?.sku || ''),
+            size: normalizeSnapshotText(line.size, fallback.data?.size || ''),
+            color: normalizeSnapshotText(line.color, fallback.data?.color || ''),
+            material: normalizeSnapshotText(line.material, fallback.data?.material || ''),
+            remark: normalizeSnapshotText(line.remark, fallback.data?.remark || ''),
+            deadline: normalizeSnapshotText(line.deadline, fallback.data?.deadline || ''),
         },
     };
 }
@@ -196,12 +191,6 @@ function toNonNegativeInt(value) {
     return Math.max(0, Math.trunc(Number(value) || 0));
 }
 
-function normalizeOrderLifecycleStatus(status) {
-    const normalized = String(status || '').trim().toLowerCase();
-    if (normalized === 'delivered') return 'fulfilled';
-    return normalized;
-}
-
 async function assertSalesScopedFileIds(db, fileIds, salespersonId, { orderId = null } = {}) {
     const normalizedIds = [...new Set((Array.isArray(fileIds) ? fileIds : []).filter(Boolean))];
     if (!salespersonId || normalizedIds.length === 0) return;
@@ -259,7 +248,7 @@ async function getOrderLineTotals(db, orderId, prefetchedStates = null) {
 }
 
 async function assertOrderStatusCompatibleWithLines(db, orderId, nextStatus, prefetchedStates = null) {
-    const normalizedStatus = normalizeOrderLifecycleStatus(nextStatus);
+    const normalizedStatus = normalizeOrderStatus(nextStatus);
     if (!normalizedStatus) return;
 
     const totals = await getOrderLineTotals(db, orderId, prefetchedStates);
@@ -336,7 +325,7 @@ async function syncCompatibilityOrderLineSnapshot(db, {
 
 function deriveCompatibilityLineState(status, orderedQty, existingLine = {}) {
     const ordered = normalizeQuantity(orderedQty);
-    const normalizedStatus = normalizeOrderLifecycleStatus(status || 'pending');
+    const normalizedStatus = normalizeOrderStatus(status || 'pending');
     const next = {
         ordered_qty: ordered,
         procured_qty: toNonNegativeInt(existingLine.procured_qty),
@@ -412,7 +401,7 @@ async function buildCompatibilityLineProgressStatement(
 }
 
 function buildInitialOrderLineProgress(status, orderedQty) {
-    const normalizedStatus = normalizeOrderLifecycleStatus(status || 'pending');
+    const normalizedStatus = normalizeOrderStatus(status || 'pending');
     const quantity = normalizeQuantity(orderedQty);
     const progress = {
         procured_qty: 0,
@@ -552,7 +541,7 @@ export async function create(
     });
     const primaryLine = normalizedLines[0] || normalizeCreateLine({}, { data, quantity, productId, variantId, mainImageId });
     const normalizedQuantity = normalizedLines.reduce((sum, line) => sum + normalizeQuantity(line.quantity), 0);
-    const normalizedStatus = normalizeOrderLifecycleStatus(status || 'pending') || 'pending';
+    const normalizedStatus = normalizeOrderStatus(status || 'pending') || 'pending';
     const headerData = buildHeaderDataFromLines({}, normalizedLines);
     const orderData = JSON.stringify(headerData);
     const deadlineDate = extractDeadlineDate(primaryLine.data);
@@ -731,7 +720,7 @@ export async function updateComposite(db, {
     const updateField = getUnreadOtherField(actorType);
     const statements = [];
     const normalizedStatus = status !== undefined
-        ? (normalizeOrderLifecycleStatus(status) || status)
+        ? (normalizeOrderStatus(status) || status)
         : undefined;
     const orderLineStates = await prefetchOrderLineStates(db, [id]);
     const primaryOrderLineState = getPrefetchedOrderLineState(orderLineStates, id);
@@ -822,7 +811,7 @@ export async function updateComposite(db, {
     }));
 
     if (hasExplicitLines) {
-        const lineStatus = normalizeOrderLifecycleStatus(normalizedStatus || effectiveData?.status || 'pending') || 'pending';
+        const lineStatus = normalizeOrderStatus(normalizedStatus || effectiveData?.status || 'pending') || 'pending';
         statements.push(db.prepare('DELETE FROM order_lines WHERE order_id = ?').bind(id));
         normalizedLines.forEach((line) => {
             statements.push(buildOrderLineInsertStatement(db, {
@@ -886,7 +875,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
     const { forceStatusTransition = false } = options;
     const timestamp = now();
     const updateField = getUnreadOtherField(actorType);
-    const normalizedNextStatus = normalizeOrderLifecycleStatus(newStatus);
+    const normalizedNextStatus = normalizeOrderStatus(newStatus);
     const orderLineStates = await prefetchOrderLineStates(db, [id]);
     await assertOrderStatusCompatibleWithLines(db, id, normalizedNextStatus, orderLineStates);
     const currentOrder = await db
@@ -959,7 +948,7 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
     const { forceStatusTransition = false } = options;
     const timestamp = now();
     const batchStatements = [];
-    const normalizedNextStatus = normalizeOrderLifecycleStatus(newStatus);
+    const normalizedNextStatus = normalizeOrderStatus(newStatus);
     const existingOrders = [];
     for (const idChunk of chunkArray(ids)) {
         const placeholders = idChunk.map(() => '?').join(',');

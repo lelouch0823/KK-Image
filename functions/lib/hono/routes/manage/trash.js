@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth.js';
 import { getFileUrl, MSG } from '../../../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
@@ -10,6 +9,7 @@ import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishDomainEventsAndPoll } from '../../_shared/domain-outbox.js';
 import { withCache } from '../../middleware/cache.js';
+import { RestoreSchema, DeleteTrashSchema } from '../../schemas/trash.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -17,17 +17,6 @@ export const auditRouteDeclarations = declareAuditRoutes([
     { method: 'POST', path: '/delete', domain: 'trash', action: 'trash.delete', severity: 'critical', targetType: 'trash' },
     { method: 'DELETE', path: '/empty', domain: 'trash', action: 'trash.empty', severity: 'critical', targetType: 'trash' },
 ]);
-
-// Schemas
-const RestoreSchema = z.object({
-    fileIds: z.array(z.string()).optional().default([]),
-    folderIds: z.array(z.string()).optional().default([]),
-});
-
-const DeleteTrashSchema = z.object({
-    fileIds: z.array(z.string()).optional().default([]),
-    folderIds: z.array(z.string()).optional().default([]),
-});
 
 /**
  * GET /api/manage/trash - 获取回收站列表

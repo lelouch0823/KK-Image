@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { BindWechatSchema } from '../../schemas/sales.js';
 import { SalespersonRepository } from '../../../../repositories/SalespersonRepository.js';
+import { getWeChatOpenid } from '../../../../services/WeChatService.js';
 import { withCache } from '../../middleware/cache.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
@@ -35,17 +36,16 @@ app.post('/bind-wechat', zValidator('json', BindWechatSchema), async (c) => {
     const { code } = c.req.valid('json');
     const { env } = c;
 
-    if (!env.WECHAT_APPID || !env.WECHAT_SECRET) {
-        return c.json({ success: false, error: '微信登录未配置' }, 503);
+    let openid;
+    try {
+        const wxData = await getWeChatOpenid(env, code);
+        openid = wxData.openid;
+    } catch (err) {
+        if (err.message === '微信登录未配置') {
+            return c.json({ success: false, error: '微信登录未配置' }, 503);
+        }
+        throw err;
     }
-
-    const wxParams = new URLSearchParams({ appid: env.WECHAT_APPID, secret: env.WECHAT_SECRET, js_code: code, grant_type: 'authorization_code' });
-    const wxUrl = `https://api.weixin.qq.com/sns/jscode2session?${wxParams}`;
-    const wxRes = await fetch(wxUrl);
-    const wxData = await wxRes.json();
-
-    if (wxData.errcode) throw new Error(wxData.errmsg);
-    const { openid } = wxData;
 
     const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
     await repo.updateWechatOpenid(salesperson.id, openid);

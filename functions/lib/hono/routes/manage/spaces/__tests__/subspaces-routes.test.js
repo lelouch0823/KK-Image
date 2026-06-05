@@ -76,11 +76,7 @@ describe('manage subspaces routes', () => {
         error.statusCode = 400;
         throw error;
       }
-      if (options.checkActive && productId === 'product-archived') {
-        const error = new Error('product must be active');
-        error.statusCode = 400;
-        throw error;
-      }
+      // products 表自迁移 0043 起不再包含 status 列，产品级别不再检查活跃状态
       if (options.checkActive && variantId === 'variant-archived') {
         const error = new Error('variant must be active');
         error.statusCode = 400;

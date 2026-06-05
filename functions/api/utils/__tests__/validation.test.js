@@ -52,9 +52,9 @@ describe('validateProductVariantBinding', () => {
     await expect(validateProductVariantBinding({}, 'p-1', 'v-1')).rejects.toThrow('variantId does not belong to productId');
   });
 
-  it('rejects archived records when checkActive is true', async () => {
-    mocks.productFindById.mockResolvedValue({ id: 'p-1', status: 'archived' });
-    await expect(validateProductVariantBinding({}, 'p-1', 'v-1', { checkActive: true })).rejects.toThrow('product must be active');
+  it('rejects archived variant when checkActive is true', async () => {
+    mocks.variantFindByIdAndProductId.mockResolvedValue({ id: 'v-1', status: 'archived' });
+    await expect(validateProductVariantBinding({}, 'p-1', 'v-1', { checkActive: true })).rejects.toThrow('variant must be active');
   });
 
   it('returns normalized binding when valid', async () => {

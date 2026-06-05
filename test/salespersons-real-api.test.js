@@ -96,7 +96,7 @@ function findSalesperson(listPayload, salespersonId) {
 }
 
 describeIfRealApi('Salespersons Real API', function () {
-  this.timeout(120000);
+  this.timeout(180000);
 
   it('covers manage lifecycle, cache refresh, token reset, disable/enable, and unlinked delete', async () => {
     const token = await getBearerToken();

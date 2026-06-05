@@ -7,7 +7,7 @@ import {
 } from './utils/manage-products-real-api.js';
 
 describeIfRealApi('Manage Products Real API Rollback', function () {
-  this.timeout(120000);
+  this.timeout(180000);
 
   it('rolls back product create when variant creation fails (duplicate barcode in same request)', async () => {
     const token = await getBearerToken();

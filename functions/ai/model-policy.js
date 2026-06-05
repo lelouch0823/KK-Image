@@ -1,3 +1,5 @@
+import { parseBooleanFlag } from './config-schema.js';
+
 const MODEL_COOLDOWNS = new Map();
 const MODEL_HEALTH = new Map();
 
@@ -6,13 +8,7 @@ const DEFAULT_HEALTH_WINDOW = 20;
 const MIN_HEALTH_WINDOW = 5;
 const MAX_HEALTH_WINDOW = 200;
 
-export function parseBooleanFlag(value, fallback = false) {
-  if (typeof value === 'boolean') return value;
-  if (value === undefined || value === null) return fallback;
-  const normalized = String(value).trim().toLowerCase();
-  if (!normalized) return fallback;
-  return ['1', 'true', 'yes', 'on', 'enabled'].includes(normalized);
-}
+export { parseBooleanFlag };
 
 export function parseHealthWindow(value) {
   const n = Number.parseInt(String(value ?? ''), 10);

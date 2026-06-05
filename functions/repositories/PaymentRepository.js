@@ -177,61 +177,58 @@ export class PaymentRepository {
   async getAgingAnalysis(options = {}) {
     const { customerId, salespersonId } = options;
     const nowTimestamp = now();
+    const dayMs = 24 * 60 * 60 * 1000;
 
-    const buckets = [
-      { label: '0-30', minDays: 0, maxDays: 30 },
-      { label: '31-60', minDays: 31, maxDays: 60 },
-      { label: '61-90', minDays: 61, maxDays: 90 },
-      { label: '90+', minDays: 91, maxDays: null },
-    ];
+    let whereClause = "WHERE o.status NOT IN ('void', 'rejected')";
+    const params = [nowTimestamp - 30 * dayMs, nowTimestamp - 60 * dayMs, nowTimestamp - 90 * dayMs];
 
-    const results = [];
-
-    for (const bucket of buckets) {
-      const minTimestamp = nowTimestamp - bucket.maxDays * 24 * 60 * 60 * 1000;
-      const maxTimestamp = nowTimestamp - bucket.minDays * 24 * 60 * 60 * 1000;
-
-      let whereClause = `
-        WHERE o.status NOT IN ('void', 'rejected')
-          AND o.created_at >= ?
-          AND o.created_at < ?
-      `;
-      const params = [minTimestamp, maxTimestamp];
-
-      if (customerId) {
-        whereClause += ' AND o.customer_id = ?';
-        params.push(customerId);
-      }
-      if (salespersonId) {
-        whereClause += ' AND o.salesperson_id = ?';
-        params.push(salespersonId);
-      }
-
-      const row = await this.db
-        .prepare(
-          `SELECT
-             COUNT(*) AS order_count,
-             COALESCE(SUM(o.quantity), 0) AS total_quantity,
-             COALESCE(SUM(paid.total_paid), 0) AS total_paid
-           FROM orders o
-           LEFT JOIN (
-             SELECT order_id, SUM(amount) AS total_paid
-             FROM payments
-             GROUP BY order_id
-           ) paid ON paid.order_id = o.id
-           ${whereClause}`
-        )
-        .bind(...params)
-        .first();
-
-      results.push({
-        label: bucket.label,
-        orderCount: row?.order_count ?? 0,
-        totalPaid: row?.total_paid ?? 0,
-      });
+    if (customerId) {
+      whereClause += ' AND o.customer_id = ?';
+      params.push(customerId);
+    }
+    if (salespersonId) {
+      whereClause += ' AND o.salesperson_id = ?';
+      params.push(salespersonId);
     }
 
-    return results;
+    const row = await this.db
+      .prepare(
+        `SELECT
+           SUM(CASE WHEN o.created_at >= ? THEN 1 ELSE 0 END) AS count_0_30,
+           SUM(CASE WHEN o.created_at >= ? AND o.created_at < ? THEN 1 ELSE 0 END) AS count_31_60,
+           SUM(CASE WHEN o.created_at >= ? AND o.created_at < ? THEN 1 ELSE 0 END) AS count_61_90,
+           SUM(CASE WHEN o.created_at < ? THEN 1 ELSE 0 END) AS count_90_plus,
+           COALESCE(SUM(CASE WHEN o.created_at >= ? THEN paid.total_paid ELSE 0 END), 0) AS paid_0_30,
+           COALESCE(SUM(CASE WHEN o.created_at >= ? AND o.created_at < ? THEN paid.total_paid ELSE 0 END), 0) AS paid_31_60,
+           COALESCE(SUM(CASE WHEN o.created_at >= ? AND o.created_at < ? THEN paid.total_paid ELSE 0 END), 0) AS paid_61_90,
+           COALESCE(SUM(CASE WHEN o.created_at < ? THEN paid.total_paid ELSE 0 END), 0) AS paid_90_plus
+         FROM orders o
+         LEFT JOIN (
+           SELECT order_id, SUM(amount) AS total_paid
+           FROM payments
+           GROUP BY order_id
+         ) paid ON paid.order_id = o.id
+         ${whereClause}`
+      )
+      .bind(
+        nowTimestamp - 30 * dayMs,
+        nowTimestamp - 60 * dayMs, nowTimestamp - 30 * dayMs,
+        nowTimestamp - 90 * dayMs, nowTimestamp - 60 * dayMs,
+        nowTimestamp - 90 * dayMs,
+        nowTimestamp - 30 * dayMs,
+        nowTimestamp - 60 * dayMs, nowTimestamp - 30 * dayMs,
+        nowTimestamp - 90 * dayMs, nowTimestamp - 60 * dayMs,
+        nowTimestamp - 90 * dayMs,
+        ...params.slice(3)
+      )
+      .first();
+
+    return [
+      { label: '0-30', orderCount: row?.count_0_30 ?? 0, totalPaid: row?.paid_0_30 ?? 0 },
+      { label: '31-60', orderCount: row?.count_31_60 ?? 0, totalPaid: row?.paid_31_60 ?? 0 },
+      { label: '61-90', orderCount: row?.count_61_90 ?? 0, totalPaid: row?.paid_61_90 ?? 0 },
+      { label: '90+', orderCount: row?.count_90_plus ?? 0, totalPaid: row?.paid_90_plus ?? 0 },
+    ];
   }
 
   /**

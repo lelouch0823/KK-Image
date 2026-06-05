@@ -696,6 +696,7 @@ const detailHelpers = {
   formatInteger,
   formatPurchaseCurrency,
   formatDate,
+  formatDateTime: formatDate,
   getProgressStatusLabel,
   getProgressStatusVariant,
   buildReceiptProgressSummary,

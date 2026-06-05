@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { requirePermission } from '../../middleware/auth.js';
 import { generateId, now } from '../../../../_shared/utils.js';
@@ -9,16 +8,7 @@ import { withCache } from '../../middleware/cache.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
-
-const CreateTagSchema = z.object({
-    name: z.string().min(1, '标签名不能为空').max(100),
-    color: z.string().max(20).optional(),
-}).strict();
-
-const AssignTagSchema = z.object({
-    file_id: z.string().min(1),
-    tag_id: z.string().min(1),
-}).strict();
+import { CreateTagSchema, AssignTagSchema } from '../../schemas/tag.js';
 
 const tagsRoute = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([

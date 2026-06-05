@@ -44,8 +44,8 @@ async function processStreamToEvents(aiStream, {
   let buffer = '';
   const gateEnabled = streamOptions.gateEnabled !== false;
   const gate = gateEnabled ? new ContentGate({
-    lookahead: 80,
-    suspectWindow: streamOptions.strictMode ? 260 : 220,
+    lookahead: streamOptions.lookahead ?? 80,
+    suspectWindow: streamOptions.suspectWindow ?? (streamOptions.strictMode ? 260 : 220),
   }) : null;
 
   while (true) {

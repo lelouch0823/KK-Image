@@ -48,6 +48,10 @@ vi.mock('../../../middleware/auth.js', () => ({
   },
 }));
 
+vi.mock('../../../middleware/cache.js', () => ({
+  withCache: () => async (_c, next) => next(),
+}));
+
 vi.mock('../../../../../_shared/utils.js', () => ({
   generateId: vi.fn(() => 'folder-new'),
   generateShareToken: vi.fn(() => 'share-token-new'),
@@ -140,7 +144,7 @@ describe('manage folders routes extra coverage', () => {
     mocks.getBreadcrumbs.mockResolvedValue([{ id: 'root', name: 'Root' }]);
     mocks.checkNameConflict.mockResolvedValue(false);
     mocks.create.mockResolvedValue(undefined);
-    mocks.update.mockResolvedValue(undefined);
+    mocks.update.mockResolvedValue(true);
     mocks.softDelete.mockResolvedValue(undefined);
     mocks.isDescendantOrSelf.mockResolvedValue(false);
     mocks.findByFolder.mockResolvedValue([{ id: 'file-1', name: 'Asset', original_name: 'asset.png', size: 1, mime_type: 'image/png', storage_key: 'key-1', created_at: 10 }]);
@@ -246,18 +250,14 @@ describe('manage folders routes extra coverage', () => {
     );
 
     expect(response.status).toBe(200);
-    const [folderId, updates, values] = mocks.update.mock.calls[0];
+    const [folderId, updates] = mocks.update.mock.calls[0];
     expect(folderId).toBe('folder-1');
     expect(updates).toEqual(
-      expect.arrayContaining([
-        'is_public = ?',
-        'share_token = ?',
-        'share_expires_at = ?',
-        'updated_at = ?',
-      ])
-    );
-    expect(values).toEqual(
-      expect.arrayContaining([1, 'share-token-new', expect.any(Number), expect.any(Number)])
+      expect.objectContaining({
+        is_public: 1,
+        share_token: 'share-token-new',
+        share_expires_at: expect.any(Number),
+      })
     );
   });
 

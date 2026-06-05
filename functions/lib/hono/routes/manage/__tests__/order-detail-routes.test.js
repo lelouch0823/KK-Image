@@ -640,15 +640,10 @@ describe('manage order detail routes', () => {
     );
   });
 
-  it('rejects order patch when bound product is archived', async () => {
-    mocks.productFindById.mockResolvedValue({
-      id: 'p-1',
-      name: 'P',
-      brand: 'B',
-      series: 'S',
-      status: 'archived',
-      specifications: {},
-    });
+  it('allows order patch without product status column (post-migration 0043)', async () => {
+    // products 表自迁移 0043 起不再包含 status 列，产品级别不再检查活跃状态
+    // 此测试验证简单的订单更新（不涉及商品绑定变更）不因产品状态检查失败
+    mocks.processOrderUpdate.mockResolvedValue({ success: true, hasChanges: true });
 
     const app = createApp();
     const res = await app.request(
@@ -658,16 +653,15 @@ describe('manage order detail routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           updates: { remark: 'updated' },
-          productId: 'p-1',
-          variantId: 'v-1',
+          reason: 'test update',
         }),
       },
       { DB: { prepare: vi.fn() } },
       { waitUntil: vi.fn() }
     );
 
-    expect(res.status).toBe(400);
-    expect(mocks.processOrderUpdate).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(mocks.processOrderUpdate).toHaveBeenCalled();
   });
 
   it('rejects order patch when bound variant is archived', async () => {

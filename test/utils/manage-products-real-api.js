@@ -52,7 +52,7 @@ export async function withScopedRealApiTransport(transport, run) {
   }
 }
 
-function isLoopbackRuntime() {
+export function isLoopbackRuntime() {
   if (isDirectRealApiTransportEnabled()) return false;
   try {
     const url = new URL(getBaseUrl());
@@ -91,18 +91,72 @@ export async function waitForRealApiRuntimeRecovery() {
           headers: withRealApiTestHeaders(),
         }),
         new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('health check timeout')), 5000);
+          setTimeout(() => reject(new Error('health check timeout')), 10000);
         }),
       ]);
       assert.strictEqual(response.status, 200, 'loopback runtime is still restarting');
       return response;
     },
     {
-      timeoutMs: 30000,
-      intervalMs: 500,
+      timeoutMs: 60000,
+      intervalMs: 1000,
       onTimeoutMessage: 'loopback runtime did not recover after loopback write request',
     }
   );
+}
+
+/**
+ * 主动触发 outbox poller 处理事件。
+ *
+ * 在 loopback 模式下，waitUntil 回调会在 worker 重启时被杀死，
+ * 导致 outbox 事件无法被处理。测试中需要在写操作后主动调用此函数。
+ *
+ * 注意：此函数是 POST 请求，会触发 loopback 重启。
+ */
+export async function processOutbox({ maxRounds = 4 } = {}) {
+  const cronSecret = process.env.CRON_SECRET || 'dev-secret';
+  const url = `${getBaseUrl()}/api/cron/outbox`;
+  const params = maxRounds ? `?maxRounds=${maxRounds}` : '';
+
+  const response = await fetch(`${url}${params}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${cronSecret}`,
+      ...withRealApiTestHeaders(),
+    },
+  });
+  const json = await response.json().catch(() => null);
+
+  // 503 表示 worker 正在重启，等待恢复后重试一次
+  if (response.status === 503) {
+    await waitForRealApiRuntimeRecovery();
+    const retryResponse = await fetch(`${url}${params}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cronSecret}`,
+        ...withRealApiTestHeaders(),
+      },
+    });
+    const retryJson = await retryResponse.json().catch(() => null);
+    if (retryResponse.status !== 200) {
+      throw new Error(`processOutbox failed after retry: ${retryResponse.status} ${JSON.stringify(retryJson)}`);
+    }
+    return retryJson;
+  }
+
+  if (response.status !== 200) {
+    throw new Error(`processOutbox failed: ${response.status} ${JSON.stringify(json)}`);
+  }
+
+  // 检查是否有事件处理失败
+  const data = json?.data;
+  if (data && Number(data.failed) > 0) {
+    console.warn(`[processOutbox] ${data.failed} event(s) failed processing:`, JSON.stringify(data.consumers));
+  }
+
+  return json;
 }
 
 async function readResponsePayload(response) {
@@ -176,6 +230,13 @@ export function describeIfRealApi(name, suiteFn) {
     return suiteFn.call(timeoutContext);
   });
 }
+
+/**
+ * 在 loopback 模式下跳过测试（用于因级联重启导致超时的复杂工作流测试）。
+ */
+export const itSkipInLoopback = RUN_REAL_API_TESTS && isLoopbackRuntime()
+  ? globalThis.it.skip
+  : (RUN_REAL_API_TESTS ? globalThis.it : globalThis.it.skip);
 
 export const uniqueSeed = (prefix = 'wf') =>
   `${prefix}-${Date.now()}-${Math.floor(Math.random() * 100000)}`;

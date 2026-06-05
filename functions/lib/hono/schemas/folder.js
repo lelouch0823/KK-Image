@@ -15,7 +15,9 @@ export const CreateFolderSchema = z.object({
 /**
  * 文件夹更新 Schema
  */
-export const UpdateFolderSchema = CreateFolderSchema.partial();
+export const UpdateFolderSchema = CreateFolderSchema.partial().extend({
+  shareExpiresAt: z.number().optional().nullable(),
+});
 
 /**
  * 文件夹查询参数 Schema

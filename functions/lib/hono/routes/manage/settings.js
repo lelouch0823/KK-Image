@@ -1,48 +1,15 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { BadRequestError } from '../../errors.js';
 import { SettingsRepository } from '../../../../repositories/SettingsRepository.ts';
 import { parseModels, getModelHealthSnapshot } from '../../../../utils/ai-utils.js';
+import { parseBooleanFlag } from '../../../../ai/config-schema.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
+import { assertSafeExternalUrl } from '../../_shared/url-security.js';
 import { withCache } from '../../middleware/cache.js';
-
-const BatchSettingsSchema = z.object({
-  settings: z.array(z.object({
-    key: z.string().min(1).max(200),
-    value: z.string().max(10000),
-    category: z.string().max(100).optional(),
-    description: z.string().max(500).optional(),
-  })).min(1).max(100),
-}).strict();
-
-const UpdateSettingSchema = z.object({
-  value: z.string().max(10000).optional(),
-  category: z.string().max(100).optional(),
-  description: z.string().max(500).optional(),
-}).strict();
-
-/**
- * 验证外部 API URL 安全性（防止 SSRF）
- */
-function assertSafeExternalUrl(urlStr) {
-  let url;
-  try {
-    url = new URL(urlStr);
-  } catch {
-    throw new BadRequestError('无效的 URL 格式');
-  }
-  if (!['http:', 'https:'].includes(url.protocol)) {
-    throw new BadRequestError('URL 必须使用 http 或 https 协议');
-  }
-  const hostname = url.hostname;
-  const isPrivate = /^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|0\.|localhost|::1|\[::1\])/i.test(hostname);
-  if (isPrivate) {
-    throw new BadRequestError('不允许使用内网地址');
-  }
-}
+import { BatchSettingsSchema, UpdateSettingSchema } from '../../schemas/settings.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -80,14 +47,6 @@ const fetchJsonWithAuth = async (url, apiKey, init = {}) => {
   }
 
   return { response, data };
-};
-
-const parseBooleanFlag = (value, fallback = false) => {
-  if (typeof value === 'boolean') return value;
-  if (value === undefined || value === null) return fallback;
-  const normalized = String(value).trim().toLowerCase();
-  if (!normalized) return fallback;
-  return ['1', 'true', 'yes', 'on', 'enabled'].includes(normalized);
 };
 
 const parseWindowSize = (value, fallback = 20) => {

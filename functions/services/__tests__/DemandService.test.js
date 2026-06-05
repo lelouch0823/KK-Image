@@ -118,7 +118,8 @@ describe('DemandService', () => {
     const run = vi.fn(async () => ({ meta: { changes: 1 } }));
     const bind = vi.fn(() => ({ run }));
     const prepare = vi.fn(() => ({ bind }));
-    const service = new DemandService({ prepare });
+    const batch = vi.fn(async (stmts) => stmts.map(() => ({ meta: { changes: 1 } })));
+    const service = new DemandService({ prepare, batch });
 
     await service.syncOrderTransition({
       orderId: 'o-1',
@@ -143,6 +144,7 @@ describe('DemandService', () => {
           first: vi.fn(async () => null),
         })),
       })),
+      batch: vi.fn(async (stmts) => stmts.map(() => ({ meta: { changes: 1 } }))),
     };
     const service = new DemandService(db);
 
@@ -181,6 +183,7 @@ describe('DemandService', () => {
         };
         return statement;
       }),
+      batch: vi.fn(async (stmts) => stmts.map(() => ({ meta: { changes: 1 } }))),
     };
     const service = new DemandService(db);
 

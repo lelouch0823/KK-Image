@@ -2,6 +2,7 @@ import { parseRepoPagination } from '../api/utils/pagination.js';
 import { safeJsonParse } from '../api/utils/json.js';
 import { hasChanges } from '../api/utils/result.js';
 import { buildSetClause } from '../api/utils/sql.js';
+import { checkFtsTable, sanitizeFts5Query } from '../api/utils/fts.js';
 import type { D1Database, D1Result } from '../types/database.js';
 import type {
   Customer,
@@ -22,31 +23,22 @@ import type {
  * 客户仓库
  * 处理客户的 CRUD 和数据转换
  */
-export class CustomerRepository {
-  /** FTS5 可用性缓存 */
-  static _ftsAvailable: boolean | null = null;
+/**
+ * 根据订单数和最近下单天数判断 RFM 分段
+ */
+function classifyRfmSegment(orderCount: number, recencyDays: number | null): RfmSegment {
+  if (orderCount === 0) return 'new';
+  if (recencyDays! <= 90 && orderCount >= 5) return 'vip';
+  if (recencyDays! <= 90) return 'active';
+  if (recencyDays! <= 180) return 'at-risk';
+  return 'lost';
+}
 
+export class CustomerRepository {
   protected db: D1Database;
 
   constructor(db: D1Database) {
     this.db = db;
-  }
-
-  /**
-   * 检查 FTS5 虚拟表是否存在（带模块级缓存）
-   * @returns 是否存在 FTS5 表
-   */
-  async _hasFtsTable(): Promise<boolean> {
-    if (CustomerRepository._ftsAvailable !== null) return CustomerRepository._ftsAvailable;
-    try {
-      const stmt = this.db.prepare?.("SELECT name FROM sqlite_master WHERE type='table' AND name='customers_fts'");
-      if (!stmt) { CustomerRepository._ftsAvailable = false; return false; }
-      const result = await stmt.first<{ name: string }>();
-      CustomerRepository._ftsAvailable = !!result;
-    } catch {
-      CustomerRepository._ftsAvailable = false;
-    }
-    return CustomerRepository._ftsAvailable;
   }
 
   /**
@@ -127,11 +119,13 @@ export class CustomerRepository {
 
     if (search) {
       // 优先使用 FTS5 全文搜索（O(logN)），不可用时降级为 LIKE（O(N)）
-      const hasFts = await this._hasFtsTable();
+      const hasFts = await checkFtsTable(this.db, 'customers_fts');
       if (hasFts) {
-        const ftsQuery = `"${search.replace(/"/g, '""')}"*`;
-        whereClause += ` AND rowid IN (SELECT rowid FROM customers_fts WHERE customers_fts MATCH ?)`;
-        bindings.push(ftsQuery);
+        const sanitized = sanitizeFts5Query(search);
+        if (sanitized) {
+          whereClause += ` AND rowid IN (SELECT rowid FROM customers_fts WHERE customers_fts MATCH ?)`;
+          bindings.push(`"${sanitized}"*`);
+        }
       } else {
         whereClause += ' AND (name LIKE ? OR phone LIKE ? OR company LIKE ?)';
         const term = `%${search}%`;
@@ -383,27 +377,7 @@ export class CustomerRepository {
   async getRfmSegment(id: string): Promise<RfmSegmentData> {
     const stats = await this.getOrderStats(id);
     const { orderCount, recencyDays } = stats;
-
-    // RFM 分段逻辑
-    // R (Recency): 最近下单距今天数
-    // F (Frequency): 订单总数
-    // 分段规则:
-    //   VIP: 最近 90 天内有订单 且 订单数 >= 5
-    //   Active: 最近 90 天内有订单
-    //   At-risk: 最近 90-180 天内有订单
-    //   Lost: 超过 180 天无订单 或 从未下单
-    let segment: RfmSegment = 'new'; // 默认：新客户（无订单）
-    if (orderCount === 0) {
-      segment = 'new';
-    } else if (recencyDays! <= 90 && orderCount >= 5) {
-      segment = 'vip';
-    } else if (recencyDays! <= 90) {
-      segment = 'active';
-    } else if (recencyDays! <= 180) {
-      segment = 'at-risk';
-    } else {
-      segment = 'lost';
-    }
+    const segment = classifyRfmSegment(orderCount, recencyDays);
 
     return {
       ...stats,
@@ -443,19 +417,7 @@ export class CustomerRepository {
       const orderCount = row.order_count || 0;
       const lastOrderAt = row.last_order_at || null;
       const recencyDays = lastOrderAt ? Math.floor((now - lastOrderAt) / (24 * 60 * 60 * 1000)) : null;
-
-      let segment: RfmSegment = 'new';
-      if (orderCount === 0) {
-        segment = 'new';
-      } else if (recencyDays! <= 90 && orderCount >= 5) {
-        segment = 'vip';
-      } else if (recencyDays! <= 90) {
-        segment = 'active';
-      } else if (recencyDays! <= 180) {
-        segment = 'at-risk';
-      } else {
-        segment = 'lost';
-      }
+      const segment = classifyRfmSegment(orderCount, recencyDays);
 
       segmentMap.set(row.customer_id, { segment, orderCount, lastOrderAt, recencyDays });
     }

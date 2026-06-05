@@ -295,7 +295,7 @@ describe('useFileManager operations', () => {
     const calls = mockAuthFetch.mock.calls;
 
     expect(calls[0]).toEqual([
-      '/api/v1/files/file-1',
+      '/api/manage/files/file-1',
       expect.objectContaining({
         method: 'PUT',
         body: JSON.stringify({ name: 'renamed.jpg' }),
@@ -303,7 +303,7 @@ describe('useFileManager operations', () => {
     ]);
     expect(calls[1][0]).toBe('/api/manage/folders/folder-1');
     expect(calls[2]).toEqual([
-      '/api/v1/files/batch/move',
+      '/api/manage/files/batch/move',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ ids: ['file-1', 'file-2'], targetFolderId: 'folder-2' }),

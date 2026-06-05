@@ -1,12 +1,6 @@
 import { parseJsonObject } from '../api/utils/json.js';
+import { generateId } from '../api/utils/id.js';
 import { detectCreateIntent } from './canonicalization.js';
-
-function buildSessionId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `act-${Date.now()}`;
-}
 
 function isCandidateResult(value) {
   return value && typeof value === 'object' && value.kind === 'candidates' && Array.isArray(value.candidates);
@@ -61,7 +55,7 @@ export class AIActionOrchestrator {
     const mergedSlots = await this.#applySlotResolvers(adapter.entityType, { ...extractedSlots, ...slots });
     const missingSlots = this.#getMissingSlots(adapter, mergedSlots);
 
-    const sessionId = buildSessionId();
+    const sessionId = generateId();
     await this.sessionStore.createSession({
       id: sessionId,
       userId,

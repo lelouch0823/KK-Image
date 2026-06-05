@@ -14,7 +14,7 @@
  * @module services/ProfitService
  */
 
-import { query } from '../lib/db/query.js';
+import { ProfitRepository } from '../repositories/ProfitRepository.js';
 
 /**
  * @typedef {Object} LineProfit
@@ -43,9 +43,12 @@ import { query } from '../lib/db/query.js';
 export class ProfitService {
   /**
    * @param {D1Database} db
+   * @param {Object} deps - 依赖注入
+   * @param {ProfitRepository} [deps.profitRepo]
    */
-  constructor(db) {
+  constructor(db, deps = {}) {
     this.db = db;
+    this.profitRepo = deps.profitRepo || new ProfitRepository(db);
   }
 
   /**
@@ -54,34 +57,7 @@ export class ProfitService {
    * @returns {Promise<OrderProfit>}
    */
   async calculateOrderProfit(orderId) {
-    // 查询订单行及其关联的商品变体售价、采购成本
-    const { results: lines } = await query(
-      this.db,
-      `
-      SELECT
-        ol.id AS order_line_id,
-        ol.snapshot_name,
-        ol.ordered_qty,
-        ol.product_id,
-        ol.variant_id,
-        pv.price AS variant_price,
-        pv.cost_price AS variant_cost_price,
-        -- 采购单成本：取该订单行关联的最近一条采购明细
-        poi.unit_cost AS po_unit_cost,
-        poi.allocated_freight AS po_freight,
-        poi.allocated_tariff AS po_tariff
-      FROM order_lines ol
-      LEFT JOIN product_variants pv ON pv.id = ol.variant_id
-      LEFT JOIN purchase_order_items poi ON poi.pre_order_id = ol.order_id
-        AND poi.product_id = ol.product_id
-        AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))
-      WHERE ol.order_id = ?
-      ORDER BY ol.created_at ASC
-      `,
-      [orderId],
-      { label: 'profit.order.lines' }
-    );
-
+    const lines = await this.profitRepo.findOrderLinesForProfit(orderId);
     return this._aggregateLinesProfit(lines);
   }
 
@@ -94,47 +70,7 @@ export class ProfitService {
    * @returns {Promise<{totalRevenue: number, totalCost: number, totalProfit: number, margin: number|null, orderCount: number, costCompleteOrderCount: number}>}
    */
   async calculateProfitSummary(filters = {}) {
-    let whereClause = '1=1';
-    const params = [];
-
-    if (filters.startTimestamp) {
-      whereClause += ' AND o.created_at >= ?';
-      params.push(filters.startTimestamp);
-    }
-    if (filters.endTimestamp) {
-      whereClause += ' AND o.created_at <= ?';
-      params.push(filters.endTimestamp);
-    }
-    if (filters.status) {
-      whereClause += ' AND o.status = ?';
-      params.push(filters.status);
-    }
-
-    const { results } = await query(
-      this.db,
-      `
-      SELECT
-        o.id AS order_id,
-        ol.id AS order_line_id,
-        ol.ordered_qty,
-        ol.product_id,
-        ol.variant_id,
-        pv.price AS variant_price,
-        pv.cost_price AS variant_cost_price,
-        poi.unit_cost AS po_unit_cost,
-        poi.allocated_freight AS po_freight,
-        poi.allocated_tariff AS po_tariff
-      FROM orders o
-      INNER JOIN order_lines ol ON ol.order_id = o.id
-      LEFT JOIN product_variants pv ON pv.id = ol.variant_id
-      LEFT JOIN purchase_order_items poi ON poi.pre_order_id = ol.order_id
-        AND poi.product_id = ol.product_id
-        AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))
-      WHERE ${whereClause}
-      `,
-      params,
-      { label: 'profit.summary.lines' }
-    );
+    const results = await this.profitRepo.findOrderLinesForProfitSummary(filters);
 
     // 按订单分组计算
     const orderMap = new Map();
@@ -172,42 +108,7 @@ export class ProfitService {
    * @returns {Promise<Array<{productName: string, revenue: number, cost: number, profit: number, margin: number|null, orderCount: number}>>}
    */
   async getProfitByProduct(limit = 10, filters = {}) {
-    let whereClause = '1=1';
-    const params = [];
-
-    if (filters.startTimestamp) {
-      whereClause += ' AND o.created_at >= ?';
-      params.push(filters.startTimestamp);
-    }
-    if (filters.endTimestamp) {
-      whereClause += ' AND o.created_at <= ?';
-      params.push(filters.endTimestamp);
-    }
-
-    const { results } = await query(
-      this.db,
-      `
-      SELECT
-        ol.snapshot_name AS product_name,
-        ol.ordered_qty,
-        ol.product_id,
-        ol.variant_id,
-        pv.price AS variant_price,
-        pv.cost_price AS variant_cost_price,
-        poi.unit_cost AS po_unit_cost,
-        poi.allocated_freight AS po_freight,
-        poi.allocated_tariff AS po_tariff
-      FROM orders o
-      INNER JOIN order_lines ol ON ol.order_id = o.id
-      LEFT JOIN product_variants pv ON pv.id = ol.variant_id
-      LEFT JOIN purchase_order_items poi ON poi.pre_order_id = ol.order_id
-        AND poi.product_id = ol.product_id
-        AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))
-      WHERE ${whereClause}
-      `,
-      params,
-      { label: 'profit.byProduct.lines' }
-    );
+    const results = await this.profitRepo.findOrderLinesForProfitByProduct(filters);
 
     // 按商品名称分组
     const productMap = new Map();
@@ -249,30 +150,7 @@ export class ProfitService {
    * @returns {Promise<Array<{date: string, revenue: number, cost: number, profit: number}>>}
    */
   async getProfitTrend(startTimestamp) {
-    const { results } = await query(
-      this.db,
-      `
-      SELECT
-        DATE(o.created_at / 1000, 'unixepoch', '+8 hours') AS date,
-        ol.ordered_qty,
-        ol.product_id,
-        ol.variant_id,
-        pv.price AS variant_price,
-        pv.cost_price AS variant_cost_price,
-        poi.unit_cost AS po_unit_cost,
-        poi.allocated_freight AS po_freight,
-        poi.allocated_tariff AS po_tariff
-      FROM orders o
-      INNER JOIN order_lines ol ON ol.order_id = o.id
-      LEFT JOIN product_variants pv ON pv.id = ol.variant_id
-      LEFT JOIN purchase_order_items poi ON poi.pre_order_id = ol.order_id
-        AND poi.product_id = ol.product_id
-        AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))
-      WHERE o.created_at >= ?
-      `,
-      [startTimestamp],
-      { label: 'profit.trend.lines' }
-    );
+    const results = await this.profitRepo.findOrderLinesForProfitTrend(startTimestamp);
 
     // 按日期分组
     const dateMap = new Map();

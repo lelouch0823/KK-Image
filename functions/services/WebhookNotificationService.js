@@ -137,17 +137,15 @@ export class WebhookNotificationService {
    */
   async notify(eventType, payload = {}) {
     const channels = await this.getConfiguredChannels();
-    const results = [];
+    const message = formatEventMessage(eventType, payload);
 
-    for (const ch of channels) {
+    const sendPromises = channels.map(async (ch) => {
       if (!ch.enabled) {
-        results.push({ channel: ch.channel, success: false, error: 'disabled' });
-        continue;
+        return { channel: ch.channel, success: false, error: 'disabled' };
       }
 
       try {
         const config = CHANNEL_CONFIGS[ch.channel] || CHANNEL_CONFIGS.generic;
-        const message = formatEventMessage(eventType, payload);
         const body = config.buildBody(message);
 
         const response = await this.fetch(ch.url, {
@@ -157,21 +155,26 @@ export class WebhookNotificationService {
           signal: AbortSignal.timeout(10000),
         });
 
-        results.push({
+        return {
           channel: ch.channel,
           success: response.ok,
           error: response.ok ? undefined : `HTTP ${response.status}`,
-        });
+        };
       } catch (err) {
-        results.push({
+        return {
           channel: ch.channel,
           success: false,
           error: String(err?.message || err || 'network error'),
-        });
+        };
       }
-    }
+    });
 
-    return results;
+    const settled = await Promise.allSettled(sendPromises);
+    return settled.map((result) =>
+      result.status === 'fulfilled'
+        ? result.value
+        : { channel: 'unknown', success: false, error: String(result.reason || 'unexpected error') }
+    );
   }
 
   /**

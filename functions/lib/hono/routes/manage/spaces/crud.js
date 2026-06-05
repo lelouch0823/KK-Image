@@ -22,7 +22,7 @@ import {
 } from './transformers.js';
 import { NotFoundError } from '../../../errors.js';
 import { invalidateSpaceCaches } from './cache-helpers.js';
-import { appendOptionalUpdate, requireEntity } from '../../../_shared/route-helpers.js';
+import { requireEntity } from '../../../_shared/route-helpers.js';
 import {
   buildSpaceInvalidatePayload,
   normalizeSpaceCreateFields,
@@ -270,19 +270,18 @@ crud.on(
 
     const space = await requireSpace(repo, spaceId);
 
-    const updates = [];
-    const values = [];
+    const updates = {};
 
-    appendOptionalUpdate(updates, values, 'name = ?', data.name, (value) => value.trim());
-    appendOptionalUpdate(updates, values, 'description = ?', data.description, (value) => value.trim());
-    appendOptionalUpdate(updates, values, 'is_public = ?', data.isPublic, (value) => (value ? 1 : 0));
-    appendOptionalUpdate(updates, values, 'password = ?', data.password, (value) => value || null);
-    appendOptionalUpdate(updates, values, 'expires_at = ?', data.expiresAt);
-    appendOptionalUpdate(updates, values, 'cover_file_id = ?', data.coverFileId, (value) => value || null);
-    appendOptionalUpdate(updates, values, 'template = ?', data.template);
-    appendOptionalUpdate(updates, values, 'template_data = ?', data.templateData, (value) => JSON.stringify(value));
-    appendOptionalUpdate(updates, values, 'product_id = ?', data.productId, (value) => value || null);
-    appendOptionalUpdate(updates, values, 'variant_id = ?', data.variantId, (value) => value || null);
+    if (data.name !== undefined) updates.name = data.name.trim();
+    if (data.description !== undefined) updates.description = data.description.trim();
+    if (data.isPublic !== undefined) updates.is_public = data.isPublic ? 1 : 0;
+    if (data.password !== undefined) updates.password = data.password || null;
+    if (data.expiresAt !== undefined) updates.expires_at = data.expiresAt;
+    if (data.coverFileId !== undefined) updates.cover_file_id = data.coverFileId || null;
+    if (data.template !== undefined) updates.template = data.template;
+    if (data.templateData !== undefined) updates.template_data = JSON.stringify(data.templateData);
+    if (data.productId !== undefined) updates.product_id = data.productId || null;
+    if (data.variantId !== undefined) updates.variant_id = data.variantId || null;
     const nextProductId = data.productId !== undefined ? (data.productId || null) : (space.product_id || null);
     const nextVariantId = data.variantId !== undefined ? (data.variantId || null) : (space.variant_id || null);
     const currentProductId = space.product_id || null;
@@ -294,18 +293,17 @@ crud.on(
       variantSelectPolicy: bindingChanged ? 'in_stock_only' : 'allow_out_of_stock',
     });
     // 处理新的分享模式
-    appendOptionalUpdate(updates, values, 'share_mode = ?', data.shareMode);
+    if (data.shareMode !== undefined) updates.share_mode = data.shareMode;
 
-    updates.push('updated_at = ?');
-    values.push(Date.now());
-    values.push(spaceId);
-
-    const updated = await repo.update(spaceId, updates, values);
+    await repo.update(spaceId, updates);
 
     // 处理选择性分享的销售员列表
     if (data.sharedSalespersonIds !== undefined) {
       await repo.updateSharedSalespersons(spaceId, data.sharedSalespersonIds);
     }
+
+    // 重新获取更新后的空间记录
+    const updated = await requireSpace(repo, spaceId);
 
     await invalidateSpaceCaches(c, {
       ...buildSpaceInvalidatePayload({

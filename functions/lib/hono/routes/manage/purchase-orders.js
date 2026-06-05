@@ -47,6 +47,7 @@ import {
   AddPurchaseOrderItemsSchema,
   UpdatePurchaseOrderItemSchema,
 } from '../../schemas/purchase-order.js';
+import { isDuplicateOutboxIdempotencyError } from './products/idempotency-helpers.js';
 
 const app = new Hono();
 const PURCHASE_ORDER_CREATE_COMMAND_TYPE = 'purchase_order_create';
@@ -65,17 +66,6 @@ export const auditRouteDeclarations = declareAuditRoutes([
   { method: 'POST', path: '/:id/allocate', domain: 'purchase-orders', action: 'purchase_order.allocate', severity: 'high', targetType: 'purchase_order' },
 ]);
 app.use('*', requirePermission('products:manage'));
-
-function isDuplicateOutboxIdempotencyError(error) {
-  const message = String(error?.message || error || '').toLowerCase();
-  return (
-    message.includes('unique constraint failed')
-    && (
-      message.includes('domain_outbox.idempotency_key')
-      || message.includes('idx_domain_outbox_idempotency_key')
-    )
-  );
-}
 
 async function publishPurchaseOrderCacheEvent(c, { eventType, poId, payload = {}, commandId, correlationId }) {
   const publisher = new DomainOutboxPublisher(c.env.DB);

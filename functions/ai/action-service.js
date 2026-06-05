@@ -20,19 +20,9 @@ import { runOutboxPoller } from '../api/cron/outbox.js';
 import { scheduleProductCacheInvalidation } from '../lib/hono/routes/manage/products/cache-helpers.js';
 import { evaluateActionPermission } from '../lib/authz/index.js';
 
-function buildAIPurchaseOrderEventCommandId(sessionId) {
+function buildAIEventCommandId(prefix, sessionId) {
   const normalized = String(sessionId || '').trim();
-  return normalized ? `ai_purchase_order:${normalized}` : `ai_purchase_order:${crypto.randomUUID()}`;
-}
-
-function buildAIProductEventCommandId(sessionId) {
-  const normalized = String(sessionId || '').trim();
-  return normalized ? `ai_product:${normalized}` : `ai_product:${crypto.randomUUID()}`;
-}
-
-function buildAIOrderEventCommandId(sessionId) {
-  const normalized = String(sessionId || '').trim();
-  return normalized ? `ai_order:${normalized}` : `ai_order:${crypto.randomUUID()}`;
+  return normalized ? `${prefix}:${normalized}` : `${prefix}:${crypto.randomUUID()}`;
 }
 
 function isDuplicateOutboxIdempotencyError(error) {
@@ -108,8 +98,8 @@ export async function publishPurchaseOrderCreatedFromAI(
         },
       },
     ], {
-      commandId: buildAIPurchaseOrderEventCommandId(sessionId),
-      correlationId: buildAIPurchaseOrderEventCommandId(sessionId),
+      commandId: buildAIEventCommandId('ai_purchase_order', sessionId),
+      correlationId: buildAIEventCommandId('ai_purchase_order', sessionId),
     });
   } catch (error) {
     if (!isDuplicateOutboxIdempotencyError(error)) {
@@ -135,8 +125,8 @@ export async function publishProductCreatedFromAI(
       eventType: 'product_created',
       productIds: [created.id],
     }, {
-      commandId: buildAIProductEventCommandId(sessionId),
-      correlationId: buildAIProductEventCommandId(sessionId),
+      commandId: buildAIEventCommandId('ai_product', sessionId),
+      correlationId: buildAIEventCommandId('ai_product', sessionId),
     });
   } catch (error) {
     if (!isDuplicateOutboxIdempotencyError(error)) {
@@ -166,8 +156,8 @@ export async function publishOrderCreatedFromAI(
         },
       },
     ], {
-      commandId: buildAIOrderEventCommandId(sessionId),
-      correlationId: buildAIOrderEventCommandId(sessionId),
+      commandId: buildAIEventCommandId('ai_order', sessionId),
+      correlationId: buildAIEventCommandId('ai_order', sessionId),
     });
   } catch (error) {
     if (!isDuplicateOutboxIdempotencyError(error)) {

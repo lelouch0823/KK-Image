@@ -1,6 +1,7 @@
 import { generateId } from '../api/utils/id.js';
 import { BadRequestError } from '../lib/hono/errors.js';
 import { VariantDemandProjectionRepository } from '../repositories/VariantDemandProjectionRepository.js';
+import { queryOrderLineCandidates } from './order-line-shared.js';
 
 const DEMAND_ACTIVE_STATUSES = new Set(['confirmed', 'production', 'shipping', 'arrived']);
 const DEMAND_RELEASE_STATUSES = new Set(['void', 'rejected', 'cancelled']);
@@ -15,33 +16,7 @@ export class DemandService {
   }
 
   async queryOrderLineCandidates(payload = {}, includeScopedFilters = true) {
-    if (!payload.orderId || typeof this.db?.prepare !== 'function') return [];
-
-    const filters = ['order_id = ?'];
-    const params = [payload.orderId];
-
-    if (includeScopedFilters && payload.variantId) {
-      filters.push('variant_id = ?');
-      params.push(payload.variantId);
-    }
-    if (includeScopedFilters && payload.productId) {
-      filters.push('product_id = ?');
-      params.push(payload.productId);
-    }
-
-    const statement = this.db
-      .prepare(`SELECT id FROM order_lines WHERE ${filters.join(' AND ')} ORDER BY created_at ASC LIMIT 2`)
-      .bind(...params);
-
-    if (typeof statement?.all === 'function') {
-      const { results } = await statement.all();
-      return results || [];
-    }
-    if (typeof statement?.first === 'function') {
-      const row = await statement.first();
-      return row ? [row] : [];
-    }
-    return [];
+    return queryOrderLineCandidates(this.db, payload, includeScopedFilters);
   }
 
   async resolveOrderLineId(payload = {}) {
@@ -103,59 +78,59 @@ export class DemandService {
       const timestamp = Date.now();
       const orderLineId = await this.resolveOrderLineId(payload);
       const sourceId = payload.orderId || payload.variantId;
-      await this.db.prepare(
-        `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
-         VALUES (?, 0, ?, 0, ?)
-         ON CONFLICT(variant_id) DO UPDATE SET
-           reserved = MAX(0, inventory_balances.reserved + ?),
-           available = MAX(0, inventory_balances.on_hand - MAX(0, inventory_balances.reserved + ?)),
-           updated_at = excluded.updated_at`
-      ).bind(
-        payload.variantId,
-        Math.max(reservationDelta, 0),
-        timestamp,
-        reservationDelta,
-        reservationDelta
-      ).run();
+      const reservationMetadata = JSON.stringify({
+        fromStatus: payload.fromStatus || null,
+        toStatus: payload.toStatus || null,
+      });
+      const eventType = reservationDelta > 0 ? 'reservation_hold' : 'reservation_release';
 
-      await this.db.prepare(
-        `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        generateId(),
-        payload.variantId,
-        reservationDelta > 0 ? 'reservation_hold' : 'reservation_release',
-        reservationDelta,
-        'order',
-        sourceId,
-        timestamp,
-        JSON.stringify({
-          fromStatus: payload.fromStatus || null,
-          toStatus: payload.toStatus || null,
-        }),
-        timestamp
-      ).run();
-
-      await this.db.prepare(
-        `INSERT INTO inventory_events (
-          id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta,
-          source_type, source_id, metadata, occurred_at, created_at
-        ) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        generateId(),
-        payload.variantId,
-        orderLineId,
-        reservationDelta > 0 ? 'reservation_hold' : 'reservation_release',
-        reservationDelta,
-        'order',
-        sourceId,
-        JSON.stringify({
-          fromStatus: payload.fromStatus || null,
-          toStatus: payload.toStatus || null,
-        }),
-        timestamp,
-        timestamp
-      ).run();
+      await this.db.batch([
+        this.db.prepare(
+          `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
+           VALUES (?, 0, ?, 0, ?)
+           ON CONFLICT(variant_id) DO UPDATE SET
+             reserved = MAX(0, inventory_balances.reserved + ?),
+             available = MAX(0, inventory_balances.on_hand - MAX(0, inventory_balances.reserved + ?)),
+             updated_at = excluded.updated_at`
+        ).bind(
+          payload.variantId,
+          Math.max(reservationDelta, 0),
+          timestamp,
+          reservationDelta,
+          reservationDelta
+        ),
+        this.db.prepare(
+          `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          generateId(),
+          payload.variantId,
+          eventType,
+          reservationDelta,
+          'order',
+          sourceId,
+          timestamp,
+          reservationMetadata,
+          timestamp
+        ),
+        this.db.prepare(
+          `INSERT INTO inventory_events (
+            id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta,
+            source_type, source_id, metadata, occurred_at, created_at
+          ) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          generateId(),
+          payload.variantId,
+          orderLineId,
+          eventType,
+          reservationDelta,
+          'order',
+          sourceId,
+          reservationMetadata,
+          timestamp,
+          timestamp
+        ),
+      ]);
     }
 
     const fromStatus = String(payload?.fromStatus || '').trim();

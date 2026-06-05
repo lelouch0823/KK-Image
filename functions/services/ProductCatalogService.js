@@ -27,12 +27,12 @@ export {
 } from "./product-catalog/variant-matching.js";
 
 export class ProductCatalogService {
-    constructor(db) {
+    constructor(db, deps = {}) {
         this.db = db;
-        this.productRepo = new ProductRepository(db);
-        this.variantRepo = new ProductVariantRepository(db);
-        this.dimensionRepo = new ProductDimensionRepository(db);
-        this.auditRepo = new VariantAuditRepository(db);
+        this.productRepo = deps.productRepo || new ProductRepository(db);
+        this.variantRepo = deps.variantRepo || new ProductVariantRepository(db);
+        this.dimensionRepo = deps.dimensionRepo || new ProductDimensionRepository(db);
+        this.auditRepo = deps.auditRepo || new VariantAuditRepository(db);
     }
 
     async ensureProductExists(productId) {

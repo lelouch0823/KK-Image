@@ -1,5 +1,6 @@
 // 认证工具模块 - 处理 API Key 和 JWT 认证
 import { parseJsonArray, safeJsonParse } from './json.js';
+import { base64UrlEncode, base64UrlDecode, timingSafeCompare as cryptoTimingSafeCompare } from './crypto.js';
 
 // 管理员认证 Cookie 名称
 export const ADMIN_AUTH_COOKIE = 'ADMIN_AUTH';
@@ -19,57 +20,12 @@ function resetApiKeyCache() {
  */
 class SimpleJWT {
   /**
-   * Base64 URL 安全编码（支持 Unicode）
-   */
-  static base64UrlEncode(data) {
-    const str = typeof data === 'string' ? data : JSON.stringify(data);
-    const encoded = btoa(unescape(encodeURIComponent(str)));
-    // 转换为 URL 安全格式
-    return encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-
-  /**
-   * Base64 URL 安全解码
-   */
-  static base64UrlDecode(str) {
-    // 还原标准 Base64
-    let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-    // 补齐 padding
-    const padding = base64.length % 4;
-    if (padding) {
-      base64 += '='.repeat(4 - padding);
-    }
-    return decodeURIComponent(escape(atob(base64)));
-  }
-
-  /**
-   * 恒定时间字符串比较（使用 Cloudflare Workers 原生 API）
-   * 参考: https://developers.cloudflare.com/workers/runtime-apis/web-crypto/#timingsafeequal
-   */
-  static constantTimeCompare(a, b) {
-    if (a.length !== b.length) return false;
-
-    const encoder = new TextEncoder();
-    const aBytes = encoder.encode(a);
-    const bBytes = encoder.encode(b);
-
-    if (crypto.subtle.timingSafeEqual) {
-      return crypto.subtle.timingSafeEqual(aBytes, bBytes);
-    }
-    let mismatch = 0;
-    for (let i = 0; i < aBytes.length; i += 1) {
-      mismatch |= aBytes[i] ^ bBytes[i];
-    }
-    return mismatch === 0;
-  }
-
-  /**
    * 编码 JWT Token（异步方法）
    */
   static async encode(payload, secret) {
     const header = { alg: 'HS256', typ: 'JWT' };
-    const encodedHeader = this.base64UrlEncode(header);
-    const encodedPayload = this.base64UrlEncode(payload);
+    const encodedHeader = base64UrlEncode(header);
+    const encodedPayload = base64UrlEncode(payload);
 
     const signature = await this.sign(`${encodedHeader}.${encodedPayload}`, secret);
 
@@ -89,12 +45,12 @@ class SimpleJWT {
 
     // 使用恒定时间比较防止时序攻击
     const expectedSignature = await this.sign(`${encodedHeader}.${encodedPayload}`, secret);
-    if (!this.constantTimeCompare(signature, expectedSignature)) {
+    if (!cryptoTimingSafeCompare(signature, expectedSignature)) {
       throw new Error(MSG.AUTH.JWT_INVALID);
     }
 
     // 解码载荷
-    const payload = safeJsonParse(this.base64UrlDecode(encodedPayload));
+    const payload = safeJsonParse(base64UrlDecode(encodedPayload));
     if (!payload || Array.isArray(payload) || typeof payload !== 'object') {
       throw new Error(MSG.AUTH.JWT_INVALID);
     }
@@ -379,27 +335,7 @@ export async function authenticateAdmin(request, env) {
  * @param {string} b 第二个字符串
  * @returns {boolean}
  */
-export function timingSafeCompare(a, b) {
-  if (typeof a !== 'string' || typeof b !== 'string') return false;
-  const encoder = new TextEncoder();
-  const bufA = encoder.encode(a);
-  const bufB = encoder.encode(b);
-  if (bufA.length !== bufB.length) {
-    // 比较一个虚拟值以保持时间一致
-    crypto.subtle.timingSafeEqual?.(bufA, bufA);
-    return false;
-  }
-  // Cloudflare Workers 支持 crypto.subtle.timingSafeEqual
-  if (crypto.subtle.timingSafeEqual) {
-    return crypto.subtle.timingSafeEqual(bufA, bufB);
-  }
-  // 回退：手动实现常量时间比较
-  let result = 0;
-  for (let i = 0; i < bufA.length; i++) {
-    result |= bufA[i] ^ bufB[i];
-  }
-  return result === 0;
-}
+export { cryptoTimingSafeCompare as timingSafeCompare };
 
 /**
  * 检查请求是否来自已认证管理员（无抛错版本）

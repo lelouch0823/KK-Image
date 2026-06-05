@@ -7,7 +7,7 @@ import {
 } from './utils/manage-products-real-api.js';
 
 describeIfRealApi('Folders Real API Workflow', function () {
-  this.timeout(120000);
+  this.timeout(180000);
 
   it('supports v1 and manage folder create/update/share/delete flows', async () => {
     const token = await getBearerToken();

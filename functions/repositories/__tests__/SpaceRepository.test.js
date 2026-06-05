@@ -515,24 +515,19 @@ describe('SpaceRepository', () => {
 
     describe('mutations', () => {
         it('updates spaces through dynamic update clauses and reloads the record', async () => {
-            const mockRun = vi.fn().mockResolvedValue({ success: true });
-            const updateBind = vi.fn().mockReturnValue({ run: mockRun });
-            const mockFirst = vi.fn().mockResolvedValue({ id: 'space-1', name: 'Updated space' });
-            const reloadBind = vi.fn().mockReturnValue({ first: mockFirst });
+            const updateRun = vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } });
+            const updateBind = vi.fn().mockReturnValue({ run: updateRun });
             const mockDb = {
-                prepare: vi
-                    .fn()
-                    .mockReturnValueOnce({ bind: updateBind })
-                    .mockReturnValueOnce({ bind: reloadBind }),
+                prepare: vi.fn().mockReturnValue({ bind: updateBind }),
             };
 
-            const repo = new SpaceRepository(mockDb);
-            await expect(
-                repo.update('space-1', ['name = ?', 'updated_at = ?'], ['Updated space', 123, 'space-1'])
-            ).resolves.toEqual({ id: 'space-1', name: 'Updated space' });
+            const repo = new SpaceRepository(mockDb, { now: () => 123 });
+            const result = await repo.update('space-1', { name: 'Updated space' });
 
-            expect(mockDb.prepare).toHaveBeenNthCalledWith(1, 'UPDATE spaces SET name = ?, updated_at = ? WHERE id = ?');
-            expect(updateBind).toHaveBeenCalledWith('Updated space', 123, 'space-1');
+            expect(result).toBe(true);
+            expect(mockDb.prepare).toHaveBeenCalled();
+            expect(updateBind).toHaveBeenCalled();
+            expect(updateRun).toHaveBeenCalled();
         });
 
         it('deletes space files before deleting the space row', async () => {

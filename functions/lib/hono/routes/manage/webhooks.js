@@ -7,25 +7,19 @@ import { requirePermission } from '../../middleware/auth.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { requireEntity, parsePagination } from '../../_shared/route-helpers.js';
+import { assertSafeExternalUrl } from '../../_shared/url-security.js';
 
 /**
- * 验证 Webhook URL 安全性（防止 SSRF）
+ * 验证 webhook URL
+ * 在开发/测试环境允许 localhost
  */
-function validateWebhookUrl(urlStr) {
-  let url;
-  try {
-    url = new URL(urlStr);
-  } catch {
-    throw new BadRequestError('无效的 URL 格式');
-  }
-  if (!['http:', 'https:'].includes(url.protocol)) {
-    throw new BadRequestError('URL 必须使用 http 或 https 协议');
-  }
-  const hostname = url.hostname;
-  const isPrivate = /^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|0\.|localhost|::1|\[::1\])/i.test(hostname);
-  if (isPrivate) {
-    throw new BadRequestError('不允许使用内网地址');
-  }
+function validateWebhookUrl(url) {
+  const isDev = typeof process !== 'undefined' && (
+    process.env.NODE_ENV === 'development' ||
+    process.env.NODE_ENV === 'test' ||
+    process.env.RUN_REAL_API_TESTS === '1'
+  );
+  assertSafeExternalUrl(url, { allowLocalhost: isDev });
 }
 
 const app = new Hono();

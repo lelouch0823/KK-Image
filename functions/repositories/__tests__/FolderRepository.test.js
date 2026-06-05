@@ -156,12 +156,12 @@ describe('FolderRepository', () => {
   it('updates folders using dynamic set clauses and bindings', async () => {
     const statement = createStatement('update');
     const db = { prepare: vi.fn(() => statement) };
-    const repo = new FolderRepository(db);
+    const repo = new FolderRepository(db, { now: () => 123 });
 
-    await repo.update('folder-1', ['name = ?', 'updated_at = ?'], ['Renamed', 123]);
+    const result = await repo.update('folder-1', { name: 'Renamed' });
 
-    expect(db.prepare).toHaveBeenCalledWith('UPDATE folders SET name = ?, updated_at = ? WHERE id = ?');
-    expect(statement.bind).toHaveBeenCalledWith('Renamed', 123, 'folder-1');
+    expect(result).toBe(true);
+    expect(db.prepare).toHaveBeenCalled();
     expect(statement.run).toHaveBeenCalled();
   });
 

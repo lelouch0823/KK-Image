@@ -4,8 +4,8 @@
  *
  * 核心业务逻辑层，封装：
  * 1. 状态机级联 (Cascading State Machine) — 采购单状态变更时自动流转预订单
- * 2. 动态成本分摊 (Cost Allocation) — 运费/关税按件数或金额比例分摊到明细
- * 3. 智能建议采购 — 基于订货总览缺口推荐待采购商品
+ * 2. 动态成本分摊 (Cost Allocation) — 委托 CostAllocationService
+ * 3. 智能建议采购 — 委托 PurchaseSuggestionService
  *
  * @module services/PurchaseOrderService
  */
@@ -16,9 +16,10 @@ import { VariantDemandProjectionRepository } from '../repositories/VariantDemand
 import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { NotFoundError, BadRequestError } from '../lib/hono/errors.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
-import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 import { InventoryService } from './InventoryService.js';
 import { DemandService } from './DemandService.js';
+import { CostAllocationService } from './CostAllocationService.js';
+import { PurchaseSuggestionService } from './PurchaseSuggestionService.js';
 import {
   validatePurchaseOrderPreOrderBinding,
   validatePurchaseOrderVariantItems,
@@ -29,102 +30,6 @@ import {
 } from './purchase-order-projection.js';
 
 const D1_MAX_IN_CLAUSE_SIZE = 100;
-
-function resolveInventorySnapshot(row = {}) {
-  const onHand = Number(row.on_hand ?? row.stock_quantity ?? 0) || 0;
-  const reserved = Number(row.reserved ?? 0) || 0;
-  const available = Number(row.available ?? Math.max(onHand - reserved, 0)) || 0;
-
-  return { onHand, reserved, available };
-}
-
-function buildSuggestionPricing(row, lastPurchasePriceMap) {
-  const variantCostPrice = Number(row.cost_price) || 0;
-  const rawSuggested = Number(row.suggested_purchase_price) || 0;
-  const suggestedPurchasePrice = rawSuggested > 0 ? rawSuggested : variantCostPrice;
-  const hasLastPrice = Object.prototype.hasOwnProperty.call(lastPurchasePriceMap, row.variant_id);
-  const lastPurchasePrice = hasLastPrice ? lastPurchasePriceMap[row.variant_id] : null;
-  const priceDelta = lastPurchasePrice == null
-    ? null
-    : Math.round((suggestedPurchasePrice - lastPurchasePrice) * 100) / 100;
-
-  return {
-    variant_cost_price: variantCostPrice,
-    suggested_purchase_price: suggestedPurchasePrice,
-    last_purchase_price: lastPurchasePrice,
-    price_delta: priceDelta,
-  };
-}
-
-async function loadSuggestionSnapshotFallbackRows(db, variantIds = []) {
-  if (!Array.isArray(variantIds) || variantIds.length === 0) return [];
-
-  const rows = [];
-  for (const variantIdChunk of chunkArray(variantIds, D1_MAX_IN_CLAUSE_SIZE)) {
-    const placeholders = variantIdChunk.map(() => '?').join(',');
-    const { results } = await db.prepare(`
-      SELECT
-        ol.variant_id AS variant_id,
-        MAX(ol.product_id) AS product_id,
-        NULL AS product_code,
-        NULL AS variant_code,
-        COALESCE(
-          MAX(ol.snapshot_name),
-          MAX(json_extract(o.current_data, '$.name')),
-          MAX(json_extract(o.original_data, '$.name')),
-          '-'
-        ) AS product_name,
-        COALESCE(
-          MAX(ol.snapshot_sku),
-          MAX(json_extract(o.current_data, '$.sku')),
-          MAX(json_extract(o.current_data, '$.variant_sku')),
-          MAX(json_extract(o.current_data, '$.spu')),
-          MAX(json_extract(o.original_data, '$.sku')),
-          MAX(json_extract(o.original_data, '$.variant_sku')),
-          MAX(json_extract(o.original_data, '$.spu')),
-          '-'
-        ) AS sku,
-        COALESCE(
-          MAX(json_extract(ol.snapshot_specs, '$.brand')),
-          MAX(json_extract(o.current_data, '$.brand')),
-          MAX(json_extract(o.original_data, '$.brand')),
-          ''
-        ) AS brand,
-        0 AS cost_price,
-        0 AS suggested_purchase_price,
-        COALESCE(MAX(ib.on_hand), 0) AS on_hand,
-        COALESCE(MAX(ib.reserved), 0) AS reserved,
-        COALESCE(MAX(ib.available), 0) AS available,
-        CASE
-          WHEN MAX(ol.snapshot_image) IS NOT NULL THEN json_array(MAX(ol.snapshot_image))
-          ELSE '[]'
-        END AS images,
-        COALESCE(MAX(ol.snapshot_specs), '{}') AS variant_options
-      FROM order_lines ol
-      JOIN orders o ON o.id = ol.order_id
-      LEFT JOIN inventory_balances ib ON ib.variant_id = ol.variant_id
-      WHERE ol.variant_id IN (${placeholders})
-        AND o.status IN ('confirmed', 'production', 'shipping', 'arrived')
-      GROUP BY ol.variant_id
-    `).bind(...variantIdChunk).all();
-    rows.push(...(results || []));
-  }
-  return rows;
-}
-
-function toNumber(value) {
-  return Number(value || 0);
-}
-
-function getReceivedAllocationQty(item = {}) {
-  return Math.max(toNumber(item.received_qty), 0);
-}
-
-function requireCompletedPurchaseOrderForAllocation(po) {
-  if (po?.status !== 'completed') {
-    throw new BadRequestError('仅已结算采购单允许执行成本分摊');
-  }
-}
 
 function buildPurchaseOrderShell(po = {}, items = []) {
   return {
@@ -200,14 +105,29 @@ function resolveCreateFromOrdersSnapshot(order = {}) {
 export class PurchaseOrderService {
   /**
    * @param {D1Database} db
+   * @param {Object} deps - 依赖注入（可选，用于测试替换）
+   * @param {CostAllocationService} [deps.costAllocationService]
+   * @param {PurchaseSuggestionService} [deps.purchaseSuggestionService]
    */
-  constructor(db) {
+  constructor(db, deps = {}) {
     this.db = db;
-    this.repo = new PurchaseOrderRepository(db);
-    this.variantRepo = new ProductVariantRepository(db);
-    this.inventoryService = new InventoryService(db, this.variantRepo);
-    this.demandService = new DemandService(db);
-    this.demandProjectionRepo = new VariantDemandProjectionRepository(db);
+    this.repo = deps.repo || new PurchaseOrderRepository(db);
+    this.variantRepo = deps.variantRepo || new ProductVariantRepository(db);
+    this.inventoryService = deps.inventoryService || new InventoryService(db, this.variantRepo);
+    this.demandService = deps.demandService || new DemandService(db);
+    this.demandProjectionRepo = deps.demandProjectionRepo || new VariantDemandProjectionRepository(db);
+
+    // 子服务注入（支持外部覆盖，方便测试）
+    this.costAllocationService = deps.costAllocationService
+      || new CostAllocationService(db, {
+        repo: this.repo,
+        variantRepo: this.variantRepo,
+      });
+    this.purchaseSuggestionService = deps.purchaseSuggestionService
+      || new PurchaseSuggestionService(db, {
+        demandProjectionRepo: this.demandProjectionRepo,
+        repo: this.repo,
+      });
   }
 
   // ─── 状态机级联 (Cascading State Machine) ────────────
@@ -334,237 +254,27 @@ export class PurchaseOrderService {
     };
   }
 
-  // ─── 动态成本分摊 (Cost Allocation) ─────────────────
+  // ─── 动态成本分摊 (委托 CostAllocationService) ────────
 
   /**
-   * 分摊运费和关税到各明细项
-   * 支持两种分摊方式：
-   * - by_quantity: 按件数平均分摊
-   * - by_value: 按商品入货金额比例分摊
-   *
+   * 分摊运费和关税到各明细项（委托 CostAllocationService）
    * @param {string} poId
    */
   async allocateCosts(poId) {
-    const po = await this.db
-      .prepare(`SELECT * FROM purchase_orders WHERE id = ?`)
-      .bind(poId)
-      .first();
-    if (!po) return;
-    requireCompletedPurchaseOrderForAllocation(po);
-
-    // 优先使用实际费用，未填则使用预估费用
-    const shippingCost = po.actual_shipping_cost ?? po.estimated_shipping_cost ?? 0;
-    const tariffCost = po.actual_tariff_cost ?? po.estimated_tariff_cost ?? 0;
-
-    if (shippingCost === 0 && tariffCost === 0) return;
-
-    const items = await this.repo.getItemsForAllocation(poId);
-    if (items.length === 0) return;
-
-    let allocations;
-
-    if (po.allocation_method === 'by_value') {
-      // --- 按已收货金额比例分摊 ---
-      const totalValue = items.reduce((sum, item) => (
-        sum + ((Number(item.unit_cost) || 0) * getReceivedAllocationQty(item))
-      ), 0);
-
-      if (totalValue === 0) {
-        // 回退到按件数分摊
-        allocations = this._allocateByQuantity(items, shippingCost, tariffCost);
-      } else {
-        allocations = items.map(item => {
-          const receivedQty = getReceivedAllocationQty(item);
-          if (receivedQty <= 0) {
-            return {
-              id: item.id,
-              allocated_freight: 0,
-              allocated_tariff: 0,
-            };
-          }
-
-          const valueRatio = ((Number(item.unit_cost) || 0) * receivedQty) / totalValue;
-          return {
-            id: item.id,
-            allocated_freight: Math.round(shippingCost * valueRatio / receivedQty * 100) / 100,
-            allocated_tariff: Math.round(tariffCost * valueRatio / receivedQty * 100) / 100,
-          };
-        });
-      }
-    } else {
-      // --- 按件数平均分摊 (默认) ---
-      allocations = this._allocateByQuantity(items, shippingCost, tariffCost);
-    }
-
-    const previousAllocations = items.map((item) => ({
-      id: item.id,
-      allocated_freight: Number(item.allocated_freight) || 0,
-      allocated_tariff: Number(item.allocated_tariff) || 0,
-    }));
-
-    const allocationById = new Map(allocations.map((allocation) => [allocation.id, allocation]));
-    const macInputsByVariant = new Map();
-    for (const item of items) {
-      if (!item.variant_id) continue;
-      const itemQty = getReceivedAllocationQty(item);
-      if (itemQty <= 0) continue;
-
-      const allocation = allocationById.get(item.id) || {};
-      const unitCost = Number(item.unit_cost) || 0;
-      const perUnitFreight = Number(allocation.allocated_freight) || 0;
-      const perUnitTariff = Number(allocation.allocated_tariff) || 0;
-      const itemTotalLandedCost = (unitCost + perUnitFreight + perUnitTariff) * itemQty;
-
-      const existing = macInputsByVariant.get(item.variant_id) || {
-        quantity: 0,
-        totalCost: 0,
-      };
-      existing.quantity += itemQty;
-      existing.totalCost += itemTotalLandedCost;
-      macInputsByVariant.set(item.variant_id, existing);
-    }
-
-    const macRollbackSnapshots = [];
-    try {
-      await this.repo.updateAllocations(allocations);
-
-      for (const [variantId, input] of macInputsByVariant.entries()) {
-        const variantBefore =
-          typeof this.variantRepo.findById === 'function'
-            ? await this.variantRepo.findById(variantId)
-            : await this.db
-              .prepare('SELECT cost_price FROM product_variants WHERE id = ?')
-              .bind(variantId)
-              .first();
-        macRollbackSnapshots.push({
-          variantId,
-          costPrice: variantBefore?.cost_price ?? null,
-        });
-        await this.variantRepo.updateMovingAverageCost(variantId, input.quantity, input.totalCost);
-      }
-    } catch (error) {
-      if (macRollbackSnapshots.length > 0) {
-        const rollbackTimestamp = Date.now();
-        const rollbackStatements = macRollbackSnapshots.map((snapshot) =>
-          this.db
-            .prepare('UPDATE product_variants SET cost_price = ?, updated_at = ? WHERE id = ?')
-            .bind(snapshot.costPrice, rollbackTimestamp, snapshot.variantId)
-        );
-        await executeBatchChunks(this.db, rollbackStatements);
-      }
-      await this.repo.updateAllocations(previousAllocations);
-      throw error;
-    }
+    return this.costAllocationService.allocateCosts(poId);
   }
 
-  /**
-   * 按件数平均分摊
-   */
-  _allocateByQuantity(items, shippingCost, tariffCost) {
-    const totalQty = items.reduce((sum, item) => sum + getReceivedAllocationQty(item), 0);
-    if (totalQty === 0) {
-      return items.map((item) => ({
-        id: item.id,
-        allocated_freight: 0,
-        allocated_tariff: 0,
-      }));
-    }
-
-    const freightPerUnit = Math.round(shippingCost / totalQty * 100) / 100;
-    const tariffPerUnit = Math.round(tariffCost / totalQty * 100) / 100;
-
-    return items.map(item => ({
-      id: item.id,
-      allocated_freight: getReceivedAllocationQty(item) > 0 ? freightPerUnit : 0,
-      allocated_tariff: getReceivedAllocationQty(item) > 0 ? tariffPerUnit : 0,
-    }));
-  }
-
-  // ─── 智能采购建议 (Demand-Driven Suggestion) ─────────
+  // ─── 智能采购建议 (委托 PurchaseSuggestionService) ────
 
   /**
-   * 获取建议采购清单
-   * 基于订货总览中 shortage > 0 的变体，以及 status = 'confirmed' 的预订单
-   *
+   * 获取建议采购清单（委托 PurchaseSuggestionService）
    * @returns {Promise<Array>} 建议列表
    */
   async getSuggestions() {
-    const demandRows = await this.demandProjectionRepo.listAll();
-    const variantIds = demandRows.map((row) => row.variant_id).filter(Boolean);
-    if (variantIds.length === 0) {
-      return [];
-    }
-    const rows = [];
-
-    for (const variantIdChunk of chunkArray(variantIds, D1_MAX_IN_CLAUSE_SIZE)) {
-      const placeholders = variantIdChunk.map(() => '?').join(',');
-      const { results } = await this.db.prepare(`
-        SELECT
-          pv.id AS variant_id,
-          p.id AS product_id,
-          p.product_code AS product_code,
-          pv.variant_code AS variant_code,
-          p.name AS product_name,
-          pv.sku AS sku,
-          p.brand,
-          COALESCE(pv.cost_price, 0) AS cost_price,
-          COALESCE(pv.suggested_purchase_price, 0) AS suggested_purchase_price,
-          COALESCE(ib.on_hand, pv.stock_quantity, 0) AS on_hand,
-          COALESCE(ib.reserved, 0) AS reserved,
-          COALESCE(ib.available, COALESCE(pv.stock_quantity, 0)) AS available,
-          p.images,
-          pv.options_values AS variant_options
-        FROM product_variants pv
-        JOIN products p ON pv.product_id = p.id
-        LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
-        WHERE pv.id IN (${placeholders})
-      `).bind(...variantIdChunk).all();
-      rows.push(...(results || []));
-    }
-
-    const liveVariantIdSet = new Set(rows.map((row) => row.variant_id).filter(Boolean));
-    const missingVariantIds = variantIds.filter((variantId) => !liveVariantIdSet.has(variantId));
-    if (missingVariantIds.length > 0) {
-      rows.push(...await loadSuggestionSnapshotFallbackRows(this.db, missingVariantIds));
-    }
-
-    const demandByVariant = new Map(demandRows.map((row) => [row.variant_id, row]));
-    const lastPurchasePriceMap = await this.repo.getLastPurchasePricesByVariant(variantIds);
-
-    return rows
-      .map((row) => {
-        const demand = demandByVariant.get(row.variant_id) || {
-          total_demand: 0,
-          order_count: 0,
-          order_ids: [],
-        };
-        const totalDemand = Number(demand.total_demand || 0);
-        const { onHand, available } = resolveInventorySnapshot(row);
-        const shortage = Math.max(totalDemand - available, 0);
-        return {
-          ...buildSuggestionPricing(row, lastPurchasePriceMap),
-          variant_id: row.variant_id,
-          product_id: row.product_id,
-          product_code: row.product_code,
-          variant_code: row.variant_code,
-          product_name: row.product_name,
-          sku: row.sku,
-          brand: row.brand,
-          cost_price: Number(row.cost_price) || 0,
-          stock_quantity: onHand,
-          available_quantity: available,
-          total_demand: totalDemand,
-          shortage,
-          order_count: Number(demand.order_count || 0),
-          order_ids: Array.isArray(demand.order_ids) ? demand.order_ids : [],
-          images: parseJsonArray(row.images, []),
-          variant_options: parseJsonObject(row.variant_options, {}),
-          variant_display_name: buildVariantDisplayName(parseJsonObject(row.variant_options, {})),
-        };
-      })
-      .filter((row) => row.shortage > 0)
-      .sort((a, b) => b.shortage - a.shortage);
+    return this.purchaseSuggestionService.getSuggestions();
   }
+
+  // ─── 创建采购单 ─────────────────────────────────────
 
   async createManual(poData = {}, items = []) {
     if (!Array.isArray(items) || items.length === 0) {

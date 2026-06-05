@@ -1,4 +1,5 @@
 import { BadRequestError, NotFoundError } from '../lib/hono/errors.js';
+import { OrderRepository } from '../repositories/OrderRepository.js';
 
 function normalizeOrderStatus(status) {
   const normalized = String(status || '').trim().toLowerCase();
@@ -40,6 +41,7 @@ function deriveFulfillmentStatus(order = {}) {
 export class OrderDeliveryService {
   constructor(db, deps = {}) {
     this.db = db;
+    this.orderRepo = deps.orderRepo || new OrderRepository(db);
     this.now = deps.now || (() => Date.now());
   }
 
@@ -51,19 +53,11 @@ export class OrderDeliveryService {
     const note = String(payload?.note || '').trim();
     const actorName = options.actorName || null;
 
-    await this.db.batch([
-      this.db
-        .prepare(
-          `UPDATE orders
-             SET delivery_status = 'delivered',
-                 delivered_at = ?,
-                 delivered_by = ?,
-                 delivery_note = ?,
-                 updated_at = ?
-           WHERE id = ?`
-        )
-        .bind(timestamp, actorName, note, timestamp, orderId),
-    ]);
+    await this.orderRepo.markDelivered(orderId, {
+      timestamp,
+      deliveredBy: actorName,
+      note,
+    });
 
     return {
       orderId,
@@ -75,36 +69,7 @@ export class OrderDeliveryService {
   }
 
   async requireOrder(orderId) {
-    const row = await this.db
-      .prepare(
-        `SELECT
-            o.id,
-            o.order_no,
-            o.status,
-            o.fulfillment_status,
-            o.delivery_status,
-            o.delivered_at,
-            o.delivered_by,
-            o.delivery_note,
-            COALESCE(SUM(ol.ordered_qty), 0) AS ordered_qty,
-            COALESCE(SUM(ol.shipped_qty), 0) AS shipped_qty,
-            COALESCE(SUM(ol.cancelled_qty), 0) AS cancelled_qty
-         FROM orders o
-         LEFT JOIN order_lines ol ON ol.order_id = o.id
-         WHERE o.id = ?
-         GROUP BY
-            o.id,
-            o.order_no,
-            o.status,
-            o.fulfillment_status,
-            o.delivery_status,
-            o.delivered_at,
-            o.delivered_by,
-            o.delivery_note
-         LIMIT 1`
-      )
-      .bind(orderId)
-      .first();
+    const row = await this.orderRepo.findWithDeliveryInfo(orderId);
 
     if (!row) {
       throw new NotFoundError('order not found');

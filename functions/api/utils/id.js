@@ -3,6 +3,8 @@
  * 统一的 ID 生成、时间戳、令牌生成等
  */
 
+import { bytesToBase64Url, base64UrlToBytes, timingSafeEqual } from './crypto.js';
+
 // ==================== ID 生成 ====================
 
 /**
@@ -79,41 +81,6 @@ export function timestampToIso(timestamp) {
 const PASSWORD_HASH_VERSION = 'pbkdf2$sha256';
 const PASSWORD_ITERATIONS = 210000;
 const PASSWORD_SALT_BYTES = 16;
-
-function bytesToBase64Url(bytes) {
-  return btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/g, '');
-}
-
-function base64UrlToBytes(value) {
-  const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
-  const padding = normalized.length % 4;
-  const padded = padding ? normalized + '='.repeat(4 - padding) : normalized;
-  return Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
-}
-
-function constantTimeEqualBytes(left, right) {
-  const a = left instanceof Uint8Array ? left : new Uint8Array(left);
-  const b = right instanceof Uint8Array ? right : new Uint8Array(right);
-  if (a.length !== b.length) {
-    let _mismatch = a.length ^ b.length;
-    const max = Math.max(a.length, b.length);
-    for (let i = 0; i < max; i += 1) {
-      _mismatch |= (a[i] || 0) ^ (b[i] || 0);
-    }
-    return false;
-  }
-  if (crypto.subtle.timingSafeEqual) {
-    return crypto.subtle.timingSafeEqual(a, b);
-  }
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i += 1) {
-    mismatch |= a[i] ^ b[i];
-  }
-  return mismatch === 0;
-}
 
 async function derivePasswordBytes(password, pepper, saltBytes, iterations = PASSWORD_ITERATIONS) {
   const encoder = new TextEncoder();
@@ -196,7 +163,7 @@ export async function verifyPassword(password, encodedHash, pepper) {
     const legacyHash = await sha256Hex(`${password}${pepper}`);
     const left = new TextEncoder().encode(legacyHash);
     const right = new TextEncoder().encode(String(encodedHash));
-    return constantTimeEqualBytes(left, right);
+    return timingSafeEqual(left, right);
   }
 
   const derived = await derivePasswordBytes(
@@ -205,7 +172,7 @@ export async function verifyPassword(password, encodedHash, pepper) {
     base64UrlToBytes(parsed.salt),
     parsed.iterations
   );
-  return constantTimeEqualBytes(derived, base64UrlToBytes(parsed.hash));
+  return timingSafeEqual(derived, base64UrlToBytes(parsed.hash));
 }
 
 // ==================== HMAC 签名 ====================

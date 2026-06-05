@@ -4,10 +4,10 @@
  *
  * 负责文件记录 (Files) 的数据库基础操作。
  */
-import { inClause } from '../api/utils/sql.js';
+import { inClause, buildSetClause } from '../api/utils/sql.js';
 import { parseRepoPagination } from '../api/utils/pagination.js';
-import { buildSetClause } from '../api/utils/sql.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
+import { FOLDER_PATHS_CTE } from '../lib/db/trash-paths-cte.js';
 
 /** 允许更新的列名白名单 */
 const ALLOWED_UPDATE_COLUMNS = new Set([
@@ -17,8 +17,15 @@ const ALLOWED_UPDATE_COLUMNS = new Set([
 ]);
 
 export class FileRepository {
-    constructor(db) {
+    /**
+     * 构造函数
+     * @param {D1Database} db - Cloudflare D1 数据库实例
+     * @param {Object} [deps] - 依赖注入
+     * @param {Function} [deps.now] - 时间戳函数，默认 Date.now
+     */
+    constructor(db, deps = {}) {
         this.db = db;
+        this.now = deps.now || Date.now;
     }
 
     /**
@@ -35,14 +42,14 @@ export class FileRepository {
 
     /**
      * 创建文件记录
-     * @param {Object} data 
-     * @returns {Promise<void>}
+     * @param {Object} data
+     * @returns {Promise<{ id: string }>}
      */
     async create(data) {
         await this.db.prepare(
             `INSERT INTO files (
-                id, folder_id, name, original_name, storage_key, 
-                size, mime_type, content_hash, original_hash, created_by, 
+                id, folder_id, name, original_name, storage_key,
+                size, mime_type, content_hash, original_hash, created_by,
                 created_at, updated_at, is_deleted
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
         ).bind(
@@ -56,9 +63,11 @@ export class FileRepository {
             data.contentHash || null,
             data.originalHash || null,
             data.createdBy || null,
-            data.createdAt || Date.now(),
-            data.updatedAt || Date.now()
+            data.createdAt || this.now(),
+            data.updatedAt || this.now()
         ).run();
+
+        return { id: data.id };
     }
 
     /**
@@ -97,11 +106,12 @@ export class FileRepository {
 
     /**
      * 根据 ID 获取文件记录
-     * @param {string} id 
+     * @param {string} id
      * @returns {Promise<Object|null>}
      */
     async findById(id) {
-        return await this.db.prepare('SELECT * FROM files WHERE id = ?').bind(id).first();
+        const result = await this.db.prepare('SELECT * FROM files WHERE id = ?').bind(id).first();
+        return result || null;
     }
 
     /**
@@ -158,19 +168,22 @@ export class FileRepository {
      * 更新文件信息
      * @param {string} id
      * @param {Object} updates
+     * @returns {Promise<boolean>} 是否实际更新
      */
     async update(id, updates) {
         // 过滤只允许更新的列名（防止 SQL 注入）
         const safeKeys = Object.keys(updates).filter(k => ALLOWED_UPDATE_COLUMNS.has(k));
-        if (safeKeys.length === 0) return;
+        if (safeKeys.length === 0) return false;
 
         const updateData = Object.fromEntries(safeKeys.map((key) => [key, updates[key]]));
-        updateData.updated_at = Date.now();
+        updateData.updated_at = this.now();
         const { clause, values } = buildSetClause(updateData);
 
-        await this.db.prepare(`UPDATE files SET ${clause} WHERE id = ?`)
+        const result = await this.db.prepare(`UPDATE files SET ${clause} WHERE id = ?`)
             .bind(...values, id)
             .run();
+
+        return (result?.meta?.changes || 0) > 0;
     }
 
     /**
@@ -189,9 +202,11 @@ export class FileRepository {
     /**
      * 根据 ID 删除文件记录 (物理删除)
      * @param {string} id
+     * @returns {Promise<boolean>} 是否实际删除
      */
     async delete(id) {
-        await this.db.prepare('DELETE FROM files WHERE id = ?').bind(id).run();
+        const result = await this.db.prepare('DELETE FROM files WHERE id = ?').bind(id).run();
+        return (result?.meta?.changes || 0) > 0;
     }
 
     /**
@@ -257,19 +272,9 @@ export class FileRepository {
      */
     async findTrashWithPaths() {
         const { results } = await this.db.prepare(`
-            WITH RECURSIVE folder_paths(id, path) AS (
-                SELECT id, name
-                FROM folders
-                WHERE parent_id IS NULL OR parent_id = 'root'
-                
-                UNION ALL
-                
-                SELECT f.id, fp.path || '/' || f.name
-                FROM folders f
-                JOIN folder_paths fp ON f.parent_id = fp.id
-            )
-            SELECT f.*, 
-                CASE 
+            ${FOLDER_PATHS_CTE}
+            SELECT f.*,
+                CASE
                     WHEN f.folder_id = 'root' OR f.folder_id IS NULL THEN '/'
                     ELSE COALESCE('/' || fp.path, '/')
                 END as original_path

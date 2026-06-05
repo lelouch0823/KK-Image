@@ -2,9 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 
 const mocks = vi.hoisted(() => ({
-  verifyPassword: vi.fn(),
-  hashPassword: vi.fn(),
-  passwordHashNeedsMigration: vi.fn(),
+  verifyAndMigratePassword: vi.fn(),
+  getWeChatOpenid: vi.fn(),
   checkAndRespondLockout: vi.fn(),
   handleLoginFailure: vi.fn(),
   clearFailures: vi.fn(),
@@ -17,6 +16,10 @@ const mocks = vi.hoisted(() => ({
   scheduleAuditEvent: vi.fn(),
 }));
 
+vi.mock('../../../../../services/WeChatService.js', () => ({
+  getWeChatOpenid: mocks.getWeChatOpenid,
+}));
+
 vi.mock('../../../../../_shared/utils.js', () => ({
   MSG: {
     SALESPERSON: {
@@ -25,9 +28,6 @@ vi.mock('../../../../../_shared/utils.js', () => ({
       INVALID_PASSWORD: 'INVALID_PASSWORD',
     },
   },
-  hashPassword: mocks.hashPassword,
-  verifyPassword: mocks.verifyPassword,
-  passwordHashNeedsMigration: mocks.passwordHashNeedsMigration,
 }));
 
 vi.mock('../../../middleware/rateLimit.js', () => ({
@@ -39,6 +39,7 @@ vi.mock('../../../../../repositories/SalespersonRepository.js', () => ({
     recordLogin: mocks.recordLogin,
     findByWechatOpenid: mocks.findByWechatOpenid,
     findByToken: mocks.findByToken,
+    verifyAndMigratePassword: mocks.verifyAndMigratePassword,
   })),
 }));
 
@@ -103,9 +104,7 @@ describe('sales auth routes', () => {
     );
     mocks.clearFailures.mockResolvedValue(undefined);
     mocks.generateSalesToken.mockResolvedValue('sales-jwt');
-    mocks.verifyPassword.mockResolvedValue(true);
-    mocks.hashPassword.mockResolvedValue('new-hash');
-    mocks.passwordHashNeedsMigration.mockReturnValue(false);
+    mocks.verifyAndMigratePassword.mockResolvedValue(true);
     mocks.recordLogin.mockResolvedValue(undefined);
     mocks.findByWechatOpenid.mockResolvedValue(null);
     mocks.findByToken.mockResolvedValue({
@@ -117,8 +116,7 @@ describe('sales auth routes', () => {
     });
   });
 
-  it('logs in with username/password, migrates legacy hashes, and records audit data', async () => {
-    mocks.passwordHashNeedsMigration.mockReturnValue(true);
+  it('logs in with username/password, verifies password, and records audit data', async () => {
     const db = createDb({
       id: 'sales-1',
       name: 'Alice',
@@ -149,7 +147,7 @@ describe('sales auth routes', () => {
         accessToken: 'access-1',
       })
     );
-    expect(mocks.hashPassword).toHaveBeenCalledWith('123456', 'secret');
+    expect(mocks.verifyAndMigratePassword).toHaveBeenCalledWith('sales-1', '123456', 'legacy-hash');
     expect(mocks.clearFailures).toHaveBeenCalledWith(expect.anything(), 'Alice');
     expect(mocks.recordLogin).toHaveBeenCalledWith('sales-1', '127.0.0.1', 'Vitest');
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
@@ -181,6 +179,7 @@ describe('sales auth routes', () => {
   it('returns needBind for unbound wechat users and 503 when wechat is disabled', async () => {
     const app = createApp();
 
+    mocks.getWeChatOpenid.mockRejectedValueOnce(new Error('微信登录未配置'));
     const disabled = await app.request(
       'http://localhost/api/sales/wechat-login',
       {
@@ -192,12 +191,7 @@ describe('sales auth routes', () => {
     );
     expect(disabled.status).toBe(503);
 
-    globalThis.fetch = vi.fn(async () =>
-      new Response(JSON.stringify({ openid: 'openid-1' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    );
+    mocks.getWeChatOpenid.mockResolvedValueOnce({ openid: 'openid-1' });
     const needBind = await app.request(
       'http://localhost/api/sales/wechat-login',
       {
@@ -222,12 +216,7 @@ describe('sales auth routes', () => {
       store: 'S1',
       is_active: 1,
     });
-    globalThis.fetch = vi.fn(async () =>
-      new Response(JSON.stringify({ openid: 'openid-1' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    );
+    mocks.getWeChatOpenid.mockResolvedValueOnce({ openid: 'openid-1' });
     const app = createApp();
 
     const response = await app.request(
@@ -255,7 +244,7 @@ describe('sales auth routes', () => {
   });
 
   it('handles token auth failures and successful token auth', async () => {
-    mocks.verifyPassword
+    mocks.verifyAndMigratePassword
       .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(true);
     const app = createApp();

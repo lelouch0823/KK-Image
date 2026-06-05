@@ -5,6 +5,7 @@ import { BadRequestError, NotFoundError } from '../../errors.js';
 import { SettingsRepository } from '../../../../repositories/SettingsRepository.ts';
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
+import { parseBooleanFlag } from '../../../../ai/config-schema.js';
 
 const CATEGORY = 'featureFlags';
 
@@ -102,12 +103,5 @@ app.post('/', zValidator('json', BatchCreateFlagsSchema), async (c) => {
     data: { count: settings.length },
   });
 });
-
-function parseBooleanFlag(value) {
-  if (typeof value === 'boolean') return value;
-  if (value === undefined || value === null) return false;
-  const normalized = String(value).trim().toLowerCase();
-  return ['1', 'true', 'yes', 'on', 'enabled'].includes(normalized);
-}
 
 export default app;

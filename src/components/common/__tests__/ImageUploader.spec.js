@@ -164,7 +164,7 @@ describe('ImageUploader.vue', () => {
         });
         await flushPromises();
 
-        expect(mockRequestAuth).toHaveBeenCalledWith('/api/v1/files/check-hash', expect.objectContaining({
+        expect(mockRequestAuth).toHaveBeenCalledWith('/api/manage/files/check-hash', expect.objectContaining({
             method: 'POST',
         }));
         expect(mockCompressImage).not.toHaveBeenCalled();
@@ -235,7 +235,7 @@ describe('ImageUploader.vue', () => {
         wrapper.findAllComponents({ name: 'UploadPreviewItem' })[1].vm.$emit('remove');
         await flushPromises();
 
-        expect(mockRequestAuth).toHaveBeenCalledWith('/api/v1/files/file-1', { method: 'DELETE' });
+        expect(mockRequestAuth).toHaveBeenCalledWith('/api/manage/files/file-1', { method: 'DELETE' });
         expect(revokeObjectURL).toHaveBeenCalledWith('blob:demo');
         expect(wrapper.emitted('update:modelValue')).toHaveLength(2);
     });

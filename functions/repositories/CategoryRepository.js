@@ -7,8 +7,15 @@ import { buildSetClause } from '../api/utils/sql.js';
  */
 
 export class CategoryRepository {
-    constructor(db) {
+    /**
+     * 构造函数
+     * @param {D1Database} db - Cloudflare D1 数据库实例
+     * @param {Object} [deps] - 依赖注入
+     * @param {Function} [deps.now] - 时间戳函数，默认 Date.now
+     */
+    constructor(db, deps = {}) {
         this.db = db;
+        this.now = deps.now || Date.now;
     }
 
     /**

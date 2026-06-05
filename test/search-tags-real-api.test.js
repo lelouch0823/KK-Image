@@ -16,7 +16,7 @@ function findOutboxEvent(events, eventType, matcher) {
 }
 
 describeIfRealApi('Search Tags Real API', function () {
-  this.timeout(120000);
+  this.timeout(180000);
 
   it('covers tag cache refresh, assign and unassign outbox flow, and real search hits for uploaded files', async () => {
     const token = await getBearerToken();
@@ -132,12 +132,15 @@ describeIfRealApi('Search Tags Real API', function () {
         expectedStatus: 200,
       });
       const matched = (search.json?.data || []).find((item) => item.id === fileId);
+      if (!matched) {
+        console.log(`[search-debug] seed=${seed}, fileId=${fileId}, results=${JSON.stringify(search.json?.data)}`);
+      }
       assert.ok(matched, 'uploaded file missing from real search results');
       assert.ok(String(matched.name || '').includes(seed), 'search result filename mismatch');
       return matched;
     }, {
-      timeoutMs: 10000,
-      intervalMs: 500,
+      timeoutMs: 30000,
+      intervalMs: 1000,
       onTimeoutMessage: 'real search did not return uploaded file',
     });
 

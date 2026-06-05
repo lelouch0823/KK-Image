@@ -17,6 +17,7 @@ import {
     DateUtils,
 } from '../../../../../_shared/utils.js';
 import { parsePagination } from '../../../_shared/route-helpers.js';
+import { escapeCSV } from '../../../../../api/utils/csv.js';
 import { withCache } from '../../../middleware/cache.js';
 import {
     ORDER_LINE_PRIMARY_SNAPSHOT_JOIN,
@@ -30,11 +31,6 @@ import {
 const MAX_EXPORT_LIMIT = 10_000;
 
 const app = new Hono();
-
-const neutralizeSpreadsheetFormula = (value) => {
-    const normalized = value === null || value === undefined ? '' : String(value);
-    return /^[=+\-@]/.test(normalized) ? `'${normalized}` : normalized;
-};
 
 /**
  * GET / - 获取订单列表
@@ -226,8 +222,6 @@ app.get('/export', async (c) => {
         { key: 'salesperson', label: MSG.EXPORT.HEADERS.SALESPERSON },
         { key: 'created_at', label: MSG.EXPORT.HEADERS.CREATED_AT },
     ];
-
-    const escapeCSV = (v) => `"${neutralizeSpreadsheetFormula(v).replace(/"/g, '""')}"`;
 
     const header = columns.map(c => c.label).join(',');
     const rows = orders.map(o => {

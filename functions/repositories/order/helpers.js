@@ -8,9 +8,10 @@
  */
 
 import { parseJsonObject } from '../../api/utils/json.js';
+import { toNonNegativeNumber } from '../../api/utils/number.js';
 import { projectOrderLineStatus } from '../../services/OrderStatusProjectionService.js';
 
-function normalizeOrderStatus(status) {
+export function normalizeOrderStatus(status) {
     const normalized = String(status || '').trim().toLowerCase();
     if (normalized === 'delivered') return 'fulfilled';
     return normalized || 'pending';
@@ -57,13 +58,7 @@ function mapOrderLine(line) {
     };
 }
 
-function toNonNegativeNumber(value, fallback = 0) {
-    const normalized = Number(value);
-    if (!Number.isFinite(normalized) || normalized < 0) return fallback;
-    return normalized;
-}
-
-function normalizeSnapshotText(value, fallback = '') {
+export function normalizeSnapshotText(value, fallback = '') {
     if (value === undefined || value === null) return fallback;
     const normalized = String(value).trim();
     return normalized || fallback;

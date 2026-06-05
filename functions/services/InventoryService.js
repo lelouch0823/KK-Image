@@ -6,6 +6,7 @@ import {
   appendInventoryLedgerEvent,
   projectInventoryBalances,
 } from './InventoryProjectionService.js';
+import { queryOrderLineCandidates } from './order-line-shared.js';
 
 const VALID_MUTATION_TYPES = new Set([
   'purchase_received',
@@ -25,33 +26,7 @@ export class InventoryService {
   }
 
   async queryOrderLineCandidates(payload = {}, includeScopedFilters = true) {
-    if (!payload.orderId || typeof this.db?.prepare !== 'function') return [];
-
-    const filters = ['order_id = ?'];
-    const params = [payload.orderId];
-
-    if (includeScopedFilters && payload.variantId) {
-      filters.push('variant_id = ?');
-      params.push(payload.variantId);
-    }
-    if (includeScopedFilters && payload.productId) {
-      filters.push('product_id = ?');
-      params.push(payload.productId);
-    }
-
-    const statement = this.db
-      .prepare(`SELECT id FROM order_lines WHERE ${filters.join(' AND ')} ORDER BY created_at ASC LIMIT 2`)
-      .bind(...params);
-
-    if (typeof statement?.all === 'function') {
-      const { results } = await statement.all();
-      return results || [];
-    }
-    if (typeof statement?.first === 'function') {
-      const row = await statement.first();
-      return row ? [row] : [];
-    }
-    return [];
+    return queryOrderLineCandidates(this.db, payload, includeScopedFilters);
   }
 
   async resolveOrderLineId(payload = {}) {

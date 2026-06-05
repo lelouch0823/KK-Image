@@ -7,7 +7,7 @@ import {
 } from './utils/manage-products-real-api.js';
 
 describeIfRealApi('Manage Products Real API Replenishment Signal', function () {
-  this.timeout(120000);
+  this.timeout(180000);
 
   it('tracks variant replenishment quantity by purchase-order status lifecycle', async () => {
     const token = await getBearerToken();
