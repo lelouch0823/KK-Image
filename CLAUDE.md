@@ -26,8 +26,15 @@ pnpm test:unit        # Run Vitest unit tests (watch mode)
 pnpm test:unit:run    # Run Vitest unit tests (single run)
 pnpm test:coverage    # Run unit tests with coverage
 pnpm test:ui          # Run Vitest with UI
-pnpm test:real-api    # Run real API tests (fast profile)
+pnpm test:real-api    # Run real API tests (fast profile, loopback mode)
+pnpm test:real-api:coverage  # Run coverage profile (includes notifications/webhooks)
 pnpm test:minisales   # Run minisales sub-app tests
+
+# Test Environment Notes
+# - Real-api tests run against local wrangler dev server (loopback mode)
+# - Complex workflow tests (6+ write ops) are skipped in loopback mode due to cascade restarts
+# - Use `REAL_API_TRANSPORT=direct` for CI/CD (requires no parallel wrangler instance)
+# - `processOutbox()` helper triggers outbox poller for event-driven tests
 
 # Linting & Formatting
 pnpm lint             # ESLint check for src/, functions/, scripts/, test/
@@ -54,6 +61,11 @@ pnpm deploy:preview   # Deploy to preview branch
 pnpm deploy:prod      # Deploy to production (main branch)
 pnpm deploy:check     # Pre-deploy checks
 pnpm deploy:verify    # Post-deploy verification
+
+# Cleanup
+# After running real-api tests, clean up outbox events:
+# curl -X POST "http://127.0.0.1:8080/api/cron/outbox?maxRounds=8&force=true" \
+#   -H "Authorization: Bearer dev-secret"
 ```
 
 ## Architecture
@@ -72,6 +84,8 @@ pnpm deploy:verify    # Post-deploy verification
 - **Legacy Routes**: File-based routing in `functions/api/` (being migrated to Hono)
 - **Middleware**: `functions/lib/hono/middleware/` — auth, OPA authorization, etc.
 - **Repositories**: Data access layer in `functions/repositories/`
+- **Services**: Business logic in `functions/services/`
+- **Domain Outbox**: Event-driven architecture with consumers in `functions/services/consumers/`
 
 ### API Structure (Hono)
 ```
@@ -125,6 +139,11 @@ functions/
 │   ├── schemas/    # Zod validation schemas
 │   └── _shared/    # Shared Hono utilities
 ├── repositories/   # D1 data access layer (Repository pattern)
+├── services/       # Business logic services
+│   ├── consumers/  # Domain Outbox consumers (audit, cache, notification, webhook)
+│   ├── AIService.js           # AI service (refactored into orchestrator/preparer)
+│   ├── OrderCreationService.js # Order creation/update logic
+│   └── ...
 ├── storage/        # Multi-storage provider abstraction
 ├── lib/            # Shared libraries (auth, crypto, OPA)
 └── utils/          # Backend utilities
@@ -139,6 +158,7 @@ policy/             # OPA authorization policies (.rego)
 
 ### Database (D1)
 - **Repository Pattern**: Each entity has its own Repository class in `functions/repositories/`
+- **DI Pattern**: Repositories use `constructor(db, deps = {})` for dependency injection
 - **Batch operations**: Always use `env.DB.batch()` for multiple inserts/updates
 - **Parameterized queries**: Use `prepare().bind().run()/all()/first()` — never concatenate SQL strings
 - Migrations are in `migrations/` directory, numbered sequentially
@@ -148,6 +168,12 @@ policy/             # OPA authorization policies (.rego)
 - Input validation with Zod schemas in `functions/lib/hono/schemas/`
 - OPA-based authorization via `functions/lib/hono/middleware/`
 - Use `functions/api/utils/response.js` helpers for consistent JSON responses
+
+### Domain Outbox Pattern
+- Events published to `domain_outbox` table via `DomainOutboxPublisher`
+- Consumers process events: audit, cache, notification, webhook
+- Poller triggered via `c.executionCtx.waitUntil(runOutboxPoller(...))` or `/api/cron/outbox`
+- **Loopback limitation**: In local dev, `waitUntil` callbacks are killed on worker restart
 
 ### Frontend Patterns
 - Toast notifications via `useToast` composable (`addToast`)
