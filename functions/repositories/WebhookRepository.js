@@ -89,6 +89,15 @@ export class WebhookRepository {
 
   async update(id, { url, events, secret, headers, enabled, actorId = null }) {
     const timestamp = this.now();
+    const current = await this.getByIdWithSecret(id);
+    if (!current) return null;
+    const next = {
+      url: url ?? current?.url,
+      events: events ?? current?.events ?? [],
+      secret: secret !== undefined ? secret : current?.secret ?? null,
+      headers: headers ?? current?.headers ?? {},
+      enabled: enabled ?? current?.enabled ?? true,
+    };
 
     await this.db
       .prepare(
@@ -103,11 +112,11 @@ export class WebhookRepository {
          WHERE id = ?`
       )
       .bind(
-        url,
-        JSON.stringify(events || []),
-        secret,
-        JSON.stringify(headers || {}),
-        enabled ? 1 : 0,
+        next.url,
+        JSON.stringify(next.events || []),
+        next.secret,
+        JSON.stringify(next.headers || {}),
+        next.enabled ? 1 : 0,
         actorId,
         timestamp,
         id

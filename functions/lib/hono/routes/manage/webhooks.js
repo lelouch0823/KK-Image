@@ -169,18 +169,23 @@ app.put(
     const body = c.req.valid('json');
     const user = c.get('user') || {};
 
-    await requireEntity(repo.getById(id), () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND));
+    const existing = await requireEntity(
+      repo.getByIdWithSecret(id),
+      () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND)
+    );
     if (body.url) validateWebhookUrl(body.url);
-    validateEvents(body.events || []);
 
-    const updated = await repo.update(id, {
-      url: body.url,
-      events: body.events || [],
-      secret: body.secret || null,
-      headers: body.headers || {},
-      enabled: body.enabled ?? true,
+    const nextWebhook = {
+      url: body.url ?? existing.url,
+      events: body.events ?? existing.events ?? [],
+      secret: body.secret !== undefined ? body.secret || null : existing.secret || null,
+      headers: body.headers ?? existing.headers ?? {},
+      enabled: body.enabled ?? existing.enabled ?? true,
       actorId: user.id || user.name || null,
-    });
+    };
+    validateEvents(nextWebhook.events);
+
+    const updated = await repo.update(id, nextWebhook);
 
     scheduleAuditEvent(c, {
       domain: 'webhooks',

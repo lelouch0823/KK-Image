@@ -229,6 +229,45 @@ describe('WebhookRepository', () => {
     ]);
   });
 
+  it('preserves existing webhook fields on partial update input', async () => {
+    const db = createWebhookDbStub([
+      {
+        id: 'wh-1',
+        url: 'https://example.com/a',
+        events: JSON.stringify(['purchase_receipt_recorded']),
+        secret: 'existing-secret',
+        headers: JSON.stringify({ 'X-KK': '1' }),
+        enabled: 1,
+        created_by: 'admin-1',
+        created_at: 1,
+      },
+    ]);
+    const repo = new WebhookRepository(db, { now: () => 100 });
+
+    const updated = await repo.update('wh-1', { enabled: false, actorId: 'admin-2' });
+
+    expect(updated).toEqual(
+      expect.objectContaining({
+        id: 'wh-1',
+        url: 'https://example.com/a',
+        events: ['purchase_receipt_recorded'],
+        headers: { 'X-KK': '1' },
+        enabled: false,
+      })
+    );
+    expect(db.rows[0]).toEqual(
+      expect.objectContaining({
+        url: 'https://example.com/a',
+        events: JSON.stringify(['purchase_receipt_recorded']),
+        secret: 'existing-secret',
+        headers: JSON.stringify({ 'X-KK': '1' }),
+        enabled: 0,
+        updated_by: 'admin-2',
+        updated_at: 100,
+      })
+    );
+  });
+
   it('batches delivery-state lookups by delivery key', async () => {
     const db = createWebhookDbStub(
       [],

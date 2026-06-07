@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   update: vi.fn(),
   remove: vi.fn(),
   getById: vi.fn(),
+  getByIdWithSecret: vi.fn(),
   testById: vi.fn(),
   scheduleAuditEvent: vi.fn(),
 }));
@@ -20,6 +21,7 @@ vi.mock('../../../../../repositories/WebhookRepository.js', () => ({
     update: mocks.update,
     delete: mocks.remove,
     getById: mocks.getById,
+    getByIdWithSecret: mocks.getByIdWithSecret,
     testById: mocks.testById,
   })),
 }));
@@ -81,6 +83,14 @@ describe('manage webhooks routes', () => {
       headers: {},
       enabled: true,
     });
+    mocks.getByIdWithSecret.mockResolvedValue({
+      id: 'wh-1',
+      url: 'https://example.com/hook',
+      events: ['purchase_receipt_recorded'],
+      secret: 'existing-secret',
+      headers: {},
+      enabled: true,
+    });
     mocks.testById.mockResolvedValue({ status: 200, success: true });
   });
 
@@ -135,6 +145,33 @@ describe('manage webhooks routes', () => {
         actorId: 'admin-1',
       })
     );
+  });
+
+  it('preserves existing webhook fields on partial update', async () => {
+    const app = createApp();
+
+    const updateRes = await app.request(
+      'http://localhost/api/manage/webhooks/wh-1',
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enabled: false,
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(updateRes.status).toBe(200);
+    expect(mocks.update).toHaveBeenCalledWith('wh-1', {
+      url: 'https://example.com/hook',
+      events: ['purchase_receipt_recorded'],
+      secret: 'existing-secret',
+      headers: {},
+      enabled: false,
+      actorId: 'admin-1',
+    });
   });
 
   it('lists only webhook-capable supported events and rejects cache-only event subscriptions', async () => {
