@@ -12,6 +12,7 @@ import {
   generateHmacSignature,
   sha256Hex,
   verifyPassword,
+  verifySharePassword,
   passwordHashNeedsMigration,
 } from '../id';
 
@@ -81,6 +82,19 @@ describe('Backend ID and Utils', () => {
 
       await expect(verifyPassword(password, legacyHash, pepper)).resolves.toBe(true);
       expect(passwordHashNeedsMigration(legacyHash)).toBe(true);
+    });
+
+    it('verifySharePassword should accept hashed and plaintext share passwords', async () => {
+      const password = 'mypassword';
+      const pepper = 'share-pepper';
+      const hash = await hashPassword(password, pepper);
+      const legacyHash = await sha256Hex(`${password}${pepper}`);
+
+      await expect(verifySharePassword(password, hash, pepper)).resolves.toBe(true);
+      await expect(verifySharePassword(password, legacyHash, pepper)).resolves.toBe(true);
+      await expect(verifySharePassword(password, password, pepper)).resolves.toBe(true);
+      await expect(verifySharePassword('wrong', hash, pepper)).resolves.toBe(false);
+      await expect(verifySharePassword(hash, hash, pepper)).resolves.toBe(false);
     });
 
     it('hashPassword should throw error if salt is missing', async () => {

@@ -12,8 +12,7 @@ import {
   recordLoginFailure,
   clearLoginFailures,
 } from '../../lib/hono/middleware/rateLimit.js';
-import { timingSafeCompare } from '../utils/auth.js';
-import { verifyPassword } from '../utils/id.js';
+import { verifySharePassword } from '../utils/id.js';
 
 const PUBLIC_SHARE_FILE_TTL_SECONDS = 15 * 60;
 const PUBLIC_SHARE_CACHE_CONTROL = `public, max-age=${PUBLIC_SHARE_FILE_TTL_SECONDS}, stale-while-revalidate=0`;
@@ -236,7 +235,8 @@ export async function onRequestPost(context) {
       return error(MSG.USER.PASSWORD_REQUIRED, 400);
     }
 
-    if (!timingSafeCompare(password, folder.password)) {
+    const pepper = env?.PASSWORD_PEPPER || env?.JWT_SECRET;
+    if (!(await verifySharePassword(password, folder.password, pepper))) {
       const failure = await recordPublicPasswordFailure(env, request, throttleIdentifier);
       if (failure) return failure;
       return error(MSG.SPACE.PASSWORD_ERROR, 401);

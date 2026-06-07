@@ -82,6 +82,7 @@ export function timestampToIso(timestamp) {
 const PASSWORD_HASH_VERSION = 'pbkdf2$sha256';
 const PASSWORD_ITERATIONS = 210000;
 const PASSWORD_SALT_BYTES = 16;
+const LEGACY_SHA256_HEX_RE = /^[a-f0-9]{64}$/i;
 
 async function derivePasswordBytes(password, pepper, saltBytes, iterations = PASSWORD_ITERATIONS) {
   const encoder = new TextEncoder();
@@ -174,6 +175,47 @@ export async function verifyPassword(password, encodedHash, pepper) {
     parsed.iterations
   );
   return timingSafeEqual(derived, base64UrlToBytes(parsed.hash));
+}
+
+/**
+ * Prepare a public share password for storage.
+ * Keeps existing hash records unchanged, hashes when a pepper is available,
+ * and falls back to plaintext only for legacy environments without a pepper.
+ * @param {string|null|undefined} password
+ * @param {string|null|undefined} pepper
+ * @returns {Promise<string|null>}
+ */
+export async function encodeSharePasswordForStorage(password, pepper) {
+  const normalized = String(password || '');
+  if (!normalized) return null;
+  if (normalized.startsWith(`${PASSWORD_HASH_VERSION}$`)) return normalized;
+  if (pepper) return hashPassword(normalized, pepper);
+  return normalized;
+}
+
+/**
+ * Verify public share passwords while preserving legacy plaintext shares.
+ * Supports PBKDF2 records, legacy sha256(password + pepper), and historical
+ * plaintext values. Hash-looking records are never accepted as plaintext.
+ * @param {string} password
+ * @param {string} storedPassword
+ * @param {string|null|undefined} pepper
+ * @returns {Promise<boolean>}
+ */
+export async function verifySharePassword(password, storedPassword, pepper) {
+  const candidate = String(password || '');
+  const stored = String(storedPassword || '');
+  if (!candidate || !stored) return false;
+
+  if (pepper && (await verifyPassword(candidate, stored, pepper))) {
+    return true;
+  }
+
+  if (stored.startsWith(`${PASSWORD_HASH_VERSION}$`) || LEGACY_SHA256_HEX_RE.test(stored)) {
+    return false;
+  }
+
+  return timingSafeEqual(candidate, stored);
 }
 
 // ==================== HMAC 签名 ====================

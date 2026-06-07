@@ -23,6 +23,7 @@ import {
   getChinaDayStart,
   getChinaDateStr,
 } from '../../../../../_shared/utils.js';
+import { encodeSharePasswordForStorage } from '../../../../../api/utils/id.js';
 import { transformSpaceListItem, transformSpaceDetail } from './transformers.js';
 import { NotFoundError } from '../../../errors.js';
 import { invalidateSpaceCaches } from './cache-helpers.js';
@@ -212,6 +213,7 @@ crud.post(
       sharedSalespersonIds,
     } = c.req.valid('json');
     const repo = new SpaceRepository(env.DB);
+    const pepper = env?.PASSWORD_PEPPER || env?.JWT_SECRET;
     const { name: normalizedName, description: normalizedDescription } = normalizeSpaceCreateFields(
       name,
       description
@@ -236,7 +238,7 @@ crud.post(
       name: normalizedName,
       description: normalizedDescription,
       isPublic,
-      password: password || null,
+      password: await encodeSharePasswordForStorage(password, pepper),
       shareToken,
       expiresAt: expiresAt || null,
       template,
@@ -306,6 +308,7 @@ crud.on(
     const spaceId = c.req.param('id');
     const data = c.req.valid('json');
     const repo = new SpaceRepository(env.DB);
+    const pepper = env?.PASSWORD_PEPPER || env?.JWT_SECRET;
 
     const space = await requireSpace(repo, spaceId);
 
@@ -314,7 +317,9 @@ crud.on(
     if (data.name !== undefined) updates.name = data.name.trim();
     if (data.description !== undefined) updates.description = data.description.trim();
     if (data.isPublic !== undefined) updates.is_public = data.isPublic ? 1 : 0;
-    if (data.password !== undefined) updates.password = data.password || null;
+    if (data.password !== undefined) {
+      updates.password = await encodeSharePasswordForStorage(data.password, pepper);
+    }
     if (data.expiresAt !== undefined) updates.expires_at = data.expiresAt;
     if (data.coverFileId !== undefined) updates.cover_file_id = data.coverFileId || null;
     if (data.template !== undefined) updates.template = data.template;

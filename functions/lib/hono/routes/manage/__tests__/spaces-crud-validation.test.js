@@ -359,6 +359,54 @@ describe('manage spaces crud validation', () => {
     ]);
   });
 
+  it('hashes share passwords on create and patch when a pepper is configured', async () => {
+    const app = createApp();
+
+    const createRes = await app.request(
+      'http://localhost/api/manage/spaces',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Protected Space',
+          password: 'secret',
+        }),
+      },
+      { DB: { prepare: vi.fn() }, JWT_SECRET: 'jwt-secret' },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(createRes.status).toBe(201);
+    expect(mocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        password: expect.stringMatching(/^pbkdf2\$sha256\$/),
+      })
+    );
+    expect(mocks.create.mock.calls.at(-1)[0].password).not.toBe('secret');
+
+    const patchRes = await app.request(
+      'http://localhost/api/manage/spaces/sp-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          password: 'changed',
+        }),
+      },
+      { DB: { prepare: vi.fn() }, JWT_SECRET: 'jwt-secret' },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(patchRes.status).toBe(200);
+    expect(mocks.update).toHaveBeenCalledWith(
+      'sp-1',
+      expect.objectContaining({
+        password: expect.stringMatching(/^pbkdf2\$sha256\$/),
+      })
+    );
+    expect(mocks.update.mock.calls.at(-1)[1].password).not.toBe('changed');
+  });
+
   it('returns product spaces with active binding metadata', async () => {
     mocks.findByProductId.mockResolvedValueOnce([
       {

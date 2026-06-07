@@ -12,6 +12,7 @@ import { withCache } from '../../../middleware/cache.js';
 import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js';
 import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
 import { generateId, generateShareToken, getShareUrl } from '../../../../../_shared/utils.js';
+import { encodeSharePasswordForStorage } from '../../../../../api/utils/id.js';
 import { transformSpaceListItem } from './transformers.js';
 import { invalidateSpaceCaches } from './cache-helpers.js';
 import {
@@ -88,6 +89,7 @@ subspaces.post(
       sharedSalespersonIds,
     } = c.req.valid('json');
     const repo = new SpaceRepository(env.DB);
+    const pepper = env?.PASSWORD_PEPPER || env?.JWT_SECRET;
     const { name: normalizedName, description: normalizedDescription } = normalizeSpaceCreateFields(
       name,
       description
@@ -115,7 +117,7 @@ subspaces.post(
       name: normalizedName,
       description: normalizedDescription,
       isPublic,
-      password: password || null,
+      password: await encodeSharePasswordForStorage(password, pepper),
       shareToken,
       expiresAt: expiresAt || null,
       template,

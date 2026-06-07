@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { onRequestGet, onRequestPost } from '../[token].js';
+import { hashPassword } from '../../utils/id.js';
 
-function createDb() {
+function createDb({ password = 'secret' } = {}) {
   return {
     prepare: vi.fn((sql) => {
       if (sql.includes('SELECT * FROM folders WHERE share_token = ?')) {
@@ -15,7 +16,7 @@ function createDb() {
               description: '',
               created_at: 1,
               is_public: 1,
-              password: 'secret',
+              password,
               share_expires_at: Date.now() + 60_000,
             })),
           })),
@@ -118,6 +119,32 @@ describe('public gallery access api', () => {
     expect(payload.data.files[0].url).toContain('/file/file-1');
     expect(payload.data.files[0].url).toContain('access=');
     expect(response.headers.get('Cache-Control')).toBe('no-store, max-age=0');
+  });
+
+  it('returns signed file URLs after hashed password verification succeeds', async () => {
+    const hashedPassword = await hashPassword('secret', 'jwt-secret');
+
+    const response = await onRequestPost({
+      env: {
+        DB: createDb({ password: hashedPassword }),
+        JWT_SECRET: 'jwt-secret',
+        KV: {
+          get: vi.fn(async () => null),
+          put: vi.fn(async () => undefined),
+          delete: vi.fn(async () => undefined),
+        },
+      },
+      params: { token: 'gallery-token' },
+      request: new Request('http://localhost/api/gallery/gallery-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: 'secret' }),
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    expect(payload.data.files[0].url).toContain('access=');
   });
 
   it('reuses one shared access token for all gallery files in the same response', async () => {

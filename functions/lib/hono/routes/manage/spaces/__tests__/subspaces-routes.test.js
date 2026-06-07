@@ -289,4 +289,31 @@ describe('manage subspaces routes', () => {
     );
     expect(mocks.updateSharedSalespersons).toHaveBeenCalledWith('space-child-1', ['sp-a', 'sp-b']);
   });
+
+  it('hashes share passwords on subspace create when a pepper is configured', async () => {
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/spaces/space-parent-1/subspaces',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Protected Child Space',
+          password: 'secret',
+          templateData: {},
+        }),
+      },
+      { DB: {}, JWT_SECRET: 'jwt-secret' },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.createSubspace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        password: expect.stringMatching(/^pbkdf2\$sha256\$/),
+      })
+    );
+    expect(mocks.createSubspace.mock.calls.at(-1)[0].password).not.toBe('secret');
+  });
 });

@@ -8,7 +8,7 @@ import { inClause, buildSetClause } from '../api/utils/sql.js';
 import { parseRepoPagination } from '../api/utils/pagination.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { FOLDER_PATHS_CTE } from '../lib/db/trash-paths-cte.js';
-import { hashPassword, verifyPassword } from '../api/utils/id.js';
+import { encodeSharePasswordForStorage } from '../api/utils/id.js';
 
 /** 允许通过 update() 方法更新的列名白名单 (H04) */
 const ALLOWED_UPDATE_COLUMNS = new Set([
@@ -446,19 +446,7 @@ export class FolderRepository {
     const expiresAtTs = expiresAt ? new Date(expiresAt).getTime() : null;
     const timestamp = Date.now();
 
-    // C01: 对密码进行哈希后再存储（向后兼容：已有明文密码保持不变，验证时走 legacy 分支）
-    let hashedPassword = null;
-    if (password) {
-      // 如果密码看起来已经是哈希格式（pbkdf2$sha256$...），则直接使用
-      if (password.startsWith('pbkdf2$sha256$')) {
-        hashedPassword = password;
-      } else if (pepper) {
-        hashedPassword = await hashPassword(password, pepper);
-      } else {
-        // 无 pepper 时保留明文（降级保护，避免功能中断）
-        hashedPassword = password;
-      }
-    }
+    const hashedPassword = await encodeSharePasswordForStorage(password, pepper);
 
     await this.db
       .prepare(

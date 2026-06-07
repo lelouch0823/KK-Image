@@ -24,6 +24,8 @@ export {
   generatePrefixedId,
   hashPassword,
   verifyPassword,
+  encodeSharePasswordForStorage,
+  verifySharePassword,
   passwordHashNeedsMigration,
   generateHmacSignature,
   now,

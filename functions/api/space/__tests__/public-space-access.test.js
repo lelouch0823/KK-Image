@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { onRequestGet, onRequestPost } from '../[token].js';
 import { generateJWT } from '../../utils/auth.js';
+import { hashPassword } from '../../utils/id.js';
 
 describe('public space access api', () => {
   const baseSpaceRecord = {
@@ -123,6 +124,61 @@ describe('public space access api', () => {
     const payload = await response.json();
     expect(payload.success).toBe(true);
     expect(payload.data.viewCount).toBe(4);
+  });
+
+  it('records access log after hashed password verification succeeds', async () => {
+    const spaceRecord = {
+      ...baseSpaceRecord,
+      password: await hashPassword('secret', 'jwt-secret'),
+    };
+    const first = vi.fn().mockResolvedValue(spaceRecord);
+    const all = vi.fn().mockResolvedValue({ results: [] });
+    const batch = vi.fn().mockResolvedValue([]);
+
+    const prepare = vi.fn((sql) => {
+      if (sql.includes('WHERE s.share_token = ?')) {
+        return { bind: () => ({ first }) };
+      }
+      if (sql.includes('FROM space_files sf')) {
+        return { bind: () => ({ all }) };
+      }
+      if (sql.includes('WHERE s.parent_id = ? AND s.is_public = 1')) {
+        return { bind: () => ({ all }) };
+      }
+      if (sql.includes('INSERT INTO space_access_logs')) {
+        return { bind: (...args) => ({ sql, args }) };
+      }
+      if (sql.includes('UPDATE spaces SET view_count = view_count + 1')) {
+        return { bind: (...args) => ({ sql, args }) };
+      }
+      throw new Error(`Unexpected SQL: ${sql}`);
+    });
+
+    const response = await onRequestPost({
+      env: {
+        DB: { prepare, batch },
+        JWT_SECRET: 'jwt-secret',
+        KV: {
+          get: vi.fn(async () => null),
+          put: vi.fn(async () => undefined),
+          delete: vi.fn(async () => undefined),
+        },
+      },
+      params: { token: 'share-token' },
+      request: new Request('http://localhost/api/space/share-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'vitest',
+          Referer: 'http://localhost/from',
+          'CF-Connecting-IP': '127.0.0.1',
+        },
+        body: JSON.stringify({ password: 'secret' }),
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(batch).toHaveBeenCalledTimes(1);
   });
 
   it('rejects password access to private spaces', async () => {

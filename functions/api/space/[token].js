@@ -7,11 +7,8 @@
 
 import { success, error } from '../utils/response.js';
 import { MSG } from '../utils/messages.js';
-import {
-  timingSafeCompare,
-  isAdminAuthenticated,
-  generateScopedAccessToken,
-} from '../utils/auth.js';
+import { isAdminAuthenticated, generateScopedAccessToken } from '../utils/auth.js';
+import { verifySharePassword } from '../utils/id.js';
 import { getFileType } from '../utils/file-utils.js';
 import { parseJsonArray } from '../utils/json.js';
 import { getFileUrl } from '../utils/url.js';
@@ -433,7 +430,8 @@ export async function onRequestPost(context) {
     const throttleError = await authorizePublicPasswordAttempt(env, request, throttleIdentifier);
     if (throttleError) return throttleError;
 
-    if (!timingSafeCompare(password, space.password)) {
+    const pepper = env?.PASSWORD_PEPPER || env?.JWT_SECRET;
+    if (!(await verifySharePassword(password, space.password, pepper))) {
       const failure = await recordPublicPasswordFailure(env, request, throttleIdentifier);
       if (failure) return failure;
       return error(MSG.SPACE.PASSWORD_ERROR, 401);
