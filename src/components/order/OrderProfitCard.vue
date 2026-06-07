@@ -9,10 +9,7 @@
       >
         {{ t('order.profit.costComplete') }}
       </span>
-      <span
-        v-else
-        class="rounded-full bg-warning/10 px-2 py-0.5 text-xs text-warning"
-      >
+      <span v-else class="rounded-full bg-warning/10 px-2 py-0.5 text-xs text-warning">
         {{ t('order.profit.costIncomplete') }}
       </span>
     </div>
@@ -21,11 +18,15 @@
     <div class="mb-4 grid grid-cols-3 gap-3">
       <div class="rounded-lg bg-(--bg-secondary) p-3 text-center">
         <div class="text-xs text-(--text-secondary)">{{ t('order.profit.revenue') }}</div>
-        <div class="text-primary mt-1 text-lg font-semibold">{{ formatCurrency(profit.revenue) }}</div>
+        <div class="text-primary mt-1 text-lg font-semibold">
+          {{ formatCurrency(profit.revenue) }}
+        </div>
       </div>
       <div class="rounded-lg bg-(--bg-secondary) p-3 text-center">
         <div class="text-xs text-(--text-secondary)">{{ t('order.profit.cost') }}</div>
-        <div class="mt-1 text-lg font-semibold text-(--text-main)">{{ formatCurrency(profit.cost) }}</div>
+        <div class="mt-1 text-lg font-semibold text-(--text-main)">
+          {{ formatCurrency(profit.cost) }}
+        </div>
       </div>
       <div class="rounded-lg bg-(--bg-secondary) p-3 text-center">
         <div class="text-xs text-(--text-secondary)">{{ t('order.profit.profit') }}</div>
@@ -39,7 +40,10 @@
     </div>
 
     <!-- 利润率 -->
-    <div v-if="profit.margin !== null" class="mb-4 flex items-center justify-between rounded-lg bg-(--bg-secondary) px-3 py-2">
+    <div
+      v-if="profit.margin !== null"
+      class="mb-4 flex items-center justify-between rounded-lg bg-(--bg-secondary) px-3 py-2"
+    >
       <span class="text-xs text-(--text-secondary)">{{ t('order.profit.margin') }}</span>
       <span
         class="text-sm font-semibold"
@@ -83,11 +87,15 @@
         <div class="grid grid-cols-3 gap-2 text-xs">
           <div>
             <span class="text-(--text-secondary)">{{ t('order.profit.unitPrice') }}</span>
-            <span class="ml-1 text-(--text-main)">{{ line.unitPrice != null ? formatCurrency(line.unitPrice) : '-' }}</span>
+            <span class="ml-1 text-(--text-main)">{{
+              line.unitPrice != null ? formatCurrency(line.unitPrice) : '-'
+            }}</span>
           </div>
           <div>
             <span class="text-(--text-secondary)">{{ t('order.profit.unitCost') }}</span>
-            <span class="ml-1 text-(--text-main)">{{ line.unitCost != null ? formatCurrency(line.unitCost) : t('order.profit.costMissing') }}</span>
+            <span class="ml-1 text-(--text-main)">{{
+              line.unitCost != null ? formatCurrency(line.unitCost) : t('order.profit.costMissing')
+            }}</span>
           </div>
           <div class="text-right">
             <span class="text-(--text-secondary)">{{ t('order.profit.lineProfit') }}</span>

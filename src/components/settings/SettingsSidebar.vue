@@ -15,7 +15,9 @@
       <AppIcon
         :name="item.icon"
         class="size-5 shrink-0 transition-colors"
-        :class="[currentTab === item.id ? 'text-primary' : 'group-hover:text-primary text-(--text-muted)']"
+        :class="[
+          currentTab === item.id ? 'text-primary' : 'group-hover:text-primary text-(--text-muted)',
+        ]"
       />
       <span>{{ item.label }}</span>
       <span

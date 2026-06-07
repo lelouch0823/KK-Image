@@ -15,7 +15,10 @@
           </p>
         </div>
       </div>
-      <p v-if="space.description" class="max-w-3xl whitespace-pre-line text-sm text-(--text-secondary)">
+      <p
+        v-if="space.description"
+        class="max-w-3xl whitespace-pre-line text-sm text-(--text-secondary)"
+      >
         {{ space.description }}
       </p>
     </header>
@@ -31,11 +34,15 @@
       >
         <div class="min-w-0 flex-1">
           <div class="flex items-start gap-3">
-            <div class="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-(--bg-muted)">
+            <div
+              class="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-(--bg-muted)"
+            >
               <AppIcon :name="resolveFileIcon(file)" class="size-5 text-(--text-main)" />
             </div>
             <div class="min-w-0">
-              <h2 class="truncate text-sm font-medium text-(--text-main)">{{ file.name || t('spacePublic.unnamedFile') }}</h2>
+              <h2 class="truncate text-sm font-medium text-(--text-main)">
+                {{ file.name || t('spacePublic.unnamedFile') }}
+              </h2>
               <p class="mt-1 text-xs text-(--text-secondary)">
                 {{ resolveFileMeta(file) }}
               </p>
@@ -83,9 +90,11 @@ const props = defineProps({
 
 const { t } = useI18n();
 
-const displayFiles = computed(() => (
-  Array.isArray(props.space?.files) ? props.space.files.filter((file) => file?.url || file?.name) : []
-));
+const displayFiles = computed(() =>
+  Array.isArray(props.space?.files)
+    ? props.space.files.filter((file) => file?.url || file?.name)
+    : []
+);
 
 const fileCountLabel = computed(() => {
   const count = displayFiles.value.length;
@@ -95,7 +104,8 @@ const fileCountLabel = computed(() => {
 function resolveFileIcon(file) {
   const mimeType = String(file?.mimeType || file?.mime_type || '').toLowerCase();
   if (mimeType.includes('pdf')) return 'document-text';
-  if (mimeType.includes('sheet') || mimeType.includes('excel') || mimeType.includes('csv')) return 'table-cells';
+  if (mimeType.includes('sheet') || mimeType.includes('excel') || mimeType.includes('csv'))
+    return 'table-cells';
   if (mimeType.includes('word') || mimeType.includes('document')) return 'document';
   return 'document-text';
 }

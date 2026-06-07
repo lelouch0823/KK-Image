@@ -313,8 +313,7 @@ export async function runDeployCheckCli(options = {}) {
   }
 }
 
-const isDirectExecution =
-  process.argv[1] && path.resolve(process.argv[1]) === __filename;
+const isDirectExecution = process.argv[1] && path.resolve(process.argv[1]) === __filename;
 
 if (isDirectExecution) {
   const exitCode = await runDeployCheckCli();

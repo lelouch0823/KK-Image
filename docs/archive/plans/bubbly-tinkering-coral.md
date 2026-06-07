@@ -1,17 +1,19 @@
 # AI模块优化开发设计与实施计划
 
 > 状态：已过时，不再作为主执行计划。
-> 
+>
 > 原因：本文档与当前代码现状已有明显偏差，部分能力已提前落地，部分设计已不满足后续 SOTA 目标。
-> 
+>
 > 当前应以 [2026-03-16-ai-module-overall-optimization-v2.md](O:/Code/KK-Image/docs/plans/2026-03-16-ai-module-overall-optimization-v2.md) 为主计划继续推进。
 
 ## 一、项目背景与目标
 
 ### 1.1 背景
+
 KK-Image AI模块是一个企业级AI助手系统，支持多模型切换、流式响应、工具调用和动作执行。当前已实现基础功能，但在配置化、性能、安全性和可观测性方面需要进一步优化。
 
 ### 1.2 目标
+
 - **配置化**：支持运行时调整AI参数，无需重新部署
 - **性能优化**：工具调用并行化、流式响应中断处理
 - **安全性增强**：输入长度限制、敏感数据过滤、用户级限流
@@ -293,15 +295,17 @@ export async function executeAIToolsParallel(toolCalls, repos, options = {}) {
 
   for (const batch of batches) {
     const batchResults = await Promise.allSettled(
-      batch.map(tc => executeAIToolWithTimeout(tc.name, tc.args, repos, timeoutMs))
+      batch.map((tc) => executeAIToolWithTimeout(tc.name, tc.args, repos, timeoutMs))
     );
 
-    results.push(...batchResults.map((result, idx) => ({
-      toolCall: batch[idx],
-      success: result.status === 'fulfilled',
-      data: result.status === 'fulfilled' ? result.value : null,
-      error: result.status === 'rejected' ? result.reason.message : null,
-    })));
+    results.push(
+      ...batchResults.map((result, idx) => ({
+        toolCall: batch[idx],
+        success: result.status === 'fulfilled',
+        data: result.status === 'fulfilled' ? result.value : null,
+        error: result.status === 'rejected' ? result.reason.message : null,
+      }))
+    );
   }
 
   return results;
@@ -323,8 +327,8 @@ async function executeAIToolWithTimeout(name, args, repos, timeoutMs) {
 // 新增：支持工具间的依赖声明
 const TOOL_DEPENDENCIES = {
   getVariantDetail: [], // 无依赖
-  searchVariants: [],   // 无依赖
-  getOrderDetail: [],   // 无依赖
+  searchVariants: [], // 无依赖
+  getOrderDetail: [], // 无依赖
   // 可以声明复杂依赖关系
 };
 
@@ -429,12 +433,15 @@ export function aiRateLimit(options = {}) {
     });
 
     if (!check.allowed) {
-      return c.json({
-        error: 'Rate limit exceeded',
-        retryAfter: check.retryAfter,
-        limit: check.limit,
-        remaining: check.remaining,
-      }, 429);
+      return c.json(
+        {
+          error: 'Rate limit exceeded',
+          retryAfter: check.retryAfter,
+          limit: check.limit,
+          remaining: check.remaining,
+        },
+        429
+      );
     }
 
     // 设置响应头
@@ -569,39 +576,45 @@ export function createAILogger(context) {
 
   return {
     info: (event, data) => {
-      console.log(JSON.stringify({
-        level: 'info',
-        timestamp: new Date().toISOString(),
-        event,
-        ...baseFields,
-        ...data,
-      }));
+      console.log(
+        JSON.stringify({
+          level: 'info',
+          timestamp: new Date().toISOString(),
+          event,
+          ...baseFields,
+          ...data,
+        })
+      );
     },
 
     error: (event, error, data) => {
-      console.error(JSON.stringify({
-        level: 'error',
-        timestamp: new Date().toISOString(),
-        event,
-        error: {
-          message: error.message,
-          stack: error.stack,
-          code: error.code,
-          status: error.status,
-        },
-        ...baseFields,
-        ...data,
-      }));
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          timestamp: new Date().toISOString(),
+          event,
+          error: {
+            message: error.message,
+            stack: error.stack,
+            code: error.code,
+            status: error.status,
+          },
+          ...baseFields,
+          ...data,
+        })
+      );
     },
 
     metric: (name, value, tags = {}) => {
-      console.log(JSON.stringify({
-        level: 'metric',
-        timestamp: new Date().toISOString(),
-        metric: name,
-        value,
-        tags: { ...baseFields, ...tags },
-      }));
+      console.log(
+        JSON.stringify({
+          level: 'metric',
+          timestamp: new Date().toISOString(),
+          metric: name,
+          value,
+          tags: { ...baseFields, ...tags },
+        })
+      );
     },
   };
 }
@@ -650,8 +663,8 @@ export class InputValidator {
     if (typeof message.content === 'string') return message.content;
     if (Array.isArray(message.content)) {
       return message.content
-        .filter(c => c.type === 'text')
-        .map(c => c.text)
+        .filter((c) => c.type === 'text')
+        .map((c) => c.text)
         .join('');
     }
     return '';
@@ -660,7 +673,7 @@ export class InputValidator {
   extractImages(message) {
     if (typeof message.content === 'string') return [];
     if (Array.isArray(message.content)) {
-      return message.content.filter(c => c.type === 'image_url');
+      return message.content.filter((c) => c.type === 'image_url');
     }
     return [];
   }
@@ -752,110 +765,117 @@ CREATE INDEX idx_ai_telemetry_created ON ai_telemetry_logs(created_at);
 
 ### Phase 1: 配置化系统（Week 1-2）
 
-| 任务 | 文件 | 工时 |
-|------|------|------|
-| 创建配置Schema | `functions/ai/config-schema.js` | 4h |
-| 实现配置管理器 | `functions/ai/config-manager.js` | 8h |
-| 修改配置加载逻辑 | `functions/lib/hono/routes/manage/ai.js` | 4h |
-| 前端配置界面增强 | `src/components/settings/tabs/AISettings.vue` | 8h |
-| 单元测试 | `functions/ai/__tests__/config-manager.test.js` | 8h |
-| **小计** | | **32h** |
+| 任务             | 文件                                            | 工时    |
+| ---------------- | ----------------------------------------------- | ------- |
+| 创建配置Schema   | `functions/ai/config-schema.js`                 | 4h      |
+| 实现配置管理器   | `functions/ai/config-manager.js`                | 8h      |
+| 修改配置加载逻辑 | `functions/lib/hono/routes/manage/ai.js`        | 4h      |
+| 前端配置界面增强 | `src/components/settings/tabs/AISettings.vue`   | 8h      |
+| 单元测试         | `functions/ai/__tests__/config-manager.test.js` | 8h      |
+| **小计**         |                                                 | **32h** |
 
 **交付物**:
+
 - 支持运行时调整所有AI参数
 - 配置热加载（30秒缓存）
 - 配置变更审计
 
 ### Phase 2: 流式响应中断（Week 2-3）
 
-| 任务 | 文件 | 工时 |
-|------|------|------|
-| AbortController集成 | `functions/lib/hono/routes/manage/ai.js` | 4h |
-| 流引擎增强 | `functions/ai/stream-engine.js` | 6h |
-| 资源清理机制 | `functions/ai/stream-cleanup.js` | 4h |
-| 测试用例 | `functions/ai/__tests__/stream-engine.test.js` | 6h |
-| **小计** | | **20h** |
+| 任务                | 文件                                           | 工时    |
+| ------------------- | ---------------------------------------------- | ------- |
+| AbortController集成 | `functions/lib/hono/routes/manage/ai.js`       | 4h      |
+| 流引擎增强          | `functions/ai/stream-engine.js`                | 6h      |
+| 资源清理机制        | `functions/ai/stream-cleanup.js`               | 4h      |
+| 测试用例            | `functions/ai/__tests__/stream-engine.test.js` | 6h      |
+| **小计**            |                                                | **20h** |
 
 **交付物**:
+
 - 客户端断开时立即释放资源
 - 无内存泄漏
 - 优雅的取消处理
 
 ### Phase 3: 工具调用并行化（Week 3-4）
 
-| 任务 | 文件 | 工时 |
-|------|------|------|
-| 并行执行器实现 | `functions/utils/ai-tool-executor.js` | 8h |
-| 超时控制机制 | `functions/utils/ai-tool-executor.js` | 4h |
-| 依赖排序算法（可选） | `functions/ai/tool-dependency.js` | 6h |
-| 集成到流引擎 | `functions/ai/stream-engine.js` | 4h |
-| 测试 | `functions/utils/__tests__/ai-tool-executor.test.js` | 8h |
-| **小计** | | **30h** |
+| 任务                 | 文件                                                 | 工时    |
+| -------------------- | ---------------------------------------------------- | ------- |
+| 并行执行器实现       | `functions/utils/ai-tool-executor.js`                | 8h      |
+| 超时控制机制         | `functions/utils/ai-tool-executor.js`                | 4h      |
+| 依赖排序算法（可选） | `functions/ai/tool-dependency.js`                    | 6h      |
+| 集成到流引擎         | `functions/ai/stream-engine.js`                      | 4h      |
+| 测试                 | `functions/utils/__tests__/ai-tool-executor.test.js` | 8h      |
+| **小计**             |                                                      | **30h** |
 
 **交付物**:
+
 - 独立工具并行执行
 - 工具超时控制
 - 结果正确聚合
 
 ### Phase 4: 智能重试策略（Week 4）
 
-| 任务 | 文件 | 工时 |
-|------|------|------|
-| 重试管理器实现 | `functions/ai/retry-manager.js` | 8h |
-| 集成到AI调用 | `functions/utils/ai-utils.js` | 6h |
-| 配置化重试参数 | `functions/ai/config-manager.js` | 4h |
-| 测试 | `functions/ai/__tests__/retry-manager.test.js` | 6h |
-| **小计** | | **24h** |
+| 任务           | 文件                                           | 工时    |
+| -------------- | ---------------------------------------------- | ------- |
+| 重试管理器实现 | `functions/ai/retry-manager.js`                | 8h      |
+| 集成到AI调用   | `functions/utils/ai-utils.js`                  | 6h      |
+| 配置化重试参数 | `functions/ai/config-manager.js`               | 4h      |
+| 测试           | `functions/ai/__tests__/retry-manager.test.js` | 6h      |
+| **小计**       |                                                | **24h** |
 
 **交付物**:
+
 - 指数退避 + 抖动
 - 智能错误分类
 - 可配置重试策略
 
 ### Phase 5: 用户级限流（Week 5）
 
-| 任务 | 文件 | 工时 |
-|------|------|------|
-| 限流管理器 | `functions/ai/rate-limit-manager.js` | 8h |
-| 限流中间件 | `functions/lib/hono/middleware/ai-rate-limit.js` | 6h |
-| 集成到路由 | `functions/lib/hono/routes/manage/ai.js` | 4h |
-| KV存储集成 | `functions/ai/rate-limit-manager.js` | 4h |
-| 测试 | 新增测试文件 | 6h |
-| **小计** | | **28h** |
+| 任务       | 文件                                             | 工时    |
+| ---------- | ------------------------------------------------ | ------- |
+| 限流管理器 | `functions/ai/rate-limit-manager.js`             | 8h      |
+| 限流中间件 | `functions/lib/hono/middleware/ai-rate-limit.js` | 6h      |
+| 集成到路由 | `functions/lib/hono/routes/manage/ai.js`         | 4h      |
+| KV存储集成 | `functions/ai/rate-limit-manager.js`             | 4h      |
+| 测试       | 新增测试文件                                     | 6h      |
+| **小计**   |                                                  | **28h** |
 
 **交付物**:
+
 - 用户级分钟/日限流
 - 429响应带Retry-After头
 - 限流状态可见
 
 ### Phase 6: 可观测性（Week 6）
 
-| 任务 | 文件 | 工时 |
-|------|------|------|
-| 遥测系统V2 | `functions/ai/telemetry-v2.js` | 10h |
-| 结构化日志 | `functions/ai/logger.js` | 6h |
-| 数据库表 | `migrations/00XX_ai_telemetry_logs.sql` | 2h |
-| 集成到全链路 | 多个文件 | 8h |
-| 日志分析工具 | `scripts/analyze-ai-logs.js` | 6h |
-| **小计** | | **32h** |
+| 任务         | 文件                                    | 工时    |
+| ------------ | --------------------------------------- | ------- |
+| 遥测系统V2   | `functions/ai/telemetry-v2.js`          | 10h     |
+| 结构化日志   | `functions/ai/logger.js`                | 6h      |
+| 数据库表     | `migrations/00XX_ai_telemetry_logs.sql` | 2h      |
+| 集成到全链路 | 多个文件                                | 8h      |
+| 日志分析工具 | `scripts/analyze-ai-logs.js`            | 6h      |
+| **小计**     |                                         | **32h** |
 
 **交付物**:
+
 - Trace ID追踪
 - Token使用量统计
-n- 结构化日志输出
+  n- 结构化日志输出
 
 ### Phase 7: 安全性增强（Week 7）
 
-| 任务 | 文件 | 工时 |
-|------|------|------|
-| 输入验证器 | `functions/ai/input-validator.js` | 6h |
-| 数据脱敏器 | `functions/ai/data-masker.js` | 6h |
-| 集成验证 | `functions/lib/hono/routes/manage/ai.js` | 4h |
-| 工具结果脱敏 | `functions/utils/ai-tool-executor.js` | 4h |
-| 测试 | 新增测试文件 | 6h |
-| **小计** | | **26h** |
+| 任务         | 文件                                     | 工时    |
+| ------------ | ---------------------------------------- | ------- |
+| 输入验证器   | `functions/ai/input-validator.js`        | 6h      |
+| 数据脱敏器   | `functions/ai/data-masker.js`            | 6h      |
+| 集成验证     | `functions/lib/hono/routes/manage/ai.js` | 4h      |
+| 工具结果脱敏 | `functions/utils/ai-tool-executor.js`    | 4h      |
+| 测试         | 新增测试文件                             | 6h      |
+| **小计**     |                                          | **26h** |
 
 **交付物**:
+
 - 输入长度/大小限制
 - 敏感数据自动脱敏
 - 图片数量和大小控制
@@ -881,13 +901,13 @@ Week 8:  ░░░░░░░░░░░░░░░░░░░░░░░�
 
 ## 七、风险评估与缓解
 
-| 风险 | 概率 | 影响 | 缓解措施 |
-|------|------|------|----------|
-| KV限流影响限流功能 | 中 | 高 | 实现本地回退 + 限流降级 |
-| AbortController兼容性问题 | 低 | 中 | 特性检测 + 优雅降级 |
-| 并行工具导致数据库压力 | 中 | 中 | 连接池控制 + 并发数限制 |
-| 配置热加载导致不一致 | 低 | 中 | 短缓存时间 + 版本控制 |
-| Token统计精度问题 | 中 | 低 | 文档说明 + 估算策略 |
+| 风险                      | 概率 | 影响 | 缓解措施                |
+| ------------------------- | ---- | ---- | ----------------------- |
+| KV限流影响限流功能        | 中   | 高   | 实现本地回退 + 限流降级 |
+| AbortController兼容性问题 | 低   | 中   | 特性检测 + 优雅降级     |
+| 并行工具导致数据库压力    | 中   | 中   | 连接池控制 + 并发数限制 |
+| 配置热加载导致不一致      | 低   | 中   | 短缓存时间 + 版本控制   |
+| Token统计精度问题         | 中   | 低   | 文档说明 + 估算策略     |
 
 ---
 

@@ -79,7 +79,9 @@ describe('capture-admin-manual-screenshots-lib', () => {
     await runner.main();
 
     expect(fsModule.mkdirSync).toHaveBeenCalled();
-    expect(page.goto).toHaveBeenCalledWith('http://localhost:8090/login', { waitUntil: 'domcontentloaded' });
+    expect(page.goto).toHaveBeenCalledWith('http://localhost:8090/login', {
+      waitUntil: 'domcontentloaded',
+    });
     expect(page.screenshot).toHaveBeenCalledTimes(2);
     expect(consoleImpl.log).toHaveBeenCalledWith('captured 01-dashboard.png');
     expect(browser.close).toHaveBeenCalled();

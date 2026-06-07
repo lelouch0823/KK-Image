@@ -3,6 +3,12 @@
  * 统一管理魔法数值，避免硬编码
  */
 
+// 时间单位常量（毫秒）
+export const MS_PER_SECOND = 1000;
+export const MS_PER_MINUTE = 60_000;
+export const MS_PER_HOUR = 3_600_000;
+export const MS_PER_DAY = 86_400_000;
+
 // CORS 配置
 export const CORS_MAX_AGE = 86400;
 

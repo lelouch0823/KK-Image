@@ -128,23 +128,28 @@ describe('useAIStream behavior', () => {
       context: { route: 'orders' },
     });
 
-    expect(mocks.requestAuth).toHaveBeenCalledWith('/api/manage/ai/stream', expect.objectContaining({
-      method: 'POST',
-    }));
+    expect(mocks.requestAuth).toHaveBeenCalledWith(
+      '/api/manage/ai/stream',
+      expect.objectContaining({
+        method: 'POST',
+      })
+    );
     expect(mocks.pushToTypewriter).toHaveBeenCalled();
     expect(api.fullContent.value).toContain('你好');
     expect(api.fullContent.value).toContain('世界');
     expect(api.fullContent.value).not.toContain('arg_key');
-    expect(api.actionCard.value).toEqual(expect.objectContaining({ type: 'action_preview', title: '确认预览' }));
-    expect(mocks.publishRefresh).toHaveBeenCalledWith(expect.objectContaining({ module: 'orders' }));
+    expect(api.actionCard.value).toEqual(
+      expect.objectContaining({ type: 'action_preview', title: '确认预览' })
+    );
+    expect(mocks.publishRefresh).toHaveBeenCalledWith(
+      expect.objectContaining({ module: 'orders' })
+    );
     expect(api.isLoading.value).toBe(false);
     expect(api.isStreaming.value).toBe(false);
   });
 
   it('shows an info toast when the stream reports a model switch', async () => {
-    mocks.parserFeed.mockReturnValueOnce([
-      { type: 'model_switch', data: { from: 'a', to: 'b' } },
-    ]);
+    mocks.parserFeed.mockReturnValueOnce([{ type: 'model_switch', data: { from: 'a', to: 'b' } }]);
     mocks.requestAuth.mockResolvedValue({
       body: {
         getReader: () => createReader(['chunk-1']),
@@ -161,9 +166,7 @@ describe('useAIStream behavior', () => {
   });
 
   it('surfaces structured tool errors without adding a generic network toast', async () => {
-    mocks.parserFeed.mockReturnValueOnce([
-      { type: 'error', data: { message: 'tool failed' } },
-    ]);
+    mocks.parserFeed.mockReturnValueOnce([{ type: 'error', data: { message: 'tool failed' } }]);
     mocks.classifyStreamFailure.mockReturnValue({
       category: 'tool_error',
       userMessage: 'Tool failed loudly',
@@ -218,7 +221,8 @@ describe('useAIStream behavior', () => {
     });
 
     expect(mocks.addToast).toHaveBeenCalledWith({
-      message: '当前 API 网关不接受该图片输入格式，请优先使用 JPG/PNG，或切换支持 data URL 的多模态模型。',
+      message:
+        '当前 API 网关不接受该图片输入格式，请优先使用 JPG/PNG，或切换支持 data URL 的多模态模型。',
       type: 'error',
     });
   });

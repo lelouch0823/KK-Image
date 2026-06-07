@@ -58,26 +58,34 @@ describe('deploy-check helpers and runner', () => {
 
     const okResponse = { ok: true, status: 200 };
     await expect(
-      mod.request('https://example.test', {}, {
-        config: { TIMEOUT: 50 },
-        fetchImpl: vi.fn(async () => okResponse),
-        setTimeoutImpl: vi.fn(() => 7),
-        clearTimeoutImpl,
-      })
+      mod.request(
+        'https://example.test',
+        {},
+        {
+          config: { TIMEOUT: 50 },
+          fetchImpl: vi.fn(async () => okResponse),
+          setTimeoutImpl: vi.fn(() => 7),
+          clearTimeoutImpl,
+        }
+      )
     ).resolves.toBe(okResponse);
     expect(clearTimeoutImpl).toHaveBeenCalledWith(7);
 
     await expect(
-      mod.request('https://example.test', {}, {
-        config: { TIMEOUT: 99 },
-        fetchImpl: vi.fn(async () => {
-          const error = new Error('aborted');
-          error.name = 'AbortError';
-          throw error;
-        }),
-        setTimeoutImpl: vi.fn(() => 9),
-        clearTimeoutImpl,
-      })
+      mod.request(
+        'https://example.test',
+        {},
+        {
+          config: { TIMEOUT: 99 },
+          fetchImpl: vi.fn(async () => {
+            const error = new Error('aborted');
+            error.name = 'AbortError';
+            throw error;
+          }),
+          setTimeoutImpl: vi.fn(() => 9),
+          clearTimeoutImpl,
+        }
+      )
     ).rejects.toThrow('Request timeout after 99ms');
   });
 
@@ -97,15 +105,47 @@ describe('deploy-check helpers and runner', () => {
       .mockResolvedValueOnce({ ok: true, status: 200 })
       .mockResolvedValueOnce({ ok: false, status: 503 })
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ status: 'ok' }) })
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true, data: { token: 'jwt' } }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, data: { token: 'jwt' } }),
+      })
       .mockResolvedValueOnce({ ok: true, status: 200 })
       .mockResolvedValueOnce({ ok: false, status: 403 })
       .mockResolvedValueOnce({ ok: true, status: 200 });
 
-    await mod.checkBasicPages({ config, logger, fetchImpl, setTimeoutImpl: vi.fn(() => 1), clearTimeoutImpl: vi.fn() });
-    expect(await mod.checkAPIHealth({ config, logger, fetchImpl, setTimeoutImpl: vi.fn(() => 1), clearTimeoutImpl: vi.fn() })).toBe(true);
-    expect(await mod.checkAuthentication({ config, logger, fetchImpl, setTimeoutImpl: vi.fn(() => 1), clearTimeoutImpl: vi.fn() })).toBe('jwt');
-    await mod.checkAPIEndpoints('jwt', { config, logger, fetchImpl, setTimeoutImpl: vi.fn(() => 1), clearTimeoutImpl: vi.fn() });
+    await mod.checkBasicPages({
+      config,
+      logger,
+      fetchImpl,
+      setTimeoutImpl: vi.fn(() => 1),
+      clearTimeoutImpl: vi.fn(),
+    });
+    expect(
+      await mod.checkAPIHealth({
+        config,
+        logger,
+        fetchImpl,
+        setTimeoutImpl: vi.fn(() => 1),
+        clearTimeoutImpl: vi.fn(),
+      })
+    ).toBe(true);
+    expect(
+      await mod.checkAuthentication({
+        config,
+        logger,
+        fetchImpl,
+        setTimeoutImpl: vi.fn(() => 1),
+        clearTimeoutImpl: vi.fn(),
+      })
+    ).toBe('jwt');
+    await mod.checkAPIEndpoints('jwt', {
+      config,
+      logger,
+      fetchImpl,
+      setTimeoutImpl: vi.fn(() => 1),
+      clearTimeoutImpl: vi.fn(),
+    });
     expect(
       await mod.checkEnvironmentConfig({
         logger,
@@ -135,7 +175,11 @@ describe('deploy-check helpers and runner', () => {
       await mod.checkAuthentication({
         config,
         logger,
-        fetchImpl: vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ success: false, data: {} }) })),
+        fetchImpl: vi.fn(async () => ({
+          ok: true,
+          status: 200,
+          json: async () => ({ success: false, data: {} }),
+        })),
         setTimeoutImpl: vi.fn(() => 1),
         clearTimeoutImpl: vi.fn(),
       })
@@ -169,13 +213,20 @@ describe('deploy-check helpers and runner', () => {
           return { ok: true, status: 200, json: async () => ({ status: 'ok' }) };
         }
         if (url.endsWith('/auth/token')) {
-          return { ok: true, status: 200, json: async () => ({ success: true, data: { token: 'jwt' } }) };
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ success: true, data: { token: 'jwt' } }),
+          };
         }
         return { ok: true, status: 200 };
       }),
       setTimeoutImpl: vi.fn(() => 1),
       clearTimeoutImpl: vi.fn(),
-      readFileSyncImpl: vi.fn(() => 'BASIC_USER\nBASIC_PASS\nTG_Bot_Token\nTG_Chat_ID\nimg_url\nWEBHOOKS_KV\nWEBHOOK_LOGS_KV'),
+      readFileSyncImpl: vi.fn(
+        () =>
+          'BASIC_USER\nBASIC_PASS\nTG_Bot_Token\nTG_Chat_ID\nimg_url\nWEBHOOKS_KV\nWEBHOOK_LOGS_KV'
+      ),
     });
 
     expect(goodExit).toBe(0);

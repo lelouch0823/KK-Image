@@ -37,6 +37,7 @@
 ### Task 1: Variant Image Repository Invariants
 
 **Files:**
+
 - Modify: `functions/repositories/VariantImageRepository.js`
 - Test: `functions/repositories/__tests__/variant-image-repository.test.js`
 
@@ -49,6 +50,7 @@
 - [x] **Step 7: Run targeted tests**
 
 Run:
+
 ```bash
 pnpm vitest run functions/repositories/__tests__/variant-image-repository.test.js
 ```
@@ -56,6 +58,7 @@ pnpm vitest run functions/repositories/__tests__/variant-image-repository.test.j
 - [x] **Step 8: Run product image related regression tests**
 
 Run:
+
 ```bash
 pnpm vitest run src/components/product/__tests__/VariantImageManagerModal.test.js src/utils/__tests__/product-image.test.js
 ```
@@ -70,6 +73,7 @@ git commit -m "fix: enforce variant image invariants"
 ### Task 2: Enforce Sales-Side In-Stock Variant Policy
 
 **Files:**
+
 - Modify: `functions/api/utils/validation.js`
 - Modify: `functions/lib/hono/routes/sales/orders.js`
 - Modify: `src/components/order/ProductBindingSection.vue`
@@ -89,6 +93,7 @@ git commit -m "fix: enforce variant image invariants"
 - [x] **Step 8: Run targeted tests**
 
 Run:
+
 ```bash
 pnpm vitest run functions/api/utils/__tests__/validation.test.js src/components/order/__tests__/ProductBindingSection.variant-status.test.js src/views/sales/__tests__/SalesFormView.resilience.test.js src/components/order/__tests__/sales-order-flow-contract.test.js
 ```
@@ -103,6 +108,7 @@ git commit -m "fix: enforce sales variant availability policy"
 ### Task 3: Prevent Duplicate Procurement of the Same Pre-Order
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/purchase-orders.js`
 - Modify: `functions/services/PurchaseOrderService.js`
 - Modify: `functions/repositories/PurchaseOrderRepository.js`
@@ -120,6 +126,7 @@ git commit -m "fix: enforce sales variant availability policy"
 - [x] **Step 7: Run targeted tests**
 
 Run:
+
 ```bash
 pnpm vitest run functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js functions/repositories/__tests__/purchase-order-repository-safety.test.js src/components/purchase-order/__tests__/OrderPickerModal.detail-workflow.test.js
 ```
@@ -134,6 +141,7 @@ git commit -m "fix: block duplicate procurement bindings"
 ### Task 4: Harden Space Product/Variant Binding Validity
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/spaces/crud.js`
 - Modify: `functions/api/utils/validation.js`
 - Modify: `src/components/SpaceCreateModal.vue`
@@ -149,6 +157,7 @@ git commit -m "fix: block duplicate procurement bindings"
 - [x] **Step 6: Run targeted tests**
 
 Run:
+
 ```bash
 pnpm vitest run functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js functions/lib/hono/routes/manage/spaces/__tests__/transformers.test.js src/components/__tests__/SpaceProductEditor.contract.test.js
 ```
@@ -163,6 +172,7 @@ git commit -m "fix: validate space product bindings"
 ### Task 5: Align Product Export Failure and Payload Semantics
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/products/export.js`
 - Modify: `src/components/product/ProductExportModal.vue`
 - Modify: `src/components/product/export/export-utils.js`
@@ -176,6 +186,7 @@ git commit -m "fix: validate space product bindings"
 - [x] **Step 5: Run targeted tests**
 
 Run:
+
 ```bash
 pnpm vitest run src/components/product/__tests__/ProductExportModal.filters.test.js src/components/product/export/__tests__/export-utils.test.js
 ```
@@ -190,6 +201,7 @@ git commit -m "fix: align product export semantics"
 ### Task 6: Low-Risk Consistency Cleanup
 
 **Files:**
+
 - Modify: `src/components/product/ProductSelect.vue`
 - Modify: `src/utils/product-image.js`
 - Test: `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
@@ -201,6 +213,7 @@ git commit -m "fix: align product export semantics"
 - [x] **Step 3: Run targeted tests**
 
 Run:
+
 ```bash
 pnpm vitest run src/utils/__tests__/product-image.test.js src/composables/__tests__/useProducts.cache.test.js src/components/order/__tests__/ProductBindingSection.variant-status.test.js
 ```
@@ -215,11 +228,13 @@ git commit -m "fix: normalize sales product picker images"
 ### Task 7: Full Regression Sweep
 
 **Files:**
+
 - Verify only
 
 - [x] **Step 1: Run backend and frontend product/order/procurement/space regression suites**
 
 Run:
+
 ```bash
 pnpm vitest run functions/api/utils/__tests__/validation.test.js functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js functions/lib/hono/routes/manage/spaces/__tests__/subspaces-routes.test.js src/components/order/__tests__/ProductBindingSection.variant-status.test.js src/components/order/__tests__/sales-order-flow-contract.test.js src/views/sales/__tests__/SalesFormView.resilience.test.js src/components/purchase-order/__tests__/OrderPickerModal.detail-workflow.test.js src/components/__tests__/SpaceProductEditor.contract.test.js src/components/product/__tests__/ProductExportModal.filters.test.js src/components/product/export/__tests__/export-utils.test.js src/utils/__tests__/product-image.test.js
 ```
@@ -227,6 +242,7 @@ pnpm vitest run functions/api/utils/__tests__/validation.test.js functions/lib/h
 - [x] **Step 2: Run broader product manager/UI regressions**
 
 Run:
+
 ```bash
 pnpm vitest run src/components/__tests__/ProductManager.variant-hydration.test.js src/components/__tests__/ProductManager.create-success-ux.test.js src/components/product/__tests__/ProductCreateModal.variant-images.test.js src/components/product/__tests__/ProductDetailModal.fetch-variants.test.js
 ```

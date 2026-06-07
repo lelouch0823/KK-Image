@@ -14,11 +14,11 @@
         class="mb-3 flex flex-col gap-2 border-b border-(--border-color)/35 px-1 pb-3 lg:flex-row lg:items-center lg:justify-between"
       >
         <div>
-          <h3 class="text-sm font-semibold text-(--text-main)">{{ t('purchaseOrder.ui.tableTitle') }}</h3>
+          <h3 class="text-sm font-semibold text-(--text-main)">
+            {{ t('purchaseOrder.ui.tableTitle') }}
+          </h3>
           <p class="mt-1 text-xs text-(--text-secondary)">
-            {{
-              t('purchaseOrder.ui.tableHint')
-            }}
+            {{ t('purchaseOrder.ui.tableHint') }}
           </p>
         </div>
         <div class="text-xs text-(--text-secondary) lg:text-right">
@@ -46,9 +46,7 @@
         >
           {{ statusConfig[po.status]?.label || po.status }}
         </StatusBadge>
-        <template
-          v-if="po.display_status || po.ordered_qty || po.received_qty || po.cancelled_qty"
-        >
+        <template v-if="po.display_status || po.ordered_qty || po.received_qty || po.cancelled_qty">
           <StatusBadge
             data-testid="purchase-order-progress-badge"
             :variant="getProgressStatusVariant(po.display_status)"

@@ -2,7 +2,8 @@
 export default {
   title: 'Files',
   permissionDenied: 'Permission Denied for File Management',
-  permissionDeniedDesc: 'Your account does not have file management read access. Please contact the admin to assign files:read.',
+  permissionDeniedDesc:
+    'Your account does not have file management read access. Please contact the admin to assign files:read.',
   upload: 'Upload',
   newFolder: 'New Folder',
   shareFolder: 'Share Folder',

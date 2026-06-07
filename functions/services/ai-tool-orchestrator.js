@@ -20,9 +20,14 @@ export async function executeToolCalls(messages, toolCalls, repos) {
     const functionName = toolCall.function.name;
     const args = parseJsonObject(toolCall.function.arguments, {});
     const result = await executeAITool(functionName, args, repos);
-    logInjectionTelemetry(`chat.tool_result.${functionName}`, detectInjectionSignals(JSON.stringify(result)));
+    logInjectionTelemetry(
+      `chat.tool_result.${functionName}`,
+      detectInjectionSignals(JSON.stringify(result))
+    );
     messages.push({
-      tool_call_id: toolCall.id, role: 'tool', name: functionName,
+      tool_call_id: toolCall.id,
+      role: 'tool',
+      name: functionName,
       content: JSON.stringify(result),
     });
   }
@@ -36,7 +41,10 @@ export async function executeToolCalls(messages, toolCalls, repos) {
 export function createStreamToolExecutor(repos) {
   return async (name, args) => {
     const result = await executeAITool(name, args, repos);
-    logInjectionTelemetry(`stream.tool_result.${name}`, detectInjectionSignals(JSON.stringify(result)));
+    logInjectionTelemetry(
+      `stream.tool_result.${name}`,
+      detectInjectionSignals(JSON.stringify(result))
+    );
     return result;
   };
 }

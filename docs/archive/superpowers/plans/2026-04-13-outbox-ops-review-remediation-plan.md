@@ -13,6 +13,7 @@
 ### Task 1: Guard event detail requests against stale selection races
 
 **Files:**
+
 - Modify: `src/composables/useOutboxOps.js`
 - Modify: `src/composables/__tests__/useOutboxOps.test.js`
 - Modify: `src/views/OutboxOps.vue`
@@ -80,6 +81,7 @@ git commit -m "fix: guard outbox ops detail selection state"
 ### Task 2: Surface list truncation explicitly in backend contract and UI
 
 **Files:**
+
 - Modify: `functions/repositories/OutboxReplayRepository.js`
 - Modify: `functions/repositories/__tests__/OutboxReplayRepository.test.js`
 - Modify: `functions/lib/hono/routes/manage/outbox.js`
@@ -96,11 +98,13 @@ git commit -m "fix: guard outbox ops detail selection state"
 ```js
 it('returns list rows with bounded metadata when result count reaches the limit', async () => {
   const result = await repo.listEvents(filters, { limit: 2 });
-  expect(result).toEqual(expect.objectContaining({
-    items: expect.any(Array),
-    limit: 2,
-    isTruncated: true,
-  }));
+  expect(result).toEqual(
+    expect.objectContaining({
+      items: expect.any(Array),
+      limit: 2,
+      isTruncated: true,
+    })
+  );
 });
 ```
 
@@ -168,6 +172,7 @@ git commit -m "fix: expose outbox ops list truncation state"
 ### Task 3: Keep failed global-health refreshes visibly stale
 
 **Files:**
+
 - Modify: `src/views/OutboxOps.vue`
 - Modify: `src/views/__tests__/OutboxOps.behavior.test.js`
 - Modify: `src/components/outbox/outboxOpsSummary.js`
@@ -234,6 +239,7 @@ git commit -m "fix: preserve stale health state in outbox ops"
 ### Task 4: Final verification
 
 **Files:**
+
 - Modify: `functions/repositories/OutboxReplayRepository.js`
 - Modify: `functions/lib/hono/routes/manage/outbox.js`
 - Modify: `src/composables/useOutboxOps.js`

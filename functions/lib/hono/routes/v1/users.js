@@ -12,9 +12,30 @@ import { appendOptionalUpdate, requireEntity } from '../../_shared/route-helpers
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
-  { method: 'POST', path: '/', domain: 'users', action: 'user.create', severity: 'high', targetType: 'user' },
-  { method: 'PUT', path: '/:id', domain: 'users', action: 'user.update', severity: 'high', targetType: 'user' },
-  { method: 'DELETE', path: '/:id', domain: 'users', action: 'user.delete', severity: 'critical', targetType: 'user' },
+  {
+    method: 'POST',
+    path: '/',
+    domain: 'users',
+    action: 'user.create',
+    severity: 'high',
+    targetType: 'user',
+  },
+  {
+    method: 'PUT',
+    path: '/:id',
+    domain: 'users',
+    action: 'user.update',
+    severity: 'high',
+    targetType: 'user',
+  },
+  {
+    method: 'DELETE',
+    path: '/:id',
+    domain: 'users',
+    action: 'user.delete',
+    severity: 'critical',
+    targetType: 'user',
+  },
 ]);
 const USER_SELECT_FIELDS = 'id, username, name, email, role, permissions, created_at, updated_at';
 
@@ -68,9 +89,7 @@ app.get('/:id', requirePermission('admin:full'), async (c) => {
   const { env } = c;
 
   const user = await requireEntity(
-    env.DB.prepare(`SELECT ${USER_SELECT_FIELDS} FROM users WHERE id = ?`)
-      .bind(id)
-      .first(),
+    env.DB.prepare(`SELECT ${USER_SELECT_FIELDS} FROM users WHERE id = ?`).bind(id).first(),
     () => new NotFoundError(MSG.USER.NOT_FOUND)
   );
 
@@ -96,7 +115,9 @@ app.post('/', requirePermission('admin:full'), zValidator('json', CreateUserSche
   if (existing) throw new ConflictError(MSG.USER.EXISTS);
 
   const id = generateId();
-  const passwordHash = await hashPassword(data.password, env.JWT_SECRET);
+  // M09: 优先使用专用 PASSWORD_PEPPER，回退到 JWT_SECRET
+  const pepper = env.PASSWORD_PEPPER || env.JWT_SECRET;
+  const passwordHash = await hashPassword(data.password, pepper);
   const nowMs = Date.now();
   const permissions = JSON.stringify(data.permissions || []);
 
@@ -169,10 +190,14 @@ app.put(
     appendOptionalUpdate(updates, values, 'name = ?', data.name);
     appendOptionalUpdate(updates, values, 'email = ?', data.email);
     appendOptionalUpdate(updates, values, 'role = ?', data.role);
-    appendOptionalUpdate(updates, values, 'permissions = ?', data.permissions, (value) => JSON.stringify(value));
+    appendOptionalUpdate(updates, values, 'permissions = ?', data.permissions, (value) =>
+      JSON.stringify(value)
+    );
     if (data.password) {
       updates.push('password_hash = ?');
-      values.push(await hashPassword(data.password, env.JWT_SECRET));
+      // M09: 优先使用专用 PASSWORD_PEPPER，回退到 JWT_SECRET
+      const updatePepper = env.PASSWORD_PEPPER || env.JWT_SECRET;
+      values.push(await hashPassword(data.password, updatePepper));
     }
 
     if (updates.length === 0) {

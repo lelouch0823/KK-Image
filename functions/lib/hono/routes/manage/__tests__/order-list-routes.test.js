@@ -78,7 +78,9 @@ describe('manage order list routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.listForAdmin).toHaveBeenCalledWith(expect.objectContaining({ page: 1, limit: 100 }));
+    expect(mocks.listForAdmin).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, limit: 100 })
+    );
   });
 
   it('clamps negative values to minimum bounds', async () => {
@@ -104,7 +106,9 @@ describe('manage order list routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.listForAdmin).toHaveBeenCalledWith(expect.objectContaining({ procurementStatus: 'ordered' }));
+    expect(mocks.listForAdmin).toHaveBeenCalledWith(
+      expect.objectContaining({ procurementStatus: 'ordered' })
+    );
   });
 
   it('accepts line-level displayStatus vocabulary in procurementStatus query', async () => {
@@ -147,7 +151,9 @@ describe('manage order list routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.listForAdmin).toHaveBeenCalledWith(expect.objectContaining({ procurementStatus: null }));
+    expect(mocks.listForAdmin).toHaveBeenCalledWith(
+      expect.objectContaining({ procurementStatus: null })
+    );
   });
 
   it('returns canonical progress filter options without legacy duplicate aliases', async () => {
@@ -254,15 +260,17 @@ describe('manage order list routes', () => {
     const exportStmt = {
       bind: vi.fn(() => exportStmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'o-1',
-          order_no: 'SO-1',
-          current_data: JSON.stringify({}),
-          status: 'confirmed',
-          salesperson_name: 'Alice',
-          created_at: 1710000000000,
-          snapshot_name: 'Snapshot Chair',
-        }],
+        results: [
+          {
+            id: 'o-1',
+            order_no: 'SO-1',
+            current_data: JSON.stringify({}),
+            status: 'confirmed',
+            salesperson_name: 'Alice',
+            created_at: 1710000000000,
+            snapshot_name: 'Snapshot Chair',
+          },
+        ],
       })),
     };
     const db = {
@@ -308,25 +316,31 @@ describe('manage order list routes', () => {
 
     expect(res.status).toBe(200);
     expect(db.prepare.mock.calls[0][0]).toContain('order_line_snapshot.snapshot_name LIKE ?');
-    expect(exportStmt.bind).toHaveBeenCalledWith('%Snapshot Chair%', '%Snapshot Chair%', '%Snapshot Chair%');
+    expect(exportStmt.bind).toHaveBeenCalledWith(
+      '%Snapshot Chair%',
+      '%Snapshot Chair%',
+      '%Snapshot Chair%'
+    );
   });
 
   it('exports fulfillment, delivery, and returned quantity columns and forwards delivery filters', async () => {
     const exportStmt = {
       bind: vi.fn(() => exportStmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'o-1',
-          order_no: 'SO-1',
-          current_data: JSON.stringify({ name: 'Walnut Chair' }),
-          status: 'fulfilled',
-          fulfillment_status: 'fulfilled',
-          delivery_status: 'partially_returned',
-          line_returned_qty: 2,
-          salesperson_name: 'Alice',
-          created_at: 1710000000000,
-          snapshot_name: 'Snapshot Chair',
-        }],
+        results: [
+          {
+            id: 'o-1',
+            order_no: 'SO-1',
+            current_data: JSON.stringify({ name: 'Walnut Chair' }),
+            status: 'fulfilled',
+            fulfillment_status: 'fulfilled',
+            delivery_status: 'partially_returned',
+            line_returned_qty: 2,
+            salesperson_name: 'Alice',
+            created_at: 1710000000000,
+            snapshot_name: 'Snapshot Chair',
+          },
+        ],
       })),
     };
     const db = {
@@ -360,18 +374,20 @@ describe('manage order list routes', () => {
     const exportStmt = {
       bind: vi.fn(() => exportStmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'o-1',
-          order_no: '=SO-1',
-          current_data: JSON.stringify({ name: '+CMD' }),
-          status: 'fulfilled',
-          fulfillment_status: 'fulfilled',
-          delivery_status: 'delivered',
-          line_returned_qty: 0,
-          salesperson_name: '@Alice',
-          created_at: 1710000000000,
-          snapshot_name: '-Snapshot',
-        }],
+        results: [
+          {
+            id: 'o-1',
+            order_no: '=SO-1',
+            current_data: JSON.stringify({ name: '+CMD' }),
+            status: 'fulfilled',
+            fulfillment_status: 'fulfilled',
+            delivery_status: 'delivered',
+            line_returned_qty: 0,
+            salesperson_name: '@Alice',
+            created_at: 1710000000000,
+            snapshot_name: '-Snapshot',
+          },
+        ],
       })),
     };
     const db = {
@@ -481,5 +497,4 @@ describe('manage order list routes', () => {
       DateUtils.parseChinaDate('2026-04-14') + 86400000
     );
   });
-
 });

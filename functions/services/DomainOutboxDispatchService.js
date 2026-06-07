@@ -6,7 +6,8 @@ export class DomainOutboxDispatchService {
     this.db = db;
     this.now = deps.now || (() => Date.now());
     this.leaseMs = deps.leaseMs || 30_000;
-    this.retryBackoffMs = deps.retryBackoffMs || ((attemptCount) => Math.min(attemptCount * 5_000, 60_000));
+    this.retryBackoffMs =
+      deps.retryBackoffMs || ((attemptCount) => Math.min(attemptCount * 5_000, 60_000));
   }
 
   async claimJobs(consumerName, workerId, nowTs = this.now(), limit = 10) {
@@ -29,8 +30,7 @@ export class DomainOutboxDispatchService {
              OR (jobs.status = 'processing' AND COALESCE(jobs.leased_until, 0) < ?)
            )
          ORDER BY jobs.available_at ASC, jobs.created_at ASC
-         LIMIT ?`
-      ,
+         LIMIT ?`,
       [consumerName, nowTs, nowTs, limit],
       { label: 'outbox.claimJobs.select' }
     );
@@ -39,9 +39,10 @@ export class DomainOutboxDispatchService {
     if (candidates.length === 0) return [];
 
     const leasedUntil = nowTs + this.leaseMs;
-    const statements = candidates.map((job) => this.db
-      .prepare(
-        `UPDATE outbox_consumer_jobs
+    const statements = candidates.map((job) =>
+      this.db
+        .prepare(
+          `UPDATE outbox_consumer_jobs
          SET status = 'processing',
              leased_by = ?,
              leased_until = ?,
@@ -52,8 +53,9 @@ export class DomainOutboxDispatchService {
              (status IN ('pending', 'failed') AND available_at <= ?)
              OR (status = 'processing' AND COALESCE(leased_until, 0) < ?)
            )`
-      )
-      .bind(workerId, leasedUntil, nowTs, job.id, consumerName, nowTs, nowTs));
+        )
+        .bind(workerId, leasedUntil, nowTs, job.id, consumerName, nowTs, nowTs)
+    );
 
     const claimResults = await executeBatchChunks(this.db, statements);
 
@@ -76,8 +78,7 @@ export class DomainOutboxDispatchService {
              leased_by = NULL,
              leased_until = NULL,
              updated_at = ?
-         WHERE id = ?`
-      ,
+         WHERE id = ?`,
       [nowTs, nowTs, jobId],
       { label: 'outbox.markPublished' }
     );
@@ -97,8 +98,7 @@ export class DomainOutboxDispatchService {
              leased_by = NULL,
              leased_until = NULL,
              updated_at = ?
-         WHERE id = ?`
-      ,
+         WHERE id = ?`,
       [
         nextAvailableAt,
         String(error?.message || error || 'unknown outbox consumer error'),

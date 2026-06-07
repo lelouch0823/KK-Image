@@ -13,6 +13,7 @@
 ### Task 1: Lock the Dead Export Contract
 
 **Files:**
+
 - Create: `functions/lib/db/__tests__/batch-dead-exports.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the dead exports still exist.
 ### Task 2: Remove the Dead Exports
 
 **Files:**
+
 - Modify: `functions/lib/db/batch.js`
 - Test: `functions/lib/db/__tests__/batch-dead-exports.audit.test.js`
 - Test: `functions/lib/db/__tests__/batch.test.js`

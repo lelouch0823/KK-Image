@@ -23,8 +23,5 @@ export function getV1FolderCacheUrls(c, parentIds = []) {
 
 export function getV1FileCacheUrls(c) {
   const origin = getOrigin(c);
-  return [
-    `${origin}/api/v1/files`,
-    `${origin}/api/v1/files?page=1&limit=20`,
-  ];
+  return [`${origin}/api/v1/files`, `${origin}/api/v1/files?page=1&limit=20`];
 }

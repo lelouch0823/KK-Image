@@ -10,14 +10,14 @@ describe('Backend Response Utils', () => {
     const data = { hello: 'world' };
     const status = 201;
     const headers = { 'X-Custom-Header': 'test' };
-    
+
     const response = jsonResponse(data, status, headers);
-    
+
     expect(response).toBeInstanceOf(Response);
     expect(response.status).toBe(status);
     expect(response.headers.get('Content-Type')).toBe('application/json;charset=UTF-8');
     expect(response.headers.get('X-Custom-Header')).toBe('test');
-    
+
     const body = await response.json();
     expect(body).toEqual(data);
   });
@@ -25,29 +25,29 @@ describe('Backend Response Utils', () => {
   it('success should return a standardized success response', async () => {
     const data = { id: 123 };
     const message = 'Operation successful';
-    
+
     const response = success(data, message);
-    
+
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body).toEqual({
       success: true,
       message,
-      data
+      data,
     });
   });
 
   it('error should return a standardized error response', async () => {
     const message = 'Something went wrong';
     const status = 404;
-    
+
     const response = error(message, status);
-    
+
     expect(response.status).toBe(status);
     const body = await response.json();
     expect(body).toEqual({
       success: false,
-      message
+      error: message,
     });
   });
 
@@ -86,7 +86,11 @@ describe('Backend Response Utils', () => {
     });
 
     it('should spread extra fields into the response', () => {
-      const result = paginatedList([], { page: 1, limit: 10, total: 0, totalPages: 0 }, { filters: { category: 'test' } });
+      const result = paginatedList(
+        [],
+        { page: 1, limit: 10, total: 0, totalPages: 0 },
+        { filters: { category: 'test' } }
+      );
 
       expect(result.filters).toEqual({ category: 'test' });
     });

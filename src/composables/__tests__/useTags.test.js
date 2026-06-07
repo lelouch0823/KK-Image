@@ -83,9 +83,7 @@ describe('useTags', () => {
       });
 
       const { createTag, tags } = useTags();
-      tags.value = [
-        { id: '1', name: 'TagA', color: '#ff0000' },
-      ];
+      tags.value = [{ id: '1', name: 'TagA', color: '#ff0000' }];
       const result = await createTag('TagC', '#0000ff');
 
       expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/tags', {

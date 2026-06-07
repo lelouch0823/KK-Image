@@ -38,7 +38,9 @@ describe('Settings view behavior', () => {
             `,
           },
           AISettings: { template: '<div data-testid="tab-content">AI Settings</div>' },
-          WatermarkSettings: { template: '<div data-testid="tab-content">Watermark Settings</div>' },
+          WatermarkSettings: {
+            template: '<div data-testid="tab-content">Watermark Settings</div>',
+          },
           BackupSettings: { template: '<div data-testid="tab-content">System Backups</div>' },
         },
       },

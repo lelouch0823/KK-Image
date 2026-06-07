@@ -12,7 +12,9 @@ export async function findPurchaseOrderDetail({ db, id }) {
 
   // items 和 receipts 查询无依赖关系，并行执行减少延迟
   const [itemsResult, receiptsResult] = await Promise.all([
-    db.prepare(`
+    db
+      .prepare(
+        `
     SELECT
       poi.*,
       p.name AS product_name,
@@ -58,8 +60,13 @@ export async function findPurchaseOrderDetail({ db, id }) {
     ) pr ON pr.purchase_order_item_id = poi.id
     WHERE poi.po_id = ?
     ORDER BY poi.created_at ASC
-  `).bind(id).all(),
-    db.prepare(`
+  `
+      )
+      .bind(id)
+      .all(),
+    db
+      .prepare(
+        `
     SELECT
       pr.*,
       p.name AS product_name,
@@ -92,7 +99,10 @@ export async function findPurchaseOrderDetail({ db, id }) {
     ) rr ON rr.original_receipt_id = pr.id
     WHERE pr.purchase_order_id = ?
     ORDER BY pr.received_at DESC, pr.created_at DESC
-  `).bind(id).all(),
+  `
+      )
+      .bind(id)
+      .all(),
   ]);
 
   const items = itemsResult?.results || [];
@@ -137,10 +147,11 @@ export async function findPurchaseOrderDetail({ db, id }) {
 
 export async function listPurchaseOrders({ db, filters = {} }) {
   const { status, search = '', page = 1, limit = 20 } = filters;
-  const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
-    { page, limit },
-    { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
-  );
+  const {
+    page: safePage,
+    limit: safeLimit,
+    offset,
+  } = parseRepoPagination({ page, limit }, { defaultPage: 1, defaultLimit: 20, maxLimit: 100 });
 
   let where = '1=1';
   const params = [];
@@ -162,7 +173,8 @@ export async function listPurchaseOrders({ db, filters = {} }) {
       .bind(...params)
       .first(),
     db
-    .prepare(`
+      .prepare(
+        `
       SELECT po.*,
         COALESCE(agg.item_count, 0) AS item_count,
         COALESCE(agg.ordered_qty, 0) AS ordered_qty,
@@ -192,7 +204,8 @@ export async function listPurchaseOrders({ db, filters = {} }) {
       WHERE ${where}
       ORDER BY po.created_at DESC
       LIMIT ? OFFSET ?
-    `)
+    `
+      )
       .bind(...params, safeLimit, offset)
       .all(),
   ]);
@@ -206,7 +219,9 @@ export async function listPurchaseOrders({ db, filters = {} }) {
 }
 
 export async function getPurchaseOrderItemsForAllocation({ db, poId }) {
-  const { results } = await db.prepare(`
+  const { results } = await db
+    .prepare(
+      `
     SELECT poi.*,
       COALESCE(vagg.min_cost_price, 0) AS product_cost_price,
       v.cost_price AS variant_cost_price
@@ -219,12 +234,17 @@ export async function getPurchaseOrderItemsForAllocation({ db, poId }) {
       GROUP BY product_id
     ) vagg ON vagg.product_id = p.id
     WHERE poi.po_id = ?
-  `).bind(poId).all();
+  `
+    )
+    .bind(poId)
+    .all();
   return results;
 }
 
 export async function getPurchaseOrderStats({ db }) {
-  const result = await db.prepare(`
+  const result = await db
+    .prepare(
+      `
     SELECT
       COUNT(*) AS total,
       COUNT(CASE WHEN status = 'draft' THEN 1 END) AS draft_count,
@@ -237,6 +257,8 @@ export async function getPurchaseOrderStats({ db }) {
       COALESCE((SELECT SUM(cancelled_qty) FROM purchase_order_items), 0) AS cancelled_qty,
       COALESCE((SELECT SUM(MAX(quantity - received_qty - cancelled_qty, 0)) FROM purchase_order_items), 0) AS outstanding_qty
     FROM purchase_orders
-  `).first();
+  `
+    )
+    .first();
   return normalizePurchaseOrderProgress(result || {});
 }

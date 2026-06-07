@@ -11,7 +11,9 @@ describe('order procurement shared thin wrappers audit', () => {
     const offenders = [];
 
     if (source.includes('export function buildDeleteCommandStatement(')) {
-      offenders.push('functions/services/order-procurement-shared.js: still defines buildDeleteCommandStatement');
+      offenders.push(
+        'functions/services/order-procurement-shared.js: still defines buildDeleteCommandStatement'
+      );
     }
 
     expect(

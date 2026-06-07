@@ -13,6 +13,7 @@
 ### Task 1: Define the Unified Audit Schema
 
 **Files:**
+
 - Create: `migrations/0051_unified_operation_audit.sql`
 - Modify: `docs/plans/2026-03-13-operation-audit-sota-design.md`
 - Test: `test/audit.test.js`
@@ -46,6 +47,7 @@ Expected: PASS for current tests, but no schema-level proof exists yet for norma
 **Step 3: Write the migration**
 
 Create `migrations/0051_unified_operation_audit.sql` to:
+
 - add normalized actor/source/result/severity/summary fields to `audit_logs`
 - add `changes_json` and `metadata_json`
 - preserve backward compatibility for legacy rows
@@ -71,6 +73,7 @@ git commit -m "feat(audit): add unified operation audit schema"
 ### Task 2: Build Shared Backend Audit Pipeline
 
 **Files:**
+
 - Modify: `functions/api/utils/audit.js`
 - Create: `functions/lib/hono/_shared/audit-helpers.js`
 - Test: `test/audit.test.js`
@@ -78,6 +81,7 @@ git commit -m "feat(audit): add unified operation audit schema"
 **Step 1: Write the failing tests**
 
 Add tests for:
+
 - building a normalized event from request context
 - masking sensitive fields
 - writing `success`, `denied`, and `failed` audit events
@@ -113,6 +117,7 @@ Expected: FAIL with missing helpers such as `buildAuditEvent` or `sanitizeAuditD
 **Step 3: Implement the shared helpers**
 
 In `functions/api/utils/audit.js` and `functions/lib/hono/_shared/audit-helpers.js`:
+
 - keep low-level persistence in one place
 - add `buildAuditEvent()`
 - add `sanitizeAuditData()`
@@ -137,6 +142,7 @@ git commit -m "feat(audit): add shared operation audit pipeline"
 ### Task 3: Capture Authz Denied and Failed Write Events
 
 **Files:**
+
 - Modify: `functions/lib/hono/middleware/auth.js`
 - Modify: `functions/lib/hono/middleware/errorHandler.js`
 - Test: `functions/lib/hono/middleware/__tests__/auth-opa.test.js`
@@ -145,15 +151,20 @@ git commit -m "feat(audit): add shared operation audit pipeline"
 **Step 1: Write the failing tests**
 
 Add tests that verify:
+
 - denied permission checks emit a `denied` audit event for protected write endpoints
 - write-route failures emit a `failed` audit event with safe metadata
 
 ```js
 it('records denied audit events for protected writes', async () => {
-  const res = await app.request('/api/manage/audit-logs', {
-    method: 'GET',
-    headers: { Authorization: `Bearer ${nonAdminToken}` },
-  }, mockEnv);
+  const res = await app.request(
+    '/api/manage/audit-logs',
+    {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${nonAdminToken}` },
+    },
+    mockEnv
+  );
 
   expect(res.status).toBe(403);
   expect(mockAuditRecorder).toHaveBeenCalledWith(expect.objectContaining({ result: 'denied' }));
@@ -169,6 +180,7 @@ Expected: FAIL because denied and failed audit events are not recorded centrally
 **Step 3: Implement the middleware integration**
 
 Update the auth and error middleware to:
+
 - record denied audit events at permission boundaries for write routes
 - record failed audit events for protected write operations
 - avoid duplicating failure events for the same request
@@ -190,6 +202,7 @@ git commit -m "feat(audit): capture denied and failed write events"
 ### Task 4: Migrate Admin P0 Write Routes to Unified Audit Events
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/orders/detail.js`
 - Modify: `functions/lib/hono/routes/manage/customers.js`
 - Modify: `functions/lib/hono/routes/manage/files.js`
@@ -204,6 +217,7 @@ git commit -m "feat(audit): capture denied and failed write events"
 **Step 1: Write the failing route tests**
 
 Add route-level tests for:
+
 - order patch/status/delete/comment audit events
 - customer create/update/delete audit events
 - file move/delete/batch delete audit events
@@ -212,16 +226,22 @@ Add route-level tests for:
 
 ```js
 it('PATCH /api/manage/orders/:id records an order.update audit event', async () => {
-  await app.request('/api/manage/orders/o1', {
-    method: 'PATCH',
-    body: JSON.stringify({ updates: { remark: 'changed' } }),
-  }, mockEnv);
+  await app.request(
+    '/api/manage/orders/o1',
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ updates: { remark: 'changed' } }),
+    },
+    mockEnv
+  );
 
-  expect(mockAuditRecorder).toHaveBeenCalledWith(expect.objectContaining({
-    domain: 'orders',
-    action: 'order.update',
-    result: 'success',
-  }));
+  expect(mockAuditRecorder).toHaveBeenCalledWith(
+    expect.objectContaining({
+      domain: 'orders',
+      action: 'order.update',
+      result: 'success',
+    })
+  );
 });
 ```
 
@@ -234,6 +254,7 @@ Expected: FAIL because routes either do not record unified audit events or still
 **Step 3: Implement minimal route migrations**
 
 For each P0 route:
+
 - replace ad hoc `logAudit` calls with shared event helpers
 - emit structured `domain`, `action`, `result`, `severity`, `summary`, `target`, `changes_json`, and `metadata_json`
 - keep route-local semantics explicit, but push normalization into shared helpers
@@ -255,6 +276,7 @@ git commit -m "feat(audit): cover admin p0 write routes with unified events"
 ### Task 5: Upgrade the Audit Logs API and Audit Center UI
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/audit-logs.js`
 - Modify: `src/views/AuditLogs.vue`
 - Create: `src/views/__tests__/AuditLogs.behavior.test.js`
@@ -263,6 +285,7 @@ git commit -m "feat(audit): cover admin p0 write routes with unified events"
 **Step 1: Write the failing frontend and API tests**
 
 Add tests that verify:
+
 - API supports structured filters for time, actor, domain, result, severity, and target
 - API returns normalized structured fields
 - UI renders readable summaries and detail panels safely
@@ -284,11 +307,13 @@ Expected: FAIL because the current UI directly parses raw payload in the templat
 **Step 3: Implement API and UI changes**
 
 In `functions/lib/hono/routes/manage/audit-logs.js`:
+
 - validate and bound query params
 - add structured filters
 - return normalized structured fields
 
 In `src/views/AuditLogs.vue`:
+
 - replace raw payload rendering with safe parsed helpers
 - add filters for actor, domain, result, severity, target, and time range
 - show summary-first list rows
@@ -311,6 +336,7 @@ git commit -m "feat(audit): ship structured audit center ui and api"
 ### Task 6: Add Audit Coverage Guardrails
 
 **Files:**
+
 - Create: `scripts/qa/check-audit-route-coverage.mjs`
 - Create: `docs/reviews/2026-03-13-operation-audit-coverage-baseline.md`
 - Test: `functions/lib/authz/__tests__/route-actions-consistency.test.js`
@@ -336,11 +362,13 @@ Expected: FAIL until the route inventory and audit declarations are aligned
 **Step 3: Implement the guardrail**
 
 Create `scripts/qa/check-audit-route-coverage.mjs` to:
+
 - enumerate target admin P0 write routes
 - compare them against a maintained audit declaration map
 - print uncovered routes and fail non-zero if any are missing
 
 Create `docs/reviews/2026-03-13-operation-audit-coverage-baseline.md` documenting:
+
 - included P0 routes
 - deferred P1 routes
 - temporary exceptions if any
@@ -363,6 +391,7 @@ git commit -m "test(audit): add unified audit coverage guardrails"
 ### Task 7: Extend to Sales Critical Coverage and Independent Permissions
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/sales/orders.js`
 - Modify: `functions/lib/hono/routes/sales/files.js`
 - Modify: `functions/lib/hono/routes/sales/auth.js`
@@ -375,6 +404,7 @@ git commit -m "test(audit): add unified audit coverage guardrails"
 **Step 1: Write the failing tests**
 
 Add tests that verify:
+
 - sales critical writes emit unified audit events
 - auth success/failure for sales flows emit audit events where applicable
 - `audit:read` and `audit:export` permissions are recognized by policy
@@ -421,12 +451,14 @@ git commit -m "feat(audit): extend unified audit to sales critical flows"
 ### Final Verification
 
 Run:
+
 - `pnpm test:unit test/audit.test.js`
 - `pnpm test:unit functions/lib/hono/routes/manage/__tests__/order-detail-routes.test.js functions/lib/hono/routes/manage/products/__tests__/variant-audit-routes.test.js functions/lib/hono/middleware/__tests__/auth-opa.test.js src/views/__tests__/AuditLogs.behavior.test.js src/views/__tests__/AuditLogs.design-system-migration.test.js`
 - `node scripts/qa/check-audit-route-coverage.mjs`
 - `pnpm authz:policy:test`
 
 Expected:
+
 - all targeted tests pass
 - no uncovered admin P0 write routes
 - audit policy checks pass

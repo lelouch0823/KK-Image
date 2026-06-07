@@ -22,7 +22,10 @@ import outboxApp from '../outbox.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.route('/api/manage/outbox', outboxApp);
   return app;
@@ -32,12 +35,14 @@ describe('manage outbox routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.listEvents.mockResolvedValue({
-      items: [{
-        id: 'evt-1',
-        event_type: 'purchase_receipt_recorded',
-        consumerJobs: [{ consumer_name: 'notification', status: 'published' }],
-        webhookAttempts: [],
-      }],
+      items: [
+        {
+          id: 'evt-1',
+          event_type: 'purchase_receipt_recorded',
+          consumerJobs: [{ consumer_name: 'notification', status: 'published' }],
+          webhookAttempts: [],
+        },
+      ],
       limit: 100,
       isTruncated: false,
     });
@@ -96,10 +101,12 @@ describe('manage outbox routes', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.data).toEqual(expect.objectContaining({
-      id: 'evt-1',
-      consumerJobs: [expect.objectContaining({ consumer_name: 'notification' })],
-      webhookAttempts: [expect.objectContaining({ delivery_key: 'evt-1:wh-1:v1' })],
-    }));
+    expect(json.data).toEqual(
+      expect.objectContaining({
+        id: 'evt-1',
+        consumerJobs: [expect.objectContaining({ consumer_name: 'notification' })],
+        webhookAttempts: [expect.objectContaining({ delivery_key: 'evt-1:wh-1:v1' })],
+      })
+    );
   });
 });

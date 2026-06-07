@@ -47,7 +47,9 @@ describe('authMiddleware public route boundary', () => {
     const res = await app.request('http://localhost/api/v1/auth/checkpoint');
 
     expect(res.status).toBe(401);
-    expect(await res.json()).toEqual(expect.objectContaining({ success: false, error: MSG.AUTH.REQUIRED }));
+    expect(await res.json()).toEqual(
+      expect.objectContaining({ success: false, error: MSG.AUTH.REQUIRED })
+    );
   });
 
   it('allows health sub-route by explicit boundary', async () => {
@@ -55,7 +57,9 @@ describe('authMiddleware public route boundary', () => {
     const res = await app.request('http://localhost/api/v1/health/info');
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual(expect.objectContaining({ success: true, route: 'health-info' }));
+    expect(await res.json()).toEqual(
+      expect.objectContaining({ success: true, route: 'health-info' })
+    );
   });
 
   it('does not allow health prefix collision endpoint', async () => {
@@ -63,7 +67,9 @@ describe('authMiddleware public route boundary', () => {
     const res = await app.request('http://localhost/api/v1/healthcheck');
 
     expect(res.status).toBe(401);
-    expect(await res.json()).toEqual(expect.objectContaining({ success: false, error: MSG.AUTH.REQUIRED }));
+    expect(await res.json()).toEqual(
+      expect.objectContaining({ success: false, error: MSG.AUTH.REQUIRED })
+    );
   });
 
   it('records unauthorized audit event for export GET without credentials', async () => {

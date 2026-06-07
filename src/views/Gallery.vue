@@ -3,7 +3,9 @@
     <!-- 加载状态 -->
     <div v-if="loading" class="flex min-h-[70vh] items-center justify-center">
       <div class="text-center">
-        <div class="mx-auto mb-4 flex size-10 items-center justify-center rounded-xl bg-(--color-primary-bg)">
+        <div
+          class="mx-auto mb-4 flex size-10 items-center justify-center rounded-xl bg-(--color-primary-bg)"
+        >
           <AppIcon name="photo" class="size-5 text-primary animate-pulse" />
         </div>
         <p class="text-sm text-(--text-muted)">{{ t('gallery.loading') }}</p>
@@ -24,113 +26,105 @@
 
     <!-- 错误状态 -->
     <div v-else-if="error" class="flex min-h-[70vh] items-center justify-center px-4">
-      <EmptyState
-        icon="search"
-        :title="t('gallery.cannotLoad')"
-        :description="error"
-      />
+      <EmptyState icon="search" :title="t('gallery.cannotLoad')" :description="error" />
     </div>
 
     <!-- 相册内容 -->
     <template v-else-if="album">
-      <PublicViewerShell :title="album.name" :description="t('gallery.files', { count: album.fileCount })">
+      <PublicViewerShell
+        :title="album.name"
+        :description="t('gallery.files', { count: album.fileCount })"
+      >
         <template #actions>
-          <AppButton
-            variant="secondary"
-            size="sm"
-            :text="t('gallery.share')"
-            @click="shareAlbum"
-          >
+          <AppButton variant="secondary" size="sm" :text="t('gallery.share')" @click="shareAlbum">
             <template #icon-left>
               <AppIcon name="share" class="size-4" />
             </template>
           </AppButton>
         </template>
 
-      <!-- Description -->
-      <div v-if="album.description" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <p
-          class="rounded-xl border border-(--border-color) bg-(--bg-muted) p-4 text-sm text-(--text-secondary)"
-        >
-          {{ album.description }}
-        </p>
-      </div>
-
-      <!-- File Grid -->
-      <main class="mx-auto max-w-7xl px-4 py-6 pb-20 sm:px-6 lg:px-8">
-        <div
-          class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
-        >
-          <div
-            v-for="(file, index) in album.files"
-            :key="file.id"
-            class="group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-muted) shadow-sm transition-colors hover:border-(--border-hover) hover:shadow-md"
-            @click="openFile(file, index)"
+        <!-- Description -->
+        <div v-if="album.description" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <p
+            class="rounded-xl border border-(--border-color) bg-(--bg-muted) p-4 text-sm text-(--text-secondary)"
           >
-            <!-- 图片 -->
-            <AppImage
-              v-if="file.type === 'image'"
-              :src="file.thumbnailUrl || file.url"
-              :alt="file.name"
-              class="size-full transition-transform duration-300 ease-out-expo group-hover:scale-105"
-              rounded="none"
-            />
-
-            <!-- PDF -->
-            <div
-              v-else-if="file.type === 'pdf'"
-              class="flex size-full flex-col items-center justify-center bg-(--bg-muted) text-(--text-secondary)"
-            >
-              <AppIcon
-                name="document-text"
-                class="text-danger mb-2 size-12"
-              />
-              <span
-                class="rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs font-medium shadow-sm"
-                >PDF</span
-              >
-            </div>
-
-            <!-- 其他文件 -->
-            <div
-              v-else
-              class="flex size-full flex-col items-center justify-center bg-(--bg-muted) text-(--text-secondary)"
-            >
-              <AppIcon
-                name="document"
-                class="mb-2 size-12 text-(--text-muted)"
-              />
-              <span
-                class="rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs font-medium uppercase shadow-sm"
-                >{{ file.name.split('.').pop() }}</span
-              >
-            </div>
-
-            <!-- Hover Overlay -->
-            <div
-              class="absolute inset-0 flex items-end p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-              style="background: linear-gradient(to top, var(--color-overlay-dim), transparent);"
-            >
-              <span class="w-full truncate text-xs font-medium text-(--text-inverse)">{{ file.name }}</span>
-            </div>
-          </div>
+            {{ album.description }}
+          </p>
         </div>
 
-        <!-- Empty State -->
-        <EmptyState
-          v-if="album.files.length === 0"
-          icon="image"
-          :title="t('gallery.noFiles')"
-          :description="t('gallery.noFilesDesc')"
-        />
-      </main>
+        <!-- File Grid -->
+        <main class="mx-auto max-w-7xl px-4 py-6 pb-20 sm:px-6 lg:px-8">
+          <div
+            class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+          >
+            <div
+              v-for="(file, index) in album.files"
+              :key="file.id"
+              class="group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-muted) shadow-sm transition-colors hover:border-(--border-hover) hover:shadow-md"
+              @click="openFile(file, index)"
+            >
+              <!-- 图片 -->
+              <AppImage
+                v-if="file.type === 'image'"
+                :src="file.thumbnailUrl || file.url"
+                :alt="file.name"
+                class="size-full transition-transform duration-300 ease-out-expo group-hover:scale-105"
+                rounded="none"
+              />
 
-      <!-- Footer -->
-      <footer
-        class="border-t border-(--border-subtle) bg-(--bg-card) py-6 text-center text-xs text-(--text-muted)"
-      >
-        <a href="/" class="transition-colors hover:text-(--text-secondary)">{{ t('gallery.poweredBy') }}</a>
-      </footer>
+              <!-- PDF -->
+              <div
+                v-else-if="file.type === 'pdf'"
+                class="flex size-full flex-col items-center justify-center bg-(--bg-muted) text-(--text-secondary)"
+              >
+                <AppIcon name="document-text" class="text-danger mb-2 size-12" />
+                <span
+                  class="rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs font-medium shadow-sm"
+                  >PDF</span
+                >
+              </div>
+
+              <!-- 其他文件 -->
+              <div
+                v-else
+                class="flex size-full flex-col items-center justify-center bg-(--bg-muted) text-(--text-secondary)"
+              >
+                <AppIcon name="document" class="mb-2 size-12 text-(--text-muted)" />
+                <span
+                  class="rounded border border-(--border-color) bg-(--bg-card) px-2 py-1 text-xs font-medium uppercase shadow-sm"
+                  >{{ file.name.split('.').pop() }}</span
+                >
+              </div>
+
+              <!-- Hover Overlay -->
+              <div
+                class="absolute inset-0 flex items-end p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                style="background: linear-gradient(to top, var(--color-overlay-dim), transparent)"
+              >
+                <span class="w-full truncate text-xs font-medium text-(--text-inverse)">{{
+                  file.name
+                }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <EmptyState
+            v-if="album.files.length === 0"
+            icon="image"
+            :title="t('gallery.noFiles')"
+            :description="t('gallery.noFilesDesc')"
+          />
+        </main>
+
+        <!-- Footer -->
+        <footer
+          class="border-t border-(--border-subtle) bg-(--bg-card) py-6 text-center text-xs text-(--text-muted)"
+        >
+          <a href="/" class="transition-colors hover:text-(--text-secondary)">{{
+            t('gallery.poweredBy')
+          }}</a>
+        </footer>
       </PublicViewerShell>
     </template>
 

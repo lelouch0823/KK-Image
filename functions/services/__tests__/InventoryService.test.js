@@ -34,21 +34,25 @@ describe('InventoryService', () => {
   });
 
   it('rejects invalid mutation payloads', async () => {
-    await expect(service.applyMutation({
-      type: 'not_real',
-      variantId: '',
-      quantityDelta: 0,
-    })).rejects.toBeInstanceOf(BadRequestError);
+    await expect(
+      service.applyMutation({
+        type: 'not_real',
+        variantId: '',
+        quantityDelta: 0,
+      })
+    ).rejects.toBeInstanceOf(BadRequestError);
 
     expect(variantRepo.adjustStock).not.toHaveBeenCalled();
   });
 
   it('rejects reservation mutations that belong to demand-side reservation flows', async () => {
-    await expect(service.applyMutation({
-      type: 'inventory_reserved',
-      variantId: 'variant-1',
-      quantityDelta: 3,
-    })).rejects.toBeInstanceOf(BadRequestError);
+    await expect(
+      service.applyMutation({
+        type: 'inventory_reserved',
+        variantId: 'variant-1',
+        quantityDelta: 3,
+      })
+    ).rejects.toBeInstanceOf(BadRequestError);
 
     expect(variantRepo.adjustStock).not.toHaveBeenCalled();
   });
@@ -81,7 +85,12 @@ describe('InventoryService', () => {
     const run = vi.fn(async () => ({ meta: { changes: 1 } }));
     const bind = vi.fn(() => ({ run }));
     const prepare = vi.fn(() => ({ bind }));
-    const db = { prepare, batch: vi.fn(async (statements) => statements.map(() => ({ success: true, meta: { changes: 1 } }))) };
+    const db = {
+      prepare,
+      batch: vi.fn(async (statements) =>
+        statements.map(() => ({ success: true, meta: { changes: 1 } }))
+      ),
+    };
     service = new InventoryService(db, variantRepo);
 
     await service.applyMutation({
@@ -99,7 +108,9 @@ describe('InventoryService', () => {
   it('batches DB-backed mutations instead of running each statement serially in applyBatch', async () => {
     const run = vi.fn(async () => ({ meta: { changes: 1 } }));
     const db = {
-      batch: vi.fn(async (statements) => statements.map(() => ({ success: true, meta: { changes: 1 } }))),
+      batch: vi.fn(async (statements) =>
+        statements.map(() => ({ success: true, meta: { changes: 1 } }))
+      ),
       prepare: vi.fn((sql) => {
         const statement = {
           sql,
@@ -170,7 +181,9 @@ describe('InventoryService', () => {
       referenceId: 'o-1',
     });
 
-    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('SELECT id FROM order_lines WHERE order_id = ?'));
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('SELECT id FROM order_lines WHERE order_id = ?')
+    );
     expect(inventoryEventBindArgs[2]).toBe('line-1');
     expect(inventoryEventBindArgs[6]).toBe('order');
     expect(inventoryEventBindArgs[7]).toBe('o-1');
@@ -178,7 +191,9 @@ describe('InventoryService', () => {
 
   it('rejects ambiguous multi-line order context without an explicit orderLineId', async () => {
     const db = {
-      batch: vi.fn(async (statements) => statements.map(() => ({ success: true, meta: { changes: 1 } }))),
+      batch: vi.fn(async (statements) =>
+        statements.map(() => ({ success: true, meta: { changes: 1 } }))
+      ),
       prepare: vi.fn((sql) => {
         if (sql.includes('SELECT id FROM order_lines WHERE order_id = ?')) {
           const statement = {
@@ -197,13 +212,15 @@ describe('InventoryService', () => {
     };
     service = new InventoryService(db, variantRepo);
 
-    await expect(service.applyMutation({
-      type: 'order_shipment',
-      variantId: 'variant-1',
-      quantityDelta: -3,
-      orderId: 'o-1',
-      referenceType: 'order',
-      referenceId: 'o-1',
-    })).rejects.toBeInstanceOf(BadRequestError);
+    await expect(
+      service.applyMutation({
+        type: 'order_shipment',
+        variantId: 'variant-1',
+        quantityDelta: -3,
+        orderId: 'o-1',
+        referenceType: 'order',
+        referenceId: 'o-1',
+      })
+    ).rejects.toBeInstanceOf(BadRequestError);
   });
 });

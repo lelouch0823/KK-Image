@@ -38,7 +38,13 @@ describe('v1 permissions contract', () => {
   });
 
   it('evaluates /user permissions through OPA decisions', async () => {
-    const app = createApp({ id: 'u1', name: 'ManagerUser', type: 'user', role: 'manager', permissions: [] });
+    const app = createApp({
+      id: 'u1',
+      name: 'ManagerUser',
+      type: 'user',
+      role: 'manager',
+      permissions: [],
+    });
     const res = await app.request('http://localhost/api/v1/permissions/user');
     const body = await res.json();
 
@@ -49,7 +55,13 @@ describe('v1 permissions contract', () => {
   });
 
   it('evaluates /check permissions through OPA decisions', async () => {
-    const app = createApp({ id: 'u2', name: 'ViewerUser', type: 'user', role: 'viewer', permissions: [] });
+    const app = createApp({
+      id: 'u2',
+      name: 'ViewerUser',
+      type: 'user',
+      role: 'viewer',
+      permissions: [],
+    });
     const res = await app.request('http://localhost/api/v1/permissions/check', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -63,7 +75,13 @@ describe('v1 permissions contract', () => {
   });
 
   it('rejects unknown permissions in /check payload', async () => {
-    const app = createApp({ id: 'u3', name: 'ViewerUserTwo', type: 'user', role: 'viewer', permissions: [] });
+    const app = createApp({
+      id: 'u3',
+      name: 'ViewerUserTwo',
+      type: 'user',
+      role: 'viewer',
+      permissions: [],
+    });
     const res = await app.request('http://localhost/api/v1/permissions/check', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -75,4 +93,3 @@ describe('v1 permissions contract', () => {
     expect(body.success).toBe(false);
   });
 });
-

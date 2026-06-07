@@ -58,9 +58,13 @@ describe('sales spaces routes', () => {
     ]);
 
     const app = createApp();
-    const res = await app.request('http://localhost/api/sales/token-1/spaces/space-parent-1', {}, {
-      DB: {},
-    });
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/spaces/space-parent-1',
+      {},
+      {
+        DB: {},
+      }
+    );
 
     expect(res.status).toBe(200);
     const payload = await res.json();
@@ -99,9 +103,13 @@ describe('sales spaces routes', () => {
     ]);
 
     const app = createApp();
-    const res = await app.request('http://localhost/api/sales/token-1/spaces', {}, {
-      DB: {},
-    });
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/spaces',
+      {},
+      {
+        DB: {},
+      }
+    );
 
     expect(res.status).toBe(200);
     const payload = await res.json();
@@ -139,9 +147,13 @@ describe('sales spaces routes', () => {
     ]);
 
     const app = createApp();
-    const res = await app.request('http://localhost/api/sales/token-1/spaces', {}, {
-      DB: {},
-    });
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/spaces',
+      {},
+      {
+        DB: {},
+      }
+    );
 
     expect(res.status).toBe(200);
     const payload = await res.json();
@@ -164,9 +176,13 @@ describe('sales spaces routes', () => {
     });
 
     const app = createApp();
-    const res = await app.request('http://localhost/api/sales/token-1/spaces/space-expired-1', {}, {
-      DB: {},
-    });
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/spaces/space-expired-1',
+      {},
+      {
+        DB: {},
+      }
+    );
 
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual(
@@ -207,9 +223,13 @@ describe('sales spaces routes', () => {
     ]);
 
     const app = createApp();
-    const res = await app.request('http://localhost/api/sales/token-1/spaces/space-parent-1', {}, {
-      DB: {},
-    });
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/spaces/space-parent-1',
+      {},
+      {
+        DB: {},
+      }
+    );
 
     expect(res.status).toBe(200);
     const payload = await res.json();

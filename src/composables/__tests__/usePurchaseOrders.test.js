@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockAuthFetch = vi.fn();
 const mockRandomUUID = vi.fn();
-globalThis.fetch = vi.fn(() => Promise.reject(new Error('direct fetch should not be used in manage composables')));
+globalThis.fetch = vi.fn(() =>
+  Promise.reject(new Error('direct fetch should not be used in manage composables'))
+);
 vi.stubGlobal('crypto', { randomUUID: mockRandomUUID });
 
 const mocks = vi.hoisted(() => ({
@@ -15,10 +17,13 @@ vi.mock('@/utils/constants', () => ({
     MANAGE_PURCHASE_ORDER_BY_ID: (id) => `/api/manage/purchase-orders/${id}`,
     MANAGE_PURCHASE_ORDER_STATUS: (id) => `/api/manage/purchase-orders/${id}/status`,
     MANAGE_PURCHASE_ORDER_ITEMS: (id) => `/api/manage/purchase-orders/${id}/items`,
-    MANAGE_PURCHASE_ORDER_ITEM: (poId, itemId) => `/api/manage/purchase-orders/${poId}/items/${itemId}`,
+    MANAGE_PURCHASE_ORDER_ITEM: (poId, itemId) =>
+      `/api/manage/purchase-orders/${poId}/items/${itemId}`,
     MANAGE_PURCHASE_ORDER_RECEIPTS: (id) => `/api/manage/purchase-orders/${id}/receipts`,
-    MANAGE_PURCHASE_ORDER_RECEIPT_REVERSAL: (poId, receiptId) => `/api/manage/purchase-orders/${poId}/receipts/${receiptId}/reversal`,
-    MANAGE_PURCHASE_ORDER_SHORTAGE_CLOSURES: (id) => `/api/manage/purchase-orders/${id}/shortage-closures`,
+    MANAGE_PURCHASE_ORDER_RECEIPT_REVERSAL: (poId, receiptId) =>
+      `/api/manage/purchase-orders/${poId}/receipts/${receiptId}/reversal`,
+    MANAGE_PURCHASE_ORDER_SHORTAGE_CLOSURES: (id) =>
+      `/api/manage/purchase-orders/${id}/shortage-closures`,
     MANAGE_PURCHASE_ORDER_ALLOCATE: (id) => `/api/manage/purchase-orders/${id}/allocate`,
     MANAGE_PURCHASE_ORDER_SUGGESTIONS: '/api/manage/purchase-orders/suggestions',
     MANAGE_PURCHASE_ORDER_STATS: '/api/manage/purchase-orders/stats',
@@ -67,7 +72,12 @@ describe('usePurchaseOrders authz handling', () => {
     statsForbidden.data = { error: '权限不足: purchase_orders:stats' };
     mockAuthFetch
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({ success: true, data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: [],
+            pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+          }),
       })
       .mockRejectedValueOnce(statsForbidden);
 
@@ -149,10 +159,11 @@ describe('usePurchaseOrders authz handling', () => {
 
   it('uses backend status-update message when present', async () => {
     mockAuthFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({
-        success: true,
-        data: { message: '状态已更新，同步更新了 2 个预订单采购状态' },
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { message: '状态已更新，同步更新了 2 个预订单采购状态' },
+        }),
     });
 
     const { updateStatus } = usePurchaseOrders();
@@ -173,10 +184,11 @@ describe('usePurchaseOrders authz handling', () => {
       actual_tariff_cost: 3.2,
     };
     mockAuthFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({
-        success: true,
-        data: updatedDetail,
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: updatedDetail,
+        }),
     });
 
     const { updatePO, detail } = usePurchaseOrders();
@@ -188,17 +200,21 @@ describe('usePurchaseOrders authz handling', () => {
 
     expect(ok).toBe(true);
     expect(detail.value).toEqual(updatedDetail);
-    expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1', expect.objectContaining({
-      method: 'PUT',
-    }));
+    expect(mockAuthFetch).toHaveBeenCalledWith(
+      '/api/manage/purchase-orders/po-1',
+      expect.objectContaining({
+        method: 'PUT',
+      })
+    );
   });
 
   it('deduplicates repeated order ids before create-from-orders requests', async () => {
     mockAuthFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({
-        success: true,
-        data: { id: 'po-1' },
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { id: 'po-1' },
+        }),
     });
 
     const { createFromOrders } = usePurchaseOrders();
@@ -226,10 +242,11 @@ describe('usePurchaseOrders authz handling', () => {
           })
       )
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
-          success: true,
-          data: { id: 'po-2', status: 'ordered' },
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { id: 'po-2', status: 'ordered' },
+          }),
       });
 
     const purchaseOrders = usePurchaseOrders();
@@ -256,10 +273,11 @@ describe('usePurchaseOrders authz handling', () => {
       items: [{ id: 'poi-1', allocated_freight: 1.5, allocated_tariff: 0.4 }],
     };
     mockAuthFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({
-        success: true,
-        data: allocatedDetail,
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: allocatedDetail,
+        }),
     });
 
     const { allocateCosts, detail } = usePurchaseOrders();
@@ -267,17 +285,21 @@ describe('usePurchaseOrders authz handling', () => {
 
     expect(ok).toBe(true);
     expect(detail.value).toEqual(allocatedDetail);
-    expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1/allocate', expect.objectContaining({
-      method: 'POST',
-    }));
+    expect(mockAuthFetch).toHaveBeenCalledWith(
+      '/api/manage/purchase-orders/po-1/allocate',
+      expect.objectContaining({
+        method: 'POST',
+      })
+    );
   });
 
   it('submits purchase receipts through the managed auth client', async () => {
     mockAuthFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({
-        success: true,
-        data: { receipts: [{ id: 'receipt-1' }] },
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { receipts: [{ id: 'receipt-1' }] },
+        }),
     });
 
     const { recordReceipts } = usePurchaseOrders();
@@ -286,55 +308,66 @@ describe('usePurchaseOrders authz handling', () => {
     });
 
     expect(result).toEqual({ receipts: [{ id: 'receipt-1' }] });
-    expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1/receipts', expect.objectContaining({
-      method: 'POST',
-      headers: expect.objectContaining({
-        'Idempotency-Key': 'idem-1',
-      }),
-    }));
+    expect(mockAuthFetch).toHaveBeenCalledWith(
+      '/api/manage/purchase-orders/po-1/receipts',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Idempotency-Key': 'idem-1',
+        }),
+      })
+    );
   });
 
   it('submits receipt reversals through the managed auth client', async () => {
     mockAuthFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({
-        success: true,
-        data: { reversal_id: 'reversal-1' },
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { reversal_id: 'reversal-1' },
+        }),
     });
 
     const { reverseReceipt } = usePurchaseOrders();
     const result = await reverseReceipt('po-1', 'receipt-1', { reason: 'rollback' });
 
     expect(result).toEqual({ reversal_id: 'reversal-1' });
-    expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1/receipts/receipt-1/reversal', expect.objectContaining({
-      method: 'POST',
-      headers: expect.objectContaining({
-        'Idempotency-Key': 'idem-1',
-      }),
-    }));
+    expect(mockAuthFetch).toHaveBeenCalledWith(
+      '/api/manage/purchase-orders/po-1/receipts/receipt-1/reversal',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Idempotency-Key': 'idem-1',
+        }),
+      })
+    );
   });
 
   it('bypasses cached purchase-order detail reads when forceRefresh is requested', async () => {
     mockAuthFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({
-        success: true,
-        data: { id: 'po-1', status: 'shipping' },
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { id: 'po-1', status: 'shipping' },
+        }),
     });
 
     const { loadDetail, detail } = usePurchaseOrders();
     await loadDetail('po-1', { forceRefresh: true });
 
     expect(detail.value).toEqual({ id: 'po-1', status: 'shipping' });
-    expect(mockAuthFetch.mock.calls[0]?.[0]).toMatch(/^\/api\/manage\/purchase-orders\/po-1\?_ts=\d+$/);
+    expect(mockAuthFetch.mock.calls[0]?.[0]).toMatch(
+      /^\/api\/manage\/purchase-orders\/po-1\?_ts=\d+$/
+    );
   });
 
   it('bypasses cached purchase-order list reads when forceRefresh is requested', async () => {
     mockAuthFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({
-        success: true,
-        data: { items: [], total: 0 },
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { items: [], total: 0 },
+        }),
     });
 
     const { loadList } = usePurchaseOrders();
@@ -347,10 +380,11 @@ describe('usePurchaseOrders authz handling', () => {
 
   it('bypasses cached purchase-order stats reads when forceRefresh is requested', async () => {
     mockAuthFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({
-        success: true,
-        data: { draft_count: 0 },
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { draft_count: 0 },
+        }),
     });
 
     const { loadStats, stats } = usePurchaseOrders();
@@ -365,17 +399,19 @@ describe('usePurchaseOrders authz handling', () => {
   it('loads purchase-order overview through the shared list-and-stats helper', async () => {
     mockAuthFetch
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
-          success: true,
-          data: [{ id: 'po-1' }],
-          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: [{ id: 'po-1' }],
+            pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+          }),
       })
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
-          success: true,
-          data: { draft_count: 0, ordered_count: 1 },
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { draft_count: 0, ordered_count: 1 },
+          }),
       });
 
     const { loadPurchaseOrderOverview, list, total, stats } = usePurchaseOrders();
@@ -396,23 +432,26 @@ describe('usePurchaseOrders authz handling', () => {
   it('refreshes purchase-order detail, list, and stats together after a write', async () => {
     mockAuthFetch
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
-          success: true,
-          data: { id: 'po-1', status: 'shipping' },
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { id: 'po-1', status: 'shipping' },
+          }),
       })
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
-          success: true,
-          data: [{ id: 'po-1' }],
-          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: [{ id: 'po-1' }],
+            pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+          }),
       })
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
-          success: true,
-          data: { draft_count: 0, shipping_count: 1 },
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { draft_count: 0, shipping_count: 1 },
+          }),
       });
 
     const { refreshPurchaseOrderViews, detail, list, total, stats } = usePurchaseOrders();
@@ -428,7 +467,9 @@ describe('usePurchaseOrders authz handling', () => {
     expect(total.value).toBe(1);
     expect(stats.value).toEqual({ draft_count: 0, shipping_count: 1 });
     expect(mockAuthFetch).toHaveBeenCalledTimes(3);
-    expect(mockAuthFetch.mock.calls[0]?.[0]).toMatch(/^\/api\/manage\/purchase-orders\/po-1\?_ts=\d+$/);
+    expect(mockAuthFetch.mock.calls[0]?.[0]).toMatch(
+      /^\/api\/manage\/purchase-orders\/po-1\?_ts=\d+$/
+    );
     expect(mockAuthFetch.mock.calls[1]?.[0]).toMatch(
       /^\/api\/manage\/purchase-orders\?page=1&limit=20&_ts=\d+$/
     );
@@ -593,10 +634,11 @@ describe('usePurchaseOrders authz handling', () => {
 
   it('submits purchase-order shortage closures through the managed auth client', async () => {
     mockAuthFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({
-        success: true,
-        data: { purchase_order_id: 'po-1', closed_count: 1 },
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { purchase_order_id: 'po-1', closed_count: 1 },
+        }),
     });
 
     const { closeShortages } = usePurchaseOrders();
@@ -605,12 +647,15 @@ describe('usePurchaseOrders authz handling', () => {
     });
 
     expect(result).toEqual({ purchase_order_id: 'po-1', closed_count: 1 });
-    expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1/shortage-closures', expect.objectContaining({
-      method: 'POST',
-      headers: expect.objectContaining({
-        'Idempotency-Key': 'idem-1',
-      }),
-    }));
+    expect(mockAuthFetch).toHaveBeenCalledWith(
+      '/api/manage/purchase-orders/po-1/shortage-closures',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Idempotency-Key': 'idem-1',
+        }),
+      })
+    );
   });
 
   it('covers purchase-order create and line-item CRUD flows', async () => {
@@ -634,9 +679,7 @@ describe('usePurchaseOrders authz handling', () => {
     await expect(
       purchaseOrders.addItems('po-1', [{ product_id: 'prod-1', quantity: 2 }])
     ).resolves.toBe(true);
-    await expect(
-      purchaseOrders.updateItem('po-1', 'item-1', { quantity: 3 })
-    ).resolves.toBe(true);
+    await expect(purchaseOrders.updateItem('po-1', 'item-1', { quantity: 3 })).resolves.toBe(true);
     await expect(purchaseOrders.removeItem('po-1', 'item-1')).resolves.toBe(true);
 
     expect(mocks.addToast).toHaveBeenCalledWith({
@@ -688,17 +731,19 @@ describe('usePurchaseOrders authz handling', () => {
   it('refreshes overview only when no detail id is provided', async () => {
     mockAuthFetch
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
-          success: true,
-          data: [{ id: 'po-1' }],
-          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: [{ id: 'po-1' }],
+            pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+          }),
       })
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
-          success: true,
-          data: { draft_count: 1 },
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { draft_count: 1 },
+          }),
       });
 
     const { refreshPurchaseOrderViews } = usePurchaseOrders();

@@ -64,9 +64,9 @@ export async function rollbackPatchedProduct({
   }
 
   if (
-    shouldRollbackDimensions
-    && existingDimensionsSnapshot
-    && typeof dimensionRepo.restoreSnapshot === 'function'
+    shouldRollbackDimensions &&
+    existingDimensionsSnapshot &&
+    typeof dimensionRepo.restoreSnapshot === 'function'
   ) {
     await dimensionRepo.restoreSnapshot(productId, existingDimensionsSnapshot);
   }
@@ -77,15 +77,11 @@ export async function rollbackPatchedProduct({
 
   const variantImageRepo = new VariantImageRepository(db, variantRepo);
   const beforeVariantIds = new Set(
-    (beforeVariants || [])
-      .map((variant) => String(variant?.id || '').trim())
-      .filter(Boolean)
+    (beforeVariants || []).map((variant) => String(variant?.id || '').trim()).filter(Boolean)
   );
   const rollbackVariantIds = new Set([
     ...Array.from(beforeVariantIds),
-    ...((afterVariants || [])
-      .map((variant) => String(variant?.id || '').trim())
-      .filter(Boolean)),
+    ...(afterVariants || []).map((variant) => String(variant?.id || '').trim()).filter(Boolean),
   ]);
 
   for (const variantId of rollbackVariantIds) {

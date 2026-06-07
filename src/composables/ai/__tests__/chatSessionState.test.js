@@ -9,8 +9,14 @@ describe('reduceAIChatSessionEvent', () => {
   it('tracks stream phase, text buffers, and tool status without mutating action state', () => {
     const state = createInitialAIChatSessionState();
     const loading = reduceAIChatSessionEvent({ type: 'request_started' }, state);
-    const delta = reduceAIChatSessionEvent({ type: 'text_delta', data: { content: '你好' } }, loading);
-    const tool = reduceAIChatSessionEvent({ type: 'tool_call', data: { name: 'searchProducts' } }, delta);
+    const delta = reduceAIChatSessionEvent(
+      { type: 'text_delta', data: { content: '你好' } },
+      loading
+    );
+    const tool = reduceAIChatSessionEvent(
+      { type: 'tool_call', data: { name: 'searchProducts' } },
+      delta
+    );
 
     expect(tool.streamPhase).toBe('tool_running');
     expect(tool.toolStatus).toBe('searchProducts');

@@ -121,10 +121,7 @@ app.delete('/:id/payments/:paymentId', async (c) => {
 
   // 验证订单存在
   const orderRepo = new OrderRepository(env.DB);
-  await requireEntity(
-    orderRepo.findById(orderId),
-    () => new NotFoundError(MSG.ORDER.NOT_FOUND)
-  );
+  await requireEntity(orderRepo.findById(orderId), () => new NotFoundError(MSG.ORDER.NOT_FOUND));
 
   const paymentRepo = new PaymentRepository(env.DB);
 

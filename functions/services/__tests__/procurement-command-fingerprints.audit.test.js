@@ -37,9 +37,8 @@ describe('procurement command fingerprint dedup audit', () => {
       }
     }
 
-    expect(
-      offenders,
-      `procurement fingerprint dedup offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `procurement fingerprint dedup offenders:\n${offenders.join('\n')}`).toEqual(
+      []
+    );
   });
 });

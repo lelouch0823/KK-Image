@@ -8,7 +8,7 @@ import {
   findActiveBindingsByPreOrderIds,
   getLastPurchasePricesByVariant,
   getLinkedOrderIds,
-} from "./purchase-order-links.js";
+} from './purchase-order-links.js';
 import {
   generatePurchaseOrderNo,
   isPurchaseOrderNoConflictError,
@@ -64,20 +64,25 @@ export class PurchaseOrderRepository {
       const poNo = await this.generatePoNo();
 
       try {
-        await this.db.prepare(`
+        await this.db
+          .prepare(
+            `
           INSERT INTO purchase_orders (id, po_no, status, estimated_shipping_cost, estimated_tariff_cost, currency, allocation_method, remark, created_at, updated_at)
           VALUES (?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
-          id,
-          poNo,
-          data.estimated_shipping_cost || 0,
-          data.estimated_tariff_cost || 0,
-          data.currency || 'CNY',
-          data.allocation_method || 'by_quantity',
-          data.remark || null,
-          now,
-          now
-        ).run();
+        `
+          )
+          .bind(
+            id,
+            poNo,
+            data.estimated_shipping_cost || 0,
+            data.estimated_tariff_cost || 0,
+            data.currency || 'CNY',
+            data.allocation_method || 'by_quantity',
+            data.remark || null,
+            now,
+            now
+          )
+          .run();
 
         return { id, po_no: poNo, status: 'draft', created_at: now };
       } catch (error) {
@@ -91,7 +96,9 @@ export class PurchaseOrderRepository {
   }
 
   async deleteIfEmptyDraft(id) {
-    const result = await this.db.prepare(`
+    const result = await this.db
+      .prepare(
+        `
       DELETE FROM purchase_orders
       WHERE id = ?
         AND status = 'draft'
@@ -100,7 +107,10 @@ export class PurchaseOrderRepository {
           FROM purchase_order_items
           WHERE po_id = ?
         )
-    `).bind(id, id).run();
+    `
+      )
+      .bind(id, id)
+      .run();
 
     return hasChanges(result);
   }
@@ -124,9 +134,13 @@ export class PurchaseOrderRepository {
    */
   async update(id, updates) {
     const allowedFields = [
-      'remark', 'currency', 'allocation_method',
-      'estimated_shipping_cost', 'estimated_tariff_cost',
-      'actual_shipping_cost', 'actual_tariff_cost',
+      'remark',
+      'currency',
+      'allocation_method',
+      'estimated_shipping_cost',
+      'estimated_tariff_cost',
+      'actual_shipping_cost',
+      'actual_tariff_cost',
     ];
 
     const updateData = {};
@@ -154,9 +168,10 @@ export class PurchaseOrderRepository {
    */
   async updateStatus(id, newStatus) {
     const extra = newStatus === 'completed' ? ', completed_at = ?' : '';
-    const params = newStatus === 'completed'
-      ? [newStatus, Date.now(), Date.now(), id]
-      : [newStatus, Date.now(), id];
+    const params =
+      newStatus === 'completed'
+        ? [newStatus, Date.now(), Date.now(), id]
+        : [newStatus, Date.now(), id];
 
     const result = await this.db
       .prepare(`UPDATE purchase_orders SET status = ?, updated_at = ?${extra} WHERE id = ?`)
@@ -171,18 +186,22 @@ export class PurchaseOrderRepository {
    * 仅当当前状态匹配时更新成功，用于防并发重复流转
    */
   async updateStatusIfCurrent(id, currentStatus, nextStatus) {
-    const extra = nextStatus === 'completed'
-      ? ', completed_at = ?'
-      : currentStatus === 'completed'
-        ? ', completed_at = NULL'
-        : '';
+    const extra =
+      nextStatus === 'completed'
+        ? ', completed_at = ?'
+        : currentStatus === 'completed'
+          ? ', completed_at = NULL'
+          : '';
     const now = Date.now();
-    const params = nextStatus === 'completed'
-      ? [nextStatus, now, now, id, currentStatus]
-      : [nextStatus, now, id, currentStatus];
+    const params =
+      nextStatus === 'completed'
+        ? [nextStatus, now, now, id, currentStatus]
+        : [nextStatus, now, id, currentStatus];
 
     const result = await this.db
-      .prepare(`UPDATE purchase_orders SET status = ?, updated_at = ?${extra} WHERE id = ? AND status = ?`)
+      .prepare(
+        `UPDATE purchase_orders SET status = ?, updated_at = ?${extra} WHERE id = ? AND status = ?`
+      )
       .bind(...params)
       .run();
 
@@ -273,10 +292,14 @@ export class PurchaseOrderRepository {
   async updateAllocations(allocations) {
     if (!allocations || allocations.length === 0) return;
 
-    const stmts = allocations.map(a =>
-      this.db.prepare(`
+    const stmts = allocations.map((a) =>
+      this.db
+        .prepare(
+          `
         UPDATE purchase_order_items SET allocated_freight = ?, allocated_tariff = ? WHERE id = ?
-      `).bind(a.allocated_freight, a.allocated_tariff, a.id)
+      `
+        )
+        .bind(a.allocated_freight, a.allocated_tariff, a.id)
     );
 
     await executeBatchChunks(this.db, stmts);

@@ -12,6 +12,8 @@ describe('Customers design-system migration', () => {
   it('avoids nesting the list inside an extra page-level card shell', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/views/Customers.vue'), 'utf8');
 
-    expect(source).not.toContain('flex h-full overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-page) shadow-sm');
+    expect(source).not.toContain(
+      'flex h-full overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-page) shadow-sm'
+    );
   });
 });

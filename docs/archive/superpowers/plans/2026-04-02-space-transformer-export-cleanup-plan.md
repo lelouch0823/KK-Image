@@ -13,6 +13,7 @@
 ### Task 1: Lock the Export Surface Contract
 
 **Files:**
+
 - Create: `functions/lib/hono/routes/manage/spaces/__tests__/transformers-thin-exports.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because both exports still exist.
 ### Task 2: Remove the Unused Exports
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/spaces/transformers.js`
 
 - [ ] **Step 1: Remove the extra exports**

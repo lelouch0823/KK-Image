@@ -102,8 +102,22 @@ describe('ProductDetail associated spaces', () => {
           price: 100,
           currency: 'CNY',
           variants: [
-            { id: 'v-active', sku: 'SKU-ACTIVE', status: 'active', available_quantity: 5, price: 100, options_values: { Color: 'Black' } },
-            { id: 'v-archived', sku: 'SKU-ARCHIVED', status: 'archived', available_quantity: 7, price: 80, options_values: { Color: 'Grey' } },
+            {
+              id: 'v-active',
+              sku: 'SKU-ACTIVE',
+              status: 'active',
+              available_quantity: 5,
+              price: 100,
+              options_values: { Color: 'Black' },
+            },
+            {
+              id: 'v-archived',
+              sku: 'SKU-ARCHIVED',
+              status: 'archived',
+              available_quantity: 7,
+              price: 80,
+              options_values: { Color: 'Grey' },
+            },
           ],
         },
       },
@@ -332,9 +346,11 @@ describe('ProductDetail associated spaces', () => {
 
     await flushPromises();
 
-    expect(wrapper.get('a').attributes('data-to')).toBe(JSON.stringify({
-      name: 'Spaces',
-      query: { id: 'space-1' },
-    }));
+    expect(wrapper.get('a').attributes('data-to')).toBe(
+      JSON.stringify({
+        name: 'Spaces',
+        query: { id: 'space-1' },
+      })
+    );
   });
 });

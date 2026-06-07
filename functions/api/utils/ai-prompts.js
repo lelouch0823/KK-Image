@@ -9,18 +9,24 @@ export const TOOL_DESCRIPTIONS = {
   LIMIT_DESC: '获取数量，默认为 5',
   GET_CUSTOMER_STATS: '获取客户统计数据，包括客户总数和最近一周新增客户数。',
   GET_SPACE_STATS: '获取共享空间统计数据，包括空间总数、总访问量、总下载量和关联文件数。',
-  GET_SALESPERSON_STATS: '获取销售人员统计和业绩排行。返回数据包括：销售总人数、活跃人数、以及 Top 5 销售人员的详细信息（姓名 name、门店 store、订单数 orderCount）。',
+  GET_SALESPERSON_STATS:
+    '获取销售人员统计和业绩排行。返回数据包括：销售总人数、活跃人数、以及 Top 5 销售人员的详细信息（姓名 name、门店 store、订单数 orderCount）。',
   GET_FILE_STATS: '获取文件存储统计数据，包括文件总数、总存储大小和各类型文件分布。',
-  SEARCH_ORDERS: '搜索订单列表（支持按状态、关键字搜索）。可以获取特定状态的订单，或者根据关键字查找。',
+  SEARCH_ORDERS:
+    '搜索订单列表（支持按状态、关键字搜索）。可以获取特定状态的订单，或者根据关键字查找。',
   SEARCH_PRODUCTS: '搜索商品列表（支持按商品名称、SKU、分类、品牌搜索）。',
-  SEARCH_VARIANTS: '搜索商品变体列表（支持按商品名称、SPU、SKU、变体编码、条码、供应商SKU、品牌、分类等条件搜索）。',
+  SEARCH_VARIANTS:
+    '搜索商品变体列表（支持按商品名称、SPU、SKU、变体编码、条码、供应商SKU、品牌、分类等条件搜索）。',
   SEARCH_CUSTOMERS: '搜索客户列表（支持按姓名、手机号、公司名称搜索）。',
-  GET_ORDER_DETAIL: '根据订单ID获取指定订单详情，包括当前状态、明细数据以及近期的操作时间轴日志(Timeline)。',
+  GET_ORDER_DETAIL:
+    '根据订单ID获取指定订单详情，包括当前状态、明细数据以及近期的操作时间轴日志(Timeline)。',
   GET_PRODUCT_DETAIL: '根据商品ID获取指定商品详情数据。',
   GET_VARIANT_DETAIL: '根据变体ID获取指定变体详情（包含所属商品快照、规格组合、库存与编码信息）。',
   GET_CUSTOMER_DETAIL: '根据客户ID获取指定客户详情数据。',
-  GET_GOODS_OVERVIEW_SUMMARY: '获取订货总览的统计摘要，包括总商品数、总需求件数、缺货商品数，以及按状态分组的详情。',
-  GET_GOODS_OVERVIEW_LIST: '获取订货总览（商品管道分析）的商品列表，支持按类别、品牌筛选，以及仅筛选缺货商品。',
+  GET_GOODS_OVERVIEW_SUMMARY:
+    '获取订货总览的统计摘要，包括总商品数、总需求件数、缺货商品数，以及按状态分组的详情。',
+  GET_GOODS_OVERVIEW_LIST:
+    '获取订货总览（商品管道分析）的商品列表，支持按类别、品牌筛选，以及仅筛选缺货商品。',
   SEARCH_PURCHASE_ORDERS: '搜索采购单列表（支持按状态、采购单号、备注关键字搜索）。',
   GET_PURCHASE_ORDER_DETAIL: '根据采购单ID获取采购单详情（含明细项目、单价、数量和关联商品信息）。',
   GET_PURCHASE_STATS: '获取采购单状态统计概览（草稿、已下单、运输中、到货、完成等）。',
@@ -35,8 +41,8 @@ export const AI_TOOLS = [
     function: {
       name: 'getOrderStats',
       description: TOOL_DESCRIPTIONS.GET_ORDER_STATS,
-      parameters: { type: 'object', properties: {} }
-    }
+      parameters: { type: 'object', properties: {} },
+    },
   },
   {
     type: 'function',
@@ -46,42 +52,42 @@ export const AI_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          limit: { type: 'number', description: TOOL_DESCRIPTIONS.LIMIT_DESC }
-        }
-      }
-    }
+          limit: { type: 'number', description: TOOL_DESCRIPTIONS.LIMIT_DESC },
+        },
+      },
+    },
   },
   {
     type: 'function',
     function: {
       name: 'getCustomerStats',
       description: TOOL_DESCRIPTIONS.GET_CUSTOMER_STATS,
-      parameters: { type: 'object', properties: {} }
-    }
+      parameters: { type: 'object', properties: {} },
+    },
   },
   {
     type: 'function',
     function: {
       name: 'getSpaceStats',
       description: TOOL_DESCRIPTIONS.GET_SPACE_STATS,
-      parameters: { type: 'object', properties: {} }
-    }
+      parameters: { type: 'object', properties: {} },
+    },
   },
   {
     type: 'function',
     function: {
       name: 'getSalespersonStats',
       description: TOOL_DESCRIPTIONS.GET_SALESPERSON_STATS,
-      parameters: { type: 'object', properties: {} }
-    }
+      parameters: { type: 'object', properties: {} },
+    },
   },
   {
     type: 'function',
     function: {
       name: 'getFileStats',
       description: TOOL_DESCRIPTIONS.GET_FILE_STATS,
-      parameters: { type: 'object', properties: {} }
-    }
+      parameters: { type: 'object', properties: {} },
+    },
   },
   {
     type: 'function',
@@ -92,11 +98,14 @@ export const AI_TOOLS = [
         type: 'object',
         properties: {
           search: { type: 'string', description: '搜索关键字（如订单号、客户信息等）' },
-          status: { type: 'string', description: '订单状态 (如 pending, production, shipping, arrived, void 等)' },
-          limit: { type: 'number', description: '最多返回的记录数，默认为 10' }
-        }
-      }
-    }
+          status: {
+            type: 'string',
+            description: '订单状态 (如 pending, production, shipping, arrived, void 等)',
+          },
+          limit: { type: 'number', description: '最多返回的记录数，默认为 10' },
+        },
+      },
+    },
   },
   {
     type: 'function',
@@ -110,10 +119,10 @@ export const AI_TOOLS = [
           category: { type: 'string', description: '商品分类' },
           brand: { type: 'string', description: '品牌' },
           status: { type: 'string', description: '状态 (如 active, inactive)' },
-          limit: { type: 'number', description: '最多返回的记录数，默认为 10' }
-        }
-      }
-    }
+          limit: { type: 'number', description: '最多返回的记录数，默认为 10' },
+        },
+      },
+    },
   },
   {
     type: 'function',
@@ -123,15 +132,18 @@ export const AI_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          search: { type: 'string', description: '搜索关键字（如商品名、SPU、SKU、变体编码、条码）' },
+          search: {
+            type: 'string',
+            description: '搜索关键字（如商品名、SPU、SKU、变体编码、条码）',
+          },
           productId: { type: 'string', description: '限定某个商品ID下的变体' },
           brand: { type: 'string', description: '品牌筛选' },
           category: { type: 'string', description: '分类筛选' },
           status: { type: 'string', description: '变体状态（如 active, archived）' },
-          limit: { type: 'number', description: '最多返回的记录数，默认为 10' }
-        }
-      }
-    }
+          limit: { type: 'number', description: '最多返回的记录数，默认为 10' },
+        },
+      },
+    },
   },
   {
     type: 'function',
@@ -142,10 +154,10 @@ export const AI_TOOLS = [
         type: 'object',
         properties: {
           search: { type: 'string', description: '搜索关键字（姓名、手机号、公司名称）' },
-          limit: { type: 'number', description: '最多返回的记录数，默认为 10' }
-        }
-      }
-    }
+          limit: { type: 'number', description: '最多返回的记录数，默认为 10' },
+        },
+      },
+    },
   },
   {
     type: 'function',
@@ -155,9 +167,9 @@ export const AI_TOOLS = [
       parameters: {
         type: 'object',
         properties: { id: { type: 'string', description: '订单ID (UUID)' } },
-        required: ['id']
-      }
-    }
+        required: ['id'],
+      },
+    },
   },
   {
     type: 'function',
@@ -167,9 +179,9 @@ export const AI_TOOLS = [
       parameters: {
         type: 'object',
         properties: { id: { type: 'string', description: '商品ID (UUID)' } },
-        required: ['id']
-      }
-    }
+        required: ['id'],
+      },
+    },
   },
   {
     type: 'function',
@@ -179,9 +191,9 @@ export const AI_TOOLS = [
       parameters: {
         type: 'object',
         properties: { id: { type: 'string', description: '客户ID (UUID)' } },
-        required: ['id']
-      }
-    }
+        required: ['id'],
+      },
+    },
   },
   {
     type: 'function',
@@ -191,17 +203,17 @@ export const AI_TOOLS = [
       parameters: {
         type: 'object',
         properties: { id: { type: 'string', description: '变体ID (UUID)' } },
-        required: ['id']
-      }
-    }
+        required: ['id'],
+      },
+    },
   },
   {
     type: 'function',
     function: {
       name: 'getGoodsOverviewSummary',
       description: TOOL_DESCRIPTIONS.GET_GOODS_OVERVIEW_SUMMARY,
-      parameters: { type: 'object', properties: {} }
-    }
+      parameters: { type: 'object', properties: {} },
+    },
   },
   {
     type: 'function',
@@ -215,10 +227,10 @@ export const AI_TOOLS = [
           brand: { type: 'string', description: '过滤品牌' },
           shortageOnly: { type: 'boolean', description: '是否仅获取存在缺货的商品' },
           sort: { type: 'string', description: '排序字段 (shortage, demand, name)，默认 shortage' },
-          limit: { type: 'number', description: '最多返回的记录数，默认为 10' }
-        }
-      }
-    }
+          limit: { type: 'number', description: '最多返回的记录数，默认为 10' },
+        },
+      },
+    },
   },
   {
     type: 'function',
@@ -229,11 +241,14 @@ export const AI_TOOLS = [
         type: 'object',
         properties: {
           search: { type: 'string', description: '搜索关键字（采购单号或备注）' },
-          status: { type: 'string', description: '采购单状态（draft, ordered, shipping, arrived, completed, cancelled）' },
-          limit: { type: 'number', description: '最多返回的记录数，默认为 10' }
-        }
-      }
-    }
+          status: {
+            type: 'string',
+            description: '采购单状态（draft, ordered, shipping, arrived, completed, cancelled）',
+          },
+          limit: { type: 'number', description: '最多返回的记录数，默认为 10' },
+        },
+      },
+    },
   },
   {
     type: 'function',
@@ -243,18 +258,18 @@ export const AI_TOOLS = [
       parameters: {
         type: 'object',
         properties: { id: { type: 'string', description: '采购单ID (UUID)' } },
-        required: ['id']
-      }
-    }
+        required: ['id'],
+      },
+    },
   },
   {
     type: 'function',
     function: {
       name: 'getPurchaseStats',
       description: TOOL_DESCRIPTIONS.GET_PURCHASE_STATS,
-      parameters: { type: 'object', properties: {} }
-    }
-  }
+      parameters: { type: 'object', properties: {} },
+    },
+  },
 ];
 
 export const SYSTEM_PROMPT = (date, context = {}) => {

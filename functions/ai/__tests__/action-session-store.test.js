@@ -32,7 +32,9 @@ describe('D1ActionSessionStore', () => {
       entityType: 'order',
     });
 
-    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO ai_action_sessions'));
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO ai_action_sessions')
+    );
     expect(statement.bind).toHaveBeenCalled();
     expect(result).toEqual(
       expect.objectContaining({

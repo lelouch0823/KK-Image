@@ -113,19 +113,25 @@ describeIfRealApi('Public Space Real API', function () {
 
     const publicView = await fetchWithOptionalJson(`${getBaseUrl()}/api/space/${publicShareToken}`);
     assert.strictEqual(publicView.response.status, 200);
-    assert.strictEqual(publicView.response.headers.get('cache-control'), 'public, max-age=900, stale-while-revalidate=0');
+    assert.strictEqual(
+      publicView.response.headers.get('cache-control'),
+      'public, max-age=900, stale-while-revalidate=0'
+    );
     assert.strictEqual(publicView.json?.success, true);
     assert.ok(Array.isArray(publicView.json?.data?.files), 'public space files missing');
 
     const sharedFiles = publicView.json.data.files.filter(
-      (file) =>
-        file.name === `space-first-${seed}.txt` || file.name === `space-second-${seed}.txt`
+      (file) => file.name === `space-first-${seed}.txt` || file.name === `space-second-${seed}.txt`
     );
     assert.strictEqual(sharedFiles.length, 2, 'expected both public space files in payload');
 
     const accessTokens = sharedFiles.map((file) => extractAccessToken(file.url));
     assert.ok(accessTokens.every(Boolean), 'public space file access token missing');
-    assert.strictEqual(new Set(accessTokens).size, 2, 'space file urls should use file-scoped access tokens');
+    assert.strictEqual(
+      new Set(accessTokens).size,
+      2,
+      'space file urls should use file-scoped access tokens'
+    );
 
     const seenBodies = [];
     for (const file of sharedFiles) {
@@ -135,7 +141,10 @@ describeIfRealApi('Public Space Real API', function () {
         `failed to fetch public space file ${file.name}: ${fileResponse.response.status}`
       );
       assert.strictEqual(fileResponse.response.headers.get('x-cache'), 'MISS');
-      assert.strictEqual(fileResponse.response.headers.get('cache-control'), 'private, max-age=900');
+      assert.strictEqual(
+        fileResponse.response.headers.get('cache-control'),
+        'private, max-age=900'
+      );
       seenBodies.push(await fileResponse.response.text());
     }
 
@@ -170,17 +179,20 @@ describeIfRealApi('Public Space Real API', function () {
     assert.ok(protectedSpaceId, 'protected space id missing');
     assert.ok(protectedShareToken, 'protected space share token missing');
 
-    const protectedUpload = await multipartRequest(`/api/manage/upload?spaceId=${protectedSpaceId}`, {
-      bearerToken,
-      fields: {
-        file: {
-          value: `protected-file-${seed}`,
-          filename: `protected-file-${seed}.txt`,
-          contentType: 'text/plain',
+    const protectedUpload = await multipartRequest(
+      `/api/manage/upload?spaceId=${protectedSpaceId}`,
+      {
+        bearerToken,
+        fields: {
+          file: {
+            value: `protected-file-${seed}`,
+            filename: `protected-file-${seed}.txt`,
+            contentType: 'text/plain',
+          },
         },
-      },
-      expectedStatus: 200,
-    });
+        expectedStatus: 200,
+      }
+    );
     const protectedFileId = protectedUpload.json?.data?.id;
     assert.ok(protectedFileId, 'protected space file id missing');
 
@@ -213,24 +225,32 @@ describeIfRealApi('Public Space Real API', function () {
     const outsiderFileId = outsiderUpload.json?.data?.id;
     assert.ok(outsiderFileId, 'protected outsider file id missing');
 
-    const publicGet = await fetchWithOptionalJson(`${getBaseUrl()}/api/space/${protectedShareToken}`);
+    const publicGet = await fetchWithOptionalJson(
+      `${getBaseUrl()}/api/space/${protectedShareToken}`
+    );
     assert.strictEqual(publicGet.response.status, 401);
     assert.strictEqual(publicGet.json?.success, true);
     assert.strictEqual(publicGet.json?.data?.requiresPassword, true);
 
-    const wrongPassword = await fetchWithOptionalJson(`${getBaseUrl()}/api/space/${protectedShareToken}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: '654321' }),
-    });
+    const wrongPassword = await fetchWithOptionalJson(
+      `${getBaseUrl()}/api/space/${protectedShareToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: '654321' }),
+      }
+    );
     assert.strictEqual(wrongPassword.response.status, 401);
     assert.strictEqual(wrongPassword.json?.success, false);
 
-    const verified = await fetchWithOptionalJson(`${getBaseUrl()}/api/space/${protectedShareToken}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: '123456' }),
-    });
+    const verified = await fetchWithOptionalJson(
+      `${getBaseUrl()}/api/space/${protectedShareToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: '123456' }),
+      }
+    );
     assert.strictEqual(verified.response.status, 200);
     assert.strictEqual(verified.response.headers.get('cache-control'), 'no-store, max-age=0');
     assert.strictEqual(verified.json?.success, true);
@@ -244,7 +264,9 @@ describeIfRealApi('Public Space Real API', function () {
     const accessToken = extractAccessToken(protectedFile.url);
     assert.ok(accessToken, 'protected file access token missing');
 
-    const fileResponse = await fetchWithOptionalJson(new URL(protectedFile.url, getBaseUrl()).toString());
+    const fileResponse = await fetchWithOptionalJson(
+      new URL(protectedFile.url, getBaseUrl()).toString()
+    );
     assert.ok(
       [200, 206].includes(fileResponse.response.status),
       `failed to fetch protected space file: ${fileResponse.response.status}`
@@ -330,7 +352,8 @@ describeIfRealApi('Public Space Real API', function () {
     assert.ok(
       subspaces.some(
         (subspace) =>
-          subspace.name === `Public Subspace ${seed}` && subspace.shareUrl === `/space/${publicChildToken}`
+          subspace.name === `Public Subspace ${seed}` &&
+          subspace.shareUrl === `/space/${publicChildToken}`
       ),
       'public subspace missing from collection payload'
     );
@@ -445,25 +468,28 @@ describeIfRealApi('Public Space Real API', function () {
     const shareToken = createdSpace.json?.data?.shareToken;
     assert.ok(shareToken, 'binding space share token missing');
 
-    await waitFor(async () => {
-      const publicView = await fetchWithOptionalJson(`${getBaseUrl()}/api/space/${shareToken}`);
-      assert.strictEqual(publicView.response.status, 200);
-      assert.strictEqual(publicView.json?.success, true);
-      assert.strictEqual(publicView.json?.data?.templateData?.sku, `SPACE-LIVE-${seed}`);
-      assert.strictEqual(publicView.json?.data?.templateData?.material, 'Leather');
-      assert.strictEqual(publicView.json?.data?.templateData?.brand, 'KK Live');
-      assert.strictEqual(publicView.json?.data?.templateData?.series, 'Series Live');
-      assert.strictEqual(publicView.json?.data?.templateData?.images?.[0], imageAId);
-      assert.ok(
-        String(publicView.json?.data?.coverImage || '').includes(`/file/${imageAId}`),
-        'live binding cover image did not project variant primary image'
-      );
-      return publicView.json?.data;
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'public space did not project live bound product data',
-    });
+    await waitFor(
+      async () => {
+        const publicView = await fetchWithOptionalJson(`${getBaseUrl()}/api/space/${shareToken}`);
+        assert.strictEqual(publicView.response.status, 200);
+        assert.strictEqual(publicView.json?.success, true);
+        assert.strictEqual(publicView.json?.data?.templateData?.sku, `SPACE-LIVE-${seed}`);
+        assert.strictEqual(publicView.json?.data?.templateData?.material, 'Leather');
+        assert.strictEqual(publicView.json?.data?.templateData?.brand, 'KK Live');
+        assert.strictEqual(publicView.json?.data?.templateData?.series, 'Series Live');
+        assert.strictEqual(publicView.json?.data?.templateData?.images?.[0], imageAId);
+        assert.ok(
+          String(publicView.json?.data?.coverImage || '').includes(`/file/${imageAId}`),
+          'live binding cover image did not project variant primary image'
+        );
+        return publicView.json?.data;
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'public space did not project live bound product data',
+      }
+    );
 
     await apiRequest(`/api/manage/products/${productId}`, {
       bearerToken,
@@ -471,24 +497,27 @@ describeIfRealApi('Public Space Real API', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const archivedView = await fetchWithOptionalJson(`${getBaseUrl()}/api/space/${shareToken}`);
-      assert.strictEqual(archivedView.response.status, 200);
-      assert.strictEqual(archivedView.json?.success, true);
-      assert.strictEqual(archivedView.json?.data?.templateData?.sku, 'SNAPSHOT-SKU');
-      assert.strictEqual(archivedView.json?.data?.templateData?.material, 'Snapshot Material');
-      assert.strictEqual(archivedView.json?.data?.templateData?.brand, 'Snapshot Brand');
-      assert.strictEqual(archivedView.json?.data?.templateData?.series, 'Snapshot Series');
-      assert.strictEqual(archivedView.json?.data?.templateData?.images?.[0], 'snapshot-main.jpg');
-      assert.ok(
-        String(archivedView.json?.data?.coverImage || '').includes('/file/snapshot-main.jpg'),
-        'archived binding did not fall back to snapshot cover image'
-      );
-      return archivedView.json?.data;
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'public space did not fall back to snapshot data after product archive',
-    });
+    await waitFor(
+      async () => {
+        const archivedView = await fetchWithOptionalJson(`${getBaseUrl()}/api/space/${shareToken}`);
+        assert.strictEqual(archivedView.response.status, 200);
+        assert.strictEqual(archivedView.json?.success, true);
+        assert.strictEqual(archivedView.json?.data?.templateData?.sku, 'SNAPSHOT-SKU');
+        assert.strictEqual(archivedView.json?.data?.templateData?.material, 'Snapshot Material');
+        assert.strictEqual(archivedView.json?.data?.templateData?.brand, 'Snapshot Brand');
+        assert.strictEqual(archivedView.json?.data?.templateData?.series, 'Snapshot Series');
+        assert.strictEqual(archivedView.json?.data?.templateData?.images?.[0], 'snapshot-main.jpg');
+        assert.ok(
+          String(archivedView.json?.data?.coverImage || '').includes('/file/snapshot-main.jpg'),
+          'archived binding did not fall back to snapshot cover image'
+        );
+        return archivedView.json?.data;
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'public space did not fall back to snapshot data after product archive',
+      }
+    );
   });
 });

@@ -1,6 +1,10 @@
 <template>
   <Teleport to="body">
-    <div class="pointer-events-none fixed top-4 right-4 z-[1000] flex flex-col gap-2" aria-live="polite" aria-atomic="false">
+    <div
+      class="pointer-events-none fixed top-4 right-4 z-[1000] flex flex-col gap-2"
+      aria-live="polite"
+      aria-atomic="false"
+    >
       <transition-group name="toast-slide">
         <div
           v-for="toast in toasts"
@@ -11,27 +15,16 @@
           <div
             class="inline-flex size-8 flex-shrink-0 items-center justify-center rounded-lg"
             :class="{
-              'bg-(--color-success-bg) text-(--color-success-text)':
-                toast.type === 'success',
+              'bg-(--color-success-bg) text-(--color-success-text)': toast.type === 'success',
               'bg-(--color-danger-bg) text-(--color-danger-text)': toast.type === 'error',
-              'bg-(--color-warning-bg) text-(--color-warning-text)':
-                toast.type === 'warning',
-              'bg-(--color-info-bg) text-(--color-info-text)':
-                toast.type === 'info',
+              'bg-(--color-warning-bg) text-(--color-warning-text)': toast.type === 'warning',
+              'bg-(--color-info-bg) text-(--color-info-text)': toast.type === 'info',
             }"
           >
             <!-- Success Icon -->
-            <AppIcon
-              v-if="toast.type === 'success'"
-              name="check-circle-solid"
-              class="size-5"
-            />
+            <AppIcon v-if="toast.type === 'success'" name="check-circle-solid" class="size-5" />
             <!-- Error Icon -->
-            <AppIcon
-              v-else-if="toast.type === 'error'"
-              name="x-circle-solid"
-              class="size-5"
-            />
+            <AppIcon v-else-if="toast.type === 'error'" name="x-circle-solid" class="size-5" />
             <!-- Warning Icon (Exclamation) -->
             <AppIcon
               v-else-if="toast.type === 'warning'"
@@ -39,11 +32,7 @@
               class="size-5"
             />
             <!-- Info Icon -->
-            <AppIcon
-              v-else-if="toast.type === 'info'"
-              name="information-circle"
-              class="size-5"
-            />
+            <AppIcon v-else-if="toast.type === 'info'" name="information-circle" class="size-5" />
           </div>
           <div class="ml-3 text-sm font-normal text-(--text-main)">{{ toast.message }}</div>
           <button

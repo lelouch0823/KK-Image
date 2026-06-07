@@ -13,6 +13,7 @@
 ### Task 1: Lock Helper Extraction Behavior
 
 **Files:**
+
 - Modify: `functions/services/__tests__/order-procurement-shared.test.js`
 - Modify: `functions/services/__tests__/OrderProcurementDomainService.test.js`
 - Modify: `functions/services/__tests__/OrderProcurementReceiptReversalService.test.js`
@@ -21,6 +22,7 @@
 - [ ] **Step 1: Write the failing tests**
 
 Add tests that assert:
+
 - shared helper returns `null` inventory balance when `variantId` is empty and normalizes numeric fields when present
 - shared helper rejects missing or foreign `purchase_order_items`
 - shared helper preserves forward/revert guard parameters for `purchase_order_items`
@@ -39,6 +41,7 @@ Expected: FAIL because the new shared read/guard helpers and statement builders 
 ### Task 2: Reuse Shared Read/Guard Helpers
 
 **Files:**
+
 - Modify: `functions/services/order-procurement-shared.js`
 - Modify: `functions/services/OrderProcurementDomainService.js`
 - Modify: `functions/services/OrderProcurementReceiptReversalService.js`
@@ -47,6 +50,7 @@ Expected: FAIL because the new shared read/guard helpers and statement builders 
 - [ ] **Step 1: Implement minimal shared helpers**
 
 Add helper exports for:
+
 - purchase-order lookup with configurable allowed statuses
 - purchase-order-item lookup with purchase-order ownership enforcement
 - inventory balance lookup
@@ -55,6 +59,7 @@ Add helper exports for:
 - [ ] **Step 2: Rewire the three services**
 
 Replace duplicated local helper methods with shared helper usage while preserving:
+
 - existing error messages
 - existing optimistic concurrency guards
 - existing SQL statement order

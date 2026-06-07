@@ -1,5 +1,8 @@
 <template>
-  <div class="flex flex-col items-center justify-center py-10 text-center md:py-14" :class="containerClass">
+  <div
+    class="flex flex-col items-center justify-center py-10 text-center md:py-14"
+    :class="containerClass"
+  >
     <!-- Icon Container -->
     <div class="relative mb-5">
       <div
@@ -114,12 +117,12 @@ const iconContainerClass = computed(() => {
 });
 
 const iconSizeClass = computed(() => {
-    // Determine icon size inside container
-     const sizes = {
-        sm: 'size-6',
-        md: 'size-8',
-        lg: 'size-10',
-    };
-    return sizes[size];
+  // Determine icon size inside container
+  const sizes = {
+    sm: 'size-6',
+    md: 'size-8',
+    lg: 'size-10',
+  };
+  return sizes[size];
 });
 </script>

@@ -14,16 +14,16 @@
 
 ## Scope Mapping
 
-| Issue | Plan Task |
-| --- | --- |
-| 10. 订单列表主查询仍依赖实时订单行聚合 | Task 1 |
-| 11. `orders` 热表内联大块 JSON | Task 2 |
-| 12. 采购收货 / 冲销 / 待收关闭链路多阶段写入 | Task 3 |
-| 13. 订单状态流转与订单变更路径重复扫描 `order_lines` | Task 4 |
-| 14. 缺货总览 / 需求服务 / 采购建议重复扫描活动订单行 | Task 5 |
-| 15. 商品批量导入缺少 preload + bulk upsert | Task 6 |
-| 16. 慢查询观测层未真正接入热路径 | Task 7 |
-| 17. schema 冗余索引增加写放大 | Task 8 |
+| Issue                                                | Plan Task |
+| ---------------------------------------------------- | --------- |
+| 10. 订单列表主查询仍依赖实时订单行聚合               | Task 1    |
+| 11. `orders` 热表内联大块 JSON                       | Task 2    |
+| 12. 采购收货 / 冲销 / 待收关闭链路多阶段写入         | Task 3    |
+| 13. 订单状态流转与订单变更路径重复扫描 `order_lines` | Task 4    |
+| 14. 缺货总览 / 需求服务 / 采购建议重复扫描活动订单行 | Task 5    |
+| 15. 商品批量导入缺少 preload + bulk upsert           | Task 6    |
+| 16. 慢查询观测层未真正接入热路径                     | Task 7    |
+| 17. schema 冗余索引增加写放大                        | Task 8    |
 
 ## File Structure
 
@@ -119,6 +119,7 @@
 ### Task 1: Replace Runtime Order-Line Aggregation With Order Summary Projection
 
 **Files:**
+
 - Create: `migrations/0072_order_summary_projection.sql`
 - Modify: `scripts/init-database.sql`
 - Create: `scripts/migrations/backfill-order-summary-projection.mjs`
@@ -145,6 +146,7 @@
 ### Task 2: Split Hot Order Payload JSON Out Of The `orders` Table
 
 **Files:**
+
 - Create: `migrations/0073_order_payload_sidecar.sql`
 - Modify: `scripts/init-database.sql`
 - Create: `scripts/migrations/backfill-order-payloads.mjs`
@@ -169,6 +171,7 @@
 ### Task 3: Collapse Procurement Command Writes Into Single Final Batches
 
 **Files:**
+
 - Create: `functions/services/order-procurement/command-preload.js`
 - Create: `functions/services/order-procurement/command-batch.js`
 - Modify: `functions/services/OrderProcurementDomainService.js`
@@ -188,6 +191,7 @@
 ### Task 4: Prefetch Order-Line Aggregates For Order Mutation Hot Paths
 
 **Files:**
+
 - Create: `functions/services/order-procurement/order-line-prefetch.js`
 - Modify: `functions/repositories/order/mutations.js`
 - Modify: `functions/services/OrderProcurementDomainService.js`
@@ -206,6 +210,7 @@
 ### Task 5: Introduce A Shared Variant Demand Projection For Goods Overview And Suggestions
 
 **Files:**
+
 - Create: `migrations/0074_variant_demand_projection.sql`
 - Modify: `scripts/init-database.sql`
 - Create: `scripts/migrations/backfill-variant-demand-projection.mjs`
@@ -230,6 +235,7 @@
 ### Task 6: Rebuild Product Import Around Preload And Bulk Upsert
 
 **Files:**
+
 - Create: `functions/services/product-catalog/preload-existing.js`
 - Create: `functions/services/product-catalog/bulk-upsert.js`
 - Modify: `functions/services/product-catalog/batch-execution.js`
@@ -250,6 +256,7 @@
 ### Task 7: Wire Query Observability Into Backend Hot Paths
 
 **Files:**
+
 - Modify: `functions/lib/db/query.js`
 - Modify: `functions/repositories/order/queries.js`
 - Modify: `functions/repositories/OrderStatsRepository.js`
@@ -271,6 +278,7 @@
 ### Task 8: Remove Redundant Indexes And Reconcile Final Schema
 
 **Files:**
+
 - Create: `migrations/0075_redundant_index_cleanup.sql`
 - Modify: `scripts/init-database.sql`
 - Modify: `scripts/__tests__/init-database-bootstrap-consistency.test.js`
@@ -285,6 +293,7 @@
 ### Task 9: Final Verification, Issue Register Update, And Handoff
 
 **Files:**
+
 - Modify: `docs/reviews/2026-04-16-backend-performance-issue-audit.md`
 - Modify: `docs/plans/2026-04-16-backend-performance-hardening-implementation-plan.md`
 - Modify: `docs/plans/2026-04-16-backend-performance-full-remediation-plan.md`
@@ -292,6 +301,7 @@
 - [ ] **Step 1: Run the full remediation verification suite**
 
 Run:
+
 ```bash
 pnpm test:unit:run \
   scripts/__tests__/init-database-bootstrap-consistency.test.js \

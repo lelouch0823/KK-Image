@@ -3,6 +3,7 @@
 审查范围：`minisales/miniprogram/**`
 
 基线：
+
 - `minisales/miniprogram/styles/variables.scss`
 - `minisales/miniprogram/styles/mixins.scss`
 - `minisales/miniprogram/components/sales/app-shell/**`

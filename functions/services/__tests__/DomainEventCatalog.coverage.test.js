@@ -46,7 +46,9 @@ function collectPublishedEventTypes() {
 describe('DomainEventCatalog coverage guard', () => {
   it('registers every published outbox event type in the catalog', () => {
     const publishedEventTypes = collectPublishedEventTypes();
-    const missing = publishedEventTypes.filter((eventType) => !Object.hasOwn(DOMAIN_EVENT_CATALOG, eventType));
+    const missing = publishedEventTypes.filter(
+      (eventType) => !Object.hasOwn(DOMAIN_EVENT_CATALOG, eventType)
+    );
 
     expect(missing).toEqual([]);
   });

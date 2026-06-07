@@ -13,6 +13,7 @@
 ### Task 1: Install lazygit from the official release
 
 **Files:**
+
 - Modify: system binary path `/usr/local/bin/lazygit`
 
 - [ ] **Step 1: Resolve the latest release and download assets**
@@ -26,6 +27,7 @@ Run `sha256sum -c` against the selected archive and install the `lazygit` binary
 ### Task 2: Add fish integration
 
 **Files:**
+
 - Create: `/home/bjw/.config/fish/functions/lg.fish`
 
 - [ ] **Step 1: Add upstream-style wrapper function**
@@ -35,6 +37,7 @@ Create a `fish` function that exports `LAZYGIT_NEW_DIR_FILE`, runs `lazygit`, th
 ### Task 3: Verify installation
 
 **Files:**
+
 - Verify only
 
 - [ ] **Step 1: Verify binary**

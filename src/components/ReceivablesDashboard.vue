@@ -5,14 +5,18 @@
 
     <!-- 加载状态 -->
     <div v-if="loading" class="py-12 text-center">
-      <div class="border-primary mx-auto h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+      <div
+        class="border-primary mx-auto h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
+      />
     </div>
 
     <template v-else>
       <!-- 汇总卡片 -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5">
-          <div class="text-sm text-(--text-secondary)">{{ t('order.receivables.totalOutstanding') }}</div>
+          <div class="text-sm text-(--text-secondary)">
+            {{ t('order.receivables.totalOutstanding') }}
+          </div>
           <div class="text-danger mt-2 text-3xl font-bold">{{ summary.totalOutstanding }}</div>
           <div class="mt-1 text-xs text-(--text-secondary)">
             {{ summary.orderCount }} {{ t('order.receivables.orderCount') }}
@@ -35,11 +39,7 @@
         <h3 class="text-primary mb-4 text-sm font-medium">{{ t('order.receivables.aging') }}</h3>
 
         <div class="space-y-3">
-          <div
-            v-for="bucket in summary.aging"
-            :key="bucket.label"
-            class="flex items-center gap-4"
-          >
+          <div v-for="bucket in summary.aging" :key="bucket.label" class="flex items-center gap-4">
             <div class="w-20 text-sm text-(--text-secondary)">
               {{ getAgingLabel(bucket.label) }}
             </div>
@@ -64,7 +64,9 @@
 
       <!-- 欠款客户排行 -->
       <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-5">
-        <h3 class="text-primary mb-4 text-sm font-medium">{{ t('order.receivables.topDebtors') }}</h3>
+        <h3 class="text-primary mb-4 text-sm font-medium">
+          {{ t('order.receivables.topDebtors') }}
+        </h3>
 
         <div v-if="summary.topDebtors.length > 0" class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -91,7 +93,9 @@
                 class="border-b border-(--border-color) last:border-0"
               >
                 <td class="px-4 py-3">{{ debtor.customerName }}</td>
-                <td class="px-4 py-3 text-(--text-secondary)">{{ debtor.customerCompany || '-' }}</td>
+                <td class="px-4 py-3 text-(--text-secondary)">
+                  {{ debtor.customerCompany || '-' }}
+                </td>
                 <td class="px-4 py-3 text-right">{{ debtor.orderCount }}</td>
                 <td class="text-danger px-4 py-3 text-right font-medium">
                   {{ debtor.outstanding }}

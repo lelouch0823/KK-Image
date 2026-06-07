@@ -85,7 +85,10 @@ export async function checkAndRespondLockout(c, identifier) {
     return c.json(
       {
         success: false,
-        error: MSG.AUTH.ACCOUNT_LOCKED.replace('{time}', formatRetryAfter(lockoutStatus.retryAfter)),
+        error: MSG.AUTH.ACCOUNT_LOCKED.replace(
+          '{time}',
+          formatRetryAfter(lockoutStatus.retryAfter)
+        ),
         retryAfter: lockoutStatus.retryAfter,
       },
       429,
@@ -126,7 +129,10 @@ export async function handleLoginFailure(c, identifier, errorMsg = MSG.AUTH.INVA
     return c.json(
       {
         success: false,
-        error: MSG.AUTH.ACCOUNT_LOCKED.replace('{time}', formatRetryAfter(failureResult.retryAfter)),
+        error: MSG.AUTH.ACCOUNT_LOCKED.replace(
+          '{time}',
+          formatRetryAfter(failureResult.retryAfter)
+        ),
         retryAfter: failureResult.retryAfter,
       },
       429,
@@ -146,10 +152,7 @@ export async function handleLoginFailure(c, identifier, errorMsg = MSG.AUTH.INVA
     metadata: { remaining: failureResult.remaining },
   });
 
-  return c.json(
-    { success: false, error: errorMsg, remaining: failureResult.remaining },
-    401
-  );
+  return c.json({ success: false, error: errorMsg, remaining: failureResult.remaining }, 401);
 }
 
 /**
@@ -226,11 +229,13 @@ export async function authenticateAdminUser(env, username, password) {
   if (!dbUser) return null;
 
   // 3. 验证密码（hashPassword + 比较）
-  const passwordMatches = await verifyPassword(password, dbUser.password_hash, env.JWT_SECRET);
+  // M09: 优先使用专用 PASSWORD_PEPPER，回退到 JWT_SECRET
+  const pepper = env.PASSWORD_PEPPER || env.JWT_SECRET;
+  const passwordMatches = await verifyPassword(password, dbUser.password_hash, pepper);
   if (!passwordMatches) return null;
 
   if (passwordHashNeedsMigration(dbUser.password_hash)) {
-    const upgradedHash = await hashPassword(password, env.JWT_SECRET);
+    const upgradedHash = await hashPassword(password, pepper);
     await env.DB.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
       .bind(upgradedHash, Date.now(), dbUser.id)
       .run();

@@ -60,14 +60,22 @@ describe('manage trash outbox routes', () => {
     mocks.fileRestoreBatch.mockResolvedValue(undefined);
     mocks.folderFindById
       .mockResolvedValueOnce({ id: 'folder-a', parent_id: 'root', name: 'Folder A', is_deleted: 1 })
-      .mockResolvedValueOnce({ id: 'folder-b', parent_id: 'folder-a', name: 'Folder B', is_deleted: 1 });
+      .mockResolvedValueOnce({
+        id: 'folder-b',
+        parent_id: 'folder-a',
+        name: 'Folder B',
+        is_deleted: 1,
+      });
     mocks.folderRestore.mockResolvedValue(undefined);
   });
 
   it('publishes restore update events for restored files and folders', async () => {
     const app = new Hono();
     app.onError((err, c) =>
-      c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+      c.json(
+        { success: false, error: err?.message || 'Internal Error' },
+        Number(err?.statusCode || 500)
+      )
     );
     app.route('/api/manage/trash', trashApp);
 

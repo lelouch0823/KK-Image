@@ -20,5 +20,7 @@ export function normalizeUserContext(user) {
  */
 export function isLegacyJwtContext(user) {
   const normalized = normalizeUserContext(user);
-  return normalized.type === 'jwt' && normalized.role === null && normalized.permissions.length === 0;
+  return (
+    normalized.type === 'jwt' && normalized.role === null && normalized.permissions.length === 0
+  );
 }

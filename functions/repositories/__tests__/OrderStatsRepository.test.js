@@ -67,12 +67,14 @@ describe('OrderStatsRepository', () => {
     expect(db.prepare.mock.calls[5][0]).toContain("effective_delivery_status = 'in_transit'");
     expect(db.prepare.mock.calls[5][0]).not.toContain('FROM order_lines');
     expect(db.prepare.mock.calls[5][0]).not.toContain('order_line_agg');
-    expect(result).toEqual(expect.objectContaining({
-      today: 3,
-      week: 8,
-      month: 13,
-      awaitingDelivery: 1,
-      delivered: 5,
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        today: 3,
+        week: 8,
+        month: 13,
+        awaitingDelivery: 1,
+        delivered: 5,
+      })
+    );
   });
 });

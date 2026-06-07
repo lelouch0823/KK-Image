@@ -45,7 +45,6 @@ export default {
   settings,
   customer,
 
-
   // 从 space.js 展开
   spaceManager: spaceModule.spaceManager,
   spacePublic: spaceModule.spacePublic,

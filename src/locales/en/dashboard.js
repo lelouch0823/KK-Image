@@ -49,7 +49,8 @@ export default {
   viewAllPending: 'View all pending orders',
   footer: 'KK-Image All Rights Reserved',
   permissionDenied: 'Permission Denied for Dashboard',
-  permissionDeniedDesc: 'Your account does not have dashboard read access. Please contact the admin.',
+  permissionDeniedDesc:
+    'Your account does not have dashboard read access. Please contact the admin.',
   // Charts
   salesTrend: 'Sales Trend (30D)',
   orderStatusDistribution: 'Order Status Distribution',

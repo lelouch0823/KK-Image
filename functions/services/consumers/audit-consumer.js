@@ -25,11 +25,12 @@ function resolveAuditEventConfig(event, payload) {
     };
   }
 
-  const purchaseOrderId = resolvePurchaseOrderId(event, payload)
-    || payload.order_id
-    || payload.orderId
-    || event.aggregate_id
-    || null;
+  const purchaseOrderId =
+    resolvePurchaseOrderId(event, payload) ||
+    payload.order_id ||
+    payload.orderId ||
+    event.aggregate_id ||
+    null;
   const isReversal = String(event?.event_type || '').includes('reversed');
 
   return {

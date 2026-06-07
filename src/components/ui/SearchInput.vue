@@ -11,7 +11,10 @@
       @keydown="handleKeydown"
     />
     <!-- 搜索图标 -->
-    <AppIcon name="magnifying-glass" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-(--text-muted)" />
+    <AppIcon
+      name="magnifying-glass"
+      class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-(--text-muted)"
+    />
     <!-- 清除按钮 -->
     <button
       v-if="clearable && modelValue"

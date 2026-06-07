@@ -27,7 +27,9 @@
                 <AppIcon name="clipboard-document-list" class="size-4 text-(--text-inverse)" />
               </div>
               <div>
-                <h1 class="text-primary text-sm font-semibold">{{ isSpacesPage ? t('salesSpaces.title') : t('order.portal.myOrders') }}</h1>
+                <h1 class="text-primary text-sm font-semibold">
+                  {{ isSpacesPage ? t('salesSpaces.title') : t('order.portal.myOrders') }}
+                </h1>
                 <p class="text-xs text-(--text-secondary)">{{ salesperson?.name }}</p>
               </div>
             </template>
@@ -125,19 +127,25 @@
       <!-- Content Area using Router View -->
       <AppErrorBoundary :reset-key="route.fullPath" @recover="handleBoundaryRecover">
         <MobileSalesShell :title="pageTitle" :description="salesDescription">
-            <router-view />
+          <router-view />
         </MobileSalesShell>
       </AppErrorBoundary>
 
       <!-- Bottom TabBar -->
-      <nav class="fixed right-0 bottom-0 left-0 z-40 border-t border-(--border-color) bg-(--bg-card) pb-[env(safe-area-inset-bottom)]">
+      <nav
+        class="fixed right-0 bottom-0 left-0 z-40 border-t border-(--border-color) bg-(--bg-card) pb-[env(safe-area-inset-bottom)]"
+      >
         <div class="mx-auto flex h-14 max-w-screen-xl items-center justify-around">
           <router-link
             :to="`/sales/${accessToken}`"
             class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-colors"
             :class="isOrderTab ? 'text-primary' : 'text-secondary'"
           >
-            <AppIcon name="clipboard-document-list" class="size-5" :stroke-width="isOrderTab ? '2.5' : '1.5'" />
+            <AppIcon
+              name="clipboard-document-list"
+              class="size-5"
+              :stroke-width="isOrderTab ? '2.5' : '1.5'"
+            />
             <span class="text-xs font-medium">{{ t('salesTab.orders') }}</span>
           </router-link>
           <router-link
@@ -203,12 +211,19 @@ const accessToken = computed(() => route.params.token);
 
 // Derived state for Header Actions
 const isStatsPage = computed(() => route.path.endsWith('/stats'));
-const isListPage = computed(() => route.path === `/sales/${accessToken.value}` || route.path === `/sales/${accessToken.value}/`);
+const isListPage = computed(
+  () =>
+    route.path === `/sales/${accessToken.value}` || route.path === `/sales/${accessToken.value}/`
+);
 const isSpacesPage = computed(() => route.path.startsWith(`/sales/${accessToken.value}/spaces`));
-const isOrderTab = computed(() => (
-  !isSpacesPage.value &&
-  (isListPage.value || route.path.includes('/create') || route.path.includes('/detail') || isStatsPage.value)
-));
+const isOrderTab = computed(
+  () =>
+    !isSpacesPage.value &&
+    (isListPage.value ||
+      route.path.includes('/create') ||
+      route.path.includes('/detail') ||
+      isStatsPage.value)
+);
 
 const pageTitle = computed(() => {
   if (isListPage.value) return t('order.portal.myOrders');
@@ -222,7 +237,9 @@ const pageTitle = computed(() => {
 const salesDescription = computed(() => salesperson.value?.name || '');
 
 const salesOrderV2Enabled = computed(() => isSalesOrderV2Enabled());
-const salesOrderEntry = computed(() => (salesOrderV2Enabled.value ? resolveSalesOrderEntry() : 'legacy'));
+const salesOrderEntry = computed(() =>
+  salesOrderV2Enabled.value ? resolveSalesOrderEntry() : 'legacy'
+);
 
 const salesOrderStateMachine = useSalesOrderStateMachine({
   loadOrders: async (payload = {}) => {
@@ -264,25 +281,28 @@ const searchQuery = ref('');
 
 // Provide context to child views
 provide('salesContext', {
-    orders,
-    loading: ordersLoading,
-    salesperson,
-    accessToken,
-    loadOrders: (page, append, search = searchQuery.value) => salesOrderStateMachine.loadOrders({ page, append, search }),
-    pagination: ordersPagination,
-    prefillData,
-    setPrefillData: (data) => { prefillData.value = data },
-    searchQuery,
-    salesOrderMode: salesOrderEntry,
-    salesOrderV2Enabled,
-    salesOrderStateMachine,
+  orders,
+  loading: ordersLoading,
+  salesperson,
+  accessToken,
+  loadOrders: (page, append, search = searchQuery.value) =>
+    salesOrderStateMachine.loadOrders({ page, append, search }),
+  pagination: ordersPagination,
+  prefillData,
+  setPrefillData: (data) => {
+    prefillData.value = data;
+  },
+  searchQuery,
+  salesOrderMode: salesOrderEntry,
+  salesOrderV2Enabled,
+  salesOrderStateMachine,
 });
 
 // Notifications Logic
 const showNotifications = ref(false);
 const notificationRef = ref(null);
-onClickOutside(notificationRef, () => showNotifications.value = false);
-const toggleNotifications = () => showNotifications.value = !showNotifications.value;
+onClickOutside(notificationRef, () => (showNotifications.value = false));
+const toggleNotifications = () => (showNotifications.value = !showNotifications.value);
 
 const handleNotificationNavigate = async (orderId) => {
   showNotifications.value = false;
@@ -290,7 +310,7 @@ const handleNotificationNavigate = async (orderId) => {
 };
 
 const openCreateModal = () => {
-    router.push(`/sales/${accessToken.value}/create`);
+  router.push(`/sales/${accessToken.value}/create`);
 };
 
 const handleBoundaryRecover = async () => {
@@ -358,7 +378,9 @@ watch(accessToken, () => {
 onMounted(async () => {
   stopSalesOrdersRefreshSubscription = subscribeModule('salesOrders', async () => {
     if (isAuthenticated.value && isListPage.value) {
-      const prevFeedbackIds = new Set(orders.value.filter((o) => o.hasNewFeedback).map((o) => o.id));
+      const prevFeedbackIds = new Set(
+        orders.value.filter((o) => o.hasNewFeedback).map((o) => o.id)
+      );
       await salesOrderStateMachine.loadOrders();
 
       orders.value.forEach((order) => {

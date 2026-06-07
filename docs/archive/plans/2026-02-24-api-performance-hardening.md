@@ -15,11 +15,13 @@
 ## Task 1: [P0] customers.js — 补齐全部 try-catch
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/customers.js`
 
 **Step 1: 为所有 5 个端点添加 try-catch**
 
 包裹以下端点的全部 handler 逻辑：
+
 - `GET /` (L25-59)
 - `POST /` (L64-80)
 - `GET /:id` (L85-113)
@@ -27,6 +29,7 @@
 - `DELETE /:id` (L140-158)
 
 catch 块模板：
+
 ```javascript
 } catch (err) {
     console.error('[Customers] 操作失败:', err);
@@ -53,11 +56,13 @@ git commit -m "fix(customers): add try-catch error handling to all endpoints"
 ## Task 2: [P0] salespersons.js — 补齐全部 try-catch
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/salespersons.js`
 
 **Step 1: 为所有 7 个端点添加 try-catch**
 
 包裹以下端点：
+
 - `GET /` (L28-59)
 - `POST /` (L64-81)
 - `GET /:id` (L86-110)
@@ -66,6 +71,7 @@ git commit -m "fix(customers): add try-catch error handling to all endpoints"
 - `POST /:id/reset-token` (L172-188)
 
 catch 块模板：
+
 ```javascript
 } catch (err) {
     console.error('[Salespersons] 操作失败:', err);
@@ -90,6 +96,7 @@ git commit -m "fix(salespersons): add try-catch error handling to all endpoints"
 ## Task 3: [P0] orders/list.js — 补齐 try-catch + 并行化查询
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/orders/list.js`
 
 **Step 1: GET / — 用 Promise.all 并行化 + 包裹 try-catch**
@@ -134,11 +141,13 @@ git commit -m "perf(orders): parallelize list queries with Promise.all and add e
 ## Task 4: [P0] orders/detail.js — 补齐 try-catch
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/orders/detail.js`
 
 **Step 1: 为所有 5 个端点添加 try-catch**
 
 包裹以下端点：
+
 - `GET /:id` (L12-39)
 - `PATCH /:id` (L44-95)
 - `PATCH /:id/status` (L100-141)
@@ -146,6 +155,7 @@ git commit -m "perf(orders): parallelize list queries with Promise.all and add e
 - `DELETE /:id` (L186-203)
 
 catch 块模板：
+
 ```javascript
 } catch (err) {
     console.error('[Orders/Detail] 操作失败:', err);
@@ -170,6 +180,7 @@ git commit -m "fix(orders/detail): add try-catch error handling to all endpoints
 ## Task 5: [P0] products/[id].js — 补齐 try-catch + 清理调试日志 + 改用 Repository
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/products/[id].js`
 
 **Step 1: GET /:id — 改用 ProductRepository**
@@ -188,6 +199,7 @@ const product = await repo.findById(id);
 **Step 2: PATCH /:id — 删除 3 行调试 console.log**
 
 删除第 50-55 行的三个 `console.log`：
+
 ```javascript
 // ❌ 删除以下三行
 console.log('[PATCH /products/:id] ID:', id);
@@ -216,6 +228,7 @@ git commit -m "fix(products): use repository pattern, remove debug logs, add err
 ## Task 6: [P1] StatsRepository.getGlobalStats() — 全面并行化
 
 **Files:**
+
 - Modify: `functions/repositories/StatsRepository.js`
 
 **Step 1: 将全部 6 个查询统一放入 Promise.all**
@@ -271,6 +284,7 @@ git commit -m "perf(stats): parallelize all 6 queries in getGlobalStats with Pro
 ## Task 7: [P2] 高频只读端点加缓存
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/salespersons.js`
 - Modify: `functions/lib/hono/routes/manage/customers.js`
 
@@ -309,6 +323,7 @@ git commit -m "perf(api): add edge cache to salespersons (120s) and customers (6
 ## Task 8: [P0] products/index.js — 补齐 GET / 的 try-catch
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/products/index.js`
 
 **Step 1: GET / 添加 try-catch**
@@ -334,10 +349,12 @@ git commit -m "fix(products): add try-catch error handling to GET list endpoint"
 ## 验证计划
 
 ### 自动验证
+
 - 每个 Task 完成后运行 `pnpm run build` 确保编译通过
 - 最终运行 `pnpm run build` 做全量回归
 
-### 手动验证  
+### 手动验证
+
 - 部署后在管理后台分别访问客户页、销售页、订单列表页、商品详情页，验证正常功能不受影响
 - 可使用浏览器 DevTools Network 面板对比查询延迟变化（特别是统计页和订单列表页）
 
@@ -345,14 +362,14 @@ git commit -m "fix(products): add try-catch error handling to GET list endpoint"
 
 ## 预估时间表
 
-| Task | 预估时间 | 累计提交 |
-|------|---------|---------|
-| Task 1 (customers try-catch) | ~3 分钟 | 1 |
-| Task 2 (salespersons try-catch) | ~3 分钟 | 2 |
-| Task 3 (orders/list 并行+try-catch) | ~5 分钟 | 3 |
-| Task 4 (orders/detail try-catch) | ~3 分钟 | 4 |
-| Task 5 (products/[id] 综合修复) | ~5 分钟 | 5 |
-| Task 6 (StatsRepository 全面并行化) | ~5 分钟 | 6 |
-| Task 7 (高频端点加缓存) | ~3 分钟 | 7 |
-| Task 8 (products/index try-catch) | ~2 分钟 | 8 |
-| **合计** | **~29 分钟** | **8 commits** |
+| Task                                | 预估时间     | 累计提交      |
+| ----------------------------------- | ------------ | ------------- |
+| Task 1 (customers try-catch)        | ~3 分钟      | 1             |
+| Task 2 (salespersons try-catch)     | ~3 分钟      | 2             |
+| Task 3 (orders/list 并行+try-catch) | ~5 分钟      | 3             |
+| Task 4 (orders/detail try-catch)    | ~3 分钟      | 4             |
+| Task 5 (products/[id] 综合修复)     | ~5 分钟      | 5             |
+| Task 6 (StatsRepository 全面并行化) | ~5 分钟      | 6             |
+| Task 7 (高频端点加缓存)             | ~3 分钟      | 7             |
+| Task 8 (products/index try-catch)   | ~2 分钟      | 8             |
+| **合计**                            | **~29 分钟** | **8 commits** |

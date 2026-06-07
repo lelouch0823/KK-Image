@@ -68,9 +68,9 @@ export async function decrementRefCount(env, hash) {
   ).bind(hash);
 
   // 查询更新后的引用计数
-  const selectStmt = env.DB.prepare(
-    'SELECT ref_count FROM blobs WHERE content_hash = ?'
-  ).bind(hash);
+  const selectStmt = env.DB.prepare('SELECT ref_count FROM blobs WHERE content_hash = ?').bind(
+    hash
+  );
 
   // 使用 batch 保证原子性
   const [, selectResult] = await env.DB.batch([updateStmt, selectStmt]);

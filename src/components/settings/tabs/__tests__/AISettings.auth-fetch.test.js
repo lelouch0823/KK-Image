@@ -20,7 +20,10 @@ vi.mock('@/composables/useI18n', () => ({
 describe('AISettings auth fetch unification', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('direct fetch should not be used in manage settings'))));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new Error('direct fetch should not be used in manage settings')))
+    );
   });
 
   afterEach(() => {
@@ -61,7 +64,9 @@ describe('AISettings auth fetch unification', () => {
 
     expect(mockAuthFetch).toHaveBeenCalledWith('/api/manage/settings');
     expect(
-      mockAuthFetch.mock.calls.some(([url]) => String(url).startsWith('/api/manage/settings/ai/health'))
+      mockAuthFetch.mock.calls.some(([url]) =>
+        String(url).startsWith('/api/manage/settings/ai/health')
+      )
     ).toBe(true);
   });
 });

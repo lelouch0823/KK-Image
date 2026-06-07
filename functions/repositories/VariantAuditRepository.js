@@ -11,20 +11,22 @@ export class VariantAuditRepository {
 
     const timestamp = now();
     const statements = events.map((event) =>
-      this.db.prepare(
-        `INSERT INTO variant_audit_logs
+      this.db
+        .prepare(
+          `INSERT INTO variant_audit_logs
           (id, variant_id, product_id, actor_type, actor_id, action, changes_json, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        generateId(),
-        event.variant_id,
-        event.product_id,
-        actor.actor_type || 'system',
-        actor.actor_id || null,
-        event.action,
-        JSON.stringify(event.changes || {}),
-        timestamp
-      )
+        )
+        .bind(
+          generateId(),
+          event.variant_id,
+          event.product_id,
+          actor.actor_type || 'system',
+          actor.actor_id || null,
+          event.action,
+          JSON.stringify(event.changes || {}),
+          timestamp
+        )
     );
 
     await executeBatchChunks(this.db, statements);

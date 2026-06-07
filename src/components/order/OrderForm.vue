@@ -23,10 +23,20 @@
           </span>
         </p>
         <div class="flex items-center gap-2">
-          <AppButton variant="ghost" size="sm" data-testid="form-draft-restore" @click="handleRestoreFormDraft">
+          <AppButton
+            variant="ghost"
+            size="sm"
+            data-testid="form-draft-restore"
+            @click="handleRestoreFormDraft"
+          >
             {{ t('formDraft.restore', '恢复') }}
           </AppButton>
-          <AppButton variant="ghost" size="sm" data-testid="form-draft-discard" @click="clearFormDraft">
+          <AppButton
+            variant="ghost"
+            size="sm"
+            data-testid="form-draft-discard"
+            @click="clearFormDraft"
+          >
             {{ t('formDraft.discard', '丢弃') }}
           </AppButton>
         </div>
@@ -147,10 +157,7 @@
                   :key="key"
                   class="min-w-0 rounded-md bg-(--bg-card)/70 p-2"
                 >
-                  <span
-                    class="block truncate text-xs text-(--text-secondary)"
-                    :title="String(key)"
-                  >
+                  <span class="block truncate text-xs text-(--text-secondary)" :title="String(key)">
                     {{ key }}
                   </span>
                   <span
@@ -385,8 +392,12 @@ const showLineEditor = computed(() => props.mode === 'admin');
 
 // 表单草稿自动保存（仅 admin 模式）
 const draftDataSource = reactive({
-  get form() { return form; },
-  get lines() { return lines.value; },
+  get form() {
+    return form;
+  },
+  get lines() {
+    return lines.value;
+  },
 });
 
 const {
@@ -415,8 +426,9 @@ const isValid = computed(() => {
   return true;
 });
 
-const actionBarClass = computed(() =>
-  'sticky bottom-0 z-20 -mx-3 flex gap-3 border-t border-(--border-color) bg-(--bg-card) px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]'
+const actionBarClass = computed(
+  () =>
+    'sticky bottom-0 z-20 -mx-3 flex gap-3 border-t border-(--border-color) bg-(--bg-card) px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]'
 );
 
 const applyDefaultAdminSalesperson = (salespersons = props.salespersons) => {
@@ -497,7 +509,10 @@ const handleSubmit = async () => {
       });
     } else if (summaryMetrics.value.pendingLineCount > 0) {
       addToast({
-        message: t('order.form.pendingLines', `还有 ${summaryMetrics.value.pendingLineCount} 行待完善`),
+        message: t(
+          'order.form.pendingLines',
+          `还有 ${summaryMetrics.value.pendingLineCount} 行待完善`
+        ),
         type: 'warning',
       });
     } else if (!form.name && !lines.value.some((line) => String(line?.name || '').trim())) {

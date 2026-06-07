@@ -1,8 +1,17 @@
 <template>
-  <div v-if="errorCode === ErrorCode.FORBIDDEN" class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8">
+  <div
+    v-if="errorCode === ErrorCode.FORBIDDEN"
+    class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8"
+  >
     <PermissionDeniedState
       :title="t('outboxOps.permissionDenied', 'Outbox 运维权限不足')"
-      :description="error || t('outboxOps.permissionDeniedDesc', '当前账号没有 outbox 运维读取权限，请联系管理员分配 audit:read。')"
+      :description="
+        error ||
+        t(
+          'outboxOps.permissionDeniedDesc',
+          '当前账号没有 outbox 运维读取权限，请联系管理员分配 audit:read。'
+        )
+      "
       required-permission="audit:read"
       @retry="fetchEvents"
     />
@@ -10,7 +19,9 @@
   <ManagementListShell
     v-else
     :title="t('outboxOps.title', 'Outbox 运维')"
-    :description="t('outboxOps.subtitle', '查看事件消费状态，并对失败 side effect 做 dry-run / replay。')"
+    :description="
+      t('outboxOps.subtitle', '查看事件消费状态，并对失败 side effect 做 dry-run / replay。')
+    "
   >
     <template #filters>
       <AppInput
@@ -29,11 +40,7 @@
     </template>
 
     <template #actions>
-      <AppButton
-        variant="secondary"
-        :text="t('common.refresh')"
-        @click="fetchEvents"
-      />
+      <AppButton variant="secondary" :text="t('common.refresh')" @click="fetchEvents" />
     </template>
 
     <template #summary>
@@ -45,7 +52,9 @@
         >
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex items-start gap-3">
-              <div class="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-warning/12 text-warning">
+              <div
+                class="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-warning/12 text-warning"
+              >
                 <AppIcon name="shield-check" class="size-5" />
               </div>
               <div class="space-y-2">
@@ -58,7 +67,12 @@
                   </StatusBadge>
                 </div>
                 <p class="max-w-3xl text-sm text-(--text-secondary)">
-                  {{ t('outboxOps.banner.description', '这里用于排查 side effect 消费与重放，不改主业务事实。先看健康概览，再筛选事件，最后决定是否执行 replay。') }}
+                  {{
+                    t(
+                      'outboxOps.banner.description',
+                      '这里用于排查 side effect 消费与重放，不改主业务事实。先看健康概览，再筛选事件，最后决定是否执行 replay。'
+                    )
+                  }}
                 </p>
               </div>
             </div>
@@ -67,9 +81,11 @@
                 {{ t('outboxOps.banner.scope', '仅处理已落库 outbox 事件') }}
               </StatusBadge>
               <StatusBadge :variant="filteredMetrics.failedJobs ? 'danger' : 'success'" dot>
-                {{ filteredMetrics.failedJobs
-                  ? t('outboxOps.banner.attention', { count: filteredMetrics.failedJobs })
-                  : t('outboxOps.banner.clear', '当前筛选范围无失败消费者') }}
+                {{
+                  filteredMetrics.failedJobs
+                    ? t('outboxOps.banner.attention', { count: filteredMetrics.failedJobs })
+                    : t('outboxOps.banner.clear', '当前筛选范围无失败消费者')
+                }}
               </StatusBadge>
             </div>
           </div>
@@ -83,26 +99,37 @@
                   {{ t('outboxOps.summary.globalLabel', '全局健康概览') }}
                 </p>
                 <p class="mt-1 text-sm text-(--text-secondary)">
-                  {{ t('outboxOps.summary.globalDescription', '基于当前已加载事件集合，判断是否存在积压或失败信号。') }}
+                  {{
+                    t(
+                      'outboxOps.summary.globalDescription',
+                      '基于当前已加载事件集合，判断是否存在积压或失败信号。'
+                    )
+                  }}
                 </p>
               </div>
               <StatusBadge
-                :variant="healthMetrics.isLoading || healthMetrics.refreshFailed ? 'warning' : 'primary'"
+                :variant="
+                  healthMetrics.isLoading || healthMetrics.refreshFailed ? 'warning' : 'primary'
+                "
                 outline
               >
-                {{ healthMetrics.isLoading
-                  ? t('outboxOps.summary.globalUpdating', '全局健康概览更新中')
-                  : healthMetrics.refreshFailed
-                    ? t('outboxOps.summary.globalStale', '全局健康概览为上一次成功快照')
-                    : `${healthMetrics.totalEvents} ${t('outboxOps.summary.eventsUnit', '条事件')}` }}
+                {{
+                  healthMetrics.isLoading
+                    ? t('outboxOps.summary.globalUpdating', '全局健康概览更新中')
+                    : healthMetrics.refreshFailed
+                      ? t('outboxOps.summary.globalStale', '全局健康概览为上一次成功快照')
+                      : `${healthMetrics.totalEvents} ${t('outboxOps.summary.eventsUnit', '条事件')}`
+                }}
               </StatusBadge>
             </div>
 
-            <p
-              v-if="healthMetrics.refreshFailed"
-              class="text-sm text-warning"
-            >
-              {{ t('outboxOps.summary.globalRefreshFailed', '最近一次全局刷新失败，当前展示的是上一次成功快照。') }}
+            <p v-if="healthMetrics.refreshFailed" class="text-sm text-warning">
+              {{
+                t(
+                  'outboxOps.summary.globalRefreshFailed',
+                  '最近一次全局刷新失败，当前展示的是上一次成功快照。'
+                )
+              }}
             </p>
 
             <div class="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
@@ -144,15 +171,25 @@
                   {{ t('outboxOps.summary.focusLabel', '当前筛选结果') }}
                 </p>
                 <p class="mt-1 text-sm text-(--text-secondary)">
-                  {{ filteredMetrics.hasFilters
-                    ? t('outboxOps.summary.focusDescription', '以下摘要只反映你当前筛中的事件范围。')
-                    : t('outboxOps.summary.focusDescriptionEmpty', '当前未设置筛选，默认展示全部可访问事件。') }}
+                  {{
+                    filteredMetrics.hasFilters
+                      ? t(
+                          'outboxOps.summary.focusDescription',
+                          '以下摘要只反映你当前筛中的事件范围。'
+                        )
+                      : t(
+                          'outboxOps.summary.focusDescriptionEmpty',
+                          '当前未设置筛选，默认展示全部可访问事件。'
+                        )
+                  }}
                 </p>
               </div>
               <StatusBadge :variant="filteredMetrics.hasFilters ? 'info' : 'default'" outline>
-                {{ filteredMetrics.hasFilters
-                  ? t('outboxOps.summary.filteredMode', '已聚焦')
-                  : t('outboxOps.summary.unfilteredMode', '全量视图') }}
+                {{
+                  filteredMetrics.hasFilters
+                    ? t('outboxOps.summary.filteredMode', '已聚焦')
+                    : t('outboxOps.summary.unfilteredMode', '全量视图')
+                }}
               </StatusBadge>
             </div>
 
@@ -200,7 +237,10 @@
                 >
                   {{ token }}
                 </StatusBadge>
-                <span v-if="!filteredMetrics.selectedFilters.length" class="text-sm text-(--text-secondary)">
+                <span
+                  v-if="!filteredMetrics.selectedFilters.length"
+                  class="text-sm text-(--text-secondary)"
+                >
                   {{ t('outboxOps.summary.noFilters', '未设置筛选条件') }}
                 </span>
               </div>
@@ -211,7 +251,10 @@
     </template>
 
     <template #content>
-      <div data-testid="outbox-workspace" class="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(340px,1fr)]">
+      <div
+        data-testid="outbox-workspace"
+        class="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(340px,1fr)]"
+      >
         <StatePanel variant="panel" class="space-y-4">
           <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
@@ -226,25 +269,20 @@
               <StatusBadge variant="info" outline>
                 {{ t('outboxOps.workspace.results', { count: filteredMetrics.totalEvents }) }}
               </StatusBadge>
-              <StatusBadge
-                v-if="listMeta.isTruncated"
-                variant="warning"
-                outline
-              >
+              <StatusBadge v-if="listMeta.isTruncated" variant="warning" outline>
                 {{ t('outboxOps.workspace.truncated', { limit: listMeta.limit }) }}
               </StatusBadge>
               <StatusBadge :variant="filteredMetrics.failedJobs ? 'danger' : 'success'" outline>
-                {{ filteredMetrics.failedJobs
-                  ? t('outboxOps.workspace.failedHint', { count: filteredMetrics.failedJobs })
-                  : t('outboxOps.workspace.clearHint', '当前范围无失败项') }}
+                {{
+                  filteredMetrics.failedJobs
+                    ? t('outboxOps.workspace.failedHint', { count: filteredMetrics.failedJobs })
+                    : t('outboxOps.workspace.clearHint', '当前范围无失败项')
+                }}
               </StatusBadge>
             </div>
           </div>
 
-          <p
-            v-if="listMeta.isTruncated"
-            class="text-sm text-warning"
-          >
+          <p v-if="listMeta.isTruncated" class="text-sm text-warning">
             {{ t('outboxOps.workspace.truncatedHint', '更早的事件未展示，请缩小筛选范围后重试。') }}
           </p>
 
@@ -307,9 +345,7 @@ const {
   executeReplay,
   clearReplayResult,
 } = useOutboxOps();
-const {
-  loadEvents: loadHealthEvents,
-} = healthOps;
+const { loadEvents: loadHealthEvents } = healthOps;
 
 const filters = reactive({
   eventType: '',
@@ -324,26 +360,31 @@ const healthLoaded = ref(false);
 const healthRefreshFailed = ref(false);
 let latestDetailSelectionId = 0;
 
-const statusOptions = computed(() => ([
+const statusOptions = computed(() => [
   { value: '', label: t('outboxOps.filters.allStatuses', '全部状态') },
   { value: 'pending', label: 'pending' },
   { value: 'processing', label: 'processing' },
   { value: 'published', label: 'published' },
   { value: 'failed', label: 'failed' },
   { value: 'skipped', label: 'skipped' },
-]));
-const hasActiveFilters = computed(() => Boolean(
-  filters.eventType || filters.consumerName || filters.status
-));
-const healthMetrics = computed(() => buildOutboxOpsMetrics(
-  globalHealthEvents.value,
-  {},
-  {
-    isLoading: healthLoading.value,
-    isStale: healthLoaded.value && hasActiveFilters.value && (healthLoading.value || healthRefreshFailed.value),
-    refreshFailed: healthRefreshFailed.value,
-  }
-));
+]);
+const hasActiveFilters = computed(() =>
+  Boolean(filters.eventType || filters.consumerName || filters.status)
+);
+const healthMetrics = computed(() =>
+  buildOutboxOpsMetrics(
+    globalHealthEvents.value,
+    {},
+    {
+      isLoading: healthLoading.value,
+      isStale:
+        healthLoaded.value &&
+        hasActiveFilters.value &&
+        (healthLoading.value || healthRefreshFailed.value),
+      refreshFailed: healthRefreshFailed.value,
+    }
+  )
+);
 const filteredMetrics = computed(() => buildOutboxOpsMetrics(events.value, filters));
 
 async function refreshGlobalHealthEvents() {

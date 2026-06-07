@@ -13,6 +13,7 @@
 ### Task 1: Lock the Cleanup Contract
 
 **Files:**
+
 - Create: `functions/services/__tests__/service-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because those wrapper methods still exist.
 ### Task 2: Inline Shared Helper Usage
 
 **Files:**
+
 - Modify: `functions/services/OrderProcurementDomainService.js`
 - Modify: `functions/services/OrderProcurementReceiptReversalService.js`
 - Modify: `functions/services/PurchaseOrderShortageClosureService.js`

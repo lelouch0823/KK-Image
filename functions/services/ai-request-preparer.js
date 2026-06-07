@@ -25,13 +25,17 @@ import { createRequestId } from './ai-telemetry-helpers.js';
 export async function prepareAIRequest({ body, runtimeEnv, user, c, routeType, db }) {
   const { messages: history, context: clientContext = {} } = body;
   const requestContext = createAIRequestContext({
-    userId: user?.id || null, routeType, signal: c.req.raw.signal,
+    userId: user?.id || null,
+    routeType,
+    signal: c.req.raw.signal,
   });
   const telemetryWriter = createAITelemetryWriter({ db });
   const envWithSignal = { ...runtimeEnv, AI_REQUEST_SIGNAL: requestContext.signal };
   const todayDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
   const prepared = await prepareConversationRequest({
-    history, runtimeEnv: envWithSignal, channel: routeType,
+    history,
+    runtimeEnv: envWithSignal,
+    channel: routeType,
     basePrompt: SYSTEM_PROMPT(todayDate, clientContext),
   });
   const { visionFirst, latestUserText, messages, telemetry } = prepared;
@@ -46,8 +50,17 @@ export async function prepareAIRequest({ body, runtimeEnv, user, c, routeType, d
     userSignals: telemetry.userSignals,
   });
   return {
-    history, clientContext, requestContext, telemetryWriter, envWithSignal,
-    visionFirst, latestUserText, messages, inputSummary: telemetry.inputSummary,
-    userSignals: telemetry.userSignals, requestId, safetyCheck,
+    history,
+    clientContext,
+    requestContext,
+    telemetryWriter,
+    envWithSignal,
+    visionFirst,
+    latestUserText,
+    messages,
+    inputSummary: telemetry.inputSummary,
+    userSignals: telemetry.userSignals,
+    requestId,
+    safetyCheck,
   };
 }

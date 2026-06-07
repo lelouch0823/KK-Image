@@ -25,7 +25,7 @@ app.use('*', aiRateLimitMiddleware);
  */
 app.post('/chat', async (c) => {
   const { env } = c;
-  const body = c.get('aiRequestBody') || await c.req.json();
+  const body = c.get('aiRequestBody') || (await c.req.json());
 
   const configService = createAIConfigService(env.DB, env);
   const runtimeEnv = await configService.resolveRuntimeEnv();
@@ -66,7 +66,7 @@ app.post('/report', async (c) => {
  */
 app.post('/stream', async (c) => {
   const { env } = c;
-  const body = c.get('aiRequestBody') || await c.req.json();
+  const body = c.get('aiRequestBody') || (await c.req.json());
 
   const configService = createAIConfigService(env.DB, env);
   const runtimeEnv = await configService.resolveRuntimeEnv();

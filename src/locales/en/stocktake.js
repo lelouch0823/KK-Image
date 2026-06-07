@@ -61,7 +61,8 @@ export default {
   // Confirmation dialogs
   confirm: {
     adjustTitle: 'Confirm Inventory Adjustment',
-    adjustMessage: 'This will adjust system inventory based on stocktake differences. This action cannot be undone. Continue?',
+    adjustMessage:
+      'This will adjust system inventory based on stocktake differences. This action cannot be undone. Continue?',
     cancelTitle: 'Cancel Stocktake',
     cancelMessage: 'Are you sure you want to cancel this stocktake? This cannot be undone.',
   },

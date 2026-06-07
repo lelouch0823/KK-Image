@@ -13,6 +13,7 @@
 ### Task 1: Bound the Outbox list query on the backend
 
 **Files:**
+
 - Modify: `functions/repositories/OutboxReplayRepository.js`
 - Modify: `functions/repositories/__tests__/OutboxReplayRepository.test.js`
 - Modify: `functions/lib/hono/routes/manage/outbox.js`
@@ -64,6 +65,7 @@ git commit -m "fix: bound outbox ops list queries"
 ### Task 2: Guard the frontend list against stale request overwrites
 
 **Files:**
+
 - Modify: `src/composables/useOutboxOps.js`
 - Modify: `src/composables/__tests__/useOutboxOps.test.js`
 
@@ -108,6 +110,7 @@ git commit -m "fix: guard outbox ops list against stale responses"
 ### Task 3: Make global health metrics explicit instead of silently stale
 
 **Files:**
+
 - Modify: `src/views/OutboxOps.vue`
 - Modify: `src/views/__tests__/OutboxOps.behavior.test.js`
 - Modify: `src/components/outbox/outboxOpsSummary.js`
@@ -159,6 +162,7 @@ git commit -m "fix: clarify outbox ops global health state"
 ### Task 4: Final verification
 
 **Files:**
+
 - Modify: `functions/repositories/OutboxReplayRepository.js`
 - Modify: `functions/lib/hono/routes/manage/outbox.js`
 - Modify: `src/composables/useOutboxOps.js`

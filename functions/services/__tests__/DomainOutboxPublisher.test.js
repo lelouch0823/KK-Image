@@ -88,11 +88,24 @@ describe('DomainOutboxPublisher', () => {
 
     await expect(publisher.publish(events)).rejects.toThrow('second chunk failed');
 
+    // 2 publish chunks + 1 rollback batch
     expect(db.batch).toHaveBeenCalledTimes(3);
     const rollbackStatements = batchCalls[2];
-    expect(rollbackStatements).toHaveLength(50);
-    expect(rollbackStatements.every((statement) => statement.sql.includes('DELETE FROM domain_outbox'))).toBe(true);
+    // Rollback creates 2 statements per event (DELETE from outbox_consumer_jobs + DELETE from domain_outbox)
+    expect(rollbackStatements).toHaveLength(100);
+    // All rollback statements should be DELETE operations
+    expect(
+      rollbackStatements.every(
+        (statement) =>
+          statement.sql.includes('DELETE FROM domain_outbox') ||
+          statement.sql.includes('DELETE FROM outbox_consumer_jobs')
+      )
+    ).toBe(true);
+    // First pair of rollback statements targets uuid-2
     expect(rollbackStatements[0].params).toEqual(['uuid-2']);
-    expect(rollbackStatements[49].params).toEqual(['uuid-51']);
+    expect(rollbackStatements[1].params).toEqual(['uuid-2']);
+    // Last pair targets uuid-51
+    expect(rollbackStatements[98].params).toEqual(['uuid-51']);
+    expect(rollbackStatements[99].params).toEqual(['uuid-51']);
   });
 });

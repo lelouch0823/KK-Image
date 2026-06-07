@@ -13,12 +13,14 @@
 ### Task 1: Lock Thin-Wrapper Removal Contract
 
 **Files:**
+
 - Modify: `functions/repositories/__tests__/notification-repository-legacy-schema.test.js`
 - Create: `functions/repositories/__tests__/notification-metadata-wrapper.audit.test.js`
 
 - [ ] **Step 1: Write the failing tests**
 
 Add tests that assert:
+
 - invalid notification metadata still maps to `null`
 - `NotificationRepository.js` no longer defines `parseMetadata`
 
@@ -35,9 +37,10 @@ Expected: FAIL because the thin wrapper still exists.
 ### Task 2: Remove the Thin Wrapper
 
 **Files:**
+
 - Modify: `functions/repositories/NotificationRepository.js`
 
-- [ ] **Step 1: Delete parseMetadata and update _mapNotification**
+- [ ] **Step 1: Delete parseMetadata and update \_mapNotification**
 
 Use `parseJsonObject(n.metadata, null)` directly in `_mapNotification`.
 

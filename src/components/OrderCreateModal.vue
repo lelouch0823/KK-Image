@@ -39,9 +39,10 @@ const { t } = useI18n();
 
 const submitProgress = ref({ step: '', current: 0, total: 0 });
 const createStatuses = computed(() => {
-  const source = Array.isArray(props.statuses) && props.statuses.length > 0
-    ? props.statuses
-    : DEFAULT_CREATE_STATUSES;
+  const source =
+    Array.isArray(props.statuses) && props.statuses.length > 0
+      ? props.statuses
+      : DEFAULT_CREATE_STATUSES;
   return source.filter((status) => ALLOWED_CREATE_STATUSES.has(String(status || '').trim()));
 });
 

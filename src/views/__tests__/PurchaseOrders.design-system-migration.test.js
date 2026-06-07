@@ -32,9 +32,9 @@ describe('PurchaseOrders design-system migration', () => {
   it('keeps pagination and management actions on shared AppButton primitives', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/views/PurchaseOrders.vue'), 'utf8');
 
-    expect(source).toContain("variant=\"secondary\"");
-    expect(source).toContain("variant=\"primary\"");
-    expect(source).toContain("variant=\"outline\"");
+    expect(source).toContain('variant="secondary"');
+    expect(source).toContain('variant="primary"');
+    expect(source).toContain('variant="outline"');
   });
 
   it('keeps permission-denied and success shells on shared typography tokens', () => {

@@ -92,7 +92,10 @@
                   >
                     {{ item.rank }}
                   </div>
-                  <span v-else class="inline-flex size-7 items-center justify-center text-(--text-muted)">
+                  <span
+                    v-else
+                    class="inline-flex size-7 items-center justify-center text-(--text-muted)"
+                  >
                     {{ item.rank }}
                   </span>
                 </td>
@@ -173,9 +176,11 @@ const sortOptions = [
 ];
 
 const medalClass = (rank) => {
-  if (rank === 1) return 'bg-(--color-warning-bg) text-(--color-warning-text) ring-1 ring-warning/30';
+  if (rank === 1)
+    return 'bg-(--color-warning-bg) text-(--color-warning-text) ring-1 ring-warning/30';
   if (rank === 2) return 'bg-(--bg-muted) text-(--text-secondary) ring-1 ring-(--border-color)';
-  if (rank === 3) return 'bg-(--color-warning-bg) text-(--color-warning-text) ring-1 ring-warning/30';
+  if (rank === 3)
+    return 'bg-(--color-warning-bg) text-(--color-warning-text) ring-1 ring-warning/30';
   return '';
 };
 

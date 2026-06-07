@@ -104,7 +104,10 @@
               >
                 <template #cell-productName="{ row }">
                   <div>
-                    <div class="text-primary max-w-[200px] truncate font-medium" :title="row.productName">
+                    <div
+                      class="text-primary max-w-[200px] truncate font-medium"
+                      :title="row.productName"
+                    >
                       {{ row.productName }}
                     </div>
                     <div
@@ -153,7 +156,10 @@
               >
                 <template #cell-productName="{ row }">
                   <div>
-                    <div class="text-primary max-w-[200px] truncate font-medium" :title="row.productName">
+                    <div
+                      class="text-primary max-w-[200px] truncate font-medium"
+                      :title="row.productName"
+                    >
                       {{ row.productName }}
                     </div>
                     <div
@@ -199,7 +205,10 @@
               >
                 <template #cell-productName="{ row }">
                   <div>
-                    <div class="text-primary max-w-[180px] truncate font-medium" :title="row.productName">
+                    <div
+                      class="text-primary max-w-[180px] truncate font-medium"
+                      :title="row.productName"
+                    >
                       {{ row.productName }}
                     </div>
                     <div
@@ -227,7 +236,11 @@
                   <span
                     :class="[
                       'font-mono font-medium',
-                      row.quantityDelta > 0 ? 'text-(--color-success)' : row.quantityDelta < 0 ? 'text-(--color-danger)' : 'text-(--text-muted)',
+                      row.quantityDelta > 0
+                        ? 'text-(--color-success)'
+                        : row.quantityDelta < 0
+                          ? 'text-(--color-danger)'
+                          : 'text-(--text-muted)',
                     ]"
                   >
                     {{ row.quantityDelta > 0 ? '+' : '' }}{{ row.quantityDelta }}
@@ -256,7 +269,10 @@
               >
                 <template #cell-productName="{ row }">
                   <div>
-                    <div class="text-primary max-w-[200px] truncate font-medium" :title="row.productName">
+                    <div
+                      class="text-primary max-w-[200px] truncate font-medium"
+                      :title="row.productName"
+                    >
                       {{ row.productName }}
                     </div>
                     <div
@@ -273,7 +289,9 @@
                 </template>
 
                 <template #cell-totalOutbound="{ row }">
-                  <span class="font-mono font-semibold text-(--text-main)">{{ row.totalOutbound }}</span>
+                  <span class="font-mono font-semibold text-(--text-main)">{{
+                    row.totalOutbound
+                  }}</span>
                 </template>
               </AppTable>
             </section>
@@ -326,7 +344,13 @@ const getEventLabel = (eventType) => {
 /** 事件类型颜色 */
 const getEventVariant = (eventType) => {
   if (eventType.includes('shipment') || eventType.includes('allocated')) return 'warning';
-  if (eventType.includes('return') || eventType.includes('restock') || eventType.includes('received') || eventType.includes('arrival')) return 'success';
+  if (
+    eventType.includes('return') ||
+    eventType.includes('restock') ||
+    eventType.includes('received') ||
+    eventType.includes('arrival')
+  )
+    return 'success';
   if (eventType.includes('cancelled') || eventType.includes('unshipment')) return 'danger';
   return 'info';
 };
@@ -334,33 +358,120 @@ const getEventVariant = (eventType) => {
 // ─── 表格列定义 ────────────────────────────────────
 
 const lowStockColumns = computed(() => [
-  { key: 'productName', label: t('inventoryDashboard.lowStock.table.product'), width: '220px', minWidth: '180px' },
-  { key: 'sku', label: t('inventoryDashboard.lowStock.table.sku'), kind: 'identifier', width: '140px' },
-  { key: 'available', label: t('inventoryDashboard.lowStock.table.available'), kind: 'numeric', align: 'center' },
-  { key: 'onHand', label: t('inventoryDashboard.lowStock.table.onHand'), kind: 'numeric', align: 'center', headerClass: 'hidden md:table-cell', cellClass: 'hidden md:table-cell' },
-  { key: 'reserved', label: t('inventoryDashboard.lowStock.table.reserved'), kind: 'numeric', align: 'center', headerClass: 'hidden md:table-cell', cellClass: 'hidden md:table-cell' },
-  { key: 'alertThreshold', label: t('inventoryDashboard.lowStock.table.threshold'), kind: 'numeric', align: 'center' },
+  {
+    key: 'productName',
+    label: t('inventoryDashboard.lowStock.table.product'),
+    width: '220px',
+    minWidth: '180px',
+  },
+  {
+    key: 'sku',
+    label: t('inventoryDashboard.lowStock.table.sku'),
+    kind: 'identifier',
+    width: '140px',
+  },
+  {
+    key: 'available',
+    label: t('inventoryDashboard.lowStock.table.available'),
+    kind: 'numeric',
+    align: 'center',
+  },
+  {
+    key: 'onHand',
+    label: t('inventoryDashboard.lowStock.table.onHand'),
+    kind: 'numeric',
+    align: 'center',
+    headerClass: 'hidden md:table-cell',
+    cellClass: 'hidden md:table-cell',
+  },
+  {
+    key: 'reserved',
+    label: t('inventoryDashboard.lowStock.table.reserved'),
+    kind: 'numeric',
+    align: 'center',
+    headerClass: 'hidden md:table-cell',
+    cellClass: 'hidden md:table-cell',
+  },
+  {
+    key: 'alertThreshold',
+    label: t('inventoryDashboard.lowStock.table.threshold'),
+    kind: 'numeric',
+    align: 'center',
+  },
 ]);
 
 const zeroStockColumns = computed(() => [
-  { key: 'productName', label: t('inventoryDashboard.zeroStock.table.product'), width: '220px', minWidth: '180px' },
-  { key: 'sku', label: t('inventoryDashboard.zeroStock.table.sku'), kind: 'identifier', width: '140px' },
-  { key: 'onHand', label: t('inventoryDashboard.zeroStock.table.onHand'), kind: 'numeric', align: 'center' },
-  { key: 'reserved', label: t('inventoryDashboard.zeroStock.table.reserved'), kind: 'numeric', align: 'center' },
+  {
+    key: 'productName',
+    label: t('inventoryDashboard.zeroStock.table.product'),
+    width: '220px',
+    minWidth: '180px',
+  },
+  {
+    key: 'sku',
+    label: t('inventoryDashboard.zeroStock.table.sku'),
+    kind: 'identifier',
+    width: '140px',
+  },
+  {
+    key: 'onHand',
+    label: t('inventoryDashboard.zeroStock.table.onHand'),
+    kind: 'numeric',
+    align: 'center',
+  },
+  {
+    key: 'reserved',
+    label: t('inventoryDashboard.zeroStock.table.reserved'),
+    kind: 'numeric',
+    align: 'center',
+  },
 ]);
 
 const movementColumns = computed(() => [
-  { key: 'productName', label: t('inventoryDashboard.movements.table.product'), width: '200px', minWidth: '160px' },
-  { key: 'sku', label: t('inventoryDashboard.movements.table.sku'), kind: 'identifier', width: '120px', headerClass: 'hidden md:table-cell', cellClass: 'hidden md:table-cell' },
+  {
+    key: 'productName',
+    label: t('inventoryDashboard.movements.table.product'),
+    width: '200px',
+    minWidth: '160px',
+  },
+  {
+    key: 'sku',
+    label: t('inventoryDashboard.movements.table.sku'),
+    kind: 'identifier',
+    width: '120px',
+    headerClass: 'hidden md:table-cell',
+    cellClass: 'hidden md:table-cell',
+  },
   { key: 'eventType', label: t('inventoryDashboard.movements.table.type'), width: '140px' },
-  { key: 'quantityDelta', label: t('inventoryDashboard.movements.table.delta'), kind: 'numeric', align: 'center', width: '100px' },
+  {
+    key: 'quantityDelta',
+    label: t('inventoryDashboard.movements.table.delta'),
+    kind: 'numeric',
+    align: 'center',
+    width: '100px',
+  },
   { key: 'occurredAt', label: t('inventoryDashboard.movements.table.time'), width: '100px' },
 ]);
 
 const topMovingColumns = computed(() => [
-  { key: 'productName', label: t('inventoryDashboard.topMoving.table.product'), width: '220px', minWidth: '180px' },
-  { key: 'sku', label: t('inventoryDashboard.topMoving.table.sku'), kind: 'identifier', width: '140px' },
-  { key: 'totalOutbound', label: t('inventoryDashboard.topMoving.table.outbound'), kind: 'numeric', align: 'center' },
+  {
+    key: 'productName',
+    label: t('inventoryDashboard.topMoving.table.product'),
+    width: '220px',
+    minWidth: '180px',
+  },
+  {
+    key: 'sku',
+    label: t('inventoryDashboard.topMoving.table.sku'),
+    kind: 'identifier',
+    width: '140px',
+  },
+  {
+    key: 'totalOutbound',
+    label: t('inventoryDashboard.topMoving.table.outbound'),
+    kind: 'numeric',
+    align: 'center',
+  },
 ]);
 
 // ─── 生命周期 ────────────────────────────────────

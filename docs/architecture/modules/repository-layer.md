@@ -42,18 +42,18 @@ D1 / R2
 
 ## 3. Repository 清单
 
-| Repository | 文件 | 职责描述 | 主要表 |
-|-----------|------|----------|--------|
-| `FileRepository` | `functions/repositories/FileRepository.js` | 文件 CRUD、回收站、哈希复用 | `files`, `blobs` |
-| `FolderRepository` | `functions/repositories/FolderRepository.js` | 文件夹层级 | `folders` |
-| `OrderRepository` | `functions/repositories/OrderRepository.js` | 订单门面，统一暴露读写 | `orders`, `order_lines`, `order_files`, `order_timeline` |
-| `OrderStatsRepository` | `functions/repositories/OrderStatsRepository.js` | 订单统计 | `orders` 及聚合 |
-| `PurchaseOrderRepository` | `functions/repositories/PurchaseOrderRepository.js` | 采购单主读写、采购单详情读模型 | `purchase_orders`, `purchase_order_items`, `purchase_receipts`, `purchase_receipt_reversals` |
-| `PurchaseReceiptRepository` | `functions/repositories/PurchaseReceiptRepository.js` | 收货事实写入与查询辅助 | `purchase_receipts` |
-| `GoodsOverviewRepository` | `functions/repositories/GoodsOverviewRepository.js` | 订货总览缺口、在途、筛选项 | `order_lines`, `orders`, `product_variants`, `inventory_balances` |
-| `NotificationRepository` | `functions/repositories/NotificationRepository.js` | 站内通知读写 | `notifications` |
-| `OutboxReplayRepository` | `functions/repositories/OutboxReplayRepository.js` | outbox 查询、事件详情、replay run 管理 | `domain_outbox`, `outbox_consumer_jobs`, `outbox_replay_runs`, `webhook_logs` |
-| `SalespersonRepository` | `functions/repositories/SalespersonRepository.js` | 销售员、登录、token 重置 | `salespersons` |
+| Repository                  | 文件                                                  | 职责描述                               | 主要表                                                                                       |
+| --------------------------- | ----------------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `FileRepository`            | `functions/repositories/FileRepository.js`            | 文件 CRUD、回收站、哈希复用            | `files`, `blobs`                                                                             |
+| `FolderRepository`          | `functions/repositories/FolderRepository.js`          | 文件夹层级                             | `folders`                                                                                    |
+| `OrderRepository`           | `functions/repositories/OrderRepository.js`           | 订单门面，统一暴露读写                 | `orders`, `order_lines`, `order_files`, `order_timeline`                                     |
+| `OrderStatsRepository`      | `functions/repositories/OrderStatsRepository.js`      | 订单统计                               | `orders` 及聚合                                                                              |
+| `PurchaseOrderRepository`   | `functions/repositories/PurchaseOrderRepository.js`   | 采购单主读写、采购单详情读模型         | `purchase_orders`, `purchase_order_items`, `purchase_receipts`, `purchase_receipt_reversals` |
+| `PurchaseReceiptRepository` | `functions/repositories/PurchaseReceiptRepository.js` | 收货事实写入与查询辅助                 | `purchase_receipts`                                                                          |
+| `GoodsOverviewRepository`   | `functions/repositories/GoodsOverviewRepository.js`   | 订货总览缺口、在途、筛选项             | `order_lines`, `orders`, `product_variants`, `inventory_balances`                            |
+| `NotificationRepository`    | `functions/repositories/NotificationRepository.js`    | 站内通知读写                           | `notifications`                                                                              |
+| `OutboxReplayRepository`    | `functions/repositories/OutboxReplayRepository.js`    | outbox 查询、事件详情、replay run 管理 | `domain_outbox`, `outbox_consumer_jobs`, `outbox_replay_runs`, `webhook_logs`                |
+| `SalespersonRepository`     | `functions/repositories/SalespersonRepository.js`     | 销售员、登录、token 重置               | `salespersons`                                                                               |
 
 ## 4. 订单仓储
 
@@ -193,7 +193,10 @@ await db.prepare('SELECT * FROM table WHERE id = ?').bind(id).first();
 ### 9.2 列表查询
 
 ```javascript
-await db.prepare('SELECT * FROM table WHERE status = ? ORDER BY created_at DESC').bind(status).all();
+await db
+  .prepare('SELECT * FROM table WHERE status = ? ORDER BY created_at DESC')
+  .bind(status)
+  .all();
 ```
 
 ### 9.3 批量写入

@@ -25,7 +25,13 @@ describe('SlotQuestionCard', () => {
     await wrapper.find('[data-testid="candidate-option-0"]').trigger('click');
 
     expect(wrapper.emitted('select')).toEqual([
-      [{ fieldKey: 'salespersonId', candidate: { value: 'sp-1', label: '张三', description: '深圳店' }, index: 0 }],
+      [
+        {
+          fieldKey: 'salespersonId',
+          candidate: { value: 'sp-1', label: '张三', description: '深圳店' },
+          index: 0,
+        },
+      ],
     ]);
   });
 
@@ -122,15 +128,15 @@ describe('SlotQuestionCard', () => {
           {
             key: 'productId',
             label: '商品',
-            candidates: [
-              { value: 'prod-1', label: '跑鞋', description: 'SPU-1' },
-            ],
+            candidates: [{ value: 'prod-1', label: '跑鞋', description: 'SPU-1' }],
           },
         ],
       },
     });
 
     expect(wrapper.text()).not.toContain('已选择');
-    expect(wrapper.find('[data-testid="candidate-option-0"]').attributes('data-selected')).toBe('false');
+    expect(wrapper.find('[data-testid="candidate-option-0"]').attributes('data-selected')).toBe(
+      'false'
+    );
   });
 });

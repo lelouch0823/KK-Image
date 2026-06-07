@@ -4,7 +4,10 @@ import { DemandService } from '../DemandService.js';
 describe('DemandService', () => {
   it('treats confirmed orders as active demand creation', async () => {
     const service = new DemandService({});
-    const effect = await service.syncOrderTransition({ fromStatus: 'pending', toStatus: 'confirmed' });
+    const effect = await service.syncOrderTransition({
+      fromStatus: 'pending',
+      toStatus: 'confirmed',
+    });
 
     expect(effect).toEqual({
       createsDemand: true,
@@ -21,21 +24,26 @@ describe('DemandService', () => {
   it('releases demand when confirmed orders are voided, rejected, or cancelled', async () => {
     const service = new DemandService({});
 
-    await expect(service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'void' }))
-      .resolves.toMatchObject({ releasesDemand: true, releasesReservation: true });
-    await expect(service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'rejected' }))
-      .resolves.toMatchObject({ releasesDemand: true, releasesReservation: true });
-    await expect(service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'cancelled' }))
-      .resolves.toMatchObject({ releasesDemand: true, releasesReservation: true });
+    await expect(
+      service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'void' })
+    ).resolves.toMatchObject({ releasesDemand: true, releasesReservation: true });
+    await expect(
+      service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'rejected' })
+    ).resolves.toMatchObject({ releasesDemand: true, releasesReservation: true });
+    await expect(
+      service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'cancelled' })
+    ).resolves.toMatchObject({ releasesDemand: true, releasesReservation: true });
   });
 
   it('flags shipping and delivered transitions for later stock deduction integration', async () => {
     const service = new DemandService({});
 
-    await expect(service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'shipping' }))
-      .resolves.toMatchObject({ stockDeductionPending: true });
-    await expect(service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'delivered' }))
-      .resolves.toMatchObject({ stockDeductionPending: true, consumesReservation: true });
+    await expect(
+      service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'shipping' })
+    ).resolves.toMatchObject({ stockDeductionPending: true });
+    await expect(
+      service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'delivered' })
+    ).resolves.toMatchObject({ stockDeductionPending: true, consumesReservation: true });
   });
 
   it('reads variant demand summary from shared projection rows', async () => {
@@ -97,9 +105,7 @@ describe('DemandService', () => {
   it('does not recompute demand summary from raw order_lines joins', async () => {
     const stmt = {
       all: vi.fn(async () => ({
-        results: [
-          { variant_id: 'variant-1', total_demand: 5, order_count: 1, order_ids: 'o-1' },
-        ],
+        results: [{ variant_id: 'variant-1', total_demand: 5, order_count: 1, order_ids: 'o-1' }],
       })),
     };
     const db = { prepare: vi.fn(() => stmt) };
@@ -156,7 +162,9 @@ describe('DemandService', () => {
       toStatus: 'confirmed',
     });
 
-    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO variant_demand_projection'));
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO variant_demand_projection')
+    );
   });
 
   it('resolves order_line_id for reservation events when order context is supplied', async () => {
@@ -195,7 +203,9 @@ describe('DemandService', () => {
       toStatus: 'delivered',
     });
 
-    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('SELECT id FROM order_lines WHERE order_id = ?'));
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('SELECT id FROM order_lines WHERE order_id = ?')
+    );
     expect(inventoryEventBindArgs[2]).toBe('line-1');
     expect(inventoryEventBindArgs[5]).toBe('order');
     expect(inventoryEventBindArgs[6]).toBe('o-1');
@@ -221,12 +231,14 @@ describe('DemandService', () => {
     };
     const service = new DemandService(db);
 
-    await expect(service.syncOrderTransition({
-      orderId: 'o-1',
-      variantId: 'variant-1',
-      quantity: 4,
-      fromStatus: 'confirmed',
-      toStatus: 'delivered',
-    })).rejects.toThrow();
+    await expect(
+      service.syncOrderTransition({
+        orderId: 'o-1',
+        variantId: 'variant-1',
+        quantity: 4,
+        fromStatus: 'confirmed',
+        toStatus: 'delivered',
+      })
+    ).rejects.toThrow();
   });
 });

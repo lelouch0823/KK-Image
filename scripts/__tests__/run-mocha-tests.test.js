@@ -29,7 +29,8 @@ describe('run-mocha-tests-lib', () => {
     });
     const readFileImpl = vi.fn(async (target) => {
       if (target.endsWith('alpha.js')) return "describe('alpha', () => {})";
-      if (target.endsWith('beta.js')) return "import { describe } from 'vitest'; describe('beta', () => {})";
+      if (target.endsWith('beta.js'))
+        return "import { describe } from 'vitest'; describe('beta', () => {})";
       if (target.endsWith('gamma.js')) return "describeIfRealApi('gamma', () => {})";
       return '';
     });
@@ -42,10 +43,7 @@ describe('run-mocha-tests-lib', () => {
       },
     });
 
-    expect(files).toEqual([
-      '/repo/test/alpha.js',
-      '/repo/test/nested/gamma.js',
-    ]);
+    expect(files).toEqual(['/repo/test/alpha.js', '/repo/test/nested/gamma.js']);
   });
 
   it('logs and exits cleanly when no mocha files are discovered', async () => {

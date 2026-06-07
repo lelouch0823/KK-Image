@@ -226,11 +226,18 @@ export class AIConfigManager {
       return parseBooleanFlag(value);
     }
 
-    if (lastPart.includes('Window') || lastPart.includes('Threshold') ||
-        lastPart.includes('Rounds') || lastPart.includes('Per') ||
-        lastPart.includes('Length') || lastPart.includes('Size') ||
-        lastPart.includes('Retries') || lastPart.includes('Delay') ||
-        lastPart.includes('lookahead') || lastPart.includes('Window')) {
+    if (
+      lastPart.includes('Window') ||
+      lastPart.includes('Threshold') ||
+      lastPart.includes('Rounds') ||
+      lastPart.includes('Per') ||
+      lastPart.includes('Length') ||
+      lastPart.includes('Size') ||
+      lastPart.includes('Retries') ||
+      lastPart.includes('Delay') ||
+      lastPart.includes('lookahead') ||
+      lastPart.includes('Window')
+    ) {
       return parseNumberValue(value);
     }
 

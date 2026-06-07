@@ -48,7 +48,10 @@ import filesApp from '../files.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.use('/api/sales/:token/*', async (c, next) => {
     c.set('salesperson', { id: 'sales-1', name: 'Sales One' });
@@ -75,7 +78,11 @@ describe('sales files routes', () => {
   it('publishes file_uploaded through outbox after salesperson upload', async () => {
     const app = createApp();
     const formData = new FormData();
-    formData.append('file', new Blob(['sales-upload-body'], { type: 'text/plain' }), 'sales-upload.txt');
+    formData.append(
+      'file',
+      new Blob(['sales-upload-body'], { type: 'text/plain' }),
+      'sales-upload.txt'
+    );
 
     const res = await app.request(
       'http://localhost/api/sales/token-1/upload?orderId=order-1',
@@ -128,7 +135,11 @@ describe('sales files routes', () => {
   it('rejects upload attempts against another salesperson order', async () => {
     const app = createApp();
     const formData = new FormData();
-    formData.append('file', new Blob(['sales-upload-body'], { type: 'text/plain' }), 'sales-upload.txt');
+    formData.append(
+      'file',
+      new Blob(['sales-upload-body'], { type: 'text/plain' }),
+      'sales-upload.txt'
+    );
 
     const res = await app.request(
       'http://localhost/api/sales/token-1/upload?orderId=order-foreign',

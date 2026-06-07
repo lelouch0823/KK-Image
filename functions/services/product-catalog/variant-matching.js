@@ -24,10 +24,12 @@ const isEmptyValue = (value) => {
 
 const normalizeObjectValue = (value) => {
   if (!value || typeof value !== 'object') return value;
-  return Object.keys(value).sort().reduce((acc, key) => {
-    acc[key] = value[key];
-    return acc;
-  }, {});
+  return Object.keys(value)
+    .sort()
+    .reduce((acc, key) => {
+      acc[key] = value[key];
+      return acc;
+    }, {});
 };
 
 const areValuesEqual = (a, b) => {
@@ -58,7 +60,19 @@ const safeMergeField = ({ target, incoming, field, context, conflicts, currentVa
 
 export const buildSafeProductUpdateData = (existing, incoming, conflicts) => {
   const next = {};
-  const fields = ['name', 'spu', 'category', 'brand', 'series', 'description', 'currency', 'slug', 'images', 'specifications', 'options'];
+  const fields = [
+    'name',
+    'spu',
+    'category',
+    'brand',
+    'series',
+    'description',
+    'currency',
+    'slug',
+    'images',
+    'specifications',
+    'options',
+  ];
   fields.forEach((field) => {
     safeMergeField({
       target: next,
@@ -77,7 +91,18 @@ export const buildSafeProductUpdateData = (existing, incoming, conflicts) => {
 
 export const buildSafeVariantSyncPayload = (existingVariants, variantsToSync, conflicts, item) => {
   const existingById = new Map(existingVariants.map((variant) => [variant.id, variant]));
-  const mutableFields = ['sku', 'price', 'cost_price', 'stock_quantity', 'alert_threshold', 'options_values', 'image_id', 'status', 'barcode', 'supplier_sku'];
+  const mutableFields = [
+    'sku',
+    'price',
+    'cost_price',
+    'stock_quantity',
+    'alert_threshold',
+    'options_values',
+    'image_id',
+    'status',
+    'barcode',
+    'supplier_sku',
+  ];
 
   return variantsToSync.map((variant) => {
     if (!variant?.id || !existingById.has(variant.id)) {
@@ -114,9 +139,10 @@ export const buildVariantMatchKey = (variant) => {
   const sku = String(variant?.sku || '').trim();
   if (sku) return `sku:${sku}`;
 
-  const optionsValues = variant?.options_values && typeof variant.options_values === 'object'
-    ? variant.options_values
-    : {};
+  const optionsValues =
+    variant?.options_values && typeof variant.options_values === 'object'
+      ? variant.options_values
+      : {};
   const entries = Object.entries(optionsValues)
     .map(([key, value]) => [String(key || '').trim(), String(value || '').trim()])
     .filter(([key, value]) => key && value)
@@ -127,7 +153,11 @@ export const buildVariantMatchKey = (variant) => {
   return `sig:${signature}`;
 };
 
-export const mergeIncomingWithExisting = (existingVariants, incomingVariants, { includeUnmatchedExisting = true } = {}) => {
+export const mergeIncomingWithExisting = (
+  existingVariants,
+  incomingVariants,
+  { includeUnmatchedExisting = true } = {}
+) => {
   const existingByCode = new Map();
   const existingBySku = new Map();
   const existingBySignature = new Map();

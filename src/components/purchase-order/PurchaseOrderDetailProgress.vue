@@ -14,11 +14,18 @@
           </h3>
         </div>
         <div class="flex flex-col items-end gap-1.5">
-          <span class="rounded-full bg-(--bg-muted) px-2.5 py-1 text-xs font-medium text-(--text-secondary)">
+          <span
+            class="rounded-full bg-(--bg-muted) px-2.5 py-1 text-xs font-medium text-(--text-secondary)"
+          >
             {{ statusConfig[detail.status]?.label || detail.status }}
           </span>
           <template
-            v-if="detail.display_status || detail.ordered_qty || detail.received_qty || detail.cancelled_qty"
+            v-if="
+              detail.display_status ||
+              detail.ordered_qty ||
+              detail.received_qty ||
+              detail.cancelled_qty
+            "
           >
             <StatusBadge
               data-testid="purchase-order-detail-progress-badge"
@@ -38,7 +45,9 @@
       </div>
 
       <div class="relative flex items-center justify-between">
-        <div class="absolute top-1/2 left-0 h-0.5 w-full -translate-y-1/2 bg-(--border-color)"></div>
+        <div
+          class="absolute top-1/2 left-0 h-0.5 w-full -translate-y-1/2 bg-(--border-color)"
+        ></div>
         <div
           class="bg-primary absolute top-1/2 left-0 h-0.5 -translate-y-1/2 transition-all duration-500"
           :style="{ width: helpers.getStepperProgress(stepsList, detail.status) }"

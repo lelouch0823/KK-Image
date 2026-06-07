@@ -14,28 +14,17 @@
 
       <!-- 电话 -->
       <div class="col-span-2 sm:col-span-1">
-        <AppInput
-          v-model="form.phone"
-          type="tel"
-          :label="t('customer.form.phone')"
-        />
+        <AppInput v-model="form.phone" type="tel" :label="t('customer.form.phone')" />
       </div>
 
       <!-- 公司 -->
       <div class="col-span-2 sm:col-span-1">
-        <AppInput
-          v-model="form.company"
-          :label="t('customer.form.company')"
-        />
+        <AppInput v-model="form.company" :label="t('customer.form.company')" />
       </div>
 
       <!-- 邮箱 -->
       <div class="col-span-2 sm:col-span-1">
-        <AppInput
-          v-model="form.email"
-          type="email"
-          :label="t('customer.form.email')"
-        />
+        <AppInput v-model="form.email" type="email" :label="t('customer.form.email')" />
       </div>
 
       <!-- 标签 -->
@@ -78,36 +67,19 @@
 
       <!-- 地址 -->
       <div class="col-span-2">
-        <AppInput
-          v-model="form.address"
-          :label="t('customer.form.address')"
-        />
+        <AppInput v-model="form.address" :label="t('customer.form.address')" />
       </div>
 
       <!-- 备注 -->
       <div class="col-span-2">
-        <AppInput
-          v-model="form.remark"
-          :label="t('customer.form.remark')"
-          textarea
-          :rows="3"
-        />
+        <AppInput v-model="form.remark" :label="t('customer.form.remark')" textarea :rows="3" />
       </div>
     </div>
 
     <!-- 底部按钮 -->
     <div class="mt-4 flex justify-end gap-3 border-t border-(--border-color) pt-4">
-      <AppButton
-        variant="secondary"
-        :text="t('common.cancel')"
-        @click="$emit('cancel')"
-      />
-      <AppButton
-        type="submit"
-        variant="primary"
-        :text="t('common.save')"
-        :loading="submitting"
-      />
+      <AppButton variant="secondary" :text="t('common.cancel')" @click="$emit('cancel')" />
+      <AppButton type="submit" variant="primary" :text="t('common.save')" :loading="submitting" />
     </div>
   </form>
 </template>

@@ -13,6 +13,7 @@
 ### Task 1: Install missing CLI tools
 
 **Files:**
+
 - Modify: user package state only
 - Verify: installed binaries in `$PATH`
 
@@ -29,6 +30,7 @@ Expected: all commands resolve
 ### Task 2: Add isolated interactive fish configuration
 
 **Files:**
+
 - Modify: `/home/bjw/.config/fish/conf.d/eza.fish`
 - Create: `/home/bjw/.config/fish/conf.d/terminal-tools.fish`
 - Create: `/home/bjw/.config/fish/conf.d/git-delta.fish`
@@ -50,6 +52,7 @@ Set `git config --global core.pager delta` and minimal delta display defaults.
 ### Task 3: Verify interactive workflow
 
 **Files:**
+
 - Verify only
 
 - [ ] **Step 1: Verify alias and function loading**

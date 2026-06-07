@@ -13,6 +13,7 @@
 ### Task 1: Procurement Status State Utility (TDD)
 
 **Files:**
+
 - Create: `functions/api/utils/order-procurement-state-machine.js`
 - Test: `functions/api/utils/__tests__/order-procurement-state-machine.test.js`
 
@@ -83,6 +84,7 @@ git commit -m "test+feat: add procurement status mapping utility"
 ### Task 2: PurchaseOrderRepository Safety Guards (TDD)
 
 **Files:**
+
 - Modify: `functions/repositories/PurchaseOrderRepository.js`
 - Test: `functions/repositories/__tests__/purchase-order-repository-safety.test.js`
 
@@ -143,6 +145,7 @@ git commit -m "fix: add po status CAS and po item ownership guards"
 ### Task 3: Service Cascade Decoupling to procurement_status (TDD)
 
 **Files:**
+
 - Modify: `functions/services/PurchaseOrderService.js`
 - Create: `functions/services/__tests__/PurchaseOrderService.procurement-status.test.js`
 
@@ -179,7 +182,7 @@ this.db.prepare(
   `UPDATE orders SET procurement_status = ?, updated_at = ?
    WHERE id = ? AND (status NOT IN ('delivered', 'void'))
      AND COALESCE(procurement_status, 'none') != ?`
-)
+);
 ```
 
 **Step 4: Run test to verify it passes**
@@ -199,6 +202,7 @@ git commit -m "fix: decouple purchase cascade from order main status"
 ### Task 4: Route-Level Input Integrity Hardening (TDD)
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/purchase-orders.js`
 - Create: `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 
@@ -254,6 +258,7 @@ git commit -m "fix: enforce pre-order binding integrity and po item scope"
 ### Task 5: Database Migration for orders.procurement_status
 
 **Files:**
+
 - Create: `migrations/0048_add_orders_procurement_status.sql`
 - Modify: `docs/DATABASE_SCHEMA.md`
 
@@ -301,6 +306,7 @@ git commit -m "feat: add procurement_status to orders"
 ### Task 6: API Contract + Frontend Regression Coverage
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/purchase-orders.js`
 - Modify: `src/composables/usePurchaseOrders.js`
 - Modify: `src/composables/__tests__/usePurchaseOrders.test.js`
@@ -323,7 +329,7 @@ Expected: FAIL (if message contract differs).
 ```js
 message: result.cascadedOrders > 0
   ? `状态已更新，同步更新了 ${result.cascadedOrders} 个预订单采购状态`
-  : '状态已更新'
+  : '状态已更新';
 ```
 
 **Step 4: Run test to verify it passes**
@@ -343,11 +349,13 @@ git commit -m "test+chore: align purchase status update message contract"
 ### Task 7: End-to-End Verification and Release Checklist
 
 **Files:**
+
 - Modify: `docs/plans/2026-03-06-order-procurement-status-decoupling-implementation-plan.md` (append verification output links)
 
 **Step 1: Run targeted unit and route tests**
 
 Run:
+
 ```bash
 node node_modules/vitest/vitest.mjs run \
   functions/api/utils/__tests__/order-procurement-state-machine.test.js \
@@ -356,6 +364,7 @@ node node_modules/vitest/vitest.mjs run \
   functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js \
   src/composables/__tests__/usePurchaseOrders.test.js
 ```
+
 Expected: all PASS.
 
 **Step 2: Run lint for touched layers**

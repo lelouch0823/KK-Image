@@ -49,7 +49,9 @@ import uploadApp from '../upload.js';
 
 function createApp() {
   const app = new Hono();
-  app.onError((err, c) => c.json({ success: false, error: err.message }, Number(err?.statusCode || 500)));
+  app.onError((err, c) =>
+    c.json({ success: false, error: err.message }, Number(err?.statusCode || 500))
+  );
   app.route('/api/manage/upload', uploadApp);
   return app;
 }

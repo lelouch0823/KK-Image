@@ -13,6 +13,7 @@
 ## Task 1: 创建 `auth-helpers.js` — 提取 lockout 响应与认证逻辑
 
 **Files:**
+
 - Create: `functions/lib/hono/_shared/auth-helpers.js`
 - Modify: `functions/lib/hono/routes/v1/auth.js`
 - Modify: `functions/lib/hono/routes/sales/auth.js`
@@ -102,10 +103,7 @@ export async function handleLoginFailure(c, identifier, errorMsg = MSG.AUTH.INVA
     );
   }
 
-  return c.json(
-    { success: false, error: errorMsg, remaining: failureResult.remaining },
-    401
-  );
+  return c.json({ success: false, error: errorMsg, remaining: failureResult.remaining }, 401);
 }
 
 /**
@@ -216,9 +214,9 @@ export async function authenticateAdminUser(env, username, password) {
 +  clearFailures,
 +  authenticateAdminUser,
 +} from '../../_shared/auth-helpers.js';
- 
+
  const app = new Hono();
- 
+
 -function getLockedMessage(retryAfter) { ... }  // 删除
 -
  app.post('/login', loginRateLimitMiddleware, zValidator('json', LoginSchema), async (c) => {
@@ -226,7 +224,7 @@ export async function authenticateAdminUser(env, username, password) {
    const { env } = c;
 -  const kv = env.RATE_LIMIT_KV || env.KV;
 -  const ip = c.req.header('CF-Connecting-IP') || ...;
- 
+
    // 检查锁定
 -  const lockoutStatus = await checkLoginLockout(kv, ip, username);
 -  if (lockoutStatus.locked) {
@@ -234,25 +232,25 @@ export async function authenticateAdminUser(env, username, password) {
 -  }
 +  const lockoutRes = await checkAndRespondLockout(c, username);
 +  if (lockoutRes) return lockoutRes;
- 
+
    // Turnstile 验证
    if (env.TURNSTILE_SECRET_KEY && turnstileToken) { ... }
- 
+
 -  // 大块重复认证逻辑 (~30 行) → 1 行
 -  let authenticatedUser = null;
 -  if (username === env.BASIC_USER && password === env.BASIC_PASS) { ... }
 -  else { ... }
 +  const authenticatedUser = await authenticateAdminUser(env, username, password);
- 
+
    if (!authenticatedUser) {
 -    const failureResult = await recordLoginFailure(kv, ip, username, c.executionCtx);
 -    // ... 重复的失败处理
 +    return handleLoginFailure(c, username);
    }
- 
+
 -  await clearLoginFailures(kv, ip, username, c.executionCtx);
 +  await clearFailures(c, username);
- 
+
    // 生成 JWT & Cookie（保持原逻辑）
    ...
  });
@@ -280,12 +278,12 @@ export async function authenticateAdminUser(env, username, password) {
 +  generateSalesToken,
 +  SALES_COOKIE_MAX_AGE,
 +} from '../../_shared/auth-helpers.js';
- 
+
  const app = new Hono();
 -const SALES_TOKEN_COOKIE = 'sales_token';    // 删除（移到 auth-helpers）
 -const COOKIE_MAX_AGE = 7 * 24 * 3600;        // 删除
 -function getLockedMessage(retryAfter) { ... } // 删除
- 
+
  app.post('/login', loginRateLimitMiddleware, ..., async (c) => {
    ...
 -  const lockoutStatus = await checkLoginLockout(kv, ip, username);
@@ -331,6 +329,7 @@ git commit -m "refactor: 提取认证辅助函数，消除 auth 路由中的重�
 ## Task 2: 提取分页解析与缓存失效工厂
 
 **Files:**
+
 - Create: `functions/lib/hono/_shared/route-helpers.js`
 - Modify: `functions/lib/hono/middleware/cache.js` (删除 `getProductCacheUrls`，移至新文件)
 - Modify: `functions/lib/hono/routes/manage/customers.js`
@@ -353,7 +352,10 @@ git commit -m "refactor: 提取认证辅助函数，消除 auth 路由中的重�
  */
 export function parsePagination(c, { page: defaultPage = 1, limit: defaultLimit = 20 } = {}) {
   const page = Math.max(1, parseInt(c.req.query('page') || String(defaultPage), 10));
-  const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || String(defaultLimit), 10)));
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(c.req.query('limit') || String(defaultLimit), 10))
+  );
   return { page, limit, offset: (page - 1) * limit };
 }
 
@@ -366,10 +368,7 @@ export function parsePagination(c, { page: defaultPage = 1, limit: defaultLimit 
 export function createCacheInvalidator(basePath, extraParams = []) {
   return (c) => {
     const origin = new URL(c.req.url).origin;
-    return [
-      `${origin}${basePath}`,
-      ...extraParams.map((p) => `${origin}${basePath}?${p}`),
-    ];
+    return [`${origin}${basePath}`, ...extraParams.map((p) => `${origin}${basePath}?${p}`)];
   };
 }
 ```
@@ -442,6 +441,7 @@ git commit -m "refactor: 提取分页解析和缓存失效工厂，消除路由�
 ## Task 3: 统一 `sales/orders.js` 错误处理为 throw 风格
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/sales/orders.js`
 
 **Step 1: 替换所有 `return c.json({ success: false })` 为 throw**
@@ -495,6 +495,7 @@ git commit -m "refactor: 统一 sales/orders 错误处理为 throw 风格"
 ## Task 4: 统一 `v1/folders.js` 和其他路由的错误处理
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/v1/folders.js`
 - Modify: `functions/lib/hono/routes/manage/backups.js`
 - Modify: `functions/lib/hono/routes/manage/user.js`
@@ -548,6 +549,7 @@ git commit -m "refactor: 统一错误处理为 throw 风格（v1/folders, backup
 ## Task 5: 统一 `notifications.js` 和 `settings.js` 响应风格
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/notifications.js`
 - Modify: `functions/lib/hono/routes/manage/settings.js`
 
@@ -608,6 +610,7 @@ git commit -m "refactor: 统一 notifications/settings 响应风格为 c.json()�
 ## Task 6: 修复 `app.js` 重复注释与 `folders.js` import 位置
 
 **Files:**
+
 - Modify: `functions/lib/hono/app.js`
 - Modify: `functions/lib/hono/routes/manage/folders.js`
 
@@ -668,6 +671,7 @@ git commit -m "chore: 修复 app.js 重复注释和 folders.js import 位置"
 ## Task 7: `dashboard.js` 修复 Repository 封装破坏
 
 **Files:**
+
 - Modify: `functions/repositories/StatsRepository.js`
 - Modify: `functions/lib/hono/routes/manage/dashboard.js`
 
@@ -732,6 +736,7 @@ pnpm run build
 Expected: 构建成功，无任何错误。
 
 如果已有测试可用：
+
 ```bash
 # 运行已有的工具函数测试（如果配置了测试命令）
 npx vitest run functions/api/utils/__tests__/ --reporter=verbose 2>/dev/null || echo "No test runner configured"

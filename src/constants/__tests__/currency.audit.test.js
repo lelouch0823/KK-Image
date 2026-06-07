@@ -28,27 +28,27 @@ describe('currency constants ownership audit', () => {
       path.join(ROOT, 'src/views/PurchaseOrders.vue'),
       'utf8'
     );
-    if (purchaseOrdersSource.includes("@/composables/useProductForm")) {
-      offenders.push('src/views/PurchaseOrders.vue: still imports currency constants from useProductForm');
+    if (purchaseOrdersSource.includes('@/composables/useProductForm')) {
+      offenders.push(
+        'src/views/PurchaseOrders.vue: still imports currency constants from useProductForm'
+      );
     }
 
     const productCreateModalSource = fs.readFileSync(
       path.join(ROOT, 'src/components/product/ProductCreateModal.vue'),
       'utf8'
     );
-    const useProductFormDestructure = productCreateModalSource.match(
-      /const\s*\{[\s\S]*?\}\s*=\s*useProductForm\(/m
-    )?.[0] || '';
+    const useProductFormDestructure =
+      productCreateModalSource.match(/const\s*\{[\s\S]*?\}\s*=\s*useProductForm\(/m)?.[0] || '';
     if (
-      useProductFormDestructure.includes('CURRENCY_OPTIONS')
-      || useProductFormDestructure.includes('CURRENCY_SYMBOLS')
+      useProductFormDestructure.includes('CURRENCY_OPTIONS') ||
+      useProductFormDestructure.includes('CURRENCY_SYMBOLS')
     ) {
-      offenders.push('src/components/product/ProductCreateModal.vue: still sources currency constants from useProductForm return value');
+      offenders.push(
+        'src/components/product/ProductCreateModal.vue: still sources currency constants from useProductForm return value'
+      );
     }
 
-    expect(
-      offenders,
-      `currency ownership offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `currency ownership offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

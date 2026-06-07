@@ -24,7 +24,11 @@ describe('runUiTokenIntegrityCheck', () => {
   });
 
   it('passes when scanned files do not contain banned legacy tokens', () => {
-    makeFile(rootDir, 'src/views/Stats.vue', '<template><div class="text-(--text-main)">Stats</div></template>');
+    makeFile(
+      rootDir,
+      'src/views/Stats.vue',
+      '<template><div class="text-(--text-main)">Stats</div></template>'
+    );
     makeFile(
       rootDir,
       'src/components/common/ai/AIChart.vue',

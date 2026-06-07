@@ -28,10 +28,15 @@
       leave-to-class="translate-y-1 opacity-0"
     >
       <div
-        v-if="isOpen && (items.length > 0 || loading || error || (searchQuery && items.length === 0))"
+        v-if="
+          isOpen && (items.length > 0 || loading || error || (searchQuery && items.length === 0))
+        "
         class="absolute z-50 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-(--border-subtle) bg-(--bg-card)/90 p-1.5 shadow-xl ring-1 ring-(--border-color)/40 backdrop-blur-xl"
       >
-        <div v-if="error" class="rounded-lg border border-(--color-danger-text)/20 bg-(--color-danger-bg)/40 px-4 py-3">
+        <div
+          v-if="error"
+          class="rounded-lg border border-(--color-danger-text)/20 bg-(--color-danger-bg)/40 px-4 py-3"
+        >
           <p class="text-sm text-(--text-main)">{{ error }}</p>
           <AppButton
             variant="primary"
@@ -43,9 +48,12 @@
             {{ t('common.retry') }}
           </AppButton>
         </div>
-        
+
         <!-- Empty State -->
-        <div v-if="!loading && !error && items.length === 0" class="px-4 py-8 text-center text-sm text-(--text-muted)">
+        <div
+          v-if="!loading && !error && items.length === 0"
+          class="px-4 py-8 text-center text-sm text-(--text-muted)"
+        >
           {{ t('common.noData') }}
         </div>
 
@@ -58,31 +66,37 @@
             @click="select(product)"
           >
             <!-- Image -->
-            <div class="relative size-10 shrink-0 overflow-hidden rounded-md border border-(--border-color) bg-(--bg-muted)">
-               <AppImage
-                  v-if="getMainImageSrc(product)"
-                  :src="getMainImageSrc(product)"
-                  :alt="product.name" 
-                  fit="cover"
-                  class="size-full"
-               />
-               <div v-else class="flex h-full items-center justify-center text-(--text-muted)">
-                  <AppIcon name="photo" class="size-5" />
-               </div>
+            <div
+              class="relative size-10 shrink-0 overflow-hidden rounded-md border border-(--border-color) bg-(--bg-muted)"
+            >
+              <AppImage
+                v-if="getMainImageSrc(product)"
+                :src="getMainImageSrc(product)"
+                :alt="product.name"
+                fit="cover"
+                class="size-full"
+              />
+              <div v-else class="flex h-full items-center justify-center text-(--text-muted)">
+                <AppIcon name="photo" class="size-5" />
+              </div>
             </div>
 
             <!-- Info -->
             <div class="min-w-0 flex-1">
               <div class="flex items-center justify-between">
                 <span class="truncate font-medium text-(--text-main)">{{ product.name }}</span>
-                <span v-if="!isSalesMode" class="ml-2 shrink-0 text-xs text-(--text-muted)">¥{{ product.price }}</span>
+                <span v-if="!isSalesMode" class="ml-2 shrink-0 text-xs text-(--text-muted)"
+                  >¥{{ product.price }}</span
+                >
               </div>
               <div class="mt-0.5 flex items-center gap-2 text-xs text-(--text-secondary)">
-                <span v-if="product.spu" class="rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono">{{ product.spu }}</span>
+                <span v-if="product.spu" class="rounded bg-(--bg-muted) px-1.5 py-0.5 font-mono">{{
+                  product.spu
+                }}</span>
                 <span class="truncate">{{ getProductSubtext(product) }}</span>
               </div>
             </div>
-            
+
             <AppIcon v-if="isSalesMode" name="chevron-right" class="size-4 text-(--text-muted)" />
           </li>
         </ul>
@@ -101,7 +115,10 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
-import { resolvePrimaryProductImageSrc, resolveProductPreviewImageSrc } from '@/utils/product-image.js';
+import {
+  resolvePrimaryProductImageSrc,
+  resolveProductPreviewImageSrc,
+} from '@/utils/product-image.js';
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -116,19 +133,19 @@ const { t } = useI18n();
 
 const isSalesMode = computed(() => props.mode === 'sales');
 
-const { 
-  products: adminProducts, 
-  loadProducts: loadAdminProducts, 
+const {
+  products: adminProducts,
+  loadProducts: loadAdminProducts,
   loading: adminLoading,
   error: adminError,
 } = useProducts();
 
-const { 
-  products: salesProducts, 
-  loadSalesProducts, 
+const {
+  products: salesProducts,
+  loadSalesProducts,
   retryLoadSalesProducts,
-  loading: salesLoading, 
-  error: salesError 
+  loading: salesLoading,
+  error: salesError,
 } = useSalesProducts();
 
 const containerRef = ref(null);
@@ -136,9 +153,11 @@ const isOpen = ref(false);
 const searchQuery = ref('');
 const lastLoadedContextKey = ref('');
 
-const loading = computed(() => isSalesMode.value ? salesLoading.value : adminLoading.value);
-const error = computed(() => isSalesMode.value ? salesError.value : adminError.value);
-const items = computed(() => isSalesMode.value ? (salesProducts.value || []) : (adminProducts.value || []));
+const loading = computed(() => (isSalesMode.value ? salesLoading.value : adminLoading.value));
+const error = computed(() => (isSalesMode.value ? salesError.value : adminError.value));
+const items = computed(() =>
+  isSalesMode.value ? salesProducts.value || [] : adminProducts.value || []
+);
 const currentContextKey = computed(() =>
   JSON.stringify({
     mode: props.mode,
@@ -149,9 +168,9 @@ const currentContextKey = computed(() =>
 
 const placeholderText = computed(() => {
   if (props.placeholder) return props.placeholder;
-  return isSalesMode.value 
-    ? t('order.binding.salesSearchPlaceholder') 
-    : (t('product.filters.search_placeholder') || 'Search products...');
+  return isSalesMode.value
+    ? t('order.binding.salesSearchPlaceholder')
+    : t('product.filters.search_placeholder') || 'Search products...';
 });
 
 const handleSearch = async (query) => {
@@ -169,8 +188,11 @@ const handleSearch = async (query) => {
 
 const open = () => {
   isOpen.value = true;
-  if (!searchQuery.value && (items.value.length === 0 || lastLoadedContextKey.value !== currentContextKey.value)) {
-      handleSearch('');
+  if (
+    !searchQuery.value &&
+    (items.value.length === 0 || lastLoadedContextKey.value !== currentContextKey.value)
+  ) {
+    handleSearch('');
   }
 };
 
@@ -183,7 +205,7 @@ onClickOutside(containerRef, close);
 const debouncedSearch = useDebounceFn(handleSearch, 300);
 
 const handleInput = () => {
-    debouncedSearch(searchQuery.value);
+  debouncedSearch(searchQuery.value);
 };
 
 const retryLoad = async () => {
@@ -198,10 +220,10 @@ const retryLoad = async () => {
 };
 
 const select = (product) => {
-    emit('select', product);
-    emit('update:modelValue', product.id);
-    close();
-    searchQuery.value = '';
+  emit('select', product);
+  emit('update:modelValue', product.id);
+  close();
+  searchQuery.value = '';
 };
 
 const getMainImageSrc = (product) => {

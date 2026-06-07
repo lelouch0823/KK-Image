@@ -10,7 +10,8 @@ function parseStatusFromMessage(message) {
 export function classifyAIError(error) {
   const message = toErrorMessage(error);
   const status = parseStatusFromMessage(message);
-  const isNetworkError = error instanceof TypeError || /fetch failed|network|timeout/i.test(message);
+  const isNetworkError =
+    error instanceof TypeError || /fetch failed|network|timeout/i.test(message);
   const retryableStatuses = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
   const retryable = isNetworkError || (status !== null && retryableStatuses.has(status));
 
@@ -43,7 +44,7 @@ export async function executeWithRetry(task, options = {}) {
         throw error;
       }
 
-      const delay = baseDelayMs * (2 ** attempt) + jitterMs;
+      const delay = baseDelayMs * 2 ** attempt + jitterMs;
       if (onRetry) {
         onRetry({
           attempt: attempt + 1,

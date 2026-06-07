@@ -23,13 +23,27 @@ describe('variant-meta (frontend)', () => {
   });
 
   it('returns availability states and selectability correctly', () => {
-    expect(getVariantAvailabilityState({ status: 'archived', stock_quantity: 99, alert_threshold: 10 })).toBe('disabled_archived');
-    expect(getVariantAvailabilityState({ status: 'active', stock_quantity: 0, alert_threshold: 10 })).toBe('disabled_out_of_stock');
-    expect(getVariantAvailabilityState({ status: 'active', stock_quantity: 3, alert_threshold: 5 })).toBe('low_stock');
-    expect(getVariantAvailabilityState({ status: 'active', stock_quantity: 8, alert_threshold: 5 })).toBe('available');
-    expect(isVariantSelectable({ status: 'archived', stock_quantity: 8, alert_threshold: 5 })).toBe(false);
-    expect(isVariantSelectable({ status: 'active', stock_quantity: 0, alert_threshold: 5 })).toBe(false);
-    expect(isVariantSelectable({ status: 'active', stock_quantity: 3, alert_threshold: 5 })).toBe(true);
+    expect(
+      getVariantAvailabilityState({ status: 'archived', stock_quantity: 99, alert_threshold: 10 })
+    ).toBe('disabled_archived');
+    expect(
+      getVariantAvailabilityState({ status: 'active', stock_quantity: 0, alert_threshold: 10 })
+    ).toBe('disabled_out_of_stock');
+    expect(
+      getVariantAvailabilityState({ status: 'active', stock_quantity: 3, alert_threshold: 5 })
+    ).toBe('low_stock');
+    expect(
+      getVariantAvailabilityState({ status: 'active', stock_quantity: 8, alert_threshold: 5 })
+    ).toBe('available');
+    expect(isVariantSelectable({ status: 'archived', stock_quantity: 8, alert_threshold: 5 })).toBe(
+      false
+    );
+    expect(isVariantSelectable({ status: 'active', stock_quantity: 0, alert_threshold: 5 })).toBe(
+      false
+    );
+    expect(isVariantSelectable({ status: 'active', stock_quantity: 3, alert_threshold: 5 })).toBe(
+      true
+    );
   });
 
   it('supports 2D/1D options without empty placeholders', () => {

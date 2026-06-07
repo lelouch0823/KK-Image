@@ -39,35 +39,43 @@ describe('OrderStatusProjectionService', () => {
   });
 
   it('supports repository-shaped qty fields from order_lines rows', () => {
-    expect(projectOrderLineStatus({
-      ordered_qty: 5,
-      cancelled_qty: 5,
-    })).toBe('cancelled');
+    expect(
+      projectOrderLineStatus({
+        ordered_qty: 5,
+        cancelled_qty: 5,
+      })
+    ).toBe('cancelled');
 
-    expect(projectOrderLineStatus({
-      ordered_qty: 4,
-      procured_qty: 4,
-      received_qty: 4,
-      shipped_qty: 0,
-      cancelled_qty: 0,
-    })).toBe('ready');
+    expect(
+      projectOrderLineStatus({
+        ordered_qty: 4,
+        procured_qty: 4,
+        received_qty: 4,
+        shipped_qty: 0,
+        cancelled_qty: 0,
+      })
+    ).toBe('ready');
   });
 
   it('uses remaining non-cancelled quantity when projecting ready and completed states', () => {
-    expect(projectOrderLineStatus({
-      ordered_qty: 10,
-      procured_qty: 10,
-      received_qty: 6,
-      shipped_qty: 0,
-      cancelled_qty: 4,
-    })).toBe('ready');
+    expect(
+      projectOrderLineStatus({
+        ordered_qty: 10,
+        procured_qty: 10,
+        received_qty: 6,
+        shipped_qty: 0,
+        cancelled_qty: 4,
+      })
+    ).toBe('ready');
 
-    expect(projectOrderLineStatus({
-      ordered_qty: 10,
-      procured_qty: 10,
-      received_qty: 6,
-      shipped_qty: 6,
-      cancelled_qty: 4,
-    })).toBe('completed');
+    expect(
+      projectOrderLineStatus({
+        ordered_qty: 10,
+        procured_qty: 10,
+        received_qty: 6,
+        shipped_qty: 6,
+        cancelled_qty: 4,
+      })
+    ).toBe('completed');
   });
 });

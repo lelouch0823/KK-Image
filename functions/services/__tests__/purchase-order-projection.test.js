@@ -30,9 +30,7 @@ describe('purchase-order-projection', () => {
       received_qty: 8,
       cancelled_qty: 2,
       outstanding_qty: 0,
-      items: [
-        { quantity: 10, received_qty: 1, cancelled_qty: 0 },
-      ],
+      items: [{ quantity: 10, received_qty: 1, cancelled_qty: 0 }],
     };
 
     expect(getPurchaseOrderOrderedQty(header)).toBe(10);

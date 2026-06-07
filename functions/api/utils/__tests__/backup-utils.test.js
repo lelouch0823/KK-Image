@@ -54,7 +54,7 @@ describe('backup utils', () => {
     const env = {
       DB: {
         prepare: vi.fn((sql) => {
-          if (sql.includes('WHERE type =\'table\'')) {
+          if (sql.includes("WHERE type ='table'")) {
             return {
               all: vi.fn(async () => ({ results: [{ name: 'orders' }, { name: 'customers' }] })),
             };

@@ -10,7 +10,8 @@ describe('syncProductCatalogDimensions', () => {
       status: 'active',
     }));
     const createDimension = vi.fn();
-    const listByProduct = vi.fn()
+    const listByProduct = vi
+      .fn()
       .mockResolvedValueOnce([
         {
           id: 'dim-color',

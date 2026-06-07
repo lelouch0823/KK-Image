@@ -91,7 +91,10 @@ import productByIdApp from '../[id].js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.use('/api/manage/products/*', async (c, next) => {
     c.set('user', { id: 'admin-1', role: 'admin', permissions: ['products:manage'] });
@@ -127,9 +130,21 @@ describe('manage product update routes idempotency', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.productFindById.mockResolvedValue({ id: 'prod-1', name: 'Catalog Tee' });
-    mocks.dimensionUpdateDimension.mockResolvedValue({ id: 'dim-1', name: 'Colour', status: 'active' });
-    mocks.patchProduct.mockResolvedValue({ changes: 2, variantSync: { updated: 1 }, variantsUpdated: true });
-    mocks.putProduct.mockResolvedValue({ changes: 3, variantSync: { archived: 1 }, variantsUpdated: true });
+    mocks.dimensionUpdateDimension.mockResolvedValue({
+      id: 'dim-1',
+      name: 'Colour',
+      status: 'active',
+    });
+    mocks.patchProduct.mockResolvedValue({
+      changes: 2,
+      variantSync: { updated: 1 },
+      variantsUpdated: true,
+    });
+    mocks.putProduct.mockResolvedValue({
+      changes: 3,
+      variantSync: { archived: 1 },
+      variantsUpdated: true,
+    });
     mocks.commandReserve.mockResolvedValue({
       existing: false,
       ownsReservation: true,
@@ -143,53 +158,58 @@ describe('manage product update routes idempotency', () => {
     const app = createApp();
     const storedResponses = new Map();
 
-    mocks.commandBuildFinalizeStatement.mockImplementation((_commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        storedResponses.set('dimension-update-key-1', { responseJson, status });
-        return { meta: { changes: 1 } };
-      }),
-    }));
-    mocks.commandReserve.mockImplementation(async (_type, scopeKey, idempotencyKey, requestFingerprint) => {
-      if (idempotencyKey === 'dimension-update-key-1' && storedResponses.has(idempotencyKey)) {
-        const stored = storedResponses.get(idempotencyKey);
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (_commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          storedResponses.set('dimension-update-key-1', { responseJson, status });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
+    mocks.commandReserve.mockImplementation(
+      async (_type, scopeKey, idempotencyKey, requestFingerprint) => {
+        if (idempotencyKey === 'dimension-update-key-1' && storedResponses.has(idempotencyKey)) {
+          const stored = storedResponses.get(idempotencyKey);
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: 'cmd-dimension-update-1',
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: requestFingerprint,
+              response_json: JSON.stringify(stored.responseJson),
+              status: stored.status,
+            },
+          };
+        }
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
             command_id: 'cmd-dimension-update-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
             request_fingerprint: requestFingerprint,
-            response_json: JSON.stringify(stored.responseJson),
-            status: stored.status,
           },
         };
       }
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-dimension-update-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-
-    const request = () => app.request(
-      'http://localhost/api/manage/products/prod-1/dimensions/dim-1',
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': 'dimension-update-key-1',
-        },
-        body: JSON.stringify({ name: 'Colour' }),
-      },
-      { DB: {} },
-      { waitUntil: vi.fn() }
     );
+
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/products/prod-1/dimensions/dim-1',
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'dimension-update-key-1',
+          },
+          body: JSON.stringify({ name: 'Colour' }),
+        },
+        { DB: {} },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -235,9 +255,11 @@ describe('manage product update routes idempotency', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual(expect.objectContaining({
-      error: '同一个幂等键不能提交不同的商品规格维度更新请求',
-    }));
+    expect(await res.json()).toEqual(
+      expect.objectContaining({
+        error: '同一个幂等键不能提交不同的商品规格维度更新请求',
+      })
+    );
     expect(mocks.dimensionUpdateDimension).not.toHaveBeenCalled();
   });
 
@@ -245,65 +267,70 @@ describe('manage product update routes idempotency', () => {
     const app = createApp();
     const commandState = new Map();
 
-    mocks.commandReserve.mockImplementation(async (_type, scopeKey, idempotencyKey, requestFingerprint) => {
-      const existing = commandState.get(idempotencyKey);
-      if (existing) {
+    mocks.commandReserve.mockImplementation(
+      async (_type, scopeKey, idempotencyKey, requestFingerprint) => {
+        const existing = commandState.get(idempotencyKey);
+        if (existing) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: existing.commandId,
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: existing.requestFingerprint,
+              response_json: existing.responseJson,
+              status: existing.status,
+            },
+          };
+        }
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
-            command_id: existing.commandId,
+            command_id: 'cmd-product-patch-retry-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: existing.requestFingerprint,
-            response_json: existing.responseJson,
-            status: existing.status,
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-product-patch-retry-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        commandState.set('product-patch-key-retry-1', {
-          commandId,
-          requestFingerprint: buildFingerprint({
-            productId: 'prod-1',
-            body: { name: 'Updated Tee' },
-            fullReplace: false,
-          }),
-          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
-          status,
-        });
-        return { meta: { changes: 1 } };
-      }),
-    }));
+    );
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          commandState.set('product-patch-key-retry-1', {
+            commandId,
+            requestFingerprint: buildFingerprint({
+              productId: 'prod-1',
+              body: { name: 'Updated Tee' },
+              fullReplace: false,
+            }),
+            responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+            status,
+          });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
     mocks.scheduleProductCacheInvalidation
       .mockRejectedValueOnce(new Error('publish failed'))
       .mockResolvedValueOnce([]);
 
-    const request = () => app.request(
-      'http://localhost/api/manage/products/prod-1',
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': 'product-patch-key-retry-1',
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/products/prod-1',
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'product-patch-key-retry-1',
+          },
+          body: JSON.stringify({ name: 'Updated Tee' }),
         },
-        body: JSON.stringify({ name: 'Updated Tee' }),
-      },
-      { DB: {} },
-      { waitUntil: vi.fn() }
-    );
+        { DB: {} },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -329,53 +356,58 @@ describe('manage product update routes idempotency', () => {
     const app = createApp();
     const storedResponses = new Map();
 
-    mocks.commandBuildFinalizeStatement.mockImplementation((_commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        storedResponses.set('product-put-key-1', { responseJson, status });
-        return { meta: { changes: 1 } };
-      }),
-    }));
-    mocks.commandReserve.mockImplementation(async (_type, scopeKey, idempotencyKey, requestFingerprint) => {
-      if (idempotencyKey === 'product-put-key-1' && storedResponses.has(idempotencyKey)) {
-        const stored = storedResponses.get(idempotencyKey);
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (_commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          storedResponses.set('product-put-key-1', { responseJson, status });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
+    mocks.commandReserve.mockImplementation(
+      async (_type, scopeKey, idempotencyKey, requestFingerprint) => {
+        if (idempotencyKey === 'product-put-key-1' && storedResponses.has(idempotencyKey)) {
+          const stored = storedResponses.get(idempotencyKey);
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: 'cmd-product-put-1',
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: requestFingerprint,
+              response_json: JSON.stringify(stored.responseJson),
+              status: stored.status,
+            },
+          };
+        }
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
             command_id: 'cmd-product-put-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
             request_fingerprint: requestFingerprint,
-            response_json: JSON.stringify(stored.responseJson),
-            status: stored.status,
           },
         };
       }
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-product-put-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-
-    const request = () => app.request(
-      'http://localhost/api/manage/products/prod-1',
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': 'product-put-key-1',
-        },
-        body: JSON.stringify({ name: 'Replacement Tee', variants: [] }),
-      },
-      { DB: {} },
-      { waitUntil: vi.fn() }
     );
+
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/products/prod-1',
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'product-put-key-1',
+          },
+          body: JSON.stringify({ name: 'Replacement Tee', variants: [] }),
+        },
+        { DB: {} },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -392,71 +424,78 @@ describe('manage product update routes idempotency', () => {
     const commandState = new Map();
     let committedFinalizeAttempts = 0;
 
-    mocks.commandReserve.mockImplementation(async (_type, scopeKey, idempotencyKey, requestFingerprint) => {
-      const existing = commandState.get(idempotencyKey);
-      if (existing) {
+    mocks.commandReserve.mockImplementation(
+      async (_type, scopeKey, idempotencyKey, requestFingerprint) => {
+        const existing = commandState.get(idempotencyKey);
+        if (existing) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: existing.commandId,
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: existing.requestFingerprint,
+              response_json: existing.responseJson,
+              status: existing.status,
+            },
+          };
+        }
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
-            command_id: existing.commandId,
+            command_id: 'cmd-product-put-finalize-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: existing.requestFingerprint,
-            response_json: existing.responseJson,
-            status: existing.status,
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-product-put-finalize-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        if (status === 'committed') {
-          committedFinalizeAttempts += 1;
-          if (committedFinalizeAttempts === 1) {
-            throw new Error('finalize committed failed');
+    );
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          if (status === 'committed') {
+            committedFinalizeAttempts += 1;
+            if (committedFinalizeAttempts === 1) {
+              throw new Error('finalize committed failed');
+            }
           }
-        }
-        commandState.set('product-put-key-finalize-1', {
-          commandId,
-          requestFingerprint: buildFingerprint({
-            productId: 'prod-1',
-            body: { name: 'Replacement Tee', variants: [] },
-            fullReplace: true,
-          }),
-          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
-          status,
-        });
-        return { meta: { changes: 1 } };
-      }),
-    }));
+          commandState.set('product-put-key-finalize-1', {
+            commandId,
+            requestFingerprint: buildFingerprint({
+              productId: 'prod-1',
+              body: { name: 'Replacement Tee', variants: [] },
+              fullReplace: true,
+            }),
+            responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+            status,
+          });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
     mocks.scheduleProductCacheInvalidation
       .mockResolvedValueOnce([])
-      .mockRejectedValueOnce(new Error('D1_ERROR: UNIQUE constraint failed: domain_outbox.idempotency_key'));
+      .mockRejectedValueOnce(
+        new Error('D1_ERROR: UNIQUE constraint failed: domain_outbox.idempotency_key')
+      );
 
-    const request = () => app.request(
-      'http://localhost/api/manage/products/prod-1',
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': 'product-put-key-finalize-1',
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/products/prod-1',
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'product-put-key-finalize-1',
+          },
+          body: JSON.stringify({ name: 'Replacement Tee', variants: [] }),
         },
-        body: JSON.stringify({ name: 'Replacement Tee', variants: [] }),
-      },
-      { DB: {} },
-      { waitUntil: vi.fn() }
-    );
+        { DB: {} },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -465,13 +504,17 @@ describe('manage product update routes idempotency', () => {
     expect(second.status).toBe(200);
     expect(mocks.putProduct).toHaveBeenCalledTimes(1);
     expect(mocks.scheduleProductCacheInvalidation).toHaveBeenCalledTimes(2);
-    expect(mocks.scheduleProductCacheInvalidation.mock.calls[0][2]).toEqual(expect.objectContaining({
-      commandId: 'cmd-product-put-finalize-1',
-      correlationId: 'cmd-product-put-finalize-1',
-    }));
-    expect(mocks.scheduleProductCacheInvalidation.mock.calls[1][2]).toEqual(expect.objectContaining({
-      commandId: 'cmd-product-put-finalize-1',
-      correlationId: 'cmd-product-put-finalize-1',
-    }));
+    expect(mocks.scheduleProductCacheInvalidation.mock.calls[0][2]).toEqual(
+      expect.objectContaining({
+        commandId: 'cmd-product-put-finalize-1',
+        correlationId: 'cmd-product-put-finalize-1',
+      })
+    );
+    expect(mocks.scheduleProductCacheInvalidation.mock.calls[1][2]).toEqual(
+      expect.objectContaining({
+        commandId: 'cmd-product-put-finalize-1',
+        correlationId: 'cmd-product-put-finalize-1',
+      })
+    );
   });
 });

@@ -9,6 +9,7 @@
 ## 1. 功能概述
 
 当管理员在编辑订单时选择绑定某个商品，系统应该：
+
 1. 将 `product_id` 存入订单表
 2. 锁定订单中与商品关联的字段（名称、品牌、系列、SKU）
 3. 再次打开编辑弹窗时，锁定状态应保持
@@ -52,13 +53,14 @@ sequenceDiagram
 
 ### 3.1 前端组件
 
-| 文件 | 路径 | 职责 | 状态 |
-|------|------|------|------|
-| OrderEditModal.vue | `src/components/OrderEditModal.vue` | 编辑弹窗，处理表单与锁定逻辑 | ✅ 正确 |
-| ProductBindingSection.vue | `src/components/order/ProductBindingSection.vue` | 商品选择UI组件 | ✅ 正确 |
-| OrderManager.vue | `src/components/OrderManager.vue` | 管理端订单列表 | ✅ 正确 |
+| 文件                      | 路径                                             | 职责                         | 状态    |
+| ------------------------- | ------------------------------------------------ | ---------------------------- | ------- |
+| OrderEditModal.vue        | `src/components/OrderEditModal.vue`              | 编辑弹窗，处理表单与锁定逻辑 | ✅ 正确 |
+| ProductBindingSection.vue | `src/components/order/ProductBindingSection.vue` | 商品选择UI组件               | ✅ 正确 |
+| OrderManager.vue          | `src/components/OrderManager.vue`                | 管理端订单列表               | ✅ 正确 |
 
 **核心逻辑** (`OrderEditModal.vue:272-331`):
+
 ```javascript
 watch(
   () => props.order,
@@ -85,18 +87,27 @@ const disabledFields = computed(() => boundProduct.value ? LOCKED_FIELDS : []);
 
 ### 3.2 API 路由层
 
-| 文件 | 路径 | 职责 |
-|------|------|------|
+| 文件      | 路径                                                | 职责                    |
+| --------- | --------------------------------------------------- | ----------------------- |
 | detail.js | `functions/lib/hono/routes/manage/orders/detail.js` | 订单详情 GET/PATCH 路由 |
 
 **PATCH 路由关键代码** (line 54-92):
+
 ```javascript
 const { updates: updatesFromBody, reason, fileIds, productId } = body;
 // ...
 const _result = await processOrderUpdate({
-  env, orderId, orderNo, currentData, updates, fileIds,
+  env,
+  orderId,
+  orderNo,
+  currentData,
+  updates,
+  fileIds,
   productId, // ✅ 正确传递
-  allowedFields, actor, reason, salespersonId
+  allowedFields,
+  actor,
+  reason,
+  salespersonId,
 });
 ```
 
@@ -106,11 +117,12 @@ const _result = await processOrderUpdate({
 
 ### 3.3 工具函数层
 
-| 文件 | 路径 | 职责 |
-|------|------|------|
+| 文件           | 路径                                 | 职责             |
+| -------------- | ------------------------------------ | ---------------- |
 | order-utils.js | `functions/api/utils/order-utils.js` | 订单更新核心逻辑 |
 
 **关键代码** (line 324):
+
 ```javascript
 await orderRepo.updateData(orderId, newData, actorTypeStr, options.productId);
 ```
@@ -121,11 +133,12 @@ await orderRepo.updateData(orderId, newData, actorTypeStr, options.productId);
 
 ### 3.4 Repository 层 (🔴 问题根因)
 
-| 文件 | 路径 | 职责 |
-|------|------|------|
+| 文件               | 路径                                        | 职责               |
+| ------------------ | ------------------------------------------- | ------------------ |
 | OrderRepository.js | `functions/repositories/OrderRepository.js` | 订单数据库操作门面 |
 
 **修复前** (❌ 错误):
+
 ```javascript
 async updateData(id, newData, actorType) {
   return mutations.updateData(this.db, id, newData, actorType);
@@ -134,6 +147,7 @@ async updateData(id, newData, actorType) {
 ```
 
 **修复后** (✅ 已修复):
+
 ```javascript
 async updateData(id, newData, actorType, productId) {
   return mutations.updateData(this.db, id, newData, actorType, productId);
@@ -144,11 +158,12 @@ async updateData(id, newData, actorType, productId) {
 
 ### 3.5 Mutation 层
 
-| 文件 | 路径 | 职责 |
-|------|------|------|
+| 文件         | 路径                                        | 职责              |
+| ------------ | ------------------------------------------- | ----------------- |
 | mutations.js | `functions/repositories/order/mutations.js` | 订单 SQL 变更操作 |
 
 **关键代码** (line 71-92):
+
 ```javascript
 export async function updateData(db, id, newData, actorType, productId = undefined) {
   let query = `UPDATE orders SET current_data = ?, ${updateField} = 1, updated_at = ?`;
@@ -168,21 +183,23 @@ export async function updateData(db, id, newData, actorType, productId = undefin
 
 ### 3.6 Query 层
 
-| 文件 | 路径 | 职责 |
-|------|------|------|
+| 文件       | 路径                                      | 职责              |
+| ---------- | ----------------------------------------- | ----------------- |
 | queries.js | `functions/repositories/order/queries.js` | 订单 SQL 查询操作 |
-| helpers.js | `functions/repositories/order/helpers.js` | 数据映射工具 |
+| helpers.js | `functions/repositories/order/helpers.js` | 数据映射工具      |
 
 **查询语句** (queries.js:22):
+
 ```sql
 SELECT o.*, o.product_id, o.quantity, f.storage_key as main_image_key ...
 ```
 
 **映射逻辑** (helpers.js:60):
+
 ```javascript
 return {
   // ...
-  productId: order.product_id,  // ✅ snake_case → camelCase
+  productId: order.product_id, // ✅ snake_case → camelCase
   // ...
 };
 ```
@@ -193,11 +210,12 @@ return {
 
 ## 4. 修复总结
 
-| 层级 | 文件 | 问题 | 修复 |
-|------|------|------|------|
+| 层级       | 文件                 | 问题                          | 修复                |
+| ---------- | -------------------- | ----------------------------- | ------------------- |
 | Repository | `OrderRepository.js` | 方法签名缺少 `productId` 参数 | 添加第4个参数并透传 |
 
 **修改差异**:
+
 ```diff
 - async updateData(id, newData, actorType) {
 -   return mutations.updateData(this.db, id, newData, actorType);

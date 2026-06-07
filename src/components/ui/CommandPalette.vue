@@ -207,8 +207,17 @@ import { useCommandPalette } from '@/composables/useCommandPalette';
 import { useI18n } from '@/composables/useI18n';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
-const { isOpen, query, selectedIndex, isSearching, allResults, close, moveUp, moveDown, executeSelected } =
-  useCommandPalette();
+const {
+  isOpen,
+  query,
+  selectedIndex,
+  isSearching,
+  allResults,
+  close,
+  moveUp,
+  moveDown,
+  executeSelected,
+} = useCommandPalette();
 const { t } = useI18n();
 
 const searchInput = ref(null);
@@ -219,7 +228,8 @@ const groupedResults = computed(() => {
   const groups = new Map();
 
   for (const item of allResults.value) {
-    const category = item.type === 'command' ? item.data.category : getCategoryFromType(item.data.type);
+    const category =
+      item.type === 'command' ? item.data.category : getCategoryFromType(item.data.type);
     if (!groups.has(category)) {
       groups.set(category, { category, items: [] });
     }

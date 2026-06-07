@@ -4,9 +4,7 @@
     size="3xl"
     :eyebrow="'Settlement Config'"
     :title="t('purchaseOrder.action.settle')"
-    :description="
-      t('purchaseOrder.ui.costModalHint')
-    "
+    :description="t('purchaseOrder.ui.costModalHint')"
     @update:model-value="handleVisibilityChange"
     @close="$emit('close')"
   >
@@ -111,9 +109,7 @@
       <ActionBar>
         <template #leading>
           <p class="text-sm text-(--text-secondary)">
-            {{
-              t('purchaseOrder.ui.costModalFooterHint')
-            }}
+            {{ t('purchaseOrder.ui.costModalFooterHint') }}
           </p>
         </template>
         <AppButton variant="secondary" @click="$emit('close')">

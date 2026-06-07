@@ -45,4 +45,3 @@ export const TokenSchema = z.object({
   password: z.string().min(1),
   expiresIn: z.number().int().min(60).max(604800).default(3600), // 1分钟到7天
 });
-

@@ -3,7 +3,12 @@
     <!-- Webhook 列表 -->
     <SettingsSection
       :title="t('settings.webhooks.title', 'Webhook 管理')"
-      :description="t('settings.webhooks.description', '管理外部 Webhook 端点，系统事件将自动推送到已订阅的端点。')"
+      :description="
+        t(
+          'settings.webhooks.description',
+          '管理外部 Webhook 端点，系统事件将自动推送到已订阅的端点。'
+        )
+      "
       icon="globe-alt"
     >
       <div class="space-y-3">
@@ -17,9 +22,11 @@
               <p class="truncate text-sm font-medium text-(--text-main)">{{ wh.url }}</p>
               <span
                 class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                :class="wh.enabled
-                  ? 'bg-(--color-success-bg) text-(--color-success-text)'
-                  : 'bg-(--bg-muted) text-(--text-muted)'"
+                :class="
+                  wh.enabled
+                    ? 'bg-(--color-success-bg) text-(--color-success-text)'
+                    : 'bg-(--bg-muted) text-(--text-muted)'
+                "
               >
                 {{ wh.enabled ? t('common.active') : t('settings.webhooks.disabled', '已禁用') }}
               </span>
@@ -37,11 +44,7 @@
             >
               {{ t('settings.webhooks.test', '测试') }}
             </AppButton>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              @click="viewLogs(wh.id)"
-            >
+            <AppButton variant="ghost" size="sm" @click="viewLogs(wh.id)">
               {{ t('settings.webhooks.logs', '日志') }}
             </AppButton>
           </div>
@@ -59,7 +62,9 @@
     <!-- 投递日志 -->
     <SettingsSection
       :title="t('settings.webhooks.deliveryLogs', '投递日志')"
-      :description="t('settings.webhooks.deliveryLogsDesc', '查看 Webhook 投递记录，支持重试失败的投递。')"
+      :description="
+        t('settings.webhooks.deliveryLogsDesc', '查看 Webhook 投递记录，支持重试失败的投递。')
+      "
       icon="document-text"
     >
       <template v-if="selectedWebhookId" #header-extra>
@@ -94,7 +99,9 @@
 
       <!-- 日志列表 -->
       <div v-if="logsLoading" class="flex items-center justify-center py-8">
-        <div class="size-5 animate-spin rounded-full border-2 border-(--border-color) border-t-(--color-primary)" />
+        <div
+          class="size-5 animate-spin rounded-full border-2 border-(--border-color) border-t-(--color-primary)"
+        />
       </div>
 
       <div v-else-if="logs.length === 0" class="py-8 text-center">
@@ -112,9 +119,11 @@
               <div class="flex items-center gap-2">
                 <span
                   class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                  :class="log.success
-                    ? 'bg-(--color-success-bg) text-(--color-success-text)'
-                    : 'bg-(--color-danger-bg) text-(--color-danger-text)'"
+                  :class="
+                    log.success
+                      ? 'bg-(--color-success-bg) text-(--color-success-text)'
+                      : 'bg-(--color-danger-bg) text-(--color-danger-text)'
+                  "
                 >
                   {{ log.success ? '200 OK' : log.status_code || 'ERR' }}
                 </span>
@@ -125,9 +134,7 @@
               </div>
               <p class="mt-1 text-xs text-(--text-tertiary)">
                 {{ formatDate(log.created_at) }}
-                <span v-if="log.attempt_number > 1" class="ml-2">
-                  #{{ log.attempt_number }}
-                </span>
+                <span v-if="log.attempt_number > 1" class="ml-2"> #{{ log.attempt_number }} </span>
               </p>
               <p
                 v-if="log.response && !log.success"
@@ -153,15 +160,16 @@
 
         <!-- 分页 -->
         <div v-if="logsTotal > logFilter.limit" class="flex items-center justify-between pt-2">
-          <p class="text-xs text-(--text-secondary)">
-            {{ t('common.total') }}: {{ logsTotal }}
-          </p>
+          <p class="text-xs text-(--text-secondary)">{{ t('common.total') }}: {{ logsTotal }}</p>
           <div class="flex items-center gap-2">
             <AppButton
               variant="ghost"
               size="sm"
               :disabled="logFilter.offset === 0"
-              @click="logFilter.offset = Math.max(0, logFilter.offset - logFilter.limit); loadLogs()"
+              @click="
+                logFilter.offset = Math.max(0, logFilter.offset - logFilter.limit);
+                loadLogs();
+              "
             >
               {{ t('common.prev') }}
             </AppButton>
@@ -169,7 +177,10 @@
               variant="ghost"
               size="sm"
               :disabled="logFilter.offset + logFilter.limit >= logsTotal"
-              @click="logFilter.offset += logFilter.limit; loadLogs()"
+              @click="
+                logFilter.offset += logFilter.limit;
+                loadLogs();
+              "
             >
               {{ t('common.next') }}
             </AppButton>
@@ -207,7 +218,6 @@ const logFilter = ref({
   limit: 20,
   offset: 0,
 });
-
 
 async function loadWebhooks() {
   try {
@@ -257,7 +267,8 @@ async function testWebhook(webhookId) {
     const res = await response.json();
     if (res.success || res.data?.status) {
       addToast(
-        t('settings.webhooks.testSuccess', '测试发送成功') + ` (${res.data?.status}, ${res.data?.duration}ms)`,
+        t('settings.webhooks.testSuccess', '测试发送成功') +
+          ` (${res.data?.status}, ${res.data?.duration}ms)`,
         'success'
       );
       await loadLogs();

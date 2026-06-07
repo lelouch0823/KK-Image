@@ -9,7 +9,10 @@ import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPubli
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { buildOrderBindingSnapshot } from '../../../../../api/utils/order-binding-snapshot.js';
 import { syncOrderDemandTransitionsByLines } from '../../../../../api/utils/order-demand-sync.js';
-import { canTransitionOrderStatus, normalizeOrderStatus } from '../../../../../api/utils/order-state-machine.js';
+import {
+  canTransitionOrderStatus,
+  normalizeOrderStatus,
+} from '../../../../../api/utils/order-state-machine.js';
 import { scheduleCacheInvalidation } from '../../../_shared/route-helpers.js';
 import { getManageOrderCacheUrls } from '../../_shared/cache-urls.js';
 import { isDuplicateOutboxIdempotencyError } from '../products/idempotency-helpers.js';
@@ -30,44 +33,45 @@ function attachPartialResult(error, partialResult) {
   return error;
 }
 
-export async function publishOrderCreatedByAdmin(c, {
-  orderId,
-  orderNo,
-  salespersonId,
-  actorName,
-  commandId,
-  correlationId,
-} = {}) {
+export async function publishOrderCreatedByAdmin(
+  c,
+  { orderId, orderNo, salespersonId, actorName, commandId, correlationId } = {}
+) {
   const { env } = c;
   const publisher = new DomainOutboxPublisher(env.DB);
   try {
-    await publisher.publish([
-      {
-        event_type: 'order_created_by_admin',
-        aggregate_type: 'order',
-        aggregate_id: orderId,
-        payload: {
-          order_id: orderId,
-          order_no: orderNo,
-          salesperson_id: salespersonId,
-          actor_name: actorName,
+    await publisher.publish(
+      [
+        {
+          event_type: 'order_created_by_admin',
+          aggregate_type: 'order',
+          aggregate_id: orderId,
+          payload: {
+            order_id: orderId,
+            order_no: orderNo,
+            salesperson_id: salespersonId,
+            actor_name: actorName,
+          },
         },
-      },
-    ], {
-      commandId,
-      correlationId,
-    });
+      ],
+      {
+        commandId,
+        correlationId,
+      }
+    );
   } catch (error) {
     if (!isDuplicateOutboxIdempotencyError(error)) {
       throw error;
     }
   }
 
-  c.executionCtx.waitUntil(runOutboxPoller({
-    env,
-    requestUrl: c.req.url,
-    workerId: `order-create:${orderId}`,
-  }));
+  c.executionCtx.waitUntil(
+    runOutboxPoller({
+      env,
+      requestUrl: c.req.url,
+      workerId: `order-create:${orderId}`,
+    })
+  );
 }
 
 export async function createManagedOrder(c, body, user = c.get('user'), options = {}) {
@@ -132,7 +136,7 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
   const variantId = primaryLine ? (primaryLine.variantId ?? null) : (body.variantId ?? null);
   const binding = await validateProductVariantBinding(
     env.DB,
-    primaryLine ? (primaryLine.productId || null) : (body.productId || null),
+    primaryLine ? primaryLine.productId || null : body.productId || null,
     variantId,
     { checkActive: true }
   );
@@ -150,9 +154,10 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
       material: body.material,
     },
   });
-  const totalQuantity = hydratedLines.length > 0
-    ? hydratedLines.reduce((sum, line) => sum + line.quantity, 0)
-    : (body.quantity || 1);
+  const totalQuantity =
+    hydratedLines.length > 0
+      ? hydratedLines.reduce((sum, line) => sum + line.quantity, 0)
+      : body.quantity || 1;
 
   if (body.status && !ORDER_STATUSES.includes(body.status)) {
     throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
@@ -166,28 +171,28 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
   const createdOrder = await orderRepo.create({
     id: orderId,
     orderNo,
-        salespersonId: body.salespersonId,
-        customerId: body.customerId || null,
-        data: {
-          name: boundSnapshot.name,
+    salespersonId: body.salespersonId,
+    customerId: body.customerId || null,
+    data: {
+      name: boundSnapshot.name,
       brand: boundSnapshot.brand,
       category: boundSnapshot.category,
       series: boundSnapshot.series,
       sku: boundSnapshot.sku,
       size: boundSnapshot.size,
       color: boundSnapshot.color,
-          material: boundSnapshot.material,
-          remark: body.remark || '',
-          deadline: body.deadline || '',
-        },
-        quantity: totalQuantity,
-        status: nextStatus,
-        productId: hydratedLines.length > 1 ? null : (primaryLine?.productId || body.productId || null),
-        variantId: hydratedLines.length > 1 ? null : variantId,
-        lines: hydratedLines,
-        mainImageId: body.fileIds?.[0] || null,
-        fileIds: body.fileIds || [],
-        timeline: {
+      material: boundSnapshot.material,
+      remark: body.remark || '',
+      deadline: body.deadline || '',
+    },
+    quantity: totalQuantity,
+    status: nextStatus,
+    productId: hydratedLines.length > 1 ? null : primaryLine?.productId || body.productId || null,
+    variantId: hydratedLines.length > 1 ? null : variantId,
+    lines: hydratedLines,
+    mainImageId: body.fileIds?.[0] || null,
+    fileIds: body.fileIds || [],
+    timeline: {
       actionType: 'created',
       actorType: 'admin',
       actorId: user?.id || 'admin',
@@ -203,10 +208,11 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
   scheduleCacheInvalidation(c, getManageOrderCacheUrls(c));
 
   try {
-    const persistedOrderDetail = typeof orderRepo.findById === 'function'
-      ? await orderRepo.findById(persistedOrderId)
-      : null;
-    const persistedLines = Array.isArray(persistedOrderDetail?.lines) ? persistedOrderDetail.lines : [];
+    const persistedOrderDetail =
+      typeof orderRepo.findById === 'function' ? await orderRepo.findById(persistedOrderId) : null;
+    const persistedLines = Array.isArray(persistedOrderDetail?.lines)
+      ? persistedOrderDetail.lines
+      : [];
     const demandLines = persistedLines.length > 0 ? persistedLines : hydratedLines;
     const demandPrimaryLine = demandLines[0] || primaryLine;
 
@@ -219,7 +225,8 @@ export async function createManagedOrder(c, body, user = c.get('user'), options 
       nextLines: demandLines,
       previousFallback: {},
       nextFallback: {
-        productId: demandLines.length === 1 ? (demandPrimaryLine?.productId || body.productId || null) : null,
+        productId:
+          demandLines.length === 1 ? demandPrimaryLine?.productId || body.productId || null : null,
         variantId: demandLines.length === 1 ? (demandPrimaryLine?.variantId ?? variantId) : null,
         quantity: totalQuantity,
       },

@@ -13,24 +13,26 @@ function createDbForSuggestions(results) {
 
 describe('variant pricing strategy', () => {
   it('getSuggestions should include pricing strategy fields per variant', async () => {
-    const db = createDbForSuggestions([{
-      variant_id: 'var-1',
-      product_id: 'prod-1',
-      product_code: 'P001',
-      variant_code: 'V001',
-      product_name: 'Tee',
-      sku: 'TEE-YEL-S',
-      brand: 'KK',
-      cost_price: 50,
-      suggested_purchase_price: 48,
-      stock_quantity: 2,
-      total_demand: 5,
-      shortage: 3,
-      order_count: 1,
-      order_ids: 'o-1',
-      images: '[]',
-      variant_options: '{"color":"黄","size":"S"}',
-    }]);
+    const db = createDbForSuggestions([
+      {
+        variant_id: 'var-1',
+        product_id: 'prod-1',
+        product_code: 'P001',
+        variant_code: 'V001',
+        product_name: 'Tee',
+        sku: 'TEE-YEL-S',
+        brand: 'KK',
+        cost_price: 50,
+        suggested_purchase_price: 48,
+        stock_quantity: 2,
+        total_demand: 5,
+        shortage: 3,
+        order_count: 1,
+        order_ids: 'o-1',
+        images: '[]',
+        variant_options: '{"color":"黄","size":"S"}',
+      },
+    ]);
     const service = new PurchaseOrderService(db);
     service.repo.getLastPurchasePricesByVariant = vi.fn(async () => ({
       'var-1': 46,
@@ -46,24 +48,26 @@ describe('variant pricing strategy', () => {
   });
 
   it('getSuggestions should fallback when no historical purchase price exists', async () => {
-    const db = createDbForSuggestions([{
-      variant_id: 'var-2',
-      product_id: 'prod-1',
-      product_code: 'P001',
-      variant_code: 'V002',
-      product_name: 'Tee',
-      sku: 'TEE-BLU-M',
-      brand: 'KK',
-      cost_price: 22,
-      suggested_purchase_price: 0,
-      stock_quantity: 0,
-      total_demand: 4,
-      shortage: 4,
-      order_count: 1,
-      order_ids: 'o-2',
-      images: '[]',
-      variant_options: '{"color":"蓝","size":"M"}',
-    }]);
+    const db = createDbForSuggestions([
+      {
+        variant_id: 'var-2',
+        product_id: 'prod-1',
+        product_code: 'P001',
+        variant_code: 'V002',
+        product_name: 'Tee',
+        sku: 'TEE-BLU-M',
+        brand: 'KK',
+        cost_price: 22,
+        suggested_purchase_price: 0,
+        stock_quantity: 0,
+        total_demand: 4,
+        shortage: 4,
+        order_count: 1,
+        order_ids: 'o-2',
+        images: '[]',
+        variant_options: '{"color":"蓝","size":"M"}',
+      },
+    ]);
     const service = new PurchaseOrderService(db);
     service.repo.getLastPurchasePricesByVariant = vi.fn(async () => ({}));
 

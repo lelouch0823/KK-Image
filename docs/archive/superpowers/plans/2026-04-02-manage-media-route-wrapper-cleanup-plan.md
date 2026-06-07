@@ -13,11 +13,13 @@
 ### Task 1: Expand the Audit Contract
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/__tests__/route-entity-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit assertions**
 
 Extend the target list so the audit test also forbids:
+
 - `requireAlbum`
 - `requireFolder`
 - `requireFile`
@@ -35,6 +37,7 @@ Expected: FAIL because the three wrapper definitions still exist.
 ### Task 2: Inline Manage Media Entity Guards
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/albums.js`
 - Modify: `functions/lib/hono/routes/manage/folders.js`
 - Modify: `functions/lib/hono/routes/manage/files.js`

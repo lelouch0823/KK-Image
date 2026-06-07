@@ -38,7 +38,9 @@ function findSuggestion(payload, variantId) {
 }
 
 function findOverviewItem(payload, variantId) {
-  return (payload?.data?.items || payload?.data || []).find((item) => item.variantId === variantId || item.id === variantId);
+  return (payload?.data?.items || payload?.data || []).find(
+    (item) => item.variantId === variantId || item.id === variantId
+  );
 }
 
 describeIfRealApi('Manage Inventory Linkage Real API Workflow', function () {
@@ -237,56 +239,66 @@ describeIfRealApi('Manage Inventory Linkage Real API Workflow', function () {
       expectedStatus: 201,
     });
 
-    await waitFor(async () => {
-      const finalDetail = await apiRequest(`/api/manage/products/${productId}`, {
-        bearerToken: token,
-        expectedStatus: 200,
-      });
-      const finalVariant = findVariant(finalDetail.json, variantId);
-      assert.ok(finalVariant, 'final variant missing');
-      assert.strictEqual(Number(finalVariant.stock_quantity || 0), 11);
-      assert.strictEqual(Number(finalVariant.available_quantity || 0), 7);
-      return finalVariant;
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'final product projection did not converge after purchase receipt',
-    });
+    await waitFor(
+      async () => {
+        const finalDetail = await apiRequest(`/api/manage/products/${productId}`, {
+          bearerToken: token,
+          expectedStatus: 200,
+        });
+        const finalVariant = findVariant(finalDetail.json, variantId);
+        assert.ok(finalVariant, 'final variant missing');
+        assert.strictEqual(Number(finalVariant.stock_quantity || 0), 11);
+        assert.strictEqual(Number(finalVariant.available_quantity || 0), 7);
+        return finalVariant;
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'final product projection did not converge after purchase receipt',
+      }
+    );
 
-    await waitFor(async () => {
-      const finalSuggestions = await apiRequest('/api/manage/purchase-orders/suggestions', {
-        bearerToken: token,
-        expectedStatus: 200,
-      });
-      const finalSuggestion = findSuggestion(finalSuggestions.json, variantId);
-      assert.ok(finalSuggestion, 'final suggestion missing');
-      assert.strictEqual(Number(finalSuggestion.total_demand || 0), 8);
-      assert.strictEqual(Number(finalSuggestion.stock_quantity || 0), 11);
-      assert.strictEqual(Number(finalSuggestion.available_quantity || 0), 7);
-      assert.strictEqual(Number(finalSuggestion.shortage || 0), 1);
-      return finalSuggestion;
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'final purchase-order suggestion projection did not converge after receipt',
-    });
+    await waitFor(
+      async () => {
+        const finalSuggestions = await apiRequest('/api/manage/purchase-orders/suggestions', {
+          bearerToken: token,
+          expectedStatus: 200,
+        });
+        const finalSuggestion = findSuggestion(finalSuggestions.json, variantId);
+        assert.ok(finalSuggestion, 'final suggestion missing');
+        assert.strictEqual(Number(finalSuggestion.total_demand || 0), 8);
+        assert.strictEqual(Number(finalSuggestion.stock_quantity || 0), 11);
+        assert.strictEqual(Number(finalSuggestion.available_quantity || 0), 7);
+        assert.strictEqual(Number(finalSuggestion.shortage || 0), 1);
+        return finalSuggestion;
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage:
+          'final purchase-order suggestion projection did not converge after receipt',
+      }
+    );
 
-    await waitFor(async () => {
-      const finalOverview = await apiRequest('/api/manage/goods-overview?sort=shortage', {
-        bearerToken: token,
-        expectedStatus: 200,
-      });
-      const finalOverviewItem = findOverviewItem(finalOverview.json, variantId);
-      assert.ok(finalOverviewItem, 'final overview item missing');
-      assert.strictEqual(Number(finalOverviewItem.stockQuantity || 0), 11);
-      assert.strictEqual(Number(finalOverviewItem.availableQuantity || 0), 7);
-      assert.strictEqual(Number(finalOverviewItem.shortage || 0), 1);
-      return finalOverviewItem;
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'final goods overview projection did not converge after receipt',
-    });
+    await waitFor(
+      async () => {
+        const finalOverview = await apiRequest('/api/manage/goods-overview?sort=shortage', {
+          bearerToken: token,
+          expectedStatus: 200,
+        });
+        const finalOverviewItem = findOverviewItem(finalOverview.json, variantId);
+        assert.ok(finalOverviewItem, 'final overview item missing');
+        assert.strictEqual(Number(finalOverviewItem.stockQuantity || 0), 11);
+        assert.strictEqual(Number(finalOverviewItem.availableQuantity || 0), 7);
+        assert.strictEqual(Number(finalOverviewItem.shortage || 0), 1);
+        return finalOverviewItem;
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'final goods overview projection did not converge after receipt',
+      }
+    );
 
     await apiRequest(`/api/manage/purchase-orders/${poId}/status`, {
       bearerToken: token,
@@ -295,21 +307,25 @@ describeIfRealApi('Manage Inventory Linkage Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const arrivedDetail = await apiRequest(`/api/manage/products/${productId}`, {
-        bearerToken: token,
-        expectedStatus: 200,
-      });
-      const arrivedVariant = findVariant(arrivedDetail.json, variantId);
-      assert.ok(arrivedVariant, 'arrived variant missing');
-      assert.strictEqual(Number(arrivedVariant.stock_quantity || 0), 11);
-      assert.strictEqual(Number(arrivedVariant.available_quantity || 0), 7);
-      return arrivedVariant;
-    }, {
-      timeoutMs: 10000,
-      intervalMs: 500,
-      onTimeoutMessage: 'purchase-order arrived should not increment stock beyond receipt projection',
-    });
+    await waitFor(
+      async () => {
+        const arrivedDetail = await apiRequest(`/api/manage/products/${productId}`, {
+          bearerToken: token,
+          expectedStatus: 200,
+        });
+        const arrivedVariant = findVariant(arrivedDetail.json, variantId);
+        assert.ok(arrivedVariant, 'arrived variant missing');
+        assert.strictEqual(Number(arrivedVariant.stock_quantity || 0), 11);
+        assert.strictEqual(Number(arrivedVariant.available_quantity || 0), 7);
+        return arrivedVariant;
+      },
+      {
+        timeoutMs: 10000,
+        intervalMs: 500,
+        onTimeoutMessage:
+          'purchase-order arrived should not increment stock beyond receipt projection',
+      }
+    );
   });
 
   it('keeps projection unchanged on insufficient delivery and releases reservation on void', async () => {

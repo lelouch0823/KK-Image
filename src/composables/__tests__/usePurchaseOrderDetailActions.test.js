@@ -5,18 +5,20 @@ import { usePurchaseOrderDetailActions } from '../usePurchaseOrderDetailActions.
 const t = (_key, fallback) => fallback || '';
 
 function createActions(overrides = {}) {
-  const detail = overrides.detail ?? ref({
-    id: 'po-1',
-    status: 'completed',
-    items: [{ id: 'item-1' }],
-    remark: 'memo',
-    currency: 'USD',
-    allocation_method: 'by_value',
-    estimated_shipping_cost: 12,
-    estimated_tariff_cost: 8,
-    actual_shipping_cost: 20,
-    actual_tariff_cost: 9,
-  });
+  const detail =
+    overrides.detail ??
+    ref({
+      id: 'po-1',
+      status: 'completed',
+      items: [{ id: 'item-1' }],
+      remark: 'memo',
+      currency: 'USD',
+      allocation_method: 'by_value',
+      estimated_shipping_cost: 12,
+      estimated_tariff_cost: 8,
+      actual_shipping_cost: 20,
+      actual_tariff_cost: 9,
+    });
   const addToast = overrides.addToast ?? vi.fn();
   const updatePO = overrides.updatePO ?? vi.fn(async () => true);
   const allocateCosts = overrides.allocateCosts ?? vi.fn(async () => true);

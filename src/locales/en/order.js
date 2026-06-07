@@ -129,7 +129,8 @@ export default {
     unshippableQty: 'Reversible Ship',
     returnableQty: 'Returnable',
     lineActions: 'Fulfillment Actions',
-    lineActionHint: 'Reserve, release, ship, and return from the line itself. The order detail refreshes automatically after each success.',
+    lineActionHint:
+      'Reserve, release, ship, and return from the line itself. The order detail refreshes automatically after each success.',
     lineActionQuantity: 'Quantity',
     reserveAction: 'Reserve',
     releaseAction: 'Release',
@@ -138,11 +139,13 @@ export default {
     returnAction: 'Return',
     lineCommandVariantRequired: 'Bind a product variant before using fulfillment actions.',
     lineCommandDeliveredOrderLocked: 'Delivered orders cannot reverse shipped quantity.',
-    lineCommandReturnRequiresFulfilled: 'Returns are only available after the order reaches fulfilled.',
+    lineCommandReturnRequiresFulfilled:
+      'Returns are only available after the order reaches fulfilled.',
     lineCommandReturnRequiresDelivered: 'Returns are only available after delivery is confirmed.',
     lineCommandLimitExceeded: 'Exceeds the allowed quantity for this action',
     lineCommandFailed: 'The order line action did not complete. Please retry.',
-    lineCommandSyncing: 'Applying the line-level fulfillment update. The detail view will refresh automatically when it finishes.',
+    lineCommandSyncing:
+      'Applying the line-level fulfillment update. The detail view will refresh automatically when it finishes.',
     reserveSuccess: 'Line reserved',
     releaseSuccess: 'Reservation released',
     shipSuccess: 'Line shipped',
@@ -151,13 +154,16 @@ export default {
     reserveConfirmTitle: 'Confirm Reserve',
     reserveConfirmMessage: 'Confirm reserving {quantity} units on order line {lineLabel}?',
     releaseConfirmTitle: 'Confirm Release',
-    releaseConfirmMessage: 'Confirm releasing {quantity} reserved units from order line {lineLabel}?',
+    releaseConfirmMessage:
+      'Confirm releasing {quantity} reserved units from order line {lineLabel}?',
     shipConfirmTitle: 'Confirm Ship',
     shipConfirmMessage: 'Confirm shipping {quantity} units from order line {lineLabel}?',
     unshipConfirmTitle: 'Confirm Unship',
-    unshipConfirmMessage: 'Confirm reversing shipment of {quantity} units on order line {lineLabel}?',
+    unshipConfirmMessage:
+      'Confirm reversing shipment of {quantity} units on order line {lineLabel}?',
     returnConfirmTitle: 'Confirm Return',
-    returnConfirmMessage: 'Confirm returning {quantity} units from order line {lineLabel} back into stock?',
+    returnConfirmMessage:
+      'Confirm returning {quantity} units from order line {lineLabel} back into stock?',
     returnDialogTitle: 'Structured Return',
     returnDialogSummaryLabel: 'Return Scope',
     returnDialogSummary: 'Return {quantity} units from {lineLabel}.',
@@ -189,7 +195,8 @@ export default {
     deliveryConfirmSuccess: 'Delivery confirmed',
     dangerZone: 'Danger Zone',
     deletePermanently: 'Permanently delete this order',
-    dangerWarning: 'This action is irreversible. All data, linked files, and images related to this order will be permanently removed!',
+    dangerWarning:
+      'This action is irreversible. All data, linked files, and images related to this order will be permanently removed!',
     typeOrderNoToConfirm: 'Type {orderNo} to confirm',
     deleteSuccess: 'Order deleted successfully',
   },
@@ -203,7 +210,8 @@ export default {
   },
   workflow: {
     detail_loading_title: 'Refreshing order details',
-    detail_loading_body: 'Showing the current snapshot while richer order data loads in the background.',
+    detail_loading_body:
+      'Showing the current snapshot while richer order data loads in the background.',
   },
 
   // Management Side
@@ -211,7 +219,8 @@ export default {
     title: 'Orders',
     subtitle: 'Manage and review pre-order requests',
     permissionDenied: 'Permission Denied for Order Management',
-    permissionDeniedDesc: 'Your account does not have order read access. Please contact the admin to assign orders:read.',
+    permissionDeniedDesc:
+      'Your account does not have order read access. Please contact the admin to assign orders:read.',
     create: 'New Order',
     createTitle: 'Create New Order',
     createSuccess: 'Order created successfully',
@@ -241,9 +250,11 @@ export default {
     batchReject: 'Batch Reject',
     batchRejectConfirm: 'Are you sure you want to reject {count} selected orders?',
     batchVoid: 'Batch Void',
-    batchVoidConfirm: 'Are you sure you want to void {count} selected orders? This cannot be undone.',
+    batchVoidConfirm:
+      'Are you sure you want to void {count} selected orders? This cannot be undone.',
     batchChangeStatus: 'Batch Status Change',
-    batchChangeStatusConfirm: 'Are you sure you want to change {count} selected orders to "{status}"?',
+    batchChangeStatusConfirm:
+      'Are you sure you want to change {count} selected orders to "{status}"?',
     batchExport: 'Batch Export',
     batchExportConfirm: 'Are you sure you want to export {count} selected orders?',
     batchPrint: 'Batch Print',
@@ -259,21 +270,26 @@ export default {
     dateRange: 'Date Range',
     startDate: 'Start Date',
     dangerousStatusWarning: 'This will mark the order as irreversible. Please confirm.',
-    transitionHint: 'Top options follow the standard workflow; out-of-flow changes require force override.',
+    transitionHint:
+      'Top options follow the standard workflow; out-of-flow changes require force override.',
     currentTag: 'Current',
     flowTag: 'Standard',
     forceTag: 'Force',
     blockedTag: 'Blocked',
-    forceTransitionWarning: 'This change is outside the standard workflow and requires force override with a reason.',
+    forceTransitionWarning:
+      'This change is outside the standard workflow and requires force override with a reason.',
     forceTransitionConfirm: 'I confirm this force override (audit logged)',
     forceTransitionNoPermission: 'Your account does not have force override permission',
     forceReasonRequired: 'A status note is required for force override.',
     friendlyPickTip: 'Choose a target status first. The timeline will be recorded automatically.',
-    deliveryBlockedTip: 'The order can only be marked delivered after all non-cancelled quantity has been shipped.',
+    deliveryBlockedTip:
+      'The order can only be marked delivered after all non-cancelled quantity has been shipped.',
     friendlyFlowTip: 'This is a standard transition. Adding a note helps team traceability.',
     friendlyRiskTip: 'This is a high-risk status. Please confirm business impact before submit.',
-    friendlyNoPermissionTip: 'Ask a supervisor account for force override, or continue with standard flow.',
-    friendlyForceConfirmTip: 'You are making an out-of-flow change. Please confirm force override first.',
+    friendlyNoPermissionTip:
+      'Ask a supervisor account for force override, or continue with standard flow.',
+    friendlyForceConfirmTip:
+      'You are making an out-of-flow change. Please confirm force override first.',
     friendlyForceReasonTip: 'Add a short note to explain why this out-of-flow change is needed.',
     friendlyForceReadyTip: 'All required info is ready. You can submit the force override now.',
   },
@@ -285,7 +301,8 @@ export default {
     salesTitle: 'Choose Product & Variant',
     salesHint: 'Pick a standard product/variant first to reduce mistakes and speed up processing.',
     salesSearchPlaceholder: 'Search by name / brand / SPU',
-    salesGuide: 'Tip: choose product + variant first, then fill quantity and notes for faster mobile submission.',
+    salesGuide:
+      'Tip: choose product + variant first, then fill quantity and notes for faster mobile submission.',
     bound: 'Linked',
     selectedLabel: 'Selected',
     unselected: 'Not selected',

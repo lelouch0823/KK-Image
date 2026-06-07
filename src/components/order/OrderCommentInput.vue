@@ -1,5 +1,7 @@
 <template>
-  <div class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) shadow-card">
+  <div
+    class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) shadow-card"
+  >
     <div
       v-if="error"
       class="border-b border-(--color-danger-text)/20 bg-(--color-danger-bg)/40 px-3 py-2"
@@ -28,12 +30,7 @@
       </AppButton>
     </div>
     <div v-if="error && text.trim()" class="px-3 pb-3">
-      <AppButton
-        variant="primary"
-        size="sm"
-        data-testid="comment-retry"
-        @click="retry"
-      >
+      <AppButton variant="primary" size="sm" data-testid="comment-retry" @click="retry">
         {{ t('common.retry') }}
       </AppButton>
     </div>

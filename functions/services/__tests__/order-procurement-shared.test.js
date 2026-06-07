@@ -85,8 +85,12 @@ describe('order-procurement-shared', () => {
   });
 
   it('resolves reservation ownership from ownsReservation or insertStatement', () => {
-    expect(resolveReservationOwnership({ ownsReservation: true, insertStatement: null })).toBe(true);
-    expect(resolveReservationOwnership({ ownsReservation: false, insertStatement: { sql: 'insert' } })).toBe(false);
+    expect(resolveReservationOwnership({ ownsReservation: true, insertStatement: null })).toBe(
+      true
+    );
+    expect(
+      resolveReservationOwnership({ ownsReservation: false, insertStatement: { sql: 'insert' } })
+    ).toBe(false);
     expect(resolveReservationOwnership({ insertStatement: { sql: 'insert' } })).toBe(true);
     expect(resolveReservationOwnership({ insertStatement: null })).toBe(false);
   });
@@ -196,9 +200,7 @@ describe('order-procurement-shared', () => {
       })
     ).resolves.toBe(true);
 
-    expect(db.prepare).toHaveBeenCalledWith(
-      'DELETE FROM command_idempotency WHERE command_id = ?'
-    );
+    expect(db.prepare).toHaveBeenCalledWith('DELETE FROM command_idempotency WHERE command_id = ?');
     expect(bind).toHaveBeenCalledWith('cmd-1');
     expect(fallbackDeleteStatement.run).toHaveBeenCalledTimes(1);
   });
@@ -239,9 +241,7 @@ describe('order-procurement-shared', () => {
     const bind = vi.fn(() => ({ first }));
     const prepare = vi.fn(() => ({ bind }));
 
-    await expect(
-      requireOrderLine({ prepare }, 'order-1', 'line-1')
-    ).resolves.toMatchObject({
+    await expect(requireOrderLine({ prepare }, 'order-1', 'line-1')).resolves.toMatchObject({
       id: 'line-1',
       order_id: 'order-1',
     });
@@ -285,8 +285,7 @@ describe('order-procurement-shared', () => {
 
     await expect(
       requirePurchaseOrderItemForPo({ prepare }, 'po-1', 'poi-1', {
-        select:
-          'id, po_id, quantity, received_qty, cancelled_qty',
+        select: 'id, po_id, quantity, received_qty, cancelled_qty',
       })
     ).resolves.toEqual({
       id: 'poi-1',
@@ -529,9 +528,7 @@ describe('order-procurement-shared', () => {
     const bind = vi.fn(() => ({ first }));
     const prepare = vi.fn(() => ({ bind }));
 
-    await expect(
-      queryCompatibilityProcurementAggregate({ prepare }, 'order-1')
-    ).resolves.toEqual({
+    await expect(queryCompatibilityProcurementAggregate({ prepare }, 'order-1')).resolves.toEqual({
       ordered_qty: 10,
       procured_qty: 10,
       received_qty: 4,

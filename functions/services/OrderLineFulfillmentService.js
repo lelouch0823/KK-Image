@@ -47,7 +47,9 @@ const RETURN_REASON_CODES = Object.freeze([
 ]);
 
 function parseReturnReason(value) {
-  const normalized = String(value || '').trim().toLowerCase();
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
   if (!RETURN_REASON_CODES.includes(normalized)) {
     throw new BadRequestError('returns require a valid return reason code');
   }
@@ -233,7 +235,7 @@ export class OrderLineFulfillmentService {
       // CAS: 确保 order_lines.reserved_qty 未被并发修改
       this.db
         .prepare('UPDATE order_lines SET updated_at = updated_at WHERE id = ? AND reserved_qty = ?')
-        .bind(lineId, line.reserved_qty),
+        .bind(lineId, line.reserved_qty)
     );
 
     const result = await this.db.batch(statements);
@@ -362,8 +364,10 @@ export class OrderLineFulfillmentService {
       }),
       // CAS: 确保 order_lines 关键字段未被并发修改
       this.db
-        .prepare('UPDATE order_lines SET updated_at = updated_at WHERE id = ? AND shipped_qty = ? AND reserved_qty = ?')
-        .bind(lineId, line.shipped_qty, line.reserved_qty),
+        .prepare(
+          'UPDATE order_lines SET updated_at = updated_at WHERE id = ? AND shipped_qty = ? AND reserved_qty = ?'
+        )
+        .bind(lineId, line.shipped_qty, line.reserved_qty)
     );
 
     const result = await this.db.batch(statements);
@@ -482,7 +486,9 @@ export class OrderLineFulfillmentService {
     const currentShipped = toNonNegativeInt(line.shipped_qty);
     const returnableQty = Math.max(currentShipped - returnedQty, 0);
     if (quantity > returnableQty) {
-      throw new BadRequestError(`return quantity exceeds shipped returnable quantity: ${returnableQty}`);
+      throw new BadRequestError(
+        `return quantity exceeds shipped returnable quantity: ${returnableQty}`
+      );
     }
 
     const inventory = await queryInventoryBalance(this.db, line.variant_id);
@@ -607,20 +613,29 @@ export class OrderLineFulfillmentService {
   }
 
   assertUnshipAllowed(line) {
-    const orderStatus = String(line?.order_status || '').trim().toLowerCase();
-    const deliveryStatus = String(line?.delivery_status || '').trim().toLowerCase();
+    const orderStatus = String(line?.order_status || '')
+      .trim()
+      .toLowerCase();
+    const deliveryStatus = String(line?.delivery_status || '')
+      .trim()
+      .toLowerCase();
     if (
-      orderStatus === 'delivered'
-      || ['delivered', 'partially_returned', 'returned'].includes(deliveryStatus)
+      orderStatus === 'delivered' ||
+      ['delivered', 'partially_returned', 'returned'].includes(deliveryStatus)
     ) {
       throw new BadRequestError('cannot unship line from a delivered order');
     }
   }
 
   assertReturnAllowed(line) {
-    const orderStatus = String(line?.order_status || '').trim().toLowerCase();
-    const deliveryStatus = String(line?.delivery_status || '').trim().toLowerCase();
-    if (orderStatus === 'delivered') {
+    const orderStatus = String(line?.order_status || '')
+      .trim()
+      .toLowerCase();
+    const deliveryStatus = String(line?.delivery_status || '')
+      .trim()
+      .toLowerCase();
+    // fulfilled 状态等同于已交付，允许退货
+    if (orderStatus === 'fulfilled') {
       return;
     }
     if (!['delivered', 'partially_returned', 'returned'].includes(deliveryStatus)) {
@@ -840,7 +855,15 @@ export class OrderLineFulfillmentService {
     );
   }
 
-  buildCommandResult({ orderId, lineId, action, quantity, nextLineState, returnedQtyAfter = null, inventory }) {
+  buildCommandResult({
+    orderId,
+    lineId,
+    action,
+    quantity,
+    nextLineState,
+    returnedQtyAfter = null,
+    inventory,
+  }) {
     return {
       order_id: orderId,
       order_line_id: lineId,

@@ -11,6 +11,8 @@ describe('product cache URL builder', () => {
     expect(urls).toContain('https://example.com/api/manage/products?page=1&limit=20');
     expect(urls).toContain('https://example.com/api/manage/products/variants');
     expect(urls).toContain('https://example.com/api/manage/products/variants?page=1&limit=50');
-    expect(urls).toContain('https://example.com/api/manage/products/variants?search=&page=1&limit=50');
+    expect(urls).toContain(
+      'https://example.com/api/manage/products/variants?search=&page=1&limit=50'
+    );
   });
 });

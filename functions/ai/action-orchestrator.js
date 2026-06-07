@@ -3,7 +3,12 @@ import { generateId } from '../api/utils/id.js';
 import { detectCreateIntent } from './canonicalization.js';
 
 function isCandidateResult(value) {
-  return value && typeof value === 'object' && value.kind === 'candidates' && Array.isArray(value.candidates);
+  return (
+    value &&
+    typeof value === 'object' &&
+    value.kind === 'candidates' &&
+    Array.isArray(value.candidates)
+  );
 }
 
 function buildSubmittedActionPayload(session, adapter, created = {}) {
@@ -21,7 +26,14 @@ function buildSubmittedActionPayload(session, adapter, created = {}) {
 }
 
 export class AIActionOrchestrator {
-  constructor({ sessionStore, getActionAdapter, submitters = {}, slotResolvers = {}, extractActionSlots = () => ({}), canAccessAction = async () => true }) {
+  constructor({
+    sessionStore,
+    getActionAdapter,
+    submitters = {},
+    slotResolvers = {},
+    extractActionSlots = () => ({}),
+    canAccessAction = async () => true,
+  }) {
     this.sessionStore = sessionStore;
     this.getActionAdapter = getActionAdapter;
     this.submitters = submitters;
@@ -52,7 +64,10 @@ export class AIActionOrchestrator {
     }
 
     const extractedSlots = this.extractActionSlots(adapter.entityType, text);
-    const mergedSlots = await this.#applySlotResolvers(adapter.entityType, { ...extractedSlots, ...slots });
+    const mergedSlots = await this.#applySlotResolvers(adapter.entityType, {
+      ...extractedSlots,
+      ...slots,
+    });
     const missingSlots = this.#getMissingSlots(adapter, mergedSlots);
 
     const sessionId = generateId();
@@ -132,9 +147,9 @@ export class AIActionOrchestrator {
       const missingSlots = this.#getMissingSlots(adapter, nextSlots);
 
       if (
-        normalizedText
-        && missingSlots.length > 0
-        && Object.keys(extractedSlots || {}).length === 0
+        normalizedText &&
+        missingSlots.length > 0 &&
+        Object.keys(extractedSlots || {}).length === 0
       ) {
         const targetSlot = missingSlots[0];
         if (!this.#hasValue(nextSlots[targetSlot])) {
@@ -260,10 +275,10 @@ export class AIActionOrchestrator {
     const merged = { ...currentSlots, ...extractedSlots };
 
     if (
-      entityType === 'purchase_order'
-      && String(merged.mode || currentSlots.mode || '').trim() === 'manual'
-      && Array.isArray(currentSlots.items)
-      && Array.isArray(extractedSlots.items)
+      entityType === 'purchase_order' &&
+      String(merged.mode || currentSlots.mode || '').trim() === 'manual' &&
+      Array.isArray(currentSlots.items) &&
+      Array.isArray(extractedSlots.items)
     ) {
       const resolvedExistingItems = currentSlots.items.filter(
         (item) => item?.product_id && item?.variant_id
@@ -288,13 +303,15 @@ export class AIActionOrchestrator {
 
   async #applySlotResolvers(entityType, slots = {}) {
     const resolverGroup = this.slotResolvers?.[entityType] || {};
-    const slotNames = new Set([
-      ...Object.keys(slots),
-      ...Object.keys(resolverGroup),
-    ]);
+    const slotNames = new Set([...Object.keys(slots), ...Object.keys(resolverGroup)]);
 
     for (const slotName of slotNames) {
-      const resolvedValue = await this.#resolveSlotValue(entityType, slotName, slots[slotName], slots);
+      const resolvedValue = await this.#resolveSlotValue(
+        entityType,
+        slotName,
+        slots[slotName],
+        slots
+      );
       if (isCandidateResult(resolvedValue)) {
         if (!slots.__candidateChoices || typeof slots.__candidateChoices !== 'object') {
           slots.__candidateChoices = {};
@@ -303,7 +320,10 @@ export class AIActionOrchestrator {
         slots[slotName] = '';
         continue;
       }
-      if (slots.__candidateChoices && Object.prototype.hasOwnProperty.call(slots.__candidateChoices, slotName)) {
+      if (
+        slots.__candidateChoices &&
+        Object.prototype.hasOwnProperty.call(slots.__candidateChoices, slotName)
+      ) {
         delete slots.__candidateChoices[slotName];
       }
       slots[slotName] = resolvedValue;
@@ -330,11 +350,12 @@ export class AIActionOrchestrator {
       matched = candidates[numeric - 1];
     } else {
       const comparable = normalizedText.toLowerCase();
-      matched = candidates.find((candidate) => {
-        const label = String(candidate?.label || '').toLowerCase();
-        const value = String(candidate?.value || '').toLowerCase();
-        return comparable === label || comparable === value;
-      }) || null;
+      matched =
+        candidates.find((candidate) => {
+          const label = String(candidate?.label || '').toLowerCase();
+          const value = String(candidate?.value || '').toLowerCase();
+          return comparable === label || comparable === value;
+        }) || null;
     }
 
     if (!matched) return;

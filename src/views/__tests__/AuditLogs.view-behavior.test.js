@@ -65,7 +65,8 @@ describe('AuditLogs view behavior', () => {
           AppButton: {
             props: ['text', 'disabled', 'variant'],
             emits: ['click'],
-            template: '<button :disabled="disabled" @click="$emit(\'click\')">{{ text }}<slot /></button>',
+            template:
+              '<button :disabled="disabled" @click="$emit(\'click\')">{{ text }}<slot /></button>',
           },
           AppInput: {
             props: ['modelValue', 'placeholder', 'size'],
@@ -178,7 +179,9 @@ describe('AuditLogs view behavior', () => {
 
   it('shows forbidden state when the list endpoint rejects with 403', async () => {
     mocks.authFetch
-      .mockRejectedValueOnce(Object.assign(new Error('权限不足'), { status: 403, data: { error: '需要 audit:read' } }))
+      .mockRejectedValueOnce(
+        Object.assign(new Error('权限不足'), { status: 403, data: { error: '需要 audit:read' } })
+      )
       .mockRejectedValueOnce(Object.assign(new Error('权限不足'), { status: 403 }));
 
     const wrapper = createWrapper();
@@ -190,7 +193,9 @@ describe('AuditLogs view behavior', () => {
 
   it('shows unauthorized state when the list endpoint rejects with 401', async () => {
     mocks.authFetch
-      .mockRejectedValueOnce(Object.assign(new Error('登录失效'), { status: 401, data: { error: '登录失效' } }))
+      .mockRejectedValueOnce(
+        Object.assign(new Error('登录失效'), { status: 401, data: { error: '登录失效' } })
+      )
       .mockRejectedValueOnce(Object.assign(new Error('权限不足'), { status: 403 }));
 
     const wrapper = createWrapper();

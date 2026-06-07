@@ -13,11 +13,13 @@
 ### Task 1: Lock the Route Wrapper Cleanup Contract
 
 **Files:**
+
 - Create: `functions/lib/hono/routes/manage/__tests__/route-entity-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
 
 Add a static test that asserts:
+
 - `purchase-orders.js` no longer defines `requirePurchaseOrder`
 - `orders/detail.js` no longer defines `requireOrder`
 
@@ -34,6 +36,7 @@ Expected: FAIL because both thin wrappers still exist.
 ### Task 2: Inline Entity Guards
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/purchase-orders.js`
 - Modify: `functions/lib/hono/routes/manage/orders/detail.js`
 

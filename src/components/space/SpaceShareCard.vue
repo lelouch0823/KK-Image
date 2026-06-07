@@ -5,9 +5,7 @@
         <div
           class="size-8 rounded-lg"
           :class="
-            isPublic
-              ? 'bg-primary/10 text-primary'
-              : 'bg-(--bg-muted) text-(--text-secondary)'
+            isPublic ? 'bg-primary/10 text-primary' : 'bg-(--bg-muted) text-(--text-secondary)'
           "
         >
           <AppIcon name="link" class="size-full p-1.5" />
@@ -16,15 +14,8 @@
           <h4 class="text-sm font-semibold text-(--text-main)">
             {{ t('spaceManager.shareSettings') }}
           </h4>
-          <p
-            class="text-xs"
-            :class="isPublic ? 'text-success' : 'text-secondary'"
-          >
-            {{
-              isPublic
-                ? t('spaceManager.publicOn')
-                : t('spaceManager.shareCard.notPublic')
-            }}
+          <p class="text-xs" :class="isPublic ? 'text-success' : 'text-secondary'">
+            {{ isPublic ? t('spaceManager.publicOn') : t('spaceManager.shareCard.notPublic') }}
           </p>
         </div>
       </div>
@@ -38,10 +29,7 @@
     </div>
 
     <!-- Share Information -->
-    <div
-      v-if="isPublic"
-      class="animate-in fade-in slide-in-from-top-1 space-y-3 duration-200"
-    >
+    <div v-if="isPublic" class="animate-in fade-in slide-in-from-top-1 space-y-3 duration-200">
       <div
         class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-3 py-2 font-mono text-xs break-all text-(--text-main)"
       >
@@ -73,11 +61,7 @@
             size="sm"
             @click="$emit('update:passwordEnabled', !passwordEnabled)"
           >
-            {{
-              passwordEnabled
-                ? t('common.enabled', '已开启')
-                : t('common.enable', '开启')
-            }}
+            {{ passwordEnabled ? t('common.enabled', '已开启') : t('common.enable', '开启') }}
           </AppButton>
         </div>
         <div v-if="passwordEnabled" class="flex gap-2">

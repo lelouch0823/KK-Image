@@ -85,9 +85,7 @@
       <div class="space-y-6">
         <!-- 图片管理 -->
         <div>
-          <h4
-            class="text-primary mb-3 border-b border-(--border-subtle) pb-2 text-sm font-medium"
-          >
+          <h4 class="text-primary mb-3 border-b border-(--border-subtle) pb-2 text-sm font-medium">
             {{ t('order.detail.images') }}
           </h4>
           <ImageUploader
@@ -102,19 +100,23 @@
         <!-- 原始信息对比 -->
         <OrderOriginalInfo :data="originalData" />
       </div>
-
-
     </div>
 
     <!-- Danger Zone (Admin Only) -->
-    <div v-if="mode === 'admin'" class="border-danger/30 bg-danger/5 mt-8 rounded-2xl border p-4 sm:p-5">
+    <div
+      v-if="mode === 'admin'"
+      class="border-danger/30 bg-danger/5 mt-8 rounded-2xl border p-4 sm:p-5"
+    >
       <h3 class="mb-2 flex items-center gap-2 text-base font-bold text-(--text-main)">
         <AppIcon name="exclamation-triangle" class="text-danger size-4" />
         {{ t('order.detail.dangerZone') || '危险区域 / Danger Zone' }}
       </h3>
       <div class="sm:flex sm:items-center sm:justify-between">
         <p class="mb-4 text-sm text-(--text-secondary) sm:mb-0 sm:max-w-xl">
-          {{ t('order.detail.dangerWarning') || '此操作不可逆。订单及其关联的客户信息、图片文件、留言和所有历史记录将被永久擦除。建议优先使用“作废”功能。' }}
+          {{
+            t('order.detail.dangerWarning') ||
+            '此操作不可逆。订单及其关联的客户信息、图片文件、留言和所有历史记录将被永久擦除。建议优先使用“作废”功能。'
+          }}
         </p>
         <AppButton
           variant="danger"
@@ -127,10 +129,7 @@
     </div>
 
     <template #footer>
-      <AppButton
-        variant="outline"
-        @click="$emit('close')"
-      >
+      <AppButton variant="outline" @click="$emit('close')">
         {{ t('common.cancel') }}
       </AppButton>
       <AppButton
@@ -166,7 +165,11 @@ import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { getStatusBadgeClass } from '@/utils/status';
 import { generateRandomId } from '@/utils/common';
-import { resolveHistoricalOrderProductName, resolveOrderQuantity, resolveOrderSnapshotField } from '@/utils/order-display';
+import {
+  resolveHistoricalOrderProductName,
+  resolveOrderQuantity,
+  resolveOrderSnapshotField,
+} from '@/utils/order-display';
 import { resolveSelectedVariantMainImageSrc } from '@/utils/product-image.js';
 import { ORDER_BOUND_SNAPSHOT_FIELDS } from '@/utils/order-binding-fields.js';
 import { useSalesToken } from '@/composables/useSalesToken';
@@ -246,13 +249,21 @@ const form = reactive({
 
 const STRUCTURAL_EDITABLE_STATUSES = new Set(['pending', 'rejected', 'void']);
 const canEditBinding = computed(() =>
-  STRUCTURAL_EDITABLE_STATUSES.has(String(props.order?.status || '').trim().toLowerCase())
+  STRUCTURAL_EDITABLE_STATUSES.has(
+    String(props.order?.status || '')
+      .trim()
+      .toLowerCase()
+  )
 );
 const supportsLineEditing = computed(() => props.mode === 'admin');
 const canShowLineModeToggle = computed(() => supportsLineEditing.value && canEditBinding.value);
 const QUANTITY_EDITABLE_STATUSES = new Set(['pending', 'confirmed', 'rejected', 'void']);
 const canEditQuantity = computed(() =>
-  QUANTITY_EDITABLE_STATUSES.has(String(props.order?.status || '').trim().toLowerCase())
+  QUANTITY_EDITABLE_STATUSES.has(
+    String(props.order?.status || '')
+      .trim()
+      .toLowerCase()
+  )
 );
 
 // 绑定商品后锁定的字段
@@ -346,7 +357,9 @@ const serializeEditableLineSignature = (value = []) =>
   JSON.stringify((Array.isArray(value) ? value : []).map((line) => serializeEditableLine(line)));
 
 const buildEditableLinesFromOrder = (order = {}) => {
-  const rawLines = Array.isArray(order.currentData?.lines) ? order.currentData.lines.filter(Boolean) : [];
+  const rawLines = Array.isArray(order.currentData?.lines)
+    ? order.currentData.lines.filter(Boolean)
+    : [];
   const persistedLines = Array.isArray(order.lines) ? order.lines.filter(Boolean) : [];
   if (rawLines.length > 0) {
     return rawLines.map((line, index) => normalizeEditableLine(line, persistedLines[index] || {}));
@@ -354,16 +367,18 @@ const buildEditableLinesFromOrder = (order = {}) => {
   if (persistedLines.length > 0) {
     return persistedLines.map((line) => normalizeEditableLine(line));
   }
-  return [normalizeEditableLine({
-    name: resolveHistoricalOrderProductName(order),
-    brand: resolveOrderSnapshotField(order, 'brand'),
-    series: resolveOrderSnapshotField(order, 'series'),
-    sku: resolveOrderSnapshotField(order, 'sku'),
-    size: resolveOrderSnapshotField(order, 'size'),
-    color: resolveOrderSnapshotField(order, 'color'),
-    material: resolveOrderSnapshotField(order, 'material'),
-    quantity: resolveOrderQuantity(order),
-  })];
+  return [
+    normalizeEditableLine({
+      name: resolveHistoricalOrderProductName(order),
+      brand: resolveOrderSnapshotField(order, 'brand'),
+      series: resolveOrderSnapshotField(order, 'series'),
+      sku: resolveOrderSnapshotField(order, 'sku'),
+      size: resolveOrderSnapshotField(order, 'size'),
+      color: resolveOrderSnapshotField(order, 'color'),
+      material: resolveOrderSnapshotField(order, 'material'),
+      quantity: resolveOrderQuantity(order),
+    }),
+  ];
 };
 
 const buildNormalizedSubmitLines = (value = lines.value) =>
@@ -461,7 +476,7 @@ const handleProductSelect = (product) => {
   const mainImage = getProductMainImage(product);
   if (mainImage) {
     // Check if already exists to avoid duplicates
-    const exists = uploadedFiles.value.some(f => f.url === mainImage);
+    const exists = uploadedFiles.value.some((f) => f.url === mainImage);
     if (!exists) {
       uploadedFiles.value.push({
         url: mainImage,
@@ -539,7 +554,7 @@ watch(
       const historicalMaterial = resolveOrderSnapshotField(newOrder, 'material');
       const historicalRemark = resolveOrderSnapshotField(newOrder, 'remark');
       const historicalDeadline = resolveOrderSnapshotField(newOrder, 'deadline');
-      
+
       form.status = newOrder.status || 'pending';
       form.name = historicalProductName;
       form.brand = historicalBrand;
@@ -588,7 +603,10 @@ watch(
         quantity: resolveOrderQuantity(newOrder),
         remark: historicalRemark,
         deadline: historicalDeadline,
-        fileIds: (newOrder.files || []).map((f) => f.id).sort().join(','),
+        fileIds: (newOrder.files || [])
+          .map((f) => f.id)
+          .sort()
+          .join(','),
         productId: newOrder.productId || null,
         variantId: newOrder.variantId || null,
         salespersonId: newOrder.salespersonId || '',
@@ -606,8 +624,6 @@ watch(
   },
   { immediate: true }
 );
-
-
 
 const originalData = computed(() => ({
   ...(props.order.originalData || {}),
@@ -708,7 +724,7 @@ const toggleLineEditor = () => {
 
 const handleSaveClick = () => {
   if (!isValid.value) return;
-  
+
   // Reset reason and show dialog
   editReason.value = '';
   confirmData.value = {
@@ -721,97 +737,94 @@ const handleSaveClick = () => {
 };
 
 const handleConfirmSave = (reason) => {
-    editReason.value = reason;
-    handleSubmit();
+  editReason.value = reason;
+  handleSubmit();
 };
 
 const uploaderRef = ref(null);
 
 const handleSubmit = async () => {
   if (!isValid.value) return;
-  
+
   confirmData.value.loading = true;
-  
+
   try {
+    if (uploaderRef.value) {
+      const uploadSuccess = await uploaderRef.value.uploadPendingFiles();
+      if (!uploadSuccess) return;
+      await nextTick();
+    }
 
-  if (uploaderRef.value) {
+    const updates = {};
+    const init = initialValues.value;
+    const structuralLines = getStructuralSubmitLines();
+    if (hasExplicitLineMutation.value) {
+      const primaryLine = structuralLines[0];
+      updates.name = primaryLine.name;
+      updates.brand = primaryLine.brand;
+      updates.category = primaryLine.category;
+      updates.series = primaryLine.series;
+      updates.sku = primaryLine.sku;
+      updates.size = primaryLine.size;
+      updates.color = primaryLine.color;
+      updates.material = primaryLine.material;
+      updates.quantity = structuralLines.reduce((sum, line) => sum + Number(line.quantity || 0), 0);
+      updates.lines = structuralLines;
+    } else {
+      if (form.name !== init.name) updates.name = form.name;
+      if (form.brand !== init.brand) updates.brand = form.brand;
+      if (form.series !== init.series) updates.series = form.series;
+      if (form.sku !== init.sku) updates.sku = form.sku;
+      if (form.size !== init.size) updates.size = form.size;
+      if (form.color !== init.color) updates.color = form.color;
+      if (form.material !== init.material) updates.material = form.material;
+      if (form.quantity !== init.quantity) updates.quantity = form.quantity;
+    }
+    if (form.remark !== init.remark) updates.remark = form.remark;
+    if (form.deadline !== init.deadline) updates.deadline = form.deadline;
 
-    const uploadSuccess = await uploaderRef.value.uploadPendingFiles();
-    if (!uploadSuccess) return;
-    await nextTick();
+    // 移除状态更新逻辑，状态变更应使用 OrderStatusChanger 专用 API
+    if (props.mode === 'admin' && form.status !== init.status) {
+      updates.status = form.status;
+    }
+    if (props.mode === 'admin' && form.salespersonId !== init.salespersonId) {
+      updates.salespersonId = form.salespersonId;
+    }
 
-  }
+    const oldIds = (props.order.files || [])
+      .map((f) => f.id)
+      .sort()
+      .join(',');
+    const currentFiles = uploadedFiles.value.filter((f) => f.id && !f.isLocal && !f.isPrefill);
 
-  const updates = {};
-  const init = initialValues.value;
-  const structuralLines = getStructuralSubmitLines();
-  if (hasExplicitLineMutation.value) {
-    const primaryLine = structuralLines[0];
-    updates.name = primaryLine.name;
-    updates.brand = primaryLine.brand;
-    updates.category = primaryLine.category;
-    updates.series = primaryLine.series;
-    updates.sku = primaryLine.sku;
-    updates.size = primaryLine.size;
-    updates.color = primaryLine.color;
-    updates.material = primaryLine.material;
-    updates.quantity = structuralLines.reduce((sum, line) => sum + Number(line.quantity || 0), 0);
-    updates.lines = structuralLines;
-  } else {
-    if (form.name !== init.name) updates.name = form.name;
-    if (form.brand !== init.brand) updates.brand = form.brand;
-    if (form.series !== init.series) updates.series = form.series;
-    if (form.sku !== init.sku) updates.sku = form.sku;
-    if (form.size !== init.size) updates.size = form.size;
-    if (form.color !== init.color) updates.color = form.color;
-    if (form.material !== init.material) updates.material = form.material;
-    if (form.quantity !== init.quantity) updates.quantity = form.quantity;
-  }
-  if (form.remark !== init.remark) updates.remark = form.remark;
-  if (form.deadline !== init.deadline) updates.deadline = form.deadline;
+    const newIds = currentFiles
+      .map((f) => f.id)
+      .sort()
+      .join(',');
 
-  // 移除状态更新逻辑，状态变更应使用 OrderStatusChanger 专用 API
-  if (props.mode === 'admin' && form.status !== init.status) {
-    updates.status = form.status;
-  }
-  if (props.mode === 'admin' && form.salespersonId !== init.salespersonId) {
-    updates.salespersonId = form.salespersonId;
-  }
+    const payload = {
+      updates,
+      reason: editReason.value,
+    };
 
-  const oldIds = (props.order.files || [])
-    .map((f) => f.id)
-    .sort()
-    .join(',');
-  const currentFiles = uploadedFiles.value.filter((f) => f.id && !f.isLocal && !f.isPrefill);
+    // 商品绑定变更：绑定时要求 variantId，解绑时显式传 null
+    const currentBinding = getCurrentBindingState();
+    if (currentBinding.productId && !currentBinding.variantId) return;
+    if (currentBinding.productId !== init.productId) {
+      payload.productId = currentBinding.productId;
+    }
+    if (currentBinding.variantId !== init.variantId) {
+      payload.variantId = currentBinding.variantId;
+    }
 
-  const newIds = currentFiles
-    .map((f) => f.id)
-    .sort()
-    .join(',');
+    if (oldIds !== newIds) {
+      payload.fileIds = currentFiles.map((f) => f.id);
+    }
 
-  const payload = {
-    updates,
-    reason: editReason.value,
-  };
-
-  // 商品绑定变更：绑定时要求 variantId，解绑时显式传 null
-  const currentBinding = getCurrentBindingState();
-  if (currentBinding.productId && !currentBinding.variantId) return;
-  if (currentBinding.productId !== init.productId) {
-    payload.productId = currentBinding.productId;
-  }
-  if (currentBinding.variantId !== init.variantId) {
-    payload.variantId = currentBinding.variantId;
-  }
-
-  if (oldIds !== newIds) {
-    payload.fileIds = currentFiles.map((f) => f.id);
-  }
-
-  emit('submit', payload);
+    emit('submit', payload);
   } finally {
-      confirmData.value.loading = false;
-      confirmData.value.show = false;
+    confirmData.value.loading = false;
+    confirmData.value.show = false;
   }
 };
 </script>

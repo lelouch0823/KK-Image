@@ -29,7 +29,8 @@ describe('DomainOutboxRepository event catalog fan-out', () => {
     const db = createMockDb();
     const repo = new DomainOutboxRepository(db, {
       now: () => 1710000000000,
-      uuid: vi.fn()
+      uuid: vi
+        .fn()
         .mockReturnValueOnce('job-audit-1')
         .mockReturnValueOnce('job-cache-1')
         .mockReturnValueOnce('job-notification-1')
@@ -70,7 +71,9 @@ describe('DomainOutboxRepository event catalog fan-out', () => {
       (event) => getDomainEventDefinition(event.event_type).consumers
     );
 
-    const jobStatements = statements.filter((statement) => statement.sql.includes('INSERT INTO outbox_consumer_jobs'));
+    const jobStatements = statements.filter((statement) =>
+      statement.sql.includes('INSERT INTO outbox_consumer_jobs')
+    );
     expect(jobStatements).toHaveLength(6);
     expect(jobStatements.map((statement) => statement.params[1])).toEqual([
       'audit',
@@ -84,7 +87,9 @@ describe('DomainOutboxRepository event catalog fan-out', () => {
 
   it('routes cache-only, notification-only, and mixed-consumer expansion events to their declared consumers', () => {
     expect(getDomainEventDefinition('customer_created').consumers).toEqual(['cache']);
-    expect(getDomainEventDefinition('admin_notification_created').consumers).toEqual(['notification']);
+    expect(getDomainEventDefinition('admin_notification_created').consumers).toEqual([
+      'notification',
+    ]);
     expect(getDomainEventDefinition('file_uploaded').consumers).toEqual(['cache', 'webhook']);
     expect(getDomainEventDefinition('product_updated').consumers).toEqual(['cache']);
     expect(getDomainEventDefinition('space_file_reordered').consumers).toEqual(['cache']);

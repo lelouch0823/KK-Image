@@ -45,8 +45,13 @@ export class S3StorageProvider extends BaseStorageProvider {
     const fileId = this.generateFileId(fileName);
     const contentType = file.type || options.contentType || 'application/octet-stream';
 
+    // 文件大小限制保护（100MB）
+    const MAX_FILE_SIZE = 100 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      return { success: false, error: `File size ${file.size} exceeds maximum ${MAX_FILE_SIZE}` };
+    }
+
     try {
-      // 使用流式上传避免大文件 OOM
       const arrayBuffer = await file.arrayBuffer();
       const url = this._buildUrl(fileId);
       const method = 'PUT';
@@ -67,6 +72,7 @@ export class S3StorageProvider extends BaseStorageProvider {
         method,
         headers,
         body: arrayBuffer,
+        signal: AbortSignal.timeout(60000), // 60秒超时保护
       });
 
       if (!response.ok) {
@@ -111,7 +117,13 @@ export class S3StorageProvider extends BaseStorageProvider {
       // 传递 Range/条件请求 headers
       const passthroughHeaders = {};
       if (request) {
-        for (const h of ['Range', 'If-None-Match', 'If-Modified-Since', 'If-Match', 'If-Unmodified-Since']) {
+        for (const h of [
+          'Range',
+          'If-None-Match',
+          'If-Modified-Since',
+          'If-Match',
+          'If-Unmodified-Since',
+        ]) {
           const val = request.headers.get(h);
           if (val) passthroughHeaders[h] = val;
         }

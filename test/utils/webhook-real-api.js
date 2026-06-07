@@ -25,9 +25,11 @@ function normalizeResponseConfig(value) {
   if (value && typeof value === 'object') {
     return {
       status: Number(value.status || 200),
-      body: value.body ?? (Number(value.status || 200) >= 200 && Number(value.status || 200) < 300
-        ? { success: true }
-        : { success: false, status: Number(value.status || 200) }),
+      body:
+        value.body ??
+        (Number(value.status || 200) >= 200 && Number(value.status || 200) < 300
+          ? { success: true }
+          : { success: false, status: Number(value.status || 200) }),
       headers: value.headers || {},
     };
   }

@@ -26,7 +26,11 @@
               </span>
             </p>
             <p class="mt-1 text-xs text-(--text-secondary)">
-              {{ t('order.detail.shipmentHistoryQuantity', '{quantity} units', { quantity: entry.quantity }) }}
+              {{
+                t('order.detail.shipmentHistoryQuantity', '{quantity} units', {
+                  quantity: entry.quantity,
+                })
+              }}
             </p>
           </div>
           <p class="shrink-0 text-xs text-(--text-secondary)">

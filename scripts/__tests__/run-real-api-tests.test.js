@@ -111,9 +111,7 @@ describe('run-real-api-tests', () => {
     const failed = await mod.runRealApiCli({
       argv: ['blackbox'],
       env: { REAL_API_FILES: 'a.test.js,b.test.js' },
-      spawnVitest: vi
-        .fn()
-        .mockResolvedValueOnce({ code: 1 }),
+      spawnVitest: vi.fn().mockResolvedValueOnce({ code: 1 }),
       writeStdout: vi.fn(),
       writeStderr: vi.fn(),
       killProcess,

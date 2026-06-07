@@ -13,6 +13,7 @@
 ### Task 1: Lock Shared Command-Shell Semantics
 
 **Files:**
+
 - Modify: `functions/services/__tests__/order-procurement-shared.test.js`
 - Modify: `functions/services/__tests__/OrderProcurementDomainService.test.js`
 - Modify: `functions/services/__tests__/OrderProcurementReceiptReversalService.test.js`
@@ -21,6 +22,7 @@
 - [ ] **Step 1: Write the failing tests**
 
 Add tests that assert:
+
 - shared helper replays committed command responses
 - shared helper rejects mismatched fingerprints and in-flight reservations
 - shared helper only deletes command rows when the service owns the reservation
@@ -39,6 +41,7 @@ Expected: failures because the new shared command-shell helpers do not exist yet
 ### Task 2: Reuse Shared Command-Shell Helpers
 
 **Files:**
+
 - Modify: `functions/services/order-procurement-shared.js`
 - Modify: `functions/services/OrderProcurementDomainService.js`
 - Modify: `functions/services/OrderProcurementReceiptReversalService.js`
@@ -47,6 +50,7 @@ Expected: failures because the new shared command-shell helpers do not exist yet
 - [ ] **Step 1: Implement shared reservation and finalize helpers**
 
 Add narrow helper exports for:
+
 - reservation ownership
 - replay/in-flight handling
 - cleanup delete execution

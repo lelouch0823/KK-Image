@@ -131,7 +131,10 @@ import backupsApp from '../backups.js';
 function createApp(basePath, route) {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.route(basePath, route);
   return app;
@@ -153,7 +156,10 @@ describe('manage ops support audit routes', () => {
     mocks.folderFindById.mockResolvedValue({ id: 'folder-1' });
     mocks.folderDeleteRecursive.mockResolvedValue(undefined);
     mocks.folderGetAllStorageKeysRecursive.mockResolvedValue([]);
-    mocks.performStreamingBackup.mockResolvedValue({ filename: 'backup-1.zip', key: 'backup-1.zip' });
+    mocks.performStreamingBackup.mockResolvedValue({
+      filename: 'backup-1.zip',
+      key: 'backup-1.zip',
+    });
     mocks.decrementRefCount.mockResolvedValue(undefined);
     mocks.scheduleCacheInvalidation.mockImplementation(() => {});
   });
@@ -277,9 +283,7 @@ describe('manage ops support audit routes', () => {
     mocks.fileFindTrash.mockResolvedValue([
       { id: 'file-1', storage_key: 'storage-1', content_hash: null, deleted_at: 2 },
     ]);
-    mocks.folderFindTrash.mockResolvedValue([
-      { id: 'folder-1', deleted_at: 1 },
-    ]);
+    mocks.folderFindTrash.mockResolvedValue([{ id: 'folder-1', deleted_at: 1 }]);
     const r2Delete = vi.fn(async () => undefined);
     const app = createApp('/api/manage/trash', trashApp);
     const env = {

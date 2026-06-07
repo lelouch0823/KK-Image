@@ -162,7 +162,13 @@ function getOperationId(pathStr, method) {
     .split('/')
     .filter((s) => s && !s.startsWith('{') && s !== 'manage' && s !== 'v1' && s !== 'api');
 
-  const actionMap = { get: 'list', post: 'create', patch: 'update', put: 'replace', delete: 'delete' };
+  const actionMap = {
+    get: 'list',
+    post: 'create',
+    patch: 'update',
+    put: 'replace',
+    delete: 'delete',
+  };
   const action = actionMap[method] || method;
   const resource = segments.join('-');
 
@@ -199,7 +205,9 @@ function collectTypes(spec) {
           if (!types.has(name)) {
             const schema = {
               type: 'object',
-              properties: Object.fromEntries(queryParams.map((p) => [p.name, p.schema || { type: 'string' }])),
+              properties: Object.fromEntries(
+                queryParams.map((p) => [p.name, p.schema || { type: 'string' }])
+              ),
             };
             types.set(name, { schema, description: `${method.toUpperCase()} ${pathStr} 查询参数` });
           }
@@ -215,11 +223,7 @@ function collectTypes(spec) {
  * 生成 types/index.ts
  */
 function generateTypesFile(types) {
-  const lines = [
-    '// 自动生成的类型定义 - 请勿手动修改',
-    '// 由 scripts/generate-sdk.js 生成',
-    '',
-  ];
+  const lines = ['// 自动生成的类型定义 - 请勿手动修改', '// 由 scripts/generate-sdk.js 生成', ''];
 
   for (const [name, { schema, description }] of types) {
     lines.push(`/** ${description} */`);
@@ -320,9 +324,13 @@ function generateApiModules(spec, types) {
       lines.push(`  async ${funcName}(${paramStr}): Promise<unknown> {`);
 
       if (hasQuery && method === 'get') {
-        lines.push(`    return this.client.request('${method.toUpperCase()}', ${urlExpr}, { query: query as Record<string, unknown> });`);
+        lines.push(
+          `    return this.client.request('${method.toUpperCase()}', ${urlExpr}, { query: query as Record<string, unknown> });`
+        );
       } else if (hasBody) {
-        lines.push(`    return this.client.request('${method.toUpperCase()}', ${urlExpr}, { body });`);
+        lines.push(
+          `    return this.client.request('${method.toUpperCase()}', ${urlExpr}, { body });`
+        );
       } else {
         lines.push(`    return this.client.request('${method.toUpperCase()}', ${urlExpr});`);
       }
@@ -344,12 +352,12 @@ function generateApiModules(spec, types) {
  */
 function tagToModuleName(tag) {
   const map = {
-    '认证': 'auth',
-    '文件管理': 'files',
-    '文件夹管理': 'folders',
-    '订单管理': 'orders',
-    '商品管理': 'products',
-    '用户管理': 'users',
+    认证: 'auth',
+    文件管理: 'files',
+    文件夹管理: 'folders',
+    订单管理: 'orders',
+    商品管理: 'products',
+    用户管理: 'users',
     default: 'misc',
   };
   return map[tag] || tag.toLowerCase().replace(/\s+/g, '-');
@@ -573,7 +581,7 @@ function generatePackageJson() {
       license: 'MIT',
     },
     null,
-    2,
+    2
   );
 }
 
@@ -602,7 +610,7 @@ function generateTsConfig() {
       exclude: ['node_modules', 'dist'],
     },
     null,
-    2,
+    2
   );
 }
 
@@ -677,7 +685,7 @@ async function main() {
   log('  3. 在项目中使用:');
   log("     import { KKImageClient } from '@kk-image/sdk';");
   log("     const client = new KKImageClient({ baseUrl: '...', token: '...' });");
-  log("     const files = await client.files.listFiles();");
+  log('     const files = await client.files.listFiles();');
 }
 
 main().catch((error) => {

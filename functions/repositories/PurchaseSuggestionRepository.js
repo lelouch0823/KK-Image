@@ -26,7 +26,9 @@ export class PurchaseSuggestionRepository {
     const rows = [];
     for (const variantIdChunk of chunkArray(variantIds, D1_MAX_IN_CLAUSE_SIZE)) {
       const placeholders = variantIdChunk.map(() => '?').join(',');
-      const { results } = await this.db.prepare(`
+      const { results } = await this.db
+        .prepare(
+          `
         SELECT
           pv.id AS variant_id,
           p.id AS product_id,
@@ -46,7 +48,10 @@ export class PurchaseSuggestionRepository {
         JOIN products p ON pv.product_id = p.id
         LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
         WHERE pv.id IN (${placeholders})
-      `).bind(...variantIdChunk).all();
+      `
+        )
+        .bind(...variantIdChunk)
+        .all();
       rows.push(...(results || []));
     }
     return rows;
@@ -64,7 +69,9 @@ export class PurchaseSuggestionRepository {
     const rows = [];
     for (const variantIdChunk of chunkArray(variantIds, D1_MAX_IN_CLAUSE_SIZE)) {
       const placeholders = variantIdChunk.map(() => '?').join(',');
-      const { results } = await this.db.prepare(`
+      const { results } = await this.db
+        .prepare(
+          `
         SELECT
           ol.variant_id AS variant_id,
           MAX(ol.product_id) AS product_id,
@@ -108,7 +115,10 @@ export class PurchaseSuggestionRepository {
         WHERE ol.variant_id IN (${placeholders})
           AND o.status IN ('confirmed', 'production', 'shipping', 'arrived')
         GROUP BY ol.variant_id
-      `).bind(...variantIdChunk).all();
+      `
+        )
+        .bind(...variantIdChunk)
+        .all();
       rows.push(...(results || []));
     }
     return rows;

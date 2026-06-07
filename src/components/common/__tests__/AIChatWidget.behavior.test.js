@@ -310,13 +310,15 @@ const resetSessionMocks = () => {
     mocks.sessionState.messages.value.push({ role: 'assistant', content: '' });
   });
   mocks.finalizeAssistantDraft.mockImplementation((content) => {
-    const lastMessage = mocks.sessionState.messages.value[mocks.sessionState.messages.value.length - 1];
+    const lastMessage =
+      mocks.sessionState.messages.value[mocks.sessionState.messages.value.length - 1];
     if (lastMessage?.role === 'assistant') {
       lastMessage.content = content;
     }
   });
   mocks.discardEmptyAssistantDraft.mockImplementation(() => {
-    const lastMessage = mocks.sessionState.messages.value[mocks.sessionState.messages.value.length - 1];
+    const lastMessage =
+      mocks.sessionState.messages.value[mocks.sessionState.messages.value.length - 1];
     if (lastMessage?.role === 'assistant' && !lastMessage.content) {
       mocks.sessionState.messages.value.pop();
     }
@@ -325,13 +327,16 @@ const resetSessionMocks = () => {
     mocks.sessionState.messages.value = [{ role: 'assistant', content: '欢迎使用' }];
   });
   mocks.removeImagesFromLatestUserMessage.mockImplementation(() => {
-    const lastUserMessage = [...mocks.sessionState.messages.value].reverse().find((message) => message.role === 'user');
+    const lastUserMessage = [...mocks.sessionState.messages.value]
+      .reverse()
+      .find((message) => message.role === 'user');
     if (lastUserMessage && Array.isArray(lastUserMessage.content)) {
       lastUserMessage.content = lastUserMessage.content.filter((item) => item.type !== 'image_url');
     }
   });
   mocks.applyStreamState.mockImplementation(({ fullContent, displayedContent }) => {
-    const lastMessage = mocks.sessionState.messages.value[mocks.sessionState.messages.value.length - 1];
+    const lastMessage =
+      mocks.sessionState.messages.value[mocks.sessionState.messages.value.length - 1];
     if (lastMessage?.role === 'assistant') {
       lastMessage.content = fullContent || displayedContent;
     }
@@ -376,7 +381,10 @@ beforeEach(() => {
     callback();
     return 1;
   });
-  vi.stubGlobal('confirm', vi.fn(() => true));
+  vi.stubGlobal(
+    'confirm',
+    vi.fn(() => true)
+  );
   vi.stubGlobal('open', vi.fn());
   vi.stubGlobal('Blob', Blob);
 

@@ -5,7 +5,11 @@ import OrderDetail from '@/components/order/OrderDetail.vue';
 vi.mock('@/composables/useI18n', () => ({
   useI18n: () => ({
     t: (key, paramsOrFallback) => {
-      if (key === 'order.detail.multilineSummary' && paramsOrFallback && typeof paramsOrFallback === 'object') {
+      if (
+        key === 'order.detail.multilineSummary' &&
+        paramsOrFallback &&
+        typeof paramsOrFallback === 'object'
+      ) {
         return `多商品订单（${paramsOrFallback.count}项）`;
       }
       return key;
@@ -99,7 +103,8 @@ describe('OrderDetail line-level rendering', () => {
           OrderPersonCard: true,
           OrderStatusHeader: {
             props: ['procurementStatus', 'deliveryStatus'],
-            template: '<div data-testid="status-header">{{ procurementStatus }}|{{ deliveryStatus }}</div>',
+            template:
+              '<div data-testid="status-header">{{ procurementStatus }}|{{ deliveryStatus }}</div>',
           },
           OrderShipmentHistoryCard: {
             props: ['shipments'],
@@ -111,7 +116,8 @@ describe('OrderDetail line-level rendering', () => {
           },
           OrderLinesCard: {
             props: ['lines', 'mode'],
-            template: '<div data-testid="order-lines-card">{{ mode }}-{{ lines.length }}-{{ lines[0].snapshotName }}</div>',
+            template:
+              '<div data-testid="order-lines-card">{{ mode }}-{{ lines.length }}-{{ lines[0].snapshotName }}</div>',
           },
           OrderCommentInput: true,
           OrderPrintView: true,
@@ -124,7 +130,9 @@ describe('OrderDetail line-level rendering', () => {
       },
     });
 
-    expect(wrapper.get('[data-testid="status-header"]').text()).toBe('partially_received|not_shipped');
+    expect(wrapper.get('[data-testid="status-header"]').text()).toBe(
+      'partially_received|not_shipped'
+    );
     expect(wrapper.get('[data-testid="order-lines-card"]').text()).toBe('admin-1-Line A');
     expect(wrapper.get('[data-testid="shipment-history-card"]').text()).toBe('1');
     expect(wrapper.get('[data-testid="return-history-card"]').text()).toBe('1');
@@ -177,7 +185,8 @@ describe('OrderDetail line-level rendering', () => {
           OrderFileGrid: true,
           OrderInfoCard: {
             props: ['data', 'quantity'],
-            template: '<div data-testid="order-info-card">{{ JSON.stringify({ data, quantity }) }}</div>',
+            template:
+              '<div data-testid="order-info-card">{{ JSON.stringify({ data, quantity }) }}</div>',
           },
           OrderPersonCard: true,
           OrderStatusHeader: {

@@ -4,7 +4,8 @@ export const ORDER_SUMMARY_PROJECTION_JOIN = `
       LEFT JOIN order_summary_projection order_summary ON order_summary.order_id = o.id
 `;
 
-export const ORDER_SUMMARY_PROGRESS_STATUS_SQL = "COALESCE(order_summary.display_status, o.procurement_status, 'none')";
+export const ORDER_SUMMARY_PROGRESS_STATUS_SQL =
+  "COALESCE(order_summary.display_status, o.procurement_status, 'none')";
 
 export const ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL = `
     CASE
@@ -27,32 +28,32 @@ export const ORDER_SUMMARY_PRODUCT_SEARCH_SQL = `
 `;
 
 export function appendOrderSummaryProgressStatusFilter(whereClause, bindParams, procurementStatus) {
-    const statusValues = expandOrderProcurementStatusFilter(procurementStatus);
-    if (statusValues.length === 0) return whereClause;
+  const statusValues = expandOrderProcurementStatusFilter(procurementStatus);
+  if (statusValues.length === 0) return whereClause;
 
-    if (statusValues.length === 1) {
-        bindParams.push(statusValues[0], statusValues[0]);
-        return `${whereClause} AND (COALESCE(order_summary.display_status, '') = ? OR COALESCE(o.procurement_status, 'none') = ?)`;
-    }
+  if (statusValues.length === 1) {
+    bindParams.push(statusValues[0], statusValues[0]);
+    return `${whereClause} AND (COALESCE(order_summary.display_status, '') = ? OR COALESCE(o.procurement_status, 'none') = ?)`;
+  }
 
-    bindParams.push(...statusValues, ...statusValues);
-    return `${whereClause} AND (
+  bindParams.push(...statusValues, ...statusValues);
+  return `${whereClause} AND (
         COALESCE(order_summary.display_status, '') IN (${statusValues.map(() => '?').join(', ')})
         OR COALESCE(o.procurement_status, 'none') IN (${statusValues.map(() => '?').join(', ')})
     )`;
 }
 
 export function appendOrderSummaryDeliveryStatusFilter(whereClause, bindParams, deliveryStatus) {
-    if (!deliveryStatus) return whereClause;
+  if (!deliveryStatus) return whereClause;
 
-    bindParams.push(deliveryStatus);
-    return `${whereClause} AND ${ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL} = ?`;
+  bindParams.push(deliveryStatus);
+  return `${whereClause} AND ${ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL} = ?`;
 }
 
 export function appendOrderSummaryProductSearchFilter(whereClause, bindParams, search) {
-    if (!search) return whereClause;
+  if (!search) return whereClause;
 
-    const searchPattern = `%${search}%`;
-    bindParams.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
-    return `${whereClause} AND ${ORDER_SUMMARY_PRODUCT_SEARCH_SQL}`;
+  const searchPattern = `%${search}%`;
+  bindParams.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+  return `${whereClause} AND ${ORDER_SUMMARY_PRODUCT_SEARCH_SQL}`;
 }

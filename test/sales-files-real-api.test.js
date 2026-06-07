@@ -51,11 +51,7 @@ describeIfRealApi('Sales Files Real API', function () {
         store: 'Sales File Outsider Store',
       });
 
-      const {
-        productId,
-        variantId,
-        productName,
-      } = await createWorkflowProduct(token, seed, {
+      const { productId, variantId, productName } = await createWorkflowProduct(token, seed, {
         stockQuantity: 2,
         namePrefix: 'Sales File Product',
         skuPrefix: 'SALFILE',
@@ -93,22 +89,26 @@ describeIfRealApi('Sales Files Real API', function () {
       const outsiderOrderId = outsiderOrder.json?.data?.id;
       assert.ok(outsiderOrderId, 'outsider order id missing');
 
-      const rootUpload = await salesMultipartRequest(`/api/sales/${ownerSession.accessToken}/upload`, {
-        authToken: ownerSession.jwt,
-        fields: {
-          file: {
-            value: 'sales-root-upload',
-            filename: `sales-root-${seed}.txt`,
-            contentType: 'text/plain',
+      const rootUpload = await salesMultipartRequest(
+        `/api/sales/${ownerSession.accessToken}/upload`,
+        {
+          authToken: ownerSession.jwt,
+          fields: {
+            file: {
+              value: 'sales-root-upload',
+              filename: `sales-root-${seed}.txt`,
+              contentType: 'text/plain',
+            },
           },
-        },
-        expectedStatus: 200,
-      });
+          expectedStatus: 200,
+        }
+      );
       const rootFileId = rootUpload.json?.data?.id;
       assert.ok(rootFileId, 'sales root upload file id missing');
 
       const rootDelivery = await receiver.waitForDelivery(
-        (item) => item.body?.event_type === 'file_uploaded' && item.body?.aggregate?.id === rootFileId,
+        (item) =>
+          item.body?.event_type === 'file_uploaded' && item.body?.aggregate?.id === rootFileId,
         {
           timeoutMs: 20000,
           intervalMs: 500,
@@ -153,37 +153,48 @@ describeIfRealApi('Sales Files Real API', function () {
       );
       assert.strictEqual(foreignReject.json?.success, false);
 
-      await waitFor(async () => {
-        const outbox = await apiRequest('/api/manage/outbox?eventType=file_uploaded', {
-          bearerToken: token,
-          expectedStatus: 200,
-        });
-        const event = (outbox.json?.data || []).find((item) => item.aggregate_id === orderFileId);
-        assert.ok(event, 'sales file_uploaded outbox event missing');
-        const webhookJob = (event.consumerJobs || []).find((job) => job.consumer_name === 'webhook');
-        assert.ok(webhookJob, 'sales file_uploaded webhook consumer job missing');
-        assert.ok(['pending', 'published'].includes(webhookJob.status), 'unexpected webhook job status');
-        return event;
-      }, {
-        timeoutMs: 20000,
-        intervalMs: 500,
-        onTimeoutMessage: 'sales file_uploaded outbox event did not materialize',
-      });
+      await waitFor(
+        async () => {
+          const outbox = await apiRequest('/api/manage/outbox?eventType=file_uploaded', {
+            bearerToken: token,
+            expectedStatus: 200,
+          });
+          const event = (outbox.json?.data || []).find((item) => item.aggregate_id === orderFileId);
+          assert.ok(event, 'sales file_uploaded outbox event missing');
+          const webhookJob = (event.consumerJobs || []).find(
+            (job) => job.consumer_name === 'webhook'
+          );
+          assert.ok(webhookJob, 'sales file_uploaded webhook consumer job missing');
+          assert.ok(
+            ['pending', 'published'].includes(webhookJob.status),
+            'unexpected webhook job status'
+          );
+          return event;
+        },
+        {
+          timeoutMs: 20000,
+          intervalMs: 500,
+          onTimeoutMessage: 'sales file_uploaded outbox event did not materialize',
+        }
+      );
 
-      await waitFor(async () => {
-        const detail = await apiRequest(`/api/manage/orders/${ownerOrderId}`, {
-          bearerToken: token,
-          expectedStatus: 200,
-        });
-        const file = (detail.json?.data?.files || []).find((item) => item.id === orderFileId);
-        assert.ok(file, 'sales-uploaded file missing from manage order detail');
-        assert.strictEqual(file.filename, `sales-order-${seed}.txt`);
-        return file;
-      }, {
-        timeoutMs: 15000,
-        intervalMs: 500,
-        onTimeoutMessage: 'sales order upload did not appear in manage order detail',
-      });
+      await waitFor(
+        async () => {
+          const detail = await apiRequest(`/api/manage/orders/${ownerOrderId}`, {
+            bearerToken: token,
+            expectedStatus: 200,
+          });
+          const file = (detail.json?.data?.files || []).find((item) => item.id === orderFileId);
+          assert.ok(file, 'sales-uploaded file missing from manage order detail');
+          assert.strictEqual(file.filename, `sales-order-${seed}.txt`);
+          return file;
+        },
+        {
+          timeoutMs: 15000,
+          intervalMs: 500,
+          onTimeoutMessage: 'sales order upload did not appear in manage order detail',
+        }
+      );
 
       const salesDetail = await salesApiRequest(
         ownerSession.accessToken,
@@ -191,7 +202,9 @@ describeIfRealApi('Sales Files Real API', function () {
         `/api/sales/${ownerSession.accessToken}/orders/${ownerOrderId}`,
         { expectedStatus: 200 }
       );
-      const salesFile = (salesDetail.json?.data?.files || []).find((item) => item.id === orderFileId);
+      const salesFile = (salesDetail.json?.data?.files || []).find(
+        (item) => item.id === orderFileId
+      );
       assert.ok(salesFile, 'sales-uploaded file missing from sales order detail');
       assert.strictEqual(salesFile.filename, `sales-order-${seed}.txt`);
     } finally {

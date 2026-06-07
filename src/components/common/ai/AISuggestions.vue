@@ -1,5 +1,8 @@
 <template>
-  <div v-if="suggestions.length > 0" class="scrollbar-hide flex gap-2 overflow-x-auto px-4 pt-1 pb-2">
+  <div
+    v-if="suggestions.length > 0"
+    class="scrollbar-hide flex gap-2 overflow-x-auto px-4 pt-1 pb-2"
+  >
     <AppButton
       v-for="suggestion in suggestions"
       :key="suggestion"
@@ -19,8 +22,8 @@ import AppButton from '@/components/ui/AppButton.vue';
 defineProps({
   suggestions: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 });
 
 defineEmits(['select']);
@@ -28,10 +31,10 @@ defineEmits(['select']);
 
 <style scoped>
 .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 </style>

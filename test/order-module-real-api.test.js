@@ -16,9 +16,7 @@ import {
 
 async function textRequest(path, { bearerToken, expectedStatus = 200 } = {}) {
   const response = await fetch(`${getBaseUrl()}${path}`, {
-    headers: withRealApiTestHeaders(
-      bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}
-    ),
+    headers: withRealApiTestHeaders(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}),
   });
   const text = await response.text();
   assert.strictEqual(
@@ -43,11 +41,7 @@ describeIfRealApi('Order Module Real API Workflow', function () {
       namePrefix: 'Order Module Sales',
       store: 'Order Module Store',
     });
-    const {
-      productId,
-      variantId,
-      productName,
-    } = await createWorkflowProduct(token, seed, {
+    const { productId, variantId, productName } = await createWorkflowProduct(token, seed, {
       stockQuantity: 5,
       alertThreshold: 1,
       namePrefix: 'Order Module Product',
@@ -74,10 +68,13 @@ describeIfRealApi('Order Module Real API Workflow', function () {
     assert.ok(orderId, 'order id missing');
     assert.ok(orderNo, 'order no missing');
 
-    const initialList = await apiRequest(`/api/manage/orders?search=${encodeURIComponent(seed)}&status=pending`, {
-      bearerToken: token,
-      expectedStatus: 200,
-    });
+    const initialList = await apiRequest(
+      `/api/manage/orders?search=${encodeURIComponent(seed)}&status=pending`,
+      {
+        bearerToken: token,
+        expectedStatus: 200,
+      }
+    );
     const pendingListedOrder = findListedOrder(initialList.json, orderId);
     assert.ok(pendingListedOrder, 'created order missing from pending list');
     assert.strictEqual(pendingListedOrder.status, 'pending');
@@ -113,18 +110,21 @@ describeIfRealApi('Order Module Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const detail = await getOrderDetail(token, orderId);
-      assert.strictEqual(detail?.quantity, 2);
-      assert.strictEqual(detail?.currentData?.remark, `updated-${seed}`);
-      assert.strictEqual(detail?.currentData?.deadline, '2026-12-31');
-      assert.strictEqual(detail?.lines?.[0]?.orderedQuantity, 2);
-      return detail;
-    }, {
-      timeoutMs: 10000,
-      intervalMs: 400,
-      onTimeoutMessage: 'patched order detail did not converge',
-    });
+    await waitFor(
+      async () => {
+        const detail = await getOrderDetail(token, orderId);
+        assert.strictEqual(detail?.quantity, 2);
+        assert.strictEqual(detail?.currentData?.remark, `updated-${seed}`);
+        assert.strictEqual(detail?.currentData?.deadline, '2026-12-31');
+        assert.strictEqual(detail?.lines?.[0]?.orderedQuantity, 2);
+        return detail;
+      },
+      {
+        timeoutMs: 10000,
+        intervalMs: 400,
+        onTimeoutMessage: 'patched order detail did not converge',
+      }
+    );
 
     const comment = `follow-up-${seed}`;
     await apiRequest(`/api/manage/orders/${orderId}/comment`, {
@@ -134,23 +134,32 @@ describeIfRealApi('Order Module Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const detail = await getOrderDetail(token, orderId);
-      const comments = (detail?.timeline || [])
-        .filter((item) => item?.actionType === 'comment')
-        .map((item) => item?.comment || '');
-      assert.ok(comments.some((item) => String(item).includes(comment)), 'order comment missing from timeline');
-      return detail;
-    }, {
-      timeoutMs: 10000,
-      intervalMs: 400,
-      onTimeoutMessage: 'order comment did not appear in detail timeline',
-    });
+    await waitFor(
+      async () => {
+        const detail = await getOrderDetail(token, orderId);
+        const comments = (detail?.timeline || [])
+          .filter((item) => item?.actionType === 'comment')
+          .map((item) => item?.comment || '');
+        assert.ok(
+          comments.some((item) => String(item).includes(comment)),
+          'order comment missing from timeline'
+        );
+        return detail;
+      },
+      {
+        timeoutMs: 10000,
+        intervalMs: 400,
+        onTimeoutMessage: 'order comment did not appear in detail timeline',
+      }
+    );
 
-    const exportCsv = await textRequest(`/api/manage/orders/export?search=${encodeURIComponent(seed)}`, {
-      bearerToken: token,
-      expectedStatus: 200,
-    });
+    const exportCsv = await textRequest(
+      `/api/manage/orders/export?search=${encodeURIComponent(seed)}`,
+      {
+        bearerToken: token,
+        expectedStatus: 200,
+      }
+    );
     assert.match(exportCsv, new RegExp(orderNo));
     assert.match(exportCsv, new RegExp(productName));
 
@@ -161,20 +170,26 @@ describeIfRealApi('Order Module Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const listed = await apiRequest(`/api/manage/orders?search=${encodeURIComponent(seed)}&status=confirmed`, {
-        bearerToken: token,
-        expectedStatus: 200,
-      });
-      const confirmedOrder = findListedOrder(listed.json, orderId);
-      assert.ok(confirmedOrder, 'confirmed order missing from filtered list');
-      assert.strictEqual(confirmedOrder.status, 'confirmed');
-      return confirmedOrder;
-    }, {
-      timeoutMs: 10000,
-      intervalMs: 400,
-      onTimeoutMessage: 'confirmed order did not appear in list filter',
-    });
+    await waitFor(
+      async () => {
+        const listed = await apiRequest(
+          `/api/manage/orders?search=${encodeURIComponent(seed)}&status=confirmed`,
+          {
+            bearerToken: token,
+            expectedStatus: 200,
+          }
+        );
+        const confirmedOrder = findListedOrder(listed.json, orderId);
+        assert.ok(confirmedOrder, 'confirmed order missing from filtered list');
+        assert.strictEqual(confirmedOrder.status, 'confirmed');
+        return confirmedOrder;
+      },
+      {
+        timeoutMs: 10000,
+        intervalMs: 400,
+        onTimeoutMessage: 'confirmed order did not appear in list filter',
+      }
+    );
 
     const confirmedDetail = await getOrderDetail(token, orderId);
     const lineId = confirmedDetail?.lines?.[0]?.id;
@@ -187,15 +202,18 @@ describeIfRealApi('Order Module Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const detail = await getOrderDetail(token, orderId);
-      assert.strictEqual(detail?.lines?.[0]?.shippedQuantity, 2);
-      return detail;
-    }, {
-      timeoutMs: 10000,
-      intervalMs: 400,
-      onTimeoutMessage: 'order line shipment did not converge',
-    });
+    await waitFor(
+      async () => {
+        const detail = await getOrderDetail(token, orderId);
+        assert.strictEqual(detail?.lines?.[0]?.shippedQuantity, 2);
+        return detail;
+      },
+      {
+        timeoutMs: 10000,
+        intervalMs: 400,
+        onTimeoutMessage: 'order line shipment did not converge',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId}/status`, {
       bearerToken: token,
@@ -211,18 +229,21 @@ describeIfRealApi('Order Module Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const detail = await getOrderDetail(token, orderId);
-      assert.strictEqual(detail?.status, 'fulfilled');
-      assert.strictEqual(detail?.deliveryStatus, 'delivered');
-      assert.ok(Number(detail?.deliveryConfirmedAt || 0) > 0, 'deliveryConfirmedAt missing');
-      assert.match(String(detail?.deliveryConfirmedBy || ''), /admin/i);
-      return detail;
-    }, {
-      timeoutMs: 10000,
-      intervalMs: 400,
-      onTimeoutMessage: 'delivery confirmation did not converge in order detail',
-    });
+    await waitFor(
+      async () => {
+        const detail = await getOrderDetail(token, orderId);
+        assert.strictEqual(detail?.status, 'fulfilled');
+        assert.strictEqual(detail?.deliveryStatus, 'delivered');
+        assert.ok(Number(detail?.deliveryConfirmedAt || 0) > 0, 'deliveryConfirmedAt missing');
+        assert.match(String(detail?.deliveryConfirmedBy || ''), /admin/i);
+        return detail;
+      },
+      {
+        timeoutMs: 10000,
+        intervalMs: 400,
+        onTimeoutMessage: 'delivery confirmation did not converge in order detail',
+      }
+    );
 
     const deliveredList = await apiRequest(
       `/api/manage/orders?search=${encodeURIComponent(seed)}&deliveryStatus=delivered`,
@@ -254,11 +275,7 @@ describeIfRealApi('Order Module Real API Workflow', function () {
       namePrefix: 'Order Guard Sales',
       store: 'Order Guard Store',
     });
-    const {
-      productId,
-      variantId,
-      productName,
-    } = await createWorkflowProduct(token, seed, {
+    const { productId, variantId, productName } = await createWorkflowProduct(token, seed, {
       stockQuantity: 3,
       namePrefix: 'Order Guard Product',
       skuPrefix: 'ORDGUARD',
@@ -287,15 +304,21 @@ describeIfRealApi('Order Module Real API Workflow', function () {
       body: { comment: '' },
       expectedStatus: 400,
     });
-    const errorMsg = typeof emptyComment.json?.error === 'string' ? emptyComment.json.error : JSON.stringify(emptyComment.json?.error || '');
+    const errorMsg =
+      typeof emptyComment.json?.error === 'string'
+        ? emptyComment.json.error
+        : JSON.stringify(emptyComment.json?.error || '');
     assert.match(errorMsg, /invalid|参数|params|有误|必填/i);
 
-    const prematureDeliveryConfirm = await apiRequest(`/api/manage/orders/${orderId}/delivery-confirmation`, {
-      bearerToken: token,
-      method: 'POST',
-      body: { note: 'too early' },
-      expectedStatus: 400,
-    });
+    const prematureDeliveryConfirm = await apiRequest(
+      `/api/manage/orders/${orderId}/delivery-confirmation`,
+      {
+        bearerToken: token,
+        method: 'POST',
+        body: { note: 'too early' },
+        expectedStatus: 400,
+      }
+    );
     assert.match(
       String(prematureDeliveryConfirm.json?.error || ''),
       /delivery confirmation requires a fulfilled order/i
@@ -307,7 +330,10 @@ describeIfRealApi('Order Module Real API Workflow', function () {
       body: { status: 'delivered' },
       expectedStatus: 400,
     });
-    const statusJumpError = typeof invalidStatusJump.json?.error === 'string' ? invalidStatusJump.json.error : JSON.stringify(invalidStatusJump.json?.error || '');
+    const statusJumpError =
+      typeof invalidStatusJump.json?.error === 'string'
+        ? invalidStatusJump.json.error
+        : JSON.stringify(invalidStatusJump.json?.error || '');
     assert.match(statusJumpError, /invalid status transition|状态/i);
 
     const detail = await getOrderDetail(token, orderId);

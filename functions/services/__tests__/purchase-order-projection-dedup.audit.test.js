@@ -19,11 +19,15 @@ describe('purchase-order projection dedup audit', () => {
     const backendSource = fs.readFileSync(backendPath, 'utf8');
 
     if (frontendSource.includes('function toProgressNumber(')) {
-      offenders.push('src/utils/purchase-order-progress.js: still defines local projection implementation');
+      offenders.push(
+        'src/utils/purchase-order-progress.js: still defines local projection implementation'
+      );
     }
 
     if (backendSource.includes('export function toNonNegativeInt(')) {
-      offenders.push('functions/services/purchase-order-projection.js: still defines local projection implementation');
+      offenders.push(
+        'functions/services/purchase-order-projection.js: still defines local projection implementation'
+      );
     }
 
     if (!frontendSource.includes('../../shared/utils/purchase-order-projection.js')) {

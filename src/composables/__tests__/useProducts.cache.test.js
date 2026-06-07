@@ -80,7 +80,10 @@ describe('useProducts cache invalidation', () => {
   });
 
   it('throws the backend error when loading a product fails', async () => {
-    mocks.resource.rawRequest.mockResolvedValueOnce({ success: false, error: 'product unavailable' });
+    mocks.resource.rawRequest.mockResolvedValueOnce({
+      success: false,
+      error: 'product unavailable',
+    });
 
     const { loadProduct } = useProducts();
 

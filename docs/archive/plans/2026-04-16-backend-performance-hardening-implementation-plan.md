@@ -15,6 +15,7 @@
 ### Task 1: Add failing tests for performance-hardening schema and batching expectations
 
 **Files:**
+
 - Modify: `scripts/__tests__/init-database-bootstrap-consistency.test.js`
 - Modify: `scripts/__tests__/check-migration-prefixes.test.js`
 - Modify: `functions/services/__tests__/InventoryService.test.js`
@@ -27,6 +28,7 @@
 - [ ] **Step 5: Run the focused tests and confirm they fail for the expected reasons**
 
 Run:
+
 ```bash
 pnpm test:unit:run scripts/__tests__/init-database-bootstrap-consistency.test.js scripts/__tests__/check-migration-prefixes.test.js functions/services/__tests__/InventoryService.test.js functions/repositories/__tests__/product-spu.test.js
 ```
@@ -34,6 +36,7 @@ pnpm test:unit:run scripts/__tests__/init-database-bootstrap-consistency.test.js
 ### Task 2: Add the migration and bootstrap schema alignment
 
 **Files:**
+
 - Create: `migrations/0071_backend_performance_indexes.sql`
 - Modify: `scripts/init-database.sql`
 
@@ -44,6 +47,7 @@ pnpm test:unit:run scripts/__tests__/init-database-bootstrap-consistency.test.js
 ### Task 3: Reduce `ProductRepository.search` duplicate heavy work
 
 **Files:**
+
 - Modify: `functions/repositories/ProductRepository.js`
 - Test: `functions/repositories/__tests__/product-spu.test.js`
 
@@ -55,6 +59,7 @@ pnpm test:unit:run scripts/__tests__/init-database-bootstrap-consistency.test.js
 ### Task 4: Make `InventoryService.applyBatch` truly batched
 
 **Files:**
+
 - Modify: `functions/services/InventoryService.js`
 - Test: `functions/services/__tests__/InventoryService.test.js`
 
@@ -66,6 +71,7 @@ pnpm test:unit:run scripts/__tests__/init-database-bootstrap-consistency.test.js
 ### Task 5: Verify the first batch end-to-end
 
 **Files:**
+
 - No code changes expected unless verification exposes issues
 
 - [ ] **Step 1: Run the focused tests again**
@@ -73,6 +79,7 @@ pnpm test:unit:run scripts/__tests__/init-database-bootstrap-consistency.test.js
 - [ ] **Step 3: Summarize residual risks for the larger second-batch work: order projections, outbox concurrency, webhook concurrency, goods-overview projections**
 
 Run:
+
 ```bash
 pnpm test:unit:run scripts/__tests__/init-database-bootstrap-consistency.test.js scripts/__tests__/check-migration-prefixes.test.js functions/services/__tests__/InventoryService.test.js functions/repositories/__tests__/product-spu.test.js
 node scripts/check-migration-prefixes.mjs

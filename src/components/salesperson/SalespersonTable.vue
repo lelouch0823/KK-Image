@@ -19,17 +19,27 @@
     </template>
     <!-- Name Cell -->
     <template #cell-name="{ value }">
-      <div class="max-w-[12rem] truncate font-medium text-(--text-main)" :title="value || '-'">{{ value || '-' }}</div>
+      <div class="max-w-[12rem] truncate font-medium text-(--text-main)" :title="value || '-'">
+        {{ value || '-' }}
+      </div>
     </template>
 
     <!-- Store Cell -->
     <template #cell-store="{ value }">
-      <span class="inline-block max-w-[12rem] truncate text-(--text-secondary)" :title="value || '-'">{{ value || '-' }}</span>
+      <span
+        class="inline-block max-w-[12rem] truncate text-(--text-secondary)"
+        :title="value || '-'"
+        >{{ value || '-' }}</span
+      >
     </template>
 
     <!-- Phone Cell -->
     <template #cell-phone="{ value }">
-      <span class="inline-block max-w-[10rem] truncate text-(--text-secondary)" :title="value || '-'">{{ value || '-' }}</span>
+      <span
+        class="inline-block max-w-[10rem] truncate text-(--text-secondary)"
+        :title="value || '-'"
+        >{{ value || '-' }}</span
+      >
     </template>
 
     <!-- Order Count Cell -->
@@ -56,7 +66,9 @@
 
     <!-- Actions Cell -->
     <template #cell-actions="{ row }">
-      <div class="mobile:opacity-100 flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+      <div
+        class="mobile:opacity-100 flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+      >
         <AppButton
           variant="ghost"
           size="sm"

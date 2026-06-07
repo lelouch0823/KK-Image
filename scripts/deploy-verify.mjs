@@ -11,7 +11,12 @@ export function createWaitResource(baseUrl) {
   return `http-get://${healthUrl.host}${healthUrl.pathname}`;
 }
 
-export function runCommand(command, args, options = {}, { spawnImpl = spawn, env = process.env } = {}) {
+export function runCommand(
+  command,
+  args,
+  options = {},
+  { spawnImpl = spawn, env = process.env } = {}
+) {
   return new Promise((resolve, reject) => {
     const child = spawnImpl(command, args, {
       stdio: 'inherit',
@@ -34,7 +39,10 @@ export function runCommand(command, args, options = {}, { spawnImpl = spawn, env
   });
 }
 
-export async function stopChild(child, { onceImpl = once, setTimeoutImpl = setTimeout, clearTimeoutImpl = clearTimeout } = {}) {
+export async function stopChild(
+  child,
+  { onceImpl = once, setTimeoutImpl = setTimeout, clearTimeoutImpl = clearTimeout } = {}
+) {
   if (!child || child.exitCode !== null || child.killed) return;
 
   child.kill('SIGTERM');
@@ -109,8 +117,7 @@ export async function main({
   }
 }
 
-const isMain =
-  process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 
 if (isMain) {
   main().catch((error) => {

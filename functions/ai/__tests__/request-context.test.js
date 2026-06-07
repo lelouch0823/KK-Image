@@ -18,7 +18,9 @@ describe('request-context', () => {
 
     expect(context.signal.aborted).toBe(true);
     expect(context.getAbortReason()).toBe('client_disconnect');
-    expect(() => throwIfAborted(context.signal, () => context.getAbortReason())).toThrow(/client_disconnect/);
+    expect(() => throwIfAborted(context.signal, () => context.getAbortReason())).toThrow(
+      /client_disconnect/
+    );
   });
 
   it('adopts an external abort signal and preserves its reason', () => {

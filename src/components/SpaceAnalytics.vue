@@ -3,22 +3,16 @@
     <!-- Loading State with Skeleton -->
     <template v-if="loading">
       <div class="grid grid-cols-2 gap-4">
-        <div
-          class="animate-pulse rounded-xl border border-(--border-color) bg-(--bg-muted) p-4"
-        >
+        <div class="animate-pulse rounded-xl border border-(--border-color) bg-(--bg-muted) p-4">
           <div class="mb-2 h-4 w-16 rounded bg-(--border-color)"></div>
           <div class="h-8 w-24 rounded bg-(--border-color)"></div>
         </div>
-        <div
-          class="animate-pulse rounded-xl border border-(--border-color) bg-(--bg-muted) p-4"
-        >
+        <div class="animate-pulse rounded-xl border border-(--border-color) bg-(--bg-muted) p-4">
           <div class="mb-2 h-4 w-16 rounded bg-(--border-color)"></div>
           <div class="h-8 w-24 rounded bg-(--border-color)"></div>
         </div>
       </div>
-      <div
-        class="animate-pulse rounded-xl border border-(--border-color) bg-(--bg-muted) p-4"
-      >
+      <div class="animate-pulse rounded-xl border border-(--border-color) bg-(--bg-muted) p-4">
         <div class="mb-4 h-4 w-32 rounded bg-(--border-color)"></div>
         <div class="h-64 rounded bg-(--border-color)"></div>
       </div>
@@ -55,9 +49,7 @@
             {{ t('spaceAnalytics.visitorTrend') }}
           </h3>
           <!-- Time Range Toggle -->
-          <div
-            class="flex rounded-lg border border-(--border-color) bg-(--bg-muted) p-0.5"
-          >
+          <div class="flex rounded-lg border border-(--border-color) bg-(--bg-muted) p-0.5">
             <AppButton
               variant="ghost"
               size="sm"
@@ -104,10 +96,7 @@
               :data="chartData"
               :options="chartOptions"
             />
-            <div
-              v-else
-              class="flex h-full flex-col items-center justify-center text-center"
-            >
+            <div v-else class="flex h-full flex-col items-center justify-center text-center">
               <!-- Empty State Icon -->
               <svg
                 class="mb-3 size-12 text-(--text-secondary) opacity-40"

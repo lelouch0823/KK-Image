@@ -27,13 +27,17 @@ describe('S3StorageProvider', () => {
 
   it('checks whether the S3 provider is configured', () => {
     expect(new S3StorageProvider(createEnv()).isConfigured()).toBe(true);
-    expect(new S3StorageProvider(createEnv({ S3_SECRET_ACCESS_KEY: '' })).isConfigured()).toBe(false);
+    expect(new S3StorageProvider(createEnv({ S3_SECRET_ACCESS_KEY: '' })).isConfigured()).toBe(
+      false
+    );
   });
 
   it('returns configuration errors before attempting S3 uploads', async () => {
     const provider = new S3StorageProvider(createEnv({ S3_ACCESS_KEY_ID: '' }));
 
-    await expect(provider.upload({ name: 'demo.png', type: 'image/png', size: 1 })).resolves.toEqual({
+    await expect(
+      provider.upload({ name: 'demo.png', type: 'image/png', size: 1 })
+    ).resolves.toEqual({
       success: false,
       error: 'S3 not configured',
     });
@@ -83,23 +87,27 @@ describe('S3StorageProvider', () => {
     vi.spyOn(provider, '_signRequest').mockResolvedValue({ Authorization: 'signed' });
 
     fetchSpy.mockResolvedValueOnce(new Response('forbidden', { status: 403 }));
-    await expect(provider.upload({
-      name: 'demo.png',
-      type: 'image/png',
-      size: 12,
-      arrayBuffer: vi.fn(async () => new TextEncoder().encode('demo').buffer),
-    })).resolves.toEqual({
+    await expect(
+      provider.upload({
+        name: 'demo.png',
+        type: 'image/png',
+        size: 12,
+        arrayBuffer: vi.fn(async () => new TextEncoder().encode('demo').buffer),
+      })
+    ).resolves.toEqual({
       success: false,
       error: 'S3 upload failed: 403',
     });
 
     fetchSpy.mockRejectedValueOnce(new Error('network down'));
-    await expect(provider.upload({
-      name: 'demo.png',
-      type: 'image/png',
-      size: 12,
-      arrayBuffer: vi.fn(async () => new TextEncoder().encode('demo').buffer),
-    })).resolves.toEqual({
+    await expect(
+      provider.upload({
+        name: 'demo.png',
+        type: 'image/png',
+        size: 12,
+        arrayBuffer: vi.fn(async () => new TextEncoder().encode('demo').buffer),
+      })
+    ).resolves.toEqual({
       success: false,
       error: 'S3 upload failed: network down',
     });
@@ -114,10 +122,12 @@ describe('S3StorageProvider', () => {
     vi.spyOn(provider, '_buildUrl').mockReturnValue('https://s3.example.com/bucket-a/file-1.png');
     vi.spyOn(provider, '_signRequest').mockResolvedValue({ Authorization: 'signed' });
 
-    fetchSpy.mockResolvedValueOnce(new Response('file-body', {
-      status: 200,
-      headers: { 'Content-Type': 'image/png' },
-    }));
+    fetchSpy.mockResolvedValueOnce(
+      new Response('file-body', {
+        status: 200,
+        headers: { 'Content-Type': 'image/png' },
+      })
+    );
     const success = await provider.getFile('file-1.png');
     expect(success.headers.get('Cache-Control')).toBe('public, max-age=31536000');
     expect(await success.text()).toBe('file-body');
@@ -158,9 +168,11 @@ describe('S3StorageProvider', () => {
 
   it('builds S3 URLs for path-style and virtual-host style endpoints', () => {
     const pathStyle = new S3StorageProvider(createEnv());
-    const hostStyle = new S3StorageProvider(createEnv({
-      S3_ENDPOINT: 'https://bucket-a.s3.example.com/',
-    }));
+    const hostStyle = new S3StorageProvider(
+      createEnv({
+        S3_ENDPOINT: 'https://bucket-a.s3.example.com/',
+      })
+    );
 
     expect(pathStyle._buildUrl('file-1.png')).toBe('https://s3.example.com/bucket-a/file-1.png');
     expect(hostStyle._buildUrl('file-1.png')).toBe('https://bucket-a.s3.example.com/file-1.png');
@@ -188,7 +200,9 @@ describe('S3StorageProvider', () => {
     expect(headers.Host).toBe('s3.example.com');
     expect(headers['x-amz-date']).toBe('20260418T080000Z');
     expect(headers.Authorization).toContain('Credential=access-key/20260418/auto/s3/aws4_request');
-    expect(headers.Authorization).toContain('SignedHeaders=content-type;host;x-amz-content-sha256;x-amz-date');
+    expect(headers.Authorization).toContain(
+      'SignedHeaders=content-type;host;x-amz-content-sha256;x-amz-date'
+    );
     expect(headers.Authorization).toContain('Signature=signature-1');
   });
 
@@ -201,8 +215,6 @@ describe('S3StorageProvider', () => {
 
     expect(hmac).toBeInstanceOf(Uint8Array);
     expect(hmacHex).toMatch(/^[0-9a-f]+$/);
-    expect(sha).toBe(
-      '239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5'
-    );
+    expect(sha).toBe('239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5');
   });
 });

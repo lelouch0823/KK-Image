@@ -147,8 +147,8 @@ export class SalespersonRepository {
 
     return {
       results: listResult.results,
-      total: countResult!.total,
-      pages: Math.ceil(countResult!.total / safeLimit),
+      total: countResult?.total ?? 0,
+      pages: Math.ceil((countResult?.total ?? 0) / safeLimit),
     };
   }
 

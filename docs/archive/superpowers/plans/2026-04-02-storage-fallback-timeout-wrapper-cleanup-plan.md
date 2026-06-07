@@ -13,6 +13,7 @@
 ### Task 1: Lock the Wrapper Removal Contract
 
 **Files:**
+
 - Create: `functions/storage/__tests__/router-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the wrapper still exists.
 ### Task 2: Inline the Timeout Parsing
 
 **Files:**
+
 - Create: `functions/storage/__tests__/redundancy-fallback-timeout.test.js`
 - Modify: `functions/storage/router.js`
 - Modify: `functions/storage/redundancy.js`

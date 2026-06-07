@@ -139,7 +139,9 @@ vi.mock('../../../../../api/utils/order-utils.js', () => ({
 
 import detailApp from '../orders/detail.js';
 
-function createApp(user = { id: 'u-1', name: 'Admin', type: 'admin', permissions: ['admin:full'] }) {
+function createApp(
+  user = { id: 'u-1', name: 'Admin', type: 'admin', permissions: ['admin:full'] }
+) {
   const app = new Hono();
   app.onError((err, c) =>
     c.json(
@@ -365,7 +367,13 @@ describe('manage order detail routes', () => {
   });
 
   it('allows role=admin user to force status transition through OPA decision', async () => {
-    const app = createApp({ id: 'u-opa', name: 'DB Admin', type: 'user', role: 'admin', permissions: [] });
+    const app = createApp({
+      id: 'u-opa',
+      name: 'DB Admin',
+      type: 'user',
+      role: 'admin',
+      permissions: [],
+    });
     const res = await app.request(
       'http://localhost/api/manage/orders/order-1/status',
       {
@@ -387,7 +395,13 @@ describe('manage order detail routes', () => {
   });
 
   it('allows role=admin user to delete order through OPA decision', async () => {
-    const app = createApp({ id: 'u-opa', name: 'DB Admin', type: 'user', role: 'admin', permissions: [] });
+    const app = createApp({
+      id: 'u-opa',
+      name: 'DB Admin',
+      type: 'user',
+      role: 'admin',
+      permissions: [],
+    });
     const res = await app.request(
       'http://localhost/api/manage/orders/order-1',
       { method: 'DELETE' },
@@ -400,7 +414,13 @@ describe('manage order detail routes', () => {
   });
 
   it('returns 403 when non-admin user tries to delete order', async () => {
-    const app = createApp({ id: 'u-viewer', name: 'ViewerUser', type: 'user', role: 'viewer', permissions: [] });
+    const app = createApp({
+      id: 'u-viewer',
+      name: 'ViewerUser',
+      type: 'user',
+      role: 'viewer',
+      permissions: [],
+    });
     const res = await app.request(
       'http://localhost/api/manage/orders/order-1',
       { method: 'DELETE' },
@@ -467,7 +487,11 @@ describe('manage order detail routes', () => {
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'delivered', force: true, note: 'forced request still rejected' }),
+        body: JSON.stringify({
+          status: 'delivered',
+          force: true,
+          note: 'forced request still rejected',
+        }),
       },
       { DB: { prepare: vi.fn() } },
       { waitUntil: vi.fn() }
@@ -602,7 +626,13 @@ describe('manage order detail routes', () => {
   });
 
   it('returns 403 when non-admin forces PATCH /:id/status transition', async () => {
-    const app = createApp({ id: 'u-viewer', name: 'ViewerUser', type: 'user', role: 'viewer', permissions: [] });
+    const app = createApp({
+      id: 'u-viewer',
+      name: 'ViewerUser',
+      type: 'user',
+      role: 'viewer',
+      permissions: [],
+    });
     const res = await app.request(
       'http://localhost/api/manage/orders/order-1/status',
       {
@@ -625,7 +655,11 @@ describe('manage order detail routes', () => {
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'delivered', force: true, note: 'manual emergency override' }),
+        body: JSON.stringify({
+          status: 'delivered',
+          force: true,
+          note: 'manual emergency override',
+        }),
       },
       { DB: { prepare: vi.fn() } },
       { waitUntil: vi.fn() }
@@ -876,7 +910,13 @@ describe('manage order detail routes', () => {
         body: JSON.stringify({
           updates: {
             lines: [
-              { productName: 'Line A', quantity: 2, sku: 'SKU-A', productId: 'p-1', variantId: 'v-1' },
+              {
+                productName: 'Line A',
+                quantity: 2,
+                sku: 'SKU-A',
+                productId: 'p-1',
+                variantId: 'v-1',
+              },
             ],
           },
           reason: 'collapse to one line',
@@ -891,9 +931,7 @@ describe('manage order detail routes', () => {
       expect.objectContaining({
         updates: expect.objectContaining({
           quantity: 2,
-          lines: [
-            expect.objectContaining({ productId: 'p-1', variantId: 'v-1', quantity: 2 }),
-          ],
+          lines: [expect.objectContaining({ productId: 'p-1', variantId: 'v-1', quantity: 2 })],
         }),
         productId: 'p-1',
         variantId: 'v-1',
@@ -911,9 +949,7 @@ describe('manage order detail routes', () => {
       variantId: 'v-legacy',
       quantity: 1,
       currentData: {},
-      lines: [
-        { id: 'line-1', productId: 'p-legacy', variantId: 'v-legacy', quantity: 1 },
-      ],
+      lines: [{ id: 'line-1', productId: 'p-legacy', variantId: 'v-legacy', quantity: 1 }],
     });
 
     const app = createApp();
@@ -924,9 +960,7 @@ describe('manage order detail routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           updates: {
-            lines: [
-              { productName: 'Manual Line', quantity: 1, sku: 'SKU-MANUAL' },
-            ],
+            lines: [{ productName: 'Manual Line', quantity: 1, sku: 'SKU-MANUAL' }],
           },
           reason: 'unbind collapsed line',
         }),
@@ -940,9 +974,7 @@ describe('manage order detail routes', () => {
       expect.objectContaining({
         updates: expect.objectContaining({
           quantity: 1,
-          lines: [
-            expect.objectContaining({ productId: null, variantId: null, quantity: 1 }),
-          ],
+          lines: [expect.objectContaining({ productId: null, variantId: null, quantity: 1 })],
         }),
         productId: null,
         variantId: null,
@@ -988,9 +1020,11 @@ describe('manage order detail routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.processOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      forceStatusTransition: true,
-    }));
+    expect(mocks.processOrderUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        forceStatusTransition: true,
+      })
+    );
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ action: 'order.update', severity: 'high' })
@@ -998,7 +1032,13 @@ describe('manage order detail routes', () => {
   });
 
   it('returns 403 when non-admin forces PATCH /:id status jump', async () => {
-    const app = createApp({ id: 'u-viewer', name: 'ViewerUser', type: 'user', role: 'viewer', permissions: [] });
+    const app = createApp({
+      id: 'u-viewer',
+      name: 'ViewerUser',
+      type: 'user',
+      role: 'viewer',
+      permissions: [],
+    });
     const res = await app.request(
       'http://localhost/api/manage/orders/order-1',
       {

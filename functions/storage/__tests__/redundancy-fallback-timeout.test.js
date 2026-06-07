@@ -46,9 +46,13 @@ describe('storage redundancy fallback timeout', () => {
   it('falls back to the next provider when the first provider exceeds the env timeout', async () => {
     const firstProvider = {
       getFile: vi.fn(
-        () =>
-          new Promise((resolve) => {
-            setTimeout(() => resolve(new Response('late-primary', { status: 200 })), 50);
+        (_fileId, _request, signal) =>
+          new Promise((resolve, reject) => {
+            const timer = setTimeout(() => resolve(new Response('late-primary', { status: 200 })), 50);
+            signal?.addEventListener('abort', () => {
+              clearTimeout(timer);
+              reject(signal.reason || new Error('aborted'));
+            });
           })
       ),
     };

@@ -17,6 +17,9 @@ export async function emailNotifyOutboxEvent({ db: _db, env, event, state }) {
   const eventType = event?.event_type;
   if (!EMAIL_NOTIFY_EVENTS.has(eventType)) return null;
 
+  // L12: env 空值检查，防止 undefined 访问异常
+  if (!env) return null;
+
   const payload = safeJsonParse(
     typeof event?.payload_json === 'string' ? event.payload_json : null,
     {}

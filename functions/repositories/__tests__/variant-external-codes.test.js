@@ -38,18 +38,20 @@ describe('ProductVariantRepository external codes', () => {
   });
 
   it('syncVariants should write barcode and supplier_sku columns', async () => {
-    await repo.syncVariants('product-1', [{
-      id: 'variant-1',
-      sku: 'SKU-1',
-      price: 12,
-      cost_price: 8,
-      stock_quantity: 3,
-      alert_threshold: 1,
-      options_values: { color: 'Yellow' },
-      status: 'active',
-      barcode: '6923450657713',
-      supplier_sku: 'SUP-TEE-Y-S',
-    }]);
+    await repo.syncVariants('product-1', [
+      {
+        id: 'variant-1',
+        sku: 'SKU-1',
+        price: 12,
+        cost_price: 8,
+        stock_quantity: 3,
+        alert_threshold: 1,
+        options_values: { color: 'Yellow' },
+        status: 'active',
+        barcode: '6923450657713',
+        supplier_sku: 'SUP-TEE-Y-S',
+      },
+    ]);
 
     const statements = db.batch.mock.calls[0][0];
     const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
@@ -65,24 +67,24 @@ describe('ProductVariantRepository external codes', () => {
       const stmt = createPreparedStatement(sql);
       if (isVariantLookupSql(sql)) {
         stmt.all.mockResolvedValue({
-          results: [
-            { id: 'variant-1', variant_signature: '{"color":"Yellow"}', status: 'active' },
-          ],
+          results: [{ id: 'variant-1', variant_signature: '{"color":"Yellow"}', status: 'active' }],
         });
       }
       return stmt;
     });
 
-    await repo.syncVariants('product-1', [{
-      id: 'variant-1',
-      sku: 'SKU-1',
-      price: 12,
-      cost_price: 8,
-      stock_quantity: 3,
-      alert_threshold: 1,
-      options_values: { color: 'Yellow' },
-      status: 'active',
-    }]);
+    await repo.syncVariants('product-1', [
+      {
+        id: 'variant-1',
+        sku: 'SKU-1',
+        price: 12,
+        cost_price: 8,
+        stock_quantity: 3,
+        alert_threshold: 1,
+        options_values: { color: 'Yellow' },
+        status: 'active',
+      },
+    ]);
 
     const statements = db.batch.mock.calls[0][0];
     const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
@@ -92,37 +94,47 @@ describe('ProductVariantRepository external codes', () => {
   it('syncVariants should throw friendly error when barcode violates unique constraint', async () => {
     db.batch.mockRejectedValueOnce(new Error('UNIQUE constraint failed: product_variants.barcode'));
 
-    await expect(repo.syncVariants('product-1', [{
-      id: 'variant-1',
-      sku: 'SKU-1',
-      price: 12,
-      cost_price: 8,
-      stock_quantity: 3,
-      alert_threshold: 1,
-      options_values: { color: 'Yellow' },
-      status: 'active',
-      barcode: 'DUP-BARCODE',
-      supplier_sku: 'SUP-1',
-    }])).rejects.toThrow(/barcode/i);
+    await expect(
+      repo.syncVariants('product-1', [
+        {
+          id: 'variant-1',
+          sku: 'SKU-1',
+          price: 12,
+          cost_price: 8,
+          stock_quantity: 3,
+          alert_threshold: 1,
+          options_values: { color: 'Yellow' },
+          status: 'active',
+          barcode: 'DUP-BARCODE',
+          supplier_sku: 'SUP-1',
+        },
+      ])
+    ).rejects.toThrow(/barcode/i);
   });
 
   it('syncVariants should throw friendly error when variant signature unique constraint fails', async () => {
     db.batch.mockRejectedValueOnce(
-      new Error('UNIQUE constraint failed: product_variants.product_id, product_variants.variant_signature')
+      new Error(
+        'UNIQUE constraint failed: product_variants.product_id, product_variants.variant_signature'
+      )
     );
 
-    await expect(repo.syncVariants('product-1', [{
-      id: 'variant-1',
-      sku: 'SKU-1',
-      price: 12,
-      cost_price: 8,
-      stock_quantity: 3,
-      alert_threshold: 1,
-      options_values: { color: 'Yellow' },
-      status: 'active',
-      barcode: null,
-      supplier_sku: null,
-    }])).rejects.toThrow(/variant signature/i);
+    await expect(
+      repo.syncVariants('product-1', [
+        {
+          id: 'variant-1',
+          sku: 'SKU-1',
+          price: 12,
+          cost_price: 8,
+          stock_quantity: 3,
+          alert_threshold: 1,
+          options_values: { color: 'Yellow' },
+          status: 'active',
+          barcode: null,
+          supplier_sku: null,
+        },
+      ])
+    ).rejects.toThrow(/variant signature/i);
   });
 
   it('syncVariants should archive removed variants instead of hard deleting', async () => {
@@ -139,22 +151,26 @@ describe('ProductVariantRepository external codes', () => {
       return stmt;
     });
 
-    await repo.syncVariants('product-1', [{
-      id: 'variant-1',
-      sku: 'SKU-1',
-      price: 12,
-      cost_price: 8,
-      stock_quantity: 3,
-      alert_threshold: 1,
-      options_values: { color: 'Yellow' },
-      status: 'active',
-      barcode: '6923450657713',
-      supplier_sku: 'SUP-TEE-Y-S',
-    }]);
+    await repo.syncVariants('product-1', [
+      {
+        id: 'variant-1',
+        sku: 'SKU-1',
+        price: 12,
+        cost_price: 8,
+        stock_quantity: 3,
+        alert_threshold: 1,
+        options_values: { color: 'Yellow' },
+        status: 'active',
+        barcode: '6923450657713',
+        supplier_sku: 'SUP-TEE-Y-S',
+      },
+    ]);
 
     const statements = db.batch.mock.calls[0][0];
-    expect(statements.some((stmt) => stmt.sql.includes('DELETE FROM product_variants'))).toBe(false);
-    expect(statements[0].sql).toContain("UPDATE product_variants");
+    expect(statements.some((stmt) => stmt.sql.includes('DELETE FROM product_variants'))).toBe(
+      false
+    );
+    expect(statements[0].sql).toContain('UPDATE product_variants');
     expect(statements[0].sql).toContain("SET status = 'archived'");
   });
 
@@ -163,26 +179,26 @@ describe('ProductVariantRepository external codes', () => {
       const stmt = createPreparedStatement(sql);
       if (isVariantLookupSql(sql)) {
         stmt.all.mockResolvedValue({
-          results: [
-            { id: 'variant-1', variant_signature: '{"color":"Yellow"}' },
-          ],
+          results: [{ id: 'variant-1', variant_signature: '{"color":"Yellow"}' }],
         });
       }
       return stmt;
     });
 
-    const rows = await repo.syncVariants('product-1', [{
-      id: 'variant-1',
-      sku: 'SKU-1',
-      price: 12,
-      cost_price: 8,
-      stock_quantity: 3,
-      alert_threshold: 1,
-      options_values: { color: 'Blue' },
-      status: 'active',
-      barcode: '6923450657713',
-      supplier_sku: 'SUP-TEE-B-S',
-    }]);
+    const rows = await repo.syncVariants('product-1', [
+      {
+        id: 'variant-1',
+        sku: 'SKU-1',
+        price: 12,
+        cost_price: 8,
+        stock_quantity: 3,
+        alert_threshold: 1,
+        options_values: { color: 'Blue' },
+        status: 'active',
+        barcode: '6923450657713',
+        supplier_sku: 'SUP-TEE-B-S',
+      },
+    ]);
 
     expect(rows).toHaveLength(1);
     expect(rows[0].id).toBe('variant-1');
@@ -206,16 +222,18 @@ describe('ProductVariantRepository external codes', () => {
       return stmt;
     });
 
-    const rows = await repo.syncVariants('product-1', [{
-      sku: 'SKU-NEW',
-      price: 20,
-      cost_price: 10,
-      stock_quantity: 5,
-      alert_threshold: 2,
-      options_values: { color: 'Blue' },
-      barcode: 'REUSE-BCODE',
-      supplier_sku: 'REUSE-SKU',
-    }]);
+    const rows = await repo.syncVariants('product-1', [
+      {
+        sku: 'SKU-NEW',
+        price: 20,
+        cost_price: 10,
+        stock_quantity: 5,
+        alert_threshold: 2,
+        options_values: { color: 'Blue' },
+        barcode: 'REUSE-BCODE',
+        supplier_sku: 'REUSE-SKU',
+      },
+    ]);
 
     expect(rows[0].id).toBe('variant-archived-1');
   });
@@ -270,24 +288,26 @@ describe('ProductVariantRepository external codes', () => {
   });
 
   it('syncVariants should reject duplicate variant signature in same payload', async () => {
-    await expect(repo.syncVariants('product-1', [
-      {
-        sku: 'SKU-A',
-        price: 12,
-        cost_price: 8,
-        stock_quantity: 3,
-        alert_threshold: 1,
-        options_values: { color: 'Yellow' },
-      },
-      {
-        sku: 'SKU-B',
-        price: 13,
-        cost_price: 9,
-        stock_quantity: 2,
-        alert_threshold: 1,
-        options_values: { color: 'Yellow' },
-      },
-    ])).rejects.toThrow(/duplicate variant signature/i);
+    await expect(
+      repo.syncVariants('product-1', [
+        {
+          sku: 'SKU-A',
+          price: 12,
+          cost_price: 8,
+          stock_quantity: 3,
+          alert_threshold: 1,
+          options_values: { color: 'Yellow' },
+        },
+        {
+          sku: 'SKU-B',
+          price: 13,
+          cost_price: 9,
+          stock_quantity: 2,
+          alert_threshold: 1,
+          options_values: { color: 'Yellow' },
+        },
+      ])
+    ).rejects.toThrow(/duplicate variant signature/i);
     expect(db.batch).not.toHaveBeenCalled();
   });
 
@@ -297,7 +317,11 @@ describe('ProductVariantRepository external codes', () => {
       if (isVariantLookupSql(sql)) {
         stmt.all.mockResolvedValue({
           results: [
-            { id: 'variant-archived-old', variant_signature: '{"color":"Old"}', status: 'archived' },
+            {
+              id: 'variant-archived-old',
+              variant_signature: '{"color":"Old"}',
+              status: 'archived',
+            },
           ],
         });
       }
@@ -323,14 +347,18 @@ describe('ProductVariantRepository external codes', () => {
   });
 
   it('syncVariants should reject empty sku instead of auto-generating one', async () => {
-    await expect(repo.syncVariants('product-1', [{
-      price: 12,
-      cost_price: 8,
-      stock_quantity: 3,
-      alert_threshold: 1,
-      options_values: { color: 'Yellow' },
-      status: 'active',
-    }])).rejects.toThrow(/sku is required/i);
+    await expect(
+      repo.syncVariants('product-1', [
+        {
+          price: 12,
+          cost_price: 8,
+          stock_quantity: 3,
+          alert_threshold: 1,
+          options_values: { color: 'Yellow' },
+          status: 'active',
+        },
+      ])
+    ).rejects.toThrow(/sku is required/i);
 
     expect(db.batch).not.toHaveBeenCalled();
   });

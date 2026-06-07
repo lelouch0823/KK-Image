@@ -24,45 +24,53 @@ describe('PurchaseOrders decomposition audit', () => {
       }
     }
 
-    if (!source.includes("@/utils/formatters")) {
-      offenders.push('src/views/PurchaseOrders.vue: missing formatter import from @/utils/formatters');
+    if (!source.includes('@/utils/formatters')) {
+      offenders.push(
+        'src/views/PurchaseOrders.vue: missing formatter import from @/utils/formatters'
+      );
     }
 
-    if (!source.includes("@/views/purchase-orders/progress")) {
+    if (!source.includes('@/views/purchase-orders/progress')) {
       offenders.push('src/views/PurchaseOrders.vue: missing purchase-order progress helper import');
     }
 
-    if (!source.includes("@/views/purchase-orders/stepper")) {
+    if (!source.includes('@/views/purchase-orders/stepper')) {
       offenders.push('src/views/PurchaseOrders.vue: missing purchase-order stepper helper import');
     }
 
-    if (!source.includes("@/views/purchase-orders/drafts")) {
+    if (!source.includes('@/views/purchase-orders/drafts')) {
       offenders.push('src/views/PurchaseOrders.vue: missing purchase-order draft helper import');
     }
 
-    if (!source.includes("@/composables/usePurchaseOrderDetailActions")) {
-      offenders.push('src/views/PurchaseOrders.vue: missing purchase-order detail-actions composable import');
+    if (!source.includes('@/composables/usePurchaseOrderDetailActions')) {
+      offenders.push(
+        'src/views/PurchaseOrders.vue: missing purchase-order detail-actions composable import'
+      );
     }
 
-    if (!source.includes("@/composables/usePurchaseOrderCreateFlow")) {
-      offenders.push('src/views/PurchaseOrders.vue: missing purchase-order create-flow composable import');
+    if (!source.includes('@/composables/usePurchaseOrderCreateFlow')) {
+      offenders.push(
+        'src/views/PurchaseOrders.vue: missing purchase-order create-flow composable import'
+      );
     }
 
     for (const expectedImport of [
-      "@/components/purchase-order/PurchaseOrderOverviewBanner.vue",
-      "@/components/purchase-order/PurchaseOrderListTable.vue",
-      "@/components/purchase-order/PurchaseOrderDetailDrawer.vue",
-      "@/components/purchase-order/PurchaseOrderCreateDrawer.vue",
-      "@/components/purchase-order/PurchaseOrderSuggestionsDrawer.vue",
-      "@/components/purchase-order/PurchaseOrderCostModal.vue",
-      "@/components/purchase-order/PurchaseOrderReceiptModal.vue",
-      "@/components/purchase-order/PurchaseOrderShortageModal.vue",
-      "@/components/purchase-order/PurchaseOrderReceiptReversalModal.vue",
-      "@/composables/usePurchaseOrderListPresentation",
-      "@/composables/usePurchaseOrderDetailPresentation",
+      '@/components/purchase-order/PurchaseOrderOverviewBanner.vue',
+      '@/components/purchase-order/PurchaseOrderListTable.vue',
+      '@/components/purchase-order/PurchaseOrderDetailDrawer.vue',
+      '@/components/purchase-order/PurchaseOrderCreateDrawer.vue',
+      '@/components/purchase-order/PurchaseOrderSuggestionsDrawer.vue',
+      '@/components/purchase-order/PurchaseOrderCostModal.vue',
+      '@/components/purchase-order/PurchaseOrderReceiptModal.vue',
+      '@/components/purchase-order/PurchaseOrderShortageModal.vue',
+      '@/components/purchase-order/PurchaseOrderReceiptReversalModal.vue',
+      '@/composables/usePurchaseOrderListPresentation',
+      '@/composables/usePurchaseOrderDetailPresentation',
     ]) {
       if (!source.includes(expectedImport)) {
-        offenders.push(`src/views/PurchaseOrders.vue: missing future decomposition import ${expectedImport}`);
+        offenders.push(
+          `src/views/PurchaseOrders.vue: missing future decomposition import ${expectedImport}`
+        );
       }
     }
 
@@ -108,9 +116,8 @@ describe('PurchaseOrders decomposition audit', () => {
       }
     }
 
-    expect(
-      offenders,
-      `PurchaseOrders decomposition offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `PurchaseOrders decomposition offenders:\n${offenders.join('\n')}`).toEqual(
+      []
+    );
   });
 });

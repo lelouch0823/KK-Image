@@ -24,83 +24,83 @@
     </template>
 
     <template #content>
-    <div v-if="errorCode === ErrorCode.FORBIDDEN" class="p-2 sm:p-4">
-      <PermissionDeniedState
-        :title="t('salesperson.permissionDenied')"
-        :description="error || t('salesperson.permissionDeniedDesc')"
-        required-permission="users:read"
-        @retry="loadSalespersons()"
-      />
-    </div>
-    <template v-else>
-    <div class="overflow-x-auto">
-      <!-- 桌面表格视图 (lg+) -->
-      <div class="hidden lg:block">
-        <SalespersonTable
-          :data="salespersons"
-          :loading="loading"
-          :row-class="getRowClass"
-          :can-manage="canManageSalespersons"
-          @edit="openModal"
-          @delete="confirmDelete"
-          @copy="copyAccessLink"
-          @view-orders="handleViewOrders"
-          @view-detail="handleViewDetail"
+      <div v-if="errorCode === ErrorCode.FORBIDDEN" class="p-2 sm:p-4">
+        <PermissionDeniedState
+          :title="t('salesperson.permissionDenied')"
+          :description="error || t('salesperson.permissionDeniedDesc')"
+          required-permission="users:read"
+          @retry="loadSalespersons()"
         />
       </div>
+      <template v-else>
+        <div class="overflow-x-auto">
+          <!-- 桌面表格视图 (lg+) -->
+          <div class="hidden lg:block">
+            <SalespersonTable
+              :data="salespersons"
+              :loading="loading"
+              :row-class="getRowClass"
+              :can-manage="canManageSalespersons"
+              @edit="openModal"
+              @delete="confirmDelete"
+              @copy="copyAccessLink"
+              @view-orders="handleViewOrders"
+              @view-detail="handleViewDetail"
+            />
+          </div>
 
-      <!-- 移动端卡片视图 (<lg) -->
-      <div class="p-4 lg:hidden">
-        <SalespersonCards
-          :data="salespersons"
-          :loading="loading"
-          :card-class="getRowClass"
-          :can-manage="canManageSalespersons"
-          @edit="openModal"
-          @delete="confirmDelete"
-          @copy="copyAccessLink"
-          @view-orders="handleViewOrders"
-          @view-detail="handleViewDetail"
+          <!-- 移动端卡片视图 (<lg) -->
+          <div class="p-4 lg:hidden">
+            <SalespersonCards
+              :data="salespersons"
+              :loading="loading"
+              :card-class="getRowClass"
+              :can-manage="canManageSalespersons"
+              @edit="openModal"
+              @delete="confirmDelete"
+              @copy="copyAccessLink"
+              @view-orders="handleViewOrders"
+              @view-detail="handleViewDetail"
+            />
+          </div>
+        </div>
+
+        <!-- 分页 -->
+        <div class="mt-4 border-t border-(--border-color)/70 pt-4">
+          <Pagination
+            v-model:current-page="currentPage"
+            :total-pages="pagination.totalPages"
+            @change="changePage"
+          />
+        </div>
+
+        <!-- 编辑/新建弹窗 -->
+        <SalespersonForm
+          v-model="showModal"
+          :salesperson="editingSalesperson"
+          :submitting="submitting"
+          @submit="handleSubmit"
+          @reset-token="handleResetToken"
         />
-      </div>
-    </div>
 
-    <!-- 分页 -->
-    <div class="mt-4 border-t border-(--border-color)/70 pt-4">
-      <Pagination
-        v-model:current-page="currentPage"
-        :total-pages="pagination.totalPages"
-        @change="changePage"
-      />
-    </div>
+        <!-- 详情弹窗 -->
+        <SalespersonDetailModal
+          v-model="showDetailModal"
+          :person="detailPerson"
+          @view-orders="handleViewOrders"
+          @copy="copyAccessLink"
+        />
 
-    <!-- 编辑/新建弹窗 -->
-    <SalespersonForm
-      v-model="showModal"
-      :salesperson="editingSalesperson"
-      :submitting="submitting"
-      @submit="handleSubmit"
-      @reset-token="handleResetToken"
-    />
-
-    <!-- 详情弹窗 -->
-    <SalespersonDetailModal
-      v-model="showDetailModal"
-      :person="detailPerson"
-      @view-orders="handleViewOrders"
-      @copy="copyAccessLink"
-    />
-
-    <!-- 确认弹窗 -->
-    <ConfirmDialog
-      v-model="confirmData.show"
-      :title="confirmData.title"
-      :message="confirmData.message"
-      :type="confirmData.type"
-      :loading="confirmData.loading"
-      @confirm="confirmData.onConfirm"
-    />
-    </template>
+        <!-- 确认弹窗 -->
+        <ConfirmDialog
+          v-model="confirmData.show"
+          :title="confirmData.title"
+          :message="confirmData.message"
+          :type="confirmData.type"
+          :loading="confirmData.loading"
+          @confirm="confirmData.onConfirm"
+        />
+      </template>
     </template>
   </ManagementListShell>
 </template>
@@ -184,9 +184,11 @@ const refreshCurrentList = (forceRefresh = false) => {
 
 // 初始化
 onMounted(() => {
-  loadPermissions().then(() => {
-    canManageSalespersons.value = hasPermission('users:write');
-  }).catch(console.error);
+  loadPermissions()
+    .then(() => {
+      canManageSalespersons.value = hasPermission('users:write');
+    })
+    .catch(console.error);
 
   stopSalespersonsRefreshSubscription = subscribeModule('salespersons', () => {
     if (!showModal.value && !showDetailModal.value) {

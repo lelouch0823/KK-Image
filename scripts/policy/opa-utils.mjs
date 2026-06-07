@@ -36,4 +36,3 @@ export function runOpa(args, options = {}) {
     throw new Error(`OPA command failed with code ${result.status}: ${opaBin} ${args.join(' ')}`);
   }
 }
-

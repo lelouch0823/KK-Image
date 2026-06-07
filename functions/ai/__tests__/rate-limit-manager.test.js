@@ -29,7 +29,17 @@ describe('ai rate limit manager', () => {
     const dayKey = new Date(1_700_000_000_000).toISOString().slice(0, 10);
     // 合并 key 格式：单个 JSON 包含所有计数器
     const store = new Map([
-      [`ai_quota:u-1`, JSON.stringify({ rpm: 3, rpmWindow: windowKey, tpd: 0, tpdDay: dayKey, imgRpm: 0, imgWindow: windowKey })],
+      [
+        `ai_quota:u-1`,
+        JSON.stringify({
+          rpm: 3,
+          rpmWindow: windowKey,
+          tpd: 0,
+          tpdDay: dayKey,
+          imgRpm: 0,
+          imgWindow: windowKey,
+        }),
+      ],
     ]);
     const kv = {
       get: vi.fn(async (key, type) => {

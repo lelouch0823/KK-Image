@@ -13,6 +13,7 @@
 ### Task 1: Inventory old-architecture usage and lock deletion targets into tests
 
 **Files:**
+
 - Create: `docs/plans/2026-03-10-full-architecture-cutover-deletion-checklist.md`
 - Create: `functions/services/__tests__/legacy-stock-paths.test.js`
 - Create: `functions/services/__tests__/legacy-shortage-paths.test.js`
@@ -54,6 +55,7 @@ git commit -m "test(cutover): lock old architecture deletion targets"
 ### Task 2: Move product batch orchestration into ProductCatalogService
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/products/batch.js`
 - Modify: `functions/services/ProductCatalogService.js`
 - Test: `functions/lib/hono/routes/manage/products/__tests__/product-spu-routes.test.js`
@@ -89,6 +91,7 @@ git commit -m "refactor(products): move batch orchestration into catalog service
 ### Task 3: Introduce ledger schema and projection migration assets
 
 **Files:**
+
 - Create: `migrations/00xx_inventory_ledger.sql`
 - Create: `scripts/inventory/backfill_ledger.js`
 - Create: `scripts/inventory/reconcile_balances.js`
@@ -134,6 +137,7 @@ git commit -m "feat(inventory): add ledger schema and projection tooling"
 ### Task 4: Route all order stock deductions through InventoryService
 
 **Files:**
+
 - Modify: `functions/repositories/order/mutations.js`
 - Modify: `functions/repositories/OrderRepository.js`
 - Modify: `functions/services/InventoryService.js`
@@ -170,6 +174,7 @@ git commit -m "refactor(orders): route stock deductions through inventory servic
 ### Task 5: Move demand semantics from minimal boundary to reservation-backed projection
 
 **Files:**
+
 - Modify: `functions/services/DemandService.js`
 - Create: `functions/services/__tests__/DemandReservationProjection.test.js`
 - Modify: `functions/lib/hono/routes/manage/orders/detail.js`
@@ -208,6 +213,7 @@ git commit -m "feat(demand): add reservation-backed projection semantics"
 ### Task 6: Switch procurement and goods overview reads to projection-backed semantics
 
 **Files:**
+
 - Modify: `functions/services/PurchaseOrderService.js`
 - Modify: `functions/repositories/GoodsOverviewRepository.js`
 - Modify: `functions/lib/hono/routes/manage/goods-overview.js`
@@ -244,6 +250,7 @@ git commit -m "refactor(reporting): move procurement and overview reads to balan
 ### Task 7: Migrate AI, import/export, and frontend consumers to new inventory semantics
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/ai.js`
 - Modify: `functions/lib/hono/routes/manage/products/export.js`
 - Modify: `src/views/PurchaseOrders.vue`
@@ -284,6 +291,7 @@ git commit -m "refactor(consumers): migrate ai export and ui to new inventory se
 ### Task 8: Remove legacy stock truth ownership and compatibility fields from runtime paths
 
 **Files:**
+
 - Modify: `functions/repositories/ProductVariantRepository.js`
 - Modify: `functions/repositories/ProductRepository.js`
 - Modify: all remaining modules found by deletion checklist
@@ -321,6 +329,7 @@ git commit -m "refactor(cutover): remove legacy stock and shortage paths"
 ### Task 9: Add cutover runbook, migration steps, and reconciliation docs
 
 **Files:**
+
 - Create: `docs/plans/2026-03-10-full-architecture-cutover-runbook.md`
 - Create: `docs/plans/2026-03-10-full-architecture-cutover-reconciliation.md`
 - Modify: `docs/plans/2026-03-10-full-architecture-cutover-design.md`
@@ -358,6 +367,7 @@ git commit -m "docs(cutover): add cutover runbook and reconciliation plan"
 ### Task 10: Final full-repo verification before deleting old architecture branch
 
 **Files:**
+
 - Verify only
 
 **Step 1: Run targeted backend architecture suites**

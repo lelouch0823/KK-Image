@@ -46,7 +46,7 @@
         <AppButton
           variant="ghost"
           size="sm"
-          class="!size-8  !p-1.5"
+          class="!size-8 !p-1.5"
           @click.stop="$emit('share', file)"
         >
           <template #icon-left>
@@ -56,11 +56,11 @@
         <AppButton
           variant="ghost"
           size="sm"
-          class="!size-8  !p-1.5"
+          class="!size-8 !p-1.5"
           @click.stop="$emit('context-menu', $event, file)"
         >
           <template #icon-left>
-             <AppIcon name="ellipsis-vertical" class="size-5" />
+            <AppIcon name="ellipsis-vertical" class="size-5" />
           </template>
         </AppButton>
       </div>

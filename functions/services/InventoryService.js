@@ -6,7 +6,7 @@ import {
   appendInventoryLedgerEvent,
   projectInventoryBalances,
 } from './InventoryProjectionService.js';
-import { queryOrderLineCandidates } from './order-line-shared.js';
+import { queryOrderLineCandidates, resolveOrderLineId } from './order-line-shared.js';
 
 const VALID_MUTATION_TYPES = new Set([
   'purchase_received',
@@ -30,31 +30,15 @@ export class InventoryService {
   }
 
   async resolveOrderLineId(payload = {}) {
-    if (payload.orderLineId) return payload.orderLineId;
-    if (!payload.orderId || typeof this.db?.prepare !== 'function') return null;
-
-    const candidates = await this.queryOrderLineCandidates(payload, true);
-    if (candidates.length === 1) return candidates[0]?.id || null;
-    if (candidates.length > 1) {
-      throw new BadRequestError('orderLineId is required for multi-line orders');
-    }
-
-    if (payload.variantId || payload.productId) {
-      const fallback = await this.queryOrderLineCandidates(payload, false);
-      if (fallback.length === 1) return fallback[0]?.id || null;
-      if (fallback.length > 1) {
-        throw new BadRequestError('orderLineId is required for multi-line orders');
-      }
-    }
-
-    return null;
+    return resolveOrderLineId(this.db, payload);
   }
 
   async getOnHand(variantId) {
     if (!variantId) return 0;
-    const variant = typeof this.variantRepo.findById === 'function'
-      ? await this.variantRepo.findById(variantId)
-      : null;
+    const variant =
+      typeof this.variantRepo.findById === 'function'
+        ? await this.variantRepo.findById(variantId)
+        : null;
     return Math.max(0, Number(variant?.stock_quantity) || 0);
   }
 
@@ -107,58 +91,66 @@ export class InventoryService {
       inventoryEventId,
       timestamp,
       statements: [
-        this.db.prepare(
-          `UPDATE product_variants
+        this.db
+          .prepare(
+            `UPDATE product_variants
            SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ?
            WHERE id = ?`
-        ).bind(mutation.quantityDelta, timestamp, mutation.variantId),
-        this.db.prepare(
-          `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
-           VALUES (?, ?, 0, ?, ?)
+          )
+          .bind(mutation.quantityDelta, timestamp, mutation.variantId),
+        this.db
+          .prepare(
+            `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
+           VALUES (?, MAX(0, ?), 0, MAX(0, ?), ?)
            ON CONFLICT(variant_id) DO UPDATE SET
              on_hand = MAX(0, inventory_balances.on_hand + ?),
              available = MAX(0, MAX(0, inventory_balances.on_hand + ?) - inventory_balances.reserved),
              updated_at = excluded.updated_at`
-        ).bind(
-          mutation.variantId,
-          Math.max(mutation.quantityDelta, 0),
-          Math.max(mutation.quantityDelta, 0),
-          timestamp,
-          mutation.quantityDelta,
-          mutation.quantityDelta
-        ),
-        this.db.prepare(
-          `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)
+          )
+          .bind(
+            mutation.variantId,
+            mutation.quantityDelta,
+            mutation.quantityDelta,
+            timestamp,
+            mutation.quantityDelta,
+            mutation.quantityDelta
+          ),
+        this.db
+          .prepare(
+            `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(
-          ledgerId,
-          mutation.variantId,
-          mutation.type,
-          mutation.quantityDelta,
-          sourceType,
-          sourceId,
-          timestamp,
-          JSON.stringify(payload.metadata || {}),
-          timestamp
-        ),
-        this.db.prepare(
-          `INSERT INTO inventory_events (
+          )
+          .bind(
+            ledgerId,
+            mutation.variantId,
+            mutation.type,
+            mutation.quantityDelta,
+            sourceType,
+            sourceId,
+            timestamp,
+            JSON.stringify(payload.metadata || {}),
+            timestamp
+          ),
+        this.db
+          .prepare(
+            `INSERT INTO inventory_events (
             id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta,
             source_type, source_id, metadata, occurred_at, created_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(
-          inventoryEventId,
-          mutation.variantId,
-          orderLineId,
-          purchaseReceiptId,
-          mutation.type,
-          mutation.quantityDelta,
-          sourceType,
-          sourceId,
-          JSON.stringify(payload.metadata || {}),
-          timestamp,
-          timestamp
-        ),
+          )
+          .bind(
+            inventoryEventId,
+            mutation.variantId,
+            orderLineId,
+            purchaseReceiptId,
+            mutation.type,
+            mutation.quantityDelta,
+            sourceType,
+            sourceId,
+            JSON.stringify(payload.metadata || {}),
+            timestamp,
+            timestamp
+          ),
       ],
     };
   }
@@ -171,7 +163,9 @@ export class InventoryService {
     } else if (typeof this.variantRepo?.adjustStock === 'function') {
       await this.variantRepo.adjustStock(mutation.variantId, mutation.quantityDelta);
     } else {
-      throw new Error('InventoryService requires a DB handle or variant repository adjustStock implementation');
+      throw new Error(
+        'InventoryService requires a DB handle or variant repository adjustStock implementation'
+      );
     }
     return mutation;
   }
@@ -196,7 +190,10 @@ export class InventoryService {
 
     return {
       productCount: mutations.length,
-      totalQty: mutations.reduce((sum, mutation) => sum + Math.abs(Number(mutation.quantityDelta) || 0), 0),
+      totalQty: mutations.reduce(
+        (sum, mutation) => sum + Math.abs(Number(mutation.quantityDelta) || 0),
+        0
+      ),
     };
   }
 }

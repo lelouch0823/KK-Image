@@ -36,18 +36,18 @@ function buildPurchaseOrderShell(po = {}, items = []) {
     ...po,
     items: Array.isArray(items)
       ? items.map((item) => {
-        const snapshotSpecs = parseJsonObject(item.snapshot_specs, {});
-        return {
-          ...item,
-          product_name: item.snapshot_name || item.product_name || '',
-          product_brand: snapshotSpecs.brand || item.product_brand || '',
-          variant_sku: item.snapshot_sku || item.variant_sku || '',
-          product_images: item.snapshot_image
-            ? [item.snapshot_image]
-            : parseJsonArray(item.product_images, []),
-          variant_options: parseJsonObject(item.variant_options, {}),
-        };
-      })
+          const snapshotSpecs = parseJsonObject(item.snapshot_specs, {});
+          return {
+            ...item,
+            product_name: item.snapshot_name || item.product_name || '',
+            product_brand: snapshotSpecs.brand || item.product_brand || '',
+            variant_sku: item.snapshot_sku || item.variant_sku || '',
+            product_images: item.snapshot_image
+              ? [item.snapshot_image]
+              : parseJsonArray(item.product_images, []),
+            variant_options: parseJsonObject(item.variant_options, {}),
+          };
+        })
       : [],
     receipts: [],
   };
@@ -88,15 +88,16 @@ function resolveCreateFromOrdersSnapshot(order = {}) {
 
   return {
     snapshot_name: order.snapshot_name || currentData.name || originalData.name || order.name || '',
-    snapshot_sku: order.snapshot_sku
-      || currentData.sku
-      || currentData.variant_sku
-      || currentData.spu
-      || originalData.sku
-      || originalData.variant_sku
-      || originalData.spu
-      || order.sku
-      || '',
+    snapshot_sku:
+      order.snapshot_sku ||
+      currentData.sku ||
+      currentData.variant_sku ||
+      currentData.spu ||
+      originalData.sku ||
+      originalData.variant_sku ||
+      originalData.spu ||
+      order.sku ||
+      '',
     snapshot_specs: normalizePurchaseOrderSnapshotSpecs(mergedSnapshotSpecs),
     snapshot_image: order.snapshot_image || order.main_image_id || null,
   };
@@ -115,16 +116,19 @@ export class PurchaseOrderService {
     this.variantRepo = deps.variantRepo || new ProductVariantRepository(db);
     this.inventoryService = deps.inventoryService || new InventoryService(db, this.variantRepo);
     this.demandService = deps.demandService || new DemandService(db);
-    this.demandProjectionRepo = deps.demandProjectionRepo || new VariantDemandProjectionRepository(db);
+    this.demandProjectionRepo =
+      deps.demandProjectionRepo || new VariantDemandProjectionRepository(db);
 
     // 子服务注入（支持外部覆盖，方便测试）
-    this.costAllocationService = deps.costAllocationService
-      || new CostAllocationService(db, {
+    this.costAllocationService =
+      deps.costAllocationService ||
+      new CostAllocationService(db, {
         repo: this.repo,
         variantRepo: this.variantRepo,
       });
-    this.purchaseSuggestionService = deps.purchaseSuggestionService
-      || new PurchaseSuggestionService(db, {
+    this.purchaseSuggestionService =
+      deps.purchaseSuggestionService ||
+      new PurchaseSuggestionService(db, {
         demandProjectionRepo: this.demandProjectionRepo,
         repo: this.repo,
       });
@@ -153,7 +157,9 @@ export class PurchaseOrderService {
 
     const allowed = validTransitions[po.status] || [];
     if (!allowed.includes(newStatus)) {
-      throw new BadRequestError(`无法从 "${po.status}" 转换到 "${newStatus}"。允许的目标状态: ${allowed.join(', ')}`);
+      throw new BadRequestError(
+        `无法从 "${po.status}" 转换到 "${newStatus}"。允许的目标状态: ${allowed.join(', ')}`
+      );
     }
 
     if (po.status === 'shipping' && newStatus === 'arrived') {
@@ -171,9 +177,10 @@ export class PurchaseOrderService {
     }
 
     // 2. CAS 更新采购单状态（防并发重复流转）
-    const updated = typeof this.repo.updateStatusIfCurrent === 'function'
-      ? await this.repo.updateStatusIfCurrent(poId, po.status, newStatus)
-      : await this.repo.updateStatus(poId, newStatus);
+    const updated =
+      typeof this.repo.updateStatusIfCurrent === 'function'
+        ? await this.repo.updateStatusIfCurrent(poId, po.status, newStatus)
+        : await this.repo.updateStatus(poId, newStatus);
     if (!updated) {
       throw new BadRequestError('采购单状态已变化，请刷新后重试');
     }
@@ -190,14 +197,16 @@ export class PurchaseOrderService {
         const now = Date.now();
         try {
           for (const orderIdChunk of chunkArray(linkedOrderIds, D1_MAX_IN_CLAUSE_SIZE)) {
-            const stmts = orderIdChunk.map(orderId =>
-              this.db.prepare(
-                `UPDATE orders
+            const stmts = orderIdChunk.map((orderId) =>
+              this.db
+                .prepare(
+                  `UPDATE orders
                  SET procurement_status = ?, updated_at = ?
                  WHERE id = ?
                    AND status NOT IN ('fulfilled', 'delivered', 'void')
                    AND COALESCE(procurement_status, 'none') = 'none'`
-              ).bind(targetProcurementStatus, now, orderId)
+                )
+                .bind(targetProcurementStatus, now, orderId)
             );
             const results = await this.db.batch(stmts);
             const changedChunkIds = orderIdChunk.filter(
@@ -210,13 +219,15 @@ export class PurchaseOrderService {
           if (changedOrderIds.length > 0) {
             const rollbackNow = Date.now();
             const rollbackStatements = changedOrderIds.map((orderId) =>
-              this.db.prepare(
-                `UPDATE orders
+              this.db
+                .prepare(
+                  `UPDATE orders
                  SET procurement_status = ?, updated_at = ?
                  WHERE id = ?
                    AND status NOT IN ('fulfilled', 'delivered', 'void')
                    AND COALESCE(procurement_status, 'none') = ?`
-              ).bind('none', rollbackNow, orderId, targetProcurementStatus)
+                )
+                .bind('none', rollbackNow, orderId, targetProcurementStatus)
             );
             await executeBatchChunks(this.db, rollbackStatements);
           }
@@ -322,7 +333,9 @@ export class PurchaseOrderService {
     const snapshotScopedChunkSize = Math.max(1, Math.floor(D1_MAX_IN_CLAUSE_SIZE / 2));
     for (const orderIdChunk of chunkArray(uniqueOrderIds, snapshotScopedChunkSize)) {
       const placeholders = orderIdChunk.map(() => '?').join(',');
-      const { results } = await this.db.prepare(`
+      const { results } = await this.db
+        .prepare(
+          `
         SELECT o.id, o.order_no, ol.order_line_id, ol.product_id, ol.variant_id, ol.quantity,
                o.current_data, o.original_data, o.main_image_id,
                p.name, pv.sku AS sku,
@@ -353,7 +366,10 @@ export class PurchaseOrderService {
         WHERE o.id IN (${placeholders})
           AND o.status = 'confirmed'
           AND ol.quantity > 0
-      `).bind(...orderIdChunk, ...orderIdChunk).all();
+      `
+        )
+        .bind(...orderIdChunk, ...orderIdChunk)
+        .all();
       orders.push(...(results || []));
     }
 
@@ -367,13 +383,18 @@ export class PurchaseOrderService {
       throw new BadRequestError(`以下预订单不存在或已不再可采购: ${missingOrderIds.join(', ')}`);
     }
 
-    const activeBindings = typeof this.repo.findActiveBindingsByPreOrderIds === 'function'
-      ? await this.repo.findActiveBindingsByPreOrderIds(orders.map((order) => order.id))
-      : [];
+    const activeBindings =
+      typeof this.repo.findActiveBindingsByPreOrderIds === 'function'
+        ? await this.repo.findActiveBindingsByPreOrderIds(orders.map((order) => order.id))
+        : [];
     if (activeBindings.length > 0) {
-      const bindingByOrderId = new Map(activeBindings.map((binding) => [binding.pre_order_id, binding]));
+      const bindingByOrderId = new Map(
+        activeBindings.map((binding) => [binding.pre_order_id, binding])
+      );
       const firstConflictOrder = orders.find((order) => bindingByOrderId.has(order.id));
-      const conflict = firstConflictOrder ? bindingByOrderId.get(firstConflictOrder.id) : activeBindings[0];
+      const conflict = firstConflictOrder
+        ? bindingByOrderId.get(firstConflictOrder.id)
+        : activeBindings[0];
       const orderLabel = firstConflictOrder?.order_no || conflict?.pre_order_id;
       const poLabel = conflict?.po_no || conflict?.po_id;
       throw new BadRequestError(`${orderLabel} 已在采购单 ${poLabel} 中`);
@@ -383,7 +404,7 @@ export class PurchaseOrderService {
     const po = await this.repo.create(poData);
 
     // 3. 添加明细
-    const items = orders.map(order => ({
+    const items = orders.map((order) => ({
       product_id: order.product_id,
       variant_id: order.variant_id,
       pre_order_id: order.id,
@@ -429,7 +450,8 @@ export class PurchaseOrderService {
     const variantStockChanges = {};
     for (const item of items) {
       if (item.variant_id) {
-        variantStockChanges[item.variant_id] = (variantStockChanges[item.variant_id] || 0) + (item.quantity || 0);
+        variantStockChanges[item.variant_id] =
+          (variantStockChanges[item.variant_id] || 0) + (item.quantity || 0);
       } else {
         throw new BadRequestError('variant_id is required for inventory updates');
       }

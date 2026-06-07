@@ -76,7 +76,9 @@ describe('PurchaseReceiptRepository reversals', () => {
 
     const sql = db.prepare.mock.calls[0][0];
     expect(sql).toContain('pr.order_line_id');
-    expect(sql).toContain('COALESCE(pr.order_line_id, poi.order_line_id, ie.order_line_id) AS order_line_id');
+    expect(sql).toContain(
+      'COALESCE(pr.order_line_id, poi.order_line_id, ie.order_line_id) AS order_line_id'
+    );
     expect(sql).not.toContain('LEFT JOIN order_lines ol ON ol.order_id = poi.pre_order_id');
   });
 
@@ -97,7 +99,9 @@ describe('PurchaseReceiptRepository reversals', () => {
       correlation_id: 'cmd-reversal-1',
     });
 
-    const statement = db.prepare.mock.results.find((result) => result.value.sql.includes('INSERT INTO purchase_receipt_reversals')).value;
+    const statement = db.prepare.mock.results.find((result) =>
+      result.value.sql.includes('INSERT INTO purchase_receipt_reversals')
+    ).value;
     const params = statement.bind.mock.calls[0];
     expect(params).toEqual([
       'reversal-1',
@@ -127,15 +131,17 @@ describe('PurchaseReceiptRepository reversals', () => {
       correlation_id: 'cmd-reversal-1',
     });
 
-    await expect(repo.createReversal({
-      id: 'reversal-2',
-      original_receipt_id: 'receipt-1',
-      purchase_order_id: 'po-1',
-      purchase_order_item_id: 'poi-1',
-      reversal_qty: 5,
-      reason: 'operator rollback',
-      command_id: 'cmd-reversal-1',
-      correlation_id: 'cmd-reversal-1',
-    })).rejects.toThrow(/unique constraint/i);
+    await expect(
+      repo.createReversal({
+        id: 'reversal-2',
+        original_receipt_id: 'receipt-1',
+        purchase_order_id: 'po-1',
+        purchase_order_item_id: 'poi-1',
+        reversal_qty: 5,
+        reason: 'operator rollback',
+        command_id: 'cmd-reversal-1',
+        correlation_id: 'cmd-reversal-1',
+      })
+    ).rejects.toThrow(/unique constraint/i);
   });
 });

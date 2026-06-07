@@ -8,8 +8,25 @@ import { ForbiddenError } from '../../errors.js';
 const app = new Hono();
 
 export const auditRouteDeclarations = declareAuditRoutes([
-  { method: 'POST', path: '/dry-run', domain: 'audit-replay', action: 'outbox.replay.dry_run', severity: 'high', targetType: 'outbox_event', runtimeAssertionLevel: 'runtime' },
-  { method: 'POST', path: '/execute', domain: 'audit-replay', action: 'outbox.replay.execute', severity: 'critical', targetType: 'outbox_event', runtimeAssertionLevel: 'runtime', highRisk: true },
+  {
+    method: 'POST',
+    path: '/dry-run',
+    domain: 'audit-replay',
+    action: 'outbox.replay.dry_run',
+    severity: 'high',
+    targetType: 'outbox_event',
+    runtimeAssertionLevel: 'runtime',
+  },
+  {
+    method: 'POST',
+    path: '/execute',
+    domain: 'audit-replay',
+    action: 'outbox.replay.execute',
+    severity: 'critical',
+    targetType: 'outbox_event',
+    runtimeAssertionLevel: 'runtime',
+    highRisk: true,
+  },
 ]);
 
 function assertReplayExecuteAdmin(user = {}) {

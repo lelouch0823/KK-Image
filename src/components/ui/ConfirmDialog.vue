@@ -31,29 +31,13 @@
               ]"
             >
               <!-- Success -->
-              <AppIcon
-                v-if="type === 'success'"
-                name="check"
-                class="size-6"
-              />
+              <AppIcon v-if="type === 'success'" name="check" class="size-6" />
               <!-- Danger -->
-              <AppIcon
-                v-else-if="type === 'danger'"
-                name="exclamation-triangle"
-                class="size-6"
-              />
+              <AppIcon v-else-if="type === 'danger'" name="exclamation-triangle" class="size-6" />
               <!-- Warning -->
-              <AppIcon
-                v-else-if="type === 'warning'"
-                name="exclamation-circle"
-                class="size-6"
-              />
+              <AppIcon v-else-if="type === 'warning'" name="exclamation-circle" class="size-6" />
               <!-- Info / Primary (default) -->
-              <AppIcon
-                v-else
-                name="information-circle"
-                class="size-6"
-              />
+              <AppIcon v-else name="information-circle" class="size-6" />
             </div>
           </div>
 
@@ -68,20 +52,17 @@
 
             <!-- Input verification -->
             <div v-if="showInput" class="mt-4">
-              <p
-                v-if="inputLabel"
-                class="mb-2 text-left text-xs font-medium text-(--text-muted)"
-              >
+              <p v-if="inputLabel" class="mb-2 text-left text-xs font-medium text-(--text-muted)">
                 {{ inputLabel }}
               </p>
-                <AppInput
-                  v-if="showInput"
-                  ref="inputField"
-                  v-model="inputValue"
-                  :placeholder="inputPlaceholder"
-                  class="mt-2"
-                  @keyup.enter="!isConfirmDisabled && handleConfirm()"
-                />
+              <AppInput
+                v-if="showInput"
+                ref="inputField"
+                v-model="inputValue"
+                :placeholder="inputPlaceholder"
+                class="mt-2"
+                @keyup.enter="!isConfirmDisabled && handleConfirm()"
+              />
             </div>
           </div>
 
@@ -197,8 +178,8 @@ watch(
 const isConfirmDisabled = computed(() => {
   if (props.loading) return true;
   if (props.showInput) {
-      if (props.verifyText && inputValue.value !== props.verifyText) return true;
-      if (props.inputRequired && !inputValue.value.trim()) return true;
+    if (props.verifyText && inputValue.value !== props.verifyText) return true;
+    if (props.inputRequired && !inputValue.value.trim()) return true;
   }
   return false;
 });

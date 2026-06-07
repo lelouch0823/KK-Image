@@ -28,7 +28,9 @@ export function mapPurchaseOrderSnapshotFields(row = {}) {
     product_name: row.snapshot_name || row.product_name,
     product_brand: row.snapshot_brand || row.product_brand,
     variant_sku: row.snapshot_sku || row.variant_sku,
-    product_images: row.snapshot_image ? [row.snapshot_image] : parseJsonArray(row.product_images, []),
+    product_images: row.snapshot_image
+      ? [row.snapshot_image]
+      : parseJsonArray(row.product_images, []),
     product_specifications: parseJsonObject(row.product_specifications, {}),
     variant_options: hasSnapshotVariantOptions ? snapshotVariantOptions : liveVariantOptions,
   };
@@ -56,7 +58,10 @@ function resolvePurchaseItemSnapshotSize({ product, variant, fallback = '' }) {
     const normalizedKey = readableKey.toLowerCase();
     const value = String(rawValue);
 
-    if (PURCHASE_ORDER_COLOR_LABELS.has(normalizedKey) || PURCHASE_ORDER_MATERIAL_LABELS.has(normalizedKey)) {
+    if (
+      PURCHASE_ORDER_COLOR_LABELS.has(normalizedKey) ||
+      PURCHASE_ORDER_MATERIAL_LABELS.has(normalizedKey)
+    ) {
       continue;
     }
     if (PURCHASE_ORDER_SIZE_LABELS.has(normalizedKey)) {

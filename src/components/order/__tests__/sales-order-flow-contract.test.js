@@ -95,7 +95,7 @@ describe('sales order flow contract', () => {
         variantId: 'v-200',
         fileIds: ['f-1'],
       }),
-      expect.any(Function),
+      expect.any(Function)
     );
 
     await wrapper.get('[data-testid="unbind-product"]').trigger('click');

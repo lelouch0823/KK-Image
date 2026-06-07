@@ -2,21 +2,12 @@
   <button
     :type="type"
     class="relative inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-150 ease-out-expo focus-visible:ring-2 focus-visible:ring-offset-1 focus:outline-none active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-    :class="[
-      variantClasses,
-      sizeClasses,
-      { 'w-full': block }
-    ]"
+    :class="[variantClasses, sizeClasses, { 'w-full': block }]"
     :disabled="disabled || loading"
     @click="$emit('click', $event)"
   >
     <!-- Loading Spinner -->
-    <AppIcon
-      v-if="loading"
-      name="spinner"
-      class="animate-spin"
-      :class="iconSizeClasses"
-    />
+    <AppIcon v-if="loading" name="spinner" class="animate-spin" :class="iconSizeClasses" />
 
     <!-- Icon Left -->
     <slot v-else name="icon-left" />
@@ -43,7 +34,8 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'primary',
-    validator: (v) => ['primary', 'secondary', 'danger', 'ghost', 'link', 'outline', 'white'].includes(v),
+    validator: (v) =>
+      ['primary', 'secondary', 'danger', 'ghost', 'link', 'outline', 'white'].includes(v),
   },
   size: {
     type: String,
@@ -76,13 +68,18 @@ defineEmits(['click']);
 
 const variantClasses = computed(() => {
   const variants = {
-    primary: 'bg-primary text-(--text-inverse) hover:bg-(--color-primary-hover) focus-visible:ring-primary/40 shadow-sm hover:shadow-md',
-    secondary: 'bg-(--bg-muted) text-(--text-secondary) hover:bg-(--bg-hover) hover:text-(--text-main) focus-visible:ring-primary/20',
+    primary:
+      'bg-primary text-(--text-inverse) hover:bg-(--color-primary-hover) focus-visible:ring-primary/40 shadow-sm hover:shadow-md',
+    secondary:
+      'bg-(--bg-muted) text-(--text-secondary) hover:bg-(--bg-hover) hover:text-(--text-main) focus-visible:ring-primary/20',
     danger: 'bg-danger text-(--text-inverse) hover:opacity-90 focus-visible:ring-danger/40',
-    ghost: 'bg-transparent text-(--text-secondary) hover:bg-(--bg-muted) hover:text-(--text-main) focus-visible:ring-primary/15',
+    ghost:
+      'bg-transparent text-(--text-secondary) hover:bg-(--bg-muted) hover:text-(--text-main) focus-visible:ring-primary/15',
     link: 'bg-transparent text-primary hover:underline p-0 h-auto',
-    outline: 'border border-(--border-color) bg-transparent text-(--text-secondary) hover:border-(--text-secondary) hover:text-(--text-main)',
-    white: 'border border-(--border-color) bg-(--bg-card) text-(--text-main) hover:bg-(--bg-hover) focus-visible:ring-primary/20',
+    outline:
+      'border border-(--border-color) bg-transparent text-(--text-secondary) hover:border-(--text-secondary) hover:text-(--text-main)',
+    white:
+      'border border-(--border-color) bg-(--bg-card) text-(--text-main) hover:bg-(--bg-hover) focus-visible:ring-primary/20',
   };
   return variants[props.variant];
 });

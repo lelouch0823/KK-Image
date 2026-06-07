@@ -1,8 +1,6 @@
 <template>
   <div>
-    <h4
-      class="mb-4 border-b border-(--border-color) pb-2 text-sm font-medium text-(--text-main)"
-    >
+    <h4 class="mb-4 border-b border-(--border-color) pb-2 text-sm font-medium text-(--text-main)">
       {{ t('order.detail.currentInfo') }}
     </h4>
 
@@ -53,10 +51,18 @@
 
         <!-- 如果已绑定商品，显示只读的规格属性列表，否则显示原有的输入框 -->
         <template v-if="boundProductVariant">
-          <div class="border-primary/20 bg-primary/5 mt-4 space-y-3 rounded-lg border p-4 md:col-span-2">
-            <h5 class="text-primary text-sm font-medium">{{ t('product.variant.title') || '商品规格' }}</h5>
+          <div
+            class="border-primary/20 bg-primary/5 mt-4 space-y-3 rounded-lg border p-4 md:col-span-2"
+          >
+            <h5 class="text-primary text-sm font-medium">
+              {{ t('product.variant.title') || '商品规格' }}
+            </h5>
             <div class="grid [grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr))] gap-3">
-              <div v-for="(value, key) in boundProductVariant" :key="key" class="min-w-0 rounded-md bg-(--bg-card)/70 p-2">
+              <div
+                v-for="(value, key) in boundProductVariant"
+                :key="key"
+                class="min-w-0 rounded-md bg-(--bg-card)/70 p-2"
+              >
                 <span class="block truncate text-xs text-(--text-secondary)" :title="String(key)">
                   {{ key }}
                 </span>
@@ -67,7 +73,10 @@
                   {{ value }}
                 </span>
               </div>
-              <div v-if="!hasEntries(boundProductVariant)" class="[grid-column:1/-1] text-sm text-(--text-muted)">
+              <div
+                v-if="!hasEntries(boundProductVariant)"
+                class="[grid-column:1/-1] text-sm text-(--text-muted)"
+              >
                 {{ t('product.variant.noSpecs') || '无规格信息' }}
               </div>
             </div>
@@ -104,7 +113,9 @@
 
       <!-- 销售员 (仅管理员可见) -->
       <div v-if="showStatus">
-        <label class="mb-1 block text-xs font-medium text-(--text-secondary)">{{ t('common.salesperson') }}</label>
+        <label class="mb-1 block text-xs font-medium text-(--text-secondary)">{{
+          t('common.salesperson')
+        }}</label>
         <Select
           :model-value="modelValue.salespersonId"
           :options="salespersonOptions"
@@ -116,7 +127,9 @@
 
       <!-- 状态 (仅管理员可见) -->
       <div v-if="showStatus">
-        <label class="mb-1 block text-xs font-medium text-(--text-secondary)">{{ t('order.status') }}</label>
+        <label class="mb-1 block text-xs font-medium text-(--text-secondary)">{{
+          t('order.status')
+        }}</label>
         <StatusSelector
           :model-value="modelValue.status"
           :options="statuses"
@@ -159,7 +172,16 @@ const props = defineProps({
   },
   statuses: {
     type: Array,
-    default: () => ['pending', 'confirmed', 'production', 'shipping', 'arrived', 'fulfilled', 'rejected', 'void'],
+    default: () => [
+      'pending',
+      'confirmed',
+      'production',
+      'shipping',
+      'arrived',
+      'fulfilled',
+      'rejected',
+      'void',
+    ],
   },
   salespersons: {
     type: Array,
@@ -176,7 +198,7 @@ const props = defineProps({
   lineMode: {
     type: Boolean,
     default: false,
-  }
+  },
 });
 
 const emit = defineEmits(['update:modelValue']);

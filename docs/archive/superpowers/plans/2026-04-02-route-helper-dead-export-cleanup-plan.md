@@ -13,6 +13,7 @@
 ### Task 1: Lock the Dead Export Contract
 
 **Files:**
+
 - Create: `functions/lib/hono/_shared/__tests__/route-helpers-dead-exports.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the export still exists.
 ### Task 2: Delete the Dead Export
 
 **Files:**
+
 - Modify: `functions/lib/hono/_shared/route-helpers.js`
 
 - [ ] **Step 1: Remove `createCacheInvalidator`**

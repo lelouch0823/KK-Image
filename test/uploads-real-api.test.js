@@ -13,10 +13,7 @@ import {
   deleteManageWebhook,
   startWebhookReceiver,
 } from './utils/webhook-real-api.js';
-import {
-  createAuthenticatedSalesSession,
-  salesMultipartRequest,
-} from './utils/sales-real-api.js';
+import { createAuthenticatedSalesSession, salesMultipartRequest } from './utils/sales-real-api.js';
 
 function parseJson(value, fallback = {}) {
   if (!value) return fallback;
@@ -80,7 +77,8 @@ describeIfRealApi('Uploads Real API', function () {
       assert.ok(manageFileId, 'manage upload file id missing');
 
       const manageDelivery = await receiver.waitForDelivery(
-        (item) => item.body?.event_type === 'file_uploaded' && item.body?.aggregate?.id === manageFileId,
+        (item) =>
+          item.body?.event_type === 'file_uploaded' && item.body?.aggregate?.id === manageFileId,
         {
           timeoutMs: 20000,
           intervalMs: 500,
@@ -91,27 +89,32 @@ describeIfRealApi('Uploads Real API', function () {
       assert.strictEqual(manageDelivery.body?.payload?.file?.id, manageFileId);
       assert.strictEqual(manageDelivery.body?.payload?.file?.filename, `manage-upload-${seed}.txt`);
 
-      const spaceOutboxEvent = await waitFor(async () => {
-        const listed = await apiRequest('/api/manage/outbox?eventType=space_file_added', {
-          bearerToken: token,
-          expectedStatus: 200,
-        });
-        const events = listed.json?.data || [];
-        const matched = events.find((event) => {
-          if (event.aggregate_id !== spaceId) return false;
-          const payload = parseJson(event.payload_json);
-          return Array.isArray(payload.file_ids) && payload.file_ids.includes(manageFileId);
-        });
-        assert.ok(matched, 'space_file_added outbox event missing for manage upload');
-        const cacheJob = (matched.consumerJobs || []).find((job) => job.consumer_name === 'cache');
-        assert.ok(cacheJob, 'space_file_added cache consumer job missing');
-        assert.strictEqual(cacheJob.status, 'published');
-        return matched;
-      }, {
-        timeoutMs: 20000,
-        intervalMs: 500,
-        onTimeoutMessage: 'space_file_added outbox event did not settle as published',
-      });
+      const spaceOutboxEvent = await waitFor(
+        async () => {
+          const listed = await apiRequest('/api/manage/outbox?eventType=space_file_added', {
+            bearerToken: token,
+            expectedStatus: 200,
+          });
+          const events = listed.json?.data || [];
+          const matched = events.find((event) => {
+            if (event.aggregate_id !== spaceId) return false;
+            const payload = parseJson(event.payload_json);
+            return Array.isArray(payload.file_ids) && payload.file_ids.includes(manageFileId);
+          });
+          assert.ok(matched, 'space_file_added outbox event missing for manage upload');
+          const cacheJob = (matched.consumerJobs || []).find(
+            (job) => job.consumer_name === 'cache'
+          );
+          assert.ok(cacheJob, 'space_file_added cache consumer job missing');
+          assert.strictEqual(cacheJob.status, 'published');
+          return matched;
+        },
+        {
+          timeoutMs: 20000,
+          intervalMs: 500,
+          onTimeoutMessage: 'space_file_added outbox event did not settle as published',
+        }
+      );
 
       const spacePayload = parseJson(spaceOutboxEvent.payload_json);
       assert.deepStrictEqual(spacePayload.file_ids, [manageFileId]);
@@ -119,22 +122,26 @@ describeIfRealApi('Uploads Real API', function () {
 
       const salesSession = await createAuthenticatedSalesSession(token, `${seed}-sales`);
       receiver.reset();
-      const salesUpload = await salesMultipartRequest(`/api/sales/${salesSession.accessToken}/upload`, {
-        authToken: salesSession.jwt,
-        fields: {
-          file: {
-            value: 'sales-upload-body',
-            filename: `sales-upload-${seed}.txt`,
-            contentType: 'text/plain',
+      const salesUpload = await salesMultipartRequest(
+        `/api/sales/${salesSession.accessToken}/upload`,
+        {
+          authToken: salesSession.jwt,
+          fields: {
+            file: {
+              value: 'sales-upload-body',
+              filename: `sales-upload-${seed}.txt`,
+              contentType: 'text/plain',
+            },
           },
-        },
-        expectedStatus: 200,
-      });
+          expectedStatus: 200,
+        }
+      );
       const salesFileId = salesUpload.json?.data?.id;
       assert.ok(salesFileId, 'sales upload file id missing');
 
       const salesDelivery = await receiver.waitForDelivery(
-        (item) => item.body?.event_type === 'file_uploaded' && item.body?.aggregate?.id === salesFileId,
+        (item) =>
+          item.body?.event_type === 'file_uploaded' && item.body?.aggregate?.id === salesFileId,
         {
           timeoutMs: 20000,
           intervalMs: 500,

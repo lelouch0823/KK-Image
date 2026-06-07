@@ -54,10 +54,10 @@ export async function validateProductVariantBinding(db, productId, variantId, op
   if (variantSelectPolicy === 'in_stock_only') {
     const availableQuantity = Number(
       variant.available_quantity ??
-      variant.available ??
-      variant.stock_quantity ??
-      variant.stockQuantity ??
-      0
+        variant.available ??
+        variant.stock_quantity ??
+        variant.stockQuantity ??
+        0
     );
     if (availableQuantity <= 0) {
       throw new BadRequestError('variant must be in stock');

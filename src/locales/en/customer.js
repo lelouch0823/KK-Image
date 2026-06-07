@@ -4,7 +4,8 @@ export default {
     title: 'Customers',
     subtitle: 'Manage customer profiles and view order history',
     permissionDenied: 'Permission Denied for Customers',
-    permissionDeniedDesc: 'Your account does not have customer read access. Please contact the admin to assign customers:read.',
+    permissionDeniedDesc:
+      'Your account does not have customer read access. Please contact the admin to assign customers:read.',
     searchPlaceholder: 'Search name, phone, or company...',
     addCustomer: 'New Customer',
     editTitle: 'Edit Customer',

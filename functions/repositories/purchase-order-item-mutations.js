@@ -1,5 +1,5 @@
 import { hasChanges } from '../api/utils/result.js';
-import { chunkArray } from '../lib/db/batch.js';
+import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { hydratePurchaseItemSnapshots } from './purchase-order-item-snapshots.js';
 
 const D1_MAX_IN_CLAUSE_SIZE = 100;
@@ -23,33 +23,37 @@ export async function addPurchaseOrderItems({ db, poId, items }) {
     createdIds.push(id);
 
     statements.push(
-      db.prepare(`
+      db
+        .prepare(
+          `
         INSERT INTO purchase_order_items (
           id, po_id, product_id, variant_id, pre_order_id, order_line_id, quantity, unit_cost, snapshot_name, snapshot_sku, snapshot_specs, snapshot_image, created_at
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        id,
-        poId,
-        item.product_id,
-        item.variant_id,
-        item.pre_order_id || null,
-        item.order_line_id || null,
-        item.quantity || 1,
-        item.unit_cost || 0,
-        item.snapshot_name || null,
-        item.snapshot_sku || null,
-        item.snapshot_specs || null,
-        item.snapshot_image || null,
-        now
-      )
+      `
+        )
+        .bind(
+          id,
+          poId,
+          item.product_id,
+          item.variant_id,
+          item.pre_order_id || null,
+          item.order_line_id || null,
+          item.quantity || 1,
+          item.unit_cost || 0,
+          item.snapshot_name || null,
+          item.snapshot_sku || null,
+          item.snapshot_specs || null,
+          item.snapshot_image || null,
+          now
+        )
     );
   }
 
   let insertedCount = 0;
   try {
     for (const chunk of chunkArray(statements, D1_MAX_IN_CLAUSE_SIZE)) {
-      await db.batch(chunk);
+      await executeBatchChunks(db, chunk);
       insertedCount += chunk.length;
     }
   } catch (error) {
@@ -103,17 +107,12 @@ export async function removePurchaseOrderItem({ db, poIdOrItemId, itemIdMaybe })
       ]
     : [db.prepare(sql).bind(...params)];
   const [result] = useScopedDelete
-    ? await db.batch(statements)
+    ? await executeBatchChunks(db, statements)
     : [await statements[0].run()];
   return hasChanges(result);
 }
 
-export async function updatePurchaseOrderItem({
-  db,
-  poIdOrItemId,
-  itemIdOrUpdates,
-  updatesMaybe,
-}) {
+export async function updatePurchaseOrderItem({ db, poIdOrItemId, itemIdOrUpdates, updatesMaybe }) {
   const scoped = updatesMaybe !== undefined;
   const poId = scoped ? poIdOrItemId : null;
   const itemId = scoped ? itemIdOrUpdates : poIdOrItemId;
@@ -142,14 +141,10 @@ export async function updatePurchaseOrderItem({
   const statements = scoped
     ? [
         db.prepare(`UPDATE purchase_order_items SET ${fields.join(', ')} ${where}`).bind(...values),
-        db
-          .prepare(`UPDATE purchase_orders SET updated_at = ? WHERE id = ?`)
-          .bind(Date.now(), poId),
+        db.prepare(`UPDATE purchase_orders SET updated_at = ? WHERE id = ?`).bind(Date.now(), poId),
       ]
     : [db.prepare(`UPDATE purchase_order_items SET ${fields.join(', ')} ${where}`).bind(...values)];
-  const [result] = scoped
-    ? await db.batch(statements)
-    : [await statements[0].run()];
+  const [result] = scoped ? await executeBatchChunks(db, statements) : [await statements[0].run()];
 
   return hasChanges(result);
 }

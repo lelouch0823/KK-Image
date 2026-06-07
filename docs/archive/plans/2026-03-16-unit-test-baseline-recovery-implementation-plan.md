@@ -13,6 +13,7 @@
 ### Task 1: 恢复 ImportPreviewStep 的冲突筛选真实交互入口
 
 **Files:**
+
 - Modify: `src/components/product/import/__tests__/ImportPreviewStep.test.js`
 - Modify: `src/components/product/import/ImportPreviewStep.vue`
 
@@ -69,6 +70,7 @@ git commit -m "fix(test-baseline): restore import preview filter semantics"
 ### Task 2: 恢复 VariantBatchBuilderModal 和 ProductBasicInfoSection 的表单语义
 
 **Files:**
+
 - Modify: `src/components/product/__tests__/VariantBatchBuilderModal.test.js`
 - Modify: `src/components/product/VariantBatchBuilderModal.vue`
 - Modify: `src/components/product/__tests__/ProductBasicInfoSection.contract.test.js`
@@ -113,6 +115,7 @@ git commit -m "fix(test-baseline): restore product form select semantics"
 ### Task 3: 修复 SalesListView 可访问尺寸契约与 ProductCreateModal 变体图片单源状态
 
 **Files:**
+
 - Modify: `src/components/order/__tests__/sales-a11y.test.js`
 - Modify: `src/views/sales/SalesListView.vue`
 - Modify: `src/components/product/__tests__/ProductCreateModal.variant-images.test.js`
@@ -172,6 +175,7 @@ git commit -m "fix(test-baseline): restore sales touch target and variant image 
 ### Task 4: 修复 ProductVariantRepository 空 SKU 不变量
 
 **Files:**
+
 - Modify: `functions/repositories/__tests__/product-variant-code.test.js`
 - Modify: `functions/repositories/ProductVariantRepository.js`
 
@@ -217,6 +221,7 @@ git commit -m "fix(test-baseline): guarantee fallback variant sku generation"
 ### Task 5: 对齐 metadata.json 与 OPA 权限决策
 
 **Files:**
+
 - Modify: `functions/lib/authz/__tests__/metadata-consistency.test.js`
 - Modify: `policy/metadata.json`
 - Modify: `policy/authz.rego` (only if root cause is policy side, not metadata side)
@@ -255,6 +260,7 @@ git commit -m "fix(test-baseline): align authz metadata with opa decisions"
 ### Task 6: 修复 product patch rollback 边界
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/products/__tests__/product-patch-rollback-boundary.test.js`
 - Modify: `functions/lib/hono/routes/manage/products/[id].js`
 - Modify: `functions/repositories/ProductVariantRepository.js` (if rollback contract lives there)
@@ -293,6 +299,7 @@ git commit -m "fix(test-baseline): harden product patch rollback boundaries"
 ### Task 7: 修复 order batch audit 未处理 rejection
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/__tests__/order-batch-routes.test.js`
 - Modify: `functions/lib/hono/routes/manage/orders/create.js`
 - Modify: `functions/lib/hono/_shared/audit-helpers.js`
@@ -331,6 +338,7 @@ git commit -m "fix(test-baseline): guard async audit side effects"
 ### Task 8: 恢复全量 unit test 基线
 
 **Files:**
+
 - Modify: `docs/plans/2026-03-16-unit-test-baseline-recovery-implementation-plan.md`
 
 **Step 1: Run targeted frontend tests**

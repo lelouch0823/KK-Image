@@ -57,9 +57,7 @@ describe('AIActionOrchestrator', () => {
     });
 
     expect(result.kind).toBe('action_preview');
-    expect(result.payload.summary).toEqual(
-      expect.objectContaining({ name: 'Alice' })
-    );
+    expect(result.payload.summary).toEqual(expect.objectContaining({ name: 'Alice' }));
     expect(submitters.create_customer).not.toHaveBeenCalled();
   });
 
@@ -78,7 +76,9 @@ describe('AIActionOrchestrator', () => {
     });
 
     expect(result.kind).toBe('action_preview');
-    expect(result.payload.summary).toEqual(expect.objectContaining({ name: 'Alice', phone: '13800000000' }));
+    expect(result.payload.summary).toEqual(
+      expect.objectContaining({ name: 'Alice', phone: '13800000000' })
+    );
   });
 
   it('merges context-provided slots before evaluating missing fields', async () => {
@@ -175,9 +175,12 @@ describe('AIActionOrchestrator', () => {
     });
 
     expect(result.kind).toBe('action_submitted');
-    expect(sessionStore.updateSession).toHaveBeenCalledWith('act-po-1', expect.objectContaining({
-      status: 'submitted_pending_effects',
-    }));
+    expect(sessionStore.updateSession).toHaveBeenCalledWith(
+      'act-po-1',
+      expect.objectContaining({
+        status: 'submitted_pending_effects',
+      })
+    );
     expect(result.payload.purchaseOrderCreated).toEqual({
       created: { id: 'po-1', po_no: 'PO-1' },
       mode: 'manual',
@@ -195,7 +198,16 @@ describe('AIActionOrchestrator', () => {
       status: 'awaiting_confirmation',
       slots_json: JSON.stringify({
         name: 'Sneaker',
-        variants: [{ sku: 'SKU-1', price: 100, cost_price: 50, stock_quantity: 5, alert_threshold: 2, status: 'active' }],
+        variants: [
+          {
+            sku: 'SKU-1',
+            price: 100,
+            cost_price: 50,
+            stock_quantity: 5,
+            alert_threshold: 2,
+            status: 'active',
+          },
+        ],
       }),
       preview_json: JSON.stringify({ title: '商品创建预览' }),
     });
@@ -222,9 +234,12 @@ describe('AIActionOrchestrator', () => {
     });
 
     expect(result.kind).toBe('action_submitted');
-    expect(sessionStore.updateSession).toHaveBeenCalledWith('act-prod-1', expect.objectContaining({
-      status: 'submitted_pending_effects',
-    }));
+    expect(sessionStore.updateSession).toHaveBeenCalledWith(
+      'act-prod-1',
+      expect.objectContaining({
+        status: 'submitted_pending_effects',
+      })
+    );
     expect(result.payload.productCreated).toEqual({
       created: { id: 'prod-1', name: 'Sneaker' },
     });
@@ -268,9 +283,12 @@ describe('AIActionOrchestrator', () => {
     });
 
     expect(result.kind).toBe('action_submitted');
-    expect(sessionStore.updateSession).toHaveBeenCalledWith('act-order-1', expect.objectContaining({
-      status: 'submitted_pending_effects',
-    }));
+    expect(sessionStore.updateSession).toHaveBeenCalledWith(
+      'act-order-1',
+      expect.objectContaining({
+        status: 'submitted_pending_effects',
+      })
+    );
     expect(result.payload.orderCreated).toEqual({
       created: { id: 'ord-1', orderNo: 'ORD-1' },
       salespersonId: 'sp-1',
@@ -383,7 +401,7 @@ describe('AIActionOrchestrator', () => {
       submitters,
       slotResolvers: {
         order: {
-          salespersonId: vi.fn(async (rawValue) => rawValue === '张三' ? 'sp-1' : rawValue),
+          salespersonId: vi.fn(async (rawValue) => (rawValue === '张三' ? 'sp-1' : rawValue)),
         },
       },
       extractActionSlots: () => ({ salespersonId: '张三' }),
@@ -412,7 +430,8 @@ describe('AIActionOrchestrator', () => {
       slotResolvers: {
         order: {
           variantId: vi.fn(async (_rawValue, slots) => {
-            if (slots.productId === 'prod-1' && slots.color === '黑色' && slots.size === '42') return 'var-42-black';
+            if (slots.productId === 'prod-1' && slots.color === '黑色' && slots.size === '42')
+              return 'var-42-black';
             return _rawValue;
           }),
           productId: vi.fn(async (rawValue) => rawValue),
@@ -450,11 +469,13 @@ describe('AIActionOrchestrator', () => {
       submitters,
       slotResolvers: {
         purchase_order: {
-          items: vi.fn(async (items) => items.map((item) => ({
-            ...item,
-            product_id: 'prod-1',
-            variant_id: 'var-1',
-          }))),
+          items: vi.fn(async (items) =>
+            items.map((item) => ({
+              ...item,
+              product_id: 'prod-1',
+              variant_id: 'var-1',
+            }))
+          ),
         },
       },
       extractActionSlots: () => ({
@@ -540,11 +561,13 @@ describe('AIActionOrchestrator', () => {
       submitters,
       slotResolvers: {
         purchase_order: {
-          items: vi.fn(async (items) => items.map((item) => ({
-            ...item,
-            product_id: 'prod-1',
-            variant_id: 'var-1',
-          }))),
+          items: vi.fn(async (items) =>
+            items.map((item) => ({
+              ...item,
+              product_id: 'prod-1',
+              variant_id: 'var-1',
+            }))
+          ),
         },
       },
       extractActionSlots,
@@ -593,13 +616,17 @@ describe('AIActionOrchestrator', () => {
       submitters,
       slotResolvers: {
         purchase_order: {
-          items: vi.fn(async (items) => items.map((item, index) => index === 0 && item.product_id
-            ? item
-            : {
-                ...item,
-                product_id: 'prod-2',
-                variant_id: 'var-2',
-              })),
+          items: vi.fn(async (items) =>
+            items.map((item, index) =>
+              index === 0 && item.product_id
+                ? item
+                : {
+                    ...item,
+                    product_id: 'prod-2',
+                    variant_id: 'var-2',
+                  }
+            )
+          ),
         },
       },
       extractActionSlots,
@@ -627,28 +654,27 @@ describe('AIActionOrchestrator', () => {
 
   it('returns item candidates and accepts numeric choice for a single ambiguous purchase-order item', async () => {
     const variantRepo = {
-      searchForAI: vi.fn()
-        .mockResolvedValueOnce({
-          items: [
-            {
-              id: 'var-1',
-              product_id: 'prod-1',
-              sku: 'SKU-BLK-42-A',
-              cost_price: 60,
-              variantLabel: '黑色 / 42',
-              product: { name: '跑鞋', brand: 'KK' },
-            },
-            {
-              id: 'var-2',
-              product_id: 'prod-1',
-              sku: 'SKU-BLK-42-B',
-              cost_price: 61,
-              variantLabel: '黑色 / 42',
-              product: { name: '跑鞋', brand: 'KK' },
-            },
-          ],
-          total: 2,
-        }),
+      searchForAI: vi.fn().mockResolvedValueOnce({
+        items: [
+          {
+            id: 'var-1',
+            product_id: 'prod-1',
+            sku: 'SKU-BLK-42-A',
+            cost_price: 60,
+            variantLabel: '黑色 / 42',
+            product: { name: '跑鞋', brand: 'KK' },
+          },
+          {
+            id: 'var-2',
+            product_id: 'prod-1',
+            sku: 'SKU-BLK-42-B',
+            cost_price: 61,
+            variantLabel: '黑色 / 42',
+            product: { name: '跑鞋', brand: 'KK' },
+          },
+        ],
+        total: 2,
+      }),
     };
 
     orchestrator = new AIActionOrchestrator({
@@ -704,7 +730,8 @@ describe('AIActionOrchestrator', () => {
 
   it('keeps resolved items while offering candidates for the ambiguous line in a multi-item draft', async () => {
     const variantRepo = {
-      searchForAI: vi.fn()
+      searchForAI: vi
+        .fn()
         .mockResolvedValueOnce({
           items: [{ id: 'var-1', product_id: 'prod-1', cost_price: 60 }],
           total: 1,
@@ -767,7 +794,8 @@ describe('AIActionOrchestrator', () => {
 
   it('keeps candidate-driven item choices while continuing to resolve later ambiguous items', async () => {
     const variantRepo = {
-      searchForAI: vi.fn()
+      searchForAI: vi
+        .fn()
         .mockResolvedValueOnce({
           items: [
             {
@@ -893,11 +921,13 @@ describe('AIActionOrchestrator', () => {
       submitters,
       slotResolvers: {
         purchase_order: {
-          items: vi.fn(async (items) => items.map((item, index) => ({
-            ...item,
-            product_id: `prod-${index + 1}`,
-            variant_id: `var-${index + 1}`,
-          }))),
+          items: vi.fn(async (items) =>
+            items.map((item, index) => ({
+              ...item,
+              product_id: `prod-${index + 1}`,
+              variant_id: `var-${index + 1}`,
+            }))
+          ),
         },
       },
       extractActionSlots: () => ({
@@ -928,9 +958,12 @@ describe('AIActionOrchestrator', () => {
       submitters,
       slotResolvers: {
         order: {
-          productId: vi.fn(async (_rawValue, slots) => slots.productName === '跑鞋' ? 'prod-1' : _rawValue),
+          productId: vi.fn(async (_rawValue, slots) =>
+            slots.productName === '跑鞋' ? 'prod-1' : _rawValue
+          ),
           variantId: vi.fn(async (_rawValue, slots) => {
-            if (slots.productId === 'prod-1' && slots.color === '黑色' && slots.size === '42') return 'var-42-black';
+            if (slots.productId === 'prod-1' && slots.color === '黑色' && slots.size === '42')
+              return 'var-42-black';
             return _rawValue;
           }),
         },

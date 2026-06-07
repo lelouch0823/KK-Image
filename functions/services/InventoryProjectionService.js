@@ -37,17 +37,20 @@ export function appendInventoryLedgerEvent(ledger = [], event = {}) {
 }
 
 export function projectInventoryBalances(ledger = []) {
-  const projection = ledger.reduce((acc, event) => {
-    const eventType = getEventType(event);
+  const projection = ledger.reduce(
+    (acc, event) => {
+      const eventType = getEventType(event);
 
-    if (STOCK_EVENT_TYPES.has(eventType)) {
-      acc.on_hand = Math.max(acc.on_hand + getQuantityDelta(event), 0);
-    } else if (RESERVATION_EVENT_TYPES.has(eventType)) {
-      acc.reserved = Math.max(acc.reserved + getReservedDelta(event), 0);
-    }
+      if (STOCK_EVENT_TYPES.has(eventType)) {
+        acc.on_hand = Math.max(acc.on_hand + getQuantityDelta(event), 0);
+      } else if (RESERVATION_EVENT_TYPES.has(eventType)) {
+        acc.reserved = Math.max(acc.reserved + getReservedDelta(event), 0);
+      }
 
-    return acc;
-  }, { on_hand: 0, reserved: 0 });
+      return acc;
+    },
+    { on_hand: 0, reserved: 0 }
+  );
 
   return {
     on_hand: projection.on_hand,

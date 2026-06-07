@@ -13,30 +13,34 @@ function createDbForSuggestions(results) {
 
 describe('PurchaseOrderService variant dimension', () => {
   it('getSuggestions should aggregate by variant and expose variant_id', async () => {
-    const db = createDbForSuggestions([{
-      variant_id: 'var-1',
-      product_id: 'prod-1',
-      product_code: 'P0001',
-      variant_code: 'V0001',
-      product_name: 'Tee',
-      sku: 'TEE-YELLOW-S',
-      brand: 'KK',
-      cost_price: 12.5,
-      stock_quantity: 3,
-      total_demand: 8,
-      shortage: 5,
-      order_count: 2,
-      order_ids: 'o-1,o-2',
-      images: '[]',
-    }]);
+    const db = createDbForSuggestions([
+      {
+        variant_id: 'var-1',
+        product_id: 'prod-1',
+        product_code: 'P0001',
+        variant_code: 'V0001',
+        product_name: 'Tee',
+        sku: 'TEE-YELLOW-S',
+        brand: 'KK',
+        cost_price: 12.5,
+        stock_quantity: 3,
+        total_demand: 8,
+        shortage: 5,
+        order_count: 2,
+        order_ids: 'o-1,o-2',
+        images: '[]',
+      },
+    ]);
     const service = new PurchaseOrderService(db);
 
     const suggestions = await service.getSuggestions();
-    const sqlCalls = db.prepare.mock.calls.map(call => call[0]);
+    const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
 
-    expect(sqlCalls.some(sql => sql.includes('FROM product_variants pv'))).toBe(true);
-    expect(sqlCalls.some(sql => sql.includes('JOIN products p ON pv.product_id = p.id'))).toBe(true);
-    expect(sqlCalls.some(sql => sql.includes('WHERE pv.id IN'))).toBe(true);
+    expect(sqlCalls.some((sql) => sql.includes('FROM product_variants pv'))).toBe(true);
+    expect(sqlCalls.some((sql) => sql.includes('JOIN products p ON pv.product_id = p.id'))).toBe(
+      true
+    );
+    expect(sqlCalls.some((sql) => sql.includes('WHERE pv.id IN'))).toBe(true);
     expect(suggestions[0].variant_id).toBe('var-1');
     expect(suggestions[0].product_code).toBe('P0001');
     expect(suggestions[0].variant_code).toBe('V0001');
@@ -44,16 +48,18 @@ describe('PurchaseOrderService variant dimension', () => {
 
   it('createFromOrders should carry variant_id into PO items', async () => {
     const mockAll = vi.fn(async () => ({
-      results: [{
-        id: 'o-1',
-        order_no: 'SO-1',
-        product_id: 'prod-1',
-        variant_id: 'var-1',
-        quantity: 2,
-        name: 'Tee',
-        sku: 'TEE-YELLOW-S',
-        cost_price: 11,
-      }],
+      results: [
+        {
+          id: 'o-1',
+          order_no: 'SO-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          quantity: 2,
+          name: 'Tee',
+          sku: 'TEE-YELLOW-S',
+          cost_price: 11,
+        },
+      ],
     }));
     const stmt = {
       bind: vi.fn(() => stmt),
@@ -213,16 +219,18 @@ describe('PurchaseOrderService variant dimension', () => {
             }
             return {
               all: vi.fn(async () => ({
-                results: [{
-                  id: 'o-1',
-                  order_no: 'SO-1',
-                  product_id: 'prod-1',
-                  variant_id: 'var-1',
-                  quantity: 2,
-                  name: 'Tee',
-                  sku: 'TEE-YELLOW-S',
-                  cost_price: 11,
-                }],
+                results: [
+                  {
+                    id: 'o-1',
+                    order_no: 'SO-1',
+                    product_id: 'prod-1',
+                    variant_id: 'var-1',
+                    quantity: 2,
+                    name: 'Tee',
+                    sku: 'TEE-YELLOW-S',
+                    cost_price: 11,
+                  },
+                ],
               })),
             };
           },
@@ -247,16 +255,18 @@ describe('PurchaseOrderService variant dimension', () => {
     const stmt = {
       bind: vi.fn(() => stmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'o-1',
-          order_no: 'SO-1',
-          product_id: 'prod-1',
-          variant_id: 'var-1',
-          quantity: 2,
-          name: 'Tee',
-          sku: 'TEE-YELLOW-S',
-          cost_price: 11,
-        }],
+        results: [
+          {
+            id: 'o-1',
+            order_no: 'SO-1',
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            quantity: 2,
+            name: 'Tee',
+            sku: 'TEE-YELLOW-S',
+            cost_price: 11,
+          },
+        ],
       })),
     };
     const db = { prepare: vi.fn(() => stmt) };
@@ -265,15 +275,19 @@ describe('PurchaseOrderService variant dimension', () => {
       create: vi.fn(async () => ({ id: 'po-1' })),
       addItems: vi.fn(async () => []),
       findById: vi.fn(async () => ({ id: 'po-1', items: [] })),
-      findActiveBindingsByPreOrderIds: vi.fn(async () => [{
-        pre_order_id: 'o-1',
-        po_id: 'po-existing',
-        po_no: 'PO-EXISTING',
-        po_status: 'draft',
-      }]),
+      findActiveBindingsByPreOrderIds: vi.fn(async () => [
+        {
+          pre_order_id: 'o-1',
+          po_id: 'po-existing',
+          po_no: 'PO-EXISTING',
+          po_status: 'draft',
+        },
+      ]),
     };
 
-    await expect(service.createFromOrders(['o-1'])).rejects.toThrow('SO-1 已在采购单 PO-EXISTING 中');
+    await expect(service.createFromOrders(['o-1'])).rejects.toThrow(
+      'SO-1 已在采购单 PO-EXISTING 中'
+    );
     expect(service.repo.create).not.toHaveBeenCalled();
     expect(service.repo.addItems).not.toHaveBeenCalled();
   });
@@ -282,16 +296,18 @@ describe('PurchaseOrderService variant dimension', () => {
     const stmt = {
       bind: vi.fn(() => stmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'o-1',
-          order_no: 'SO-1',
-          product_id: 'prod-1',
-          variant_id: 'var-1',
-          quantity: 2,
-          name: 'Tee',
-          sku: 'TEE-YELLOW-S',
-          cost_price: 11,
-        }],
+        results: [
+          {
+            id: 'o-1',
+            order_no: 'SO-1',
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            quantity: 2,
+            name: 'Tee',
+            sku: 'TEE-YELLOW-S',
+            cost_price: 11,
+          },
+        ],
       })),
     };
     const db = { prepare: vi.fn(() => stmt) };
@@ -324,7 +340,18 @@ describe('PurchaseOrderService variant dimension', () => {
           return {
             all: vi.fn(async () => ({
               results: sql.includes('FROM orders o')
-                ? [{ id: 'o-1', order_no: 'SO-1', product_id: 'prod-1', variant_id: 'var-1', quantity: 2, name: 'Tee', sku: 'TEE-1', cost_price: 11 }]
+                ? [
+                    {
+                      id: 'o-1',
+                      order_no: 'SO-1',
+                      product_id: 'prod-1',
+                      variant_id: 'var-1',
+                      quantity: 2,
+                      name: 'Tee',
+                      sku: 'TEE-1',
+                      cost_price: 11,
+                    },
+                  ]
                 : [],
             })),
           };
@@ -352,16 +379,18 @@ describe('PurchaseOrderService variant dimension', () => {
     const stmt = {
       bind: vi.fn(() => stmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'o-1',
-          order_no: 'SO-1',
-          product_id: 'prod-1',
-          variant_id: 'var-1',
-          quantity: 2,
-          name: 'Tee',
-          sku: 'TEE-YELLOW-S',
-          cost_price: 11,
-        }],
+        results: [
+          {
+            id: 'o-1',
+            order_no: 'SO-1',
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            quantity: 2,
+            name: 'Tee',
+            sku: 'TEE-YELLOW-S',
+            cost_price: 11,
+          },
+        ],
       })),
     };
     const db = { prepare: vi.fn(() => stmt) };
@@ -374,7 +403,9 @@ describe('PurchaseOrderService variant dimension', () => {
       deleteIfEmptyDraft: vi.fn(async () => true),
     };
 
-    await expect(service.createFromOrders(['o-1', 'o-missing'])).rejects.toThrow(/o-missing|SO-1|订单/i);
+    await expect(service.createFromOrders(['o-1', 'o-missing'])).rejects.toThrow(
+      /o-missing|SO-1|订单/i
+    );
 
     expect(service.repo.create).not.toHaveBeenCalled();
     expect(service.repo.addItems).not.toHaveBeenCalled();
@@ -384,16 +415,18 @@ describe('PurchaseOrderService variant dimension', () => {
     const stmt = {
       bind: vi.fn(() => stmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'o-1',
-          order_no: 'SO-1',
-          product_id: 'prod-1',
-          variant_id: 'var-1',
-          quantity: 2,
-          name: 'Tee',
-          sku: 'TEE-YELLOW-S',
-          cost_price: 11,
-        }],
+        results: [
+          {
+            id: 'o-1',
+            order_no: 'SO-1',
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            quantity: 2,
+            name: 'Tee',
+            sku: 'TEE-YELLOW-S',
+            cost_price: 11,
+          },
+        ],
       })),
     };
     const db = { prepare: vi.fn(() => stmt) };
@@ -443,40 +476,42 @@ describe('PurchaseOrderService variant dimension', () => {
     const stmt = {
       bind: vi.fn(() => stmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'o-1',
-          order_no: 'SO-1',
-          product_id: 'prod-1',
-          variant_id: 'var-1',
-          quantity: 2,
-          name: 'Live Tee',
-          sku: 'LIVE-SKU',
-          cost_price: 11,
-          current_data: JSON.stringify({
-            name: 'Current Tee',
-            brand: 'Current Brand',
-            sku: 'CURRENT-SKU',
-            size: 'XL',
-            color: 'Blue',
-            material: 'Canvas',
-            series: 'History Line',
-          }),
-          original_data: JSON.stringify({
-            name: 'Original Tee',
-            brand: 'Original Brand',
-            sku: 'ORIGINAL-SKU',
-          }),
-          snapshot_name: 'Snapshot Tee',
-          snapshot_sku: 'SNAPSHOT-SKU',
-          snapshot_specs: JSON.stringify({
-            brand: 'Snapshot Brand',
-            size: 'L',
-            color: 'Black',
-            material: 'Leather',
-            series: 'Archive Line',
-          }),
-          snapshot_image: 'snapshot-image',
-        }],
+        results: [
+          {
+            id: 'o-1',
+            order_no: 'SO-1',
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            quantity: 2,
+            name: 'Live Tee',
+            sku: 'LIVE-SKU',
+            cost_price: 11,
+            current_data: JSON.stringify({
+              name: 'Current Tee',
+              brand: 'Current Brand',
+              sku: 'CURRENT-SKU',
+              size: 'XL',
+              color: 'Blue',
+              material: 'Canvas',
+              series: 'History Line',
+            }),
+            original_data: JSON.stringify({
+              name: 'Original Tee',
+              brand: 'Original Brand',
+              sku: 'ORIGINAL-SKU',
+            }),
+            snapshot_name: 'Snapshot Tee',
+            snapshot_sku: 'SNAPSHOT-SKU',
+            snapshot_specs: JSON.stringify({
+              brand: 'Snapshot Brand',
+              size: 'L',
+              color: 'Black',
+              material: 'Leather',
+              series: 'Archive Line',
+            }),
+            snapshot_image: 'snapshot-image',
+          },
+        ],
       })),
     };
     const db = { prepare: vi.fn(() => stmt) };
@@ -552,16 +587,18 @@ describe('PurchaseOrderService variant dimension', () => {
     const stmt = {
       bind: vi.fn(() => stmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'o-archived',
-          order_no: 'SO-ARCHIVED',
-          product_id: 'prod-1',
-          variant_id: 'var-archived',
-          quantity: 2,
-          name: 'Archived Tee',
-          sku: 'TEE-ARCHIVED',
-          cost_price: 11,
-        }],
+        results: [
+          {
+            id: 'o-archived',
+            order_no: 'SO-ARCHIVED',
+            product_id: 'prod-1',
+            variant_id: 'var-archived',
+            quantity: 2,
+            name: 'Archived Tee',
+            sku: 'TEE-ARCHIVED',
+            cost_price: 11,
+          },
+        ],
       })),
     };
     const db = { prepare: vi.fn(() => stmt) };
@@ -591,9 +628,9 @@ describe('PurchaseOrderService variant dimension', () => {
     };
     const service = new PurchaseOrderService(db);
 
-    await expect(service._updateInventory([
-      { product_id: 'prod-1', quantity: 3 },
-    ], 'increment')).rejects.toThrow(/variant_id/i);
+    await expect(
+      service._updateInventory([{ product_id: 'prod-1', quantity: 3 }], 'increment')
+    ).rejects.toThrow(/variant_id/i);
   });
 
   it('_updateInventory should pass purchase order source refs into inventory mutations', async () => {
@@ -679,7 +716,7 @@ describe('PurchaseOrderService variant dimension', () => {
     expect(result.cascadedOrders).toBe(0);
     expect(result.stockUpdated).toBe(0);
     expect(result.totalStockAdded).toBe(0);
-    expect(sqlCalls.some(sql => sql.includes('procurement_status'))).toBe(false);
+    expect(sqlCalls.some((sql) => sql.includes('procurement_status'))).toBe(false);
   });
 
   it('rejects cancelling an arrived purchase order without touching inventory', async () => {
@@ -710,21 +747,24 @@ describe('PurchaseOrderService variant dimension', () => {
         bind: vi.fn(() => ({
           all: vi.fn(async () => ({
             results: sql.includes('FROM product_variants')
-              ? [{
-                  id: 'var-1',
-                  product_id: 'prod-1',
-                  status: 'active',
-                  moq: 1,
-                  pack_size: 1,
-                  order_step: 1,
-                }, {
-                  id: 'var-2',
-                  product_id: 'prod-2',
-                  status: 'active',
-                  moq: 1,
-                  pack_size: 1,
-                  order_step: 1,
-                }]
+              ? [
+                  {
+                    id: 'var-1',
+                    product_id: 'prod-1',
+                    status: 'active',
+                    moq: 1,
+                    pack_size: 1,
+                    order_step: 1,
+                  },
+                  {
+                    id: 'var-2',
+                    product_id: 'prod-2',
+                    status: 'active',
+                    moq: 1,
+                    pack_size: 1,
+                    order_step: 1,
+                  },
+                ]
               : [],
           })),
         })),
@@ -738,10 +778,11 @@ describe('PurchaseOrderService variant dimension', () => {
       findActiveBindingsByPreOrderIds: vi.fn(async () => []),
     };
 
-    await expect(service.createManual(
-      { remark: 'ai manual' },
-      [{ product_id: 'prod-x', variant_id: 'var-1', quantity: 2, unit_cost: 11 }]
-    )).rejects.toThrow('variant_id 与 product_id 不匹配');
+    await expect(
+      service.createManual({ remark: 'ai manual' }, [
+        { product_id: 'prod-x', variant_id: 'var-1', quantity: 2, unit_cost: 11 },
+      ])
+    ).rejects.toThrow('variant_id 与 product_id 不匹配');
 
     expect(service.repo.create).not.toHaveBeenCalled();
     expect(service.repo.addItems).not.toHaveBeenCalled();
@@ -753,14 +794,16 @@ describe('PurchaseOrderService variant dimension', () => {
         bind: vi.fn(() => ({
           all: vi.fn(async () => ({
             results: sql.includes('FROM product_variants')
-              ? [{
-                  id: 'var-1',
-                  product_id: 'prod-1',
-                  status: 'active',
-                  moq: 1,
-                  pack_size: 1,
-                  order_step: 1,
-                }]
+              ? [
+                  {
+                    id: 'var-1',
+                    product_id: 'prod-1',
+                    status: 'active',
+                    moq: 1,
+                    pack_size: 1,
+                    order_step: 1,
+                  },
+                ]
               : [],
           })),
         })),
@@ -774,10 +817,11 @@ describe('PurchaseOrderService variant dimension', () => {
       findActiveBindingsByPreOrderIds: vi.fn(async () => []),
     };
 
-    await expect(service.createManual(
-      { remark: 'ai manual' },
-      [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: -11 }]
-    )).rejects.toThrow(/unit_cost|单价|成本/i);
+    await expect(
+      service.createManual({ remark: 'ai manual' }, [
+        { product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: -11 },
+      ])
+    ).rejects.toThrow(/unit_cost|单价|成本/i);
 
     expect(service.repo.create).not.toHaveBeenCalled();
     expect(service.repo.addItems).not.toHaveBeenCalled();
@@ -789,23 +833,27 @@ describe('PurchaseOrderService variant dimension', () => {
         bind: vi.fn(() => ({
           all: vi.fn(async () => ({
             results: sql.includes('FROM product_variants')
-              ? [{
-                  id: 'var-1',
-                  product_id: 'prod-1',
-                  status: 'active',
-                  moq: 1,
-                  pack_size: 1,
-                  order_step: 1,
-                }]
-              : sql.includes('FROM orders')
-                ? [{
-                    id: 'o-1',
-                    order_no: 'SO-1',
-                    status: 'confirmed',
+              ? [
+                  {
+                    id: 'var-1',
                     product_id: 'prod-1',
-                    variant_id: 'var-1',
-                    quantity: 1,
-                  }]
+                    status: 'active',
+                    moq: 1,
+                    pack_size: 1,
+                    order_step: 1,
+                  },
+                ]
+              : sql.includes('FROM orders')
+                ? [
+                    {
+                      id: 'o-1',
+                      order_no: 'SO-1',
+                      status: 'confirmed',
+                      product_id: 'prod-1',
+                      variant_id: 'var-1',
+                      quantity: 1,
+                    },
+                  ]
                 : [],
           })),
         })),
@@ -819,10 +867,17 @@ describe('PurchaseOrderService variant dimension', () => {
       findActiveBindingsByPreOrderIds: vi.fn(async () => []),
     };
 
-    await expect(service.createManual(
-      { remark: 'ai manual' },
-      [{ product_id: 'prod-1', variant_id: 'var-1', pre_order_id: 'o-1', quantity: 10, unit_cost: 11 }]
-    )).rejects.toThrow(/数量|quantity/i);
+    await expect(
+      service.createManual({ remark: 'ai manual' }, [
+        {
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          pre_order_id: 'o-1',
+          quantity: 10,
+          unit_cost: 11,
+        },
+      ])
+    ).rejects.toThrow(/数量|quantity/i);
 
     expect(service.repo.create).not.toHaveBeenCalled();
     expect(service.repo.addItems).not.toHaveBeenCalled();
@@ -834,49 +889,57 @@ describe('PurchaseOrderService variant dimension', () => {
         bind: vi.fn(() => ({
           all: vi.fn(async () => ({
             results: sql.includes('FROM product_variants')
-              ? [{
-                  id: 'var-1',
-                  product_id: 'prod-1',
-                  status: 'active',
-                  moq: 1,
-                  pack_size: 1,
-                  order_step: 1,
-                }, {
-                  id: 'var-2',
-                  product_id: 'prod-2',
-                  status: 'active',
-                  moq: 1,
-                  pack_size: 1,
-                  order_step: 1,
-                }]
-              : sql.includes('FROM order_lines')
-                ? [{
-                    id: 'line-1',
-                    order_id: 'o-1',
-                    order_no: 'SO-1',
-                    status: 'confirmed',
+              ? [
+                  {
+                    id: 'var-1',
                     product_id: 'prod-1',
-                    variant_id: 'var-1',
-                    ordered_qty: 1,
-                  }, {
-                    id: 'line-2',
-                    order_id: 'o-1',
-                    order_no: 'SO-1',
-                    status: 'confirmed',
+                    status: 'active',
+                    moq: 1,
+                    pack_size: 1,
+                    order_step: 1,
+                  },
+                  {
+                    id: 'var-2',
                     product_id: 'prod-2',
-                    variant_id: 'var-2',
-                    ordered_qty: 1,
-                  }]
+                    status: 'active',
+                    moq: 1,
+                    pack_size: 1,
+                    order_step: 1,
+                  },
+                ]
+              : sql.includes('FROM order_lines')
+                ? [
+                    {
+                      id: 'line-1',
+                      order_id: 'o-1',
+                      order_no: 'SO-1',
+                      status: 'confirmed',
+                      product_id: 'prod-1',
+                      variant_id: 'var-1',
+                      ordered_qty: 1,
+                    },
+                    {
+                      id: 'line-2',
+                      order_id: 'o-1',
+                      order_no: 'SO-1',
+                      status: 'confirmed',
+                      product_id: 'prod-2',
+                      variant_id: 'var-2',
+                      ordered_qty: 1,
+                    },
+                  ]
                 : sql.includes('FROM orders')
-                  ? [{
-                    id: 'o-1',
-                    order_no: 'SO-1',
-                    status: 'confirmed',
-                    product_id: null,
-                    variant_id: null,
-                    quantity: 2,
-                  }]
-                : [],
+                  ? [
+                      {
+                        id: 'o-1',
+                        order_no: 'SO-1',
+                        status: 'confirmed',
+                        product_id: null,
+                        variant_id: null,
+                        quantity: 2,
+                      },
+                    ]
+                  : [],
           })),
         })),
       })),
@@ -889,19 +952,43 @@ describe('PurchaseOrderService variant dimension', () => {
       findActiveBindingsByPreOrderIds: vi.fn(async () => []),
     };
 
-    await expect(service.createManual(
-      { remark: 'multi-line pre-order' },
-      [
-        { product_id: 'prod-1', variant_id: 'var-1', pre_order_id: 'o-1', order_line_id: 'line-1', quantity: 1, unit_cost: 11 },
-        { product_id: 'prod-2', variant_id: 'var-2', pre_order_id: 'o-1', order_line_id: 'line-2', quantity: 1, unit_cost: 12 },
-      ]
-    )).resolves.toEqual({ id: 'po-1', items: [] });
+    await expect(
+      service.createManual({ remark: 'multi-line pre-order' }, [
+        {
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          pre_order_id: 'o-1',
+          order_line_id: 'line-1',
+          quantity: 1,
+          unit_cost: 11,
+        },
+        {
+          product_id: 'prod-2',
+          variant_id: 'var-2',
+          pre_order_id: 'o-1',
+          order_line_id: 'line-2',
+          quantity: 1,
+          unit_cost: 12,
+        },
+      ])
+    ).resolves.toEqual({ id: 'po-1', items: [] });
 
     expect(service.repo.create).toHaveBeenCalled();
-    expect(service.repo.addItems).toHaveBeenCalledWith('po-1', expect.arrayContaining([
-      expect.objectContaining({ pre_order_id: 'o-1', order_line_id: 'line-1', variant_id: 'var-1' }),
-      expect.objectContaining({ pre_order_id: 'o-1', order_line_id: 'line-2', variant_id: 'var-2' }),
-    ]));
+    expect(service.repo.addItems).toHaveBeenCalledWith(
+      'po-1',
+      expect.arrayContaining([
+        expect.objectContaining({
+          pre_order_id: 'o-1',
+          order_line_id: 'line-1',
+          variant_id: 'var-1',
+        }),
+        expect.objectContaining({
+          pre_order_id: 'o-1',
+          order_line_id: 'line-2',
+          variant_id: 'var-2',
+        }),
+      ])
+    );
   });
 
   it('createManual falls back to a shell with submitted items when the read-after-write lookup misses', async () => {
@@ -910,14 +997,16 @@ describe('PurchaseOrderService variant dimension', () => {
         bind: vi.fn(() => ({
           all: vi.fn(async () => ({
             results: sql.includes('FROM product_variants')
-              ? [{
-                  id: 'var-1',
-                  product_id: 'prod-1',
-                  status: 'active',
-                  moq: 1,
-                  pack_size: 1,
-                  order_step: 1,
-                }]
+              ? [
+                  {
+                    id: 'var-1',
+                    product_id: 'prod-1',
+                    status: 'active',
+                    moq: 1,
+                    pack_size: 1,
+                    order_step: 1,
+                  },
+                ]
               : [],
           })),
         })),
@@ -931,24 +1020,27 @@ describe('PurchaseOrderService variant dimension', () => {
       findActiveBindingsByPreOrderIds: vi.fn(async () => []),
     };
 
-    await expect(service.createManual(
-      { remark: 'manual shell' },
-      [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 11 }]
-    )).resolves.toEqual({
+    await expect(
+      service.createManual({ remark: 'manual shell' }, [
+        { product_id: 'prod-1', variant_id: 'var-1', quantity: 2, unit_cost: 11 },
+      ])
+    ).resolves.toEqual({
       id: 'po-1',
       po_no: 'PO-1',
       status: 'draft',
-      items: [{
-        product_id: 'prod-1',
-        variant_id: 'var-1',
-        quantity: 2,
-        unit_cost: 11,
-        product_name: '',
-        product_brand: '',
-        variant_sku: '',
-        product_images: [],
-        variant_options: {},
-      }],
+      items: [
+        {
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          quantity: 2,
+          unit_cost: 11,
+          product_name: '',
+          product_brand: '',
+          variant_sku: '',
+          product_images: [],
+          variant_options: {},
+        },
+      ],
       receipts: [],
     });
   });

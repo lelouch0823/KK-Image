@@ -8,10 +8,14 @@ function toIsoString(value) {
 }
 
 function inferEnvironment(env = {}) {
-  const explicit = String(env.ENVIRONMENT || '').trim().toLowerCase();
+  const explicit = String(env.ENVIRONMENT || '')
+    .trim()
+    .toLowerCase();
   if (explicit) return explicit;
 
-  const branch = String(env.CF_PAGES_BRANCH || '').trim().toLowerCase();
+  const branch = String(env.CF_PAGES_BRANCH || '')
+    .trim()
+    .toLowerCase();
   if (!branch) return 'development';
   if (['main', 'master', 'production'].includes(branch)) return 'production';
   if (branch === 'preview' || branch.startsWith('preview')) return 'preview';
@@ -41,9 +45,10 @@ export class BackupRestoreService {
       throw new NotFoundError('Backup storage is not configured');
     }
 
-    const object = typeof bucket.head === 'function'
-      ? await bucket.head(filename)
-      : await bucket.get?.(filename);
+    const object =
+      typeof bucket.head === 'function'
+        ? await bucket.head(filename)
+        : await bucket.get?.(filename);
 
     if (!object) {
       throw new NotFoundError('Backup not found');
@@ -99,7 +104,9 @@ export class BackupRestoreService {
   async executeRestore(filename, { requestedBy = null } = {}) {
     const backup = await this.describeBackup(filename);
     if (!backup.allowed) {
-      throw new ForbiddenError('Restore execution is disabled in production environments. Use validate or dry-run instead.');
+      throw new ForbiddenError(
+        'Restore execution is disabled in production environments. Use validate or dry-run instead.'
+      );
     }
 
     return {

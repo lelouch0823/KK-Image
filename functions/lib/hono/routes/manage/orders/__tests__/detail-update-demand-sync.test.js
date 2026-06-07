@@ -74,7 +74,10 @@ import detailRoutesApp from '../detail.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.use('/api/manage/orders/*', async (c, next) => {
     c.set('user', { id: 'admin-1', name: 'Admin' });
@@ -173,9 +176,7 @@ describe('manage order detail update demand sync', () => {
         body: JSON.stringify({
           reason: 'rewrite bound line as manual',
           updates: {
-            lines: [
-              { productName: 'Manual A', quantity: 1, sku: 'SKU-MANUAL' },
-            ],
+            lines: [{ productName: 'Manual A', quantity: 1, sku: 'SKU-MANUAL' }],
           },
         }),
       },

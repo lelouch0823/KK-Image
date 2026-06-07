@@ -13,11 +13,13 @@
 ## Task 1: 扩展 FolderRepository — 添加 `list()` 方法
 
 **Files:**
+
 - Modify: `functions/repositories/FolderRepository.js`
 
 **Step 1: 在 `FolderRepository` 中添加 `list()` 方法**
 
 该方法必须：
+
 - 支持 `parentId`、`search`、分页（page/limit）
 - 使用 LEFT JOIN 一次性获取 fileCount 和 subfolderCount（消除 v1/folders.js 的 N+1 问题）
 - 过滤 `is_deleted = 0`
@@ -101,6 +103,7 @@ git commit -m "feat(repo): add FolderRepository.list() with pagination and JOIN 
 ## Task 2: 扩展 FolderRepository — 添加 `findDetail()` / `updateShareSettings()` / `canDelete()` 方法
 
 **Files:**
+
 - Modify: `functions/repositories/FolderRepository.js`
 
 **Step 1: 添加 `findDetail()` 方法**
@@ -193,6 +196,7 @@ git commit -m "feat(repo): add FolderRepository findDetail, updateShareSettings,
 ## Task 3: 重写 v1/folders.js — 全面使用 FolderRepository
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/v1/folders.js`
 
 **Step 1: 重写全部 6 个端点**
@@ -296,10 +300,7 @@ app.post(
 
     c.executionCtx.waitUntil(invalidateCache(getFolderCacheUrls(c)));
 
-    return c.json(
-      { success: true, data: { id, shareToken, ...data, createdAt: timestamp } },
-      201
-    );
+    return c.json({ success: true, data: { id, shareToken, ...data, createdAt: timestamp } }, 201);
   }
 );
 
@@ -395,6 +396,7 @@ export default app;
 ```
 
 > **关键改进总结:**
+>
 > - GET `/` 列表查询：从 N+1 手写 SQL 改为 `repo.list()` 的 JOIN 查询
 > - GET `/:id` 详情：从 3 条独立 SQL 改为 `repo.findDetail()`
 > - POST `/` 创建：从手写 INSERT 改为 `repo.create()`
@@ -419,6 +421,7 @@ git commit -m "refactor(v1/folders): migrate all endpoints to FolderRepository"
 ## Task 4: 创建 TagRepository
 
 **Files:**
+
 - Create: `functions/repositories/TagRepository.js`
 
 **Step 1: 创建 TagRepository 类**
@@ -430,53 +433,54 @@ git commit -m "refactor(v1/folders): migrate all endpoints to FolderRepository"
  */
 
 export class TagRepository {
-    constructor(db) {
-        this.db = db;
-    }
+  constructor(db) {
+    this.db = db;
+  }
 
-    /**
-     * 获取所有标签
-     * @returns {Promise<Object[]>}
-     */
-    async findAll() {
-        const { results } = await this.db.prepare(
-            'SELECT * FROM tags ORDER BY name ASC'
-        ).all();
-        return results;
-    }
+  /**
+   * 获取所有标签
+   * @returns {Promise<Object[]>}
+   */
+  async findAll() {
+    const { results } = await this.db.prepare('SELECT * FROM tags ORDER BY name ASC').all();
+    return results;
+  }
 
-    /**
-     * 创建标签（处理 UNIQUE 冲突）
-     * @param {{ id: string, name: string, color?: string, createdAt: number }} data
-     * @returns {Promise<void>}
-     * @throws {Error} 如果标签名已存在
-     */
-    async create(data) {
-        await this.db.prepare(
-            'INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?)'
-        ).bind(data.id, data.name, data.color || null, data.createdAt).run();
-    }
+  /**
+   * 创建标签（处理 UNIQUE 冲突）
+   * @param {{ id: string, name: string, color?: string, createdAt: number }} data
+   * @returns {Promise<void>}
+   * @throws {Error} 如果标签名已存在
+   */
+  async create(data) {
+    await this.db
+      .prepare('INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?)')
+      .bind(data.id, data.name, data.color || null, data.createdAt)
+      .run();
+  }
 
-    /**
-     * 分配标签到文件
-     * @param {{ fileId: string, tagId: string, createdAt: number }} data
-     */
-    async assignToFile(data) {
-        await this.db.prepare(
-            'INSERT INTO file_tags (file_id, tag_id, created_at) VALUES (?, ?, ?)'
-        ).bind(data.fileId, data.tagId, data.createdAt).run();
-    }
+  /**
+   * 分配标签到文件
+   * @param {{ fileId: string, tagId: string, createdAt: number }} data
+   */
+  async assignToFile(data) {
+    await this.db
+      .prepare('INSERT INTO file_tags (file_id, tag_id, created_at) VALUES (?, ?, ?)')
+      .bind(data.fileId, data.tagId, data.createdAt)
+      .run();
+  }
 
-    /**
-     * 从文件移除标签
-     * @param {string} fileId
-     * @param {string} tagId
-     */
-    async removeFromFile(fileId, tagId) {
-        await this.db.prepare(
-            'DELETE FROM file_tags WHERE file_id = ? AND tag_id = ?'
-        ).bind(fileId, tagId).run();
-    }
+  /**
+   * 从文件移除标签
+   * @param {string} fileId
+   * @param {string} tagId
+   */
+  async removeFromFile(fileId, tagId) {
+    await this.db
+      .prepare('DELETE FROM file_tags WHERE file_id = ? AND tag_id = ?')
+      .bind(fileId, tagId)
+      .run();
+  }
 }
 ```
 
@@ -497,6 +501,7 @@ git commit -m "feat(repo): add TagRepository with CRUD and file assignment"
 ## Task 5: 重写 tags.js — 使用 TagRepository
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/tags.js`
 
 **Step 1: 重写 tags.js**
@@ -512,51 +517,51 @@ const tagsRoute = new Hono();
 
 // GET 获取所有标签
 tagsRoute.get('/', requirePermission('read'), async (c) => {
-    const repo = new TagRepository(c.env.DB);
-    const results = await repo.findAll();
-    return c.json({ success: true, tags: results });
+  const repo = new TagRepository(c.env.DB);
+  const results = await repo.findAll();
+  return c.json({ success: true, tags: results });
 });
 
 // POST 创建标签
 tagsRoute.post('/', requirePermission('write'), async (c) => {
-    const { name, color } = await c.req.json();
-    if (!name || name.trim() === '') {
-        throw new BadRequestError('Name is required');
+  const { name, color } = await c.req.json();
+  if (!name || name.trim() === '') {
+    throw new BadRequestError('Name is required');
+  }
+
+  const id = generateId();
+  const repo = new TagRepository(c.env.DB);
+
+  // 保留 try-catch 用于区分 UNIQUE 约束冲突
+  try {
+    await repo.create({ id, name: name.trim(), color, createdAt: now() });
+  } catch (error) {
+    if (error.message.includes('UNIQUE constraint failed')) {
+      throw new ConflictError('Tag already exists');
     }
+    throw error;
+  }
 
-    const id = generateId();
-    const repo = new TagRepository(c.env.DB);
-
-    // 保留 try-catch 用于区分 UNIQUE 约束冲突
-    try {
-        await repo.create({ id, name: name.trim(), color, createdAt: now() });
-    } catch (error) {
-        if (error.message.includes('UNIQUE constraint failed')) {
-            throw new ConflictError('Tag already exists');
-        }
-        throw error;
-    }
-
-    return c.json({ success: true, tag: { id, name: name.trim(), color } });
+  return c.json({ success: true, tag: { id, name: name.trim(), color } });
 });
 
 // POST 分配标签到文件
 tagsRoute.post('/assign', requirePermission('write'), async (c) => {
-    const { file_id, tag_id } = await c.req.json();
-    if (!file_id || !tag_id) throw new BadRequestError('Missing IDs');
+  const { file_id, tag_id } = await c.req.json();
+  if (!file_id || !tag_id) throw new BadRequestError('Missing IDs');
 
-    const repo = new TagRepository(c.env.DB);
-    await repo.assignToFile({ fileId: file_id, tagId: tag_id, createdAt: now() });
-    return c.json({ success: true });
+  const repo = new TagRepository(c.env.DB);
+  await repo.assignToFile({ fileId: file_id, tagId: tag_id, createdAt: now() });
+  return c.json({ success: true });
 });
 
 // DELETE 从文件移除标签
 tagsRoute.delete('/assign', requirePermission('write'), async (c) => {
-    const { file_id, tag_id } = await c.req.json();
+  const { file_id, tag_id } = await c.req.json();
 
-    const repo = new TagRepository(c.env.DB);
-    await repo.removeFromFile(file_id, tag_id);
-    return c.json({ success: true });
+  const repo = new TagRepository(c.env.DB);
+  await repo.removeFromFile(file_id, tag_id);
+  return c.json({ success: true });
 });
 
 export default tagsRoute;
@@ -581,6 +586,7 @@ git commit -m "refactor(tags): migrate to TagRepository, normalize import paths"
 ## Task 6: 创建 SettingsRepository
 
 **Files:**
+
 - Create: `functions/repositories/SettingsRepository.js`
 
 **Step 1: 创建 SettingsRepository 类**
@@ -594,66 +600,69 @@ git commit -m "refactor(tags): migrate to TagRepository, normalize import paths"
  */
 
 export class SettingsRepository {
-    constructor(db) {
-        this.db = db;
-    }
+  constructor(db) {
+    this.db = db;
+  }
 
-    /**
-     * 获取所有设置，按 category 分组返回
-     * @returns {Promise<Record<string, Record<string, string>>>}
-     */
-    async getAllGrouped() {
-        const { results } = await this.db.prepare(
-            'SELECT * FROM SystemSettings ORDER BY category, "key"'
-        ).all();
+  /**
+   * 获取所有设置，按 category 分组返回
+   * @returns {Promise<Record<string, Record<string, string>>>}
+   */
+  async getAllGrouped() {
+    const { results } = await this.db
+      .prepare('SELECT * FROM SystemSettings ORDER BY category, "key"')
+      .all();
 
-        if (!results || results.length === 0) return null;
+    if (!results || results.length === 0) return null;
 
-        const grouped = {};
-        results.forEach(row => {
-            if (!grouped[row.category]) grouped[row.category] = {};
-            grouped[row.category][row.key] = row.value;
-        });
-        return grouped;
-    }
+    const grouped = {};
+    results.forEach((row) => {
+      if (!grouped[row.category]) grouped[row.category] = {};
+      grouped[row.category][row.key] = row.value;
+    });
+    return grouped;
+  }
 
-    /**
-     * 批量 upsert 设置（使用 D1 batch）
-     * @param {Array<{ key: string, value: string, category?: string, description?: string }>} settings
-     * @returns {Promise<number>} 影响行数
-     */
-    async batchUpsert(settings) {
-        const stmt = this.db.prepare(
-            `INSERT INTO SystemSettings ("key", "value", "category", "description", "updatedAt")
+  /**
+   * 批量 upsert 设置（使用 D1 batch）
+   * @param {Array<{ key: string, value: string, category?: string, description?: string }>} settings
+   * @returns {Promise<number>} 影响行数
+   */
+  async batchUpsert(settings) {
+    const stmt = this.db.prepare(
+      `INSERT INTO SystemSettings ("key", "value", "category", "description", "updatedAt")
              VALUES (?, ?, ?, ?, strftime('%s', 'now'))
              ON CONFLICT("key") DO UPDATE SET
              "value" = excluded."value",
              "category" = excluded."category",
              "updatedAt" = strftime('%s', 'now')`
-        );
+    );
 
-        const batch = settings.map(s =>
-            stmt.bind(s.key, s.value, s.category || 'general', s.description || null)
-        );
+    const batch = settings.map((s) =>
+      stmt.bind(s.key, s.value, s.category || 'general', s.description || null)
+    );
 
-        await this.db.batch(batch);
-        return settings.length;
-    }
+    await this.db.batch(batch);
+    return settings.length;
+  }
 
-    /**
-     * 单个 upsert 设置
-     * @param {string} key
-     * @param {{ value: string, category?: string, description?: string }} data
-     */
-    async upsert(key, { value, category, description }) {
-        await this.db.prepare(
-            `INSERT INTO SystemSettings ("key", "value", "category", "description", "updatedAt")
+  /**
+   * 单个 upsert 设置
+   * @param {string} key
+   * @param {{ value: string, category?: string, description?: string }} data
+   */
+  async upsert(key, { value, category, description }) {
+    await this.db
+      .prepare(
+        `INSERT INTO SystemSettings ("key", "value", "category", "description", "updatedAt")
              VALUES (?, ?, ?, ?, strftime('%s', 'now'))
              ON CONFLICT("key") DO UPDATE SET
              "value" = excluded."value",
              "updatedAt" = strftime('%s', 'now')`
-        ).bind(key, value, category || 'general', description || null).run();
-    }
+      )
+      .bind(key, value, category || 'general', description || null)
+      .run();
+  }
 }
 ```
 
@@ -674,6 +683,7 @@ git commit -m "feat(repo): add SettingsRepository with grouped query and batch u
 ## Task 7: 重写 settings.js — 使用 SettingsRepository
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/settings.js`
 
 **Step 1: 重写 settings.js**
@@ -751,6 +761,7 @@ git commit -m "refactor(settings): migrate to SettingsRepository"
 ## Verification Plan
 
 ### 自动验证
+
 - 每个 Task 完成后运行 `pnpm run build`，确保无编译错误
 - 最终完成后运行 `pnpm run build` 做全量验证
 

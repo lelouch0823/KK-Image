@@ -108,14 +108,18 @@ describe('ProductWorkflowModal', () => {
     });
     await flushPromises();
 
-    expect(wrapper.get('[data-testid="product-detail"]').text()).toContain('Hydrated Detail Product');
+    expect(wrapper.get('[data-testid="product-detail"]').text()).toContain(
+      'Hydrated Detail Product'
+    );
   });
 
   it('does not auto-select archived variants during progressive detail hydration', async () => {
     mocks.loadProduct.mockResolvedValueOnce({
       id: 'p-1',
       name: 'Archived Only Product',
-      variants: [{ id: 'v-archived', sku: 'SKU-ARCHIVED', status: 'archived', image_id: 'img-archived' }],
+      variants: [
+        { id: 'v-archived', sku: 'SKU-ARCHIVED', status: 'archived', image_id: 'img-archived' },
+      ],
     });
 
     const wrapper = mount(ProductWorkflowModal, {
@@ -133,7 +137,8 @@ describe('ProductWorkflowModal', () => {
             props: ['modelValue', 'title', 'size'],
           },
           ProductDetail: {
-            template: '<div data-testid="product-detail">{{ product?.selectedVariant?.id || "none" }}|{{ product?.mainImage || "none" }}</div>',
+            template:
+              '<div data-testid="product-detail">{{ product?.selectedVariant?.id || "none" }}|{{ product?.mainImage || "none" }}</div>',
             props: ['product'],
           },
           ProductCreateModal: {

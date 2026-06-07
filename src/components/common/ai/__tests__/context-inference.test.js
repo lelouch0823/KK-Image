@@ -17,23 +17,29 @@ describe('AI context inference', () => {
   });
 
   it('maps generic id by view when explicit typed query is absent', () => {
-    expect(inferAIEntityContext({
-      view: 'orders',
-      params: { id: 'ord-1' },
-      query: {},
-    })).toEqual({ selectedId: 'ord-1', selectedType: 'order' });
+    expect(
+      inferAIEntityContext({
+        view: 'orders',
+        params: { id: 'ord-1' },
+        query: {},
+      })
+    ).toEqual({ selectedId: 'ord-1', selectedType: 'order' });
 
-    expect(inferAIEntityContext({
-      view: 'goods-overview',
-      params: {},
-      query: { id: 'var-2' },
-    })).toEqual({ selectedId: 'var-2', selectedType: 'variant' });
+    expect(
+      inferAIEntityContext({
+        view: 'goods-overview',
+        params: {},
+        query: { id: 'var-2' },
+      })
+    ).toEqual({ selectedId: 'var-2', selectedType: 'variant' });
 
-    expect(inferAIEntityContext({
-      view: 'purchase-orders',
-      params: {},
-      query: { id: 'po-2' },
-    })).toEqual({ selectedId: 'po-2', selectedType: null });
+    expect(
+      inferAIEntityContext({
+        view: 'purchase-orders',
+        params: {},
+        query: { id: 'po-2' },
+      })
+    ).toEqual({ selectedId: 'po-2', selectedType: null });
   });
 
   it('keeps unknown view type as null while preserving id', () => {

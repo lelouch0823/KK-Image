@@ -22,17 +22,17 @@ sequenceDiagram
     User->>FE: 发送提问
     FE->>BE: POST /stream
     BE->>AI: callAIStream (带 tools 定义)
-    
+
     Note over AI: 某些模型不走标准 tool_calls 协议
     AI-->>BE: delta.content: "我来查... searchVariants"
     AI-->>BE: delta.content: "<arg_key>limit</arg_key>"
     AI-->>BE: delta.content: "<arg_value>50</arg_value>"
-    
+
     Note over BE: ❌ 当前：盲目转发所有 delta.content
     BE-->>FE: SSE text_delta: "searchVariants"
     BE-->>FE: SSE text_delta: "<arg_key>limit</arg_key>"
     FE-->>User: ❌ 用户看到了内部标签！
-    
+
     Note over BE: 流结束后才提取工具调用
     BE->>BE: extractToolCallsFromText(fullContent)
     BE->>BE: executeTool("searchVariants", {limit: 50})
@@ -97,146 +97,162 @@ sequenceDiagram
  * 流式内容门控器
  * ================
  * 在 SSE 推送前检测并拦截文本中的工具调用模式。
- * 
+ *
  * 工作原理：
  * 1. 累积文本块到缓冲区
  * 2. 当缓冲区达到阈值或检测到"安全断点"时，释放干净文本
  * 3. 如果检测到工具调用模式，标记并阻止后续内容
  */
 export class ContentGate {
-    constructor() {
-        this.buffer = '';        // 待释放的文本缓冲
-        this.blocked = false;    // 是否检测到工具调用，进入阻断模式
-        this.toolContent = '';   // 被阻断的工具调用原始内容
+  constructor() {
+    this.buffer = ''; // 待释放的文本缓冲
+    this.blocked = false; // 是否检测到工具调用，进入阻断模式
+    this.toolContent = ''; // 被阻断的工具调用原始内容
 
-        // 已知的工具函数名列表（与 AI_TOOLS 同步）
-        this.TOOL_NAMES = [
-            'searchVariants', 'getOrderStats', 'getRecentPendingOrders',
-            'getCustomerStats', 'getSpaceStats', 'getSalespersonStats',
-            'getFileStats', 'searchOrders', 'searchProducts',
-            'searchCustomers', 'getOrderDetail', 'getProductDetail',
-            'getVariantDetail', 'getCustomerDetail',
-            'getGoodsOverviewSummary', 'getGoodsOverviewList'
-        ];
+    // 已知的工具函数名列表（与 AI_TOOLS 同步）
+    this.TOOL_NAMES = [
+      'searchVariants',
+      'getOrderStats',
+      'getRecentPendingOrders',
+      'getCustomerStats',
+      'getSpaceStats',
+      'getSalespersonStats',
+      'getFileStats',
+      'searchOrders',
+      'searchProducts',
+      'searchCustomers',
+      'getOrderDetail',
+      'getProductDetail',
+      'getVariantDetail',
+      'getCustomerDetail',
+      'getGoodsOverviewSummary',
+      'getGoodsOverviewList',
+    ];
 
-        // 危险标签列表
-        this.DANGER_TAGS = [
-            'tools', 'call', 'arg_key', 'arg_value',
-            'function_name', 'parameters', 'tool_code',
-            'thought', 'think'
-        ];
+    // 危险标签列表
+    this.DANGER_TAGS = [
+      'tools',
+      'call',
+      'arg_key',
+      'arg_value',
+      'function_name',
+      'parameters',
+      'tool_code',
+      'thought',
+      'think',
+    ];
+  }
+
+  /**
+   * 推入新文本块，返回可安全推送到前端的文本
+   * @param {string} chunk - delta.content 片段
+   * @returns {{ safeText: string, blocked: boolean }}
+   */
+  push(chunk) {
+    if (this.blocked) {
+      // 已经进入阻断模式，所有后续内容都归入工具调用
+      this.toolContent += chunk;
+      return { safeText: '', blocked: true };
     }
 
-    /**
-     * 推入新文本块，返回可安全推送到前端的文本
-     * @param {string} chunk - delta.content 片段
-     * @returns {{ safeText: string, blocked: boolean }}
-     */
-    push(chunk) {
-        if (this.blocked) {
-            // 已经进入阻断模式，所有后续内容都归入工具调用
-            this.toolContent += chunk;
-            return { safeText: '', blocked: true };
-        }
+    this.buffer += chunk;
 
-        this.buffer += chunk;
-
-        // 检查是否包含危险模式
-        if (this._detectToolCallPattern(this.buffer)) {
-            this.blocked = true;
-            // 分离出干净文本和工具调用文本
-            const { clean, tool } = this._splitAtToolBoundary(this.buffer);
-            this.toolContent = tool;
-            this.buffer = '';
-            return { safeText: clean, blocked: true };
-        }
-
-        // 检查缓冲区是否安全可释放
-        // 策略：保留最后 60 个字符作为"前瞻窗口"以防工具名被截断
-        const LOOKAHEAD = 60;
-        if (this.buffer.length > LOOKAHEAD) {
-            const safeText = this.buffer.slice(0, -LOOKAHEAD);
-            this.buffer = this.buffer.slice(-LOOKAHEAD);
-            return { safeText, blocked: false };
-        }
-
-        return { safeText: '', blocked: false };
+    // 检查是否包含危险模式
+    if (this._detectToolCallPattern(this.buffer)) {
+      this.blocked = true;
+      // 分离出干净文本和工具调用文本
+      const { clean, tool } = this._splitAtToolBoundary(this.buffer);
+      this.toolContent = tool;
+      this.buffer = '';
+      return { safeText: clean, blocked: true };
     }
 
-    /**
-     * 流结束时释放剩余安全文本
-     */
-    flush() {
-        if (this.blocked) {
-            this.toolContent += this.buffer;
-            this.buffer = '';
-            return '';
-        }
-        // 最后一次检查缓冲区
-        if (this._detectToolCallPattern(this.buffer)) {
-            const { clean, tool } = this._splitAtToolBoundary(this.buffer);
-            this.toolContent += tool;
-            this.buffer = '';
-            return clean;
-        }
-        const remaining = this.buffer;
-        this.buffer = '';
-        return remaining;
+    // 检查缓冲区是否安全可释放
+    // 策略：保留最后 60 个字符作为"前瞻窗口"以防工具名被截断
+    const LOOKAHEAD = 60;
+    if (this.buffer.length > LOOKAHEAD) {
+      const safeText = this.buffer.slice(0, -LOOKAHEAD);
+      this.buffer = this.buffer.slice(-LOOKAHEAD);
+      return { safeText, blocked: false };
     }
 
-    /** 检测文本中是否包含工具调用模式 */
-    _detectToolCallPattern(text) {
-        // 1. 检测已知函数名（独立出现，不在引号或反引号内）
-        for (const name of this.TOOL_NAMES) {
-            // 匹配不在反引号内的函数名
-            const regex = new RegExp(`(?<!\`)\\b${name}\\b(?!\`)`, '');
-            if (regex.test(text)) return true;
-        }
-        // 2. 检测 XML 标签
-        for (const tag of this.DANGER_TAGS) {
-            if (text.includes(`<${tag}`) || text.includes(`</${tag}`)) return true;
-        }
-        // 3. 检测 <tools JSON 格式
-        if (text.includes('<tools')) return true;
-        // 4. 检测 {"name": "xxx", "arguments": 格式
-        if (/\{"name"\s*:\s*"/.test(text)) return true;
+    return { safeText: '', blocked: false };
+  }
 
-        return false;
+  /**
+   * 流结束时释放剩余安全文本
+   */
+  flush() {
+    if (this.blocked) {
+      this.toolContent += this.buffer;
+      this.buffer = '';
+      return '';
     }
+    // 最后一次检查缓冲区
+    if (this._detectToolCallPattern(this.buffer)) {
+      const { clean, tool } = this._splitAtToolBoundary(this.buffer);
+      this.toolContent += tool;
+      this.buffer = '';
+      return clean;
+    }
+    const remaining = this.buffer;
+    this.buffer = '';
+    return remaining;
+  }
 
-    /** 在工具调用边界处分割文本 */
-    _splitAtToolBoundary(text) {
-        // 优先按函数名分割
-        for (const name of this.TOOL_NAMES) {
-            const idx = text.indexOf(name);
-            if (idx !== -1) {
-                // 向前回溯到最近的换行符或句号
-                let splitPoint = idx;
-                const beforeTool = text.slice(0, idx);
-                const lastNewline = Math.max(
-                    beforeTool.lastIndexOf('\n'),
-                    beforeTool.lastIndexOf('。'),
-                    beforeTool.lastIndexOf('：')
-                );
-                if (lastNewline !== -1) splitPoint = lastNewline + 1;
-                return {
-                    clean: text.slice(0, splitPoint).trim(),
-                    tool: text.slice(splitPoint)
-                };
-            }
-        }
-        // 按 XML 标签分割
-        for (const tag of this.DANGER_TAGS) {
-            const idx = text.indexOf(`<${tag}`);
-            if (idx !== -1) {
-                return {
-                    clean: text.slice(0, idx).trim(),
-                    tool: text.slice(idx)
-                };
-            }
-        }
-        return { clean: '', tool: text };
+  /** 检测文本中是否包含工具调用模式 */
+  _detectToolCallPattern(text) {
+    // 1. 检测已知函数名（独立出现，不在引号或反引号内）
+    for (const name of this.TOOL_NAMES) {
+      // 匹配不在反引号内的函数名
+      const regex = new RegExp(`(?<!\`)\\b${name}\\b(?!\`)`, '');
+      if (regex.test(text)) return true;
     }
+    // 2. 检测 XML 标签
+    for (const tag of this.DANGER_TAGS) {
+      if (text.includes(`<${tag}`) || text.includes(`</${tag}`)) return true;
+    }
+    // 3. 检测 <tools JSON 格式
+    if (text.includes('<tools')) return true;
+    // 4. 检测 {"name": "xxx", "arguments": 格式
+    if (/\{"name"\s*:\s*"/.test(text)) return true;
+
+    return false;
+  }
+
+  /** 在工具调用边界处分割文本 */
+  _splitAtToolBoundary(text) {
+    // 优先按函数名分割
+    for (const name of this.TOOL_NAMES) {
+      const idx = text.indexOf(name);
+      if (idx !== -1) {
+        // 向前回溯到最近的换行符或句号
+        let splitPoint = idx;
+        const beforeTool = text.slice(0, idx);
+        const lastNewline = Math.max(
+          beforeTool.lastIndexOf('\n'),
+          beforeTool.lastIndexOf('。'),
+          beforeTool.lastIndexOf('：')
+        );
+        if (lastNewline !== -1) splitPoint = lastNewline + 1;
+        return {
+          clean: text.slice(0, splitPoint).trim(),
+          tool: text.slice(splitPoint),
+        };
+      }
+    }
+    // 按 XML 标签分割
+    for (const tag of this.DANGER_TAGS) {
+      const idx = text.indexOf(`<${tag}`);
+      if (idx !== -1) {
+        return {
+          clean: text.slice(0, idx).trim(),
+          tool: text.slice(idx),
+        };
+      }
+    }
+    return { clean: '', tool: text };
+  }
 }
 ```
 
@@ -244,74 +260,74 @@ export class ContentGate {
 
 ```javascript
 async function processStreamToSSE(aiStream, sseStream) {
-    const reader = aiStream.getReader();
-    const decoder = new TextDecoder();
-    let fullContent = '';
-    let toolCalls = [];
-    let buffer = '';
-    const gate = new ContentGate(); // 新增：内容门控
+  const reader = aiStream.getReader();
+  const decoder = new TextDecoder();
+  let fullContent = '';
+  let toolCalls = [];
+  let buffer = '';
+  const gate = new ContentGate(); // 新增：内容门控
 
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split('\n');
-        buffer = parts.pop();
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split('\n');
+    buffer = parts.pop();
 
-        for (const part of parts) {
-            const chunks = parseSSEChunk(part + '\n');
-            for (const chunk of chunks) {
-                if (chunk.done) continue;
-                const delta = chunk.choices?.[0]?.delta;
-                if (!delta) continue;
+    for (const part of parts) {
+      const chunks = parseSSEChunk(part + '\n');
+      for (const chunk of chunks) {
+        if (chunk.done) continue;
+        const delta = chunk.choices?.[0]?.delta;
+        if (!delta) continue;
 
-                if (delta.content) {
-                    fullContent += delta.content;
-                    // 新增：通过门控过滤后再推送
-                    const { safeText } = gate.push(delta.content);
-                    if (safeText) {
-                        await sseStream.writeSSE({
-                            event: 'text_delta',
-                            data: JSON.stringify({ content: safeText })
-                        });
-                    }
-                }
+        if (delta.content) {
+          fullContent += delta.content;
+          // 新增：通过门控过滤后再推送
+          const { safeText } = gate.push(delta.content);
+          if (safeText) {
+            await sseStream.writeSSE({
+              event: 'text_delta',
+              data: JSON.stringify({ content: safeText }),
+            });
+          }
+        }
 
-                if (delta.tool_calls) {
-                    for (const tc of delta.tool_calls) {
-                        if (tc.index !== undefined) {
-                            if (!toolCalls[tc.index]) toolCalls[tc.index] = { id: '', name: '', arguments: '' };
-                            if (tc.id) toolCalls[tc.index].id = tc.id;
-                            if (tc.function?.name) toolCalls[tc.index].name = tc.function.name;
-                            if (tc.function?.arguments) toolCalls[tc.index].arguments += tc.function.arguments;
-                        }
-                    }
-                }
+        if (delta.tool_calls) {
+          for (const tc of delta.tool_calls) {
+            if (tc.index !== undefined) {
+              if (!toolCalls[tc.index]) toolCalls[tc.index] = { id: '', name: '', arguments: '' };
+              if (tc.id) toolCalls[tc.index].id = tc.id;
+              if (tc.function?.name) toolCalls[tc.index].name = tc.function.name;
+              if (tc.function?.arguments) toolCalls[tc.index].arguments += tc.function.arguments;
             }
+          }
         }
+      }
     }
+  }
 
-    // 流结束：释放门控缓冲区剩余文本
-    const remaining = gate.flush();
-    if (remaining) {
-        await sseStream.writeSSE({
-            event: 'text_delta',
-            data: JSON.stringify({ content: remaining })
-        });
+  // 流结束：释放门控缓冲区剩余文本
+  const remaining = gate.flush();
+  if (remaining) {
+    await sseStream.writeSSE({
+      event: 'text_delta',
+      data: JSON.stringify({ content: remaining }),
+    });
+  }
+
+  // 文本工具调用检测（门控 + 后置双重保障）
+  if (toolCalls.length === 0 && fullContent) {
+    const { cleanText, toolCalls: textToolCalls } = extractToolCallsFromText(fullContent);
+    if (textToolCalls.length > 0) {
+      console.log(`[AI Stream] Detected ${textToolCalls.length} text-based tool calls`);
+      toolCalls = textToolCalls;
+      fullContent = cleanText;
     }
+  }
 
-    // 文本工具调用检测（门控 + 后置双重保障）
-    if (toolCalls.length === 0 && fullContent) {
-        const { cleanText, toolCalls: textToolCalls } = extractToolCallsFromText(fullContent);
-        if (textToolCalls.length > 0) {
-            console.log(`[AI Stream] Detected ${textToolCalls.length} text-based tool calls`);
-            toolCalls = textToolCalls;
-            fullContent = cleanText;
-        }
-    }
-
-    return { fullContent, toolCalls };
+  return { fullContent, toolCalls };
 }
 ```
 
@@ -344,20 +360,26 @@ git commit -m "feat(ai): add ContentGate to prevent tool-call tags from leaking 
 ```javascript
 // 内部工具调用标签的前端净化函数
 function sanitizeStreamChunk(text) {
-    if (!text) return text;
-    // 移除完整的 XML 标签对
-    let cleaned = text.replace(/<(tools|call|arg_key|arg_value|function_name|parameters|tool_code|thought|think)[^>]*>[\s\S]*?<\/\1>/gi, '');
-    // 移除残留的开/闭标签
-    cleaned = cleaned.replace(/<\/?(tools|call|arg_key|arg_value|function_name|parameters|tool_code|thought|think)[^>]*>/gi, '');
-    return cleaned;
+  if (!text) return text;
+  // 移除完整的 XML 标签对
+  let cleaned = text.replace(
+    /<(tools|call|arg_key|arg_value|function_name|parameters|tool_code|thought|think)[^>]*>[\s\S]*?<\/\1>/gi,
+    ''
+  );
+  // 移除残留的开/闭标签
+  cleaned = cleaned.replace(
+    /<\/?(tools|call|arg_key|arg_value|function_name|parameters|tool_code|thought|think)[^>]*>/gi,
+    ''
+  );
+  return cleaned;
 }
 
 // 在事件处理中使用
 if (event.type === 'text_delta' && event.data?.content) {
-    const cleaned = sanitizeStreamChunk(event.data.content);
-    if (cleaned) {
-        pushToTypewriter(cleaned);
-    }
+  const cleaned = sanitizeStreamChunk(event.data.content);
+  if (cleaned) {
+    pushToTypewriter(cleaned);
+  }
 }
 ```
 
@@ -413,67 +435,70 @@ const MAX_TOOL_ROUNDS = 3; // 最大工具调用轮数，防止无限循环
 const MAX_TOOLS_PER_ROUND = 8; // 每轮工具调用数量上限，防止风暴
 
 async function handleToolCallsToSSE(toolCalls, fullContent, messages, executeTool, sseStream, env) {
-    let currentToolCalls = toolCalls;
-    let currentContent = fullContent;
-    let round = 0;
+  let currentToolCalls = toolCalls;
+  let currentContent = fullContent;
+  let round = 0;
 
-    while (currentToolCalls.length > 0 && round < MAX_TOOL_ROUNDS) {
-        round++;
-        currentToolCalls = currentToolCalls.slice(0, MAX_TOOLS_PER_ROUND);
-        console.log(`[AI Stream] Tool call round ${round}, ${currentToolCalls.length} calls`);
+  while (currentToolCalls.length > 0 && round < MAX_TOOL_ROUNDS) {
+    round++;
+    currentToolCalls = currentToolCalls.slice(0, MAX_TOOLS_PER_ROUND);
+    console.log(`[AI Stream] Tool call round ${round}, ${currentToolCalls.length} calls`);
 
-        messages.push({
-            role: 'assistant',
-            content: currentContent || null,
-            tool_calls: currentToolCalls.map(tc => ({
-                id: tc.id,
-                type: 'function',
-                function: { name: tc.name, arguments: tc.arguments }
-            }))
-        });
+    messages.push({
+      role: 'assistant',
+      content: currentContent || null,
+      tool_calls: currentToolCalls.map((tc) => ({
+        id: tc.id,
+        type: 'function',
+        function: { name: tc.name, arguments: tc.arguments },
+      })),
+    });
 
-        for (const tc of currentToolCalls) {
-            if (!tc.name) continue;
+    for (const tc of currentToolCalls) {
+      if (!tc.name) continue;
 
-            await sseStream.writeSSE({
-                event: 'tool_call',
-                data: JSON.stringify({ name: tc.name, status: 'started' })
-            });
+      await sseStream.writeSSE({
+        event: 'tool_call',
+        data: JSON.stringify({ name: tc.name, status: 'started' }),
+      });
 
-            let args = {};
-            try {
-                args = tc.arguments ? JSON.parse(tc.arguments) : {};
-            } catch (_parseErr) {
-                console.warn(`[AI Stream] Failed to parse tool arguments: ${tc.arguments}`);
-            }
-            const result = await executeTool(tc.name, args);
+      let args = {};
+      try {
+        args = tc.arguments ? JSON.parse(tc.arguments) : {};
+      } catch (_parseErr) {
+        console.warn(`[AI Stream] Failed to parse tool arguments: ${tc.arguments}`);
+      }
+      const result = await executeTool(tc.name, args);
 
-            await sseStream.writeSSE({
-                event: 'tool_result',
-                data: JSON.stringify({ name: tc.name, summary: MSG.AI.TOOLS.RESULT_READY })
-            });
+      await sseStream.writeSSE({
+        event: 'tool_result',
+        data: JSON.stringify({ name: tc.name, summary: MSG.AI.TOOLS.RESULT_READY }),
+      });
 
-            messages.push({
-                role: 'tool',
-                tool_call_id: tc.id,
-                content: JSON.stringify(result)
-            });
+      messages.push({
+        role: 'tool',
+        tool_call_id: tc.id,
+        content: JSON.stringify(result),
+      });
 
-            // 清空 content，避免重复传入
-            currentContent = null;
-        }
-
-        // 发起下一轮 AI 调用（带上工具结果）
-        const nextResult = await callAIStream(messages, AI_TOOLS, env); // ← 关键：传入 AI_TOOLS 而非空数组
-        const { fullContent: nextContent, toolCalls: nextToolCalls } = await processStreamToSSE(nextResult.body, sseStream);
-
-        currentToolCalls = nextToolCalls;
-        currentContent = nextContent;
+      // 清空 content，避免重复传入
+      currentContent = null;
     }
 
-    if (round >= MAX_TOOL_ROUNDS && currentToolCalls.length > 0) {
-        console.warn(`[AI Stream] Reached max tool call rounds (${MAX_TOOL_ROUNDS}), stopping`);
-    }
+    // 发起下一轮 AI 调用（带上工具结果）
+    const nextResult = await callAIStream(messages, AI_TOOLS, env); // ← 关键：传入 AI_TOOLS 而非空数组
+    const { fullContent: nextContent, toolCalls: nextToolCalls } = await processStreamToSSE(
+      nextResult.body,
+      sseStream
+    );
+
+    currentToolCalls = nextToolCalls;
+    currentContent = nextContent;
+  }
+
+  if (round >= MAX_TOOL_ROUNDS && currentToolCalls.length > 0) {
+    console.warn(`[AI Stream] Reached max tool call rounds (${MAX_TOOL_ROUNDS}), stopping`);
+  }
 }
 ```
 
@@ -503,7 +528,8 @@ git commit -m "feat(ai): support multi-round tool calls for complex queries"
 // === 预处理 0：移除报告标记与内部 AI 标签（兜底） ===
 processed = processed.replace(/\[REPORT_AVAILABLE\]/g, '');
 // 移除所有已知的内部 XML 标签及其内容
-const AI_INTERNAL_TAG = /<\/?(tools|call|arg_key|arg_value|function_name|parameters|tool_code|thought|think)[^>]*>/gi;
+const AI_INTERNAL_TAG =
+  /<\/?(tools|call|arg_key|arg_value|function_name|parameters|tool_code|thought|think)[^>]*>/gi;
 processed = processed.replace(AI_INTERNAL_TAG, '');
 ```
 
@@ -515,13 +541,13 @@ processed = processed.replace(AI_INTERNAL_TAG, '');
 
 ```javascript
 const isThinking = computed(() => {
-    if (isLoading.value) return true;
-    if (isStreaming.value) {
-        if (toolStatus.value) return true;
-        if (!displayedContent.value?.trim()) return true;
-        if (!isTyping.value) return true;
-    }
-    return false;
+  if (isLoading.value) return true;
+  if (isStreaming.value) {
+    if (toolStatus.value) return true;
+    if (!displayedContent.value?.trim()) return true;
+    if (!isTyping.value) return true;
+  }
+  return false;
 });
 ```
 
@@ -538,13 +564,13 @@ git commit -m "refactor(ai): simplify frontend tag filtering after backend gate 
 
 **Step 1: 测试用例矩阵**
 
-| 测试场景 | 输入 | 预期结果 |
-|----------|------|----------|
-| 基本统计 | "今日数据日报" | 调用多个工具，返回格式化的统计数据，无标签泄露 |
-| 商品搜索 | "帮我搜一下 Scale Product 的变体" | 正确调用 `searchVariants`，返回结果 |
-| 多轮查询 | "这个商品有多少变体？详细列出" | 先 `searchProducts`，再 `searchVariants` |
-| 上下文感知 | 在商品详情页问"这个商品怎么样" | 自动使用当前 ID 调用 `getProductDetail` |
-| 空结果 | "搜索一个不存在的商品" | 友好的空场景提示，无标签泄露 |
+| 测试场景   | 输入                              | 预期结果                                       |
+| ---------- | --------------------------------- | ---------------------------------------------- |
+| 基本统计   | "今日数据日报"                    | 调用多个工具，返回格式化的统计数据，无标签泄露 |
+| 商品搜索   | "帮我搜一下 Scale Product 的变体" | 正确调用 `searchVariants`，返回结果            |
+| 多轮查询   | "这个商品有多少变体？详细列出"    | 先 `searchProducts`，再 `searchVariants`       |
+| 上下文感知 | 在商品详情页问"这个商品怎么样"    | 自动使用当前 ID 调用 `getProductDetail`        |
+| 空结果     | "搜索一个不存在的商品"            | 友好的空场景提示，无标签泄露                   |
 
 **Step 2: 在浏览器中实际测试**
 
@@ -566,11 +592,13 @@ git commit -m "feat(ai): comprehensive tool calling enhancement - complete"
 ## Verification Plan
 
 ### Automated Tests
+
 - `pnpm test:unit functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
 - `pnpm test:unit functions/utils/__tests__/ai-stream-helpers.test.js`（新增，必需）
 - `pnpm test:unit src/composables/__tests__/useAIStream.test.js`（新增，覆盖分片净化）
 
 ### Manual Verification
+
 - 在本地开发环境中使用 AI 聊天窗口测试上述 6 个场景
 - 检查浏览器 DevTools Network 面板，确认 SSE 事件流中无工具调用标签泄露
 - 检查浏览器控制台，确认工具调用日志正常输出

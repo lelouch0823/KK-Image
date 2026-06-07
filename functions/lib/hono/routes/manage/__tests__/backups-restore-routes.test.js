@@ -26,7 +26,10 @@ import backupsApp from '../backups.js';
 function createApp(user = { id: 'admin-1', name: 'Admin', role: 'admin', type: 'admin' }) {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.use('/api/manage/backups/*', async (c, next) => {
     c.set('user', user);
@@ -75,16 +78,18 @@ describe('manage backup restore routes', () => {
 
     expect(res.status).toBe(200);
     expect(mocks.requiredPermissions).toContain('admin:full');
-    expect(body).toEqual(expect.objectContaining({
-      success: true,
-      data: expect.objectContaining({
-        name: 'backup-2026-04-18.zip',
-        size: 4096,
-        uploadedAt: '2026-04-18T12:00:00.000Z',
-        mode: 'validate',
-        allowed: true,
-      }),
-    }));
+    expect(body).toEqual(
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          name: 'backup-2026-04-18.zip',
+          size: 4096,
+          uploadedAt: '2026-04-18T12:00:00.000Z',
+          mode: 'validate',
+          allowed: true,
+        }),
+      })
+    );
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -113,18 +118,18 @@ describe('manage backup restore routes', () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual(expect.objectContaining({
-      success: true,
-      data: expect.objectContaining({
-        name: 'backup-2026-04-18.zip',
-        mode: 'dry-run',
-        allowed: true,
-        dryRun: true,
-        steps: expect.arrayContaining([
-          expect.stringContaining('Verify backup object'),
-        ]),
-      }),
-    }));
+    expect(body).toEqual(
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          name: 'backup-2026-04-18.zip',
+          mode: 'dry-run',
+          allowed: true,
+          dryRun: true,
+          steps: expect.arrayContaining([expect.stringContaining('Verify backup object')]),
+        }),
+      })
+    );
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -147,10 +152,12 @@ describe('manage backup restore routes', () => {
     const body = await res.json();
 
     expect(res.status).toBe(403);
-    expect(body).toEqual(expect.objectContaining({
-      success: false,
-      error: expect.stringContaining('Restore execution is disabled'),
-    }));
+    expect(body).toEqual(
+      expect.objectContaining({
+        success: false,
+        error: expect.stringContaining('Restore execution is disabled'),
+      })
+    );
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -175,17 +182,19 @@ describe('manage backup restore routes', () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual(expect.objectContaining({
-      success: true,
-      data: expect.objectContaining({
-        name: 'backup-2026-04-18.zip',
-        mode: 'restore',
-        allowed: true,
-        dryRun: false,
-        executed: false,
-        restoreMode: 'audit-summary-only',
-      }),
-    }));
+    expect(body).toEqual(
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          name: 'backup-2026-04-18.zip',
+          mode: 'restore',
+          allowed: true,
+          dryRun: false,
+          executed: false,
+          restoreMode: 'audit-summary-only',
+        }),
+      })
+    );
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({

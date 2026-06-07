@@ -18,7 +18,9 @@ export class BaseErpAdapter {
   }
 
   /** 获取适配器名称 */
-  get name() { return this.constructor.name; }
+  get name() {
+    return this.constructor.name;
+  }
 
   /**
    * 测试连接
@@ -118,20 +120,35 @@ export class GenericRestAdapter extends BaseErpAdapter {
   _buildAuthHeaders() {
     const { authType, credentials } = this.connection;
     if (authType === 'api_key') {
-      return { 'Authorization': `Bearer ${credentials.apiKey || credentials.api_key || ''}` };
+      return { Authorization: `Bearer ${credentials.apiKey || credentials.api_key || ''}` };
     }
     if (authType === 'basic') {
       const encoded = btoa(`${credentials.username || ''}:${credentials.password || ''}`);
-      return { 'Authorization': `Basic ${encoded}` };
+      return { Authorization: `Basic ${encoded}` };
     }
     return {};
   }
 
   _entityEndpoints(entityType) {
     const map = {
-      product: { list: '/api/products', get: '/api/products', create: '/api/products', update: '/api/products' },
-      customer: { list: '/api/customers', get: '/api/customers', create: '/api/customers', update: '/api/customers' },
-      order: { list: '/api/orders', get: '/api/orders', create: '/api/orders', update: '/api/orders' },
+      product: {
+        list: '/api/products',
+        get: '/api/products',
+        create: '/api/products',
+        update: '/api/products',
+      },
+      customer: {
+        list: '/api/customers',
+        get: '/api/customers',
+        create: '/api/customers',
+        update: '/api/customers',
+      },
+      order: {
+        list: '/api/orders',
+        get: '/api/orders',
+        create: '/api/orders',
+        update: '/api/orders',
+      },
     };
     return map[entityType] || map.product;
   }
@@ -187,7 +204,7 @@ export class GenericRestAdapter extends BaseErpAdapter {
     let query = `?limit=${limit}&page=${page}`;
     if (since) query += `&updated_after=${encodeURIComponent(since)}`;
     const data = await this._request('GET', `${endpoints.list}${query}`);
-    const items = Array.isArray(data) ? data : (data.items || data.data || []);
+    const items = Array.isArray(data) ? data : data.items || data.data || [];
     return { items, hasMore: items.length >= limit };
   }
 

@@ -45,7 +45,10 @@ import categoriesApp from '../categories.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.route('/api/manage/categories', categoriesApp);
   return app;
@@ -63,10 +66,21 @@ describe('manage categories routes', () => {
     mocks.repoFindAll.mockResolvedValue([
       { id: 'cat-1', name: '服装', parent_id: null, sort_order: 0, created_at: 1 },
     ]);
-    mocks.repoFindById.mockResolvedValue({ id: 'cat-1', name: '服装', parent_id: null, sort_order: 0, created_at: 1 });
+    mocks.repoFindById.mockResolvedValue({
+      id: 'cat-1',
+      name: '服装',
+      parent_id: null,
+      sort_order: 0,
+      created_at: 1,
+    });
     mocks.repoGetTree.mockResolvedValue([{ id: 'cat-1', name: '服装', children: [] }]);
     mocks.repoGetProductCounts.mockResolvedValue(new Map([['cat-1', 5]]));
-    mocks.repoCreate.mockResolvedValue({ id: 'cat-new', name: '新品', parent_id: null, sort_order: 0 });
+    mocks.repoCreate.mockResolvedValue({
+      id: 'cat-new',
+      name: '新品',
+      parent_id: null,
+      sort_order: 0,
+    });
     mocks.repoUpdate.mockResolvedValue(undefined);
     mocks.repoDelete.mockResolvedValue(undefined);
   });
@@ -95,11 +109,16 @@ describe('manage categories routes', () => {
 
   describe('POST /', () => {
     it('创建分类成功', async () => {
-      const res = await app.request('/api/manage/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: '新品' }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/categories',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: '新品' }),
+        },
+        ENV,
+        CTX
+      );
       const json = await res.json();
 
       expect(res.status).toBe(200);
@@ -113,21 +132,31 @@ describe('manage categories routes', () => {
     it('父分类不存在时返回 404', async () => {
       mocks.repoFindById.mockResolvedValueOnce(null);
 
-      const res = await app.request('/api/manage/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: '子分类', parent_id: 'nonexistent' }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/categories',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: '子分类', parent_id: 'nonexistent' }),
+        },
+        ENV,
+        CTX
+      );
 
       expect(res.status).toBe(404);
     });
 
     it('缺少 name 时返回 400', async () => {
-      const res = await app.request('/api/manage/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/categories',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        },
+        ENV,
+        CTX
+      );
 
       expect(res.status).toBe(400);
     });
@@ -139,26 +168,39 @@ describe('manage categories routes', () => {
         .mockResolvedValueOnce({ id: 'cat-1', name: '服装' })
         .mockResolvedValueOnce({ id: 'cat-1', name: '服饰' });
 
-      const res = await app.request('/api/manage/categories/cat-1', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: '服饰' }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/categories/cat-1',
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: '服饰' }),
+        },
+        ENV,
+        CTX
+      );
       const json = await res.json();
 
       expect(res.status).toBe(200);
       expect(json.success).toBe(true);
-      expect(mocks.repoUpdate).toHaveBeenCalledWith('cat-1', expect.objectContaining({ name: '服饰' }));
+      expect(mocks.repoUpdate).toHaveBeenCalledWith(
+        'cat-1',
+        expect.objectContaining({ name: '服饰' })
+      );
     });
 
     it('分类不存在时返回 404', async () => {
       mocks.repoFindById.mockResolvedValueOnce(null);
 
-      const res = await app.request('/api/manage/categories/nonexistent', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: '新名' }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/categories/nonexistent',
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: '新名' }),
+        },
+        ENV,
+        CTX
+      );
 
       expect(res.status).toBe(404);
     });
@@ -166,9 +208,14 @@ describe('manage categories routes', () => {
 
   describe('DELETE /:id', () => {
     it('删除分类成功', async () => {
-      const res = await app.request('/api/manage/categories/cat-1', {
-        method: 'DELETE',
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/categories/cat-1',
+        {
+          method: 'DELETE',
+        },
+        ENV,
+        CTX
+      );
       const json = await res.json();
 
       expect(res.status).toBe(200);
@@ -179,9 +226,14 @@ describe('manage categories routes', () => {
     it('分类不存在时返回 404', async () => {
       mocks.repoFindById.mockResolvedValueOnce(null);
 
-      const res = await app.request('/api/manage/categories/nonexistent', {
-        method: 'DELETE',
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/categories/nonexistent',
+        {
+          method: 'DELETE',
+        },
+        ENV,
+        CTX
+      );
 
       expect(res.status).toBe(404);
     });

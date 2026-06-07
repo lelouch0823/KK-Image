@@ -25,6 +25,7 @@
 ### Task 1: Enforce Arrival Gate In The Service
 
 **Files:**
+
 - Modify: `functions/services/__tests__/PurchaseOrderService.procurement-status.test.js`
 - Modify: `functions/services/PurchaseOrderService.js`
 
@@ -98,7 +99,9 @@ function resolveOutstandingQty(po = {}) {
   if (po.outstanding_qty != null) return Math.max(Number(po.outstanding_qty) || 0, 0);
 
   return Math.max(
-    (Number(po.ordered_qty) || 0) - (Number(po.received_qty) || 0) - (Number(po.cancelled_qty) || 0),
+    (Number(po.ordered_qty) || 0) -
+      (Number(po.received_qty) || 0) -
+      (Number(po.cancelled_qty) || 0),
     0
   );
 }
@@ -133,6 +136,7 @@ git commit -m "fix: gate purchase order arrival on receipt closure"
 ### Task 2: Hide The Invalid Arrived Action In The Admin UI
 
 **Files:**
+
 - Modify: `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
 - Modify: `src/views/PurchaseOrders.vue`
 
@@ -238,6 +242,7 @@ git commit -m "fix: hide arrived transition until receipts close"
 ### Task 3: Run Focused Regression Verification
 
 **Files:**
+
 - Modify: none
 - Test: `functions/services/__tests__/PurchaseOrderService.procurement-status.test.js`
 - Test: `src/views/__tests__/PurchaseOrders.detail-shell.test.js`

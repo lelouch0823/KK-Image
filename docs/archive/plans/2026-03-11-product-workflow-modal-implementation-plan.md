@@ -13,6 +13,7 @@
 ### Task 1: Lock in current regression with tests
 
 **Files:**
+
 - Modify: `src/components/__tests__/ProductManager.variant-hydration.test.js`
 - Create: `src/components/product/__tests__/ProductWorkflowModal.test.js`
 
@@ -48,6 +49,7 @@ git commit -m "test: capture product workflow modal behavior"
 ### Task 2: Extract the product form body from the modal shell
 
 **Files:**
+
 - Create: `src/components/product/ProductFormPanel.vue`
 - Modify: `src/components/product/ProductCreateModal.vue`
 - Test: `src/components/product/__tests__/ProductCreateModal.variant-first.test.js`
@@ -84,6 +86,7 @@ git commit -m "refactor: extract reusable product form panel"
 ### Task 3: Build the workflow modal container
 
 **Files:**
+
 - Create: `src/components/product/ProductWorkflowModal.vue`
 - Modify: `src/components/product/ProductDetailModal.vue`
 - Test: `src/components/product/__tests__/ProductWorkflowModal.test.js`
@@ -133,6 +136,7 @@ git commit -m "feat: add product workflow modal states"
 ### Task 4: Rewire ProductManager to use the workflow modal
 
 **Files:**
+
 - Modify: `src/components/ProductManager.vue`
 - Test: `src/components/__tests__/ProductManager.variant-hydration.test.js`
 
@@ -173,6 +177,7 @@ git commit -m "feat: use workflow modal for product detail editing"
 ### Task 5: Polish copy, motion, and accessibility
 
 **Files:**
+
 - Modify: `src/components/product/ProductWorkflowModal.vue`
 - Modify: `src/locales/zh-CN/product.js`
 - Modify: `src/locales/en/product.js`
@@ -215,6 +220,7 @@ git commit -m "feat: polish product workflow modal feedback"
 ### Task 6: Verify the full product flow
 
 **Files:**
+
 - Modify: `src/components/__tests__/ProductManager.variant-hydration.test.js`
 - Modify: `src/components/product/__tests__/ProductWorkflowModal.test.js`
 

@@ -14,47 +14,52 @@ describe('PurchaseOrderRepository read model', () => {
     const itemsStmt = {
       bind: vi.fn(() => itemsStmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'poi-1',
-          po_id: 'po-1',
-          product_id: 'prod-1',
-          variant_id: 'var-1',
-          quantity: 10,
-          received_qty: 4,
-          cancelled_qty: 1,
-          display_status: 'partially_received',
-          receipt_count: 2,
-          last_received_at: 123456,
-          product_images: '[]',
-          product_specifications: '{}',
-          variant_options: '{}',
-        }],
+        results: [
+          {
+            id: 'poi-1',
+            po_id: 'po-1',
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            quantity: 10,
+            received_qty: 4,
+            cancelled_qty: 1,
+            display_status: 'partially_received',
+            receipt_count: 2,
+            last_received_at: 123456,
+            product_images: '[]',
+            product_specifications: '{}',
+            variant_options: '{}',
+          },
+        ],
       })),
     };
     const receiptsStmt = {
       bind: vi.fn(() => receiptsStmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'receipt-1',
-          purchase_order_item_id: 'poi-1',
-          product_id: 'prod-1',
-          variant_id: 'var-1',
-          received_qty: 4,
-          note: 'split receipt',
-          received_at: 123460,
-          created_at: 123461,
-          product_name: 'Premium Canvas Bag',
-          product_brand: 'KK',
-          product_sku: 'BAG-001',
-          variant_sku: 'BAG-001-BLK',
-          variant_options: '{"Color":"Black"}',
-          reversed_qty: 0,
-          reversal_count: 0,
-        }],
+        results: [
+          {
+            id: 'receipt-1',
+            purchase_order_item_id: 'poi-1',
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            received_qty: 4,
+            note: 'split receipt',
+            received_at: 123460,
+            created_at: 123461,
+            product_name: 'Premium Canvas Bag',
+            product_brand: 'KK',
+            product_sku: 'BAG-001',
+            variant_sku: 'BAG-001-BLK',
+            variant_options: '{"Color":"Black"}',
+            reversed_qty: 0,
+            reversal_count: 0,
+          },
+        ],
       })),
     };
     const db = {
-      prepare: vi.fn()
+      prepare: vi
+        .fn()
         .mockReturnValueOnce(poStmt)
         .mockReturnValueOnce(itemsStmt)
         .mockReturnValueOnce(receiptsStmt),
@@ -106,59 +111,66 @@ describe('PurchaseOrderRepository read model', () => {
     const itemsStmt = {
       bind: vi.fn(() => itemsStmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'poi-1',
-          po_id: 'po-1',
-          product_id: 'prod-1',
-          variant_id: 'var-1',
-          pre_order_id: 'order-1',
-          quantity: 10,
-          received_qty: 4,
-          cancelled_qty: 0,
-          receipt_count: 1,
-          last_received_at: 123456,
-          product_name: 'Live Product Name',
-          product_brand: 'Live Brand',
-          product_images: '["live-image"]',
-          product_specifications: '{}',
-          variant_sku: 'LIVE-SKU',
-          variant_options: '{"Color":"White"}',
-          snapshot_name: 'Snapshot Product Name',
-          snapshot_sku: 'SNAP-SKU',
-          snapshot_specs: '{"brand":"Snapshot Brand","size":"M","color":"Black","material":"Leather"}',
-          snapshot_image: 'snapshot-image',
-          snapshot_brand: 'Snapshot Brand',
-        }],
+        results: [
+          {
+            id: 'poi-1',
+            po_id: 'po-1',
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            pre_order_id: 'order-1',
+            quantity: 10,
+            received_qty: 4,
+            cancelled_qty: 0,
+            receipt_count: 1,
+            last_received_at: 123456,
+            product_name: 'Live Product Name',
+            product_brand: 'Live Brand',
+            product_images: '["live-image"]',
+            product_specifications: '{}',
+            variant_sku: 'LIVE-SKU',
+            variant_options: '{"Color":"White"}',
+            snapshot_name: 'Snapshot Product Name',
+            snapshot_sku: 'SNAP-SKU',
+            snapshot_specs:
+              '{"brand":"Snapshot Brand","size":"M","color":"Black","material":"Leather"}',
+            snapshot_image: 'snapshot-image',
+            snapshot_brand: 'Snapshot Brand',
+          },
+        ],
       })),
     };
     const receiptsStmt = {
       bind: vi.fn(() => receiptsStmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'receipt-1',
-          purchase_order_item_id: 'poi-1',
-          order_line_id: 'line-1',
-          product_id: 'prod-1',
-          variant_id: 'var-1',
-          received_qty: 4,
-          product_name: 'Live Product Name',
-          product_brand: 'Live Brand',
-          product_sku: 'LIVE-PRODUCT-SKU',
-          product_images: '["live-image"]',
-          variant_sku: 'LIVE-SKU',
-          variant_options: '{"Color":"White"}',
-          snapshot_name: 'Snapshot Product Name',
-          snapshot_sku: 'SNAP-SKU',
-          snapshot_specs: '{"brand":"Snapshot Brand","size":"M","color":"Black","material":"Leather"}',
-          snapshot_image: 'snapshot-image',
-          snapshot_brand: 'Snapshot Brand',
-          reversed_qty: 0,
-          reversal_count: 0,
-        }],
+        results: [
+          {
+            id: 'receipt-1',
+            purchase_order_item_id: 'poi-1',
+            order_line_id: 'line-1',
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            received_qty: 4,
+            product_name: 'Live Product Name',
+            product_brand: 'Live Brand',
+            product_sku: 'LIVE-PRODUCT-SKU',
+            product_images: '["live-image"]',
+            variant_sku: 'LIVE-SKU',
+            variant_options: '{"Color":"White"}',
+            snapshot_name: 'Snapshot Product Name',
+            snapshot_sku: 'SNAP-SKU',
+            snapshot_specs:
+              '{"brand":"Snapshot Brand","size":"M","color":"Black","material":"Leather"}',
+            snapshot_image: 'snapshot-image',
+            snapshot_brand: 'Snapshot Brand',
+            reversed_qty: 0,
+            reversal_count: 0,
+          },
+        ],
       })),
     };
     const db = {
-      prepare: vi.fn()
+      prepare: vi
+        .fn()
         .mockReturnValueOnce(poStmt)
         .mockReturnValueOnce(itemsStmt)
         .mockReturnValueOnce(receiptsStmt),
@@ -168,21 +180,27 @@ describe('PurchaseOrderRepository read model', () => {
     const po = await repo.findById('po-1');
 
     expect(db.prepare.mock.calls[1][0]).toContain('FROM order_lines');
-    expect(db.prepare.mock.calls[2][0]).toContain('LEFT JOIN order_lines ol ON ol.id = pr.order_line_id');
-    expect(po.items[0]).toEqual(expect.objectContaining({
-      product_name: 'Snapshot Product Name',
-      product_brand: 'Snapshot Brand',
-      variant_sku: 'SNAP-SKU',
-      product_images: ['snapshot-image'],
-      variant_options: { size: 'M', color: 'Black', material: 'Leather' },
-    }));
-    expect(po.receipts[0]).toEqual(expect.objectContaining({
-      product_name: 'Snapshot Product Name',
-      product_brand: 'Snapshot Brand',
-      variant_sku: 'SNAP-SKU',
-      product_images: ['snapshot-image'],
-      variant_options: { size: 'M', color: 'Black', material: 'Leather' },
-    }));
+    expect(db.prepare.mock.calls[2][0]).toContain(
+      'LEFT JOIN order_lines ol ON ol.id = pr.order_line_id'
+    );
+    expect(po.items[0]).toEqual(
+      expect.objectContaining({
+        product_name: 'Snapshot Product Name',
+        product_brand: 'Snapshot Brand',
+        variant_sku: 'SNAP-SKU',
+        product_images: ['snapshot-image'],
+        variant_options: { size: 'M', color: 'Black', material: 'Leather' },
+      })
+    );
+    expect(po.receipts[0]).toEqual(
+      expect.objectContaining({
+        product_name: 'Snapshot Product Name',
+        product_brand: 'Snapshot Brand',
+        variant_sku: 'SNAP-SKU',
+        product_images: ['snapshot-image'],
+        variant_options: { size: 'M', color: 'Black', material: 'Leather' },
+      })
+    );
   });
 
   it('prefers purchase-item snapshots for manual procurement history when no order line exists', async () => {
@@ -197,59 +215,66 @@ describe('PurchaseOrderRepository read model', () => {
     const itemsStmt = {
       bind: vi.fn(() => itemsStmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'poi-1',
-          po_id: 'po-1',
-          product_id: 'prod-1',
-          variant_id: 'var-1',
-          pre_order_id: null,
-          quantity: 8,
-          received_qty: 3,
-          cancelled_qty: 0,
-          receipt_count: 1,
-          last_received_at: 123456,
-          product_name: 'Live Product Name',
-          product_brand: 'Live Brand',
-          product_images: '["live-image"]',
-          product_specifications: '{}',
-          variant_sku: 'LIVE-SKU',
-          variant_options: '{"Color":"White"}',
-          snapshot_name: 'Manual Snapshot Product',
-          snapshot_sku: 'MANUAL-SKU',
-          snapshot_specs: '{"brand":"Manual Brand","size":"L","color":"Camel","material":"Canvas"}',
-          snapshot_image: 'manual-snapshot-image',
-          snapshot_brand: 'Manual Brand',
-        }],
+        results: [
+          {
+            id: 'poi-1',
+            po_id: 'po-1',
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            pre_order_id: null,
+            quantity: 8,
+            received_qty: 3,
+            cancelled_qty: 0,
+            receipt_count: 1,
+            last_received_at: 123456,
+            product_name: 'Live Product Name',
+            product_brand: 'Live Brand',
+            product_images: '["live-image"]',
+            product_specifications: '{}',
+            variant_sku: 'LIVE-SKU',
+            variant_options: '{"Color":"White"}',
+            snapshot_name: 'Manual Snapshot Product',
+            snapshot_sku: 'MANUAL-SKU',
+            snapshot_specs:
+              '{"brand":"Manual Brand","size":"L","color":"Camel","material":"Canvas"}',
+            snapshot_image: 'manual-snapshot-image',
+            snapshot_brand: 'Manual Brand',
+          },
+        ],
       })),
     };
     const receiptsStmt = {
       bind: vi.fn(() => receiptsStmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'receipt-1',
-          purchase_order_item_id: 'poi-1',
-          order_line_id: null,
-          product_id: 'prod-1',
-          variant_id: 'var-1',
-          received_qty: 3,
-          product_name: 'Live Product Name',
-          product_brand: 'Live Brand',
-          product_sku: 'LIVE-PRODUCT-SKU',
-          product_images: '["live-image"]',
-          variant_sku: 'LIVE-SKU',
-          variant_options: '{"Color":"White"}',
-          snapshot_name: 'Manual Snapshot Product',
-          snapshot_sku: 'MANUAL-SKU',
-          snapshot_specs: '{"brand":"Manual Brand","size":"L","color":"Camel","material":"Canvas"}',
-          snapshot_image: 'manual-snapshot-image',
-          snapshot_brand: 'Manual Brand',
-          reversed_qty: 0,
-          reversal_count: 0,
-        }],
+        results: [
+          {
+            id: 'receipt-1',
+            purchase_order_item_id: 'poi-1',
+            order_line_id: null,
+            product_id: 'prod-1',
+            variant_id: 'var-1',
+            received_qty: 3,
+            product_name: 'Live Product Name',
+            product_brand: 'Live Brand',
+            product_sku: 'LIVE-PRODUCT-SKU',
+            product_images: '["live-image"]',
+            variant_sku: 'LIVE-SKU',
+            variant_options: '{"Color":"White"}',
+            snapshot_name: 'Manual Snapshot Product',
+            snapshot_sku: 'MANUAL-SKU',
+            snapshot_specs:
+              '{"brand":"Manual Brand","size":"L","color":"Camel","material":"Canvas"}',
+            snapshot_image: 'manual-snapshot-image',
+            snapshot_brand: 'Manual Brand',
+            reversed_qty: 0,
+            reversal_count: 0,
+          },
+        ],
       })),
     };
     const db = {
-      prepare: vi.fn()
+      prepare: vi
+        .fn()
         .mockReturnValueOnce(poStmt)
         .mockReturnValueOnce(itemsStmt)
         .mockReturnValueOnce(receiptsStmt),
@@ -258,22 +283,30 @@ describe('PurchaseOrderRepository read model', () => {
     const repo = new PurchaseOrderRepository(db);
     const po = await repo.findById('po-1');
 
-    expect(db.prepare.mock.calls[2][0]).toContain('LEFT JOIN purchase_order_items poi_item ON poi_item.id = pr.purchase_order_item_id');
-    expect(db.prepare.mock.calls[2][0]).toContain('COALESCE(poi_item.snapshot_name, ol.snapshot_name) AS snapshot_name');
-    expect(po.items[0]).toEqual(expect.objectContaining({
-      product_name: 'Manual Snapshot Product',
-      product_brand: 'Manual Brand',
-      variant_sku: 'MANUAL-SKU',
-      product_images: ['manual-snapshot-image'],
-      variant_options: { size: 'L', color: 'Camel', material: 'Canvas' },
-    }));
-    expect(po.receipts[0]).toEqual(expect.objectContaining({
-      product_name: 'Manual Snapshot Product',
-      product_brand: 'Manual Brand',
-      variant_sku: 'MANUAL-SKU',
-      product_images: ['manual-snapshot-image'],
-      variant_options: { size: 'L', color: 'Camel', material: 'Canvas' },
-    }));
+    expect(db.prepare.mock.calls[2][0]).toContain(
+      'LEFT JOIN purchase_order_items poi_item ON poi_item.id = pr.purchase_order_item_id'
+    );
+    expect(db.prepare.mock.calls[2][0]).toContain(
+      'COALESCE(poi_item.snapshot_name, ol.snapshot_name) AS snapshot_name'
+    );
+    expect(po.items[0]).toEqual(
+      expect.objectContaining({
+        product_name: 'Manual Snapshot Product',
+        product_brand: 'Manual Brand',
+        variant_sku: 'MANUAL-SKU',
+        product_images: ['manual-snapshot-image'],
+        variant_options: { size: 'L', color: 'Camel', material: 'Canvas' },
+      })
+    );
+    expect(po.receipts[0]).toEqual(
+      expect.objectContaining({
+        product_name: 'Manual Snapshot Product',
+        product_brand: 'Manual Brand',
+        variant_sku: 'MANUAL-SKU',
+        product_images: ['manual-snapshot-image'],
+        variant_options: { size: 'L', color: 'Camel', material: 'Canvas' },
+      })
+    );
   });
 
   it('list aggregates item counts and remaining inbound quantities from purchase_order_items progress', async () => {
@@ -284,18 +317,20 @@ describe('PurchaseOrderRepository read model', () => {
     const listStmt = {
       bind: vi.fn(() => listStmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'po-1',
-          po_no: 'PO-1',
-          status: 'shipping',
-          item_count: 2,
-          ordered_qty: 10,
-          received_qty: 4,
-          cancelled_qty: 1,
-          outstanding_qty: 5,
-          total_goods_cost: 120,
-          display_status: 'partially_received',
-        }],
+        results: [
+          {
+            id: 'po-1',
+            po_no: 'PO-1',
+            status: 'shipping',
+            item_count: 2,
+            ordered_qty: 10,
+            received_qty: 4,
+            cancelled_qty: 1,
+            outstanding_qty: 5,
+            total_goods_cost: 120,
+            display_status: 'partially_received',
+          },
+        ],
       })),
     };
     const db = {
@@ -307,15 +342,19 @@ describe('PurchaseOrderRepository read model', () => {
 
     expect(db.prepare.mock.calls[1][0]).toContain('COUNT(*) AS item_count');
     expect(db.prepare.mock.calls[1][0]).toContain('SUM(received_qty)');
-    expect(db.prepare.mock.calls[1][0]).toContain('COALESCE(SUM(MAX(quantity - received_qty - cancelled_qty, 0)), 0) AS outstanding_qty');
-    expect(result.items[0]).toEqual(expect.objectContaining({
-      item_count: 2,
-      ordered_qty: 10,
-      received_qty: 4,
-      cancelled_qty: 1,
-      outstanding_qty: 5,
-      display_status: 'partially_received',
-    }));
+    expect(db.prepare.mock.calls[1][0]).toContain(
+      'COALESCE(SUM(MAX(quantity - received_qty - cancelled_qty, 0)), 0) AS outstanding_qty'
+    );
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({
+        item_count: 2,
+        ordered_qty: 10,
+        received_qty: 4,
+        cancelled_qty: 1,
+        outstanding_qty: 5,
+        display_status: 'partially_received',
+      })
+    );
   });
 
   it('getStats exposes global procurement progress quantities', async () => {
@@ -342,12 +381,16 @@ describe('PurchaseOrderRepository read model', () => {
 
     expect(db.prepare.mock.calls[0][0]).toContain('SUM(quantity)');
     expect(db.prepare.mock.calls[0][0]).toContain('SUM(received_qty)');
-    expect(db.prepare.mock.calls[0][0]).toContain('SUM(MAX(quantity - received_qty - cancelled_qty, 0))');
-    expect(stats).toEqual(expect.objectContaining({
-      ordered_qty: 12,
-      received_qty: 4,
-      cancelled_qty: 1,
-      outstanding_qty: 7,
-    }));
+    expect(db.prepare.mock.calls[0][0]).toContain(
+      'SUM(MAX(quantity - received_qty - cancelled_qty, 0))'
+    );
+    expect(stats).toEqual(
+      expect.objectContaining({
+        ordered_qty: 12,
+        received_qty: 4,
+        cancelled_qty: 1,
+        outstanding_qty: 7,
+      })
+    );
   });
 });

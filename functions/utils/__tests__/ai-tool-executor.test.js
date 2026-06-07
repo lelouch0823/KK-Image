@@ -96,7 +96,11 @@ describe('executeAITool - variant aware tools', () => {
       }),
     };
 
-    const result = await executeAITool('getVariantDetail', { id: 'var-1' }, { variantRepo, productRepo });
+    const result = await executeAITool(
+      'getVariantDetail',
+      { id: 'var-1' },
+      { variantRepo, productRepo }
+    );
 
     expect(variantRepo.findById).toHaveBeenCalledWith('var-1');
     expect(productRepo.findById).toHaveBeenCalledWith('prod-1');
@@ -128,15 +132,17 @@ describe('executeAITool - variant aware tools', () => {
       ]),
     };
 
-    const result = await executeAITool('getProductDetail', { id: 'prod-1' }, { productRepo, variantRepo });
+    const result = await executeAITool(
+      'getProductDetail',
+      { id: 'prod-1' },
+      { productRepo, variantRepo }
+    );
 
     expect(variantRepo.findByProductId).toHaveBeenCalledWith('prod-1');
     expect(result).toEqual(
       expect.objectContaining({
         id: 'prod-1',
-        variants: [
-          expect.objectContaining({ id: 'v1', variantLabel: 'Red' }),
-        ],
+        variants: [expect.objectContaining({ id: 'v1', variantLabel: 'Red' })],
       })
     );
   });
@@ -163,11 +169,7 @@ describe('executeAITool - variant aware tools', () => {
 
   it('getGoodsOverviewList returns total before slicing', async () => {
     const goodsOverviewRepo = {
-      getList: vi.fn().mockResolvedValue([
-        { id: 'g1' },
-        { id: 'g2' },
-        { id: 'g3' },
-      ]),
+      getList: vi.fn().mockResolvedValue([{ id: 'g1' }, { id: 'g2' }, { id: 'g3' }]),
     };
 
     const result = await executeAITool(
@@ -241,7 +243,11 @@ describe('executeAITool - variant aware tools', () => {
       getStats: vi.fn().mockResolvedValue({ total: 10, draft_count: 3 }),
     };
 
-    const detail = await executeAITool('getPurchaseOrderDetail', { id: 'po-1' }, { purchaseOrderRepo });
+    const detail = await executeAITool(
+      'getPurchaseOrderDetail',
+      { id: 'po-1' },
+      { purchaseOrderRepo }
+    );
     const stats = await executeAITool('getPurchaseStats', {}, { purchaseOrderRepo });
 
     expect(detail).toEqual(expect.objectContaining({ id: 'po-1' }));

@@ -251,17 +251,21 @@ sequenceDiagram
 ## 11. 排查要点
 
 1. 创建成功但没有消息提醒
+
 - 先查 `domain_outbox` / `outbox_consumer_jobs`，不要再假设是同步通知失败。
 
 2. 采购建议里看不到订单
+
 - 先确认订单是否 `confirmed`
 - 再确认是否绑定商品/变体
 
 3. 部分到货后订单状态看起来不对
+
 - 先查 `order_lines` 的 `received_qty` / `display_status`
 - 再看 `orders.procurement_status` 是否只是兼容性聚合结果
 
 4. 冲销后进度没有回退
+
 - 先查 `purchase_receipt_reversals`
 - 再查是否发布了 `order_procurement_reversed`
 

@@ -2,6 +2,10 @@
  * DomainOutboxConsumers — 渠道通知 consumer
  *
  * 将特定事件类型通过 WebhookNotificationService 推送到通知渠道（如企业微信）。
+ *
+ * 注意：此消费者当前未注册到事件目录（DomainEventCatalog），
+ * 不会被 outbox poller 自动调用。待通知渠道（企业微信等）集成完成后启用。
+ * 启用步骤：在 DomainEventCatalog 中注册此 consumer 的事件映射。
  */
 import { safeJsonParse } from '../../api/utils/json.js';
 import { WebhookNotificationService } from '../WebhookNotificationService.js';

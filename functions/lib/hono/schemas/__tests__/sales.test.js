@@ -8,7 +8,7 @@ describe('CreateOrderSchema', () => {
       quantity: 1,
       fileIds: [],
       productId: 'p1',
-      variantId: 'v1'
+      variantId: 'v1',
     });
 
     expect(payload.variantId).toBe('v1');
@@ -16,13 +16,13 @@ describe('CreateOrderSchema', () => {
   });
 
   it('rejects multiline order payloads for salesperson create', () => {
-    expect(() => CreateOrderSchema.parse({
-      name: 'Product A',
-      quantity: 1,
-      fileIds: [],
-      lines: [
-        { name: 'Line A', quantity: 2 },
-      ],
-    })).toThrow();
+    expect(() =>
+      CreateOrderSchema.parse({
+        name: 'Product A',
+        quantity: 1,
+        fileIds: [],
+        lines: [{ name: 'Line A', quantity: 2 }],
+      })
+    ).toThrow();
   });
 });

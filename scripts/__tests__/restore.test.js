@@ -189,7 +189,11 @@ describe('restore script helpers', () => {
     });
 
     expect(exitCode).toBe(0);
-    expect(writeFileSyncImpl).toHaveBeenCalledWith('/tmp/restore_drop.sql', expect.stringContaining('DROP TABLE IF EXISTS "storage_mirrors";'), 'utf-8');
+    expect(writeFileSyncImpl).toHaveBeenCalledWith(
+      '/tmp/restore_drop.sql',
+      expect.stringContaining('DROP TABLE IF EXISTS "storage_mirrors";'),
+      'utf-8'
+    );
     expect(execSyncImpl).toHaveBeenCalledWith(
       'npx wrangler d1 execute kk-life-db --remote --file=/tmp/restore_drop.sql',
       { stdio: 'pipe' }

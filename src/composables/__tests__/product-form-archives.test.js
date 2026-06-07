@@ -34,9 +34,7 @@ describe('product-form archive helpers', () => {
   });
 
   it('normalizes batch builder options and appends only missing variants', () => {
-    const existingVariants = [
-      { id: 'v1', options_values: { Size: 'M' }, sku: 'sku-1' },
-    ];
+    const existingVariants = [{ id: 'v1', options_values: { Size: 'M' }, sku: 'sku-1' }];
 
     const result = applyBatchBuilderSelection({
       existingVariants,
@@ -49,9 +47,7 @@ describe('product-form archive helpers', () => {
       markVariantCompleteness: (variant) => ({ ...variant, marked: true }),
     });
 
-    expect(result.options).toEqual([
-      { name: 'Size', values: ['M', 'L'], inputValue: '' },
-    ]);
+    expect(result.options).toEqual([{ name: 'Size', values: ['M', 'L'], inputValue: '' }]);
     expect(result.variants).toEqual([
       existingVariants[0],
       { id: 'v2', options_values: { Size: 'L' }, sku: '2', marked: true },

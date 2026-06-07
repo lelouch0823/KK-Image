@@ -14,4 +14,3 @@ try {
   console.error('[authz] failed to run opa:', err.message);
   process.exit(1);
 }
-

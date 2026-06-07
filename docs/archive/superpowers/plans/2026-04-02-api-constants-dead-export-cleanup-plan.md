@@ -13,6 +13,7 @@
 ### Task 1: Lock the Dead Export Contract
 
 **Files:**
+
 - Create: `functions/api/utils/__tests__/constants-dead-exports.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the five exports still exist.
 ### Task 2: Remove the Dead Constant Exports
 
 **Files:**
+
 - Modify: `functions/api/utils/constants.js`
 - Test: `functions/api/utils/__tests__/constants-dead-exports.audit.test.js`
 - Test: `functions/repositories/__tests__/order-queries.progress-filter.test.js`

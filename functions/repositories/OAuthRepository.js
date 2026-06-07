@@ -10,7 +10,9 @@ import { buildSetClause } from '../api/utils/sql.js';
 export async function hashSecret(secret) {
   const data = new TextEncoder().encode(secret);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /**
@@ -34,7 +36,7 @@ export class OAuthRepository {
     const { results } = await this.db
       .prepare('SELECT * FROM oauth_clients ORDER BY created_at DESC')
       .all();
-    return (results || []).map(row => this._rowToClient(row));
+    return (results || []).map((row) => this._rowToClient(row));
   }
 
   async getClientById(id) {
@@ -43,11 +45,21 @@ export class OAuthRepository {
   }
 
   async getClientByClientId(clientId) {
-    const row = await this.db.prepare('SELECT * FROM oauth_clients WHERE client_id = ?').bind(clientId).first();
+    const row = await this.db
+      .prepare('SELECT * FROM oauth_clients WHERE client_id = ?')
+      .bind(clientId)
+      .first();
     return row ? this._rowToClient(row, { includeSecret: true }) : null;
   }
 
-  async createClient({ name, description, redirectUris = [], grantTypes = ['authorization_code'], scopes = ['read'], actorId = null }) {
+  async createClient({
+    name,
+    description,
+    redirectUris = [],
+    grantTypes = ['authorization_code'],
+    scopes = ['read'],
+    actorId = null,
+  }) {
     const id = this.clientIdFactory();
     const clientId = generatePrefixedId('oc_');
     const clientSecret = generatePrefixedId('ocs_');
@@ -59,15 +71,26 @@ export class OAuthRepository {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
-        id, clientId, hashedSecret, name, description || null,
-        JSON.stringify(redirectUris), JSON.stringify(grantTypes), JSON.stringify(scopes),
-        actorId, timestamp, timestamp
+        id,
+        clientId,
+        hashedSecret,
+        name,
+        description || null,
+        JSON.stringify(redirectUris),
+        JSON.stringify(grantTypes),
+        JSON.stringify(scopes),
+        actorId,
+        timestamp,
+        timestamp
       )
       .run();
     return { id, clientId, clientSecret, name, description, redirectUris, grantTypes, scopes };
   }
 
-  async updateClient(id, { name, description, redirectUris, grantTypes, scopes, enabled, actorId: _actorId }) {
+  async updateClient(
+    id,
+    { name, description, redirectUris, grantTypes, scopes, enabled, actorId: _actorId }
+  ) {
     const dbUpdates = {};
     if (name !== undefined) dbUpdates.name = name;
     if (description !== undefined) dbUpdates.description = description;
@@ -141,7 +164,15 @@ export class OAuthRepository {
   // 访问令牌
   // ============================================
 
-  async createToken({ clientId, userId, scopes, accessToken, refreshToken, expiresInMs = 3600000, refreshExpiresInMs = 86400000 }) {
+  async createToken({
+    clientId,
+    userId,
+    scopes,
+    accessToken,
+    refreshToken,
+    expiresInMs = 3600000,
+    refreshExpiresInMs = 86400000,
+  }) {
     const id = this.tokenIdFactory();
     const timestamp = this.now();
     const expiresAt = timestamp + expiresInMs;
@@ -151,7 +182,17 @@ export class OAuthRepository {
         `INSERT INTO oauth_tokens (id, access_token, refresh_token, client_id, user_id, scopes, expires_at, refresh_expires_at, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .bind(id, accessToken, refreshToken || null, clientId, userId, JSON.stringify(scopes), expiresAt, refreshExpiresAt, timestamp)
+      .bind(
+        id,
+        accessToken,
+        refreshToken || null,
+        clientId,
+        userId,
+        JSON.stringify(scopes),
+        expiresAt,
+        refreshExpiresAt,
+        timestamp
+      )
       .run();
     return { accessToken, refreshToken, expiresAt, scopes };
   }
@@ -192,10 +233,12 @@ export class OAuthRepository {
 
   async listTokensByClient(clientId) {
     const { results } = await this.db
-      .prepare('SELECT * FROM oauth_tokens WHERE client_id = ? AND revoked = 0 ORDER BY created_at DESC')
+      .prepare(
+        'SELECT * FROM oauth_tokens WHERE client_id = ? AND revoked = 0 ORDER BY created_at DESC'
+      )
       .bind(clientId)
       .all();
-    return (results || []).map(row => this._rowToToken(row));
+    return (results || []).map((row) => this._rowToToken(row));
   }
 
   // ============================================

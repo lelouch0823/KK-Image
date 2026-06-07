@@ -61,7 +61,7 @@ register(
     description: t('keyboardShortcuts.shortcuts.toggleHelp'),
     category: 'general',
     i18nKey: 'keyboardShortcuts.shortcuts.toggleHelp',
-  },
+  }
 );
 
 // Mod+K - 打开命令面板（与现有命令面板集成）
@@ -75,7 +75,7 @@ register(
     description: t('keyboardShortcuts.shortcuts.commandPalette'),
     category: 'general',
     i18nKey: 'keyboardShortcuts.shortcuts.commandPalette',
-  },
+  }
 );
 
 // Escape - 关闭弹窗（文档性质，实际由 Modal.vue 处理）
@@ -91,7 +91,7 @@ register(
     category: 'general',
     overrideDefault: true,
     i18nKey: 'keyboardShortcuts.shortcuts.closeModal',
-  },
+  }
 );
 
 // ---------- 生命周期 ----------

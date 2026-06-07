@@ -76,20 +76,24 @@ src/components/
 ### 3.1 UI基础组件
 
 #### AppButton 按钮组件
+
 - **Props**: `variant` (primary/secondary/danger/ghost), `size` (sm/md/lg/xl), `loading`, `disabled`
 - **Slots**: `default`, `icon-left`, `icon-right`
 - **依赖**: `AppIcon`
 
 #### AppInput 输入框组件
+
 - **Props**: `modelValue`, `label`, `error`, `hint`, `required`, `textarea`
 - **Emits**: `update:modelValue`, `blur`, `focus`
 - **Expose**: `focus()`, `blur()`
 
 #### Modal 模态框组件
+
 - **Props**: `modelValue`, `title`, `size` (sm-full), `closable`, `closeOnBackdrop`
 - **特性**: 多层级堆叠管理、ESC关闭、滚动锁定
 
 #### AppTable 表格组件
+
 - **Props**: `columns`, `data`, `virtual`, `loading`, `clickable`, `minRows`, `sparseThreshold`, `fillSparseSpace`
 - **Slots**: `toolbar`, `cell-{key}`, `header-{key}`, `footer`, `empty`
 - **依赖**: `@tanstack/vue-virtual` (虚拟滚动)
@@ -101,10 +105,12 @@ src/components/
   - `virtual` 或弹窗等特殊场景才使用内部滚动例外
 
 #### AppIcon 图标组件
+
 - **Props**: `name`, `class`, `strokeWidth`
 - **支持**: 70+ 内置SVG图标 (基于Heroicons)
 
 #### AppImage 图片组件
+
 - **Props**: `src`, `blurhash`, `lazy`, `aspectRatio`, `retryable`
 - **特性**: 懒加载、Blurhash占位、错误回退
 
@@ -113,11 +119,13 @@ src/components/
 ### 3.2 通用业务组件
 
 #### ImageUploader 图片上传器
+
 - **Props**: `modelValue`, `maxFiles`, `readonly`, `deferred`
 - **特性**: CAS去重、原始Hash秒传、拖拽排序、自动压缩
 - **Expose**: `uploadPendingFiles()`
 
 #### AIChatWidget AI助手
+
 - **特性**: 流式对话、路由感知、Markdown渲染、报告生成
 
 ---
@@ -125,10 +133,12 @@ src/components/
 ### 3.3 布局组件
 
 #### Header 顶部导航栏
+
 - **功能**: 搜索、通知、主题切换、AI助手入口
 - **响应式**: 移动端汉堡菜单
 
 #### Sidebar 侧边栏
+
 - **功能**: 折叠导航、权限过滤菜单
 - **Expose**: `openSidebar()`
 
@@ -165,12 +175,12 @@ graph TB
 
 ## 5. 设计模式
 
-| 模式 | 说明 | 示例 |
-|------|------|------|
-| 原子组件 | 最小可复用单元 | AppButton, AppInput |
-| 组合组件 | 组合原子组件 | ImageUploader, Modal |
-| 容器组件 | 管理数据状态 | OrderManager |
-| 展示组件 | 纯Props渲染 | StatusBadge |
+| 模式     | 说明           | 示例                 |
+| -------- | -------------- | -------------------- |
+| 原子组件 | 最小可复用单元 | AppButton, AppInput  |
+| 组合组件 | 组合原子组件   | ImageUploader, Modal |
+| 容器组件 | 管理数据状态   | OrderManager         |
+| 展示组件 | 纯Props渲染    | StatusBadge          |
 
 ---
 

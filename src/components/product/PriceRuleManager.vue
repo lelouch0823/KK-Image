@@ -25,7 +25,8 @@
                 {{ variant.sku }}
               </span>
               <span class="text-xs text-(--text-muted)">
-                {{ t('product.price_rules.base_price', '基础价') }}: {{ currencySymbol }}{{ formatPrice(variant.price) }}
+                {{ t('product.price_rules.base_price', '基础价') }}: {{ currencySymbol
+                }}{{ formatPrice(variant.price) }}
               </span>
             </div>
             <AppButton
@@ -237,13 +238,10 @@ const deleteRule = async (rule) => {
 
   // 已存在的规则需要调用 API 删除
   try {
-    const response = await fetch(
-      `/api/manage/products/${props.productId}/prices/${rule.id}`,
-      {
-        method: 'DELETE',
-        credentials: 'include',
-      }
-    );
+    const response = await fetch(`/api/manage/products/${props.productId}/prices/${rule.id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
     if (response.ok) {
       const rules = priceRules.value[rule.variant_id] || [];
       const index = rules.indexOf(rule);

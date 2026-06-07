@@ -56,7 +56,8 @@ describe('BackupSettings behavior', () => {
           AppButton: {
             props: ['disabled', 'loading', 'variant', 'size'],
             emits: ['click'],
-            template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot name="icon-left" /><slot /></button>',
+            template:
+              '<button :disabled="disabled" @click="$emit(\'click\')"><slot name="icon-left" /><slot /></button>',
           },
           AppIcon: {
             props: ['name'],
@@ -131,7 +132,10 @@ describe('BackupSettings behavior', () => {
 
     expect(mocks.authFetch).toHaveBeenNthCalledWith(2, '/api/manage/backups', { method: 'POST' });
     expect(mocks.authFetch).toHaveBeenNthCalledWith(3, '/api/manage/backups');
-    expect(mocks.addToast).toHaveBeenCalledWith({ type: 'success', message: 'settings.backup.createSuccess' });
+    expect(mocks.addToast).toHaveBeenCalledWith({
+      type: 'success',
+      message: 'settings.backup.createSuccess',
+    });
   });
 
   it('shows an error toast when backup creation fails', async () => {
@@ -172,7 +176,9 @@ describe('BackupSettings behavior', () => {
     const wrapper = createWrapper();
     await flushPromises();
 
-    const downloadButton = wrapper.findAll('button').find((button) => button.text().includes('Download'));
+    const downloadButton = wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('Download'));
     await downloadButton.trigger('click');
     await flushPromises();
 
@@ -211,7 +217,11 @@ describe('BackupSettings behavior', () => {
     await buttons[1].trigger('click');
     await flushPromises();
 
-    expect(mocks.authFetch).toHaveBeenNthCalledWith(2, '/api/manage/backups/restore-me.zip/validate', { method: 'POST' });
+    expect(mocks.authFetch).toHaveBeenNthCalledWith(
+      2,
+      '/api/manage/backups/restore-me.zip/validate',
+      { method: 'POST' }
+    );
     expect(wrapper.get('[data-testid="restore-dialog-backup"]').text()).toBe('restore-me.zip');
     expect(wrapper.get('[data-testid="restore-dialog-mode"]').text()).toBe('validate');
   });
@@ -260,9 +270,16 @@ describe('BackupSettings behavior', () => {
     await wrapper.get('[data-testid="dialog-restore"]').trigger('click');
     await flushPromises();
 
-    expect(mocks.authFetch).toHaveBeenNthCalledWith(3, '/api/manage/backups/restore-me.zip/restore', { method: 'POST' });
+    expect(mocks.authFetch).toHaveBeenNthCalledWith(
+      3,
+      '/api/manage/backups/restore-me.zip/restore',
+      { method: 'POST' }
+    );
     expect(mocks.authFetch).toHaveBeenNthCalledWith(4, '/api/manage/backups');
-    expect(mocks.addToast).toHaveBeenCalledWith({ type: 'success', message: 'settings.backup.restoreSuccess' });
+    expect(mocks.addToast).toHaveBeenCalledWith({
+      type: 'success',
+      message: 'settings.backup.restoreSuccess',
+    });
   });
 
   it('shows an error toast when restore execution is blocked', async () => {

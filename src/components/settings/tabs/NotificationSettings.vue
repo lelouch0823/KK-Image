@@ -2,7 +2,12 @@
   <div class="space-y-6">
     <SettingsSection
       :title="t('settings.notifications.title', '通知渠道')"
-      :description="t('settings.notifications.description', '配置企业微信、钉钉等 webhook 通知渠道，系统事件将自动推送到已启用的渠道。')"
+      :description="
+        t(
+          'settings.notifications.description',
+          '配置企业微信、钉钉等 webhook 通知渠道，系统事件将自动推送到已启用的渠道。'
+        )
+      "
       icon="bell"
     >
       <div class="space-y-4">
@@ -10,7 +15,9 @@
         <AppCard padding="p-4" class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="flex size-8 items-center justify-center rounded-lg bg-(--color-success-bg) text-success">
+              <div
+                class="flex size-8 items-center justify-center rounded-lg bg-(--color-success-bg) text-success"
+              >
                 <AppIcon name="chat-bubble-left-right" class="size-5" />
               </div>
               <div>
@@ -18,17 +25,20 @@
                   {{ t('settings.notifications.wechatWork', '企业微信') }}
                 </p>
                 <p class="text-xs text-(--text-secondary)">
-                  {{ t('settings.notifications.wechatWorkDesc', '通过企业微信群机器人 Webhook 推送通知') }}
+                  {{
+                    t(
+                      'settings.notifications.wechatWorkDesc',
+                      '通过企业微信群机器人 Webhook 推送通知'
+                    )
+                  }}
                 </p>
               </div>
             </div>
             <label class="relative inline-flex cursor-pointer items-center">
-              <input
-                v-model="channels.wechat_work.enabled"
-                type="checkbox"
-                class="peer sr-only"
-              >
-              <div class="peer h-5 w-9 rounded-full bg-(--border-color) after:absolute after:left-[2px] after:top-[2px] after:size-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-(--color-primary) peer-checked:after:translate-x-full" />
+              <input v-model="channels.wechat_work.enabled" type="checkbox" class="peer sr-only" />
+              <div
+                class="peer h-5 w-9 rounded-full bg-(--border-color) after:absolute after:left-[2px] after:top-[2px] after:size-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-(--color-primary) peer-checked:after:translate-x-full"
+              />
             </label>
           </div>
           <AppInput
@@ -42,7 +52,9 @@
         <AppCard padding="p-4" class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="flex size-8 items-center justify-center rounded-lg bg-(--color-info-bg) text-info">
+              <div
+                class="flex size-8 items-center justify-center rounded-lg bg-(--color-info-bg) text-info"
+              >
                 <AppIcon name="paper-airplane" class="size-5" />
               </div>
               <div>
@@ -50,17 +62,17 @@
                   {{ t('settings.notifications.dingtalk', '钉钉') }}
                 </p>
                 <p class="text-xs text-(--text-secondary)">
-                  {{ t('settings.notifications.dingtalkDesc', '通过钉钉群机器人 Webhook 推送通知') }}
+                  {{
+                    t('settings.notifications.dingtalkDesc', '通过钉钉群机器人 Webhook 推送通知')
+                  }}
                 </p>
               </div>
             </div>
             <label class="relative inline-flex cursor-pointer items-center">
-              <input
-                v-model="channels.dingtalk.enabled"
-                type="checkbox"
-                class="peer sr-only"
-              >
-              <div class="peer h-5 w-9 rounded-full bg-(--border-color) after:absolute after:left-[2px] after:top-[2px] after:size-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-(--color-primary) peer-checked:after:translate-x-full" />
+              <input v-model="channels.dingtalk.enabled" type="checkbox" class="peer sr-only" />
+              <div
+                class="peer h-5 w-9 rounded-full bg-(--border-color) after:absolute after:left-[2px] after:top-[2px] after:size-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-(--color-primary) peer-checked:after:translate-x-full"
+              />
             </label>
           </div>
           <AppInput
@@ -74,7 +86,9 @@
         <AppCard padding="p-4" class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="flex size-8 items-center justify-center rounded-lg bg-(--color-primary-bg) text-primary">
+              <div
+                class="flex size-8 items-center justify-center rounded-lg bg-(--color-primary-bg) text-primary"
+              >
                 <AppIcon name="paper-airplane" class="size-5" />
               </div>
               <div>
@@ -87,12 +101,10 @@
               </div>
             </div>
             <label class="relative inline-flex cursor-pointer items-center">
-              <input
-                v-model="channels.feishu.enabled"
-                type="checkbox"
-                class="peer sr-only"
-              >
-              <div class="peer h-5 w-9 rounded-full bg-(--border-color) after:absolute after:left-[2px] after:top-[2px] after:size-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-(--color-primary) peer-checked:after:translate-x-full" />
+              <input v-model="channels.feishu.enabled" type="checkbox" class="peer sr-only" />
+              <div
+                class="peer h-5 w-9 rounded-full bg-(--border-color) after:absolute after:left-[2px] after:top-[2px] after:size-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-(--color-primary) peer-checked:after:translate-x-full"
+              />
             </label>
           </div>
           <AppInput
@@ -106,7 +118,9 @@
         <AppCard padding="p-4" class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="flex size-8 items-center justify-center rounded-lg bg-(--bg-muted) text-(--text-secondary)">
+              <div
+                class="flex size-8 items-center justify-center rounded-lg bg-(--bg-muted) text-(--text-secondary)"
+              >
                 <AppIcon name="globe-alt" class="size-5" />
               </div>
               <div>
@@ -119,12 +133,10 @@
               </div>
             </div>
             <label class="relative inline-flex cursor-pointer items-center">
-              <input
-                v-model="channels.generic.enabled"
-                type="checkbox"
-                class="peer sr-only"
-              >
-              <div class="peer h-5 w-9 rounded-full bg-(--border-color) after:absolute after:left-[2px] after:top-[2px] after:size-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-(--color-primary) peer-checked:after:translate-x-full" />
+              <input v-model="channels.generic.enabled" type="checkbox" class="peer sr-only" />
+              <div
+                class="peer h-5 w-9 rounded-full bg-(--border-color) after:absolute after:left-[2px] after:top-[2px] after:size-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-(--color-primary) peer-checked:after:translate-x-full"
+              />
             </label>
           </div>
           <AppInput
@@ -136,11 +148,7 @@
       </div>
 
       <div class="mt-4 flex justify-end">
-        <AppButton
-          variant="primary"
-          :loading="saving"
-          @click="saveSettings"
-        >
+        <AppButton variant="primary" :loading="saving" @click="saveSettings">
           {{ t('settings.save') }}
         </AppButton>
       </div>
@@ -149,14 +157,21 @@
     <!-- 邮件通知 -->
     <SettingsSection
       :title="t('settings.notifications.emailTitle', '邮件通知')"
-      :description="t('settings.notifications.emailDesc', '配置邮件发送参数，订单状态变更时自动发送邮件通知客户。')"
+      :description="
+        t(
+          'settings.notifications.emailDesc',
+          '配置邮件发送参数，订单状态变更时自动发送邮件通知客户。'
+        )
+      "
       icon="envelope"
     >
       <div class="space-y-4">
         <AppCard padding="p-4" class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="flex size-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
+              <div
+                class="flex size-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600"
+              >
                 <AppIcon name="envelope" class="size-5" />
               </div>
               <div>
@@ -164,17 +179,20 @@
                   {{ t('settings.notifications.emailEnabled', '启用邮件通知') }}
                 </p>
                 <p class="text-xs text-(--text-secondary)">
-                  {{ t('settings.notifications.emailEnabledDesc', '开启后，订单状态变更时自动发送邮件给客户') }}
+                  {{
+                    t(
+                      'settings.notifications.emailEnabledDesc',
+                      '开启后，订单状态变更时自动发送邮件给客户'
+                    )
+                  }}
                 </p>
               </div>
             </div>
             <label class="relative inline-flex cursor-pointer items-center">
-              <input
-                v-model="emailConfig.enabled"
-                type="checkbox"
-                class="peer sr-only"
-              >
-              <div class="peer h-5 w-9 rounded-full bg-(--border-color) after:absolute after:left-[2px] after:top-[2px] after:size-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-(--color-primary) peer-checked:after:translate-x-full" />
+              <input v-model="emailConfig.enabled" type="checkbox" class="peer sr-only" />
+              <div
+                class="peer h-5 w-9 rounded-full bg-(--border-color) after:absolute after:left-[2px] after:top-[2px] after:size-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-(--color-primary) peer-checked:after:translate-x-full"
+              />
             </label>
           </div>
           <div class="space-y-1">
@@ -183,7 +201,9 @@
             </label>
             <AppInput
               v-model="emailConfig.from"
-              :placeholder="t('settings.notifications.emailFromPlaceholder', '如: noreply@your-domain.com')"
+              :placeholder="
+                t('settings.notifications.emailFromPlaceholder', '如: noreply@your-domain.com')
+              "
               type="email"
             />
           </div>
@@ -194,7 +214,12 @@
     <!-- 事件说明 -->
     <SettingsSection
       :title="t('settings.notifications.eventTypes', '推送事件')"
-      :description="t('settings.notifications.eventTypesDesc', '以下事件发生时，系统会自动推送到已启用的通知渠道。')"
+      :description="
+        t(
+          'settings.notifications.eventTypesDesc',
+          '以下事件发生时，系统会自动推送到已启用的通知渠道。'
+        )
+      "
       icon="information-circle"
     >
       <div class="space-y-2 text-sm">

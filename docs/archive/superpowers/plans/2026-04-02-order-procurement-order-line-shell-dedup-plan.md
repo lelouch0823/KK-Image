@@ -13,6 +13,7 @@
 ### Task 1: Lock Shared Statement Semantics
 
 **Files:**
+
 - Modify: `functions/services/__tests__/order-procurement-shared.test.js`
 - Modify: `functions/services/__tests__/OrderProcurementDomainService.test.js`
 - Modify: `functions/services/__tests__/OrderProcurementReceiptReversalService.test.js`
@@ -20,6 +21,7 @@
 - [ ] **Step 1: Write the failing tests**
 
 Add tests that assert:
+
 - shared helper preserves the current `order_lines` bind parameter order
 - shared helper optionally adds a `display_status` guard for revert paths
 - shared helper can build compatibility-order `procurement_status` writes both with and without the active-order/distinct-status guards
@@ -38,6 +40,7 @@ Expected: FAIL because the new shared `order_lines` and `procurement_status` bui
 ### Task 2: Reuse Shared Builders
 
 **Files:**
+
 - Modify: `functions/services/order-procurement-shared.js`
 - Modify: `functions/services/OrderProcurementDomainService.js`
 - Modify: `functions/services/OrderProcurementReceiptReversalService.js`
@@ -45,12 +48,14 @@ Expected: FAIL because the new shared `order_lines` and `procurement_status` bui
 - [ ] **Step 1: Implement minimal shared builders**
 
 Add helper exports for:
+
 - `order_lines` projection write statements
 - compatibility-order `procurement_status` update statements
 
 - [ ] **Step 2: Rewire the services**
 
 Replace duplicated local statement builders while preserving:
+
 - existing SQL guard semantics
 - existing bind parameter order
 - existing statement sequencing

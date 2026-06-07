@@ -13,6 +13,7 @@
 ### Task 1: Capture the order manager regression with tests
 
 **Files:**
+
 - Modify: `src/components/order/__tests__/OrderDetail.recovery.test.js`
 - Create: `src/components/__tests__/OrderManager.network-workflow.test.js`
 
@@ -45,6 +46,7 @@ git commit -m "test: capture order manager network workflow behavior"
 ### Task 2: Add an order detail workflow shell
 
 **Files:**
+
 - Create: `src/components/order/OrderWorkflowModal.vue`
 - Modify: `src/components/OrderManager.vue`
 - Test: `src/components/__tests__/OrderManager.network-workflow.test.js`
@@ -98,6 +100,7 @@ git commit -m "feat: add order workflow modal"
 ### Task 3: Unblock dashboard order detail
 
 **Files:**
+
 - Modify: `src/views/Dashboard.vue`
 - Create: `src/views/__tests__/Dashboard.order-detail-workflow.test.js`
 
@@ -144,6 +147,7 @@ git commit -m "feat: align dashboard order detail workflow"
 ### Task 4: Standardize the purchase-order order picker detail flow
 
 **Files:**
+
 - Modify: `src/components/purchase-order/OrderPickerModal.vue`
 - Create: `src/components/purchase-order/__tests__/OrderPickerModal.detail-workflow.test.js`
 
@@ -191,6 +195,7 @@ git commit -m "feat: standardize purchase-order detail loading"
 ### Task 5: Normalize notification and URL-driven detail entry
 
 **Files:**
+
 - Modify: `src/components/OrderManager.vue`
 - Modify: `src/views/Dashboard.vue`
 - Test: `src/components/__tests__/OrderManager.network-workflow.test.js`
@@ -241,6 +246,7 @@ git commit -m "feat: normalize deep-link detail entry flows"
 ### Task 6: Add shared copy and accessibility support
 
 **Files:**
+
 - Modify: `src/locales/zh-CN/order.js`
 - Modify: `src/locales/en/order.js`
 - Modify: `src/components/order/OrderWorkflowModal.vue`
@@ -291,6 +297,7 @@ git commit -m "feat: add shared order workflow feedback copy"
 ### Task 7: Verify the unified navigation workflow
 
 **Files:**
+
 - Modify: `src/components/__tests__/OrderManager.network-workflow.test.js`
 - Modify: `src/views/__tests__/Dashboard.order-detail-workflow.test.js`
 - Modify: `src/components/purchase-order/__tests__/OrderPickerModal.detail-workflow.test.js`

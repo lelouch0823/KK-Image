@@ -14,49 +14,90 @@
 
     <div class="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
       <div class="flex min-w-0 flex-col sm:flex-row">
-        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{ t('order.form.productName') }}</span>
+        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{
+          t('order.form.productName')
+        }}</span>
         <div class="flex min-w-0 flex-1 items-center gap-2">
-            <span class="truncate text-sm text-(--text-main)" :title="data.name">{{ data.name || '-' }}</span>
+          <span class="truncate text-sm text-(--text-main)" :title="data.name">{{
+            data.name || '-'
+          }}</span>
         </div>
       </div>
       <div class="flex min-w-0 flex-col sm:flex-row">
-        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{ t('order.form.quantity') }}</span>
-        <span class="min-w-0 flex-1 truncate text-sm font-medium text-(--text-main)" :title="quantity">{{ quantity }}</span>
+        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{
+          t('order.form.quantity')
+        }}</span>
+        <span
+          class="min-w-0 flex-1 truncate text-sm font-medium text-(--text-main)"
+          :title="quantity"
+          >{{ quantity }}</span
+        >
       </div>
       <div class="flex min-w-0 flex-col sm:flex-row">
-        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{ t('order.form.brand') }}</span>
-        <span class="min-w-0 flex-1 truncate text-sm text-(--text-main)" :title="data.brand">{{ data.brand || '-' }}</span>
+        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{
+          t('order.form.brand')
+        }}</span>
+        <span class="min-w-0 flex-1 truncate text-sm text-(--text-main)" :title="data.brand">{{
+          data.brand || '-'
+        }}</span>
       </div>
       <div class="flex min-w-0 flex-col sm:flex-row">
-        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{ t('order.form.series') }}</span>
-        <span class="min-w-0 flex-1 truncate text-sm text-(--text-main)" :title="data.series">{{ data.series || '-' }}</span>
+        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{
+          t('order.form.series')
+        }}</span>
+        <span class="min-w-0 flex-1 truncate text-sm text-(--text-main)" :title="data.series">{{
+          data.series || '-'
+        }}</span>
       </div>
       <div class="flex min-w-0 flex-col sm:flex-row">
-        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{ t('order.form.sku') }}</span>
-        <span class="min-w-0 flex-1 truncate text-sm text-(--text-main)" :title="data.sku">{{ data.sku || '-' }}</span>
+        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{
+          t('order.form.sku')
+        }}</span>
+        <span class="min-w-0 flex-1 truncate text-sm text-(--text-main)" :title="data.sku">{{
+          data.sku || '-'
+        }}</span>
       </div>
       <div class="flex min-w-0 flex-col sm:flex-row">
-        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{ t('order.form.size') }}</span>
-        <span class="min-w-0 flex-1 truncate text-sm text-(--text-main)" :title="data.size">{{ data.size || '-' }}</span>
+        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{
+          t('order.form.size')
+        }}</span>
+        <span class="min-w-0 flex-1 truncate text-sm text-(--text-main)" :title="data.size">{{
+          data.size || '-'
+        }}</span>
       </div>
       <div class="flex min-w-0 flex-col sm:flex-row">
-        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{ t('order.form.color') }}</span>
-        <span class="min-w-0 flex-1 truncate text-sm text-(--text-main)" :title="data.color">{{ data.color || '-' }}</span>
+        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{
+          t('order.form.color')
+        }}</span>
+        <span class="min-w-0 flex-1 truncate text-sm text-(--text-main)" :title="data.color">{{
+          data.color || '-'
+        }}</span>
       </div>
       <div class="flex min-w-0 flex-col sm:flex-row">
-        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{ t('order.form.material') }}</span>
-        <span class="min-w-0 flex-1 truncate text-sm text-(--text-main)" :title="data.material">{{ data.material || '-' }}</span>
+        <span class="mb-1 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-20">{{
+          t('order.form.material')
+        }}</span>
+        <span class="min-w-0 flex-1 truncate text-sm text-(--text-main)" :title="data.material">{{
+          data.material || '-'
+        }}</span>
       </div>
       <!-- 期望到货时间 (全宽) -->
       <div class="col-span-1 flex min-w-0 flex-col sm:col-span-2 sm:flex-row">
-        <span class="mb-1 shrink-0 text-sm whitespace-nowrap text-(--text-secondary) sm:mb-0 sm:w-28">{{
-          t('order.form.expectedArrival')
-        }}</span>
-        <span class="min-w-0 flex-1 truncate text-sm text-(--text-main)" :title="formatDeadline(data.deadline)">{{ formatDeadline(data.deadline) }}</span>
+        <span
+          class="mb-1 shrink-0 text-sm whitespace-nowrap text-(--text-secondary) sm:mb-0 sm:w-28"
+          >{{ t('order.form.expectedArrival') }}</span
+        >
+        <span
+          class="min-w-0 flex-1 truncate text-sm text-(--text-main)"
+          :title="formatDeadline(data.deadline)"
+          >{{ formatDeadline(data.deadline) }}</span
+        >
       </div>
       <!-- 备注 (全宽) -->
       <div class="col-span-1 flex min-w-0 flex-col sm:col-span-2 sm:flex-row">
-        <span class="mb-2 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-28">{{ t('order.form.remark') }}</span>
+        <span class="mb-2 shrink-0 text-sm text-(--text-secondary) sm:mb-0 sm:w-28">{{
+          t('order.form.remark')
+        }}</span>
         <p
           class="w-full rounded-lg border border-(--border-color) bg-(--bg-muted) p-2 text-sm break-words whitespace-pre-wrap text-(--text-main)"
         >

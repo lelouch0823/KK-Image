@@ -3,7 +3,9 @@ import { useGoodsOverview } from '../useGoodsOverview';
 import { API } from '@/utils/constants';
 
 const mockAuthFetch = vi.fn();
-globalThis.fetch = vi.fn(() => Promise.reject(new Error('direct fetch should not be used in manage composables')));
+globalThis.fetch = vi.fn(() =>
+  Promise.reject(new Error('direct fetch should not be used in manage composables'))
+);
 
 vi.mock('../useAuth', () => ({
   useAuth: () => ({ authFetch: mockAuthFetch }),
@@ -212,7 +214,16 @@ describe('useGoodsOverview composable', () => {
         json: () =>
           Promise.resolve({
             success: true,
-            data: [{ id: 'var-1', productId: 'prod-1', name: 'Tee', sku: 'TEE-S', shortage: 5, avgUnitCost: 8.8 }],
+            data: [
+              {
+                id: 'var-1',
+                productId: 'prod-1',
+                name: 'Tee',
+                sku: 'TEE-S',
+                shortage: 5,
+                avgUnitCost: 8.8,
+              },
+            ],
             filters: { categories: [], brands: [] },
           }),
       })
@@ -229,7 +240,7 @@ describe('useGoodsOverview composable', () => {
     expect(mockAuthFetch).toHaveBeenNthCalledWith(
       2,
       API.MANAGE_PURCHASE_ORDERS,
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({ method: 'POST' })
     );
 
     const [, request] = mockAuthFetch.mock.calls[1];
@@ -250,16 +261,18 @@ describe('useGoodsOverview composable', () => {
         json: () =>
           Promise.resolve({
             success: true,
-            data: [{
-              id: 'var-archived',
-              variantId: 'var-archived',
-              productId: 'prod-1',
-              name: 'Archived Tee',
-              sku: 'TEE-ARCHIVED',
-              shortage: 5,
-              avgUnitCost: 8.8,
-              orderIds: ['o-2', 'o-1', 'o-2'],
-            }],
+            data: [
+              {
+                id: 'var-archived',
+                variantId: 'var-archived',
+                productId: 'prod-1',
+                name: 'Archived Tee',
+                sku: 'TEE-ARCHIVED',
+                shortage: 5,
+                avgUnitCost: 8.8,
+                orderIds: ['o-2', 'o-1', 'o-2'],
+              },
+            ],
             filters: { categories: [], brands: [] },
           }),
       })
@@ -279,12 +292,12 @@ describe('useGoodsOverview composable', () => {
     expect(mockAuthFetch).toHaveBeenNthCalledWith(
       2,
       API.MANAGE_PURCHASE_ORDERS,
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({ method: 'POST' })
     );
     expect(mockAuthFetch).toHaveBeenNthCalledWith(
       3,
       API.MANAGE_PURCHASE_ORDER_FROM_ORDERS,
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({ method: 'POST' })
     );
 
     const [, retryRequest] = mockAuthFetch.mock.calls[2];
@@ -295,7 +308,8 @@ describe('useGoodsOverview composable', () => {
 
   it('builds export url from current filters', () => {
     mockAuthFetch.mockResolvedValue({
-      json: () => Promise.resolve({ success: true, data: [], filters: { categories: [], brands: [] } }),
+      json: () =>
+        Promise.resolve({ success: true, data: [], filters: { categories: [], brands: [] } }),
     });
     const appendChild = vi.spyOn(document.body, 'appendChild').mockImplementation(() => {});
     const removeChild = vi.spyOn(document.body, 'removeChild').mockImplementation(() => {});
@@ -316,7 +330,9 @@ describe('useGoodsOverview composable', () => {
 
     const link = createElement.mock.results[0].value;
     expect(createElement).toHaveBeenCalledWith('a');
-    expect(link.href).toBe(`${API.MANAGE_GOODS_OVERVIEW_EXPORT}?category=tops&brand=KK&shortageOnly=1&sort=demand`);
+    expect(link.href).toBe(
+      `${API.MANAGE_GOODS_OVERVIEW_EXPORT}?category=tops&brand=KK&shortageOnly=1&sort=demand`
+    );
     expect(click).toHaveBeenCalledTimes(1);
     appendChild.mockRestore();
     removeChild.mockRestore();
@@ -328,7 +344,16 @@ describe('useGoodsOverview composable', () => {
       json: () =>
         Promise.resolve({
           success: true,
-          data: [{ id: 'var-1', productId: 'prod-1', name: 'Tee', sku: 'TEE-S', shortage: 0, avgUnitCost: 8.8 }],
+          data: [
+            {
+              id: 'var-1',
+              productId: 'prod-1',
+              name: 'Tee',
+              sku: 'TEE-S',
+              shortage: 0,
+              avgUnitCost: 8.8,
+            },
+          ],
           filters: { categories: [], brands: [] },
         }),
     });

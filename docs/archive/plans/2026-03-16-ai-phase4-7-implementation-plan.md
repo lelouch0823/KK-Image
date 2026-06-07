@@ -13,6 +13,7 @@
 ### Task 1: 为 AI quotas 增加配置 schema 与 rate-limit manager
 
 **Files:**
+
 - Modify: `functions/ai/config-schema.js`
 - Create: `functions/ai/rate-limit-manager.js`
 - Create: `functions/ai/__tests__/rate-limit-manager.test.js`
@@ -44,9 +45,7 @@ describe('ai rate limit manager', () => {
 
   it('rejects request when requests-per-minute budget is exhausted', async () => {
     const kv = {
-      get: vi.fn()
-        .mockResolvedValueOnce('3')
-        .mockResolvedValueOnce('0'),
+      get: vi.fn().mockResolvedValueOnce('3').mockResolvedValueOnce('0'),
       put: vi.fn(),
     };
     const manager = createAIRateLimitManager({ kv, now: () => 1_700_000_000_000 });
@@ -97,6 +96,7 @@ git commit -m "feat(ai): add rate limit manager and quota config"
 ### Task 2: 接入 AI 专用 Hono middleware
 
 **Files:**
+
 - Create: `functions/lib/hono/middleware/ai-rate-limit.js`
 - Create: `functions/lib/hono/middleware/__tests__/ai-rate-limit.test.js`
 - Modify: `functions/lib/hono/routes/manage/ai.js`
@@ -151,6 +151,7 @@ git commit -m "feat(ai): add hono ai quota middleware"
 ### Task 3: 增加 D1 trace/span/usage schema 与 telemetry writer
 
 **Files:**
+
 - Create: `migrations/0052_ai_observability.sql`
 - Create: `functions/ai/telemetry-writer.js`
 - Create: `functions/ai/__tests__/telemetry-writer.test.js`
@@ -201,6 +202,7 @@ git commit -m "feat(ai): add d1 telemetry writer and observability schema"
 ### Task 4: 把 trace/span/usage 接入 AI 路由和执行链路
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/ai.js`
 - Modify: `functions/ai/request-context.js`
 - Modify: `functions/ai/stream-engine.js`
@@ -250,6 +252,7 @@ git commit -m "feat(ai): connect trace spans and usage telemetry"
 ### Task 5: 增加 safety enforcement primitives
 
 **Files:**
+
 - Create: `functions/ai/input-validator.js`
 - Create: `functions/ai/data-masker.js`
 - Create: `functions/ai/log-safe-serializer.js`
@@ -301,6 +304,7 @@ git commit -m "feat(ai): add safety enforcement primitives"
 ### Task 6: 将 safety policy 接入 conversation route 和 tool output
 
 **Files:**
+
 - Modify: `functions/ai/conversation-service.js`
 - Modify: `functions/lib/hono/routes/manage/ai.js`
 - Modify: `functions/ai/stream-engine.js`
@@ -348,6 +352,7 @@ git commit -m "feat(ai): enforce request and tool safety policies"
 ### Task 7: 增加 rollout flags 与 regression fixtures
 
 **Files:**
+
 - Modify: `functions/ai/config-schema.js`
 - Modify: `functions/ai/config-manager.js`
 - Create: `functions/ai/__tests__/fixtures/basic-chat.json`
@@ -399,6 +404,7 @@ git commit -m "feat(ai): add rollout flags and regression fixtures"
 ### Task 8: 跑剩余 Phase 4-7 定向验证与全量回归
 
 **Files:**
+
 - Modify: `docs/plans/2026-03-16-ai-phase4-7-implementation-plan.md`
 
 **Step 1: Run targeted governance/observability tests**

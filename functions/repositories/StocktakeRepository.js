@@ -10,11 +10,16 @@
 
 import { generateId, now } from '../api/utils/id.js';
 import { executeBatchChunks } from '../lib/db/batch.js';
-import { InventoryService } from '../services/InventoryService.js';
 
 export class StocktakeRepository {
-  constructor(db) {
+  /**
+   * @param {D1Database} db
+   * @param {Object} [deps={}]
+   * @param {Function} [deps.InventoryServiceFactory] - 工厂函数，接收 db 返回 InventoryService 实例
+   */
+  constructor(db, deps = {}) {
     this.db = db;
+    this._InventoryServiceFactory = deps.InventoryServiceFactory || null;
   }
 
   // ─── 盘点单 CRUD ─────────────────────────────────────────
@@ -29,7 +34,9 @@ export class StocktakeRepository {
     const timestamp = now();
 
     // 查询所有活跃变体的当前库存
-    const { results: variants = [] } = await this.db.prepare(`
+    const { results: variants = [] } = await this.db
+      .prepare(
+        `
       SELECT
         pv.id AS variant_id,
         COALESCE(ib.on_hand, pv.stock_quantity, 0) AS system_qty
@@ -37,26 +44,33 @@ export class StocktakeRepository {
       LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
       WHERE pv.status = 'active'
       ORDER BY pv.created_at ASC
-    `).bind().all();
+    `
+      )
+      .bind()
+      .all();
 
     // 批量构建 statements
     const statements = [];
 
     // 插入盘点单主表
     statements.push(
-      this.db.prepare(
-        `INSERT INTO stocktakes (id, status, notes, created_at, created_by)
+      this.db
+        .prepare(
+          `INSERT INTO stocktakes (id, status, notes, created_at, created_by)
          VALUES (?, 'draft', ?, ?, ?)`
-      ).bind(id, data.notes || null, timestamp, data.createdBy || null)
+        )
+        .bind(id, data.notes || null, timestamp, data.createdBy || null)
     );
 
     // 插入盘点明细（每个活跃变体一行）
     for (const v of variants) {
       statements.push(
-        this.db.prepare(
-          `INSERT INTO stocktake_items (id, stocktake_id, variant_id, system_qty)
+        this.db
+          .prepare(
+            `INSERT INTO stocktake_items (id, stocktake_id, variant_id, system_qty)
            VALUES (?, ?, ?, ?)`
-        ).bind(generateId(), id, v.variant_id, v.system_qty)
+          )
+          .bind(generateId(), id, v.variant_id, v.system_qty)
       );
     }
 
@@ -93,11 +107,14 @@ export class StocktakeRepository {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const countResult = await this.db.prepare(
-      `SELECT COUNT(*) as total FROM stocktakes s ${whereClause}`
-    ).bind(...params).first();
+    const countResult = await this.db
+      .prepare(`SELECT COUNT(*) as total FROM stocktakes s ${whereClause}`)
+      .bind(...params)
+      .first();
 
-    const { results = [] } = await this.db.prepare(`
+    const { results = [] } = await this.db
+      .prepare(
+        `
       SELECT
         s.*,
         COUNT(si.id) AS item_count,
@@ -109,10 +126,13 @@ export class StocktakeRepository {
       GROUP BY s.id
       ORDER BY s.created_at DESC
       LIMIT ? OFFSET ?
-    `).bind(...params, limit, offset).all();
+    `
+      )
+      .bind(...params, limit, offset)
+      .all();
 
     return {
-      items: results.map(row => ({
+      items: results.map((row) => ({
         id: row.id,
         status: row.status,
         notes: row.notes,
@@ -135,13 +155,16 @@ export class StocktakeRepository {
   async findById(id) {
     if (!id) return null;
 
-    const stocktake = await this.db.prepare(
-      'SELECT * FROM stocktakes WHERE id = ?'
-    ).bind(id).first();
+    const stocktake = await this.db
+      .prepare('SELECT * FROM stocktakes WHERE id = ?')
+      .bind(id)
+      .first();
 
     if (!stocktake) return null;
 
-    const { results: items = [] } = await this.db.prepare(`
+    const { results: items = [] } = await this.db
+      .prepare(
+        `
       SELECT
         si.*,
         pv.sku,
@@ -152,7 +175,10 @@ export class StocktakeRepository {
       JOIN products p ON p.id = pv.product_id
       WHERE si.stocktake_id = ?
       ORDER BY p.name ASC, pv.sku ASC
-    `).bind(id).all();
+    `
+      )
+      .bind(id)
+      .all();
 
     return {
       id: stocktake.id,
@@ -161,7 +187,7 @@ export class StocktakeRepository {
       createdBy: stocktake.created_by,
       createdAt: stocktake.created_at,
       completedAt: stocktake.completed_at,
-      items: items.map(item => ({
+      items: items.map((item) => ({
         id: item.id,
         variantId: item.variant_id,
         sku: item.sku,
@@ -194,9 +220,10 @@ export class StocktakeRepository {
     if (updates.length === 0) return false;
 
     values.push(id);
-    const result = await this.db.prepare(
-      `UPDATE stocktakes SET ${updates.join(', ')} WHERE id = ?`
-    ).bind(...values).run();
+    const result = await this.db
+      .prepare(`UPDATE stocktakes SET ${updates.join(', ')} WHERE id = ?`)
+      .bind(...values)
+      .run();
 
     return result?.meta?.changes > 0;
   }
@@ -211,9 +238,10 @@ export class StocktakeRepository {
     if (!stocktakeId || !Array.isArray(updates) || updates.length === 0) return 0;
 
     // 验证盘点单状态
-    const stocktake = await this.db.prepare(
-      'SELECT status FROM stocktakes WHERE id = ?'
-    ).bind(stocktakeId).first();
+    const stocktake = await this.db
+      .prepare('SELECT status FROM stocktakes WHERE id = ?')
+      .bind(stocktakeId)
+      .first();
 
     if (!stocktake || (stocktake.status !== 'draft' && stocktake.status !== 'counting')) {
       throw new Error('盘点单状态不允许修改明细');
@@ -221,22 +249,25 @@ export class StocktakeRepository {
 
     // 如果是 draft 状态，自动切换到 counting
     if (stocktake.status === 'draft') {
-      await this.db.prepare(
-        "UPDATE stocktakes SET status = 'counting' WHERE id = ? AND status = 'draft'"
-      ).bind(stocktakeId).run();
+      await this.db
+        .prepare("UPDATE stocktakes SET status = 'counting' WHERE id = ? AND status = 'draft'")
+        .bind(stocktakeId)
+        .run();
     }
 
     // 批量获取所有需要更新的 item 的 system_qty，避免 N+1 查询
-    const itemIds = updates
-      .map(u => u.itemId)
-      .filter(Boolean);
+    const itemIds = updates.map((u) => u.itemId).filter(Boolean);
     const placeholders = itemIds.map(() => '?').join(',');
-    const { results: existingItems = [] } = itemIds.length > 0
-      ? await this.db.prepare(
-          `SELECT id, system_qty FROM stocktake_items WHERE id IN (${placeholders}) AND stocktake_id = ?`
-        ).bind(...itemIds, stocktakeId).all()
-      : { results: [] };
-    const systemQtyMap = new Map(existingItems.map(item => [item.id, item.system_qty]));
+    const { results: existingItems = [] } =
+      itemIds.length > 0
+        ? await this.db
+            .prepare(
+              `SELECT id, system_qty FROM stocktake_items WHERE id IN (${placeholders}) AND stocktake_id = ?`
+            )
+            .bind(...itemIds, stocktakeId)
+            .all()
+        : { results: [] };
+    const systemQtyMap = new Map(existingItems.map((item) => [item.id, item.system_qty]));
 
     const statements = [];
     for (const update of updates) {
@@ -257,9 +288,11 @@ export class StocktakeRepository {
       }
 
       statements.push(
-        this.db.prepare(
-          `UPDATE stocktake_items SET ${setClauses.join(', ')} WHERE id = ? AND stocktake_id = ?`
-        ).bind(...values, update.itemId, stocktakeId)
+        this.db
+          .prepare(
+            `UPDATE stocktake_items SET ${setClauses.join(', ')} WHERE id = ? AND stocktake_id = ?`
+          )
+          .bind(...values, update.itemId, stocktakeId)
       );
     }
 
@@ -277,9 +310,10 @@ export class StocktakeRepository {
   async adjustInventory(stocktakeId, options = {}) {
     if (!stocktakeId) throw new Error('stocktakeId is required');
 
-    const stocktake = await this.db.prepare(
-      'SELECT status FROM stocktakes WHERE id = ?'
-    ).bind(stocktakeId).first();
+    const stocktake = await this.db
+      .prepare('SELECT status FROM stocktakes WHERE id = ?')
+      .bind(stocktakeId)
+      .first();
 
     if (!stocktake) throw new Error('盘点单不存在');
     if (stocktake.status !== 'counting') {
@@ -287,22 +321,35 @@ export class StocktakeRepository {
     }
 
     // 获取有差异的明细
-    const { results: items = [] } = await this.db.prepare(`
+    const { results: items = [] } = await this.db
+      .prepare(
+        `
       SELECT si.variant_id, si.system_qty, si.actual_qty, si.difference
       FROM stocktake_items si
       WHERE si.stocktake_id = ? AND si.actual_qty IS NOT NULL AND si.difference != 0
-    `).bind(stocktakeId).all();
+    `
+      )
+      .bind(stocktakeId)
+      .all();
 
     if (items.length === 0) {
       // 没有差异，直接标记为已完成
-      await this.db.prepare(
-        "UPDATE stocktakes SET status = 'adjusted', completed_at = ? WHERE id = ?"
-      ).bind(now(), stocktakeId).run();
+      await this.db
+        .prepare("UPDATE stocktakes SET status = 'adjusted', completed_at = ? WHERE id = ?")
+        .bind(now(), stocktakeId)
+        .run();
       return { adjustedCount: 0, totalDelta: 0 };
     }
 
     const timestamp = now();
-    const inventoryService = new InventoryService(this.db);
+    // 通过 DI 工厂函数创建 InventoryService，避免 Repository 直接依赖 Service
+    const inventoryService = this._InventoryServiceFactory
+      ? this._InventoryServiceFactory(this.db)
+      : null;
+
+    if (!inventoryService) {
+      throw new Error('InventoryServiceFactory is required for inventory adjustment');
+    }
 
     // 通过 InventoryService 统一处理库存变更（更新 product_variants、inventory_balances、inventory_ledger、inventory_events）
     const mutations = items.map((item) => ({
@@ -316,9 +363,10 @@ export class StocktakeRepository {
     await inventoryService.applyBatch(mutations);
 
     // 更新盘点单状态
-    await this.db.prepare(
-      "UPDATE stocktakes SET status = 'adjusted', completed_at = ? WHERE id = ?"
-    ).bind(timestamp, stocktakeId).run();
+    await this.db
+      .prepare("UPDATE stocktakes SET status = 'adjusted', completed_at = ? WHERE id = ?")
+      .bind(timestamp, stocktakeId)
+      .run();
 
     return {
       adjustedCount: items.length,
@@ -334,18 +382,20 @@ export class StocktakeRepository {
   async cancel(id) {
     if (!id) return false;
 
-    const stocktake = await this.db.prepare(
-      'SELECT status FROM stocktakes WHERE id = ?'
-    ).bind(id).first();
+    const stocktake = await this.db
+      .prepare('SELECT status FROM stocktakes WHERE id = ?')
+      .bind(id)
+      .first();
 
     if (!stocktake) throw new Error('盘点单不存在');
     if (stocktake.status === 'adjusted') {
       throw new Error('已调整的盘点单不能取消');
     }
 
-    const result = await this.db.prepare(
-      "UPDATE stocktakes SET status = 'cancelled' WHERE id = ? AND status != 'adjusted'"
-    ).bind(id).run();
+    const result = await this.db
+      .prepare("UPDATE stocktakes SET status = 'cancelled' WHERE id = ? AND status != 'adjusted'")
+      .bind(id)
+      .run();
 
     return result?.meta?.changes > 0;
   }

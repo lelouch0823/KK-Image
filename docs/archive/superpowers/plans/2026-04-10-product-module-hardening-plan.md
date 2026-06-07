@@ -13,6 +13,7 @@
 ### Task 1: Preserve Existing Inventory During Product Edit
 
 **Files:**
+
 - Modify: `functions/repositories/ProductVariantRepository.js`
 - Modify: `functions/lib/hono/routes/manage/products/__tests__/product-validation-rules.test.js`
 - Add or Modify: `functions/repositories/__tests__/product-variant-upsert-stock.test.js`
@@ -25,6 +26,7 @@
 ### Task 2: Make Import Payload Carry Complete Product Metadata
 
 **Files:**
+
 - Modify: `src/components/product/ProductImportModal.vue`
 - Modify: `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
 
@@ -36,6 +38,7 @@
 ### Task 3: Make Replace Import Truly Replace Dimension Master Data
 
 **Files:**
+
 - Modify: `functions/services/ProductCatalogService.js`
 - Modify: `functions/lib/hono/routes/manage/products/__tests__/product-spu-routes.test.js`
 
@@ -47,6 +50,7 @@
 ### Task 4: Align Import Status Validation With Backend Contract
 
 **Files:**
+
 - Modify: `src/components/product/ProductImportModal.vue`
 - Modify: `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
 
@@ -58,6 +62,7 @@
 ### Task 5: Surface Partial Import Failures to the UI
 
 **Files:**
+
 - Modify: `src/components/product/ProductImportModal.vue`
 - Modify: `src/components/product/__tests__/ProductImportModal.variant-first.test.js`
 
@@ -69,6 +74,7 @@
 ### Task 6: Run End-to-End Verification For Product Hardening
 
 **Files:**
+
 - No code changes required unless regressions are found
 
 - [ ] **Step 1: Run all focused unit tests for the touched product module files**

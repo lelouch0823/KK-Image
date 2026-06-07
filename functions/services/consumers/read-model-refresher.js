@@ -10,10 +10,7 @@ import {
   SystemStatsProjectionRefreshService,
 } from '../SystemStatsProjectionRefreshService.js';
 import { VariantSnapshotProjectionRefreshService } from '../VariantSnapshotProjectionRefreshService.js';
-import {
-  shouldRefreshDashboardProjection,
-  shouldRefreshManageStatsProjection,
-} from './_shared.js';
+import { shouldRefreshDashboardProjection, shouldRefreshManageStatsProjection } from './_shared.js';
 
 /**
  * 获取变体快照刷新目标
@@ -26,7 +23,11 @@ function getVariantSnapshotRefreshTarget(eventType, event, payload) {
   if (eventType === 'order_created_by_admin' || eventType === 'order_created_by_sales') {
     return `variant:order:${event?.aggregate_id || payload?.order_id || ''}`;
   }
-  if (['order_updated_by_admin', 'order_updated_by_sales', 'order_deleted_by_admin'].includes(eventType)) {
+  if (
+    ['order_updated_by_admin', 'order_updated_by_sales', 'order_deleted_by_admin'].includes(
+      eventType
+    )
+  ) {
     return 'variant:all';
   }
   return null;

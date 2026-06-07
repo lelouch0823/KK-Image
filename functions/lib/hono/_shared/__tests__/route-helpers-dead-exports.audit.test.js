@@ -11,12 +11,11 @@ describe('route helpers dead exports audit', () => {
     const offenders = [];
 
     if (source.includes('export function createCacheInvalidator(')) {
-      offenders.push('functions/lib/hono/_shared/route-helpers.js: still defines createCacheInvalidator');
+      offenders.push(
+        'functions/lib/hono/_shared/route-helpers.js: still defines createCacheInvalidator'
+      );
     }
 
-    expect(
-      offenders,
-      `route helpers dead-export offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `route helpers dead-export offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

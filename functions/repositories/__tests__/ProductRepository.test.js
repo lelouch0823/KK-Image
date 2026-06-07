@@ -174,7 +174,7 @@ describe('ProductRepository', () => {
       await repo.searchVariants({});
 
       const listSql = db.prepare.mock.calls[1][0];
-      expect(listSql).toContain("WHERE pv.status = ?");
+      expect(listSql).toContain('WHERE pv.status = ?');
       expect(listSql).not.toContain('LIKE');
       expect(listStmt.params).toEqual(['active', 50, 0]);
     });
@@ -212,7 +212,7 @@ describe('ProductRepository', () => {
       expect(result).toEqual(['KK', 'Test', 'Alpha']);
       const brandSql = db.prepare.mock.calls[0][0];
       expect(brandSql).toContain('SELECT DISTINCT p.brand');
-      expect(brandSql).toContain("p.brand IS NOT NULL");
+      expect(brandSql).toContain('p.brand IS NOT NULL');
       expect(brandSql).toContain('ORDER BY p.brand COLLATE NOCASE');
     });
 

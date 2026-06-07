@@ -15,15 +15,52 @@ import {
   MoveFilesSchema,
   FileQuerySchema,
   CreateFileSchema,
+  CheckHashSchema,
+  UpdateFileSchema,
 } from '../../schemas/file.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
-  { method: 'POST', path: '/', domain: 'files', action: 'file.create', severity: 'normal', targetType: 'file' },
-  { method: 'PUT', path: '/:id', domain: 'files', action: 'file.update', severity: 'normal', targetType: 'file' },
-  { method: 'DELETE', path: '/:id', domain: 'files', action: 'file.delete', severity: 'high', targetType: 'file' },
-  { method: 'POST', path: '/batch/delete', domain: 'files', action: 'file.batch_delete', severity: 'high', targetType: 'file' },
-  { method: 'POST', path: '/batch/move', domain: 'files', action: 'file.batch_move', severity: 'high', targetType: 'file' },
+  {
+    method: 'POST',
+    path: '/',
+    domain: 'files',
+    action: 'file.create',
+    severity: 'normal',
+    targetType: 'file',
+  },
+  {
+    method: 'PUT',
+    path: '/:id',
+    domain: 'files',
+    action: 'file.update',
+    severity: 'normal',
+    targetType: 'file',
+  },
+  {
+    method: 'DELETE',
+    path: '/:id',
+    domain: 'files',
+    action: 'file.delete',
+    severity: 'high',
+    targetType: 'file',
+  },
+  {
+    method: 'POST',
+    path: '/batch/delete',
+    domain: 'files',
+    action: 'file.batch_delete',
+    severity: 'high',
+    targetType: 'file',
+  },
+  {
+    method: 'POST',
+    path: '/batch/move',
+    domain: 'files',
+    action: 'file.batch_move',
+    severity: 'high',
+    targetType: 'file',
+  },
 ]);
 app.use('*', requirePermission('files:read'));
 
@@ -66,7 +103,10 @@ function toFileDetail(file) {
 async function assertTargetFolderExists(db, targetFolderId) {
   if (!targetFolderId || targetFolderId === 'root') return;
   const folderRepo = new FolderRepository(db);
-  await requireEntity(folderRepo.findById(targetFolderId), () => new NotFoundError(MSG.FOLDER.NOT_FOUND));
+  await requireEntity(
+    folderRepo.findById(targetFolderId),
+    () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
+  );
 }
 
 /**
@@ -110,13 +150,17 @@ app.get('/', zValidator('query', FileQuerySchema), withCache(30), async (c) => {
   }
 
   const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as total');
-  const countResult = await env.DB.prepare(countSql).bind(...bindings).first();
+  const countResult = await env.DB.prepare(countSql)
+    .bind(...bindings)
+    .first();
   const total = countResult?.total || 0;
 
   sql += ` ORDER BY ${safeSort} ${safeOrder} LIMIT ? OFFSET ?`;
   bindings.push(limit, (page - 1) * limit);
 
-  const { results } = await env.DB.prepare(sql).bind(...bindings).all();
+  const { results } = await env.DB.prepare(sql)
+    .bind(...bindings)
+    .all();
 
   return c.json({
     success: true,
@@ -128,9 +172,8 @@ app.get('/', zValidator('query', FileQuerySchema), withCache(30), async (c) => {
 /**
  * POST /api/manage/files/check-hash - 预检查 (original_hash) 用于秒传
  */
-app.post('/check-hash', async (c) => {
-  const { original_hash } = await c.req.json();
-  if (!original_hash) throw new BadRequestError('original_hash is required');
+app.post('/check-hash', zValidator('json', CheckHashSchema), async (c) => {
+  const { original_hash } = c.req.valid('json');
 
   const repo = new FileRepository(c.env.DB);
   const existingFile = await repo.findByOriginalHash(original_hash);
@@ -177,37 +220,35 @@ app.get('/:id', withCache(60), async (c) => {
 /**
  * POST /api/manage/files - 创建文件记录
  */
-app.post(
-  '/',
-  requirePermission('files:write'),
-  zValidator('json', CreateFileSchema),
-  async (c) => {
-    const data = c.req.valid('json');
-    const user = c.get('user');
-    const { env } = c;
+app.post('/', requirePermission('files:write'), zValidator('json', CreateFileSchema), async (c) => {
+  const data = c.req.valid('json');
+  const user = c.get('user');
+  const { env } = c;
 
-    const repo = new FileRepository(env.DB);
+  const repo = new FileRepository(env.DB);
 
-    if (data.name) {
-      const hasConflict = await repo.checkNameConflict(data.folderId || null, data.name.trim());
-      if (hasConflict) throw new ConflictError(MSG.FILE.NAME_CONFLICT || '当前目录下已存在同名文件');
-    }
+  if (data.name) {
+    const hasConflict = await repo.checkNameConflict(data.folderId || null, data.name.trim());
+    if (hasConflict) throw new ConflictError(MSG.FILE.NAME_CONFLICT || '当前目录下已存在同名文件');
+  }
 
-    const id = generateId();
-    const nowMs = Date.now();
+  const id = generateId();
+  const nowMs = Date.now();
 
-    await repo.create({
-      id,
-      name: data.name.trim(),
-      folderId: data.folderId,
-      isPublic: data.isPublic,
-      storageKey: id,
-      createdBy: user.id,
-      createdAt: nowMs,
-      updatedAt: nowMs,
-    });
+  await repo.create({
+    id,
+    name: data.name.trim(),
+    folderId: data.folderId,
+    isPublic: data.isPublic,
+    storageKey: id,
+    createdBy: user.id,
+    createdAt: nowMs,
+    updatedAt: nowMs,
+  });
 
-    await publishSingleDomainEventAndPoll(c, {
+  await publishSingleDomainEventAndPoll(
+    c,
+    {
       event_type: 'file_created',
       aggregate_type: 'file',
       aggregate_id: id,
@@ -215,21 +256,22 @@ app.post(
         file_id: id,
         folder_ids: [data.folderId || null],
       },
-    }, `file-create:${id}`);
-    scheduleAuditEvent(c, {
-      domain: 'files',
-      action: 'file.create',
-      result: 'success',
-      severity: 'normal',
-      targetType: 'file',
-      targetId: id,
-      target_label: data.name.trim(),
-      summary: `Created file record ${data.name.trim()}`,
-    });
+    },
+    `file-create:${id}`
+  );
+  scheduleAuditEvent(c, {
+    domain: 'files',
+    action: 'file.create',
+    result: 'success',
+    severity: 'normal',
+    targetType: 'file',
+    targetId: id,
+    target_label: data.name.trim(),
+    summary: `Created file record ${data.name.trim()}`,
+  });
 
-    return c.json({ success: true, data: { id, ...data, createdAt: nowMs } }, 201);
-  }
-);
+  return c.json({ success: true, data: { id, ...data, createdAt: nowMs } }, 201);
+});
 
 /**
  * PUT /api/manage/files/:id - 更新文件（支持重命名、移动、设置公开状态）
@@ -237,10 +279,11 @@ app.post(
 app.put(
   '/:id',
   requirePermission('files:write'),
+  zValidator('json', UpdateFileSchema),
   async (c) => {
     const { env } = c;
     const fileId = c.req.param('id');
-    const data = await c.req.json();
+    const data = c.req.valid('json');
 
     const repo = new FileRepository(env.DB);
     const file = await requireEntity(
@@ -259,7 +302,8 @@ app.put(
     if (data.name !== undefined || data.folderId !== undefined) {
       if (checkFolderId !== file.folder_id || checkName !== file.name) {
         const hasConflict = await repo.checkNameConflict(checkFolderId, checkName, fileId);
-        if (hasConflict) throw new ConflictError(MSG.FILE.NAME_CONFLICT || '当前目录下已存在同名文件');
+        if (hasConflict)
+          throw new ConflictError(MSG.FILE.NAME_CONFLICT || '当前目录下已存在同名文件');
       }
     }
 
@@ -272,15 +316,19 @@ app.put(
     }
 
     await repo.update(fileId, updates);
-    await publishSingleDomainEventAndPoll(c, {
-      event_type: 'file_updated',
-      aggregate_type: 'file',
-      aggregate_id: fileId,
-      payload: {
-        file_id: fileId,
-        folder_ids: [...new Set([file.folder_id, checkFolderId].filter((v) => v !== undefined))],
+    await publishSingleDomainEventAndPoll(
+      c,
+      {
+        event_type: 'file_updated',
+        aggregate_type: 'file',
+        aggregate_id: fileId,
+        payload: {
+          file_id: fileId,
+          folder_ids: [...new Set([file.folder_id, checkFolderId].filter((v) => v !== undefined))],
+        },
       },
-    }, `file-update:${fileId}`);
+      `file-update:${fileId}`
+    );
     scheduleAuditEvent(c, {
       domain: 'files',
       action: 'file.update',
@@ -312,15 +360,19 @@ app.delete('/:id', requirePermission('files:delete'), async (c) => {
 
   // 软删除
   await repo.softDelete(fileId);
-  await publishSingleDomainEventAndPoll(c, {
-    event_type: 'file_deleted',
-    aggregate_type: 'file',
-    aggregate_id: fileId,
-    payload: {
-      file_id: fileId,
-      folder_ids: [file.folder_id],
+  await publishSingleDomainEventAndPoll(
+    c,
+    {
+      event_type: 'file_deleted',
+      aggregate_type: 'file',
+      aggregate_id: fileId,
+      payload: {
+        file_id: fileId,
+        folder_ids: [file.folder_id],
+      },
     },
-  }, `file-delete:${fileId}`);
+    `file-delete:${fileId}`
+  );
   scheduleAuditEvent(c, {
     domain: 'files',
     action: 'file.delete',
@@ -351,15 +403,19 @@ app.post(
     const targetFiles = await repo.findByIds(ids);
     // SOTA: 软删除
     await repo.softDeleteBatch(ids);
-    await publishSingleDomainEventAndPoll(c, {
-      event_type: 'file_batch_deleted',
-      aggregate_type: 'file',
-      aggregate_id: ids[0] || 'batch',
-      payload: {
-        file_ids: ids,
-        folder_ids: targetFiles.map((item) => item.folder_id),
+    await publishSingleDomainEventAndPoll(
+      c,
+      {
+        event_type: 'file_batch_deleted',
+        aggregate_type: 'file',
+        aggregate_id: ids[0] || 'batch',
+        payload: {
+          file_ids: ids,
+          folder_ids: targetFiles.map((item) => item.folder_id),
+        },
       },
-    }, `file-batch-delete:${ids.length}`);
+      `file-batch-delete:${ids.length}`
+    );
     scheduleAuditEvent(c, {
       domain: 'files',
       action: 'file.batch_delete',
@@ -369,7 +425,10 @@ app.post(
       summary: `Batch deleted ${ids.length} files`,
       metadata: { ids, count: ids.length },
     });
-    return c.json({ success: true, message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', ids.length) });
+    return c.json({
+      success: true,
+      message: MSG.FILE.BATCH_DELETE_SUCCESS.replace('{count}', ids.length),
+    });
   }
 );
 
@@ -395,21 +454,27 @@ app.post(
     if (validNames.length > 0) {
       const conflicts = await repo.findConflictingNames(targetFolderId || 'root', validNames);
       if (conflicts.length > 0) {
-        throw new ConflictError(`目标目录下已存在同名文件: ${conflicts.slice(0, 3).join(', ')}${conflicts.length > 3 ? ' 等' : ''}`);
+        throw new ConflictError(
+          `目标目录下已存在同名文件: ${conflicts.slice(0, 3).join(', ')}${conflicts.length > 3 ? ' 等' : ''}`
+        );
       }
     }
 
     const sourceFolderIds = targetFiles.map((file) => file.folder_id);
     await repo.moveBatch(ids, targetFolderId || 'root');
-    await publishSingleDomainEventAndPoll(c, {
-      event_type: 'file_batch_moved',
-      aggregate_type: 'file',
-      aggregate_id: ids[0] || 'batch',
-      payload: {
-        file_ids: ids,
-        folder_ids: [...sourceFolderIds, targetFolderId || 'root'],
+    await publishSingleDomainEventAndPoll(
+      c,
+      {
+        event_type: 'file_batch_moved',
+        aggregate_type: 'file',
+        aggregate_id: ids[0] || 'batch',
+        payload: {
+          file_ids: ids,
+          folder_ids: [...sourceFolderIds, targetFolderId || 'root'],
+        },
       },
-    }, `file-batch-move:${ids.length}`);
+      `file-batch-move:${ids.length}`
+    );
     scheduleAuditEvent(c, {
       domain: 'files',
       action: 'file.batch_move',

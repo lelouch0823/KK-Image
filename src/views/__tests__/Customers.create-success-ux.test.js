@@ -62,10 +62,22 @@ describe('Customers create success UX', () => {
           AppIcon: { template: '<i />' },
           AppTable: { template: '<div />' },
           Pagination: { template: '<div />' },
-          Modal: { template: '<div v-if="modelValue"><slot /></div>', props: ['modelValue', 'title'] },
-          CustomerForm: { template: '<div data-testid="customer-form">{{ initialData?.name || "" }}</div>', props: ['initialData'] },
-          CustomerDetailPanel: { template: '<div data-testid="customer-detail-panel" />', props: ['modelValue', 'customer'] },
-          CustomerDetailContent: { template: '<div data-testid="customer-detail-content">{{ customer?.name || "" }}</div>', props: ['customer'] },
+          Modal: {
+            template: '<div v-if="modelValue"><slot /></div>',
+            props: ['modelValue', 'title'],
+          },
+          CustomerForm: {
+            template: '<div data-testid="customer-form">{{ initialData?.name || "" }}</div>',
+            props: ['initialData'],
+          },
+          CustomerDetailPanel: {
+            template: '<div data-testid="customer-detail-panel" />',
+            props: ['modelValue', 'customer'],
+          },
+          CustomerDetailContent: {
+            template: '<div data-testid="customer-detail-content">{{ customer?.name || "" }}</div>',
+            props: ['customer'],
+          },
           CustomerCards: { template: '<div />' },
           StatusBadge: { template: '<div><slot /></div>' },
         },
@@ -132,7 +144,9 @@ describe('Customers create success UX', () => {
     await flushPromises();
 
     expect(wrapper.vm.showDetailPanel).toBe(true);
-    expect(wrapper.find('[data-testid="customer-detail-content"]').text()).toContain('Context Alice');
+    expect(wrapper.find('[data-testid="customer-detail-content"]').text()).toContain(
+      'Context Alice'
+    );
     expect(mocks.setContext).toHaveBeenLastCalledWith({
       selectedId: 'cus-3',
       selectedType: 'customer',
@@ -173,8 +187,6 @@ describe('Customers create success UX', () => {
 
     expect(wrapper.vm.searchQuery).toBe('leo');
     expect(wrapper.vm.pagination.page).toBe(1);
-    expect(mocks.addToast).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'info' })
-    );
+    expect(mocks.addToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'info' }));
   });
 });

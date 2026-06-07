@@ -15,7 +15,8 @@ export function createWatchOpaRunner(options = {}) {
   const clearTimeoutImpl = options.clearTimeoutImpl || clearTimeout;
   const root = options.root || processObj.cwd();
   const policyDir = options.policyDir || pathModule.join(root, 'policy');
-  const compileScript = options.compileScript || pathModule.join(root, 'scripts', 'policy', 'compile-opa.mjs');
+  const compileScript =
+    options.compileScript || pathModule.join(root, 'scripts', 'policy', 'compile-opa.mjs');
   const once = options.once ?? processObj.argv.includes('--once');
   const debounceMs = options.debounceMs ?? 250;
   const exitImpl = options.exitImpl || ((code) => processObj.exit(code));
@@ -64,7 +65,9 @@ export function createWatchOpaRunner(options = {}) {
 
     if (code === 0) {
       logger.log(`[authz][watch] compile success in ${duration}ms`);
-      logger.log('[authz][watch] if wrangler is already running, restart it to pick up new policy artifact');
+      logger.log(
+        '[authz][watch] if wrangler is already running, restart it to pick up new policy artifact'
+      );
     } else {
       logger.error(`[authz][watch] compile failed with exit code ${code}`);
     }

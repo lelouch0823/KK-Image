@@ -72,17 +72,6 @@ describe('order-line-shared', () => {
 
     expect(result).toBe(boundStatement);
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE order_lines'));
-    expect(bind).toHaveBeenCalledWith(
-      8,
-      8,
-      8,
-      5,
-      1,
-      0,
-      'ready',
-      123,
-      'line-1',
-      'order-1'
-    );
+    expect(bind).toHaveBeenCalledWith(8, 8, 8, 5, 1, 0, 'ready', 123, 'line-1', 'order-1');
   });
 });

@@ -10,10 +10,15 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { StocktakeRepository } from '../../../../repositories/StocktakeRepository.js';
+import { InventoryService } from '../../../../services/InventoryService.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { requireEntity } from '../../_shared/route-helpers.js';
-import { CreateStocktakeSchema, UpdateStocktakeSchema, UpdateItemsSchema } from '../../schemas/stocktake.js';
+import {
+  CreateStocktakeSchema,
+  UpdateStocktakeSchema,
+  UpdateItemsSchema,
+} from '../../schemas/stocktake.js';
 
 const app = new Hono();
 app.use('*', requirePermission('products:manage'));
@@ -69,10 +74,7 @@ app.get('/:id', async (c) => {
   const id = c.req.param('id');
 
   const repo = new StocktakeRepository(env.DB);
-  const stocktake = await requireEntity(
-    repo.findById(id),
-    () => new NotFoundError('盘点单不存在')
-  );
+  const stocktake = await requireEntity(repo.findById(id), () => new NotFoundError('盘点单不存在'));
 
   return c.json({ success: true, data: stocktake });
 });
@@ -88,10 +90,7 @@ app.patch('/:id', zValidator('json', UpdateStocktakeSchema), async (c) => {
   const body = c.req.valid('json');
 
   const repo = new StocktakeRepository(env.DB);
-  await requireEntity(
-    repo.findById(id),
-    () => new NotFoundError('盘点单不存在')
-  );
+  await requireEntity(repo.findById(id), () => new NotFoundError('盘点单不存在'));
 
   const updated = await repo.update(id, { notes: body.notes });
   if (!updated) throw new BadRequestError('更新失败');
@@ -110,10 +109,7 @@ app.post('/:id/items', zValidator('json', UpdateItemsSchema), async (c) => {
   const body = c.req.valid('json');
 
   const repo = new StocktakeRepository(env.DB);
-  await requireEntity(
-    repo.findById(id),
-    () => new NotFoundError('盘点单不存在')
-  );
+  await requireEntity(repo.findById(id), () => new NotFoundError('盘点单不存在'));
 
   const count = await repo.updateItems(id, body.items);
 
@@ -129,11 +125,10 @@ app.post('/:id/adjust', async (c) => {
   const { env } = c;
   const id = c.req.param('id');
 
-  const repo = new StocktakeRepository(env.DB);
-  await requireEntity(
-    repo.findById(id),
-    () => new NotFoundError('盘点单不存在')
-  );
+  const repo = new StocktakeRepository(env.DB, {
+    InventoryServiceFactory: (db) => new InventoryService(db),
+  });
+  await requireEntity(repo.findById(id), () => new NotFoundError('盘点单不存在'));
 
   const result = await repo.adjustInventory(id, {
     adjustedBy: c.get('user')?.id || c.get('user')?.sub || null,
@@ -152,10 +147,7 @@ app.post('/:id/cancel', async (c) => {
   const id = c.req.param('id');
 
   const repo = new StocktakeRepository(env.DB);
-  await requireEntity(
-    repo.findById(id),
-    () => new NotFoundError('盘点单不存在')
-  );
+  await requireEntity(repo.findById(id), () => new NotFoundError('盘点单不存在'));
 
   await repo.cancel(id);
 

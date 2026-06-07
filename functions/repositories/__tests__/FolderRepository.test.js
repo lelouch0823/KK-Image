@@ -215,10 +215,7 @@ describe('FolderRepository', () => {
   it('returns recursive storage keys only', async () => {
     const statement = createStatement('storage-keys', {
       allResult: {
-        results: [
-          { storage_key: 'a.jpg' },
-          { storage_key: 'b.jpg' },
-        ],
+        results: [{ storage_key: 'a.jpg' }, { storage_key: 'b.jpg' }],
       },
     });
     const db = { prepare: vi.fn(() => statement) };
@@ -453,9 +450,7 @@ describe('FolderRepository', () => {
     const rootStatement = createStatement('conflict-root', { firstResult: { exist: 1 } });
     const nestedStatement = createStatement('conflict-nested', { firstResult: null });
     const db = {
-      prepare: vi.fn()
-        .mockReturnValueOnce(rootStatement)
-        .mockReturnValueOnce(nestedStatement),
+      prepare: vi.fn().mockReturnValueOnce(rootStatement).mockReturnValueOnce(nestedStatement),
     };
     const repo = new FolderRepository(db);
 

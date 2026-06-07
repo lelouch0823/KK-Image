@@ -52,7 +52,9 @@ describe('authMiddleware cookie token decoding', () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual(expect.objectContaining({ success: true, user: expect.objectContaining({ id: 'u-1' }) }));
+    expect(body).toEqual(
+      expect.objectContaining({ success: true, user: expect.objectContaining({ id: 'u-1' }) })
+    );
     expect(mocks.verifyJWT).toHaveBeenCalledWith(rawToken, expect.any(Object));
   });
 
@@ -78,7 +80,9 @@ describe('authMiddleware cookie token decoding', () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual(expect.objectContaining({ success: true, user: expect.objectContaining({ id: 'u-2' }) }));
+    expect(body).toEqual(
+      expect.objectContaining({ success: true, user: expect.objectContaining({ id: 'u-2' }) })
+    );
     expect(mocks.verifyJWT).toHaveBeenCalledWith(rawToken, expect.any(Object));
   });
 });

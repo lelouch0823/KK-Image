@@ -13,6 +13,7 @@
 ### Task 1: 收口前端消息生命周期到 `useAIConversation`
 
 **Files:**
+
 - Create: `src/composables/useAIConversation.js`
 - Create: `src/composables/__tests__/useAIConversation.test.js`
 - Modify: `src/components/common/AIChatWidget.vue`
@@ -37,9 +38,7 @@ describe('useAIConversation', () => {
       userParts: [createTextPart('帮我创建客户 Alice')],
     });
 
-    expect(conversation.messages.value.at(-2)).toEqual(
-      expect.objectContaining({ role: 'user' })
-    );
+    expect(conversation.messages.value.at(-2)).toEqual(expect.objectContaining({ role: 'user' }));
     expect(conversation.messages.value.at(-1)).toEqual(
       expect.objectContaining({ role: 'assistant', content: '', html: '' })
     );
@@ -67,9 +66,7 @@ describe('useAIConversation', () => {
 
     conversation.discardEmptyAssistantMessage();
 
-    expect(conversation.messages.value.at(-1)).toEqual(
-      expect.objectContaining({ role: 'user' })
-    );
+    expect(conversation.messages.value.at(-1)).toEqual(expect.objectContaining({ role: 'user' }));
   });
 });
 ```
@@ -143,6 +140,7 @@ git commit -m "refactor(ai): extract conversation message lifecycle"
 ### Task 2: 把 `AIChatWidget` 拆成壳层、会话层、动作层
 
 **Files:**
+
 - Create: `src/components/common/ai/AIConversationPanel.vue`
 - Create: `src/components/common/ai/AIActionPanel.vue`
 - Create: `src/components/common/ai/__tests__/AIActionPanel.test.js`
@@ -159,7 +157,11 @@ import { mount } from '@vue/test-utils';
 import AIActionPanel from '../AIActionPanel.vue';
 
 const slotAction = { type: 'slot_request', missingSlots: ['salespersonId'], fields: [] };
-const previewAction = { type: 'action_preview', title: '订单创建预览', summary: { productName: '跑鞋' } };
+const previewAction = {
+  type: 'action_preview',
+  title: '订单创建预览',
+  summary: { productName: '跑鞋' },
+};
 const resultAction = { type: 'action_result', successMessage: '订单已创建' };
 
 describe('AIActionPanel', () => {
@@ -202,10 +204,7 @@ Expected: FAIL，提示缺少 `AIActionPanel.vue`。
     :action="actionCard"
     @confirm="$emit('confirm')"
   />
-  <ActionResultCard
-    v-else-if="actionCard?.type === 'action_result'"
-    :action="actionCard"
-  />
+  <ActionResultCard v-else-if="actionCard?.type === 'action_result'" :action="actionCard" />
 </template>
 ```
 
@@ -243,6 +242,7 @@ git commit -m "refactor(ai): split chat widget into shell conversation and actio
 ### Task 3: 优化 `SlotQuestionCard` 的重选与恢复体验
 
 **Files:**
+
 - Modify: `src/components/common/ai/SlotQuestionCard.vue`
 - Modify: `src/components/common/ai/__tests__/SlotQuestionCard.test.js`
 
@@ -256,14 +256,16 @@ it('allows clearing a locally selected candidate before the next server round', 
     props: {
       action: {
         missingSlots: ['salespersonId'],
-        fields: [{
-          key: 'salespersonId',
-          label: '销售员',
-          candidates: [
-            { value: 'sp-1', label: '张三' },
-            { value: 'sp-2', label: '李四' },
-          ],
-        }],
+        fields: [
+          {
+            key: 'salespersonId',
+            label: '销售员',
+            candidates: [
+              { value: 'sp-1', label: '张三' },
+              { value: 'sp-2', label: '李四' },
+            ],
+          },
+        ],
       },
     },
   });
@@ -351,6 +353,7 @@ git commit -m "feat(ai): allow slot candidate reselection and target hints"
 ### Task 4: 为 `useAIStream` 增加显式流阶段与统一错误状态
 
 **Files:**
+
 - Modify: `src/composables/useAIStream.js`
 - Modify: `src/composables/__tests__/useAIStream.test.js`
 
@@ -438,6 +441,7 @@ git commit -m "refactor(ai): add explicit stream phases and unified stream error
 ### Task 5: 抽离后端动作上下文与运行时配置辅助模块
 
 **Files:**
+
 - Create: `functions/ai/action-context.js`
 - Create: `functions/ai/runtime-env.js`
 - Create: `functions/ai/__tests__/action-context.test.js`
@@ -467,7 +471,9 @@ it('derives product and variant context slots from selected context', async () =
     { productRepo, variantRepo }
   );
 
-  expect(slots).toEqual(expect.objectContaining({ productId: 'prod-1', variantId: 'var-1', productName: '跑鞋' }));
+  expect(slots).toEqual(
+    expect.objectContaining({ productId: 'prod-1', variantId: 'var-1', productName: '跑鞋' })
+  );
 });
 
 it('prefers ai settings loaded from SettingsRepository grouped output', async () => {
@@ -516,8 +522,8 @@ export async function deriveContextActionSlots(context = {}, { productRepo, vari
 import { SettingsRepository } from '../repositories/SettingsRepository.js';
 
 export async function resolveAIRuntimeEnv(env, options = {}) {
-  const createSettingsRepository = options.createSettingsRepository
-    || ((db) => new SettingsRepository(db));
+  const createSettingsRepository =
+    options.createSettingsRepository || ((db) => new SettingsRepository(db));
   // 从当前 ai.js 迁移 grouped settings 合并逻辑
 }
 ```
@@ -542,6 +548,7 @@ git commit -m "refactor(ai): extract action context and runtime env helpers"
 ### Task 6: 提取流式引擎 `stream-engine` 并锁定工具轮次边界
 
 **Files:**
+
 - Create: `functions/ai/stream-engine.js`
 - Create: `functions/ai/__tests__/stream-engine.test.js`
 - Modify: `functions/lib/hono/routes/manage/ai.js`
@@ -561,11 +568,23 @@ it('writes text_delta events for safe content and preserves accumulated tool cal
 
   const result = await engine.processChunks([
     JSON.stringify({ choices: [{ delta: { content: '你好' } }] }),
-    JSON.stringify({ choices: [{ delta: { tool_calls: [{ index: 0, id: 'tc-1', function: { name: 'searchProducts', arguments: '{}' } }] } }] }),
+    JSON.stringify({
+      choices: [
+        {
+          delta: {
+            tool_calls: [
+              { index: 0, id: 'tc-1', function: { name: 'searchProducts', arguments: '{}' } },
+            ],
+          },
+        },
+      ],
+    }),
   ]);
 
   expect(writeSSE).toHaveBeenCalledWith(expect.objectContaining({ event: 'text_delta' }));
-  expect(result.toolCalls[0]).toEqual(expect.objectContaining({ id: 'tc-1', name: 'searchProducts' }));
+  expect(result.toolCalls[0]).toEqual(
+    expect.objectContaining({ id: 'tc-1', name: 'searchProducts' })
+  );
 });
 
 it('returns a user-visible tool limit error payload when max rounds is exhausted', async () => {
@@ -593,7 +612,15 @@ export function createAIStreamEngine(deps = {}) {
     async processStreamToSSE(aiStream, sseStream, options = {}) {
       // 从 ai.js 迁移现有实现
     },
-    async handleToolCallsToSSE(toolCalls, fullContent, messages, executeTool, sseStream, env, options = {}) {
+    async handleToolCallsToSSE(
+      toolCalls,
+      fullContent,
+      messages,
+      executeTool,
+      sseStream,
+      env,
+      options = {}
+    ) {
       // 从 ai.js 迁移现有实现
     },
     async exhaustedToolRounds() {
@@ -626,6 +653,7 @@ git commit -m "refactor(ai): extract stream engine and tool-round boundaries"
 ### Task 7: 提取会话准备层并瘦身 `manage/ai.js`
 
 **Files:**
+
 - Create: `functions/ai/conversation-service.js`
 - Create: `functions/ai/report-service.js`
 - Create: `functions/ai/__tests__/conversation-service.test.js`
@@ -643,7 +671,15 @@ import { buildAIConversationRequest } from '../conversation-service.js';
 
 it('builds system-first messages and disables tools in vision-first mode', () => {
   const result = buildAIConversationRequest({
-    history: [{ role: 'user', content: [{ type: 'text', text: '这是什么商品' }, { type: 'image_url', image_url: { url: 'data:image/png;base64,abc' } }] }],
+    history: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: '这是什么商品' },
+          { type: 'image_url', image_url: { url: 'data:image/png;base64,abc' } },
+        ],
+      },
+    ],
     clientContext: { path: '/products' },
     todayDate: '2026/03/09',
     tools: [{ name: 'searchProducts' }],
@@ -679,7 +715,13 @@ Expected: FAIL，因为现在 chat / stream 准备逻辑还耦合在 `ai.js` 中
 新增 `functions/ai/conversation-service.js`：
 
 ```js
-export function buildAIConversationRequest({ history, clientContext, todayDate, tools, systemPrompt }) {
+export function buildAIConversationRequest({
+  history,
+  clientContext,
+  todayDate,
+  tools,
+  systemPrompt,
+}) {
   const visionFirst = hasImageInLatestUserTurn(history);
   const systemContent = buildSystemContent(systemPrompt, { visionFirst });
   return {
@@ -692,15 +734,17 @@ export function buildAIConversationRequest({ history, clientContext, todayDate, 
 
 新增 `functions/ai/report-service.js`，把 `REPORT_SYSTEM_PROMPT` 与 html 清理逻辑收进去：
 
-```js
+````js
 export function buildAIReportPrompt(date, toolResults) {
   return `...`;
 }
 
 export function normalizeReportHtml(content = '') {
-  return String(content || '').replace(/^```html\n?|```$/g, '').trim();
+  return String(content || '')
+    .replace(/^```html\n?|```$/g, '')
+    .trim();
 }
-```
+````
 
 然后把 `functions/lib/hono/routes/manage/ai.js` 改为：
 
@@ -727,6 +771,7 @@ git commit -m "refactor(ai): move conversation and report prep out of manage ai 
 ### Task 8: 把工具上限、Action 失败与刷新结果做成可恢复用户反馈
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/ai.js`
 - Modify: `functions/ai/stream-engine.js`
 - Modify: `src/composables/useAIStream.js`
@@ -815,6 +860,7 @@ git commit -m "feat(ai): add retryable feedback for tool and action failures"
 ### Task 9: 统一 AI 请求遥测字段并补回归测试
 
 **Files:**
+
 - Create: `functions/ai/telemetry.js`
 - Create: `functions/ai/__tests__/telemetry.test.js`
 - Modify: `functions/lib/hono/routes/manage/ai.js`
@@ -841,12 +887,14 @@ it('builds a consistent telemetry payload for stream requests', () => {
     finalStatus: 'completed',
   });
 
-  expect(payload).toEqual(expect.objectContaining({
-    requestId: 'req-1',
-    routeType: 'stream',
-    entityType: 'order',
-    finalStatus: 'completed',
-  }));
+  expect(payload).toEqual(
+    expect.objectContaining({
+      requestId: 'req-1',
+      routeType: 'stream',
+      entityType: 'order',
+      finalStatus: 'completed',
+    })
+  );
 });
 ```
 
@@ -899,6 +947,7 @@ git commit -m "refactor(ai): normalize telemetry payload fields"
 ### Task 10: 运行验证并记录验收结果
 
 **Files:**
+
 - Modify: `docs/plans/2026-03-09-ai-module-overall-optimization-implementation-plan.md`
 
 **Step 1: Run targeted frontend tests**

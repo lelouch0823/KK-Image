@@ -6,7 +6,9 @@ const readSource = (relativePath) => readFileSync(resolve(process.cwd(), relativ
 
 describe('minisales design-system contract', () => {
   it('keeps shared sales surfaces on shared tokens instead of raw hex values', () => {
-    const orderSummary = readSource('minisales/miniprogram/components/sales/order-summary/index.scss');
+    const orderSummary = readSource(
+      'minisales/miniprogram/components/sales/order-summary/index.scss'
+    );
     const orderLines = readSource('minisales/miniprogram/components/sales/order-lines/index.scss');
     const orderCard = readSource('minisales/miniprogram/components/sales/order-card/index.scss');
     const productBinding = readSource(

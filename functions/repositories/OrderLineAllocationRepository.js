@@ -121,12 +121,6 @@ export class OrderLineAllocationRepository {
              updated_at = ?
          WHERE id = ?`
       )
-      .bind(
-        nextReleasedQty,
-        timestamp,
-        status,
-        options.updated_at ?? timestamp,
-        allocation.id
-      );
+      .bind(nextReleasedQty, timestamp, status, options.updated_at ?? timestamp, allocation.id);
   }
 }

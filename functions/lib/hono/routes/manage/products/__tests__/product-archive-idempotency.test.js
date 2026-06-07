@@ -90,7 +90,10 @@ import productByIdApp from '../[id].js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.use('/api/manage/products/*', async (c, next) => {
     c.set('user', { id: 'admin-1', role: 'admin', permissions: ['products:manage'] });
@@ -144,55 +147,60 @@ describe('manage product archive route idempotency', () => {
     const app = createApp();
     const storedResponses = new Map();
 
-    mocks.commandBuildFinalizeStatement.mockImplementation((_commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        storedResponses.set('archive-key-1', {
-          responseJson,
-          status,
-        });
-        return { meta: { changes: 1 } };
-      }),
-    }));
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      if (idempotencyKey === 'archive-key-1' && storedResponses.has(idempotencyKey)) {
-        const stored = storedResponses.get(idempotencyKey);
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (_commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          storedResponses.set('archive-key-1', {
+            responseJson,
+            status,
+          });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        if (idempotencyKey === 'archive-key-1' && storedResponses.has(idempotencyKey)) {
+          const stored = storedResponses.get(idempotencyKey);
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: 'cmd-product-archive-1',
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: requestFingerprint,
+              response_json: JSON.stringify(stored.responseJson),
+              status: stored.status,
+            },
+          };
+        }
+
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
             command_id: 'cmd-product-archive-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
             request_fingerprint: requestFingerprint,
-            response_json: JSON.stringify(stored.responseJson),
-            status: stored.status,
           },
         };
       }
-
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-product-archive-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-
-    const request = (productId = 'prod-1') => app.request(
-      `http://localhost/api/manage/products/${productId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          'Idempotency-Key': 'archive-key-1',
-        },
-      },
-      { DB: createEnvDb() },
-      { waitUntil: vi.fn() }
     );
+
+    const request = (productId = 'prod-1') =>
+      app.request(
+        `http://localhost/api/manage/products/${productId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Idempotency-Key': 'archive-key-1',
+          },
+        },
+        { DB: createEnvDb() },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const dbRunsAfterFirst = mocks.dbRun.mock.calls.length;
@@ -213,7 +221,10 @@ describe('manage product archive route idempotency', () => {
 
   it('rejects product archive retries that reuse the same Idempotency-Key for a different product', async () => {
     const app = createApp();
-    mocks.productFindById.mockImplementation(async (productId) => ({ id: productId, name: `Product ${productId}` }));
+    mocks.productFindById.mockImplementation(async (productId) => ({
+      id: productId,
+      name: `Product ${productId}`,
+    }));
     mocks.commandReserve.mockResolvedValue({
       existing: true,
       ownsReservation: false,
@@ -240,9 +251,11 @@ describe('manage product archive route idempotency', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual(expect.objectContaining({
-      error: '同一个幂等键不能提交不同的商品归档请求',
-    }));
+    expect(await res.json()).toEqual(
+      expect.objectContaining({
+        error: '同一个幂等键不能提交不同的商品归档请求',
+      })
+    );
     expect(mocks.dbRun).not.toHaveBeenCalled();
     expect(mocks.scheduleProductCacheInvalidation).not.toHaveBeenCalled();
   });
@@ -251,60 +264,65 @@ describe('manage product archive route idempotency', () => {
     const app = createApp();
     const commandState = new Map();
 
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      const existing = commandState.get(idempotencyKey);
-      if (existing) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        const existing = commandState.get(idempotencyKey);
+        if (existing) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: existing.commandId,
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: existing.requestFingerprint,
+              response_json: existing.responseJson,
+              status: existing.status,
+            },
+          };
+        }
+
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
-            command_id: existing.commandId,
+            command_id: 'cmd-product-archive-retry-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: existing.requestFingerprint,
-            response_json: existing.responseJson,
-            status: existing.status,
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-product-archive-retry-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        commandState.set('archive-key-retry-1', {
-          commandId,
-          requestFingerprint: buildArchiveFingerprint('prod-1'),
-          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
-          status,
-        });
-        return { meta: { changes: 1 } };
-      }),
-    }));
+    );
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          commandState.set('archive-key-retry-1', {
+            commandId,
+            requestFingerprint: buildArchiveFingerprint('prod-1'),
+            responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+            status,
+          });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
     mocks.scheduleProductCacheInvalidation
       .mockRejectedValueOnce(new Error('publish failed'))
       .mockResolvedValueOnce([]);
 
-    const request = () => app.request(
-      'http://localhost/api/manage/products/prod-1',
-      {
-        method: 'DELETE',
-        headers: {
-          'Idempotency-Key': 'archive-key-retry-1',
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/products/prod-1',
+        {
+          method: 'DELETE',
+          headers: {
+            'Idempotency-Key': 'archive-key-retry-1',
+          },
         },
-      },
-      { DB: createEnvDb() },
-      { waitUntil: vi.fn() }
-    );
+        { DB: createEnvDb() },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -326,66 +344,73 @@ describe('manage product archive route idempotency', () => {
     const commandState = new Map();
     let committedFinalizeAttempts = 0;
 
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      const existing = commandState.get(idempotencyKey);
-      if (existing) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        const existing = commandState.get(idempotencyKey);
+        if (existing) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: existing.commandId,
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: existing.requestFingerprint,
+              response_json: existing.responseJson,
+              status: existing.status,
+            },
+          };
+        }
+
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
-            command_id: existing.commandId,
+            command_id: 'cmd-product-archive-finalize-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: existing.requestFingerprint,
-            response_json: existing.responseJson,
-            status: existing.status,
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-product-archive-finalize-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        if (status === 'committed') {
-          committedFinalizeAttempts += 1;
-          if (committedFinalizeAttempts === 1) {
-            throw new Error('finalize committed failed');
+    );
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          if (status === 'committed') {
+            committedFinalizeAttempts += 1;
+            if (committedFinalizeAttempts === 1) {
+              throw new Error('finalize committed failed');
+            }
           }
-        }
-        commandState.set('archive-key-finalize-1', {
-          commandId,
-          requestFingerprint: buildArchiveFingerprint('prod-1'),
-          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
-          status,
-        });
-        return { meta: { changes: 1 } };
-      }),
-    }));
+          commandState.set('archive-key-finalize-1', {
+            commandId,
+            requestFingerprint: buildArchiveFingerprint('prod-1'),
+            responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+            status,
+          });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
     mocks.scheduleProductCacheInvalidation
       .mockResolvedValueOnce([])
-      .mockRejectedValueOnce(new Error('D1_ERROR: UNIQUE constraint failed: domain_outbox.idempotency_key'));
+      .mockRejectedValueOnce(
+        new Error('D1_ERROR: UNIQUE constraint failed: domain_outbox.idempotency_key')
+      );
 
-    const request = () => app.request(
-      'http://localhost/api/manage/products/prod-1',
-      {
-        method: 'DELETE',
-        headers: {
-          'Idempotency-Key': 'archive-key-finalize-1',
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/products/prod-1',
+        {
+          method: 'DELETE',
+          headers: {
+            'Idempotency-Key': 'archive-key-finalize-1',
+          },
         },
-      },
-      { DB: createEnvDb() },
-      { waitUntil: vi.fn() }
-    );
+        { DB: createEnvDb() },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -395,13 +420,17 @@ describe('manage product archive route idempotency', () => {
     expect(mocks.dbRun).toHaveBeenCalledTimes(1);
     expect(mocks.auditCreateBatch).toHaveBeenCalledTimes(1);
     expect(mocks.scheduleProductCacheInvalidation).toHaveBeenCalledTimes(2);
-    expect(mocks.scheduleProductCacheInvalidation.mock.calls[0][2]).toEqual(expect.objectContaining({
-      commandId: 'cmd-product-archive-finalize-1',
-      correlationId: 'cmd-product-archive-finalize-1',
-    }));
-    expect(mocks.scheduleProductCacheInvalidation.mock.calls[1][2]).toEqual(expect.objectContaining({
-      commandId: 'cmd-product-archive-finalize-1',
-      correlationId: 'cmd-product-archive-finalize-1',
-    }));
+    expect(mocks.scheduleProductCacheInvalidation.mock.calls[0][2]).toEqual(
+      expect.objectContaining({
+        commandId: 'cmd-product-archive-finalize-1',
+        correlationId: 'cmd-product-archive-finalize-1',
+      })
+    );
+    expect(mocks.scheduleProductCacheInvalidation.mock.calls[1][2]).toEqual(
+      expect.objectContaining({
+        commandId: 'cmd-product-archive-finalize-1',
+        correlationId: 'cmd-product-archive-finalize-1',
+      })
+    );
   });
 });

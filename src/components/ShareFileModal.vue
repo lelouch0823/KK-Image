@@ -47,7 +47,7 @@
             <AppButton
               variant="secondary"
               size="sm"
-              class="!size-10  shrink-0 !p-0"
+              class="!size-10 shrink-0 !p-0"
               @click="copyLink"
             >
               <template #icon-left>

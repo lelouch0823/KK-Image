@@ -29,7 +29,9 @@ vi.mock('../../../../../repositories/SystemStatsProjectionRepository.js', () => 
 }));
 
 vi.mock('../../../../../services/SystemStatsProjectionRefreshService.js', async () => {
-  const actual = await vi.importActual('../../../../../services/SystemStatsProjectionRefreshService.js');
+  const actual = await vi.importActual(
+    '../../../../../services/SystemStatsProjectionRefreshService.js'
+  );
   return {
     ...actual,
     SystemStatsProjectionRefreshService: vi.fn(() => ({
@@ -70,7 +72,11 @@ describe('manage stats routes', () => {
     });
 
     const app = createApp();
-    const res = await app.request('http://localhost/api/manage/stats', { method: 'GET' }, { DB: {} });
+    const res = await app.request(
+      'http://localhost/api/manage/stats',
+      { method: 'GET' },
+      { DB: {} }
+    );
 
     expect(res.status).toBe(200);
     expect(mocks.requiredPermissions).toContain('stats:read');
@@ -83,7 +89,11 @@ describe('manage stats routes', () => {
     mocks.getUploadTrends.mockResolvedValueOnce([{ date: '2026-04-10', count: 3, size: 4096 }]);
 
     const app = createApp();
-    const res = await app.request('http://localhost/api/manage/stats/uploads?days=14', { method: 'GET' }, { DB: {} });
+    const res = await app.request(
+      'http://localhost/api/manage/stats/uploads?days=14',
+      { method: 'GET' },
+      { DB: {} }
+    );
 
     expect(res.status).toBe(200);
     expect(mocks.projectionGet).not.toHaveBeenCalled();

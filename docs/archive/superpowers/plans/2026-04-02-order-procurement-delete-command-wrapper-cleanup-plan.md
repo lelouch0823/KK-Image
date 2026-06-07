@@ -13,6 +13,7 @@
 ### Task 1: Lock the Wrapper Removal Contract
 
 **Files:**
+
 - Create: `functions/services/__tests__/order-procurement-shared-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the wrapper still exists.
 ### Task 2: Inline the Fallback Delete Statement
 
 **Files:**
+
 - Modify: `functions/services/order-procurement-shared.js`
 - Modify: `functions/services/__tests__/order-procurement-shared.test.js`
 

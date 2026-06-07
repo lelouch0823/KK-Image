@@ -20,9 +20,7 @@ describe('purchase-order-request helpers', () => {
   });
 
   it('builds idempotent json headers from a supplied id creator', () => {
-    expect(
-      buildPurchaseOrderIdempotentJsonHeaders({ createId: () => 'idem-1' })
-    ).toEqual({
+    expect(buildPurchaseOrderIdempotentJsonHeaders({ createId: () => 'idem-1' })).toEqual({
       'Content-Type': 'application/json',
       'Idempotency-Key': 'idem-1',
     });

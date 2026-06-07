@@ -26,23 +26,28 @@ export function normalizePurchaseOrderProgress(row = {}) {
 }
 
 export function summarizePurchaseOrderItems(items = []) {
-  return normalizePurchaseOrderProgress(items.reduce((acc, item) => ({
-    item_count: acc.item_count + 1,
-    ordered_qty: acc.ordered_qty + getPurchaseOrderOrderedQty(item),
-    received_qty: acc.received_qty + getPurchaseOrderReceivedQty(item),
-    cancelled_qty: acc.cancelled_qty + getPurchaseOrderCancelledQty(item),
-    outstanding_qty: acc.outstanding_qty + getPurchaseOrderOutstandingQty(item),
-    total_goods_cost: acc.total_goods_cost + (toNumber(item.quantity) * toNumber(item.unit_cost)),
-    receipt_count: acc.receipt_count + toNumber(item.receipt_count),
-    last_received_at: Math.max(acc.last_received_at, toNumber(item.last_received_at)),
-  }), {
-    item_count: 0,
-    ordered_qty: 0,
-    received_qty: 0,
-    cancelled_qty: 0,
-    outstanding_qty: 0,
-    total_goods_cost: 0,
-    receipt_count: 0,
-    last_received_at: 0,
-  }));
+  return normalizePurchaseOrderProgress(
+    items.reduce(
+      (acc, item) => ({
+        item_count: acc.item_count + 1,
+        ordered_qty: acc.ordered_qty + getPurchaseOrderOrderedQty(item),
+        received_qty: acc.received_qty + getPurchaseOrderReceivedQty(item),
+        cancelled_qty: acc.cancelled_qty + getPurchaseOrderCancelledQty(item),
+        outstanding_qty: acc.outstanding_qty + getPurchaseOrderOutstandingQty(item),
+        total_goods_cost: acc.total_goods_cost + toNumber(item.quantity) * toNumber(item.unit_cost),
+        receipt_count: acc.receipt_count + toNumber(item.receipt_count),
+        last_received_at: Math.max(acc.last_received_at, toNumber(item.last_received_at)),
+      }),
+      {
+        item_count: 0,
+        ordered_qty: 0,
+        received_qty: 0,
+        cancelled_qty: 0,
+        outstanding_qty: 0,
+        total_goods_cost: 0,
+        receipt_count: 0,
+        last_received_at: 0,
+      }
+    )
+  );
 }

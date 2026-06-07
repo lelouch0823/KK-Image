@@ -18,21 +18,23 @@ export class InventoryRepository {
    * @param {number} timestamp
    */
   upsertBalance(variantId, quantityDelta, timestamp) {
-    return this.db.prepare(
-      `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
+    return this.db
+      .prepare(
+        `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
        VALUES (?, ?, 0, ?, ?)
        ON CONFLICT(variant_id) DO UPDATE SET
          on_hand = MAX(0, inventory_balances.on_hand + ?),
          available = MAX(0, MAX(0, inventory_balances.on_hand + ?) - inventory_balances.reserved),
          updated_at = excluded.updated_at`
-    ).bind(
-      variantId,
-      Math.max(quantityDelta, 0),
-      Math.max(quantityDelta, 0),
-      timestamp,
-      quantityDelta,
-      quantityDelta
-    );
+      )
+      .bind(
+        variantId,
+        Math.max(quantityDelta, 0),
+        Math.max(quantityDelta, 0),
+        timestamp,
+        quantityDelta,
+        quantityDelta
+      );
   }
 
   /**
@@ -42,20 +44,22 @@ export class InventoryRepository {
    * @param {number} timestamp
    */
   upsertReservedBalance(variantId, reservationDelta, timestamp) {
-    return this.db.prepare(
-      `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
+    return this.db
+      .prepare(
+        `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
        VALUES (?, 0, ?, 0, ?)
        ON CONFLICT(variant_id) DO UPDATE SET
          reserved = MAX(0, inventory_balances.reserved + ?),
          available = MAX(0, inventory_balances.on_hand - MAX(0, inventory_balances.reserved + ?)),
          updated_at = excluded.updated_at`
-    ).bind(
-      variantId,
-      Math.max(reservationDelta, 0),
-      timestamp,
-      reservationDelta,
-      reservationDelta
-    );
+      )
+      .bind(
+        variantId,
+        Math.max(reservationDelta, 0),
+        timestamp,
+        reservationDelta,
+        reservationDelta
+      );
   }
 
   /**
@@ -83,20 +87,22 @@ export class InventoryRepository {
     const timestamp = occurredAt || Date.now();
     const metadataJson = typeof metadata === 'string' ? metadata : JSON.stringify(metadata || {});
 
-    return this.db.prepare(
-      `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)
+    return this.db
+      .prepare(
+        `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      ledgerId,
-      variantId,
-      eventType,
-      quantityDelta,
-      referenceType,
-      referenceId,
-      timestamp,
-      metadataJson,
-      timestamp
-    );
+      )
+      .bind(
+        ledgerId,
+        variantId,
+        eventType,
+        quantityDelta,
+        referenceType,
+        referenceId,
+        timestamp,
+        metadataJson,
+        timestamp
+      );
   }
 
   /**
@@ -128,23 +134,25 @@ export class InventoryRepository {
     const timestamp = occurredAt || Date.now();
     const metadataJson = typeof metadata === 'string' ? metadata : JSON.stringify(metadata || {});
 
-    return this.db.prepare(
-      `INSERT INTO inventory_events (
+    return this.db
+      .prepare(
+        `INSERT INTO inventory_events (
         id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta,
         source_type, source_id, metadata, occurred_at, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      eventId,
-      variantId,
-      orderLineId,
-      purchaseReceiptId,
-      eventType,
-      quantityDelta,
-      sourceType,
-      sourceId,
-      metadataJson,
-      timestamp,
-      timestamp
-    );
+      )
+      .bind(
+        eventId,
+        variantId,
+        orderLineId,
+        purchaseReceiptId,
+        eventType,
+        quantityDelta,
+        sourceType,
+        sourceId,
+        metadataJson,
+        timestamp,
+        timestamp
+      );
   }
 }

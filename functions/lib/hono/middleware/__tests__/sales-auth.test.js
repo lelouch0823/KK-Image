@@ -60,8 +60,14 @@ describe('salesAuthMiddleware', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.authenticateSalesperson).toHaveBeenCalledWith(expect.any(Request), expect.any(Object), 'token-1');
-    expect(await res.json()).toEqual(expect.objectContaining({ success: true, salespersonId: 'sp-1' }));
+    expect(mocks.authenticateSalesperson).toHaveBeenCalledWith(
+      expect.any(Request),
+      expect.any(Object),
+      'token-1'
+    );
+    expect(await res.json()).toEqual(
+      expect.objectContaining({ success: true, salespersonId: 'sp-1' })
+    );
   });
 
   it('accepts valid bearer JWT + path token', async () => {
@@ -75,34 +81,54 @@ describe('salesAuthMiddleware', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.authenticateSalesperson).toHaveBeenCalledWith(expect.any(Request), expect.any(Object), 'token-1');
+    expect(mocks.authenticateSalesperson).toHaveBeenCalledWith(
+      expect.any(Request),
+      expect.any(Object),
+      'token-1'
+    );
   });
 
   it('rejects disabled salesperson with 403', async () => {
     mocks.authenticateSalesperson.mockRejectedValue(new Error(MSG.SALESPERSON.DISABLED));
 
     const app = createApp();
-    const res = await app.request('http://localhost/api/sales/token-1/ping', {}, { DB: { prepare: vi.fn() } });
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/ping',
+      {},
+      { DB: { prepare: vi.fn() } }
+    );
     const payload = await res.json();
 
     expect(res.status).toBe(403);
-    expect(payload).toEqual(expect.objectContaining({ success: false, error: MSG.SALESPERSON.DISABLED }));
+    expect(payload).toEqual(
+      expect.objectContaining({ success: false, error: MSG.SALESPERSON.DISABLED })
+    );
   });
 
   it('rejects mismatched access token with 404', async () => {
     mocks.authenticateSalesperson.mockRejectedValue(new Error(MSG.SALESPERSON.NOT_FOUND));
 
     const app = createApp();
-    const res = await app.request('http://localhost/api/sales/token-1/ping', {}, { DB: { prepare: vi.fn() } });
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/ping',
+      {},
+      { DB: { prepare: vi.fn() } }
+    );
     const payload = await res.json();
 
     expect(res.status).toBe(404);
-    expect(payload).toEqual(expect.objectContaining({ success: false, error: MSG.SALESPERSON.NOT_FOUND }));
+    expect(payload).toEqual(
+      expect.objectContaining({ success: false, error: MSG.SALESPERSON.NOT_FOUND })
+    );
   });
 
   it('does not swallow downstream route errors after auth passes', async () => {
     const app = createApp();
-    const res = await app.request('http://localhost/api/sales/token-1/crash', {}, { DB: { prepare: vi.fn() } });
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/crash',
+      {},
+      { DB: { prepare: vi.fn() } }
+    );
     const payload = await res.json();
 
     expect(res.status).toBe(500);
@@ -116,14 +142,22 @@ describe('salesAuthMiddleware', () => {
   });
 
   it('returns generic 500 for unexpected auth errors without leaking internals', async () => {
-    mocks.authenticateSalesperson.mockRejectedValue(new Error('DB_CONN_TIMEOUT: secret-internal-detail'));
+    mocks.authenticateSalesperson.mockRejectedValue(
+      new Error('DB_CONN_TIMEOUT: secret-internal-detail')
+    );
 
     const app = createApp();
-    const res = await app.request('http://localhost/api/sales/token-1/ping', {}, { DB: { prepare: vi.fn() } });
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/ping',
+      {},
+      { DB: { prepare: vi.fn() } }
+    );
     const payload = await res.json();
 
     expect(res.status).toBe(500);
-    expect(payload).toEqual(expect.objectContaining({ success: false, error: MSG.COMMON.OP_FAILED }));
+    expect(payload).toEqual(
+      expect.objectContaining({ success: false, error: MSG.COMMON.OP_FAILED })
+    );
     expect(payload.error).not.toContain('secret-internal-detail');
   });
 });

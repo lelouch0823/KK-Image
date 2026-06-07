@@ -40,7 +40,9 @@ describe('d1-safe-migrate', () => {
       ['d1', 'migrations', 'apply', 'DB', '--env', 'preview', '--remote'],
       expect.objectContaining({ retries: 2 })
     );
-    expect(writeErr).toHaveBeenCalledWith('[safe-migrate] migration flow completed successfully.\n');
+    expect(writeErr).toHaveBeenCalledWith(
+      '[safe-migrate] migration flow completed successfully.\n'
+    );
   });
 
   it('falls back to --file execution for recoverable incomplete-input parser failures', async () => {
@@ -70,7 +72,16 @@ describe('d1-safe-migrate', () => {
     expect(result).toBe(0);
     expect(runWrangler).toHaveBeenNthCalledWith(
       2,
-      ['d1', 'execute', 'DB', '--env', 'production', '--remote', '--file', 'migrations/2026_fix.sql'],
+      [
+        'd1',
+        'execute',
+        'DB',
+        '--env',
+        'production',
+        '--remote',
+        '--file',
+        'migrations/2026_fix.sql',
+      ],
       expect.objectContaining({ retries: 1 })
     );
     expect(runWrangler).toHaveBeenNthCalledWith(
@@ -213,7 +224,9 @@ describe('d1-safe-migrate', () => {
     const result = runner.runWrangler(['d1'], { retries: 0 });
 
     expect(result).toEqual({ ok: false, output: '\n', status: 1 });
-    expect(writeErr).toHaveBeenCalledWith('[safe-migrate] failed to execute "pnpm": spawn failed\n');
+    expect(writeErr).toHaveBeenCalledWith(
+      '[safe-migrate] failed to execute "pnpm": spawn failed\n'
+    );
   });
 
   it('aborts when fallback execute or mark-applied steps fail, and when the same migration loops again', async () => {

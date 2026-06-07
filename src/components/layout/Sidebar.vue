@@ -150,8 +150,12 @@
         </div>
         <transition name="fade-slide">
           <div v-if="!isCollapsed" class="min-w-0 flex-1">
-            <div class="truncate text-sm font-medium text-(--text-main)">{{ currentUser?.name || t('sidebar.role') }}</div>
-            <div class="text-(--text-muted) text-xs capitalize">{{ currentUser?.role || t('sidebar.role') }}</div>
+            <div class="truncate text-sm font-medium text-(--text-main)">
+              {{ currentUser?.name || t('sidebar.role') }}
+            </div>
+            <div class="text-(--text-muted) text-xs capitalize">
+              {{ currentUser?.role || t('sidebar.role') }}
+            </div>
           </div>
         </transition>
       </div>
@@ -254,103 +258,103 @@ const menuItems = computed(() => [
     key: 'dashboard',
     label: t('sidebar.dashboard'),
     icon: 'squares-2x2',
-    permission: 'stats:read'
+    permission: 'stats:read',
   },
   {
     key: 'files',
     label: t('sidebar.files'),
     icon: 'folder',
-    permission: 'files:read'
+    permission: 'files:read',
   },
   {
     key: 'spaces',
     label: t('sidebar.spaces'),
     icon: 'rectangle-group',
-    permission: 'spaces:read'
+    permission: 'spaces:read',
   },
   {
     key: 'products',
     label: t('views.products'),
     icon: 'cube',
-    permission: 'products:manage'
+    permission: 'products:manage',
   },
   {
     key: 'orders',
     label: t('order.manage.title'),
     icon: 'clipboard-document-list',
-    permission: 'orders:manage'
+    permission: 'orders:manage',
   },
   {
     key: 'receivables',
     label: t('order.receivables.title'),
     icon: 'banknotes',
-    permission: 'orders:read'
+    permission: 'orders:read',
   },
   {
     key: 'goods-overview',
     label: t('sidebar.goodsOverview'),
     icon: 'building-storefront',
-    permission: 'products:manage'
+    permission: 'products:manage',
   },
   {
     key: 'inventory-dashboard',
     label: t('sidebar.inventoryDashboard'),
     icon: 'archive-box',
-    permission: 'products:manage'
+    permission: 'products:manage',
   },
   {
     key: 'purchase-orders',
     label: t('purchaseOrder.title'),
     icon: 'shopping-cart',
-    permission: 'products:manage'
+    permission: 'products:manage',
   },
   {
     key: 'stocktakes',
     label: t('stocktake.title'),
     icon: 'clipboard-document-check',
-    permission: 'products:manage'
+    permission: 'products:manage',
   },
   {
     key: 'customers',
     label: t('customer.manage.title'),
     icon: 'users',
-    permission: 'orders:manage'
+    permission: 'orders:manage',
   },
   {
     key: 'salespersons',
     label: t('salesperson.title'),
     icon: 'briefcase',
-    permission: 'users:read'
+    permission: 'users:read',
   },
   {
     key: 'stats',
     label: t('sidebar.stats'),
     icon: 'chart-bar',
-    permission: 'stats:read'
+    permission: 'stats:read',
   },
   {
     key: 'settings',
     label: t('settings.title'),
     icon: 'cog-8-tooth',
-    permission: 'admin:full'
+    permission: 'admin:full',
   },
   {
     key: 'audit-logs',
     label: t('router.audit_logs'),
     icon: 'document-text',
-    permission: 'audit:read'
+    permission: 'audit:read',
   },
   {
     key: 'outbox-ops',
     label: t('router.outbox_ops'),
     icon: 'arrow-path',
-    permission: 'audit:read'
-  }
+    permission: 'audit:read',
+  },
 ]);
 
 // 过滤包含用户对应权限的菜单
 const visibleMenuItems = computed(() => {
-  return menuItems.value.filter(item => {
+  return menuItems.value.filter((item) => {
     if (!item.permission) return true;
     if (!permissionsLoaded.value) return false;
     return hasPermission(item.permission);

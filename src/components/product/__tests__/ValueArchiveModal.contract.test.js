@@ -63,4 +63,3 @@ describe('ValueArchiveModal event contract', () => {
     expect(wrapper.emitted('close')).toHaveLength(1);
   });
 });
-

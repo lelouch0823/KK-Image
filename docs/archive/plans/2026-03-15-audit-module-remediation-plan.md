@@ -13,6 +13,7 @@
 ### Task 1: 为审计导出补 CSV 注入回归测试
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/__tests__/audit-logs-routes.test.js`
 
 **Step 1: Write the failing test**
@@ -59,6 +60,7 @@ git commit -m "fix(audit): harden csv export cells"
 ### Task 2: 为审计上下文可信化补共享 helper 测试
 
 **Files:**
+
 - Modify: `functions/lib/hono/_shared/__tests__/auth-helpers.audit.test.js`
 - Modify: `functions/lib/hono/_shared/__tests__/audit-runtime-test-utils.js` if needed
 - Modify: `functions/lib/hono/_shared/audit-helpers.js`
@@ -122,6 +124,7 @@ git commit -m "fix(audit): trust only server-derived request context"
 ### Task 3: 为审计读取留痕补路由测试
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/__tests__/audit-logs-routes.test.js`
 - Modify: `functions/lib/hono/routes/manage/audit-logs.js`
 
@@ -179,6 +182,7 @@ git commit -m "feat(audit): record audit log reads"
 ### Task 4: 跑审计相关回归
 
 **Files:**
+
 - No code changes
 
 **Step 1: Run focused tests**
@@ -213,6 +217,7 @@ git commit -m "fix(audit): close export provenance and read-trace gaps"
 ### Task 5: 同步运维文档
 
 **Files:**
+
 - Modify: `docs/admin-manual/audit-operations.md`
 
 **Step 1: Write the failing doc expectation**

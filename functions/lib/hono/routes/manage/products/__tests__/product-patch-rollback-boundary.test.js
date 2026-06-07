@@ -34,51 +34,83 @@ const mockCommandRepo = {
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
-    findById(...args) { return mockProductRepo.findById(...args); }
-    updateWithMeta(...args) { return mockProductRepo.updateWithMeta(...args); }
+    findById(...args) {
+      return mockProductRepo.findById(...args);
+    }
+    updateWithMeta(...args) {
+      return mockProductRepo.updateWithMeta(...args);
+    }
   },
 }));
 
 vi.mock('../../../../../../repositories/ProductVariantRepository.js', () => ({
   ProductVariantRepository: class {
-    syncVariants(...args) { return mockVariantRepo.syncVariants(...args); }
-    findByProductId(...args) { return mockVariantRepo.findByProductId(...args); }
-    buildAuditEvents() { return []; }
+    syncVariants(...args) {
+      return mockVariantRepo.syncVariants(...args);
+    }
+    findByProductId(...args) {
+      return mockVariantRepo.findByProductId(...args);
+    }
+    buildAuditEvents() {
+      return [];
+    }
   },
 }));
 
 vi.mock('../../../../../../repositories/VariantAuditRepository.js', () => ({
   VariantAuditRepository: class {
-    createBatch(...args) { return mockAuditRepo.createBatch(...args); }
+    createBatch(...args) {
+      return mockAuditRepo.createBatch(...args);
+    }
   },
 }));
 
 vi.mock('../../../../../../repositories/VariantImageRepository.js', () => ({
   VariantImageRepository: class {
-    syncImages(...args) { return mockVariantImageRepo.syncImages(...args); }
-    listByVariant(...args) { return mockVariantImageRepo.listByVariant(...args); }
+    syncImages(...args) {
+      return mockVariantImageRepo.syncImages(...args);
+    }
+    listByVariant(...args) {
+      return mockVariantImageRepo.listByVariant(...args);
+    }
   },
 }));
 
 vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
   ProductDimensionRepository: class {
-    listByProduct(...args) { return mockDimensionRepo.listByProduct(...args); }
-    updateDimension(...args) { return mockDimensionRepo.updateDimension(...args); }
-    createDimension(...args) { return mockDimensionRepo.createDimension(...args); }
-    addValue(...args) { return mockDimensionRepo.addValue(...args); }
-    restoreSnapshot(...args) { return mockDimensionRepo.restoreSnapshot(...args); }
+    listByProduct(...args) {
+      return mockDimensionRepo.listByProduct(...args);
+    }
+    updateDimension(...args) {
+      return mockDimensionRepo.updateDimension(...args);
+    }
+    createDimension(...args) {
+      return mockDimensionRepo.createDimension(...args);
+    }
+    addValue(...args) {
+      return mockDimensionRepo.addValue(...args);
+    }
+    restoreSnapshot(...args) {
+      return mockDimensionRepo.restoreSnapshot(...args);
+    }
   },
 }));
 
 vi.mock('../../../../../../repositories/CommandIdempotencyRepository.js', () => ({
   CommandIdempotencyRepository: class {
-    reserveCommand(...args) { return mockCommandRepo.reserveCommand(...args); }
-    buildDeleteStatement(...args) { return mockCommandRepo.buildDeleteStatement(...args); }
-    buildFinalizeStatement(...args) { return mockCommandRepo.buildFinalizeStatement(...args); }
+    reserveCommand(...args) {
+      return mockCommandRepo.reserveCommand(...args);
+    }
+    buildDeleteStatement(...args) {
+      return mockCommandRepo.buildDeleteStatement(...args);
+    }
+    buildFinalizeStatement(...args) {
+      return mockCommandRepo.buildFinalizeStatement(...args);
+    }
   },
 }));
 
-vi.mock("../../../../middleware/cache.js", () => ({
+vi.mock('../../../../middleware/cache.js', () => ({
   withCache: () => async (_c, next) => next(),
   invalidateCache: vi.fn(),
   getProductCacheUrls: vi.fn(() => []),
@@ -114,12 +146,14 @@ describe('product patch rollback boundaries', () => {
     });
     mockProductRepo.updateWithMeta.mockResolvedValue({ success: true, changes: 1 });
     mockDimensionRepo.listByProduct.mockResolvedValue([]);
-    mockDimensionRepo.updateDimension.mockImplementation(async (_productId, dimensionId, payload) => ({
-      id: dimensionId,
-      product_id: 'p1',
-      name: payload.name,
-      sort_order: payload.sort_order ?? 0,
-    }));
+    mockDimensionRepo.updateDimension.mockImplementation(
+      async (_productId, dimensionId, payload) => ({
+        id: dimensionId,
+        product_id: 'p1',
+        name: payload.name,
+        sort_order: payload.sort_order ?? 0,
+      })
+    );
     mockDimensionRepo.createDimension.mockImplementation(async (_productId, payload) => ({
       id: 'dim-new',
       product_id: 'p1',
@@ -320,15 +354,12 @@ describe('product patch rollback boundaries', () => {
         currency: 'CNY',
       })
     );
-    expect(mockDimensionRepo.restoreSnapshot).toHaveBeenCalledWith(
-      'p1',
-      [
-        expect.objectContaining({
-          id: 'dim-color',
-          name: 'Color',
-        }),
-      ]
-    );
+    expect(mockDimensionRepo.restoreSnapshot).toHaveBeenCalledWith('p1', [
+      expect.objectContaining({
+        id: 'dim-color',
+        name: 'Color',
+      }),
+    ]);
   });
 
   it('restores variant image snapshots when image sync fails mid-patch', async () => {
@@ -409,11 +440,8 @@ describe('product patch rollback boundaries', () => {
 
     expect(res.status).toBe(500);
     expect(mockVariantImageRepo.syncImages).toHaveBeenCalledTimes(2);
-    expect(mockVariantImageRepo.syncImages).toHaveBeenNthCalledWith(
-      2,
-      'p1',
-      'v-existing',
-      [{ image_id: 'img-old', is_primary: 1, sort_order: 0 }]
-    );
+    expect(mockVariantImageRepo.syncImages).toHaveBeenNthCalledWith(2, 'p1', 'v-existing', [
+      { image_id: 'img-old', is_primary: 1, sort_order: 0 },
+    ]);
   });
 });

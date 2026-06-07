@@ -16,9 +16,7 @@ describe('OutboxReplayPanel', () => {
           id: 'evt-1',
           event_type: 'purchase_receipt_recorded',
           aggregate_id: 'po-1',
-          consumerJobs: [
-            { consumer_name: 'notification', status: 'failed' },
-          ],
+          consumerJobs: [{ consumer_name: 'notification', status: 'failed' }],
         },
         detailLoading: false,
         replayLoading: false,

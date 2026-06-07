@@ -29,7 +29,9 @@ describe('ProductVariantRepository behavior coverage', () => {
 
     expect(repo.buildFallbackVariantSku(' variant-1 ')).toBe('SKU-VARIANT1');
     expect(repo.buildVariantSku(' SKU-1 ', 'variant-1')).toBe('SKU-1');
-    expect(() => repo.buildVariantSku('', 'variant-1')).toThrow('variant sku is required (variant-1)');
+    expect(() => repo.buildVariantSku('', 'variant-1')).toThrow(
+      'variant sku is required (variant-1)'
+    );
     expect(repo.normalizeExternalCode('  EXT-1  ')).toBe('EXT-1');
     expect(repo.normalizeExternalCode('   ')).toBeNull();
     expect(repo.normalizeOptionsValues({ b: '2', a: '1', empty: '', nil: null })).toEqual({

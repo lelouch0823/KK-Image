@@ -170,8 +170,8 @@ export class CustomerRepository {
 
     return {
       results,
-      total: countResult!.total,
-      pages: Math.ceil(countResult!.total / safeLimit),
+      total: countResult?.total ?? 0,
+      pages: Math.ceil((countResult?.total ?? 0) / safeLimit),
     };
   }
 
@@ -303,7 +303,7 @@ export class CustomerRepository {
       )
       .bind(id)
       .first<{ count: number }>();
-    return result!.count > 0;
+    return (result?.count ?? 0) > 0;
   }
 
   /**

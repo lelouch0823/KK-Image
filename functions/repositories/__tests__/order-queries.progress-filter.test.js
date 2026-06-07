@@ -21,10 +21,18 @@ describe('order queries progress-status filtering', () => {
       limit: 20,
     });
 
-    expect(db.prepare.mock.calls[0][0]).toContain("COALESCE(order_summary.display_status, '') IN (?, ?)");
-    expect(db.prepare.mock.calls[0][0]).toContain("COALESCE(o.procurement_status, 'none') IN (?, ?)");
-    expect(db.prepare.mock.calls[1][0]).toContain("COALESCE(order_summary.display_status, '') IN (?, ?)");
-    expect(db.prepare.mock.calls[1][0]).toContain("COALESCE(o.procurement_status, 'none') IN (?, ?)");
+    expect(db.prepare.mock.calls[0][0]).toContain(
+      "COALESCE(order_summary.display_status, '') IN (?, ?)"
+    );
+    expect(db.prepare.mock.calls[0][0]).toContain(
+      "COALESCE(o.procurement_status, 'none') IN (?, ?)"
+    );
+    expect(db.prepare.mock.calls[1][0]).toContain(
+      "COALESCE(order_summary.display_status, '') IN (?, ?)"
+    );
+    expect(db.prepare.mock.calls[1][0]).toContain(
+      "COALESCE(o.procurement_status, 'none') IN (?, ?)"
+    );
     expect(countStmt.bind).toHaveBeenCalledWith(
       'partially_received',
       'partially_arrived',
@@ -60,8 +68,12 @@ describe('order queries progress-status filtering', () => {
       limit: 20,
     });
 
-    expect(db.prepare.mock.calls[0][0]).toContain("COALESCE(order_summary.display_status, '') IN (?, ?)");
-    expect(db.prepare.mock.calls[0][0]).toContain("COALESCE(o.procurement_status, 'none') IN (?, ?)");
+    expect(db.prepare.mock.calls[0][0]).toContain(
+      "COALESCE(order_summary.display_status, '') IN (?, ?)"
+    );
+    expect(db.prepare.mock.calls[0][0]).toContain(
+      "COALESCE(o.procurement_status, 'none') IN (?, ?)"
+    );
     expect(countStmt.bind).toHaveBeenCalledWith('unprocured', 'none', 'unprocured', 'none');
     expect(listStmt.bind).toHaveBeenCalledWith('unprocured', 'none', 'unprocured', 'none', 20, 0);
   });

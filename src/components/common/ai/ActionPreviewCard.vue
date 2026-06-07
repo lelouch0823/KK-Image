@@ -3,18 +3,18 @@
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="bg-primary/12 text-primary rounded-full px-2.5 py-1 text-xs font-medium">Step 2 · 确认预览</span>
-          <span class="rounded-full bg-(--bg-card) px-2.5 py-1 text-xs font-medium text-(--text-secondary)">{{ entityLabel }}</span>
+          <span class="bg-primary/12 text-primary rounded-full px-2.5 py-1 text-xs font-medium"
+            >Step 2 · 确认预览</span
+          >
+          <span
+            class="rounded-full bg-(--bg-card) px-2.5 py-1 text-xs font-medium text-(--text-secondary)"
+            >{{ entityLabel }}</span
+          >
         </div>
         <p class="mt-3 text-sm font-semibold text-(--text-main)">{{ titleText }}</p>
         <p class="mt-1 text-sm text-(--text-secondary)">请确认以下信息后再创建。</p>
       </div>
-      <AppButton
-        size="sm"
-        class="shrink-0 !rounded-xl"
-        text="确认创建"
-        @click="$emit('confirm')"
-      />
+      <AppButton size="sm" class="shrink-0 !rounded-xl" text="确认创建" @click="$emit('confirm')" />
     </div>
 
     <div class="mt-4 space-y-4">
@@ -23,7 +23,9 @@
         :key="section.title"
         class="rounded-2xl bg-(--bg-card) p-3 shadow-sm"
       >
-        <p class="text-xs font-semibold tracking-[0.08em] text-(--text-secondary) uppercase">{{ section.title }}</p>
+        <p class="text-xs font-semibold tracking-[0.08em] text-(--text-secondary) uppercase">
+          {{ section.title }}
+        </p>
 
         <div v-if="section.layout === 'grid'" class="mt-3 grid gap-2 sm:grid-cols-2">
           <div
@@ -103,15 +105,18 @@ function buildItemsSection(items = []) {
   return {
     title: '采购明细',
     layout: 'list',
-    rows: items.map((item, index) => ({
-      key: `${item.product_id || item.variant_id || item.variant_query || 'item'}-${index}`,
-      label: `明细 ${index + 1}`,
-      value: toText(item.variant_query || item.product_name || item.product_id || '-'),
-      meta: item.unit_cost !== undefined && item.unit_cost !== null ? toText(item.unit_cost) : null,
-    })).map((row, index) => ({
-      ...row,
-      value: `${row.value}${items[index]?.quantity ? ` · 数量 ${items[index].quantity}` : ''}`,
-    })),
+    rows: items
+      .map((item, index) => ({
+        key: `${item.product_id || item.variant_id || item.variant_query || 'item'}-${index}`,
+        label: `明细 ${index + 1}`,
+        value: toText(item.variant_query || item.product_name || item.product_id || '-'),
+        meta:
+          item.unit_cost !== undefined && item.unit_cost !== null ? toText(item.unit_cost) : null,
+      }))
+      .map((row, index) => ({
+        ...row,
+        value: `${row.value}${items[index]?.quantity ? ` · 数量 ${items[index].quantity}` : ''}`,
+      })),
   };
 }
 
@@ -162,7 +167,12 @@ const sections = computed(() => {
         ['币种', summary.value.currency],
       ]),
       buildGridSection('规格结构', [
-        ['规格维度', Array.isArray(summary.value.dimensions) ? `${summary.value.dimensions.length} 个维度` : '0 个维度'],
+        [
+          '规格维度',
+          Array.isArray(summary.value.dimensions)
+            ? `${summary.value.dimensions.length} 个维度`
+            : '0 个维度',
+        ],
         ['变体数量', Array.isArray(summary.value.variants) ? summary.value.variants.length : 0],
       ]),
       Array.isArray(summary.value.variants) && summary.value.variants.length > 0
@@ -172,7 +182,11 @@ const sections = computed(() => {
             rows: summary.value.variants.slice(0, 3).map((variant, index) => ({
               key: `variant-${index}`,
               label: `变体 ${index + 1}`,
-              value: Object.entries(variant.options_values || {}).map(([, item]) => item).filter(Boolean).join(' / ') || '未命名变体',
+              value:
+                Object.entries(variant.options_values || {})
+                  .map(([, item]) => item)
+                  .filter(Boolean)
+                  .join(' / ') || '未命名变体',
               meta: variant.price !== undefined ? toText(variant.price) : null,
             })),
           }
@@ -181,7 +195,10 @@ const sections = computed(() => {
   }
 
   return [
-    buildGridSection('预览信息', Object.entries(summary.value).map(([key, value]) => [key, value])),
+    buildGridSection(
+      '预览信息',
+      Object.entries(summary.value).map(([key, value]) => [key, value])
+    ),
   ].filter(Boolean);
 });
 </script>

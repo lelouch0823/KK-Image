@@ -13,6 +13,7 @@
 ### Task 1: Add failing tests for mobile layout tokens
 
 **Files:**
+
 - Modify: `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
 - Modify: `src/components/order/ProductBindingSection.vue`
 
@@ -21,10 +22,10 @@
 Add assertions that mount the bound-product state and check for:
 
 ```js
-expect(wrapper.find('[data-testid="binding-header"]').classes()).toContain('px-3')
-expect(wrapper.find('[data-testid="binding-header"]').classes()).toContain('py-2.5')
-expect(wrapper.find('[data-testid="bound-image-shell"]').classes()).toContain('size-14')
-expect(wrapper.find('[data-testid="inventory-summary"]').classes()).toContain('p-3')
+expect(wrapper.find('[data-testid="binding-header"]').classes()).toContain('px-3');
+expect(wrapper.find('[data-testid="binding-header"]').classes()).toContain('py-2.5');
+expect(wrapper.find('[data-testid="bound-image-shell"]').classes()).toContain('size-14');
+expect(wrapper.find('[data-testid="inventory-summary"]').classes()).toContain('p-3');
 ```
 
 **Step 2: Run test to verify it fails**
@@ -57,6 +58,7 @@ git commit -m "refactor: tighten product binding mobile layout"
 ### Task 2: Refine mobile hierarchy and tap targets
 
 **Files:**
+
 - Modify: `src/components/order/ProductBindingSection.vue`
 - Test: `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
 
@@ -65,9 +67,9 @@ git commit -m "refactor: tighten product binding mobile layout"
 Add assertions for touch-safe icon actions and lighter selector/footer structure:
 
 ```js
-expect(wrapper.find('[data-testid="unbind-product"]').classes()).toContain('min-h-11')
-expect(wrapper.find('[data-testid="unbind-product"]').classes()).toContain('min-w-11')
-expect(wrapper.find('[data-testid="dimension-options-size"]').classes()).toContain('gap-2')
+expect(wrapper.find('[data-testid="unbind-product"]').classes()).toContain('min-h-11');
+expect(wrapper.find('[data-testid="unbind-product"]').classes()).toContain('min-w-11');
+expect(wrapper.find('[data-testid="dimension-options-size"]').classes()).toContain('gap-2');
 ```
 
 **Step 2: Run test to verify it fails**
@@ -100,6 +102,7 @@ git commit -m "refactor: polish product binding mobile interactions"
 ### Task 3: Verify no regressions in component behavior
 
 **Files:**
+
 - Test: `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
 
 **Step 1: Run the focused test suite**

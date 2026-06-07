@@ -68,13 +68,7 @@ function throwIfAborted(signal) {
  * @param {number} [options._depth] - Recursion depth for model switching
  * @returns {Promise<{ response: Response, model: string, switched: boolean, rateLimit: Object, retryCount: number }>}
  */
-export async function executeAIRequest({
-  env,
-  modelIndex,
-  signal,
-  requestFn,
-  _depth = 0,
-}) {
+export async function executeAIRequest({ env, modelIndex, signal, requestFn, _depth = 0 }) {
   // Preflight abort check
   throwIfAborted(signal);
 
@@ -94,6 +88,13 @@ export async function executeAIRequest({
 
   if (!AI_API_KEY || !AI_API_URL || orderedModels.length === 0) {
     throw new Error(MSG.AI.CONFIG_MISSING);
+  }
+
+  // 递归深度保护：防止无限模型切换
+  if (_depth >= orderedModels.length) {
+    throw new Error(
+      `AI model switch recursion depth exceeded (${_depth}/${orderedModels.length}), all models exhausted`
+    );
   }
 
   // Smart model selection
@@ -143,7 +144,7 @@ export async function executeAIRequest({
                 markModelRateLimited(currentModel);
                 encounteredRateLimit = true;
               }
-              const delay = retryBaseDelayMs * (2 ** attempt) + retryJitterMs;
+              const delay = retryBaseDelayMs * 2 ** attempt + retryJitterMs;
               retryCount += 1;
               await sleep(delay, signal);
               attempt += 1;
@@ -152,7 +153,7 @@ export async function executeAIRequest({
           }
 
           if (retryableStatuses.has(status) && attempt < retryAttempts) {
-            const delay = retryBaseDelayMs * (2 ** attempt) + retryJitterMs;
+            const delay = retryBaseDelayMs * 2 ** attempt + retryJitterMs;
             retryCount += 1;
             await sleep(delay, signal);
             attempt += 1;
@@ -173,7 +174,7 @@ export async function executeAIRequest({
         }
 
         // Calculate backoff delay
-        const delay = retryBaseDelayMs * (2 ** attempt) + retryJitterMs;
+        const delay = retryBaseDelayMs * 2 ** attempt + retryJitterMs;
         retryCount += 1;
 
         // Wait with abort support
@@ -202,7 +203,9 @@ export async function executeAIRequest({
       // Check abort before model switch
       throwIfAborted(signal);
 
-      console.warn(`[AI] Model ${currentModel} low quota (${rateLimit.modelRemaining}), switching...`);
+      console.warn(
+        `[AI] Model ${currentModel} low quota (${rateLimit.modelRemaining}), switching...`
+      );
       const switchedResult = await executeAIRequest({
         env,
         modelIndex: nextIndex,

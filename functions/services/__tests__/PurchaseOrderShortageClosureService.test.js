@@ -87,17 +87,20 @@ function createDbHarness({
         statement.first = vi.fn(async () => {
           const orderId = String(statement.params[0] || '');
           const rows = orderLineRows[orderId] || [];
-          return rows.reduce((acc, row) => ({
-            ordered_qty: (acc.ordered_qty || 0) + (row.ordered_qty || 0),
-            procured_qty: (acc.procured_qty || 0) + (row.procured_qty || 0),
-            received_qty: (acc.received_qty || 0) + (row.received_qty || 0),
-            cancelled_qty: (acc.cancelled_qty || 0) + (row.cancelled_qty || 0),
-          }), {
-            ordered_qty: 0,
-            procured_qty: 0,
-            received_qty: 0,
-            cancelled_qty: 0,
-          });
+          return rows.reduce(
+            (acc, row) => ({
+              ordered_qty: (acc.ordered_qty || 0) + (row.ordered_qty || 0),
+              procured_qty: (acc.procured_qty || 0) + (row.procured_qty || 0),
+              received_qty: (acc.received_qty || 0) + (row.received_qty || 0),
+              cancelled_qty: (acc.cancelled_qty || 0) + (row.cancelled_qty || 0),
+            }),
+            {
+              ordered_qty: 0,
+              procured_qty: 0,
+              received_qty: 0,
+              cancelled_qty: 0,
+            }
+          );
         });
       }
 
@@ -138,16 +141,18 @@ function createDbHarness({
   };
 
   const commandIdempotencyRepo = {
-    reserveShortageClosureCommand: vi.fn(async (_scopeKey, _idempotencyKey, requestFingerprint) => ({
-      existing: false,
-      record: {
-        id: 'cmd-row-1',
-        command_id: 'cmd-shortage-1',
-        request_fingerprint: requestFingerprint,
-        status: 'in_flight',
-      },
-      ownsReservation: true,
-    })),
+    reserveShortageClosureCommand: vi.fn(
+      async (_scopeKey, _idempotencyKey, requestFingerprint) => ({
+        existing: false,
+        record: {
+          id: 'cmd-row-1',
+          command_id: 'cmd-shortage-1',
+          request_fingerprint: requestFingerprint,
+          status: 'in_flight',
+        },
+        ownsReservation: true,
+      })
+    ),
     buildDeleteStatement: vi.fn((commandId) =>
       db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId)
     ),
@@ -225,9 +230,15 @@ describe('PurchaseOrderShortageClosureService', () => {
 
     expect(harness.db.batch).toHaveBeenCalledTimes(1);
     const flattenedStatements = harness.calls.batchCalls[0];
-    expect(flattenedStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))).toBe(true);
-    expect(flattenedStatements.some((statement) => statement.sql.includes('UPDATE order_lines'))).toBe(true);
-    expect(flattenedStatements.some((statement) => statement.sql.includes('UPDATE orders'))).toBe(false);
+    expect(
+      flattenedStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))
+    ).toBe(true);
+    expect(
+      flattenedStatements.some((statement) => statement.sql.includes('UPDATE order_lines'))
+    ).toBe(true);
+    expect(flattenedStatements.some((statement) => statement.sql.includes('UPDATE orders'))).toBe(
+      false
+    );
 
     const itemUpdateParams = flattenedStatements
       .filter((statement) => statement.sql.includes('UPDATE purchase_order_items'))
@@ -258,7 +269,11 @@ describe('PurchaseOrderShortageClosureService', () => {
       0,
       0,
     ]);
-    expect(flattenedStatements.some((statement) => statement.sql.includes('UPDATE purchase_orders SET updated_at = ?'))).toBe(true);
+    expect(
+      flattenedStatements.some((statement) =>
+        statement.sql.includes('UPDATE purchase_orders SET updated_at = ?')
+      )
+    ).toBe(true);
     expect(harness.variantDemandProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
       'var-1',
       'var-2',
@@ -268,9 +283,7 @@ describe('PurchaseOrderShortageClosureService', () => {
   it('rejects closing more than the remaining receivable quantity', async () => {
     await expect(
       service.closeShortages('po-1', {
-        items: [
-          { purchase_order_item_id: 'poi-1', close_qty: 4 },
-        ],
+        items: [{ purchase_order_item_id: 'poi-1', close_qty: 4 }],
       })
     ).rejects.toBeInstanceOf(BadRequestError);
 
@@ -289,9 +302,7 @@ describe('PurchaseOrderShortageClosureService', () => {
 
     await expect(
       invalidService.closeShortages('po-1', {
-        items: [
-          { purchase_order_item_id: 'poi-1', close_qty: 1 },
-        ],
+        items: [{ purchase_order_item_id: 'poi-1', close_qty: 1 }],
       })
     ).rejects.toBeInstanceOf(BadRequestError);
 
@@ -379,13 +390,17 @@ describe('PurchaseOrderShortageClosureService', () => {
   it('does not issue revert batch when finalize persistence fails', async () => {
     const finalizeFailureHarness = createDbHarness({
       batchError: new Error('finalize failed'),
-      batchErrorMatcher: (statement) => statement.sql.includes('UPDATE purchase_orders SET updated_at = ?'),
+      batchErrorMatcher: (statement) =>
+        statement.sql.includes('UPDATE purchase_orders SET updated_at = ?'),
       batchErrorCallIndex: 1,
     });
-    const finalizeFailureService = new PurchaseOrderShortageClosureService(finalizeFailureHarness.db, {
-      commandIdempotencyRepo: finalizeFailureHarness.commandIdempotencyRepo,
-      now: () => 1710000000000,
-    });
+    const finalizeFailureService = new PurchaseOrderShortageClosureService(
+      finalizeFailureHarness.db,
+      {
+        commandIdempotencyRepo: finalizeFailureHarness.commandIdempotencyRepo,
+        now: () => 1710000000000,
+      }
+    );
 
     await expect(
       finalizeFailureService.closeShortages('po-1', {

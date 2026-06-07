@@ -5,7 +5,11 @@
     :model-value="wizard.open"
     size="lg"
     :closable="!wizard.loading"
-    @update:model-value="(value) => { if (!value) $emit('close'); }"
+    @update:model-value="
+      (value) => {
+        if (!value) $emit('close');
+      }
+    "
   >
     <div data-testid="dimension-archive-modal" class="relative">
       <h4 class="text-lg font-bold text-(--text-main)">
@@ -22,7 +26,12 @@
           <span class="font-semibold text-(--text-main)">{{ wizard.affectedVariantsCount }}</span>
         </p>
         <p class="mt-1 text-xs text-(--text-secondary)">
-          {{ t('product.form.archive_dimension_hint', 'Preview impact first, then choose action strategy.') }}
+          {{
+            t(
+              'product.form.archive_dimension_hint',
+              'Preview impact first, then choose action strategy.'
+            )
+          }}
         </p>
         <div
           v-if="wizard.sampleVariants.length > 0"
@@ -57,7 +66,11 @@
         >
           <div
             class="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors"
-            :class="wizard.mode === 'archive_variants' ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-transparent'"
+            :class="
+              wizard.mode === 'archive_variants'
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-(--border-color) text-transparent'
+            "
           >
             <span class="size-2 rounded-full bg-current"></span>
           </div>
@@ -82,7 +95,11 @@
         >
           <div
             class="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors"
-            :class="wizard.mode === 'merge_keep' ? 'border-primary bg-primary/10 text-primary' : 'border-(--border-color) text-transparent'"
+            :class="
+              wizard.mode === 'merge_keep'
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-(--border-color) text-transparent'
+            "
           >
             <span class="size-2 rounded-full bg-current"></span>
           </div>
@@ -91,7 +108,12 @@
               {{ t('product.form.merge_and_keep', 'Merge & keep') }}
             </p>
             <p class="text-xs text-(--text-secondary)">
-              {{ t('product.form.merge_and_keep_desc', 'Ignore removed dimension and dedupe by signature.') }}
+              {{
+                t(
+                  'product.form.merge_and_keep_desc',
+                  'Ignore removed dimension and dedupe by signature.'
+                )
+              }}
             </p>
           </div>
         </AppCard>
@@ -99,12 +121,7 @@
 
       <!-- Footer 操作按钮 -->
       <div class="mt-5 flex justify-end gap-2">
-        <AppButton
-          variant="white"
-          size="sm"
-          :disabled="wizard.loading"
-          @click="$emit('close')"
-        >
+        <AppButton variant="white" size="sm" :disabled="wizard.loading" @click="$emit('close')">
           {{ t('common.cancel', 'Cancel') }}
         </AppButton>
         <AppButton

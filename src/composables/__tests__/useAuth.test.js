@@ -16,7 +16,7 @@ describe('useAuth Composable Full Coverage', () => {
     const err = new Error('Abort');
     err.name = 'AbortError';
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(err));
-    
+
     const { checkAuth } = useAuth();
     const result = await checkAuth();
     expect(result).toBe(false);
@@ -31,12 +31,15 @@ describe('useAuth Composable Full Coverage', () => {
   });
 
   it('authFetch should handle 401 and reset state', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      status: 401,
-      ok: false,
-      statusText: 'Unauthorized',
-      json: vi.fn().mockResolvedValue({})
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        status: 401,
+        ok: false,
+        statusText: 'Unauthorized',
+        json: vi.fn().mockResolvedValue({}),
+      })
+    );
     isAuthenticated.value = true;
     const { authFetch } = useAuth();
     await expect(authFetch('https://api.test')).rejects.toMatchObject({ status: 401 });
@@ -71,7 +74,7 @@ describe('useAuth Composable Full Coverage', () => {
         ok: false,
         statusText: 'Unauthorized',
         json: vi.fn().mockResolvedValue({}),
-      }),
+      })
     );
 
     const { useAuth: isolatedUseAuth } = await import('../useAuth');
@@ -79,16 +82,16 @@ describe('useAuth Composable Full Coverage', () => {
     auth.isAuthenticated.value = true;
     auth.currentUser.value = { id: 1 };
 
-    await expect(
-      auth.authFetch('/api/protected', { method: 'POST' }),
-    ).rejects.toMatchObject({ status: 401 });
+    await expect(auth.authFetch('/api/protected', { method: 'POST' })).rejects.toMatchObject({
+      status: 401,
+    });
 
     expect(requestMock).toHaveBeenCalledWith(
       '/api/protected',
       expect.objectContaining({
         method: 'POST',
         credentials: 'include',
-      }),
+      })
     );
     expect(auth.isAuthenticated.value).toBe(false);
     expect(auth.currentUser.value).toBe(null);

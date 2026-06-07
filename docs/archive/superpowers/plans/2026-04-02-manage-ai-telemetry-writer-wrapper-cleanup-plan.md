@@ -13,6 +13,7 @@
 ### Task 1: Lock the Cleanup Contract
 
 **Files:**
+
 - Create: `functions/lib/hono/routes/manage/__tests__/ai-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the wrapper still exists.
 ### Task 2: Inline Telemetry Writer Construction
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/ai.js`
 
 - [ ] **Step 1: Remove the local wrapper**

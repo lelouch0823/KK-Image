@@ -1,27 +1,30 @@
 function normalizeSummaryValue(value) {
-    if (value === null || value === undefined) return '';
-    return String(value).trim();
+  if (value === null || value === undefined) return '';
+  return String(value).trim();
 }
 
 export function deriveOrderSummaryFields(data = {}) {
-    return {
-        summaryName: normalizeSummaryValue(data?.name),
-        summaryBrand: normalizeSummaryValue(data?.brand),
-        summarySku: normalizeSummaryValue(data?.sku || data?.variant_sku || data?.spu),
-    };
+  return {
+    summaryName: normalizeSummaryValue(data?.name),
+    summaryBrand: normalizeSummaryValue(data?.brand),
+    summarySku: normalizeSummaryValue(data?.sku || data?.variant_sku || data?.spu),
+  };
 }
 
 export function createOrderPayloadUpsertStatement(
-    db,
-    { orderId, originalData, currentData, createdAt, updatedAt }
+  db,
+  { orderId, originalData, currentData, createdAt, updatedAt }
 ) {
-    const safeOriginalData = typeof originalData === 'string' ? originalData : JSON.stringify(originalData || {});
-    const safeCurrentData = typeof currentData === 'string' ? currentData : JSON.stringify(currentData || {});
-    const safeCreatedAt = Number(createdAt || updatedAt || Date.now());
-    const safeUpdatedAt = Number(updatedAt || createdAt || Date.now());
+  const safeOriginalData =
+    typeof originalData === 'string' ? originalData : JSON.stringify(originalData || {});
+  const safeCurrentData =
+    typeof currentData === 'string' ? currentData : JSON.stringify(currentData || {});
+  const safeCreatedAt = Number(createdAt || updatedAt || Date.now());
+  const safeUpdatedAt = Number(updatedAt || createdAt || Date.now());
 
-    return db.prepare(
-        `
+  return db
+    .prepare(
+      `
         INSERT INTO order_payloads (order_id, original_data, current_data, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(order_id) DO UPDATE SET
@@ -29,7 +32,8 @@ export function createOrderPayloadUpsertStatement(
             current_data = excluded.current_data,
             updated_at = excluded.updated_at
         `
-    ).bind(orderId, safeOriginalData, safeCurrentData, safeCreatedAt, safeUpdatedAt);
+    )
+    .bind(orderId, safeOriginalData, safeCurrentData, safeCreatedAt, safeUpdatedAt);
 }
 
 export const ORDER_PAYLOADS_JOIN_SQL = `

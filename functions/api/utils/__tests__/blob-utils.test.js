@@ -5,7 +5,7 @@ import {
   incrementRefCount,
   decrementRefCount,
   createFileReference,
-  uploadToBlobStorage
+  uploadToBlobStorage,
 } from '../blob-utils';
 
 describe('Blob Utils', () => {
@@ -22,7 +22,7 @@ describe('Blob Utils', () => {
       get: vi.fn(),
       put: vi.fn().mockResolvedValue({}),
       delete: vi.fn().mockResolvedValue({}),
-    }
+    },
   };
 
   beforeEach(() => {
@@ -55,17 +55,16 @@ describe('Blob Utils', () => {
   describe('incrementRefCount', () => {
     it('should call update ref_count', async () => {
       await incrementRefCount(env, 'h1');
-      expect(env.DB.prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE blobs SET ref_count = ref_count + 1'));
+      expect(env.DB.prepare).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE blobs SET ref_count = ref_count + 1')
+      );
     });
   });
 
   describe('decrementRefCount', () => {
     it('should decrement ref_count and delete if last reference', async () => {
       // batch 返回: [updateResult, selectResult]
-      env.DB.batch.mockResolvedValueOnce([
-        { success: true },
-        { results: [{ ref_count: 0 }] },
-      ]);
+      env.DB.batch.mockResolvedValueOnce([{ success: true }, { results: [{ ref_count: 0 }] }]);
       env.DB.run.mockResolvedValueOnce({ success: true });
 
       const deleted = await decrementRefCount(env, 'hash1');
@@ -76,10 +75,7 @@ describe('Blob Utils', () => {
     });
 
     it('should handle R2 deletion failure gracefully', async () => {
-      env.DB.batch.mockResolvedValueOnce([
-        { success: true },
-        { results: [{ ref_count: 0 }] },
-      ]);
+      env.DB.batch.mockResolvedValueOnce([{ success: true }, { results: [{ ref_count: 0 }] }]);
       env.DB.run.mockResolvedValueOnce({ success: true });
       env.R2_BUCKET.delete.mockRejectedValueOnce(new Error('R2 Error'));
 
@@ -88,10 +84,7 @@ describe('Blob Utils', () => {
     });
 
     it('should just decrement ref_count if not last reference', async () => {
-      env.DB.batch.mockResolvedValueOnce([
-        { success: true },
-        { results: [{ ref_count: 1 }] },
-      ]);
+      env.DB.batch.mockResolvedValueOnce([{ success: true }, { results: [{ ref_count: 1 }] }]);
 
       const deleted = await decrementRefCount(env, 'hash1');
 
@@ -100,10 +93,7 @@ describe('Blob Utils', () => {
     });
 
     it('should return false if hash not found after update', async () => {
-      env.DB.batch.mockResolvedValueOnce([
-        { success: true },
-        { results: [] },
-      ]);
+      env.DB.batch.mockResolvedValueOnce([{ success: true }, { results: [] }]);
       expect(await decrementRefCount(env, 'h1')).toBe(false);
     });
 
@@ -114,7 +104,14 @@ describe('Blob Utils', () => {
 
   describe('createFileReference', () => {
     it('should insert into files table', async () => {
-      const options = { id: 'f1', hash: 'h1', name: 'n', folderId: 'root', mimeType: 'm', size: 10 };
+      const options = {
+        id: 'f1',
+        hash: 'h1',
+        name: 'n',
+        folderId: 'root',
+        mimeType: 'm',
+        size: 10,
+      };
       await createFileReference(env, options);
       expect(env.DB.prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO files'));
     });

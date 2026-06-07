@@ -11,17 +11,31 @@
 import { OrderTimelineRepository } from './OrderTimelineRepository.js';
 import * as queries from './order/queries.js';
 import * as mutations from './order/mutations.js';
-import { InventoryService } from '../services/InventoryService.js';
 
 export class OrderRepository {
   /**
    * 构造函数
    * @param {D1Database} db - Cloudflare D1 数据库实例 (env.DB)
+   * @param {Object} [deps={}] - 依赖注入
+   * @param {Function} [deps.InventoryServiceFactory] - 工厂函数，接收 db 返回 InventoryService 实例
    */
-  constructor(db) {
+  constructor(db, deps = {}) {
     this.db = db;
     this.timelineRepo = new OrderTimelineRepository(db);
-    this.inventoryService = new InventoryService(db);
+    this._InventoryServiceFactory = deps.InventoryServiceFactory || null;
+    // 懒加载 inventoryService，仅在需要时通过工厂函数创建
+    this._inventoryService = null;
+  }
+
+  /**
+   * 获取 InventoryService 实例（懒加载）
+   * @returns {Object|null}
+   */
+  get inventoryService() {
+    if (!this._inventoryService && this._InventoryServiceFactory) {
+      this._inventoryService = this._InventoryServiceFactory(this.db);
+    }
+    return this._inventoryService;
   }
 
   // ========================================
@@ -39,7 +53,10 @@ export class OrderRepository {
    * @returns {Promise<{order_no: string}|null>}
    */
   async findOrderNoById(id) {
-    const result = await this.db.prepare('SELECT order_no FROM orders WHERE id = ?').bind(id).first();
+    const result = await this.db
+      .prepare('SELECT order_no FROM orders WHERE id = ?')
+      .bind(id)
+      .first();
     return result || null;
   }
 
@@ -51,7 +68,9 @@ export class OrderRepository {
   async findByIds(ids) {
     if (!ids || !Array.isArray(ids) || ids.length === 0) return [];
     const placeholders = ids.map(() => '?').join(',');
-    const stmt = this.db.prepare(`SELECT id, order_no, salesperson_id, status FROM orders WHERE id IN (${placeholders})`);
+    const stmt = this.db.prepare(
+      `SELECT id, order_no, salesperson_id, status FROM orders WHERE id IN (${placeholders})`
+    );
     const result = await stmt.bind(...ids).all();
     return result.results || [];
   }
@@ -123,7 +142,10 @@ export class OrderRepository {
       WHERE ${whereClause}
       ORDER BY o.created_at DESC
     `;
-    const result = await this.db.prepare(sql).bind(...params).all();
+    const result = await this.db
+      .prepare(sql)
+      .bind(...params)
+      .all();
     return result.results || [];
   }
 

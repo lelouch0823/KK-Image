@@ -15,11 +15,7 @@ export function cleanDist({ fsModule = fs, distDir, pathModule = path }) {
   }
 }
 
-export function extractBundle({
-  bundlePath,
-  distDir,
-  spawnSyncImpl = spawnSync,
-}) {
+export function extractBundle({ bundlePath, distDir, spawnSyncImpl = spawnSync }) {
   const tarRes = spawnSyncImpl('tar', ['-xzf', bundlePath, '-C', distDir], {
     stdio: 'inherit',
     shell: false,
@@ -72,15 +68,27 @@ export function createCompileOpaRunner(options = {}) {
   const policyDir = options.policyDir || pathModule.join(root, 'policy');
   const distDir = options.distDir || pathModule.join(policyDir, 'dist');
   const bundlePath = options.bundlePath || pathModule.join(distDir, 'authz-bundle.tar.gz');
-  const generatedDir = options.generatedDir || pathModule.join(root, 'functions', 'lib', 'authz', 'generated');
-  const generatedArtifact = options.generatedArtifact || pathModule.join(generatedDir, 'policy-artifact.js');
-  const generatedWasmArtifact = options.generatedWasmArtifact || pathModule.join(generatedDir, 'policy-artifact.wasm');
+  const generatedDir =
+    options.generatedDir || pathModule.join(root, 'functions', 'lib', 'authz', 'generated');
+  const generatedArtifact =
+    options.generatedArtifact || pathModule.join(generatedDir, 'policy-artifact.js');
+  const generatedWasmArtifact =
+    options.generatedWasmArtifact || pathModule.join(generatedDir, 'policy-artifact.wasm');
 
   function main() {
     ensureDir({ fsModule, dir: distDir });
     cleanDist({ fsModule, distDir, pathModule });
 
-    runOpaImpl(['build', '-t', 'wasm', '-e', 'kk/authz/decision', 'policy/authz.rego', '-o', bundlePath]);
+    runOpaImpl([
+      'build',
+      '-t',
+      'wasm',
+      '-e',
+      'kk/authz/decision',
+      'policy/authz.rego',
+      '-o',
+      bundlePath,
+    ]);
     extractBundle({ bundlePath, distDir, spawnSyncImpl });
     writeGeneratedArtifact({
       fsModule,

@@ -13,6 +13,7 @@
 ### Task 1: Lock Fallback Semantics
 
 **Files:**
+
 - Modify: `functions/repositories/__tests__/OutboxReplayRepository.test.js`
 - Modify: `functions/services/__tests__/WebhookDeliveryService.test.js`
 - Modify: `functions/services/__tests__/DomainOutboxConsumers.audit-cache.test.js`
@@ -21,6 +22,7 @@
 - [ ] **Step 1: Write the failing tests**
 
 Add tests that assert:
+
 - replay repository keeps `null` fallback for invalid JSON summary fields
 - webhook delivery still falls back to `{}` for invalid `payload_json`
 - outbox consumers still fall back to `{}` for invalid `payload_json`
@@ -39,6 +41,7 @@ Expected: FAIL because the current local helpers are still in place and the new 
 ### Task 2: Reuse `safeJsonParse`
 
 **Files:**
+
 - Modify: `functions/repositories/OutboxReplayRepository.js`
 - Modify: `functions/services/DomainOutboxConsumers.js`
 - Modify: `functions/services/WebhookDeliveryService.js`

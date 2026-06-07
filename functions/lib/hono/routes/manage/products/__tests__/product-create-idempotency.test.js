@@ -16,7 +16,13 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
     search() {
-      return Promise.resolve({ items: [], total: 0, page: 1, limit: 20, filters: { brands: [], categories: [] } });
+      return Promise.resolve({
+        items: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        filters: { brands: [], categories: [] },
+      });
     }
   },
 }));
@@ -65,7 +71,10 @@ import productsApp from '../index.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.use('/api/manage/products/*', async (c, next) => {
     c.set('user', { id: 'admin-1', role: 'admin', permissions: ['products:manage'] });
@@ -132,51 +141,54 @@ describe('manage product create route idempotency', () => {
         return { meta: { changes: 1 } };
       }),
     }));
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      if (idempotencyKey === 'product-key-1' && storedResponses.has(idempotencyKey)) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        if (idempotencyKey === 'product-key-1' && storedResponses.has(idempotencyKey)) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: 'cmd-product-1',
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: requestFingerprint,
+              response_json: JSON.stringify(storedResponses.get(idempotencyKey)),
+              status: 'committed',
+            },
+          };
+        }
+
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
             command_id: 'cmd-product-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
             request_fingerprint: requestFingerprint,
-            response_json: JSON.stringify(storedResponses.get(idempotencyKey)),
-            status: 'committed',
           },
         };
       }
-
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-product-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-
-    const request = () => app.request(
-      'http://localhost/api/manage/products',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': 'product-key-1',
-        },
-        body: JSON.stringify({
-          name: 'Catalog Tee',
-          currency: 'USD',
-          variants: [{ sku: 'SKU-1', price: 100, cost_price: 60, stock_quantity: 5 }],
-        }),
-      },
-      { DB: {} },
-      { waitUntil: vi.fn() }
     );
+
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/products',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'product-key-1',
+          },
+          body: JSON.stringify({
+            name: 'Catalog Tee',
+            currency: 'USD',
+            variants: [{ sku: 'SKU-1', price: 100, cost_price: 60, stock_quantity: 5 }],
+          }),
+        },
+        { DB: {} },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -226,9 +238,11 @@ describe('manage product create route idempotency', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual(expect.objectContaining({
-      error: '同一个幂等键不能提交不同的商品创建请求',
-    }));
+    expect(await res.json()).toEqual(
+      expect.objectContaining({
+        error: '同一个幂等键不能提交不同的商品创建请求',
+      })
+    );
     expect(mocks.createManagedProduct).not.toHaveBeenCalled();
   });
 
@@ -236,71 +250,77 @@ describe('manage product create route idempotency', () => {
     const app = createApp();
     const commandState = new Map();
 
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      const existing = commandState.get(idempotencyKey);
-      if (existing) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        const existing = commandState.get(idempotencyKey);
+        if (existing) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: existing.commandId,
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: existing.requestFingerprint,
+              response_json: existing.responseJson,
+              status: existing.status,
+            },
+          };
+        }
+
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
-            command_id: existing.commandId,
+            command_id: 'cmd-product-retry-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: existing.requestFingerprint,
-            response_json: existing.responseJson,
-            status: existing.status,
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-product-retry-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        commandState.set('product-key-retry-1', {
-          commandId,
-          requestFingerprint: commandState.get('product-key-retry-1')?.requestFingerprint
-            || buildProductCreateFingerprintForTest({
-              name: 'Catalog Tee',
-              currency: 'USD',
-              variants: [{ sku: 'SKU-1', price: 100, cost_price: 60, stock_quantity: 5 }],
-            }),
-          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
-          status,
-        });
-        return { meta: { changes: 1 } };
-      }),
-    }));
+    );
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          commandState.set('product-key-retry-1', {
+            commandId,
+            requestFingerprint:
+              commandState.get('product-key-retry-1')?.requestFingerprint ||
+              buildProductCreateFingerprintForTest({
+                name: 'Catalog Tee',
+                currency: 'USD',
+                variants: [{ sku: 'SKU-1', price: 100, cost_price: 60, stock_quantity: 5 }],
+              }),
+            responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+            status,
+          });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
     mocks.scheduleProductCacheInvalidation
       .mockRejectedValueOnce(new Error('publish failed'))
       .mockResolvedValueOnce([]);
 
-    const request = () => app.request(
-      'http://localhost/api/manage/products',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': 'product-key-retry-1',
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/products',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'product-key-retry-1',
+          },
+          body: JSON.stringify({
+            name: 'Catalog Tee',
+            currency: 'USD',
+            variants: [{ sku: 'SKU-1', price: 100, cost_price: 60, stock_quantity: 5 }],
+          }),
         },
-        body: JSON.stringify({
-          name: 'Catalog Tee',
-          currency: 'USD',
-          variants: [{ sku: 'SKU-1', price: 100, cost_price: 60, stock_quantity: 5 }],
-        }),
-      },
-      { DB: {} },
-      { waitUntil: vi.fn() }
-    );
+        { DB: {} },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -329,76 +349,83 @@ describe('manage product create route idempotency', () => {
     const commandState = new Map();
     let committedFinalizeAttempts = 0;
 
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      const existing = commandState.get(idempotencyKey);
-      if (existing) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        const existing = commandState.get(idempotencyKey);
+        if (existing) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: existing.commandId,
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: existing.requestFingerprint,
+              response_json: existing.responseJson,
+              status: existing.status,
+            },
+          };
+        }
+
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
-            command_id: existing.commandId,
+            command_id: 'cmd-product-finalize-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: existing.requestFingerprint,
-            response_json: existing.responseJson,
-            status: existing.status,
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-product-finalize-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        if (status === 'committed') {
-          committedFinalizeAttempts += 1;
-          if (committedFinalizeAttempts === 1) {
-            throw new Error('finalize committed failed');
+    );
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          if (status === 'committed') {
+            committedFinalizeAttempts += 1;
+            if (committedFinalizeAttempts === 1) {
+              throw new Error('finalize committed failed');
+            }
           }
-        }
-        commandState.set('product-key-finalize-1', {
-          commandId,
-          requestFingerprint: buildProductCreateFingerprintForTest({
+          commandState.set('product-key-finalize-1', {
+            commandId,
+            requestFingerprint: buildProductCreateFingerprintForTest({
+              name: 'Catalog Tee',
+              currency: 'USD',
+              variants: [{ sku: 'SKU-1', price: 100, cost_price: 60, stock_quantity: 5 }],
+            }),
+            responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+            status,
+          });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
+    mocks.scheduleProductCacheInvalidation
+      .mockResolvedValueOnce([])
+      .mockRejectedValueOnce(
+        new Error('D1_ERROR: UNIQUE constraint failed: domain_outbox.idempotency_key')
+      );
+
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/products',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'product-key-finalize-1',
+          },
+          body: JSON.stringify({
             name: 'Catalog Tee',
             currency: 'USD',
             variants: [{ sku: 'SKU-1', price: 100, cost_price: 60, stock_quantity: 5 }],
           }),
-          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
-          status,
-        });
-        return { meta: { changes: 1 } };
-      }),
-    }));
-    mocks.scheduleProductCacheInvalidation
-      .mockResolvedValueOnce([])
-      .mockRejectedValueOnce(new Error('D1_ERROR: UNIQUE constraint failed: domain_outbox.idempotency_key'));
-
-    const request = () => app.request(
-      'http://localhost/api/manage/products',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': 'product-key-finalize-1',
         },
-        body: JSON.stringify({
-          name: 'Catalog Tee',
-          currency: 'USD',
-          variants: [{ sku: 'SKU-1', price: 100, cost_price: 60, stock_quantity: 5 }],
-        }),
-      },
-      { DB: {} },
-      { waitUntil: vi.fn() }
-    );
+        { DB: {} },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -407,13 +434,17 @@ describe('manage product create route idempotency', () => {
     expect(second.status).toBe(201);
     expect(mocks.createManagedProduct).toHaveBeenCalledTimes(1);
     expect(mocks.scheduleProductCacheInvalidation).toHaveBeenCalledTimes(2);
-    expect(mocks.scheduleProductCacheInvalidation.mock.calls[0][2]).toEqual(expect.objectContaining({
-      commandId: 'cmd-product-finalize-1',
-      correlationId: 'cmd-product-finalize-1',
-    }));
-    expect(mocks.scheduleProductCacheInvalidation.mock.calls[1][2]).toEqual(expect.objectContaining({
-      commandId: 'cmd-product-finalize-1',
-      correlationId: 'cmd-product-finalize-1',
-    }));
+    expect(mocks.scheduleProductCacheInvalidation.mock.calls[0][2]).toEqual(
+      expect.objectContaining({
+        commandId: 'cmd-product-finalize-1',
+        correlationId: 'cmd-product-finalize-1',
+      })
+    );
+    expect(mocks.scheduleProductCacheInvalidation.mock.calls[1][2]).toEqual(
+      expect.objectContaining({
+        commandId: 'cmd-product-finalize-1',
+        correlationId: 'cmd-product-finalize-1',
+      })
+    );
   });
 });

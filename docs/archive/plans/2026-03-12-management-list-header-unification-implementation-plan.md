@@ -13,12 +13,14 @@
 ### Task 1: Add regression tests for unique management headers
 
 **Files:**
+
 - Modify: `src/components/__tests__/OrderManager.design-system-migration.test.js`
 - Create: `src/views/__tests__/Customers.design-system-migration.test.js`
 
 **Step 1: Write the failing test**
 
 Add assertions that:
+
 - `OrderManager.vue` still uses `ManagementListShell`
 - `OrderFilters.vue` no longer passes `title`/`subtitle` into `AppFilterBar`
 - `Customers.vue` uses `ManagementListShell`
@@ -42,6 +44,7 @@ Expected: PASS
 ### Task 2: Remove duplicate order list title
 
 **Files:**
+
 - Modify: `src/components/order/OrderFilters.vue`
 
 **Step 1: Write the failing test**
@@ -63,6 +66,7 @@ Run the focused Vitest command from Task 1.
 ### Task 3: Migrate customers page to the shared management shell
 
 **Files:**
+
 - Modify: `src/views/Customers.vue`
 
 **Step 1: Write the failing test**
@@ -84,6 +88,7 @@ Run the focused Vitest command from Task 1.
 ### Task 4: Verify adjacent management pages still follow the pattern
 
 **Files:**
+
 - Check: `src/components/ProductManager.vue`
 - Check: `src/views/GoodsOverview.vue`
 - Check: `src/views/PurchaseOrders.vue`
@@ -102,6 +107,7 @@ Expected: PASS
 ### Task 5: Final verification
 
 **Files:**
+
 - No code changes
 
 **Step 1: Run the relevant test suite**

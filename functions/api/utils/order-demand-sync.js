@@ -1,7 +1,9 @@
 const DEMAND_ACTIVE_STATUSES = new Set(['confirmed', 'production', 'shipping', 'arrived']);
 
 function normalizeStatus(status) {
-  const normalized = String(status || '').trim().toLowerCase();
+  const normalized = String(status || '')
+    .trim()
+    .toLowerCase();
   return normalized || null;
 }
 
@@ -38,9 +40,7 @@ function normalizeDemandLine(line = {}, index = 0) {
 
 function normalizeDemandLines(lines = [], fallback = {}) {
   const normalizedLines = Array.isArray(lines)
-    ? lines
-        .map((line, index) => normalizeDemandLine(line, index))
-        .filter(Boolean)
+    ? lines.map((line, index) => normalizeDemandLine(line, index)).filter(Boolean)
     : [];
 
   if (normalizedLines.length > 0) return normalizedLines;

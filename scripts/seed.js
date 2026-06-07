@@ -63,7 +63,14 @@ export const PRODUCT_CATEGORIES = [
     ],
   },
 ];
-export const SPACE_TEMPLATES = ['gallery', 'product', 'portfolio', 'document', 'collection', 'custom'];
+export const SPACE_TEMPLATES = [
+  'gallery',
+  'product',
+  'portfolio',
+  'document',
+  'collection',
+  'custom',
+];
 export const SPACE_NAMES = {
   gallery: ['精选图库', '新品展示', '2026春季系列', '年度作品集'],
   product: ['爆款推荐', '新品上架', '限时特惠', '会员专享'],
@@ -108,8 +115,7 @@ export function createSeedDeps(options = {}) {
   const randomBytesImpl = options.randomBytesImpl || randomBytes;
   const uuid = options.uuid || (() => randomUUID());
   const randomHash =
-    options.randomHash ||
-    (() => createHash('sha256').update(randomBytesImpl(32)).digest('hex'));
+    options.randomHash || (() => createHash('sha256').update(randomBytesImpl(32)).digest('hex'));
 
   return {
     random,
@@ -425,8 +431,7 @@ export function generateSeedSql(config, deps = createSeedDeps()) {
   for (let i = 0; i < Math.ceil(count / 10); i += 1) {
     const id = deps.uuid();
     folderIds.push(id);
-    const parentId =
-      i > 0 && deps.random() < 0.3 ? deps.randomItem(folderIds.slice(0, -1)) : null;
+    const parentId = i > 0 && deps.random() < 0.3 ? deps.randomItem(folderIds.slice(0, -1)) : null;
     sqlStatements.push(generateInsert('folders', generateFolder(id, parentId, deps)));
   }
 
@@ -440,7 +445,16 @@ export function generateSeedSql(config, deps = createSeedDeps()) {
     const id = deps.uuid();
     fileIds.push(id);
     sqlStatements.push(
-      generateInsert('files', generateFile(id, deps.randomItem(folderIds) || null, deps.randomItem(blobHashes), null, deps))
+      generateInsert(
+        'files',
+        generateFile(
+          id,
+          deps.randomItem(folderIds) || null,
+          deps.randomItem(blobHashes),
+          null,
+          deps
+        )
+      )
     );
   }
 
@@ -497,12 +511,16 @@ export function generateSeedSql(config, deps = createSeedDeps()) {
       const blobHash = deps.randomHash();
 
       sqlStatements.push(generateInsert('blobs', generateBlob(blobHash, deps)));
-      sqlStatements.push(generateInsert('files', generateFile(fileId, null, imgUrl, category, deps)));
+      sqlStatements.push(
+        generateInsert('files', generateFile(fileId, null, imgUrl, category, deps))
+      );
       sqlStatements.push(
         generateInsert('space_files', generateSpaceFile(spaceId, fileId, index, deps))
       );
       if (index === 0) {
-        sqlStatements.push(`UPDATE spaces SET cover_file_id = '${fileId}' WHERE id = '${spaceId}';`);
+        sqlStatements.push(
+          `UPDATE spaces SET cover_file_id = '${fileId}' WHERE id = '${spaceId}';`
+        );
       }
     });
   }
@@ -550,14 +568,17 @@ export async function runSeedCli(options = {}) {
   const config = options.config || parseSeedArgs(argv);
   const deps = options.deps || createSeedDeps(options);
   const log = options.log || createLogger({ writeLine: options.writeLine });
-  const executeSqlImpl = options.executeSqlImpl || ((sql) => executeSeedSql(sql, {
-    config,
-    execSyncImpl: options.execSyncImpl,
-    writeFileSyncImpl: options.writeFileSyncImpl,
-    tmpdirValue: options.tmpdirValue,
-    pathModule: options.pathModule,
-    writeError: options.writeError,
-  }));
+  const executeSqlImpl =
+    options.executeSqlImpl ||
+    ((sql) =>
+      executeSeedSql(sql, {
+        config,
+        execSyncImpl: options.execSyncImpl,
+        writeFileSyncImpl: options.writeFileSyncImpl,
+        tmpdirValue: options.tmpdirValue,
+        pathModule: options.pathModule,
+        writeError: options.writeError,
+      }));
 
   try {
     log(`🌱 开始生成种子数据 (数量: ${config.count}, 目标: ${config.remote ? '远程' : '本地'})`);
@@ -605,8 +626,7 @@ export async function runSeedCli(options = {}) {
   }
 }
 
-const isDirectExecution =
-  process.argv[1] && path.resolve(process.argv[1]) === SCRIPT_PATH;
+const isDirectExecution = process.argv[1] && path.resolve(process.argv[1]) === SCRIPT_PATH;
 
 if (isDirectExecution) {
   const exitCode = await runSeedCli();

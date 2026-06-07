@@ -13,12 +13,12 @@
       <template #cell-name="{ row }">
         <div class="flex items-center gap-3">
           <!-- Checkbox -->
-          <div 
+          <div
             class="flex size-5 shrink-0 items-center justify-center rounded border transition-colors"
             :class="[
               selectedIds.has(row.id)
                 ? 'border-primary bg-primary text-(--text-inverse)'
-                : 'border-(--border-color) bg-(--bg-card) group-hover:border-(--text-secondary)'
+                : 'border-(--border-color) bg-(--bg-card) group-hover:border-(--text-secondary)',
             ]"
             @click.stop="$emit('toggle', row)"
           >
@@ -26,7 +26,9 @@
           </div>
 
           <!-- Thumbnail -->
-          <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-(--bg-muted) text-(--text-secondary)">
+          <div
+            class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-(--bg-muted) text-(--text-secondary)"
+          >
             <AppImage
               v-if="isImage(row)"
               :src="row.url"
@@ -49,7 +51,9 @@
       </template>
 
       <template #cell-type="{ value }">
-        <span class="inline-flex rounded bg-(--bg-muted) px-2 py-0.5 text-xs text-(--text-secondary) uppercase">
+        <span
+          class="inline-flex rounded bg-(--bg-muted) px-2 py-0.5 text-xs text-(--text-secondary) uppercase"
+        >
           {{ value?.split('/')[1] || 'FILE' }}
         </span>
       </template>
@@ -63,7 +67,7 @@
           <AppButton
             variant="ghost"
             size="sm"
-            class="!size-8  !p-1.5"
+            class="!size-8 !p-1.5"
             :title="t('fileManager.actions.share')"
             @click.stop="$emit('share', row)"
           >
@@ -74,7 +78,7 @@
           <AppButton
             variant="ghost"
             size="sm"
-            class="!size-8  !p-1.5"
+            class="!size-8 !p-1.5"
             @click.stop="$emit('context-menu', $event, row)"
           >
             <template #icon-left>
@@ -107,16 +111,40 @@ defineProps({
   },
 });
 
-defineEmits(['share', 'move', 'delete', 'context-menu', 'select', 'toggle-select', 'preview', 'toggle']);
+defineEmits([
+  'share',
+  'move',
+  'delete',
+  'context-menu',
+  'select',
+  'toggle-select',
+  'preview',
+  'toggle',
+]);
 
 const { t } = useI18n();
 const { formatSize, formatDate, isImage } = useFileManager();
 
 const columns = computed(() => [
   { key: 'name', label: t('fileManager.table.name') },
-  { key: 'size', label: t('fileManager.table.size'), headerClass: 'hidden sm:table-cell', cellClass: 'hidden sm:table-cell' },
-  { key: 'type', label: t('fileManager.table.type'), headerClass: 'hidden md:table-cell', cellClass: 'hidden md:table-cell' },
-  { key: 'createdAt', label: t('fileManager.table.uploadedAt'), headerClass: 'hidden lg:table-cell', cellClass: 'hidden lg:table-cell' },
+  {
+    key: 'size',
+    label: t('fileManager.table.size'),
+    headerClass: 'hidden sm:table-cell',
+    cellClass: 'hidden sm:table-cell',
+  },
+  {
+    key: 'type',
+    label: t('fileManager.table.type'),
+    headerClass: 'hidden md:table-cell',
+    cellClass: 'hidden md:table-cell',
+  },
+  {
+    key: 'createdAt',
+    label: t('fileManager.table.uploadedAt'),
+    headerClass: 'hidden lg:table-cell',
+    cellClass: 'hidden lg:table-cell',
+  },
   { key: 'actions', label: t('fileManager.table.actions'), align: 'right' },
 ]);
 </script>

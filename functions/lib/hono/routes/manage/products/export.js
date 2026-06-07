@@ -18,11 +18,14 @@ const loadAllProductsForExport = async (repo, filters) => {
   let page = 1;
 
   while (page <= MAX_EXPORT_PAGES) {
-    const result = await repo.search({
-      ...filters,
-      page,
-      limit: EXPORT_PAGE_LIMIT,
-    }, { includeFilters: false });
+    const result = await repo.search(
+      {
+        ...filters,
+        page,
+        limit: EXPORT_PAGE_LIMIT,
+      },
+      { includeFilters: false }
+    );
     const items = Array.isArray(result?.items) ? result.items : [];
     products.push(...items);
     if (items.length < EXPORT_PAGE_LIMIT) {
@@ -32,13 +35,17 @@ const loadAllProductsForExport = async (repo, filters) => {
   }
 
   // 达到最大页数限制，返回已加载的数据
-  console.warn(`[ProductExport] Reached max export pages (${MAX_EXPORT_PAGES}), returning partial results`);
+  console.warn(
+    `[ProductExport] Reached max export pages (${MAX_EXPORT_PAGES}), returning partial results`
+  );
   return products;
 };
 
 app.get('/', async (c) => {
   const { env } = c;
-  const format = String(c.req.query('format') || 'csv').trim().toLowerCase();
+  const format = String(c.req.query('format') || 'csv')
+    .trim()
+    .toLowerCase();
 
   if (format !== 'csv') {
     return c.json({ success: false, error: 'Only CSV format is supported currently' }, 400);
@@ -58,14 +65,26 @@ app.get('/', async (c) => {
     const productRepo = new ProductRepository(env.DB);
     const variantRepo = new ProductVariantRepository(env.DB);
     const dimensionRepo = new ProductDimensionRepository(env.DB);
+
+    // 1. 加载所有商品（已有分页保护）
     const products = await loadAllProductsForExport(productRepo, filters);
-    const detailedProducts = await Promise.all(
-      products.map(async (product) => ({
-        ...product,
-        variants: await variantRepo.findByProductId(product.id),
-        dimension_map: await dimensionRepo.getDimensionMap(product.id),
-      }))
-    );
+
+    // 2. 批量查询 variants 和 dimensions（避免 N+1 查询）
+    const productIds = products.map((p) => p.id);
+    const [variantsMap, dimensionsMap] = await Promise.all([
+      variantRepo.findByProductIds(productIds),
+      dimensionRepo.getDimensionMapByProductIds
+        ? dimensionRepo.getDimensionMapByProductIds(productIds)
+        : Promise.resolve(new Map()),
+    ]);
+
+    // 3. 组装详细数据（内存中完成，无额外查询）
+    const detailedProducts = products.map((product) => ({
+      ...product,
+      variants: variantsMap.get(product.id) || [],
+      dimension_map: dimensionsMap.get(product.id) || {},
+    }));
+
     const rows = flattenProductsToVariantRows(detailedProducts, filters);
     const csv = buildCsvContent(rows, EXPORT_COLUMNS);
     const date = new Date().toISOString().slice(0, 10);
@@ -79,10 +98,7 @@ app.get('/', async (c) => {
     });
   } catch (error) {
     console.error('Product export failed:', error);
-    return c.json(
-      { success: false, error: error?.message || 'Product export failed' },
-      500
-    );
+    return c.json({ success: false, error: error?.message || 'Product export failed' }, 500);
   }
 });
 

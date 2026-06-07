@@ -21,6 +21,7 @@
 ## File Map
 
 **Outbox operator console**
+
 - Create: `src/views/OutboxOps.vue`
 - Create: `src/components/outbox/OutboxEventTable.vue`
 - Create: `src/components/outbox/OutboxReplayPanel.vue`
@@ -36,6 +37,7 @@
 - Verify: `functions/lib/hono/routes/manage/audit-replay.js`
 
 **Order-line fulfillment command backend**
+
 - Create: `functions/services/OrderLineFulfillmentService.js`
 - Create: `functions/services/__tests__/OrderLineFulfillmentService.test.js`
 - Create: `functions/lib/hono/routes/manage/orders/lines.js`
@@ -49,6 +51,7 @@
 - Verify: `functions/services/__tests__/DomainEventCatalog.coverage.test.js`
 
 **Order-line fulfillment admin UI**
+
 - Create: `src/components/order/OrderLineCommandPanel.vue`
 - Create: `src/components/order/__tests__/OrderLineCommandPanel.test.js`
 - Create: `src/composables/__tests__/useOrders.line-commands.test.js`
@@ -62,6 +65,7 @@
 - Modify: `src/utils/constants.js`
 
 **Real API and docs closure**
+
 - Create: `test/utils/webhook-real-api.js`
 - Create: `test/webhooks-real-api.test.js`
 - Modify: `test/full-business-regression-real-api.test.js`
@@ -78,6 +82,7 @@
 ### Task 1: Ship The Admin Outbox And Replay Console
 
 **Files:**
+
 - Create: `src/views/OutboxOps.vue`
 - Create: `src/components/outbox/OutboxEventTable.vue`
 - Create: `src/components/outbox/OutboxReplayPanel.vue`
@@ -106,6 +111,7 @@ Expected: FAIL because no outbox page, composable, or route wiring exists yet.
 - [ ] **Step 2: Add the thin API client and page split**
 
 Implementation notes:
+
 - Add `API.MANAGE_OUTBOX`, `API.MANAGE_OUTBOX_BY_ID`, `API.MANAGE_AUDIT_REPLAY_DRY_RUN`, and `API.MANAGE_AUDIT_REPLAY_EXECUTE` to `src/utils/constants.js`
 - Keep `useOutboxOps.js` focused on list/detail/replay calls and loading/error state only
 - Split the page into a table component plus replay panel so replay confirmation logic does not bloat the page shell
@@ -114,6 +120,7 @@ Implementation notes:
 - [ ] **Step 3: Expose the page in admin navigation**
 
 Implementation notes:
+
 - Add `/admin/outbox-ops` to `src/router/index.js` with `audit:read` permission
 - Add a sidebar entry next to audit logs in `src/components/layout/Sidebar.vue`
 - Add router/sidebar locale keys in both `src/locales/zh-CN/misc.js` and `src/locales/en/misc.js`
@@ -137,6 +144,7 @@ git commit -m "feat: add admin outbox operations console"
 ### Task 2: Add Order-Line Fulfillment Commands Behind A Dedicated Backend Service
 
 **Files:**
+
 - Create: `functions/services/OrderLineFulfillmentService.js`
 - Create: `functions/services/__tests__/OrderLineFulfillmentService.test.js`
 - Create: `functions/lib/hono/routes/manage/orders/lines.js`
@@ -164,6 +172,7 @@ Expected: FAIL because no command service or route surface exists yet and the al
 - [ ] **Step 2: Extend the allocation repository for read and release operations**
 
 Implementation notes:
+
 - Keep `OrderLineAllocationRepository.js` narrowly focused on allocation persistence, not business rules
 - Add a `listActiveByOrderLine(orderLineId)` helper plus a release/update helper that records `released_qty`, `released_at`, and `status = 'released'`
 - Cover both active and partially released cases in `functions/repositories/__tests__/OrderLineAllocationRepository.test.js`
@@ -171,6 +180,7 @@ Implementation notes:
 - [ ] **Step 3: Implement the command service and route contract**
 
 Implementation notes:
+
 - Create `functions/services/OrderLineFulfillmentService.js` as the only place that coordinates line reads, reservation math, shipment stock deductions, and outbox event creation
 - Mount a dedicated `functions/lib/hono/routes/manage/orders/lines.js` from `functions/lib/hono/routes/manage/orders/index.js`
 - Use route shapes:
@@ -199,6 +209,7 @@ git commit -m "feat: add order line fulfillment command routes"
 ### Task 3: Surface Line-Level Fulfillment Operations In The Order Admin UI
 
 **Files:**
+
 - Create: `src/components/order/OrderLineCommandPanel.vue`
 - Create: `src/components/order/__tests__/OrderLineCommandPanel.test.js`
 - Create: `src/composables/__tests__/useOrders.line-commands.test.js`
@@ -225,6 +236,7 @@ Expected: FAIL because the frontend still exposes line quantities as read-only d
 - [ ] **Step 2: Add dedicated frontend command helpers**
 
 Implementation notes:
+
 - Add `MANAGE_ORDER_LINE_RESERVE`, `MANAGE_ORDER_LINE_RELEASE`, and `MANAGE_ORDER_LINE_SHIP` helpers to `src/utils/constants.js`
 - Extend `useOrders.js` with `reserveOrderLine()`, `releaseOrderLine()`, and `shipOrderLine()` instead of overloading `updateOrder()`
 - Keep toasts and optimistic updates narrow: refresh the full order detail after each successful command rather than trying to mutate nested line state in many places
@@ -232,6 +244,7 @@ Implementation notes:
 - [ ] **Step 3: Split the line command UI into a focused panel component**
 
 Implementation notes:
+
 - Keep `OrderLinesCard.vue` responsible for rendering line metrics and mount `OrderLineCommandPanel.vue` inside each card only when `mode === 'admin'`
 - Keep `OrderWorkflowModal.vue` and `OrderDetail.vue` in charge of refresh orchestration, not command form internals
 - Add locale keys for action labels, validation copy, and command success/error states in both language packs
@@ -251,6 +264,7 @@ git commit -m "feat: surface order line fulfillment actions in admin ui"
 ### Task 4: Promote Webhook Delivery Into The Standard Real-API Full-Chain Regression
 
 **Files:**
+
 - Create: `test/utils/webhook-real-api.js`
 - Create: `test/webhooks-real-api.test.js`
 - Modify: `test/full-business-regression-real-api.test.js`
@@ -271,6 +285,7 @@ Expected: FAIL because webhook real-API coverage still lives only in `test/webho
 - [ ] **Step 2: Extract a shared webhook harness and keep CLI compatibility**
 
 Implementation notes:
+
 - Move the temporary HTTP receiver, create/test/delete webhook helpers, and delivery wait logic into `test/utils/webhook-real-api.js`
 - Keep `test/webhook-test.js` as a thin CLI wrapper so `pnpm test:webhook` and `pnpm test:real-api:webhook` remain stable
 - Reuse the same base URL and auth conventions already established in `test/utils/manage-products-real-api.js`
@@ -278,6 +293,7 @@ Implementation notes:
 - [ ] **Step 3: Extend the full-business regression to cover webhook and line commands**
 
 Implementation notes:
+
 - Update `test/full-business-regression-real-api.test.js` so the standard chain also verifies:
   - at least one line-level reserve or ship command after procurement converges
   - the resulting order detail reflects updated line metrics and display status
@@ -303,6 +319,7 @@ git commit -m "test: fold webhook delivery into full-chain real api regression"
 ### Task 5: Refresh Docs And Run The Final Verification Sweep
 
 **Files:**
+
 - Modify: `docs/API_REFERENCE.md`
 - Modify: `docs/api/management.md`
 - Modify: `docs/admin-manual/README.md`
@@ -316,6 +333,7 @@ git commit -m "test: fold webhook delivery into full-chain real api regression"
 - [ ] **Step 1: Update docs for the new shipped surfaces**
 
 Documentation notes:
+
 - Add the outbox operator page and replay flow to admin operations docs
 - Document the new order-line command endpoints and UI workflow in API and inventory docs
 - Update architecture docs so line-level order fulfillment is described as a first-class command path rather than an internal-only read model
@@ -337,6 +355,7 @@ Expected: PASS, including webhook coverage in the standard chain rather than as 
 - [ ] **Step 4: Final audit checklist**
 
 Audit checklist:
+
 - The admin UI exposes outbox event list, event detail, dry-run replay, and execute replay
 - New order-line commands do not call `invalidateCache()` directly from routes
 - New line-level mutations publish an event registered in `functions/services/DomainEventCatalog.js`

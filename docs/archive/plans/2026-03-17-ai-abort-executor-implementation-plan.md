@@ -13,6 +13,7 @@
 ### Task 1: Lock down request-context behavior
 
 **Files:**
+
 - Modify: `functions/ai/request-context.js`
 - Create: `functions/ai/__tests__/request-context.test.js`
 
@@ -45,6 +46,7 @@ Expected: FAIL because `createAIRequestContext` does not yet consume an inbound 
 **Step 3: Write minimal implementation**
 
 Update `createAIRequestContext` to:
+
 - accept `input.signal`
 - forward external aborts into the internal controller
 - preserve the first abort reason
@@ -65,6 +67,7 @@ git commit -m "test(ai): lock request context abort semantics"
 ### Task 2: Introduce a shared request executor
 
 **Files:**
+
 - Create: `functions/ai/request-executor.js`
 - Create: `functions/ai/__tests__/request-executor.test.js`
 - Check: `functions/ai/model-policy.js`
@@ -90,7 +93,8 @@ it('passes the request signal into fetch', async () => {
 
 it('stops retrying when the signal aborts during backoff', async () => {
   const controller = new AbortController();
-  const requestFn = vi.fn()
+  const requestFn = vi
+    .fn()
     .mockResolvedValueOnce(errorResponse(503))
     .mockImplementation(async () => {
       throw new Error('should not retry after abort');
@@ -111,6 +115,7 @@ Expected: FAIL because the executor module does not exist yet.
 **Step 3: Write minimal implementation**
 
 Implement `functions/ai/request-executor.js` with:
+
 - exported executor used by AI wrappers
 - abort-aware preflight check
 - abort-aware retry loop/backoff
@@ -133,6 +138,7 @@ git commit -m "feat(ai): add abort-aware request executor"
 ### Task 3: Migrate `ai-utils.js` to the executor
 
 **Files:**
+
 - Modify: `functions/utils/ai-utils.js`
 - Modify: `functions/utils/__tests__/ai-utils-health.test.js`
 
@@ -150,8 +156,9 @@ it('passes AI_REQUEST_SIGNAL to fetch in callAI', async () => {
 it('does not enter fallback mode in callAIAuto after abort', async () => {
   const controller = new AbortController();
   controller.abort('client_disconnect');
-  await expect(callAIAuto({ messages, env: { ...env, AI_REQUEST_SIGNAL: controller.signal } }))
-    .rejects.toMatchObject({ name: 'AbortError' });
+  await expect(
+    callAIAuto({ messages, env: { ...env, AI_REQUEST_SIGNAL: controller.signal } })
+  ).rejects.toMatchObject({ name: 'AbortError' });
 });
 ```
 
@@ -163,6 +170,7 @@ Expected: FAIL because `callAI`, `callAIStream`, and `callAIAuto` do not yet use
 **Step 3: Write minimal implementation**
 
 Refactor `ai-utils.js` to:
+
 - delegate provider execution to `request-executor.js`
 - pass `env.AI_REQUEST_SIGNAL` through request execution
 - preserve current public return shapes
@@ -183,6 +191,7 @@ git commit -m "refactor(ai): route provider calls through request executor"
 ### Task 4: Wire route entrypoints into the shared cancellation path
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/ai.js`
 - Modify: `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
 
@@ -214,6 +223,7 @@ Expected: FAIL because `/chat` does not yet inject the request signal into runti
 **Step 3: Write minimal implementation**
 
 Update `/chat` and `/stream` route setup to:
+
 - construct request contexts from inbound request signals
 - pass the canonical signal into runtime env
 - keep existing telemetry behavior but source cancellation reason only from request context
@@ -233,6 +243,7 @@ git commit -m "fix(ai): unify route abort signal wiring"
 ### Task 5: Correct tool abort semantics
 
 **Files:**
+
 - Modify: `functions/ai/tool-orchestrator.js`
 - Modify: `functions/ai/__tests__/tool-orchestrator.test.js`
 
@@ -252,10 +263,12 @@ it('marks an in-flight tool as aborted instead of success when the request abort
     }),
   });
 
-  expect(result.results[0]).toEqual(expect.objectContaining({
-    status: 'aborted',
-    toolCallId: '1',
-  }));
+  expect(result.results[0]).toEqual(
+    expect.objectContaining({
+      status: 'aborted',
+      toolCallId: '1',
+    })
+  );
 });
 ```
 
@@ -267,6 +280,7 @@ Expected: FAIL because aborted work is currently returned as `success`.
 **Step 3: Write minimal implementation**
 
 Update tool orchestration to:
+
 - emit `aborted` for the in-flight canceled tool
 - preserve `skipped` for unscheduled trailing work
 - avoid fabricating `{ ok: true }`
@@ -286,6 +300,7 @@ git commit -m "fix(ai): separate aborted tool results from success"
 ### Task 6: Update stream engine to honor aborted tool/provider flow
 
 **Files:**
+
 - Modify: `functions/ai/stream-engine.js`
 - Modify: `functions/ai/__tests__/stream-engine.test.js`
 
@@ -296,17 +311,19 @@ Add tests covering:
 ```js
 it('does not emit tool_result for aborted tool execution', async () => {
   const emit = vi.fn();
-  await expect(runAIStreamEngine({
-    initialResult,
-    initialMessages: [],
-    runtimeEnv: {},
-    emit,
-    executeTool: vi.fn(async () => {
-      requestContext.abort('client_disconnect');
-      throw Object.assign(new Error('aborted'), { name: 'AbortError' });
-    }),
-    requestContext,
-  })).rejects.toMatchObject({ name: 'AbortError' });
+  await expect(
+    runAIStreamEngine({
+      initialResult,
+      initialMessages: [],
+      runtimeEnv: {},
+      emit,
+      executeTool: vi.fn(async () => {
+        requestContext.abort('client_disconnect');
+        throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+      }),
+      requestContext,
+    })
+  ).rejects.toMatchObject({ name: 'AbortError' });
 
   expect(emit).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'tool_result' }));
 });
@@ -324,6 +341,7 @@ Expected: FAIL because current logic emits a synthetic success path for aborted 
 **Step 3: Write minimal implementation**
 
 Update `runAIStreamEngine` to:
+
 - ignore `aborted` results for tool success emission and tool message append
 - throw on the shared abort path before any follow-up provider round
 - keep timeout/failure behavior unchanged
@@ -343,6 +361,7 @@ git commit -m "fix(ai): stop stream rounds cleanly on cancellation"
 ### Task 7: Run focused verification and then full relevant verification
 
 **Files:**
+
 - No code changes required unless failures surface
 
 **Step 1: Run focused test suites**
@@ -373,6 +392,7 @@ Expected: PASS, confirming route changes did not regress adjacent AI route behav
 **Step 3: Investigate and fix any failures**
 
 If anything fails:
+
 - update only the smallest relevant implementation or test fixture
 - rerun the failing suite first
 - rerun the full verification set

@@ -4,7 +4,8 @@
 
 **Goal:** 重构前端代码，消除重复逻辑，统一使用预设的高级 UI 组件（AppTable, AppFilterBar, StatusBadge），并封装全局 API 请求逻辑以减少样板代码。
 
-**Architecture:** 
+**Architecture:**
+
 1. 封装并引入统一的 `request.js` 工具（或重构现有的封装），接管 `fetch` 请求的 JSON 解析、异常捕获与 `useToast` 提示样板代码。
 2. 针对性地重构 `usePurchaseOrders.js` 等核心 Composable，剥离重复的 API 错误捕获结构。
 3. 渐进式替换视图文件中的原生 `<table>`、原生 `<input>/<select>` 筛选项和硬编码状态标签为组件库组件。
@@ -18,7 +19,8 @@
 ### Task 1: Create standardized API request utility
 
 **Files:**
-- Create/Modify: `src/utils/request.js` 
+
+- Create/Modify: `src/utils/request.js`
 
 **Step 1: Write implementation**
 
@@ -44,13 +46,14 @@ export async function request(url, options = {}) {
 }
 ```
 
-*(如果系统中已存在类似封装，则将其调整为规范的此形态)*
+_(如果系统中已存在类似封装，则将其调整为规范的此形态)_
 
 **Step 2: Verify it builds**
 Run: `npm run build`
 Expected: PASS
 
 **Step 3: Commit**
+
 ```bash
 git add src/utils/request.js
 git commit -m "feat(core): add unified request utility with global error handling"
@@ -59,6 +62,7 @@ git commit -m "feat(core): add unified request utility with global error handlin
 ### Task 2: Refactor `usePurchaseOrders.js` to use standardized request
 
 **Files:**
+
 - Modify: `src/composables/usePurchaseOrders.js`
 
 **Step 1: Write implementation**
@@ -84,13 +88,13 @@ Run: `npm run build`
 Expected: PASS
 
 **Step 3: Commit**
+
 ```bash
 git add src/composables/usePurchaseOrders.js
 git commit -m "refactor(composables): migrate usePurchaseOrders to unified request utility"
 ```
 
-*(可根据相似步骤，将 Task 2.1 分派给 `useTags.js`, `useSpaces.js` 等)*
-
+_(可根据相似步骤，将 Task 2.1 分派给 `useTags.js`, `useSpaces.js` 等)_
 
 ---
 
@@ -99,6 +103,7 @@ git commit -m "refactor(composables): migrate usePurchaseOrders to unified reque
 ### Task 3: Replace Hardcoded Status Badges in `AuditLogs.vue`
 
 **Files:**
+
 - Modify: `src/views/AuditLogs.vue`
 
 **Step 1: Write implementation**
@@ -107,18 +112,16 @@ git commit -m "refactor(composables): migrate usePurchaseOrders to unified reque
 
 ```html
 <script setup>
-import StatusBadge from '@/components/ui/StatusBadge.vue';
-// ...
+  import StatusBadge from '@/components/ui/StatusBadge.vue';
+  // ...
 </script>
 
 <template>
   <!-- 替换前 -->
   <!-- <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" :class="actionBadgeClass(log.action)"> -->
-  
+
   <!-- 替换后 -->
-  <StatusBadge :variant="actionBadgeVariant(log.action)" size="sm">
-     ...
-  </StatusBadge>
+  <StatusBadge :variant="actionBadgeVariant(log.action)" size="sm"> ... </StatusBadge>
 </template>
 ```
 
@@ -127,6 +130,7 @@ Run: `npm run build`
 Expected: PASS
 
 **Step 3: Commit**
+
 ```bash
 git add src/views/AuditLogs.vue
 git commit -m "refactor(ui): replace hardcoded badges with StatusBadge in AuditLogs"
@@ -135,6 +139,7 @@ git commit -m "refactor(ui): replace hardcoded badges with StatusBadge in AuditL
 ### Task 4: Replace Raw Table in `AuditLogs.vue` with `AppTable`
 
 **Files:**
+
 - Modify: `src/views/AuditLogs.vue`
 
 **Step 1: Write implementation**
@@ -146,6 +151,7 @@ Run: `npm run build`
 Expected: PASS
 
 **Step 3: Commit**
+
 ```bash
 git add src/views/AuditLogs.vue
 git commit -m "refactor(ui): migrate AuditLogs table to AppTable component"
@@ -154,6 +160,7 @@ git commit -m "refactor(ui): migrate AuditLogs table to AppTable component"
 ### Task 5: Refactor Filters in `GoodsOverview.vue`
 
 **Files:**
+
 - Modify: `src/views/GoodsOverview.vue`
 
 **Step 1: Write implementation**
@@ -162,8 +169,8 @@ git commit -m "refactor(ui): migrate AuditLogs table to AppTable component"
 
 ```html
 <script setup>
-import SearchInput from '@/components/ui/SearchInput.vue';
-// ...
+  import SearchInput from '@/components/ui/SearchInput.vue';
+  // ...
 </script>
 
 <template>
@@ -177,9 +184,10 @@ Run: `npm run build`
 Expected: PASS
 
 **Step 3: Commit**
+
 ```bash
 git add src/views/GoodsOverview.vue
 git commit -m "refactor(ui): adopt SearchInput and standardize filters in GoodsOverview"
 ```
 
-*(后续依此模式依次重构 `PurchaseOrders.vue`、`Customers.vue` 中的表格、筛选器、徽章等)*
+_(后续依此模式依次重构 `PurchaseOrders.vue`、`Customers.vue` 中的表格、筛选器、徽章等)_

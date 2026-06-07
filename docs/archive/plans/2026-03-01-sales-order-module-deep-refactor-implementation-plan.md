@@ -43,6 +43,7 @@
 ### Task 1: Baseline Contract Tests（锁旧行为）
 
 **Files:**
+
 - Create: `src/views/sales/__tests__/sales-module-contract.test.js`
 - Create: `src/components/order/__tests__/sales-order-flow-contract.test.js`
 - Modify: `vitest.config.js`
@@ -81,6 +82,7 @@ git commit -m "test: add sales order module baseline contract tests"
 ### Task 2: Introduce Feature Flag for Safe Replacement
 
 **Files:**
+
 - Create: `src/config/feature-flags.js`
 - Modify: `src/views/Sales.vue`
 - Modify: `src/views/sales/SalesListView.vue`
@@ -121,6 +123,7 @@ git commit -m "feat: add feature flag for sales order module replacement"
 ### Task 3: Build Unified Sales API Layer
 
 **Files:**
+
 - Create: `src/composables/sales/useSalesOrderApi.js`
 - Modify: `src/composables/useOrders.js`
 - Modify: `src/utils/constants.js`
@@ -159,6 +162,7 @@ git commit -m "refactor: introduce unified sales order API layer"
 ### Task 4: Build Sales State Machine Composable
 
 **Files:**
+
 - Create: `src/composables/sales/useSalesOrderStateMachine.js`
 - Test: `src/composables/__tests__/useSalesOrderStateMachine.test.js`
 - Modify: `src/views/Sales.vue`
@@ -197,6 +201,7 @@ git commit -m "refactor: add sales order state machine"
 ### Task 5: Add Runtime Error Boundary + Recovery UI
 
 **Files:**
+
 - Create: `src/components/common/AppErrorBoundary.vue`
 - Create: `src/components/common/AsyncStatePanel.vue`
 - Modify: `src/views/Sales.vue`
@@ -236,6 +241,7 @@ git commit -m "feat: add runtime error boundary and async state panel"
 ### Task 6: Refactor List Experience for Mobile Reliability
 
 **Files:**
+
 - Modify: `src/views/sales/SalesListView.vue`
 - Modify: `src/components/order/OrderList.vue`
 - Test: `src/components/order/__tests__/OrderList.mobile-state.test.js`
@@ -275,6 +281,7 @@ git commit -m "refactor: unify mobile list loading empty error states"
 ### Task 7: Refactor Create Flow with Strong Error Boundaries
 
 **Files:**
+
 - Modify: `src/views/sales/SalesFormView.vue`
 - Modify: `src/components/order/ProductBindingSection.vue`
 - Modify: `src/components/order/SalesProductSelect.vue`
@@ -317,6 +324,7 @@ git commit -m "refactor: harden sales create flow with inline recovery states"
 ### Task 8: Refactor Detail Flow + Mark-Read Recovery
 
 **Files:**
+
 - Modify: `src/views/sales/SalesDetailView.vue`
 - Modify: `src/components/order/OrderDetail.vue`
 - Modify: `src/components/order/OrderCommentInput.vue`
@@ -357,6 +365,7 @@ git commit -m "refactor: improve sales detail resilience and retry UX"
 ### Task 9: Refactor Stats & Notification States
 
 **Files:**
+
 - Modify: `src/components/order/SalesStats.vue`
 - Modify: `src/components/order/SalesNotificationList.vue`
 - Test: `src/components/order/__tests__/SalesStats.error-state.test.js`
@@ -396,6 +405,7 @@ git commit -m "refactor: add robust error states for stats and notifications"
 ### Task 10: Accessibility & Mobile UX Pass
 
 **Files:**
+
 - Modify: `src/components/order/OrderLogin.vue`
 - Modify: `src/components/order/OrderForm.vue`
 - Modify: `src/components/order/ProductBindingSection.vue`
@@ -437,6 +447,7 @@ git commit -m "feat: finalize sales module accessibility and mobile UX polish"
 ### Task 11: Backend Sales Route Hardening
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/sales/orders.js`
 - Modify: `functions/lib/hono/routes/sales/products.js`
 - Create: `functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js`
@@ -475,6 +486,7 @@ git commit -m "refactor: harden sales API error contracts and schema stability"
 ### Task 12: Full Switch & Legacy Removal
 
 **Files:**
+
 - Modify: `src/config/feature-flags.js`
 - Modify: `src/views/Sales.vue`
 - Modify: `src/composables/useOrders.js`
@@ -513,6 +525,7 @@ git commit -m "refactor: switch sales module to v2 by default and remove legacy 
 ### Task 13: Verification Gate + Docs + Rollback Runbook
 
 **Files:**
+
 - Modify: `docs/architecture/modules/preorder-creation-flow.md`
 - Modify: `docs/user-manual/sales-guide.md`
 - Create: `docs/architecture/modules/sales-order-module-v2.md`
@@ -525,11 +538,13 @@ N/A (docs task), use verification checklist instead.
 **Step 2: Run verification commands**
 
 Run:
+
 - `npx eslint src/views/sales src/components/order src/composables/sales functions/lib/hono/routes/sales`
 - `npm run test:unit -- src/views/sales/__tests__ src/components/order/__tests__ src/composables/__tests__/useSalesOrderApi.test.js src/composables/__tests__/useSalesOrderStateMachine.test.js functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js`
 - `npm run build`
 
 Expected:
+
 - lint: no new errors from changed files
 - tests: PASS
 - build: PASS
@@ -571,4 +586,3 @@ git commit -m "docs: add sales order module v2 architecture and rollout runbook"
 - 绑定商品/变体流程失败可恢复，不出现静默失败
 - 移动端关键触控目标 >= 44px，错误提示具备无障碍播报
 - 全量替换完成后默认新路径，旧路径可按 runbook 回滚
-

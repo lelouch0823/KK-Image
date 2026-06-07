@@ -7,7 +7,8 @@ const TARGETS = [
   {
     file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'manage', 'purchase-orders.js'),
     signature: 'async function requirePurchaseOrder(',
-    label: 'functions/lib/hono/routes/manage/purchase-orders.js: still defines requirePurchaseOrder',
+    label:
+      'functions/lib/hono/routes/manage/purchase-orders.js: still defines requirePurchaseOrder',
   },
   {
     file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'manage', 'albums.js'),
@@ -65,9 +66,6 @@ describe('manage route entity thin wrappers audit', () => {
       if (source.includes(target.signature)) offenders.push(target.label);
     }
 
-    expect(
-      offenders,
-      `route thin-wrapper offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `route thin-wrapper offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

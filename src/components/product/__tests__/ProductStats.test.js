@@ -53,9 +53,7 @@ describe('ProductStats', () => {
         return true;
       }
 
-      state.products.value = [
-        { id: 'p-3', cost_price: 10, stock_quantity: 4, alert_threshold: 2 },
-      ];
+      state.products.value = [{ id: 'p-3', cost_price: 10, stock_quantity: 4, alert_threshold: 2 }];
       state.pagination.page = 2;
       state.pagination.limit = 2;
       state.pagination.total = 3;
@@ -93,28 +91,36 @@ describe('ProductStats', () => {
     await flushPromises();
 
     expect(mocks.loadProducts).toHaveBeenCalledTimes(2);
-    expect(mocks.loadProducts).toHaveBeenNthCalledWith(1, {
-      search: '',
-      status: 'active',
-      brand: 'ACME',
-      category: '',
-      hasStock: '',
-      sortBy: '',
-      sortOrder: '',
-      page: 1,
-      limit: 100,
-    }, true);
-    expect(mocks.loadProducts).toHaveBeenNthCalledWith(2, {
-      search: '',
-      status: 'active',
-      brand: 'ACME',
-      category: '',
-      hasStock: '',
-      sortBy: '',
-      sortOrder: '',
-      page: 2,
-      limit: 100,
-    }, true);
+    expect(mocks.loadProducts).toHaveBeenNthCalledWith(
+      1,
+      {
+        search: '',
+        status: 'active',
+        brand: 'ACME',
+        category: '',
+        hasStock: '',
+        sortBy: '',
+        sortOrder: '',
+        page: 1,
+        limit: 100,
+      },
+      true
+    );
+    expect(mocks.loadProducts).toHaveBeenNthCalledWith(
+      2,
+      {
+        search: '',
+        status: 'active',
+        brand: 'ACME',
+        category: '',
+        hasStock: '',
+        sortBy: '',
+        sortOrder: '',
+        page: 2,
+        limit: 100,
+      },
+      true
+    );
 
     const text = wrapper.text();
     expect(text).toContain('3');
@@ -198,9 +204,7 @@ describe('ProductStats', () => {
         return false;
       }
 
-      state.products.value = [
-        { id: 'p-1', cost_price: 10, stock_quantity: 2, alert_threshold: 3 },
-      ];
+      state.products.value = [{ id: 'p-1', cost_price: 10, stock_quantity: 2, alert_threshold: 3 }];
       state.pagination.page = 1;
       state.pagination.limit = 1;
       state.pagination.total = 1;

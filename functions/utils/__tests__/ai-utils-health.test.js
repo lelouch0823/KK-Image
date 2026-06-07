@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { callAI, callAIAuto, getModelHealthSnapshot, resetModelHealthStatsForTests } from '../ai-utils.js';
+import {
+  callAI,
+  callAIAuto,
+  getModelHealthSnapshot,
+  resetModelHealthStatsForTests,
+} from '../ai-utils.js';
 
 const createJsonResponse = ({ ok = true, status = 200, payload = {}, headers = {} } = {}) => ({
   ok,
@@ -59,7 +64,9 @@ describe('ai-utils dynamic fallback and health stats', () => {
       AI_MODEL_HEALTH_WINDOW: '20',
     };
 
-    await expect(callAI([{ role: 'user', content: 'first' }], [], env, 1)).rejects.toThrow('AI API error');
+    await expect(callAI([{ role: 'user', content: 'first' }], [], env, 1)).rejects.toThrow(
+      'AI API error'
+    );
     await callAI([{ role: 'user', content: 'second' }], [], env, 1);
 
     const secondRequestBody = JSON.parse(fetchMock.mock.calls[1][1].body);
@@ -174,18 +181,23 @@ describe('ai-utils abort signal propagation', () => {
     const controller = new AbortController();
     const encoder = new TextEncoder();
 
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      headers: new Headers(),
-      body: new ReadableStream({
-        async pull(streamController) {
-          streamController.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"hi"}}]}\n\n'));
-          controller.abort('client_disconnect');
-          streamController.close();
-        },
-      }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        body: new ReadableStream({
+          async pull(streamController) {
+            streamController.enqueue(
+              encoder.encode('data: {"choices":[{"delta":{"content":"hi"}}]}\n\n')
+            );
+            controller.abort('client_disconnect');
+            streamController.close();
+          },
+        }),
+      })
+    );
 
     await expect(
       callAIAuto({

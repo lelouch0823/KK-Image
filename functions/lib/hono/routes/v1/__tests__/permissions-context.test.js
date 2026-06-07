@@ -31,7 +31,13 @@ describe('v1 permissions context', () => {
   it('evaluates permissions through shared route-agnostic action helper', async () => {
     authzMocks.evaluateActionPermission.mockClear();
 
-    const app = createApp({ id: 'u1', name: 'ManagerUser', type: 'user', role: 'manager', permissions: [] });
+    const app = createApp({
+      id: 'u1',
+      name: 'ManagerUser',
+      type: 'user',
+      role: 'manager',
+      permissions: [],
+    });
     const res = await app.request('http://localhost/api/v1/permissions/user');
 
     expect(res.status).toBe(200);

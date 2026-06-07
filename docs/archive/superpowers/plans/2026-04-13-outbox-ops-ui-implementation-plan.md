@@ -13,6 +13,7 @@
 ### Task 1: Lock the new summary behavior with tests
 
 **Files:**
+
 - Create: `src/components/outbox/__tests__/outboxOpsSummary.test.js`
 - Modify: `src/views/__tests__/OutboxOps.behavior.test.js`
 - Test: `src/components/outbox/__tests__/outboxOpsSummary.test.js`
@@ -68,6 +69,7 @@ git commit -m "test: lock outbox ops redesign structure"
 ### Task 2: Implement metrics helper and page shell redesign
 
 **Files:**
+
 - Create: `src/components/outbox/outboxOpsSummary.js`
 - Modify: `src/views/OutboxOps.vue`
 - Modify: `src/components/outbox/OutboxEventTable.vue`
@@ -119,6 +121,7 @@ git commit -m "feat: redesign outbox ops page shell"
 ### Task 3: Upgrade replay workspace and localized copy
 
 **Files:**
+
 - Modify: `src/components/outbox/OutboxReplayPanel.vue`
 - Modify: `src/locales/zh-CN/misc.js`
 - Modify: `src/locales/en/misc.js`
@@ -167,6 +170,7 @@ git commit -m "feat: enrich outbox replay workspace copy"
 ### Task 4: Final verification
 
 **Files:**
+
 - Modify: `src/views/OutboxOps.vue`
 - Modify: `src/components/outbox/OutboxEventTable.vue`
 - Modify: `src/components/outbox/OutboxReplayPanel.vue`

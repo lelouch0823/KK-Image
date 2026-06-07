@@ -27,7 +27,9 @@ vi.mock('../../../../../repositories/SystemStatsProjectionRepository.js', () => 
 }));
 
 vi.mock('../../../../../services/SystemStatsProjectionRefreshService.js', async () => {
-  const actual = await vi.importActual('../../../../../services/SystemStatsProjectionRefreshService.js');
+  const actual = await vi.importActual(
+    '../../../../../services/SystemStatsProjectionRefreshService.js'
+  );
   return {
     ...actual,
     SystemStatsProjectionRefreshService: vi.fn(() => ({
@@ -62,7 +64,11 @@ describe('manage dashboard routes', () => {
     });
 
     const app = createApp();
-    const res = await app.request('http://localhost/api/manage/dashboard/overview', { method: 'GET' }, { DB: {} });
+    const res = await app.request(
+      'http://localhost/api/manage/dashboard/overview',
+      { method: 'GET' },
+      { DB: {} }
+    );
 
     expect(res.status).toBe(200);
     expect(mocks.requiredPermissions).toContain('stats:read');

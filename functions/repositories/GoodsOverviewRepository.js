@@ -153,7 +153,8 @@ export class GoodsOverviewRepository {
         orderBy = 'name ASC, sku ASC';
         break;
       case 'cost':
-        orderBy = '(COALESCE(pc.avg_unit_cost, 0) + COALESCE(pc.avg_freight, 0) + COALESCE(pc.avg_tariff, 0)) DESC, shortage DESC';
+        orderBy =
+          '(COALESCE(pc.avg_unit_cost, 0) + COALESCE(pc.avg_freight, 0) + COALESCE(pc.avg_tariff, 0)) DESC, shortage DESC';
         break;
       case 'shortage':
       default:
@@ -197,7 +198,10 @@ export class GoodsOverviewRepository {
       ORDER BY ${orderBy}
     `;
 
-    const { results } = await this.db.prepare(sql).bind(...bindParams).all();
+    const { results } = await this.db
+      .prepare(sql)
+      .bind(...bindParams)
+      .all();
     return (results || []).map((row) => this._mapItem(row));
   }
 
@@ -269,7 +273,9 @@ export class GoodsOverviewRepository {
 
   async getSummary() {
     const [mainResult, shortageResult] = await Promise.all([
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         SELECT
           COUNT(DISTINCT CASE WHEN vdp.total_demand > 0 THEN vdp.variant_id END) AS total_products,
           COALESCE(SUM(vdp.total_demand), 0) AS total_demand,
@@ -287,8 +293,13 @@ export class GoodsOverviewRepository {
           COUNT(DISTINCT CASE WHEN vdp.arrived_qty > 0 THEN vdp.variant_id END) AS arrived_orders
         FROM variant_demand_projection vdp
         WHERE vdp.total_demand > 0
-      `).bind().all(),
-      this.db.prepare(`
+      `
+        )
+        .bind()
+        .all(),
+      this.db
+        .prepare(
+          `
         SELECT COUNT(*) AS count FROM (
           SELECT
             vdp.variant_id,
@@ -300,7 +311,10 @@ export class GoodsOverviewRepository {
           GROUP BY vdp.variant_id
           HAVING shortage > 0
         )
-      `).bind().all(),
+      `
+        )
+        .bind()
+        .all(),
     ]);
 
     const row = mainResult.results?.[0] || {};
@@ -310,10 +324,26 @@ export class GoodsOverviewRepository {
       totalDemand: row.total_demand || 0,
       shortageCount: shortageResult.results?.[0]?.count || 0,
       byStatus: {
-        confirmed: { products: row.confirmed_products || 0, count: row.confirmed_orders || 0, qty: row.confirmed_qty || 0 },
-        production: { products: row.production_products || 0, count: row.production_orders || 0, qty: row.production_qty || 0 },
-        shipping: { products: row.shipping_products || 0, count: row.shipping_orders || 0, qty: row.shipping_qty || 0 },
-        arrived: { products: row.arrived_products || 0, count: row.arrived_orders || 0, qty: row.arrived_qty || 0 },
+        confirmed: {
+          products: row.confirmed_products || 0,
+          count: row.confirmed_orders || 0,
+          qty: row.confirmed_qty || 0,
+        },
+        production: {
+          products: row.production_products || 0,
+          count: row.production_orders || 0,
+          qty: row.production_qty || 0,
+        },
+        shipping: {
+          products: row.shipping_products || 0,
+          count: row.shipping_orders || 0,
+          qty: row.shipping_qty || 0,
+        },
+        arrived: {
+          products: row.arrived_products || 0,
+          count: row.arrived_orders || 0,
+          qty: row.arrived_qty || 0,
+        },
       },
     };
   }

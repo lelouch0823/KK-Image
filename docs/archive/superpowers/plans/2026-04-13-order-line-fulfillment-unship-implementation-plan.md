@@ -13,6 +13,7 @@
 ### Task 1: Add Backend `unship` Command
 
 **Files:**
+
 - Modify: `functions/services/OrderLineFulfillmentService.js`
 - Modify: `functions/lib/hono/routes/manage/orders/lines.js`
 - Modify: `functions/services/__tests__/OrderLineFulfillmentService.test.js`
@@ -60,6 +61,7 @@ git commit -m "feat: add order line unship command"
 ### Task 2: Align Header Status Guards With Line Facts
 
 **Files:**
+
 - Modify: `functions/repositories/order/mutations.js`
 - Modify: `functions/lib/hono/routes/manage/orders/detail.js`
 - Modify: `functions/repositories/__tests__/order-inventory-flow.test.js`
@@ -106,6 +108,7 @@ git commit -m "fix: align order status transitions with line fulfillment"
 ### Task 3: Add Confirmed Frontend Line Actions
 
 **Files:**
+
 - Modify: `src/components/order/OrderLineCommandPanel.vue`
 - Modify: `src/components/order/OrderWorkflowModal.vue`
 - Modify: `src/components/OrderManager.vue`
@@ -162,6 +165,7 @@ git commit -m "feat: confirm order line fulfillment actions"
 ### Task 4: Add End-to-End Regression Coverage And Verify
 
 **Files:**
+
 - Modify: `test/order-line-fulfillment-real-api.test.js`
 - Modify: `test/full-business-regression-real-api.test.js`
 

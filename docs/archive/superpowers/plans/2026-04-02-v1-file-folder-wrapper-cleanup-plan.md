@@ -13,11 +13,13 @@
 ### Task 1: Expand the Audit Coverage
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/__tests__/route-entity-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit assertions**
 
 Extend the audit target list so it also forbids:
+
 - `functions/lib/hono/routes/v1/files.js` `requireFile`
 - `functions/lib/hono/routes/v1/folders.js` `requireFolder`
 
@@ -34,6 +36,7 @@ Expected: FAIL because the two v1 wrapper definitions still exist.
 ### Task 2: Inline V1 Entity Guards
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/v1/files.js`
 - Modify: `functions/lib/hono/routes/v1/folders.js`
 

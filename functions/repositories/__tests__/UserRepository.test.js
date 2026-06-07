@@ -153,8 +153,14 @@ describe('UserRepository', () => {
 
       expect(db.prepare.mock.calls[0][0]).toContain('INSERT INTO users');
       expect(stmt.params).toEqual([
-        'user-1', 'newuser', 'hashed-pw', '新用户', 'new@test.com',
-        'user', '["orders:read"]', 1000,
+        'user-1',
+        'newuser',
+        'hashed-pw',
+        '新用户',
+        'new@test.com',
+        'user',
+        '["orders:read"]',
+        1000,
       ]);
     });
 
@@ -172,9 +178,7 @@ describe('UserRepository', () => {
         passwordHash: 'pw',
       });
 
-      expect(stmt.params).toEqual([
-        'user-2', 'minimal', 'pw', null, null, 'user', '[]', now,
-      ]);
+      expect(stmt.params).toEqual(['user-2', 'minimal', 'pw', null, null, 'user', '[]', now]);
     });
   });
 
@@ -244,7 +248,7 @@ describe('UserRepository', () => {
   // ==========================================
   describe('ping', () => {
     it('数据库可达时返回 true', async () => {
-      const stmt = createStatement({ first: vi.fn(async () => ({ '1': 1 })) });
+      const stmt = createStatement({ first: vi.fn(async () => ({ 1: 1 })) });
       const db = { prepare: vi.fn(() => stmt) };
 
       const result = await UserRepository.ping(db);
@@ -254,7 +258,11 @@ describe('UserRepository', () => {
     });
 
     it('数据库不可达时返回 false', async () => {
-      const stmt = createStatement({ first: vi.fn(async () => { throw new Error('DB unavailable'); }) });
+      const stmt = createStatement({
+        first: vi.fn(async () => {
+          throw new Error('DB unavailable');
+        }),
+      });
       const db = { prepare: vi.fn(() => stmt) };
 
       const result = await UserRepository.ping(db);

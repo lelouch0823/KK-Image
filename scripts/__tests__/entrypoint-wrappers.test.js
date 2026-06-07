@@ -9,7 +9,9 @@ const originalExitCode = process.exitCode;
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 
 const importFresh = async (relativePath) =>
-  import(`${pathToFileURL(path.resolve(testDir, relativePath)).href}?t=${Date.now()}-${Math.random()}`);
+  import(
+    `${pathToFileURL(path.resolve(testDir, relativePath)).href}?t=${Date.now()}-${Math.random()}`
+  );
 
 afterEach(() => {
   process.argv = [...originalArgv];

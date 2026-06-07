@@ -22,9 +22,7 @@ function collectDirectStockWritePaths() {
     /UPDATE\s+product_variants[\s\S]*?SET\s+stock_quantity\s*=/i,
     /stock_quantity\s*=\s*MAX\(0,\s*stock_quantity\s*\+/i,
   ];
-  const allowedSuffixes = new Set([
-    path.join('functions', 'services', 'InventoryService.js'),
-  ]);
+  const allowedSuffixes = new Set([path.join('functions', 'services', 'InventoryService.js')]);
 
   return files.flatMap((file) => {
     const relativePath = path.relative(root, file);

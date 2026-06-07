@@ -1,9 +1,5 @@
 <template>
-  <StatusBadge
-    :variant="variant"
-    :dot="resolvedDot"
-    :class="badgeClass"
-  >
+  <StatusBadge :variant="variant" :dot="resolvedDot" :class="badgeClass">
     <span v-if="resolvedShowLabel" class="mr-1 text-xs font-medium opacity-80">
       {{ t('order.deliveryStatus') }}
     </span>
@@ -30,7 +26,9 @@ const props = defineProps({
 const { t } = useI18n();
 
 const normalizedStatus = computed(() => {
-  const value = String(props.status || '').trim().toLowerCase();
+  const value = String(props.status || '')
+    .trim()
+    .toLowerCase();
   return value || 'not_shipped';
 });
 
@@ -47,5 +45,7 @@ const variant = computed(() => {
 
 const resolvedShowLabel = computed(() => props.preset === 'detail');
 const resolvedDot = computed(() => props.preset === 'detail');
-const badgeClass = computed(() => (props.preset ? '!px-2 !py-0.5 !text-xs whitespace-nowrap' : 'whitespace-nowrap'));
+const badgeClass = computed(() =>
+  props.preset ? '!px-2 !py-0.5 !text-xs whitespace-nowrap' : 'whitespace-nowrap'
+);
 </script>

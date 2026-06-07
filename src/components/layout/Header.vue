@@ -153,22 +153,25 @@
         </template>
       </AppButton>
     </div>
-    
+
     <!-- 移动端搜索遮罩 (Search Overlay) -->
     <transition name="fade">
-      <div v-if="showMobileSearch" class="absolute inset-0 z-50 flex items-center bg-(--bg-card) px-4 lg:hidden">
+      <div
+        v-if="showMobileSearch"
+        class="absolute inset-0 z-50 flex items-center bg-(--bg-card) px-4 lg:hidden"
+      >
         <div class="flex-1">
-            <SearchInput
-              ref="mobileSearchInputRef"
-              v-model="searchQuery"
-              :placeholder="t('header.searchPlaceholder')"
-              input-class="h-10 !bg-(--bg-page)"
-              :debounce="300"
-              @clear="closeMobileSearch"
-            />
+          <SearchInput
+            ref="mobileSearchInputRef"
+            v-model="searchQuery"
+            :placeholder="t('header.searchPlaceholder')"
+            input-class="h-10 !bg-(--bg-page)"
+            :debounce="300"
+            @clear="closeMobileSearch"
+          />
         </div>
         <AppButton variant="link" class="text-secondary ml-3" @click="closeMobileSearch">
-            {{ t('common.cancel') }}
+          {{ t('common.cancel') }}
         </AppButton>
       </div>
     </transition>
@@ -199,8 +202,18 @@ const route = useRoute();
 const viewTitle = computed(() => route.meta?.title || '管理后台');
 const { t } = useI18n();
 const { searchQuery } = useSearch();
-const { unreadCount, startPolling, stopPolling, setAdminMode, permissionDenied, permissionDeniedReason } = useNotifications();
-const { start: startStream, stop: stopStream } = useNotificationStream({ pollInterval: 30000, showToast: true });
+const {
+  unreadCount,
+  startPolling,
+  stopPolling,
+  setAdminMode,
+  permissionDenied,
+  permissionDeniedReason,
+} = useNotifications();
+const { start: startStream, stop: stopStream } = useNotificationStream({
+  pollInterval: 30000,
+  showToast: true,
+});
 const { isOpen, toggle: toggleAI } = useAI();
 const { hasPermission, loadPermissions } = useAccessControl();
 const { isDark, toggleTheme } = useTheme();
@@ -216,14 +229,14 @@ const showMobileSearch = ref(false);
 const mobileSearchInputRef = ref(null);
 
 const openMobileSearch = async () => {
-    showMobileSearch.value = true;
-    await nextTick();
-    mobileSearchInputRef.value?.focus();
+  showMobileSearch.value = true;
+  await nextTick();
+  mobileSearchInputRef.value?.focus();
 };
 
 const closeMobileSearch = () => {
-    showMobileSearch.value = false;
-    searchQuery.value = ''; // Optional: clear on close? Or keep? Let's keep it consistent with desktop (don't clear)
+  showMobileSearch.value = false;
+  searchQuery.value = ''; // Optional: clear on close? Or keep? Let's keep it consistent with desktop (don't clear)
 };
 
 // 点击外部关闭

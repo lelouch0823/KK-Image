@@ -78,7 +78,7 @@ export function error(message, status = 400) {
   return jsonResponse(
     {
       success: false,
-      message,
+      error: message,
     },
     status
   );

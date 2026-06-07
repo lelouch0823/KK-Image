@@ -11,11 +11,7 @@
     </div>
 
     <div v-else-if="error" class="flex min-h-[50vh] items-center justify-center px-4">
-      <EmptyState
-        icon="search"
-        :title="t('spacePublic.cannotLoad')"
-        :description="error"
-      />
+      <EmptyState icon="search" :title="t('spacePublic.cannotLoad')" :description="error" />
     </div>
 
     <component
@@ -56,13 +52,14 @@ const error = ref('');
 const space = ref(null);
 let detailRequestId = 0;
 
-const currentToken = computed(() => salesContext?.accessToken?.value || String(route.params.token || ''));
+const currentToken = computed(
+  () => salesContext?.accessToken?.value || String(route.params.token || '')
+);
 const currentSpaceId = computed(() => String(route.params.id || ''));
-const isActiveDetailRequest = (requestId, requestToken, requestSpaceId) => (
+const isActiveDetailRequest = (requestId, requestToken, requestSpaceId) =>
   requestId === detailRequestId &&
   currentToken.value === requestToken &&
-  currentSpaceId.value === requestSpaceId
-);
+  currentSpaceId.value === requestSpaceId;
 
 const spaceComponentKey = computed(() => {
   switch (space.value?.template) {
@@ -134,7 +131,11 @@ const loadSpaceDetail = async () => {
   return false;
 };
 
-watch([currentToken, currentSpaceId], () => {
-  loadSpaceDetail();
-}, { immediate: true });
+watch(
+  [currentToken, currentSpaceId],
+  () => {
+    loadSpaceDetail();
+  },
+  { immediate: true }
+);
 </script>

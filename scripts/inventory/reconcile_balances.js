@@ -21,11 +21,10 @@ export function reconcileInventoryBalances(ledgerRows = [], persistedBalances = 
 
     return {
       variant_id: variantId,
-      matches: (
+      matches:
         actual.on_hand === expected.on_hand &&
         actual.reserved === expected.reserved &&
-        actual.available === expected.available
-      ),
+        actual.available === expected.available,
       expected,
       actual,
     };

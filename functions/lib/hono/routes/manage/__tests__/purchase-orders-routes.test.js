@@ -123,7 +123,12 @@ vi.mock('../../../../../api/cron/outbox.js', () => ({
 
 import purchaseOrdersApp from '../purchase-orders.js';
 
-function createDb({ variantRows = [], orderRows = [], orderLineRows = [], poBindingRows = [] } = {}) {
+function createDb({
+  variantRows = [],
+  orderRows = [],
+  orderLineRows = [],
+  poBindingRows = [],
+} = {}) {
   return {
     prepare: vi.fn((sql) => ({
       bind: vi.fn(() => ({
@@ -195,7 +200,10 @@ function buildCreateFromOrdersFingerprintForTest(orderIds = [], body = {}) {
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.use('/api/manage/purchase-orders/*', async (c, next) => {
     c.set('user', { id: 'admin-1', role: 'admin', permissions: ['products:manage'] });
@@ -247,7 +255,11 @@ describe('manage purchase-orders routes', () => {
     mocks.serviceCreateFromOrders.mockResolvedValue({ id: 'po-2', po_no: 'PO-2', status: 'draft' });
     mocks.serviceAllocateCosts.mockResolvedValue(undefined);
     mocks.domainRecordReceipts.mockResolvedValue({ purchase_order_id: 'po-1', receipt_count: 1 });
-    mocks.reversalReverseReceipt.mockResolvedValue({ purchase_order_id: 'po-1', receipt_id: 'receipt-1', reversal_qty: 2 });
+    mocks.reversalReverseReceipt.mockResolvedValue({
+      purchase_order_id: 'po-1',
+      receipt_id: 'receipt-1',
+      reversal_qty: 2,
+    });
     mocks.shortageCloseShortages.mockResolvedValue({
       purchase_order_id: 'po-1',
       closed_count: 1,
@@ -281,19 +293,22 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(201);
-    expect(mocks.publish).toHaveBeenCalledWith([
-      expect.objectContaining({
-        event_type: 'purchase_order_created',
-        aggregate_type: 'purchase_order',
-        aggregate_id: 'po-1',
-        payload: expect.objectContaining({
-          purchase_order_id: 'po-1',
+    expect(mocks.publish).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          event_type: 'purchase_order_created',
+          aggregate_type: 'purchase_order',
+          aggregate_id: 'po-1',
+          payload: expect.objectContaining({
+            purchase_order_id: 'po-1',
+          }),
         }),
-      }),
-    ], expect.objectContaining({
-      commandId: 'cmd-1',
-      correlationId: 'cmd-1',
-    }));
+      ],
+      expect.objectContaining({
+        commandId: 'cmd-1',
+        correlationId: 'cmd-1',
+      })
+    );
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
     expect(waitUntil).toHaveBeenCalled();
@@ -310,46 +325,49 @@ describe('manage purchase-orders routes', () => {
         return { meta: { changes: 1 } };
       }),
     }));
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      if (idempotencyKey === 'create-key-1' && storedResponses.has(idempotencyKey)) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        if (idempotencyKey === 'create-key-1' && storedResponses.has(idempotencyKey)) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: 'cmd-1',
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: requestFingerprint,
+              response_json: JSON.stringify(storedResponses.get(idempotencyKey)),
+              status: 'committed',
+            },
+          };
+        }
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
             command_id: 'cmd-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
             request_fingerprint: requestFingerprint,
-            response_json: JSON.stringify(storedResponses.get(idempotencyKey)),
-            status: 'committed',
           },
         };
       }
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-
-    const request = () => app.request(
-      'http://localhost/api/manage/purchase-orders',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': 'create-key-1',
-        },
-        body: JSON.stringify({ remark: 'dedupe draft' }),
-      },
-      { DB: db },
-      { waitUntil: vi.fn() }
     );
+
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/purchase-orders',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'create-key-1',
+          },
+          body: JSON.stringify({ remark: 'dedupe draft' }),
+        },
+        { DB: db },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -366,33 +384,35 @@ describe('manage purchase-orders routes', () => {
     const db = createDb();
     let reservedFingerprint = null;
 
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      if (idempotencyKey === 'create-key-2' && reservedFingerprint) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        if (idempotencyKey === 'create-key-2' && reservedFingerprint) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: 'cmd-2',
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: reservedFingerprint,
+              response_json: null,
+              status: 'in_flight',
+            },
+          };
+        }
+        reservedFingerprint = requestFingerprint;
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
             command_id: 'cmd-2',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: reservedFingerprint,
-            response_json: null,
-            status: 'in_flight',
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-      reservedFingerprint = requestFingerprint;
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-2',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
+    );
 
     const first = await app.request(
       'http://localhost/api/manage/purchase-orders',
@@ -431,8 +451,26 @@ describe('manage purchase-orders routes', () => {
   it('treats order_line_id as part of the draft-create idempotency fingerprint', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
-      orderRows: [{ id: 'o-1', order_no: 'SO-1', product_id: 'prod-1', variant_id: 'var-1', status: 'confirmed', quantity: 2 }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
+      orderRows: [
+        {
+          id: 'o-1',
+          order_no: 'SO-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          status: 'confirmed',
+          quantity: 2,
+        },
+      ],
       orderLineRows: [
         {
           id: 'line-1',
@@ -456,33 +494,35 @@ describe('manage purchase-orders routes', () => {
     });
     let reservedFingerprint = null;
 
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      if (idempotencyKey === 'create-key-order-line-1' && reservedFingerprint) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        if (idempotencyKey === 'create-key-order-line-1' && reservedFingerprint) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: 'cmd-line-1',
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: reservedFingerprint,
+              response_json: null,
+              status: 'in_flight',
+            },
+          };
+        }
+        reservedFingerprint = requestFingerprint;
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
             command_id: 'cmd-line-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: reservedFingerprint,
-            response_json: null,
-            status: 'in_flight',
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-      reservedFingerprint = requestFingerprint;
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-line-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
+    );
 
     const first = await app.request(
       'http://localhost/api/manage/purchase-orders',
@@ -493,14 +533,16 @@ describe('manage purchase-orders routes', () => {
           'Idempotency-Key': 'create-key-order-line-1',
         },
         body: JSON.stringify({
-          items: [{
-            product_id: 'prod-1',
-            variant_id: 'var-1',
-            pre_order_id: 'o-1',
-            order_line_id: 'line-1',
-            quantity: 1,
-            unit_cost: 10,
-          }],
+          items: [
+            {
+              product_id: 'prod-1',
+              variant_id: 'var-1',
+              pre_order_id: 'o-1',
+              order_line_id: 'line-1',
+              quantity: 1,
+              unit_cost: 10,
+            },
+          ],
         }),
       },
       { DB: db },
@@ -516,14 +558,16 @@ describe('manage purchase-orders routes', () => {
           'Idempotency-Key': 'create-key-order-line-1',
         },
         body: JSON.stringify({
-          items: [{
-            product_id: 'prod-1',
-            variant_id: 'var-1',
-            pre_order_id: 'o-1',
-            order_line_id: 'line-2',
-            quantity: 1,
-            unit_cost: 10,
-          }],
+          items: [
+            {
+              product_id: 'prod-1',
+              variant_id: 'var-1',
+              pre_order_id: 'o-1',
+              order_line_id: 'line-2',
+              quantity: 1,
+              unit_cost: 10,
+            },
+          ],
         }),
       },
       { DB: db },
@@ -541,48 +585,50 @@ describe('manage purchase-orders routes', () => {
     const db = createDb();
     const commandState = new Map();
 
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      const existing = commandState.get(idempotencyKey);
-      if (existing) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        const existing = commandState.get(idempotencyKey);
+        if (existing) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: existing.commandId,
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: existing.requestFingerprint,
+              response_json: existing.responseJson,
+              status: existing.status,
+            },
+          };
+        }
+
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
-            command_id: existing.commandId,
+            command_id: 'cmd-create-retry-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: existing.requestFingerprint,
-            response_json: existing.responseJson,
-            status: existing.status,
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-create-retry-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        commandState.set('create-key-retry-1', {
-          commandId,
-          requestFingerprint: commandState.get('create-key-retry-1')?.requestFingerprint || null,
-          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
-          status,
-        });
-        return { meta: { changes: 1 } };
-      }),
-    }));
-    mocks.publish
-      .mockRejectedValueOnce(new Error('publish failed'))
-      .mockResolvedValueOnce([]);
+    );
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          commandState.set('create-key-retry-1', {
+            commandId,
+            requestFingerprint: commandState.get('create-key-retry-1')?.requestFingerprint || null,
+            responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+            status,
+          });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
+    mocks.publish.mockRejectedValueOnce(new Error('publish failed')).mockResolvedValueOnce([]);
 
     const first = await app.request(
       'http://localhost/api/manage/purchase-orders',
@@ -602,7 +648,9 @@ describe('manage purchase-orders routes', () => {
 
     const recorded = commandState.get('create-key-retry-1');
     if (recorded) {
-      recorded.requestFingerprint = buildCreateFingerprintForTest({ remark: 'retry after publish failure' });
+      recorded.requestFingerprint = buildCreateFingerprintForTest({
+        remark: 'retry after publish failure',
+      });
       commandState.set('create-key-retry-1', recorded);
     }
 
@@ -637,55 +685,63 @@ describe('manage purchase-orders routes', () => {
       receipts: [],
     };
 
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      const existing = commandState.get(idempotencyKey);
-      if (existing) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        const existing = commandState.get(idempotencyKey);
+        if (existing) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: existing.commandId,
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: existing.requestFingerprint,
+              response_json: existing.responseJson,
+              status: existing.status,
+            },
+          };
+        }
+
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
-            command_id: existing.commandId,
+            command_id: 'cmd-create-finalize-retry-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: existing.requestFingerprint,
-            response_json: existing.responseJson,
-            status: existing.status,
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-create-finalize-retry-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
+    );
     let committedFinalizeAttempts = 0;
-    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        if (status === 'committed') {
-          committedFinalizeAttempts += 1;
-          if (committedFinalizeAttempts === 1) {
-            throw new Error('finalize committed failed');
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          if (status === 'committed') {
+            committedFinalizeAttempts += 1;
+            if (committedFinalizeAttempts === 1) {
+              throw new Error('finalize committed failed');
+            }
           }
-        }
-        commandState.set('create-key-finalize-1', {
-          commandId,
-          requestFingerprint: buildCreateFingerprintForTest({ remark: 'retry after finalize failure' }),
-          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
-          status,
-        });
-        return { meta: { changes: 1 } };
-      }),
-    }));
+          commandState.set('create-key-finalize-1', {
+            commandId,
+            requestFingerprint: buildCreateFingerprintForTest({
+              remark: 'retry after finalize failure',
+            }),
+            responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+            status,
+          });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
     mocks.publish
       .mockResolvedValueOnce([])
-      .mockRejectedValueOnce(new Error('D1_ERROR: UNIQUE constraint failed: domain_outbox.idempotency_key'));
+      .mockRejectedValueOnce(
+        new Error('D1_ERROR: UNIQUE constraint failed: domain_outbox.idempotency_key')
+      );
     mocks.repoFindById.mockResolvedValue(responsePayload);
 
     const first = await app.request(
@@ -721,14 +777,18 @@ describe('manage purchase-orders routes', () => {
     expect(second.status).toBe(201);
     expect(mocks.repoCreate).toHaveBeenCalledTimes(1);
     expect(mocks.publish).toHaveBeenCalledTimes(2);
-    expect(mocks.publish.mock.calls[0][1]).toEqual(expect.objectContaining({
-      commandId: 'cmd-create-finalize-retry-1',
-      correlationId: 'cmd-create-finalize-retry-1',
-    }));
-    expect(mocks.publish.mock.calls[1][1]).toEqual(expect.objectContaining({
-      commandId: 'cmd-create-finalize-retry-1',
-      correlationId: 'cmd-create-finalize-retry-1',
-    }));
+    expect(mocks.publish.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        commandId: 'cmd-create-finalize-retry-1',
+        correlationId: 'cmd-create-finalize-retry-1',
+      })
+    );
+    expect(mocks.publish.mock.calls[1][1]).toEqual(
+      expect.objectContaining({
+        commandId: 'cmd-create-finalize-retry-1',
+        correlationId: 'cmd-create-finalize-retry-1',
+      })
+    );
   });
 
   it('enqueues purchase-order create-from-orders cache side effects through outbox', async () => {
@@ -748,15 +808,18 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(201);
-    expect(mocks.publish).toHaveBeenCalledWith([
+    expect(mocks.publish).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          event_type: 'purchase_order_created_from_orders',
+          aggregate_id: 'po-2',
+        }),
+      ],
       expect.objectContaining({
-        event_type: 'purchase_order_created_from_orders',
-        aggregate_id: 'po-2',
-      }),
-    ], expect.objectContaining({
-      commandId: 'cmd-1',
-      correlationId: 'cmd-1',
-    }));
+        commandId: 'cmd-1',
+        correlationId: 'cmd-1',
+      })
+    );
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
   });
@@ -772,46 +835,49 @@ describe('manage purchase-orders routes', () => {
         return { meta: { changes: 1 } };
       }),
     }));
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      if (idempotencyKey === 'from-orders-key-1' && storedResponses.has(idempotencyKey)) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        if (idempotencyKey === 'from-orders-key-1' && storedResponses.has(idempotencyKey)) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: 'cmd-3',
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: requestFingerprint,
+              response_json: JSON.stringify(storedResponses.get(idempotencyKey)),
+              status: 'committed',
+            },
+          };
+        }
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
             command_id: 'cmd-3',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
             request_fingerprint: requestFingerprint,
-            response_json: JSON.stringify(storedResponses.get(idempotencyKey)),
-            status: 'committed',
           },
         };
       }
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-3',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-
-    const request = () => app.request(
-      'http://localhost/api/manage/purchase-orders/from-orders',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': 'from-orders-key-1',
-        },
-        body: JSON.stringify({ order_ids: ['o-1', 'o-1'], remark: 'dedupe from orders' }),
-      },
-      { DB: db },
-      { waitUntil: vi.fn() }
     );
+
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/purchase-orders/from-orders',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'from-orders-key-1',
+          },
+          body: JSON.stringify({ order_ids: ['o-1', 'o-1'], remark: 'dedupe from orders' }),
+        },
+        { DB: db },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -828,48 +894,51 @@ describe('manage purchase-orders routes', () => {
     const db = createDb();
     const commandState = new Map();
 
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      const existing = commandState.get(idempotencyKey);
-      if (existing) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        const existing = commandState.get(idempotencyKey);
+        if (existing) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: existing.commandId,
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: existing.requestFingerprint,
+              response_json: existing.responseJson,
+              status: existing.status,
+            },
+          };
+        }
+
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
-            command_id: existing.commandId,
+            command_id: 'cmd-create-from-orders-retry-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: existing.requestFingerprint,
-            response_json: existing.responseJson,
-            status: existing.status,
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-create-from-orders-retry-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        commandState.set('from-orders-key-retry-1', {
-          commandId,
-          requestFingerprint: commandState.get('from-orders-key-retry-1')?.requestFingerprint || null,
-          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
-          status,
-        });
-        return { meta: { changes: 1 } };
-      }),
-    }));
-    mocks.publish
-      .mockRejectedValueOnce(new Error('publish failed'))
-      .mockResolvedValueOnce([]);
+    );
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          commandState.set('from-orders-key-retry-1', {
+            commandId,
+            requestFingerprint:
+              commandState.get('from-orders-key-retry-1')?.requestFingerprint || null,
+            responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+            status,
+          });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
+    mocks.publish.mockRejectedValueOnce(new Error('publish failed')).mockResolvedValueOnce([]);
 
     const first = await app.request(
       'http://localhost/api/manage/purchase-orders/from-orders',
@@ -889,7 +958,10 @@ describe('manage purchase-orders routes', () => {
 
     const recorded = commandState.get('from-orders-key-retry-1');
     if (recorded) {
-      recorded.requestFingerprint = buildCreateFromOrdersFingerprintForTest(['o-1'], { order_ids: ['o-1'], remark: 'retry from orders' });
+      recorded.requestFingerprint = buildCreateFromOrdersFingerprintForTest(['o-1'], {
+        order_ids: ['o-1'],
+        remark: 'retry from orders',
+      });
       commandState.set('from-orders-key-retry-1', recorded);
     }
 
@@ -917,58 +989,64 @@ describe('manage purchase-orders routes', () => {
     const db = createDb();
     const commandState = new Map();
 
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      const existing = commandState.get(idempotencyKey);
-      if (existing) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        const existing = commandState.get(idempotencyKey);
+        if (existing) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: existing.commandId,
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: existing.requestFingerprint,
+              response_json: existing.responseJson,
+              status: existing.status,
+            },
+          };
+        }
+
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
-            command_id: existing.commandId,
+            command_id: 'cmd-from-orders-finalize-retry-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: existing.requestFingerprint,
-            response_json: existing.responseJson,
-            status: existing.status,
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-from-orders-finalize-retry-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
+    );
     let committedFinalizeAttempts = 0;
-    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        if (status === 'committed') {
-          committedFinalizeAttempts += 1;
-          if (committedFinalizeAttempts === 1) {
-            throw new Error('finalize committed failed');
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          if (status === 'committed') {
+            committedFinalizeAttempts += 1;
+            if (committedFinalizeAttempts === 1) {
+              throw new Error('finalize committed failed');
+            }
           }
-        }
-        commandState.set('from-orders-key-finalize-1', {
-          commandId,
-          requestFingerprint: buildCreateFromOrdersFingerprintForTest(['o-1'], {
-            order_ids: ['o-1'],
-            remark: 'retry from-orders finalize failure',
-          }),
-          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
-          status,
-        });
-        return { meta: { changes: 1 } };
-      }),
-    }));
+          commandState.set('from-orders-key-finalize-1', {
+            commandId,
+            requestFingerprint: buildCreateFromOrdersFingerprintForTest(['o-1'], {
+              order_ids: ['o-1'],
+              remark: 'retry from-orders finalize failure',
+            }),
+            responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+            status,
+          });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
     mocks.publish
       .mockResolvedValueOnce([])
-      .mockRejectedValueOnce(new Error('D1_ERROR: UNIQUE constraint failed: domain_outbox.idempotency_key'));
+      .mockRejectedValueOnce(
+        new Error('D1_ERROR: UNIQUE constraint failed: domain_outbox.idempotency_key')
+      );
     mocks.serviceCreateFromOrders.mockResolvedValue({
       id: 'po-2',
       po_no: 'PO-2',
@@ -1010,14 +1088,18 @@ describe('manage purchase-orders routes', () => {
     expect(second.status).toBe(201);
     expect(mocks.serviceCreateFromOrders).toHaveBeenCalledTimes(1);
     expect(mocks.publish).toHaveBeenCalledTimes(2);
-    expect(mocks.publish.mock.calls[0][1]).toEqual(expect.objectContaining({
-      commandId: 'cmd-from-orders-finalize-retry-1',
-      correlationId: 'cmd-from-orders-finalize-retry-1',
-    }));
-    expect(mocks.publish.mock.calls[1][1]).toEqual(expect.objectContaining({
-      commandId: 'cmd-from-orders-finalize-retry-1',
-      correlationId: 'cmd-from-orders-finalize-retry-1',
-    }));
+    expect(mocks.publish.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        commandId: 'cmd-from-orders-finalize-retry-1',
+        correlationId: 'cmd-from-orders-finalize-retry-1',
+      })
+    );
+    expect(mocks.publish.mock.calls[1][1]).toEqual(
+      expect.objectContaining({
+        commandId: 'cmd-from-orders-finalize-retry-1',
+        correlationId: 'cmd-from-orders-finalize-retry-1',
+      })
+    );
   });
 
   it('dedupes create-from-orders order ids before publishing side effects and audit metadata', async () => {
@@ -1038,17 +1120,20 @@ describe('manage purchase-orders routes', () => {
 
     expect(res.status).toBe(201);
     expect(mocks.serviceCreateFromOrders).toHaveBeenCalledWith(['o-1', 'o-2'], expect.any(Object));
-    expect(mocks.publish).toHaveBeenCalledWith([
-      expect.objectContaining({
-        event_type: 'purchase_order_created_from_orders',
-        payload: expect.objectContaining({
-          order_ids: ['o-1', 'o-2'],
+    expect(mocks.publish).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          event_type: 'purchase_order_created_from_orders',
+          payload: expect.objectContaining({
+            order_ids: ['o-1', 'o-2'],
+          }),
         }),
-      }),
-    ], expect.objectContaining({
-      commandId: 'cmd-1',
-      correlationId: 'cmd-1',
-    }));
+      ],
+      expect.objectContaining({
+        commandId: 'cmd-1',
+        correlationId: 'cmd-1',
+      })
+    );
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -1075,15 +1160,18 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.publish).toHaveBeenCalledWith([
+    expect(mocks.publish).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          event_type: 'purchase_order_updated',
+          aggregate_id: 'po-1',
+        }),
+      ],
       expect.objectContaining({
-        event_type: 'purchase_order_updated',
-        aggregate_id: 'po-1',
-      }),
-    ], expect.objectContaining({
-      commandId: undefined,
-      correlationId: undefined,
-    }));
+        commandId: undefined,
+        correlationId: undefined,
+      })
+    );
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
   });
@@ -1167,7 +1255,16 @@ describe('manage purchase-orders routes', () => {
   it('rejects adding item when pre_order_id product/variant mismatch', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
       orderRows: [{ id: 'o-1', product_id: 'prod-x', variant_id: 'var-x', status: 'confirmed' }],
     });
 
@@ -1177,13 +1274,15 @@ describe('manage purchase-orders routes', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: [{
-            product_id: 'prod-1',
-            variant_id: 'var-1',
-            pre_order_id: 'o-1',
-            quantity: 1,
-            unit_cost: 10,
-          }],
+          items: [
+            {
+              product_id: 'prod-1',
+              variant_id: 'var-1',
+              pre_order_id: 'o-1',
+              quantity: 1,
+              unit_cost: 10,
+            },
+          ],
         }),
       },
       { DB: db },
@@ -1196,8 +1295,25 @@ describe('manage purchase-orders routes', () => {
   it('rejects adding item when pre_order_id is already linked to another active purchase order', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
-      orderRows: [{ id: 'o-1', order_no: 'SO-1', product_id: 'prod-1', variant_id: 'var-1', status: 'confirmed' }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
+      orderRows: [
+        {
+          id: 'o-1',
+          order_no: 'SO-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          status: 'confirmed',
+        },
+      ],
     });
     mocks.repoFindActiveBindingsByPreOrderIds.mockResolvedValueOnce([
       { pre_order_id: 'o-1', po_id: 'po-9', po_no: 'PO-009', po_status: 'draft' },
@@ -1209,13 +1325,15 @@ describe('manage purchase-orders routes', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: [{
-            product_id: 'prod-1',
-            variant_id: 'var-1',
-            pre_order_id: 'o-1',
-            quantity: 1,
-            unit_cost: 10,
-          }],
+          items: [
+            {
+              product_id: 'prod-1',
+              variant_id: 'var-1',
+              pre_order_id: 'o-1',
+              quantity: 1,
+              unit_cost: 10,
+            },
+          ],
         }),
       },
       { DB: db },
@@ -1231,8 +1349,26 @@ describe('manage purchase-orders routes', () => {
   it('allows adding another bound order line when the existing binding is on the same purchase order', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
-      orderRows: [{ id: 'o-1', order_no: 'SO-1', product_id: 'prod-1', variant_id: 'var-1', status: 'confirmed', quantity: 3 }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
+      orderRows: [
+        {
+          id: 'o-1',
+          order_no: 'SO-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          status: 'confirmed',
+          quantity: 3,
+        },
+      ],
       orderLineRows: [
         {
           id: 'line-1',
@@ -1262,14 +1398,16 @@ describe('manage purchase-orders routes', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: [{
-            product_id: 'prod-1',
-            variant_id: 'var-1',
-            pre_order_id: 'o-1',
-            order_line_id: 'line-2',
-            quantity: 2,
-            unit_cost: 10,
-          }],
+          items: [
+            {
+              product_id: 'prod-1',
+              variant_id: 'var-1',
+              pre_order_id: 'o-1',
+              order_line_id: 'line-2',
+              quantity: 2,
+              unit_cost: 10,
+            },
+          ],
         }),
       },
       { DB: db },
@@ -1288,8 +1426,26 @@ describe('manage purchase-orders routes', () => {
   it('rejects adding item when pre_order_id quantity does not match the linked order', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
-      orderRows: [{ id: 'o-1', order_no: 'SO-1', product_id: 'prod-1', variant_id: 'var-1', status: 'confirmed', quantity: 1 }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
+      orderRows: [
+        {
+          id: 'o-1',
+          order_no: 'SO-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          status: 'confirmed',
+          quantity: 1,
+        },
+      ],
     });
 
     const res = await app.request(
@@ -1298,13 +1454,15 @@ describe('manage purchase-orders routes', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: [{
-            product_id: 'prod-1',
-            variant_id: 'var-1',
-            pre_order_id: 'o-1',
-            quantity: 10,
-            unit_cost: 10,
-          }],
+          items: [
+            {
+              product_id: 'prod-1',
+              variant_id: 'var-1',
+              pre_order_id: 'o-1',
+              quantity: 10,
+              unit_cost: 10,
+            },
+          ],
         }),
       },
       { DB: db },
@@ -1318,7 +1476,16 @@ describe('manage purchase-orders routes', () => {
   it('rejects adding item when unit_cost is negative', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
     });
 
     const res = await app.request(
@@ -1327,12 +1494,14 @@ describe('manage purchase-orders routes', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: [{
-            product_id: 'prod-1',
-            variant_id: 'var-1',
-            quantity: 1,
-            unit_cost: -10,
-          }],
+          items: [
+            {
+              product_id: 'prod-1',
+              variant_id: 'var-1',
+              quantity: 1,
+              unit_cost: -10,
+            },
+          ],
         }),
       },
       { DB: db },
@@ -1346,9 +1515,20 @@ describe('manage purchase-orders routes', () => {
   it('rejects updating item outside current po scope', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
     });
-    mocks.repoUpdateItem.mockImplementation(async (poId, itemId) => !(poId === 'po-1' && itemId === 'item-foreign'));
+    mocks.repoUpdateItem.mockImplementation(
+      async (poId, itemId) => !(poId === 'po-1' && itemId === 'item-foreign')
+    );
 
     const res = await app.request(
       'http://localhost/api/manage/purchase-orders/po-1/items/item-foreign',
@@ -1386,7 +1566,16 @@ describe('manage purchase-orders routes', () => {
   it('re-validates quantity rules when patching a draft purchase-order item', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 5, pack_size: 1, order_step: 5 }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 5,
+          pack_size: 1,
+          order_step: 5,
+        },
+      ],
       orderRows: [{ id: 'o-1', product_id: 'prod-1', variant_id: 'var-1', status: 'confirmed' }],
     });
 
@@ -1408,7 +1597,16 @@ describe('manage purchase-orders routes', () => {
   it('rejects purchase-order item patch when unit_cost is negative', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
     });
 
     const res = await app.request(
@@ -1429,8 +1627,26 @@ describe('manage purchase-orders routes', () => {
   it('rejects purchase-order item quantity patch when a linked pre_order quantity would diverge', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
-      orderRows: [{ id: 'o-1', order_no: 'SO-1', product_id: 'prod-1', variant_id: 'var-1', status: 'confirmed', quantity: 5 }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
+      orderRows: [
+        {
+          id: 'o-1',
+          order_no: 'SO-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          status: 'confirmed',
+          quantity: 5,
+        },
+      ],
     });
     mocks.repoFindItemById.mockResolvedValueOnce({
       id: 'item-1',
@@ -1460,7 +1676,16 @@ describe('manage purchase-orders routes', () => {
   it('allows updating quantity when immutable linked records changed state after the line was created', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'archived', moq: 5, pack_size: 1, order_step: 5 }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'archived',
+          moq: 5,
+          pack_size: 1,
+          order_step: 5,
+        },
+      ],
       orderRows: [{ id: 'o-1', product_id: 'prod-1', variant_id: 'var-1', status: 'cancelled' }],
     });
     mocks.repoFindItemById.mockResolvedValueOnce({
@@ -1491,7 +1716,9 @@ describe('manage purchase-orders routes', () => {
   it('rejects deleting item outside current po scope', async () => {
     const app = createApp();
     const db = createDb();
-    mocks.repoRemoveItem.mockImplementation(async (poId, itemId) => !(poId === 'po-1' && itemId === 'item-foreign'));
+    mocks.repoRemoveItem.mockImplementation(
+      async (poId, itemId) => !(poId === 'po-1' && itemId === 'item-foreign')
+    );
 
     const res = await app.request(
       'http://localhost/api/manage/purchase-orders/po-1/items/item-foreign',
@@ -1566,7 +1793,16 @@ describe('manage purchase-orders routes', () => {
   it('enqueues purchase-order item create cache side effects through outbox', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
     });
     const waitUntil = vi.fn();
 
@@ -1576,12 +1812,14 @@ describe('manage purchase-orders routes', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: [{
-            product_id: 'prod-1',
-            variant_id: 'var-1',
-            quantity: 1,
-            unit_cost: 10,
-          }],
+          items: [
+            {
+              product_id: 'prod-1',
+              variant_id: 'var-1',
+              quantity: 1,
+              unit_cost: 10,
+            },
+          ],
         }),
       },
       { DB: db },
@@ -1589,15 +1827,18 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(201);
-    expect(mocks.publish).toHaveBeenCalledWith([
+    expect(mocks.publish).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          event_type: 'purchase_order_item_created',
+          aggregate_id: 'po-1',
+        }),
+      ],
       expect.objectContaining({
-        event_type: 'purchase_order_item_created',
-        aggregate_id: 'po-1',
-      }),
-    ], expect.objectContaining({
-      commandId: undefined,
-      correlationId: undefined,
-    }));
+        commandId: undefined,
+        correlationId: undefined,
+      })
+    );
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
   });
@@ -1605,7 +1846,16 @@ describe('manage purchase-orders routes', () => {
   it('enqueues purchase-order item update cache side effects through outbox', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
     });
     const waitUntil = vi.fn();
 
@@ -1621,15 +1871,18 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.publish).toHaveBeenCalledWith([
+    expect(mocks.publish).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          event_type: 'purchase_order_item_updated',
+          aggregate_id: 'po-1',
+        }),
+      ],
       expect.objectContaining({
-        event_type: 'purchase_order_item_updated',
-        aggregate_id: 'po-1',
-      }),
-    ], expect.objectContaining({
-      commandId: undefined,
-      correlationId: undefined,
-    }));
+        commandId: undefined,
+        correlationId: undefined,
+      })
+    );
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
   });
@@ -1648,17 +1901,30 @@ describe('manage purchase-orders routes', () => {
 
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
-      orderRows: [{ id: 'order-1', status: 'confirmed', product_id: null, variant_id: null, quantity: 99 }],
-      orderLineRows: [{
-        id: 'line-2',
-        order_id: 'order-1',
-        product_id: 'prod-1',
-        variant_id: 'var-1',
-        ordered_qty: 2,
-        cancelled_qty: 0,
-        shipped_qty: 0,
-      }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
+      orderRows: [
+        { id: 'order-1', status: 'confirmed', product_id: null, variant_id: null, quantity: 99 },
+      ],
+      orderLineRows: [
+        {
+          id: 'line-2',
+          order_id: 'order-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          ordered_qty: 2,
+          cancelled_qty: 0,
+          shipped_qty: 0,
+        },
+      ],
     });
 
     const res = await app.request(
@@ -1689,15 +1955,18 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.publish).toHaveBeenCalledWith([
+    expect(mocks.publish).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          event_type: 'purchase_order_item_deleted',
+          aggregate_id: 'po-1',
+        }),
+      ],
       expect.objectContaining({
-        event_type: 'purchase_order_item_deleted',
-        aggregate_id: 'po-1',
-      }),
-    ], expect.objectContaining({
-      commandId: undefined,
-      correlationId: undefined,
-    }));
+        commandId: undefined,
+        correlationId: undefined,
+      })
+    );
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
   });
@@ -1716,15 +1985,18 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.publish).toHaveBeenCalledWith([
+    expect(mocks.publish).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          event_type: 'purchase_order_cost_allocated',
+          aggregate_id: 'po-1',
+        }),
+      ],
       expect.objectContaining({
-        event_type: 'purchase_order_cost_allocated',
-        aggregate_id: 'po-1',
-      }),
-    ], expect.objectContaining({
-      commandId: undefined,
-      correlationId: undefined,
-    }));
+        commandId: undefined,
+        correlationId: undefined,
+      })
+    );
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
   });
@@ -1774,11 +2046,15 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(201);
-    expect(mocks.domainRecordReceipts).toHaveBeenCalledWith('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 2, note: 'ok' }],
-    }, {
-      idempotencyKey: 'receipt-key-1',
-    });
+    expect(mocks.domainRecordReceipts).toHaveBeenCalledWith(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', received_qty: 2, note: 'ok' }],
+      },
+      {
+        idempotencyKey: 'receipt-key-1',
+      }
+    );
     expect(mocks.scheduleAuditEvent).not.toHaveBeenCalled();
     expect(mocks.scheduleCacheInvalidation).not.toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalledTimes(1);
@@ -1802,11 +2078,15 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(201);
-    expect(mocks.domainRecordReceipts).toHaveBeenCalledWith('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 1 }],
-    }, {
-      idempotencyKey: 'generated-idempotency-key',
-    });
+    expect(mocks.domainRecordReceipts).toHaveBeenCalledWith(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', received_qty: 1 }],
+      },
+      {
+        idempotencyKey: 'generated-idempotency-key',
+      }
+    );
   });
 
   it('derives an idempotency key when the receipt header is blank', async () => {
@@ -1830,11 +2110,15 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(201);
-    expect(mocks.domainRecordReceipts).toHaveBeenCalledWith('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 1 }],
-    }, {
-      idempotencyKey: 'generated-idempotency-key',
-    });
+    expect(mocks.domainRecordReceipts).toHaveBeenCalledWith(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', received_qty: 1 }],
+      },
+      {
+        idempotencyKey: 'generated-idempotency-key',
+      }
+    );
   });
 
   it('returns 400 when the domain rejects receipts because of invalid status', async () => {
@@ -1903,11 +2187,16 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(201);
-    expect(mocks.reversalReverseReceipt).toHaveBeenCalledWith('po-1', 'receipt-1', {
-      reason: 'rollback',
-    }, {
-      idempotencyKey: 'reversal-key-1',
-    });
+    expect(mocks.reversalReverseReceipt).toHaveBeenCalledWith(
+      'po-1',
+      'receipt-1',
+      {
+        reason: 'rollback',
+      },
+      {
+        idempotencyKey: 'reversal-key-1',
+      }
+    );
     expect(waitUntil).toHaveBeenCalledTimes(1);
   });
 
@@ -1968,7 +2257,9 @@ describe('manage purchase-orders routes', () => {
   it('returns 400 when the reversal command is rejected by domain invariants', async () => {
     const app = createApp();
     const db = createDb();
-    mocks.reversalReverseReceipt.mockRejectedValueOnce(new BadRequestError('当前库存不足，无法执行收货冲销'));
+    mocks.reversalReverseReceipt.mockRejectedValueOnce(
+      new BadRequestError('当前库存不足，无法执行收货冲销')
+    );
 
     const res = await app.request(
       'http://localhost/api/manage/purchase-orders/po-1/receipts/receipt-1/reversal',
@@ -2008,11 +2299,15 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(201);
-    expect(mocks.shortageCloseShortages).toHaveBeenCalledWith('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', close_qty: 2 }],
-    }, {
-      idempotencyKey: 'shortage-key-1',
-    });
+    expect(mocks.shortageCloseShortages).toHaveBeenCalledWith(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', close_qty: 2 }],
+      },
+      {
+        idempotencyKey: 'shortage-key-1',
+      }
+    );
     expect(mocks.publish).toHaveBeenCalledWith([
       expect.objectContaining({
         event_type: 'purchase_order_updated',
@@ -2037,10 +2332,13 @@ describe('manage purchase-orders routes', () => {
         }),
       }),
     ]);
-    expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      action: 'purchase_order.shortage.close',
-      targetId: 'po-1',
-    }));
+    expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: 'purchase_order.shortage.close',
+        targetId: 'po-1',
+      })
+    );
     expect(waitUntil).toHaveBeenCalledTimes(1);
   });
 
@@ -2062,11 +2360,15 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(201);
-    expect(mocks.shortageCloseShortages).toHaveBeenCalledWith('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', close_qty: 1 }],
-    }, {
-      idempotencyKey: 'generated-idempotency-key',
-    });
+    expect(mocks.shortageCloseShortages).toHaveBeenCalledWith(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', close_qty: 1 }],
+      },
+      {
+        idempotencyKey: 'generated-idempotency-key',
+      }
+    );
   });
 
   it('derives an idempotency key for shortage closure when the header is blank', async () => {
@@ -2090,17 +2392,23 @@ describe('manage purchase-orders routes', () => {
     );
 
     expect(res.status).toBe(201);
-    expect(mocks.shortageCloseShortages).toHaveBeenCalledWith('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', close_qty: 1 }],
-    }, {
-      idempotencyKey: 'generated-idempotency-key',
-    });
+    expect(mocks.shortageCloseShortages).toHaveBeenCalledWith(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', close_qty: 1 }],
+      },
+      {
+        idempotencyKey: 'generated-idempotency-key',
+      }
+    );
   });
 
   it('returns 400 when shortage closure is rejected by domain invariants', async () => {
     const app = createApp();
     const db = createDb();
-    mocks.shortageCloseShortages.mockRejectedValueOnce(new BadRequestError('关闭数量超过剩余待收数量'));
+    mocks.shortageCloseShortages.mockRejectedValueOnce(
+      new BadRequestError('关闭数量超过剩余待收数量')
+    );
 
     const res = await app.request(
       'http://localhost/api/manage/purchase-orders/po-1/shortage-closures',
@@ -2253,18 +2561,38 @@ describe('manage purchase-orders routes', () => {
   it('allows adding archived variants when they still match a confirmed preorder binding', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-archived', product_id: 'prod-1', status: 'archived', moq: 1, pack_size: 1, order_step: 1 }],
-      orderRows: [{ id: 'o-1', order_no: 'SO-1', product_id: 'prod-1', variant_id: 'var-archived', status: 'confirmed', quantity: 2 }],
+      variantRows: [
+        {
+          id: 'var-archived',
+          product_id: 'prod-1',
+          status: 'archived',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
+      orderRows: [
+        {
+          id: 'o-1',
+          order_no: 'SO-1',
+          product_id: 'prod-1',
+          variant_id: 'var-archived',
+          status: 'confirmed',
+          quantity: 2,
+        },
+      ],
     });
 
     const payload = {
-      items: [{
-        product_id: 'prod-1',
-        variant_id: 'var-archived',
-        pre_order_id: 'o-1',
-        quantity: 2,
-        unit_cost: 10,
-      }],
+      items: [
+        {
+          product_id: 'prod-1',
+          variant_id: 'var-archived',
+          pre_order_id: 'o-1',
+          quantity: 2,
+          unit_cost: 10,
+        },
+      ],
     };
 
     const res = await app.request(
@@ -2285,7 +2613,16 @@ describe('manage purchase-orders routes', () => {
   it('cleans up the created draft when create route item insertion fails', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
     });
     mocks.repoAddItems.mockRejectedValueOnce(new Error('insert items failed'));
 
@@ -2295,12 +2632,14 @@ describe('manage purchase-orders routes', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: [{
-            product_id: 'prod-1',
-            variant_id: 'var-1',
-            quantity: 1,
-            unit_cost: 10,
-          }],
+          items: [
+            {
+              product_id: 'prod-1',
+              variant_id: 'var-1',
+              quantity: 1,
+              unit_cost: 10,
+            },
+          ],
         }),
       },
       { DB: db },
@@ -2315,7 +2654,16 @@ describe('manage purchase-orders routes', () => {
   it('rejects invalid create-route items before creating a draft purchase order', async () => {
     const app = createApp();
     const db = createDb({
-      variantRows: [{ id: 'var-1', product_id: 'prod-1', status: 'active', moq: 1, pack_size: 1, order_step: 1 }],
+      variantRows: [
+        {
+          id: 'var-1',
+          product_id: 'prod-1',
+          status: 'active',
+          moq: 1,
+          pack_size: 1,
+          order_step: 1,
+        },
+      ],
     });
 
     const res = await app.request(
@@ -2324,12 +2672,14 @@ describe('manage purchase-orders routes', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: [{
-            product_id: 'prod-1',
-            variant_id: 'var-1',
-            quantity: 1,
-            unit_cost: -10,
-          }],
+          items: [
+            {
+              product_id: 'prod-1',
+              variant_id: 'var-1',
+              quantity: 1,
+              unit_cost: -10,
+            },
+          ],
         }),
       },
       { DB: db },
@@ -2360,21 +2710,26 @@ describe('manage purchase-orders routes', () => {
 
     expect(res.status).toBe(201);
     const json = await res.json();
-    expect(json?.data).toEqual(expect.objectContaining({
-      id: 'po-1',
-      po_no: 'PO-1',
-      status: 'draft',
-      items: [],
-      receipts: [],
-    }));
-    expect(mocks.publish).toHaveBeenCalledWith([
+    expect(json?.data).toEqual(
       expect.objectContaining({
-        event_type: 'purchase_order_created',
-        aggregate_id: 'po-1',
-      }),
-    ], expect.objectContaining({
-      commandId: 'cmd-1',
-      correlationId: 'cmd-1',
-    }));
+        id: 'po-1',
+        po_no: 'PO-1',
+        status: 'draft',
+        items: [],
+        receipts: [],
+      })
+    );
+    expect(mocks.publish).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          event_type: 'purchase_order_created',
+          aggregate_id: 'po-1',
+        }),
+      ],
+      expect.objectContaining({
+        commandId: 'cmd-1',
+        correlationId: 'cmd-1',
+      })
+    );
   });
 });

@@ -13,11 +13,13 @@
 ### Task 1: Expand the Audit Contract
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/__tests__/route-entity-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit assertion**
 
 Extend the audit target list so it also forbids:
+
 - `functions/lib/hono/routes/v1/webhooks.js` `requireWebhookById`
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -33,6 +35,7 @@ Expected: FAIL because `requireWebhookById` still exists.
 ### Task 2: Inline V1 Webhook Entity Guards
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/v1/webhooks.js`
 
 - [ ] **Step 1: Remove the local wrapper**

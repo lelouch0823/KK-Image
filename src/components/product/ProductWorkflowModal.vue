@@ -1,10 +1,5 @@
 <template>
-  <Modal
-    v-model="isVisible"
-    size="6xl"
-    :title="modalTitle"
-    body-class="p-0"
-  >
+  <Modal v-model="isVisible" size="6xl" :title="modalTitle" body-class="p-0">
     <template #header>
       <div class="flex flex-1 items-center justify-between gap-4">
         <div class="min-w-0">
@@ -74,11 +69,7 @@
             >
               {{ t('common.action.retry', 'Retry') }}
             </AppButton>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              @click="clearEditError"
-            >
+            <AppButton variant="ghost" size="sm" @click="clearEditError">
               {{ t('product.action.cancel') }}
             </AppButton>
           </div>
@@ -103,7 +94,9 @@
           class="mb-5 rounded-2xl border border-(--border-color) bg-(--bg-muted)/55 p-4"
         >
           <div class="flex items-start gap-4">
-            <div class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full">
+            <div
+              class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full"
+            >
               <AppIcon name="sparkles" class="size-5" />
             </div>
             <div class="min-w-0 flex-1">
@@ -111,7 +104,12 @@
                 {{ t('product.workflow.detail_loading_title', 'Refreshing product details') }}
               </p>
               <p class="mt-1 text-sm text-(--text-secondary)">
-                {{ t('product.workflow.detail_loading_body', 'Showing the current snapshot while richer product data loads in the background.') }}
+                {{
+                  t(
+                    'product.workflow.detail_loading_body',
+                    'Showing the current snapshot while richer product data loads in the background.'
+                  )
+                }}
               </p>
               <div class="mt-4 grid gap-3 sm:grid-cols-2">
                 <Skeleton height="4" />
@@ -122,20 +120,21 @@
           </div>
         </div>
 
-        <ProductDetail
-          v-if="currentProduct"
-          :product="currentProduct"
-        />
+        <ProductDetail v-if="currentProduct" :product="currentProduct" />
 
         <div
           v-if="mode === 'edit_loading'"
           data-testid="edit-loading"
           class="absolute inset-0 flex items-start justify-center bg-(--bg-page)/72 px-6 pt-12 backdrop-blur-[1px]"
         >
-          <div class="w-full max-w-xl rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-xl">
+          <div
+            class="w-full max-w-xl rounded-2xl border border-(--border-color) bg-(--bg-card) p-5 shadow-xl"
+          >
             <div class="grid gap-5 md:grid-cols-[minmax(0,1fr)_240px]">
               <div class="flex items-start gap-3">
-                <div class="bg-primary/10 text-primary mt-0.5 flex size-10 items-center justify-center rounded-full">
+                <div
+                  class="bg-primary/10 text-primary mt-0.5 flex size-10 items-center justify-center rounded-full"
+                >
                   <AppIcon name="spinner" class="size-5 animate-spin" />
                 </div>
                 <div class="min-w-0">
@@ -143,13 +142,20 @@
                     {{ t('product.workflow.loading_title', 'Loading complete product data') }}
                   </p>
                   <p class="mt-1 text-sm leading-6 text-(--text-secondary)">
-                    {{ t('product.workflow.loading_body', 'Syncing dimensions, variants, and inventory details.') }}
+                    {{
+                      t(
+                        'product.workflow.loading_body',
+                        'Syncing dimensions, variants, and inventory details.'
+                      )
+                    }}
                   </p>
                 </div>
               </div>
 
               <div class="rounded-xl border border-(--border-color) bg-(--bg-muted)/50 p-4">
-                <p class="text-xs font-semibold tracking-[0.16em] text-(--text-secondary) uppercase">
+                <p
+                  class="text-xs font-semibold tracking-[0.16em] text-(--text-secondary) uppercase"
+                >
                   {{ t('product.workflow.skeleton_label', 'Editor Preview') }}
                 </p>
                 <div class="mt-3 space-y-3">
@@ -283,7 +289,8 @@ const enterEdit = async () => {
     mode.value = 'edit';
   } catch (error) {
     editHydrationError.value =
-      error?.message || t('product.workflow.edit_load_failed', 'Failed to load the editor. Please try again.');
+      error?.message ||
+      t('product.workflow.edit_load_failed', 'Failed to load the editor. Please try again.');
     mode.value = 'detail';
   }
 };

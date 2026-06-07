@@ -22,9 +22,26 @@ import { FileRepository } from '../../repositories/FileRepository.js';
 
 /** 危险扩展名黑名单 — 永远拒绝 */
 const DANGEROUS_EXTENSIONS = new Set([
-  'exe', 'bat', 'cmd', 'com', 'msi', 'scr', 'pif',
-  'vbs', 'vbe', 'js', 'jse', 'wsf', 'wsh', 'ps1',
-  'dll', 'sys', 'cpl', 'inf', 'reg', 'hta',
+  'exe',
+  'bat',
+  'cmd',
+  'com',
+  'msi',
+  'scr',
+  'pif',
+  'vbs',
+  'vbe',
+  'js',
+  'jse',
+  'wsf',
+  'wsh',
+  'ps1',
+  'dll',
+  'sys',
+  'cpl',
+  'inf',
+  'reg',
+  'hta',
 ]);
 
 const DANGEROUS_MIME_TYPES = new Set([
@@ -147,12 +164,7 @@ async function generateUniqueName(repo, folderId, fileName) {
  * @returns {Promise<Object>} 上传结果 { id, storageKey, url, instantUpload, ... }
  */
 export async function storeFile(env, file, options = {}) {
-  const {
-    contentHash: inputHash,
-    originalHash,
-    folderId = 'root',
-    createdBy,
-  } = options;
+  const { contentHash: inputHash, originalHash, folderId = 'root', createdBy } = options;
 
   // ── 1. 基础验证 ──
   if (!file || !(file instanceof File)) {
@@ -269,7 +281,7 @@ export async function storeFile(env, file, options = {}) {
     originalHash: originalHash || contentHash,
     createdBy: createdBy,
     createdAt: timestamp,
-    updatedAt: timestamp
+    updatedAt: timestamp,
   });
 
   return {

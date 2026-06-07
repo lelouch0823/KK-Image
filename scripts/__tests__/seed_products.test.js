@@ -13,7 +13,7 @@ function createDeterministicDeps(overrides = {}) {
   let idCounter = 0;
   return {
     now: () => 1_710_000_000_000,
-    id: () => `id-${idCounter += 1}`,
+    id: () => `id-${(idCounter += 1)}`,
     pick: (arr, index) => arr[index % arr.length],
     tempFileName: () => 'seed-products.sql',
     ...overrides,
@@ -74,9 +74,7 @@ describe('seed_products helpers', () => {
       { name: '颜色', values: ['白', '蓝', '军绿'] },
       { name: '尺码', values: ['M', 'L', 'XL'] },
     ]);
-    expect(mod.makeDimensions(2)).toEqual([
-      { name: '颜色', values: ['黄', '军绿', '白'] },
-    ]);
+    expect(mod.makeDimensions(2)).toEqual([{ name: '颜色', values: ['黄', '军绿', '白'] }]);
 
     expect(
       mod.cartesianOptions([

@@ -143,7 +143,8 @@ describe('Stats view behavior', () => {
           AppButton: {
             props: ['text', 'loading', 'variant', 'disabled'],
             emits: ['click'],
-            template: '<button :disabled="disabled" @click="$emit(\'click\')">{{ text }}<slot name="icon-left" /></button>',
+            template:
+              '<button :disabled="disabled" @click="$emit(\'click\')">{{ text }}<slot name="icon-left" /></button>',
           },
           AppIcon: {
             props: ['name'],
@@ -211,9 +212,7 @@ describe('Stats view behavior', () => {
             totalFiles: 1200,
             totalSize: 2048,
             todayUploads: 3,
-            largeFiles: [
-              { id: 'file-1', name: 'hero.png', type: 'image/png', size: 1024 },
-            ],
+            largeFiles: [{ id: 'file-1', name: 'hero.png', type: 'image/png', size: 1024 }],
           },
           business: {
             totalOrders: 64,
@@ -227,9 +226,7 @@ describe('Stats view behavior', () => {
               '2026-04-01': 10,
               '2026-04-02': 20,
             },
-            topSpaces: [
-              { id: 'space-1-long-id', name: 'Main Space', views: 88 },
-            ],
+            topSpaces: [{ id: 'space-1-long-id', name: 'Main Space', views: 88 }],
           },
           health: {
             status: {
@@ -270,7 +267,12 @@ describe('Stats view behavior', () => {
   });
 
   it('shows forbidden state when stats endpoint rejects with 403', async () => {
-    mocks.authFetch.mockRejectedValue(Object.assign(new Error('需要 stats:read'), { status: 403, data: { error: '需要 stats:read' } }));
+    mocks.authFetch.mockRejectedValue(
+      Object.assign(new Error('需要 stats:read'), {
+        status: 403,
+        data: { error: '需要 stats:read' },
+      })
+    );
 
     const wrapper = createWrapper();
     await flushPromises();

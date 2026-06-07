@@ -2,11 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const source = readFileSync(resolve(process.cwd(), 'src/components/order/OrderFilters.vue'), 'utf8');
+const source = readFileSync(
+  resolve(process.cwd(), 'src/components/order/OrderFilters.vue'),
+  'utf8'
+);
 
 const getSlotBlock = (slotName) => {
   const match = source.match(
-    new RegExp(`<template\\s+#${slotName}>([\\s\\S]*?)<\\/template>`, 'm'),
+    new RegExp(`<template\\s+#${slotName}>([\\s\\S]*?)<\\/template>`, 'm')
   );
 
   return match?.[1] ?? '';
@@ -17,9 +20,9 @@ describe('OrderFilters desktop layout', () => {
     const filtersBlock = getSlotBlock('filters');
 
     expect(filtersBlock).toContain('SearchInput');
-    expect(filtersBlock).toContain("hidden shrink-0 items-center gap-2 lg:flex");
+    expect(filtersBlock).toContain('hidden shrink-0 items-center gap-2 lg:flex');
     expect(filtersBlock.indexOf('SearchInput')).toBeLessThan(
-      filtersBlock.indexOf("hidden shrink-0 items-center gap-2 lg:flex"),
+      filtersBlock.indexOf('hidden shrink-0 items-center gap-2 lg:flex')
     );
   });
 

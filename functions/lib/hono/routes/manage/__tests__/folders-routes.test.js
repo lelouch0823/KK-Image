@@ -107,7 +107,10 @@ import foldersApp from '../folders.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.route('/api/manage/folders', foldersApp);
   return app;
@@ -243,10 +246,7 @@ describe('manage folders routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.updateFolder).toHaveBeenCalledWith(
-      'folder-1',
-      { name: 'Updated Folder' }
-    );
+    expect(mocks.updateFolder).toHaveBeenCalledWith('folder-1', { name: 'Updated Folder' });
     const [publishedEvents, publishContext] = mocks.publish.mock.calls[0];
     expect(publishContext).toBeUndefined();
     expect(publishedEvents).toEqual([
@@ -295,10 +295,12 @@ describe('manage folders routes', () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.data).toEqual(expect.objectContaining({
-      id: 'folder-1',
-      name: 'Folder Renamed',
-      isPublic: false,
-    }));
+    expect(body.data).toEqual(
+      expect.objectContaining({
+        id: 'folder-1',
+        name: 'Folder Renamed',
+        isPublic: false,
+      })
+    );
   });
 });

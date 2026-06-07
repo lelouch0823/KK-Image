@@ -17,18 +17,28 @@ async function listExistingIdempotencyKeys(db, idempotencyKeys = []) {
     return new Set();
   }
 
-  const { results } = await db.prepare(
-    `SELECT idempotency_key
+  const { results } = await db
+    .prepare(
+      `SELECT idempotency_key
      FROM domain_outbox
      WHERE idempotency_key IN ${inClause(keys)}`
-  )
+    )
     .bind(...keys)
     .all();
 
   return new Set((results || []).map((row) => row.idempotency_key).filter(Boolean));
 }
 
-function buildReminderEvent({ eventType, orderId, orderNo, receiver, salespersonId = null, deadline = null, subType = null, idempotencyKey }) {
+function buildReminderEvent({
+  eventType,
+  orderId,
+  orderNo,
+  receiver,
+  salespersonId = null,
+  deadline = null,
+  subType = null,
+  idempotencyKey,
+}) {
   return {
     event_type: eventType,
     aggregate_type: 'order',

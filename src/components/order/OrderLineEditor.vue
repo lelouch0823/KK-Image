@@ -12,10 +12,7 @@
             <div class="text-sm font-semibold text-(--text-main)">
               {{ t('order.form.lineTitle', `商品明细 ${index + 1}`) }}
             </div>
-            <span
-              class="rounded-full px-2 py-0.5 text-xs font-medium"
-              :class="statusBadgeClass"
-            >
+            <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="statusBadgeClass">
               {{ statusLabel }}
             </span>
           </div>
@@ -34,12 +31,7 @@
           >
             {{ t('order.form.copyLine', '复制上一行') }}
           </AppButton>
-          <AppButton
-            type="button"
-            variant="ghost"
-            size="sm"
-            @click="$emit('add-after')"
-          >
+          <AppButton type="button" variant="ghost" size="sm" @click="$emit('add-after')">
             {{ t('order.form.addNextLine', '新增下一行') }}
           </AppButton>
           <AppButton
@@ -159,7 +151,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'remove', 'copy', 'add-after']);
 const { t } = useI18n();
 
-const isBindingLocked = computed(() => Boolean(props.modelValue.productId || props.modelValue.variantId));
+const isBindingLocked = computed(() =>
+  Boolean(props.modelValue.productId || props.modelValue.variantId)
+);
 const status = computed(() => props.state?.completion?.status || 'empty');
 const statusLabel = computed(() => props.state?.completion?.label || '空白行');
 const cardTone = computed(() => props.state?.completion?.tone || 'neutral');

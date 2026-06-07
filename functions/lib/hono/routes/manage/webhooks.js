@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
 import { WebhookRepository } from '../../../../repositories/WebhookRepository.js';
 import { DOMAIN_EVENT_CATALOG } from '../../../../services/DomainEventCatalog.js';
 import { generateHmacSignature, MSG } from '../../../../_shared/utils.js';
@@ -8,17 +9,18 @@ import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { requireEntity, parsePagination } from '../../_shared/route-helpers.js';
 import { assertSafeExternalUrl } from '../../_shared/url-security.js';
+import { CreateWebhookSchema, UpdateWebhookSchema } from '../../schemas/webhook.js';
 
 /**
  * 验证 webhook URL
  * 在开发/测试环境允许 localhost
  */
 function validateWebhookUrl(url) {
-  const isDev = typeof process !== 'undefined' && (
-    process.env.NODE_ENV === 'development' ||
-    process.env.NODE_ENV === 'test' ||
-    process.env.RUN_REAL_API_TESTS === '1'
-  );
+  const isDev =
+    typeof process !== 'undefined' &&
+    (process.env.NODE_ENV === 'development' ||
+      process.env.NODE_ENV === 'test' ||
+      process.env.RUN_REAL_API_TESTS === '1');
   assertSafeExternalUrl(url, { allowLocalhost: isDev });
 }
 
@@ -68,7 +70,10 @@ export const auditRouteDeclarations = declareAuditRoutes([
 
 function getSupportedEvents() {
   return Object.entries(DOMAIN_EVENT_CATALOG)
-    .filter(([, definition]) => Array.isArray(definition?.consumers) && definition.consumers.includes('webhook'))
+    .filter(
+      ([, definition]) =>
+        Array.isArray(definition?.consumers) && definition.consumers.includes('webhook')
+    )
     .map(([eventType]) => eventType);
 }
 
@@ -118,70 +123,79 @@ app.get('/:id', requirePermission('webhooks:read'), async (c) => {
   return c.json({ success: true, data: webhook });
 });
 
-app.post('/', requirePermission('webhooks:write'), async (c) => {
-  const repo = new WebhookRepository(c.env.DB);
-  const body = await c.req.json();
-  const user = c.get('user') || {};
+app.post(
+  '/',
+  requirePermission('webhooks:write'),
+  zValidator('json', CreateWebhookSchema),
+  async (c) => {
+    const repo = new WebhookRepository(c.env.DB);
+    const body = c.req.valid('json');
+    const user = c.get('user') || {};
 
-  if (!body?.url) throw new BadRequestError(MSG.WEBHOOK.URL_REQUIRED);
-  validateWebhookUrl(body.url);
-  validateEvents(body.events || []);
+    validateWebhookUrl(body.url);
+    validateEvents(body.events || []);
 
-  const created = await repo.create({
-    url: body.url,
-    events: body.events || [],
-    secret: body.secret || null,
-    headers: body.headers || {},
-    enabled: body.enabled ?? true,
-    actorId: user.id || user.name || null,
-  });
+    const created = await repo.create({
+      url: body.url,
+      events: body.events || [],
+      secret: body.secret || null,
+      headers: body.headers || {},
+      enabled: body.enabled ?? true,
+      actorId: user.id || user.name || null,
+    });
 
-  scheduleAuditEvent(c, {
-    domain: 'webhooks',
-    action: 'webhook.create',
-    result: 'success',
-    severity: 'critical',
-    targetType: 'webhook',
-    targetId: created.id,
-    target_label: created.url,
-    summary: `Created webhook ${created.url}`,
-  });
+    scheduleAuditEvent(c, {
+      domain: 'webhooks',
+      action: 'webhook.create',
+      result: 'success',
+      severity: 'critical',
+      targetType: 'webhook',
+      targetId: created.id,
+      target_label: created.url,
+      summary: `Created webhook ${created.url}`,
+    });
 
-  return c.json({ success: true, data: created }, 201);
-});
+    return c.json({ success: true, data: created }, 201);
+  }
+);
 
-app.put('/:id', requirePermission('webhooks:write'), async (c) => {
-  const repo = new WebhookRepository(c.env.DB);
-  const id = c.req.param('id');
-  const body = await c.req.json();
-  const user = c.get('user') || {};
+app.put(
+  '/:id',
+  requirePermission('webhooks:write'),
+  zValidator('json', UpdateWebhookSchema),
+  async (c) => {
+    const repo = new WebhookRepository(c.env.DB);
+    const id = c.req.param('id');
+    const body = c.req.valid('json');
+    const user = c.get('user') || {};
 
-  await requireEntity(repo.getById(id), () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND));
-  if (body.url) validateWebhookUrl(body.url);
-  validateEvents(body.events || []);
+    await requireEntity(repo.getById(id), () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND));
+    if (body.url) validateWebhookUrl(body.url);
+    validateEvents(body.events || []);
 
-  const updated = await repo.update(id, {
-    url: body.url,
-    events: body.events || [],
-    secret: body.secret || null,
-    headers: body.headers || {},
-    enabled: body.enabled ?? true,
-    actorId: user.id || user.name || null,
-  });
+    const updated = await repo.update(id, {
+      url: body.url,
+      events: body.events || [],
+      secret: body.secret || null,
+      headers: body.headers || {},
+      enabled: body.enabled ?? true,
+      actorId: user.id || user.name || null,
+    });
 
-  scheduleAuditEvent(c, {
-    domain: 'webhooks',
-    action: 'webhook.update',
-    result: 'success',
-    severity: 'critical',
-    targetType: 'webhook',
-    targetId: updated.id,
-    target_label: updated.url,
-    summary: `Updated webhook ${updated.url}`,
-  });
+    scheduleAuditEvent(c, {
+      domain: 'webhooks',
+      action: 'webhook.update',
+      result: 'success',
+      severity: 'critical',
+      targetType: 'webhook',
+      targetId: updated.id,
+      target_label: updated.url,
+      summary: `Updated webhook ${updated.url}`,
+    });
 
-  return c.json({ success: true, data: updated });
-});
+    return c.json({ success: true, data: updated });
+  }
+);
 
 app.delete('/:id', requirePermission('webhooks:write'), async (c) => {
   const repo = new WebhookRepository(c.env.DB);
@@ -230,6 +244,9 @@ app.post('/:id/test', requirePermission('webhooks:write'), async (c) => {
       webhook.secret
     );
   }
+
+  // H03: 测试前重新验证 URL 安全性，防止存储型 SSRF
+  validateWebhookUrl(webhook.url);
 
   const startTime = Date.now();
   const response = await fetch(webhook.url, {
@@ -301,13 +318,17 @@ app.get('/logs', requirePermission('webhooks:read'), async (c) => {
 
   // 获取总数
   const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as total');
-  const countResult = await env.DB.prepare(countSql).bind(...params).first();
+  const countResult = await env.DB.prepare(countSql)
+    .bind(...params)
+    .first();
   const total = countResult?.total || 0;
 
   sql += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
-  const { results } = await env.DB.prepare(sql).bind(...params).all();
+  const { results } = await env.DB.prepare(sql)
+    .bind(...params)
+    .all();
 
   return c.json({
     success: true,
@@ -328,9 +349,9 @@ app.post('/logs/:logId/retry', requirePermission('webhooks:write'), async (c) =>
   const logId = c.req.param('logId');
 
   // 查找原始投递日志
-  const logEntry = await env.DB.prepare(
-    'SELECT * FROM webhook_logs WHERE id = ?'
-  ).bind(logId).first();
+  const logEntry = await env.DB.prepare('SELECT * FROM webhook_logs WHERE id = ?')
+    .bind(logId)
+    .first();
 
   if (!logEntry) {
     throw new NotFoundError('投递日志不存在');
@@ -346,7 +367,9 @@ app.post('/logs/:logId/retry', requirePermission('webhooks:write'), async (c) =>
 
   // 构建重试载荷
   const payload = logEntry.payload
-    ? (typeof logEntry.payload === 'string' ? JSON.parse(logEntry.payload) : logEntry.payload)
+    ? typeof logEntry.payload === 'string'
+      ? JSON.parse(logEntry.payload)
+      : logEntry.payload
     : {
         event_id: `retry_${Date.now()}`,
         event_type: logEntry.event || 'webhook.test',
@@ -370,6 +393,9 @@ app.post('/logs/:logId/retry', requirePermission('webhooks:write'), async (c) =>
     );
   }
 
+  // H03: 重试前重新验证 URL 安全性，防止存储型 SSRF
+  validateWebhookUrl(webhook.url);
+
   const startTime = Date.now();
   const response = await fetch(webhook.url, {
     method: 'POST',
@@ -390,7 +416,11 @@ app.post('/logs/:logId/retry', requirePermission('webhooks:write'), async (c) =>
     durationMs: duration,
     deliveryKey: logEntry.delivery_key ? `${logEntry.delivery_key}:retry` : null,
     attemptNumber: (logEntry.attempt_number || 1) + 1,
-    classification: response.ok ? 'delivered' : (response.status >= 400 && response.status < 500 ? 'terminal' : 'retryable'),
+    classification: response.ok
+      ? 'delivered'
+      : response.status >= 400 && response.status < 500
+        ? 'terminal'
+        : 'retryable',
     success: response.ok,
   });
 

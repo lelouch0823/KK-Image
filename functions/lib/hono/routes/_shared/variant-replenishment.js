@@ -21,7 +21,10 @@ export async function loadVariantReplenishmentMap(db, variantIds = []) {
       GROUP BY poi.variant_id
     `;
 
-    const result = await db.prepare(sql).bind(...variantIdChunk).all();
+    const result = await db
+      .prepare(sql)
+      .bind(...variantIdChunk)
+      .all();
     for (const row of result?.results || []) {
       map.set(row.variant_id, {
         replenishment_quantity: Number(row.replenishment_quantity || 0),

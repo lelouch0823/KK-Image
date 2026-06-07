@@ -13,6 +13,7 @@
 ### Task 1: Lock the current UI debt into an inventory document
 
 **Files:**
+
 - Create: `docs/plans/2026-03-11-ui-design-system-migration-checklist.md`
 - Modify: `docs/plans/2026-03-11-ui-design-system-closure-design.md`
 
@@ -50,6 +51,7 @@ git commit -m "docs(ui): add design system migration inventory"
 ### Task 2: Restructure style files into explicit token layers
 
 **Files:**
+
 - Create: `src/styles/tokens/primitive.css`
 - Create: `src/styles/tokens/semantic.css`
 - Create: `src/styles/tokens/motion.css`
@@ -103,6 +105,7 @@ git commit -m "refactor(ui): split theme tokens into explicit layers"
 ### Task 3: Remove undefined and pseudo token references
 
 **Files:**
+
 - Modify: `src/components/ui/AppButton.vue`
 - Modify: `src/components/ui/AppInput.vue`
 - Modify: `src/components/ui/AppStatCard.vue`
@@ -155,6 +158,7 @@ git commit -m "fix(ui): replace invalid token references with semantic tokens"
 ### Task 4: Standardize typography and icon policy
 
 **Files:**
+
 - Modify: `src/styles/main.css`
 - Modify: `src/components/ui/AppIcon.vue`
 - Modify: `src/views/Dashboard.vue`
@@ -213,6 +217,7 @@ git commit -m "refactor(ui): standardize typography and icon policy"
 ### Task 5: Rebuild foundation components v1
 
 **Files:**
+
 - Modify: `src/components/ui/AppButton.vue`
 - Modify: `src/components/ui/AppInput.vue`
 - Modify: `src/components/ui/Select.vue`
@@ -281,6 +286,7 @@ git commit -m "refactor(ui): rebuild foundation components v1"
 ### Task 6: Build composed components and page shells v1
 
 **Files:**
+
 - Create: `src/design-system/composed/PageHeader.vue`
 - Create: `src/design-system/composed/StatGroup.vue`
 - Create: `src/design-system/composed/StatePanel.vue`
@@ -338,6 +344,7 @@ git commit -m "feat(ui): add composed components and page shells v1"
 ### Task 7: Migrate `Dashboard.vue` to the new system
 
 **Files:**
+
 - Modify: `src/views/Dashboard.vue`
 - Modify: supporting domain components if extraction is needed
 - Create: `src/views/__tests__/Dashboard.design-system-migration.test.js`
@@ -387,6 +394,7 @@ git commit -m "refactor(dashboard): migrate to design system shells"
 ### Task 8: Migrate `Stats.vue` to the new system
 
 **Files:**
+
 - Modify: `src/views/Stats.vue`
 - Modify: `src/views/stats/StatsCard.vue`
 - Modify: `src/views/stats/StatsChartWrapper.vue`
@@ -424,6 +432,7 @@ git commit -m "refactor(stats): migrate to shared dashboard system"
 ### Task 9: Migrate `GoodsOverview.vue` and `PurchaseOrders.vue`
 
 **Files:**
+
 - Modify: `src/views/GoodsOverview.vue`
 - Modify: `src/views/PurchaseOrders.vue`
 - Create: `src/views/__tests__/GoodsOverview.design-system-migration.test.js`
@@ -466,6 +475,7 @@ git commit -m "refactor(procurement-ui): migrate overview and purchase pages to 
 ### Task 10: Add governance and rollout guards
 
 **Files:**
+
 - Modify: `eslint.config.js`
 - Create: `scripts/qa/check-ui-token-integrity.mjs`
 - Create: `docs/design-system/MASTER.md`
@@ -514,6 +524,7 @@ git commit -m "chore(ui): add design system governance and reference docs"
 ### Task 11: Expand migration packs across remaining modules
 
 **Files:**
+
 - Modify: `src/views/FileManager/index.vue`
 - Modify: `src/components/ProductManager.vue`
 - Modify: `src/components/OrderManager.vue`
@@ -555,6 +566,7 @@ git commit -m "refactor(files-ui): migrate file manager to shared design system"
 ### Task 12: Final verification before implementation closure
 
 **Files:**
+
 - Verify only
 
 **Step 1: Run the token integrity check**

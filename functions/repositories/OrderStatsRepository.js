@@ -39,8 +39,7 @@ export class OrderStatsRepository {
             WHERE status = 'pending'
             ORDER BY created_at DESC 
             LIMIT ?
-        `
-      ,
+        `,
       [limit],
       'order.stats.recentPending'
     );
@@ -66,8 +65,7 @@ export class OrderStatsRepository {
     const result = await this.runQueryFirst(
       `
             SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
-        `
-      ,
+        `,
       [timestamp],
       'order.stats.countCreatedAfter'
     );
@@ -83,8 +81,7 @@ export class OrderStatsRepository {
     const result = await this.runQueryFirst(
       `
             SELECT COUNT(*) as count FROM orders WHERE status = ?
-        `
-      ,
+        `,
       [status],
       'order.stats.countByStatus'
     );
@@ -102,8 +99,7 @@ export class OrderStatsRepository {
       `
             SELECT COUNT(*) as count FROM orders 
             WHERE created_at >= ? AND created_at < ?
-        `
-      ,
+        `,
       [startTimestamp, endTimestamp],
       'order.stats.countCreatedBetween'
     );
@@ -120,8 +116,7 @@ export class OrderStatsRepository {
       this.runQueryFirst(
         `
                 SELECT COUNT(*) as count FROM orders WHERE salesperson_id = ?
-            `
-        ,
+            `,
         [salespersonId],
         'order.stats.sales.total'
       ),
@@ -129,8 +124,7 @@ export class OrderStatsRepository {
         `
                 SELECT COUNT(*) as count FROM orders 
                 WHERE salesperson_id = ? AND created_at >= ?
-            `
-        ,
+            `,
         [salespersonId, todayStart],
         'order.stats.sales.today'
       ),
@@ -138,8 +132,7 @@ export class OrderStatsRepository {
         `
                 SELECT COUNT(*) as count FROM orders 
                 WHERE salesperson_id = ? AND status = 'pending'
-            `
-        ,
+            `,
         [salespersonId],
         'order.stats.sales.pending'
       ),
@@ -163,8 +156,7 @@ export class OrderStatsRepository {
       this.runQueryFirst(
         `
                 SELECT COUNT(*) as count FROM orders WHERE salesperson_id = ?
-            `
-        ,
+            `,
         [salespersonId],
         'order.stats.salesFull.total'
       ),
@@ -173,8 +165,7 @@ export class OrderStatsRepository {
         `
                 SELECT COUNT(*) as count FROM orders 
                 WHERE salesperson_id = ? AND status IN ('fulfilled', 'delivered')
-            `
-        ,
+            `,
         [salespersonId],
         'order.stats.salesFull.completed'
       ),
@@ -183,8 +174,7 @@ export class OrderStatsRepository {
         `
                 SELECT COUNT(*) as count FROM orders 
                 WHERE salesperson_id = ? AND created_at >= ?
-            `
-        ,
+            `,
         [salespersonId, monthStart],
         'order.stats.salesFull.month'
       ),
@@ -196,8 +186,7 @@ export class OrderStatsRepository {
                 WHERE salesperson_id = ? AND created_at >= ?
                 GROUP BY ${chinaDateExpr()}
                 ORDER BY date ASC
-            `
-        ,
+            `,
         [salespersonId, monthStart],
         'order.stats.salesFull.trend'
       ),
@@ -226,53 +215,47 @@ export class OrderStatsRepository {
       deliveryStatusDistribution,
       awaitingDeliveryResult,
       recentTrend,
-    ] =
-      await Promise.all([
-        this.runQueryFirst(
-          `
+    ] = await Promise.all([
+      this.runQueryFirst(
+        `
                 SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
-            `
-          ,
-          [todayStart],
-          'order.stats.admin.today'
-        ),
-        this.runQueryFirst(
-          `
+            `,
+        [todayStart],
+        'order.stats.admin.today'
+      ),
+      this.runQueryFirst(
+        `
                 SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
-            `
-          ,
-          [weekStart],
-          'order.stats.admin.week'
-        ),
-        this.runQueryFirst(
-          `
+            `,
+        [weekStart],
+        'order.stats.admin.week'
+      ),
+      this.runQueryFirst(
+        `
                 SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
-            `
-          ,
-          [monthStart],
-          'order.stats.admin.month'
-        ),
-        this.runQuery(
-          `
+            `,
+        [monthStart],
+        'order.stats.admin.month'
+      ),
+      this.runQuery(
+        `
                 SELECT status, COUNT(*) as count FROM orders GROUP BY status
-            `
-          ,
-          [],
-          'order.stats.admin.statusDistribution'
-        ),
-        this.runQuery(
-          `
+            `,
+        [],
+        'order.stats.admin.statusDistribution'
+      ),
+      this.runQuery(
+        `
                 SELECT ${ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL} as status, COUNT(*) as count
                 FROM orders o
                 ${ORDER_SUMMARY_PROJECTION_JOIN}
                 GROUP BY ${ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL}
-            `
-          ,
-          [],
-          'order.stats.admin.deliveryStatusDistribution'
-        ),
-        this.runQueryFirst(
-          `
+            `,
+        [],
+        'order.stats.admin.deliveryStatusDistribution'
+      ),
+      this.runQueryFirst(
+        `
                 SELECT COUNT(*) as count
                 FROM (
                     SELECT
@@ -283,23 +266,21 @@ export class OrderStatsRepository {
                 )
                 WHERE normalized_status IN ('fulfilled', 'delivered')
                   AND effective_delivery_status = 'in_transit'
-            `
-          ,
-          [],
-          'order.stats.admin.awaitingDelivery'
-        ),
-        this.runQuery(
-          `
+            `,
+        [],
+        'order.stats.admin.awaitingDelivery'
+      ),
+      this.runQuery(
+        `
                 SELECT ${chinaDateExpr()} as date, COUNT(*) as count
                 FROM orders
                 WHERE created_at >= ?
                 GROUP BY date ORDER BY date
-            `
-          ,
-          [monthStart],
-          'order.stats.admin.recentTrend'
-        ),
-      ]);
+            `,
+        [monthStart],
+        'order.stats.admin.recentTrend'
+      ),
+    ]);
     return {
       today: todayResult.count,
       week: weekResult.count,
@@ -313,9 +294,13 @@ export class OrderStatsRepository {
         return acc;
       }, {}),
       awaitingDelivery: awaitingDeliveryResult.count,
-      delivered: deliveryStatusDistribution.results.find((row) => row.status === 'delivered')?.count || 0,
-      partiallyReturned: deliveryStatusDistribution.results.find((row) => row.status === 'partially_returned')?.count || 0,
-      returned: deliveryStatusDistribution.results.find((row) => row.status === 'returned')?.count || 0,
+      delivered:
+        deliveryStatusDistribution.results.find((row) => row.status === 'delivered')?.count || 0,
+      partiallyReturned:
+        deliveryStatusDistribution.results.find((row) => row.status === 'partially_returned')
+          ?.count || 0,
+      returned:
+        deliveryStatusDistribution.results.find((row) => row.status === 'returned')?.count || 0,
       recentTrend: recentTrend.results,
     };
   }
@@ -332,8 +317,7 @@ export class OrderStatsRepository {
             WHERE created_at >= ?
             GROUP BY hour
             ORDER BY hour ASC
-        `
-      ,
+        `,
       [todayStart],
       'order.stats.todayHourlyTrend'
     );
@@ -352,8 +336,7 @@ export class OrderStatsRepository {
             WHERE created_at >= ?
             GROUP BY date
             ORDER BY date ASC
-        `
-      ,
+        `,
       [startTimestamp],
       'order.stats.last7DaysOrderTrend'
     );
@@ -374,8 +357,7 @@ export class OrderStatsRepository {
             WHERE created_at >= ? AND status = 'pending'
             GROUP BY date
             ORDER BY date ASC
-        `
-      ,
+        `,
       [startTimestamp],
       'order.stats.last7DaysPendingTrend'
     );
@@ -395,8 +377,7 @@ export class OrderStatsRepository {
             WHERE is_public = 1 AND created_at >= ?
             GROUP BY date
             ORDER BY date ASC
-        `
-      ,
+        `,
       [startTimestamp],
       'order.stats.last7DaysShareTrend'
     );

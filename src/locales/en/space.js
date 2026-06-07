@@ -22,7 +22,8 @@ export default {
     networkError: 'Network Error',
     copyLink: 'Copy Link',
     deleteSpace: 'Delete Space',
-    deleteSpaceConfirm: 'Are you sure you want to delete space "{name}"? This will not delete the actual files.',
+    deleteSpaceConfirm:
+      'Are you sure you want to delete space "{name}"? This will not delete the actual files.',
     nameLabel: 'Space Name',
     descLabel: 'Description',
     publicLabel: 'Public Share',
@@ -153,7 +154,8 @@ export default {
     bindingNotice:
       'This space is bound to a product. Brand, series, price and other core parameters are managed by the product system. To modify, click "Edit" above to go to the product library. Changes will take effect globally after saving.',
     historicalProduct: 'Historical Product',
-    productBindingIncomplete: 'Product binding is incomplete. Please select a valid product variant before creating.',
+    productBindingIncomplete:
+      'Product binding is incomplete. Please select a valid product variant before creating.',
   },
 
   // Public Space Page

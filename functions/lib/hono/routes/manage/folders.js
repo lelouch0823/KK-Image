@@ -19,15 +19,54 @@ import { requireEntity } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
-import { CreateFolderSchema, UpdateFolderSchema, ShareSettingsSchema } from '../../schemas/folder.js';
+import {
+  CreateFolderSchema,
+  UpdateFolderSchema,
+  ShareSettingsSchema,
+} from '../../schemas/folder.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
-  { method: 'POST', path: '/', domain: 'folders', action: 'folder.create', severity: 'high', targetType: 'folder' },
-  { method: 'PUT', path: '/:id', domain: 'folders', action: 'folder.update', severity: 'high', targetType: 'folder' },
-  { method: 'DELETE', path: '/:id', domain: 'folders', action: 'folder.delete', severity: 'critical', targetType: 'folder' },
-  { method: 'PUT', path: '/:id/share', domain: 'folders', action: 'folder.share_update', severity: 'high', targetType: 'folder' },
-  { method: 'POST', path: '/:id/upload', domain: 'folders', action: 'folder.upload', severity: 'normal', targetType: 'folder' },
+  {
+    method: 'POST',
+    path: '/',
+    domain: 'folders',
+    action: 'folder.create',
+    severity: 'high',
+    targetType: 'folder',
+  },
+  {
+    method: 'PUT',
+    path: '/:id',
+    domain: 'folders',
+    action: 'folder.update',
+    severity: 'high',
+    targetType: 'folder',
+  },
+  {
+    method: 'DELETE',
+    path: '/:id',
+    domain: 'folders',
+    action: 'folder.delete',
+    severity: 'critical',
+    targetType: 'folder',
+  },
+  {
+    method: 'PUT',
+    path: '/:id/share',
+    domain: 'folders',
+    action: 'folder.share_update',
+    severity: 'high',
+    targetType: 'folder',
+  },
+  {
+    method: 'POST',
+    path: '/:id/upload',
+    domain: 'folders',
+    action: 'folder.upload',
+    severity: 'normal',
+    targetType: 'folder',
+  },
 ]);
 app.use('*', requirePermission('folders:read'));
 
@@ -85,7 +124,7 @@ app.get('/:id', withCache(60), async (c) => {
   const [subfolders, files, breadcrumbs] = await Promise.all([
     folderRepo.findByParent(folderId),
     fileRepo.findByFolder(folderId),
-    folderRepo.getBreadcrumbs(folderId)
+    folderRepo.getBreadcrumbs(folderId),
   ]);
 
   return c.json({
@@ -141,7 +180,8 @@ app.post(
     }
 
     const hasConflict = await folderRepo.checkNameConflict(parentId, name.trim());
-    if (hasConflict) throw new ConflictError(MSG.FOLDER.NAME_CONFLICT || "当前目录下已存在同名文件夹");
+    if (hasConflict)
+      throw new ConflictError(MSG.FOLDER.NAME_CONFLICT || '当前目录下已存在同名文件夹');
 
     const folderId = generateId();
     const shareToken = isPublic ? generateShareToken() : null;
@@ -156,17 +196,21 @@ app.post(
       isPublic,
       password: password || null,
       createdAt: nowMs,
-      updatedAt: nowMs
+      updatedAt: nowMs,
     });
 
-    await publishSingleDomainEventAndPoll(c, {
-      event_type: 'folder_created',
-      aggregate_type: 'folder',
-      aggregate_id: folderId,
-      payload: {
-        folder_id: folderId,
+    await publishSingleDomainEventAndPoll(
+      c,
+      {
+        event_type: 'folder_created',
+        aggregate_type: 'folder',
+        aggregate_id: folderId,
+        payload: {
+          folder_id: folderId,
+        },
       },
-    }, `folder-create:${folderId}`);
+      `folder-create:${folderId}`
+    );
     scheduleAuditEvent(c, {
       domain: 'folders',
       action: 'folder.create',
@@ -227,7 +271,8 @@ app.put(
     if (data.name !== undefined || data.parentId !== undefined) {
       if (checkParentId !== folder.parent_id || checkName !== folder.name) {
         const hasConflict = await folderRepo.checkNameConflict(checkParentId, checkName, folderId);
-        if (hasConflict) throw new ConflictError(MSG.FOLDER.NAME_CONFLICT || "在目标目录下已存在同名文件夹");
+        if (hasConflict)
+          throw new ConflictError(MSG.FOLDER.NAME_CONFLICT || '在目标目录下已存在同名文件夹');
       }
     }
 
@@ -257,14 +302,18 @@ app.put(
       () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
     );
 
-    await publishSingleDomainEventAndPoll(c, {
-      event_type: 'folder_updated',
-      aggregate_type: 'folder',
-      aggregate_id: folderId,
-      payload: {
-        folder_id: folderId,
+    await publishSingleDomainEventAndPoll(
+      c,
+      {
+        event_type: 'folder_updated',
+        aggregate_type: 'folder',
+        aggregate_id: folderId,
+        payload: {
+          folder_id: folderId,
+        },
       },
-    }, `folder-update:${folderId}`);
+      `folder-update:${folderId}`
+    );
     scheduleAuditEvent(c, {
       domain: 'folders',
       action: 'folder.update',
@@ -307,14 +356,18 @@ app.delete('/:id', requirePermission('folders:delete'), async (c) => {
   // 软删除
   await folderRepo.softDelete(folderId);
 
-  await publishSingleDomainEventAndPoll(c, {
-    event_type: 'folder_deleted',
-    aggregate_type: 'folder',
-    aggregate_id: folderId,
-    payload: {
-      folder_id: folderId,
+  await publishSingleDomainEventAndPoll(
+    c,
+    {
+      event_type: 'folder_deleted',
+      aggregate_type: 'folder',
+      aggregate_id: folderId,
+      payload: {
+        folder_id: folderId,
+      },
     },
-  }, `folder-delete:${folderId}`);
+    `folder-delete:${folderId}`
+  );
   scheduleAuditEvent(c, {
     domain: 'folders',
     action: 'folder.delete',
@@ -341,18 +394,23 @@ app.put(
     const { isPublic, password, expiresAt } = c.req.valid('json');
     const repo = new FolderRepository(c.env.DB);
 
-    // 使用 Repository 封装的分享设置更新
-    const shareInfo = await repo.updateShareSettings(id, { isPublic, password, expiresAt });
+    // 使用 Repository 封装的分享设置更新（传入 pepper 用于密码哈希）
+    const pepper = c.env?.PASSWORD_PEPPER || c.env?.JWT_SECRET;
+    const shareInfo = await repo.updateShareSettings(id, { isPublic, password, expiresAt }, pepper);
 
-    await publishSingleDomainEventAndPoll(c, {
-      event_type: 'folder_share_updated',
-      aggregate_type: 'folder',
-      aggregate_id: id,
-      payload: {
-        folder_id: id,
-        parent_ids: [id],
+    await publishSingleDomainEventAndPoll(
+      c,
+      {
+        event_type: 'folder_share_updated',
+        aggregate_type: 'folder',
+        aggregate_id: id,
+        payload: {
+          folder_id: id,
+          parent_ids: [id],
+        },
       },
-    }, `folder-share:${id}`);
+      `folder-share:${id}`
+    );
     scheduleAuditEvent(c, {
       domain: 'folders',
       action: 'folder.share_update',
@@ -423,23 +481,27 @@ app.post('/:id/upload', requirePermission('files:write'), async (c) => {
     metadata: { fileId: result?.id || null },
   });
 
-  await publishSingleDomainEventAndPoll(c, {
-    event_type: 'file_uploaded',
-    aggregate_type: 'file',
-    aggregate_id: result.id,
-    payload: {
-      file: {
-        id: result.id,
-        filename: result.name,
-        size: result.size,
-        type: result.type,
-        uploadTime: timestampToIso(Date.now()),
-        url: getFileUrl(result.storageKey),
-        uploader: user.name || user.username || user.id,
+  await publishSingleDomainEventAndPoll(
+    c,
+    {
+      event_type: 'file_uploaded',
+      aggregate_type: 'file',
+      aggregate_id: result.id,
+      payload: {
+        file: {
+          id: result.id,
+          filename: result.name,
+          size: result.size,
+          type: result.type,
+          uploadTime: timestampToIso(Date.now()),
+          url: getFileUrl(result.storageKey),
+          uploader: user.name || user.username || user.id,
+        },
+        user,
       },
-      user,
     },
-  }, `file-uploaded:${result.id}`);
+    `file-uploaded:${result.id}`
+  );
 
   return c.json({
     success: true,

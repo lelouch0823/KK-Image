@@ -1,14 +1,21 @@
 <template>
   <div class="w-full">
     <!-- Label -->
-    <label v-if="label" :for="inputId" class="mb-1.5 block text-xs font-medium text-(--text-secondary)">
+    <label
+      v-if="label"
+      :for="inputId"
+      class="mb-1.5 block text-xs font-medium text-(--text-secondary)"
+    >
       {{ label }}
       <span v-if="required" class="text-danger">*</span>
     </label>
 
     <div class="relative">
       <!-- Prepend Icon -->
-      <div v-if="$slots.prepend && !textarea" class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-(--text-muted)">
+      <div
+        v-if="$slots.prepend && !textarea"
+        class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-(--text-muted)"
+      >
         <slot name="prepend" />
       </div>
 
@@ -24,11 +31,7 @@
         :required="required"
         :aria-invalid="hasError ? 'true' : 'false'"
         class="block w-full rounded-lg border bg-(--bg-card) text-(--text-main) placeholder-(--text-muted) transition-all duration-150 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
-        :class="[
-          inputClasses,
-          stateClasses,
-          textarea ? 'resize-y' : ''
-        ]"
+        :class="[inputClasses, stateClasses, textarea ? 'resize-y' : '']"
         @input="handleInput"
         @blur="handleBlur"
         @focus="$emit('focus', $event)"
@@ -54,7 +57,10 @@
       </div>
 
       <!-- Append Icon -->
-      <div v-if="$slots.append && !textarea" class="absolute inset-y-0 right-0 flex items-center pr-3 text-(--text-muted)">
+      <div
+        v-if="$slots.append && !textarea"
+        class="absolute inset-y-0 right-0 flex items-center pr-3 text-(--text-muted)"
+      >
         <slot name="append" />
       </div>
     </div>
@@ -241,7 +247,7 @@ const inputClasses = computed(() => {
   };
 
   if (props.textarea) {
-      return [sizes[props.size], 'px-3'];
+    return [sizes[props.size], 'px-3'];
   }
 
   const heightSizes = {
@@ -252,7 +258,7 @@ const inputClasses = computed(() => {
 
   const paddingLeft = slots.prepend ? 'pl-10' : 'pl-3';
   // 有状态图标时留出空间
-  const paddingRight = slots.append ? 'pr-10' : (showStatusIcon.value ? 'pr-10' : 'pr-3');
+  const paddingRight = slots.append ? 'pr-10' : showStatusIcon.value ? 'pr-10' : 'pr-3';
 
   return [heightSizes[props.size], sizes[props.size], paddingLeft, paddingRight];
 });

@@ -1,5 +1,9 @@
 <template>
-  <TransitionGroup name="list" tag="div" class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+  <TransitionGroup
+    name="list"
+    tag="div"
+    class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+  >
     <div
       v-for="folder in folders"
       :key="folder.id"
@@ -7,7 +11,7 @@
       :class="[
         selectedIds.has(folder.id)
           ? 'border-primary bg-primary/10 ring-primary ring-1 dark:bg-primary/20'
-          : 'border-(--border-color) bg-(--bg-card) hover:border-(--border-hover)'
+          : 'border-(--border-color) bg-(--bg-card) hover:border-(--border-hover)',
       ]"
       @click="$emit('navigate', folder.id)"
       @contextmenu.prevent.stop="handleContextMenu($event, folder)"

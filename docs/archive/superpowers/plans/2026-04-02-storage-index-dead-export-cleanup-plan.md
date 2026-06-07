@@ -13,6 +13,7 @@
 ### Task 1: Lock the Dead Export Removal Contract
 
 **Files:**
+
 - Create: `functions/storage/__tests__/index-dead-exports.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the dead exports still exist.
 ### Task 2: Delete the Dead Exports
 
 **Files:**
+
 - Modify: `functions/storage/index.js`
 
 - [ ] **Step 1: Remove the dead exports**

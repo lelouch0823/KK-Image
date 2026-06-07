@@ -21,15 +21,18 @@ export class OutboxReplayService {
       throw new Error(`unsupported replay event type: ${event.event_type}`);
     }
 
-    const replayableConsumers = (eventDefinition.consumers || [])
-      .filter((consumerName) => REPLAYABLE_CONSUMERS.has(consumerName));
+    const replayableConsumers = (eventDefinition.consumers || []).filter((consumerName) =>
+      REPLAYABLE_CONSUMERS.has(consumerName)
+    );
 
     if (requestedConsumerName) {
       if (!REPLAYABLE_CONSUMERS.has(requestedConsumerName)) {
         throw new Error(`consumer is not replayable: ${requestedConsumerName}`);
       }
       if (!replayableConsumers.includes(requestedConsumerName)) {
-        throw new Error(`consumer is unsupported for event ${event.event_type}: ${requestedConsumerName}`);
+        throw new Error(
+          `consumer is unsupported for event ${event.event_type}: ${requestedConsumerName}`
+        );
       }
       return [requestedConsumerName];
     }
@@ -48,7 +51,9 @@ export class OutboxReplayService {
     });
 
     const targetedEventIds = events.map((event) => event.id);
-    const consumerNames = [...new Set(events.flatMap((event) => this.resolveReplayConsumers(event, consumerName)))];
+    const consumerNames = [
+      ...new Set(events.flatMap((event) => this.resolveReplayConsumers(event, consumerName))),
+    ];
     const summary = {
       dryRun: true,
       targetedEventIds,
@@ -123,9 +128,9 @@ export class OutboxReplayService {
       const summary = {
         dryRun: false,
         targetedEventIds,
-        consumerNames: consumerName ? [consumerName] : [...new Set(
-          events.flatMap((event) => this.resolveReplayConsumers(event, null))
-        )],
+        consumerNames: consumerName
+          ? [consumerName]
+          : [...new Set(events.flatMap((event) => this.resolveReplayConsumers(event, null)))],
         replayedCount,
       };
 

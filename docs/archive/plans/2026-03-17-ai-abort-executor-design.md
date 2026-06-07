@@ -23,6 +23,7 @@ The user requested a full solution, not a narrow patch, so the design consolidat
 Patch `/stream`, add `signal` to `fetch`, and change tool abort status.
 
 Why not:
+
 - Leaves `/chat` and `callAIAuto` with separate behavior.
 - Keeps retry/model-switch logic cancellation-unaware in multiple places.
 - Increases regression risk because abort semantics remain fragmented.
@@ -32,6 +33,7 @@ Why not:
 Add helper functions in `ai-utils.js` for abort-aware fetch and sleep, then thread them into `callAI` and `callAIStream`.
 
 Why not:
+
 - Better than localized fixes, but still leaves request lifecycle and provider execution coupled in one file.
 - Makes stream/chat callers keep duplicating context wiring.
 
@@ -40,6 +42,7 @@ Why not:
 Introduce a shared executor layer that owns provider request execution, retry/model-switch flow, and abort propagation, with route/request context feeding a single merged signal.
 
 Why this is the recommendation:
+
 - Solves the current review findings and the broader consistency problem in one place.
 - Keeps `ai-utils.js` focused on payload shaping instead of transport control flow.
 - Gives `stream-engine` and route handlers one cancellation contract to consume.
@@ -51,6 +54,7 @@ Why this is the recommendation:
 `createAIRequestContext` remains the request-scoped state holder, but it must support external abort sources.
 
 Required behavior:
+
 - Accept an inbound request signal from Hono/Fetch when available.
 - Optionally accept a deadline or extra abort sources later without changing callers.
 - Preserve the first meaningful abort reason.
@@ -59,6 +63,7 @@ Required behavior:
 ### Provider execution
 
 Add `functions/ai/request-executor.js` as the single owner of:
+
 - abort-aware `fetch`
 - abort-aware retry backoff
 - abort checks before retry and before model switch
@@ -70,6 +75,7 @@ Add `functions/ai/request-executor.js` as the single owner of:
 ### Route integration
 
 Both `/chat` and `/stream` must:
+
 - create a request context once
 - connect the incoming request signal into that context
 - pass `requestContext.signal` through runtime env as `AI_REQUEST_SIGNAL`
@@ -82,6 +88,7 @@ This avoids route-specific cancellation behavior.
 `runAIStreamEngine` and `runToolOrchestration` should not invent their own success semantics for aborts.
 
 New state model:
+
 - `success`: tool finished and returned output
 - `failure`: tool threw a normal error
 - `timeout`: tool exceeded timeout
@@ -116,6 +123,7 @@ The stream engine must never emit `tool_result` for `aborted`.
 ## Error Handling Rules
 
 Abort rules:
+
 - Cancellation is represented by `AbortError` with code `AI_REQUEST_ABORTED`.
 - Executor throws abort immediately if signal is already aborted.
 - Retry loops stop immediately when signal aborts.
@@ -123,6 +131,7 @@ Abort rules:
 - Stream engine emits a `cancellation` event once and rethrows a structured abort error.
 
 Non-abort rules:
+
 - Normal provider failures keep existing error behavior.
 - 429 handling and model switch remain intact.
 - Timeout remains distinct from abort.
@@ -132,14 +141,17 @@ Non-abort rules:
 ### Unit tests
 
 `functions/ai/__tests__/tool-orchestrator.test.js`
+
 - Add a case proving an in-flight aborted tool returns `aborted` rather than `success`.
 - Keep existing skipped-queue coverage.
 
 `functions/ai/__tests__/stream-engine.test.js`
+
 - Add a case proving aborted tool results do not emit `tool_result`.
 - Add a case proving abort between rounds prevents a follow-up provider request.
 
 `functions/utils/__tests__/ai-utils-health.test.js`
+
 - Add coverage that `callAI` passes `AI_REQUEST_SIGNAL` to `fetch`.
 - Add coverage that retry stops after abort instead of issuing another attempt.
 - Add coverage that abort prevents auto fallback in `callAIAuto`.
@@ -147,6 +159,7 @@ Non-abort rules:
 ### Route tests
 
 `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
+
 - Keep existing `AI_REQUEST_SIGNAL` propagation assertions.
 - Add a route-level test for `/chat` to prove runtime env also carries the request signal.
 - Add a route-level abort wiring test for `/stream` if the Hono test harness exposes a controllable request signal; otherwise keep this at request-context/executor unit level and document the harness limit.
@@ -154,6 +167,7 @@ Non-abort rules:
 ### Executor tests
 
 Add new test file for `functions/ai/request-executor.js`:
+
 - abort before first fetch
 - abort during retry delay
 - abort before model switch retry

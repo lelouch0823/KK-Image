@@ -16,7 +16,8 @@ export class SystemStatsProjectionRefreshService {
     this.statsRepo = deps.statsRepo || new StatsRepository(db);
     this.orderStatsRepo = deps.orderStatsRepo || new OrderStatsRepository(db);
     this.folderRepo = deps.folderRepo || new FolderRepository(db);
-    this.projectionRepo = deps.projectionRepo || new SystemStatsProjectionRepository(db, { now: this.now });
+    this.projectionRepo =
+      deps.projectionRepo || new SystemStatsProjectionRepository(db, { now: this.now });
   }
 
   async refresh(scope) {
@@ -34,7 +35,16 @@ export class SystemStatsProjectionRefreshService {
     const todayStart = getChinaDayStart();
     const ninetyDaysAgo = todayStart - 89 * 24 * 60 * 60 * 1000;
 
-    const [data, salesTrend, statusDistribution, topProducts, salespersonStats, profitSummary, profitTrend, profitByProduct] = await Promise.all([
+    const [
+      data,
+      salesTrend,
+      statusDistribution,
+      topProducts,
+      salespersonStats,
+      profitSummary,
+      profitTrend,
+      profitByProduct,
+    ] = await Promise.all([
       this.statsRepo.getGlobalStats(todayStart),
       this.orderStatsRepo.getSalesTrend(ninetyDaysAgo),
       this.orderStatsRepo.getStatusDistribution(),
@@ -45,46 +55,50 @@ export class SystemStatsProjectionRefreshService {
       this.orderStatsRepo.getProfitByProduct(10),
     ]);
 
-    return this.projectionRepo.upsert(STATS_PROJECTION_SCOPES.MANAGE_STATS, {
-      data: {
-        business: {
-          totalOrders: data.business?.totalOrders || 0,
-          pendingOrders: data.business?.pendingOrders || 0,
-          fulfilledOrders: data.business?.fulfilledOrders || 0,
-          activeSalespersons: data.business?.activeSalespersons || 0,
-          multilineOrders: data.business?.multilineOrders || 0,
+    return this.projectionRepo.upsert(
+      STATS_PROJECTION_SCOPES.MANAGE_STATS,
+      {
+        data: {
+          business: {
+            totalOrders: data.business?.totalOrders || 0,
+            pendingOrders: data.business?.pendingOrders || 0,
+            fulfilledOrders: data.business?.fulfilledOrders || 0,
+            activeSalespersons: data.business?.activeSalespersons || 0,
+            multilineOrders: data.business?.multilineOrders || 0,
+          },
+          profit: {
+            totalRevenue: profitSummary.totalRevenue,
+            totalCost: profitSummary.totalCost,
+            totalProfit: profitSummary.totalProfit,
+            margin: profitSummary.margin,
+            ordersWithCost: profitSummary.ordersWithCost,
+            ordersWithoutCost: profitSummary.ordersWithoutCost,
+          },
+          storage: {
+            totalFiles: data.files.total,
+            totalSize: data.files.totalSize,
+            todayUploads: data.files.todayUploads,
+            used: data.files.totalSize,
+            limit: null,
+          },
+          traffic: data.traffic,
+          health: {
+            status: data.status,
+            fileTypes: data.fileTypes,
+          },
+          charts: {
+            salesTrend,
+            statusDistribution,
+            topProducts,
+            salespersonStats,
+            profitTrend,
+            profitByProduct,
+          },
+          generatedAt,
         },
-        profit: {
-          totalRevenue: profitSummary.totalRevenue,
-          totalCost: profitSummary.totalCost,
-          totalProfit: profitSummary.totalProfit,
-          margin: profitSummary.margin,
-          ordersWithCost: profitSummary.ordersWithCost,
-          ordersWithoutCost: profitSummary.ordersWithoutCost,
-        },
-        storage: {
-          totalFiles: data.files.total,
-          totalSize: data.files.totalSize,
-          todayUploads: data.files.todayUploads,
-          used: data.files.totalSize,
-          limit: null,
-        },
-        traffic: data.traffic,
-        health: {
-          status: data.status,
-          fileTypes: data.fileTypes,
-        },
-        charts: {
-          salesTrend,
-          statusDistribution,
-          topProducts,
-          salespersonStats,
-          profitTrend,
-          profitByProduct,
-        },
-        generatedAt,
       },
-    }, this.now());
+      this.now()
+    );
   }
 
   async refreshDashboardOverview() {
@@ -117,50 +131,62 @@ export class SystemStatsProjectionRefreshService {
       this.orderStatsRepo.getRecentPending(8),
       this.orderStatsRepo.countCreatedAfter(weekStartTimestamp),
       this.orderStatsRepo.countCreatedBetween(lastWeekStartTimestamp, weekStartTimestamp),
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         SELECT COUNT(*) as count FROM folders
         WHERE is_public = 1 AND (share_expires_at IS NULL OR share_expires_at > ?)
-      `).bind(now).first().then((row) => row?.count || 0),
+      `
+        )
+        .bind(now)
+        .first()
+        .then((row) => row?.count || 0),
       this.orderStatsRepo.getTodayHourlyTrend(todayStartTimestamp),
       this.orderStatsRepo.getLast7DaysPendingTrend(weekStartTimestamp),
       this.orderStatsRepo.getLast7DaysOrderTrend(weekStartTimestamp),
       this.orderStatsRepo.getLast7DaysShareTrend(weekStartTimestamp),
-      this.statsRepo.getRecentFiles(5).then((files) => files.map((file) => ({
-        ...file,
-        url: getFileUrl(file.storage_key),
-      }))),
+      this.statsRepo.getRecentFiles(5).then((files) =>
+        files.map((file) => ({
+          ...file,
+          url: getFileUrl(file.storage_key),
+        }))
+      ),
       this.folderRepo.findShared({ limit: 5 }).then((result) => result.items),
       this.orderStatsRepo.getSalesTrend(thirtyDaysAgo),
       this.orderStatsRepo.getStatusDistribution(),
       this.orderStatsRepo.getProfitSummary(),
     ]);
 
-    return this.projectionRepo.upsert(STATS_PROJECTION_SCOPES.DASHBOARD_OVERVIEW, {
-      data: {
-        todayCount,
-        pendingCount,
-        recentPendingOrders,
-        weekCount,
-        lastWeekCount,
-        activeSharesCount,
-        profit: {
-          totalRevenue: profitSummary.totalRevenue,
-          totalCost: profitSummary.totalCost,
-          totalProfit: profitSummary.totalProfit,
-          margin: profitSummary.margin,
+    return this.projectionRepo.upsert(
+      STATS_PROJECTION_SCOPES.DASHBOARD_OVERVIEW,
+      {
+        data: {
+          todayCount,
+          pendingCount,
+          recentPendingOrders,
+          weekCount,
+          lastWeekCount,
+          activeSharesCount,
+          profit: {
+            totalRevenue: profitSummary.totalRevenue,
+            totalCost: profitSummary.totalCost,
+            totalProfit: profitSummary.totalProfit,
+            margin: profitSummary.margin,
+          },
+          charts: {
+            today: todayHourlyTrend,
+            pending: pendingTrend,
+            week: weekTrendData,
+            shares: shareTrend,
+            salesTrend,
+            statusDistribution,
+          },
+          recentFiles,
+          recentShares,
+          generatedAt,
         },
-        charts: {
-          today: todayHourlyTrend,
-          pending: pendingTrend,
-          week: weekTrendData,
-          shares: shareTrend,
-          salesTrend,
-          statusDistribution,
-        },
-        recentFiles,
-        recentShares,
-        generatedAt,
       },
-    }, this.now());
+      this.now()
+    );
   }
 }

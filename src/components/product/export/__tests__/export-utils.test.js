@@ -93,17 +93,19 @@ describe('product export utils', () => {
   });
 
   it('builds CSV content with headers and values', () => {
-    const csv = buildCsvContent([
-      { product_id: 'p1', product_name: 'Test' },
-    ], EXPORT_COLUMNS.slice(0, 2));
+    const csv = buildCsvContent(
+      [{ product_id: 'p1', product_name: 'Test' }],
+      EXPORT_COLUMNS.slice(0, 2)
+    );
     expect(csv).toContain('Product ID,Product Name');
     expect(csv).toContain('p1,Test');
   });
 
   it('neutralizes spreadsheet formula prefixes in csv cells', () => {
-    const csv = buildCsvContent([
-      { product_id: '=cmd', product_name: '+SUM(1,2)' },
-    ], EXPORT_COLUMNS.slice(0, 2));
+    const csv = buildCsvContent(
+      [{ product_id: '=cmd', product_name: '+SUM(1,2)' }],
+      EXPORT_COLUMNS.slice(0, 2)
+    );
 
     expect(csv).toContain("'=cmd");
     expect(csv).toContain("'+SUM(1,2)");
@@ -147,13 +149,15 @@ describe('product export utils', () => {
   });
 
   it('builds excel workbook with grouped headers', async () => {
-    const wb = await buildExcelWorkbook([
-      { product_id: 'p1', product_name: 'Test', stock_flag: 'LOW_STOCK' },
-    ], EXPORT_COLUMNS.slice(0, 2), {
-      generatedAt: '2026-02-27T12:00:00.000Z',
-      scopeLabel: 'All products',
-      filtersLabel: '-',
-    });
+    const wb = await buildExcelWorkbook(
+      [{ product_id: 'p1', product_name: 'Test', stock_flag: 'LOW_STOCK' }],
+      EXPORT_COLUMNS.slice(0, 2),
+      {
+        generatedAt: '2026-02-27T12:00:00.000Z',
+        scopeLabel: 'All products',
+        filtersLabel: '-',
+      }
+    );
     expect(wb.SheetNames).toContain('Product Variants');
     const ws = wb.Sheets['Product Variants'];
     expect(String(ws.A1.v)).toContain('Product Variant Export Report');

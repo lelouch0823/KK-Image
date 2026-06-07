@@ -24,11 +24,11 @@ const protectedSales = new Hono();
 protectedSales.use('*', salesAuthMiddleware);
 
 protectedSales.route('/orders', ordersRoutes);
-protectedSales.route('/', filesRoutes);        // /upload
+protectedSales.route('/', filesRoutes); // /upload
 protectedSales.route('/notifications', notificationsRoutes);
 protectedSales.route('/spaces', spacesRoutes);
 protectedSales.route('/products', productsRoutes);
-protectedSales.route('/', profileRoutes);      // /auth (GET), /bind-wechat, /stats
+protectedSales.route('/', profileRoutes); // /auth (GET), /bind-wechat, /stats
 
 // Mount protected routes under /:token
 app.route('/:token', protectedSales);

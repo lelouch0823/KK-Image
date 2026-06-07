@@ -13,6 +13,7 @@
 ### Task 1: DB Schema for Variant Ops Fields
 
 **Files:**
+
 - Create: `migrations/0044_variant_ops_fields.sql`
 - Test/Verify: local D1 schema checks via Wrangler
 
@@ -26,6 +27,7 @@ Expected: no `moq`, `pack_size`, `order_step`, `suggested_purchase_price`, `barc
 **Step 2: Add migration**
 
 Add columns with safe defaults:
+
 - `moq INTEGER NOT NULL DEFAULT 1`
 - `pack_size INTEGER NOT NULL DEFAULT 1`
 - `order_step INTEGER NOT NULL DEFAULT 1`
@@ -34,6 +36,7 @@ Add columns with safe defaults:
 - `supplier_sku TEXT`
 
 Add constraints/indexes:
+
 - check `moq >= 1`, `pack_size >= 1`, `order_step >= 1`
 - unique index for non-empty `barcode`
 - index for `supplier_sku`
@@ -62,6 +65,7 @@ git commit -m "feat(db): add variant operational fields for replenishment and ex
 ### Task 2: DB Schema for Variant Audit Log
 
 **Files:**
+
 - Create: `migrations/0045_variant_audit_logs.sql`
 - Test/Verify: local D1 table/trigger checks
 
@@ -75,6 +79,7 @@ Expected: no row.
 **Step 2: Add migration**
 
 Create `variant_audit_logs`:
+
 - `id`, `variant_id`, `product_id`, `actor_type`, `actor_id`, `action`, `changes_json`, `created_at`
 - indexes on `(variant_id, created_at)` and `(product_id, created_at)`
 
@@ -102,6 +107,7 @@ git commit -m "feat(db): add variant audit logs table"
 ### Task 3: Shared Variant Naming and Availability Logic (TDD)
 
 **Files:**
+
 - Create: `src/utils/variant-meta.js`
 - Create: `src/utils/__tests__/variant-meta.test.js`
 - Create: `functions/lib/utils/variant-meta.js`
@@ -110,6 +116,7 @@ git commit -m "feat(db): add variant audit logs table"
 **Step 1: Write failing tests**
 
 Cover:
+
 - fixed label order: `color / material / size`
 - fallback key normalization (`Color`, `颜色`, etc.)
 - availability state:
@@ -121,6 +128,7 @@ Cover:
 **Step 2: Run tests (RED)**
 
 Run:
+
 - `pnpm test:unit src/utils/__tests__/variant-meta.test.js`
 - `pnpm test:unit functions/lib/utils/__tests__/variant-meta.test.js`
 
@@ -129,6 +137,7 @@ Expected: FAIL.
 **Step 3: Implement minimal helpers**
 
 Implement:
+
 - `normalizeVariantOptions(raw)`
 - `buildVariantDisplayName(raw)`
 - `getVariantAvailabilityState(variant)`
@@ -149,6 +158,7 @@ git commit -m "feat(variant): add shared display-name and availability helpers"
 ### Task 4: Wire Feature #2 and #3 Into GoodsOverview/Purchase/Order/Space (TDD)
 
 **Files:**
+
 - Modify: `functions/repositories/GoodsOverviewRepository.js`
 - Modify: `functions/services/PurchaseOrderService.js`
 - Modify: `src/components/order/ProductBindingSection.vue`
@@ -165,6 +175,7 @@ git commit -m "feat(variant): add shared display-name and availability helpers"
 **Step 1: Write failing tests**
 
 Add assertions:
+
 - display name uses unified helper order
 - unavailable variants rendered disabled
 - low stock variants show warning state
@@ -172,6 +183,7 @@ Add assertions:
 **Step 2: Run tests (RED)**
 
 Run:
+
 - `pnpm test:unit functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
 - `pnpm test:unit functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
 - `pnpm test:unit src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
@@ -198,6 +210,7 @@ git commit -m "feat(variant): enforce availability states and unified display na
 ### Task 5: Feature #4 Replenishment Rules (MOQ/Pack/Step) (TDD)
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/purchase-orders.js`
 - Modify: `functions/repositories/PurchaseOrderRepository.js`
 - Modify: `functions/services/PurchaseOrderService.js`
@@ -208,6 +221,7 @@ git commit -m "feat(variant): enforce availability states and unified display na
 **Step 1: Write failing tests**
 
 Rules:
+
 - quantity `< moq` rejected
 - `(quantity - moq) % order_step !== 0` rejected
 - quantity not aligned to `pack_size` warns + suggests nearest value
@@ -215,6 +229,7 @@ Rules:
 **Step 2: Run tests (RED)**
 
 Run:
+
 - `pnpm test:unit functions/services/__tests__/purchase-order-constraints.test.js`
 - `pnpm test:unit src/views/__tests__/PurchaseOrders.constraints.test.js`
 
@@ -240,6 +255,7 @@ git commit -m "feat(purchase): enforce variant moq/pack/step replenishment rules
 ### Task 6: Feature #5 Variant Pricing Strategy (TDD)
 
 **Files:**
+
 - Modify: `functions/services/PurchaseOrderService.js`
 - Modify: `functions/repositories/PurchaseOrderRepository.js`
 - Modify: `src/views/PurchaseOrders.vue`
@@ -248,6 +264,7 @@ git commit -m "feat(purchase): enforce variant moq/pack/step replenishment rules
 **Step 1: Write failing tests**
 
 Need response fields:
+
 - `variant_cost_price`
 - `suggested_purchase_price`
 - `last_purchase_price`
@@ -280,6 +297,7 @@ git commit -m "feat(pricing): add variant-level suggested and last purchase pric
 ### Task 7: Feature #6 External Codes (barcode/supplier_sku) (TDD)
 
 **Files:**
+
 - Modify: `functions/repositories/ProductVariantRepository.js`
 - Modify: `functions/lib/hono/routes/manage/products/[id].js`
 - Modify: `src/components/product/ProductCreateModal.vue`
@@ -289,12 +307,14 @@ git commit -m "feat(pricing): add variant-level suggested and last purchase pric
 **Step 1: Write failing tests**
 
 Cover:
+
 - save/read barcode + supplier_sku
 - barcode unique validation
 
 **Step 2: Run tests (RED)**
 
 Run:
+
 - `pnpm test:unit functions/repositories/__tests__/variant-external-codes.test.js`
 - `pnpm test:unit src/components/product/__tests__/ProductCreateModal.external-codes.test.js`
 
@@ -320,6 +340,7 @@ git commit -m "feat(variant): support barcode and supplier_sku fields"
 ### Task 8: Feature #7 Batch Variant Builder (TDD)
 
 **Files:**
+
 - Create: `src/components/product/VariantBatchBuilderModal.vue`
 - Modify: `src/components/product/ProductCreateModal.vue`
 - Create: `src/components/product/__tests__/VariantBatchBuilderModal.test.js`
@@ -327,6 +348,7 @@ git commit -m "feat(variant): support barcode and supplier_sku fields"
 **Step 1: Write failing tests**
 
 Cover:
+
 - generate matrix from `颜色 x 材质 x 尺码`
 - dedupe existing combinations
 - batch apply price/stock/status
@@ -358,6 +380,7 @@ git commit -m "feat(ui): add batch variant matrix builder"
 ### Task 9: Feature #8 Variant Audit Logging (TDD)
 
 **Files:**
+
 - Create: `functions/repositories/VariantAuditRepository.js`
 - Modify: `functions/lib/hono/routes/manage/products/[id].js`
 - Modify: `functions/repositories/ProductVariantRepository.js`
@@ -367,6 +390,7 @@ git commit -m "feat(ui): add batch variant matrix builder"
 **Step 1: Write failing tests**
 
 Cover audit creation on:
+
 - variant create
 - variant price/stock/status update
 - variant archive/delete
@@ -374,6 +398,7 @@ Cover audit creation on:
 **Step 2: Run tests (RED)**
 
 Run:
+
 - `pnpm test:unit functions/repositories/__tests__/variant-audit.test.js`
 - `pnpm test:unit functions/lib/hono/routes/manage/products/__tests__/variant-audit-routes.test.js`
 
@@ -399,12 +424,14 @@ git commit -m "feat(audit): add variant operation audit trails"
 ### Task 10: Final Verification and QA Notes
 
 **Files:**
+
 - Modify: `docs/plans/2026-02-25-variant-images-design.md`
 - Create/Modify: `docs/plans/2026-02-25-variant-governance-qa.md`
 
 **Step 1: Run full targeted suite**
 
 Run:
+
 - `pnpm test:unit functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
 - `pnpm test:unit functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
 - `pnpm test:unit functions/repositories/__tests__/PurchaseOrderRepository.variant-required.test.js`
@@ -421,6 +448,7 @@ Run:
 `pnpm run dev:all`
 
 Check:
+
 - variant selector blocks archived/out-of-stock
 - display labels consistent (`颜色 / 材质 / 尺码`)
 - replenishment quantity suggestion works

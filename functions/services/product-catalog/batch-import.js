@@ -7,8 +7,17 @@ export const IMPORT_MODE = {
 };
 
 export const PRODUCT_MUTABLE_FIELDS = new Set([
-  'name', 'spu', 'slug', 'category', 'brand', 'series',
-  'currency', 'description', 'images', 'specifications', 'options',
+  'name',
+  'spu',
+  'slug',
+  'category',
+  'brand',
+  'series',
+  'currency',
+  'description',
+  'images',
+  'specifications',
+  'options',
 ]);
 
 export const hasOwnMeta = (value) =>
@@ -23,10 +32,10 @@ export const hasVariantOptionSelections = (variants = []) =>
   (variants || []).some((variant) =>
     Object.entries(variant?.options_values || {}).some(
       ([key, value]) =>
-        String(key || '').trim()
-        && value !== undefined
-        && value !== null
-        && String(value).trim() !== ''
+        String(key || '').trim() &&
+        value !== undefined &&
+        value !== null &&
+        String(value).trim() !== ''
     )
   );
 
@@ -40,9 +49,10 @@ export function buildCatalogRollbackPayload(variants = []) {
     id: variant.id,
     sku: variant.sku,
     price: Number(variant.price) || 0,
-    cost_price: variant.cost_price !== undefined && variant.cost_price !== null
-      ? Number(variant.cost_price)
-      : null,
+    cost_price:
+      variant.cost_price !== undefined && variant.cost_price !== null
+        ? Number(variant.cost_price)
+        : null,
     alert_threshold: normalizeAlertThreshold(variant.alert_threshold),
     options_values: variant.options_values || {},
     image_id: variant.image_id || null,
@@ -70,13 +80,18 @@ export function assignGeneratedSkuForPatchVariants(variants = [], variantRepo) {
       return variant;
     }
 
-    const fallbackSeed = variant._clientKey
-      || variant.variant_code
-      || JSON.stringify(variant.options_values || {})
-      || generateId();
-    const buildFallbackVariantSku = typeof variantRepo?.buildFallbackVariantSku === 'function'
-      ? variantRepo.buildFallbackVariantSku.bind(variantRepo)
-      : (value) => `SKU-${String(value || generateId()).replace(/[^a-zA-Z0-9]+/g, '').toUpperCase()}`;
+    const fallbackSeed =
+      variant._clientKey ||
+      variant.variant_code ||
+      JSON.stringify(variant.options_values || {}) ||
+      generateId();
+    const buildFallbackVariantSku =
+      typeof variantRepo?.buildFallbackVariantSku === 'function'
+        ? variantRepo.buildFallbackVariantSku.bind(variantRepo)
+        : (value) =>
+            `SKU-${String(value || generateId())
+              .replace(/[^a-zA-Z0-9]+/g, '')
+              .toUpperCase()}`;
 
     return {
       ...variant,
@@ -86,7 +101,9 @@ export function assignGeneratedSkuForPatchVariants(variants = [], variantRepo) {
 }
 
 export const normalizeImportMode = (value) => {
-  const mode = String(value || '').trim().toLowerCase();
+  const mode = String(value || '')
+    .trim()
+    .toLowerCase();
   if (!mode) return IMPORT_MODE.SAFE_MERGE;
   if (mode === IMPORT_MODE.SAFE_MERGE) return IMPORT_MODE.SAFE_MERGE;
   if (mode === IMPORT_MODE.REPLACE) return IMPORT_MODE.REPLACE;

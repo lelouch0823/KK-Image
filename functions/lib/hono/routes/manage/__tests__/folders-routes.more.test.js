@@ -117,7 +117,10 @@ import foldersApp from '../folders.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.route('/api/manage/folders', foldersApp);
   return app;
@@ -147,7 +150,17 @@ describe('manage folders routes extra coverage', () => {
     mocks.update.mockResolvedValue(true);
     mocks.softDelete.mockResolvedValue(undefined);
     mocks.isDescendantOrSelf.mockResolvedValue(false);
-    mocks.findByFolder.mockResolvedValue([{ id: 'file-1', name: 'Asset', original_name: 'asset.png', size: 1, mime_type: 'image/png', storage_key: 'key-1', created_at: 10 }]);
+    mocks.findByFolder.mockResolvedValue([
+      {
+        id: 'file-1',
+        name: 'Asset',
+        original_name: 'asset.png',
+        size: 1,
+        mime_type: 'image/png',
+        storage_key: 'key-1',
+        created_at: 10,
+      },
+    ]);
     mocks.storeFile.mockResolvedValue({
       id: 'file-1',
       name: 'asset.png',
@@ -161,19 +174,35 @@ describe('manage folders routes extra coverage', () => {
   it('switches list source based on query params and maps detail payloads', async () => {
     const app = createApp();
 
-    const topResponse = await app.request('http://localhost/api/manage/folders', { method: 'GET' }, { DB: {} });
+    const topResponse = await app.request(
+      'http://localhost/api/manage/folders',
+      { method: 'GET' },
+      { DB: {} }
+    );
     expect(topResponse.status).toBe(200);
     expect(mocks.findTopLevel).toHaveBeenCalled();
 
-    const allResponse = await app.request('http://localhost/api/manage/folders?all=true', { method: 'GET' }, { DB: {} });
+    const allResponse = await app.request(
+      'http://localhost/api/manage/folders?all=true',
+      { method: 'GET' },
+      { DB: {} }
+    );
     expect(allResponse.status).toBe(200);
     expect(mocks.findAllMinimal).toHaveBeenCalled();
 
-    const parentResponse = await app.request('http://localhost/api/manage/folders?parent_id=folder-1', { method: 'GET' }, { DB: {} });
+    const parentResponse = await app.request(
+      'http://localhost/api/manage/folders?parent_id=folder-1',
+      { method: 'GET' },
+      { DB: {} }
+    );
     expect(parentResponse.status).toBe(200);
     expect(mocks.findByParent).toHaveBeenCalledWith('folder-1');
 
-    const detailResponse = await app.request('http://localhost/api/manage/folders/folder-1', { method: 'GET' }, { DB: {} });
+    const detailResponse = await app.request(
+      'http://localhost/api/manage/folders/folder-1',
+      { method: 'GET' },
+      { DB: {} }
+    );
     const detailBody = await detailResponse.json();
     expect(detailBody.data).toEqual(
       expect.objectContaining({
@@ -264,7 +293,11 @@ describe('manage folders routes extra coverage', () => {
   it('rejects root deletion and uploads missing files with 400', async () => {
     const app = createApp();
 
-    const rootDelete = await app.request('http://localhost/api/manage/folders/root', { method: 'DELETE' }, { DB: {} });
+    const rootDelete = await app.request(
+      'http://localhost/api/manage/folders/root',
+      { method: 'DELETE' },
+      { DB: {} }
+    );
     expect(rootDelete.status).toBe(400);
 
     const uploadResponse = await app.request(

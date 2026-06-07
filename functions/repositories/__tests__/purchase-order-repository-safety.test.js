@@ -65,7 +65,12 @@ function createHeaderFailureDb() {
     }),
   }));
   const batch = vi.fn(async (stmts) => stmts.map(() => ({ meta: { changes: 1 } })));
-  return { prepare, batch, __runStatements: runStatements, __updateCallCount: () => updateCallCount };
+  return {
+    prepare,
+    batch,
+    __runStatements: runStatements,
+    __updateCallCount: () => updateCallCount,
+  };
 }
 
 function createScopedMutationDb(batchChanges = [1, 1]) {
@@ -135,11 +140,15 @@ describe('PurchaseOrderRepository safety guards', () => {
     try {
       vi.setSystemTime(new Date('2026-03-30T04:00:00.000Z'));
 
-      const first = vi.fn()
+      const first = vi
+        .fn()
         .mockResolvedValueOnce({ po_no: 'PO-20260330-001' })
         .mockResolvedValueOnce({ po_no: 'PO-20260330-002' });
-      const run = vi.fn()
-        .mockRejectedValueOnce(new Error('D1_ERROR: UNIQUE constraint failed: purchase_orders.po_no: SQLITE_CONSTRAINT'))
+      const run = vi
+        .fn()
+        .mockRejectedValueOnce(
+          new Error('D1_ERROR: UNIQUE constraint failed: purchase_orders.po_no: SQLITE_CONSTRAINT')
+        )
         .mockResolvedValueOnce({ meta: { changes: 1 } });
       const insertParams = [];
       const db = {
@@ -208,7 +217,9 @@ describe('PurchaseOrderRepository safety guards', () => {
     await repo.removeItem('po-1', 'item-1');
 
     expect(db.__batchCalls[0][0].sql).toContain('WHERE id = ? AND po_id = ?');
-    expect(db.__batchCalls[0][1].sql).toContain('UPDATE purchase_orders SET updated_at = ? WHERE id = ?');
+    expect(db.__batchCalls[0][1].sql).toContain(
+      'UPDATE purchase_orders SET updated_at = ? WHERE id = ?'
+    );
   });
 
   it('updateItem must be scoped by po_id', async () => {
@@ -218,7 +229,9 @@ describe('PurchaseOrderRepository safety guards', () => {
     await repo.updateItem('po-1', 'item-1', { quantity: 2 });
 
     expect(db.__batchCalls[0][0].sql).toContain('WHERE id = ? AND po_id = ?');
-    expect(db.__batchCalls[0][1].sql).toContain('UPDATE purchase_orders SET updated_at = ? WHERE id = ?');
+    expect(db.__batchCalls[0][1].sql).toContain(
+      'UPDATE purchase_orders SET updated_at = ? WHERE id = ?'
+    );
   });
 
   it('addItems batches large inserts into D1-safe chunks', async () => {
@@ -231,7 +244,12 @@ describe('PurchaseOrderRepository safety guards', () => {
       unit_cost: 10,
       snapshot_name: `Snapshot ${index + 1}`,
       snapshot_sku: `SNAP-${index + 1}`,
-      snapshot_specs: JSON.stringify({ brand: 'Snapshot Brand', size: 'L', color: 'Black', material: 'Canvas' }),
+      snapshot_specs: JSON.stringify({
+        brand: 'Snapshot Brand',
+        size: 'L',
+        color: 'Black',
+        material: 'Canvas',
+      }),
       snapshot_image: `snapshot-image-${index + 1}`,
     }));
 
@@ -252,7 +270,12 @@ describe('PurchaseOrderRepository safety guards', () => {
       unit_cost: 10,
       snapshot_name: `Snapshot ${index + 1}`,
       snapshot_sku: `SNAP-${index + 1}`,
-      snapshot_specs: JSON.stringify({ brand: 'Snapshot Brand', size: 'L', color: 'Black', material: 'Canvas' }),
+      snapshot_specs: JSON.stringify({
+        brand: 'Snapshot Brand',
+        size: 'L',
+        color: 'Black',
+        material: 'Canvas',
+      }),
       snapshot_image: `snapshot-image-${index + 1}`,
     }));
 
@@ -281,7 +304,12 @@ describe('PurchaseOrderRepository safety guards', () => {
       unit_cost: 10,
       snapshot_name: `Snapshot ${index + 1}`,
       snapshot_sku: `SNAP-${index + 1}`,
-      snapshot_specs: JSON.stringify({ brand: 'Snapshot Brand', size: 'L', color: 'Black', material: 'Canvas' }),
+      snapshot_specs: JSON.stringify({
+        brand: 'Snapshot Brand',
+        size: 'L',
+        color: 'Black',
+        material: 'Canvas',
+      }),
       snapshot_image: `snapshot-image-${index + 1}`,
     }));
 
@@ -303,18 +331,20 @@ describe('PurchaseOrderRepository safety guards', () => {
         const statement = {
           bind: vi.fn(() => statement),
           all: vi.fn(async () => ({
-            results: [{
-              product_id: 'prod-1',
-              variant_id: 'var-1',
-              product_name: 'Snapshot Product',
-              product_brand: 'Snapshot Brand',
-              product_series: 'Series A',
-              product_images: '["snapshot-image"]',
-              product_specifications: '{}',
-              variant_sku: 'SNAP-001',
-              variant_options: '{"颜色":"Black","材质":"Canvas","尺码":"L"}',
-              variant_image_id: 'variant-image',
-            }],
+            results: [
+              {
+                product_id: 'prod-1',
+                variant_id: 'var-1',
+                product_name: 'Snapshot Product',
+                product_brand: 'Snapshot Brand',
+                product_series: 'Series A',
+                product_images: '["snapshot-image"]',
+                product_specifications: '{}',
+                variant_sku: 'SNAP-001',
+                variant_options: '{"颜色":"Black","材质":"Canvas","尺码":"L"}',
+                variant_image_id: 'variant-image',
+              },
+            ],
           })),
         };
         return statement;
@@ -351,41 +381,53 @@ describe('PurchaseOrderRepository safety guards', () => {
     });
     const repo = new PurchaseOrderRepository({ prepare, batch });
 
-    await repo.addItems('po-1', [{
-      product_id: 'prod-1',
-      variant_id: 'var-1',
-      pre_order_id: null,
-      quantity: 2,
-      unit_cost: 15,
-    }]);
+    await repo.addItems('po-1', [
+      {
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        pre_order_id: null,
+        quantity: 2,
+        unit_cost: 15,
+      },
+    ]);
 
     const insertStmt = batch.mock.calls[0][0][0];
     expect(insertStmt.sql).toContain('snapshot_name');
     expect(insertStmt.sql).toContain('snapshot_specs');
-    expect(insertStmt.params).toEqual(expect.arrayContaining([
-      'Snapshot Product',
-      'SNAP-001',
-      JSON.stringify({ brand: 'Snapshot Brand', size: 'L', color: 'Black', material: 'Canvas', series: 'Series A' }),
-      'variant-image',
-    ]));
+    expect(insertStmt.params).toEqual(
+      expect.arrayContaining([
+        'Snapshot Product',
+        'SNAP-001',
+        JSON.stringify({
+          brand: 'Snapshot Brand',
+          size: 'L',
+          color: 'Black',
+          material: 'Canvas',
+          series: 'Series A',
+        }),
+        'variant-image',
+      ])
+    );
   });
 
   it('addItems persists order_line_id when procurement items are bound to a specific order line', async () => {
     const db = createBatchDb();
     const repo = new PurchaseOrderRepository(db);
 
-    await repo.addItems('po-1', [{
-      product_id: 'prod-1',
-      variant_id: 'var-1',
-      pre_order_id: 'o-1',
-      order_line_id: 'line-1',
-      quantity: 2,
-      unit_cost: 10,
-      snapshot_name: 'Snapshot Product',
-      snapshot_sku: 'SNAP-001',
-      snapshot_specs: JSON.stringify({ brand: 'Snapshot Brand' }),
-      snapshot_image: 'snapshot-image',
-    }]);
+    await repo.addItems('po-1', [
+      {
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        pre_order_id: 'o-1',
+        order_line_id: 'line-1',
+        quantity: 2,
+        unit_cost: 10,
+        snapshot_name: 'Snapshot Product',
+        snapshot_sku: 'SNAP-001',
+        snapshot_specs: JSON.stringify({ brand: 'Snapshot Brand' }),
+        snapshot_image: 'snapshot-image',
+      },
+    ]);
 
     const insertStmt = db.batch.mock.calls[0][0][0];
     expect(insertStmt.sql).toContain('order_line_id');
@@ -417,7 +459,9 @@ describe('PurchaseOrderRepository safety guards', () => {
     expect(db.batch).toHaveBeenCalledTimes(1);
     expect(db.__batchCalls[0]).toHaveLength(2);
     expect(db.__batchCalls[0][0].sql).toContain('UPDATE purchase_order_items SET quantity = ?');
-    expect(db.__batchCalls[0][1].sql).toContain('UPDATE purchase_orders SET updated_at = ? WHERE id = ?');
+    expect(db.__batchCalls[0][1].sql).toContain(
+      'UPDATE purchase_orders SET updated_at = ? WHERE id = ?'
+    );
   });
 
   it('removeItem batches the line deletion and header timestamp refresh together when scoped by po_id', async () => {
@@ -428,8 +472,12 @@ describe('PurchaseOrderRepository safety guards', () => {
 
     expect(db.batch).toHaveBeenCalledTimes(1);
     expect(db.__batchCalls[0]).toHaveLength(2);
-    expect(db.__batchCalls[0][0].sql).toContain('DELETE FROM purchase_order_items WHERE id = ? AND po_id = ?');
-    expect(db.__batchCalls[0][1].sql).toContain('UPDATE purchase_orders SET updated_at = ? WHERE id = ?');
+    expect(db.__batchCalls[0][0].sql).toContain(
+      'DELETE FROM purchase_order_items WHERE id = ? AND po_id = ?'
+    );
+    expect(db.__batchCalls[0][1].sql).toContain(
+      'UPDATE purchase_orders SET updated_at = ? WHERE id = ?'
+    );
   });
 
   it('findActiveBindingsByPreOrderIds returns non-cancelled purchase-order bindings', async () => {

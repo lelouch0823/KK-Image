@@ -13,6 +13,7 @@
 ### Task 1: Lock import behavior with failing tests
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/products/__tests__/product-spu-routes.test.js`
 
 **Step 1: Write the failing tests**
@@ -29,6 +30,7 @@ Expected: FAIL because batch import currently writes product updates before vari
 ### Task 2: Implement shared validation + rollback in batch import
 
 **Files:**
+
 - Modify: `functions/services/ProductCatalogService.js`
 
 **Step 1: Validate import items before writes**
@@ -50,6 +52,7 @@ Expected: PASS
 ### Task 3: Run adjacent regressions
 
 **Files:**
+
 - No code changes
 
 **Step 1: Run product service/route regressions**

@@ -11,12 +11,11 @@ describe('auth helper dead exports audit', () => {
     const offenders = [];
 
     if (source.includes('export function setSalesTokenCookie(')) {
-      offenders.push('functions/lib/hono/_shared/auth-helpers.js: still defines setSalesTokenCookie');
+      offenders.push(
+        'functions/lib/hono/_shared/auth-helpers.js: still defines setSalesTokenCookie'
+      );
     }
 
-    expect(
-      offenders,
-      `auth helper dead-export offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `auth helper dead-export offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

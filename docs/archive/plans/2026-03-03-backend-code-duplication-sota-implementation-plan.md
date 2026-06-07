@@ -13,6 +13,7 @@
 ### Task 1: 建立基线审计与回归护栏
 
 **Files:**
+
 - Create: `docs/reviews/2026-03-03-backend-code-duplication-validation.md`
 - Create: `scripts/audit-backend-duplication.ps1`
 
@@ -51,6 +52,7 @@ git commit -m "docs: add validated backend duplication baseline and audit script
 ### Task 2: 统一 JSON 解析能力（P0）
 
 **Files:**
+
 - Create: `functions/api/utils/json.js`
 - Create: `functions/api/utils/__tests__/json.test.js`
 - Modify: `functions/_shared/utils.js`
@@ -79,7 +81,9 @@ Expected: FAIL，提示 `safeJsonParse` 未定义。
 **Step 3: 实现最小可用 JSON 工具并导出**
 
 ```javascript
-export function safeJsonParse(value, fallback = null) { /* ... */ }
+export function safeJsonParse(value, fallback = null) {
+  /* ... */
+}
 export const parseJsonArray = (value) => safeJsonParse(value, []);
 export const parseJsonObject = (value) => safeJsonParse(value, {});
 ```
@@ -99,6 +103,7 @@ git commit -m "feat: add unified json parse utilities with tests"
 ### Task 3: 统一 Repository 分页解析能力（P0）
 
 **Files:**
+
 - Create: `functions/api/utils/pagination.js`
 - Create: `functions/api/utils/__tests__/pagination.test.js`
 - Modify: `functions/lib/hono/_shared/route-helpers.js`
@@ -110,8 +115,9 @@ git commit -m "feat: add unified json parse utilities with tests"
 import { parseRepoPagination } from '../pagination.js';
 
 it('clamps invalid page/limit and returns offset', () => {
-  expect(parseRepoPagination({ page: 'x', limit: '999' }, { defaultLimit: 20, maxLimit: 100 }))
-    .toEqual({ page: 1, limit: 100, offset: 0 });
+  expect(
+    parseRepoPagination({ page: 'x', limit: '999' }, { defaultLimit: 20, maxLimit: 100 })
+  ).toEqual({ page: 1, limit: 100, offset: 0 });
 });
 ```
 
@@ -123,8 +129,12 @@ Expected: FAIL，提示 `parseRepoPagination` 不存在。
 **Step 3: 实现工具并修复 route-helpers 的 NaN 漏洞**
 
 ```javascript
-export function toPositiveInt(value, fallback) { /* ... */ }
-export function parseRepoPagination(input, options) { /* ... */ }
+export function toPositiveInt(value, fallback) {
+  /* ... */
+}
+export function parseRepoPagination(input, options) {
+  /* ... */
+}
 ```
 
 **Step 4: 回归 route-helpers**
@@ -142,6 +152,7 @@ git commit -m "feat: add unified pagination parser and harden route pagination"
 ### Task 4: 统一 D1 变更检查与动态 SET 子句构建（P1/P2）
 
 **Files:**
+
 - Create: `functions/api/utils/d1.js`
 - Create: `functions/api/utils/__tests__/d1.test.js`
 - Modify: `functions/api/utils/sql.js`
@@ -179,9 +190,15 @@ Expected: FAIL，缺少对应导出函数。
 **Step 4: 实现并导出新工具**
 
 ```javascript
-export function hasChanges(result) { return (result?.meta?.changes || 0) > 0; }
-export function getChangesCount(result) { return result?.meta?.changes || 0; }
-export function buildSetClause(data, allowedFields, options = {}) { /* ... */ }
+export function hasChanges(result) {
+  return (result?.meta?.changes || 0) > 0;
+}
+export function getChangesCount(result) {
+  return result?.meta?.changes || 0;
+}
+export function buildSetClause(data, allowedFields, options = {}) {
+  /* ... */
+}
 ```
 
 **Step 5: 跑测试确认通过并提交**
@@ -197,6 +214,7 @@ git commit -m "feat: add d1 helpers and reusable sql set-clause builder"
 ### Task 5: 重构 SpaceRepository 重复 SQL（P0）
 
 **Files:**
+
 - Modify: `functions/repositories/SpaceRepository.js`
 - Modify: `functions/repositories/__tests__/SpaceRepository.test.js`
 
@@ -243,6 +261,7 @@ git commit -m "refactor: deduplicate SpaceRepository select/join sql fragments"
 ### Task 6: 迁移 P0 调用点（分页 + JSON）
 
 **Files:**
+
 - Modify: `functions/repositories/FileRepository.js`
 - Modify: `functions/repositories/FolderRepository.js`
 - Modify: `functions/repositories/CustomerRepository.js`
@@ -280,6 +299,7 @@ git commit -m "refactor: migrate p0 pagination/json duplication to shared utilit
 ### Task 7: 迁移 P1/P2 调用点（时间戳、UUID、D1 结果、SET 子句）
 
 **Files:**
+
 - Modify: `functions/repositories/PurchaseOrderRepository.js`
 - Modify: `functions/repositories/ProductRepository.js`
 - Modify: `functions/repositories/FileRepository.js`
@@ -319,6 +339,7 @@ git commit -m "refactor: normalize uuid/timestamp/d1-change/set-clause patterns"
 ### Task 8: 最终验证、指标对比、发布检查
 
 **Files:**
+
 - Modify: `docs/reviews/2026-03-03-backend-code-duplication-validation.md`
 
 **Step 1: 运行完整验证**

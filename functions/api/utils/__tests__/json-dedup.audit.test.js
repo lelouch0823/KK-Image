@@ -61,9 +61,6 @@ describe('backend json parse helper dedup audit', () => {
       }
     }
 
-    expect(
-      offenders,
-      `backend json parse dedup offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `backend json parse dedup offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

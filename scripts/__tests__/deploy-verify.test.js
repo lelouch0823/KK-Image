@@ -1,11 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
-import {
-  createWaitResource,
-  main,
-  runCommand,
-  stopChild,
-} from '../deploy-verify.mjs';
+import { createWaitResource, main, runCommand, stopChild } from '../deploy-verify.mjs';
 
 function createChild() {
   const child = new EventEmitter();
@@ -20,7 +15,9 @@ function createChild() {
 
 describe('deploy-verify', () => {
   it('builds the health wait-on resource from the base url', () => {
-    expect(createWaitResource('http://127.0.0.1:8080/admin')).toBe('http-get://127.0.0.1:8080/api/v1/health');
+    expect(createWaitResource('http://127.0.0.1:8080/admin')).toBe(
+      'http-get://127.0.0.1:8080/api/v1/health'
+    );
   });
 
   it('runs commands successfully and reports exit failures', async () => {
@@ -30,7 +27,9 @@ describe('deploy-verify', () => {
       return successChild;
     });
 
-    await expect(runCommand('pnpm', ['build'], {}, { spawnImpl: spawnSuccess, env: { FOO: 'bar' } })).resolves.toBeUndefined();
+    await expect(
+      runCommand('pnpm', ['build'], {}, { spawnImpl: spawnSuccess, env: { FOO: 'bar' } })
+    ).resolves.toBeUndefined();
     expect(spawnSuccess).toHaveBeenCalledWith(
       'pnpm',
       ['build'],

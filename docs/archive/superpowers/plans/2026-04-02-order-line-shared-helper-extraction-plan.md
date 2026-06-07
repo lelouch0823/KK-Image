@@ -13,12 +13,14 @@
 ### Task 1: Lock the New Shared Module Contract
 
 **Files:**
+
 - Create: `functions/services/__tests__/order-line-shared.test.js`
 - Modify: `functions/services/__tests__/OrderLineFulfillmentService.test.js`
 
 - [ ] **Step 1: Write the failing tests**
 
 Add tests that assert:
+
 - the new shared module normalizes inventory balance rows and returns `null` for empty `variantId`
 - the new shared module preserves full-projection `order_lines` bind parameter order
 - fulfillment service SQL expectations remain unchanged after rewiring
@@ -36,6 +38,7 @@ Expected: FAIL because `functions/services/order-line-shared.js` does not exist 
 ### Task 2: Extract and Rewire
 
 **Files:**
+
 - Create: `functions/services/order-line-shared.js`
 - Modify: `functions/services/order-procurement-shared.js`
 - Modify: `functions/services/OrderLineFulfillmentService.js`
@@ -43,6 +46,7 @@ Expected: FAIL because `functions/services/order-line-shared.js` does not exist 
 - [ ] **Step 1: Implement the new shared helper file**
 
 Add:
+
 - `queryInventoryBalance`
 - `buildOrderLineProjectionStatement`
 

@@ -52,10 +52,13 @@ describeIfRealApi('Manage Products Real API Rollback', function () {
     assert.ok([400, 409, 500].includes(created.response.status));
 
     // Rollback guarantee: no residual product by SPU
-    const list = await apiRequest(`/api/manage/products?search=${encodeURIComponent(spu)}&page=1&limit=10`, {
-      bearerToken: token,
-      expectedStatus: 200,
-    });
+    const list = await apiRequest(
+      `/api/manage/products?search=${encodeURIComponent(spu)}&page=1&limit=10`,
+      {
+        bearerToken: token,
+        expectedStatus: 200,
+      }
+    );
     const items = list.json?.data || [];
     assert.ok(!items.some((item) => item.spu === spu), 'rollback failed: residual product exists');
   });

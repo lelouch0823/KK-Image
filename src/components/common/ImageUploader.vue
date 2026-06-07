@@ -35,10 +35,7 @@
       />
 
       <!-- 处理中状态 -->
-      <UploadProcessingIndicator
-        v-if="isProcessing"
-        :status="processingStatus"
-      />
+      <UploadProcessingIndicator v-if="isProcessing" :status="processingStatus" />
     </div>
 
     <p v-if="hint" class="text-secondary mt-3 text-xs">{{ hint }}</p>
@@ -57,7 +54,6 @@ import { generateRandomId } from '@/utils/common';
 import UploadPreviewItem from './uploader/UploadPreviewItem.vue';
 import UploadProcessingIndicator from './uploader/UploadProcessingIndicator.vue';
 import UploadButton from './uploader/UploadButton.vue';
-
 
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
@@ -140,7 +136,7 @@ const uploadFile = async (file, hash, originalHash) => {
   const params = [];
   if (hash) params.push(`contentHash=${hash}`);
   if (originalHash) params.push(`originalHash=${originalHash}`);
-  
+
   if (params.length) {
     const separator = uploadUrl.includes('?') ? '&' : '?';
     // Add context if prop provided
@@ -217,7 +213,10 @@ const handleFileSelect = async (e) => {
       originalHash = result.originalHash; // 压缩时已计算的原始 hash
     } catch (compressErr) {
       console.error('[ImageUploader] Compression failed:', compressErr);
-      addToast({ message: t('upload.compressFailed', { message: compressErr.message }), type: 'error' });
+      addToast({
+        message: t('upload.compressFailed', { message: compressErr.message }),
+        type: 'error',
+      });
       isProcessing.value = false;
       processingStatus.value = '';
       continue;
@@ -364,8 +363,6 @@ const uploadPendingFiles = async () => {
     }
   });
 
-
-
   if (pendingIndices.length === 0) return true;
 
   isProcessing.value = true;
@@ -395,8 +392,6 @@ const uploadPendingFiles = async () => {
           hash: fileObj.hash,
           instantUpload: uploaded.instantUpload,
         };
-
-
       } catch (e) {
         console.error(`Upload failed for file at index ${originalIndex}`, e);
         throw new Error(`${fileObj.file.name} ${t('uploadQueue.uploadFailed')}`);

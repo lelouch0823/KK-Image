@@ -81,9 +81,8 @@ export class DomainOutboxRepository {
 
   buildInsertStatements(events = [], resolveConsumers = () => []) {
     const statements = [];
-    const resolveConsumerNames = typeof resolveConsumers === 'function'
-      ? resolveConsumers
-      : () => resolveConsumers || [];
+    const resolveConsumerNames =
+      typeof resolveConsumers === 'function' ? resolveConsumers : () => resolveConsumers || [];
 
     for (const event of events) {
       statements.push(this.createEventInsertStatement(event));

@@ -6,11 +6,12 @@ const buildDimensionNameMap = (dimensions = []) =>
     return acc;
   }, {});
 
-export const normalizeVariantExternalCodes = (variants = []) => variants.map((variant) => ({
-  ...variant,
-  barcode: String(variant?.barcode ?? '').trim() || null,
-  supplier_sku: String(variant?.supplier_sku ?? '').trim() || null,
-}));
+export const normalizeVariantExternalCodes = (variants = []) =>
+  variants.map((variant) => ({
+    ...variant,
+    barcode: String(variant?.barcode ?? '').trim() || null,
+    supplier_sku: String(variant?.supplier_sku ?? '').trim() || null,
+  }));
 
 export const normalizeVariantDimensionKeys = (variants = [], dimensions = []) => {
   const nameMap = buildDimensionNameMap(dimensions);

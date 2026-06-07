@@ -77,8 +77,7 @@ function formatEventMessage(eventType, payload = {}) {
     order_delivery_confirmed: (p) =>
       `**订单签收确认**\n> 订单编号：${p.order_no || p.order_id}\n> 确认人：${p.actor_name || '管理员'}`,
 
-    admin_notification_created: (p) =>
-      `**系统通知**\n> ${p.title}\n> ${p.content || ''}`,
+    admin_notification_created: (p) => `**系统通知**\n> ${p.title}\n> ${p.content || ''}`,
   };
 
   const formatter = templates[eventType];

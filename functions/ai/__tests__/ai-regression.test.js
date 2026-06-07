@@ -14,8 +14,12 @@ describe('ai regression fixtures', () => {
       basePrompt: 'base',
     });
     expect(basic.visionFirst).toBe(basicFixture.expected.visionFirst);
-    expect(validateAIRequest({ history: basicFixture.history, limits: { maxInputLength: 1000, maxImageCount: 4, maxImageUrlLength: 1000 } }).decision)
-      .toBe(basicFixture.expected.decision);
+    expect(
+      validateAIRequest({
+        history: basicFixture.history,
+        limits: { maxInputLength: 1000, maxImageCount: 4, maxImageUrlLength: 1000 },
+      }).decision
+    ).toBe(basicFixture.expected.decision);
 
     const multimodal = await prepareConversationRequest({
       history: multimodalFixture.history,

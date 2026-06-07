@@ -78,7 +78,10 @@ import authApp from '../auth.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.route('/api/sales', authApp);
   return app;
@@ -244,9 +247,7 @@ describe('sales auth routes', () => {
   });
 
   it('handles token auth failures and successful token auth', async () => {
-    mocks.verifyAndMigratePassword
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(true);
+    mocks.verifyAndMigratePassword.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     const app = createApp();
 
     const bad = await app.request(

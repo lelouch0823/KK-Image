@@ -2,7 +2,12 @@
   <div class="space-y-6">
     <SettingsSection
       :title="t('settings.watermark.title', 'Watermark Settings')"
-      :description="t('settings.watermark.description', 'Configure global text watermark applied to uploaded images.')"
+      :description="
+        t(
+          'settings.watermark.description',
+          'Configure global text watermark applied to uploaded images.'
+        )
+      "
       icon="photo"
     >
       <form class="space-y-6" @submit.prevent="saveSettings">
@@ -43,11 +48,7 @@
               <label class="text-primary text-sm font-medium">{{
                 t('settings.watermark.text', 'Watermark Text')
               }}</label>
-              <AppInput
-                v-model="form.WATERMARK_TEXT"
-                type="text"
-                placeholder="e.g. KK-Image"
-              />
+              <AppInput v-model="form.WATERMARK_TEXT" type="text" placeholder="e.g. KK-Image" />
             </div>
 
             <!-- Position -->
@@ -76,9 +77,7 @@
                 v-model="form.WATERMARK_SIZE_RATIO"
                 :label="t('settings.watermark.size', 'Size Ratio')"
                 :value-text="`${Math.round(parseFloat(form.WATERMARK_SIZE_RATIO) * 100)}%`"
-                :hint="
-                  t('settings.watermark.sizeDesc', 'Text size relative to image width.')
-                "
+                :hint="t('settings.watermark.sizeDesc', 'Text size relative to image width.')"
                 min="0.02"
                 max="0.2"
                 step="0.01"
@@ -139,7 +138,7 @@ const form = reactive({
   WATERMARK_POSITION: 'bottom-right',
   WATERMARK_OPACITY: '0.4',
   WATERMARK_COLOR: '#ffffff',
-  WATERMARK_SIZE_RATIO: '0.05'
+  WATERMARK_SIZE_RATIO: '0.05',
 });
 
 const positionOptions = [
@@ -173,7 +172,11 @@ const saveSettings = async () => {
       { key: 'WATERMARK_POSITION', value: form.WATERMARK_POSITION, category: 'watermark' },
       { key: 'WATERMARK_OPACITY', value: String(form.WATERMARK_OPACITY), category: 'watermark' },
       { key: 'WATERMARK_COLOR', value: form.WATERMARK_COLOR, category: 'watermark' },
-      { key: 'WATERMARK_SIZE_RATIO', value: String(form.WATERMARK_SIZE_RATIO), category: 'watermark' },
+      {
+        key: 'WATERMARK_SIZE_RATIO',
+        value: String(form.WATERMARK_SIZE_RATIO),
+        category: 'watermark',
+      },
     ];
 
     const res = await authFetch('/api/manage/settings/batch', {
@@ -181,7 +184,7 @@ const saveSettings = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ settings: settingsToSave }),
     });
-    
+
     const json = await res.json();
     if (json.success) {
       addToast({ message: t('settings.success', 'Settings saved successfully'), type: 'success' });

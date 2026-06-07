@@ -13,7 +13,15 @@ const REQUEST_JOB_CONCURRENCY = 1;
 const REQUEST_MAX_ROUNDS = 1;
 const REQUEST_CLAIM_BATCH_SIZE = 10;
 
-async function processOutboxJob({ consumerName, job, env, baseUrl, dispatchService, nowTs, state }) {
+async function processOutboxJob({
+  consumerName,
+  job,
+  env,
+  baseUrl,
+  dispatchService,
+  nowTs,
+  state,
+}) {
   try {
     const consumer = DOMAIN_OUTBOX_CONSUMERS[consumerName];
     if (typeof consumer !== 'function') {
@@ -59,9 +67,12 @@ export async function runOutboxPoller({
 }) {
   const isRequestPathRun = workerId != null;
   const resolvedForce = force ?? false;
-  const resolvedJobConcurrency = jobConcurrency ?? (isRequestPathRun ? REQUEST_JOB_CONCURRENCY : DEFAULT_JOB_CONCURRENCY);
-  const resolvedMaxRounds = maxRounds ?? (isRequestPathRun ? REQUEST_MAX_ROUNDS : DEFAULT_MAX_ROUNDS);
-  const resolvedClaimBatchSize = claimBatchSize ?? (isRequestPathRun ? REQUEST_CLAIM_BATCH_SIZE : DEFAULT_CLAIM_BATCH_SIZE);
+  const resolvedJobConcurrency =
+    jobConcurrency ?? (isRequestPathRun ? REQUEST_JOB_CONCURRENCY : DEFAULT_JOB_CONCURRENCY);
+  const resolvedMaxRounds =
+    maxRounds ?? (isRequestPathRun ? REQUEST_MAX_ROUNDS : DEFAULT_MAX_ROUNDS);
+  const resolvedClaimBatchSize =
+    claimBatchSize ?? (isRequestPathRun ? REQUEST_CLAIM_BATCH_SIZE : DEFAULT_CLAIM_BATCH_SIZE);
   const resolvedMinRunIntervalMs = minRunIntervalMs ?? (isRequestPathRun ? 0 : undefined);
   const dispatchService = new DomainOutboxDispatchService(env.DB);
   const runtimeStateRepo = new OutboxRuntimeStateRepository(env.DB);
@@ -71,15 +82,20 @@ export async function runOutboxPoller({
     workerId: resolvedWorkerId,
     nowTs,
     force: resolvedForce,
-    ...(resolvedMinRunIntervalMs === undefined ? {} : { minRunIntervalMs: resolvedMinRunIntervalMs }),
+    ...(resolvedMinRunIntervalMs === undefined
+      ? {}
+      : { minRunIntervalMs: resolvedMinRunIntervalMs }),
   });
 
   const consumerStats = Object.fromEntries(
-    ACTIVE_CONSUMERS.map((consumerName) => [consumerName, {
-      claimed: 0,
-      published: 0,
-      failed: 0,
-    }])
+    ACTIVE_CONSUMERS.map((consumerName) => [
+      consumerName,
+      {
+        claimed: 0,
+        published: 0,
+        failed: 0,
+      },
+    ])
   );
 
   if (!lease) {
@@ -123,11 +139,18 @@ export async function runOutboxPoller({
         consumerStats[consumerName].claimed += jobs.length;
         const outcomes = await runConcurrent(
           jobs,
-          (job) => processOutboxJob({ consumerName, job, env, baseUrl, dispatchService, nowTs, state }),
+          (job) =>
+            processOutboxJob({ consumerName, job, env, baseUrl, dispatchService, nowTs, state }),
           resolvedJobConcurrency
         );
-        const consumerPublished = outcomes.reduce((sum, outcome) => sum + Number(outcome?.published || 0), 0);
-        const consumerFailed = outcomes.reduce((sum, outcome) => sum + Number(outcome?.failed || 0), 0);
+        const consumerPublished = outcomes.reduce(
+          (sum, outcome) => sum + Number(outcome?.published || 0),
+          0
+        );
+        const consumerFailed = outcomes.reduce(
+          (sum, outcome) => sum + Number(outcome?.failed || 0),
+          0
+        );
         publishedCount += consumerPublished;
         failedCount += consumerFailed;
         consumerStats[consumerName].published += consumerPublished;

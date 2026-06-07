@@ -5,6 +5,7 @@
 **Goal:** 重构采购单创建流程，支持「按预定订单采购 (Order-Driven)」和「按商品缺口补货 (Demand-Driven)」两个维度引入采购明细，并在创建后的详情面板中支持草稿状态下的增删改。
 
 **Architecture:**
+
 1. 将现有的极简 Create Modal 重构为一个功能完备的「新建采购单」全屏面板（或大尺寸弹窗），包含：基础信息区 + 采购商品列表 + 两个「引入」按钮
 2. 新建 `OrderPickerModal.vue`：弹窗组件，列出 `confirmed` 订单，支持搜索+多选
 3. 新建 `ProductPickerModal.vue`：弹窗组件，列出所有商品，优先推荐同品牌未选商品，支持搜索+多选
@@ -55,6 +56,7 @@
 **职责：** 弹窗列出所有 `confirmed` 状态的预订单，支持搜索 + 多选。
 
 **核心功能：**
+
 - 调用 `useOrders().loadOrders({ status: 'confirmed', limit: 100 })` 获取列表
 - 搜索框：按订单号/商品名称过滤（前端过滤 or 传 `search` 参数到后端）
 - 每行显示：订单号、商品名、数量、客户名
@@ -68,6 +70,7 @@
 **职责：** 弹窗列出所有商品，支持搜索 + 多选。已选品牌的同品牌未加入商品置顶推荐。
 
 **核心功能：**
+
 - 接收 `props.existingBrands: string[]`（从已选 poItems 中提取）
 - 调用 `useProducts().loadProducts({ search, limit: 20 })` 搜索
 - 排序逻辑：同品牌商品置顶，其余按名称排序
@@ -107,6 +110,7 @@
 #### [MODIFY] [usePurchaseOrders.js](file:///o:/Code/KK-Image/src/composables/usePurchaseOrders.js)
 
 新增方法：
+
 - `updateItem(poId, itemId, updates)` → `PATCH /:id/items/:itemId`（需要后端新增路由）
 
 ---
@@ -118,6 +122,7 @@
 #### [MODIFY] [purchase-orders.js](file:///o:/Code/KK-Image/functions/lib/hono/routes/manage/purchase-orders.js)
 
 新增路由：
+
 ```javascript
 // PATCH /:id/items/:itemId — 更新单条明细（数量/单价）
 app.patch('/:id/items/:itemId', async (c) => {
@@ -126,7 +131,7 @@ app.patch('/:id/items/:itemId', async (c) => {
   const po = await repo.findById(c.req.param('id'));
   if (!po) throw new NotFoundError('采购单不存在');
   if (po.status !== 'draft') throw new BadRequestError('仅草稿状态允许修改明细');
-  
+
   const updated = await repo.updateItem(c.req.param('itemId'), body);
   if (!updated) throw new NotFoundError('明细不存在');
   return c.json({ success: true });
@@ -138,22 +143,23 @@ app.patch('/:id/items/:itemId', async (c) => {
 #### [MODIFY] [PurchaseOrderRepository.js](file:///o:/Code/KK-Image/functions/repositories/PurchaseOrderRepository.js)
 
 新增方法：
+
 ```javascript
 // 更新单条明细项
 async updateItem(itemId, updates) {
   const fields = [];
   const values = [];
-  
+
   if (updates.quantity !== undefined) { fields.push('quantity = ?'); values.push(updates.quantity); }
   if (updates.unit_cost !== undefined) { fields.push('unit_cost = ?'); values.push(updates.unit_cost); }
-  
+
   if (fields.length === 0) return false;
-  
+
   values.push(itemId);
   const result = await this.db.prepare(
     `UPDATE purchase_order_items SET ${fields.join(', ')} WHERE id = ?`
   ).bind(...values).run();
-  
+
   return result.changes > 0;
 }
 ```
@@ -165,6 +171,7 @@ async updateItem(itemId, updates) {
 #### [MODIFY] zh-CN/purchaseOrder.js + en/purchaseOrder.js
 
 新增键：
+
 ```javascript
 // 选择器
 'selection.orderTitle': '关联预定单',
@@ -203,7 +210,7 @@ async updateItem(itemId, updates) {
 采购单状态流转:
   draft → ordered → shipping → arrived → completed → (结束)
                                ↑ cancelled
-                               
+
 商品库存变更时机:
   ┌──────────┬──────────────────────────────────────────────────────┐
   │ 状态变更  │ 库存操作                                            │
@@ -215,6 +222,7 @@ async updateItem(itemId, updates) {
 ```
 
 **为什么选择 `arrived` 而不是 `completed`？**
+
 - `arrived` = 货到了，物理上进了仓库，理应立刻反映到库存
 - `completed` = 财务结算完毕（属于成本层操作），此时库存早已入库
 - 这样最贴合实际：采购员收货→标记到货→库存立刻加上→预订单同步变成"已到货"
@@ -261,12 +269,12 @@ async _updateInventory(items, direction = 'increment') {
 
   const operator = direction === 'increment' ? '+' : '-';
   const now = Date.now();
-  
+
   const stmts = Object.entries(stockChanges).map(([productId, qty]) =>
     this.db.prepare(
-      `UPDATE products 
-       SET stock_quantity = MAX(0, stock_quantity ${operator} ?), 
-           updated_at = ? 
+      `UPDATE products
+       SET stock_quantity = MAX(0, stock_quantity ${operator} ?),
+           updated_at = ?
        WHERE id = ?`
     ).bind(qty, now, productId)
   );
@@ -278,6 +286,7 @@ async _updateInventory(items, direction = 'increment') {
 ```
 
 **关键细节：**
+
 - 使用 `MAX(0, stock_quantity - ?)` 防止库存变为负数
 - 使用 `D1 batch()` 确保批量操作的原子性
 - 按 `product_id` 聚合：同一商品在同一采购单中可能有多条明细（代购订单 A 买 1 个 + 补货 2 个 = 同商品 2 条明细，总增 3）
@@ -317,8 +326,8 @@ async _updateInventory(items, direction = 'increment') {
 async adjustStock(productId, delta) {
   const now = Date.now();
   const result = await this.db.prepare(
-    `UPDATE products 
-     SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ? 
+    `UPDATE products
+     SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ?
      WHERE id = ?`
   ).bind(delta, now, productId).run();
   return result.meta?.changes > 0;
@@ -330,19 +339,19 @@ async adjustStock(productId, delta) {
 #### 前端展示联动
 
 在 `PurchaseOrders.vue` **详情面板**中，当用户点击「标记到货」时：
+
 - Toast 提示增强：`"状态已更新，同步更新了 N 个预订单，库存已入库 M 件"`
 - 这需要后端 `updateStatus` 返回库存变更信息
 
 修改 `updateStatus` 返回值：
 
 ```javascript
-return { 
-  success: true, 
-  cascadedOrders, 
+return {
+  success: true,
+  cascadedOrders,
   stockUpdated: newStatus === 'arrived' ? Object.keys(stockChanges).length : 0,
-  totalStockAdded: newStatus === 'arrived' 
-    ? Object.values(stockChanges).reduce((a, b) => a + b, 0) 
-    : 0 
+  totalStockAdded:
+    newStatus === 'arrived' ? Object.values(stockChanges).reduce((a, b) => a + b, 0) : 0,
 };
 ```
 
@@ -351,11 +360,13 @@ return {
 ## Verification Plan
 
 ### Build 验证
+
 ```bash
 pnpm run build
 ```
 
 ### 手动验证
+
 1. 打开 `/manage/scm/purchase-orders`，点击「新建」
 2. 点击「+ 关联预定单」，验证弹出订单选择弹窗，搜索并多选
 3. 确认后验证商品自动填入列表，修改数量使其低于需求值 → 数字标红

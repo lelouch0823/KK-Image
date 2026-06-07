@@ -13,6 +13,7 @@
 ### Task 1: Lock the lighter shell contract
 
 **Files:**
+
 - Modify: `src/design-system/__tests__/ManagementListShell.test.js`
 - Modify: `src/design-system/patterns/ManagementListShell.vue`
 - Modify: `src/design-system/composed/StatePanel.vue`
@@ -20,6 +21,7 @@
 **Step 1: Write the failing test**
 
 Add assertions that:
+
 - filter region uses a lighter container variant than content
 - content region keeps a single primary panel wrapper
 
@@ -38,12 +40,14 @@ Run: `npx vitest run src/design-system/__tests__/ManagementListShell.test.js`
 ### Task 2: Lock the lighter table contract
 
 **Files:**
+
 - Modify: `src/components/ui/__tests__/AppTable.design-contract.test.js`
 - Modify: `src/components/ui/AppTable.vue`
 
 **Step 1: Write the failing test**
 
 Add assertions that:
+
 - default tables render a light outer card shell
 - `noBorder` tables stay frameless
 - header and row separators use lightweight table styling hooks
@@ -63,6 +67,7 @@ Run: `npx vitest run src/components/ui/__tests__/AppTable.design-contract.test.j
 ### Task 3: Align order list page with the shared shell
 
 **Files:**
+
 - Modify: `src/components/OrderManager.vue`
 - Modify: `src/components/order/OrderTable.vue`
 - Modify: `src/components/order/OrderFilters.vue`
@@ -86,6 +91,7 @@ Run: `npx vitest run src/views/__tests__/Dashboard.design-system-migration.test.
 ### Task 4: Verify shared regression surface
 
 **Files:**
+
 - Modify: none unless regressions appear
 
 **Step 1: Run focused test suite**

@@ -42,8 +42,15 @@
       </div>
 
       <!-- Table Row Template -->
-      <div v-else-if="template === 'table-row'" class="flex gap-4 border-b border-(--border-color) py-4">
-        <div v-for="c in columns" :key="c" class="skeleton-shimmer h-4 flex-1 rounded bg-(--bg-muted)"></div>
+      <div
+        v-else-if="template === 'table-row'"
+        class="flex gap-4 border-b border-(--border-color) py-4"
+      >
+        <div
+          v-for="c in columns"
+          :key="c"
+          class="skeleton-shimmer h-4 flex-1 rounded bg-(--bg-muted)"
+        ></div>
       </div>
     </template>
   </div>
@@ -59,7 +66,7 @@ const props = defineProps({
   template: {
     type: String,
     default: null,
-    validator: v => [null, 'stat-card', 'list-card', 'avatar', 'table-row'].includes(v),
+    validator: (v) => [null, 'stat-card', 'list-card', 'avatar', 'table-row'].includes(v),
   },
   width: { type: String, default: 'full' },
   height: { type: String, default: '' },
@@ -106,12 +113,7 @@ const avatarSizeClass = computed(() => {
   bottom: 0;
   left: 0;
   transform: translateX(-100%);
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--shimmer-from) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, transparent 0%, var(--shimmer-from) 50%, transparent 100%);
   animation: shimmer 2s infinite;
 }
 

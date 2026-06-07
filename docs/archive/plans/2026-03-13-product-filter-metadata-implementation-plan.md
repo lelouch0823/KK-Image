@@ -13,6 +13,7 @@
 ### Task 1: Define Failing Contracts For Faceted Filter Metadata
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/functions/repositories/__tests__/product-spu.test.js`
 - Modify: `O:/Code/KK-Image/src/components/__tests__/ProductManager.create-success-ux.test.js`
 
@@ -41,15 +42,17 @@ it('returns faceted brand metadata while ignoring the current brand filter', asy
 
     if (sql.includes('FROM products p')) {
       stmt.all.mockResolvedValue({
-        results: [{
-          id: 'test-id',
-          name: 'Test',
-          brand: 'KK',
-          category: 'Top',
-          images: '[]',
-          specifications: '{}',
-          options: '[]',
-        }],
+        results: [
+          {
+            id: 'test-id',
+            name: 'Test',
+            brand: 'KK',
+            category: 'Top',
+            images: '[]',
+            specifications: '{}',
+            options: '[]',
+          },
+        ],
       });
     }
 
@@ -75,7 +78,9 @@ it('uses server-provided brand/category metadata instead of deriving from curren
     brands: ['KK', 'ACME'],
     categories: ['Top', 'Shoes'],
   };
-  mocks.products.value = [{ id: 'p-1', brand: 'OnlyCurrentPageBrand', category: 'OnlyCurrentPageCategory' }];
+  mocks.products.value = [
+    { id: 'p-1', brand: 'OnlyCurrentPageBrand', category: 'OnlyCurrentPageCategory' },
+  ];
 
   const wrapper = createWrapper();
 
@@ -102,6 +107,7 @@ git commit -m "test: define product filter metadata contracts"
 ### Task 2: Add Repository-Level Faceted Metadata Helpers
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/functions/repositories/ProductRepository.js`
 - Test: `O:/Code/KK-Image/functions/repositories/__tests__/product-spu.test.js`
 
@@ -241,6 +247,7 @@ git commit -m "feat: add faceted product filter metadata"
 ### Task 3: Expose Filter Metadata In The Product List Route
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/functions/lib/hono/routes/manage/products/index.js`
 - Test: `O:/Code/KK-Image/functions/repositories/__tests__/product-spu.test.js`
 
@@ -290,6 +297,7 @@ git commit -m "feat: expose product filter metadata in list route"
 ### Task 4: Extend `useProducts()` To Carry Server Metadata
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/src/composables/useProducts.js`
 - Test: `O:/Code/KK-Image/src/components/__tests__/ProductManager.create-success-ux.test.js`
 
@@ -323,7 +331,9 @@ const loadProducts = async (params = {}, forceRefresh = false) => {
   if (!ok) return false;
 
   const query = new URLSearchParams(
-    Object.entries(params).filter(([, value]) => value !== '' && value !== undefined && value !== null)
+    Object.entries(params).filter(
+      ([, value]) => value !== '' && value !== undefined && value !== null
+    )
   );
   const res = await resource.rawRequest(`?${query.toString()}`);
   if (res?.success) {
@@ -334,6 +344,7 @@ const loadProducts = async (params = {}, forceRefresh = false) => {
 ```
 
 Preferred cleanup if you want one request instead of two:
+
 - refactor `useResource()` later to expose the last raw list payload
 - not required for this increment
 
@@ -358,6 +369,7 @@ git commit -m "feat: expose product filter metadata in useProducts"
 ### Task 5: Remove Current-Page-Derived Filter Options From ProductManager
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/src/components/ProductManager.vue`
 - Test: `O:/Code/KK-Image/src/components/__tests__/ProductManager.create-success-ux.test.js`
 
@@ -385,7 +397,17 @@ const categoryOptions = computed(() => [...new Set(products.value.map(...))]);
 With:
 
 ```js
-const { products, loading, error, errorCode, pagination, loadProducts, deleteProduct, loadProduct, availableFilters } = useProducts();
+const {
+  products,
+  loading,
+  error,
+  errorCode,
+  pagination,
+  loadProducts,
+  deleteProduct,
+  loadProduct,
+  availableFilters,
+} = useProducts();
 
 const brandOptions = computed(() => availableFilters.value?.brands || []);
 const categoryOptions = computed(() => availableFilters.value?.categories || []);
@@ -408,6 +430,7 @@ git commit -m "feat: consume server-side product filter metadata"
 ### Task 6: Verification And Regression Coverage
 
 **Files:**
+
 - Verify only:
   - `O:/Code/KK-Image/functions/repositories/ProductRepository.js`
   - `O:/Code/KK-Image/functions/lib/hono/routes/manage/products/index.js`

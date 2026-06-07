@@ -13,6 +13,7 @@
 ### Task 1: Lock the new behavior with failing tests
 
 **Files:**
+
 - Modify: `src/components/product/__tests__/ProductVariantTable.test.js`
 - Modify: `src/components/product/__tests__/ProductCreateModal.edit-variant-preservation.test.js`
 - Create: `src/composables/__tests__/useProductForm.incomplete-variants.test.js`
@@ -32,6 +33,7 @@ Expected: FAIL because incomplete variants are not currently marked, rendered, o
 ### Task 2: Implement incomplete-variant detection and submit blocking
 
 **Files:**
+
 - Modify: `src/composables/useProductForm.js`
 
 **Step 1: Add a pure helper**
@@ -53,6 +55,7 @@ Expected: PASS
 ### Task 3: Render the warning UI in the variant table and modal
 
 **Files:**
+
 - Modify: `src/components/product/ProductVariantTable.vue`
 - Modify: `src/components/product/ProductCreateModal.vue`
 
@@ -76,6 +79,7 @@ Expected: PASS
 ### Task 4: Run adjacent regressions and static verification
 
 **Files:**
+
 - No code changes
 
 **Step 1: Run adjacent product form tests**

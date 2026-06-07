@@ -3,7 +3,10 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const SCRIPT_PATH = path.resolve(process.cwd(), 'scripts/migrations/backfill-variant-demand-projection.mjs');
+const SCRIPT_PATH = path.resolve(
+  process.cwd(),
+  'scripts/migrations/backfill-variant-demand-projection.mjs'
+);
 
 describe('backfill-variant-demand-projection', () => {
   it('exists and exports projection backfill helpers', async () => {
@@ -32,7 +35,9 @@ describe('backfill-variant-demand-projection', () => {
     expect(sql).toContain('JOIN orders o ON o.id = ol.order_id');
     expect(sql).toContain("o.status IN ('confirmed', 'production', 'shipping', 'arrived')");
     expect(sql).toContain('GROUP BY ol.variant_id');
-    expect(sql).toContain("GROUP_CONCAT(DISTINCT CASE WHEN o.status = 'confirmed' THEN o.id END) AS order_ids");
+    expect(sql).toContain(
+      "GROUP_CONCAT(DISTINCT CASE WHEN o.status = 'confirmed' THEN o.id END) AS order_ids"
+    );
     expect(sql).toContain('LIMIT 30');
   });
 

@@ -48,6 +48,7 @@
 ## Task 1: Harden Draft Item Updates
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 - Modify: `functions/repositories/PurchaseOrderRepository.js`
 - Modify: `functions/lib/hono/routes/manage/purchase-orders.js`
@@ -169,6 +170,7 @@ git commit -m "fix: harden draft purchase order item updates"
 ## Task 2: Share Projection Helpers And Fix Reversal Rollback Completeness
 
 **Files:**
+
 - Create: `functions/services/purchase-order-projection.js`
 - Modify: `functions/services/__tests__/OrderProcurementReceiptReversalService.test.js`
 - Modify: `functions/services/OrderProcurementDomainService.js`
@@ -180,9 +182,14 @@ Add a focused test in `functions/services/__tests__/OrderProcurementReceiptRever
 
 ```js
 it('recomputes order-line display_status when reversing a receipt', async () => {
-  const result = await service.reverseReceipt('po-1', 'receipt-1', { reversal_qty: 2 }, {
-    idempotencyKey: 'reversal-key-1',
-  });
+  const result = await service.reverseReceipt(
+    'po-1',
+    'receipt-1',
+    { reversal_qty: 2 },
+    {
+      idempotencyKey: 'reversal-key-1',
+    }
+  );
 
   expect(result.reversal_qty).toBe(2);
   expect(harness.executedSql).toContain('display_status = ?');
@@ -219,9 +226,13 @@ export function computePurchaseOrderRemainingReceivable(item = {}) {
   );
 }
 
-export function projectPurchaseOrderItemStatus(item = {}) { /* shared existing logic */ }
+export function projectPurchaseOrderItemStatus(item = {}) {
+  /* shared existing logic */
+}
 
-export function projectCompatibilityProcurementStatus(progress = {}) { /* shared existing logic */ }
+export function projectCompatibilityProcurementStatus(progress = {}) {
+  /* shared existing logic */
+}
 ```
 
 Move the duplicated helper logic out of both procurement services into this shared file.
@@ -262,6 +273,7 @@ git commit -m "fix: align receipt reversal projections with receipt flow"
 ## Task 3: Make Order Procurement Status Sync Non-Destructive
 
 **Files:**
+
 - Modify: `functions/services/__tests__/PurchaseOrderService.procurement-status.test.js`
 - Modify: `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 - Modify: `functions/services/PurchaseOrderService.js`
@@ -315,9 +327,7 @@ const shouldSeedArrival = false;
 Implement a return shape like:
 
 ```js
-changedOrderStatuses: [
-  { orderId: 'o-1', procurementStatus: 'ordered' },
-]
+changedOrderStatuses: [{ orderId: 'o-1', procurementStatus: 'ordered' }];
 ```
 
 Recommended behavior:
@@ -332,17 +342,19 @@ Update `functions/lib/hono/routes/manage/purchase-orders.js`:
 
 ```js
 if (Array.isArray(result?.changedOrderStatuses) && result.changedOrderStatuses.length > 0) {
-  events.push(...result.changedOrderStatuses.map(({ orderId, procurementStatus }) => ({
-    event_type: 'order_procurement_progressed',
-    aggregate_type: 'order',
-    aggregate_id: orderId,
-    payload: {
-      purchase_order_id: c.req.param('id'),
-      order_id: orderId,
-      procurement_status_after: procurementStatus,
-      trigger: 'purchase_order_status_changed',
-    },
-  })));
+  events.push(
+    ...result.changedOrderStatuses.map(({ orderId, procurementStatus }) => ({
+      event_type: 'order_procurement_progressed',
+      aggregate_type: 'order',
+      aggregate_id: orderId,
+      payload: {
+        purchase_order_id: c.req.param('id'),
+        order_id: orderId,
+        procurement_status_after: procurementStatus,
+        trigger: 'purchase_order_status_changed',
+      },
+    }))
+  );
 }
 ```
 
@@ -368,6 +380,7 @@ git commit -m "fix: stop purchase order headers from overstating order arrival"
 ## Task 4: Add Purchase-Order Shortage Closure
 
 **Files:**
+
 - Create: `functions/services/__tests__/PurchaseOrderShortageClosureService.test.js`
 - Create: `functions/services/PurchaseOrderShortageClosureService.js`
 - Modify: `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
@@ -383,9 +396,15 @@ Create `functions/services/__tests__/PurchaseOrderShortageClosureService.test.js
 
 ```js
 it('closes remaining receivable quantity on purchase-order items without mutating order_lines', async () => {
-  const result = await service.closeShortages('po-1', {
-    items: [{ purchase_order_item_id: 'item-1', cancelled_qty: 2, note: 'supplier short-shipped' }],
-  }, { idempotencyKey: 'shortage-key-1' });
+  const result = await service.closeShortages(
+    'po-1',
+    {
+      items: [
+        { purchase_order_item_id: 'item-1', cancelled_qty: 2, note: 'supplier short-shipped' },
+      ],
+    },
+    { idempotencyKey: 'shortage-key-1' }
+  );
 
   expect(result.closed_count).toBe(1);
   expect(harness.executedSql.some((sql) => sql.includes('UPDATE order_lines'))).toBe(false);
@@ -393,9 +412,13 @@ it('closes remaining receivable quantity on purchase-order items without mutatin
 
 it('rejects closing more than the remaining receivable quantity', async () => {
   await expect(
-    service.closeShortages('po-1', {
-      items: [{ purchase_order_item_id: 'item-1', cancelled_qty: 99 }],
-    }, { idempotencyKey: 'shortage-key-2' })
+    service.closeShortages(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'item-1', cancelled_qty: 99 }],
+      },
+      { idempotencyKey: 'shortage-key-2' }
+    )
   ).rejects.toThrow(/待收|remaining|关闭/);
 });
 ```
@@ -466,11 +489,13 @@ for (const item of payload.items) {
   });
 
   statements.push(
-    this.db.prepare(
-      `UPDATE purchase_order_items
+    this.db
+      .prepare(
+        `UPDATE purchase_order_items
        SET cancelled_qty = ?, display_status = ?
        WHERE id = ? AND po_id = ?`
-    ).bind(nextCancelledQty, nextDisplayStatus, poItem.id, poId)
+      )
+      .bind(nextCancelledQty, nextDisplayStatus, poItem.id, poId)
   );
 }
 ```
@@ -488,7 +513,9 @@ Do not mutate `order_lines` or `orders.procurement_status` in this phase.
 Add a new route in `functions/lib/hono/routes/manage/purchase-orders.js`:
 
 ```js
-app.post('/:id/shortage-closures', async (c) => { /* call service, audit, outbox poller */ });
+app.post('/:id/shortage-closures', async (c) => {
+  /* call service, audit, outbox poller */
+});
 ```
 
 Add `closeShortages(poId, payload)` to `src/composables/usePurchaseOrders.js`.
@@ -500,7 +527,9 @@ Use the same fetch / toast conventions as receipts and reversals.
 Update `src/views/PurchaseOrders.vue`:
 
 ```js
-const canCloseShortages = computed(() => receiptReceivableCount.value > 0 && ['ordered', 'shipping'].includes(detail.value?.status));
+const canCloseShortages = computed(
+  () => receiptReceivableCount.value > 0 && ['ordered', 'shipping'].includes(detail.value?.status)
+);
 ```
 
 Add:
@@ -532,6 +561,7 @@ git commit -m "feat: add purchase order shortage closure flow"
 ## Task 5: Rebase Landed Cost And MAC On Received Quantity
 
 **Files:**
+
 - Modify: `functions/services/__tests__/purchase-order-moving-average-cost.test.js`
 - Modify: `functions/services/PurchaseOrderService.js`
 
@@ -622,6 +652,7 @@ git commit -m "fix: base purchase order landed cost on received quantity"
 ## Task 6: Final Verification
 
 **Files:**
+
 - No code changes required unless a regression is found
 
 - [ ] **Step 1: Run the full targeted remediation suite**

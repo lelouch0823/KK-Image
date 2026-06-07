@@ -30,31 +30,45 @@ describe('validateProductVariantBinding', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.productFindById.mockResolvedValue({ id: 'p-1', status: 'active' });
-    mocks.variantFindByIdAndProductId.mockResolvedValue({ id: 'v-1', product_id: 'p-1', status: 'active' });
+    mocks.variantFindByIdAndProductId.mockResolvedValue({
+      id: 'v-1',
+      product_id: 'p-1',
+      status: 'active',
+    });
     mocks.dimensionGetMap.mockResolvedValue({});
   });
 
   it('rejects product without variant', async () => {
-    await expect(validateProductVariantBinding({}, 'p-1', null)).rejects.toThrow('variantId is required when productId is provided');
+    await expect(validateProductVariantBinding({}, 'p-1', null)).rejects.toThrow(
+      'variantId is required when productId is provided'
+    );
   });
 
   it('rejects variant without product', async () => {
-    await expect(validateProductVariantBinding({}, null, 'v-1')).rejects.toThrow('productId is required when variantId is provided');
+    await expect(validateProductVariantBinding({}, null, 'v-1')).rejects.toThrow(
+      'productId is required when variantId is provided'
+    );
   });
 
   it('rejects when product does not exist', async () => {
     mocks.productFindById.mockResolvedValue(null);
-    await expect(validateProductVariantBinding({}, 'p-1', 'v-1')).rejects.toThrow('productId does not exist');
+    await expect(validateProductVariantBinding({}, 'p-1', 'v-1')).rejects.toThrow(
+      'productId does not exist'
+    );
   });
 
   it('rejects when variant does not belong to product', async () => {
     mocks.variantFindByIdAndProductId.mockResolvedValue(null);
-    await expect(validateProductVariantBinding({}, 'p-1', 'v-1')).rejects.toThrow('variantId does not belong to productId');
+    await expect(validateProductVariantBinding({}, 'p-1', 'v-1')).rejects.toThrow(
+      'variantId does not belong to productId'
+    );
   });
 
   it('rejects archived variant when checkActive is true', async () => {
     mocks.variantFindByIdAndProductId.mockResolvedValue({ id: 'v-1', status: 'archived' });
-    await expect(validateProductVariantBinding({}, 'p-1', 'v-1', { checkActive: true })).rejects.toThrow('variant must be active');
+    await expect(
+      validateProductVariantBinding({}, 'p-1', 'v-1', { checkActive: true })
+    ).rejects.toThrow('variant must be active');
   });
 
   it('returns normalized binding when valid', async () => {

@@ -13,6 +13,7 @@
 ### Task 1: Add composable unit tests
 
 **Files:**
+
 - Create: `src/composables/__tests__/useManagedListSelection.test.js`
 - Create: `src/composables/useManagedListSelection.js`
 
@@ -65,6 +66,7 @@ git commit -m "feat: add managed list selection composable"
 ### Task 2: Integrate into customer management
 
 **Files:**
+
 - Modify: `src/views/Customers.vue`
 - Create or Modify Test: `src/views/__tests__/Customers.create-success-ux.test.js`
 
@@ -108,6 +110,7 @@ git commit -m "feat: add managed create-success ux to customers"
 ### Task 3: Integrate into salesperson management
 
 **Files:**
+
 - Modify: `src/components/SalespersonManager.vue`
 - Modify or Create Test: `src/components/__tests__/SalespersonManager.create-success-ux.test.js`
 
@@ -150,6 +153,7 @@ git commit -m "feat: add managed create-success ux to salespersons"
 ### Task 4: Integrate into product management
 
 **Files:**
+
 - Modify: `src/components/ProductManager.vue`
 - Modify or Create Test: `src/components/__tests__/ProductManager.create-success-ux.test.js`
 
@@ -191,6 +195,7 @@ git commit -m "feat: add managed create-success ux to products"
 ### Task 5: Run focused regression verification
 
 **Files:**
+
 - No code changes expected
 
 **Step 1: Run focused test suite**
@@ -223,6 +228,7 @@ git commit -m "test: verify managed list selection rollout"
 ### Task 6: Document rollout status
 
 **Files:**
+
 - Modify: `docs/plans/2026-03-12-managed-list-selection-design.md`
 
 **Step 1: Record actual rollout notes**

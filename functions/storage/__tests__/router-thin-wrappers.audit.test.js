@@ -18,9 +18,8 @@ describe('storage router thin wrappers audit', () => {
       offenders.push('functions/storage/router.js: still defines isFallbackEnabled');
     }
 
-    expect(
-      offenders,
-      `storage router thin-wrapper offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `storage router thin-wrapper offenders:\n${offenders.join('\n')}`).toEqual(
+      []
+    );
   });
 });

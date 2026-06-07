@@ -28,11 +28,7 @@
           class="w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main)"
         >
           <option :value="null">{{ t('product.categoryTree.root') }}</option>
-          <option
-            v-for="opt in parentOptions"
-            :key="opt.value"
-            :value="opt.value"
-          >
+          <option v-for="opt in parentOptions" :key="opt.value" :value="opt.value">
             {{ opt.label }}
           </option>
         </select>
@@ -43,11 +39,7 @@
         <label class="mb-1 block text-sm font-medium text-(--text-main)">
           {{ t('product.categoryTree.sort_order') }}
         </label>
-        <AppInput
-          v-model.number="form.sort_order"
-          type="number"
-          min="0"
-        />
+        <AppInput v-model.number="form.sort_order" type="number" min="0" />
       </div>
     </div>
 
@@ -100,17 +92,21 @@ const form = reactive({
 });
 
 // 当 category 变化时，填充表单
-watch(() => props.category, (cat) => {
-  if (cat) {
-    form.name = cat.name;
-    form.parent_id = cat.parent_id;
-    form.sort_order = cat.sort_order;
-  } else {
-    form.name = '';
-    form.parent_id = null;
-    form.sort_order = 0;
-  }
-}, { immediate: true });
+watch(
+  () => props.category,
+  (cat) => {
+    if (cat) {
+      form.name = cat.name;
+      form.parent_id = cat.parent_id;
+      form.sort_order = cat.sort_order;
+    } else {
+      form.name = '';
+      form.parent_id = null;
+      form.sort_order = 0;
+    }
+  },
+  { immediate: true }
+);
 
 const handleSubmit = async () => {
   if (!form.name.trim()) return;

@@ -35,18 +35,26 @@ describe('SystemStatsProjectionRefreshService', () => {
     const orderStatsRepo = {
       getSalesTrend: vi.fn(async () => []),
       getStatusDistribution: vi.fn(async () => []),
-      getProfitSummary: vi.fn(async () => ({ totalRevenue: 0, totalCost: 0, totalProfit: 0, margin: 0 })),
+      getProfitSummary: vi.fn(async () => ({
+        totalRevenue: 0,
+        totalCost: 0,
+        totalProfit: 0,
+        margin: 0,
+      })),
       getProfitTrend: vi.fn(async () => []),
       getProfitByProduct: vi.fn(async () => []),
       getTopProducts: vi.fn(async () => []),
       getSalespersonStats: vi.fn(async () => []),
     };
-    const service = new SystemStatsProjectionRefreshService({}, {
-      now: () => 1710000000000,
-      statsRepo,
-      orderStatsRepo,
-      projectionRepo,
-    });
+    const service = new SystemStatsProjectionRefreshService(
+      {},
+      {
+        now: () => 1710000000000,
+        statsRepo,
+        orderStatsRepo,
+        projectionRepo,
+      }
+    );
 
     const result = await service.refresh(STATS_PROJECTION_SCOPES.MANAGE_STATS);
 
@@ -90,13 +98,20 @@ describe('SystemStatsProjectionRefreshService', () => {
       getLast7DaysShareTrend: vi.fn(async () => [{ date: '2026-04-10', count: 1 }]),
       getSalesTrend: vi.fn(async () => []),
       getStatusDistribution: vi.fn(async () => []),
-      getProfitSummary: vi.fn(async () => ({ totalRevenue: 0, totalCost: 0, totalProfit: 0, margin: 0 })),
+      getProfitSummary: vi.fn(async () => ({
+        totalRevenue: 0,
+        totalCost: 0,
+        totalProfit: 0,
+        margin: 0,
+      })),
     };
     const statsRepo = {
-      getRecentFiles: vi.fn(async () => [{
-        id: 'file-1',
-        storage_key: 'storage/file-1',
-      }]),
+      getRecentFiles: vi.fn(async () => [
+        {
+          id: 'file-1',
+          storage_key: 'storage/file-1',
+        },
+      ]),
     };
     const folderRepo = {
       findShared: vi.fn(async () => ({ items: [{ id: 'share-1' }] })),

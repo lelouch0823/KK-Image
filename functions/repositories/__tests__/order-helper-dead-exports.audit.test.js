@@ -20,9 +20,6 @@ describe('order helper dead exports audit', () => {
       );
     }
 
-    expect(
-      offenders,
-      `order helper dead-export offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `order helper dead-export offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

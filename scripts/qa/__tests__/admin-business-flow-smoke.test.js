@@ -36,7 +36,9 @@ function createPageDouble(options = {}) {
       setInputFiles: vi.fn(async () => undefined),
       getAttribute: vi.fn(async () => 'select-id'),
       inputValue: vi.fn(async () => readOverride(inputValueByKey, key) ?? fills.get(key) ?? ''),
-      textContent: vi.fn(async () => readOverride(textContentByKey, key) ?? defaultTextContent(key)),
+      textContent: vi.fn(
+        async () => readOverride(textContentByKey, key) ?? defaultTextContent(key)
+      ),
       count: vi.fn(async () => readOverride(countByKey, key) ?? 0),
       first: () => locator,
       nth: (index) => createLocator(`${key} nth:${index}`),
@@ -56,7 +58,9 @@ function createPageDouble(options = {}) {
       waitForLoadState: vi.fn(async () => undefined),
       evaluate: vi.fn(async () => undefined),
       waitForURL: vi.fn(async () => undefined),
-      getByRole: vi.fn((role, roleOptions = {}) => createLocator(`role:${role}:${String(roleOptions.name ?? '')}`)),
+      getByRole: vi.fn((role, roleOptions = {}) =>
+        createLocator(`role:${role}:${String(roleOptions.name ?? '')}`)
+      ),
       getByTestId: vi.fn((testId) => createLocator(`testid:${String(testId)}`)),
       getByText: vi.fn((text) => createLocator(`text:${String(text)}`)),
       keyboard: { press: vi.fn(async () => undefined) },
@@ -71,9 +75,9 @@ describe('admin-business-flow-smoke-lib', () => {
     expect(createSeed('ui', { nowImpl: () => 10, randomImpl: () => 0.1234 })).toBe('ui-10-1234');
     expect(escapeCsv('simple')).toBe('simple');
     expect(escapeCsv('a,b')).toBe('"a,b"');
-    expect(
-      createImportCsv({ name: 'Demo', spu: 'SPU-1', sku: 'SKU-1', color: '黑色' })
-    ).toContain('ImportedBrand');
+    expect(createImportCsv({ name: 'Demo', spu: 'SPU-1', sku: 'SKU-1', color: '黑色' })).toContain(
+      'ImportedBrand'
+    );
   });
 
   it('stabilizes and runs the smoke workflow through injected helpers', async () => {
@@ -115,7 +119,12 @@ describe('admin-business-flow-smoke-lib', () => {
       consoleImpl,
       createSeedImpl: () => 'ui-seed',
       loginImpl: vi.fn(async () => undefined),
-      createProductThroughUiImpl: vi.fn(async () => ({ name: 'product', spu: 'spu', sku: 'sku', color: '黑色' })),
+      createProductThroughUiImpl: vi.fn(async () => ({
+        name: 'product',
+        spu: 'spu',
+        sku: 'sku',
+        color: '黑色',
+      })),
       importProductThroughUiImpl: vi.fn(async () => undefined),
       createAndEditPurchaseOrderThroughUiImpl: vi.fn(async () => undefined),
     });
@@ -124,7 +133,11 @@ describe('admin-business-flow-smoke-lib', () => {
 
     expect(browser.newContext).toHaveBeenCalled();
     expect(consoleImpl.log).toHaveBeenCalledWith(
-      JSON.stringify({ success: true, product: { name: 'product', spu: 'spu', sku: 'sku', color: '黑色' } }, null, 2)
+      JSON.stringify(
+        { success: true, product: { name: 'product', spu: 'spu', sku: 'sku', color: '黑色' } },
+        null,
+        2
+      )
     );
     expect(browser.close).toHaveBeenCalled();
   });
@@ -144,8 +157,12 @@ describe('admin-business-flow-smoke-lib', () => {
     await runner.login(page);
     const product = await runner.createProductThroughUi(page, 'seed-1');
 
-    expect(page.goto).toHaveBeenCalledWith('http://127.0.0.1:8080/login', { waitUntil: 'domcontentloaded' });
-    expect(page.goto).toHaveBeenCalledWith('http://127.0.0.1:8080/admin/products', { waitUntil: 'domcontentloaded' });
+    expect(page.goto).toHaveBeenCalledWith('http://127.0.0.1:8080/login', {
+      waitUntil: 'domcontentloaded',
+    });
+    expect(page.goto).toHaveBeenCalledWith('http://127.0.0.1:8080/admin/products', {
+      waitUntil: 'domcontentloaded',
+    });
     expect(product).toEqual({
       name: 'UI Smoke Product seed-1',
       spu: 'UI-SPU-seed-1',
@@ -197,12 +214,15 @@ describe('admin-business-flow-smoke-lib', () => {
 
     await runner.createAndEditPurchaseOrderThroughUi(page, { sku: 'sku-1' });
 
-    expect(page.goto).toHaveBeenCalledWith('http://127.0.0.1:8080/admin/purchase-orders', { waitUntil: 'domcontentloaded' });
+    expect(page.goto).toHaveBeenCalledWith('http://127.0.0.1:8080/admin/purchase-orders', {
+      waitUntil: 'domcontentloaded',
+    });
 
     const { page: brokenPage } = createPageDouble({
       inputValueByKey: {
         'testid:purchase-order-detail-item-card testid:/purchase-order-detail-item-quantity-/': '5',
-        'testid:purchase-order-detail-item-card testid:/purchase-order-detail-item-unit-cost-/': '47',
+        'testid:purchase-order-detail-item-card testid:/purchase-order-detail-item-unit-cost-/':
+          '47',
       },
     });
 

@@ -116,7 +116,9 @@ describe('SalesSpacesView lifecycle', () => {
 
     await flushPromises();
 
-    expect(wrapper.get('[data-testid="space-cover"]').attributes('src')).toBe('/file/variant-main.jpg');
+    expect(wrapper.get('[data-testid="space-cover"]').attributes('src')).toBe(
+      '/file/variant-main.jpg'
+    );
     expect(wrapper.get('a').attributes('href')).toBe('/sales/sales-token-a/spaces/space-product-1');
     expect(wrapper.text()).toContain('salesSpaces.fileCount:2');
   });

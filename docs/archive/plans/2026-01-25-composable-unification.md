@@ -54,6 +54,7 @@
 ```
 
 **提交**：
+
 ```bash
 git add src/composables/useResource.js
 git commit -m "docs(useResource): add JSDoc type definitions"
@@ -119,6 +120,7 @@ export function useResource(apiEndpoint, options = {}) {
 ```
 
 **提交**：
+
 ```bash
 git add src/composables/useResource.js
 git commit -m "feat(useResource): add AbortController for request cancellation"
@@ -133,55 +135,56 @@ git commit -m "feat(useResource): add AbortController for request cancellation"
 **代码**：
 
 ```javascript
-    /**
-     * 生成缓存键
-     */
-    const getCacheKey = (params) => {
-        const key = `${apiEndpoint}?${JSON.stringify(params)}`;
-        return key;
-    };
+/**
+ * 生成缓存键
+ */
+const getCacheKey = (params) => {
+  const key = `${apiEndpoint}?${JSON.stringify(params)}`;
+  return key;
+};
 
-    /**
-     * 从缓存获取数据
-     */
-    const getFromCache = (key) => {
-        if (!cache) return null;
-        const cached = resourceCache.get(key);
-        if (!cached) return null;
-        
-        const now = Date.now();
-        if (now - cached.timestamp > cacheTTL) {
-            resourceCache.delete(key);
-            return null;
-        }
-        return cached.data;
-    };
+/**
+ * 从缓存获取数据
+ */
+const getFromCache = (key) => {
+  if (!cache) return null;
+  const cached = resourceCache.get(key);
+  if (!cached) return null;
 
-    /**
-     * 写入缓存
-     */
-    const setCache = (key, data) => {
-        if (!cache) return;
-        resourceCache.set(key, {
-            data,
-            timestamp: Date.now(),
-        });
-    };
+  const now = Date.now();
+  if (now - cached.timestamp > cacheTTL) {
+    resourceCache.delete(key);
+    return null;
+  }
+  return cached.data;
+};
 
-    /**
-     * 清空当前资源的所有缓存
-     */
-    const clearCache = () => {
-        const prefix = apiEndpoint;
-        for (const key of resourceCache.keys()) {
-            if (key.startsWith(prefix)) {
-                resourceCache.delete(key);
-            }
-        }
-    };
+/**
+ * 写入缓存
+ */
+const setCache = (key, data) => {
+  if (!cache) return;
+  resourceCache.set(key, {
+    data,
+    timestamp: Date.now(),
+  });
+};
+
+/**
+ * 清空当前资源的所有缓存
+ */
+const clearCache = () => {
+  const prefix = apiEndpoint;
+  for (const key of resourceCache.keys()) {
+    if (key.startsWith(prefix)) {
+      resourceCache.delete(key);
+    }
+  }
+};
 ```
 
 **提交**：
+
 ```bash
 git add src/composables/useResource.js
 git commit -m "feat(useResource): implement smart caching with TTL"
@@ -196,26 +199,27 @@ git commit -m "feat(useResource): implement smart caching with TTL"
 **代码**：
 
 ```javascript
-    /**
-     * 指数退避重试
-     */
-    const retryWithBackoff = async (fn, attempt = 0) => {
-        try {
-            return await fn();
-        } catch (err) {
-            if (err.name === 'AbortError') throw err;
-            if (attempt >= retryCount) throw err;
-            
-            const delay = retryDelay * Math.pow(2, attempt);
-            console.warn(`Retry attempt ${attempt + 1}/${retryCount} after ${delay}ms`);
-            
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return retryWithBackoff(fn, attempt + 1);
-        }
-    };
+/**
+ * 指数退避重试
+ */
+const retryWithBackoff = async (fn, attempt = 0) => {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err.name === 'AbortError') throw err;
+    if (attempt >= retryCount) throw err;
+
+    const delay = retryDelay * Math.pow(2, attempt);
+    console.warn(`Retry attempt ${attempt + 1}/${retryCount} after ${delay}ms`);
+
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    return retryWithBackoff(fn, attempt + 1);
+  }
+};
 ```
 
 **提交**：
+
 ```bash
 git add src/composables/useResource.js
 git commit -m "feat(useResource): add exponential backoff retry"
@@ -230,123 +234,121 @@ git commit -m "feat(useResource): add exponential backoff retry"
 **完整代码**：
 
 ```javascript
-    /**
-     * 加载列表数据 (SOTA 版本)
-     * @param {Object} params - 查询参数
-     * @param {boolean} [forceRefresh=false] - 强制刷新跳过缓存
-     * @returns {Promise<boolean>}
-     */
-    const loadItems = async (params = {}, forceRefresh = false) => {
-        // 取消之前的请求
-        abort();
-        abortController = new AbortController();
-        
-        loading.value = true;
-        error.value = null;
-        lastRequestParams = params;
+/**
+ * 加载列表数据 (SOTA 版本)
+ * @param {Object} params - 查询参数
+ * @param {boolean} [forceRefresh=false] - 强制刷新跳过缓存
+ * @returns {Promise<boolean>}
+ */
+const loadItems = async (params = {}, forceRefresh = false) => {
+  // 取消之前的请求
+  abort();
+  abortController = new AbortController();
 
-        const cacheKey = getCacheKey(params);
-        
-        // 检查缓存
-        if (!forceRefresh) {
-            const cached = getFromCache(cacheKey);
-            if (cached) {
-                items.value = cached.items;
-                Object.assign(pagination, cached.pagination);
-                loading.value = false;
-                return true;
-            }
+  loading.value = true;
+  error.value = null;
+  lastRequestParams = params;
+
+  const cacheKey = getCacheKey(params);
+
+  // 检查缓存
+  if (!forceRefresh) {
+    const cached = getFromCache(cacheKey);
+    if (cached) {
+      items.value = cached.items;
+      Object.assign(pagination, cached.pagination);
+      loading.value = false;
+      return true;
+    }
+  }
+
+  try {
+    const query = new URLSearchParams({
+      page: params.page || pagination.page,
+      limit: params.limit || pagination.limit,
+      ...params,
+    });
+
+    const fetchFn = async () => {
+      const res = await authFetch(`${apiEndpoint}?${query.toString()}`, {
+        signal: abortController.signal,
+      });
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('UNAUTHORIZED');
+        } else if (res.status >= 500) {
+          throw new Error('SERVER_ERROR');
         }
+      }
 
-        try {
-            const query = new URLSearchParams({
-                page: params.page || pagination.page,
-                limit: params.limit || pagination.limit,
-                ...params,
-            });
-
-            const fetchFn = async () => {
-                const res = await authFetch(`${apiEndpoint}?${query.toString()}`, {
-                    signal: abortController.signal,
-                });
-
-                if (!res.ok) {
-                    if (res.status === 401) {
-                        throw new Error('UNAUTHORIZED');
-                    } else if (res.status >= 500) {
-                        throw new Error('SERVER_ERROR');
-                    }
-                }
-
-                return res.json();
-            };
-
-            const res = await retryWithBackoff(fetchFn);
-
-            if (res.success) {
-                const listData = listPath
-                    ? getByPath(res, listPath)
-                    : res[listKey];
-
-                const finalItems = Array.isArray(listData) 
-                    ? listData 
-                    : (listData?.[subKey] || []);
-
-                items.value = finalItems;
-
-                // 处理分页
-                const meta = res.meta || res.data?.pagination || res.pagination;
-                if (meta) {
-                    pagination.page = meta.page || pagination.page;
-                    pagination.limit = meta.limit || pagination.limit;
-                    pagination.total = meta.total || 0;
-                    pagination.totalPages = meta.totalPages || Math.ceil(pagination.total / pagination.limit) || 1;
-                }
-
-                // 写入缓存
-                setCache(cacheKey, {
-                    items: finalItems,
-                    pagination: { ...pagination },
-                });
-
-                return true;
-            } else {
-                error.value = res.error || res.message || t('common.loadFailed');
-                addToast({ message: error.value, type: 'error' });
-                return false;
-            }
-        } catch (e) {
-            if (e.name === 'AbortError') {
-                console.debug('Request aborted');
-                return false;
-            }
-
-            console.error(`useResource load error [${apiEndpoint}]:`, e);
-
-            if (e.message === 'UNAUTHORIZED') {
-                error.value = t('common.error.unauthorized');
-            } else if (e.message === 'SERVER_ERROR') {
-                error.value = t('common.error.server_error');
-            } else {
-                error.value = t('common.networkError');
-            }
-
-            addToast({ message: error.value, type: 'error' });
-            return false;
-        } finally {
-            loading.value = false;
-        }
+      return res.json();
     };
 
-    /**
-     * 取消所有正在进行的请求
-     */
-    const abort = () => {
-        abortController.abort();
-    };
+    const res = await retryWithBackoff(fetchFn);
+
+    if (res.success) {
+      const listData = listPath ? getByPath(res, listPath) : res[listKey];
+
+      const finalItems = Array.isArray(listData) ? listData : listData?.[subKey] || [];
+
+      items.value = finalItems;
+
+      // 处理分页
+      const meta = res.meta || res.data?.pagination || res.pagination;
+      if (meta) {
+        pagination.page = meta.page || pagination.page;
+        pagination.limit = meta.limit || pagination.limit;
+        pagination.total = meta.total || 0;
+        pagination.totalPages =
+          meta.totalPages || Math.ceil(pagination.total / pagination.limit) || 1;
+      }
+
+      // 写入缓存
+      setCache(cacheKey, {
+        items: finalItems,
+        pagination: { ...pagination },
+      });
+
+      return true;
+    } else {
+      error.value = res.error || res.message || t('common.loadFailed');
+      addToast({ message: error.value, type: 'error' });
+      return false;
+    }
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      console.debug('Request aborted');
+      return false;
+    }
+
+    console.error(`useResource load error [${apiEndpoint}]:`, e);
+
+    if (e.message === 'UNAUTHORIZED') {
+      error.value = t('common.error.unauthorized');
+    } else if (e.message === 'SERVER_ERROR') {
+      error.value = t('common.error.server_error');
+    } else {
+      error.value = t('common.networkError');
+    }
+
+    addToast({ message: error.value, type: 'error' });
+    return false;
+  } finally {
+    loading.value = false;
+  }
+};
+
+/**
+ * 取消所有正在进行的请求
+ */
+const abort = () => {
+  abortController.abort();
+};
 ```
 
 **提交**：
+
 ```bash
 git add src/composables/useResource.js
 git commit -m "feat(useResource): SOTA loadItems with cache, retry, abort"
@@ -361,95 +363,96 @@ git commit -m "feat(useResource): SOTA loadItems with cache, retry, abort"
 **代码**：
 
 ```javascript
-    /**
-     * 更新资源 (乐观更新)
-     * @param {string|number} id
-     * @param {Object} updates
-     * @param {string} [idKey='id']
-     * @returns {Promise<boolean>}
-     */
-    const updateItem = async (id, updates, idKey = 'id') => {
-        const idx = items.value.findIndex(item => item[idKey] === id);
-        if (idx === -1) return false;
+/**
+ * 更新资源 (乐观更新)
+ * @param {string|number} id
+ * @param {Object} updates
+ * @param {string} [idKey='id']
+ * @returns {Promise<boolean>}
+ */
+const updateItem = async (id, updates, idKey = 'id') => {
+  const idx = items.value.findIndex((item) => item[idKey] === id);
+  if (idx === -1) return false;
 
-        // 1. 保存旧值
-        const oldItem = { ...items.value[idx] };
+  // 1. 保存旧值
+  const oldItem = { ...items.value[idx] };
 
-        // 2. 乐观更新
-        items.value[idx] = { ...items.value[idx], ...updates };
+  // 2. 乐观更新
+  items.value[idx] = { ...items.value[idx], ...updates };
 
-        try {
-            const res = await authFetch(`${apiEndpoint}/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updates),
-                signal: abortController.signal,
-            }).then(r => r.json());
+  try {
+    const res = await authFetch(`${apiEndpoint}/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+      signal: abortController.signal,
+    }).then((r) => r.json());
 
-            if (res.success) {
-                addToast({ message: t('common.updated'), type: 'success' });
-                clearCache(); // 清空缓存以触发重新加载
-                return true;
-            } else {
-                // 3. 失败回滚
-                items.value[idx] = oldItem;
-                addToast({ message: res.error || t('common.error'), type: 'error' });
-                return false;
-            }
-        } catch (e) {
-            // 3. 失败回滚
-            items.value[idx] = oldItem;
-            addToast({ message: t('common.networkError'), type: 'error' });
-            return false;
-        }
-    };
+    if (res.success) {
+      addToast({ message: t('common.updated'), type: 'success' });
+      clearCache(); // 清空缓存以触发重新加载
+      return true;
+    } else {
+      // 3. 失败回滚
+      items.value[idx] = oldItem;
+      addToast({ message: res.error || t('common.error'), type: 'error' });
+      return false;
+    }
+  } catch (e) {
+    // 3. 失败回滚
+    items.value[idx] = oldItem;
+    addToast({ message: t('common.networkError'), type: 'error' });
+    return false;
+  }
+};
 
-    /**
-     * 删除资源 (乐观更新)
-     * @param {string|number} id
-     * @param {string} [idKey='id']
-     * @returns {Promise<boolean>}
-     */
-    const deleteItem = async (id, idKey = 'id') => {
-        const idx = items.value.findIndex(item => item[idKey] === id);
-        if (idx === -1) return false;
+/**
+ * 删除资源 (乐观更新)
+ * @param {string|number} id
+ * @param {string} [idKey='id']
+ * @returns {Promise<boolean>}
+ */
+const deleteItem = async (id, idKey = 'id') => {
+  const idx = items.value.findIndex((item) => item[idKey] === id);
+  if (idx === -1) return false;
 
-        // 1. 保存旧值
-        const oldItem = { ...items.value[idx] };
-        const oldTotal = pagination.total;
+  // 1. 保存旧值
+  const oldItem = { ...items.value[idx] };
+  const oldTotal = pagination.total;
 
-        // 2. 乐观删除
-        items.value.splice(idx, 1);
-        pagination.total--;
+  // 2. 乐观删除
+  items.value.splice(idx, 1);
+  pagination.total--;
 
-        try {
-            const res = await authFetch(`${apiEndpoint}/${id}`, {
-                method: 'DELETE',
-                signal: abortController.signal,
-            }).then(r => r.json());
+  try {
+    const res = await authFetch(`${apiEndpoint}/${id}`, {
+      method: 'DELETE',
+      signal: abortController.signal,
+    }).then((r) => r.json());
 
-            if (res.success) {
-                addToast({ message: t('common.deleted'), type: 'success' });
-                clearCache();
-                return true;
-            } else {
-                // 3. 失败回滚
-                items.value.splice(idx, 0, oldItem);
-                pagination.total = oldTotal;
-                addToast({ message: res.error || t('common.error'), type: 'error' });
-                return false;
-            }
-        } catch (e) {
-            // 3. 失败回滚
-            items.value.splice(idx, 0, oldItem);
-            pagination.total = oldTotal;
-            addToast({ message: t('common.networkError'), type: 'error' });
-            return false;
-        }
-    };
+    if (res.success) {
+      addToast({ message: t('common.deleted'), type: 'success' });
+      clearCache();
+      return true;
+    } else {
+      // 3. 失败回滚
+      items.value.splice(idx, 0, oldItem);
+      pagination.total = oldTotal;
+      addToast({ message: res.error || t('common.error'), type: 'error' });
+      return false;
+    }
+  } catch (e) {
+    // 3. 失败回滚
+    items.value.splice(idx, 0, oldItem);
+    pagination.total = oldTotal;
+    addToast({ message: t('common.networkError'), type: 'error' });
+    return false;
+  }
+};
 ```
 
 **提交**：
+
 ```bash
 git add src/composables/useResource.js
 git commit -m "feat(useResource): implement optimistic UI for update/delete"
@@ -485,6 +488,7 @@ git commit -m "feat(useResource): implement optimistic UI for update/delete"
 ```
 
 **提交**：
+
 ```bash
 git add src/composables/useResource.js
 git commit -m "feat(useResource): complete SOTA implementation"
@@ -497,12 +501,14 @@ git commit -m "feat(useResource): complete SOTA implementation"
 ### Task 2.1: 重构 useProducts.js（已完成，需验证）
 
 **验证步骤**：
+
 1. 检查 ProductManager 是否正常加载
 2. 测试创建、编辑、删除商品
 3. 验证分页和搜索
 4. 检查网络断开时的重试
 
 **提交**：如有问题修复后
+
 ```bash
 git add src/composables/useProducts.js
 git commit -m "fix(useProducts): align with SOTA useResource"
@@ -525,49 +531,50 @@ import { useToast } from './useToast';
 import { useI18n } from './useI18n';
 
 export function useOrders() {
-    const { authFetch } = useAuth();
-    const { addToast } = useToast();
-    const { t } = useI18n();
+  const { authFetch } = useAuth();
+  const { addToast } = useToast();
+  const { t } = useI18n();
 
-    // 使用 useResource 管理订单列表
-    const resource = useResource(API.MANAGE_ORDERS, {
-        listPath: 'data.orders',
-    });
+  // 使用 useResource 管理订单列表
+  const resource = useResource(API.MANAGE_ORDERS, {
+    listPath: 'data.orders',
+  });
 
-    // 额外状态（Orders 特有）
-    const salespersons = ref([]);
-    const statuses = ref([]);
+  // 额外状态（Orders 特有）
+  const salespersons = ref([]);
+  const statuses = ref([]);
 
-    /**
-     * 加载订单列表 (增强版)
-     */
-    const loadOrders = async (params = {}) => {
-        const success = await resource.loadItems(params);
-        
-        // SOTA: 从最后一次响应中提取额外数据
-        // 需要修改 useResource 来支持 onSuccess 回调
-        // 临时方案：手动请求
-        
-        return success;
-    };
+  /**
+   * 加载订单列表 (增强版)
+   */
+  const loadOrders = async (params = {}) => {
+    const success = await resource.loadItems(params);
 
-    // 保留所有其他业务方法...
-    // getOrder, updateOrder, changeStatus, addComment, batchAction 等
+    // SOTA: 从最后一次响应中提取额外数据
+    // 需要修改 useResource 来支持 onSuccess 回调
+    // 临时方案：手动请求
 
-    return {
-        orders: resource.items,
-        loading: resource.loading,
-        error: resource.error,
-        pagination: resource.pagination,
-        salespersons,
-        statuses,
-        loadOrders,
-        // ... 其他方法
-    };
+    return success;
+  };
+
+  // 保留所有其他业务方法...
+  // getOrder, updateOrder, changeStatus, addComment, batchAction 等
+
+  return {
+    orders: resource.items,
+    loading: resource.loading,
+    error: resource.error,
+    pagination: resource.pagination,
+    salespersons,
+    statuses,
+    loadOrders,
+    // ... 其他方法
+  };
 }
 ```
 
 **提交**：
+
 ```bash
 git add src/composables/useOrders.js
 git commit -m "refactor(useOrders): migrate to SOTA useResource"
@@ -581,31 +588,32 @@ git commit -m "refactor(useOrders): migrate to SOTA useResource"
 
 ```javascript
 export function useSpaces() {
-    const resource = useResource(API.SPACES);
+  const resource = useResource(API.SPACES);
 
-    // 额外状态
-    const currentSpace = ref(null);
+  // 额外状态
+  const currentSpace = ref(null);
 
-    const loadSpace = async (spaceId) => {
-        // 单个详情不使用 resource，保持原有逻辑
-    };
+  const loadSpace = async (spaceId) => {
+    // 单个详情不使用 resource，保持原有逻辑
+  };
 
-    return {
-        spaces: resource.items,
-        currentSpace,
-        loading: resource.loading,
-        error: resource.error,
-        loadSpaces: resource.loadItems,
-        loadSpace,
-        createSpace: resource.createItem,
-        updateSpace: resource.updateItem,
-        deleteSpace: resource.deleteItem,
-        // ... 其他业务方法
-    };
+  return {
+    spaces: resource.items,
+    currentSpace,
+    loading: resource.loading,
+    error: resource.error,
+    loadSpaces: resource.loadItems,
+    loadSpace,
+    createSpace: resource.createItem,
+    updateSpace: resource.updateItem,
+    deleteSpace: resource.deleteItem,
+    // ... 其他业务方法
+  };
 }
 ```
 
 **提交**：
+
 ```bash
 git add src/composables/useSpaces.js
 git commit -m "refactor(useSpaces): migrate to SOTA useResource"
@@ -619,25 +627,26 @@ git commit -m "refactor(useSpaces): migrate to SOTA useResource"
 
 ```javascript
 export function useSalespersons() {
-    const resource = useResource(API.SALESPERSONS, {
-        listPath: 'data.salespersons',
-    });
+  const resource = useResource(API.SALESPERSONS, {
+    listPath: 'data.salespersons',
+  });
 
-    return {
-        salespersons: resource.items,
-        loading: resource.loading,
-        error: resource.error,
-        pagination: resource.pagination,
-        loadSalespersons: resource.loadItems,
-        createSalesperson: resource.createItem,
-        updateSalesperson: resource.updateItem,
-        deleteSalesperson: resource.deleteItem,
-        // 保留特有方法: resetToken, copyAccessLink
-    };
+  return {
+    salespersons: resource.items,
+    loading: resource.loading,
+    error: resource.error,
+    pagination: resource.pagination,
+    loadSalespersons: resource.loadItems,
+    createSalesperson: resource.createItem,
+    updateSalesperson: resource.updateItem,
+    deleteSalesperson: resource.deleteItem,
+    // 保留特有方法: resetToken, copyAccessLink
+  };
 }
 ```
 
 **提交**：
+
 ```bash
 git add src/composables/useSalespersons.js
 git commit -m "refactor(useSalespersons): migrate to SOTA useResource"
@@ -662,6 +671,7 @@ error: {
 ```
 
 **提交**：
+
 ```bash
 git add src/locales/zh-CN.js
 git commit -m "i18n: add error messages for SOTA useResource"
@@ -672,6 +682,7 @@ git commit -m "i18n: add error messages for SOTA useResource"
 ### Task 3.2: 端到端测试
 
 **测试清单**：
+
 - [ ] 商品列表加载、分页、搜索
 - [ ] 订单列表过滤、状态更新
 - [ ] 空间创建、文件添加
@@ -685,12 +696,14 @@ git commit -m "i18n: add error messages for SOTA useResource"
 ### Task 3.3: Lint 和 Build
 
 **运行**：
+
 ```bash
 npm run lint -- --fix
 pnpm build
 ```
 
 **提交**：
+
 ```bash
 git add .
 git commit -m "chore: final lint fixes for SOTA composables"
@@ -708,9 +721,10 @@ git commit -m "chore: final lint fixes for SOTA composables"
 ✅ **自动重试**：指数退避  
 ✅ **完整类型提示**：JSDoc  
 ✅ **细粒度错误处理**：401/500/network  
-✅ **DRY 原则**：所有资源类 Composable 复用相同逻辑  
+✅ **DRY 原则**：所有资源类 Composable 复用相同逻辑
 
 **预期收益**：
+
 - 代码量减少 40%
 - 用户体验提升（加载速度、错误提示）
 - 可维护性大幅提升

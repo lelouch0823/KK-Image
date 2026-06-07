@@ -107,8 +107,12 @@ describeIfRealApi('Manage Products Real API Batch', function () {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const blueVariant = (detailBefore.json?.data?.variants || []).find((item) => item.sku === `BATCH-R-BLUE-${seed}`);
-    const redVariant = (detailBefore.json?.data?.variants || []).find((item) => item.sku === `BATCH-R-RED-${seed}`);
+    const blueVariant = (detailBefore.json?.data?.variants || []).find(
+      (item) => item.sku === `BATCH-R-BLUE-${seed}`
+    );
+    const redVariant = (detailBefore.json?.data?.variants || []).find(
+      (item) => item.sku === `BATCH-R-RED-${seed}`
+    );
     assert.ok(blueVariant?.id && redVariant?.id);
 
     await apiRequest(`/api/manage/products/${productId}`, {
@@ -233,10 +237,13 @@ describeIfRealApi('Manage Products Real API Batch', function () {
     assert.strictEqual(Number(batch.json?.summary?.failedProducts || 0), 1);
     assert.ok((batch.json?.errors || []).some((item) => String(item).includes(spu)));
 
-    const list = await apiRequest(`/api/manage/products?search=${encodeURIComponent(spu)}&page=1&limit=10`, {
-      bearerToken: token,
-      expectedStatus: 200,
-    });
+    const list = await apiRequest(
+      `/api/manage/products?search=${encodeURIComponent(spu)}&page=1&limit=10`,
+      {
+        bearerToken: token,
+        expectedStatus: 200,
+      }
+    );
     const items = list.json?.data || [];
     assert.ok(!items.some((item) => item.spu === spu), 'batch failure left residual product');
   });
@@ -311,7 +318,9 @@ describeIfRealApi('Manage Products Real API Batch', function () {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const variant = detail.json?.data?.variants?.find((item) => item.sku === `BATCH-SAFE-RED-${seed}`);
+    const variant = detail.json?.data?.variants?.find(
+      (item) => item.sku === `BATCH-SAFE-RED-${seed}`
+    );
     assert.strictEqual(detail.json?.data?.name, `Batch Safe Original ${seed}`);
     assert.strictEqual(detail.json?.data?.brand, 'OriginalBrand');
     assert.strictEqual(variant?.price, 21);

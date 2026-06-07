@@ -55,9 +55,7 @@ describe('cron reminders outbox publishing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isCronAuthorized.mockReturnValue(true);
-    mocks.findStalePending.mockResolvedValue([
-      { id: 'o-pending', order_no: 'SO-PENDING' },
-    ]);
+    mocks.findStalePending.mockResolvedValue([{ id: 'o-pending', order_no: 'SO-PENDING' }]);
     mocks.findApproachingDeadline.mockResolvedValue([
       {
         id: 'o-deadline',
@@ -114,16 +112,18 @@ describe('cron reminders outbox publishing', () => {
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
 
     const payload = await response.json();
-    expect(payload).toEqual(expect.objectContaining({
-      success: true,
-      data: expect.objectContaining({
-        processed: expect.objectContaining({
-          pending: 1,
-          approaching: 1,
-          notificationsSent: 3,
+    expect(payload).toEqual(
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          processed: expect.objectContaining({
+            pending: 1,
+            approaching: 1,
+            notificationsSent: 3,
+          }),
         }),
-      }),
-    }));
+      })
+    );
   });
 
   it('loads approaching deadlines from the repository instead of ad-hoc SQL', async () => {

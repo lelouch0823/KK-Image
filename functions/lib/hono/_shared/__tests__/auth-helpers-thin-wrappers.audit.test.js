@@ -14,9 +14,6 @@ describe('auth helpers thin wrappers audit', () => {
       offenders.push('functions/lib/hono/_shared/auth-helpers.js: still defines getLockedMessage');
     }
 
-    expect(
-      offenders,
-      `auth helpers thin-wrapper offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `auth helpers thin-wrapper offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

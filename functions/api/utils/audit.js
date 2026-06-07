@@ -11,13 +11,16 @@ import { getRequestAuditContext, recordAuditEvent } from '../../lib/hono/_shared
  * @param {object|string} [params.payload] - 变更详情（会被序列化为 JSON）
  * @param {string} [params.ip] - 来源 IP
  */
-export async function logAudit(db, { userId, action, targetType, targetId = null, payload = null, ip = null }) {
-    try {
-        await recordAuditEvent(db, { userId, action, targetType, targetId, payload, ip });
-    } catch (err) {
-        // 审计日志写入失败不应阻断正常业务，只打印错误
-        console.error('[AuditLog] 写入失败:', err);
-    }
+export async function logAudit(
+  db,
+  { userId, action, targetType, targetId = null, payload = null, ip = null }
+) {
+  try {
+    await recordAuditEvent(db, { userId, action, targetType, targetId, payload, ip });
+  } catch (err) {
+    // 审计日志写入失败不应阻断正常业务，只打印错误
+    console.error('[AuditLog] 写入失败:', err);
+  }
 }
 
 /**
@@ -26,16 +29,16 @@ export async function logAudit(db, { userId, action, targetType, targetId = null
  * @returns {{ userId: string, ip: string }}
  */
 export function getAuditContext(c) {
-    const context = getRequestAuditContext(c);
-    return {
-        userId: context.actor_id,
-        ip: context.ip_address,
-        actorType: context.actor_type,
-        actorName: context.actor_name,
-        actorRole: context.actor_role,
-        sourceApp: context.source_app,
-        requestId: context.request_id,
-        traceId: context.trace_id,
-        userAgent: context.user_agent,
-    };
+  const context = getRequestAuditContext(c);
+  return {
+    userId: context.actor_id,
+    ip: context.ip_address,
+    actorType: context.actor_type,
+    actorName: context.actor_name,
+    actorRole: context.actor_role,
+    sourceApp: context.source_app,
+    requestId: context.request_id,
+    traceId: context.trace_id,
+    userAgent: context.user_agent,
+  };
 }

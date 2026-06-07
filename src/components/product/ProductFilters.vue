@@ -4,9 +4,14 @@
       <Select
         :model-value="status"
         :options="statusOptions"
-        :placeholder="isMobile ? t('product.filters.status.short_label') : t('product.filters.status.all')"
+        :placeholder="
+          isMobile ? t('product.filters.status.short_label') : t('product.filters.status.all')
+        "
         size="sm"
-        @update:model-value="$emit('update:status', $event); $emit('refresh')"
+        @update:model-value="
+          $emit('update:status', $event);
+          $emit('refresh');
+        "
       />
     </div>
 
@@ -16,7 +21,10 @@
         :options="brandSelectOptions"
         :placeholder="t('order.form.brand', '品牌')"
         size="sm"
-        @update:model-value="$emit('update:brand', $event); $emit('refresh')"
+        @update:model-value="
+          $emit('update:brand', $event);
+          $emit('refresh');
+        "
       />
     </div>
 
@@ -26,7 +34,10 @@
         :options="categorySelectOptions"
         :placeholder="t('product.form.category')"
         size="sm"
-        @update:model-value="$emit('update:category', $event); $emit('refresh')"
+        @update:model-value="
+          $emit('update:category', $event);
+          $emit('refresh');
+        "
       />
     </div>
 
@@ -36,7 +47,10 @@
         :options="stockOptions"
         :placeholder="t('product.filters.stock', '库存')"
         size="sm"
-        @update:model-value="$emit('update:hasStock', $event); $emit('refresh')"
+        @update:model-value="
+          $emit('update:hasStock', $event);
+          $emit('refresh');
+        "
       />
     </div>
 
@@ -66,34 +80,41 @@ const { t } = useI18n();
 const props = defineProps({
   search: {
     type: String,
-    default: ''
+    default: '',
   },
   status: {
     type: String,
-    default: ''
+    default: '',
   },
   brand: {
     type: String,
-    default: ''
+    default: '',
   },
   category: {
     type: String,
-    default: ''
+    default: '',
   },
   hasStock: {
     type: String,
-    default: ''
+    default: '',
   },
   brandOptions: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   categoryOptions: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 });
-defineEmits(['update:search', 'update:status', 'update:brand', 'update:category', 'update:hasStock', 'refresh']);
+defineEmits([
+  'update:search',
+  'update:status',
+  'update:brand',
+  'update:category',
+  'update:hasStock',
+  'refresh',
+]);
 
 // 移动端检测
 const isMobile = ref(false);
@@ -116,10 +137,15 @@ onUnmounted(() => {
 });
 
 const statusOptions = computed(() => [
-  { label: isMobile.value ? t('product.filters.status.short_label') : t('product.filters.status.all'), value: '' },
+  {
+    label: isMobile.value
+      ? t('product.filters.status.short_label')
+      : t('product.filters.status.all'),
+    value: '',
+  },
   { label: t('product.filters.status.draft'), value: 'draft' },
   { label: t('product.filters.status.active'), value: 'active' },
-  { label: t('product.filters.status.archived'), value: 'archived' }
+  { label: t('product.filters.status.archived'), value: 'archived' },
 ]);
 
 const brandSelectOptions = computed(() => [

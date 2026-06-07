@@ -166,10 +166,22 @@ describeIfRealApi('Sales Spaces Real API', function () {
     );
     const listed = list.json?.data || [];
 
-    assert.ok(findSpaceByName(list.json, `Visible All ${seed}`), 'all-shared top-level space missing');
-    assert.ok(findSpaceByName(list.json, `Visible Selected ${seed}`), 'selected visible top-level space missing');
-    assert.ok(!findSpaceByName(list.json, `Hidden Selected ${seed}`), 'other-selected top-level space leaked');
-    assert.ok(!findSpaceByName(list.json, `Hidden None ${seed}`), 'share-mode-none top-level space leaked');
+    assert.ok(
+      findSpaceByName(list.json, `Visible All ${seed}`),
+      'all-shared top-level space missing'
+    );
+    assert.ok(
+      findSpaceByName(list.json, `Visible Selected ${seed}`),
+      'selected visible top-level space missing'
+    );
+    assert.ok(
+      !findSpaceByName(list.json, `Hidden Selected ${seed}`),
+      'other-selected top-level space leaked'
+    );
+    assert.ok(
+      !findSpaceByName(list.json, `Hidden None ${seed}`),
+      'share-mode-none top-level space leaked'
+    );
     assert.ok(!findSpaceByName(list.json, `Expired Top ${seed}`), 'expired top-level space leaked');
     assert.strictEqual(
       listed.some((item) => item.parent_id),
@@ -275,24 +287,27 @@ describeIfRealApi('Sales Spaces Real API', function () {
     const spaceId = createdSpace.json?.data?.id;
     assert.ok(spaceId, 'sales binding space id missing');
 
-    await waitFor(async () => {
-      const salesDetail = await salesApiRequest(
-        salesSession.accessToken,
-        salesSession.jwt,
-        `/api/sales/${salesSession.accessToken}/spaces/${spaceId}`,
-        { expectedStatus: 200 }
-      );
-      const templateData = parseTemplateData(salesDetail.json?.data);
-      assert.strictEqual(templateData.sku, `SALESPACE-LIVE-${seed}`);
-      assert.strictEqual(templateData.material, 'Leather');
-      assert.strictEqual(templateData.brand, 'Sales Brand');
-      assert.strictEqual(templateData.series, 'Sales Series');
-      return templateData;
-    }, {
-      timeoutMs: 20000,
-      intervalMs: 500,
-      onTimeoutMessage: 'sales-visible space did not project live bound product data',
-    });
+    await waitFor(
+      async () => {
+        const salesDetail = await salesApiRequest(
+          salesSession.accessToken,
+          salesSession.jwt,
+          `/api/sales/${salesSession.accessToken}/spaces/${spaceId}`,
+          { expectedStatus: 200 }
+        );
+        const templateData = parseTemplateData(salesDetail.json?.data);
+        assert.strictEqual(templateData.sku, `SALESPACE-LIVE-${seed}`);
+        assert.strictEqual(templateData.material, 'Leather');
+        assert.strictEqual(templateData.brand, 'Sales Brand');
+        assert.strictEqual(templateData.series, 'Sales Series');
+        return templateData;
+      },
+      {
+        timeoutMs: 20000,
+        intervalMs: 500,
+        onTimeoutMessage: 'sales-visible space did not project live bound product data',
+      }
+    );
 
     await apiRequest(`/api/manage/products/${productId}`, {
       bearerToken: token,
@@ -300,24 +315,27 @@ describeIfRealApi('Sales Spaces Real API', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const archivedDetail = await salesApiRequest(
-        salesSession.accessToken,
-        salesSession.jwt,
-        `/api/sales/${salesSession.accessToken}/spaces/${spaceId}`,
-        { expectedStatus: 200 }
-      );
-      const templateData = parseTemplateData(archivedDetail.json?.data);
-      assert.strictEqual(templateData.sku, 'SNAPSHOT-SKU');
-      assert.strictEqual(templateData.material, 'Snapshot Material');
-      assert.strictEqual(templateData.brand, 'Snapshot Brand');
-      assert.strictEqual(templateData.series, 'Snapshot Series');
-      assert.strictEqual(templateData.images?.[0], 'snapshot-main.jpg');
-      return templateData;
-    }, {
-      timeoutMs: 45000,
-      intervalMs: 500,
-      onTimeoutMessage: 'sales-visible space did not fall back to snapshot after product archive',
-    });
+    await waitFor(
+      async () => {
+        const archivedDetail = await salesApiRequest(
+          salesSession.accessToken,
+          salesSession.jwt,
+          `/api/sales/${salesSession.accessToken}/spaces/${spaceId}`,
+          { expectedStatus: 200 }
+        );
+        const templateData = parseTemplateData(archivedDetail.json?.data);
+        assert.strictEqual(templateData.sku, 'SNAPSHOT-SKU');
+        assert.strictEqual(templateData.material, 'Snapshot Material');
+        assert.strictEqual(templateData.brand, 'Snapshot Brand');
+        assert.strictEqual(templateData.series, 'Snapshot Series');
+        assert.strictEqual(templateData.images?.[0], 'snapshot-main.jpg');
+        return templateData;
+      },
+      {
+        timeoutMs: 45000,
+        intervalMs: 500,
+        onTimeoutMessage: 'sales-visible space did not fall back to snapshot after product archive',
+      }
+    );
   });
 });

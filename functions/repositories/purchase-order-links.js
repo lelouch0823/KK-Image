@@ -20,7 +20,8 @@ export async function findActiveBindingsByPreOrderIds({ db, preOrderIds = [] }) 
   for (const orderIdChunk of chunkArray(normalizedIds, D1_MAX_IN_CLAUSE_SIZE)) {
     const placeholders = orderIdChunk.map(() => '?').join(',');
     const { results } = await db
-      .prepare(`
+      .prepare(
+        `
         SELECT
           poi.pre_order_id,
           poi.po_id,
@@ -30,7 +31,8 @@ export async function findActiveBindingsByPreOrderIds({ db, preOrderIds = [] }) 
         JOIN purchase_orders po ON po.id = poi.po_id
         WHERE poi.pre_order_id IN (${placeholders})
           AND po.status != 'cancelled'
-      `)
+      `
+      )
       .bind(...orderIdChunk)
       .all();
     bindings.push(...(results || []));
@@ -45,7 +47,9 @@ export async function getLastPurchasePricesByVariant({ db, variantIds = [] }) {
   const priceMap = {};
   for (const variantIdChunk of chunkArray(variantIds, D1_MAX_IN_CLAUSE_SIZE)) {
     const placeholders = variantIdChunk.map(() => '?').join(',');
-    const { results } = await db.prepare(`
+    const { results } = await db
+      .prepare(
+        `
       SELECT latest.variant_id, poi.unit_cost AS last_purchase_price
       FROM (
         SELECT poi2.variant_id,
@@ -60,7 +64,10 @@ export async function getLastPurchasePricesByVariant({ db, variantIds = [] }) {
       JOIN purchase_orders po ON po.id = poi.po_id
       WHERE po.status = 'completed'
         AND COALESCE(po.completed_at, po.updated_at, po.created_at, 0) = latest.latest_ts
-    `).bind(...variantIdChunk).all();
+    `
+      )
+      .bind(...variantIdChunk)
+      .all();
 
     for (const row of results || []) {
       if (priceMap[row.variant_id] == null) {

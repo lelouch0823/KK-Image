@@ -36,9 +36,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('../useResource', () => ({
   useResource: vi.fn((apiEndpoint) =>
-    apiEndpoint === '/api/manage/orders'
-      ? mocks.manageResource
-      : mocks.salesResource
+    apiEndpoint === '/api/manage/orders' ? mocks.manageResource : mocks.salesResource
   ),
 }));
 
@@ -184,14 +182,8 @@ describe('useOrders list isolation', () => {
       pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
     });
 
-    const {
-      loadOrders,
-      loadSalesOrders,
-      orders,
-      salesOrders,
-      pagination,
-      salesPagination,
-    } = useOrders();
+    const { loadOrders, loadSalesOrders, orders, salesOrders, pagination, salesPagination } =
+      useOrders();
 
     await loadOrders({ page: 1 });
     await loadSalesOrders('sales-token', 1);

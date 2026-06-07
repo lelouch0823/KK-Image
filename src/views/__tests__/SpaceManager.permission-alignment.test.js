@@ -64,7 +64,9 @@ describe('SpaceManager permission alignment', () => {
     return mount(SpaceManager, {
       global: {
         stubs: {
-          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /><slot /></div>' },
+          ManagementListShell: {
+            template: '<div><slot name="actions" /><slot name="content" /><slot /></div>',
+          },
           Tooltip: { template: '<div><slot /></div>' },
           SpaceCreateModal: { template: '<div />' },
           SpaceProductEditor: { template: '<div data-testid="product-editor" />' },

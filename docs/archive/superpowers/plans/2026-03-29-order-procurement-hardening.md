@@ -13,6 +13,7 @@
 ## File Map
 
 **Critical inventory and receipt boundary**
+
 - Modify: `functions/services/PurchaseOrderService.js`
 - Modify: `functions/services/OrderProcurementDomainService.js`
 - Modify: `functions/lib/hono/routes/manage/purchase-orders.js`
@@ -21,6 +22,7 @@
 - Test: `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 
 **Multi-line order compatibility boundary**
+
 - Modify: `functions/services/InventoryService.js`
 - Modify: `functions/services/DemandService.js`
 - Modify: `functions/repositories/order/mutations.js`
@@ -32,6 +34,7 @@
 - Test: `functions/repositories/__tests__/order-queries.display-model.test.js`
 
 **Read-model consistency**
+
 - Modify: `functions/repositories/GoodsOverviewRepository.js`
 - Modify: `functions/repositories/PurchaseOrderRepository.js`
 - Modify: `functions/lib/hono/routes/_shared/variant-replenishment.js`
@@ -42,6 +45,7 @@
 ### Task 1: Stop Duplicate Inventory Inbound Paths
 
 **Files:**
+
 - Modify: `functions/services/PurchaseOrderService.js`
 - Test: `functions/services/__tests__/PurchaseOrderService.variant-dimension.test.js`
 - Test: `functions/services/__tests__/OrderProcurementDomainService.test.js`
@@ -62,6 +66,7 @@ Expected: FAIL because `updateStatus()` still calls `_updateInventory(..., 'incr
 - [ ] **Step 3: Write minimal implementation**
 
 Implementation notes:
+
 - Remove purchase-order-level stock increment from `PurchaseOrderService.updateStatus()`
 - Keep receipt-driven inbound stock as the single source of truth
 - Decide whether rollback on `cancelled` from `arrived` should be deleted entirely or guarded behind explicit reversal flow
@@ -81,6 +86,7 @@ git commit -m "fix: remove duplicate purchase arrival inventory path"
 ### Task 2: Enforce Receipt Guardrails
 
 **Files:**
+
 - Modify: `functions/services/OrderProcurementDomainService.js`
 - Modify: `functions/lib/hono/routes/manage/purchase-orders.js`
 - Test: `functions/services/__tests__/OrderProcurementDomainService.test.js`
@@ -102,6 +108,7 @@ Expected: FAIL because the domain only checks `received_qty > 0`
 - [ ] **Step 3: Write minimal implementation**
 
 Implementation notes:
+
 - Load purchase order header status before accepting receipts
 - Allow receipts only when PO status is `ordered` or `shipping`
 - Compute `remainingReceivable = max(quantity - received_qty - cancelled_qty, 0)`
@@ -123,6 +130,7 @@ git commit -m "fix: enforce purchase receipt state and quantity guards"
 ### Task 3: Restore Compatibility Procurement Status After Receipts
 
 **Files:**
+
 - Modify: `functions/services/OrderProcurementDomainService.js`
 - Modify: `functions/repositories/order/queries.js`
 - Test: `functions/services/__tests__/OrderProcurementDomainService.test.js`
@@ -142,6 +150,7 @@ Expected: FAIL because receipt flow does not update `orders.procurement_status`
 - [ ] **Step 3: Write minimal implementation**
 
 Implementation notes:
+
 - After item-level receipt update, compute linked order compatibility procurement status
 - Use `partially_arrived` when some but not all linked quantity is received
 - Use `arrived` only when outstanding linked quantity reaches zero
@@ -162,6 +171,7 @@ git commit -m "fix: sync compatibility procurement status after receipts"
 ### Task 4: Remove First-Line Assumptions From Inventory and Demand Events
 
 **Files:**
+
 - Modify: `functions/services/InventoryService.js`
 - Modify: `functions/services/DemandService.js`
 - Modify: `functions/services/OrderProcurementDomainService.js`
@@ -185,6 +195,7 @@ Expected: FAIL because services still pick `ORDER BY created_at ASC LIMIT 1`
 - [ ] **Step 3: Write minimal implementation**
 
 Implementation notes:
+
 - Replace `resolveOrderLineId(orderId)` fallback with explicit `orderLineId` when line-scoped mutation is required
 - If only legacy `orderId` is available, either aggregate safely or reject ambiguous multi-line cases
 - Update receipt linkage to target the actual linked line rather than `WHERE order_id = ?`
@@ -204,6 +215,7 @@ git commit -m "fix: remove first-line fallback from order event projections"
 ### Task 5: Remove Whole-Order Updates Against `order_lines`
 
 **Files:**
+
 - Modify: `functions/repositories/order/mutations.js`
 - Modify: `functions/repositories/order/queries.js`
 - Modify: `functions/repositories/order/helpers.js`
@@ -225,6 +237,7 @@ Expected: FAIL because current SQL uses `WHERE order_id = ?` and list/detail rea
 - [ ] **Step 3: Write minimal implementation**
 
 Implementation notes:
+
 - Stop treating compatibility sync as “update every line for this order”
 - Introduce explicit aggregation helper for order header `displayStatus`
 - Keep details returning `lines`, but make list/detail header status aggregated deterministically
@@ -244,6 +257,7 @@ git commit -m "fix: aggregate order display state instead of first-line fallback
 ### Task 6: Align Goods Overview Summary and Filters With Remaining Demand
 
 **Files:**
+
 - Modify: `functions/repositories/GoodsOverviewRepository.js`
 - Test: `functions/repositories/__tests__/GoodsOverviewRepository.variant-level.test.js`
 
@@ -262,6 +276,7 @@ Expected: FAIL because `getAvailableFilters()` and `getSummary()` currently incl
 - [ ] **Step 3: Write minimal implementation**
 
 Implementation notes:
+
 - Apply `REMAINING_DEMAND_EXPR > 0` consistently to list, filters, and summary
 - Keep order-count semantics explicit: distinct order count vs variant count
 
@@ -280,6 +295,7 @@ git commit -m "fix: align goods overview filters and summary with remaining dema
 ### Task 7: Add Transaction and Concurrency Protection to Receipt Writes
 
 **Files:**
+
 - Modify: `functions/services/OrderProcurementDomainService.js`
 - Test: `functions/services/__tests__/OrderProcurementDomainService.test.js`
 
@@ -298,6 +314,7 @@ Expected: FAIL because writes are currently read-then-write and non-transactiona
 - [ ] **Step 3: Write minimal implementation**
 
 Implementation notes:
+
 - Prefer atomic SQL update pattern with remaining-cap guard
 - If D1 transaction support in this repo pattern is limited, at minimum reorder writes to validate and reserve update before creating receipt row
 - Add explicit compensating behavior or fail-fast strategy so partial persistence is impossible or detectable
@@ -317,6 +334,7 @@ git commit -m "fix: harden receipt writes against concurrency and partial persis
 ### Task 8: Full Regression Pass
 
 **Files:**
+
 - Verify only: existing touched files above
 
 - [ ] **Step 1: Run procurement and order regression suite**
@@ -327,6 +345,7 @@ Expected: PASS with zero failed tests
 - [ ] **Step 2: Review residual risks**
 
 Checklist:
+
 - No duplicate inbound stock source remains
 - Illegal receipts are rejected
 - Multi-line orders no longer use first-line fallbacks

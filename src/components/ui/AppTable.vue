@@ -43,10 +43,18 @@
                 class="px-4 py-3.5 font-semibold whitespace-nowrap"
                 :class="[
                   col.headerClassList,
-                  stickyFirstColumn && colIndex === 0 ? 'app-table__sticky-col sticky left-0 z-20 bg-(--bg-card)' : '',
+                  stickyFirstColumn && colIndex === 0
+                    ? 'app-table__sticky-col sticky left-0 z-20 bg-(--bg-card)'
+                    : '',
                 ]"
                 :style="col.headerStyleValue"
-                :aria-sort="col.sortable && sortBy === col.key ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined"
+                :aria-sort="
+                  col.sortable && sortBy === col.key
+                    ? sortOrder === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : undefined
+                "
                 :tabindex="col.sortable ? 0 : undefined"
                 @click="toggleSort(col)"
                 @keydown.enter="toggleSort(col)"
@@ -80,7 +88,11 @@
                   v-for="(col, colIndex) in normalizedColumns"
                   :key="col.key"
                   class="p-4"
-                  :class="stickyFirstColumn && colIndex === 0 ? 'app-table__sticky-col sticky left-0 z-10 bg-(--bg-card)' : ''"
+                  :class="
+                    stickyFirstColumn && colIndex === 0
+                      ? 'app-table__sticky-col sticky left-0 z-10 bg-(--bg-card)'
+                      : ''
+                  "
                   :style="col.cellStyleValue"
                 >
                   <div class="h-4 w-3/4 animate-pulse rounded bg-(--bg-muted)"></div>
@@ -130,7 +142,9 @@
                             class="px-4 py-3 align-middle"
                             :class="[
                               col.cellClassList,
-                              stickyFirstColumn && colIndex === 0 ? 'app-table__sticky-col sticky left-0 z-10 bg-(--bg-card) group-hover:bg-(--bg-hover)/70' : '',
+                              stickyFirstColumn && colIndex === 0
+                                ? 'app-table__sticky-col sticky left-0 z-10 bg-(--bg-card) group-hover:bg-(--bg-hover)/70'
+                                : '',
                             ]"
                             :style="col.cellStyleValue"
                           >
@@ -168,7 +182,9 @@
                   class="px-4 py-3 align-middle"
                   :class="[
                     col.cellClassList,
-                    stickyFirstColumn && colIndex === 0 ? 'app-table__sticky-col sticky left-0 z-10 bg-(--bg-card) group-hover:bg-(--bg-hover)/70' : '',
+                    stickyFirstColumn && colIndex === 0
+                      ? 'app-table__sticky-col sticky left-0 z-10 bg-(--bg-card) group-hover:bg-(--bg-hover)/70'
+                      : '',
                   ]"
                   :style="col.cellStyleValue"
                 >
@@ -461,11 +477,19 @@ defineExpose({
   right: -8px;
   bottom: 0;
   width: 8px;
-  background: linear-gradient(to right, var(--table-sticky-shadow, rgba(0, 0, 0, 0.06)), transparent);
+  background: linear-gradient(
+    to right,
+    var(--table-sticky-shadow, rgba(0, 0, 0, 0.06)),
+    transparent
+  );
   pointer-events: none;
 }
 
 :root.dark .app-table__sticky-col::after {
-  background: linear-gradient(to right, var(--table-sticky-shadow-dark, rgba(0, 0, 0, 0.2)), transparent);
+  background: linear-gradient(
+    to right,
+    var(--table-sticky-shadow-dark, rgba(0, 0, 0, 0.2)),
+    transparent
+  );
 }
 </style>

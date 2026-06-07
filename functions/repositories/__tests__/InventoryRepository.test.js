@@ -71,7 +71,9 @@ describe('InventoryRepository', () => {
       repo.upsertReservedBalance('var-1', 5, 1710000000000);
 
       expect(db.prepare.mock.calls[0][0]).toContain('INSERT INTO inventory_balances');
-      expect(db.prepare.mock.calls[0][0]).toContain('reserved = MAX(0, inventory_balances.reserved + ?)');
+      expect(db.prepare.mock.calls[0][0]).toContain(
+        'reserved = MAX(0, inventory_balances.reserved + ?)'
+      );
       expect(stmt.params).toEqual(['var-1', 5, 1710000000000, 5, 5]);
     });
 
@@ -213,7 +215,7 @@ describe('InventoryRepository', () => {
 
       expect(stmt.params[2]).toBeNull(); // order_line_id
       expect(stmt.params[3]).toBeNull(); // purchase_receipt_id
-      expect(stmt.params[8]).toBe('{}');  // metadata 默认值
+      expect(stmt.params[8]).toBe('{}'); // metadata 默认值
     });
   });
 });

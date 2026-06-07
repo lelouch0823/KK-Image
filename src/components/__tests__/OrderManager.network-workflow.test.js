@@ -59,9 +59,8 @@ vi.mock('@/composables/useAppRefreshBus', () => ({
 vi.mock('@/composables/useI18n', () => ({
   useI18n: () => ({
     t: (key, payloadOrFallback) => {
-      const payload = payloadOrFallback && typeof payloadOrFallback === 'object'
-        ? payloadOrFallback
-        : null;
+      const payload =
+        payloadOrFallback && typeof payloadOrFallback === 'object' ? payloadOrFallback : null;
 
       if (key === 'order.detail.shipConfirmMessage') {
         return payload
@@ -136,7 +135,10 @@ describe('OrderManager network workflow', () => {
         stubs: {
           ManagementListShell: { template: '<div><slot name="content" /><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
-          Modal: { template: '<div><slot name="header" /><slot /></div>', props: ['modelValue', 'title', 'size'] },
+          Modal: {
+            template: '<div><slot name="header" /><slot /></div>',
+            props: ['modelValue', 'title', 'size'],
+          },
           OrderDashboard: { template: '<div />' },
           OrderTable: { template: '<div />' },
           OrderFilters: { template: '<div />' },
@@ -144,18 +146,24 @@ describe('OrderManager network workflow', () => {
           Pagination: { template: '<div />' },
           OrderCards: { template: '<div />' },
           AppIcon: { template: '<i />' },
-          OrderCreateModal: { template: '<div v-if="modelValue" data-testid="order-create-modal" />', props: ['modelValue'] },
+          OrderCreateModal: {
+            template: '<div v-if="modelValue" data-testid="order-create-modal" />',
+            props: ['modelValue'],
+          },
           OrderEditModal: { template: '<div />' },
           OrderWorkflowModal: {
-            template: '<div data-testid="order-workflow"><button data-testid="confirm-delivery-trigger" @click="$emit(\'confirm-delivery\', { note: \'signed by receiver\' })">confirm delivery</button><button data-testid="return-trigger" @click="$emit(\'line-command\', { action: \'return\', lineId: \'line-1\', quantity: 1 })">return</button></div>',
+            template:
+              '<div data-testid="order-workflow"><button data-testid="confirm-delivery-trigger" @click="$emit(\'confirm-delivery\', { note: \'signed by receiver\' })">confirm delivery</button><button data-testid="return-trigger" @click="$emit(\'line-command\', { action: \'return\', lineId: \'line-1\', quantity: 1 })">return</button></div>',
             props: ['show', 'order'],
           },
           ConfirmDialog: {
-            template: '<button v-if="modelValue" data-testid="confirm-dialog-button" @click="$emit(\'confirm\')">confirm</button>',
+            template:
+              '<button v-if="modelValue" data-testid="confirm-dialog-button" @click="$emit(\'confirm\')">confirm</button>',
             props: ['modelValue', 'title', 'message', 'type', 'loading'],
           },
           OrderReturnDialog: {
-            template: '<button v-if="modelValue" data-testid="return-dialog-confirm" @click="$emit(\'confirm\', { reason: \'damage\', note: \'box crushed\' })">return confirm</button>',
+            template:
+              '<button v-if="modelValue" data-testid="return-dialog-confirm" @click="$emit(\'confirm\', { reason: \'damage\', note: \'box crushed\' })">return confirm</button>',
             props: ['modelValue', 'quantity', 'lineLabel', 'loading'],
           },
           DestructiveConfirmModal: { template: '<div />' },
@@ -324,7 +332,11 @@ describe('OrderManager network workflow', () => {
     const wrapper = createWrapper();
     await wrapper.vm.openDetailModal({ id: 'o-1', orderNo: 'SO-1' });
 
-    const opened = await wrapper.vm.handleOrderLineCommand({ lineId: 'line-1', action: 'ship', quantity: 2 });
+    const opened = await wrapper.vm.handleOrderLineCommand({
+      lineId: 'line-1',
+      action: 'ship',
+      quantity: 2,
+    });
 
     expect(opened).toBe(true);
     expect(wrapper.vm.lineCommandConfirm.show).toBe(true);
@@ -431,9 +443,7 @@ describe('OrderManager network workflow', () => {
 
     expect(result).toBe(false);
     expect(mocks.reserveOrderLine).not.toHaveBeenCalled();
-    expect(wrapper.vm.lineCommandState.error).toBe(
-      'order.detail.lineCommandVariantRequired'
-    );
+    expect(wrapper.vm.lineCommandState.error).toBe('order.detail.lineCommandVariantRequired');
   });
 
   it('confirms delivery through the management dialog and refreshes detail state', async () => {

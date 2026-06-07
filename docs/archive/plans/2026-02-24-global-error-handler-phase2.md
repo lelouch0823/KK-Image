@@ -9,7 +9,9 @@
 ---
 
 ### Task 1: Batch 1 - Manage Core A
+
 **Files to Refactor:**
+
 - `functions/lib/hono/routes/manage/ai.js`
 - `functions/lib/hono/routes/manage/albums.js`
 - `functions/lib/hono/routes/manage/audit-logs.js`
@@ -20,6 +22,7 @@
 - `functions/lib/hono/routes/manage/notifications.js`
 
 **Action:**
+
 1. Open files one by one.
 2. Remove `try-catch` wrappers.
 3. Import from `../../../errors.js`.
@@ -29,7 +32,9 @@
 ---
 
 ### Task 2: Batch 2 - Manage Core B
+
 **Files to Refactor:**
+
 - `functions/lib/hono/routes/manage/orders/create.js`
 - `functions/lib/hono/routes/manage/products/batch.js`
 - `functions/lib/hono/routes/manage/products/export.js`
@@ -38,13 +43,16 @@
 - `functions/lib/hono/routes/manage/shares.js`
 
 **Action:**
+
 1. Remove `try-catch` wrappers.
 2. Run `pnpm run build` and commit.
 
 ---
 
 ### Task 3: Batch 3 - Manage Spaces & Setup
+
 **Files to Refactor:**
+
 - `functions/lib/hono/routes/manage/spaces/crud.js`
 - `functions/lib/hono/routes/manage/spaces/files.js`
 - `functions/lib/hono/routes/manage/spaces/subspaces.js`
@@ -56,13 +64,16 @@
 - `functions/lib/hono/routes/manage/utils.js`
 
 **Action:**
+
 1. Remove `try-catch` wrappers.
 2. Run `pnpm run build` and commit.
 
 ---
 
 ### Task 4: Batch 4 - Sales & V1 API
+
 **Files to Refactor:**
+
 - `functions/lib/hono/routes/sales/auth.js`
 - `functions/lib/hono/routes/sales/orders.js`
 - `functions/lib/hono/routes/v1/auth.js`
@@ -72,5 +83,6 @@
 - `functions/lib/hono/routes/v1/webhooks.js`
 
 **Action:**
+
 1. Remove `try-catch` wrappers.
 2. Run `pnpm run build` and finally commit all remaining.

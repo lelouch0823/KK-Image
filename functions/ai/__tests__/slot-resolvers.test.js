@@ -81,11 +81,15 @@ describe('slot resolvers', () => {
       ]),
     };
 
-    const result = await resolveOrderVariantSlot('', {
-      productId: 'prod-1',
-      color: '黑色',
-      size: '42',
-    }, { variantRepo });
+    const result = await resolveOrderVariantSlot(
+      '',
+      {
+        productId: 'prod-1',
+        color: '黑色',
+        size: '42',
+      },
+      { variantRepo }
+    );
 
     expect(result).toBe('var-1');
   });
@@ -110,11 +114,15 @@ describe('slot resolvers', () => {
       ]),
     };
 
-    const result = await resolveOrderVariantSlot('', {
-      productId: 'prod-1',
-      color: '黑色',
-      size: '42',
-    }, { variantRepo });
+    const result = await resolveOrderVariantSlot(
+      '',
+      {
+        productId: 'prod-1',
+        color: '黑色',
+        size: '42',
+      },
+      { variantRepo }
+    );
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -209,7 +217,8 @@ describe('slot resolvers', () => {
 
   it('returns purchase-order item candidates when one item is ambiguous inside a multi-item draft', async () => {
     const variantRepo = {
-      searchForAI: vi.fn()
+      searchForAI: vi
+        .fn()
         .mockResolvedValueOnce({
           items: [{ id: 'var-1', product_id: 'prod-1', cost_price: 60 }],
           total: 1,

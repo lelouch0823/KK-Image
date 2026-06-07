@@ -138,7 +138,9 @@
               class="group !h-auto !min-w-0 !rounded-none !bg-transparent !p-0 shadow-none"
               :class="[
                 option.selectable ? '' : '!cursor-not-allowed !opacity-50',
-                isDimensionOptionSelected(dimension, option.value) ? '!text-(--text-main)' : '!text-(--text-secondary)',
+                isDimensionOptionSelected(dimension, option.value)
+                  ? '!text-(--text-main)'
+                  : '!text-(--text-secondary)',
               ]"
               :data-testid="getDimensionTestId(dimension)"
               :disabled="!option.selectable"
@@ -414,8 +416,10 @@ const isDimensionOptionSelected = (dimension, value) => selectedOptions[dimensio
 const getDimensionOptionCardClasses = (dimension, option) => ({
   'border-(--border-subtle)/80 bg-(--bg-muted)/20 text-(--text-secondary)':
     !isDimensionOptionSelected(dimension, option.value),
-  'border-(--text-main) bg-(--bg-muted)/45 text-(--text-main)':
-    isDimensionOptionSelected(dimension, option.value),
+  'border-(--text-main) bg-(--bg-muted)/45 text-(--text-main)': isDimensionOptionSelected(
+    dimension,
+    option.value
+  ),
   'border-dashed border-(--border-subtle)/50': !option.selectable,
 });
 
@@ -479,9 +483,9 @@ const currentAvailabilityState = computed(
 const selectedStockQuantity = computed(() =>
   Number(
     currentSelectedVariant.value?.available_quantity ??
-    currentSelectedVariant.value?.available ??
-    currentSelectedVariant.value?.stock_quantity ??
-    0
+      currentSelectedVariant.value?.available ??
+      currentSelectedVariant.value?.stock_quantity ??
+      0
   )
 );
 const selectedReplenishmentQuantity = computed(() =>
@@ -522,10 +526,10 @@ const normalizeVariantStatus = (variant) =>
 const getVariantStockQuantity = (variant) =>
   Number(
     variant?.available_quantity ??
-    variant?.available ??
-    variant?.stock_quantity ??
-    variant?.stockQuantity ??
-    0
+      variant?.available ??
+      variant?.stock_quantity ??
+      variant?.stockQuantity ??
+      0
   );
 
 const isVariantSelectableByMode = (variant) => {
@@ -589,17 +593,25 @@ const syncSelection = () => {
 const findPreferredVariant = (boundProduct) => {
   const preferredVariantId = String(boundProduct?.variantId || '').trim();
   if (preferredVariantId) {
-    const matchedById = normalizedVariants.value.find((variant) => variant.id === preferredVariantId);
+    const matchedById = normalizedVariants.value.find(
+      (variant) => variant.id === preferredVariantId
+    );
     if (matchedById) return matchedById;
   }
 
   const preferredSku = String(boundProduct?.sku || '').trim();
   if (preferredSku) {
-    const matchedBySku = normalizedVariants.value.find((variant) => String(variant?.sku || '').trim() === preferredSku);
+    const matchedBySku = normalizedVariants.value.find(
+      (variant) => String(variant?.sku || '').trim() === preferredSku
+    );
     if (matchedBySku) return matchedBySku;
   }
 
-  return normalizedVariants.value.find((variant) => variant.selectable) || normalizedVariants.value[0] || null;
+  return (
+    normalizedVariants.value.find((variant) => variant.selectable) ||
+    normalizedVariants.value[0] ||
+    null
+  );
 };
 
 const getDimensionOptions = (dimension) => {

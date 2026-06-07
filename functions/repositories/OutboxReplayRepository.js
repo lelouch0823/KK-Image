@@ -192,11 +192,20 @@ export class OutboxReplayRepository {
       throw new Error(`unsupported replay scope: ${scopeType}`);
     }
 
-    const { results } = await this.db.prepare(sql).bind(...bindings).all();
+    const { results } = await this.db
+      .prepare(sql)
+      .bind(...bindings)
+      .all();
     return results || [];
   }
 
-  async createReplayRun({ scopeType, scopeId, consumerName = null, dryRun = true, requestedBy = null }) {
+  async createReplayRun({
+    scopeType,
+    scopeId,
+    consumerName = null,
+    dryRun = true,
+    requestedBy = null,
+  }) {
     const timestamp = this.now();
     const record = {
       id: this.idFactory(),

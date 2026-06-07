@@ -9,6 +9,7 @@ Advance the unified operation audit system from a working backbone into an enfor
 ## 1. Why Phase 2 Exists
 
 Phase 1 established:
+
 - a unified audit event backbone
 - admin P0 route coverage on key modules
 - sales critical event coverage on selected flows
@@ -51,12 +52,14 @@ Phase 2 runs on two tracks in parallel.
 ### Track A: Coverage Expansion
 
 Continue closing remaining high-risk gaps:
+
 - Admin routes: purchase orders, notifications, spaces, folders, backups, AI mutation routes, any remaining settings write paths
 - Sales routes: login failures/lockouts, remaining write mutations, security-relevant file operations
 
 ### Track B: Engineering Guardrails
 
 Introduce durable enforcement:
+
 - route-level audit declaration metadata
 - route-definition extraction from real Hono route source
 - consistency checks between discovered write routes and audit declarations
@@ -68,6 +71,7 @@ This dual-track approach is more SOTA than finishing all route coverage first be
 Phase 2 should add a declaration layer for high-risk write routes.
 
 Each auditable route should declare:
+
 - `domain`
 - `action`
 - `severity`
@@ -99,6 +103,7 @@ This is more SOTA than a free-form script scan because it gives automated toolin
 Phase 2 should upgrade the current route coverage script from a curated file/pattern list into a route-definition extractor.
 
 The extractor should:
+
 - scan relevant Hono route files
 - identify `app.post`, `app.put`, `app.patch`, `app.delete`
 - resolve route prefixes from `app.route(...)` composition where feasible
@@ -127,6 +132,7 @@ Phase 2 should guarantee Level 1 and establish the structure needed for Level 2.
 ### Admin Priority Set
 
 Priority order:
+
 1. `manage/purchase-orders`
 2. `manage/notifications`
 3. `manage/spaces`
@@ -138,6 +144,7 @@ Priority order:
 ### Sales Priority Set
 
 Priority order:
+
 1. login failure and lockout audit events
 2. remaining order mutation edge paths
 3. security-relevant file actions
@@ -146,6 +153,7 @@ Priority order:
 ## 9. API and UI Expectations
 
 Phase 2 should keep the audit center stable while improving audit usefulness:
+
 - add more route-produced summaries
 - keep filter model aligned with expanded domains/actions
 - avoid schema regressions while new declarations are introduced
@@ -155,6 +163,7 @@ Phase 2 is not primarily a UI redesign phase.
 ## 10. Developer Workflow Impact
 
 After Phase 2, adding a high-risk write route should require:
+
 1. route implementation
 2. route audit declaration
 3. test proving unified audit integration
@@ -165,6 +174,7 @@ This is the core engineering payoff of the phase.
 ## 11. Acceptance Criteria
 
 Phase 2 is complete only when:
+
 - remaining targeted admin high-risk routes are covered
 - remaining targeted sales critical routes are covered
 - high-risk write routes use an explicit audit declaration pattern

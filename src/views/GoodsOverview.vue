@@ -516,9 +516,7 @@ const batchConfirmData = ref({
 const handleBatchStatusChange = async (status) => {
   if (batchStatusProcessing.value || selectedItems.value.length === 0) return;
 
-  const variantIds = selectedItems.value
-    .map(item => item.variantId)
-    .filter(Boolean);
+  const variantIds = selectedItems.value.map((item) => item.variantId).filter(Boolean);
 
   if (variantIds.length === 0) {
     addToast({ message: '请选择包含规格的商品', type: 'error' });
@@ -536,16 +534,20 @@ const handleBatchStatusChange = async (status) => {
 
     if (result.success) {
       addToast({
-        message: status === 'active'
-          ? t('product.batch.activateSuccess')
-          : t('product.batch.deactivateSuccess'),
+        message:
+          status === 'active'
+            ? t('product.batch.activateSuccess')
+            : t('product.batch.deactivateSuccess'),
         type: 'success',
       });
       clearSelection();
       // 刷新列表
       init();
     } else {
-      addToast({ message: result.message || result.error || t('common.operationFailed'), type: 'error' });
+      addToast({
+        message: result.message || result.error || t('common.operationFailed'),
+        type: 'error',
+      });
     }
   } catch (e) {
     console.error('Batch status change error:', e);

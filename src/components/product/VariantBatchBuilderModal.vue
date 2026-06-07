@@ -7,7 +7,9 @@
   >
     <template #header>
       <div class="flex items-center justify-between gap-3">
-        <h3 class="text-lg font-semibold text-(--text-main)">{{ t('product.variantBatchBuilder.title') }}</h3>
+        <h3 class="text-lg font-semibold text-(--text-main)">
+          {{ t('product.variantBatchBuilder.title') }}
+        </h3>
         <AppButton
           variant="ghost"
           size="sm"
@@ -83,8 +85,12 @@
     </div>
 
     <template #footer>
-      <AppButton variant="secondary" @click="$emit('update:modelValue', false)">{{ t('common.cancel') }}</AppButton>
-      <AppButton data-testid="apply-btn" @click="handleApply">{{ t('product.variantBatchBuilder.apply') }}</AppButton>
+      <AppButton variant="secondary" @click="$emit('update:modelValue', false)">{{
+        t('common.cancel')
+      }}</AppButton>
+      <AppButton data-testid="apply-btn" @click="handleApply">{{
+        t('product.variantBatchBuilder.apply')
+      }}</AppButton>
     </template>
   </Modal>
 </template>

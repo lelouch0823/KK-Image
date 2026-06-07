@@ -5,7 +5,11 @@ import OrderPrintView from '@/components/order/OrderPrintView.vue';
 vi.mock('@/composables/useI18n', () => ({
   useI18n: () => ({
     t: (key, paramsOrFallback) => {
-      if (key === 'order.detail.multilineSummary' && paramsOrFallback && typeof paramsOrFallback === 'object') {
+      if (
+        key === 'order.detail.multilineSummary' &&
+        paramsOrFallback &&
+        typeof paramsOrFallback === 'object'
+      ) {
         return `多商品订单（${paramsOrFallback.count}项）`;
       }
       if (key === 'print.generatedBy' && paramsOrFallback && typeof paramsOrFallback === 'object') {
@@ -60,7 +64,9 @@ describe('OrderPrintView historical snapshot fallback', () => {
           AppImage: true,
           OrderLineProcurementState: true,
           OrderTimeline: true,
-          PrintTemplate: { template: '<div><slot name="header-right" /><slot name="title-meta" /><slot /></div>' },
+          PrintTemplate: {
+            template: '<div><slot name="header-right" /><slot name="title-meta" /><slot /></div>',
+          },
         },
       },
     });
@@ -107,7 +113,9 @@ describe('OrderPrintView historical snapshot fallback', () => {
           AppImage: true,
           OrderLineProcurementState: true,
           OrderTimeline: true,
-          PrintTemplate: { template: '<div><slot name="header-right" /><slot name="title-meta" /><slot /></div>' },
+          PrintTemplate: {
+            template: '<div><slot name="header-right" /><slot name="title-meta" /><slot /></div>',
+          },
         },
       },
     });

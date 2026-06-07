@@ -104,15 +104,25 @@ describeIfRealApi('Public Share Real API', function () {
     assert.ok(Array.isArray(gallery.json?.data?.files), 'gallery files missing');
     assert.ok(gallery.json.data.files.length >= 2, 'gallery should expose at least two files');
 
-    const sharedFiles = gallery.json.data.files
-      .filter((file) => file.name === `gallery-first-${seed}.txt` || file.name === `gallery-second-${seed}.txt`);
-    assert.strictEqual(sharedFiles.length, 2, 'expected both uploaded shared files in gallery payload');
+    const sharedFiles = gallery.json.data.files.filter(
+      (file) =>
+        file.name === `gallery-first-${seed}.txt` || file.name === `gallery-second-${seed}.txt`
+    );
+    assert.strictEqual(
+      sharedFiles.length,
+      2,
+      'expected both uploaded shared files in gallery payload'
+    );
 
     const accessTokens = sharedFiles.map((file) =>
       new URL(file.url, getBaseUrl()).searchParams.get('access')
     );
     assert.ok(accessTokens.every(Boolean), 'shared file access token missing');
-    assert.strictEqual(new Set(accessTokens).size, 1, 'gallery files should reuse one shared access token');
+    assert.strictEqual(
+      new Set(accessTokens).size,
+      1,
+      'gallery files should reuse one shared access token'
+    );
 
     const fetchedBodies = [];
     for (const file of sharedFiles) {
@@ -243,55 +253,74 @@ describeIfRealApi('Public Share Real API', function () {
     const outsiderFolderId = outsiderFolder.json?.data?.id;
     assert.ok(outsiderFolderId, 'outsider folder id missing');
 
-    const outsiderUpload = await multipartRequest(`/api/manage/folders/${outsiderFolderId}/upload`, {
-      bearerToken,
-      fields: {
-        file: {
-          value: `protected-gallery-outsider-${seed}`,
-          filename: `protected-gallery-outsider-${seed}.txt`,
-          contentType: 'text/plain',
+    const outsiderUpload = await multipartRequest(
+      `/api/manage/folders/${outsiderFolderId}/upload`,
+      {
+        bearerToken,
+        fields: {
+          file: {
+            value: `protected-gallery-outsider-${seed}`,
+            filename: `protected-gallery-outsider-${seed}.txt`,
+            contentType: 'text/plain',
+          },
         },
-      },
-      expectedStatus: 200,
-    });
+        expectedStatus: 200,
+      }
+    );
     const outsiderFileId = outsiderUpload.json?.data?.id;
     assert.ok(outsiderFileId, 'outsider file id missing');
 
-    const publicView = await fetchWithOptionalJson(`${getBaseUrl()}/api/gallery/${protectedShareToken}`);
+    const publicView = await fetchWithOptionalJson(
+      `${getBaseUrl()}/api/gallery/${protectedShareToken}`
+    );
     assert.strictEqual(publicView.response.status, 401);
-    assert.strictEqual(publicView.response.headers.get('cache-control'), 'public, max-age=900, stale-while-revalidate=0');
+    assert.strictEqual(
+      publicView.response.headers.get('cache-control'),
+      'public, max-age=900, stale-while-revalidate=0'
+    );
     assert.strictEqual(publicView.json?.success, true);
     assert.strictEqual(publicView.json?.data?.requiresPassword, true);
 
-    const wrongPassword = await fetchWithOptionalJson(`${getBaseUrl()}/api/gallery/${protectedShareToken}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: '654321' }),
-    });
+    const wrongPassword = await fetchWithOptionalJson(
+      `${getBaseUrl()}/api/gallery/${protectedShareToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: '654321' }),
+      }
+    );
     assert.strictEqual(wrongPassword.response.status, 401);
     assert.strictEqual(wrongPassword.json?.success, false);
 
-    const verified = await fetchWithOptionalJson(`${getBaseUrl()}/api/gallery/${protectedShareToken}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: '123456' }),
-    });
+    const verified = await fetchWithOptionalJson(
+      `${getBaseUrl()}/api/gallery/${protectedShareToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: '123456' }),
+      }
+    );
     assert.strictEqual(verified.response.status, 200);
     assert.strictEqual(verified.response.headers.get('cache-control'), 'no-store, max-age=0');
     assert.strictEqual(verified.json?.success, true);
 
     const protectedFiles = verified.json?.data?.files?.filter(
       (file) =>
-        file.name === `protected-gallery-first-${seed}.txt`
-        || file.name === `protected-gallery-second-${seed}.txt`
+        file.name === `protected-gallery-first-${seed}.txt` ||
+        file.name === `protected-gallery-second-${seed}.txt`
     );
-    assert.strictEqual(protectedFiles.length, 2, 'expected both protected gallery files in payload');
+    assert.strictEqual(
+      protectedFiles.length,
+      2,
+      'expected both protected gallery files in payload'
+    );
 
     const subfolders = verified.json?.data?.subfolders || [];
     assert.ok(
       subfolders.some(
         (subfolder) =>
-          subfolder.name === `Public Child ${seed}` && subfolder.shareUrl === `/gallery/${publicChildToken}`
+          subfolder.name === `Public Child ${seed}` &&
+          subfolder.shareUrl === `/gallery/${publicChildToken}`
       ),
       'public child folder missing from verified gallery payload'
     );
@@ -304,7 +333,11 @@ describeIfRealApi('Public Share Real API', function () {
       new URL(file.url, getBaseUrl()).searchParams.get('access')
     );
     assert.ok(accessTokens.every(Boolean), 'protected gallery access token missing');
-    assert.strictEqual(new Set(accessTokens).size, 1, 'protected gallery files should reuse one shared access token');
+    assert.strictEqual(
+      new Set(accessTokens).size,
+      1,
+      'protected gallery files should reuse one shared access token'
+    );
 
     const fetchedBodies = [];
     for (const file of protectedFiles) {
@@ -313,7 +346,10 @@ describeIfRealApi('Public Share Real API', function () {
         [200, 206].includes(fileResponse.response.status),
         `failed to fetch protected gallery file ${file.name}: ${fileResponse.response.status}`
       );
-      assert.strictEqual(fileResponse.response.headers.get('cache-control'), 'private, max-age=900');
+      assert.strictEqual(
+        fileResponse.response.headers.get('cache-control'),
+        'private, max-age=900'
+      );
       fetchedBodies.push(await fileResponse.response.text());
     }
 

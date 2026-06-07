@@ -13,6 +13,7 @@
 ### Task 1: Create Shared HTTP Core (Single Transport Primitive)
 
 **Files:**
+
 - Create: `src/utils/http-core.js`
 - Test: `src/utils/__tests__/http-core.test.js`
 
@@ -74,6 +75,7 @@ git commit -m "feat(frontend): add shared http core with normalized errors"
 ### Task 2: Refactor useAuth to Delegate to HTTP Core
 
 **Files:**
+
 - Modify: `src/composables/useAuth.js`
 - Test: `src/composables/__tests__/useAuth.test.js`
 
@@ -113,6 +115,7 @@ git commit -m "refactor(auth): route authFetch through shared http core"
 ### Task 3: Add Request Adapters for Public/Auth/Sales Modes
 
 **Files:**
+
 - Create: `src/composables/useRequestAdapters.js`
 - Test: `src/composables/__tests__/useRequestAdapters.test.js`
 
@@ -152,6 +155,7 @@ git commit -m "feat(frontend): add request adapters for auth/public/sales modes"
 ### Task 4: Migrate Remaining Protected/Admin Call Sites to Unified Pipeline
 
 **Files:**
+
 - Modify: `src/components/common/AIChatWidget.vue`
 - Modify: `src/components/common/ImageUploader.vue`
 - Modify: `src/composables/useAIStream.js`
@@ -197,6 +201,7 @@ git commit -m "refactor(frontend): unify protected requests via adapters"
 ### Task 5: Enforce OPA-Strict Permission Projection (Remove Frontend Wildcards)
 
 **Files:**
+
 - Modify: `src/utils/order-state-machine.js`
 - Modify: `src/composables/useAccessControl.js`
 - Modify: `src/router/index.js`
@@ -238,6 +243,7 @@ git commit -m "fix(authz): enforce opa-strict permission projection on frontend"
 ### Task 6: Unify Forbidden UX Entry Point Across Route + Page Layers
 
 **Files:**
+
 - Create: `src/views/Forbidden.vue`
 - Modify: `src/router/index.js`
 - Modify: `src/components/ui/PermissionDeniedState.vue`
@@ -280,6 +286,7 @@ git commit -m "feat(ux): unify forbidden route and page-level deny experience"
 ### Task 7: Add CI Guardrail Against Request-Path Regression
 
 **Files:**
+
 - Create: `scripts/qa/check-direct-protected-fetch.mjs`
 - Modify: `package.json`
 - Modify: `.github/workflows/ci-test.yml`
@@ -318,6 +325,7 @@ git commit -m "ci(authz): block direct protected fetch regressions"
 ### Task 8: Full Verification + Headless Audit + Documentation Closure
 
 **Files:**
+
 - Modify: `scripts/qa/admin-headless-audit.mjs`
 - Create: `docs/architecture/frontend-request-core.md`
 - Modify: `docs/plans/2026-03-06-authz-request-core-optimization-plan.md` (status section)

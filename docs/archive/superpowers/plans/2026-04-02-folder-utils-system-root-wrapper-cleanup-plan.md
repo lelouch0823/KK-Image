@@ -13,6 +13,7 @@
 ### Task 1: Lock the Cleanup Contract
 
 **Files:**
+
 - Create: `functions/api/utils/__tests__/folder-utils-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the wrapper still exists.
 ### Task 2: Inline `_System` Root Creation
 
 **Files:**
+
 - Modify: `functions/api/utils/folder-utils.js`
 - Modify: `functions/api/utils/__tests__/folder-utils.test.js`
 

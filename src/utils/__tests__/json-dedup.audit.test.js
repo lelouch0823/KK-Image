@@ -24,14 +24,15 @@ describe('frontend json parse helper dedup audit', () => {
         offenders.push(`${relativePath}: still calls JSON.parse directly`);
       }
 
-      if (!source.includes('@/utils/json') && !source.includes("../utils/json") && !source.includes('./json')) {
+      if (
+        !source.includes('@/utils/json') &&
+        !source.includes('../utils/json') &&
+        !source.includes('./json')
+      ) {
         offenders.push(`${relativePath}: missing shared json helper import`);
       }
     }
 
-    expect(
-      offenders,
-      `frontend json dedup offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `frontend json dedup offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

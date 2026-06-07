@@ -40,9 +40,7 @@ vi.mock('@/composables/useGoodsOverview', () => ({
 
 function createComposableState(itemOverrides = {}) {
   const summary =
-    itemOverrides.summaryOverride !== undefined
-      ? itemOverrides.summaryOverride
-      : null;
+    itemOverrides.summaryOverride !== undefined ? itemOverrides.summaryOverride : null;
   const item = {
     id: 'variant-1',
     variantId: 'variant-1',
@@ -100,19 +98,28 @@ function createWrapper(itemOverrides) {
   return mount(GoodsOverview, {
     global: {
       stubs: {
-        ManagementListShell: { template: '<div><slot name="actions" /><slot name="filters" /><slot name="content" /></div>' },
+        ManagementListShell: {
+          template:
+            '<div><slot name="actions" /><slot name="filters" /><slot name="content" /></div>',
+        },
         AppButton: { template: '<button><slot name="icon-left" /><slot /></button>' },
         AppIcon: { template: '<i />' },
         AppCheckbox: { template: '<input type="checkbox" />', props: ['modelValue', 'checked'] },
         FilterSelect: { template: '<select />', props: ['modelValue', 'options', 'placeholder'] },
         MetricTile: { template: '<div><slot name="meta" /></div>' },
         SummaryStrip: { template: '<div><slot /></div>' },
-        FloatingSelectionBar: { template: '<div><slot name="summary" /><slot /></div>', props: ['visible'] },
+        FloatingSelectionBar: {
+          template: '<div><slot name="summary" /><slot /></div>',
+          props: ['visible'],
+        },
         PermissionDeniedState: {
-          template: '<div data-testid="goods-overview-forbidden" :data-description="description" />',
+          template:
+            '<div data-testid="goods-overview-forbidden" :data-description="description" />',
           props: ['title', 'description', 'homeTo', 'homeText'],
         },
-        EmptyState: { template: '<div data-testid="goods-overview-error-state"><slot name="action" /></div>' },
+        EmptyState: {
+          template: '<div data-testid="goods-overview-error-state"><slot name="action" /></div>',
+        },
         AppImage: { template: '<img data-testid="overview-image" :src="src" />', props: ['src'] },
         AppTable: {
           props: ['data'],
@@ -196,7 +203,9 @@ describe('GoodsOverview status semantics', () => {
       errorCodeOverride: 'FORBIDDEN',
     });
 
-    expect(wrapper.get('[data-testid="goods-overview-forbidden"]').attributes('data-description')).toContain('products:manage');
+    expect(
+      wrapper.get('[data-testid="goods-overview-forbidden"]').attributes('data-description')
+    ).toContain('products:manage');
   });
 
   it('navigates to the named purchase-orders admin route after creating a purchase order', async () => {

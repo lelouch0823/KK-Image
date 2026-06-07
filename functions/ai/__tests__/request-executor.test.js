@@ -5,7 +5,10 @@ import { executeAIRequest } from '../request-executor.js';
 vi.mock('../model-policy.js', () => ({
   parseModels: vi.fn((modelsEnv) => {
     if (!modelsEnv) return [];
-    return String(modelsEnv).split(',').map((m) => m.trim()).filter(Boolean);
+    return String(modelsEnv)
+      .split(',')
+      .map((m) => m.trim())
+      .filter(Boolean);
   }),
   resolveModelOrder: vi.fn((models) => models),
   isModelAvailable: vi.fn(() => true),
@@ -36,8 +39,7 @@ describe('request-executor', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-  const createErrorResponse = (status = 503) =>
-    new Response('Service Unavailable', { status });
+  const createErrorResponse = (status = 503) => new Response('Service Unavailable', { status });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -167,7 +169,8 @@ describe('request-executor', () => {
     });
 
     it('does not retry 429 on the same model before switching', async () => {
-      const requestFn = vi.fn()
+      const requestFn = vi
+        .fn()
         .mockResolvedValueOnce(createErrorResponse(429))
         .mockResolvedValueOnce(createOkResponse({ choices: [] }));
 
@@ -190,7 +193,8 @@ describe('request-executor', () => {
       const { getNextAvailableModelIndex } = await import('../model-policy.js');
       getNextAvailableModelIndex.mockReturnValue(-1);
 
-      const requestFn = vi.fn()
+      const requestFn = vi
+        .fn()
         .mockResolvedValueOnce(createErrorResponse(429))
         .mockResolvedValueOnce(createOkResponse({ choices: [] }));
 
@@ -212,10 +216,12 @@ describe('request-executor', () => {
     });
 
     it('marks the current model rate limited when a same-model 429 retry later succeeds', async () => {
-      const { getNextAvailableModelIndex, markModelRateLimited } = await import('../model-policy.js');
+      const { getNextAvailableModelIndex, markModelRateLimited } =
+        await import('../model-policy.js');
       getNextAvailableModelIndex.mockReturnValue(-1);
 
-      const requestFn = vi.fn()
+      const requestFn = vi
+        .fn()
         .mockResolvedValueOnce(createErrorResponse(429))
         .mockResolvedValueOnce(createOkResponse({ choices: [] }));
 

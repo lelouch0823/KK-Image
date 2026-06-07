@@ -13,6 +13,7 @@
 ### Task 1: Lock the Cleanup Contract
 
 **Files:**
+
 - Create: `functions/ai/__tests__/config-manager-factory-wrapper.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the factory wrapper still exists.
 ### Task 2: Remove the Factory Wrapper
 
 **Files:**
+
 - Modify: `functions/ai/config-manager.js`
 - Modify: `functions/ai/__tests__/config-manager.test.js`
 

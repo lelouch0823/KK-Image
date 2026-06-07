@@ -141,7 +141,9 @@ export async function processOutbox({ maxRounds = 4 } = {}) {
     });
     const retryJson = await retryResponse.json().catch(() => null);
     if (retryResponse.status !== 200) {
-      throw new Error(`processOutbox failed after retry: ${retryResponse.status} ${JSON.stringify(retryJson)}`);
+      throw new Error(
+        `processOutbox failed after retry: ${retryResponse.status} ${JSON.stringify(retryJson)}`
+      );
     }
     return retryJson;
   }
@@ -153,7 +155,10 @@ export async function processOutbox({ maxRounds = 4 } = {}) {
   // 检查是否有事件处理失败
   const data = json?.data;
   if (data && Number(data.failed) > 0) {
-    console.warn(`[processOutbox] ${data.failed} event(s) failed processing:`, JSON.stringify(data.consumers));
+    console.warn(
+      `[processOutbox] ${data.failed} event(s) failed processing:`,
+      JSON.stringify(data.consumers)
+    );
   }
 
   return json;
@@ -234,9 +239,12 @@ export function describeIfRealApi(name, suiteFn) {
 /**
  * 在 loopback 模式下跳过测试（用于因级联重启导致超时的复杂工作流测试）。
  */
-export const itSkipInLoopback = RUN_REAL_API_TESTS && isLoopbackRuntime()
-  ? globalThis.it.skip
-  : (RUN_REAL_API_TESTS ? globalThis.it : globalThis.it.skip);
+export const itSkipInLoopback =
+  RUN_REAL_API_TESTS && isLoopbackRuntime()
+    ? globalThis.it.skip
+    : RUN_REAL_API_TESTS
+      ? globalThis.it
+      : globalThis.it.skip;
 
 export const uniqueSeed = (prefix = 'wf') =>
   `${prefix}-${Date.now()}-${Math.floor(Math.random() * 100000)}`;

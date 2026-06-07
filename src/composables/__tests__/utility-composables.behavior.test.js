@@ -83,10 +83,14 @@ describe('utility composables behavior', () => {
     await expect(copy('hello')).resolves.toBe(true);
     await expect(paste()).resolves.toBe('from-clipboard');
     await expect(copyShareLink('/space/demo')).resolves.toBe(true);
-    await expect(copyShareLink('https://example.com/demo', { showToast: false })).resolves.toBe(true);
+    await expect(copyShareLink('https://example.com/demo', { showToast: false })).resolves.toBe(
+      true
+    );
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('hello');
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(`${window.location.origin}/space/demo`);
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      `${window.location.origin}/space/demo`
+    );
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('https://example.com/demo');
     expect(addToast).toHaveBeenCalledWith({ message: '已复制', type: 'success' });
     expect(addToast).toHaveBeenCalledWith({ message: '链接已复制', type: 'success' });
@@ -210,11 +214,7 @@ describe('utility composables behavior', () => {
     vi.stubGlobal('navigator', {
       vibrate: vi.fn(),
     });
-    const items = ref([
-      { id: 'a' },
-      { id: 'b' },
-      { id: 'c' },
-    ]);
+    const items = ref([{ id: 'a' }, { id: 'b' }, { id: 'c' }]);
     const onReorder = vi.fn();
     const dragSort = useDragSort(items, { onReorder });
     const dataTransfer = {
@@ -227,11 +227,7 @@ describe('utility composables behavior', () => {
     expect(dragSort.dragOverIndex.value).toBe(2);
     dragSort.handleDrop(2);
 
-    expect(onReorder).toHaveBeenCalledWith(
-      [{ id: 'b' }, { id: 'c' }, { id: 'a' }],
-      0,
-      2
-    );
+    expect(onReorder).toHaveBeenCalledWith([{ id: 'b' }, { id: 'c' }, { id: 'a' }], 0, 2);
     expect(dragSort.dragIndex.value).toBeNull();
     expect(dragSort.dragOverIndex.value).toBeNull();
 
@@ -259,11 +255,7 @@ describe('utility composables behavior', () => {
     expect(navigator.vibrate).toHaveBeenCalledWith(50);
 
     dragSort.handleTouchEnd();
-    expect(onReorder).toHaveBeenCalledWith(
-      [{ id: 'c' }, { id: 'a' }, { id: 'b' }],
-      2,
-      0
-    );
+    expect(onReorder).toHaveBeenCalledWith([{ id: 'c' }, { id: 'a' }, { id: 'b' }], 2, 0);
     expect(dragSort.getDragClass(0)).toBe('');
   });
 });

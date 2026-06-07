@@ -103,15 +103,19 @@ describe('WebhookDeliveryService', () => {
       }
     );
 
-    expect(service.buildEnvelope({
-      event_id: 'evt-invalid',
-      event_type: 'purchase_receipt_recorded',
-      aggregate_type: 'purchase_receipt',
-      aggregate_id: 'receipt-invalid',
-      payload_json: '{',
-    })).toEqual(expect.objectContaining({
-      payload: {},
-    }));
+    expect(
+      service.buildEnvelope({
+        event_id: 'evt-invalid',
+        event_type: 'purchase_receipt_recorded',
+        aggregate_type: 'purchase_receipt',
+        aggregate_id: 'receipt-invalid',
+        payload_json: '{',
+      })
+    ).toEqual(
+      expect.objectContaining({
+        payload: {},
+      })
+    );
   });
 
   it('skips endpoints that already succeeded for the same delivery key', async () => {
@@ -126,9 +130,15 @@ describe('WebhookDeliveryService', () => {
           enabled: true,
         },
       ]),
-      getDeliveryStates: vi.fn(async () => new Map([
-        ['evt-2:wh-1:v1', { deliveryKey: 'evt-2:wh-1:v1', hasSuccess: true, latestAttemptNumber: 1 }],
-      ])),
+      getDeliveryStates: vi.fn(
+        async () =>
+          new Map([
+            [
+              'evt-2:wh-1:v1',
+              { deliveryKey: 'evt-2:wh-1:v1', hasSuccess: true, latestAttemptNumber: 1 },
+            ],
+          ])
+      ),
     });
     const fetchMock = vi.fn();
     const service = new WebhookDeliveryService(
@@ -345,10 +355,7 @@ describe('WebhookDeliveryService', () => {
     });
 
     await vi.waitFor(() => {
-      expect(started).toEqual([
-        'https://example.com/one',
-        'https://example.com/two',
-      ]);
+      expect(started).toEqual(['https://example.com/one', 'https://example.com/two']);
     });
 
     releases.shift()?.();

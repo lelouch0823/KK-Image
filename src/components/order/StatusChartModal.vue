@@ -14,7 +14,9 @@
             class="size-3 rounded-full"
             :style="{ backgroundColor: getStatusHexColor(key) }"
           ></span>
-          <span class="text-sm text-(--text-secondary)">{{ t(`order.statuses.${key}`) }}: {{ value }}</span>
+          <span class="text-sm text-(--text-secondary)"
+            >{{ t(`order.statuses.${key}`) }}: {{ value }}</span
+          >
         </div>
       </div>
     </div>

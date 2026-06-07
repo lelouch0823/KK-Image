@@ -13,12 +13,14 @@
 ### Task 1: Lock Shared Fingerprint Contracts
 
 **Files:**
+
 - Modify: `functions/services/__tests__/order-procurement-shared.test.js`
 - Create: `functions/services/__tests__/procurement-command-fingerprints.audit.test.js`
 
 - [ ] **Step 1: Write the failing tests**
 
 Add tests that assert:
+
 - shared module exports stable receipt fingerprint normalization
 - shared module exports stable reversal fingerprint normalization
 - shared module exports stable shortage-closure fingerprint normalization
@@ -37,6 +39,7 @@ Expected: FAIL because the shared builders and audit constraints do not exist ye
 ### Task 2: Reuse Shared Procurement Fingerprint Builders
 
 **Files:**
+
 - Modify: `functions/services/order-procurement-shared.js`
 - Modify: `functions/services/OrderProcurementDomainService.js`
 - Modify: `functions/services/OrderProcurementReceiptReversalService.js`

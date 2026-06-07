@@ -1,10 +1,12 @@
 # 前端设计规范审查 Agent 2（Views）
 
 审查范围：
+
 - `src/views/**`
 - 已排除 `src/components/**` 与 `minisales/**`
 
 基线文档：
+
 - `docs/design-system/MASTER.md`
 - `docs/design-system/foundations.md`
 - `docs/design-system/patterns.md`
@@ -233,4 +235,3 @@
 - 建议修复方向：
   - 与 `NotFound.vue` 合并到共享错误页模式。
   - 动作入口统一改为 `AppButton`。
-

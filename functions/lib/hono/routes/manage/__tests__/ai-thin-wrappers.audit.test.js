@@ -14,9 +14,6 @@ describe('manage ai thin wrappers audit', () => {
       offenders.push('functions/lib/hono/routes/manage/ai.js: still defines createTelemetryWriter');
     }
 
-    expect(
-      offenders,
-      `manage ai thin-wrapper offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `manage ai thin-wrapper offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

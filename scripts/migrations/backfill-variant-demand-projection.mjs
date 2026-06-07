@@ -55,7 +55,16 @@ function sqlNumber(value, fallback = 0) {
 }
 
 export function runD1Json(options, command) {
-  const args = ['wrangler', 'd1', 'execute', options.database, options.remote ? '--remote' : '--local', '--command', command, '--json'];
+  const args = [
+    'wrangler',
+    'd1',
+    'execute',
+    options.database,
+    options.remote ? '--remote' : '--local',
+    '--command',
+    command,
+    '--json',
+  ];
   const output = execFileSync('npx', args, { encoding: 'utf8' });
   const parsed = JSON.parse(output);
 
@@ -163,7 +172,10 @@ export function main() {
 
   const chunkSize = 50;
   for (let index = 0; index < rows.length; index += chunkSize) {
-    runD1Json(options, buildUpsertVariantDemandProjectionBatchSql(rows.slice(index, index + chunkSize)));
+    runD1Json(
+      options,
+      buildUpsertVariantDemandProjectionBatchSql(rows.slice(index, index + chunkSize))
+    );
   }
 
   console.log(`[backfill-variant-demand-projection] upserted ${rows.length} rows`);

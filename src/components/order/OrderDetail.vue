@@ -2,8 +2,6 @@
   <div class="base-container">
     <!-- Screen View (网页模式) -->
     <div class="screen-view space-y-6">
-
-
       <!-- 主要内容区域 Grid -->
       <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
         <!-- 左侧：图片区域 (PC端占 8列) -->
@@ -97,10 +95,7 @@
           />
 
           <!-- 利润分析 (仅管理员可见) -->
-          <OrderProfitCard
-            v-if="mode === 'admin' && order.profit"
-            :profit="order.profit"
-          />
+          <OrderProfitCard v-if="mode === 'admin' && order.profit" :profit="order.profit" />
 
           <div
             v-if="markReadError"
@@ -118,8 +113,6 @@
               {{ t('common.retry') }}
             </AppButton>
           </div>
-
-
 
           <!-- 留言输入 -->
           <OrderCommentInput
@@ -148,9 +141,13 @@
           <p class="mb-2 text-xs text-(--text-secondary)">{{ formatTime(correction.createdAt) }}</p>
           <div class="flex items-start gap-2 text-sm">
             <span class="shrink-0 pt-0.5 text-(--text-secondary)">{{ correction.fieldName }}:</span>
-            <span class="text-danger/60 min-w-0 flex-1 wrap-break-word line-through"> {{ correction.oldValue }}</span>
+            <span class="text-danger/60 min-w-0 flex-1 wrap-break-word line-through">
+              {{ correction.oldValue }}</span
+            >
             <AppIcon name="arrow-right" class="mt-0.5 size-4 shrink-0 text-(--text-secondary)" />
-            <span class="text-success min-w-0 flex-1 font-medium wrap-break-word">{{ correction.newValue }}</span>
+            <span class="text-success min-w-0 flex-1 font-medium wrap-break-word">{{
+              correction.newValue
+            }}</span>
           </div>
           <p class="mt-2 text-xs wrap-break-word whitespace-pre-wrap text-(--text-secondary)">
             <span class="text-primary font-medium">{{ t('order.detail.correctionReason') }}:</span>
@@ -196,7 +193,6 @@
       @next="next"
       @download="download"
     />
-
   </div>
 </template>
 
@@ -211,7 +207,6 @@ import { useLightbox } from '@/composables/useLightbox';
 import { formatTimelineTime as formatTime } from '@/utils/formatters';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
-
 
 // Sub-components
 import OrderTimeline from './OrderTimeline.vue';
@@ -262,7 +257,16 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['back', 'comment', 'refresh', 'duplicate', 'edit', 'delete-order', 'line-command', 'confirm-delivery']);
+const emit = defineEmits([
+  'back',
+  'comment',
+  'refresh',
+  'duplicate',
+  'edit',
+  'delete-order',
+  'line-command',
+  'confirm-delivery',
+]);
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -319,18 +323,27 @@ const hasCustomerInfo = computed(() => {
 
 // 当前数据
 const orderLines = computed(() => (Array.isArray(props.order.lines) ? props.order.lines : []));
-const orderShipments = computed(() => (Array.isArray(props.order.shipments) ? props.order.shipments : []));
-const orderReturns = computed(() => (Array.isArray(props.order.returns) ? props.order.returns : []));
+const orderShipments = computed(() =>
+  Array.isArray(props.order.shipments) ? props.order.shipments : []
+);
+const orderReturns = computed(() =>
+  Array.isArray(props.order.returns) ? props.order.returns : []
+);
 const orderQuantity = computed(() => resolveOrderQuantity(props.order));
 const progressStatus = computed(() => resolveOrderProgressStatus(props.order));
 const deliveryStatus = computed(() => resolveOrderDeliveryStatus(props.order));
 const multilineSummaryName = computed(() =>
-  isMultilineOrder(props.order) ? t('order.detail.multilineSummary', { count: orderLines.value.length }) : ''
+  isMultilineOrder(props.order)
+    ? t('order.detail.multilineSummary', { count: orderLines.value.length })
+    : ''
 );
-const canConfirmDelivery = computed(() =>
-  props.mode === 'admin'
-  && String(props.order?.status || '').trim().toLowerCase() === 'fulfilled'
-  && deliveryStatus.value === 'in_transit'
+const canConfirmDelivery = computed(
+  () =>
+    props.mode === 'admin' &&
+    String(props.order?.status || '')
+      .trim()
+      .toLowerCase() === 'fulfilled' &&
+    deliveryStatus.value === 'in_transit'
 );
 const displayData = computed(() =>
   buildOrderDetailDisplayData(props.order, {
@@ -348,7 +361,6 @@ const hasCorrection = computed(() => {
 const corrections = computed(() => {
   return props.order.timeline?.filter((t) => t.actionType === 'field_updated') || [];
 });
-
 
 // 发送留言
 const sendComment = (text) => {
@@ -444,7 +456,7 @@ const handleUpdate = async (payload) => {
     if (variantId !== undefined) {
       requestBody.variantId = variantId;
     }
-    
+
     const res = await requestSales(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

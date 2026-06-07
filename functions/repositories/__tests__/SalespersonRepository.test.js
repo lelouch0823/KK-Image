@@ -54,7 +54,8 @@ describe('SalespersonRepository', () => {
     const byToken = createStatement('by-token', { firstResult: { access_token: 'token-1' } });
     const byOpenid = createStatement('by-openid', { firstResult: { wechat_openid: 'openid-1' } });
     const db = {
-      prepare: vi.fn()
+      prepare: vi
+        .fn()
         .mockReturnValueOnce(byId)
         .mockReturnValueOnce(byToken)
         .mockReturnValueOnce(byOpenid),
@@ -63,7 +64,9 @@ describe('SalespersonRepository', () => {
 
     await expect(repo.findById('sales-1')).resolves.toEqual({ id: 'sales-1' });
     await expect(repo.findByToken('token-1')).resolves.toEqual({ access_token: 'token-1' });
-    await expect(repo.findByWechatOpenid('openid-1')).resolves.toEqual({ wechat_openid: 'openid-1' });
+    await expect(repo.findByWechatOpenid('openid-1')).resolves.toEqual({
+      wechat_openid: 'openid-1',
+    });
 
     expect(byId.bind).toHaveBeenCalledWith('sales-1');
     expect(byToken.bind).toHaveBeenCalledWith('token-1');
@@ -89,9 +92,7 @@ describe('SalespersonRepository', () => {
       firstResult: { id: 'sales-1' },
     });
     const db = {
-      prepare: vi.fn()
-        .mockReturnValueOnce(updateStatement)
-        .mockReturnValueOnce(existsStatement),
+      prepare: vi.fn().mockReturnValueOnce(updateStatement).mockReturnValueOnce(existsStatement),
     };
     const repo = new SalespersonRepository(db, 'jwt-secret');
 
@@ -107,9 +108,7 @@ describe('SalespersonRepository', () => {
       firstResult: null,
     });
     const db = {
-      prepare: vi.fn()
-        .mockReturnValueOnce(updateStatement)
-        .mockReturnValueOnce(existsStatement),
+      prepare: vi.fn().mockReturnValueOnce(updateStatement).mockReturnValueOnce(existsStatement),
     };
     const repo = new SalespersonRepository(db, 'jwt-secret');
 
@@ -200,7 +199,9 @@ describe('SalespersonRepository', () => {
     const db = { prepare: vi.fn(() => statement) };
     const repo = new SalespersonRepository(db, 'jwt-secret');
 
-    await expect(repo.create({ name: 'Alice', password: 'secret' })).rejects.toThrow('database offline');
+    await expect(repo.create({ name: 'Alice', password: 'secret' })).rejects.toThrow(
+      'database offline'
+    );
     expect(statement.run).toHaveBeenCalledTimes(1);
   });
 
@@ -219,13 +220,15 @@ describe('SalespersonRepository', () => {
     const db = { prepare: vi.fn(() => statement) };
     const repo = new SalespersonRepository(db, 'jwt-secret');
 
-    await expect(repo.update('sales-1', {
-      name: '  Alice  ',
-      store: '',
-      phone: '13900000000',
-      password: 'new-secret',
-      isActive: false,
-    })).resolves.toBe(true);
+    await expect(
+      repo.update('sales-1', {
+        name: '  Alice  ',
+        store: '',
+        phone: '13900000000',
+        password: 'new-secret',
+        isActive: false,
+      })
+    ).resolves.toBe(true);
 
     expect(vi.mocked(hashPassword)).toHaveBeenCalledWith('new-secret', 'jwt-secret');
     expect(db.prepare.mock.calls[0][0]).toContain('UPDATE salespersons SET');
@@ -248,9 +251,7 @@ describe('SalespersonRepository', () => {
       firstResult: null,
     });
     const db = {
-      prepare: vi.fn()
-        .mockReturnValueOnce(updateStatement)
-        .mockReturnValueOnce(existsStatement),
+      prepare: vi.fn().mockReturnValueOnce(updateStatement).mockReturnValueOnce(existsStatement),
     };
     const repo = new SalespersonRepository(db, 'jwt-secret');
 
@@ -266,9 +267,7 @@ describe('SalespersonRepository', () => {
       runResult: { success: true, meta: { changes: 0 } },
     });
     const db = {
-      prepare: vi.fn()
-        .mockReturnValueOnce(deleted)
-        .mockReturnValueOnce(missed),
+      prepare: vi.fn().mockReturnValueOnce(deleted).mockReturnValueOnce(missed),
     };
     const repo = new SalespersonRepository(db, 'jwt-secret');
 
@@ -284,9 +283,7 @@ describe('SalespersonRepository', () => {
       runResult: { success: true, meta: { changes: 0 } },
     });
     const db = {
-      prepare: vi.fn()
-        .mockReturnValueOnce(resetOk)
-        .mockReturnValueOnce(resetMissing),
+      prepare: vi.fn().mockReturnValueOnce(resetOk).mockReturnValueOnce(resetMissing),
     };
     const repo = new SalespersonRepository(db, 'jwt-secret');
 
@@ -299,9 +296,7 @@ describe('SalespersonRepository', () => {
     const exists = createStatement('has-orders', { firstResult: { count: 2 } });
     const missing = createStatement('has-orders-none', { firstResult: { count: 0 } });
     const db = {
-      prepare: vi.fn()
-        .mockReturnValueOnce(exists)
-        .mockReturnValueOnce(missing),
+      prepare: vi.fn().mockReturnValueOnce(exists).mockReturnValueOnce(missing),
     };
     const repo = new SalespersonRepository(db, 'jwt-secret');
 
@@ -317,6 +312,12 @@ describe('SalespersonRepository', () => {
     const repo = new SalespersonRepository(db, 'jwt-secret');
 
     await expect(repo.recordLogin('sales-1', '', undefined)).resolves.toBe(true);
-    expect(statement.bind).toHaveBeenCalledWith(1700000000000, null, null, 1700000000000, 'sales-1');
+    expect(statement.bind).toHaveBeenCalledWith(
+      1700000000000,
+      null,
+      null,
+      1700000000000,
+      'sales-1'
+    );
   });
 });

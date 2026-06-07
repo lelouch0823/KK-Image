@@ -6,13 +6,18 @@
     <div v-if="isPermissionDenied" class="flex flex-1 items-center justify-center py-12">
       <PermissionDeniedState
         :title="t('reminders.permissionTitle', '提醒中心权限不足')"
-        :description="permissionReason || t('reminders.permissionDesc', '当前账号没有 notifications:read 权限。')"
+        :description="
+          permissionReason ||
+          t('reminders.permissionDesc', '当前账号没有 notifications:read 权限。')
+        "
         required-permission="notifications:read"
       />
     </div>
 
     <div v-else class="space-y-4">
-      <div class="flex flex-col gap-3 rounded-2xl border border-(--border-color) bg-(--bg-card) p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div
+        class="flex flex-col gap-3 rounded-2xl border border-(--border-color) bg-(--bg-card) p-4 sm:flex-row sm:items-center sm:justify-between"
+      >
         <div class="flex items-center gap-3">
           <StatusBadge variant="warning">
             {{ unreadCountValue }}
@@ -118,7 +123,6 @@ const unreadCountValue = computed(() => Number(unref(unreadCount) || 0));
 const isLoading = computed(() => Boolean(unref(loading)));
 const isPermissionDenied = computed(() => Boolean(unref(permissionDenied)));
 const permissionReason = computed(() => String(unref(permissionDeniedReason) || ''));
-
 
 onMounted(() => {
   setAdminMode();

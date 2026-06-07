@@ -71,43 +71,43 @@ src/composables/
 
 ### 2.1 核心基础设施层
 
-| 文件 | 功能 | 状态类型 |
-|------|------|----------|
-| `useAuth.js` | 用户认证、授权请求封装 | 全局状态 |
-| `useI18n.js` | 多语言翻译 | 全局状态 |
-| `useToast.js` | 轻量消息提示 | 全局状态 |
-| `useTheme.js` | 明暗主题切换 | 全局状态 |
-| `useResource.js` | RESTful 资源 CRUD 抽象 | 实例状态 |
-| `useResponsive.js` | 断点检测 | 实例状态 |
+| 文件               | 功能                   | 状态类型 |
+| ------------------ | ---------------------- | -------- |
+| `useAuth.js`       | 用户认证、授权请求封装 | 全局状态 |
+| `useI18n.js`       | 多语言翻译             | 全局状态 |
+| `useToast.js`      | 轻量消息提示           | 全局状态 |
+| `useTheme.js`      | 明暗主题切换           | 全局状态 |
+| `useResource.js`   | RESTful 资源 CRUD 抽象 | 实例状态 |
+| `useResponsive.js` | 断点检测               | 实例状态 |
 
 ### 2.2 业务领域层
 
-| 文件 | 功能 | 核心方法 |
-|------|------|----------|
-| `useFileManager.js` | 文件夹/文件 CRUD | `loadFolderData`, `createFolder`, `deleteFile` |
-| `useOrders.js` | 订单管理 | `loadOrders`, `updateOrder`, `changeStatus` |
-| `useProducts.js` | 商品与变体管理 | `loadProduct`, `createDimension` |
-| `useSpaces.js` | 空间管理 | `loadSpace`, `addFilesToSpace` |
-| `useSalespersons.js` | 销售人员管理 | `resetToken`, `copyAccessLink` |
-| `usePurchaseOrders.js` | 采购单管理 | `createPO`, `updateStatus` |
-| `useGoodsOverview.js` | 订货总览 | `loadData`, `createPOFromSelected` |
+| 文件                   | 功能             | 核心方法                                       |
+| ---------------------- | ---------------- | ---------------------------------------------- |
+| `useFileManager.js`    | 文件夹/文件 CRUD | `loadFolderData`, `createFolder`, `deleteFile` |
+| `useOrders.js`         | 订单管理         | `loadOrders`, `updateOrder`, `changeStatus`    |
+| `useProducts.js`       | 商品与变体管理   | `loadProduct`, `createDimension`               |
+| `useSpaces.js`         | 空间管理         | `loadSpace`, `addFilesToSpace`                 |
+| `useSalespersons.js`   | 销售人员管理     | `resetToken`, `copyAccessLink`                 |
+| `usePurchaseOrders.js` | 采购单管理       | `createPO`, `updateStatus`                     |
+| `useGoodsOverview.js`  | 订货总览         | `loadData`, `createPOFromSelected`             |
 
 ### 2.3 UI交互层
 
-| 文件 | 功能 | 关键特性 |
-|------|------|----------|
-| `useModalStack.js` | 模态框堆叠管理 | z-index 分配、毛玻璃智能控制 |
-| `useLightbox.js` | 图片灯箱预览 | 键盘导航、滚轮切换 |
-| `useDragSort.js` | 列表拖拽重排 | 桌面端 + 触摸端双支持 |
-| `useInfiniteScroll.js` | 上拉加载更多 | IntersectionObserver + 重试 |
+| 文件                   | 功能           | 关键特性                     |
+| ---------------------- | -------------- | ---------------------------- |
+| `useModalStack.js`     | 模态框堆叠管理 | z-index 分配、毛玻璃智能控制 |
+| `useLightbox.js`       | 图片灯箱预览   | 键盘导航、滚轮切换           |
+| `useDragSort.js`       | 列表拖拽重排   | 桌面端 + 触摸端双支持        |
+| `useInfiniteScroll.js` | 上拉加载更多   | IntersectionObserver + 重试  |
 
 ### 2.4 上传与AI层
 
-| 文件 | 功能 | 特性 |
-|------|------|------|
-| `useUploadQueue.js` | 上传队列管理 | 并发控制、秒传预检、速度计算 |
-| `useImageCompression.js` | 图片压缩 + 水印 | WebP 输出、SHA-256 哈希 |
-| `useAIStream.js` | SSE 流式响应处理 | AbortController、打字机效果 |
+| 文件                     | 功能             | 特性                         |
+| ------------------------ | ---------------- | ---------------------------- |
+| `useUploadQueue.js`      | 上传队列管理     | 并发控制、秒传预检、速度计算 |
+| `useImageCompression.js` | 图片压缩 + 水印  | WebP 输出、SHA-256 哈希      |
+| `useAIStream.js`         | SSE 流式响应处理 | AbortController、打字机效果  |
 
 ---
 
@@ -121,23 +121,24 @@ src/composables/
 export function useResource(apiEndpoint, options = {}) {
   const {
     listKey = 'data',
-    retryCount = 2,  // 自动重试次数
-    cache = true,    // 启用缓存
-    cacheTTL = 60000 // 缓存有效期 60s
+    retryCount = 2, // 自动重试次数
+    cache = true, // 启用缓存
+    cacheTTL = 60000, // 缓存有效期 60s
   } = options;
 
   return {
-    loadItems,    // 加载列表
-    createItem,   // 创建资源
-    updateItem,   // 更新资源（乐观更新）
-    deleteItem,   // 删除资源（乐观更新）
-    clearCache,   // 清空缓存
-    abort,        // 取消请求
+    loadItems, // 加载列表
+    createItem, // 创建资源
+    updateItem, // 更新资源（乐观更新）
+    deleteItem, // 删除资源（乐观更新）
+    clearCache, // 清空缓存
+    abort, // 取消请求
   };
 }
 ```
 
 **特性**:
+
 - **指数退避重试**: 失败后自动重试，延迟指数递增
 - **缓存机制**: 基于 Map 的内存缓存，支持 TTL
 - **乐观更新**: 更新/删除时先修改本地状态，失败后回滚
@@ -151,11 +152,11 @@ const currentUser = ref(null);
 
 export function useAuth() {
   return {
-    isAuthenticated,  // 是否已登录
-    currentUser,      // 当前用户信息
-    checkAuth,        // 检查登录状态
-    authFetch,        // 带 Cookie 的 fetch 封装
-    logout            // 退出登录
+    isAuthenticated, // 是否已登录
+    currentUser, // 当前用户信息
+    checkAuth, // 检查登录状态
+    authFetch, // 带 Cookie 的 fetch 封装
+    logout, // 退出登录
   };
 }
 ```
@@ -163,6 +164,7 @@ export function useAuth() {
 ### 3.3 useUploadQueue - 上传队列管理器
 
 **上传流程**:
+
 ```
 addFiles() → processQueue() → handleUpload()
                                   ↓
@@ -175,6 +177,7 @@ addFiles() → processQueue() → handleUpload()
 ```
 
 **秒传机制**:
+
 1. 计算文件 SHA-256 哈希
 2. 调用预检接口
 3. 若哈希已存在，直接完成（秒传）
@@ -185,13 +188,13 @@ addFiles() → processQueue() → handleUpload()
 ```javascript
 export function useAIStream() {
   return {
-    stream,            // 发起流式请求
-    cancel,            // 取消请求
-    fullContent,       // 完整内容
-    displayedContent,  // 打字机效果内容
-    isTyping,          // 是否在打字
-    isLoading,         // 是否在加载
-    toolStatus,        // 工具调用状态
+    stream, // 发起流式请求
+    cancel, // 取消请求
+    fullContent, // 完整内容
+    displayedContent, // 打字机效果内容
+    isTyping, // 是否在打字
+    isLoading, // 是否在加载
+    toolStatus, // 工具调用状态
   };
 }
 ```
@@ -202,10 +205,10 @@ export function useAIStream() {
 
 ### 4.1 全局状态 vs 实例状态
 
-| 类型 | 定义方式 | 使用场景 |
-|------|----------|----------|
+| 类型         | 定义方式             | 使用场景                           |
+| ------------ | -------------------- | ---------------------------------- |
 | **全局状态** | 模块外 `const ref()` | 跨组件共享（认证、通知、上传队列） |
-| **实例状态** | 函数内 `const ref()` | 组件隔离（拖拽、筛选、导航） |
+| **实例状态** | 函数内 `const ref()` | 组件隔离（拖拽、筛选、导航）       |
 
 ### 4.2 全局状态模块一览
 
@@ -240,10 +243,10 @@ useI18n
 const updateItem = async (id, updates) => {
   // 1. 保存旧值
   const oldItem = { ...items.value[idx] };
-  
+
   // 2. 乐观更新
   items.value[idx] = { ...items.value[idx], ...updates };
-  
+
   try {
     // 3. 发送请求
     const res = await authFetch(...);
@@ -277,9 +280,9 @@ export function useDragSort(items, options = {}) {
 通过模块级变量实现跨组件共享：
 
 ```javascript
-const isAuthenticated = ref(false);  // 模块级变量
+const isAuthenticated = ref(false); // 模块级变量
 export function useAuth() {
-  return { isAuthenticated };  // 所有组件共享同一引用
+  return { isAuthenticated }; // 所有组件共享同一引用
 }
 ```
 

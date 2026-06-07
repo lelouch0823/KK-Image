@@ -13,6 +13,7 @@
 ### Task 1: Block Insufficient Stock Before `delivered`
 
 **Files:**
+
 - Modify: `functions/repositories/order/mutations.js`
 - Test: `functions/repositories/__tests__/order-inventory-flow.test.js`
 
@@ -27,8 +28,9 @@ it('rejects delivered transition when variant stock is lower than order quantity
     variantStockById: { 'v-1': 2 },
   });
 
-  await expect(updateStatus(db, 'o-1', 'delivered', 'admin'))
-    .rejects.toThrow(/insufficient variant stock/i);
+  await expect(updateStatus(db, 'o-1', 'delivered', 'admin')).rejects.toThrow(
+    /insufficient variant stock/i
+  );
 });
 
 it('rejects batch status update when any delivered transition is short on stock', async () => {
@@ -40,8 +42,9 @@ it('rejects batch status update when any delivered transition is short on stock'
     variantStockById: { 'v-1': 4, 'v-2': 10 },
   });
 
-  await expect(batchUpdateStatus(db, timelineRepo, ['o-1', 'o-2'], 'delivered'))
-    .rejects.toThrow(/insufficient variant stock/i);
+  await expect(batchUpdateStatus(db, timelineRepo, ['o-1', 'o-2'], 'delivered')).rejects.toThrow(
+    /insufficient variant stock/i
+  );
   expect(db.batch).not.toHaveBeenCalled();
 });
 ```
@@ -57,7 +60,10 @@ Expected: FAIL with missing insufficient-stock guard.
 const INSUFFICIENT_VARIANT_STOCK_ERROR = 'insufficient variant stock for delivery';
 
 async function assertVariantStockSufficient(db, variantId, requiredQty) {
-  const row = await db.prepare('SELECT stock_quantity FROM product_variants WHERE id = ?').bind(variantId).first();
+  const row = await db
+    .prepare('SELECT stock_quantity FROM product_variants WHERE id = ?')
+    .bind(variantId)
+    .first();
   const stock = Math.max(0, Number(row?.stock_quantity) || 0);
   if (stock < requiredQty) throw new Error(INSUFFICIENT_VARIANT_STOCK_ERROR);
 }
@@ -85,6 +91,7 @@ git commit -m "fix(order): block delivered transition when variant stock is insu
 ### Task 2: Map Stock Guard Errors to 400 in Admin Status APIs
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/orders/detail.js`
 - Modify: `functions/lib/hono/routes/manage/orders/create.js`
 - Test: `functions/lib/hono/routes/manage/__tests__/order-detail-routes.test.js`
@@ -97,21 +104,31 @@ git commit -m "fix(order): block delivered transition when variant stock is insu
 ```javascript
 it('returns 400 when PATCH /:id/status tries delivered with insufficient stock', async () => {
   mocks.updateStatus.mockRejectedValue(new Error('insufficient variant stock for delivery'));
-  const res = await app.request('http://localhost/api/manage/orders/order-1/status', {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status: 'delivered' }),
-  }, env, ctx);
+  const res = await app.request(
+    'http://localhost/api/manage/orders/order-1/status',
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'delivered' }),
+    },
+    env,
+    ctx
+  );
   expect(res.status).toBe(400);
 });
 
 it('returns 400 when batch action transitions to delivered with insufficient stock', async () => {
   mocks.batchUpdateStatus.mockRejectedValue(new Error('insufficient variant stock for delivery'));
-  const res = await app.request('http://localhost/api/manage/orders/batch', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ids: ['o-1'], action: 'status', value: 'delivered' }),
-  }, env, ctx);
+  const res = await app.request(
+    'http://localhost/api/manage/orders/batch',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: ['o-1'], action: 'status', value: 'delivered' }),
+    },
+    env,
+    ctx
+  );
   expect(res.status).toBe(400);
 });
 ```
@@ -154,6 +171,7 @@ git commit -m "fix(order): return 400 for insufficient-stock delivered transitio
 ### Task 3: Make `processOrderUpdate` Core Writes Atomic
 
 **Files:**
+
 - Modify: `functions/repositories/order/mutations.js`
 - Modify: `functions/repositories/OrderRepository.js`
 - Modify: `functions/api/utils/order-utils.js`
@@ -172,7 +190,9 @@ it('does not send notification when core order write batch fails', async () => {
 });
 
 it('calls one composite write for status+data+binding+files', async () => {
-  const spy = vi.spyOn(OrderRepository.prototype, 'updateComposite').mockResolvedValue({ success: true });
+  const spy = vi
+    .spyOn(OrderRepository.prototype, 'updateComposite')
+    .mockResolvedValue({ success: true });
   await processOrderUpdate(optionsWithStatusAndFiles);
   expect(spy).toHaveBeenCalledTimes(1);
 });
@@ -220,6 +240,7 @@ git commit -m "refactor(order): execute core order patch writes in one composite
 ### Task 4: Align Admin PATCH Response with Frontend State Replacement
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/orders/detail.js`
 - Modify: `src/composables/useOrders.js`
 - Test: `functions/lib/hono/routes/manage/__tests__/order-detail-routes.test.js`
@@ -231,16 +252,16 @@ git commit -m "refactor(order): execute core order patch writes in one composite
 
 ```javascript
 it('PATCH /:id returns updated order data payload', async () => {
-  mocks.findById
-    .mockResolvedValueOnce(existingOrder)
-    .mockResolvedValueOnce(updatedOrder);
+  mocks.findById.mockResolvedValueOnce(existingOrder).mockResolvedValueOnce(updatedOrder);
   const res = await app.request('http://localhost/api/manage/orders/order-1', patchReq, env, ctx);
   const body = await res.json();
   expect(body.data).toMatchObject({ id: 'order-1', status: 'confirmed' });
 });
 
 it('updateOrder replaces optimistic item with server data when present', async () => {
-  mocks.authFetch.mockResolvedValue({ json: async () => ({ success: true, data: { id: 'o-1', name: 'server' } }) });
+  mocks.authFetch.mockResolvedValue({
+    json: async () => ({ success: true, data: { id: 'o-1', name: 'server' } }),
+  });
   await updateOrder('o-1', { name: 'optimistic' }, 'reason');
   expect(mocks.resource.items.value[0].name).toBe('server');
 });
@@ -279,6 +300,7 @@ git commit -m "feat(order): return updated order on patch and sync optimistic UI
 ### Task 5: Rewrite Review Doc into Executable Remediation Checklist
 
 **Files:**
+
 - Modify: `docs/reviews/order-module-logic-issues.md`
 - Modify: `docs/plans/2026-03-03-order-module-remediation-implementation-plan.md` (if scope changes during implementation)
 
@@ -288,6 +310,7 @@ git commit -m "feat(order): return updated order on patch and sync optimistic UI
 
 ```markdown
 ## P0 (Must Fix Before Release)
+
 - [ ] Block insufficient-stock delivered transitions
   - Files: ...
   - Tests: ...
@@ -298,6 +321,7 @@ git commit -m "feat(order): return updated order on patch and sync optimistic UI
 
 ```markdown
 ### Acceptance
+
 - API returns 400 with clear message when stock < quantity and status=delivered.
 - No stock deduction SQL runs for blocked transition.
 ```

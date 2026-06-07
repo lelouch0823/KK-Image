@@ -26,7 +26,12 @@ describe('ai telemetry writer', () => {
     const writer = createAITelemetryWriter({ db });
 
     await writer.writeAll({
-      trace: { requestId: 'req-1', traceId: 'trace-1', routeType: 'stream', finalStatus: 'completed' },
+      trace: {
+        requestId: 'req-1',
+        traceId: 'trace-1',
+        routeType: 'stream',
+        finalStatus: 'completed',
+      },
       spans: [
         { requestId: 'req-1', spanType: 'provider_call', status: 'completed' },
         { requestId: 'req-1', spanType: 'tool_round', status: 'completed' },
@@ -36,6 +41,8 @@ describe('ai telemetry writer', () => {
 
     expect(runs.some((entry) => entry.sql.includes('INSERT INTO ai_request_traces'))).toBe(true);
     expect(runs.some((entry) => entry.sql.includes('INSERT INTO ai_request_spans'))).toBe(true);
-    expect(runs.some((entry) => entry.sql.includes('INSERT INTO ai_request_usage_daily'))).toBe(true);
+    expect(runs.some((entry) => entry.sql.includes('INSERT INTO ai_request_usage_daily'))).toBe(
+      true
+    );
   });
 });

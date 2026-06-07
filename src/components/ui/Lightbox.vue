@@ -27,7 +27,10 @@
 
           <div class="flex items-center gap-4">
             <!-- Zoom/Rotate Toolbar (Only for images) - Hidden on mobile -->
-            <div v-if="isImage" class="mr-4 hidden items-center gap-2 border-r border-(--bg-card)/20 pr-4 sm:flex">
+            <div
+              v-if="isImage"
+              class="mr-4 hidden items-center gap-2 border-r border-(--bg-card)/20 pr-4 sm:flex"
+            >
               <!-- Rotate -->
               <AppButton
                 variant="ghost"
@@ -62,7 +65,9 @@
               </AppButton>
 
               <!-- Zoom indicator -->
-              <span class="min-w-12 text-center text-sm font-medium text-(--text-inverse) opacity-80">
+              <span
+                class="min-w-12 text-center text-sm font-medium text-(--text-inverse) opacity-80"
+              >
                 {{ Math.round(scale * 100) }}%
               </span>
             </div>
@@ -229,11 +234,7 @@ const isImage = computed(() => {
 const isPdf = computed(() => {
   if (!props.currentFile) return false;
   const f = props.currentFile;
-  return (
-    f.type === 'pdf' ||
-    f.mimeType === 'application/pdf' ||
-    /\.pdf(\?.*)?$/i.test(f.url || '')
-  );
+  return f.type === 'pdf' || f.mimeType === 'application/pdf' || /\.pdf(\?.*)?$/i.test(f.url || '');
 });
 
 // Zoom & Rotate state
@@ -261,7 +262,6 @@ watch(
   }
 );
 
-
 const handleWheel = (e) => {
   if (e.ctrlKey || e.metaKey) {
     // Zoom
@@ -271,7 +271,7 @@ const handleWheel = (e) => {
   } else {
     // Prevent background scroll
     e.preventDefault();
-    
+
     // Navigation
     if (e.deltaY > 0) {
       emit('next');
@@ -323,7 +323,7 @@ const handleTouchEnd = (e) => {
 
   const touchEndX = e.changedTouches[0].clientX;
   const touchEndY = e.changedTouches[0].clientY;
-  
+
   const deltaX = touchEndX - touchStartX.value;
   const deltaY = touchEndY - touchStartY.value;
 

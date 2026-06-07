@@ -13,6 +13,7 @@
 ### Task 1: Lock the Wrapper Removal Contract
 
 **Files:**
+
 - Create: `functions/lib/hono/routes/v1/__tests__/permissions-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the wrapper still exists.
 ### Task 2: Inline the Real Unknown-Action Helper
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/v1/_shared/permissions-validation.js`
 - Modify: `functions/lib/hono/routes/v1/permissions.js`
 

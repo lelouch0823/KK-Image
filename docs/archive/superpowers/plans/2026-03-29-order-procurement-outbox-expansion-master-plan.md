@@ -45,6 +45,7 @@
 ### Task 1: Freeze the shared execution baseline
 
 **Files:**
+
 - Review: `docs/superpowers/plans/2026-03-29-order-procurement-outbox-expansion-roadmap.md`
 - Review: `docs/superpowers/plans/2026-03-29-order-procurement-outbox-expansion-phase-1-notification-consumers-plan.md`
 - Review: `docs/superpowers/plans/2026-03-29-order-procurement-outbox-expansion-phase-2-webhook-delivery-plan.md`
@@ -70,8 +71,14 @@ Expected: PASS before Phase 1 begins
 export const DOMAIN_EVENT_CATALOG = {
   purchase_receipt_recorded: { version: 1, consumers: ['audit', 'cache', 'notification'] },
   inventory_received: { version: 1, consumers: ['audit', 'cache', 'webhook'] },
-  order_procurement_progressed: { version: 1, consumers: ['audit', 'cache', 'notification', 'webhook'] },
-  purchase_receipt_reversed: { version: 1, consumers: ['audit', 'cache', 'notification', 'webhook'] },
+  order_procurement_progressed: {
+    version: 1,
+    consumers: ['audit', 'cache', 'notification', 'webhook'],
+  },
+  purchase_receipt_reversed: {
+    version: 1,
+    consumers: ['audit', 'cache', 'notification', 'webhook'],
+  },
 };
 ```
 
@@ -83,6 +90,7 @@ Expected: the engineer knows which actual file paths and contracts changed and r
 ### Task 2: Execute Phase 1 notifications
 
 **Files:**
+
 - Execute: `docs/superpowers/plans/2026-03-29-order-procurement-outbox-expansion-phase-1-notification-consumers-plan.md`
 
 - [ ] **Step 1: Implement Phase 1 exactly from the dedicated plan**
@@ -103,6 +111,7 @@ Expected: the webhook plan reflects the real event catalog, notification schema 
 ### Task 3: Execute Phase 2 webhooks
 
 **Files:**
+
 - Execute: `docs/superpowers/plans/2026-03-29-order-procurement-outbox-expansion-phase-2-webhook-delivery-plan.md`
 
 - [ ] **Step 1: Revalidate the webhook plan against the current codebase**
@@ -123,6 +132,7 @@ Expected: replay queries and operator routes reference the actual webhook log sc
 ### Task 4: Execute Phase 3 audit replay
 
 **Files:**
+
 - Execute: `docs/superpowers/plans/2026-03-29-order-procurement-outbox-expansion-phase-3-audit-replay-plan.md`
 
 - [ ] **Step 1: Revalidate replay targets after Phase 2**
@@ -143,6 +153,7 @@ Expected: the reversal plan references the real replay-run persistence, audit ho
 ### Task 5: Execute Phase 4 rollback compensation
 
 **Files:**
+
 - Execute: `docs/superpowers/plans/2026-03-29-order-procurement-outbox-expansion-phase-4-rollback-compensation-plan.md`
 
 - [ ] **Step 1: Revalidate the reversal plan against all prior phases**

@@ -6,7 +6,9 @@
         <AppIcon name="users" class="text-primary size-4.5" />
       </div>
       <div class="flex-1">
-        <h3 class="text-sm font-semibold text-(--text-main)">{{ t('spaceManager.shareSettings') }}</h3>
+        <h3 class="text-sm font-semibold text-(--text-main)">
+          {{ t('spaceManager.shareSettings') }}
+        </h3>
         <p class="text-xs text-(--text-secondary)">{{ shareModeDescription }}</p>
       </div>
     </div>
@@ -32,9 +34,11 @@
           </span>
           <div
             class="flex size-9 items-center justify-center rounded-lg transition-colors"
-            :class="modelValue === mode.value
-              ? 'bg-primary/10 text-primary'
-              : 'bg-(--bg-muted) text-(--text-secondary) group-hover:text-(--text-main)'"
+            :class="
+              modelValue === mode.value
+                ? 'bg-primary/10 text-primary'
+                : 'bg-(--bg-muted) text-(--text-secondary) group-hover:text-(--text-main)'
+            "
           >
             <component :is="mode.iconComponent" class="size-4.5" />
           </div>
@@ -109,10 +113,14 @@ const shareModes = computed(() => [
 // 描述文本
 const shareModeDescription = computed(() => {
   switch (props.modelValue) {
-    case 'none': return t('spaceManager.shareMode.noneDesc') || '不分享给任何销售';
-    case 'selected': return t('spaceManager.shareMode.selectedDesc') || '仅特定销售可见';
-    case 'all': return t('spaceManager.shareMode.allDesc') || '所有销售均可见';
-    default: return '';
+    case 'none':
+      return t('spaceManager.shareMode.noneDesc') || '不分享给任何销售';
+    case 'selected':
+      return t('spaceManager.shareMode.selectedDesc') || '仅特定销售可见';
+    case 'all':
+      return t('spaceManager.shareMode.allDesc') || '所有销售均可见';
+    default:
+      return '';
   }
 });
 

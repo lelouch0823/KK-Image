@@ -6,9 +6,7 @@ import {
   getPolicyActions,
   getPolicyMetadata,
 } from '../../../authz/index.js';
-import {
-  formatUnknownPermissionsError,
-} from './_shared/permissions-validation.js';
+import { formatUnknownPermissionsError } from './_shared/permissions-validation.js';
 
 const app = new Hono();
 const metadata = getPolicyMetadata();

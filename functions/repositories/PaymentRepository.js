@@ -14,8 +14,9 @@ export class PaymentRepository {
   /**
    * 构造函数
    * @param {D1Database} db - Cloudflare D1 数据库实例
+   * @param {object} [deps={}] - 依赖注入
    */
-  constructor(db) {
+  constructor(db, deps = {}) {
     this.db = db;
   }
 
@@ -58,7 +59,14 @@ export class PaymentRepository {
    * @param {string} [params.createdBy] - 创建人
    * @returns {Promise<Object>} 创建的付款记录
    */
-  async create({ orderId, amount, method = 'cash', referenceNo = null, notes = null, createdBy = null }) {
+  async create({
+    orderId,
+    amount,
+    method = 'cash',
+    referenceNo = null,
+    notes = null,
+    createdBy = null,
+  }) {
     const id = generateId();
     const timestamp = now();
 
@@ -88,10 +96,7 @@ export class PaymentRepository {
    * @returns {Promise<boolean>}
    */
   async delete(id) {
-    const result = await this.db
-      .prepare('DELETE FROM payments WHERE id = ?')
-      .bind(id)
-      .run();
+    const result = await this.db.prepare('DELETE FROM payments WHERE id = ?').bind(id).run();
 
     return result.meta?.changes > 0;
   }
@@ -180,7 +185,11 @@ export class PaymentRepository {
     const dayMs = 24 * 60 * 60 * 1000;
 
     let whereClause = "WHERE o.status NOT IN ('void', 'rejected')";
-    const params = [nowTimestamp - 30 * dayMs, nowTimestamp - 60 * dayMs, nowTimestamp - 90 * dayMs];
+    const params = [
+      nowTimestamp - 30 * dayMs,
+      nowTimestamp - 60 * dayMs,
+      nowTimestamp - 90 * dayMs,
+    ];
 
     if (customerId) {
       whereClause += ' AND o.customer_id = ?';
@@ -212,12 +221,16 @@ export class PaymentRepository {
       )
       .bind(
         nowTimestamp - 30 * dayMs,
-        nowTimestamp - 60 * dayMs, nowTimestamp - 30 * dayMs,
-        nowTimestamp - 90 * dayMs, nowTimestamp - 60 * dayMs,
+        nowTimestamp - 60 * dayMs,
+        nowTimestamp - 30 * dayMs,
+        nowTimestamp - 90 * dayMs,
+        nowTimestamp - 60 * dayMs,
         nowTimestamp - 90 * dayMs,
         nowTimestamp - 30 * dayMs,
-        nowTimestamp - 60 * dayMs, nowTimestamp - 30 * dayMs,
-        nowTimestamp - 90 * dayMs, nowTimestamp - 60 * dayMs,
+        nowTimestamp - 60 * dayMs,
+        nowTimestamp - 30 * dayMs,
+        nowTimestamp - 90 * dayMs,
+        nowTimestamp - 60 * dayMs,
         nowTimestamp - 90 * dayMs,
         ...params.slice(3)
       )

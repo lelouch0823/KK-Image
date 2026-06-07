@@ -53,23 +53,39 @@ export function createAIRateLimitManager({ kv, now = () => Date.now() } = {}) {
         return {
           allowed: false,
           reason: 'rpm_exceeded',
-          remaining: { requests: 0, tokens: Math.max(0, Number(tokensPerDay || 0) - currentTokens) },
+          remaining: {
+            requests: 0,
+            tokens: Math.max(0, Number(tokensPerDay || 0) - currentTokens),
+          },
         };
       }
 
-      if (Number(tokensPerDay || 0) > 0 && currentTokens + Number(estimatedTokens || 0) > Number(tokensPerDay || 0)) {
+      if (
+        Number(tokensPerDay || 0) > 0 &&
+        currentTokens + Number(estimatedTokens || 0) > Number(tokensPerDay || 0)
+      ) {
         return {
           allowed: false,
           reason: 'tpd_exceeded',
-          remaining: { requests: Math.max(0, Number(requestsPerMinute || 0) - currentRequests), tokens: 0 },
+          remaining: {
+            requests: Math.max(0, Number(requestsPerMinute || 0) - currentRequests),
+            tokens: 0,
+          },
         };
       }
 
-      if (imageBearing && Number(imageRequestsPerMinute || 0) > 0 && currentImageRequests >= Number(imageRequestsPerMinute || 0)) {
+      if (
+        imageBearing &&
+        Number(imageRequestsPerMinute || 0) > 0 &&
+        currentImageRequests >= Number(imageRequestsPerMinute || 0)
+      ) {
         return {
           allowed: false,
           reason: 'image_rpm_exceeded',
-          remaining: { requests: Math.max(0, Number(requestsPerMinute || 0) - currentRequests), tokens: Math.max(0, Number(tokensPerDay || 0) - currentTokens) },
+          remaining: {
+            requests: Math.max(0, Number(requestsPerMinute || 0) - currentRequests),
+            tokens: Math.max(0, Number(tokensPerDay || 0) - currentTokens),
+          },
         };
       }
 
@@ -79,7 +95,10 @@ export function createAIRateLimitManager({ kv, now = () => Date.now() } = {}) {
         rpmWindow: minuteKey,
         tpd: currentTokens + Number(estimatedTokens || 0),
         tpdDay: dayKey,
-        imgRpm: imageBearing && Number(imageRequestsPerMinute || 0) > 0 ? currentImageRequests + 1 : currentImageRequests,
+        imgRpm:
+          imageBearing && Number(imageRequestsPerMinute || 0) > 0
+            ? currentImageRequests + 1
+            : currentImageRequests,
         imgWindow: minuteKey,
       };
       await kv.put(consolidatedKey, JSON.stringify(updated), { expirationTtl: RATE_LIMIT_KV_TTL });
@@ -89,7 +108,10 @@ export function createAIRateLimitManager({ kv, now = () => Date.now() } = {}) {
         reason: null,
         remaining: {
           requests: Math.max(0, Number(requestsPerMinute || 0) - currentRequests - 1),
-          tokens: Math.max(0, Number(tokensPerDay || 0) - currentTokens - Number(estimatedTokens || 0)),
+          tokens: Math.max(
+            0,
+            Number(tokensPerDay || 0) - currentTokens - Number(estimatedTokens || 0)
+          ),
         },
       };
     },

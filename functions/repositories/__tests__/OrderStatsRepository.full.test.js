@@ -188,9 +188,15 @@ describe('OrderStatsRepository full coverage', () => {
       .mockResolvedValueOnce({ results: [{ date: '2026-04-12', count: 3 }] });
 
     await expect(repo.getTodayHourlyTrend(100)).resolves.toEqual([{ hour: '08', count: 2 }]);
-    await expect(repo.getLast7DaysOrderTrend(200)).resolves.toEqual([{ date: '2026-04-12', count: 4 }]);
-    await expect(repo.getLast7DaysPendingTrend(300)).resolves.toEqual([{ date: '2026-04-12', count: 1 }]);
-    await expect(repo.getLast7DaysShareTrend(400)).resolves.toEqual([{ date: '2026-04-12', count: 3 }]);
+    await expect(repo.getLast7DaysOrderTrend(200)).resolves.toEqual([
+      { date: '2026-04-12', count: 4 },
+    ]);
+    await expect(repo.getLast7DaysPendingTrend(300)).resolves.toEqual([
+      { date: '2026-04-12', count: 1 },
+    ]);
+    await expect(repo.getLast7DaysShareTrend(400)).resolves.toEqual([
+      { date: '2026-04-12', count: 3 },
+    ]);
 
     expect(mocks.query).toHaveBeenNthCalledWith(
       1,

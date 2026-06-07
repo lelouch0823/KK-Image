@@ -4,9 +4,7 @@ import {
   releaseProcurementResourceLocks,
 } from '../order-procurement-resource-locks.js';
 
-function createCommandIdempotencyRepo({
-  insertResults = [],
-} = {}) {
+function createCommandIdempotencyRepo({ insertResults = [] } = {}) {
   const calls = {
     insertRecords: [],
     deletedCommandIds: [],

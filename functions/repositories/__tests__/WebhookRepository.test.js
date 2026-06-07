@@ -18,25 +18,32 @@ function createWebhookDbStub(seedRows = [], seedLogs = []) {
         if (normalizedSql.includes('FROM webhook_event_subscriptions')) {
           const [eventType] = statement.params;
           return {
-            results: rows.filter((row) => (
-              Number(row.enabled) === 1
-              && JSON.parse(row.events || '[]').includes(eventType)
-            )),
+            results: rows.filter(
+              (row) =>
+                Number(row.enabled) === 1 && JSON.parse(row.events || '[]').includes(eventType)
+            ),
           };
         }
 
-        if (normalizedSql.includes('FROM webhook_logs') && normalizedSql.includes('GROUP BY delivery_key')) {
+        if (
+          normalizedSql.includes('FROM webhook_logs') &&
+          normalizedSql.includes('GROUP BY delivery_key')
+        ) {
           const deliveryKeys = statement.params;
           return {
-            results: deliveryKeys.map((deliveryKey) => {
-              const matched = logs.filter((row) => row.delivery_key === deliveryKey);
-              if (matched.length === 0) return null;
-              return {
-                delivery_key: deliveryKey,
-                has_success: matched.some((row) => Number(row.success) === 1) ? 1 : 0,
-                latest_attempt_number: Math.max(...matched.map((row) => Number(row.attempt_number || 0))),
-              };
-            }).filter(Boolean),
+            results: deliveryKeys
+              .map((deliveryKey) => {
+                const matched = logs.filter((row) => row.delivery_key === deliveryKey);
+                if (matched.length === 0) return null;
+                return {
+                  delivery_key: deliveryKey,
+                  has_success: matched.some((row) => Number(row.success) === 1) ? 1 : 0,
+                  latest_attempt_number: Math.max(
+                    ...matched.map((row) => Number(row.attempt_number || 0))
+                  ),
+                };
+              })
+              .filter(Boolean),
           };
         }
 
@@ -50,25 +57,37 @@ function createWebhookDbStub(seedRows = [], seedLogs = []) {
 
         if (normalizedSql.includes('FROM webhook_logs') && normalizedSql.includes('success = 1')) {
           const [webhookId, deliveryKey] = statement.params;
-          return logs.find((row) => (
-            row.webhook_id === webhookId
-            && row.delivery_key === deliveryKey
-            && Number(row.success) === 1
-          )) || null;
+          return (
+            logs.find(
+              (row) =>
+                row.webhook_id === webhookId &&
+                row.delivery_key === deliveryKey &&
+                Number(row.success) === 1
+            ) || null
+          );
         }
 
-        if (normalizedSql.includes('FROM webhook_logs') && normalizedSql.includes('ORDER BY attempt_number DESC')) {
+        if (
+          normalizedSql.includes('FROM webhook_logs') &&
+          normalizedSql.includes('ORDER BY attempt_number DESC')
+        ) {
           const [webhookId, deliveryKey] = statement.params;
-          return logs
-            .filter((row) => row.webhook_id === webhookId && row.delivery_key === deliveryKey)
-            .sort((left, right) => Number(right.attempt_number || 0) - Number(left.attempt_number || 0))[0] || null;
+          return (
+            logs
+              .filter((row) => row.webhook_id === webhookId && row.delivery_key === deliveryKey)
+              .sort(
+                (left, right) =>
+                  Number(right.attempt_number || 0) - Number(left.attempt_number || 0)
+              )[0] || null
+          );
         }
 
         return null;
       }),
       run: vi.fn(async () => {
         if (normalizedSql.includes('INSERT INTO webhooks')) {
-          const [id, url, events, secret, headers, enabled, createdBy, createdAt] = statement.params;
+          const [id, url, events, secret, headers, enabled, createdBy, createdAt] =
+            statement.params;
           rows.push({
             id,
             url,
@@ -84,7 +103,8 @@ function createWebhookDbStub(seedRows = [], seedLogs = []) {
         }
 
         if (normalizedSql.includes('UPDATE webhooks') && normalizedSql.includes('SET')) {
-          const [url, events, secret, headers, enabled, updatedBy, updatedAt, id] = statement.params;
+          const [url, events, secret, headers, enabled, updatedBy, updatedAt, id] =
+            statement.params;
           const row = rows.find((item) => item.id === id);
           if (row) {
             row.url = url;
@@ -210,22 +230,25 @@ describe('WebhookRepository', () => {
   });
 
   it('batches delivery-state lookups by delivery key', async () => {
-    const db = createWebhookDbStub([], [
-      {
-        id: 'whlog-1',
-        webhook_id: 'wh-1',
-        delivery_key: 'evt-1:wh-1:v1',
-        success: 1,
-        attempt_number: 2,
-      },
-      {
-        id: 'whlog-2',
-        webhook_id: 'wh-2',
-        delivery_key: 'evt-1:wh-2:v1',
-        success: 0,
-        attempt_number: 3,
-      },
-    ]);
+    const db = createWebhookDbStub(
+      [],
+      [
+        {
+          id: 'whlog-1',
+          webhook_id: 'wh-1',
+          delivery_key: 'evt-1:wh-1:v1',
+          success: 1,
+          attempt_number: 2,
+        },
+        {
+          id: 'whlog-2',
+          webhook_id: 'wh-2',
+          delivery_key: 'evt-1:wh-2:v1',
+          success: 0,
+          attempt_number: 3,
+        },
+      ]
+    );
     const repo = new WebhookRepository(db);
 
     const states = await repo.getDeliveryStates(['evt-1:wh-1:v1', 'evt-1:wh-2:v1']);
@@ -258,14 +281,16 @@ describe('WebhookRepository', () => {
       actorId: 'admin-1',
     });
 
-    expect(created).toEqual(expect.objectContaining({
-      id: 'wh-created',
-      url: 'https://example.com/hook',
-      events: ['purchase_receipt_recorded'],
-      headers: { 'X-KK': '1' },
-      enabled: true,
-      createdBy: 'admin-1',
-    }));
+    expect(created).toEqual(
+      expect.objectContaining({
+        id: 'wh-created',
+        url: 'https://example.com/hook',
+        events: ['purchase_receipt_recorded'],
+        headers: { 'X-KK': '1' },
+        enabled: true,
+        createdBy: 'admin-1',
+      })
+    );
 
     const updated = await repo.update('wh-created', {
       url: 'https://example.com/hook-2',
@@ -276,15 +301,17 @@ describe('WebhookRepository', () => {
       actorId: 'admin-2',
     });
 
-    expect(updated).toEqual(expect.objectContaining({
-      id: 'wh-created',
-      url: 'https://example.com/hook-2',
-      events: ['order_procurement_progressed'],
-      headers: { 'X-KK': '2' },
-      enabled: false,
-      updatedBy: 'admin-2',
-      updatedAt: 1710000009999,
-    }));
+    expect(updated).toEqual(
+      expect.objectContaining({
+        id: 'wh-created',
+        url: 'https://example.com/hook-2',
+        events: ['order_procurement_progressed'],
+        headers: { 'X-KK': '2' },
+        enabled: false,
+        updatedBy: 'admin-2',
+        updatedAt: 1710000009999,
+      })
+    );
   });
 
   it('stores immutable webhook attempts with delivery_key and attempt_number', async () => {
@@ -310,36 +337,41 @@ describe('WebhookRepository', () => {
       success: true,
     });
 
-    expect(result).toEqual(expect.objectContaining({
-      id: 'whlog-1',
-      webhook_id: 'wh-1',
-      event_id: 'evt-1',
-      delivery_key: 'evt-1:wh-1:v1',
-      attempt_number: 2,
-      classification: 'delivered',
-      success: 1,
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'whlog-1',
+        webhook_id: 'wh-1',
+        event_id: 'evt-1',
+        delivery_key: 'evt-1:wh-1:v1',
+        attempt_number: 2,
+        classification: 'delivered',
+        success: 1,
+      })
+    );
   });
 
   it('detects that an endpoint has already succeeded for a delivery key', async () => {
-    const db = createWebhookDbStub([], [
-      {
-        id: 'whlog-1',
-        webhook_id: 'wh-1',
-        event: 'purchase_receipt_recorded',
-        payload: '{"ok":true}',
-        status_code: 200,
-        response: 'ok',
-        duration_ms: 120,
-        success: 1,
-        event_id: 'evt-1',
-        delivery_key: 'evt-1:wh-1:v1',
-        attempt_number: 1,
-        classification: 'delivered',
-        next_retry_at: null,
-        created_at: 1710000000000,
-      },
-    ]);
+    const db = createWebhookDbStub(
+      [],
+      [
+        {
+          id: 'whlog-1',
+          webhook_id: 'wh-1',
+          event: 'purchase_receipt_recorded',
+          payload: '{"ok":true}',
+          status_code: 200,
+          response: 'ok',
+          duration_ms: 120,
+          success: 1,
+          event_id: 'evt-1',
+          delivery_key: 'evt-1:wh-1:v1',
+          attempt_number: 1,
+          classification: 'delivered',
+          next_retry_at: null,
+          created_at: 1710000000000,
+        },
+      ]
+    );
     const repo = new WebhookRepository(db, {
       now: () => 1710000011111,
       idFactory: () => 'wh-created',
@@ -350,11 +382,13 @@ describe('WebhookRepository', () => {
     const latestAttempt = await repo.getLatestAttempt('wh-1', 'evt-1:wh-1:v1');
 
     expect(hasSuccess).toBe(true);
-    expect(latestAttempt).toEqual(expect.objectContaining({
-      id: 'whlog-1',
-      delivery_key: 'evt-1:wh-1:v1',
-      attempt_number: 1,
-      classification: 'delivered',
-    }));
+    expect(latestAttempt).toEqual(
+      expect.objectContaining({
+        id: 'whlog-1',
+        delivery_key: 'evt-1:wh-1:v1',
+        attempt_number: 1,
+        classification: 'delivered',
+      })
+    );
   });
 });

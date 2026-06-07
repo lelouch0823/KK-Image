@@ -31,11 +31,7 @@
 
     <!-- 错误状态 -->
     <div v-else-if="error" class="flex min-h-[70vh] items-center justify-center px-4">
-      <EmptyState
-        icon="search"
-        :title="t('spacePublic.cannotLoad')"
-        :description="error"
-      />
+      <EmptyState icon="search" :title="t('spacePublic.cannotLoad')" :description="error" />
     </div>
 
     <!-- 空间内容 -->
@@ -47,7 +43,9 @@
       <footer
         class="mt-auto border-t border-(--border-subtle) bg-(--bg-card) py-6 text-center text-xs text-(--text-muted)"
       >
-        <a href="/" class="transition-colors hover:text-(--text-secondary)">{{ t('gallery.poweredBy') }}</a>
+        <a href="/" class="transition-colors hover:text-(--text-secondary)">{{
+          t('gallery.poweredBy')
+        }}</a>
       </footer>
     </template>
   </div>
@@ -91,12 +89,10 @@ let passwordSubmitRequestId = 0;
 
 // 从路由获取 Token
 const token = computed(() => route.params.token);
-const isSpaceLoadActive = (requestId, requestToken) => (
-  requestId === spaceLoadRequestId && token.value === requestToken
-);
-const isPasswordSubmitActive = (requestId, requestToken) => (
-  requestId === passwordSubmitRequestId && token.value === requestToken
-);
+const isSpaceLoadActive = (requestId, requestToken) =>
+  requestId === spaceLoadRequestId && token.value === requestToken;
+const isPasswordSubmitActive = (requestId, requestToken) =>
+  requestId === passwordSubmitRequestId && token.value === requestToken;
 
 const spaceComponentKey = computed(() => {
   switch (space.value?.template) {

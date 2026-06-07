@@ -123,11 +123,12 @@ const maxCount = computed(() => {
   return Math.max(...stats.value.monthlyTrend.map((d) => d.count)) || 1;
 });
 
-const isEmptyStats = computed(() =>
-  stats.value.totalOrders === 0 &&
-  stats.value.completedOrders === 0 &&
-  stats.value.monthOrders === 0 &&
-  stats.value.monthlyTrend.length === 0
+const isEmptyStats = computed(
+  () =>
+    stats.value.totalOrders === 0 &&
+    stats.value.completedOrders === 0 &&
+    stats.value.monthOrders === 0 &&
+    stats.value.monthlyTrend.length === 0
 );
 
 const loadStats = async () => {

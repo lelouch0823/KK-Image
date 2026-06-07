@@ -13,6 +13,7 @@
 ### Task 1: Lock the Thin-Wrapper Constraint
 
 **Files:**
+
 - Modify: `functions/services/__tests__/service-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing test**
@@ -32,6 +33,7 @@ Expected: FAIL because `DemandService.prototype.projectOrderLineStatus` still ex
 ### Task 2: Remove the Thin Wrapper
 
 **Files:**
+
 - Modify: `functions/services/DemandService.js`
 
 - [ ] **Step 1: Remove the instance wrapper and unused import**

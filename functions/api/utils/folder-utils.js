@@ -15,7 +15,6 @@ export async function ensureFolder(env, name, parentId = null, isSystem = false)
 
   const normalizedParentId = parentId === 'root' || parentId === null ? null : parentId;
 
-
   // 1. 尝试直接插入 (利用 UNIQUE OR IGNORE)
   const id = generateId();
   const timestamp = now();
@@ -40,7 +39,9 @@ export async function ensureFolder(env, name, parentId = null, isSystem = false)
     params.push(normalizedParentId);
   }
 
-  const folder = await env.DB.prepare(query).bind(...params).first();
+  const folder = await env.DB.prepare(query)
+    .bind(...params)
+    .first();
   return folder?.id || id; // 理论上一定能查到
 }
 

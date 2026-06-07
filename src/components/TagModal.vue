@@ -1,5 +1,10 @@
 <template>
-  <Modal :title="t('fileManager.actions.tag')" size="md" :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
+  <Modal
+    :title="t('fileManager.actions.tag')"
+    size="md"
+    :model-value="modelValue"
+    @update:model-value="$emit('update:modelValue', $event)"
+  >
     <div class="flex flex-col gap-4">
       <!-- Tag Info -->
       <p class="text-sm text-(--text-secondary)">
@@ -89,13 +94,13 @@ const creating = ref(false);
 
 const handleCreateTag = async () => {
   if (!newTagName.value.trim() || creating.value) return;
-  
+
   creating.value = true;
   try {
     // Generate a random pastel color for new tags
     const hue = Math.floor(Math.random() * 360);
     const color = `hsl(${hue}, 70%, 50%)`;
-    
+
     await createTag(newTagName.value.trim(), color);
     newTagName.value = '';
     addToast({ message: t('fileManager.tagCreated'), type: 'success' });
@@ -108,11 +113,14 @@ const handleCreateTag = async () => {
 
 const handleAssignTag = async (tag) => {
   if (!props.items?.length) return;
-  
+
   try {
     // We bulk assign
-    await Promise.all(props.items.map(item => assignTag(item.id, tag.id)));
-    addToast({ message: t('fileManager.tagAssigned', { count: props.items.length }), type: 'success' });
+    await Promise.all(props.items.map((item) => assignTag(item.id, tag.id)));
+    addToast({
+      message: t('fileManager.tagAssigned', { count: props.items.length }),
+      type: 'success',
+    });
     emit('tagged');
     emit('update:modelValue', false);
   } catch (_err) {
@@ -120,9 +128,12 @@ const handleAssignTag = async (tag) => {
   }
 };
 
-watch(() => props.modelValue, (newVal) => {
-  if (newVal && tags.value.length === 0) {
-    fetchTags();
+watch(
+  () => props.modelValue,
+  (newVal) => {
+    if (newVal && tags.value.length === 0) {
+      fetchTags();
+    }
   }
-});
+);
 </script>

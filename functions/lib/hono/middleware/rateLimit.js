@@ -3,7 +3,9 @@ function getRateLimitKv(env = {}) {
 }
 
 function isLoopbackHostname(hostname = '') {
-  const normalized = String(hostname || '').trim().toLowerCase();
+  const normalized = String(hostname || '')
+    .trim()
+    .toLowerCase();
   return normalized === '127.0.0.1' || normalized === 'localhost';
 }
 
@@ -27,8 +29,9 @@ function shouldBypassGlobalRateLimit(c) {
   const bypassHeader = c.req.header('X-Test-Bypass-RateLimit');
   if (String(bypassHeader || '').trim() !== '1') return false;
 
-  // 生产环境禁止通过 header 旁路限流
-  if (c.env?.ENVIRONMENT === 'production') return false;
+  // 默认环境视为生产环境（安全默认值），禁止通过 header 旁路限流
+  const isProd = (c.env?.ENVIRONMENT || 'production') === 'production';
+  if (isProd) return false;
 
   try {
     const url = new URL(c.req.url);
@@ -45,7 +48,8 @@ function shouldBypassGlobalRateLimit(c) {
  */
 const memoryCounters = new Map();
 const SYNC_INTERVAL_MS = 10_000; // 每 10 秒同步一次到 KV
-const MEMORY_TTL_MS = 120_000;   // 内存条目 2 分钟后过期
+const MEMORY_TTL_MS = 120_000; // 内存条目 2 分钟后过期
+const MAX_MEMORY_ENTRIES = 5000; // 内存条目硬上限，防止无界增长
 
 function cleanupExpiredEntries(now) {
   for (const [key, entry] of memoryCounters) {
@@ -75,11 +79,30 @@ export async function rateLimitMiddleware(c, next) {
   // 1. 内存快速检查（无网络往返，<0.01ms）
   let entry = memoryCounters.get(key);
   if (!entry) {
+    // 超过硬上限时强制清理，拒绝新条目
+    if (memoryCounters.size >= MAX_MEMORY_ENTRIES) {
+      cleanupExpiredEntries(now);
+      // 清理后仍然超限，拒绝新条目（降级到 KV 查询）
+      if (memoryCounters.size >= MAX_MEMORY_ENTRIES) {
+        console.warn(`[RateLimit] Memory map full (${memoryCounters.size}), falling back to KV`);
+        if (kv) {
+          const kvCount = parseInt((await kv.get(key)) || '0', 10);
+          if (kvCount >= maxRequests) {
+            const retryAfter = Math.ceil((windowMs - (now % windowMs)) / 1000);
+            return c.json({ success: false, error: 'Rate limit exceeded', retryAfter }, 429, {
+              'Retry-After': String(retryAfter),
+            });
+          }
+          await kv.put(key, String(kvCount + 1), { expirationTtl: 120 });
+        }
+        return next();
+      }
+    }
     entry = { count: 0, lastSync: 0 };
     memoryCounters.set(key, entry);
   }
 
-  // 2. 惰性清理过期窗口（每次请求清理一个过期条目）
+  // 2. 惰性清理过期窗口
   if (memoryCounters.size > 1000) {
     cleanupExpiredEntries(now);
   }
@@ -182,9 +205,9 @@ export function rateLimit(options = {}) {
  * - 基于 IP + 用户名组合
  */
 export const LOGIN_LOCKOUT_CONFIG = {
-  maxAttempts: 5,           // 最大失败次数
+  maxAttempts: 5, // 最大失败次数
   lockoutDuration: 15 * 60, // 锁定时间（秒）
-  windowDuration: 15 * 60,  // 失败计数窗口（秒）
+  windowDuration: 15 * 60, // 失败计数窗口（秒）
 };
 
 /**
@@ -325,8 +348,8 @@ export async function clearLoginFailures(kv, ip, username, executionCtx) {
  */
 export function loginRateLimitMiddleware(c, next) {
   return rateLimit({
-    window: 60000,     // 1 分钟
-    max: 10,           // 最多 10 次
+    window: 60000, // 1 分钟
+    max: 10, // 最多 10 次
     keyPrefix: 'login_rate',
   })(c, next);
 }

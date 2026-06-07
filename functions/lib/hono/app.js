@@ -76,11 +76,17 @@ app.use(
   '*',
   cors({
     origin: (origin, c) => {
-      // 开发环境允许所有来源
-      if (!origin) return '*';
-      // 生产环境可配置白名单（逗号分隔）
-      const allowed = (c.env?.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
-      if (allowed.length === 0) return '*'; // 未配置则回退通配符
+      const allowed = (c.env?.CORS_ORIGINS || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      // 未配置白名单时记录警告（仅首次）
+      if (allowed.length === 0) {
+        console.warn('[CORS] CORS_ORIGINS 未配置，当前使用首个白名单域名作为默认值');
+      }
+      // 无 Origin 头时返回第一个白名单域名（而非 '*'）
+      if (!origin) return allowed.length > 0 ? allowed[0] : '*';
+      // 匹配白名单
       return allowed.includes(origin) ? origin : allowed[0];
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

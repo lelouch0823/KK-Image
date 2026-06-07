@@ -92,10 +92,12 @@ export async function invalidateCache(urls) {
   const cache = caches.default;
   const urlArray = Array.isArray(urls) ? urls : [urls];
 
-  await Promise.all(urlArray.flatMap((url) => ([
-    cache.delete(createCacheRequest(url)),
-    cache.delete(createCacheRequest(url, '*/*')),
-  ])));
+  await Promise.all(
+    urlArray.flatMap((url) => [
+      cache.delete(createCacheRequest(url)),
+      cache.delete(createCacheRequest(url, '*/*')),
+    ])
+  );
 }
 
 /**

@@ -13,6 +13,7 @@
 ### Task 1: Lock the Re-Export Removal Contract
 
 **Files:**
+
 - Create: `functions/storage/__tests__/index-provider-reexports.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the re-export lines still exist.
 ### Task 2: Delete the Unused Re-Exports
 
 **Files:**
+
 - Modify: `functions/storage/index.js`
 
 - [ ] **Step 1: Remove the re-export lines**

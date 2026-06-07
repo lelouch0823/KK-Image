@@ -190,7 +190,12 @@
               <div
                 class="size-8 shrink-0 overflow-hidden rounded-lg border border-(--border-subtle) bg-(--bg-muted)"
               >
-                <AppImage v-if="row.image" :src="getFileUrl(row.image)" :alt="row.name" class="size-full" />
+                <AppImage
+                  v-if="row.image"
+                  :src="getFileUrl(row.image)"
+                  :alt="row.name"
+                  class="size-full"
+                />
                 <div v-else class="flex size-full items-center justify-center text-(--text-muted)">
                   <AppIcon name="photo" class="size-4" />
                 </div>

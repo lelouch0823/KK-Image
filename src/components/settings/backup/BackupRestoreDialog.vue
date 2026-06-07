@@ -1,7 +1,11 @@
 <template>
   <Modal
     :model-value="modelValue"
-    :title="backup ? t('settings.backup.restoreDialogTitle', 'Backup Restore Workspace') : t('settings.backup.restoreDialogTitle', 'Backup Restore Workspace')"
+    :title="
+      backup
+        ? t('settings.backup.restoreDialogTitle', 'Backup Restore Workspace')
+        : t('settings.backup.restoreDialogTitle', 'Backup Restore Workspace')
+    "
     size="xl"
     @update:model-value="emit('update:modelValue', $event)"
   >
@@ -16,11 +20,19 @@
               {{ backup?.name || t('settings.backup.restoreNone', 'No backup selected') }}
             </h3>
             <p class="text-sm text-(--text-secondary)">
-              {{ result?.message || t('settings.backup.restoreHint', 'Validate first, dry-run second, and only then consider restore.') }}
+              {{
+                result?.message ||
+                t(
+                  'settings.backup.restoreHint',
+                  'Validate first, dry-run second, and only then consider restore.'
+                )
+              }}
             </p>
           </div>
           <StatusBadge :variant="result?.allowed === false ? 'danger' : 'info'" dot>
-            {{ result?.environment || t('settings.backup.restoreUnknownEnv', 'unknown environment') }}
+            {{
+              result?.environment || t('settings.backup.restoreUnknownEnv', 'unknown environment')
+            }}
           </StatusBadge>
         </div>
       </section>
@@ -55,11 +67,22 @@
               {{ t('settings.backup.restoreSummary', 'Latest Summary') }}
             </h4>
             <p class="mt-1 text-sm text-(--text-secondary)">
-              {{ t('settings.backup.restoreSummaryHint', 'This panel shows the latest validate, dry-run, or restore response for this backup.') }}
+              {{
+                t(
+                  'settings.backup.restoreSummaryHint',
+                  'This panel shows the latest validate, dry-run, or restore response for this backup.'
+                )
+              }}
             </p>
           </div>
           <StatusBadge
-            :variant="result?.mode === 'restore' ? 'warning' : result?.allowed === false ? 'danger' : 'success'"
+            :variant="
+              result?.mode === 'restore'
+                ? 'warning'
+                : result?.allowed === false
+                  ? 'danger'
+                  : 'success'
+            "
             outline
           >
             {{ result?.mode || t('settings.backup.restoreIdle', 'idle') }}
@@ -70,21 +93,35 @@
           v-if="result"
           class="mt-4 overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-page)"
         >
-          <pre class="max-h-72 overflow-auto p-4 text-xs text-(--text-main)">{{ formattedResult }}</pre>
+          <pre class="max-h-72 overflow-auto p-4 text-xs text-(--text-main)">{{
+            formattedResult
+          }}</pre>
         </div>
         <div
           v-else
           class="mt-4 rounded-2xl border border-dashed border-(--border-color) p-4 text-sm text-(--text-secondary)"
         >
-          {{ t('settings.backup.restoreEmpty', 'No restore summary yet. Use Validate or Dry Run to inspect this backup first.') }}
+          {{
+            t(
+              'settings.backup.restoreEmpty',
+              'No restore summary yet. Use Validate or Dry Run to inspect this backup first.'
+            )
+          }}
         </div>
       </section>
 
-      <section class="rounded-2xl border border-warning/25 bg-warning/8 p-4 text-sm text-(--text-secondary)">
+      <section
+        class="rounded-2xl border border-warning/25 bg-warning/8 p-4 text-sm text-(--text-secondary)"
+      >
         <div class="flex items-start gap-2">
           <AppIcon name="information-circle" class="mt-0.5 size-4 shrink-0 text-warning" />
           <p>
-            {{ t('settings.backup.restoreDangerNote', 'Restore currently runs in audit-summary-only mode outside production. Production restore requests are blocked.') }}
+            {{
+              t(
+                'settings.backup.restoreDangerNote',
+                'Restore currently runs in audit-summary-only mode outside production. Production restore requests are blocked.'
+              )
+            }}
           </p>
         </div>
       </section>
@@ -122,7 +159,12 @@
     v-model="confirmVisible"
     type="danger"
     :title="t('settings.backup.restoreConfirmTitle', 'Confirm Restore Request')"
-    :message="t('settings.backup.restoreConfirmMessage', 'This action is restricted and fully audited. Continue only if the selected backup is correct.')"
+    :message="
+      t(
+        'settings.backup.restoreConfirmMessage',
+        'This action is restricted and fully audited. Continue only if the selected backup is correct.'
+      )
+    "
     :confirm-text="t('common.restore', 'Restore')"
     :cancel-text="t('common.cancel', 'Cancel')"
     :loading="loading"

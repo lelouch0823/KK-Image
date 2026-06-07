@@ -97,8 +97,15 @@ describe('useSalespersons', () => {
     await expect(salespersons.resetToken('sales-1')).resolves.toEqual({ accessToken: 'new-token' });
     await expect(salespersons.resetToken('sales-2')).resolves.toBeNull();
 
-    expect(mocks.authFetchJson).toHaveBeenNthCalledWith(1, '/api/salespersons/sales-1/reset-token', { method: 'POST' });
-    expect(mocks.addToast).toHaveBeenNthCalledWith(1, { message: 'salesperson.linkReset', type: 'success' });
+    expect(mocks.authFetchJson).toHaveBeenNthCalledWith(
+      1,
+      '/api/salespersons/sales-1/reset-token',
+      { method: 'POST' }
+    );
+    expect(mocks.addToast).toHaveBeenNthCalledWith(1, {
+      message: 'salesperson.linkReset',
+      type: 'success',
+    });
     expect(mocks.addToast).toHaveBeenNthCalledWith(2, { message: 'bad request', type: 'error' });
   });
 
@@ -122,7 +129,10 @@ describe('useSalespersons', () => {
 
     await expect(salespersons.copyAccessLink('token-1')).resolves.toBe(true);
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/sales/token-1`);
-    expect(mocks.addToast).toHaveBeenCalledWith({ message: 'salesperson.linkCopied', type: 'success' });
+    expect(mocks.addToast).toHaveBeenCalledWith({
+      message: 'salesperson.linkCopied',
+      type: 'success',
+    });
   });
 
   it('falls back to execCommand copy when clipboard API is unavailable or insecure', async () => {
@@ -136,7 +146,10 @@ describe('useSalespersons', () => {
     expect(result).toBe(true);
     expect(execCommand).toHaveBeenCalledWith('copy');
     expect(document.querySelector('textarea')).toBeNull();
-    expect(mocks.addToast).toHaveBeenCalledWith({ message: 'salesperson.linkCopied', type: 'success' });
+    expect(mocks.addToast).toHaveBeenCalledWith({
+      message: 'salesperson.linkCopied',
+      type: 'success',
+    });
   });
 
   it('falls back after clipboard API failure and returns false when fallback also fails', async () => {

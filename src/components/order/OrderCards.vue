@@ -36,8 +36,12 @@
           <!-- 信息 -->
           <div class="min-w-0 flex-1">
             <div class="flex items-start justify-between gap-2">
-              <div class="flex min-w-0 flex-1 items-center gap-2 truncate pr-2 font-bold text-(--text-main)">
-                <span class="block truncate" :title="order.productName || '-'">{{ order.productName || '-' }}</span>
+              <div
+                class="flex min-w-0 flex-1 items-center gap-2 truncate pr-2 font-bold text-(--text-main)"
+              >
+                <span class="block truncate" :title="order.productName || '-'">{{
+                  order.productName || '-'
+                }}</span>
                 <span
                   v-if="order.hasNewFeedback"
                   class="bg-danger size-2.5 shrink-0 animate-pulse rounded-full border-2 border-(--bg-card)"
@@ -47,10 +51,17 @@
                 <slot name="status" :order="order"></slot>
               </div>
             </div>
-            <div class="mt-1.5 truncate text-xs font-medium text-(--text-secondary)" :title="`${order.salesperson?.name || ''} ${order.salesperson?.store ? '· ' + order.salesperson?.store : ''}`">
-              {{ order.salesperson?.name }} <template v-if="order.salesperson?.store">· {{ order.salesperson?.store }}</template>
+            <div
+              class="mt-1.5 truncate text-xs font-medium text-(--text-secondary)"
+              :title="`${order.salesperson?.name || ''} ${order.salesperson?.store ? '· ' + order.salesperson?.store : ''}`"
+            >
+              {{ order.salesperson?.name }}
+              <template v-if="order.salesperson?.store">· {{ order.salesperson?.store }}</template>
             </div>
-            <div class="mt-1 truncate font-mono text-xs text-(--text-secondary)/60 select-all" :title="order.orderNo">
+            <div
+              class="mt-1 truncate font-mono text-xs text-(--text-secondary)/60 select-all"
+              :title="order.orderNo"
+            >
               {{ order.orderNo }}
             </div>
           </div>
@@ -104,5 +115,4 @@ defineProps({
 defineEmits(['detail', 'edit']);
 
 const { t } = useI18n();
-
 </script>

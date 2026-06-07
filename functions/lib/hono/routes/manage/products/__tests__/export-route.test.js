@@ -4,7 +4,9 @@ import { Hono } from 'hono';
 const mocks = vi.hoisted(() => ({
   search: vi.fn(),
   findVariantsByProductId: vi.fn(),
+  findByProductIds: vi.fn(),
   getDimensionMap: vi.fn(),
+  getDimensionMapByProductIds: vi.fn(),
 }));
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
@@ -16,12 +18,14 @@ vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
 vi.mock('../../../../../../repositories/ProductVariantRepository.js', () => ({
   ProductVariantRepository: vi.fn(() => ({
     findByProductId: mocks.findVariantsByProductId,
+    findByProductIds: mocks.findByProductIds,
   })),
 }));
 
 vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
   ProductDimensionRepository: vi.fn(() => ({
     getDimensionMap: mocks.getDimensionMap,
+    getDimensionMapByProductIds: mocks.getDimensionMapByProductIds,
   })),
 }));
 
@@ -65,9 +69,10 @@ describe('manage product export route', () => {
       limit: 100,
       totalPages: 1,
     });
-    mocks.findVariantsByProductId.mockResolvedValue([
+    const variantData = [
       {
         id: 'var-1',
+        product_id: 'prod-1',
         sku: 'SKU-1',
         variant_code: 'V-1',
         options_values: { dim_color: 'Black' },
@@ -81,6 +86,7 @@ describe('manage product export route', () => {
       },
       {
         id: 'var-archived',
+        product_id: 'prod-1',
         sku: 'SKU-ARCHIVED',
         variant_code: 'V-ARCHIVED',
         options_values: { dim_color: 'Grey' },
@@ -94,6 +100,7 @@ describe('manage product export route', () => {
       },
       {
         id: 'var-oos',
+        product_id: 'prod-1',
         sku: 'SKU-OOS',
         variant_code: 'V-OOS',
         options_values: { dim_color: 'White' },
@@ -105,8 +112,13 @@ describe('manage product export route', () => {
         created_at: 1700000000000,
         updated_at: 1700003600000,
       },
-    ]);
+    ];
+    mocks.findVariantsByProductId.mockResolvedValue(variantData);
+    // 批量查询返回 Map
+    mocks.findByProductIds.mockResolvedValue(new Map([['prod-1', variantData]]));
     mocks.getDimensionMap.mockResolvedValue({ dim_color: '颜色' });
+    // 批量查询返回 Map
+    mocks.getDimensionMapByProductIds.mockResolvedValue(new Map([['prod-1', { dim_color: '颜色' }]]));
   });
 
   it('forwards export filters and returns variant-level csv columns', async () => {
@@ -119,19 +131,22 @@ describe('manage product export route', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toContain('text/csv');
-    expect(mocks.search).toHaveBeenCalledWith({
-      search: 'desk',
-      status: 'active',
-      brand: 'ACME',
-      category: 'Furniture',
-      hasStock: 'in_stock',
-      sortBy: 'stock',
-      sortOrder: 'asc',
-      page: 1,
-      limit: 100,
-    }, {
-      includeFilters: false,
-    });
+    expect(mocks.search).toHaveBeenCalledWith(
+      {
+        search: 'desk',
+        status: 'active',
+        brand: 'ACME',
+        category: 'Furniture',
+        hasStock: 'in_stock',
+        sortBy: 'stock',
+        sortOrder: 'asc',
+        page: 1,
+        limit: 100,
+      },
+      {
+        includeFilters: false,
+      }
+    );
 
     const csv = await res.text();
     expect(csv).toContain('Variant ID');

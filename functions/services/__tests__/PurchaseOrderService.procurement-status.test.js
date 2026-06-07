@@ -174,7 +174,11 @@ describe('PurchaseOrderService procurement status cascade', () => {
     const db = createDb();
     const service = new PurchaseOrderService(db);
     service.repo = {
-      findById: vi.fn(async () => ({ id: 'po-1', status: 'arrived', items: [{ variant_id: 'v-1', quantity: 5 }] })),
+      findById: vi.fn(async () => ({
+        id: 'po-1',
+        status: 'arrived',
+        items: [{ variant_id: 'v-1', quantity: 5 }],
+      })),
       updateStatus: vi.fn(async () => true),
       updateStatusIfCurrent: vi.fn(async () => true),
       getLinkedOrderIds: vi.fn(async () => []),
@@ -183,7 +187,9 @@ describe('PurchaseOrderService procurement status cascade', () => {
       applyBatch: vi.fn(async () => ({ productCount: 1, totalQty: 5 })),
     };
 
-    await expect(service.updateStatus('po-1', 'cancelled')).rejects.toThrow(/无法从 "arrived" 转换到 "cancelled"/);
+    await expect(service.updateStatus('po-1', 'cancelled')).rejects.toThrow(
+      /无法从 "arrived" 转换到 "cancelled"/
+    );
     expect(service.inventoryService.applyBatch).not.toHaveBeenCalled();
   });
 
@@ -247,8 +253,18 @@ describe('PurchaseOrderService procurement status cascade', () => {
 
     await expect(service.updateStatus('po-1', 'completed')).rejects.toThrow('allocation failed');
 
-    expect(service.repo.updateStatusIfCurrent).toHaveBeenNthCalledWith(1, 'po-1', 'arrived', 'completed');
-    expect(service.repo.updateStatusIfCurrent).toHaveBeenNthCalledWith(2, 'po-1', 'completed', 'arrived');
+    expect(service.repo.updateStatusIfCurrent).toHaveBeenNthCalledWith(
+      1,
+      'po-1',
+      'arrived',
+      'completed'
+    );
+    expect(service.repo.updateStatusIfCurrent).toHaveBeenNthCalledWith(
+      2,
+      'po-1',
+      'completed',
+      'arrived'
+    );
   });
 
   it('rolls purchase-order and linked orders back when procurement cascade chunking fails mid-flight', async () => {
@@ -274,8 +290,18 @@ describe('PurchaseOrderService procurement status cascade', () => {
 
     await expect(service.updateStatus('po-1', 'ordered')).rejects.toThrow('cascade chunk failed');
 
-    expect(service.repo.updateStatusIfCurrent).toHaveBeenNthCalledWith(1, 'po-1', 'draft', 'ordered');
-    expect(service.repo.updateStatusIfCurrent).toHaveBeenNthCalledWith(2, 'po-1', 'ordered', 'draft');
+    expect(service.repo.updateStatusIfCurrent).toHaveBeenNthCalledWith(
+      1,
+      'po-1',
+      'draft',
+      'ordered'
+    );
+    expect(service.repo.updateStatusIfCurrent).toHaveBeenNthCalledWith(
+      2,
+      'po-1',
+      'ordered',
+      'draft'
+    );
     expect(db.batch).toHaveBeenCalledTimes(3);
     expect(db.__batchCalls[2]).toHaveLength(100);
     expect(db.__sqls.join('\n')).toContain("COALESCE(procurement_status, 'none') = ?");

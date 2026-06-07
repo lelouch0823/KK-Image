@@ -23,10 +23,26 @@ vi.mock('chart.js', () => ({
 }));
 
 vi.mock('vue-chartjs', () => ({
-  Bar: { name: 'BarChart', props: ['data', 'options'], template: '<div data-testid="bar-chart">{{ JSON.stringify(data) }}</div>' },
-  Line: { name: 'LineChart', props: ['data', 'options'], template: '<div data-testid="line-chart">{{ JSON.stringify(data) }}</div>' },
-  Pie: { name: 'PieChart', props: ['data', 'options'], template: '<div data-testid="pie-chart">{{ JSON.stringify(data) }}</div>' },
-  Doughnut: { name: 'DoughnutChart', props: ['data', 'options'], template: '<div data-testid="doughnut-chart">{{ JSON.stringify(data) }}</div>' },
+  Bar: {
+    name: 'BarChart',
+    props: ['data', 'options'],
+    template: '<div data-testid="bar-chart">{{ JSON.stringify(data) }}</div>',
+  },
+  Line: {
+    name: 'LineChart',
+    props: ['data', 'options'],
+    template: '<div data-testid="line-chart">{{ JSON.stringify(data) }}</div>',
+  },
+  Pie: {
+    name: 'PieChart',
+    props: ['data', 'options'],
+    template: '<div data-testid="pie-chart">{{ JSON.stringify(data) }}</div>',
+  },
+  Doughnut: {
+    name: 'DoughnutChart',
+    props: ['data', 'options'],
+    template: '<div data-testid="doughnut-chart">{{ JSON.stringify(data) }}</div>',
+  },
 }));
 
 describe('AIChart behavior', () => {

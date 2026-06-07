@@ -140,11 +140,7 @@ export class PurchaseOrderShortageClosureService {
       }
       seenItemIds.add(purchaseOrderItemId);
 
-      const poItem = await requirePurchaseOrderItemForPo(
-        this.db,
-        poId,
-        purchaseOrderItemId
-      );
+      const poItem = await requirePurchaseOrderItemForPo(this.db, poId, purchaseOrderItemId);
       if (poItem.variant_id) affectedVariantIds.add(poItem.variant_id);
       const remainingReceivable = computePurchaseOrderRemainingReceivable(poItem);
       if (closeQty > remainingReceivable) {
@@ -168,10 +164,13 @@ export class PurchaseOrderShortageClosureService {
       );
 
       if (poItem.pre_order_id) {
-        const compatibilityOrderLine = await this.resolveCompatibilityOrderLine(poItem.pre_order_id, {
-          productId: poItem.product_id || null,
-          variantId: poItem.variant_id || null,
-        });
+        const compatibilityOrderLine = await this.resolveCompatibilityOrderLine(
+          poItem.pre_order_id,
+          {
+            productId: poItem.product_id || null,
+            variantId: poItem.variant_id || null,
+          }
+        );
         if (!compatibilityOrderLine) {
           throw new BadRequestError('关联订单缺少唯一可投影的订单行');
         }
@@ -235,16 +234,10 @@ export class PurchaseOrderShortageClosureService {
       if (nextStatus === previousStatus) continue;
 
       orderStatements.push(
-        buildCompatibilityOrderProcurementStatusStatement(
-          this.db,
-          orderId,
-          nextStatus,
-          timestamp,
-          {
-            excludeTerminalStatuses: true,
-            requireStatusChange: true,
-          }
-        )
+        buildCompatibilityOrderProcurementStatusStatement(this.db, orderId, nextStatus, timestamp, {
+          excludeTerminalStatuses: true,
+          requireStatusChange: true,
+        })
       );
       changedOrderStatuses.push({
         orderId,
@@ -261,9 +254,7 @@ export class PurchaseOrderShortageClosureService {
         orderLineDisplayStatus: transition.next.display_status,
         procurementStatus:
           orderNextProcurementStatuses.get(orderId) ||
-          projectCompatibilityProcurementStatus(
-            orderAggregateTransitions.get(orderId)?.next || {}
-        ),
+          projectCompatibilityProcurementStatus(orderAggregateTransitions.get(orderId)?.next || {}),
       });
     }
 
@@ -334,9 +325,7 @@ export class PurchaseOrderShortageClosureService {
       throw error;
     }
 
-    await this.variantDemandProjectionRefreshService.refreshByVariantIds([
-      ...affectedVariantIds,
-    ]);
+    await this.variantDemandProjectionRefreshService.refreshByVariantIds([...affectedVariantIds]);
 
     return response;
   }

@@ -3,7 +3,8 @@ export default {
   title: 'Procurement',
   subtitle: 'Manage overseas purchase orders, track freight/tariff allocation and order sync',
   permissionDenied: 'Permission Denied for Purchase Orders',
-  permissionDeniedDesc: 'Your account does not have purchase order read access. Please contact the admin to assign purchase_orders:read.',
+  permissionDeniedDesc:
+    'Your account does not have purchase order read access. Please contact the admin to assign purchase_orders:read.',
 
   status: {
     draft: 'Draft',
@@ -46,7 +47,8 @@ export default {
     publicStock: 'Public Stock',
     orderLocked: 'Items linked to customer orders must be changed via order management.',
     loadingTitle: 'Refreshing purchase-order details',
-    loadingBody: 'Showing the detail shell first while fuller purchase-order data loads in the background.',
+    loadingBody:
+      'Showing the detail shell first while fuller purchase-order data loads in the background.',
     loadFailedTitle: 'Failed to load purchase-order details',
     loadFailedHint: 'Unable to load purchase-order details. Close and try again.',
   },
@@ -139,21 +141,27 @@ export default {
     tableTitle: 'Order Ledger',
     tableHint: 'Main status and receipt progress are aggregated in one column for quick scanning.',
     liveHint: 'Click a row to view purchase order details',
-    costFallbackHint: 'When actual costs are not set, allocation falls back to estimated shipping and tariff.',
-    costModalHint: 'Sync currency, allocation method, estimated and actual costs. Recalculate landed cost per item if needed.',
-    costModalFooterHint: 'After saving, you can choose to recalculate allocation. Current freight/tariff will be refreshed.',
+    costFallbackHint:
+      'When actual costs are not set, allocation falls back to estimated shipping and tariff.',
+    costModalHint:
+      'Sync currency, allocation method, estimated and actual costs. Recalculate landed cost per item if needed.',
+    costModalFooterHint:
+      'After saving, you can choose to recalculate allocation. Current freight/tariff will be refreshed.',
     costSaving: 'Saving...',
     costAllocating: 'Processing...',
-    reversalModalHint: 'This will fully roll back the receipt record. Please confirm inventory and order projections allow reversal.',
+    reversalModalHint:
+      'This will fully roll back the receipt record. Please confirm inventory and order projections allow reversal.',
     reversalReasonPlaceholder: 'e.g., erroneous entry, abnormal intake, inventory correction',
     reversalSubmitting: 'Submitting...',
-    shortageModalHint: 'Transfer tail-end quantities that will not arrive into PO cancellation. Only closes procurement side, does not change customer order demand.',
+    shortageModalHint:
+      'Transfer tail-end quantities that will not arrive into PO cancellation. Only closes procurement side, does not change customer order demand.',
     shortageCloseQty: 'Close Qty',
     shortageQtyOverflow: 'Cannot exceed the remaining outstanding quantity.',
     shortageSelectedLines: 'Lines filled',
     shortageSelectedQty: 'Total close qty',
     shortageSubmitting: 'Submitting...',
-    receiptLedgerHint: 'Record each receipt and reversal to keep procurement, order, and inventory projections consistent.',
+    receiptLedgerHint:
+      'Record each receipt and reversal to keep procurement, order, and inventory projections consistent.',
     receiptLedgerEmptyTitle: 'No receipt records yet',
     receiptLedgerEmptyBody: 'This PO still has outstanding items. You can record a receipt now.',
     receiptLedgerLockedBody: 'No receivable items available in the current status.',

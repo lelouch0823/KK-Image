@@ -48,10 +48,19 @@ describe('capture-user-manual-screenshots-lib', () => {
 
   it('resolves doc fixtures from management apis', async () => {
     const responses = new Map([
-      ['http://localhost:8092/api/manage/salespersons?page=1&limit=50', { data: { salespersons: [{ id: 's1', orderCount: 2, accessToken: 'sales-token' }] } }],
-      ['http://localhost:8092/api/manage/shares?page=1&limit=20', { data: { items: [{ shareToken: 'gallery-token' }] } }],
+      [
+        'http://localhost:8092/api/manage/salespersons?page=1&limit=50',
+        { data: { salespersons: [{ id: 's1', orderCount: 2, accessToken: 'sales-token' }] } },
+      ],
+      [
+        'http://localhost:8092/api/manage/shares?page=1&limit=20',
+        { data: { items: [{ shareToken: 'gallery-token' }] } },
+      ],
       ['http://localhost:8092/api/gallery/gallery-token', { success: true, data: { files: [{}] } }],
-      ['http://localhost:8092/api/manage/spaces?page=1&limit=20', { data: [{ id: 'space-1', fileCount: 1, shareToken: 'space-token' }] }],
+      [
+        'http://localhost:8092/api/manage/spaces?page=1&limit=20',
+        { data: [{ id: 'space-1', fileCount: 1, shareToken: 'space-token' }] },
+      ],
     ]);
 
     const request = {
@@ -105,10 +114,7 @@ describe('capture-user-manual-screenshots-lib', () => {
     };
 
     const request = {
-      fetch: vi
-        .fn()
-        .mockResolvedValueOnce(authResponse)
-        .mockResolvedValueOnce(orderListResponse),
+      fetch: vi.fn().mockResolvedValueOnce(authResponse).mockResolvedValueOnce(orderListResponse),
     };
 
     const makeContext = () => ({

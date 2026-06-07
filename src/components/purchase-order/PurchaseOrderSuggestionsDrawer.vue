@@ -29,12 +29,11 @@
     </template>
 
     <div class="space-y-4 px-6 py-5">
-      <div v-if="!suggestionsLoading && suggestionSummaryCards.length > 0" class="grid gap-3 md:grid-cols-3">
-        <AppCard
-          v-for="card in suggestionSummaryCards"
-          :key="card.key"
-          class="p-4"
-        >
+      <div
+        v-if="!suggestionsLoading && suggestionSummaryCards.length > 0"
+        class="grid gap-3 md:grid-cols-3"
+      >
+        <AppCard v-for="card in suggestionSummaryCards" :key="card.key" class="p-4">
           <p class="text-xs font-semibold tracking-[0.16em] text-(--text-muted) uppercase">
             {{ card.label }}
           </p>
@@ -68,10 +67,16 @@
                 :disabled="getSuggestionOrderIds(s).length === 0"
               />
               <div class="min-w-0">
-                <div class="truncate text-sm font-medium text-(--text-main)" :title="s.product_name || '-'">
+                <div
+                  class="truncate text-sm font-medium text-(--text-main)"
+                  :title="s.product_name || '-'"
+                >
                   {{ s.product_name || '-' }}
                 </div>
-                <div class="truncate text-xs text-(--text-secondary)" :title="buildSuggestionMeta(s)">
+                <div
+                  class="truncate text-xs text-(--text-secondary)"
+                  :title="buildSuggestionMeta(s)"
+                >
                   {{ buildSuggestionMeta(s) }}
                   <template v-if="hasEntries(s.variant_options)">
                     · {{ buildSuggestionVariantLabel(s.variant_options) }}
@@ -84,16 +89,30 @@
                 {{ t('purchaseOrder.suggestions.shortage') }} {{ s.shortage }}
               </StatusBadge>
               <StatusBadge variant="default" class="text-xs">
-                {{ t('purchaseOrder.suggestions.stock') }} {{ s.available_quantity ?? s.stock_quantity }}
+                {{ t('purchaseOrder.suggestions.stock') }}
+                {{ s.available_quantity ?? s.stock_quantity }}
               </StatusBadge>
-              <span class="rounded-full bg-(--bg-muted) px-2.5 py-1 font-mono tabular-nums text-(--text-secondary)">
-                {{ t('purchaseOrder.suggestions.cost') }} ¥{{ (s.variant_cost_price || s.cost_price || 0).toFixed(2) }}
+              <span
+                class="rounded-full bg-(--bg-muted) px-2.5 py-1 font-mono tabular-nums text-(--text-secondary)"
+              >
+                {{ t('purchaseOrder.suggestions.cost') }} ¥{{
+                  (s.variant_cost_price || s.cost_price || 0).toFixed(2)
+                }}
               </span>
-              <span class="bg-primary/8 text-primary rounded-full px-2.5 py-1 font-mono tabular-nums">
-                {{ t('purchaseOrder.suggestions.suggested') }} ¥{{ (s.suggested_purchase_price || s.cost_price || 0).toFixed(2) }}
+              <span
+                class="bg-primary/8 text-primary rounded-full px-2.5 py-1 font-mono tabular-nums"
+              >
+                {{ t('purchaseOrder.suggestions.suggested') }} ¥{{
+                  (s.suggested_purchase_price || s.cost_price || 0).toFixed(2)
+                }}
               </span>
-              <span v-if="s.last_purchase_price != null" class="font-mono tabular-nums text-(--text-secondary)">
-                {{ t('purchaseOrder.suggestions.recent') }} ¥{{ Number(s.last_purchase_price).toFixed(2) }}
+              <span
+                v-if="s.last_purchase_price != null"
+                class="font-mono tabular-nums text-(--text-secondary)"
+              >
+                {{ t('purchaseOrder.suggestions.recent') }} ¥{{
+                  Number(s.last_purchase_price).toFixed(2)
+                }}
               </span>
               <span
                 v-if="s.price_delta != null"

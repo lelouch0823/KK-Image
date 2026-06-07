@@ -1,4 +1,3 @@
-
 import { Hono } from 'hono';
 import listRoutes from './list.js';
 import createRoutes from './create.js';

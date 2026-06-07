@@ -11,6 +11,7 @@ Build a unified, service-side-first operation audit system that fully covers hig
 This design covers the product-wide operation audit backbone.
 
 In scope:
+
 - Admin-side high-risk write operations
 - Sales-side critical write operations and security events
 - Permission denial audit events
@@ -18,6 +19,7 @@ In scope:
 - Unified audit event storage, query API, and admin audit center UI
 
 Out of scope for phase 1:
+
 - Full low-risk read/browse telemetry
 - Advanced anomaly detection
 - Long-term cold storage pipeline
@@ -26,26 +28,27 @@ Out of scope for phase 1:
 ## 2. Design Principles
 
 1. Service-side source of truth
-Audit events must be produced by backend code, not frontend behavior.
+   Audit events must be produced by backend code, not frontend behavior.
 
 2. Unified event model
-Admin, sales, and system actors must land in one shared event schema.
+   Admin, sales, and system actors must land in one shared event schema.
 
 3. Structured first, JSON second
-Frequently queried dimensions must be explicit columns. JSON is only for detailed context.
+   Frequently queried dimensions must be explicit columns. JSON is only for detailed context.
 
 4. Non-blocking writes
-Audit persistence must not block the primary business flow. Failures should be logged for repairability.
+   Audit persistence must not block the primary business flow. Failures should be logged for repairability.
 
 5. Default-safe data handling
-Sensitive fields must be masked or excluded by default.
+   Sensitive fields must be masked or excluded by default.
 
 6. Searchability over raw log dumping
-The UI must optimize for investigation and accountability, not raw payload browsing.
+   The UI must optimize for investigation and accountability, not raw payload browsing.
 
 ## 3. SOTA Target
 
 The module is considered SOTA only when it can answer these questions reliably:
+
 - Who performed the action?
 - From which client or execution source?
 - Against which entity?
@@ -59,6 +62,7 @@ The module is considered SOTA only when it can answer these questions reliably:
 The long-term direction is a single unified `audit_logs` table, extended to carry normalized event fields.
 
 Recommended first-class columns:
+
 - `id`
 - `actor_type`
 - `actor_id`
@@ -82,6 +86,7 @@ Recommended first-class columns:
 - `created_at`
 
 Notes:
+
 - Existing `user_id` should be replaced or deprecated in favor of the normalized actor fields.
 - `payload` should be replaced by `changes_json` and `metadata_json` to avoid ambiguous semantics.
 
@@ -90,6 +95,7 @@ Notes:
 The more SOTA long-term architecture is a unified operation audit ledger with optional domain-deep detail stores.
 
 Recommended path:
+
 1. Keep `variant_audit_logs` temporarily as product-domain fine-grained detail.
 2. Add unified operation audit events for product actions into `audit_logs`.
 3. Expose product-domain detail from the unified audit event when needed.
@@ -102,6 +108,7 @@ This is more SOTA than keeping separate, unrelated audit systems because it pres
 ### P0 Mandatory Audit Coverage
 
 Must be present before the module is considered complete for admin-side operations:
+
 - Auth success/failure/logout
 - Permission denied events
 - User and permission changes
@@ -116,6 +123,7 @@ Must be present before the module is considered complete for admin-side operatio
 ### P1 Required Follow-up Coverage
 
 Should be added once the backbone is stable:
+
 - Order comments and note mutations
 - Bind/unbind actions
 - Purchase-order critical mutations
@@ -126,6 +134,7 @@ Should be added once the backbone is stable:
 ### P2 Not in Primary Operation Audit
 
 Should stay outside the primary audit system unless requirements change:
+
 - Page visits
 - Pagination
 - Simple filter changes
@@ -136,10 +145,12 @@ This risk-tiered scope is more SOTA than logging every request because it keeps 
 ## 7. Event Result and Severity
 
 Every audit event must include:
+
 - `result`: `success` | `denied` | `failed`
 - `severity`: `normal` | `high` | `critical`
 
 Examples:
+
 - Order force status change: `success` + `high`
 - Permission change: `success` + `critical`
 - Forbidden request to admin route: `denied` + `high`
@@ -152,22 +163,22 @@ The more SOTA backend design is a shared audit pipeline, not scattered route-loc
 ### 8.1 Core Components
 
 1. Audit event builder
-Normalizes actor, request, target, result, and source context.
+   Normalizes actor, request, target, result, and source context.
 
 2. Audit sanitizer
-Removes or masks sensitive values before persistence.
+   Removes or masks sensitive values before persistence.
 
 3. Audit recorder
-Persists one or many events asynchronously and consistently.
+   Persists one or many events asynchronously and consistently.
 
 4. Audit helpers for write routes
-Allow business routes to describe the semantic action without hand-assembling raw audit SQL.
+   Allow business routes to describe the semantic action without hand-assembling raw audit SQL.
 
 5. Authz denial recorder
-Captures denied access at the permission boundary.
+   Captures denied access at the permission boundary.
 
 6. Failure recorder
-Captures failed write attempts through explicit wrapping or shared error handling.
+   Captures failed write attempts through explicit wrapping or shared error handling.
 
 ### 8.2 Production Rules
 
@@ -183,6 +194,7 @@ The more SOTA frontend is an investigation console, not a raw payload table.
 ### 9.1 Audit Center Requirements
 
 List view must support filters for:
+
 - Time range
 - Actor type
 - Actor identity
@@ -197,6 +209,7 @@ List view must support filters for:
 ### 9.2 Presentation
 
 Each row should present:
+
 - Timestamp
 - Actor
 - Source
@@ -206,6 +219,7 @@ Each row should present:
 - Severity
 
 Detail panel should show:
+
 - Target entity
 - Structured before/after diff
 - Metadata
@@ -223,6 +237,7 @@ Detail panel should show:
 Audit query patterns should drive schema and indexes.
 
 Primary query patterns:
+
 - Latest events by time
 - Events by domain over time
 - Events by actor over time
@@ -230,6 +245,7 @@ Primary query patterns:
 - Events by result/severity over time
 
 Recommended index direction:
+
 - Time index on `created_at DESC`
 - Composite indexes for `(domain, created_at DESC)`, `(actor_id, created_at DESC)`, `(target_type, target_id, created_at DESC)`, `(result, severity, created_at DESC)`
 
@@ -240,6 +256,7 @@ Page size must be bounded server-side.
 The more SOTA design is default-redaction.
 
 Sensitive fields that must never be stored raw:
+
 - Passwords
 - Tokens
 - Cookies
@@ -248,6 +265,7 @@ Sensitive fields that must never be stored raw:
 - Full personal identifiers when not needed for accountability
 
 Recommended policy:
+
 - Explicit allowlist for readable fields
 - Masking helper for partial visibility fields such as phone or email
 - Internal error code instead of raw stack in user-facing audit detail
@@ -255,6 +273,7 @@ Recommended policy:
 ## 12. Permissions
 
 Long-term SOTA target:
+
 - `audit:read`
 - `audit:export`
 - `audit:admin`
@@ -266,6 +285,7 @@ Phase 1 may temporarily keep `admin:full` as the gate, but the design should pre
 This module is not complete without explicit audit verification.
 
 Required test layers:
+
 - Unit tests for event building, sanitization, and summary generation
 - Route tests for success/denied/failed event recording
 - UI tests for filters, details, and malformed legacy payload tolerance
@@ -276,22 +296,27 @@ The coverage audit is a key SOTA requirement. It prevents future write routes fr
 ## 14. Migration Strategy
 
 ### Phase A: Backbone
+
 - Extend schema
 - Introduce unified audit event APIs
 - Add denial/failure recording hooks
 
 ### Phase B: Admin P0 coverage
+
 - Migrate all admin high-risk write routes
 - Replace route-local ad hoc logging with shared helpers
 
 ### Phase C: Sales critical coverage
+
 - Add sales-side write and auth/security events
 
 ### Phase D: UI completion
+
 - Replace legacy audit view with structured investigation UI
 - Add advanced filters and detail panel
 
 ### Phase E: Hardening
+
 - Independent audit permissions
 - Export
 - Retention and archival policy
@@ -299,6 +324,7 @@ The coverage audit is a key SOTA requirement. It prevents future write routes fr
 ## 15. Acceptance Criteria
 
 The module is complete only when:
+
 - All admin P0 write routes emit unified audit events
 - Sales critical write and security events emit unified audit events
 - Denied and failed writes are visible in audit queries
@@ -309,6 +335,7 @@ The module is complete only when:
 ## 16. Explicit Current-State Gaps
 
 The current implementation falls short because:
+
 - Unified operation audit is only partially written by a few routes
 - Product variant auditing is stored separately and not visible in the main audit center
 - The current UI only supports limited filtering
@@ -319,6 +346,7 @@ The current implementation falls short because:
 ## 17. Recommended Implementation Order
 
 The more SOTA order is:
+
 1. Define and migrate the unified schema
 2. Build the shared backend audit pipeline
 3. Add P0 admin route coverage

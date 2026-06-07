@@ -316,7 +316,8 @@ export function createAdminHeadlessAuditRunner(options = {}) {
   const baseUrl = options.baseUrl || env.AUDIT_BASE_URL || 'http://127.0.0.1:4173';
   const cdpPort = Number(options.cdpPort || env.CDP_PORT || 9222);
   const auditScenario = options.auditScenario || env.AUDIT_SCENARIO || 'deny';
-  const outputDir = options.outputDir || pathModule.resolve('artifacts', 'admin-audit', auditScenario);
+  const outputDir =
+    options.outputDir || pathModule.resolve('artifacts', 'admin-audit', auditScenario);
   const userDataDir = options.userDataDir || pathModule.resolve('.tmp', 'chrome-headless-audit');
   const skipPreview = options.skipPreview ?? env.SKIP_PREVIEW === '1';
   const routeList = options.routes || adminRoutes;
@@ -329,7 +330,14 @@ export function createAdminHeadlessAuditRunner(options = {}) {
       ? null
       : spawnImpl(
           process.execPath,
-          [pathModule.resolve('node_modules', 'vite', 'bin', 'vite.js'), 'preview', '--host', '127.0.0.1', '--port', '4173'],
+          [
+            pathModule.resolve('node_modules', 'vite', 'bin', 'vite.js'),
+            'preview',
+            '--host',
+            '127.0.0.1',
+            '--port',
+            '4173',
+          ],
           { stdio: 'ignore' }
         );
 
@@ -377,7 +385,9 @@ export function createAdminHeadlessAuditRunner(options = {}) {
         fetchImpl,
         sleepImpl: (ms) => sleep(ms, setTimeoutImpl),
       });
-      const pageTarget = (targets || []).find((target) => target.type === 'page' && target.webSocketDebuggerUrl);
+      const pageTarget = (targets || []).find(
+        (target) => target.type === 'page' && target.webSocketDebuggerUrl
+      );
       const wsUrl = pageTarget?.webSocketDebuggerUrl;
       if (!wsUrl) throw new Error('Cannot find webSocketDebuggerUrl');
 
@@ -451,7 +461,11 @@ export function createAdminHeadlessAuditRunner(options = {}) {
               return;
             }
 
-            if (requestUrl.includes('/api/manage/') || requestUrl.includes('/api/v1/files') || requestUrl.includes('/api/v1/permissions')) {
+            if (
+              requestUrl.includes('/api/manage/') ||
+              requestUrl.includes('/api/v1/files') ||
+              requestUrl.includes('/api/v1/permissions')
+            ) {
               if (auditScenario === 'allow') {
                 const payload = allowPayload(requestUrl, request.method);
                 if (payload) {
@@ -517,7 +531,10 @@ export function createAdminHeadlessAuditRunner(options = {}) {
           returnByValue: true,
         });
 
-        const screenshot = await send('Page.captureScreenshot', { format: 'png', fromSurface: true });
+        const screenshot = await send('Page.captureScreenshot', {
+          format: 'png',
+          fromSurface: true,
+        });
         const fileSafe = route.replaceAll('/', '_').replace(/^_+/, '');
         const shotPath = pathModule.join(outputDir, `${fileSafe || 'root'}.png`);
         await fsModule.writeFile(shotPath, Buffer.from(screenshot.data, 'base64'));

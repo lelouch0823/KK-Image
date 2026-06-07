@@ -43,18 +43,31 @@ const mockCommandIdempotency = {
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
-    findById(...args) { return mockProductRepo.findById(...args); }
-    updateWithMeta(...args) { return mockProductRepo.updateWithMeta(...args); }
+    findById(...args) {
+      return mockProductRepo.findById(...args);
+    }
+    updateWithMeta(...args) {
+      return mockProductRepo.updateWithMeta(...args);
+    }
   },
 }));
 
 vi.mock('../../../../../../repositories/ProductVariantRepository.js', () => ({
   ProductVariantRepository: class {
-    syncVariants(...args) { return mockVariantRepo.syncVariants(...args); }
-    findByProductId(...args) { return mockVariantRepo.findByProductId(...args); }
+    syncVariants(...args) {
+      return mockVariantRepo.syncVariants(...args);
+    }
+    findByProductId(...args) {
+      return mockVariantRepo.findByProductId(...args);
+    }
     buildAuditEvents(..._args) {
       return [
-        { variant_id: 'v1', product_id: 'p1', action: 'variant_updated', changes: { before: { price: 10 }, after: { price: 12 } } },
+        {
+          variant_id: 'v1',
+          product_id: 'p1',
+          action: 'variant_updated',
+          changes: { before: { price: 10 }, after: { price: 12 } },
+        },
       ];
     }
   },
@@ -62,27 +75,49 @@ vi.mock('../../../../../../repositories/ProductVariantRepository.js', () => ({
 
 vi.mock('../../../../../../repositories/VariantAuditRepository.js', () => ({
   VariantAuditRepository: class {
-    createBatch(...args) { return mockAuditRepo.createBatch(...args); }
+    createBatch(...args) {
+      return mockAuditRepo.createBatch(...args);
+    }
   },
 }));
 
 vi.mock('../../../../../../repositories/VariantImageRepository.js', () => ({
   VariantImageRepository: class {
-    syncImages(...args) { return mockVariantImageRepo.syncImages(...args); }
-    listByVariant(...args) { return mockVariantImageRepo.listByVariant(...args); }
+    syncImages(...args) {
+      return mockVariantImageRepo.syncImages(...args);
+    }
+    listByVariant(...args) {
+      return mockVariantImageRepo.listByVariant(...args);
+    }
   },
 }));
 
 vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
   ProductDimensionRepository: class {
-    listByProduct(...args) { return mockDimensionRepo.listByProduct(...args); }
-    createDimension(...args) { return mockDimensionRepo.createDimension(...args); }
-    updateDimension(...args) { return mockDimensionRepo.updateDimension(...args); }
-    addValue(...args) { return mockDimensionRepo.addValue(...args); }
-    updateValueMeta(...args) { return mockDimensionRepo.updateValueMeta(...args); }
-    restoreSnapshot(...args) { return mockDimensionRepo.restoreSnapshot(...args); }
-    archiveDimension(...args) { return mockDimensionRepo.archiveDimension(...args); }
-    archiveValue(...args) { return mockDimensionRepo.archiveValue(...args); }
+    listByProduct(...args) {
+      return mockDimensionRepo.listByProduct(...args);
+    }
+    createDimension(...args) {
+      return mockDimensionRepo.createDimension(...args);
+    }
+    updateDimension(...args) {
+      return mockDimensionRepo.updateDimension(...args);
+    }
+    addValue(...args) {
+      return mockDimensionRepo.addValue(...args);
+    }
+    updateValueMeta(...args) {
+      return mockDimensionRepo.updateValueMeta(...args);
+    }
+    restoreSnapshot(...args) {
+      return mockDimensionRepo.restoreSnapshot(...args);
+    }
+    archiveDimension(...args) {
+      return mockDimensionRepo.archiveDimension(...args);
+    }
+    archiveValue(...args) {
+      return mockDimensionRepo.archiveValue(...args);
+    }
   },
 }));
 
@@ -99,7 +134,7 @@ vi.mock('../../../../../../repositories/CommandIdempotencyRepository.js', () => 
   })),
 }));
 
-vi.mock("../../../../middleware/cache.js", () => ({
+vi.mock('../../../../middleware/cache.js', () => ({
   withCache: () => async (_c, next) => next(),
   invalidateCache: vi.fn(async () => {}),
   getProductCacheUrls: vi.fn(() => []),
@@ -124,7 +159,12 @@ function createApp() {
     return c.json({ success: false, error: err.message }, err.statusCode || 500);
   });
   app.use('/api/manage/products/*', async (c, next) => {
-    c.set('user', { id: 'u-manager', type: 'user', role: 'manager', permissions: ['products:manage'] });
+    c.set('user', {
+      id: 'u-manager',
+      type: 'user',
+      role: 'manager',
+      permissions: ['products:manage'],
+    });
     await next();
   });
   app.route('/api/manage/products', productByIdApp);
@@ -183,7 +223,17 @@ describe('product variant audit routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: 'Tee',
-          variants: [{ id: 'v1', sku: 'SKU-1', price: 12, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active' }],
+          variants: [
+            {
+              id: 'v1',
+              sku: 'SKU-1',
+              price: 12,
+              cost_price: 6,
+              stock_quantity: 5,
+              alert_threshold: 1,
+              status: 'active',
+            },
+          ],
         }),
       },
       { DB: {}, executionCtx: { waitUntil: vi.fn() } },
@@ -207,7 +257,9 @@ describe('product variant audit routes', () => {
 
   it('DELETE /:id writes archived audit logs for existing variants', async () => {
     mockProductRepo.findById.mockResolvedValue({ id: 'p1' });
-    mockVariantRepo.findByProductId.mockResolvedValue([{ id: 'v1', product_id: 'p1', status: 'active' }]);
+    mockVariantRepo.findByProductId.mockResolvedValue([
+      { id: 'v1', product_id: 'p1', status: 'active' },
+    ]);
 
     const app = createApp();
     const res = await app.request(
@@ -234,7 +286,9 @@ describe('product variant audit routes', () => {
 
   it('DELETE /:id returns 400 when variants exist but archive update affects zero rows', async () => {
     mockProductRepo.findById.mockResolvedValue({ id: 'p1' });
-    mockVariantRepo.findByProductId.mockResolvedValue([{ id: 'v1', product_id: 'p1', status: 'active' }]);
+    mockVariantRepo.findByProductId.mockResolvedValue([
+      { id: 'v1', product_id: 'p1', status: 'active' },
+    ]);
 
     const app = createApp();
     const res = await app.request(
@@ -259,7 +313,9 @@ describe('product variant audit routes', () => {
     mockProductRepo.updateWithMeta.mockResolvedValue({ success: true, changes: 1 });
     mockVariantRepo.syncVariants.mockResolvedValue();
     mockVariantRepo.findByProductId
-      .mockResolvedValueOnce([{ id: 'v-legacy', product_id: 'p1', sku: 'SKU-OLD', options_values: { Color: 'Blue' } }])
+      .mockResolvedValueOnce([
+        { id: 'v-legacy', product_id: 'p1', sku: 'SKU-OLD', options_values: { Color: 'Blue' } },
+      ])
       .mockResolvedValueOnce([
         { id: 'v-legacy', product_id: 'p1', sku: 'SKU-OLD', options_values: { Color: 'Blue' } },
         { id: 'v-new', product_id: 'p1', sku: 'SKU-AUTO', options_values: { Color: 'Red' } },
@@ -275,8 +331,26 @@ describe('product variant audit routes', () => {
         body: JSON.stringify({
           name: 'Tee',
           variants: [
-            { id: 'v-legacy', sku: 'SKU-OLD', price: 10, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active', options_values: { Color: 'Blue' } },
-            { sku: 'SKU-NEW', price: 12, cost_price: 7, stock_quantity: 4, alert_threshold: 1, status: 'active', options_values: { Color: 'Red' }, images: [{ image_id: 'img-new', is_primary: 1 }] },
+            {
+              id: 'v-legacy',
+              sku: 'SKU-OLD',
+              price: 10,
+              cost_price: 6,
+              stock_quantity: 5,
+              alert_threshold: 1,
+              status: 'active',
+              options_values: { Color: 'Blue' },
+            },
+            {
+              sku: 'SKU-NEW',
+              price: 12,
+              cost_price: 7,
+              stock_quantity: 4,
+              alert_threshold: 1,
+              status: 'active',
+              options_values: { Color: 'Red' },
+              images: [{ image_id: 'img-new', is_primary: 1 }],
+            },
           ],
         }),
       },
@@ -285,11 +359,9 @@ describe('product variant audit routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mockVariantImageRepo.syncImages).toHaveBeenCalledWith(
-      'p1',
-      'v-new',
-      [{ image_id: 'img-new', is_primary: 1 }]
-    );
+    expect(mockVariantImageRepo.syncImages).toHaveBeenCalledWith('p1', 'v-new', [
+      { image_id: 'img-new', is_primary: 1 },
+    ]);
     expect(mockFolderUtils.ensureVariantFolder).toHaveBeenCalledWith(
       expect.anything(),
       'p1',
@@ -311,7 +383,16 @@ describe('product variant audit routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           currency: 'INVALID',
-          variants: [{ id: 'v1', price: 12, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active' }],
+          variants: [
+            {
+              id: 'v1',
+              price: 12,
+              cost_price: 6,
+              stock_quantity: 5,
+              alert_threshold: 1,
+              status: 'active',
+            },
+          ],
         }),
       },
       { DB: {}, executionCtx: { waitUntil: vi.fn() } },
@@ -325,7 +406,9 @@ describe('product variant audit routes', () => {
   it('PATCH /:id maps duplicate variant signature error to 400', async () => {
     mockProductRepo.updateWithMeta.mockResolvedValue({ success: true, changes: 1 });
     mockVariantRepo.findByProductId.mockResolvedValue([]);
-    mockVariantRepo.syncVariants.mockRejectedValueOnce(new Error('duplicate variant signature in payload'));
+    mockVariantRepo.syncVariants.mockRejectedValueOnce(
+      new Error('duplicate variant signature in payload')
+    );
 
     const app = createApp();
     const res = await app.request(
@@ -335,7 +418,17 @@ describe('product variant audit routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: 'Tee',
-          variants: [{ sku: 'SKU-RED', price: 12, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active', options_values: { color: 'red' } }],
+          variants: [
+            {
+              sku: 'SKU-RED',
+              price: 12,
+              cost_price: 6,
+              stock_quantity: 5,
+              alert_threshold: 1,
+              status: 'active',
+              options_values: { color: 'red' },
+            },
+          ],
         }),
       },
       { DB: {}, executionCtx: { waitUntil: vi.fn() } },
@@ -366,7 +459,17 @@ describe('product variant audit routes', () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          variants: [{ id: 'v1', sku: 'SKU-1', price: 12, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active' }],
+          variants: [
+            {
+              id: 'v1',
+              sku: 'SKU-1',
+              price: 12,
+              cost_price: 6,
+              stock_quantity: 5,
+              alert_threshold: 1,
+              status: 'active',
+            },
+          ],
         }),
       },
       { DB: {}, executionCtx: { waitUntil: vi.fn() } },
@@ -492,11 +595,18 @@ describe('product variant audit routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: 'Tee',
-          dimensions: [
-            { id: 'dim-color', name: 'Color', values: ['Red'] },
-          ],
+          dimensions: [{ id: 'dim-color', name: 'Color', values: ['Red'] }],
           variants: [
-            { id: 'v1', sku: 'SKU-1', price: 10, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active', options_values: { 'dim-color': 'Red' } },
+            {
+              id: 'v1',
+              sku: 'SKU-1',
+              price: 10,
+              cost_price: 6,
+              stock_quantity: 5,
+              alert_threshold: 1,
+              status: 'active',
+              options_values: { 'dim-color': 'Red' },
+            },
           ],
         }),
       },
@@ -537,7 +647,17 @@ describe('product variant audit routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dimensions: [{ id: 'dim-color', name: 'Color', values: [{ value: 'Red' }] }],
-          variants: [{ id: 'v1', sku: 'SKU-1', price: 10, cost_price: 6, stock_quantity: 5, alert_threshold: 1, status: 'active' }],
+          variants: [
+            {
+              id: 'v1',
+              sku: 'SKU-1',
+              price: 10,
+              cost_price: 6,
+              stock_quantity: 5,
+              alert_threshold: 1,
+              status: 'active',
+            },
+          ],
         }),
       },
       { DB: {}, executionCtx: { waitUntil: vi.fn() } },

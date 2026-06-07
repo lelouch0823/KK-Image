@@ -139,7 +139,9 @@ describe('useOrders extra coverage', () => {
       .mockResolvedValueOnce({
         json: async () => ({ success: false, message: 'backend says no' }),
       })
-      .mockRejectedValueOnce(Object.assign(new Error('boom'), { status: 0, data: { error: 'offline' } }));
+      .mockRejectedValueOnce(
+        Object.assign(new Error('boom'), { status: 0, data: { error: 'offline' } })
+      );
 
     const { loadOrders, error, errorCode } = useOrders();
 
@@ -169,15 +171,16 @@ describe('useOrders extra coverage', () => {
 
   it('ignores stale rejected manage requests after a newer request wins', async () => {
     let resolveSecond;
-    const staleFailure = Object.assign(new Error('stale'), { status: 500, data: { error: 'stale' } });
-    mocks.authFetch
-      .mockRejectedValueOnce(staleFailure)
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveSecond = resolve;
-          })
-      );
+    const staleFailure = Object.assign(new Error('stale'), {
+      status: 500,
+      data: { error: 'stale' },
+    });
+    mocks.authFetch.mockRejectedValueOnce(staleFailure).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSecond = resolve;
+        })
+    );
 
     const { loadOrders, orders } = useOrders();
     const first = loadOrders({ page: 1 });
@@ -301,7 +304,9 @@ describe('useOrders extra coverage', () => {
     mocks.authFetch
       .mockResolvedValueOnce({ json: async () => ({ success: false, message: 'batch fail' }) })
       .mockRejectedValueOnce(new Error('batch network'))
-      .mockResolvedValueOnce({ json: async () => ({ success: true, data: { ok: true }, message: 'batch ok' }) });
+      .mockResolvedValueOnce({
+        json: async () => ({ success: true, data: { ok: true }, message: 'batch ok' }),
+      });
 
     const {
       checkSalesAuth,

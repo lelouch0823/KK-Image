@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { imageCompressionMock, loadSettingsMock, getSettingsParsedMock } = vi.hoisted(() => ({
-  imageCompressionMock: vi.fn(async (_file, options = {}) => new Blob(['mock'], { type: options.fileType || 'image/webp' })),
+  imageCompressionMock: vi.fn(
+    async (_file, options = {}) => new Blob(['mock'], { type: options.fileType || 'image/webp' })
+  ),
   loadSettingsMock: vi.fn(async () => {}),
   getSettingsParsedMock: vi.fn(() => ({ enabled: true })),
 }));

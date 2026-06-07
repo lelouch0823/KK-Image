@@ -19,7 +19,9 @@
           rounded="none"
         />
         <!-- 商品图标记 -->
-        <div class="bg-primary/90 absolute top-2 left-2 rounded-full px-2 py-0.5 text-xs text-(--text-inverse) shadow-sm backdrop-blur-sm">
+        <div
+          class="bg-primary/90 absolute top-2 left-2 rounded-full px-2 py-0.5 text-xs text-(--text-inverse) shadow-sm backdrop-blur-sm"
+        >
           {{ t('product.text.image') || '商品图' }}
         </div>
       </div>
@@ -49,9 +51,11 @@
           <span class="text-muted mb-2 text-xs font-bold uppercase">{{
             file.name?.split('.').pop()
           }}</span>
-          <span class="text-secondary line-clamp-2 text-center text-xs" :title="file.originalName || file.name || '-'">{{
-            file.originalName || file.name
-          }}</span>
+          <span
+            class="text-secondary line-clamp-2 text-center text-xs"
+            :title="file.originalName || file.name || '-'"
+            >{{ file.originalName || file.name }}</span
+          >
         </div>
 
         <!-- 操作遮罩 -->
@@ -92,11 +96,7 @@
     <div v-else class="text-secondary flex h-full flex-col items-center justify-center py-12">
       <AppIcon name="photo" class="mb-4 size-16 text-(--border-color)" />
       <p>{{ t('spaceManager.emptyMedia') }}</p>
-      <AppButton
-        variant="link"
-        class="mt-4"
-        @click="$emit('addFiles')"
-      >
+      <AppButton variant="link" class="mt-4" @click="$emit('addFiles')">
         {{ t('spaceManager.addMediaHint') }}
       </AppButton>
     </div>
@@ -134,9 +134,12 @@ const { t } = useI18n();
 const localFiles = ref([...props.files]);
 
 // Watch for external changes
-watch(() => props.files, (newFiles) => {
-  localFiles.value = [...newFiles];
-});
+watch(
+  () => props.files,
+  (newFiles) => {
+    localFiles.value = [...newFiles];
+  }
+);
 
 // Drag and Drop Logic
 const dragIndex = ref(null);
@@ -165,9 +168,9 @@ const onDrop = (e, dropIndex) => {
   const items = [...localFiles.value];
   const [draggedItem] = items.splice(startIndex, 1);
   items.splice(dropIndex, 0, draggedItem);
-  
+
   localFiles.value = items;
-  
+
   // Emit reorder event with new list
   emit('reorder', items);
 };

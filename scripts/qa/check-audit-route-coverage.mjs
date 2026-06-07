@@ -3,9 +3,7 @@ import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { extractWriteRoutesFromFile, extractWriteRoutesFromTree } from './extract-write-routes.mjs';
 import { normalizeAuditRouteKey } from '../../functions/lib/hono/_shared/audit-route-contract.js';
-import {
-  ignoredAuditRoutes,
-} from '../../functions/lib/hono/_shared/audit-route-exclusions.js';
+import { ignoredAuditRoutes } from '../../functions/lib/hono/_shared/audit-route-exclusions.js';
 const routeRoots = [
   'functions/lib/hono/routes/manage',
   'functions/lib/hono/routes/sales',
@@ -32,12 +30,20 @@ export function extractScheduledAuditPropertyLiterals(source = '', propertyName 
   while (true) {
     const index = source.indexOf(marker, start);
     if (index === -1) break;
-    const window = source.slice(index, index + 1200);
-    const propertyRegex = new RegExp(`${propertyName}\\s*:\\s*([^,\\n}]+)`, 'g');
+    // 扩展窗口以捕获多行三元表达式
+    const window = source.slice(index, index + 2000);
+    // 支持跨行匹配：先尝试单行模式，如果失败则使用多行模式
+    // 使用 [\s\S] 匹配任意字符，但在遇到下一个属性名时停止（贪婪匹配到最近的分隔点）
+    const propertyRegex = new RegExp(
+      `${propertyName}\\s*:\\s*((?:[^,}]|,(?!\\s*\\w+\\s*:))+)`,
+      'g'
+    );
     const actionMatches = window.matchAll(propertyRegex);
     for (const match of actionMatches) {
       const actionExpr = match[1];
-      const stringLiterals = [...actionExpr.matchAll(/['"`]([^'"`]+)['"`]/g)].map((item) => item[1]);
+      const stringLiterals = [...actionExpr.matchAll(/['"`]([^'"`]+)['"`]/g)].map(
+        (item) => item[1]
+      );
       for (const literal of stringLiterals) {
         actions.add(literal);
       }
@@ -60,7 +66,9 @@ export async function collectAuditCoverageViolations() {
     const discoveredRoutes = await extractWriteRoutesFromFile(file);
     const declarations = await loadDeclarations(file);
     const discoveredKeys = new Set(discoveredRoutes.map((route) => normalizeAuditRouteKey(route)));
-    const declaredKeys = new Set(declarations.map((route) => route.key || normalizeAuditRouteKey(route)));
+    const declaredKeys = new Set(
+      declarations.map((route) => route.key || normalizeAuditRouteKey(route))
+    );
     const scheduledActions = extractScheduledAuditPropertyLiterals(source, 'action');
     const scheduledDomains = extractScheduledAuditPropertyLiterals(source, 'domain');
     const scheduledTargetTypes = extractScheduledAuditPropertyLiterals(source, 'targetType');
@@ -76,7 +84,9 @@ export async function collectAuditCoverageViolations() {
       }
     }
 
-    const staticDeclarations = declarations.filter((declaration) => declaration.runtimeAssertionLevel !== 'runtime');
+    const staticDeclarations = declarations.filter(
+      (declaration) => declaration.runtimeAssertionLevel !== 'runtime'
+    );
 
     for (const declaration of declarations) {
       const key = declaration.key || normalizeAuditRouteKey(declaration);
@@ -90,20 +100,32 @@ export async function collectAuditCoverageViolations() {
         continue;
       }
       if (!scheduledActions.has(declaration.action)) {
-        violations.push(`${file} declaration action ${declaration.action} has no visible scheduleAuditEvent action match`);
+        violations.push(
+          `${file} declaration action ${declaration.action} has no visible scheduleAuditEvent action match`
+        );
       }
       if (!scheduledDomains.has(declaration.domain)) {
-        violations.push(`${file} declaration domain ${declaration.domain} has no visible scheduleAuditEvent domain match`);
+        violations.push(
+          `${file} declaration domain ${declaration.domain} has no visible scheduleAuditEvent domain match`
+        );
       }
       if (!scheduledTargetTypes.has(declaration.targetType)) {
-        violations.push(`${file} declaration targetType ${declaration.targetType} has no visible scheduleAuditEvent targetType match`);
+        violations.push(
+          `${file} declaration targetType ${declaration.targetType} has no visible scheduleAuditEvent targetType match`
+        );
       }
       if (!scheduledSeverities.has(declaration.severity)) {
-        violations.push(`${file} declaration severity ${declaration.severity} has no visible scheduleAuditEvent severity match`);
+        violations.push(
+          `${file} declaration severity ${declaration.severity} has no visible scheduleAuditEvent severity match`
+        );
       }
     }
 
-    if (staticDeclarations.length > 0 && !source.includes('scheduleAuditEvent(') && !source.includes('logAudit(')) {
+    if (
+      staticDeclarations.length > 0 &&
+      !source.includes('scheduleAuditEvent(') &&
+      !source.includes('logAudit(')
+    ) {
       violations.push(`${file} declares audit routes but has no visible audit call site`);
     }
   }

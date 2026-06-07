@@ -35,7 +35,9 @@ function createApp(user) {
     await next();
   });
   app.get('/secure/ping', requirePermission('files:read'), (c) => c.json({ success: true }));
-  app.get('/api/manage/audit-logs/export', requirePermission('audit:export'), (c) => c.json({ success: true }));
+  app.get('/api/manage/audit-logs/export', requirePermission('audit:export'), (c) =>
+    c.json({ success: true })
+  );
   app.post('/secure/ping', requirePermission('files:read'), (c) => c.json({ success: true }));
   return app;
 }
@@ -55,7 +57,11 @@ describe('requirePermission with authz engine', () => {
     authzMocks.evaluateUserPermission.mockResolvedValueOnce(false);
     const app = createApp({ id: 'u1', role: 'viewer', permissions: [] });
 
-    const res = await app.request('http://localhost/secure/ping', { method: 'POST' }, { AUTHZ_ENGINE: 'opa', DB: {} });
+    const res = await app.request(
+      'http://localhost/secure/ping',
+      { method: 'POST' },
+      { AUTHZ_ENGINE: 'opa', DB: {} }
+    );
     expect(res.status).toBe(403);
     expect(authzMocks.recordAuditEvent).toHaveBeenCalledWith(
       {},
@@ -70,7 +76,11 @@ describe('requirePermission with authz engine', () => {
     authzMocks.evaluateUserPermission.mockResolvedValueOnce(false);
     const app = createApp({ id: 'u1', role: 'viewer', permissions: [] });
 
-    const res = await app.request('http://localhost/api/manage/audit-logs/export', {}, { AUTHZ_ENGINE: 'opa', DB: {} });
+    const res = await app.request(
+      'http://localhost/api/manage/audit-logs/export',
+      {},
+      { AUTHZ_ENGINE: 'opa', DB: {} }
+    );
     expect(res.status).toBe(403);
     expect(authzMocks.recordAuditEvent).toHaveBeenCalledWith(
       {},
@@ -100,4 +110,3 @@ describe('requirePermission with authz engine', () => {
     expect(authzMocks.evaluateUserPermission).toHaveBeenCalledTimes(1);
   });
 });
-

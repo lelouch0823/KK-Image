@@ -7,11 +7,15 @@
       role="combobox"
       aria-haspopup="listbox"
       :aria-expanded="isOpen"
-      :aria-activedescendant="isOpen && highlightIndex >= 0 ? `${triggerId}-option-${highlightIndex}` : undefined"
+      :aria-activedescendant="
+        isOpen && highlightIndex >= 0 ? `${triggerId}-option-${highlightIndex}` : undefined
+      "
       class="focus-visible:border-primary focus-visible:ring-primary/10 focus:outline-none flex w-full items-center justify-between border border-(--border-color) bg-(--bg-card) text-left text-sm transition-all dark:bg-(--bg-muted)"
       :class="[
-        size === 'sm' ? 'h-9 rounded-lg px-2 focus-visible:ring-2' : 'h-11 rounded-xl px-4 focus-visible:ring-4',
-        !modelValue ? 'text-(--text-secondary)' : 'text-(--text-main)'
+        size === 'sm'
+          ? 'h-9 rounded-lg px-2 focus-visible:ring-2'
+          : 'h-11 rounded-xl px-4 focus-visible:ring-4',
+        !modelValue ? 'text-(--text-secondary)' : 'text-(--text-main)',
       ]"
       @click="toggle"
       @keydown="handleKeydown"
@@ -20,10 +24,7 @@
       <AppIcon
         name="chevron-down"
         class="shrink-0 text-(--text-secondary) transition-transform duration-200"
-        :class="[
-          size === 'sm' ? 'size-3.5' : 'size-4',
-          { 'rotate-180': isOpen }
-        ]"
+        :class="[size === 'sm' ? 'size-3.5' : 'size-4', { 'rotate-180': isOpen }]"
       />
     </button>
 
@@ -44,9 +45,7 @@
           :data-select-id="triggerId"
           class="fixed z-[9999] overflow-auto rounded-lg border border-(--border-color) bg-(--bg-card) shadow-lg focus:outline-none"
           :style="dropdownStyle"
-          :class="[
-            'max-h-60'
-          ]"
+          :class="['max-h-60']"
         >
           <div class="p-1">
             <div
@@ -133,13 +132,13 @@ const dropdownStyle = computed(() => {
   };
 
   if (dropdownPosition.value === 'top') {
-     style.bottom = `${window.innerHeight - top.value + 4}px`;
-     style.top = 'auto';
+    style.bottom = `${window.innerHeight - top.value + 4}px`;
+    style.top = 'auto';
   } else {
-     style.top = `${bottom.value + 4}px`;
-     style.bottom = 'auto';
+    style.top = `${bottom.value + 4}px`;
+    style.bottom = 'auto';
   }
-  
+
   return style;
 });
 
@@ -253,42 +252,42 @@ const scrollToHighlighted = () => {
 
 // Close on scroll or resize to prevent detached dropdown
 watch(isOpen, (val) => {
-    if (val) {
-        // window.addEventListener('scroll', close, { capture: true }); // Removed: Causes dropdown to close on any scroll
-        window.addEventListener('resize', close);
-    } else {
-        // window.removeEventListener('scroll', close, { capture: true });
-        window.removeEventListener('resize', close);
-    }
+  if (val) {
+    // window.addEventListener('scroll', close, { capture: true }); // Removed: Causes dropdown to close on any scroll
+    window.addEventListener('resize', close);
+  } else {
+    // window.removeEventListener('scroll', close, { capture: true });
+    window.removeEventListener('resize', close);
+  }
 });
 
 const close = () => {
-    if (isOpen.value) {
-      isOpen.value = false;
-      highlightIndex.value = -1;
-    }
-}
+  if (isOpen.value) {
+    isOpen.value = false;
+    highlightIndex.value = -1;
+  }
+};
 
 const handleClickOutside = (event) => {
-  // Check if click is outside both container and dropdown (handled by overlay transparently if needed, 
+  // Check if click is outside both container and dropdown (handled by overlay transparently if needed,
   // but logic here handles clicking elsewhere on page)
   // With Teleport, we need to check if target is inside container OR inside the dropdown content properly.
   // Actually, easiest way with Teleport is specific check or a transparent overlay.
   // We'll stick to document listener but check if target is inside trigger.
-  
+
   if (containerRef.value && !containerRef.value.contains(event.target)) {
-      // Also need to check if click is inside the dropdown itself (which is teleported).
-      // We can add a ref to dropdown, but since it's v-if, we need to be careful.
-      // A common pattern is checking .closest('.select-dropdown') if we add a class.
-      const dropdownEl = document.querySelector(`[data-select-id="${triggerId}"]`);
-      if (dropdownEl && dropdownEl.contains(event.target)) return;
-      
-      isOpen.value = false;
-      highlightIndex.value = -1;
+    // Also need to check if click is inside the dropdown itself (which is teleported).
+    // We can add a ref to dropdown, but since it's v-if, we need to be careful.
+    // A common pattern is checking .closest('.select-dropdown') if we add a class.
+    const dropdownEl = document.querySelector(`[data-select-id="${triggerId}"]`);
+    if (dropdownEl && dropdownEl.contains(event.target)) return;
+
+    isOpen.value = false;
+    highlightIndex.value = -1;
   }
 };
 
-// Use template ref on Teleported content via ID query or ref callback if possible. 
+// Use template ref on Teleported content via ID query or ref callback if possible.
 // For simplicity, we can rely on click-outside logic on document.
 
 import { onMounted, onUnmounted } from 'vue';

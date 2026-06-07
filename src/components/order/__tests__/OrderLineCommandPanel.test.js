@@ -112,8 +112,12 @@ describe('OrderLineCommandPanel', () => {
       },
     });
 
-    expect(wrapper.get('[data-testid="line-command-reserve"]').attributes('disabled')).toBeDefined();
-    expect(wrapper.get('[data-testid="line-command-release"]').attributes('disabled')).toBeDefined();
+    expect(
+      wrapper.get('[data-testid="line-command-reserve"]').attributes('disabled')
+    ).toBeDefined();
+    expect(
+      wrapper.get('[data-testid="line-command-release"]').attributes('disabled')
+    ).toBeDefined();
     expect(wrapper.get('[data-testid="line-command-ship"]').attributes('disabled')).toBeDefined();
     expect(wrapper.get('[data-testid="line-command-unship"]').attributes('disabled')).toBeDefined();
     expect(wrapper.text()).toContain('Bind a product variant before using fulfillment actions.');
@@ -154,7 +158,9 @@ describe('OrderLineCommandPanel', () => {
       },
     });
 
-    expect(wrapper.get('[data-testid="line-command-unship"]').attributes('disabled')).toBeUndefined();
+    expect(
+      wrapper.get('[data-testid="line-command-unship"]').attributes('disabled')
+    ).toBeUndefined();
   });
 
   it('disables unship once delivery has been confirmed', async () => {

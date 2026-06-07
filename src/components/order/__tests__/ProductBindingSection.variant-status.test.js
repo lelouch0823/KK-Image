@@ -542,7 +542,12 @@ describe('ProductBindingSection variant status and dimensions', () => {
     });
 
     const wrapper = mount(ProductBindingSection, {
-      props: { boundProduct: null, mode: 'sales', salesToken: 'token-1', variantSelectPolicy: 'in_stock_only' },
+      props: {
+        boundProduct: null,
+        mode: 'sales',
+        salesToken: 'token-1',
+        variantSelectPolicy: 'in_stock_only',
+      },
       global: { stubs: { ProductSelect: salesPickStub, AppImage: true } },
     });
 
@@ -558,7 +563,12 @@ describe('ProductBindingSection variant status and dimensions', () => {
     mocks.loadSalesProduct.mockResolvedValueOnce(null);
 
     const wrapper = mount(ProductBindingSection, {
-      props: { boundProduct: null, mode: 'sales', salesToken: 'token-1', variantSelectPolicy: 'in_stock_only' },
+      props: {
+        boundProduct: null,
+        mode: 'sales',
+        salesToken: 'token-1',
+        variantSelectPolicy: 'in_stock_only',
+      },
       global: { stubs: { ProductSelect: salesPickStub, AppImage: true } },
     });
 

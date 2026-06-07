@@ -100,10 +100,7 @@
     </div>
 
     <template #footer>
-      <AppButton
-        variant="secondary"
-        @click="$emit('close')"
-      >
+      <AppButton variant="secondary" @click="$emit('close')">
         {{ t('common.cancel') }}
       </AppButton>
       <AppButton
@@ -160,7 +157,6 @@ const form = ref({
   shareMode: 'none',
   sharedSalespersonIds: [],
   templateData: {
-
     brand: '',
     series: '',
     price: '',
@@ -171,38 +167,42 @@ const form = ref({
 
 const submitting = ref(false);
 
-const templates = computed(() => [
-  {
-    key: 'gallery',
-    label: t('spaceManager.templates.gallery'),
-    desc: t('spaceManager.templates.galleryDesc'),
-    icon: 'photo',
-  },
-  {
-    key: 'product',
-    label: t('spaceManager.templates.product'),
-    desc: t('spaceManager.templates.productDesc'),
-    icon: 'shopping-cart',
-  },
-  {
-    key: 'collection',
-    label: t('spaceManager.templates.collection'),
-    desc: t('spaceManager.templates.collectionDesc'),
-    icon: 'rectangle-group',
-  },
-  {
-    key: 'document',
-    label: t('spaceManager.templates.document'),
-    desc: t('spaceManager.templates.documentDesc'),
-    icon: 'document-text',
-  },
-  {
-    key: 'portfolio',
-    label: t('spaceManager.templates.portfolio'),
-    desc: t('spaceManager.templates.portfolioDesc'),
-    icon: 'squares-2x2',
-  },
-].filter((template) => template.key !== 'product' || canManageProducts.value || !!props.initialProduct));
+const templates = computed(() =>
+  [
+    {
+      key: 'gallery',
+      label: t('spaceManager.templates.gallery'),
+      desc: t('spaceManager.templates.galleryDesc'),
+      icon: 'photo',
+    },
+    {
+      key: 'product',
+      label: t('spaceManager.templates.product'),
+      desc: t('spaceManager.templates.productDesc'),
+      icon: 'shopping-cart',
+    },
+    {
+      key: 'collection',
+      label: t('spaceManager.templates.collection'),
+      desc: t('spaceManager.templates.collectionDesc'),
+      icon: 'rectangle-group',
+    },
+    {
+      key: 'document',
+      label: t('spaceManager.templates.document'),
+      desc: t('spaceManager.templates.documentDesc'),
+      icon: 'document-text',
+    },
+    {
+      key: 'portfolio',
+      label: t('spaceManager.templates.portfolio'),
+      desc: t('spaceManager.templates.portfolioDesc'),
+      icon: 'squares-2x2',
+    },
+  ].filter(
+    (template) => template.key !== 'product' || canManageProducts.value || !!props.initialProduct
+  )
+);
 
 const submitButtonText = computed(() => {
   if (submitting.value) return t('spaceManager.creating');
@@ -214,7 +214,7 @@ const handleProductSelect = (product) => {
   const variant = product.selectedVariant;
   if (!variant) return false;
   const mainImage = resolveSelectedVariantMainImageSrc(product);
-  
+
   boundProduct.value = {
     id: product.id,
     name: product.name,
@@ -270,18 +270,23 @@ const handleSubmit = async () => {
 };
 
 onMounted(() => {
-  loadPermissions().then(() => {
-    canManageProducts.value = hasPermission('products:manage');
-    if (!canManageProducts.value && !props.initialProduct && form.value.template === 'product') {
-      form.value.template = 'gallery';
-    }
-  }).catch(console.error);
+  loadPermissions()
+    .then(() => {
+      canManageProducts.value = hasPermission('products:manage');
+      if (!canManageProducts.value && !props.initialProduct && form.value.template === 'product') {
+        form.value.template = 'gallery';
+      }
+    })
+    .catch(console.error);
 
   if (props.initialProduct) {
     const didBindInitialProduct = handleProductSelect(props.initialProduct);
-    
+
     // Auto-generate a default share name if not provided
-    if (didBindInitialProduct && (form.value.name === props.initialProduct.name || !form.value.name)) {
+    if (
+      didBindInitialProduct &&
+      (form.value.name === props.initialProduct.name || !form.value.name)
+    ) {
       const dateStr = new Date().toLocaleDateString();
       form.value.name = `${props.initialProduct.name} - ${dateStr}`;
     }

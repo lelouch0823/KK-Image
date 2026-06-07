@@ -16,7 +16,13 @@ export function errorHandler(err, c) {
   // 获取 trace ID（由 traceIdMiddleware 设置）
   const traceId = c.get('traceId') || null;
 
-  console.error('[GlobalErrorHandler]', err.name, err.message, traceId ? `[traceId=${traceId}]` : '', err.stack);
+  console.error(
+    '[GlobalErrorHandler]',
+    err.name,
+    err.message,
+    traceId ? `[traceId=${traceId}]` : '',
+    err.stack
+  );
 
   // 将 trace ID 附加到 Sentry 事件（如果 Sentry 已初始化）
   try {
@@ -48,25 +54,27 @@ export function errorHandler(err, c) {
     const targetId = inferAuditTargetFromPath(c.req.path);
     const scheduler = getAuditScheduler(c);
     setAuditFailureRecorded(c);
-    scheduler(recordAuditEvent(c.env.DB, {
-      ...auditContext,
-      userId: auditContext.actor_id,
-      domain,
-      action: `${domain}.${c.req.method.toLowerCase()}.failed`,
-      result: 'failed',
-      severity: status >= 500 ? 'critical' : 'high',
-      targetType: domain,
-      targetId,
-      summary: `${c.req.method} ${c.req.path} failed`,
-      metadata: {
-        path: c.req.path,
-        method: c.req.method,
-        error_code: err.code || err.name || 'INTERNAL_ERROR',
-        status,
-      },
-      ip: auditContext.ip_address,
-      user_agent: auditContext.user_agent,
-    }));
+    scheduler(
+      recordAuditEvent(c.env.DB, {
+        ...auditContext,
+        userId: auditContext.actor_id,
+        domain,
+        action: `${domain}.${c.req.method.toLowerCase()}.failed`,
+        result: 'failed',
+        severity: status >= 500 ? 'critical' : 'high',
+        targetType: domain,
+        targetId,
+        summary: `${c.req.method} ${c.req.path} failed`,
+        metadata: {
+          path: c.req.path,
+          method: c.req.method,
+          error_code: err.code || err.name || 'INTERNAL_ERROR',
+          status,
+        },
+        ip: auditContext.ip_address,
+        user_agent: auditContext.user_agent,
+      })
+    );
   }
 
   return c.json(
@@ -75,7 +83,8 @@ export function errorHandler(err, c) {
       error: message,
       code: err.code || err.name || 'INTERNAL_ERROR',
       ...(traceId && { traceId }),
-      ...(c.env?.NODE_ENV === 'development' && { stack: err.stack }),
+      // M06: 仅在明确配置为开发环境时才泄露堆栈，默认不泄露
+      ...(c.env?.ENVIRONMENT === 'development' && { stack: err.stack }),
     },
     status
   );

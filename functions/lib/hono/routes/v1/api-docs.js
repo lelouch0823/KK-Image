@@ -7,11 +7,37 @@ import { Hono } from 'hono';
 import { zodSchemaToOpenAPI } from '../../utils/zod-to-openapi.js';
 
 // 导入所有 Schema
-import { CreateFileSchema, UpdateFileSchema, FileQuerySchema, BatchFileSchema, MoveFileSchema } from '../../schemas/file.js';
-import { CreateFolderSchema, UpdateFolderSchema, FolderQuerySchema, ShareSettingsSchema } from '../../schemas/folder.js';
-import { CreateAdminOrderSchema, UpdateAdminOrderSchema, UpdateOrderStatusSchema, BatchCreateOrderSchema, AddOrderCommentSchema } from '../../schemas/order.js';
-import { CreateProductSchema, UpdateProductSchema, UpdateProductStatusSchema } from '../../schemas/product.js';
-import { LoginSchema, CreateUserSchema, UpdateUserSchema, TokenSchema } from '../../schemas/user.js';
+import {
+  CreateFileSchema,
+  UpdateFileSchema,
+  FileQuerySchema,
+  BatchFileSchema,
+  MoveFileSchema,
+} from '../../schemas/file.js';
+import {
+  CreateFolderSchema,
+  UpdateFolderSchema,
+  FolderQuerySchema,
+  ShareSettingsSchema,
+} from '../../schemas/folder.js';
+import {
+  CreateAdminOrderSchema,
+  UpdateAdminOrderSchema,
+  UpdateOrderStatusSchema,
+  BatchCreateOrderSchema,
+  AddOrderCommentSchema,
+} from '../../schemas/order.js';
+import {
+  CreateProductSchema,
+  UpdateProductSchema,
+  UpdateProductStatusSchema,
+} from '../../schemas/product.js';
+import {
+  LoginSchema,
+  CreateUserSchema,
+  UpdateUserSchema,
+  TokenSchema,
+} from '../../schemas/user.js';
 
 const app = new Hono();
 
@@ -27,9 +53,7 @@ function buildOpenAPISpec() {
       version: '2.0.0',
       contact: { name: 'KK-Image Team' },
     },
-    servers: [
-      { url: '/api', description: '当前服务器' },
-    ],
+    servers: [{ url: '/api', description: '当前服务器' }],
     tags: [
       { name: '认证', description: '用户认证与授权' },
       { name: '文件管理', description: '文件上传、查询与管理' },
@@ -185,7 +209,9 @@ function buildOpenAPISpec() {
           parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
           requestBody: {
             required: true,
-            content: { 'application/json': { schema: zodSchemaToOpenAPI(UpdateOrderStatusSchema) } },
+            content: {
+              'application/json': { schema: zodSchemaToOpenAPI(UpdateOrderStatusSchema) },
+            },
           },
           responses: { 200: { description: '状态更新成功' } },
         },
@@ -247,7 +273,9 @@ function buildOpenAPISpec() {
           parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
           requestBody: {
             required: true,
-            content: { 'application/json': { schema: zodSchemaToOpenAPI(UpdateProductStatusSchema) } },
+            content: {
+              'application/json': { schema: zodSchemaToOpenAPI(UpdateProductStatusSchema) },
+            },
           },
           responses: { 200: { description: '状态更新成功' } },
         },

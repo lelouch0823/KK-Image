@@ -8,7 +8,14 @@ import { OrderRepository } from '../../repositories/OrderRepository.js';
 import { OrderTimelineRepository } from '../../repositories/OrderTimelineRepository.js';
 import { MSG } from './messages.js';
 
-function buildOrderDomainEvent({ eventType, orderId, orderNo, salespersonId = null, actorName = '', extra = {} }) {
+function buildOrderDomainEvent({
+  eventType,
+  orderId,
+  orderNo,
+  salespersonId = null,
+  actorName = '',
+  extra = {},
+}) {
   return {
     event_type: eventType,
     aggregate_type: 'order',
@@ -22,7 +29,6 @@ function buildOrderDomainEvent({ eventType, orderId, orderNo, salespersonId = nu
     },
   };
 }
-
 
 /**
  * 检测并更新订单文件
@@ -130,9 +136,10 @@ async function detectOrderFileChanges(db, orderId, newFileIds) {
   if (!Array.isArray(newFileIds)) {
     return { hasChanges: false, oldFileIds: [], newFileIds: [] };
   }
-  const { results: oldFiles } = await db.prepare(
-    'SELECT file_id FROM order_files WHERE order_id = ? ORDER BY sort_order'
-  ).bind(orderId).all();
+  const { results: oldFiles } = await db
+    .prepare('SELECT file_id FROM order_files WHERE order_id = ? ORDER BY sort_order')
+    .bind(orderId)
+    .all();
   const oldFileIds = (oldFiles || []).map((f) => f.file_id);
   const hasChanges = JSON.stringify(newFileIds) !== JSON.stringify(oldFileIds);
   return { hasChanges, oldFileIds, newFileIds };
@@ -164,14 +171,28 @@ async function archiveOrderFilesSafe(env, orderNo, orderId, fileIds) {
  * @returns {Promise<{success: boolean, hasChanges: boolean, newData: Object}>}
  */
 export async function processOrderUpdate(options) {
-  const { env, orderId, orderNo, currentData, updates, fileIds, allowedFields, actor, reason, salespersonId } =
-    options;
+  const {
+    env,
+    orderId,
+    orderNo,
+    currentData,
+    updates,
+    fileIds,
+    allowedFields,
+    actor,
+    reason,
+    salespersonId,
+  } = options;
   const currentStatus = options.currentStatus ?? currentData?.status;
   const baselineData = { ...currentData, status: currentStatus };
   const deferNotifications = Boolean(options.deferNotifications);
 
   // 1. 检测字段变更
-  const { newData, hasChanges: dataChanged, fieldChanges } = await detectAndLogFieldChanges(
+  const {
+    newData,
+    hasChanges: dataChanged,
+    fieldChanges,
+  } = await detectAndLogFieldChanges(
     env,
     orderId,
     baselineData,
@@ -194,7 +215,8 @@ export async function processOrderUpdate(options) {
     (options.currentVariantId === undefined || options.variantId !== options.currentVariantId);
   const salespersonIdChanged =
     options.salespersonIdUpdate !== undefined &&
-    (options.currentSalespersonId === undefined || options.salespersonIdUpdate !== options.currentSalespersonId);
+    (options.currentSalespersonId === undefined ||
+      options.salespersonIdUpdate !== options.currentSalespersonId);
   const statusChanged = updates?.status !== undefined && updates.status !== currentStatus;
   const hasMutations =
     dataChanged || filesChanged || productIdChanged || variantIdChanged || salespersonIdChanged;
@@ -202,7 +224,9 @@ export async function processOrderUpdate(options) {
   // 4. 如果有任何变更（数据/文件/商品绑定），更新订单并发送通知
   if (hasMutations) {
     if (!deferNotifications) {
-      throw new Error('processOrderUpdate requires deferNotifications: true so callers can publish outbox events explicitly');
+      throw new Error(
+        'processOrderUpdate requires deferNotifications: true so callers can publish outbox events explicitly'
+      );
     }
 
     const orderRepo = new OrderRepository(env.DB);
@@ -223,16 +247,18 @@ export async function processOrderUpdate(options) {
     });
 
     const timelineRepo = new OrderTimelineRepository(env.DB);
-    const timelineTasks = (fieldChanges || []).map((change) => timelineRepo.addTimelineEntry(orderId, {
-      actionType: 'field_updated',
-      actorType: actor.type,
-      actorId: actor.id,
-      actorName: actor.name,
-      fieldName: change.fieldName,
-      oldValue: change.oldValue,
-      newValue: change.newValue,
-      reason: reason || '',
-    }));
+    const timelineTasks = (fieldChanges || []).map((change) =>
+      timelineRepo.addTimelineEntry(orderId, {
+        actionType: 'field_updated',
+        actorType: actor.type,
+        actorId: actor.id,
+        actorName: actor.name,
+        fieldName: change.fieldName,
+        oldValue: change.oldValue,
+        newValue: change.newValue,
+        reason: reason || '',
+      })
+    );
     if (filesChanged) {
       timelineTasks.push(
         timelineRepo.addTimelineEntry(orderId, {

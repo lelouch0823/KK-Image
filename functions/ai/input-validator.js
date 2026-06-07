@@ -15,8 +15,7 @@ function countImages(history = []) {
   return (history || [])
     .filter((message) => Array.isArray(message?.content))
     .flatMap((message) => message.content)
-    .filter((part) => part?.type === 'image_url')
-    .length;
+    .filter((part) => part?.type === 'image_url').length;
 }
 
 function maxImageUrlLength(history = []) {
@@ -32,7 +31,11 @@ export function validateAIRequest({ history = [], limits = {}, userSignals = [] 
   const imageCount = countImages(history);
   const longestImage = maxImageUrlLength(history);
 
-  if (text.length > Number(limits.maxInputLength || 10000) || imageCount > Number(limits.maxImageCount || 10) || longestImage > Number(limits.maxImageUrlLength || 5000000)) {
+  if (
+    text.length > Number(limits.maxInputLength || 10000) ||
+    imageCount > Number(limits.maxImageCount || 10) ||
+    longestImage > Number(limits.maxImageUrlLength || 5000000)
+  ) {
     return {
       decision: 'block',
       reason: 'input_too_large',

@@ -96,16 +96,13 @@ export async function buildBaselineSnapshot({
       'Sampling Commands',
       commands.map((command) => `- \`${command}\``)
     ),
-    formatSection(
-      'Capture Template',
-      [
-        '- manage stats/dashboard: record duration, rowsRead, rowsWritten, cache hit ratio',
-        '- goods overview: record duration, rowsRead, returned item count, filter shape',
-        '- outbox poller: record claimed/published/failed/backlog/rounds and invalidated URL count',
-        '- webhook delivery: record endpoint count, batched delivery-state query count, retryable count',
-        '- reminders: record pending count, approaching deadline count, generated idempotency key count',
-      ]
-    ),
+    formatSection('Capture Template', [
+      '- manage stats/dashboard: record duration, rowsRead, rowsWritten, cache hit ratio',
+      '- goods overview: record duration, rowsRead, returned item count, filter shape',
+      '- outbox poller: record claimed/published/failed/backlog/rounds and invalidated URL count',
+      '- webhook delivery: record endpoint count, batched delivery-state query count, retryable count',
+      '- reminders: record pending count, approaching deadline count, generated idempotency key count',
+    ]),
     formatSection(
       'All Labels',
       allLabels.map((label) => `- ${label}`)
@@ -113,17 +110,13 @@ export async function buildBaselineSnapshot({
   ].join('\n');
 }
 
-export async function main({
-  stdout = process.stdout,
-  ...options
-} = {}) {
+export async function main({ stdout = process.stdout, ...options } = {}) {
   const output = await buildBaselineSnapshot(options);
   stdout.write(`${output}\n`);
   return output;
 }
 
-const isMain =
-  process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 
 if (isMain) {
   main().catch((error) => {

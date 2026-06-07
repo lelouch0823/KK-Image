@@ -86,7 +86,9 @@ describeIfRealApi('Manage Products Real API Replenishment Signal', function () {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const variantOrdered = (detailOrdered.json?.data?.variants || []).find((v) => v.id === variant.id);
+    const variantOrdered = (detailOrdered.json?.data?.variants || []).find(
+      (v) => v.id === variant.id
+    );
     assert.ok(variantOrdered);
     assert.strictEqual(Number(variantOrdered.replenishment_quantity || 0), 7);
     assert.strictEqual(Number(variantOrdered.replenishment_po_count || 0), 1);
@@ -102,7 +104,9 @@ describeIfRealApi('Manage Products Real API Replenishment Signal', function () {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const variantShipping = (detailShipping.json?.data?.variants || []).find((v) => v.id === variant.id);
+    const variantShipping = (detailShipping.json?.data?.variants || []).find(
+      (v) => v.id === variant.id
+    );
     assert.ok(variantShipping);
     assert.strictEqual(Number(variantShipping.replenishment_quantity || 0), 7);
     assert.strictEqual(Number(variantShipping.replenishment_po_count || 0), 1);
@@ -143,7 +147,9 @@ describeIfRealApi('Manage Products Real API Replenishment Signal', function () {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const variantArrived = (detailArrived.json?.data?.variants || []).find((v) => v.id === variant.id);
+    const variantArrived = (detailArrived.json?.data?.variants || []).find(
+      (v) => v.id === variant.id
+    );
     assert.ok(variantArrived);
     assert.strictEqual(Number(variantArrived.replenishment_quantity || 0), 0);
     assert.strictEqual(Number(variantArrived.replenishment_po_count || 0), 0);

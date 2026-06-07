@@ -21,6 +21,7 @@
 ### Task 1: 建立策略目录与策略元数据（单一真相源）
 
 **Files:**
+
 - Create: `policy/authz.rego`
 - Create: `policy/metadata.json`
 - Create: `policy/tests/authz_test.rego`
@@ -57,7 +58,20 @@ allow if {
 ```json
 {
   "roles": ["admin", "manager", "sales", "viewer", "user"],
-  "actions": ["files:read", "files:write", "files:delete", "folders:read", "folders:write", "folders:delete", "users:read", "users:write", "webhooks:read", "webhooks:write", "stats:read", "admin:full"]
+  "actions": [
+    "files:read",
+    "files:write",
+    "files:delete",
+    "folders:read",
+    "folders:write",
+    "folders:delete",
+    "users:read",
+    "users:write",
+    "webhooks:read",
+    "webhooks:write",
+    "stats:read",
+    "admin:full"
+  ]
 }
 ```
 
@@ -76,6 +90,7 @@ git commit -m "feat(authz): add opa policy baseline and metadata"
 ### Task 2: 增加策略编译脚本与 npm 命令
 
 **Files:**
+
 - Create: `scripts/policy/compile-opa.mjs`
 - Modify: `package.json`
 
@@ -88,8 +103,13 @@ Expected: FAIL，文件不存在。
 
 ```javascript
 import { execSync } from 'node:child_process';
-execSync('opa build -t wasm -e kk/authz/allow policy/authz.rego -o policy/bundle.tar.gz', { stdio: 'inherit' });
-execSync('opa build -t wasm -e kk/authz/decision policy/authz.rego -o policy/bundle-decision.tar.gz', { stdio: 'inherit' });
+execSync('opa build -t wasm -e kk/authz/allow policy/authz.rego -o policy/bundle.tar.gz', {
+  stdio: 'inherit',
+});
+execSync(
+  'opa build -t wasm -e kk/authz/decision policy/authz.rego -o policy/bundle-decision.tar.gz',
+  { stdio: 'inherit' }
+);
 ```
 
 **Step 3: 在 `package.json` 增加脚本**
@@ -118,6 +138,7 @@ git commit -m "build(authz): add opa policy test and wasm build scripts"
 ### Task 3: 实现运行时授权引擎（OPA + fail-closed + 回滚开关）
 
 **Files:**
+
 - Create: `functions/lib/authz/opa-engine.js`
 - Create: `functions/lib/authz/legacy-engine.js`
 - Create: `functions/lib/authz/index.js`
@@ -166,6 +187,7 @@ git commit -m "feat(authz): add opa runtime engine with fail-closed and legacy s
 ### Task 4: 改造 `requirePermission` 接 OPA 引擎
 
 **Files:**
+
 - Modify: `functions/lib/hono/middleware/auth.js`
 - Create: `functions/lib/hono/middleware/__tests__/auth-opa.test.js`
 
@@ -188,7 +210,12 @@ Expected: FAIL，`auth.js` 尚未调用新引擎。
 ```javascript
 const allowed = await evaluatePermission({
   env: c.env,
-  input: { subject: user, action: permission, resource: { path: c.req.path }, context: { method: c.req.method } },
+  input: {
+    subject: user,
+    action: permission,
+    resource: { path: c.req.path },
+    context: { method: c.req.method },
+  },
   legacyCheck: () => hasPermission(user.role, permission) || user.permissions?.includes(permission),
 });
 if (!allowed) return c.json({ success: false, error: `${MSG.AUTH.FORBIDDEN}: ${permission}` }, 403);
@@ -209,6 +236,7 @@ git commit -m "refactor(auth): route requirePermission through authz engine"
 ### Task 5: 统一权限查询接口为策略元数据输出
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/v1/permissions.js`
 - Create: `functions/lib/hono/routes/v1/__tests__/permissions-contract.test.js`
 - Modify: `functions/api/utils/messages.js`
@@ -248,6 +276,7 @@ git commit -m "refactor(authz): serve permissions endpoint from policy metadata"
 ### Task 6: 退役重复定义并保留兼容壳
 
 **Files:**
+
 - Modify: `functions/api/utils/permissions.js`
 - Create: `functions/api/utils/__tests__/permissions-compat.test.js`
 
@@ -285,6 +314,7 @@ git commit -m "chore(authz): replace duplicated permissions map with compatibili
 ### Task 7: 加 migration 重号门禁
 
 **Files:**
+
 - Create: `scripts/check-migration-prefixes.mjs`
 - Modify: `package.json`
 - Create: `scripts/__tests__/check-migration-prefixes.test.js`
@@ -327,6 +357,7 @@ git commit -m "ci(db): add duplicate migration prefix guard"
 ### Task 8: CI 接入 OPA 与门禁
 
 **Files:**
+
 - Modify: `.github/workflows/ci-test.yml`
 
 **Step 1: 先写失败预期（本地手动）**
@@ -367,12 +398,14 @@ git commit -m "ci(authz): enforce opa policy tests and migration prefix guard"
 ### Task 9: 收尾验证与发布说明
 
 **Files:**
+
 - Create: `docs/reviews/2026-03-04-opa-rego-authz-verification.md`
 - Modify: `README.md`
 
 **Step 1: 执行全量验证**
 
 Run:
+
 1. `npm run lint`
 2. `npm run test:unit`
 3. `npm run authz:policy:test`
@@ -393,6 +426,7 @@ Expected: 除 migration 重号外全部通过；修复重号后全绿。
 
 ```markdown
 AUTHZ_ENGINE=opa|legacy
+
 - default: opa
 - opa failure mode: fail-closed
 ```

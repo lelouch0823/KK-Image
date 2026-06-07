@@ -7,9 +7,7 @@ describe('AI business canonicalization', () => {
 
     expect(result.normalizedTerms).toContain('variant');
     expect(result.matches).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ canonical: 'variant', alias: '商品规格' }),
-      ])
+      expect.arrayContaining([expect.objectContaining({ canonical: 'variant', alias: '商品规格' })])
     );
   });
 

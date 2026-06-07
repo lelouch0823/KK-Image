@@ -12,16 +12,8 @@
         <div class="flex items-center gap-3">
           <!-- Progress Ring or Icon -->
           <div class="relative flex size-8 items-center justify-center">
-            <AppIcon
-              v-if="isUploading"
-              name="spinner"
-              class="text-info size-5 animate-spin"
-            />
-            <AppIcon
-              v-else
-              name="check"
-              class="text-success size-5"
-            />
+            <AppIcon v-if="isUploading" name="spinner" class="text-info size-5 animate-spin" />
+            <AppIcon v-else name="check" class="text-success size-5" />
           </div>
 
           <div v-if="!isMinimized" class="flex flex-col">
@@ -36,7 +28,8 @@
               <template v-if="isUploading && totalSpeed > 0">
                 · {{ formatSpeed(totalSpeed) }}
                 <template v-if="estimatedTimeRemaining"
-                  >· {{ t('upload.remaining') }} {{ formatDuration(estimatedTimeRemaining, t) }}</template
+                  >· {{ t('upload.remaining') }}
+                  {{ formatDuration(estimatedTimeRemaining, t) }}</template
                 >
               </template>
             </span>
@@ -111,7 +104,10 @@
               <!-- Info -->
               <div class="min-w-0 flex-1">
                 <div class="mb-1 flex items-center justify-between">
-                  <h4 class="truncate pr-2 text-sm font-medium text-(--text-main)" :title="item.name">
+                  <h4
+                    class="truncate pr-2 text-sm font-medium text-(--text-main)"
+                    :title="item.name"
+                  >
                     {{ item.name }}
                   </h4>
                   <span class="shrink-0 font-mono text-xs" :class="getStatusColor(item.status)">
@@ -228,7 +224,6 @@ const formatSpeed = (bytesPerSecond) => {
   if (bytesPerSecond < 1024 * 1024) return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`;
   return `${(bytesPerSecond / 1024 / 1024).toFixed(1)} MB/s`;
 };
-
 </script>
 
 <style scoped>

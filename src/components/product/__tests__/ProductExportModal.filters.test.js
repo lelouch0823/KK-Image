@@ -23,12 +23,13 @@ vi.mock('@/composables/useI18n', () => ({
   useI18n: () => ({ t: (key, fallback) => fallback || key }),
 }));
 
-const readBlobText = (blob) => new Promise((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onload = () => resolve(String(reader.result || ''));
-  reader.onerror = () => reject(reader.error || new Error('Failed to read blob'));
-  reader.readAsText(blob);
-});
+const readBlobText = (blob) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('Failed to read blob'));
+    reader.readAsText(blob);
+  });
 
 describe('ProductExportModal filter forwarding', () => {
   beforeEach(() => {
@@ -205,9 +206,7 @@ describe('ProductExportModal filter forwarding', () => {
 
     expect(wrapper.vm.readyToDownload).toBe(false);
     expect(wrapper.vm.generatedBlob).toBe(null);
-    expect(mocks.addToast).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'error' })
-    );
+    expect(mocks.addToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
   });
 
   it('resets export options after the modal closes', async () => {

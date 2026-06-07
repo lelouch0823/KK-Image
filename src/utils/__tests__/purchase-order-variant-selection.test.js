@@ -13,8 +13,22 @@ describe('purchase-order variant selection', () => {
     ];
 
     const selectedVariants = [
-      { variant_id: 'var-b', product_id: 'prod-1', product_name: 'P1', sku: 'SKU-B', brand: 'B', unit_cost: 20 },
-      { variant_id: 'var-c', product_id: 'prod-2', product_name: 'P2', sku: 'SKU-C', brand: 'C', unit_cost: 30 },
+      {
+        variant_id: 'var-b',
+        product_id: 'prod-1',
+        product_name: 'P1',
+        sku: 'SKU-B',
+        brand: 'B',
+        unit_cost: 20,
+      },
+      {
+        variant_id: 'var-c',
+        product_id: 'prod-2',
+        product_name: 'P2',
+        sku: 'SKU-C',
+        brand: 'C',
+        unit_cost: 30,
+      },
     ];
 
     const result = reconcileVariantSelection({ currentItems, selectedVariants });

@@ -10,7 +10,11 @@ describe('executeAITool canonical api-first extensions', () => {
       }),
     };
 
-    const result = await executeAITool('getCustomerOrders', { customerId: 'cus-1', limit: 5 }, { orderRepo });
+    const result = await executeAITool(
+      'getCustomerOrders',
+      { customerId: 'cus-1', limit: 5 },
+      { orderRepo }
+    );
 
     expect(orderRepo.listForAdmin).toHaveBeenCalledWith({
       customerId: 'cus-1',

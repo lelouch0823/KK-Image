@@ -1,10 +1,11 @@
 import assert from 'assert';
 import { apiRequest } from './manage-products-real-api.js';
 
-export async function ensureSalespersonId(token, seed, {
-  namePrefix = 'Workflow Sales',
-  store = 'Workflow Store',
-} = {}) {
+export async function ensureSalespersonId(
+  token,
+  seed,
+  { namePrefix = 'Workflow Sales', store = 'Workflow Store' } = {}
+) {
   const listed = await apiRequest('/api/manage/salespersons?page=1&limit=1', {
     bearerToken: token,
     expectedStatus: 200,
@@ -26,18 +27,22 @@ export async function ensureSalespersonId(token, seed, {
   return created.json?.data?.id;
 }
 
-export async function createWorkflowProduct(token, seed, {
-  stockQuantity = 0,
-  price = 99,
-  costPrice = 55,
-  alertThreshold = 1,
-  namePrefix = 'Workflow Product',
-  skuPrefix = 'WF',
-  dimensionName = 'Color',
-  dimensionValue = 'Gray',
-  brand = 'KK',
-  category = 'Workflow',
-} = {}) {
+export async function createWorkflowProduct(
+  token,
+  seed,
+  {
+    stockQuantity = 0,
+    price = 99,
+    costPrice = 55,
+    alertThreshold = 1,
+    namePrefix = 'Workflow Product',
+    skuPrefix = 'WF',
+    dimensionName = 'Color',
+    dimensionValue = 'Gray',
+    brand = 'KK',
+    category = 'Workflow',
+  } = {}
+) {
   const productName = `${namePrefix} ${seed}`;
   const createdProduct = await apiRequest('/api/manage/products', {
     bearerToken: token,
@@ -76,15 +81,18 @@ export async function createWorkflowProduct(token, seed, {
   return { productId, variantId, productName };
 }
 
-export async function createConfirmedOrder(token, {
-  seed,
-  salespersonId,
-  productId,
-  variantId,
-  quantity,
-  productName = `Workflow Product ${seed}`,
-  fileIds = [],
-} = {}) {
+export async function createConfirmedOrder(
+  token,
+  {
+    seed,
+    salespersonId,
+    productId,
+    variantId,
+    quantity,
+    productName = `Workflow Product ${seed}`,
+    fileIds = [],
+  } = {}
+) {
   const created = await apiRequest('/api/manage/orders', {
     bearerToken: token,
     method: 'POST',
@@ -111,10 +119,12 @@ export async function createConfirmedOrder(token, {
   return orderId;
 }
 
-export async function createPurchaseOrderFromOrders(token, orderIds, seed, {
-  remark = `Workflow procurement ${seed}`,
-  allocationMethod = 'by_quantity',
-} = {}) {
+export async function createPurchaseOrderFromOrders(
+  token,
+  orderIds,
+  seed,
+  { remark = `Workflow procurement ${seed}`, allocationMethod = 'by_quantity' } = {}
+) {
   const created = await apiRequest('/api/manage/purchase-orders/from-orders', {
     bearerToken: token,
     method: 'POST',

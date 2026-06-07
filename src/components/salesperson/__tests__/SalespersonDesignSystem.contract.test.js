@@ -16,7 +16,9 @@ describe('salesperson design-system contracts', () => {
     expect(tableSource).toContain("import AppButton from '@/components/ui/AppButton.vue'");
     expect(tableSource).not.toContain('<button');
     expect(detailSource).toContain("import AppButton from '@/components/ui/AppButton.vue'");
-    expect(detailSource).toContain("import ActionBar from '@/design-system/composed/ActionBar.vue'");
+    expect(detailSource).toContain(
+      "import ActionBar from '@/design-system/composed/ActionBar.vue'"
+    );
     expect(detailSource).not.toContain('<button');
   });
 

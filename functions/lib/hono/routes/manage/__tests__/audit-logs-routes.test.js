@@ -154,9 +154,9 @@ describe('manage audit log routes', () => {
 
     expect(res.status).toBe(200);
     const csv = await res.text();
-    expect(csv).toContain("\"'=cmd|calc\"");
-    expect(csv).toContain("\"'+SUM(1,2)\"");
-    expect(csv).toContain("\"'@danger\"");
+    expect(csv).toContain('"\'=cmd|calc"');
+    expect(csv).toContain('"\'+SUM(1,2)"');
+    expect(csv).toContain('"\'@danger"');
   });
 
   it('records audit log list reads', async () => {
@@ -232,10 +232,12 @@ describe('manage audit log routes', () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body.data[0]).toEqual(expect.objectContaining({
-      changes_json: null,
-      metadata_json: null,
-    }));
+    expect(body.data[0]).toEqual(
+      expect.objectContaining({
+        changes_json: null,
+        metadata_json: null,
+      })
+    );
   });
 
   it('records audit log action catalog reads', async () => {

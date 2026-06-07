@@ -66,7 +66,9 @@ describe('public space access api', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('Cache-Control')).toBe('public, max-age=900, stale-while-revalidate=0');
+    expect(response.headers.get('Cache-Control')).toBe(
+      'public, max-age=900, stale-while-revalidate=0'
+    );
   });
 
   it('records access log and increments view count after password verification succeeds', async () => {
@@ -426,14 +428,18 @@ describe('public space access api', () => {
 
     const prepare = vi.fn((sql) => {
       if (sql.includes('WHERE s.share_token = ?')) {
-        expect(sql).toContain('LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id');
+        expect(sql).toContain(
+          'LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id'
+        );
         return { bind: () => ({ first }) };
       }
       if (sql.includes('FROM space_files sf')) {
         return { bind: () => ({ all: filesAll }) };
       }
       if (sql.includes('WHERE s.parent_id = ? AND s.is_public = 1')) {
-        expect(sql).toContain('LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id');
+        expect(sql).toContain(
+          'LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id'
+        );
         return { bind: () => ({ all: subspacesAll }) };
       }
       if (sql.includes('INSERT INTO space_access_logs')) {

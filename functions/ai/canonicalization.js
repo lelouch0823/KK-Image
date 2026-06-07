@@ -6,11 +6,27 @@ const TERM_GROUPS = [
 
 const CREATE_PREFIXES = ['创建', '新建', '新增', '添加', '帮我建', '帮我新增', '帮我创建'];
 const ENTITY_CREATE_MAP = [
-  { entityType: 'salesperson', actionType: 'create_salesperson', aliases: ['业务员', '销售员', '导购', '销售账号'] },
-  { entityType: 'customer', actionType: 'create_customer', aliases: ['客户', '客户档案', '联系人'] },
+  {
+    entityType: 'salesperson',
+    actionType: 'create_salesperson',
+    aliases: ['业务员', '销售员', '导购', '销售账号'],
+  },
+  {
+    entityType: 'customer',
+    actionType: 'create_customer',
+    aliases: ['客户', '客户档案', '联系人'],
+  },
   { entityType: 'order', actionType: 'create_order', aliases: ['订单', '预订单', '建单'] },
-  { entityType: 'product', actionType: 'create_product', aliases: ['商品', '产品', '新款', '款式'] },
-  { entityType: 'purchase_order', actionType: 'create_purchase_order', aliases: ['采购单', '备货单', '补货单'] },
+  {
+    entityType: 'product',
+    actionType: 'create_product',
+    aliases: ['商品', '产品', '新款', '款式'],
+  },
+  {
+    entityType: 'purchase_order',
+    actionType: 'create_purchase_order',
+    aliases: ['采购单', '备货单', '补货单'],
+  },
 ];
 
 function includesAny(text, candidates = []) {

@@ -57,7 +57,8 @@ describe('ProductDetailModal variant hydration', () => {
       global: {
         stubs: {
           Modal: {
-            template: '<div><button data-testid="close" @click="$emit(\'close\')">close</button><slot /></div>',
+            template:
+              '<div><button data-testid="close" @click="$emit(\'close\')">close</button><slot /></div>',
             props: ['modelValue'],
           },
           ProductDetail: { template: '<div />', props: ['product'] },

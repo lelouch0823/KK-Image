@@ -67,7 +67,13 @@ describe('Space view lifecycle', () => {
               resolve({
                 json: async () => ({
                   success: true,
-                  data: { id: 'space-a', name: '空间 A', template: 'product', templateData: {}, files: [] },
+                  data: {
+                    id: 'space-a',
+                    name: '空间 A',
+                    template: 'product',
+                    templateData: {},
+                    files: [],
+                  },
                 }),
               });
           });
@@ -79,7 +85,13 @@ describe('Space view lifecycle', () => {
               resolve({
                 json: async () => ({
                   success: true,
-                  data: { id: 'space-b', name: '空间 B', template: 'product', templateData: {}, files: [] },
+                  data: {
+                    id: 'space-b',
+                    name: '空间 B',
+                    template: 'product',
+                    templateData: {},
+                    files: [],
+                  },
                 }),
               });
           });
@@ -167,7 +179,13 @@ describe('Space view lifecycle', () => {
               resolve({
                 json: async () => ({
                   success: true,
-                  data: { id: 'space-a', name: '空间 A', template: 'product', templateData: {}, files: [] },
+                  data: {
+                    id: 'space-a',
+                    name: '空间 A',
+                    template: 'product',
+                    templateData: {},
+                    files: [],
+                  },
                 }),
               });
           });
@@ -177,7 +195,13 @@ describe('Space view lifecycle', () => {
           return Promise.resolve({
             json: async () => ({
               success: true,
-              data: { id: 'space-b', name: '空间 B', template: 'product', templateData: {}, files: [] },
+              data: {
+                id: 'space-b',
+                name: '空间 B',
+                template: 'product',
+                templateData: {},
+                files: [],
+              },
             }),
           });
         }
@@ -220,7 +244,13 @@ describe('Space view lifecycle', () => {
         return Promise.resolve({
           json: async () => ({
             success: true,
-            data: { id: 'space-any', name: '任意空间', template: 'product', templateData: {}, files: [] },
+            data: {
+              id: 'space-any',
+              name: '任意空间',
+              template: 'product',
+              templateData: {},
+              files: [],
+            },
           }),
         });
       }
@@ -267,7 +297,14 @@ describe('Space view lifecycle', () => {
                 name: '文档空间',
                 template: 'document',
                 templateData: {},
-                files: [{ id: 'file-1', name: '说明书.pdf', url: '/file/file-1', mimeType: 'application/pdf' }],
+                files: [
+                  {
+                    id: 'file-1',
+                    name: '说明书.pdf',
+                    url: '/file/file-1',
+                    mimeType: 'application/pdf',
+                  },
+                ],
               },
             }),
           });

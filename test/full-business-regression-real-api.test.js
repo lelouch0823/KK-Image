@@ -59,10 +59,7 @@ describeIfRealApi('Full Business Regression Real API', function () {
     try {
       const webhook = await createManageWebhook(token, {
         url: webhookReceiver.url,
-        events: [
-          'purchase_receipt_recorded',
-          'order_procurement_progressed',
-        ],
+        events: ['purchase_receipt_recorded', 'order_procurement_progressed'],
         headers: {
           'X-Full-Chain-Seed': seed,
         },

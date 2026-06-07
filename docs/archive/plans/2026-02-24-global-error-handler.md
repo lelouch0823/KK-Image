@@ -13,6 +13,7 @@
 ### Task 1: Create Standard Exceptions (Errors)
 
 **Files:**
+
 - Create: `functions/lib/hono/errors.js`
 
 **Step 1: Write standard Error classes**
@@ -62,6 +63,7 @@ git commit -m "feat(api): introduce standard AppError classes"
 ### Task 2: Refactor Global Error Handler
 
 **Files:**
+
 - Modify: `functions/lib/hono/middleware/errorHandler.js:1-35`
 - Modify: `functions/lib/hono/app.js:50-65`
 
@@ -107,6 +109,7 @@ git commit -m "refactor(api): migrate to Hono native app.onError hook"
 ### Task 3: Strip `try-catch` from a Pilot Route (`customers.js`)
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/customers.js`
 
 **Step 1: Remove `try-catch` wrapper and use throw**
@@ -123,12 +126,12 @@ return c.json({ success: true, data: customer }, 201);
 // ...
 
 if (!success) {
-    throw new NotFoundError(MSG.CUSTOMER.NOT_FOUND);
+  throw new NotFoundError(MSG.CUSTOMER.NOT_FOUND);
 }
 
 // ...
 if (hasOrders) {
-    throw new BadRequestError(MSG.CUSTOMER.HAS_ORDERS);
+  throw new BadRequestError(MSG.CUSTOMER.HAS_ORDERS);
 }
 ```
 
@@ -149,6 +152,7 @@ git commit -m "refactor(api): remove try-catch from customers endpoint"
 Repeat Task 3 progressively across other key modules ensuring no syntax logic is broken during the stripping phase. Remove `try-catch` blocks and use `throw new CustomError(...)` for known client errors.
 
 **Sub-tasks by file:**
+
 - `manage/salespersons.js`
 - `manage/products/[id].js`
 - `manage/products/index.js`

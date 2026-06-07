@@ -11,16 +11,17 @@ describe('v1 cache urls thin wrappers audit', () => {
     const offenders = [];
 
     if (source.includes('export function getV1FolderAndShareCacheUrls(')) {
-      offenders.push('functions/lib/hono/routes/v1/cache-urls.js: still defines getV1FolderAndShareCacheUrls');
+      offenders.push(
+        'functions/lib/hono/routes/v1/cache-urls.js: still defines getV1FolderAndShareCacheUrls'
+      );
     }
 
     if (source.includes('export function getV1FileAndFolderCacheUrls(')) {
-      offenders.push('functions/lib/hono/routes/v1/cache-urls.js: still defines getV1FileAndFolderCacheUrls');
+      offenders.push(
+        'functions/lib/hono/routes/v1/cache-urls.js: still defines getV1FileAndFolderCacheUrls'
+      );
     }
 
-    expect(
-      offenders,
-      `v1 cache url thin-wrapper offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `v1 cache url thin-wrapper offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

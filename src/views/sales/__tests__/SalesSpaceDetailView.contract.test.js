@@ -71,7 +71,9 @@ describe('SalesSpaceDetailView contract', () => {
           name: '销售文档空间',
           template: 'document',
           template_data: '{}',
-          files: [{ id: 'file-1', name: '报价单.pdf', url: '/file/file-1', mimeType: 'application/pdf' }],
+          files: [
+            { id: 'file-1', name: '报价单.pdf', url: '/file/file-1', mimeType: 'application/pdf' },
+          ],
         },
       }),
     });

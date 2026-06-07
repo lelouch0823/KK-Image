@@ -147,11 +147,14 @@ export default {
     purchase_receipt_recorded: 'Purchase Receipt Recorded',
     purchase_receipt_recorded_desc: 'Purchase order {purchaseOrderId} received {qty} unit(s).',
     order_procurement_progressed: 'Order Procurement Progressed',
-    order_procurement_progressed_desc: 'Purchase order {purchaseOrderId} received {qty} unit(s), procurement status is now {status}.',
+    order_procurement_progressed_desc:
+      'Purchase order {purchaseOrderId} received {qty} unit(s), procurement status is now {status}.',
     purchase_receipt_reversed: 'Purchase Receipt Reversed',
-    purchase_receipt_reversed_desc: 'Purchase order {purchaseOrderId} reversed {qty} received unit(s).',
+    purchase_receipt_reversed_desc:
+      'Purchase order {purchaseOrderId} reversed {qty} received unit(s).',
     order_procurement_reversed: 'Order Procurement Reverted',
-    order_procurement_reversed_desc: 'Purchase order {purchaseOrderId} rolled back {qty} received unit(s), procurement status is now {status}.',
+    order_procurement_reversed_desc:
+      'Purchase order {purchaseOrderId} rolled back {qty} received unit(s), procurement status is now {status}.',
     reminder: {
       pending_order_title: 'Pending Order Reminder',
       pending_order_desc: 'Order {orderNo} has been pending for over 24 hours.',
@@ -245,9 +248,12 @@ export default {
     analyzeImage: 'Please analyze this image',
     error: 'AI Assistant unavailable',
     networkError: 'Network request failed',
-    imageInputNotSupported: 'The current API gateway rejected this image input format. Try JPG/PNG or switch to a multimodal model/gateway that accepts data URLs.',
-    modelImageNotSupported: 'Current model does not support image recognition. Remove the image or switch model.',
-    welcome: 'Hello! I am your AI assistant. I can help with orders, customers, sales, and file stats. How can I help you today?',
+    imageInputNotSupported:
+      'The current API gateway rejected this image input format. Try JPG/PNG or switch to a multimodal model/gateway that accepts data URLs.',
+    modelImageNotSupported:
+      'Current model does not support image recognition. Remove the image or switch model.',
+    welcome:
+      'Hello! I am your AI assistant. I can help with orders, customers, sales, and file stats. How can I help you today?',
     thinking: 'Thinking...',
     toolLoading: 'Querying {tool} data...',
     clear: 'Clear Chat',
@@ -267,11 +273,11 @@ export default {
       getFileStats: 'File Storage',
     },
     suggestions: {
-      dailyReport: 'Today\'s Data Report',
+      dailyReport: "Today's Data Report",
       monthlySalesRanking: 'Monthly Ranking',
       systemStatus: 'System Status',
       pendingOrders: 'Pending Orders',
-      todayNewOrders: 'Today\'s New Orders',
+      todayNewOrders: "Today's New Orders",
       weeklySalesTrend: 'Weekly Trend',
       weeklyNewCustomers: 'New Customers (Weekly)',
       customerCount: 'Total Customers',
@@ -290,7 +296,8 @@ export default {
   auditLogs: {
     title: 'Audit Logs',
     permissionDenied: 'Permission Denied for Audit Logs',
-    permissionDeniedDesc: 'Your account does not have audit log read access. Please contact the admin to assign audit:read or admin:full.',
+    permissionDeniedDesc:
+      'Your account does not have audit log read access. Please contact the admin to assign audit:read or admin:full.',
     loadFailed: 'Failed to Load Audit Logs',
     loadFailedDesc: 'Request failed. Please check your network and try again.',
     sessionExpired: 'Session expired. Please log in again.',
@@ -313,7 +320,8 @@ export default {
     title: 'Outbox Ops',
     subtitle: 'Inspect event delivery state and use dry-run / replay for failed side effects.',
     permissionDenied: 'Outbox ops access denied',
-    permissionDeniedDesc: 'Your account does not have outbox ops read access. Ask an administrator to grant audit:read.',
+    permissionDeniedDesc:
+      'Your account does not have outbox ops read access. Ask an administrator to grant audit:read.',
     filters: {
       eventType: 'Event type',
       consumerName: 'Consumer name',
@@ -323,17 +331,20 @@ export default {
     banner: {
       title: 'Side-effect operations console',
       recommended: 'Dry Run first',
-      description: 'Use this workspace to inspect side-effect delivery and replay. It does not rewrite business facts. Review health, narrow the scope, then decide whether to replay.',
+      description:
+        'Use this workspace to inspect side-effect delivery and replay. It does not rewrite business facts. Review health, narrow the scope, then decide whether to replay.',
       scope: 'Only persisted outbox events are in scope',
       attention: '{count} failed consumers need attention',
       clear: 'No failed consumers in the current focus',
     },
     summary: {
       globalLabel: 'Global health view',
-      globalDescription: 'Based on the currently loaded event set, surface backlog or failure signals before you drill in.',
+      globalDescription:
+        'Based on the currently loaded event set, surface backlog or failure signals before you drill in.',
       globalUpdating: 'Global health is updating',
       globalStale: 'Global health shows the last successful snapshot',
-      globalRefreshFailed: 'The latest global refresh failed, so this panel is still showing the last successful snapshot.',
+      globalRefreshFailed:
+        'The latest global refresh failed, so this panel is still showing the last successful snapshot.',
       eventsUnit: 'events',
       totalEvents: 'Total events',
       failedJobs: 'Failed consumers',
@@ -341,7 +352,8 @@ export default {
       latestEvent: 'Latest event time',
       focusLabel: 'Current filter summary',
       focusDescription: 'These metrics only describe the events currently matched by your filters.',
-      focusDescriptionEmpty: 'No filters are active, so this reflects the full accessible event list.',
+      focusDescriptionEmpty:
+        'No filters are active, so this reflects the full accessible event list.',
       filteredMode: 'Focused',
       unfilteredMode: 'Full view',
       matchedEvents: 'Matched events',
@@ -372,24 +384,29 @@ export default {
     },
     replay: {
       title: 'Replay workspace',
-      description: 'Review the event context first, run a dry-run second, then decide whether to execute replay.',
+      description:
+        'Review the event context first, run a dry-run second, then decide whether to execute replay.',
       selectedEvent: 'Selected event',
       aggregateId: 'Aggregate ID',
       consumerCount: 'Consumers',
       failedCount: 'Failed consumers',
       noConsumers: 'No consumer jobs are attached to this event.',
       actionsTitle: 'Replay actions',
-      actionsDescription: 'Prefer scoping the consumer and running Dry Run before executing a real replay.',
+      actionsDescription:
+        'Prefer scoping the consumer and running Dry Run before executing a real replay.',
       adminWarning: 'Replay execution requires admin privileges',
       consumerLabel: 'Target consumer',
       consumerHint: 'Leave empty to replay every consumer attached to this event.',
       consumerPlaceholder: 'Optional: replay a single consumer only',
       dryRun: 'Dry Run',
       execute: 'Execute Replay',
-      riskNote: 'Dry Run only validates the affected scope and execution summary. Confirm the event, consumer, and latest result before executing replay.',
+      riskNote:
+        'Dry Run only validates the affected scope and execution summary. Confirm the event, consumer, and latest result before executing replay.',
       lastResultTitle: 'Latest operation result',
-      lastResultDescription: 'This shows the most recent dry-run or replay response from this page, not the live system state.',
-      resultEmpty: 'No Dry Run or Replay has been executed yet. The latest result will appear here.',
+      lastResultDescription:
+        'This shows the most recent dry-run or replay response from this page, not the live system state.',
+      resultEmpty:
+        'No Dry Run or Replay has been executed yet. The latest result will appear here.',
       resultFailed: 'Latest execution failed',
       resultDryRun: 'Latest result was Dry Run',
       resultSuccess: 'Latest execution completed',
@@ -397,7 +414,8 @@ export default {
       statusActive: '{count} active consumers',
       statusReady: 'No failed consumers on this event',
       emptyTitle: 'Select an event from the queue first',
-      empty: 'After you select an event, this panel will show consumer state, replay scope, actions, and the latest result.',
+      empty:
+        'After you select an event, this panel will show consumer state, replay scope, actions, and the latest result.',
     },
   },
 };

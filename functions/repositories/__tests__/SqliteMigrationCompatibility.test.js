@@ -12,6 +12,8 @@ describe('sqlite migration compatibility', () => {
 
     expect(sql).toContain('FROM orders');
     expect(sql).toContain('ON CONFLICT(order_id) DO UPDATE SET');
-    expect(sql).toMatch(/FROM orders\s+WHERE\s+(?:1|true)\s+ON CONFLICT\(order_id\)\s+DO UPDATE SET/i);
+    expect(sql).toMatch(
+      /FROM orders\s+WHERE\s+(?:1|true)\s+ON CONFLICT\(order_id\)\s+DO UPDATE SET/i
+    );
   });
 });

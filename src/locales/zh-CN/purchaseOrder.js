@@ -156,7 +156,8 @@ export default {
     reversalModalHint: '当前接口会整笔回滚该次收货记录，请确认库存和订单投影都允许撤回。',
     reversalReasonPlaceholder: '例如：误登记、异常入库、库存校正',
     reversalSubmitting: '提交中...',
-    shortageModalHint: '将确认不会再到货的尾差数量转入采购单取消量，只关闭采购侧待收，不改客户订单需求。',
+    shortageModalHint:
+      '将确认不会再到货的尾差数量转入采购单取消量，只关闭采购侧待收，不改客户订单需求。',
     shortageCloseQty: '本次关闭数量',
     shortageQtyOverflow: '不能超过当前剩余待收数量。',
     shortageSelectedLines: '已填关闭行',

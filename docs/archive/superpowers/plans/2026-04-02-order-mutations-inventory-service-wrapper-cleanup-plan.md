@@ -13,6 +13,7 @@
 ### Task 1: Lock the Cleanup Contract
 
 **Files:**
+
 - Create: `functions/repositories/__tests__/order-inventory-service-wrapper.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the wrapper still exists.
 ### Task 2: Inline Inventory Service Fallback
 
 **Files:**
+
 - Modify: `functions/repositories/order/mutations.js`
 
 - [ ] **Step 1: Remove the local wrapper**

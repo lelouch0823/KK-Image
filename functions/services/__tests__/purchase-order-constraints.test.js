@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  getSuggestedOrderQuantity,
-  validateOrderQuantity,
-} from '../purchase-order-constraints.js';
+import { getSuggestedOrderQuantity, validateOrderQuantity } from '../purchase-order-constraints.js';
 
 describe('purchase-order constraints', () => {
   it('suggests nearest valid quantity >= requested with moq/step/pack', () => {
@@ -24,4 +21,3 @@ describe('purchase-order constraints', () => {
     expect(result.reason).toMatch(/MOQ|步长|箱规/);
   });
 });
-

@@ -20,21 +20,25 @@ describe('buildOutboxOpsMetrics', () => {
       {
         id: 'evt-2',
         created_at: '2026-04-13T09:30:00.000Z',
-        consumerJobs: [
-          { consumer_name: 'notification', status: 'processing' },
-        ],
+        consumerJobs: [{ consumer_name: 'notification', status: 'processing' }],
       },
     ];
 
-    expect(buildOutboxOpsMetrics(events, {
-      eventType: 'purchase_receipt_recorded',
-      consumerName: 'notification',
-      status: 'failed',
-    }, {
-      isLoading: true,
-      isStale: true,
-      refreshFailed: true,
-    })).toEqual({
+    expect(
+      buildOutboxOpsMetrics(
+        events,
+        {
+          eventType: 'purchase_receipt_recorded',
+          consumerName: 'notification',
+          status: 'failed',
+        },
+        {
+          isLoading: true,
+          isStale: true,
+          refreshFailed: true,
+        }
+      )
+    ).toEqual({
       totalEvents: 2,
       failedJobs: 1,
       activeJobs: 1,

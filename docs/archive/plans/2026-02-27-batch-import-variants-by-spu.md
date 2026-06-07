@@ -16,9 +16,11 @@
 - `spu` 已存在：更新该商品元信息（仅允许的字段）并执行变体更新/新增。
 - `spu` 不存在：新建商品并创建变体。
 - 变体匹配优先级：
+
 1. `variant_code`
 2. `sku`（同商品内）
 3. `variant_signature`（由 `options_values` 生成）
+
 - 导入时不删除线上已有变体（防止误删历史数据）。
 - 前端预览必须提示：检测到相同 SPU 将更新原有变体数据。
 
@@ -77,6 +79,7 @@
 ## Task 1: Frontend Mapping To Variant-First Payload
 
 **Files:**
+
 - Modify: `src/components/product/ProductImportModal.vue`
 - Test: `src/components/product/__tests__/ProductImportModal.variant-first.test.js` (new)
 
@@ -101,8 +104,10 @@ Expected: FAIL，提示当前 payload 仍是逐行商品。
 **Step 3: Write minimal implementation**
 
 - 在 `ProductImportModal.vue` 增加纯函数（可放 `<script setup>` 顶部）：
+
 1. `normalizeVariantFromRow(row)`
 2. `groupRowsToProductPayload(rows)`
+
 - `handleImport` 中用聚合后的 `groupedItems` 替代 `parsedItems`。
 - 对 `spu` 为空的行：以“唯一临时 key”单独成组，避免错误合并。
 
@@ -130,6 +135,7 @@ git commit -m "feat(import): group rows by spu into variant-first payload"
 ## Task 2: Frontend UI Warning For Existing SPU Update Behavior
 
 **Files:**
+
 - Modify: `src/components/product/import/ImportPreviewStep.vue`
 - Modify: `src/locales/zh-CN/product.js`
 - Modify: `src/locales/en/product.js`
@@ -168,12 +174,14 @@ git commit -m "feat(import-ui): add warning that same spu updates existing varia
 ## Task 3: Batch Route Contract Test For Upsert By SPU
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/products/__tests__/product-spu-routes.test.js`
 - Modify: `functions/lib/hono/routes/manage/products/batch.js`
 
 **Step 1: Write the failing test**
 
 新增用例：
+
 - case A: `findBySpu` 命中时应执行“更新商品 + upsert 变体”而不是创建新商品。
 - case B: `findBySpu` 未命中时创建商品并创建变体。
 - case C: 返回 `summary.createdProducts/updatedProducts/createdVariants/updatedVariants`。
@@ -186,8 +194,10 @@ Expected: FAIL，`/batch` 目前仅 `createBatch(items)`。
 **Step 3: Write minimal implementation**
 
 在 `batch.js` 中替换旧逻辑：
+
 - 注入 `ProductRepository` + `ProductVariantRepository`。
 - 每个 item：
+
 1. `spu` 非空则 `findBySpu(spu)`。
 2. 命中：`updateWithMeta(productId, productFields)`。
 3. 未命中：`create(productFields)`。
@@ -210,6 +220,7 @@ git commit -m "feat(products-batch): upsert product variants by spu with summary
 ## Task 4: Repository-Level Merge Logic Test
 
 **Files:**
+
 - Create: `functions/repositories/__tests__/product-import-merge.test.js`
 - Modify: `functions/repositories/ProductVariantRepository.js` (only if extracted helper needed)
 - Modify: `functions/lib/hono/routes/manage/products/batch.js`
@@ -217,6 +228,7 @@ git commit -m "feat(products-batch): upsert product variants by spu with summary
 **Step 1: Write the failing test**
 
 - 针对“已有 variants + 导入 variants”合并函数测试：
+
 1. 命中 `variant_code` 更新。
 2. 无 `variant_code` 时按 `sku` 命中更新。
 3. 无 `variant_code/sku` 时按 `variant_signature` 命中更新。
@@ -231,6 +243,7 @@ Expected: FAIL
 **Step 3: Write minimal implementation**
 
 - 在 `batch.js` 内部或独立 util 增加：
+
 1. `buildVariantMatchKey(variant)`
 2. `mergeIncomingWithExisting(existing, incoming)`
 
@@ -255,6 +268,7 @@ git commit -m "test(import): cover variant upsert matching and merge preservatio
 ## Task 5: Import Result UI Stats Integration
 
 **Files:**
+
 - Modify: `src/components/product/ProductImportModal.vue`
 - Modify: `src/components/product/import/ImportPreviewStep.vue`
 - Test: `src/components/product/import/__tests__/ImportPreviewStep.test.js`
@@ -292,6 +306,7 @@ git commit -m "feat(import-ui): show created/updated product and variant summary
 ## Task 6: Regression Coverage (Existing Behavior)
 
 **Files:**
+
 - Modify: `src/components/product/import/__tests__/match-keys.test.js`
 - Modify: `functions/repositories/__tests__/product-spu.test.js` (如需)
 - Modify: `functions/repositories/__tests__/product-variant-code.test.js` (如需)
@@ -299,6 +314,7 @@ git commit -m "feat(import-ui): show created/updated product and variant summary
 **Step 1: Write the failing test**
 
 - 确保导入后仍支持：
+
 1. 图片匹配 key 不回退。
 2. `spu` 唯一约束下的非导入创建流程不受影响。
 3. `variant_code` 唯一冲突时可读错误保持一致。
@@ -327,12 +343,14 @@ git commit -m "test(regression): preserve import keys and spu/variant-code const
 ## Task 7: End-To-End Verification Before Merge
 
 **Files:**
+
 - Modify: `docs/plans/2026-02-27-batch-import-variants-by-spu.md` (勾选记录)
 - Optional: `docs/reviews/2026-02-27-batch-import-variants-by-spu-qa.md` (new)
 
 **Step 1: Run focused unit suites**
 
 Run:
+
 - `pnpm test:unit functions/lib/hono/routes/manage/products/__tests__/product-spu-routes.test.js`
 - `pnpm test:unit src/components/product/__tests__/ProductImportModal.variant-first.test.js`
 - `pnpm test:unit src/components/product/import/__tests__/ImportPreviewStep.test.js`
@@ -342,6 +360,7 @@ Expected: 全部 PASS (Verified)
 **Step 2: Run broader related suites**
 
 Run:
+
 - `pnpm test:unit functions/repositories/__tests__/product-spu.test.js`
 - `pnpm test:unit functions/repositories/__tests__/product-variant-code.test.js`
 - `pnpm test:unit src/components/product/__tests__/ProductCreateModal.variant-first.test.js`
@@ -365,6 +384,7 @@ git commit -m "docs(qa): verify batch variant import by spu"
 ## Rollback Strategy
 
 - 若上线后发现批量更新异常：
+
 1. 临时回退 `batch.js` 到旧 `createBatch` 分支逻辑。
 2. 保留前端提示但禁用“按 `spu` 聚合”开关（可加 feature flag）。
 3. 对异常导入批次按 `created_at` 时间窗口导出审计并手工修复。

@@ -210,7 +210,10 @@ describe('Sales notification mode lifecycle', () => {
 
     await flushPromises();
 
-    const result = await mocks.capturedStateMachineActions.createOrder({ name: 'Desk', quantity: 1 });
+    const result = await mocks.capturedStateMachineActions.createOrder({
+      name: 'Desk',
+      quantity: 1,
+    });
 
     expect(result).toEqual({ ok: true, data: null });
   });

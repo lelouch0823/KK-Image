@@ -13,6 +13,7 @@
 ### Task 1: Inventory the list endpoints and cache invalidation surface
 
 **Files:**
+
 - Modify: `docs/plans/2026-03-11-backend-aggressive-dedup-implementation-plan.md`
 - Review: `functions/lib/hono/routes/manage/files.js`
 - Review: `functions/lib/hono/routes/manage/customers.js`
@@ -46,6 +47,7 @@ Capture the exact query keys each route uses today, including `page`, `limit`, a
 **Step 3: Record the current invalidation strategy per route**
 
 For each route, note whether invalidation is:
+
 - no invalidation
 - base URL only
 - base URL plus manually enumerated variants
@@ -61,6 +63,7 @@ git commit -m "docs: inventory backend list routes for dedup plan"
 ### Task 2: Add shared list query normalization and cache URL builders
 
 **Files:**
+
 - Modify: `functions/api/utils/pagination.js`
 - Modify: `functions/lib/hono/_shared/route-helpers.js`
 - Create: `functions/lib/hono/_shared/__tests__/route-helpers.list-cache.test.js`
@@ -69,6 +72,7 @@ git commit -m "docs: inventory backend list routes for dedup plan"
 **Step 1: Write the failing tests for normalized list query handling**
 
 Add tests covering:
+
 - default `page` and `limit` injection
 - max-limit clamping
 - empty query values removed from cache key input
@@ -78,18 +82,25 @@ Add tests covering:
 Example assertions:
 
 ```javascript
-expect(normalizeListQuery({ page: '0', limit: '999', search: '' }, {
-  page: 1,
-  limit: 20,
-  maxLimit: 100,
-  allowedKeys: ['page', 'limit', 'search'],
-})).toEqual({ page: '1', limit: '100' });
+expect(
+  normalizeListQuery(
+    { page: '0', limit: '999', search: '' },
+    {
+      page: 1,
+      limit: 20,
+      maxLimit: 100,
+      allowedKeys: ['page', 'limit', 'search'],
+    }
+  )
+).toEqual({ page: '1', limit: '100' });
 
-expect(buildListCacheUrls('https://x.test', '/api/manage/customers', {
-  allowedKeys: ['page', 'limit', 'search'],
-  defaults: { page: 1, limit: 20 },
-  query: { search: 'abc' },
-})).toContain('https://x.test/api/manage/customers?limit=20&page=1&search=abc');
+expect(
+  buildListCacheUrls('https://x.test', '/api/manage/customers', {
+    allowedKeys: ['page', 'limit', 'search'],
+    defaults: { page: 1, limit: 20 },
+    query: { search: 'abc' },
+  })
+).toContain('https://x.test/api/manage/customers?limit=20&page=1&search=abc');
 ```
 
 **Step 2: Run tests to verify they fail**
@@ -105,12 +116,14 @@ Expected: FAIL because the new normalization and cache URL helpers do not exist 
 **Step 3: Implement the shared helpers**
 
 Add minimal shared helpers with exact responsibilities:
+
 - `parseRepoPagination(input, options)` remains the canonical numeric parser
 - `normalizeListQuery(query, config)` returns a stable string-value object suitable for cache keys
 - `buildListCacheUrls(origin, basePath, config)` returns normalized invalidation targets
 - `createListCacheInvalidator(basePath, config)` returns a route helper for Hono routes
 
 Implementation constraints:
+
 - no route-specific logic inside the shared helper
 - remove empty string, `undefined`, and `null`
 - sort query keys
@@ -136,6 +149,7 @@ git commit -m "refactor: add shared list query normalization helpers"
 ### Task 3: Add shared JSON/result/SQL update helpers for backend convergence
 
 **Files:**
+
 - Modify: `functions/api/utils/json.js`
 - Modify: `functions/api/utils/sql.js`
 - Create: `functions/api/utils/result.js`
@@ -147,6 +161,7 @@ git commit -m "refactor: add shared list query normalization helpers"
 **Step 1: Write the failing tests**
 
 Add tests for:
+
 - `parseJsonArray` and `parseJsonObject` on strings, objects, invalid JSON
 - `hasChanges(result)` for missing metadata and positive changes
 - `buildSetClause({ a: 1, b: 2 })` producing deterministic SQL and values
@@ -175,6 +190,7 @@ Expected: FAIL because `hasChanges` and deterministic set-clause helpers do not 
 **Step 3: Implement the helpers**
 
 Add:
+
 - `hasChanges(result)` and optionally `getChangesCount(result)`
 - deterministic `buildSetClause(record)`
 - export them through `functions/_shared/utils.js`
@@ -201,6 +217,7 @@ git commit -m "refactor: add shared backend utility primitives"
 ### Task 4: Migrate repository pagination to the shared rule
 
 **Files:**
+
 - Modify: `functions/repositories/FileRepository.js`
 - Modify: `functions/repositories/CustomerRepository.js`
 - Modify: `functions/repositories/SalespersonRepository.js`
@@ -214,6 +231,7 @@ git commit -m "refactor: add shared backend utility primitives"
 **Step 1: Write focused repository regression tests before migration**
 
 Add or extend tests near existing repository coverage to lock in:
+
 - page lower bound becomes `1`
 - limit clamps to route-specific or repository-specific max
 - offsets remain correct
@@ -234,12 +252,14 @@ Expected: PASS before migration, establishing baseline behavior.
 **Step 3: Replace local pagination math with shared parsing**
 
 In each repository:
+
 - import `parseRepoPagination`
 - preserve per-call defaults and max limits via options
 - use returned `page`, `limit`, `offset`
 - remove duplicated local `safePage/safeLimit` code
 
 Special handling:
+
 - `ProductRepository.search` currently supports `limit = 0` semantics for unlimited mode. Decide one of:
   - remove unlimited mode and update callers
   - add explicit `allowUnlimited` support to the shared helper
@@ -266,6 +286,7 @@ git commit -m "refactor: unify repository pagination rules"
 ### Task 5: Migrate route list endpoints to shared normalized cache invalidation
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/files.js`
 - Modify: `functions/lib/hono/routes/manage/customers.js`
 - Modify: `functions/lib/hono/routes/manage/salespersons.js`
@@ -281,6 +302,7 @@ git commit -m "refactor: unify repository pagination rules"
 **Step 1: Write or extend failing tests for cache invalidation coverage**
 
 Add tests proving that list invalidation covers:
+
 - base URL
 - normalized default page
 - normalized default limit
@@ -307,6 +329,7 @@ Expected: FAIL because current routes still use route-local invalidation pattern
 **Step 3: Migrate routes to the shared list invalidation helper**
 
 For each list route:
+
 - declare the exact `allowedKeys`
 - declare default pagination values
 - route all invalidation through `createListCacheInvalidator` or equivalent helper
@@ -334,6 +357,7 @@ git commit -m "refactor: unify list cache invalidation across routes"
 ### Task 6: Remove duplicate JSON parsing from repositories, services, and routes
 
 **Files:**
+
 - Modify: `functions/repositories/PurchaseOrderRepository.js`
 - Modify: `functions/services/PurchaseOrderService.js`
 - Modify: `functions/repositories/ProductRepository.js`
@@ -349,6 +373,7 @@ git commit -m "refactor: unify list cache invalidation across routes"
 **Step 1: Write or extend failing tests for shared JSON fallback semantics**
 
 Cover:
+
 - array fields remain arrays
 - object fields remain objects
 - invalid JSON falls back deterministically
@@ -367,6 +392,7 @@ Expected: FAIL if the code is switched to imports before implementation or if ne
 **Step 3: Replace local parsers with shared imports**
 
 Rules:
+
 - use `parseJsonArray` for array-like fields
 - use `parseJsonObject` for object-like fields
 - use `safeJsonParse` only when either array or object is acceptable
@@ -394,6 +420,7 @@ git commit -m "refactor: remove duplicate backend json parsers"
 ### Task 7: Extract repeated SQL and stale wrappers from repositories
 
 **Files:**
+
 - Modify: `functions/repositories/SpaceRepository.js`
 - Modify: `functions/repositories/OrderRepository.js`
 - Test: `functions/repositories/__tests__/SpaceRepository.test.js`
@@ -402,6 +429,7 @@ git commit -m "refactor: remove duplicate backend json parsers"
 **Step 1: Write the failing tests around repeated SQL consumers**
 
 Add or extend tests that prove all affected `SpaceRepository` methods return the same projected fields for:
+
 - `variant_primary_image_id`
 - `display_image_id`
 - `p_*` product projection fields
@@ -419,11 +447,13 @@ Expected: PASS before refactor.
 **Step 3: Extract composable SQL fragments**
 
 In `SpaceRepository`:
+
 - introduce private helpers for repeated product projection
 - introduce private helpers for repeated variant image projection
 - compose methods from the helpers without changing selected aliases
 
 In `OrderRepository`:
+
 - remove `_parseJson`, `_mapOrderListItem`, `_mapOrderDetail` if unused
 - retain only direct facade methods that are still called
 
@@ -447,6 +477,7 @@ git commit -m "refactor: extract repeated repository sql fragments"
 ### Task 8: Verify end-to-end list behavior and cache safety
 
 **Files:**
+
 - Test: `functions/lib/hono/routes/manage/__tests__/core-authz-gates.test.js`
 - Test: `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 - Test: `functions/lib/hono/routes/manage/products/__tests__/product-spu-routes.test.js`
@@ -503,12 +534,14 @@ git commit -m "refactor: complete aggressive backend dedup convergence"
 ### Task 9: Final review and handoff
 
 **Files:**
+
 - Review: `docs/plans/2026-03-11-backend-aggressive-dedup-implementation-plan.md`
 - Review: `docs/reviews/backend-code-duplication-review.md`
 
 **Step 1: Summarize net reductions**
 
 Record:
+
 - deleted duplicate helper count
 - migrated repository count
 - migrated route count

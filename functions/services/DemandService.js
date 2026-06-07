@@ -1,7 +1,7 @@
 import { generateId } from '../api/utils/id.js';
 import { BadRequestError } from '../lib/hono/errors.js';
 import { VariantDemandProjectionRepository } from '../repositories/VariantDemandProjectionRepository.js';
-import { queryOrderLineCandidates } from './order-line-shared.js';
+import { queryOrderLineCandidates, resolveOrderLineId } from './order-line-shared.js';
 
 const DEMAND_ACTIVE_STATUSES = new Set(['confirmed', 'production', 'shipping', 'arrived']);
 const DEMAND_RELEASE_STATUSES = new Set(['void', 'rejected', 'cancelled']);
@@ -20,24 +20,7 @@ export class DemandService {
   }
 
   async resolveOrderLineId(payload = {}) {
-    if (payload.orderLineId) return payload.orderLineId;
-    if (!payload.orderId || typeof this.db?.prepare !== 'function') return null;
-
-    const candidates = await this.queryOrderLineCandidates(payload, true);
-    if (candidates.length === 1) return candidates[0]?.id || null;
-    if (candidates.length > 1) {
-      throw new BadRequestError('orderLineId is required for multi-line orders');
-    }
-
-    if (payload.variantId || payload.productId) {
-      const fallback = await this.queryOrderLineCandidates(payload, false);
-      if (fallback.length === 1) return fallback[0]?.id || null;
-      if (fallback.length > 1) {
-        throw new BadRequestError('orderLineId is required for multi-line orders');
-      }
-    }
-
-    return null;
+    return resolveOrderLineId(this.db, payload);
   }
   getTransitionEffect({ fromStatus = null, toStatus }) {
     const normalizedTo = String(toStatus || '').trim();
@@ -46,13 +29,20 @@ export class DemandService {
     }
 
     const normalizedFrom = String(fromStatus || '').trim() || null;
-    const entersReservation = !RESERVATION_ACTIVE_STATUSES.has(normalizedFrom) && RESERVATION_ACTIVE_STATUSES.has(normalizedTo);
-    const releasesReservation = RESERVATION_ACTIVE_STATUSES.has(normalizedFrom) && DEMAND_RELEASE_STATUSES.has(normalizedTo);
-    const consumesReservation = RESERVATION_ACTIVE_STATUSES.has(normalizedFrom) && SHIPMENT_CONSUME_STATUSES.has(normalizedTo);
+    const entersReservation =
+      !RESERVATION_ACTIVE_STATUSES.has(normalizedFrom) &&
+      RESERVATION_ACTIVE_STATUSES.has(normalizedTo);
+    const releasesReservation =
+      RESERVATION_ACTIVE_STATUSES.has(normalizedFrom) && DEMAND_RELEASE_STATUSES.has(normalizedTo);
+    const consumesReservation =
+      RESERVATION_ACTIVE_STATUSES.has(normalizedFrom) &&
+      SHIPMENT_CONSUME_STATUSES.has(normalizedTo);
 
     return {
-      createsDemand: !DEMAND_ACTIVE_STATUSES.has(normalizedFrom) && DEMAND_ACTIVE_STATUSES.has(normalizedTo),
-      releasesDemand: DEMAND_ACTIVE_STATUSES.has(normalizedFrom) && DEMAND_RELEASE_STATUSES.has(normalizedTo),
+      createsDemand:
+        !DEMAND_ACTIVE_STATUSES.has(normalizedFrom) && DEMAND_ACTIVE_STATUSES.has(normalizedTo),
+      releasesDemand:
+        DEMAND_ACTIVE_STATUSES.has(normalizedFrom) && DEMAND_RELEASE_STATUSES.has(normalizedTo),
       stockDeductionPending: SHIPMENT_PREP_STATUSES.has(normalizedTo),
       entersReservation,
       releasesReservation,
@@ -85,62 +75,69 @@ export class DemandService {
       const eventType = reservationDelta > 0 ? 'reservation_hold' : 'reservation_release';
 
       await this.db.batch([
-        this.db.prepare(
-          `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
+        this.db
+          .prepare(
+            `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
            VALUES (?, 0, ?, 0, ?)
            ON CONFLICT(variant_id) DO UPDATE SET
              reserved = MAX(0, inventory_balances.reserved + ?),
              available = MAX(0, inventory_balances.on_hand - MAX(0, inventory_balances.reserved + ?)),
              updated_at = excluded.updated_at`
-        ).bind(
-          payload.variantId,
-          Math.max(reservationDelta, 0),
-          timestamp,
-          reservationDelta,
-          reservationDelta
-        ),
-        this.db.prepare(
-          `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)
+          )
+          .bind(
+            payload.variantId,
+            Math.max(reservationDelta, 0),
+            timestamp,
+            reservationDelta,
+            reservationDelta
+          ),
+        this.db
+          .prepare(
+            `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(
-          generateId(),
-          payload.variantId,
-          eventType,
-          reservationDelta,
-          'order',
-          sourceId,
-          timestamp,
-          reservationMetadata,
-          timestamp
-        ),
-        this.db.prepare(
-          `INSERT INTO inventory_events (
+          )
+          .bind(
+            generateId(),
+            payload.variantId,
+            eventType,
+            reservationDelta,
+            'order',
+            sourceId,
+            timestamp,
+            reservationMetadata,
+            timestamp
+          ),
+        this.db
+          .prepare(
+            `INSERT INTO inventory_events (
             id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta,
             source_type, source_id, metadata, occurred_at, created_at
           ) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(
-          generateId(),
-          payload.variantId,
-          orderLineId,
-          eventType,
-          reservationDelta,
-          'order',
-          sourceId,
-          reservationMetadata,
-          timestamp,
-          timestamp
-        ),
+          )
+          .bind(
+            generateId(),
+            payload.variantId,
+            orderLineId,
+            eventType,
+            reservationDelta,
+            'order',
+            sourceId,
+            reservationMetadata,
+            timestamp,
+            timestamp
+          ),
       ]);
     }
 
     const fromStatus = String(payload?.fromStatus || '').trim();
     const toStatus = String(payload?.toStatus || '').trim();
-    const projectionNeedsRefresh = Boolean(payload?.variantId) && fromStatus !== toStatus && (
-      DEMAND_ACTIVE_STATUSES.has(fromStatus)
-      || DEMAND_ACTIVE_STATUSES.has(toStatus)
-      || effect.createsDemand
-      || effect.releasesDemand
-    );
+    const projectionNeedsRefresh =
+      Boolean(payload?.variantId) &&
+      fromStatus !== toStatus &&
+      (DEMAND_ACTIVE_STATUSES.has(fromStatus) ||
+        DEMAND_ACTIVE_STATUSES.has(toStatus) ||
+        effect.createsDemand ||
+        effect.releasesDemand);
     if (projectionNeedsRefresh) {
       await this.projectionRepo.refreshByVariantId(payload.variantId);
     }

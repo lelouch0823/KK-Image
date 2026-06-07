@@ -2,113 +2,98 @@
 // Do not edit manually.
 export const POLICY_DATA = {};
 export const POLICY_METADATA = {
-  "roles": {
-    "admin": {
-      "label": "管理员",
-      "permissions": [
-        "admin:full"
-      ]
+  roles: {
+    admin: {
+      label: '管理员',
+      permissions: ['admin:full'],
     },
-    "manager": {
-      "label": "经理",
-      "permissions": [
-        "files:read",
-        "files:write",
-        "files:delete",
-        "notifications:read",
-        "notifications:write",
-        "folders:read",
-        "folders:write",
-        "folders:delete",
-        "spaces:manage",
-        "products:manage",
-        "orders:manage",
-        "users:read",
-        "webhooks:read",
-        "stats:read"
-      ]
+    manager: {
+      label: '经理',
+      permissions: [
+        'files:read',
+        'files:write',
+        'files:delete',
+        'notifications:read',
+        'notifications:write',
+        'folders:read',
+        'folders:write',
+        'folders:delete',
+        'spaces:manage',
+        'products:manage',
+        'orders:manage',
+        'users:read',
+        'webhooks:read',
+        'stats:read',
+      ],
     },
-    "sales": {
-      "label": "销售",
-      "permissions": [
-        "files:read",
-        "files:write",
-        "notifications:read",
-        "notifications:write",
-        "spaces:read",
-        "spaces:manage",
-        "orders:manage",
-        "users:read"
-      ]
+    sales: {
+      label: '销售',
+      permissions: [
+        'files:read',
+        'files:write',
+        'notifications:read',
+        'notifications:write',
+        'spaces:read',
+        'spaces:manage',
+        'orders:manage',
+        'users:read',
+      ],
     },
-    "viewer": {
-      "label": "访客",
-      "permissions": [
-        "files:read",
-        "notifications:read",
-        "spaces:read",
-        "users:read",
-        "stats:read"
-      ]
+    viewer: {
+      label: '访客',
+      permissions: ['files:read', 'notifications:read', 'spaces:read', 'users:read', 'stats:read'],
     },
-    "auditor": {
-      "label": "审计员",
-      "permissions": [
-        "audit:read",
-        "audit:export"
-      ]
+    auditor: {
+      label: '审计员',
+      permissions: ['audit:read', 'audit:export'],
     },
-    "user": {
-      "label": "普通用户",
-      "permissions": [
-        "files:read",
-        "notifications:read",
-        "spaces:read"
-      ]
-    }
+    user: {
+      label: '普通用户',
+      permissions: ['files:read', 'notifications:read', 'spaces:read'],
+    },
   },
-  "actions": [
-    "files:read",
-    "files:write",
-    "files:delete",
-    "notifications:read",
-    "notifications:write",
-    "folders:read",
-    "folders:write",
-    "folders:delete",
-    "spaces:read",
-    "spaces:manage",
-    "products:manage",
-    "orders:manage",
-    "users:read",
-    "users:write",
-    "webhooks:read",
-    "webhooks:write",
-    "stats:read",
-    "audit:read",
-    "audit:export",
-    "admin:full"
+  actions: [
+    'files:read',
+    'files:write',
+    'files:delete',
+    'notifications:read',
+    'notifications:write',
+    'folders:read',
+    'folders:write',
+    'folders:delete',
+    'spaces:read',
+    'spaces:manage',
+    'products:manage',
+    'orders:manage',
+    'users:read',
+    'users:write',
+    'webhooks:read',
+    'webhooks:write',
+    'stats:read',
+    'audit:read',
+    'audit:export',
+    'admin:full',
   ],
-  "actionLabels": {
-    "files:read": "读取文件",
-    "files:write": "创建/编辑文件",
-    "files:delete": "删除文件",
-    "notifications:read": "读取通知",
-    "notifications:write": "管理通知",
-    "folders:read": "读取文件夹",
-    "folders:write": "创建/编辑文件夹",
-    "folders:delete": "删除文件夹",
-    "users:read": "查看用户",
-    "users:write": "管理用户",
-    "webhooks:read": "查看 Webhooks",
-    "webhooks:write": "管理 Webhooks",
-    "stats:read": "查看统计",
-    "audit:read": "读取操作审计",
-    "audit:export": "导出操作审计",
-    "admin:full": "完全管理员权限",
-    "spaces:read": "读取空间",
-    "spaces:manage": "管理空间",
-    "products:manage": "管理商品",
-    "orders:manage": "管理订单"
-  }
+  actionLabels: {
+    'files:read': '读取文件',
+    'files:write': '创建/编辑文件',
+    'files:delete': '删除文件',
+    'notifications:read': '读取通知',
+    'notifications:write': '管理通知',
+    'folders:read': '读取文件夹',
+    'folders:write': '创建/编辑文件夹',
+    'folders:delete': '删除文件夹',
+    'users:read': '查看用户',
+    'users:write': '管理用户',
+    'webhooks:read': '查看 Webhooks',
+    'webhooks:write': '管理 Webhooks',
+    'stats:read': '查看统计',
+    'audit:read': '读取操作审计',
+    'audit:export': '导出操作审计',
+    'admin:full': '完全管理员权限',
+    'spaces:read': '读取空间',
+    'spaces:manage': '管理空间',
+    'products:manage': '管理商品',
+    'orders:manage': '管理订单',
+  },
 };

@@ -15,9 +15,7 @@ import { generateId } from '../../../api/utils/id.js';
 export async function traceIdMiddleware(c, next) {
   // 支持从请求头透传 trace ID（微服务链路追踪场景）
   const existingTraceId =
-    c.req.header('X-Trace-Id') ||
-    c.req.header('X-Request-Id') ||
-    c.req.header('X-Amzn-Trace-Id');
+    c.req.header('X-Trace-Id') || c.req.header('X-Request-Id') || c.req.header('X-Amzn-Trace-Id');
 
   const traceId = existingTraceId || generateId();
 

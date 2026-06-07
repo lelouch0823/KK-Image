@@ -2,7 +2,12 @@
   <div class="space-y-6">
     <SettingsSection
       :title="t('settings.printTemplate.title', 'Print Template')"
-      :description="t('settings.printTemplate.description', 'Configure company branding and layout for printed documents and PDF exports.')"
+      :description="
+        t(
+          'settings.printTemplate.description',
+          'Configure company branding and layout for printed documents and PDF exports.'
+        )
+      "
       icon="printer"
     >
       <form class="space-y-6" @submit.prevent="saveSettings">
@@ -33,7 +38,12 @@
               placeholder="https://example.com/logo.png"
             />
             <p class="text-secondary text-xs">
-              {{ t('settings.printTemplate.companyLogoDesc', 'URL of the company logo image. Leave empty to hide.') }}
+              {{
+                t(
+                  'settings.printTemplate.companyLogoDesc',
+                  'URL of the company logo image. Leave empty to hide.'
+                )
+              }}
             </p>
             <div v-if="form.PRINT_COMPANY_LOGO" class="mt-2 flex items-center gap-3">
               <img
@@ -56,7 +66,9 @@
             <AppInput
               v-model="form.PRINT_COMPANY_ADDRESS"
               type="text"
-              :placeholder="t('settings.printTemplate.companyAddressPlaceholder', 'e.g. 123 Main St, City')"
+              :placeholder="
+                t('settings.printTemplate.companyAddressPlaceholder', 'e.g. 123 Main St, City')
+              "
             />
           </div>
 
@@ -68,7 +80,9 @@
             <AppInput
               v-model="form.PRINT_COMPANY_PHONE"
               type="text"
-              :placeholder="t('settings.printTemplate.companyPhonePlaceholder', 'e.g. +86 123-4567-8900')"
+              :placeholder="
+                t('settings.printTemplate.companyPhonePlaceholder', 'e.g. +86 123-4567-8900')
+              "
             />
           </div>
 
@@ -83,7 +97,12 @@
                 :label="t('settings.printTemplate.accentColor', 'Accent Color')"
               />
               <span class="text-secondary text-xs">
-                {{ t('settings.printTemplate.accentColorDesc', 'Used for headers and borders in printed documents.') }}
+                {{
+                  t(
+                    'settings.printTemplate.accentColorDesc',
+                    'Used for headers and borders in printed documents.'
+                  )
+                }}
               </span>
             </div>
           </div>
@@ -98,10 +117,20 @@
             <AppInput
               v-model="form.PRINT_FOOTER_TEXT"
               type="text"
-              :placeholder="t('settings.printTemplate.footerTextPlaceholder', 'e.g. Thank you for your business!')"
+              :placeholder="
+                t(
+                  'settings.printTemplate.footerTextPlaceholder',
+                  'e.g. Thank you for your business!'
+                )
+              "
             />
             <p class="text-secondary text-xs">
-              {{ t('settings.printTemplate.footerTextDesc', 'Displayed at the bottom of every printed page.') }}
+              {{
+                t(
+                  'settings.printTemplate.footerTextDesc',
+                  'Displayed at the bottom of every printed page.'
+                )
+              }}
             </p>
           </div>
         </AppCard>
@@ -117,7 +146,10 @@
             class="overflow-hidden rounded border border-(--border-color) bg-white p-4"
             style="font-size: 12px; max-width: 400px"
           >
-            <div class="flex items-start justify-between border-b-2 pb-2" :style="{ borderColor: form.PRINT_TEMPLATE_ACCENT_COLOR }">
+            <div
+              class="flex items-start justify-between border-b-2 pb-2"
+              :style="{ borderColor: form.PRINT_TEMPLATE_ACCENT_COLOR }"
+            >
               <div class="flex items-center gap-2">
                 <img
                   v-if="form.PRINT_COMPANY_LOGO && !logoError"
@@ -141,7 +173,10 @@
             <div class="mt-2 text-xs text-(--text-main)">
               {{ t('settings.printTemplate.previewContent', 'Document content area...') }}
             </div>
-            <div v-if="form.PRINT_FOOTER_TEXT" class="mt-2 border-t border-(--border-color) pt-1 text-center text-xs text-(--text-muted)">
+            <div
+              v-if="form.PRINT_FOOTER_TEXT"
+              class="mt-2 border-t border-(--border-color) pt-1 text-center text-xs text-(--text-muted)"
+            >
               {{ form.PRINT_FOOTER_TEXT }}
             </div>
           </div>
@@ -197,9 +232,12 @@ const form = reactive({
 });
 
 // 当 Logo URL 变化时重置错误状态
-watch(() => form.PRINT_COMPANY_LOGO, () => {
-  logoError.value = false;
-});
+watch(
+  () => form.PRINT_COMPANY_LOGO,
+  () => {
+    logoError.value = false;
+  }
+);
 
 const loadCurrentSettings = async () => {
   await loadSettings(true);
@@ -218,11 +256,19 @@ const saveSettings = async () => {
     const settingsToSave = [
       { key: 'PRINT_COMPANY_NAME', value: form.PRINT_COMPANY_NAME, category: 'printTemplate' },
       { key: 'PRINT_COMPANY_LOGO', value: form.PRINT_COMPANY_LOGO, category: 'printTemplate' },
-      { key: 'PRINT_COMPANY_ADDRESS', value: form.PRINT_COMPANY_ADDRESS, category: 'printTemplate' },
+      {
+        key: 'PRINT_COMPANY_ADDRESS',
+        value: form.PRINT_COMPANY_ADDRESS,
+        category: 'printTemplate',
+      },
       { key: 'PRINT_COMPANY_PHONE', value: form.PRINT_COMPANY_PHONE, category: 'printTemplate' },
       { key: 'PRINT_FOOTER_TEXT', value: form.PRINT_FOOTER_TEXT, category: 'printTemplate' },
       { key: 'PRINT_SHOW_QR_CODE', value: form.PRINT_SHOW_QR_CODE, category: 'printTemplate' },
-      { key: 'PRINT_TEMPLATE_ACCENT_COLOR', value: form.PRINT_TEMPLATE_ACCENT_COLOR, category: 'printTemplate' },
+      {
+        key: 'PRINT_TEMPLATE_ACCENT_COLOR',
+        value: form.PRINT_TEMPLATE_ACCENT_COLOR,
+        category: 'printTemplate',
+      },
     ];
 
     const res = await authFetch('/api/manage/settings/batch', {

@@ -78,10 +78,7 @@ describe('SalespersonManager refresh params', () => {
 
     await wrapper.vm.handleSubmit({ name: 'Alice' });
 
-    expect(mocks.loadSalespersons).toHaveBeenLastCalledWith(
-      { page: 1, search: 'leo' },
-      true
-    );
+    expect(mocks.loadSalespersons).toHaveBeenLastCalledWith({ page: 1, search: 'leo' }, true);
   });
 
   it('opens detail for the created salesperson when the refreshed list contains it', async () => {

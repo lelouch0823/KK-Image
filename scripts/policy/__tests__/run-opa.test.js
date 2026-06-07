@@ -6,7 +6,9 @@ const originalArgv = [...process.argv];
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 
 const importFresh = async () =>
-  import(`${pathToFileURL(path.resolve(testDir, '../run-opa.mjs')).href}?t=${Date.now()}-${Math.random()}`);
+  import(
+    `${pathToFileURL(path.resolve(testDir, '../run-opa.mjs')).href}?t=${Date.now()}-${Math.random()}`
+  );
 
 afterEach(() => {
   process.argv = [...originalArgv];

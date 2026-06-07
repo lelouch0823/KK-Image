@@ -2,7 +2,9 @@ import { inClause } from '../../api/utils/sql.js';
 import { chunkArray } from '../../lib/db/batch.js';
 
 export async function prefetchOrderLineStates(db, orderIds = []) {
-  const normalizedOrderIds = [...new Set((Array.isArray(orderIds) ? orderIds : []).filter(Boolean))];
+  const normalizedOrderIds = [
+    ...new Set((Array.isArray(orderIds) ? orderIds : []).filter(Boolean)),
+  ];
   const states = new Map();
 
   for (const idChunk of chunkArray(normalizedOrderIds)) {

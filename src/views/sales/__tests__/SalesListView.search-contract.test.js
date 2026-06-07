@@ -21,7 +21,10 @@ describe('SalesListView search contract', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal('IntersectionObserver', vi.fn(() => observer));
+    vi.stubGlobal(
+      'IntersectionObserver',
+      vi.fn(() => observer)
+    );
   });
 
   it('reloads sales orders from the server when search query changes', async () => {

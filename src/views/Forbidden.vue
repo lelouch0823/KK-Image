@@ -13,19 +13,19 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
-import { useI18n } from '@/composables/useI18n'
-import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue'
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
+import { useI18n } from '@/composables/useI18n';
+import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 
-const { t } = useI18n()
-const route = useRoute()
+const { t } = useI18n();
+const route = useRoute();
 
 const reasonText = computed(() => {
-  const permission = route.query?.permission
+  const permission = route.query?.permission;
   if (typeof permission === 'string' && permission.trim()) {
-    return t('common.forbidden.reason', { permission })
+    return t('common.forbidden.reason', { permission });
   }
-  return ''
-})
+  return '';
+});
 </script>

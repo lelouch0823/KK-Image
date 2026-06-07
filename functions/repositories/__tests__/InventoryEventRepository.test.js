@@ -68,9 +68,11 @@ describe('InventoryEventRepository', () => {
     const db = createMockDb();
     const repo = new InventoryEventRepository(db);
 
-    await expect(repo.create({
-      event_type: 'purchase_received',
-    })).rejects.toThrow(/quantity_delta/i);
+    await expect(
+      repo.create({
+        event_type: 'purchase_received',
+      })
+    ).rejects.toThrow(/quantity_delta/i);
 
     expect(db.prepare).not.toHaveBeenCalled();
   });

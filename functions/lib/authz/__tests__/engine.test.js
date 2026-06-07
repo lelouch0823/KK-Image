@@ -18,7 +18,10 @@ import {
 
 describe('authz engine', () => {
   it('uses opa by default and allows when decision allow=true', async () => {
-    opaMocks.evaluateDecisionWithOpa.mockResolvedValueOnce({ allow: true, reason: 'role_permission' });
+    opaMocks.evaluateDecisionWithOpa.mockResolvedValueOnce({
+      allow: true,
+      reason: 'role_permission',
+    });
 
     const allowed = await evaluatePermission({
       env: {},
@@ -52,7 +55,10 @@ describe('authz engine', () => {
   });
 
   it('always uses opa evaluation even when AUTHZ_ENGINE=legacy', async () => {
-    opaMocks.evaluateDecisionWithOpa.mockResolvedValueOnce({ allow: true, reason: 'role_permission' });
+    opaMocks.evaluateDecisionWithOpa.mockResolvedValueOnce({
+      allow: true,
+      reason: 'role_permission',
+    });
 
     const allowed = await evaluatePermission({
       env: { AUTHZ_ENGINE: 'legacy' },
@@ -87,7 +93,10 @@ describe('authz engine', () => {
   });
 
   it('evaluates user permission with request context', async () => {
-    opaMocks.evaluateDecisionWithOpa.mockResolvedValueOnce({ allow: true, reason: 'role_permission' });
+    opaMocks.evaluateDecisionWithOpa.mockResolvedValueOnce({
+      allow: true,
+      reason: 'role_permission',
+    });
 
     const allowed = await evaluateUserPermission({
       user: { id: 'u1', type: 'user', role: 'manager', permissions: [] },
@@ -106,7 +115,10 @@ describe('authz engine', () => {
   });
 
   it('evaluates action permission with route-agnostic context', async () => {
-    opaMocks.evaluateDecisionWithOpa.mockResolvedValueOnce({ allow: true, reason: 'role_permission' });
+    opaMocks.evaluateDecisionWithOpa.mockResolvedValueOnce({
+      allow: true,
+      reason: 'role_permission',
+    });
 
     const allowed = await evaluateActionPermission({
       user: { id: 'u1', type: 'user', role: 'manager', permissions: [] },

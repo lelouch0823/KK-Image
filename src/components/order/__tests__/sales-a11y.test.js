@@ -20,7 +20,10 @@ describe('sales a11y', () => {
     disconnect: vi.fn(),
   };
 
-  vi.stubGlobal('IntersectionObserver', vi.fn(() => mockObserver));
+  vi.stubGlobal(
+    'IntersectionObserver',
+    vi.fn(() => mockObserver)
+  );
 
   it('login error uses aria-live alert region', () => {
     const wrapper = mount(OrderLogin, {

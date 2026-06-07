@@ -13,6 +13,7 @@
 ### Task 1: Lock the Wrapper Removal Contract
 
 **Files:**
+
 - Create: `functions/lib/hono/_shared/__tests__/audit-route-exclusions-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the wrapper still exists.
 ### Task 2: Delete the Dead Wrapper
 
 **Files:**
+
 - Modify: `functions/lib/hono/_shared/audit-route-exclusions.js`
 
 - [ ] **Step 1: Remove the wrapper**

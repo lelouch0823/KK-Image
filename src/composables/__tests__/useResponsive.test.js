@@ -27,8 +27,16 @@ describe('useResponsive', () => {
   });
 
   function setWindowSize(width, height = 800) {
-    Object.defineProperty(window, 'innerWidth', { value: width, writable: true, configurable: true });
-    Object.defineProperty(window, 'innerHeight', { value: height, writable: true, configurable: true });
+    Object.defineProperty(window, 'innerWidth', {
+      value: width,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(window, 'innerHeight', {
+      value: height,
+      writable: true,
+      configurable: true,
+    });
   }
 
   async function mountWithResponsive() {
@@ -90,8 +98,8 @@ describe('useResponsive', () => {
     setWindowSize(900);
     const { responsive } = await mountWithResponsive();
 
-    expect(responsive.isAbove('sm')).toBe(true);  // 900 >= 640
-    expect(responsive.isAbove('md')).toBe(true);  // 900 >= 768
+    expect(responsive.isAbove('sm')).toBe(true); // 900 >= 640
+    expect(responsive.isAbove('md')).toBe(true); // 900 >= 768
     expect(responsive.isAbove('lg')).toBe(false); // 900 < 1024
   });
 
@@ -99,7 +107,7 @@ describe('useResponsive', () => {
     setWindowSize(900);
     const { responsive } = await mountWithResponsive();
 
-    expect(responsive.isBelow('lg')).toBe(true);  // 900 < 1024
+    expect(responsive.isBelow('lg')).toBe(true); // 900 < 1024
     expect(responsive.isBelow('md')).toBe(false); // 900 >= 768
   });
 
@@ -107,9 +115,9 @@ describe('useResponsive', () => {
     setWindowSize(900);
     const { responsive } = await mountWithResponsive();
 
-    expect(responsive.isBetween('md', 'lg')).toBe(true);   // 768 <= 900 < 1024
-    expect(responsive.isBetween('sm', 'md')).toBe(false);  // 900 >= 768
-    expect(responsive.isBetween('lg', 'xl')).toBe(false);  // 900 < 1024
+    expect(responsive.isBetween('md', 'lg')).toBe(true); // 768 <= 900 < 1024
+    expect(responsive.isBetween('sm', 'md')).toBe(false); // 900 >= 768
+    expect(responsive.isBetween('lg', 'xl')).toBe(false); // 900 < 1024
   });
 
   it('window resize 时应更新断点状态', async () => {

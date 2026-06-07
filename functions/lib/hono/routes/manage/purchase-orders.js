@@ -53,64 +53,144 @@ const app = new Hono();
 const PURCHASE_ORDER_CREATE_COMMAND_TYPE = 'purchase_order_create';
 const PURCHASE_ORDER_CREATE_FROM_ORDERS_COMMAND_TYPE = 'purchase_order_create_from_orders';
 export const auditRouteDeclarations = declareAuditRoutes([
-  { method: 'POST', path: '/', domain: 'purchase-orders', action: 'purchase_order.create', severity: 'high', targetType: 'purchase_order' },
-  { method: 'POST', path: '/from-orders', domain: 'purchase-orders', action: 'purchase_order.create_from_orders', severity: 'high', targetType: 'purchase_order' },
-  { method: 'PUT', path: '/:id', domain: 'purchase-orders', action: 'purchase_order.update', severity: 'high', targetType: 'purchase_order' },
-  { method: 'PATCH', path: '/:id/status', domain: 'purchase-orders', action: 'purchase_order.status.change', severity: 'high', targetType: 'purchase_order' },
-  { method: 'POST', path: '/:id/receipts', domain: 'purchase-orders', action: 'purchase_order.receipt.create', severity: 'high', targetType: 'purchase_order', runtimeAssertionLevel: 'runtime' },
-  { method: 'POST', path: '/:id/receipts/:receiptId/reversal', domain: 'purchase-orders', action: 'purchase_order.receipt.reverse', severity: 'critical', targetType: 'purchase_order' },
-  { method: 'POST', path: '/:id/shortage-closures', domain: 'purchase-orders', action: 'purchase_order.shortage.close', severity: 'high', targetType: 'purchase_order' },
-  { method: 'POST', path: '/:id/items', domain: 'purchase-orders', action: 'purchase_order.item.create', severity: 'high', targetType: 'purchase_order' },
-  { method: 'PATCH', path: '/:id/items/:itemId', domain: 'purchase-orders', action: 'purchase_order.item.update', severity: 'high', targetType: 'purchase_order' },
-  { method: 'DELETE', path: '/:id/items/:itemId', domain: 'purchase-orders', action: 'purchase_order.item.delete', severity: 'high', targetType: 'purchase_order' },
-  { method: 'POST', path: '/:id/allocate', domain: 'purchase-orders', action: 'purchase_order.allocate', severity: 'high', targetType: 'purchase_order' },
+  {
+    method: 'POST',
+    path: '/',
+    domain: 'purchase-orders',
+    action: 'purchase_order.create',
+    severity: 'high',
+    targetType: 'purchase_order',
+  },
+  {
+    method: 'POST',
+    path: '/from-orders',
+    domain: 'purchase-orders',
+    action: 'purchase_order.create_from_orders',
+    severity: 'high',
+    targetType: 'purchase_order',
+  },
+  {
+    method: 'PUT',
+    path: '/:id',
+    domain: 'purchase-orders',
+    action: 'purchase_order.update',
+    severity: 'high',
+    targetType: 'purchase_order',
+  },
+  {
+    method: 'PATCH',
+    path: '/:id/status',
+    domain: 'purchase-orders',
+    action: 'purchase_order.status.change',
+    severity: 'high',
+    targetType: 'purchase_order',
+  },
+  {
+    method: 'POST',
+    path: '/:id/receipts',
+    domain: 'purchase-orders',
+    action: 'purchase_order.receipt.create',
+    severity: 'high',
+    targetType: 'purchase_order',
+    runtimeAssertionLevel: 'runtime',
+  },
+  {
+    method: 'POST',
+    path: '/:id/receipts/:receiptId/reversal',
+    domain: 'purchase-orders',
+    action: 'purchase_order.receipt.reverse',
+    severity: 'critical',
+    targetType: 'purchase_order',
+  },
+  {
+    method: 'POST',
+    path: '/:id/shortage-closures',
+    domain: 'purchase-orders',
+    action: 'purchase_order.shortage.close',
+    severity: 'high',
+    targetType: 'purchase_order',
+  },
+  {
+    method: 'POST',
+    path: '/:id/items',
+    domain: 'purchase-orders',
+    action: 'purchase_order.item.create',
+    severity: 'high',
+    targetType: 'purchase_order',
+  },
+  {
+    method: 'PATCH',
+    path: '/:id/items/:itemId',
+    domain: 'purchase-orders',
+    action: 'purchase_order.item.update',
+    severity: 'high',
+    targetType: 'purchase_order',
+  },
+  {
+    method: 'DELETE',
+    path: '/:id/items/:itemId',
+    domain: 'purchase-orders',
+    action: 'purchase_order.item.delete',
+    severity: 'high',
+    targetType: 'purchase_order',
+  },
+  {
+    method: 'POST',
+    path: '/:id/allocate',
+    domain: 'purchase-orders',
+    action: 'purchase_order.allocate',
+    severity: 'high',
+    targetType: 'purchase_order',
+  },
 ]);
 app.use('*', requirePermission('products:manage'));
 
-async function publishPurchaseOrderCacheEvent(c, { eventType, poId, payload = {}, commandId, correlationId }) {
+async function publishPurchaseOrderCacheEvent(
+  c,
+  { eventType, poId, payload = {}, commandId, correlationId }
+) {
   const publisher = new DomainOutboxPublisher(c.env.DB);
   try {
-    await publisher.publish([
-      {
-        event_type: eventType,
-        aggregate_type: 'purchase_order',
-        aggregate_id: poId,
-        payload: {
-          purchase_order_id: poId,
-          ...payload,
+    await publisher.publish(
+      [
+        {
+          event_type: eventType,
+          aggregate_type: 'purchase_order',
+          aggregate_id: poId,
+          payload: {
+            purchase_order_id: poId,
+            ...payload,
+          },
         },
-      },
-    ], {
-      commandId,
-      correlationId,
-    });
+      ],
+      {
+        commandId,
+        correlationId,
+      }
+    );
   } catch (error) {
     if (!isDuplicateOutboxIdempotencyError(error)) {
       throw error;
     }
   }
 
-  c.executionCtx.waitUntil(runOutboxPoller({
-    env: c.env,
-    requestUrl: c.req.url,
-    workerId: `${eventType}:${poId}`,
-  }));
+  c.executionCtx.waitUntil(
+    runOutboxPoller({
+      env: c.env,
+      requestUrl: c.req.url,
+      workerId: `${eventType}:${poId}`,
+    })
+  );
 }
 
 async function requireDraftPurchaseOrder(repo, poId, actionLabel) {
-  const po = await requireEntity(
-    repo.findById(poId),
-    () => new NotFoundError('采购单不存在')
-  );
+  const po = await requireEntity(repo.findById(poId), () => new NotFoundError('采购单不存在'));
   if (po.status !== 'draft') throw new BadRequestError(`仅草稿状态允许${actionLabel}`);
   return po;
 }
 
 async function requireCompletedPurchaseOrder(repo, poId, actionLabel) {
-  const po = await requireEntity(
-    repo.findById(poId),
-    () => new NotFoundError('采购单不存在')
-  );
+  const po = await requireEntity(repo.findById(poId), () => new NotFoundError('采购单不存在'));
   if (po.status !== 'completed') throw new BadRequestError(`仅已结算采购单允许${actionLabel}`);
   return po;
 }
@@ -204,13 +284,10 @@ function getCreateCommandScopeKey(c, suffix) {
   return `${suffix}:${actorId}`;
 }
 
-async function reserveCreateCommand(c, {
-  commandType,
-  scopeKey,
-  requestFingerprint,
-  mismatchMessage,
-  inFlightMessage,
-}) {
+async function reserveCreateCommand(
+  c,
+  { commandType, scopeKey, requestFingerprint, mismatchMessage, inFlightMessage }
+) {
   const commandIdempotencyRepo = new CommandIdempotencyRepository(c.env.DB);
   const idempotencyKey = getIdempotencyKey(c);
   const reservation = await commandIdempotencyRepo.reserveCommand(
@@ -262,11 +339,13 @@ async function validateExistingItemQuantityUpdate(db, item, nextQuantity) {
 
   if (item?.pre_order_id) {
     const { results } = await db
-      .prepare(`
+      .prepare(
+        `
         SELECT id, status, product_id, variant_id, quantity
         FROM orders
         WHERE id = ?
-      `)
+      `
+      )
       .bind(item.pre_order_id)
       .all();
     const linkedOrder = (results || [])[0] || null;
@@ -275,36 +354,42 @@ async function validateExistingItemQuantityUpdate(db, item, nextQuantity) {
     if (linkedOrder?.status === 'confirmed') {
       if (item?.order_line_id) {
         const { results: lineResults } = await db
-          .prepare(`
+          .prepare(
+            `
             SELECT id, order_id, product_id, variant_id, ordered_qty, cancelled_qty, shipped_qty
             FROM order_lines
             WHERE order_id = ? AND id = ?
-          `)
+          `
+          )
           .bind(item.pre_order_id, item.order_line_id)
           .all();
         matchedOrderLine = (lineResults || [])[0] || null;
         if (!matchedOrderLine) {
           throw new BadRequestError('pre_order_id 与 order_line_id 不匹配');
         }
-        if (matchedOrderLine.product_id !== item.product_id || matchedOrderLine.variant_id !== item.variant_id) {
+        if (
+          matchedOrderLine.product_id !== item.product_id ||
+          matchedOrderLine.variant_id !== item.variant_id
+        ) {
           throw new BadRequestError('pre_order_id 与商品/变体不匹配');
         }
       }
 
       const expectedQuantity = matchedOrderLine
-        ? Number.parseInt(String(
-          Math.max(
-            Number(matchedOrderLine.ordered_qty || 0) -
-            Number(matchedOrderLine.cancelled_qty || 0) -
-            Number(matchedOrderLine.shipped_qty || 0),
-            0
+        ? Number.parseInt(
+            String(
+              Math.max(
+                Number(matchedOrderLine.ordered_qty || 0) -
+                  Number(matchedOrderLine.cancelled_qty || 0) -
+                  Number(matchedOrderLine.shipped_qty || 0),
+                0
+              )
+            ).trim(),
+            10
           )
-        ).trim(), 10)
-        : (
-          linkedOrder.product_id === item.product_id && linkedOrder.variant_id === item.variant_id
-            ? Number.parseInt(String(linkedOrder.quantity ?? '').trim(), 10)
-            : null
-        );
+        : linkedOrder.product_id === item.product_id && linkedOrder.variant_id === item.variant_id
+          ? Number.parseInt(String(linkedOrder.quantity ?? '').trim(), 10)
+          : null;
 
       if (expectedQuantity !== null && Number.isFinite(expectedQuantity)) {
         const requestedQuantity = Number.parseInt(String(nextQuantity ?? '').trim(), 10);
@@ -315,14 +400,19 @@ async function validateExistingItemQuantityUpdate(db, item, nextQuantity) {
     }
   }
 
-  const { results } = await db.prepare(`
+  const { results } = await db
+    .prepare(
+      `
     SELECT id,
            COALESCE(moq, 1) AS moq,
            COALESCE(pack_size, 1) AS pack_size,
            COALESCE(order_step, 1) AS order_step
     FROM product_variants
     WHERE id = ?
-  `).bind(item.variant_id).all();
+  `
+    )
+    .bind(item.variant_id)
+    .all();
   const variant = (results || [])[0];
   if (!variant) return;
 
@@ -416,51 +506,59 @@ app.post('/:id/receipts', zValidator('json', PurchaseOrderReceiptSchema), async 
   const result = await domain.recordPurchaseOrderReceipts(poId, body, {
     idempotencyKey,
   });
-  c.executionCtx.waitUntil(runOutboxPoller({
-    env: c.env,
-    requestUrl: c.req.url,
-    workerId: `request:${poId}:${idempotencyKey}`,
-  }));
+  c.executionCtx.waitUntil(
+    runOutboxPoller({
+      env: c.env,
+      requestUrl: c.req.url,
+      workerId: `request:${poId}:${idempotencyKey}`,
+    })
+  );
 
   return c.json({ success: true, data: result }, 201);
 });
 
-app.post('/:id/receipts/:receiptId/reversal', zValidator('json', PurchaseOrderReceiptReversalSchema), async (c) => {
-  const poId = c.req.param('id');
-  const receiptId = c.req.param('receiptId');
-  const body = c.req.valid('json');
-  const idempotencyKey = getIdempotencyKey(c);
+app.post(
+  '/:id/receipts/:receiptId/reversal',
+  zValidator('json', PurchaseOrderReceiptReversalSchema),
+  async (c) => {
+    const poId = c.req.param('id');
+    const receiptId = c.req.param('receiptId');
+    const body = c.req.valid('json');
+    const idempotencyKey = getIdempotencyKey(c);
 
-  const repo = new PurchaseOrderRepository(c.env.DB);
-  await requireEntity(repo.findById(poId), () => new NotFoundError('采购单不存在'));
+    const repo = new PurchaseOrderRepository(c.env.DB);
+    await requireEntity(repo.findById(poId), () => new NotFoundError('采购单不存在'));
 
-  const reversalService = new OrderProcurementReceiptReversalService(c.env.DB);
-  const result = await reversalService.reverseReceipt(poId, receiptId, body, {
-    idempotencyKey,
-  });
-  scheduleAuditEvent(c, {
-    domain: 'purchase-orders',
-    action: 'purchase_order.receipt.reverse',
-    result: 'success',
-    severity: 'critical',
-    targetType: 'purchase_order',
-    targetId: poId,
-    target_label: poId,
-    summary: `Reversed receipt ${receiptId} for purchase order ${poId}`,
-    metadata: {
-      receiptId,
-      reversalId: result?.reversal_id || null,
-      reversalQty: result?.reversal_qty || null,
-    },
-  });
-  c.executionCtx.waitUntil(runOutboxPoller({
-    env: c.env,
-    requestUrl: c.req.url,
-    workerId: `reversal:${poId}:${receiptId}:${idempotencyKey}`,
-  }));
+    const reversalService = new OrderProcurementReceiptReversalService(c.env.DB);
+    const result = await reversalService.reverseReceipt(poId, receiptId, body, {
+      idempotencyKey,
+    });
+    scheduleAuditEvent(c, {
+      domain: 'purchase-orders',
+      action: 'purchase_order.receipt.reverse',
+      result: 'success',
+      severity: 'critical',
+      targetType: 'purchase_order',
+      targetId: poId,
+      target_label: poId,
+      summary: `Reversed receipt ${receiptId} for purchase order ${poId}`,
+      metadata: {
+        receiptId,
+        reversalId: result?.reversal_id || null,
+        reversalQty: result?.reversal_qty || null,
+      },
+    });
+    c.executionCtx.waitUntil(
+      runOutboxPoller({
+        env: c.env,
+        requestUrl: c.req.url,
+        workerId: `reversal:${poId}:${receiptId}:${idempotencyKey}`,
+      })
+    );
 
-  return c.json({ success: true, data: result }, 201);
-});
+    return c.json({ success: true, data: result }, 201);
+  }
+);
 
 app.post('/:id/shortage-closures', zValidator('json', ShortageClosureSchema), async (c) => {
   const poId = c.req.param('id');
@@ -488,41 +586,53 @@ app.post('/:id/shortage-closures', zValidator('json', ShortageClosureSchema), as
       },
     },
   ];
-  if (Array.isArray(result?.changedOrderProgressions) && result.changedOrderProgressions.length > 0) {
-    events.push(...result.changedOrderProgressions.map((progression) => ({
-      event_type: 'order_procurement_progressed',
-      aggregate_type: 'order',
-      aggregate_id: progression.orderId,
-      payload: {
-        purchase_order_id: poId,
-        order_id: progression.orderId,
-        order_line_id: progression.orderLineId,
-        order_line_display_status_after: progression.orderLineDisplayStatus,
-        procurement_status_after: progression.procurementStatus,
-        order_procurement_status_after: progression.procurementStatus,
-        trigger: 'purchase_order_shortage_closed',
-      },
-    })));
-  } else if (Array.isArray(result?.changedOrderStatuses) && result.changedOrderStatuses.length > 0) {
-    events.push(...result.changedOrderStatuses.map(({ orderId, procurementStatus }) => ({
-      event_type: 'order_procurement_progressed',
-      aggregate_type: 'order',
-      aggregate_id: orderId,
-      payload: {
-        purchase_order_id: poId,
-        order_id: orderId,
-        procurement_status_after: procurementStatus,
-        order_procurement_status_after: procurementStatus,
-        trigger: 'purchase_order_shortage_closed',
-      },
-    })));
+  if (
+    Array.isArray(result?.changedOrderProgressions) &&
+    result.changedOrderProgressions.length > 0
+  ) {
+    events.push(
+      ...result.changedOrderProgressions.map((progression) => ({
+        event_type: 'order_procurement_progressed',
+        aggregate_type: 'order',
+        aggregate_id: progression.orderId,
+        payload: {
+          purchase_order_id: poId,
+          order_id: progression.orderId,
+          order_line_id: progression.orderLineId,
+          order_line_display_status_after: progression.orderLineDisplayStatus,
+          procurement_status_after: progression.procurementStatus,
+          order_procurement_status_after: progression.procurementStatus,
+          trigger: 'purchase_order_shortage_closed',
+        },
+      }))
+    );
+  } else if (
+    Array.isArray(result?.changedOrderStatuses) &&
+    result.changedOrderStatuses.length > 0
+  ) {
+    events.push(
+      ...result.changedOrderStatuses.map(({ orderId, procurementStatus }) => ({
+        event_type: 'order_procurement_progressed',
+        aggregate_type: 'order',
+        aggregate_id: orderId,
+        payload: {
+          purchase_order_id: poId,
+          order_id: orderId,
+          procurement_status_after: procurementStatus,
+          order_procurement_status_after: procurementStatus,
+          trigger: 'purchase_order_shortage_closed',
+        },
+      }))
+    );
   }
   await publisher.publish(events);
-  c.executionCtx.waitUntil(runOutboxPoller({
-    env: c.env,
-    requestUrl: c.req.url,
-    workerId: `purchase_order_shortage_closed:${poId}:${idempotencyKey}`,
-  }));
+  c.executionCtx.waitUntil(
+    runOutboxPoller({
+      env: c.env,
+      requestUrl: c.req.url,
+      workerId: `purchase_order_shortage_closed:${poId}:${idempotencyKey}`,
+    })
+  );
   scheduleAuditEvent(c, {
     domain: 'purchase-orders',
     action: 'purchase_order.shortage.close',
@@ -551,12 +661,7 @@ app.post('/', zValidator('json', CreatePurchaseOrderSchema), async (c) => {
   const body = c.req.valid('json');
   const repo = new PurchaseOrderRepository(c.env.DB);
   const requestFingerprint = buildPurchaseOrderCreateRequestFingerprint(body);
-  const {
-    replay,
-    resume,
-    reservation,
-    commandIdempotencyRepo,
-  } = await reserveCreateCommand(c, {
+  const { replay, resume, reservation, commandIdempotencyRepo } = await reserveCreateCommand(c, {
     commandType: PURCHASE_ORDER_CREATE_COMMAND_TYPE,
     scopeKey: getCreateCommandScopeKey(c, PURCHASE_ORDER_CREATE_COMMAND_TYPE),
     requestFingerprint,
@@ -649,9 +754,9 @@ app.post('/', zValidator('json', CreatePurchaseOrderSchema), async (c) => {
   } catch (error) {
     if (createdPo) {
       const failedPayload =
-        fullPo
-        || (await repo.findById(createdPo.id))
-        || buildCreatedPurchaseOrderShell(createdPo, body.items);
+        fullPo ||
+        (await repo.findById(createdPo.id)) ||
+        buildCreatedPurchaseOrderShell(createdPo, body.items);
       try {
         await commandIdempotencyRepo
           .buildFinalizeStatement(reservation.record?.command_id, failedPayload, 'failed')
@@ -681,12 +786,7 @@ app.post('/from-orders', zValidator('json', CreateFromOrdersSchema), async (c) =
 
   const service = new PurchaseOrderService(c.env.DB);
   const requestFingerprint = buildPurchaseOrderCreateFromOrdersRequestFingerprint(orderIds, body);
-  const {
-    replay,
-    resume,
-    reservation,
-    commandIdempotencyRepo,
-  } = await reserveCreateCommand(c, {
+  const { replay, resume, reservation, commandIdempotencyRepo } = await reserveCreateCommand(c, {
     commandType: PURCHASE_ORDER_CREATE_FROM_ORDERS_COMMAND_TYPE,
     scopeKey: getCreateCommandScopeKey(c, PURCHASE_ORDER_CREATE_FROM_ORDERS_COMMAND_TYPE),
     requestFingerprint,
@@ -734,9 +834,7 @@ app.post('/from-orders', zValidator('json', CreateFromOrdersSchema), async (c) =
       commandId: reservation.record?.command_id,
       correlationId: reservation.record?.command_id,
     });
-    await commandIdempotencyRepo
-      .buildFinalizeStatement(reservation.record?.command_id, po)
-      .run();
+    await commandIdempotencyRepo.buildFinalizeStatement(reservation.record?.command_id, po).run();
     scheduleAuditEvent(c, {
       domain: 'purchase-orders',
       action: 'purchase_order.create_from_orders',
@@ -865,39 +963,49 @@ app.patch('/:id/status', zValidator('json', UpdatePurchaseOrderStatusSchema), as
   ];
 
   if (Array.isArray(result?.changedOrderStatuses) && result.changedOrderStatuses.length > 0) {
-    events.push(...result.changedOrderStatuses.map(({ orderId, procurementStatus }) => ({
-      event_type: 'order_procurement_progressed',
-      aggregate_type: 'order',
-      aggregate_id: orderId,
-      payload: {
-        purchase_order_id: c.req.param('id'),
-        order_id: orderId,
-        procurement_status_after: procurementStatus,
-        order_procurement_status_after: procurementStatus,
-        trigger: 'purchase_order_status_changed',
-      },
-    })));
-  } else if (result?.targetProcurementStatus && Array.isArray(result?.changedOrderIds) && result.changedOrderIds.length > 0) {
-    events.push(...result.changedOrderIds.map((orderId) => ({
-      event_type: 'order_procurement_progressed',
-      aggregate_type: 'order',
-      aggregate_id: orderId,
-      payload: {
-        purchase_order_id: c.req.param('id'),
-        order_id: orderId,
-        procurement_status_after: result.targetProcurementStatus,
-        order_procurement_status_after: result.targetProcurementStatus,
-        trigger: 'purchase_order_status_changed',
-      },
-    })));
+    events.push(
+      ...result.changedOrderStatuses.map(({ orderId, procurementStatus }) => ({
+        event_type: 'order_procurement_progressed',
+        aggregate_type: 'order',
+        aggregate_id: orderId,
+        payload: {
+          purchase_order_id: c.req.param('id'),
+          order_id: orderId,
+          procurement_status_after: procurementStatus,
+          order_procurement_status_after: procurementStatus,
+          trigger: 'purchase_order_status_changed',
+        },
+      }))
+    );
+  } else if (
+    result?.targetProcurementStatus &&
+    Array.isArray(result?.changedOrderIds) &&
+    result.changedOrderIds.length > 0
+  ) {
+    events.push(
+      ...result.changedOrderIds.map((orderId) => ({
+        event_type: 'order_procurement_progressed',
+        aggregate_type: 'order',
+        aggregate_id: orderId,
+        payload: {
+          purchase_order_id: c.req.param('id'),
+          order_id: orderId,
+          procurement_status_after: result.targetProcurementStatus,
+          order_procurement_status_after: result.targetProcurementStatus,
+          trigger: 'purchase_order_status_changed',
+        },
+      }))
+    );
   }
 
   await publisher.publish(events);
-  c.executionCtx.waitUntil(runOutboxPoller({
-    env: c.env,
-    requestUrl: c.req.url,
-    workerId: `purchase_order_status_changed:${c.req.param('id')}`,
-  }));
+  c.executionCtx.waitUntil(
+    runOutboxPoller({
+      env: c.env,
+      requestUrl: c.req.url,
+      workerId: `purchase_order_status_changed:${c.req.param('id')}`,
+    })
+  );
   scheduleAuditEvent(c, {
     domain: 'purchase-orders',
     action: 'purchase_order.status.change',
@@ -914,9 +1022,10 @@ app.patch('/:id/status', zValidator('json', UpdatePurchaseOrderStatusSchema), as
     success: true,
     data: {
       ...result,
-      message: result.cascadedOrders > 0
-        ? `状态已更新，同步更新了 ${result.cascadedOrders} 个预订单采购状态`
-        : '状态已更新',
+      message:
+        result.cascadedOrders > 0
+          ? `状态已更新，同步更新了 ${result.cascadedOrders} 个预订单采购状态`
+          : '状态已更新',
     },
   });
 });

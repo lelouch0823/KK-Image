@@ -67,7 +67,9 @@ describe('product design system migration contract', () => {
     expect(valueArchiveModal).toContain("import AppButton from '@/components/ui/AppButton.vue'");
     expect(valueArchiveModal).not.toContain('<button');
 
-    expect(dimensionArchiveModal).toContain("import AppButton from '@/components/ui/AppButton.vue'");
+    expect(dimensionArchiveModal).toContain(
+      "import AppButton from '@/components/ui/AppButton.vue'"
+    );
     expect(dimensionArchiveModal).not.toContain('<button');
     expect(dimensionArchiveModal).not.toContain('<input');
 

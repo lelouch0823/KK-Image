@@ -4,7 +4,9 @@
       {{ label }}
     </label>
 
-    <div class="flex items-center gap-3 rounded-xl border border-(--border-color) bg-(--bg-card) p-2">
+    <div
+      class="flex items-center gap-3 rounded-xl border border-(--border-color) bg-(--bg-card) p-2"
+    >
       <label
         :for="inputId"
         class="flex h-10 w-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-muted)"

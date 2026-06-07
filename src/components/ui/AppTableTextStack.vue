@@ -53,11 +53,15 @@ const props = defineProps({
 });
 
 const primaryDisplay = computed(() => {
-  return props.primary === undefined || props.primary === null || props.primary === '' ? props.fallback : String(props.primary);
+  return props.primary === undefined || props.primary === null || props.primary === ''
+    ? props.fallback
+    : String(props.primary);
 });
 
 const secondaryDisplay = computed(() => {
-  return props.secondary === undefined || props.secondary === null || props.secondary === '' ? '' : String(props.secondary);
+  return props.secondary === undefined || props.secondary === null || props.secondary === ''
+    ? ''
+    : String(props.secondary);
 });
 
 const showSecondary = computed(() => secondaryDisplay.value !== '');

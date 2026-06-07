@@ -25,6 +25,7 @@ This phase must reflect real consumer names and log columns from Phases 1 and 2.
 ### Task 1: Add replay persistence and read-model queries
 
 **Files:**
+
 - Modify: `scripts/init-database.sql`
 - Modify: `docs/DATABASE_SCHEMA.md`
 - Create: `functions/repositories/OutboxReplayRepository.js`
@@ -85,6 +86,7 @@ git commit -m "feat: add outbox replay read models and run persistence"
 ### Task 2: Add operator inspection routes for outbox and replay
 
 **Files:**
+
 - Create: `functions/lib/hono/routes/manage/outbox.js`
 - Create: `functions/lib/hono/routes/manage/audit-replay.js`
 - Modify: `functions/lib/hono/app.js`
@@ -123,8 +125,22 @@ app.post('/execute', requirePermission('audit_logs:write'), async (c) => {});
 
 ```js
 declareAuditRoutes([
-  { method: 'POST', path: '/dry-run', domain: 'audit-replay', action: 'outbox.replay.dry_run', severity: 'high', targetType: 'outbox_event' },
-  { method: 'POST', path: '/execute', domain: 'audit-replay', action: 'outbox.replay.execute', severity: 'critical', targetType: 'outbox_event' },
+  {
+    method: 'POST',
+    path: '/dry-run',
+    domain: 'audit-replay',
+    action: 'outbox.replay.dry_run',
+    severity: 'high',
+    targetType: 'outbox_event',
+  },
+  {
+    method: 'POST',
+    path: '/execute',
+    domain: 'audit-replay',
+    action: 'outbox.replay.execute',
+    severity: 'critical',
+    targetType: 'outbox_event',
+  },
 ]);
 ```
 
@@ -143,6 +159,7 @@ git commit -m "feat: add operator outbox inspection and replay routes"
 ### Task 3: Implement replay execution as a side-effect-only operator command
 
 **Files:**
+
 - Create: `functions/services/OutboxReplayService.js`
 - Modify: `functions/services/DomainOutboxConsumers.js`
 - Modify: `functions/repositories/OutboxReplayRepository.js`
@@ -206,6 +223,7 @@ git commit -m "feat: replay outbox side effects through operator service"
 ### Task 4: Close the phase with observability regressions
 
 **Files:**
+
 - Verify: `functions/repositories/__tests__/OutboxReplayRepository.test.js`
 - Verify: `functions/services/__tests__/OutboxReplayService.test.js`
 - Verify: `functions/lib/hono/routes/manage/__tests__/outbox-routes.test.js`
@@ -220,6 +238,7 @@ Expected: PASS
 
 ```md
 Replay rules:
+
 - allowed: audit, cache, notification, webhook
 - forbidden: receipt command truth mutation
 - all replay actions must create `outbox_replay_runs` rows and audit events

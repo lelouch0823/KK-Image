@@ -22,9 +22,7 @@ describe('check-migration-prefixes', () => {
       '0010_x.sql',
     ]);
 
-    expect(duplicates).toEqual([
-      { prefix: '0002', files: ['0002_a.sql', '0002_b.sql'] },
-    ]);
+    expect(duplicates).toEqual([{ prefix: '0002', files: ['0002_a.sql', '0002_b.sql'] }]);
   });
 
   it('throws when duplicate prefixes exist', () => {

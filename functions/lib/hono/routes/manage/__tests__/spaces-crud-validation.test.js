@@ -103,7 +103,11 @@ describe('manage spaces crud validation', () => {
     mocks.invalidateSpaceCaches.mockResolvedValue(undefined);
     mocks.scheduleAuditEvent.mockImplementation(() => {});
     mocks.productFindById.mockResolvedValue({ id: 'p-1', status: 'active' });
-    mocks.variantFindByIdAndProductId.mockResolvedValue({ id: 'v-1', product_id: 'p-1', status: 'active' });
+    mocks.variantFindByIdAndProductId.mockResolvedValue({
+      id: 'v-1',
+      product_id: 'p-1',
+      status: 'active',
+    });
   });
 
   it('rejects create when productId is provided without variantId', async () => {
@@ -349,7 +353,10 @@ describe('manage spaces crud validation', () => {
         shareMode: 'selected',
       })
     );
-    expect(mocks.updateSharedSalespersons).toHaveBeenCalledWith(expect.any(String), ['sp-a', 'sp-b']);
+    expect(mocks.updateSharedSalespersons).toHaveBeenCalledWith(expect.any(String), [
+      'sp-a',
+      'sp-b',
+    ]);
   });
 
   it('returns product spaces with active binding metadata', async () => {

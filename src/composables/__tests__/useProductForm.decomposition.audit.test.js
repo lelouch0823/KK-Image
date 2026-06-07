@@ -24,27 +24,33 @@ describe('useProductForm decomposition audit', () => {
       }
     }
 
-    if (!source.includes("@/composables/product-form/helpers.js")) {
+    if (!source.includes('@/composables/product-form/helpers.js')) {
       offenders.push('src/composables/useProductForm.js: missing product-form helper import');
     }
 
-    if (!source.includes("@/composables/product-form/dimensions.js")) {
+    if (!source.includes('@/composables/product-form/dimensions.js')) {
       offenders.push('src/composables/useProductForm.js: missing product-form dimensions import');
     }
 
-    if (!source.includes("@/composables/product-form/variants.js")) {
-      offenders.push('src/composables/useProductForm.js: missing product-form variant helper import');
+    if (!source.includes('@/composables/product-form/variants.js')) {
+      offenders.push(
+        'src/composables/useProductForm.js: missing product-form variant helper import'
+      );
     }
 
-    if (!source.includes("@/composables/product-form/archives.js")) {
-      offenders.push('src/composables/useProductForm.js: missing product-form archive helper import');
+    if (!source.includes('@/composables/product-form/archives.js')) {
+      offenders.push(
+        'src/composables/useProductForm.js: missing product-form archive helper import'
+      );
     }
 
-    if (!source.includes("@/composables/product-form/archive-actions.js")) {
-      offenders.push('src/composables/useProductForm.js: missing product-form archive-actions import');
+    if (!source.includes('@/composables/product-form/archive-actions.js')) {
+      offenders.push(
+        'src/composables/useProductForm.js: missing product-form archive-actions import'
+      );
     }
 
-    if (!source.includes("@/composables/product-form/submission.js")) {
+    if (!source.includes('@/composables/product-form/submission.js')) {
       offenders.push('src/composables/useProductForm.js: missing product-form submission import');
     }
 
@@ -72,9 +78,8 @@ describe('useProductForm decomposition audit', () => {
       }
     }
 
-    expect(
-      offenders,
-      `useProductForm decomposition offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `useProductForm decomposition offenders:\n${offenders.join('\n')}`).toEqual(
+      []
+    );
   });
 });

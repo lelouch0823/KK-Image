@@ -13,28 +13,33 @@
 ## File Map
 
 **Notification fan-out boundary**
+
 - Modify: `functions/repositories/NotificationRepository.js`
 - Test: `functions/repositories/__tests__/NotificationRepository.test.js`
 - Test: `functions/services/__tests__/DomainOutboxConsumers.notifications.test.js`
 
 **Order mutation boundary**
+
 - Modify: `functions/repositories/order/mutations.js`
 - Test: `functions/repositories/__tests__/order-mutations.test.js`
 - Test: `functions/repositories/__tests__/order-queries.display-model.test.js`
 - Test: `functions/services/__tests__/DomainOutboxConsumers.audit-cache.test.js`
 
 **Product variant write boundary**
+
 - Modify: `functions/repositories/ProductVariantRepository.js`
 - Test: `functions/repositories/__tests__/product-variant-upsert-stock.test.js`
 - Test: `test/manage-products-batch.test.js`
 - Test: `test/manage-products-workflow.test.js`
 
 **Product dimension write boundary**
+
 - Modify: `functions/repositories/ProductDimensionRepository.js`
 - Test: `functions/repositories/__tests__/product-dimension-repository.test.js`
 - Test: `functions/lib/hono/routes/manage/products/__tests__/batch-routes.test.js`
 
 **Cross-cutting verification**
+
 - Modify: `functions/services/DomainOutboxPublisher.js` only if a new shared helper extraction becomes justified
 - Test: `functions/services/__tests__/DomainOutboxPublisher.test.js`
 - Test: `functions/services/__tests__/DomainOutboxConsumers.audit-cache.test.js`
@@ -44,6 +49,7 @@
 ### Task 1: Harden Notification Repository Batch Writes
 
 **Files:**
+
 - Modify: `functions/repositories/NotificationRepository.js`
 - Test: `functions/repositories/__tests__/NotificationRepository.test.js`
 - Test: `functions/services/__tests__/DomainOutboxConsumers.notifications.test.js`
@@ -63,6 +69,7 @@ Expected: FAIL because `NotificationRepository` still sends large `db.batch(stat
 - [ ] **Step 3: Write minimal implementation**
 
 Implementation notes:
+
 - Add a local `chunkArray()` plus `executeBatchChunks()` helper in `NotificationRepository.js`
 - Convert both primary notification writes and legacy compatibility writes to the helper
 - Preserve current dedupe semantics and return shape
@@ -83,6 +90,7 @@ git commit -m "fix: chunk notification repository batch writes"
 ### Task 2: Harden Order Mutation Batch Writes And Keep Order Read Models Fresh
 
 **Files:**
+
 - Modify: `functions/repositories/order/mutations.js`
 - Test: `functions/repositories/__tests__/order-mutations.test.js`
 - Test: `functions/repositories/__tests__/order-queries.display-model.test.js`
@@ -103,6 +111,7 @@ Expected: FAIL because one or more order mutation paths still call `db.batch(sta
 - [ ] **Step 3: Write minimal implementation**
 
 Implementation notes:
+
 - Identify the high-volume paths first: batched status changes, comment fan-out, line sync, and any mass update helpers in `order/mutations.js`
 - Replace direct large `db.batch(...)` calls with chunked execution while preserving atomic expectations per logical unit
 - If a mutation publishes outbox events, ensure payload keeps `order_id`, `salesperson_id`, and any scope ids needed by cache consumers
@@ -123,6 +132,7 @@ git commit -m "fix: chunk order mutation batch writes"
 ### Task 3: Harden Product Variant Bulk Writes
 
 **Files:**
+
 - Modify: `functions/repositories/ProductVariantRepository.js`
 - Test: `functions/repositories/__tests__/product-variant-upsert-stock.test.js`
 - Test: `test/manage-products-batch.test.js`
@@ -143,6 +153,7 @@ Expected: FAIL because one or more bulk variant write paths still batch all stat
 - [ ] **Step 3: Write minimal implementation**
 
 Implementation notes:
+
 - Patch only the bulk write entry points in `ProductVariantRepository.js`
 - Keep the recent identity-preserving behavior untouched
 - Reuse the same D1-safe chunk size already established elsewhere in the repo
@@ -168,6 +179,7 @@ git commit -m "fix: chunk product variant bulk writes"
 ### Task 4: Harden Product Dimension Bulk Writes
 
 **Files:**
+
 - Modify: `functions/repositories/ProductDimensionRepository.js`
 - Test: `functions/repositories/__tests__/product-dimension-repository.test.js`
 - Test: `functions/lib/hono/routes/manage/products/__tests__/batch-routes.test.js`
@@ -187,6 +199,7 @@ Expected: FAIL because dimension create/update/archive flows still send oversize
 - [ ] **Step 3: Write minimal implementation**
 
 Implementation notes:
+
 - Patch only the dimension-level bulk write sections in `ProductDimensionRepository.js`
 - Preserve existing ordering rules and archive/restore semantics
 - Keep route behavior unchanged except for eliminating D1-size failure risk
@@ -206,6 +219,7 @@ git commit -m "fix: chunk product dimension bulk writes"
 ### Task 5: Verification Sweep Across Shared Outbox And Real API Flows
 
 **Files:**
+
 - Verify: `functions/services/DomainOutboxPublisher.js`
 - Verify: `functions/services/DomainOutboxConsumers.js`
 - Verify: `functions/lib/hono/routes/manage/purchase-orders.js`
@@ -233,6 +247,7 @@ Expected: PASS
 - [ ] **Step 3: Final audit sweep**
 
 Audit checklist:
+
 - No newly introduced direct `db.batch(stmts)` on known high-volume core paths
 - Outbox payloads still carry the IDs cache consumers and notifications need
 - No route falls back to direct cache invalidation where outbox is already the source of truth

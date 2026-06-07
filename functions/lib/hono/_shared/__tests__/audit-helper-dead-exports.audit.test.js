@@ -11,12 +11,11 @@ describe('audit helper dead exports audit', () => {
     const offenders = [];
 
     if (source.includes('export async function recordAuditEvents(')) {
-      offenders.push('functions/lib/hono/_shared/audit-helpers.js: still defines recordAuditEvents');
+      offenders.push(
+        'functions/lib/hono/_shared/audit-helpers.js: still defines recordAuditEvents'
+      );
     }
 
-    expect(
-      offenders,
-      `audit helper dead-export offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `audit helper dead-export offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

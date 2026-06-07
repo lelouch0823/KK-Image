@@ -75,10 +75,15 @@ describe('query observability', () => {
       statements.push(statement);
       return statement;
     });
-    const writeResult = await execute(db, 'UPDATE products SET name = ? WHERE id = ?', ['Updated', 'p-1'], {
-      label: 'product.update',
-      onPerf: (metric) => metrics.push(metric),
-    });
+    const writeResult = await execute(
+      db,
+      'UPDATE products SET name = ? WHERE id = ?',
+      ['Updated', 'p-1'],
+      {
+        label: 'product.update',
+        onPerf: (metric) => metrics.push(metric),
+      }
+    );
 
     expect(Object.keys(listResult)).toEqual(['results', 'meta']);
     expect(listResult._perf).toMatchObject({

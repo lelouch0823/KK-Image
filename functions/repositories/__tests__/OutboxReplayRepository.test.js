@@ -36,7 +36,9 @@ function createReplayDbStub({
               const effectiveParams = sql.includes('LIMIT ?') ? params.slice(0, -1) : params;
 
               if (sql.includes('event_type = ?')) {
-                const eventType = effectiveParams.find((value) => events.some((row) => row.event_type === value));
+                const eventType = effectiveParams.find((value) =>
+                  events.some((row) => row.event_type === value)
+                );
                 if (eventType) {
                   filtered = filtered.filter((row) => row.event_type === eventType);
                 }
@@ -66,7 +68,9 @@ function createReplayDbStub({
             }
 
             if (sql.includes('FROM outbox_consumer_jobs')) {
-              const eventIds = params.filter((value) => typeof value === 'string' && value in consumerJobsByEventId);
+              const eventIds = params.filter(
+                (value) => typeof value === 'string' && value in consumerJobsByEventId
+              );
               const filterBindings = params.slice(eventIds.length);
               let bindingIndex = 0;
               const consumerName = sql.includes('consumer_name = ?')
@@ -74,7 +78,9 @@ function createReplayDbStub({
                 : null;
               const status = sql.includes('status = ?') ? filterBindings[bindingIndex++] : null;
               const targetEventIds = eventIds.length ? eventIds : [params[0]];
-              const rows = targetEventIds.flatMap((eventId) => consumerJobsByEventId[eventId] || []);
+              const rows = targetEventIds.flatMap(
+                (eventId) => consumerJobsByEventId[eventId] || []
+              );
 
               return {
                 results: rows.filter((job) => {
@@ -162,37 +168,43 @@ describe('OutboxReplayRepository', () => {
 
   it('queries events with consumer-job and webhook delivery state', async () => {
     const db = createReplayDbStub({
-      events: [{
-        id: 'evt-1',
-        command_id: 'cmd-1',
-        sequence_in_command: 1,
-        event_type: 'purchase_receipt_recorded',
-        event_version: 1,
-        aggregate_type: 'purchase_receipt',
-        aggregate_id: 'receipt-1',
-        payload_json: '{"purchase_order_id":"po-1"}',
-        occurred_at: 1710000000000,
-        created_at: 1710000000000,
-      }],
+      events: [
+        {
+          id: 'evt-1',
+          command_id: 'cmd-1',
+          sequence_in_command: 1,
+          event_type: 'purchase_receipt_recorded',
+          event_version: 1,
+          aggregate_type: 'purchase_receipt',
+          aggregate_id: 'receipt-1',
+          payload_json: '{"purchase_order_id":"po-1"}',
+          occurred_at: 1710000000000,
+          created_at: 1710000000000,
+        },
+      ],
       consumerJobsByEventId: {
-        'evt-1': [{
-          id: 'job-1',
-          event_id: 'evt-1',
-          consumer_name: 'notification',
-          status: 'published',
-          attempt_count: 0,
-          available_at: 1710000000000,
-        }],
+        'evt-1': [
+          {
+            id: 'job-1',
+            event_id: 'evt-1',
+            consumer_name: 'notification',
+            status: 'published',
+            attempt_count: 0,
+            available_at: 1710000000000,
+          },
+        ],
       },
       webhookLogsByEventId: {
-        'evt-1': [{
-          id: 'whlog-1',
-          webhook_id: 'wh-1',
-          delivery_key: 'evt-1:wh-1:v1',
-          classification: 'delivered',
-          success: 1,
-          attempt_number: 1,
-        }],
+        'evt-1': [
+          {
+            id: 'whlog-1',
+            webhook_id: 'wh-1',
+            delivery_key: 'evt-1:wh-1:v1',
+            classification: 'delivered',
+            success: 1,
+            attempt_number: 1,
+          },
+        ],
       },
     });
     const repo = new OutboxReplayRepository(db, {
@@ -204,15 +216,19 @@ describe('OutboxReplayRepository', () => {
     const detail = await repo.getEventDetail('evt-1');
 
     expect(list.items).toHaveLength(1);
-    expect(list.items[0]).toEqual(expect.objectContaining({
-      id: 'evt-1',
-      consumerJobs: [expect.objectContaining({ consumer_name: 'notification' })],
-    }));
-    expect(detail).toEqual(expect.objectContaining({
-      id: 'evt-1',
-      consumerJobs: [expect.objectContaining({ id: 'job-1' })],
-      webhookAttempts: [expect.objectContaining({ id: 'whlog-1' })],
-    }));
+    expect(list.items[0]).toEqual(
+      expect.objectContaining({
+        id: 'evt-1',
+        consumerJobs: [expect.objectContaining({ consumer_name: 'notification' })],
+      })
+    );
+    expect(detail).toEqual(
+      expect.objectContaining({
+        id: 'evt-1',
+        consumerJobs: [expect.objectContaining({ id: 'job-1' })],
+        webhookAttempts: [expect.objectContaining({ id: 'whlog-1' })],
+      })
+    );
   });
 
   it('filters event list by consumer status without fetching webhook detail per row', async () => {
@@ -285,9 +301,11 @@ describe('OutboxReplayRepository', () => {
     ]);
     expect(db.getPrepareCalls().filter((sql) => sql.includes('FROM webhook_logs'))).toHaveLength(0);
     expect(
-      db.getPrepareCalls().filter(
-        (sql) => sql.includes('FROM outbox_consumer_jobs') && !sql.includes('FROM domain_outbox')
-      )
+      db
+        .getPrepareCalls()
+        .filter(
+          (sql) => sql.includes('FROM outbox_consumer_jobs') && !sql.includes('FROM domain_outbox')
+        )
     ).toHaveLength(1);
   });
 
@@ -328,14 +346,13 @@ describe('OutboxReplayRepository', () => {
 
     const result = await repo.listEvents({ eventType: 'purchase_receipt_recorded' }, { limit: 2 });
 
-    expect(result).toEqual(expect.objectContaining({
-      items: [
-        expect.objectContaining({ id: 'evt-1' }),
-        expect.objectContaining({ id: 'evt-2' }),
-      ],
-      limit: 2,
-      isTruncated: true,
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        items: [expect.objectContaining({ id: 'evt-1' }), expect.objectContaining({ id: 'evt-2' })],
+        limit: 2,
+        isTruncated: true,
+      })
+    );
   });
 
   it('batches consumer job lookups when the event list is larger than one SQL variable window', async () => {
@@ -350,12 +367,14 @@ describe('OutboxReplayRepository', () => {
     const consumerJobsByEventId = Object.fromEntries(
       events.map((event) => [
         event.id,
-        [{
-          id: `job-${event.id}`,
-          event_id: event.id,
-          consumer_name: 'notification',
-          status: 'published',
-        }],
+        [
+          {
+            id: `job-${event.id}`,
+            event_id: event.id,
+            consumer_name: 'notification',
+            status: 'published',
+          },
+        ],
       ])
     );
     const db = createReplayDbStub({ events, consumerJobsByEventId });
@@ -368,9 +387,11 @@ describe('OutboxReplayRepository', () => {
       expect.objectContaining({ event_id: 'evt-1', consumer_name: 'notification' }),
     ]);
     expect(
-      db.getPrepareCalls().filter(
-        (sql) => sql.includes('FROM outbox_consumer_jobs') && !sql.includes('FROM domain_outbox')
-      ).length
+      db
+        .getPrepareCalls()
+        .filter(
+          (sql) => sql.includes('FROM outbox_consumer_jobs') && !sql.includes('FROM domain_outbox')
+        ).length
     ).toBeGreaterThan(1);
   });
 
@@ -389,10 +410,13 @@ describe('OutboxReplayRepository', () => {
     await repo.listEvents({ eventType: 'purchase_receipt_recorded' }, { limit: 2 });
 
     expect(
-      db.getPrepareCalls().some((sql) =>
-        sql.includes('ORDER BY created_at DESC, sequence_in_command DESC')
-        && sql.includes('LIMIT ?')
-      )
+      db
+        .getPrepareCalls()
+        .some(
+          (sql) =>
+            sql.includes('ORDER BY created_at DESC, sequence_in_command DESC') &&
+            sql.includes('LIMIT ?')
+        )
     ).toBe(true);
   });
 
@@ -400,9 +424,7 @@ describe('OutboxReplayRepository', () => {
     const db = createReplayDbStub();
     const repo = new OutboxReplayRepository(db, {
       now: () => 1710000011111,
-      idFactory: vi.fn()
-        .mockReturnValueOnce('replay-1')
-        .mockReturnValueOnce('replay-2'),
+      idFactory: vi.fn().mockReturnValueOnce('replay-1').mockReturnValueOnce('replay-2'),
     });
 
     const dryRun = await repo.createReplayRun({
@@ -420,22 +442,26 @@ describe('OutboxReplayRepository', () => {
       requestedBy: 'admin-1',
     });
 
-    expect(dryRun).toEqual(expect.objectContaining({
-      id: 'replay-1',
-      scope_type: 'event',
-      scope_id: 'evt-1',
-      consumer_name: 'notification',
-      dry_run: 1,
-      status: 'pending',
-    }));
-    expect(liveRun).toEqual(expect.objectContaining({
-      id: 'replay-2',
-      scope_type: 'command',
-      scope_id: 'cmd-1',
-      consumer_name: 'webhook',
-      dry_run: 0,
-      status: 'pending',
-    }));
+    expect(dryRun).toEqual(
+      expect.objectContaining({
+        id: 'replay-1',
+        scope_type: 'event',
+        scope_id: 'evt-1',
+        consumer_name: 'notification',
+        dry_run: 1,
+        status: 'pending',
+      })
+    );
+    expect(liveRun).toEqual(
+      expect.objectContaining({
+        id: 'replay-2',
+        scope_type: 'command',
+        scope_id: 'cmd-1',
+        consumer_name: 'webhook',
+        dry_run: 0,
+        status: 'pending',
+      })
+    );
   });
 
   it('falls back to null when persisted replay summary json is invalid', async () => {
@@ -467,10 +493,12 @@ describe('OutboxReplayRepository', () => {
 
     const result = await repo.finalizeReplayRun('replay-1', { delivered: 1 });
 
-    expect(result).toEqual(expect.objectContaining({
-      id: 'replay-1',
-      summary_json: null,
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'replay-1',
+        summary_json: null,
+      })
+    );
   });
 
   it('finds all events emitted by a command_id or a specific event_id', async () => {

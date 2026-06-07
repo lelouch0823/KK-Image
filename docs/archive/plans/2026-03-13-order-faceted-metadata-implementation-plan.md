@@ -13,6 +13,7 @@
 ### Task 1: Define Failing Contracts For Order Faceted Metadata
 
 **Files:**
+
 - Create: `O:/Code/KK-Image/functions/repositories/order/__tests__/admin-facets.test.js`
 - Modify: `O:/Code/KK-Image/src/components/__tests__/OrderManager.network-workflow.test.js`
 
@@ -95,6 +96,7 @@ git commit -m "test: define order faceted metadata contracts"
 ### Task 2: Extract Shared Admin Order Filter-Clause Builders
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/functions/repositories/order/queries.js`
 - Test: `O:/Code/KK-Image/functions/repositories/order/__tests__/admin-facets.test.js`
 
@@ -191,6 +193,7 @@ git commit -m "refactor: share admin order filter clause builder"
 ### Task 3: Add Repository-Level Order Facet Queries
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/functions/repositories/order/queries.js`
 - Test: `O:/Code/KK-Image/functions/repositories/order/__tests__/admin-facets.test.js`
 
@@ -204,11 +207,7 @@ it('returns search suggestions while ignoring the current search term', async ()
     search: 'SO-2026',
   });
 
-  expect(result.searchSuggestions).toEqual([
-    'SO-2026-001',
-    'Alice',
-    '张三',
-  ]);
+  expect(result.searchSuggestions).toEqual(['SO-2026-001', 'Alice', '张三']);
 });
 ```
 
@@ -230,7 +229,10 @@ export async function listAvailableSalespersons(db, filters = {}) {
       AND s.is_active = 1
     ORDER BY s.name
   `;
-  const { results } = await db.prepare(sql).bind(...params).all();
+  const { results } = await db
+    .prepare(sql)
+    .bind(...params)
+    .all();
   return results.map((row) => ({ id: row.id, name: row.name, store: row.store }));
 }
 ```
@@ -239,7 +241,10 @@ export async function listAvailableSalespersons(db, filters = {}) {
 export async function listAvailableStatuses(db, filters = {}) {
   const { clause, params } = buildAdminOrderFilterClause(filters, { omit: ['status'] });
   const sql = `SELECT DISTINCT o.status FROM orders o WHERE ${clause} ORDER BY o.status`;
-  const { results } = await db.prepare(sql).bind(...params).all();
+  const { results } = await db
+    .prepare(sql)
+    .bind(...params)
+    .all();
   return results.map((row) => row.status).filter(Boolean);
 }
 ```
@@ -253,7 +258,10 @@ export async function listAvailableProcurementStatuses(db, filters = {}) {
     WHERE ${clause}
     ORDER BY procurement_status
   `;
-  const { results } = await db.prepare(sql).bind(...params).all();
+  const { results } = await db
+    .prepare(sql)
+    .bind(...params)
+    .all();
   return results.map((row) => row.procurement_status).filter(Boolean);
 }
 ```
@@ -269,8 +277,17 @@ export async function listSearchSuggestions(db, filters = {}) {
     ORDER BY o.created_at DESC
     LIMIT 20
   `;
-  const { results } = await db.prepare(sql).bind(...params).all();
-  return [...new Set(results.flatMap((row) => [row.order_no, row.salesperson_name, row.customer_name]).filter(Boolean))].slice(0, 20);
+  const { results } = await db
+    .prepare(sql)
+    .bind(...params)
+    .all();
+  return [
+    ...new Set(
+      results
+        .flatMap((row) => [row.order_no, row.salesperson_name, row.customer_name])
+        .filter(Boolean)
+    ),
+  ].slice(0, 20);
 }
 ```
 
@@ -304,6 +321,7 @@ git commit -m "feat: add faceted order metadata queries"
 ### Task 4: Return Faceted Metadata From The Orders List Route
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/functions/lib/hono/routes/manage/orders/list.js`
 - Test: `O:/Code/KK-Image/functions/repositories/order/__tests__/admin-facets.test.js`
 
@@ -363,6 +381,7 @@ git commit -m "feat: return faceted order metadata from list route"
 ### Task 5: Expose Dynamic Available Filters In `useOrders()`
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/src/composables/useOrders.js`
 - Test: `O:/Code/KK-Image/src/components/__tests__/OrderManager.network-workflow.test.js`
 
@@ -429,6 +448,7 @@ git commit -m "feat: refresh order faceted metadata on each list load"
 ### Task 6: Consume Faceted Metadata In OrderManager And OrderFilters
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/src/components/OrderManager.vue`
 - Modify: `O:/Code/KK-Image/src/components/order/OrderFilters.vue`
 - Test: `O:/Code/KK-Image/src/components/__tests__/OrderManager.network-workflow.test.js`
@@ -493,6 +513,7 @@ git commit -m "feat: wire order faceted metadata into filter bar"
 ### Task 7: Verification And Regression Coverage
 
 **Files:**
+
 - Verify only:
   - `O:/Code/KK-Image/functions/repositories/order/queries.js`
   - `O:/Code/KK-Image/functions/lib/hono/routes/manage/orders/list.js`

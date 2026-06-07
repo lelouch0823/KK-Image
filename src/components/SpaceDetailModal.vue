@@ -10,7 +10,10 @@
       <div class="flex min-w-0 items-center gap-3">
         <div class="min-w-0">
           <div class="flex items-center gap-2">
-            <h2 class="max-w-[16rem] truncate text-lg font-semibold text-(--text-main) sm:max-w-[26rem]" :title="spaceData?.name || t('spaceManager.detailTitle')">
+            <h2
+              class="max-w-[16rem] truncate text-lg font-semibold text-(--text-main) sm:max-w-[26rem]"
+              :title="spaceData?.name || t('spaceManager.detailTitle')"
+            >
               {{ spaceData?.name || t('spaceManager.detailTitle') }}
             </h2>
             <StatusBadge v-if="spaceData?.isPublic" variant="success" dot>
@@ -120,17 +123,10 @@
 
     <!-- Footer -->
     <template #footer>
-      <AppButton
-        variant="secondary"
-        @click="$emit('close')"
-      >
+      <AppButton variant="secondary" @click="$emit('close')">
         {{ t('spaceManager.close') }}
       </AppButton>
-      <AppButton
-        variant="white"
-        class="text-primary hover:text-primary"
-        @click="openPreview"
-      >
+      <AppButton variant="white" class="text-primary hover:text-primary" @click="openPreview">
         {{ t('spaceManager.preview') }}
       </AppButton>
     </template>

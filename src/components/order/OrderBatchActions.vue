@@ -4,11 +4,7 @@
       <span class="text-primary text-sm font-medium">
         {{ t('order.manage.selectedCount', { count: selectedCount }) }}
       </span>
-      <AppButton
-        variant="link"
-        size="sm"
-        @click="$emit('cancel')"
-      >
+      <AppButton variant="link" size="sm" @click="$emit('cancel')">
         {{ t('order.manage.cancelSelect') }}
       </AppButton>
     </template>
@@ -94,10 +90,7 @@
             :disabled="statusOption.disabled"
             @click="handleStatusSelect(statusOption.value)"
           >
-            <span
-              class="size-2 rounded-full"
-              :class="statusOption.colorClass"
-            />
+            <span class="size-2 rounded-full" :class="statusOption.colorClass" />
             {{ statusOption.label }}
           </AppButton>
         </div>
@@ -182,20 +175,21 @@ const statusOptions = computed(() => {
   };
 
   // 如果有从 API 返回的状态列表，使用它；否则使用默认列表
-  const statusList = props.statuses.length > 0
-    ? props.statuses
-    : [
-        { value: 'pending', label: t('order.statuses.pending') },
-        { value: 'confirmed', label: t('order.statuses.confirmed') },
-        { value: 'production', label: t('order.statuses.production') },
-        { value: 'shipping', label: t('order.statuses.shipping') },
-        { value: 'arrived', label: t('order.statuses.arrived') },
-        { value: 'fulfilled', label: t('order.statuses.fulfilled') },
-        { value: 'delivered', label: t('order.statuses.delivered') },
-        { value: 'void', label: t('order.statuses.void') },
-      ];
+  const statusList =
+    props.statuses.length > 0
+      ? props.statuses
+      : [
+          { value: 'pending', label: t('order.statuses.pending') },
+          { value: 'confirmed', label: t('order.statuses.confirmed') },
+          { value: 'production', label: t('order.statuses.production') },
+          { value: 'shipping', label: t('order.statuses.shipping') },
+          { value: 'arrived', label: t('order.statuses.arrived') },
+          { value: 'fulfilled', label: t('order.statuses.fulfilled') },
+          { value: 'delivered', label: t('order.statuses.delivered') },
+          { value: 'void', label: t('order.statuses.void') },
+        ];
 
-  return statusList.map(s => ({
+  return statusList.map((s) => ({
     ...s,
     colorClass: colorMap[s.value] || 'bg-(--bg-muted)',
     disabled: false,

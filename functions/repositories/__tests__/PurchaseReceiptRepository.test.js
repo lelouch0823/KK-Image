@@ -67,9 +67,11 @@ describe('PurchaseReceiptRepository', () => {
     const db = createDbMock();
     const repo = new PurchaseReceiptRepository(db);
 
-    await expect(repo.create({
-      purchase_order_id: 'po-1',
-    })).rejects.toThrow(/received_qty/i);
+    await expect(
+      repo.create({
+        purchase_order_id: 'po-1',
+      })
+    ).rejects.toThrow(/received_qty/i);
 
     expect(db.prepare).not.toHaveBeenCalled();
   });

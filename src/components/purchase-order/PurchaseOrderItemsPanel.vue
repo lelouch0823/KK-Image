@@ -84,7 +84,10 @@
                 variant="link"
                 :data-testid="`purchase-order-detail-item-remove-${item.id}`"
                 class="shrink-0 text-xs !text-danger opacity-0 transition-opacity group-hover:opacity-100"
-                @click="$event.stopPropagation(); $emit('remove-item', item.id)"
+                @click="
+                  $event.stopPropagation();
+                  $emit('remove-item', item.id);
+                "
               >
                 <template #icon-left>
                   <AppIcon name="trash" class="size-3" />
@@ -93,7 +96,9 @@
               </AppButton>
             </div>
 
-            <div class="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)">
+            <div
+              class="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)"
+            >
               <code
                 class="max-w-[10rem] truncate rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-xs"
                 :title="item.variant_sku || item.product_sku || '-'"
@@ -153,7 +158,9 @@
               class="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)"
             >
               <StatusBadge
-                :variant="helpers.getProgressStatusVariant(item.display_status || detail.display_status)"
+                :variant="
+                  helpers.getProgressStatusVariant(item.display_status || detail.display_status)
+                "
                 class="text-xs"
               >
                 {{ helpers.getProgressStatusLabel(item.display_status || detail.display_status) }}
@@ -180,7 +187,9 @@
                 min="1"
                 class="w-full text-center"
                 size="sm"
-                @change="$emit('update-item', { itemId: item.id, field: 'quantity', value: item.quantity })"
+                @change="
+                  $emit('update-item', { itemId: item.id, field: 'quantity', value: item.quantity })
+                "
               />
             </div>
             <div class="flex flex-col">
@@ -197,7 +206,13 @@
                   min="0"
                   class="w-full pr-2 pl-5 text-right"
                   size="sm"
-                  @change="$emit('update-item', { itemId: item.id, field: 'unit_cost', value: item.unit_cost })"
+                  @change="
+                    $emit('update-item', {
+                      itemId: item.id,
+                      field: 'unit_cost',
+                      value: item.unit_cost,
+                    })
+                  "
                 />
               </div>
             </div>
@@ -230,7 +245,12 @@
                 {{ t('purchaseOrder.ui.goodsSubtotal', '商品小计') }}
               </span>
               <span class="font-mono text-sm font-semibold text-(--text-main) tabular-nums">
-                {{ helpers.formatPurchaseCurrency((item.unit_cost || 0) * (item.quantity || 0), detail.currency) }}
+                {{
+                  helpers.formatPurchaseCurrency(
+                    (item.unit_cost || 0) * (item.quantity || 0),
+                    detail.currency
+                  )
+                }}
               </span>
             </div>
             <div class="flex items-center justify-between gap-3">

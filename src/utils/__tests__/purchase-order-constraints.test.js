@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  getSuggestedOrderQuantity,
-  validateOrderQuantity,
-} from '../purchase-order-constraints.js';
+import { getSuggestedOrderQuantity, validateOrderQuantity } from '../purchase-order-constraints.js';
 
 describe('purchase-order constraints (frontend)', () => {
   it('suggests quantity that satisfies moq + step + pack', () => {
@@ -17,4 +14,3 @@ describe('purchase-order constraints (frontend)', () => {
     expect(invalid.suggestedQuantity).toBe(20);
   });
 });
-

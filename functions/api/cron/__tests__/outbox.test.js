@@ -66,34 +66,42 @@ describe('cron outbox poller', () => {
       leaseUntil: 1710000030000,
     });
     mocks.claimJobs
-      .mockResolvedValueOnce([{
-        id: 'job-audit-1',
-        consumer_name: 'audit',
-        event_id: 'evt-1',
-        event_type: 'purchase_receipt_recorded',
-        payload_json: '{"purchase_order_id":"po-1"}',
-      }])
-      .mockResolvedValueOnce([{
-        id: 'job-cache-1',
-        consumer_name: 'cache',
-        event_id: 'evt-2',
-        event_type: 'order_procurement_progressed',
-        payload_json: '{"purchase_order_id":"po-1","order_id":"o-1"}',
-      }])
-      .mockResolvedValueOnce([{
-        id: 'job-notification-1',
-        consumer_name: 'notification',
-        event_id: 'evt-3',
-        event_type: 'purchase_receipt_recorded',
-        payload_json: '{"purchase_order_id":"po-1","order_id":"o-1","receipt_id":"receipt-1"}',
-      }])
-      .mockResolvedValueOnce([{
-        id: 'job-webhook-1',
-        consumer_name: 'webhook',
-        event_id: 'evt-4',
-        event_type: 'purchase_receipt_recorded',
-        payload_json: '{"purchase_order_id":"po-1","receipt_id":"receipt-1"}',
-      }])
+      .mockResolvedValueOnce([
+        {
+          id: 'job-audit-1',
+          consumer_name: 'audit',
+          event_id: 'evt-1',
+          event_type: 'purchase_receipt_recorded',
+          payload_json: '{"purchase_order_id":"po-1"}',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'job-cache-1',
+          consumer_name: 'cache',
+          event_id: 'evt-2',
+          event_type: 'order_procurement_progressed',
+          payload_json: '{"purchase_order_id":"po-1","order_id":"o-1"}',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'job-notification-1',
+          consumer_name: 'notification',
+          event_id: 'evt-3',
+          event_type: 'purchase_receipt_recorded',
+          payload_json: '{"purchase_order_id":"po-1","order_id":"o-1","receipt_id":"receipt-1"}',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'job-webhook-1',
+          consumer_name: 'webhook',
+          event_id: 'evt-4',
+          event_type: 'purchase_receipt_recorded',
+          payload_json: '{"purchase_order_id":"po-1","receipt_id":"receipt-1"}',
+        },
+      ])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
@@ -112,48 +120,60 @@ describe('cron outbox poller', () => {
 
     expect(response.status).toBe(200);
     const json = await response.json();
-    expect(json).toEqual(expect.objectContaining({
-      success: true,
-      data: expect.objectContaining({
+    expect(json).toEqual(
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          claimed: 4,
+          published: 4,
+          failed: 0,
+          rounds: 1,
+          skipped: false,
+          backlog: 0,
+        }),
+      })
+    );
+    expect(mocks.auditConsumer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: expect.objectContaining({ id: 'job-audit-1' }),
+        baseUrl: 'https://kk.example.com',
+        state: expect.any(Object),
+      })
+    );
+    expect(mocks.cacheConsumer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: expect.objectContaining({ id: 'job-cache-1' }),
+        baseUrl: 'https://kk.example.com',
+        state: expect.any(Object),
+      })
+    );
+    expect(mocks.notificationConsumer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: expect.objectContaining({ id: 'job-notification-1', event_id: 'evt-3' }),
+        baseUrl: 'https://kk.example.com',
+        state: expect.any(Object),
+      })
+    );
+    expect(mocks.webhookConsumer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: expect.objectContaining({ id: 'job-webhook-1', event_id: 'evt-4' }),
+        baseUrl: 'https://kk.example.com',
+        state: expect.any(Object),
+      })
+    );
+    expect(mocks.markPublished).toHaveBeenCalledTimes(4);
+    expect(mocks.markFailed).not.toHaveBeenCalled();
+    expect(mocks.finishLease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: 'default',
+        leaseToken: 'lease-1',
         claimed: 4,
         published: 4,
         failed: 0,
         rounds: 1,
-        skipped: false,
         backlog: 0,
-      }),
-    }));
-    expect(mocks.auditConsumer).toHaveBeenCalledWith(expect.objectContaining({
-      event: expect.objectContaining({ id: 'job-audit-1' }),
-      baseUrl: 'https://kk.example.com',
-      state: expect.any(Object),
-    }));
-    expect(mocks.cacheConsumer).toHaveBeenCalledWith(expect.objectContaining({
-      event: expect.objectContaining({ id: 'job-cache-1' }),
-      baseUrl: 'https://kk.example.com',
-      state: expect.any(Object),
-    }));
-    expect(mocks.notificationConsumer).toHaveBeenCalledWith(expect.objectContaining({
-      event: expect.objectContaining({ id: 'job-notification-1', event_id: 'evt-3' }),
-      baseUrl: 'https://kk.example.com',
-      state: expect.any(Object),
-    }));
-    expect(mocks.webhookConsumer).toHaveBeenCalledWith(expect.objectContaining({
-      event: expect.objectContaining({ id: 'job-webhook-1', event_id: 'evt-4' }),
-      baseUrl: 'https://kk.example.com',
-      state: expect.any(Object),
-    }));
-    expect(mocks.markPublished).toHaveBeenCalledTimes(4);
-    expect(mocks.markFailed).not.toHaveBeenCalled();
-    expect(mocks.finishLease).toHaveBeenCalledWith(expect.objectContaining({
-      scope: 'default',
-      leaseToken: 'lease-1',
-      claimed: 4,
-      published: 4,
-      failed: 0,
-      rounds: 1,
-      backlog: 0,
-    }));
+      })
+    );
   });
 
   it('processes jobs within a consumer under the configured concurrency limit', async () => {
@@ -226,48 +246,58 @@ describe('cron outbox poller', () => {
     releases.splice(0).forEach((release) => release());
 
     const result = await pollerPromise;
-    expect(result).toEqual(expect.objectContaining({
-      claimed: 3,
-      published: 3,
-      failed: 0,
-      rounds: 1,
-      skipped: false,
-      backlog: 0,
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        claimed: 3,
+        published: 3,
+        failed: 0,
+        rounds: 1,
+        skipped: false,
+        backlog: 0,
+      })
+    );
     expect(maxActiveCount).toBe(2);
   });
 
   it('uses bounded request-path defaults when forced by a route worker id', async () => {
     mocks.claimJobs.mockReset();
     mocks.claimJobs
-      .mockResolvedValueOnce([{
-        id: 'job-audit-1',
-        consumer_name: 'audit',
-        event_id: 'evt-1',
-        event_type: 'purchase_order_status_changed',
-        payload_json: '{}',
-      }])
-      .mockResolvedValueOnce([{
-        id: 'job-cache-1',
-        consumer_name: 'cache',
-        event_id: 'evt-2',
-        event_type: 'purchase_order_status_changed',
-        payload_json: '{}',
-      }])
-      .mockResolvedValueOnce([{
-        id: 'job-notification-1',
-        consumer_name: 'notification',
-        event_id: 'evt-3',
-        event_type: 'order_procurement_progressed',
-        payload_json: '{}',
-      }])
-      .mockResolvedValueOnce([{
-        id: 'job-webhook-1',
-        consumer_name: 'webhook',
-        event_id: 'evt-4',
-        event_type: 'order_procurement_progressed',
-        payload_json: '{}',
-      }]);
+      .mockResolvedValueOnce([
+        {
+          id: 'job-audit-1',
+          consumer_name: 'audit',
+          event_id: 'evt-1',
+          event_type: 'purchase_order_status_changed',
+          payload_json: '{}',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'job-cache-1',
+          consumer_name: 'cache',
+          event_id: 'evt-2',
+          event_type: 'purchase_order_status_changed',
+          payload_json: '{}',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'job-notification-1',
+          consumer_name: 'notification',
+          event_id: 'evt-3',
+          event_type: 'order_procurement_progressed',
+          payload_json: '{}',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'job-webhook-1',
+          consumer_name: 'webhook',
+          event_id: 'evt-4',
+          event_type: 'order_procurement_progressed',
+          payload_json: '{}',
+        },
+      ]);
 
     const result = await runOutboxPoller({
       env: { DB: {} },
@@ -275,14 +305,16 @@ describe('cron outbox poller', () => {
       workerId: 'purchase_order_status_changed:po-1',
     });
 
-    expect(result).toEqual(expect.objectContaining({
-      claimed: 4,
-      published: 4,
-      failed: 0,
-      rounds: 1,
-      skipped: false,
-      backlog: 0,
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        claimed: 4,
+        published: 4,
+        failed: 0,
+        rounds: 1,
+        skipped: false,
+        backlog: 0,
+      })
+    );
     expect(mocks.claimJobs).toHaveBeenCalledTimes(4);
     expect(mocks.claimJobs).toHaveBeenNthCalledWith(
       1,
@@ -312,11 +344,13 @@ describe('cron outbox poller', () => {
       expect.any(Number),
       10
     );
-    expect(mocks.tryAcquire).toHaveBeenCalledWith(expect.objectContaining({
-      workerId: 'purchase_order_status_changed:po-1',
-      force: false,
-      minRunIntervalMs: 0,
-    }));
+    expect(mocks.tryAcquire).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workerId: 'purchase_order_status_changed:po-1',
+        force: false,
+        minRunIntervalMs: 0,
+      })
+    );
   });
 
   it('skips processing when another poller lease is still active', async () => {

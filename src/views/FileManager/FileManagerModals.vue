@@ -29,18 +29,9 @@
     <!-- Rename Modal -->
     <Modal v-model="showRename" :title="t('fileManager.contextMenu.rename')" size="sm">
       <form @submit.prevent="handleRename">
-        <AppInput
-          v-model="renameName"
-          v-focus
-          class="mb-6"
-          required
-        />
+        <AppInput v-model="renameName" v-focus class="mb-6" required />
         <div class="flex justify-end gap-3">
-          <AppButton
-            variant="secondary"
-            :text="t('common.cancel')"
-            @click="showRename = false"
-          />
+          <AppButton variant="secondary" :text="t('common.cancel')" @click="showRename = false" />
           <AppButton
             type="submit"
             variant="primary"
@@ -87,13 +78,7 @@ defineProps({
   shareFile: { type: Object, default: null },
 });
 
-const emit = defineEmits([
-  'create-folder',
-  'rename',
-  'moved',
-  'tagged',
-  'share-updated'
-]);
+const emit = defineEmits(['create-folder', 'rename', 'moved', 'tagged', 'share-updated']);
 
 const { t } = useI18n();
 
@@ -116,7 +101,8 @@ const openCreateFolder = () => {
   showCreateFolder.value = true;
 };
 
-const openRename = (target) => { // target: { id, type, name }
+const openRename = (target) => {
+  // target: { id, type, name }
   renameTarget.value = target;
   renameName.value = target.name;
   showRename.value = true;
@@ -159,6 +145,6 @@ defineExpose({
   openMove,
   openShareFolder,
   openShareFile,
-  openTag
+  openTag,
 });
 </script>

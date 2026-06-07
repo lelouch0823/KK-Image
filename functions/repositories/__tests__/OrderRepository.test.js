@@ -215,34 +215,36 @@ describe('OrderRepository', () => {
       const countStmt = createStatement({ first: vi.fn(async () => ({ total: 1 })) });
       const listStmt = createStatement({
         all: vi.fn(async () => ({
-          results: [{
-            id: 'o-1',
-            order_no: 'SO-1',
-            salesperson_id: 'sp-1',
-            summary_name: '订单A',
-            summary_brand: 'KK',
-            summary_sku: 'SKU-1',
-            status: 'confirmed',
-            procurement_status: 'ordered',
-            fulfillment_status: 'unfulfilled',
-            delivery_status: 'not_shipped',
-            display_status: 'ordered',
-            product_id: 'p-1',
-            variant_id: 'v-1',
-            quantity: 5,
-            line_ordered_qty: 5,
-            line_shipped_qty: 0,
-            line_returned_qty: 0,
-            line_cancelled_qty: 0,
-            is_unread: 0,
-            main_image_id: null,
-            created_at: 1000,
-            updated_at: 2000,
-            salesperson_name: '销售A',
-            salesperson_store: '门店A',
-            main_image_key: null,
-            main_image_blurhash: null,
-          }],
+          results: [
+            {
+              id: 'o-1',
+              order_no: 'SO-1',
+              salesperson_id: 'sp-1',
+              summary_name: '订单A',
+              summary_brand: 'KK',
+              summary_sku: 'SKU-1',
+              status: 'confirmed',
+              procurement_status: 'ordered',
+              fulfillment_status: 'unfulfilled',
+              delivery_status: 'not_shipped',
+              display_status: 'ordered',
+              product_id: 'p-1',
+              variant_id: 'v-1',
+              quantity: 5,
+              line_ordered_qty: 5,
+              line_shipped_qty: 0,
+              line_returned_qty: 0,
+              line_cancelled_qty: 0,
+              is_unread: 0,
+              main_image_id: null,
+              created_at: 1000,
+              updated_at: 2000,
+              salesperson_name: '销售A',
+              salesperson_store: '门店A',
+              main_image_key: null,
+              main_image_blurhash: null,
+            },
+          ],
         })),
       });
       const db = { prepare: vi.fn().mockReturnValueOnce(countStmt).mockReturnValueOnce(listStmt) };
@@ -329,7 +331,13 @@ describe('OrderRepository', () => {
 
       expect(db.prepare.mock.calls[0][0]).toContain('UPDATE orders');
       expect(db.prepare.mock.calls[0][0]).toContain("delivery_status = 'delivered'");
-      expect(result.params).toEqual([1710000000000, 'admin-1', '客户已签收', 1710000000000, 'order-1']);
+      expect(result.params).toEqual([
+        1710000000000,
+        'admin-1',
+        '客户已签收',
+        1710000000000,
+        'order-1',
+      ]);
     });
 
     it('省略可选参数时使用默认值', async () => {

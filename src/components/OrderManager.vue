@@ -1,6 +1,12 @@
 <template>
-  <ManagementListShell :title="t('order.manage.title')" :description="t('order.manage.subtitle') || t('order.manage.title')">
-    <div v-if="errorCode === ErrorCode.FORBIDDEN" class="flex flex-1 items-center justify-center py-12">
+  <ManagementListShell
+    :title="t('order.manage.title')"
+    :description="t('order.manage.subtitle') || t('order.manage.title')"
+  >
+    <div
+      v-if="errorCode === ErrorCode.FORBIDDEN"
+      class="flex flex-1 items-center justify-center py-12"
+    >
       <PermissionDeniedState
         :title="t('order.manage.permissionDenied')"
         :description="error || t('order.manage.permissionDeniedDesc')"
@@ -8,63 +14,75 @@
         @retry="refreshOrders"
       />
     </div>
-    
+
     <!-- 订单统计仪表盘 (Desktop only inline) - NOTE: This seems unused or legacy comment, keeping structure but cleaning up -->
-    
+
     <!-- Mobile Stats Modal -->
-    <Modal v-if="errorCode !== ErrorCode.FORBIDDEN" v-model="showStatsModal" :title="t('dashboard.stats')" size="xl">
-      <OrderDashboard @filter="(type) => { handleDashboardFilter(type); showStatsModal = false; }" />
+    <Modal
+      v-if="errorCode !== ErrorCode.FORBIDDEN"
+      v-model="showStatsModal"
+      :title="t('dashboard.stats')"
+      size="xl"
+    >
+      <OrderDashboard
+        @filter="
+          (type) => {
+            handleDashboardFilter(type);
+            showStatsModal = false;
+          }
+        "
+      />
     </Modal>
 
     <!-- 订单列表 -->
     <template #content>
-    <div v-if="errorCode !== ErrorCode.FORBIDDEN" class="lg:overflow-y-auto">
-      <!-- 桌面表格视图 (lg+) -->
-      <div class="hidden lg:block">
-        <OrderTable
-          v-model:selected-ids="selectedIds"
-          :data="orders"
-          :loading="loading"
-          :selectable="true"
-          @detail="openDetailModal"
-          @edit="openEditModal"
-          @void="handleVoidOrder"
-        >
-          <!-- Toolbar Slot: Filters -->
-          <template #toolbar>
-            <OrderFilters
-              v-model:filters="filterState"
-              :salespersons="salespersons"
-              :statuses="statuses"
-              :procurement-statuses="procurementStatuses"
-              :delivery-statuses="deliveryStatuses"
-              :exporting="exporting"
-              :show-create="true"
-              class="border-none bg-transparent p-0 shadow-none"
-              @search="handleFilterChange"
-              @export="exportOrders"
-              @create="showCreateModal = true"
-              @show-stats="showStatsModal = true" 
-            />
-          </template>
+      <div v-if="errorCode !== ErrorCode.FORBIDDEN" class="lg:overflow-y-auto">
+        <!-- 桌面表格视图 (lg+) -->
+        <div class="hidden lg:block">
+          <OrderTable
+            v-model:selected-ids="selectedIds"
+            :data="orders"
+            :loading="loading"
+            :selectable="true"
+            @detail="openDetailModal"
+            @edit="openEditModal"
+            @void="handleVoidOrder"
+          >
+            <!-- Toolbar Slot: Filters -->
+            <template #toolbar>
+              <OrderFilters
+                v-model:filters="filterState"
+                :salespersons="salespersons"
+                :statuses="statuses"
+                :procurement-statuses="procurementStatuses"
+                :delivery-statuses="deliveryStatuses"
+                :exporting="exporting"
+                :show-create="true"
+                class="border-none bg-transparent p-0 shadow-none"
+                @search="handleFilterChange"
+                @export="exportOrders"
+                @create="showCreateModal = true"
+                @show-stats="showStatsModal = true"
+              />
+            </template>
 
-          <!-- Status Slot -->
-          <template #status="{ order }">
-            <OrderListStatusStack
-              :status="order.status"
-              :procurement-status="resolveOrderProgressStatus(order)"
-              :delivery-status="resolveOrderDeliveryStatus(order)"
-              :loading="statusChanging[order.id]"
-              :permissions="currentUser?.permissions || []"
-              :can-deliver="order.canDeliver"
-              mode="manage"
-              :on-status-change="(e) => handleStatusChange(order, e)"
-            />
-          </template>
+            <!-- Status Slot -->
+            <template #status="{ order }">
+              <OrderListStatusStack
+                :status="order.status"
+                :procurement-status="resolveOrderProgressStatus(order)"
+                :delivery-status="resolveOrderDeliveryStatus(order)"
+                :loading="statusChanging[order.id]"
+                :permissions="currentUser?.permissions || []"
+                :can-deliver="order.canDeliver"
+                mode="manage"
+                :on-status-change="(e) => handleStatusChange(order, e)"
+              />
+            </template>
 
-          <!-- Footer Slot: Pagination -->
-          <template #footer>
-             <div class="flex w-full items-center justify-end gap-4">
+            <!-- Footer Slot: Pagination -->
+            <template #footer>
+              <div class="flex w-full items-center justify-end gap-4">
                 <span v-if="pagination.total > 0" class="text-sm text-(--text-secondary)">
                   {{ t('common.total') }} {{ pagination.total }}
                 </span>
@@ -74,67 +92,73 @@
                   :total-pages="pagination.totalPages"
                   @change="changePage"
                 />
-             </div>
-          </template>
-        </OrderTable>
-      </div>
+              </div>
+            </template>
+          </OrderTable>
+        </div>
 
-      <!-- 移动端卡片视图 (<lg) -->
-      <div class="h-full overflow-y-auto p-4 lg:hidden">
-         <!-- Mobile view needs its own filters since it doesn't use OrderTable -->
-         <OrderFilters
-              v-model:filters="filterState"
-              :salespersons="salespersons"
-              :statuses="statuses"
-              :procurement-statuses="procurementStatuses"
-              :delivery-statuses="deliveryStatuses"
-              :exporting="exporting"
-              :show-create="true"
-              class="mb-4"
-              @search="handleFilterChange"
-              @export="exportOrders"
-              @create="showCreateModal = true"
-              @show-stats="showStatsModal = true"
-         />
-        <OrderCards
-          :data="orders"
-          :loading="loading"
-          @detail="openDetailModal"
-          @edit="openEditModal"
-        >
-          <template #status="{ order }">
-            <OrderListStatusStack
-              :status="order.status"
-              :procurement-status="resolveOrderProgressStatus(order)"
-              :delivery-status="resolveOrderDeliveryStatus(order)"
-              :loading="statusChanging[order.id]"
-              :permissions="currentUser?.permissions || []"
-              :can-deliver="order.canDeliver"
-              mode="manage"
-              :on-status-change="(e) => handleStatusChange(order, e)"
-            />
-          </template>
-        </OrderCards>
-        <!-- Mobile Infinite Scroll Trigger -->
-        <div class="mt-4 pb-20">
-          <!-- Loading More Indicator -->
-          <div v-if="mobileInfiniteScroll.isLoading.value" class="flex items-center justify-center py-4 text-sm text-(--text-secondary)">
-            <AppIcon name="spinner" class="mr-2 size-5 animate-spin" />
-            <span>{{ t('common.loadingMore') }}</span>
-          </div>
-          <!-- Intersection Observer Trigger -->
-          <div 
-            v-else-if="mobileInfiniteScroll.canLoadMore.value"
-            :ref="(el) => mobileInfiniteScroll.triggerRef.value = el"
-            class="h-10 w-full"
-          ></div>
-          <!-- End of List -->
-          <div v-else-if="orders.length > 0" class="py-4 text-center text-sm text-(--text-secondary)">
-            {{ t('common.total') }} {{ pagination.total }} {{ t('common.items') }}
+        <!-- 移动端卡片视图 (<lg) -->
+        <div class="h-full overflow-y-auto p-4 lg:hidden">
+          <!-- Mobile view needs its own filters since it doesn't use OrderTable -->
+          <OrderFilters
+            v-model:filters="filterState"
+            :salespersons="salespersons"
+            :statuses="statuses"
+            :procurement-statuses="procurementStatuses"
+            :delivery-statuses="deliveryStatuses"
+            :exporting="exporting"
+            :show-create="true"
+            class="mb-4"
+            @search="handleFilterChange"
+            @export="exportOrders"
+            @create="showCreateModal = true"
+            @show-stats="showStatsModal = true"
+          />
+          <OrderCards
+            :data="orders"
+            :loading="loading"
+            @detail="openDetailModal"
+            @edit="openEditModal"
+          >
+            <template #status="{ order }">
+              <OrderListStatusStack
+                :status="order.status"
+                :procurement-status="resolveOrderProgressStatus(order)"
+                :delivery-status="resolveOrderDeliveryStatus(order)"
+                :loading="statusChanging[order.id]"
+                :permissions="currentUser?.permissions || []"
+                :can-deliver="order.canDeliver"
+                mode="manage"
+                :on-status-change="(e) => handleStatusChange(order, e)"
+              />
+            </template>
+          </OrderCards>
+          <!-- Mobile Infinite Scroll Trigger -->
+          <div class="mt-4 pb-20">
+            <!-- Loading More Indicator -->
+            <div
+              v-if="mobileInfiniteScroll.isLoading.value"
+              class="flex items-center justify-center py-4 text-sm text-(--text-secondary)"
+            >
+              <AppIcon name="spinner" class="mr-2 size-5 animate-spin" />
+              <span>{{ t('common.loadingMore') }}</span>
+            </div>
+            <!-- Intersection Observer Trigger -->
+            <div
+              v-else-if="mobileInfiniteScroll.canLoadMore.value"
+              :ref="(el) => (mobileInfiniteScroll.triggerRef.value = el)"
+              class="h-10 w-full"
+            ></div>
+            <!-- End of List -->
+            <div
+              v-else-if="orders.length > 0"
+              class="py-4 text-center text-sm text-(--text-secondary)"
+            >
+              {{ t('common.total') }} {{ pagination.total }} {{ t('common.items') }}
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </template>
 
     <!-- Create Modal -->
@@ -162,7 +186,7 @@
       @comment="handleAdminComment"
       @refresh="refreshAfterComment"
       @edit="handleEditFromDetail"
-      @delete-order="() => showDeleteModal = true"
+      @delete-order="() => (showDeleteModal = true)"
       @line-command="handleOrderLineCommand"
       @confirm-delivery="openDeliveryConfirm"
     />
@@ -229,7 +253,9 @@
       :title="t('order.detail.deletePermanently')"
       :description="t('order.detail.dangerWarning')"
       :required-text="viewingOrder?.orderNo || ''"
-      :require-text-label="t('order.detail.typeOrderNoToConfirm', { orderNo: viewingOrder?.orderNo || '' })"
+      :require-text-label="
+        t('order.detail.typeOrderNoToConfirm', { orderNo: viewingOrder?.orderNo || '' })
+      "
       :confirm-text="t('order.detail.deletePermanently')"
       :loading="isDeleting"
       @confirm="executeOrderDeletion(viewingOrder)"
@@ -250,7 +276,15 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, onActivated, watch, reactive, ref, defineAsyncComponent } from 'vue';
+import {
+  onMounted,
+  onUnmounted,
+  onActivated,
+  watch,
+  reactive,
+  ref,
+  defineAsyncComponent,
+} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useNotifications } from '@/composables/useNotifications';
@@ -276,7 +310,9 @@ const OrderWorkflowModal = defineAsyncComponent(() => import('./order/OrderWorkf
 const OrderReturnDialog = defineAsyncComponent(() => import('./order/OrderReturnDialog.vue'));
 const OrderDashboard = defineAsyncComponent(() => import('./order/OrderDashboard.vue'));
 const OrderCreateModal = defineAsyncComponent(() => import('@/components/OrderCreateModal.vue'));
-const DestructiveConfirmModal = defineAsyncComponent(() => import('@/components/common/DestructiveConfirmModal.vue'));
+const DestructiveConfirmModal = defineAsyncComponent(
+  () => import('@/components/common/DestructiveConfirmModal.vue')
+);
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import { useAuth } from '@/composables/useAuth';
@@ -424,9 +460,7 @@ function openDeliveryConfirm(payload = {}) {
   deliveryConfirm.show = true;
   deliveryConfirm.note = String(payload?.note || '').trim();
   deliveryConfirm.title = t('order.detail.deliveryConfirmTitle');
-  deliveryConfirm.message = t(
-    'order.detail.deliveryConfirmMessage',
-  );
+  deliveryConfirm.message = t('order.detail.deliveryConfirmMessage');
   deliveryConfirm.confirmText = t('order.detail.deliveryConfirmAction');
   deliveryConfirm.type = 'primary';
   return true;
@@ -776,7 +810,7 @@ const handleStatusChange = async (order, { status, note, force }) => {
 };
 onUnmounted(() => {
   // 清理局部 UI 状态
-  Object.keys(statusChanging).forEach(key => delete statusChanging[key]);
+  Object.keys(statusChanging).forEach((key) => delete statusChanging[key]);
   stopOrdersRefreshSubscription?.();
   stopOrdersRefreshSubscription = null;
 });

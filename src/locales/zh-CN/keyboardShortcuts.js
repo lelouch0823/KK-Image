@@ -22,7 +22,7 @@ export default {
   },
   // 修饰键显示名
   modifiers: {
-    mod: '⌘',  // Mac 上显示 ⌘，可后续根据平台动态切换
+    mod: '⌘', // Mac 上显示 ⌘，可后续根据平台动态切换
     ctrl: 'Ctrl',
     shift: 'Shift',
     alt: 'Alt',

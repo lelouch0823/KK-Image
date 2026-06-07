@@ -50,10 +50,20 @@
               </span>
             </p>
             <div class="flex items-center gap-2">
-              <AppButton variant="ghost" size="sm" data-testid="po-draft-restore" @click="handleRestorePoDraft">
+              <AppButton
+                variant="ghost"
+                size="sm"
+                data-testid="po-draft-restore"
+                @click="handleRestorePoDraft"
+              >
                 {{ t('formDraft.restore', '恢复') }}
               </AppButton>
-              <AppButton variant="ghost" size="sm" data-testid="po-draft-discard" @click="clearPoDraft">
+              <AppButton
+                variant="ghost"
+                size="sm"
+                data-testid="po-draft-discard"
+                @click="clearPoDraft"
+              >
                 {{ t('formDraft.discard', '丢弃') }}
               </AppButton>
             </div>
@@ -330,17 +340,14 @@ import {
   getPurchaseOrderReceivedQty,
 } from '@/utils/purchase-order-progress';
 import { formatCurrency as formatMoney } from '@/utils/formatters';
-import { formatDate } from "@/utils/formatters";
-import {
-  createReceiptMetaBuilder,
-  hasReceiptMeta,
-} from "@/views/purchase-orders/progress";
+import { formatDate } from '@/utils/formatters';
+import { createReceiptMetaBuilder, hasReceiptMeta } from '@/views/purchase-orders/progress';
 import {
   createPurchaseOrderSteps,
   getStepIconClasses,
   getStepperProgress,
   isStepCompleted,
-} from "@/views/purchase-orders/stepper";
+} from '@/views/purchase-orders/stepper';
 import {
   buildSuggestionMeta,
   buildSuggestionVariantLabel,
@@ -348,7 +355,7 @@ import {
   isReceiptDraftInvalid,
   isShortageDraftInvalid,
   normalizeReceiptQty,
-} from "@/views/purchase-orders/drafts";
+} from '@/views/purchase-orders/drafts';
 import PurchaseOrderCostModal from '@/components/purchase-order/PurchaseOrderCostModal.vue';
 import PurchaseOrderCreateDrawer from '@/components/purchase-order/PurchaseOrderCreateDrawer.vue';
 import PurchaseOrderDetailDrawer from '@/components/purchase-order/PurchaseOrderDetailDrawer.vue';
@@ -440,8 +447,12 @@ let stopPurchaseOrdersRefreshSubscription = null;
 
 // 采购单草稿自动保存
 const poDraftDataSource = reactive({
-  get createForm() { return createForm; },
-  get items() { return poItems; },
+  get createForm() {
+    return createForm;
+  },
+  get items() {
+    return poItems;
+  },
 });
 
 const {
@@ -463,13 +474,8 @@ const handleRestorePoDraft = () => {
 };
 
 // 列表展示层：负责把 stats/list 组织成卡片、列定义、控制台信号等 UI 友好数据。
-const {
-  statCards,
-  columns,
-  consoleSignals,
-  buildReceiptProgressSummary,
-  getListStatusVariant,
-} = usePurchaseOrderListPresentation({ stats, t });
+const { statCards, columns, consoleSignals, buildReceiptProgressSummary, getListStatusVariant } =
+  usePurchaseOrderListPresentation({ stats, t });
 
 // 步骤条定义是静态结构，只依赖文案函数。
 const stepsList = createPurchaseOrderSteps(t);
@@ -853,12 +859,7 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--shimmer-from) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, transparent 0%, var(--shimmer-from) 50%, transparent 100%);
   animation: shimmer 1.8s infinite;
 }
 @keyframes shimmer {

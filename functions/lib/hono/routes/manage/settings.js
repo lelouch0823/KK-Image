@@ -9,17 +9,38 @@ import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { assertSafeExternalUrl } from '../../_shared/url-security.js';
 import { withCache } from '../../middleware/cache.js';
-import { BatchSettingsSchema, UpdateSettingSchema } from '../../schemas/settings.js';
+import {
+  BatchSettingsSchema,
+  UpdateSettingSchema,
+  AiModelSchema,
+  AiTestSchema,
+} from '../../schemas/settings.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
-  { method: 'POST', path: '/batch', domain: 'settings', action: 'settings.batch_upsert', severity: 'high', targetType: 'setting' },
-  { method: 'PUT', path: '/:key', domain: 'settings', action: 'settings.update', severity: 'high', targetType: 'setting' },
+  {
+    method: 'POST',
+    path: '/batch',
+    domain: 'settings',
+    action: 'settings.batch_upsert',
+    severity: 'high',
+    targetType: 'setting',
+  },
+  {
+    method: 'PUT',
+    path: '/:key',
+    domain: 'settings',
+    action: 'settings.update',
+    severity: 'high',
+    targetType: 'setting',
+  },
 ]);
 app.use('*', requirePermission('admin:full'));
 
 const normalizeApiBaseUrl = (rawUrl = '') => {
-  const trimmed = String(rawUrl || '').trim().replace(/\/+$/, '');
+  const trimmed = String(rawUrl || '')
+    .trim()
+    .replace(/\/+$/, '');
   if (!trimmed) return null;
   return trimmed;
 };
@@ -34,7 +55,7 @@ const fetchJsonWithAuth = async (url, apiKey, init = {}) => {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       ...(init.headers || {}),
     },
   });
@@ -56,11 +77,7 @@ const parseWindowSize = (value, fallback = 20) => {
 };
 
 const extractModelIds = (payload) => {
-  const candidateLists = [
-    payload?.data,
-    payload?.models,
-    payload?.results,
-  ];
+  const candidateLists = [payload?.data, payload?.models, payload?.results];
 
   for (const list of candidateLists) {
     if (!Array.isArray(list)) continue;
@@ -144,8 +161,8 @@ app.put('/:key', zValidator('json', UpdateSettingSchema), async (c) => {
   return c.json({ success: true, data: { key, value } });
 });
 
-app.post('/ai/models', async (c) => {
-  const body = await c.req.json().catch(() => ({}));
+app.post('/ai/models', zValidator('json', AiModelSchema), async (c) => {
+  const body = c.req.valid('json');
   const apiUrl = normalizeApiBaseUrl(body.apiUrl);
   const apiKey = String(body.apiKey || '').trim();
   ensureRequiredAiConfig({ apiUrl, apiKey });
@@ -154,7 +171,9 @@ app.post('/ai/models', async (c) => {
   const { response, data } = await fetchJsonWithAuth(`${apiUrl}/models`, apiKey, { method: 'GET' });
 
   if (!response.ok) {
-    throw new BadRequestError(data?.error?.message || `Fetch models failed: HTTP ${response.status}`);
+    throw new BadRequestError(
+      data?.error?.message || `Fetch models failed: HTTP ${response.status}`
+    );
   }
 
   const models = extractModelIds(data);
@@ -167,8 +186,8 @@ app.post('/ai/models', async (c) => {
   });
 });
 
-app.post('/ai/test', async (c) => {
-  const body = await c.req.json().catch(() => ({}));
+app.post('/ai/test', zValidator('json', AiTestSchema), async (c) => {
+  const body = c.req.valid('json');
   const apiUrl = normalizeApiBaseUrl(body.apiUrl);
   const apiKey = String(body.apiKey || '').trim();
   const model = String(body.model || '').trim();
@@ -181,7 +200,8 @@ app.post('/ai/test', async (c) => {
 
   if (!modelListResult.response.ok) {
     throw new BadRequestError(
-      modelListResult.data?.error?.message || `Connectivity test failed on /models: HTTP ${modelListResult.response.status}`
+      modelListResult.data?.error?.message ||
+        `Connectivity test failed on /models: HTTP ${modelListResult.response.status}`
     );
   }
 
@@ -226,10 +246,14 @@ app.get('/ai/health', async (c) => {
   const ai = grouped?.ai || {};
 
   const modelsFromQuery = parseModels(c.req.query('models') || '');
-  const models = modelsFromQuery.length > 0
-    ? modelsFromQuery
-    : parseModels(ai.AI_MODELS || c.env.AI_MODELS || c.env.AI_MODEL || '');
-  const enabled = parseBooleanFlag(ai.AI_DYNAMIC_FALLBACK_ENABLED ?? c.env.AI_DYNAMIC_FALLBACK_ENABLED, false);
+  const models =
+    modelsFromQuery.length > 0
+      ? modelsFromQuery
+      : parseModels(ai.AI_MODELS || c.env.AI_MODELS || c.env.AI_MODEL || '');
+  const enabled = parseBooleanFlag(
+    ai.AI_DYNAMIC_FALLBACK_ENABLED ?? c.env.AI_DYNAMIC_FALLBACK_ENABLED,
+    false
+  );
   const windowSize = parseWindowSize(ai.AI_MODEL_HEALTH_WINDOW ?? c.env.AI_MODEL_HEALTH_WINDOW, 20);
 
   const snapshot = getModelHealthSnapshot({ models, windowSize });

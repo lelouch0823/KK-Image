@@ -17,11 +17,7 @@
             class="absolute left-0 flex size-6 items-center justify-center rounded-full"
             :class="iconClasses[item.actionType]"
           >
-            <AppIcon
-              v-if="item.actionType === 'created'"
-              name="plus"
-              class="size-3"
-            />
+            <AppIcon v-if="item.actionType === 'created'" name="plus" class="size-3" />
             <AppIcon
               v-else-if="item.actionType === 'field_updated'"
               name="pencil-alt"
@@ -78,7 +74,8 @@
                     class="mt-1 flex items-start gap-2 text-xs"
                   >
                     <span class="text-danger/60 min-w-0 flex-1 wrap-break-word line-through">
-                      {{ getDisplayValue(update, 'oldValue') }}</span>
+                      {{ getDisplayValue(update, 'oldValue') }}</span
+                    >
                     <AppIcon
                       name="arrow-right"
                       class="mt-0.5 size-3 shrink-0 text-(--text-secondary)"
@@ -117,15 +114,13 @@
                 <span class="text-danger/60 line-through">{{
                   formatImageCount(item.oldValue)
                 }}</span>
-                <AppIcon
-                  name="arrow-right"
-                  class="size-3 text-(--text-secondary)"
-                />
-                <span class="text-success font-medium">{{
-                  formatImageCount(item.newValue)
-                }}</span>
+                <AppIcon name="arrow-right" class="size-3 text-(--text-secondary)" />
+                <span class="text-success font-medium">{{ formatImageCount(item.newValue) }}</span>
               </div>
-              <p v-if="item.reason" class="mt-1 text-xs wrap-break-word whitespace-pre-wrap text-(--text-secondary)">
+              <p
+                v-if="item.reason"
+                class="mt-1 text-xs wrap-break-word whitespace-pre-wrap text-(--text-secondary)"
+              >
                 {{ t('order.timeline.reason') }}: {{ getReasonText(item.reason) }}
               </p>
             </div>
@@ -136,13 +131,17 @@
               <StatusBadge :variant="getStatusVariant(item.newValue)" size="sm" class="ml-1">
                 {{ t(`order.statuses.${item.newValue}`) }}
               </StatusBadge>
-              <span v-if="item.reason" class="mt-1 block text-xs wrap-break-word whitespace-pre-wrap text-(--text-secondary)">{{
-                getReasonText(item.reason)
-              }}</span>
+              <span
+                v-if="item.reason"
+                class="mt-1 block text-xs wrap-break-word whitespace-pre-wrap text-(--text-secondary)"
+                >{{ getReasonText(item.reason) }}</span
+              >
             </p>
 
             <!-- 留言 -->
-            <p v-else class="text-primary text-sm wrap-break-word whitespace-pre-wrap">{{ item.comment }}</p>
+            <p v-else class="text-primary text-sm wrap-break-word whitespace-pre-wrap">
+              {{ item.comment }}
+            </p>
           </div>
         </div>
       </div>
@@ -158,7 +157,11 @@
           <template #icon-left>
             <AppIcon :name="isExpanded ? 'chevron-up' : 'chevron-down'" class="size-4" />
           </template>
-          {{ isExpanded ? t('order.timeline.collapse') : t('order.timeline.viewAll', { count: totalCount }) }}
+          {{
+            isExpanded
+              ? t('order.timeline.collapse')
+              : t('order.timeline.viewAll', { count: totalCount })
+          }}
         </AppButton>
       </div>
 
@@ -173,11 +176,7 @@
 
     <!-- 表格模式 (Print / Table) -->
     <div v-else class="w-full">
-      <AppTable
-        :columns="columns"
-        :data="displayedItems"
-        :empty-text="t('common.noData')"
-      >
+      <AppTable :columns="columns" :data="displayedItems" :empty-text="t('common.noData')">
         <template #cell-createdAt="{ row: item }">
           <span class="text-xs text-(--text-muted)">{{ formatTime(item.createdAt) }}</span>
         </template>
@@ -225,7 +224,10 @@
                   getDisplayValue(update, 'newValue')
                 }}</span>
               </div>
-              <div v-if="update.reason" class="mt-0.5 text-xs wrap-break-word whitespace-pre-wrap text-(--text-muted)">
+              <div
+                v-if="update.reason"
+                class="mt-0.5 text-xs wrap-break-word whitespace-pre-wrap text-(--text-muted)"
+              >
                 {{ t('order.timeline.reason') }}: {{ getReasonText(update.reason) }}
               </div>
             </div>
@@ -237,11 +239,18 @@
               {{ t('order.timeline.statusChanged') }}
               <span class="font-medium">{{ t(`order.statuses.${item.newValue}`) }}</span>
             </div>
-            <div v-if="item.reason" class="mt-1 text-xs wrap-break-word whitespace-pre-wrap text-(--text-muted)">{{ getReasonText(item.reason) }}</div>
+            <div
+              v-if="item.reason"
+              class="mt-1 text-xs wrap-break-word whitespace-pre-wrap text-(--text-muted)"
+            >
+              {{ getReasonText(item.reason) }}
+            </div>
           </div>
 
           <!-- Comment -->
-          <div v-else class="wrap-break-word whitespace-pre-wrap text-(--text-main) italic">"{{ item.comment }}"</div>
+          <div v-else class="wrap-break-word whitespace-pre-wrap text-(--text-main) italic">
+            "{{ item.comment }}"
+          </div>
         </template>
       </AppTable>
     </div>
@@ -269,11 +278,11 @@ const { t, locale } = useI18n();
 const columns = computed(() => [
   { key: 'createdAt', label: t('order.createdAt'), class: 'w-32' },
   { key: 'role', label: t('sidebar.role'), class: 'w-32' },
-  { key: 'actions', label: t('common.actions'), class: 'pl-8' }
+  { key: 'actions', label: t('common.actions'), class: 'pl-8' },
 ]);
 
 // 简化的语言代码 (zh-CN -> zh)
-const currentLang = computed(() => locale.value?.startsWith('zh') ? 'zh' : 'en');
+const currentLang = computed(() => (locale.value?.startsWith('zh') ? 'zh' : 'en'));
 
 // 获取显示字段名 (优先使用后端返回的双语)
 const getDisplayField = (update) => {
@@ -417,7 +426,6 @@ const formatImageCount = (value) => {
   return value;
 };
 
-
 // 尝试翻译理由 (处理历史数据的 Key)
 const getReasonText = (reason) => {
   if (!reason) return '';
@@ -433,9 +441,8 @@ const getCommonReason = (updates) => {
   if (!updates || updates.length === 0) return null;
   const firstReason = updates[0].reason;
   if (!firstReason) return null;
-  
+
   // 检查是否所有理由都相同
   return updates.every((u) => u.reason === firstReason) ? firstReason : null;
 };
-
 </script>

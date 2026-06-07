@@ -187,7 +187,7 @@ Order list querying should move toward a shared filter-clause builder, similar t
 Recommended helper shape:
 
 ```js
-buildAdminOrderFilterClause(filters = {}, { omit = [] } = {})
+buildAdminOrderFilterClause((filters = {}), ({ omit = [] } = {}));
 ```
 
 It should support:
@@ -202,10 +202,10 @@ It should support:
 Then layer faceted helpers on top:
 
 ```js
-listAvailableSalespersons(filters)
-listAvailableStatuses(filters)
-listAvailableProcurementStatuses(filters)
-listSearchSuggestions(filters)
+listAvailableSalespersons(filters);
+listAvailableStatuses(filters);
+listAvailableProcurementStatuses(filters);
+listSearchSuggestions(filters);
 ```
 
 The existing row list query and count query should reuse the same clause builder so semantics do not drift.

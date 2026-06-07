@@ -18,7 +18,7 @@
  * toCamelKey('order_no') // 'orderNo'
  */
 export function toCamelKey(key) {
-    return key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+  return key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
 }
 
 /**
@@ -30,10 +30,8 @@ export function toCamelKey(key) {
  * // { createdAt: 123, orderNo: 'ORD-001' }
  */
 export function toCamelCase(row) {
-    if (!row) return row;
-    return Object.fromEntries(
-        Object.entries(row).map(([key, value]) => [toCamelKey(key), value])
-    );
+  if (!row) return row;
+  return Object.fromEntries(Object.entries(row).map(([key, value]) => [toCamelKey(key), value]));
 }
 
 /**
@@ -45,8 +43,8 @@ export function toCamelCase(row) {
  * // [{ createdAt: 123 }, { createdAt: 456 }]
  */
 export function toCamelCaseRows(rows) {
-    if (!Array.isArray(rows)) return rows;
-    return rows.map(toCamelCase);
+  if (!Array.isArray(rows)) return rows;
+  return rows.map(toCamelCase);
 }
 
 /**
@@ -58,7 +56,7 @@ export function toCamelCaseRows(rows) {
  * toSnakeKey('id') // 'id'
  */
 export function toSnakeKey(key) {
-    return key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+  return key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
 }
 
 /**
@@ -70,10 +68,8 @@ export function toSnakeKey(key) {
  * // { created_at: 123, order_no: 'ORD-001' }
  */
 export function toSnakeCase(obj) {
-    if (!obj) return obj;
-    return Object.fromEntries(
-        Object.entries(obj).map(([key, value]) => [toSnakeKey(key), value])
-    );
+  if (!obj) return obj;
+  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [toSnakeKey(key), value]));
 }
 
 /**
@@ -82,6 +78,6 @@ export function toSnakeCase(obj) {
  * @returns {Array<Object>} 键名为 snake_case 的新数组
  */
 export function toSnakeCaseRows(rows) {
-    if (!Array.isArray(rows)) return rows;
-    return rows.map(toSnakeCase);
+  if (!Array.isArray(rows)) return rows;
+  return rows.map(toSnakeCase);
 }

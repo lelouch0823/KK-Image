@@ -469,7 +469,9 @@ const boundProductNotice = computed(() =>
 const resolveFallbackBoundProductName = (data) => {
   const brand = String(data?.templateData?.brand || '').trim();
   const series = String(data?.templateData?.series || '').trim();
-  return [brand, series].filter(Boolean).join(' ') || data?.name || t('spaceManager.historicalProduct');
+  return (
+    [brand, series].filter(Boolean).join(' ') || data?.name || t('spaceManager.historicalProduct')
+  );
 };
 
 const buildFallbackBoundProduct = (data) => {

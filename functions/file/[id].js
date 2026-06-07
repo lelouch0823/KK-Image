@@ -8,7 +8,12 @@
  * - 设置适当的缓存控制头
  */
 
-import { extractRequestToken, isAdminAuthenticated, verifyJWT, verifyScopedAccessToken } from '../api/utils/auth.js';
+import {
+  extractRequestToken,
+  isAdminAuthenticated,
+  verifyJWT,
+  verifyScopedAccessToken,
+} from '../api/utils/auth.js';
 
 const ATTACHMENT_ONLY_MIME_TYPES = new Set([
   'image/svg+xml',
@@ -174,30 +179,40 @@ export async function onRequest(context) {
       const fetchHeaders = new Headers();
       const userAgent = request.headers.get('User-Agent');
       fetchHeaders.set('User-Agent', userAgent || 'KK-Image/1.0 (Cloudflare Worker)');
-      fetchHeaders.set('Accept', request.headers.get('Accept') || 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8');
+      fetchHeaders.set(
+        'Accept',
+        request.headers.get('Accept') || 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8'
+      );
 
-      const upstream = await fetch(storageKey, { 
+      const upstream = await fetch(storageKey, {
         method: 'GET',
         headers: fetchHeaders,
-        redirect: 'follow'
+        redirect: 'follow',
       });
-      
+
       if (!upstream.ok) {
         console.warn(`获取外部图片失败: 状态码 ${upstream.status}, URL: ${storageKey}`);
         return new Response('获取外部文件失败', { status: upstream.status });
       }
-      
+
       const headers = new Headers(upstream.headers);
       applyFileCachePolicy(headers, access);
       headers.set('X-Cache', 'MISS-EXTERNAL');
-      
+
       // 移除可能导致浏览器阻止显示的跨域安全头
       headers.delete('x-frame-options');
       headers.delete('content-security-policy');
-      
+
       return new Response(upstream.body, { status: upstream.status, headers });
     } catch (err) {
-      console.error('获取外部文件抛出异常:', err.message || err, '| URL:', storageKey, '| Cause:', err.cause);
+      console.error(
+        '获取外部文件抛出异常:',
+        err.message || err,
+        '| URL:',
+        storageKey,
+        '| Cause:',
+        err.cause
+      );
       return new Response('存储服务器获取失败 (内部错误)', { status: 500 });
     }
   }

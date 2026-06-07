@@ -36,9 +36,7 @@ describe('useClipboard', () => {
 
       expect(result).toBe(true);
       expect(writeText).toHaveBeenCalledWith('hello world');
-      expect(mockAddToast).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'success' })
-      );
+      expect(mockAddToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'success' }));
     });
 
     it('当 navigator.clipboard 不可用时应降级到 execCommand', async () => {
@@ -58,9 +56,7 @@ describe('useClipboard', () => {
 
       expect(result).toBe(true);
       expect(mockExecCommand).toHaveBeenCalledWith('copy');
-      expect(mockAddToast).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'success' })
-      );
+      expect(mockAddToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'success' }));
     });
 
     it('复制失败时应显示错误 toast 并返回 false', async () => {
@@ -81,9 +77,7 @@ describe('useClipboard', () => {
       const result = await copy('will fail');
 
       expect(result).toBe(false);
-      expect(mockAddToast).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'error' })
-      );
+      expect(mockAddToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
     });
 
     it('showToast 为 false 时不显示 toast', async () => {
@@ -176,9 +170,7 @@ describe('useClipboard', () => {
       const result = await copyShareLink('');
 
       expect(result).toBe(false);
-      expect(mockAddToast).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'error' })
-      );
+      expect(mockAddToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
     });
 
     it('已包含 http 的路径应直接使用', async () => {

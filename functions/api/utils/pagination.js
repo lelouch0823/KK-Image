@@ -62,7 +62,5 @@ export function normalizeListQuery(query = {}, options = {}) {
     normalized[key] = String(value);
   }
 
-  return Object.fromEntries(
-    Object.entries(normalized).sort(([a], [b]) => a.localeCompare(b))
-  );
+  return Object.fromEntries(Object.entries(normalized).sort(([a], [b]) => a.localeCompare(b)));
 }

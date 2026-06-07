@@ -105,7 +105,8 @@ export class OrderProcurementDomainService {
       { orderId, productId, variantId },
       includeScopedFilters,
       {
-        selectColumns: 'id, order_id, product_id, variant_id, ordered_qty, procured_qty, received_qty, reserved_qty, shipped_qty, cancelled_qty',
+        selectColumns:
+          'id, order_id, product_id, variant_id, ordered_qty, procured_qty, received_qty, reserved_qty, shipped_qty, cancelled_qty',
       }
     );
   }
@@ -239,14 +240,12 @@ export class OrderProcurementDomainService {
       }
 
       const compatibilityOrderLine = poItem.pre_order_id
-        ? (
-          poItem.order_line_id
-            ? await requireOrderLine(this.db, poItem.pre_order_id, poItem.order_line_id)
-            : await this.resolveCompatibilityOrderLine(poItem.pre_order_id, {
+        ? poItem.order_line_id
+          ? await requireOrderLine(this.db, poItem.pre_order_id, poItem.order_line_id)
+          : await this.resolveCompatibilityOrderLine(poItem.pre_order_id, {
               productId: poItem.product_id || null,
               variantId: poItem.variant_id || null,
             })
-        )
         : null;
       if (!compatibilityOrderLine && poItem.pre_order_id) {
         throw new BadRequestError('关联订单缺少唯一可投影的订单行');
@@ -529,15 +528,17 @@ export class OrderProcurementDomainService {
           timestamp,
           commandId: commandRecord.command_id,
           response,
-          leadingStatements: this.domainOutboxRepo.buildInsertStatements(
-            outboxEvents,
-            (event) => getDomainEventDefinition(event.event_type).consumers
-          ).concat(
-            buildProcurementResourceLockReleaseStatements({
-              commandIdempotencyRepo: this.commandIdempotencyRepo,
-              lockRecords: receiptItemLocks,
-            })
-          ),
+          leadingStatements: this.domainOutboxRepo
+            .buildInsertStatements(
+              outboxEvents,
+              (event) => getDomainEventDefinition(event.event_type).consumers
+            )
+            .concat(
+              buildProcurementResourceLockReleaseStatements({
+                commandIdempotencyRepo: this.commandIdempotencyRepo,
+                lockRecords: receiptItemLocks,
+              })
+            ),
         })
       );
 

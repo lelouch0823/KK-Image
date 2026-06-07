@@ -31,14 +31,21 @@
     </SpaceVisibilitySelector>
 
     <!-- 公开链接区域 -->
-    <div v-if="isPublic" class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)">
+    <div
+      v-if="isPublic"
+      class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)"
+    >
       <div class="flex items-center gap-3 border-b border-(--border-color) px-5 py-4">
         <div class="bg-success/10 flex size-9 items-center justify-center rounded-lg">
           <AppIcon name="link" class="text-success size-4.5" />
         </div>
         <div class="flex-1">
-          <h3 class="text-sm font-semibold text-(--text-main)">{{ t('spaceManager.publicLink') || '公开链接' }}</h3>
-          <p class="text-xs text-(--text-secondary)">{{ viewCount || 0 }} {{ t('spacePublic.views') }}</p>
+          <h3 class="text-sm font-semibold text-(--text-main)">
+            {{ t('spaceManager.publicLink') || '公开链接' }}
+          </h3>
+          <p class="text-xs text-(--text-secondary)">
+            {{ viewCount || 0 }} {{ t('spacePublic.views') }}
+          </p>
         </div>
       </div>
 
@@ -52,11 +59,7 @@
             :value="shareUrl"
             :title="shareUrl"
           />
-          <AppButton
-            variant="white"
-            size="sm"
-            @click="copyLink"
-          >
+          <AppButton variant="white" size="sm" @click="copyLink">
             <template #icon-left>
               <AppIcon name="clipboard" class="size-4" />
             </template>
@@ -118,15 +121,22 @@ const hasChanges = computed(() => {
   return false;
 });
 
-watch(() => props.shareMode, (val) => {
-  currentShareMode.value = val;
-  initialShareMode.value = val;
-});
-watch(() => props.sharedSalespersons, (val) => {
-  const ids = val.map((sp) => sp.id);
-  selectedSalespersonIds.value = [...ids];
-  initialSalespersonIds.value = [...ids];
-}, { deep: true });
+watch(
+  () => props.shareMode,
+  (val) => {
+    currentShareMode.value = val;
+    initialShareMode.value = val;
+  }
+);
+watch(
+  () => props.sharedSalespersons,
+  (val) => {
+    const ids = val.map((sp) => sp.id);
+    selectedSalespersonIds.value = [...ids];
+    initialSalespersonIds.value = [...ids];
+  },
+  { deep: true }
+);
 
 const saveShareSettings = () => {
   emit('update-share-settings', {

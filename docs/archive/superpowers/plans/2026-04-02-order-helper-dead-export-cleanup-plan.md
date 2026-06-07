@@ -13,6 +13,7 @@
 ### Task 1: Lock the Dead Export Contract
 
 **Files:**
+
 - Create: `functions/repositories/__tests__/order-helper-dead-exports.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because both exports still exist.
 ### Task 2: Remove the Dead Exports
 
 **Files:**
+
 - Modify: `functions/repositories/order/helpers.js`
 - Test: `functions/repositories/__tests__/order-helper-dead-exports.audit.test.js`
 - Test: `functions/repositories/__tests__/order-helpers.procurement-status.test.js`

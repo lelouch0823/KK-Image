@@ -28,12 +28,7 @@
         data-testid="notification-error"
       >
         <p class="text-sm text-(--text-main)">{{ t('common.loadFailed') }}</p>
-        <AppButton
-          variant="primary"
-          size="sm"
-          data-testid="notification-retry"
-          @click="runFetch"
-        >
+        <AppButton variant="primary" size="sm" data-testid="notification-retry" @click="runFetch">
           {{ t('common.retry') }}
         </AppButton>
       </div>
@@ -51,11 +46,7 @@
       </div>
 
       <div v-else class="divide-y divide-(--border-color)">
-        <TransitionGroup
-          name="list"
-          tag="div"
-          class="divide-y divide-(--border-color)"
-        >
+        <TransitionGroup name="list" tag="div" class="divide-y divide-(--border-color)">
           <div
             v-for="item in notifications"
             :key="item.id"
@@ -74,10 +65,7 @@
                   v-else-if="item.type === 'deadline'"
                   class="bg-warning block size-2 rounded-full shadow-sm"
                 ></span>
-                <span
-                  v-else
-                  class="block size-2 rounded-full bg-(--text-muted) shadow-sm"
-                ></span>
+                <span v-else class="block size-2 rounded-full bg-(--text-muted) shadow-sm"></span>
               </div>
 
               <div class="min-w-0 flex-1">
@@ -88,10 +76,15 @@
                 >
                   {{ renderText(item.title) }}
                 </p>
-                <p class="text-secondary mt-0.5 line-clamp-2 text-xs leading-relaxed" :title="renderText(item.content)">
+                <p
+                  class="text-secondary mt-0.5 line-clamp-2 text-xs leading-relaxed"
+                  :title="renderText(item.content)"
+                >
                   {{ renderText(item.content) }}
                 </p>
-                <p class="text-muted mt-2 flex items-center gap-1.5 text-xs font-medium tracking-wider uppercase">
+                <p
+                  class="text-muted mt-2 flex items-center gap-1.5 text-xs font-medium tracking-wider uppercase"
+                >
                   <AppIcon name="clock" class="size-3" />
                   {{ formatDate(item.created_at) }}
                 </p>
@@ -134,16 +127,21 @@ const props = defineProps({
   onNavigate: { type: Function, default: null },
 });
 
-const { notifications, unreadCount, loading, initialized, markAsRead, markAllAsRead, fetchNotifications } =
-  useNotifications();
+const {
+  notifications,
+  unreadCount,
+  loading,
+  initialized,
+  markAsRead,
+  markAllAsRead,
+  fetchNotifications,
+} = useNotifications();
 const { t } = useI18n();
 const attemptedFetch = ref(false);
 
-const showErrorState = computed(() =>
-  attemptedFetch.value &&
-  !loading.value &&
-  !initialized.value &&
-  notifications.value.length === 0
+const showErrorState = computed(
+  () =>
+    attemptedFetch.value && !loading.value && !initialized.value && notifications.value.length === 0
 );
 
 const runFetch = async () => {

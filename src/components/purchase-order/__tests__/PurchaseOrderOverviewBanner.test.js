@@ -43,7 +43,12 @@ describe('PurchaseOrderOverviewBanner', () => {
           { key: 'draft', label: '草稿', count: 5, icon: 'pencil-square', tone: 'slate' },
         ],
         consoleSignals: [
-          { key: 'active', label: '在途链路', value: '9', hint: '已下单、运输中、待结算采购单总和。' },
+          {
+            key: 'active',
+            label: '在途链路',
+            value: '9',
+            hint: '已下单、运输中、待结算采购单总和。',
+          },
         ],
       },
       global: {

@@ -34,7 +34,9 @@ describe('opa-engine', () => {
   });
 
   it('evaluates decision using explicit decision entrypoint', async () => {
-    const evaluate = vi.fn().mockReturnValueOnce([{ result: { allow: true, reason: 'role_wildcard' } }]);
+    const evaluate = vi
+      .fn()
+      .mockReturnValueOnce([{ result: { allow: true, reason: 'role_wildcard' } }]);
     opaMocks.loadPolicy.mockResolvedValueOnce({
       setData: vi.fn(),
       evaluate,
@@ -52,7 +54,9 @@ describe('opa-engine', () => {
     opaMocks.loadPolicy.mockRejectedValueOnce(new Error('load failed'));
     await expect(evaluateDecisionWithOpa({ action: 'files:read' })).rejects.toThrow('load failed');
 
-    const evaluate = vi.fn().mockReturnValueOnce([{ result: { allow: true, reason: 'role_permission' } }]);
+    const evaluate = vi
+      .fn()
+      .mockReturnValueOnce([{ result: { allow: true, reason: 'role_permission' } }]);
     opaMocks.loadPolicy.mockResolvedValueOnce({
       setData: vi.fn(),
       evaluate,
@@ -83,11 +87,11 @@ describe('opa-engine', () => {
   });
 
   it('propagates init failure for fail-closed handling', async () => {
-    opaMocks.loadPolicy.mockRejectedValueOnce(
-      new Error('wasm module init failed')
-    );
+    opaMocks.loadPolicy.mockRejectedValueOnce(new Error('wasm module init failed'));
 
-    await expect(evaluateDecisionWithOpa({ action: 'products:manage' })).rejects.toThrow('wasm module init failed');
+    await expect(evaluateDecisionWithOpa({ action: 'products:manage' })).rejects.toThrow(
+      'wasm module init failed'
+    );
     expect(opaMocks.loadPolicy).toHaveBeenCalledTimes(1);
   });
 });

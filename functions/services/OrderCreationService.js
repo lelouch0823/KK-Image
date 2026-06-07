@@ -12,13 +12,29 @@ import { DomainOutboxPublisher } from './DomainOutboxPublisher.js';
 
 /** 销售端绑定快照覆盖的字段 */
 const SALES_BOUND_SNAPSHOT_FIELDS = Object.freeze([
-  'name', 'brand', 'category', 'series', 'sku', 'size', 'color', 'material',
+  'name',
+  'brand',
+  'category',
+  'series',
+  'sku',
+  'size',
+  'color',
+  'material',
 ]);
 
 /** 销售端允许修改的字段 */
 const SALES_EDITABLE_FIELDS = Object.freeze([
-  'name', 'brand', 'category', 'series', 'sku', 'size', 'color', 'material',
-  'remark', 'deadline', 'quantity',
+  'name',
+  'brand',
+  'category',
+  'series',
+  'sku',
+  'size',
+  'color',
+  'material',
+  'remark',
+  'deadline',
+  'quantity',
 ]);
 
 export class OrderCreationService {
@@ -73,7 +89,12 @@ export class OrderCreationService {
       ...options,
     };
 
-    const binding = await validateProductVariantBinding(this.db, productId, variantId, bindingOptions);
+    const binding = await validateProductVariantBinding(
+      this.db,
+      productId,
+      variantId,
+      bindingOptions
+    );
     const snapshot = buildOrderBindingSnapshot({
       product: binding.product,
       variant: binding.variant,
@@ -124,17 +145,20 @@ export class OrderCreationService {
    * @param {Object} env - 环境对象
    * @param {Array<string>} fileIds
    * @param {string} orderNo
+   * @returns {Promise<{success: boolean, count: number, error?: string}>}
    */
   async archiveFiles(env, fileIds, orderNo) {
     const ids = Array.isArray(fileIds) ? fileIds.filter(Boolean) : [];
-    if (ids.length === 0) return;
+    if (ids.length === 0) return { success: true, count: 0 };
 
     try {
       const { ensureOrderFolder, moveFilesToFolder } = await import('../api/utils/folder-utils.js');
       const folderId = await ensureOrderFolder(env, orderNo);
       await moveFilesToFolder(env, ids, folderId);
+      return { success: true, count: ids.length };
     } catch (error) {
       console.error('Order file archiving error:', error);
+      return { success: false, count: 0, error: String(error?.message || error) };
     }
   }
 
@@ -156,12 +180,10 @@ export class OrderCreationService {
   async prepareCreateOrder(salesperson, data) {
     const normalizedLines = this.normalizeOrderLines(data.lines);
     const primaryLine = normalizedLines[0] || null;
-    const variantId = primaryLine
-      ? (primaryLine.variantId ?? null)
-      : (data.variantId ?? null);
+    const variantId = primaryLine ? (primaryLine.variantId ?? null) : (data.variantId ?? null);
 
     const { snapshot } = await this.validateAndBuildSnapshot(
-      primaryLine ? (primaryLine.productId || null) : (data.productId || null),
+      primaryLine ? primaryLine.productId || null : data.productId || null,
       variantId,
       primaryLine || {
         name: data.name,
@@ -171,12 +193,13 @@ export class OrderCreationService {
         size: data.size,
         color: data.color,
         material: data.material,
-      },
+      }
     );
 
-    const totalQuantity = normalizedLines.length > 0
-      ? normalizedLines.reduce((sum, line) => sum + line.quantity, 0)
-      : data.quantity;
+    const totalQuantity =
+      normalizedLines.length > 0
+        ? normalizedLines.reduce((sum, line) => sum + line.quantity, 0)
+        : data.quantity;
 
     return {
       normalizedLines,
@@ -222,7 +245,7 @@ export class OrderCreationService {
     const hasBindingMutation = hasProductIdPayload || hasVariantIdPayload;
     const effectiveProductId = hasProductIdPayload ? productId : order.productId;
     const hasExistingBinding = Boolean(order.productId && order.variantId);
-    let normalizedVariantId = hasVariantIdPayload ? (variantId || null) : undefined;
+    let normalizedVariantId = hasVariantIdPayload ? variantId || null : undefined;
     const finalUpdates = { ...updates };
 
     // 已绑定且未修改绑定时，删除快照覆盖字段
@@ -237,7 +260,7 @@ export class OrderCreationService {
       const { snapshot, normalizedVariantId: nvid } = await this.validateAndBuildSnapshot(
         effectiveProductId,
         normalizedVariantId,
-        finalUpdates,
+        finalUpdates
       );
       normalizedVariantId = nvid;
       for (const field of SALES_BOUND_SNAPSHOT_FIELDS) {

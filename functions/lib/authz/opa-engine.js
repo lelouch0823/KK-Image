@@ -21,7 +21,14 @@ async function loadNodeWasmModule() {
   const { readFile } = await import('node:fs/promises');
   const { join } = await import('node:path');
 
-  const wasmPath = join(process.cwd(), 'functions', 'lib', 'authz', 'generated', 'policy-artifact.wasm');
+  const wasmPath = join(
+    process.cwd(),
+    'functions',
+    'lib',
+    'authz',
+    'generated',
+    'policy-artifact.wasm'
+  );
   const wasmBytes = await readFile(wasmPath);
   return globalThis.WebAssembly.compile(wasmBytes);
 }

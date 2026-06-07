@@ -18,27 +18,39 @@ const mockDimensionRepo = {
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
-    create(...args) { return mockProductRepo.create(...args); }
-    findBySpu(...args) { return mockProductRepo.findBySpu(...args); }
+    create(...args) {
+      return mockProductRepo.create(...args);
+    }
+    findBySpu(...args) {
+      return mockProductRepo.findBySpu(...args);
+    }
   },
 }));
 
 vi.mock('../../../../../../repositories/ProductVariantRepository.js', () => ({
   ProductVariantRepository: class {
-    createBatch(...args) { return mockVariantRepo.createBatch(...args); }
+    createBatch(...args) {
+      return mockVariantRepo.createBatch(...args);
+    }
   },
 }));
 
 vi.mock('../../../../../../repositories/VariantImageRepository.js', () => ({
   VariantImageRepository: class {
-    syncImages(...args) { return mockVariantImageRepo.syncImages(...args); }
+    syncImages(...args) {
+      return mockVariantImageRepo.syncImages(...args);
+    }
   },
 }));
 
 vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
   ProductDimensionRepository: class {
-    createDimension(...args) { return mockDimensionRepo.createDimension(...args); }
-    addValue(...args) { return mockDimensionRepo.addValue(...args); }
+    createDimension(...args) {
+      return mockDimensionRepo.createDimension(...args);
+    }
+    addValue(...args) {
+      return mockDimensionRepo.addValue(...args);
+    }
   },
 }));
 
@@ -75,21 +87,25 @@ describe('createManagedProduct transactional rollback boundaries', () => {
 
     mockVariantImageRepo.syncImages.mockRejectedValueOnce(new Error('variant image sync failed'));
 
-    await expect(createManagedProduct(c, {
-      name: 'Catalog Tee',
-      currency: 'USD',
-      dimensions: [{ name: 'Color', values: ['Red'] }],
-      variants: [{
-        sku: 'SKU-1',
-        price: 100,
-        cost_price: 60,
-        stock_quantity: 5,
-        alert_threshold: 2,
-        status: 'active',
-        options_values: { Color: 'Red' },
-        images: [{ image_id: 'img-1', is_primary: 1 }],
-      }],
-    })).rejects.toThrow('variant image sync failed');
+    await expect(
+      createManagedProduct(c, {
+        name: 'Catalog Tee',
+        currency: 'USD',
+        dimensions: [{ name: 'Color', values: ['Red'] }],
+        variants: [
+          {
+            sku: 'SKU-1',
+            price: 100,
+            cost_price: 60,
+            stock_quantity: 5,
+            alert_threshold: 2,
+            status: 'active',
+            options_values: { Color: 'Red' },
+            images: [{ image_id: 'img-1', is_primary: 1 }],
+          },
+        ],
+      })
+    ).rejects.toThrow('variant image sync failed');
 
     const preparedSql = db.prepare.mock.calls.map(([sql]) => sql);
     expect(preparedSql).toContain('DELETE FROM variant_images WHERE variant_id = ?');

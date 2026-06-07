@@ -22,9 +22,6 @@ describe('storage index dead exports audit', () => {
       offenders.push('functions/storage/index.js: still defines clearProviderCache');
     }
 
-    expect(
-      offenders,
-      `storage index dead-export offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `storage index dead-export offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

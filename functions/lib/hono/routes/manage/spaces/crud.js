@@ -15,11 +15,15 @@ import { requirePermission } from '../../../middleware/auth.js';
 import { withCache } from '../../../middleware/cache.js';
 import { SpaceRepository } from '../../../../../repositories/SpaceRepository.js';
 import { validateProductVariantBinding } from '../../../../../api/utils/validation.js';
-import { generateId, generateShareToken, MSG, getShareUrl, getChinaDayStart, getChinaDateStr } from '../../../../../_shared/utils.js';
 import {
-  transformSpaceListItem,
-  transformSpaceDetail,
-} from './transformers.js';
+  generateId,
+  generateShareToken,
+  MSG,
+  getShareUrl,
+  getChinaDayStart,
+  getChinaDateStr,
+} from '../../../../../_shared/utils.js';
+import { transformSpaceListItem, transformSpaceDetail } from './transformers.js';
 import { NotFoundError } from '../../../errors.js';
 import { invalidateSpaceCaches } from './cache-helpers.js';
 import { requireEntity } from '../../../_shared/route-helpers.js';
@@ -33,10 +37,38 @@ import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 
 const crud = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
-  { method: 'POST', path: '/', domain: 'spaces', action: 'space.create', severity: 'high', targetType: 'space' },
-  { method: 'PUT', path: '/:id', domain: 'spaces', action: 'space.update', severity: 'high', targetType: 'space' },
-  { method: 'PATCH', path: '/:id', domain: 'spaces', action: 'space.update', severity: 'high', targetType: 'space' },
-  { method: 'DELETE', path: '/:id', domain: 'spaces', action: 'space.delete', severity: 'critical', targetType: 'space' },
+  {
+    method: 'POST',
+    path: '/',
+    domain: 'spaces',
+    action: 'space.create',
+    severity: 'high',
+    targetType: 'space',
+  },
+  {
+    method: 'PUT',
+    path: '/:id',
+    domain: 'spaces',
+    action: 'space.update',
+    severity: 'high',
+    targetType: 'space',
+  },
+  {
+    method: 'PATCH',
+    path: '/:id',
+    domain: 'spaces',
+    action: 'space.update',
+    severity: 'high',
+    targetType: 'space',
+  },
+  {
+    method: 'DELETE',
+    path: '/:id',
+    domain: 'spaces',
+    action: 'space.delete',
+    severity: 'critical',
+    targetType: 'space',
+  },
 ]);
 
 // Schemas
@@ -178,19 +210,26 @@ crud.post(
       variantId,
       shareMode,
       sharedSalespersonIds,
-    } =
-      c.req.valid('json');
+    } = c.req.valid('json');
     const repo = new SpaceRepository(env.DB);
-    const { name: normalizedName, description: normalizedDescription } = normalizeSpaceCreateFields(name, description);
+    const { name: normalizedName, description: normalizedDescription } = normalizeSpaceCreateFields(
+      name,
+      description
+    );
 
     const spaceId = generateId();
     const shareToken = generateShareToken();
     const nowMs = Date.now();
 
-    const binding = await validateProductVariantBinding(env.DB, productId || null, variantId || null, {
-      checkActive: true,
-      variantSelectPolicy: 'in_stock_only',
-    });
+    const binding = await validateProductVariantBinding(
+      env.DB,
+      productId || null,
+      variantId || null,
+      {
+        checkActive: true,
+        variantSelectPolicy: 'in_stock_only',
+      }
+    );
 
     const newSpace = {
       id: spaceId,
@@ -282,8 +321,10 @@ crud.on(
     if (data.templateData !== undefined) updates.template_data = JSON.stringify(data.templateData);
     if (data.productId !== undefined) updates.product_id = data.productId || null;
     if (data.variantId !== undefined) updates.variant_id = data.variantId || null;
-    const nextProductId = data.productId !== undefined ? (data.productId || null) : (space.product_id || null);
-    const nextVariantId = data.variantId !== undefined ? (data.variantId || null) : (space.variant_id || null);
+    const nextProductId =
+      data.productId !== undefined ? data.productId || null : space.product_id || null;
+    const nextVariantId =
+      data.variantId !== undefined ? data.variantId || null : space.variant_id || null;
     const currentProductId = space.product_id || null;
     const currentVariantId = space.variant_id || null;
     const bindingChanged = nextProductId !== currentProductId || nextVariantId !== currentVariantId;

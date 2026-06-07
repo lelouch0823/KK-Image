@@ -125,9 +125,7 @@ describe('OrderEditModal variant locking on edit', () => {
 
     await wrapper.get('[data-testid="unbind"]').trigger('click');
 
-    const saveBtn = wrapper
-      .findAll('button')
-      .find((btn) => btn.text().includes('common.save'));
+    const saveBtn = wrapper.findAll('button').find((btn) => btn.text().includes('common.save'));
     expect(saveBtn).toBeTruthy();
     await saveBtn.trigger('click');
     await wrapper.get('[data-testid="confirm-save"]').trigger('click');
@@ -195,7 +193,8 @@ describe('OrderEditModal variant locking on edit', () => {
       {
         ProductBindingSection: {
           props: ['boundProduct', 'variantSelectPolicy'],
-          template: '<div><div data-testid="variant-policy">{{ variantSelectPolicy }}</div><div data-testid="bound-product-name">{{ boundProduct?.name || "" }}</div></div>',
+          template:
+            '<div><div data-testid="variant-policy">{{ variantSelectPolicy }}</div><div data-testid="bound-product-name">{{ boundProduct?.name || "" }}</div></div>',
         },
         OrderOriginalInfo: {
           props: ['data'],
@@ -233,7 +232,8 @@ describe('OrderEditModal variant locking on edit', () => {
       {
         OrderFormFields: {
           props: ['boundProductVariant', 'modelValue', 'disabledFields'],
-          template: '<div><div data-testid="bound-variant">{{ JSON.stringify(boundProductVariant) }}</div><div data-testid="form-payload">{{ JSON.stringify(modelValue) }}</div><div data-testid="disabled-fields">{{ JSON.stringify(disabledFields) }}</div></div>',
+          template:
+            '<div><div data-testid="bound-variant">{{ JSON.stringify(boundProductVariant) }}</div><div data-testid="form-payload">{{ JSON.stringify(modelValue) }}</div><div data-testid="disabled-fields">{{ JSON.stringify(disabledFields) }}</div></div>',
         },
         OrderOriginalInfo: {
           props: ['data'],

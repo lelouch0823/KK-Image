@@ -33,10 +33,11 @@ describe('useFeatureFlag', () => {
 
     it('returns true when flag is enabled', async () => {
       mockAuthFetch.mockResolvedValue({
-        json: () => Promise.resolve({
-          success: true,
-          data: [{ key: 'new-order-flow', enabled: true, description: null }],
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: [{ key: 'new-order-flow', enabled: true, description: null }],
+          }),
       });
 
       const { isEnabled } = useFeatureFlag('new-order-flow');
@@ -49,10 +50,11 @@ describe('useFeatureFlag', () => {
 
     it('returns false when flag is disabled', async () => {
       mockAuthFetch.mockResolvedValue({
-        json: () => Promise.resolve({
-          success: true,
-          data: [{ key: 'dark-mode', enabled: false, description: null }],
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: [{ key: 'dark-mode', enabled: false, description: null }],
+          }),
       });
 
       const { isEnabled } = useFeatureFlag('dark-mode');
@@ -65,10 +67,11 @@ describe('useFeatureFlag', () => {
 
     it('refresh forces re-fetch', async () => {
       mockAuthFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve({
-          success: true,
-          data: [{ key: 'test-flag', enabled: false }],
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: [{ key: 'test-flag', enabled: false }],
+          }),
       });
 
       const { isEnabled, refresh } = useFeatureFlag('test-flag');
@@ -79,10 +82,11 @@ describe('useFeatureFlag', () => {
       expect(isEnabled.value).toBe(false);
 
       mockAuthFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve({
-          success: true,
-          data: [{ key: 'test-flag', enabled: true }],
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: [{ key: 'test-flag', enabled: true }],
+          }),
       });
 
       await refresh();
@@ -95,13 +99,14 @@ describe('useFeatureFlag', () => {
   describe('useFeatureFlags()', () => {
     it('returns all flags', async () => {
       mockAuthFetch.mockResolvedValue({
-        json: () => Promise.resolve({
-          success: true,
-          data: [
-            { key: 'flag-a', enabled: true, description: null },
-            { key: 'flag-b', enabled: false, description: 'Test' },
-          ],
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: [
+              { key: 'flag-a', enabled: true, description: null },
+              { key: 'flag-b', enabled: false, description: 'Test' },
+            ],
+          }),
       });
 
       const { flags, isEnabled } = useFeatureFlags();
@@ -119,10 +124,11 @@ describe('useFeatureFlag', () => {
   describe('cache', () => {
     it('caches results and avoids duplicate fetches', async () => {
       mockAuthFetch.mockResolvedValue({
-        json: () => Promise.resolve({
-          success: true,
-          data: [{ key: 'cached-flag', enabled: true }],
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: [{ key: 'cached-flag', enabled: true }],
+          }),
       });
 
       // First call triggers fetch
@@ -139,10 +145,11 @@ describe('useFeatureFlag', () => {
 
     it('clearFeatureFlagCache resets cache', async () => {
       mockAuthFetch.mockResolvedValue({
-        json: () => Promise.resolve({
-          success: true,
-          data: [{ key: 'test', enabled: true }],
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: [{ key: 'test', enabled: true }],
+          }),
       });
 
       useFeatureFlag('test');

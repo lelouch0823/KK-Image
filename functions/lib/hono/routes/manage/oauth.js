@@ -4,8 +4,16 @@ import { z } from 'zod';
 import { OAuthRepository, hashSecret } from '../../../../repositories/OAuthRepository.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { generatePrefixedId } from '../../../../_shared/utils.js';
+import { rateLimit } from '../../middleware/rateLimit.js';
 
 const app = new Hono();
+
+/** OAuth Token 端点专用限流：每分钟最多 20 次 */
+const oauthTokenRateLimit = rateLimit({
+  window: 60000,
+  max: 20,
+  keyPrefix: 'oauth_token',
+});
 
 /**
  * 常数时间比较两个字符串（防止时序攻击）
@@ -26,22 +34,28 @@ async function verifySecret(inputSecret, storedHash) {
 app.use('/apps', requirePermission('admin:full'));
 app.use('/apps/*', requirePermission('admin:full'));
 
-const CreateAppSchema = z.object({
-  name: z.string().min(1, '应用名称不能为空').max(100),
-  description: z.string().max(500).optional(),
-  redirectUris: z.array(z.string().url('无效的回调地址')).min(1, '至少需要一个回调地址'),
-  grantTypes: z.array(z.enum(['authorization_code', 'refresh_token'])).default(['authorization_code']),
-  scopes: z.array(z.string()).default(['read']),
-}).strict();
+const CreateAppSchema = z
+  .object({
+    name: z.string().min(1, '应用名称不能为空').max(100),
+    description: z.string().max(500).optional(),
+    redirectUris: z.array(z.string().url('无效的回调地址')).min(1, '至少需要一个回调地址'),
+    grantTypes: z
+      .array(z.enum(['authorization_code', 'refresh_token']))
+      .default(['authorization_code']),
+    scopes: z.array(z.string()).default(['read']),
+  })
+  .strict();
 
-const UpdateAppSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  description: z.string().max(500).optional(),
-  redirectUris: z.array(z.string().url()).min(1).optional(),
-  grantTypes: z.array(z.enum(['authorization_code', 'refresh_token'])).optional(),
-  scopes: z.array(z.string()).optional(),
-  enabled: z.boolean().optional(),
-}).strict();
+const UpdateAppSchema = z
+  .object({
+    name: z.string().min(1).max(100).optional(),
+    description: z.string().max(500).optional(),
+    redirectUris: z.array(z.string().url()).min(1).optional(),
+    grantTypes: z.array(z.enum(['authorization_code', 'refresh_token'])).optional(),
+    scopes: z.array(z.string()).optional(),
+    enabled: z.boolean().optional(),
+  })
+  .strict();
 
 /**
  * GET /apps - 列出所有 OAuth 应用
@@ -58,7 +72,10 @@ app.get('/apps', async (c) => {
 app.post('/apps', zValidator('json', CreateAppSchema), async (c) => {
   const body = c.req.valid('json');
   const repo = new OAuthRepository(c.env.DB);
-  const client = await repo.createClient({ ...body, actorId: c.get('user')?.id || c.get('user')?.sub });
+  const client = await repo.createClient({
+    ...body,
+    actorId: c.get('user')?.id || c.get('user')?.sub,
+  });
   return c.json({ success: true, data: client }, 201);
 });
 
@@ -78,7 +95,10 @@ app.get('/apps/:id', async (c) => {
 app.put('/apps/:id', zValidator('json', UpdateAppSchema), async (c) => {
   const body = c.req.valid('json');
   const repo = new OAuthRepository(c.env.DB);
-  const client = await repo.updateClient(c.req.param('id'), { ...body, actorId: c.get('user')?.id || c.get('user')?.sub });
+  const client = await repo.updateClient(c.req.param('id'), {
+    ...body,
+    actorId: c.get('user')?.id || c.get('user')?.sub,
+  });
   if (!client) return c.json({ success: false, error: '应用不存在' }, 404);
   return c.json({ success: true, data: client });
 });
@@ -123,13 +143,15 @@ app.post('/apps/:id/revoke-tokens', async (c) => {
 // OAuth2.0 授权码流程
 // ============================================
 
-const AuthorizeSchema = z.object({
-  client_id: z.string().min(1),
-  redirect_uri: z.string().url(),
-  response_type: z.literal('code'),
-  scope: z.string().optional(),
-  state: z.string().optional(),
-}).strict();
+const AuthorizeSchema = z
+  .object({
+    client_id: z.string().min(1),
+    redirect_uri: z.string().url(),
+    response_type: z.literal('code'),
+    scope: z.string().optional(),
+    state: z.string().optional(),
+  })
+  .strict();
 
 const AuthorizeQuerySchema = z.object({
   client_id: z.string().min(1),
@@ -139,20 +161,24 @@ const AuthorizeQuerySchema = z.object({
   state: z.string().optional(),
 });
 
-const RevokeSchema = z.object({
-  token: z.string().min(1),
-  client_id: z.string().min(1),
-  client_secret: z.string().min(1),
-}).strict();
+const RevokeSchema = z
+  .object({
+    token: z.string().min(1),
+    client_id: z.string().min(1),
+    client_secret: z.string().min(1),
+  })
+  .strict();
 
-const TokenSchema = z.object({
-  grant_type: z.enum(['authorization_code', 'refresh_token']),
-  code: z.string().optional(),
-  redirect_uri: z.string().url().optional(),
-  client_id: z.string().min(1),
-  client_secret: z.string().min(1),
-  refresh_token: z.string().optional(),
-}).strict();
+const TokenSchema = z
+  .object({
+    grant_type: z.enum(['authorization_code', 'refresh_token']),
+    code: z.string().optional(),
+    redirect_uri: z.string().url().optional(),
+    client_id: z.string().min(1),
+    client_secret: z.string().min(1),
+    refresh_token: z.string().optional(),
+  })
+  .strict();
 
 /**
  * GET /authorize - 授权页面（返回授权信息供前端展示）
@@ -164,17 +190,30 @@ app.get('/authorize', zValidator('query', AuthorizeQuerySchema), async (c) => {
   const repo = new OAuthRepository(c.env.DB);
   const client = await repo.getClientByClientId(client_id);
   if (!client || !client.enabled) {
-    return c.json({ success: false, error: 'invalid_client', error_description: '客户端不存在或已禁用' }, 400);
+    return c.json(
+      { success: false, error: 'invalid_client', error_description: '客户端不存在或已禁用' },
+      400
+    );
   }
 
   if (!client.redirectUris.includes(redirect_uri)) {
-    return c.json({ success: false, error: 'invalid_redirect_uri', error_description: '回调地址不匹配' }, 400);
+    return c.json(
+      { success: false, error: 'invalid_redirect_uri', error_description: '回调地址不匹配' },
+      400
+    );
   }
 
   const requestedScopes = scope ? scope.split(' ') : client.scopes;
-  const invalidScopes = requestedScopes.filter(s => !client.scopes.includes(s));
+  const invalidScopes = requestedScopes.filter((s) => !client.scopes.includes(s));
   if (invalidScopes.length > 0) {
-    return c.json({ success: false, error: 'invalid_scope', error_description: `无效的权限范围: ${invalidScopes.join(', ')}` }, 400);
+    return c.json(
+      {
+        success: false,
+        error: 'invalid_scope',
+        error_description: `无效的权限范围: ${invalidScopes.join(', ')}`,
+      },
+      400
+    );
   }
 
   return c.json({
@@ -219,7 +258,7 @@ app.post('/authorize', zValidator('json', AuthorizeSchema), async (c) => {
 /**
  * POST /token - 交换授权码获取访问令牌
  */
-app.post('/token', zValidator('json', TokenSchema), async (c) => {
+app.post('/token', oauthTokenRateLimit, zValidator('json', TokenSchema), async (c) => {
   const body = c.req.valid('json');
   const repo = new OAuthRepository(c.env.DB);
 
@@ -234,22 +273,40 @@ app.post('/token', zValidator('json', TokenSchema), async (c) => {
 
   if (body.grant_type === 'authorization_code') {
     if (!body.code || !body.redirect_uri) {
-      return c.json({ success: false, error: 'invalid_request', error_description: '缺少 code 或 redirect_uri' }, 400);
+      return c.json(
+        {
+          success: false,
+          error: 'invalid_request',
+          error_description: '缺少 code 或 redirect_uri',
+        },
+        400
+      );
     }
 
     const authCode = await repo.consumeAuthorizationCode(body.code);
     if (!authCode) {
-      return c.json({ success: false, error: 'invalid_grant', error_description: '授权码无效或已过期' }, 400);
+      return c.json(
+        { success: false, error: 'invalid_grant', error_description: '授权码无效或已过期' },
+        400
+      );
     }
     if (authCode.clientId !== body.client_id) {
-      return c.json({ success: false, error: 'invalid_grant', error_description: '授权码与客户端不匹配' }, 400);
+      return c.json(
+        { success: false, error: 'invalid_grant', error_description: '授权码与客户端不匹配' },
+        400
+      );
     }
     if (authCode.redirectUri !== body.redirect_uri) {
-      return c.json({ success: false, error: 'invalid_grant', error_description: '回调地址不匹配' }, 400);
+      return c.json(
+        { success: false, error: 'invalid_grant', error_description: '回调地址不匹配' },
+        400
+      );
     }
 
     const accessToken = generatePrefixedId('at_');
-    const refreshToken = client.grantTypes.includes('refresh_token') ? generatePrefixedId('rt_') : null;
+    const refreshToken = client.grantTypes.includes('refresh_token')
+      ? generatePrefixedId('rt_')
+      : null;
 
     const token = await repo.createToken({
       clientId: body.client_id,
@@ -270,12 +327,18 @@ app.post('/token', zValidator('json', TokenSchema), async (c) => {
 
   if (body.grant_type === 'refresh_token') {
     if (!body.refresh_token) {
-      return c.json({ success: false, error: 'invalid_request', error_description: '缺少 refresh_token' }, 400);
+      return c.json(
+        { success: false, error: 'invalid_request', error_description: '缺少 refresh_token' },
+        400
+      );
     }
 
     const existingToken = await repo.getTokenByRefreshToken(body.refresh_token);
     if (!existingToken || existingToken.clientId !== body.client_id) {
-      return c.json({ success: false, error: 'invalid_grant', error_description: '刷新令牌无效或已过期' }, 400);
+      return c.json(
+        { success: false, error: 'invalid_grant', error_description: '刷新令牌无效或已过期' },
+        400
+      );
     }
 
     // 撤销旧令牌

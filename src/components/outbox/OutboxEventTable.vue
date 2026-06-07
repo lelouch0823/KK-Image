@@ -20,7 +20,11 @@
       <template #cell-aggregate_id="{ value, row }">
         <AppTableTextStack
           :primary="value || '-'"
-          :secondary="row.id === selectedEventId ? t('outboxOps.table.selected', '当前选中') : `#${row.id || '-'}`"
+          :secondary="
+            row.id === selectedEventId
+              ? t('outboxOps.table.selected', '当前选中')
+              : `#${row.id || '-'}`
+          "
           :secondary-title="row.id || '-'"
           primary-class="font-mono text-sm"
           :secondary-class="row.id === selectedEventId ? 'text-primary' : ''"
@@ -38,7 +42,9 @@
           >
             {{ job.consumer_name }} · {{ job.status }}
           </StatusBadge>
-          <span v-if="!(row.consumerJobs || []).length" class="text-sm text-(--text-secondary)">-</span>
+          <span v-if="!(row.consumerJobs || []).length" class="text-sm text-(--text-secondary)"
+            >-</span
+          >
         </div>
       </template>
 
@@ -77,12 +83,26 @@ const props = defineProps({
 
 const { t } = useI18n();
 
-const columns = computed(() => ([
-  { key: 'event_type', label: t('outboxOps.columns.eventType', '事件类型'), width: '240px', maxWidth: '240px' },
-  { key: 'aggregate_id', label: t('outboxOps.columns.aggregateId', '聚合 ID'), kind: 'identifier', width: '260px', maxWidth: '260px' },
+const columns = computed(() => [
+  {
+    key: 'event_type',
+    label: t('outboxOps.columns.eventType', '事件类型'),
+    width: '240px',
+    maxWidth: '240px',
+  },
+  {
+    key: 'aggregate_id',
+    label: t('outboxOps.columns.aggregateId', '聚合 ID'),
+    kind: 'identifier',
+    width: '260px',
+    maxWidth: '260px',
+  },
   { key: 'consumers', label: t('outboxOps.columns.consumers', '消费者') },
-  { key: 'created_at', label: t('outboxOps.columns.createdAt', '创建时间'), kind: 'datetime', width: '180px' },
-]));
-
-
+  {
+    key: 'created_at',
+    label: t('outboxOps.columns.createdAt', '创建时间'),
+    kind: 'datetime',
+    width: '180px',
+  },
+]);
 </script>

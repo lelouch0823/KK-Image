@@ -14,9 +14,8 @@ describe('config manager factory wrapper audit', () => {
       offenders.push('functions/ai/config-manager.js: still defines createAIConfigManager');
     }
 
-    expect(
-      offenders,
-      `config manager factory wrapper offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `config manager factory wrapper offenders:\n${offenders.join('\n')}`).toEqual(
+      []
+    );
   });
 });

@@ -11,12 +11,11 @@ describe('audit helpers thin wrappers audit', () => {
     const offenders = [];
 
     if (source.includes('export function hasAuditFailureRecorded(')) {
-      offenders.push('functions/lib/hono/_shared/audit-helpers.js: still defines hasAuditFailureRecorded');
+      offenders.push(
+        'functions/lib/hono/_shared/audit-helpers.js: still defines hasAuditFailureRecorded'
+      );
     }
 
-    expect(
-      offenders,
-      `audit helpers thin-wrapper offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `audit helpers thin-wrapper offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

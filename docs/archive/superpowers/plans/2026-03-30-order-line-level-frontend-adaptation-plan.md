@@ -13,6 +13,7 @@
 ### Task 1: Add failing regression tests for line-level status and quantity sources
 
 **Files:**
+
 - Modify: `src/components/order/__tests__/OrderProcurementBadge.test.js`
 - Modify: `src/components/order/__tests__/OrderEditModal.variant-lock.test.js`
 - Create: `src/components/order/__tests__/OrderDetail.lines.test.js`
@@ -35,6 +36,7 @@ Expected: FAIL because the current UI still reads legacy status and quantity sou
 ### Task 2: Implement shared order display fallback helpers and status rendering
 
 **Files:**
+
 - Modify: `src/utils/procurement-status.js`
 - Create: `src/utils/order-display.js`
 - Modify: `src/locales/zh-CN/order.js`
@@ -63,6 +65,7 @@ Expected: PASS
 ### Task 3: Implement detail page line-level display and quantity correction
 
 **Files:**
+
 - Create: `src/components/order/OrderLinesCard.vue`
 - Modify: `src/components/order/OrderDetail.vue`
 - Modify: `src/components/order/OrderPrintView.vue`
@@ -83,6 +86,7 @@ Expected: PASS
 ### Task 4: Align manage-order progress filters with visible list statuses
 
 **Files:**
+
 - Modify: `functions/api/utils/constants.js`
 - Modify: `functions/repositories/order/queries.js`
 - Modify: `functions/lib/hono/routes/manage/orders/list.js`
@@ -103,6 +107,7 @@ Expected: PASS
 ### Task 5: Run regression verification and build
 
 **Files:**
+
 - Verify: `src/components/order/__tests__/OrderProcurementBadge.test.js`
 - Verify: `src/components/order/__tests__/OrderDetail.lines.test.js`
 - Verify: `src/components/order/__tests__/OrderEditModal.variant-lock.test.js`

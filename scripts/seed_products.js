@@ -40,9 +40,7 @@ export function createSeedProductsDeps(options = {}) {
     now: options.now || (() => Date.now()),
     id: options.id || (() => randomUUID()),
     pick: options.pick || ((arr, index) => arr[index % arr.length]),
-    tempFileName:
-      options.tempFileName ||
-      (() => `tmp_seed_variant_products_${counter += 1}.sql`),
+    tempFileName: options.tempFileName || (() => `tmp_seed_variant_products_${(counter += 1)}.sql`),
   };
 }
 
@@ -53,19 +51,39 @@ export function esc(value) {
 export function makeDimensions(index) {
   if (index % 3 === 0) {
     return [
-      { name: '颜色', values: [COLORS[index % COLORS.length], COLORS[(index + 1) % COLORS.length]] },
-      { name: '材质', values: [MATERIALS[index % MATERIALS.length], MATERIALS[(index + 1) % MATERIALS.length]] },
+      {
+        name: '颜色',
+        values: [COLORS[index % COLORS.length], COLORS[(index + 1) % COLORS.length]],
+      },
+      {
+        name: '材质',
+        values: [MATERIALS[index % MATERIALS.length], MATERIALS[(index + 1) % MATERIALS.length]],
+      },
       { name: '尺码', values: ['S', 'M', 'L'] },
     ];
   }
   if (index % 3 === 1) {
     return [
-      { name: '颜色', values: [COLORS[index % COLORS.length], COLORS[(index + 2) % COLORS.length], COLORS[(index + 4) % COLORS.length]] },
+      {
+        name: '颜色',
+        values: [
+          COLORS[index % COLORS.length],
+          COLORS[(index + 2) % COLORS.length],
+          COLORS[(index + 4) % COLORS.length],
+        ],
+      },
       { name: '尺码', values: ['M', 'L', 'XL'] },
     ];
   }
   return [
-    { name: '颜色', values: [COLORS[index % COLORS.length], COLORS[(index + 3) % COLORS.length], COLORS[(index + 5) % COLORS.length]] },
+    {
+      name: '颜色',
+      values: [
+        COLORS[index % COLORS.length],
+        COLORS[(index + 3) % COLORS.length],
+        COLORS[(index + 5) % COLORS.length],
+      ],
+    },
   ];
 }
 
@@ -263,25 +281,32 @@ export async function runSeedProductsCli(options = {}) {
   const rows = (options.buildSeedRowsImpl || buildSeedRows)(config, deps);
   const sql = (options.buildSQLImpl || buildSQL)(rows);
 
-  (options.executeSQLImpl || ((value) => executeSQL(value, {
-    config,
-    deps,
-    cwd: options.cwd,
-    pathModule: options.pathModule,
-    writeFileSyncImpl: options.writeFileSyncImpl,
-    unlinkSyncImpl: options.unlinkSyncImpl,
-    execSyncImpl: options.execSyncImpl,
-  })))(sql);
-  (options.verifySeedImpl || ((currentConfig) => verifySeed(currentConfig, {
-    execSyncImpl: options.execSyncImpl,
-    writeLine,
-  })))(config);
+  (
+    options.executeSQLImpl ||
+    ((value) =>
+      executeSQL(value, {
+        config,
+        deps,
+        cwd: options.cwd,
+        pathModule: options.pathModule,
+        writeFileSyncImpl: options.writeFileSyncImpl,
+        unlinkSyncImpl: options.unlinkSyncImpl,
+        execSyncImpl: options.execSyncImpl,
+      }))
+  )(sql);
+  (
+    options.verifySeedImpl ||
+    ((currentConfig) =>
+      verifySeed(currentConfig, {
+        execSyncImpl: options.execSyncImpl,
+        writeLine,
+      }))
+  )(config);
   writeLine(`Seed complete: ${config.totalProducts} multi-spec products inserted.`);
   return 0;
 }
 
-const isDirectExecution =
-  process.argv[1] && path.resolve(process.argv[1]) === SCRIPT_PATH;
+const isDirectExecution = process.argv[1] && path.resolve(process.argv[1]) === SCRIPT_PATH;
 
 if (isDirectExecution) {
   await runSeedProductsCli();

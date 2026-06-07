@@ -1,11 +1,13 @@
 import { VariantDemandProjectionRepository } from '../repositories/VariantDemandProjectionRepository.js';
 
 function normalizeVariantIds(variantIds = []) {
-  return [...new Set(
-    (Array.isArray(variantIds) ? variantIds : [])
-      .map((variantId) => String(variantId || '').trim())
-      .filter(Boolean)
-  )];
+  return [
+    ...new Set(
+      (Array.isArray(variantIds) ? variantIds : [])
+        .map((variantId) => String(variantId || '').trim())
+        .filter(Boolean)
+    ),
+  ];
 }
 
 export class VariantDemandProjectionRefreshService {

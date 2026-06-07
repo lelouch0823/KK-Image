@@ -1,12 +1,11 @@
 <template>
-  <ManagementListShell :title="t('customer.manage.title')" :description="t('customer.manage.subtitle')">
+  <ManagementListShell
+    :title="t('customer.manage.title')"
+    :description="t('customer.manage.subtitle')"
+  >
     <template #actions>
       <!-- 导入客户 -->
-      <AppButton
-        variant="outline"
-        size="sm"
-        @click="showImportModal = true"
-      >
+      <AppButton variant="outline" size="sm" @click="showImportModal = true">
         <template #icon-left>
           <AppIcon name="arrow-up-tray" class="size-4" />
         </template>
@@ -82,7 +81,10 @@
 
     <template #content>
       <div class="flex h-full min-h-[28rem] overflow-hidden">
-        <div v-if="errorCode === ErrorCode.FORBIDDEN" class="flex w-full items-center justify-center p-8">
+        <div
+          v-if="errorCode === ErrorCode.FORBIDDEN"
+          class="flex w-full items-center justify-center p-8"
+        >
           <PermissionDeniedState
             :title="t('customer.manage.permissionDenied')"
             :description="error || t('customer.manage.permissionDeniedDesc')"
@@ -92,170 +94,167 @@
           />
         </div>
         <template v-else>
-        <!-- Left Side: Main Content -->
-        <div class="flex min-w-0 flex-1 flex-col">
-          <!-- 客户列表 -->
-          <div class="flex-1 overflow-auto p-4 lg:p-0">
-        <!-- 桌面端表格 (lg+) -->
-        <div class="hidden size-full lg:block">
-          <AppTable
-            :columns="columns"
-            :data="customers"
-            :loading="loading"
-            :empty-text="t('customer.manage.empty')"
-            :row-class="getRowClass"
-            :virtual="customers.length > 50"
-            no-border
-            clickable
-            @row-click="openDetail"
-          >
-
-            <!-- 复选框列头 -->
-            <template #header-selection>
-              <div class="flex items-center justify-center">
-                <AppCheckbox
-                  :checked="isAllSelected"
-                  :indeterminate="isPartialSelected"
-                  @change="toggleSelectAll"
-                />
-              </div>
-            </template>
-
-            <!-- 复选框列内容 -->
-            <template #cell-selection="{ row }">
-              <div class="flex items-center justify-center" @click.stop>
-                <AppCheckbox :checked="isIdSelected(row.id)" @change="toggleSelect(row.id)" />
-              </div>
-            </template>
-
-            <template #cell-name="{ row }">
-               <span class="font-medium text-(--text-main)">{{ row.name }}</span>
-            </template>
-
-            <template #cell-contact="{ row }">
-              <div class="flex flex-col gap-1 text-(--text-secondary)">
-                <!-- 电话 -->
-                <div v-if="row.phone" class="flex items-center gap-1">
-                    <AppIcon name="phone" class="size-3 shrink-0" />
-                    <span>{{ row.phone }}</span>
-                </div>
-                <!-- 邮箱 -->
-                <div v-if="row.email" class="flex items-center gap-1">
-                    <AppIcon name="envelope" class="size-3 shrink-0" />
-                    <span class="max-w-[180px] truncate" :title="row.email">{{ row.email }}</span>
-                </div>
-                <!-- 无联系方式 -->
-                <span v-if="!row.phone && !row.email" class="text-(--text-muted)">-</span>
-              </div>
-            </template>
-
-            <template #cell-company="{ value }">
-               <span class="text-(--text-secondary)">{{ value || '-' }}</span>
-            </template>
-
-            <template #cell-segment="{ row }">
-              <StatusBadge
-                v-if="row.segment && row.segment !== 'new'"
-                :variant="segmentVariantMap[row.segment] || 'info'"
-                dot
-              >
-                {{ t(`customer.detail.segment${segmentLabelMap[row.segment]}`) }}
-              </StatusBadge>
-              <span v-else class="text-xs text-(--text-muted)">-</span>
-            </template>
-
-            <template #cell-tags="{ value }">
-              <div class="flex flex-wrap gap-1">
-                <StatusBadge
-                  v-for="tag in value"
-                  :key="tag"
-                  variant="primary"
+          <!-- Left Side: Main Content -->
+          <div class="flex min-w-0 flex-1 flex-col">
+            <!-- 客户列表 -->
+            <div class="flex-1 overflow-auto p-4 lg:p-0">
+              <!-- 桌面端表格 (lg+) -->
+              <div class="hidden size-full lg:block">
+                <AppTable
+                  :columns="columns"
+                  :data="customers"
+                  :loading="loading"
+                  :empty-text="t('customer.manage.empty')"
+                  :row-class="getRowClass"
+                  :virtual="customers.length > 50"
+                  no-border
+                  clickable
+                  @row-click="openDetail"
                 >
-                  {{ tag }}
-                </StatusBadge>
-              </div>
-            </template>
-
-            <template #cell-createdAt="{ value }">
-               <span class="text-xs text-(--text-secondary)">{{ formatDate(value) }}</span>
-            </template>
-
-            <template #cell-actions="{ row }">
-              <div class="flex justify-end pr-4" @click.stop>
-                <AppButton
-                  variant="ghost"
-                  size="sm"
-                  class="p-1.5! opacity-0 group-hover:opacity-100"
-                  :title="t('common.edit')"
-                  @click="openEditModal(row)"
-                >
-                  <template #icon-left>
-                    <AppIcon name="pencil-square" class="size-4" />
+                  <!-- 复选框列头 -->
+                  <template #header-selection>
+                    <div class="flex items-center justify-center">
+                      <AppCheckbox
+                        :checked="isAllSelected"
+                        :indeterminate="isPartialSelected"
+                        @change="toggleSelectAll"
+                      />
+                    </div>
                   </template>
-                </AppButton>
-              </div>
-            </template>
 
-            <!-- 分页 -->
-            <template #footer>
-              <div
-                v-if="pagination.totalPages > 1"
-                class="flex w-full items-center justify-between"
-              >
-                  <span class="text-sm text-(--text-secondary)">
-                      {{ t('common.total') }}: {{ pagination.total }}
-                  </span>
+                  <!-- 复选框列内容 -->
+                  <template #cell-selection="{ row }">
+                    <div class="flex items-center justify-center" @click.stop>
+                      <AppCheckbox :checked="isIdSelected(row.id)" @change="toggleSelect(row.id)" />
+                    </div>
+                  </template>
+
+                  <template #cell-name="{ row }">
+                    <span class="font-medium text-(--text-main)">{{ row.name }}</span>
+                  </template>
+
+                  <template #cell-contact="{ row }">
+                    <div class="flex flex-col gap-1 text-(--text-secondary)">
+                      <!-- 电话 -->
+                      <div v-if="row.phone" class="flex items-center gap-1">
+                        <AppIcon name="phone" class="size-3 shrink-0" />
+                        <span>{{ row.phone }}</span>
+                      </div>
+                      <!-- 邮箱 -->
+                      <div v-if="row.email" class="flex items-center gap-1">
+                        <AppIcon name="envelope" class="size-3 shrink-0" />
+                        <span class="max-w-[180px] truncate" :title="row.email">{{
+                          row.email
+                        }}</span>
+                      </div>
+                      <!-- 无联系方式 -->
+                      <span v-if="!row.phone && !row.email" class="text-(--text-muted)">-</span>
+                    </div>
+                  </template>
+
+                  <template #cell-company="{ value }">
+                    <span class="text-(--text-secondary)">{{ value || '-' }}</span>
+                  </template>
+
+                  <template #cell-segment="{ row }">
+                    <StatusBadge
+                      v-if="row.segment && row.segment !== 'new'"
+                      :variant="segmentVariantMap[row.segment] || 'info'"
+                      dot
+                    >
+                      {{ t(`customer.detail.segment${segmentLabelMap[row.segment]}`) }}
+                    </StatusBadge>
+                    <span v-else class="text-xs text-(--text-muted)">-</span>
+                  </template>
+
+                  <template #cell-tags="{ value }">
+                    <div class="flex flex-wrap gap-1">
+                      <StatusBadge v-for="tag in value" :key="tag" variant="primary">
+                        {{ tag }}
+                      </StatusBadge>
+                    </div>
+                  </template>
+
+                  <template #cell-createdAt="{ value }">
+                    <span class="text-xs text-(--text-secondary)">{{ formatDate(value) }}</span>
+                  </template>
+
+                  <template #cell-actions="{ row }">
+                    <div class="flex justify-end pr-4" @click.stop>
+                      <AppButton
+                        variant="ghost"
+                        size="sm"
+                        class="p-1.5! opacity-0 group-hover:opacity-100"
+                        :title="t('common.edit')"
+                        @click="openEditModal(row)"
+                      >
+                        <template #icon-left>
+                          <AppIcon name="pencil-square" class="size-4" />
+                        </template>
+                      </AppButton>
+                    </div>
+                  </template>
+
+                  <!-- 分页 -->
+                  <template #footer>
+                    <div
+                      v-if="pagination.totalPages > 1"
+                      class="flex w-full items-center justify-between"
+                    >
+                      <span class="text-sm text-(--text-secondary)">
+                        {{ t('common.total') }}: {{ pagination.total }}
+                      </span>
+                      <Pagination
+                        :current-page="pagination.page"
+                        :total-pages="pagination.totalPages"
+                        @change="changePage"
+                      />
+                    </div>
+                  </template>
+                </AppTable>
+              </div>
+
+              <!-- 移动端列表 (<lg) -->
+              <div class="lg:hidden">
+                <CustomerCards
+                  :data="customers"
+                  :loading="loading"
+                  @detail="openDetail"
+                  @edit="openEditModal"
+                />
+                <!-- 移动端分页 -->
+                <div v-if="pagination.totalPages > 1" class="mt-4 flex justify-center pb-4">
                   <Pagination
                     :current-page="pagination.page"
                     :total-pages="pagination.totalPages"
                     @change="changePage"
                   />
+                </div>
               </div>
-            </template>
-          </AppTable>
-        </div>
+            </div>
+          </div>
 
-         <!-- 移动端列表 (<lg) -->
-        <div class="lg:hidden">
-           <CustomerCards
-              :data="customers"
-              :loading="loading"
-              @detail="openDetail"
+          <!-- Right Side: Detail Panel (Desktop Push) -->
+          <div
+            v-if="showDetailPanel"
+            class="hidden w-96 shrink-0 flex-col border-l border-(--border-color) bg-(--bg-card) transition-all duration-300 ease-out-expo lg:flex"
+          >
+            <CustomerDetailContent
+              :customer="viewingCustomer"
+              @close="showDetailPanel = false"
+              @refresh="loadCustomers"
               @edit="openEditModal"
-           />
-           <!-- 移动端分页 -->
-           <div v-if="pagination.totalPages > 1" class="mt-4 flex justify-center pb-4">
-             <Pagination
-                :current-page="pagination.page"
-                :total-pages="pagination.totalPages"
-                @change="changePage"
-              />
-           </div>
-        </div>
-      </div>
-        </div>
+            />
+          </div>
 
-        <!-- Right Side: Detail Panel (Desktop Push) -->
-        <div
-          v-if="showDetailPanel"
-          class="hidden w-96 shrink-0 flex-col border-l border-(--border-color) bg-(--bg-card) transition-all duration-300 ease-out-expo lg:flex"
-        >
-          <CustomerDetailContent
+          <!-- Mobile Overlay Panel -->
+          <CustomerDetailPanel
+            v-model="showDetailPanel"
+            class="lg:hidden"
             :customer="viewingCustomer"
-            @close="showDetailPanel = false"
             @refresh="loadCustomers"
             @edit="openEditModal"
           />
-        </div>
-
-        <!-- Mobile Overlay Panel -->
-        <CustomerDetailPanel
-          v-model="showDetailPanel"
-          class="lg:hidden"
-          :customer="viewingCustomer"
-          @refresh="loadCustomers"
-          @edit="openEditModal"
-        />
         </template>
       </div>
     </template>
@@ -274,13 +273,15 @@
     </Modal>
 
     <!-- 批量添加标签弹窗 -->
-    <Modal
-      v-model="showTagModal"
-      :title="t('customer.manage.batchAddTag')"
-    >
+    <Modal v-model="showTagModal" :title="t('customer.manage.batchAddTag')">
       <div class="space-y-4 p-4">
         <p class="text-sm text-(--text-secondary)">
-          {{ t('customer.manage.batchAddTagConfirm', { count: selectedIds.length, tag: newTag || '...' }) }}
+          {{
+            t('customer.manage.batchAddTagConfirm', {
+              count: selectedIds.length,
+              tag: newTag || '...',
+            })
+          }}
         </p>
         <div>
           <AppInput
@@ -291,11 +292,7 @@
           />
         </div>
         <div class="flex justify-end gap-2">
-          <AppButton
-            variant="ghost"
-            size="sm"
-            @click="showTagModal = false"
-          >
+          <AppButton variant="ghost" size="sm" @click="showTagModal = false">
             {{ t('common.cancel') }}
           </AppButton>
           <AppButton
@@ -305,11 +302,7 @@
             @click="handleBatchAddTag"
           >
             <template #icon-left>
-              <AppIcon
-                v-if="batchTagProcessing"
-                name="spinner"
-                class="size-4 animate-spin"
-              />
+              <AppIcon v-if="batchTagProcessing" name="spinner" class="size-4 animate-spin" />
             </template>
             {{ t('common.confirm') }}
           </AppButton>
@@ -318,10 +311,7 @@
     </Modal>
 
     <!-- 客户导入弹窗 -->
-    <CustomerImportModal
-      v-model="showImportModal"
-      @imported="loadCustomers"
-    />
+    <CustomerImportModal v-model="showImportModal" @imported="loadCustomers" />
 
     <!-- 批量操作浮动栏 -->
     <FloatingSelectionBar :visible="selectedIds.length > 0">
@@ -329,11 +319,7 @@
         <span class="text-sm font-medium text-(--text-main)">
           {{ t('customer.manage.selectedCount', { count: selectedIds.length }) }}
         </span>
-        <AppButton
-          variant="link"
-          size="sm"
-          @click="clearBatchSelection"
-        >
+        <AppButton variant="link" size="sm" @click="clearBatchSelection">
           {{ t('customer.manage.cancelSelect') }}
         </AppButton>
       </template>
@@ -486,20 +472,15 @@ const columns = [
   { key: 'actions', label: '' },
 ];
 
-const {
-  clearSelection,
-  getRowClass,
-  handleCreated,
-  selectItem,
-} = useManagedListSelection();
+const { clearSelection, getRowClass, handleCreated, selectItem } = useManagedListSelection();
 
 // 批量选择计算属性
-const isAllSelected = computed(() =>
-  customers.value.length > 0 && selectedIds.value.length === customers.value.length
+const isAllSelected = computed(
+  () => customers.value.length > 0 && selectedIds.value.length === customers.value.length
 );
 
-const isPartialSelected = computed(() =>
-  selectedIds.value.length > 0 && selectedIds.value.length < customers.value.length
+const isPartialSelected = computed(
+  () => selectedIds.value.length > 0 && selectedIds.value.length < customers.value.length
 );
 
 const isIdSelected = (id) => selectedIds.value.includes(id);
@@ -509,7 +490,7 @@ const toggleSelect = (id) => {
   if (index === -1) {
     selectedIds.value = [...selectedIds.value, id];
   } else {
-    selectedIds.value = selectedIds.value.filter(i => i !== id);
+    selectedIds.value = selectedIds.value.filter((i) => i !== id);
   }
 };
 
@@ -517,7 +498,7 @@ const toggleSelectAll = () => {
   if (isAllSelected.value) {
     selectedIds.value = [];
   } else {
-    selectedIds.value = customers.value.map(c => c.id);
+    selectedIds.value = customers.value.map((c) => c.id);
   }
 };
 
@@ -635,7 +616,10 @@ const handleFormSubmit = async (formData) => {
         autoOpen: true,
         onHiddenByFilters: () => {
           addToast({
-            message: t('customer.manage.createdHiddenByFilters', '客户已创建，但当前筛选条件未显示该客户'),
+            message: t(
+              'customer.manage.createdHiddenByFilters',
+              '客户已创建，但当前筛选条件未显示该客户'
+            ),
             type: 'info',
           });
         },
@@ -676,7 +660,10 @@ const handleBatchAddTag = async () => {
       clearBatchSelection();
       loadCustomers();
     } else {
-      addToast({ message: result.message || result.error || t('common.operationFailed'), type: 'error' });
+      addToast({
+        message: result.message || result.error || t('common.operationFailed'),
+        type: 'error',
+      });
     }
   } catch (e) {
     console.error('Batch add tag error:', e);

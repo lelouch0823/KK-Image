@@ -4,7 +4,10 @@
  * 被多个 consumer 复用的状态管理、缓存失效、事件分类等辅助逻辑。
  */
 import { invalidateCache } from '../../lib/hono/middleware/cache.js';
-import { getSalespersonAccessTokens, getAllSalespersonAccessTokens } from '../../lib/hono/_shared/route-helpers.js';
+import {
+  getSalespersonAccessTokens,
+  getAllSalespersonAccessTokens,
+} from '../../lib/hono/_shared/route-helpers.js';
 import { refreshReadModels } from './read-model-refresher.js';
 
 // 重新导出 refreshReadModels 供其他模块使用
@@ -38,15 +41,22 @@ export function asArray(value) {
 }
 
 export function resolvePurchaseOrderId(event, payload) {
-  return payload.purchase_order_id
-    || payload.purchaseOrderId
-    || payload.po_id
-    || (event?.aggregate_type === 'purchase_order' ? event.aggregate_id : null)
-    || null;
+  return (
+    payload.purchase_order_id ||
+    payload.purchaseOrderId ||
+    payload.po_id ||
+    (event?.aggregate_type === 'purchase_order' ? event.aggregate_id : null) ||
+    null
+  );
 }
 
 export function resolveOrderId(event, payload) {
-  return payload.order_id || payload.orderId || (event?.aggregate_type === 'order' ? event.aggregate_id : null) || null;
+  return (
+    payload.order_id ||
+    payload.orderId ||
+    (event?.aggregate_type === 'order' ? event.aggregate_id : null) ||
+    null
+  );
 }
 
 export function resolveSalespersonId(payload) {
@@ -61,10 +71,12 @@ export function isOrderDomainEvent(eventType) {
 
 export function isOrderMutationEvent(eventType) {
   const normalized = String(eventType || '');
-  return normalized.startsWith('order_')
-    && !normalized.startsWith('order_procurement_')
-    && normalized !== 'order_read_by_admin'
-    && normalized !== 'order_read_by_sales';
+  return (
+    normalized.startsWith('order_') &&
+    !normalized.startsWith('order_procurement_') &&
+    normalized !== 'order_read_by_admin' &&
+    normalized !== 'order_read_by_sales'
+  );
 }
 
 export function isReminderDomainEvent(eventType) {
@@ -97,16 +109,17 @@ export function shouldRefreshManageStatsProjection(eventType) {
 }
 
 export function shouldRefreshDashboardProjection(eventType) {
-  return [
-    'order_created_by_admin',
-    'order_created_by_sales',
-    'order_updated_by_admin',
-    'order_updated_by_sales',
-    'order_deleted_by_admin',
-    'order_status_changed_by_admin',
-    'order_status_changed_by_sales',
-  ].includes(eventType)
-    || shouldRefreshManageStatsProjection(eventType);
+  return (
+    [
+      'order_created_by_admin',
+      'order_created_by_sales',
+      'order_updated_by_admin',
+      'order_updated_by_sales',
+      'order_deleted_by_admin',
+      'order_status_changed_by_admin',
+      'order_status_changed_by_sales',
+    ].includes(eventType) || shouldRefreshManageStatsProjection(eventType)
+  );
 }
 
 // ─── Poller 共享状态管理 ──────────────────────────────────
@@ -130,9 +143,12 @@ export function getPollerState(state) {
   // 使用工厂函数初始化缺失的属性，避免每次调用都做 instanceof 检查
   const defaults = createPollerState();
   for (const [key, defaultValue] of Object.entries(defaults)) {
-    if (state[key] === undefined || state[key] === null ||
-        (defaultValue instanceof Set && !(state[key] instanceof Set)) ||
-        (defaultValue instanceof Map && !(state[key] instanceof Map))) {
+    if (
+      state[key] === undefined ||
+      state[key] === null ||
+      (defaultValue instanceof Set && !(state[key] instanceof Set)) ||
+      (defaultValue instanceof Map && !(state[key] instanceof Map))
+    ) {
       state[key] = defaultValue;
     }
   }

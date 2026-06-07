@@ -2,21 +2,26 @@ import { createAIRateLimitManager } from '../../../ai/rate-limit-manager.js';
 
 function estimateTokensFromBody(body = {}) {
   const messages = Array.isArray(body?.messages) ? body.messages : [];
-  const rawText = messages.map((message) => {
-    if (typeof message?.content === 'string') return message.content;
-    if (Array.isArray(message?.content)) {
-      return message.content
-        .map((part) => String(part?.text || part?.image_url?.url || ''))
-        .join(' ');
-    }
-    return '';
-  }).join(' ');
+  const rawText = messages
+    .map((message) => {
+      if (typeof message?.content === 'string') return message.content;
+      if (Array.isArray(message?.content)) {
+        return message.content
+          .map((part) => String(part?.text || part?.image_url?.url || ''))
+          .join(' ');
+      }
+      return '';
+    })
+    .join(' ');
   return Math.max(1, Math.ceil(rawText.length / 4));
 }
 
 function hasImageBearingMessage(body = {}) {
   const messages = Array.isArray(body?.messages) ? body.messages : [];
-  return messages.some((message) => Array.isArray(message?.content) && message.content.some((part) => part?.type === 'image_url'));
+  return messages.some(
+    (message) =>
+      Array.isArray(message?.content) && message.content.some((part) => part?.type === 'image_url')
+  );
 }
 
 function getKV(env = {}) {
@@ -25,16 +30,21 @@ function getKV(env = {}) {
 
 export function createAIRateLimitMiddleware(options = {}) {
   const createManager = options.createManager || ((deps) => createAIRateLimitManager(deps));
-  const resolveConfig = options.resolveConfig || (async (c) => ({
-    enabled: String(c.env.AI_RATE_LIMIT_ENABLED || 'true') !== 'false',
-    requestsPerMinute: Number(c.env.AI_RATE_LIMIT_RPM || 60),
-    tokensPerDay: Number(c.env.AI_RATE_LIMIT_TPD || 100000),
-    imageRequestsPerMinute: Number(c.env.AI_RATE_LIMIT_IMAGE_RPM || 20),
-  }));
+  const resolveConfig =
+    options.resolveConfig ||
+    (async (c) => ({
+      enabled: String(c.env.AI_RATE_LIMIT_ENABLED || 'true') !== 'false',
+      requestsPerMinute: Number(c.env.AI_RATE_LIMIT_RPM || 60),
+      tokensPerDay: Number(c.env.AI_RATE_LIMIT_TPD || 100000),
+      imageRequestsPerMinute: Number(c.env.AI_RATE_LIMIT_IMAGE_RPM || 20),
+    }));
 
   return async (c, next) => {
     const kv = getKV(c.env);
-    const body = await c.req.raw.clone().json().catch(() => ({}));
+    const body = await c.req.raw
+      .clone()
+      .json()
+      .catch(() => ({}));
     c.set('aiRequestBody', body);
 
     const testDenyReason = c.req.header('x-test-ai-quota-deny');
@@ -49,11 +59,14 @@ export function createAIRateLimitMiddleware(options = {}) {
       c.header('X-AI-RateLimit-Requests-Remaining', '0');
       c.header('X-AI-RateLimit-Tokens-Limit', String(config.tokensPerDay));
       c.header('X-AI-RateLimit-Tokens-Remaining', '0');
-      return c.json({
-        success: false,
-        error: 'AI quota exceeded',
-        code: testDenyReason,
-      }, 429);
+      return c.json(
+        {
+          success: false,
+          error: 'AI quota exceeded',
+          code: testDenyReason,
+        },
+        429
+      );
     }
 
     const manager = createManager({ kv, now: options.now });
@@ -73,12 +86,15 @@ export function createAIRateLimitMiddleware(options = {}) {
     c.header('X-AI-RateLimit-Tokens-Remaining', String(result.remaining?.tokens ?? 0));
 
     if (!result.allowed) {
-      return c.json({
-        success: false,
-        error: 'AI quota exceeded',
-        code: result.reason,
-        quotaDecision: result.reason,
-      }, 429);
+      return c.json(
+        {
+          success: false,
+          error: 'AI quota exceeded',
+          code: result.reason,
+          quotaDecision: result.reason,
+        },
+        429
+      );
     }
 
     return next();

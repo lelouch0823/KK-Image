@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { 
-  formatSize, 
-  formatDuration, 
-  formatDate, 
-  formatExpiry, 
-  getFileExtension, 
+import {
+  formatSize,
+  formatDuration,
+  formatDate,
+  formatExpiry,
+  getFileExtension,
   isImage,
   formatCurrency,
   hexToRgba,
@@ -12,7 +12,7 @@ import {
   formatDateWithWeekday,
   formatRelativeTime,
   formatTimelineTime,
-  getChartColors
+  getChartColors,
 } from '../formatters';
 
 describe('Frontend Formatters', () => {
@@ -102,7 +102,7 @@ describe('Frontend Formatters', () => {
     });
 
     it('should return input as is if not a number', () => {
-       expect(formatCurrency('abc')).toBe('abc');
+      expect(formatCurrency('abc')).toBe('abc');
     });
   });
 
@@ -118,8 +118,8 @@ describe('Frontend Formatters', () => {
     });
 
     it('getChartColors should return array of CSS variable calls', () => {
-       const colors = getChartColors(3);
-       expect(colors.length).toBe(3);
+      const colors = getChartColors(3);
+      expect(colors.length).toBe(3);
     });
   });
 
@@ -131,30 +131,30 @@ describe('Frontend Formatters', () => {
     });
 
     it('should return - for empty date', () => {
-       expect(formatDateWithWeekday(null)).toBe('-');
+      expect(formatDateWithWeekday(null)).toBe('-');
     });
 
     it('should return original if t is missing', () => {
-       expect(formatDateWithWeekday('2024-01-01')).toBe('2024-01-01');
+      expect(formatDateWithWeekday('2024-01-01')).toBe('2024-01-01');
     });
 
     it('should return original if date is invalid', () => {
-       expect(formatDateWithWeekday('invalid')).toBe('invalid');
+      expect(formatDateWithWeekday('invalid')).toBe('invalid');
     });
   });
 
   describe('formatExpiry', () => {
     it('should format expiry correctly without t', () => {
-       const nowTs = Date.now();
-       const result = formatExpiry(nowTs + 3600 * 1000);
-       expect(result).toMatch(/\d/); // Should contain date numbers
-       expect(formatExpiry(null)).toBe('-');
+      const nowTs = Date.now();
+      const result = formatExpiry(nowTs + 3600 * 1000);
+      expect(result).toMatch(/\d/); // Should contain date numbers
+      expect(formatExpiry(null)).toBe('-');
     });
 
     it('should format with t', () => {
       const t = vi.fn((key) => key);
       expect(formatExpiry(null, t)).toBe('formatters.forever');
-      
+
       const nowTs = Date.now();
       expect(formatExpiry(nowTs - 1000, t)).toBe('formatters.expired');
       expect(formatExpiry(nowTs + 86400000 * 2, t)).toBe('formatters.daysLeft');
@@ -164,31 +164,31 @@ describe('Frontend Formatters', () => {
   describe('formatRelativeTime', () => {
     const t = (key) => key;
     it('should return justNow for very recent', () => {
-       expect(formatRelativeTime(Date.now() - 1000, t)).toBe('common.justNow');
+      expect(formatRelativeTime(Date.now() - 1000, t)).toBe('common.justNow');
     });
 
     it('should return units ago', () => {
-       expect(formatRelativeTime(Date.now() - 120000, t)).toBe('common.minutesAgo');
-       expect(formatRelativeTime(Date.now() - 7200000, t)).toBe('common.hoursAgo');
+      expect(formatRelativeTime(Date.now() - 120000, t)).toBe('common.minutesAgo');
+      expect(formatRelativeTime(Date.now() - 7200000, t)).toBe('common.hoursAgo');
     });
 
     it('should return date if more than a day', () => {
-       expect(formatRelativeTime(Date.now() - 90000000, t)).toMatch(/\d\/\d/);
+      expect(formatRelativeTime(Date.now() - 90000000, t)).toMatch(/\d\/\d/);
     });
 
     it('should return empty/unknown if t or ts missing', () => {
-       expect(formatRelativeTime(null)).toBe('');
-       expect(formatRelativeTime(null, t)).toBe('common.unknown');
-       expect(formatRelativeTime(Date.now(), null)).toBe('');
+      expect(formatRelativeTime(null)).toBe('');
+      expect(formatRelativeTime(null, t)).toBe('common.unknown');
+      expect(formatRelativeTime(Date.now(), null)).toBe('');
     });
   });
 
   describe('formatTimelineTime', () => {
     it('should format time correctly', () => {
-       const now = Date.now();
-       expect(formatTimelineTime(now)).toMatch(/\d{1,2}:\d{2}/);
-       expect(formatTimelineTime(now - 86400000 * 2)).toMatch(/\d\/\d/);
-       expect(formatTimelineTime(null)).toBe('');
+      const now = Date.now();
+      expect(formatTimelineTime(now)).toMatch(/\d{1,2}:\d{2}/);
+      expect(formatTimelineTime(now - 86400000 * 2)).toMatch(/\d\/\d/);
+      expect(formatTimelineTime(null)).toBe('');
     });
   });
 });

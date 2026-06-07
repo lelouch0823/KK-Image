@@ -21,7 +21,9 @@
         <div
           class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-(--bg-muted) transition-colors"
           :class="
-            getSubspaceCover(sub) ? 'border border-(--border-subtle)' : 'group-hover:bg-primary group-hover:text-(--text-inverse)'
+            getSubspaceCover(sub)
+              ? 'border border-(--border-subtle)'
+              : 'group-hover:bg-primary group-hover:text-(--text-inverse)'
           "
         >
           <AppImage
@@ -70,7 +72,8 @@ const props = defineProps({
   space: { type: Object, required: true },
   getSubspaceHref: {
     type: Function,
-    default: (subspace) => subspace?.shareUrl || (subspace?.shareToken ? `/space/${subspace.shareToken}` : '#'),
+    default: (subspace) =>
+      subspace?.shareUrl || (subspace?.shareToken ? `/space/${subspace.shareToken}` : '#'),
   },
 });
 

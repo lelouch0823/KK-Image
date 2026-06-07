@@ -67,7 +67,10 @@ describe('ProductManager create success UX', () => {
     return mount(ProductManager, {
       global: {
         stubs: {
-          ManagementListShell: { template: '<div><slot name="actions" /><slot name="filters" /><slot name="content" /><slot /></div>' },
+          ManagementListShell: {
+            template:
+              '<div><slot name="actions" /><slot name="filters" /><slot name="content" /><slot /></div>',
+          },
           ProductStats: { template: '<div />' },
           ProductFilters: { template: '<div />' },
           ProductTable: { template: '<div />' },
@@ -101,10 +104,7 @@ describe('ProductManager create success UX', () => {
     const wrapper = createWrapper();
     await wrapper.vm.handleModalSuccess({ id: 'p-created' });
 
-    expect(mocks.loadProducts).toHaveBeenLastCalledWith(
-      { page: 1 },
-      true
-    );
+    expect(mocks.loadProducts).toHaveBeenLastCalledWith({ page: 1 }, true);
     expect(wrapper.vm.pagination.page).toBe(1);
     expect(wrapper.vm.viewingProduct.id).toBe('p-created');
     expect(wrapper.vm.showDetailModal).toBe(true);

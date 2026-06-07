@@ -1,5 +1,8 @@
 <template>
-  <div v-if="errorCode === ErrorCode.FORBIDDEN" class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8">
+  <div
+    v-if="errorCode === ErrorCode.FORBIDDEN"
+    class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8"
+  >
     <PermissionDeniedState
       :title="t('auditLogs.permissionDenied')"
       :description="error || t('auditLogs.permissionDeniedDesc')"
@@ -10,7 +13,11 @@
   <div v-else-if="error" class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8">
     <PermissionDeniedState
       :title="t('auditLogs.loadFailed')"
-      :description="errorCode === ErrorCode.UNAUTHORIZED ? t('auditLogs.sessionExpired') : t('auditLogs.loadFailedDesc')"
+      :description="
+        errorCode === ErrorCode.UNAUTHORIZED
+          ? t('auditLogs.sessionExpired')
+          : t('auditLogs.loadFailedDesc')
+      "
       :reason="error"
       @retry="fetchLogs"
     />
@@ -36,15 +43,11 @@
           :placeholder="t('auditLogs.allSeverities')"
           size="sm"
         />
-        <AppInput
-          v-model="filterActor"
-          :placeholder="t('auditLogs.user')"
-          size="sm"
-        />
+        <AppInput v-model="filterActor" :placeholder="t('auditLogs.user')" size="sm" />
       </div>
     </template>
     <template #actions>
-        <AppButton variant="secondary" :text="t('common.refresh')" @click="fetchLogs" />
+      <AppButton variant="secondary" :text="t('common.refresh')" @click="fetchLogs" />
     </template>
     <template #content>
       <AppTable
@@ -57,12 +60,12 @@
         <template #cell-created_at="{ value }">
           <span class="text-xs text-(--text-secondary)">{{ formatDate(value) }}</span>
         </template>
-        
+
         <template #cell-actor_display="{ value, row }">
           <span class="font-medium text-(--text-main)">{{ value }}</span>
           <div class="text-xs text-(--text-muted)">{{ row.actor_type || '-' }}</div>
         </template>
-        
+
         <template #cell-action="{ value }">
           <StatusBadge :variant="actionBadgeVariant(value)">
             {{ value }}
@@ -83,24 +86,29 @@
 
         <template #cell-target="{ row }">
           <span class="text-(--text-secondary)">
-            {{ row.target_type }}<span v-if="row.target_label || row.target_id" class="text-(--text-muted)"> / {{ row.target_label || row.target_id }}</span>
+            {{ row.target_type
+            }}<span v-if="row.target_label || row.target_id" class="text-(--text-muted)">
+              / {{ row.target_label || row.target_id }}</span
+            >
           </span>
         </template>
 
         <template #cell-summary_display="{ value }">
           <div class="max-w-sm text-sm text-(--text-main)">{{ value }}</div>
         </template>
-        
+
         <template #cell-details="{ row }">
           <div class="max-w-xs truncate text-xs text-(--text-muted)">
             {{ formatAuditDetails(row) }}
           </div>
         </template>
-        
+
         <template #footer>
           <div v-if="pagination.totalPages > 1" class="flex items-center justify-between">
             <span class="text-sm text-(--text-secondary)">
-              {{ t('auditLogs.pagination', { page: pagination.page, total: pagination.totalPages }) }}
+              {{
+                t('auditLogs.pagination', { page: pagination.page, total: pagination.totalPages })
+              }}
             </span>
             <div class="flex gap-2">
               <AppButton
@@ -180,7 +188,6 @@ const columns = computed(() => [
   { key: 'details', label: t('auditLogs.details') },
 ]);
 
-
 const actionBadgeVariant = (action) => {
   if (action?.includes('delete')) return 'danger';
   if (action?.includes('create')) return 'success';
@@ -204,7 +211,10 @@ const fetchLogs = async () => {
   error.value = '';
   errorCode.value = null;
   try {
-    const params = new URLSearchParams({ page: pagination.value.page, pageSize: pagination.value.pageSize });
+    const params = new URLSearchParams({
+      page: pagination.value.page,
+      pageSize: pagination.value.pageSize,
+    });
     if (filterAction.value) params.set('action', filterAction.value);
     if (filterResult.value) params.set('result', filterResult.value);
     if (filterSeverity.value) params.set('severity', filterSeverity.value);

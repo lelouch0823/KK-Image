@@ -32,26 +32,30 @@ app.use('*', requirePermission('admin:full'));
 // 连接管理
 // ============================================
 
-const CreateConnectionSchema = z.object({
-  name: z.string().min(1, '名称不能为空'),
-  adapterType: z.enum(['generic', 'rest', 'kingdee', 'yonyou', 'sap']),
-  baseUrl: z.string().url('无效的 URL'),
-  authType: z.enum(['api_key', 'oauth2', 'basic']).default('api_key'),
-  credentials: z.record(z.string()).default({}),
-  config: z.record(z.unknown()).default({}),
-  syncDirection: z.enum(['push', 'pull', 'bidirectional']).default('bidirectional'),
-}).strict();
+const CreateConnectionSchema = z
+  .object({
+    name: z.string().min(1, '名称不能为空'),
+    adapterType: z.enum(['generic', 'rest', 'kingdee', 'yonyou', 'sap']),
+    baseUrl: z.string().url('无效的 URL'),
+    authType: z.enum(['api_key', 'oauth2', 'basic']).default('api_key'),
+    credentials: z.record(z.string()).default({}),
+    config: z.record(z.unknown()).default({}),
+    syncDirection: z.enum(['push', 'pull', 'bidirectional']).default('bidirectional'),
+  })
+  .strict();
 
-const UpdateConnectionSchema = z.object({
-  name: z.string().min(1).optional(),
-  adapterType: z.string().optional(),
-  baseUrl: z.string().url().optional(),
-  authType: z.enum(['api_key', 'oauth2', 'basic']).optional(),
-  credentials: z.record(z.string()).optional(),
-  config: z.record(z.unknown()).optional(),
-  syncDirection: z.enum(['push', 'pull', 'bidirectional']).optional(),
-  enabled: z.boolean().optional(),
-}).strict();
+const UpdateConnectionSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    adapterType: z.string().optional(),
+    baseUrl: z.string().url().optional(),
+    authType: z.enum(['api_key', 'oauth2', 'basic']).optional(),
+    credentials: z.record(z.string()).optional(),
+    config: z.record(z.unknown()).optional(),
+    syncDirection: z.enum(['push', 'pull', 'bidirectional']).optional(),
+    enabled: z.boolean().optional(),
+  })
+  .strict();
 
 /**
  * GET /connections - 列出所有 ERP 连接
@@ -68,7 +72,10 @@ app.get('/connections', async (c) => {
 app.post('/connections', zValidator('json', CreateConnectionSchema), async (c) => {
   const body = c.req.valid('json');
   const repo = new ErpSyncRepository(c.env.DB);
-  const connection = await repo.createConnection({ ...body, actorId: c.get('user')?.id || c.get('user')?.sub });
+  const connection = await repo.createConnection({
+    ...body,
+    actorId: c.get('user')?.id || c.get('user')?.sub,
+  });
   return c.json({ success: true, data: connection }, 201);
 });
 
@@ -88,7 +95,10 @@ app.get('/connections/:id', async (c) => {
 app.put('/connections/:id', zValidator('json', UpdateConnectionSchema), async (c) => {
   const body = c.req.valid('json');
   const repo = new ErpSyncRepository(c.env.DB);
-  const connection = await repo.updateConnection(c.req.param('id'), { ...body, actorId: c.get('user')?.id || c.get('user')?.sub });
+  const connection = await repo.updateConnection(c.req.param('id'), {
+    ...body,
+    actorId: c.get('user')?.id || c.get('user')?.sub,
+  });
   if (!connection) return c.json({ success: false, error: '连接不存在' }, 404);
   return c.json({ success: true, data: connection });
 });
@@ -119,10 +129,14 @@ app.post('/connections/:id/test', async (c) => {
 // 同步操作
 // ============================================
 
-const SyncSchema = z.object({
-  entityTypes: z.array(z.enum(['product', 'customer', 'order'])).default(['product', 'customer', 'order']),
-  direction: z.enum(['push', 'pull', 'bidirectional']).optional(),
-}).strict();
+const SyncSchema = z
+  .object({
+    entityTypes: z
+      .array(z.enum(['product', 'customer', 'order']))
+      .default(['product', 'customer', 'order']),
+    direction: z.enum(['push', 'pull', 'bidirectional']).optional(),
+  })
+  .strict();
 
 /**
  * POST /connections/:id/sync - 触发全量同步

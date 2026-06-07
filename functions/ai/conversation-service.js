@@ -85,14 +85,16 @@ function summarizeUserInputModalities(history = []) {
 export function detectInjectionSignals(rawText = '') {
   const text = String(rawText || '');
   if (!text.trim()) return [];
-  return INJECTION_PATTERNS
-    .filter((pattern) => pattern.test(text))
-    .map((pattern) => pattern.toString());
+  return INJECTION_PATTERNS.filter((pattern) => pattern.test(text)).map((pattern) =>
+    pattern.toString()
+  );
 }
 
 function hasImagePart(content) {
   if (Array.isArray(content)) {
-    return content.some((part) => part?.type === 'image_url' && typeof part.image_url?.url === 'string');
+    return content.some(
+      (part) => part?.type === 'image_url' && typeof part.image_url?.url === 'string'
+    );
   }
   if (content && typeof content === 'object') {
     return content.type === 'image_url' && typeof content.image_url?.url === 'string';
@@ -161,8 +163,8 @@ export async function prepareConversationRequest({
   const inputSummary = summarizeUserInputModalities(history);
   const userSignals = Array.isArray(history)
     ? history
-      .filter((msg) => msg?.role === 'user')
-      .flatMap((msg) => detectInjectionSignals(extractUserTextForDetection(msg.content)))
+        .filter((msg) => msg?.role === 'user')
+        .flatMap((msg) => detectInjectionSignals(extractUserTextForDetection(msg.content)))
     : [];
   const latestUserText = extractLatestUserText(history);
 

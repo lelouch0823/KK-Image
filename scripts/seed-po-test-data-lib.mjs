@@ -1,7 +1,13 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 
-export const CATEGORIES = ['Electronics', 'Home, Garden & Pets', 'Apparel & Accessories', 'Toys', 'Sports'];
+export const CATEGORIES = [
+  'Electronics',
+  'Home, Garden & Pets',
+  'Apparel & Accessories',
+  'Toys',
+  'Sports',
+];
 export const BRANDS = ['Sony', 'Samsung', 'Apple', 'Nike', 'Adidas', 'Huawei', 'Xiaomi', 'Dell'];
 
 export function generateUUID(cryptoModule = crypto) {
@@ -17,7 +23,8 @@ export function buildSeedSql(options = {}) {
   const nowImpl = options.nowImpl || Date.now;
   const uuidImpl = options.uuidImpl || (() => generateUUID(options.cryptoModule || crypto));
   const randomIntImpl =
-    options.randomIntImpl || ((min, max) => getRandomInt(min, max, options.randomImpl || Math.random));
+    options.randomIntImpl ||
+    ((min, max) => getRandomInt(min, max, options.randomImpl || Math.random));
 
   let sql = '-- MOCK DATA SEEDER FOR PO TESTING\n\n';
 

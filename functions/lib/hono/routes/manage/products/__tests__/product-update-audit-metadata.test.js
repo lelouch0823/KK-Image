@@ -14,16 +14,26 @@ const mockCommandRepo = {
 
 vi.mock('../../../../../../services/ProductCatalogService.js', () => ({
   ProductCatalogService: class {
-    patchProduct(...args) { return mockPatchProduct(...args); }
-    putProduct(...args) { return mockPutProduct(...args); }
+    patchProduct(...args) {
+      return mockPatchProduct(...args);
+    }
+    putProduct(...args) {
+      return mockPutProduct(...args);
+    }
   },
 }));
 
 vi.mock('../../../../../../repositories/CommandIdempotencyRepository.js', () => ({
   CommandIdempotencyRepository: class {
-    reserveCommand(...args) { return mockCommandRepo.reserveCommand(...args); }
-    buildDeleteStatement(...args) { return mockCommandRepo.buildDeleteStatement(...args); }
-    buildFinalizeStatement(...args) { return mockCommandRepo.buildFinalizeStatement(...args); }
+    reserveCommand(...args) {
+      return mockCommandRepo.reserveCommand(...args);
+    }
+    buildDeleteStatement(...args) {
+      return mockCommandRepo.buildDeleteStatement(...args);
+    }
+    buildFinalizeStatement(...args) {
+      return mockCommandRepo.buildFinalizeStatement(...args);
+    }
   },
 }));
 

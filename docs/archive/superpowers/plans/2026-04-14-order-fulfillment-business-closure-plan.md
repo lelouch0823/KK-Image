@@ -13,6 +13,7 @@
 ## Current Baseline
 
 Already in place:
+
 - `delivered` input is compatibility-normalized to `fulfilled` on reads and now on writes.
 - `orders.fulfillment_status` and `orders.delivery_status` exist.
 - `order_returns` exists.
@@ -21,6 +22,7 @@ Already in place:
 - Real API workflow coverage is green for the current return slice.
 
 Still incomplete:
+
 - No explicit delivery-confirmation moment separate from shipment completion.
 - Return flow is single-step only; no intake/QC/restock lifecycle.
 - No shipment ledger table, so multiple shipment/return cycles are only partially reconstructable from inventory events plus totals.
@@ -30,6 +32,7 @@ Still incomplete:
 ## Recommended End State
 
 ### Domain Rules
+
 - Order header status:
   - `pending`, `confirmed`, `production`, `shipping`, `fulfilled`, `rejected`, `void`
 - Fulfillment status:
@@ -41,6 +44,7 @@ Still incomplete:
   - `return` only after fulfilled/delivered
 
 ### Fact Model
+
 - Line facts remain authoritative for:
   - ordered, procured, received, reserved, shipped, returned, cancelled
 - New operational records should exist for:
@@ -49,6 +53,7 @@ Still incomplete:
   - return records with lifecycle
 
 ### Operator UX
+
 - Managers can see:
   - fulfillment progress
   - delivery progress
@@ -59,6 +64,7 @@ Still incomplete:
 ## File Map
 
 **Backend domain and persistence**
+
 - Modify: `functions/services/OrderLineFulfillmentService.js`
 - Modify: `functions/services/InventoryService.js`
 - Modify: `functions/services/InventoryProjectionService.js`
@@ -77,6 +83,7 @@ Still incomplete:
 - Create: `migrations/0068_order_shipments.sql`
 
 **Frontend state and UI**
+
 - Modify: `src/composables/useOrders.js`
 - Modify: `src/components/OrderManager.vue`
 - Modify: `src/components/order/OrderDetail.vue`
@@ -92,6 +99,7 @@ Still incomplete:
 - Modify: `src/locales/en/order.js`
 
 **Verification**
+
 - Modify: `functions/services/__tests__/OrderLineFulfillmentService.test.js`
 - Create: `functions/services/__tests__/OrderReturnService.test.js`
 - Create: `functions/services/__tests__/OrderDeliveryService.test.js`
@@ -107,15 +115,19 @@ Still incomplete:
 The whole closure should be executed in this order:
 
 1. **Stabilize fact model**
+
 - Add missing lifecycle states and explicit records before adding more UI behavior.
 
 2. **Complete operator workflow**
+
 - Make delivery confirmation and structured return handling available in management UI.
 
 3. **Close downstream consumers**
+
 - Demand, analytics, notification, and audit behavior must read the same facts.
 
 4. **Then refine reporting**
+
 - Partial-return, timeline detail, and dashboard summary come last.
 
 ## Phase 1: Promote Delivery Confirmation To A First-Class Step
@@ -123,15 +135,18 @@ The whole closure should be executed in this order:
 **Business outcome:** Shipping completion and customer receipt are no longer conflated.
 
 **Scope**
+
 - Add `delivered_at`, `delivered_by`, `delivery_note` on orders or dedicated `order_delivery_confirmations`.
 - Add management action: confirm delivered.
 - Keep `fulfilled` as the terminal order state; delivery confirmation only changes `delivery_status`.
 
 **Why first**
+
 - Right now `delivery_status` is inferred or coarse.
 - Returns after customer receipt should depend on explicit delivery confirmation.
 
 **Acceptance**
+
 - Managers can confirm delivery without changing order header status.
 - Delivered confirmation is shown in detail and timeline.
 - Return flow can distinguish “fulfilled but not confirmed delivered” vs “delivered”.
@@ -141,6 +156,7 @@ The whole closure should be executed in this order:
 **Business outcome:** Return is no longer just an inventory restock shortcut.
 
 **Scope**
+
 - Extend `order_returns.status`:
   - `requested`, `received`, `restocked`, `cancelled`
 - Support reason codes:
@@ -155,6 +171,7 @@ The whole closure should be executed in this order:
   - phase-ready design: keep hooks for receive-without-restock if QC fails later
 
 **Acceptance**
+
 - Return records capture who, why, and when.
 - `returnedQuantity` is derived from non-cancelled return records.
 - Delivery status becomes:
@@ -166,6 +183,7 @@ The whole closure should be executed in this order:
 **Business outcome:** Every shipment and reverse movement becomes reconstructable.
 
 **Scope**
+
 - Create `order_shipments` table with:
   - id, order_id, order_line_id, variant_id, quantity, status, note, actor, timestamps
 - Use shipment rows for:
@@ -174,9 +192,11 @@ The whole closure should be executed in this order:
   - future delivery proof / parcel tracking
 
 **Why needed**
+
 - Current line totals are enough for guards, but not for history, troubleshooting, or multi-batch delivery logic.
 
 **Acceptance**
+
 - Detail page can show shipment history.
 - Future carrier tracking can attach to shipment rows without redesign.
 
@@ -185,6 +205,7 @@ The whole closure should be executed in this order:
 **Business outcome:** Procurement suggestions, shortage calculations, and available stock stay correct after returns and delivery transitions.
 
 **Scope**
+
 - Re-audit `DemandService`, `GoodsOverviewRepository`, purchase suggestions, and inventory projections.
 - Define canonical effect table:
   - `ship`: consumes on-hand and reduces open demand
@@ -192,6 +213,7 @@ The whole closure should be executed in this order:
   - `return`: restores on-hand but must not reopen original procurement demand automatically
 
 **Acceptance**
+
 - Returned stock increases availability.
 - Returned lines do not incorrectly re-enter procurement demand.
 - Dashboard and suggestions remain stable after return events.
@@ -201,6 +223,7 @@ The whole closure should be executed in this order:
 **Business outcome:** Operators can execute the whole chain without hidden rules.
 
 **Scope**
+
 - Detail page:
   - shipment history card
   - return history card
@@ -212,6 +235,7 @@ The whole closure should be executed in this order:
   - clearer combined header badges for order / fulfillment / delivery
 
 **Acceptance**
+
 - No action relies on tribal knowledge.
 - Every irreversible or high-risk action has confirmation copy.
 
@@ -220,6 +244,7 @@ The whole closure should be executed in this order:
 **Business outcome:** Operational events are traceable and externally visible where needed.
 
 **Scope**
+
 - Add domain events:
   - `order_delivery_confirmed`
   - `order_return_created`
@@ -232,6 +257,7 @@ The whole closure should be executed in this order:
   - returned
 
 **Acceptance**
+
 - Audit log and order timeline tell a complete story without reading raw DB rows.
 
 ## Phase 7: Reporting And Dashboard Closure
@@ -239,6 +265,7 @@ The whole closure should be executed in this order:
 **Business outcome:** Management metrics reflect the real lifecycle instead of legacy status shortcuts.
 
 **Scope**
+
 - Dashboard cards:
   - fulfilled waiting delivery confirmation
   - delivered
@@ -250,6 +277,7 @@ The whole closure should be executed in this order:
   - returned quantity
 
 **Acceptance**
+
 - Ops and finance can filter/export by post-fulfillment states.
 
 ## Phase 8: Hard Cutover And Compatibility Cleanup
@@ -257,29 +285,35 @@ The whole closure should be executed in this order:
 **Business outcome:** Legacy `delivered` compatibility path becomes explicit, bounded, and removable later.
 
 **Scope**
+
 - Remove remaining operator-facing “delivered order” wording where it should now mean fulfilled/delivery-confirmed.
 - Add temporary telemetry/logging for legacy `delivered` input.
 - Create a later cleanup ticket to remove compatibility normalization after data stabilizes.
 
 **Acceptance**
+
 - Runtime behavior remains backward compatible.
 - Internally the team uses one vocabulary.
 
 ## Recommended Execution Waves
 
 ### Wave A: Core fact completion
+
 - Phase 1
 - Phase 2
 
 ### Wave B: History and reconciliation
+
 - Phase 3
 - Phase 4
 
 ### Wave C: Operator closure
+
 - Phase 5
 - Phase 6
 
 ### Wave D: Reporting and cleanup
+
 - Phase 7
 - Phase 8
 
@@ -293,6 +327,7 @@ The whole closure should be executed in this order:
 ## Recommended Definition Of Done
 
 The business chain is only “done” when all of the following are true:
+
 - Managers can progress: reserve → ship → fulfill → confirm delivered → return.
 - `unship` is only available before terminal completion.
 - Detail page shows shipped, returned, and delivery-confirmed facts.

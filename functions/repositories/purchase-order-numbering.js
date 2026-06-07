@@ -1,7 +1,6 @@
 export function isPurchaseOrderNoConflictError(error) {
   const message = String(error?.message || error || '').toLowerCase();
-  return message.includes('unique constraint failed')
-    && message.includes('purchase_orders.po_no');
+  return message.includes('unique constraint failed') && message.includes('purchase_orders.po_no');
 }
 
 export async function generatePurchaseOrderNo(db) {
@@ -22,6 +21,11 @@ export async function generatePurchaseOrderNo(db) {
     .bind(`${prefix}-%`, prefix)
     .first();
 
-  const seq = Number(String(latest?.po_no || '').split('-').at(-1) || 0) + 1;
+  const seq =
+    Number(
+      String(latest?.po_no || '')
+        .split('-')
+        .at(-1) || 0
+    ) + 1;
   return `${prefix}-${String(seq).padStart(3, '0')}`;
 }

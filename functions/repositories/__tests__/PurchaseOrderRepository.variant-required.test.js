@@ -9,11 +9,14 @@ describe('PurchaseOrderRepository variant required', () => {
     };
     const repo = new PurchaseOrderRepository(db);
 
-    await expect(repo.addItems('po-1', [{
-      product_id: 'prod-1',
-      quantity: 1,
-      unit_cost: 2,
-    }])).rejects.toThrow(/variant_id/i);
+    await expect(
+      repo.addItems('po-1', [
+        {
+          product_id: 'prod-1',
+          quantity: 1,
+          unit_cost: 2,
+        },
+      ])
+    ).rejects.toThrow(/variant_id/i);
   });
 });
-

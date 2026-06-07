@@ -13,6 +13,7 @@
 ### Task 1: Lock Thin-Wrapper Removal Contract
 
 **Files:**
+
 - Modify: `functions/repositories/__tests__/order-helpers.procurement-status.test.js`
 - Create: `functions/repositories/__tests__/OrderStatsRepository.test.js`
 - Create: `functions/repositories/__tests__/order-json-wrapper.audit.test.js`
@@ -20,6 +21,7 @@
 - [ ] **Step 1: Write the failing tests**
 
 Add tests that assert:
+
 - order helper mappers still fall back to empty object fields when JSON is invalid
 - order stats recent pending mapping still falls back to empty name on invalid JSON
 - `order/helpers.js` no longer defines `parseJson`
@@ -38,6 +40,7 @@ Expected: FAIL because the audit constraint is not satisfied yet.
 ### Task 2: Reuse parseJsonObject Directly
 
 **Files:**
+
 - Modify: `functions/repositories/order/helpers.js`
 - Modify: `functions/repositories/OrderStatsRepository.js`
 

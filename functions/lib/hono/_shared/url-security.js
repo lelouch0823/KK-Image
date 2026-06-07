@@ -30,7 +30,10 @@ export function assertSafeExternalUrl(urlStr, options = {}) {
   if (isLocalhost && options.allowLocalhost) {
     return;
   }
-  const isPrivate = /^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|0\.|localhost|::1|\[::1\])/i.test(hostname);
+  const isPrivate =
+    /^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|0\.|localhost|::1|\[::1\])/i.test(
+      hostname
+    );
   if (isPrivate) {
     throw new BadRequestError('不允许使用内网地址');
   }

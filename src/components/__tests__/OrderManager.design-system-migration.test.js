@@ -9,7 +9,10 @@ describe('OrderManager design-system migration', () => {
   });
 
   it('keeps the page title in the shell instead of the filter bar', () => {
-    const source = readFileSync(resolve(process.cwd(), 'src/components/order/OrderFilters.vue'), 'utf8');
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/components/order/OrderFilters.vue'),
+      'utf8'
+    );
     expect(source).toContain('<AppFilterBar');
     expect(source).not.toContain('<AppFilterBar :title=');
     expect(source).not.toContain('<AppFilterBar :subtitle=');
@@ -20,8 +23,14 @@ describe('OrderManager design-system migration', () => {
       resolve(process.cwd(), 'src/components/order/OrderBatchActions.vue'),
       'utf8'
     );
-    const filters = readFileSync(resolve(process.cwd(), 'src/components/order/OrderFilters.vue'), 'utf8');
-    const salesStats = readFileSync(resolve(process.cwd(), 'src/components/order/SalesStats.vue'), 'utf8');
+    const filters = readFileSync(
+      resolve(process.cwd(), 'src/components/order/OrderFilters.vue'),
+      'utf8'
+    );
+    const salesStats = readFileSync(
+      resolve(process.cwd(), 'src/components/order/SalesStats.vue'),
+      'utf8'
+    );
     const commentInput = readFileSync(
       resolve(process.cwd(), 'src/components/order/OrderCommentInput.vue'),
       'utf8'
@@ -55,7 +64,10 @@ describe('OrderManager design-system migration', () => {
       resolve(process.cwd(), 'src/components/order/OrderDetail.vue'),
       'utf8'
     );
-    const timeline = readFileSync(resolve(process.cwd(), 'src/components/order/OrderTimeline.vue'), 'utf8');
+    const timeline = readFileSync(
+      resolve(process.cwd(), 'src/components/order/OrderTimeline.vue'),
+      'utf8'
+    );
     const lineCommandPanel = readFileSync(
       resolve(process.cwd(), 'src/components/order/OrderLineCommandPanel.vue'),
       'utf8'
@@ -80,13 +92,22 @@ describe('OrderManager design-system migration', () => {
   });
 
   it('keeps remaining order UI surfaces on shared buttons and selects', () => {
-    const orderCards = readFileSync(resolve(process.cwd(), 'src/components/order/OrderCards.vue'), 'utf8');
-    const orderTable = readFileSync(resolve(process.cwd(), 'src/components/order/OrderTable.vue'), 'utf8');
+    const orderCards = readFileSync(
+      resolve(process.cwd(), 'src/components/order/OrderCards.vue'),
+      'utf8'
+    );
+    const orderTable = readFileSync(
+      resolve(process.cwd(), 'src/components/order/OrderTable.vue'),
+      'utf8'
+    );
     const notifications = readFileSync(
       resolve(process.cwd(), 'src/components/order/SalesNotificationList.vue'),
       'utf8'
     );
-    const orderLogin = readFileSync(resolve(process.cwd(), 'src/components/order/OrderLogin.vue'), 'utf8');
+    const orderLogin = readFileSync(
+      resolve(process.cwd(), 'src/components/order/OrderLogin.vue'),
+      'utf8'
+    );
     const orderReturnDialog = readFileSync(
       resolve(process.cwd(), 'src/components/order/OrderReturnDialog.vue'),
       'utf8'

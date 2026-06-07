@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { appendInventoryLedgerEvent, projectInventoryBalances } from '../InventoryProjectionService.js';
+import {
+  appendInventoryLedgerEvent,
+  projectInventoryBalances,
+} from '../InventoryProjectionService.js';
 
 describe('InventoryProjectionService', () => {
   it('derives balances from event stream deltas and keeps ledger append-only', () => {

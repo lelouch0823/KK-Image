@@ -44,7 +44,9 @@ async function resolveDocFixtures(request, options = {}) {
   const baseURL = options.baseURL || 'http://localhost:8092';
   const salesPassword = options.salesPassword || '123456';
   const salesList = await fetchJson(request, `${baseURL}/api/manage/salespersons?page=1&limit=50`);
-  const salesperson = (salesList?.data?.salespersons || []).find((item) => Number(item.orderCount || 0) > 0);
+  const salesperson = (salesList?.data?.salespersons || []).find(
+    (item) => Number(item.orderCount || 0) > 0
+  );
   if (!salesperson) {
     throw new Error('No salesperson with orders found for docs screenshots');
   }
@@ -70,7 +72,8 @@ async function resolveDocFixtures(request, options = {}) {
   }
 
   const spaces = await fetchJson(request, `${baseURL}/api/manage/spaces?page=1&limit=20`);
-  const publicSpaceCandidate = (spaces?.data || []).find((item) => Number(item.fileCount || 0) > 0) || spaces?.data?.[0];
+  const publicSpaceCandidate =
+    (spaces?.data || []).find((item) => Number(item.fileCount || 0) > 0) || spaces?.data?.[0];
   if (!publicSpaceCandidate) {
     throw new Error('No space available for docs screenshots');
   }
@@ -94,11 +97,14 @@ function createCaptureUserManualScreenshotsRunner(options = {}) {
   const chromiumImpl = options.chromiumImpl || chromium;
   const env = options.env || process.env;
   const baseURL = env.USER_BASE_URL || 'http://localhost:8092';
-  const screenshotDir = options.screenshotDir || pathModule.resolve(process.cwd(), 'docs/assets/user-manual');
+  const screenshotDir =
+    options.screenshotDir || pathModule.resolve(process.cwd(), 'docs/assets/user-manual');
   const adminUser = env.ADMIN_USER || 'admin';
   const adminPass = env.ADMIN_PASS || '123';
   const salesPassword = env.SALES_PASS || '123456';
-  const resolveFixtures = options.resolveDocFixturesImpl || ((request) => resolveDocFixtures(request, { baseURL, salesPassword }));
+  const resolveFixtures =
+    options.resolveDocFixturesImpl ||
+    ((request) => resolveDocFixtures(request, { baseURL, salesPassword }));
 
   async function main() {
     fsModule.mkdirSync(screenshotDir, { recursive: true });
@@ -150,7 +156,9 @@ function createCaptureUserManualScreenshotsRunner(options = {}) {
       });
       const publicPage = await publicContext.newPage();
 
-      await publicPage.goto(`${baseURL}/gallery/${fixtures.galleryToken}`, { waitUntil: 'domcontentloaded' });
+      await publicPage.goto(`${baseURL}/gallery/${fixtures.galleryToken}`, {
+        waitUntil: 'domcontentloaded',
+      });
       await stabilizePage(publicPage, 'header, [data-testid="async-empty"], main, body');
       await publicPage.screenshot({
         path: pathModule.join(screenshotDir, '02-gallery-share.png'),
@@ -158,7 +166,9 @@ function createCaptureUserManualScreenshotsRunner(options = {}) {
         caret: 'hide',
       });
 
-      await publicPage.goto(`${baseURL}/space/${fixtures.spaceToken}`, { waitUntil: 'domcontentloaded' });
+      await publicPage.goto(`${baseURL}/space/${fixtures.spaceToken}`, {
+        waitUntil: 'domcontentloaded',
+      });
       await stabilizePage(publicPage, 'footer, main, body');
       await publicPage.screenshot({
         path: pathModule.join(screenshotDir, '03-space-share.png'),
@@ -177,7 +187,9 @@ function createCaptureUserManualScreenshotsRunner(options = {}) {
       });
       const salesLoginPage = await salesLoginContext.newPage();
 
-      await salesLoginPage.goto(`${baseURL}/sales/${fixtures.salesToken}`, { waitUntil: 'domcontentloaded' });
+      await salesLoginPage.goto(`${baseURL}/sales/${fixtures.salesToken}`, {
+        waitUntil: 'domcontentloaded',
+      });
       await stabilizePage(salesLoginPage, 'form');
       await salesLoginPage.screenshot({
         path: pathModule.join(screenshotDir, '04-sales-login.png'),
@@ -185,11 +197,14 @@ function createCaptureUserManualScreenshotsRunner(options = {}) {
         caret: 'hide',
       });
 
-      const salesAuthResponse = await adminContext.request.fetch(`${baseURL}/api/sales/${fixtures.salesToken}/auth`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        data: JSON.stringify({ password: salesPassword }),
-      });
+      const salesAuthResponse = await adminContext.request.fetch(
+        `${baseURL}/api/sales/${fixtures.salesToken}/auth`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          data: JSON.stringify({ password: salesPassword }),
+        }
+      );
       const salesAuthPayload = await salesAuthResponse.json();
       const salesJwt = salesAuthPayload?.data?.token;
       if (!salesJwt) {
@@ -216,7 +231,9 @@ function createCaptureUserManualScreenshotsRunner(options = {}) {
       const salesPage = await salesContext.newPage();
 
       await salesPage.emulateMedia({ media: 'screen' });
-      await salesPage.goto(`${baseURL}/sales/${fixtures.salesToken}`, { waitUntil: 'domcontentloaded' });
+      await salesPage.goto(`${baseURL}/sales/${fixtures.salesToken}`, {
+        waitUntil: 'domcontentloaded',
+      });
       await stabilizePage(salesPage, '.order-item, [data-testid="async-empty"], body');
       await salesPage.screenshot({
         path: pathModule.join(screenshotDir, '05-sales-orders.png'),
@@ -233,7 +250,9 @@ function createCaptureUserManualScreenshotsRunner(options = {}) {
       const orderList = await orderListResponse.json();
       const firstOrderId = orderList?.data?.orders?.[0]?.id || null;
 
-      await salesPage.goto(`${baseURL}/sales/${fixtures.salesToken}/create`, { waitUntil: 'domcontentloaded' });
+      await salesPage.goto(`${baseURL}/sales/${fixtures.salesToken}/create`, {
+        waitUntil: 'domcontentloaded',
+      });
       await stabilizePage(salesPage, '[data-testid="binding-header"], form, body');
       await salesPage.screenshot({
         path: pathModule.join(screenshotDir, '06-sales-create.png'),
@@ -242,7 +261,9 @@ function createCaptureUserManualScreenshotsRunner(options = {}) {
       });
 
       if (firstOrderId) {
-        await salesPage.goto(`${baseURL}/sales/${fixtures.salesToken}/detail/${firstOrderId}`, { waitUntil: 'domcontentloaded' });
+        await salesPage.goto(`${baseURL}/sales/${fixtures.salesToken}/detail/${firstOrderId}`, {
+          waitUntil: 'domcontentloaded',
+        });
         await stabilizePage(salesPage, '[data-testid="order-lines-card"], body');
         await salesPage.screenshot({
           path: pathModule.join(screenshotDir, '07-sales-detail.png'),
@@ -251,15 +272,22 @@ function createCaptureUserManualScreenshotsRunner(options = {}) {
         });
       }
 
-      await salesPage.goto(`${baseURL}/sales/${fixtures.salesToken}/stats`, { waitUntil: 'domcontentloaded' });
-      await stabilizePage(salesPage, '[data-testid="stats-empty"], [data-testid="stats-error"], body');
+      await salesPage.goto(`${baseURL}/sales/${fixtures.salesToken}/stats`, {
+        waitUntil: 'domcontentloaded',
+      });
+      await stabilizePage(
+        salesPage,
+        '[data-testid="stats-empty"], [data-testid="stats-error"], body'
+      );
       await salesPage.screenshot({
         path: pathModule.join(screenshotDir, '08-sales-stats.png'),
         fullPage: false,
         caret: 'hide',
       });
 
-      await salesPage.goto(`${baseURL}/sales/${fixtures.salesToken}/spaces`, { waitUntil: 'domcontentloaded' });
+      await salesPage.goto(`${baseURL}/sales/${fixtures.salesToken}/spaces`, {
+        waitUntil: 'domcontentloaded',
+      });
       await stabilizePage(salesPage, 'a[href^="/space/"], body');
       await salesPage.screenshot({
         path: pathModule.join(screenshotDir, '09-sales-spaces.png'),

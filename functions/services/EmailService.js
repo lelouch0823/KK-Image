@@ -143,12 +143,10 @@ export class EmailService {
       if (this.env.EmailMessage) {
         // 实际的 Email Worker 处理需要在 wrangler.toml 中配置 email 路由
         // new this.env.EmailMessage(from, to, { subject, html, text })
-        console.log(`[EmailService] Email queued: ${to} - ${email.subject}`);
         return { success: true };
       }
 
       // 模拟模式（开发环境）
-      console.log(`[EmailService] Mock email send to ${to}:`, email.subject);
       return { success: true, mock: true };
     } catch (err) {
       console.error('[EmailService] Send failed:', err);
@@ -174,11 +172,9 @@ export class EmailService {
     try {
       if (this.env.EmailMessage) {
         // new this.env.EmailMessage(from, to, { subject, html, text })
-        console.log(`[EmailService] Email queued: ${to} - ${subject}`);
         return { success: true };
       }
 
-      console.log(`[EmailService] Mock email send to ${to}:`, subject);
       return { success: true, mock: true };
     } catch (err) {
       console.error('[EmailService] Send failed:', err);

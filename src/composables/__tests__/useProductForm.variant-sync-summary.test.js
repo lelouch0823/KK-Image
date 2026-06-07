@@ -33,7 +33,9 @@ describe('buildVariantSyncSummaryMessage', () => {
       { created: 2, updated: 4, archived: 1, reactivated: 1 },
       t
     );
-    expect(message).toBe('规格同步完成：新增 2 个规格，更新 4 个规格，归档 1 个规格，恢复 1 个规格');
+    expect(message).toBe(
+      '规格同步完成：新增 2 个规格，更新 4 个规格，归档 1 个规格，恢复 1 个规格'
+    );
   });
 
   it('renders no-change message when all counters are zero', () => {

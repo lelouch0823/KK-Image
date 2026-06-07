@@ -13,9 +13,11 @@
 ### Task 1: Database Schema and Integrity
 
 **Files:**
+
 - Create: `migrations/0039_variant_images.sql`
 
 **Step 1: Write the failing migration validation query expectations**
+
 - Define expected DB behavior before migration:
   - `variant_images` table absent
   - no trigger for single-primary enforcement
@@ -26,6 +28,7 @@ Run: `npx wrangler d1 migrations apply DB --local`
 Expected: no `0039` migration found.
 
 **Step 3: Write migration SQL**
+
 - Create `variant_images` table, indexes, unique constraints.
 - Add triggers:
   - one primary per variant
@@ -46,11 +49,13 @@ git commit -m "feat(db): add variant_images schema with integrity constraints"
 ### Task 2: Repository Layer for Variant Images (TDD)
 
 **Files:**
+
 - Modify: `functions/repositories/ProductVariantRepository.js`
 - Create: `functions/repositories/VariantImageRepository.js`
 - Test: `functions/repositories/__tests__/variant-images.test.js`
 
 **Step 1: Write failing tests**
+
 - add image links
 - set primary atomically
 - sort images
@@ -63,6 +68,7 @@ Run: `pnpm test:unit functions/repositories/__tests__/variant-images.test.js`
 Expected: failing assertions for unimplemented methods.
 
 **Step 3: Implement minimal repository code**
+
 - add CRUD/sort/primary methods and constrained queries.
 
 **Step 4: Run test to green**
@@ -80,11 +86,13 @@ git commit -m "feat(repo): add variant image repository operations"
 ### Task 3: API Endpoints for Variant Image Management (TDD)
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/products/[id].js`
 - Modify: `functions/lib/hono/routes/manage/products/index.js`
 - Test: `functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js`
 
 **Step 1: Write failing route tests**
+
 - `POST .../images`
 - `PATCH .../images/sort`
 - `PATCH .../images/:imageId/primary`
@@ -97,6 +105,7 @@ Run: `pnpm test:unit functions/lib/hono/routes/manage/products/__tests__/variant
 Expected: route not found / bad behavior failures.
 
 **Step 3: Implement route handlers**
+
 - add handlers with repository calls and bad-request guards.
 - enrich product detail response with `variants[].images` and `primaryImage`.
 
@@ -115,12 +124,14 @@ git commit -m "feat(api): add variant image management endpoints"
 ### Task 4: Advanced Variant Image Modal (Frontend, TDD)
 
 **Files:**
+
 - Create: `src/components/product/VariantImageManagerModal.vue`
 - Modify: `src/components/product/ProductCreateModal.vue`
 - Modify: `src/composables/useProducts.js`
 - Test: `src/components/product/__tests__/VariantImageManagerModal.test.js`
 
 **Step 1: Write failing component tests**
+
 - renders variant list and image panel
 - upload callback updates list
 - set-primary emits correct payload
@@ -132,6 +143,7 @@ Run: `pnpm test:unit src/components/product/__tests__/VariantImageManagerModal.t
 Expected: component/method missing failures.
 
 **Step 3: Implement minimal modal + composable calls**
+
 - wire APIs from task 3.
 - keep product editor integration behind explicit button entry.
 
@@ -150,10 +162,12 @@ git commit -m "feat(ui): add advanced variant image management modal"
 ### Task 5: Inline Variant Row Image Management
 
 **Files:**
+
 - Modify: `src/components/product/ProductCreateModal.vue`
 - Test: `src/components/product/__tests__/ProductCreateModal.variant-images.test.js`
 
 **Step 1: Write failing inline interaction tests**
+
 - row-level upload
 - row-level set-primary
 - row-level remove image
@@ -164,6 +178,7 @@ Run: `pnpm test:unit src/components/product/__tests__/ProductCreateModal.variant
 Expected: UI control behavior failing.
 
 **Step 3: Implement inline controls**
+
 - compact strip + quick actions.
 - optimistic update + rollback toast.
 
@@ -182,6 +197,7 @@ git commit -m "feat(ui): add inline variant image controls in product editor"
 ### Task 6: Downstream Rendering Integration (Order/Detail/Space)
 
 **Files:**
+
 - Modify: `src/components/order/ProductBindingSection.vue`
 - Modify: `src/components/OrderCreateModal.vue`
 - Modify: `src/components/OrderEditModal.vue`
@@ -192,6 +208,7 @@ git commit -m "feat(ui): add inline variant image controls in product editor"
 - Test: `functions/repositories/__tests__/SpaceRepository.test.js`
 
 **Step 1: Write failing tests for fallback/render priority**
+
 - variant primary preferred over product image
 - fallback chain works when variant images empty.
 
@@ -201,6 +218,7 @@ Run: `pnpm test:unit functions/repositories/__tests__/SpaceRepository.test.js`
 Expected: mismatch in selected image source.
 
 **Step 3: Implement minimal integration**
+
 - ensure APIs and UI map `variantId -> primaryImage` consistently.
 
 **Step 4: Run tests to green**
@@ -218,11 +236,13 @@ git commit -m "feat(integration): use variant images across order detail and spa
 ### Task 7: Verification and Regression
 
 **Files:**
+
 - Modify: `docs/plans/2026-02-25-variant-images-design.md` (checklist updates)
 
 **Step 1: Run targeted test suite**
 
 Run:
+
 - `pnpm test:unit functions/repositories/__tests__/variant-images.test.js`
 - `pnpm test:unit functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js`
 - `pnpm test:unit src/components/product/__tests__/VariantImageManagerModal.test.js`
@@ -234,6 +254,7 @@ Expected: all pass.
 
 Run: `pnpm run dev:all`  
 Manual checks:
+
 - inline + modal edits persist
 - order variant switch updates image
 - space preview uses variant primary image.

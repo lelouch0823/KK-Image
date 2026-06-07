@@ -87,13 +87,22 @@ describeIfRealApi('Manage Products Real API Query Consistency', function () {
     assert.ok(blueAfter);
     assert.strictEqual(blueAfter.status, 'archived');
 
-    const picker = await apiRequest(`/api/manage/products/variants?search=${encodeURIComponent(spu)}&page=1&limit=20`, {
-      bearerToken: token,
-      expectedStatus: 200,
-    });
+    const picker = await apiRequest(
+      `/api/manage/products/variants?search=${encodeURIComponent(spu)}&page=1&limit=20`,
+      {
+        bearerToken: token,
+        expectedStatus: 200,
+      }
+    );
     const pickerItems = picker.json?.data || [];
-    assert.ok(pickerItems.every((item) => item.variant_id !== blue.id), 'archived variant leaked into picker');
-    assert.ok(pickerItems.some((item) => item.variant_id === red.id), 'active variant missing from picker');
+    assert.ok(
+      pickerItems.every((item) => item.variant_id !== blue.id),
+      'archived variant leaked into picker'
+    );
+    assert.ok(
+      pickerItems.some((item) => item.variant_id === red.id),
+      'active variant missing from picker'
+    );
   });
 
   it('supports real list filters, sorting, paging, and deletion visibility consistently', async () => {
@@ -156,13 +165,22 @@ describeIfRealApi('Manage Products Real API Query Consistency', function () {
     const betaId = beta.json?.data?.id;
     assert.ok(betaId);
 
-    const searchAlpha = await apiRequest(`/api/manage/products?search=${encodeURIComponent(`Alpha ${seed}`)}&page=1&limit=10`, {
-      bearerToken: token,
-      expectedStatus: 200,
-    });
+    const searchAlpha = await apiRequest(
+      `/api/manage/products?search=${encodeURIComponent(`Alpha ${seed}`)}&page=1&limit=10`,
+      {
+        bearerToken: token,
+        expectedStatus: 200,
+      }
+    );
     const searchItems = searchAlpha.json?.data || [];
-    assert.ok(searchItems.some((item) => item.id === alphaId), 'search did not return alpha');
-    assert.ok(searchItems.every((item) => item.id !== betaId), 'search leaked unrelated product');
+    assert.ok(
+      searchItems.some((item) => item.id === alphaId),
+      'search did not return alpha'
+    );
+    assert.ok(
+      searchItems.every((item) => item.id !== betaId),
+      'search leaked unrelated product'
+    );
 
     const brandCategoryFiltered = await apiRequest(
       `/api/manage/products?brand=${encodeURIComponent(sharedBrand)}&category=${encodeURIComponent(sharedCategory)}&page=1&limit=10`,
@@ -180,15 +198,27 @@ describeIfRealApi('Manage Products Real API Query Consistency', function () {
       expectedStatus: 200,
     });
     const inStockItems = inStock.json?.data || [];
-    assert.ok(inStockItems.some((item) => item.id === alphaId), 'in_stock filter missed stocked product');
-    assert.ok(inStockItems.every((item) => item.id !== betaId), 'in_stock filter leaked zero-stock product');
+    assert.ok(
+      inStockItems.some((item) => item.id === alphaId),
+      'in_stock filter missed stocked product'
+    );
+    assert.ok(
+      inStockItems.every((item) => item.id !== betaId),
+      'in_stock filter leaked zero-stock product'
+    );
 
-    const outOfStock = await apiRequest('/api/manage/products?hasStock=out_of_stock&page=1&limit=50', {
-      bearerToken: token,
-      expectedStatus: 200,
-    });
+    const outOfStock = await apiRequest(
+      '/api/manage/products?hasStock=out_of_stock&page=1&limit=50',
+      {
+        bearerToken: token,
+        expectedStatus: 200,
+      }
+    );
     const outOfStockItems = outOfStock.json?.data || [];
-    assert.ok(outOfStockItems.some((item) => item.id === betaId), 'out_of_stock filter missed zero-stock product');
+    assert.ok(
+      outOfStockItems.some((item) => item.id === betaId),
+      'out_of_stock filter missed zero-stock product'
+    );
 
     const paged = await apiRequest(
       `/api/manage/products?brand=${encodeURIComponent(sharedBrand)}&sortBy=name&sortOrder=asc&page=1&limit=1`,
@@ -215,7 +245,10 @@ describeIfRealApi('Manage Products Real API Query Consistency', function () {
       }
     );
     const archivedItems = archived.json?.data || [];
-    assert.ok(archivedItems.some((item) => item.id === alphaId), 'archived status filter missed deleted product');
+    assert.ok(
+      archivedItems.some((item) => item.id === alphaId),
+      'archived status filter missed deleted product'
+    );
 
     const active = await apiRequest(
       `/api/manage/products?status=active&search=${encodeURIComponent(`Alpha ${seed}`)}&page=1&limit=10`,
@@ -225,13 +258,22 @@ describeIfRealApi('Manage Products Real API Query Consistency', function () {
       }
     );
     const activeItems = active.json?.data || [];
-    assert.ok(activeItems.every((item) => item.id !== alphaId), 'active status filter leaked archived product');
+    assert.ok(
+      activeItems.every((item) => item.id !== alphaId),
+      'active status filter leaked archived product'
+    );
 
-    const picker = await apiRequest(`/api/manage/products/variants?search=${encodeURIComponent(`FILTER-A-${seed}`)}&page=1&limit=20`, {
-      bearerToken: token,
-      expectedStatus: 200,
-    });
+    const picker = await apiRequest(
+      `/api/manage/products/variants?search=${encodeURIComponent(`FILTER-A-${seed}`)}&page=1&limit=20`,
+      {
+        bearerToken: token,
+        expectedStatus: 200,
+      }
+    );
     const pickerItems = picker.json?.data || [];
-    assert.ok(pickerItems.every((item) => item.product_id !== alphaId), 'archived product variant leaked into picker');
+    assert.ok(
+      pickerItems.every((item) => item.product_id !== alphaId),
+      'archived product variant leaked into picker'
+    );
   });
 });

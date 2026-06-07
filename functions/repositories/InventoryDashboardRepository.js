@@ -23,7 +23,9 @@ export class InventoryDashboardRepository {
    * - totalInventoryValue: 总库存价值（on_hand * cost_price 求和）
    */
   async getSummary() {
-    const row = await this.db.prepare(`
+    const row = await this.db
+      .prepare(
+        `
       SELECT
         COUNT(*) AS total_skus,
         SUM(CASE WHEN COALESCE(ib.available, pv.stock_quantity, 0) < COALESCE(pv.alert_threshold, 10)
@@ -33,7 +35,10 @@ export class InventoryDashboardRepository {
       FROM product_variants pv
       LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id
       WHERE pv.status = 'active'
-    `).bind().first();
+    `
+      )
+      .bind()
+      .first();
 
     return {
       totalSkus: row?.total_skus || 0,
@@ -48,7 +53,9 @@ export class InventoryDashboardRepository {
    */
   async getLowStockItems(limit = 50) {
     const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
-    const { results } = await this.db.prepare(`
+    const { results } = await this.db
+      .prepare(
+        `
       SELECT
         pv.id AS variant_id,
         pv.product_id,
@@ -67,7 +74,10 @@ export class InventoryDashboardRepository {
         AND COALESCE(ib.available, pv.stock_quantity, 0) > 0
       ORDER BY (COALESCE(ib.available, pv.stock_quantity, 0) * 1.0 / COALESCE(pv.alert_threshold, 10)) ASC
       LIMIT ?
-    `).bind(safeLimit).all();
+    `
+      )
+      .bind(safeLimit)
+      .all();
 
     return (results || []).map((row) => {
       const optionsValues = parseJsonObject(row.options_values, {});
@@ -90,7 +100,9 @@ export class InventoryDashboardRepository {
    */
   async getZeroStockItems(limit = 50) {
     const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
-    const { results } = await this.db.prepare(`
+    const { results } = await this.db
+      .prepare(
+        `
       SELECT
         pv.id AS variant_id,
         pv.product_id,
@@ -106,7 +118,10 @@ export class InventoryDashboardRepository {
         AND COALESCE(ib.available, pv.stock_quantity, 0) = 0
       ORDER BY p.name ASC, pv.sku ASC
       LIMIT ?
-    `).bind(safeLimit).all();
+    `
+      )
+      .bind(safeLimit)
+      .all();
 
     return (results || []).map((row) => {
       const optionsValues = parseJsonObject(row.options_values, {});
@@ -127,7 +142,9 @@ export class InventoryDashboardRepository {
    */
   async getRecentMovements(limit = 10) {
     const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 50);
-    const { results } = await this.db.prepare(`
+    const { results } = await this.db
+      .prepare(
+        `
       SELECT
         ie.id,
         ie.variant_id,
@@ -142,7 +159,10 @@ export class InventoryDashboardRepository {
       LEFT JOIN products p ON p.id = pv.product_id
       ORDER BY ie.occurred_at DESC
       LIMIT ?
-    `).bind(safeLimit).all();
+    `
+      )
+      .bind(safeLimit)
+      .all();
 
     return (results || []).map((row) => {
       const optionsValues = parseJsonObject(row.options_values, {});
@@ -168,7 +188,9 @@ export class InventoryDashboardRepository {
     // 使用当前时间戳减去天数（毫秒）
     const cutoff = Date.now() - safeDays * 24 * 60 * 60 * 1000;
 
-    const { results } = await this.db.prepare(`
+    const { results } = await this.db
+      .prepare(
+        `
       SELECT
         ie.variant_id,
         pv.sku,
@@ -184,7 +206,10 @@ export class InventoryDashboardRepository {
       GROUP BY ie.variant_id
       ORDER BY total_outbound DESC
       LIMIT ?
-    `).bind(cutoff, safeLimit).all();
+    `
+      )
+      .bind(cutoff, safeLimit)
+      .all();
 
     return (results || []).map((row) => {
       const optionsValues = parseJsonObject(row.options_values, {});

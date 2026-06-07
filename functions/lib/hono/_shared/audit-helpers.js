@@ -1,5 +1,9 @@
 import { generateId, now } from '../../../api/utils/id.js';
-import { SENSITIVE_KEY_PATTERN, PARTIAL_MASK_PATTERN, maskPartialValue } from '../../../api/utils/sanitize.js';
+import {
+  SENSITIVE_KEY_PATTERN,
+  PARTIAL_MASK_PATTERN,
+  maskPartialValue,
+} from '../../../api/utils/sanitize.js';
 
 export function sanitizeAuditData(input) {
   if (Array.isArray(input)) return input.map((item) => sanitizeAuditData(item));
@@ -63,7 +67,9 @@ export function inferAuditTargetFromPath(path = '') {
 export function buildAuditEvent(params = {}) {
   const metadata = sanitizeAuditData(params.metadata_json ?? params.metadata ?? {});
   const legacyPayload = sanitizeAuditData(params.payload ?? null);
-  const normalizedChanges = sanitizeAuditData(params.changes_json ?? metadata.changes_json ?? metadata.changes ?? null);
+  const normalizedChanges = sanitizeAuditData(
+    params.changes_json ?? metadata.changes_json ?? metadata.changes ?? null
+  );
   const actorId = params.actor_id || params.userId || params.actor?.id || 'anonymous';
   const actorType = params.actor_type || params.actor?.type || 'system';
 
@@ -111,7 +117,10 @@ export function shouldAuditRequest(method, path = '') {
     return true;
   }
   const normalizedPath = String(path || '');
-  return normalizedMethod === 'GET' && /\/api\/(?:manage|v1)\/audit-logs\/export(?:\/)?$/.test(normalizedPath);
+  return (
+    normalizedMethod === 'GET' &&
+    /\/api\/(?:manage|v1)\/audit-logs\/export(?:\/)?$/.test(normalizedPath)
+  );
 }
 
 export function getAuditScheduler(c) {
@@ -161,30 +170,30 @@ export async function recordAuditEvent(db, params = {}) {
   );
   if (!stmt || typeof stmt.bind !== 'function') return event;
   const boundStmt = stmt.bind(
-      event.id,
-      event.user_id,
-      event.actor_type,
-      event.actor_id,
-      event.actor_name,
-      event.actor_role,
-      event.source_app,
-      event.request_id,
-      event.trace_id,
-      event.domain,
-      event.action,
-      event.result,
-      event.severity,
-      event.target_type,
-      event.target_id,
-      event.target_label,
-      event.summary,
-      event.payload,
-      event.changes_json,
-      event.metadata_json,
-      event.ip_address,
-      event.user_agent,
-      event.created_at,
-    );
+    event.id,
+    event.user_id,
+    event.actor_type,
+    event.actor_id,
+    event.actor_name,
+    event.actor_role,
+    event.source_app,
+    event.request_id,
+    event.trace_id,
+    event.domain,
+    event.action,
+    event.result,
+    event.severity,
+    event.target_type,
+    event.target_id,
+    event.target_label,
+    event.summary,
+    event.payload,
+    event.changes_json,
+    event.metadata_json,
+    event.ip_address,
+    event.user_agent,
+    event.created_at
+  );
   if (!boundStmt || typeof boundStmt.run !== 'function') return event;
   await boundStmt.run();
   return event;

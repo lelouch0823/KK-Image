@@ -16,10 +16,7 @@
       :variant="getStatusVariant(status)"
       size="xs"
     />
-    <OrderProcurementBadge
-      :status="procurementStatus"
-      :preset="procurementPreset"
-    />
+    <OrderProcurementBadge :status="procurementStatus" :preset="procurementPreset" />
     <OrderDeliveryStatusBadge
       v-if="showDeliveryStatus"
       :status="deliveryStatus"
@@ -91,5 +88,7 @@ const deliveryPreset = computed(() => {
   return 'line';
 });
 
-const showDeliveryStatus = computed(() => props.deliveryStatus && props.deliveryStatus !== 'not_shipped');
+const showDeliveryStatus = computed(
+  () => props.deliveryStatus && props.deliveryStatus !== 'not_shipped'
+);
 </script>

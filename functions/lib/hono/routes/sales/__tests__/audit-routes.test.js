@@ -65,7 +65,10 @@ import profileApp from '../profile.js';
 function createApp(basePath, route) {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.use('/api/sales/:token/*', async (c, next) => {
     c.set('salesperson', { id: 'sales-1', name: 'Alice', store: 'Store', phone: '123' });

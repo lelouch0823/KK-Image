@@ -91,7 +91,10 @@
           <span class="text-xs text-(--text-secondary)">{{ progress }}%</span>
         </div>
         <div class="h-2 overflow-hidden rounded-full bg-(--bg-muted)">
-          <div class="bg-primary h-full transition-all duration-300" :style="{ width: `${progress}%` }"></div>
+          <div
+            class="bg-primary h-full transition-all duration-300"
+            :style="{ width: `${progress}%` }"
+          ></div>
         </div>
         <div class="mt-3 space-y-1 text-xs text-(--text-secondary)">
           <p :class="stepClass(0)">{{ t('product.exportModal.step_prepare', '1. 准备数据') }}</p>
@@ -126,12 +129,7 @@
             : t('product.exportModal.generate', '生成文件')
         }}
       </AppButton>
-      <AppButton
-        v-else
-        variant="primary"
-        data-testid="export-download"
-        @click="downloadFile"
-      >
+      <AppButton v-else variant="primary" data-testid="export-download" @click="downloadFile">
         <template #icon-left>
           <AppIcon name="arrow-down-tray" class="size-4" />
         </template>
@@ -209,19 +207,19 @@ const invalidateGeneration = () => {
   generationRequestId += 1;
 };
 
-watch(() => props.modelValue, (visible) => {
-  if (!visible) {
-    invalidateGeneration();
-    resetState();
-  }
-});
-
 watch(
-  [() => form.format, () => form.scope],
-  () => {
-    invalidateReadyDownload();
+  () => props.modelValue,
+  (visible) => {
+    if (!visible) {
+      invalidateGeneration();
+      resetState();
+    }
   }
 );
+
+watch([() => form.format, () => form.scope], () => {
+  invalidateReadyDownload();
+});
 
 watch(
   () => JSON.stringify(normalizeProductExportFilters(form.scope, props.filters)),
@@ -304,12 +302,14 @@ const createBlobFromRows = async (rows) => {
   }
   const wb = await buildExcelWorkbook(rows, EXPORT_COLUMNS, {
     generatedAt: new Date().toISOString(),
-    scopeLabel: form.scope === 'filtered'
-      ? t('product.exportModal.scope_filtered', '当前筛选结果')
-      : t('product.exportModal.scope_all', '全部商品'),
-    filtersLabel: form.scope === 'filtered'
-      ? `search=${props.filters?.search || '-'}, status=${props.filters?.status || '-'}, brand=${props.filters?.brand || '-'}, category=${props.filters?.category || '-'}, hasStock=${props.filters?.hasStock || '-'}`
-      : '-',
+    scopeLabel:
+      form.scope === 'filtered'
+        ? t('product.exportModal.scope_filtered', '当前筛选结果')
+        : t('product.exportModal.scope_all', '全部商品'),
+    filtersLabel:
+      form.scope === 'filtered'
+        ? `search=${props.filters?.search || '-'}, status=${props.filters?.status || '-'}, brand=${props.filters?.brand || '-'}, category=${props.filters?.category || '-'}, hasStock=${props.filters?.hasStock || '-'}`
+        : '-',
   });
   const XLSXStyle = await getXLSXStyle();
   const buffer = XLSXStyle.write(wb, { type: 'array', bookType: 'xlsx' });
@@ -341,7 +341,10 @@ const handleGenerate = async () => {
     statusText.value = t('product.exportModal.step_build_detail', '正在加载变体详情...');
     const detailProducts = await hydrateProducts(products, requestId);
     if (!isGenerationActive(requestId) || !detailProducts) return;
-    const rows = flattenProductsToVariantRows(detailProducts, normalizeProductExportFilters(form.scope, props.filters));
+    const rows = flattenProductsToVariantRows(
+      detailProducts,
+      normalizeProductExportFilters(form.scope, props.filters)
+    );
 
     statusText.value = t('product.exportModal.step_render_detail', '正在生成文件...');
     progress.value = 85;

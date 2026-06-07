@@ -53,7 +53,9 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
 
     const poBeforeReceipt = await getPurchaseOrderDetail(token, poId);
     const firstItem = (poBeforeReceipt?.items || []).find((item) => item.pre_order_id === orderId1);
-    const secondItem = (poBeforeReceipt?.items || []).find((item) => item.pre_order_id === orderId2);
+    const secondItem = (poBeforeReceipt?.items || []).find(
+      (item) => item.pre_order_id === orderId2
+    );
     assert.ok(firstItem?.id, 'targeted purchase item missing');
     assert.ok(secondItem?.id, 'sibling purchase item missing');
 
@@ -75,32 +77,35 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 201,
     });
 
-    const receivedOrder = await waitFor(async () => {
-      const order1 = await getOrderDetail(token, orderId1);
-      const order2 = await getOrderDetail(token, orderId2);
-      const variant = await getVariantDetail(token, productId, variantId);
-      const line1 = order1?.lines?.[0];
-      const line2 = order2?.lines?.[0];
-      assert.ok(line1?.id, 'targeted order line missing');
-      assert.ok(line2?.id, 'sibling order line missing');
-      assert.strictEqual(order1?.procurementStatus, 'arrived');
-      assert.strictEqual(order2?.procurementStatus, 'ordered');
-      assert.strictEqual(line1?.receivedQuantity, 2);
-      assert.strictEqual(line2?.receivedQuantity, 0);
-      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
-      return {
-        order1,
-        order2,
-        line1,
-        line2,
-        variant,
-        siblingDisplayStatus: line2?.displayStatus,
-      };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'same-variant targeted receipt did not converge',
-    });
+    const receivedOrder = await waitFor(
+      async () => {
+        const order1 = await getOrderDetail(token, orderId1);
+        const order2 = await getOrderDetail(token, orderId2);
+        const variant = await getVariantDetail(token, productId, variantId);
+        const line1 = order1?.lines?.[0];
+        const line2 = order2?.lines?.[0];
+        assert.ok(line1?.id, 'targeted order line missing');
+        assert.ok(line2?.id, 'sibling order line missing');
+        assert.strictEqual(order1?.procurementStatus, 'arrived');
+        assert.strictEqual(order2?.procurementStatus, 'ordered');
+        assert.strictEqual(line1?.receivedQuantity, 2);
+        assert.strictEqual(line2?.receivedQuantity, 0);
+        assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+        return {
+          order1,
+          order2,
+          line1,
+          line2,
+          variant,
+          siblingDisplayStatus: line2?.displayStatus,
+        };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'same-variant targeted receipt did not converge',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId1}/lines/${receivedOrder.line1.id}/reserve`, {
       bearerToken: token,
@@ -109,17 +114,20 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const order1 = await getOrderDetail(token, orderId1);
-      const order2 = await getOrderDetail(token, orderId2);
-      assert.strictEqual(order1?.lines?.[0]?.reservedQuantity, 2);
-      assert.strictEqual(order2?.lines?.[0]?.reservedQuantity, 0);
-      return { order1, order2 };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'targeted line reserve did not converge independently',
-    });
+    await waitFor(
+      async () => {
+        const order1 = await getOrderDetail(token, orderId1);
+        const order2 = await getOrderDetail(token, orderId2);
+        assert.strictEqual(order1?.lines?.[0]?.reservedQuantity, 2);
+        assert.strictEqual(order2?.lines?.[0]?.reservedQuantity, 0);
+        return { order1, order2 };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'targeted line reserve did not converge independently',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId1}/lines/${receivedOrder.line1.id}/release`, {
       bearerToken: token,
@@ -128,15 +136,18 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const order1 = await getOrderDetail(token, orderId1);
-      assert.strictEqual(order1?.lines?.[0]?.reservedQuantity, 1);
-      return order1;
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'targeted line release did not converge',
-    });
+    await waitFor(
+      async () => {
+        const order1 = await getOrderDetail(token, orderId1);
+        assert.strictEqual(order1?.lines?.[0]?.reservedQuantity, 1);
+        return order1;
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'targeted line release did not converge',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId1}/lines/${receivedOrder.line1.id}/ship`, {
       bearerToken: token,
@@ -145,29 +156,33 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const order1 = await getOrderDetail(token, orderId1);
-      const order2 = await getOrderDetail(token, orderId2);
-      const variant = await getVariantDetail(token, productId, variantId);
-      const po = await getPurchaseOrderDetail(token, poId);
-      const updatedFirstItem = (po?.items || []).find((item) => item.id === firstItem.id);
-      const updatedSecondItem = (po?.items || []).find((item) => item.id === secondItem.id);
+    await waitFor(
+      async () => {
+        const order1 = await getOrderDetail(token, orderId1);
+        const order2 = await getOrderDetail(token, orderId2);
+        const variant = await getVariantDetail(token, productId, variantId);
+        const po = await getPurchaseOrderDetail(token, poId);
+        const updatedFirstItem = (po?.items || []).find((item) => item.id === firstItem.id);
+        const updatedSecondItem = (po?.items || []).find((item) => item.id === secondItem.id);
 
-      assert.strictEqual(order1?.lines?.[0]?.reservedQuantity, 0);
-      assert.strictEqual(order1?.lines?.[0]?.shippedQuantity, 1);
-      assert.strictEqual(order1?.lines?.[0]?.displayStatus, 'partially_shipped');
-      assert.strictEqual(order2?.lines?.[0]?.reservedQuantity, 0);
-      assert.strictEqual(order2?.lines?.[0]?.shippedQuantity, 0);
-      assert.strictEqual(order2?.lines?.[0]?.displayStatus, receivedOrder.siblingDisplayStatus);
-      assert.strictEqual(Number(updatedFirstItem?.received_qty || 0), 2);
-      assert.strictEqual(Number(updatedSecondItem?.received_qty || 0), 0);
-      assert.strictEqual(Number(variant.stock_quantity || 0), 1);
-      return { order1, order2, variant, po };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'targeted line ship did not stay isolated from sibling same-variant order',
-    });
+        assert.strictEqual(order1?.lines?.[0]?.reservedQuantity, 0);
+        assert.strictEqual(order1?.lines?.[0]?.shippedQuantity, 1);
+        assert.strictEqual(order1?.lines?.[0]?.displayStatus, 'partially_shipped');
+        assert.strictEqual(order2?.lines?.[0]?.reservedQuantity, 0);
+        assert.strictEqual(order2?.lines?.[0]?.shippedQuantity, 0);
+        assert.strictEqual(order2?.lines?.[0]?.displayStatus, receivedOrder.siblingDisplayStatus);
+        assert.strictEqual(Number(updatedFirstItem?.received_qty || 0), 2);
+        assert.strictEqual(Number(updatedSecondItem?.received_qty || 0), 0);
+        assert.strictEqual(Number(variant.stock_quantity || 0), 1);
+        return { order1, order2, variant, po };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage:
+          'targeted line ship did not stay isolated from sibling same-variant order',
+      }
+    );
   });
 
   it('rejects reserve, release, and ship commands that exceed the current line state and keeps projections unchanged', async () => {
@@ -211,21 +226,24 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 201,
     });
 
-    const orderAfterReceipt = await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const variant = await getVariantDetail(token, productId, variantId);
-      const line = order?.lines?.[0];
-      assert.ok(line?.id, 'order line missing after receipt');
-      assert.strictEqual(line?.receivedQuantity, 2);
-      assert.strictEqual(line?.reservedQuantity, 0);
-      assert.strictEqual(line?.shippedQuantity, 0);
-      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
-      return { order, line, variant };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'line guard baseline did not converge after receipt',
-    });
+    const orderAfterReceipt = await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const variant = await getVariantDetail(token, productId, variantId);
+        const line = order?.lines?.[0];
+        assert.ok(line?.id, 'order line missing after receipt');
+        assert.strictEqual(line?.receivedQuantity, 2);
+        assert.strictEqual(line?.reservedQuantity, 0);
+        assert.strictEqual(line?.shippedQuantity, 0);
+        assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+        return { order, line, variant };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'line guard baseline did not converge after receipt',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/reserve`, {
       bearerToken: token,
@@ -234,38 +252,50 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      assert.strictEqual(order?.lines?.[0]?.reservedQuantity, 2);
-      return order;
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'baseline reserve did not converge before guard checks',
-    });
+    await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        assert.strictEqual(order?.lines?.[0]?.reservedQuantity, 2);
+        return order;
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'baseline reserve did not converge before guard checks',
+      }
+    );
 
-    const reserveReject = await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/reserve`, {
-      bearerToken: token,
-      method: 'POST',
-      body: { quantity: 1 },
-      expectedStatus: 400,
-    });
+    const reserveReject = await apiRequest(
+      `/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/reserve`,
+      {
+        bearerToken: token,
+        method: 'POST',
+        body: { quantity: 1 },
+        expectedStatus: 400,
+      }
+    );
     assert.match(String(reserveReject.json?.error || ''), /available stock|exceeds/i);
 
-    const releaseReject = await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/release`, {
-      bearerToken: token,
-      method: 'POST',
-      body: { quantity: 3 },
-      expectedStatus: 400,
-    });
+    const releaseReject = await apiRequest(
+      `/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/release`,
+      {
+        bearerToken: token,
+        method: 'POST',
+        body: { quantity: 3 },
+        expectedStatus: 400,
+      }
+    );
     assert.match(String(releaseReject.json?.error || ''), /reserved quantity|allocation/i);
 
-    const shipReject = await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
-      bearerToken: token,
-      method: 'POST',
-      body: { quantity: 3 },
-      expectedStatus: 400,
-    });
+    const shipReject = await apiRequest(
+      `/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`,
+      {
+        bearerToken: token,
+        method: 'POST',
+        body: { quantity: 3 },
+        expectedStatus: 400,
+      }
+    );
     assert.match(String(shipReject.json?.error || ''), /on-hand stock|remaining quantity/i);
 
     const orderAfterRejects = await getOrderDetail(token, orderId);
@@ -319,19 +349,22 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 201,
     });
 
-    const orderAfterReceipt = await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const line = order?.lines?.[0];
-      assert.ok(line?.id, 'order line missing');
-      assert.strictEqual(order?.procurementStatus, 'arrived');
-      assert.strictEqual(line?.receivedQuantity, 4);
-      assert.strictEqual(line?.reservedQuantity, 0);
-      return { order, line };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'direct ship baseline did not converge after receipt',
-    });
+    const orderAfterReceipt = await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const line = order?.lines?.[0];
+        assert.ok(line?.id, 'order line missing');
+        assert.strictEqual(order?.procurementStatus, 'arrived');
+        assert.strictEqual(line?.receivedQuantity, 4);
+        assert.strictEqual(line?.reservedQuantity, 0);
+        return { order, line };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'direct ship baseline did not converge after receipt',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
       bearerToken: token,
@@ -340,31 +373,34 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const variant = await getVariantDetail(token, productId, variantId);
-      const suggestions = await apiRequest('/api/manage/purchase-orders/suggestions', {
-        bearerToken: token,
-        expectedStatus: 200,
-      });
-      const suggestion = findSuggestion(suggestions.json, variantId);
+    await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const variant = await getVariantDetail(token, productId, variantId);
+        const suggestions = await apiRequest('/api/manage/purchase-orders/suggestions', {
+          bearerToken: token,
+          expectedStatus: 200,
+        });
+        const suggestion = findSuggestion(suggestions.json, variantId);
 
-      assert.strictEqual(order?.lines?.[0]?.reservedQuantity, 0);
-      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 2);
-      assert.strictEqual(order?.lines?.[0]?.displayStatus, 'partially_shipped');
-      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
-      assert.strictEqual(Number(variant.available_quantity || 0), 0);
-      assert.ok(suggestion, 'purchase suggestion missing after direct ship');
-      assert.strictEqual(Number(suggestion.total_demand || 0), 2);
-      assert.strictEqual(Number(suggestion.stock_quantity || 0), 2);
-      assert.strictEqual(Number(suggestion.available_quantity || 0), 0);
-      assert.strictEqual(Number(suggestion.shortage || 0), 2);
-      return { order, variant, suggestion };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'direct ship projection did not converge',
-    });
+        assert.strictEqual(order?.lines?.[0]?.reservedQuantity, 0);
+        assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 2);
+        assert.strictEqual(order?.lines?.[0]?.displayStatus, 'partially_shipped');
+        assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+        assert.strictEqual(Number(variant.available_quantity || 0), 0);
+        assert.ok(suggestion, 'purchase suggestion missing after direct ship');
+        assert.strictEqual(Number(suggestion.total_demand || 0), 2);
+        assert.strictEqual(Number(suggestion.stock_quantity || 0), 2);
+        assert.strictEqual(Number(suggestion.available_quantity || 0), 0);
+        assert.strictEqual(Number(suggestion.shortage || 0), 2);
+        return { order, variant, suggestion };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'direct ship projection did not converge',
+      }
+    );
   });
 
   it('unships shipped quantity back into stock and restores the line to a ready state', async () => {
@@ -408,21 +444,24 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 201,
     });
 
-    const orderAfterReceipt = await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const variant = await getVariantDetail(token, productId, variantId);
-      const line = order?.lines?.[0];
-      assert.ok(line?.id, 'order line missing');
-      assert.strictEqual(line?.receivedQuantity, 3);
-      assert.strictEqual(line?.shippedQuantity, 0);
-      assert.strictEqual(line?.displayStatus, 'ready');
-      assert.strictEqual(Number(variant.stock_quantity || 0), 3);
-      return { order, line, variant };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'receipt baseline did not converge before unship flow',
-    });
+    const orderAfterReceipt = await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const variant = await getVariantDetail(token, productId, variantId);
+        const line = order?.lines?.[0];
+        assert.ok(line?.id, 'order line missing');
+        assert.strictEqual(line?.receivedQuantity, 3);
+        assert.strictEqual(line?.shippedQuantity, 0);
+        assert.strictEqual(line?.displayStatus, 'ready');
+        assert.strictEqual(Number(variant.stock_quantity || 0), 3);
+        return { order, line, variant };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'receipt baseline did not converge before unship flow',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
       bearerToken: token,
@@ -431,18 +470,21 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const variant = await getVariantDetail(token, productId, variantId);
-      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 2);
-      assert.strictEqual(order?.lines?.[0]?.displayStatus, 'partially_shipped');
-      assert.strictEqual(Number(variant.stock_quantity || 0), 1);
-      return { order, variant };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'ship baseline did not converge before unship',
-    });
+    await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const variant = await getVariantDetail(token, productId, variantId);
+        assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 2);
+        assert.strictEqual(order?.lines?.[0]?.displayStatus, 'partially_shipped');
+        assert.strictEqual(Number(variant.stock_quantity || 0), 1);
+        return { order, variant };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'ship baseline did not converge before unship',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/unship`, {
       bearerToken: token,
@@ -451,22 +493,25 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const variant = await getVariantDetail(token, productId, variantId);
-      const shipmentActions = (order?.shipments || []).map((item) => item.actionType);
+    await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const variant = await getVariantDetail(token, productId, variantId);
+        const shipmentActions = (order?.shipments || []).map((item) => item.actionType);
 
-      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 0);
-      assert.strictEqual(order?.lines?.[0]?.displayStatus, 'ready');
-      assert.deepStrictEqual(shipmentActions.slice(0, 2), ['unshipped', 'shipped']);
-      assert.strictEqual(Number(order?.shipments?.[0]?.quantity || 0), 2);
-      assert.strictEqual(Number(variant.stock_quantity || 0), 3);
-      return { order, variant };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'unship did not restore stock and ready line state',
-    });
+        assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 0);
+        assert.strictEqual(order?.lines?.[0]?.displayStatus, 'ready');
+        assert.deepStrictEqual(shipmentActions.slice(0, 2), ['unshipped', 'shipped']);
+        assert.strictEqual(Number(order?.shipments?.[0]?.quantity || 0), 2);
+        assert.strictEqual(Number(variant.stock_quantity || 0), 3);
+        return { order, variant };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'unship did not restore stock and ready line state',
+      }
+    );
   });
 
   it('rejects delivered status until all effective line quantities have been shipped', async () => {
@@ -510,17 +555,20 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 201,
     });
 
-    const orderAfterReceipt = await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const line = order?.lines?.[0];
-      assert.ok(line?.id, 'order line missing');
-      assert.strictEqual(line?.receivedQuantity, 4);
-      return { order, line };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'receipt baseline did not converge before delivered guard',
-    });
+    const orderAfterReceipt = await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const line = order?.lines?.[0];
+        assert.ok(line?.id, 'order line missing');
+        assert.strictEqual(line?.receivedQuantity, 4);
+        return { order, line };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'receipt baseline did not converge before delivered guard',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
       bearerToken: token,
@@ -529,16 +577,19 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 2);
-      assert.strictEqual(order?.lines?.[0]?.displayStatus, 'partially_shipped');
-      return order;
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'partial ship baseline did not converge before delivered guard',
-    });
+    await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 2);
+        assert.strictEqual(order?.lines?.[0]?.displayStatus, 'partially_shipped');
+        return order;
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'partial ship baseline did not converge before delivered guard',
+      }
+    );
 
     const deliveredReject = await apiRequest(`/api/manage/orders/${orderId}/status`, {
       bearerToken: token,
@@ -600,17 +651,20 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 201,
     });
 
-    const orderAfterReceipt = await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const line = order?.lines?.[0];
-      assert.ok(line?.id, 'order line missing');
-      assert.strictEqual(line?.receivedQuantity, 2);
-      return { order, line };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'receipt baseline did not converge before void guard',
-    });
+    const orderAfterReceipt = await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const line = order?.lines?.[0];
+        assert.ok(line?.id, 'order line missing');
+        assert.strictEqual(line?.receivedQuantity, 2);
+        return { order, line };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'receipt baseline did not converge before void guard',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
       bearerToken: token,
@@ -619,17 +673,20 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const variant = await getVariantDetail(token, productId, variantId);
-      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 1);
-      assert.strictEqual(Number(variant.stock_quantity || 0), 1);
-      return { order, variant };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'ship baseline did not converge before void guard',
-    });
+    await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const variant = await getVariantDetail(token, productId, variantId);
+        assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 1);
+        assert.strictEqual(Number(variant.stock_quantity || 0), 1);
+        return { order, variant };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'ship baseline did not converge before void guard',
+      }
+    );
 
     const voidReject = await apiRequest(`/api/manage/orders/${orderId}/status`, {
       bearerToken: token,
@@ -649,18 +706,21 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const variant = await getVariantDetail(token, productId, variantId);
-      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 0);
-      assert.strictEqual(order?.lines?.[0]?.displayStatus, 'ready');
-      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
-      return { order, variant };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'unship baseline did not converge before void retry',
-    });
+    await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const variant = await getVariantDetail(token, productId, variantId);
+        assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 0);
+        assert.strictEqual(order?.lines?.[0]?.displayStatus, 'ready');
+        assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+        return { order, variant };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'unship baseline did not converge before void retry',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId}/status`, {
       bearerToken: token,
@@ -669,28 +729,31 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const variant = await getVariantDetail(token, productId, variantId);
-      const suggestions = await apiRequest('/api/manage/purchase-orders/suggestions', {
-        bearerToken: token,
-        expectedStatus: 200,
-      });
-      const suggestion = findSuggestion(suggestions.json, variantId);
+    await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const variant = await getVariantDetail(token, productId, variantId);
+        const suggestions = await apiRequest('/api/manage/purchase-orders/suggestions', {
+          bearerToken: token,
+          expectedStatus: 200,
+        });
+        const suggestion = findSuggestion(suggestions.json, variantId);
 
-      assert.strictEqual(order?.status, 'void');
-      assert.strictEqual(order?.lines?.[0]?.cancelledQuantity, 2);
-      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 0);
-      assert.strictEqual(order?.lines?.[0]?.displayStatus, 'cancelled');
-      assert.ok(!suggestion, 'voided order should no longer produce purchase suggestion');
-      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
-      assert.strictEqual(Number(variant.available_quantity || 0), 2);
-      return { order, variant };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'void did not converge after stock was restored by unship',
-    });
+        assert.strictEqual(order?.status, 'void');
+        assert.strictEqual(order?.lines?.[0]?.cancelledQuantity, 2);
+        assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 0);
+        assert.strictEqual(order?.lines?.[0]?.displayStatus, 'cancelled');
+        assert.ok(!suggestion, 'voided order should no longer produce purchase suggestion');
+        assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+        assert.strictEqual(Number(variant.available_quantity || 0), 2);
+        return { order, variant };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'void did not converge after stock was restored by unship',
+      }
+    );
   });
 
   it('rejects unship after delivery has been explicitly confirmed', async () => {
@@ -734,17 +797,21 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 201,
     });
 
-    const orderAfterReceipt = await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const line = order?.lines?.[0];
-      assert.ok(line?.id, 'order line missing');
-      assert.strictEqual(line?.receivedQuantity, 2);
-      return { order, line };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'receipt baseline did not converge before delivery-confirmation unship guard',
-    });
+    const orderAfterReceipt = await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const line = order?.lines?.[0];
+        assert.ok(line?.id, 'order line missing');
+        assert.strictEqual(line?.receivedQuantity, 2);
+        return { order, line };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage:
+          'receipt baseline did not converge before delivery-confirmation unship guard',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
       bearerToken: token,
@@ -767,12 +834,15 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    const unshipReject = await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/unship`, {
-      bearerToken: token,
-      method: 'POST',
-      body: { quantity: 1 },
-      expectedStatus: 400,
-    });
+    const unshipReject = await apiRequest(
+      `/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/unship`,
+      {
+        bearerToken: token,
+        method: 'POST',
+        body: { quantity: 1 },
+        expectedStatus: 400,
+      }
+    );
     assert.match(String(unshipReject.json?.error || ''), /delivered order/i);
 
     const finalOrder = await getOrderDetail(token, orderId);
@@ -827,17 +897,20 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 201,
     });
 
-    const orderAfterReceipt = await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const line = order?.lines?.[0];
-      assert.ok(line?.id, 'order line missing');
-      assert.strictEqual(line?.receivedQuantity, 2);
-      return { order, line };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'receipt baseline did not converge before delivery-confirmed return flow',
-    });
+    const orderAfterReceipt = await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const line = order?.lines?.[0];
+        assert.ok(line?.id, 'order line missing');
+        assert.strictEqual(line?.receivedQuantity, 2);
+        return { order, line };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'receipt baseline did not converge before delivery-confirmed return flow',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
       bearerToken: token,
@@ -881,31 +954,35 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const variant = await getVariantDetail(token, productId, variantId);
-      const line = order?.lines?.[0];
-      const shipmentActions = (order?.shipments || []).map((item) => item.actionType);
-      const returns = order?.returns || [];
+    await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const variant = await getVariantDetail(token, productId, variantId);
+        const line = order?.lines?.[0];
+        const shipmentActions = (order?.shipments || []).map((item) => item.actionType);
+        const returns = order?.returns || [];
 
-      assert.strictEqual(order?.status, 'fulfilled');
-      assert.strictEqual(order?.deliveryStatus, 'partially_returned');
-      assert.ok(Number(order?.deliveryConfirmedAt || 0) > 0);
-      assert.match(String(order?.deliveryConfirmedBy || ''), /admin/i);
-      assert.strictEqual(line?.shippedQuantity, 2);
-      assert.strictEqual(line?.returnedQuantity, 1);
-      assert.strictEqual(line?.displayStatus, 'completed');
-      assert.deepStrictEqual(shipmentActions.slice(0, 1), ['shipped']);
-      assert.strictEqual(returns.length, 1);
-      assert.strictEqual(returns[0]?.reason, 'damage');
-      assert.strictEqual(Number(returns[0]?.quantity || 0), 1);
-      assert.strictEqual(Number(variant.stock_quantity || 0), 1);
-      return { order, variant };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'partial delivery-confirmed return flow did not converge in order detail and inventory projections',
-    });
+        assert.strictEqual(order?.status, 'fulfilled');
+        assert.strictEqual(order?.deliveryStatus, 'partially_returned');
+        assert.ok(Number(order?.deliveryConfirmedAt || 0) > 0);
+        assert.match(String(order?.deliveryConfirmedBy || ''), /admin/i);
+        assert.strictEqual(line?.shippedQuantity, 2);
+        assert.strictEqual(line?.returnedQuantity, 1);
+        assert.strictEqual(line?.displayStatus, 'completed');
+        assert.deepStrictEqual(shipmentActions.slice(0, 1), ['shipped']);
+        assert.strictEqual(returns.length, 1);
+        assert.strictEqual(returns[0]?.reason, 'damage');
+        assert.strictEqual(Number(returns[0]?.quantity || 0), 1);
+        assert.strictEqual(Number(variant.stock_quantity || 0), 1);
+        return { order, variant };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage:
+          'partial delivery-confirmed return flow did not converge in order detail and inventory projections',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/return`, {
       bearerToken: token,
@@ -914,29 +991,33 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const variant = await getVariantDetail(token, productId, variantId);
-      const line = order?.lines?.[0];
-      const returns = order?.returns || [];
+    await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const variant = await getVariantDetail(token, productId, variantId);
+        const line = order?.lines?.[0];
+        const returns = order?.returns || [];
 
-      assert.strictEqual(order?.status, 'fulfilled');
-      assert.strictEqual(order?.deliveryStatus, 'returned');
-      assert.ok(Number(order?.deliveryConfirmedAt || 0) > 0);
-      assert.match(String(order?.deliveryConfirmedBy || ''), /admin/i);
-      assert.strictEqual(line?.shippedQuantity, 2);
-      assert.strictEqual(line?.returnedQuantity, 2);
-      assert.strictEqual(line?.displayStatus, 'completed');
-      assert.strictEqual(returns.length, 2);
-      assert.strictEqual(returns[0]?.reason, 'wrong_item');
-      assert.strictEqual(returns[1]?.reason, 'damage');
-      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
-      return { order, variant };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'full delivery-confirmed return flow did not converge in order detail and inventory projections',
-    });
+        assert.strictEqual(order?.status, 'fulfilled');
+        assert.strictEqual(order?.deliveryStatus, 'returned');
+        assert.ok(Number(order?.deliveryConfirmedAt || 0) > 0);
+        assert.match(String(order?.deliveryConfirmedBy || ''), /admin/i);
+        assert.strictEqual(line?.shippedQuantity, 2);
+        assert.strictEqual(line?.returnedQuantity, 2);
+        assert.strictEqual(line?.displayStatus, 'completed');
+        assert.strictEqual(returns.length, 2);
+        assert.strictEqual(returns[0]?.reason, 'wrong_item');
+        assert.strictEqual(returns[1]?.reason, 'damage');
+        assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+        return { order, variant };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage:
+          'full delivery-confirmed return flow did not converge in order detail and inventory projections',
+      }
+    );
   });
 
   it('rejects reversing a receipt after shipped stock has already consumed part of the received inventory', async () => {
@@ -982,17 +1063,20 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
     const receiptId = receipt.json?.data?.receipts?.[0]?.id;
     assert.ok(receiptId, 'receipt id missing');
 
-    const orderAfterReceipt = await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const line = order?.lines?.[0];
-      assert.ok(line?.id, 'order line missing');
-      assert.strictEqual(line?.receivedQuantity, 4);
-      return { order, line };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'receipt baseline did not converge before ship/reversal guard',
-    });
+    const orderAfterReceipt = await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const line = order?.lines?.[0];
+        assert.ok(line?.id, 'order line missing');
+        assert.strictEqual(line?.receivedQuantity, 4);
+        return { order, line };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'receipt baseline did not converge before ship/reversal guard',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
       bearerToken: token,
@@ -1001,15 +1085,18 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const variant = await getVariantDetail(token, productId, variantId);
-      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
-      return variant;
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'stock baseline did not converge before reversal guard',
-    });
+    await waitFor(
+      async () => {
+        const variant = await getVariantDetail(token, productId, variantId);
+        assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+        return variant;
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'stock baseline did not converge before reversal guard',
+      }
+    );
 
     const reversalReject = await apiRequest(
       `/api/manage/purchase-orders/${poId}/receipts/${receiptId}/reversal`,
@@ -1069,7 +1156,9 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const archivedVariant = (archivedProduct.json?.data?.variants || []).find((item) => item.id === variantId);
+    const archivedVariant = (archivedProduct.json?.data?.variants || []).find(
+      (item) => item.id === variantId
+    );
     assert.ok(archivedVariant, 'archived variant missing from product detail');
     assert.strictEqual(archivedVariant.status, 'archived');
 
@@ -1091,18 +1180,21 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 201,
     });
 
-    const orderAfterReceipt = await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const line = order?.lines?.[0];
-      assert.ok(line?.id, 'archived-product order line missing');
-      assert.strictEqual(order?.procurementStatus, 'arrived');
-      assert.strictEqual(line?.receivedQuantity, 3);
-      return { order, line };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'receipt did not converge after source product archive',
-    });
+    const orderAfterReceipt = await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const line = order?.lines?.[0];
+        assert.ok(line?.id, 'archived-product order line missing');
+        assert.strictEqual(order?.procurementStatus, 'arrived');
+        assert.strictEqual(line?.receivedQuantity, 3);
+        return { order, line };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'receipt did not converge after source product archive',
+      }
+    );
 
     await apiRequest(`/api/manage/orders/${orderId}/lines/${orderAfterReceipt.line.id}/ship`, {
       bearerToken: token,
@@ -1111,22 +1203,25 @@ describeIfRealApi('Order Line Fulfillment Real API Workflow', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const order = await getOrderDetail(token, orderId);
-      const po = await getPurchaseOrderDetail(token, poId);
-      const variant = await getVariantDetail(token, productId, variantId);
+    await waitFor(
+      async () => {
+        const order = await getOrderDetail(token, orderId);
+        const po = await getPurchaseOrderDetail(token, poId);
+        const variant = await getVariantDetail(token, productId, variantId);
 
-      assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 1);
-      assert.strictEqual(order?.lines?.[0]?.displayStatus, 'partially_shipped');
-      assert.strictEqual(Number(po?.items?.[0]?.received_qty || 0), 3);
-      assert.strictEqual(po?.items?.[0]?.display_status, 'received');
-      assert.strictEqual(variant.status, 'archived');
-      assert.strictEqual(Number(variant.stock_quantity || 0), 2);
-      return { order, po, variant };
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'ship flow did not remain usable after source product archive',
-    });
+        assert.strictEqual(order?.lines?.[0]?.shippedQuantity, 1);
+        assert.strictEqual(order?.lines?.[0]?.displayStatus, 'partially_shipped');
+        assert.strictEqual(Number(po?.items?.[0]?.received_qty || 0), 3);
+        assert.strictEqual(po?.items?.[0]?.display_status, 'received');
+        assert.strictEqual(variant.status, 'archived');
+        assert.strictEqual(Number(variant.stock_quantity || 0), 2);
+        return { order, po, variant };
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'ship flow did not remain usable after source product archive',
+      }
+    );
   });
 });

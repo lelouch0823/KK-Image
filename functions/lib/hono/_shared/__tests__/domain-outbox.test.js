@@ -43,12 +43,14 @@ describe('domain outbox helper', () => {
   it('schedules the poller immediately for cache-only events', async () => {
     const c = createContext();
 
-    await publishDomainEventsAndPoll(c, [{
-      event_type: 'folder_updated',
-      aggregate_type: 'folder',
-      aggregate_id: 'folder-1',
-      payload: { folder_id: 'folder-1' },
-    }]);
+    await publishDomainEventsAndPoll(c, [
+      {
+        event_type: 'folder_updated',
+        aggregate_type: 'folder',
+        aggregate_id: 'folder-1',
+        payload: { folder_id: 'folder-1' },
+      },
+    ]);
 
     expect(mocks.publish).toHaveBeenCalledTimes(1);
     expect(mocks.countAvailableJobs).not.toHaveBeenCalled();
@@ -59,12 +61,14 @@ describe('domain outbox helper', () => {
   it('still schedules the poller immediately for order-domain events', async () => {
     const c = createContext();
 
-    await publishDomainEventsAndPoll(c, [{
-      event_type: 'order_created_by_admin',
-      aggregate_type: 'order',
-      aggregate_id: 'order-1',
-      payload: { order_id: 'order-1' },
-    }]);
+    await publishDomainEventsAndPoll(c, [
+      {
+        event_type: 'order_created_by_admin',
+        aggregate_type: 'order',
+        aggregate_id: 'order-1',
+        payload: { order_id: 'order-1' },
+      },
+    ]);
 
     expect(c.executionCtx.waitUntil).toHaveBeenCalledTimes(1);
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
@@ -73,12 +77,14 @@ describe('domain outbox helper', () => {
   it('still schedules the poller immediately for webhook-only events', async () => {
     const c = createContext();
 
-    await publishDomainEventsAndPoll(c, [{
-      event_type: 'file_uploaded',
-      aggregate_type: 'file',
-      aggregate_id: 'file-1',
-      payload: { file_id: 'file-1' },
-    }]);
+    await publishDomainEventsAndPoll(c, [
+      {
+        event_type: 'file_uploaded',
+        aggregate_type: 'file',
+        aggregate_id: 'file-1',
+        payload: { file_id: 'file-1' },
+      },
+    ]);
 
     expect(c.executionCtx.waitUntil).toHaveBeenCalledTimes(1);
     expect(mocks.countAvailableJobs).not.toHaveBeenCalled();

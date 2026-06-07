@@ -96,7 +96,7 @@ describe('cache middleware helpers', () => {
       'https://example.com/stats',
       undefined,
       {},
-      { waitUntil: vi.fn(), passThroughOnException: vi.fn() },
+      { waitUntil: vi.fn(), passThroughOnException: vi.fn() }
     );
 
     expect(res.status).toBe(200);

@@ -18,7 +18,10 @@
     </div>
 
     <!-- 物流信息编辑表单 (仅管理员) -->
-    <div v-if="showEditForm && mode === 'admin'" class="mb-4 space-y-3 rounded-xl border border-(--border-color) p-3">
+    <div
+      v-if="showEditForm && mode === 'admin'"
+      class="mb-4 space-y-3 rounded-xl border border-(--border-color) p-3"
+    >
       <div class="space-y-1">
         <label class="text-secondary text-xs font-medium">
           {{ t('order.logistics.carrier', '快递公司') }}
@@ -27,11 +30,7 @@
           v-model="editForm.carrier"
           class="bg-(--bg-input) border-(--border-color) text-primary w-full rounded-lg border px-3 py-2 text-sm"
         >
-          <option
-            v-for="c in carriers"
-            :key="c.code"
-            :value="c.code"
-          >
+          <option v-for="c in carriers" :key="c.code" :value="c.code">
             {{ c.name }}
           </option>
         </select>
@@ -45,12 +44,7 @@
           :placeholder="t('order.logistics.trackingNoPlaceholder', '输入运单号')"
         />
       </div>
-      <AppButton
-        variant="primary"
-        size="sm"
-        :loading="saving"
-        @click="saveLogistics"
-      >
+      <AppButton variant="primary" size="sm" :loading="saving" @click="saveLogistics">
         {{ t('common.save') }}
       </AppButton>
     </div>
@@ -69,20 +63,16 @@
     <!-- 物流轨迹时间线 -->
     <div v-if="trackingNo && !showEditForm">
       <div class="mb-3 flex items-center gap-2">
-        <span class="text-secondary text-xs">
-          {{ carrierName }} · {{ trackingNo }}
-        </span>
-        <AppButton
-          variant="link"
-          size="sm"
-          @click="refreshTracking"
-        >
+        <span class="text-secondary text-xs"> {{ carrierName }} · {{ trackingNo }} </span>
+        <AppButton variant="link" size="sm" @click="refreshTracking">
           {{ t('common.refresh') }}
         </AppButton>
       </div>
 
       <div v-if="loading" class="flex items-center justify-center py-6">
-        <div class="size-5 animate-spin rounded-full border-2 border-(--border-color) border-t-(--color-primary)" />
+        <div
+          class="size-5 animate-spin rounded-full border-2 border-(--border-color) border-t-(--color-primary)"
+        />
       </div>
 
       <div v-else-if="trackingEvents.length === 0" class="py-4 text-center">
@@ -106,9 +96,11 @@
           <!-- 状态圆点 -->
           <div
             class="relative z-10 mt-1 size-[15px] shrink-0 rounded-full border-2"
-            :class="index === 0
-              ? 'border-(--color-primary) bg-(--color-primary)'
-              : 'border-(--border-color) bg-(--bg-card)'"
+            :class="
+              index === 0
+                ? 'border-(--color-primary) bg-(--color-primary)'
+                : 'border-(--border-color) bg-(--bg-card)'
+            "
           />
 
           <!-- 内容 -->
@@ -170,10 +162,9 @@ const editForm = ref({
 });
 
 const carrierName = computed(() => {
-  const found = carriers.value.find(c => c.code === carrier.value);
+  const found = carriers.value.find((c) => c.code === carrier.value);
   return found?.name || carrier.value;
 });
-
 
 async function loadTracking() {
   if (!props.orderId) return;
@@ -225,15 +216,21 @@ async function saveLogistics() {
   }
 }
 
-watch(() => props.initialTrackingNo, (val) => {
-  trackingNo.value = val;
-  editForm.value.trackingNo = val;
-});
+watch(
+  () => props.initialTrackingNo,
+  (val) => {
+    trackingNo.value = val;
+    editForm.value.trackingNo = val;
+  }
+);
 
-watch(() => props.initialCarrier, (val) => {
-  carrier.value = val;
-  editForm.value.carrier = val;
-});
+watch(
+  () => props.initialCarrier,
+  (val) => {
+    carrier.value = val;
+    editForm.value.carrier = val;
+  }
+);
 
 onMounted(() => {
   loadTracking();

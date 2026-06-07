@@ -1,19 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { 
-  generateId, 
-  generatePrefixedId, 
-  generateShareToken, 
-  now, 
-  isoToTimestamp, 
+import {
+  generateId,
+  generatePrefixedId,
+  generateShareToken,
+  now,
+  isoToTimestamp,
   timestampToIso,
   hashPassword,
-   isValidUrl,
+  isValidUrl,
   generateOrderNo,
   generateHmacSignature,
   sha256Hex,
   verifyPassword,
   passwordHashNeedsMigration,
- } from '../id';
+} from '../id';
 
 describe('Backend ID and Utils', () => {
   describe('ID Generation', () => {
@@ -67,7 +67,7 @@ describe('Backend ID and Utils', () => {
       const password = 'mypassword';
       const pepper = 'mysalt';
       const hash = await hashPassword(password, pepper);
-      
+
       expect(hash.startsWith('pbkdf2$sha256$')).toBe(true);
       await expect(verifyPassword(password, hash, pepper)).resolves.toBe(true);
       await expect(verifyPassword('wrong', hash, pepper)).resolves.toBe(false);
@@ -117,7 +117,7 @@ describe('Backend ID and Utils', () => {
     it('sha256Hex should return valid hex string', async () => {
       const hash = await sha256Hex('test-data');
       expect(hash).toMatch(/^[0-9a-f]{64}$/);
-      
+
       // Test with Uint8Array
       const data = new TextEncoder().encode('test-data');
       const hash2 = await sha256Hex(data);

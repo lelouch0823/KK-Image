@@ -54,11 +54,17 @@ describe('ProductManager variant hydration', () => {
     return mount(ProductManager, {
       global: {
         stubs: {
-          ManagementListShell: { template: '<div><slot name="actions" /><slot name="filters" /><slot name="content" /><slot /></div>' },
+          ManagementListShell: {
+            template:
+              '<div><slot name="actions" /><slot name="filters" /><slot name="content" /><slot /></div>',
+          },
           ProductStats: { template: '<div />' },
           ProductFilters: { template: '<div />' },
           ProductTable: { template: '<div />' },
-          ProductCreateModal: { template: '<div v-if="modelValue" data-testid="product-create-modal" />', props: ['modelValue'] },
+          ProductCreateModal: {
+            template: '<div v-if="modelValue" data-testid="product-create-modal" />',
+            props: ['modelValue'],
+          },
           ProductWorkflowModal: {
             template: '<div data-testid="workflow-modal" />',
             props: ['show', 'product'],
@@ -95,7 +101,9 @@ describe('ProductManager variant hydration', () => {
     mocks.loadProduct.mockResolvedValue({
       id: 'p-archived',
       name: 'Archived Variant Product',
-      variants: [{ id: 'v-archived', sku: 'SKU-ARCHIVED', status: 'archived', image_id: 'img-archived' }],
+      variants: [
+        { id: 'v-archived', sku: 'SKU-ARCHIVED', status: 'archived', image_id: 'img-archived' },
+      ],
     });
 
     const wrapper = createWrapper();
@@ -262,12 +270,9 @@ describe('ProductManager variant hydration', () => {
     const wrapper = createWrapper();
     const iconNames = wrapper.findAllComponents(AppIcon).map((icon) => icon.props('name'));
 
-    expect(iconNames).toEqual(expect.arrayContaining([
-      'plus',
-      'arrow-up-tray',
-      'arrow-down-tray',
-      'chart-bar',
-    ]));
+    expect(iconNames).toEqual(
+      expect.arrayContaining(['plus', 'arrow-up-tray', 'arrow-down-tray', 'chart-bar'])
+    );
   });
 
   it('handleModalSuccess refreshes with current filters and bypasses cache', async () => {

@@ -14,9 +14,6 @@ describe('auth dead exports audit', () => {
       offenders.push('functions/api/utils/auth.js: still defines generateApiKey');
     }
 
-    expect(
-      offenders,
-      `auth dead-export offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `auth dead-export offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

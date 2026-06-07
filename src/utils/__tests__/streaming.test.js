@@ -6,7 +6,7 @@ describe('SSEParser', () => {
     const parser = new SSEParser();
     const chunk = 'data: {"text": "hello"}\n\n';
     const events = parser.feed(chunk);
-    
+
     expect(events.length).toBe(1);
     expect(events[0].data).toEqual({ text: 'hello' });
     expect(events[0].type).toBe('message');
@@ -16,7 +16,7 @@ describe('SSEParser', () => {
     const parser = new SSEParser();
     expect(parser.feed('data: {"te')).toEqual([]);
     const events = parser.feed('xt": "hi"}\n\n');
-    
+
     expect(events.length).toBe(1);
     expect(events[0].data.text).toBe('hi');
   });
@@ -25,7 +25,7 @@ describe('SSEParser', () => {
     const parser = new SSEParser();
     const chunk = 'event: update\ndata: 1\n\nevent: update\ndata: 2\n\n';
     const events = parser.feed(chunk);
-    
+
     expect(events.length).toBe(2);
     expect(events[0].type).toBe('update');
     // JSON 数据被解析为对象

@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-2">
     <label v-if="label" class="text-secondary block text-sm font-medium">{{ label }}</label>
-    
+
     <!-- 已选销售员标签 (Tags) -->
     <div v-if="selectedIds.length > 0" class="mb-2 flex flex-wrap gap-2">
       <span
@@ -94,9 +94,13 @@ const showModal = ref(false);
 const salespersons = ref([]);
 const selectedIds = ref([...props.modelValue]);
 
-watch(() => props.modelValue, (val) => {
-  selectedIds.value = [...val];
-}, { deep: true });
+watch(
+  () => props.modelValue,
+  (val) => {
+    selectedIds.value = [...val];
+  },
+  { deep: true }
+);
 
 // 通过当前组件加载的列表或者之前回传的对象来映射名称
 const selectedSalespersons = computed(() =>
@@ -118,13 +122,13 @@ const loadSalespersons = async () => {
 
 const handleConfirm = (newSelectedIds, newSelectedObjects) => {
   // 合并对象到本地以保证 tag 显示（避免每次都需要加载完毕才显示）
-  const existingIds = salespersons.value.map(s => s.id);
-  newSelectedObjects.forEach(obj => {
+  const existingIds = salespersons.value.map((s) => s.id);
+  newSelectedObjects.forEach((obj) => {
     if (!existingIds.includes(obj.id)) {
       salespersons.value.push(obj);
     }
   });
-  
+
   selectedIds.value = newSelectedIds;
   emit('update:modelValue', [...selectedIds.value]);
 };
@@ -140,5 +144,4 @@ const remove = (id) => {
 onMounted(() => {
   loadSalespersons();
 });
-
 </script>

@@ -50,7 +50,7 @@ export function countEffectiveLines(source) {
           continue;
         }
 
-        if (inSingleQuote && char === '\'') {
+        if (inSingleQuote && char === "'") {
           inSingleQuote = false;
           continue;
         }
@@ -82,7 +82,7 @@ export function countEffectiveLines(source) {
         break;
       }
 
-      if (char === '\'') {
+      if (char === "'") {
         inSingleQuote = true;
         hasCode = true;
         continue;

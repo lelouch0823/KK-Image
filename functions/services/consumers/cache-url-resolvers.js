@@ -54,7 +54,12 @@ import {
 
 // ─── 缓存 URL 收集 ───────────────────────────────────────
 
-export async function collectProductSurfaceCacheUrls({ db, ctx, salesTokens = [], productIds = [] }) {
+export async function collectProductSurfaceCacheUrls({
+  db,
+  ctx,
+  salesTokens = [],
+  productIds = [],
+}) {
   const normalizedProductIds = [...new Set((productIds || []).filter(Boolean))];
   if (normalizedProductIds.length === 0) return [];
 
@@ -79,7 +84,8 @@ export async function collectProductSurfaceCacheUrls({ db, ctx, salesTokens = []
 
   for (const parentId of affectedSpaces.parentIds) {
     for (const url of getManageSpaceCacheUrls(ctx, { parentId })) urls.add(url);
-    for (const url of getSalesSpaceCacheUrls(ctx, { salesTokens, spaceId: parentId })) urls.add(url);
+    for (const url of getSalesSpaceCacheUrls(ctx, { salesTokens, spaceId: parentId }))
+      urls.add(url);
   }
 
   return [...urls];
@@ -100,18 +106,24 @@ export function resolveAdminNotificationUrls({ ctx }) {
 }
 
 export async function resolveSalesNotificationUrls({ db, ctx, payload, state }) {
-  const salesTokens = await getMemoizedSalespersonAccessTokens(db, [resolveSalespersonId(payload)].filter(Boolean), state);
+  const salesTokens = await getMemoizedSalespersonAccessTokens(
+    db,
+    [resolveSalespersonId(payload)].filter(Boolean),
+    state
+  );
   return getSalesNotificationCacheUrls(ctx, salesTokens[0]);
 }
 
 export async function resolveProcurementUrls({ db, ctx, event, payload, state }) {
   const salesTokens = await getMemoizedAllSalespersonAccessTokens(db, state);
   const purchaseOrderId = resolvePurchaseOrderId(event, payload);
-  return [...new Set([
-    ...getPurchaseOrderCacheUrls(ctx, purchaseOrderId),
-    ...getOrderAndSalespersonCacheUrls(ctx, { salesTokens }),
-    ...getOrderNotificationCacheUrls(ctx, { salesTokens }),
-  ])];
+  return [
+    ...new Set([
+      ...getPurchaseOrderCacheUrls(ctx, purchaseOrderId),
+      ...getOrderAndSalespersonCacheUrls(ctx, { salesTokens }),
+      ...getOrderNotificationCacheUrls(ctx, { salesTokens }),
+    ]),
+  ];
 }
 
 export function resolveTagUrls({ ctx }) {
@@ -120,7 +132,9 @@ export function resolveTagUrls({ ctx }) {
 
 export function resolveManageFolderUrls({ ctx, payload }) {
   const parentIds = asArray(payload.parent_ids || payload.folder_ids || payload.folder_id);
-  return [...new Set([...getManageFolderCacheUrls(ctx, parentIds), ...getManageShareCacheUrls(ctx)])];
+  return [
+    ...new Set([...getManageFolderCacheUrls(ctx, parentIds), ...getManageShareCacheUrls(ctx)]),
+  ];
 }
 
 export function resolveManageFileUrls({ ctx, baseUrl, payload }) {
@@ -137,17 +151,23 @@ export function resolveAdminOrderUrls({ ctx }) {
 }
 
 export async function resolveSalesOrderUrls({ db, ctx, payload, state }) {
-  const salesTokens = await getMemoizedSalespersonAccessTokens(db, [resolveSalespersonId(payload)].filter(Boolean), state);
+  const salesTokens = await getMemoizedSalespersonAccessTokens(
+    db,
+    [resolveSalespersonId(payload)].filter(Boolean),
+    state
+  );
   return getSalesOrderCacheUrls(ctx, { salesTokens });
 }
 
 export function resolveV1FolderUrls({ ctx, payload }) {
   const parentIds = asArray(payload.parent_ids || payload.folder_ids || payload.folder_id);
-  return [...new Set([
-    ...getV1FolderCacheUrls(ctx, parentIds),
-    ...getManageFolderCacheUrls(ctx, parentIds),
-    ...getManageShareCacheUrls(ctx),
-  ])];
+  return [
+    ...new Set([
+      ...getV1FolderCacheUrls(ctx, parentIds),
+      ...getManageFolderCacheUrls(ctx, parentIds),
+      ...getManageShareCacheUrls(ctx),
+    ]),
+  ];
 }
 
 export function resolveV1FileUrls({ ctx, baseUrl, payload }) {
@@ -167,14 +187,16 @@ export function resolveV1FileUrls({ ctx, baseUrl, payload }) {
 export async function resolveSpaceUrls({ db, ctx, event, payload, state }) {
   const salesTokens = await getMemoizedAllSalespersonAccessTokens(db, state);
   const spaceId = payload.space_id || event.aggregate_id || null;
-  return [...new Set([
-    ...getManageSpaceCacheUrls(ctx, {
-      spaceId,
-      parentId: payload.parent_id || null,
-      productIds: asArray(payload.product_ids || payload.product_id),
-    }),
-    ...getSalesSpaceCacheUrls(ctx, { salesTokens, spaceId }),
-  ])];
+  return [
+    ...new Set([
+      ...getManageSpaceCacheUrls(ctx, {
+        spaceId,
+        parentId: payload.parent_id || null,
+        productIds: asArray(payload.product_ids || payload.product_id),
+      }),
+      ...getSalesSpaceCacheUrls(ctx, { salesTokens, spaceId }),
+    ]),
+  ];
 }
 
 export async function resolveProductUrls({ db, ctx, event, payload, state }) {
@@ -200,7 +222,10 @@ export async function resolveInventoryUrls({ db, ctx, event, payload, state }) {
 // ─── 解析器注册表 ─────────────────────────────────────────
 
 export const CACHE_URL_RESOLVERS = [
-  [(et) => ['customer_created', 'customer_updated', 'customer_deleted'].includes(et), resolveCustomerUrls],
+  [
+    (et) => ['customer_created', 'customer_updated', 'customer_deleted'].includes(et),
+    resolveCustomerUrls,
+  ],
   [(et) => isSalespersonCacheEvent(et), resolveSalespersonUrls],
   [(et) => et === 'notification_read_by_admin', resolveAdminNotificationUrls],
   [(et) => et === 'notification_read_by_sales', resolveSalesNotificationUrls],

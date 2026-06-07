@@ -74,15 +74,23 @@ export function createSafeMigrateRunner(options = {}) {
   const runWrangler = options.runWrangler || defaultRunWrangler;
 
   function runMainApply(envName, transientRetryCount) {
-    return runWrangler(
-      ['d1', 'migrations', 'apply', 'DB', '--env', envName, '--remote'],
-      { retries: transientRetryCount }
-    );
+    return runWrangler(['d1', 'migrations', 'apply', 'DB', '--env', envName, '--remote'], {
+      retries: transientRetryCount,
+    });
   }
 
   function runFallbackExecute(envName, migrationName, transientRetryCount) {
     return runWrangler(
-      ['d1', 'execute', 'DB', '--env', envName, '--remote', '--file', `migrations/${migrationName}`],
+      [
+        'd1',
+        'execute',
+        'DB',
+        '--env',
+        envName,
+        '--remote',
+        '--file',
+        `migrations/${migrationName}`,
+      ],
       { retries: transientRetryCount }
     );
   }
@@ -162,11 +170,7 @@ export async function runSafeMigrateCli(options = {}) {
       `[safe-migrate] detected wrangler parser failure on ${failedMigration}, using --file fallback...\n`
     );
 
-    const executeResult = runner.runFallbackExecute(
-      envName,
-      failedMigration,
-      transientRetryCount
-    );
+    const executeResult = runner.runFallbackExecute(envName, failedMigration, transientRetryCount);
     if (!executeResult.ok) {
       runner.writeStderr(
         `[safe-migrate] fallback execute failed for ${failedMigration}. aborting.\n`
@@ -174,11 +178,7 @@ export async function runSafeMigrateCli(options = {}) {
       return executeResult.status ?? 1;
     }
 
-    const markResult = runner.markMigrationApplied(
-      envName,
-      failedMigration,
-      transientRetryCount
-    );
+    const markResult = runner.markMigrationApplied(envName, failedMigration, transientRetryCount);
     if (!markResult.ok) {
       runner.writeStderr(
         `[safe-migrate] failed to mark ${failedMigration} in d1_migrations. aborting.\n`

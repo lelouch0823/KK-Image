@@ -8,8 +8,7 @@ import {
   generateJWT,
   verifyApiKey,
   timingSafeCompare,
-
-  ADMIN_AUTH_COOKIE
+  ADMIN_AUTH_COOKIE,
 } from '../auth';
 import { MSG } from '../messages';
 
@@ -35,8 +34,8 @@ vi.stubGlobal('crypto', {
   subtle: {
     timingSafeEqual: timingSafeEqualMock,
     importKey: vi.fn().mockResolvedValue('mock-key'),
-    sign: signMock
-  }
+    sign: signMock,
+  },
 });
 
 describe('Auth Utils 100% Coverage Final', () => {
@@ -50,12 +49,12 @@ describe('Auth Utils 100% Coverage Final', () => {
       bind: vi.fn().mockReturnThis(),
       run: vi.fn().mockResolvedValue({ success: true }),
       all: vi.fn().mockResolvedValue({ results: [] }),
-      first: vi.fn().mockResolvedValue(null)
+      first: vi.fn().mockResolvedValue(null),
     };
     env = {
       DB: db,
       JWT_SECRET: 'test-secret',
-      DEFAULT_API_KEY: 'default-tk'
+      DEFAULT_API_KEY: 'default-tk',
     };
 
     __resetApiKeyCacheForTest();
@@ -93,9 +92,12 @@ describe('Auth Utils 100% Coverage Final', () => {
   describe('API Key Operations', () => {
     it('should verify from DB and use cache on second call', async () => {
       // First call: DB fetch
-      db.first.mockResolvedValueOnce(
-        { id: 'k1', key_value: 'v1', permissions: '["read"]', disabled: 0 }
-      );
+      db.first.mockResolvedValueOnce({
+        id: 'k1',
+        key_value: 'v1',
+        permissions: '["read"]',
+        disabled: 0,
+      });
       const res1 = await verifyApiKey('v1', env);
       expect(res1.id).toBe('k1');
       expect(db.prepare).toHaveBeenCalledTimes(1);
@@ -117,23 +119,24 @@ describe('Auth Utils 100% Coverage Final', () => {
       expect(res.id).toBe('default');
     });
 
-    it('should throw if default API key doesn\'t match provided one', async () => {
+    it("should throw if default API key doesn't match provided one", async () => {
       db.first.mockRejectedValue(new Error('DB Fail'));
       await expect(verifyApiKey('wrong-tk', env)).rejects.toThrow(MSG.AUTH.API_KEY_INVALID);
     });
 
     it('falls back to empty permissions when api key permissions payload is invalid', async () => {
-      db.first.mockResolvedValueOnce(
-        { id: 'k2', key_value: 'v2', permissions: 'not-json', disabled: 0 }
-      );
+      db.first.mockResolvedValueOnce({
+        id: 'k2',
+        key_value: 'v2',
+        permissions: 'not-json',
+        disabled: 0,
+      });
       const res = await verifyApiKey('v2', env);
       expect(res.permissions).toEqual([]);
     });
 
     it('queries API keys by exact value instead of loading the full active key list', async () => {
-      db.first.mockResolvedValueOnce(
-        { id: 'k3', key_value: 'v3', permissions: '[]', disabled: 0 }
-      );
+      db.first.mockResolvedValueOnce({ id: 'k3', key_value: 'v3', permissions: '[]', disabled: 0 });
 
       const res = await verifyApiKey('v3', env);
 
@@ -161,7 +164,9 @@ describe('Auth Utils 100% Coverage Final', () => {
   describe('authenticateAdmin & isAdminAuthenticated', () => {
     it('should authenticate via Bearer and handle invalid cases', async () => {
       const token = await generateJWT({ id: 'admin' }, env);
-      const req = new Request('https://api.test', { headers: { 'Authorization': `Bearer ${token}` } });
+      const req = new Request('https://api.test', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       expect(await isAdminAuthenticated(req, env)).toBe(true);
 
       const req2 = new Request('https://api.test');

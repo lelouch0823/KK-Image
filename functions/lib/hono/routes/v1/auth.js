@@ -15,9 +15,30 @@ import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
-  { method: 'POST', path: '/login', domain: 'v1-auth', action: 'admin.auth.login', severity: 'high', targetType: 'user' },
-  { method: 'POST', path: '/token', domain: 'v1-auth', action: 'admin.auth.token', severity: 'high', targetType: 'user' },
-  { method: 'POST', path: '/logout', domain: 'v1-auth', action: 'admin.auth.logout', severity: 'normal', targetType: 'user' },
+  {
+    method: 'POST',
+    path: '/login',
+    domain: 'v1-auth',
+    action: 'admin.auth.login',
+    severity: 'high',
+    targetType: 'user',
+  },
+  {
+    method: 'POST',
+    path: '/token',
+    domain: 'v1-auth',
+    action: 'admin.auth.token',
+    severity: 'high',
+    targetType: 'user',
+  },
+  {
+    method: 'POST',
+    path: '/logout',
+    domain: 'v1-auth',
+    action: 'admin.auth.logout',
+    severity: 'normal',
+    targetType: 'user',
+  },
 ]);
 
 /**

@@ -10,11 +10,11 @@
 
 ## 2. 核心模块
 
-| 模块 | 位置 | 职责 |
-|---|---|---|
-| HTTP Core | `src/utils/http-core.js` | 统一 `request(url, options)` 与错误标准化 |
-| Auth Wrapper | `src/composables/useAuth.js` | 认证状态管理，`authFetch` 委托到 core |
-| Request Adapters | `src/composables/useRequestAdapters.js` | 按场景注入凭证（auth/public/sales） |
+| 模块             | 位置                                    | 职责                                      |
+| ---------------- | --------------------------------------- | ----------------------------------------- |
+| HTTP Core        | `src/utils/http-core.js`                | 统一 `request(url, options)` 与错误标准化 |
+| Auth Wrapper     | `src/composables/useAuth.js`            | 认证状态管理，`authFetch` 委托到 core     |
+| Request Adapters | `src/composables/useRequestAdapters.js` | 按场景注入凭证（auth/public/sales）       |
 
 ## 3. 错误模型
 

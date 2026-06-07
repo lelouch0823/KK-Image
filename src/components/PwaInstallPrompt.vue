@@ -5,9 +5,16 @@
       class="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-2xl bg-(--bg-card) p-4 shadow-2xl ring-1 ring-(--border-color) sm:left-auto sm:right-4 sm:w-96"
     >
       <div class="flex items-start gap-3">
-        <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-(--color-primary-bg)">
+        <div
+          class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-(--color-primary-bg)"
+        >
           <svg class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+            />
           </svg>
         </div>
         <div class="flex-1">

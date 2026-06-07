@@ -8,7 +8,9 @@ describe('ai markdown utils', () => {
   });
 
   it('removes internal ai tags and report markers before rendering', () => {
-    const html = renderMarkdown('[REPORT_AVAILABLE]<think>secret</think><tools>hidden</tools>保留内容');
+    const html = renderMarkdown(
+      '[REPORT_AVAILABLE]<think>secret</think><tools>hidden</tools>保留内容'
+    );
 
     expect(html).not.toContain('REPORT_AVAILABLE');
     expect(html).not.toContain('<think>');

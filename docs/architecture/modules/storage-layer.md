@@ -44,13 +44,13 @@ functions/storage/
 
 ### 1.3 核心设计原则
 
-| 原则 | 说明 |
-|------|------|
+| 原则           | 说明                                                      |
+| -------------- | --------------------------------------------------------- |
 | **抽象层分离** | 通过 `BaseStorageProvider` 定义统一接口，支持多种存储后端 |
-| **工厂模式** | 使用注册表 + 缓存管理提供者实例 |
-| **策略路由** | 根据文件特征（大小、类型）智能选择存储 |
-| **CAS 去重** | 内容寻址存储，相同内容只存储一份 |
-| **冗余容错** | 支持多存储镜像和自动故障转移 |
+| **工厂模式**   | 使用注册表 + 缓存管理提供者实例                           |
+| **策略路由**   | 根据文件特征（大小、类型）智能选择存储                    |
+| **CAS 去重**   | 内容寻址存储，相同内容只存储一份                          |
+| **冗余容错**   | 支持多存储镜像和自动故障转移                              |
 
 ---
 
@@ -66,16 +66,25 @@ export class BaseStorageProvider {
   }
 
   // 必须实现的抽象方法
-  isConfigured() { throw new Error('Not implemented'); }
-  async upload(file, options = {}) { throw new Error('Not implemented'); }
-  async getFile(fileId, request) { throw new Error('Not implemented'); }
-  async deleteFile(fileId) { throw new Error('Not implemented'); }
+  isConfigured() {
+    throw new Error('Not implemented');
+  }
+  async upload(file, options = {}) {
+    throw new Error('Not implemented');
+  }
+  async getFile(fileId, request) {
+    throw new Error('Not implemented');
+  }
+  async deleteFile(fileId) {
+    throw new Error('Not implemented');
+  }
 }
 ```
 
 ### 2.2 Cloudflare R2 提供者
 
 **特性**:
+
 - 完全符合 Cloudflare R2 官方最佳实践
 - 支持 `writeHttpMetadata()` 自动写入响应头
 - 支持条件请求 (`onlyIf`) 和 Range 请求
@@ -103,7 +112,7 @@ async getFile(fileId, request) {
     onlyIf: request?.headers,  // 条件请求
     range: request?.headers,   // Range 请求
   });
-  
+
   const headers = new Headers();
   object.writeHttpMetadata(headers);  // 官方推荐方法
   return new Response(object.body, { status, headers });
@@ -115,6 +124,7 @@ async getFile(fileId, request) {
 **支持的 S3 兼容服务**: Amazon S3, MinIO, 阿里云 OSS, 腾讯云 COS
 
 **特性**:
+
 - 完整的 AWS Signature Version 4 签名实现
 - 支持路径风格和虚拟主机风格 URL
 - 纯 Web Crypto API 实现（无需外部依赖）
@@ -122,6 +132,7 @@ async getFile(fileId, request) {
 ### 2.4 Telegram 提供者
 
 **特性**:
+
 - 利用 Telegram Bot API 免费无限存储
 - 根据文件类型自动选择 API 端点
 - 内置重试机制和错误处理
@@ -160,7 +171,7 @@ async getFile(fileId, request) {
 ```javascript
 export async function storeFile(env, file, options = {}) {
   // 1. 哈希计算 (前端计算优先，后端计算兜底)
-  let contentHash = inputHash || await sha256Hex(buffer);
+  let contentHash = inputHash || (await sha256Hex(buffer));
 
   // 2. 同名同内容检测 → 秒传
   const existingFile = await fileRepo.findByNameInFolder(folderId, fileName);
@@ -186,18 +197,18 @@ export async function storeFile(env, file, options = {}) {
 ```javascript
 // 增加引用
 export async function incrementRefCount(env, hash) {
-  await env.DB.prepare(
-    'UPDATE blobs SET ref_count = ref_count + 1 WHERE content_hash = ?'
-  ).bind(hash).run();
+  await env.DB.prepare('UPDATE blobs SET ref_count = ref_count + 1 WHERE content_hash = ?')
+    .bind(hash)
+    .run();
 }
 
 // 减少引用 (引用归零时删除物理文件)
 export async function decrementRefCount(env, hash) {
   const [, blob] = await env.DB.batch([
     env.DB.prepare('UPDATE blobs SET ref_count = ref_count - 1 WHERE content_hash = ?').bind(hash),
-    env.DB.prepare('SELECT ref_count FROM blobs WHERE content_hash = ?').bind(hash)
+    env.DB.prepare('SELECT ref_count FROM blobs WHERE content_hash = ?').bind(hash),
   ]);
-  
+
   if (blob.ref_count <= 0) {
     await env.R2_BUCKET.delete(hash);
     await env.DB.prepare('DELETE FROM blobs WHERE content_hash = ?').bind(hash).run();
@@ -211,11 +222,11 @@ export async function decrementRefCount(env, hash) {
 
 ### 4.1 存储模式
 
-| 模式 | 说明 | 配置 |
-|------|------|------|
-| `single` | 单存储，无镜像 | `STORAGE_MODE="single"` |
-| `redundant` | 主存储 + 镜像同步 | `STORAGE_MODE="redundant"` |
-| `smart` | 智能路由（按规则选择） | `STORAGE_MODE="smart"` |
+| 模式        | 说明                   | 配置                       |
+| ----------- | ---------------------- | -------------------------- |
+| `single`    | 单存储，无镜像         | `STORAGE_MODE="single"`    |
+| `redundant` | 主存储 + 镜像同步      | `STORAGE_MODE="redundant"` |
+| `smart`     | 智能路由（按规则选择） | `STORAGE_MODE="smart"`     |
 
 ### 4.2 智能路由规则
 
@@ -223,10 +234,10 @@ export async function decrementRefCount(env, hash) {
 const DEFAULT_RULES = [
   // 小于 5MB 的文件使用 Telegram（免费无限）
   { condition: 'size < 5242880', storage: 'telegram' },
-  
+
   // 视频文件使用 R2（适合大文件）
   { condition: 'type startsWith video/', storage: 'r2' },
-  
+
   // 默认使用 R2
   { default: true, storage: 'r2' },
 ];
@@ -236,20 +247,17 @@ const DEFAULT_RULES = [
 
 ```javascript
 export async function getFileWithFallback(env, fileId, request, metadata) {
-  const chain = getFallbackChain(env);  // ['r2', 's3', 'telegram']
-  
+  const chain = getFallbackChain(env); // ['r2', 's3', 'telegram']
+
   for (const providerName of chain) {
     try {
-      const response = await Promise.race([
-        provider.getFile(fileId, request),
-        timeout(3000),
-      ]);
+      const response = await Promise.race([provider.getFile(fileId, request), timeout(3000)]);
       if (response.ok) return response;
     } catch (error) {
       console.warn(`Fallback: ${providerName} failed`);
     }
   }
-  
+
   return new Response('File not found', { status: 404 });
 }
 ```
@@ -263,9 +271,26 @@ export async function getFileWithFallback(env, fileId, request, metadata) {
 ```javascript
 // 危险扩展名黑名单
 const DANGEROUS_EXTENSIONS = new Set([
-  'exe', 'bat', 'cmd', 'com', 'msi', 'scr', 'pif',
-  'vbs', 'vbe', 'js', 'jse', 'wsf', 'wsh', 'ps1',
-  'dll', 'sys', 'cpl', 'inf', 'reg', 'hta',
+  'exe',
+  'bat',
+  'cmd',
+  'com',
+  'msi',
+  'scr',
+  'pif',
+  'vbs',
+  'vbe',
+  'js',
+  'jse',
+  'wsf',
+  'wsh',
+  'ps1',
+  'dll',
+  'sys',
+  'cpl',
+  'inf',
+  'reg',
+  'hta',
 ]);
 
 // 校验流程
@@ -284,9 +309,9 @@ function validateUpload(file, options) {
 ```javascript
 export function generateShareToken(length = 12) {
   const array = new Uint8Array(length);
-  crypto.getRandomValues(array);  // CSPRNG
+  crypto.getRandomValues(array); // CSPRNG
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  return Array.from(array, byte => chars[byte % chars.length]).join('');
+  return Array.from(array, (byte) => chars[byte % chars.length]).join('');
 }
 ```
 
@@ -327,20 +352,20 @@ database_name = "kk-life-db"
 
 ### 7.1 性能优化
 
-| 优化点 | 建议 |
-|--------|------|
-| **Cache API** | 启用 `caches.default` 减少 R2 Class B 操作 |
-| **Smart Placement** | 使用 `mode = "smart"` 自动优化函数位置 |
-| **Range 请求** | 支持视频流式播放和大文件分片下载 |
-| **条件请求** | 利用 `If-None-Match` 返回 304 减少带宽 |
+| 优化点              | 建议                                       |
+| ------------------- | ------------------------------------------ |
+| **Cache API**       | 启用 `caches.default` 减少 R2 Class B 操作 |
+| **Smart Placement** | 使用 `mode = "smart"` 自动优化函数位置     |
+| **Range 请求**      | 支持视频流式播放和大文件分片下载           |
+| **条件请求**        | 利用 `If-None-Match` 返回 304 减少带宽     |
 
 ### 7.2 成本优化
 
-| 策略 | 说明 |
-|------|------|
-| **CAS 去重** | 相同内容只存储一份，节省存储空间 |
-| **Telegram 存储** | 小于 5MB 文件使用 Telegram 免费 |
-| **智能路由** | 根据文件特征选择成本最优存储 |
+| 策略              | 说明                             |
+| ----------------- | -------------------------------- |
+| **CAS 去重**      | 相同内容只存储一份，节省存储空间 |
+| **Telegram 存储** | 小于 5MB 文件使用 Telegram 免费  |
+| **智能路由**      | 根据文件特征选择成本最优存储     |
 
 ### 7.3 可靠性建议
 

@@ -53,12 +53,17 @@ function maybeWarnSlowQuery(operation, duration, label, sql, enabled) {
   }
 
   const prefix = operation === 'execute' ? 'D1 Slow Write' : 'D1 Slow Query';
-  console.warn(`[${prefix}] ${duration.toFixed(2)}ms${label ? ` [${label}]` : ''}: ${truncateSql(sql)}`);
+  console.warn(
+    `[${prefix}] ${duration.toFixed(2)}ms${label ? ` [${label}]` : ''}: ${truncateSql(sql)}`
+  );
 }
 
 function logQueryError(operation, duration, label, sql, error) {
   const prefix = operation === 'execute' ? 'D1 Write Error' : 'D1 Query Error';
-  console.error(`[${prefix}] ${duration.toFixed(2)}ms${label ? ` [${label}]` : ''}: ${truncateSql(sql)}`, error);
+  console.error(
+    `[${prefix}] ${duration.toFixed(2)}ms${label ? ` [${label}]` : ''}: ${truncateSql(sql)}`,
+    error
+  );
 }
 
 async function runQuery(db, sql, bindings = [], options = {}, operation, mode) {

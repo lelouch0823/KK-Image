@@ -102,9 +102,7 @@ describe('useOrderFilters', () => {
     expect(mocks.authFetch).toHaveBeenCalledWith(
       expect.stringContaining('deliveryStatus=returned')
     );
-    expect(mocks.authFetch).toHaveBeenCalledWith(
-      expect.stringContaining('status=fulfilled')
-    );
+    expect(mocks.authFetch).toHaveBeenCalledWith(expect.stringContaining('status=fulfilled'));
   });
 
   it('forwards active date range in export requests', async () => {
@@ -116,11 +114,7 @@ describe('useOrderFilters', () => {
 
     await exportOrders();
 
-    expect(mocks.authFetch).toHaveBeenCalledWith(
-      expect.stringContaining('from=2026-04-14')
-    );
-    expect(mocks.authFetch).toHaveBeenCalledWith(
-      expect.stringContaining('to=2026-04-14')
-    );
+    expect(mocks.authFetch).toHaveBeenCalledWith(expect.stringContaining('from=2026-04-14'));
+    expect(mocks.authFetch).toHaveBeenCalledWith(expect.stringContaining('to=2026-04-14'));
   });
 });

@@ -59,7 +59,10 @@ import lineRoutesApp from '../lines.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.use('/api/manage/orders/*', async (c, next) => {
     c.set('user', { id: 'admin-1', name: 'Admin' });
@@ -72,11 +75,36 @@ function createApp() {
 describe('manage order line command routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.reserveLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'reserve', quantity: 2 });
-    mocks.releaseLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'release', quantity: 1 });
-    mocks.shipLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'ship', quantity: 1 });
-    mocks.unshipLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'unship', quantity: 1 });
-    mocks.returnLine.mockResolvedValue({ order_id: 'order-1', order_line_id: 'line-1', action: 'return', quantity: 1 });
+    mocks.reserveLine.mockResolvedValue({
+      order_id: 'order-1',
+      order_line_id: 'line-1',
+      action: 'reserve',
+      quantity: 2,
+    });
+    mocks.releaseLine.mockResolvedValue({
+      order_id: 'order-1',
+      order_line_id: 'line-1',
+      action: 'release',
+      quantity: 1,
+    });
+    mocks.shipLine.mockResolvedValue({
+      order_id: 'order-1',
+      order_line_id: 'line-1',
+      action: 'ship',
+      quantity: 1,
+    });
+    mocks.unshipLine.mockResolvedValue({
+      order_id: 'order-1',
+      order_line_id: 'line-1',
+      action: 'unship',
+      quantity: 1,
+    });
+    mocks.returnLine.mockResolvedValue({
+      order_id: 'order-1',
+      order_line_id: 'line-1',
+      action: 'return',
+      quantity: 1,
+    });
     mocks.orderFindById.mockResolvedValue({
       id: 'order-1',
       orderNo: 'SO-1',
@@ -144,10 +172,30 @@ describe('manage order line command routes', () => {
     expect(shipRes.status).toBe(200);
     expect(unshipRes.status).toBe(200);
     expect(returnRes.status).toBe(200);
-    expect(mocks.reserveLine).toHaveBeenCalledWith('order-1', 'line-1', { quantity: 2 }, expect.any(Object));
-    expect(mocks.releaseLine).toHaveBeenCalledWith('order-1', 'line-1', { quantity: 1 }, expect.any(Object));
-    expect(mocks.shipLine).toHaveBeenCalledWith('order-1', 'line-1', { quantity: 1 }, expect.any(Object));
-    expect(mocks.unshipLine).toHaveBeenCalledWith('order-1', 'line-1', { quantity: 1 }, expect.any(Object));
+    expect(mocks.reserveLine).toHaveBeenCalledWith(
+      'order-1',
+      'line-1',
+      { quantity: 2 },
+      expect.any(Object)
+    );
+    expect(mocks.releaseLine).toHaveBeenCalledWith(
+      'order-1',
+      'line-1',
+      { quantity: 1 },
+      expect.any(Object)
+    );
+    expect(mocks.shipLine).toHaveBeenCalledWith(
+      'order-1',
+      'line-1',
+      { quantity: 1 },
+      expect.any(Object)
+    );
+    expect(mocks.unshipLine).toHaveBeenCalledWith(
+      'order-1',
+      'line-1',
+      { quantity: 1 },
+      expect.any(Object)
+    );
     expect(mocks.returnLine).toHaveBeenCalledWith(
       'order-1',
       'line-1',

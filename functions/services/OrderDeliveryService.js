@@ -2,21 +2,31 @@ import { BadRequestError, NotFoundError } from '../lib/hono/errors.js';
 import { OrderRepository } from '../repositories/OrderRepository.js';
 
 function normalizeOrderStatus(status) {
-  const normalized = String(status || '').trim().toLowerCase();
+  const normalized = String(status || '')
+    .trim()
+    .toLowerCase();
   if (normalized === 'delivered') return 'fulfilled';
   return normalized;
 }
 
 function normalizeDeliveryStatus(status) {
-  const normalized = String(status || '').trim().toLowerCase();
-  if (['not_shipped', 'in_transit', 'delivered', 'partially_returned', 'returned'].includes(normalized)) {
+  const normalized = String(status || '')
+    .trim()
+    .toLowerCase();
+  if (
+    ['not_shipped', 'in_transit', 'delivered', 'partially_returned', 'returned'].includes(
+      normalized
+    )
+  ) {
     return normalized;
   }
   return '';
 }
 
 function normalizeFulfillmentStatus(status) {
-  const normalized = String(status || '').trim().toLowerCase();
+  const normalized = String(status || '')
+    .trim()
+    .toLowerCase();
   if (['unfulfilled', 'partially_fulfilled', 'fulfilled'].includes(normalized)) {
     return normalized;
   }
@@ -100,10 +110,7 @@ export class OrderDeliveryService {
         'delivery confirmation requires a fulfilled order with all shippable quantity shipped'
       );
     }
-    if (
-      explicitFulfillmentStatus !== 'fulfilled'
-      && derivedFulfillmentStatus !== 'fulfilled'
-    ) {
+    if (explicitFulfillmentStatus !== 'fulfilled' && derivedFulfillmentStatus !== 'fulfilled') {
       throw new BadRequestError(
         'delivery confirmation requires a fulfilled order with all shippable quantity shipped'
       );

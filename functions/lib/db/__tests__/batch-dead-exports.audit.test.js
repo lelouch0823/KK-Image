@@ -34,9 +34,6 @@ describe('db batch dead exports audit', () => {
       offenders.push('functions/lib/db/batch.js: still defines transaction');
     }
 
-    expect(
-      offenders,
-      `db batch dead-export offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `db batch dead-export offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

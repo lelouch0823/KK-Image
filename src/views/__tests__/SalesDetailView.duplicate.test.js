@@ -62,7 +62,8 @@ describe('SalesDetailView duplicate prefill', () => {
           'router-link': true,
           OrderDetail: {
             props: ['order'],
-            template: '<button data-testid="duplicate" @click="$emit(\'duplicate\', order)">duplicate</button>',
+            template:
+              '<button data-testid="duplicate" @click="$emit(\'duplicate\', order)">duplicate</button>',
           },
           EmptyState: true,
           AsyncStatePanel: true,
@@ -113,7 +114,8 @@ describe('SalesDetailView duplicate prefill', () => {
           'router-link': true,
           OrderDetail: {
             props: ['order'],
-            template: '<button data-testid="duplicate" @click="$emit(\'duplicate\', order)">duplicate</button>',
+            template:
+              '<button data-testid="duplicate" @click="$emit(\'duplicate\', order)">duplicate</button>',
           },
           EmptyState: true,
           AsyncStatePanel: true,
@@ -166,7 +168,8 @@ describe('SalesDetailView duplicate prefill', () => {
           'router-link': true,
           OrderDetail: {
             props: ['order'],
-            template: '<button data-testid="duplicate" @click="$emit(\'duplicate\', order)">duplicate</button>',
+            template:
+              '<button data-testid="duplicate" @click="$emit(\'duplicate\', order)">duplicate</button>',
           },
           EmptyState: true,
           AsyncStatePanel: true,

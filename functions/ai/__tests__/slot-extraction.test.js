@@ -3,7 +3,10 @@ import { extractActionSlots } from '../slot-extraction.js';
 
 describe('extractActionSlots', () => {
   it('extracts customer fields from natural language', () => {
-    const result = extractActionSlots('customer', '新增客户 Alice，电话 13800000000，邮箱 alice@example.com，公司 星河贸易');
+    const result = extractActionSlots(
+      'customer',
+      '新增客户 Alice，电话 13800000000，邮箱 alice@example.com，公司 星河贸易'
+    );
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -16,7 +19,10 @@ describe('extractActionSlots', () => {
   });
 
   it('extracts salesperson fields including password and store', () => {
-    const result = extractActionSlots('salesperson', '创建业务员 张三，门店 深圳万象城，手机 13911112222，密码 abc123');
+    const result = extractActionSlots(
+      'salesperson',
+      '创建业务员 张三，门店 深圳万象城，手机 13911112222，密码 abc123'
+    );
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -29,7 +35,10 @@ describe('extractActionSlots', () => {
   });
 
   it('extracts order quantity and salesperson raw identifier', () => {
-    const result = extractActionSlots('order', '帮我创建订单，商品名 Classic Runner，给张三下 2 件');
+    const result = extractActionSlots(
+      'order',
+      '帮我创建订单，商品名 Classic Runner，给张三下 2 件'
+    );
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -54,7 +63,10 @@ describe('extractActionSlots', () => {
   });
 
   it('extracts purchase-order from-orders mode and order ids', () => {
-    const result = extractActionSlots('purchase_order', '从订单 ord-1, ord-2 创建采购单，备注 补货');
+    const result = extractActionSlots(
+      'purchase_order',
+      '从订单 ord-1, ord-2 创建采购单，备注 补货'
+    );
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -66,7 +78,10 @@ describe('extractActionSlots', () => {
   });
 
   it('extracts manual purchase-order item draft from natural language', () => {
-    const result = extractActionSlots('purchase_order', '创建采购单，跑鞋 黑色 42 补货 20件，单价 60，备注 急单');
+    const result = extractActionSlots(
+      'purchase_order',
+      '创建采购单，跑鞋 黑色 42 补货 20件，单价 60，备注 急单'
+    );
 
     expect(result).toEqual(
       expect.objectContaining({

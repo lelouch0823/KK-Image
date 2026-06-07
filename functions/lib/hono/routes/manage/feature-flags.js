@@ -13,21 +13,38 @@ const app = new Hono();
 app.use('*', requirePermission('admin:full'));
 
 const FlagKeySchema = z.object({
-  key: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/, 'key 只允许字母、数字、下划线和连字符'),
+  key: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-zA-Z0-9_-]+$/, 'key 只允许字母、数字、下划线和连字符'),
 });
 
-const UpdateFlagSchema = z.object({
-  enabled: z.boolean().optional(),
-  description: z.string().max(500).optional(),
-}).strict();
-
-const BatchCreateFlagsSchema = z.object({
-  flags: z.array(z.object({
-    key: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/, 'key 只允许字母、数字、下划线和连字符'),
-    enabled: z.boolean(),
+const UpdateFlagSchema = z
+  .object({
+    enabled: z.boolean().optional(),
     description: z.string().max(500).optional(),
-  })).min(1).max(50),
-}).strict();
+  })
+  .strict();
+
+const BatchCreateFlagsSchema = z
+  .object({
+    flags: z
+      .array(
+        z.object({
+          key: z
+            .string()
+            .min(1)
+            .max(100)
+            .regex(/^[a-zA-Z0-9_-]+$/, 'key 只允许字母、数字、下划线和连字符'),
+          enabled: z.boolean(),
+          description: z.string().max(500).optional(),
+        })
+      )
+      .min(1)
+      .max(50),
+  })
+  .strict();
 
 // 获取所有功能开关
 app.get('/', withCache(30), async (c) => {

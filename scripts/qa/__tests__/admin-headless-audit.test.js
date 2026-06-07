@@ -255,22 +255,23 @@ describe('admin-headless-audit-lib', () => {
       send(raw) {
         const msg = JSON.parse(raw);
         queueMicrotask(() => {
-          const result = msg.method === 'Runtime.evaluate'
-            ? {
-                result: {
-                  value: {
-                    path: '/admin/dashboard',
-                    title: 'Admin',
-                    alertCount: 0,
-                    hasPermissionDeniedState: false,
-                    denied: false,
-                    alerts: [],
+          const result =
+            msg.method === 'Runtime.evaluate'
+              ? {
+                  result: {
+                    value: {
+                      path: '/admin/dashboard',
+                      title: 'Admin',
+                      alertCount: 0,
+                      hasPermissionDeniedState: false,
+                      denied: false,
+                      alerts: [],
+                    },
                   },
-                },
-              }
-            : msg.method === 'Page.captureScreenshot'
-              ? { data: Buffer.from('shot').toString('base64') }
-              : {};
+                }
+              : msg.method === 'Page.captureScreenshot'
+                ? { data: Buffer.from('shot').toString('base64') }
+                : {};
           this.onmessage && this.onmessage({ data: JSON.stringify({ id: msg.id, result }) });
         });
       }
@@ -317,6 +318,8 @@ describe('admin-headless-audit-lib', () => {
       skipPreview: true,
     });
 
-    await expect(runner.run()).rejects.toThrow('Audit violations: forbidden route must render permission-denied-state');
+    await expect(runner.run()).rejects.toThrow(
+      'Audit violations: forbidden route must render permission-denied-state'
+    );
   });
 });

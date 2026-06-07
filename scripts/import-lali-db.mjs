@@ -177,7 +177,9 @@ async function main() {
 
   // 3. 导入 images → variant_images
   console.log('🔄 处理 images → variant_images...');
-  const images = laliDb.prepare('SELECT * FROM images ORDER BY product_id, variant_id, position').all();
+  const images = laliDb
+    .prepare('SELECT * FROM images ORDER BY product_id, variant_id, position')
+    .all();
 
   // 按 variant_id 分组，确定主图
   const imagesByVariant = {};
@@ -246,7 +248,9 @@ async function main() {
       // 清理临时文件
       try {
         execSync(`rm -f "${batchFile}"`);
-      } catch { /* 清理失败可忽略 */ }
+      } catch {
+        /* 清理失败可忽略 */
+      }
     }
 
     console.log('\n✨ 导入完成！');
@@ -261,10 +265,9 @@ async function main() {
 
     for (const q of verifyQueries) {
       try {
-        const result = execSync(
-          `wrangler d1 execute ${DB_NAME} --local --command="${q.sql}"`,
-          { cwd: process.cwd() }
-        ).toString();
+        const result = execSync(`wrangler d1 execute ${DB_NAME} --local --command="${q.sql}"`, {
+          cwd: process.cwd(),
+        }).toString();
         const match = result.match(/"count":\s*(\d+)/);
         const count = match ? match[1] : '?';
         console.log(`   - ${q.name}: ${count} 条`);

@@ -4,9 +4,7 @@
     size="4xl"
     :eyebrow="'Shortage Closure'"
     :title="t('purchaseOrder.action.closeOutstanding')"
-    :description="
-      t('purchaseOrder.ui.shortageModalHint')
-    "
+    :description="t('purchaseOrder.ui.shortageModalHint')"
     @update:model-value="handleVisibilityChange"
     @close="$emit('close')"
   >
@@ -17,18 +15,19 @@
     </template>
 
     <div data-testid="purchase-order-shortage-modal" class="space-y-3">
-      <AppCard
-        v-for="entry in shortageDrafts"
-        :key="entry.purchase_order_item_id"
-        class="p-4"
-      >
+      <AppCard v-for="entry in shortageDrafts" :key="entry.purchase_order_item_id" class="p-4">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div class="min-w-0">
             <div class="flex min-w-0 flex-wrap items-center gap-2">
-              <span class="line-clamp-1 min-w-0 text-sm font-medium break-all text-(--text-main)" :title="entry.product_name">
+              <span
+                class="line-clamp-1 min-w-0 text-sm font-medium break-all text-(--text-main)"
+                :title="entry.product_name"
+              >
                 {{ entry.product_name || '-' }}
               </span>
-              <code class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-xs text-(--text-secondary)">
+              <code
+                class="rounded-md border border-(--border-color)/60 bg-(--bg-muted) px-1.5 py-0.5 font-mono text-xs text-(--text-secondary)"
+              >
                 {{ entry.variant_sku || '-' }}
               </code>
               <span
@@ -47,10 +46,7 @@
               {{ t('purchaseOrder.progress.outstandingPrefix') }}
               {{ formatInteger(entry.max_closable) }}
             </p>
-            <div
-              v-if="hasEntries(entry.variant_options)"
-              class="mt-2 flex min-w-0 flex-wrap gap-1"
-            >
+            <div v-if="hasEntries(entry.variant_options)" class="mt-2 flex min-w-0 flex-wrap gap-1">
               <span
                 v-for="(val, key) in entry.variant_options"
                 :key="`shortage-draft-${entry.purchase_order_item_id}-${key}`"
@@ -73,10 +69,7 @@
                 class="mt-2 text-center"
                 size="sm"
               />
-              <p
-                v-if="isShortageDraftInvalid(entry)"
-                class="text-danger mt-2 text-xs font-medium"
-              >
+              <p v-if="isShortageDraftInvalid(entry)" class="text-danger mt-2 text-xs font-medium">
                 {{ t('purchaseOrder.ui.shortageQtyOverflow') }}
               </p>
             </AppCard>

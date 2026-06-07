@@ -41,9 +41,7 @@
               {{ t('purchaseOrder.detail.loadingTitle') }}
             </h3>
             <p class="mt-1 text-sm text-(--text-secondary)">
-              {{
-                t('purchaseOrder.detail.loadingBody')
-              }}
+              {{ t('purchaseOrder.detail.loadingBody') }}
             </p>
           </div>
         </div>

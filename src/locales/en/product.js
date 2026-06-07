@@ -15,7 +15,8 @@ export default {
     preparing_edit_title: 'Preparing Edit',
     preparing_edit_action: 'Preparing Edit...',
     detail_loading_title: 'Refreshing product details',
-    detail_loading_body: 'Showing the current snapshot while richer product data loads in the background.',
+    detail_loading_body:
+      'Showing the current snapshot while richer product data loads in the background.',
     loading_title: 'Loading complete product data',
     loading_body: 'Syncing dimensions, variants, and inventory details.',
     edit_load_failed: 'Failed to load the editor. Please try again.',
@@ -59,15 +60,19 @@ export default {
     step_label: 'Step {step}',
     archive_dimension_title: 'Archive Dimension',
     archive_dimension_impact: 'This action will affect {count} existing variants.',
-    archive_dimension_hint: 'Once archived, this dimension will no longer appear in new variant combinations.',
+    archive_dimension_hint:
+      'Once archived, this dimension will no longer appear in new variant combinations.',
     archive_value_title: 'Archive Value',
     archive_value_impact: 'This action will affect {count} existing variants.',
-    archive_value_hint: 'Once archived, this value will no longer appear in new variant combinations.',
+    archive_value_hint:
+      'Once archived, this value will no longer appear in new variant combinations.',
     sample_variants: 'Affected Variant Examples:',
     archive_affected_variants: 'Handle Affected Variants',
-    archive_affected_variants_desc: 'Choose how to handle existing variants containing this archived dimension.',
+    archive_affected_variants_desc:
+      'Choose how to handle existing variants containing this archived dimension.',
     merge_and_keep: 'Merge & Keep (Recommended)',
-    merge_and_keep_desc: 'The dimension will no longer be an option, but existing variant data will be preserved.',
+    merge_and_keep_desc:
+      'The dimension will no longer be an option, but existing variant data will be preserved.',
     variants_title: 'Product Variants (SKU)',
     batch_build_variants: 'Batch Build Variants',
     manage_variant_images: 'Manage Variant Images',
@@ -122,7 +127,8 @@ export default {
     cancel: 'Cancel',
     import: 'Import',
     export: 'Export',
-    delete_confirm_message: 'Are you sure you want to delete this product? This action is irreversible.',
+    delete_confirm_message:
+      'Are you sure you want to delete this product? This action is irreversible.',
     activate: 'Activate',
     archive: 'Archive',
     status_change_title: 'Status Change',
@@ -230,7 +236,8 @@ export default {
     error_report: 'Error Report',
     download_error_report: 'Download Error Report',
     image_match_title: 'Image Matching',
-    image_match_desc: 'Detected {count} local image references in Excel. Please upload corresponding files.',
+    image_match_desc:
+      'Detected {count} local image references in Excel. Please upload corresponding files.',
     click_to_upload_images: 'Upload Images',
     image_upload_batch: '(batch upload / drag and drop)',
     image_selected_count: '{count} files selected',
@@ -347,7 +354,8 @@ export default {
     add_child: 'Add Subcategory',
     edit: 'Edit Category',
     delete: 'Delete Category',
-    delete_confirm: 'Are you sure you want to delete "{name}"? This will also delete all its subcategories.',
+    delete_confirm:
+      'Are you sure you want to delete "{name}"? This will also delete all its subcategories.',
     name_placeholder: 'Enter category name',
     sort_order: 'Sort Order',
     parent: 'Parent Category',

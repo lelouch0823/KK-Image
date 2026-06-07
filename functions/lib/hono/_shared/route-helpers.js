@@ -28,7 +28,13 @@ export function parsePagination(c, { page: defaultPage = 1, limit: defaultLimit 
  * @param {(value: any) => any} transform - 入库前转换
  * @returns {boolean} 是否发生追加
  */
-export function appendOptionalUpdate(updates, values, assignment, value, transform = (next) => next) {
+export function appendOptionalUpdate(
+  updates,
+  values,
+  assignment,
+  value,
+  transform = (next) => next
+) {
   if (value === undefined) return false;
   updates.push(assignment);
   values.push(transform(value));

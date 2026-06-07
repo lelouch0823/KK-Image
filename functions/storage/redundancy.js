@@ -87,28 +87,30 @@ export class RedundancyManager {
   _mirrorAsync(file, options, mirrors, primaryFileId, _storageInfo) {
     // 后台镜像任务 - 使用 Promise.all 并发执行所有镜像
     const mirrorTask = async () => {
-      await Promise.all(mirrors.map(async (mirrorName) => {
-        try {
-          const provider = getStorageProvider(this.env, mirrorName);
-          const result = await provider.upload(file, options);
+      await Promise.all(
+        mirrors.map(async (mirrorName) => {
+          try {
+            const provider = getStorageProvider(this.env, mirrorName);
+            const result = await provider.upload(file, options);
 
-          // 更新 D1 中的镜像状态
-          if (result.success && this.env.DB) {
-            await this._updateMirrorStatus(primaryFileId, mirrorName, result.fileId, 'synced');
+            // 更新 D1 中的镜像状态
+            if (result.success && this.env.DB) {
+              await this._updateMirrorStatus(primaryFileId, mirrorName, result.fileId, 'synced');
+            }
+          } catch (error) {
+            console.error(`Async mirror to ${mirrorName} failed:`, error);
+            if (this.env.DB) {
+              await this._updateMirrorStatus(
+                primaryFileId,
+                mirrorName,
+                null,
+                'failed',
+                error.message
+              );
+            }
           }
-        } catch (error) {
-          console.error(`Async mirror to ${mirrorName} failed:`, error);
-          if (this.env.DB) {
-            await this._updateMirrorStatus(
-              primaryFileId,
-              mirrorName,
-              null,
-              'failed',
-              error.message
-            );
-          }
-        }
-      }));
+        })
+      );
     };
 
     // 使用 context.waitUntil 确保后台任务完成
@@ -230,16 +232,19 @@ export async function getFileWithFallback(env, fileId, request, metadata) {
     return new Response('File not found in any storage', { status: 404 });
   }
 
-  // 1. 尝试主存储
+  // 1. 尝试主存储（使用 AbortSignal.timeout 替代手动 setTimeout，避免 Promise 泄漏）
   const primary = providers[0];
   try {
     const provider = getStorageProvider(env, primary.name);
     if (provider) {
-      const response = await Promise.race([
-        provider.getFile(primary.fileId, request),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout)),
-      ]);
-      if (response.ok) return response;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      try {
+        const response = await provider.getFile(primary.fileId, request, controller.signal);
+        if (response.ok) return response;
+      } finally {
+        clearTimeout(timeoutId);
+      }
     }
   } catch (error) {
     console.warn(`Fallback: ${primary.name} failed for ${fileId}:`, error.message);
@@ -248,20 +253,25 @@ export async function getFileWithFallback(env, fileId, request, metadata) {
   // 2. 主存储失败/超时，同时请求所有镜像竞速
   if (providers.length > 1) {
     const rest = providers.slice(1);
-    const restPromises = rest.map((r) => {
-      const p = getStorageProvider(env, r.name);
-      return p ? p.getFile(r.fileId, request) : Promise.reject(new Error('No provider'));
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const winner = await Promise.race(
-        restPromises
-          .map((p) => p.then((res) => (res.ok ? res : Promise.reject(new Error('Not OK')))))
-          .concat(new Promise((_, reject) => setTimeout(() => reject(new Error('All timeout')), timeout)))
-      );
+      const restPromises = rest.map((r) => {
+        const p = getStorageProvider(env, r.name);
+        return p
+          ? p
+              .getFile(r.fileId, request, controller.signal)
+              .then((res) => (res.ok ? res : Promise.reject(new Error('Not OK'))))
+          : Promise.reject(new Error('No provider'));
+      });
+
+      const winner = await Promise.race(restPromises);
       if (winner?.ok) return winner;
     } catch {
       // 所有镜像都失败
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 

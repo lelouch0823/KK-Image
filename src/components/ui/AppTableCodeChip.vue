@@ -44,7 +44,9 @@ const props = defineProps({
 });
 
 const displayValue = computed(() => {
-  return props.value === undefined || props.value === null || props.value === '' ? props.fallback : String(props.value);
+  return props.value === undefined || props.value === null || props.value === ''
+    ? props.fallback
+    : String(props.value);
 });
 
 const resolvedTitle = computed(() => props.title || displayValue.value);

@@ -142,15 +142,11 @@ describe('AIConfigManager', () => {
     });
 
     it('should throw error for invalid value', async () => {
-      await expect(
-        manager.set('AI_MAX_TOOL_ROUNDS', -1)
-      ).rejects.toThrow('Invalid value');
+      await expect(manager.set('AI_MAX_TOOL_ROUNDS', -1)).rejects.toThrow('Invalid value');
     });
 
     it('should throw error for unknown key', async () => {
-      await expect(
-        manager.set('UNKNOWN_KEY', 'value')
-      ).rejects.toThrow('Unknown config key');
+      await expect(manager.set('UNKNOWN_KEY', 'value')).rejects.toThrow('Unknown config key');
     });
   });
 
@@ -286,24 +282,15 @@ describe('config-schema', () => {
     });
 
     it('should trim whitespace', () => {
-      expect(parseModelList(' gpt-4 , gpt-3.5-turbo ')).toEqual([
-        'gpt-4',
-        'gpt-3.5-turbo',
-      ]);
+      expect(parseModelList(' gpt-4 , gpt-3.5-turbo ')).toEqual(['gpt-4', 'gpt-3.5-turbo']);
     });
 
     it('should return array as-is', () => {
-      expect(parseModelList(['gpt-4', 'gpt-3.5-turbo'])).toEqual([
-        'gpt-4',
-        'gpt-3.5-turbo',
-      ]);
+      expect(parseModelList(['gpt-4', 'gpt-3.5-turbo'])).toEqual(['gpt-4', 'gpt-3.5-turbo']);
     });
 
     it('should filter empty strings', () => {
-      expect(parseModelList('gpt-4,,,gpt-3.5-turbo')).toEqual([
-        'gpt-4',
-        'gpt-3.5-turbo',
-      ]);
+      expect(parseModelList('gpt-4,,,gpt-3.5-turbo')).toEqual(['gpt-4', 'gpt-3.5-turbo']);
     });
 
     it('should return empty array for empty input', () => {

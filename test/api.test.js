@@ -27,7 +27,6 @@ describeIfRealApi('kk-life API v1 Tests', function () {
 
   // 系统监控 API 测试
   describe('System Monitoring API', function () {
-
     it('should return health status', async function () {
       const response = await fetch(`${API_BASE_URL}/health`);
       const data = await response.json();
@@ -50,23 +49,21 @@ describeIfRealApi('kk-life API v1 Tests', function () {
       assert.ok(data.data.endpoints);
       assert.ok(data.data.limits);
     });
-
   });
 
   // 认证 API 测试
   describe('Authentication API', function () {
-
     it('should generate JWT token with valid credentials', async function () {
       const response = await fetch(`${API_BASE_URL}/auth/token`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           username: TEST_USERNAME,
           password: TEST_PASSWORD,
-          expiresIn: 3600
-        })
+          expiresIn: 3600,
+        }),
       });
 
       const data = await response.json();
@@ -85,12 +82,12 @@ describeIfRealApi('kk-life API v1 Tests', function () {
       const response = await fetch(`${API_BASE_URL}/auth/token`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           username: 'invalid',
-          password: 'invalid'
-        })
+          password: 'invalid',
+        }),
       });
 
       const data = await response.json();
@@ -108,13 +105,13 @@ describeIfRealApi('kk-life API v1 Tests', function () {
       const response = await fetch(`${API_BASE_URL}/auth/api-keys`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${testJwtToken}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${testJwtToken}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           name: 'Test API Key',
-          permissions: ['read', 'write']
-        })
+          permissions: ['read', 'write'],
+        }),
       });
 
       const data = await response.json();
@@ -135,8 +132,8 @@ describeIfRealApi('kk-life API v1 Tests', function () {
 
       const response = await fetch(`${API_BASE_URL}/auth/api-keys`, {
         headers: {
-          'Authorization': `Bearer ${testJwtToken}`
-        }
+          Authorization: `Bearer ${testJwtToken}`,
+        },
       });
 
       const data = await response.json();
@@ -145,12 +142,10 @@ describeIfRealApi('kk-life API v1 Tests', function () {
       assert.strictEqual(data.success, true);
       assert.ok(Array.isArray(data.data));
     });
-
   });
 
   // 文件管理 API 测试
   describe('File Management API', function () {
-
     it('should require authentication for file operations', async function () {
       const response = await fetch(`${API_BASE_URL}/files`);
       const data = await response.json();
@@ -162,8 +157,8 @@ describeIfRealApi('kk-life API v1 Tests', function () {
     it('should list files with valid API key', async function () {
       const response = await fetch(`${API_BASE_URL}/files`, {
         headers: {
-          'X-API-Key': TEST_API_KEY
-        }
+          'X-API-Key': TEST_API_KEY,
+        },
       });
 
       const data = await response.json();
@@ -176,8 +171,8 @@ describeIfRealApi('kk-life API v1 Tests', function () {
     it('should support pagination and filtering', async function () {
       const response = await fetch(`${API_BASE_URL}/files?page=1&limit=5&type=image`, {
         headers: {
-          'X-API-Key': TEST_API_KEY
-        }
+          'X-API-Key': TEST_API_KEY,
+        },
       });
 
       const data = await response.json();
@@ -211,9 +206,9 @@ describeIfRealApi('kk-life API v1 Tests', function () {
       const response = await fetch(`${API_BASE_URL}/files`, {
         method: 'POST',
         headers: {
-          'X-API-Key': TEST_API_KEY
+          'X-API-Key': TEST_API_KEY,
         },
-        body: formData
+        body: formData,
       });
 
       const data = await response.json();
@@ -239,8 +234,8 @@ describeIfRealApi('kk-life API v1 Tests', function () {
 
       const response = await fetch(`${API_BASE_URL}/files/${testFileId}`, {
         headers: {
-          'X-API-Key': TEST_API_KEY
-        }
+          'X-API-Key': TEST_API_KEY,
+        },
       });
 
       const data = await response.json();
@@ -259,12 +254,12 @@ describeIfRealApi('kk-life API v1 Tests', function () {
         method: 'PUT',
         headers: {
           'X-API-Key': TEST_API_KEY,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           tags: ['test', 'updated'],
-          description: 'Updated description'
-        })
+          description: 'Updated description',
+        }),
       });
 
       const data = await response.json();
@@ -273,17 +268,15 @@ describeIfRealApi('kk-life API v1 Tests', function () {
       assert.strictEqual(data.success, true);
       assert.deepStrictEqual(data.data.tags, ['test', 'updated']);
     });
-
   });
 
   // Webhook API 测试
   describe('Webhook API', function () {
-
     it('should require admin permission for webhook operations', async function () {
       const response = await fetch(`${API_BASE_URL}/webhooks`, {
         headers: {
-          'X-API-Key': TEST_API_KEY
-        }
+          'X-API-Key': TEST_API_KEY,
+        },
       });
 
       // 如果 TEST_API_KEY 没有 admin 权限，应该返回 403
@@ -304,14 +297,14 @@ describeIfRealApi('kk-life API v1 Tests', function () {
       const response = await fetch(`${API_BASE_URL}/webhooks`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${testJwtToken}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${testJwtToken}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           url: 'https://httpbin.org/post',
           events: ['file.uploaded', 'file.deleted'],
-          secret: 'test-webhook-secret'
-        })
+          secret: 'test-webhook-secret',
+        }),
       });
 
       const data = await response.json();
@@ -333,8 +326,8 @@ describeIfRealApi('kk-life API v1 Tests', function () {
       const response = await fetch(`${API_BASE_URL}/webhooks/${testWebhookId}/test`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${testJwtToken}`
-        }
+          Authorization: `Bearer ${testJwtToken}`,
+        },
       });
 
       const data = await response.json();
@@ -343,12 +336,10 @@ describeIfRealApi('kk-life API v1 Tests', function () {
       assert.strictEqual(data.success, true);
       assert.ok(data.data.status);
     });
-
   });
 
   // 清理测试数据
   describe('Cleanup', function () {
-
     it('should delete test file', async function () {
       if (!testFileId) {
         this.skip();
@@ -357,8 +348,8 @@ describeIfRealApi('kk-life API v1 Tests', function () {
       const response = await fetch(`${API_BASE_URL}/files/${testFileId}`, {
         method: 'DELETE',
         headers: {
-          'X-API-Key': TEST_API_KEY
-        }
+          'X-API-Key': TEST_API_KEY,
+        },
       });
 
       if (response.status === 200) {
@@ -375,8 +366,8 @@ describeIfRealApi('kk-life API v1 Tests', function () {
       const response = await fetch(`${API_BASE_URL}/webhooks/${testWebhookId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${testJwtToken}`
-        }
+          Authorization: `Bearer ${testJwtToken}`,
+        },
       });
 
       if (response.status === 200) {
@@ -393,8 +384,8 @@ describeIfRealApi('kk-life API v1 Tests', function () {
       const response = await fetch(`${API_BASE_URL}/auth/api-keys/${testApiKeyId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${testJwtToken}`
-        }
+          Authorization: `Bearer ${testJwtToken}`,
+        },
       });
 
       if (response.status === 200) {
@@ -402,9 +393,7 @@ describeIfRealApi('kk-life API v1 Tests', function () {
         assert.strictEqual(data.success, true);
       }
     });
-
   });
-
 });
 
 // 辅助函数

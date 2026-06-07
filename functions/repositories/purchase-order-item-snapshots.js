@@ -18,10 +18,14 @@ export async function loadOrderLineSnapshotMap({ db, items = [] }) {
   const snapshotMap = new Map();
   if (orderIds.length === 0 && orderLineIds.length === 0) return snapshotMap;
 
-  for (const chunk of chunkArray(orderIds.length > 0 ? orderIds : orderLineIds, D1_MAX_IN_CLAUSE_SIZE)) {
-    const whereClause = orderIds.length > 0
-      ? `order_id IN (${chunk.map(() => '?').join(',')})`
-      : `id IN (${chunk.map(() => '?').join(',')})`;
+  for (const chunk of chunkArray(
+    orderIds.length > 0 ? orderIds : orderLineIds,
+    D1_MAX_IN_CLAUSE_SIZE
+  )) {
+    const whereClause =
+      orderIds.length > 0
+        ? `order_id IN (${chunk.map(() => '?').join(',')})`
+        : `id IN (${chunk.map(() => '?').join(',')})`;
     const { results = [] } = await db
       .prepare(
         `SELECT
@@ -116,10 +120,7 @@ export async function loadLivePurchaseItemSnapshotMap({ db, items = [] }) {
 export async function hydratePurchaseItemSnapshots({ db, items = [] }) {
   const needsHydration = items.some(
     (item) =>
-      !item?.snapshot_name
-      || !item?.snapshot_sku
-      || !item?.snapshot_specs
-      || !item?.snapshot_image
+      !item?.snapshot_name || !item?.snapshot_sku || !item?.snapshot_specs || !item?.snapshot_image
   );
   if (!needsHydration) {
     return items.map((item) => ({
@@ -146,9 +147,8 @@ export async function hydratePurchaseItemSnapshots({ db, items = [] }) {
         `${item.pre_order_id || ''}::${item.product_id || ''}::${item.variant_id || ''}`
       ) ||
       null;
-    const liveSnapshot = liveSnapshotMap.get(
-      `${item.product_id || ''}::${item.variant_id || ''}`
-    ) || null;
+    const liveSnapshot =
+      liveSnapshotMap.get(`${item.product_id || ''}::${item.variant_id || ''}`) || null;
     const fallback = orderLineSnapshot || liveSnapshot || {};
 
     return {

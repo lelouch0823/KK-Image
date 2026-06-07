@@ -26,25 +26,31 @@ export function parseModelListForLog(modelsValue = '') {
  * @param {string} channel - 通道名称
  * @param {Object} options - 选项
  */
-export function logModelUsageTelemetry(channel, {
-  runtimeEnv = {},
-  selectedModel = '',
-  switched = false,
-  visionFirst = false,
-  toolsEnabled = true,
-  phase = 'initial',
-} = {}) {
+export function logModelUsageTelemetry(
+  channel,
+  {
+    runtimeEnv = {},
+    selectedModel = '',
+    switched = false,
+    visionFirst = false,
+    toolsEnabled = true,
+    phase = 'initial',
+  } = {}
+) {
   const configuredModels = parseModelListForLog(runtimeEnv.AI_MODELS || runtimeEnv.AI_MODEL || '');
-  console.info(`[AI ${channel}][ModelUsed]`, JSON.stringify({
-    phase,
-    selectedModel: selectedModel || null,
-    switched: Boolean(switched),
-    configuredPrimary: configuredModels[0] || null,
-    configuredCount: configuredModels.length,
-    dynamicFallbackEnabled: parseBooleanFlag(runtimeEnv.AI_DYNAMIC_FALLBACK_ENABLED, false),
-    visionFirst: Boolean(visionFirst),
-    toolsEnabled: Boolean(toolsEnabled),
-  }));
+  console.info(
+    `[AI ${channel}][ModelUsed]`,
+    JSON.stringify({
+      phase,
+      selectedModel: selectedModel || null,
+      switched: Boolean(switched),
+      configuredPrimary: configuredModels[0] || null,
+      configuredCount: configuredModels.length,
+      dynamicFallbackEnabled: parseBooleanFlag(runtimeEnv.AI_DYNAMIC_FALLBACK_ENABLED, false),
+      visionFirst: Boolean(visionFirst),
+      toolsEnabled: Boolean(toolsEnabled),
+    })
+  );
 }
 
 /**
@@ -54,11 +60,14 @@ export function logModelUsageTelemetry(channel, {
  */
 export function logInjectionTelemetry(channel, entries = []) {
   if (!Array.isArray(entries) || entries.length === 0) return;
-  console.warn('[AI PromptInjection][Detected]', JSON.stringify({
-    channel,
-    count: entries.length,
-    entries: entries.slice(0, 6),
-  }));
+  console.warn(
+    '[AI PromptInjection][Detected]',
+    JSON.stringify({
+      channel,
+      count: entries.length,
+      entries: entries.slice(0, 6),
+    })
+  );
 }
 
 /**

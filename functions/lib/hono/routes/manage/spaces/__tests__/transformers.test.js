@@ -31,11 +31,7 @@ describe('space transformers', () => {
       price: '199',
       material: 'Leather',
     });
-    expect(templateData.images).toEqual([
-      'variant-primary.jpg',
-      'product-1.jpg',
-      'product-2.jpg',
-    ]);
+    expect(templateData.images).toEqual(['variant-primary.jpg', 'product-1.jpg', 'product-2.jpg']);
   });
 
   it('maps variant dimension ids through dimension_map before applying semantic option aliases', () => {

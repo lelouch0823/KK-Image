@@ -28,7 +28,9 @@ describe('high-risk table wrap migrations', () => {
     expect(source).toContain('AppTableTextStack');
     expect(source).toContain('table-layout="fixed"');
     expect(source).toContain('primary-class="font-mono text-sm"');
-    expect(source).toContain("secondary-class=\"row.id === selectedEventId ? 'text-primary' : ''\"");
+    expect(source).toContain(
+      "secondary-class=\"row.id === selectedEventId ? 'text-primary' : ''\""
+    );
   });
 
   it('guards share tokens and backup names from wrapping', () => {
@@ -54,7 +56,9 @@ describe('high-risk table wrap migrations', () => {
     const orderListSource = read('src/components/order/OrderList.vue');
     const orderLinesCardSource = read('src/components/order/OrderLinesCard.vue');
     const orderPrintViewSource = read('src/components/order/OrderPrintView.vue');
-    const orderLineProcurementStateSource = read('src/components/order/OrderLineProcurementState.vue');
+    const orderLineProcurementStateSource = read(
+      'src/components/order/OrderLineProcurementState.vue'
+    );
     const statusChangerSource = read('src/components/OrderStatusChanger.vue');
     const procurementBadgeSource = read('src/components/order/OrderProcurementBadge.vue');
     const productTableSource = read('src/components/product/ProductTable.vue');
@@ -94,8 +98,10 @@ describe('high-risk table wrap migrations', () => {
     expect(procurementBadgeSource).toContain('whitespace-nowrap');
     expect(procurementBadgeSource).toContain('justify-center');
     expect(procurementBadgeSource).toContain('text-center');
-    expect(procurementBadgeSource).toContain("detail: { compact: true, dot: true, showLabel: true }");
-    expect(procurementBadgeSource).toContain("line: { compact: true }");
+    expect(procurementBadgeSource).toContain(
+      'detail: { compact: true, dot: true, showLabel: true }'
+    );
+    expect(procurementBadgeSource).toContain('line: { compact: true }');
     expect(procurementBadgeSource).toContain("meta: { appearance: 'meta' }");
   });
 
@@ -104,8 +110,8 @@ describe('high-risk table wrap migrations', () => {
     const goodsOverviewSource = read('src/views/GoodsOverview.vue');
     const outboxSource = read('src/components/outbox/OutboxEventTable.vue');
 
-    expect(appTableSource).toContain("numeric: {");
-    expect(appTableSource).toContain("datetime: {");
+    expect(appTableSource).toContain('numeric: {');
+    expect(appTableSource).toContain('datetime: {');
     expect(appTableSource).toContain('tabular-nums');
     expect(goodsOverviewSource).toContain("kind: 'numeric'");
     expect(outboxSource).toContain("kind: 'datetime'");

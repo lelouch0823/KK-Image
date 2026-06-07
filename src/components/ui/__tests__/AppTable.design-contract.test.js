@@ -207,7 +207,15 @@ describe('AppTable design contract', () => {
           { key: 'createdAt', label: 'Created', kind: 'datetime' },
           { key: 'count', label: 'Count', kind: 'numeric' },
         ],
-        data: [{ id: 1, sku: 'SKU-ALPHA-BETA-GAMMA', status: 'active', createdAt: '2026-04-13 10:00', count: 42 }],
+        data: [
+          {
+            id: 1,
+            sku: 'SKU-ALPHA-BETA-GAMMA',
+            status: 'active',
+            createdAt: '2026-04-13 10:00',
+            count: 42,
+          },
+        ],
       },
     });
 
@@ -226,9 +234,7 @@ describe('AppTable design contract', () => {
   it('mirrors legacy responsive visibility classes onto body cells', () => {
     const wrapper = mount(AppTable, {
       props: {
-        columns: [
-          { key: 'name', label: 'Name', class: 'hidden md:table-cell' },
-        ],
+        columns: [{ key: 'name', label: 'Name', class: 'hidden md:table-cell' }],
         data: [{ id: 1, name: 'Alpha' }],
       },
     });

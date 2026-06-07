@@ -45,7 +45,10 @@ describe('repository batch safety hardening', () => {
     };
     const repo = new AlbumRepository(db);
 
-    await repo.addFiles('album-1', Array.from({ length: 205 }, (_, index) => `file-${index}`));
+    await repo.addFiles(
+      'album-1',
+      Array.from({ length: 205 }, (_, index) => `file-${index}`)
+    );
 
     expect(db.batch).toHaveBeenCalledTimes(3);
     expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([100, 100, 5]);
@@ -81,7 +84,9 @@ describe('repository batch safety hardening', () => {
       'folder-2'
     );
 
-    const moveCalls = db.prepare.mock.calls.filter(([sql]) => sql.includes('UPDATE files SET folder_id = ?'));
+    const moveCalls = db.prepare.mock.calls.filter(([sql]) =>
+      sql.includes('UPDATE files SET folder_id = ?')
+    );
     expect(moveCalls).toHaveLength(3);
   });
 

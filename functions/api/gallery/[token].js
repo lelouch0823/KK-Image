@@ -13,12 +13,15 @@ import {
   clearLoginFailures,
 } from '../../lib/hono/middleware/rateLimit.js';
 import { timingSafeCompare } from '../utils/auth.js';
+import { verifyPassword } from '../utils/id.js';
 
 const PUBLIC_SHARE_FILE_TTL_SECONDS = 15 * 60;
 const PUBLIC_SHARE_CACHE_CONTROL = `public, max-age=${PUBLIC_SHARE_FILE_TTL_SECONDS}, stale-while-revalidate=0`;
 
 function getClientIp(request) {
-  return request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
+  return (
+    request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown'
+  );
 }
 
 function getRateLimitKv(env) {
@@ -94,9 +97,7 @@ async function buildGalleryResponse(folder, files, subfolders, env) {
 
   const fileUrlBuilder = await createSharedFileUrlBuilder(env, 'gallery', folder.share_token);
   const coverFile = files.find((f) => getFileType(f.mime_type, f.name) === 'image');
-  const coverImage = coverFile
-    ? fileUrlBuilder(coverFile.id)
-    : null;
+  const coverImage = coverFile ? fileUrlBuilder(coverFile.id) : null;
 
   const signedFiles = await Promise.all(
     files.map(async (f) => {
@@ -203,14 +204,9 @@ export async function onRequestGet(context) {
       });
     }
 
-    return success(
-      await buildGalleryResponse(folder, files, subfolders, env),
-      'Success',
-      200,
-      {
-        'Cache-Control': PUBLIC_SHARE_CACHE_CONTROL,
-      }
-    );
+    return success(await buildGalleryResponse(folder, files, subfolders, env), 'Success', 200, {
+      'Cache-Control': PUBLIC_SHARE_CACHE_CONTROL,
+    });
   } catch (err) {
     console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
     return error(`${MSG.COMMON.LOAD_FAILED}: ${err.message}`, 500);

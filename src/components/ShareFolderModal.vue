@@ -28,12 +28,8 @@
         class="border-info/20 bg-info-bg mb-6 rounded-lg border p-4"
       >
         <div class="mb-2 flex items-center justify-between">
-          <span class="text-info-text text-sm font-medium">{{
-            t('share.existingLink')
-          }}</span>
-          <span class="text-info text-xs">{{
-            formatExpiry(folder?.shareExpiresAt)
-          }}</span>
+          <span class="text-info-text text-sm font-medium">{{ t('share.existingLink') }}</span>
+          <span class="text-info text-xs">{{ formatExpiry(folder?.shareExpiresAt) }}</span>
         </div>
         <div class="flex gap-2">
           <AppInput :model-value="existingShareUrl" readonly class="flex-1" />
@@ -41,7 +37,7 @@
             <AppButton
               variant="secondary"
               size="sm"
-              class="!size-9  shrink-0 !p-0"
+              class="!size-9 shrink-0 !p-0"
               :title="t('share.copyLink')"
               @click="copyExistingLink"
             >
@@ -55,9 +51,7 @@
           ✓ {{ t('share.copiedClipboard') }}
         </p>
         <div class="border-info/20 mt-3 flex items-center justify-between border-t pt-3">
-          <span class="text-info text-xs opacity-80">{{
-            t('share.needUpdateExpiry')
-          }}</span>
+          <span class="text-info text-xs opacity-80">{{ t('share.needUpdateExpiry') }}</span>
           <AppButton
             variant="ghost"
             size="sm"
@@ -87,14 +81,16 @@
 
       <!-- Generated Link -->
       <div v-if="shareUrl" class="mb-4">
-        <label class="mb-2 block text-sm font-medium text-(--text-main)">{{ t('share.generate') }}</label>
+        <label class="mb-2 block text-sm font-medium text-(--text-main)">{{
+          t('share.generate')
+        }}</label>
         <div class="flex gap-2">
           <AppInput :model-value="shareUrl" readonly class="flex-1" />
           <Tooltip :content="t('common.copy')">
             <AppButton
               variant="secondary"
               size="sm"
-              class="!size-9  shrink-0 !p-0"
+              class="!size-9 shrink-0 !p-0"
               @click="copyLink"
             >
               <template #icon-left>

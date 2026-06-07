@@ -7,16 +7,16 @@
 
 ## 一、问题概览
 
-| 优先级 | 重复模式 | 出现次数 | 涉及文件数 | 可减少代码量 |
-|--------|----------|----------|------------|--------------|
-| 🔴 高 | 分页参数验证 | 48处 | 8个文件 | ~200行 |
-| 🔴 高 | JSON 解析函数 | 19处 | 6个文件 | ~80行 |
-| 🔴 高 | SpaceRepository SQL片段 | 6处 | 1个文件 | ~150行 |
-| 🟠 中 | 时间戳获取 | 130处 | 25个文件 | ~100行 |
-| 🟠 中 | COUNT查询 | 44处 | 15个文件 | ~50行 |
-| 🟠 中 | SQL SET构建 | 3处 | 3个文件 | ~30行 |
-| 🟡 低 | UUID生成 | 10处 | 5个文件 | ~20行 |
-| 🟡 低 | result.meta检查 | 9处 | 4个文件 | ~20行 |
+| 优先级 | 重复模式                | 出现次数 | 涉及文件数 | 可减少代码量 |
+| ------ | ----------------------- | -------- | ---------- | ------------ |
+| 🔴 高  | 分页参数验证            | 48处     | 8个文件    | ~200行       |
+| 🔴 高  | JSON 解析函数           | 19处     | 6个文件    | ~80行        |
+| 🔴 高  | SpaceRepository SQL片段 | 6处      | 1个文件    | ~150行       |
+| 🟠 中  | 时间戳获取              | 130处    | 25个文件   | ~100行       |
+| 🟠 中  | COUNT查询               | 44处     | 15个文件   | ~50行        |
+| 🟠 中  | SQL SET构建             | 3处      | 3个文件    | ~30行        |
+| 🟡 低  | UUID生成                | 10处     | 5个文件    | ~20行        |
+| 🟡 低  | result.meta检查         | 9处      | 4个文件    | ~20行        |
 
 **总计**: 约 **550行** 重复代码
 
@@ -27,6 +27,7 @@
 ### 2.1 分页参数验证 (48处)
 
 **重复代码**:
+
 ```javascript
 const safePage = Math.max(1, Math.floor(Number(page) || 1));
 const safeLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 20)));
@@ -34,6 +35,7 @@ const offset = (safePage - 1) * safeLimit;
 ```
 
 **涉及文件**:
+
 - `repositories/FileRepository.js:121-122`
 - `repositories/FolderRepository.js:250-252`
 - `repositories/CustomerRepository.js:52-54`
@@ -51,6 +53,7 @@ const offset = (safePage - 1) * safeLimit;
 ### 2.2 JSON 解析函数 (19处)
 
 **重复代码**:
+
 ```javascript
 _parseJson(str) {
   try {
@@ -62,6 +65,7 @@ _parseJson(str) {
 ```
 
 **涉及文件**:
+
 - `repositories/PurchaseOrderRepository.js:401-403` - 方法定义
 - `services/PurchaseOrderService.js:381-383` - 方法定义
 - `repositories/ProductVariantRepository.js:93,99,108,173` - 内联
@@ -87,6 +91,7 @@ COALESCE(...) as display_image_id
 ```
 
 **涉及方法**:
+
 - `findAll()`
 - `findById()`
 - `findByProductId()`
@@ -104,6 +109,7 @@ COALESCE(...) as display_image_id
 ### 3.1 时间戳获取 (130处)
 
 **现状**:
+
 - `Date.now()` 直接调用: ~80处
 - `now()` 函数调用: ~40处 (来自 `api/utils/id.js`)
 - 混用于同一文件
@@ -115,9 +121,12 @@ COALESCE(...) as display_image_id
 ### 3.2 COUNT查询 (44处)
 
 **典型模式**:
+
 ```javascript
-const result = await db.prepare(`SELECT COUNT(*) as total FROM table WHERE ${where}`)
-  .bind(...params).first();
+const result = await db
+  .prepare(`SELECT COUNT(*) as total FROM table WHERE ${where}`)
+  .bind(...params)
+  .first();
 const total = result?.total || 0;
 ```
 
@@ -128,11 +137,15 @@ const total = result?.total || 0;
 ### 3.3 SQL SET构建 (3处)
 
 **重复代码**:
+
 ```javascript
-const sets = Object.keys(updateData).map(k => `${k} = ?`).join(', ');
+const sets = Object.keys(updateData)
+  .map((k) => `${k} = ?`)
+  .join(', ');
 ```
 
 **涉及文件**:
+
 - `repositories/ProductRepository.js:230`
 - `repositories/FileRepository.js:168`
 - `repositories/PurchaseOrderRepository.js:181`
@@ -148,6 +161,7 @@ const sets = Object.keys(updateData).map(k => `${k} = ?`).join(', ');
 **问题**: 部分代码直接用 `crypto.randomUUID()`，部分用 `generateId()`
 
 **涉及文件**:
+
 - `api/cron/reminders.js:46,102,125`
 - `repositories/PurchaseOrderRepository.js:51,230`
 - `repositories/CustomerRepository.js:125`
@@ -160,6 +174,7 @@ const sets = Object.keys(updateData).map(k => `${k} = ?`).join(', ');
 ### 4.2 result.meta?.changes 检查
 
 **重复模式**:
+
 ```javascript
 return result.meta?.changes > 0;
 return (result.meta?.changes || 0) > 0;
@@ -171,21 +186,21 @@ return (result.meta?.changes || 0) > 0;
 
 ## 五、推荐实施顺序
 
-| 阶段 | 任务 | 预估工作量 |
-|------|------|-----------|
-| 1 | 扩展 parsePagination + 迁移 | 1天 |
-| 2 | 创建 safeJsonParse + 迁移 | 0.5天 |
-| 3 | 重构 SpaceRepository SQL | 0.5天 |
-| 4 | 扩展 SQL 工具 + 统一 UUID | 0.5天 |
+| 阶段 | 任务                        | 预估工作量 |
+| ---- | --------------------------- | ---------- |
+| 1    | 扩展 parsePagination + 迁移 | 1天        |
+| 2    | 创建 safeJsonParse + 迁移   | 0.5天      |
+| 3    | 重构 SpaceRepository SQL    | 0.5天      |
+| 4    | 扩展 SQL 工具 + 统一 UUID   | 0.5天      |
 
 ---
 
 ## 六、现有良好实践
 
-| 文件 | 内容 |
-|------|------|
-| `_shared/utils.js` | Barrel File 集中导出 |
-| `api/utils/sql.js` | `inClause`, `placeholders` |
-| `api/utils/id.js` | `generateId`, `now` |
-| `lib/hono/_shared/route-helpers.js` | `parsePagination` |
-| `repositories/order/helpers.js` | `parseJson`, 数据映射函数 |
+| 文件                                | 内容                       |
+| ----------------------------------- | -------------------------- |
+| `_shared/utils.js`                  | Barrel File 集中导出       |
+| `api/utils/sql.js`                  | `inClause`, `placeholders` |
+| `api/utils/id.js`                   | `generateId`, `now`        |
+| `lib/hono/_shared/route-helpers.js` | `parsePagination`          |
+| `repositories/order/helpers.js`     | `parseJson`, 数据映射函数  |

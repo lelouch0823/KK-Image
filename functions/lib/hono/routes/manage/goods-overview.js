@@ -23,10 +23,10 @@ const app = new Hono();
 app.use('*', requirePermission('products:manage'));
 
 const readGoodsOverviewFilters = (url) => ({
-    category: url.searchParams.get('category') || '',
-    brand: url.searchParams.get('brand') || '',
-    shortageOnly: url.searchParams.get('shortageOnly') === '1',
-    sort: url.searchParams.get('sort') || 'shortage',
+  category: url.searchParams.get('category') || '',
+  brand: url.searchParams.get('brand') || '',
+  shortageOnly: url.searchParams.get('shortageOnly') === '1',
+  sort: url.searchParams.get('sort') || 'shortage',
 });
 
 /**
@@ -39,80 +39,100 @@ const readGoodsOverviewFilters = (url) => ({
  *   - sort: 排序字段 (shortage / demand / name)，默认 shortage
  */
 app.get('/', withCache(20), async (c) => {
-    const { env } = c;
-    const url = new URL(c.req.url);
+  const { env } = c;
+  const url = new URL(c.req.url);
 
-    const filters = readGoodsOverviewFilters(url);
+  const filters = readGoodsOverviewFilters(url);
 
-    const overviewRepo = new GoodsOverviewRepository(env.DB);
-    const [items, availableFilters] = await Promise.all([
-        overviewRepo.getList(filters),
-        overviewRepo.getAvailableFilters()
-    ]);
+  const overviewRepo = new GoodsOverviewRepository(env.DB);
+  const [items, availableFilters] = await Promise.all([
+    overviewRepo.getList(filters),
+    overviewRepo.getAvailableFilters(),
+  ]);
 
-    return c.json({
-        success: true,
-        data: items,
-        filters: availableFilters,
-    });
+  return c.json({
+    success: true,
+    data: items,
+    filters: availableFilters,
+  });
 });
 
 /**
  * GET /summary — 管道概览统计
  */
 app.get('/summary', withCache(20), async (c) => {
-    const { env } = c;
+  const { env } = c;
 
-    const overviewRepo = new GoodsOverviewRepository(env.DB);
-    const summaryData = await overviewRepo.getSummary();
+  const overviewRepo = new GoodsOverviewRepository(env.DB);
+  const summaryData = await overviewRepo.getSummary();
 
-    return c.json({
-        success: true,
-        data: summaryData,
-    });
+  return c.json({
+    success: true,
+    data: summaryData,
+  });
 });
 
 /**
  * GET /export — CSV 导出
  */
 app.get('/export', async (c) => {
-    const { env } = c;
+  const { env } = c;
 
-    const overviewRepo = new GoodsOverviewRepository(env.DB);
-    const url = new URL(c.req.url);
-    const filters = readGoodsOverviewFilters(url);
-    const results = await overviewRepo.getList(filters);
+  const overviewRepo = new GoodsOverviewRepository(env.DB);
+  const url = new URL(c.req.url);
+  const filters = readGoodsOverviewFilters(url);
+  const results = await overviewRepo.getList(filters);
 
-    const headers = ['商品名称', '变体', 'SKU', '品牌', '分类', '当前库存', '待订货', '生产中', '运输中', '已到货', '总需求', '订单数', '缺口', '入货成本', '运费分摊', '关税分摊', '到岸成本'];
-    const rows = results.map(r => [
-        escapeCSV(r.name),
-        escapeCSV(r.variantLabel || '-'),
-        escapeCSV(r.sku),
-        escapeCSV(r.brand),
-        escapeCSV(r.category),
-        r.stockQuantity,
-        r.confirmedQty,
-        r.productionQty,
-        r.shippingQty,
-        r.arrivedQty,
-        r.totalDemand,
-        r.orderCount,
-        r.shortage,
-        r.avgUnitCost,
-        r.avgFreight,
-        r.avgTariff,
-        r.landedCost,
-    ].join(','));
+  const headers = [
+    '商品名称',
+    '变体',
+    'SKU',
+    '品牌',
+    '分类',
+    '当前库存',
+    '待订货',
+    '生产中',
+    '运输中',
+    '已到货',
+    '总需求',
+    '订单数',
+    '缺口',
+    '入货成本',
+    '运费分摊',
+    '关税分摊',
+    '到岸成本',
+  ];
+  const rows = results.map((r) =>
+    [
+      escapeCSV(r.name),
+      escapeCSV(r.variantLabel || '-'),
+      escapeCSV(r.sku),
+      escapeCSV(r.brand),
+      escapeCSV(r.category),
+      r.stockQuantity,
+      r.confirmedQty,
+      r.productionQty,
+      r.shippingQty,
+      r.arrivedQty,
+      r.totalDemand,
+      r.orderCount,
+      r.shortage,
+      r.avgUnitCost,
+      r.avgFreight,
+      r.avgTariff,
+      r.landedCost,
+    ].join(',')
+  );
 
-    const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');
-    const filename = `goods_overview_${getChinaDateStr()}.csv`;
+  const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+  const filename = `goods_overview_${getChinaDateStr()}.csv`;
 
-    return new Response(csv, {
-        headers: {
-            'Content-Type': 'text/csv; charset=utf-8',
-            'Content-Disposition': `attachment; filename="${filename}"`,
-        },
-    });
+  return new Response(csv, {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    },
+  });
 });
 
 export default app;

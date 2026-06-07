@@ -52,7 +52,8 @@ export default {
   complete: 'Complete',
   invalidCredentials: 'Invalid username or password',
   cancelShare: 'Cancel Share',
-  cancelShareConfirm: 'Are you sure you want to cancel the share for "{name}"? The link will become invalid.',
+  cancelShareConfirm:
+    'Are you sure you want to cancel the share for "{name}"? The link will become invalid.',
   shareRevoked: 'Share Revoked',
   retryAllFailed: 'Retry All Failed',
   retry: 'Retry',
@@ -116,7 +117,8 @@ export default {
   },
   forbidden: {
     title: 'Access Denied',
-    description: 'Your account lacks the required permissions to access this page. You can return to the dashboard or contact an administrator to adjust permissions.',
+    description:
+      'Your account lacks the required permissions to access this page. You can return to the dashboard or contact an administrator to adjust permissions.',
     reason: 'Missing permission: {permission}',
     backToDashboard: 'Back to Dashboard',
   },

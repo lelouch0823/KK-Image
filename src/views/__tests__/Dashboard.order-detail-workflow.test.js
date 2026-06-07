@@ -64,7 +64,10 @@ describe('Dashboard order detail workflow', () => {
         stubs: {
           ShareManagementModal: { template: '<div />' },
           ShareFolderModal: { template: '<div />' },
-          OrderWorkflowModal: { template: '<div data-testid="order-workflow" />', props: ['show', 'order'] },
+          OrderWorkflowModal: {
+            template: '<div data-testid="order-workflow" />',
+            props: ['show', 'order'],
+          },
           ConfirmDialog: { template: '<div />' },
           PermissionDeniedState: { template: '<div />' },
           AppImage: { template: '<div />' },

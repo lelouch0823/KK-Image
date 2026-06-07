@@ -66,7 +66,7 @@ describe('sales module contract', () => {
       expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-      }),
+      })
     );
 
     const firstBody = JSON.parse(mocks.authFetch.mock.calls[0][1].body);

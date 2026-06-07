@@ -16,9 +16,13 @@ describe('OrderReturnDialog', () => {
       },
       global: {
         stubs: {
-          Modal: { template: '<div><slot /><slot name="footer" /></div>', props: ['modelValue', 'title', 'size', 'bodyClass'] },
+          Modal: {
+            template: '<div><slot /><slot name="footer" /></div>',
+            props: ['modelValue', 'title', 'size', 'bodyClass'],
+          },
           AppInput: {
-            template: '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea>',
+            template:
+              '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea>',
             props: ['modelValue'],
           },
           Select: {
@@ -34,17 +38,22 @@ describe('OrderReturnDialog', () => {
             props: ['modelValue', 'options'],
           },
           AppButton: {
-            template: '<button :disabled="disabled" @click.stop="$emit(\'click\')"><slot>{{ text }}</slot></button>',
+            template:
+              '<button :disabled="disabled" @click.stop="$emit(\'click\')"><slot>{{ text }}</slot></button>',
             props: ['text', 'variant', 'disabled', 'loading'],
           },
         },
       },
     });
 
-    expect(wrapper.get('[data-testid="return-confirm-button"]').attributes('disabled')).toBeDefined();
+    expect(
+      wrapper.get('[data-testid="return-confirm-button"]').attributes('disabled')
+    ).toBeDefined();
 
     await wrapper.get('[data-testid="return-reason-select"]').setValue('damage');
-    expect(wrapper.get('[data-testid="return-confirm-button"]').attributes('disabled')).toBeUndefined();
+    expect(
+      wrapper.get('[data-testid="return-confirm-button"]').attributes('disabled')
+    ).toBeUndefined();
   });
 
   it('emits confirm with reason code and note', async () => {
@@ -56,9 +65,13 @@ describe('OrderReturnDialog', () => {
       },
       global: {
         stubs: {
-          Modal: { template: '<div><slot /><slot name="footer" /></div>', props: ['modelValue', 'title', 'size', 'bodyClass'] },
+          Modal: {
+            template: '<div><slot /><slot name="footer" /></div>',
+            props: ['modelValue', 'title', 'size', 'bodyClass'],
+          },
           AppInput: {
-            template: '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea>',
+            template:
+              '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea>',
             props: ['modelValue'],
           },
           Select: {
@@ -74,7 +87,8 @@ describe('OrderReturnDialog', () => {
             props: ['modelValue', 'options'],
           },
           AppButton: {
-            template: '<button :disabled="disabled" @click.stop="$emit(\'click\')"><slot>{{ text }}</slot></button>',
+            template:
+              '<button :disabled="disabled" @click.stop="$emit(\'click\')"><slot>{{ text }}</slot></button>',
             props: ['text', 'variant', 'disabled', 'loading'],
           },
         },

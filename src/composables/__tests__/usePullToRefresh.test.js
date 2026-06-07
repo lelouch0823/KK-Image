@@ -98,8 +98,10 @@ describe('usePullToRefresh', () => {
     Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
 
     const onRefresh = vi.fn().mockResolvedValue(undefined);
-    const { handleTouchStart, handleTouchMove, handleTouchEnd, isPulling } =
-      usePullToRefresh(onRefresh, { threshold: 50 });
+    const { handleTouchStart, handleTouchMove, handleTouchEnd, isPulling } = usePullToRefresh(
+      onRefresh,
+      { threshold: 50 }
+    );
 
     // 模拟下拉超过阈值
     handleTouchStart(createMockTouchEvent(100));
@@ -114,8 +116,10 @@ describe('usePullToRefresh', () => {
     Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
 
     const onRefresh = vi.fn();
-    const { handleTouchStart, handleTouchMove, handleTouchEnd, pullDistance } =
-      usePullToRefresh(onRefresh, { threshold: 200 });
+    const { handleTouchStart, handleTouchMove, handleTouchEnd, pullDistance } = usePullToRefresh(
+      onRefresh,
+      { threshold: 200 }
+    );
 
     handleTouchStart(createMockTouchEvent(100));
     handleTouchMove(createMockTouchEvent(110)); // 只拉了很小距离
@@ -129,8 +133,10 @@ describe('usePullToRefresh', () => {
     Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
 
     const onRefresh = vi.fn().mockResolvedValue(undefined);
-    const { handleTouchStart, handleTouchMove, handleTouchEnd, pullDistance } =
-      usePullToRefresh(onRefresh, { threshold: 50 });
+    const { handleTouchStart, handleTouchMove, handleTouchEnd, pullDistance } = usePullToRefresh(
+      onRefresh,
+      { threshold: 50 }
+    );
 
     handleTouchStart(createMockTouchEvent(100));
     handleTouchMove(createMockTouchEvent(300));

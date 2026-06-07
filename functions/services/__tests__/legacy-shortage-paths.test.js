@@ -35,9 +35,6 @@ describe('legacy shortage calculation paths', () => {
   it('does not leave legacy shortage helper or raw stock-based shortage SQL', () => {
     const offenders = collectLegacyShortagePaths();
 
-    expect(
-      offenders,
-      `legacy shortage paths still present:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `legacy shortage paths still present:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

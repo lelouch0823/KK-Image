@@ -43,6 +43,7 @@ Why this order:
 ## Shared File Areas
 
 **Existing foundation to extend**
+
 - Modify: `functions/services/DomainOutboxDispatchService.js`
 - Modify: `functions/services/DomainOutboxConsumers.js`
 - Modify: `functions/api/cron/outbox.js`
@@ -50,6 +51,7 @@ Why this order:
 - Modify: `docs/DATABASE_SCHEMA.md`
 
 **Likely new foundation files**
+
 - Create: `functions/services/DomainEventCatalog.js`
 - Create: `functions/services/OutboxConsumerMetricsService.js`
 - Create: `functions/repositories/OutboxReplayRepository.js`
@@ -63,6 +65,7 @@ Why this order:
 **Goal:** Turn selected receipt and procurement events into internal notifications without reintroducing request-thread side effects.
 
 **Files:**
+
 - Modify: `functions/services/DomainOutboxConsumers.js`
 - Modify: `functions/api/cron/outbox.js`
 - Modify: `scripts/init-database.sql`
@@ -72,9 +75,9 @@ Why this order:
 
 - [ ] Define which domain events generate notifications
 - [ ] Keep initial scope narrow:
-  `purchase_receipt_recorded`, `order_procurement_progressed`, future reversal events
+      `purchase_receipt_recorded`, `order_procurement_progressed`, future reversal events
 - [ ] Decide recipient routing rules:
-  admin only first, salesperson optional second step
+      admin only first, salesperson optional second step
 - [ ] Write failing consumer tests for idempotent notification creation
 - [ ] Run focused tests and verify failure
 - [ ] Implement notification consumer branch in `DomainOutboxConsumers`
@@ -83,6 +86,7 @@ Why this order:
 - [ ] Run affected receipt/outbox regression set
 
 **Exit criteria**
+
 - One domain event produces at most one logical notification per recipient
 - Re-delivery does not duplicate notifications
 - Notification failures do not affect committed receipt truth
@@ -94,6 +98,7 @@ Why this order:
 **Goal:** Publish selected domain events to external systems through durable webhook jobs with retry, signing, and delivery logs.
 
 **Files:**
+
 - Modify: `functions/services/DomainOutboxConsumers.js`
 - Modify: `functions/services/DomainOutboxDispatchService.js`
 - Modify: `functions/api/cron/outbox.js`
@@ -111,11 +116,12 @@ Why this order:
 - [ ] Implement webhook consumer handler
 - [ ] Persist webhook delivery attempt metadata in existing `webhook_logs`
 - [ ] Add retry classification:
-  retry 5xx / network failures, do not retry 4xx contract failures by default
+      retry 5xx / network failures, do not retry 4xx contract failures by default
 - [ ] Re-run focused tests and verify pass
 - [ ] Run affected webhook and outbox regression set
 
 **Exit criteria**
+
 - Webhook publishing is fully outbox-driven
 - Duplicate delivery attempts are traceable and safe
 - Operators can inspect per-event delivery results
@@ -127,6 +133,7 @@ Why this order:
 **Goal:** Give operators and developers a safe way to inspect, replay, and re-drive outbox side effects from immutable event history.
 
 **Files:**
+
 - Create: `functions/repositories/OutboxReplayRepository.js`
 - Create: `functions/lib/hono/routes/manage/outbox.js`
 - Create: `functions/lib/hono/routes/manage/audit-replay.js`
@@ -137,7 +144,7 @@ Why this order:
 - Test: `functions/lib/hono/routes/manage/__tests__/audit-replay-routes.test.js`
 
 - [ ] Define operator use-cases:
-  inspect stuck events, replay one event, replay one command, replay one consumer
+      inspect stuck events, replay one event, replay one command, replay one consumer
 - [ ] Write failing repository tests for querying event history and consumer job state
 - [ ] Run focused tests and verify failure
 - [ ] Implement replay repository and read models
@@ -148,6 +155,7 @@ Why this order:
 - [ ] Run affected outbox/audit regression set
 
 **Exit criteria**
+
 - Operators can answer:
   which events were emitted, which consumers processed them, which are stuck
 - Replay can target consumer side effects without rewriting domain truth
@@ -160,6 +168,7 @@ Why this order:
 **Goal:** Introduce explicit reversal commands for receipt rollback and related compensation so business recovery happens through new immutable facts instead of destructive edits.
 
 **Files:**
+
 - Modify: `functions/services/OrderProcurementDomainService.js`
 - Modify: `functions/repositories/PurchaseReceiptRepository.js`
 - Modify: `functions/services/InventoryService.js`
@@ -172,18 +181,19 @@ Why this order:
 - Test: `functions/services/__tests__/DomainOutboxConsumers.notifications.test.js`
 
 - [ ] Freeze reversal semantics before coding:
-  full reversal only first, partial reversal second if needed
+      full reversal only first, partial reversal second if needed
 - [ ] Define reversal facts and links to original receipt / inventory event / command
 - [ ] Write failing service tests for receipt reversal transaction
 - [ ] Run focused tests and verify failure
 - [ ] Implement compensating command that writes:
-  reversal receipt fact, reversal inventory fact, order-line progress correction, outbox events
+      reversal receipt fact, reversal inventory fact, order-line progress correction, outbox events
 - [ ] Reject reversal when downstream invariant would be broken
 - [ ] Emit explicit reversal events for notifications/webhooks/audit
 - [ ] Re-run focused tests and verify pass
 - [ ] Run full procurement/inventory regression set
 
 **Exit criteria**
+
 - No historical facts are deleted
 - Reversal preserves lineage to original receipt and command
 - Inventory and order projections converge through facts, not manual patching

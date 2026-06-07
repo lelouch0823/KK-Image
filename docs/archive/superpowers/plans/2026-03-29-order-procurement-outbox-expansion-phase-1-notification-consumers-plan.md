@@ -25,6 +25,7 @@ If the actual Phase 0 baseline differs from this plan, update this document firs
 ### Task 1: Add notification source and dedupe persistence
 
 **Files:**
+
 - Modify: `scripts/init-database.sql`
 - Modify: `docs/DATABASE_SCHEMA.md`
 - Modify: `functions/repositories/NotificationRepository.js`
@@ -87,6 +88,7 @@ git commit -m "feat: persist replay-safe notification dedupe metadata"
 ### Task 2: Introduce an event catalog and selective outbox fan-out
 
 **Files:**
+
 - Create: `functions/services/DomainEventCatalog.js`
 - Modify: `functions/repositories/DomainOutboxRepository.js`
 - Modify: `functions/services/OrderProcurementDomainService.js`
@@ -158,6 +160,7 @@ git commit -m "feat: route outbox consumers through domain event catalog"
 ### Task 3: Implement notification outbox consumers and admin-first routing
 
 **Files:**
+
 - Modify: `functions/services/DomainOutboxConsumers.js`
 - Modify: `functions/api/cron/outbox.js`
 - Create: `functions/services/__tests__/DomainOutboxConsumers.notifications.test.js`
@@ -216,6 +219,7 @@ git commit -m "feat: add outbox-driven procurement notifications"
 ### Task 4: Close the phase with receipt/outbox regressions
 
 **Files:**
+
 - Verify: `functions/services/__tests__/OrderProcurementDomainService.test.js`
 - Verify: `functions/services/__tests__/DomainOutboxConsumers.audit-cache.test.js`
 - Verify: `functions/services/__tests__/DomainOutboxConsumers.notifications.test.js`

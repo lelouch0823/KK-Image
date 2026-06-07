@@ -26,39 +26,65 @@ const mockAuditRepo = {
 
 vi.mock('../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
-    findById(...args) { return mockProductRepo.findById(...args); }
-    updateWithMeta(...args) { return mockProductRepo.updateWithMeta(...args); }
-    findBySpuBatch(...args) { return mockProductRepo.findBySpuBatch(...args); }
-    bulkUpsertFromImport(...args) { return mockProductRepo.bulkUpsertFromImport(...args); }
+    findById(...args) {
+      return mockProductRepo.findById(...args);
+    }
+    updateWithMeta(...args) {
+      return mockProductRepo.updateWithMeta(...args);
+    }
+    findBySpuBatch(...args) {
+      return mockProductRepo.findBySpuBatch(...args);
+    }
+    bulkUpsertFromImport(...args) {
+      return mockProductRepo.bulkUpsertFromImport(...args);
+    }
   },
 }));
 
 vi.mock('../../repositories/ProductVariantRepository.js', () => ({
   ProductVariantRepository: class {
-    findByProductId(...args) { return mockVariantRepo.findByProductId(...args); }
-    syncVariants(...args) { return mockVariantRepo.syncVariants(...args); }
-    buildAuditEvents(...args) { return mockVariantRepo.buildAuditEvents(...args); }
-    findByProductIds(...args) { return mockVariantRepo.findByProductIds(...args); }
-    bulkSyncFromImport(...args) { return mockVariantRepo.bulkSyncFromImport(...args); }
+    findByProductId(...args) {
+      return mockVariantRepo.findByProductId(...args);
+    }
+    syncVariants(...args) {
+      return mockVariantRepo.syncVariants(...args);
+    }
+    buildAuditEvents(...args) {
+      return mockVariantRepo.buildAuditEvents(...args);
+    }
+    findByProductIds(...args) {
+      return mockVariantRepo.findByProductIds(...args);
+    }
+    bulkSyncFromImport(...args) {
+      return mockVariantRepo.bulkSyncFromImport(...args);
+    }
   },
 }));
 
 vi.mock('../../repositories/ProductDimensionRepository.js', () => ({
   ProductDimensionRepository: class {
-    listByProduct(...args) { return mockDimensionRepo.listByProduct(...args); }
-    restoreSnapshot(...args) { return mockDimensionRepo.restoreSnapshot(...args); }
+    listByProduct(...args) {
+      return mockDimensionRepo.listByProduct(...args);
+    }
+    restoreSnapshot(...args) {
+      return mockDimensionRepo.restoreSnapshot(...args);
+    }
   },
 }));
 
 vi.mock('../../repositories/VariantAuditRepository.js', () => ({
   VariantAuditRepository: class {
-    createBatch(...args) { return mockAuditRepo.createBatch(...args); }
+    createBatch(...args) {
+      return mockAuditRepo.createBatch(...args);
+    }
   },
 }));
 
 vi.mock('../../repositories/VariantImageRepository.js', () => ({
   VariantImageRepository: class {
-    syncImages() { return Promise.resolve(); }
+    syncImages() {
+      return Promise.resolve();
+    }
   },
 }));
 
@@ -87,7 +113,9 @@ describe('ProductCatalogService putProduct boundaries', () => {
     mockProductRepo.updateWithMeta.mockResolvedValue({ success: true, changes: 1 });
     mockVariantRepo.findByProductId
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ id: 'v1', product_id: 'p1', sku: 'SKU-1', price: 10, options_values: {} }]);
+      .mockResolvedValueOnce([
+        { id: 'v1', product_id: 'p1', sku: 'SKU-1', price: 10, options_values: {} },
+      ]);
     mockVariantRepo.syncVariants.mockResolvedValue({
       createdCount: 0,
       updatedCount: 1,
@@ -117,25 +145,21 @@ describe('ProductCatalogService putProduct boundaries', () => {
     const service = new ProductCatalogService({});
 
     await expect(
-      service.putProduct(
-        { env: {}, executionCtx: { waitUntil: vi.fn() } },
-        'p1',
-        {
-          name: 'Tee',
-          variants: [
-            {
-              id: 'v1',
-              sku: 'SKU-1',
-              price: 10,
-              cost_price: 6,
-              stock_quantity: 5,
-              alert_threshold: 1,
-              status: 'active',
-              options_values: { Color: 'Red' },
-            },
-          ],
-        }
-      )
+      service.putProduct({ env: {}, executionCtx: { waitUntil: vi.fn() } }, 'p1', {
+        name: 'Tee',
+        variants: [
+          {
+            id: 'v1',
+            sku: 'SKU-1',
+            price: 10,
+            cost_price: 6,
+            stock_quantity: 5,
+            alert_threshold: 1,
+            status: 'active',
+            options_values: { Color: 'Red' },
+          },
+        ],
+      })
     ).rejects.toThrow(BadRequestError);
 
     expect(mockProductRepo.updateWithMeta).not.toHaveBeenCalled();
@@ -181,16 +205,14 @@ describe('ProductCatalogService putProduct boundaries', () => {
 
   it('syncs dimensions even when patch payload does not include variants', async () => {
     const service = new ProductCatalogService({});
-    const syncDimensionsSpy = vi
-      .spyOn(service, 'syncDimensionsFromPayload')
-      .mockResolvedValue([
-        {
-          id: 'dim-color',
-          name: 'Color',
-          status: 'active',
-          values: [{ id: 'val-red', value: 'Red', status: 'active' }],
-        },
-      ]);
+    const syncDimensionsSpy = vi.spyOn(service, 'syncDimensionsFromPayload').mockResolvedValue([
+      {
+        id: 'dim-color',
+        name: 'Color',
+        status: 'active',
+        values: [{ id: 'val-red', value: 'Red', status: 'active' }],
+      },
+    ]);
 
     const result = await service.patchProduct(
       { env: {}, executionCtx: { waitUntil: vi.fn() } },

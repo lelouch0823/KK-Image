@@ -31,7 +31,10 @@ import auditReplayApp from '../audit-replay.js';
 function createApp(user = { id: 'admin-1', name: 'Admin', role: 'admin', type: 'admin' }) {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.use('/api/manage/audit-replay/*', async (c, next) => {
     c.set('user', user);
@@ -75,12 +78,14 @@ describe('manage audit replay routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.dryRun).toHaveBeenCalledWith(expect.objectContaining({
-      scopeType: 'event',
-      scopeId: 'evt-1',
-      consumerName: 'notification',
-      requestedBy: 'admin-1',
-    }));
+    expect(mocks.dryRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scopeType: 'event',
+        scopeId: 'evt-1',
+        consumerName: 'notification',
+        requestedBy: 'admin-1',
+      })
+    );
   });
 
   it('accepts execute replay requests for admin users', async () => {
@@ -102,12 +107,14 @@ describe('manage audit replay routes', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mocks.executeReplay).toHaveBeenCalledWith(expect.objectContaining({
-      scopeType: 'event',
-      scopeId: 'evt-2',
-      consumerName: 'webhook',
-      requestedBy: 'admin-1',
-    }));
+    expect(mocks.executeReplay).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scopeType: 'event',
+        scopeId: 'evt-2',
+        consumerName: 'webhook',
+        requestedBy: 'admin-1',
+      })
+    );
   });
 
   it('rejects execute replay requests for non-admin users even if they have audit read access', async () => {
@@ -135,13 +142,17 @@ describe('manage audit replay routes', () => {
 
     const body = await res.json();
     expect(res.status).toBe(403);
-    expect(body).toEqual(expect.objectContaining({
-      success: false,
-    }));
+    expect(body).toEqual(
+      expect.objectContaining({
+        success: false,
+      })
+    );
     expect(mocks.executeReplay).not.toHaveBeenCalled();
-    expect(mocks.scheduleAuditEvent).not.toHaveBeenCalledWith(expect.objectContaining({
-      action: 'outbox.replay.execute',
-      result: 'success',
-    }));
+    expect(mocks.scheduleAuditEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'outbox.replay.execute',
+        result: 'success',
+      })
+    );
   });
 });

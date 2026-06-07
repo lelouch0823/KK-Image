@@ -16,28 +16,31 @@
 > **All components MUST follow these UI/UX best practices:**
 
 ### Interaction Guidelines
-| Rule | Implementation |
-|------|----------------|
-| **Cursor pointer** | Add `cursor-pointer` to all clickable/hoverable elements |
-| **Smooth transitions** | Use `transition-all duration-200` (150-300ms range) |
-| **Hover feedback** | Provide visual feedback via color, shadow, or opacity change |
-| **No layout shift** | Avoid `scale` transforms on hover; use `shadow`, `opacity`, or `-translate-y-1` |
-| **Focus states** | Add `focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]` for keyboard a11y |
+
+| Rule                   | Implementation                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------------- |
+| **Cursor pointer**     | Add `cursor-pointer` to all clickable/hoverable elements                               |
+| **Smooth transitions** | Use `transition-all duration-200` (150-300ms range)                                    |
+| **Hover feedback**     | Provide visual feedback via color, shadow, or opacity change                           |
+| **No layout shift**    | Avoid `scale` transforms on hover; use `shadow`, `opacity`, or `-translate-y-1`        |
+| **Focus states**       | Add `focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]` for keyboard a11y |
 
 ### Visual Quality
-| Rule | Implementation |
-|------|----------------|
-| **No emoji icons** | Use SVG icons (Heroicons style) everywhere |
-| **Consistent icon sizing** | Use fixed `size-5` or `size-6` with `viewBox="0 0 24 24"` |
-| **Light/dark mode contrast** | Test all components in both modes; ensure 4.5:1 contrast ratio |
-| **Glass elements in light mode** | Use `bg-white/80` minimum opacity for visibility |
+
+| Rule                             | Implementation                                                 |
+| -------------------------------- | -------------------------------------------------------------- |
+| **No emoji icons**               | Use SVG icons (Heroicons style) everywhere                     |
+| **Consistent icon sizing**       | Use fixed `size-5` or `size-6` with `viewBox="0 0 24 24"`      |
+| **Light/dark mode contrast**     | Test all components in both modes; ensure 4.5:1 contrast ratio |
+| **Glass elements in light mode** | Use `bg-white/80` minimum opacity for visibility               |
 
 ### Accessibility
-| Rule | Implementation |
-|------|----------------|
+
+| Rule                    | Implementation                                          |
+| ----------------------- | ------------------------------------------------------- |
 | **Keyboard navigation** | Support `Escape`, `ArrowLeft`, `ArrowRight` in Lightbox |
-| **ARIA labels** | Add `aria-label` to icon-only buttons |
-| **Reduced motion** | Respect `prefers-reduced-motion` for animations |
+| **ARIA labels**         | Add `aria-label` to icon-only buttons                   |
+| **Reduced motion**      | Respect `prefers-reduced-motion` for animations         |
 
 ---
 
@@ -45,6 +48,7 @@
 
 > [!IMPORTANT]
 > **Lightbox Consolidation Strategy:** There are two Lightbox components:
+>
 > - `ui/Lightbox.vue`: Supports PDF preview, keyboard navigation, file type detection.
 > - `common/Lightbox.vue`: Supports zoom/rotate, download event emission.
 >
@@ -58,11 +62,13 @@
 ## Task 1: Unify Lightbox Component
 
 **Files:**
+
 - Modify: [Lightbox.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/ui/Lightbox.vue)
 - Delete: `src/components/common/Lightbox.vue`
 - Modify: [OrderDetail.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/order/OrderDetail.vue) (update import path)
 
 ### UI/UX Enhancements for Lightbox
+
 - ✅ Add `cursor-zoom-in` on zoomable images
 - ✅ Add `cursor-grab` / `cursor-grabbing` for pan operation (future)
 - ✅ Use SVG icons for zoom/rotate buttons (no emoji)
@@ -71,38 +77,61 @@
 - ✅ Keyboard shortcuts: `+/-` for zoom, `R` for rotate
 
 **Step 1:** Add zoom/rotate state and methods to `ui/Lightbox.vue`
+
 ```javascript
 // Add to script setup
 const scale = ref(1);
 const rotation = ref(0);
 
-const zoomIn = () => { if (scale.value < 3) scale.value += 0.5; };
-const zoomOut = () => { if (scale.value > 0.5) scale.value -= 0.5; };
-const rotate = () => { rotation.value = (rotation.value + 90) % 360; };
+const zoomIn = () => {
+  if (scale.value < 3) scale.value += 0.5;
+};
+const zoomOut = () => {
+  if (scale.value > 0.5) scale.value -= 0.5;
+};
+const rotate = () => {
+  rotation.value = (rotation.value + 90) % 360;
+};
 
 // Reset on file change
-watch(() => props.currentFile, () => {
-  scale.value = 1;
-  rotation.value = 0;
-});
+watch(
+  () => props.currentFile,
+  () => {
+    scale.value = 1;
+    rotation.value = 0;
+  }
+);
 
 // Enhanced keyboard handler
 const handleKeydown = (e) => {
   if (!props.visible) return;
   switch (e.key) {
-    case 'Escape': emit('close'); break;
-    case 'ArrowLeft': emit('prev'); break;
-    case 'ArrowRight': emit('next'); break;
+    case 'Escape':
+      emit('close');
+      break;
+    case 'ArrowLeft':
+      emit('prev');
+      break;
+    case 'ArrowRight':
+      emit('next');
+      break;
     case '+':
-    case '=': zoomIn(); break;
-    case '-': zoomOut(); break;
+    case '=':
+      zoomIn();
+      break;
+    case '-':
+      zoomOut();
+      break;
     case 'r':
-    case 'R': rotate(); break;
+    case 'R':
+      rotate();
+      break;
   }
 };
 ```
 
 **Step 2:** Add zoom/rotate toolbar with accessible SVG buttons
+
 ```vue
 <!-- Zoom/Rotate Toolbar -->
 <div class="flex items-center gap-2">
@@ -150,6 +179,7 @@ const handleKeydown = (e) => {
 ```
 
 **Step 3:** Apply transform to `<img>` element with smooth transition
+
 ```html
 <img
   ...
@@ -159,6 +189,7 @@ const handleKeydown = (e) => {
 ```
 
 **Step 4:** Update `OrderDetail.vue` import
+
 ```diff
 -import Lightbox from '@/components/common/Lightbox.vue';
 +import Lightbox from '@/components/ui/Lightbox.vue';
@@ -173,13 +204,16 @@ const handleKeydown = (e) => {
 ## Task 2: Create AppStatCard Component
 
 **Files:**
+
 - Create: [AppStatCard.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/ui/AppStatCard.vue)
 
 **Analysis:** The stat card pattern is used in:
+
 - `Stats.vue` (via `StatsCard.vue`)
 - `SpaceAnalytics.vue` (inline)
 
 ### UI/UX Enhancements for AppStatCard
+
 - ✅ Use `-translate-y-1` instead of `scale` for hover (no layout shift)
 - ✅ Add `cursor-default` to non-interactive cards
 - ✅ Add optional `clickable` prop with `cursor-pointer` and `active:scale-[0.98]`
@@ -187,6 +221,7 @@ const handleKeydown = (e) => {
 - ✅ Add loading state with skeleton animation
 
 **Step 1:** Create `AppStatCard.vue` with enhanced props
+
 ```vue
 <template>
   <div
@@ -195,7 +230,7 @@ const handleKeydown = (e) => {
       variantClass,
       clickable
         ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg active:scale-[0.98]'
-        : 'hover:-translate-y-0.5 hover:shadow-md'
+        : 'hover:-translate-y-0.5 hover:shadow-md',
     ]"
     @click="clickable && $emit('click')"
   >
@@ -248,7 +283,8 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'default',
-    validator: v => ['default', 'info', 'purple', 'success', 'warning', 'danger', 'cyan'].includes(v),
+    validator: (v) =>
+      ['default', 'info', 'purple', 'success', 'warning', 'danger', 'cyan'].includes(v),
   },
   clickable: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
@@ -302,38 +338,38 @@ const labelClass = computed(() => {
 ## Task 3: Enhance Skeleton Component with Templates
 
 **Files:**
+
 - Modify: [Skeleton.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/ui/Skeleton.vue)
 
 ### UI/UX Enhancements for Skeleton
+
 - ✅ Use subtle shimmer animation (not harsh pulse)
 - ✅ Match exact dimensions of real content to prevent layout shift
 - ✅ Support `prefers-reduced-motion` by disabling animation
 - ✅ Add `aria-label="Loading..."` for screen readers
 
 **Step 1:** Add `template` prop with presets
+
 ```javascript
 const props = defineProps({
   // ... existing props
   template: {
     type: String,
     default: null,
-    validator: v => [null, 'stat-card', 'list-card', 'avatar', 'text-line'].includes(v),
+    validator: (v) => [null, 'stat-card', 'list-card', 'avatar', 'text-line'].includes(v),
   },
   count: { type: Number, default: 1 }, // Repeat count
 });
 ```
 
 **Step 2:** Add template-based rendering with reduced-motion support
+
 ```vue
 <template>
   <div role="status" aria-label="Loading...">
     <template v-for="i in count" :key="i">
       <!-- Existing simple skeleton -->
-      <div
-        v-if="!template"
-        class="skeleton-shimmer rounded bg-(--bg-muted)"
-        :class="sizeClass"
-      />
+      <div v-if="!template" class="skeleton-shimmer rounded bg-(--bg-muted)" :class="sizeClass" />
 
       <!-- Stat Card Template -->
       <div
@@ -371,18 +407,17 @@ const props = defineProps({
 <style scoped>
 .skeleton-shimmer {
   animation: shimmer 1.5s infinite;
-  background: linear-gradient(
-    90deg,
-    var(--bg-muted) 0%,
-    var(--bg-hover) 50%,
-    var(--bg-muted) 100%
-  );
+  background: linear-gradient(90deg, var(--bg-muted) 0%, var(--bg-hover) 50%, var(--bg-muted) 100%);
   background-size: 200% 100%;
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -405,22 +440,26 @@ const props = defineProps({
 Before considering each task complete, verify:
 
 ### Visual Quality
+
 - [ ] No emojis used as icons (use SVG instead)
 - [ ] All icons from consistent icon set (Heroicons style)
 - [ ] Hover states don't cause layout shift
 - [ ] Transitions are 150-300ms
 
 ### Interaction
+
 - [ ] All clickable elements have `cursor-pointer`
 - [ ] Hover states provide clear visual feedback
 - [ ] Focus states visible for keyboard navigation
 
 ### Light/Dark Mode
+
 - [ ] Components visible in both light and dark modes
 - [ ] Text has sufficient contrast (4.5:1 minimum)
 - [ ] Borders visible in both modes
 
 ### Accessibility
+
 - [ ] Icon-only buttons have `aria-label`
 - [ ] Keyboard shortcuts work (Lightbox: Escape, arrows, +/-, R)
 - [ ] `prefers-reduced-motion` respected for animations
@@ -430,6 +469,7 @@ Before considering each task complete, verify:
 ## Verification Plan
 
 ### Manual Verification
+
 1. **Lightbox:** Open an order with images, click to open lightbox, test:
    - Zoom in/out with buttons and `+`/`-` keys
    - Rotate with button and `R` key
@@ -446,4 +486,5 @@ Before considering each task complete, verify:
    - Animation respects `prefers-reduced-motion`
 
 ### Automated Tests
+
 - None required for UI components in this project's current test setup.

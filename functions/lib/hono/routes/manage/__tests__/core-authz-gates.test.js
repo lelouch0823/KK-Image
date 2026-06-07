@@ -205,7 +205,12 @@ describe('manage core authz gates', () => {
 
   it('denies spaces create when user only has read + files:write direct permissions', async () => {
     const app = new Hono();
-    withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['read', 'files:write'] });
+    withUser(app, {
+      id: 'u-direct',
+      type: 'user',
+      role: 'guest',
+      permissions: ['read', 'files:write'],
+    });
     app.route('/api/manage/spaces', spacesApp);
 
     const res = await app.request(
@@ -223,7 +228,12 @@ describe('manage core authz gates', () => {
 
   it('denies spaces file mutation when user only has read + files:write direct permissions', async () => {
     const app = new Hono();
-    withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['read', 'files:write'] });
+    withUser(app, {
+      id: 'u-direct',
+      type: 'user',
+      role: 'guest',
+      permissions: ['read', 'files:write'],
+    });
     app.route('/api/manage/spaces', spacesApp);
 
     const res = await app.request(
@@ -244,7 +254,12 @@ describe('manage core authz gates', () => {
     withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['read'] });
     app.route('/api/manage/user', userApp);
 
-    const res = await app.request('http://localhost/api/manage/user', { method: 'GET' }, { DB: {} }, { waitUntil: vi.fn() });
+    const res = await app.request(
+      'http://localhost/api/manage/user',
+      { method: 'GET' },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
     expect(res.status).toBe(403);
   });
 
@@ -253,7 +268,12 @@ describe('manage core authz gates', () => {
     withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['files:read'] });
     app.route('/api/manage/user', userApp);
 
-    const res = await app.request('http://localhost/api/manage/user', { method: 'GET' }, { DB: {} }, { waitUntil: vi.fn() });
+    const res = await app.request(
+      'http://localhost/api/manage/user',
+      { method: 'GET' },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
     expect(res.status).toBe(403);
   });
 
@@ -262,7 +282,12 @@ describe('manage core authz gates', () => {
     withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['users:read'] });
     app.route('/api/manage/user', userApp);
 
-    const res = await app.request('http://localhost/api/manage/user', { method: 'GET' }, { DB: {} }, { waitUntil: vi.fn() });
+    const res = await app.request(
+      'http://localhost/api/manage/user',
+      { method: 'GET' },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
     expect(res.status).toBe(200);
   });
 
@@ -271,7 +296,12 @@ describe('manage core authz gates', () => {
     withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['read'] });
     app.route('/api/manage/search', searchApp);
 
-    const res = await app.request('http://localhost/api/manage/search', { method: 'GET' }, { DB: {} }, { waitUntil: vi.fn() });
+    const res = await app.request(
+      'http://localhost/api/manage/search',
+      { method: 'GET' },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
     expect(res.status).toBe(403);
   });
 
@@ -291,7 +321,12 @@ describe('manage core authz gates', () => {
 
   it('allows /manage/notifications list when user has notifications:read direct permission', async () => {
     const app = new Hono();
-    withUser(app, { id: 'u-direct', type: 'user', role: 'guest', permissions: ['notifications:read'] });
+    withUser(app, {
+      id: 'u-direct',
+      type: 'user',
+      role: 'guest',
+      permissions: ['notifications:read'],
+    });
     app.route('/api/manage/notifications', notificationsApp);
 
     const res = await app.request(

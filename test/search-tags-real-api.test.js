@@ -63,37 +63,49 @@ describeIfRealApi('Search Tags Real API', function () {
     const tagId = createdTag.json?.data?.id || createdTag.json?.tag?.id;
     assert.ok(tagId, 'created tag id missing');
 
-    await waitFor(async () => {
-      const listed = await apiRequest('/api/manage/tags', {
-        bearerToken: token,
-        expectedStatus: 200,
-      });
-      const matched = (listed.json?.data || listed.json?.tags || []).find((tag) => tag.id === tagId);
-      assert.ok(matched, 'created tag missing from manage tags list');
-      assert.strictEqual(matched.name, tagName);
-      return matched;
-    }, {
-      timeoutMs: 20000,
-      intervalMs: 500,
-      onTimeoutMessage: 'manage tags cache did not refresh after tag creation',
-    });
+    await waitFor(
+      async () => {
+        const listed = await apiRequest('/api/manage/tags', {
+          bearerToken: token,
+          expectedStatus: 200,
+        });
+        const matched = (listed.json?.data || listed.json?.tags || []).find(
+          (tag) => tag.id === tagId
+        );
+        assert.ok(matched, 'created tag missing from manage tags list');
+        assert.strictEqual(matched.name, tagName);
+        return matched;
+      },
+      {
+        timeoutMs: 20000,
+        intervalMs: 500,
+        onTimeoutMessage: 'manage tags cache did not refresh after tag creation',
+      }
+    );
 
-    await waitFor(async () => {
-      const outbox = await apiRequest('/api/manage/outbox?eventType=tag_created', {
-        bearerToken: token,
-        expectedStatus: 200,
-      });
-      const event = findOutboxEvent(outbox.json?.data, 'tag_created', (item) => item.aggregate_id === tagId);
-      assert.ok(event, 'tag_created outbox event missing');
-      const cacheJob = (event.consumerJobs || []).find((job) => job.consumer_name === 'cache');
-      assert.ok(cacheJob, 'tag_created cache consumer job missing');
-      assert.strictEqual(cacheJob.status, 'published');
-      return event;
-    }, {
-      timeoutMs: 20000,
-      intervalMs: 500,
-      onTimeoutMessage: 'tag_created outbox event did not settle as published',
-    });
+    await waitFor(
+      async () => {
+        const outbox = await apiRequest('/api/manage/outbox?eventType=tag_created', {
+          bearerToken: token,
+          expectedStatus: 200,
+        });
+        const event = findOutboxEvent(
+          outbox.json?.data,
+          'tag_created',
+          (item) => item.aggregate_id === tagId
+        );
+        assert.ok(event, 'tag_created outbox event missing');
+        const cacheJob = (event.consumerJobs || []).find((job) => job.consumer_name === 'cache');
+        assert.ok(cacheJob, 'tag_created cache consumer job missing');
+        assert.strictEqual(cacheJob.status, 'published');
+        return event;
+      },
+      {
+        timeoutMs: 20000,
+        intervalMs: 500,
+        onTimeoutMessage: 'tag_created outbox event did not settle as published',
+      }
+    );
 
     await apiRequest('/api/manage/tags/assign', {
       bearerToken: token,
@@ -105,44 +117,52 @@ describeIfRealApi('Search Tags Real API', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const outbox = await apiRequest('/api/manage/outbox?eventType=tag_assigned_to_file', {
-        bearerToken: token,
-        expectedStatus: 200,
-      });
-      const event = findOutboxEvent(
-        outbox.json?.data,
-        'tag_assigned_to_file',
-        (item) => item.aggregate_id === tagId && item.payload_json?.includes(fileId)
-      );
-      assert.ok(event, 'tag_assigned_to_file outbox event missing');
-      const cacheJob = (event.consumerJobs || []).find((job) => job.consumer_name === 'cache');
-      assert.ok(cacheJob, 'tag_assigned_to_file cache consumer job missing');
-      assert.strictEqual(cacheJob.status, 'published');
-      return event;
-    }, {
-      timeoutMs: 20000,
-      intervalMs: 500,
-      onTimeoutMessage: 'tag assign outbox event did not settle as published',
-    });
-
-    await waitFor(async () => {
-      const search = await apiRequest(`/api/manage/search?q=${encodeURIComponent(seed)}`, {
-        bearerToken: token,
-        expectedStatus: 200,
-      });
-      const matched = (search.json?.data || []).find((item) => item.id === fileId);
-      if (!matched) {
-        console.log(`[search-debug] seed=${seed}, fileId=${fileId}, results=${JSON.stringify(search.json?.data)}`);
+    await waitFor(
+      async () => {
+        const outbox = await apiRequest('/api/manage/outbox?eventType=tag_assigned_to_file', {
+          bearerToken: token,
+          expectedStatus: 200,
+        });
+        const event = findOutboxEvent(
+          outbox.json?.data,
+          'tag_assigned_to_file',
+          (item) => item.aggregate_id === tagId && item.payload_json?.includes(fileId)
+        );
+        assert.ok(event, 'tag_assigned_to_file outbox event missing');
+        const cacheJob = (event.consumerJobs || []).find((job) => job.consumer_name === 'cache');
+        assert.ok(cacheJob, 'tag_assigned_to_file cache consumer job missing');
+        assert.strictEqual(cacheJob.status, 'published');
+        return event;
+      },
+      {
+        timeoutMs: 20000,
+        intervalMs: 500,
+        onTimeoutMessage: 'tag assign outbox event did not settle as published',
       }
-      assert.ok(matched, 'uploaded file missing from real search results');
-      assert.ok(String(matched.name || '').includes(seed), 'search result filename mismatch');
-      return matched;
-    }, {
-      timeoutMs: 30000,
-      intervalMs: 1000,
-      onTimeoutMessage: 'real search did not return uploaded file',
-    });
+    );
+
+    await waitFor(
+      async () => {
+        const search = await apiRequest(`/api/manage/search?q=${encodeURIComponent(seed)}`, {
+          bearerToken: token,
+          expectedStatus: 200,
+        });
+        const matched = (search.json?.data || []).find((item) => item.id === fileId);
+        if (!matched) {
+          console.log(
+            `[search-debug] seed=${seed}, fileId=${fileId}, results=${JSON.stringify(search.json?.data)}`
+          );
+        }
+        assert.ok(matched, 'uploaded file missing from real search results');
+        assert.ok(String(matched.name || '').includes(seed), 'search result filename mismatch');
+        return matched;
+      },
+      {
+        timeoutMs: 30000,
+        intervalMs: 1000,
+        onTimeoutMessage: 'real search did not return uploaded file',
+      }
+    );
 
     await apiRequest('/api/manage/tags/assign', {
       bearerToken: token,
@@ -154,26 +174,29 @@ describeIfRealApi('Search Tags Real API', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const outbox = await apiRequest('/api/manage/outbox?eventType=tag_unassigned_from_file', {
-        bearerToken: token,
-        expectedStatus: 200,
-      });
-      const event = findOutboxEvent(
-        outbox.json?.data,
-        'tag_unassigned_from_file',
-        (item) => item.aggregate_id === tagId && item.payload_json?.includes(fileId)
-      );
-      assert.ok(event, 'tag_unassigned_from_file outbox event missing');
-      const cacheJob = (event.consumerJobs || []).find((job) => job.consumer_name === 'cache');
-      assert.ok(cacheJob, 'tag_unassigned_from_file cache consumer job missing');
-      assert.strictEqual(cacheJob.status, 'published');
-      return event;
-    }, {
-      timeoutMs: 20000,
-      intervalMs: 500,
-      onTimeoutMessage: 'tag unassign outbox event did not settle as published',
-    });
+    await waitFor(
+      async () => {
+        const outbox = await apiRequest('/api/manage/outbox?eventType=tag_unassigned_from_file', {
+          bearerToken: token,
+          expectedStatus: 200,
+        });
+        const event = findOutboxEvent(
+          outbox.json?.data,
+          'tag_unassigned_from_file',
+          (item) => item.aggregate_id === tagId && item.payload_json?.includes(fileId)
+        );
+        assert.ok(event, 'tag_unassigned_from_file outbox event missing');
+        const cacheJob = (event.consumerJobs || []).find((job) => job.consumer_name === 'cache');
+        assert.ok(cacheJob, 'tag_unassigned_from_file cache consumer job missing');
+        assert.strictEqual(cacheJob.status, 'published');
+        return event;
+      },
+      {
+        timeoutMs: 20000,
+        intervalMs: 500,
+        onTimeoutMessage: 'tag unassign outbox event did not settle as published',
+      }
+    );
 
     assert.strictEqual(firstTagsList.json?.success, true);
   });

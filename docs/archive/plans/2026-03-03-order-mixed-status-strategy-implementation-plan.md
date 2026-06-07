@@ -13,12 +13,14 @@
 ### Task 1: Backend State Machine Utility
 
 **Files:**
+
 - Create: `functions/api/utils/order-state-machine.js`
 - Test: `functions/api/utils/__tests__/order-state-machine.test.js`
 
 ### Task 2: Repository Transition Enforcement
 
 **Files:**
+
 - Modify: `functions/repositories/order/mutations.js`
 - Modify: `functions/repositories/OrderRepository.js`
 - Modify: `functions/api/utils/order-utils.js`
@@ -27,6 +29,7 @@
 ### Task 3: Admin Routes Force Override Contract
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/orders/detail.js`
 - Modify: `functions/lib/hono/routes/manage/orders/create.js`
 - Test: `functions/lib/hono/routes/manage/__tests__/order-detail-routes.test.js`
@@ -35,6 +38,7 @@
 ### Task 4: Frontend Transition UX + Payload
 
 **Files:**
+
 - Create: `src/utils/order-state-machine.js`
 - Modify: `src/components/OrderStatusChanger.vue`
 - Modify: `src/composables/useOrders.js`
@@ -47,6 +51,7 @@
 ### Task 5: End-to-End Verification
 
 Run:
+
 ```bash
 npx vitest run functions/api/utils/__tests__/order-state-machine.test.js functions/repositories/__tests__/order-inventory-flow.test.js functions/lib/hono/routes/manage/__tests__/order-detail-routes.test.js functions/lib/hono/routes/manage/__tests__/order-batch-routes.test.js src/composables/__tests__/useOrders.change-status.test.js src/composables/__tests__/useOrders.update-order.test.js
 ```

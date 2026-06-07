@@ -13,6 +13,7 @@
 ### Task 1: Lock the Wrapper Removal Contract
 
 **Files:**
+
 - Create: `functions/lib/hono/_shared/__tests__/auth-helpers-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the wrapper still exists.
 ### Task 2: Inline the Locked Message Formatting
 
 **Files:**
+
 - Modify: `functions/lib/hono/_shared/auth-helpers.js`
 
 - [ ] **Step 1: Remove the wrapper and inline the format**

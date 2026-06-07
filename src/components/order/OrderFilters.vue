@@ -15,7 +15,7 @@
             <AppIcon name="plus" class="size-5" />
           </template>
         </AppButton>
-        
+
         <!-- Mobile Stats Button -->
         <AppButton
           variant="white"
@@ -73,7 +73,11 @@
         <Select
           :model-value="filters.procurementStatus"
           :options="procurementStatusOptions"
-          :placeholder="isMobile ? t('order.manage.procurementStatusShort') : t('order.manage.allProcurementStatuses')"
+          :placeholder="
+            isMobile
+              ? t('order.manage.procurementStatusShort')
+              : t('order.manage.allProcurementStatuses')
+          "
           size="sm"
           @update:model-value="$emit('update:filters', { ...filters, procurementStatus: $event })"
         />
@@ -83,7 +87,9 @@
         <Select
           :model-value="filters.deliveryStatus"
           :options="deliveryStatusOptions"
-          :placeholder="isMobile ? t('order.manage.deliveryStatusShort') : t('order.manage.allDeliveryStatuses')"
+          :placeholder="
+            isMobile ? t('order.manage.deliveryStatusShort') : t('order.manage.allDeliveryStatuses')
+          "
           size="sm"
           @update:model-value="$emit('update:filters', { ...filters, deliveryStatus: $event })"
         />
@@ -219,24 +225,26 @@ onUnmounted(() => {
 });
 
 const salespersonOptions = computed(() => [
-  { 
-    label: isMobile.value ? t('order.manage.salesShort') : t('order.manage.allSalespersons'), 
-    value: '' 
+  {
+    label: isMobile.value ? t('order.manage.salesShort') : t('order.manage.allSalespersons'),
+    value: '',
   },
-  ...salespersons.map(s => ({ label: s.name, value: s.id }))
+  ...salespersons.map((s) => ({ label: s.name, value: s.id })),
 ]);
 
 const statusOptions = computed(() => [
-  { 
-    label: isMobile.value ? t('order.manage.statusShort') : t('order.manage.allStatuses'), 
-    value: '' 
+  {
+    label: isMobile.value ? t('order.manage.statusShort') : t('order.manage.allStatuses'),
+    value: '',
   },
-  ...statuses.map(s => ({ label: t(`order.statuses.${s}`), value: s }))
+  ...statuses.map((s) => ({ label: t(`order.statuses.${s}`), value: s })),
 ]);
 
 const procurementStatusOptions = computed(() => [
   {
-    label: isMobile.value ? t('order.manage.procurementStatusShort') : t('order.manage.allProcurementStatuses'),
+    label: isMobile.value
+      ? t('order.manage.procurementStatusShort')
+      : t('order.manage.allProcurementStatuses'),
     value: '',
   },
   ...procurementStatuses.map((s) => ({ label: t(`order.procurementStatuses.${s}`), value: s })),
@@ -244,7 +252,9 @@ const procurementStatusOptions = computed(() => [
 
 const deliveryStatusOptions = computed(() => [
   {
-    label: isMobile.value ? t('order.manage.deliveryStatusShort') : t('order.manage.allDeliveryStatuses'),
+    label: isMobile.value
+      ? t('order.manage.deliveryStatusShort')
+      : t('order.manage.allDeliveryStatuses'),
     value: '',
   },
   ...deliveryStatuses.map((s) => ({ label: t(`order.deliveryStatuses.${s}`), value: s })),

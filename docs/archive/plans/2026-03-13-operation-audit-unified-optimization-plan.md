@@ -13,6 +13,7 @@
 ## 1. Current State
 
 Already completed:
+
 - Unified audit schema and shared audit pipeline
 - `success` / `denied` / `failed` event support
 - Structured audit center UI and API
@@ -22,12 +23,14 @@ Already completed:
 - Coverage script with declaration presence and visible implementation consistency checks
 
 Current validated guardrails:
+
 - Route discovery from `manage/`, `sales/`, and `v1/`
 - Declaration existence checks
 - Stale declaration checks
 - Visible `action` / `domain` / `targetType` / `severity` consistency against `scheduleAuditEvent(...)`
 
 Current verified status:
+
 - `node scripts/qa/check-audit-route-coverage.mjs` passes
 - targeted audit, route, authz, and QA tests pass
 
@@ -47,14 +50,17 @@ That means the audit system is already credible, but not yet maximally robust.
 This roadmap is intentionally split into `P0`, `P1`, and `P2`.
 
 ### `P0`
+
 Short-term hardening and completion.
 Focus: finish coverage, add behavior-level confidence, remove obvious migration debt.
 
 ### `P1`
+
 Mid-term engineering rigor.
 Focus: move from static visible consistency to runtime semantic consistency and stronger generated verification.
 
 ### `P2`
+
 Operational maturity.
 Focus: export, alerting, retention, observability, and governance.
 
@@ -65,6 +71,7 @@ Focus: export, alerting, retention, observability, and governance.
 ### Task Group P0.1: Finish behavior-level audit assertions on newly covered modules
 
 **Target modules:**
+
 - `functions/lib/hono/routes/manage/albums.js`
 - `functions/lib/hono/routes/manage/upload.js`
 - `functions/lib/hono/routes/manage/trash.js`
@@ -80,6 +87,7 @@ Focus: export, alerting, retention, observability, and governance.
 - selected `v1/*` write routes
 
 **Work:**
+
 1. Add focused route tests asserting the expected audit `action` is scheduled or recorded.
 2. Add at least one positive assertion per newly covered write surface.
 3. Add at least one high-risk destructive assertion for delete/empty/archive style routes.
@@ -90,10 +98,12 @@ The current guardrail proves declaration and visible implementation alignment, b
 ### Task Group P0.2: Remove remaining migration-era duplication where unified audit already exists
 
 **Focus:**
+
 - Search for remaining dual-write or legacy audit patterns
 - Remove legacy paths when the unified route-level event already fully supersedes them
 
 **Work:**
+
 1. Audit all `logAudit(...)` call sites still present in active routes.
 2. For each call site, decide:
    - keep temporarily with documented reason, or
@@ -106,6 +116,7 @@ The current guardrail proves declaration and visible implementation alignment, b
 Excluded POST routes are currently handled through a script-level ignore set.
 
 **Work:**
+
 1. Introduce a documented classification for non-mutating POST routes.
 2. Tag or register those exclusions explicitly so they are not “magic strings in one script”.
 3. Document why each exclusion is outside the main operation audit ledger.
@@ -116,6 +127,7 @@ Make exclusions explainable and reviewable, not just convenient.
 ### Task Group P0.4: Expand coverage baseline and route inventory docs
 
 **Work:**
+
 1. Update the baseline review document with all currently discovered write-route groups.
 2. Distinguish:
    - covered mutating routes
@@ -132,6 +144,7 @@ Make exclusions explainable and reviewable, not just convenient.
 Current checks verify visible literals in source, not actual emitted runtime event shape.
 
 **Work:**
+
 1. Introduce a shared test harness that captures scheduled audit events at route execution time.
 2. Assert for selected route groups that emitted events match declaration fields:
    - `action`
@@ -152,6 +165,7 @@ Move from “visible source alignment” to “runtime emitted event alignment�
 ### Task Group P1.2: Declaration schema enrichment
 
 **Possible additions:**
+
 - `resultModes`
 - `phase`
 - `excludedReason`
@@ -164,10 +178,12 @@ The richer the declaration contract, the less special-casing the scripts need.
 ### Task Group P1.3: Route extraction enrichment
 
 **Current extractor handles:**
+
 - `.post/.put/.patch/.delete`
 - `.on([PUT,PATCH], ...)`
 
 **Next improvements:**
+
 1. Capture nested route composition metadata where practical.
 2. Attach origin file and local path grouping for better reporting.
 3. Emit machine-readable JSON reports for CI artifacts.
@@ -175,6 +191,7 @@ The richer the declaration contract, the less special-casing the scripts need.
 ### Task Group P1.4: CI integration hardening
 
 **Work:**
+
 1. Make coverage and consistency scripts first-class CI checks.
 2. Produce more actionable violation output:
    - route
@@ -190,6 +207,7 @@ The richer the declaration contract, the less special-casing the scripts need.
 ### Task Group P2.1: Export workflows
 
 **Work:**
+
 1. Add audited export API paths guarded by `audit:export`
 2. Support filtered export rather than raw table dump
 3. Ensure export output respects redaction rules
@@ -197,6 +215,7 @@ The richer the declaration contract, the less special-casing the scripts need.
 ### Task Group P2.2: Alerting and escalation hooks
 
 **Focus events:**
+
 - repeated denied access
 - force state transitions
 - destructive batch deletes
@@ -208,6 +227,7 @@ Surface high-risk audit patterns proactively, not just retrospectively.
 ### Task Group P2.3: Retention and archival strategy
 
 **Work:**
+
 1. Define retention classes by severity/domain
 2. Add retention documentation and maintenance commands
 3. Optionally prepare archive/export to external storage
@@ -215,6 +235,7 @@ Surface high-risk audit patterns proactively, not just retrospectively.
 ### Task Group P2.4: Audit operations playbook
 
 **Documentation should cover:**
+
 - how to investigate incidents
 - how to use audit filters
 - how to interpret denied vs failed vs success events
@@ -239,17 +260,20 @@ This order is preferred because it first converts current structural coverage in
 ## 8. Acceptance Criteria by Phase
 
 ### `P0` Done When
+
 - all currently covered route groups have meaningful route-level audit behavior assertions
 - migration-era duplicate write paths are either removed or explicitly justified
 - excluded non-mutating POST routes are documented and normalized
 - coverage baseline reflects current route inventory accurately
 
 ### `P1` Done When
+
 - selected route groups prove runtime emitted event alignment with declarations
 - declarations carry enough metadata to support richer automation
 - route extraction and consistency checks are CI-grade and stable
 
 ### `P2` Done When
+
 - audited export flow exists
 - high-risk alerting hooks are defined or implemented
 - retention and operational guidance exist and are usable
@@ -261,6 +285,7 @@ This order is preferred because it first converts current structural coverage in
 3. Export/retention work can sprawl if attempted before `P0` and `P1` are stable.
 
 Recommendation:
+
 - keep `P0` pragmatic
 - make `P1` the core engineering milestone
 - treat `P2` as platform maturity, not immediate blocker

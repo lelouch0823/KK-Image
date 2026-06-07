@@ -13,7 +13,12 @@
     @touchmove="$emit('touch-move', $event)"
     @touchend="$emit('touch-end')"
   >
-    <AppImage :src="file.url" :alt="file.name || '上传文件'" :lazy="false" class="pointer-events-none size-full" />
+    <AppImage
+      :src="file.url"
+      :alt="file.name || '上传文件'"
+      :lazy="false"
+      class="pointer-events-none size-full"
+    />
 
     <!-- 操作遮罩层 -->
     <div
@@ -24,12 +29,7 @@
       <label
         class="flex size-8 cursor-pointer items-center justify-center rounded-full bg-(--bg-card)/90 text-(--text-main) transition-colors hover:bg-(--bg-card)"
       >
-        <input
-          type="file"
-          accept="image/*"
-          class="hidden"
-          @change="$emit('replace', $event)"
-        />
+        <input type="file" accept="image/*" class="hidden" @change="$emit('replace', $event)" />
         <AppIcon name="arrow-path" class="size-4" />
       </label>
       <!-- 删除按钮 -->
@@ -48,7 +48,7 @@
     <!-- 主图/封面标记 -->
     <div
       v-if="isCover"
-      class="bg-primary absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-xs text-(--text-inverse) shadow-sm "
+      class="bg-primary absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-xs text-(--text-inverse) shadow-sm"
     >
       {{ coverText }}
     </div>

@@ -39,7 +39,9 @@
           @click="navigateTo(item)"
         >
           <AppIcon :name="iconMap[item.type]" class="size-4 shrink-0 text-(--text-muted)" />
-          <span class="min-w-0 flex-1 truncate text-(--text-secondary) group-hover:text-(--text-main)">
+          <span
+            class="min-w-0 flex-1 truncate text-(--text-secondary) group-hover:text-(--text-main)"
+          >
             {{ item.title }}
           </span>
           <span class="text-muted shrink-0 text-xs">

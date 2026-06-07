@@ -74,9 +74,7 @@
       </div>
     </div>
     <p class="mt-3 text-xs leading-5 text-(--text-secondary)">
-      {{
-        t('purchaseOrder.ui.costFallbackHint')
-      }}
+      {{ t('purchaseOrder.ui.costFallbackHint') }}
     </p>
   </section>
 </template>

@@ -1,6 +1,10 @@
 // 认证工具模块 - 处理 API Key 和 JWT 认证
 import { parseJsonArray, safeJsonParse } from './json.js';
-import { base64UrlEncode, base64UrlDecode, timingSafeCompare as cryptoTimingSafeCompare } from './crypto.js';
+import {
+  base64UrlEncode,
+  base64UrlDecode,
+  timingSafeCompare as cryptoTimingSafeCompare,
+} from './crypto.js';
 
 // 管理员认证 Cookie 名称
 export const ADMIN_AUTH_COOKIE = 'ADMIN_AUTH';
@@ -204,8 +208,9 @@ async function getValidApiKey(apiKey, env) {
 
   // 2. 尝试从 D1 数据库获取
   try {
-    const row = await env.DB
-      .prepare('SELECT * FROM api_keys WHERE key_value = ? AND disabled = 0 LIMIT 1')
+    const row = await env.DB.prepare(
+      'SELECT * FROM api_keys WHERE key_value = ? AND disabled = 0 LIMIT 1'
+    )
       .bind(apiKey)
       .first();
 
@@ -292,7 +297,9 @@ export function extractRequestToken(
   request,
   { cookieName = null, preferBearer = false, includeBearer = true } = {}
 ) {
-  const cookieToken = cookieName ? normalizeAuthToken(parseCookie(request.headers.get('Cookie') || '')[cookieName]) : null;
+  const cookieToken = cookieName
+    ? normalizeAuthToken(parseCookie(request.headers.get('Cookie') || '')[cookieName])
+    : null;
   const bearerToken = includeBearer ? readBearerToken(request) : null;
   if (preferBearer) {
     return bearerToken || cookieToken;
@@ -300,7 +307,10 @@ export function extractRequestToken(
   return cookieToken || bearerToken;
 }
 
-export function extractAdminAuthToken(request, { preferBearer = false, includeBearer = true } = {}) {
+export function extractAdminAuthToken(
+  request,
+  { preferBearer = false, includeBearer = true } = {}
+) {
   return extractRequestToken(request, {
     cookieName: ADMIN_AUTH_COOKIE,
     preferBearer,

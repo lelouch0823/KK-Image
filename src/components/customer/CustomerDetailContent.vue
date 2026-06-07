@@ -9,11 +9,7 @@
               {{ customer?.name }}
             </h2>
             <!-- RFM 分段徽章 -->
-            <StatusBadge
-              v-if="stats?.segment"
-              :variant="segmentVariant"
-              dot
-            >
+            <StatusBadge v-if="stats?.segment" :variant="segmentVariant" dot>
               {{ t(`customer.detail.segment${segmentLabel}`) }}
             </StatusBadge>
           </div>
@@ -234,7 +230,9 @@
                 class="flex items-center justify-between rounded-lg border border-(--border-color) px-3 py-2"
               >
                 <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-(--text-main)">{{ order.productName }}</p>
+                  <p class="truncate text-sm font-medium text-(--text-main)">
+                    {{ order.productName }}
+                  </p>
                   <p class="text-xs text-(--text-secondary)">
                     {{ order.orderNo }} - {{ formatDate(order.createdAt) }}
                   </p>
@@ -311,11 +309,7 @@
               @click="handleAddTag"
             >
               <template #icon-left>
-                <AppIcon
-                  v-if="addingTag"
-                  name="spinner"
-                  class="size-4 animate-spin"
-                />
+                <AppIcon v-if="addingTag" name="spinner" class="size-4 animate-spin" />
                 <AppIcon v-else name="plus" class="size-4" />
               </template>
               {{ t('customer.detail.addTag') }}
@@ -407,11 +401,7 @@
                   @click="handleAddCommunication"
                 >
                   <template #icon-left>
-                    <AppIcon
-                      v-if="addingComm"
-                      name="spinner"
-                      class="size-4 animate-spin"
-                    />
+                    <AppIcon v-if="addingComm" name="spinner" class="size-4 animate-spin" />
                     <AppIcon v-else name="plus" class="size-4" />
                   </template>
                   {{ t('customer.detail.addCommunication') }}
@@ -563,12 +553,24 @@ const segmentLabel = computed(() => {
 });
 
 const segmentVariant = computed(() => {
-  const map = { vip: 'warning', active: 'success', 'at-risk': 'danger', lost: 'neutral', new: 'info' };
+  const map = {
+    vip: 'warning',
+    active: 'success',
+    'at-risk': 'danger',
+    lost: 'neutral',
+    new: 'info',
+  };
   return map[stats.value?.segment] || 'info';
 });
 
 const segmentIcon = computed(() => {
-  const map = { vip: 'star', active: 'check-circle', 'at-risk': 'exclamation-triangle', lost: 'x-circle', new: 'user' };
+  const map = {
+    vip: 'star',
+    active: 'check-circle',
+    'at-risk': 'exclamation-triangle',
+    lost: 'x-circle',
+    new: 'user',
+  };
   return map[stats.value?.segment] || 'user';
 });
 

@@ -11,7 +11,9 @@ describe('audit route exclusions thin wrappers audit', () => {
     const offenders = [];
 
     if (source.includes('export function getIgnoredAuditRouteKeys(')) {
-      offenders.push('functions/lib/hono/_shared/audit-route-exclusions.js: still defines getIgnoredAuditRouteKeys');
+      offenders.push(
+        'functions/lib/hono/_shared/audit-route-exclusions.js: still defines getIgnoredAuditRouteKeys'
+      );
     }
 
     expect(

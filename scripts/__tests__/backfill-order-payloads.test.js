@@ -41,15 +41,17 @@ describe('backfill-order-payloads', () => {
     }
 
     const { mapOrderPayloadRow } = await import(pathToFileURL(SCRIPT_PATH).href);
-    expect(mapOrderPayloadRow({
-      order_id: 'ord_1',
-      original_data: '{"name":"Chair"}',
-      current_data: '{"name":"Chair","brand":"KK","sku":"SKU-1"}',
-      summary_name: 'Chair',
-      summary_brand: 'KK',
-      summary_sku: 'SKU-1',
-      updated_at: 1700000000000,
-    })).toEqual({
+    expect(
+      mapOrderPayloadRow({
+        order_id: 'ord_1',
+        original_data: '{"name":"Chair"}',
+        current_data: '{"name":"Chair","brand":"KK","sku":"SKU-1"}',
+        summary_name: 'Chair',
+        summary_brand: 'KK',
+        summary_sku: 'SKU-1',
+        updated_at: 1700000000000,
+      })
+    ).toEqual({
       order_id: 'ord_1',
       original_data: '{"name":"Chair"}',
       current_data: '{"name":"Chair","brand":"KK","sku":"SKU-1"}',

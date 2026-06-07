@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  parseJsonArray,
-  parseJsonObject,
-  safeParseJson,
-} from '@/utils/json.js';
+import { parseJsonArray, parseJsonObject, safeParseJson } from '@/utils/json.js';
 
 describe('frontend json helpers', () => {
   it('returns fallback for invalid json text', () => {

@@ -50,13 +50,22 @@ function createLegacySchemaDbStub() {
               throw noSuchColumn('source_consumer');
             }
             // Simulate _checkColumnExists: SELECT <column> FROM notifications LIMIT 1
-            if (normalizedSql.includes('SELECT RECEIVER FROM NOTIFICATIONS') || normalizedSql.includes('SELECT receiver FROM notifications')) {
+            if (
+              normalizedSql.includes('SELECT RECEIVER FROM NOTIFICATIONS') ||
+              normalizedSql.includes('SELECT receiver FROM notifications')
+            ) {
               throw noSuchColumn('receiver');
             }
-            if (normalizedSql.includes('SELECT SALESPERSON_ID FROM NOTIFICATIONS') || normalizedSql.includes('SELECT salesperson_id FROM notifications')) {
+            if (
+              normalizedSql.includes('SELECT SALESPERSON_ID FROM NOTIFICATIONS') ||
+              normalizedSql.includes('SELECT salesperson_id FROM notifications')
+            ) {
               throw noSuchColumn('salesperson_id');
             }
-            if (normalizedSql.includes('SELECT SOURCE_CONSUMER FROM NOTIFICATIONS') || normalizedSql.includes('SELECT source_consumer FROM notifications')) {
+            if (
+              normalizedSql.includes('SELECT SOURCE_CONSUMER FROM NOTIFICATIONS') ||
+              normalizedSql.includes('SELECT source_consumer FROM notifications')
+            ) {
               throw noSuchColumn('source_consumer');
             }
             return { count: 1 };
@@ -64,12 +73,10 @@ function createLegacySchemaDbStub() {
           async run() {
             if (
               normalizedSql.includes('INSERT INTO notifications') &&
-              (
-                normalizedSql.includes('salesperson_id')
-                || normalizedSql.includes('source_consumer')
-                || normalizedSql.includes('source_event_id')
-                || normalizedSql.includes('dedupe_key')
-              )
+              (normalizedSql.includes('salesperson_id') ||
+                normalizedSql.includes('source_consumer') ||
+                normalizedSql.includes('source_event_id') ||
+                normalizedSql.includes('dedupe_key'))
             ) {
               throw noSuchColumn(
                 normalizedSql.includes('source_consumer') ? 'source_consumer' : 'salesperson_id'
@@ -126,7 +133,10 @@ describe('NotificationRepository legacy schema compatibility', () => {
       ...db,
       prepare(sql) {
         const statement = db.prepare(sql);
-        if (String(sql || '').includes('FROM notifications') && !String(sql || '').includes('COUNT(*)')) {
+        if (
+          String(sql || '').includes('FROM notifications') &&
+          !String(sql || '').includes('COUNT(*)')
+        ) {
           return {
             ...statement,
             bind(...params) {
@@ -221,10 +231,10 @@ describe('NotificationRepository legacy schema compatibility', () => {
     expect(
       db.calls.some(
         (sql) =>
-          sql.includes('INSERT INTO notifications')
-          && !sql.includes('source_consumer')
-          && !sql.includes('source_event_id')
-          && !sql.includes('dedupe_key')
+          sql.includes('INSERT INTO notifications') &&
+          !sql.includes('source_consumer') &&
+          !sql.includes('source_event_id') &&
+          !sql.includes('dedupe_key')
       )
     ).toBe(true);
   });
@@ -233,16 +243,20 @@ describe('NotificationRepository legacy schema compatibility', () => {
     const db = createLegacySchemaDbStub();
     const repo = new NotificationRepository(db);
 
-    await repo.createBatch(Array.from({ length: 205 }, (_, index) => ({
-      type: 'order',
-      title: `legacy-${index + 1}`,
-      receiver: 'sales',
-      salespersonId: `sp-${index + 1}`,
-      orderId: `o-${index + 1}`,
-      metadata: { index: index + 1 },
-    })));
+    await repo.createBatch(
+      Array.from({ length: 205 }, (_, index) => ({
+        type: 'order',
+        title: `legacy-${index + 1}`,
+        receiver: 'sales',
+        salespersonId: `sp-${index + 1}`,
+        orderId: `o-${index + 1}`,
+        metadata: { index: index + 1 },
+      }))
+    );
 
     expect(db.batchCalls).toHaveLength(4);
-    expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(100);
+    expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(
+      100
+    );
   });
 });

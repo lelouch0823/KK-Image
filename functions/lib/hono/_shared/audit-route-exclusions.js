@@ -1,7 +1,9 @@
 import { normalizeAuditRouteKey } from './audit-route-contract.js';
 
 function defineAuditRouteExclusion(input = {}) {
-  const method = String(input.method || '').trim().toUpperCase();
+  const method = String(input.method || '')
+    .trim()
+    .toUpperCase();
   const path = String(input.path || '').trim();
   const classification = String(input.classification || '').trim();
   const reason = String(input.reason || '').trim();

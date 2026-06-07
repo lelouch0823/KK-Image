@@ -13,6 +13,7 @@
 ### Task 1: Add a failing test for the detail polish tokens
 
 **Files:**
+
 - Modify: `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
 - Modify: `src/components/order/ProductBindingSection.vue`
 
@@ -21,10 +22,12 @@
 Add assertions for:
 
 ```js
-expect(wrapper.find('[data-testid="bound-sku"]').classes()).toContain('bg-(--bg-muted)/45')
-expect(wrapper.find('[data-testid="availability-badge"]').classes()).toContain('border')
-expect(wrapper.find('[data-testid="inventory-stats"]').classes()).toContain('divide-x')
-expect(wrapper.find('[data-testid="dimension-option-card-size"]').classes()).toContain('bg-(--bg-muted)/20')
+expect(wrapper.find('[data-testid="bound-sku"]').classes()).toContain('bg-(--bg-muted)/45');
+expect(wrapper.find('[data-testid="availability-badge"]').classes()).toContain('border');
+expect(wrapper.find('[data-testid="inventory-stats"]').classes()).toContain('divide-x');
+expect(wrapper.find('[data-testid="dimension-option-card-size"]').classes()).toContain(
+  'bg-(--bg-muted)/20'
+);
 ```
 
 **Step 2: Run test to verify it fails**
@@ -59,6 +62,7 @@ git commit -m "refactor: polish product binding mobile detail surfaces"
 ### Task 2: Verify the polish did not break related behavior
 
 **Files:**
+
 - Test: `src/components/order/__tests__/ProductBindingSection.variant-status.test.js`
 - Test: `src/views/sales/__tests__/SalesFormView.resilience.test.js`
 

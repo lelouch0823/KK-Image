@@ -72,9 +72,9 @@ return map[status] || 'bg-gray-400';
 ```
 
 ```js
-blue: 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]'
-purple: 'border-purple-500/20 bg-purple-500/5 ...'
-cyan: 'bg-cyan-500/10 text-cyan-500'
+blue: 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]';
+purple: 'border-purple-500/20 bg-purple-500/5 ...';
+cyan: 'bg-cyan-500/10 text-cyan-500';
 ```
 
 - 违规类型: 语义 token 违规 / 无效 alias / foundation 色彩原语漂移
@@ -87,10 +87,8 @@ cyan: 'bg-cyan-500/10 text-cyan-500'
 - 证据:
 
 ```vue
-class="... border-amber-200/70 bg-gradient-to-br from-amber-50 ... to-orange-50 ..."
-...
-class="... bg-amber-600 ... text-white ..."
-class="... border-amber-300 bg-white ... text-amber-800 ..."
+class="... border-amber-200/70 bg-gradient-to-br from-amber-50 ... to-orange-50 ..." ... class="...
+bg-amber-600 ... text-white ..." class="... border-amber-300 bg-white ... text-amber-800 ..."
 ```
 
 - 违规类型: foundation 层白灰/状态色直写 / 绕过 `AppButton`
@@ -110,10 +108,18 @@ class="... border-amber-300 bg-white ... text-amber-800 ..."
 ```
 
 ```css
-.app-image--rounded-sm { border-radius: 0.125rem; }
-.app-image--rounded-full { border-radius: 9999px; }
-.app-image__badge-blocked { background-color: rgba(239, 68, 68, 0.9); }
-.app-image__badge-liked { background-color: rgba(236, 72, 153, 0.9); }
+.app-image--rounded-sm {
+  border-radius: 0.125rem;
+}
+.app-image--rounded-full {
+  border-radius: 9999px;
+}
+.app-image__badge-blocked {
+  background-color: rgba(239, 68, 68, 0.9);
+}
+.app-image__badge-liked {
+  background-color: rgba(236, 72, 153, 0.9);
+}
 ```
 
 - 违规类型: spacing/radius/token 规范偏离 / 本地图标化实现
@@ -128,10 +134,9 @@ class="... border-amber-300 bg-white ... text-amber-800 ..."
 - 证据:
 
 ```vue
-class="... bg-danger ... border border-white"
-class="... border-amber-300 bg-amber-50 text-amber-700"
-class="fixed inset-0 z-40 bg-black/50 ..."
-class="... bg-gradient-to-br from-gray-800 to-black ... text-white"
+class="... bg-danger ... border border-white" class="... border-amber-300 bg-amber-50
+text-amber-700" class="fixed inset-0 z-40 bg-black/50 ..." class="... bg-gradient-to-br
+from-gray-800 to-black ... text-white"
 ```
 
 - 违规类型: 语义 token 违规 / foundation 白灰 utility 直写
@@ -144,7 +149,8 @@ class="... bg-gradient-to-br from-gray-800 to-black ... text-white"
 - 证据:
 
 ```vue
-'app-table--card rounded-2xl border border-(--border-color)/70 bg-(--bg-card) shadow-[0_10px_30px_rgba(15,23,42,0.05)]'
+'app-table--card rounded-2xl border border-(--border-color)/70 bg-(--bg-card)
+shadow-[0_10px_30px_rgba(15,23,42,0.05)]'
 ```
 
 - 违规类型: shadow/token 规范偏离

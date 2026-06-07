@@ -2,20 +2,24 @@
   <div class="space-y-6">
     <SettingsSection
       :title="t('settings.backup.title', 'System Backups')"
-      :description="t('settings.backup.description', 'Create and download full system backups including database and stored files.')"
+      :description="
+        t(
+          'settings.backup.description',
+          'Create and download full system backups including database and stored files.'
+        )
+      "
       icon="cloud-arrow-up"
     >
       <template #action>
-        <AppButton
-          :disabled="creating"
-          variant="primary"
-          :loading="creating"
-          @click="createBackup"
-        >
+        <AppButton :disabled="creating" variant="primary" :loading="creating" @click="createBackup">
           <template v-if="!creating" #icon-left>
             <AppIcon name="plus" class="size-4" />
           </template>
-          {{ creating ? t('settings.backup.creating', 'Creating...') : t('settings.backup.create', 'Create Backup') }}
+          {{
+            creating
+              ? t('settings.backup.creating', 'Creating...')
+              : t('settings.backup.create', 'Create Backup')
+          }}
         </AppButton>
       </template>
 
@@ -31,44 +35,33 @@
         >
           <template #cell-name="{ row: backup }">
             <div class="flex min-w-0 items-center gap-3 font-medium text-(--text-main)">
-              <AppIcon name="document" class="group-hover:text-primary size-5 text-(--text-muted) transition-colors" />
+              <AppIcon
+                name="document"
+                class="group-hover:text-primary size-5 text-(--text-muted) transition-colors"
+              />
               <span class="truncate" :title="backup.name">{{ backup.name }}</span>
             </div>
           </template>
           <template #cell-size="{ row: backup }">
-            <span class="font-mono text-xs text-(--text-secondary)">{{ formatSize(backup.size) }}</span>
+            <span class="font-mono text-xs text-(--text-secondary)">{{
+              formatSize(backup.size)
+            }}</span>
           </template>
           <template #cell-date="{ row: backup }">
             <span class="text-(--text-secondary)">{{ formatDate(backup.uploadedAt) }}</span>
           </template>
           <template #cell-actions="{ row: backup }">
             <div class="flex flex-wrap justify-end gap-2 pr-2">
-              <AppButton
-                variant="secondary"
-                size="sm"
-                @click="handleValidateBackup(backup)"
-              >
+              <AppButton variant="secondary" size="sm" @click="handleValidateBackup(backup)">
                 {{ t('settings.backup.validate', 'Validate') }}
               </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                @click="handleDryRunBackup(backup)"
-              >
+              <AppButton variant="secondary" size="sm" @click="handleDryRunBackup(backup)">
                 {{ t('settings.backup.dryRun', 'Dry Run') }}
               </AppButton>
-              <AppButton
-                variant="danger"
-                size="sm"
-                @click="openRestoreDialog(backup)"
-              >
+              <AppButton variant="danger" size="sm" @click="openRestoreDialog(backup)">
                 {{ t('common.restore', 'Restore') }}
               </AppButton>
-              <AppButton
-                variant="white"
-                size="sm"
-                @click="downloadBackup(backup)"
-              >
+              <AppButton variant="white" size="sm" @click="downloadBackup(backup)">
                 <template #icon-left>
                   <AppIcon name="arrow-down-tray" class="size-3.5" />
                 </template>
@@ -117,10 +110,34 @@ const restoreResult = ref(null);
 const restoreLoading = ref(false);
 
 const columns = computed(() => [
-  { key: 'name', label: t('settings.backup.filename', 'Filename'), width: '320px', minWidth: '320px' },
-  { key: 'size', label: t('settings.backup.size', 'Size'), kind: 'numeric', width: '120px', maxWidth: '120px' },
-  { key: 'date', label: t('settings.backup.date', 'Date'), kind: 'datetime', width: '180px', maxWidth: '180px' },
-  { key: 'actions', label: t('common.actions', 'Actions'), align: 'right', width: '320px', maxWidth: '320px', nowrap: true },
+  {
+    key: 'name',
+    label: t('settings.backup.filename', 'Filename'),
+    width: '320px',
+    minWidth: '320px',
+  },
+  {
+    key: 'size',
+    label: t('settings.backup.size', 'Size'),
+    kind: 'numeric',
+    width: '120px',
+    maxWidth: '120px',
+  },
+  {
+    key: 'date',
+    label: t('settings.backup.date', 'Date'),
+    kind: 'datetime',
+    width: '180px',
+    maxWidth: '180px',
+  },
+  {
+    key: 'actions',
+    label: t('common.actions', 'Actions'),
+    align: 'right',
+    width: '320px',
+    maxWidth: '320px',
+    nowrap: true,
+  },
 ]);
 
 const fetchBackups = async () => {
@@ -178,7 +195,10 @@ const executeRestoreAction = async (action, backup = selectedBackup.value) => {
         await fetchBackups();
       }
     } else {
-      addToast({ type: 'error', message: json.error || t('settings.backup.restoreFailed', 'Backup restore failed') });
+      addToast({
+        type: 'error',
+        message: json.error || t('settings.backup.restoreFailed', 'Backup restore failed'),
+      });
     }
   } catch (e) {
     addToast({ type: 'error', message: e.message });

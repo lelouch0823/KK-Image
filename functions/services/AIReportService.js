@@ -83,14 +83,15 @@ export class AIReportService {
     const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000;
     const monthStart = todayStart - 29 * 24 * 60 * 60 * 1000;
 
-    const [orderStats, pendingOrders, customerStats, spaceStats, salespersonStats, fileStats] = await Promise.all([
-      this.orderStatsRepo.getAdminStats(todayStart, weekStart, monthStart),
-      this.orderStatsRepo.getRecentPending(5),
-      this.systemStatsRepo.getCustomerStats(),
-      this.systemStatsRepo.getSpaceStats(),
-      this.systemStatsRepo.getSalespersonStats(),
-      this.systemStatsRepo.getFileStats(),
-    ]);
+    const [orderStats, pendingOrders, customerStats, spaceStats, salespersonStats, fileStats] =
+      await Promise.all([
+        this.orderStatsRepo.getAdminStats(todayStart, weekStart, monthStart),
+        this.orderStatsRepo.getRecentPending(5),
+        this.systemStatsRepo.getCustomerStats(),
+        this.systemStatsRepo.getSpaceStats(),
+        this.systemStatsRepo.getSalespersonStats(),
+        this.systemStatsRepo.getFileStats(),
+      ]);
 
     return { orderStats, pendingOrders, customerStats, spaceStats, salespersonStats, fileStats };
   }

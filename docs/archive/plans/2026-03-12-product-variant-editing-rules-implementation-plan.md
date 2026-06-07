@@ -13,6 +13,7 @@
 ### Task 1: Lock the desired behaviors with failing tests
 
 **Files:**
+
 - Modify: `src/components/product/__tests__/ProductVariantTable.test.js`
 - Modify: `src/components/product/__tests__/ProductCreateModal.external-codes.test.js`
 - Create: `src/components/product/__tests__/ProductCreateModal.edit-variant-preservation.test.js`
@@ -32,6 +33,7 @@ Expected: FAIL because the delete action does not exist, SKU is still auto-gener
 ### Task 2: Implement the minimal product form changes
 
 **Files:**
+
 - Modify: `src/components/product/ProductVariantTable.vue`
 - Modify: `src/composables/useProductForm.js`
 
@@ -60,6 +62,7 @@ Expected: PASS
 ### Task 3: Run broader regression checks
 
 **Files:**
+
 - No code changes
 
 **Step 1: Run adjacent product form tests**

@@ -22,7 +22,9 @@ export async function getWeChatOpenid(env, code) {
     grant_type: 'authorization_code',
   });
   const wxUrl = `https://api.weixin.qq.com/sns/jscode2session?${wxParams}`;
-  const wxRes = await fetch(wxUrl);
+  const wxRes = await fetch(wxUrl, {
+    signal: AbortSignal.timeout(10000), // 10秒超时保护
+  });
   const wxData = await wxRes.json();
 
   if (wxData.errcode) {

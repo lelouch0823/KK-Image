@@ -4,7 +4,10 @@ import { resolve } from 'node:path';
 
 describe('SpaceCreateModal design-system migration', () => {
   it('uses shared cards, inputs, and buttons for modal actions', () => {
-    const source = readFileSync(resolve(process.cwd(), 'src/components/SpaceCreateModal.vue'), 'utf8');
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/components/SpaceCreateModal.vue'),
+      'utf8'
+    );
 
     expect(source).toContain("import AppButton from '@/components/ui/AppButton.vue'");
     expect(source).toContain("import AppCard from '@/components/ui/AppCard.vue'");

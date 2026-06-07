@@ -1,7 +1,9 @@
 <template>
   <div class="flex min-h-screen items-center justify-center bg-(--bg-muted) px-4">
     <div class="w-full max-w-md">
-      <div class="rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-8 text-center shadow-lg">
+      <div
+        class="rounded-2xl border border-(--border-subtle) bg-(--bg-card) p-8 text-center shadow-lg"
+      >
         <!-- Logo/Icon -->
         <div
           class="bg-primary/10 mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl"
@@ -9,7 +11,9 @@
           <AppIcon name="shield-check" class="text-primary size-8" />
         </div>
 
-        <h2 class="mb-2 text-xl font-semibold text-(--text-main)">{{ t('spacePublic.verifyHuman') }}</h2>
+        <h2 class="mb-2 text-xl font-semibold text-(--text-main)">
+          {{ t('spacePublic.verifyHuman') }}
+        </h2>
         <p class="mb-6 text-sm text-(--text-secondary)">{{ t('spacePublic.verifyHint') }}</p>
 
         <!-- Turnstile Widget Container -->
@@ -21,7 +25,10 @@
         <p v-if="error" class="mb-4 text-sm text-(--color-danger-text)">{{ error }}</p>
 
         <!-- Loading State -->
-        <div v-if="verifying" class="flex items-center justify-center gap-2 text-(--text-secondary)">
+        <div
+          v-if="verifying"
+          class="flex items-center justify-center gap-2 text-(--text-secondary)"
+        >
           <AppIcon name="spinner" class="text-primary size-4 animate-spin" />
           <span class="text-sm">{{ t('spacePublic.verifying') }}</span>
         </div>

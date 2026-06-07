@@ -383,15 +383,17 @@ export class OrderProcurementReceiptReversalService {
         timestamp,
         commandId: commandRecord.command_id,
         response,
-        leadingStatements: this.domainOutboxRepo.buildInsertStatements(
-          outboxEvents,
-          (event) => getDomainEventDefinition(event.event_type).consumers
-        ).concat(
-          buildProcurementResourceLockReleaseStatements({
-            commandIdempotencyRepo: this.commandIdempotencyRepo,
-            lockRecords: receiptLocks,
-          })
-        ),
+        leadingStatements: this.domainOutboxRepo
+          .buildInsertStatements(
+            outboxEvents,
+            (event) => getDomainEventDefinition(event.event_type).consumers
+          )
+          .concat(
+            buildProcurementResourceLockReleaseStatements({
+              commandIdempotencyRepo: this.commandIdempotencyRepo,
+              lockRecords: receiptLocks,
+            })
+          ),
       })
     );
 

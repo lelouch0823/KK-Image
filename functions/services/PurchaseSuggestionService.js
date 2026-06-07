@@ -28,9 +28,10 @@ function buildSuggestionPricing(row, lastPurchasePriceMap) {
   const suggestedPurchasePrice = rawSuggested > 0 ? rawSuggested : variantCostPrice;
   const hasLastPrice = Object.prototype.hasOwnProperty.call(lastPurchasePriceMap, row.variant_id);
   const lastPurchasePrice = hasLastPrice ? lastPurchasePriceMap[row.variant_id] : null;
-  const priceDelta = lastPurchasePrice == null
-    ? null
-    : Math.round((suggestedPurchasePrice - lastPurchasePrice) * 100) / 100;
+  const priceDelta =
+    lastPurchasePrice == null
+      ? null
+      : Math.round((suggestedPurchasePrice - lastPurchasePrice) * 100) / 100;
 
   return {
     variant_cost_price: variantCostPrice,
@@ -73,7 +74,7 @@ export class PurchaseSuggestionService {
     const liveVariantIdSet = new Set(rows.map((row) => row.variant_id).filter(Boolean));
     const missingVariantIds = variantIds.filter((variantId) => !liveVariantIdSet.has(variantId));
     if (missingVariantIds.length > 0) {
-      rows.push(...await this.suggestionRepo.findSnapshotFallbackRows(missingVariantIds));
+      rows.push(...(await this.suggestionRepo.findSnapshotFallbackRows(missingVariantIds)));
     }
 
     const demandByVariant = new Map(demandRows.map((row) => [row.variant_id, row]));

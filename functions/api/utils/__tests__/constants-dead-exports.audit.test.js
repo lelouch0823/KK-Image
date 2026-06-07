@@ -30,9 +30,6 @@ describe('api constants dead exports audit', () => {
       offenders.push('functions/api/utils/constants.js: still defines MAX_PAGE_SIZE');
     }
 
-    expect(
-      offenders,
-      `api constants dead-export offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `api constants dead-export offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

@@ -15,8 +15,10 @@ module.exports = {
 };
 
 if (require.main === module) {
-  createAdminBusinessFlowSmokeRunner().main().catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+  createAdminBusinessFlowSmokeRunner()
+    .main()
+    .catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
 }

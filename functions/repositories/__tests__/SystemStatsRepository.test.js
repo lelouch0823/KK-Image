@@ -100,11 +100,7 @@ describe('SystemStatsRepository', () => {
   });
 
   it('falls back to empty aggregates when optional rows are absent', async () => {
-    const db = createSequentialDb([
-      { first: undefined },
-      { first: undefined },
-      { all: undefined },
-    ]);
+    const db = createSequentialDb([{ first: undefined }, { first: undefined }, { all: undefined }]);
 
     const repo = new SystemStatsRepository(db);
 

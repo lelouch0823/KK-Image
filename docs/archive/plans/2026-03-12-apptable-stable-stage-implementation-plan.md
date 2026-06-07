@@ -13,6 +13,7 @@
 ### Task 1: Lock the stable stage design contract
 
 **Files:**
+
 - Modify: `src/components/ui/__tests__/AppTable.design-contract.test.js`
 - Reference: `src/components/ui/AppTable.vue`
 
@@ -86,6 +87,7 @@ git commit -m "test(ui): lock AppTable stable stage contract"
 ### Task 2: Add stage sizing props and sparse/empty state branching
 
 **Files:**
+
 - Modify: `src/components/ui/AppTable.vue`
 - Modify: `src/components/ui/__tests__/AppTable.design-contract.test.js`
 
@@ -98,7 +100,10 @@ it('uses sparse mode when data count is below the threshold', () => {
   const wrapper = mount(AppTable, {
     props: {
       columns: [{ key: 'name', label: 'Name' }],
-      data: [{ id: 1, name: 'Alpha' }, { id: 2, name: 'Beta' }],
+      data: [
+        { id: 1, name: 'Alpha' },
+        { id: 2, name: 'Beta' },
+      ],
       sparseThreshold: 3,
       minRows: 7,
     },
@@ -161,7 +166,9 @@ fillSparseSpace: {
 
 ```js
 const isEmpty = computed(() => !props.loading && (!props.data || props.data.length === 0));
-const isSparse = computed(() => !props.loading && props.data.length > 0 && props.data.length <= props.sparseThreshold);
+const isSparse = computed(
+  () => !props.loading && props.data.length > 0 && props.data.length <= props.sparseThreshold
+);
 const stageMode = computed(() => {
   if (props.loading) return 'loading';
   if (isEmpty.value) return 'empty';
@@ -188,6 +195,7 @@ git commit -m "feat(ui): add AppTable stable stage state model"
 ### Task 3: Implement stable minimum stage height and sparse fill presentation
 
 **Files:**
+
 - Modify: `src/components/ui/AppTable.vue`
 - Modify: `src/components/ui/__tests__/AppTable.design-contract.test.js`
 
@@ -250,7 +258,7 @@ const stageMinHeight = computed(() => {
   class="app-table__stage flex min-w-0 flex-col"
   :data-table-stage-mode="stageMode"
   :style="{ minHeight: stageMinHeight }"
->
+></div>
 ```
 
 - Render a low-emphasis sparse fill region only when:
@@ -275,6 +283,7 @@ git commit -m "feat(ui): add AppTable sparse fill and stable stage height"
 ### Task 4: Anchor the footer and protect loading and empty-state stability
 
 **Files:**
+
 - Modify: `src/components/ui/AppTable.vue`
 - Modify: `src/components/ui/__tests__/AppTable.design-contract.test.js`
 - Reference: `src/views/Customers.vue`
@@ -328,7 +337,7 @@ In `AppTable.vue`:
 - Make the outer component a flex column surface so footer naturally anchors below the stage:
 
 ```html
-<div class="app-table flex w-full flex-col overflow-hidden">
+<div class="app-table flex w-full flex-col overflow-hidden"></div>
 ```
 
 - Make the stage `flex-1`
@@ -352,6 +361,7 @@ git commit -m "feat(ui): anchor AppTable footer below stable stage"
 ### Task 5: Run focused regression coverage for representative management pages
 
 **Files:**
+
 - Modify: none unless regressions appear
 - Reference: `src/views/__tests__/GoodsOverview.design-system-migration.test.js`
 - Reference: `src/views/__tests__/PurchaseOrders.design-system-migration.test.js`
@@ -389,6 +399,7 @@ git commit -m "test(ui): verify stable AppTable stage across management pages"
 ### Task 6: Document the new AppTable contract for future page migrations
 
 **Files:**
+
 - Modify: `docs/architecture/modules/frontend-components.md`
 
 **Step 1: Write the failing doc diff**

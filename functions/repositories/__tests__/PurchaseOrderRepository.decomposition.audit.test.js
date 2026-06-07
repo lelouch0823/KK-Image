@@ -25,32 +25,46 @@ describe('PurchaseOrderRepository decomposition audit', () => {
       }
     }
 
-    if (!source.includes("./purchase-order-read-model.js")) {
-      offenders.push('functions/repositories/PurchaseOrderRepository.js: missing read-model helper import');
+    if (!source.includes('./purchase-order-read-model.js')) {
+      offenders.push(
+        'functions/repositories/PurchaseOrderRepository.js: missing read-model helper import'
+      );
     }
 
-    if (!source.includes("./purchase-order-numbering.js")) {
-      offenders.push('functions/repositories/PurchaseOrderRepository.js: missing numbering helper import');
+    if (!source.includes('./purchase-order-numbering.js')) {
+      offenders.push(
+        'functions/repositories/PurchaseOrderRepository.js: missing numbering helper import'
+      );
     }
 
-    if (!source.includes("./purchase-order-queries.js")) {
-      offenders.push('functions/repositories/PurchaseOrderRepository.js: missing queries helper import');
+    if (!source.includes('./purchase-order-queries.js')) {
+      offenders.push(
+        'functions/repositories/PurchaseOrderRepository.js: missing queries helper import'
+      );
     }
 
-    if (!source.includes("./purchase-order-item-mutations.js")) {
-      offenders.push('functions/repositories/PurchaseOrderRepository.js: missing item-mutations helper import');
+    if (!source.includes('./purchase-order-item-mutations.js')) {
+      offenders.push(
+        'functions/repositories/PurchaseOrderRepository.js: missing item-mutations helper import'
+      );
     }
 
-    if (!source.includes("./purchase-order-snapshot.js")) {
-      offenders.push('functions/repositories/PurchaseOrderRepository.js: missing snapshot helper import');
+    if (!source.includes('./purchase-order-snapshot.js')) {
+      offenders.push(
+        'functions/repositories/PurchaseOrderRepository.js: missing snapshot helper import'
+      );
     }
 
-    if (!source.includes("./purchase-order-item-snapshots.js")) {
-      offenders.push('functions/repositories/PurchaseOrderRepository.js: missing item snapshot helper import');
+    if (!source.includes('./purchase-order-item-snapshots.js')) {
+      offenders.push(
+        'functions/repositories/PurchaseOrderRepository.js: missing item snapshot helper import'
+      );
     }
 
-    if (!source.includes("./purchase-order-links.js")) {
-      offenders.push('functions/repositories/PurchaseOrderRepository.js: missing links helper import');
+    if (!source.includes('./purchase-order-links.js')) {
+      offenders.push(
+        'functions/repositories/PurchaseOrderRepository.js: missing links helper import'
+      );
     }
 
     for (const marker of [
@@ -72,7 +86,9 @@ describe('PurchaseOrderRepository decomposition audit', () => {
       'async getStats() {',
     ]) {
       if (source.includes(marker)) {
-        offenders.push(`functions/repositories/PurchaseOrderRepository.js: still defines ${marker}`);
+        offenders.push(
+          `functions/repositories/PurchaseOrderRepository.js: still defines ${marker}`
+        );
       }
     }
 

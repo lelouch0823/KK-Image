@@ -9,7 +9,11 @@ describe('useAIChatSession', () => {
   it('creates a pending assistant message, applies stream updates, and finalizes once', () => {
     const session = useAIChatSession({
       storageKey: 'ai-chat-session-test',
-      createWelcomeMessage: () => ({ role: 'assistant', content: 'welcome', html: '<p>welcome</p>' }),
+      createWelcomeMessage: () => ({
+        role: 'assistant',
+        content: 'welcome',
+        html: '<p>welcome</p>',
+      }),
       renderAssistantHtml: (content) => `<p>${content}</p>`,
       fixFinalAssistantContent: (content) => content.trim(),
     });
@@ -31,7 +35,11 @@ describe('useAIChatSession', () => {
   it('drops an empty assistant draft after a failed stream', () => {
     const session = useAIChatSession({
       storageKey: 'ai-chat-session-test-empty',
-      createWelcomeMessage: () => ({ role: 'assistant', content: 'welcome', html: '<p>welcome</p>' }),
+      createWelcomeMessage: () => ({
+        role: 'assistant',
+        content: 'welcome',
+        html: '<p>welcome</p>',
+      }),
       renderAssistantHtml: (content) => `<p>${content}</p>`,
     });
 
@@ -40,8 +48,6 @@ describe('useAIChatSession', () => {
     session.discardEmptyAssistantDraft();
 
     expect(session.messages.value).toHaveLength(2);
-    expect(session.messages.value.at(-1)).toEqual(
-      expect.objectContaining({ role: 'user' })
-    );
+    expect(session.messages.value.at(-1)).toEqual(expect.objectContaining({ role: 'user' }));
   });
 });

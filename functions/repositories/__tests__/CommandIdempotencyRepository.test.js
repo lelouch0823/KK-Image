@@ -155,11 +155,15 @@ describe('CommandIdempotencyRepository', () => {
   });
 
   it('migration 0055 command idempotency status check includes failed', () => {
-    const migrationPath = path.resolve(process.cwd(), 'migrations/0055_command_idempotency_and_outbox.sql');
+    const migrationPath = path.resolve(
+      process.cwd(),
+      'migrations/0055_command_idempotency_and_outbox.sql'
+    );
     const sql = readFileSync(migrationPath, 'utf8');
-    const commandIdempotencyTable = sql.match(
-      /CREATE TABLE IF NOT EXISTS command_idempotency[\s\S]*?\);\n\nCREATE UNIQUE INDEX/
-    )?.[0] || '';
+    const commandIdempotencyTable =
+      sql.match(
+        /CREATE TABLE IF NOT EXISTS command_idempotency[\s\S]*?\);\n\nCREATE UNIQUE INDEX/
+      )?.[0] || '';
 
     expect(commandIdempotencyTable).toContain("'failed'");
   });

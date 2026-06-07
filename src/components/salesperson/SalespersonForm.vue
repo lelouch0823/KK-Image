@@ -37,7 +37,9 @@
           v-model="form.password"
           type="text"
           :label="t('salesperson.password')"
-          :placeholder="isEditing ? t('salesperson.leaveBlankToKeep') : t('salesperson.passwordPlaceholder')"
+          :placeholder="
+            isEditing ? t('salesperson.leaveBlankToKeep') : t('salesperson.passwordPlaceholder')
+          "
           :required="!isEditing"
           :hint="t('salesperson.passwordHint')"
           size="lg"
@@ -67,7 +69,8 @@
           <div class="flex items-center gap-2">
             <code
               class="text-primary rounded-lg border border-(--border-color) bg-(--bg-muted) px-2 py-1.5 font-mono text-xs"
-            >{{ salesperson.uuid }}</code>
+              >{{ salesperson.uuid }}</code
+            >
             <AppButton
               type="button"
               variant="link"
@@ -84,11 +87,7 @@
 
     <template #footer>
       <ActionBar class="w-full border-none bg-transparent px-0 py-0 shadow-none">
-        <AppButton
-          variant="secondary"
-          :text="t('common.cancel')"
-          @click="visible = false"
-        />
+        <AppButton variant="secondary" :text="t('common.cancel')" @click="visible = false" />
         <AppButton
           variant="primary"
           :text="submitting ? t('common.saving') : t('common.save')"

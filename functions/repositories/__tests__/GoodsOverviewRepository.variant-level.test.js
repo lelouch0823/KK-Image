@@ -14,34 +14,36 @@ function createMockDb(results = []) {
 
 describe('GoodsOverviewRepository variant-level', () => {
   it('reads list demand from variant_demand_projection instead of raw order_lines aggregation', async () => {
-    const db = createMockDb([{
-      id: 'var-1',
-      variant_id: 'var-1',
-      product_id: 'prod-1',
-      product_code: 'P0001',
-      variant_code: 'V0001',
-      name: 'Tee',
-      sku: 'TEE-YELLOW-S',
-      brand: 'KK',
-      category: 'Top',
-      stock_quantity: 7,
-      on_hand: 7,
-      reserved: 2,
-      available: 3,
-      alert_threshold: 2,
-      images: '[]',
-      confirmed_qty: 2,
-      production_qty: 0,
-      shipping_qty: 0,
-      arrived_qty: 0,
-      total_demand: 2,
-      order_count: 1,
-      order_ids: 'o-1',
-      shortage: -1,
-      avg_unit_cost: 1,
-      avg_freight: 0.2,
-      avg_tariff: 0.1,
-    }]);
+    const db = createMockDb([
+      {
+        id: 'var-1',
+        variant_id: 'var-1',
+        product_id: 'prod-1',
+        product_code: 'P0001',
+        variant_code: 'V0001',
+        name: 'Tee',
+        sku: 'TEE-YELLOW-S',
+        brand: 'KK',
+        category: 'Top',
+        stock_quantity: 7,
+        on_hand: 7,
+        reserved: 2,
+        available: 3,
+        alert_threshold: 2,
+        images: '[]',
+        confirmed_qty: 2,
+        production_qty: 0,
+        shipping_qty: 0,
+        arrived_qty: 0,
+        total_demand: 2,
+        order_count: 1,
+        order_ids: 'o-1',
+        shortage: -1,
+        avg_unit_cost: 1,
+        avg_freight: 0.2,
+        avg_tariff: 0.1,
+      },
+    ]);
 
     const repo = new GoodsOverviewRepository(db);
     const list = await repo.getList({ sort: 'shortage' });
@@ -68,22 +70,24 @@ describe('GoodsOverviewRepository variant-level', () => {
     const summaryStmt = {
       bind: vi.fn(() => summaryStmt),
       all: vi.fn(async () => ({
-        results: [{
-          total_products: 1,
-          total_demand: 2,
-          confirmed_products: 1,
-          production_products: 0,
-          shipping_products: 0,
-          arrived_products: 0,
-          confirmed_qty: 2,
-          production_qty: 0,
-          shipping_qty: 0,
-          arrived_qty: 0,
-          confirmed_orders: 1,
-          production_orders: 0,
-          shipping_orders: 0,
-          arrived_orders: 0,
-        }],
+        results: [
+          {
+            total_products: 1,
+            total_demand: 2,
+            confirmed_products: 1,
+            production_products: 0,
+            shipping_products: 0,
+            arrived_products: 0,
+            confirmed_qty: 2,
+            production_qty: 0,
+            shipping_qty: 0,
+            arrived_qty: 0,
+            confirmed_orders: 1,
+            production_orders: 0,
+            shipping_orders: 0,
+            arrived_orders: 0,
+          },
+        ],
       })),
     };
     const shortageStmt = {
@@ -91,10 +95,7 @@ describe('GoodsOverviewRepository variant-level', () => {
       all: vi.fn(async () => ({ results: [{ count: 1 }] })),
     };
     const db = {
-      prepare: vi
-        .fn()
-        .mockReturnValueOnce(summaryStmt)
-        .mockReturnValueOnce(shortageStmt),
+      prepare: vi.fn().mockReturnValueOnce(summaryStmt).mockReturnValueOnce(shortageStmt),
     };
 
     const repo = new GoodsOverviewRepository(db);
@@ -104,7 +105,9 @@ describe('GoodsOverviewRepository variant-level', () => {
     expect(db.prepare.mock.calls[0][0]).not.toContain('FROM order_lines ol');
     expect(db.prepare.mock.calls[0][0]).not.toContain('FROM order_lines AS ol');
     expect(db.prepare.mock.calls[0][0]).not.toContain('JOIN orders o ON o.id = ol.order_id');
-    expect(db.prepare.mock.calls[0][0]).not.toContain('MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)');
+    expect(db.prepare.mock.calls[0][0]).not.toContain(
+      'MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)'
+    );
     expect(summary.totalDemand).toBe(2);
     expect(summary.shortageCount).toBe(1);
   });
@@ -119,10 +122,7 @@ describe('GoodsOverviewRepository variant-level', () => {
       all: vi.fn(async () => ({ results: [{ brand: 'KK' }] })),
     };
     const db = {
-      prepare: vi
-        .fn()
-        .mockReturnValueOnce(categoryStmt)
-        .mockReturnValueOnce(brandStmt),
+      prepare: vi.fn().mockReturnValueOnce(categoryStmt).mockReturnValueOnce(brandStmt),
     };
 
     const repo = new GoodsOverviewRepository(db);
@@ -141,30 +141,32 @@ describe('GoodsOverviewRepository variant-level', () => {
   });
   it('keeps archived-demand variants in the overview when confirmed order demand still exists', async () => {
     const all = vi.fn(async () => ({
-      results: [{
-        id: 'variant-archived',
-        product_id: 'product-1',
-        product_code: 'P001',
-        variant_code: 'V001',
-        name: 'Archived Tee',
-        sku: 'TEE-ARCHIVED',
-        brand: 'KK',
-        category: 'tops',
-        stock_quantity: 1,
-        on_hand: 1,
-        reserved: 0,
-        available: 1,
-        alert_threshold: 5,
-        variant_options: '{"Color":"Red"}',
-        images: '[]',
-        confirmed_qty: 6,
-        production_qty: 0,
-        shipping_qty: 0,
-        arrived_qty: 0,
-        total_demand: 6,
-        order_count: 1,
-        shortage: 5,
-      }],
+      results: [
+        {
+          id: 'variant-archived',
+          product_id: 'product-1',
+          product_code: 'P001',
+          variant_code: 'V001',
+          name: 'Archived Tee',
+          sku: 'TEE-ARCHIVED',
+          brand: 'KK',
+          category: 'tops',
+          stock_quantity: 1,
+          on_hand: 1,
+          reserved: 0,
+          available: 1,
+          alert_threshold: 5,
+          variant_options: '{"Color":"Red"}',
+          images: '[]',
+          confirmed_qty: 6,
+          production_qty: 0,
+          shipping_qty: 0,
+          arrived_qty: 0,
+          total_demand: 6,
+          order_count: 1,
+          shortage: 5,
+        },
+      ],
     }));
     const db = {
       prepare: vi.fn(() => ({ bind: vi.fn(() => ({ all })) })),
@@ -176,12 +178,14 @@ describe('GoodsOverviewRepository variant-level', () => {
 
     expect(listSql).toContain('FROM variant_demand_projection vdp');
     expect(listSql).not.toContain("pv.status = 'active'");
-    expect(list[0]).toEqual(expect.objectContaining({
-      variantId: 'variant-archived',
-      totalDemand: 6,
-      availableQuantity: 1,
-      shortage: 5,
-    }));
+    expect(list[0]).toEqual(
+      expect.objectContaining({
+        variantId: 'variant-archived',
+        totalDemand: 6,
+        availableQuantity: 1,
+        shortage: 5,
+      })
+    );
   });
 
   it('keeps available brand and category filters when historical demand remains but live variant rows are gone', async () => {
@@ -201,8 +205,16 @@ describe('GoodsOverviewRepository variant-level', () => {
     const filters = await repo.getAvailableFilters();
     const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
 
-    expect(sqlCalls.some((sql) => sql.includes('FROM variant_demand_projection vdp') && sql.includes(' as category'))).toBe(true);
-    expect(sqlCalls.some((sql) => sql.includes('FROM variant_demand_projection vdp') && sql.includes(' as brand'))).toBe(true);
+    expect(
+      sqlCalls.some(
+        (sql) => sql.includes('FROM variant_demand_projection vdp') && sql.includes(' as category')
+      )
+    ).toBe(true);
+    expect(
+      sqlCalls.some(
+        (sql) => sql.includes('FROM variant_demand_projection vdp') && sql.includes(' as brand')
+      )
+    ).toBe(true);
     expect(filters).toEqual({
       categories: ['Top'],
       brands: ['KK'],
@@ -210,34 +222,37 @@ describe('GoodsOverviewRepository variant-level', () => {
   });
 
   it('falls back to order-line snapshots in overview list when live product rows are gone', async () => {
-    const db = createMockDb([{
-      id: 'variant-deleted',
-      product_id: 'product-deleted',
-      product_code: null,
-      variant_code: null,
-      name: 'Snapshot Tee',
-      sku: 'SNAPSHOT-SKU',
-      brand: 'Snapshot Brand',
-      category: 'Archive Outerwear',
-      stock_quantity: 0,
-      on_hand: 0,
-      reserved: 0,
-      available: 0,
-      alert_threshold: 10,
-      variant_options: '{"category":"Archive Outerwear","color":"Black","size":"L","material":"Canvas"}',
-      images: '["snapshot-image"]',
-      confirmed_qty: 4,
-      production_qty: 0,
-      shipping_qty: 0,
-      arrived_qty: 0,
-      total_demand: 4,
-      order_count: 1,
-      order_ids: 'o-deleted',
-      shortage: 4,
-      avg_unit_cost: 0,
-      avg_freight: 0,
-      avg_tariff: 0,
-    }]);
+    const db = createMockDb([
+      {
+        id: 'variant-deleted',
+        product_id: 'product-deleted',
+        product_code: null,
+        variant_code: null,
+        name: 'Snapshot Tee',
+        sku: 'SNAPSHOT-SKU',
+        brand: 'Snapshot Brand',
+        category: 'Archive Outerwear',
+        stock_quantity: 0,
+        on_hand: 0,
+        reserved: 0,
+        available: 0,
+        alert_threshold: 10,
+        variant_options:
+          '{"category":"Archive Outerwear","color":"Black","size":"L","material":"Canvas"}',
+        images: '["snapshot-image"]',
+        confirmed_qty: 4,
+        production_qty: 0,
+        shipping_qty: 0,
+        arrived_qty: 0,
+        total_demand: 4,
+        order_count: 1,
+        order_ids: 'o-deleted',
+        shortage: 4,
+        avg_unit_cost: 0,
+        avg_freight: 0,
+        avg_tariff: 0,
+      },
+    ]);
 
     const repo = new GoodsOverviewRepository(db);
     const list = await repo.getList({ sort: 'shortage' });
@@ -252,17 +267,18 @@ describe('GoodsOverviewRepository variant-level', () => {
     expect(sql).toContain('original_category');
     expect(sql).toContain('snapshot_image');
     expect(sql).toContain('snapshot_specs');
-    expect(list[0]).toEqual(expect.objectContaining({
-      variantId: 'variant-deleted',
-      name: 'Snapshot Tee',
-      sku: 'SNAPSHOT-SKU',
-      brand: 'Snapshot Brand',
-      category: 'Archive Outerwear',
-      variantLabel: 'Black / Canvas / L',
-      images: ['snapshot-image'],
-      orderIds: ['o-deleted'],
-      shortage: 4,
-    }));
+    expect(list[0]).toEqual(
+      expect.objectContaining({
+        variantId: 'variant-deleted',
+        name: 'Snapshot Tee',
+        sku: 'SNAPSHOT-SKU',
+        brand: 'Snapshot Brand',
+        category: 'Archive Outerwear',
+        variantLabel: 'Black / Canvas / L',
+        images: ['snapshot-image'],
+        orderIds: ['o-deleted'],
+        shortage: 4,
+      })
+    );
   });
-
 });

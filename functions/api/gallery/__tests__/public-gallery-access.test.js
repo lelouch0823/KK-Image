@@ -75,7 +75,9 @@ describe('public gallery access api', () => {
     });
 
     expect(response.status).toBe(401);
-    expect(response.headers.get('Cache-Control')).toBe('public, max-age=900, stale-while-revalidate=0');
+    expect(response.headers.get('Cache-Control')).toBe(
+      'public, max-age=900, stale-while-revalidate=0'
+    );
   });
 
   it('does not accept password from query string anymore', async () => {

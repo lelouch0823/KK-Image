@@ -21,10 +21,7 @@
 
     <!-- List -->
     <div class="min-h-[100px] flex-1 overflow-y-auto">
-      <div
-        v-if="loading && notifications.length === 0"
-        class="p-8 text-center text-(--text-muted)"
-      >
+      <div v-if="loading && notifications.length === 0" class="p-8 text-center text-(--text-muted)">
         <AppIcon name="spinner" class="text-primary mx-auto mb-2 size-5 animate-spin" />
         <span class="text-xs">{{ t('common.loading') }}</span>
       </div>
@@ -56,10 +53,7 @@
                 v-else-if="item.type === 'deadline'"
                 class="bg-warning mt-1.5 block size-2 rounded-full"
               ></span>
-              <span
-                v-else
-                class="mt-1.5 block size-2 rounded-full bg-(--text-muted)"
-              ></span>
+              <span v-else class="mt-1.5 block size-2 rounded-full bg-(--text-muted)"></span>
             </div>
 
             <div class="min-w-0 flex-1">

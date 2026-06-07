@@ -11,72 +11,68 @@
       <!-- Unified AppTable -->
       <div v-if="shares.length > 0" class="h-full flex-1 overflow-hidden">
         <AppTable
-            :columns="columns"
-            :data="shares"
-            :loading="loading"
-            class="h-full"
-            table-layout="fixed"
+          :columns="columns"
+          :data="shares"
+          :loading="loading"
+          class="h-full"
+          table-layout="fixed"
         >
-            <template #cell-name="{ row }">
-                <AppTableTextStack
-                  :primary="row.name"
-                  :secondary="row.spaceName || '...'"
-                />
-            </template>
-            <template #cell-code="{ row }">
-                <div class="flex min-w-0 items-center gap-2">
-                  <AppTableCodeChip
-                    :value="row.shareToken"
-                    max-width="14rem"
-                    selectable
-                  />
-                  <AppButton
-                    variant="ghost"
-                    size="sm"
-                    class="!size-8 !p-0 text-(--text-secondary) hover:!text-primary"
-                    :title="t('share.copyLink')"
-                    @click="copyLink(row)"
-                  >
-                    <template #icon-left>
-                      <AppIcon name="clipboard" class="size-4" />
-                    </template>
-                  </AppButton>
-                </div>
-            </template>
-            <template #cell-expiresAt="{ row }">
-                 <span :class="getExpiryClass(row.expiresAt)">
-                    {{ formatExpiry(row.expiresAt, t) }}
-                 </span>
-            </template>
-            <template #cell-actions="{ row }">
-                <div class="flex justify-end gap-2 pr-2">
-                  <AppButton
-                    variant="ghost"
-                    size="sm"
-                    class="hover:text-primary hover:bg-(--bg-hover) size-8! bg-transparent p-1.5! text-(--text-secondary)"
-                    :title="t('common.edit')"
-                    @click="editShare(row)"
-                  >
-                    <template #icon-left>
-                      <AppIcon name="pencil-alt" class="size-4" />
-                    </template>
-                  </AppButton>
-                    <AppButton
-                        variant="ghost"
-                        size="sm"
-                        class="text-danger size-8! bg-transparent p-1.5! hover:bg-danger/10"
-                        :title="t('common.cancelShare')"
-                        @click="revokeShare(row)"
-                    >
-                        <template #icon-left>
-                            <AppIcon name="trash" class="size-4" />
-                        </template>
-                    </AppButton>
-                </div>
-            </template>
+          <template #cell-name="{ row }">
+            <AppTableTextStack :primary="row.name" :secondary="row.spaceName || '...'" />
+          </template>
+          <template #cell-code="{ row }">
+            <div class="flex min-w-0 items-center gap-2">
+              <AppTableCodeChip :value="row.shareToken" max-width="14rem" selectable />
+              <AppButton
+                variant="ghost"
+                size="sm"
+                class="!size-8 !p-0 text-(--text-secondary) hover:!text-primary"
+                :title="t('share.copyLink')"
+                @click="copyLink(row)"
+              >
+                <template #icon-left>
+                  <AppIcon name="clipboard" class="size-4" />
+                </template>
+              </AppButton>
+            </div>
+          </template>
+          <template #cell-expiresAt="{ row }">
+            <span :class="getExpiryClass(row.expiresAt)">
+              {{ formatExpiry(row.expiresAt, t) }}
+            </span>
+          </template>
+          <template #cell-actions="{ row }">
+            <div class="flex justify-end gap-2 pr-2">
+              <AppButton
+                variant="ghost"
+                size="sm"
+                class="hover:text-primary hover:bg-(--bg-hover) size-8! bg-transparent p-1.5! text-(--text-secondary)"
+                :title="t('common.edit')"
+                @click="editShare(row)"
+              >
+                <template #icon-left>
+                  <AppIcon name="pencil-alt" class="size-4" />
+                </template>
+              </AppButton>
+              <AppButton
+                variant="ghost"
+                size="sm"
+                class="text-danger size-8! bg-transparent p-1.5! hover:bg-danger/10"
+                :title="t('common.cancelShare')"
+                @click="revokeShare(row)"
+              >
+                <template #icon-left>
+                  <AppIcon name="trash" class="size-4" />
+                </template>
+              </AppButton>
+            </div>
+          </template>
         </AppTable>
       </div>
-      <div v-else-if="!loading" class="flex h-full flex-1 flex-col items-center justify-center text-(--text-secondary)">
+      <div
+        v-else-if="!loading"
+        class="flex h-full flex-1 flex-col items-center justify-center text-(--text-secondary)"
+      >
         <AppIcon name="share" class="mb-3 size-12 opacity-20" />
         <p>{{ t('share.noActiveShares') }}</p>
       </div>
@@ -164,10 +160,29 @@ const confirmData = ref({
 });
 
 const columns = computed(() => [
-    { key: 'name', label: t('share.table.name'), width: '240px', minWidth: '240px' },
-    { key: 'code', label: t('share.table.code'), kind: 'identifier', width: '260px', maxWidth: '260px' },
-    { key: 'expiresAt', label: t('share.table.expires'), kind: 'datetime', width: '160px', maxWidth: '160px' },
-    { key: 'actions', label: t('common.actions'), align: 'right', width: '110px', maxWidth: '110px', nowrap: true },
+  { key: 'name', label: t('share.table.name'), width: '240px', minWidth: '240px' },
+  {
+    key: 'code',
+    label: t('share.table.code'),
+    kind: 'identifier',
+    width: '260px',
+    maxWidth: '260px',
+  },
+  {
+    key: 'expiresAt',
+    label: t('share.table.expires'),
+    kind: 'datetime',
+    width: '160px',
+    maxWidth: '160px',
+  },
+  {
+    key: 'actions',
+    label: t('common.actions'),
+    align: 'right',
+    width: '110px',
+    maxWidth: '110px',
+    nowrap: true,
+  },
 ]);
 
 const fetchShares = async () => {

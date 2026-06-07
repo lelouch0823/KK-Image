@@ -124,7 +124,9 @@ export function buildFinalizeCommandStatements({
 
   if (purchaseOrderId) {
     statements.push(
-      db.prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?').bind(timestamp, purchaseOrderId)
+      db
+        .prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ?')
+        .bind(timestamp, purchaseOrderId)
     );
   }
 
@@ -202,12 +204,7 @@ function buildPurchaseOrderItemQuantityStatement(
     requiredRemainingQty = null,
   }
 ) {
-  const whereClauses = [
-    'id = ?',
-    'AND po_id = ?',
-    'AND received_qty = ?',
-    'AND cancelled_qty = ?',
-  ];
+  const whereClauses = ['id = ?', 'AND po_id = ?', 'AND received_qty = ?', 'AND cancelled_qty = ?'];
   const params = [
     toNonNegativeInt(nextQuantity),
     nextDisplayStatus,

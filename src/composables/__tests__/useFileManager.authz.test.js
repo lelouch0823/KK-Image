@@ -60,15 +60,13 @@ describe('useFileManager authz behavior', () => {
     const foldersForbidden = new Error('权限不足: folders:read');
     foldersForbidden.status = 403;
     foldersForbidden.data = { error: '权限不足: folders:read' };
-    mockAuthFetch
-      .mockRejectedValueOnce(foldersForbidden)
-      .mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: [{ id: 'file-1', name: 'root-file.jpg' }],
-          }),
-      });
+    mockAuthFetch.mockRejectedValueOnce(foldersForbidden).mockResolvedValueOnce({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: [{ id: 'file-1', name: 'root-file.jpg' }],
+        }),
+    });
 
     const store = useFileManager();
     await store.loadFolderData();

@@ -21,6 +21,14 @@ export class SpaceRepository {
   protected db: D1Database;
   protected now: () => number;
 
+  /** 允许通过 update() 修改的列名白名单 */
+  private static readonly ALLOWED_UPDATE_COLUMNS = new Set([
+    'name', 'description', 'is_public', 'password', 'share_token',
+    'expires_at', 'template', 'template_data', 'share_mode',
+    'product_id', 'variant_id', 'cover_file_id', 'sort_order',
+    'parent_id', 'updated_at',
+  ]);
+
   /**
    * 构造函数
    * @param db Cloudflare D1 数据库实例
@@ -285,7 +293,16 @@ export class SpaceRepository {
   async update(id: string, updates: Record<string, unknown>): Promise<boolean> {
     if (!updates || Object.keys(updates).length === 0) return false;
 
-    const updateData = { ...updates };
+    // H05: 过滤非法列名，仅允许白名单中的列
+    const filtered: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (SpaceRepository.ALLOWED_UPDATE_COLUMNS.has(key)) {
+        filtered[key] = value;
+      }
+    }
+    if (Object.keys(filtered).length === 0) return false;
+
+    const updateData = { ...filtered };
     updateData.updated_at = this.now();
     const { clause, values } = buildSetClause(updateData);
 

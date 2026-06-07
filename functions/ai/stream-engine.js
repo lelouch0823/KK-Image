@@ -1,8 +1,14 @@
 import { MSG } from '../api/utils/messages.js';
 import { AI_TOOLS } from '../api/utils/ai-prompts.js';
 import { parseJsonObject } from '../api/utils/json.js';
-import { callAIStream as defaultCallAIStream, parseSSEChunk as defaultParseSSEChunk } from '../utils/ai-utils.js';
-import { extractToolCallsFromText as defaultExtractToolCallsFromText, ContentGate as DefaultContentGate } from '../utils/ai-stream-helpers.js';
+import {
+  callAIStream as defaultCallAIStream,
+  parseSSEChunk as defaultParseSSEChunk,
+} from '../utils/ai-utils.js';
+import {
+  extractToolCallsFromText as defaultExtractToolCallsFromText,
+  ContentGate as DefaultContentGate,
+} from '../utils/ai-stream-helpers.js';
 import { createStructuredAbortError, throwIfAborted } from './request-context.js';
 import { runToolOrchestration } from './tool-orchestrator.js';
 
@@ -29,24 +35,29 @@ async function handleStreamAbort(error, reader, emit, requestContext) {
   throw createStructuredAbortError(reason);
 }
 
-async function processStreamToEvents(aiStream, {
-  emit,
-  parseSSEChunk = defaultParseSSEChunk,
-  extractToolCallsFromText = defaultExtractToolCallsFromText,
-  ContentGate = DefaultContentGate,
-  streamOptions = {},
-  requestContext = null,
-} = {}) {
+async function processStreamToEvents(
+  aiStream,
+  {
+    emit,
+    parseSSEChunk = defaultParseSSEChunk,
+    extractToolCallsFromText = defaultExtractToolCallsFromText,
+    ContentGate = DefaultContentGate,
+    streamOptions = {},
+    requestContext = null,
+  } = {}
+) {
   const reader = aiStream.getReader();
   const decoder = new TextDecoder();
   let fullContent = '';
   let toolCalls = [];
   let buffer = '';
   const gateEnabled = streamOptions.gateEnabled !== false;
-  const gate = gateEnabled ? new ContentGate({
-    lookahead: streamOptions.lookahead ?? 80,
-    suspectWindow: streamOptions.suspectWindow ?? (streamOptions.strictMode ? 260 : 220),
-  }) : null;
+  const gate = gateEnabled
+    ? new ContentGate({
+        lookahead: streamOptions.lookahead ?? 80,
+        suspectWindow: streamOptions.suspectWindow ?? (streamOptions.strictMode ? 260 : 220),
+      })
+    : null;
 
   while (true) {
     try {
@@ -134,10 +145,13 @@ export async function runAIStreamEngine({
   requestContext = null,
 } = {}) {
   const messages = Array.isArray(initialMessages) ? [...initialMessages] : [];
-  const initialStreamResult = initialResult || await callAIStream(messages, tools, runtimeEnv);
+  const initialStreamResult = initialResult || (await callAIStream(messages, tools, runtimeEnv));
 
   if (initialStreamResult?.switched) {
-    await emit({ type: 'model_switch', data: { model: initialStreamResult.model, reason: 'rate_limit' } });
+    await emit({
+      type: 'model_switch',
+      data: { model: initialStreamResult.model, reason: 'rate_limit' },
+    });
   }
 
   const initialParsed = await processStreamToEvents(initialStreamResult.body, {
@@ -157,9 +171,7 @@ export async function runAIStreamEngine({
   while (pendingCalls.length > 0 && round < maxToolRounds) {
     throwIfAborted(requestContext?.signal, () => getAbortReason(requestContext));
     round += 1;
-    const roundCalls = pendingCalls
-      .filter((tc) => tc?.name)
-      .slice(0, maxToolsPerRound);
+    const roundCalls = pendingCalls.filter((tc) => tc?.name).slice(0, maxToolsPerRound);
 
     if (roundCalls.length === 0) break;
 
@@ -206,7 +218,11 @@ export async function runAIStreamEngine({
           type: 'tool_result',
           data: { name: result.name, status: 'success', summary: MSG.AI.TOOLS.RESULT_READY },
         });
-        messages.push({ role: 'tool', tool_call_id: result.toolCallId, content: JSON.stringify(result.output) });
+        messages.push({
+          role: 'tool',
+          tool_call_id: result.toolCallId,
+          content: JSON.stringify(result.output),
+        });
         executedTools += 1;
         continue;
       }
@@ -223,7 +239,10 @@ export async function runAIStreamEngine({
       }
 
       if (result.status === 'timeout') {
-        await emit({ type: 'tool_timeout', data: { name: result.name, status: 'timeout', error: result.error } });
+        await emit({
+          type: 'tool_timeout',
+          data: { name: result.name, status: 'timeout', error: result.error },
+        });
         messages.push({
           role: 'tool',
           tool_call_id: result.toolCallId,
@@ -233,7 +252,10 @@ export async function runAIStreamEngine({
       }
 
       if (result.status === 'failure') {
-        await emit({ type: 'tool_failure', data: { name: result.name, status: 'failure', error: result.error } });
+        await emit({
+          type: 'tool_failure',
+          data: { name: result.name, status: 'failure', error: result.error },
+        });
         messages.push({
           role: 'tool',
           tool_call_id: result.toolCallId,

@@ -36,11 +36,13 @@ describe('tool-orchestrator', () => {
       timeoutMs: 10,
     });
 
-    expect(result.results[0]).toEqual(expect.objectContaining({
-      status: 'timeout',
-      toolCallId: '1',
-      name: 'slowTool',
-    }));
+    expect(result.results[0]).toEqual(
+      expect.objectContaining({
+        status: 'timeout',
+        toolCallId: '1',
+        name: 'slowTool',
+      })
+    );
   });
 
   it('stops scheduling additional tool calls when the request is aborted', async () => {
@@ -62,11 +64,13 @@ describe('tool-orchestrator', () => {
     });
 
     expect(executeTool).toHaveBeenCalledTimes(1);
-    expect(result.results[1]).toEqual(expect.objectContaining({
-      status: 'skipped',
-      toolCallId: '2',
-      name: 'toolB',
-    }));
+    expect(result.results[1]).toEqual(
+      expect.objectContaining({
+        status: 'skipped',
+        toolCallId: '2',
+        name: 'toolB',
+      })
+    );
   });
 
   it('marks an in-flight tool as aborted instead of success when the request aborts', async () => {
@@ -84,11 +88,13 @@ describe('tool-orchestrator', () => {
       executeTool,
     });
 
-    expect(result.results[0]).toEqual(expect.objectContaining({
-      status: 'aborted',
-      toolCallId: '1',
-      name: 'toolA',
-    }));
+    expect(result.results[0]).toEqual(
+      expect.objectContaining({
+        status: 'aborted',
+        toolCallId: '1',
+        name: 'toolA',
+      })
+    );
   });
 
   it('returns skipped status when signal is already aborted before tool starts', async () => {
@@ -104,10 +110,12 @@ describe('tool-orchestrator', () => {
     });
 
     // Tool never started because signal was already aborted
-    expect(result.results[0]).toEqual(expect.objectContaining({
-      status: 'skipped',
-      toolCallId: '1',
-    }));
+    expect(result.results[0]).toEqual(
+      expect.objectContaining({
+        status: 'skipped',
+        toolCallId: '1',
+      })
+    );
     expect(executeTool).not.toHaveBeenCalled();
   });
 });

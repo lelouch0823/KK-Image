@@ -55,11 +55,13 @@
             <AppIcon name="photo" class="size-4 stroke-[1.5] text-(--text-secondary)/30" />
           </div>
         </div>
-        
+
         <!-- Name & Dot -->
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2 font-bold text-(--text-main)">
-            <span class="block truncate" :title="row.productName || '-'">{{ row.productName || '-' }}</span>
+            <span class="block truncate" :title="row.productName || '-'">{{
+              row.productName || '-'
+            }}</span>
             <span
               v-if="row.hasNewFeedback"
               class="bg-danger size-2.5 shrink-0 animate-pulse rounded-full border-2 border-(--bg-card)"
@@ -87,18 +89,16 @@
 
     <!-- Order No Cell -->
     <template #cell-orderNo="{ value }">
-      <span class="block truncate font-mono text-xs text-(--text-secondary)" :title="value">{{ value }}</span>
+      <span class="block truncate font-mono text-xs text-(--text-secondary)" :title="value">{{
+        value
+      }}</span>
     </template>
 
     <!-- Status Cell -->
     <template #cell-status="{ row }">
       <slot name="status" :order="row">
-         <!-- Fallback if no slot provided -->
-        <AppTableStatusPill
-          :label="row.status"
-          variant="default"
-          size="xs"
-        />
+        <!-- Fallback if no slot provided -->
+        <AppTableStatusPill :label="row.status" variant="default" size="xs" />
       </slot>
     </template>
 
@@ -109,7 +109,9 @@
 
     <!-- Actions Cell -->
     <template #cell-actions="{ row }">
-      <div class="flex items-center justify-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+      <div
+        class="flex items-center justify-center gap-2 opacity-0 transition-opacity group-hover:opacity-100"
+      >
         <AppButton
           variant="ghost"
           size="sm"
@@ -187,11 +189,31 @@ const { t } = useI18n();
 const columns = computed(() => {
   const cols = [
     { key: 'product', label: t('order.form.productName'), align: 'left', width: '25%' },
-    { key: 'quantity', label: t('order.form.quantity'), kind: 'numeric', align: 'center', width: '10%' },
+    {
+      key: 'quantity',
+      label: t('order.form.quantity'),
+      kind: 'numeric',
+      align: 'center',
+      width: '10%',
+    },
     { key: 'salesperson', label: t('salesperson.name'), align: 'center', width: '15%' },
     { key: 'orderNo', label: t('order.orderNo'), align: 'center', width: '15%' },
-    { key: 'status', label: t('order.status'), kind: 'status', align: 'left', width: '1%', minWidth: '7.5rem', maxWidth: '9rem' },
-    { key: 'createdAt', label: t('order.createdAt'), kind: 'datetime', align: 'center', width: '15%' },
+    {
+      key: 'status',
+      label: t('order.status'),
+      kind: 'status',
+      align: 'left',
+      width: '1%',
+      minWidth: '7.5rem',
+      maxWidth: '9rem',
+    },
+    {
+      key: 'createdAt',
+      label: t('order.createdAt'),
+      kind: 'datetime',
+      align: 'center',
+      width: '15%',
+    },
     { key: 'actions', label: t('common.actions'), align: 'center', width: '100px' },
   ];
 
@@ -212,7 +234,10 @@ const isPartialSelected = computed(() => {
 
 const toggleSelectAll = (checked) => {
   if (checked) {
-    emit('update:selectedIds', props.data.map(order => order.id));
+    emit(
+      'update:selectedIds',
+      props.data.map((order) => order.id)
+    );
   } else {
     emit('update:selectedIds', []);
   }

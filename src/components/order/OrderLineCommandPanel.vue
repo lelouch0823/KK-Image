@@ -130,7 +130,9 @@
         size="sm"
         data-testid="line-command-unship"
         class="border-info/20 bg-(--color-info-bg) text-(--color-info-text) hover:opacity-90"
-        :disabled="loading || !isVariantBacked || unshipBlockedByDeliveryStatus || limits.unship <= 0"
+        :disabled="
+          loading || !isVariantBacked || unshipBlockedByDeliveryStatus || limits.unship <= 0
+        "
         @click="submit('unship')"
       >
         {{ t('order.detail.unshipAction', '撤销出货') }}
@@ -190,16 +192,28 @@ const { t } = useI18n();
 const quantity = ref(1);
 const localError = ref('');
 const isVariantBacked = computed(() => Boolean(props.line?.variantId));
-const orderStatusNormalized = computed(() => String(props.orderStatus || '').trim().toLowerCase());
-const deliveryStatusNormalized = computed(() => String(props.deliveryStatus || '').trim().toLowerCase());
-const orderIsTerminalFulfilled = computed(() => ['fulfilled', 'delivered'].includes(orderStatusNormalized.value));
-const unshipBlockedByDeliveryStatus = computed(() =>
-  orderStatusNormalized.value === 'delivered'
-  || ['delivered', 'partially_returned', 'returned'].includes(deliveryStatusNormalized.value)
+const orderStatusNormalized = computed(() =>
+  String(props.orderStatus || '')
+    .trim()
+    .toLowerCase()
 );
-const returnAllowedByOrderStatus = computed(() =>
-  orderStatusNormalized.value === 'delivered'
-  || ['delivered', 'returned'].includes(deliveryStatusNormalized.value)
+const deliveryStatusNormalized = computed(() =>
+  String(props.deliveryStatus || '')
+    .trim()
+    .toLowerCase()
+);
+const orderIsTerminalFulfilled = computed(() =>
+  ['fulfilled', 'delivered'].includes(orderStatusNormalized.value)
+);
+const unshipBlockedByDeliveryStatus = computed(
+  () =>
+    orderStatusNormalized.value === 'delivered' ||
+    ['delivered', 'partially_returned', 'returned'].includes(deliveryStatusNormalized.value)
+);
+const returnAllowedByOrderStatus = computed(
+  () =>
+    orderStatusNormalized.value === 'delivered' ||
+    ['delivered', 'returned'].includes(deliveryStatusNormalized.value)
 );
 
 const limits = computed(() => {
@@ -224,13 +238,13 @@ const limits = computed(() => {
     received > 0 ? Math.max(ready - reserved, 0) : Math.max(remaining - reserved, 0);
   const shipCap = received > 0 ? Math.max(Math.min(remaining, ready), 0) : remaining;
 
-    return {
-      reserve: reserveCap,
-      release: reserved,
-      ship: shipCap,
-      unship: unshipBlockedByDeliveryStatus.value ? 0 : shipped,
-      return: Math.max(shipped - returned, 0),
-    };
+  return {
+    reserve: reserveCap,
+    release: reserved,
+    ship: shipCap,
+    unship: unshipBlockedByDeliveryStatus.value ? 0 : shipped,
+    return: Math.max(shipped - returned, 0),
+  };
 });
 
 const mergedError = computed(() => localError.value || props.error || '');

@@ -30,7 +30,8 @@ export default {
     addModelSuccess: 'Model added',
     selectedModels: 'Selected Models',
     noSelectedModels: 'No model selected yet',
-    orderHint: 'Sort models from top to bottom by priority. If the primary model fails or is rate-limited, AI automatically falls back to the next one.',
+    orderHint:
+      'Sort models from top to bottom by priority. If the primary model fails or is rate-limited, AI automatically falls back to the next one.',
     dragToSort: 'Drag to sort',
     primaryModel: 'Primary',
     fallbackModel: 'Fallback {index}',
@@ -39,7 +40,8 @@ export default {
     visionSupported: 'Vision Ready',
     visionLikelyUnsupported: 'Likely Text-only',
     dynamicFallback: 'Dynamic Fallback',
-    dynamicFallbackDesc: 'Auto-rank fallback models by recent failure rate and latency window while keeping the primary model fixed.',
+    dynamicFallbackDesc:
+      'Auto-rank fallback models by recent failure rate and latency window while keeping the primary model fixed.',
     healthWindow: 'Health Window',
     healthWindowHint: 'Track latest 5-200 requests per model for failure/latency scoring.',
     healthStats: 'Model Health Stats',

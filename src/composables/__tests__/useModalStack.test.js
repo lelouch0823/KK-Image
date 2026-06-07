@@ -22,8 +22,14 @@ describe('useModalStack', () => {
     const stack = useModalStack();
     // 尝试清理所有可能残留的 modal
     for (const id of [
-      'modal-1', 'modal-2', 'modal-3', 'modal-a', 'modal-b',
-      'modal-x', 'modal-y', 'unknown',
+      'modal-1',
+      'modal-2',
+      'modal-3',
+      'modal-a',
+      'modal-b',
+      'modal-x',
+      'modal-y',
+      'unknown',
     ]) {
       stack.unregister(id);
     }

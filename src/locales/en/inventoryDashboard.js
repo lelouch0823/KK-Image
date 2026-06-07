@@ -83,5 +83,6 @@ export default {
 
   // Permission
   permissionDenied: 'Permission Denied for Inventory Dashboard',
-  permissionDeniedDesc: 'Your account does not have inventory dashboard access. Please contact the admin to assign products:manage.',
+  permissionDeniedDesc:
+    'Your account does not have inventory dashboard access. Please contact the admin to assign products:manage.',
 };

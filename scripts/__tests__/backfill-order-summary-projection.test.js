@@ -3,8 +3,14 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const SCRIPT_PATH = path.resolve(process.cwd(), 'scripts/migrations/backfill-order-summary-projection.mjs');
-const HELPER_PATH = path.resolve(process.cwd(), 'functions/repositories/order/summary-projection.js');
+const SCRIPT_PATH = path.resolve(
+  process.cwd(),
+  'scripts/migrations/backfill-order-summary-projection.mjs'
+);
+const HELPER_PATH = path.resolve(
+  process.cwd(),
+  'functions/repositories/order/summary-projection.js'
+);
 
 describe('backfill-order-summary-projection', () => {
   it('exists and exports projection backfill helpers', async () => {
@@ -112,7 +118,9 @@ describe('backfill-order-summary-projection', () => {
       return;
     }
 
-    const { buildUpsertOrderSummaryProjectionBatchSql } = await import(pathToFileURL(SCRIPT_PATH).href);
+    const { buildUpsertOrderSummaryProjectionBatchSql } = await import(
+      pathToFileURL(SCRIPT_PATH).href
+    );
     const sql = buildUpsertOrderSummaryProjectionBatchSql([
       {
         order_id: 'ord_1',
@@ -157,9 +165,13 @@ describe('order summary projection repository helper', () => {
 
     const mod = await import(pathToFileURL(HELPER_PATH).href);
 
-    expect(mod.ORDER_SUMMARY_PROJECTION_JOIN).toContain('LEFT JOIN order_summary_projection order_summary');
+    expect(mod.ORDER_SUMMARY_PROJECTION_JOIN).toContain(
+      'LEFT JOIN order_summary_projection order_summary'
+    );
     expect(mod.ORDER_SUMMARY_PROGRESS_STATUS_SQL).toContain('order_summary.display_status');
-    expect(mod.ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL).toContain('order_summary.effective_delivery_status');
+    expect(mod.ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL).toContain(
+      'order_summary.effective_delivery_status'
+    );
     expect(mod.ORDER_SUMMARY_PRODUCT_SEARCH_SQL).toContain('order_summary.snapshot_name LIKE ?');
   });
 });

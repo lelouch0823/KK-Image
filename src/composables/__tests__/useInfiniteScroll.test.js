@@ -41,10 +41,13 @@ describe('useInfiniteScroll', () => {
   });
 
   it('creates an observer on mount and reacts to trigger element changes', async () => {
-    const { wrapper, observer } = mountComposable(vi.fn(async () => undefined), {
-      threshold: 0.5,
-      rootMargin: '40px',
-    });
+    const { wrapper, observer } = mountComposable(
+      vi.fn(async () => undefined),
+      {
+        threshold: 0.5,
+        rootMargin: '40px',
+      }
+    );
 
     expect(observer.options).toEqual({ threshold: 0.5, rootMargin: '40px' });
     expect(observer.observe).toHaveBeenCalledTimes(1);

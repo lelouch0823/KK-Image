@@ -3,12 +3,7 @@
     <!-- 标题栏 -->
     <div class="mb-4 flex items-center justify-between">
       <h3 class="text-primary text-sm font-medium">{{ t('order.payment.title') }}</h3>
-      <AppButton
-        v-if="!showAddForm"
-        variant="link"
-        size="sm"
-        @click="showAddForm = true"
-      >
+      <AppButton v-if="!showAddForm" variant="link" size="sm" @click="showAddForm = true">
         {{ t('order.payment.addPayment') }}
       </AppButton>
     </div>
@@ -69,11 +64,7 @@
             v-model="form.method"
             class="w-full rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm"
           >
-            <option
-              v-for="method in paymentMethods"
-              :key="method.value"
-              :value="method.value"
-            >
+            <option v-for="method in paymentMethods" :key="method.value" :value="method.value">
               {{ method.label }}
             </option>
           </select>
@@ -107,11 +98,7 @@
 
         <!-- 操作按钮 -->
         <div class="flex justify-end gap-2">
-          <AppButton
-            variant="ghost"
-            size="sm"
-            @click="cancelAdd"
-          >
+          <AppButton variant="ghost" size="sm" @click="cancelAdd">
             {{ t('common.cancel') }}
           </AppButton>
           <AppButton
@@ -162,16 +149,15 @@
     </div>
 
     <!-- 空状态 -->
-    <div
-      v-else-if="!loading"
-      class="py-6 text-center text-sm text-(--text-secondary)"
-    >
+    <div v-else-if="!loading" class="py-6 text-center text-sm text-(--text-secondary)">
       {{ t('order.payment.noPayments') }}
     </div>
 
     <!-- 加载状态 -->
     <div v-if="loading" class="py-4 text-center">
-      <div class="border-primary mx-auto h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" />
+      <div
+        class="border-primary mx-auto h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
+      />
     </div>
 
     <ConfirmDialog
@@ -205,15 +191,9 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const {
-  payments,
-  summary,
-  loading,
-  adding,
-  loadPayments,
-  addPayment,
-  deletePayment,
-} = usePayments(computed(() => props.orderId));
+const { payments, summary, loading, adding, loadPayments, addPayment, deletePayment } = usePayments(
+  computed(() => props.orderId)
+);
 
 const showAddForm = ref(false);
 const confirmData = ref({
@@ -277,7 +257,6 @@ function getMethodLabel(method: string): string {
   };
   return labels[method] || method;
 }
-
 
 /**
  * 取消添加

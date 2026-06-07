@@ -13,11 +13,13 @@
 ### Task 1: Expand the Audit Contract
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/__tests__/route-entity-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit assertion**
 
 Extend the target list so the audit test also forbids:
+
 - `functions/lib/hono/routes/sales/orders.js` `requireSalesOrder`
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -33,6 +35,7 @@ Expected: FAIL because `requireSalesOrder` still exists.
 ### Task 2: Inline Sales Order Entity Guards
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/sales/orders.js`
 
 - [ ] **Step 1: Remove the local wrapper**

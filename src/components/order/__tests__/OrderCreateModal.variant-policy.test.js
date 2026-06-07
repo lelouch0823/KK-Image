@@ -36,7 +36,15 @@ describe('OrderCreateModal contract', () => {
       props: {
         modelValue: true,
         salespersons: [],
-        statuses: ['pending', 'confirmed', 'production', 'shipping', 'arrived', 'fulfilled', 'void'],
+        statuses: [
+          'pending',
+          'confirmed',
+          'production',
+          'shipping',
+          'arrived',
+          'fulfilled',
+          'void',
+        ],
       },
       global: {
         stubs: {

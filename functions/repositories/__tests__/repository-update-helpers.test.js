@@ -51,7 +51,11 @@ describe('repository update helper convergence', () => {
     const updatePromise = repo.update('customer-1', { remark: 'note', name: 'Alice' });
 
     await expect(updatePromise).resolves.toBe(true);
-    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE customers SET name = ?, remark = ?, updated_at = ? WHERE id = ?'));
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'UPDATE customers SET name = ?, remark = ?, updated_at = ? WHERE id = ?'
+      )
+    );
   });
 
   it('SalespersonRepository.update returns true for no-op updates when record still exists', async () => {
@@ -68,7 +72,11 @@ describe('repository update helper convergence', () => {
     const updatePromise = repo.update('sales-1', { phone: '138', name: 'Bob' });
 
     await expect(updatePromise).resolves.toBe(true);
-    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE salespersons SET name = ?, phone = ?, updated_at = ? WHERE id = ?'));
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'UPDATE salespersons SET name = ?, phone = ?, updated_at = ? WHERE id = ?'
+      )
+    );
   });
 
   it('FileRepository.update uses deterministic set clause ordering', async () => {
@@ -81,7 +89,9 @@ describe('repository update helper convergence', () => {
     statement.run.mockResolvedValue({ success: true, meta: { changes: 1 } });
 
     await updatePromise;
-    expect(db.prepare).toHaveBeenCalledWith('UPDATE files SET name = ?, storage_key = ?, updated_at = ? WHERE id = ?');
+    expect(db.prepare).toHaveBeenCalledWith(
+      'UPDATE files SET name = ?, storage_key = ?, updated_at = ? WHERE id = ?'
+    );
   });
 
   it('SalespersonRepository.recordLogin returns false when D1 reports zero changes', async () => {

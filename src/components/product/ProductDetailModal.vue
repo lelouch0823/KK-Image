@@ -1,9 +1,5 @@
 <template>
-  <Modal 
-    v-model="isVisible"
-    size="6xl"
-    @close="handleClose"
-  >
+  <Modal v-model="isVisible" size="6xl" @close="handleClose">
     <template #header>
       <div class="flex flex-1 items-center justify-between gap-4">
         <h3 class="text-lg font-bold text-(--text-main)">
@@ -15,18 +11,21 @@
         </div>
       </div>
     </template>
-    
+
     <div class="relative min-h-[300px]">
-      <div v-if="loading" class="absolute inset-0 z-10 flex items-center justify-center bg-(--bg-page)/50 backdrop-blur-sm">
-         <AppIcon name="spinner" class="text-primary size-8 animate-spin" />
+      <div
+        v-if="loading"
+        class="absolute inset-0 z-10 flex items-center justify-center bg-(--bg-page)/50 backdrop-blur-sm"
+      >
+        <AppIcon name="spinner" class="text-primary size-8 animate-spin" />
       </div>
-      
-      <ProductDetail 
-        v-else-if="currentProduct" 
-        :product="currentProduct" 
-      />
-      
-      <div v-else-if="error" class="text-danger flex h-full flex-col items-center justify-center space-y-3 py-10 text-center">
+
+      <ProductDetail v-else-if="currentProduct" :product="currentProduct" />
+
+      <div
+        v-else-if="error"
+        class="text-danger flex h-full flex-col items-center justify-center space-y-3 py-10 text-center"
+      >
         <AppIcon name="exclamation-triangle" class="size-10 opacity-80" />
         <p class="text-sm font-medium">{{ error }}</p>
       </div>
@@ -49,13 +48,13 @@ const emit = defineEmits(['close']);
 const props = defineProps({
   productId: {
     type: [String, Number],
-    default: null
+    default: null,
   },
   // SOTA: Allow passing initial data directly to avoid network requests
   initialData: {
     type: Object,
-    default: null
-  }
+    default: null,
+  },
 });
 
 const { t } = useI18n();
@@ -83,10 +82,10 @@ const fetchProduct = async (productId = props.productId) => {
   if (!productId) return;
 
   const requestId = ++fetchRequestId;
-  
+
   loading.value = true;
   error.value = '';
-  
+
   try {
     const data = await loadProduct(productId);
     if (requestId !== fetchRequestId) return;
@@ -140,9 +139,14 @@ watch(
         await fetchProduct(props.productId);
       }
       return;
-    } 
+    }
     // 否则去后台请求
-    if (props.productId && (!currentProduct.value || currentProduct.value.id !== props.productId || !Array.isArray(currentProduct.value.variants))) {
+    if (
+      props.productId &&
+      (!currentProduct.value ||
+        currentProduct.value.id !== props.productId ||
+        !Array.isArray(currentProduct.value.variants))
+    ) {
       if (currentProduct.value?.id !== props.productId) {
         currentProduct.value = null;
       }

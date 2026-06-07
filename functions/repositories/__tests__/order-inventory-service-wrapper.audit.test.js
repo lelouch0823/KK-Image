@@ -11,7 +11,9 @@ describe('order inventory service wrapper audit', () => {
     const offenders = [];
 
     if (source.includes('function resolveInventoryService(')) {
-      offenders.push('functions/repositories/order/mutations.js: still defines resolveInventoryService');
+      offenders.push(
+        'functions/repositories/order/mutations.js: still defines resolveInventoryService'
+      );
     }
 
     expect(

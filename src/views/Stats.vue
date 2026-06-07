@@ -169,7 +169,10 @@
           </SurfaceSection>
 
           <!-- 利润趋势图 -->
-          <div v-if="stats.charts?.profitTrend?.length" class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div
+            v-if="stats.charts?.profitTrend?.length"
+            class="grid grid-cols-1 gap-6 lg:grid-cols-3"
+          >
             <StatsChartWrapper class="lg:col-span-2" :title="t('stats.profitTrend')">
               <canvas ref="profitTrendChartRef"></canvas>
             </StatsChartWrapper>
@@ -798,7 +801,12 @@ const createCharts = () => {
         plugins: {
           legend: {
             position: 'top',
-            labels: { usePointStyle: true, padding: 16, color: palette.textSecondary, font: { size: 11 } },
+            labels: {
+              usePointStyle: true,
+              padding: 16,
+              color: palette.textSecondary,
+              font: { size: 11 },
+            },
           },
           tooltip: {
             backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),

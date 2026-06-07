@@ -84,13 +84,7 @@ export function createConfig(root = DEFAULT_ROOT) {
     },
     primaryLocale: 'zh-CN',
     ignoreKeys: new Set(['.', '..', '.select-dropdown', 'html2pdf.js']),
-    ignorePatterns: [
-      /^\d/,
-      /^https?:\/\//,
-      /^[A-Z_]+$/,
-      /\.(vue|js|ts|css|json)$/,
-      /^\/\w/,
-    ],
+    ignorePatterns: [/^\d/, /^https?:\/\//, /^[A-Z_]+$/, /\.(vue|js|ts|css|json)$/, /^\/\w/],
   };
 }
 
@@ -206,43 +200,47 @@ export function scanSourceKeys(options = {}) {
   const dynamicRe = /\bt\(\s*`([^`]*\$\{[^}]+\}[^`]*)`/g;
 
   for (const dir of config.scanDirs) {
-    walkDir(dir, (filePath) => {
-      const content = fsModule.readFileSync(filePath, 'utf8');
-      const relPath = pathModule.relative(root, filePath);
+    walkDir(
+      dir,
+      (filePath) => {
+        const content = fsModule.readFileSync(filePath, 'utf8');
+        const relPath = pathModule.relative(root, filePath);
 
-      let match;
-      while ((match = staticRe.exec(content)) !== null) {
-        const key = match[1];
-        if (shouldIgnoreKey(key, config)) {
-          continue;
+        let match;
+        while ((match = staticRe.exec(content)) !== null) {
+          const key = match[1];
+          if (shouldIgnoreKey(key, config)) {
+            continue;
+          }
+
+          if (!staticKeys.has(key)) {
+            staticKeys.set(key, new Set());
+          }
+          staticKeys.get(key).add(relPath);
         }
 
-        if (!staticKeys.has(key)) {
-          staticKeys.set(key, new Set());
+        while ((match = dynamicRe.exec(content)) !== null) {
+          const template = match[1];
+          const parts = template.split(/\$\{[^}]+\}/);
+          const prefix = parts[0]?.replace(/\.$/, '') || '';
+          const suffix = parts[1]?.replace(/^\./, '') || '';
+          const lineNum = (content.substring(0, match.index).match(/\n/g) || []).length + 1;
+          dynamicPatterns.push({
+            prefix,
+            suffix,
+            template,
+            file: relPath,
+            line: lineNum,
+          });
         }
-        staticKeys.get(key).add(relPath);
+      },
+      {
+        fsModule,
+        pathModule,
+        ignoreDirs: config.ignoreDirs,
+        extensions: config.extensions,
       }
-
-      while ((match = dynamicRe.exec(content)) !== null) {
-        const template = match[1];
-        const parts = template.split(/\$\{[^}]+\}/);
-        const prefix = parts[0]?.replace(/\.$/, '') || '';
-        const suffix = parts[1]?.replace(/^\./, '') || '';
-        const lineNum = (content.substring(0, match.index).match(/\n/g) || []).length + 1;
-        dynamicPatterns.push({
-          prefix,
-          suffix,
-          template,
-          file: relPath,
-          line: lineNum,
-        });
-      }
-    }, {
-      fsModule,
-      pathModule,
-      ignoreDirs: config.ignoreDirs,
-      extensions: config.extensions,
-    });
+    );
   }
 
   return { staticKeys, dynamicPatterns };
@@ -280,7 +278,15 @@ export function analyzeDynamicKeys(dynamicPatterns, allLocaleKeys) {
   return { coveredPatterns, uncoveredPatterns };
 }
 
-export function buildAuditReport({ locales, localeKeys, staticKeys, dynamicPatterns, coveredPatterns, uncoveredPatterns, config }) {
+export function buildAuditReport({
+  locales,
+  localeKeys,
+  staticKeys,
+  dynamicPatterns,
+  coveredPatterns,
+  uncoveredPatterns,
+  config,
+}) {
   const localeNames = Object.keys(locales);
   const primaryKeys = localeKeys[config.primaryLocale];
   const report = {
@@ -387,7 +393,15 @@ export function buildAuditReport({ locales, localeKeys, staticKeys, dynamicPatte
   return report;
 }
 
-export function createJsonReport({ localeNames, localeKeys, staticKeys, dynamicPatterns, report, elapsed, timestamp }) {
+export function createJsonReport({
+  localeNames,
+  localeKeys,
+  staticKeys,
+  dynamicPatterns,
+  report,
+  elapsed,
+  timestamp,
+}) {
   return {
     timestamp,
     elapsedMs: elapsed,
@@ -425,12 +439,24 @@ export function evaluateReport(report, localeNames, strict) {
   };
 }
 
-export function printReport({ report, localeNames, staticKeys, localeKeys, dynamicPatterns, elapsed, strict, colors, log }) {
+export function printReport({
+  report,
+  localeNames,
+  staticKeys,
+  localeKeys,
+  dynamicPatterns,
+  elapsed,
+  strict,
+  colors,
+  log,
+}) {
   const line = '─'.repeat(60);
 
   log('');
   log(colors.cyan(`╔${'═'.repeat(58)}╗`));
-  log(`${colors.cyan('║')}  ${colors.bold('🌐 KK-Image i18n 完整性审计报告')}                       ${colors.cyan('║')}`);
+  log(
+    `${colors.cyan('║')}  ${colors.bold('🌐 KK-Image i18n 完整性审计报告')}                       ${colors.cyan('║')}`
+  );
   log(`${colors.cyan(`╚${'═'.repeat(58)}╝`)}`);
   log('');
 
@@ -445,10 +471,7 @@ export function printReport({ report, localeNames, staticKeys, localeKeys, dynam
   log(`  耗时:          ${colors.dim(`${elapsed}ms`)}`);
   log('');
 
-  const totalMissing = localeNames.reduce(
-    (sum, name) => sum + report.missingKeys[name].length,
-    0
-  );
+  const totalMissing = localeNames.reduce((sum, name) => sum + report.missingKeys[name].length, 0);
   if (totalMissing === 0) {
     log(`${colors.green('✅ 缺失键检查')} — 所有源码中的 t() 调用均已在语言包中定义`);
     log('');
@@ -546,10 +569,7 @@ export function printReport({ report, localeNames, staticKeys, localeKeys, dynam
     log('');
   }
 
-  const totalOrphans = localeNames.reduce(
-    (sum, name) => sum + report.orphanKeys[name].length,
-    0
-  );
+  const totalOrphans = localeNames.reduce((sum, name) => sum + report.orphanKeys[name].length, 0);
   if (totalOrphans === 0) {
     log(`${colors.green('✅ 孤儿键检测')} — 所有语言包键位均有对应的 t() 调用`);
     log('');
@@ -579,7 +599,9 @@ export function printReport({ report, localeNames, staticKeys, localeKeys, dynam
     if (dynamicAnalysis.uncovered.length > 0) {
       log(`  未覆盖模式: ${colors.yellow(dynamicAnalysis.uncovered.length)}`);
       dynamicAnalysis.uncovered.slice(0, 5).forEach((pattern) => {
-        log(`    ${colors.dim(`→ t(\`${pattern.template}\`)  at ${pattern.file}:${pattern.line}`)}`);
+        log(
+          `    ${colors.dim(`→ t(\`${pattern.template}\`)  at ${pattern.file}:${pattern.line}`)}`
+        );
       });
     }
     log('');
@@ -676,10 +698,13 @@ export async function runI18nAuditCli(options = {}) {
   const config = options.config || createConfig(root);
   const colors = options.colors || createColorTools(cli.noColor);
   const fsModule = options.fsModule || fs;
-  const bundleAndLoadImpl = options.bundleAndLoadImpl || ((filePath) => bundleAndLoad(filePath, {
-    buildImpl: options.buildImpl,
-    requireFn: options.requireFn || DEFAULT_REQUIRE,
-  }));
+  const bundleAndLoadImpl =
+    options.bundleAndLoadImpl ||
+    ((filePath) =>
+      bundleAndLoad(filePath, {
+        buildImpl: options.buildImpl,
+        requireFn: options.requireFn || DEFAULT_REQUIRE,
+      }));
   const writeStdout = options.writeStdout || ((text) => process.stdout.write(text));
   const writeStderr = options.writeStderr || ((text) => process.stderr.write(text));
   const log = options.log || ((line) => writeStdout(`${line}\n`));
@@ -711,10 +736,9 @@ export async function runI18nAuditCli(options = {}) {
       }
     }
 
-    const { coveredPatterns, uncoveredPatterns } = analyzeDynamicKeys(
-      dynamicPatterns,
-      [...allKeysUnion]
-    );
+    const { coveredPatterns, uncoveredPatterns } = analyzeDynamicKeys(dynamicPatterns, [
+      ...allKeysUnion,
+    ]);
     const report = buildAuditReport({
       locales,
       localeKeys,

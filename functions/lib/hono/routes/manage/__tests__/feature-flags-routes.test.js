@@ -28,7 +28,10 @@ const { default: featureFlagsApp } = await import('../feature-flags.js');
 function createTestApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.route('/api/manage/feature-flags', featureFlagsApp);
   return app;
@@ -90,11 +93,16 @@ describe('feature-flags routes', () => {
     it('toggles flag enabled state', async () => {
       mocks.repoUpsert.mockResolvedValue(undefined);
 
-      const res = await app.request('/api/manage/feature-flags/new-order-flow', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: true }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/feature-flags/new-order-flow',
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: true }),
+        },
+        ENV,
+        CTX
+      );
       const json = await res.json();
 
       expect(res.status).toBe(200);
@@ -113,11 +121,16 @@ describe('feature-flags routes', () => {
       });
       mocks.repoUpsert.mockResolvedValue(undefined);
 
-      const res = await app.request('/api/manage/feature-flags/new-order-flow', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: 'New order flow' }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/feature-flags/new-order-flow',
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description: 'New order flow' }),
+        },
+        ENV,
+        CTX
+      );
       const json = await res.json();
 
       expect(res.status).toBe(200);
@@ -130,11 +143,16 @@ describe('feature-flags routes', () => {
     });
 
     it('returns 400 when no fields provided', async () => {
-      const res = await app.request('/api/manage/feature-flags/test', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/feature-flags/test',
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        },
+        ENV,
+        CTX
+      );
 
       expect(res.status).toBe(400);
     });
@@ -142,11 +160,16 @@ describe('feature-flags routes', () => {
     it('returns 404 when updating description of non-existent flag', async () => {
       mocks.repoGetAllGrouped.mockResolvedValue({ featureFlags: {} });
 
-      const res = await app.request('/api/manage/feature-flags/unknown', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: 'test' }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/feature-flags/unknown',
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description: 'test' }),
+        },
+        ENV,
+        CTX
+      );
 
       expect(res.status).toBe(404);
     });
@@ -156,16 +179,21 @@ describe('feature-flags routes', () => {
     it('creates batch flags', async () => {
       mocks.repoBatchUpsert.mockResolvedValue(2);
 
-      const res = await app.request('/api/manage/feature-flags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          flags: [
-            { key: 'flag-a', enabled: true },
-            { key: 'flag-b', enabled: false, description: 'Test flag' },
-          ],
-        }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/feature-flags',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            flags: [
+              { key: 'flag-a', enabled: true },
+              { key: 'flag-b', enabled: false, description: 'Test flag' },
+            ],
+          }),
+        },
+        ENV,
+        CTX
+      );
       const json = await res.json();
 
       expect(res.status).toBe(200);
@@ -177,21 +205,31 @@ describe('feature-flags routes', () => {
     });
 
     it('returns 400 for invalid body', async () => {
-      const res = await app.request('/api/manage/feature-flags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ flags: 'not-an-array' }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/feature-flags',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ flags: 'not-an-array' }),
+        },
+        ENV,
+        CTX
+      );
 
       expect(res.status).toBe(400);
     });
 
     it('returns 400 for missing required fields', async () => {
-      const res = await app.request('/api/manage/feature-flags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ flags: [{ key: 'test' }] }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/feature-flags',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ flags: [{ key: 'test' }] }),
+        },
+        ENV,
+        CTX
+      );
 
       expect(res.status).toBe(400);
     });

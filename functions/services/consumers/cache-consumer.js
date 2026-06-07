@@ -27,14 +27,8 @@ import {
   shouldRefreshDashboardProjection,
   shouldRefreshManageStatsProjection,
 } from './_shared.js';
-import {
-  isSalespersonCacheEvent,
-  resolveOrderAffectedProductIds,
-} from './_cache-helpers.js';
-import {
-  collectProductSurfaceCacheUrls,
-  CACHE_URL_RESOLVERS,
-} from './cache-url-resolvers.js';
+import { isSalespersonCacheEvent, resolveOrderAffectedProductIds } from './_cache-helpers.js';
+import { collectProductSurfaceCacheUrls, CACHE_URL_RESOLVERS } from './cache-url-resolvers.js';
 
 // ─── 缓存 URL 解析 ───────────────────────────────────────
 
@@ -55,7 +49,9 @@ async function resolveExpandedCacheUrls({ db, event, baseUrl, payload, state }) 
 
 export async function invalidateReceiptCaches({ db, event, baseUrl, state }) {
   if (!baseUrl) {
-    console.warn('[cache-consumer] baseUrl is missing, skipping cache invalidation', { eventType: event?.event_type });
+    console.warn('[cache-consumer] baseUrl is missing, skipping cache invalidation', {
+      eventType: event?.event_type,
+    });
     return;
   }
   await refreshReadModels({ db, event, state });
@@ -70,7 +66,10 @@ export async function invalidateReceiptCaches({ db, event, baseUrl, state }) {
   }
 
   const projectionUrls = [];
-  if (shouldRefreshManageStatsProjection(event?.event_type) || shouldRefreshDashboardProjection(event?.event_type)) {
+  if (
+    shouldRefreshManageStatsProjection(event?.event_type) ||
+    shouldRefreshDashboardProjection(event?.event_type)
+  ) {
     const projectionCtx = createBaseContext(baseUrl);
     if (shouldRefreshManageStatsProjection(event?.event_type)) {
       projectionUrls.push(...getManageStatsCacheUrls(projectionCtx));
@@ -82,7 +81,11 @@ export async function invalidateReceiptCaches({ db, event, baseUrl, state }) {
 
   if (isOrderMutationEvent(event?.event_type)) {
     const ctx = createCacheContext(baseUrl);
-    const salesTokens = await getMemoizedSalespersonAccessTokens(db, [resolveSalespersonId(payload)].filter(Boolean), state);
+    const salesTokens = await getMemoizedSalespersonAccessTokens(
+      db,
+      [resolveSalespersonId(payload)].filter(Boolean),
+      state
+    );
     const allSalesTokens = await getMemoizedAllSalespersonAccessTokens(db, state);
     const affectedProductIds = await resolveOrderAffectedProductIds(db, event, payload);
     const urls = [
@@ -106,10 +109,7 @@ export async function invalidateReceiptCaches({ db, event, baseUrl, state }) {
 
   const expandedUrls = await resolveExpandedCacheUrls({ db, event, baseUrl, payload, state });
   if (expandedUrls.length > 0 || projectionUrls.length > 0) {
-    await invalidateCacheOnce([...new Set([
-      ...expandedUrls,
-      ...projectionUrls,
-    ])], state);
+    await invalidateCacheOnce([...new Set([...expandedUrls, ...projectionUrls])], state);
     return;
   }
 

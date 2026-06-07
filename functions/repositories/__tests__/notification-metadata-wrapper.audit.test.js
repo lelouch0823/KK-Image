@@ -11,12 +11,13 @@ describe('notification metadata wrapper audit', () => {
     const offenders = [];
 
     if (source.includes('function parseMetadata(')) {
-      offenders.push('functions/repositories/NotificationRepository.ts: still defines parseMetadata');
+      offenders.push(
+        'functions/repositories/NotificationRepository.ts: still defines parseMetadata'
+      );
     }
 
-    expect(
-      offenders,
-      `notification metadata wrapper offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `notification metadata wrapper offenders:\n${offenders.join('\n')}`).toEqual(
+      []
+    );
   });
 });

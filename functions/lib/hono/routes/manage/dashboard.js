@@ -20,7 +20,9 @@ async function loadDashboardProjection(db) {
   const refreshService = new SystemStatsProjectionRefreshService(db, {
     projectionRepo,
   });
-  const refreshedProjection = await refreshService.refresh(STATS_PROJECTION_SCOPES.DASHBOARD_OVERVIEW);
+  const refreshedProjection = await refreshService.refresh(
+    STATS_PROJECTION_SCOPES.DASHBOARD_OVERVIEW
+  );
   return refreshedProjection?.payload || { data: null };
 }
 
@@ -28,11 +30,11 @@ async function loadDashboardProjection(db) {
  * GET /overview - 获取仪表盘概览数据 (SOTA: 聚合接口)
  */
 app.get('/overview', withCache(20), async (c) => {
-    const projection = await loadDashboardProjection(c.env.DB);
-    return c.json({
-        success: true,
-        ...(projection || {}),
-    });
+  const projection = await loadDashboardProjection(c.env.DB);
+  return c.json({
+    success: true,
+    ...(projection || {}),
+  });
 });
 
 export default app;

@@ -1,9 +1,5 @@
 <template>
-  <Modal
-    v-model="isVisible"
-    size="6xl"
-    body-class="p-0"
-  >
+  <Modal v-model="isVisible" size="6xl" body-class="p-0">
     <template #header>
       <div class="flex items-center gap-4">
         <h3 class="text-lg font-semibold text-(--text-main)">{{ t('order.detail.title') }}</h3>
@@ -24,11 +20,7 @@
             </template>
             {{ t('order.manage.editOrder') }}
           </AppButton>
-          <AppButton
-            variant="white"
-            size="sm"
-            @click="detailRef?.handleSavePdf?.()"
-          >
+          <AppButton variant="white" size="sm" @click="detailRef?.handleSavePdf?.()">
             <template #icon-left>
               <AppIcon name="arrow-down-tray" class="size-3.5" />
             </template>
@@ -46,7 +38,12 @@
       >
         <div class="flex items-center gap-2">
           <AppIcon name="spinner" class="size-4 animate-spin text-primary" />
-          <span>{{ t('order.detail.lineCommandSyncing', '正在执行行级履约动作，订单详情会在完成后自动刷新。') }}</span>
+          <span>{{
+            t(
+              'order.detail.lineCommandSyncing',
+              '正在执行行级履约动作，订单详情会在完成后自动刷新。'
+            )
+          }}</span>
         </div>
       </div>
 
@@ -84,7 +81,9 @@
         class="mb-5 rounded-2xl border border-(--border-color) bg-(--bg-muted)/55 p-4"
       >
         <div class="flex items-start gap-4">
-          <div class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full">
+          <div
+            class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full"
+          >
             <AppIcon name="sparkles" class="size-5" />
           </div>
           <div class="min-w-0 flex-1">
@@ -92,7 +91,12 @@
               {{ t('order.workflow.detail_loading_title', 'Refreshing order details') }}
             </p>
             <p class="mt-1 text-sm text-(--text-secondary)">
-              {{ t('order.workflow.detail_loading_body', 'Showing the current snapshot while richer order data loads in the background.') }}
+              {{
+                t(
+                  'order.workflow.detail_loading_body',
+                  'Showing the current snapshot while richer order data loads in the background.'
+                )
+              }}
             </p>
             <div class="mt-4 grid gap-3 sm:grid-cols-2">
               <Skeleton height="4" />
@@ -170,7 +174,16 @@ defineProps({
   },
 });
 
-defineEmits(['close', 'retry', 'comment', 'refresh', 'edit', 'delete-order', 'line-command', 'confirm-delivery']);
+defineEmits([
+  'close',
+  'retry',
+  'comment',
+  'refresh',
+  'edit',
+  'delete-order',
+  'line-command',
+  'confirm-delivery',
+]);
 
 const { t } = useI18n();
 const detailRef = ref(null);

@@ -29,7 +29,9 @@ describe('useResource Composable Full Coverage', () => {
     useResource(apiEndpoint);
 
     const warnedAboutScopeDispose = warnSpy.mock.calls.some((args) =>
-      args.some((arg) => String(arg).includes('onScopeDispose() is called when there is no active effect scope'))
+      args.some((arg) =>
+        String(arg).includes('onScopeDispose() is called when there is no active effect scope')
+      )
     );
     expect(warnedAboutScopeDispose).toBe(false);
     warnSpy.mockRestore();
@@ -39,7 +41,7 @@ describe('useResource Composable Full Coverage', () => {
     const abortErr = new Error('Aborted');
     abortErr.name = 'AbortError';
     mockAuthFetch.mockRejectedValue(abortErr);
-    
+
     const { updateItem } = useResource(apiEndpoint);
     const res = await updateItem(1, {});
     expect(res).toBe(false);
@@ -49,7 +51,7 @@ describe('useResource Composable Full Coverage', () => {
     const abortErr = new Error('Aborted');
     abortErr.name = 'AbortError';
     mockAuthFetch.mockRejectedValue(abortErr);
-    
+
     const { items, deleteItem } = useResource(apiEndpoint);
     items.value = [{ id: 1 }];
     const res = await deleteItem(1);
@@ -57,30 +59,31 @@ describe('useResource Composable Full Coverage', () => {
   });
 
   it('abort should call abortController.abort', () => {
-      const { abort } = useResource(apiEndpoint);
-      abort();
-      // Since it's internal we don't directly verify controller, but we can verify it doesn't crash
+    const { abort } = useResource(apiEndpoint);
+    abort();
+    // Since it's internal we don't directly verify controller, but we can verify it doesn't crash
   });
 
   it('rawRequest should use subPath correctly', async () => {
     mockAuthFetch.mockResolvedValue({ json: () => Promise.resolve({ data: 'ok' }) });
     const { rawRequest } = useResource(apiEndpoint);
-    
+
     let res = await rawRequest('/sub', { method: 'POST' });
     expect(res.data).toBe('ok');
-    expect(mockAuthFetch).toHaveBeenCalledWith(`${apiEndpoint}/sub`, expect.objectContaining({ method: 'POST' }));
-    
+    expect(mockAuthFetch).toHaveBeenCalledWith(
+      `${apiEndpoint}/sub`,
+      expect.objectContaining({ method: 'POST' })
+    );
+
     await rawRequest();
     expect(mockAuthFetch).toHaveBeenCalledWith(apiEndpoint, expect.anything());
   });
 
   it('loadItems should retry on failure', async () => {
-    mockAuthFetch
-      .mockRejectedValueOnce(new Error('Fail'))
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ success: true, data: [] })
-      });
+    mockAuthFetch.mockRejectedValueOnce(new Error('Fail')).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true, data: [] }),
+    });
     const { loadItems } = useResource(apiEndpoint, { retryCount: 1, retryDelay: 10 });
     await loadItems();
     expect(mockAuthFetch).toHaveBeenCalledTimes(2);
@@ -145,7 +148,10 @@ describe('useResource Composable Full Coverage', () => {
     forbiddenError.data = { error: '权限不足: products:manage' };
     mockAuthFetch.mockRejectedValue(forbiddenError);
 
-    const { loadItems, error, errorCode } = useResource('/api/test-forbidden', { retryCount: 2, retryDelay: 10 });
+    const { loadItems, error, errorCode } = useResource('/api/test-forbidden', {
+      retryCount: 2,
+      retryDelay: 10,
+    });
     const ok = await loadItems({}, true);
 
     expect(ok).toBe(false);
@@ -157,12 +163,10 @@ describe('useResource Composable Full Coverage', () => {
   it('loadItems should retry when rate limited (429)', async () => {
     const rateLimitError = new Error('Too Many Requests');
     rateLimitError.status = 429;
-    mockAuthFetch
-      .mockRejectedValueOnce(rateLimitError)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ success: true, data: [] }),
-      });
+    mockAuthFetch.mockRejectedValueOnce(rateLimitError).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true, data: [] }),
+    });
 
     const { loadItems } = useResource('/api/test-rate-limit', { retryCount: 1, retryDelay: 10 });
     const ok = await loadItems({}, true);
@@ -176,7 +180,10 @@ describe('useResource Composable Full Coverage', () => {
     notFoundError.status = 404;
     mockAuthFetch.mockRejectedValue(notFoundError);
 
-    const { loadItems, errorCode } = useResource('/api/test-not-found', { retryCount: 2, retryDelay: 10 });
+    const { loadItems, errorCode } = useResource('/api/test-not-found', {
+      retryCount: 2,
+      retryDelay: 10,
+    });
     const ok = await loadItems({}, true);
 
     expect(ok).toBe(false);

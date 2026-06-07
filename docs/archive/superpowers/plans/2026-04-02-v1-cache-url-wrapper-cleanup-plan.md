@@ -13,6 +13,7 @@
 ### Task 1: Lock the Wrapper Removal Contract
 
 **Files:**
+
 - Create: `functions/lib/hono/routes/v1/__tests__/cache-urls-thin-wrappers.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because both wrappers still exist.
 ### Task 2: Inline the Cache URL Combinations
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/v1/cache-urls.js`
 - Modify: `functions/services/DomainOutboxConsumers.js`
 - Modify: `functions/lib/hono/routes/v1/__tests__/cache-urls.test.js`

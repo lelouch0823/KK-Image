@@ -15,10 +15,10 @@ import { checkFtsTable, sanitizeFts5Query } from '../../api/utils/fts.js';
 import { mapOrderDetail, mapOrderListItem } from './helpers.js';
 import { ORDER_PAYLOADS_JOIN_SQL, ORDER_PAYLOADS_SELECT_SQL } from './payloads.js';
 import {
-    ORDER_SUMMARY_PROJECTION_JOIN,
-    appendOrderSummaryDeliveryStatusFilter,
-    appendOrderSummaryProductSearchFilter,
-    appendOrderSummaryProgressStatusFilter,
+  ORDER_SUMMARY_PROJECTION_JOIN,
+  appendOrderSummaryDeliveryStatusFilter,
+  appendOrderSummaryProductSearchFilter,
+  appendOrderSummaryProgressStatusFilter,
 } from './summary-projection.js';
 
 /**
@@ -27,9 +27,9 @@ import {
 export { clearFtsCache as _resetFtsCache } from '../../api/utils/fts.js';
 
 async function findOrderLines(db, orderId) {
-    const { results } = await query(
-        db,
-        `
+  const { results } = await query(
+    db,
+    `
       SELECT
           ol.id, ol.order_id, ol.product_id, ol.variant_id,
           ol.snapshot_name, ol.snapshot_image,
@@ -47,13 +47,12 @@ async function findOrderLines(db, orderId) {
       ) orq ON orq.order_line_id = ol.id
       WHERE ol.order_id = ?
       ORDER BY ol.created_at ASC
-      `
-        ,
-        [orderId],
-        { label: 'order.find.lines' }
-    );
+      `,
+    [orderId],
+    { label: 'order.find.lines' }
+  );
 
-    return results || [];
+  return results || [];
 }
 
 /**
@@ -63,9 +62,9 @@ async function findOrderLines(db, orderId) {
  * @returns {Promise<Object|null>}
  */
 export async function findById(db, id) {
-    const order = await queryFirst(
-        db,
-        `
+  const order = await queryFirst(
+    db,
+    `
       SELECT
              o.id, o.order_no, o.salesperson_id, o.customer_id, o.product_id, o.variant_id, o.quantity,
              ${ORDER_PAYLOADS_SELECT_SQL},
@@ -80,19 +79,18 @@ export async function findById(db, id) {
       LEFT JOIN files f ON o.main_image_id = f.id
       LEFT JOIN customers c ON o.customer_id = c.id
       WHERE o.id = ?
-      `
-        ,
-        [id],
-        { label: 'order.findById' }
-    );
+      `,
+    [id],
+    { label: 'order.findById' }
+  );
 
-    if (!order) return null;
+  if (!order) return null;
 
-    const lines = await findOrderLines(db, id);
-    return mapOrderDetail({
-        ...order,
-        lines,
-    });
+  const lines = await findOrderLines(db, id);
+  return mapOrderDetail({
+    ...order,
+    lines,
+  });
 }
 
 /**
@@ -103,9 +101,9 @@ export async function findById(db, id) {
  * @returns {Promise<Object|null>}
  */
 export async function findByIdAndSalesperson(db, id, salespersonId) {
-    const order = await queryFirst(
-        db,
-        `
+  const order = await queryFirst(
+    db,
+    `
       SELECT
              o.id, o.order_no, o.salesperson_id, o.customer_id, o.product_id, o.variant_id, o.quantity,
              ${ORDER_PAYLOADS_SELECT_SQL},
@@ -120,19 +118,18 @@ export async function findByIdAndSalesperson(db, id, salespersonId) {
       LEFT JOIN files f ON o.main_image_id = f.id
       LEFT JOIN customers c ON o.customer_id = c.id
       WHERE o.id = ? AND o.salesperson_id = ?
-      `
-        ,
-        [id, salespersonId],
-        { label: 'order.findByIdAndSalesperson' }
-    );
+      `,
+    [id, salespersonId],
+    { label: 'order.findByIdAndSalesperson' }
+  );
 
-    if (!order) return null;
+  if (!order) return null;
 
-    const lines = await findOrderLines(db, id);
-    return mapOrderDetail({
-        ...order,
-        lines,
-    });
+  const lines = await findOrderLines(db, id);
+  return mapOrderDetail({
+    ...order,
+    lines,
+  });
 }
 
 /**
@@ -142,19 +139,18 @@ export async function findByIdAndSalesperson(db, id, salespersonId) {
  * @returns {Promise<Array<Object>>}
  */
 export async function findStalePending(db, thresholdTimestamp) {
-    const { results } = await query(
-        db,
-        `
+  const { results } = await query(
+    db,
+    `
       SELECT o.id, o.order_no, o.salesperson_id, o.status, o.created_at
       FROM orders o
       WHERE o.status = 'pending' AND o.created_at < ?
-      `
-        ,
-        [thresholdTimestamp],
-        { label: 'order.findStalePending' }
-    );
+      `,
+    [thresholdTimestamp],
+    { label: 'order.findStalePending' }
+  );
 
-    return results;
+  return results;
 }
 
 /**
@@ -165,22 +161,21 @@ export async function findStalePending(db, thresholdTimestamp) {
  * @returns {Promise<Array<Object>>}
  */
 export async function findApproachingDeadline(db, startDate, endDate) {
-    const { results } = await query(
-        db,
-        `
+  const { results } = await query(
+    db,
+    `
       SELECT o.id, o.order_no, o.salesperson_id, o.deadline_date
       FROM orders o
       WHERE o.status IN ('confirmed', 'in_progress')
         AND o.deadline_date IS NOT NULL
         AND o.deadline_date BETWEEN ? AND ?
       ORDER BY o.deadline_date ASC, o.created_at ASC
-      `
-        ,
-        [startDate, endDate],
-        { label: 'order.findApproachingDeadline' }
-    );
+      `,
+    [startDate, endDate],
+    { label: 'order.findApproachingDeadline' }
+  );
 
-    return results || [];
+  return results || [];
 }
 
 /**
@@ -190,48 +185,54 @@ export async function findApproachingDeadline(db, startDate, endDate) {
  * @param {Object} options
  * @returns {Promise<Object>}
  */
-export async function listBySalesperson(db, salespersonId, { status, search, page = 1, limit = 20 } = {}) {
-    const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
-        { page, limit },
-        { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
-    );
+export async function listBySalesperson(
+  db,
+  salespersonId,
+  { status, search, page = 1, limit = 20 } = {}
+) {
+  const {
+    page: safePage,
+    limit: safeLimit,
+    offset,
+  } = parseRepoPagination({ page, limit }, { defaultPage: 1, defaultLimit: 20, maxLimit: 100 });
 
-    let where = 'WHERE o.salesperson_id = ?';
-    const params = [salespersonId];
+  let where = 'WHERE o.salesperson_id = ?';
+  const params = [salespersonId];
 
-    const statusValues = expandOrderStatusFilter(status);
-    if (statusValues.length === 1) {
-        where += ' AND o.status = ?';
-        params.push(statusValues[0]);
-    } else if (statusValues.length > 1) {
-        where += ` AND o.status IN (${statusValues.map(() => '?').join(', ')})`;
-        params.push(...statusValues);
+  const statusValues = expandOrderStatusFilter(status);
+  if (statusValues.length === 1) {
+    where += ' AND o.status = ?';
+    params.push(statusValues[0]);
+  } else if (statusValues.length > 1) {
+    where += ` AND o.status IN (${statusValues.map(() => '?').join(', ')})`;
+    params.push(...statusValues);
+  }
+
+  if (search) {
+    // 优先使用 FTS5 全文搜索（O(logN)），不可用时降级为 LIKE（O(N)）
+    const hasFts = await checkFtsTable(db, 'orders_fts');
+    if (hasFts) {
+      const sanitized = sanitizeFts5Query(search);
+      if (sanitized) {
+        where += ' AND o.rowid IN (SELECT rowid FROM orders_fts WHERE orders_fts MATCH ?)';
+        params.push(`"${sanitized}"*`);
+      }
+    } else {
+      where +=
+        ' AND (o.order_no LIKE ? OR o.summary_name LIKE ? OR o.summary_brand LIKE ? OR o.summary_sku LIKE ?)';
+      const like = `%${search}%`;
+      params.push(like, like, like, like);
     }
+  }
 
-    if (search) {
-        // 优先使用 FTS5 全文搜索（O(logN)），不可用时降级为 LIKE（O(N)）
-        const hasFts = await checkFtsTable(db, 'orders_fts');
-        if (hasFts) {
-            const sanitized = sanitizeFts5Query(search);
-            if (sanitized) {
-                where += ' AND o.rowid IN (SELECT rowid FROM orders_fts WHERE orders_fts MATCH ?)';
-                params.push(`"${sanitized}"*`);
-            }
-        } else {
-            where += ' AND (o.order_no LIKE ? OR o.summary_name LIKE ? OR o.summary_brand LIKE ? OR o.summary_sku LIKE ?)';
-            const like = `%${search}%`;
-            params.push(like, like, like, like);
-        }
-    }
+  const countResult = await queryFirst(
+    db,
+    `SELECT COUNT(*) as total FROM orders o ${ORDER_SUMMARY_PROJECTION_JOIN} ${where}`,
+    params,
+    { label: 'order.listBySalesperson.count' }
+  );
 
-    const countResult = await queryFirst(
-        db,
-        `SELECT COUNT(*) as total FROM orders o ${ORDER_SUMMARY_PROJECTION_JOIN} ${where}`,
-        params,
-        { label: 'order.listBySalesperson.count' }
-    );
-
-    const listSql = `
+  const listSql = `
       SELECT
           o.id, o.order_no, o.summary_name, o.summary_brand, o.summary_sku, o.status, o.procurement_status, o.fulfillment_status, o.delivery_status,
           o.product_id, o.variant_id, o.quantity,
@@ -256,20 +257,17 @@ export async function listBySalesperson(db, salespersonId, { status, search, pag
       LIMIT ? OFFSET ?
       `;
 
-    const { results } = await query(
-        db,
-        listSql,
-        [...params, safeLimit, offset],
-        { label: 'order.listBySalesperson.list' }
-    );
+  const { results } = await query(db, listSql, [...params, safeLimit, offset], {
+    label: 'order.listBySalesperson.list',
+  });
 
-    return {
-        items: results.map(mapOrderListItem),
-        total: countResult.total,
-        page: safePage,
-        limit: safeLimit,
-        totalPages: Math.ceil(countResult.total / safeLimit),
-    };
+  return {
+    items: results.map(mapOrderListItem),
+    total: countResult.total,
+    page: safePage,
+    limit: safeLimit,
+    totalPages: Math.ceil(countResult.total / safeLimit),
+  };
 }
 
 /**
@@ -279,76 +277,94 @@ export async function listBySalesperson(db, salespersonId, { status, search, pag
  * @returns {Promise<Object>}
  */
 export async function listForAdmin(
-    db,
-    { salespersonId, customerId, status, procurementStatus, deliveryStatus, search, startTime, endTime, includeArchived = false, archivedOnly = false, page = 1, limit = 20 } = {}
+  db,
+  {
+    salespersonId,
+    customerId,
+    status,
+    procurementStatus,
+    deliveryStatus,
+    search,
+    startTime,
+    endTime,
+    includeArchived = false,
+    archivedOnly = false,
+    page = 1,
+    limit = 20,
+  } = {}
 ) {
-    const { page: safePage, limit: safeLimit, offset } = parseRepoPagination(
-        { page, limit },
-        { defaultPage: 1, defaultLimit: 20, maxLimit: 100 }
+  const {
+    page: safePage,
+    limit: safeLimit,
+    offset,
+  } = parseRepoPagination({ page, limit }, { defaultPage: 1, defaultLimit: 20, maxLimit: 100 });
+
+  let whereClause = '1=1';
+  const bindParams = [];
+
+  // 归档过滤：默认只显示未归档订单
+  if (archivedOnly) {
+    whereClause += ' AND o.archived_at IS NOT NULL';
+  } else if (!includeArchived) {
+    whereClause += ' AND o.archived_at IS NULL';
+  }
+
+  if (salespersonId) {
+    whereClause += ' AND o.salesperson_id = ?';
+    bindParams.push(salespersonId);
+  }
+  if (customerId) {
+    whereClause += ' AND o.customer_id = ?';
+    bindParams.push(customerId);
+  }
+  const statusValues = expandOrderStatusFilter(status);
+  if (statusValues.length === 1) {
+    whereClause += ' AND o.status = ?';
+    bindParams.push(statusValues[0]);
+  } else if (statusValues.length > 1) {
+    whereClause += ` AND o.status IN (${statusValues.map(() => '?').join(', ')})`;
+    bindParams.push(...statusValues);
+  }
+  if (procurementStatus) {
+    whereClause = appendOrderSummaryProgressStatusFilter(
+      whereClause,
+      bindParams,
+      procurementStatus
     );
+  }
+  if (deliveryStatus) {
+    whereClause = appendOrderSummaryDeliveryStatusFilter(whereClause, bindParams, deliveryStatus);
+  }
+  if (startTime > 0) {
+    whereClause += ' AND o.created_at >= ?';
+    bindParams.push(startTime);
+  }
+  if (endTime > 0) {
+    whereClause += ' AND o.created_at <= ?';
+    bindParams.push(endTime);
+  }
+  if (search) {
+    // 优先使用 FTS5 全文搜索（O(logN)），不可用时降级为 LIKE（O(N)）
+    const hasFts = await checkFtsTable(db, 'orders_fts');
+    if (hasFts) {
+      const sanitized = sanitizeFts5Query(search);
+      if (sanitized) {
+        whereClause += ' AND o.rowid IN (SELECT rowid FROM orders_fts WHERE orders_fts MATCH ?)';
+        bindParams.push(`"${sanitized}"*`);
+      }
+    } else {
+      whereClause = appendOrderSummaryProductSearchFilter(whereClause, bindParams, search);
+    }
+  }
 
-    let whereClause = '1=1';
-    const bindParams = [];
+  const countResult = await queryFirst(
+    db,
+    `SELECT COUNT(*) as total FROM orders o ${ORDER_SUMMARY_PROJECTION_JOIN} WHERE ${whereClause}`,
+    bindParams,
+    { label: 'order.listForAdmin.count' }
+  );
 
-    // 归档过滤：默认只显示未归档订单
-    if (archivedOnly) {
-        whereClause += ' AND o.archived_at IS NOT NULL';
-    } else if (!includeArchived) {
-        whereClause += ' AND o.archived_at IS NULL';
-    }
-
-    if (salespersonId) {
-        whereClause += ' AND o.salesperson_id = ?';
-        bindParams.push(salespersonId);
-    }
-    if (customerId) {
-        whereClause += ' AND o.customer_id = ?';
-        bindParams.push(customerId);
-    }
-    const statusValues = expandOrderStatusFilter(status);
-    if (statusValues.length === 1) {
-        whereClause += ' AND o.status = ?';
-        bindParams.push(statusValues[0]);
-    } else if (statusValues.length > 1) {
-        whereClause += ` AND o.status IN (${statusValues.map(() => '?').join(', ')})`;
-        bindParams.push(...statusValues);
-    }
-    if (procurementStatus) {
-        whereClause = appendOrderSummaryProgressStatusFilter(whereClause, bindParams, procurementStatus);
-    }
-    if (deliveryStatus) {
-        whereClause = appendOrderSummaryDeliveryStatusFilter(whereClause, bindParams, deliveryStatus);
-    }
-    if (startTime > 0) {
-        whereClause += ' AND o.created_at >= ?';
-        bindParams.push(startTime);
-    }
-    if (endTime > 0) {
-        whereClause += ' AND o.created_at <= ?';
-        bindParams.push(endTime);
-    }
-    if (search) {
-        // 优先使用 FTS5 全文搜索（O(logN)），不可用时降级为 LIKE（O(N)）
-        const hasFts = await checkFtsTable(db, 'orders_fts');
-        if (hasFts) {
-            const sanitized = sanitizeFts5Query(search);
-            if (sanitized) {
-                whereClause += ' AND o.rowid IN (SELECT rowid FROM orders_fts WHERE orders_fts MATCH ?)';
-                bindParams.push(`"${sanitized}"*`);
-            }
-        } else {
-            whereClause = appendOrderSummaryProductSearchFilter(whereClause, bindParams, search);
-        }
-    }
-
-    const countResult = await queryFirst(
-        db,
-        `SELECT COUNT(*) as total FROM orders o ${ORDER_SUMMARY_PROJECTION_JOIN} WHERE ${whereClause}`,
-        bindParams,
-        { label: 'order.listForAdmin.count' }
-    );
-
-    const listSql = `
+  const listSql = `
       SELECT
           o.id, o.order_no, o.salesperson_id, o.summary_name, o.summary_brand, o.summary_sku, o.status, o.procurement_status, o.fulfillment_status, o.delivery_status, o.product_id, o.variant_id, o.quantity,
           o.archived_at, o.archived_by,
@@ -375,24 +391,21 @@ export async function listForAdmin(
       LIMIT ? OFFSET ?
       `;
 
-    const { results } = await query(
-        db,
-        listSql,
-        [...bindParams, safeLimit, offset],
-        { label: 'order.listForAdmin.list' }
-    );
+  const { results } = await query(db, listSql, [...bindParams, safeLimit, offset], {
+    label: 'order.listForAdmin.list',
+  });
 
-    return {
-        items: results.map((order) => ({
-            ...mapOrderListItem(order),
-            salespersonName: order.salesperson_name,
-            store: order.salesperson_store,
-        })),
-        total: countResult.total,
-        page: safePage,
-        limit: safeLimit,
-        totalPages: Math.ceil(countResult.total / safeLimit),
-    };
+  return {
+    items: results.map((order) => ({
+      ...mapOrderListItem(order),
+      salespersonName: order.salesperson_name,
+      store: order.salesperson_store,
+    })),
+    total: countResult.total,
+    page: safePage,
+    limit: safeLimit,
+    totalPages: Math.ceil(countResult.total / safeLimit),
+  };
 }
 
 /**
@@ -402,27 +415,26 @@ export async function listForAdmin(
  * @returns {Promise<Array>}
  */
 export async function getFiles(db, orderId) {
-    const result = await query(
-        db,
-        `
+  const result = await query(
+    db,
+    `
       SELECT f.id, f.name, f.original_name, f.mime_type, f.size, f.storage_key, f.blurhash, f.created_at
       FROM order_files of
       JOIN files f ON of.file_id = f.id
       WHERE of.order_id = ?
       ORDER BY of.sort_order ASC, f.created_at ASC
-      `
-        ,
-        [orderId],
-        { label: 'order.files.list' }
-    );
+      `,
+    [orderId],
+    { label: 'order.files.list' }
+  );
 
-    return result.results.map((f) => ({
-        id: f.id,
-        filename: f.original_name || f.name,
-        mimeType: f.mime_type,
-        size: f.size,
-        url: `/file/${f.storage_key}`,
-        blurhash: f.blurhash,
-        createdAt: f.created_at,
-    }));
+  return result.results.map((f) => ({
+    id: f.id,
+    filename: f.original_name || f.name,
+    mimeType: f.mime_type,
+    size: f.size,
+    url: `/file/${f.storage_key}`,
+    blurhash: f.blurhash,
+    createdAt: f.created_at,
+  }));
 }

@@ -109,19 +109,22 @@ const loadAllStatsProducts = async (requestId) => {
 };
 
 const totalFormatted = computed(() => {
-    return Number(statsTotal.value || 0).toLocaleString();
+  return Number(statsTotal.value || 0).toLocaleString();
 });
 
 const lowStockCount = computed(() => {
-    return statsProducts.value.filter((p) => {
-      const quantity = Number(p.available_quantity ?? p.available ?? p.stock_quantity ?? 0);
-      return quantity < resolveAlertThreshold(p.alert_threshold);
-    }).length;
+  return statsProducts.value.filter((p) => {
+    const quantity = Number(p.available_quantity ?? p.available ?? p.stock_quantity ?? 0);
+    return quantity < resolveAlertThreshold(p.alert_threshold);
+  }).length;
 });
 
 const valueFormatted = computed(() => {
-    const total = statsProducts.value.reduce((acc, p) => acc + (p.cost_price || 0) * (p.stock_quantity || 0), 0);
-    return total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const total = statsProducts.value.reduce(
+    (acc, p) => acc + (p.cost_price || 0) * (p.stock_quantity || 0),
+    0
+  );
+  return total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 });
 
 watch(

@@ -81,7 +81,8 @@ describe('WatermarkSettings behavior', () => {
           AppButton: {
             props: ['type', 'text', 'loading', 'variant', 'size'],
             emits: ['click'],
-            template: '<button :type="type || \'button\'" @click="$emit(\'click\')">{{ text }}<slot name="icon-left" /><slot /></button>',
+            template:
+              '<button :type="type || \'button\'" @click="$emit(\'click\')">{{ text }}<slot name="icon-left" /><slot /></button>',
           },
           AppInput: {
             props: ['modelValue', 'type', 'placeholder'],
@@ -198,16 +199,23 @@ describe('WatermarkSettings behavior', () => {
     await wrapper.find('form').trigger('submit.prevent');
     await flushPromises();
 
-    expect(mocks.authFetch).toHaveBeenCalledWith('/api/manage/settings/batch', expect.objectContaining({
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    }));
+    expect(mocks.authFetch).toHaveBeenCalledWith(
+      '/api/manage/settings/batch',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
 
     const body = JSON.parse(mocks.authFetch.mock.calls[0][1].body);
     expect(body.settings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ key: 'WATERMARK_TEXT', value: 'After', category: 'watermark' }),
-        expect.objectContaining({ key: 'WATERMARK_POSITION', value: 'center', category: 'watermark' }),
+        expect.objectContaining({
+          key: 'WATERMARK_POSITION',
+          value: 'center',
+          category: 'watermark',
+        }),
       ])
     );
     expect(mocks.addToast).toHaveBeenCalledWith({

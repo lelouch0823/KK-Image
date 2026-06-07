@@ -98,10 +98,7 @@ describe('CustomerRepository behavior coverage', () => {
     // FTS 表不存在时降级为 LIKE
     expect(countStatement.params).toEqual(['%Ali%', '%Ali%', '%Ali%']);
     expect(listStatement.params).toEqual(['%Ali%', '%Ali%', '%Ali%', 2, 2]);
-    expect(db.prepare).toHaveBeenNthCalledWith(
-      1,
-      expect.stringContaining('sqlite_master')
-    );
+    expect(db.prepare).toHaveBeenNthCalledWith(1, expect.stringContaining('sqlite_master'));
   });
 
   it('creates customers with default field fallbacks and serialized tags', async () => {
@@ -158,10 +155,7 @@ describe('CustomerRepository behavior coverage', () => {
       first: { count: 2 },
     });
     const db = {
-      prepare: vi
-        .fn()
-        .mockReturnValueOnce(deleteStatement)
-        .mockReturnValueOnce(orderStatement),
+      prepare: vi.fn().mockReturnValueOnce(deleteStatement).mockReturnValueOnce(orderStatement),
     };
 
     const repo = new CustomerRepository(db);

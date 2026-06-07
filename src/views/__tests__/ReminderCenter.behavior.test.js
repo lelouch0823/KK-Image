@@ -26,8 +26,20 @@ describe('ReminderCenter view', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.notifications = [
-      { id: 'n-1', title: '跟进客户', content: '订单 SO-1 需要回访', is_read: 0, created_at: 1710000000000 },
-      { id: 'n-2', title: '确认到货', content: '订单 SO-2 待确认', is_read: 1, created_at: 1710001000000 },
+      {
+        id: 'n-1',
+        title: '跟进客户',
+        content: '订单 SO-1 需要回访',
+        is_read: 0,
+        created_at: 1710000000000,
+      },
+      {
+        id: 'n-2',
+        title: '确认到货',
+        content: '订单 SO-2 待确认',
+        is_read: 1,
+        created_at: 1710001000000,
+      },
     ];
     mocks.unreadCount = 1;
     mocks.loading = false;
@@ -47,7 +59,8 @@ describe('ReminderCenter view', () => {
           AppButton: {
             props: ['text', 'disabled'],
             emits: ['click'],
-            template: '<button :disabled="disabled" @click="$emit(\'click\')">{{ text }}<slot /></button>',
+            template:
+              '<button :disabled="disabled" @click="$emit(\'click\')">{{ text }}<slot /></button>',
           },
           StatusBadge: {
             props: ['variant'],

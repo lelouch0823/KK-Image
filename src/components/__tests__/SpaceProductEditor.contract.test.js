@@ -263,9 +263,7 @@ describe('SpaceProductEditor contract', () => {
       brand: 'Live Brand',
       series: 'Live Series',
       images: ['live-image'],
-      variants: [
-        { id: 'var-2', sku: 'LIVE-SKU', status: 'archived' },
-      ],
+      variants: [{ id: 'var-2', sku: 'LIVE-SKU', status: 'archived' }],
     });
 
     const wrapper = mount(SpaceProductEditor, {
@@ -416,7 +414,12 @@ describe('SpaceProductEditor contract', () => {
       brand: productId === 'prod-2' ? 'Brand 2' : 'Brand 1',
       series: productId === 'prod-2' ? 'Series 2' : 'Series 1',
       images: [productId === 'prod-2' ? 'img-2' : 'img-1'],
-      variants: [{ id: productId === 'prod-2' ? 'var-2' : 'var-1', sku: productId === 'prod-2' ? 'SKU-2' : 'SKU-1' }],
+      variants: [
+        {
+          id: productId === 'prod-2' ? 'var-2' : 'var-1',
+          sku: productId === 'prod-2' ? 'SKU-2' : 'SKU-1',
+        },
+      ],
     }));
 
     const first = wrapper.vm.initData();
@@ -509,9 +512,7 @@ describe('SpaceProductEditor contract', () => {
         brand: 'Brand 1',
         series: 'Series 1',
         images: ['prod-image-1'],
-        variants: [
-          { id: 'var-2', sku: 'SKU-2' },
-        ],
+        variants: [{ id: 'var-2', sku: 'SKU-2' }],
       })
       .mockResolvedValueOnce({
         id: 'prod-2',
@@ -519,9 +520,7 @@ describe('SpaceProductEditor contract', () => {
         brand: 'Brand 2',
         series: 'Series 2',
         images: ['prod-image-2'],
-        variants: [
-          { id: 'var-9', sku: 'SKU-9' },
-        ],
+        variants: [{ id: 'var-9', sku: 'SKU-9' }],
       });
 
     const wrapper = mount(SpaceProductEditor, {
@@ -552,7 +551,10 @@ describe('SpaceProductEditor contract', () => {
     await flushPromises();
 
     expect(mocks.unregisterFolderRefresh).toHaveBeenCalledWith('space_space-1');
-    expect(mocks.registerFolderRefresh).toHaveBeenLastCalledWith('space_space-2', expect.any(Function));
+    expect(mocks.registerFolderRefresh).toHaveBeenLastCalledWith(
+      'space_space-2',
+      expect.any(Function)
+    );
     expect(mocks.loadSpace).toHaveBeenLastCalledWith('space-2');
     expect(mocks.loadProduct).toHaveBeenLastCalledWith('prod-2');
     expect(wrapper.vm.form.name).toBe('Second Space');

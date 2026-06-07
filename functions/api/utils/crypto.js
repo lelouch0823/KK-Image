@@ -50,7 +50,9 @@ export function bytesToBase64Url(bytes) {
  * @returns {Uint8Array}
  */
 export function base64UrlToBytes(value) {
-  const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+  const normalized = String(value || '')
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
   const padding = normalized.length % 4;
   const padded = padding ? normalized + '='.repeat(4 - padding) : normalized;
   return Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
@@ -119,7 +121,9 @@ export async function hmacSha256(key, data) {
  */
 export async function hmacSha256Hex(key, data) {
   const bytes = await hmacSha256(key, data);
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /**

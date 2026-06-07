@@ -13,6 +13,7 @@
 ### Task 1: Lock current purchase-order detail state coverage before visual refactor
 
 **Files:**
+
 - Modify: `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
 - Modify: `src/views/PurchaseOrders.vue`
 - Test: `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
@@ -59,6 +60,7 @@ git commit -m "test: lock purchase order detail section contract"
 ### Task 2: Refine the KPI overview row for a modern SaaS scan pattern
 
 **Files:**
+
 - Modify: `src/views/PurchaseOrders.vue`
 - Test: `src/views/__tests__/PurchaseOrders.design-system-migration.test.js`
 
@@ -104,6 +106,7 @@ git commit -m "style: refine purchase order overview strip"
 ### Task 3: Tighten the primary list panel hierarchy without changing table behavior
 
 **Files:**
+
 - Modify: `src/views/PurchaseOrders.vue`
 - Modify: `src/components/ui/AppTable.vue` only if the page cannot achieve the target hierarchy locally
 - Modify: `src/components/ui/__tests__/AppTable.design-contract.test.js` only if shared table hooks change
@@ -153,6 +156,7 @@ git commit -m "style: tighten purchase order list panel hierarchy"
 ### Task 4: Recompose the detail modal into clear visual regions
 
 **Files:**
+
 - Modify: `src/views/PurchaseOrders.vue`
 - Test: `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
 
@@ -201,6 +205,7 @@ git commit -m "style: reorganize purchase order detail modal"
 ### Task 5: Verify the focused regression surface
 
 **Files:**
+
 - Modify: none unless regressions appear
 
 **Step 1: Run focused test suite**

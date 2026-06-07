@@ -20,8 +20,20 @@ const baseOrder = {
   salespersonId: 'sp-1',
   files: [],
   lines: [
-    { id: 'line-1', snapshotName: 'Desk', orderedQuantity: 2, productId: 'product-1', variantId: 'variant-1' },
-    { id: 'line-2', snapshotName: 'Chair', orderedQuantity: 3, productId: 'product-2', variantId: 'variant-2' },
+    {
+      id: 'line-1',
+      snapshotName: 'Desk',
+      orderedQuantity: 2,
+      productId: 'product-1',
+      variantId: 'variant-1',
+    },
+    {
+      id: 'line-2',
+      snapshotName: 'Chair',
+      orderedQuantity: 3,
+      productId: 'product-2',
+      variantId: 'variant-2',
+    },
   ],
   originalData: {},
   currentData: {

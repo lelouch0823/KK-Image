@@ -119,7 +119,9 @@ describe('ProductCreateModal edit variant preservation', () => {
       ])
     );
     expect(wrapper.vm.incompleteVariantCount).toBe(1);
-    expect(wrapper.text()).toContain('There are 1 legacy variants that no longer match the current specs. Remove/archive them before saving.');
+    expect(wrapper.text()).toContain(
+      'There are 1 legacy variants that no longer match the current specs. Remove/archive them before saving.'
+    );
   });
 
   it('blocks save until incomplete legacy variants are removed', async () => {

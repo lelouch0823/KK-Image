@@ -55,7 +55,9 @@ function createDbWithSettingsRows(rows = []) {
   return {
     prepare: vi.fn(() => ({
       all: vi.fn(async () => ({ results: rows })),
-      bind: vi.fn(function () { return this; }),
+      bind: vi.fn(function () {
+        return this;
+      }),
       run: vi.fn(async () => ({ success: true })),
       first: vi.fn(async () => null),
     })),

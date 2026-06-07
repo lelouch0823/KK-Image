@@ -8,7 +8,8 @@ const D1_MAX_BATCH_SIZE = 100;
 export class DomainOutboxPublisher {
   constructor(db, deps = {}) {
     this.db = db;
-    this.domainOutboxRepo = deps.domainOutboxRepo || new DomainOutboxRepository(db, { now: deps.now });
+    this.domainOutboxRepo =
+      deps.domainOutboxRepo || new DomainOutboxRepository(db, { now: deps.now });
     this.now = deps.now || (() => Date.now());
     this.uuid = deps.uuid || (() => crypto.randomUUID());
   }
@@ -27,7 +28,9 @@ export class DomainOutboxPublisher {
       aggregate_id: event.aggregate_id,
       correlation_id: event.correlation_id || correlationId,
       causation_id: event.causation_id || correlationId,
-      idempotency_key: event.idempotency_key || `${commandId}:${eventType}:${event.aggregate_id || sequenceInCommand}`,
+      idempotency_key:
+        event.idempotency_key ||
+        `${commandId}:${eventType}:${event.aggregate_id || sequenceInCommand}`,
       payload_json: JSON.stringify(event.payload || {}),
       occurred_at: event.occurred_at || this.now(),
     };
@@ -50,8 +53,8 @@ export class DomainOutboxPublisher {
       const statementCountForEvent =
         1 + getDomainEventDefinition(event.event_type).consumers.length;
       if (
-        currentChunk.length > 0
-        && currentStatementCount + statementCountForEvent > D1_MAX_BATCH_SIZE
+        currentChunk.length > 0 &&
+        currentStatementCount + statementCountForEvent > D1_MAX_BATCH_SIZE
       ) {
         eventChunks.push(currentChunk);
         currentChunk = [];
@@ -77,9 +80,11 @@ export class DomainOutboxPublisher {
       }
     } catch (error) {
       if (persistedEventIds.length > 0) {
-        const rollbackStatements = persistedEventIds.map((eventId) =>
-          this.db.prepare('DELETE FROM domain_outbox WHERE id = ?').bind(eventId)
-        );
+        // 回滚时同时清理 domain_outbox 和 outbox_consumer_jobs 中关联的记录
+        const rollbackStatements = persistedEventIds.flatMap((eventId) => [
+          this.db.prepare('DELETE FROM outbox_consumer_jobs WHERE event_id = ?').bind(eventId),
+          this.db.prepare('DELETE FROM domain_outbox WHERE id = ?').bind(eventId),
+        ]);
         try {
           await executeBatchChunks(this.db, rollbackStatements);
         } catch (rollbackError) {
@@ -104,13 +109,18 @@ export class DomainOutboxPublisher {
  * @param {string} [options.correlationId] - 关联 ID
  * @returns {Promise<Array>} 发布的事件列表
  */
-export async function publishAndSchedulePoll(c, { events, workerId, commandId, correlationId } = {}) {
+export async function publishAndSchedulePoll(
+  c,
+  { events, workerId, commandId, correlationId } = {}
+) {
   const publisher = new DomainOutboxPublisher(c.env.DB);
   const published = await publisher.publish(events, { commandId, correlationId });
-  c.executionCtx?.waitUntil?.(runOutboxPoller({
-    env: c.env,
-    requestUrl: c.req?.url || 'unknown://publish',
-    workerId: workerId || `outbox:${Date.now()}`,
-  }));
+  c.executionCtx?.waitUntil?.(
+    runOutboxPoller({
+      env: c.env,
+      requestUrl: c.req?.url || 'unknown://publish',
+      workerId: workerId || `outbox:${Date.now()}`,
+    })
+  );
   return published;
 }

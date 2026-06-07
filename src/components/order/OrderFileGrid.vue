@@ -20,10 +20,7 @@
         </div>
       </div>
     </div>
-    <div
-      v-else
-      class="flex flex-col items-center justify-center py-8 text-center"
-    >
+    <div v-else class="flex flex-col items-center justify-center py-8 text-center">
       <AppIcon name="photo" class="mb-2 size-12 stroke-[1.5] text-(--text-secondary)/40" />
       <p class="text-sm text-(--text-secondary)">{{ t('order.detail.noImages') }}</p>
     </div>

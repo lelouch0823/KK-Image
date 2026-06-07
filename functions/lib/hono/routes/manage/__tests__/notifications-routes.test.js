@@ -48,7 +48,10 @@ import notificationsApp from '../notifications.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.route('/api/manage/notifications', notificationsApp);
   return app;
@@ -91,11 +94,16 @@ describe('manage notifications routes', () => {
 
   describe('POST /', () => {
     it('创建通知成功', async () => {
-      const res = await app.request('/api/manage/notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: '新通知', content: '详情', type: 'system' }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/notifications',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: '新通知', content: '详情', type: 'system' }),
+        },
+        ENV,
+        CTX
+      );
       const json = await res.json();
 
       expect(res.status).toBe(200);
@@ -111,11 +119,16 @@ describe('manage notifications routes', () => {
     });
 
     it('缺少 title 时返回 400', async () => {
-      const res = await app.request('/api/manage/notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: '没有标题' }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/notifications',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: '没有标题' }),
+        },
+        ENV,
+        CTX
+      );
 
       expect(res.status).toBe(400);
     });
@@ -123,9 +136,14 @@ describe('manage notifications routes', () => {
 
   describe('POST /:id/read', () => {
     it('标记单条通知已读', async () => {
-      const res = await app.request('/api/manage/notifications/n-1/read', {
-        method: 'POST',
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/notifications/n-1/read',
+        {
+          method: 'POST',
+        },
+        ENV,
+        CTX
+      );
       const json = await res.json();
 
       expect(res.status).toBe(200);
@@ -134,9 +152,14 @@ describe('manage notifications routes', () => {
     });
 
     it('标记所有通知已读', async () => {
-      const res = await app.request('/api/manage/notifications/all/read', {
-        method: 'POST',
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/notifications/all/read',
+        {
+          method: 'POST',
+        },
+        ENV,
+        CTX
+      );
       const json = await res.json();
 
       expect(res.status).toBe(200);

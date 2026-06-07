@@ -3,24 +3,18 @@
     <!-- 节点行 -->
     <div
       class="group flex w-full items-center gap-1 rounded-md px-2 py-1.5 text-left text-sm transition-colors"
-      :class="selectedId === node.id
-        ? 'bg-(--color-primary-50) text-(--color-primary-700) font-medium'
-        : 'text-(--text-secondary) hover:bg-(--bg-muted)'"
+      :class="
+        selectedId === node.id
+          ? 'bg-(--color-primary-50) text-(--color-primary-700) font-medium'
+          : 'text-(--text-secondary) hover:bg-(--bg-muted)'
+      "
       :style="{ paddingLeft: `${level * 16 + 8}px` }"
       @click="$emit('select', node.id)"
       @contextmenu.prevent="showContextMenu = !showContextMenu"
     >
       <!-- 展开/折叠按钮 -->
-      <AppButton
-        v-if="hasChildren"
-        variant="ghost"
-        size="sm"
-        @click.stop="expanded = !expanded"
-      >
-        <AppIcon
-          :name="expanded ? 'chevron-down' : 'chevron-right'"
-          class="size-3.5"
-        />
+      <AppButton v-if="hasChildren" variant="ghost" size="sm" @click.stop="expanded = !expanded">
+        <AppIcon :name="expanded ? 'chevron-down' : 'chevron-right'" class="size-3.5" />
       </AppButton>
       <span v-else class="size-4.5 shrink-0" />
 
@@ -36,7 +30,9 @@
       </span>
 
       <!-- 操作按钮（hover 显示） -->
-      <div class="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+      <div
+        class="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+      >
         <AppButton
           variant="ghost"
           size="sm"

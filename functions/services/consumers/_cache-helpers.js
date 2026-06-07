@@ -22,21 +22,40 @@ export function isTagCacheEvent(eventType) {
 }
 
 export function isManageFolderCacheEvent(eventType) {
-  return ['folder_created', 'folder_updated', 'folder_deleted', 'folder_share_updated'].includes(eventType);
+  return ['folder_created', 'folder_updated', 'folder_deleted', 'folder_share_updated'].includes(
+    eventType
+  );
 }
 
 export function isManageFileCacheEvent(eventType) {
-  return ['file_created', 'file_updated', 'file_deleted', 'file_batch_deleted', 'file_batch_moved'].includes(eventType);
+  return [
+    'file_created',
+    'file_updated',
+    'file_deleted',
+    'file_batch_deleted',
+    'file_batch_moved',
+  ].includes(eventType);
 }
 
 /** @deprecated v1 事件类型，保留向后兼容 */
 export function isV1FolderCacheEvent(eventType) {
-  return ['v1_folder_created', 'v1_folder_updated', 'v1_folder_deleted', 'v1_folder_share_updated'].includes(eventType);
+  return [
+    'v1_folder_created',
+    'v1_folder_updated',
+    'v1_folder_deleted',
+    'v1_folder_share_updated',
+  ].includes(eventType);
 }
 
 /** @deprecated v1 事件类型，保留向后兼容 */
 export function isV1FileCacheEvent(eventType) {
-  return ['v1_file_created', 'v1_file_updated', 'v1_file_deleted', 'v1_file_batch_deleted', 'v1_file_batch_moved'].includes(eventType);
+  return [
+    'v1_file_created',
+    'v1_file_updated',
+    'v1_file_deleted',
+    'v1_file_batch_deleted',
+    'v1_file_batch_moved',
+  ].includes(eventType);
 }
 
 export function isSpaceCacheEvent(eventType) {
@@ -128,12 +147,14 @@ export async function findProductIdsByVariantIds(db, variantIds = []) {
   }
 
   const { results } = await db
-    .prepare(`
+    .prepare(
+      `
       SELECT DISTINCT product_id
       FROM product_variants
       WHERE id IN ${inClause(normalizedVariantIds)}
         AND product_id IS NOT NULL
-    `)
+    `
+    )
     .bind(...normalizedVariantIds)
     .all();
 
@@ -147,11 +168,13 @@ export async function findReceiptBindingsByIds(db, receiptIds = []) {
   }
 
   const { results } = await db
-    .prepare(`
+    .prepare(
+      `
       SELECT DISTINCT product_id, variant_id
       FROM purchase_receipts
       WHERE id IN ${inClause(normalizedReceiptIds)}
-    `)
+    `
+    )
     .bind(...normalizedReceiptIds)
     .all();
 
@@ -165,11 +188,13 @@ export async function findOrderBindingsByIds(db, orderIds = []) {
   }
 
   const { results } = await db
-    .prepare(`
+    .prepare(
+      `
       SELECT DISTINCT product_id, variant_id
       FROM orders
       WHERE id IN ${inClause(normalizedOrderIds)}
-    `)
+    `
+    )
     .bind(...normalizedOrderIds)
     .all();
 

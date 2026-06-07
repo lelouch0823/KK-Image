@@ -3,8 +3,12 @@ import { classifyAIError, executeWithRetry } from '../retry-manager.js';
 
 describe('retry-manager', () => {
   it('classifies 429 and network errors as retryable', () => {
-    expect(classifyAIError(new Error('AI API error (429)'))).toEqual(expect.objectContaining({ retryable: true }));
-    expect(classifyAIError(new TypeError('fetch failed'))).toEqual(expect.objectContaining({ retryable: true }));
+    expect(classifyAIError(new Error('AI API error (429)'))).toEqual(
+      expect.objectContaining({ retryable: true })
+    );
+    expect(classifyAIError(new TypeError('fetch failed'))).toEqual(
+      expect.objectContaining({ retryable: true })
+    );
   });
 
   it('does not retry validation-style 400 errors', async () => {

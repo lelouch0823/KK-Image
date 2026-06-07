@@ -7,6 +7,7 @@ const COOLDOWN_DURATION = 60 * 1000;
 const DEFAULT_HEALTH_WINDOW = 20;
 const MIN_HEALTH_WINDOW = 5;
 const MAX_HEALTH_WINDOW = 200;
+const MAX_MODELS_IN_HEALTH_MAP = 100; // 健康状态 Map 最大模型数，防止无界增长
 
 export { parseBooleanFlag };
 
@@ -18,12 +19,23 @@ export function parseHealthWindow(value) {
 
 function ensureModelHealth(modelName) {
   if (!MODEL_HEALTH.has(modelName)) {
+    // 超过上限时淘汰最早的条目（LRU 策略）
+    if (MODEL_HEALTH.size >= MAX_MODELS_IN_HEALTH_MAP) {
+      const firstKey = MODEL_HEALTH.keys().next().value;
+      if (firstKey) {
+        MODEL_HEALTH.delete(firstKey);
+      }
+    }
     MODEL_HEALTH.set(modelName, { events: [] });
   }
   return MODEL_HEALTH.get(modelName);
 }
 
-export function recordModelHealth(modelName, { ok, latencyMs = null }, windowSize = DEFAULT_HEALTH_WINDOW) {
+export function recordModelHealth(
+  modelName,
+  { ok, latencyMs = null },
+  windowSize = DEFAULT_HEALTH_WINDOW
+) {
   const store = ensureModelHealth(modelName);
   store.events.push({
     ok: Boolean(ok),
@@ -42,9 +54,12 @@ function getModelMetrics(modelName) {
   const requests = events.length;
   const failures = events.filter((item) => !item.ok).length;
   const successfulEvents = events.filter((item) => item.ok && Number.isFinite(item.latencyMs));
-  const avgLatencyMs = successfulEvents.length > 0
-    ? Math.round(successfulEvents.reduce((acc, item) => acc + item.latencyMs, 0) / successfulEvents.length)
-    : null;
+  const avgLatencyMs =
+    successfulEvents.length > 0
+      ? Math.round(
+          successfulEvents.reduce((acc, item) => acc + item.latencyMs, 0) / successfulEvents.length
+        )
+      : null;
   const failureRate = requests > 0 ? failures / requests : 0;
   const lastSuccessAt = [...events].reverse().find((item) => item.ok)?.at || null;
   const lastFailureAt = [...events].reverse().find((item) => !item.ok)?.at || null;
@@ -70,7 +85,10 @@ function rankFallbackModels(models) {
 
 export function parseModels(modelsEnv) {
   if (!modelsEnv) return [];
-  return String(modelsEnv).split(',').map((m) => m.trim()).filter(Boolean);
+  return String(modelsEnv)
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
 }
 
 export function resolveModelOrder(models, env) {
@@ -105,10 +123,12 @@ export function getNextAvailableModelIndex(models, currentIndex) {
 
 export function getModelHealthSnapshot({ models = [], windowSize = DEFAULT_HEALTH_WINDOW } = {}) {
   const normalizedWindow = parseHealthWindow(windowSize);
-  const knownModels = [...new Set([
-    ...models.filter(Boolean).map((item) => String(item).trim()),
-    ...Array.from(MODEL_HEALTH.keys()),
-  ])];
+  const knownModels = [
+    ...new Set([
+      ...models.filter(Boolean).map((item) => String(item).trim()),
+      ...Array.from(MODEL_HEALTH.keys()),
+    ]),
+  ];
 
   return {
     windowSize: normalizedWindow,

@@ -88,7 +88,14 @@ vi.mock('@/composables/usePurchaseOrderModals', () => ({
     showProductPicker: ref(mocks.modalState.showProductPicker),
     pickerTarget: ref(mocks.modalState.pickerTarget),
     showShortageConfirm: ref(mocks.modalState.showShortageConfirm),
-    confirmData: reactive({ show: false, title: '', message: '', type: 'primary', loading: false, onConfirm: vi.fn() }),
+    confirmData: reactive({
+      show: false,
+      title: '',
+      message: '',
+      type: 'primary',
+      loading: false,
+      onConfirm: vi.fn(),
+    }),
     viewProductId: ref(null),
     detailFocusedVariantId: vi.fn(() => null),
     openOrderPicker: vi.fn(),
@@ -142,14 +149,19 @@ function mountPurchaseOrdersShell() {
         AppIcon: { template: '<i />' },
         AppFilterBar: { template: '<div />' },
         AppButton: { template: '<button><slot /></button>' },
-        AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
+        AppInput: {
+          template: '<div />',
+          props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'],
+        },
         AppCheckbox: { template: '<input type="checkbox" />' },
         AppSelect: appSelectStub,
         AppTable: { template: '<div />' },
         StatusBadge: { template: '<div><slot /></div>' },
         PermissionDeniedState: { template: '<div />' },
         MetricTile: { template: '<div />' },
-        ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+        ManagementListShell: {
+          template: '<div><slot name="actions" /><slot name="content" /></div>',
+        },
       },
     },
   });
@@ -318,14 +330,19 @@ describe('PurchaseOrders detail shell', () => {
           AppIcon: { template: '<i />' },
           AppFilterBar: { template: '<div />' },
           AppButton: { template: '<button><slot /></button>' },
-          AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
+          AppInput: {
+            template: '<div />',
+            props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'],
+          },
           AppCheckbox: { template: '<input type="checkbox" />' },
           AppSelect: appSelectStub,
           AppTable: { template: '<div />' },
           StatusBadge: { template: '<div><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
           MetricTile: { template: '<div />' },
-          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template: '<div><slot name="actions" /><slot name="content" /></div>',
+          },
         },
       },
     });
@@ -385,27 +402,50 @@ describe('PurchaseOrders detail shell', () => {
           AppIcon: { template: '<i />' },
           AppFilterBar: { template: '<div />' },
           AppButton: { template: '<button><slot /></button>' },
-          AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
+          AppInput: {
+            template: '<div />',
+            props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'],
+          },
           AppCheckbox: { template: '<input type="checkbox" />' },
           AppSelect: appSelectStub,
           AppTable: { template: '<div />' },
           StatusBadge: { template: '<div><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
           MetricTile: { template: '<div />' },
-          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template: '<div><slot name="actions" /><slot name="content" /></div>',
+          },
         },
       },
     });
 
-    expect(wrapper.get('[data-testid="purchase-order-detail-progress-badge"]').text()).toContain('部分到货');
-    expect(wrapper.get('[data-testid="purchase-order-detail-progress-summary"]').text()).toContain('4 / 12');
-    expect(wrapper.get('[data-testid="purchase-order-detail-progress-summary"]').text()).toContain('待收 7');
-    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain('已到 4 / 12');
-    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain('取消 1');
-    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain('2 次入库');
-    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain('最近到货');
-    expect(wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()).toContain('Color: Black');
-    expect(wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()).toContain('Size: Large');
+    expect(wrapper.get('[data-testid="purchase-order-detail-progress-badge"]').text()).toContain(
+      '部分到货'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-detail-progress-summary"]').text()).toContain(
+      '4 / 12'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-detail-progress-summary"]').text()).toContain(
+      '待收 7'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain(
+      '已到 4 / 12'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain(
+      '取消 1'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain(
+      '2 次入库'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-detail-item-progress"]').text()).toContain(
+      '最近到货'
+    );
+    expect(
+      wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()
+    ).toContain('Color: Black');
+    expect(
+      wrapper.get('[data-testid="purchase-order-detail-item-variant-options"]').text()
+    ).toContain('Size: Large');
   });
 
   it('renders receipt ledger history and reversal affordance from purchase-order detail payload', () => {
@@ -467,22 +507,31 @@ describe('PurchaseOrders detail shell', () => {
           AppIcon: { template: '<i />' },
           AppFilterBar: { template: '<div />' },
           AppButton: { template: '<button><slot /></button>' },
-          AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
+          AppInput: {
+            template: '<div />',
+            props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'],
+          },
           AppCheckbox: { template: '<input type="checkbox" />' },
           AppSelect: appSelectStub,
           AppTable: { template: '<div />' },
           StatusBadge: { template: '<div><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
           MetricTile: { template: '<div />' },
-          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template: '<div><slot name="actions" /><slot name="content" /></div>',
+          },
         },
       },
     });
 
     expect(wrapper.find('[data-testid="purchase-order-detail-receipts"]').exists()).toBe(true);
-    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain('Premium Canvas Bag');
+    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain(
+      'Premium Canvas Bag'
+    );
     expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain('4');
-    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain('first truck arrived');
+    expect(wrapper.get('[data-testid="purchase-order-receipt-card"]').text()).toContain(
+      'first truck arrived'
+    );
     expect(wrapper.find('[data-testid="purchase-order-open-reversal-modal"]').exists()).toBe(true);
   });
 
@@ -517,7 +566,10 @@ describe('PurchaseOrders detail shell', () => {
           AppIcon: { template: '<i />' },
           AppFilterBar: { template: '<div />' },
           AppButton: { template: '<button><slot /></button>' },
-          AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
+          AppInput: {
+            template: '<div />',
+            props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'],
+          },
           AppCheckbox: { template: '<input type="checkbox" />' },
           AppSelect: appSelectStub,
           AppTable: {
@@ -536,14 +588,22 @@ describe('PurchaseOrders detail shell', () => {
           StatusBadge: { template: '<div><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
           MetricTile: { template: '<div />' },
-          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template: '<div><slot name="actions" /><slot name="content" /></div>',
+          },
         },
       },
     });
 
-    expect(wrapper.get('[data-testid="purchase-order-progress-badge"]').text()).toContain('部分到货');
-    expect(wrapper.get('[data-testid="purchase-order-progress-summary"]').text()).toContain('4 / 10');
-    expect(wrapper.get('[data-testid="purchase-order-progress-summary"]').text()).toContain('待收 5');
+    expect(wrapper.get('[data-testid="purchase-order-progress-badge"]').text()).toContain(
+      '部分到货'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-progress-summary"]').text()).toContain(
+      '4 / 10'
+    );
+    expect(wrapper.get('[data-testid="purchase-order-progress-summary"]').text()).toContain(
+      '待收 5'
+    );
   });
 
   it('does not offer arrived transition while outstanding quantity remains', () => {
@@ -565,7 +625,9 @@ describe('PurchaseOrders detail shell', () => {
 
     const wrapper = mountPurchaseOrdersShell();
 
-    expect(wrapper.get('[data-testid="purchase-order-detail-footer"]').text()).not.toContain('arrived');
+    expect(wrapper.get('[data-testid="purchase-order-detail-footer"]').text()).not.toContain(
+      'arrived'
+    );
   });
 
   it('offers arrived transition once outstanding quantity is zero', () => {
@@ -684,7 +746,9 @@ describe('PurchaseOrders detail shell', () => {
 
     const wrapper = mountPurchaseOrdersShell();
 
-    expect(wrapper.get('[data-testid="purchase-order-detail-footer"]').findAll('button')).toHaveLength(1);
+    expect(
+      wrapper.get('[data-testid="purchase-order-detail-footer"]').findAll('button')
+    ).toHaveLength(1);
   });
 
   it('hides cost-allocation action in the cost modal until the purchase order is completed', async () => {
@@ -816,14 +880,19 @@ describe('PurchaseOrders detail shell', () => {
           AppIcon: { template: '<i />' },
           AppFilterBar: { template: '<div />' },
           AppButton: { template: '<button><slot /></button>' },
-          AppInput: { template: '<div />', props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'] },
+          AppInput: {
+            template: '<div />',
+            props: ['modelValue', 'type', 'min', 'step', 'size', 'placeholder', 'disabled'],
+          },
           AppCheckbox: { template: '<input type="checkbox" />' },
           AppSelect: appSelectStub,
           AppTable: { template: '<div />' },
           StatusBadge: { template: '<div><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
           MetricTile: { template: '<div />' },
-          ManagementListShell: { template: '<div><slot name="actions" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template: '<div><slot name="actions" /><slot name="content" /></div>',
+          },
         },
       },
     });
@@ -923,9 +992,7 @@ describe('PurchaseOrders detail shell', () => {
     ]);
     expect(mocks.refreshPurchaseOrderViews).toHaveBeenCalledWith('po-partial');
     expect(wrapper.vm.showDetail).toBe(true);
-    expect(mocks.addToast).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'warning' })
-    );
+    expect(mocks.addToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'warning' }));
   });
 
   it('resets selected suggestions when reopening the suggestions modal', async () => {

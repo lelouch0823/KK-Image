@@ -15,9 +15,7 @@
           </span>
         </h3>
         <p class="mt-1 text-xs text-(--text-secondary)">
-          {{
-            t('purchaseOrder.ui.receiptLedgerHint')
-          }}
+          {{ t('purchaseOrder.ui.receiptLedgerHint') }}
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2 lg:justify-end">
@@ -94,7 +92,9 @@
               {{ t('purchaseOrder.ui.receiptReversibleTag') }}
             </StatusBadge>
           </div>
-          <div class="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)">
+          <div
+            class="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-(--text-secondary)"
+          >
             <span>
               {{ t('purchaseOrder.form.receivedQty') }}
               {{ helpers.formatInteger(receipt.received_qty) }}
@@ -109,10 +109,7 @@
             </span>
             <span>· {{ helpers.formatDateTime(receipt.received_at) }}</span>
           </div>
-          <div
-            v-if="hasEntries(receipt.variant_options)"
-            class="mt-2 flex min-w-0 flex-wrap gap-1"
-          >
+          <div v-if="hasEntries(receipt.variant_options)" class="mt-2 flex min-w-0 flex-wrap gap-1">
             <span
               v-for="(val, key) in receipt.variant_options"
               :key="`receipt-variant-${receipt.id}-${key}`"
@@ -129,7 +126,9 @@
           </p>
         </div>
 
-        <div class="flex flex-col justify-between rounded-2xl border border-(--border-subtle) bg-(--bg-page)/80 p-3">
+        <div
+          class="flex flex-col justify-between rounded-2xl border border-(--border-subtle) bg-(--bg-page)/80 p-3"
+        >
           <div class="space-y-2 text-xs text-(--text-secondary)">
             <div class="flex items-center justify-between gap-3">
               <span>{{ t('purchaseOrder.ui.receiptRecordId') }}</span>
@@ -144,7 +143,9 @@
             <div class="flex items-center justify-between gap-3">
               <span>{{ t('purchaseOrder.ui.receiptLastReversedAt') }}</span>
               <span class="text-right text-(--text-main)">
-                {{ receipt.last_reversed_at ? helpers.formatDateTime(receipt.last_reversed_at) : '-' }}
+                {{
+                  receipt.last_reversed_at ? helpers.formatDateTime(receipt.last_reversed_at) : '-'
+                }}
               </span>
             </div>
           </div>

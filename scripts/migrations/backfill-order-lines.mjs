@@ -58,7 +58,16 @@ function sqlNumber(value, fallback = 0) {
 }
 
 export function runD1Json(options, command) {
-  const args = ['wrangler', 'd1', 'execute', options.database, options.remote ? '--remote' : '--local', '--command', command, '--json'];
+  const args = [
+    'wrangler',
+    'd1',
+    'execute',
+    options.database,
+    options.remote ? '--remote' : '--local',
+    '--command',
+    command,
+    '--json',
+  ];
   const output = execFileSync('npx', args, { encoding: 'utf8' });
   const parsed = JSON.parse(output);
 
@@ -86,8 +95,12 @@ export function pickSnapshotSpec(currentData) {
 }
 
 function inferLegacyLineProgress(legacyOrder, orderedQty) {
-  const status = String(legacyOrder.status || '').trim().toLowerCase();
-  const procurementStatus = String(legacyOrder.procurement_status || '').trim().toLowerCase();
+  const status = String(legacyOrder.status || '')
+    .trim()
+    .toLowerCase();
+  const procurementStatus = String(legacyOrder.procurement_status || '')
+    .trim()
+    .toLowerCase();
   const ordered = Number.isFinite(orderedQty) && orderedQty > 0 ? Math.trunc(orderedQty) : 1;
 
   const progress = {
@@ -105,7 +118,10 @@ function inferLegacyLineProgress(legacyOrder, orderedQty) {
     return progress;
   }
 
-  if (['production', 'shipping', 'arrived', 'delivered'].includes(status) || ['ordered', 'partially_arrived', 'arrived'].includes(procurementStatus)) {
+  if (
+    ['production', 'shipping', 'arrived', 'delivered'].includes(status) ||
+    ['ordered', 'partially_arrived', 'arrived'].includes(procurementStatus)
+  ) {
     progress.procured_qty = ordered;
   }
 
@@ -176,16 +192,15 @@ export function mapLegacyOrderToOrderLine(legacyOrder, timestamp = Date.now()) {
   const snapshotSpec = pickSnapshotSpec(currentData);
   const createdAt = Number(legacyOrder.created_at) || timestamp;
   const updatedAt = Number(legacyOrder.updated_at) || createdAt;
-  const snapshotImage = currentData.image || currentData.image_url || legacyOrder.main_image_id || null;
+  const snapshotImage =
+    currentData.image || currentData.image_url || legacyOrder.main_image_id || null;
   const variantId =
-    legacyOrder.variant_id ||
-    currentData.variant_id ||
-    currentData.variantId ||
-    null;
+    legacyOrder.variant_id || currentData.variant_id || currentData.variantId || null;
   const snapshotName = currentData.name || currentData.productName || '';
   const snapshotSku = currentData.sku || currentData.variantSku || '';
   const orderedQty = Number(legacyOrder.quantity || 1);
-  const normalizedOrderedQty = Number.isFinite(orderedQty) && orderedQty > 0 ? Math.trunc(orderedQty) : 1;
+  const normalizedOrderedQty =
+    Number.isFinite(orderedQty) && orderedQty > 0 ? Math.trunc(orderedQty) : 1;
   const progress = inferLegacyLineProgress(legacyOrder, normalizedOrderedQty);
 
   return {

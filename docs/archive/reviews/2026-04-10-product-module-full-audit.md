@@ -1627,7 +1627,7 @@
 ### 2026-04-10 轮次 151
 
 - 继续复查商品空间详情媒体合同，新增 1 个中风险问题:
-  - `SpaceProductDetail.vue` 会把 `templateData.images` 一律拼成 ``/file/${img}``，并在服务层已经把模板图片合并进 `space.files` 时再次追加同图。结果是已解析的 `/file/...` 或完整 CDN URL 会被拼坏，商品空间首图/缩略图还可能重复展示同一张图
+  - `SpaceProductDetail.vue` 会把 `templateData.images` 一律拼成 `/file/${img}`，并在服务层已经把模板图片合并进 `space.files` 时再次追加同图。结果是已解析的 `/file/...` 或完整 CDN URL 会被拼坏，商品空间首图/缩略图还可能重复展示同一张图
 - 下一步把商品空间详情媒体归一化收敛到组件内统一 URL 解析，并按 URL 去重合并模板图片与文件列表。
 
 ### 2026-04-10 轮次 152
@@ -2651,7 +2651,7 @@
 ### 2026-04-11 轮次 243
 
 - 继续复查商品-库存-采购端到端回归的有效性，新增 1 个中风险问题:
-  - [functions/services/__tests__/InventoryBusinessWorkflow.test.js](/home/bjw/Code/KK-Image/functions/services/__tests__/InventoryBusinessWorkflow.test.js) 的内置 `WorkflowDb` 仍在按旧 SQL 片段匹配 `DemandService` 和 `GoodsOverviewRepository` 查询。随着需求聚合改为 `order_lines` 粒度、且 `order_ids/order_count` 改为仅统计 `confirmed` 订单，这个大测已经实际跑不到采购建议和商品总览分支，形成“测试文件仍在，但关键 stub 已失效”的假覆盖。
+  - [functions/services/**tests**/InventoryBusinessWorkflow.test.js](/home/bjw/Code/KK-Image/functions/services/__tests__/InventoryBusinessWorkflow.test.js) 的内置 `WorkflowDb` 仍在按旧 SQL 片段匹配 `DemandService` 和 `GoodsOverviewRepository` 查询。随着需求聚合改为 `order_lines` 粒度、且 `order_ids/order_count` 改为仅统计 `confirmed` 订单，这个大测已经实际跑不到采购建议和商品总览分支，形成“测试文件仍在，但关键 stub 已失效”的假覆盖。
 - 已完成本轮修复:
   - `WorkflowDb` 现在按当前真实 SQL 契约匹配 `DemandService` 与 `GoodsOverviewRepository` 的查询分支，并让 `total_demand` 继续覆盖全部 active 状态、`order_count/order_ids` 只覆盖 `confirmed` 状态，和线上实现重新对齐。
   - 已重新跑通库存-需求-采购业务流大测，恢复这条商品核心链路的端到端保护。
@@ -3254,7 +3254,7 @@
 ### 2026-04-12 轮次 287
 
 - 继续深审商品维度值规则，新增 1 个中高风险问题:
-  - [functions/repositories/ProductDimensionRepository.js](/home/bjw/Code/KK-Image/functions/repositories/ProductDimensionRepository.js) 修复前对 `product_dimension_values.value` 的重复校验仍是大小写/空格敏感的精确匹配。这样一来，同一维度下可以并存 `Red`、` red `、`RED` 这类语义完全重复的值；后续新增 value、恢复归档 value、变体选项映射都会落到歧义标签上，和前面已经修掉的“重复维度名”是同类一致性缺口。
+  - [functions/repositories/ProductDimensionRepository.js](/home/bjw/Code/KK-Image/functions/repositories/ProductDimensionRepository.js) 修复前对 `product_dimension_values.value` 的重复校验仍是大小写/空格敏感的精确匹配。这样一来，同一维度下可以并存 `Red`、`red`、`RED` 这类语义完全重复的值；后续新增 value、恢复归档 value、变体选项映射都会落到歧义标签上，和前面已经修掉的“重复维度名”是同类一致性缺口。
 - 已完成本轮修复:
   - 维度值重复检测现在已按 `trim + lowercase` 归一化处理，新增 value 与恢复归档 value 都不会再接受语义重复的标签。
   - 同步补齐仓储级红绿测试，锁定“addValue reject normalized duplicate”“restoreValue reject normalized duplicate”两条边界。
@@ -3589,7 +3589,6 @@
 - 增量回归:
   - `functions/repositories/__tests__/PurchaseOrderRepository.read-model.test.js`
   - `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
-
 
 ### 2026-04-12 轮次 311
 

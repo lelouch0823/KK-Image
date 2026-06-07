@@ -23,13 +23,15 @@ vi.mock('@/composables/useI18n', () => ({
         'outboxOps.workspace.truncated': '当前仅显示前 {limit} 条',
         'outboxOps.workspace.truncatedHint': '更早的事件未展示，请缩小筛选范围后重试。',
         'outboxOps.summary.globalStale': '全局健康概览为上一次成功快照',
-        'outboxOps.summary.globalRefreshFailed': '最近一次全局刷新失败，当前展示的是上一次成功快照。',
+        'outboxOps.summary.globalRefreshFailed':
+          '最近一次全局刷新失败，当前展示的是上一次成功快照。',
       };
       const hasFallback = typeof paramsOrFallback === 'string';
       const fallback = hasFallback ? paramsOrFallback : undefined;
-      const params = !hasFallback && paramsOrFallback && typeof paramsOrFallback === 'object'
-        ? paramsOrFallback
-        : {};
+      const params =
+        !hasFallback && paramsOrFallback && typeof paramsOrFallback === 'object'
+          ? paramsOrFallback
+          : {};
       const value = messages[key] || fallback || key;
 
       if (typeof value === 'string' && Object.keys(params).length > 0) {
@@ -183,7 +185,10 @@ describe('OutboxOps behavior', () => {
   });
 
   it('keeps sidebar navigation and shell actions on shared buttons', () => {
-    const source = readFileSync(resolve(process.cwd(), 'src/components/layout/Sidebar.vue'), 'utf8');
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/components/layout/Sidebar.vue'),
+      'utf8'
+    );
 
     expect(source).toContain("import AppButton from '@/components/ui/AppButton.vue'");
     expect(source).not.toContain('<button');
@@ -196,7 +201,10 @@ describe('OutboxOps behavior', () => {
     const wrapper = mount(OutboxOps, {
       global: {
         stubs: {
-          ManagementListShell: { template: '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template:
+              '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>',
+          },
           AppTable: { template: '<div data-testid="outbox-table" />' },
           AppButton: { template: '<button><slot /></button>' },
           AppInput: { template: '<input />' },
@@ -225,7 +233,10 @@ describe('OutboxOps behavior', () => {
     mount(OutboxOps, {
       global: {
         stubs: {
-          ManagementListShell: { template: '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template:
+              '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>',
+          },
           AppTable: { template: '<div data-testid="outbox-table" />' },
           AppButton: { template: '<button><slot /></button>' },
           AppInput: { template: '<input />' },
@@ -259,7 +270,10 @@ describe('OutboxOps behavior', () => {
     const wrapper = mount(OutboxOps, {
       global: {
         stubs: {
-          ManagementListShell: { template: '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template:
+              '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>',
+          },
           AppTable: { template: '<div data-testid="outbox-table" />' },
           AppButton: { template: '<button><slot /></button>' },
           AppInput: { template: '<input />' },
@@ -285,9 +299,12 @@ describe('OutboxOps behavior', () => {
 
   it('shows global health as updating while filtered health refresh is still in flight', async () => {
     let resolveHealthRefresh;
-    mocks.healthLoadEvents.mockImplementationOnce(() => new Promise((resolve) => {
-      resolveHealthRefresh = resolve;
-    }));
+    mocks.healthLoadEvents.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveHealthRefresh = resolve;
+        })
+    );
 
     const module = await import('../OutboxOps.vue');
     const OutboxOps = module.default;
@@ -295,7 +312,10 @@ describe('OutboxOps behavior', () => {
     const wrapper = mount(OutboxOps, {
       global: {
         stubs: {
-          ManagementListShell: { template: '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template:
+              '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>',
+          },
           AppTable: { template: '<div data-testid="outbox-table" />' },
           AppButton: {
             template: '<button @click="$emit(\'click\')"><slot />{{ text }}</button>',
@@ -303,12 +323,14 @@ describe('OutboxOps behavior', () => {
             emits: ['click'],
           },
           AppInput: {
-            template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            template:
+              '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
             props: ['modelValue'],
             emits: ['update:modelValue'],
           },
           AppSelect: {
-            template: '<select @change="$emit(\'update:modelValue\', $event.target.value)"><option value=""></option></select>',
+            template:
+              '<select @change="$emit(\'update:modelValue\', $event.target.value)"><option value=""></option></select>',
             props: ['modelValue', 'options'],
             emits: ['update:modelValue'],
           },
@@ -351,7 +373,10 @@ describe('OutboxOps behavior', () => {
     const wrapper = mount(OutboxOps, {
       global: {
         stubs: {
-          ManagementListShell: { template: '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>' },
+          ManagementListShell: {
+            template:
+              '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>',
+          },
           AppTable: { template: '<div data-testid="outbox-table" />' },
           AppButton: {
             template: '<button @click="$emit(\'click\')"><slot />{{ text }}</button>',
@@ -359,12 +384,14 @@ describe('OutboxOps behavior', () => {
             emits: ['click'],
           },
           AppInput: {
-            template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            template:
+              '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
             props: ['modelValue'],
             emits: ['update:modelValue'],
           },
           AppSelect: {
-            template: '<select @change="$emit(\'update:modelValue\', $event.target.value)"><option value=""></option></select>',
+            template:
+              '<select @change="$emit(\'update:modelValue\', $event.target.value)"><option value=""></option></select>',
             props: ['modelValue', 'options'],
             emits: ['update:modelValue'],
           },
@@ -393,18 +420,19 @@ describe('OutboxOps behavior', () => {
   it('does not render a stale event detail after rapid selection changes', async () => {
     let resolveOldDetail;
     let resolveNewDetail;
-    mocks.loadEventDetailImpl = (_sharedState, eventId) => new Promise((resolve) => {
-      const complete = () => {
-        _sharedState.eventDetail.value = { id: eventId };
-        resolve(_sharedState.eventDetail.value);
-      };
+    mocks.loadEventDetailImpl = (_sharedState, eventId) =>
+      new Promise((resolve) => {
+        const complete = () => {
+          _sharedState.eventDetail.value = { id: eventId };
+          resolve(_sharedState.eventDetail.value);
+        };
 
-      if (eventId === 'evt-1') {
-        resolveOldDetail = complete;
-      } else {
-        resolveNewDetail = complete;
-      }
-    });
+        if (eventId === 'evt-1') {
+          resolveOldDetail = complete;
+        } else {
+          resolveNewDetail = complete;
+        }
+      });
 
     const module = await import('../OutboxOps.vue');
     const OutboxOps = module.default;
@@ -412,8 +440,14 @@ describe('OutboxOps behavior', () => {
     const wrapper = mount(OutboxOps, {
       global: {
         stubs: {
-          ManagementListShell: { template: '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>' },
-          AppButton: { template: '<button @click="$emit(\'click\')"><slot /></button>', emits: ['click'] },
+          ManagementListShell: {
+            template:
+              '<div><slot name="filters" /><slot name="actions" /><slot name="summary" /><slot name="content" /></div>',
+          },
+          AppButton: {
+            template: '<button @click="$emit(\'click\')"><slot /></button>',
+            emits: ['click'],
+          },
           AppInput: { template: '<input />' },
           AppSelect: { template: '<div />' },
           Select: { template: '<div />' },

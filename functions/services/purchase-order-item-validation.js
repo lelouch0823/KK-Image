@@ -34,14 +34,19 @@ export async function validatePurchaseOrderVariantItems(db, items = []) {
   const variantMap = new Map();
   for (const variantIdChunk of chunkArray(variantIds, D1_MAX_IN_CLAUSE_SIZE)) {
     const placeholders = variantIdChunk.map(() => '?').join(',');
-    const { results } = await db.prepare(`
+    const { results } = await db
+      .prepare(
+        `
       SELECT id, product_id, status,
              COALESCE(moq, 1) AS moq,
              COALESCE(pack_size, 1) AS pack_size,
              COALESCE(order_step, 1) AS order_step
       FROM product_variants
       WHERE id IN (${placeholders})
-    `).bind(...variantIdChunk).all();
+    `
+      )
+      .bind(...variantIdChunk)
+      .all();
     for (const row of results || []) {
       variantMap.set(row.id, row);
     }
@@ -73,7 +78,11 @@ export async function validatePurchaseOrderVariantItems(db, items = []) {
   }
 }
 
-export async function validatePurchaseOrderPreOrderBinding(db, items = [], { repo, currentPoId = null } = {}) {
+export async function validatePurchaseOrderPreOrderBinding(
+  db,
+  items = [],
+  { repo, currentPoId = null } = {}
+) {
   if (!items || items.length === 0) return;
   const linkedItems = items.filter((item) => item.pre_order_id);
   if (linkedItems.length === 0) return;
@@ -96,11 +105,16 @@ export async function validatePurchaseOrderPreOrderBinding(db, items = [], { rep
   const orderMap = new Map();
   for (const orderIdChunk of chunkArray(orderIds, D1_MAX_IN_CLAUSE_SIZE)) {
     const placeholders = orderIdChunk.map(() => '?').join(',');
-    const { results } = await db.prepare(`
+    const { results } = await db
+      .prepare(
+        `
       SELECT id, order_no, status, product_id, variant_id
       FROM orders
       WHERE id IN (${placeholders})
-    `).bind(...orderIdChunk).all();
+    `
+      )
+      .bind(...orderIdChunk)
+      .all();
     for (const row of results || []) {
       orderMap.set(row.id, row);
     }
@@ -110,7 +124,9 @@ export async function validatePurchaseOrderPreOrderBinding(db, items = [], { rep
   const orderLineCandidatesByOrderAndVariant = new Map();
   for (const orderIdChunk of chunkArray(orderIds, D1_MAX_IN_CLAUSE_SIZE)) {
     const placeholders = orderIdChunk.map(() => '?').join(',');
-    const { results } = await db.prepare(`
+    const { results } = await db
+      .prepare(
+        `
       SELECT
         ol.id,
         ol.order_id,
@@ -124,7 +140,10 @@ export async function validatePurchaseOrderPreOrderBinding(db, items = [], { rep
       FROM order_lines ol
       JOIN orders o ON o.id = ol.order_id
       WHERE ol.order_id IN (${placeholders})
-    `).bind(...orderIdChunk).all();
+    `
+      )
+      .bind(...orderIdChunk)
+      .all();
 
     for (const row of results || []) {
       orderLineMap.set(`${row.order_id}::${row.id}`, row);
@@ -150,14 +169,12 @@ export async function validatePurchaseOrderPreOrderBinding(db, items = [], { rep
     const explicitLine = explicitOrderLineId
       ? orderLineMap.get(`${item.pre_order_id}::${explicitOrderLineId}`) || null
       : null;
-    const matchedCandidates = orderLineCandidatesByOrderAndVariant.get(
-      `${item.pre_order_id}::${item.product_id || ''}::${item.variant_id || ''}`
-    ) || [];
-    const matchedOrderLine = explicitLine || (
-      matchedCandidates.length === 1
-        ? matchedCandidates[0]
-        : null
-    );
+    const matchedCandidates =
+      orderLineCandidatesByOrderAndVariant.get(
+        `${item.pre_order_id}::${item.product_id || ''}::${item.variant_id || ''}`
+      ) || [];
+    const matchedOrderLine =
+      explicitLine || (matchedCandidates.length === 1 ? matchedCandidates[0] : null);
 
     if (explicitOrderLineId && !matchedOrderLine) {
       throw new BadRequestError('pre_order_id 与 order_line_id 不匹配');
@@ -167,7 +184,10 @@ export async function validatePurchaseOrderPreOrderBinding(db, items = [], { rep
     }
 
     if (matchedOrderLine) {
-      if (matchedOrderLine.product_id !== item.product_id || matchedOrderLine.variant_id !== item.variant_id) {
+      if (
+        matchedOrderLine.product_id !== item.product_id ||
+        matchedOrderLine.variant_id !== item.variant_id
+      ) {
         throw new BadRequestError('pre_order_id 与商品/变体不匹配');
       }
     } else if (order.product_id !== item.product_id || order.variant_id !== item.variant_id) {
@@ -176,14 +196,14 @@ export async function validatePurchaseOrderPreOrderBinding(db, items = [], { rep
 
     const expectedQuantity = matchedOrderLine
       ? normalizeComparableQuantity(
-        Math.max(
-          Number(matchedOrderLine.ordered_qty || 0) -
-          Number(matchedOrderLine.cancelled_qty || 0) -
-          Number(matchedOrderLine.shipped_qty || 0),
-          0
-        ),
-        1
-      )
+          Math.max(
+            Number(matchedOrderLine.ordered_qty || 0) -
+              Number(matchedOrderLine.cancelled_qty || 0) -
+              Number(matchedOrderLine.shipped_qty || 0),
+            0
+          ),
+          1
+        )
       : normalizeComparableQuantity(order.quantity, 1);
     const requestedQuantity = normalizeComparableQuantity(item.quantity, 1);
     if (requestedQuantity !== expectedQuantity) {
@@ -191,7 +211,9 @@ export async function validatePurchaseOrderPreOrderBinding(db, items = [], { rep
     }
     const binding = bindingMap.get(item.pre_order_id);
     if (binding && binding.po_id !== currentPoId) {
-      throw new BadRequestError(`${order.order_no || item.pre_order_id} 已在采购单 ${binding.po_no || binding.po_id} 中`);
+      throw new BadRequestError(
+        `${order.order_no || item.pre_order_id} 已在采购单 ${binding.po_no || binding.po_id} 中`
+      );
     }
   }
 }

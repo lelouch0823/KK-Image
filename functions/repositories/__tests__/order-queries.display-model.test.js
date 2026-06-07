@@ -86,7 +86,9 @@ describe('order queries display model compatibility', () => {
 
     const result = await findById(db, 'o-1');
 
-    expect(db.prepare.mock.calls[0][0]).toContain('LEFT JOIN order_payloads op ON op.order_id = o.id');
+    expect(db.prepare.mock.calls[0][0]).toContain(
+      'LEFT JOIN order_payloads op ON op.order_id = o.id'
+    );
     expect(db.prepare.mock.calls[1][0]).toContain('FROM order_lines');
     expect(result.displayStatus).toBe('partially_received');
     expect(result.fulfillmentStatus).toBe('unfulfilled');
@@ -163,37 +165,39 @@ describe('order queries display model compatibility', () => {
     const listStmt = {
       bind: vi.fn(() => listStmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'o-1',
-          order_no: 'SO-1',
-          salesperson_id: 'sp-1',
-          summary_name: 'Chair',
-          summary_brand: 'KK',
-          summary_sku: 'SKU-1',
-          status: 'production',
-          procurement_status: 'ordered',
-          fulfillment_status: 'partially_fulfilled',
-          delivery_status: 'in_transit',
-          display_status: 'partially_received',
-          product_id: 'p-1',
-          variant_id: 'v-1',
-          quantity: 5,
-          line_ordered_qty: 5,
-          line_shipped_qty: 2,
-          delivered_at: 1710000000000,
-          delivered_by: 'Admin',
-          delivery_note: 'receiver signed',
-          line_returned_qty: 1,
-          line_cancelled_qty: 0,
-          is_unread: 0,
-          main_image_id: null,
-          created_at: 1,
-          updated_at: 2,
-          salesperson_name: 'A',
-          salesperson_store: 'S',
-          main_image_key: 'img-key',
-          main_image_blurhash: null,
-        }],
+        results: [
+          {
+            id: 'o-1',
+            order_no: 'SO-1',
+            salesperson_id: 'sp-1',
+            summary_name: 'Chair',
+            summary_brand: 'KK',
+            summary_sku: 'SKU-1',
+            status: 'production',
+            procurement_status: 'ordered',
+            fulfillment_status: 'partially_fulfilled',
+            delivery_status: 'in_transit',
+            display_status: 'partially_received',
+            product_id: 'p-1',
+            variant_id: 'v-1',
+            quantity: 5,
+            line_ordered_qty: 5,
+            line_shipped_qty: 2,
+            delivered_at: 1710000000000,
+            delivered_by: 'Admin',
+            delivery_note: 'receiver signed',
+            line_returned_qty: 1,
+            line_cancelled_qty: 0,
+            is_unread: 0,
+            main_image_id: null,
+            created_at: 1,
+            updated_at: 2,
+            salesperson_name: 'A',
+            salesperson_store: 'S',
+            main_image_key: 'img-key',
+            main_image_blurhash: null,
+          },
+        ],
       })),
     };
     const db = {
@@ -212,8 +216,12 @@ describe('order queries display model compatibility', () => {
     expect(db.prepare.mock.calls[1][0]).toContain('o.delivery_status');
     expect(db.prepare.mock.calls[1][0]).toContain('order_summary.ordered_qty as line_ordered_qty');
     expect(db.prepare.mock.calls[1][0]).toContain('order_summary.shipped_qty as line_shipped_qty');
-    expect(db.prepare.mock.calls[1][0]).toContain('order_summary.returned_qty as line_returned_qty');
-    expect(db.prepare.mock.calls[1][0]).toContain('order_summary.cancelled_qty as line_cancelled_qty');
+    expect(db.prepare.mock.calls[1][0]).toContain(
+      'order_summary.returned_qty as line_returned_qty'
+    );
+    expect(db.prepare.mock.calls[1][0]).toContain(
+      'order_summary.cancelled_qty as line_cancelled_qty'
+    );
     expect(db.prepare.mock.calls[1][0]).not.toContain('order_line_agg');
     expect(db.prepare.mock.calls[1][0]).not.toContain('order_line_snapshot');
     expect(db.prepare.mock.calls[1][0]).not.toContain('ORDER BY ol.created_at ASC');
@@ -233,28 +241,30 @@ describe('order queries display model compatibility', () => {
     const listStmt = {
       bind: vi.fn(() => listStmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'o-1',
-          order_no: 'SO-1',
-          summary_name: 'Chair',
-          summary_brand: 'KK',
-          summary_sku: 'SKU-1',
-          status: 'production',
-          procurement_status: 'ordered',
-          fulfillment_status: 'partially_fulfilled',
-          delivery_status: 'in_transit',
-          display_status: 'partially_received',
-          line_returned_qty: 0,
-          is_unread: 0,
-          main_image_id: null,
-          created_at: 1,
-          updated_at: 2,
-          main_image_key: null,
-          main_image_blurhash: null,
-          product_id: 'p-1',
-          variant_id: 'v-1',
-          quantity: 5,
-        }],
+        results: [
+          {
+            id: 'o-1',
+            order_no: 'SO-1',
+            summary_name: 'Chair',
+            summary_brand: 'KK',
+            summary_sku: 'SKU-1',
+            status: 'production',
+            procurement_status: 'ordered',
+            fulfillment_status: 'partially_fulfilled',
+            delivery_status: 'in_transit',
+            display_status: 'partially_received',
+            line_returned_qty: 0,
+            is_unread: 0,
+            main_image_id: null,
+            created_at: 1,
+            updated_at: 2,
+            main_image_key: null,
+            main_image_blurhash: null,
+            product_id: 'p-1',
+            variant_id: 'v-1',
+            quantity: 5,
+          },
+        ],
       })),
     };
     const db = {
@@ -273,7 +283,9 @@ describe('order queries display model compatibility', () => {
     expect(db.prepare.mock.calls[1][0]).toContain('o.delivery_status');
     expect(db.prepare.mock.calls[1][0]).toContain('order_summary.ordered_qty as line_ordered_qty');
     expect(db.prepare.mock.calls[1][0]).toContain('order_summary.shipped_qty as line_shipped_qty');
-    expect(db.prepare.mock.calls[1][0]).toContain('order_summary.cancelled_qty as line_cancelled_qty');
+    expect(db.prepare.mock.calls[1][0]).toContain(
+      'order_summary.cancelled_qty as line_cancelled_qty'
+    );
     expect(db.prepare.mock.calls[1][0]).not.toContain('order_line_agg');
     expect(db.prepare.mock.calls[1][0]).not.toContain('order_line_snapshot');
     expect(db.prepare.mock.calls[1][0]).not.toContain('ORDER BY ol.created_at ASC');
@@ -289,29 +301,31 @@ describe('order queries display model compatibility', () => {
     const listStmt = {
       bind: vi.fn(() => listStmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'o-1',
-          order_no: 'SO-1',
-          salesperson_id: 'sp-1',
-          summary_name: '',
-          summary_brand: '',
-          summary_sku: '',
-          status: 'production',
-          procurement_status: 'ordered',
-          display_status: 'partially_received',
-          product_id: 'p-1',
-          variant_id: 'v-1',
-          quantity: 5,
-          is_unread: 0,
-          main_image_id: null,
-          created_at: 1,
-          updated_at: 2,
-          salesperson_name: 'A',
-          salesperson_store: 'S',
-          main_image_key: null,
-          main_image_blurhash: null,
-          snapshot_name: 'Snapshot Chair',
-        }],
+        results: [
+          {
+            id: 'o-1',
+            order_no: 'SO-1',
+            salesperson_id: 'sp-1',
+            summary_name: '',
+            summary_brand: '',
+            summary_sku: '',
+            status: 'production',
+            procurement_status: 'ordered',
+            display_status: 'partially_received',
+            product_id: 'p-1',
+            variant_id: 'v-1',
+            quantity: 5,
+            is_unread: 0,
+            main_image_id: null,
+            created_at: 1,
+            updated_at: 2,
+            salesperson_name: 'A',
+            salesperson_store: 'S',
+            main_image_key: null,
+            main_image_blurhash: null,
+            snapshot_name: 'Snapshot Chair',
+          },
+        ],
       })),
     };
     const db = {
@@ -332,26 +346,28 @@ describe('order queries display model compatibility', () => {
     const listStmt = {
       bind: vi.fn(() => listStmt),
       all: vi.fn(async () => ({
-        results: [{
-          id: 'o-1',
-          order_no: 'SO-1',
-          summary_name: '',
-          summary_brand: '',
-          summary_sku: '',
-          status: 'production',
-          procurement_status: 'ordered',
-          display_status: 'partially_received',
-          is_unread: 0,
-          main_image_id: null,
-          created_at: 1,
-          updated_at: 2,
-          main_image_key: null,
-          main_image_blurhash: null,
-          product_id: 'p-1',
-          variant_id: 'v-1',
-          quantity: 5,
-          snapshot_name: 'Snapshot Chair',
-        }],
+        results: [
+          {
+            id: 'o-1',
+            order_no: 'SO-1',
+            summary_name: '',
+            summary_brand: '',
+            summary_sku: '',
+            status: 'production',
+            procurement_status: 'ordered',
+            display_status: 'partially_received',
+            is_unread: 0,
+            main_image_id: null,
+            created_at: 1,
+            updated_at: 2,
+            main_image_key: null,
+            main_image_blurhash: null,
+            product_id: 'p-1',
+            variant_id: 'v-1',
+            quantity: 5,
+            snapshot_name: 'Snapshot Chair',
+          },
+        ],
       })),
     };
     const db = {
@@ -378,7 +394,8 @@ describe('order queries display model compatibility', () => {
       all: vi.fn(async () => ({ results: [] })),
     };
     const db = {
-      prepare: vi.fn()
+      prepare: vi
+        .fn()
         .mockReturnValueOnce(ftsCheckStmt)
         .mockReturnValueOnce(countStmt)
         .mockReturnValueOnce(listStmt),
@@ -480,7 +497,8 @@ describe('order queries display model compatibility', () => {
       all: vi.fn(async () => ({ results: [] })),
     };
     const db = {
-      prepare: vi.fn()
+      prepare: vi
+        .fn()
         .mockReturnValueOnce(ftsCheckStmt)
         .mockReturnValueOnce(countStmt)
         .mockReturnValueOnce(listStmt),
@@ -522,5 +540,4 @@ describe('order queries display model compatibility', () => {
     expect(db.prepare.mock.calls[1][0]).toContain("COALESCE(o.procurement_status, 'none')");
     expect(listStmt.bind).toHaveBeenCalledWith('ordered', 'ordered', 20, 0);
   });
-
 });

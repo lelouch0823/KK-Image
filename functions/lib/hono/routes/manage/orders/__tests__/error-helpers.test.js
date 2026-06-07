@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { INVALID_ORDER_STATUS_TRANSITION_ERROR } from '../../../../../../api/utils/order-state-machine.js';
 
-import {
-  isInsufficientStockError,
-  isInvalidStatusTransitionError,
-} from '../error-helpers.js';
+import { isInsufficientStockError, isInvalidStatusTransitionError } from '../error-helpers.js';
 
 describe('orders error helpers', () => {
   it('detects insufficient stock error by message', () => {
-    expect(isInsufficientStockError(new Error('insufficient variant stock for delivery'))).toBe(true);
+    expect(isInsufficientStockError(new Error('insufficient variant stock for delivery'))).toBe(
+      true
+    );
     expect(isInsufficientStockError(new Error('other issue'))).toBe(false);
   });
 

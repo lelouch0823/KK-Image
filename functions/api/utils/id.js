@@ -37,7 +37,8 @@ export function generateShareToken(length = 12) {
     const array = new Uint8Array(length * 2);
     crypto.getRandomValues(array);
     for (const byte of array) {
-      if (byte < 248) { // 248 = 62 * 4，拒绝 248-255 避免模偏差
+      if (byte < 248) {
+        // 248 = 62 * 4，拒绝 248-255 避免模偏差
         result.push(chars[byte % 62]);
         if (result.length === length) break;
       }

@@ -16,11 +16,7 @@
     <p class="text-base font-semibold text-(--text-main)">{{ titleText }}</p>
     <p class="max-w-md text-sm text-(--text-secondary)">{{ errorText }}</p>
     <div class="flex items-center gap-2">
-      <AppButton
-        data-testid="retry-action"
-        :text="retryText"
-        @click="$emit('retry')"
-      />
+      <AppButton data-testid="retry-action" :text="retryText" @click="$emit('retry')" />
       <slot name="actions"></slot>
     </div>
   </div>

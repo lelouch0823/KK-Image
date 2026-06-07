@@ -76,12 +76,14 @@ export class VariantSnapshotProjectionRefreshService {
     }
 
     const { results } = await this.db
-      .prepare(`
+      .prepare(
+        `
         SELECT DISTINCT variant_id
         FROM order_lines
         WHERE order_id = ?
           AND variant_id IS NOT NULL
-      `)
+      `
+      )
       .bind(orderId)
       .all();
 

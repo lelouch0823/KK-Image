@@ -13,6 +13,7 @@
 ### Task 1: 建立 Request Context 模块并锁定取消语义
 
 **Files:**
+
 - Create: `functions/ai/request-context.js`
 - Create: `functions/ai/__tests__/request-context.test.js`
 
@@ -41,7 +42,9 @@ describe('request-context', () => {
 
     expect(context.signal.aborted).toBe(true);
     expect(context.getAbortReason()).toBe('client_disconnect');
-    expect(() => throwIfAborted(context.signal, context.getAbortReason)).toThrow(/client_disconnect/);
+    expect(() => throwIfAborted(context.signal, context.getAbortReason)).toThrow(
+      /client_disconnect/
+    );
   });
 });
 ```
@@ -99,6 +102,7 @@ git commit -m "feat(ai): add request context primitives"
 ### Task 2: 先补流式引擎取消链路测试
 
 **Files:**
+
 - Modify: `functions/ai/__tests__/stream-engine.test.js`
 - Modify: `functions/ai/stream-engine.js`
 
@@ -114,8 +118,12 @@ it('stops reading and emits cancellation telemetry when request signal aborts mi
   const stream = {
     getReader() {
       return {
-        read: vi.fn()
-          .mockResolvedValueOnce({ done: false, value: new TextEncoder().encode('data: {"choices":[{"delta":{"content":"hi"}}]}\n\n') })
+        read: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode('data: {"choices":[{"delta":{"content":"hi"}}]}\n\n'),
+          })
           .mockImplementation(async () => {
             controller.abort('client_disconnect');
             throw Object.assign(new Error('aborted'), { name: 'AbortError' });
@@ -125,20 +133,27 @@ it('stops reading and emits cancellation telemetry when request signal aborts mi
     },
   };
 
-  await expect(runAIStreamEngine({
-    initialResult: { body: stream, model: 'model-a', switched: false },
-    initialMessages: [],
-    runtimeEnv: {},
-    emit,
-    executeTool: vi.fn(),
-    requestContext: { signal: controller.signal, getAbortReason: () => controller.signal.reason || 'client_disconnect' },
-  })).rejects.toThrow(/client_disconnect|aborted/);
+  await expect(
+    runAIStreamEngine({
+      initialResult: { body: stream, model: 'model-a', switched: false },
+      initialMessages: [],
+      runtimeEnv: {},
+      emit,
+      executeTool: vi.fn(),
+      requestContext: {
+        signal: controller.signal,
+        getAbortReason: () => controller.signal.reason || 'client_disconnect',
+      },
+    })
+  ).rejects.toThrow(/client_disconnect|aborted/);
 
   expect(readerCancel).toHaveBeenCalled();
-  expect(emit).toHaveBeenCalledWith(expect.objectContaining({
-    type: 'cancellation',
-    data: expect.objectContaining({ reason: 'client_disconnect' }),
-  }));
+  expect(emit).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: 'cancellation',
+      data: expect.objectContaining({ reason: 'client_disconnect' }),
+    })
+  );
 });
 
 it('does not start queued tool work after the request has been aborted', async () => {
@@ -147,18 +162,22 @@ it('does not start queued tool work after the request has been aborted', async (
 
   const executeTool = vi.fn();
 
-  await expect(runAIStreamEngine({
-    initialResult: {
-      body: createReadable(['data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"searchVariants","arguments":"{}"}}]}}]}\n\n']),
-      model: 'model-a',
-      switched: false,
-    },
-    initialMessages: [],
-    runtimeEnv: {},
-    emit: vi.fn(),
-    executeTool,
-    requestContext: { signal: controller.signal, getAbortReason: () => 'client_disconnect' },
-  })).rejects.toThrow(/client_disconnect/);
+  await expect(
+    runAIStreamEngine({
+      initialResult: {
+        body: createReadable([
+          'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"searchVariants","arguments":"{}"}}]}}]}\n\n',
+        ]),
+        model: 'model-a',
+        switched: false,
+      },
+      initialMessages: [],
+      runtimeEnv: {},
+      emit: vi.fn(),
+      executeTool,
+      requestContext: { signal: controller.signal, getAbortReason: () => 'client_disconnect' },
+    })
+  ).rejects.toThrow(/client_disconnect/);
 
   expect(executeTool).not.toHaveBeenCalled();
 });
@@ -199,6 +218,7 @@ git commit -m "feat(ai): add abort-aware stream engine"
 ### Task 3: 把 Request Context 接入 Hono AI 路由
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
 - Modify: `functions/lib/hono/routes/manage/ai.js`
 
@@ -274,6 +294,7 @@ git commit -m "feat(ai): wire request context into hono ai routes"
 ### Task 4: 新建 Tool Orchestrator V2 并先锁定并发与超时
 
 **Files:**
+
 - Create: `functions/ai/tool-orchestrator.js`
 - Create: `functions/ai/__tests__/tool-orchestrator.test.js`
 
@@ -319,11 +340,13 @@ describe('tool-orchestrator', () => {
       timeoutMs: 10,
     });
 
-    expect(result.results[0]).toEqual(expect.objectContaining({
-      status: 'timeout',
-      toolCallId: '1',
-      name: 'slowTool',
-    }));
+    expect(result.results[0]).toEqual(
+      expect.objectContaining({
+        status: 'timeout',
+        toolCallId: '1',
+        name: 'slowTool',
+      })
+    );
   });
 
   it('stops scheduling additional tool calls when the request is aborted', async () => {
@@ -393,6 +416,7 @@ git commit -m "feat(ai): add tool orchestrator v2 primitives"
 ### Task 5: 让 stream-engine 使用 Tool Orchestrator V2
 
 **Files:**
+
 - Modify: `functions/ai/__tests__/stream-engine.test.js`
 - Modify: `functions/ai/stream-engine.js`
 
@@ -406,12 +430,17 @@ it('executes tool calls through the orchestrator and emits structured tool statu
   const callAIStream = vi
     .fn()
     .mockResolvedValueOnce({
-      body: createReadable(['data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"toolA","arguments":"{}"}},{"index":1,"id":"tc_2","function":{"name":"toolB","arguments":"{}"}}]}}]}\n\n']),
+      body: createReadable([
+        'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"toolA","arguments":"{}"}},{"index":1,"id":"tc_2","function":{"name":"toolB","arguments":"{}"}}]}}]}\n\n',
+      ]),
       model: 'model-a',
       switched: false,
     })
     .mockResolvedValueOnce({
-      body: createReadable(['data: {"choices":[{"delta":{"content":"done"}}]}\n\n', 'data: [DONE]\n\n']),
+      body: createReadable([
+        'data: {"choices":[{"delta":{"content":"done"}}]}\n\n',
+        'data: [DONE]\n\n',
+      ]),
       model: 'model-a',
       switched: false,
     });
@@ -424,10 +453,12 @@ it('executes tool calls through the orchestrator and emits structured tool statu
     executeTool: vi.fn(async (name) => ({ name })),
   });
 
-  expect(emit).toHaveBeenCalledWith(expect.objectContaining({
-    type: 'tool_result',
-    data: expect.objectContaining({ name: 'toolA', status: 'success' }),
-  }));
+  expect(emit).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: 'tool_result',
+      data: expect.objectContaining({ name: 'toolA', status: 'success' }),
+    })
+  );
   expect(result.roundTelemetry.executedTools).toBe(2);
 });
 ```
@@ -465,6 +496,7 @@ git commit -m "feat(ai): run stream tools through orchestrator v2"
 ### Task 6: 补齐 Reliability 测试，拆出 Retry Manager 与 Error Classifier
 
 **Files:**
+
 - Create: `functions/ai/retry-manager.js`
 - Create: `functions/ai/model-policy.js`
 - Create: `functions/ai/__tests__/retry-manager.test.js`
@@ -481,8 +513,12 @@ import { classifyAIError, executeWithRetry } from '../retry-manager.js';
 
 describe('retry-manager', () => {
   it('classifies 429 and network errors as retryable', () => {
-    expect(classifyAIError(new Error('AI API error (429)'))).toEqual(expect.objectContaining({ retryable: true }));
-    expect(classifyAIError(new TypeError('fetch failed'))).toEqual(expect.objectContaining({ retryable: true }));
+    expect(classifyAIError(new Error('AI API error (429)'))).toEqual(
+      expect.objectContaining({ retryable: true })
+    );
+    expect(classifyAIError(new TypeError('fetch failed'))).toEqual(
+      expect.objectContaining({ retryable: true })
+    );
   });
 
   it('does not retry validation-style 400 errors', async () => {
@@ -548,6 +584,7 @@ git commit -m "feat(ai): add retry manager and model policy stack"
 ### Task 7: 将 Reliability Policy 接回流式与非流式调用
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/__tests__/ai-routes.test.js`
 - Modify: `functions/utils/__tests__/ai-utils-health.test.js`
 - Modify: `functions/lib/hono/routes/manage/ai.js`
@@ -619,6 +656,7 @@ git commit -m "feat(ai): expose retry and cancellation telemetry"
 ### Task 8: 跑完整的 Phase 1-3 定向验证
 
 **Files:**
+
 - Modify: `docs/plans/2026-03-16-ai-module-overall-optimization-v2-implementation-plan.md`
 
 **Step 1: Run request-context and orchestrator tests**

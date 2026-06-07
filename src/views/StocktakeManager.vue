@@ -2,17 +2,9 @@
   <div class="space-y-6">
     <!-- ===== 列表视图 ===== -->
     <template v-if="!selectedStocktake">
-      <DashboardShell
-        :title="t('stocktake.title')"
-        :description="t('stocktake.subtitle')"
-      >
+      <DashboardShell :title="t('stocktake.title')" :description="t('stocktake.subtitle')">
         <template #actions>
-          <AppButton
-            variant="primary"
-            size="sm"
-            :loading="creating"
-            @click="handleCreate"
-          >
+          <AppButton variant="primary" size="sm" :loading="creating" @click="handleCreate">
             <template #icon-left>
               <AppIcon name="plus" class="size-4" />
             </template>
@@ -61,7 +53,10 @@
               :key="f.value"
               :variant="currentFilter === f.value ? 'primary' : 'ghost'"
               size="sm"
-              @click="currentFilter = f.value; loadList()"
+              @click="
+                currentFilter = f.value;
+                loadList();
+              "
             >
               {{ f.label }}
             </AppButton>
@@ -69,7 +64,9 @@
 
           <!-- 加载中 -->
           <div v-if="loadingList" class="py-12 text-center text-secondary">
-            <div class="mx-auto size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <div
+              class="mx-auto size-8 animate-spin rounded-full border-2 border-primary border-t-transparent"
+            />
           </div>
 
           <!-- 空状态 -->
@@ -108,7 +105,9 @@
               <span class="text-(--text-main)">{{ row.countedItems }}</span>
             </template>
             <template #cell-diffItems="{ row }">
-              <span v-if="row.diffItems > 0" class="text-danger font-medium">{{ row.diffItems }}</span>
+              <span v-if="row.diffItems > 0" class="text-danger font-medium">{{
+                row.diffItems
+              }}</span>
               <span v-else class="text-secondary">0</span>
             </template>
             <template #cell-createdAt="{ row }">
@@ -133,7 +132,10 @@
                 variant="ghost"
                 size="sm"
                 :disabled="currentPage <= 1"
-                @click="currentPage--; loadList()"
+                @click="
+                  currentPage--;
+                  loadList();
+                "
               >
                 {{ t('stocktake.pagination.prev') }}
               </AppButton>
@@ -142,7 +144,10 @@
                 variant="ghost"
                 size="sm"
                 :disabled="currentPage >= totalPages"
-                @click="currentPage++; loadList()"
+                @click="
+                  currentPage++;
+                  loadList();
+                "
               >
                 {{ t('stocktake.pagination.next') }}
               </AppButton>
@@ -168,12 +173,7 @@
             </AppButton>
 
             <template v-if="selectedStocktake.status === 'counting'">
-              <AppButton
-                variant="primary"
-                size="sm"
-                :loading="adjusting"
-                @click="handleAdjust"
-              >
+              <AppButton variant="primary" size="sm" :loading="adjusting" @click="handleAdjust">
                 <template #icon-left>
                   <AppIcon name="check-circle" class="size-4" />
                 </template>
@@ -181,7 +181,9 @@
               </AppButton>
             </template>
 
-            <template v-if="selectedStocktake.status === 'draft' || selectedStocktake.status === 'counting'">
+            <template
+              v-if="selectedStocktake.status === 'draft' || selectedStocktake.status === 'counting'"
+            >
               <AppButton
                 variant="ghost"
                 size="sm"
@@ -290,18 +292,14 @@
             class="mt-4 flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 p-4"
           >
             <span class="text-sm text-secondary">
-              {{ t('stocktake.detail.counted') }}: {{ Object.keys(editValues).length }} / {{ selectedStocktake.items.length }}
+              {{ t('stocktake.detail.counted') }}: {{ Object.keys(editValues).length }} /
+              {{ selectedStocktake.items.length }}
             </span>
             <div class="flex items-center gap-2">
               <AppButton variant="ghost" size="sm" @click="isEditing = false">
                 {{ t('common.cancel') }}
               </AppButton>
-              <AppButton
-                variant="primary"
-                size="sm"
-                :loading="saving"
-                @click="handleSaveItems"
-              >
+              <AppButton variant="primary" size="sm" :loading="saving" @click="handleSaveItems">
                 {{ t('stocktake.action.save') }}
               </AppButton>
             </div>
@@ -309,7 +307,9 @@
 
           <!-- 非编辑状态下的操作 -->
           <div
-            v-else-if="selectedStocktake.status === 'draft' || selectedStocktake.status === 'counting'"
+            v-else-if="
+              selectedStocktake.status === 'draft' || selectedStocktake.status === 'counting'
+            "
             class="mt-4 flex justify-end"
           >
             <AppButton variant="primary" size="sm" @click="startEditing">
@@ -381,8 +381,8 @@ const summary = computed(() => {
   const items = stocktakes.value;
   return {
     total: totalCount.value,
-    counting: items.filter(s => s.status === 'counting').length,
-    adjusted: items.filter(s => s.status === 'adjusted').length,
+    counting: items.filter((s) => s.status === 'counting').length,
+    adjusted: items.filter((s) => s.status === 'adjusted').length,
     diffItems: items.reduce((sum, s) => sum + (s.diffItems || 0), 0),
   };
 });
@@ -427,12 +427,13 @@ const showCancelConfirm = ref(false);
 
 const countedCount = computed(() => {
   if (!selectedStocktake.value) return 0;
-  return selectedStocktake.value.items.filter(i => i.actualQty != null).length;
+  return selectedStocktake.value.items.filter((i) => i.actualQty != null).length;
 });
 
 const diffCount = computed(() => {
   if (!selectedStocktake.value) return 0;
-  return selectedStocktake.value.items.filter(i => i.difference != null && i.difference !== 0).length;
+  return selectedStocktake.value.items.filter((i) => i.difference != null && i.difference !== 0)
+    .length;
 });
 
 // ─── 加载列表 ───────────────────────────────────────────
@@ -607,7 +608,6 @@ function statusTone(status) {
   const map = { draft: 'muted', counting: 'warning', adjusted: 'success', cancelled: 'muted' };
   return map[status] || 'muted';
 }
-
 
 function formatVariantLabel(optionsValues) {
   if (!optionsValues || typeof optionsValues !== 'object') return '';

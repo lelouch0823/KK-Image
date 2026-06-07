@@ -1,17 +1,8 @@
 <template>
-  <Modal
-    v-model="isOpen"
-    :title="t('keyboardShortcuts.title')"
-    size="2xl"
-    body-class="!p-0"
-  >
+  <Modal v-model="isOpen" :title="t('keyboardShortcuts.title')" size="2xl" body-class="!p-0">
     <!-- 快捷键列表 -->
     <div class="divide-y divide-(--border-color)">
-      <div
-        v-for="group in groupedShortcuts"
-        :key="group.category"
-        class="px-6 py-4"
-      >
+      <div v-for="group in groupedShortcuts" :key="group.category" class="px-6 py-4">
         <!-- 分类标题 -->
         <h3
           class="mb-3 text-xs font-semibold uppercase tracking-wider"

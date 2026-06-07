@@ -2,6 +2,37 @@ import { BadRequestError } from '../lib/hono/errors.js';
 import { toNonNegativeInt } from './purchase-order-projection.js';
 
 /**
+ * 解析订单行 ID（DemandService / InventoryService 共享）
+ *
+ * 优先使用 payload.orderLineId，否则按 orderId + variantId/productId 查询。
+ * 多行订单时抛出 BadRequestError 要求显式指定 orderLineId。
+ *
+ * @param {D1Database} db
+ * @param {object} payload
+ * @returns {Promise<string|null>}
+ */
+export async function resolveOrderLineId(db, payload = {}) {
+  if (payload.orderLineId) return payload.orderLineId;
+  if (!payload.orderId || typeof db?.prepare !== 'function') return null;
+
+  const candidates = await queryOrderLineCandidates(db, payload, true);
+  if (candidates.length === 1) return candidates[0]?.id || null;
+  if (candidates.length > 1) {
+    throw new BadRequestError('orderLineId is required for multi-line orders');
+  }
+
+  if (payload.variantId || payload.productId) {
+    const fallback = await queryOrderLineCandidates(db, payload, false);
+    if (fallback.length === 1) return fallback[0]?.id || null;
+    if (fallback.length > 1) {
+      throw new BadRequestError('orderLineId is required for multi-line orders');
+    }
+  }
+
+  return null;
+}
+
+/**
  * 查询候选订单行（DemandService / InventoryService / OrderProcurementDomainService 共享）
  *
  * @param {D1Database} db
@@ -11,7 +42,12 @@ import { toNonNegativeInt } from './purchase-order-projection.js';
  * @param {string} [options.selectColumns] - 自定义 SELECT 列，默认 'id'
  * @returns {Promise<Array>}
  */
-export async function queryOrderLineCandidates(db, payload = {}, includeScopedFilters = true, options = {}) {
+export async function queryOrderLineCandidates(
+  db,
+  payload = {},
+  includeScopedFilters = true,
+  options = {}
+) {
   if (!payload.orderId || typeof db?.prepare !== 'function') return [];
 
   const selectColumns = options.selectColumns || 'id';
@@ -28,7 +64,9 @@ export async function queryOrderLineCandidates(db, payload = {}, includeScopedFi
   }
 
   const statement = db
-    .prepare(`SELECT ${selectColumns} FROM order_lines WHERE ${filters.join(' AND ')} ORDER BY created_at ASC LIMIT 2`)
+    .prepare(
+      `SELECT ${selectColumns} FROM order_lines WHERE ${filters.join(' AND ')} ORDER BY created_at ASC LIMIT 2`
+    )
     .bind(...params);
 
   if (typeof statement?.all === 'function') {
@@ -75,11 +113,7 @@ export function buildOrderLineProjectionStatement(
   nextOrderLine,
   expectedOrderLine,
   timestamp,
-  {
-    writeMode = 'full_projection',
-    guardProjectionState = false,
-    expectedDisplayStatus = null,
-  } = {}
+  { writeMode = 'full_projection', guardProjectionState = false, expectedDisplayStatus = null } = {}
 ) {
   const whereClauses = ['id = ? AND order_id = ?'];
   const setClauses =

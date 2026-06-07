@@ -176,24 +176,26 @@ function createDbHarness({
   };
 
   const commandIdempotencyRepo = {
-    buildInsertStatement: vi.fn((record) => (
-      db.prepare(
-        `INSERT INTO command_idempotency (
+    buildInsertStatement: vi.fn((record) =>
+      db
+        .prepare(
+          `INSERT INTO command_idempotency (
           id, command_type, scope_key, idempotency_key, command_id, request_fingerprint, response_json, status, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        record.id,
-        record.command_type,
-        record.scope_key,
-        record.idempotency_key,
-        record.command_id,
-        record.request_fingerprint,
-        record.response_json,
-        record.status,
-        record.created_at,
-        record.updated_at
-      )
-    )),
+        )
+        .bind(
+          record.id,
+          record.command_type,
+          record.scope_key,
+          record.idempotency_key,
+          record.command_id,
+          record.request_fingerprint,
+          record.response_json,
+          record.status,
+          record.created_at,
+          record.updated_at
+        )
+    ),
     reserveReversalCommand: vi.fn(async (_scopeKey, _idempotencyKey, requestFingerprint) => ({
       existing: false,
       record: {
@@ -373,22 +375,30 @@ describe('OrderProcurementReceiptReversalService', () => {
 
     expect(harness.db.batch).toHaveBeenCalledTimes(1);
     const finalStatements = harness.calls.batchCalls[0];
-    expect(finalStatements.some((statement) =>
-      statement.sql.includes('INSERT INTO command_idempotency')
-    )).toBe(true);
-    expect(finalStatements.some((statement) =>
-      statement.sql.includes('UPDATE purchase_order_items')
-      && statement.sql.includes('AND received_qty = ?')
-      && statement.sql.includes('AND cancelled_qty = ?')
-    )).toBe(true);
-    expect(finalStatements.some((statement) =>
-      statement.sql.includes('UPDATE order_lines')
-      && statement.sql.includes('AND received_qty = ?')
-      && statement.sql.includes('AND cancelled_qty = ?')
-    )).toBe(true);
-    expect(finalStatements.some((statement) =>
-      statement.sql.includes('INSERT INTO purchase_receipt_reversals')
-    )).toBe(true);
+    expect(
+      finalStatements.some((statement) => statement.sql.includes('INSERT INTO command_idempotency'))
+    ).toBe(true);
+    expect(
+      finalStatements.some(
+        (statement) =>
+          statement.sql.includes('UPDATE purchase_order_items') &&
+          statement.sql.includes('AND received_qty = ?') &&
+          statement.sql.includes('AND cancelled_qty = ?')
+      )
+    ).toBe(true);
+    expect(
+      finalStatements.some(
+        (statement) =>
+          statement.sql.includes('UPDATE order_lines') &&
+          statement.sql.includes('AND received_qty = ?') &&
+          statement.sql.includes('AND cancelled_qty = ?')
+      )
+    ).toBe(true);
+    expect(
+      finalStatements.some((statement) =>
+        statement.sql.includes('INSERT INTO purchase_receipt_reversals')
+      )
+    ).toBe(true);
   });
 
   it('performs idempotency cleanup only when the final batch fails without running rollback projection batches', async () => {
@@ -452,9 +462,9 @@ describe('OrderProcurementReceiptReversalService', () => {
 
     const purchaseOrderUpdate = arrivedHarness.calls.batchedStatements.find(
       (statement) =>
-        statement.sql.includes('UPDATE purchase_orders')
-        && statement.sql.includes('SET status = ?')
-        && statement.sql.includes('AND status = ?')
+        statement.sql.includes('UPDATE purchase_orders') &&
+        statement.sql.includes('SET status = ?') &&
+        statement.sql.includes('AND status = ?')
     );
 
     expect(purchaseOrderUpdate?.params).toEqual(['shipping', 1710000000000, 'po-1', 'arrived']);
@@ -702,11 +712,7 @@ describe('OrderProcurementReceiptReversalService', () => {
 
   it('does not fail the reversal after source facts commit when a linked-order projection reports zero guarded changes', async () => {
     const projectionHarness = createDbHarness({
-      batchResults: [
-        { meta: { changes: 1 } },
-        { meta: { changes: 1 } },
-        { meta: { changes: 0 } },
-      ],
+      batchResults: [{ meta: { changes: 1 } }, { meta: { changes: 1 } }, { meta: { changes: 0 } }],
     });
     const projectionService = new OrderProcurementReceiptReversalService(projectionHarness.db, {
       purchaseReceiptRepo: projectionHarness.purchaseReceiptRepo,
@@ -815,24 +821,26 @@ describe('OrderProcurementReceiptReversalService', () => {
 
   it('rejects a second concurrent reversal writer before downstream side effects run when the receipt lock is held', async () => {
     const lockedHarness = createDbHarness();
-    lockedHarness.commandIdempotencyRepo.buildInsertStatement.mockImplementationOnce((record) => (
-      lockedHarness.db.prepare(
-        `INSERT INTO command_idempotency (
+    lockedHarness.commandIdempotencyRepo.buildInsertStatement.mockImplementationOnce((record) =>
+      lockedHarness.db
+        .prepare(
+          `INSERT INTO command_idempotency (
           id, command_type, scope_key, idempotency_key, command_id, request_fingerprint, response_json, status, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        record.id,
-        record.command_type,
-        record.scope_key,
-        record.idempotency_key,
-        record.command_id,
-        record.request_fingerprint,
-        record.response_json,
-        record.status,
-        record.created_at,
-        record.updated_at
-      )
-    ));
+        )
+        .bind(
+          record.id,
+          record.command_type,
+          record.scope_key,
+          record.idempotency_key,
+          record.command_id,
+          record.request_fingerprint,
+          record.response_json,
+          record.status,
+          record.created_at,
+          record.updated_at
+        )
+    );
     const originalRun = lockedHarness.db.prepare.mock.results[0]?.value?.run;
     const lockedService = new OrderProcurementReceiptReversalService(lockedHarness.db, {
       purchaseReceiptRepo: lockedHarness.purchaseReceiptRepo,
@@ -840,22 +848,24 @@ describe('OrderProcurementReceiptReversalService', () => {
       commandIdempotencyRepo: {
         ...lockedHarness.commandIdempotencyRepo,
         buildInsertStatement: vi.fn((record) => {
-          const statement = lockedHarness.db.prepare(
-            `INSERT INTO command_idempotency (
+          const statement = lockedHarness.db
+            .prepare(
+              `INSERT INTO command_idempotency (
               id, command_type, scope_key, idempotency_key, command_id, request_fingerprint, response_json, status, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-          ).bind(
-            record.id,
-            record.command_type,
-            record.scope_key,
-            record.idempotency_key,
-            record.command_id,
-            record.request_fingerprint,
-            record.response_json,
-            record.status,
-            record.created_at,
-            record.updated_at
-          );
+            )
+            .bind(
+              record.id,
+              record.command_type,
+              record.scope_key,
+              record.idempotency_key,
+              record.command_id,
+              record.request_fingerprint,
+              record.response_json,
+              record.status,
+              record.created_at,
+              record.updated_at
+            );
           statement.run = vi.fn(async () => ({ meta: { changes: 0 } }));
           return statement;
         }),

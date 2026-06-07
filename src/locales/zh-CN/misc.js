@@ -147,11 +147,13 @@ export default {
     purchase_receipt_recorded: '采购收货已登记',
     purchase_receipt_recorded_desc: '采购单 {purchaseOrderId} 新登记到货 {qty} 件。',
     order_procurement_progressed: '预定单采购进度已推进',
-    order_procurement_progressed_desc: '采购单 {purchaseOrderId} 本次到货 {qty} 件，采购状态更新为 {status}。',
+    order_procurement_progressed_desc:
+      '采购单 {purchaseOrderId} 本次到货 {qty} 件，采购状态更新为 {status}。',
     purchase_receipt_reversed: '采购收货已冲销',
     purchase_receipt_reversed_desc: '采购单 {purchaseOrderId} 已冲销收货 {qty} 件。',
     order_procurement_reversed: '预定单采购进度已回退',
-    order_procurement_reversed_desc: '采购单 {purchaseOrderId} 已回退 {qty} 件到货，采购状态更新为 {status}。',
+    order_procurement_reversed_desc:
+      '采购单 {purchaseOrderId} 已回退 {qty} 件到货，采购状态更新为 {status}。',
     reminder: {
       pending_order_title: '待处理订单提醒',
       pending_order_desc: '订单 {orderNo} 已超过 24 小时未处理，请及时审核。',
@@ -245,9 +247,11 @@ export default {
     analyzeImage: '请分析这张图片',
     error: 'AI 助手暂时无法响应',
     networkError: '网络请求失败，请稀后再试',
-    imageInputNotSupported: '当前 API 网关不接受该图片输入格式，请优先使用 JPG/PNG，或切换支持 data URL 的多模态模型。',
+    imageInputNotSupported:
+      '当前 API 网关不接受该图片输入格式，请优先使用 JPG/PNG，或切换支持 data URL 的多模态模型。',
     modelImageNotSupported: '当前模型不支持识别图片，请移除图片或切换模型。',
-    welcome: '您好！我是您的全能管理助手。我可以查询订单、客户、销售、共享空间和文件存储等各类统计数据。请问有什么可以帮您？',
+    welcome:
+      '您好！我是您的全能管理助手。我可以查询订单、客户、销售、共享空间和文件存储等各类统计数据。请问有什么可以帮您？',
     thinking: 'AI 正在思考...',
     toolLoading: '正在查询{tool}数据...',
     clear: '清空会话',
@@ -290,7 +294,8 @@ export default {
   auditLogs: {
     title: '操作审计',
     permissionDenied: '审计日志权限不足',
-    permissionDeniedDesc: '当前账号没有审计日志读取权限，请联系管理员分配 audit:read 或 admin:full。',
+    permissionDeniedDesc:
+      '当前账号没有审计日志读取权限，请联系管理员分配 audit:read 或 admin:full。',
     loadFailed: '审计日志加载失败',
     loadFailedDesc: '请求失败，请检查网络后重试。',
     sessionExpired: '登录状态失效，请重新登录后重试。',
@@ -323,7 +328,8 @@ export default {
     banner: {
       title: '副作用链路工作台',
       recommended: '建议先 Dry Run',
-      description: '这里用于排查 side effect 消费与重放，不改主业务事实。先看健康概览，再筛选事件，最后决定是否执行 replay。',
+      description:
+        '这里用于排查 side effect 消费与重放，不改主业务事实。先看健康概览，再筛选事件，最后决定是否执行 replay。',
       scope: '仅处理已落库 outbox 事件',
       attention: '{count} 个失败消费者待关注',
       clear: '当前筛选范围无失败消费者',
@@ -386,9 +392,11 @@ export default {
       consumerPlaceholder: '可选：只重放指定 consumer',
       dryRun: 'Dry Run',
       execute: '执行 Replay',
-      riskNote: 'Dry Run 只验证命中范围和执行摘要；执行 Replay 前请确认事件、consumer 和最近结果都符合预期。',
+      riskNote:
+        'Dry Run 只验证命中范围和执行摘要；执行 Replay 前请确认事件、consumer 和最近结果都符合预期。',
       lastResultTitle: '最近一次操作结果',
-      lastResultDescription: '这里展示本页最近一次 dry-run 或 replay 返回的摘要，不代表系统实时状态。',
+      lastResultDescription:
+        '这里展示本页最近一次 dry-run 或 replay 返回的摘要，不代表系统实时状态。',
       resultEmpty: '尚未执行 Dry Run 或 Replay，最近结果会展示在这里。',
       resultFailed: '最近一次执行失败',
       resultDryRun: '最近一次为 Dry Run',

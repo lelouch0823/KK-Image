@@ -44,3 +44,10 @@ export const MoveFilesSchema = MoveFileSchema;
 export const RenameFileSchema = z.object({
   name: z.string().min(1).max(255),
 });
+
+/** 文件预检查（秒传） */
+export const CheckHashSchema = z
+  .object({
+    original_hash: z.string().min(1, 'original_hash 不能为空').max(255),
+  })
+  .strict();

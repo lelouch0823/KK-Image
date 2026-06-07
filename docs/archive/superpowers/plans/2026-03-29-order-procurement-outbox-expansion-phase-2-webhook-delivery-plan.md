@@ -23,6 +23,7 @@ If those differ, update this plan before implementation.
 ### Task 1: Add manage-side webhook persistence and route ownership
 
 **Files:**
+
 - Create: `functions/repositories/WebhookRepository.js`
 - Create: `functions/lib/hono/routes/manage/webhooks.js`
 - Modify: `functions/lib/hono/app.js`
@@ -81,6 +82,7 @@ git commit -m "feat: add manage webhook repository and routes"
 ### Task 2: Extend webhook logs for idempotent delivery tracing
 
 **Files:**
+
 - Modify: `scripts/init-database.sql`
 - Modify: `docs/DATABASE_SCHEMA.md`
 - Modify: `functions/repositories/WebhookRepository.js`
@@ -132,6 +134,7 @@ git commit -m "feat: add durable webhook delivery tracing"
 ### Task 3: Implement the outbox webhook consumer and retry classifier
 
 **Files:**
+
 - Create: `functions/services/WebhookDeliveryService.js`
 - Modify: `functions/services/DomainEventCatalog.js`
 - Modify: `functions/services/DomainOutboxConsumers.js`
@@ -205,6 +208,7 @@ git commit -m "feat: deliver procurement domain events via outbox webhooks"
 ### Task 4: Close the phase with route and audit regression coverage
 
 **Files:**
+
 - Verify: `functions/lib/hono/routes/manage/__tests__/webhooks-routes.test.js`
 - Verify: `functions/lib/hono/_shared/__tests__/audit-runtime-alignment.test.js`
 - Verify: `functions/services/__tests__/DomainOutboxConsumers.notifications.test.js`
@@ -219,6 +223,7 @@ Expected: PASS
 
 ```md
 Webhook envelope v1:
+
 - event_id
 - event_type
 - event_version

@@ -76,7 +76,9 @@ vi.mock('../../../../../services/DemandService.js', () => ({
 
 import createAppRoutes from '../orders/create.js';
 
-const createApp = (user = { id: 'u-1', name: 'Admin', type: 'admin', permissions: ['admin:full'] }) => {
+const createApp = (
+  user = { id: 'u-1', name: 'Admin', type: 'admin', permissions: ['admin:full'] }
+) => {
   const app = new Hono();
   app.onError((err, c) =>
     c.json(
@@ -110,7 +112,11 @@ describe('manage order batch route', () => {
       ],
     });
     mocks.productFindById.mockResolvedValue({ id: 'p-1', status: 'active' });
-    mocks.variantFindByIdAndProductId.mockResolvedValue({ id: 'v-1', product_id: 'p-1', status: 'active' });
+    mocks.variantFindByIdAndProductId.mockResolvedValue({
+      id: 'v-1',
+      product_id: 'p-1',
+      status: 'active',
+    });
     mocks.publish.mockResolvedValue([]);
     mocks.runOutboxPoller.mockResolvedValue({ claimed: 0, published: 0, failed: 0 });
     mocks.isInsufficientStockError.mockReturnValue(false);
@@ -171,7 +177,9 @@ describe('manage order batch route', () => {
           prepare: vi.fn(() => ({
             bind: vi.fn(() => ({
               all: vi.fn(async () => ({
-                results: [{ id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'arrived' }],
+                results: [
+                  { id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'arrived' },
+                ],
               })),
             })),
           })),
@@ -203,7 +211,9 @@ describe('manage order batch route', () => {
           prepare: vi.fn(() => ({
             bind: vi.fn(() => ({
               all: vi.fn(async () => ({
-                results: [{ id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' }],
+                results: [
+                  { id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' },
+                ],
               })),
             })),
           })),
@@ -256,7 +266,9 @@ describe('manage order batch route', () => {
           prepare: vi.fn(() => ({
             bind: vi.fn(() => ({
               all: vi.fn(async () => ({
-                results: [{ id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' }],
+                results: [
+                  { id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' },
+                ],
               })),
             })),
           })),
@@ -293,7 +305,9 @@ describe('manage order batch route', () => {
           prepare: vi.fn(() => ({
             bind: vi.fn(() => ({
               all: vi.fn(async () => ({
-                results: [{ id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' }],
+                results: [
+                  { id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' },
+                ],
               })),
             })),
           })),
@@ -327,7 +341,9 @@ describe('manage order batch route', () => {
           prepare: vi.fn(() => ({
             bind: vi.fn(() => ({
               all: vi.fn(async () => ({
-                results: [{ id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' }],
+                results: [
+                  { id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' },
+                ],
               })),
             })),
           })),
@@ -346,7 +362,13 @@ describe('manage order batch route', () => {
   });
 
   it('allows role=admin user to force batch transition through OPA decision', async () => {
-    const app = createApp({ id: 'u-opa', name: 'DB Admin', type: 'user', role: 'admin', permissions: [] });
+    const app = createApp({
+      id: 'u-opa',
+      name: 'DB Admin',
+      type: 'user',
+      role: 'admin',
+      permissions: [],
+    });
     const res = await app.request(
       'http://localhost/api/manage/orders/batch',
       {
@@ -365,7 +387,9 @@ describe('manage order batch route', () => {
           prepare: vi.fn(() => ({
             bind: vi.fn(() => ({
               all: vi.fn(async () => ({
-                results: [{ id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' }],
+                results: [
+                  { id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' },
+                ],
               })),
             })),
           })),
@@ -487,7 +511,9 @@ describe('manage order batch route', () => {
           prepare: vi.fn(() => ({
             bind: vi.fn(() => ({
               all: vi.fn(async () => ({
-                results: [{ id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' }],
+                results: [
+                  { id: 'o-1', order_no: 'SO-1', salesperson_id: 'sp-1', status: 'pending' },
+                ],
               })),
             })),
           })),

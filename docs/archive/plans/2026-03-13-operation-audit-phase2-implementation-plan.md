@@ -13,6 +13,7 @@
 ### Task 1: Introduce Route Audit Declaration Primitives
 
 **Files:**
+
 - Create: `functions/lib/hono/_shared/audit-route-contract.js`
 - Modify: `functions/lib/hono/_shared/audit-helpers.js`
 - Test: `test/audit.test.js`
@@ -45,6 +46,7 @@ Expected: FAIL because declaration helpers do not exist yet
 **Step 3: Implement the declaration contract**
 
 Create `functions/lib/hono/_shared/audit-route-contract.js` with:
+
 - `declareAuditRoute()`
 - route declaration normalization
 - declaration validation
@@ -68,6 +70,7 @@ git commit -m "feat(audit): add route audit declaration contract"
 ### Task 2: Attach Declarations to Remaining Admin High-Risk Routes
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/purchase-orders.js`
 - Modify: `functions/lib/hono/routes/manage/notifications.js`
 - Modify: `functions/lib/hono/routes/manage/spaces/index.js`
@@ -79,6 +82,7 @@ git commit -m "feat(audit): add route audit declaration contract"
 **Step 1: Write failing route tests**
 
 Add route tests asserting:
+
 - each targeted high-risk write route has an audit declaration
 - each targeted high-risk write route emits unified audit events on success
 
@@ -91,6 +95,7 @@ Expected: FAIL because declarations and/or unified events are not yet present
 **Step 3: Implement declarations and minimal route integration**
 
 For each targeted route:
+
 - add explicit route audit declaration metadata
 - wire to shared audit pipeline if not already covered
 
@@ -110,6 +115,7 @@ git commit -m "feat(audit): declare and cover remaining admin high-risk routes"
 ### Task 3: Attach Declarations to Remaining Sales Critical Routes
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/sales/auth.js`
 - Modify: `functions/lib/hono/routes/sales/orders.js`
 - Modify: `functions/lib/hono/routes/sales/files.js`
@@ -119,6 +125,7 @@ git commit -m "feat(audit): declare and cover remaining admin high-risk routes"
 **Step 1: Write failing tests**
 
 Add tests for:
+
 - sales login failure/lockout audit coverage
 - sales critical write route declarations
 - sales critical write route audit event presence
@@ -151,6 +158,7 @@ git commit -m "feat(audit): complete sales critical audit declarations"
 ### Task 4: Build Automatic Write-Route Extraction
 
 **Files:**
+
 - Create: `scripts/qa/extract-write-routes.mjs`
 - Modify: `scripts/qa/check-audit-route-coverage.mjs`
 - Create: `scripts/qa/__tests__/extract-write-routes.test.mjs` or equivalent Vitest file
@@ -161,11 +169,15 @@ Add a test proving the extractor can detect write route definitions from represe
 
 ```js
 it('extracts post/put/patch/delete route definitions from source', async () => {
-  const routes = await extractWriteRoutesFromFile('functions/lib/hono/routes/manage/orders/detail.js');
-  expect(routes).toEqual(expect.arrayContaining([
-    expect.objectContaining({ method: 'PATCH' }),
-    expect.objectContaining({ method: 'DELETE' }),
-  ]));
+  const routes = await extractWriteRoutesFromFile(
+    'functions/lib/hono/routes/manage/orders/detail.js'
+  );
+  expect(routes).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ method: 'PATCH' }),
+      expect.objectContaining({ method: 'DELETE' }),
+    ])
+  );
 });
 ```
 
@@ -178,6 +190,7 @@ Expected: FAIL because extractor does not exist yet
 **Step 3: Implement extractor**
 
 Create `scripts/qa/extract-write-routes.mjs` to:
+
 - parse source text conservatively
 - detect `app.post`, `app.put`, `app.patch`, `app.delete`
 - collect file-local route definitions
@@ -188,6 +201,7 @@ Keep the first version deterministic and debuggable.
 **Step 4: Upgrade the coverage checker**
 
 Modify `scripts/qa/check-audit-route-coverage.mjs` to:
+
 - use extractor output instead of only a hardcoded file list
 - compare discovered high-risk write candidates against route declarations
 
@@ -207,6 +221,7 @@ git commit -m "test(audit): extract write routes from Hono source"
 ### Task 5: Add Declaration Consistency Checks
 
 **Files:**
+
 - Modify: `scripts/qa/check-audit-route-coverage.mjs`
 - Modify: `docs/reviews/2026-03-13-operation-audit-coverage-baseline.md`
 - Test: audit coverage script tests or integration tests
@@ -224,12 +239,14 @@ Expected: FAIL until missing-declaration detection is implemented
 **Step 3: Implement declaration consistency enforcement**
 
 Make the checker fail when:
+
 - a discovered high-risk write route has no declaration
 - a declaration exists for a route that no longer exists
 
 **Step 4: Refresh baseline documentation**
 
 Update the baseline review document to reflect:
+
 - declaration-backed coverage
 - discovered write-route inventory
 - deferred exceptions, if any
@@ -250,6 +267,7 @@ git commit -m "test(audit): enforce route declaration consistency"
 ### Task 6: Update Developer Guidance
 
 **Files:**
+
 - Modify: `docs/developer-guide/authz-policy-system.md`
 - Modify: `docs/developer-guide/architecture.md`
 - Modify: `docs/reviews/2026-03-13-operation-audit-coverage-baseline.md`
@@ -261,6 +279,7 @@ If the repo has no docs check harness, write a small note-to-self checklist in t
 **Step 2: Document the route-audit contract**
 
 Explain:
+
 - when a route needs an audit declaration
 - how to declare it
 - how coverage scripts work
@@ -282,6 +301,7 @@ git commit -m "docs(audit): document route audit declaration workflow"
 ### Final Verification
 
 Run:
+
 - `pnpm test:unit test/audit.test.js`
 - `pnpm test:unit functions/lib/hono/routes/manage/__tests__/order-detail-routes.test.js functions/lib/hono/routes/manage/products/__tests__/variant-audit-routes.test.js functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js`
 - `pnpm authz:policy:test`
@@ -289,6 +309,7 @@ Run:
 - extractor test command added in Task 4
 
 Expected:
+
 - all targeted tests pass
 - policy tests pass
 - coverage script passes

@@ -118,7 +118,9 @@ function createAdminBusinessFlowSmokeRunner(options = {}) {
       await page.getByTestId('product-import-modal').waitFor({ state: 'visible', timeout: 30000 });
       await page.getByTestId('product-import-file-input').setInputFiles(csvPath);
 
-      await page.getByTestId('product-import-confirm-mapping').waitFor({ state: 'visible', timeout: 30000 });
+      await page
+        .getByTestId('product-import-confirm-mapping')
+        .waitFor({ state: 'visible', timeout: 30000 });
       const specNameInput = page.getByTestId('product-import-spec-name-0');
       const specColumnSelect = page.getByTestId('product-import-spec-column-0');
       const specColumnTrigger = specColumnSelect.getByRole('button');
@@ -136,7 +138,9 @@ function createAdminBusinessFlowSmokeRunner(options = {}) {
       await page.getByTestId('product-import-submit').waitFor({ state: 'visible', timeout: 30000 });
       await page.getByTestId('product-import-submit').click();
 
-      await page.getByText('导入完成！', { exact: true }).waitFor({ state: 'visible', timeout: 30000 });
+      await page
+        .getByText('导入完成！', { exact: true })
+        .waitFor({ state: 'visible', timeout: 30000 });
       await page.getByTestId('product-import-submit').click();
       await page.getByTestId('product-import-modal').waitFor({ state: 'hidden', timeout: 30000 });
 
@@ -186,20 +190,30 @@ function createAdminBusinessFlowSmokeRunner(options = {}) {
     await stabilizePageImpl(page);
 
     await page.getByTestId('purchase-order-open-create').click();
-    await page.getByTestId('purchase-order-create-shell').waitFor({ state: 'visible', timeout: 30000 });
+    await page
+      .getByTestId('purchase-order-create-shell')
+      .waitFor({ state: 'visible', timeout: 30000 });
     await page.getByTestId('purchase-order-create-remark').fill(remark);
     await page.getByTestId('purchase-order-open-product-picker-create').click();
 
     const picker = page.getByTestId('purchase-order-product-picker-shell');
     await picker.waitFor({ state: 'visible', timeout: 30000 });
-    await page.getByTestId('purchase-order-product-picker-search').locator('input').fill(product.sku);
-    const resultRow = picker.getByTestId(/purchase-order-product-picker-row-/).filter({ hasText: product.sku }).first();
+    await page
+      .getByTestId('purchase-order-product-picker-search')
+      .locator('input')
+      .fill(product.sku);
+    const resultRow = picker
+      .getByTestId(/purchase-order-product-picker-row-/)
+      .filter({ hasText: product.sku })
+      .first();
     await resultRow.waitFor({ state: 'visible', timeout: 30000 });
     await resultRow.click();
     await page.getByTestId('purchase-order-product-picker-confirm').click();
 
     await page.getByTestId('purchase-order-create-submit').click();
-    await page.getByTestId('purchase-order-create-shell').waitFor({ state: 'hidden', timeout: 30000 });
+    await page
+      .getByTestId('purchase-order-create-shell')
+      .waitFor({ state: 'hidden', timeout: 30000 });
 
     const detailShell = page.getByTestId('purchase-order-detail-shell');
     const openDetailByRemark = async () => {
@@ -222,14 +236,22 @@ function createAdminBusinessFlowSmokeRunner(options = {}) {
     const quantityInput = itemCard.getByTestId(/purchase-order-detail-item-quantity-/).first();
     await quantityInput.fill('6');
     await Promise.all([
-      page.waitForResponse((response) => response.request().method() === 'PATCH' && itemMutationPattern.test(response.url()), { timeout: 30000 }),
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === 'PATCH' && itemMutationPattern.test(response.url()),
+        { timeout: 30000 }
+      ),
       quantityInput.press('Tab'),
     ]);
 
     const unitCostInput = itemCard.getByTestId(/purchase-order-detail-item-unit-cost-/).first();
     await unitCostInput.fill('47');
     await Promise.all([
-      page.waitForResponse((response) => response.request().method() === 'PATCH' && itemMutationPattern.test(response.url()), { timeout: 30000 }),
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === 'PATCH' && itemMutationPattern.test(response.url()),
+        { timeout: 30000 }
+      ),
       unitCostInput.press('Tab'),
     ]);
 
@@ -238,8 +260,12 @@ function createAdminBusinessFlowSmokeRunner(options = {}) {
 
     const reopenedItemCard = page.getByTestId('purchase-order-detail-item-card').first();
     await reopenedItemCard.waitFor({ state: 'visible', timeout: 30000 });
-    const reopenedQuantityInput = reopenedItemCard.getByTestId(/purchase-order-detail-item-quantity-/).first();
-    const reopenedUnitCostInput = reopenedItemCard.getByTestId(/purchase-order-detail-item-unit-cost-/).first();
+    const reopenedQuantityInput = reopenedItemCard
+      .getByTestId(/purchase-order-detail-item-quantity-/)
+      .first();
+    const reopenedUnitCostInput = reopenedItemCard
+      .getByTestId(/purchase-order-detail-item-unit-cost-/)
+      .first();
 
     if ((await reopenedQuantityInput.inputValue()) !== '6') {
       throw new Error('Purchase order quantity did not persist after reopening detail');
@@ -252,14 +278,23 @@ function createAdminBusinessFlowSmokeRunner(options = {}) {
     const removeButton = reopenedItemCard.getByTestId(/purchase-order-detail-item-remove-/).first();
     await removeButton.waitFor({ state: 'visible', timeout: 30000 });
     await Promise.all([
-      page.waitForResponse((response) => response.request().method() === 'DELETE' && itemMutationPattern.test(response.url()), { timeout: 30000 }),
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === 'DELETE' && itemMutationPattern.test(response.url()),
+        { timeout: 30000 }
+      ),
       removeButton.click(),
     ]);
-    await page.getByTestId('purchase-order-detail-item-card').waitFor({ state: 'hidden', timeout: 30000 });
+    await page
+      .getByTestId('purchase-order-detail-item-card')
+      .waitFor({ state: 'hidden', timeout: 30000 });
 
     await closeDetail();
     await openDetailByRemark();
-    await page.locator('[data-testid="purchase-order-detail-item-card"]').first().waitFor({ state: 'hidden', timeout: 30000 });
+    await page
+      .locator('[data-testid="purchase-order-detail-item-card"]')
+      .first()
+      .waitFor({ state: 'hidden', timeout: 30000 });
   }
 
   async function main() {

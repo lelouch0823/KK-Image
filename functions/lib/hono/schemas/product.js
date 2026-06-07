@@ -3,17 +3,20 @@ import { z } from 'zod';
 /**
  * 变体图片 Schema（变体内嵌套）
  */
-const VariantImageSchema = z.object({
+const VariantImageSchema = z
+  .object({
     image_id: z.string().min(1),
     is_primary: z.union([z.number(), z.boolean()]).optional(),
-}).strict();
+  })
+  .strict();
 
 /**
  * 商品变体 Schema（创建/更新共用）
  * 注: sku 和 stock_quantity 在 schema 层允许省略，
  * 由下游 validateProductPayload 按场景校验是否必填。
  */
-const ProductVariantSchema = z.object({
+const ProductVariantSchema = z
+  .object({
     id: z.string().optional(),
     sku: z.string().optional(),
     price: z.number().nonnegative(),
@@ -26,38 +29,44 @@ const ProductVariantSchema = z.object({
     images: z.array(VariantImageSchema).optional(),
     barcode: z.string().nullable().optional(),
     supplier_sku: z.string().nullable().optional(),
-}).strict();
+  })
+  .strict();
 
 /**
  * 规格维度值 Schema（嵌套在维度内）
  * 支持字符串简写和完整对象形式
  */
 const DimensionValueSchema = z.union([
-    z.string(),
-    z.object({
-        id: z.string().optional(),
-        value: z.string().min(1),
-        status: z.enum(['active', 'archived']).optional(),
-        meta: z.unknown().optional(),
-    }).strict(),
+  z.string(),
+  z
+    .object({
+      id: z.string().optional(),
+      value: z.string().min(1),
+      status: z.enum(['active', 'archived']).optional(),
+      meta: z.unknown().optional(),
+    })
+    .strict(),
 ]);
 
 /**
  * 规格维度 Schema（创建/更新商品时嵌套）
  * 支持通过 id 匹配已有维度进行更新
  */
-const DimensionSchema = z.object({
+const DimensionSchema = z
+  .object({
     id: z.string().optional(),
     name: z.string().min(1),
     status: z.enum(['active', 'archived']).optional(),
     sort_order: z.number().int().optional(),
     values: z.array(DimensionValueSchema).optional(),
-}).strict();
+  })
+  .strict();
 
 /**
  * 创建商品 Schema (POST /)
  */
-export const CreateProductSchema = z.object({
+export const CreateProductSchema = z
+  .object({
     name: z.string().min(1, '商品名称必填'),
     spu: z.union([z.string(), z.number()]).optional(),
     slug: z.string().optional(),
@@ -71,13 +80,15 @@ export const CreateProductSchema = z.object({
     options: z.array(z.unknown()).optional(),
     variants: z.array(ProductVariantSchema).min(1, '至少需要一个变体'),
     dimensions: z.array(DimensionSchema).optional(),
-}).strict();
+  })
+  .strict();
 
 /**
  * 更新商品 Schema (PATCH /:id, PUT /:id)
  * 所有字段可选，由下游 fullReplace 参数控制全量/增量语义
  */
-export const UpdateProductSchema = z.object({
+export const UpdateProductSchema = z
+  .object({
     name: z.string().min(1).optional(),
     spu: z.union([z.string(), z.number()]).optional(),
     slug: z.string().optional(),
@@ -91,70 +102,87 @@ export const UpdateProductSchema = z.object({
     options: z.array(z.unknown()).optional(),
     variants: z.array(ProductVariantSchema).optional(),
     dimensions: z.array(DimensionSchema).optional(),
-}).strict();
+  })
+  .strict();
 
 /**
  * 更新商品状态 Schema (PATCH /:id/status)
  */
-export const UpdateProductStatusSchema = z.object({
+export const UpdateProductStatusSchema = z
+  .object({
     status: z.enum(['draft', 'active', 'archived']),
-}).strict();
+  })
+  .strict();
 
 /**
  * 创建规格维度 Schema (POST /:id/dimensions)
  */
-export const CreateDimensionSchema = z.object({
+export const CreateDimensionSchema = z
+  .object({
     name: z.string().min(1, '维度名称必填'),
     sort_order: z.number().int().optional(),
-}).strict();
+  })
+  .strict();
 
 /**
  * 更新规格维度 Schema (PATCH /:id/dimensions/:dimensionId)
  */
-export const UpdateDimensionSchema = z.object({
+export const UpdateDimensionSchema = z
+  .object({
     name: z.string().min(1).optional(),
     sort_order: z.number().int().optional(),
-}).strict();
+  })
+  .strict();
 
 /**
  * 归档规格维度 Schema (PATCH /:id/dimensions/:dimensionId/archive)
  */
-export const ArchiveDimensionSchema = z.object({
+export const ArchiveDimensionSchema = z
+  .object({
     mode: z.enum(['archive_variants', 'merge_keep']).optional(),
-}).strict();
+  })
+  .strict();
 
 /**
  * 创建规格值 Schema (POST /:id/dimensions/:dimensionId/values)
  */
-export const CreateDimensionValueSchema = z.object({
+export const CreateDimensionValueSchema = z
+  .object({
     value: z.string().min(1, '规格值必填'),
     sort_order: z.number().int().optional(),
     meta: z.unknown().optional(),
-}).strict();
+  })
+  .strict();
 
 /**
  * 影响预览 Schema (POST /:id/dimensions/impact)
  */
-export const DimensionImpactPreviewSchema = z.object({
+export const DimensionImpactPreviewSchema = z
+  .object({
     action: z.enum(['archive_dimension', 'archive_value']),
     dimensionId: z.string().optional(),
     valueId: z.string().optional(),
-}).strict();
+  })
+  .strict();
 
 /**
  * 添加变体图片 Schema (POST /:id/variants/:variantId/images)
  */
-export const AddVariantImageSchema = z.object({
+export const AddVariantImageSchema = z
+  .object({
     imageId: z.string().min(1, 'imageId 必填'),
     isPrimary: z.union([z.boolean(), z.string()]).optional(),
-}).strict();
+  })
+  .strict();
 
 /**
  * 变体图片排序 Schema (PATCH /:id/variants/:variantId/images/sort)
  */
-export const SortVariantImagesSchema = z.object({
+export const SortVariantImagesSchema = z
+  .object({
     imageIds: z.array(z.string().min(1)).min(1, 'imageIds 不能为空'),
-}).strict();
+  })
+  .strict();
 
 /**
  * 价格类型枚举
@@ -162,14 +190,42 @@ export const SortVariantImagesSchema = z.object({
 export const PriceTypeEnum = z.enum(['retail', 'wholesale', 'vip']);
 
 /**
+ * 批量变更商品规格状态 Schema (POST /batch/status)
+ */
+export const BatchVariantStatusSchema = z
+  .object({
+    variantIds: z.array(z.string().min(1)).min(1, '请选择至少一个商品规格').max(1000),
+    status: z.enum(['active', 'archived'], { message: '状态值无效，仅支持 active 或 archived' }),
+  })
+  .strict();
+
+/**
+ * 批量导入商品 Schema (POST /batch)
+ */
+export const BatchImportProductSchema = z
+  .object({
+    products: z.array(z.record(z.unknown())).min(1).max(1000).optional(),
+    // 支持其他批量导入格式，使用 passthrough 允许额外字段
+  })
+  .passthrough();
+
+/**
  * 批量更新价格规则 Schema (POST /:id/prices)
  */
-export const UpsertPriceRulesSchema = z.object({
-    rules: z.array(z.object({
-        variantId: z.string().min(1, 'variantId 必填'),
-        priceType: PriceTypeEnum,
-        price: z.number().nonnegative('价格不能为负'),
-        validFrom: z.number().int().nullable().optional(),
-        validTo: z.number().int().nullable().optional(),
-    }).strict()).min(1, '至少需要一条价格规则'),
-}).strict();
+export const UpsertPriceRulesSchema = z
+  .object({
+    rules: z
+      .array(
+        z
+          .object({
+            variantId: z.string().min(1, 'variantId 必填'),
+            priceType: PriceTypeEnum,
+            price: z.number().nonnegative('价格不能为负'),
+            validFrom: z.number().int().nullable().optional(),
+            validTo: z.number().int().nullable().optional(),
+          })
+          .strict()
+      )
+      .min(1, '至少需要一条价格规则'),
+  })
+  .strict();

@@ -22,7 +22,9 @@ describe('loadVariantReplenishmentMap', () => {
     const map = await loadVariantReplenishmentMap(db, ['var-1']);
     const sql = db.prepare.mock.calls[0][0];
 
-    expect(sql).toContain('MAX(COALESCE(poi.quantity, 0) - COALESCE(poi.received_qty, 0) - COALESCE(poi.cancelled_qty, 0), 0)');
+    expect(sql).toContain(
+      'MAX(COALESCE(poi.quantity, 0) - COALESCE(poi.received_qty, 0) - COALESCE(poi.cancelled_qty, 0), 0)'
+    );
     expect(sql).toContain("po.status IN ('ordered', 'shipping')");
     expect(map.get('var-1')).toEqual({
       replenishment_quantity: 3,

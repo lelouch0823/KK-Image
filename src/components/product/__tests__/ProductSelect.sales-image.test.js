@@ -132,13 +132,21 @@ describe('ProductSelect sales image rendering', () => {
 
     await wrapper.find('input').trigger('focus');
     expect(mocks.loadSalesProducts).toHaveBeenCalledTimes(1);
-    expect(mocks.loadSalesProducts).toHaveBeenLastCalledWith('sales-token-a', { search: '', page: 1, limit: 12 });
+    expect(mocks.loadSalesProducts).toHaveBeenLastCalledWith('sales-token-a', {
+      search: '',
+      page: 1,
+      limit: 12,
+    });
 
     wrapper.vm.isOpen = false;
     await wrapper.setProps({ token: 'sales-token-b' });
     await wrapper.find('input').trigger('focus');
 
     expect(mocks.loadSalesProducts).toHaveBeenCalledTimes(2);
-    expect(mocks.loadSalesProducts).toHaveBeenLastCalledWith('sales-token-b', { search: '', page: 1, limit: 12 });
+    expect(mocks.loadSalesProducts).toHaveBeenLastCalledWith('sales-token-b', {
+      search: '',
+      page: 1,
+      limit: 12,
+    });
   });
 });

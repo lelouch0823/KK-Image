@@ -5,9 +5,16 @@
   >
     <div class="flex items-start justify-between gap-3">
       <div>
-        <h3 class="text-sm font-semibold text-(--text-main)">{{ t('outboxOps.replay.title', '重放工作台') }}</h3>
+        <h3 class="text-sm font-semibold text-(--text-main)">
+          {{ t('outboxOps.replay.title', '重放工作台') }}
+        </h3>
         <p class="mt-1 text-sm text-(--text-secondary)">
-          {{ t('outboxOps.replay.description', '先核对事件上下文，再 dry-run，最后决定是否执行 replay。') }}
+          {{
+            t(
+              'outboxOps.replay.description',
+              '先核对事件上下文，再 dry-run，最后决定是否执行 replay。'
+            )
+          }}
         </p>
       </div>
       <AppButton
@@ -36,9 +43,7 @@
             <h4 class="mt-1 text-base font-semibold text-(--text-main)">
               {{ event.event_type || '-' }}
             </h4>
-            <p class="mt-1 text-sm text-(--text-secondary)">
-              #{{ event.id || '-' }}
-            </p>
+            <p class="mt-1 text-sm text-(--text-secondary)">#{{ event.id || '-' }}</p>
           </div>
           <StatusBadge :variant="eventStatusVariant" dot>
             {{ eventStatusLabel }}
@@ -50,7 +55,9 @@
             <div class="text-xs font-semibold tracking-[0.12em] text-(--text-muted) uppercase">
               {{ t('outboxOps.replay.aggregateId', '聚合 ID') }}
             </div>
-            <div class="mt-2 text-sm font-medium text-(--text-main)">{{ event.aggregate_id || '-' }}</div>
+            <div class="mt-2 text-sm font-medium text-(--text-main)">
+              {{ event.aggregate_id || '-' }}
+            </div>
           </div>
           <div class="rounded-2xl border border-(--border-color)/60 bg-(--bg-card) p-3">
             <div class="text-xs font-semibold tracking-[0.12em] text-(--text-muted) uppercase">
@@ -91,7 +98,12 @@
               {{ t('outboxOps.replay.actionsTitle', 'Replay 操作') }}
             </h4>
             <p class="mt-1 text-sm text-(--text-secondary)">
-              {{ t('outboxOps.replay.actionsDescription', '建议先限定 consumer 并执行 Dry Run，确认范围后再正式 replay。') }}
+              {{
+                t(
+                  'outboxOps.replay.actionsDescription',
+                  '建议先限定 consumer 并执行 Dry Run，确认范围后再正式 replay。'
+                )
+              }}
             </p>
           </div>
           <StatusBadge variant="warning" outline>
@@ -106,11 +118,18 @@
           :placeholder="t('outboxOps.replay.consumerPlaceholder', '可选：只重放指定 consumer')"
         />
 
-        <div class="rounded-2xl border border-warning/25 bg-warning/8 p-3 text-sm text-(--text-secondary)">
+        <div
+          class="rounded-2xl border border-warning/25 bg-warning/8 p-3 text-sm text-(--text-secondary)"
+        >
           <div class="flex items-start gap-2">
             <AppIcon name="information-circle" class="mt-0.5 size-4 shrink-0 text-warning" />
             <p>
-              {{ t('outboxOps.replay.riskNote', 'Dry Run 只验证命中范围和执行摘要；执行 Replay 前请确认事件、consumer 和最近结果都符合预期。') }}
+              {{
+                t(
+                  'outboxOps.replay.riskNote',
+                  'Dry Run 只验证命中范围和执行摘要；执行 Replay 前请确认事件、consumer 和最近结果都符合预期。'
+                )
+              }}
             </p>
           </div>
         </div>
@@ -153,7 +172,12 @@
               {{ t('outboxOps.replay.lastResultTitle', '最近一次操作结果') }}
             </h4>
             <p class="mt-1 text-sm text-(--text-secondary)">
-              {{ t('outboxOps.replay.lastResultDescription', '这里展示本页最近一次 dry-run 或 replay 返回的摘要，不代表系统实时状态。') }}
+              {{
+                t(
+                  'outboxOps.replay.lastResultDescription',
+                  '这里展示本页最近一次 dry-run 或 replay 返回的摘要，不代表系统实时状态。'
+                )
+              }}
             </p>
           </div>
           <StatusBadge v-if="lastReplayResult" :variant="resultVariant" dot>
@@ -165,15 +189,25 @@
           v-if="lastReplayResult"
           class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-page)"
         >
-          <pre class="max-h-72 overflow-x-auto overflow-y-auto p-4 text-xs text-(--text-main)">{{ formattedReplayResult }}</pre>
+          <pre class="max-h-72 overflow-x-auto overflow-y-auto p-4 text-xs text-(--text-main)">{{
+            formattedReplayResult
+          }}</pre>
         </div>
-        <div v-else class="rounded-2xl border border-dashed border-(--border-color) p-4 text-sm text-(--text-secondary)">
-          {{ t('outboxOps.replay.resultEmpty', '尚未执行 Dry Run 或 Replay，最近结果会展示在这里。') }}
+        <div
+          v-else
+          class="rounded-2xl border border-dashed border-(--border-color) p-4 text-sm text-(--text-secondary)"
+        >
+          {{
+            t('outboxOps.replay.resultEmpty', '尚未执行 Dry Run 或 Replay，最近结果会展示在这里。')
+          }}
         </div>
       </section>
     </div>
 
-    <div v-else class="rounded-2xl border border-dashed border-(--border-color) bg-(--bg-muted)/20 p-5 text-sm text-(--text-secondary)">
+    <div
+      v-else
+      class="rounded-2xl border border-dashed border-(--border-color) bg-(--bg-muted)/20 p-5 text-sm text-(--text-secondary)"
+    >
       <div class="flex items-start gap-3">
         <div class="flex size-10 items-center justify-center rounded-xl bg-(--bg-muted)">
           <AppIcon name="sparkles" class="size-5 text-(--text-muted)" />
@@ -183,7 +217,12 @@
             {{ t('outboxOps.replay.emptyTitle', '先从左侧选择事件') }}
           </div>
           <p>
-            {{ t('outboxOps.replay.empty', '选中事件后，这里会显示消费者状态、Replay 范围、操作按钮和最近结果。') }}
+            {{
+              t(
+                'outboxOps.replay.empty',
+                '选中事件后，这里会显示消费者状态、Replay 范围、操作按钮和最近结果。'
+              )
+            }}
           </p>
         </div>
       </div>
@@ -231,8 +270,14 @@ watch(
 );
 
 const consumerJobs = computed(() => props.event?.consumerJobs || []);
-const failedJobCount = computed(() => consumerJobs.value.filter((job) => job.status === 'failed').length);
-const activeJobCount = computed(() => consumerJobs.value.filter((job) => job.status === 'pending' || job.status === 'processing').length);
+const failedJobCount = computed(
+  () => consumerJobs.value.filter((job) => job.status === 'failed').length
+);
+const activeJobCount = computed(
+  () =>
+    consumerJobs.value.filter((job) => job.status === 'pending' || job.status === 'processing')
+      .length
+);
 const formattedReplayResult = computed(() => JSON.stringify(props.lastReplayResult || {}, null, 2));
 const eventStatusVariant = computed(() => {
   if (failedJobCount.value) return 'danger';
@@ -240,8 +285,10 @@ const eventStatusVariant = computed(() => {
   return 'success';
 });
 const eventStatusLabel = computed(() => {
-  if (failedJobCount.value) return t('outboxOps.replay.statusFailed', { count: failedJobCount.value });
-  if (activeJobCount.value) return t('outboxOps.replay.statusActive', { count: activeJobCount.value });
+  if (failedJobCount.value)
+    return t('outboxOps.replay.statusFailed', { count: failedJobCount.value });
+  if (activeJobCount.value)
+    return t('outboxOps.replay.statusActive', { count: activeJobCount.value });
   return t('outboxOps.replay.statusReady', '当前事件无失败消费者');
 });
 const resultVariant = computed(() => {
@@ -275,5 +322,4 @@ function emitReplay(type) {
 
   emit('execute', payload);
 }
-
 </script>

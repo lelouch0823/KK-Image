@@ -23,7 +23,7 @@ export class ErpSyncRepository {
     const { results } = await this.db
       .prepare('SELECT * FROM erp_connections ORDER BY created_at DESC')
       .all();
-    return (results || []).map(row => this._rowToConnection(row));
+    return (results || []).map((row) => this._rowToConnection(row));
   }
 
   async getConnectionById(id) {
@@ -34,7 +34,16 @@ export class ErpSyncRepository {
     return row ? this._rowToConnection(row) : null;
   }
 
-  async createConnection({ name, adapterType, baseUrl, authType = 'api_key', credentials = {}, config = {}, syncDirection = 'bidirectional', actorId = null }) {
+  async createConnection({
+    name,
+    adapterType,
+    baseUrl,
+    authType = 'api_key',
+    credentials = {},
+    config = {},
+    syncDirection = 'bidirectional',
+    actorId = null,
+  }) {
     const id = this.idFactory();
     const timestamp = this.now();
     await this.db
@@ -43,15 +52,27 @@ export class ErpSyncRepository {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
-        id, name, adapterType, baseUrl, authType,
-        JSON.stringify(credentials), JSON.stringify(config), syncDirection,
-        actorId, timestamp, actorId, timestamp
+        id,
+        name,
+        adapterType,
+        baseUrl,
+        authType,
+        JSON.stringify(credentials),
+        JSON.stringify(config),
+        syncDirection,
+        actorId,
+        timestamp,
+        actorId,
+        timestamp
       )
       .run();
     return this.getConnectionById(id);
   }
 
-  async updateConnection(id, { name, adapterType, baseUrl, authType, credentials, config, syncDirection, enabled, actorId }) {
+  async updateConnection(
+    id,
+    { name, adapterType, baseUrl, authType, credentials, config, syncDirection, enabled, actorId }
+  ) {
     const dbUpdates = {};
     if (name !== undefined) dbUpdates.name = name;
     if (adapterType !== undefined) dbUpdates.adapter_type = adapterType;
@@ -78,7 +99,9 @@ export class ErpSyncRepository {
 
   async updateSyncStatus(id, { status, error = null }) {
     await this.db
-      .prepare('UPDATE erp_connections SET last_sync_at = ?, last_sync_status = ?, last_error = ?, updated_at = ? WHERE id = ?')
+      .prepare(
+        'UPDATE erp_connections SET last_sync_at = ?, last_sync_status = ?, last_error = ?, updated_at = ? WHERE id = ?'
+      )
       .bind(this.now(), status, error, this.now(), id)
       .run();
   }
@@ -90,9 +113,18 @@ export class ErpSyncRepository {
   async listSyncLogs({ connectionId, entityType, status, page = 1, limit = 20 } = {}) {
     const conditions = [];
     const params = [];
-    if (connectionId) { conditions.push('connection_id = ?'); params.push(connectionId); }
-    if (entityType) { conditions.push('entity_type = ?'); params.push(entityType); }
-    if (status) { conditions.push('status = ?'); params.push(status); }
+    if (connectionId) {
+      conditions.push('connection_id = ?');
+      params.push(connectionId);
+    }
+    if (entityType) {
+      conditions.push('entity_type = ?');
+      params.push(entityType);
+    }
+    if (status) {
+      conditions.push('status = ?');
+      params.push(status);
+    }
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const offset = (page - 1) * limit;
 
@@ -107,14 +139,22 @@ export class ErpSyncRepository {
       .all();
 
     return {
-      data: (results || []).map(row => this._rowToSyncLog(row)),
+      data: (results || []).map((row) => this._rowToSyncLog(row)),
       total: countRow?.total || 0,
       page,
       limit,
     };
   }
 
-  async createSyncLog({ connectionId, entityType, entityId, erpId, direction, action, requestPayload }) {
+  async createSyncLog({
+    connectionId,
+    entityType,
+    entityId,
+    erpId,
+    direction,
+    action,
+    requestPayload,
+  }) {
     const id = this.logIdFactory();
     const timestamp = this.now();
     await this.db
@@ -122,7 +162,17 @@ export class ErpSyncRepository {
         `INSERT INTO erp_sync_logs (id, connection_id, entity_type, entity_id, erp_id, direction, action, status, request_payload, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
       )
-      .bind(id, connectionId, entityType, entityId || null, erpId || null, direction, action, requestPayload ? JSON.stringify(requestPayload) : null, timestamp)
+      .bind(
+        id,
+        connectionId,
+        entityType,
+        entityId || null,
+        erpId || null,
+        direction,
+        action,
+        requestPayload ? JSON.stringify(requestPayload) : null,
+        timestamp
+      )
       .run();
     return id;
   }
@@ -130,10 +180,21 @@ export class ErpSyncRepository {
   async updateSyncLog(id, { status, responsePayload, errorMessage, completedAt }) {
     const updates = ['status = ?'];
     const values = [status];
-    if (responsePayload !== undefined) { updates.push('response_payload = ?'); values.push(JSON.stringify(responsePayload)); }
-    if (errorMessage !== undefined) { updates.push('error_message = ?'); values.push(errorMessage); }
-    if (completedAt !== undefined) { updates.push('completed_at = ?'); values.push(completedAt); }
-    else if (status === 'success' || status === 'failed') { updates.push('completed_at = ?'); values.push(this.now()); }
+    if (responsePayload !== undefined) {
+      updates.push('response_payload = ?');
+      values.push(JSON.stringify(responsePayload));
+    }
+    if (errorMessage !== undefined) {
+      updates.push('error_message = ?');
+      values.push(errorMessage);
+    }
+    if (completedAt !== undefined) {
+      updates.push('completed_at = ?');
+      values.push(completedAt);
+    } else if (status === 'success' || status === 'failed') {
+      updates.push('completed_at = ?');
+      values.push(this.now());
+    }
     values.push(id);
     await this.db
       .prepare(`UPDATE erp_sync_logs SET ${updates.join(', ')} WHERE id = ?`)
@@ -154,7 +215,9 @@ export class ErpSyncRepository {
 
   async getMapping(connectionId, entityType, localId) {
     const row = await this.db
-      .prepare('SELECT * FROM erp_entity_mappings WHERE connection_id = ? AND entity_type = ? AND local_id = ?')
+      .prepare(
+        'SELECT * FROM erp_entity_mappings WHERE connection_id = ? AND entity_type = ? AND local_id = ?'
+      )
       .bind(connectionId, entityType, localId)
       .first();
     return row ? this._rowToMapping(row) : null;
@@ -162,7 +225,9 @@ export class ErpSyncRepository {
 
   async getMappingByErpId(connectionId, entityType, erpId) {
     const row = await this.db
-      .prepare('SELECT * FROM erp_entity_mappings WHERE connection_id = ? AND entity_type = ? AND erp_id = ?')
+      .prepare(
+        'SELECT * FROM erp_entity_mappings WHERE connection_id = ? AND entity_type = ? AND erp_id = ?'
+      )
       .bind(connectionId, entityType, erpId)
       .first();
     return row ? this._rowToMapping(row) : null;
@@ -173,7 +238,9 @@ export class ErpSyncRepository {
     const existing = await this.getMapping(connectionId, entityType, localId);
     if (existing) {
       await this.db
-        .prepare('UPDATE erp_entity_mappings SET erp_id = ?, erp_code = ?, last_synced_at = ?, updated_at = ? WHERE id = ?')
+        .prepare(
+          'UPDATE erp_entity_mappings SET erp_id = ?, erp_code = ?, last_synced_at = ?, updated_at = ? WHERE id = ?'
+        )
         .bind(erpId, erpCode || null, timestamp, timestamp, existing.id)
         .run();
       return this.getMapping(connectionId, entityType, localId);
@@ -184,17 +251,29 @@ export class ErpSyncRepository {
         `INSERT INTO erp_entity_mappings (id, connection_id, entity_type, local_id, erp_id, erp_code, last_synced_at, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .bind(id, connectionId, entityType, localId, erpId, erpCode || null, timestamp, timestamp, timestamp)
+      .bind(
+        id,
+        connectionId,
+        entityType,
+        localId,
+        erpId,
+        erpCode || null,
+        timestamp,
+        timestamp,
+        timestamp
+      )
       .run();
     return this.getMapping(connectionId, entityType, localId);
   }
 
   async listMappings(connectionId, entityType) {
     const { results } = await this.db
-      .prepare('SELECT * FROM erp_entity_mappings WHERE connection_id = ? AND entity_type = ? ORDER BY updated_at DESC')
+      .prepare(
+        'SELECT * FROM erp_entity_mappings WHERE connection_id = ? AND entity_type = ? ORDER BY updated_at DESC'
+      )
       .bind(connectionId, entityType)
       .all();
-    return (results || []).map(row => this._rowToMapping(row));
+    return (results || []).map((row) => this._rowToMapping(row));
   }
 
   // ============================================
@@ -204,12 +283,13 @@ export class ErpSyncRepository {
   async getSyncStats(connectionId, { since } = {}) {
     const conditions = ['connection_id = ?'];
     const params = [connectionId];
-    if (since) { conditions.push('created_at >= ?'); params.push(since); }
+    if (since) {
+      conditions.push('created_at >= ?');
+      params.push(since);
+    }
     const where = conditions.join(' AND ');
     const { results } = await this.db
-      .prepare(
-        `SELECT status, COUNT(*) as count FROM erp_sync_logs WHERE ${where} GROUP BY status`
-      )
+      .prepare(`SELECT status, COUNT(*) as count FROM erp_sync_logs WHERE ${where} GROUP BY status`)
       .bind(...params)
       .all();
     const stats = { total: 0, success: 0, failed: 0, pending: 0, conflict: 0 };

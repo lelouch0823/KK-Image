@@ -60,10 +60,7 @@ describe('VariantSnapshotProjectionRefreshService', () => {
 
   it('derives affected variants from order_lines before running a targeted refresh', async () => {
     const orderVariantAll = vi.fn(async () => ({
-      results: [
-        { variant_id: 'var-1' },
-        { variant_id: 'var-2' },
-      ],
+      results: [{ variant_id: 'var-1' }, { variant_id: 'var-2' }],
     }));
     const deleteRun = vi.fn(async () => ({ success: true }));
     const insertRun = vi.fn(async () => ({ success: true }));

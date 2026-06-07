@@ -11,18 +11,53 @@ import {
 } from '../../../../_shared/utils.js';
 import { requireEntity } from '../../_shared/route-helpers.js';
 import { AlbumRepository } from '../../../../repositories/AlbumRepository.js';
-import { NotFoundError, BadRequestError } from '../../errors.js';
+import { NotFoundError } from '../../errors.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { withCache } from '../../middleware/cache.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
-  { method: 'POST', path: '/', domain: 'albums', action: 'album.create', severity: 'high', targetType: 'album' },
-  { method: 'PUT', path: '/:id', domain: 'albums', action: 'album.update', severity: 'high', targetType: 'album' },
-  { method: 'DELETE', path: '/:id', domain: 'albums', action: 'album.delete', severity: 'critical', targetType: 'album' },
-  { method: 'POST', path: '/:id/files', domain: 'albums', action: 'album.file.add', severity: 'high', targetType: 'album' },
-  { method: 'DELETE', path: '/:id/files', domain: 'albums', action: 'album.file.remove', severity: 'high', targetType: 'album' },
+  {
+    method: 'POST',
+    path: '/',
+    domain: 'albums',
+    action: 'album.create',
+    severity: 'high',
+    targetType: 'album',
+  },
+  {
+    method: 'PUT',
+    path: '/:id',
+    domain: 'albums',
+    action: 'album.update',
+    severity: 'high',
+    targetType: 'album',
+  },
+  {
+    method: 'DELETE',
+    path: '/:id',
+    domain: 'albums',
+    action: 'album.delete',
+    severity: 'critical',
+    targetType: 'album',
+  },
+  {
+    method: 'POST',
+    path: '/:id/files',
+    domain: 'albums',
+    action: 'album.file.add',
+    severity: 'high',
+    targetType: 'album',
+  },
+  {
+    method: 'DELETE',
+    path: '/:id/files',
+    domain: 'albums',
+    action: 'album.file.remove',
+    severity: 'high',
+    targetType: 'album',
+  },
 ]);
 app.use('*', requirePermission('files:read'));
 
@@ -136,7 +171,7 @@ app.post(
       shareToken,
       coverFileId,
       createdAt: nowMs,
-      updatedAt: nowMs
+      updatedAt: nowMs,
     });
     scheduleAuditEvent(c, {
       domain: 'albums',
@@ -149,10 +184,13 @@ app.post(
       summary: `Created album ${name.trim()}`,
     });
 
-    return c.json({
-      success: true,
-      data: { id: albumId, shareUrl: getShareUrl(shareToken) }
-    }, 201);
+    return c.json(
+      {
+        success: true,
+        data: { id: albumId, shareUrl: getShareUrl(shareToken) },
+      },
+      201
+    );
   }
 );
 
@@ -280,31 +318,34 @@ app.post(
 /**
  * DELETE /api/manage/albums/:id/files - 从相册移除文件
  */
-app.delete('/:id/files', requirePermission('files:write'), async (c) => {
-  const { env } = c;
-  const albumId = c.req.param('id');
-  const { fileIds } = await c.req.json();
+app.delete(
+  '/:id/files',
+  requirePermission('files:write'),
+  zValidator('json', AlbumFilesSchema),
+  async (c) => {
+    const { env } = c;
+    const albumId = c.req.param('id');
+    const { fileIds } = c.req.valid('json');
 
-  if (!fileIds?.length) throw new BadRequestError(MSG.COMMON.INVALID_PARAMS);
+    const repo = new AlbumRepository(env.DB);
+    await repo.removeFiles(albumId, fileIds);
+    scheduleAuditEvent(c, {
+      domain: 'albums',
+      action: 'album.file.remove',
+      result: 'success',
+      severity: 'high',
+      targetType: 'album',
+      targetId: albumId,
+      target_label: albumId,
+      summary: `Removed ${fileIds.length} files from album ${albumId}`,
+      metadata: { count: fileIds.length },
+    });
 
-  const repo = new AlbumRepository(env.DB);
-  await repo.removeFiles(albumId, fileIds);
-  scheduleAuditEvent(c, {
-    domain: 'albums',
-    action: 'album.file.remove',
-    result: 'success',
-    severity: 'high',
-    targetType: 'album',
-    targetId: albumId,
-    target_label: albumId,
-    summary: `Removed ${fileIds.length} files from album ${albumId}`,
-    metadata: { count: fileIds.length },
-  });
-
-  return c.json({
-    success: true,
-    message: MSG.ALBUM.REMOVE_FILES_SUCCESS.replace('{count}', fileIds.length),
-  });
-});
+    return c.json({
+      success: true,
+      message: MSG.ALBUM.REMOVE_FILES_SUCCESS.replace('{count}', fileIds.length),
+    });
+  }
+);
 
 export default app;

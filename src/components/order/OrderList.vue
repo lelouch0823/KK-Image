@@ -1,7 +1,10 @@
 <template>
   <div ref="containerRef" class="order-list">
     <!-- 下拉刷新提示 -->
-    <div v-if="isPulling" class="flex items-center justify-center py-4 text-sm text-(--text-secondary)">
+    <div
+      v-if="isPulling"
+      class="flex items-center justify-center py-4 text-sm text-(--text-secondary)"
+    >
       <AppIcon name="spinner" class="mr-2 size-4 animate-spin" />
       {{ t('common.loading') }}
     </div>
@@ -21,13 +24,13 @@
     />
 
     <!-- 虚拟滚动容器 -->
-    <div 
+    <div
       v-else-if="orders.length > 0"
       class="virtual-scroll-container"
       :style="{ height: `${totalHeight}px`, position: 'relative' }"
     >
       <!-- 可见区域偏移容器 -->
-      <div 
+      <div
         class="virtual-scroll-content space-y-3"
         :style="{ transform: `translateY(${offsetTop}px)` }"
       >
@@ -50,7 +53,9 @@
 
           <div class="flex h-full gap-3">
             <!-- 主图 -->
-            <div class="size-20 shrink-0 overflow-hidden rounded-lg bg-(--bg-muted) ring-1 ring-(--border-color)/10">
+            <div
+              class="size-20 shrink-0 overflow-hidden rounded-lg bg-(--bg-muted) ring-1 ring-(--border-color)/10"
+            >
               <AppImage
                 v-if="order.mainImage"
                 :src="order.mainImage"
@@ -67,27 +72,42 @@
 
             <!-- 信息 -->
             <div class="flex min-w-0 flex-1 flex-col justify-between py-0.5">
-                <div class="flex items-center gap-2">
-                    <span class="truncate font-mono text-xs tracking-wide text-(--text-secondary)" :title="order.orderNo">{{ order.orderNo }}</span>
-                    <!-- New Update Red Dot -->
-                    <div v-if="order.hasNewFeedback" class="relative flex size-2 shrink-0">
-                      <span class="bg-danger absolute inline-flex size-full animate-ping rounded-full opacity-75"></span>
-                      <span class="bg-danger relative inline-flex size-2 rounded-full"></span>
-                    </div>
+              <div class="flex items-center gap-2">
+                <span
+                  class="truncate font-mono text-xs tracking-wide text-(--text-secondary)"
+                  :title="order.orderNo"
+                  >{{ order.orderNo }}</span
+                >
+                <!-- New Update Red Dot -->
+                <div v-if="order.hasNewFeedback" class="relative flex size-2 shrink-0">
+                  <span
+                    class="bg-danger absolute inline-flex size-full animate-ping rounded-full opacity-75"
+                  ></span>
+                  <span class="bg-danger relative inline-flex size-2 rounded-full"></span>
                 </div>
-                <!-- 预留右侧 Badge 空间，防止文字重叠 -->
-                <h4 class="text-primary mt-0.5 truncate pr-16 text-sm leading-tight font-bold" :title="order.productName || t('order.form.productName')">
-                  {{ order.productName || t('order.form.productName') }}
-                </h4>
+              </div>
+              <!-- 预留右侧 Badge 空间，防止文字重叠 -->
+              <h4
+                class="text-primary mt-0.5 truncate pr-16 text-sm leading-tight font-bold"
+                :title="order.productName || t('order.form.productName')"
+              >
+                {{ order.productName || t('order.form.productName') }}
+              </h4>
 
               <div class="flex items-end justify-between">
-                <div class="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-(--text-secondary)">
-                    <AppIcon name="user" class="size-3.5 shrink-0 opacity-70" />
-                    <span class="min-w-0 flex-1 truncate" :title="order.customer?.name || t('common.unknown')">{{ order.customer?.name || t('common.unknown') }}</span>
-                    <span class="shrink-0 text-(--border-color)">|</span>
-                    <span class="shrink-0">{{ formatRelativeTime(order.createdAt, t) }}</span>
+                <div
+                  class="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-(--text-secondary)"
+                >
+                  <AppIcon name="user" class="size-3.5 shrink-0 opacity-70" />
+                  <span
+                    class="min-w-0 flex-1 truncate"
+                    :title="order.customer?.name || t('common.unknown')"
+                    >{{ order.customer?.name || t('common.unknown') }}</span
+                  >
+                  <span class="shrink-0 text-(--border-color)">|</span>
+                  <span class="shrink-0">{{ formatRelativeTime(order.createdAt, t) }}</span>
                 </div>
-                
+
                 <!-- 箭头 -->
                 <AppIcon
                   name="chevron-down"
@@ -106,7 +126,10 @@
     </div>
 
     <!-- 加载更多 -->
-    <div v-if="loadingMore" class="flex items-center justify-center py-4 text-xs text-(--text-secondary)">
+    <div
+      v-if="loadingMore"
+      class="flex items-center justify-center py-4 text-xs text-(--text-secondary)"
+    >
       <AppIcon name="spinner" class="mr-2 size-4 animate-spin" />
       {{ t('common.loadingMore') || '正在加载...' }}
     </div>
@@ -196,7 +219,6 @@ onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
   window.removeEventListener('resize', handleResize);
 });
-
 </script>
 
 <style scoped>

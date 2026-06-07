@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockAuthFetch = vi.fn();
-globalThis.fetch = vi.fn(() => Promise.reject(new Error('direct fetch should not be used in manage composables')));
+globalThis.fetch = vi.fn(() =>
+  Promise.reject(new Error('direct fetch should not be used in manage composables'))
+);
 
 const mocks = vi.hoisted(() => ({
   addToast: vi.fn(),
@@ -35,14 +37,15 @@ describe('useOutboxOps', () => {
 
   it('loads outbox events with eventType, consumerName, and status filters', async () => {
     mockAuthFetch.mockResolvedValueOnce({
-      json: () => Promise.resolve({
-        success: true,
-        data: [{ id: 'evt-1', event_type: 'purchase_receipt_recorded' }],
-        meta: {
-          limit: 100,
-          isTruncated: true,
-        },
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: [{ id: 'evt-1', event_type: 'purchase_receipt_recorded' }],
+          meta: {
+            limit: 100,
+            isTruncated: true,
+          },
+        }),
     });
 
     const { useOutboxOps } = await import('../useOutboxOps');
@@ -67,22 +70,28 @@ describe('useOutboxOps', () => {
   it('loads one outbox event detail and submits dry-run then execute replay', async () => {
     mockAuthFetch
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
-          success: true,
-          data: { id: 'evt-1', consumerJobs: [{ consumer_name: 'notification', status: 'failed' }] },
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: {
+              id: 'evt-1',
+              consumerJobs: [{ consumer_name: 'notification', status: 'failed' }],
+            },
+          }),
       })
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
-          success: true,
-          data: { runId: 'dry-1', affectedEvents: ['evt-1'] },
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { runId: 'dry-1', affectedEvents: ['evt-1'] },
+          }),
       })
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
-          success: true,
-          data: { runId: 'exec-1', replayedEvents: ['evt-1'] },
-        }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { runId: 'exec-1', replayedEvents: ['evt-1'] },
+          }),
       });
 
     const { useOutboxOps } = await import('../useOutboxOps');
@@ -100,7 +109,10 @@ describe('useOutboxOps', () => {
       consumerName: 'notification',
     });
 
-    expect(detail).toEqual({ id: 'evt-1', consumerJobs: [{ consumer_name: 'notification', status: 'failed' }] });
+    expect(detail).toEqual({
+      id: 'evt-1',
+      consumerJobs: [{ consumer_name: 'notification', status: 'failed' }],
+    });
     expect(eventDetail.value?.id).toBe('evt-1');
     expect(dryRun).toEqual({ runId: 'dry-1', affectedEvents: ['evt-1'] });
     expect(execute).toEqual({ runId: 'exec-1', replayedEvents: ['evt-1'] });
@@ -127,9 +139,7 @@ describe('useOutboxOps', () => {
       resolveSecond = resolve;
     });
 
-    mockAuthFetch
-      .mockReturnValueOnce(firstResponse)
-      .mockReturnValueOnce(secondResponse);
+    mockAuthFetch.mockReturnValueOnce(firstResponse).mockReturnValueOnce(secondResponse);
 
     const { useOutboxOps } = await import('../useOutboxOps');
     const { loadEvents, events, loading } = useOutboxOps();
@@ -138,18 +148,20 @@ describe('useOutboxOps', () => {
     const secondLoad = loadEvents({ eventType: 'newer' });
 
     resolveSecond({
-      json: () => Promise.resolve({
-        success: true,
-        data: [{ id: 'evt-new', event_type: 'newer' }],
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: [{ id: 'evt-new', event_type: 'newer' }],
+        }),
     });
     await secondLoad;
 
     resolveFirst({
-      json: () => Promise.resolve({
-        success: true,
-        data: [{ id: 'evt-old', event_type: 'older' }],
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: [{ id: 'evt-old', event_type: 'older' }],
+        }),
     });
     await firstLoad;
 
@@ -167,9 +179,7 @@ describe('useOutboxOps', () => {
       resolveSecond = resolve;
     });
 
-    mockAuthFetch
-      .mockReturnValueOnce(firstResponse)
-      .mockReturnValueOnce(secondResponse);
+    mockAuthFetch.mockReturnValueOnce(firstResponse).mockReturnValueOnce(secondResponse);
 
     const { useOutboxOps } = await import('../useOutboxOps');
     const { loadEventDetail, eventDetail, detailLoading } = useOutboxOps();
@@ -178,18 +188,20 @@ describe('useOutboxOps', () => {
     const secondLoad = loadEventDetail('evt-new');
 
     resolveSecond({
-      json: () => Promise.resolve({
-        success: true,
-        data: { id: 'evt-new', event_type: 'newer' },
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { id: 'evt-new', event_type: 'newer' },
+        }),
     });
     await secondLoad;
 
     resolveFirst({
-      json: () => Promise.resolve({
-        success: true,
-        data: { id: 'evt-old', event_type: 'older' },
-      }),
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { id: 'evt-old', event_type: 'older' },
+        }),
     });
     await firstLoad;
 

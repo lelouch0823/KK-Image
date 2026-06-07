@@ -40,7 +40,9 @@ describe('FileRepository', () => {
     const db = { prepare: vi.fn(() => statement) };
     const repo = new FileRepository(db);
 
-    await expect(repo.findByFolder('folder-1')).resolves.toEqual([{ id: 'file-1', folder_id: 'folder-1' }]);
+    await expect(repo.findByFolder('folder-1')).resolves.toEqual([
+      { id: 'file-1', folder_id: 'folder-1' },
+    ]);
     expect(db.prepare).toHaveBeenCalledWith(
       'SELECT id, folder_id, name, original_name, mime_type, size, storage_key, content_hash, status, created_at FROM files WHERE folder_id = ? AND is_deleted = 0 ORDER BY created_at DESC'
     );
@@ -102,7 +104,13 @@ describe('FileRepository', () => {
 
     await repo.createBatch([
       { id: 'file-1', storageKey: 'key-1' },
-      { id: 'file-2', folderId: 'folder-2', name: 'hero.jpg', originalName: 'hero-original.jpg', storageKey: 'key-2' },
+      {
+        id: 'file-2',
+        folderId: 'folder-2',
+        name: 'hero.jpg',
+        originalName: 'hero-original.jpg',
+        storageKey: 'key-2',
+      },
     ]);
 
     expect(db.batch).toHaveBeenCalledTimes(1);
@@ -145,14 +153,15 @@ describe('FileRepository', () => {
       firstResult: { id: 'file-2', original_hash: 'hash-1' },
     });
     const db = {
-      prepare: vi.fn()
-        .mockReturnValueOnce(byId)
-        .mockReturnValueOnce(byHash),
+      prepare: vi.fn().mockReturnValueOnce(byId).mockReturnValueOnce(byHash),
     };
     const repo = new FileRepository(db);
 
     await expect(repo.findById('file-1')).resolves.toEqual({ id: 'file-1' });
-    await expect(repo.findByOriginalHash('hash-1')).resolves.toEqual({ id: 'file-2', original_hash: 'hash-1' });
+    await expect(repo.findByOriginalHash('hash-1')).resolves.toEqual({
+      id: 'file-2',
+      original_hash: 'hash-1',
+    });
     expect(byId.bind).toHaveBeenCalledWith('file-1');
     expect(byHash.bind).toHaveBeenCalledWith('hash-1');
   });
@@ -226,12 +235,20 @@ describe('FileRepository', () => {
     };
     const repo = new FileRepository(db);
 
-    await repo.moveBatch(Array.from({ length: 100 }, (_, index) => `file-${index}`), 'folder-2');
+    await repo.moveBatch(
+      Array.from({ length: 100 }, (_, index) => `file-${index}`),
+      'folder-2'
+    );
 
     expect(statements).toHaveLength(2);
     expect(statements[0].bind.mock.calls[0][0]).toBe('folder-2');
     expect(statements[0].bind.mock.calls[0][1]).toBe(Date.now());
-    expect(statements[1].bind.mock.calls[0]).toEqual(['folder-2', Date.now(), 'file-98', 'file-99']);
+    expect(statements[1].bind.mock.calls[0]).toEqual([
+      'folder-2',
+      Date.now(),
+      'file-98',
+      'file-99',
+    ]);
   });
 
   it('deletes single and batched files while skipping empty batches', async () => {
@@ -297,7 +314,9 @@ describe('FileRepository', () => {
     const db = { prepare: vi.fn(() => statement) };
     const repo = new FileRepository(db);
 
-    await expect(repo.findTrashWithPaths()).resolves.toEqual([{ id: 'file-1', original_path: '/Albums' }]);
+    await expect(repo.findTrashWithPaths()).resolves.toEqual([
+      { id: 'file-1', original_path: '/Albums' },
+    ]);
     const sql = db.prepare.mock.calls[0][0];
     expect(sql).toContain('WITH RECURSIVE folder_paths');
     expect(sql).toContain('WHERE f.is_deleted = 1');
@@ -311,14 +330,18 @@ describe('FileRepository', () => {
       firstResult: { id: 'file-2', folder_id: 'folder-2' },
     });
     const db = {
-      prepare: vi.fn()
-        .mockReturnValueOnce(rootStatement)
-        .mockReturnValueOnce(nestedStatement),
+      prepare: vi.fn().mockReturnValueOnce(rootStatement).mockReturnValueOnce(nestedStatement),
     };
     const repo = new FileRepository(db);
 
-    await expect(repo.findByNameInFolder('root', 'hero.jpg')).resolves.toEqual({ id: 'file-root', name: 'hero.jpg' });
-    await expect(repo.findByNameInFolder('folder-2', 'hero.jpg')).resolves.toEqual({ id: 'file-2', folder_id: 'folder-2' });
+    await expect(repo.findByNameInFolder('root', 'hero.jpg')).resolves.toEqual({
+      id: 'file-root',
+      name: 'hero.jpg',
+    });
+    await expect(repo.findByNameInFolder('folder-2', 'hero.jpg')).resolves.toEqual({
+      id: 'file-2',
+      folder_id: 'folder-2',
+    });
 
     expect(db.prepare.mock.calls[0][0]).toContain("(folder_id = 'root' OR folder_id IS NULL)");
     expect(rootStatement.bind).toHaveBeenCalledWith('hero.jpg');
@@ -330,9 +353,7 @@ describe('FileRepository', () => {
     const rootStatement = createStatement('conflict-root', { firstResult: { exist: 1 } });
     const nestedStatement = createStatement('conflict-nested', { firstResult: null });
     const db = {
-      prepare: vi.fn()
-        .mockReturnValueOnce(rootStatement)
-        .mockReturnValueOnce(nestedStatement),
+      prepare: vi.fn().mockReturnValueOnce(rootStatement).mockReturnValueOnce(nestedStatement),
     };
     const repo = new FileRepository(db);
 
@@ -354,14 +375,20 @@ describe('FileRepository', () => {
       allResult: { results: [{ name: 'root.jpg' }] },
     });
     const db = {
-      prepare: vi.fn()
+      prepare: vi
+        .fn()
         .mockReturnValueOnce(nestedFirst)
         .mockReturnValueOnce(nestedSecond)
         .mockReturnValueOnce(rootStatement),
     };
     const repo = new FileRepository(db);
 
-    await expect(repo.findConflictingNames('folder-2', Array.from({ length: 99 }, (_, index) => `${index}.jpg`))).resolves.toEqual(['a.jpg', 'b.jpg', 'tail.jpg']);
+    await expect(
+      repo.findConflictingNames(
+        'folder-2',
+        Array.from({ length: 99 }, (_, index) => `${index}.jpg`)
+      )
+    ).resolves.toEqual(['a.jpg', 'b.jpg', 'tail.jpg']);
     await expect(repo.findConflictingNames('root', ['root.jpg'])).resolves.toEqual(['root.jpg']);
     await expect(repo.findConflictingNames('root', [])).resolves.toEqual([]);
 
@@ -378,17 +405,14 @@ describe('FileRepository', () => {
       allResult: { results: [{ id: 'file-99' }] },
     });
     const db = {
-      prepare: vi.fn()
-        .mockReturnValueOnce(firstChunk)
-        .mockReturnValueOnce(secondChunk),
+      prepare: vi.fn().mockReturnValueOnce(firstChunk).mockReturnValueOnce(secondChunk),
     };
     const repo = new FileRepository(db);
 
     await expect(repo.findByIds([])).resolves.toEqual([]);
-    await expect(repo.findByIds(Array.from({ length: 99 }, (_, index) => `file-${index}`))).resolves.toEqual([
-      { id: 'file-1' },
-      { id: 'file-99' },
-    ]);
+    await expect(
+      repo.findByIds(Array.from({ length: 99 }, (_, index) => `file-${index}`))
+    ).resolves.toEqual([{ id: 'file-1' }, { id: 'file-99' }]);
 
     expect(firstChunk.bind.mock.calls[0]).toHaveLength(98);
     expect(secondChunk.bind.mock.calls[0]).toEqual(['file-98']);

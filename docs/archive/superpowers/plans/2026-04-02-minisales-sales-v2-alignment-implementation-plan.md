@@ -145,6 +145,7 @@ Splitting this into multiple plans would create cross-plan blocking dependencies
 ## Task 1: Add Minisales Test Harness and HTTP Transport Foundation
 
 **Files:**
+
 - Create: `minisales/vitest.config.ts`
 - Create: `minisales/tests/setup/wx.ts`
 - Create: `minisales/tests/unit/services/http.request.test.ts`
@@ -307,6 +308,7 @@ git commit -m "test: add minisales transport harness"
 ## Task 2: Rebuild Auth Session and Shared Shell Primitives
 
 **Files:**
+
 - Create: `minisales/tests/unit/services/auth.session.test.ts`
 - Create: `minisales/miniprogram/services/auth/session.ts`
 - Create: `minisales/miniprogram/components/sales/app-shell/index.json`
@@ -376,10 +378,7 @@ Expected: FAIL with missing `services/auth/session` module
 - [ ] **Step 3: Implement the session service and rebuild the shared shell/login entry**
 
 ```ts
-export async function restoreSalesSession({
-  accessToken,
-  getCurrentUser,
-}: RestoreSessionOptions) {
+export async function restoreSalesSession({ accessToken, getCurrentUser }: RestoreSessionOptions) {
   if (!accessToken) {
     return { ok: false, reason: 'missing_access_token' } as const;
   }
@@ -404,10 +403,18 @@ Component({
     unreadCount: { type: Number, value: 0 },
   },
   methods: {
-    onTapOrders() { this.triggerEvent('navigate', { target: 'orders' }); },
-    onTapSpaces() { this.triggerEvent('navigate', { target: 'spaces' }); },
-    onTapStats() { this.triggerEvent('navigate', { target: 'stats' }); },
-    onTapNotifications() { this.triggerEvent('notifications'); },
+    onTapOrders() {
+      this.triggerEvent('navigate', { target: 'orders' });
+    },
+    onTapSpaces() {
+      this.triggerEvent('navigate', { target: 'spaces' });
+    },
+    onTapStats() {
+      this.triggerEvent('navigate', { target: 'stats' });
+    },
+    onTapNotifications() {
+      this.triggerEvent('notifications');
+    },
   },
 });
 ```
@@ -450,6 +457,7 @@ git commit -m "feat: rebuild minisales auth shell foundation"
 ## Task 3: Add Sales Domain Services and Normalization Helpers
 
 **Files:**
+
 - Create: `minisales/tests/unit/services/orders.test.ts`
 - Create: `minisales/tests/unit/services/products.test.ts`
 - Create: `minisales/tests/unit/services/profile.test.ts`
@@ -506,7 +514,9 @@ it('normalizes order detail into header lines files and timeline groups', () => 
     orderNo: 'SO-001',
     quantity: 3,
     currentData: { name: 'Poster' },
-    lines: [{ id: 'l-1', snapshot_name: 'Poster', ordered_qty: 3, display_status: 'fully_procured' }],
+    lines: [
+      { id: 'l-1', snapshot_name: 'Poster', ordered_qty: 3, display_status: 'fully_procured' },
+    ],
     files: [{ id: 'f-1', url: '/file/a.png' }],
     timeline: [{ id: 't-1', actionType: 'created', createdAt: 1 }],
   });
@@ -520,10 +530,7 @@ it('binds WeChat by exchanging wx.login code against the current sales token', a
   const request = vi.fn().mockResolvedValue({ success: true, data: null });
   const getWechatCode = vi.fn().mockResolvedValue('wx-code-1');
 
-  await bindSalesWechat(
-    { accessToken: 'sales-token' },
-    { request, getWechatCode }
-  );
+  await bindSalesWechat({ accessToken: 'sales-token' }, { request, getWechatCode });
 
   expect(request).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -569,10 +576,7 @@ export async function createSalesOrder(input: CreateSalesOrderInput, request = s
 ```ts
 export async function bindSalesWechat(
   { accessToken }: { accessToken: string },
-  {
-    request = salesRequest,
-    getWechatCode = defaultGetWechatCode,
-  }: BindWechatDeps = {}
+  { request = salesRequest, getWechatCode = defaultGetWechatCode }: BindWechatDeps = {}
 ) {
   const code = await getWechatCode();
   if (!code) {
@@ -636,6 +640,7 @@ git commit -m "feat: add minisales sales domain services"
 ## Task 4: Rebuild Order List and Notification Experience
 
 **Files:**
+
 - Create: `minisales/tests/unit/pages/orders-list-controller.test.ts`
 - Create: `minisales/miniprogram/pages/index/controller.ts`
 - Create: `minisales/miniprogram/components/sales/order-card/index.json`
@@ -657,7 +662,10 @@ git commit -m "feat: add minisales sales domain services"
 - [ ] **Step 1: Write failing order-list controller tests**
 
 ```ts
-import { buildOrdersListState, filterOrdersBySearch } from '../../../miniprogram/pages/index/controller';
+import {
+  buildOrdersListState,
+  filterOrdersBySearch,
+} from '../../../miniprogram/pages/index/controller';
 
 it('merges paginated order pages without losing current items', () => {
   const state = buildOrdersListState(
@@ -694,7 +702,11 @@ Expected: FAIL with missing `pages/index/controller` module
 - [ ] **Step 3: Implement the controller, order cards, notification drawer, and list page**
 
 ```ts
-export function buildOrdersListState(existing: OrderSummary[], payload: OrdersPagePayload, append = false) {
+export function buildOrdersListState(
+  existing: OrderSummary[],
+  payload: OrdersPagePayload,
+  append = false
+) {
   const nextOrders = append ? [...existing, ...payload.orders] : payload.orders;
   return {
     orders: nextOrders,
@@ -724,7 +736,9 @@ Page({
 
     this.setData({
       ...buildOrdersListState([], ordersResult.data, false),
-      unreadCount: notificationsResult.success ? countUnreadNotifications(notificationsResult.data) : 0,
+      unreadCount: notificationsResult.success
+        ? countUnreadNotifications(notificationsResult.data)
+        : 0,
       state: ordersResult.data.orders.length ? 'ready' : 'empty',
     });
   },
@@ -768,6 +782,7 @@ git commit -m "feat: rebuild minisales order list experience"
 ## Task 5: Rebuild Product Binding and Order Form Flow
 
 **Files:**
+
 - Create: `minisales/tests/unit/pages/order-form-controller.test.ts`
 - Create: `minisales/miniprogram/pages/form/controller.ts`
 - Create: `minisales/miniprogram/components/sales/product-binding/index.json`
@@ -789,7 +804,10 @@ import { buildCreatePayload, canSubmitOrderForm } from '../../../miniprogram/pag
 it('builds a create payload with fileIds and selected product binding', () => {
   const payload = buildCreatePayload({
     form: { name: 'Poster', brand: 'KK', quantity: 2, remark: '' },
-    uploads: [{ id: 'f-1', status: 'done' }, { id: 'f-2', status: 'done' }],
+    uploads: [
+      { id: 'f-1', status: 'done' },
+      { id: 'f-2', status: 'done' },
+    ],
     boundProduct: { productId: 'p-1', variantId: 'v-1' },
   });
 
@@ -829,7 +847,9 @@ export function buildCreatePayload({ form, uploads, boundProduct }: BuildCreateP
     remark: form.remark?.trim() || '',
     deadline: form.deadline || '',
     quantity: Number(form.quantity || 1),
-    fileIds: uploads.filter((item) => item.status === 'done' && item.id).map((item) => item.id as string),
+    fileIds: uploads
+      .filter((item) => item.status === 'done' && item.id)
+      .map((item) => item.id as string),
     ...(boundProduct?.productId ? { productId: boundProduct.productId } : {}),
     ...(boundProduct?.variantId ? { variantId: boundProduct.variantId } : {}),
   };
@@ -844,7 +864,11 @@ Component({
   },
   methods: {
     async openPicker() {
-      const list = await loadSalesProducts({ accessToken: this.data.salesToken, page: 1, limit: 12 });
+      const list = await loadSalesProducts({
+        accessToken: this.data.salesToken,
+        page: 1,
+        limit: 12,
+      });
       this.setData({ products: list.success ? list.data.items : [] });
     },
     async selectProduct(productId: string) {
@@ -893,6 +917,7 @@ git commit -m "feat: rebuild minisales sales order form"
 ## Task 6: Rebuild Order Detail Flow
 
 **Files:**
+
 - Create: `minisales/tests/unit/pages/order-detail-controller.test.ts`
 - Create: `minisales/miniprogram/pages/detail/controller.ts`
 - Create: `minisales/miniprogram/components/sales/order-summary/index.json`
@@ -916,7 +941,10 @@ git commit -m "feat: rebuild minisales sales order form"
 - [ ] **Step 1: Write failing detail-controller tests**
 
 ```ts
-import { buildOrderDetailViewModel, buildDuplicatePrefill } from '../../../miniprogram/pages/detail/controller';
+import {
+  buildOrderDetailViewModel,
+  buildDuplicatePrefill,
+} from '../../../miniprogram/pages/detail/controller';
 
 it('projects detail data into header lines files and timeline sections', () => {
   const model = buildOrderDetailViewModel({
@@ -925,7 +953,9 @@ it('projects detail data into header lines files and timeline sections', () => {
     status: 'pending',
     quantity: 2,
     currentData: { name: 'Poster' },
-    lines: [{ id: 'l-1', snapshot_name: 'Poster', ordered_qty: 2, display_status: 'partially_received' }],
+    lines: [
+      { id: 'l-1', snapshot_name: 'Poster', ordered_qty: 2, display_status: 'partially_received' },
+    ],
     files: [{ id: 'f-1', url: '/file/a.png' }],
     timeline: [{ id: 't-1', actionType: 'created', createdAt: 1 }],
   });
@@ -1041,6 +1071,7 @@ git commit -m "feat: rebuild minisales order detail experience"
 ## Task 7: Rebuild Stats and Spaces, Update Docs, and Run Final Regression
 
 **Files:**
+
 - Create: `minisales/tests/unit/pages/sales-stats-controller.test.ts`
 - Create: `minisales/tests/unit/pages/spaces-controller.test.ts`
 - Create: `minisales/miniprogram/pages/stats/controller.ts`
@@ -1072,15 +1103,18 @@ import { buildStatsViewModel } from '../../../miniprogram/pages/stats/controller
 import { buildSpacesGridModel } from '../../../miniprogram/pages/spaces/controller';
 
 it('builds stable KPI cards and chart labels from monthly trend data', () => {
-  const model = buildStatsViewModel({
-    totalOrders: 12,
-    completedOrders: 4,
-    monthOrders: 6,
-    monthlyTrend: [
-      { date: '2026-04-01', count: 1 },
-      { date: '2026-04-02', count: 3 },
-    ],
-  }, { loginMethod: 'password' });
+  const model = buildStatsViewModel(
+    {
+      totalOrders: 12,
+      completedOrders: 4,
+      monthOrders: 6,
+      monthlyTrend: [
+        { date: '2026-04-01', count: 1 },
+        { date: '2026-04-02', count: 3 },
+      ],
+    },
+    { loginMethod: 'password' }
+  );
 
   expect(model.metrics[0].value).toBe(12);
   expect(model.chartPoints[1].count).toBe(3);
@@ -1108,7 +1142,10 @@ Expected: FAIL with missing controller modules
 - [ ] **Step 3: Implement stats and spaces controllers and rebuild those pages**
 
 ```ts
-export function buildStatsViewModel(raw: StatsPayload, { loginMethod }: { loginMethod?: string } = {}) {
+export function buildStatsViewModel(
+  raw: StatsPayload,
+  { loginMethod }: { loginMethod?: string } = {}
+) {
   const maxCount = Math.max(...raw.monthlyTrend.map((item) => item.count), 1);
   return {
     metrics: [

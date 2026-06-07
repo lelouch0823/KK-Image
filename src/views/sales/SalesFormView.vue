@@ -97,9 +97,13 @@ const applyInitialPrefill = (data) => {
   }
 };
 
-watch(prefillData, (data) => {
-  applyInitialPrefill(data);
-}, { immediate: true });
+watch(
+  prefillData,
+  (data) => {
+    applyInitialPrefill(data);
+  },
+  { immediate: true }
+);
 
 const handleProductSelect = (product) => {
   const variant = product.selectedVariant;
@@ -152,10 +156,12 @@ const handleProductSelect = (product) => {
   };
 
   if (boundProduct.value.mainImage) {
-    nextData.files = [{
-      url: boundProduct.value.mainImage,
-      isLocal: false,
-    }];
+    nextData.files = [
+      {
+        url: boundProduct.value.mainImage,
+        isLocal: false,
+      },
+    ];
   }
 
   formData.value = nextData;

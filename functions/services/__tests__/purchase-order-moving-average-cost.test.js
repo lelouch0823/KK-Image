@@ -40,6 +40,10 @@ function createDbForAllocateCosts(poRecord) {
     bind: vi.fn(() => variantRollbackStmt),
     run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
   };
+  const itemUpdateStmt = {
+    bind: vi.fn(() => itemUpdateStmt),
+    run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
+  };
 
   return {
     db: {
@@ -47,7 +51,12 @@ function createDbForAllocateCosts(poRecord) {
         if (sql.includes('SELECT * FROM purchase_orders WHERE id = ?')) {
           return poStmt;
         }
-        if (sql.includes('UPDATE product_variants SET cost_price = ?, updated_at = ? WHERE id = ?')) {
+        if (sql.includes('UPDATE purchase_order_items SET allocated_freight')) {
+          return itemUpdateStmt;
+        }
+        if (
+          sql.includes('UPDATE product_variants SET cost_price = ?, updated_at = ? WHERE id = ?')
+        ) {
           return variantRollbackStmt;
         }
         throw new Error(`Unexpected SQL: ${sql}`);
@@ -104,12 +113,15 @@ describe('moving average cost workflow', () => {
 
     await service.allocateCosts('po-1');
 
-    expect(service.costAllocationService.repo.updateAllocations).toHaveBeenCalledWith([
-      { id: 'i-1', allocated_freight: 10, allocated_tariff: 5 },
-    ]);
-    // MAC: preArrivalQty = 10 - 2 = 8, nextCost = (8*12 + 40) / 10 = 13.6
+    // Allocations and MAC updates are now in a single atomic batch
     expect(db.batch).toHaveBeenCalledTimes(1);
-    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE product_variants SET cost_price'));
+    // Verify allocation update + MAC update are both in the batch
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE purchase_order_items SET allocated_freight')
+    );
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE product_variants SET cost_price')
+    );
   });
 
   it('bases by-value allocation ratios on received quantity instead of ordered quantity', async () => {
@@ -150,13 +162,14 @@ describe('moving average cost workflow', () => {
 
     await service.allocateCosts('po-1');
 
-    expect(service.costAllocationService.repo.updateAllocations).toHaveBeenCalledWith([
-      { id: 'i-1', allocated_freight: 10, allocated_tariff: 0 },
-      { id: 'i-2', allocated_freight: 20, allocated_tariff: 0 },
-    ]);
-    // MAC updates are batched; verify db.batch was called with 2 UPDATE statements
+    // Allocations and MAC updates are now in a single atomic batch
     expect(db.batch).toHaveBeenCalledTimes(1);
-    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE product_variants SET cost_price'));
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE purchase_order_items SET allocated_freight')
+    );
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE product_variants SET cost_price')
+    );
   });
 
   it('skips MAC updates for items that have not been received yet', async () => {
@@ -197,12 +210,15 @@ describe('moving average cost workflow', () => {
 
     await service.allocateCosts('po-1');
 
-    expect(service.costAllocationService.repo.updateAllocations).toHaveBeenCalledWith([
-      { id: 'i-1', allocated_freight: 0, allocated_tariff: 0 },
-      { id: 'i-2', allocated_freight: 6, allocated_tariff: 4 },
-    ]);
+    // Allocations and MAC updates are now in a single atomic batch
     // Only v-2 gets MAC update (v-1 has received_qty=0)
     expect(db.batch).toHaveBeenCalledTimes(1);
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE purchase_order_items SET allocated_freight')
+    );
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE product_variants SET cost_price')
+    );
   });
 
   it('aggregates MAC updates per variant when one purchase order splits the same variant across multiple lines', async () => {
@@ -243,15 +259,18 @@ describe('moving average cost workflow', () => {
 
     await service.allocateCosts('po-1');
 
-    expect(service.costAllocationService.repo.updateAllocations).toHaveBeenCalledWith([
-      { id: 'i-1', allocated_freight: 10, allocated_tariff: 0 },
-      { id: 'i-2', allocated_freight: 10, allocated_tariff: 0 },
-    ]);
+    // Allocations and MAC updates are now in a single atomic batch
     // v-1 aggregated: qty=3, totalCost=60, batched as single UPDATE
     expect(db.batch).toHaveBeenCalledTimes(1);
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE purchase_order_items SET allocated_freight')
+    );
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE product_variants SET cost_price')
+    );
   });
 
-  it('rolls allocations and prior variant costs back when MAC batch fails', async () => {
+  it('propagates batch failure when atomic allocation + MAC update fails', async () => {
     const { db, poRecord } = createDbForAllocateCosts({
       id: 'po-1',
       status: 'completed',
@@ -262,7 +281,7 @@ describe('moving average cost workflow', () => {
       estimated_tariff_cost: 0,
     });
 
-    // Make the batch fail to simulate MAC failure
+    // Make the batch fail to simulate atomic failure
     db.batch.mockRejectedValueOnce(new Error('mac failed'));
 
     const service = new PurchaseOrderService(db);
@@ -300,16 +319,10 @@ describe('moving average cost workflow', () => {
 
     await expect(service.allocateCosts('po-1')).rejects.toThrow('mac failed');
 
-    // Forward allocations called first
-    expect(service.costAllocationService.repo.updateAllocations).toHaveBeenNthCalledWith(1, [
-      { id: 'i-1', allocated_freight: 10, allocated_tariff: 0 },
-      { id: 'i-2', allocated_freight: 10, allocated_tariff: 0 },
-    ]);
-    // Rollback allocations called on failure
-    expect(service.costAllocationService.repo.updateAllocations).toHaveBeenNthCalledWith(2, [
-      { id: 'i-1', allocated_freight: 1, allocated_tariff: 2 },
-      { id: 'i-2', allocated_freight: 3, allocated_tariff: 4 },
-    ]);
+    // Atomic batch: updateAllocations is NOT called separately
+    // (allocations are built as statements inside the batch)
+    expect(service.costAllocationService.repo.updateAllocations).not.toHaveBeenCalled();
+    expect(db.batch).toHaveBeenCalledTimes(1);
   });
 
   it('rejects manual cost allocation before the purchase order reaches completed', async () => {
@@ -346,6 +359,8 @@ describe('moving average cost workflow', () => {
     await expect(allocationAttempt).rejects.toThrow('仅已结算采购单允许执行成本分摊');
     expect(service.costAllocationService.repo.getItemsForAllocation).not.toHaveBeenCalled();
     expect(service.costAllocationService.repo.updateAllocations).not.toHaveBeenCalled();
-    expect(service.costAllocationService.variantRepo.updateMovingAverageCost).not.toHaveBeenCalled();
+    expect(
+      service.costAllocationService.variantRepo.updateMovingAverageCost
+    ).not.toHaveBeenCalled();
   });
 });

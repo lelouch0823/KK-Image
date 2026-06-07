@@ -3,382 +3,430 @@ import { Hono } from 'hono';
 import productsDetailApp from '../[id].js';
 
 const mockProductRepo = {
-    findById: vi.fn(),
+  findById: vi.fn(),
 };
 
 const mockVariantRepo = {
-    findByProductId: vi.fn(),
+  findByProductId: vi.fn(),
 };
 
 const mockVariantImageRepo = {
-    listByVariant: vi.fn(),
+  listByVariant: vi.fn(),
 };
 
 const mockDimensionRepo = {
-    listByProduct: vi.fn(),
-    getDimensionMap: vi.fn(),
-    createDimension: vi.fn(),
-    updateDimension: vi.fn(),
-    archiveDimension: vi.fn(),
-    addValue: vi.fn(),
-    archiveValue: vi.fn(),
-    restoreValue: vi.fn(),
-    getImpactPreview: vi.fn(),
-    archiveVariantsByDimension: vi.fn(),
-    archiveVariantsByValue: vi.fn(),
-    mergeKeepByDimensionRemoval: vi.fn(),
+  listByProduct: vi.fn(),
+  getDimensionMap: vi.fn(),
+  createDimension: vi.fn(),
+  updateDimension: vi.fn(),
+  archiveDimension: vi.fn(),
+  addValue: vi.fn(),
+  archiveValue: vi.fn(),
+  restoreValue: vi.fn(),
+  getImpactPreview: vi.fn(),
+  archiveVariantsByDimension: vi.fn(),
+  archiveVariantsByValue: vi.fn(),
+  mergeKeepByDimensionRemoval: vi.fn(),
 };
 const mockCommandRepo = {
-    reserveCommand: vi.fn(),
-    buildDeleteStatement: vi.fn(),
-    deleteRun: vi.fn(async () => ({ meta: { changes: 1 } })),
-    buildFinalizeStatement: vi.fn(),
-    finalizeRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+  reserveCommand: vi.fn(),
+  buildDeleteStatement: vi.fn(),
+  deleteRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+  buildFinalizeStatement: vi.fn(),
+  finalizeRun: vi.fn(async () => ({ meta: { changes: 1 } })),
 };
 const mockScheduleProductCacheInvalidation = vi.fn(async () => []);
 
 vi.mock('../../../../../../repositories/ProductRepository.js', () => ({
-    ProductRepository: class {
-        findById(...args) {
-            return mockProductRepo.findById(...args);
-        }
-        updateWithMeta() {
-            return { success: true, changes: 1 };
-        }
-        update() {
-            return true;
-        }
-    },
+  ProductRepository: class {
+    findById(...args) {
+      return mockProductRepo.findById(...args);
+    }
+    updateWithMeta() {
+      return { success: true, changes: 1 };
+    }
+    update() {
+      return true;
+    }
+  },
 }));
 
 vi.mock('../../../../../../repositories/ProductVariantRepository.js', () => ({
-    ProductVariantRepository: class {
-        findByProductId(...args) {
-            return mockVariantRepo.findByProductId(...args);
-        }
-        syncVariants() {
-            return [];
-        }
-        buildAuditEvents() {
-            return [];
-        }
-    },
+  ProductVariantRepository: class {
+    findByProductId(...args) {
+      return mockVariantRepo.findByProductId(...args);
+    }
+    syncVariants() {
+      return [];
+    }
+    buildAuditEvents() {
+      return [];
+    }
+  },
 }));
 
 vi.mock('../../../../../../repositories/VariantImageRepository.js', () => ({
-    VariantImageRepository: class {
-        listByVariant(...args) {
-            return mockVariantImageRepo.listByVariant(...args);
-        }
-    },
+  VariantImageRepository: class {
+    listByVariant(...args) {
+      return mockVariantImageRepo.listByVariant(...args);
+    }
+  },
 }));
 
 vi.mock('../../../../../../repositories/VariantAuditRepository.js', () => ({
-    VariantAuditRepository: class {
-        createBatch() {
-            return [];
-        }
-    },
+  VariantAuditRepository: class {
+    createBatch() {
+      return [];
+    }
+  },
 }));
 
 vi.mock('../../../../../../repositories/PriceRuleRepository.js', () => ({
-    PriceRuleRepository: class {
-        findByProductId() {
-            return new Map();
-        }
-        findByVariantIds() {
-            return new Map();
-        }
-        upsertBatch() {
-            return [];
-        }
-        delete() {
-            return true;
-        }
-    },
+  PriceRuleRepository: class {
+    findByProductId() {
+      return new Map();
+    }
+    findByVariantIds() {
+      return new Map();
+    }
+    upsertBatch() {
+      return [];
+    }
+    delete() {
+      return true;
+    }
+  },
 }));
 
 vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
-    ProductDimensionRepository: class {
-        listByProduct(...args) {
-            return mockDimensionRepo.listByProduct(...args);
-        }
-        getDimensionMap(...args) {
-            return mockDimensionRepo.getDimensionMap(...args);
-        }
-        createDimension(...args) {
-            return mockDimensionRepo.createDimension(...args);
-        }
-        updateDimension(...args) {
-            return mockDimensionRepo.updateDimension(...args);
-        }
-        archiveDimension(...args) {
-            return mockDimensionRepo.archiveDimension(...args);
-        }
-        addValue(...args) {
-            return mockDimensionRepo.addValue(...args);
-        }
-        archiveValue(...args) {
-            return mockDimensionRepo.archiveValue(...args);
-        }
-        restoreValue(...args) {
-            return mockDimensionRepo.restoreValue(...args);
-        }
-        getImpactPreview(...args) {
-            return mockDimensionRepo.getImpactPreview(...args);
-        }
-        archiveVariantsByDimension(...args) {
-            return mockDimensionRepo.archiveVariantsByDimension(...args);
-        }
-        archiveVariantsByValue(...args) {
-            return mockDimensionRepo.archiveVariantsByValue(...args);
-        }
-        mergeKeepByDimensionRemoval(...args) {
-            return mockDimensionRepo.mergeKeepByDimensionRemoval(...args);
-        }
-    },
+  ProductDimensionRepository: class {
+    listByProduct(...args) {
+      return mockDimensionRepo.listByProduct(...args);
+    }
+    getDimensionMap(...args) {
+      return mockDimensionRepo.getDimensionMap(...args);
+    }
+    createDimension(...args) {
+      return mockDimensionRepo.createDimension(...args);
+    }
+    updateDimension(...args) {
+      return mockDimensionRepo.updateDimension(...args);
+    }
+    archiveDimension(...args) {
+      return mockDimensionRepo.archiveDimension(...args);
+    }
+    addValue(...args) {
+      return mockDimensionRepo.addValue(...args);
+    }
+    archiveValue(...args) {
+      return mockDimensionRepo.archiveValue(...args);
+    }
+    restoreValue(...args) {
+      return mockDimensionRepo.restoreValue(...args);
+    }
+    getImpactPreview(...args) {
+      return mockDimensionRepo.getImpactPreview(...args);
+    }
+    archiveVariantsByDimension(...args) {
+      return mockDimensionRepo.archiveVariantsByDimension(...args);
+    }
+    archiveVariantsByValue(...args) {
+      return mockDimensionRepo.archiveVariantsByValue(...args);
+    }
+    mergeKeepByDimensionRemoval(...args) {
+      return mockDimensionRepo.mergeKeepByDimensionRemoval(...args);
+    }
+  },
 }));
 
 vi.mock('../../../../../../repositories/CommandIdempotencyRepository.js', () => ({
-    CommandIdempotencyRepository: class {
-        reserveCommand(...args) {
-            return mockCommandRepo.reserveCommand(...args);
-        }
-        buildDeleteStatement(...args) {
-            return mockCommandRepo.buildDeleteStatement(...args);
-        }
-        buildFinalizeStatement(...args) {
-            return mockCommandRepo.buildFinalizeStatement(...args);
-        }
-    },
+  CommandIdempotencyRepository: class {
+    reserveCommand(...args) {
+      return mockCommandRepo.reserveCommand(...args);
+    }
+    buildDeleteStatement(...args) {
+      return mockCommandRepo.buildDeleteStatement(...args);
+    }
+    buildFinalizeStatement(...args) {
+      return mockCommandRepo.buildFinalizeStatement(...args);
+    }
+  },
 }));
 
-vi.mock("../../../../middleware/cache.js", () => ({
+vi.mock('../../../../middleware/cache.js', () => ({
   withCache: () => async (_c, next) => next(),
-    invalidateCache: vi.fn(),
-    getProductCacheUrls: vi.fn(() => []),
+  invalidateCache: vi.fn(),
+  getProductCacheUrls: vi.fn(() => []),
 }));
 
 vi.mock('../../../../middleware/auth.js', () => ({
-    requirePermission: () => async (_c, next) => next(),
+  requirePermission: () => async (_c, next) => next(),
 }));
 
 vi.mock('../cache-helpers.js', () => ({
-    scheduleProductCacheInvalidation: (...args) => mockScheduleProductCacheInvalidation(...args),
+  scheduleProductCacheInvalidation: (...args) => mockScheduleProductCacheInvalidation(...args),
 }));
 
 function createApp() {
-    const app = new Hono();
-    app.onError((err, c) => c.json({ success: false, error: err.message }, err.statusCode || 500));
-    app.use('/api/manage/products/*', async (c, next) => {
-        c.set('user', { id: 'u-manager', type: 'user', role: 'manager', permissions: ['products:manage'] });
-        await next();
+  const app = new Hono();
+  app.onError((err, c) => c.json({ success: false, error: err.message }, err.statusCode || 500));
+  app.use('/api/manage/products/*', async (c, next) => {
+    c.set('user', {
+      id: 'u-manager',
+      type: 'user',
+      role: 'manager',
+      permissions: ['products:manage'],
     });
-    app.route('/api/manage/products', productsDetailApp);
-    return app;
+    await next();
+  });
+  app.route('/api/manage/products', productsDetailApp);
+  return app;
 }
 
 describe('variant dimensions routes', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        mockProductRepo.findById.mockResolvedValue({ id: 'prod-1', name: 'Tee' });
-        mockVariantRepo.findByProductId.mockResolvedValue([]);
-        mockVariantImageRepo.listByVariant.mockResolvedValue([]);
-        mockScheduleProductCacheInvalidation.mockResolvedValue([]);
-        mockDimensionRepo.listByProduct.mockResolvedValue([
-            { id: 'dim-color', name: 'Color', status: 'active', values: [] },
-        ]);
-        mockDimensionRepo.getDimensionMap.mockResolvedValue({ 'dim-color': 'Color' });
-        mockDimensionRepo.createDimension.mockResolvedValue({ id: 'dim-size', name: 'Size', status: 'active' });
-        mockDimensionRepo.updateDimension.mockResolvedValue({ id: 'dim-color', name: 'Colour', status: 'active' });
-        mockDimensionRepo.archiveDimension.mockResolvedValue({ id: 'dim-color', status: 'archived' });
-        mockDimensionRepo.addValue.mockResolvedValue({ id: 'val-red', value: 'Red', status: 'active' });
-        mockDimensionRepo.archiveValue.mockResolvedValue({ id: 'val-red', status: 'archived' });
-        mockDimensionRepo.restoreValue.mockResolvedValue({ id: 'val-red', status: 'active' });
-        mockDimensionRepo.getImpactPreview.mockResolvedValue({ affectedVariantsCount: 2, sampleVariants: [{ id: 'v1' }] });
-        mockDimensionRepo.archiveVariantsByDimension.mockResolvedValue(2);
-        mockDimensionRepo.archiveVariantsByValue.mockResolvedValue({ changes: 1, dimensionId: 'dim-color', value: 'Red' });
-        mockDimensionRepo.mergeKeepByDimensionRemoval.mockResolvedValue({ deduped: 1, updated: 2 });
-        mockCommandRepo.reserveCommand.mockResolvedValue({
-            existing: false,
-            ownsReservation: true,
-            record: { command_id: 'cmd-product-detail-test-1' },
-        });
-        mockCommandRepo.buildDeleteStatement.mockReturnValue({
-            run: mockCommandRepo.deleteRun,
-        });
-        mockCommandRepo.buildFinalizeStatement.mockReturnValue({
-            run: mockCommandRepo.finalizeRun,
-        });
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockProductRepo.findById.mockResolvedValue({ id: 'prod-1', name: 'Tee' });
+    mockVariantRepo.findByProductId.mockResolvedValue([]);
+    mockVariantImageRepo.listByVariant.mockResolvedValue([]);
+    mockScheduleProductCacheInvalidation.mockResolvedValue([]);
+    mockDimensionRepo.listByProduct.mockResolvedValue([
+      { id: 'dim-color', name: 'Color', status: 'active', values: [] },
+    ]);
+    mockDimensionRepo.getDimensionMap.mockResolvedValue({ 'dim-color': 'Color' });
+    mockDimensionRepo.createDimension.mockResolvedValue({
+      id: 'dim-size',
+      name: 'Size',
+      status: 'active',
     });
-
-    it('GET /:id returns dimensions and dimension_map', async () => {
-        const app = createApp();
-        const res = await app.request('http://localhost/api/manage/products/prod-1', {}, { DB: {} }, { waitUntil: vi.fn() });
-        expect(res.status).toBe(200);
-        const body = await res.json();
-        expect(body.data.dimensions).toHaveLength(1);
-        expect(body.data.dimension_map['dim-color']).toBe('Color');
+    mockDimensionRepo.updateDimension.mockResolvedValue({
+      id: 'dim-color',
+      name: 'Colour',
+      status: 'active',
     });
-
-    it('POST /:id/dimensions creates a dimension', async () => {
-        const app = createApp();
-        const res = await app.request(
-            'http://localhost/api/manage/products/prod-1/dimensions',
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: 'Size' }),
-            },
-            { DB: {} },
-            { waitUntil: vi.fn() }
-        );
-        expect(res.status).toBe(201);
-        expect(mockDimensionRepo.createDimension).toHaveBeenCalledWith('prod-1', { name: 'Size' });
+    mockDimensionRepo.archiveDimension.mockResolvedValue({ id: 'dim-color', status: 'archived' });
+    mockDimensionRepo.addValue.mockResolvedValue({ id: 'val-red', value: 'Red', status: 'active' });
+    mockDimensionRepo.archiveValue.mockResolvedValue({ id: 'val-red', status: 'archived' });
+    mockDimensionRepo.restoreValue.mockResolvedValue({ id: 'val-red', status: 'active' });
+    mockDimensionRepo.getImpactPreview.mockResolvedValue({
+      affectedVariantsCount: 2,
+      sampleVariants: [{ id: 'v1' }],
     });
-
-    it('POST /:id/dimensions rejects duplicate active dimension names', async () => {
-        mockDimensionRepo.createDimension.mockRejectedValueOnce(new Error('duplicate dimension names are not supported'));
-
-        const app = createApp();
-        const res = await app.request(
-            'http://localhost/api/manage/products/prod-1/dimensions',
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: 'Color' }),
-            },
-            { DB: {} },
-            { waitUntil: vi.fn() }
-        );
-
-        expect(res.status).toBe(400);
-        expect(await res.json()).toEqual(expect.objectContaining({
-            error: 'duplicate dimension names are not supported',
-        }));
+    mockDimensionRepo.archiveVariantsByDimension.mockResolvedValue(2);
+    mockDimensionRepo.archiveVariantsByValue.mockResolvedValue({
+      changes: 1,
+      dimensionId: 'dim-color',
+      value: 'Red',
     });
-
-    it('PATCH /:id/dimensions/:dimensionId rejects renaming to another active dimension name', async () => {
-        mockDimensionRepo.updateDimension.mockRejectedValueOnce(new Error('duplicate dimension names are not supported'));
-
-        const app = createApp();
-        const res = await app.request(
-            'http://localhost/api/manage/products/prod-1/dimensions/dim-color',
-            {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: 'Size' }),
-            },
-            { DB: {} },
-            { waitUntil: vi.fn() }
-        );
-
-        expect(res.status).toBe(400);
-        expect(await res.json()).toEqual(expect.objectContaining({
-            error: 'duplicate dimension names are not supported',
-        }));
+    mockDimensionRepo.mergeKeepByDimensionRemoval.mockResolvedValue({ deduped: 1, updated: 2 });
+    mockCommandRepo.reserveCommand.mockResolvedValue({
+      existing: false,
+      ownsReservation: true,
+      record: { command_id: 'cmd-product-detail-test-1' },
     });
-
-    it('PATCH /:id/dimensions/:dimensionId/archive supports merge_keep mode', async () => {
-        const app = createApp();
-        const res = await app.request(
-            'http://localhost/api/manage/products/prod-1/dimensions/dim-color/archive',
-            {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mode: 'merge_keep' }),
-            },
-            { DB: {} },
-            { waitUntil: vi.fn() }
-        );
-        expect(res.status).toBe(200);
-        expect(mockDimensionRepo.mergeKeepByDimensionRemoval).toHaveBeenCalledWith('prod-1', 'dim-color');
-        expect(mockDimensionRepo.archiveDimension).toHaveBeenCalledWith('prod-1', 'dim-color');
+    mockCommandRepo.buildDeleteStatement.mockReturnValue({
+      run: mockCommandRepo.deleteRun,
     });
-
-    it('POST /:id/dimensions/impact returns impact preview', async () => {
-        const app = createApp();
-        const payload = { action: 'archive_dimension', dimensionId: 'dim-color' };
-        const res = await app.request(
-            'http://localhost/api/manage/products/prod-1/dimensions/impact',
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            },
-            { DB: {} },
-            { waitUntil: vi.fn() }
-        );
-        expect(res.status).toBe(200);
-        const body = await res.json();
-        expect(body.data.affectedVariantsCount).toBe(2);
+    mockCommandRepo.buildFinalizeStatement.mockReturnValue({
+      run: mockCommandRepo.finalizeRun,
     });
+  });
 
-    it('PATCH /:id/values/:valueId/archive archives variants and value', async () => {
-        const app = createApp();
-        const res = await app.request(
-            'http://localhost/api/manage/products/prod-1/values/val-red/archive',
-            { method: 'PATCH' },
-            { DB: {} },
-            { waitUntil: vi.fn() }
-        );
-        expect(res.status).toBe(200);
-        expect(mockDimensionRepo.archiveVariantsByValue).toHaveBeenCalledWith('prod-1', 'val-red');
-        expect(mockDimensionRepo.archiveValue).toHaveBeenCalledWith('prod-1', 'val-red');
-    });
+  it('GET /:id returns dimensions and dimension_map', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/prod-1',
+      {},
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.dimensions).toHaveLength(1);
+    expect(body.data.dimension_map['dim-color']).toBe('Color');
+  });
 
-    it('POST /:id/dimensions/:dimensionId/values rejects duplicate labels after trim/case normalization', async () => {
-        mockDimensionRepo.addValue.mockRejectedValueOnce(new Error('duplicate dimension values with same label are not supported'));
+  it('POST /:id/dimensions creates a dimension', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/prod-1/dimensions',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Size' }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+    expect(res.status).toBe(201);
+    expect(mockDimensionRepo.createDimension).toHaveBeenCalledWith('prod-1', { name: 'Size' });
+  });
 
-        const app = createApp();
-        const res = await app.request(
-            'http://localhost/api/manage/products/prod-1/dimensions/dim-color/values',
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ value: ' RED ' }),
-            },
-            { DB: {} },
-            { waitUntil: vi.fn() }
-        );
+  it('POST /:id/dimensions rejects duplicate active dimension names', async () => {
+    mockDimensionRepo.createDimension.mockRejectedValueOnce(
+      new Error('duplicate dimension names are not supported')
+    );
 
-        expect(res.status).toBe(400);
-        expect(await res.json()).toEqual(expect.objectContaining({
-            error: 'duplicate dimension values with same label are not supported',
-        }));
-    });
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/prod-1/dimensions',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Color' }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
 
-    it('PATCH /:id/values/:valueId/restore rejects restoring values under archived dimensions', async () => {
-        mockDimensionRepo.restoreValue.mockRejectedValueOnce(new Error('cannot restore value for archived dimension'));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual(
+      expect.objectContaining({
+        error: 'duplicate dimension names are not supported',
+      })
+    );
+  });
 
-        const app = createApp();
-        const res = await app.request(
-            'http://localhost/api/manage/products/prod-1/values/val-red/restore',
-            { method: 'PATCH' },
-            { DB: {} },
-            { waitUntil: vi.fn() }
-        );
+  it('PATCH /:id/dimensions/:dimensionId rejects renaming to another active dimension name', async () => {
+    mockDimensionRepo.updateDimension.mockRejectedValueOnce(
+      new Error('duplicate dimension names are not supported')
+    );
 
-        expect(res.status).toBe(400);
-        expect(await res.json()).toEqual(expect.objectContaining({
-            error: 'cannot restore value for archived dimension',
-        }));
-    });
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/prod-1/dimensions/dim-color',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Size' }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
 
-    it('PATCH /:id/values/:valueId/restore rejects duplicate labels after trim/case normalization', async () => {
-        mockDimensionRepo.restoreValue.mockRejectedValueOnce(new Error('duplicate dimension values with same label are not supported'));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual(
+      expect.objectContaining({
+        error: 'duplicate dimension names are not supported',
+      })
+    );
+  });
 
-        const app = createApp();
-        const res = await app.request(
-            'http://localhost/api/manage/products/prod-1/values/val-red/restore',
-            { method: 'PATCH' },
-            { DB: {} },
-            { waitUntil: vi.fn() }
-        );
+  it('PATCH /:id/dimensions/:dimensionId/archive supports merge_keep mode', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/prod-1/dimensions/dim-color/archive',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'merge_keep' }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+    expect(res.status).toBe(200);
+    expect(mockDimensionRepo.mergeKeepByDimensionRemoval).toHaveBeenCalledWith(
+      'prod-1',
+      'dim-color'
+    );
+    expect(mockDimensionRepo.archiveDimension).toHaveBeenCalledWith('prod-1', 'dim-color');
+  });
 
-        expect(res.status).toBe(400);
-        expect(await res.json()).toEqual(expect.objectContaining({
-            error: 'duplicate dimension values with same label are not supported',
-        }));
-    });
+  it('POST /:id/dimensions/impact returns impact preview', async () => {
+    const app = createApp();
+    const payload = { action: 'archive_dimension', dimensionId: 'dim-color' };
+    const res = await app.request(
+      'http://localhost/api/manage/products/prod-1/dimensions/impact',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.affectedVariantsCount).toBe(2);
+  });
+
+  it('PATCH /:id/values/:valueId/archive archives variants and value', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/prod-1/values/val-red/archive',
+      { method: 'PATCH' },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+    expect(res.status).toBe(200);
+    expect(mockDimensionRepo.archiveVariantsByValue).toHaveBeenCalledWith('prod-1', 'val-red');
+    expect(mockDimensionRepo.archiveValue).toHaveBeenCalledWith('prod-1', 'val-red');
+  });
+
+  it('POST /:id/dimensions/:dimensionId/values rejects duplicate labels after trim/case normalization', async () => {
+    mockDimensionRepo.addValue.mockRejectedValueOnce(
+      new Error('duplicate dimension values with same label are not supported')
+    );
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/prod-1/dimensions/dim-color/values',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: ' RED ' }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual(
+      expect.objectContaining({
+        error: 'duplicate dimension values with same label are not supported',
+      })
+    );
+  });
+
+  it('PATCH /:id/values/:valueId/restore rejects restoring values under archived dimensions', async () => {
+    mockDimensionRepo.restoreValue.mockRejectedValueOnce(
+      new Error('cannot restore value for archived dimension')
+    );
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/prod-1/values/val-red/restore',
+      { method: 'PATCH' },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual(
+      expect.objectContaining({
+        error: 'cannot restore value for archived dimension',
+      })
+    );
+  });
+
+  it('PATCH /:id/values/:valueId/restore rejects duplicate labels after trim/case normalization', async () => {
+    mockDimensionRepo.restoreValue.mockRejectedValueOnce(
+      new Error('duplicate dimension values with same label are not supported')
+    );
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/products/prod-1/values/val-red/restore',
+      { method: 'PATCH' },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual(
+      expect.objectContaining({
+        error: 'duplicate dimension values with same label are not supported',
+      })
+    );
+  });
 });

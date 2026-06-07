@@ -30,7 +30,9 @@ function getRateLimitKv(env) {
 }
 
 function getClientIp(request) {
-  return request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
+  return (
+    request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown'
+  );
 }
 
 async function buildSignedFileUrl(env, fileRef, shareType, shareToken) {
@@ -71,7 +73,11 @@ async function resolveSpaceAssetUrl(value, fileUrlBuilder = getFileUrl) {
 /**
  * 获取空间数据 (GET/POST 共享逻辑)
  */
-async function getSpaceData(space, env, { includePrivateSubspaces = false, fileUrlBuilder = getFileUrl } = {}) {
+async function getSpaceData(
+  space,
+  env,
+  { includePrivateSubspaces = false, fileUrlBuilder = getFileUrl } = {}
+) {
   const templateData = projectSpaceTemplateData(space);
   const subspacesVisibilityFilter = includePrivateSubspaces ? '' : ' AND s.is_public = 1';
   // 并行获取文件列表和子空间
@@ -161,19 +167,22 @@ async function getSpaceData(space, env, { includePrivateSubspaces = false, fileU
           const url = await resolveSpaceAssetUrl(imgUrl, fileUrlBuilder);
           if (!url) return null;
           return {
-        id: `product-img-${index}`,
-        name: `Product Image ${index + 1}`,
-        size: 0,
-        type: 'image',
-        mimeType: 'image/jpeg', // Assumption for rendering
-        url,
-        thumbnailUrl: url,
-      };
+            id: `product-img-${index}`,
+            name: `Product Image ${index + 1}`,
+            size: 0,
+            type: 'image',
+            mimeType: 'image/jpeg', // Assumption for rendering
+            url,
+            thumbnailUrl: url,
+          };
         })
       )
     ).filter(Boolean);
 
-    productFiles.slice().reverse().forEach((file) => appendFile('default', file, { prepend: true }));
+    productFiles
+      .slice()
+      .reverse()
+      .forEach((file) => appendFile('default', file, { prepend: true }));
     allFiles = Object.values(groupedFiles).flat();
   }
 
@@ -199,28 +208,32 @@ async function getSpaceData(space, env, { includePrivateSubspaces = false, fileU
     viewCount: space.view_count,
     files: allFiles,
     groupedFiles,
-    subspaces: await Promise.all(subspaces.map(async (s) => {
-      const templateData = projectSpaceTemplateData(s);
-      const templateImages = (
-        await Promise.all(
-          parseJsonArray(templateData.images, []).map((image) =>
-            resolveSpaceAssetUrl(image, fileUrlBuilder)
+    subspaces: await Promise.all(
+      subspaces.map(async (s) => {
+        const templateData = projectSpaceTemplateData(s);
+        const templateImages = (
+          await Promise.all(
+            parseJsonArray(templateData.images, []).map((image) =>
+              resolveSpaceAssetUrl(image, fileUrlBuilder)
+            )
           )
-        )
-      ).filter(Boolean);
-      const coverImage =
-        (s.cover_storage_key ? await fileUrlBuilder(s.cover_storage_key) : null) || templateImages[0] || null;
-      return {
-        id: s.id,
-        name: s.name,
-        description: s.description,
-        template: s.template,
-        templateData,
-        fileCount: s.file_count || templateImages.length,
-        shareUrl: s.share_token ? `/space/${s.share_token}` : null,
-        coverImage,
-      };
-    })),
+        ).filter(Boolean);
+        const coverImage =
+          (s.cover_storage_key ? await fileUrlBuilder(s.cover_storage_key) : null) ||
+          templateImages[0] ||
+          null;
+        return {
+          id: s.id,
+          name: s.name,
+          description: s.description,
+          template: s.template,
+          templateData,
+          fileCount: s.file_count || templateImages.length,
+          shareUrl: s.share_token ? `/space/${s.share_token}` : null,
+          coverImage,
+        };
+      })
+    ),
   };
 }
 
@@ -275,7 +288,8 @@ export async function onRequestGet(context) {
 
   try {
     // 查找空间
-    const space = await env.DB.prepare(`
+    const space = await env.DB.prepare(
+      `
         SELECT s.*,
             p.spu as p_sku, NULL as p_status, p.brand as p_brand, p.series as p_series,
             (
@@ -299,7 +313,10 @@ export async function onRequestGet(context) {
         LEFT JOIN products p ON s.product_id = p.id
         LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
         WHERE s.share_token = ?
-    `).bind(shareToken).first();
+    `
+    )
+      .bind(shareToken)
+      .first();
 
     if (!space) {
       return error(MSG.SPACE.NOT_FOUND, 404);
@@ -338,9 +355,7 @@ export async function onRequestGet(context) {
 
     return success(data, 'Success', 200, {
       'Cache-Control':
-        space.is_public && !space.password
-          ? PUBLIC_SHARE_CACHE_CONTROL
-          : 'no-store, max-age=0',
+        space.is_public && !space.password ? PUBLIC_SHARE_CACHE_CONTROL : 'no-store, max-age=0',
     });
   } catch (err) {
     console.error(`${MSG.COMMON.LOAD_FAILED}:`, err);
@@ -365,7 +380,8 @@ export async function onRequestPost(context) {
     }
 
     // 查找空间
-    const space = await env.DB.prepare(`
+    const space = await env.DB.prepare(
+      `
         SELECT s.*,
             p.spu as p_sku, NULL as p_status, p.brand as p_brand, p.series as p_series,
             (
@@ -389,7 +405,10 @@ export async function onRequestPost(context) {
         LEFT JOIN products p ON s.product_id = p.id
         LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
         WHERE s.share_token = ?
-    `).bind(shareToken).first();
+    `
+    )
+      .bind(shareToken)
+      .first();
 
     if (!space) {
       return error(MSG.SPACE.NOT_FOUND, 404);

@@ -14,9 +14,9 @@
 
 - Modify: [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue)
   Purpose: refine the overview banner, status cards, table toolbar and cells, detail modal panels, and residual page-local typography inside the purchase-order workspace
-- Modify: [src/views/__tests__/PurchaseOrders.design-system-migration.test.js](/home/bjw/Code/KK-Image/src/views/__tests__/PurchaseOrders.design-system-migration.test.js)
+- Modify: [src/views/**tests**/PurchaseOrders.design-system-migration.test.js](/home/bjw/Code/KK-Image/src/views/__tests__/PurchaseOrders.design-system-migration.test.js)
   Purpose: lock source-level visual contracts for the shared shell, overview strip, quieter surface language, and removal of `font-[Outfit]`
-- Modify: [src/views/__tests__/PurchaseOrders.detail-shell.test.js](/home/bjw/Code/KK-Image/src/views/__tests__/PurchaseOrders.detail-shell.test.js)
+- Modify: [src/views/**tests**/PurchaseOrders.detail-shell.test.js](/home/bjw/Code/KK-Image/src/views/__tests__/PurchaseOrders.detail-shell.test.js)
   Purpose: keep the detail shell, summary, progress, cost, items, and receipts regions reachable while the modal visuals are reworked
 
 ## Preflight Notes
@@ -28,8 +28,9 @@
 ### Task 1: Tighten Overview And Table Contracts
 
 **Files:**
+
 - Modify: [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue)
-- Modify: [src/views/__tests__/PurchaseOrders.design-system-migration.test.js](/home/bjw/Code/KK-Image/src/views/__tests__/PurchaseOrders.design-system-migration.test.js)
+- Modify: [src/views/**tests**/PurchaseOrders.design-system-migration.test.js](/home/bjw/Code/KK-Image/src/views/__tests__/PurchaseOrders.design-system-migration.test.js)
 
 - [ ] **Step 1: Write the failing design-contract test for calmer top-level surfaces**
 
@@ -47,7 +48,9 @@ it('replaces the heavy overview hero gradient with quieter panel framing', () =>
 it('drops the table-row cost pill so money reads as calmer ledger data', () => {
   const source = readFileSync(resolve(process.cwd(), 'src/views/PurchaseOrders.vue'), 'utf8');
 
-  expect(source).not.toContain('inline-flex min-w-[7.5rem] justify-end rounded-lg bg-(--bg-muted)/65');
+  expect(source).not.toContain(
+    'inline-flex min-w-[7.5rem] justify-end rounded-lg bg-(--bg-muted)/65'
+  );
   expect(source).toContain('data-testid="purchase-order-total-cost"');
 });
 ```
@@ -115,9 +118,10 @@ git commit -m "refactor: unify purchase order overview surfaces"
 ### Task 2: Refine The Detail Modal Into The Same Workspace
 
 **Files:**
+
 - Modify: [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue)
-- Modify: [src/views/__tests__/PurchaseOrders.design-system-migration.test.js](/home/bjw/Code/KK-Image/src/views/__tests__/PurchaseOrders.design-system-migration.test.js)
-- Modify: [src/views/__tests__/PurchaseOrders.detail-shell.test.js](/home/bjw/Code/KK-Image/src/views/__tests__/PurchaseOrders.detail-shell.test.js)
+- Modify: [src/views/**tests**/PurchaseOrders.design-system-migration.test.js](/home/bjw/Code/KK-Image/src/views/__tests__/PurchaseOrders.design-system-migration.test.js)
+- Modify: [src/views/**tests**/PurchaseOrders.detail-shell.test.js](/home/bjw/Code/KK-Image/src/views/__tests__/PurchaseOrders.detail-shell.test.js)
 
 - [ ] **Step 1: Write the failing tests for the quieter detail shell contract**
 
@@ -208,8 +212,9 @@ git commit -m "refactor: unify purchase order detail surfaces"
 ### Task 3: Sweep Residual Typography And Run Final Verification
 
 **Files:**
+
 - Modify: [src/views/PurchaseOrders.vue](/home/bjw/Code/KK-Image/src/views/PurchaseOrders.vue)
-- Modify: [src/views/__tests__/PurchaseOrders.design-system-migration.test.js](/home/bjw/Code/KK-Image/src/views/__tests__/PurchaseOrders.design-system-migration.test.js)
+- Modify: [src/views/**tests**/PurchaseOrders.design-system-migration.test.js](/home/bjw/Code/KK-Image/src/views/__tests__/PurchaseOrders.design-system-migration.test.js)
 
 - [ ] **Step 1: Write the failing regression test that the whole purchase-order workspace is free of page-local display typography**
 

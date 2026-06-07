@@ -70,28 +70,33 @@ describe('DomainOutboxConsumers notifications', () => {
       id: 'notification-1',
       created: true,
     });
-    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'order',
-      title: '{"key":"notification.purchase_receipt_recorded"}',
-      content: '{"key":"notification.purchase_receipt_recorded_desc","qty":3,"purchaseOrderId":"po-1"}',
-      receiver: 'admin',
-      orderId: 'o-1',
-      sourceConsumer: 'notification',
-      sourceEventId: 'evt-1',
-      dedupeKey: 'purchase_receipt_recorded:evt-1:admin',
-      metadata: expect.objectContaining({
-        eventType: 'purchase_receipt_recorded',
-        payload: expect.objectContaining({
-          purchase_order_id: 'po-1',
-          receipt_id: 'receipt-1',
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'order',
+        title: '{"key":"notification.purchase_receipt_recorded"}',
+        content:
+          '{"key":"notification.purchase_receipt_recorded_desc","qty":3,"purchaseOrderId":"po-1"}',
+        receiver: 'admin',
+        orderId: 'o-1',
+        sourceConsumer: 'notification',
+        sourceEventId: 'evt-1',
+        dedupeKey: 'purchase_receipt_recorded:evt-1:admin',
+        metadata: expect.objectContaining({
+          eventType: 'purchase_receipt_recorded',
+          payload: expect.objectContaining({
+            purchase_order_id: 'po-1',
+            receipt_id: 'receipt-1',
+          }),
         }),
-      }),
-    }));
+      })
+    );
     expect(mocks.invalidateCache).toHaveBeenCalledTimes(1);
-    expect(mocks.invalidateCache.mock.calls[0][0]).toEqual(expect.arrayContaining([
-      'https://kk.example.com/api/manage/notifications',
-      'https://kk.example.com/api/manage/notifications?limit=20',
-    ]));
+    expect(mocks.invalidateCache.mock.calls[0][0]).toEqual(
+      expect.arrayContaining([
+        'https://kk.example.com/api/manage/notifications',
+        'https://kk.example.com/api/manage/notifications?limit=20',
+      ])
+    );
   });
 
   it('creates one admin notification from order_procurement_progressed', async () => {
@@ -117,15 +122,18 @@ describe('DomainOutboxConsumers notifications', () => {
       id: 'notification-1',
       created: true,
     });
-    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
-      title: '{"key":"notification.order_procurement_progressed"}',
-      content: '{"key":"notification.order_procurement_progressed_desc","qty":2,"status":"partially_arrived","purchaseOrderId":"po-2"}',
-      receiver: 'admin',
-      orderId: 'o-2',
-      sourceConsumer: 'notification',
-      sourceEventId: 'evt-2',
-      dedupeKey: 'order_procurement_progressed:evt-2:admin',
-    }));
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: '{"key":"notification.order_procurement_progressed"}',
+        content:
+          '{"key":"notification.order_procurement_progressed_desc","qty":2,"status":"partially_arrived","purchaseOrderId":"po-2"}',
+        receiver: 'admin',
+        orderId: 'o-2',
+        sourceConsumer: 'notification',
+        sourceEventId: 'evt-2',
+        dedupeKey: 'order_procurement_progressed:evt-2:admin',
+      })
+    );
   });
 
   it('creates reversal notifications with localized procurement rollback content', async () => {
@@ -150,13 +158,16 @@ describe('DomainOutboxConsumers notifications', () => {
       id: 'notification-1',
       created: true,
     });
-    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
-      title: '{"key":"notification.order_procurement_reversed"}',
-      content: '{"key":"notification.order_procurement_reversed_desc","qty":2,"status":"ordered","purchaseOrderId":"po-rollback"}',
-      receiver: 'admin',
-      orderId: 'o-rollback',
-      dedupeKey: 'order_procurement_reversed:evt-rollback:admin',
-    }));
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: '{"key":"notification.order_procurement_reversed"}',
+        content:
+          '{"key":"notification.order_procurement_reversed_desc","qty":2,"status":"ordered","purchaseOrderId":"po-rollback"}',
+        receiver: 'admin',
+        orderId: 'o-rollback',
+        dedupeKey: 'order_procurement_reversed:evt-rollback:admin',
+      })
+    );
   });
 
   it('creates one sales notification from order_created_by_admin', async () => {
@@ -182,17 +193,19 @@ describe('DomainOutboxConsumers notifications', () => {
       id: 'notification-1',
       created: true,
     });
-    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
-      receiver: 'sales',
-      salespersonId: 'sp-4',
-      orderId: 'o-4',
-      sourceConsumer: 'notification',
-      sourceEventId: 'evt-4',
-      dedupeKey: 'order_created_by_admin:evt-4:sales:sp-4',
-      metadata: expect.objectContaining({
-        eventType: 'order_created_by_admin',
-      }),
-    }));
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        receiver: 'sales',
+        salespersonId: 'sp-4',
+        orderId: 'o-4',
+        sourceConsumer: 'notification',
+        sourceEventId: 'evt-4',
+        dedupeKey: 'order_created_by_admin:evt-4:sales:sp-4',
+        metadata: expect.objectContaining({
+          eventType: 'order_created_by_admin',
+        }),
+      })
+    );
   });
 
   it('creates one admin notification from order_updated_by_sales', async () => {
@@ -219,17 +232,19 @@ describe('DomainOutboxConsumers notifications', () => {
       id: 'notification-1',
       created: true,
     });
-    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
-      receiver: 'admin',
-      salespersonId: null,
-      orderId: 'o-5',
-      sourceConsumer: 'notification',
-      sourceEventId: 'evt-5',
-      dedupeKey: 'order_updated_by_sales:evt-5:admin',
-      metadata: expect.objectContaining({
-        eventType: 'order_updated_by_sales',
-      }),
-    }));
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        receiver: 'admin',
+        salespersonId: null,
+        orderId: 'o-5',
+        sourceConsumer: 'notification',
+        sourceEventId: 'evt-5',
+        dedupeKey: 'order_updated_by_sales:evt-5:admin',
+        metadata: expect.objectContaining({
+          eventType: 'order_updated_by_sales',
+        }),
+      })
+    );
   });
 
   it('creates one sales notification from order_delivery_confirmed', async () => {
@@ -256,17 +271,22 @@ describe('DomainOutboxConsumers notifications', () => {
       id: 'notification-1',
       created: true,
     });
-    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
-      title: JSON.stringify({ key: 'notification.order.deliveryConfirmed' }),
-      content: JSON.stringify({ key: 'notification.order.deliveryConfirmed_desc', params: { orderNo: 'SO-DELIVERY' } }),
-      receiver: 'sales',
-      salespersonId: 'sp-delivery',
-      orderId: 'o-delivery',
-      dedupeKey: 'order_delivery_confirmed:evt-delivery:sales:sp-delivery',
-      metadata: expect.objectContaining({
-        eventType: 'order_delivery_confirmed',
-      }),
-    }));
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: JSON.stringify({ key: 'notification.order.deliveryConfirmed' }),
+        content: JSON.stringify({
+          key: 'notification.order.deliveryConfirmed_desc',
+          params: { orderNo: 'SO-DELIVERY' },
+        }),
+        receiver: 'sales',
+        salespersonId: 'sp-delivery',
+        orderId: 'o-delivery',
+        dedupeKey: 'order_delivery_confirmed:evt-delivery:sales:sp-delivery',
+        metadata: expect.objectContaining({
+          eventType: 'order_delivery_confirmed',
+        }),
+      })
+    );
   });
 
   it('creates one sales notification from order_return_created', async () => {
@@ -294,17 +314,22 @@ describe('DomainOutboxConsumers notifications', () => {
       id: 'notification-1',
       created: true,
     });
-    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
-      title: JSON.stringify({ key: 'notification.order.returnCreated' }),
-      content: JSON.stringify({ key: 'notification.order.returnCreated_desc', params: { orderNo: 'SO-RETURN', quantity: 2 } }),
-      receiver: 'sales',
-      salespersonId: 'sp-return',
-      orderId: 'o-return',
-      dedupeKey: 'order_return_created:evt-return:sales:sp-return',
-      metadata: expect.objectContaining({
-        eventType: 'order_return_created',
-      }),
-    }));
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: JSON.stringify({ key: 'notification.order.returnCreated' }),
+        content: JSON.stringify({
+          key: 'notification.order.returnCreated_desc',
+          params: { orderNo: 'SO-RETURN', quantity: 2 },
+        }),
+        receiver: 'sales',
+        salespersonId: 'sp-return',
+        orderId: 'o-return',
+        dedupeKey: 'order_return_created:evt-return:sales:sp-return',
+        metadata: expect.objectContaining({
+          eventType: 'order_return_created',
+        }),
+      })
+    );
   });
 
   it('suppresses sales notifications from order_return_restocked in the one-step return flow', async () => {
@@ -359,16 +384,18 @@ describe('DomainOutboxConsumers notifications', () => {
       id: 'notification-1',
       created: true,
     });
-    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'order',
-      receiver: 'admin',
-      orderId: 'o-6',
-      sourceEventId: 'evt-6',
-      dedupeKey: 'order_pending_reminder_due:evt-6:admin',
-      metadata: expect.objectContaining({
-        eventType: 'order_pending_reminder_due',
-      }),
-    }));
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'order',
+        receiver: 'admin',
+        orderId: 'o-6',
+        sourceEventId: 'evt-6',
+        dedupeKey: 'order_pending_reminder_due:evt-6:admin',
+        metadata: expect.objectContaining({
+          eventType: 'order_pending_reminder_due',
+        }),
+      })
+    );
   });
 
   it('creates one sales deadline reminder notification from order_deadline_reminder_due', async () => {
@@ -395,17 +422,19 @@ describe('DomainOutboxConsumers notifications', () => {
       id: 'notification-1',
       created: true,
     });
-    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'deadline',
-      receiver: 'sales',
-      salespersonId: 'sp-7',
-      orderId: 'o-7',
-      sourceEventId: 'evt-7',
-      dedupeKey: 'order_deadline_reminder_due:evt-7:sales:sp-7',
-      metadata: expect.objectContaining({
-        eventType: 'order_deadline_reminder_due',
-      }),
-    }));
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'deadline',
+        receiver: 'sales',
+        salespersonId: 'sp-7',
+        orderId: 'o-7',
+        sourceEventId: 'evt-7',
+        dedupeKey: 'order_deadline_reminder_due:evt-7:sales:sp-7',
+        metadata: expect.objectContaining({
+          eventType: 'order_deadline_reminder_due',
+        }),
+      })
+    );
   });
 
   it('does not duplicate notifications when the same event is retried or replayed', async () => {
@@ -443,12 +472,18 @@ describe('DomainOutboxConsumers notifications', () => {
       created: false,
     });
     expect(mocks.createdByDedupeKey.size).toBe(1);
-    expect(mocks.createFromDomainEvent).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      dedupeKey: 'purchase_receipt_recorded:evt-3:admin',
-    }));
-    expect(mocks.createFromDomainEvent).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      dedupeKey: 'purchase_receipt_recorded:evt-3:admin',
-    }));
+    expect(mocks.createFromDomainEvent).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        dedupeKey: 'purchase_receipt_recorded:evt-3:admin',
+      })
+    );
+    expect(mocks.createFromDomainEvent).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        dedupeKey: 'purchase_receipt_recorded:evt-3:admin',
+      })
+    );
   });
 
   it('creates manual admin notifications from admin_notification_created events', async () => {
@@ -476,19 +511,21 @@ describe('DomainOutboxConsumers notifications', () => {
       id: 'notification-1',
       created: true,
     });
-    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'system',
-      title: 'System maintenance',
-      content: 'Window tonight',
-      link: '/admin/ops',
-      receiver: 'admin',
-      orderId: 'o-8',
-      dedupeKey: 'admin_notification_created:evt-8:admin',
-      metadata: expect.objectContaining({
-        payload: expect.objectContaining({
-          metadata: { level: 'info' },
+    expect(mocks.createFromDomainEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'system',
+        title: 'System maintenance',
+        content: 'Window tonight',
+        link: '/admin/ops',
+        receiver: 'admin',
+        orderId: 'o-8',
+        dedupeKey: 'admin_notification_created:evt-8:admin',
+        metadata: expect.objectContaining({
+          payload: expect.objectContaining({
+            metadata: { level: 'info' },
+          }),
         }),
-      }),
-    }));
+      })
+    );
   });
 });

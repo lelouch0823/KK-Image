@@ -13,7 +13,10 @@ import {
 } from './utils/order-procurement-real-api.js';
 
 function findCustomer(listPayload, customerId) {
-  return (listPayload?.data?.list || listPayload?.data || []).find((item) => item.id === customerId) || null;
+  return (
+    (listPayload?.data?.list || listPayload?.data || []).find((item) => item.id === customerId) ||
+    null
+  );
 }
 
 describeIfRealApi('Customers Real API', function () {
@@ -91,21 +94,24 @@ describeIfRealApi('Customers Real API', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const refreshed = await apiRequest(cacheUrl, {
-        bearerToken: token,
-        expectedStatus: 200,
-      });
-      const updatedCustomer = findCustomer(refreshed.json, createdIds[0]);
-      assert.ok(updatedCustomer, 'updated customer missing from refreshed list');
-      assert.strictEqual(updatedCustomer.name, `Customer A Updated ${seed}`);
-      assert.deepStrictEqual(updatedCustomer.tags, [seed, 'updated']);
-      return refreshed;
-    }, {
-      timeoutMs: 30000,
-      intervalMs: 1000,
-      onTimeoutMessage: 'customer list cache did not refresh after update',
-    });
+    await waitFor(
+      async () => {
+        const refreshed = await apiRequest(cacheUrl, {
+          bearerToken: token,
+          expectedStatus: 200,
+        });
+        const updatedCustomer = findCustomer(refreshed.json, createdIds[0]);
+        assert.ok(updatedCustomer, 'updated customer missing from refreshed list');
+        assert.strictEqual(updatedCustomer.name, `Customer A Updated ${seed}`);
+        assert.deepStrictEqual(updatedCustomer.tags, [seed, 'updated']);
+        return refreshed;
+      },
+      {
+        timeoutMs: 30000,
+        intervalMs: 1000,
+        onTimeoutMessage: 'customer list cache did not refresh after update',
+      }
+    );
 
     await apiRequest(`/api/manage/customers/${createdIds[2]}`, {
       bearerToken: token,
@@ -140,11 +146,7 @@ describeIfRealApi('Customers Real API', function () {
       namePrefix: 'Customer Guard Sales',
       store: 'Customer Guard Store',
     });
-    const {
-      productId,
-      variantId,
-      productName,
-    } = await createWorkflowProduct(token, seed, {
+    const { productId, variantId, productName } = await createWorkflowProduct(token, seed, {
       stockQuantity: 2,
       namePrefix: 'Customer Guard Product',
       skuPrefix: 'CUSTGUARD',
@@ -167,15 +169,18 @@ describeIfRealApi('Customers Real API', function () {
     const orderId = createdOrder.json?.data?.id;
     assert.ok(orderId, 'customer-linked order id missing');
 
-    await waitFor(async () => {
-      const orderDetail = await getOrderDetail(token, orderId);
-      assert.strictEqual(orderDetail?.customerId, customerId);
-      return orderDetail;
-    }, {
-      timeoutMs: 10000,
-      intervalMs: 500,
-      onTimeoutMessage: 'created order did not retain customer linkage',
-    });
+    await waitFor(
+      async () => {
+        const orderDetail = await getOrderDetail(token, orderId);
+        assert.strictEqual(orderDetail?.customerId, customerId);
+        return orderDetail;
+      },
+      {
+        timeoutMs: 10000,
+        intervalMs: 500,
+        onTimeoutMessage: 'created order did not retain customer linkage',
+      }
+    );
 
     const rejectedDelete = await apiRequest(`/api/manage/customers/${customerId}`, {
       bearerToken: token,

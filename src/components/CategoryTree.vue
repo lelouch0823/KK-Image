@@ -2,7 +2,9 @@
   <div class="category-tree">
     <!-- 头部：标题 + 添加按钮 -->
     <div class="mb-3 flex items-center justify-between">
-      <h3 class="text-sm font-semibold text-(--text-main)">{{ t('product.categoryTree.title') }}</h3>
+      <h3 class="text-sm font-semibold text-(--text-main)">
+        {{ t('product.categoryTree.title') }}
+      </h3>
       <AppButton
         variant="ghost"
         size="sm"
@@ -18,9 +20,9 @@
       variant="ghost"
       block
       class="mb-1 justify-start"
-      :class="selectedId === null
-        ? 'bg-(--color-primary-50) text-(--color-primary-700) font-medium'
-        : ''"
+      :class="
+        selectedId === null ? 'bg-(--color-primary-50) text-(--color-primary-700) font-medium' : ''
+      "
       :text="t('product.categoryTree.all')"
       @click="$emit('select', null)"
     >

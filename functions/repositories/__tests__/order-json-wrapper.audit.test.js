@@ -25,9 +25,6 @@ describe('order json wrapper dedup audit', () => {
       offenders.push('functions/repositories/OrderStatsRepository.js: still imports parseJson');
     }
 
-    expect(
-      offenders,
-      `order json wrapper offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `order json wrapper offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

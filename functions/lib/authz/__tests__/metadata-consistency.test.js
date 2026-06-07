@@ -18,10 +18,9 @@ describe('authz policy metadata consistency', () => {
         });
 
         const expectedAllow = role === 'admin' ? true : declaredPermissions.has(action);
-        expect(
-          decision.allow,
-          `role=${role} action=${action} expected=${expectedAllow}`
-        ).toBe(expectedAllow);
+        expect(decision.allow, `role=${role} action=${action} expected=${expectedAllow}`).toBe(
+          expectedAllow
+        );
       }
     }
   });

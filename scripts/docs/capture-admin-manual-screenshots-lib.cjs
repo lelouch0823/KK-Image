@@ -49,7 +49,8 @@ function createCaptureAdminManualScreenshotsRunner(options = {}) {
   const consoleImpl = options.consoleImpl || console;
   const env = options.env || process.env;
   const baseURL = env.ADMIN_BASE_URL || 'http://localhost:8090';
-  const screenshotDir = options.screenshotDir || pathModule.resolve(process.cwd(), 'docs/assets/admin-manual');
+  const screenshotDir =
+    options.screenshotDir || pathModule.resolve(process.cwd(), 'docs/assets/admin-manual');
   const username = env.ADMIN_USER || 'admin';
   const password = env.ADMIN_PASS || '123';
   const routeList = options.routes || routes;

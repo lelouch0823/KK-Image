@@ -34,40 +34,39 @@
             </div>
             <!-- 编辑按钮 (Top Right) -->
             <AppButton
-               variant="ghost"
-               size="sm"
-               class="rounded-full !h-8 !w-8 !px-0"
-               @click.stop="$emit('edit', customer)"
+              variant="ghost"
+              size="sm"
+              class="rounded-full !h-8 !w-8 !px-0"
+              @click.stop="$emit('edit', customer)"
             >
-               <template #icon-left>
-                 <AppIcon name="pencil-square" class="size-4" />
-               </template>
+              <template #icon-left>
+                <AppIcon name="pencil-square" class="size-4" />
+              </template>
             </AppButton>
           </div>
 
           <!-- 联系方式 -->
           <div class="space-y-1 text-xs text-(--text-secondary)">
-             <div v-if="customer.phone" class="flex items-center gap-2">
-                <AppIcon name="phone" class="size-3.5 shrink-0" />
-                <span>{{ customer.phone }}</span>
-             </div>
-             <div v-if="customer.email" class="flex items-center gap-2">
-                <AppIcon name="envelope" class="size-3.5 shrink-0" />
-                <span>{{ customer.email }}</span>
-             </div>
+            <div v-if="customer.phone" class="flex items-center gap-2">
+              <AppIcon name="phone" class="size-3.5 shrink-0" />
+              <span>{{ customer.phone }}</span>
+            </div>
+            <div v-if="customer.email" class="flex items-center gap-2">
+              <AppIcon name="envelope" class="size-3.5 shrink-0" />
+              <span>{{ customer.email }}</span>
+            </div>
           </div>
-          
-           <!-- 标签 -->
-           <div v-if="customer.tags && customer.tags.length > 0" class="flex flex-wrap gap-1.5 pt-1">
-              <span
-                v-for="tag in customer.tags"
-                :key="tag"
-                class="rounded bg-(--bg-muted) px-2 py-0.5 text-xs text-(--text-secondary)"
-              >
-                {{ tag }}
-              </span>
-           </div>
 
+          <!-- 标签 -->
+          <div v-if="customer.tags && customer.tags.length > 0" class="flex flex-wrap gap-1.5 pt-1">
+            <span
+              v-for="tag in customer.tags"
+              :key="tag"
+              class="rounded bg-(--bg-muted) px-2 py-0.5 text-xs text-(--text-secondary)"
+            >
+              {{ tag }}
+            </span>
+          </div>
         </div>
 
         <!-- 底部操作栏 -->

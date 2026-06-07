@@ -48,6 +48,7 @@
 ## Task 1: Extract Backend Order-Procurement Shared Helpers
 
 **Files:**
+
 - Create: `functions/services/__tests__/order-procurement-shared.test.js`
 - Create: `functions/services/order-procurement-shared.js`
 
@@ -75,9 +76,7 @@ describe('order-procurement-shared', () => {
     const bind = vi.fn(() => ({ sql: 'bound' }));
     const prepare = vi.fn(() => ({ bind }));
     buildDeleteCommandStatement({ prepare }, 'cmd-1');
-    expect(prepare).toHaveBeenCalledWith(
-      'DELETE FROM command_idempotency WHERE command_id = ?'
-    );
+    expect(prepare).toHaveBeenCalledWith('DELETE FROM command_idempotency WHERE command_id = ?');
   });
 
   it('loads one order line scoped by order id', async () => {
@@ -194,6 +193,7 @@ git commit -m "refactor: extract shared order procurement helpers"
 ## Task 2: Rewire Purchase-Order Command Services To The Shared Backend Module
 
 **Files:**
+
 - Modify: `functions/services/OrderProcurementDomainService.js`
 - Modify: `functions/services/OrderProcurementReceiptReversalService.js`
 - Modify: `functions/services/PurchaseOrderShortageClosureService.js`
@@ -255,10 +255,7 @@ Apply the same pattern in `functions/services/OrderProcurementReceiptReversalSer
 In `functions/services/PurchaseOrderShortageClosureService.js`, import only:
 
 ```js
-import {
-  buildDeleteCommandStatement,
-  parseStoredResponse,
-} from './order-procurement-shared.js';
+import { buildDeleteCommandStatement, parseStoredResponse } from './order-procurement-shared.js';
 ```
 
 and remove the local duplicate implementations.
@@ -295,6 +292,7 @@ git commit -m "refactor: dedupe purchase order command service helpers"
 ## Task 3: Extract Shared Purchase-Order Progress Helpers For The Frontend
 
 **Files:**
+
 - Create: `src/utils/__tests__/purchase-order-progress.test.js`
 - Create: `src/utils/purchase-order-progress.js`
 
@@ -312,26 +310,32 @@ import {
 
 describe('purchase-order-progress', () => {
   it('prefers aggregated outstanding_qty when present', () => {
-    expect(getPurchaseOrderOutstandingQty({
-      outstanding_qty: 3,
-      ordered_qty: 10,
-      received_qty: 9,
-      cancelled_qty: 0,
-    })).toBe(3);
+    expect(
+      getPurchaseOrderOutstandingQty({
+        outstanding_qty: 3,
+        ordered_qty: 10,
+        received_qty: 9,
+        cancelled_qty: 0,
+      })
+    ).toBe(3);
   });
 
   it('falls back to ordered minus received minus cancelled', () => {
-    expect(getPurchaseOrderOutstandingQty({
-      ordered_qty: 10,
-      received_qty: 4,
-      cancelled_qty: 1,
-    })).toBe(5);
+    expect(
+      getPurchaseOrderOutstandingQty({
+        ordered_qty: 10,
+        received_qty: 4,
+        cancelled_qty: 1,
+      })
+    ).toBe(5);
   });
 
   it('sums received quantity from items when header data is absent', () => {
-    expect(getPurchaseOrderReceivedQty({
-      items: [{ received_qty: 2 }, { received_qty: 3 }],
-    })).toBe(5);
+    expect(
+      getPurchaseOrderReceivedQty({
+        items: [{ received_qty: 2 }, { received_qty: 3 }],
+      })
+    ).toBe(5);
   });
 
   it('uses quantity for item rows and ordered_qty for header rows', () => {
@@ -409,6 +413,7 @@ git commit -m "refactor: extract purchase order progress helpers"
 ## Task 4: Rewire The Purchase-Order View To The Shared Progress Helpers
 
 **Files:**
+
 - Modify: `src/views/PurchaseOrders.vue`
 - Modify: `src/views/__tests__/PurchaseOrders.detail-shell.test.js`
 
@@ -481,6 +486,7 @@ git commit -m "refactor: reuse shared purchase order progress helpers"
 ## Task 5: Extract Purchase-Order Request Helpers And Rewire The Composable
 
 **Files:**
+
 - Create: `src/utils/__tests__/purchase-order-request.test.js`
 - Create: `src/utils/purchase-order-request.js`
 - Modify: `src/composables/usePurchaseOrders.js`
@@ -511,9 +517,7 @@ describe('purchase-order-request helpers', () => {
   });
 
   it('builds idempotent json headers from crypto uuid', () => {
-    expect(
-      buildPurchaseOrderIdempotentJsonHeaders({ createId: () => 'idem-1' })
-    ).toEqual({
+    expect(buildPurchaseOrderIdempotentJsonHeaders({ createId: () => 'idem-1' })).toEqual({
       'Content-Type': 'application/json',
       'Idempotency-Key': 'idem-1',
     });
@@ -545,13 +549,10 @@ export function appendPurchaseOrderCacheBust(
   return `${url}${separator}_ts=${now()}`;
 }
 
-export function buildPurchaseOrderIdempotentJsonHeaders(
-  {
-    createId = () =>
-      globalThis.crypto?.randomUUID?.() ||
-      `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  } = {}
-) {
+export function buildPurchaseOrderIdempotentJsonHeaders({
+  createId = () =>
+    globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+} = {}) {
   return {
     'Content-Type': 'application/json',
     'Idempotency-Key': createId(),
@@ -587,6 +588,7 @@ git commit -m "refactor: extract purchase order request helpers"
 ## Task 6: Run Focused End-To-End Regression For The Deduplication Pass
 
 **Files:**
+
 - Modify: none
 - Test: `functions/services/__tests__/order-procurement-shared.test.js`
 - Test: `functions/services/__tests__/OrderProcurementDomainService.test.js`

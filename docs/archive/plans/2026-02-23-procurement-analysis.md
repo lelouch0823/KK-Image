@@ -25,6 +25,7 @@
 
 > [!IMPORTANT]
 > 只统计**已确认 + 已绑定商品**的订单，排除以下情况：
+>
 > - ❌ `pending`（未确认，可能被废弃或删除）
 > - ❌ `rejected`（已驳回）
 > - ❌ `void`（已作废）
@@ -37,20 +38,20 @@
 
 按 `product_id` 分组后，统计每个商品在各状态下的订单数量和需求量：
 
-| 维度 | 说明 |
-|------|------|
-| **已确认待生产** | `status = 'confirmed'` 的 quantity 总和 |
-| **生产中** | `status = 'production'` 的 quantity 总和 |
-| **运输中** | `status = 'shipping'` 的 quantity 总和 |
-| **已到货** | `status = 'arrived'` 的 quantity 总和 |
-| **总需求** | 以上四项之和 |
-| **缺口** | 总需求 - 当前库存 |
+| 维度             | 说明                                     |
+| ---------------- | ---------------------------------------- |
+| **已确认待生产** | `status = 'confirmed'` 的 quantity 总和  |
+| **生产中**       | `status = 'production'` 的 quantity 总和 |
+| **运输中**       | `status = 'shipping'` 的 quantity 总和   |
+| **已到货**       | `status = 'arrived'` 的 quantity 总和    |
+| **总需求**       | 以上四项之和                             |
+| **缺口**         | 总需求 - 当前库存                        |
 
 ### 核心 SQL
 
 ```sql
-SELECT 
-  p.id, p.name, p.sku, p.brand, p.category, 
+SELECT
+  p.id, p.name, p.sku, p.brand, p.category,
   p.stock_quantity, p.alert_threshold, p.images,
   COALESCE(SUM(CASE WHEN o.status = 'confirmed' THEN o.quantity ELSE 0 END), 0) as confirmed_qty,
   COALESCE(SUM(CASE WHEN o.status = 'production' THEN o.quantity ELSE 0 END), 0) as production_qty,
@@ -60,7 +61,7 @@ SELECT
   COUNT(o.id) as order_count,
   COALESCE(SUM(o.quantity), 0) - p.stock_quantity as shortage
 FROM products p
-INNER JOIN orders o ON o.product_id = p.id 
+INNER JOIN orders o ON o.product_id = p.id
   AND o.status IN ('confirmed', 'production', 'shipping', 'arrived')
 WHERE p.status = 'active'
 GROUP BY p.id
@@ -73,17 +74,17 @@ ORDER BY shortage DESC, total_demand DESC
 
 ## 涉及文件总览
 
-| 操作 | 路径 | 说明 |
-|------|------|------|
-| **NEW** | `functions/lib/hono/routes/manage/goods-overview.js` | 订货总览 API |
-| **MODIFY** | `functions/lib/hono/app.js` | 注册路由 |
-| **NEW** | `src/views/GoodsOverview.vue` | 订货总览视图 |
-| **NEW** | `src/composables/useGoodsOverview.js` | 数据获取 composable |
-| **MODIFY** | `src/router/index.js` | 添加前端路由 |
-| **MODIFY** | `src/components/layout/Sidebar.vue` | 添加菜单项 |
-| **MODIFY** | `src/utils/constants.js` | 添加 API 常量 |
-| **MODIFY** | `src/locales/zh-CN/` | 中文翻译 |
-| **MODIFY** | `src/locales/en/` | 英文翻译 |
+| 操作       | 路径                                                 | 说明                |
+| ---------- | ---------------------------------------------------- | ------------------- |
+| **NEW**    | `functions/lib/hono/routes/manage/goods-overview.js` | 订货总览 API        |
+| **MODIFY** | `functions/lib/hono/app.js`                          | 注册路由            |
+| **NEW**    | `src/views/GoodsOverview.vue`                        | 订货总览视图        |
+| **NEW**    | `src/composables/useGoodsOverview.js`                | 数据获取 composable |
+| **MODIFY** | `src/router/index.js`                                | 添加前端路由        |
+| **MODIFY** | `src/components/layout/Sidebar.vue`                  | 添加菜单项          |
+| **MODIFY** | `src/utils/constants.js`                             | 添加 API 常量       |
+| **MODIFY** | `src/locales/zh-CN/`                                 | 中文翻译            |
+| **MODIFY** | `src/locales/en/`                                    | 英文翻译            |
 
 ---
 
@@ -98,6 +99,7 @@ ORDER BY shortage DESC, total_demand DESC
 **`GET /` — 商品管道分析列表**
 
 返回每个有活跃订单的商品的分状态需求统计。支持 query params：
+
 - `category` — 按分类筛选
 - `brand` — 按品牌筛选
 - `status` — 按订单状态筛选（仅看 production 或 shipping 等）
@@ -106,6 +108,7 @@ ORDER BY shortage DESC, total_demand DESC
 **`GET /summary` — 管道概览统计**
 
 返回：
+
 - `totalProducts` — 有活跃订单的商品总数
 - `totalDemand` — 总需求量
 - `shortageCount` — 缺货商品数
@@ -164,10 +167,9 @@ ORDER BY shortage DESC, total_demand DESC
 
 3. **数据表格**
 
-   | 商品名称 | SKU | 品牌 | 库存 | 待生产 | 生产中 | 运输中 | 已到货 | 总需求 | 缺口 | 状态 |
-   |---------|-----|------|------|--------|--------|--------|--------|--------|------|------|
-   | Birkin 25 | BK-25-BLK | Hermès | 2 | 3 | 5 | 2 | 1 | 11 | **9** | 🔴缺货 |
-
+   | 商品名称  | SKU       | 品牌   | 库存 | 待生产 | 生产中 | 运输中 | 已到货 | 总需求 | 缺口  | 状态   |
+   | --------- | --------- | ------ | ---- | ------ | ------ | ------ | ------ | ------ | ----- | ------ |
+   | Birkin 25 | BK-25-BLK | Hermès | 2    | 3      | 5      | 2      | 1      | 11     | **9** | 🔴缺货 |
    - **缺口 > 0** → 红色「缺货」标签 + 数字高亮
    - **缺口 ≤ 0 但库存 < alert_threshold** → 黄色「预警」标签
    - **缺口 ≤ 0** → 绿色「充足」标签
@@ -183,6 +185,7 @@ ORDER BY shortage DESC, total_demand DESC
 #### [MODIFY] [index.js](file:///Users/kayla/Downloads/Code/KK-Image/src/router/index.js)
 
 在 `orders` 路由之后添加：
+
 ```diff
 +{
 +  path: 'goods-overview',
@@ -201,6 +204,7 @@ ORDER BY shortage DESC, total_demand DESC
 ### 国际化
 
 添加中英文翻译键，涵盖：
+
 - 侧边栏/路由标题：`订货总览` / `Goods Overview`
 - 页面标题/副标题
 - 统计卡片：待生产/生产中/运输中/已到货
@@ -242,6 +246,7 @@ pnpm run build
 ### Task 1: 后端 API
 
 **Files:**
+
 - Create: `functions/lib/hono/routes/manage/goods-overview.js`
 - Modify: `functions/lib/hono/app.js`
 
@@ -254,6 +259,7 @@ Commit: `feat: add goods overview API`
 ### Task 2: 前端数据层
 
 **Files:**
+
 - Create: `src/composables/useGoodsOverview.js`
 - Modify: `src/utils/constants.js`
 
@@ -266,6 +272,7 @@ Commit: `feat: add goods overview composable and constants`
 ### Task 3: 国际化
 
 **Files:**
+
 - Modify: `src/locales/zh-CN/` 和 `src/locales/en/` 相关文件
 
 添加所有翻译键。
@@ -277,6 +284,7 @@ Commit: `feat: add goods overview i18n`
 ### Task 4: 前端视图
 
 **Files:**
+
 - Create: `src/views/GoodsOverview.vue`
 
 包含管道卡片 + 筛选栏 + 数据表格 + 空状态。
@@ -288,6 +296,7 @@ Commit: `feat: add goods overview view`
 ### Task 5: 路由和导航
 
 **Files:**
+
 - Modify: `src/router/index.js`
 - Modify: `src/components/layout/Sidebar.vue`
 

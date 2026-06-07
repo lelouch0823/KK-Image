@@ -13,7 +13,13 @@
           {{ t('order.detail.returnDialogSummaryLabel', 'Return Summary') }}
         </p>
         <p class="mt-1 text-sm text-(--text-main)">
-          {{ t('order.detail.returnDialogSummary', { quantity, lineLabel }, 'Return {quantity} units from {lineLabel}.') }}
+          {{
+            t(
+              'order.detail.returnDialogSummary',
+              { quantity, lineLabel },
+              'Return {quantity} units from {lineLabel}.'
+            )
+          }}
         </p>
       </div>
 
@@ -35,7 +41,12 @@
         textarea
         rows="4"
         :label="t('order.detail.returnNoteLabel', 'Return Note')"
-        :placeholder="t('order.detail.returnNotePlaceholder', 'Capture the return context for later audit and customer follow-up.')"
+        :placeholder="
+          t(
+            'order.detail.returnNotePlaceholder',
+            'Capture the return context for later audit and customer follow-up.'
+          )
+        "
       />
     </div>
 

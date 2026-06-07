@@ -13,6 +13,7 @@
 ### Task 1: Add the Reusable App Refresh Bus (TDD)
 
 **Files:**
+
 - Create: `src/composables/useAppRefreshBus.js`
 - Create: `src/composables/__tests__/useAppRefreshBus.test.js`
 
@@ -104,6 +105,7 @@ git commit -m "test+feat: add reusable app refresh bus"
 ### Task 2: Migrate Notification Refreshes to the New Bus (TDD)
 
 **Files:**
+
 - Modify: `src/composables/useNotifications.js`
 - Modify: `src/components/OrderManager.vue`
 - Modify: `src/views/Sales.vue`
@@ -130,7 +132,10 @@ import { useAppRefreshBus } from './useAppRefreshBus';
 const { publishRefresh } = useAppRefreshBus();
 
 if (newUnreadCount > unreadCount.value) {
-  publishRefresh({ module: currentMode === 'sales' ? 'salesOrders' : 'orders', reason: 'notification' });
+  publishRefresh({
+    module: currentMode === 'sales' ? 'salesOrders' : 'orders',
+    reason: 'notification',
+  });
 }
 ```
 
@@ -168,6 +173,7 @@ git commit -m "refactor: route notification refreshes through app refresh bus"
 ### Task 3: Add D1-Backed AI Action Sessions (TDD)
 
 **Files:**
+
 - Create: `migrations/0049_ai_action_sessions.sql`
 - Create: `functions/ai/action-session-store.js`
 - Create: `functions/ai/__tests__/action-session-store.test.js`
@@ -254,6 +260,7 @@ git commit -m "test+feat: add ai action session storage"
 ### Task 4: Build Synonym Canonicalization and Entity Adapter Registry (TDD)
 
 **Files:**
+
 - Create: `functions/ai/canonicalization.js`
 - Create: `functions/ai/action-registry.js`
 - Create: `functions/ai/adapters/customer.js`
@@ -338,6 +345,7 @@ git commit -m "test+feat: add ai canonicalization and entity adapter registry"
 ### Task 5: Implement the AI Action Orchestrator Core (TDD)
 
 **Files:**
+
 - Create: `functions/ai/action-orchestrator.js`
 - Create: `functions/ai/__tests__/action-orchestrator.test.js`
 
@@ -385,9 +393,15 @@ export class AIActionOrchestrator {
 Return shapes:
 
 ```js
-{ kind: 'slot_request', session, prompt, fields }
-{ kind: 'action_preview', session, title, summary, submitLabel }
-{ kind: 'action_submitted', session, createdEntityId, targetModule, successMessage }
+{
+  kind: ('slot_request', session, prompt, fields);
+}
+{
+  kind: ('action_preview', session, title, summary, submitLabel);
+}
+{
+  kind: ('action_submitted', session, createdEntityId, targetModule, successMessage);
+}
 ```
 
 **Step 4: Run test to verify it passes**
@@ -407,6 +421,7 @@ git commit -m "test+feat: add ai action orchestrator core"
 ### Task 6: Add API-First Create Submitters for the Five Entities (TDD)
 
 **Files:**
+
 - Create: `functions/ai/action-submitters.js`
 - Create: `functions/ai/__tests__/action-submitters.test.js`
 - Modify: `functions/lib/hono/routes/manage/customers.js`
@@ -474,6 +489,7 @@ git commit -m "test+feat: add api-first ai create submitters"
 ### Task 7: Integrate Structured Action Events into the AI Route (TDD)
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/ai.js`
 - Modify: `functions/api/utils/ai-prompts.js`
 - Create: `functions/lib/hono/routes/manage/__tests__/ai-action-routes.test.js`
@@ -545,6 +561,7 @@ git commit -m "test+feat: add structured ai action events to manage ai route"
 ### Task 8: Add Frontend Action Cards and Wire Module Refresh Consumption (TDD)
 
 **Files:**
+
 - Modify: `src/composables/useAIStream.js`
 - Modify: `src/components/common/AIChatWidget.vue`
 - Create: `src/components/common/ai/ActionPreviewCard.vue`
@@ -616,6 +633,7 @@ git commit -m "test+feat: add ai action cards and module refresh consumption"
 ### Task 9: Expand Query Coverage with API-First Canonical Routing (TDD)
 
 **Files:**
+
 - Modify: `functions/utils/ai-tool-executor.js`
 - Modify: `functions/api/utils/ai-prompts.js`
 - Modify: `functions/lib/hono/routes/manage/ai.js`
@@ -667,11 +685,13 @@ git commit -m "test+feat: expand ai query coverage with canonical api-first rout
 ### Task 10: Verification and Final Integration Check
 
 **Files:**
+
 - Modify: `docs/plans/2026-03-09-ai-action-orchestrator-implementation-plan.md` (append verification notes if needed)
 
 **Step 1: Run targeted backend tests**
 
 Run:
+
 ```bash
 node node_modules/vitest/vitest.mjs run \
   functions/ai/__tests__/action-session-store.test.js \
@@ -682,25 +702,30 @@ node node_modules/vitest/vitest.mjs run \
   functions/lib/hono/routes/manage/__tests__/ai-action-routes.test.js \
   functions/utils/__tests__/ai-tool-executor.canonicalization.test.js
 ```
+
 Expected: all PASS.
 
 **Step 2: Run targeted frontend tests**
 
 Run:
+
 ```bash
 node node_modules/vitest/vitest.mjs run \
   src/composables/__tests__/useAppRefreshBus.test.js \
   src/composables/__tests__/useNotifications.refresh-bus.test.js \
   src/composables/__tests__/useAIStream.actions.test.js
 ```
+
 Expected: all PASS.
 
 **Step 3: Run focused lint on touched surfaces**
 
 Run:
+
 ```bash
 pnpm lint src/composables src/components/common src/components src/views functions/lib/hono/routes/manage functions/ai functions/utils
 ```
+
 Expected: PASS or only pre-existing unrelated failures.
 
 **Step 4: Manual smoke checklist**

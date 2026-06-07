@@ -30,7 +30,12 @@ describe('Demand reservation projection', () => {
     const service = new DemandService(createProjectionAwareDb());
 
     await expect(
-      service.syncOrderTransition({ fromStatus: 'pending', toStatus: 'confirmed', quantity: 4, variantId: 'v-1' })
+      service.syncOrderTransition({
+        fromStatus: 'pending',
+        toStatus: 'confirmed',
+        quantity: 4,
+        variantId: 'v-1',
+      })
     ).resolves.toMatchObject({
       reservationDelta: 4,
       shipmentDelta: 0,
@@ -40,7 +45,12 @@ describe('Demand reservation projection', () => {
     });
 
     await expect(
-      service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'void', quantity: 4, variantId: 'v-1' })
+      service.syncOrderTransition({
+        fromStatus: 'confirmed',
+        toStatus: 'void',
+        quantity: 4,
+        variantId: 'v-1',
+      })
     ).resolves.toMatchObject({
       reservationDelta: -4,
       shipmentDelta: 0,
@@ -50,7 +60,12 @@ describe('Demand reservation projection', () => {
     });
 
     await expect(
-      service.syncOrderTransition({ fromStatus: 'confirmed', toStatus: 'delivered', quantity: 4, variantId: 'v-1' })
+      service.syncOrderTransition({
+        fromStatus: 'confirmed',
+        toStatus: 'delivered',
+        quantity: 4,
+        variantId: 'v-1',
+      })
     ).resolves.toMatchObject({
       reservationDelta: -4,
       shipmentDelta: -4,
@@ -64,7 +79,12 @@ describe('Demand reservation projection', () => {
     const service = new DemandService(createProjectionAwareDb());
 
     await expect(
-      service.syncOrderTransition({ fromStatus: 'production', toStatus: 'void', quantity: 2, variantId: 'v-1' })
+      service.syncOrderTransition({
+        fromStatus: 'production',
+        toStatus: 'void',
+        quantity: 2,
+        variantId: 'v-1',
+      })
     ).resolves.toMatchObject({
       reservationDelta: -2,
       shipmentDelta: 0,

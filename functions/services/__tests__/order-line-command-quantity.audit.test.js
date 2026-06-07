@@ -9,16 +9,7 @@ const TARGETS = [
     helperName: 'normalizeQuantity',
   },
   {
-    file: path.join(
-      ROOT,
-      'functions',
-      'lib',
-      'hono',
-      'routes',
-      'manage',
-      'orders',
-      'lines.js'
-    ),
+    file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'manage', 'orders', 'lines.js'),
     helperName: 'normalizeQuantity',
   },
 ];
@@ -40,9 +31,6 @@ describe('order line command quantity dedup audit', () => {
       }
     }
 
-    expect(
-      offenders,
-      `order-line quantity dedup offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `order-line quantity dedup offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

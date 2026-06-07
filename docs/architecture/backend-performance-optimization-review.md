@@ -28,18 +28,18 @@
 
 ## Top 10 优化点
 
-| 排名 | 优化点 | 预估收益 | 主要受影响路径 |
-| --- | --- | --- | --- |
-| 1 | 将统计与仪表盘接口改为投影读模型 | 极高 | `/api/manage/stats`、`/api/manage/dashboard/overview` |
-| 2 | 将 `goods-overview` 的快照维度改为物化数据 | 极高 | `/api/manage/goods-overview*` |
-| 3 | 收缩 outbox 缓存失效 fan-out | 高 | `cache` consumer、订单/商品/空间相关写接口 |
-| 4 | 规范化 Webhook 事件订阅表 | 高 | `webhook` consumer、Webhook 管理接口 |
-| 5 | 合并 Webhook 投递前置查询 | 高 | `WebhookDeliveryService` |
-| 6 | 降低每次业务写入即拉起 outbox poller 的频率 | 高 | 所有发布领域事件的写接口 |
-| 7 | 将 reminders 的幂等检查改为批量模式 | 中高 | `/api/cron/reminders` |
-| 8 | 把订单 deadline 从 JSON 中抽离为可索引字段 | 中高 | reminders、后续订单筛选/提醒 |
-| 9 | 降低通用缓存中间件的 ETag 计算成本 | 中 | 所有使用 `withCache()` 的 GET 接口 |
-| 10 | 优化公开画廊的大文件夹加载与逐文件签名 | 中 | `/api/gallery/:token` |
+| 排名 | 优化点                                      | 预估收益 | 主要受影响路径                                        |
+| ---- | ------------------------------------------- | -------- | ----------------------------------------------------- |
+| 1    | 将统计与仪表盘接口改为投影读模型            | 极高     | `/api/manage/stats`、`/api/manage/dashboard/overview` |
+| 2    | 将 `goods-overview` 的快照维度改为物化数据  | 极高     | `/api/manage/goods-overview*`                         |
+| 3    | 收缩 outbox 缓存失效 fan-out                | 高       | `cache` consumer、订单/商品/空间相关写接口            |
+| 4    | 规范化 Webhook 事件订阅表                   | 高       | `webhook` consumer、Webhook 管理接口                  |
+| 5    | 合并 Webhook 投递前置查询                   | 高       | `WebhookDeliveryService`                              |
+| 6    | 降低每次业务写入即拉起 outbox poller 的频率 | 高       | 所有发布领域事件的写接口                              |
+| 7    | 将 reminders 的幂等检查改为批量模式         | 中高     | `/api/cron/reminders`                                 |
+| 8    | 把订单 deadline 从 JSON 中抽离为可索引字段  | 中高     | reminders、后续订单筛选/提醒                          |
+| 9    | 降低通用缓存中间件的 ETag 计算成本          | 中       | 所有使用 `withCache()` 的 GET 接口                    |
+| 10   | 优化公开画廊的大文件夹加载与逐文件签名      | 中       | `/api/gallery/:token`                                 |
 
 ## 详细审查结果
 

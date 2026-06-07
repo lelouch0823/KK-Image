@@ -70,6 +70,8 @@ describe('SpaceCollection contract', () => {
     });
 
     expect(wrapper.get('a').attributes('href')).toBe('/space/public-sub-2');
-    expect(wrapper.get('[data-testid="public-sub-cover"]').attributes('src')).toBe('/file/sub-2.jpg');
+    expect(wrapper.get('[data-testid="public-sub-cover"]').attributes('src')).toBe(
+      '/file/sub-2.jpg'
+    );
   });
 });

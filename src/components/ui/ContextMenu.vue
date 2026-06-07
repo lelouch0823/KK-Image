@@ -11,7 +11,11 @@
     >
       <template v-for="(item, index) in items" :key="index">
         <!-- Separator -->
-        <div v-if="item.type === 'separator'" class="my-1 border-t border-(--border-color)" role="separator"></div>
+        <div
+          v-if="item.type === 'separator'"
+          class="my-1 border-t border-(--border-color)"
+          role="separator"
+        ></div>
 
         <!-- Menu Item -->
         <button
@@ -21,7 +25,7 @@
           :class="{
             'text-danger hover:bg-(--color-danger-bg)': item.danger,
             'text-secondary hover:text-primary': !item.danger,
-            'cursor-not-allowed opacity-50': item.disabled
+            'cursor-not-allowed opacity-50': item.disabled,
           }"
           role="menuitem"
           tabindex="-1"
@@ -76,7 +80,7 @@ const focusedIndex = ref(-1);
 const actionableIndices = computed(() =>
   props.items
     .map((item, index) => (item.type !== 'separator' && !item.disabled ? index : -1))
-    .filter((i) => i !== -1),
+    .filter((i) => i !== -1)
 );
 
 const setItemRef = (el, index) => {
@@ -109,7 +113,7 @@ watch(
       focusedIndex.value = -1;
       itemRefs.value = [];
     }
-  },
+  }
 );
 
 // 键盘导航处理
@@ -152,21 +156,21 @@ const handleKeydown = (e) => {
 // Mobile-friendly adjustment: if x is close to right edge, move it left.
 // Simple inline style calculation or computed property.
 const menuStyle = computed(() => {
-    // Simple basic boundary check could be complex without element ref.
-    // For now, let's just default to clientX/Y but cap max-width.
-    // A better approach is usually to interpret x/y as 'anchor' and translate if needed.
-    // But CSS `right: something` vs `left` is easier if we know screen width.
+  // Simple basic boundary check could be complex without element ref.
+  // For now, let's just default to clientX/Y but cap max-width.
+  // A better approach is usually to interpret x/y as 'anchor' and translate if needed.
+  // But CSS `right: something` vs `left` is easier if we know screen width.
 
-    // Quick Fix: If x > window.innerWidth * 0.6, align to right.
-    const isRightSide = props.x > (typeof window !== 'undefined' ? window.innerWidth * 0.6 : 500);
-    const isBottomSide = props.y > (typeof window !== 'undefined' ? window.innerHeight * 0.6 : 500);
+  // Quick Fix: If x > window.innerWidth * 0.6, align to right.
+  const isRightSide = props.x > (typeof window !== 'undefined' ? window.innerWidth * 0.6 : 500);
+  const isBottomSide = props.y > (typeof window !== 'undefined' ? window.innerHeight * 0.6 : 500);
 
-    return {
-        top: isBottomSide ? 'auto' : `${props.y}px`,
-        bottom: isBottomSide ? `${window.innerHeight - props.y}px` : 'auto',
-        left: isRightSide ? 'auto' : `${props.x}px`,
-        right: isRightSide ? `${window.innerWidth - props.x}px` : 'auto',
-    }
+  return {
+    top: isBottomSide ? 'auto' : `${props.y}px`,
+    bottom: isBottomSide ? `${window.innerHeight - props.y}px` : 'auto',
+    left: isRightSide ? 'auto' : `${props.x}px`,
+    right: isRightSide ? `${window.innerWidth - props.x}px` : 'auto',
+  };
 });
 
 const close = () => {

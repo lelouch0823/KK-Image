@@ -69,7 +69,11 @@ function createDbHarness({
         statement.first = vi.fn(async () => returnedQuantityRow);
       }
 
-      if (sql.includes('FROM order_lines ol') && sql.includes('LEFT JOIN (') && sql.includes('order_returns')) {
+      if (
+        sql.includes('FROM order_lines ol') &&
+        sql.includes('LEFT JOIN (') &&
+        sql.includes('order_returns')
+      ) {
         statement.first = vi.fn(async () => orderReturnSummaryRow);
       }
 
@@ -330,7 +334,9 @@ describe('OrderLineFulfillmentService', () => {
     expect(sqlBatch).not.toContain('INSERT INTO inventory_events');
     expect(sqlBatch).toContain('INSERT INTO order_line_allocations');
     expect(sqlBatch).toContain('INSERT INTO domain_outbox');
-    expect(harness.variantDemandProjectionRefreshService.refreshByVariantIds).not.toHaveBeenCalled();
+    expect(
+      harness.variantDemandProjectionRefreshService.refreshByVariantIds
+    ).not.toHaveBeenCalled();
     expect(harness.calls.outboxConsumerMatrix).toEqual([
       {
         eventType: 'order_line_fulfillment_updated',
@@ -395,7 +401,9 @@ describe('OrderLineFulfillmentService', () => {
       expect.objectContaining({ allocationId: 'alloc-2', quantity: 1 }),
     ]);
     expect(harness.calls.inventoryMutations).toEqual([]);
-    expect(harness.variantDemandProjectionRefreshService.refreshByVariantIds).not.toHaveBeenCalled();
+    expect(
+      harness.variantDemandProjectionRefreshService.refreshByVariantIds
+    ).not.toHaveBeenCalled();
   });
 
   it('ships a line quantity, deducts stock, and emits one cache invalidation event through outbox', async () => {
@@ -454,12 +462,15 @@ describe('OrderLineFulfillmentService', () => {
         orderLineId: 'line-1',
       })
     );
-    expect(harness.calls.batchedStatements.some((statement) =>
-      statement.sql.includes('INSERT INTO order_shipments')
-        && statement.params.includes('shipped')
-        && statement.params.includes(3)
-        && statement.params.includes('Admin')
-    )).toBe(true);
+    expect(
+      harness.calls.batchedStatements.some(
+        (statement) =>
+          statement.sql.includes('INSERT INTO order_shipments') &&
+          statement.params.includes('shipped') &&
+          statement.params.includes(3) &&
+          statement.params.includes('Admin')
+      )
+    ).toBe(true);
     expect(harness.calls.outboxEvents).toHaveLength(1);
     expect(harness.calls.outboxEvents[0].event_type).toBe('order_line_fulfillment_updated');
     expect(harness.calls.outboxConsumerMatrix[0].consumers).toEqual(['cache']);
@@ -586,12 +597,15 @@ describe('OrderLineFulfillmentService', () => {
         orderLineId: 'line-1',
       })
     );
-    expect(harness.calls.batchedStatements.some((statement) =>
-      statement.sql.includes('INSERT INTO order_shipments')
-        && statement.params.includes('unshipped')
-        && statement.params.includes(2)
-        && statement.params.includes('Admin')
-    )).toBe(true);
+    expect(
+      harness.calls.batchedStatements.some(
+        (statement) =>
+          statement.sql.includes('INSERT INTO order_shipments') &&
+          statement.params.includes('unshipped') &&
+          statement.params.includes(2) &&
+          statement.params.includes('Admin')
+      )
+    ).toBe(true);
     expect(harness.calls.outboxEvents).toHaveLength(1);
     expect(harness.calls.outboxEvents[0].event_type).toBe('order_line_fulfillment_updated');
     expect(harness.variantDemandProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
@@ -784,15 +798,21 @@ describe('OrderLineFulfillmentService', () => {
         orderLineId: 'line-1',
       })
     );
-    expect(harness.calls.batchedStatements.some((statement) =>
-      statement.sql.includes('UPDATE orders SET delivery_status = ?')
-        && statement.params[0] === 'partially_returned'
-    )).toBe(true);
-    expect(harness.calls.batchedStatements.some((statement) =>
-      statement.sql.includes('INSERT INTO order_returns')
-        && statement.params.includes('damage')
-        && statement.params.includes('box crushed on arrival')
-    )).toBe(true);
+    expect(
+      harness.calls.batchedStatements.some(
+        (statement) =>
+          statement.sql.includes('UPDATE orders SET delivery_status = ?') &&
+          statement.params[0] === 'partially_returned'
+      )
+    ).toBe(true);
+    expect(
+      harness.calls.batchedStatements.some(
+        (statement) =>
+          statement.sql.includes('INSERT INTO order_returns') &&
+          statement.params.includes('damage') &&
+          statement.params.includes('box crushed on arrival')
+      )
+    ).toBe(true);
   });
 
   it('rejects returns before delivery is confirmed', async () => {
@@ -847,20 +867,18 @@ describe('OrderLineFulfillmentService', () => {
       { actorName: 'Admin' }
     );
 
-    expect(harness.calls.batchedStatements.some((statement) =>
-      statement.sql.includes('UPDATE orders SET delivery_status = ?')
-        && statement.params[0] === 'returned'
-    )).toBe(true);
+    expect(
+      harness.calls.batchedStatements.some(
+        (statement) =>
+          statement.sql.includes('UPDATE orders SET delivery_status = ?') &&
+          statement.params[0] === 'returned'
+      )
+    ).toBe(true);
   });
 
   it('rejects returns without a valid reason code', async () => {
     await expect(
-      service.returnLine(
-        'order-1',
-        'line-1',
-        { quantity: 1, reason: '' },
-        { actorName: 'Admin' }
-      )
+      service.returnLine('order-1', 'line-1', { quantity: 1, reason: '' }, { actorName: 'Admin' })
     ).rejects.toThrow(/valid return reason/i);
 
     await expect(

@@ -18,8 +18,8 @@ function createDeterministicDeps(overrides = {}) {
     now: () => 1_710_000_000_000,
     dateFactory: () => new Date('2026-04-18T08:00:00.000Z'),
     randomBytes: (size) => Buffer.alloc(size, 1),
-    uuid: () => `id-${idCounter += 1}`,
-    randomHash: () => `hash-${hashCounter += 1}`,
+    uuid: () => `id-${(idCounter += 1)}`,
+    randomHash: () => `hash-${(hashCounter += 1)}`,
     randomInt: (min) => min,
     randomItem: (arr) => arr[0],
     ...overrides,
@@ -152,7 +152,9 @@ describe('seed helpers', () => {
       mime_type: 'image/jpeg',
     });
 
-    expect(mod.generateFile('file-1', 'folder-1', 'http://image', mod.PRODUCT_CATEGORIES[0], deps)).toMatchObject({
+    expect(
+      mod.generateFile('file-1', 'folder-1', 'http://image', mod.PRODUCT_CATEGORIES[0], deps)
+    ).toMatchObject({
       id: 'file-1',
       folder_id: 'folder-1',
       storage_key: 'http://image',
@@ -188,7 +190,9 @@ describe('seed helpers', () => {
       stock_quantity: 0,
     });
 
-    expect(mod.generateSpace('space-1', 'product', 0, mod.PRODUCT_CATEGORIES[0], deps)).toMatchObject({
+    expect(
+      mod.generateSpace('space-1', 'product', 0, mod.PRODUCT_CATEGORIES[0], deps)
+    ).toMatchObject({
       id: 'space-1',
       template: 'product',
       is_public: 1,

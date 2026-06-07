@@ -39,7 +39,8 @@ export default {
     visionSupported: '支持图片',
     visionLikelyUnsupported: '可能仅文本',
     dynamicFallback: '动态降级',
-    dynamicFallbackDesc: '开启后会基于最近窗口的失败率和延迟自动重排备用模型顺序，首选模型保持不变。',
+    dynamicFallbackDesc:
+      '开启后会基于最近窗口的失败率和延迟自动重排备用模型顺序，首选模型保持不变。',
     healthWindow: '健康度窗口',
     healthWindowHint: '每个模型统计最近 5-200 次请求的失败率与延迟。',
     healthStats: '模型健康统计',

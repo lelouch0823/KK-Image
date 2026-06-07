@@ -10,7 +10,11 @@
       <div v-if="step === 1" class="space-y-4">
         <div
           class="relative flex min-h-[280px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 transition-colors"
-          :class="isDragOver ? 'border-primary bg-primary/10' : 'border-(--border-color) bg-(--bg-muted) hover:bg-(--bg-hover)'"
+          :class="
+            isDragOver
+              ? 'border-primary bg-primary/10'
+              : 'border-(--border-color) bg-(--bg-muted) hover:bg-(--bg-hover)'
+          "
           @dragover.prevent="isDragOver = true"
           @dragleave.prevent="isDragOver = false"
           @drop.prevent="handleDrop"
@@ -22,9 +26,11 @@
             accept=".xlsx,.xls,.csv"
             class="hidden"
             @change="handleFileSelect"
-          >
+          />
           <div class="text-center">
-            <div class="bg-primary/10 mx-auto mb-3 flex size-14 items-center justify-center rounded-full">
+            <div
+              class="bg-primary/10 mx-auto mb-3 flex size-14 items-center justify-center rounded-full"
+            >
               <AppIcon name="cloud-arrow-up" class="text-primary size-7" />
             </div>
             <p class="text-sm font-medium text-(--text-main)">
@@ -38,7 +44,10 @@
         </div>
 
         <!-- 解析错误 -->
-        <div v-if="parseError" class="rounded-lg border border-(--color-danger-border) bg-(--color-danger-bg) p-3 text-sm text-(--color-danger-text)">
+        <div
+          v-if="parseError"
+          class="rounded-lg border border-(--color-danger-border) bg-(--color-danger-bg) p-3 text-sm text-(--color-danger-text)"
+        >
           {{ parseError }}
         </div>
       </div>
@@ -56,7 +65,12 @@
             {{ t('customer.import.errors') }}: {{ rowsWithErrors.length }}
           </span>
           <span class="text-(--text-secondary)">
-            {{ t('customer.import.previewDesc', { count: Math.min(previewRows.length, 10), total: parsedRows.length }) }}
+            {{
+              t('customer.import.previewDesc', {
+                count: Math.min(previewRows.length, 10),
+                total: parsedRows.length,
+              })
+            }}
           </span>
         </div>
 
@@ -66,12 +80,24 @@
             <thead>
               <tr class="border-b border-(--border-color) bg-(--bg-muted)">
                 <th class="px-3 py-2 text-left text-xs font-medium text-(--text-secondary)">#</th>
-                <th class="px-3 py-2 text-left text-xs font-medium text-(--text-secondary)">{{ t('customer.form.name') }}</th>
-                <th class="px-3 py-2 text-left text-xs font-medium text-(--text-secondary)">{{ t('customer.form.phone') }}</th>
-                <th class="px-3 py-2 text-left text-xs font-medium text-(--text-secondary)">{{ t('customer.form.company') }}</th>
-                <th class="px-3 py-2 text-left text-xs font-medium text-(--text-secondary)">{{ t('customer.form.email') }}</th>
-                <th class="px-3 py-2 text-left text-xs font-medium text-(--text-secondary)">{{ t('customer.form.tags') }}</th>
-                <th class="px-3 py-2 text-left text-xs font-medium text-(--text-secondary)">{{ t('customer.import.errors') }}</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-(--text-secondary)">
+                  {{ t('customer.form.name') }}
+                </th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-(--text-secondary)">
+                  {{ t('customer.form.phone') }}
+                </th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-(--text-secondary)">
+                  {{ t('customer.form.company') }}
+                </th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-(--text-secondary)">
+                  {{ t('customer.form.email') }}
+                </th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-(--text-secondary)">
+                  {{ t('customer.form.tags') }}
+                </th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-(--text-secondary)">
+                  {{ t('customer.import.errors') }}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -89,13 +115,15 @@
                 <td class="px-3 py-2">
                   <div class="flex flex-wrap gap-1">
                     <span
-                      v-for="tag in (row.tags || [])"
+                      v-for="tag in row.tags || []"
                       :key="tag"
                       class="rounded bg-(--bg-muted) px-1.5 py-0.5 text-xs text-(--text-secondary)"
                     >
                       {{ tag }}
                     </span>
-                    <span v-if="!row.tags || row.tags.length === 0" class="text-(--text-muted)">-</span>
+                    <span v-if="!row.tags || row.tags.length === 0" class="text-(--text-muted)"
+                      >-</span
+                    >
                   </div>
                 </td>
                 <td class="px-3 py-2">
@@ -113,18 +141,23 @@
       </div>
 
       <!-- 导入结果 -->
-      <div v-if="importResult" class="rounded-lg border border-(--color-success-border) bg-(--color-success-bg) p-4 text-sm text-(--color-success-text)">
-        <p class="font-medium">{{ t('customer.import.success', { imported: importResult.imported }) }}{{ importResult.skipped > 0 ? t('customer.import.skipped', { count: importResult.skipped }) : '' }}</p>
+      <div
+        v-if="importResult"
+        class="rounded-lg border border-(--color-success-border) bg-(--color-success-bg) p-4 text-sm text-(--color-success-text)"
+      >
+        <p class="font-medium">
+          {{ t('customer.import.success', { imported: importResult.imported })
+          }}{{
+            importResult.skipped > 0
+              ? t('customer.import.skipped', { count: importResult.skipped })
+              : ''
+          }}
+        </p>
       </div>
     </div>
 
     <template #footer>
-      <AppButton
-        variant="ghost"
-        class="mr-2"
-        :disabled="importing"
-        @click="handleCancel"
-      >
+      <AppButton variant="ghost" class="mr-2" :disabled="importing" @click="handleCancel">
         {{ step === 2 && !importResult ? t('common.back', '返回') : t('common.cancel') }}
       </AppButton>
 
@@ -135,13 +168,13 @@
         @click="handleConfirmImport"
       >
         <template #icon-left>
-          <AppIcon
-            v-if="importing"
-            name="spinner"
-            class="size-4 animate-spin"
-          />
+          <AppIcon v-if="importing" name="spinner" class="size-4 animate-spin" />
         </template>
-        {{ importing ? t('customer.import.importing') : t('customer.import.confirmImport') + ` (${validRows.length})` }}
+        {{
+          importing
+            ? t('customer.import.importing')
+            : t('customer.import.confirmImport') + ` (${validRows.length})`
+        }}
       </AppButton>
     </template>
   </Modal>
@@ -218,13 +251,23 @@ const parseFile = async (file) => {
 
     // 查找列映射（自动匹配表头）
     const headers = jsonData[0].map((h) => String(h).trim().toLowerCase());
-    const nameIdx = headers.findIndex((h) => h.includes('名称') || h.includes('name') || h === '客户');
-    const phoneIdx = headers.findIndex((h) => h.includes('电话') || h.includes('phone') || h.includes('tel'));
-    const companyIdx = headers.findIndex((h) => h.includes('公司') || h.includes('company') || h.includes('单位'));
+    const nameIdx = headers.findIndex(
+      (h) => h.includes('名称') || h.includes('name') || h === '客户'
+    );
+    const phoneIdx = headers.findIndex(
+      (h) => h.includes('电话') || h.includes('phone') || h.includes('tel')
+    );
+    const companyIdx = headers.findIndex(
+      (h) => h.includes('公司') || h.includes('company') || h.includes('单位')
+    );
     const emailIdx = headers.findIndex((h) => h.includes('邮箱') || h.includes('email'));
     const addressIdx = headers.findIndex((h) => h.includes('地址') || h.includes('address'));
-    const tagsIdx = headers.findIndex((h) => h.includes('标签') || h.includes('tags') || h.includes('tag'));
-    const remarkIdx = headers.findIndex((h) => h.includes('备注') || h.includes('remark') || h.includes('note'));
+    const tagsIdx = headers.findIndex(
+      (h) => h.includes('标签') || h.includes('tags') || h.includes('tag')
+    );
+    const remarkIdx = headers.findIndex(
+      (h) => h.includes('备注') || h.includes('remark') || h.includes('note')
+    );
 
     // 解析数据行
     const rows = [];
@@ -273,7 +316,10 @@ const parseTags = (value) => {
   const str = String(value).trim();
   if (!str) return [];
   // 支持逗号、分号、中文顿号分隔
-  return str.split(/[,;；、]/).map((s) => s.trim()).filter(Boolean);
+  return str
+    .split(/[,;；、]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
 };
 
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -320,7 +366,10 @@ const handleConfirmImport = async () => {
       addToast({ message: result.message, type: 'success' });
       emit('imported');
     } else {
-      addToast({ message: result.error || result.message || t('common.operationFailed'), type: 'error' });
+      addToast({
+        message: result.error || result.message || t('common.operationFailed'),
+        type: 'error',
+      });
     }
   } catch (e) {
     console.error('Import confirm error:', e);
@@ -341,7 +390,10 @@ const resetState = () => {
 
 // 关闭弹窗时重置状态
 import { watch } from 'vue';
-watch(() => props.modelValue, (visible) => {
-  if (!visible) resetState();
-});
+watch(
+  () => props.modelValue,
+  (visible) => {
+    if (!visible) resetState();
+  }
+);
 </script>

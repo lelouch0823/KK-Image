@@ -103,9 +103,19 @@ export class TelegramStorageProvider extends BaseStorageProvider {
 
     const fileUrl = `https://api.telegram.org/file/bot${this.env.TG_Bot_Token}/${filePath}`;
 
+    // 只传递必要的请求头，避免泄漏 Authorization/Cookie 等敏感信息
+    const passthroughHeaders = {};
+    if (request) {
+      for (const h of ['Range', 'If-None-Match', 'If-Modified-Since']) {
+        const val = request.headers.get(h);
+        if (val) passthroughHeaders[h] = val;
+      }
+    }
+
     return fetch(fileUrl, {
       method: request?.method || 'GET',
-      headers: request?.headers,
+      headers: passthroughHeaders,
+      signal: AbortSignal.timeout(15000), // 15秒超时保护
     });
   }
 
@@ -129,7 +139,11 @@ export class TelegramStorageProvider extends BaseStorageProvider {
     const apiUrl = `https://api.telegram.org/bot${this.env.TG_Bot_Token}/${apiEndpoint}`;
 
     try {
-      const response = await fetch(apiUrl, { method: 'POST', body: formData });
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        body: formData,
+        signal: AbortSignal.timeout(30000), // 30秒超时保护
+      });
       const responseData = await response.json();
 
       if (response.ok) {

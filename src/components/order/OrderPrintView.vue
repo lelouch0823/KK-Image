@@ -1,7 +1,10 @@
 <template>
   <PrintTemplate :title="t('order.detail.title', '订单详情')" class="print-view">
     <template #header-right>
-      <div class="inline-block rounded-sm border-2 px-4 py-1 font-bold uppercase" :style="{ borderColor: accentColor, color: accentColor }">
+      <div
+        class="inline-block rounded-sm border-2 px-4 py-1 font-bold uppercase"
+        :style="{ borderColor: accentColor, color: accentColor }"
+      >
         {{ t(`order.statuses.${order.status}`) }}
       </div>
     </template>
@@ -120,7 +123,9 @@
       </h2>
       <div class="grid grid-cols-4 gap-4">
         <div v-for="file in order.files" :key="file.id" class="break-inside-avoid">
-          <div class="aspect-square overflow-hidden rounded-sm border border-(--border-color) bg-(--bg-muted)">
+          <div
+            class="aspect-square overflow-hidden rounded-sm border border-(--border-color) bg-(--bg-muted)"
+          >
             <AppImage :src="file.url" :lazy="false" no-transition class="size-full" alt="" />
           </div>
         </div>
@@ -146,7 +151,11 @@ import PrintTemplate from '@/components/print/PrintTemplate.vue';
 import { useI18n } from '@/composables/useI18n';
 import { usePrintTemplate } from '@/composables/usePrintTemplate';
 import { formatTimelineTime as formatTime } from '@/utils/formatters';
-import { buildOrderDetailDisplayData, isMultilineOrder, resolveOrderQuantity } from '@/utils/order-display';
+import {
+  buildOrderDetailDisplayData,
+  isMultilineOrder,
+  resolveOrderQuantity,
+} from '@/utils/order-display';
 import OrderLineProcurementState from './OrderLineProcurementState.vue';
 import OrderTimeline from './OrderTimeline.vue';
 
@@ -166,14 +175,15 @@ const accentColor = computed(() => settings.value.accentColor || '#111827');
 const orderLines = computed(() => (Array.isArray(props.order.lines) ? props.order.lines : []));
 const orderQuantity = computed(() => resolveOrderQuantity(props.order));
 const multilineSummaryName = computed(() =>
-  isMultilineOrder(props.order) ? t('order.detail.multilineSummary', { count: orderLines.value.length }) : ''
+  isMultilineOrder(props.order)
+    ? t('order.detail.multilineSummary', { count: orderLines.value.length })
+    : ''
 );
 const displayData = computed(() =>
   buildOrderDetailDisplayData(props.order, {
     multilineSummaryName: multilineSummaryName.value,
   })
 );
-
 </script>
 
 <style scoped>

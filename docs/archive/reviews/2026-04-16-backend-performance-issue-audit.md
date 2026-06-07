@@ -25,6 +25,7 @@
 ## 问题清单
 
 ### 01. `files` / `folders` bootstrap schema 与 recycle-bin migration 漂移
+
 - 状态：`implemented`
 - 严重级别：高
 - 位置：
@@ -33,9 +34,10 @@
 - 问题描述：增量迁移已引入 `is_deleted` / `deleted_at`，但 bootstrap schema 长时间未同步，导致新库与升级库执行计划和行为不一致。
 - 本轮处理：
   - 在 [scripts/init-database.sql](/home/bjw/Code/KK-Image/scripts/init-database.sql) 正式补齐 `files` / `folders` 软删除列
-  - 在 [scripts/__tests__/init-database-bootstrap-consistency.test.js](/home/bjw/Code/KK-Image/scripts/__tests__/init-database-bootstrap-consistency.test.js) 增加一致性断言
+  - 在 [scripts/**tests**/init-database-bootstrap-consistency.test.js](/home/bjw/Code/KK-Image/scripts/__tests__/init-database-bootstrap-consistency.test.js) 增加一致性断言
 
 ### 02. 文件库 / 文件夹热路径缺少命中查询模式的复合索引
+
 - 状态：`implemented`
 - 严重级别：高
 - 位置：
@@ -50,6 +52,7 @@
   - 新增 `idx_folders_deleted_name`
 
 ### 03. `ProductRepository.search` 重复扫描聚合并复用重型 count 子查询
+
 - 状态：`implemented`
 - 严重级别：高
 - 位置：
@@ -63,6 +66,7 @@
   - 对仅需要列表数据的调用点改为禁用 filters
 
 ### 04. `InventoryService.applyBatch` 名义批量、实际串行写库
+
 - 状态：`implemented`
 - 严重级别：高
 - 位置：
@@ -73,6 +77,7 @@
   - 保留非 DB fallback 行为
 
 ### 05. API Key 鉴权通过全表加载再做匹配
+
 - 状态：`implemented`
 - 严重级别：中
 - 位置：
@@ -83,6 +88,7 @@
   - 保持 fallback 逻辑与测试覆盖稳定
 
 ### 06. outbox poller 对同一 consumer 的 job 完全串行处理
+
 - 状态：`implemented`
 - 严重级别：高
 - 位置：
@@ -95,6 +101,7 @@
   - 继续保持 `markPublished` / `markFailed` 语义不变
 
 ### 07. webhook endpoint 投递完全串行
+
 - 状态：`implemented`
 - 严重级别：高
 - 位置：
@@ -105,6 +112,7 @@
   - 保留 `already_delivered`、`retryable`、`terminal` 分类与投递日志语义
 
 ### 08. `PurchaseOrderService.createFromOrders` 对 `order_lines` 做未收窄的全表聚合
+
 - 状态：`implemented`
 - 严重级别：高
 - 位置：
@@ -115,6 +123,7 @@
   - 同步把 chunk 大小调整到双倍绑定参数下的 D1 安全范围
 
 ### 09. 管理端订单 count 查询无条件拼重型订单行聚合
+
 - 状态：`implemented`
 - 严重级别：高
 - 位置：
@@ -125,6 +134,7 @@
   - 只有 `procurementStatus` / `deliveryStatus` / `search` 需要时才挂对应重型 join
 
 ### 10. 销售端 / 管理端订单列表主查询仍依赖实时订单行聚合
+
 - 状态：`implemented`
 - 严重级别：高
 - 位置：
@@ -140,6 +150,7 @@
   - 修正 projection 过滤语义、配送状态 fallback 与 `OLD.order_id` 更新场景
 
 ### 11. `orders` 热表内联大块 JSON，读路径持续搬运 `current_data` / `original_data`
+
 - 状态：`implemented`
 - 严重级别：高
 - 位置：
@@ -156,6 +167,7 @@
   - 列表查询改为只读取轻量摘要列，避免热路径搬运大 JSON
 
 ### 12. 采购收货 / 冲销 / 待收关闭链路存在多阶段写入与补偿回滚
+
 - 状态：`implemented`
 - 严重级别：高
 - 位置：
@@ -169,6 +181,7 @@
   - guard / finalize 失败时仅执行幂等清理，避免额外写放大
 
 ### 13. 订单状态流转与订单变更路径反复扫描 `order_lines`
+
 - 状态：`implemented`
 - 严重级别：高
 - 位置：
@@ -181,6 +194,7 @@
   - 补齐 mutation / inventory / shared helper 回归，锁定新的预取查询形态
 
 ### 14. 缺货总览 / 需求服务 / 采购建议重复扫描活动订单行
+
 - 状态：`implemented`
 - 严重级别：高
 - 位置：
@@ -196,6 +210,7 @@
   - 将 `GoodsOverviewRepository` / `PurchaseOrderService.getSuggestions()` 改为优先读取 projection，只有 live 商品行缺失时才回退到 snapshot
 
 ### 15. 商品批量导入仍缺少 preload + bulk upsert 模型
+
 - 状态：`implemented`
 - 严重级别：中
 - 位置：
@@ -211,6 +226,7 @@
   - 重建 `batch-execution.js`，让批量导入统一走 preload + bulk upsert，同时保留失败回滚和 summary 语义
 
 ### 16. 慢查询观测层未真正接入 repository / service 热路径
+
 - 状态：`implemented`
 - 严重级别：中
 - 位置：
@@ -226,6 +242,7 @@
   - 将商品搜索、订单详情/列表、订单统计、outbox claim/update 热路径切到 wrapper 并打上稳定 SQL label
 
 ### 17. 部分 schema 仍保留冗余索引，增加写放大
+
 - 状态：`implemented`
 - 严重级别：低
 - 位置：

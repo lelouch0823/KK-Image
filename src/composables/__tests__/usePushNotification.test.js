@@ -64,7 +64,10 @@ describe('usePushNotification', () => {
 
     const failed = usePushNotification();
     await expect(failed.requestPermission()).resolves.toBe(false);
-    expect(warnSpy).toHaveBeenCalledWith('Notification permission request failed:', expect.any(Error));
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Notification permission request failed:',
+      expect.any(Error)
+    );
   });
 
   it('shows notifications, wires click callbacks, and closes after click', () => {

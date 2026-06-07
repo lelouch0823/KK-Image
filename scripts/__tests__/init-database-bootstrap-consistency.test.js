@@ -23,7 +23,9 @@ describe('init-database bootstrap consistency', () => {
     const returnsSql = extractCreateTableBlock(sql, 'order_returns');
     const inventoryEventsSql = extractCreateTableBlock(sql, 'inventory_events');
 
-    expect(ordersSql).toMatch(/\bfulfillment_status\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'unfulfilled'/i);
+    expect(ordersSql).toMatch(
+      /\bfulfillment_status\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'unfulfilled'/i
+    );
     expect(ordersSql).toMatch(/\bdelivery_status\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'not_shipped'/i);
     expect(returnsSql).toMatch(/CREATE TABLE IF NOT EXISTS\s+order_returns\s*\(/i);
     expect(returnsSql).toMatch(/\border_id\s+TEXT\s+NOT\s+NULL\b/i);
@@ -53,7 +55,9 @@ describe('init-database bootstrap consistency', () => {
     expect(tableSql).toMatch(/CREATE TABLE IF NOT EXISTS\s+purchase_order_items\s*\(/i);
     expect(tableSql).toMatch(/\breceived_qty\s+INTEGER\s+NOT\s+NULL\s+DEFAULT\s+0\b/i);
     expect(tableSql).toMatch(/\bcancelled_qty\s+INTEGER\s+NOT\s+NULL\s+DEFAULT\s+0\b/i);
-    expect(tableSql).toMatch(/\bdisplay_status\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'open'\s+CHECK\s*\(\s*display_status\s+IN\s*\(/i);
+    expect(tableSql).toMatch(
+      /\bdisplay_status\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'open'\s+CHECK\s*\(\s*display_status\s+IN\s*\(/i
+    );
     expect(tableSql).toMatch(/'partially_received'/i);
     expect(tableSql).toMatch(/'received'/i);
     expect(tableSql).toMatch(/'cancelled'/i);
@@ -136,17 +140,35 @@ describe('init-database bootstrap consistency', () => {
     expect(projectionSql).toMatch(/\beffective_delivery_status\s+TEXT\s+NOT\s+NULL\b/i);
     expect(projectionSql).toMatch(/\bupdated_at\s+INTEGER\s+NOT\s+NULL\b/i);
     expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_order_summary_projection_display_status');
-    expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_order_summary_projection_effective_delivery_status');
+    expect(sql).toContain(
+      'CREATE INDEX IF NOT EXISTS idx_order_summary_projection_effective_delivery_status'
+    );
     expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_orders_ai');
     expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_orders_au');
-    expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_lines_ai');
-    expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_lines_au');
-    expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_lines_ad');
-    expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_returns_ai');
-    expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_returns_au');
-    expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_returns_ad');
-    expect(sql).toMatch(/CREATE TRIGGER IF NOT EXISTS\s+trg_order_summary_projection_order_lines_au[\s\S]*OLD\.order_id/i);
-    expect(sql).toMatch(/CREATE TRIGGER IF NOT EXISTS\s+trg_order_summary_projection_order_returns_au[\s\S]*OLD\.order_id/i);
+    expect(sql).toContain(
+      'CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_lines_ai'
+    );
+    expect(sql).toContain(
+      'CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_lines_au'
+    );
+    expect(sql).toContain(
+      'CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_lines_ad'
+    );
+    expect(sql).toContain(
+      'CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_returns_ai'
+    );
+    expect(sql).toContain(
+      'CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_returns_au'
+    );
+    expect(sql).toContain(
+      'CREATE TRIGGER IF NOT EXISTS trg_order_summary_projection_order_returns_ad'
+    );
+    expect(sql).toMatch(
+      /CREATE TRIGGER IF NOT EXISTS\s+trg_order_summary_projection_order_lines_au[\s\S]*OLD\.order_id/i
+    );
+    expect(sql).toMatch(
+      /CREATE TRIGGER IF NOT EXISTS\s+trg_order_summary_projection_order_returns_au[\s\S]*OLD\.order_id/i
+    );
   });
 
   it('defines order_payloads sidecar and lightweight order summary columns', () => {
@@ -168,22 +190,40 @@ describe('init-database bootstrap consistency', () => {
     const sql = loadInitSchema();
 
     expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)');
-    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_api_keys_value ON api_keys(key_value)');
+    expect(sql).not.toContain(
+      'CREATE INDEX IF NOT EXISTS idx_api_keys_value ON api_keys(key_value)'
+    );
     expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku)');
     expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug)');
     expect(sql).toContain('CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug ON products(slug)');
     expect(sql).not.toContain('CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug_unique');
-    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_variants_sku ON product_variants(sku)');
-    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_salespersons_token ON salespersons(access_token)');
+    expect(sql).not.toContain(
+      'CREATE INDEX IF NOT EXISTS idx_variants_sku ON product_variants(sku)'
+    );
+    expect(sql).not.toContain(
+      'CREATE INDEX IF NOT EXISTS idx_salespersons_token ON salespersons(access_token)'
+    );
     expect(sql).not.toContain(
       'CREATE INDEX IF NOT EXISTS idx_salespersons_wechat_openid ON salespersons(wechat_openid)'
     );
     expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_orders_no ON orders(order_no)');
-    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_purchase_orders_no ON purchase_orders(po_no)');
-    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_folders_share_token ON folders(share_token)');
-    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_albums_share_token ON albums(share_token)');
-    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_spaces_share_token ON spaces(share_token)');
-    expect(sql).not.toContain('CREATE INDEX IF NOT EXISTS idx_purchase_receipt_reversals_original_receipt');
-    expect(sql).toContain('CREATE UNIQUE INDEX IF NOT EXISTS idx_purchase_receipt_reversals_original_receipt_unique');
+    expect(sql).not.toContain(
+      'CREATE INDEX IF NOT EXISTS idx_purchase_orders_no ON purchase_orders(po_no)'
+    );
+    expect(sql).not.toContain(
+      'CREATE INDEX IF NOT EXISTS idx_folders_share_token ON folders(share_token)'
+    );
+    expect(sql).not.toContain(
+      'CREATE INDEX IF NOT EXISTS idx_albums_share_token ON albums(share_token)'
+    );
+    expect(sql).not.toContain(
+      'CREATE INDEX IF NOT EXISTS idx_spaces_share_token ON spaces(share_token)'
+    );
+    expect(sql).not.toContain(
+      'CREATE INDEX IF NOT EXISTS idx_purchase_receipt_reversals_original_receipt'
+    );
+    expect(sql).toContain(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_purchase_receipt_reversals_original_receipt_unique'
+    );
   });
 });

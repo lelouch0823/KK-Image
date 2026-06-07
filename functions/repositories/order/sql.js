@@ -80,7 +80,8 @@ export const ORDER_LINE_PRIMARY_SNAPSHOT_JOIN = `
       ) order_line_snapshot ON order_line_snapshot.order_id = o.id
 `;
 
-export const ORDER_PROGRESS_STATUS_SQL = "COALESCE(order_line_agg.display_status, o.procurement_status, 'none')";
+export const ORDER_PROGRESS_STATUS_SQL =
+  "COALESCE(order_line_agg.display_status, o.procurement_status, 'none')";
 
 export const ORDER_DELIVERY_STATUS_SQL = `
     CASE
@@ -97,29 +98,29 @@ export const ORDER_DELIVERY_STATUS_SQL = `
 `;
 
 export function appendOrderProgressStatusFilter(whereClause, bindParams, procurementStatus) {
-    const statusValues = expandOrderProcurementStatusFilter(procurementStatus);
-    if (statusValues.length === 0) return whereClause;
+  const statusValues = expandOrderProcurementStatusFilter(procurementStatus);
+  if (statusValues.length === 0) return whereClause;
 
-    if (statusValues.length === 1) {
-        bindParams.push(statusValues[0]);
-        return `${whereClause} AND ${ORDER_PROGRESS_STATUS_SQL} = ?`;
-    }
+  if (statusValues.length === 1) {
+    bindParams.push(statusValues[0]);
+    return `${whereClause} AND ${ORDER_PROGRESS_STATUS_SQL} = ?`;
+  }
 
-    bindParams.push(...statusValues);
-    return `${whereClause} AND ${ORDER_PROGRESS_STATUS_SQL} IN (${statusValues.map(() => "?").join(", ")})`;
+  bindParams.push(...statusValues);
+  return `${whereClause} AND ${ORDER_PROGRESS_STATUS_SQL} IN (${statusValues.map(() => '?').join(', ')})`;
 }
 
 export function appendOrderDeliveryStatusFilter(whereClause, bindParams, deliveryStatus) {
-    if (!deliveryStatus) return whereClause;
+  if (!deliveryStatus) return whereClause;
 
-    bindParams.push(deliveryStatus);
-    return `${whereClause} AND ${ORDER_DELIVERY_STATUS_SQL} = ?`;
+  bindParams.push(deliveryStatus);
+  return `${whereClause} AND ${ORDER_DELIVERY_STATUS_SQL} = ?`;
 }
 
 export function appendOrderProductSearchFilter(whereClause, bindParams, search) {
-    if (!search) return whereClause;
+  if (!search) return whereClause;
 
-    const searchPattern = `%${search}%`;
-    bindParams.push(searchPattern, searchPattern, searchPattern);
-    return `${whereClause} AND (o.order_no LIKE ? OR o.current_data LIKE ? OR order_line_snapshot.snapshot_name LIKE ?)`;
+  const searchPattern = `%${search}%`;
+  bindParams.push(searchPattern, searchPattern, searchPattern);
+  return `${whereClause} AND (o.order_no LIKE ? OR o.current_data LIKE ? OR order_line_snapshot.snapshot_name LIKE ?)`;
 }

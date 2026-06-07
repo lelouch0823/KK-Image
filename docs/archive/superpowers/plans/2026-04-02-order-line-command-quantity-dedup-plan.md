@@ -13,12 +13,14 @@
 ### Task 1: Lock Shared Quantity Parsing Contract
 
 **Files:**
+
 - Modify: `functions/services/__tests__/order-line-shared.test.js`
 - Create: `functions/services/__tests__/order-line-command-quantity.audit.test.js`
 
 - [ ] **Step 1: Write the failing tests**
 
 Add tests that assert:
+
 - shared order-line helper parses `quantity` / `qty` / `amount`
 - shared helper floors positive decimals
 - shared helper throws the existing positive-number error for invalid values
@@ -37,6 +39,7 @@ Expected: FAIL because the shared parser and audit constraint do not exist yet.
 ### Task 2: Reuse Shared Order-Line Quantity Parser
 
 **Files:**
+
 - Modify: `functions/services/order-line-shared.js`
 - Modify: `functions/services/OrderLineFulfillmentService.js`
 - Modify: `functions/lib/hono/routes/manage/orders/lines.js`

@@ -73,7 +73,10 @@ import albumsApp from '../albums.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.route('/api/manage/albums', albumsApp);
   return app;
@@ -123,7 +126,11 @@ describe('manage albums routes extra coverage', () => {
   it('maps list and detail payloads to share and file urls', async () => {
     const app = createApp();
 
-    const listResponse = await app.request('http://localhost/api/manage/albums', { method: 'GET' }, { DB: {} });
+    const listResponse = await app.request(
+      'http://localhost/api/manage/albums',
+      { method: 'GET' },
+      { DB: {} }
+    );
     const listBody = await listResponse.json();
     expect(listBody.data[0]).toEqual(
       expect.objectContaining({
@@ -133,7 +140,11 @@ describe('manage albums routes extra coverage', () => {
       })
     );
 
-    const detailResponse = await app.request('http://localhost/api/manage/albums/album-1', { method: 'GET' }, { DB: {} });
+    const detailResponse = await app.request(
+      'http://localhost/api/manage/albums/album-1',
+      { method: 'GET' },
+      { DB: {} }
+    );
     const detailBody = await detailResponse.json();
     expect(detailBody.data.files[0]).toEqual(
       expect.objectContaining({
@@ -193,10 +204,10 @@ describe('manage albums routes extra coverage', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(mocks.update).toHaveBeenCalledWith(
-      'album-1',
-      { is_public: 1, share_token: 'share-token-new' }
-    );
+    expect(mocks.update).toHaveBeenCalledWith('album-1', {
+      is_public: 1,
+      share_token: 'share-token-new',
+    });
   });
 
   it('removes files with audit metadata and rejects empty payloads', async () => {

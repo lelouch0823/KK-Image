@@ -72,9 +72,13 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
     ]);
 
     const statements = db.batch.mock.calls[0][0];
-    const upsertStmt = statements.find((stmt) => stmt.sql.includes('ON CONFLICT(id) DO UPDATE SET'));
+    const upsertStmt = statements.find((stmt) =>
+      stmt.sql.includes('ON CONFLICT(id) DO UPDATE SET')
+    );
     expect(upsertStmt.sql).toContain('stock_quantity = excluded.stock_quantity');
-    const balanceStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO inventory_balances'));
+    const balanceStmt = statements.find((stmt) =>
+      stmt.sql.includes('INSERT INTO inventory_balances')
+    );
     expect(balanceStmt).toBeDefined();
     expect(balanceStmt.params).toContain('v-1');
     expect(balanceStmt.params).toContain(5);
@@ -107,7 +111,9 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
 
     const statements = db.batch.mock.calls[0][0];
     const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
-    const balanceStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO inventory_balances'));
+    const balanceStmt = statements.find((stmt) =>
+      stmt.sql.includes('INSERT INTO inventory_balances')
+    );
     expect(upsertStmt.params).toContain(12);
     expect(balanceStmt.params).toContain(12);
     expect(upsertStmt.params).not.toContain(0);
@@ -152,7 +158,12 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
 
   it('preserves alert_threshold=0 when syncing existing variants', async () => {
     db = createMockDbWithExistingVariant([
-      { id: 'v-zero-alert', variant_signature: '{"color":"black"}', status: 'active', stock_quantity: 5 },
+      {
+        id: 'v-zero-alert',
+        variant_signature: '{"color":"black"}',
+        status: 'active',
+        stock_quantity: 5,
+      },
     ]);
     repo = new ProductVariantRepository(db);
 
@@ -188,7 +199,9 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
     ]);
 
     const statements = db.batch.mock.calls[0][0];
-    const balanceStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO inventory_balances'));
+    const balanceStmt = statements.find((stmt) =>
+      stmt.sql.includes('INSERT INTO inventory_balances')
+    );
     expect(balanceStmt).toBeDefined();
     expect(balanceStmt.params).toContain('v-3');
     expect(balanceStmt.params).toContain(10);
@@ -196,7 +209,11 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
 
   it('keeps the same row id when an existing variant changes signature', async () => {
     db = createMockDbWithExistingVariant([
-      { id: 'v-1', variant_signature: JSON.stringify({ 'dim-color': 'Red', 'dim-size': 'S' }), status: 'active' },
+      {
+        id: 'v-1',
+        variant_signature: JSON.stringify({ 'dim-color': 'Red', 'dim-size': 'S' }),
+        status: 'active',
+      },
     ]);
     repo = new ProductVariantRepository(db);
 
@@ -219,42 +236,58 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
   });
 
   it('chunks large createBatch writes into D1-safe batch sizes', async () => {
-    await repo.createBatch('p-1', Array.from({ length: 51 }, (_, index) => ({
-      id: `v-batch-${index + 1}`,
-      sku: `SKU-BATCH-${index + 1}`,
-      price: 88,
-      cost_price: 44,
-      stock_quantity: 10,
-      alert_threshold: 2,
-      status: 'active',
-      options_values: { color: `color-${index + 1}` },
-    })));
+    await repo.createBatch(
+      'p-1',
+      Array.from({ length: 51 }, (_, index) => ({
+        id: `v-batch-${index + 1}`,
+        sku: `SKU-BATCH-${index + 1}`,
+        price: 88,
+        cost_price: 44,
+        stock_quantity: 10,
+        alert_threshold: 2,
+        status: 'active',
+        options_values: { color: `color-${index + 1}` },
+      }))
+    );
 
     expect(db.batch).toHaveBeenCalledTimes(2);
-    expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(100);
+    expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(
+      100
+    );
   });
 
   it('chunks large syncVariants writes and avoids oversized archive bindings', async () => {
-    db = createMockDbWithExistingVariant(Array.from({ length: 120 }, (_, index) => ({
-      id: `v-existing-${index + 1}`,
-      variant_signature: JSON.stringify({ color: `color-${index + 1}` }),
-      status: 'active',
-    })));
+    db = createMockDbWithExistingVariant(
+      Array.from({ length: 120 }, (_, index) => ({
+        id: `v-existing-${index + 1}`,
+        variant_signature: JSON.stringify({ color: `color-${index + 1}` }),
+        status: 'active',
+      }))
+    );
     repo = new ProductVariantRepository(db);
 
-    await repo.syncVariants('p-1', Array.from({ length: 120 }, (_, index) => ({
-      id: `v-existing-${index + 1}`,
-      sku: `SKU-${index + 1}`,
-      price: 100,
-      cost_price: 60,
-      stock_quantity: 5,
-      alert_threshold: 2,
-      options_values: { color: `color-${index + 1}` },
-    })));
+    await repo.syncVariants(
+      'p-1',
+      Array.from({ length: 120 }, (_, index) => ({
+        id: `v-existing-${index + 1}`,
+        sku: `SKU-${index + 1}`,
+        price: 100,
+        cost_price: 60,
+        stock_quantity: 5,
+        alert_threshold: 2,
+        options_values: { color: `color-${index + 1}` },
+      }))
+    );
 
     expect(db.batch.mock.calls.length).toBeGreaterThan(1);
-    expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(100);
-    const maxBindings = Math.max(...db.batchCalls.flatMap((statements) => statements.map((statement) => statement.params.length)));
+    expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(
+      100
+    );
+    const maxBindings = Math.max(
+      ...db.batchCalls.flatMap((statements) =>
+        statements.map((statement) => statement.params.length)
+      )
+    );
     expect(maxBindings).toBeLessThanOrEqual(100);
   });
 });

@@ -6,14 +6,8 @@ const readSource = (relativePath) => readFileSync(resolve(process.cwd(), relativ
 
 describe('sharing surfaces design-system migration', () => {
   it('uses wrapped buttons and inputs across sharing dialogs', () => {
-    const buttonFiles = [
-      'src/components/TagModal.vue',
-      'src/components/ShareManagementModal.vue',
-    ];
-    const inputFiles = [
-      'src/components/ShareFolderModal.vue',
-      'src/components/ShareFileModal.vue',
-    ];
+    const buttonFiles = ['src/components/TagModal.vue', 'src/components/ShareManagementModal.vue'];
+    const inputFiles = ['src/components/ShareFolderModal.vue', 'src/components/ShareFileModal.vue'];
 
     for (const file of buttonFiles) {
       const source = readSource(file);

@@ -4,10 +4,7 @@ import Mocha from 'mocha';
 
 const VITEST_IMPORT_RE = /from\s+['"]vitest['"]|require\(['"]vitest['"]\)/;
 const MOCHA_TEST_RE = /\bdescribe\s*\(|\bdescribeIfRealApi\s*\(/;
-const EXCLUDED_BASENAMES = new Set([
-  'verify-all-apis.js',
-  'webhook-test.js',
-]);
+const EXCLUDED_BASENAMES = new Set(['verify-all-apis.js', 'webhook-test.js']);
 
 export async function collectTestFiles(dir, options = {}) {
   const readdirImpl = options.readdirImpl || readdir;
@@ -22,7 +19,7 @@ export async function collectTestFiles(dir, options = {}) {
       if (entry.name === 'fixtures' || entry.name === 'utils') {
         continue;
       }
-      files.push(...await collectTestFiles(fullPath, options));
+      files.push(...(await collectTestFiles(fullPath, options)));
       continue;
     }
     if (!entry.isFile() || !entry.name.endsWith('.js')) {
@@ -91,4 +88,3 @@ export async function runMochaTestsCli(options = {}) {
   const runner = createRunMochaTestsRunner(options);
   return runner.main();
 }
-

@@ -15,7 +15,9 @@ function countOccurrences(source, pattern) {
 describe('procurement architecture guards', () => {
   it('routes procurement command locking through the shared resource-lock helper', () => {
     const receiptSource = readSource('functions/services/OrderProcurementDomainService.js');
-    const reversalSource = readSource('functions/services/OrderProcurementReceiptReversalService.js');
+    const reversalSource = readSource(
+      'functions/services/OrderProcurementReceiptReversalService.js'
+    );
 
     expect(receiptSource).toContain("from './order-procurement-resource-locks.js'");
     expect(receiptSource).toContain('acquireProcurementResourceLocks({');
@@ -29,15 +31,12 @@ describe('procurement architecture guards', () => {
   it('refreshes demand projections through the shared refresh service instead of direct repo writes', () => {
     const fulfillmentSource = readSource('functions/services/OrderLineFulfillmentService.js');
     const receiptSource = readSource('functions/services/OrderProcurementDomainService.js');
-    const reversalSource = readSource('functions/services/OrderProcurementReceiptReversalService.js');
+    const reversalSource = readSource(
+      'functions/services/OrderProcurementReceiptReversalService.js'
+    );
     const shortageSource = readSource('functions/services/PurchaseOrderShortageClosureService.js');
 
-    for (const source of [
-      fulfillmentSource,
-      receiptSource,
-      reversalSource,
-      shortageSource,
-    ]) {
+    for (const source of [fulfillmentSource, receiptSource, reversalSource, shortageSource]) {
       expect(source).toContain('VariantDemandProjectionRefreshService');
       expect(source).toContain('refreshByVariantIds(');
       expect(source).not.toContain('VariantDemandProjectionRepository');
@@ -45,7 +44,9 @@ describe('procurement architecture guards', () => {
   });
 
   it('keeps reversal success guards pinned to source-fact writes only', () => {
-    const reversalSource = readSource('functions/services/OrderProcurementReceiptReversalService.js');
+    const reversalSource = readSource(
+      'functions/services/OrderProcurementReceiptReversalService.js'
+    );
 
     expect(countOccurrences(reversalSource, /guardedStatementIndexes\.push\(/g)).toBe(1);
     expect(reversalSource).toContain('buildPurchaseOrderItemReceivedQtyStatement');

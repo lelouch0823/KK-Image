@@ -4,12 +4,15 @@
 **Status:** Approved
 
 ## Goal
+
 Support per-variant image differentiation for all key flows:
+
 - order binding and variant switching
 - product detail variant gallery
 - space/export rendering with variant-specific image priority
 
 ## Scope
+
 - Introduce a dedicated multi-image model for variants.
 - Provide two management entries:
   - inline lightweight editor in product editor rows
@@ -17,7 +20,9 @@ Support per-variant image differentiation for all key flows:
 - Keep backward compatibility with existing product-level images as fallback.
 
 ## Data Model
+
 ### New Table: `variant_images`
+
 - `id TEXT PRIMARY KEY`
 - `variant_id TEXT NOT NULL REFERENCES product_variants(id) ON DELETE CASCADE`
 - `file_id TEXT NOT NULL REFERENCES files(id) ON DELETE CASCADE`
@@ -27,12 +32,15 @@ Support per-variant image differentiation for all key flows:
 - `UNIQUE(variant_id, file_id)`
 
 ### Integrity Rules
+
 - At most one primary image per variant.
 - If variant has images but no primary flag after deletion/update, assign first by `sort_order`.
 - Variant image lookup must always be constrained by `product_id` ownership in write APIs.
 
 ## Read/Display Rules
+
 ### Order Flow
+
 - When a variant is selected, show `variant.primaryImage` first.
 - Fallback order:
   1. variant primary
@@ -40,19 +48,24 @@ Support per-variant image differentiation for all key flows:
   3. product main image
 
 ### Product Detail
+
 - Variant switch updates gallery to `variant.images`.
 - If no variant images exist, show product images.
 
 ### Space/Export
+
 - If `variantId` exists and variant has images, use variant primary image.
 - Otherwise fallback to product image chain.
 
 ## API Design
+
 ### Product Detail Enrichment
+
 - `GET /api/manage/products/:id`
   - return `variants[].images` and `variants[].primaryImage`
 
 ### Variant Image Mutations
+
 - `POST /api/manage/products/:id/variants/:variantId/images`
   - payload: `{ fileIds: string[] }`
   - append images with stable `sort_order`
@@ -64,22 +77,27 @@ Support per-variant image differentiation for all key flows:
   - remove link; auto-repair primary when needed
 
 ## UI/UX
+
 ### Entry A: Inline Variant Row Editor
+
 - Small image strip in each variant row.
 - Actions: upload, set primary, remove.
 - Optimistic updates with rollback on error.
 
 ### Entry B: Advanced Modal
+
 - Left: variant list.
 - Right: selected variant gallery.
 - Features: batch upload, drag-sort, set primary, remove, copy to other variants.
 
 ## Error Handling
+
 - `400 BAD_REQUEST`: variant-product mismatch, malformed payload.
 - `404 NOT_FOUND`: variant or file missing.
 - `409 CONFLICT`: stale sort mutation/version mismatch.
 
 ## Variant Governance Extensions (2026-02-25)
+
 - Variant selector now supports dynamic 3D/2D/1D dimensions (`颜色 / 材质 / 尺码`) and explicit availability states:
   - `disabled_archived`
   - `disabled_out_of_stock`
@@ -102,6 +120,7 @@ Support per-variant image differentiation for all key flows:
 - Mutation failures are atomic at variant level.
 
 ## Cache and Consistency
+
 - Invalidate:
   - `/api/manage/products`
   - `/api/manage/products/:id`
@@ -109,6 +128,7 @@ Support per-variant image differentiation for all key flows:
 - Frontend cache key should include updated timestamp from variant image payload.
 
 ## Migration and Rollout
+
 1. Add schema and integrity triggers.
 2. Add backend read support.
 3. Add mutation APIs.
@@ -117,6 +137,7 @@ Support per-variant image differentiation for all key flows:
 6. Enable full regression checklist in CI.
 
 ## Regression Checklist
+
 - Variant-only image updates reflect in order modal.
 - Variant switch updates product detail image correctly.
 - Spaces/export use variant image when `variantId` is present.
@@ -124,6 +145,7 @@ Support per-variant image differentiation for all key flows:
 - Invalid variant-product bindings are rejected.
 
 ## Verification Log
+
 - 2026-02-25: `pnpm test:unit functions/repositories/__tests__/variant-images.test.js` (pass)
 - 2026-02-25: `pnpm test:unit functions/lib/hono/routes/manage/products/__tests__/variant-images-routes.test.js` (pass)
 - 2026-02-25: `pnpm test:unit src/components/product/__tests__/VariantImageManagerModal.test.js` (pass)

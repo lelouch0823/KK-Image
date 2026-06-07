@@ -1,3 +1,4 @@
+import { executeBatchChunks } from '../lib/db/batch.js';
 import { BadRequestError } from '../lib/hono/errors.js';
 
 const RESOURCE_LOCK_IDEMPOTENCY_KEY = '__resource_lock__';
@@ -13,11 +14,13 @@ const RESOURCE_LOCK_DEFINITIONS = {
 };
 
 function normalizeResourceIds(resourceIds = []) {
-  return [...new Set(
-    (Array.isArray(resourceIds) ? resourceIds : [])
-      .map((resourceId) => String(resourceId || '').trim())
-      .filter(Boolean)
-  )].sort();
+  return [
+    ...new Set(
+      (Array.isArray(resourceIds) ? resourceIds : [])
+        .map((resourceId) => String(resourceId || '').trim())
+        .filter(Boolean)
+    ),
+  ].sort();
 }
 
 function requireResourceLockDefinition(resourceType) {

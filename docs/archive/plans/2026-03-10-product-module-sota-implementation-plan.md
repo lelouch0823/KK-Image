@@ -13,6 +13,7 @@
 ### Task 1: Lock current failure modes into tests
 
 **Files:**
+
 - Modify: `functions/repositories/__tests__/product-variant-upsert-stock.test.js`
 - Create: `functions/lib/hono/routes/manage/products/__tests__/product-create-transactional.test.js`
 - Create: `functions/lib/hono/routes/manage/products/__tests__/product-patch-rollback-boundary.test.js`
@@ -49,6 +50,7 @@ git commit -m "test(products): lock stock overwrite and rollback regressions"
 ### Task 2: Remove unsafe stock overwrite from variant sync
 
 **Files:**
+
 - Modify: `functions/repositories/ProductVariantRepository.js`
 - Modify: `functions/repositories/__tests__/product-variant-upsert-stock.test.js`
 
@@ -93,6 +95,7 @@ git commit -m "fix(products): prevent syncVariants from overwriting stock"
 ### Task 3: Introduce catalog-level service boundary
 
 **Files:**
+
 - Create: `functions/services/ProductCatalogService.js`
 - Modify: `functions/lib/hono/routes/manage/products/create-product.js`
 - Modify: `functions/lib/hono/routes/manage/products/[id].js`
@@ -157,6 +160,7 @@ git commit -m "refactor(products): move catalog orchestration into service"
 ### Task 4: Make product form catalog-only for existing variants
 
 **Files:**
+
 - Modify: `src/composables/useProductForm.js`
 - Modify: `src/components/product/ProductCreateModal.vue`
 - Create: `src/components/product/__tests__/ProductCreateModal.inventory-ownership.test.js`
@@ -201,6 +205,7 @@ git commit -m "fix(products-ui): separate catalog editing from inventory facts"
 ### Task 5: Centralize inventory mutations
 
 **Files:**
+
 - Create: `functions/services/InventoryService.js`
 - Modify: `functions/services/PurchaseOrderService.js`
 - Modify: `functions/repositories/ProductVariantRepository.js`
@@ -251,6 +256,7 @@ git commit -m "refactor(inventory): centralize inventory mutations in service"
 ### Task 6: Unify product validation semantics
 
 **Files:**
+
 - Create: `functions/lib/hono/routes/manage/products/product-schema.js`
 - Modify: `functions/lib/hono/routes/manage/products/create-product.js`
 - Modify: `functions/lib/hono/routes/manage/products/[id].js`
@@ -300,6 +306,7 @@ git commit -m "feat(products): unify validation rules across create and edit"
 ### Task 7: Establish demand/reservation groundwork
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/sales/orders.js`
 - Modify: `functions/lib/hono/routes/manage/orders/create-order.js`
 - Modify: `functions/lib/hono/routes/manage/orders/detail.js`
@@ -343,6 +350,7 @@ git commit -m "feat(demand): establish order demand lifecycle boundary"
 ### Task 8: Rework purchase suggestion calculations around unified inventory semantics
 
 **Files:**
+
 - Modify: `functions/services/PurchaseOrderService.js`
 - Modify: `functions/repositories/GoodsOverviewRepository.js`
 - Create: `functions/services/__tests__/purchase-suggestions-inventory-semantics.test.js`
@@ -380,6 +388,7 @@ git commit -m "fix(procurement): align suggestions with inventory semantics"
 ### Task 9: Define P2 inventory ledger migration path
 
 **Files:**
+
 - Create: `docs/plans/2026-03-10-product-module-inventory-ledger-followup.md`
 - Modify: `docs/plans/2026-03-10-product-module-sota-design.md`
 
@@ -406,6 +415,7 @@ git commit -m "docs(products): define inventory ledger follow-up path"
 ### Task 10: Final verification before merge
 
 **Files:**
+
 - Verify only
 
 **Step 1: Run targeted unit suites**

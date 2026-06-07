@@ -21,9 +21,14 @@ describe('watch-opa runner', () => {
   });
 
   it('normalizes paths and filters policy files', () => {
-    const runner = createWatchOpaRunner({ root: tmpRoot, processObj: { cwd: () => tmpRoot, argv: [], execPath: process.execPath } });
+    const runner = createWatchOpaRunner({
+      root: tmpRoot,
+      processObj: { cwd: () => tmpRoot, argv: [], execPath: process.execPath },
+    });
 
-    expect(runner.normalizePath(path.join(tmpRoot, 'policy', 'demo.rego'))).toContain('/policy/demo.rego');
+    expect(runner.normalizePath(path.join(tmpRoot, 'policy', 'demo.rego'))).toContain(
+      '/policy/demo.rego'
+    );
     expect(runner.shouldCompileFor(path.join(tmpRoot, 'policy', 'demo.rego'))).toBe(true);
     expect(runner.shouldCompileFor(path.join(tmpRoot, 'policy', 'dist', 'demo.rego'))).toBe(false);
     expect(runner.shouldCompileFor(path.join(tmpRoot, 'policy', 'nested', 'demo.json'))).toBe(true);
@@ -146,12 +151,14 @@ describe('watch-opa cli export', () => {
       },
     }));
 
-    await expect(runWatchOpaCli({
-      root: process.cwd(),
-      once: true,
-      processObj: { cwd: () => process.cwd(), argv: ['--once'], execPath: process.execPath },
-      spawnImpl,
-      logger: { log: vi.fn(), error: vi.fn() },
-    })).resolves.toBe(0);
+    await expect(
+      runWatchOpaCli({
+        root: process.cwd(),
+        once: true,
+        processObj: { cwd: () => process.cwd(), argv: ['--once'], execPath: process.execPath },
+        spawnImpl,
+        logger: { log: vi.fn(), error: vi.fn() },
+      })
+    ).resolves.toBe(0);
   });
 });

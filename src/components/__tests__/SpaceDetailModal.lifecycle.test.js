@@ -125,7 +125,7 @@ describe('SpaceDetailModal lifecycle', () => {
           SpaceFilesTab: { template: '<div />' },
           SpaceSettingsTab: {
             template:
-              '<button data-testid="save-share" @click="$emit(\'update-share-settings\', { shareMode: \'selected\', sharedSalespersonIds: [\'sp-1\'] })">save</button>',
+              "<button data-testid=\"save-share\" @click=\"$emit('update-share-settings', { shareMode: 'selected', sharedSalespersonIds: ['sp-1'] })\">save</button>",
           },
         },
       },
@@ -142,9 +142,7 @@ describe('SpaceDetailModal lifecycle', () => {
       sharedSalespersonIds: ['sp-1'],
     });
     expect(mocks.loadSpace).toHaveBeenCalledTimes(1);
-    expect(mocks.addToast).not.toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'success' })
-    );
+    expect(mocks.addToast).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'success' }));
     expect(wrapper.emitted('updated')).toBeUndefined();
   });
 

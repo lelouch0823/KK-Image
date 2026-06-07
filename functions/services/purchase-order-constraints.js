@@ -34,4 +34,3 @@ export function validateOrderQuantity(quantity, constraints = {}) {
     suggestedQuantity: getSuggestedOrderQuantity(qty, { moq, orderStep, packSize }),
   };
 }
-

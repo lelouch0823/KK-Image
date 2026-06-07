@@ -71,4 +71,3 @@ describe('DimensionArchiveModal event contract', () => {
     expect(wrapper.emitted('close')).toHaveLength(2);
   });
 });
-

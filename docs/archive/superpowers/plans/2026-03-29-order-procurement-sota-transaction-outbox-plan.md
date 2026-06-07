@@ -13,11 +13,13 @@
 ## File Map
 
 **Schema / persistence**
+
 - Modify: `scripts/init-database.sql`
 - Create: `migrations/0055_command_idempotency_and_outbox.sql`
 - Modify: `docs/DATABASE_SCHEMA.md`
 
 **Receipt command and supporting repositories**
+
 - Modify: `functions/services/OrderProcurementDomainService.js`
 - Modify: `functions/repositories/PurchaseReceiptRepository.js`
 - Modify: `functions/services/InventoryService.js`
@@ -28,6 +30,7 @@
 - Test: `functions/repositories/__tests__/DomainOutboxRepository.test.js`
 
 **Outbox consumers / delivery**
+
 - Create: `functions/services/DomainOutboxDispatchService.js`
 - Create: `functions/services/DomainOutboxConsumers.js`
 - Create: `functions/api/cron/outbox.js`
@@ -36,6 +39,7 @@
 - Test: `functions/api/cron/__tests__/outbox.test.js`
 
 **Audit + cache integration**
+
 - Modify: `functions/lib/hono/routes/manage/purchase-orders.js`
 - Modify: `functions/lib/hono/_shared/audit-helpers.js`
 - Create: `functions/services/__tests__/DomainOutboxConsumers.audit-cache.test.js`
@@ -44,6 +48,7 @@
 ### Task 1: Add Command Idempotency and Outbox Schema
 
 **Files:**
+
 - Create: `migrations/0055_command_idempotency_and_outbox.sql`
 - Modify: `scripts/init-database.sql`
 - Modify: `docs/DATABASE_SCHEMA.md`
@@ -94,6 +99,7 @@ git commit -m "feat: add receipt command idempotency and outbox schema"
 ### Task 2: Add Repositories for Command Idempotency and Outbox
 
 **Files:**
+
 - Create: `functions/repositories/CommandIdempotencyRepository.js`
 - Create: `functions/repositories/DomainOutboxRepository.js`
 - Test: `functions/repositories/__tests__/CommandIdempotencyRepository.test.js`
@@ -141,6 +147,7 @@ git commit -m "feat: add receipt idempotency and outbox repositories"
 ### Task 3: Refactor Receipt Recording Into One Transactional Command
 
 **Files:**
+
 - Modify: `functions/services/OrderProcurementDomainService.js`
 - Modify: `functions/repositories/PurchaseReceiptRepository.js`
 - Modify: `functions/services/InventoryService.js`
@@ -197,6 +204,7 @@ git commit -m "feat: transaction-wrap purchase receipt command"
 ### Task 4: Add Outbox Dispatch Service and Claim/Lease Logic
 
 **Files:**
+
 - Create: `functions/services/DomainOutboxDispatchService.js`
 - Test: `functions/services/__tests__/DomainOutboxDispatchService.test.js`
 
@@ -238,6 +246,7 @@ git commit -m "feat: add lease-based outbox job dispatcher"
 ### Task 5: Add Audit and Cache Consumers
 
 **Files:**
+
 - Create: `functions/services/DomainOutboxConsumers.js`
 - Modify: `functions/lib/hono/_shared/audit-helpers.js`
 - Test: `functions/services/__tests__/DomainOutboxConsumers.audit-cache.test.js`
@@ -278,6 +287,7 @@ git commit -m "feat: add audit and cache outbox consumers"
 ### Task 6: Add Outbox Poller Endpoint and Wire Runtime Entry
 
 **Files:**
+
 - Create: `functions/api/cron/outbox.js`
 - Modify: `functions/api/[[route]].js`
 - Test: `functions/api/cron/__tests__/outbox.test.js`
@@ -317,6 +327,7 @@ git commit -m "feat: add receipt outbox cron poller"
 ### Task 7: Update Receipt Route Integration for Idempotency and Side-Effect Handoff
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/purchase-orders.js`
 - Modify: `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 
@@ -355,6 +366,7 @@ git commit -m "feat: pass receipt idempotency context through route"
 ### Task 8: Full Regression Pass
 
 **Files:**
+
 - Verify only: all files above plus existing order/procurement regression coverage
 
 - [ ] **Step 1: Run focused new-suite coverage**

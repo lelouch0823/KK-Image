@@ -51,7 +51,10 @@ import tagsApp from '../tags.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.route('/api/manage/tags', tagsApp);
   return app;
@@ -92,11 +95,16 @@ describe('manage tags routes', () => {
 
   describe('POST /', () => {
     it('创建标签成功', async () => {
-      const res = await app.request('/api/manage/tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: '风景', color: '#4CAF50' }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/tags',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: '风景', color: '#4CAF50' }),
+        },
+        ENV,
+        CTX
+      );
       const json = await res.json();
 
       expect(res.status).toBe(200);
@@ -111,21 +119,31 @@ describe('manage tags routes', () => {
     it('标签名重复时返回 409', async () => {
       mocks.repoCreate.mockRejectedValue(new Error('UNIQUE constraint failed'));
 
-      const res = await app.request('/api/manage/tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: '风景' }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/tags',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: '风景' }),
+        },
+        ENV,
+        CTX
+      );
 
       expect(res.status).toBe(409);
     });
 
     it('缺少 name 时返回 400', async () => {
-      const res = await app.request('/api/manage/tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/tags',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        },
+        ENV,
+        CTX
+      );
 
       expect(res.status).toBe(400);
     });
@@ -133,11 +151,16 @@ describe('manage tags routes', () => {
 
   describe('POST /assign', () => {
     it('分配标签到文件成功', async () => {
-      const res = await app.request('/api/manage/tags/assign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_id: 'file-1', tag_id: 'tag-1' }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/tags/assign',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_id: 'file-1', tag_id: 'tag-1' }),
+        },
+        ENV,
+        CTX
+      );
       const json = await res.json();
 
       expect(res.status).toBe(200);
@@ -150,11 +173,16 @@ describe('manage tags routes', () => {
 
   describe('DELETE /assign', () => {
     it('从文件移除标签成功', async () => {
-      const res = await app.request('/api/manage/tags/assign', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_id: 'file-1', tag_id: 'tag-1' }),
-      }, ENV, CTX);
+      const res = await app.request(
+        '/api/manage/tags/assign',
+        {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_id: 'file-1', tag_id: 'tag-1' }),
+        },
+        ENV,
+        CTX
+      );
       const json = await res.json();
 
       expect(res.status).toBe(200);

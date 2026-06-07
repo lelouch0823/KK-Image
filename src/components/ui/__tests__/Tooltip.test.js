@@ -10,9 +10,9 @@ describe('Tooltip Component', () => {
   it('should render trigger content', () => {
     const wrapper = mount(Tooltip, {
       props: { content: 'Tooltip text' },
-      slots: { default: '<button id="trigger">Hover me</button>' }
+      slots: { default: '<button id="trigger">Hover me</button>' },
     });
-    
+
     expect(wrapper.find('#trigger').exists()).toBe(true);
     expect(wrapper.find('[role="tooltip"]').exists()).toBe(false);
   });
@@ -23,16 +23,16 @@ describe('Tooltip Component', () => {
       slots: { default: '<span>Trigger</span>' },
       global: {
         stubs: {
-          Teleport: true
-        }
-      }
+          Teleport: true,
+        },
+      },
     });
-    
+
     await wrapper.trigger('mouseenter');
-    
+
     // Should not be visible immediately
     expect(wrapper.vm.isVisible).toBe(false);
-    
+
     vi.advanceTimersByTime(101);
     expect(wrapper.vm.isVisible).toBe(true);
   });
@@ -43,14 +43,14 @@ describe('Tooltip Component', () => {
       slots: { default: '<span>Trigger</span>' },
       global: {
         stubs: {
-          Teleport: true
-        }
-      }
+          Teleport: true,
+        },
+      },
     });
-    
+
     wrapper.vm.isVisible = true;
     await wrapper.trigger('mouseleave');
-    
+
     expect(wrapper.vm.isVisible).toBe(false);
   });
 });

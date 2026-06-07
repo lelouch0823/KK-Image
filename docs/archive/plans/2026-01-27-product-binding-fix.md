@@ -11,31 +11,35 @@
 ---
 
 ### 1. 登录与权限 (Auth & Access)
+
 - [MODIFY] [OrderLogin.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/order/OrderLogin.vue)
 - [MODIFY] [PasswordGate.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/common/PasswordGate.vue)
 - [MODIFY] [SpacePassword.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/space/SpacePassword.vue)
 
 ### 2. 共享空间 (Shared Spaces)
+
 - [MODIFY] [SpaceFilesTab.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/space/SpaceFilesTab.vue)
 - [MODIFY] [SpaceMediaGrid.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/space/SpaceMediaGrid.vue)
 - [MODIFY] [FileSelector.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/FileSelector.vue)
 
 ### 3. 系统与组件 (System Icons & Widgets)
+
 - [MODIFY] [ReloadPrompt.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/ReloadPrompt.vue)
 - [MODIFY] [AIChatWidget.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/common/AIChatWidget.vue)
 - [MODIFY] [OrderStatusChanger.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/OrderStatusChanger.vue) (二次检查确认所有按钮)
 
 ### 4. 商品详情 (Product Detail)
+
 - [MODIFY] [status.js](file:///Users/kayla/Downloads/Code/KK-Image/src/utils/status.js): 添加 `getProductStatusVariant` 辅助函数。
 - [MODIFY] [ProductDetail.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/product/ProductDetail.vue): 修正 `StatusBadge` 的 prop 使用，确保正确显示状态标签和颜色。
 - [MODIFY] [zh-CN.js](file:///Users/kayla/Downloads/Code/KK-Image/src/locales/zh-CN.js): 确保翻译键值一致。
 
 ### 5. Fix Product Binding Lock Logic
+
 - [DEBUG] [OrderEditModal.vue](file:///Users/kayla/Downloads/Code/KK-Image/src/components/OrderEditModal.vue): Verify initialization logic.
 - [VERIFY] [queries.js](file:///Users/kayla/Downloads/Code/KK-Image/functions/repositories/order/queries.js): Verify query includes `product_id`.
 - [VERIFY] [helpers.js](file:///Users/kayla/Downloads/Code/KK-Image/functions/repositories/order/helpers.js): Verify mapper handles `product_id`.
 - [VERIFY] [OrderRepository.js](file:///Users/kayla/Downloads/Code/KK-Image/functions/repositories/OrderRepository.js): Verify `findById` usage.
-
 
 ## 验证计划
 

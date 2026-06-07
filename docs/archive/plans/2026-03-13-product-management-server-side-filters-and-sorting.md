@@ -13,6 +13,7 @@
 ### Task 1: Stabilize The Test Surface Before Touching Production Code
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/functions/repositories/__tests__/product-spu.test.js`
 - Modify: `O:/Code/KK-Image/src/components/__tests__/ProductManager.create-success-ux.test.js`
 - Create: `O:/Code/KK-Image/src/components/product/__tests__/ProductFilters.desktop-layout.test.js`
@@ -118,6 +119,7 @@ git commit -m "test: define product management filter and sort contracts"
 ### Task 2: Extend The Product API Query Contract
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/functions/lib/hono/routes/manage/products/index.js`
 - Modify: `O:/Code/KK-Image/functions/repositories/ProductRepository.js`
 - Test: `O:/Code/KK-Image/functions/repositories/__tests__/product-spu.test.js`
@@ -195,6 +197,7 @@ git commit -m "feat: add server-side product filters and sorting"
 ### Task 3: Add Reusable Sortable Header Behavior To AppTable
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/src/components/ui/AppTable.vue`
 - Test: `O:/Code/KK-Image/src/components/ui/__tests__/AppTable.sorting.test.js`
 
@@ -248,9 +251,7 @@ const toggleSort = (column) => {
 Add click handling and sort affordance in the `<th>`:
 
 ```vue
-<th
-  @click="toggleSort(col)"
->
+<th @click="toggleSort(col)">
   <span class="inline-flex items-center gap-1">
     {{ col.label }}
     <AppIcon v-if="col.sortable" :name="resolveSortIcon(col)" class="size-4" />
@@ -273,6 +274,7 @@ git commit -m "feat: add sortable app table headers"
 ### Task 4: Rebuild ProductFilters For Desktop Inline Actions And Expanded Query State
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/src/components/product/ProductFilters.vue`
 - Modify: `O:/Code/KK-Image/src/components/ProductManager.vue`
 - Test: `O:/Code/KK-Image/src/components/product/__tests__/ProductFilters.desktop-layout.test.js`
@@ -284,7 +286,9 @@ git commit -m "feat: add sortable app table headers"
 expect(source).toContain('brand');
 expect(source).toContain('category');
 expect(source).toContain('hasStock');
-expect(source).toContain("defineEmits(['update:search', 'update:status', 'update:brand', 'update:category', 'update:hasStock', 'refresh'])");
+expect(source).toContain(
+  "defineEmits(['update:search', 'update:status', 'update:brand', 'update:category', 'update:hasStock', 'refresh'])"
+);
 ```
 
 **Step 2: Run the ProductFilters and ProductManager tests to verify they fail**
@@ -382,6 +386,7 @@ git commit -m "feat: align product filters with desktop inline actions"
 ### Task 5: Wire ProductTable Sorting Into The Shared Table Contract
 
 **Files:**
+
 - Modify: `O:/Code/KK-Image/src/components/product/ProductTable.vue`
 - Modify: `O:/Code/KK-Image/src/components/ProductManager.vue`
 - Test: `O:/Code/KK-Image/src/components/ui/__tests__/AppTable.sorting.test.js`
@@ -430,11 +435,7 @@ Mark sortable columns:
 Pass through to `AppTable`:
 
 ```vue
-<AppTable
-  :sort-by="sortBy"
-  :sort-order="sortOrder"
-  @sort-change="$emit('sort-change', $event)"
-/>
+<AppTable :sort-by="sortBy" :sort-order="sortOrder" @sort-change="$emit('sort-change', $event)" />
 ```
 
 In `ProductManager.vue`:
@@ -462,6 +463,7 @@ git commit -m "feat: wire product table server-side sorting"
 ### Task 6: Final Verification And Cleanup
 
 **Files:**
+
 - Verify only:
   - `O:/Code/KK-Image/functions/repositories/ProductRepository.js`
   - `O:/Code/KK-Image/functions/lib/hono/routes/manage/products/index.js`
@@ -508,6 +510,7 @@ git commit -m "feat: add server-side product filters and sorting"
 
 Run: `pnpm dev`
 Expected: manually verify `/admin/products` on desktop:
+
 - toolbar buttons sit to the right of the search input
 - brand/category/status/stock filters combine correctly
 - sorting `price` or `stock` keeps filter state and resets to page 1

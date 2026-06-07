@@ -21,12 +21,15 @@ function createNotificationDbStub() {
         }
 
         const [sourceConsumer, dedupeKey, receiver, salespersonScope] = statement.params;
-        return notifications.find((notification) => (
-          notification.source_consumer === sourceConsumer
-          && notification.dedupe_key === dedupeKey
-          && notification.receiver === receiver
-          && (notification.salesperson_id || '') === salespersonScope
-        )) || null;
+        return (
+          notifications.find(
+            (notification) =>
+              notification.source_consumer === sourceConsumer &&
+              notification.dedupe_key === dedupeKey &&
+              notification.receiver === receiver &&
+              (notification.salesperson_id || '') === salespersonScope
+          ) || null
+        );
       }),
       run: vi.fn(async () => {
         if (!normalizedSql.includes('INSERT INTO notifications')) {
@@ -49,12 +52,13 @@ function createNotificationDbStub() {
           createdAt,
         ] = statement.params;
 
-        const existing = notifications.find((notification) => (
-          notification.source_consumer === sourceConsumer
-          && notification.dedupe_key === dedupeKey
-          && notification.receiver === receiver
-          && (notification.salesperson_id || '') === (salespersonId || '')
-        ));
+        const existing = notifications.find(
+          (notification) =>
+            notification.source_consumer === sourceConsumer &&
+            notification.dedupe_key === dedupeKey &&
+            notification.receiver === receiver &&
+            (notification.salesperson_id || '') === (salespersonId || '')
+        );
 
         if (existing) {
           return { success: true, meta: { changes: 0 } };
@@ -126,13 +130,15 @@ describe('NotificationRepository domain outbox dedupe', () => {
       created: true,
     });
     expect(db.notifications).toHaveLength(1);
-    expect(db.notifications[0]).toEqual(expect.objectContaining({
-      receiver: 'admin',
-      order_id: 'po-1',
-      source_consumer: 'notification',
-      source_event_id: 'evt-1',
-      dedupe_key: 'purchase_receipt_recorded:evt-1:admin',
-    }));
+    expect(db.notifications[0]).toEqual(
+      expect.objectContaining({
+        receiver: 'admin',
+        order_id: 'po-1',
+        source_consumer: 'notification',
+        source_event_id: 'evt-1',
+        dedupe_key: 'purchase_receipt_recorded:evt-1:admin',
+      })
+    );
   });
 
   it('returns the existing notification when the same event is replayed', async () => {
@@ -173,15 +179,19 @@ describe('NotificationRepository domain outbox dedupe', () => {
     const db = createNotificationDbStub();
     const repo = new NotificationRepository(db);
 
-    await repo.createBatch(Array.from({ length: 205 }, (_, index) => ({
-      type: 'order',
-      title: `modern-${index + 1}`,
-      receiver: 'admin',
-      orderId: `o-${index + 1}`,
-      metadata: { index: index + 1 },
-    })));
+    await repo.createBatch(
+      Array.from({ length: 205 }, (_, index) => ({
+        type: 'order',
+        title: `modern-${index + 1}`,
+        receiver: 'admin',
+        orderId: `o-${index + 1}`,
+        metadata: { index: index + 1 },
+      }))
+    );
 
     expect(db.batch).toHaveBeenCalledTimes(3);
-    expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(100);
+    expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(
+      100
+    );
   });
 });

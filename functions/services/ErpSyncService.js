@@ -45,8 +45,8 @@ export class ErpSyncService {
       }
     }
 
-    const allSuccess = Object.values(results).every(r => r.success !== false);
-    const anyFailed = Object.values(results).some(r => r.success === false);
+    const allSuccess = Object.values(results).every((r) => r.success !== false);
+    const anyFailed = Object.values(results).some((r) => r.success === false);
     const status = allSuccess ? 'success' : anyFailed ? 'failed' : 'partial';
     await this.erpRepo.updateSyncStatus(connectionId, { status });
 
@@ -150,11 +150,18 @@ export class ErpSyncService {
         });
 
         try {
-          const existingMapping = await this.erpRepo.getMappingByErpId(connection.id, entityType, erpId);
+          const existingMapping = await this.erpRepo.getMappingByErpId(
+            connection.id,
+            entityType,
+            erpId
+          );
           if (existingMapping) {
             // 已存在映射 -> 更新本地
             await this._updateLocalEntity(entityType, existingMapping.localId, remoteEntity);
-            await this.erpRepo.updateSyncLog(logId, { status: 'success', entityId: existingMapping.localId });
+            await this.erpRepo.updateSyncLog(logId, {
+              status: 'success',
+              entityId: existingMapping.localId,
+            });
             pulled++;
           } else {
             // 新实体 -> 创建本地
@@ -172,11 +179,17 @@ export class ErpSyncService {
         } catch (err) {
           if (err.message.includes('conflict')) {
             console.warn(`[ErpSync] pull ${entityType} ${erpId} conflict:`, err.message);
-            await this.erpRepo.updateSyncLog(logId, { status: 'conflict', errorMessage: err.message });
+            await this.erpRepo.updateSyncLog(logId, {
+              status: 'conflict',
+              errorMessage: err.message,
+            });
             conflicts++;
           } else {
             console.error(`[ErpSync] pull ${entityType} ${erpId} failed:`, err.message);
-            await this.erpRepo.updateSyncLog(logId, { status: 'failed', errorMessage: err.message });
+            await this.erpRepo.updateSyncLog(logId, {
+              status: 'failed',
+              errorMessage: err.message,
+            });
             failed++;
           }
         }
@@ -247,7 +260,10 @@ export class ErpSyncService {
         } else {
           const localId = await this._createLocalEntity(entity_type, data);
           await this.erpRepo.upsertMapping({
-            connectionId, entityType: entity_type, localId, erpId: entity_id,
+            connectionId,
+            entityType: entity_type,
+            localId,
+            erpId: entity_id,
           });
           await this.erpRepo.updateSyncLog(logId, { status: 'success', entityId: localId });
         }
@@ -309,10 +325,12 @@ export class ErpSyncService {
       new TextEncoder().encode(secret),
       { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ['sign'],
+      ['sign']
     );
     const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
-    return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return Array.from(new Uint8Array(sig))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
   }
 
   /**

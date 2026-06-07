@@ -15,20 +15,15 @@ function isSellableSalesVariant(variant = {}) {
   if (variant?.status !== 'active') return false;
   const availableQuantity = Number(
     variant?.available_quantity ??
-    variant?.available ??
-    variant?.stock_quantity ??
-    variant?.stockQuantity ??
-    0
+      variant?.available ??
+      variant?.stock_quantity ??
+      variant?.stockQuantity ??
+      0
   );
   return availableQuantity > 0;
 }
 
-app.onError((err, c) => {
-  const statusCode = Number(err?.statusCode || 500);
-  const code = err?.code || 'INTERNAL_ERROR';
-  const error = err?.message || 'Internal Server Error';
-  return c.json({ success: false, error, code }, statusCode);
-});
+// H16: 删除局部 onError，由全局 errorHandler 统一处理（含 traceId、Sentry、审计）
 
 /**
  * GET / - 销售端商品列表（只返回可售商品）
@@ -39,13 +34,16 @@ app.get('/', withCache(20), async (c) => {
   const search = c.req.query('search') || '';
 
   const repo = new ProductRepository(env.DB);
-  const result = await repo.search({
-    search: String(search || '').trim(),
-    status: 'active',
-    hasStock: 'in_stock',
-    page,
-    limit,
-  }, { includeFilters: false });
+  const result = await repo.search(
+    {
+      search: String(search || '').trim(),
+      status: 'active',
+      hasStock: 'in_stock',
+      page,
+      limit,
+    },
+    { includeFilters: false }
+  );
 
   const items = (result.items || []).map((item) => {
     const images = parseJsonArray(item.images, []);
@@ -90,8 +88,13 @@ app.get('/:id', withCache(30), async (c) => {
   const dimensionRepo = new ProductDimensionRepository(env.DB);
   const variantImageRepo = new VariantImageRepository(env.DB);
 
-  const variants = (await variantRepo.findByProductId(id)).filter((variant) => isSellableSalesVariant(variant));
-  const replenishmentMap = await loadVariantReplenishmentMap(env.DB, variants.map((variant) => variant.id));
+  const variants = (await variantRepo.findByProductId(id)).filter((variant) =>
+    isSellableSalesVariant(variant)
+  );
+  const replenishmentMap = await loadVariantReplenishmentMap(
+    env.DB,
+    variants.map((variant) => variant.id)
+  );
   const dimensions = (await dimensionRepo.listByProduct(id))
     .filter((dimension) => dimension?.status !== 'archived')
     .map((dimension) => ({
@@ -119,7 +122,9 @@ app.get('/:id', withCache(30), async (c) => {
         primaryImage: primary?.image_id || variant.image_id || null,
         replenishment_quantity: replenishment.replenishment_quantity,
         replenishment_po_count: replenishment.replenishment_po_count,
-        available_quantity: Number(variant.available_quantity ?? variant.available ?? variant.stock_quantity ?? 0),
+        available_quantity: Number(
+          variant.available_quantity ?? variant.available ?? variant.stock_quantity ?? 0
+        ),
       };
     })
   );

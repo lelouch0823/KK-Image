@@ -1,7 +1,10 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
-import { createAuditRuntimeHarness, expectDeclaredRouteToMatchRuntimeEvent } from './audit-runtime-test-utils.js';
+import {
+  createAuditRuntimeHarness,
+  expectDeclaredRouteToMatchRuntimeEvent,
+} from './audit-runtime-test-utils.js';
 
 afterEach(() => {
   vi.resetModules();
@@ -15,12 +18,17 @@ describe('audit runtime alignment', () => {
       requirePermission: () => async (_c, next) => next(),
     }));
     vi.doMock('../../../../api/utils/backup-utils.js', () => ({
-      performStreamingBackup: vi.fn(async () => ({ filename: 'backup-1.zip', key: 'backup-1.zip' })),
+      performStreamingBackup: vi.fn(async () => ({
+        filename: 'backup-1.zip',
+        key: 'backup-1.zip',
+      })),
     }));
 
     const mod = await import('../../routes/manage/backups.js');
     const route = mod.default;
-    const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'POST' && item.path === '/');
+    const declaration = mod.auditRouteDeclarations.find(
+      (item) => item.method === 'POST' && item.path === '/'
+    );
     const harness = createAuditRuntimeHarness();
     const app = new Hono();
     app.route('/api/manage/backups', route);
@@ -34,7 +42,9 @@ describe('audit runtime alignment', () => {
 
     expect(res.status).toBe(200);
     await harness.flush();
-    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), { result: 'success' });
+    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), {
+      result: 'success',
+    });
   });
 
   it('matches manage order create runtime event to its declaration', async () => {
@@ -43,7 +53,9 @@ describe('audit runtime alignment', () => {
       publishOrderCreatedByAdmin: vi.fn(async () => undefined),
     }));
     const mod = await import('../../routes/manage/orders/create.js');
-    const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'POST' && item.path === '/');
+    const declaration = mod.auditRouteDeclarations.find(
+      (item) => item.method === 'POST' && item.path === '/'
+    );
     const harness = createAuditRuntimeHarness();
     const app = new Hono();
     app.use('/api/manage/orders/*', async (c, next) => {
@@ -65,7 +77,9 @@ describe('audit runtime alignment', () => {
 
     expect(res.status).toBe(201);
     await harness.flush();
-    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), { result: 'success' });
+    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), {
+      result: 'success',
+    });
   });
 
   it('matches sales file upload runtime event to its declaration', async () => {
@@ -108,7 +122,9 @@ describe('audit runtime alignment', () => {
 
     expect(res.status).toBe(200);
     await harness.flush();
-    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), { result: 'success' });
+    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), {
+      result: 'success',
+    });
   }, 15000);
 
   it('matches v1 webhook create runtime event to its declaration', async () => {
@@ -126,11 +142,15 @@ describe('audit runtime alignment', () => {
       })),
     }));
     vi.doMock('../../../../services/DomainEventCatalog.js', () => ({
-      DOMAIN_EVENT_CATALOG: {},
+      DOMAIN_EVENT_CATALOG: {
+        order_created_by_admin: { version: 1, consumers: ['webhook'] },
+      },
     }));
 
     const mod = await import('../../routes/v1/webhooks.js');
-    const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'POST' && item.path === '/');
+    const declaration = mod.auditRouteDeclarations.find(
+      (item) => item.method === 'POST' && item.path === '/'
+    );
     const harness = createAuditRuntimeHarness();
     const app = new Hono();
     app.route('/api/v1/webhooks', mod.default);
@@ -140,7 +160,7 @@ describe('audit runtime alignment', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: 'https://example.com/hook' }),
+        body: JSON.stringify({ url: 'https://example.com/hook', events: ['order_created_by_admin'] }),
       },
       harness.env,
       harness.executionCtx
@@ -148,7 +168,9 @@ describe('audit runtime alignment', () => {
 
     expect(res.status).toBe(201);
     await harness.flush();
-    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), { result: 'success' });
+    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), {
+      result: 'success',
+    });
   });
 
   it('matches manage order batch update runtime event to its declaration', async () => {
@@ -177,13 +199,19 @@ describe('audit runtime alignment', () => {
     }));
 
     const mod = await import('../../routes/manage/orders/create.js');
-    const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'POST' && item.path === '/batch');
+    const declaration = mod.auditRouteDeclarations.find(
+      (item) => item.method === 'POST' && item.path === '/batch'
+    );
     const harness = createAuditRuntimeHarness({
       prepare(sql) {
         if (sql.includes('SELECT id, order_no')) {
           return {
             bind: () => ({
-              all: async () => ({ results: [{ id: 'order-1', order_no: 'SO-1', salesperson_id: null, status: 'pending' }] }),
+              all: async () => ({
+                results: [
+                  { id: 'order-1', order_no: 'SO-1', salesperson_id: null, status: 'pending' },
+                ],
+              }),
             }),
           };
         }
@@ -210,7 +238,9 @@ describe('audit runtime alignment', () => {
 
     expect(res.status).toBe(200);
     await harness.flush();
-    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), { result: 'success' });
+    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), {
+      result: 'success',
+    });
   });
 
   it('matches v1 webhook update runtime event to its declaration', async () => {
@@ -232,7 +262,9 @@ describe('audit runtime alignment', () => {
     }));
 
     const mod = await import('../../routes/v1/webhooks.js');
-    const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'PUT' && item.path === '/:id');
+    const declaration = mod.auditRouteDeclarations.find(
+      (item) => item.method === 'PUT' && item.path === '/:id'
+    );
     const harness = createAuditRuntimeHarness();
     const app = new Hono();
     app.route('/api/v1/webhooks', mod.default);
@@ -250,7 +282,9 @@ describe('audit runtime alignment', () => {
 
     expect(res.status).toBe(200);
     await harness.flush();
-    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), { result: 'success' });
+    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), {
+      result: 'success',
+    });
   });
 
   it('matches audit replay dry-run runtime event to its declaration', async () => {
@@ -268,7 +302,9 @@ describe('audit runtime alignment', () => {
     }));
 
     const mod = await import('../../routes/manage/audit-replay.js');
-    const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'POST' && item.path === '/dry-run');
+    const declaration = mod.auditRouteDeclarations.find(
+      (item) => item.method === 'POST' && item.path === '/dry-run'
+    );
     const harness = createAuditRuntimeHarness();
     const app = new Hono();
     app.use('/api/manage/audit-replay/*', async (c, next) => {
@@ -282,7 +318,11 @@ describe('audit runtime alignment', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scopeType: 'event', scopeId: 'evt-1', consumerName: 'notification' }),
+        body: JSON.stringify({
+          scopeType: 'event',
+          scopeId: 'evt-1',
+          consumerName: 'notification',
+        }),
       },
       harness.env,
       harness.executionCtx
@@ -290,7 +330,9 @@ describe('audit runtime alignment', () => {
 
     expect(res.status).toBe(200);
     await harness.flush();
-    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), { result: 'success' });
+    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), {
+      result: 'success',
+    });
   });
 
   it('matches purchase order receipt reversal runtime event to its declaration', async () => {
@@ -302,7 +344,11 @@ describe('audit runtime alignment', () => {
     }));
     vi.doMock('../../../../services/OrderProcurementReceiptReversalService.js', () => ({
       OrderProcurementReceiptReversalService: vi.fn(() => ({
-        reverseReceipt: vi.fn(async () => ({ purchase_order_id: 'po-1', receipt_id: 'receipt-1', reversal_qty: 2 })),
+        reverseReceipt: vi.fn(async () => ({
+          purchase_order_id: 'po-1',
+          receipt_id: 'receipt-1',
+          reversal_qty: 2,
+        })),
       })),
     }));
     vi.doMock('../../../../repositories/PurchaseOrderRepository.js', () => ({
@@ -327,7 +373,10 @@ describe('audit runtime alignment', () => {
     }));
     vi.doMock('../../../../services/OrderProcurementDomainService.js', () => ({
       OrderProcurementDomainService: vi.fn(() => ({
-        recordPurchaseOrderReceipts: vi.fn(async () => ({ purchase_order_id: 'po-1', receipt_count: 1 })),
+        recordPurchaseOrderReceipts: vi.fn(async () => ({
+          purchase_order_id: 'po-1',
+          receipt_count: 1,
+        })),
       })),
     }));
     vi.doMock('../../middleware/cache.js', () => ({
@@ -343,7 +392,9 @@ describe('audit runtime alignment', () => {
     });
 
     const mod = await import('../../routes/manage/purchase-orders.js');
-    const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'POST' && item.path === '/:id/receipts/:receiptId/reversal');
+    const declaration = mod.auditRouteDeclarations.find(
+      (item) => item.method === 'POST' && item.path === '/:id/receipts/:receiptId/reversal'
+    );
     const harness = createAuditRuntimeHarness();
     const app = new Hono();
     app.use('/api/manage/purchase-orders/*', async (c, next) => {
@@ -365,7 +416,9 @@ describe('audit runtime alignment', () => {
 
     expect(res.status).toBe(201);
     await harness.flush();
-    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), { result: 'success' });
+    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), {
+      result: 'success',
+    });
   });
 
   it('matches v1 webhook delete runtime event to its declaration', async () => {
@@ -387,7 +440,9 @@ describe('audit runtime alignment', () => {
     }));
 
     const mod = await import('../../routes/v1/webhooks.js');
-    const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'DELETE' && item.path === '/:id');
+    const declaration = mod.auditRouteDeclarations.find(
+      (item) => item.method === 'DELETE' && item.path === '/:id'
+    );
     const harness = createAuditRuntimeHarness();
     const app = new Hono();
     app.route('/api/v1/webhooks', mod.default);
@@ -401,7 +456,9 @@ describe('audit runtime alignment', () => {
 
     expect(res.status).toBe(200);
     await harness.flush();
-    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), { result: 'success' });
+    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), {
+      result: 'success',
+    });
   });
 
   it('records denied write attempts through requirePermission runtime path', async () => {
@@ -409,7 +466,9 @@ describe('audit runtime alignment', () => {
     const { requirePermission } = await import('../../middleware/auth.js');
     const harness = createAuditRuntimeHarness();
     const app = new Hono();
-    app.post('/api/manage/secure', requirePermission('files:write'), (c) => c.json({ success: true }));
+    app.post('/api/manage/secure', requirePermission('files:write'), (c) =>
+      c.json({ success: true })
+    );
 
     const res = await app.request(
       'http://localhost/api/manage/secure',
@@ -454,7 +513,16 @@ describe('audit runtime alignment', () => {
         prepareCreateOrder: vi.fn(async () => ({
           normalizedLines: [{ productId: null, variantId: null }],
           primaryLine: { productId: null, variantId: null },
-          bindingSnapshot: { name: 'Product', brand: '', category: '', series: '', sku: '', size: '', color: '', material: '' },
+          bindingSnapshot: {
+            name: 'Product',
+            brand: '',
+            category: '',
+            series: '',
+            sku: '',
+            size: '',
+            color: '',
+            material: '',
+          },
           totalQuantity: 1,
           effectiveVariantId: null,
         })),
@@ -476,7 +544,9 @@ describe('audit runtime alignment', () => {
     });
 
     const mod = await import('../../routes/sales/orders.js');
-    const declaration = mod.auditRouteDeclarations.find((item) => item.method === 'POST' && item.path === '/');
+    const declaration = mod.auditRouteDeclarations.find(
+      (item) => item.method === 'POST' && item.path === '/'
+    );
     const harness = createAuditRuntimeHarness();
     const app = new Hono();
     app.use('/api/sales/:token/orders/*', async (c, next) => {
@@ -490,7 +560,13 @@ describe('audit runtime alignment', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Product', quantity: 1, fileIds: [], productId: null, variantId: null }),
+        body: JSON.stringify({
+          name: 'Product',
+          quantity: 1,
+          fileIds: [],
+          productId: null,
+          variantId: null,
+        }),
       },
       harness.env,
       harness.executionCtx
@@ -498,6 +574,8 @@ describe('audit runtime alignment', () => {
 
     expect(res.status).toBe(201);
     await harness.flush();
-    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), { result: 'success' });
+    expectDeclaredRouteToMatchRuntimeEvent(declaration, harness.getLastEvent(), {
+      result: 'success',
+    });
   });
 });

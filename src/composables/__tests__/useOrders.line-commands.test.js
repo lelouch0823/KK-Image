@@ -47,7 +47,8 @@ describe('useOrders line command helpers', () => {
   });
 
   it('posts reserve, release, ship, unship, and return line commands to the dedicated management endpoints', async () => {
-    const { reserveOrderLine, releaseOrderLine, shipOrderLine, unshipOrderLine, returnOrderLine } = useOrders();
+    const { reserveOrderLine, releaseOrderLine, shipOrderLine, unshipOrderLine, returnOrderLine } =
+      useOrders();
 
     await reserveOrderLine('o-1', 'line-1', 2);
     await releaseOrderLine('o-1', 'line-1', 1);
@@ -81,6 +82,8 @@ describe('useOrders line command helpers', () => {
     await confirmOrderDelivery('o-1', 'signed by receiver');
 
     expect(mocks.authFetch.mock.calls[0][0]).toBe('/api/manage/orders/o-1/delivery-confirmation');
-    expect(JSON.parse(mocks.authFetch.mock.calls[0][1].body)).toEqual({ note: 'signed by receiver' });
+    expect(JSON.parse(mocks.authFetch.mock.calls[0][1].body)).toEqual({
+      note: 'signed by receiver',
+    });
   });
 });

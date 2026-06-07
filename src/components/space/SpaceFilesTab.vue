@@ -37,7 +37,7 @@
             <span>{{ t('common.upload') || 'Upload' }}</span>
           </AppButton>
         </Tooltip>
-        
+
         <span class="text-secondary text-xs">{{
           t('fileManager.totalFiles', { count: files?.length || 0 })
         }}</span>
@@ -48,9 +48,11 @@
         class="border-primary/20 bg-primary/5 flex items-center gap-2 rounded-lg border px-3 py-1.5"
       >
         <AppIcon name="photo-solid" class="text-primary size-4" />
-        <span class="text-primary max-w-[100px] truncate text-xs font-medium" :title="currentCoverFile.originalName || currentCoverFile.name || '-'">{{
-          currentCoverFile.originalName || currentCoverFile.name
-        }}</span>
+        <span
+          class="text-primary max-w-[100px] truncate text-xs font-medium"
+          :title="currentCoverFile.originalName || currentCoverFile.name || '-'"
+          >{{ currentCoverFile.originalName || currentCoverFile.name }}</span
+        >
       </div>
     </div>
 

@@ -26,6 +26,7 @@ Do not start reversal work until replay and side-effect observability are actual
 ### Task 1: Add immutable reversal persistence and lineage links
 
 **Files:**
+
 - Modify: `scripts/init-database.sql`
 - Modify: `docs/DATABASE_SCHEMA.md`
 - Modify: `functions/repositories/PurchaseReceiptRepository.js`
@@ -90,6 +91,7 @@ git commit -m "feat: add immutable purchase receipt reversal facts"
 ### Task 2: Implement reversal as a dedicated domain service
 
 **Files:**
+
 - Create: `functions/services/OrderProcurementReceiptReversalService.js`
 - Modify: `functions/services/InventoryService.js`
 - Modify: `functions/repositories/DomainOutboxRepository.js`
@@ -155,6 +157,7 @@ git commit -m "feat: add transactional purchase receipt reversal command"
 ### Task 3: Expose reversal through the manage purchase-orders route
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/purchase-orders.js`
 - Modify: `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
 - Test: `functions/lib/hono/_shared/__tests__/audit-runtime-alignment.test.js`
@@ -177,7 +180,13 @@ Expected: FAIL because the route and reversal service wiring do not exist
 ```js
 app.post('/:id/receipts/:receiptId/reversal', async (c) => {
   const result = await reversalService.reverseReceipt(poId, receiptId, body, { idempotencyKey });
-  c.executionCtx.waitUntil(runOutboxPoller({ env: c.env, requestUrl: c.req.url, workerId: `reversal:${poId}:${receiptId}` }));
+  c.executionCtx.waitUntil(
+    runOutboxPoller({
+      env: c.env,
+      requestUrl: c.req.url,
+      workerId: `reversal:${poId}:${receiptId}`,
+    })
+  );
   return c.json({ success: true, data: result }, 201);
 });
 ```
@@ -197,6 +206,7 @@ git commit -m "feat: expose receipt reversal through manage purchase orders"
 ### Task 4: Close the phase with side-effect and replay regressions
 
 **Files:**
+
 - Verify: `functions/services/__tests__/DomainOutboxConsumers.notifications.test.js`
 - Verify: `functions/services/__tests__/DomainOutboxConsumers.webhooks.test.js`
 - Verify: `functions/services/__tests__/OutboxReplayService.test.js`
@@ -211,6 +221,7 @@ Expected: PASS
 
 ```md
 Reversal rules:
+
 - full reversal only in this phase
 - no historical delete/update-in-place
 - reversal facts must link to original receipt, command, and resulting compensation events

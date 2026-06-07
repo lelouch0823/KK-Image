@@ -14,9 +14,6 @@ describe('folder utils thin wrappers audit', () => {
       offenders.push('functions/api/utils/folder-utils.js: still defines ensureSystemRoot');
     }
 
-    expect(
-      offenders,
-      `folder utils thin-wrapper offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `folder utils thin-wrapper offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

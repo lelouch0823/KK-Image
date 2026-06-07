@@ -134,11 +134,12 @@ describe('file access extra coverage', () => {
       shareType: 'gallery',
       shareToken: 'gallery-token',
     });
-    globalThis.fetch = vi.fn(async () =>
-      new Response('image-bytes', {
-        status: 200,
-        headers: { 'Content-Type': 'image/jpeg', 'x-frame-options': 'deny' },
-      })
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response('image-bytes', {
+          status: 200,
+          headers: { 'Content-Type': 'image/jpeg', 'x-frame-options': 'deny' },
+        })
     );
 
     const response = await onRequest({

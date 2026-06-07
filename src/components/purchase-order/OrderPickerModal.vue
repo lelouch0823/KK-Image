@@ -429,12 +429,7 @@ watch(
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--shimmer-from) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, transparent 0%, var(--shimmer-from) 50%, transparent 100%);
   animation: shimmer 1.8s infinite;
 }
 @keyframes shimmer {

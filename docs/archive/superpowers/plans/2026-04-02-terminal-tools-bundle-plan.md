@@ -13,6 +13,7 @@
 ### Task 1: Install packaged tools and support dependencies
 
 **Files:**
+
 - Modify: user package state only
 
 - [ ] **Step 1: Install packaged tools**
@@ -23,6 +24,7 @@ Expected: packages install successfully
 ### Task 2: Install upstream binaries
 
 **Files:**
+
 - Modify: `/home/bjw/.local/bin/atuin`
 - Modify: `/home/bjw/.local/bin/yazi`
 - Modify: `/home/bjw/.local/bin/ya`
@@ -38,6 +40,7 @@ Download the current official Linux x86_64 release archive, extract `yazi` and `
 ### Task 3: Add fish integration
 
 **Files:**
+
 - Create: `/home/bjw/.config/fish/conf.d/direnv.fish`
 - Create: `/home/bjw/.config/fish/conf.d/atuin.fish`
 - Create: `/home/bjw/.config/fish/functions/y.fish`
@@ -57,6 +60,7 @@ Create a `y` function that runs `yazi` and follows directory changes on exit.
 ### Task 4: Verify end to end
 
 **Files:**
+
 - Verify only
 
 - [ ] **Step 1: Verify binaries**

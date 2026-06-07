@@ -70,31 +70,33 @@ describe('manage subspaces routes', () => {
     mocks.createSubspace.mockResolvedValue(undefined);
     mocks.updateSharedSalespersons.mockResolvedValue(undefined);
     mocks.invalidateSpaceCaches.mockImplementation(() => {});
-    mocks.validateProductVariantBinding.mockImplementation(async (_db, productId, variantId, options = {}) => {
-      if (productId && !variantId) {
-        const error = new Error('variantId is required when productId is provided');
-        error.statusCode = 400;
-        throw error;
+    mocks.validateProductVariantBinding.mockImplementation(
+      async (_db, productId, variantId, options = {}) => {
+        if (productId && !variantId) {
+          const error = new Error('variantId is required when productId is provided');
+          error.statusCode = 400;
+          throw error;
+        }
+        // products 表自迁移 0043 起不再包含 status 列，产品级别不再检查活跃状态
+        if (options.checkActive && variantId === 'variant-archived') {
+          const error = new Error('variant must be active');
+          error.statusCode = 400;
+          throw error;
+        }
+        if (options.variantSelectPolicy === 'in_stock_only' && variantId === 'variant-oos') {
+          const error = new Error('variant must be in stock');
+          error.statusCode = 400;
+          throw error;
+        }
+        if (!productId && !variantId) {
+          return { normalizedProductId: null, normalizedVariantId: null };
+        }
+        return {
+          normalizedProductId: productId,
+          normalizedVariantId: variantId,
+        };
       }
-      // products 表自迁移 0043 起不再包含 status 列，产品级别不再检查活跃状态
-      if (options.checkActive && variantId === 'variant-archived') {
-        const error = new Error('variant must be active');
-        error.statusCode = 400;
-        throw error;
-      }
-      if (options.variantSelectPolicy === 'in_stock_only' && variantId === 'variant-oos') {
-        const error = new Error('variant must be in stock');
-        error.statusCode = 400;
-        throw error;
-      }
-      if (!productId && !variantId) {
-        return { normalizedProductId: null, normalizedVariantId: null };
-      }
-      return {
-        normalizedProductId: productId,
-        normalizedVariantId: variantId,
-      };
-    });
+    );
   });
 
   it('audits subspace creation with parent metadata', async () => {

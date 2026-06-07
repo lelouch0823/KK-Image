@@ -99,9 +99,7 @@
                       <div class="h-1 w-16 overflow-hidden rounded-full bg-(--bg-muted)">
                         <div class="bg-warning h-full w-1/3"></div>
                       </div>
-                      <span
-                        class="text-xs font-bold tracking-wider text-(--text-muted) uppercase"
-                      >
+                      <span class="text-xs font-bold tracking-wider text-(--text-muted) uppercase">
                         {{ t('dashboard.awaitingAction') }}
                       </span>
                     </div>
@@ -314,7 +312,10 @@
               </template>
 
               <div class="relative flex-1 p-3 sm:p-4">
-                <div v-if="salesTrendData.length === 0" class="flex h-full items-center justify-center">
+                <div
+                  v-if="salesTrendData.length === 0"
+                  class="flex h-full items-center justify-center"
+                >
                   <EmptyState
                     icon="chart-bar"
                     :title="t('stats.noData')"
@@ -344,7 +345,10 @@
               </template>
 
               <div class="relative flex-1 p-3 sm:p-4">
-                <div v-if="statusDistributionData.length === 0" class="flex h-full items-center justify-center">
+                <div
+                  v-if="statusDistributionData.length === 0"
+                  class="flex h-full items-center justify-center"
+                >
                   <EmptyState
                     icon="chart-pie"
                     :title="t('stats.noData')"
@@ -526,9 +530,10 @@ const summaryCards = computed(() => [
   {
     key: 'profit',
     label: t('dashboard.totalProfit'),
-    value: orderStats.value.profit?.totalProfit != null
-      ? formatProfitValue(orderStats.value.profit.totalProfit)
-      : '-',
+    value:
+      orderStats.value.profit?.totalProfit != null
+        ? formatProfitValue(orderStats.value.profit.totalProfit)
+        : '-',
     variant: (orderStats.value.profit?.totalProfit ?? 0) >= 0 ? 'success' : 'danger',
     icon: 'banknotes',
     footer: t('dashboard.profitMargin'),
@@ -943,7 +948,12 @@ const initSalesTrendChart = () => {
         },
         y: {
           border: { display: false },
-          grid: { color: resolveDashboardChartColor('--border-color', '229, 231, 235').replace(/, 1\)$/, ', 0.1)') },
+          grid: {
+            color: resolveDashboardChartColor('--border-color', '229, 231, 235').replace(
+              /, 1\)$/,
+              ', 0.1)'
+            ),
+          },
           beginAtZero: true,
           ticks: {
             color: resolveDashboardChartColor('--text-muted', '156, 163, 175'),

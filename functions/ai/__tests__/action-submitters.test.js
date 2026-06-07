@@ -22,24 +22,35 @@ describe('AI action submitters', () => {
     };
     const submitters = createActionSubmitters({ productService });
 
-    await expect(submitters.create_product({ name: 'Sneaker', currency: 'CNY', variants: [] }))
-      .rejects
-      .toThrow('At least one variant is required');
+    await expect(
+      submitters.create_product({ name: 'Sneaker', currency: 'CNY', variants: [] })
+    ).rejects.toThrow('At least one variant is required');
 
     const result = await submitters.create_product({
       name: 'Sneaker',
       currency: 'CNY',
-      variants: [{ sku: 'SKU-1', price: 100, cost_price: 50, stock_quantity: 10, alert_threshold: 2, status: 'active' }],
+      variants: [
+        {
+          sku: 'SKU-1',
+          price: 100,
+          cost_price: 50,
+          stock_quantity: 10,
+          alert_threshold: 2,
+          status: 'active',
+        },
+      ],
     });
 
     expect(productService.create).toHaveBeenCalled();
-    expect(result).toEqual(expect.objectContaining({
-      id: 'prod-1',
-      label: 'Sneaker',
-      productCreated: {
-        created: expect.objectContaining({ id: 'prod-1', name: 'Sneaker' }),
-      },
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'prod-1',
+        label: 'Sneaker',
+        productCreated: {
+          created: expect.objectContaining({ id: 'prod-1', name: 'Sneaker' }),
+        },
+      })
+    );
   });
 
   it('includes order side-effect metadata in create_order results', async () => {
@@ -54,24 +65,33 @@ describe('AI action submitters', () => {
       quantity: 2,
     });
 
-    expect(orderService.create).toHaveBeenCalledWith(expect.objectContaining({
-      productName: 'Classic Runner',
-      salespersonId: 'sp-1',
-      quantity: 2,
-    }));
-    expect(result).toEqual(expect.objectContaining({
-      id: 'ord-1',
-      label: 'ORD-1',
-      orderCreated: {
-        created: expect.objectContaining({ id: 'ord-1', orderNo: 'ORD-1' }),
+    expect(orderService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productName: 'Classic Runner',
         salespersonId: 'sp-1',
-      },
-    }));
+        quantity: 2,
+      })
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'ord-1',
+        label: 'ORD-1',
+        orderCreated: {
+          created: expect.objectContaining({ id: 'ord-1', orderNo: 'ORD-1' }),
+          salespersonId: 'sp-1',
+        },
+      })
+    );
   });
 
   it('routes purchase-order from-orders mode to the correct submitter dependency', async () => {
     const purchaseOrderService = {
-      createFromOrders: vi.fn(async (orderIds, payload) => ({ id: 'po-1', po_no: 'PO-1', orderIds, payload })),
+      createFromOrders: vi.fn(async (orderIds, payload) => ({
+        id: 'po-1',
+        po_no: 'PO-1',
+        orderIds,
+        payload,
+      })),
     };
     const submitters = createActionSubmitters({ purchaseOrderService });
 
@@ -85,16 +105,18 @@ describe('AI action submitters', () => {
       ['ord-1', 'ord-2'],
       expect.objectContaining({ remark: 'restock' })
     );
-    expect(result).toEqual(expect.objectContaining({
-      id: 'po-1',
-      label: 'PO-1',
-      purchaseOrderCreated: {
-        created: expect.objectContaining({ id: 'po-1', po_no: 'PO-1' }),
-        mode: 'from_orders',
-        orderIds: ['ord-1', 'ord-2'],
-        items: [],
-      },
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'po-1',
+        label: 'PO-1',
+        purchaseOrderCreated: {
+          created: expect.objectContaining({ id: 'po-1', po_no: 'PO-1' }),
+          mode: 'from_orders',
+          orderIds: ['ord-1', 'ord-2'],
+          items: [],
+        },
+      })
+    );
   });
 
   it('creates manual purchase orders with items instead of leaving an empty draft', async () => {
@@ -108,9 +130,7 @@ describe('AI action submitters', () => {
     const result = await submitters.create_purchase_order({
       mode: 'manual',
       remark: 'manual draft',
-      items: [
-        { product_id: 'prod-1', variant_id: 'var-1', quantity: 3, unit_cost: 12 },
-      ],
+      items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 3, unit_cost: 12 }],
     });
 
     expect(purchaseOrderRepo.create).toHaveBeenCalledWith(
@@ -145,9 +165,7 @@ describe('AI action submitters', () => {
     const result = await submitters.create_purchase_order({
       mode: 'manual',
       remark: 'manual draft',
-      items: [
-        { product_id: 'prod-1', variant_id: 'var-1', quantity: 3, unit_cost: 12 },
-      ],
+      items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 3, unit_cost: 12 }],
     });
 
     expect(purchaseOrderService.createManual).toHaveBeenCalledWith(
@@ -163,23 +181,25 @@ describe('AI action submitters', () => {
     );
     expect(purchaseOrderRepo.create).not.toHaveBeenCalled();
     expect(purchaseOrderRepo.addItems).not.toHaveBeenCalled();
-    expect(result).toEqual(expect.objectContaining({
-      id: 'po-1',
-      label: 'PO-1',
-      purchaseOrderCreated: {
-        created: expect.objectContaining({ id: 'po-1', po_no: 'PO-1' }),
-        mode: 'manual',
-        orderIds: [],
-        items: [
-          expect.objectContaining({
-            product_id: 'prod-1',
-            variant_id: 'var-1',
-            quantity: 3,
-            unit_cost: 12,
-          }),
-        ],
-      },
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'po-1',
+        label: 'PO-1',
+        purchaseOrderCreated: {
+          created: expect.objectContaining({ id: 'po-1', po_no: 'PO-1' }),
+          mode: 'manual',
+          orderIds: [],
+          items: [
+            expect.objectContaining({
+              product_id: 'prod-1',
+              variant_id: 'var-1',
+              quantity: 3,
+              unit_cost: 12,
+            }),
+          ],
+        },
+      })
+    );
   });
 
   it('cleans up manual purchase-order drafts when AI item insertion fails', async () => {
@@ -192,10 +212,12 @@ describe('AI action submitters', () => {
     };
     const submitters = createActionSubmitters({ purchaseOrderRepo });
 
-    await expect(submitters.create_purchase_order({
-      mode: 'manual',
-      items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 3, unit_cost: 12 }],
-    })).rejects.toThrow('insert failed');
+    await expect(
+      submitters.create_purchase_order({
+        mode: 'manual',
+        items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 3, unit_cost: 12 }],
+      })
+    ).rejects.toThrow('insert failed');
 
     expect(purchaseOrderRepo.addItems).toHaveBeenCalledTimes(1);
     expect(purchaseOrderRepo.deleteIfEmptyDraft).toHaveBeenCalledWith('po-1');
@@ -209,10 +231,12 @@ describe('AI action submitters', () => {
     };
     const submitters = createActionSubmitters({ purchaseOrderService });
 
-    await expect(submitters.create_purchase_order({
-      mode: 'manual',
-      items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 3, unit_cost: 12 }],
-    })).rejects.toThrow('create failed');
+    await expect(
+      submitters.create_purchase_order({
+        mode: 'manual',
+        items: [{ product_id: 'prod-1', variant_id: 'var-1', quantity: 3, unit_cost: 12 }],
+      })
+    ).rejects.toThrow('create failed');
   });
 
   it('rejects manual purchase-order submission when items are missing', async () => {
@@ -221,9 +245,11 @@ describe('AI action submitters', () => {
     };
     const submitters = createActionSubmitters({ purchaseOrderRepo });
 
-    await expect(submitters.create_purchase_order({
-      mode: 'manual',
-    })).rejects.toThrow('At least one purchase-order item is required');
+    await expect(
+      submitters.create_purchase_order({
+        mode: 'manual',
+      })
+    ).rejects.toThrow('At least one purchase-order item is required');
 
     expect(purchaseOrderRepo.create).not.toHaveBeenCalled();
   });
@@ -235,10 +261,14 @@ describe('AI action submitters', () => {
     };
     const submitters = createActionSubmitters({ purchaseOrderRepo });
 
-    await expect(submitters.create_purchase_order({
-      mode: 'manual',
-      items: [{ variant_query: '跑鞋 黑色 42', quantity: 20 }],
-    })).rejects.toThrow('Resolved product_id and variant_id are required for every purchase-order item');
+    await expect(
+      submitters.create_purchase_order({
+        mode: 'manual',
+        items: [{ variant_query: '跑鞋 黑色 42', quantity: 20 }],
+      })
+    ).rejects.toThrow(
+      'Resolved product_id and variant_id are required for every purchase-order item'
+    );
 
     expect(purchaseOrderRepo.create).not.toHaveBeenCalled();
     expect(purchaseOrderRepo.addItems).not.toHaveBeenCalled();
@@ -250,9 +280,11 @@ describe('AI action submitters', () => {
     };
     const submitters = createActionSubmitters({ purchaseOrderService });
 
-    await expect(submitters.create_purchase_order({
-      mode: 'from_orders',
-    })).rejects.toThrow('At least one order id is required');
+    await expect(
+      submitters.create_purchase_order({
+        mode: 'from_orders',
+      })
+    ).rejects.toThrow('At least one order id is required');
 
     expect(purchaseOrderService.createFromOrders).not.toHaveBeenCalled();
   });

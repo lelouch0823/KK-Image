@@ -15,14 +15,18 @@ describe('TelegramStorageProvider', () => {
   });
 
   it('checks whether required telegram bindings exist', () => {
-    expect(new TelegramStorageProvider({ TG_Bot_Token: 'bot', TG_Chat_ID: 'chat' }).isConfigured()).toBe(true);
+    expect(
+      new TelegramStorageProvider({ TG_Bot_Token: 'bot', TG_Chat_ID: 'chat' }).isConfigured()
+    ).toBe(true);
     expect(new TelegramStorageProvider({ TG_Bot_Token: 'bot' }).isConfigured()).toBe(false);
   });
 
   it('returns configuration errors before upload attempts', async () => {
     const provider = new TelegramStorageProvider({});
 
-    await expect(provider.upload({ name: 'demo.png', type: 'image/png', size: 1 })).resolves.toEqual({
+    await expect(
+      provider.upload({ name: 'demo.png', type: 'image/png', size: 1 })
+    ).resolves.toEqual({
       success: false,
       error: 'Telegram not configured',
     });
@@ -83,11 +87,15 @@ describe('TelegramStorageProvider', () => {
       .mockResolvedValueOnce({ success: false, error: 'rate limited' })
       .mockResolvedValueOnce({ success: true, data: { ok: true, result: {} } });
 
-    await expect(provider.upload({ name: 'demo.png', type: 'image/png', size: 1 })).resolves.toEqual({
+    await expect(
+      provider.upload({ name: 'demo.png', type: 'image/png', size: 1 })
+    ).resolves.toEqual({
       success: false,
       error: 'rate limited',
     });
-    await expect(provider.upload({ name: 'demo.png', type: 'image/png', size: 1 })).resolves.toEqual({
+    await expect(
+      provider.upload({ name: 'demo.png', type: 'image/png', size: 1 })
+    ).resolves.toEqual({
       success: false,
       error: 'Failed to extract file ID from Telegram response',
     });
@@ -101,10 +109,13 @@ describe('TelegramStorageProvider', () => {
 
     fetchSpy.mockResolvedValueOnce(new Response('image', { status: 200 }));
 
-    const ok = await provider.getFile('file-id.png', new Request('https://example.com/demo', {
-      method: 'HEAD',
-      headers: { 'x-test': '1' },
-    }));
+    const ok = await provider.getFile(
+      'file-id.png',
+      new Request('https://example.com/demo', {
+        method: 'HEAD',
+        headers: { 'x-test': '1' },
+      })
+    );
     const missing = await provider.getFile('file-id.png');
 
     expect(fetchSpy).toHaveBeenCalledWith(
@@ -128,8 +139,14 @@ describe('TelegramStorageProvider', () => {
   it('falls back from sendPhoto to sendDocument when telegram rejects image uploads', async () => {
     const provider = new TelegramStorageProvider({ TG_Bot_Token: 'bot', TG_Chat_ID: 'chat' });
     fetchSpy
-      .mockResolvedValueOnce(new Response(JSON.stringify({ description: 'bad image' }), { status: 400 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, result: { document: { file_id: 'doc-1' } } }), { status: 200 }));
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ description: 'bad image' }), { status: 400 })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, result: { document: { file_id: 'doc-1' } } }), {
+          status: 200,
+        })
+      );
 
     const formData = new FormData();
     formData.append('chat_id', 'chat');
@@ -170,7 +187,11 @@ describe('TelegramStorageProvider', () => {
 
     fetchSpy
       .mockRejectedValueOnce(new Error('temporary outage'))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, result: { document: { file_id: 'doc-1' } } }), { status: 200 }));
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, result: { document: { file_id: 'doc-1' } } }), {
+          status: 200,
+        })
+      );
 
     const successPromise = provider._sendToTelegram(formData, 'sendDocument');
     await vi.advanceTimersByTimeAsync(1000);
@@ -194,10 +215,26 @@ describe('TelegramStorageProvider', () => {
   it('extracts file ids from all telegram response shapes', () => {
     const provider = new TelegramStorageProvider({ TG_Bot_Token: 'bot', TG_Chat_ID: 'chat' });
 
-    expect(provider._extractFileId({ ok: true, result: { photo: [{ file_id: 'a', file_size: 1 }, { file_id: 'b', file_size: 5 }] } })).toBe('b');
-    expect(provider._extractFileId({ ok: true, result: { document: { file_id: 'doc-1' } } })).toBe('doc-1');
-    expect(provider._extractFileId({ ok: true, result: { video: { file_id: 'vid-1' } } })).toBe('vid-1');
-    expect(provider._extractFileId({ ok: true, result: { audio: { file_id: 'aud-1' } } })).toBe('aud-1');
+    expect(
+      provider._extractFileId({
+        ok: true,
+        result: {
+          photo: [
+            { file_id: 'a', file_size: 1 },
+            { file_id: 'b', file_size: 5 },
+          ],
+        },
+      })
+    ).toBe('b');
+    expect(provider._extractFileId({ ok: true, result: { document: { file_id: 'doc-1' } } })).toBe(
+      'doc-1'
+    );
+    expect(provider._extractFileId({ ok: true, result: { video: { file_id: 'vid-1' } } })).toBe(
+      'vid-1'
+    );
+    expect(provider._extractFileId({ ok: true, result: { audio: { file_id: 'aud-1' } } })).toBe(
+      'aud-1'
+    );
     expect(provider._extractFileId({ ok: false })).toBeNull();
   });
 
@@ -206,7 +243,11 @@ describe('TelegramStorageProvider', () => {
     const provider = new TelegramStorageProvider({ TG_Bot_Token: 'bot', TG_Chat_ID: 'chat' });
 
     fetchSpy
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, result: { file_path: 'path/demo.png' } }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, result: { file_path: 'path/demo.png' } }), {
+          status: 200,
+        })
+      )
       .mockResolvedValueOnce(new Response(JSON.stringify({ ok: false }), { status: 200 }))
       .mockRejectedValueOnce(new Error('network down'));
 

@@ -3,7 +3,9 @@ const VALID_SEVERITIES = new Set(['normal', 'high', 'critical']);
 const VALID_RUNTIME_ASSERTION_LEVELS = new Set(['static', 'runtime']);
 
 export function normalizeAuditRouteMethod(method) {
-  return String(method || '').trim().toUpperCase();
+  return String(method || '')
+    .trim()
+    .toUpperCase();
 }
 
 export function normalizeAuditRouteKey({ method, path }) {
@@ -48,9 +50,10 @@ export function declareAuditRoute(input = {}) {
     action,
     severity,
     targetType,
-    resultModes: Array.isArray(input.resultModes) && input.resultModes.length > 0
-      ? [...new Set(input.resultModes)]
-      : ['success', 'denied', 'failed'],
+    resultModes:
+      Array.isArray(input.resultModes) && input.resultModes.length > 0
+        ? [...new Set(input.resultModes)]
+        : ['success', 'denied', 'failed'],
     phase: input.phase || 'phase2',
     excludedReason: input.excludedReason || null,
     runtimeAssertionLevel,

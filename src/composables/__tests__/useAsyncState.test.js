@@ -94,10 +94,7 @@ describe('useAsyncState', () => {
       const onSuccess = vi.fn();
       const shouldAbort = vi.fn().mockReturnValue(true);
 
-      const result = await state.execute(
-        () => Promise.resolve('数据'),
-        { onSuccess, shouldAbort },
-      );
+      const result = await state.execute(() => Promise.resolve('数据'), { onSuccess, shouldAbort });
 
       expect(result).toBeUndefined();
       expect(onSuccess).not.toHaveBeenCalled();
@@ -108,10 +105,7 @@ describe('useAsyncState', () => {
       const shouldAbort = vi.fn().mockReturnValue(true);
       const error = new Error('失败');
 
-      const result = await state.execute(
-        () => Promise.reject(error),
-        { onError, shouldAbort },
-      );
+      const result = await state.execute(() => Promise.reject(error), { onError, shouldAbort });
 
       expect(result).toBeUndefined();
       expect(onError).not.toHaveBeenCalled();
@@ -165,13 +159,11 @@ describe('useAsyncStateWithRace', () => {
 
     // 第一个请求（慢）
     const promise1 = state.execute(
-      () => new Promise((resolve) => setTimeout(() => resolve('结果1'), 100)),
+      () => new Promise((resolve) => setTimeout(() => resolve('结果1'), 100))
     );
 
     // 第二个请求（快）
-    const promise2 = state.execute(
-      () => Promise.resolve('结果2'),
-    );
+    const promise2 = state.execute(() => Promise.resolve('结果2'));
 
     const [r1, r2] = await Promise.all([promise1, promise2]);
 

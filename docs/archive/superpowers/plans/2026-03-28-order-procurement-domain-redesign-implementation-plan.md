@@ -71,6 +71,7 @@
 ## Task 1: Add Schema and Backfill Foundations
 
 **Files:**
+
 - Create: `migrations/00xx_order_procurement_domain_redesign.sql`
 - Create: `scripts/migrations/backfill-order-lines.mjs`
 - Modify: `docs/DATABASE_SCHEMA.md`
@@ -147,6 +148,7 @@ git commit -m "feat: add order procurement redesign schema scaffold"
 ## Task 2: Add Repositories for Lines, Receipts, Events, and Allocations
 
 **Files:**
+
 - Create: `functions/repositories/OrderLineRepository.js`
 - Create: `functions/repositories/PurchaseReceiptRepository.js`
 - Create: `functions/repositories/InventoryEventRepository.js`
@@ -189,19 +191,24 @@ export class InventoryEventRepository {
   }
 
   async create(event) {
-    return this.db.prepare(`
+    return this.db
+      .prepare(
+        `
       INSERT INTO inventory_events (id, variant_id, event_type, quantity_delta, reference_type, reference_id, metadata, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      event.id,
-      event.variantId,
-      event.eventType,
-      event.quantityDelta,
-      event.referenceType,
-      event.referenceId,
-      JSON.stringify(event.metadata || {}),
-      event.createdAt
-    ).run();
+    `
+      )
+      .bind(
+        event.id,
+        event.variantId,
+        event.eventType,
+        event.quantityDelta,
+        event.referenceType,
+        event.referenceId,
+        JSON.stringify(event.metadata || {}),
+        event.createdAt
+      )
+      .run();
   }
 }
 ```
@@ -221,6 +228,7 @@ git commit -m "feat: add repositories for lines receipts and inventory events"
 ## Task 3: Add Projection Services for Inventory and Statuses
 
 **Files:**
+
 - Create: `functions/services/OrderStatusProjectionService.js`
 - Create: `functions/services/InventoryProjectionService.js`
 - Create: `functions/services/__tests__/OrderStatusProjectionService.test.js`
@@ -273,12 +281,15 @@ export function projectOrderLineStatus(line) {
 
 ```js
 export function projectInventoryBalances(events) {
-  return events.reduce((acc, event) => {
-    if (event.eventType === 'purchase_received') acc.onHand += event.quantityDelta;
-    if (event.eventType === 'inventory_reserved') acc.reserved += event.reservedDelta;
-    acc.available = acc.onHand - acc.reserved;
-    return acc;
-  }, { onHand: 0, reserved: 0, available: 0 });
+  return events.reduce(
+    (acc, event) => {
+      if (event.eventType === 'purchase_received') acc.onHand += event.quantityDelta;
+      if (event.eventType === 'inventory_reserved') acc.reserved += event.reservedDelta;
+      acc.available = acc.onHand - acc.reserved;
+      return acc;
+    },
+    { onHand: 0, reserved: 0, available: 0 }
+  );
 }
 ```
 
@@ -297,6 +308,7 @@ git commit -m "feat: add projection services for order and inventory state"
 ## Task 4: Add Unified Domain Service for Receipt, Allocation, and Reversal
 
 **Files:**
+
 - Create: `functions/services/OrderProcurementDomainService.js`
 - Create: `functions/services/__tests__/OrderProcurementDomainService.test.js`
 - Modify: `functions/services/PurchaseOrderService.js`
@@ -357,6 +369,7 @@ git commit -m "feat: unify procurement receipt and allocation domain writes"
 ## Task 5: Update Manage Procurement Routes for Receipts and Allocations
 
 **Files:**
+
 - Modify: `functions/lib/hono/routes/manage/purchase-orders.js`
 - Create: `functions/lib/hono/routes/manage/__tests__/purchase-order-receipts-routes.test.js`
 - Modify: `functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js`
@@ -386,7 +399,11 @@ Expected: FAIL because route does not exist
 app.post('/:id/receipts', async (c) => {
   const body = await c.req.json();
   const service = new OrderProcurementDomainService(c.env.DB);
-  const result = await service.recordReceiptBatch(c.req.param('id'), body.items, body.allocations || []);
+  const result = await service.recordReceiptBatch(
+    c.req.param('id'),
+    body.items,
+    body.allocations || []
+  );
   return c.json({ success: true, data: result }, 201);
 });
 ```
@@ -406,6 +423,7 @@ git commit -m "feat: add manage purchase receipt and allocation routes"
 ## Task 6: Project Compatibility Data Back Into Order APIs
 
 **Files:**
+
 - Modify: `functions/repositories/OrderRepository.js`
 - Modify: `functions/repositories/order/queries.js`
 - Modify: `functions/repositories/order/helpers.js`
@@ -473,6 +491,7 @@ git commit -m "feat: expose projected order lines through legacy order apis"
 ## Task 7: Update Frontend Composables and Admin Views
 
 **Files:**
+
 - Modify: `src/composables/useOrders.js`
 - Modify: `src/composables/usePurchaseOrders.js`
 - Modify: `src/components/OrderManager.vue`
@@ -495,7 +514,10 @@ it('normalizes order detail lines and displayStatus', async () => {
 
 it('submits purchase receipts from the purchase order detail view', async () => {
   await wrapper.find('[data-testid=\"submit-receipt\"]').trigger('click');
-  expect(authFetch).toHaveBeenCalledWith('/api/manage/purchase-orders/po-1/receipts', expect.anything());
+  expect(authFetch).toHaveBeenCalledWith(
+    '/api/manage/purchase-orders/po-1/receipts',
+    expect.anything()
+  );
 });
 ```
 
@@ -516,11 +538,7 @@ const normalizedLine = {
 ```
 
 ```vue
-<ProgressBar
-  :value="line.receivedQty"
-  :max="line.orderedQty"
-  label="Received / Ordered"
-/>
+<ProgressBar :value="line.receivedQty" :max="line.orderedQty" label="Received / Ordered" />
 ```
 
 - [ ] **Step 4: Run frontend tests**
@@ -538,6 +556,7 @@ git commit -m "feat: add line-level order and receipt workflows to admin ui"
 ## Task 8: Add Replay and Consistency Verification
 
 **Files:**
+
 - Modify: `functions/services/InventoryProjectionService.js`
 - Modify: `functions/services/OrderStatusProjectionService.js`
 - Modify: `functions/services/__tests__/InventoryBusinessWorkflow.test.js`
@@ -593,6 +612,7 @@ git commit -m "test: add projection replay and consistency verification"
 ## Task 9: Refresh Documentation and Cutover Notes
 
 **Files:**
+
 - Modify: `docs/API_REFERENCE.md`
 - Modify: `docs/api/management.md`
 - Modify: `docs/api/sales.md`
@@ -603,6 +623,7 @@ git commit -m "test: add projection replay and consistency verification"
 
 ```md
 Expected API docs must mention:
+
 - order lines in order detail payloads
 - purchase receipt endpoints
 - compatibility status semantics
@@ -618,6 +639,7 @@ Expected: PASS so the docs reflect working behavior
 ```md
 `GET /api/manage/orders/:id`
 returns:
+
 - order header compatibility fields
 - `lines[]` with snapshot and quantity-progress data
 
@@ -640,22 +662,22 @@ git commit -m "docs: update order procurement redesign references"
 ## Final Verification Checklist
 
 - [ ] Run: `pnpm test:unit functions/repositories/__tests__/OrderLineRepository.test.js functions/repositories/__tests__/PurchaseReceiptRepository.test.js functions/repositories/__tests__/InventoryEventRepository.test.js functions/services/__tests__/OrderStatusProjectionService.test.js functions/services/__tests__/InventoryProjectionService.test.js functions/services/__tests__/OrderProcurementDomainService.test.js`
-Expected: PASS
+      Expected: PASS
 
 - [ ] Run: `pnpm test:unit functions/lib/hono/routes/manage/__tests__/order-detail-routes.test.js functions/lib/hono/routes/manage/__tests__/order-batch-routes.test.js functions/lib/hono/routes/manage/__tests__/purchase-orders-routes.test.js functions/lib/hono/routes/manage/__tests__/purchase-order-receipts-routes.test.js functions/lib/hono/routes/sales/__tests__/sales-routes-resilience.test.js`
-Expected: PASS
+      Expected: PASS
 
 - [ ] Run: `pnpm test:unit src/composables/__tests__/usePurchaseOrders.receipts.test.js src/components/__tests__/OrderManager.line-statuses.test.js src/views/__tests__/PurchaseOrders.receipt-allocation.test.js`
-Expected: PASS
+      Expected: PASS
 
 - [ ] Run: `pnpm test:unit test/manage-inventory-linkage-workflow.test.js`
-Expected: PASS
+      Expected: PASS
 
 - [ ] Run: `node scripts/qa/check-order-projection-consistency.mjs`
-Expected: exits `0`
+      Expected: exits `0`
 
 - [ ] Run: `pnpm db:migrations:check-prefix`
-Expected: PASS
+      Expected: PASS
 
 ## Execution Notes
 

@@ -16,9 +16,8 @@ import { createWorkflowProduct } from './utils/order-procurement-real-api.js';
 function getRetryDelayMs(response, payload, attempt) {
   const headerValue = Number(response?.headers?.get('retry-after'));
   const payloadValue = Number(payload?.retryAfter);
-  const retryAfterSeconds = Number.isFinite(headerValue) && headerValue > 0
-    ? headerValue
-    : payloadValue;
+  const retryAfterSeconds =
+    Number.isFinite(headerValue) && headerValue > 0 ? headerValue : payloadValue;
 
   if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
     return retryAfterSeconds * 1000;
@@ -92,7 +91,11 @@ async function postJsonWithRetry(path, body, { expectedStatus, headers: extraHea
 }
 
 function findSalesperson(listPayload, salespersonId) {
-  return (listPayload?.data?.salespersons || listPayload?.data || []).find((item) => item.id === salespersonId) || null;
+  return (
+    (listPayload?.data?.salespersons || listPayload?.data || []).find(
+      (item) => item.id === salespersonId
+    ) || null
+  );
 }
 
 describeIfRealApi('Salespersons Real API', function () {
@@ -102,7 +105,9 @@ describeIfRealApi('Salespersons Real API', function () {
     const token = await getBearerToken();
     const seed = uniqueSeed('salesperson');
     const phone = `139${String(Date.now()).slice(-8)}`;
-    const loginHeaders = { 'X-Forwarded-For': `10.0.${Math.floor(Math.random() * 200)}.${Math.floor(Math.random() * 200)}` };
+    const loginHeaders = {
+      'X-Forwarded-For': `10.0.${Math.floor(Math.random() * 200)}.${Math.floor(Math.random() * 200)}`,
+    };
 
     const created = await apiRequest('/api/manage/salespersons', {
       bearerToken: token,
@@ -124,7 +129,10 @@ describeIfRealApi('Salespersons Real API', function () {
       bearerToken: token,
       expectedStatus: 200,
     });
-    assert.ok(findSalesperson(firstList.json, salespersonId), 'created salesperson missing from list');
+    assert.ok(
+      findSalesperson(firstList.json, salespersonId),
+      'created salesperson missing from list'
+    );
 
     const detail = await apiRequest(`/api/manage/salespersons/${salespersonId}`, {
       bearerToken: token,
@@ -144,21 +152,24 @@ describeIfRealApi('Salespersons Real API', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const refreshed = await apiRequest('/api/manage/salespersons?page=1&limit=50', {
-        bearerToken: token,
-        expectedStatus: 200,
-      });
-      const salesperson = findSalesperson(refreshed.json, salespersonId);
-      assert.ok(salesperson, 'updated salesperson missing from list');
-      assert.strictEqual(salesperson.store, `Updated Store ${seed}`);
-      assert.strictEqual(salesperson.phone, updatedPhone);
-      return salesperson;
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'salesperson list cache did not refresh after update',
-    });
+    await waitFor(
+      async () => {
+        const refreshed = await apiRequest('/api/manage/salespersons?page=1&limit=50', {
+          bearerToken: token,
+          expectedStatus: 200,
+        });
+        const salesperson = findSalesperson(refreshed.json, salespersonId);
+        assert.ok(salesperson, 'updated salesperson missing from list');
+        assert.strictEqual(salesperson.store, `Updated Store ${seed}`);
+        assert.strictEqual(salesperson.phone, updatedPhone);
+        return salesperson;
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'salesperson list cache did not refresh after update',
+      }
+    );
 
     const resetToken = await apiRequest(`/api/manage/salespersons/${salespersonId}/reset-token`, {
       bearerToken: token,
@@ -169,10 +180,14 @@ describeIfRealApi('Salespersons Real API', function () {
     assert.ok(newAccessToken, 'new access token missing after reset');
     assert.notStrictEqual(newAccessToken, originalAccessToken);
 
-    await postJsonWithRetry(`/api/sales/${originalAccessToken}/auth`, { password: '123456' }, {
-      expectedStatus: 404,
-      headers: loginHeaders,
-    });
+    await postJsonWithRetry(
+      `/api/sales/${originalAccessToken}/auth`,
+      { password: '123456' },
+      {
+        expectedStatus: 404,
+        headers: loginHeaders,
+      }
+    );
 
     const newTokenLogin = await postJsonWithRetry(
       `/api/sales/${newAccessToken}/auth`,
@@ -231,7 +246,9 @@ describeIfRealApi('Salespersons Real API', function () {
     const token = await getBearerToken();
     const seed = uniqueSeed('sales-profile');
     const phone = `137${String(Date.now()).slice(-8)}`;
-    const loginHeaders = { 'X-Forwarded-For': `10.1.${Math.floor(Math.random() * 200)}.${Math.floor(Math.random() * 200)}` };
+    const loginHeaders = {
+      'X-Forwarded-For': `10.1.${Math.floor(Math.random() * 200)}.${Math.floor(Math.random() * 200)}`,
+    };
 
     const created = await apiRequest('/api/manage/salespersons', {
       bearerToken: token,
@@ -249,22 +266,30 @@ describeIfRealApi('Salespersons Real API', function () {
     assert.ok(salespersonId, 'profile salesperson id missing');
     assert.ok(accessToken, 'profile salesperson access token missing');
 
-    const login = await postJsonWithRetry('/api/sales/login', {
-      username: phone,
-      password: '123456',
-    }, {
-      expectedStatus: 200,
-      headers: loginHeaders,
-    });
+    const login = await postJsonWithRetry(
+      '/api/sales/login',
+      {
+        username: phone,
+        password: '123456',
+      },
+      {
+        expectedStatus: 200,
+        headers: loginHeaders,
+      }
+    );
     const jwt = login.json?.data?.token;
     assert.ok(jwt, 'sales login jwt missing');
 
-    const tokenLogin = await postJsonWithRetry(`/api/sales/${accessToken}/auth`, {
-      password: '123456',
-    }, {
-      expectedStatus: 200,
-      headers: loginHeaders,
-    });
+    const tokenLogin = await postJsonWithRetry(
+      `/api/sales/${accessToken}/auth`,
+      {
+        password: '123456',
+      },
+      {
+        expectedStatus: 200,
+        headers: loginHeaders,
+      }
+    );
     assert.strictEqual(tokenLogin.json?.data?.id, salespersonId);
 
     const authProfile = await apiRequest(`/api/sales/${accessToken}/auth`, {
@@ -288,11 +313,7 @@ describeIfRealApi('Salespersons Real API', function () {
     });
     assert.strictEqual(cachedStats.response.headers.get('x-cache'), 'HIT');
 
-    const {
-      productId,
-      variantId,
-      productName,
-    } = await createWorkflowProduct(token, seed, {
+    const { productId, variantId, productName } = await createWorkflowProduct(token, seed, {
       stockQuantity: 3,
       namePrefix: 'Sales Profile Product',
       skuPrefix: 'SALPRO',
@@ -342,25 +363,28 @@ describeIfRealApi('Salespersons Real API', function () {
       expectedStatus: 200,
     });
 
-    await waitFor(async () => {
-      const stats = await apiRequest(`/api/sales/${accessToken}/stats`, {
-        authHeader: `Bearer ${jwt}`,
-        expectedStatus: 200,
-      });
-      assert.strictEqual(stats.json?.data?.totalOrders, 1);
-      assert.strictEqual(stats.json?.data?.completedOrders, 1);
-      assert.strictEqual(stats.json?.data?.monthOrders, 1);
-      assert.strictEqual(stats.json?.data?.monthlyTrend?.length, 30);
-      assert.ok(
-        stats.json.data.monthlyTrend.some((item) => Number(item.count || 0) >= 1),
-        'monthly trend did not capture new order'
-      );
-      return stats.json?.data;
-    }, {
-      timeoutMs: 15000,
-      intervalMs: 500,
-      onTimeoutMessage: 'sales profile stats did not refresh after order changes',
-    });
+    await waitFor(
+      async () => {
+        const stats = await apiRequest(`/api/sales/${accessToken}/stats`, {
+          authHeader: `Bearer ${jwt}`,
+          expectedStatus: 200,
+        });
+        assert.strictEqual(stats.json?.data?.totalOrders, 1);
+        assert.strictEqual(stats.json?.data?.completedOrders, 1);
+        assert.strictEqual(stats.json?.data?.monthOrders, 1);
+        assert.strictEqual(stats.json?.data?.monthlyTrend?.length, 30);
+        assert.ok(
+          stats.json.data.monthlyTrend.some((item) => Number(item.count || 0) >= 1),
+          'monthly trend did not capture new order'
+        );
+        return stats.json?.data;
+      },
+      {
+        timeoutMs: 15000,
+        intervalMs: 500,
+        onTimeoutMessage: 'sales profile stats did not refresh after order changes',
+      }
+    );
 
     const blockedDelete = await apiRequest(`/api/manage/salespersons/${salespersonId}`, {
       bearerToken: token,

@@ -135,9 +135,10 @@ export class ProfitService {
         revenue: Math.round(entry.revenue * 100) / 100,
         cost: Math.round(entry.cost * 100) / 100,
         profit: Math.round((entry.revenue - entry.cost) * 100) / 100,
-        margin: entry.revenue > 0
-          ? Math.round(((entry.revenue - entry.cost) / entry.revenue) * 10000) / 100
-          : null,
+        margin:
+          entry.revenue > 0
+            ? Math.round(((entry.revenue - entry.cost) / entry.revenue) * 10000) / 100
+            : null,
         orderCount: entry.orderLineCount,
       }))
       .sort((a, b) => b.profit - a.profit)
@@ -235,7 +236,11 @@ export class ProfitService {
       const profit = revenue - cost;
 
       let costSource = 'missing';
-      if (Number(line.po_unit_cost) > 0 || Number(line.po_freight) > 0 || Number(line.po_tariff) > 0) {
+      if (
+        Number(line.po_unit_cost) > 0 ||
+        Number(line.po_freight) > 0 ||
+        Number(line.po_tariff) > 0
+      ) {
         costSource = 'po';
       } else if (Number(line.variant_cost_price) > 0) {
         costSource = 'variant';

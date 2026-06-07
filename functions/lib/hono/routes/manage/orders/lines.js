@@ -13,19 +13,56 @@ import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 const app = new Hono();
 
 export const auditRouteDeclarations = declareAuditRoutes([
-  { method: 'POST', path: '/:id/lines/:lineId/reserve', domain: 'orders', action: 'order.line.reserve', severity: 'high', targetType: 'order' },
-  { method: 'POST', path: '/:id/lines/:lineId/release', domain: 'orders', action: 'order.line.release', severity: 'high', targetType: 'order' },
-  { method: 'POST', path: '/:id/lines/:lineId/ship', domain: 'orders', action: 'order.line.ship', severity: 'high', targetType: 'order' },
-  { method: 'POST', path: '/:id/lines/:lineId/unship', domain: 'orders', action: 'order.line.unship', severity: 'high', targetType: 'order' },
-  { method: 'POST', path: '/:id/lines/:lineId/return', domain: 'orders', action: 'order.line.return', severity: 'high', targetType: 'order' },
+  {
+    method: 'POST',
+    path: '/:id/lines/:lineId/reserve',
+    domain: 'orders',
+    action: 'order.line.reserve',
+    severity: 'high',
+    targetType: 'order',
+  },
+  {
+    method: 'POST',
+    path: '/:id/lines/:lineId/release',
+    domain: 'orders',
+    action: 'order.line.release',
+    severity: 'high',
+    targetType: 'order',
+  },
+  {
+    method: 'POST',
+    path: '/:id/lines/:lineId/ship',
+    domain: 'orders',
+    action: 'order.line.ship',
+    severity: 'high',
+    targetType: 'order',
+  },
+  {
+    method: 'POST',
+    path: '/:id/lines/:lineId/unship',
+    domain: 'orders',
+    action: 'order.line.unship',
+    severity: 'high',
+    targetType: 'order',
+  },
+  {
+    method: 'POST',
+    path: '/:id/lines/:lineId/return',
+    domain: 'orders',
+    action: 'order.line.return',
+    severity: 'high',
+    targetType: 'order',
+  },
 ]);
 
 function scheduleOutboxProcessing(c, workerId) {
-  c.executionCtx.waitUntil(runOutboxPoller({
-    env: c.env,
-    requestUrl: c.req.url,
-    workerId,
-  }));
+  c.executionCtx.waitUntil(
+    runOutboxPoller({
+      env: c.env,
+      requestUrl: c.req.url,
+      workerId,
+    })
+  );
 }
 
 function buildTimelineComment({ action, lineId, quantity, reason = '', note = '' }) {
@@ -78,7 +115,7 @@ async function handleLineCommand(c, action, executor) {
   // 校验请求体
   const parsed = OrderLineCommandSchema.safeParse(rawBody);
   if (!parsed.success) {
-    throw new BadRequestError(parsed.error.issues.map(i => i.message).join('; '));
+    throw new BadRequestError(parsed.error.issues.map((i) => i.message).join('; '));
   }
   const body = parsed.data;
   const quantity = parsePositiveLineCommandQuantity(body);
@@ -131,7 +168,16 @@ async function handleLineCommand(c, action, executor) {
 
   scheduleAuditEvent(c, {
     domain: 'orders',
-    action: action === 'reserve' ? 'order.line.reserve' : action === 'release' ? 'order.line.release' : action === 'ship' ? 'order.line.ship' : action === 'unship' ? 'order.line.unship' : 'order.line.return',
+    action:
+      action === 'reserve'
+        ? 'order.line.reserve'
+        : action === 'release'
+          ? 'order.line.release'
+          : action === 'ship'
+            ? 'order.line.ship'
+            : action === 'unship'
+              ? 'order.line.unship'
+              : 'order.line.return',
     result: 'success',
     severity: 'high',
     targetType: 'order',
@@ -155,26 +201,31 @@ async function handleLineCommand(c, action, executor) {
 app.post('/:id/lines/:lineId/reserve', async (c) =>
   handleLineCommand(c, 'reserve', (service, orderId, lineId, payload, options) =>
     service.reserveLine(orderId, lineId, payload, options)
-  ));
+  )
+);
 
 app.post('/:id/lines/:lineId/release', async (c) =>
   handleLineCommand(c, 'release', (service, orderId, lineId, payload, options) =>
     service.releaseLine(orderId, lineId, payload, options)
-  ));
+  )
+);
 
 app.post('/:id/lines/:lineId/ship', async (c) =>
   handleLineCommand(c, 'ship', (service, orderId, lineId, payload, options) =>
     service.shipLine(orderId, lineId, payload, options)
-  ));
+  )
+);
 
 app.post('/:id/lines/:lineId/unship', async (c) =>
   handleLineCommand(c, 'unship', (service, orderId, lineId, payload, options) =>
     service.unshipLine(orderId, lineId, payload, options)
-  ));
+  )
+);
 
 app.post('/:id/lines/:lineId/return', async (c) =>
   handleLineCommand(c, 'return', (service, orderId, lineId, payload, options) =>
     service.returnLine(orderId, lineId, payload, options)
-  ));
+  )
+);
 
 export default app;

@@ -50,16 +50,15 @@ describe('shared utils barrel dedup audit', () => {
         while (match) {
           const resolved = path.normalize(path.resolve(path.dirname(filePath), match[1]));
           if (resolved !== TOP_LEVEL_UTILS) {
-            offenders.push(`${relativePath}: ${match[1]} does not resolve to functions/_shared/utils.js`);
+            offenders.push(
+              `${relativePath}: ${match[1]} does not resolve to functions/_shared/utils.js`
+            );
           }
           match = pattern.exec(source);
         }
       }
     }
 
-    expect(
-      offenders,
-      `shared utils dedup offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `shared utils dedup offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

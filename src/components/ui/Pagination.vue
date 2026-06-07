@@ -19,9 +19,7 @@
         <button
           v-else
           class="text-secondary min-w-[32px] rounded-md px-3 py-1 text-sm transition-colors hover:bg-(--bg-hover)"
-          :class="
-            page === currentPage ? 'bg-primary font-bold text-(--text-inverse)' : ''
-          "
+          :class="page === currentPage ? 'bg-primary font-bold text-(--text-inverse)' : ''"
           :aria-current="page === currentPage ? 'page' : undefined"
           @click="goToPage(page)"
         >

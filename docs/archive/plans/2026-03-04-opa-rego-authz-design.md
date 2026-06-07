@@ -96,8 +96,8 @@ Output:
 ## Risks And Mitigations
 
 1. Risk: policy/runtime mismatch.
-Mitigation: generated metadata and contract tests.
+   Mitigation: generated metadata and contract tests.
 2. Risk: OPA runtime failure.
-Mitigation: fail-closed + explicit operational error code + emergency legacy switch.
+   Mitigation: fail-closed + explicit operational error code + emergency legacy switch.
 3. Risk: large refactor touches auth hot path.
-Mitigation: phased commits and route-focused regression tests.
+   Mitigation: phased commits and route-focused regression tests.

@@ -95,7 +95,11 @@ describe('storage redundancy', () => {
 
   it('handles mirrors asynchronously and returns immediately after primary upload', async () => {
     const primaryProvider = {
-      upload: vi.fn(async () => ({ success: true, fileId: 'primary-1', metadata: { legacy: true } })),
+      upload: vi.fn(async () => ({
+        success: true,
+        fileId: 'primary-1',
+        metadata: { legacy: true },
+      })),
     };
     const s3Provider = {
       upload: vi.fn(async () => ({ success: true, fileId: 'mirror-s3' })),
@@ -213,7 +217,9 @@ describe('storage redundancy', () => {
     expect(errorSpy).toHaveBeenCalledWith('Failed to update mirror status:', expect.any(Error));
 
     const noDbManager = new RedundancyManager({});
-    await expect(noDbManager._updateMirrorStatus('file-1', 's3', 'mirror-1', 'synced')).resolves.toBeUndefined();
+    await expect(
+      noDbManager._updateMirrorStatus('file-1', 's3', 'mirror-1', 'synced')
+    ).resolves.toBeUndefined();
   });
 
   it('reads mirror status rows and tolerates missing or failing DB bindings', async () => {
@@ -294,8 +300,8 @@ describe('storage redundancy', () => {
       }
     );
 
-    expect(firstProvider.getFile).toHaveBeenCalledWith('primary-storage-id', expect.any(Request));
-    expect(secondProvider.getFile).toHaveBeenCalledWith('mirror-s3', expect.any(Request));
+    expect(firstProvider.getFile).toHaveBeenCalledWith('primary-storage-id', expect.any(Request), expect.any(AbortSignal));
+    expect(secondProvider.getFile).toHaveBeenCalledWith('mirror-s3', expect.any(Request), expect.any(AbortSignal));
     expect(await response.text()).toBe('fallback-ok');
   });
 

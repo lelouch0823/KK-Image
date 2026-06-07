@@ -28,39 +28,51 @@ describe('ProductCatalogService decomposition audit', () => {
       }
     }
 
-    if (!source.includes("./product-catalog/batch-import.js")) {
-      offenders.push('functions/services/ProductCatalogService.js: missing batch-import helper import');
+    if (!source.includes('./product-catalog/batch-import.js')) {
+      offenders.push(
+        'functions/services/ProductCatalogService.js: missing batch-import helper import'
+      );
     }
 
-    if (!source.includes("./product-catalog/batch-execution.js")) {
-      offenders.push('functions/services/ProductCatalogService.js: missing batch-execution helper import');
+    if (!source.includes('./product-catalog/batch-execution.js')) {
+      offenders.push(
+        'functions/services/ProductCatalogService.js: missing batch-execution helper import'
+      );
     }
 
     const batchExecutionSource = fs.readFileSync(
       path.join(ROOT, 'functions', 'services', 'product-catalog', 'batch-execution.js'),
       'utf8'
     );
-    if (!batchExecutionSource.includes("./preload-existing.js")) {
-      offenders.push('functions/services/product-catalog/batch-execution.js: missing preload-existing helper import');
+    if (!batchExecutionSource.includes('./preload-existing.js')) {
+      offenders.push(
+        'functions/services/product-catalog/batch-execution.js: missing preload-existing helper import'
+      );
     }
-    if (!batchExecutionSource.includes("./bulk-upsert.js")) {
-      offenders.push('functions/services/product-catalog/batch-execution.js: missing bulk-upsert helper import');
+    if (!batchExecutionSource.includes('./bulk-upsert.js')) {
+      offenders.push(
+        'functions/services/product-catalog/batch-execution.js: missing bulk-upsert helper import'
+      );
     }
 
-    if (!source.includes("./product-catalog/create.js")) {
+    if (!source.includes('./product-catalog/create.js')) {
       offenders.push('functions/services/ProductCatalogService.js: missing create helper import');
     }
 
-    if (!source.includes("./product-catalog/dimensions.js")) {
-      offenders.push('functions/services/ProductCatalogService.js: missing dimensions helper import');
+    if (!source.includes('./product-catalog/dimensions.js')) {
+      offenders.push(
+        'functions/services/ProductCatalogService.js: missing dimensions helper import'
+      );
     }
 
-    if (!source.includes("./product-catalog/patch.js")) {
+    if (!source.includes('./product-catalog/patch.js')) {
       offenders.push('functions/services/ProductCatalogService.js: missing patch helper import');
     }
 
-    if (!source.includes("./product-catalog/variant-matching.js")) {
-      offenders.push('functions/services/ProductCatalogService.js: missing variant-matching helper import');
+    if (!source.includes('./product-catalog/variant-matching.js')) {
+      offenders.push(
+        'functions/services/ProductCatalogService.js: missing variant-matching helper import'
+      );
     }
 
     for (const marker of [
@@ -88,16 +100,24 @@ describe('ProductCatalogService decomposition audit', () => {
     }
 
     if (!source.includes('executeProductCatalogCreate({')) {
-      offenders.push('functions/services/ProductCatalogService.js: missing create helper delegation');
+      offenders.push(
+        'functions/services/ProductCatalogService.js: missing create helper delegation'
+      );
     }
     if (!source.includes('executeProductCatalogBatchImport({')) {
-      offenders.push('functions/services/ProductCatalogService.js: missing batch import helper delegation');
+      offenders.push(
+        'functions/services/ProductCatalogService.js: missing batch import helper delegation'
+      );
     }
     if (!batchExecutionSource.includes('preloadBatchImportExistingState({')) {
-      offenders.push('functions/services/product-catalog/batch-execution.js: missing preload delegation');
+      offenders.push(
+        'functions/services/product-catalog/batch-execution.js: missing preload delegation'
+      );
     }
     if (!batchExecutionSource.includes('executeBulkProductImportUpsert({')) {
-      offenders.push('functions/services/product-catalog/batch-execution.js: missing bulk upsert delegation');
+      offenders.push(
+        'functions/services/product-catalog/batch-execution.js: missing bulk upsert delegation'
+      );
     }
 
     expect(

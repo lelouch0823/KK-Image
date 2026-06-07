@@ -50,7 +50,7 @@ const inputEl = ref(null);
 
 const isChecked = computed(() => {
   if (props.checked !== undefined) return props.checked;
-  
+
   if (Array.isArray(props.modelValue)) {
     return props.modelValue.includes(props.value);
   }
@@ -71,7 +71,7 @@ watch(() => props.indeterminate, syncIndeterminate, { immediate: true });
 
 const handleChange = (e) => {
   const checked = e.target.checked;
-  
+
   if (props.checked !== undefined) {
     emit('change', checked);
     return;

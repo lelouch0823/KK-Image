@@ -10,10 +10,7 @@
           {{ productName || t('order.form.productName') }}
         </h2>
         <div class="mt-2">
-          <OrderProcurementBadge
-            :status="procurementStatus"
-            preset="detail"
-          />
+          <OrderProcurementBadge :status="procurementStatus" preset="detail" />
           <OrderDeliveryStatusBadge
             v-if="deliveryStatus && deliveryStatus !== 'not_shipped'"
             :status="deliveryStatus"
@@ -30,22 +27,13 @@
               <p class="text-xs font-semibold tracking-wide text-(--color-success-text) uppercase">
                 {{ t('order.detail.deliveryConfirmationTitle', 'Delivery Confirmation') }}
               </p>
-              <p
-                v-if="deliveryConfirmedAt"
-                class="mt-1 text-sm text-(--text-main)"
-              >
+              <p v-if="deliveryConfirmedAt" class="mt-1 text-sm text-(--text-main)">
                 {{ formatTime(deliveryConfirmedAt) }}
-                <span
-                  v-if="deliveryConfirmedBy"
-                  class="text-(--text-secondary)"
-                >
+                <span v-if="deliveryConfirmedBy" class="text-(--text-secondary)">
                   · {{ deliveryConfirmedBy }}
                 </span>
               </p>
-              <p
-                v-else
-                class="mt-1 text-sm text-(--text-secondary)"
-              >
+              <p v-else class="mt-1 text-sm text-(--text-secondary)">
                 {{
                   t(
                     'order.detail.deliveryConfirmationHint',
@@ -87,11 +75,7 @@
         :style="{ width: progressWidth }"
       ></div>
       <div class="relative flex justify-between">
-        <div
-          v-for="(step, index) in statusSteps"
-          :key="step"
-          class="flex flex-col items-center"
-        >
+        <div v-for="(step, index) in statusSteps" :key="step" class="flex flex-col items-center">
           <div
             class="flex size-6 items-center justify-center rounded-full border-2 text-xs font-medium transition-all"
             :class="
@@ -188,12 +172,13 @@ const currentStepIndex = computed(() => {
   return idx >= 0 ? idx : 0;
 });
 
-const showDeliveryConfirmationBlock = computed(() =>
-  props.canConfirmDelivery
-  || Boolean(props.deliveryConfirmedAt)
-  || Boolean(String(props.deliveryNote || '').trim())
-  || props.deliveryStatus === 'delivered'
-  || props.deliveryStatus === 'returned'
+const showDeliveryConfirmationBlock = computed(
+  () =>
+    props.canConfirmDelivery ||
+    Boolean(props.deliveryConfirmedAt) ||
+    Boolean(String(props.deliveryNote || '').trim()) ||
+    props.deliveryStatus === 'delivered' ||
+    props.deliveryStatus === 'returned'
 );
 
 const progressWidth = computed(() => {

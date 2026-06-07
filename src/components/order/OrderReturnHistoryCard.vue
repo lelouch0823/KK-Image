@@ -21,12 +21,15 @@
           <div class="min-w-0">
             <p class="text-sm font-medium text-(--text-main)">
               {{ entry.lineLabel || t('order.detail.lineItems', 'Order Lines') }}
-              <span class="text-(--text-secondary)">
-                · {{ reasonLabel(entry.reason) }}
-              </span>
+              <span class="text-(--text-secondary)"> · {{ reasonLabel(entry.reason) }} </span>
             </p>
             <p class="mt-1 text-xs text-(--text-secondary)">
-              {{ t('order.detail.returnHistoryMeta', '{quantity} units · {status}', { quantity: entry.quantity, status: statusLabel(entry.status) }) }}
+              {{
+                t('order.detail.returnHistoryMeta', '{quantity} units · {status}', {
+                  quantity: entry.quantity,
+                  status: statusLabel(entry.status),
+                })
+              }}
             </p>
           </div>
           <p class="shrink-0 text-xs text-(--text-secondary)">

@@ -5,7 +5,10 @@
  */
 import { safeJsonParse } from '../../api/utils/json.js';
 import { NotificationRepository } from '../../repositories/NotificationRepository.js';
-import { getOrderNotificationCacheUrls, getManageNotificationCacheUrls } from '../../lib/hono/routes/_shared/cache-urls.js';
+import {
+  getOrderNotificationCacheUrls,
+  getManageNotificationCacheUrls,
+} from '../../lib/hono/routes/_shared/cache-urls.js';
 import {
   createCacheContext,
   getMemoizedSalespersonAccessTokens,
@@ -159,7 +162,10 @@ function resolveNotificationContent(event, payload) {
   if (event?.event_type === 'order_return_created') {
     return JSON.stringify({
       key: 'notification.order.returnCreated_desc',
-      params: { orderNo: payload.order_no || payload.order_id || '', quantity: payload.quantity || 0 },
+      params: {
+        orderNo: payload.order_no || payload.order_id || '',
+        quantity: payload.quantity || 0,
+      },
     });
   }
 
@@ -240,15 +246,20 @@ export async function notifyOutboxEvent({ db, event, baseUrl, state }) {
   const repo = new NotificationRepository(db);
   const isManualAdminNotification = event.event_type === 'admin_notification_created';
   const recipient = resolveNotificationRecipient(event, payload);
-  const dedupeSuffix = recipient.receiver === 'sales'
-    ? `sales:${recipient.salespersonId || ''}`
-    : 'admin';
+  const dedupeSuffix =
+    recipient.receiver === 'sales' ? `sales:${recipient.salespersonId || ''}` : 'admin';
 
   const result = await repo.createFromDomainEvent({
-    type: isManualAdminNotification ? (payload.type || 'system') : resolveNotificationType(event.event_type),
-    title: isManualAdminNotification ? (payload.title || '') : resolveNotificationTitle(event.event_type),
+    type: isManualAdminNotification
+      ? payload.type || 'system'
+      : resolveNotificationType(event.event_type),
+    title: isManualAdminNotification
+      ? payload.title || ''
+      : resolveNotificationTitle(event.event_type),
     content: resolveNotificationContent(event, payload),
-    link: isManualAdminNotification ? (payload.link || '') : resolveNotificationLink(event, payload, recipient),
+    link: isManualAdminNotification
+      ? payload.link || ''
+      : resolveNotificationLink(event, payload, recipient),
     receiver: recipient.receiver,
     salespersonId: recipient.salespersonId,
     orderId: resolveNotificationOrderId(event, payload),
@@ -266,9 +277,10 @@ export async function notifyOutboxEvent({ db, event, baseUrl, state }) {
     const salesTokens = recipient.salespersonId
       ? await getMemoizedSalespersonAccessTokens(db, [recipient.salespersonId], state)
       : [];
-    const urls = recipient.receiver === 'sales'
-      ? getOrderNotificationCacheUrls(ctx, { salesTokens })
-      : getManageNotificationCacheUrls(ctx);
+    const urls =
+      recipient.receiver === 'sales'
+        ? getOrderNotificationCacheUrls(ctx, { salesTokens })
+        : getManageNotificationCacheUrls(ctx);
     await invalidateCacheOnce(urls, state);
   }
 

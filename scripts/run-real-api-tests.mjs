@@ -175,11 +175,12 @@ export async function runRealApiCli(options = {}) {
     RUN_REAL_API_TESTS: env.RUN_REAL_API_TESTS || '1',
   };
 
-  const { requestedProfile, selectedProfile, overrideFiles, selectedFiles } =
-    resolveRealApiProfile({
+  const { requestedProfile, selectedProfile, overrideFiles, selectedFiles } = resolveRealApiProfile(
+    {
       env,
       argv: options.argv,
-    });
+    }
+  );
 
   if (!selectedProfile) {
     writeStderr(

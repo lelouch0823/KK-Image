@@ -13,6 +13,7 @@
 ### Task 1: Lock Projection Semantics With Tests
 
 **Files:**
+
 - Create: `functions/services/__tests__/purchase-order-projection.test.js`
 - Modify: `functions/repositories/__tests__/PurchaseOrderRepository.read-model.test.js`
 - Modify: `functions/services/__tests__/PurchaseOrderService.procurement-status.test.js`
@@ -21,6 +22,7 @@
 - [ ] **Step 1: Write the failing tests**
 
 Add tests that assert:
+
 - backend helper can derive ordered/received/cancelled/outstanding from either header fields or `items`
 - backend helper can derive `display_status` from the same data
 - repository read-model fallback still reports the expected `display_status`
@@ -40,6 +42,7 @@ Expected: failures because the new projection helpers do not exist yet.
 ### Task 2: Reuse Shared Projection Helpers
 
 **Files:**
+
 - Modify: `functions/services/purchase-order-projection.js`
 - Modify: `functions/repositories/PurchaseOrderRepository.js`
 - Modify: `functions/services/PurchaseOrderService.js`
@@ -53,6 +56,7 @@ Add purchase-order header helper exports to `functions/services/purchase-order-p
 - [ ] **Step 2: Rewire backend consumers**
 
 Remove duplicate header quantity/status formulas from:
+
 - `functions/repositories/PurchaseOrderRepository.js`
 - `functions/services/PurchaseOrderService.js`
 

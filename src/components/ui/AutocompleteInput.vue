@@ -13,19 +13,25 @@
         role="combobox"
         aria-autocomplete="list"
         :aria-expanded="showDropdown"
-        :aria-activedescendant="highlightedIndex >= 0 ? `${inputId}-opt-${highlightedIndex}` : undefined"
+        :aria-activedescendant="
+          highlightedIndex >= 0 ? `${inputId}-opt-${highlightedIndex}` : undefined
+        "
         @focus="handleFocus"
         @blur="handleBlur"
         @input="handleInput"
         @keydown="handleKeydown"
       />
       <!-- 加载指示器 -->
-      <div
-        v-if="loading"
-        class="pointer-events-none absolute inset-y-0 right-3 flex items-center"
-      >
+      <div v-if="loading" class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
         <svg class="size-4 animate-spin text-(--text-muted)" viewBox="0 0 24 24" fill="none">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="3"
+          />
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
         </svg>
       </div>
@@ -129,9 +135,7 @@ const filteredSuggestions = computed(() => {
     return normalizedSuggestions.value;
   }
   const query = inputValue.value.toLowerCase();
-  return normalizedSuggestions.value.filter((s) =>
-    s.label.toLowerCase().includes(query)
-  );
+  return normalizedSuggestions.value.filter((s) => s.label.toLowerCase().includes(query));
 });
 
 // 用于展示的建议列表（远程模式下当输入不足 minChars 时不显示）

@@ -75,11 +75,13 @@ describe('OrderDeliveryService', () => {
       deliveryNote: 'signed by lobby desk',
     });
     // markDelivered uses prepare().bind().run() via OrderRepository
-    const markDeliveredCall = harness.db.prepare.mock.calls.find(
-      ([sql]) => sql.includes('SET delivery_status = \'delivered\'')
+    const markDeliveredCall = harness.db.prepare.mock.calls.find(([sql]) =>
+      sql.includes("SET delivery_status = 'delivered'")
     );
     expect(markDeliveredCall).toBeDefined();
-    expect(harness.db.prepare).toHaveBeenCalledWith(expect.stringContaining('SET delivery_status = \'delivered\''));
+    expect(harness.db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining("SET delivery_status = 'delivered'")
+    );
   });
 
   it('rejects confirmation before the order is fully fulfilled and shipped', async () => {
@@ -103,11 +105,13 @@ describe('OrderDeliveryService', () => {
     });
 
     await expect(service.confirmDelivery('order-1', {}, { actorName: 'Admin' })).rejects.toThrow(
-      new BadRequestError('delivery confirmation requires a fulfilled order with all shippable quantity shipped')
+      new BadRequestError(
+        'delivery confirmation requires a fulfilled order with all shippable quantity shipped'
+      )
     );
     // markDelivered should not be called when validation fails
-    const markCall = harness.db.prepare.mock.calls.find(
-      ([sql]) => sql.includes('SET delivery_status')
+    const markCall = harness.db.prepare.mock.calls.find(([sql]) =>
+      sql.includes('SET delivery_status')
     );
     expect(markCall).toBeUndefined();
   });
@@ -135,8 +139,8 @@ describe('OrderDeliveryService', () => {
     await expect(service.confirmDelivery('order-1', {}, { actorName: 'Admin' })).rejects.toThrow(
       new BadRequestError('delivery is already confirmed')
     );
-    const markCall = harness.db.prepare.mock.calls.find(
-      ([sql]) => sql.includes('SET delivery_status')
+    const markCall = harness.db.prepare.mock.calls.find(([sql]) =>
+      sql.includes('SET delivery_status')
     );
     expect(markCall).toBeUndefined();
   });

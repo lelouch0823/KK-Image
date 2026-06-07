@@ -73,7 +73,10 @@ import albumsApp from '../albums.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.route('/api/manage/albums', albumsApp);
   return app;
@@ -94,7 +97,12 @@ describe('manage albums routes', () => {
     });
     mocks.repoGetFiles.mockResolvedValue([]);
     mocks.repoCreate.mockResolvedValue(undefined);
-    mocks.repoUpdate.mockResolvedValue({ id: 'album-1', name: 'Summer Album', share_token: null, is_public: 0 });
+    mocks.repoUpdate.mockResolvedValue({
+      id: 'album-1',
+      name: 'Summer Album',
+      share_token: null,
+      is_public: 0,
+    });
     mocks.repoDelete.mockResolvedValue(undefined);
     mocks.repoAddFiles.mockResolvedValue(undefined);
     mocks.repoRemoveFiles.mockResolvedValue(undefined);

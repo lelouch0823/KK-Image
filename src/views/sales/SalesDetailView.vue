@@ -46,7 +46,11 @@ import { ref, computed, inject, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useOrders } from '@/composables/useOrders';
 import { useI18n } from '@/composables/useI18n'; // Assuming simple t function or similar
-import { resolveOrderProductName, resolveOrderQuantity, resolveOrderSnapshotField } from '@/utils/order-display';
+import {
+  resolveOrderProductName,
+  resolveOrderQuantity,
+  resolveOrderSnapshotField,
+} from '@/utils/order-display';
 import OrderDetail from '@/components/order/OrderDetail.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AsyncStatePanel from '@/components/common/AsyncStatePanel.vue';
@@ -60,8 +64,8 @@ const { t } = useI18n(); // You might need to adjust based on your useI18n imple
 const token = computed(() => route.params.token);
 const orderId = computed(() => route.params.id);
 
-// We use useOrders locally for single order fetching, 
-// OR we could use the one injected if we want to share cache, 
+// We use useOrders locally for single order fetching,
+// OR we could use the one injected if we want to share cache,
 // but Detail often needs fresh data.
 const { getSalesOrder, addSalesComment } = useOrders();
 
@@ -124,7 +128,7 @@ const handleComment = async (comment) => {
   if (!order.value || commenting.value) return;
   commenting.value = true;
   pendingComment.value = comment;
-  
+
   try {
     const success = await addSalesComment(token.value, order.value.id, comment);
     if (success) {
@@ -146,38 +150,42 @@ const handleRefresh = async () => {
 };
 
 const handleDuplicate = (sourceOrder) => {
-    // Logic extracted from Sales.vue
-    const currentData = sourceOrder.currentData || {};
-    const prefillFiles = (sourceOrder.files || []).map((f) => ({
-        id: f.id,
-        name: f.name,
-        url: f.url,
-        mimeType: f.mimeType,
-        size: f.size,
-        isLocal: false,
-    }));
+  // Logic extracted from Sales.vue
+  const currentData = sourceOrder.currentData || {};
+  const prefillFiles = (sourceOrder.files || []).map((f) => ({
+    id: f.id,
+    name: f.name,
+    url: f.url,
+    mimeType: f.mimeType,
+    size: f.size,
+    isLocal: false,
+  }));
 
-    const prefill = {
-        name: resolveOrderProductName(sourceOrder),
-        brand: resolveOrderSnapshotField(sourceOrder, 'brand'),
-        series: resolveOrderSnapshotField(sourceOrder, 'series'),
-        size: resolveOrderSnapshotField(sourceOrder, 'size'),
-        color: resolveOrderSnapshotField(sourceOrder, 'color'),
-        material: resolveOrderSnapshotField(sourceOrder, 'material'),
-        quantity: resolveOrderQuantity(sourceOrder),
-        remark: resolveOrderSnapshotField(sourceOrder, 'remark'),
-        deadline: '', 
-        files: prefillFiles,
-    };
+  const prefill = {
+    name: resolveOrderProductName(sourceOrder),
+    brand: resolveOrderSnapshotField(sourceOrder, 'brand'),
+    series: resolveOrderSnapshotField(sourceOrder, 'series'),
+    size: resolveOrderSnapshotField(sourceOrder, 'size'),
+    color: resolveOrderSnapshotField(sourceOrder, 'color'),
+    material: resolveOrderSnapshotField(sourceOrder, 'material'),
+    quantity: resolveOrderQuantity(sourceOrder),
+    remark: resolveOrderSnapshotField(sourceOrder, 'remark'),
+    deadline: '',
+    files: prefillFiles,
+  };
 
-    // Use setter from context
-    if (setPrefillData) {
-        setPrefillData(prefill);
-        router.push(`/sales/${token.value}/create`);
-    }
+  // Use setter from context
+  if (setPrefillData) {
+    setPrefillData(prefill);
+    router.push(`/sales/${token.value}/create`);
+  }
 };
 
-watch([token, orderId], () => {
-  fetchOrder();
-}, { immediate: true });
+watch(
+  [token, orderId],
+  () => {
+    fetchOrder();
+  },
+  { immediate: true }
+);
 </script>

@@ -21,7 +21,11 @@ describe('manage user context response', () => {
     });
     app.route('/api/manage/user', userApp);
 
-    const res = await app.request('http://localhost/api/manage/user', { method: 'GET' }, { DB: {} });
+    const res = await app.request(
+      'http://localhost/api/manage/user',
+      { method: 'GET' },
+      { DB: {} }
+    );
     const body = await res.json();
 
     expect(res.status).toBe(200);

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildInsertOrderLineSql, buildSelectLegacyOrdersSql, mapLegacyOrderToOrderLine } from '../migrations/backfill-order-lines.mjs';
+import {
+  buildInsertOrderLineSql,
+  buildSelectLegacyOrdersSql,
+  mapLegacyOrderToOrderLine,
+} from '../migrations/backfill-order-lines.mjs';
 
 describe('backfill-order-lines mapping', () => {
   it('prefers top-level orders.variant_id over current_data.variant_id', () => {
@@ -80,17 +84,20 @@ describe('backfill-order-lines mapping', () => {
   });
 
   it('includes projected qty and display fields in generated insert SQL', () => {
-    const sql = buildInsertOrderLineSql({
-      id: 'ord_sql',
-      product_id: 'prod_sql',
-      variant_id: 'variant_sql',
-      quantity: 2,
-      status: 'delivered',
-      procurement_status: 'arrived',
-      current_data: JSON.stringify({ name: 'Bag SQL' }),
-      created_at: 1700000000000,
-      updated_at: 1700000100000,
-    }, 1700000200000);
+    const sql = buildInsertOrderLineSql(
+      {
+        id: 'ord_sql',
+        product_id: 'prod_sql',
+        variant_id: 'variant_sql',
+        quantity: 2,
+        status: 'delivered',
+        procurement_status: 'arrived',
+        current_data: JSON.stringify({ name: 'Bag SQL' }),
+        created_at: 1700000000000,
+        updated_at: 1700000100000,
+      },
+      1700000200000
+    );
 
     expect(sql).toContain('procured_qty');
     expect(sql).toContain('received_qty');
@@ -100,7 +107,11 @@ describe('backfill-order-lines mapping', () => {
   });
 
   it('falls back to NULL procurement_status when legacy orders table lacks the column', () => {
-    const sql = buildSelectLegacyOrdersSql({ hasVariantId: true, hasProcurementStatus: false, limit: 10 });
+    const sql = buildSelectLegacyOrdersSql({
+      hasVariantId: true,
+      hasProcurementStatus: false,
+      limit: 10,
+    });
 
     expect(sql).toContain('variant_id');
     expect(sql).toContain('NULL AS procurement_status');

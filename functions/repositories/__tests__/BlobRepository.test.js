@@ -45,7 +45,9 @@ describe('BlobRepository', () => {
       expect(result.size).toBe(1024);
       expect(result.mime_type).toBe('image/jpeg');
       expect(result.ref_count).toBe(3);
-      expect(db.prepare.mock.calls[0][0]).toContain('SELECT content_hash, size, mime_type, ref_count FROM blobs');
+      expect(db.prepare.mock.calls[0][0]).toContain(
+        'SELECT content_hash, size, mime_type, ref_count FROM blobs'
+      );
       expect(stmt.bind).toHaveBeenCalledWith('abc123');
     });
 
@@ -130,9 +132,7 @@ describe('BlobRepository', () => {
       });
 
       const db = {
-        prepare: vi.fn()
-          .mockReturnValueOnce(updateStmt)
-          .mockReturnValueOnce(selectStmt),
+        prepare: vi.fn().mockReturnValueOnce(updateStmt).mockReturnValueOnce(selectStmt),
         batch: vi.fn(async (stmts) => [
           { success: true, meta: { changes: 1 } },
           { results: [{ ref_count: 2 }] },
@@ -154,13 +154,8 @@ describe('BlobRepository', () => {
       const selectStmt = createStatement();
 
       const db = {
-        prepare: vi.fn()
-          .mockReturnValueOnce(updateStmt)
-          .mockReturnValueOnce(selectStmt),
-        batch: vi.fn(async () => [
-          { success: true, meta: { changes: 0 } },
-          { results: [] },
-        ]),
+        prepare: vi.fn().mockReturnValueOnce(updateStmt).mockReturnValueOnce(selectStmt),
+        batch: vi.fn(async () => [{ success: true, meta: { changes: 0 } }, { results: [] }]),
       };
       const repo = new BlobRepository(db);
 

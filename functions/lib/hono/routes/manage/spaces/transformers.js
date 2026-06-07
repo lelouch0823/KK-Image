@@ -15,12 +15,16 @@ export function resolveSpaceBindingState(space = {}) {
   if (hasProductBinding && !space.p_bound_id) return 'missing_product';
   if (hasVariantBinding && !space.pv_bound_id) return 'missing_variant';
 
-  const productStatus = String(space.p_status || '').trim().toLowerCase();
+  const productStatus = String(space.p_status || '')
+    .trim()
+    .toLowerCase();
   if (hasProductBinding && productStatus && productStatus !== 'active') {
     return 'archived_product';
   }
 
-  const variantStatus = String(space.pv_status || '').trim().toLowerCase();
+  const variantStatus = String(space.pv_status || '')
+    .trim()
+    .toLowerCase();
   if (hasVariantBinding && variantStatus && variantStatus !== 'active') {
     return 'archived_variant';
   }
@@ -52,13 +56,17 @@ function normalizeProjectedVariantOptions(space = {}) {
 
 /**
  * 投影商品字段到空间模版数据中
- * @param {Object} space 
+ * @param {Object} space
  * @returns {Object} 包含商品字段的 templateData
  */
 export function projectSpaceTemplateData(space) {
   const templateData = parseJsonObject(space.template_data, {});
-  const productStatus = String(space.p_status || '').trim().toLowerCase();
-  const variantStatus = String(space.pv_status || '').trim().toLowerCase();
+  const productStatus = String(space.p_status || '')
+    .trim()
+    .toLowerCase();
+  const variantStatus = String(space.pv_status || '')
+    .trim()
+    .toLowerCase();
   const hasActiveProductBinding = !space.product_id || !productStatus || productStatus === 'active';
   const hasActiveVariantBinding = !space.variant_id || !variantStatus || variantStatus === 'active';
 
@@ -66,11 +74,10 @@ export function projectSpaceTemplateData(space) {
   if (space.product_id && hasActiveProductBinding && hasActiveVariantBinding) {
     if (space.p_brand !== undefined) templateData.brand = space.p_brand || '';
     if (space.p_series !== undefined) templateData.series = space.p_series || '';
-    const projectedSku = space.variant_id
-      ? (space.pv_sku || space.p_sku || '')
-      : (space.p_sku || '');
+    const projectedSku = space.variant_id ? space.pv_sku || space.p_sku || '' : space.p_sku || '';
     if (space.p_sku !== undefined || space.pv_sku !== undefined) templateData.sku = projectedSku;
-    if (space.p_price !== undefined) templateData.price = space.p_price !== null ? String(space.p_price) : '';
+    if (space.p_price !== undefined)
+      templateData.price = space.p_price !== null ? String(space.p_price) : '';
 
     if (space.p_specs) {
       const specs = parseJsonObject(space.p_specs, {});
@@ -117,7 +124,9 @@ export function transformSpaceListItem(space) {
     template: space.template,
     coverFileId: space.cover_file_id,
     coverUrl: space.cover_storage_key
-      ? (space.cover_storage_key.startsWith('http') ? space.cover_storage_key : getFileUrl(space.cover_storage_key))
+      ? space.cover_storage_key.startsWith('http')
+        ? space.cover_storage_key
+        : getFileUrl(space.cover_storage_key)
       : null,
     viewCount: space.view_count || 0,
     productId: space.product_id || null,
@@ -151,7 +160,9 @@ export function transformSpaceDetail(space, files = []) {
     templateData: projectSpaceTemplateData(space),
     coverFileId: space.cover_file_id,
     coverUrl: space.cover_storage_key
-      ? (space.cover_storage_key.startsWith('http') ? space.cover_storage_key : getFileUrl(space.cover_storage_key))
+      ? space.cover_storage_key.startsWith('http')
+        ? space.cover_storage_key
+        : getFileUrl(space.cover_storage_key)
       : null,
     viewCount: space.view_count,
     productId: space.product_id || null,

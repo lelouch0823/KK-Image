@@ -118,12 +118,15 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
       materialDimensionId = createdDim.json?.data?.id;
       assert.ok(materialDimensionId, 'Material dimension id missing');
 
-      const createdValue = await apiRequest(`/api/manage/products/${productId}/dimensions/${materialDimensionId}/values`, {
-        authHeader,
-        method: 'POST',
-        body: { value: 'Cotton' },
-        expectedStatus: 201,
-      });
+      const createdValue = await apiRequest(
+        `/api/manage/products/${productId}/dimensions/${materialDimensionId}/values`,
+        {
+          authHeader,
+          method: 'POST',
+          body: { value: 'Cotton' },
+          expectedStatus: 201,
+        }
+      );
       assert.strictEqual(createdValue.json?.success, true);
       assert.ok(createdValue.json?.data?.id, 'Material value id missing');
     }
@@ -182,18 +185,24 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
     }
 
     {
-      const archived = await apiRequest(`/api/manage/products/${productId}/values/${redValueId}/archive`, {
-        authHeader,
-        method: 'PATCH',
-        expectedStatus: 200,
-      });
+      const archived = await apiRequest(
+        `/api/manage/products/${productId}/values/${redValueId}/archive`,
+        {
+          authHeader,
+          method: 'PATCH',
+          expectedStatus: 200,
+        }
+      );
       assert.strictEqual(archived.json?.success, true);
 
-      const restored = await apiRequest(`/api/manage/products/${productId}/values/${redValueId}/restore`, {
-        authHeader,
-        method: 'PATCH',
-        expectedStatus: 200,
-      });
+      const restored = await apiRequest(
+        `/api/manage/products/${productId}/values/${redValueId}/restore`,
+        {
+          authHeader,
+          method: 'PATCH',
+          expectedStatus: 200,
+        }
+      );
       assert.strictEqual(restored.json?.success, true);
     }
 
@@ -232,7 +241,10 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
       });
       const variants = json?.data?.variants || [];
       assert.ok(variants.length > 0, 'expected variants to exist for archive check');
-      assert.ok(variants.every((v) => v.status === 'archived'), 'not all variants are archived');
+      assert.ok(
+        variants.every((v) => v.status === 'archived'),
+        'not all variants are archived'
+      );
     }
   });
 
@@ -274,7 +286,9 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
     });
     const beforeDetail = before.json?.data;
     const colorDimension = (beforeDetail?.dimensions || []).find((item) => item.name === 'Color');
-    const redVariant = (beforeDetail?.variants || []).find((item) => item.sku === `PATCH-RB-RED-${seed}`);
+    const redVariant = (beforeDetail?.variants || []).find(
+      (item) => item.sku === `PATCH-RB-RED-${seed}`
+    );
     assert.ok(colorDimension?.id, 'color dimension id missing');
     assert.ok(redVariant?.id, 'original variant id missing');
 
@@ -319,7 +333,10 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
         ],
       },
     });
-    assert.ok([400, 409, 500].includes(failedPatch.response.status), `unexpected patch failure status: ${failedPatch.response.status}`);
+    assert.ok(
+      [400, 409, 500].includes(failedPatch.response.status),
+      `unexpected patch failure status: ${failedPatch.response.status}`
+    );
 
     const after = await apiRequest(`/api/manage/products/${productId}`, {
       bearerToken: token,
@@ -393,9 +410,16 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
     const sizeDimension = (beforeDetail?.dimensions || []).find((item) => item.name === 'Size');
     const redValue = colorDimension?.values?.find((item) => item.value === 'Red');
     const blueValue = colorDimension?.values?.find((item) => item.value === 'Blue');
-    const redVariant = (beforeDetail?.variants || []).find((item) => item.sku === `PUT-RED-S-${seed}`);
-    const blueVariant = (beforeDetail?.variants || []).find((item) => item.sku === `PUT-BLUE-M-${seed}`);
-    assert.ok(colorDimension?.id && sizeDimension?.id && redValue?.id && blueValue?.id, 'dimension ids missing before replace');
+    const redVariant = (beforeDetail?.variants || []).find(
+      (item) => item.sku === `PUT-RED-S-${seed}`
+    );
+    const blueVariant = (beforeDetail?.variants || []).find(
+      (item) => item.sku === `PUT-BLUE-M-${seed}`
+    );
+    assert.ok(
+      colorDimension?.id && sizeDimension?.id && redValue?.id && blueValue?.id,
+      'dimension ids missing before replace'
+    );
     assert.ok(redVariant?.id && blueVariant?.id, 'variant ids missing before replace');
 
     const replaced = await apiRequest(`/api/manage/products/${productId}`, {
@@ -430,14 +454,19 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
       expectedStatus: 200,
     });
     assert.strictEqual(replaced.json?.success, true);
-    assert.ok(Number(replaced.json?.variantSync?.archived || 0) >= 1, 'expected archived variants during full replace');
+    assert.ok(
+      Number(replaced.json?.variantSync?.archived || 0) >= 1,
+      'expected archived variants during full replace'
+    );
 
     const after = await apiRequest(`/api/manage/products/${productId}`, {
       bearerToken: token,
       expectedStatus: 200,
     });
     const afterDetail = after.json?.data;
-    const afterColor = (afterDetail?.dimensions || []).find((item) => item.id === colorDimension.id);
+    const afterColor = (afterDetail?.dimensions || []).find(
+      (item) => item.id === colorDimension.id
+    );
     const afterSize = (afterDetail?.dimensions || []).find((item) => item.id === sizeDimension.id);
     const afterRedValue = afterColor?.values?.find((item) => item.id === redValue.id);
     const afterBlueValue = afterColor?.values?.find((item) => item.id === blueValue.id);
@@ -500,7 +529,9 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const colorDimension = (before.json?.data?.dimensions || []).find((item) => item.name === 'Color');
+    const colorDimension = (before.json?.data?.dimensions || []).find(
+      (item) => item.name === 'Color'
+    );
     assert.ok(colorDimension?.id, 'color dimension id missing');
 
     const impact = await apiRequest(`/api/manage/products/${productId}/dimensions/impact`, {
@@ -514,19 +545,24 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
     });
     assert.strictEqual(Number(impact.json?.data?.affectedVariantsCount || 0), 2);
 
-    const archived = await apiRequest(`/api/manage/products/${productId}/dimensions/${colorDimension.id}/archive`, {
-      bearerToken: token,
-      method: 'PATCH',
-      body: { mode: 'archive_variants' },
-      expectedStatus: 200,
-    });
+    const archived = await apiRequest(
+      `/api/manage/products/${productId}/dimensions/${colorDimension.id}/archive`,
+      {
+        bearerToken: token,
+        method: 'PATCH',
+        body: { mode: 'archive_variants' },
+        expectedStatus: 200,
+      }
+    );
     assert.ok(Number(archived.json?.data?.effect?.archivedVariants || 0) >= 2);
 
     const after = await apiRequest(`/api/manage/products/${productId}`, {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const afterColor = (after.json?.data?.dimensions || []).find((item) => item.id === colorDimension.id);
+    const afterColor = (after.json?.data?.dimensions || []).find(
+      (item) => item.id === colorDimension.id
+    );
     const afterVariants = after.json?.data?.variants || [];
     assert.strictEqual(afterColor?.status, 'archived');
     assert.ok(afterVariants.every((item) => item.status === 'archived'));
@@ -568,28 +604,42 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const colorDimension = (before.json?.data?.dimensions || []).find((item) => item.name === 'Color');
-    const sizeDimension = (before.json?.data?.dimensions || []).find((item) => item.name === 'Size');
+    const colorDimension = (before.json?.data?.dimensions || []).find(
+      (item) => item.name === 'Color'
+    );
+    const sizeDimension = (before.json?.data?.dimensions || []).find(
+      (item) => item.name === 'Size'
+    );
     const variant = before.json?.data?.variants?.[0];
-    assert.ok(colorDimension?.id && sizeDimension?.id && variant?.id, 'dimension or variant ids missing');
+    assert.ok(
+      colorDimension?.id && sizeDimension?.id && variant?.id,
+      'dimension or variant ids missing'
+    );
 
-    const updated = await apiRequest(`/api/manage/products/${productId}/dimensions/${colorDimension.id}`, {
-      bearerToken: token,
-      method: 'PATCH',
-      body: { name: 'Tone', sort_order: 3 },
-      expectedStatus: 200,
-    });
+    const updated = await apiRequest(
+      `/api/manage/products/${productId}/dimensions/${colorDimension.id}`,
+      {
+        bearerToken: token,
+        method: 'PATCH',
+        body: { name: 'Tone', sort_order: 3 },
+        expectedStatus: 200,
+      }
+    );
     assert.strictEqual(updated.json?.success, true);
 
     const after = await apiRequest(`/api/manage/products/${productId}`, {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const renamed = (after.json?.data?.dimensions || []).find((item) => item.id === colorDimension.id);
+    const renamed = (after.json?.data?.dimensions || []).find(
+      (item) => item.id === colorDimension.id
+    );
     const afterVariant = (after.json?.data?.variants || []).find((item) => item.id === variant.id);
     assert.strictEqual(renamed?.name, 'Tone');
     assert.strictEqual(Number(renamed?.sort_order), 3);
-    assert.ok((renamed?.aliases || []).some((item) => item.from_name === 'Color' && item.to_name === 'Tone'));
+    assert.ok(
+      (renamed?.aliases || []).some((item) => item.from_name === 'Color' && item.to_name === 'Tone')
+    );
     assert.strictEqual((afterVariant?.options_values || {})[colorDimension.id], 'Red');
     assert.strictEqual((afterVariant?.options_values || {})[sizeDimension.id], 'S');
   });
@@ -636,11 +686,17 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const colorDimension = (before.json?.data?.dimensions || []).find((item) => item.name === 'Color');
+    const colorDimension = (before.json?.data?.dimensions || []).find(
+      (item) => item.name === 'Color'
+    );
     const redValue = colorDimension?.values?.find((item) => item.value === 'Red');
     const blueValue = colorDimension?.values?.find((item) => item.value === 'Blue');
-    const redVariant = (before.json?.data?.variants || []).find((item) => item.sku === `VALUE-RED-${seed}`);
-    const blueVariant = (before.json?.data?.variants || []).find((item) => item.sku === `VALUE-BLUE-${seed}`);
+    const redVariant = (before.json?.data?.variants || []).find(
+      (item) => item.sku === `VALUE-RED-${seed}`
+    );
+    const blueVariant = (before.json?.data?.variants || []).find(
+      (item) => item.sku === `VALUE-BLUE-${seed}`
+    );
     assert.ok(redValue?.id && blueValue?.id && redVariant?.id && blueVariant?.id);
 
     const impact = await apiRequest(`/api/manage/products/${productId}/dimensions/impact`, {
@@ -654,42 +710,60 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
     });
     assert.strictEqual(Number(impact.json?.data?.affectedVariantsCount || 0), 1);
 
-    const archived = await apiRequest(`/api/manage/products/${productId}/values/${redValue.id}/archive`, {
-      bearerToken: token,
-      method: 'PATCH',
-      expectedStatus: 200,
-    });
+    const archived = await apiRequest(
+      `/api/manage/products/${productId}/values/${redValue.id}/archive`,
+      {
+        bearerToken: token,
+        method: 'PATCH',
+        expectedStatus: 200,
+      }
+    );
     assert.strictEqual(Number(archived.json?.data?.effect?.changes || 0), 1);
 
     const afterArchive = await apiRequest(`/api/manage/products/${productId}`, {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const afterColor = (afterArchive.json?.data?.dimensions || []).find((item) => item.id === colorDimension.id);
+    const afterColor = (afterArchive.json?.data?.dimensions || []).find(
+      (item) => item.id === colorDimension.id
+    );
     const afterRedValue = afterColor?.values?.find((item) => item.id === redValue.id);
     const afterBlueValue = afterColor?.values?.find((item) => item.id === blueValue.id);
-    const redAfterArchive = (afterArchive.json?.data?.variants || []).find((item) => item.id === redVariant.id);
-    const blueAfterArchive = (afterArchive.json?.data?.variants || []).find((item) => item.id === blueVariant.id);
+    const redAfterArchive = (afterArchive.json?.data?.variants || []).find(
+      (item) => item.id === redVariant.id
+    );
+    const blueAfterArchive = (afterArchive.json?.data?.variants || []).find(
+      (item) => item.id === blueVariant.id
+    );
     assert.strictEqual(afterRedValue?.status, 'archived');
     assert.strictEqual(afterBlueValue?.status, 'active');
     assert.strictEqual(redAfterArchive?.status, 'archived');
     assert.strictEqual(blueAfterArchive?.status, 'active');
 
-    const restored = await apiRequest(`/api/manage/products/${productId}/values/${redValue.id}/restore`, {
-      bearerToken: token,
-      method: 'PATCH',
-      expectedStatus: 200,
-    });
+    const restored = await apiRequest(
+      `/api/manage/products/${productId}/values/${redValue.id}/restore`,
+      {
+        bearerToken: token,
+        method: 'PATCH',
+        expectedStatus: 200,
+      }
+    );
     assert.strictEqual(restored.json?.success, true);
 
     const afterRestore = await apiRequest(`/api/manage/products/${productId}`, {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const restoredColor = (afterRestore.json?.data?.dimensions || []).find((item) => item.id === colorDimension.id);
+    const restoredColor = (afterRestore.json?.data?.dimensions || []).find(
+      (item) => item.id === colorDimension.id
+    );
     const restoredRedValue = restoredColor?.values?.find((item) => item.id === redValue.id);
-    const redAfterRestore = (afterRestore.json?.data?.variants || []).find((item) => item.id === redVariant.id);
-    const blueAfterRestore = (afterRestore.json?.data?.variants || []).find((item) => item.id === blueVariant.id);
+    const redAfterRestore = (afterRestore.json?.data?.variants || []).find(
+      (item) => item.id === redVariant.id
+    );
+    const blueAfterRestore = (afterRestore.json?.data?.variants || []).find(
+      (item) => item.id === blueVariant.id
+    );
     assert.strictEqual(restoredRedValue?.status, 'active');
     assert.strictEqual(redAfterRestore?.status, 'archived');
     assert.strictEqual(blueAfterRestore?.status, 'active');
@@ -740,29 +814,44 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const sizeDimension = (before.json?.data?.dimensions || []).find((item) => item.name === 'Size');
-    const colorDimension = (before.json?.data?.dimensions || []).find((item) => item.name === 'Color');
+    const sizeDimension = (before.json?.data?.dimensions || []).find(
+      (item) => item.name === 'Size'
+    );
+    const colorDimension = (before.json?.data?.dimensions || []).find(
+      (item) => item.name === 'Color'
+    );
     assert.ok(sizeDimension?.id && colorDimension?.id);
 
-    const merged = await apiRequest(`/api/manage/products/${productId}/dimensions/${sizeDimension.id}/archive`, {
-      bearerToken: token,
-      method: 'PATCH',
-      body: { mode: 'merge_keep' },
-      expectedStatus: 200,
-    });
+    const merged = await apiRequest(
+      `/api/manage/products/${productId}/dimensions/${sizeDimension.id}/archive`,
+      {
+        bearerToken: token,
+        method: 'PATCH',
+        body: { mode: 'merge_keep' },
+        expectedStatus: 200,
+      }
+    );
     assert.ok(Number(merged.json?.data?.effect?.deduped || 0) >= 1);
 
     const after = await apiRequest(`/api/manage/products/${productId}`, {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const afterSize = (after.json?.data?.dimensions || []).find((item) => item.id === sizeDimension.id);
-    const activeVariants = (after.json?.data?.variants || []).filter((item) => item.status === 'active');
-    const archivedVariants = (after.json?.data?.variants || []).filter((item) => item.status === 'archived');
+    const afterSize = (after.json?.data?.dimensions || []).find(
+      (item) => item.id === sizeDimension.id
+    );
+    const activeVariants = (after.json?.data?.variants || []).filter(
+      (item) => item.status === 'active'
+    );
+    const archivedVariants = (after.json?.data?.variants || []).filter(
+      (item) => item.status === 'archived'
+    );
     assert.strictEqual(afterSize?.status, 'archived');
     assert.strictEqual(activeVariants.length, 1);
     assert.ok(archivedVariants.length >= 1);
-    assert.deepStrictEqual(Object.keys(activeVariants[0]?.options_values || {}), [colorDimension.id]);
+    assert.deepStrictEqual(Object.keys(activeVariants[0]?.options_values || {}), [
+      colorDimension.id,
+    ]);
   });
 
   it('manages variant images through add, sort, primary switch, and delete flows', async () => {
@@ -842,11 +931,14 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
       body: { imageIds: [imageBId, imageAId] },
       expectedStatus: 200,
     });
-    await apiRequest(`/api/manage/products/${productId}/variants/${variantId}/images/${imageBId}/primary`, {
-      bearerToken: token,
-      method: 'PATCH',
-      expectedStatus: 200,
-    });
+    await apiRequest(
+      `/api/manage/products/${productId}/variants/${variantId}/images/${imageBId}/primary`,
+      {
+        bearerToken: token,
+        method: 'PATCH',
+        expectedStatus: 200,
+      }
+    );
 
     const sorted = await apiRequest(`/api/manage/products/${productId}`, {
       bearerToken: token,
@@ -867,7 +959,9 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const afterVariant = (afterDelete.json?.data?.variants || []).find((item) => item.id === variantId);
+    const afterVariant = (afterDelete.json?.data?.variants || []).find(
+      (item) => item.id === variantId
+    );
     assert.strictEqual(afterVariant?.images?.length, 1);
     assert.strictEqual(afterVariant?.images?.[0]?.image_id, imageBId);
     assert.strictEqual(afterVariant?.primaryImage, imageBId);
@@ -948,17 +1042,24 @@ describeIfRealApi('Manage Products Real API Workflow', function () {
       bearerToken: token,
       expectedStatus: 200,
     });
-    const afterVariant = (afterDelete.json?.data?.variants || []).find((item) => item.id === variantId);
+    const afterVariant = (afterDelete.json?.data?.variants || []).find(
+      (item) => item.id === variantId
+    );
     assert.strictEqual(afterVariant?.images?.length, 1);
     assert.strictEqual(afterVariant?.images?.[0]?.image_id, imageBId);
     assert.strictEqual(afterVariant?.primaryImage, imageBId);
 
-    const invalidWrite = await apiRequest(`/api/manage/products/${productId}/variants/not-owned-${seed}/images`, {
-      bearerToken: token,
-      method: 'POST',
-      body: { imageId: imageBId, isPrimary: true },
-    });
+    const invalidWrite = await apiRequest(
+      `/api/manage/products/${productId}/variants/not-owned-${seed}/images`,
+      {
+        bearerToken: token,
+        method: 'POST',
+        body: { imageId: imageBId, isPrimary: true },
+      }
+    );
     assert.strictEqual(invalidWrite.response.status, 400);
-    assert.ok(String(invalidWrite.json?.error || '').includes('Variant does not belong to product'));
+    assert.ok(
+      String(invalidWrite.json?.error || '').includes('Variant does not belong to product')
+    );
   });
 });

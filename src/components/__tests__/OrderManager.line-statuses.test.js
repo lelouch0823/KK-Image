@@ -80,7 +80,10 @@ describe('OrderManager line-level statuses', () => {
         stubs: {
           ManagementListShell: { template: '<div><slot name="content" /><slot /></div>' },
           PermissionDeniedState: { template: '<div />' },
-          Modal: { template: '<div><slot name="header" /><slot /></div>', props: ['modelValue', 'title', 'size'] },
+          Modal: {
+            template: '<div><slot name="header" /><slot /></div>',
+            props: ['modelValue', 'title', 'size'],
+          },
           OrderDashboard: { template: '<div />' },
           OrderTable: {
             props: ['data'],
@@ -90,7 +93,8 @@ describe('OrderManager line-level statuses', () => {
           OrderFilters: { template: '<div />' },
           OrderListStatusStack: {
             props: ['procurementStatus', 'deliveryStatus'],
-            template: '<div data-testid="procurement-badge">{{ procurementStatus }}|{{ deliveryStatus }}</div>',
+            template:
+              '<div data-testid="procurement-badge">{{ procurementStatus }}|{{ deliveryStatus }}</div>',
           },
           Pagination: { template: '<div />' },
           OrderCards: { template: '<div />' },
@@ -104,6 +108,8 @@ describe('OrderManager line-level statuses', () => {
       },
     });
 
-    expect(wrapper.get('[data-testid="procurement-badge"]').text()).toBe('partially_received|not_shipped');
+    expect(wrapper.get('[data-testid="procurement-badge"]').text()).toBe(
+      'partially_received|not_shipped'
+    );
   });
 });

@@ -94,17 +94,7 @@ export class OutboxRuntimeStateRepository {
              updated_at = ?
        WHERE scope = ?
          AND lease_token = ?`,
-      [
-        nowTs,
-        claimed,
-        published,
-        failed,
-        backlog,
-        rounds,
-        nowTs,
-        scope,
-        leaseToken,
-      ],
+      [nowTs, claimed, published, failed, backlog, rounds, nowTs, scope, leaseToken],
       { label: 'outbox.runtime.finish' }
     );
   }

@@ -18,18 +18,26 @@ describe('runAIStreamEngine', () => {
     const callAIStream = vi
       .fn()
       .mockResolvedValueOnce({
-        body: createReadable(['data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"searchVariants","arguments":"{\\"search\\":\\"scale\\"}"}}]}}]}\n\n']),
+        body: createReadable([
+          'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"searchVariants","arguments":"{\\"search\\":\\"scale\\"}"}}]}}]}\n\n',
+        ]),
         model: 'model-a',
         switched: false,
       })
       .mockResolvedValueOnce({
-        body: createReadable(['data: {"choices":[{"delta":{"content":"已找到 2 个变体。"}}]}\n\n', 'data: [DONE]\n\n']),
+        body: createReadable([
+          'data: {"choices":[{"delta":{"content":"已找到 2 个变体。"}}]}\n\n',
+          'data: [DONE]\n\n',
+        ]),
         model: 'model-a',
         switched: false,
       });
 
     const result = await runAIStreamEngine({
-      initialMessages: [{ role: 'system', content: 'prompt' }, { role: 'user', content: '查变体' }],
+      initialMessages: [
+        { role: 'system', content: 'prompt' },
+        { role: 'user', content: '查变体' },
+      ],
       runtimeEnv: {},
       tools: [{ type: 'function', function: { name: 'searchVariants' } }],
       callAIStream,
@@ -50,23 +58,30 @@ describe('runAIStreamEngine', () => {
 
     expect(emit).toHaveBeenCalledWith(expect.objectContaining({ type: 'tool_call' }));
     expect(emit).toHaveBeenCalledWith(expect.objectContaining({ type: 'tool_result' }));
-    expect(emit).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'text_delta',
-      data: expect.objectContaining({ content: '已找到 2 个变体。' }),
-    }));
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'text_delta',
+        data: expect.objectContaining({ content: '已找到 2 个变体。' }),
+      })
+    );
     expect(result.roundTelemetry.executedTools).toBe(1);
   });
 
   it('emits a structured error when tool rounds exceed the configured limit', async () => {
     const emit = vi.fn();
     const callAIStream = vi.fn().mockImplementation(async () => ({
-      body: createReadable(['data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"searchVariants","arguments":"{\\"search\\":\\"scale\\"}"}}]}}]}\n\n']),
+      body: createReadable([
+        'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"searchVariants","arguments":"{\\"search\\":\\"scale\\"}"}}]}}]}\n\n',
+      ]),
       model: 'model-a',
       switched: false,
     }));
 
     await runAIStreamEngine({
-      initialMessages: [{ role: 'system', content: 'prompt' }, { role: 'user', content: '查变体' }],
+      initialMessages: [
+        { role: 'system', content: 'prompt' },
+        { role: 'user', content: '查变体' },
+      ],
       runtimeEnv: {},
       tools: [{ type: 'function', function: { name: 'searchVariants' } }],
       callAIStream,
@@ -85,12 +100,14 @@ describe('runAIStreamEngine', () => {
       maxToolsPerRound: 4,
     });
 
-    expect(emit).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'error',
-      data: expect.objectContaining({
-        type: 'tool_round_exhausted',
-      }),
-    }));
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'error',
+        data: expect.objectContaining({
+          type: 'tool_round_exhausted',
+        }),
+      })
+    );
   });
 
   it('stops reading and emits cancellation telemetry when request signal aborts mid-stream', async () => {
@@ -100,7 +117,8 @@ describe('runAIStreamEngine', () => {
     const stream = {
       getReader() {
         return {
-          read: vi.fn()
+          read: vi
+            .fn()
             .mockResolvedValueOnce({
               done: false,
               value: new TextEncoder().encode('data: {"choices":[{"delta":{"content":"hi"}}]}\n\n'),
@@ -114,20 +132,24 @@ describe('runAIStreamEngine', () => {
       },
     };
 
-    await expect(runAIStreamEngine({
-      initialResult: { body: stream, model: 'model-a', switched: false },
-      initialMessages: [],
-      runtimeEnv: {},
-      emit,
-      executeTool: vi.fn(),
-      requestContext,
-    })).rejects.toThrow(/client_disconnect|aborted/);
+    await expect(
+      runAIStreamEngine({
+        initialResult: { body: stream, model: 'model-a', switched: false },
+        initialMessages: [],
+        runtimeEnv: {},
+        emit,
+        executeTool: vi.fn(),
+        requestContext,
+      })
+    ).rejects.toThrow(/client_disconnect|aborted/);
 
     expect(readerCancel).toHaveBeenCalledWith('client_disconnect');
-    expect(emit).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'cancellation',
-      data: expect.objectContaining({ reason: 'client_disconnect' }),
-    }));
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'cancellation',
+        data: expect.objectContaining({ reason: 'client_disconnect' }),
+      })
+    );
   });
 
   it('does not start queued tool work after the request has been aborted', async () => {
@@ -135,18 +157,22 @@ describe('runAIStreamEngine', () => {
     requestContext.abort('client_disconnect');
     const executeTool = vi.fn();
 
-    await expect(runAIStreamEngine({
-      initialResult: {
-        body: createReadable(['data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"searchVariants","arguments":"{}"}}]}}]}\n\n']),
-        model: 'model-a',
-        switched: false,
-      },
-      initialMessages: [],
-      runtimeEnv: {},
-      emit: vi.fn(),
-      executeTool,
-      requestContext,
-    })).rejects.toThrow(/client_disconnect/);
+    await expect(
+      runAIStreamEngine({
+        initialResult: {
+          body: createReadable([
+            'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"searchVariants","arguments":"{}"}}]}}]}\n\n',
+          ]),
+          model: 'model-a',
+          switched: false,
+        },
+        initialMessages: [],
+        runtimeEnv: {},
+        emit: vi.fn(),
+        executeTool,
+        requestContext,
+      })
+    ).rejects.toThrow(/client_disconnect/);
 
     expect(executeTool).not.toHaveBeenCalled();
   });
@@ -156,12 +182,17 @@ describe('runAIStreamEngine', () => {
     const callAIStream = vi
       .fn()
       .mockResolvedValueOnce({
-        body: createReadable(['data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"toolA","arguments":"{}"}},{"index":1,"id":"tc_2","function":{"name":"toolB","arguments":"{}"}}]}}]}\n\n']),
+        body: createReadable([
+          'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"toolA","arguments":"{}"}},{"index":1,"id":"tc_2","function":{"name":"toolB","arguments":"{}"}}]}}]}\n\n',
+        ]),
         model: 'model-a',
         switched: false,
       })
       .mockResolvedValueOnce({
-        body: createReadable(['data: {"choices":[{"delta":{"content":"done"}}]}\n\n', 'data: [DONE]\n\n']),
+        body: createReadable([
+          'data: {"choices":[{"delta":{"content":"done"}}]}\n\n',
+          'data: [DONE]\n\n',
+        ]),
         model: 'model-a',
         switched: false,
       });
@@ -174,14 +205,18 @@ describe('runAIStreamEngine', () => {
       executeTool: vi.fn(async (name) => ({ name })),
     });
 
-    expect(emit).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'tool_result',
-      data: expect.objectContaining({ name: 'toolA', status: 'success' }),
-    }));
-    expect(emit).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'tool_result',
-      data: expect.objectContaining({ name: 'toolB', status: 'success' }),
-    }));
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'tool_result',
+        data: expect.objectContaining({ name: 'toolA', status: 'success' }),
+      })
+    );
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'tool_result',
+        data: expect.objectContaining({ name: 'toolB', status: 'success' }),
+      })
+    );
     expect(result.roundTelemetry.executedTools).toBe(2);
   });
 
@@ -189,7 +224,9 @@ describe('runAIStreamEngine', () => {
     const requestContext = createAIRequestContext({});
     const emit = vi.fn();
     const callAIStream = vi.fn().mockResolvedValue({
-      body: createReadable(['data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"toolA","arguments":"{}"}}]}}]}\n\n']),
+      body: createReadable([
+        'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"toolA","arguments":"{}"}}]}}]}\n\n',
+      ]),
       model: 'model-a',
       switched: false,
     });
@@ -201,26 +238,32 @@ describe('runAIStreamEngine', () => {
       throw error;
     });
 
-    await expect(runAIStreamEngine({
-      initialMessages: [],
-      runtimeEnv: {},
-      callAIStream,
-      emit,
-      executeTool,
-      requestContext,
-    })).rejects.toThrow(/client_disconnect|aborted/);
+    await expect(
+      runAIStreamEngine({
+        initialMessages: [],
+        runtimeEnv: {},
+        callAIStream,
+        emit,
+        executeTool,
+        requestContext,
+      })
+    ).rejects.toThrow(/client_disconnect|aborted/);
 
     // Should not emit tool_result for aborted tool
-    expect(emit).not.toHaveBeenCalledWith(expect.objectContaining({
-      type: 'tool_result',
-    }));
+    expect(emit).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'tool_result',
+      })
+    );
   });
 
   it('does not request the next stream round after abort', async () => {
     const requestContext = createAIRequestContext({});
     const emit = vi.fn();
     const callAIStream = vi.fn().mockResolvedValue({
-      body: createReadable(['data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"toolA","arguments":"{}"}}]}}]}\n\n']),
+      body: createReadable([
+        'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"tc_1","function":{"name":"toolA","arguments":"{}"}}]}}]}\n\n',
+      ]),
       model: 'model-a',
       switched: false,
     });
@@ -232,15 +275,17 @@ describe('runAIStreamEngine', () => {
       throw error;
     });
 
-    await expect(runAIStreamEngine({
-      initialMessages: [],
-      runtimeEnv: {},
-      callAIStream,
-      emit,
-      executeTool,
-      requestContext,
-      maxToolRounds: 3,
-    })).rejects.toThrow(/client_disconnect|aborted/);
+    await expect(
+      runAIStreamEngine({
+        initialMessages: [],
+        runtimeEnv: {},
+        callAIStream,
+        emit,
+        executeTool,
+        requestContext,
+        maxToolRounds: 3,
+      })
+    ).rejects.toThrow(/client_disconnect|aborted/);
 
     // Should only call callAIStream once (initial), not for follow-up
     expect(callAIStream).toHaveBeenCalledTimes(1);

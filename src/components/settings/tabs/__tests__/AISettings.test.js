@@ -81,7 +81,9 @@ describe('AISettings model selection and priority', () => {
 
     await wrapper.vm.fetchModels();
 
-    const fetchModelsCalls = authFetchMock.mock.calls.filter(([url]) => url === '/api/manage/settings/ai/models');
+    const fetchModelsCalls = authFetchMock.mock.calls.filter(
+      ([url]) => url === '/api/manage/settings/ai/models'
+    );
     expect(fetchModelsCalls).toHaveLength(1);
     expect(wrapper.vm.availableModels).toEqual(['gpt-4o', 'gpt-4o-mini']);
     expect(wrapper.vm.selectedFetchedModel).toBe('gpt-4o');
@@ -183,7 +185,9 @@ describe('AISettings model selection and priority', () => {
     wrapper.vm.form.AI_MODEL_HEALTH_WINDOW = 35;
     await wrapper.vm.saveSettings();
 
-    const batchCall = authFetchMock.mock.calls.find(([url]) => url === '/api/manage/settings/batch');
+    const batchCall = authFetchMock.mock.calls.find(
+      ([url]) => url === '/api/manage/settings/batch'
+    );
     const requestBody = JSON.parse(batchCall[1].body);
     const keys = requestBody.settings.map((item) => item.key);
     expect(keys).toContain('AI_DYNAMIC_FALLBACK_ENABLED');

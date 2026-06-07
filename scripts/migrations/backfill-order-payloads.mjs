@@ -50,7 +50,16 @@ function sqlNumber(value, fallback = 0) {
 }
 
 export function runD1Json(options, command) {
-  const args = ['wrangler', 'd1', 'execute', options.database, options.remote ? '--remote' : '--local', '--command', command, '--json'];
+  const args = [
+    'wrangler',
+    'd1',
+    'execute',
+    options.database,
+    options.remote ? '--remote' : '--local',
+    '--command',
+    command,
+    '--json',
+  ];
   const output = execFileSync('npx', args, { encoding: 'utf8' });
   const parsed = JSON.parse(output);
 
@@ -123,7 +132,9 @@ WHERE id = ${sqlString(row.order_id)};
 
 export function main() {
   const options = parseArgs(process.argv.slice(2));
-  const rows = runD1Json(options, buildSelectOrderPayloadRowsSql({ limit: options.limit })).map(mapOrderPayloadRow);
+  const rows = runD1Json(options, buildSelectOrderPayloadRowsSql({ limit: options.limit })).map(
+    mapOrderPayloadRow
+  );
 
   if (!rows.length) {
     console.log('[backfill-order-payloads] no orders to backfill');

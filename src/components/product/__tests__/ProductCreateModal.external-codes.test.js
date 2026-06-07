@@ -37,19 +37,20 @@ describe('ProductCreateModal external codes', () => {
     mocks.createProduct.mockResolvedValue(true);
   });
 
-  const createWrapper = () => mount(ProductCreateModal, {
-    props: { modelValue: true, editMode: false, initialData: {} },
-    global: {
-      stubs: {
-        Teleport: true,
-        ImageUploader: true,
-        AppInput: true,
-        AppButton: true,
-        Select: true,
-        VariantImageManagerModal: true,
+  const createWrapper = () =>
+    mount(ProductCreateModal, {
+      props: { modelValue: true, editMode: false, initialData: {} },
+      global: {
+        stubs: {
+          Teleport: true,
+          ImageUploader: true,
+          AppInput: true,
+          AppButton: true,
+          Select: true,
+          VariantImageManagerModal: true,
+        },
       },
-    },
-  });
+    });
 
   it('generateVariants should initialize barcode and supplier_sku fields', async () => {
     const wrapper = createWrapper();
@@ -66,17 +67,19 @@ describe('ProductCreateModal external codes', () => {
   it('submit should include barcode and supplier_sku in variant payload', async () => {
     const wrapper = createWrapper();
     wrapper.vm.form.name = 'Variant Product';
-    wrapper.vm.form.variants = [{
-      sku: 'SKU-001',
-      price: 100,
-      cost_price: 70,
-      stock_quantity: 8,
-      alert_threshold: 2,
-      status: 'active',
-      options_values: { Color: 'Blue', Size: 'L' },
-      barcode: '6901234567890',
-      supplier_sku: 'SUP-BLUE-L',
-    }];
+    wrapper.vm.form.variants = [
+      {
+        sku: 'SKU-001',
+        price: 100,
+        cost_price: 70,
+        stock_quantity: 8,
+        alert_threshold: 2,
+        status: 'active',
+        options_values: { Color: 'Blue', Size: 'L' },
+        barcode: '6901234567890',
+        supplier_sku: 'SUP-BLUE-L',
+      },
+    ];
 
     await wrapper.vm.handleSubmit();
 
@@ -88,17 +91,19 @@ describe('ProductCreateModal external codes', () => {
   it('blocks submit when a variant sku is empty', async () => {
     const wrapper = createWrapper();
     wrapper.vm.form.name = 'Variant Product';
-    wrapper.vm.form.variants = [{
-      sku: '',
-      price: 100,
-      cost_price: 70,
-      stock_quantity: 8,
-      alert_threshold: 2,
-      status: 'active',
-      options_values: { Color: 'Blue', Size: 'L' },
-      barcode: '',
-      supplier_sku: '',
-    }];
+    wrapper.vm.form.variants = [
+      {
+        sku: '',
+        price: 100,
+        cost_price: 70,
+        stock_quantity: 8,
+        alert_threshold: 2,
+        status: 'active',
+        options_values: { Color: 'Blue', Size: 'L' },
+        barcode: '',
+        supplier_sku: '',
+      },
+    ];
 
     await wrapper.vm.handleSubmit();
 

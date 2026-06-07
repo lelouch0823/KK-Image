@@ -4,7 +4,11 @@ import { SalespersonRepository } from '../../../../repositories/SalespersonRepos
 import { MSG } from '../../../../_shared/utils.js';
 import { withCache } from '../../middleware/cache.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
-import { parsePagination, requireEntity, scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import {
+  parsePagination,
+  requireEntity,
+  scheduleCacheInvalidation,
+} from '../../_shared/route-helpers.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
@@ -14,11 +18,46 @@ import { CreateSalespersonSchema, UpdateSalespersonSchema } from '../../schemas/
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
-    { method: 'POST', path: '/', domain: 'salespersons', action: 'salesperson.create', severity: 'high', targetType: 'salesperson' },
-    { method: 'PUT', path: '/:id', domain: 'salespersons', action: 'salesperson.update', severity: 'high', targetType: 'salesperson' },
-    { method: 'PATCH', path: '/:id', domain: 'salespersons', action: 'salesperson.update', severity: 'high', targetType: 'salesperson' },
-    { method: 'DELETE', path: '/:id', domain: 'salespersons', action: 'salesperson.delete', severity: 'critical', targetType: 'salesperson' },
-    { method: 'POST', path: '/:id/reset-token', domain: 'salespersons', action: 'salesperson.reset_token', severity: 'critical', targetType: 'salesperson' },
+  {
+    method: 'POST',
+    path: '/',
+    domain: 'salespersons',
+    action: 'salesperson.create',
+    severity: 'high',
+    targetType: 'salesperson',
+  },
+  {
+    method: 'PUT',
+    path: '/:id',
+    domain: 'salespersons',
+    action: 'salesperson.update',
+    severity: 'high',
+    targetType: 'salesperson',
+  },
+  {
+    method: 'PATCH',
+    path: '/:id',
+    domain: 'salespersons',
+    action: 'salesperson.update',
+    severity: 'high',
+    targetType: 'salesperson',
+  },
+  {
+    method: 'DELETE',
+    path: '/:id',
+    domain: 'salespersons',
+    action: 'salesperson.delete',
+    severity: 'critical',
+    targetType: 'salesperson',
+  },
+  {
+    method: 'POST',
+    path: '/:id/reset-token',
+    domain: 'salespersons',
+    action: 'salesperson.reset_token',
+    severity: 'critical',
+    targetType: 'salesperson',
+  },
 ]);
 app.use('*', requirePermission('users:read'));
 
@@ -26,286 +65,320 @@ app.use('*', requirePermission('users:read'));
  * GET /ranking - 销售业绩排行榜
  */
 app.get('/ranking', withCache(60), async (c) => {
-    const { env } = c;
-    const days = c.req.query('days') ? parseInt(c.req.query('days'), 10) : undefined;
-    const sortBy = c.req.query('sort') || 'order_count';
-    const limit = c.req.query('limit') ? parseInt(c.req.query('limit'), 10) : 20;
+  const { env } = c;
+  const days = c.req.query('days') ? parseInt(c.req.query('days'), 10) : undefined;
+  const sortBy = c.req.query('sort') || 'order_count';
+  const limit = c.req.query('limit') ? parseInt(c.req.query('limit'), 10) : 20;
 
-    // 校验参数
-    const validDays = [7, 30, 90].includes(days) ? days : undefined;
-    const validSort = ['order_count', 'avg_monthly'].includes(sortBy) ? sortBy : 'order_count';
+  // 校验参数
+  const validDays = [7, 30, 90].includes(days) ? days : undefined;
+  const validSort = ['order_count', 'avg_monthly'].includes(sortBy) ? sortBy : 'order_count';
 
-    const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
-    const ranking = await repo.getRanking({
-        days: validDays,
-        sortBy: validSort,
-        limit,
-    });
+  const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
+  const ranking = await repo.getRanking({
+    days: validDays,
+    sortBy: validSort,
+    limit,
+  });
 
-    return c.json({
-        success: true,
-        data: ranking.map((item, index) => ({
-            rank: index + 1,
-            id: item.id,
-            name: item.name,
-            store: item.store,
-            orderCount: item.order_count,
-            avgMonthly: item.avg_monthly,
-        })),
-        meta: {
-            days: validDays || 'all',
-            sortBy: validSort,
-            total: ranking.length,
-        },
-    });
+  return c.json({
+    success: true,
+    data: ranking.map((item, index) => ({
+      rank: index + 1,
+      id: item.id,
+      name: item.name,
+      store: item.store,
+      orderCount: item.order_count,
+      avgMonthly: item.avg_monthly,
+    })),
+    meta: {
+      days: validDays || 'all',
+      sortBy: validSort,
+      total: ranking.length,
+    },
+  });
 });
 
 /**
  * GET / - 获取销售列表
  */
 app.get('/', async (c) => {
-    const { env } = c;
-    const { page, limit } = parsePagination(c, { limit: 50 });
-    const search = c.req.query('search') || '';
+  const { env } = c;
+  const { page, limit } = parsePagination(c, { limit: 50 });
+  const search = c.req.query('search') || '';
 
-    const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
-    const { results, total, pages } = await repo.list({ page, limit, search });
+  const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
+  const { results, total, pages } = await repo.list({ page, limit, search });
 
-    return c.json({
-        success: true,
-        data: results.map((s) => ({
-            id: s.id,
-            name: s.name,
-            store: s.store,
-            phone: s.phone,
-            accessToken: s.access_token,
-            isActive: !!s.is_active,
-            orderCount: s.order_count,
-            createdAt: s.created_at,
-            updatedAt: s.updated_at,
-        })),
-        pagination: {
-            page,
-            limit,
-            total,
-            totalPages: pages,
-        },
-    });
+  return c.json({
+    success: true,
+    data: results.map((s) => ({
+      id: s.id,
+      name: s.name,
+      store: s.store,
+      phone: s.phone,
+      accessToken: s.access_token,
+      isActive: !!s.is_active,
+      orderCount: s.order_count,
+      createdAt: s.created_at,
+      updatedAt: s.updated_at,
+    })),
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: pages,
+    },
+  });
 });
 
 /**
  * POST / - 创建销售人员
  */
-app.post('/', requirePermission('users:write'), zValidator('json', CreateSalespersonSchema), async (c) => {
+app.post(
+  '/',
+  requirePermission('users:write'),
+  zValidator('json', CreateSalespersonSchema),
+  async (c) => {
     const { env } = c;
     const body = c.req.valid('json');
 
     const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
     const salesperson = await repo.create({
-        name: body.name.trim(),
-        store: body.store || null,
-        phone: body.phone || null,
-        password: body.password,
+      name: body.name.trim(),
+      store: body.store || null,
+      phone: body.phone || null,
+      password: body.password,
     });
 
     // 异步失效销售员列表缓存
     scheduleCacheInvalidation(c, getManageSalespersonCacheUrls(c));
 
-    await publishSingleDomainEventAndPoll(c, {
+    await publishSingleDomainEventAndPoll(
+      c,
+      {
         event_type: 'salesperson_created',
         aggregate_type: 'salesperson',
         aggregate_id: salesperson.id,
         payload: {
-            salesperson_id: salesperson.id,
+          salesperson_id: salesperson.id,
         },
-    }, `salesperson-create:${salesperson.id}`);
+      },
+      `salesperson-create:${salesperson.id}`
+    );
     scheduleAuditEvent(c, {
-        domain: 'salespersons',
-        action: 'salesperson.create',
-        result: 'success',
-        severity: 'high',
-        targetType: 'salesperson',
-        targetId: salesperson.id,
-        target_label: salesperson.name,
-        summary: `Created salesperson ${salesperson.name}`,
-        metadata: { store: salesperson.store, phone: salesperson.phone },
+      domain: 'salespersons',
+      action: 'salesperson.create',
+      result: 'success',
+      severity: 'high',
+      targetType: 'salesperson',
+      targetId: salesperson.id,
+      target_label: salesperson.name,
+      summary: `Created salesperson ${salesperson.name}`,
+      metadata: { store: salesperson.store, phone: salesperson.phone },
     });
 
-    return c.json({
+    return c.json(
+      {
         success: true,
         message: MSG.SALESPERSON.CREATE_SUCCESS,
-        data: salesperson
-    }, 201);
-});
+        data: salesperson,
+      },
+      201
+    );
+  }
+);
 
 /**
  * GET /:id - 获取销售详情
  */
 app.get('/:id', async (c) => {
-    const { env } = c;
-    const id = c.req.param('id');
+  const { env } = c;
+  const id = c.req.param('id');
 
-    const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
-    const salesperson = await requireEntity(
-        repo.findById(id),
-        () => new NotFoundError(MSG.SALESPERSON.NOT_FOUND)
-    );
+  const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
+  const salesperson = await requireEntity(
+    repo.findById(id),
+    () => new NotFoundError(MSG.SALESPERSON.NOT_FOUND)
+  );
 
-    return c.json({
-        success: true,
-        data: {
-            id: salesperson.id,
-            name: salesperson.name,
-            store: salesperson.store,
-            phone: salesperson.phone,
-            accessToken: salesperson.access_token,
-            isActive: !!salesperson.is_active,
-            createdAt: salesperson.created_at,
-            updatedAt: salesperson.updated_at
-        }
-    });
+  return c.json({
+    success: true,
+    data: {
+      id: salesperson.id,
+      name: salesperson.name,
+      store: salesperson.store,
+      phone: salesperson.phone,
+      accessToken: salesperson.access_token,
+      isActive: !!salesperson.is_active,
+      createdAt: salesperson.created_at,
+      updatedAt: salesperson.updated_at,
+    },
+  });
 });
 
 /**
  * PUT /:id - 更新销售信息
  */
 const updateHandler = async (c) => {
-    const { env } = c;
-    const id = c.req.param('id');
-    const body = c.req.valid('json');
+  const { env } = c;
+  const id = c.req.param('id');
+  const body = c.req.valid('json');
 
-    const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
+  const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
 
-    // 更新基本信息
-    const success = await repo.update(id, {
-        name: body.name,
-        store: body.store,
-        phone: body.phone,
-        password: body.password,
-        isActive: body.isActive
-    });
+  // 更新基本信息
+  const success = await repo.update(id, {
+    name: body.name,
+    store: body.store,
+    phone: body.phone,
+    password: body.password,
+    isActive: body.isActive,
+  });
 
-    if (!success) {
-        throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
-    }
+  if (!success) {
+    throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
+  }
 
-    await publishSingleDomainEventAndPoll(c, {
-        event_type: 'salesperson_updated',
-        aggregate_type: 'salesperson',
-        aggregate_id: id,
-        payload: {
-            salesperson_id: id,
-        },
-    }, `salesperson-update:${id}`);
-    scheduleAuditEvent(c, {
-        domain: 'salespersons',
-        action: 'salesperson.update',
-        result: 'success',
-        severity: 'high',
-        targetType: 'salesperson',
-        targetId: id,
-        target_label: id,
-        summary: `Updated salesperson ${id}`,
-        metadata: {
-            name: body.name,
-            store: body.store,
-            phone: body.phone,
-            isActive: body.isActive,
-            passwordChanged: Boolean(body.password),
-        },
-    });
+  await publishSingleDomainEventAndPoll(
+    c,
+    {
+      event_type: 'salesperson_updated',
+      aggregate_type: 'salesperson',
+      aggregate_id: id,
+      payload: {
+        salesperson_id: id,
+      },
+    },
+    `salesperson-update:${id}`
+  );
+  scheduleAuditEvent(c, {
+    domain: 'salespersons',
+    action: 'salesperson.update',
+    result: 'success',
+    severity: 'high',
+    targetType: 'salesperson',
+    targetId: id,
+    target_label: id,
+    summary: `Updated salesperson ${id}`,
+    metadata: {
+      name: body.name,
+      store: body.store,
+      phone: body.phone,
+      isActive: body.isActive,
+      passwordChanged: Boolean(body.password),
+    },
+  });
 
-    return c.json({
-        success: true,
-        message: MSG.SALESPERSON.UPDATE_SUCCESS,
-        data: { id },
-    });
+  return c.json({
+    success: true,
+    message: MSG.SALESPERSON.UPDATE_SUCCESS,
+    data: { id },
+  });
 };
 
 // 同时支持 PUT 和 PATCH 方法
-app.put('/:id', requirePermission('users:write'), zValidator('json', UpdateSalespersonSchema), updateHandler);
-app.patch('/:id', requirePermission('users:write'), zValidator('json', UpdateSalespersonSchema), updateHandler);
+app.put(
+  '/:id',
+  requirePermission('users:write'),
+  zValidator('json', UpdateSalespersonSchema),
+  updateHandler
+);
+app.patch(
+  '/:id',
+  requirePermission('users:write'),
+  zValidator('json', UpdateSalespersonSchema),
+  updateHandler
+);
 
 /**
  * DELETE /:id - 删除销售人员
  */
 app.delete('/:id', requirePermission('users:write'), async (c) => {
-    const { env } = c;
-    const id = c.req.param('id');
+  const { env } = c;
+  const id = c.req.param('id');
 
-    const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
+  const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
 
-    // 检查是否有关联订单
-    const hasOrders = await repo.hasOrders(id);
-    if (hasOrders) {
-        throw new BadRequestError(MSG.SALESPERSON.HAS_ORDERS);
-    }
+  // 检查是否有关联订单
+  const hasOrders = await repo.hasOrders(id);
+  if (hasOrders) {
+    throw new BadRequestError(MSG.SALESPERSON.HAS_ORDERS);
+  }
 
-    const deleted = await repo.delete(id);
-    if (!deleted) {
-        throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
-    }
+  const deleted = await repo.delete(id);
+  if (!deleted) {
+    throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
+  }
 
-    await publishSingleDomainEventAndPoll(c, {
-        event_type: 'salesperson_deleted',
-        aggregate_type: 'salesperson',
-        aggregate_id: id,
-        payload: {
-            salesperson_id: id,
-        },
-    }, `salesperson-delete:${id}`);
-    scheduleAuditEvent(c, {
-        domain: 'salespersons',
-        action: 'salesperson.delete',
-        result: 'success',
-        severity: 'critical',
-        targetType: 'salesperson',
-        targetId: id,
-        target_label: id,
-        summary: `Deleted salesperson ${id}`,
-    });
+  await publishSingleDomainEventAndPoll(
+    c,
+    {
+      event_type: 'salesperson_deleted',
+      aggregate_type: 'salesperson',
+      aggregate_id: id,
+      payload: {
+        salesperson_id: id,
+      },
+    },
+    `salesperson-delete:${id}`
+  );
+  scheduleAuditEvent(c, {
+    domain: 'salespersons',
+    action: 'salesperson.delete',
+    result: 'success',
+    severity: 'critical',
+    targetType: 'salesperson',
+    targetId: id,
+    target_label: id,
+    summary: `Deleted salesperson ${id}`,
+  });
 
-    return c.json({ success: true, message: MSG.SALESPERSON.DELETE_SUCCESS });
+  return c.json({ success: true, message: MSG.SALESPERSON.DELETE_SUCCESS });
 });
 
 /**
  * POST /:id/reset-token - 重置访问令牌
  */
 app.post('/:id/reset-token', requirePermission('users:write'), async (c) => {
-    const { env } = c;
-    const id = c.req.param('id');
+  const { env } = c;
+  const id = c.req.param('id');
 
-    const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
-    const newToken = await repo.resetAccessToken(id);
+  const repo = new SalespersonRepository(env.DB, env.JWT_SECRET);
+  const newToken = await repo.resetAccessToken(id);
 
-    if (!newToken) {
-        throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
-    }
+  if (!newToken) {
+    throw new NotFoundError(MSG.SALESPERSON.NOT_FOUND);
+  }
 
-    await publishSingleDomainEventAndPoll(c, {
-        event_type: 'salesperson_token_reset',
-        aggregate_type: 'salesperson',
-        aggregate_id: id,
-        payload: {
-            salesperson_id: id,
-        },
-    }, `salesperson-token-reset:${id}`);
-    scheduleAuditEvent(c, {
-        domain: 'salespersons',
-        action: 'salesperson.reset_token',
-        result: 'success',
-        severity: 'critical',
-        targetType: 'salesperson',
-        targetId: id,
-        target_label: id,
-        summary: `Reset salesperson token for ${id}`,
-    });
+  await publishSingleDomainEventAndPoll(
+    c,
+    {
+      event_type: 'salesperson_token_reset',
+      aggregate_type: 'salesperson',
+      aggregate_id: id,
+      payload: {
+        salesperson_id: id,
+      },
+    },
+    `salesperson-token-reset:${id}`
+  );
+  scheduleAuditEvent(c, {
+    domain: 'salespersons',
+    action: 'salesperson.reset_token',
+    result: 'success',
+    severity: 'critical',
+    targetType: 'salesperson',
+    targetId: id,
+    target_label: id,
+    summary: `Reset salesperson token for ${id}`,
+  });
 
-    return c.json({
-        success: true,
-        message: MSG.SALESPERSON.TOKEN_RESET,
-        data: { accessToken: newToken }
-    });
+  return c.json({
+    success: true,
+    message: MSG.SALESPERSON.TOKEN_RESET,
+    data: { accessToken: newToken },
+  });
 });
 
 export default app;

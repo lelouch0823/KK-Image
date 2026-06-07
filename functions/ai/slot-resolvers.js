@@ -1,5 +1,7 @@
 function normalizeComparable(value = '') {
-  return String(value || '').trim().toLowerCase();
+  return String(value || '')
+    .trim()
+    .toLowerCase();
 }
 
 function buildCandidateResult(candidates = [], rawValue = '') {
@@ -38,11 +40,14 @@ export async function resolveOrderProductSlot(rawValue, slots = {}, { productRep
   const items = Array.isArray(result?.items) ? result.items : [];
   if (items.length === 1) return items[0].id;
   if (items.length > 1) {
-    return buildCandidateResult(items.map((item) => ({
-      value: item.id,
-      label: item.name || item.spu || item.id,
-      description: [item.brand, item.spu].filter(Boolean).join(' / '),
-    })), productName);
+    return buildCandidateResult(
+      items.map((item) => ({
+        value: item.id,
+        label: item.name || item.spu || item.id,
+        description: [item.brand, item.spu].filter(Boolean).join(' / '),
+      })),
+      productName
+    );
   }
   return rawValue;
 }
@@ -60,7 +65,9 @@ export async function resolveOrderVariantSlot(rawValue, slots = {}, { variantRep
   if (!color && !size && !sku) return rawValue;
 
   const variants = await variantRepo.findByProductId(productId);
-  const activeVariants = (variants || []).filter((variant) => String(variant.status || '').toLowerCase() === 'active');
+  const activeVariants = (variants || []).filter(
+    (variant) => String(variant.status || '').toLowerCase() === 'active'
+  );
   const matched = activeVariants.filter((variant) => {
     if (sku && normalizeComparable(variant.sku) !== normalizeComparable(sku)) return false;
     const variantColor = pickVariantOptionValue(variant.options_values, ['color', '颜色', '顏色']);
@@ -72,11 +79,14 @@ export async function resolveOrderVariantSlot(rawValue, slots = {}, { variantRep
 
   if (matched.length === 1) return matched[0].id;
   if (matched.length > 1) {
-    return buildCandidateResult(matched.map((variant) => ({
-      value: variant.id,
-      label: variant.sku || variant.id,
-      description: [variantColorSummary(variant), variant.sku].filter(Boolean).join(' / '),
-    })), `${color} ${size}`.trim());
+    return buildCandidateResult(
+      matched.map((variant) => ({
+        value: variant.id,
+        label: variant.sku || variant.id,
+        description: [variantColorSummary(variant), variant.sku].filter(Boolean).join(' / '),
+      })),
+      `${color} ${size}`.trim()
+    );
   }
   return rawValue;
 }
@@ -111,26 +121,30 @@ export async function resolvePurchaseOrderItemsSlot(items, { variantRepo } = {})
 
     if (Array.isArray(search?.items) && search.items.length > 1) {
       const remainingItems = items.slice(resolved.length + 1);
-      return buildCandidateResult(search.items.map((matched) => ({
-        value: [
-          ...resolved,
-          {
-            ...item,
-            product_id: matched.product_id,
-            variant_id: matched.id,
-            unit_cost: item.unit_cost ?? matched.cost_price ?? 0,
-          },
-          ...remainingItems,
-        ],
-        label: [
-          matched.product?.name || matched.product_name || query,
-          matched.variantLabel || matched.sku || matched.id,
-        ].filter(Boolean).join(' / '),
-        description: [
-          matched.product?.brand || matched.product_brand,
-          matched.sku,
-        ].filter(Boolean).join(' / '),
-      })), query);
+      return buildCandidateResult(
+        search.items.map((matched) => ({
+          value: [
+            ...resolved,
+            {
+              ...item,
+              product_id: matched.product_id,
+              variant_id: matched.id,
+              unit_cost: item.unit_cost ?? matched.cost_price ?? 0,
+            },
+            ...remainingItems,
+          ],
+          label: [
+            matched.product?.name || matched.product_name || query,
+            matched.variantLabel || matched.sku || matched.id,
+          ]
+            .filter(Boolean)
+            .join(' / '),
+          description: [matched.product?.brand || matched.product_brand, matched.sku]
+            .filter(Boolean)
+            .join(' / '),
+        })),
+        query
+      );
     }
 
     resolved.push(item);
@@ -153,11 +167,14 @@ export async function resolveSalespersonSlot(rawValue, _slots = {}, { salesperso
   const items = Array.isArray(result?.results) ? result.results : [];
   if (items.length === 1) return items[0].id;
   if (items.length > 1) {
-    return buildCandidateResult(items.map((item) => ({
-      value: item.id,
-      label: item.name || item.id,
-      description: item.store || item.phone || '',
-    })), query);
+    return buildCandidateResult(
+      items.map((item) => ({
+        value: item.id,
+        label: item.name || item.id,
+        description: item.store || item.phone || '',
+      })),
+      query
+    );
   }
   return rawValue;
 }

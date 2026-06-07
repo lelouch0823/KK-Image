@@ -34,9 +34,6 @@ describe('variant-meta dedup audit', () => {
       offenders.push('functions/lib/utils/variant-meta.js: missing shared re-export');
     }
 
-    expect(
-      offenders,
-      `variant-meta dedup offenders:\n${offenders.join('\n')}`
-    ).toEqual([]);
+    expect(offenders, `variant-meta dedup offenders:\n${offenders.join('\n')}`).toEqual([]);
   });
 });

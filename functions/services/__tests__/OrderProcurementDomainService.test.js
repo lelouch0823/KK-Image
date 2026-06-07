@@ -28,18 +28,20 @@ function createDbHarness({
     shipped_qty: 0,
     cancelled_qty: 0,
   },
-  matchingOrderLines = [{
-    id: 'line-1',
-    order_id: 'o-1',
-    product_id: 'prod-1',
-    variant_id: 'var-1',
-    ordered_qty: 5,
-    procured_qty: 0,
-    received_qty: 1,
-    reserved_qty: 0,
-    shipped_qty: 0,
-    cancelled_qty: 0,
-  }],
+  matchingOrderLines = [
+    {
+      id: 'line-1',
+      order_id: 'o-1',
+      product_id: 'prod-1',
+      variant_id: 'var-1',
+      ordered_qty: 5,
+      procured_qty: 0,
+      received_qty: 1,
+      reserved_qty: 0,
+      shipped_qty: 0,
+      cancelled_qty: 0,
+    },
+  ],
   orderLineAggregateRow = {
     ordered_qty: 5,
     procured_qty: 0,
@@ -87,8 +89,8 @@ function createDbHarness({
       statement.run = vi.fn(async () => {
         calls.runStatements.push(statement);
         if (
-          statement.sql?.includes('INSERT INTO command_idempotency')
-          && statement.params?.[1] === 'purchase_receipt_item_lock'
+          statement.sql?.includes('INSERT INTO command_idempotency') &&
+          statement.params?.[1] === 'purchase_receipt_item_lock'
         ) {
           return receiptItemLockInsertResult;
         }
@@ -132,7 +134,11 @@ function createDbHarness({
     batch: vi.fn(async (statements = []) => {
       calls.batchCalls.push(statements);
       calls.batchedStatements.push(...statements);
-      if (batchError && typeof batchErrorMatcher === 'function' && statements.some((statement) => batchErrorMatcher(statement))) {
+      if (
+        batchError &&
+        typeof batchErrorMatcher === 'function' &&
+        statements.some((statement) => batchErrorMatcher(statement))
+      ) {
         throw batchError;
       }
       return statements.map((statement) => {
@@ -151,25 +157,27 @@ function createDbHarness({
   const purchaseReceiptRepo = {
     createInsertStatement: vi.fn((payload) => {
       calls.receiptInsertPayloads.push(payload);
-      return db.prepare(
-        `INSERT INTO purchase_receipts (
+      return db
+        .prepare(
+          `INSERT INTO purchase_receipts (
           id, purchase_order_id, purchase_order_item_id, order_line_id, product_id, variant_id, receipt_no,
           received_qty, note, received_at, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        payload.id,
-        payload.purchase_order_id,
-        payload.purchase_order_item_id,
-        payload.order_line_id || null,
-        payload.product_id,
-        payload.variant_id,
-        payload.receipt_no || null,
-        payload.received_qty,
-        payload.note || null,
-        payload.received_at,
-        payload.created_at,
-        payload.updated_at
-      );
+        )
+        .bind(
+          payload.id,
+          payload.purchase_order_id,
+          payload.purchase_order_item_id,
+          payload.order_line_id || null,
+          payload.product_id,
+          payload.variant_id,
+          payload.receipt_no || null,
+          payload.received_qty,
+          payload.note || null,
+          payload.received_at,
+          payload.created_at,
+          payload.updated_at
+        );
     }),
   };
 
@@ -180,38 +188,74 @@ function createDbHarness({
         inventoryEventId: 'ie-1',
         ledgerId: 'il-1',
         statements: [
-          db.prepare('UPDATE product_variants SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ? WHERE id = ?')
+          db
+            .prepare(
+              'UPDATE product_variants SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ? WHERE id = ?'
+            )
             .bind(payload.quantityDelta, 1710000000000, payload.variantId),
-          db.prepare('INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at) VALUES (?, ?, 0, ?, ?)')
+          db
+            .prepare(
+              'INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at) VALUES (?, ?, 0, ?, ?)'
+            )
             .bind(payload.variantId, payload.quantityDelta, payload.quantityDelta, 1710000000000),
-          db.prepare('INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-            .bind('il-1', payload.variantId, payload.type, payload.quantityDelta, payload.referenceType, payload.referenceId, 1710000000000, JSON.stringify(payload.metadata || {}), 1710000000000),
-          db.prepare('INSERT INTO inventory_events (id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta, source_type, source_id, metadata, occurred_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-            .bind('ie-1', payload.variantId, payload.orderLineId || null, payload.purchaseReceiptId || null, payload.type, payload.quantityDelta, payload.referenceType, payload.referenceId, JSON.stringify(payload.metadata || {}), 1710000000000, 1710000000000),
+          db
+            .prepare(
+              'INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            )
+            .bind(
+              'il-1',
+              payload.variantId,
+              payload.type,
+              payload.quantityDelta,
+              payload.referenceType,
+              payload.referenceId,
+              1710000000000,
+              JSON.stringify(payload.metadata || {}),
+              1710000000000
+            ),
+          db
+            .prepare(
+              'INSERT INTO inventory_events (id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta, source_type, source_id, metadata, occurred_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            )
+            .bind(
+              'ie-1',
+              payload.variantId,
+              payload.orderLineId || null,
+              payload.purchaseReceiptId || null,
+              payload.type,
+              payload.quantityDelta,
+              payload.referenceType,
+              payload.referenceId,
+              JSON.stringify(payload.metadata || {}),
+              1710000000000,
+              1710000000000
+            ),
         ],
       };
     }),
   };
 
   const commandIdempotencyRepo = {
-    buildInsertStatement: vi.fn((record) => (
-      db.prepare(
-        `INSERT INTO command_idempotency (
+    buildInsertStatement: vi.fn((record) =>
+      db
+        .prepare(
+          `INSERT INTO command_idempotency (
           id, command_type, scope_key, idempotency_key, command_id, request_fingerprint, response_json, status, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        record.id,
-        record.command_type,
-        record.scope_key,
-        record.idempotency_key,
-        record.command_id,
-        record.request_fingerprint,
-        record.response_json,
-        record.status,
-        record.created_at,
-        record.updated_at
-      )
-    )),
+        )
+        .bind(
+          record.id,
+          record.command_type,
+          record.scope_key,
+          record.idempotency_key,
+          record.command_id,
+          record.request_fingerprint,
+          record.response_json,
+          record.status,
+          record.created_at,
+          record.updated_at
+        )
+    ),
     reserveReceiptCommand: vi.fn(async (_scopeKey, _idempotencyKey, requestFingerprint) => ({
       existing: false,
       record: {
@@ -220,16 +264,32 @@ function createDbHarness({
         request_fingerprint: requestFingerprint,
         status: 'in_flight',
       },
-      insertStatement: db.prepare(
-        `INSERT INTO command_idempotency (
+      insertStatement: db
+        .prepare(
+          `INSERT INTO command_idempotency (
           id, command_type, scope_key, idempotency_key, command_id, request_fingerprint, response_json, status, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind('cmd-row-1', 'purchase_receipt_record', 'po-1', 'idem-1', 'cmd-1', requestFingerprint, null, 'in_flight', 1710000000000, 1710000000000),
+        )
+        .bind(
+          'cmd-row-1',
+          'purchase_receipt_record',
+          'po-1',
+          'idem-1',
+          'cmd-1',
+          requestFingerprint,
+          null,
+          'in_flight',
+          1710000000000,
+          1710000000000
+        ),
     })),
-    buildFinalizeStatement: vi.fn((commandId, responseJson, status) => (
-      db.prepare('UPDATE command_idempotency SET response_json = ?, status = ?, updated_at = ? WHERE command_id = ?')
+    buildFinalizeStatement: vi.fn((commandId, responseJson, status) =>
+      db
+        .prepare(
+          'UPDATE command_idempotency SET response_json = ?, status = ?, updated_at = ? WHERE command_id = ?'
+        )
         .bind(JSON.stringify(responseJson), status, 1710000000000, commandId)
-    )),
+    ),
     buildDeleteStatement: vi.fn((commandId) =>
       db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId)
     ),
@@ -238,9 +298,8 @@ function createDbHarness({
   const domainOutboxRepo = {
     buildInsertStatements: vi.fn((events, resolveConsumers) => {
       calls.outboxEvents.push(...events);
-      const resolve = typeof resolveConsumers === 'function'
-        ? resolveConsumers
-        : () => resolveConsumers || [];
+      const resolve =
+        typeof resolveConsumers === 'function' ? resolveConsumers : () => resolveConsumers || [];
 
       return events.flatMap((event, index) => {
         const consumerNames = resolve(event);
@@ -251,33 +310,50 @@ function createDbHarness({
         calls.outboxConsumers.push(...consumerNames);
 
         return [
-        db.prepare(
-          `INSERT INTO domain_outbox (
+          db
+            .prepare(
+              `INSERT INTO domain_outbox (
             id, command_id, sequence_in_command, event_type, event_version, aggregate_type,
             aggregate_id, correlation_id, causation_id, idempotency_key, payload_json, occurred_at, created_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(
-          event.id,
-          event.command_id,
-          event.sequence_in_command,
-          event.event_type,
-          event.event_version,
-          event.aggregate_type,
-          event.aggregate_id,
-          event.correlation_id,
-          event.causation_id,
-          event.idempotency_key,
-          event.payload_json,
-          event.occurred_at,
-          1710000000000
-        ),
-        db.prepare(
-          `INSERT INTO outbox_consumer_jobs (
+            )
+            .bind(
+              event.id,
+              event.command_id,
+              event.sequence_in_command,
+              event.event_type,
+              event.event_version,
+              event.aggregate_type,
+              event.aggregate_id,
+              event.correlation_id,
+              event.causation_id,
+              event.idempotency_key,
+              event.payload_json,
+              event.occurred_at,
+              1710000000000
+            ),
+          db
+            .prepare(
+              `INSERT INTO outbox_consumer_jobs (
             id, consumer_name, event_id, status, attempt_count, available_at,
             leased_by, leased_until, last_error, processed_at, created_at, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(`job-${index}`, consumerNames[0] || 'audit', event.id, 'pending', 0, 1710000000000, null, null, null, null, 1710000000000, 1710000000000),
-      ];
+            )
+            .bind(
+              `job-${index}`,
+              consumerNames[0] || 'audit',
+              event.id,
+              'pending',
+              0,
+              1710000000000,
+              null,
+              null,
+              null,
+              null,
+              1710000000000,
+              1710000000000
+            ),
+        ];
       });
     }),
   };
@@ -315,16 +391,22 @@ describe('OrderProcurementDomainService', () => {
   });
 
   it('commits purchase item, receipt, inventory, order progress, and outbox in one final batch', async () => {
-    const result = await service.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
-    }, {
-      idempotencyKey: 'idem-1',
-    });
+    const result = await service.recordPurchaseOrderReceipts(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
+      },
+      {
+        idempotencyKey: 'idem-1',
+      }
+    );
 
-    expect(result).toEqual(expect.objectContaining({
-      purchase_order_id: 'po-1',
-      receipt_count: 1,
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        purchase_order_id: 'po-1',
+        receipt_count: 1,
+      })
+    );
 
     expect(harness.db.batch).toHaveBeenCalledTimes(1);
     const sqlBatch = harness.calls.batchedStatements.map((statement) => statement.sql).join('\n');
@@ -349,11 +431,15 @@ describe('OrderProcurementDomainService', () => {
   });
 
   it('keeps audit/cache on existing receipt events and adds notification only where declared', async () => {
-    await service.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
-    }, {
-      idempotencyKey: 'idem-1',
-    });
+    await service.recordPurchaseOrderReceipts(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
+      },
+      {
+        idempotencyKey: 'idem-1',
+      }
+    );
 
     const [, resolveConsumers] = harness.domainOutboxRepo.buildInsertStatements.mock.calls[0];
     expect(typeof resolveConsumers).toBe('function');
@@ -374,19 +460,27 @@ describe('OrderProcurementDomainService', () => {
   });
 
   it('stores purchase_order_id in order procurement outbox payloads for downstream cache replay', async () => {
-    await service.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
-    }, {
-      idempotencyKey: 'idem-1',
-    });
+    await service.recordPurchaseOrderReceipts(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
+      },
+      {
+        idempotencyKey: 'idem-1',
+      }
+    );
 
-    const orderProgressEvent = harness.calls.outboxEvents.find((event) => event.event_type === 'order_procurement_progressed');
+    const orderProgressEvent = harness.calls.outboxEvents.find(
+      (event) => event.event_type === 'order_procurement_progressed'
+    );
     expect(orderProgressEvent).toBeTruthy();
-    expect(JSON.parse(orderProgressEvent.payload_json)).toEqual(expect.objectContaining({
-      purchase_order_id: 'po-1',
-      order_line_id: 'line-1',
-      order_procurement_status_after: 'partially_arrived',
-    }));
+    expect(JSON.parse(orderProgressEvent.payload_json)).toEqual(
+      expect.objectContaining({
+        purchase_order_id: 'po-1',
+        order_line_id: 'line-1',
+        order_procurement_status_after: 'partially_arrived',
+      })
+    );
   });
 
   it('stores and replays the original response for the same purchase_order_id + idempotency_key', async () => {
@@ -409,11 +503,15 @@ describe('OrderProcurementDomainService', () => {
       insertStatement: null,
     });
 
-    const result = await service.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
-    }, {
-      idempotencyKey: 'idem-1',
-    });
+    const result = await service.recordPurchaseOrderReceipts(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
+      },
+      {
+        idempotencyKey: 'idem-1',
+      }
+    );
 
     expect(result).toEqual({
       purchase_order_id: 'po-1',
@@ -439,21 +537,31 @@ describe('OrderProcurementDomainService', () => {
       insertStatement: null,
     });
 
-    await expect(service.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
-    }, {
-      idempotencyKey: 'idem-1',
-    })).rejects.toBeInstanceOf(BadRequestError);
+    await expect(
+      service.recordPurchaseOrderReceipts(
+        'po-1',
+        {
+          items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).rejects.toBeInstanceOf(BadRequestError);
 
     expect(harness.db.batch).not.toHaveBeenCalled();
   });
 
   it('records receipt rows, updates purchase_order_items progress, updates linked order_lines progress, and writes inventory with receipt refs', async () => {
-    const result = await service.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
-    }, {
-      idempotencyKey: 'idem-1',
-    });
+    const result = await service.recordPurchaseOrderReceipts(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
+      },
+      {
+        idempotencyKey: 'idem-1',
+      }
+    );
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -475,24 +583,30 @@ describe('OrderProcurementDomainService', () => {
       })
     );
 
-    const poiUpdateStatement = harness.calls.batchedStatements.find((statement) => statement.sql.includes('UPDATE purchase_order_items'));
+    const poiUpdateStatement = harness.calls.batchedStatements.find((statement) =>
+      statement.sql.includes('UPDATE purchase_order_items')
+    );
     const poiUpdateParams = poiUpdateStatement.params;
     expect(poiUpdateParams[0]).toBe(5); // 2 prior + 3 new
     expect(poiUpdateParams[1]).toBe('partially_received');
 
-    const lineUpdateStatement = harness.calls.batchedStatements.find((statement) => statement.sql.includes('UPDATE order_lines'));
+    const lineUpdateStatement = harness.calls.batchedStatements.find((statement) =>
+      statement.sql.includes('UPDATE order_lines')
+    );
     const lineUpdateParams = lineUpdateStatement.params;
     expect(lineUpdateParams[0]).toBe(5);
     expect(lineUpdateParams[1]).toBe(5);
     expect(lineUpdateParams[2]).toBe(4);
-    expect(lineUpdateParams[6]).toBe(projectOrderLineStatus({
-      ordered_qty: 5,
-      procured_qty: 5,
-      received_qty: 4,
-      reserved_qty: 0,
-      shipped_qty: 0,
-      cancelled_qty: 0,
-    }));
+    expect(lineUpdateParams[6]).toBe(
+      projectOrderLineStatus({
+        ordered_qty: 5,
+        procured_qty: 5,
+        received_qty: 4,
+        reserved_qty: 0,
+        shipped_qty: 0,
+        cancelled_qty: 0,
+      })
+    );
 
     expect(harness.inventoryService.buildMutationStatements).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -513,11 +627,17 @@ describe('OrderProcurementDomainService', () => {
       })),
     }));
 
-    await expect(service.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-foreign', received_qty: 1 }],
-    }, {
-      idempotencyKey: 'idem-1',
-    })).rejects.toBeInstanceOf(BadRequestError);
+    await expect(
+      service.recordPurchaseOrderReceipts(
+        'po-1',
+        {
+          items: [{ purchase_order_item_id: 'poi-foreign', received_qty: 1 }],
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).rejects.toBeInstanceOf(BadRequestError);
   });
 
   it('rejects receipts when purchase order status is not ordered or shipping', async () => {
@@ -528,11 +648,17 @@ describe('OrderProcurementDomainService', () => {
       now: () => 1710000000000,
     });
 
-    await expect(invalidService.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 1 }],
-    }, {
-      idempotencyKey: 'idem-1',
-    })).rejects.toBeInstanceOf(BadRequestError);
+    await expect(
+      invalidService.recordPurchaseOrderReceipts(
+        'po-1',
+        {
+          items: [{ purchase_order_item_id: 'poi-1', received_qty: 1 }],
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).rejects.toBeInstanceOf(BadRequestError);
   });
 
   it('rejects receipt quantities greater than remaining receivable quantity', async () => {
@@ -556,21 +682,33 @@ describe('OrderProcurementDomainService', () => {
       now: () => 1710000000000,
     });
 
-    await expect(customService.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 2 }],
-    }, {
-      idempotencyKey: 'idem-1',
-    })).rejects.toBeInstanceOf(BadRequestError);
+    await expect(
+      customService.recordPurchaseOrderReceipts(
+        'po-1',
+        {
+          items: [{ purchase_order_item_id: 'poi-1', received_qty: 2 }],
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).rejects.toBeInstanceOf(BadRequestError);
   });
 
   it('projects compatibility procurement_status as partially_arrived after partial receipts', async () => {
-    await service.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
-    }, {
-      idempotencyKey: 'idem-1',
-    });
+    await service.recordPurchaseOrderReceipts(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
+      },
+      {
+        idempotencyKey: 'idem-1',
+      }
+    );
 
-    const orderUpdateStatement = harness.calls.batchedStatements.find((statement) => statement.sql.includes('UPDATE orders'));
+    const orderUpdateStatement = harness.calls.batchedStatements.find((statement) =>
+      statement.sql.includes('UPDATE orders')
+    );
     expect(orderUpdateStatement.params[0]).toBe('partially_arrived');
     expect(orderUpdateStatement.params[2]).toBe('o-1');
   });
@@ -590,25 +728,37 @@ describe('OrderProcurementDomainService', () => {
       now: () => 1710000000000,
     });
 
-    await completeService.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
-    }, {
-      idempotencyKey: 'idem-1',
-    });
+    await completeService.recordPurchaseOrderReceipts(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
+      },
+      {
+        idempotencyKey: 'idem-1',
+      }
+    );
 
-    const orderUpdateStatement = completeHarness.calls.batchedStatements.find((statement) => statement.sql.includes('UPDATE orders'));
+    const orderUpdateStatement = completeHarness.calls.batchedStatements.find((statement) =>
+      statement.sql.includes('UPDATE orders')
+    );
     expect(orderUpdateStatement.params[0]).toBe('arrived');
     expect(orderUpdateStatement.params[2]).toBe('o-1');
   });
 
   it('updates only the resolved compatibility order line during receipt projection', async () => {
-    await service.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
-    }, {
-      idempotencyKey: 'idem-1',
-    });
+    await service.recordPurchaseOrderReceipts(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
+      },
+      {
+        idempotencyKey: 'idem-1',
+      }
+    );
 
-    const orderLineUpdateStatement = harness.calls.batchedStatements.find((statement) => statement.sql.includes('UPDATE order_lines'));
+    const orderLineUpdateStatement = harness.calls.batchedStatements.find((statement) =>
+      statement.sql.includes('UPDATE order_lines')
+    );
     expect(orderLineUpdateStatement.sql).toContain('WHERE id = ? AND order_id = ?');
   });
 
@@ -673,14 +823,22 @@ describe('OrderProcurementDomainService', () => {
       now: () => 1710000000000,
     });
 
-    await expect(duplicateService.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
-    }, {
-      idempotencyKey: 'idem-duplicate-line',
-    })).resolves.toEqual(expect.objectContaining({
-      purchase_order_id: 'po-1',
-      receipt_count: 1,
-    }));
+    await expect(
+      duplicateService.recordPurchaseOrderReceipts(
+        'po-1',
+        {
+          items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
+        },
+        {
+          idempotencyKey: 'idem-duplicate-line',
+        }
+      )
+    ).resolves.toEqual(
+      expect.objectContaining({
+        purchase_order_id: 'po-1',
+        receipt_count: 1,
+      })
+    );
 
     expect(duplicateHarness.purchaseReceiptRepo.createInsertStatement).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -699,16 +857,34 @@ describe('OrderProcurementDomainService', () => {
       now: () => 1710000000000,
     });
 
-    await expect(concurrentService.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
-    }, {
-      idempotencyKey: 'idem-1',
-    })).rejects.toBeInstanceOf(BadRequestError);
+    await expect(
+      concurrentService.recordPurchaseOrderReceipts(
+        'po-1',
+        {
+          items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).rejects.toBeInstanceOf(BadRequestError);
 
     expect(concurrentHarness.db.batch).toHaveBeenCalledTimes(1);
-    expect(concurrentHarness.calls.batchedStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))).toBe(true);
-    expect(concurrentHarness.calls.batchedStatements.some((statement) => statement.sql.includes('UPDATE order_lines'))).toBe(true);
-    expect(concurrentHarness.calls.runStatements.some((statement) => statement.sql.includes('DELETE FROM command_idempotency'))).toBe(true);
+    expect(
+      concurrentHarness.calls.batchedStatements.some((statement) =>
+        statement.sql.includes('UPDATE purchase_order_items')
+      )
+    ).toBe(true);
+    expect(
+      concurrentHarness.calls.batchedStatements.some((statement) =>
+        statement.sql.includes('UPDATE order_lines')
+      )
+    ).toBe(true);
+    expect(
+      concurrentHarness.calls.runStatements.some((statement) =>
+        statement.sql.includes('DELETE FROM command_idempotency')
+      )
+    ).toBe(true);
   });
 
   it('rejects concurrent receipt writes before downstream side effects when a purchase-item lock is already held', async () => {
@@ -723,11 +899,17 @@ describe('OrderProcurementDomainService', () => {
       now: () => 1710000000000,
     });
 
-    await expect(lockedService.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
-    }, {
-      idempotencyKey: 'idem-1',
-    })).rejects.toBeInstanceOf(BadRequestError);
+    await expect(
+      lockedService.recordPurchaseOrderReceipts(
+        'po-1',
+        {
+          items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).rejects.toBeInstanceOf(BadRequestError);
 
     expect(lockedHarness.purchaseReceiptRepo.createInsertStatement).not.toHaveBeenCalled();
     expect(lockedHarness.inventoryService.buildMutationStatements).not.toHaveBeenCalled();
@@ -741,7 +923,8 @@ describe('OrderProcurementDomainService', () => {
   it('does not trigger compensating rollback batches when finalize write fails', async () => {
     const finalizeFailureHarness = createDbHarness({
       batchError: new Error('finalize failed'),
-      batchErrorMatcher: (statement) => statement.sql.includes('UPDATE command_idempotency SET response_json'),
+      batchErrorMatcher: (statement) =>
+        statement.sql.includes('UPDATE command_idempotency SET response_json'),
     });
     const finalizeFailureService = new OrderProcurementDomainService(finalizeFailureHarness.db, {
       purchaseReceiptRepo: finalizeFailureHarness.purchaseReceiptRepo,
@@ -751,16 +934,34 @@ describe('OrderProcurementDomainService', () => {
       now: () => 1710000000000,
     });
 
-    await expect(finalizeFailureService.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
-    }, {
-      idempotencyKey: 'idem-1',
-    })).rejects.toThrow('finalize failed');
+    await expect(
+      finalizeFailureService.recordPurchaseOrderReceipts(
+        'po-1',
+        {
+          items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).rejects.toThrow('finalize failed');
 
     expect(finalizeFailureHarness.db.batch).toHaveBeenCalledTimes(1);
-    expect(finalizeFailureHarness.calls.batchedStatements.some((statement) => statement.sql.includes('UPDATE purchase_order_items'))).toBe(true);
-    expect(finalizeFailureHarness.calls.batchedStatements.some((statement) => statement.sql.includes('UPDATE order_lines'))).toBe(true);
-    expect(finalizeFailureHarness.calls.runStatements.some((statement) => statement.sql.includes('DELETE FROM command_idempotency'))).toBe(true);
+    expect(
+      finalizeFailureHarness.calls.batchedStatements.some((statement) =>
+        statement.sql.includes('UPDATE purchase_order_items')
+      )
+    ).toBe(true);
+    expect(
+      finalizeFailureHarness.calls.batchedStatements.some((statement) =>
+        statement.sql.includes('UPDATE order_lines')
+      )
+    ).toBe(true);
+    expect(
+      finalizeFailureHarness.calls.runStatements.some((statement) =>
+        statement.sql.includes('DELETE FROM command_idempotency')
+      )
+    ).toBe(true);
   });
 
   it('fails without partial persistence when downstream write errors', async () => {
@@ -774,11 +975,17 @@ describe('OrderProcurementDomainService', () => {
       now: () => 1710000000000,
     });
 
-    await expect(writeFailureService.recordPurchaseOrderReceipts('po-1', {
-      items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
-    }, {
-      idempotencyKey: 'idem-1',
-    })).rejects.toThrow('write failed');
+    await expect(
+      writeFailureService.recordPurchaseOrderReceipts(
+        'po-1',
+        {
+          items: [{ purchase_order_item_id: 'poi-1', received_qty: 3 }],
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).rejects.toThrow('write failed');
 
     expect(writeFailureHarness.purchaseReceiptRepo.createInsertStatement).toHaveBeenCalled();
     expect(writeFailureHarness.inventoryService.buildMutationStatements).toHaveBeenCalled();
@@ -794,13 +1001,26 @@ describe('OrderProcurementDomainService', () => {
       now: () => 1710000000000,
     });
 
-    await expect(manyItemsService.recordPurchaseOrderReceipts('po-1', {
-      items: Array.from({ length: 5 }, () => ({ purchase_order_item_id: 'poi-1', received_qty: 1 })),
-    }, {
-      idempotencyKey: 'idem-1',
-    })).rejects.toBeInstanceOf(BadRequestError);
+    await expect(
+      manyItemsService.recordPurchaseOrderReceipts(
+        'po-1',
+        {
+          items: Array.from({ length: 5 }, () => ({
+            purchase_order_item_id: 'poi-1',
+            received_qty: 1,
+          })),
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).rejects.toBeInstanceOf(BadRequestError);
 
     expect(manyItemsHarness.purchaseReceiptRepo.createInsertStatement).not.toHaveBeenCalled();
-    expect(manyItemsHarness.calls.runStatements.some((statement) => statement.sql.includes('DELETE FROM command_idempotency'))).toBe(true);
+    expect(
+      manyItemsHarness.calls.runStatements.some((statement) =>
+        statement.sql.includes('DELETE FROM command_idempotency')
+      )
+    ).toBe(true);
   });
 });

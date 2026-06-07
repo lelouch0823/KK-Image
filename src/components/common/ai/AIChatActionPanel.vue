@@ -9,10 +9,7 @@
     :action="action"
     @confirm="$emit('confirm')"
   />
-  <ActionResultCard
-    v-else-if="action?.type === 'action_result'"
-    :action="action"
-  />
+  <ActionResultCard v-else-if="action?.type === 'action_result'" :action="action" />
 </template>
 
 <script setup>

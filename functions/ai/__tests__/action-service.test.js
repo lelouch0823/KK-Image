@@ -21,11 +21,13 @@ describe('createAIActionService', () => {
       user: { id: 'u-1' },
     });
 
-    expect(result).toEqual(expect.objectContaining({
-      handled: true,
-      actionResult: expect.objectContaining({ kind: 'slot_request' }),
-      event: expect.objectContaining({ type: 'slot_request' }),
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        handled: true,
+        actionResult: expect.objectContaining({ kind: 'slot_request' }),
+        event: expect.objectContaining({ type: 'slot_request' }),
+      })
+    );
     expect(orchestrator.advance).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'u-1',
@@ -54,13 +56,15 @@ describe('createAIActionService', () => {
       user: { id: 'u-1' },
     });
 
-    expect(result.refreshEvent).toEqual(expect.objectContaining({
-      type: 'module_refresh',
-      data: expect.objectContaining({
-        module: 'orders',
-        entityId: 'ord-1',
-      }),
-    }));
+    expect(result.refreshEvent).toEqual(
+      expect.objectContaining({
+        type: 'module_refresh',
+        data: expect.objectContaining({
+          module: 'orders',
+          entityId: 'ord-1',
+        }),
+      })
+    );
   });
 
   it('surfaces action_denied as a handled AI response', async () => {
@@ -81,11 +85,13 @@ describe('createAIActionService', () => {
       user: { id: 'u-1' },
     });
 
-    expect(result).toEqual(expect.objectContaining({
-      handled: true,
-      actionResult: expect.objectContaining({ kind: 'action_denied' }),
-      refreshEvent: null,
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        handled: true,
+        actionResult: expect.objectContaining({ kind: 'action_denied' }),
+        refreshEvent: null,
+      })
+    );
   });
 
   it('publishes purchase-order creation side effects after the action rail submits successfully', async () => {
@@ -117,7 +123,10 @@ describe('createAIActionService', () => {
       })),
     });
 
-    const actionContext = { env: { DB: {} }, c: { req: { url: 'http://localhost/api/manage/ai' } } };
+    const actionContext = {
+      env: { DB: {} },
+      c: { req: { url: 'http://localhost/api/manage/ai' } },
+    };
     const result = await service.handleTurn({
       text: '确认',
       context: {},
@@ -135,13 +144,15 @@ describe('createAIActionService', () => {
     expect(sessionStore.updateSession).toHaveBeenCalledWith('act-po-1', {
       status: 'completed',
     });
-    expect(result.refreshEvent).toEqual(expect.objectContaining({
-      type: 'module_refresh',
-      data: expect.objectContaining({
-        module: 'purchase_orders',
-        entityId: 'po-1',
-      }),
-    }));
+    expect(result.refreshEvent).toEqual(
+      expect.objectContaining({
+        type: 'module_refresh',
+        data: expect.objectContaining({
+          module: 'purchase_orders',
+          entityId: 'po-1',
+        }),
+      })
+    );
   });
 
   it('publishes product creation side effects after the action rail submits successfully', async () => {
@@ -170,7 +181,10 @@ describe('createAIActionService', () => {
       })),
     });
 
-    const actionContext = { env: { DB: {} }, c: { req: { url: 'http://localhost/api/manage/ai' } } };
+    const actionContext = {
+      env: { DB: {} },
+      c: { req: { url: 'http://localhost/api/manage/ai' } },
+    };
     const result = await service.handleTurn({
       text: '确认',
       context: {},
@@ -185,13 +199,15 @@ describe('createAIActionService', () => {
     expect(sessionStore.updateSession).toHaveBeenCalledWith('act-prod-1', {
       status: 'completed',
     });
-    expect(result.refreshEvent).toEqual(expect.objectContaining({
-      type: 'module_refresh',
-      data: expect.objectContaining({
-        module: 'products',
-        entityId: 'prod-1',
-      }),
-    }));
+    expect(result.refreshEvent).toEqual(
+      expect.objectContaining({
+        type: 'module_refresh',
+        data: expect.objectContaining({
+          module: 'products',
+          entityId: 'prod-1',
+        }),
+      })
+    );
   });
 
   it('publishes order creation side effects after the action rail submits successfully', async () => {
@@ -221,7 +237,10 @@ describe('createAIActionService', () => {
       })),
     });
 
-    const actionContext = { env: { DB: {} }, c: { req: { url: 'http://localhost/api/manage/ai' } } };
+    const actionContext = {
+      env: { DB: {} },
+      c: { req: { url: 'http://localhost/api/manage/ai' } },
+    };
     const result = await service.handleTurn({
       text: '确认',
       context: {},
@@ -229,24 +248,29 @@ describe('createAIActionService', () => {
       actionContext,
     });
 
-    expect(publishOrderCreated).toHaveBeenCalledWith(expect.objectContaining({
-      ...actionContext,
-      user: { id: 'u-1', name: 'AI Admin' },
-    }), {
-      created: { id: 'ord-1', orderNo: 'ORD-1' },
-      salespersonId: 'sp-1',
-      sessionId: 'act-order-1',
-    });
+    expect(publishOrderCreated).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...actionContext,
+        user: { id: 'u-1', name: 'AI Admin' },
+      }),
+      {
+        created: { id: 'ord-1', orderNo: 'ORD-1' },
+        salespersonId: 'sp-1',
+        sessionId: 'act-order-1',
+      }
+    );
     expect(sessionStore.updateSession).toHaveBeenCalledWith('act-order-1', {
       status: 'completed',
     });
-    expect(result.refreshEvent).toEqual(expect.objectContaining({
-      type: 'module_refresh',
-      data: expect.objectContaining({
-        module: 'orders',
-        entityId: 'ord-1',
-      }),
-    }));
+    expect(result.refreshEvent).toEqual(
+      expect.objectContaining({
+        type: 'module_refresh',
+        data: expect.objectContaining({
+          module: 'orders',
+          entityId: 'ord-1',
+        }),
+      })
+    );
   });
 
   it('keeps the action session pending when purchase-order post-submit side effects fail', async () => {
@@ -280,12 +304,14 @@ describe('createAIActionService', () => {
       })),
     });
 
-    await expect(service.handleTurn({
-      text: '确认',
-      context: {},
-      user: { id: 'u-1' },
-      actionContext: { env: { DB: {} }, c: { req: { url: 'http://localhost/api/manage/ai' } } },
-    })).rejects.toThrow('publish failed');
+    await expect(
+      service.handleTurn({
+        text: '确认',
+        context: {},
+        user: { id: 'u-1' },
+        actionContext: { env: { DB: {} }, c: { req: { url: 'http://localhost/api/manage/ai' } } },
+      })
+    ).rejects.toThrow('publish failed');
 
     expect(sessionStore.updateSession).not.toHaveBeenCalled();
   });
@@ -318,12 +344,14 @@ describe('createAIActionService', () => {
       })),
     });
 
-    await expect(service.handleTurn({
-      text: '确认',
-      context: {},
-      user: { id: 'u-1' },
-      actionContext: { env: { DB: {} }, c: { req: { url: 'http://localhost/api/manage/ai' } } },
-    })).rejects.toThrow('publish failed');
+    await expect(
+      service.handleTurn({
+        text: '确认',
+        context: {},
+        user: { id: 'u-1' },
+        actionContext: { env: { DB: {} }, c: { req: { url: 'http://localhost/api/manage/ai' } } },
+      })
+    ).rejects.toThrow('publish failed');
 
     expect(sessionStore.updateSession).not.toHaveBeenCalled();
   });

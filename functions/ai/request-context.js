@@ -9,7 +9,8 @@ function createAbortError(reason) {
 }
 
 export function createAIRequestContext(input = {}) {
-  const controller = input.controller instanceof AbortController ? input.controller : new AbortController();
+  const controller =
+    input.controller instanceof AbortController ? input.controller : new AbortController();
   let abortReason = null;
   const spans = [];
   const requestId = input.requestId || generateId();

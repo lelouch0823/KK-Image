@@ -13,6 +13,7 @@
 ### Task 1: Lock the Dead Export Contract
 
 **Files:**
+
 - Create: `functions/api/utils/__tests__/auth-dead-exports.audit.test.js`
 
 - [ ] **Step 1: Write the failing audit test**
@@ -32,6 +33,7 @@ Expected: FAIL because the export still exists.
 ### Task 2: Remove the Dead Export
 
 **Files:**
+
 - Modify: `functions/api/utils/auth.js`
 - Test: `functions/api/utils/__tests__/auth-dead-exports.audit.test.js`
 - Test: `functions/api/utils/__tests__/auth.test.js`

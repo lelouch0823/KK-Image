@@ -95,7 +95,10 @@ import createRoutesApp from '../create.js';
 function createApp() {
   const app = new Hono();
   app.onError((err, c) =>
-    c.json({ success: false, error: err?.message || 'Internal Error' }, Number(err?.statusCode || 500))
+    c.json(
+      { success: false, error: err?.message || 'Internal Error' },
+      Number(err?.statusCode || 500)
+    )
   );
   app.use('/api/manage/orders/*', async (c, next) => {
     c.set('user', { id: 'admin-1', name: 'Admin' });
@@ -170,51 +173,54 @@ describe('manage order create routes', () => {
         return { meta: { changes: 1 } };
       }),
     }));
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      if (idempotencyKey === 'order-key-1' && storedResponses.has(idempotencyKey)) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        if (idempotencyKey === 'order-key-1' && storedResponses.has(idempotencyKey)) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: 'cmd-order-1',
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: requestFingerprint,
+              response_json: JSON.stringify(storedResponses.get(idempotencyKey)),
+              status: 'committed',
+            },
+          };
+        }
+
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
             command_id: 'cmd-order-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
             request_fingerprint: requestFingerprint,
-            response_json: JSON.stringify(storedResponses.get(idempotencyKey)),
-            status: 'committed',
           },
         };
       }
-
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-order-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-
-    const request = () => app.request(
-      'http://localhost/api/manage/orders',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': 'order-key-1',
-        },
-        body: JSON.stringify({
-          productName: 'Sample Product',
-          salespersonId: 'sales-1',
-          quantity: 1,
-        }),
-      },
-      { DB: {} },
-      { waitUntil: vi.fn() }
     );
+
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/orders',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'order-key-1',
+          },
+          body: JSON.stringify({
+            productName: 'Sample Product',
+            salespersonId: 'sales-1',
+            quantity: 1,
+          }),
+        },
+        { DB: {} },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -264,9 +270,11 @@ describe('manage order create routes', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual(expect.objectContaining({
-      error: '同一个幂等键不能提交不同的订单创建请求',
-    }));
+    expect(await res.json()).toEqual(
+      expect.objectContaining({
+        error: '同一个幂等键不能提交不同的订单创建请求',
+      })
+    );
     expect(mocks.createManagedOrder).not.toHaveBeenCalled();
   });
 
@@ -274,72 +282,79 @@ describe('manage order create routes', () => {
     const app = createApp();
     const commandState = new Map();
 
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      const existing = commandState.get(idempotencyKey);
-      if (existing) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        const existing = commandState.get(idempotencyKey);
+        if (existing) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: existing.commandId,
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: existing.requestFingerprint,
+              response_json: existing.responseJson,
+              status: existing.status,
+            },
+          };
+        }
+
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
-            command_id: existing.commandId,
+            command_id: 'cmd-order-partial-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: existing.requestFingerprint,
-            response_json: existing.responseJson,
-            status: existing.status,
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-order-partial-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        commandState.set('order-key-partial-1', {
-          commandId,
-          requestFingerprint: commandState.get('order-key-partial-1')?.requestFingerprint || JSON.stringify({
-            productName: 'Sample Product',
-            quantity: 1,
-            salespersonId: 'sales-1',
-          }),
-          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
-          status,
-        });
-        return { meta: { changes: 1 } };
-      }),
-    }));
+    );
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          commandState.set('order-key-partial-1', {
+            commandId,
+            requestFingerprint:
+              commandState.get('order-key-partial-1')?.requestFingerprint ||
+              JSON.stringify({
+                productName: 'Sample Product',
+                quantity: 1,
+                salespersonId: 'sales-1',
+              }),
+            responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+            status,
+          });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
     mocks.createManagedOrder.mockRejectedValueOnce(
       Object.assign(new Error('demand sync failed after persist'), {
         partialResult: { id: 'order-partial-1', orderNo: 'SO-PARTIAL-1' },
       })
     );
 
-    const request = () => app.request(
-      'http://localhost/api/manage/orders',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': 'order-key-partial-1',
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/orders',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'order-key-partial-1',
+          },
+          body: JSON.stringify({
+            productName: 'Sample Product',
+            salespersonId: 'sales-1',
+            quantity: 1,
+          }),
         },
-        body: JSON.stringify({
-          productName: 'Sample Product',
-          salespersonId: 'sales-1',
-          quantity: 1,
-        }),
-      },
-      { DB: {} },
-      { waitUntil: vi.fn() }
-    );
+        { DB: {} },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -364,70 +379,77 @@ describe('manage order create routes', () => {
     const app = createApp();
     const commandState = new Map();
 
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      const existing = commandState.get(idempotencyKey);
-      if (existing) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        const existing = commandState.get(idempotencyKey);
+        if (existing) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: existing.commandId,
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: existing.requestFingerprint,
+              response_json: existing.responseJson,
+              status: existing.status,
+            },
+          };
+        }
+
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
-            command_id: existing.commandId,
+            command_id: 'cmd-order-retry-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: existing.requestFingerprint,
-            response_json: existing.responseJson,
-            status: existing.status,
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-order-retry-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        commandState.set('order-key-retry-1', {
-          commandId,
-          requestFingerprint: commandState.get('order-key-retry-1')?.requestFingerprint || JSON.stringify({
-            productName: 'Sample Product',
-            quantity: 1,
-            salespersonId: 'sales-1',
-          }),
-          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
-          status,
-        });
-        return { meta: { changes: 1 } };
-      }),
-    }));
+    );
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          commandState.set('order-key-retry-1', {
+            commandId,
+            requestFingerprint:
+              commandState.get('order-key-retry-1')?.requestFingerprint ||
+              JSON.stringify({
+                productName: 'Sample Product',
+                quantity: 1,
+                salespersonId: 'sales-1',
+              }),
+            responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+            status,
+          });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
     mocks.publishOrderCreatedByAdmin
       .mockRejectedValueOnce(new Error('publish failed'))
       .mockResolvedValueOnce([]);
 
-    const request = () => app.request(
-      'http://localhost/api/manage/orders',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': 'order-key-retry-1',
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/orders',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'order-key-retry-1',
+          },
+          body: JSON.stringify({
+            productName: 'Sample Product',
+            salespersonId: 'sales-1',
+            quantity: 1,
+          }),
         },
-        body: JSON.stringify({
-          productName: 'Sample Product',
-          salespersonId: 'sales-1',
-          quantity: 1,
-        }),
-      },
-      { DB: {} },
-      { waitUntil: vi.fn() }
-    );
+        { DB: {} },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -448,76 +470,79 @@ describe('manage order create routes', () => {
     const commandState = new Map();
     let committedFinalizeAttempts = 0;
 
-    mocks.commandReserve.mockImplementation(async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
-      const existing = commandState.get(idempotencyKey);
-      if (existing) {
+    mocks.commandReserve.mockImplementation(
+      async (_commandType, scopeKey, idempotencyKey, requestFingerprint) => {
+        const existing = commandState.get(idempotencyKey);
+        if (existing) {
+          return {
+            existing: true,
+            ownsReservation: false,
+            record: {
+              command_id: existing.commandId,
+              scope_key: scopeKey,
+              idempotency_key: idempotencyKey,
+              request_fingerprint: existing.requestFingerprint,
+              response_json: existing.responseJson,
+              status: existing.status,
+            },
+          };
+        }
+
         return {
-          existing: true,
-          ownsReservation: false,
+          existing: false,
+          ownsReservation: true,
           record: {
-            command_id: existing.commandId,
+            command_id: 'cmd-order-finalize-1',
             scope_key: scopeKey,
             idempotency_key: idempotencyKey,
-            request_fingerprint: existing.requestFingerprint,
-            response_json: existing.responseJson,
-            status: existing.status,
+            request_fingerprint: requestFingerprint,
           },
         };
       }
-
-      return {
-        existing: false,
-        ownsReservation: true,
-        record: {
-          command_id: 'cmd-order-finalize-1',
-          scope_key: scopeKey,
-          idempotency_key: idempotencyKey,
-          request_fingerprint: requestFingerprint,
-        },
-      };
-    });
-    mocks.commandBuildFinalizeStatement.mockImplementation((commandId, responseJson, status = 'committed') => ({
-      run: vi.fn(async () => {
-        if (status === 'committed') {
-          committedFinalizeAttempts += 1;
-          if (committedFinalizeAttempts === 1) {
-            throw new Error('finalize committed failed');
-          }
-        }
-        commandState.set('order-key-finalize-1', {
-          commandId,
-          requestFingerprint: JSON.stringify({
-            productName: 'Sample Product',
-            quantity: 1,
-            salespersonId: 'sales-1',
-          }),
-          responseJson: responseJson == null ? null : JSON.stringify(responseJson),
-          status,
-        });
-        return { meta: { changes: 1 } };
-      }),
-    }));
-    mocks.publishOrderCreatedByAdmin
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([]);
-
-    const request = () => app.request(
-      'http://localhost/api/manage/orders',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': 'order-key-finalize-1',
-        },
-        body: JSON.stringify({
-          productName: 'Sample Product',
-          salespersonId: 'sales-1',
-          quantity: 1,
-        }),
-      },
-      { DB: {} },
-      { waitUntil: vi.fn() }
     );
+    mocks.commandBuildFinalizeStatement.mockImplementation(
+      (commandId, responseJson, status = 'committed') => ({
+        run: vi.fn(async () => {
+          if (status === 'committed') {
+            committedFinalizeAttempts += 1;
+            if (committedFinalizeAttempts === 1) {
+              throw new Error('finalize committed failed');
+            }
+          }
+          commandState.set('order-key-finalize-1', {
+            commandId,
+            requestFingerprint: JSON.stringify({
+              productName: 'Sample Product',
+              quantity: 1,
+              salespersonId: 'sales-1',
+            }),
+            responseJson: responseJson == null ? null : JSON.stringify(responseJson),
+            status,
+          });
+          return { meta: { changes: 1 } };
+        }),
+      })
+    );
+    mocks.publishOrderCreatedByAdmin.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/orders',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'order-key-finalize-1',
+          },
+          body: JSON.stringify({
+            productName: 'Sample Product',
+            salespersonId: 'sales-1',
+            quantity: 1,
+          }),
+        },
+        { DB: {} },
+        { waitUntil: vi.fn() }
+      );
 
     const first = await request();
     const second = await request();
@@ -526,14 +551,18 @@ describe('manage order create routes', () => {
     expect(second.status).toBe(201);
     expect(mocks.createManagedOrder).toHaveBeenCalledTimes(1);
     expect(mocks.publishOrderCreatedByAdmin).toHaveBeenCalledTimes(2);
-    expect(mocks.publishOrderCreatedByAdmin.mock.calls[0][1]).toEqual(expect.objectContaining({
-      commandId: 'cmd-order-finalize-1',
-      correlationId: 'cmd-order-finalize-1',
-    }));
-    expect(mocks.publishOrderCreatedByAdmin.mock.calls[1][1]).toEqual(expect.objectContaining({
-      commandId: 'cmd-order-finalize-1',
-      correlationId: 'cmd-order-finalize-1',
-    }));
+    expect(mocks.publishOrderCreatedByAdmin.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        commandId: 'cmd-order-finalize-1',
+        correlationId: 'cmd-order-finalize-1',
+      })
+    );
+    expect(mocks.publishOrderCreatedByAdmin.mock.calls[1][1]).toEqual(
+      expect.objectContaining({
+        commandId: 'cmd-order-finalize-1',
+        correlationId: 'cmd-order-finalize-1',
+      })
+    );
   });
 
   it('audits batch order status updates', async () => {
@@ -542,7 +571,9 @@ describe('manage order create routes', () => {
     const db = {
       prepare: vi.fn(() => ({
         bind: vi.fn(() => ({
-          all: vi.fn(async () => ({ results: [{ id: 'order-1', order_no: 'SO-1', salesperson_id: null, status: 'pending' }] })),
+          all: vi.fn(async () => ({
+            results: [{ id: 'order-1', order_no: 'SO-1', salesperson_id: null, status: 'pending' }],
+          })),
         })),
       })),
     };

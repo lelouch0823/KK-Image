@@ -16,8 +16,8 @@ export const purchaseOrderActionAdapter = {
 
     if (mode === 'manual') {
       const items = Array.isArray(slots.items) ? slots.items : [];
-      const hasResolvedItems = items.length > 0
-        && items.every((item) => item?.product_id && item?.variant_id);
+      const hasResolvedItems =
+        items.length > 0 && items.every((item) => item?.product_id && item?.variant_id);
       return hasResolvedItems ? [] : ['items'];
     }
 
@@ -28,7 +28,15 @@ export const purchaseOrderActionAdapter = {
 
     return [];
   },
-  optionalSlots: ['items', 'order_ids', 'remark', 'currency', 'allocation_method', 'estimated_shipping_cost', 'estimated_tariff_cost'],
+  optionalSlots: [
+    'items',
+    'order_ids',
+    'remark',
+    'currency',
+    'allocation_method',
+    'estimated_shipping_cost',
+    'estimated_tariff_cost',
+  ],
   fieldLabels: {
     mode: '创建方式',
     items: '采购明细',

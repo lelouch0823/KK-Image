@@ -13,21 +13,25 @@
 ### Task 1: Database Migration (`products.sku` -> `products.spu`, nullable unique)
 
 **Files:**
+
 - Create: `migrations/0040_product_spu_refactor.sql`
 
 **Step 1: Write failing migration validation expectations**
+
 - Verify current schema still has `products.sku` and no `products.spu`.
 - Validate that inserting product with null `sku` currently fails.
 
 **Step 2: Run red checks**
 
 Run:
+
 - `npx wrangler d1 execute DB --local --command "PRAGMA table_info(products);"`
 - `npx wrangler d1 execute DB --local --command "INSERT INTO products (id,name,sku,created_at,updated_at) VALUES ('p_red','Red Test','',unixepoch(),unixepoch());"`
 
 Expected: no `spu` column yet, and constraints tied to `sku`.
 
 **Step 3: Implement migration SQL**
+
 - Rebuild `products` table with `spu TEXT UNIQUE` (nullable).
 - Copy data from old `sku` into `spu`.
 - Recreate product indexes using `spu`.
@@ -35,6 +39,7 @@ Expected: no `spu` column yet, and constraints tied to `sku`.
 **Step 4: Run green checks**
 
 Run:
+
 - `npx wrangler d1 migrations apply DB --local`
 - `npx wrangler d1 execute DB --local --command "PRAGMA table_info(products);"`
 - `npx wrangler d1 execute DB --local --command "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_products_spu';"`
@@ -51,12 +56,14 @@ git commit -m "feat(db): replace product sku with optional spu"
 ### Task 2: Repository and Route Contract Update (TDD)
 
 **Files:**
+
 - Modify: `functions/repositories/ProductRepository.js`
 - Modify: `functions/lib/hono/routes/manage/products/index.js`
 - Create: `functions/repositories/__tests__/product-spu.test.js`
 - Create: `functions/lib/hono/routes/manage/products/__tests__/product-spu-routes.test.js`
 
 **Step 1: Write failing repository tests**
+
 - Product create succeeds with `spu` omitted.
 - Product create/update with duplicate non-empty `spu` fails.
 - Search/find methods return `spu` field.
@@ -67,6 +74,7 @@ Run: `pnpm test:unit functions/repositories/__tests__/product-spu.test.js`
 Expected: FAIL on missing/new `spu` behavior.
 
 **Step 3: Implement minimal repository changes**
+
 - Replace product-level SQL references from `sku` to `spu`.
 - Make `spu` optional in validation and persistence logic.
 - Keep variant repository untouched (`product_variants.sku` remains required).
@@ -77,6 +85,7 @@ Run: `pnpm test:unit functions/repositories/__tests__/product-spu.test.js`
 Expected: PASS.
 
 **Step 5: Write failing route tests**
+
 - POST `/api/manage/products` requires only `name`.
 - Conflict only when non-empty `spu` duplicates.
 - Response payload exposes `spu`.
@@ -87,6 +96,7 @@ Run: `pnpm test:unit functions/lib/hono/routes/manage/products/__tests__/product
 Expected: FAIL for old `sku` requirement.
 
 **Step 7: Implement minimal route changes**
+
 - Remove `body.sku` required check.
 - Conditional uniqueness check only for non-empty `spu`.
 
@@ -105,12 +115,14 @@ git commit -m "feat(api): switch main product identifier from sku to spu"
 ### Task 3: Product Create/Edit UI Field Rename and Validation (TDD)
 
 **Files:**
+
 - Modify: `src/components/product/ProductCreateModal.vue`
 - Modify: `src/locales/en/product.js`
 - Modify: `src/locales/zh-CN/product.js`
 - Create: `src/components/product/__tests__/ProductCreateModal.spu.test.js`
 
 **Step 1: Write failing component tests**
+
 - Form submits when `name` exists and `spu` is empty.
 - Payload key is `spu` (not `sku`).
 - Variant SKU generation no longer depends on required parent `sku`.
@@ -121,6 +133,7 @@ Run: `pnpm test:unit src/components/product/__tests__/ProductCreateModal.spu.tes
 Expected: FAIL due to old `sku` requirement and payload key.
 
 **Step 3: Implement minimal UI changes**
+
 - Rename main field display and data binding `sku -> spu`.
 - Update validation to require only name.
 - Update payload mapping to send `spu`.
@@ -140,6 +153,7 @@ git commit -m "feat(ui): rename main product sku field to optional spu"
 ### Task 4: Product List/Detail/Binding Rendering Update (TDD)
 
 **Files:**
+
 - Modify: `src/components/product/ProductTable.vue`
 - Modify: `src/components/product/ProductDetail.vue`
 - Modify: `src/components/order/ProductBindingSection.vue`
@@ -150,6 +164,7 @@ git commit -m "feat(ui): rename main product sku field to optional spu"
 - Create: `src/components/product/__tests__/ProductDisplay.spu.test.js`
 
 **Step 1: Write failing display tests**
+
 - Product table/detail renders `spu`.
 - Order/space binding uses `product.spu` for parent identifier display.
 - Variant display still uses `variant.sku`.
@@ -160,6 +175,7 @@ Run: `pnpm test:unit src/components/product/__tests__/ProductDisplay.spu.test.js
 Expected: FAIL on old `sku` bindings.
 
 **Step 3: Implement minimal display changes**
+
 - Swap parent product identifier UI references to `spu`.
 - Keep variant selector and variant payload unchanged (`variant.sku`).
 
@@ -178,6 +194,7 @@ git commit -m "feat(ui): render spu for main product identifiers"
 ### Task 5: Import/Export and Batch Mapping Update (TDD)
 
 **Files:**
+
 - Modify: `src/components/product/ProductImportModal.vue`
 - Modify: `src/components/product/import/ImportUploadStep.vue`
 - Modify: `functions/lib/hono/routes/manage/products/export.js`
@@ -185,6 +202,7 @@ git commit -m "feat(ui): render spu for main product identifiers"
 - Create: `src/components/product/__tests__/ProductImportModal.spu.test.js`
 
 **Step 1: Write failing import/export tests**
+
 - Import accepts optional `spu` column.
 - Batch processing maps `spu` instead of `sku` for product-level identifier.
 - Export includes `spu` field.
@@ -195,6 +213,7 @@ Run: `pnpm test:unit src/components/product/__tests__/ProductImportModal.spu.tes
 Expected: FAIL on old required `sku` import mapping.
 
 **Step 3: Implement minimal import/export changes**
+
 - Replace product-level schema key `sku` with `spu` and make optional.
 - Update server-side batch/export field mappings.
 
@@ -213,11 +232,13 @@ git commit -m "feat(import-export): switch product identifier mapping to optiona
 ### Task 6: Full Verification and Regression
 
 **Files:**
+
 - Modify: `docs/plans/2026-02-25-product-spu-refactor-design.md`
 
 **Step 1: Run targeted backend tests**
 
 Run:
+
 - `pnpm test:unit functions/repositories/__tests__/product-spu.test.js`
 - `pnpm test:unit functions/lib/hono/routes/manage/products/__tests__/product-spu-routes.test.js`
 
@@ -226,6 +247,7 @@ Expected: all pass.
 **Step 2: Run targeted frontend tests**
 
 Run:
+
 - `pnpm test:unit src/components/product/__tests__/ProductCreateModal.spu.test.js`
 - `pnpm test:unit src/components/product/__tests__/ProductDisplay.spu.test.js`
 - `pnpm test:unit src/components/product/__tests__/ProductImportModal.spu.test.js`
@@ -236,6 +258,7 @@ Expected: all pass.
 
 Run: `pnpm run dev:all`  
 Manual checks:
+
 - Create product without `spu` succeeds.
 - Create product with `spu` persists and displays.
 - Variant `sku` remains required and visible.

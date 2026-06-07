@@ -52,7 +52,11 @@ describe('purchase suggestions inventory semantics', () => {
 
     expect(service.demandService.getDemandSummaryByVariant).not.toHaveBeenCalled();
     expect(sqlCalls.some((sql) => sql.includes('FROM variant_demand_projection vdp'))).toBe(true);
-    expect(sqlCalls.some((sql) => sql.includes('FROM product_variants pv') && sql.includes('inventory_balances'))).toBe(true);
+    expect(
+      sqlCalls.some(
+        (sql) => sql.includes('FROM product_variants pv') && sql.includes('inventory_balances')
+      )
+    ).toBe(true);
     expect(suggestions).toEqual([
       expect.objectContaining({
         variant_id: 'variant-1',
@@ -84,21 +88,21 @@ describe('purchase suggestions inventory semantics', () => {
               results: sql.includes('FROM variant_demand_projection vdp')
                 ? projectionRows
                 : args.map((variantId) => ({
-                  variant_id: variantId,
-                  product_id: `product-${variantId}`,
-                  product_code: `P-${variantId}`,
-                  variant_code: `V-${variantId}`,
-                  product_name: `Product ${variantId}`,
-                  sku: `SKU-${variantId}`,
-                  brand: 'KK',
-                  cost_price: 10,
-                  suggested_purchase_price: 0,
-                  on_hand: 0,
-                  reserved: 0,
-                  available: 0,
-                  images: '[]',
-                  variant_options: '{"Color":"Red"}',
-                })),
+                    variant_id: variantId,
+                    product_id: `product-${variantId}`,
+                    product_code: `P-${variantId}`,
+                    variant_code: `V-${variantId}`,
+                    product_name: `Product ${variantId}`,
+                    sku: `SKU-${variantId}`,
+                    brand: 'KK',
+                    cost_price: 10,
+                    suggested_purchase_price: 0,
+                    on_hand: 0,
+                    reserved: 0,
+                    available: 0,
+                    images: '[]',
+                    variant_options: '{"Color":"Red"}',
+                  })),
             })),
           };
         },
@@ -162,7 +166,12 @@ describe('purchase suggestions inventory semantics', () => {
     const sqlCalls = db.prepare.mock.calls.map((call) => call[0]);
 
     expect(sqlCalls.some((sql) => sql.includes('FROM variant_demand_projection vdp'))).toBe(true);
-    expect(sqlCalls.some((sql) => sql.includes('FROM product_variants pv') && !sql.includes("AND pv.status = 'active'"))).toBe(true);
+    expect(
+      sqlCalls.some(
+        (sql) =>
+          sql.includes('FROM product_variants pv') && !sql.includes("AND pv.status = 'active'")
+      )
+    ).toBe(true);
     expect(suggestions).toEqual([
       expect.objectContaining({
         variant_id: 'variant-archived',
@@ -241,5 +250,4 @@ describe('purchase suggestions inventory semantics', () => {
       }),
     ]);
   });
-
 });
