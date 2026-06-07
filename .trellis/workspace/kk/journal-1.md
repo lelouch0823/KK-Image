@@ -5,3 +5,46 @@
 
 ---
 
+
+
+## Session 1: Fix 85717eac review findings
+
+**Date**: 2026-06-07
+**Task**: Fix 85717eac review findings
+**Branch**: `main`
+
+### Summary
+
+Fixed public share password hashing verification, space password hashing, webhook partial update preservation, streaming backup export, and recorded backend contracts.
+
+### Main Changes
+
+- Added shared public share password storage/verification helpers.
+- Wired folder/gallery and space public share flows to PBKDF2 verification with plaintext legacy compatibility.
+- Preserved webhook fields, including hidden secrets, during partial updates.
+- Reworked backup export to stream JSON serialization and gzip upload to R2.
+- Captured backend contracts in `.trellis/spec/backend/quality-guidelines.md`.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8137a648` | (see git log) |
+| `408f7371` | (see git log) |
+| `a5b796fd` | (see git log) |
+| `b3d7d4b9` | (see git log) |
+
+### Testing
+
+- [OK] Focused regression suite: 10 files / 113 tests passed.
+- [OK] Focused eslint for changed files passed.
+- [OK] `pnpm build` passed.
+- [WARN] Full `pnpm test:unit:run` had 3 unrelated script import-contract failures.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
