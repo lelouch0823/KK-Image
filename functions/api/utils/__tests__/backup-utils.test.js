@@ -50,7 +50,13 @@ describe('backup utils', () => {
   });
 
   it('exports table schemas and paginated rows into a gzip backup uploaded to R2', async () => {
-    const put = vi.fn(async () => {});
+    const put = vi.fn(async (_key, body) => {
+      const reader = body.getReader();
+      while (true) {
+        const { done } = await reader.read();
+        if (done) break;
+      }
+    });
     const env = {
       DB: {
         prepare: vi.fn((sql) => {
@@ -107,7 +113,7 @@ describe('backup utils', () => {
     });
     expect(put).toHaveBeenCalledWith(
       'backup_2026-04-18T08-00-00-000Z.json.gz',
-      expect.any(ArrayBuffer),
+      expect.any(ReadableStream),
       expect.objectContaining({
         httpMetadata: {
           contentType: 'application/gzip',
@@ -120,6 +126,60 @@ describe('backup utils', () => {
         }),
       })
     );
+  });
+
+  it('does not materialize the compressed backup with Blob.arrayBuffer', async () => {
+    Blob.prototype.arrayBuffer = vi.fn(async () => {
+      throw new Error('Blob.arrayBuffer should not be used for streaming backups');
+    });
+    const put = vi.fn(async (_key, body) => {
+      const reader = body.getReader();
+      while (true) {
+        const { done } = await reader.read();
+        if (done) break;
+      }
+    });
+    const env = {
+      DB: {
+        prepare: vi.fn((sql) => {
+          if (sql.includes("WHERE type ='table'")) {
+            return {
+              all: vi.fn(async () => ({ results: [{ name: 'orders' }] })),
+            };
+          }
+
+          if (sql.includes('SELECT sql FROM sqlite_schema WHERE name = ?')) {
+            return {
+              bind: vi.fn(() => ({
+                first: vi.fn(async () => ({ sql: 'CREATE TABLE orders (...)' })),
+              })),
+            };
+          }
+
+          if (sql.includes('SELECT * FROM "orders"')) {
+            return {
+              bind: vi.fn((_limit, offset) => ({
+                all: vi.fn(async () => ({
+                  results: offset === 0 ? [{ id: 1 }] : [],
+                })),
+              })),
+            };
+          }
+
+          throw new Error(`Unexpected SQL: ${sql}`);
+        }),
+      },
+      R2_BACKUP_BUCKET: {
+        put,
+      },
+    };
+
+    await expect(performStreamingBackup(env)).resolves.toEqual(
+      expect.objectContaining({
+        filename: 'backup_2026-04-18T08-00-00-000Z.json.gz',
+      })
+    );
+    expect(Blob.prototype.arrayBuffer).not.toHaveBeenCalled();
   });
 
   it('deletes only the oldest backups beyond the retention count', async () => {

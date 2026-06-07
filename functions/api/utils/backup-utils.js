@@ -9,81 +9,128 @@
 
 import { now } from './id.js';
 
+const BACKUP_PAGE_LIMIT = 500;
+
+function quoteSqlIdentifier(identifier) {
+  return `"${String(identifier).replace(/"/g, '""')}"`;
+}
+
+async function* createBackupJsonChunks(env, tableNames, metadataJson) {
+  yield `{"metadata":${metadataJson},"data":{`;
+
+  for (let i = 0; i < tableNames.length; i += 1) {
+    const table = tableNames[i];
+    const schemaRes = await env.DB.prepare(`SELECT sql FROM sqlite_schema WHERE name = ?`)
+      .bind(table)
+      .first();
+    const schema = schemaRes?.sql || '';
+    const tablePrefix = `${i > 0 ? ',' : ''}${JSON.stringify(table)}:{"schema":${JSON.stringify(
+      schema
+    )},"rows":[`;
+    yield tablePrefix;
+
+    let offset = 0;
+    let hasRows = false;
+    const quotedTable = quoteSqlIdentifier(table);
+
+    while (true) {
+      const { results } = await env.DB.prepare(
+        `SELECT * FROM ${quotedTable} LIMIT ? OFFSET ?`
+      )
+        .bind(BACKUP_PAGE_LIMIT, offset)
+        .all();
+
+      if (!results || results.length === 0) break;
+
+      for (const row of results) {
+        yield `${hasRows ? ',' : ''}${JSON.stringify(row)}`;
+        hasRows = true;
+      }
+
+      offset += BACKUP_PAGE_LIMIT;
+      if (results.length < BACKUP_PAGE_LIMIT) break;
+    }
+
+    yield ']}';
+  }
+
+  yield '}}';
+}
+
+function createEncodedTextStream(chunks, onBytes) {
+  const encoder = new TextEncoder();
+  const iterator = chunks[Symbol.asyncIterator]();
+
+  return new ReadableStream({
+    async pull(controller) {
+      const { value, done } = await iterator.next();
+      if (done) {
+        controller.close();
+        return;
+      }
+
+      const encoded = encoder.encode(value);
+      onBytes(encoded.byteLength);
+      controller.enqueue(encoded);
+    },
+    async cancel(reason) {
+      if (typeof iterator.return === 'function') {
+        await iterator.return(reason);
+      }
+    },
+  });
+}
+
+function createByteCounter(onBytes) {
+  return new TransformStream({
+    transform(chunk, controller) {
+      onBytes(chunk?.byteLength ?? chunk?.length ?? 0);
+      controller.enqueue(chunk);
+    },
+  });
+}
+
 /**
  * 执行备份到 R2（内存优化版）
  * @param {Object} env - Cloudflare 环境变量
  * @returns {Promise<Object>} 备份结果
  */
 export async function performStreamingBackup(env) {
-  // 1. 获取所有表名
   const { results: tables } = await env.DB.prepare(
     `
         SELECT name FROM sqlite_schema
         WHERE type ='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'
     `
   ).all();
-  const tableNames = tables.map((t) => t.name);
+  const tableNames = (tables || []).map((t) => t.name);
 
-  // 2. 逐表导出并立即序列化，避免全量累积
-  const serializedParts = [];
-  let totalOriginalSize = 0;
-
-  // 写入元数据和 data 开头
   const metadataJson = JSON.stringify({
     timestamp: now(),
     createdAt: new Date().toISOString(),
     version: '1.1',
   });
-  serializedParts.push(`{"metadata":${metadataJson},"data":{`);
 
-  for (let i = 0; i < tableNames.length; i++) {
-    const table = tableNames[i];
-    const schemaRes = await env.DB.prepare(`SELECT sql FROM sqlite_schema WHERE name = ?`)
-      .bind(table)
-      .first();
-    const schema = schemaRes?.sql || '';
-
-    // 分页获取数据并逐页序列化，避免一次性加载全部行
-    const LIMIT = 500;
-    let offset = 0;
-    const rowChunks = [];
-
-    while (true) {
-      const { results } = await env.DB.prepare(`SELECT * FROM "${table}" LIMIT ? OFFSET ?`)
-        .bind(LIMIT, offset)
-        .all();
-
-      if (!results || results.length === 0) break;
-      rowChunks.push(...results);
-      offset += LIMIT;
-      if (results.length < LIMIT) break;
+  let totalOriginalSize = 0;
+  let totalCompressedSize = 0;
+  const sourceStream = createEncodedTextStream(
+    createBackupJsonChunks(env, tableNames, metadataJson),
+    (bytes) => {
+      totalOriginalSize += bytes;
     }
+  );
+  const compressedStream = sourceStream
+    .pipeThrough(new CompressionStream('gzip'))
+    .pipeThrough(
+      createByteCounter((bytes) => {
+        totalCompressedSize += bytes;
+      })
+    );
 
-    // 立即序列化该表数据，释放行数据引用
-    const tableJson = JSON.stringify({ schema, rows: rowChunks });
-    totalOriginalSize += tableJson.length;
-
-    // 表之间用逗号分隔
-    const separator = i > 0 ? ',' : '';
-    serializedParts.push(`${separator}"${table}":${tableJson}`);
-  }
-
-  // 关闭 JSON 结构
-  serializedParts.push('}}');
-
-  // 3. 流式压缩（避免创建完整字符串副本）
-  const encoder = new TextEncoder();
-  const parts = serializedParts.map((part) => encoder.encode(part));
-  const compressedStream = new Blob(parts).stream().pipeThrough(new CompressionStream('gzip'));
-  const compressedBlob = await new Response(compressedStream).blob();
-  const compressedBuffer = await compressedBlob.arrayBuffer();
-
-  // 4. 上传到 R2 (使用 ArrayBuffer，有确定长度)
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const filename = `backup_${timestamp}.json.gz`;
   const key = filename;
 
-  await env.R2_BACKUP_BUCKET.put(key, compressedBuffer, {
+  await env.R2_BACKUP_BUCKET.put(key, compressedStream, {
     httpMetadata: {
       contentType: 'application/gzip',
       contentDisposition: `attachment; filename="${filename}"`,
@@ -92,8 +139,8 @@ export async function performStreamingBackup(env) {
       type: 'auto-backup',
       timestamp: String(now()),
       tables: String(tableNames.length),
-      originalSize: String(totalOriginalSize),
-      compressedSize: String(compressedBuffer.byteLength),
+      originalSize: 'streamed',
+      compressedSize: 'streamed',
     },
   });
 
@@ -102,7 +149,7 @@ export async function performStreamingBackup(env) {
     key,
     tables: tableNames.length,
     originalSize: totalOriginalSize,
-    compressedSize: compressedBuffer.byteLength,
+    compressedSize: totalCompressedSize,
   };
 }
 
