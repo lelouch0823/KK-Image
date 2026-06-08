@@ -296,6 +296,8 @@ return result;
 - ERP webhook HMAC accepts the legacy bare hex form and the canonical `sha256=<base64>` form. Missing or invalid signatures return `401`, disabled/missing connections return `404`, and missing connection secrets return `500`.
 - Ordinary order reads, sales views, exports, reporting, receivables, payment stats, and profit stats exclude archived orders by default.
 - Ordinary admin writes to archived orders are blocked. Recovery/admin-only archive workflows must use explicit archive-aware paths.
+- Order mutations that guard `orders.archived_at IS NULL` and then write sidecars must place a `changes() = 1` assertion immediately after the guarded `UPDATE orders` in the same D1 batch.
+- Procurement receipt commands must include resource-lock release statements in the final D1 batch-size guard before executing the atomic write batch.
 - Read DTOs for salesperson list/detail must strip `accessToken`; only explicit token reset/creation flows may return a token value.
 
 ### 4. Validation & Error Matrix
@@ -308,6 +310,8 @@ return result;
 - Turnstile JSON parse failure -> `400`.
 - Turnstile secret missing in production -> verification failure, not bypass.
 - Archived order update through ordinary route/service -> `BadRequestError` or `NotFoundError` according to the route contract.
+- Guarded order `UPDATE orders ... archived_at IS NULL` changes zero rows -> abort before order payload, line, file, timeline, or other sidecar writes.
+- Receipt final write plan plus lock-release statements exceeds D1 batch size -> `BadRequestError("本次收货包含的写入过多，请拆分后重试")` and cleanup the reserved command before receipt side effects.
 - Salesperson list/detail response includes `accessToken` -> test failure.
 
 ### 5. Good/Base/Bad Cases
@@ -330,6 +334,8 @@ return result;
 - Turnstile tests must cover malformed JSON, production missing-secret fail-closed behavior, and timeout handling.
 - ERP webhook route and service tests must cover public auth bypass only for the exact webhook path plus both signature formats.
 - Archived-order tests must cover ordinary list/report/stat exclusions and blocked write paths at both route and repository/service levels.
+- Order mutation tests must simulate a zero-row guarded order update and assert no sidecar statements execute after the failed guard.
+- Receipt command tests must cover the boundary where receipt writes fit under D1's batch limit until resource-lock release deletes are counted.
 - Salesperson route tests must assert list/detail omit `accessToken` and reset-token still returns the newly generated token.
 
 ### 7. Wrong vs Correct
@@ -343,6 +349,12 @@ await env.R2.put(hash, file.stream());
 
 // Untrusted URL follows redirects and has no timeout.
 await fetch(webhook.url, { method: 'POST', body });
+
+// Sidecars can still run when the active-order guard changes zero rows.
+await db.batch([updateOrderStmt, payloadUpsertStmt, lineUpdateStmt]);
+
+// Lock release deletes are omitted from the atomic batch-size guard.
+if (countReceiptWriteStatements(preparedReceipts) > 100) throw tooManyWrites;
 
 // Secret-bearing repository row is returned as the public DTO.
 return c.json(await salespersonRepo.getById(id));
@@ -361,7 +373,98 @@ const safeUrl = validateExternalUrl(webhook.url, env);
 if (!safeUrl.valid) throw new BadRequestError(safeUrl.reason);
 await fetch(webhook.url, buildSafeExternalFetchOptions({ method: 'POST', body }));
 
+await db.batch([
+  updateOrderStmt,
+  db.prepare("SELECT json_extract(CASE WHEN changes() = 1 THEN '{}' ELSE 'not-json' END, '$')"),
+  payloadUpsertStmt,
+  lineUpdateStmt,
+]);
+
+const lockReleaseCount = new Set(preparedReceipts.map((receipt) => receipt.purchaseOrderItemId)).size;
+if (countReceiptWriteStatements(preparedReceipts, { lockReleaseCount }) > 100) {
+  throw new BadRequestError('本次收货包含的写入过多，请拆分后重试');
+}
+
 const salesperson = await salespersonRepo.getById(id);
 delete salesperson.accessToken;
 return c.json(salesperson);
+```
+
+---
+
+## Scenario: Runtime JS Module Loading And Public Share JSON Validation
+
+### 1. Scope / Trigger
+
+- Trigger: Backend changes that add `.js` runtime entrypoints, repository wrappers, public share password POST routes, or imports shared with TypeScript/frontend code.
+- Applies to: `functions/lib/hono/app.js`, cron entrypoints, runtime route/service modules, public gallery/space password verification routes, and repository modules imported by runtime `.js`.
+- Reason: Cloudflare/Node runtime module loading must not depend on Node 24 TypeScript stripping, and public share validation must return stable body validation errors before lockout state changes response ordering.
+
+### 2. Signatures
+
+- Module smoke: `node --no-experimental-strip-types --input-type=module -e "import('./functions/lib/hono/app.js')"`.
+- Module smoke: `node --no-experimental-strip-types --input-type=module -e "import('./functions/api/cron/outbox.js')"`.
+- Public gallery password API: `POST /api/gallery/:token` with JSON `{ "password": string }`.
+- Public space password API: `POST /api/space/:token` with JSON `{ "password": string }`.
+
+### 3. Contracts
+
+- Runtime `.js` modules must import other runtime modules with `.js` specifiers.
+- Repository modules imported by runtime `.js` must be real JavaScript modules; `.js` wrappers must not re-export `.ts` files.
+- Backend runtime modules must not import frontend `.ts` utilities through a `.js` wrapper that re-exports TypeScript.
+- Public share POST routes must parse JSON and validate required `password` before calling `authorizePublicPasswordAttempt`.
+- Malformed JSON returns `400` even when the share/IP lockout key is already locked.
+- Lockout checks and failure recording run only after a syntactically valid JSON body with a non-empty password.
+
+### 4. Validation & Error Matrix
+
+- Runtime import resolves a `.ts` file with TypeScript stripping disabled -> smoke test failure.
+- Runtime repository wrapper re-exports `./Repository.ts` -> smoke test failure.
+- Malformed public share JSON -> `400`.
+- Empty/missing public share password -> `400`.
+- Valid JSON plus locked public share key -> `429`.
+- Valid JSON plus wrong public share password -> record failure and return `401`.
+
+### 5. Good/Base/Bad Cases
+
+- Good: `functions/repositories/ProductRepository.js` contains executable JS and runtime routes import `ProductRepository.js`.
+- Base: repository unit tests may still import `.ts` sources when they intentionally test source behavior.
+- Bad: `functions/repositories/ProductRepository.js` contains `export * from './ProductRepository.ts'`.
+- Good: gallery password POST parses malformed JSON and returns `400` without reading lockout KV.
+- Bad: gallery password POST checks lockout first and returns `429` for malformed JSON when locked.
+
+### 6. Tests Required
+
+- Backend module-load smoke must run Node with `--no-experimental-strip-types` for the Hono app and cron entrypoints.
+- Public gallery/space tests must cover malformed password JSON returning `400`.
+- Public gallery lockout regression must assert malformed JSON returns `400` and does not call lockout KV.
+- Route tests that mock repositories must mock the same `.js` module path imported by the runtime route.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+// Runtime wrapper still requires TypeScript stripping.
+export * from './NotificationRepository.ts';
+
+const throttleError = await authorizePublicPasswordAttempt(env, request, key);
+if (throttleError) return throttleError;
+const body = await request.json();
+```
+
+#### Correct
+
+```js
+import { NotificationRepository } from '../../../../repositories/NotificationRepository.js';
+
+let body;
+try {
+  body = await request.json();
+} catch {
+  return error(MSG.COMMON.INVALID_PARAMS, 400);
+}
+
+const throttleError = await authorizePublicPasswordAttempt(env, request, key);
+if (throttleError) return throttleError;
 ```

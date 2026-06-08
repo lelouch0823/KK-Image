@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
+  findActiveById,
   findById,
   findByIdAndSalesperson,
   listForAdmin,
@@ -329,6 +330,21 @@ describe('order queries display model compatibility', () => {
 
     expect(db.prepare.mock.calls[0][0]).toContain('o.archived_at IS NULL');
     expect(db.prepare.mock.calls[1][0]).toContain('o.archived_at IS NULL');
+  });
+
+  it('filters archived orders from active admin detail queries', async () => {
+    const detailStmt = {
+      bind: vi.fn(() => detailStmt),
+      first: vi.fn(async () => null),
+    };
+    const db = {
+      prepare: vi.fn().mockReturnValueOnce(detailStmt),
+    };
+
+    await findActiveById(db, 'o-archived');
+
+    expect(db.prepare.mock.calls[0][0]).toContain('o.archived_at IS NULL');
+    expect(db.prepare).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to order-line snapshot names in admin list items when current_data name is missing', async () => {

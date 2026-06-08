@@ -200,5 +200,34 @@ describe('Auth Utils 100% Coverage Final', () => {
       globalThis.fetch.mockRejectedValue(new Error('!'));
       expect(await verifyTurnstile('t', 's')).toBe(false);
     });
+
+    it('uses an AbortController timeout fallback when AbortSignal.timeout is unavailable', async () => {
+      const originalAbortSignal = globalThis.AbortSignal;
+      const fetchMock = vi.fn().mockResolvedValue({ json: () => ({ success: true }) });
+      globalThis.fetch = fetchMock;
+      Object.defineProperty(globalThis, 'AbortSignal', {
+        configurable: true,
+        value: {},
+        writable: true,
+      });
+
+      try {
+        expect(await verifyTurnstile('t', 's')).toBe(true);
+      } finally {
+        Object.defineProperty(globalThis, 'AbortSignal', {
+          configurable: true,
+          value: originalAbortSignal,
+          writable: true,
+        });
+      }
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+        expect.objectContaining({
+          method: 'POST',
+          signal: expect.any(Object),
+        })
+      );
+    });
   });
 });

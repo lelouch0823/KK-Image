@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 
 const mocks = vi.hoisted(() => ({
   findById: vi.fn(),
+  findActiveById: vi.fn(),
   getFiles: vi.fn(),
   markAsRead: vi.fn(),
   setUnread: vi.fn(),
@@ -30,6 +31,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../../../../repositories/OrderRepository.js', () => ({
   OrderRepository: vi.fn(() => ({
     findById: mocks.findById,
+    findActiveById: mocks.findActiveById,
     getFiles: mocks.getFiles,
     markAsRead: mocks.markAsRead,
     setUnread: mocks.setUnread,
@@ -168,6 +170,13 @@ describe('manage order detail routes', () => {
       salespersonId: 'sp-1',
       currentData: {},
     });
+    mocks.findActiveById.mockResolvedValue({
+      id: 'order-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      salespersonId: 'sp-1',
+      currentData: {},
+    });
     mocks.getFiles.mockResolvedValue([]);
     mocks.markAsRead.mockResolvedValue(true);
     mocks.setUnread.mockResolvedValue(true);
@@ -222,6 +231,31 @@ describe('manage order detail routes', () => {
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
     expect(waitUntil).toHaveBeenCalled();
     expect(mocks.invalidateCache).not.toHaveBeenCalled();
+  });
+
+  it('does not load archived orders or emit read side effects on ordinary admin detail reads', async () => {
+    mocks.findById.mockResolvedValueOnce({
+      id: 'order-archived',
+      orderNo: 'SO-ARCH',
+      status: 'pending',
+      salespersonId: 'sp-1',
+      archivedAt: 1710000000000,
+    });
+    mocks.findActiveById.mockResolvedValueOnce(null);
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-archived',
+      { method: 'GET' },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(404);
+    expect(mocks.findActiveById).toHaveBeenCalledWith('order-archived');
+    expect(mocks.findById).not.toHaveBeenCalled();
+    expect(mocks.markAsRead).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
   });
 
   it('marks sales side unread when admin adds comment', async () => {
@@ -631,6 +665,7 @@ describe('manage order detail routes', () => {
 
   it('returns 404 when GET /:id cannot find the order', async () => {
     mocks.findById.mockResolvedValueOnce(null);
+    mocks.findActiveById.mockResolvedValueOnce(null);
     const app = createApp();
     const res = await app.request(
       'http://localhost/api/manage/orders/missing-order',

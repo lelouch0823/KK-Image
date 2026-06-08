@@ -23,7 +23,7 @@ const mocks = vi.hoisted(() => ({
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
-vi.mock('../../../../../repositories/CustomerRepository.ts', () => ({
+vi.mock('../../../../../repositories/CustomerRepository.js', () => ({
   CustomerRepository: vi.fn(() => ({
     list: mocks.customerList,
     create: mocks.customerCreate,

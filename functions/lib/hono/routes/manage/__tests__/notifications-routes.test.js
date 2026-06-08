@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   publishSingleDomainEventAndPoll: vi.fn(),
 }));
 
-vi.mock('../../../../../repositories/NotificationRepository.ts', () => ({
+vi.mock('../../../../../repositories/NotificationRepository.js', () => ({
   NotificationRepository: vi.fn(() => ({
     listForAdmin: mocks.repoListForAdmin,
     pollForAdmin: mocks.repoPollForAdmin,

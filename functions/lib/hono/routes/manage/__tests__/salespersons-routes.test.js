@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
   publishSingleDomainEventAndPoll: vi.fn(),
 }));
 
-vi.mock('../../../../../repositories/SalespersonRepository.ts', () => ({
+vi.mock('../../../../../repositories/SalespersonRepository.js', () => ({
   SalespersonRepository: vi.fn(() => ({
     list: mocks.repoList,
     findById: mocks.repoFindById,

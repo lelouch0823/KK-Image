@@ -7,7 +7,7 @@ import {
   EXPORT_COLUMNS,
   flattenProductsToVariantRows,
   normalizeProductExportFilters,
-} from '../../../../../../src/components/product/export/export-utils.js';
+} from './export-utils.js';
 
 const app = new Hono();
 const EXPORT_PAGE_LIMIT = 100;

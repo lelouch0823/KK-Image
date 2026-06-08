@@ -11,7 +11,7 @@ import { OrderRepository } from '../repositories/OrderRepository.js';
 import { OrderTimelineRepository } from '../repositories/OrderTimelineRepository.js';
 import { ProductRepository } from '../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../repositories/ProductVariantRepository.js';
-import { CustomerRepository } from '../repositories/CustomerRepository.ts';
+import { CustomerRepository } from '../repositories/CustomerRepository.js';
 import { GoodsOverviewRepository } from '../repositories/GoodsOverviewRepository.js';
 import { PurchaseOrderRepository } from '../repositories/PurchaseOrderRepository.js';
 import { callAIStream, callAI, parseSSEChunk } from '../utils/ai-utils.js';

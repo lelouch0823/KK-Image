@@ -7,6 +7,7 @@ const execFileAsync = promisify(execFile);
 async function expectNodeImport(modulePath) {
   await expect(
     execFileAsync(process.execPath, [
+      '--no-experimental-strip-types',
       '--input-type=module',
       '-e',
       `import(${JSON.stringify(modulePath)})`,

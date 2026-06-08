@@ -47,6 +47,11 @@ export class OrderRepository {
     return queries.findById(this.db, id);
   }
 
+  /** @see queries.findActiveById */
+  async findActiveById(id) {
+    return queries.findActiveById(this.db, id);
+  }
+
   /**
    * 根据 ID 查询订单编号
    * @param {string} id 订单 ID

@@ -217,6 +217,17 @@ export async function onRequestPost(context) {
   const shareToken = params.token;
 
   try {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return error(MSG.COMMON.INVALID_PARAMS, 400);
+    }
+    const password = String(body?.password || '');
+    if (!password) {
+      return error(MSG.USER.PASSWORD_REQUIRED, 400);
+    }
+
     const loaded = await loadGalleryData(env, shareToken);
     if (loaded.errorResponse) return loaded.errorResponse;
     const { folder, files, subfolders } = loaded;
@@ -228,17 +239,6 @@ export async function onRequestPost(context) {
     const throttleIdentifier = buildShareLockoutKey('gallery', shareToken);
     const throttleError = await authorizePublicPasswordAttempt(env, request, throttleIdentifier);
     if (throttleError) return throttleError;
-
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return error(MSG.COMMON.INVALID_PARAMS, 400);
-    }
-    const password = String(body?.password || '');
-    if (!password) {
-      return error(MSG.USER.PASSWORD_REQUIRED, 400);
-    }
 
     const pepper = env?.PASSWORD_PEPPER || env?.JWT_SECRET;
     if (!(await verifySharePassword(password, folder.password, pepper))) {

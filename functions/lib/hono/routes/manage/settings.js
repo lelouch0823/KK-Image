@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { BadRequestError } from '../../errors.js';
-import { SettingsRepository } from '../../../../repositories/SettingsRepository.ts';
+import { SettingsRepository } from '../../../../repositories/SettingsRepository.js';
 import { parseModels, getModelHealthSnapshot } from '../../../../utils/ai-utils.js';
 import { parseBooleanFlag } from '../../../../ai/config-schema.js';
 import { requirePermission } from '../../middleware/auth.js';

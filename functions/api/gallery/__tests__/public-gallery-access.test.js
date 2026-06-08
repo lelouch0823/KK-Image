@@ -146,6 +146,40 @@ describe('public gallery access api', () => {
     });
   });
 
+  it('returns 400 for malformed password JSON even when the share is locked', async () => {
+    const kv = {
+      get: vi.fn(async () => ({
+        attempts: 5,
+        lockedUntil: Date.now() + 60_000,
+      })),
+      put: vi.fn(async () => undefined),
+      delete: vi.fn(async () => undefined),
+    };
+
+    const response = await onRequestPost({
+      env: {
+        DB: createDb(),
+        JWT_SECRET: 'jwt-secret',
+        KV: kv,
+      },
+      params: { token: 'gallery-token' },
+      request: new Request('http://localhost/api/gallery/gallery-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Forwarded-For': '203.0.113.9',
+        },
+        body: '{',
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(kv.get).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+    });
+  });
+
   it('returns signed file URLs after hashed password verification succeeds', async () => {
     const hashedPassword = await hashPassword('secret', 'jwt-secret');
 

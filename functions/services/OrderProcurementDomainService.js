@@ -54,7 +54,10 @@ function normalizeReceiptEntry(entry = {}) {
   };
 }
 
-function countReceiptWriteStatements(preparedReceipts = [], { hasCommandInsert = false } = {}) {
+function countReceiptWriteStatements(
+  preparedReceipts = [],
+  { hasCommandInsert = false, lockReleaseCount = 0 } = {}
+) {
   return preparedReceipts.reduce(
     (total, prepared) => {
       let nextTotal = total + 3 + RECEIPT_BASE_EVENT_WRITE_COUNT;
@@ -69,7 +72,9 @@ function countReceiptWriteStatements(preparedReceipts = [], { hasCommandInsert =
 
       return nextTotal;
     },
-    RECEIPT_FINALIZE_STATEMENT_COUNT + (hasCommandInsert ? 1 : 0)
+    RECEIPT_FINALIZE_STATEMENT_COUNT +
+      (hasCommandInsert ? 1 : 0) +
+      Math.max(0, Math.trunc(Number(lockReleaseCount) || 0))
   );
 }
 
@@ -287,6 +292,9 @@ export class OrderProcurementDomainService {
     if (
       countReceiptWriteStatements(preparedReceipts, {
         hasCommandInsert: Boolean(commandReservation.insertStatement),
+        lockReleaseCount: new Set(
+          preparedReceipts.map((prepared) => prepared.purchaseOrderItemId).filter(Boolean)
+        ).size,
       }) > D1_MAX_BATCH_SIZE
     ) {
       await cleanupReservedCommand({
@@ -544,6 +552,10 @@ export class OrderProcurementDomainService {
             ),
         })
       );
+
+      if (statements.length > D1_MAX_BATCH_SIZE) {
+        throw new BadRequestError('本次收货包含的写入过多，请拆分后重试');
+      }
 
       const writeResults = await executeBatchChunks(this.db, statements);
       const hasGuardMismatch = purchaseItemGuardResultIndexes.some(

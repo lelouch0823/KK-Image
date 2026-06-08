@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   publishSingleDomainEventAndPoll: vi.fn(),
 }));
 
-vi.mock('../../../../../repositories/TagRepository.ts', () => ({
+vi.mock('../../../../../repositories/TagRepository.js', () => ({
   TagRepository: vi.fn(() => ({
     findAll: mocks.repoFindAll,
     create: mocks.repoCreate,

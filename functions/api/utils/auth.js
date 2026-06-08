@@ -13,6 +13,7 @@ export const ADMIN_AUTH_COOKIE = 'ADMIN_AUTH';
 let cachedApiKeys = null;
 let lastCacheUpdate = 0;
 const CACHE_TTL = 15 * 1000; // 15 seconds TTL - 安全敏感场景缩短缓存窗口
+const DEFAULT_TURNSTILE_TIMEOUT_MS = 5000;
 
 function resetApiKeyCache() {
   cachedApiKeys = null;
@@ -257,16 +258,27 @@ export function __resetApiKeyCacheForTest() {
   resetApiKeyCache();
 }
 
+function createTimeoutSignal(timeoutMs = DEFAULT_TURNSTILE_TIMEOUT_MS) {
+  const safeTimeout = Math.max(1, Number(timeoutMs) || DEFAULT_TURNSTILE_TIMEOUT_MS);
+  if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+    return AbortSignal.timeout(safeTimeout);
+  }
+  if (typeof AbortController === 'undefined') {
+    return undefined;
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), safeTimeout);
+  timeout?.unref?.();
+  return controller.signal;
+}
+
 // 验证 Cloudflare Turnstile
 export async function verifyTurnstile(token, secret) {
   const url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
   const formData = new FormData();
   formData.append('secret', secret);
   formData.append('response', token);
-  const signal =
-    typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
-      ? AbortSignal.timeout(5000)
-      : undefined;
+  const signal = createTimeoutSignal();
 
   try {
     const result = await fetch(url, {

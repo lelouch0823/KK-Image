@@ -14,6 +14,10 @@ import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 
 const app = new Hono();
+function isProductionEnv(env = {}) {
+  return String(env.ENVIRONMENT || env.NODE_ENV || '').toLowerCase() === 'production';
+}
+
 export const auditRouteDeclarations = declareAuditRoutes([
   {
     method: 'POST',
@@ -52,12 +56,16 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', LoginSchema), as
   const lockoutRes = await checkAndRespondLockout(c, username);
   if (lockoutRes) return lockoutRes;
 
-  // Turnstile 验证（如果配置）
-  if (env.TURNSTILE_SECRET_KEY) {
+  // Turnstile 验证（生产环境缺失服务端密钥时失败关闭）
+  const turnstileSecret = String(env.TURNSTILE_SECRET_KEY || '').trim();
+  if (isProductionEnv(env) && !turnstileSecret) {
+    return c.json({ success: false, error: MSG.AUTH.VERIFY_ERROR }, 503);
+  }
+  if (turnstileSecret) {
     if (!turnstileToken) {
       return c.json({ success: false, error: MSG.AUTH.VERIFY_FAILED }, 400);
     }
-    const isValid = await verifyTurnstile(turnstileToken, env.TURNSTILE_SECRET_KEY);
+    const isValid = await verifyTurnstile(turnstileToken, turnstileSecret);
     if (!isValid) {
       return c.json({ success: false, error: MSG.AUTH.VERIFY_FAILED }, 400);
     }

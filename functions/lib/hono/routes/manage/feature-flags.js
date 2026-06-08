@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { BadRequestError, NotFoundError } from '../../errors.js';
-import { SettingsRepository } from '../../../../repositories/SettingsRepository.ts';
+import { SettingsRepository } from '../../../../repositories/SettingsRepository.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { withCache } from '../../middleware/cache.js';
 import { parseBooleanFlag } from '../../../../ai/config-schema.js';

@@ -61,7 +61,7 @@ async function findOrderLines(db, orderId) {
  * @param {string} id
  * @returns {Promise<Object|null>}
  */
-export async function findById(db, id) {
+async function findOrderDetailById(db, id, { activeOnly = false, label = 'order.findById' } = {}) {
   const order = await queryFirst(
     db,
     `
@@ -78,10 +78,10 @@ export async function findById(db, id) {
       ${ORDER_PAYLOADS_JOIN_SQL}
       LEFT JOIN files f ON o.main_image_id = f.id
       LEFT JOIN customers c ON o.customer_id = c.id
-      WHERE o.id = ?
+      WHERE o.id = ?${activeOnly ? ' AND o.archived_at IS NULL' : ''}
       `,
     [id],
-    { label: 'order.findById' }
+    { label }
   );
 
   if (!order) return null;
@@ -90,6 +90,17 @@ export async function findById(db, id) {
   return mapOrderDetail({
     ...order,
     lines,
+  });
+}
+
+export async function findById(db, id) {
+  return findOrderDetailById(db, id, { label: 'order.findById' });
+}
+
+export async function findActiveById(db, id) {
+  return findOrderDetailById(db, id, {
+    activeOnly: true,
+    label: 'order.findActiveById',
   });
 }
 

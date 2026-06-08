@@ -45,8 +45,8 @@ app.get('/:id/payments', async (c) => {
 
   // 验证订单存在
   const orderRepo = new OrderRepository(env.DB);
-  const order = await requireEntity(
-    orderRepo.findById(orderId),
+  await requireEntity(
+    orderRepo.findActiveById(orderId),
     () => new NotFoundError(MSG.ORDER.NOT_FOUND)
   );
 

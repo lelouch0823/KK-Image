@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 
 const mocks = vi.hoisted(() => ({
   orderFindById: vi.fn(),
+  orderFindActiveById: vi.fn(),
   paymentFindByOrder: vi.fn(),
   paymentGetTotalPaid: vi.fn(),
   paymentGetOrderAmount: vi.fn(),
@@ -12,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../../../../../repositories/OrderRepository.js', () => ({
   OrderRepository: vi.fn(() => ({
     findById: mocks.orderFindById,
+    findActiveById: mocks.orderFindActiveById,
   })),
 }));
 
@@ -53,6 +55,11 @@ describe('manage order payment routes', () => {
       status: 'confirmed',
       quantity: 2,
     });
+    mocks.orderFindActiveById.mockResolvedValue({
+      id: 'order-1',
+      status: 'confirmed',
+      quantity: 2,
+    });
     mocks.paymentFindByOrder.mockResolvedValue([]);
     mocks.paymentGetTotalPaid.mockResolvedValue(40);
     mocks.paymentGetOrderAmount.mockResolvedValue(200);
@@ -90,6 +97,24 @@ describe('manage order payment routes', () => {
         amount: 150,
       })
     );
+  });
+
+  it('does not return payment data for archived orders', async () => {
+    mocks.orderFindById.mockResolvedValueOnce({
+      id: 'order-archived',
+      status: 'confirmed',
+      archivedAt: 1710000000000,
+    });
+    mocks.orderFindActiveById.mockResolvedValueOnce(null);
+
+    const response = await app.request('/api/manage/orders/order-archived/payments', {}, { DB: {} });
+
+    expect(response.status).toBe(404);
+    expect(mocks.orderFindActiveById).toHaveBeenCalledWith('order-archived');
+    expect(mocks.orderFindById).not.toHaveBeenCalled();
+    expect(mocks.paymentFindByOrder).not.toHaveBeenCalled();
+    expect(mocks.paymentGetTotalPaid).not.toHaveBeenCalled();
+    expect(mocks.paymentGetOrderAmount).not.toHaveBeenCalled();
   });
 
   it('rejects creating payments on archived orders', async () => {

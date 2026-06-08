@@ -232,7 +232,7 @@ app.get('/:id', async (c) => {
   const id = c.req.param('id');
   const repo = new OrderRepository(env.DB);
   const order = await requireEntity(
-    repo.findById(id),
+    repo.findActiveById(id),
     () => new NotFoundError(MSG.ORDER.NOT_FOUND)
   );
 

@@ -991,6 +991,57 @@ describe('OrderProcurementDomainService', () => {
     expect(writeFailureHarness.inventoryService.buildMutationStatements).toHaveBeenCalled();
   });
 
+  it('includes receipt lock release statements when guarding final D1 batch size', async () => {
+    const manyLockHarness = createDbHarness({
+      purchaseOrderItemRow: {
+        id: 'poi-any',
+        po_id: 'po-1',
+        product_id: null,
+        variant_id: null,
+        pre_order_id: null,
+        quantity: 10,
+        received_qty: 0,
+        cancelled_qty: 0,
+      },
+    });
+    const manyLockService = new OrderProcurementDomainService(manyLockHarness.db, {
+      purchaseReceiptRepo: manyLockHarness.purchaseReceiptRepo,
+      inventoryService: manyLockHarness.inventoryService,
+      commandIdempotencyRepo: manyLockHarness.commandIdempotencyRepo,
+      domainOutboxRepo: manyLockHarness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await expect(
+      manyLockService.recordPurchaseOrderReceipts(
+        'po-1',
+        {
+          items: Array.from({ length: 12 }, (_value, index) => ({
+            purchase_order_item_id: `poi-lock-${index + 1}`,
+            received_qty: 1,
+          })),
+        },
+        {
+          idempotencyKey: 'idem-many-locks',
+        }
+      )
+    ).rejects.toBeInstanceOf(BadRequestError);
+
+    expect(manyLockHarness.purchaseReceiptRepo.createInsertStatement).not.toHaveBeenCalled();
+    expect(
+      manyLockHarness.calls.runStatements.some(
+        (statement) =>
+          statement.sql.includes('INSERT INTO command_idempotency') &&
+          statement.params?.[1] === 'purchase_receipt_item_lock'
+      )
+    ).toBe(false);
+    expect(
+      manyLockHarness.calls.runStatements.some((statement) =>
+        statement.sql.includes('DELETE FROM command_idempotency')
+      )
+    ).toBe(true);
+  });
+
   it('rejects receipt commands whose write plan would exceed a single D1 batch', async () => {
     const manyItemsHarness = createDbHarness();
     const manyItemsService = new OrderProcurementDomainService(manyItemsHarness.db, {

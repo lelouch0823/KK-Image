@@ -25,6 +25,8 @@ export const ORDER_SHIPPED_VOID_GUARD_ERROR =
   'cannot void order while shipped line quantities remain';
 export const ORDER_DELIVERED_COMPLETENESS_ERROR =
   'cannot mark order delivered until all line quantities are shipped';
+const ARCHIVED_ORDER_MUTATION_MESSAGE = '订单已归档，请先恢复后再修改';
+const ORDER_MUTATION_BATCH_SIZE = 100;
 
 /**
  * 安全获取 actorType 对应的未读字段名
@@ -54,8 +56,56 @@ async function assertOrderIsActiveForMutation(db, id) {
     .bind(id)
     .first();
   if (row?.archived_at) {
-    throw new BadRequestError('订单已归档，请先恢复后再修改');
+    throw new BadRequestError(ARCHIVED_ORDER_MUTATION_MESSAGE);
   }
+}
+
+function buildPreviousWriteAssertionStatement(db) {
+  return db.prepare(
+    "SELECT json_extract(CASE WHEN changes() = 1 THEN '{}' ELSE 'not-json' END, '$') AS guard_ok"
+  );
+}
+
+function isPreviousWriteAssertionError(error) {
+  return String(error?.message || error)
+    .toLowerCase()
+    .includes('malformed json');
+}
+
+function normalizeGuardedOrderUpdateError(error) {
+  if (isPreviousWriteAssertionError(error)) {
+    throw new BadRequestError(ARCHIVED_ORDER_MUTATION_MESSAGE);
+  }
+  throw error;
+}
+
+async function executeGroupedBatchChunks(
+  db,
+  statementGroups = [],
+  chunkSize = ORDER_MUTATION_BATCH_SIZE
+) {
+  const results = [];
+  let chunk = [];
+
+  for (const group of statementGroups) {
+    if (!Array.isArray(group) || group.length === 0) continue;
+    if (group.length > chunkSize) {
+      throw new BadRequestError('本次批量写入过多，请拆分后重试');
+    }
+    if (chunk.length > 0 && chunk.length + group.length > chunkSize) {
+      const chunkResults = await db.batch(chunk);
+      if (Array.isArray(chunkResults)) results.push(...chunkResults);
+      chunk = [];
+    }
+    chunk.push(...group);
+  }
+
+  if (chunk.length > 0) {
+    const chunkResults = await db.batch(chunk);
+    if (Array.isArray(chunkResults)) results.push(...chunkResults);
+  }
+
+  return results;
 }
 
 const SNAPSHOT_SPEC_KEYS = [
@@ -728,8 +778,17 @@ export async function updateData(
   });
 
   // 原子执行：所有写操作在同一个 batch 中
-  const results = await db.batch([updateStmt, payloadStmt, lineSnapshotStatement]);
-  return results[0];
+  try {
+    const results = await db.batch([
+      updateStmt,
+      buildPreviousWriteAssertionStatement(db),
+      payloadStmt,
+      lineSnapshotStatement,
+    ]);
+    return results[0];
+  } catch (error) {
+    normalizeGuardedOrderUpdateError(error);
+  }
 }
 
 /**
@@ -868,6 +927,7 @@ export async function updateComposite(
       .prepare(`UPDATE orders SET ${colsToUpdate.join(', ')} WHERE id = ? AND archived_at IS NULL`)
       .bind(...params)
   );
+  statements.push(buildPreviousWriteAssertionStatement(db));
 
   statements.push(
     createOrderPayloadUpsertStatement(db, {
@@ -940,7 +1000,11 @@ export async function updateComposite(
     });
   }
 
-  await executeBatchChunks(db, statements);
+  try {
+    await executeBatchChunks(db, statements);
+  } catch (error) {
+    normalizeGuardedOrderUpdateError(error);
+  }
   return { success: true };
 }
 
@@ -1040,7 +1104,7 @@ export async function updateFiles(db, orderId, fileIds) {
 export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeline, options = {}) {
   const { forceStatusTransition = false } = options;
   const timestamp = now();
-  const batchStatements = [];
+  const statementGroups = [];
   const normalizedNextStatus = normalizeOrderStatus(newStatus);
   const existingOrders = [];
   for (const idChunk of chunkArray(ids)) {
@@ -1070,9 +1134,10 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
 
   for (const id of ids) {
     const order = orderMap.get(id);
+    const statements = [];
     // 注意：库存变更已迁移至行级命令 (lines.js)，此处不再处理 order-level stock delta
 
-    batchStatements.push(
+    statements.push(
       db
         .prepare(
           `
@@ -1081,7 +1146,8 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
         )
         .bind(normalizedNextStatus, timestamp, id)
     );
-    batchStatements.push(
+    statements.push(buildPreviousWriteAssertionStatement(db));
+    statements.push(
       await buildCompatibilityLineProgressStatement(
         db,
         id,
@@ -1094,11 +1160,16 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
 
     if (timeline) {
       const stmt = timelineRepo.createInsertStatement(id, { ...timeline, orderId: id });
-      if (stmt) batchStatements.push(stmt);
+      if (stmt) statements.push(stmt);
     }
+    statementGroups.push(statements);
   }
 
-  await executeBatchChunks(db, batchStatements);
+  try {
+    await executeGroupedBatchChunks(db, statementGroups);
+  } catch (error) {
+    normalizeGuardedOrderUpdateError(error);
+  }
 }
 
 /**

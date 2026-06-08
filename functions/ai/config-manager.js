@@ -1,4 +1,4 @@
-import { SettingsRepository } from '../repositories/SettingsRepository.ts';
+import { SettingsRepository } from '../repositories/SettingsRepository.js';
 import {
   AIConfigKeyMap,
   getDefaultValue,

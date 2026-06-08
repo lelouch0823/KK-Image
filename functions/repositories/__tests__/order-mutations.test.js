@@ -50,6 +50,63 @@ function createBatchAwareDb({
   };
 }
 
+function createSequentialGuardDb({
+  orderUpdateChanges = 0,
+  allHandler = async () => ({ results: [] }),
+  firstHandler = async () => null,
+} = {}) {
+  const executedSql = [];
+
+  const db = {
+    executedSql,
+    prepare: vi.fn((sql) => {
+      const statement = {
+        sql: String(sql || ''),
+        params: [],
+        bind: vi.fn((...params) => {
+          statement.params = params;
+          return statement;
+        }),
+        first: vi.fn(async () => firstHandler(statement)),
+        all: vi.fn(async () => allHandler(statement)),
+        run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
+      };
+      return statement;
+    }),
+    batch: vi.fn(async (statements = []) => {
+      const results = [];
+      let previousChanges = 1;
+
+      for (const statement of statements) {
+        const sql = String(statement?.sql || '');
+        if (sql.includes("json_extract(CASE WHEN changes() = 1 THEN '{}' ELSE 'not-json' END")) {
+          executedSql.push(sql);
+          if (previousChanges !== 1) {
+            throw new Error('malformed JSON');
+          }
+          previousChanges = 1;
+          results.push({ success: true, meta: { changes: 1 } });
+          continue;
+        }
+
+        executedSql.push(sql);
+        if (sql.includes('UPDATE orders')) {
+          previousChanges = orderUpdateChanges;
+          results.push({ success: true, meta: { changes: orderUpdateChanges } });
+          continue;
+        }
+
+        previousChanges = 1;
+        results.push({ success: true, meta: { changes: 1 } });
+      }
+
+      return results;
+    }),
+  };
+
+  return db;
+}
+
 describe('Order Mutations SQL Binding', () => {
   let db;
   let timelineRepo;
@@ -161,6 +218,21 @@ describe('Order Mutations SQL Binding', () => {
       );
 
       expect(db.batch).not.toHaveBeenCalled();
+    });
+
+    it('aborts before updateData sidecars when the active order update changes no rows', async () => {
+      const guardedDb = createSequentialGuardDb({ orderUpdateChanges: 0 });
+
+      await expect(
+        updateData(guardedDb, 'o-raced-archive', { name: 'Blocked' }, 'admin')
+      ).rejects.toThrow();
+
+      expect(
+        guardedDb.executedSql.some((sql) => sql.includes('INSERT INTO order_payloads'))
+      ).toBe(false);
+      expect(
+        guardedDb.executedSql.some((sql) => sql.includes('UPDATE order_lines'))
+      ).toBe(false);
     });
   });
 
@@ -442,7 +514,16 @@ describe('Order Mutations SQL Binding', () => {
       expect(orderUpdateIndex).toBeGreaterThanOrEqual(0);
       expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('archived_at IS NULL');
 
-      const bindArgs = db.bind.mock.calls[lineUpdateIndex];
+      const bindArgs = db.bind.mock.calls.find(
+        (args) =>
+          args.includes('prod-2') &&
+          args.includes('var-2') &&
+          args.includes('Updated Item') &&
+          args.includes('SKU-2') &&
+          args[args.length - 2] === 'line-1' &&
+          args[args.length - 1] === 'o-sync'
+      );
+      expect(bindArgs).toBeTruthy();
       expect(bindArgs).toContain('prod-2');
       expect(bindArgs).toContain('var-2');
       expect(bindArgs).toContain('Updated Item');
@@ -452,7 +533,10 @@ describe('Order Mutations SQL Binding', () => {
       expect(bindArgs[bindArgs.length - 1]).toBe('o-sync');
 
       const snapshotSpecsArg = bindArgs.find(
-        (value) => typeof value === 'string' && value.includes('"size":"XL"')
+        (value) =>
+          typeof value === 'string' &&
+          value.includes('"size":"XL"') &&
+          !value.includes('"name":"Updated Item"')
       );
       expect(JSON.parse(snapshotSpecsArg)).toEqual({
         category: 'Archive Outerwear',
@@ -474,6 +558,29 @@ describe('Order Mutations SQL Binding', () => {
       ).rejects.toThrow('订单已归档');
 
       expect(db.batch).not.toHaveBeenCalled();
+    });
+
+    it('aborts before updateComposite sidecars when the active order update changes no rows', async () => {
+      const guardedDb = createSequentialGuardDb({ orderUpdateChanges: 0 });
+
+      await expect(
+        updateComposite(guardedDb, {
+          id: 'o-raced-archive',
+          actorType: 'admin',
+          newData: { name: 'Blocked', quantity: 2 },
+          fileIds: ['file-1'],
+        })
+      ).rejects.toThrow();
+
+      expect(
+        guardedDb.executedSql.some((sql) => sql.includes('INSERT INTO order_payloads'))
+      ).toBe(false);
+      expect(
+        guardedDb.executedSql.some((sql) => sql.includes('DELETE FROM order_files'))
+      ).toBe(false);
+      expect(
+        guardedDb.executedSql.some((sql) => sql.includes('INSERT INTO order_files'))
+      ).toBe(false);
     });
 
     it('updateComposite batches order_payloads upsert with header updates', async () => {
@@ -909,6 +1016,110 @@ describe('Order Mutations SQL Binding', () => {
       expect(batchDb.batch).not.toHaveBeenCalled();
     });
 
+    it('aborts before batchUpdateStatus line and timeline sidecars when an active order update changes no rows', async () => {
+      const guardedDb = createSequentialGuardDb({
+        orderUpdateChanges: 0,
+        allHandler: async (statement) => ({
+          results: isOrderLinePrefetchSql(statement.sql)
+            ? [
+                {
+                  order_id: 'o-raced-archive',
+                  id: 'line-raced-archive',
+                  ordered_qty: 1,
+                  procured_qty: 0,
+                  received_qty: 0,
+                  reserved_qty: 0,
+                  shipped_qty: 0,
+                  cancelled_qty: 0,
+                  line_count: 1,
+                  total_ordered_qty: 1,
+                  total_shipped_qty: 0,
+                  total_cancelled_qty: 0,
+                  row_num: 1,
+                },
+              ]
+            : [
+                {
+                  id: 'o-raced-archive',
+                  status: 'pending',
+                  variant_id: null,
+                  quantity: 1,
+                  archived_at: null,
+                },
+              ],
+        }),
+      });
+      const guardedTimelineRepo = {
+        createInsertStatement: vi.fn((id) =>
+          guardedDb
+            .prepare('INSERT INTO order_timeline (order_id, action_type) VALUES (?, ?)')
+            .bind(id, 'status_changed')
+        ),
+      };
+
+      await expect(
+        batchUpdateStatus(
+          guardedDb,
+          guardedTimelineRepo,
+          ['o-raced-archive'],
+          'confirmed',
+          { actionType: 'status_changed' }
+        )
+      ).rejects.toThrow();
+
+      expect(
+        guardedDb.executedSql.some((sql) => sql.includes('UPDATE order_lines'))
+      ).toBe(false);
+      expect(
+        guardedDb.executedSql.some((sql) => sql.includes('INSERT INTO order_timeline'))
+      ).toBe(false);
+    });
+
+    it('keeps batchUpdateStatus guarded order updates and assertions in the same D1 batch chunk', async () => {
+      const ids = Array.from({ length: 34 }, (_, index) => `o-${index + 1}`);
+      const batchDb = createBatchAwareDb({
+        allHandler: async (statement) => ({
+          results: isOrderLinePrefetchSql(statement.sql)
+            ? ids.map((id) => ({
+                order_id: id,
+                id: `line-${id}`,
+                ordered_qty: 1,
+                procured_qty: 0,
+                received_qty: 0,
+                reserved_qty: 0,
+                shipped_qty: 0,
+                cancelled_qty: 0,
+                line_count: 1,
+                total_ordered_qty: 1,
+                total_shipped_qty: 0,
+                total_cancelled_qty: 0,
+                row_num: 1,
+              }))
+            : ids.map((id) => ({
+                id,
+                status: 'pending',
+                variant_id: null,
+                quantity: 1,
+                archived_at: null,
+              })),
+        }),
+      });
+
+      await batchUpdateStatus(batchDb, timelineRepo, ids, 'confirmed', null);
+
+      expect(batchDb.batchCalls.length).toBeGreaterThan(1);
+      for (const batch of batchDb.batchCalls) {
+        batch.forEach((statement, index) => {
+          const sql = String(statement?.sql || '');
+          if (!sql.includes('UPDATE orders SET status = ?')) return;
+
+          expect(String(batch[index + 1]?.sql || '')).toContain(
+            "json_extract(CASE WHEN changes() = 1 THEN '{}' ELSE 'not-json' END"
+          );
+        });
+      }
+    });
+
     it('updateStatus reuses one prefetched order-line state instead of separate totals and primary-line scans', async () => {
       const batchDb = createBatchAwareDb({
         allHandler: async (statement) => ({
@@ -1036,7 +1247,7 @@ describe('Order Mutations SQL Binding', () => {
       expect(Math.max(...batchDb.allCalls.map((call) => call.params.length))).toBeLessThanOrEqual(
         100
       );
-      expect(batchDb.batch).toHaveBeenCalledTimes(5);
+      expect(batchDb.batch).toHaveBeenCalledTimes(7);
       expect(
         Math.max(...batchDb.batchCalls.map((statements) => statements.length))
       ).toBeLessThanOrEqual(100);

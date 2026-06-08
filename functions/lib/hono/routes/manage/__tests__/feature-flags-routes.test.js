@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   repoBatchUpsert: vi.fn(),
 }));
 
-vi.mock('../../../../../repositories/SettingsRepository.ts', () => ({
+vi.mock('../../../../../repositories/SettingsRepository.js', () => ({
   SettingsRepository: vi.fn(() => ({
     getAllGrouped: mocks.repoGetAllGrouped,
     upsert: mocks.repoUpsert,
