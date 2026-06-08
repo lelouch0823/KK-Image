@@ -89,6 +89,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { API } from '@/utils/constants';
 import { normalizeSalesSpace } from '@/utils/sales-space';
+import { formatReadableLabel } from '@/utils/event-display';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 
@@ -111,7 +112,7 @@ const getTemplateLabel = (key) => {
     document: t('spaceManager.templates.document'),
     collection: t('spaceManager.templates.collection'),
   };
-  return labels[key] || key;
+  return labels[key] || formatReadableLabel(key);
 };
 
 const getCoverUrl = (space) => {

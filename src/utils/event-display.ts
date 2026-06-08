@@ -108,6 +108,40 @@ function toPascalToken(token: string): string {
   return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
 }
 
+const READABLE_TOKEN_LABELS: Record<string, string> = {
+  ai: 'AI',
+  api: 'API',
+  erp: 'ERP',
+  id: 'ID',
+  oauth: 'OAuth',
+  po: 'PO',
+  rest: 'REST',
+  sku: 'SKU',
+  spu: 'SPU',
+  ui: 'UI',
+  url: 'URL',
+  vip: 'VIP',
+};
+
+function toReadableToken(token: string): string {
+  if (!token) return '';
+  const normalized = token.toLowerCase();
+  return READABLE_TOKEN_LABELS[normalized] || toPascalToken(token);
+}
+
+export function formatReadableLabel(value: unknown, suffix = ''): string {
+  const raw = String(value || '').trim();
+  if (!raw) return '-';
+  const label = raw
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .split(/[-_.\s]+/)
+    .filter(Boolean)
+    .map(toReadableToken)
+    .join(' ');
+  return `${label || raw}${suffix}`;
+}
+
 export function formatReadableCode(value: unknown, suffix = ''): string {
   const raw = String(value || '').trim();
   if (!raw) return '-';
@@ -117,6 +151,19 @@ export function formatReadableCode(value: unknown, suffix = ''): string {
     .map(toPascalToken)
     .join('');
   return `${label || raw}${suffix}`;
+}
+
+export function formatSummaryValue(value: unknown): string {
+  if (isBlank(value)) return '-';
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '-';
+    const hasStructuredItems = value.some((item) => item && typeof item === 'object');
+    return hasStructuredItems ? `${value.length} 项` : value.map((item) => formatSummaryValue(item)).join(', ');
+  }
+  if (typeof value === 'object') {
+    return `已填写 ${Object.keys(value as Record<string, unknown>).length} 项`;
+  }
+  return String(value);
 }
 
 export function formatDomainEventType(eventType: unknown): string {

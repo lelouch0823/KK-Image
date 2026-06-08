@@ -53,6 +53,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { formatReadableLabel } from '@/utils/event-display';
 import { formatTimelineTime } from '@/utils/formatters';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
@@ -68,6 +69,6 @@ const { t } = useI18n();
 const entries = computed(() => (Array.isArray(props.shipments) ? props.shipments : []));
 
 function actionLabel(actionType) {
-  return t(`order.detail.shipmentActions.${actionType}`, actionType);
+  return t(`order.detail.shipmentActions.${actionType}`, formatReadableLabel(actionType));
 }
 </script>

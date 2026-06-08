@@ -84,4 +84,34 @@ describe('PurchaseOrderListTable', () => {
     await wrapper.get('[data-testid="purchase-order-row-click"]').trigger('click');
     expect(wrapper.emitted('row-click')).toEqual([[row]]);
   });
+
+  it('renders unknown purchase-order statuses as readable labels instead of raw backend codes', () => {
+    const wrapper = mount(PurchaseOrderListTable, {
+      props: {
+        columns: [{ key: 'status', label: '状态' }],
+        list: [
+          {
+            id: 'po-unknown',
+            status: 'quality_hold_status',
+          },
+        ],
+        statusConfig: {},
+        formatDate: () => '2026-04-15',
+        formatPurchaseCurrency: () => '¥100.00',
+        buildReceiptProgressSummary: () => '',
+        getProgressStatusLabel: () => '',
+        getProgressStatusVariant: () => 'default',
+        getListStatusVariant: () => 'default',
+      },
+      global: {
+        stubs: {
+          AppTable: AppTableStub,
+          StatusBadge: StatusBadgeStub,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain('Quality Hold Status');
+    expect(wrapper.text()).not.toContain('quality_hold_status');
+  });
 });

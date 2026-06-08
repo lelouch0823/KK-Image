@@ -52,6 +52,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { formatReadableLabel } from '@/utils/event-display';
 import { formatTimelineTime } from '@/utils/formatters';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
@@ -67,10 +68,10 @@ const { t } = useI18n();
 const entries = computed(() => (Array.isArray(props.returns) ? props.returns : []));
 
 function reasonLabel(reason) {
-  return t(`order.returnReasons.${reason}`, reason || 'other');
+  return t(`order.returnReasons.${reason}`, reason ? formatReadableLabel(reason) : t('order.returnReasons.other'));
 }
 
 function statusLabel(status) {
-  return t(`order.detail.returnStatuses.${status}`, status);
+  return t(`order.detail.returnStatuses.${status}`, formatReadableLabel(status));
 }
 </script>

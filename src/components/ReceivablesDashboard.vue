@@ -118,6 +118,7 @@ import { ref, onMounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
+import { formatReadableLabel } from '@/utils/event-display';
 
 const { t } = useI18n();
 const { authFetch } = useAuth();
@@ -161,7 +162,7 @@ function getAgingLabel(label) {
     '61-90': t('order.receivables.agingLabels.61-90'),
     '90+': t('order.receivables.agingLabels.90+'),
   };
-  return labels[label] || label;
+  return labels[label] || formatReadableLabel(label);
 }
 
 /**

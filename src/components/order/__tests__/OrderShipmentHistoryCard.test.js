@@ -46,7 +46,32 @@ describe('OrderShipmentHistoryCard', () => {
     expect(wrapper.text()).toContain('Chair A');
     expect(wrapper.text()).toContain('2');
     expect(wrapper.text()).toContain('1');
-    expect(wrapper.text()).toContain('shipped');
-    expect(wrapper.text()).toContain('unshipped');
+    expect(wrapper.text()).toContain('Shipped');
+    expect(wrapper.text()).toContain('Unshipped');
+  });
+
+  it('renders unknown shipment actions as readable labels instead of raw backend codes', () => {
+    const wrapper = mount(OrderShipmentHistoryCard, {
+      props: {
+        shipments: [
+          {
+            id: 'ship-unknown',
+            actionType: 'warehouse_quality_hold',
+            quantity: 3,
+            actorName: 'Admin',
+            lineLabel: 'Chair A',
+            createdAt: 1710000000000,
+          },
+        ],
+      },
+      global: {
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain('Warehouse Quality Hold');
+    expect(wrapper.text()).not.toContain('warehouse_quality_hold');
   });
 });

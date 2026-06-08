@@ -172,6 +172,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import { formatReadableLabel } from '@/utils/event-display';
 
 const props = defineProps({
   spaceId: { type: String, required: true },
@@ -201,7 +202,7 @@ const confirmData = ref({
 });
 
 const getTemplateLabel = (template) =>
-  t(`spaceManager.templates.${template || 'custom'}`) || template;
+  t(`spaceManager.templates.${template || 'custom'}`, formatReadableLabel(template || 'custom'));
 
 const loadData = async () => {
   const spaceId = props.spaceId;

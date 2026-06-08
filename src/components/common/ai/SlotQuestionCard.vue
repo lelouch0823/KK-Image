@@ -115,6 +115,7 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
+import { formatReadableLabel } from '@/utils/event-display';
 
 const { t } = useI18n();
 const emit = defineEmits(['select']);
@@ -138,7 +139,7 @@ const currentFieldLabel = computed(() => {
   const currentKey = String(props.action?.currentFieldKey || '').trim();
   if (!currentKey) return '';
   const currentField = candidateGroups.value.find((field) => field.key === currentKey);
-  return currentField?.label || currentKey;
+  return currentField?.label || formatReadableLabel(currentKey);
 });
 const promptText = computed(() => {
   if (typeof props.action?.prompt === 'string' && props.action.prompt.trim())

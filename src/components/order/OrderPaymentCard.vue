@@ -178,6 +178,7 @@ import { usePayments } from '@/composables/usePayments';
 import AppButton from '@/components/ui/AppButton.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import { formatDate } from '@/utils/formatters';
+import { formatReadableLabel } from '@/utils/event-display';
 
 const props = defineProps({
   orderId: { type: String, required: true },
@@ -253,7 +254,7 @@ function getMethodLabel(method) {
     alipay: t('order.payment.methods.alipay'),
     other: t('order.payment.methods.other'),
   };
-  return labels[method] || method;
+  return labels[method] || formatReadableLabel(method);
 }
 
 /**

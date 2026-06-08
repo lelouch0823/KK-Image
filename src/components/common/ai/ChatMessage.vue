@@ -98,6 +98,7 @@ import { computed } from 'vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { useI18n } from '@/composables/useI18n';
+import { formatReadableLabel } from '@/utils/event-display';
 
 const { t } = useI18n();
 
@@ -143,6 +144,6 @@ const userMessageParts = computed(() => {
 
 const getToolName = (status) => {
   if (!status) return '';
-  return t(`ai.toolNames.${status}`, status);
+  return t(`ai.toolNames.${status}`, formatReadableLabel(status));
 };
 </script>

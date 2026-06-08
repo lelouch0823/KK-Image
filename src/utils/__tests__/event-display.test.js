@@ -1,6 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
 describe('event display helpers', () => {
+  it('formats backend codes and structured values as readable labels', async () => {
+    const { formatReadableLabel, formatSummaryValue } = await import('../event-display');
+
+    expect(formatReadableLabel('custom_adapter')).toBe('Custom Adapter');
+    expect(formatReadableLabel('purchase_order.item.delete')).toBe('Purchase Order Item Delete');
+    expect(formatReadableLabel('partialSuccess')).toBe('Partial Success');
+    expect(formatReadableLabel('')).toBe('-');
+
+    expect(formatSummaryValue({ customer_tier: 'vip', risk_status: 'needs_review' })).toBe(
+      '已填写 2 项'
+    );
+    expect(formatSummaryValue([{ id: 'item-1' }, { id: 'item-2' }])).toBe('2 项');
+    expect(formatSummaryValue(['红色', 'L'])).toBe('红色, L');
+  });
+
   it('formats domain event types and consumer jobs for operators', async () => {
     const { formatConsumerJobLabel, formatDomainEventType } = await import('../event-display');
 

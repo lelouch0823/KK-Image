@@ -47,10 +47,10 @@
                   {{ conn.enabled ? t('erpSync.enabled') : t('erpSync.status') }}
                 </span>
                 <span class="rounded bg-(--bg-hover) px-1.5 py-0.5 text-xs text-(--text-muted)">
-                  {{ t(`erpSync.adapter.${conn.adapterType}`, conn.adapterType) }}
+                  {{ translatedLabel('erpSync.adapter', conn.adapterType) }}
                 </span>
                 <span class="rounded bg-(--bg-hover) px-1.5 py-0.5 text-xs text-(--text-muted)">
-                  {{ t(`erpSync.direction.${conn.syncDirection}`, conn.syncDirection) }}
+                  {{ translatedLabel('erpSync.direction', conn.syncDirection) }}
                 </span>
               </div>
               <p class="mt-1 text-xs text-(--text-muted)">{{ conn.baseUrl }}</p>
@@ -59,7 +59,7 @@
                   {{ t('erpSync.lastSyncAt') }}: {{ formatDate(conn.lastSyncAt) }}
                 </span>
                 <span v-if="conn.lastSyncStatus" :class="syncStatusClass(conn.lastSyncStatus)">
-                  {{ t(`erpSync.syncStatus.${conn.lastSyncStatus}`, conn.lastSyncStatus) }}
+                  {{ translatedLabel('erpSync.syncStatus', conn.lastSyncStatus) }}
                 </span>
                 <span v-if="conn.lastError" class="text-danger" :title="conn.lastError">
                   {{ t('erpSync.lastError') }}: {{ conn.lastError.slice(0, 60) }}
@@ -160,14 +160,14 @@
               :key="log.id"
               class="border-b border-(--border-color) last:border-0"
             >
-              <td class="py-2 pr-3">{{ t(`erpSync.entity.${log.entityType}`, log.entityType) }}</td>
+              <td class="py-2 pr-3">{{ translatedLabel('erpSync.entity', log.entityType) }}</td>
               <td class="py-2 pr-3">
-                {{ t(`erpSync.direction.${log.direction}`, log.direction) }}
+                {{ translatedLabel('erpSync.direction', log.direction) }}
               </td>
-              <td class="py-2 pr-3">{{ t(`erpSync.action.${log.action}`, log.action) }}</td>
+              <td class="py-2 pr-3">{{ translatedLabel('erpSync.action', log.action) }}</td>
               <td class="py-2 pr-3">
                 <span :class="logStatusClass(log.status)">
-                  {{ t(`erpSync.logStatus.${log.status}`, log.status) }}
+                  {{ translatedLabel('erpSync.logStatus', log.status) }}
                 </span>
               </td>
               <td class="py-2 pr-3 font-mono text-xs">{{ log.entityId || '-' }}</td>
@@ -313,6 +313,7 @@ import AppInput from '@/components/ui/AppInput.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import { formatDate } from '@/utils/formatters';
+import { formatReadableLabel } from '@/utils/event-display';
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -509,6 +510,10 @@ function logStatusClass(status) {
   if (status === 'pending') return 'text-warning';
   if (status === 'conflict') return 'text-warning';
   return 'text-(--text-muted)';
+}
+
+function translatedLabel(path, value) {
+  return t(`${path}.${value}`, formatReadableLabel(value));
 }
 
 onMounted(loadConnections);

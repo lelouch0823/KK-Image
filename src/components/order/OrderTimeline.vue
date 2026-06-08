@@ -262,6 +262,7 @@ import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { STATUS_STYLES, getStatusVariant } from '@/utils/status';
 import { formatTimelineTime as formatTime } from '@/utils/formatters';
+import { formatReadableLabel } from '@/utils/event-display';
 import AppButton from '@/components/ui/AppButton.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -387,7 +388,7 @@ const getFieldLabel = (fieldName) => {
     files: t('order.detail.images'), // 兼容后端 fieldName: 'files'
     'order.detail.status': t('order.detail.status'), // 兼容后端直接存了 key 的情况
   };
-  return labels[fieldName] || fieldName;
+  return labels[fieldName] || formatReadableLabel(fieldName);
 };
 
 // 格式化字段值 (处理图片数量等特殊显示)

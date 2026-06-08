@@ -64,6 +64,7 @@
 <script setup>
 import { computed } from 'vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import { formatSummaryValue } from '@/utils/event-display';
 
 defineEmits(['confirm']);
 
@@ -87,10 +88,7 @@ const ENTITY_LABELS = {
 const entityLabel = computed(() => ENTITY_LABELS[entityType.value] || '记录');
 
 function toText(value) {
-  if (value === undefined || value === null || value === '') return '-';
-  if (Array.isArray(value)) return value.join(', ');
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
+  return formatSummaryValue(value);
 }
 
 function buildGridSection(title, entries) {

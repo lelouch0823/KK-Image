@@ -161,4 +161,53 @@ describe('PurchaseOrderDetailDrawer', () => {
     expect(source).not.toContain('radial-gradient');
     expect(source).not.toContain('shadow-[0_30px_80px_-35px_rgba(15,23,42,0.45)]');
   });
+
+  it('renders unknown purchase-order detail statuses as readable labels', () => {
+    const wrapper = mount(PurchaseOrderDetailDrawer, {
+      props: {
+        show: true,
+        detailLoading: false,
+        detail: {
+          id: 'po-unknown',
+          po_no: 'PO-UNKNOWN',
+          status: 'quality_hold_status',
+          item_count: 0,
+          total_goods_cost: 0,
+          currency: 'CNY',
+          items: [],
+          receipts: [],
+        },
+        statusConfig: {},
+        summaryCards: [],
+        nextStatuses: ['manual_review_required'],
+        stepsList: [{ value: 'quality_hold_status', label: 'Quality Hold Status' }],
+        receiptTimeline: [],
+        receiptReceivableCount: 0,
+        canRecordReceipts: false,
+        canCloseShortages: false,
+        t,
+        helpers,
+        getFileUrl: (id) => `/file/${id}`,
+      },
+      global: {
+        stubs: {
+          Modal: { template: '<div><slot name="header" /><slot /><slot name="footer" /></div>' },
+          ActionBar: { template: '<div><slot name="leading" /><slot /></div>' },
+          StatePanel: { template: '<section><slot /></section>' },
+          AppButton: { template: '<button><slot /></button>' },
+          Teleport: true,
+          Transition: false,
+          AppImage: { template: '<div />' },
+          AppIcon: { template: '<i />' },
+          AppInput: { template: '<input />' },
+          StatusBadge: { template: '<div><slot /></div>' },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain('Quality Hold Status');
+    expect(wrapper.text()).toContain('Manual Review Required');
+    expect(wrapper.text()).not.toContain('quality_hold_status');
+    expect(wrapper.text()).not.toContain('manual_review_required');
+  });
 });

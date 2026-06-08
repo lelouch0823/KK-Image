@@ -59,4 +59,26 @@ describe('ActionPreviewCard', () => {
     expect(wrapper.text()).toContain('凉鞋 白色 38');
     expect(wrapper.text()).not.toContain('{"variant_query"');
   });
+
+  it('summarizes nested object values instead of rendering raw JSON', () => {
+    const wrapper = mount(ActionPreviewCard, {
+      props: {
+        action: {
+          entityType: 'customer',
+          title: '客户创建预览',
+          summary: {
+            name: 'Acme',
+            profile: {
+              tier: 'vip',
+              risk_status: 'needs_review',
+            },
+          },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain('已填写 2 项');
+    expect(wrapper.text()).not.toContain('{"tier"');
+    expect(wrapper.text()).not.toContain('risk_status');
+  });
 });

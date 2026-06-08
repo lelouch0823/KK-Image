@@ -17,7 +17,7 @@
           <span
             class="rounded-full bg-(--bg-muted) px-2.5 py-1 text-xs font-medium text-(--text-secondary)"
           >
-            {{ statusConfig[detail.status]?.label || detail.status }}
+            {{ formatPurchaseOrderStatusLabel(detail.status) }}
           </span>
           <template
             v-if="
@@ -94,8 +94,9 @@
 <script setup>
 import AppIcon from '@/components/ui/AppIcon.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import { formatReadableLabel } from '@/utils/event-display';
 
-defineProps({
+const props = defineProps({
   detail: {
     type: Object,
     required: true,
@@ -117,4 +118,8 @@ defineProps({
     required: true,
   },
 });
+
+function formatPurchaseOrderStatusLabel(status) {
+  return props.statusConfig[status]?.label || formatReadableLabel(status);
+}
 </script>

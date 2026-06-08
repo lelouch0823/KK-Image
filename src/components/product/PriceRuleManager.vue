@@ -125,6 +125,7 @@ import { useToast } from '@/composables/useToast';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
+import { formatReadableLabel } from '@/utils/event-display';
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -337,7 +338,7 @@ const getPriceTypeLabel = (type) => {
     wholesale: t('product.price_rules.type_wholesale', '批发价'),
     vip: t('product.price_rules.type_vip', 'VIP 价'),
   };
-  return labels[type] || type;
+  return labels[type] || formatReadableLabel(type);
 };
 
 // 获取价格类型徽章样式

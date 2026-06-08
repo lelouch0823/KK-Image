@@ -155,6 +155,7 @@ import Modal from '@/components/ui/Modal.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import SpaceFilesTab from './space/SpaceFilesTab.vue';
 import SpaceSettingsTab from './space/SpaceSettingsTab.vue';
+import { formatReadableLabel } from '@/utils/event-display';
 
 const props = defineProps({
   space: { type: Object, required: true },
@@ -182,7 +183,7 @@ const getTemplateLabel = (key) => {
     collection: t('spaceManager.templates.collection'),
     custom: t('spaceManager.templates.custom'),
   };
-  return labels[key] || key;
+  return labels[key] || formatReadableLabel(key);
 };
 
 const shareUrl = computed(() => {

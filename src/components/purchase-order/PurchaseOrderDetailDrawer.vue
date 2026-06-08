@@ -152,7 +152,7 @@
           @click="$emit('status-update', ns)"
         >
           {{ t('purchaseOrder.action.updateTo') }}:
-          {{ statusConfig[ns]?.label || ns }}
+          {{ formatPurchaseOrderStatusLabel(ns) }}
         </AppButton>
       </ActionBar>
     </template>
@@ -170,8 +170,9 @@ import PurchaseOrderDetailProgress from '@/components/purchase-order/PurchaseOrd
 import PurchaseOrderDetailCost from '@/components/purchase-order/PurchaseOrderDetailCost.vue';
 import PurchaseOrderItemsPanel from '@/components/purchase-order/PurchaseOrderItemsPanel.vue';
 import PurchaseOrderReceiptsPanel from '@/components/purchase-order/PurchaseOrderReceiptsPanel.vue';
+import { formatReadableLabel } from '@/utils/event-display';
 
-defineProps({
+const props = defineProps({
   show: {
     type: Boolean,
     default: false,
@@ -250,4 +251,8 @@ const handleModalVisibilityChange = (nextVisible) => {
     emit('close');
   }
 };
+
+function formatPurchaseOrderStatusLabel(status) {
+  return props.statusConfig[status]?.label || formatReadableLabel(status);
+}
 </script>

@@ -236,6 +236,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue';
 import Tooltip from '@/components/ui/Tooltip.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import { ErrorCode } from '@/utils/error-codes';
+import { formatReadableLabel } from '@/utils/event-display';
 
 const { spaces, loading, error, errorCode, loadSpaces, deleteSpace } = useSpaces();
 const { t } = useI18n();
@@ -263,7 +264,7 @@ const openCreateModal = () => {
 };
 
 const getTemplateLabel = (template) =>
-  t(`spaceManager.templates.${template || 'custom'}`) || template;
+  t(`spaceManager.templates.${template || 'custom'}`, formatReadableLabel(template || 'custom'));
 
 const getBindingStateLabel = (bindingState) => {
   const mapping = {

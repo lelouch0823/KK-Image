@@ -134,6 +134,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import { formatDate } from '@/utils/formatters';
+import { formatReadableLabel } from '@/utils/event-display';
 
 const props = defineProps({
   orderId: { type: String, required: true },
@@ -163,7 +164,7 @@ const editForm = ref({
 
 const carrierName = computed(() => {
   const found = carriers.value.find((c) => c.code === carrier.value);
-  return found?.name || carrier.value;
+  return found?.name || formatReadableLabel(carrier.value);
 });
 
 async function loadTracking() {
