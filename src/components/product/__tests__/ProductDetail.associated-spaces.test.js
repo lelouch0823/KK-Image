@@ -187,6 +187,44 @@ describe('ProductDetail associated spaces', () => {
     expect(wrapper.text()).toContain('Public');
   });
 
+  it('renders unknown product status as a readable label instead of a raw code', async () => {
+    mocks.loadProductSpaces.mockReset();
+    mocks.loadProductSpaces.mockResolvedValueOnce([]);
+
+    const wrapper = mount(ProductDetail, {
+      props: {
+        product: {
+          id: 'prod-1',
+          name: 'Chair',
+          status: 'seasonal_archive_review',
+          price: 100,
+          currency: 'CNY',
+          variants: [],
+        },
+      },
+      global: {
+        stubs: {
+          AppImage: { template: '<img />' },
+          StatusBadge: {
+            props: ['label'],
+            template: '<span>{{ label }}<slot /></span>',
+          },
+          AppTable: { template: '<table />' },
+          AppIcon: { template: '<i />' },
+          RouterLink: {
+            props: ['to'],
+            template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
+          },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Seasonal Archive Review');
+    expect(wrapper.text()).not.toContain('seasonal_archive_review');
+  });
+
   it('copies associated space links through the shared clipboard helper', async () => {
     mocks.loadProductSpaces.mockReset();
     mocks.loadProductSpaces.mockResolvedValueOnce([

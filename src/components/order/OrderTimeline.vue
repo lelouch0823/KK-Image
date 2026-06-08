@@ -129,7 +129,7 @@
             <p v-else-if="item.actionType === 'status_changed'" class="text-primary text-sm">
               {{ t('order.timeline.statusChanged') }}
               <StatusBadge :variant="getStatusVariant(item.newValue)" size="sm" class="ml-1">
-                {{ t(`order.statuses.${item.newValue}`) }}
+                {{ formatOrderStatusValue(item.newValue) }}
               </StatusBadge>
               <span
                 v-if="item.reason"
@@ -237,7 +237,7 @@
           <div v-else-if="item.actionType === 'status_changed'">
             <div class="text-(--text-main)">
               {{ t('order.timeline.statusChanged') }}
-              <span class="font-medium">{{ t(`order.statuses.${item.newValue}`) }}</span>
+              <span class="font-medium">{{ formatOrderStatusValue(item.newValue) }}</span>
             </div>
             <div
               v-if="item.reason"
@@ -300,6 +300,9 @@ const getDisplayValue = (update, type) => {
   }
   return formatFieldValue(update.fieldName, update[type]);
 };
+
+const formatOrderStatusValue = (status) =>
+  t(`order.statuses.${status}`, formatReadableLabel(status));
 
 const isExpanded = ref(false);
 
@@ -407,14 +410,14 @@ const formatFieldValue = (fieldName, value) => {
   if (['status', 'order.detail.status'].includes(fieldName)) {
     // 尝试翻译状态值
     const key = `order.statuses.${value}`;
-    const translated = t(key);
+    const translated = t(key, formatReadableLabel(value));
     // 如果翻译结果与 key 不同，说明找到了翻译
     if (translated !== key) {
       return translated;
     }
   }
 
-  return value;
+  return formatReadableLabel(value);
 };
 
 // 格式化图片数量
@@ -432,9 +435,9 @@ const getReasonText = (reason) => {
   if (!reason) return '';
   // 如果是由于之前的 Bug 导致存入了 Key，尝试翻译它
   if (reason.startsWith('order.') || reason.includes('.reason.')) {
-    return t(reason); // vue-i18n 如果找不到 key 会直接返回 key 本身，所以是安全的
+    return t(reason, formatReadableLabel(reason));
   }
-  return reason;
+  return formatReadableLabel(reason);
 };
 
 // 获取公共理由 (如果所有更新的理由相同)

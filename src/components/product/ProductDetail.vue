@@ -205,7 +205,7 @@
           </div>
           <StatusBadge
             class="shrink-0 whitespace-nowrap"
-            :label="t(`product.filters.status.${product.status || 'archived'}`)"
+            :label="formatProductStatusLabel(product.status || 'archived')"
             :variant="getProductStatusVariant(product.status || 'archived')"
           />
         </div>
@@ -390,7 +390,7 @@
             >
             <span
               >{{ t('product.table.variant.status', 'Status') }}:
-              {{ t(`product.filters.status.${product.status || 'archived'}`) }}</span
+              {{ formatProductStatusLabel(product.status || 'archived') }}</span
             >
           </div>
         </div>
@@ -430,6 +430,7 @@ import {
   resolveVariantPrimaryImageSrc,
 } from '@/utils/product-image.js';
 import { isCatalogActiveVariant } from '@/utils/product-variants.js';
+import { formatReadableLabel } from '@/utils/event-display';
 
 const props = defineProps({
   product: {
@@ -449,6 +450,9 @@ const variantColumns = computed(() => [
 ]);
 
 const isActiveVariant = (variant) => isCatalogActiveVariant(variant);
+
+const formatProductStatusLabel = (status) =>
+  t(`product.filters.status.${status || 'archived'}`, formatReadableLabel(status || 'archived'));
 
 const activeVariants = computed(() =>
   Array.isArray(props.product.variants)

@@ -437,6 +437,7 @@ import StatGroup from '@/design-system/composed/StatGroup.vue';
 import { Chart } from '@/utils/chart-setup';
 import { ErrorCode } from '@/utils/error-codes';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
+import { formatReadableLabel } from '@/utils/event-display';
 
 const router = useRouter();
 const { authFetchJson } = useAuth();
@@ -475,6 +476,8 @@ const weekTrend = computed(() => {
 const dashboardDescription = computed(() => {
   return `${t('dashboard.liveStatus')} · ${t('dashboard.lastUpdated')}: ${lastUpdatedTime.value}`;
 });
+
+const formatDashboardStatusLabel = (status, labels) => labels[status] || formatReadableLabel(status);
 
 // 格式化利润值
 const formatProfitValue = (num) => {
@@ -796,7 +799,7 @@ const updateCharts = (data) => {
       void: t('dashboard.statusVoid'),
     };
     charts.statusDistributionChart.data.labels = data.statusDistribution.map(
-      (item) => statusLabels[item.status] || item.status
+      (item) => formatDashboardStatusLabel(item.status, statusLabels)
     );
     charts.statusDistributionChart.data.datasets[0].data = data.statusDistribution.map(
       (item) => item.count
@@ -1006,7 +1009,7 @@ const initStatusDistributionChart = () => {
   charts.statusDistributionChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: data.map((item) => statusLabels[item.status] || item.status),
+      labels: data.map((item) => formatDashboardStatusLabel(item.status, statusLabels)),
       datasets: [
         {
           data: data.map((item) => item.count),
