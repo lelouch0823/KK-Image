@@ -323,7 +323,7 @@
                   />
                 </div>
                 <div v-else class="h-[180px] sm:h-[250px]">
-                  <canvas id="salesTrendChart"></canvas>
+                  <canvas ref="salesTrendChartRef"></canvas>
                 </div>
               </div>
             </SurfaceSection>
@@ -356,7 +356,7 @@
                   />
                 </div>
                 <div v-else class="h-[200px] sm:h-[250px]">
-                  <canvas id="statusDistributionChart"></canvas>
+                  <canvas ref="statusDistributionChartRef"></canvas>
                 </div>
               </div>
             </SurfaceSection>
@@ -405,7 +405,6 @@
 <script setup>
 import { ref, onMounted, onActivated, onBeforeUnmount, computed, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import { hasEntries } from '@/utils/object-utils';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
 import { useOrders } from '@/composables/useOrders';
@@ -437,7 +436,12 @@ import StatGroup from '@/design-system/composed/StatGroup.vue';
 import { Chart } from '@/utils/chart-setup';
 import { ErrorCode } from '@/utils/error-codes';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
-import { formatReadableLabel } from '@/utils/event-display';
+import {
+  buildSalesTrendChartConfig,
+  buildStatusDistributionChartConfig,
+  createLineChartGradient,
+  getDashboardChartPalette,
+} from '@/utils/dashboard-charts';
 
 const router = useRouter();
 const { authFetchJson } = useAuth();
@@ -476,8 +480,6 @@ const weekTrend = computed(() => {
 const dashboardDescription = computed(() => {
   return `${t('dashboard.liveStatus')} · ${t('dashboard.lastUpdated')}: ${lastUpdatedTime.value}`;
 });
-
-const formatDashboardStatusLabel = (status, labels) => labels[status] || formatReadableLabel(status);
 
 // 格式化利润值
 const formatProfitValue = (num) => {
@@ -554,6 +556,8 @@ const viewingOrder = ref(null);
 const commenting = ref(false);
 const detailHydrating = ref(false);
 const detailHydrationError = ref('');
+const salesTrendChartRef = ref(null);
+const statusDistributionChartRef = ref(null);
 let detailRequestId = 0;
 
 const confirmData = ref({
@@ -566,7 +570,10 @@ const confirmData = ref({
 });
 
 // Chart Instances
-let charts = {};
+const charts = {
+  salesTrendChart: null,
+  statusDistributionChart: null,
+};
 
 // Order Management
 const viewOrder = async (order) => {
@@ -670,21 +677,8 @@ const _fetchDashboardData = async () => {
         recentShares.value = res.data.recentShares;
       }
 
-      // Update Charts
       if (res.data.charts) {
-        if (hasEntries(charts)) {
-          updateCharts(res.data.charts);
-        } else {
-          // If charts not initialized but we have data, we might be in early stage.
-          // initCharts calls updateCharts eventually.
-        }
-        // 存储新增图表数据
-        if (res.data.charts.salesTrend) {
-          salesTrendData.value = res.data.charts.salesTrend;
-        }
-        if (res.data.charts.statusDistribution) {
-          statusDistributionData.value = res.data.charts.statusDistribution;
-        }
+        await updateCharts(res.data.charts);
       }
 
       lastUpdatedTime.value = new Date().toLocaleTimeString();
@@ -736,336 +730,94 @@ const handleEditUpdated = () => {
   fetchDashboardData();
 };
 
-// Charts Logic
-const updateCharts = (data) => {
-  const processTrend = (trendData, type) => {
-    const labels = [];
-    const values = [];
+const getIsMobileChart = () => typeof window !== 'undefined' && window.innerWidth < 640;
 
-    if (type === 'hourly') {
-      const map = {};
-      trendData.forEach((item) => (map[item.hour] = item.count));
-      for (let i = 0; i < 24; i++) {
-        const hour = i.toString().padStart(2, '0');
-        labels.push(hour);
-        values.push(map[hour] || 0);
-      }
-    } else {
-      const map = {};
-      trendData.forEach((item) => (map[item.date] = item.count));
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
-        labels.push(dateStr.slice(5));
-        values.push(map[dateStr] || 0);
-      }
-    }
-    return { labels, values };
-  };
-
-  const updateChart = (id, processedData) => {
-    if (charts[id]) {
-      charts[id].data.labels = processedData.labels;
-      charts[id].data.datasets[0].data = processedData.values;
-      charts[id].update();
-    }
-  };
-
-  if (data.today) updateChart('chart1', processTrend(data.today, 'hourly'));
-  if (data.pending) updateChart('chart2', processTrend(data.pending, 'daily'));
-  if (data.week) updateChart('chart3', processTrend(data.week, 'daily'));
-  if (data.shares) updateChart('chart4', processTrend(data.shares, 'daily'));
-
-  // 更新销售趋势图
-  if (data.salesTrend && charts.salesTrendChart) {
-    const labels = data.salesTrend.map((item) => item.date?.slice(5) || '');
-    const values = data.salesTrend.map((item) => item.orderCount || 0);
-    charts.salesTrendChart.data.labels = labels;
-    charts.salesTrendChart.data.datasets[0].data = values;
-    charts.salesTrendChart.update();
+const updateCharts = async (data = {}) => {
+  if (data.salesTrend) {
+    salesTrendData.value = data.salesTrend;
+  }
+  if (data.statusDistribution) {
+    statusDistributionData.value = data.statusDistribution;
   }
 
-  // 更新状态分布图
-  if (data.statusDistribution && charts.statusDistributionChart) {
-    const statusLabels = {
-      pending: t('dashboard.statusPending'),
-      confirmed: t('dashboard.statusConfirmed'),
-      production: t('dashboard.statusProduction'),
-      shipping: t('dashboard.statusShipping'),
-      arrived: t('dashboard.statusArrived'),
-      delivered: t('dashboard.statusDelivered'),
-      rejected: t('dashboard.statusRejected'),
-      void: t('dashboard.statusVoid'),
-    };
-    charts.statusDistributionChart.data.labels = data.statusDistribution.map(
-      (item) => formatDashboardStatusLabel(item.status, statusLabels)
-    );
-    charts.statusDistributionChart.data.datasets[0].data = data.statusDistribution.map(
-      (item) => item.count
-    );
-    charts.statusDistributionChart.update();
-  }
-};
-
-const resolveDashboardChartColor = (token, fallback) => {
-  if (typeof document === 'undefined') {
-    return `rgba(${fallback}, 1)`;
-  }
-
-  const color = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
-  if (color.startsWith('#') && color.length === 7) {
-    const parsed = Number.parseInt(color.slice(1), 16);
-    if (!Number.isNaN(parsed)) {
-      const rgb = `${(parsed >> 16) & 255}, ${(parsed >> 8) & 255}, ${parsed & 255}`;
-      return `rgba(${rgb}, 1)`;
-    }
-  }
-
-  const matched = color.match(/\d+/g);
-  if (matched?.length >= 3) {
-    return `rgba(${matched.slice(0, 3).join(', ')}, 1)`;
-  }
-
-  return `rgba(${fallback}, 1)`;
+  await nextTick();
+  initCharts();
 };
 
 const initCharts = () => {
-  const createChart = (id, color, data, labels) => {
-    const canvas = document.getElementById(id);
-    if (!canvas) return;
-
-    if (charts[id]) {
-      charts[id].destroy();
-    }
-
-    const ctx = canvas.getContext('2d');
-    const gradient = ctx.createLinearGradient(0, 0, 0, 50);
-    gradient.addColorStop(0, color.replace('1)', '0.3)'));
-    gradient.addColorStop(1, color.replace('1)', '0.0)'));
-
-    charts[id] = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels || ['1', '2', '3', '4', '5', '6', '7'],
-        datasets: [
-          {
-            data: data,
-            borderColor: color,
-            borderWidth: 2,
-            backgroundColor: gradient,
-            fill: true,
-            pointRadius: 0,
-            tension: 0.4,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { enabled: false } },
-        scales: { x: { display: false }, y: { display: false } },
-        animation: { duration: 1000 },
-      },
-    });
-  };
-
-  createChart('chart1', resolveDashboardChartColor('--color-info', '59, 130, 246'), [], []);
-  createChart('chart2', resolveDashboardChartColor('--color-danger', '239, 68, 68'), [], []);
-  createChart('chart3', resolveDashboardChartColor('--color-success', '16, 185, 129'), [], []);
-  createChart('chart4', resolveDashboardChartColor('--color-primary', '236, 91, 19'), [], []);
-
-  // 初始化销售趋势折线图
   initSalesTrendChart();
-  // 初始化订单状态分布饼图
   initStatusDistributionChart();
-
-  // Check if we have data in orderStats from fetchDashboardData (which might have finished before nextTick)
-  if (orderStats.value && orderStats.value.charts) {
-    updateCharts(orderStats.value.charts);
-  }
 };
 
 // 销售趋势折线图
 const initSalesTrendChart = () => {
-  const canvas = document.getElementById('salesTrendChart');
-  if (!canvas) return;
-
   if (charts.salesTrendChart) {
     charts.salesTrendChart.destroy();
+    charts.salesTrendChart = null;
   }
 
+  const canvas = salesTrendChartRef.value;
+  if (!canvas || salesTrendData.value.length === 0) return;
+
   const ctx = canvas.getContext('2d');
-  const color = resolveDashboardChartColor('--color-primary', '236, 91, 19');
-  const gradient = ctx.createLinearGradient(0, 0, 0, 250);
-  gradient.addColorStop(0, color.replace('1)', '0.3)'));
-  gradient.addColorStop(1, color.replace('1)', '0.0)'));
+  const palette = getDashboardChartPalette();
+  const backgroundColor = createLineChartGradient(ctx, palette.primary);
 
-  const data = salesTrendData.value || [];
-  const labels = data.map((item) => item.date?.slice(5) || '');
-  const values = data.map((item) => item.orderCount || 0);
-
-  const isMobileChart = window.innerWidth < 640;
-
-  charts.salesTrendChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: t('dashboard.orderCount'),
-          data: values,
-          borderColor: color,
-          borderWidth: isMobileChart ? 1.5 : 2,
-          backgroundColor: gradient,
-          fill: true,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          tension: 0.4,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: resolveDashboardChartColor('--bg-elevated', '255, 255, 255'),
-          titleColor: resolveDashboardChartColor('--text-main', '26, 26, 26'),
-          bodyColor: resolveDashboardChartColor('--text-secondary', '102, 102, 102'),
-          borderColor: resolveDashboardChartColor('--border-color', '229, 231, 235'),
-          borderWidth: 1,
-          padding: 10,
-        },
-      },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: {
-            maxTicksLimit: isMobileChart ? 5 : 8,
-            color: resolveDashboardChartColor('--text-muted', '156, 163, 175'),
-            font: { size: isMobileChart ? 9 : 11 },
-            maxRotation: isMobileChart ? 45 : 0,
-          },
-        },
-        y: {
-          border: { display: false },
-          grid: {
-            color: resolveDashboardChartColor('--border-color', '229, 231, 235').replace(
-              /, 1\)$/,
-              ', 0.1)'
-            ),
-          },
-          beginAtZero: true,
-          ticks: {
-            color: resolveDashboardChartColor('--text-muted', '156, 163, 175'),
-            font: { size: isMobileChart ? 9 : 11 },
-            maxTicksLimit: isMobileChart ? 5 : 8,
-          },
-        },
-      },
-      interaction: { intersect: false, mode: 'index' },
-    },
-  });
+  charts.salesTrendChart = new Chart(
+    ctx,
+    buildSalesTrendChartConfig({
+      data: salesTrendData.value,
+      t,
+      palette,
+      backgroundColor,
+      isMobile: getIsMobileChart(),
+    })
+  );
 };
 
-// 订单状态分布饼图
-const initStatusDistributionChart = () => {
-  const canvas = document.getElementById('statusDistributionChart');
-  if (!canvas) return;
+const createStatusDistributionChart = (ctx) => {
+  const palette = getDashboardChartPalette();
+  return new Chart(
+    ctx,
+    buildStatusDistributionChartConfig({
+      data: statusDistributionData.value,
+      t,
+      palette,
+      isMobile: getIsMobileChart(),
+    })
+  );
+};
 
+const initStatusDistributionChart = () => {
   if (charts.statusDistributionChart) {
     charts.statusDistributionChart.destroy();
+    charts.statusDistributionChart = null;
   }
 
+  const canvas = statusDistributionChartRef.value;
+  if (!canvas || statusDistributionData.value.length === 0) return;
+
   const ctx = canvas.getContext('2d');
-  const data = statusDistributionData.value || [];
+  charts.statusDistributionChart = createStatusDistributionChart(ctx);
+};
 
-  const statusColors = {
-    pending: resolveDashboardChartColor('--color-warning', '245, 158, 11'),
-    confirmed: resolveDashboardChartColor('--color-info', '59, 130, 246'),
-    production: resolveDashboardChartColor('--color-chart-production', '124, 100, 190'),
-    shipping: resolveDashboardChartColor('--color-chart-shipping', '6, 182, 212'),
-    arrived: resolveDashboardChartColor('--color-success', '16, 185, 129'),
-    delivered: resolveDashboardChartColor('--color-chart-delivered', '34, 197, 94'),
-    rejected: resolveDashboardChartColor('--color-danger', '239, 68, 68'),
-    void: resolveDashboardChartColor('--text-muted', '107, 114, 128'),
-  };
-
-  const statusLabels = {
-    pending: t('dashboard.statusPending'),
-    confirmed: t('dashboard.statusConfirmed'),
-    production: t('dashboard.statusProduction'),
-    shipping: t('dashboard.statusShipping'),
-    arrived: t('dashboard.statusArrived'),
-    delivered: t('dashboard.statusDelivered'),
-    rejected: t('dashboard.statusRejected'),
-    void: t('dashboard.statusVoid'),
-  };
-
-  const isMobileView = window.innerWidth < 640;
-
-  charts.statusDistributionChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: data.map((item) => formatDashboardStatusLabel(item.status, statusLabels)),
-      datasets: [
-        {
-          data: data.map((item) => item.count),
-          backgroundColor: data.map((item) => statusColors[item.status] || '#9ca3af'),
-          borderWidth: 0,
-          hoverOffset: 8,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: '65%',
-      plugins: {
-        legend: {
-          position: isMobileView ? 'bottom' : 'right',
-          labels: {
-            usePointStyle: true,
-            padding: isMobileView ? 8 : 12,
-            color: resolveDashboardChartColor('--text-muted', '107, 114, 128'),
-            font: { size: isMobileView ? 10 : 11 },
-            boxWidth: isMobileView ? 8 : 12,
-          },
-        },
-        tooltip: {
-          backgroundColor: resolveDashboardChartColor('--bg-elevated', '255, 255, 255'),
-          titleColor: resolveDashboardChartColor('--text-main', '26, 26, 26'),
-          bodyColor: resolveDashboardChartColor('--text-secondary', '102, 102, 102'),
-          borderColor: resolveDashboardChartColor('--border-color', '229, 231, 235'),
-          borderWidth: 1,
-        },
-      },
-    },
-  });
+const destroyCharts = () => {
+  for (const key of Object.keys(charts)) {
+    charts[key]?.destroy?.();
+    charts[key] = null;
+  }
 };
 
 onMounted(async () => {
   await fetchDashboardData();
-  nextTick(() => {
-    initCharts();
-  });
 });
 
 onBeforeUnmount(() => {
-  // 销毁所有 Chart.js 实例防止内存泄漏
-  for (const chart of Object.values(charts)) {
-    chart?.destroy?.();
-  }
-  charts = {};
+  destroyCharts();
 });
 
 onActivated(() => {
   fetchDashboardData();
-  nextTick(() => {
-    initCharts();
-  });
 });
 
 watch([showDetailModal, viewingOrder], ([isOpen, order]) => {

@@ -175,3 +175,44 @@ Raw values may still be used for API filters, badge tone selection, IDs, titles,
 - Render replay/restore results as summary rows instead of default `<pre>{{ JSON.stringify(...) }}</pre>`.
 - Unknown enum values must degrade to readable text, not raw snake_case/dotted codes.
 - Add focused component or formatter tests when changing event, consumer, mode, environment, or result summaries.
+
+---
+
+## Convention: Chart.js Config Assembly Lives In Tested Helpers
+
+**What**: Views that render Chart.js charts should keep DOM refs, instance creation, and destroy lifecycle in the Vue SFC, but move data normalization, theme palette resolution, status labels, and Chart.js config object construction into a utility module.
+
+**Why**: Large inline chart configs make dashboards expensive to change and hard to test. Keeping pure assembly logic in helpers lets unit tests cover labels, values, CSS token fallbacks, responsive options, and user-facing enum labels without mounting the full page.
+
+**Required pattern**:
+
+```js
+import {
+  buildSalesTrendChartConfig,
+  createLineChartGradient,
+  getDashboardChartPalette,
+} from '@/utils/dashboard-charts';
+
+const canvas = salesTrendChartRef.value;
+const ctx = canvas.getContext('2d');
+const palette = getDashboardChartPalette();
+
+charts.salesTrendChart = new Chart(
+  ctx,
+  buildSalesTrendChartConfig({
+    data: salesTrendData.value,
+    t,
+    palette,
+    backgroundColor: createLineChartGradient(ctx, palette.primary),
+    isMobile: window.innerWidth < 640,
+  })
+);
+```
+
+**Checklist**:
+
+- Use Vue `ref` canvas handles instead of `document.getElementById` in views.
+- Destroy existing Chart instances before recreating them and reset the stored instance to `null`.
+- Keep `.vue` scripts plain JavaScript; put TypeScript helper types in `.ts` utility files.
+- Reuse shared display helpers such as `formatOrderStatusLabel` for chart labels instead of duplicating enum maps in the view.
+- Add focused utility tests for chart series shaping, status labels, color fallbacks, and responsive config differences.

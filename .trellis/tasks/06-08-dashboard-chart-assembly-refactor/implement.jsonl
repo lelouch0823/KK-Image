@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend spec index and pre-development checklist for Dashboard changes."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Vue SFC syntax and frontend test/lint conventions."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Type-safety context for adding a utility module."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Refactor creates shared helpers and removes duplicate status label mapping."}
