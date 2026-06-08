@@ -24,6 +24,11 @@ const mockAuditRepo = {
   createBatch: vi.fn(),
 };
 
+const mockProjectionRefresh = {
+  refreshByProductId: vi.fn(async () => undefined),
+  refreshByProductIds: vi.fn(async () => undefined),
+};
+
 vi.mock('../../repositories/ProductRepository.js', () => ({
   ProductRepository: class {
     findById(...args) {
@@ -80,6 +85,17 @@ vi.mock('../../repositories/VariantAuditRepository.js', () => ({
   },
 }));
 
+vi.mock('../ProductProjectionRefreshService.js', () => ({
+  ProductProjectionRefreshService: class {
+    refreshByProductId(...args) {
+      return mockProjectionRefresh.refreshByProductId(...args);
+    }
+    refreshByProductIds(...args) {
+      return mockProjectionRefresh.refreshByProductIds(...args);
+    }
+  },
+}));
+
 vi.mock('../../repositories/VariantImageRepository.js', () => ({
   VariantImageRepository: class {
     syncImages() {
@@ -126,6 +142,8 @@ describe('ProductCatalogService putProduct boundaries', () => {
     mockDimensionRepo.listByProduct.mockResolvedValue([]);
     mockDimensionRepo.restoreSnapshot.mockResolvedValue(undefined);
     mockAuditRepo.createBatch.mockResolvedValue(undefined);
+    mockProjectionRefresh.refreshByProductId.mockResolvedValue(undefined);
+    mockProjectionRefresh.refreshByProductIds.mockResolvedValue(undefined);
     mockProductRepo.findBySpuBatch.mockResolvedValue(new Map());
     mockProductRepo.bulkUpsertFromImport.mockResolvedValue({ successes: [], failures: [] });
     mockVariantRepo.findByProductIds.mockResolvedValue(new Map());
@@ -301,5 +319,9 @@ describe('ProductCatalogService putProduct boundaries', () => {
     expect(result.summary.failedProducts).toBe(1);
     expect(result.count).toBe(1);
     expect(result.success).toBe(true);
+    expect(mockProjectionRefresh.refreshByProductIds).toHaveBeenCalledWith(
+      ['p-created-1'],
+      expect.anything()
+    );
   });
 });

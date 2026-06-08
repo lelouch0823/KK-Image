@@ -152,6 +152,13 @@ export class ProductCatalogService {
       syncDimensionsFromPayload: this.syncDimensionsFromPayload.bind(this),
     });
 
+    if (result.success && Array.isArray(result.productIds) && result.productIds.length > 0) {
+      const { ProductProjectionRefreshService } =
+        await import('./ProductProjectionRefreshService.js');
+      const refreshService = new ProductProjectionRefreshService(this.db);
+      await refreshService.refreshByProductIds(result.productIds, c.executionCtx);
+    }
+
     if (result.success && !skipCacheInvalidation) {
       await scheduleProductCacheInvalidation(
         c,
