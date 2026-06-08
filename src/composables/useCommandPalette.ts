@@ -24,7 +24,7 @@ export interface CommandItem {
   subtitle?: string;
   icon: string;
   category: 'navigation' | 'files' | 'products' | 'orders' | 'customers' | 'actions';
-  action: () => void | Promise<void>;
+  action: () => void | Promise<unknown>;
   permission?: string;
   keywords?: string[];
 }

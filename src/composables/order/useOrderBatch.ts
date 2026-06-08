@@ -18,6 +18,9 @@ interface OrderWithStatus {
     id: string;
     status: string;
     orderNo?: string;
+    productName?: string | null;
+    salespersonName?: string | null;
+    createdAt?: string | number | null;
     [key: string]: unknown;
 }
 

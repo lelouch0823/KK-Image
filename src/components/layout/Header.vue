@@ -236,7 +236,6 @@ const openMobileSearch = async () => {
 
 const closeMobileSearch = () => {
   showMobileSearch.value = false;
-  searchQuery.value = ''; // Optional: clear on close? Or keep? Let's keep it consistent with desktop (don't clear)
 };
 
 // 点击外部关闭

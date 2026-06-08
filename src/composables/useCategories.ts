@@ -4,6 +4,7 @@ import { API } from '@/utils/constants';
 
 /** 分类节点 */
 export interface CategoryNode {
+  [key: string]: unknown;
   id: string;
   name: string;
   parent_id: string | null;

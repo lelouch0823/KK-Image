@@ -1,5 +1,7 @@
 <template>
-  <div class="flex h-screen overflow-hidden bg-(--bg-page) font-sans text-(--text-main)">
+  <div
+    class="flex h-[100dvh] min-h-[100dvh] overflow-hidden bg-(--bg-page) font-sans text-(--text-main)"
+  >
     <!-- 侧边栏 -->
     <Sidebar ref="sidebarRef" />
 

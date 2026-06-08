@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   stopPolling: vi.fn(),
   loadPermissions: vi.fn(),
   hasPermission: vi.fn(),
+  searchQuery: null,
 }));
 
 vi.mock('vue-router', () => ({
@@ -21,9 +22,13 @@ vi.mock('@/composables/useI18n', () => ({
   useI18n: () => ({ t: (key) => key }),
 }));
 
-vi.mock('@/composables/useSearch', () => ({
-  useSearch: () => ({ searchQuery: ref('') }),
-}));
+vi.mock('@/composables/useSearch', () => {
+  const searchQuery = ref('');
+  mocks.searchQuery = searchQuery;
+  return {
+    useSearch: () => ({ searchQuery }),
+  };
+});
 
 vi.mock('@/composables/useNotifications', () => ({
   useNotifications: () => ({
@@ -89,11 +94,22 @@ vi.mock('@/composables/useNotificationStream', () => ({
   }),
 }));
 
+const SearchInputStub = {
+  props: ['modelValue'],
+  emits: ['update:modelValue', 'clear'],
+  template:
+    '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+  methods: {
+    focus() {},
+  },
+};
+
 describe('Header notification mode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.loadPermissions.mockResolvedValue();
     mocks.hasPermission.mockReturnValue(false);
+    mocks.searchQuery.value = '';
   });
 
   it('switches notifications back to admin mode on mount', async () => {
@@ -102,7 +118,7 @@ describe('Header notification mode', () => {
         stubs: {
           NotificationList: true,
           AppIcon: true,
-          SearchInput: true,
+          SearchInput: SearchInputStub,
         },
       },
     });
@@ -118,5 +134,31 @@ describe('Header notification mode', () => {
 
     expect(source).toContain("import AppButton from '@/components/ui/AppButton.vue'");
     expect(source).not.toContain('<button');
+  });
+
+  it('keeps the shared search query when mobile search is dismissed', async () => {
+    mocks.searchQuery.value = 'pending order';
+    const wrapper = mount(Header, {
+      global: {
+        stubs: {
+          NotificationList: true,
+          AppIcon: true,
+          SearchInput: SearchInputStub,
+        },
+      },
+    });
+
+    await flushPromises();
+    await wrapper.find('button[aria-label="header.searchPlaceholder"]').trigger('click');
+    await flushPromises();
+
+    const cancelButton = wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('common.cancel'));
+
+    expect(cancelButton).toBeTruthy();
+    await cancelButton.trigger('click');
+
+    expect(mocks.searchQuery.value).toBe('pending order');
   });
 });
