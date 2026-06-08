@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend smoke review verification context."}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend API verification context for end-to-end checks."}

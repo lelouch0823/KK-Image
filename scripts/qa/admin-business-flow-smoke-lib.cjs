@@ -123,7 +123,7 @@ function createAdminBusinessFlowSmokeRunner(options = {}) {
         .waitFor({ state: 'visible', timeout: 30000 });
       const specNameInput = page.getByTestId('product-import-spec-name-0');
       const specColumnSelect = page.getByTestId('product-import-spec-column-0');
-      const specColumnTrigger = specColumnSelect.getByRole('button');
+      const specColumnTrigger = specColumnSelect.getByRole('combobox');
       const triggerId = await specColumnTrigger.getAttribute('id');
 
       await page.getByTestId('product-import-mode-replace').click();
@@ -131,7 +131,7 @@ function createAdminBusinessFlowSmokeRunner(options = {}) {
       await specColumnTrigger.click();
       await page
         .locator(`[data-select-id="${triggerId}"]`)
-        .getByRole('button', { name: '颜色', exact: true })
+        .getByRole('option', { name: '颜色', exact: true })
         .click();
       await page.getByTestId('product-import-confirm-mapping').click();
 
@@ -143,6 +143,28 @@ function createAdminBusinessFlowSmokeRunner(options = {}) {
         .waitFor({ state: 'visible', timeout: 30000 });
       await page.getByTestId('product-import-submit').click();
       await page.getByTestId('product-import-modal').waitFor({ state: 'hidden', timeout: 30000 });
+
+      const searchInput = page.getByTestId('product-filter-search').locator('input');
+      const searchResponse = page
+        .waitForResponse(
+          (response) => {
+            if (response.request().method() !== 'GET') return false;
+            const url = new URL(response.url());
+            return (
+              url.pathname === '/api/manage/products' &&
+              url.searchParams.get('search') === product.spu
+            );
+          },
+          { timeout: 30000 }
+        )
+        .catch(() => null);
+      await searchInput.fill(product.spu);
+      await searchResponse;
+      try {
+        await page.waitForLoadState('networkidle', { timeout: 5000 });
+      } catch {
+        // If the list was already refreshed quickly, the visible row assertion below is enough.
+      }
 
       const productListEntry = page.getByText(product.name, { exact: false }).first();
       await productListEntry.waitFor({ state: 'visible', timeout: 30000 });
@@ -198,11 +220,25 @@ function createAdminBusinessFlowSmokeRunner(options = {}) {
 
     const picker = page.getByTestId('purchase-order-product-picker-shell');
     await picker.waitFor({ state: 'visible', timeout: 30000 });
+    const pickerSearchResponse = page
+      .waitForResponse(
+        (response) => {
+          if (response.request().method() !== 'GET') return false;
+          const url = new URL(response.url());
+          return (
+            url.pathname === '/api/manage/products/variants' &&
+            url.searchParams.get('search') === product.sku
+          );
+        },
+        { timeout: 30000 }
+      )
+      .catch(() => null);
     await page
       .getByTestId('purchase-order-product-picker-search')
       .locator('input')
       .fill(product.sku);
-    const resultRow = picker
+    await pickerSearchResponse;
+    const resultRow = page
       .getByTestId(/purchase-order-product-picker-row-/)
       .filter({ hasText: product.sku })
       .first();

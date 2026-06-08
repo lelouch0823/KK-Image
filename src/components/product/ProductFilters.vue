@@ -56,6 +56,7 @@
 
     <div class="min-w-0 basis-full lg:min-w-[12rem] lg:flex-1">
       <SearchInput
+        data-testid="product-filter-search"
         :model-value="search"
         :placeholder="t('product.filters.search_placeholder')"
         size="sm"

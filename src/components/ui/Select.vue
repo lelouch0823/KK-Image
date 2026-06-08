@@ -1,5 +1,5 @@
 <template>
-  <div ref="container" class="relative">
+  <div ref="container" class="relative" v-bind="$attrs">
     <!-- Trigger -->
     <button
       :id="triggerId"
@@ -89,6 +89,10 @@
 import { ref, computed, useId, useTemplateRef, watch } from 'vue';
 import { useElementBounding } from '@vueuse/core';
 import AppIcon from '@/components/ui/AppIcon.vue';
+
+defineOptions({
+  inheritAttrs: false,
+});
 
 const props = defineProps({
   modelValue: {

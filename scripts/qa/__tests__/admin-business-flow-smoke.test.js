@@ -12,6 +12,7 @@ const {
 
 function createPageDouble(options = {}) {
   const fills = new Map();
+  const locatorKeys = [];
   const { countByKey = {}, inputValueByKey = {}, textContentByKey = {} } = options;
 
   const readOverride = (source, key) => (key in source ? source[key] : undefined);
@@ -25,6 +26,7 @@ function createPageDouble(options = {}) {
   };
 
   const createLocator = (key) => {
+    locatorKeys.push(key);
     const locator = {
       fill: vi.fn(async (value) => {
         fills.set(key, value);
@@ -67,6 +69,7 @@ function createPageDouble(options = {}) {
       waitForResponse: vi.fn(async () => ({ ok: () => true })),
     },
     fills,
+    locatorKeys,
   };
 }
 
@@ -172,7 +175,7 @@ describe('admin-business-flow-smoke-lib', () => {
   });
 
   it('imports product csv and validates the imported detail content', async () => {
-    const { page } = createPageDouble();
+    const { page, fills, locatorKeys } = createPageDouble();
     const fsModule = {
       mkdtempSync: vi.fn(() => '/tmp/kk'),
       writeFileSync: vi.fn(),
@@ -200,11 +203,18 @@ describe('admin-business-flow-smoke-lib', () => {
       expect.stringContaining('ImportedBrand'),
       'utf8'
     );
+    expect(locatorKeys).toContain('testid:product-import-spec-column-0 role:combobox:');
+    expect(locatorKeys).not.toContain('testid:product-import-spec-column-0 role:button:');
+    expect(locatorKeys).toContain('locator:[data-select-id="select-id"] role:option:颜色');
+    expect(locatorKeys).not.toContain('locator:[data-select-id="select-id"] role:button:颜色');
+    expect(fills.get('testid:product-filter-search locator:input')).toBe(
+      'spu-1'
+    );
     expect(fsModule.rmSync).toHaveBeenCalledWith('/tmp/kk', { recursive: true, force: true });
   });
 
   it('runs the purchase-order create/edit/remove helper and rejects persistence mismatches', async () => {
-    const { page } = createPageDouble();
+    const { page, fills, locatorKeys } = createPageDouble();
     const runner = createAdminBusinessFlowSmokeRunner({
       env: {
         ADMIN_BASE_URL: 'http://127.0.0.1:8080',
@@ -217,6 +227,11 @@ describe('admin-business-flow-smoke-lib', () => {
     expect(page.goto).toHaveBeenCalledWith('http://127.0.0.1:8080/admin/purchase-orders', {
       waitUntil: 'domcontentloaded',
     });
+    expect(fills.get('testid:purchase-order-product-picker-search locator:input')).toBe('sku-1');
+    expect(locatorKeys).toContain('testid:/purchase-order-product-picker-row-/');
+    expect(locatorKeys).not.toContain(
+      'testid:purchase-order-product-picker-shell testid:/purchase-order-product-picker-row-/'
+    );
 
     const { page: brokenPage } = createPageDouble({
       inputValueByKey: {
