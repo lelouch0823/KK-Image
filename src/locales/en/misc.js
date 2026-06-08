@@ -211,6 +211,8 @@ export default {
     inventory_dashboard: 'Inventory Dashboard',
     stocktakes: 'Stocktake',
     receivables: 'Receivables',
+    reminders: 'Reminder Center',
+    forbidden: 'Permission Denied',
     erp_sync: 'ERP Data Sync',
     oauth_apps: 'OAuth Apps',
   },

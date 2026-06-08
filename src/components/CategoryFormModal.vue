@@ -61,33 +61,29 @@
   </Modal>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, reactive, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppButton from '@/components/ui/AppButton.vue';
-import type { CategoryNode, CategoryPayload } from '@/composables/useCategories';
 
 const { t } = useI18n();
 
-const props = defineProps<{
-  modelValue: boolean;
-  category?: CategoryNode | null; // 编辑时传入
-  parentOptions: { value: string; label: string; level: number }[];
-}>();
+const props = defineProps({
+  modelValue: { type: Boolean, required: true },
+  category: { type: Object, default: null },
+  parentOptions: { type: Array, required: true },
+});
 
-const emit = defineEmits<{
-  'update:modelValue': [value: boolean];
-  submit: [payload: CategoryPayload & { id?: string }];
-}>();
+const emit = defineEmits(['update:modelValue', 'submit']);
 
 const submitting = ref(false);
 const isEditing = computed(() => !!props.category);
 
 const form = reactive({
   name: '',
-  parent_id: null as string | null,
+  parent_id: null,
   sort_order: 0,
 });
 

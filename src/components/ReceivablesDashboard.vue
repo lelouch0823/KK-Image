@@ -113,7 +113,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, onMounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
@@ -122,33 +122,8 @@ import { API } from '@/utils/constants';
 const { t } = useI18n();
 const { authFetch } = useAuth();
 
-interface AgingBucket {
-  label: string;
-  orderCount: number;
-  totalPaid: number;
-}
-
-interface TopDebtor {
-  customerId: string;
-  customerName: string;
-  customerCompany: string | null;
-  orderCount: number;
-  totalQuantity: number;
-  totalPaid: number;
-  outstanding: number;
-}
-
-interface ReceivablesData {
-  orderCount: number;
-  totalQuantity: number;
-  totalPaid: number;
-  totalOutstanding: number;
-  aging: AgingBucket[];
-  topDebtors: TopDebtor[];
-}
-
 const loading = ref(true);
-const summary = ref<ReceivablesData>({
+const summary = ref({
   orderCount: 0,
   totalQuantity: 0,
   totalPaid: 0,
@@ -160,7 +135,7 @@ const summary = ref<ReceivablesData>({
 /**
  * 加载应收账款数据
  */
-async function loadReceivables(): Promise<void> {
+async function loadReceivables() {
   loading.value = true;
   try {
     const res = await authFetch(API.MANAGE_RECEIVABLES);
@@ -179,8 +154,8 @@ async function loadReceivables(): Promise<void> {
 /**
  * 获取账龄标签
  */
-function getAgingLabel(label: string): string {
-  const labels: Record<string, string> = {
+function getAgingLabel(label) {
+  const labels = {
     '0-30': t('order.receivables.agingLabels.0-30'),
     '31-60': t('order.receivables.agingLabels.31-60'),
     '61-90': t('order.receivables.agingLabels.61-90'),
@@ -192,8 +167,8 @@ function getAgingLabel(label: string): string {
 /**
  * 获取账龄颜色
  */
-function getAgingColor(label: string): string {
-  const colors: Record<string, string> = {
+function getAgingColor(label) {
+  const colors = {
     '0-30': 'bg-success',
     '31-60': 'bg-warning',
     '61-90': 'bg-orange-500',
@@ -205,7 +180,7 @@ function getAgingColor(label: string): string {
 /**
  * 计算账龄百分比
  */
-function getAgingPercent(amount: number): number {
+function getAgingPercent(amount) {
   const maxAmount = Math.max(...summary.value.aging.map((b) => b.totalPaid), 1);
   return Math.min(100, (amount / maxAmount) * 100);
 }

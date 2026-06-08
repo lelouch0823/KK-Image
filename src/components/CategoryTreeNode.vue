@@ -78,27 +78,21 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
-import type { CategoryNode } from '@/composables/useCategories';
 
 const { t } = useI18n();
 
-const props = defineProps<{
-  node: CategoryNode;
-  level: number;
-  selectedId: string | null;
-}>();
+const props = defineProps({
+  node: { type: Object, required: true },
+  level: { type: Number, required: true },
+  selectedId: { type: String, default: null },
+});
 
-defineEmits<{
-  select: [id: string | null];
-  edit: [node: CategoryNode];
-  'add-child': [node: CategoryNode];
-  delete: [node: CategoryNode];
-}>();
+defineEmits(['select', 'edit', 'add-child', 'delete']);
 
 const expanded = ref(true);
 const showContextMenu = ref(false);

@@ -80,9 +80,13 @@ defineProps({
     type: Array,
     required: true,
   },
+  selectedIds: {
+    type: Object,
+    default: () => new Set(),
+  },
 });
 
-defineEmits(['share', 'delete', 'context-menu', 'preview']);
+defineEmits(['share', 'delete', 'context-menu', 'preview', 'select']);
 
 const { formatSize, formatDate, getFileExtension, isImage } = useFileManager();
 </script>

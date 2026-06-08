@@ -197,8 +197,10 @@
             <div class="lg:hidden">
               <FileCards
                 :files="displayedFiles"
+                :selected-ids="selectedIds"
                 @share="handleShareFile"
                 @delete="handleDeleteFile"
+                @select="toggleSelect"
                 @context-menu="(e, file) => openContextMenu(e, file, 'file')"
               />
             </div>
@@ -277,6 +279,8 @@ import {
   h,
 } from 'vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import ContextMenu from '@/components/ui/ContextMenu.vue';
 import FolderGrid from './FolderGrid.vue';
 import FileTable from './FileTable.vue';

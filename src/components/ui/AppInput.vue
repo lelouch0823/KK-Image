@@ -33,6 +33,7 @@
         class="block w-full rounded-lg border bg-(--bg-card) text-(--text-main) placeholder-(--text-muted) transition-all duration-150 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
         :class="[inputClasses, stateClasses, textarea ? 'resize-y' : '']"
         @input="handleInput"
+        @change="handleChange"
         @blur="handleBlur"
         @focus="$emit('focus', $event)"
       />
@@ -115,7 +116,7 @@ const props = defineProps({
   debounceMs: { type: Number, default: 300 },
 });
 
-const emit = defineEmits(['update:modelValue', 'blur', 'focus', 'validation-change']);
+const emit = defineEmits(['update:modelValue', 'change', 'blur', 'focus', 'validation-change']);
 
 const uid = useId();
 const inputId = computed(() => props.id || uid);
@@ -192,6 +193,10 @@ function handleInput(event) {
       runValidation(value);
     }, props.debounceMs);
   }
+}
+
+function handleChange(event) {
+  emit('change', event);
 }
 
 // Blur 事件处理

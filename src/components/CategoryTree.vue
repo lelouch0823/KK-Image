@@ -56,27 +56,19 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { computed } from 'vue';
+<script setup>
 import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import CategoryTreeNode from './CategoryTreeNode.vue';
-import type { CategoryNode } from '@/composables/useCategories';
 
 const { t } = useI18n();
 
-defineProps<{
-  nodes: CategoryNode[];
-  selectedId: string | null;
-  totalProductCount?: number;
-}>();
+defineProps({
+  nodes: { type: Array, required: true },
+  selectedId: { type: String, default: null },
+  totalProductCount: { type: Number, default: 0 },
+});
 
-defineEmits<{
-  select: [id: string | null];
-  edit: [node: CategoryNode];
-  'add-child': [node: CategoryNode];
-  delete: [node: CategoryNode];
-  add: [];
-}>();
+defineEmits(['select', 'edit', 'add-child', 'delete', 'add']);
 </script>

@@ -78,6 +78,8 @@ const {
         'check-circle',
         'no-symbol',
         'archive-box-x-mark',
+        'chart-bar',
+        'chart-pie',
       ].includes(v),
   },
   size: {
@@ -103,6 +105,8 @@ const appIconMap = {
   'check-circle': 'check-circle',
   'no-symbol': 'no-symbol',
   'archive-box-x-mark': 'archive-box-x-mark',
+  'chart-bar': 'chart-bar',
+  'chart-pie': 'chart-pie',
 };
 
 const appIconName = computed(() => appIconMap[icon] || 'folder');

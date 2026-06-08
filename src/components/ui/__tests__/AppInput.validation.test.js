@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import AppInput from '../AppInput.vue';
 
@@ -223,6 +223,21 @@ describe('AppInput 实时验证', () => {
       await input.trigger('blur');
 
       expect(wrapper.emitted('blur')).toBeTruthy();
+    });
+
+    it('change 事件透传给依赖提交时保存的表单', async () => {
+      const wrapper = mount(AppInput, {
+        props: {
+          modelValue: '1',
+        },
+      });
+
+      const input = wrapper.get('input');
+      input.element.value = '6';
+      await input.trigger('change');
+
+      expect(wrapper.emitted('change')).toBeTruthy();
+      expect(wrapper.emitted('change')[0][0].target.value).toBe('6');
     });
   });
 });

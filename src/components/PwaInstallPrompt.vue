@@ -37,7 +37,7 @@
   </Transition>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { getItem, setItem, removeItem } from '@/utils/storage';
@@ -46,17 +46,12 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 
 const { t } = useI18n();
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
-
 const showInstallPrompt = ref(false);
-const deferredPrompt = ref<BeforeInstallPromptEvent | null>(null);
+const deferredPrompt = ref(null);
 const DISMISS_KEY = 'pwa_install_dismissed';
 const DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 天
 
-function isDismissed(): boolean {
+function isDismissed() {
   try {
     const dismissedAt = getItem(DISMISS_KEY);
     if (!dismissedAt) return false;
@@ -66,9 +61,9 @@ function isDismissed(): boolean {
   }
 }
 
-function handleBeforeInstallPrompt(e: Event) {
+function handleBeforeInstallPrompt(e) {
   e.preventDefault();
-  deferredPrompt.value = e as BeforeInstallPromptEvent;
+  deferredPrompt.value = e;
 
   if (!isDismissed()) {
     showInstallPrompt.value = true;

@@ -69,7 +69,7 @@
                   {{ t('stats.salespersonName') }}
                 </th>
                 <th class="px-4 py-3 text-right font-semibold whitespace-nowrap">
-                  {{ t('stats.totalRevenue') }}
+                  {{ t('stats.rankedOrders') }}
                 </th>
                 <th class="px-4 py-3 text-right font-semibold whitespace-nowrap">
                   {{ t('stats.avgMonthly') }}
@@ -286,7 +286,7 @@ const renderChart = () => {
       }),
       datasets: [
         {
-          label: sortBy.value === 'avg_monthly' ? t('stats.avgMonthly') : t('stats.totalRevenue'),
+          label: sortBy.value === 'avg_monthly' ? t('stats.avgMonthly') : t('stats.rankedOrders'),
           data: data.map((item) =>
             sortBy.value === 'avg_monthly' ? item.avgMonthly : item.orderCount
           ),
@@ -313,7 +313,7 @@ const renderChart = () => {
               const value = context.parsed.x;
               return sortBy.value === 'avg_monthly'
                 ? `${value} ${t('stats.avgMonthly')}`
-                : `${value} ${t('stats.totalRevenue')}`;
+                : `${value} ${t('stats.rankedOrders')}`;
             },
           },
         },

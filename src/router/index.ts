@@ -216,7 +216,7 @@ const routes: RouteRecordRaw[] = [
                 path: 'forbidden',
                 name: 'Forbidden',
                 component: () => import('@/views/Forbidden.vue'),
-                meta: { titleKey: 'common.permissionDenied' },
+                meta: { titleKey: 'router.forbidden' },
             },
             // Admin catch-all (prevents redirect to login for auth users)
             {

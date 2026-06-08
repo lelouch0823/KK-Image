@@ -209,6 +209,7 @@
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppTableCodeChip from '@/components/ui/AppTableCodeChip.vue';

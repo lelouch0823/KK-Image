@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => ({
   reverseReceipt: vi.fn(),
   createPO: vi.fn(),
   addItems: vi.fn(),
+  updateItem: vi.fn(),
+  removeItem: vi.fn(),
   addToast: vi.fn(),
   createFromOrders: vi.fn(),
   refreshBusCallback: null,
@@ -70,8 +72,8 @@ vi.mock('@/composables/usePurchaseOrders', () => ({
     updateStatus: vi.fn(),
     loadSuggestions: mocks.loadSuggestions,
     addItems: mocks.addItems,
-    removeItem: vi.fn(),
-    updateItem: vi.fn(),
+    removeItem: mocks.removeItem,
+    updateItem: mocks.updateItem,
     recordReceipts: vi.fn(),
     reverseReceipt: mocks.reverseReceipt,
     closeShortages: vi.fn(),
@@ -205,6 +207,8 @@ describe('PurchaseOrders detail shell', () => {
     mocks.reverseReceipt.mockResolvedValue({ reversal_id: 'reversal-1' });
     mocks.createPO.mockResolvedValue({ id: 'po-created' });
     mocks.addItems.mockResolvedValue(true);
+    mocks.updateItem.mockResolvedValue(true);
+    mocks.removeItem.mockResolvedValue(true);
     mocks.createFromOrders.mockResolvedValue({ id: 'po-from-suggestions' });
   });
 
@@ -831,6 +835,34 @@ describe('PurchaseOrders detail shell', () => {
 
     expect(mocks.reverseReceipt).toHaveBeenCalledWith('po-1', 'receipt-1', { reason: undefined });
     expect(mocks.refreshPurchaseOrderViews).toHaveBeenCalledWith('po-1');
+  });
+
+  it('normalizes draft detail item numeric updates before sending the PATCH payload', async () => {
+    mocks.detailState.detailLoading = false;
+    mocks.detailState.detail = {
+      id: 'po-1',
+      po_no: 'PO-20260312-001',
+      status: 'draft',
+      items: [{ id: 'item-1', quantity: 1, unit_cost: 50 }],
+      receipts: [],
+    };
+
+    const wrapper = mountPurchaseOrdersShell();
+
+    await wrapper.vm.handleDetailUpdateItem('item-1', 'quantity', '6');
+    await wrapper.vm.handleDetailUpdateItem('item-1', 'unit_cost', '47');
+
+    expect(mocks.updateItem).toHaveBeenNthCalledWith(1, 'po-1', 'item-1', { quantity: 6 });
+    expect(mocks.updateItem).toHaveBeenNthCalledWith(2, 'po-1', 'item-1', { unit_cost: 47 });
+    expect(mocks.refreshPurchaseOrderViews).toHaveBeenCalledWith('po-1');
+  });
+
+  it('force-refreshes purchase-order detail whenever the detail drawer is opened', async () => {
+    const wrapper = mountPurchaseOrdersShell();
+
+    await wrapper.vm.openDetail('po-1');
+
+    expect(mocks.loadDetail).toHaveBeenCalledWith('po-1', { forceRefresh: true });
   });
 
   it('hides shortage-closure entry when no receivable lines remain', () => {

@@ -210,6 +210,8 @@ export default {
     inventory_dashboard: '库存预警看板',
     stocktakes: '库存盘点',
     receivables: '应收账款',
+    reminders: '提醒中心',
+    forbidden: '权限不足',
     erp_sync: 'ERP 数据同步',
     oauth_apps: 'OAuth 应用管理',
   },

@@ -54,7 +54,7 @@ export default {
   salesRanking: 'Sales Performance Ranking',
   rank: 'Rank',
   salespersonName: 'Salesperson',
-  totalRevenue: 'Total Orders',
+  rankedOrders: 'Total Orders',
   avgMonthly: 'Avg/Month',
   last7Days: 'Last 7D',
   last30Days: 'Last 30D',

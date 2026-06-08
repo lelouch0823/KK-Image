@@ -53,7 +53,7 @@ export default {
   salesRanking: '销售业绩排行',
   rank: '排名',
   salespersonName: '销售员',
-  totalRevenue: '总订单',
+  rankedOrders: '总订单',
   avgMonthly: '月均订单',
   last7Days: '近7天',
   last30Days: '近30天',

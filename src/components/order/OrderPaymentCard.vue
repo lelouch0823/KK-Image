@@ -171,23 +171,21 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
-import { usePayments, type Payment, type PaymentSummary } from '@/composables/usePayments';
+import { usePayments } from '@/composables/usePayments';
 import AppButton from '@/components/ui/AppButton.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import { formatDate } from '@/utils/formatters';
 
-const props = defineProps<{
-  orderId: string;
-  initialPayments?: Payment[];
-  initialSummary?: PaymentSummary;
-}>();
+const props = defineProps({
+  orderId: { type: String, required: true },
+  initialPayments: { type: Array, default: null },
+  initialSummary: { type: Object, default: null },
+});
 
-const emit = defineEmits<{
-  'payment-changed': [];
-}>();
+const emit = defineEmits(['payment-changed']);
 
 const { t } = useI18n();
 
@@ -247,8 +245,8 @@ watch(
 /**
  * 获取付款方式标签
  */
-function getMethodLabel(method: string): string {
-  const labels: Record<string, string> = {
+function getMethodLabel(method) {
+  const labels = {
     cash: t('order.payment.methods.cash'),
     bank: t('order.payment.methods.bank'),
     wechat: t('order.payment.methods.wechat'),
@@ -261,7 +259,7 @@ function getMethodLabel(method: string): string {
 /**
  * 取消添加
  */
-function cancelAdd(): void {
+function cancelAdd() {
   showAddForm.value = false;
   form.value = {
     amount: 0,
@@ -274,7 +272,7 @@ function cancelAdd(): void {
 /**
  * 提交付款
  */
-async function handleSubmit(): Promise<void> {
+async function handleSubmit() {
   if (!isValid.value) return;
 
   const success = await addPayment({
@@ -293,7 +291,7 @@ async function handleSubmit(): Promise<void> {
 /**
  * 删除付款记录
  */
-async function handleDelete(paymentId: string): Promise<void> {
+async function handleDelete(paymentId) {
   confirmData.value = {
     show: true,
     title: t('common.confirmTitle'),

@@ -588,7 +588,7 @@ const { suggestionSummaryCards } = usePurchaseOrderSuggestionPresentation({
 const openDetail = async (id) => {
   detailRequestId.value = String(id || '').trim();
   showDetail.value = true;
-  await loadDetail(id);
+  await loadDetail(id, { forceRefresh: true });
 };
 
 // 分页切换时只修改 page，并复用同一套 loadList 查询。
@@ -714,10 +714,20 @@ const detailHelpers = {
   canReverseReceipt,
 };
 
+const normalizeDetailItemUpdateValue = (field, value) => {
+  if (field !== 'quantity' && field !== 'unit_cost') return value;
+  if (value === '' || value === null || value === undefined) return value;
+
+  const numericValue = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numericValue) ? numericValue : value;
+};
+
 // 详情里的条目修改只允许发生在 draft 态，变更成功后强制刷新视图快照。
 const handleDetailUpdateItem = async (itemId, field, value) => {
   if (!detail.value || detail.value.status !== 'draft') return;
-  const success = await updateItem(detail.value.id, itemId, { [field]: value });
+  const success = await updateItem(detail.value.id, itemId, {
+    [field]: normalizeDetailItemUpdateValue(field, value),
+  });
   if (success) {
     await refreshPurchaseOrderViews(detail.value.id);
   }
