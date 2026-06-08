@@ -11,6 +11,9 @@ type DashboardChartPalette = {
   warning: string;
   danger: string;
   info: string;
+  chartProduction: string;
+  chartShipping: string;
+  chartDelivered: string;
   border: string;
   textMain: string;
   textSecondary: string;
@@ -53,6 +56,18 @@ const COLOR_TOKEN_CONFIG = {
     tokens: ['--color-info', '--color-chart-2'],
     fallback: 'rgb(59, 130, 246)',
   },
+  chartProduction: {
+    tokens: ['--color-chart-production'],
+    fallback: 'rgb(124, 100, 190)',
+  },
+  chartShipping: {
+    tokens: ['--color-chart-shipping'],
+    fallback: 'rgb(6, 182, 212)',
+  },
+  chartDelivered: {
+    tokens: ['--color-chart-delivered'],
+    fallback: 'rgb(34, 197, 94)',
+  },
   border: {
     tokens: ['--border-color', '--color-chart-grid'],
     fallback: 'rgb(229, 231, 235)',
@@ -82,6 +97,18 @@ const STATUS_TONE_PALETTE_KEYS: Record<string, keyof DashboardChartPalette> = {
   primary: 'primary',
   success: 'success',
   warning: 'warning',
+};
+
+const STATUS_CHART_PALETTE_KEYS: Record<string, keyof DashboardChartPalette> = {
+  pending: 'warning',
+  confirmed: 'info',
+  production: 'chartProduction',
+  shipping: 'chartShipping',
+  arrived: 'success',
+  fulfilled: 'success',
+  delivered: 'chartDelivered',
+  rejected: 'danger',
+  void: 'textMuted',
 };
 
 function getTranslate(t?: TranslateFn): TranslateFn {
@@ -200,6 +227,10 @@ export function resolveDashboardStatusColor(
   status: unknown,
   palette: DashboardChartPalette = getDashboardChartPalette()
 ): string {
+  const raw = String(status || '').trim();
+  const statusPaletteKey = STATUS_CHART_PALETTE_KEYS[raw];
+  if (statusPaletteKey && palette[statusPaletteKey]) return palette[statusPaletteKey];
+
   const tone = getStatusVariant(status);
   const paletteKey = STATUS_TONE_PALETTE_KEYS[tone] || 'textMuted';
   return palette[paletteKey] || palette.textMuted;

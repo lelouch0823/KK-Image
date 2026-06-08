@@ -9,6 +9,7 @@ import {
   hexToRgbChannels,
   readDashboardCssColor,
   readDashboardCssColorChain,
+  resolveDashboardStatusColor,
   withAlpha,
 } from '../dashboard-charts';
 
@@ -24,6 +25,9 @@ describe('dashboard chart helpers', () => {
     textSecondary: '#666666',
     textMuted: '#6b7280',
     bgElevated: '#ffffff',
+    chartProduction: '#7c64be',
+    chartShipping: '#06b6d4',
+    chartDelivered: '#22c55e',
   };
 
   const t = (key, fallback) => {
@@ -102,6 +106,16 @@ describe('dashboard chart helpers', () => {
     expect(data.labels).toEqual(['待处理', 'Manual Review Required']);
     expect(data.datasets[0].data).toEqual([2, 1]);
     expect(data.datasets[0].backgroundColor).toEqual([palette.warning, palette.textMuted]);
+  });
+
+  it('preserves distinct dashboard chart colors for concrete order statuses', () => {
+    expect(resolveDashboardStatusColor('pending', palette)).toBe(palette.warning);
+    expect(resolveDashboardStatusColor('confirmed', palette)).toBe(palette.info);
+    expect(resolveDashboardStatusColor('production', palette)).toBe(palette.chartProduction);
+    expect(resolveDashboardStatusColor('shipping', palette)).toBe(palette.chartShipping);
+    expect(resolveDashboardStatusColor('arrived', palette)).toBe(palette.success);
+    expect(resolveDashboardStatusColor('delivered', palette)).toBe(palette.chartDelivered);
+    expect(resolveDashboardStatusColor('manual_review_required', palette)).toBe(palette.textMuted);
   });
 
   it('builds sales trend Chart.js config without component-local assembly', () => {
