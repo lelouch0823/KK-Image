@@ -121,7 +121,7 @@ describe('AuditLogs view behavior', () => {
                 <div v-for="row in data" :key="row.id" data-testid="audit-row">
                   <slot name="cell-created_at" :value="row.created_at" />
                   <slot name="cell-actor_display" :value="row.actor_display" :row="row" />
-                  <slot name="cell-action" :value="row.action" />
+                  <slot name="cell-action" :value="row.action" :row="row" />
                   <slot name="cell-result" :value="row.result" />
                   <slot name="cell-severity" :value="row.severity" />
                   <slot name="cell-target" :row="row" />
@@ -173,7 +173,9 @@ describe('AuditLogs view behavior', () => {
     expect(mocks.authFetch).toHaveBeenNthCalledWith(2, '/api/manage/audit-logs/actions');
     expect(wrapper.text()).toContain('Audit Logs');
     expect(wrapper.text()).toContain('Admin');
-    expect(wrapper.text()).toContain('order.create');
+    expect(wrapper.text()).toContain('创建订单');
+    expect(wrapper.text()).toContain('订单 / SO-1');
+    expect(wrapper.text()).toContain('备注：created');
     expect(wrapper.find('[data-variant="success"]').exists()).toBe(true);
   });
 

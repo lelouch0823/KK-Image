@@ -66,9 +66,9 @@
           <div class="text-xs text-(--text-muted)">{{ row.actor_type || '-' }}</div>
         </template>
 
-        <template #cell-action="{ value }">
-          <StatusBadge :variant="actionBadgeVariant(value)">
-            {{ value }}
+        <template #cell-action="{ row }">
+          <StatusBadge :variant="actionBadgeVariant(row.action)" :title="row.action">
+            {{ row.action_display }}
           </StatusBadge>
         </template>
 
@@ -86,10 +86,7 @@
 
         <template #cell-target="{ row }">
           <span class="text-(--text-secondary)">
-            {{ row.target_type
-            }}<span v-if="row.target_label || row.target_id" class="text-(--text-muted)">
-              / {{ row.target_label || row.target_id }}</span
-            >
+            {{ row.target_display }}
           </span>
         </template>
 
@@ -99,7 +96,7 @@
 
         <template #cell-details="{ row }">
           <div class="max-w-xs truncate text-xs text-(--text-muted)">
-            {{ formatAuditDetails(row) }}
+            {{ row.details_display }}
           </div>
         </template>
 
@@ -142,7 +139,7 @@ import AppSelect from '@/components/ui/Select.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
-import { formatAuditDetails, normalizeAuditRow } from '@/utils/audit-log';
+import { formatAuditAction, normalizeAuditRow } from '@/utils/audit-log';
 import { formatDate } from '@/utils/formatters';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 import { ErrorCode } from '@/utils/error-codes';
@@ -162,7 +159,7 @@ const availableActions = ref([]);
 const pagination = ref({ page: 1, pageSize: 50, total: 0, totalPages: 1 });
 const actionOptions = computed(() => [
   { value: '', label: t('auditLogs.allActions') },
-  ...availableActions.value.map((action) => ({ value: action, label: action })),
+  ...availableActions.value.map((action) => ({ value: action, label: formatAuditAction(action) })),
 ]);
 const resultOptions = computed(() => [
   { value: '', label: t('auditLogs.allResults') },
