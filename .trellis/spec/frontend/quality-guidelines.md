@@ -103,3 +103,38 @@ const emit = defineEmits(['updated']);
 - Use runtime `defineProps({ ... })` and `defineEmits([...])` in `.vue` files.
 - Keep SFC helper maps and function signatures as plain JavaScript.
 - If the project adopts TypeScript SFC syntax later, add and validate the matching ESLint parser/config in the same change.
+
+---
+
+## Convention: Audit Log Tables Render Display Fields
+
+**What**: Audit log UI must render normalized display fields from `src/utils/audit-log.ts` instead of raw backend codes.
+
+**Why**: Backend audit fields such as `action`, `target_type`, `changes_json`, and `metadata_json` are storage/filtering contracts. Showing raw values like `admin.auth.login`, `purchase_order.item.delete`, or JSON blobs leaks implementation detail into the admin UI.
+
+**Required pattern**:
+
+```js
+logs.value = (json.data || []).map((row) => normalizeAuditRow(row));
+```
+
+Render:
+
+```vue
+{{ row.action_display }}
+{{ row.target_display }}
+{{ row.details_display }}
+```
+
+Use raw fields only for behavior that needs backend contracts, such as action filtering, badge tone selection, or debug titles:
+
+```js
+{ value: action, label: formatAuditAction(action) }
+```
+
+**Checklist**:
+
+- Add or update mappings in `src/utils/audit-log.ts` when introducing new audit action families.
+- Keep action filter option `value` as the raw action code, but show a friendly `label`.
+- Keep detail formatting resilient to malformed legacy JSON.
+- Add regression tests in the audit behavior tests when changing action, target, summary, or details display.
