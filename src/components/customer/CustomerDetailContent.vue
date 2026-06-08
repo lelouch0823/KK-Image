@@ -10,11 +10,11 @@
             </h2>
             <!-- RFM 分段徽章 -->
             <StatusBadge v-if="stats?.segment" :variant="segmentVariant" dot>
-              {{ t(`customer.detail.segment${segmentLabel}`) }}
+              {{ segmentDisplayLabel }}
             </StatusBadge>
           </div>
-          <p v-if="stats?.segment" class="mt-0.5 text-xs text-(--text-secondary)">
-            {{ t(`customer.detail.segment${segmentLabel}Desc`) }}
+          <p v-if="segmentDisplayDescription" class="mt-0.5 text-xs text-(--text-secondary)">
+            {{ segmentDisplayDescription }}
           </p>
         </div>
         <div class="ml-3 flex h-7 items-center">
@@ -102,7 +102,7 @@
             />
             <MetricTile
               :label="t('customer.detail.segment')"
-              :value="t(`customer.detail.segment${segmentLabel}`)"
+              :value="segmentDisplayLabel"
               :icon="segmentIcon"
               :tone="segmentVariant"
               flat
@@ -500,6 +500,10 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import {
+  formatCustomerSegmentDescription,
+  formatCustomerSegmentLabel,
+} from '@/utils/display-labels';
 
 const props = defineProps({
   customer: { type: Object, default: () => ({}) },
@@ -547,10 +551,11 @@ const tabs = computed(() => [
 ]);
 
 // RFM 分段相关计算属性
-const segmentLabel = computed(() => {
-  const map = { vip: 'Vip', active: 'Active', 'at-risk': 'AtRisk', lost: 'Lost', new: 'New' };
-  return map[stats.value?.segment] || 'New';
-});
+const segmentDisplayLabel = computed(() => formatCustomerSegmentLabel(t, stats.value?.segment));
+
+const segmentDisplayDescription = computed(() =>
+  formatCustomerSegmentDescription(t, stats.value?.segment)
+);
 
 const segmentVariant = computed(() => {
   const map = {

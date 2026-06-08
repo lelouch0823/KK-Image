@@ -3,16 +3,18 @@ import { mount } from '@vue/test-utils';
 import OrderProcurementBadge from '@/components/order/OrderProcurementBadge.vue';
 
 vi.mock('@/composables/useI18n', () => ({
-  useI18n: () => ({ t: (key) => key }),
+  useI18n: () => ({ t: (key, fallback) => fallback || key }),
 }));
 
 describe('OrderProcurementBadge', () => {
-  it('renders fallback none for unknown status', () => {
+  it('renders unknown procurement status as a readable label', () => {
     const wrapper = mount(OrderProcurementBadge, {
-      props: { status: 'unexpected' },
+      props: { status: 'supplier_quality_hold' },
     });
 
-    expect(wrapper.text()).toContain('order.procurementStatuses.none');
+    expect(wrapper.text()).toContain('Supplier Quality Hold');
+    expect(wrapper.text()).not.toContain('order.procurementStatuses.supplier_quality_hold');
+    expect(wrapper.text()).not.toContain('supplier_quality_hold');
   });
 
   it('renders explicit procurement status label', () => {
@@ -21,7 +23,7 @@ describe('OrderProcurementBadge', () => {
     });
 
     expect(wrapper.text()).toContain('order.procurementStatus');
-    expect(wrapper.text()).toContain('order.procurementStatuses.ordered');
+    expect(wrapper.text()).toContain('Ordered');
   });
 
   it('renders line-level display statuses without falling back to none', () => {
@@ -29,7 +31,7 @@ describe('OrderProcurementBadge', () => {
       props: { status: 'partially_received' },
     });
 
-    expect(wrapper.text()).toContain('order.procurementStatuses.partially_received');
+    expect(wrapper.text()).toContain('Partially Received');
   });
 
   it('supports a lightweight meta appearance for dense lists', () => {
@@ -37,7 +39,7 @@ describe('OrderProcurementBadge', () => {
       props: { status: 'partially_received', preset: 'meta' },
     });
 
-    expect(wrapper.text()).toContain('order.procurementStatuses.partially_received');
+    expect(wrapper.text()).toContain('Partially Received');
     expect(wrapper.classes()).toContain('whitespace-nowrap');
     expect(wrapper.find('span > span').exists()).toBe(true);
   });
@@ -47,7 +49,7 @@ describe('OrderProcurementBadge', () => {
       props: { status: 'ordered', preset: 'line' },
     });
 
-    expect(wrapper.text()).toContain('order.procurementStatuses.ordered');
+    expect(wrapper.text()).toContain('Ordered');
     expect(wrapper.classes()).toContain('whitespace-nowrap');
     expect(wrapper.classes()).toContain('!text-xs');
   });

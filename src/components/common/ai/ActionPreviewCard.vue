@@ -98,6 +98,10 @@ function buildGridSection(title, entries) {
   return rows.length > 0 ? { title, layout: 'grid', rows } : null;
 }
 
+function resolvePurchaseItemLabel(item) {
+  return toText(item.variant_query || item.product_name || item.variant_name || '已选择商品');
+}
+
 function buildItemsSection(items = []) {
   if (!Array.isArray(items) || items.length === 0) return null;
   return {
@@ -107,7 +111,7 @@ function buildItemsSection(items = []) {
       .map((item, index) => ({
         key: `${item.product_id || item.variant_id || item.variant_query || 'item'}-${index}`,
         label: `明细 ${index + 1}`,
-        value: toText(item.variant_query || item.product_name || item.product_id || '-'),
+        value: resolvePurchaseItemLabel(item),
         meta:
           item.unit_cost !== undefined && item.unit_cost !== null ? toText(item.unit_cost) : null,
       }))

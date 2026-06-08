@@ -110,7 +110,7 @@
         <!-- 成本来源标记 -->
         <div class="mt-1.5 flex items-center gap-1">
           <span class="rounded px-1.5 py-0.5 text-xs" :class="costSourceClass(line.costSource)">
-            {{ t(`order.profit.costSources.${line.costSource}`) }}
+            {{ formatOrderCostSourceLabel(t, line.costSource) }}
           </span>
           <span v-if="line.margin !== null" class="text-xs text-(--text-muted)">
             {{ t('order.profit.lineMargin') }}: {{ line.margin }}%
@@ -126,6 +126,7 @@ import { ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import { formatOrderCostSourceLabel } from '@/utils/display-labels';
 
 const props = defineProps({
   profit: {

@@ -4,7 +4,7 @@ import { defineComponent } from 'vue';
 import OrderListStatusStack from '@/components/order/OrderListStatusStack.vue';
 
 vi.mock('@/composables/useI18n', () => ({
-  useI18n: () => ({ t: (key) => key }),
+  useI18n: () => ({ t: (key, fallback) => fallback || key }),
 }));
 
 const StatusChangerStub = defineComponent({
@@ -118,11 +118,36 @@ describe('OrderListStatusStack', () => {
 
     const statusBadge = wrapper.getComponent(StatusPillStub);
     expect(statusBadge.props('variant')).toBe('warning');
-    expect(statusBadge.props('title')).toBe('order.statuses.pending');
-    expect(wrapper.get('[data-testid="status-badge"]').text()).toContain('order.statuses.pending');
+    expect(statusBadge.props('title')).toBe('Pending');
+    expect(wrapper.get('[data-testid="status-badge"]').text()).toContain('Pending');
 
     const procurementBadge = wrapper.getComponent(ProcurementBadgeStub);
     expect(procurementBadge.props('preset')).toBe('line');
     expect(wrapper.findComponent(DeliveryBadgeStub).exists()).toBe(false);
+  });
+
+  it('renders unknown readonly order status as a readable label', () => {
+    const wrapper = mount(OrderListStatusStack, {
+      props: {
+        status: 'manual_review_required',
+        procurementStatus: 'none',
+        deliveryStatus: 'not_shipped',
+        mode: 'list',
+      },
+      global: {
+        stubs: {
+          OrderStatusChanger: StatusChangerStub,
+          OrderProcurementBadge: ProcurementBadgeStub,
+          OrderDeliveryStatusBadge: DeliveryBadgeStub,
+          AppTableStatusPill: StatusPillStub,
+        },
+      },
+    });
+
+    const statusBadge = wrapper.getComponent(StatusPillStub);
+    expect(statusBadge.props('title')).toBe('Manual Review Required');
+    expect(wrapper.get('[data-testid="status-badge"]').text()).toContain('Manual Review Required');
+    expect(wrapper.text()).not.toContain('order.statuses.manual_review_required');
+    expect(wrapper.text()).not.toContain('manual_review_required');
   });
 });

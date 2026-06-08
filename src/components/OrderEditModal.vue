@@ -19,7 +19,7 @@
           class="rounded-full border px-2.5 py-0.5 text-xs font-medium"
           :class="getStatusBadgeClass(form.status)"
         >
-          {{ t(`order.statuses.${form.status}`) }}
+          {{ formatOrderStatusLabel(t, form.status) }}
         </span>
       </div>
     </template>
@@ -174,6 +174,7 @@ import { resolveSelectedVariantMainImageSrc } from '@/utils/product-image.js';
 import { ORDER_BOUND_SNAPSHOT_FIELDS } from '@/utils/order-binding-fields.js';
 import { useSalesToken } from '@/composables/useSalesToken';
 import { parseJsonObject } from '@/utils/json.js';
+import { formatOrderStatusLabel } from '@/utils/display-labels';
 import Modal from '@/components/ui/Modal.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';

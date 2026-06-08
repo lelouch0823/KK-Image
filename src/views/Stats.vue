@@ -298,7 +298,7 @@
                   <span
                     class="inline-flex items-center rounded-md bg-(--bg-muted) px-2 py-1 text-xs font-medium text-(--text-secondary) ring-1 ring-(--border-color) ring-inset"
                   >
-                    {{ row.type?.split('/')[1]?.toUpperCase() || 'UNKNOWN' }}
+                    {{ formatFileTypeLabel(row.type) }}
                   </span>
                 </template>
                 <template #cell-index="{ index }">
@@ -342,6 +342,7 @@ import StatsChartWrapper from '@/views/stats/StatsChartWrapper.vue';
 import SalesRanking from '@/views/stats/SalesRanking.vue';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
+import { formatFileTypeLabel } from '@/utils/display-labels';
 
 const readCssColor = (token, fallback) => {
   if (typeof document === 'undefined') return fallback;
@@ -537,7 +538,7 @@ const createCharts = () => {
     typeChartInstance = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: typeData.map((i) => i.type.toUpperCase().split('/')[1] || i.type),
+        labels: typeData.map((i) => formatFileTypeLabel(i.type)),
         datasets: [
           {
             data: typeData.map((i) => i.count),

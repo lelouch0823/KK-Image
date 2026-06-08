@@ -4,7 +4,7 @@ import ProductGrid from '../ProductGrid.vue';
 
 vi.mock('@/composables/useI18n', () => ({
   useI18n: () => ({
-    t: (key) => key,
+    t: (key, fallback) => fallback || key,
   }),
 }));
 
@@ -66,5 +66,34 @@ describe('ProductGrid available stock projection', () => {
 
     expect(wrapper.text()).toContain('product.table.header.stock: 2');
     expect(wrapper.text()).not.toContain('product.stats.low_stock');
+  });
+
+  it('renders unknown product status as a readable label instead of an i18n key', () => {
+    const wrapper = mount(ProductGrid, {
+      props: {
+        products: [
+          {
+            id: 'p-1',
+            name: 'Chair',
+            spu: 'SPU-1',
+            status: 'seasonal_archive_review',
+            price: 100,
+            stock_quantity: 10,
+          },
+        ],
+      },
+      global: {
+        stubs: {
+          AppButton: { template: '<button><slot name="icon-left" /><slot /></button>' },
+          AppImage: { template: '<img />' },
+          AppIcon: { template: '<i />' },
+          StatusBadge: { template: '<span><slot /></span>' },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain('Seasonal Archive Review');
+    expect(wrapper.text()).not.toContain('product.filters.status.seasonal_archive_review');
+    expect(wrapper.text()).not.toContain('seasonal_archive_review');
   });
 });

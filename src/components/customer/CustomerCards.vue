@@ -25,7 +25,7 @@
                   class="inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-bold"
                   :class="segmentClasses(customer.segment)"
                 >
-                  {{ t(`customer.detail.segment${segmentLabelMap[customer.segment]}`) }}
+                  {{ formatCustomerSegmentLabel(t, customer.segment) }}
                 </span>
               </div>
               <div class="mt-1 text-xs font-medium text-(--text-secondary)">
@@ -94,6 +94,7 @@ import Skeleton from '@/components/ui/Skeleton.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppCard from '@/components/ui/AppCard.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import { formatCustomerSegmentLabel } from '@/utils/display-labels';
 
 defineProps({
   data: {
@@ -109,15 +110,6 @@ defineProps({
 defineEmits(['detail', 'edit']);
 
 const { t } = useI18n();
-
-// RFM 分段标签映射
-const segmentLabelMap = {
-  vip: 'Vip',
-  active: 'Active',
-  'at-risk': 'AtRisk',
-  lost: 'Lost',
-  new: 'New',
-};
 
 // RFM 分段样式
 const segmentClasses = (segment) => {

@@ -15,7 +15,7 @@
             :style="{ backgroundColor: getStatusHexColor(key) }"
           ></span>
           <span class="text-sm text-(--text-secondary)"
-            >{{ t(`order.statuses.${key}`) }}: {{ value }}</span
+            >{{ formatOrderStatusLabel(t, key) }}: {{ value }}</span
           >
         </div>
       </div>
@@ -32,6 +32,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { useI18n } from '@/composables/useI18n';
 import { getStatusHexColor } from '@/utils/status';
 import Modal from '@/components/ui/Modal.vue';
+import { formatOrderStatusLabel } from '@/utils/display-labels';
 
 // Register ChartJS components
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -57,7 +58,7 @@ const hasData = computed(() => {
 });
 
 const chartData = computed(() => {
-  const labels = Object.keys(props.distribution).map((k) => t(`order.statuses.${k}`));
+  const labels = Object.keys(props.distribution).map((k) => formatOrderStatusLabel(t, k));
   const data = Object.values(props.distribution);
   const backgroundColor = Object.keys(props.distribution).map((k) => getStatusHexColor(k));
 

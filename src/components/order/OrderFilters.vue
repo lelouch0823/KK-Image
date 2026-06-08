@@ -159,6 +159,11 @@ import Select from '@/components/ui/Select.vue';
 import AppFilterBar from '@/components/ui/AppFilterBar.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import {
+  formatOrderDeliveryStatusLabel,
+  formatOrderProcurementStatusLabel,
+  formatOrderStatusLabel,
+} from '@/utils/display-labels';
 
 const {
   filters,
@@ -237,7 +242,7 @@ const statusOptions = computed(() => [
     label: isMobile.value ? t('order.manage.statusShort') : t('order.manage.allStatuses'),
     value: '',
   },
-  ...statuses.map((s) => ({ label: t(`order.statuses.${s}`), value: s })),
+  ...statuses.map((s) => ({ label: formatOrderStatusLabel(t, s), value: s })),
 ]);
 
 const procurementStatusOptions = computed(() => [
@@ -247,7 +252,7 @@ const procurementStatusOptions = computed(() => [
       : t('order.manage.allProcurementStatuses'),
     value: '',
   },
-  ...procurementStatuses.map((s) => ({ label: t(`order.procurementStatuses.${s}`), value: s })),
+  ...procurementStatuses.map((s) => ({ label: formatOrderProcurementStatusLabel(t, s), value: s })),
 ]);
 
 const deliveryStatusOptions = computed(() => [
@@ -257,7 +262,7 @@ const deliveryStatusOptions = computed(() => [
       : t('order.manage.allDeliveryStatuses'),
     value: '',
   },
-  ...deliveryStatuses.map((s) => ({ label: t(`order.deliveryStatuses.${s}`), value: s })),
+  ...deliveryStatuses.map((s) => ({ label: formatOrderDeliveryStatusLabel(t, s), value: s })),
 ]);
 </script>
 

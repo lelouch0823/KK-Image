@@ -52,9 +52,9 @@
 
       <template #cell-type="{ value }">
         <span
-          class="inline-flex rounded bg-(--bg-muted) px-2 py-0.5 text-xs text-(--text-secondary) uppercase"
+          class="inline-flex rounded bg-(--bg-muted) px-2 py-0.5 text-xs text-(--text-secondary)"
         >
-          {{ value?.split('/')[1] || 'FILE' }}
+          {{ formatFileTypeLabel(value) }}
         </span>
       </template>
 
@@ -99,6 +99,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppImage from '@/components/ui/AppImage.vue';
+import { formatFileTypeLabel } from '@/utils/display-labels';
 
 defineProps({
   files: {

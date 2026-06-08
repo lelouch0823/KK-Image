@@ -6,7 +6,7 @@
   >
     <span class="size-1.5 rounded-full" :class="metaDotClass"></span>
     <span v-if="resolvedShowLabel" class="opacity-75">{{ t('order.procurementStatus') }}</span>
-    <span>{{ t(`order.procurementStatuses.${normalizedStatus}`) }}</span>
+    <span>{{ formatOrderProcurementStatusLabel(t, displayStatus) }}</span>
   </span>
   <StatusBadge
     v-else
@@ -18,7 +18,7 @@
     <span v-if="resolvedShowLabel" class="mr-1 text-xs font-medium opacity-80">
       {{ t('order.procurementStatus') }}
     </span>
-    {{ t(`order.procurementStatuses.${normalizedStatus}`) }}
+    {{ formatOrderProcurementStatusLabel(t, displayStatus) }}
   </StatusBadge>
 </template>
 
@@ -30,6 +30,7 @@ import {
   normalizeProcurementStatus,
   getProcurementStatusVariant,
 } from '@/utils/procurement-status';
+import { formatOrderProcurementStatusLabel } from '@/utils/display-labels';
 
 const props = defineProps({
   status: {
@@ -65,6 +66,7 @@ const props = defineProps({
 const { t } = useI18n();
 
 const normalizedStatus = computed(() => normalizeProcurementStatus(props.status));
+const displayStatus = computed(() => String(props.status || normalizedStatus.value).trim());
 const normalizedVariant = computed(() => getProcurementStatusVariant(normalizedStatus.value));
 
 const presetConfig = computed(() => {

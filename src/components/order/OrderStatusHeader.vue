@@ -63,7 +63,7 @@
         </div>
       </div>
       <StatusBadge class="shrink-0" :variant="getStatusVariant(status)" size="md" dot>
-        {{ t(`order.statuses.${status}`) }}
+        {{ formatOrderStatusLabel(t, status) }}
       </StatusBadge>
     </div>
 
@@ -93,7 +93,7 @@
               index <= currentStepIndex ? 'text-primary font-medium' : 'text-(--text-secondary)'
             "
           >
-            {{ t(`order.statuses.${step}`) }}
+            {{ formatOrderStatusLabel(t, step) }}
           </span>
         </div>
       </div>
@@ -112,6 +112,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import OrderProcurementBadge from './OrderProcurementBadge.vue';
 import OrderDeliveryStatusBadge from './OrderDeliveryStatusBadge.vue';
+import { formatOrderStatusLabel } from '@/utils/display-labels';
 
 const props = defineProps({
   orderNo: {

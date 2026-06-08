@@ -266,6 +266,66 @@ describe('Stats view behavior', () => {
     expect(mocks.Chart.mock.calls[1][1].data.labels).toContain('Other');
   });
 
+  it('formats verbose MIME types as readable file type labels', async () => {
+    mocks.authFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          storage: {
+            totalFiles: 1,
+            totalSize: 2048,
+            todayUploads: 0,
+            largeFiles: [
+              {
+                id: 'file-1',
+                name: 'stocktake.xlsx',
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                size: 2048,
+              },
+            ],
+          },
+          business: {
+            totalOrders: 0,
+            pendingOrders: 0,
+            fulfilledOrders: 0,
+            activeSalespersons: 0,
+          },
+          traffic: {
+            monthTotal: 0,
+            daily: {},
+            topSpaces: [],
+          },
+          health: {
+            status: {
+              normal: 0,
+              blocked: 0,
+              whitelisted: 0,
+              liked: 0,
+            },
+            fileTypes: [
+              {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                count: 1,
+              },
+            ],
+          },
+        },
+      }),
+    });
+
+    const wrapper = createWrapper();
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(100);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Excel Spreadsheet');
+    expect(wrapper.text()).not.toContain('VND.OPENXMLFORMATS');
+    expect(mocks.Chart.mock.calls[1][1].data.labels).toContain('Excel Spreadsheet');
+    expect(mocks.Chart.mock.calls[1][1].data.labels).not.toContain(
+      'VND.OPENXMLFORMATS-OFFICEDOCUMENT.SPREADSHEETML.SHEET'
+    );
+  });
+
   it('shows forbidden state when stats endpoint rejects with 403', async () => {
     mocks.authFetch.mockRejectedValue(
       Object.assign(new Error('需要 stats:read'), {

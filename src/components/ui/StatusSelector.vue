@@ -7,7 +7,7 @@
       @click="toggle"
     >
       <span class="size-2 rounded-full" :class="getStatusColorClass(modelValue)"></span>
-      <span>{{ t(`order.statuses.${modelValue}`) }}</span>
+      <span>{{ formatOrderStatusLabel(t, modelValue) }}</span>
       <AppIcon
         name="chevron-down"
         class="text-secondary size-4 transition-transform duration-200"
@@ -34,7 +34,7 @@
           @click="select(status)"
         >
           <span class="size-2 rounded-full" :class="getStatusColorClass(status)"></span>
-          <span class="flex-1 text-left">{{ t(`order.statuses.${status}`) }}</span>
+          <span class="flex-1 text-left">{{ formatOrderStatusLabel(t, status) }}</span>
           <AppIcon v-if="modelValue === status" name="check" class="text-primary size-4" />
         </button>
       </div>
@@ -47,6 +47,7 @@ import { ref, onMounted, onUnmounted, nextTick, useTemplateRef } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { getStatusDotClass } from '@/design-system/toneContract';
+import { formatOrderStatusLabel } from '@/utils/display-labels';
 
 defineProps({
   modelValue: {

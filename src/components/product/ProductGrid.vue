@@ -71,7 +71,7 @@
           <!-- Price + Status Row -->
           <div class="mt-2 flex items-end justify-between">
             <StatusBadge :variant="getStatusVariant(product.status)" size="xs" :dot="true">
-              {{ t(`product.filters.status.${product.status}`) }}
+              {{ formatProductStatusLabel(t, product.status) }}
             </StatusBadge>
 
             <div class="flex items-center gap-3">
@@ -102,6 +102,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { resolvePrimaryProductImageSrc } from './image-resolver';
+import { formatProductStatusLabel } from '@/utils/display-labels';
 
 const { t } = useI18n();
 defineProps({

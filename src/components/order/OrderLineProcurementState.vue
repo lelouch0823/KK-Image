@@ -3,7 +3,7 @@
     <OrderProcurementBadge
       :status="status"
       preset="line"
-      :title="t(`order.procurementStatuses.${normalizedStatus}`)"
+      :title="formatOrderProcurementStatusLabel(t, status)"
       class="max-w-full"
     />
   </div>
@@ -13,7 +13,7 @@
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import OrderProcurementBadge from './OrderProcurementBadge.vue';
-import { normalizeProcurementStatus } from '@/utils/procurement-status';
+import { formatOrderProcurementStatusLabel } from '@/utils/display-labels';
 
 const props = defineProps({
   status: {
@@ -27,8 +27,6 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
-
-const normalizedStatus = computed(() => normalizeProcurementStatus(props.status));
 
 const containerClass = computed(() => {
   if (props.align === 'start') return 'justify-start';

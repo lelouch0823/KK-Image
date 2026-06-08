@@ -4,7 +4,7 @@ import { defineComponent } from 'vue';
 import OrderLineProcurementState from '@/components/order/OrderLineProcurementState.vue';
 
 vi.mock('@/composables/useI18n', () => ({
-  useI18n: () => ({ t: (key) => key }),
+  useI18n: () => ({ t: (key, fallback) => fallback || key }),
 }));
 
 const ProcurementBadgeStub = defineComponent({
@@ -19,10 +19,10 @@ const ProcurementBadgeStub = defineComponent({
 });
 
 describe('OrderLineProcurementState', () => {
-  it('renders a compact, end-aligned procurement badge with normalized title', () => {
+  it('renders a compact, end-aligned procurement badge with readable fallback title', () => {
     const wrapper = mount(OrderLineProcurementState, {
       props: {
-        status: 'unexpected',
+        status: 'supplier_quality_hold',
       },
       global: {
         stubs: {
@@ -36,9 +36,9 @@ describe('OrderLineProcurementState', () => {
     expect(wrapper.classes()).toContain('max-w-[8.5rem]');
 
     const badge = wrapper.getComponent(ProcurementBadgeStub);
-    expect(badge.props('status')).toBe('unexpected');
+    expect(badge.props('status')).toBe('supplier_quality_hold');
     expect(badge.props('preset')).toBe('line');
-    expect(badge.props('title')).toBe('order.procurementStatuses.none');
+    expect(badge.props('title')).toBe('Supplier Quality Hold');
   });
 
   it('supports alternate alignment when needed', () => {

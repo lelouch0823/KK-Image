@@ -162,7 +162,7 @@
                       :variant="segmentVariantMap[row.segment] || 'info'"
                       dot
                     >
-                      {{ t(`customer.detail.segment${segmentLabelMap[row.segment]}`) }}
+                      {{ formatCustomerSegmentLabel(t, row.segment) }}
                     </StatusBadge>
                     <span v-else class="text-xs text-(--text-muted)">-</span>
                   </template>
@@ -403,6 +403,7 @@ import CustomerImportModal from '@/components/customer/CustomerImportModal.vue';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 import { useRecentViews } from '@/composables/useRecentViews';
+import { formatCustomerSegmentLabel } from '@/utils/display-labels';
 
 const route = useRoute();
 const router = useRouter();
@@ -444,14 +445,6 @@ const showImportModal = ref(false);
 const showExportDropdown = ref(false);
 const exporting = ref(false);
 const exportDropdownRef = ref(null);
-
-const segmentLabelMap = {
-  vip: 'Vip',
-  active: 'Active',
-  'at-risk': 'AtRisk',
-  lost: 'Lost',
-  new: 'New',
-};
 
 const segmentVariantMap = {
   vip: 'warning',

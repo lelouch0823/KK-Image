@@ -11,8 +11,8 @@
     />
     <AppTableStatusPill
       v-else
-      :label="t(`order.statuses.${status}`)"
-      :title="t(`order.statuses.${status}`)"
+      :label="formatOrderStatusLabel(t, status)"
+      :title="formatOrderStatusLabel(t, status)"
       :variant="getStatusVariant(status)"
       size="xs"
     />
@@ -33,6 +33,7 @@ import OrderProcurementBadge from '@/components/order/OrderProcurementBadge.vue'
 import OrderDeliveryStatusBadge from '@/components/order/OrderDeliveryStatusBadge.vue';
 import AppTableStatusPill from '@/components/ui/AppTableStatusPill.vue';
 import { getStatusVariant } from '@/utils/status';
+import { formatOrderStatusLabel } from '@/utils/display-labels';
 
 const props = defineProps({
   status: {

@@ -95,7 +95,7 @@
                 class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
                 :class="statusClass(row.status)"
               >
-                {{ t(`stocktake.status.${row.status}`) }}
+                {{ formatStocktakeStatusLabel(t, row.status) }}
               </span>
             </template>
             <template #cell-itemCount="{ row }">
@@ -201,7 +201,7 @@
           <StatGroup :columns="3">
             <MetricTile
               :label="t('stocktake.table.status')"
-              :value="t(`stocktake.status.${selectedStocktake.status}`)"
+              :value="formatStocktakeStatusLabel(t, selectedStocktake.status)"
               icon="information-circle"
               :tone="statusTone(selectedStocktake.status)"
               flat
@@ -360,6 +360,7 @@ import AppInput from '@/components/ui/AppInput.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import { formatDate } from '@/utils/formatters';
+import { formatStocktakeStatusLabel } from '@/utils/display-labels';
 
 const { t } = useI18n();
 const { addToast } = useToast();

@@ -3,7 +3,7 @@
     <span v-if="resolvedShowLabel" class="mr-1 text-xs font-medium opacity-80">
       {{ t('order.deliveryStatus') }}
     </span>
-    {{ t(`order.deliveryStatuses.${normalizedStatus}`) }}
+    {{ formatOrderDeliveryStatusLabel(t, normalizedStatus) }}
   </StatusBadge>
 </template>
 
@@ -11,6 +11,7 @@
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import { formatOrderDeliveryStatusLabel } from '@/utils/display-labels';
 
 const props = defineProps({
   status: {

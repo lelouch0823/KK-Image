@@ -315,6 +315,7 @@ import { findDefaultCatalogActiveVariant } from '@/utils/product-variants.js';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import { ErrorCode } from '@/utils/error-codes';
 import { useRecentViews } from '@/composables/useRecentViews';
+import { formatProductStatusLabel } from '@/utils/display-labels';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -727,7 +728,7 @@ const handleDelete = (product) => {
 };
 
 const handleStatusChange = ({ product, status }) => {
-  const statusLabel = t(`product.filters.status.${status}`);
+  const statusLabel = formatProductStatusLabel(t, status);
   confirmData.value = {
     show: true,
     title: t('product.action.status_change_title', '状态变更'),

@@ -12,7 +12,7 @@
       <template #icon-left>
         <span class="size-2 rounded-full" :class="getStatusDotColor(status)"></span>
       </template>
-      <span class="max-w-[4.5rem] truncate">{{ t(`order.statuses.${status}`) }}</span>
+      <span class="max-w-[4.5rem] truncate">{{ formatOrderStatusLabel(t, status) }}</span>
       <template v-if="showChevron" #icon-right>
         <AppIcon name="chevron-up-down" class="absolute right-3 size-3.5 opacity-60" />
       </template>
@@ -30,7 +30,7 @@
               <StatusBadge
                 class="ml-1 align-middle"
                 :variant="getStatusVariant(status)"
-                :label="t(`order.statuses.${status}`)"
+                :label="formatOrderStatusLabel(t, status)"
               />
             </p>
           </div>
@@ -76,7 +76,7 @@
                 ]"
               ></span>
             </template>
-            {{ t(`order.statuses.${s}`) }}
+            {{ formatOrderStatusLabel(t, s) }}
             <template #icon-right>
               <div
                 class="ml-auto flex items-center gap-2"
@@ -192,6 +192,7 @@ import {
   hasForceStatusPermission,
   isHighRiskOrderStatus,
 } from '@/utils/order-state-machine';
+import { formatOrderStatusLabel } from '@/utils/display-labels';
 
 const props = defineProps({
   status: { type: String, required: true },
@@ -251,7 +252,7 @@ const getStatusTagText = (s) => {
 };
 
 const getStatusButtonAriaLabel = (s) => {
-  const label = t(`order.statuses.${s}`);
+  const label = formatOrderStatusLabel(t, s);
   const tag = getStatusTagText(s);
   return `${label} - ${tag}`;
 };

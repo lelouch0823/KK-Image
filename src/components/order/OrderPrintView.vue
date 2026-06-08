@@ -5,7 +5,7 @@
         class="inline-block rounded-sm border-2 px-4 py-1 font-bold uppercase"
         :style="{ borderColor: accentColor, color: accentColor }"
       >
-        {{ t(`order.statuses.${order.status}`) }}
+        {{ formatOrderStatusLabel(t, order.status) }}
       </div>
     </template>
 
@@ -156,6 +156,7 @@ import {
   isMultilineOrder,
   resolveOrderQuantity,
 } from '@/utils/order-display';
+import { formatOrderStatusLabel } from '@/utils/display-labels';
 import OrderLineProcurementState from './OrderLineProcurementState.vue';
 import OrderTimeline from './OrderTimeline.vue';
 

@@ -60,6 +60,24 @@ describe('ActionPreviewCard', () => {
     expect(wrapper.text()).not.toContain('{"variant_query"');
   });
 
+  it('does not expose backend product or variant ids as purchase-order item labels', () => {
+    const wrapper = mount(ActionPreviewCard, {
+      props: {
+        action: {
+          entityType: 'purchase_order',
+          title: '采购单创建预览',
+          summary: {
+            items: [{ product_id: 'prod_backend_123', variant_id: 'variant_backend_456' }],
+          },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain('已选择商品');
+    expect(wrapper.text()).not.toContain('prod_backend_123');
+    expect(wrapper.text()).not.toContain('variant_backend_456');
+  });
+
   it('summarizes nested object values instead of rendering raw JSON', () => {
     const wrapper = mount(ActionPreviewCard, {
       props: {

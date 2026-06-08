@@ -121,8 +121,8 @@
     <!-- Status Cell -->
     <template #cell-status="{ value }">
       <AppTableStatusPill
-        :label="t(`product.filters.status.${value}`)"
-        :title="t(`product.filters.status.${value}`)"
+        :label="formatProductStatusLabel(t, value)"
+        :title="formatProductStatusLabel(t, value)"
         :variant="getProductStatusVariant(value)"
         dot
         size="sm"
@@ -219,6 +219,7 @@ import { formatRelativeTime } from '@/utils/formatters';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core';
 import { resolvePrimaryProductImageSrc } from './image-resolver';
 import { getProductStatusVariant } from '@/utils/product-status';
+import { formatProductStatusLabel } from '@/utils/display-labels';
 
 const { t } = useI18n();
 defineProps({
