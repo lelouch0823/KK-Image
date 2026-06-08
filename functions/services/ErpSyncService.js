@@ -5,6 +5,25 @@
  * @module services/ErpSyncService
  */
 import { ErpAdapterFactory } from './ErpAdapter.js';
+import { timingSafeCompare } from '../api/utils/crypto.js';
+
+function createWebhookError(message, statusCode = 400) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function bytesToHex(bytes) {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function bytesToBase64(bytes) {
+  const binary = String.fromCharCode(...bytes);
+  if (typeof btoa === 'function') return btoa(binary);
+  return globalThis.Buffer.from(binary, 'binary').toString('base64');
+}
 
 export class ErpSyncService {
   constructor({ erpRepo, productRepo = null, customerRepo = null, orderRepo = null }) {
@@ -133,8 +152,10 @@ export class ErpSyncService {
     let conflicts = 0;
     let page = 1;
     let hasMore = true;
+    let truncated = false;
+    const maxPages = Math.max(1, Number(connection.config?.maxPages || connection.config?.max_pages || 100));
 
-    while (hasMore) {
+    while (hasMore && page <= maxPages) {
       const { items, hasMore: more } = await adapter.listRemote(entityType, { limit: 50, page });
       hasMore = more;
 
@@ -197,7 +218,11 @@ export class ErpSyncService {
       page++;
     }
 
-    return { pulled, failed, conflicts };
+    if (hasMore) {
+      truncated = true;
+    }
+
+    return { pulled, failed, conflicts, truncated };
   }
 
   /**
@@ -208,20 +233,19 @@ export class ErpSyncService {
   async handleWebhook(connectionId, rawBody, signature) {
     const connection = await this.erpRepo.getConnectionById(connectionId);
     if (!connection || !connection.enabled) {
-      throw new Error('连接不存在或已禁用');
+      throw createWebhookError('连接不存在或已禁用', 404);
     }
 
     // 验证 HMAC-SHA256 签名
     const webhookSecret = connection.webhookSecret || connection.config?.webhook_secret;
     if (!webhookSecret) {
-      throw new Error('连接未配置 webhook_secret，无法验证签名');
+      throw createWebhookError('连接未配置 webhook_secret，无法验证签名', 500);
     }
     if (!signature) {
-      throw new Error('缺少 X-Webhook-Signature 请求头');
+      throw createWebhookError('缺少 X-Webhook-Signature 请求头', 401);
     }
-    const expectedSig = await this._computeHmacHex(rawBody, webhookSecret);
-    if (!this._timingSafeEqual(expectedSig, signature)) {
-      throw new Error('webhook 签名验证失败');
+    if (!(await this._verifyWebhookSignature(rawBody, webhookSecret, signature))) {
+      throw createWebhookError('webhook 签名验证失败', 401);
     }
 
     let payload;
@@ -317,9 +341,9 @@ export class ErpSyncService {
   }
 
   /**
-   * 计算 HMAC-SHA256（hex 编码）
+   * 计算 HMAC-SHA256 原始字节
    */
-  async _computeHmacHex(message, secret) {
+  async _computeHmacBytes(message, secret) {
     const key = await crypto.subtle.importKey(
       'raw',
       new TextEncoder().encode(secret),
@@ -328,18 +352,48 @@ export class ErpSyncService {
       ['sign']
     );
     const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
-    return Array.from(new Uint8Array(sig))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
+    return new Uint8Array(sig);
+  }
+
+  /**
+   * 计算 HMAC-SHA256（hex 编码）
+   */
+  async _computeHmacHex(message, secret) {
+    return bytesToHex(await this._computeHmacBytes(message, secret));
+  }
+
+  /**
+   * 计算 HMAC-SHA256（base64 编码）
+   */
+  async _computeHmacBase64(message, secret) {
+    return bytesToBase64(await this._computeHmacBytes(message, secret));
+  }
+
+  async _verifyWebhookSignature(message, secret, signature) {
+    const supplied = String(signature || '').trim();
+    if (!supplied) return false;
+
+    const expectedHex = await this._computeHmacHex(message, secret);
+    const expectedBase64 = await this._computeHmacBase64(message, secret);
+    if (supplied.toLowerCase().startsWith('sha256=')) {
+      const value = supplied.slice('sha256='.length).trim();
+      if (/^[a-f0-9]{64}$/i.test(value)) {
+        return this._timingSafeEqual(expectedHex, value.toLowerCase());
+      }
+      return this._timingSafeEqual(expectedBase64, value);
+    }
+
+    if (/^[a-f0-9]{64}$/i.test(supplied)) {
+      return this._timingSafeEqual(expectedHex, supplied.toLowerCase());
+    }
+
+    return false;
   }
 
   /**
    * 常数时间字符串比较（防止时序攻击）
    */
   _timingSafeEqual(a, b) {
-    const ba = new TextEncoder().encode(a);
-    const bb = new TextEncoder().encode(b);
-    if (ba.length !== bb.length) return false;
-    return crypto.subtle.timingSafeEqual(ba, bb);
+    return timingSafeCompare(a, b);
   }
 }

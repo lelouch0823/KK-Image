@@ -4,6 +4,10 @@
  *
  * @module services/ErpAdapter
  */
+import {
+  assertSafeExternalUrl,
+  buildSafeExternalFetchOptions,
+} from '../lib/hono/_shared/url-security.js';
 
 /**
  * ERP 适配器基类
@@ -102,11 +106,18 @@ export class BaseErpAdapter {
 export class GenericRestAdapter extends BaseErpAdapter {
   async _request(method, path, body = null) {
     const url = `${this.baseUrl.replace(/\/+$/, '')}${path}`;
+    assertSafeExternalUrl(url);
     const headers = {
       'Content-Type': 'application/json',
       ...this._buildAuthHeaders(),
     };
-    const opts = { method, headers };
+    const opts = {
+      method,
+      headers,
+      ...buildSafeExternalFetchOptions({
+        timeoutMs: Number(this.config.requestTimeoutMs) || 10000,
+      }),
+    };
     if (body) opts.body = JSON.stringify(body);
 
     const resp = await fetch(url, opts);

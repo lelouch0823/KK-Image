@@ -2,11 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { storeFile } from '../file-utils.js';
 import * as blobUtils from '../blob-utils.js';
 
+const mocks = vi.hoisted(() => ({
+  computedHash: 'a'.repeat(64),
+  spoofedHash: 'b'.repeat(64),
+  sha256Hex: vi.fn(async () => 'a'.repeat(64)),
+}));
+
 // Mock dependencies
 vi.mock('../id.js', () => ({
   generateId: () => 'file-id-123',
   now: () => 1000,
-  sha256Hex: async () => 'mock-hash-123',
+  sha256Hex: mocks.sha256Hex,
 }));
 
 vi.mock('../blob-utils.js', () => ({
@@ -51,6 +57,7 @@ describe('storeFile - Duplicate Handling', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.sha256Hex.mockResolvedValue(mocks.computedHash);
   });
 
   it('Scenario A: Same Name + Same Hash -> Instant Upload (Duplicate)', async () => {
@@ -58,7 +65,7 @@ describe('storeFile - Duplicate Handling', () => {
     mockFindByNameInFolder.mockResolvedValueOnce({
       id: 'existing-id',
       name: 'test.png',
-      content_hash: 'mock-hash-123',
+      content_hash: mocks.computedHash,
       storage_key: 'existing-key',
       size: 7,
       mime_type: 'image/png',
@@ -113,5 +120,45 @@ describe('storeFile - Duplicate Handling', () => {
 
     expect(result.name).toBe('test.png');
     expect(mockCreate).toHaveBeenCalled();
+  });
+
+  it('rejects caller-provided contentHash values that are not SHA-256 hex', async () => {
+    await expect(
+      storeFile(env, file, {
+        folderId: 'root',
+        contentHash: 'https://attacker.example/payload.html',
+      })
+    ).rejects.toThrow('Invalid contentHash');
+
+    expect(env.R2_BUCKET.put).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('rejects caller-provided contentHash values that do not match uploaded bytes', async () => {
+    mockFindByNameInFolder.mockResolvedValue(null);
+    const getBlobSpy = vi.spyOn(blobUtils, 'getBlobByHash');
+
+    await expect(
+      storeFile(env, file, {
+        folderId: 'root',
+        contentHash: mocks.spoofedHash,
+      })
+    ).rejects.toThrow('contentHash does not match file content');
+
+    expect(getBlobSpy).not.toHaveBeenCalled();
+    expect(env.R2_BUCKET.put).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('rejects caller-provided originalHash values that are not SHA-256 hex', async () => {
+    await expect(
+      storeFile(env, file, {
+        folderId: 'root',
+        originalHash: 'not-a-sha256',
+      })
+    ).rejects.toThrow('Invalid originalHash');
+
+    expect(env.R2_BUCKET.put).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 });

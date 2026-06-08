@@ -29,6 +29,7 @@ const publicRoutePrefixes = ['/api/v1/health', '/api/v1/api-docs', '/api/gallery
 
 function isPublicRoute(path) {
   if (publicRoutes.includes(path)) return true;
+  if (/^\/api\/manage\/erp-sync\/connections\/[^/]+\/webhook$/.test(path)) return true;
   return publicRoutePrefixes.some((route) => path === route || path.startsWith(`${route}/`));
 }
 

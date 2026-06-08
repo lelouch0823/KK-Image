@@ -15,9 +15,11 @@ import {
   buildReversalRequestFingerprint,
   buildCompatibilityOrderProcurementStatusStatement,
   buildOrderLineProjectionStatement,
+  buildPreviousWriteAssertionStatement,
   buildPurchaseOrderItemReceivedQtyStatement,
   buildFinalizeCommandStatements,
   cleanupReservedCommand,
+  isPreviousWriteAssertionError,
   queryInventoryBalance,
   queryCompatibilityProcurementAggregate,
   replayReservedCommand,
@@ -212,6 +214,7 @@ export class OrderProcurementReceiptReversalService {
       })
     );
     guardedStatementIndexes.push(statements.length - 1);
+    statements.push(buildPreviousWriteAssertionStatement(this.db));
     if (nextPurchaseOrderStatus !== purchaseOrder.status) {
       statements.push(
         this.buildPurchaseOrderStatusTransitionStatement(
@@ -413,6 +416,9 @@ export class OrderProcurementReceiptReversalService {
       });
       if (isDuplicateReceiptReversalError(error)) {
         throw new BadRequestError('原始收货记录已冲销，不能重复冲销');
+      }
+      if (isPreviousWriteAssertionError(error)) {
+        throw new BadRequestError('采购单收货进度已变化，请刷新后重试');
       }
       throw error;
     }

@@ -61,6 +61,7 @@ describe('WebhookDeliveryService', () => {
       'https://example.com/hook',
       expect.objectContaining({
         method: 'POST',
+        redirect: 'manual',
         headers: expect.objectContaining({
           'Content-Type': 'application/json',
           'X-Custom': '1',
@@ -238,6 +239,50 @@ describe('WebhookDeliveryService', () => {
         classification: 'terminal',
         success: false,
         nextRetryAt: null,
+      })
+    );
+    expect(result.shouldRetry).toBe(true);
+  });
+
+  it('rejects stored private webhook URLs before fetch', async () => {
+    const webhookRepo = createWebhookRepoStub({
+      listActiveByEvent: vi.fn(async () => [
+        {
+          id: 'wh-private',
+          url: 'http://169.254.169.254/latest/meta-data',
+          events: ['purchase_receipt_recorded'],
+          secret: null,
+          headers: {},
+          enabled: true,
+        },
+      ]),
+    });
+    const fetchMock = vi.fn();
+    const service = new WebhookDeliveryService(
+      {},
+      {
+        webhookRepo,
+        fetch: fetchMock,
+        signPayload: vi.fn(async () => 'sig-1'),
+        now: () => 1710000022222,
+      }
+    );
+
+    const result = await service.deliverDomainEvent({
+      event_id: 'evt-private',
+      event_type: 'purchase_receipt_recorded',
+      aggregate_type: 'purchase_receipt',
+      aggregate_id: 'receipt-private',
+      payload_json: '{}',
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(webhookRepo.logAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        webhookId: 'wh-private',
+        classification: 'retryable',
+        success: false,
+        response: expect.stringContaining('内网地址'),
       })
     );
     expect(result.shouldRetry).toBe(true);

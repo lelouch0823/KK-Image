@@ -36,7 +36,7 @@ export class OrderStatsRepository {
       `
             SELECT id, order_no, current_data, created_at, status 
             FROM orders 
-            WHERE status = 'pending'
+            WHERE archived_at IS NULL AND status = 'pending'
             ORDER BY created_at DESC 
             LIMIT ?
         `,
@@ -64,7 +64,7 @@ export class OrderStatsRepository {
   async countCreatedAfter(timestamp) {
     const result = await this.runQueryFirst(
       `
-            SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
+            SELECT COUNT(*) as count FROM orders WHERE archived_at IS NULL AND created_at >= ?
         `,
       [timestamp],
       'order.stats.countCreatedAfter'
@@ -80,7 +80,7 @@ export class OrderStatsRepository {
   async countByStatus(status) {
     const result = await this.runQueryFirst(
       `
-            SELECT COUNT(*) as count FROM orders WHERE status = ?
+            SELECT COUNT(*) as count FROM orders WHERE archived_at IS NULL AND status = ?
         `,
       [status],
       'order.stats.countByStatus'
@@ -98,7 +98,7 @@ export class OrderStatsRepository {
     const result = await this.runQueryFirst(
       `
             SELECT COUNT(*) as count FROM orders 
-            WHERE created_at >= ? AND created_at < ?
+            WHERE archived_at IS NULL AND created_at >= ? AND created_at < ?
         `,
       [startTimestamp, endTimestamp],
       'order.stats.countCreatedBetween'
@@ -115,7 +115,7 @@ export class OrderStatsRepository {
     const [totalResult, todayResult, pendingResult] = await Promise.all([
       this.runQueryFirst(
         `
-                SELECT COUNT(*) as count FROM orders WHERE salesperson_id = ?
+                SELECT COUNT(*) as count FROM orders WHERE archived_at IS NULL AND salesperson_id = ?
             `,
         [salespersonId],
         'order.stats.sales.total'
@@ -123,7 +123,7 @@ export class OrderStatsRepository {
       this.runQueryFirst(
         `
                 SELECT COUNT(*) as count FROM orders 
-                WHERE salesperson_id = ? AND created_at >= ?
+                WHERE archived_at IS NULL AND salesperson_id = ? AND created_at >= ?
             `,
         [salespersonId, todayStart],
         'order.stats.sales.today'
@@ -131,7 +131,7 @@ export class OrderStatsRepository {
       this.runQueryFirst(
         `
                 SELECT COUNT(*) as count FROM orders 
-                WHERE salesperson_id = ? AND status = 'pending'
+                WHERE archived_at IS NULL AND salesperson_id = ? AND status = 'pending'
             `,
         [salespersonId],
         'order.stats.sales.pending'
@@ -155,7 +155,7 @@ export class OrderStatsRepository {
       // 累计订单
       this.runQueryFirst(
         `
-                SELECT COUNT(*) as count FROM orders WHERE salesperson_id = ?
+                SELECT COUNT(*) as count FROM orders WHERE archived_at IS NULL AND salesperson_id = ?
             `,
         [salespersonId],
         'order.stats.salesFull.total'
@@ -164,7 +164,7 @@ export class OrderStatsRepository {
       this.runQueryFirst(
         `
                 SELECT COUNT(*) as count FROM orders 
-                WHERE salesperson_id = ? AND status IN ('fulfilled', 'delivered')
+                WHERE archived_at IS NULL AND salesperson_id = ? AND status IN ('fulfilled', 'delivered')
             `,
         [salespersonId],
         'order.stats.salesFull.completed'
@@ -173,7 +173,7 @@ export class OrderStatsRepository {
       this.runQueryFirst(
         `
                 SELECT COUNT(*) as count FROM orders 
-                WHERE salesperson_id = ? AND created_at >= ?
+                WHERE archived_at IS NULL AND salesperson_id = ? AND created_at >= ?
             `,
         [salespersonId, monthStart],
         'order.stats.salesFull.month'
@@ -183,7 +183,7 @@ export class OrderStatsRepository {
         `
                 SELECT ${chinaDateExpr()} as date, COUNT(*) as count
                 FROM orders
-                WHERE salesperson_id = ? AND created_at >= ?
+                WHERE archived_at IS NULL AND salesperson_id = ? AND created_at >= ?
                 GROUP BY ${chinaDateExpr()}
                 ORDER BY date ASC
             `,
@@ -218,28 +218,28 @@ export class OrderStatsRepository {
     ] = await Promise.all([
       this.runQueryFirst(
         `
-                SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
+                SELECT COUNT(*) as count FROM orders WHERE archived_at IS NULL AND created_at >= ?
             `,
         [todayStart],
         'order.stats.admin.today'
       ),
       this.runQueryFirst(
         `
-                SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
+                SELECT COUNT(*) as count FROM orders WHERE archived_at IS NULL AND created_at >= ?
             `,
         [weekStart],
         'order.stats.admin.week'
       ),
       this.runQueryFirst(
         `
-                SELECT COUNT(*) as count FROM orders WHERE created_at >= ?
+                SELECT COUNT(*) as count FROM orders WHERE archived_at IS NULL AND created_at >= ?
             `,
         [monthStart],
         'order.stats.admin.month'
       ),
       this.runQuery(
         `
-                SELECT status, COUNT(*) as count FROM orders GROUP BY status
+                SELECT status, COUNT(*) as count FROM orders WHERE archived_at IS NULL GROUP BY status
             `,
         [],
         'order.stats.admin.statusDistribution'
@@ -249,6 +249,7 @@ export class OrderStatsRepository {
                 SELECT ${ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL} as status, COUNT(*) as count
                 FROM orders o
                 ${ORDER_SUMMARY_PROJECTION_JOIN}
+                WHERE o.archived_at IS NULL
                 GROUP BY ${ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL}
             `,
         [],
@@ -263,6 +264,7 @@ export class OrderStatsRepository {
                       ${ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL} AS effective_delivery_status
                     FROM orders o
                     ${ORDER_SUMMARY_PROJECTION_JOIN}
+                    WHERE o.archived_at IS NULL
                 )
                 WHERE normalized_status IN ('fulfilled', 'delivered')
                   AND effective_delivery_status = 'in_transit'
@@ -274,7 +276,7 @@ export class OrderStatsRepository {
         `
                 SELECT ${chinaDateExpr()} as date, COUNT(*) as count
                 FROM orders
-                WHERE created_at >= ?
+                WHERE archived_at IS NULL AND created_at >= ?
                 GROUP BY date ORDER BY date
             `,
         [monthStart],
@@ -314,7 +316,7 @@ export class OrderStatsRepository {
       `
             SELECT ${chinaHourExpr()} as hour, COUNT(*) as count
             FROM orders
-            WHERE created_at >= ?
+            WHERE archived_at IS NULL AND created_at >= ?
             GROUP BY hour
             ORDER BY hour ASC
         `,
@@ -333,7 +335,7 @@ export class OrderStatsRepository {
       `
             SELECT ${chinaDateExpr()} as date, COUNT(*) as count
             FROM orders
-            WHERE created_at >= ?
+            WHERE archived_at IS NULL AND created_at >= ?
             GROUP BY date
             ORDER BY date ASC
         `,
@@ -354,7 +356,7 @@ export class OrderStatsRepository {
       `
             SELECT ${chinaDateExpr()} as date, COUNT(*) as count
             FROM orders
-            WHERE created_at >= ? AND status = 'pending'
+            WHERE archived_at IS NULL AND created_at >= ? AND status = 'pending'
             GROUP BY date
             ORDER BY date ASC
         `,
@@ -395,7 +397,7 @@ export class OrderStatsRepository {
             SELECT ${chinaDateExpr()} as date,
                    COUNT(*) as orderCount
             FROM orders
-            WHERE created_at >= ?
+            WHERE archived_at IS NULL AND created_at >= ?
             GROUP BY date
             ORDER BY date ASC
         `,
@@ -414,6 +416,7 @@ export class OrderStatsRepository {
       `
             SELECT status, COUNT(*) as count
             FROM orders
+            WHERE archived_at IS NULL
             GROUP BY status
             ORDER BY count DESC
         `,
@@ -431,12 +434,14 @@ export class OrderStatsRepository {
   async getTopProducts(limit = 10) {
     const result = await this.runQuery(
       `
-            SELECT snapshot_name as productName,
+            SELECT ol.snapshot_name as productName,
                    COUNT(*) as orderCount,
-                   SUM(ordered_qty) as totalQty
-            FROM order_lines
-            WHERE snapshot_name IS NOT NULL AND snapshot_name != ''
-            GROUP BY snapshot_name
+                   SUM(ol.ordered_qty) as totalQty
+            FROM order_lines ol
+            INNER JOIN orders o ON o.id = ol.order_id
+            WHERE o.archived_at IS NULL
+              AND ol.snapshot_name IS NOT NULL AND ol.snapshot_name != ''
+            GROUP BY ol.snapshot_name
             ORDER BY orderCount DESC
             LIMIT ?
         `,
@@ -457,6 +462,7 @@ export class OrderStatsRepository {
                    COUNT(*) as orderCount
             FROM orders o
             LEFT JOIN salespersons s ON s.id = o.salesperson_id
+            WHERE o.archived_at IS NULL
             GROUP BY o.salesperson_id
             ORDER BY orderCount DESC
         `,
@@ -504,7 +510,7 @@ export class OrderStatsRepository {
    * @returns {Promise<{totalRevenue: number, totalCost: number, totalProfit: number, margin: number|null, ordersWithCost: number, ordersWithoutCost: number}>}
    */
   async getProfitSummary(startTimestamp) {
-    let whereClause = "o.status NOT IN ('void', 'rejected')";
+    let whereClause = "o.archived_at IS NULL AND o.status NOT IN ('void', 'rejected')";
     const params = [];
 
     if (startTimestamp) {
@@ -564,7 +570,8 @@ export class OrderStatsRepository {
         COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS revenue,
         COALESCE(SUM(ol.ordered_qty * (${costExpr})), 0) AS cost
       ${joinClause}
-      WHERE o.status NOT IN ('void', 'rejected')
+      WHERE o.archived_at IS NULL
+        AND o.status NOT IN ('void', 'rejected')
         AND o.created_at >= ?
       GROUP BY date
       ORDER BY date ASC
@@ -602,7 +609,8 @@ export class OrderStatsRepository {
         COALESCE(SUM(ol.ordered_qty * (${costExpr})), 0) AS cost,
         COUNT(*) AS order_count
       ${joinClause}
-      WHERE o.status NOT IN ('void', 'rejected')
+      WHERE o.archived_at IS NULL
+        AND o.status NOT IN ('void', 'rejected')
         AND ol.snapshot_name IS NOT NULL
         AND ol.snapshot_name != ''
       GROUP BY ol.snapshot_name

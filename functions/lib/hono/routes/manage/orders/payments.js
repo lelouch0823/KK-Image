@@ -20,6 +20,13 @@ const app = new Hono();
 
 // 付款方式枚举
 const PAYMENT_METHODS = ['cash', 'bank', 'wechat', 'alipay', 'other'];
+const ARCHIVED_ORDER_MUTATION_MESSAGE = '订单已归档，请先恢复后再修改';
+
+function assertOrderIsActiveForMutation(order) {
+  if (order?.archivedAt || order?.archived_at) {
+    throw new BadRequestError(ARCHIVED_ORDER_MUTATION_MESSAGE);
+  }
+}
 
 // 付款记录创建 Schema
 const CreatePaymentSchema = z.object({
@@ -47,8 +54,7 @@ app.get('/:id/payments', async (c) => {
   const payments = await paymentRepo.findByOrder(orderId);
   const totalPaid = await paymentRepo.getTotalPaid(orderId);
 
-  // 计算订单总金额（使用 quantity 字段作为订单金额）
-  const orderAmount = order.quantity ?? 0;
+  const orderAmount = await paymentRepo.getOrderAmount(orderId);
   const outstanding = Math.max(0, orderAmount - totalPaid);
 
   return c.json({
@@ -79,6 +85,7 @@ app.post('/:id/payments', zValidator('json', CreatePaymentSchema), async (c) => 
     orderRepo.findById(orderId),
     () => new NotFoundError(MSG.ORDER.NOT_FOUND)
   );
+  assertOrderIsActiveForMutation(order);
 
   // 检查订单状态（已作废或已驳回的订单不能添加付款）
   if (['void', 'rejected'].includes(order.status)) {
@@ -89,7 +96,7 @@ app.post('/:id/payments', zValidator('json', CreatePaymentSchema), async (c) => 
 
   // 检查付款金额不超过订单剩余金额
   const totalPaid = await paymentRepo.getTotalPaid(orderId);
-  const orderAmount = order.quantity ?? 0;
+  const orderAmount = await paymentRepo.getOrderAmount(orderId);
   const remaining = orderAmount - totalPaid;
 
   if (body.amount > remaining) {
@@ -121,7 +128,11 @@ app.delete('/:id/payments/:paymentId', async (c) => {
 
   // 验证订单存在
   const orderRepo = new OrderRepository(env.DB);
-  await requireEntity(orderRepo.findById(orderId), () => new NotFoundError(MSG.ORDER.NOT_FOUND));
+  const order = await requireEntity(
+    orderRepo.findById(orderId),
+    () => new NotFoundError(MSG.ORDER.NOT_FOUND)
+  );
+  assertOrderIsActiveForMutation(order);
 
   const paymentRepo = new PaymentRepository(env.DB);
 

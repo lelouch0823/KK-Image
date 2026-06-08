@@ -294,6 +294,31 @@ describe('manage order list routes', () => {
     expect(csv).toContain('Snapshot Chair');
   });
 
+  it('excludes archived orders from exports even when exporting selected ids', async () => {
+    const exportStmt = {
+      bind: vi.fn(() => exportStmt),
+      all: vi.fn(async () => ({ results: [] })),
+    };
+    const db = {
+      prepare: vi.fn((sql) => {
+        if (sql.includes('FROM orders o')) return exportStmt;
+        return { all: mocks.salespersonsAll };
+      }),
+    };
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/orders/export?ids=o-archived',
+      {},
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(db.prepare.mock.calls[0][0]).toContain('o.archived_at IS NULL');
+    expect(exportStmt.bind).toHaveBeenCalledWith('o-archived');
+  });
+
   it('extends export search filters to snapshot_name fallback when current_data name is missing', async () => {
     const exportStmt = {
       bind: vi.fn(() => exportStmt),

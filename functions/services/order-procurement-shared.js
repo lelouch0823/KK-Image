@@ -290,7 +290,7 @@ export function buildCompatibilityOrderProcurementStatusStatement(
   timestamp,
   { excludeTerminalStatuses = false, requireStatusChange = false } = {}
 ) {
-  const whereClauses = ['id = ?'];
+  const whereClauses = ['id = ?', 'AND archived_at IS NULL'];
   const params = [procurementStatus, timestamp, orderId];
 
   if (excludeTerminalStatuses) {
@@ -309,6 +309,18 @@ export function buildCompatibilityOrderProcurementStatusStatement(
        WHERE ${whereClauses.join('\n         ')}`
     )
     .bind(...params);
+}
+
+export function buildPreviousWriteAssertionStatement(db) {
+  return db.prepare(
+    "SELECT json_extract(CASE WHEN changes() = 1 THEN '{}' ELSE 'not-json' END, '$') AS guard_ok"
+  );
+}
+
+export function isPreviousWriteAssertionError(error) {
+  return String(error?.message || error)
+    .toLowerCase()
+    .includes('malformed json');
 }
 
 export async function requireOrderLine(db, orderId, orderLineId) {

@@ -11,9 +11,11 @@ import {
   buildCompatibilityOrderProcurementStatusStatement,
   buildOrderLineProjectionStatement,
   buildShortageClosureRequestFingerprint,
+  buildPreviousWriteAssertionStatement,
   buildPurchaseOrderItemCancelledQtyStatement,
   buildFinalizeCommandStatements,
   cleanupReservedCommand,
+  isPreviousWriteAssertionError,
   queryCompatibilityProcurementAggregate,
   replayReservedCommand,
   resolveReservationOwnership,
@@ -124,6 +126,8 @@ export class PurchaseOrderShortageClosureService {
     const results = [];
     const changedOrderStatuses = [];
     const changedOrderProgressions = [];
+    const guardedItemStatementIndexes = [];
+    const guardedOrderStatementIndexes = [];
     const affectedVariantIds = new Set();
     const seenItemIds = new Set();
     const timestamp = this.now();
@@ -155,12 +159,14 @@ export class PurchaseOrderShortageClosureService {
       });
       const remainingReceivableAfter = Math.max(remainingReceivable - closeQty, 0);
 
+      guardedItemStatementIndexes.push(statements.length);
       statements.push(
         buildPurchaseOrderItemCancelledQtyStatement(this.db, poId, poItem, {
           nextCancelledQty,
           nextDisplayStatus: displayStatus,
           requiredRemainingQty: closeQty,
-        })
+        }),
+        buildPreviousWriteAssertionStatement(this.db)
       );
 
       if (poItem.pre_order_id) {
@@ -219,10 +225,18 @@ export class PurchaseOrderShortageClosureService {
     }
 
     for (const transition of orderLineTransitions.values()) {
+      guardedOrderStatementIndexes.push(orderStatements.length);
       orderStatements.push(
-        buildOrderLineProjectionStatement(this.db, transition.next, transition.current, timestamp, {
-          guardProjectionState: true,
-        })
+        buildOrderLineProjectionStatement(
+          this.db,
+          transition.next,
+          transition.current,
+          timestamp,
+          {
+            guardProjectionState: true,
+          }
+        ),
+        buildPreviousWriteAssertionStatement(this.db)
       );
     }
 
@@ -233,11 +247,13 @@ export class PurchaseOrderShortageClosureService {
       orderNextProcurementStatuses.set(orderId, nextStatus);
       if (nextStatus === previousStatus) continue;
 
+      guardedOrderStatementIndexes.push(orderStatements.length);
       orderStatements.push(
         buildCompatibilityOrderProcurementStatusStatement(this.db, orderId, nextStatus, timestamp, {
           excludeTerminalStatuses: true,
           requireStatusChange: true,
-        })
+        }),
+        buildPreviousWriteAssertionStatement(this.db)
       );
       changedOrderStatuses.push({
         orderId,
@@ -291,7 +307,7 @@ export class PurchaseOrderShortageClosureService {
       const batchResults = await this.db.batch(allStatements);
 
       const failedItemIndexes = [];
-      for (let index = 0; index < statements.length; index += 1) {
+      for (const index of guardedItemStatementIndexes) {
         if ((batchResults[index]?.meta?.changes || 0) !== 1) {
           failedItemIndexes.push(index);
         }
@@ -303,7 +319,7 @@ export class PurchaseOrderShortageClosureService {
 
       const orderOffset = statements.length;
       const failedOrderIndexes = [];
-      for (let index = 0; index < orderStatements.length; index += 1) {
+      for (const index of guardedOrderStatementIndexes) {
         if ((batchResults[orderOffset + index]?.meta?.changes || 0) !== 1) {
           failedOrderIndexes.push(index);
         }
@@ -322,6 +338,9 @@ export class PurchaseOrderShortageClosureService {
       }
     } catch (error) {
       await cleanupReservation();
+      if (isPreviousWriteAssertionError(error)) {
+        throw new BadRequestError('采购单明细待收进度已变化，请刷新后重试');
+      }
       throw error;
     }
 

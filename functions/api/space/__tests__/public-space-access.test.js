@@ -74,7 +74,7 @@ describe('public space access api', () => {
 
   it('records access log and increments view count after password verification succeeds', async () => {
     const spaceRecord = { ...baseSpaceRecord };
-    const first = vi.fn().mockResolvedValue(spaceRecord);
+    const first = vi.fn().mockResolvedValue(baseSpaceRecord);
     const all = vi.fn().mockResolvedValue({ results: [] });
     const batch = vi.fn().mockResolvedValue([]);
 
@@ -124,6 +124,33 @@ describe('public space access api', () => {
     const payload = await response.json();
     expect(payload.success).toBe(true);
     expect(payload.data.viewCount).toBe(4);
+  });
+
+  it('returns 400 for malformed password JSON', async () => {
+    const first = vi.fn().mockResolvedValue(baseSpaceRecord);
+    const batch = vi.fn();
+    const prepare = vi.fn((sql) => {
+      if (sql.includes('WHERE s.share_token = ?')) {
+        return { bind: () => ({ first }) };
+      }
+      throw new Error(`Unexpected SQL: ${sql}`);
+    });
+
+    const response = await onRequestPost({
+      env: { DB: { prepare, batch } },
+      params: { token: 'share-token' },
+      request: new Request('http://localhost/api/space/share-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{',
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+    });
+    expect(batch).not.toHaveBeenCalled();
   });
 
   it('records access log after hashed password verification succeeds', async () => {
@@ -296,6 +323,48 @@ describe('public space access api', () => {
         fileCount: 1,
       }),
     ]);
+  });
+
+  it('filters soft-deleted files from public space files and subspace counts', async () => {
+    const first = vi.fn().mockResolvedValue({
+      ...baseSpaceRecord,
+      password: null,
+      template: 'collection',
+    });
+    const filesAll = vi.fn().mockResolvedValue({ results: [] });
+    const subspacesAll = vi.fn().mockResolvedValue({ results: [] });
+    const batch = vi.fn().mockResolvedValue([]);
+
+    const prepare = vi.fn((sql) => {
+      if (sql.includes('WHERE s.share_token = ?')) {
+        return { bind: () => ({ first }) };
+      }
+      if (sql.includes('FROM space_files sf')) {
+        expect(sql).toMatch(/f\.is_deleted\s+IS\s+NULL|f\.is_deleted\s*=\s*0/i);
+        return { bind: () => ({ all: filesAll }) };
+      }
+      if (sql.includes('WHERE s.parent_id = ? AND s.is_public = 1')) {
+        expect(sql).toMatch(/COUNT\(\*\)[\s\S]*JOIN files/i);
+        expect(sql).toMatch(/counted_f\.is_deleted\s+IS\s+NULL|counted_f\.is_deleted\s*=\s*0/i);
+        expect(sql).toMatch(/LEFT JOIN files f[\s\S]*f\.is_deleted/i);
+        return { bind: () => ({ all: subspacesAll }) };
+      }
+      if (sql.includes('INSERT INTO space_access_logs')) {
+        return { bind: (...args) => ({ sql, args }) };
+      }
+      if (sql.includes('UPDATE spaces SET view_count = view_count + 1')) {
+        return { bind: (...args) => ({ sql, args }) };
+      }
+      throw new Error(`Unexpected SQL: ${sql}`);
+    });
+
+    const response = await onRequestGet({
+      env: { DB: { prepare, batch } },
+      params: { token: 'share-token' },
+      request: new Request('http://localhost/api/space/share-token'),
+    });
+
+    expect(response.status).toBe(200);
   });
 
   it('projects variant sku, material and image for public product spaces and collection subspaces', async () => {

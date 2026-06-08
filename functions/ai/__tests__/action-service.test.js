@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createAIActionService } from '../action-service.js';
+import { createActionOrchestrator, createAIActionService } from '../action-service.js';
+import { salespersonActionAdapter } from '../adapters/salesperson.js';
 
 describe('createAIActionService', () => {
   it('keeps slot collection, confirmation, and submit mapping inside the action rail', async () => {
@@ -354,5 +355,29 @@ describe('createAIActionService', () => {
     ).rejects.toThrow('publish failed');
 
     expect(sessionStore.updateSession).not.toHaveBeenCalled();
+  });
+});
+
+describe('AI action authorization metadata', () => {
+  it('requires users:write for salesperson creation actions', () => {
+    expect(salespersonActionAdapter.requiredPermission).toBe('users:write');
+  });
+
+  it('denies write actions that do not declare requiredPermission metadata', async () => {
+    const db = {};
+    const orchestrator = createActionOrchestrator({
+      c: { req: { url: 'http://localhost/api/manage/ai' } },
+      env: { DB: db, JWT_SECRET: 'secret' },
+      user: { id: 'viewer', role: 'viewer', permissions: ['stats:read'] },
+      createManagedOrder: vi.fn(),
+      createManagedProduct: vi.fn(),
+    });
+
+    await expect(
+      orchestrator.canAccessAction(
+        { id: 'viewer', role: 'viewer', permissions: ['stats:read'] },
+        { entityType: 'salesperson', actionType: 'create_salesperson' }
+      )
+    ).resolves.toBe(false);
   });
 });

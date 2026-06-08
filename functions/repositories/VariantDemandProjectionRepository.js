@@ -42,7 +42,8 @@ function buildRefreshSelectSql(filterClause = '') {
             MAX(COALESCE(o.updated_at, o.created_at, ol.updated_at, ol.created_at)) AS updated_at
         FROM order_lines AS ol
         JOIN orders AS o ON o.id = ol.order_id
-        WHERE o.status IN ${ACTIVE_STATUS_SQL}
+        WHERE o.archived_at IS NULL
+          AND o.status IN ${ACTIVE_STATUS_SQL}
           AND ol.variant_id IS NOT NULL
           ${filterClause}
         GROUP BY ol.variant_id

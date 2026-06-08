@@ -9,7 +9,7 @@ import { OrderRepository } from '../OrderRepository.js';
 
 function createStatement(
   sql,
-  { firstResult = null, allResult = { results: [] }, runResult = { success: true } } = {}
+  { firstResult = null, allResult = { results: [] }, runResult = { success: true, meta: { changes: 1 } } } = {}
 ) {
   const statement = {
     sql,
@@ -86,7 +86,10 @@ function createMockDb({
         });
         return statement;
       }
-      if (sql.includes('SELECT status, variant_id, quantity FROM orders WHERE id = ?')) {
+      if (
+        sql.includes('SELECT status, variant_id, quantity') &&
+        sql.includes('FROM orders WHERE id = ?')
+      ) {
         return createStatement(sql, { firstResult: singleOrder });
       }
       if (sql.includes('SELECT id FROM order_lines WHERE order_id = ?')) {
@@ -94,7 +97,10 @@ function createMockDb({
           firstResult: { id: `line-for-${singleOrder?.id || 'order'}` },
         });
       }
-      if (sql.includes('SELECT id, status, variant_id, quantity FROM orders WHERE id IN')) {
+      if (
+        sql.includes('SELECT id, status, variant_id, quantity') &&
+        sql.includes('FROM orders WHERE id IN')
+      ) {
         return createStatement(sql, { allResult: { results: batchOrders } });
       }
       if (sql.includes('SELECT stock_quantity FROM product_variants WHERE id = ?')) {
@@ -356,7 +362,7 @@ describe('order inventory flow on status transitions', () => {
             : [],
         })),
         first: vi.fn(async () => ({ status: 'arrived', variant_id: 'v-1', quantity: 1 })),
-        run: vi.fn(async () => ({ success: true })),
+        run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
       })),
     }));
     db.batch.mockResolvedValue([]);

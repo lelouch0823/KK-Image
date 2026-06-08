@@ -61,6 +61,7 @@ vi.mock('../../../../../repositories/PaymentRepository.js', () => ({
   PaymentRepository: vi.fn(() => ({
     findByOrder: vi.fn(async () => []),
     getTotalPaid: vi.fn(async () => 0),
+    getOrderAmount: vi.fn(async () => 0),
   })),
 }));
 
@@ -262,6 +263,32 @@ describe('manage order detail routes', () => {
     expect(mocks.publish).not.toHaveBeenCalled();
   });
 
+  it('rejects comments on archived orders before side effects run', async () => {
+    mocks.findById.mockResolvedValueOnce({
+      id: 'order-1',
+      orderNo: 'SO-1',
+      status: 'confirmed',
+      salespersonId: 'sp-1',
+      currentData: {},
+      archivedAt: 1710000000000,
+    });
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/comment',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment: 'should not write' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.setUnread).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
+  });
+
   it('enqueues deferred order-update side effects via outbox after PATCH /:id', async () => {
     mocks.processOrderUpdate.mockResolvedValue({
       success: true,
@@ -333,6 +360,32 @@ describe('manage order detail routes', () => {
     ]);
     expect(mocks.runOutboxPoller).toHaveBeenCalledTimes(1);
     expect(waitUntil).toHaveBeenCalled();
+  });
+
+  it('rejects status changes on archived orders', async () => {
+    mocks.findById.mockResolvedValueOnce({
+      id: 'order-1',
+      orderNo: 'SO-1',
+      status: 'pending',
+      salespersonId: 'sp-1',
+      currentData: {},
+      archivedAt: 1710000000000,
+    });
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/status',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'confirmed' }),
+      },
+      { DB: { prepare: vi.fn() } },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.updateStatus).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
   });
 
   it('allows privileged admin user to delete order', async () => {

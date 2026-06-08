@@ -84,13 +84,18 @@ async function getSpaceData(
        FROM space_files sf
        JOIN files f ON sf.file_id = f.id
        WHERE sf.space_id = ?
+         AND (f.is_deleted IS NULL OR f.is_deleted = 0)
        ORDER BY sf.section ASC, sf.sort_order ASC`
     )
       .bind(space.id)
       .all(),
     env.DB.prepare(
       `SELECT s.id, s.name, s.template, s.share_token, s.description, s.template_data, s.product_id, s.variant_id, s.expires_at,
-              (SELECT COUNT(*) FROM space_files WHERE space_id = s.id) as file_count,
+              (SELECT COUNT(*)
+               FROM space_files counted_sf
+               JOIN files counted_f ON counted_sf.file_id = counted_f.id
+               WHERE counted_sf.space_id = s.id
+                 AND (counted_f.is_deleted IS NULL OR counted_f.is_deleted = 0)) as file_count,
               f.storage_key as cover_storage_key,
               p.spu as p_sku, NULL as p_status, p.brand as p_brand, p.series as p_series,
               (
@@ -111,7 +116,7 @@ async function getSpaceData(
                 LIMIT 1
               ) as display_image_id
        FROM spaces s
-       LEFT JOIN files f ON s.cover_file_id = f.id
+       LEFT JOIN files f ON s.cover_file_id = f.id AND (f.is_deleted IS NULL OR f.is_deleted = 0)
        LEFT JOIN products p ON s.product_id = p.id
        LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
        WHERE s.parent_id = ?${subspacesVisibilityFilter}
@@ -369,7 +374,12 @@ export async function onRequestPost(context) {
   const shareToken = params.token;
 
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return error(MSG.COMMON.INVALID_PARAMS, 400);
+    }
     const password = body.password;
 
     if (!password) {

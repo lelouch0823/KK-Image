@@ -241,7 +241,7 @@ export function createActionOrchestrator({
     },
     extractActionSlots,
     canAccessAction: async (subject, adapter) => {
-      if (!adapter?.requiredPermission) return true;
+      if (!adapter?.requiredPermission) return false;
       return evaluateActionPermission({
         user: subject,
         permission: adapter.requiredPermission,

@@ -8,19 +8,20 @@ import { requirePermission } from '../../middleware/auth.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { requireEntity, parsePagination } from '../../_shared/route-helpers.js';
-import { assertSafeExternalUrl } from '../../_shared/url-security.js';
+import { assertSafeExternalUrl, buildSafeExternalFetchOptions } from '../../_shared/url-security.js';
 import { CreateWebhookSchema, UpdateWebhookSchema } from '../../schemas/webhook.js';
 
 /**
  * 验证 webhook URL
  * 在开发/测试环境允许 localhost
  */
-function validateWebhookUrl(url) {
+function validateWebhookUrl(url, env = {}) {
+  const environment = String(env?.ENVIRONMENT || '').toLowerCase();
   const isDev =
-    typeof process !== 'undefined' &&
-    (process.env.NODE_ENV === 'development' ||
-      process.env.NODE_ENV === 'test' ||
-      process.env.RUN_REAL_API_TESTS === '1');
+    environment === 'development' ||
+    environment === 'test' ||
+    env?.RUN_REAL_API_TESTS === '1' ||
+    env?.ALLOW_LOCALHOST_WEBHOOKS === '1';
   assertSafeExternalUrl(url, { allowLocalhost: isDev });
 }
 
@@ -132,7 +133,7 @@ app.post(
     const body = c.req.valid('json');
     const user = c.get('user') || {};
 
-    validateWebhookUrl(body.url);
+    validateWebhookUrl(body.url, c.env);
     validateEvents(body.events || []);
 
     const created = await repo.create({
@@ -173,7 +174,7 @@ app.put(
       repo.getByIdWithSecret(id),
       () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND)
     );
-    if (body.url) validateWebhookUrl(body.url);
+    if (body.url) validateWebhookUrl(body.url, c.env);
 
     const nextWebhook = {
       url: body.url ?? existing.url,
@@ -251,14 +252,14 @@ app.post('/:id/test', requirePermission('webhooks:write'), async (c) => {
   }
 
   // H03: 测试前重新验证 URL 安全性，防止存储型 SSRF
-  validateWebhookUrl(webhook.url);
+  validateWebhookUrl(webhook.url, c.env);
 
   const startTime = Date.now();
   const response = await fetch(webhook.url, {
     method: 'POST',
     headers,
     body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(10000),
+    ...buildSafeExternalFetchOptions({ timeoutMs: 10000 }),
   });
   const duration = Date.now() - startTime;
 
@@ -399,14 +400,14 @@ app.post('/logs/:logId/retry', requirePermission('webhooks:write'), async (c) =>
   }
 
   // H03: 重试前重新验证 URL 安全性，防止存储型 SSRF
-  validateWebhookUrl(webhook.url);
+  validateWebhookUrl(webhook.url, c.env);
 
   const startTime = Date.now();
   const response = await fetch(webhook.url, {
     method: 'POST',
     headers,
     body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(10000),
+    ...buildSafeExternalFetchOptions({ timeoutMs: 10000 }),
   });
   const duration = Date.now() - startTime;
 

@@ -48,7 +48,7 @@ export function errorHandler(err, c) {
   const status = err.statusCode || statusMap[err.name] || 500;
   const message = status === 500 && !err.statusCode ? 'Internal Server Error' : err.message;
 
-  if (shouldAuditRequest(c.req.method) && c.env?.DB && !c.get('auditFailureRecorded')) {
+  if (shouldAuditRequest(c.req.method, c.req.path) && c.env?.DB && !c.get('auditFailureRecorded')) {
     const auditContext = getRequestAuditContext(c);
     const domain = inferAuditDomainFromPath(c.req.path);
     const targetId = inferAuditTargetFromPath(c.req.path);

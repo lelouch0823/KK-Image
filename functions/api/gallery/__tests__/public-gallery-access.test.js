@@ -121,6 +121,31 @@ describe('public gallery access api', () => {
     expect(response.headers.get('Cache-Control')).toBe('no-store, max-age=0');
   });
 
+  it('returns 400 for malformed password JSON', async () => {
+    const response = await onRequestPost({
+      env: {
+        DB: createDb(),
+        JWT_SECRET: 'jwt-secret',
+        KV: {
+          get: vi.fn(async () => null),
+          put: vi.fn(async () => undefined),
+          delete: vi.fn(async () => undefined),
+        },
+      },
+      params: { token: 'gallery-token' },
+      request: new Request('http://localhost/api/gallery/gallery-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{',
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+    });
+  });
+
   it('returns signed file URLs after hashed password verification succeeds', async () => {
     const hashedPassword = await hashPassword('secret', 'jwt-secret');
 

@@ -323,6 +323,27 @@ describe('sales routes resilience', () => {
     );
   });
 
+  it('returns 404 for active products with no sellable variants', async () => {
+    mocks.productFindById.mockResolvedValue({
+      id: 'p-archived-variants',
+      status: 'active',
+      images: '[]',
+    });
+    mocks.variantFindByProductId.mockResolvedValue([
+      { id: 'v-archived', status: 'archived', available_quantity: 10 },
+    ]);
+
+    const app = createProductsTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/products/p-archived-variants',
+      {},
+      { DB: createDbMock() },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(404);
+  });
+
   it('rejects order creation when bound variant is out of stock under sales policy', async () => {
     mocks.productVariantFindByIdAndProductId.mockResolvedValue({
       id: 'v-1',
@@ -557,7 +578,13 @@ describe('sales routes resilience', () => {
       images: '[]',
     });
     mocks.variantFindByProductId.mockResolvedValue([
-      { id: 'v-1', product_id: 'p-1', status: 'active', options_values: { 'dim-color': 'Red' } },
+      {
+        id: 'v-1',
+        product_id: 'p-1',
+        status: 'active',
+        available_quantity: 1,
+        options_values: { 'dim-color': 'Red' },
+      },
     ]);
     mocks.dimensionListByProduct.mockResolvedValue([
       {

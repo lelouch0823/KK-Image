@@ -352,8 +352,8 @@ describe('PurchaseOrderShortageClosureService', () => {
       batchResultsQueue: [
         [
           { meta: { changes: 1 } },
-          { meta: { changes: 0 } },
           { meta: { changes: 1 } },
+          { meta: { changes: 0 } },
           { meta: { changes: 1 } },
           { meta: { changes: 1 } },
         ],
@@ -452,8 +452,8 @@ describe('PurchaseOrderShortageClosureService', () => {
       batchResultsQueue: [
         [
           { meta: { changes: 1 } },
-          { meta: { changes: 0 } },
           { meta: { changes: 1 } },
+          { meta: { changes: 0 } },
           { meta: { changes: 1 } },
           { meta: { changes: 1 } },
         ],

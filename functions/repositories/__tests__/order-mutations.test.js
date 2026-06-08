@@ -80,13 +80,17 @@ describe('Order Mutations SQL Binding', () => {
 
       // Verify parepare was called with product_id in SET clause
       expect(db.prepare.mock.calls.length).toBeGreaterThanOrEqual(2);
-      const sql = db.prepare.mock.calls[0][0];
+      const orderUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) =>
+        sql.includes('UPDATE orders')
+      );
+      const sql = db.prepare.mock.calls[orderUpdateIndex][0];
       expect(sql).toContain('product_id = ?');
+      expect(sql).toContain('archived_at IS NULL');
 
       // Verify bind parameters include the productId
       // Bind params order: [JSON.stringify(newData), timestamp, productId, orderId]
       expect(db.bind.mock.calls.length).toBeGreaterThanOrEqual(2);
-      const bindArgs = db.bind.mock.calls[0];
+      const bindArgs = db.bind.mock.calls[orderUpdateIndex];
       expect(bindArgs).toContain(productId);
       expect(bindArgs[bindArgs.length - 1]).toBe(orderId);
     });
@@ -99,11 +103,14 @@ describe('Order Mutations SQL Binding', () => {
       await updateData(db, orderId, newData, actorType, undefined);
 
       expect(db.prepare.mock.calls.length).toBeGreaterThanOrEqual(2);
-      const sql = db.prepare.mock.calls[0][0];
+      const orderUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) =>
+        sql.includes('UPDATE orders')
+      );
+      const sql = db.prepare.mock.calls[orderUpdateIndex][0];
       expect(sql).not.toContain('product_id = ?');
 
       expect(db.bind.mock.calls.length).toBeGreaterThanOrEqual(2);
-      const bindArgs = db.bind.mock.calls[0];
+      const bindArgs = db.bind.mock.calls[orderUpdateIndex];
       expect(bindArgs).not.toContain(undefined);
     });
 
@@ -114,10 +121,13 @@ describe('Order Mutations SQL Binding', () => {
 
       await updateData(db, orderId, newData, actorType);
 
-      const sql = db.prepare.mock.calls[0][0];
+      const orderUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) =>
+        sql.includes('UPDATE orders')
+      );
+      const sql = db.prepare.mock.calls[orderUpdateIndex][0];
       expect(sql).toContain('quantity = ?');
 
-      const bindArgs = db.bind.mock.calls[0];
+      const bindArgs = db.bind.mock.calls[orderUpdateIndex];
       expect(bindArgs).toContain(15);
     });
 
@@ -127,15 +137,30 @@ describe('Order Mutations SQL Binding', () => {
 
       await updateData(db, orderId, newData, 'admin');
 
-      expect(db.prepare.mock.calls[0][0]).toContain('summary_name = ?');
-      expect(db.prepare.mock.calls[0][0]).toContain('summary_brand = ?');
-      expect(db.prepare.mock.calls[0][0]).toContain('summary_sku = ?');
-      expect(db.prepare.mock.calls[1][0]).toContain('INSERT INTO order_payloads');
+      const orderUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) =>
+        sql.includes('UPDATE orders')
+      );
+      expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('summary_name = ?');
+      expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('summary_brand = ?');
+      expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('summary_sku = ?');
+      expect(db.prepare.mock.calls.some(([sql]) => sql.includes('INSERT INTO order_payloads'))).toBe(
+        true
+      );
 
-      const headerBindArgs = db.bind.mock.calls[0];
+      const headerBindArgs = db.bind.mock.calls[orderUpdateIndex];
       expect(headerBindArgs).toContain('Edited Item');
       expect(headerBindArgs).toContain('KK');
       expect(headerBindArgs).toContain('SKU-2');
+    });
+
+    it('rejects archived orders before updateData writes sidecars', async () => {
+      db.first.mockResolvedValueOnce({ archived_at: 1710000000000 });
+
+      await expect(updateData(db, 'o-archived', { name: 'Blocked' }, 'admin')).rejects.toThrow(
+        '订单已归档'
+      );
+
+      expect(db.batch).not.toHaveBeenCalled();
     });
   });
 
@@ -411,6 +436,12 @@ describe('Order Mutations SQL Binding', () => {
       );
       expect(lineUpdateIndex).toBeGreaterThanOrEqual(0);
 
+      const orderUpdateIndex = db.prepare.mock.calls.findIndex(
+        ([sql]) => sql.includes('UPDATE orders') && sql.includes('current_data = ?')
+      );
+      expect(orderUpdateIndex).toBeGreaterThanOrEqual(0);
+      expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('archived_at IS NULL');
+
       const bindArgs = db.bind.mock.calls[lineUpdateIndex];
       expect(bindArgs).toContain('prod-2');
       expect(bindArgs).toContain('var-2');
@@ -429,6 +460,20 @@ describe('Order Mutations SQL Binding', () => {
         color: 'Black',
         material: 'Leather',
       });
+    });
+
+    it('rejects archived orders before updateComposite writes sidecars', async () => {
+      db.first.mockResolvedValueOnce({ archived_at: 1710000000000 });
+
+      await expect(
+        updateComposite(db, {
+          id: 'o-archived',
+          actorType: 'admin',
+          newData: { name: 'Blocked' },
+        })
+      ).rejects.toThrow('订单已归档');
+
+      expect(db.batch).not.toHaveBeenCalled();
     });
 
     it('updateComposite batches order_payloads upsert with header updates', async () => {
@@ -683,6 +728,7 @@ describe('Order Mutations SQL Binding', () => {
       db.first
         .mockResolvedValueOnce({ status: 'arrived', variant_id: 'v-1', quantity: 3 })
         .mockResolvedValueOnce(null);
+      db.run.mockResolvedValueOnce({ meta: { changes: 1 } });
 
       await updateStatus(db, 'o-1', 'delivered', 'admin', { inventoryService });
 
@@ -703,6 +749,96 @@ describe('Order Mutations SQL Binding', () => {
       expect(db.prepare.mock.calls[lineUpdateIndex][0]).toContain('WHERE id = ? AND order_id = ?');
       expect(bindArgs[bindArgs.length - 2]).toBe('line-1');
       expect(bindArgs[bindArgs.length - 1]).toBe('o-1');
+    });
+
+    it('updateStatus guards the order write with the previously read status', async () => {
+      db.all.mockResolvedValueOnce({
+        results: [
+          {
+            order_id: 'o-cas',
+            id: 'line-cas',
+            ordered_qty: 1,
+            procured_qty: 0,
+            received_qty: 0,
+            reserved_qty: 0,
+            shipped_qty: 0,
+            cancelled_qty: 0,
+            line_count: 1,
+            total_ordered_qty: 1,
+            total_shipped_qty: 0,
+            total_cancelled_qty: 0,
+            row_num: 1,
+          },
+        ],
+      });
+      db.first.mockResolvedValueOnce({ status: 'pending', variant_id: null, quantity: 1 });
+      db.run.mockResolvedValueOnce({ meta: { changes: 1 } });
+
+      await updateStatus(db, 'o-cas', 'confirmed', 'admin');
+
+      const orderUpdateIndex = db.prepare.mock.calls.findIndex(
+        ([sql]) => sql.includes('UPDATE orders') && sql.includes('SET status = ?')
+      );
+      expect(orderUpdateIndex).toBeGreaterThanOrEqual(0);
+      expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('WHERE id = ? AND status = ?');
+      expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('archived_at IS NULL');
+      expect(db.bind.mock.calls[orderUpdateIndex]).toEqual(
+        expect.arrayContaining(['confirmed', 'o-cas', 'pending'])
+      );
+    });
+
+    it('updateStatus rejects archived orders before issuing status writes', async () => {
+      db.all.mockResolvedValueOnce({ results: [] });
+      db.first.mockResolvedValueOnce({
+        status: 'pending',
+        variant_id: null,
+        quantity: 1,
+        archived_at: 1710000000000,
+      });
+
+      await expect(updateStatus(db, 'o-archived', 'confirmed', 'admin')).rejects.toThrow(
+        '订单已归档'
+      );
+
+      const orderUpdateIndex = db.prepare.mock.calls.findIndex(
+        ([sql]) => sql.includes('UPDATE orders') && sql.includes('SET status = ?')
+      );
+      expect(orderUpdateIndex).toBe(-1);
+      expect(db.batch).not.toHaveBeenCalled();
+    });
+
+    it('updateStatus stops before compatibility side effects when the status CAS fails', async () => {
+      db.all.mockResolvedValueOnce({
+        results: [
+          {
+            order_id: 'o-stale',
+            id: 'line-stale',
+            ordered_qty: 1,
+            procured_qty: 0,
+            received_qty: 0,
+            reserved_qty: 0,
+            shipped_qty: 0,
+            cancelled_qty: 0,
+            line_count: 1,
+            total_ordered_qty: 1,
+            total_shipped_qty: 0,
+            total_cancelled_qty: 0,
+            row_num: 1,
+          },
+        ],
+      });
+      db.first.mockResolvedValueOnce({ status: 'pending', variant_id: null, quantity: 1 });
+      db.run.mockResolvedValueOnce({ meta: { changes: 0 } });
+
+      await expect(updateStatus(db, 'o-stale', 'confirmed', 'admin')).rejects.toMatchObject({
+        statusCode: 409,
+      });
+
+      const lineUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) =>
+        sql.includes('UPDATE order_lines')
+      );
+      expect(lineUpdateIndex).toBe(-1);
+      expect(db.batch).not.toHaveBeenCalled();
     });
 
     it('batchUpdateStatus persists fulfilled when legacy delivered input is requested', async () => {
@@ -748,6 +884,29 @@ describe('Order Mutations SQL Binding', () => {
 
       expect(orderUpdateStatement).toBeTruthy();
       expect(orderUpdateStatement.params[0]).toBe('fulfilled');
+      expect(orderUpdateStatement.sql).toContain('archived_at IS NULL');
+    });
+
+    it('batchUpdateStatus rejects archived orders before issuing updates', async () => {
+      const batchDb = createBatchAwareDb({
+        allHandler: async () => ({
+          results: [
+            {
+              id: 'o-archived',
+              status: 'pending',
+              variant_id: null,
+              quantity: 1,
+              archived_at: 1710000000000,
+            },
+          ],
+        }),
+      });
+
+      await expect(
+        batchUpdateStatus(batchDb, timelineRepo, ['o-archived'], 'confirmed', null)
+      ).rejects.toThrow('订单已归档');
+
+      expect(batchDb.batch).not.toHaveBeenCalled();
     });
 
     it('updateStatus reuses one prefetched order-line state instead of separate totals and primary-line scans', async () => {
@@ -775,7 +934,9 @@ describe('Order Mutations SQL Binding', () => {
         }),
         firstHandler: async (statement) => {
           if (
-            statement.sql.includes('SELECT status, variant_id, quantity FROM orders WHERE id = ?')
+            statement.sql.includes(
+              'SELECT status, variant_id, quantity, archived_at FROM orders WHERE id = ?'
+            )
           ) {
             return { status: 'arrived', variant_id: null, quantity: 3 };
           }

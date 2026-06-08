@@ -148,7 +148,8 @@ export class SearchRepository {
                            'order' AS result_type
                     FROM orders o
                     LEFT JOIN customers c ON o.customer_id = c.id
-                    WHERE o.rowid IN (SELECT rowid FROM orders_fts WHERE orders_fts MATCH ?)
+                    WHERE o.archived_at IS NULL
+                      AND o.rowid IN (SELECT rowid FROM orders_fts WHERE orders_fts MATCH ?)
                     ORDER BY o.created_at DESC
                     LIMIT ?
                 `
@@ -169,7 +170,8 @@ export class SearchRepository {
                    'order' AS result_type
             FROM orders o
             LEFT JOIN customers c ON o.customer_id = c.id
-            WHERE o.order_no LIKE ? OR o.summary_name LIKE ?
+            WHERE o.archived_at IS NULL
+              AND (o.order_no LIKE ? OR o.summary_name LIKE ?)
             ORDER BY o.created_at DESC
             LIMIT ?
         `

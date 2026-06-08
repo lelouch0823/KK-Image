@@ -2,6 +2,7 @@ export const salespersonActionAdapter = {
   entityType: 'salesperson',
   actionType: 'create_salesperson',
   targetModule: 'salespersons',
+  requiredPermission: 'users:write',
   requiredSlots: ['name', 'password'],
   optionalSlots: ['store', 'phone'],
   fieldLabels: {

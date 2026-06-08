@@ -7,7 +7,7 @@ import { parseBooleanFlag } from '../../../../ai/config-schema.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
-import { assertSafeExternalUrl } from '../../_shared/url-security.js';
+import { assertSafeExternalUrl, buildSafeExternalFetchOptions } from '../../_shared/url-security.js';
 import { withCache } from '../../middleware/cache.js';
 import {
   BatchSettingsSchema,
@@ -52,7 +52,7 @@ const ensureRequiredAiConfig = ({ apiUrl, apiKey }) => {
 
 const fetchJsonWithAuth = async (url, apiKey, init = {}) => {
   const response = await fetch(url, {
-    ...init,
+    ...buildSafeExternalFetchOptions({ timeoutMs: 10000, ...init }),
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,

@@ -134,6 +134,7 @@ export class SalespersonRepository {
                 LEFT JOIN (
                     SELECT salesperson_id, COUNT(*) as order_count
                     FROM orders
+                    WHERE archived_at IS NULL
                     GROUP BY salesperson_id
                 ) oc ON oc.salesperson_id = s.id
                 WHERE ${whereClause}
@@ -295,7 +296,7 @@ export class SalespersonRepository {
     const result = await this.db
       .prepare(
         `
-            SELECT COUNT(*) as count FROM orders WHERE salesperson_id = ?
+            SELECT COUNT(*) as count FROM orders WHERE archived_at IS NULL AND salesperson_id = ?
         `
       )
       .bind(id)
@@ -383,7 +384,7 @@ export class SalespersonRepository {
       LEFT JOIN (
         SELECT salesperson_id, COUNT(*) AS order_count
         FROM orders o
-        WHERE 1=1 ${timeFilter}
+        WHERE o.archived_at IS NULL ${timeFilter}
         GROUP BY salesperson_id
       ) oc ON oc.salesperson_id = s.id
       WHERE s.is_active = 1

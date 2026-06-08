@@ -5,6 +5,7 @@ import { OAuthRepository, hashSecret } from '../../../../repositories/OAuthRepos
 import { requirePermission } from '../../middleware/auth.js';
 import { generatePrefixedId } from '../../../../_shared/utils.js';
 import { rateLimit } from '../../middleware/rateLimit.js';
+import { timingSafeCompare } from '../../../../api/utils/crypto.js';
 
 const app = new Hono();
 
@@ -19,12 +20,9 @@ const oauthTokenRateLimit = rateLimit({
  * 常数时间比较两个字符串（防止时序攻击）
  * 先计算输入的哈希，再与存储的哈希做常数时间比较
  */
-async function verifySecret(inputSecret, storedHash) {
+export async function verifySecret(inputSecret, storedHash) {
   const inputHash = await hashSecret(inputSecret);
-  const a = new TextEncoder().encode(inputHash);
-  const b = new TextEncoder().encode(storedHash);
-  if (a.length !== b.length) return false;
-  return crypto.subtle.timingSafeEqual(a, b);
+  return timingSafeCompare(inputHash, storedHash);
 }
 
 // ============================================

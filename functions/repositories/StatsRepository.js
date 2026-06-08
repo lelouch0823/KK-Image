@@ -88,15 +88,17 @@ export class StatsRepository {
       this.db
         .prepare(
           `SELECT
-                    (SELECT COUNT(*) FROM orders) as total_orders,
-                    (SELECT COUNT(*) FROM orders WHERE status = 'pending') as pending_orders,
-                    (SELECT COUNT(*) FROM orders WHERE status IN ('fulfilled', 'delivered')) as fulfilled_orders,
-                    (SELECT COUNT(DISTINCT salesperson_id) FROM orders WHERE salesperson_id IS NOT NULL AND salesperson_id != '') as active_salespersons,
+                    (SELECT COUNT(*) FROM orders WHERE archived_at IS NULL) as total_orders,
+                    (SELECT COUNT(*) FROM orders WHERE archived_at IS NULL AND status = 'pending') as pending_orders,
+                    (SELECT COUNT(*) FROM orders WHERE archived_at IS NULL AND status IN ('fulfilled', 'delivered')) as fulfilled_orders,
+                    (SELECT COUNT(DISTINCT salesperson_id) FROM orders WHERE archived_at IS NULL AND salesperson_id IS NOT NULL AND salesperson_id != '') as active_salespersons,
                     (
                       SELECT COUNT(*)
                       FROM (
                         SELECT order_id
-                        FROM order_lines
+                        FROM order_lines ol
+                        JOIN orders o ON o.id = ol.order_id
+                        WHERE o.archived_at IS NULL
                         GROUP BY order_id
                         HAVING COUNT(*) > 1
                       )

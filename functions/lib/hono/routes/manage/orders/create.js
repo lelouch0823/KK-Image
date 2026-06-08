@@ -255,10 +255,14 @@ app.post('/batch', zValidator('json', BatchCreateOrderSchema), async (c) => {
 
     // 1. 先查询需要通知的订单信息
     const { results: orders } = await env.DB.prepare(
-      `SELECT id, order_no, salesperson_id, status FROM orders WHERE id IN (${normalizedIds.map(() => '?').join(',')})`
+      `SELECT id, order_no, salesperson_id, status, archived_at FROM orders WHERE id IN (${normalizedIds.map(() => '?').join(',')})`
     )
       .bind(...normalizedIds)
       .all();
+    const archivedOrder = (orders || []).find((order) => order.archived_at);
+    if (archivedOrder) {
+      throw new BadRequestError('订单已归档，请先恢复后再修改');
+    }
     const outOfFlowOrder = (orders || []).find(
       (o) => !canTransitionOrderStatus(o.status, normalizedStatus)
     );

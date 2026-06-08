@@ -203,6 +203,7 @@ export class PurchaseOrderService {
                   `UPDATE orders
                  SET procurement_status = ?, updated_at = ?
                  WHERE id = ?
+                   AND archived_at IS NULL
                    AND status NOT IN ('fulfilled', 'delivered', 'void')
                    AND COALESCE(procurement_status, 'none') = 'none'`
                 )
@@ -224,6 +225,7 @@ export class PurchaseOrderService {
                   `UPDATE orders
                  SET procurement_status = ?, updated_at = ?
                  WHERE id = ?
+                   AND archived_at IS NULL
                    AND status NOT IN ('fulfilled', 'delivered', 'void')
                    AND COALESCE(procurement_status, 'none') = ?`
                 )
@@ -364,6 +366,7 @@ export class PurchaseOrderService {
         LEFT JOIN products p ON ol.product_id = p.id
         LEFT JOIN product_variants pv ON pv.id = ol.variant_id
         WHERE o.id IN (${placeholders})
+          AND o.archived_at IS NULL
           AND o.status = 'confirmed'
           AND ol.quantity > 0
       `

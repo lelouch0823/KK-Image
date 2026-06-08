@@ -1,74 +1,90 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  __resetTurnstileRateLimitForTest,
+  onRequestPost,
+} from '../verify.js';
 
-const authMocks = vi.hoisted(() => ({
-  verifyJWT: vi.fn(),
-}));
-
-vi.mock('../../utils/auth.js', async () => {
-  const actual = await vi.importActual('../../utils/auth.js');
-  return {
-    ...actual,
-    verifyJWT: authMocks.verifyJWT,
-  };
-});
-
-import { onRequestGet } from '../verify.js';
-
-function createEnv() {
-  return {
-    TURNSTILE_SITE_KEY: 'site-key',
-    TURNSTILE_SECRET_KEY: 'secret-key',
-    JWT_SECRET: 'jwt-secret',
-  };
+function request(body, headers = {}) {
+  return new Request('https://example.com/api/turnstile/verify', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'CF-Connecting-IP': '203.0.113.10',
+      ...headers,
+    },
+    body,
+  });
 }
 
-describe('turnstile verify config route', () => {
+async function json(response) {
+  return response.json();
+}
+
+describe('turnstile verify function', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    __resetTurnstileRateLimitForTest();
   });
 
-  it('treats quoted auth cookie token as admin session', async () => {
-    const env = createEnv();
-    authMocks.verifyJWT.mockImplementation(async (token) => {
-      if (token !== 'jwt.admin.quoted') {
-        throw new Error(`unexpected token: ${token}`);
-      }
-      return { id: 'u-admin', type: 'admin', role: 'admin' };
+  it('returns 400 for malformed JSON', async () => {
+    const response = await onRequestPost({
+      request: request('{bad-json'),
+      env: { ENVIRONMENT: 'production', TURNSTILE_SECRET_KEY: 'secret' },
     });
 
-    const request = new Request('https://example.com/api/turnstile/verify', {
-      headers: {
-        Cookie: 'ADMIN_AUTH="jwt.admin.quoted"',
-      },
-    });
-
-    const response = await onRequestGet({ env, request });
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(authMocks.verifyJWT).toHaveBeenCalledWith('jwt.admin.quoted', env);
-    expect(body.data.isAdmin).toBe(true);
-    expect(body.data.enabled).toBe(false);
-    expect(body.data.siteKey).toBeNull();
+    expect(response.status).toBe(400);
+    expect(await json(response)).toMatchObject({ success: false });
   });
 
-  it('keeps cookie-only admin detection and ignores bearer token', async () => {
-    const env = createEnv();
-    authMocks.verifyJWT.mockResolvedValue({ id: 'u-admin', type: 'admin', role: 'admin' });
-
-    const request = new Request('https://example.com/api/turnstile/verify', {
-      headers: {
-        Authorization: 'Bearer "jwt.admin.bearer"',
-      },
+  it('fails closed in production when the secret is missing', async () => {
+    const response = await onRequestPost({
+      request: request(JSON.stringify({ token: 'token-1' })),
+      env: { ENVIRONMENT: 'production', TURNSTILE_SITE_KEY: 'site-key' },
     });
 
-    const response = await onRequestGet({ env, request });
-    const body = await response.json();
+    expect(response.status).toBe(503);
+    expect(await json(response)).toMatchObject({ success: false });
+  });
 
-    expect(response.status).toBe(200);
-    expect(authMocks.verifyJWT).not.toHaveBeenCalled();
-    expect(body.data.isAdmin).toBe(false);
-    expect(body.data.enabled).toBe(true);
-    expect(body.data.siteKey).toBe('site-key');
+  it('sends Turnstile verification with an abort signal and fails closed on timeout', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url, options) => {
+        expect(options.signal).toBeTruthy();
+        const error = new Error('timeout');
+        error.name = 'AbortError';
+        throw error;
+      })
+    );
+
+    const response = await onRequestPost({
+      request: request(JSON.stringify({ token: 'token-1' })),
+      env: { ENVIRONMENT: 'production', TURNSTILE_SECRET_KEY: 'secret', TURNSTILE_TIMEOUT_MS: '1' },
+    });
+
+    expect(response.status).toBe(503);
+    expect(await json(response)).toMatchObject({ success: false });
+  });
+
+  it('rate limits repeated standalone verification attempts by IP', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ success: true })))
+    );
+
+    let lastResponse;
+    for (let index = 0; index < 3; index += 1) {
+      lastResponse = await onRequestPost({
+        request: request(JSON.stringify({ token: `token-${index}` })),
+        env: {
+          ENVIRONMENT: 'production',
+          TURNSTILE_SECRET_KEY: 'secret',
+          TURNSTILE_RATE_LIMIT_MAX: '2',
+        },
+      });
+    }
+
+    expect(lastResponse.status).toBe(429);
+    expect(await json(lastResponse)).toMatchObject({ success: false });
   });
 });

@@ -267,3 +267,101 @@ if (result.success && result.productIds?.length) {
 await scheduleProductCacheInvalidation(c, { productIds: result.productIds });
 return result;
 ```
+
+---
+
+## Scenario: Backend External Boundary And Archived Data Hardening
+
+### 1. Scope / Trigger
+
+- Trigger: Backend changes that touch uploads, external callback URLs, public verification endpoints, read DTOs containing secrets, or archived order read/write paths.
+- Applies to: `functions/api/utils/file-utils.js`, Hono manage upload/webhook/settings/ERP routes, Turnstile verification, salesperson responses, order repositories, sales routes, and reporting/stat repositories.
+- Reason: These surfaces cross trust boundaries. Client-provided identifiers, remote URLs, missing external-call timeouts, sensitive token fields, and soft-deleted business records must be handled consistently across routes, services, and repositories.
+
+### 2. Signatures
+
+- Upload helper: `uploadFile(env, file, metadata, options?) -> Promise<FileRecordLike>`.
+- Caller metadata field: `contentHash?: string`.
+- URL validation helper: `validateExternalUrl(url, env, options?) -> { valid: boolean, reason?: string }`.
+- Safe fetch options helper: `buildSafeExternalFetchOptions(init?, timeoutMs?) -> RequestInit`.
+- Turnstile endpoint: `POST /api/turnstile/verify` with JSON `{ token: string }`.
+- ERP webhook endpoint: `POST /api/manage/erp-sync/connections/:id/webhook`.
+- Salesperson read APIs: list/detail responses must omit `accessToken`; token reset responses may return the new token.
+
+### 3. Contracts
+
+- `contentHash` from the client is advisory only. When present, validate it as SHA-256 hex, compute the server-side SHA-256 for supported uploads, reject mismatches, and use the computed hash as the storage/CAS key.
+- External service calls must validate URLs with environment-aware private-address rules, use `redirect: "manual"`, and attach an abort timeout signal.
+- Production Turnstile verification fails closed when `TURNSTILE_SECRET_KEY` is absent; malformed JSON returns a stable `400`.
+- ERP webhook HMAC accepts the legacy bare hex form and the canonical `sha256=<base64>` form. Missing or invalid signatures return `401`, disabled/missing connections return `404`, and missing connection secrets return `500`.
+- Ordinary order reads, sales views, exports, reporting, receivables, payment stats, and profit stats exclude archived orders by default.
+- Ordinary admin writes to archived orders are blocked. Recovery/admin-only archive workflows must use explicit archive-aware paths.
+- Read DTOs for salesperson list/detail must strip `accessToken`; only explicit token reset/creation flows may return a token value.
+
+### 4. Validation & Error Matrix
+
+- Upload `contentHash` missing -> compute server hash when supported and continue.
+- Upload `contentHash` malformed -> `BadRequestError` before storage write.
+- Upload `contentHash` valid but mismatched -> `BadRequestError("contentHash does not match file content")`.
+- External URL resolves to loopback/private/link-local or IPv4-mapped private IPv6 in production -> validation failure.
+- External URL redirects -> do not auto-follow; surface the manual redirect response or configured route error.
+- Turnstile JSON parse failure -> `400`.
+- Turnstile secret missing in production -> verification failure, not bypass.
+- Archived order update through ordinary route/service -> `BadRequestError` or `NotFoundError` according to the route contract.
+- Salesperson list/detail response includes `accessToken` -> test failure.
+
+### 5. Good/Base/Bad Cases
+
+- Good: upload receives a correct SHA-256 from the client, recomputes the same hash, stores by the computed value, and deduplicates by content.
+- Base: small upload omits `contentHash`; backend computes a hash and stores by content.
+- Bad: upload trusts caller `contentHash` and lets a caller choose another object's storage key.
+- Good: webhook retry/test uses validated URL plus `buildSafeExternalFetchOptions({ method, headers, body })`.
+- Bad: webhook/ERP/settings code calls `fetch(userUrl)` directly or follows redirects automatically.
+- Good: order statistics repositories add `archived_at IS NULL` to ordinary reporting queries.
+- Bad: a route hides archived orders but a lower-level repository mutation can still update archived rows.
+- Good: salesperson list/detail can be used by `users:read` without exposing login tokens.
+- Bad: a hidden secret is stripped in one route but leaked by a shared transformer or detail route.
+
+### 6. Tests Required
+
+- Upload tests must cover malformed hash, mismatched hash, computed hash storage, and dedupe behavior.
+- URL security tests must cover loopback/private hosts, IPv4-mapped IPv6, manual redirect behavior, and allowed local development cases.
+- Route/service tests that call external URLs must assert `redirect: "manual"` and an abort signal are passed to fetch.
+- Turnstile tests must cover malformed JSON, production missing-secret fail-closed behavior, and timeout handling.
+- ERP webhook route and service tests must cover public auth bypass only for the exact webhook path plus both signature formats.
+- Archived-order tests must cover ordinary list/report/stat exclusions and blocked write paths at both route and repository/service levels.
+- Salesperson route tests must assert list/detail omit `accessToken` and reset-token still returns the newly generated token.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+// Caller controls the storage identity.
+const hash = metadata.contentHash;
+await env.R2.put(hash, file.stream());
+
+// Untrusted URL follows redirects and has no timeout.
+await fetch(webhook.url, { method: 'POST', body });
+
+// Secret-bearing repository row is returned as the public DTO.
+return c.json(await salespersonRepo.getById(id));
+```
+
+#### Correct
+
+```js
+const computedHash = await computeSha256(file);
+if (metadata.contentHash && metadata.contentHash !== computedHash) {
+  throw new BadRequestError('contentHash does not match file content');
+}
+await env.R2.put(computedHash, file.stream());
+
+const safeUrl = validateExternalUrl(webhook.url, env);
+if (!safeUrl.valid) throw new BadRequestError(safeUrl.reason);
+await fetch(webhook.url, buildSafeExternalFetchOptions({ method: 'POST', body }));
+
+const salesperson = await salespersonRepo.getById(id);
+delete salesperson.accessToken;
+return c.json(salesperson);
+```

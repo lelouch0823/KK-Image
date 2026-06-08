@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { OrderLineCommandSchema } from '../../../schemas/order.js';
-import { BadRequestError } from '../../../errors.js';
+import { BadRequestError, NotFoundError } from '../../../errors.js';
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { OrderLineFulfillmentService } from '../../../../../services/OrderLineFulfillmentService.js';
 import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
@@ -9,8 +9,10 @@ import { parsePositiveLineCommandQuantity } from '../../../../../services/order-
 import { OrderTimelineRepository } from '../../../../../repositories/OrderTimelineRepository.js';
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
+import { MSG } from '../../../../../_shared/utils.js';
 
 const app = new Hono();
+const ARCHIVED_ORDER_MUTATION_MESSAGE = '订单已归档，请先恢复后再修改';
 
 export const auditRouteDeclarations = declareAuditRoutes([
   {
@@ -63,6 +65,12 @@ function scheduleOutboxProcessing(c, workerId) {
       workerId,
     })
   );
+}
+
+function assertOrderIsActiveForMutation(order) {
+  if (order?.archivedAt || order?.archived_at) {
+    throw new BadRequestError(ARCHIVED_ORDER_MUTATION_MESSAGE);
+  }
 }
 
 function buildTimelineComment({ action, lineId, quantity, reason = '', note = '' }) {
@@ -130,6 +138,9 @@ async function handleLineCommand(c, action, executor) {
   const timelineRepo = new OrderTimelineRepository(c.env.DB);
   const publisher = new DomainOutboxPublisher(c.env.DB);
   const orderRepo = new OrderRepository(c.env.DB);
+  const order = await orderRepo.findById(orderId);
+  if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+  assertOrderIsActiveForMutation(order);
 
   const data = await executor(service, orderId, lineId, payload, {
     actorId: user?.id || null,
@@ -160,7 +171,7 @@ async function handleLineCommand(c, action, executor) {
     quantity,
     body,
     actorName: user?.name || 'Admin',
-    order: action === 'return' ? await orderRepo.findById(orderId) : null,
+    order: action === 'return' ? order : null,
   });
   if (followupEvents.length > 0) {
     await publisher.publish(followupEvents);

@@ -193,6 +193,7 @@ export async function findOrderBindingsByIds(db, orderIds = []) {
       SELECT DISTINCT product_id, variant_id
       FROM orders
       WHERE id IN ${inClause(normalizedOrderIds)}
+        AND archived_at IS NULL
     `
     )
     .bind(...normalizedOrderIds)

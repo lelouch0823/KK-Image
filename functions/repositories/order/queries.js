@@ -117,7 +117,7 @@ export async function findByIdAndSalesperson(db, id, salespersonId) {
       ${ORDER_PAYLOADS_JOIN_SQL}
       LEFT JOIN files f ON o.main_image_id = f.id
       LEFT JOIN customers c ON o.customer_id = c.id
-      WHERE o.id = ? AND o.salesperson_id = ?
+      WHERE o.id = ? AND o.salesperson_id = ? AND o.archived_at IS NULL
       `,
     [id, salespersonId],
     { label: 'order.findByIdAndSalesperson' }
@@ -196,7 +196,7 @@ export async function listBySalesperson(
     offset,
   } = parseRepoPagination({ page, limit }, { defaultPage: 1, defaultLimit: 20, maxLimit: 100 });
 
-  let where = 'WHERE o.salesperson_id = ?';
+  let where = 'WHERE o.salesperson_id = ? AND o.archived_at IS NULL';
   const params = [salespersonId];
 
   const statusValues = expandOrderStatusFilter(status);

@@ -11,7 +11,7 @@ import { generateId, now } from '../../api/utils/id.js';
 import { inClause } from '../../api/utils/sql.js';
 import { assertOrderStatusTransition } from '../../api/utils/order-state-machine.js';
 import { chunkArray, executeBatchChunks } from '../../lib/db/batch.js';
-import { BadRequestError } from '../../lib/hono/errors.js';
+import { BadRequestError, ConflictError } from '../../lib/hono/errors.js';
 import { projectOrderLineStatus } from '../../services/OrderStatusProjectionService.js';
 import {
   getPrefetchedOrderLineState,
@@ -46,6 +46,16 @@ function getUnreadOtherField(actorType) {
   const field = UNREAD_OTHER_FIELD_MAP[actorType];
   if (!field) throw new BadRequestError(`Invalid actorType: ${actorType}`);
   return field;
+}
+
+async function assertOrderIsActiveForMutation(db, id) {
+  const row = await db
+    .prepare('SELECT archived_at FROM orders WHERE id = ?')
+    .bind(id)
+    .first();
+  if (row?.archived_at) {
+    throw new BadRequestError('订单已归档，请先恢复后再修改');
+  }
 }
 
 const SNAPSHOT_SPEC_KEYS = [
@@ -648,6 +658,7 @@ export async function updateData(
   productId = undefined,
   variantId = undefined
 ) {
+  await assertOrderIsActiveForMutation(db, id);
   const timestamp = now();
   const updateField = getUnreadOtherField(actorType);
   const deadlineDate = extractDeadlineDate(newData);
@@ -693,7 +704,7 @@ export async function updateData(
       SET ${colsToUpdate.join(', ')} 
     `;
 
-  query += ` WHERE id = ?`;
+  query += ` WHERE id = ? AND archived_at IS NULL`;
   params.push(id);
 
   const updateStmt = db.prepare(query).bind(...params);
@@ -751,6 +762,7 @@ export async function updateComposite(
     enforceSalesFileScope = false,
   }
 ) {
+  await assertOrderIsActiveForMutation(db, id);
   const timestamp = now();
   if (enforceSalesFileScope) {
     await assertSalesScopedFileIds(db, fileIds, salespersonId, { orderId: id });
@@ -852,7 +864,9 @@ export async function updateComposite(
 
   params.push(id);
   statements.push(
-    db.prepare(`UPDATE orders SET ${colsToUpdate.join(', ')} WHERE id = ?`).bind(...params)
+    db
+      .prepare(`UPDATE orders SET ${colsToUpdate.join(', ')} WHERE id = ? AND archived_at IS NULL`)
+      .bind(...params)
   );
 
   statements.push(
@@ -945,15 +959,35 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
   const orderLineStates = await prefetchOrderLineStates(db, [id]);
   await assertOrderStatusCompatibleWithLines(db, id, normalizedNextStatus, orderLineStates);
   const currentOrder = await db
-    .prepare('SELECT status, variant_id, quantity FROM orders WHERE id = ?')
+    .prepare('SELECT status, variant_id, quantity, archived_at FROM orders WHERE id = ?')
     .bind(id)
     .first();
+  if (!currentOrder?.status) {
+    throw new ConflictError('order status was modified concurrently');
+  }
+  if (currentOrder.archived_at) {
+    throw new BadRequestError('订单已归档，请先恢复后再修改');
+  }
   if (currentOrder?.status) {
     assertOrderStatusTransition(currentOrder.status, normalizedNextStatus, {
       forceStatusTransition,
     });
   }
   // 注意：库存变更已迁移至行级命令 (lines.js)，此处不再处理 order-level stock delta
+
+  const statusUpdateResult = await db
+    .prepare(
+      `
+      UPDATE orders
+      SET status = ?, ${updateField} = 1, updated_at = ?
+      WHERE id = ? AND status = ? AND archived_at IS NULL
+      `
+    )
+    .bind(normalizedNextStatus, timestamp, id, currentOrder.status)
+    .run();
+  if (Number(statusUpdateResult?.meta?.changes || 0) !== 1) {
+    throw new ConflictError('order status was modified concurrently');
+  }
 
   const lineProgressStatement = await buildCompatibilityLineProgressStatement(
     db,
@@ -963,18 +997,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
     timestamp,
     orderLineStates
   );
-  await executeBatchChunks(db, [
-    db
-      .prepare(
-        `
-      UPDATE orders 
-      SET status = ?, ${updateField} = 1, updated_at = ? 
-      WHERE id = ?
-      `
-      )
-      .bind(normalizedNextStatus, timestamp, id),
-    lineProgressStatement,
-  ]);
+  await executeBatchChunks(db, [lineProgressStatement]);
   return { success: true, meta: { changes: 1 } };
 }
 
@@ -1023,10 +1046,16 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
   for (const idChunk of chunkArray(ids)) {
     const placeholders = idChunk.map(() => '?').join(',');
     const { results = [] } = await db
-      .prepare(`SELECT id, status, variant_id, quantity FROM orders WHERE id IN (${placeholders})`)
+      .prepare(
+        `SELECT id, status, variant_id, quantity, archived_at FROM orders WHERE id IN (${placeholders})`
+      )
       .bind(...idChunk)
       .all();
     existingOrders.push(...results);
+  }
+  const archivedOrder = existingOrders.find((row) => row.archived_at);
+  if (archivedOrder) {
+    throw new BadRequestError('订单已归档，请先恢复后再修改');
   }
   const orderMap = new Map((existingOrders || []).map((row) => [row.id, row]));
   const orderLineStates = await prefetchOrderLineStates(db, ids);
@@ -1047,7 +1076,7 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
       db
         .prepare(
           `
-          UPDATE orders SET status = ?, unread_by_sales = 1, updated_at = ? WHERE id = ?
+          UPDATE orders SET status = ?, unread_by_sales = 1, updated_at = ? WHERE id = ? AND archived_at IS NULL
           `
         )
         .bind(normalizedNextStatus, timestamp, id)

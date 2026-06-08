@@ -36,6 +36,7 @@ describe('PurchaseOrderService procurement status cascade', () => {
     const joinedSql = db.__sqls.join('\n');
     expect(joinedSql).toContain('SET procurement_status = ?');
     expect(joinedSql).not.toContain('UPDATE orders SET status = ?');
+    expect(joinedSql).toContain('archived_at IS NULL');
     expect(joinedSql).toContain(`COALESCE(procurement_status, 'none') = 'none'`);
   });
 
@@ -53,6 +54,7 @@ describe('PurchaseOrderService procurement status cascade', () => {
 
     const joinedSql = db.__sqls.join('\n');
     expect(joinedSql).toContain(`status NOT IN ('fulfilled', 'delivered', 'void')`);
+    expect(joinedSql).toContain('archived_at IS NULL');
     expect(joinedSql).toContain(`COALESCE(procurement_status, 'none') = 'none'`);
     expect(joinedSql).not.toContain(`COALESCE(procurement_status, 'none') != ?`);
   });

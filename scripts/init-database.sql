@@ -1529,7 +1529,8 @@ CREATE TABLE IF NOT EXISTS command_idempotency (
     response_json TEXT,
     status TEXT NOT NULL CHECK(status IN (
         'in_flight',
-        'committed'
+        'committed',
+        'failed'
     )),
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL

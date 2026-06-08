@@ -73,6 +73,7 @@ describe('init-database bootstrap consistency', () => {
     expect(commandSql).toMatch(/\bcommand_type\s+TEXT\s+NOT\s+NULL\b/i);
     expect(commandSql).toMatch(/\bidempotency_key\s+TEXT\s+NOT\s+NULL\b/i);
     expect(commandSql).toMatch(/\brequest_fingerprint\s+TEXT\s+NOT\s+NULL\b/i);
+    expect(commandSql).toMatch(/'failed'/i);
 
     expect(outboxSql).toMatch(/CREATE TABLE IF NOT EXISTS\s+domain_outbox\s*\(/i);
     expect(outboxSql).toMatch(/\bevent_type\s+TEXT\s+NOT\s+NULL\b/i);

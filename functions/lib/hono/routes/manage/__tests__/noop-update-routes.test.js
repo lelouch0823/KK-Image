@@ -356,11 +356,11 @@ describe('manage no-op update routes', () => {
     expect(body.data).toEqual([
       expect.objectContaining({
         id: 'sales-1',
-        accessToken: 'token-1',
         isActive: true,
         orderCount: 3,
       }),
     ]);
+    expect(body.data[0]).not.toHaveProperty('accessToken');
   });
 
   it('returns salesperson detail with transformed active flag', async () => {
@@ -373,10 +373,10 @@ describe('manage no-op update routes', () => {
     expect(body.data).toEqual(
       expect.objectContaining({
         id: 'sales-1',
-        accessToken: 'token-1',
         isActive: true,
       })
     );
+    expect(body.data).not.toHaveProperty('accessToken');
   });
 
   it('creates a salesperson and publishes the create event', async () => {

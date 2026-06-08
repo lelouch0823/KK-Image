@@ -344,6 +344,7 @@ async function validateExistingItemQuantityUpdate(db, item, nextQuantity) {
         SELECT id, status, product_id, variant_id, quantity
         FROM orders
         WHERE id = ?
+          AND archived_at IS NULL
       `
       )
       .bind(item.pre_order_id)

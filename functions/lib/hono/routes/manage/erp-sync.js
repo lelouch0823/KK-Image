@@ -8,6 +8,7 @@ import { OrderRepository } from '../../../../repositories/OrderRepository.js';
 import { ErpSyncService } from '../../../../services/ErpSyncService.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { parsePagination } from '../../_shared/route-helpers.js';
+import { assertSafeExternalUrl } from '../../_shared/url-security.js';
 
 const app = new Hono();
 
@@ -24,6 +25,23 @@ function createErpSyncService(db) {
     orderRepo: new OrderRepository(db),
   });
 }
+
+/**
+ * POST /connections/:id/webhook - ERP webhook 回调入口
+ * 此端点无需管理员认证，通过 HMAC-SHA256 签名验证请求合法性
+ */
+app.post('/connections/:id/webhook', async (c) => {
+  const connectionId = c.req.param('id');
+  const signature = c.req.header('X-Webhook-Signature') || '';
+  const rawBody = await c.req.text();
+  const service = createErpSyncService(c.env.DB);
+  try {
+    const result = await service.handleWebhook(connectionId, rawBody, signature);
+    return c.json({ success: true, data: result });
+  } catch (err) {
+    return c.json({ success: false, error: err.message }, Number(err?.statusCode || 400));
+  }
+});
 
 // 所有 ERP 同步路由需要管理员权限
 app.use('*', requirePermission('admin:full'));
@@ -71,6 +89,7 @@ app.get('/connections', async (c) => {
  */
 app.post('/connections', zValidator('json', CreateConnectionSchema), async (c) => {
   const body = c.req.valid('json');
+  assertSafeExternalUrl(body.baseUrl);
   const repo = new ErpSyncRepository(c.env.DB);
   const connection = await repo.createConnection({
     ...body,
@@ -94,6 +113,7 @@ app.get('/connections/:id', async (c) => {
  */
 app.put('/connections/:id', zValidator('json', UpdateConnectionSchema), async (c) => {
   const body = c.req.valid('json');
+  if (body.baseUrl) assertSafeExternalUrl(body.baseUrl);
   const repo = new ErpSyncRepository(c.env.DB);
   const connection = await repo.updateConnection(c.req.param('id'), {
     ...body,
@@ -146,23 +166,6 @@ app.post('/connections/:id/sync', zValidator('json', SyncSchema), async (c) => {
   const service = createErpSyncService(c.env.DB);
   try {
     const result = await service.syncAll(c.req.param('id'), body);
-    return c.json({ success: true, data: result });
-  } catch (err) {
-    return c.json({ success: false, error: err.message }, 400);
-  }
-});
-
-/**
- * POST /connections/:id/webhook - ERP webhook 回调入口
- * 此端点无需管理员认证，通过 HMAC-SHA256 签名验证请求合法性
- */
-app.post('/connections/:id/webhook', async (c) => {
-  const connectionId = c.req.param('id');
-  const signature = c.req.header('X-Webhook-Signature') || '';
-  const rawBody = await c.req.text();
-  const service = createErpSyncService(c.env.DB);
-  try {
-    const result = await service.handleWebhook(connectionId, rawBody, signature);
     return c.json({ success: true, data: result });
   } catch (err) {
     return c.json({ success: false, error: err.message }, 400);

@@ -146,7 +146,7 @@ app.get('/export', async (c) => {
   // 支持按 ID 列表筛选（批量导出选中订单）
   const ids = url.searchParams.getAll('ids').filter(Boolean);
 
-  let whereClause = '1=1';
+  let whereClause = 'o.archived_at IS NULL';
   const bindParams = [];
 
   // 如果指定了 IDs，优先使用 IDs 筛选

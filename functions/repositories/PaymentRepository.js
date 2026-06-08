@@ -116,6 +116,25 @@ export class PaymentRepository {
   }
 
   /**
+   * 获取订单金额，按订单行数量和当前变体售价计算。
+   * @param {string} orderId - 订单 ID
+   * @returns {Promise<number>}
+   */
+  async getOrderAmount(orderId) {
+    const row = await this.db
+      .prepare(
+        `SELECT COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS total
+         FROM order_lines ol
+         LEFT JOIN product_variants pv ON ol.variant_id = pv.id
+         WHERE ol.order_id = ?`
+      )
+      .bind(orderId)
+      .first();
+
+    return Number(row?.total) || 0;
+  }
+
+  /**
    * 获取应收账款汇总
    * 包括：总应收、已收、未收、账龄分析
    * @param {Object} [options]
@@ -127,7 +146,7 @@ export class PaymentRepository {
     const { customerId, salespersonId } = options;
 
     // 1. 获取所有有效订单的总金额和已付金额
-    let whereClause = "WHERE o.status NOT IN ('void', 'rejected')";
+    let whereClause = "WHERE o.archived_at IS NULL AND o.status NOT IN ('void', 'rejected')";
     const params = [];
 
     if (customerId) {
@@ -141,17 +160,26 @@ export class PaymentRepository {
 
     const summary = await this.db
       .prepare(
-        `SELECT
+        `WITH order_amounts AS (
+           SELECT
+             o.id AS order_id,
+             COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS total_amount
+           FROM orders o
+           LEFT JOIN order_lines ol ON ol.order_id = o.id
+           LEFT JOIN product_variants pv ON ol.variant_id = pv.id
+           ${whereClause}
+           GROUP BY o.id
+         )
+         SELECT
            COUNT(*) AS order_count,
-           COALESCE(SUM(o.quantity), 0) AS total_quantity,
+           COALESCE(SUM(order_amounts.total_amount), 0) AS total_amount,
            COALESCE(SUM(paid.total_paid), 0) AS total_paid
-         FROM orders o
+         FROM order_amounts
          LEFT JOIN (
            SELECT order_id, SUM(amount) AS total_paid
            FROM payments
            GROUP BY order_id
-         ) paid ON paid.order_id = o.id
-         ${whereClause}`
+         ) paid ON paid.order_id = order_amounts.order_id`
       )
       .bind(...params)
       .first();
@@ -159,14 +187,15 @@ export class PaymentRepository {
     // 2. 获取账龄分析
     const aging = await this.getAgingAnalysis(options);
 
-    const totalQuantity = summary?.total_quantity ?? 0;
+    const totalAmount = Number(summary?.total_amount) || 0;
     const totalPaid = summary?.total_paid ?? 0;
 
     return {
       orderCount: summary?.order_count ?? 0,
-      totalQuantity,
+      totalAmount,
+      totalQuantity: totalAmount,
       totalPaid,
-      totalOutstanding: totalQuantity - totalPaid,
+      totalOutstanding: totalAmount - totalPaid,
       aging,
     };
   }
@@ -184,7 +213,7 @@ export class PaymentRepository {
     const nowTimestamp = now();
     const dayMs = 24 * 60 * 60 * 1000;
 
-    let whereClause = "WHERE o.status NOT IN ('void', 'rejected')";
+    let whereClause = "WHERE o.archived_at IS NULL AND o.status NOT IN ('void', 'rejected')";
     const params = [
       nowTimestamp - 30 * dayMs,
       nowTimestamp - 60 * dayMs,
@@ -252,24 +281,34 @@ export class PaymentRepository {
   async getTopDebtors(limit = 10) {
     const { results } = await this.db
       .prepare(
-        `SELECT
+        `WITH order_amounts AS (
+           SELECT
+             o.id AS order_id,
+             o.customer_id,
+             COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS total_amount
+           FROM orders o
+           LEFT JOIN order_lines ol ON ol.order_id = o.id
+           LEFT JOIN product_variants pv ON ol.variant_id = pv.id
+           WHERE o.archived_at IS NULL AND o.status NOT IN ('void', 'rejected')
+           GROUP BY o.id, o.customer_id
+         )
+         SELECT
            c.id AS customer_id,
            c.name AS customer_name,
            c.company AS customer_company,
-           COUNT(o.id) AS order_count,
-           COALESCE(SUM(o.quantity), 0) AS total_quantity,
+           COUNT(order_amounts.order_id) AS order_count,
+           COALESCE(SUM(order_amounts.total_amount), 0) AS total_amount,
            COALESCE(SUM(paid.total_paid), 0) AS total_paid
-         FROM orders o
-         JOIN customers c ON o.customer_id = c.id
+         FROM order_amounts
+         JOIN customers c ON order_amounts.customer_id = c.id
          LEFT JOIN (
            SELECT order_id, SUM(amount) AS total_paid
            FROM payments
            GROUP BY order_id
-         ) paid ON paid.order_id = o.id
-         WHERE o.status NOT IN ('void', 'rejected')
+         ) paid ON paid.order_id = order_amounts.order_id
          GROUP BY c.id, c.name, c.company
-         HAVING total_paid < total_quantity
-         ORDER BY (total_quantity - total_paid) DESC
+         HAVING total_paid < total_amount
+         ORDER BY (total_amount - total_paid) DESC
          LIMIT ?`
       )
       .bind(limit)
@@ -280,9 +319,10 @@ export class PaymentRepository {
       customerName: row.customer_name,
       customerCompany: row.customer_company,
       orderCount: row.order_count,
-      totalQuantity: row.total_quantity,
+      totalAmount: row.total_amount,
+      totalQuantity: row.total_amount,
       totalPaid: row.total_paid,
-      outstanding: row.total_quantity - row.total_paid,
+      outstanding: row.total_amount - row.total_paid,
     }));
   }
 }

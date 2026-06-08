@@ -159,4 +159,34 @@ describe('sales files routes', () => {
     expect(res.status).toBe(403);
     expect(mocks.storeFile).not.toHaveBeenCalled();
   });
+
+  it('requires salesperson uploads to target a non-archived order', async () => {
+    const app = createApp();
+    const formData = new FormData();
+    formData.append(
+      'file',
+      new Blob(['sales-upload-body'], { type: 'text/plain' }),
+      'sales-upload.txt'
+    );
+    const prepare = vi.fn(() => ({
+      bind: vi.fn(() => ({
+        first: vi.fn(async () => null),
+      })),
+    }));
+
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/upload?orderId=order-archived',
+      { method: 'POST', body: formData },
+      {
+        DB: {
+          prepare,
+        },
+      },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(403);
+    expect(prepare.mock.calls[0][0]).toContain('archived_at IS NULL');
+    expect(mocks.storeFile).not.toHaveBeenCalled();
+  });
 });

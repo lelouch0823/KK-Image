@@ -73,6 +73,7 @@ const DEFAULT_ALLOWED_MIME_PREFIXES = [
 
 /** Cloudflare Workers 最大请求体 100MB */
 const CF_MAX_UPLOAD_SIZE = 100 * 1024 * 1024;
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/i;
 
 // ============================================================
 // 内部工具
@@ -115,6 +116,13 @@ function resolveMaxSize(env, options) {
  */
 function resolveAllowedMimes(options) {
   return options?.allowedMimePrefixes || DEFAULT_ALLOWED_MIME_PREFIXES;
+}
+
+function assertSha256Hex(value, label) {
+  if (value == null || value === '') return;
+  if (typeof value !== 'string' || !SHA256_HEX_PATTERN.test(value)) {
+    throw new Error(`Invalid ${label}`);
+  }
 }
 
 /**
@@ -165,6 +173,10 @@ async function generateUniqueName(repo, folderId, fileName) {
  */
 export async function storeFile(env, file, options = {}) {
   const { contentHash: inputHash, originalHash, folderId = 'root', createdBy } = options;
+  assertSha256Hex(inputHash, 'contentHash');
+  assertSha256Hex(originalHash, 'originalHash');
+  const normalizedInputHash = inputHash ? inputHash.toLowerCase() : null;
+  const normalizedOriginalHash = originalHash ? originalHash.toLowerCase() : null;
 
   // ── 1. 基础验证 ──
   if (!file || !(file instanceof File)) {
@@ -201,13 +213,19 @@ export async function storeFile(env, file, options = {}) {
   }
 
   // ── 3. 哈希计算 ──
-  // 如果前端已提供 hash 则信任它，否则后端计算
-  let contentHash = inputHash || null;
-  if (!contentHash && fileSize < 50 * 1024 * 1024) {
+  // 调用方提供的 hash 只作为 CAS hint；CAS 使用服务端计算并校验后的 SHA-256。
+  let contentHash = null;
+  if (normalizedInputHash || fileSize < 50 * 1024 * 1024) {
     try {
       const buffer = await file.arrayBuffer();
       contentHash = await sha256Hex(buffer);
+      if (normalizedInputHash && contentHash !== normalizedInputHash) {
+        throw new Error('contentHash does not match file content');
+      }
     } catch (e) {
+      if (normalizedInputHash) {
+        throw e;
+      }
       console.warn('Hash calculation failed, proceeding without CAS:', e.message);
     }
   }
@@ -278,7 +296,7 @@ export async function storeFile(env, file, options = {}) {
     size: fileSize,
     mimeType: mimeType,
     contentHash: contentHash,
-    originalHash: originalHash || contentHash,
+    originalHash: normalizedOriginalHash || contentHash,
     createdBy: createdBy,
     createdAt: timestamp,
     updatedAt: timestamp,

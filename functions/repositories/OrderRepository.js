@@ -119,7 +119,7 @@ export class OrderRepository {
    * @returns {Promise<Array>}
    */
   async exportForAdmin(options = {}) {
-    const conditions = ['1=1'];
+    const conditions = ['o.archived_at IS NULL'];
     const params = [];
 
     if (options.status) {
@@ -230,7 +230,7 @@ export class OrderRepository {
           delivered_by = ?,
           delivery_note = ?,
           updated_at = ?
-      WHERE id = ?
+      WHERE id = ? AND archived_at IS NULL
     `;
     const stmt = this.db.prepare(sql).bind(timestamp, deliveredBy, note, timestamp, id);
     await stmt.run();
@@ -260,6 +260,7 @@ export class OrderRepository {
          FROM orders o
          LEFT JOIN order_lines ol ON ol.order_id = o.id
          WHERE o.id = ?
+           AND o.archived_at IS NULL
          GROUP BY
             o.id,
             o.order_no,

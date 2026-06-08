@@ -263,11 +263,16 @@ export async function verifyTurnstile(token, secret) {
   const formData = new FormData();
   formData.append('secret', secret);
   formData.append('response', token);
+  const signal =
+    typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+      ? AbortSignal.timeout(5000)
+      : undefined;
 
   try {
     const result = await fetch(url, {
       body: formData,
       method: 'POST',
+      ...(signal ? { signal } : {}),
     });
     const outcome = await result.json();
     return outcome.success;

@@ -24,14 +24,15 @@ describe('settings ai helper routes', () => {
   });
 
   it('POST /ai/models returns parsed model ids', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [{ id: 'gpt-4o' }, { id: 'gpt-4.1-mini' }],
+      }),
+    });
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          data: [{ id: 'gpt-4o' }, { id: 'gpt-4.1-mini' }],
-        }),
-      })
+      fetchMock
     );
 
     const app = createApp();
@@ -49,6 +50,14 @@ describe('settings ai helper routes', () => {
     const payload = await res.json();
     expect(payload.success).toBe(true);
     expect(payload.data.models).toEqual(['gpt-4o', 'gpt-4.1-mini']);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.openai.com/v1/models',
+      expect.objectContaining({
+        method: 'GET',
+        redirect: 'manual',
+        signal: expect.anything(),
+      })
+    );
   });
 
   it('POST /ai/test validates /models and /chat/completions', async () => {
@@ -85,6 +94,24 @@ describe('settings ai helper routes', () => {
     expect(payload.data.modelsEndpointOk).toBe(true);
     expect(payload.data.completionEndpointOk).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://api.openai.com/v1/models',
+      expect.objectContaining({
+        method: 'GET',
+        redirect: 'manual',
+        signal: expect.anything(),
+      })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://api.openai.com/v1/chat/completions',
+      expect.objectContaining({
+        method: 'POST',
+        redirect: 'manual',
+        signal: expect.anything(),
+      })
+    );
   });
 
   it('POST /ai/models rejects missing required config', async () => {

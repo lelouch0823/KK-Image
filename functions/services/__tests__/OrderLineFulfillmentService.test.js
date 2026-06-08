@@ -272,6 +272,15 @@ describe('OrderLineFulfillmentService', () => {
     });
   });
 
+  it('loads order lines only from active orders', async () => {
+    await service.requireOrderLine('order-1', 'line-1');
+
+    const sql = harness.db.prepare.mock.calls.find(([statement]) =>
+      String(statement).includes('JOIN order_lines ol')
+    )?.[0];
+    expect(sql).toContain('o.archived_at IS NULL');
+  });
+
   it('reserves line quantity against on-hand stock and records active allocations', async () => {
     harness = createDbHarness({
       orderLineRow: {
@@ -874,6 +883,88 @@ describe('OrderLineFulfillmentService', () => {
           statement.params[0] === 'returned'
       )
     ).toBe(true);
+  });
+
+  it('runs reserve, ship, and return source guards before their side effects', async () => {
+    await service.reserveLine('order-1', 'line-1', { quantity: 1 }, { actorName: 'Admin' });
+    let statements = harness.calls.batchedStatements;
+    expect(statements[0].sql).toContain('UPDATE order_lines');
+    expect(statements[0].sql).toContain('AND reserved_qty = ?');
+    expect(statements[1].sql).toContain('json_extract');
+    expect(
+      statements.findIndex((statement) =>
+        statement.sql.includes('INSERT INTO order_line_allocations')
+      )
+    ).toBeGreaterThan(1);
+    expect(
+      statements.findIndex((statement) => statement.sql.includes('INSERT INTO domain_outbox'))
+    ).toBeGreaterThan(1);
+
+    harness = createDbHarness();
+    service = new OrderLineFulfillmentService(harness.db, {
+      allocationRepo: harness.allocationRepo,
+      inventoryService: harness.inventoryService,
+      domainOutboxRepo: harness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+    await service.shipLine('order-1', 'line-1', { quantity: 1 }, { actorName: 'Admin' });
+    statements = harness.calls.batchedStatements;
+    expect(statements[0].sql).toContain('UPDATE order_lines');
+    expect(statements[0].sql).toContain('AND shipped_qty = ?');
+    expect(statements[0].sql).toContain('AND reserved_qty = ?');
+    expect(statements[1].sql).toContain('json_extract');
+    expect(
+      statements.findIndex((statement) => statement.sql.includes('INSERT INTO inventory_ledger'))
+    ).toBeGreaterThan(1);
+    expect(
+      statements.findIndex((statement) => statement.sql.includes('INSERT INTO domain_outbox'))
+    ).toBeGreaterThan(1);
+
+    harness = createDbHarness({
+      orderLineRow: {
+        order_id: 'order-1',
+        order_no: 'SO-1',
+        salesperson_id: 'sales-1',
+        order_status: 'fulfilled',
+        delivery_status: 'delivered',
+        line_id: 'line-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 2,
+        procured_qty: 2,
+        received_qty: 2,
+        reserved_qty: 0,
+        shipped_qty: 2,
+        cancelled_qty: 0,
+        display_status: 'completed',
+      },
+      orderReturnSummaryRow: {
+        shipped_qty: 2,
+        returned_qty: 0,
+      },
+    });
+    service = new OrderLineFulfillmentService(harness.db, {
+      allocationRepo: harness.allocationRepo,
+      inventoryService: harness.inventoryService,
+      domainOutboxRepo: harness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+    await service.returnLine(
+      'order-1',
+      'line-1',
+      { quantity: 1, reason: 'wrong_item' },
+      { actorName: 'Admin' }
+    );
+    statements = harness.calls.batchedStatements;
+    expect(statements[0].sql).toContain('UPDATE orders SET delivery_status = ?');
+    expect(statements[0].sql).toContain('AND delivery_status = ?');
+    expect(statements[1].sql).toContain('json_extract');
+    expect(
+      statements.findIndex((statement) => statement.sql.includes('INSERT INTO inventory_ledger'))
+    ).toBeGreaterThan(1);
+    expect(
+      statements.findIndex((statement) => statement.sql.includes('INSERT INTO order_returns'))
+    ).toBeGreaterThan(1);
   });
 
   it('rejects returns without a valid reason code', async () => {

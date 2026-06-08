@@ -8,11 +8,15 @@ const mocks = vi.hoisted(() => ({
   storeFile: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   publishDomainEventsAndPoll: vi.fn(async () => []),
+  currentPermissions: ['files:write', 'spaces:manage'],
 }));
 
 vi.mock('../../../middleware/auth.js', () => ({
-  requirePermission: () => async (c, next) => {
-    c.set('user', { id: 'admin-1' });
+  requirePermission: (permission) => async (c, next) => {
+    c.set('user', { id: 'admin-1', permissions: mocks.currentPermissions });
+    if (!mocks.currentPermissions.includes(permission)) {
+      return c.json({ success: false, error: 'FORBIDDEN' }, 403);
+    }
     await next();
   },
 }));
@@ -59,6 +63,7 @@ function createApp() {
 describe('manage upload route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.currentPermissions = ['files:write', 'spaces:manage'];
     mocks.ensureProductFolder.mockResolvedValue('folder-products');
     mocks.ensureSpaceFolder.mockResolvedValue('folder-space-1');
     mocks.storeFile.mockResolvedValue({
@@ -184,6 +189,25 @@ describe('manage upload route', () => {
         metadata: expect.objectContaining({ spaceId: 'space-1' }),
       })
     );
+  }, 15000);
+
+  it('requires spaces:manage before associating uploads with a space', async () => {
+    mocks.currentPermissions = ['files:write'];
+    const app = createApp();
+    const db = createDb();
+    const formData = new FormData();
+    formData.append('file', new Blob(['mock-image'], { type: 'image/png' }), 'space.png');
+
+    const res = await app.request(
+      'http://localhost/api/manage/upload?spaceId=space-1',
+      { method: 'POST', body: formData },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(403);
+    expect(mocks.storeFile).not.toHaveBeenCalled();
+    expect(db.insertRun).not.toHaveBeenCalled();
   }, 15000);
 
   it('rejects uploads for unknown spaces before persisting files', async () => {

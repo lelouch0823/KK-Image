@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { findById, listForAdmin, listBySalesperson, _resetFtsCache } from '../order/queries.js';
+import {
+  findById,
+  findByIdAndSalesperson,
+  listForAdmin,
+  listBySalesperson,
+  _resetFtsCache,
+} from '../order/queries.js';
 
 describe('order queries display model compatibility', () => {
   beforeEach(() => {
@@ -293,6 +299,38 @@ describe('order queries display model compatibility', () => {
     expect(result.items[0].fulfillmentStatus).toBe('partially_fulfilled');
     expect(result.items[0].deliveryStatus).toBe('in_transit');
   });
+
+  it('filters archived orders from salesperson detail and list queries', async () => {
+    const detailStmt = {
+      bind: vi.fn(() => detailStmt),
+      first: vi.fn(async () => null),
+    };
+    let db = {
+      prepare: vi.fn().mockReturnValueOnce(detailStmt),
+    };
+
+    await findByIdAndSalesperson(db, 'o-archived', 'sp-1');
+
+    expect(db.prepare.mock.calls[0][0]).toContain('o.archived_at IS NULL');
+
+    const countStmt = {
+      bind: vi.fn(() => countStmt),
+      first: vi.fn(async () => ({ total: 0 })),
+    };
+    const listStmt = {
+      bind: vi.fn(() => listStmt),
+      all: vi.fn(async () => ({ results: [] })),
+    };
+    db = {
+      prepare: vi.fn().mockReturnValueOnce(countStmt).mockReturnValueOnce(listStmt),
+    };
+
+    await listBySalesperson(db, 'sp-1', { page: 1, limit: 20 });
+
+    expect(db.prepare.mock.calls[0][0]).toContain('o.archived_at IS NULL');
+    expect(db.prepare.mock.calls[1][0]).toContain('o.archived_at IS NULL');
+  });
+
   it('falls back to order-line snapshot names in admin list items when current_data name is missing', async () => {
     const countStmt = {
       bind: vi.fn(() => countStmt),

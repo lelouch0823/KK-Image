@@ -60,6 +60,55 @@ function normalizeLedgerNote(value) {
   return String(value || '').trim();
 }
 
+function buildGuardedLineProjectionStatement(db, line, nextLineState, timestamp) {
+  return buildOrderLineProjectionStatement(
+    db,
+    {
+      ...nextLineState,
+      id: line.line_id,
+      order_id: line.order_id,
+    },
+    {
+      ...line,
+      id: line.line_id,
+      order_id: line.order_id,
+    },
+    timestamp,
+    { guardProjectionState: true }
+  );
+}
+
+function buildPreviousWriteAssertionStatement(db) {
+  return db.prepare(
+    "SELECT json_extract(CASE WHEN changes() = 1 THEN '{}' ELSE 'not-json' END, '$') AS guard_ok"
+  );
+}
+
+function batchResultChanges(result) {
+  return Number(result?.meta?.changes ?? result?.changes ?? 0);
+}
+
+function isPreviousWriteAssertionError(error) {
+  return String(error?.message || error)
+    .toLowerCase()
+    .includes('malformed json');
+}
+
+async function runGuardedBatch(db, statements, conflictMessage) {
+  try {
+    const results = await db.batch(statements);
+    if (batchResultChanges(results?.[0]) !== 1) {
+      throw new ConflictError(conflictMessage);
+    }
+    return results;
+  } catch (error) {
+    if (isPreviousWriteAssertionError(error)) {
+      throw new ConflictError(conflictMessage);
+    }
+    throw error;
+  }
+}
+
 export class OrderLineFulfillmentService {
   constructor(db, deps = {}) {
     this.db = db;
@@ -109,19 +158,8 @@ export class OrderLineFulfillmentService {
     });
 
     const statements = [
-      buildOrderLineProjectionStatement(
-        this.db,
-        {
-          ...nextLineState,
-          id: line.line_id,
-          order_id: line.order_id,
-        },
-        {
-          id: line.line_id,
-          order_id: line.order_id,
-        },
-        timestamp
-      ),
+      buildGuardedLineProjectionStatement(this.db, line, nextLineState, timestamp),
+      buildPreviousWriteAssertionStatement(this.db),
       this.allocationRepo.createInsertStatement({
         id: this.uuid(),
         order_line_id: lineId,
@@ -143,17 +181,9 @@ export class OrderLineFulfillmentService {
         timestamp,
         actorName: options.actorName || null,
       }),
-      // CAS: 确保 order_lines.reserved_qty 未被并发修改
-      this.db
-        .prepare('UPDATE order_lines SET updated_at = updated_at WHERE id = ? AND reserved_qty = ?')
-        .bind(lineId, line.reserved_qty),
     ];
 
-    const result = await this.db.batch(statements);
-    const casResult = result[result.length - 1];
-    if (casResult.changes === 0) {
-      throw new ConflictError('order line was modified concurrently');
-    }
+    await runGuardedBatch(this.db, statements, 'order line was modified concurrently');
     return this.buildCommandResult({
       orderId,
       lineId,
@@ -189,7 +219,7 @@ export class OrderLineFulfillmentService {
     const nextLineState = this.buildNextLineState(line, {
       reserved_qty: Math.max(currentReserved - quantity, 0),
     });
-    const statements = [];
+    const releaseStatements = [];
     let remainingToRelease = quantity;
 
     for (const allocation of activeAllocations) {
@@ -198,7 +228,7 @@ export class OrderLineFulfillmentService {
       if (releasable <= 0) continue;
 
       const releaseQty = Math.min(releasable, remainingToRelease);
-      statements.push(
+      releaseStatements.push(
         this.allocationRepo.buildReleaseStatement(allocation, releaseQty, {
           now: timestamp,
           updated_at: timestamp,
@@ -207,20 +237,10 @@ export class OrderLineFulfillmentService {
       remainingToRelease -= releaseQty;
     }
 
-    statements.push(
-      buildOrderLineProjectionStatement(
-        this.db,
-        {
-          ...nextLineState,
-          id: line.line_id,
-          order_id: line.order_id,
-        },
-        {
-          id: line.line_id,
-          order_id: line.order_id,
-        },
-        timestamp
-      ),
+    const statements = [
+      buildGuardedLineProjectionStatement(this.db, line, nextLineState, timestamp),
+      buildPreviousWriteAssertionStatement(this.db),
+      ...releaseStatements,
       this.buildOrderTouchStatement(orderId, timestamp),
       ...this.buildOutboxStatements({
         order: line,
@@ -232,17 +252,9 @@ export class OrderLineFulfillmentService {
         timestamp,
         actorName: options.actorName || null,
       }),
-      // CAS: 确保 order_lines.reserved_qty 未被并发修改
-      this.db
-        .prepare('UPDATE order_lines SET updated_at = updated_at WHERE id = ? AND reserved_qty = ?')
-        .bind(lineId, line.reserved_qty)
-    );
+    ];
 
-    const result = await this.db.batch(statements);
-    const casResult = result[result.length - 1];
-    if (casResult.changes === 0) {
-      throw new ConflictError('order line was modified concurrently');
-    }
+    await runGuardedBatch(this.db, statements, 'order line was modified concurrently');
     const inventory = await queryInventoryBalance(this.db, line.variant_id);
     return this.buildCommandResult({
       orderId,
@@ -276,7 +288,7 @@ export class OrderLineFulfillmentService {
       reserved_qty: Math.max(currentReserved - reservedConsumed, 0),
       shipped_qty: toNonNegativeInt(line.shipped_qty) + quantity,
     });
-    const statements = [];
+    const sideEffectStatements = [];
 
     if (reservedConsumed > 0) {
       const activeAllocations = await this.allocationRepo.listActiveByOrderLine(lineId);
@@ -287,7 +299,7 @@ export class OrderLineFulfillmentService {
         if (releasable <= 0) continue;
 
         const releaseQty = Math.min(releasable, remainingToRelease);
-        statements.push(
+        sideEffectStatements.push(
           this.allocationRepo.buildReleaseStatement(allocation, releaseQty, {
             now: timestamp,
             updated_at: timestamp,
@@ -310,7 +322,7 @@ export class OrderLineFulfillmentService {
         reservedConsumed,
       },
     });
-    statements.push(...releaseMovement.statements);
+    sideEffectStatements.push(...releaseMovement.statements);
 
     const shipment = await this.inventoryService.buildMutationStatements({
       type: 'order_shipment',
@@ -326,7 +338,7 @@ export class OrderLineFulfillmentService {
       },
     });
 
-    statements.push(
+    sideEffectStatements.push(
       this.buildShipmentLedgerStatement({
         orderId,
         lineId,
@@ -338,19 +350,6 @@ export class OrderLineFulfillmentService {
         timestamp,
       }),
       ...(shipment?.statements || []),
-      buildOrderLineProjectionStatement(
-        this.db,
-        {
-          ...nextLineState,
-          id: line.line_id,
-          order_id: line.order_id,
-        },
-        {
-          id: line.line_id,
-          order_id: line.order_id,
-        },
-        timestamp
-      ),
       this.buildOrderTouchStatement(orderId, timestamp),
       ...this.buildOutboxStatements({
         order: line,
@@ -361,20 +360,18 @@ export class OrderLineFulfillmentService {
         nextLineState,
         timestamp,
         actorName: options.actorName || null,
-      }),
-      // CAS: 确保 order_lines 关键字段未被并发修改
-      this.db
-        .prepare(
-          'UPDATE order_lines SET updated_at = updated_at WHERE id = ? AND shipped_qty = ? AND reserved_qty = ?'
-        )
-        .bind(lineId, line.shipped_qty, line.reserved_qty)
+      })
     );
 
-    const result = await this.db.batch(statements);
-    const casResult = result[result.length - 1];
-    if (casResult.changes === 0) {
-      throw new ConflictError('order line was modified concurrently');
-    }
+    await runGuardedBatch(
+      this.db,
+      [
+        buildGuardedLineProjectionStatement(this.db, line, nextLineState, timestamp),
+        buildPreviousWriteAssertionStatement(this.db),
+        ...sideEffectStatements,
+      ],
+      'order line was modified concurrently'
+    );
     await this.refreshDemandProjection(line.variant_id);
     return this.buildCommandResult({
       orderId,
@@ -418,6 +415,8 @@ export class OrderLineFulfillmentService {
     });
 
     const statements = [
+      buildGuardedLineProjectionStatement(this.db, line, nextLineState, timestamp),
+      buildPreviousWriteAssertionStatement(this.db),
       this.buildShipmentLedgerStatement({
         orderId,
         lineId,
@@ -429,19 +428,6 @@ export class OrderLineFulfillmentService {
         timestamp,
       }),
       ...(unshipment?.statements || []),
-      buildOrderLineProjectionStatement(
-        this.db,
-        {
-          ...nextLineState,
-          id: line.line_id,
-          order_id: line.order_id,
-        },
-        {
-          id: line.line_id,
-          order_id: line.order_id,
-        },
-        timestamp
-      ),
       this.buildOrderTouchStatement(orderId, timestamp),
       ...this.buildOutboxStatements({
         order: line,
@@ -453,17 +439,9 @@ export class OrderLineFulfillmentService {
         timestamp,
         actorName: options.actorName || null,
       }),
-      // CAS: 确保 order_lines.shipped_qty 未被并发修改
-      this.db
-        .prepare('UPDATE order_lines SET updated_at = updated_at WHERE id = ? AND shipped_qty = ?')
-        .bind(lineId, line.shipped_qty),
     ];
 
-    const result = await this.db.batch(statements);
-    const casResult = result[result.length - 1];
-    if (casResult.changes === 0) {
-      throw new ConflictError('order line was modified concurrently');
-    }
+    await runGuardedBatch(this.db, statements, 'order line was modified concurrently');
     await this.refreshDemandProjection(line.variant_id);
     return this.buildCommandResult({
       orderId,
@@ -515,6 +493,12 @@ export class OrderLineFulfillmentService {
     });
 
     const statements = [
+      this.db
+        .prepare(
+          'UPDATE orders SET delivery_status = ?, updated_at = ? WHERE id = ? AND delivery_status = ?'
+        )
+        .bind(nextOrderDeliveryStatus, timestamp, orderId, line.delivery_status),
+      buildPreviousWriteAssertionStatement(this.db),
       ...(restock?.statements || []),
       this.db
         .prepare(
@@ -534,9 +518,6 @@ export class OrderLineFulfillmentService {
           timestamp,
           timestamp
         ),
-      this.db
-        .prepare(`UPDATE orders SET delivery_status = ?, updated_at = ? WHERE id = ?`)
-        .bind(nextOrderDeliveryStatus, timestamp, orderId),
       this.buildOrderTouchStatement(orderId, timestamp),
       ...this.buildOutboxStatements({
         order: line,
@@ -549,17 +530,9 @@ export class OrderLineFulfillmentService {
         timestamp,
         actorName: options.actorName || null,
       }),
-      // CAS: 确保订单 delivery_status 未被并发修改
-      this.db
-        .prepare('UPDATE orders SET updated_at = updated_at WHERE id = ? AND delivery_status = ?')
-        .bind(orderId, line.delivery_status),
     ];
 
-    const result = await this.db.batch(statements);
-    const casResult = result[result.length - 1];
-    if (casResult.changes === 0) {
-      throw new ConflictError('order was modified concurrently');
-    }
+    await runGuardedBatch(this.db, statements, 'order was modified concurrently');
     return this.buildCommandResult({
       orderId,
       lineId,
@@ -593,6 +566,7 @@ export class OrderLineFulfillmentService {
          FROM orders o
          JOIN order_lines ol ON ol.order_id = o.id
          WHERE o.id = ?
+           AND o.archived_at IS NULL
            AND ol.id = ?
          LIMIT 1`
       )

@@ -253,6 +253,14 @@ describe('audit runtime alignment', () => {
     vi.doMock('../../../../repositories/WebhookRepository.js', () => ({
       WebhookRepository: vi.fn(() => ({
         getById: vi.fn(async () => ({ id: 'wh_1', url: 'https://example.com/hook' })),
+        getByIdWithSecret: vi.fn(async () => ({
+          id: 'wh_1',
+          url: 'https://example.com/hook',
+          events: [],
+          secret: null,
+          headers: {},
+          enabled: true,
+        })),
         update: vi.fn(async () => ({ id: 'wh_1', url: 'https://example.com/hook' })),
         listAll: vi.fn(async () => []),
       })),

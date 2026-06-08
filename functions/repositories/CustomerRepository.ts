@@ -298,7 +298,7 @@ export class CustomerRepository {
     const result = await this.db
       .prepare(
         `
-            SELECT COUNT(*) as count FROM orders WHERE customer_id = ?
+            SELECT COUNT(*) as count FROM orders WHERE archived_at IS NULL AND customer_id = ?
         `
       )
       .bind(id)
@@ -320,7 +320,7 @@ export class CustomerRepository {
             MIN(o.created_at) AS first_order_at,
             MAX(o.created_at) AS last_order_at
           FROM orders o
-          WHERE o.customer_id = ?
+          WHERE o.archived_at IS NULL AND o.customer_id = ?
         `
       )
       .bind(id)
@@ -353,7 +353,7 @@ export class CustomerRepository {
             o.summary_name AS product_name,
             COUNT(*) AS order_count
           FROM orders o
-          WHERE o.customer_id = ? AND o.product_id IS NOT NULL
+          WHERE o.archived_at IS NULL AND o.customer_id = ? AND o.product_id IS NOT NULL
           GROUP BY o.product_id
           ORDER BY order_count DESC
           LIMIT ?
@@ -402,7 +402,7 @@ export class CustomerRepository {
             COUNT(o.id) AS order_count,
             MAX(o.created_at) AS last_order_at
           FROM customers c
-          LEFT JOIN orders o ON o.customer_id = c.id
+          LEFT JOIN orders o ON o.customer_id = c.id AND o.archived_at IS NULL
           WHERE c.id IN (${placeholders})
           GROUP BY c.id
         `

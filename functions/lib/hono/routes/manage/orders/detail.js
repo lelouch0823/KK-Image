@@ -112,6 +112,7 @@ const ADMIN_EDITABLE_FIELDS = [
 ];
 const STRUCTURAL_EDITABLE_STATUSES = new Set(['pending', 'rejected', 'void']);
 const QUANTITY_EDITABLE_STATUSES = new Set(['pending', 'confirmed', 'rejected', 'void']);
+const ARCHIVED_ORDER_MUTATION_MESSAGE = '订单已归档，请先恢复后再修改';
 const ORDER_BOUND_SNAPSHOT_FIELDS = Object.freeze([
   'name',
   'brand',
@@ -191,6 +192,12 @@ function getAdminActor(user) {
   };
 }
 
+function assertOrderIsActiveForMutation(order) {
+  if (order?.archivedAt || order?.archived_at) {
+    throw new BadRequestError(ARCHIVED_ORDER_MUTATION_MESSAGE);
+  }
+}
+
 async function assertStatusTransitionAllowed({
   c,
   user,
@@ -237,18 +244,19 @@ app.get('/:id', async (c) => {
 
   const profitService = new ProfitService(env.DB);
 
-  const [files, timeline, shipments, returns, payments, totalPaid, profit] = await Promise.all([
-    repo.getFiles(id),
-    timelineRepo.getTimeline(id),
-    listOrderShipmentHistory(env.DB, id),
-    listOrderReturnHistory(env.DB, id),
-    paymentRepo.findByOrder(id),
-    paymentRepo.getTotalPaid(id),
-    profitService.calculateOrderProfit(id),
-  ]);
+  const [files, timeline, shipments, returns, payments, totalPaid, orderAmount, profit] =
+    await Promise.all([
+      repo.getFiles(id),
+      timelineRepo.getTimeline(id),
+      listOrderShipmentHistory(env.DB, id),
+      listOrderReturnHistory(env.DB, id),
+      paymentRepo.findByOrder(id),
+      paymentRepo.getTotalPaid(id),
+      paymentRepo.getOrderAmount(id),
+      profitService.calculateOrderProfit(id),
+    ]);
 
   // 计算付款汇总
-  const orderAmount = order.quantity ?? 0;
   const paymentSummary = {
     orderAmount,
     totalPaid,
@@ -332,6 +340,7 @@ app.patch('/:id/logistics', zValidator('json', LogisticsUpdateSchema), async (c)
     orderRepo.findById(id),
     () => new NotFoundError(MSG.ORDER.NOT_FOUND)
   );
+  assertOrderIsActiveForMutation(order);
 
   // 更新订单的物流信息（存储在 currentData 中）
   const currentData = typeof order.currentData === 'object' ? { ...order.currentData } : {};
@@ -384,6 +393,7 @@ app.patch('/:id', zValidator('json', UpdateAdminOrderSchema), async (c) => {
     orderRepo.findById(id),
     () => new NotFoundError(MSG.ORDER.NOT_FOUND)
   );
+  assertOrderIsActiveForMutation(order);
 
   const { updates: updatesFromBody, reason, fileIds, productId, variantId } = body;
   const forceStatusTransition = Boolean(body?.force);
@@ -637,6 +647,7 @@ app.patch('/:id/status', zValidator('json', UpdateOrderStatusSchema), async (c) 
     repo.findById(id),
     () => new NotFoundError(MSG.ORDER.NOT_FOUND)
   );
+  assertOrderIsActiveForMutation(order);
 
   const oldStatus = order.status;
   const forceStatusTransition = Boolean(force);
@@ -754,6 +765,7 @@ app.post(
       repo.findById(id),
       () => new NotFoundError(MSG.ORDER.NOT_FOUND)
     );
+    assertOrderIsActiveForMutation(beforeOrder);
 
     const service = new OrderDeliveryService(env.DB);
     const result = await service.confirmDelivery(
@@ -838,6 +850,12 @@ app.post('/:id/comment', zValidator('json', AddOrderCommentSchema), async (c) =>
   }
 
   const repo = new OrderRepository(env.DB);
+  const order = await requireEntity(
+    repo.findById(id),
+    () => new NotFoundError(MSG.ORDER.NOT_FOUND)
+  );
+  assertOrderIsActiveForMutation(order);
+
   // SOTA: Use correct method addTimelineEntry instead of add
   await repo.timelineRepo.addTimelineEntry(id, {
     actionType: 'comment',
@@ -848,7 +866,6 @@ app.post('/:id/comment', zValidator('json', AddOrderCommentSchema), async (c) =>
   });
   await repo.setUnread(id, 'admin');
 
-  const order = await repo.findById(id);
   const publisher = new DomainOutboxPublisher(env.DB);
   await publisher.publish([
     {

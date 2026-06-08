@@ -133,7 +133,20 @@ describe('manage salespersons routes', () => {
       expect(json.success).toBe(true);
       expect(json.data).toHaveLength(1);
       expect(json.data[0].name).toBe('张三');
+      expect(json.data[0]).not.toHaveProperty('accessToken');
       expect(json.pagination).toBeDefined();
+    });
+  });
+
+  describe('GET /:id', () => {
+    it('does not expose salesperson access tokens in read responses', async () => {
+      const res = await app.request('/api/manage/salespersons/sp-1', undefined, ENV, CTX);
+      const json = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(json.success).toBe(true);
+      expect(json.data.name).toBe('张三');
+      expect(json.data).not.toHaveProperty('accessToken');
     });
   });
 

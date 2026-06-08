@@ -55,12 +55,11 @@ describe('OrderStatsRepository full coverage', () => {
         status: 'pending',
       },
     ]);
-    expect(mocks.query).toHaveBeenCalledWith(
-      {},
-      expect.stringContaining("WHERE status = 'pending'"),
-      [5],
-      { label: 'order.stats.recentPending' }
-    );
+    const [, sql, params, options] = mocks.query.mock.calls[0];
+    expect(sql).toContain('archived_at IS NULL');
+    expect(sql).toContain("status = 'pending'");
+    expect(params).toEqual([5]);
+    expect(options).toEqual({ label: 'order.stats.recentPending' });
   });
 
   it('returns zero-safe counts for individual count helpers', async () => {

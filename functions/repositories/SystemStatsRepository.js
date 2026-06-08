@@ -73,7 +73,7 @@ export class SystemStatsRepository {
         .prepare(
           `SELECT s.name, s.store, COUNT(o.id) as orderCount
            FROM salespersons s
-           LEFT JOIN orders o ON s.id = o.salesperson_id
+           LEFT JOIN orders o ON s.id = o.salesperson_id AND o.archived_at IS NULL
            GROUP BY s.id
            ORDER BY orderCount DESC
            LIMIT 5`

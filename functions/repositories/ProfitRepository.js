@@ -37,11 +37,12 @@ export class ProfitRepository {
         poi.allocated_freight AS po_freight,
         poi.allocated_tariff AS po_tariff
       FROM order_lines ol
+      INNER JOIN orders o ON o.id = ol.order_id
       LEFT JOIN product_variants pv ON pv.id = ol.variant_id
       LEFT JOIN purchase_order_items poi ON poi.pre_order_id = ol.order_id
         AND poi.product_id = ol.product_id
         AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))
-      WHERE ol.order_id = ?
+      WHERE ol.order_id = ? AND o.archived_at IS NULL
       ORDER BY ol.created_at ASC
       `,
       [orderId],
@@ -59,7 +60,7 @@ export class ProfitRepository {
    * @returns {Promise<Array>}
    */
   async findOrderLinesForProfitSummary(filters = {}) {
-    let whereClause = '1=1';
+    let whereClause = 'o.archived_at IS NULL';
     const params = [];
 
     if (filters.startTimestamp) {
@@ -109,7 +110,7 @@ export class ProfitRepository {
    * @returns {Promise<Array>}
    */
   async findOrderLinesForProfitByProduct(filters = {}) {
-    let whereClause = '1=1';
+    let whereClause = 'o.archived_at IS NULL';
     const params = [];
 
     if (filters.startTimestamp) {
@@ -173,7 +174,8 @@ export class ProfitRepository {
       LEFT JOIN purchase_order_items poi ON poi.pre_order_id = ol.order_id
         AND poi.product_id = ol.product_id
         AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))
-      WHERE o.created_at >= ?
+      WHERE o.archived_at IS NULL
+        AND o.created_at >= ?
       `,
       [startTimestamp],
       { label: 'profit.trend.lines' }

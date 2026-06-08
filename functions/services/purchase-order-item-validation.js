@@ -111,6 +111,7 @@ export async function validatePurchaseOrderPreOrderBinding(
       SELECT id, order_no, status, product_id, variant_id
       FROM orders
       WHERE id IN (${placeholders})
+        AND archived_at IS NULL
     `
       )
       .bind(...orderIdChunk)
@@ -140,6 +141,7 @@ export async function validatePurchaseOrderPreOrderBinding(
       FROM order_lines ol
       JOIN orders o ON o.id = ol.order_id
       WHERE ol.order_id IN (${placeholders})
+        AND o.archived_at IS NULL
     `
       )
       .bind(...orderIdChunk)

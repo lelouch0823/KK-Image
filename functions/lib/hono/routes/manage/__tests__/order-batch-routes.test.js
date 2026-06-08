@@ -226,6 +226,45 @@ describe('manage order batch route', () => {
     expect(mocks.batchUpdateStatus).not.toHaveBeenCalled();
   });
 
+  it('returns 400 when batch status update includes an archived order', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders/batch',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: ['o-archived'],
+          action: 'status',
+          value: 'confirmed',
+        }),
+      },
+      {
+        DB: {
+          prepare: vi.fn(() => ({
+            bind: vi.fn(() => ({
+              all: vi.fn(async () => ({
+                results: [
+                  {
+                    id: 'o-archived',
+                    order_no: 'SO-ARCH',
+                    salesperson_id: 'sp-1',
+                    status: 'pending',
+                    archived_at: 1710000000000,
+                  },
+                ],
+              })),
+            })),
+          })),
+        },
+      },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.batchUpdateStatus).not.toHaveBeenCalled();
+  });
+
   it('returns 400 when batch request has no valid ids', async () => {
     const app = createApp();
     const res = await app.request(

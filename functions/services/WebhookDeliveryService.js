@@ -2,6 +2,10 @@ import { generateHmacSignature } from '../_shared/utils.js';
 import { safeJsonParse } from '../api/utils/json.js';
 import { WebhookRepository } from '../repositories/WebhookRepository.js';
 import { runConcurrent } from '../lib/async/runConcurrent.js';
+import {
+  assertSafeExternalUrl,
+  buildSafeExternalFetchOptions,
+} from '../lib/hono/_shared/url-security.js';
 
 function classifyStatusCode(statusCode) {
   if (statusCode >= 200 && statusCode < 300) return 'delivered';
@@ -85,11 +89,12 @@ export class WebhookDeliveryService {
         const startedAt = this.now();
 
         try {
+          assertSafeExternalUrl(endpoint.url);
           const response = await this.fetch(endpoint.url, {
             method: 'POST',
             headers,
             body,
-            signal: AbortSignal.timeout(10000),
+            ...buildSafeExternalFetchOptions({ timeoutMs: 10000 }),
           });
           const durationMs = Math.max(this.now() - startedAt, 0);
           const classification = classifyStatusCode(response.status);

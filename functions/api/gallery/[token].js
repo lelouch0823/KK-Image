@@ -229,7 +229,12 @@ export async function onRequestPost(context) {
     const throttleError = await authorizePublicPasswordAttempt(env, request, throttleIdentifier);
     if (throttleError) return throttleError;
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return error(MSG.COMMON.INVALID_PARAMS, 400);
+    }
     const password = String(body?.password || '');
     if (!password) {
       return error(MSG.USER.PASSWORD_REQUIRED, 400);

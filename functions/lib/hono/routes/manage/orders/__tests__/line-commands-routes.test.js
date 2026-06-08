@@ -272,4 +272,30 @@ describe('manage order line command routes', () => {
     expect(res.status).toBe(400);
     expect(mocks.reserveLine).not.toHaveBeenCalled();
   });
+
+  it('rejects line commands on archived orders before fulfillment side effects', async () => {
+    mocks.orderFindById.mockResolvedValueOnce({
+      id: 'order-1',
+      orderNo: 'SO-1',
+      salespersonId: 'sales-1',
+      archivedAt: 1710000000000,
+    });
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/lines/line-1/ship',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 1 }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.shipLine).not.toHaveBeenCalled();
+    expect(mocks.addTimelineEntry).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
+  });
 });

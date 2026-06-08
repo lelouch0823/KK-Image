@@ -308,7 +308,7 @@ describe('OrderRepository', () => {
       await repo.exportForAdmin({ ids: ['o-1', 'o-2', 'o-3'] });
 
       const sql = db.prepare.mock.calls[0][0];
-      expect(sql).toContain('1=1');
+      expect(sql).toContain('o.archived_at IS NULL');
       expect(sql).toContain('o.id IN (?,');
       expect(stmt.params).toEqual(['o-1', 'o-2', 'o-3']);
     });
@@ -331,6 +331,7 @@ describe('OrderRepository', () => {
 
       expect(db.prepare.mock.calls[0][0]).toContain('UPDATE orders');
       expect(db.prepare.mock.calls[0][0]).toContain("delivery_status = 'delivered'");
+      expect(db.prepare.mock.calls[0][0]).toContain('archived_at IS NULL');
       expect(result.params).toEqual([
         1710000000000,
         'admin-1',
@@ -348,6 +349,18 @@ describe('OrderRepository', () => {
       await repo.markDelivered('order-1', { timestamp: 1710000000000 });
 
       expect(stmt.params).toEqual([1710000000000, null, '', 1710000000000, 'order-1']);
+    });
+  });
+
+  describe('findWithDeliveryInfo', () => {
+    it('excludes archived orders from delivery confirmation lookup', async () => {
+      const stmt = createStatement();
+      const db = { prepare: vi.fn(() => stmt) };
+      const repo = new OrderRepository(db);
+
+      await repo.findWithDeliveryInfo('order-1');
+
+      expect(db.prepare.mock.calls[0][0]).toContain('o.archived_at IS NULL');
     });
   });
 });

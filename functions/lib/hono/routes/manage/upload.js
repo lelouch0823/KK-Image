@@ -43,11 +43,23 @@ app.post('/', requirePermission('files:write'), async (c) => {
   const spaceId = url.searchParams.get('spaceId');
   let targetSpace = null;
 
+  if (spaceId) {
+    let hasSpaceManagePermission = false;
+    const permissionResponse = await requirePermission('spaces:manage')(c, async () => {
+      hasSpaceManagePermission = true;
+    });
+    if (!hasSpaceManagePermission) {
+      return permissionResponse;
+    }
+  }
+
   if (normalizedContext === 'product' || normalizedContext === 'variant') {
     const { ensureProductFolder } = await import('../../../../api/utils/folder-utils.js');
     folderId = await ensureProductFolder(env);
   } else if (orderId) {
-    const order = await env.DB.prepare('SELECT order_no FROM orders WHERE id = ?')
+    const order = await env.DB.prepare(
+      'SELECT order_no FROM orders WHERE id = ? AND archived_at IS NULL'
+    )
       .bind(orderId)
       .first();
     if (order?.order_no) {

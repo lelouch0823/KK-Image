@@ -113,6 +113,7 @@ export class PurchaseSuggestionRepository {
         JOIN orders o ON o.id = ol.order_id
         LEFT JOIN inventory_balances ib ON ib.variant_id = ol.variant_id
         WHERE ol.variant_id IN (${placeholders})
+          AND o.archived_at IS NULL
           AND o.status IN ('confirmed', 'production', 'shipping', 'arrived')
         GROUP BY ol.variant_id
       `

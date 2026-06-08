@@ -17,9 +17,11 @@ import {
   buildReceiptRequestFingerprint,
   buildCompatibilityOrderProcurementStatusStatement,
   buildOrderLineProjectionStatement,
+  buildPreviousWriteAssertionStatement,
   buildPurchaseOrderItemReceivedQtyStatement,
   buildFinalizeCommandStatements,
   cleanupReservedCommand,
+  isPreviousWriteAssertionError,
   queryInventoryBalance,
   queryCompatibilityProcurementAggregate,
   replayReservedCommand,
@@ -55,7 +57,7 @@ function normalizeReceiptEntry(entry = {}) {
 function countReceiptWriteStatements(preparedReceipts = [], { hasCommandInsert = false } = {}) {
   return preparedReceipts.reduce(
     (total, prepared) => {
-      let nextTotal = total + 2 + RECEIPT_BASE_EVENT_WRITE_COUNT;
+      let nextTotal = total + 3 + RECEIPT_BASE_EVENT_WRITE_COUNT;
 
       if (prepared.compatibilityOrderLineId && prepared.poItem?.pre_order_id) {
         nextTotal += 2 + RECEIPT_ORDER_EVENT_WRITE_COUNT;
@@ -270,6 +272,7 @@ export class OrderProcurementDomainService {
       );
       purchaseItemGuardResultIndexes.push(statements.length);
       statements.push(purchaseItemStatement);
+      statements.push(buildPreviousWriteAssertionStatement(this.db));
       preparedReceipts.push({
         normalizedEntry,
         purchaseOrderItemId,
@@ -564,6 +567,9 @@ export class OrderProcurementDomainService {
         ownsReservation,
         commandId: commandRecord.command_id,
       });
+      if (isPreviousWriteAssertionError(error)) {
+        throw new BadRequestError('采购单明细收货进度已变化，请刷新后重试');
+      }
       throw error;
     }
   }

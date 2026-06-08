@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   getById: vi.fn(),
   getByIdWithSecret: vi.fn(),
   testById: vi.fn(),
+  logAttempt: vi.fn(),
   scheduleAuditEvent: vi.fn(),
 }));
 
@@ -23,6 +24,7 @@ vi.mock('../../../../../repositories/WebhookRepository.js', () => ({
     getById: mocks.getById,
     getByIdWithSecret: mocks.getByIdWithSecret,
     testById: mocks.testById,
+    logAttempt: mocks.logAttempt,
   })),
 }));
 
@@ -59,6 +61,10 @@ function createApp() {
 describe('manage webhooks routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('ok', { status: 200 }))
+    );
     mocks.listAll.mockResolvedValue([]);
     mocks.listActiveByEvent.mockResolvedValue([]);
     mocks.create.mockResolvedValue({
@@ -92,6 +98,108 @@ describe('manage webhooks routes', () => {
       enabled: true,
     });
     mocks.testById.mockResolvedValue({ status: 200, success: true });
+    mocks.logAttempt.mockResolvedValue(undefined);
+  });
+
+  it('uses runtime ENVIRONMENT binding when deciding whether localhost webhook URLs are allowed', async () => {
+    const app = createApp();
+
+    const devRes = await app.request(
+      'http://localhost/api/manage/webhooks',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: 'http://localhost:8787/hook',
+          events: ['purchase_receipt_recorded'],
+        }),
+      },
+      { DB: {}, ENVIRONMENT: 'development' },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(devRes.status).toBe(201);
+
+    const prodRes = await app.request(
+      'http://localhost/api/manage/webhooks',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: 'http://localhost:8787/hook',
+          events: ['purchase_receipt_recorded'],
+        }),
+      },
+      { DB: {}, ENVIRONMENT: 'production' },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(prodRes.status).toBe(400);
+  });
+
+  it('does not follow redirects when testing stored webhook URLs', async () => {
+    const app = createApp();
+
+    const response = await app.request(
+      'http://localhost/api/manage/webhooks/wh-1/test',
+      { method: 'POST' },
+      { DB: {}, ENVIRONMENT: 'production' },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetch).toHaveBeenCalledWith(
+      'https://example.com/hook',
+      expect.objectContaining({
+        redirect: 'manual',
+      })
+    );
+  });
+
+  it('does not follow redirects when retrying stored webhook deliveries', async () => {
+    const app = createApp();
+    const db = {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({
+          first: vi.fn(async () => ({
+            id: 'log-1',
+            webhook_id: 'wh-1',
+            event: 'purchase_receipt_recorded',
+            payload: JSON.stringify({
+              event_id: 'evt-1',
+              event_type: 'purchase_receipt_recorded',
+              event_version: 1,
+              payload: { message: 'retry' },
+            }),
+            delivery_key: 'delivery-1',
+            attempt_number: 1,
+          })),
+        })),
+      })),
+    };
+
+    const response = await app.request(
+      'http://localhost/api/manage/webhooks/logs/log-1/retry',
+      { method: 'POST' },
+      { DB: db, ENVIRONMENT: 'production' },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetch).toHaveBeenCalledWith(
+      'https://example.com/hook',
+      expect.objectContaining({
+        redirect: 'manual',
+        signal: expect.anything(),
+      })
+    );
+    expect(mocks.logAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        webhookId: 'wh-1',
+        statusCode: 200,
+        success: true,
+      })
+    );
   });
 
   it('creates and updates manage webhook configs under /api/manage/webhooks', async () => {

@@ -32,7 +32,7 @@ app.post('/upload', async (c) => {
   let folderId = 'root';
   if (orderId) {
     const order = await env.DB.prepare(
-      'SELECT order_no FROM orders WHERE id = ? AND salesperson_id = ?'
+      'SELECT order_no FROM orders WHERE id = ? AND salesperson_id = ? AND archived_at IS NULL'
     )
       .bind(orderId, salesperson.id)
       .first();

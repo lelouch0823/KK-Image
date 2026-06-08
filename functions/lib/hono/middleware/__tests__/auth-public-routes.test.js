@@ -19,12 +19,19 @@ import { MSG } from '../../../../_shared/utils.js';
 function createApp() {
   const app = new Hono();
   app.use('/api/v1/*', authMiddleware);
+  app.use('/api/manage/*', authMiddleware);
 
   app.get('/api/v1/auth/check', (c) => c.json({ success: true, route: 'check' }));
   app.get('/api/v1/auth/checkpoint', (c) => c.json({ success: true, route: 'checkpoint' }));
   app.get('/api/v1/health/info', (c) => c.json({ success: true, route: 'health-info' }));
   app.get('/api/v1/healthcheck', (c) => c.json({ success: true, route: 'healthcheck' }));
   app.get('/api/v1/audit-logs/export', (c) => c.json({ success: true, route: 'audit-export' }));
+  app.post('/api/manage/erp-sync/connections/:id/webhook', (c) =>
+    c.json({ success: true, route: 'erp-webhook', id: c.req.param('id') })
+  );
+  app.post('/api/manage/erp-sync/connections/:id/webhook/extra', (c) =>
+    c.json({ success: true, route: 'erp-webhook-extra' })
+  );
 
   return app;
 }
@@ -83,6 +90,32 @@ describe('authMiddleware public route boundary', () => {
         result: 'denied',
         action: 'audit-logs.get.unauthorized',
       })
+    );
+  });
+
+  it('allows ERP webhook callback without admin credentials', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/erp-sync/connections/conn-1/webhook',
+      { method: 'POST' }
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(
+      expect.objectContaining({ success: true, route: 'erp-webhook', id: 'conn-1' })
+    );
+  });
+
+  it('does not allow ERP webhook path prefix collisions', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/erp-sync/connections/conn-1/webhook/extra',
+      { method: 'POST' }
+    );
+
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual(
+      expect.objectContaining({ success: false, error: MSG.AUTH.REQUIRED })
     );
   });
 });

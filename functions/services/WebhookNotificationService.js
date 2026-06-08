@@ -9,6 +9,10 @@
  */
 
 import { SettingsRepository } from '../repositories/SettingsRepository.js';
+import {
+  assertSafeExternalUrl,
+  buildSafeExternalFetchOptions,
+} from '../lib/hono/_shared/url-security.js';
 
 /**
  * 支持的 webhook 渠道类型
@@ -147,11 +151,12 @@ export class WebhookNotificationService {
         const config = CHANNEL_CONFIGS[ch.channel] || CHANNEL_CONFIGS.generic;
         const body = config.buildBody(message);
 
+        assertSafeExternalUrl(ch.url);
         const response = await this.fetch(ch.url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
-          signal: AbortSignal.timeout(10000),
+          ...buildSafeExternalFetchOptions({ timeoutMs: 10000 }),
         });
 
         return {
