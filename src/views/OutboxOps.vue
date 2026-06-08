@@ -326,6 +326,7 @@ import OutboxEventTable from '@/components/outbox/OutboxEventTable.vue';
 import OutboxReplayPanel from '@/components/outbox/OutboxReplayPanel.vue';
 import { buildOutboxOpsMetrics } from '@/components/outbox/outboxOpsSummary';
 import { ErrorCode } from '@/utils/error-codes';
+import { formatConsumerStatus } from '@/utils/event-display';
 
 const { t } = useI18n();
 const healthOps = useOutboxOps();
@@ -362,11 +363,11 @@ let latestDetailSelectionId = 0;
 
 const statusOptions = computed(() => [
   { value: '', label: t('outboxOps.filters.allStatuses', '全部状态') },
-  { value: 'pending', label: 'pending' },
-  { value: 'processing', label: 'processing' },
-  { value: 'published', label: 'published' },
-  { value: 'failed', label: 'failed' },
-  { value: 'skipped', label: 'skipped' },
+  { value: 'pending', label: formatConsumerStatus('pending') },
+  { value: 'processing', label: formatConsumerStatus('processing') },
+  { value: 'published', label: formatConsumerStatus('published') },
+  { value: 'failed', label: formatConsumerStatus('failed') },
+  { value: 'skipped', label: formatConsumerStatus('skipped') },
 ]);
 const hasActiveFilters = computed(() =>
   Boolean(filters.eventType || filters.consumerName || filters.status)
@@ -385,7 +386,9 @@ const healthMetrics = computed(() =>
     }
   )
 );
-const filteredMetrics = computed(() => buildOutboxOpsMetrics(events.value, filters));
+const filteredMetrics = computed(() =>
+  buildOutboxOpsMetrics(events.value, filters, { displayFilters: true })
+);
 
 async function refreshGlobalHealthEvents() {
   healthLoading.value = true;

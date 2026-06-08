@@ -41,7 +41,7 @@
               {{ t('outboxOps.replay.selectedEvent', '当前事件') }}
             </p>
             <h4 class="mt-1 text-base font-semibold text-(--text-main)">
-              {{ event.event_type || '-' }}
+              {{ formatDomainEventType(event.event_type) }}
             </h4>
             <p class="mt-1 text-sm text-(--text-secondary)">#{{ event.id || '-' }}</p>
           </div>
@@ -80,7 +80,7 @@
             :variant="resolveVariant(job.status)"
             dot
           >
-            {{ job.consumer_name }} · {{ job.status }}
+            {{ formatConsumerJobLabel(job) }}
           </StatusBadge>
           <span v-if="!consumerJobs.length" class="text-sm text-(--text-secondary)">
             {{ t('outboxOps.replay.noConsumers', '当前事件暂无消费者记录。') }}
@@ -187,11 +187,16 @@
 
         <div
           v-if="lastReplayResult"
-          class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-page)"
+          class="grid gap-3 rounded-2xl border border-(--border-color) bg-(--bg-page) p-4 sm:grid-cols-2"
         >
-          <pre class="max-h-72 overflow-x-auto overflow-y-auto p-4 text-xs text-(--text-main)">{{
-            formattedReplayResult
-          }}</pre>
+          <div v-for="row in replayResultRows" :key="row.label" class="min-w-0">
+            <div class="text-xs font-semibold tracking-[0.12em] text-(--text-muted) uppercase">
+              {{ row.label }}
+            </div>
+            <div class="mt-1 break-words text-sm font-medium text-(--text-main)">
+              {{ row.value }}
+            </div>
+          </div>
         </div>
         <div
           v-else
@@ -238,6 +243,11 @@ import AppInput from '@/components/ui/AppInput.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import { resolveVariant } from '@/utils/outbox-status';
+import {
+  buildReplayResultSummaryRows,
+  formatConsumerJobLabel,
+  formatDomainEventType,
+} from '@/utils/event-display';
 
 const props = defineProps({
   event: {
@@ -278,7 +288,7 @@ const activeJobCount = computed(
     consumerJobs.value.filter((job) => job.status === 'pending' || job.status === 'processing')
       .length
 );
-const formattedReplayResult = computed(() => JSON.stringify(props.lastReplayResult || {}, null, 2));
+const replayResultRows = computed(() => buildReplayResultSummaryRows(props.lastReplayResult));
 const eventStatusVariant = computed(() => {
   if (failedJobCount.value) return 'danger';
   if (activeJobCount.value) return 'warning';

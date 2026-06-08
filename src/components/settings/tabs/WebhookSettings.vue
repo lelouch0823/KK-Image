@@ -32,7 +32,7 @@
               </span>
             </div>
             <p class="mt-1 text-xs text-(--text-secondary)">
-              {{ (wh.events || []).join(', ') || t('settings.webhooks.allEvents', '所有事件') }}
+              {{ formatWebhookEventList(wh.events) }}
             </p>
           </div>
           <div class="flex items-center gap-2">
@@ -127,7 +127,9 @@
                 >
                   {{ log.success ? '200 OK' : log.status_code || 'ERR' }}
                 </span>
-                <span class="text-xs text-(--text-secondary)">{{ log.event }}</span>
+                <span class="text-xs text-(--text-secondary)">{{
+                  formatDomainEventType(log.event)
+                }}</span>
                 <span v-if="log.duration_ms" class="text-xs text-(--text-tertiary)">
                   {{ log.duration_ms }}ms
                 </span>
@@ -200,6 +202,7 @@ import SettingsSection from '@/components/settings/SettingsSection.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { formatDate } from '@/utils/formatters';
+import { formatDomainEventType } from '@/utils/event-display';
 
 const { t } = useI18n();
 const { addToast } = useToast();
@@ -218,6 +221,11 @@ const logFilter = ref({
   limit: 20,
   offset: 0,
 });
+
+function formatWebhookEventList(events = []) {
+  if (!events.length) return t('settings.webhooks.allEvents', '所有事件');
+  return events.map((eventType) => formatDomainEventType(eventType)).join('、');
+}
 
 async function loadWebhooks() {
   try {

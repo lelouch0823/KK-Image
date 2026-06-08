@@ -26,6 +26,8 @@
 * 详情列将常见 JSON 字段转换成可读摘要，避免裸 JSON 成为默认体验。
 * summary 缺失时，自动摘要也应使用友好 action 和目标对象。
 * 未知 action / target / detail key 有稳定兜底显示。
+* Outbox、Webhook、备份恢复、库存流水等管理端页面不应默认显示底层事件名、consumer 状态、运行模式或裸 JSON。
+* 共享展示 formatter 应复用同一套事件/状态/结果摘要映射，避免各页面各自维护同类 label。
 
 ## Acceptance Criteria
 
@@ -35,6 +37,17 @@
 * [x] 详情列对 `orderNumber`、`itemId`、`reason` 等常见字段显示中文标签。
 * [x] 单元测试覆盖 action、target、details 和 summary 的友好展示。
 * [x] 现有审计列表加载、筛选、分页行为不回退。
+* [x] Outbox 事件列表与 replay 面板显示友好事件名和 consumer 状态。
+* [x] Outbox replay 最近结果显示摘要字段，不默认展示裸 JSON。
+* [x] Webhook 订阅事件和投递日志显示友好事件名。
+* [x] 备份恢复弹窗显示友好的环境、模式和结果摘要。
+* [x] 库存流水缺翻译时不回退到底层事件名。
+
+## Follow-up Audit Notes
+
+* Outbox 当前条件摘要和状态筛选 label 也使用友好文案，保留后端 raw value 用于 API 查询。
+* 其他 `JSON.stringify` 命中主要是请求体、测试 stub、图表数据或技术配置，不属于默认业务展示。
+* ERP 同步页常见枚举已有翻译；未知 fallback 仍可后续统一接入可读化 enum helper。
 
 ## Definition of Done
 

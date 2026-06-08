@@ -12,7 +12,8 @@
     >
       <template #cell-event_type="{ value }">
         <AppTableTextStack
-          :primary="value || '-'"
+          :primary="formatDomainEventType(value)"
+          :primary-title="value || '-'"
           :secondary="t('outboxOps.table.selectHint', '点击查看详情与 replay 工作台')"
         />
       </template>
@@ -40,7 +41,7 @@
             :outline="row.id !== selectedEventId"
             dot
           >
-            {{ job.consumer_name }} · {{ job.status }}
+            {{ formatConsumerJobLabel(job) }}
           </StatusBadge>
           <span v-if="!(row.consumerJobs || []).length" class="text-sm text-(--text-secondary)"
             >-</span
@@ -63,10 +64,11 @@ import StatusBadge from '@/components/ui/StatusBadge.vue';
 import AppTableTextStack from '@/components/ui/AppTableTextStack.vue';
 import { formatDate } from '@/utils/formatters';
 import { resolveVariant } from '@/utils/outbox-status';
+import { formatConsumerJobLabel, formatDomainEventType } from '@/utils/event-display';
 
 defineEmits(['select']);
 
-const props = defineProps({
+defineProps({
   events: {
     type: Array,
     default: () => [],

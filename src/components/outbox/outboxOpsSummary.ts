@@ -1,3 +1,9 @@
+import {
+  formatConsumerName,
+  formatConsumerStatus,
+  formatDomainEventType,
+} from '@/utils/event-display';
+
 interface OutboxConsumerJob {
   status?: string;
   [key: string]: unknown;
@@ -19,6 +25,7 @@ interface OutboxOptions {
   isLoading?: boolean;
   isStale?: boolean;
   refreshFailed?: boolean;
+  displayFilters?: boolean;
 }
 
 function toTimestamp(value: unknown): number | null {
@@ -61,11 +68,15 @@ export function buildOutboxOpsMetrics(
     }
   }
 
-  const selectedFilters = [
-    filters?.eventType,
-    filters?.consumerName,
-    filters?.status,
-  ].filter((f): f is string => typeof f === 'string' && f.length > 0);
+  const selectedFilters = options.displayFilters
+    ? [
+        filters?.eventType ? formatDomainEventType(filters.eventType) : '',
+        filters?.consumerName ? formatConsumerName(filters.consumerName) : '',
+        filters?.status ? formatConsumerStatus(filters.status) : '',
+      ].filter((f): f is string => typeof f === 'string' && f.length > 0)
+    : [filters?.eventType, filters?.consumerName, filters?.status].filter(
+        (f): f is string => typeof f === 'string' && f.length > 0
+      );
 
   return {
     totalEvents: events.length,

@@ -30,9 +30,7 @@
             </p>
           </div>
           <StatusBadge :variant="result?.allowed === false ? 'danger' : 'info'" dot>
-            {{
-              result?.environment || t('settings.backup.restoreUnknownEnv', 'unknown environment')
-            }}
+            {{ restoreEnvironmentLabel }}
           </StatusBadge>
         </div>
       </section>
@@ -48,7 +46,7 @@
           <div class="text-xs font-semibold tracking-[0.12em] text-(--text-muted) uppercase">
             {{ t('settings.backup.restoreMode', 'Last Mode') }}
           </div>
-          <div class="mt-2 text-sm font-medium text-(--text-main)">{{ result?.mode || '-' }}</div>
+          <div class="mt-2 text-sm font-medium text-(--text-main)">{{ restoreModeLabel }}</div>
         </div>
         <div class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4">
           <div class="text-xs font-semibold tracking-[0.12em] text-(--text-muted) uppercase">
@@ -85,17 +83,22 @@
             "
             outline
           >
-            {{ result?.mode || t('settings.backup.restoreIdle', 'idle') }}
+            {{ result ? restoreModeLabel : t('settings.backup.restoreIdle', 'idle') }}
           </StatusBadge>
         </div>
 
         <div
           v-if="result"
-          class="mt-4 overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-page)"
+          class="mt-4 grid gap-3 rounded-2xl border border-(--border-color) bg-(--bg-page) p-4 md:grid-cols-2"
         >
-          <pre class="max-h-72 overflow-auto p-4 text-xs text-(--text-main)">{{
-            formattedResult
-          }}</pre>
+          <div v-for="row in restoreSummaryRows" :key="row.label" class="min-w-0">
+            <div class="text-xs font-semibold tracking-[0.12em] text-(--text-muted) uppercase">
+              {{ row.label }}
+            </div>
+            <div class="mt-1 break-words text-sm font-medium text-(--text-main)">
+              {{ row.value }}
+            </div>
+          </div>
         </div>
         <div
           v-else
@@ -180,6 +183,11 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import {
+  buildBackupRestoreSummaryRows,
+  formatBackupRestoreEnvironment,
+  formatBackupRestoreMode,
+} from '@/utils/event-display';
 
 const props = defineProps({
   modelValue: {
@@ -205,7 +213,15 @@ const emit = defineEmits(['update:modelValue', 'validate', 'dry-run', 'restore']
 const { t } = useI18n();
 const confirmVisible = ref(false);
 
-const formattedResult = computed(() => JSON.stringify(props.result || {}, null, 2));
+const restoreEnvironmentLabel = computed(() => {
+  if (!props.result) return t('settings.backup.restoreUnknownEnv', 'unknown environment');
+  return formatBackupRestoreEnvironment(props.result.environment);
+});
+const restoreModeLabel = computed(() => {
+  if (!props.result) return '-';
+  return formatBackupRestoreMode(props.result.mode);
+});
+const restoreSummaryRows = computed(() => buildBackupRestoreSummaryRows(props.result));
 
 function handleRestoreConfirm() {
   confirmVisible.value = false;

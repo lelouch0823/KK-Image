@@ -138,3 +138,40 @@ Use raw fields only for behavior that needs backend contracts, such as action fi
 - Keep action filter option `value` as the raw action code, but show a friendly `label`.
 - Keep detail formatting resilient to malformed legacy JSON.
 - Add regression tests in the audit behavior tests when changing action, target, summary, or details display.
+
+---
+
+## Convention: Operational Event UI Renders Display Labels
+
+**What**: Admin-facing operational pages must not render backend event codes, consumer statuses, run modes, environments, or raw JSON responses as the default user experience.
+
+**Why**: Fields such as `event_type`, `consumer_name`, outbox job `status`, backup restore `mode`, and restore/replay response objects are backend contracts. Showing values like `purchase_receipt_recorded`, `notification · failed`, `dry_run`, or JSON dumps makes operational workflows harder to scan and leaks implementation detail.
+
+**Required pattern**:
+
+```js
+import { formatDomainEventType, formatConsumerJobLabel } from '@/utils/event-display';
+```
+
+Render display values:
+
+```vue
+{{ formatDomainEventType(event.event_type) }}
+{{ formatConsumerJobLabel(job) }}
+```
+
+Use structured summary rows for result objects:
+
+```js
+const replayResultRows = computed(() => buildReplayResultSummaryRows(props.lastReplayResult));
+```
+
+Raw values may still be used for API filters, badge tone selection, IDs, titles, or debug-only affordances.
+
+**Checklist**:
+
+- Add new backend event labels to `src/utils/event-display.ts` when exposing an event to Outbox, Webhook, notifications, or inventory movement UI.
+- Keep filter option `value` as the backend contract, but show a friendly `label`.
+- Render replay/restore results as summary rows instead of default `<pre>{{ JSON.stringify(...) }}</pre>`.
+- Unknown enum values must degrade to readable text, not raw snake_case/dotted codes.
+- Add focused component or formatter tests when changing event, consumer, mode, environment, or result summaries.

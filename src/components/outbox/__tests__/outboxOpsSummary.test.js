@@ -50,4 +50,20 @@ describe('buildOutboxOpsMetrics', () => {
       refreshFailed: true,
     });
   });
+
+  it('builds friendly display tokens for selected filters', async () => {
+    const { buildOutboxOpsMetrics } = await import('../outboxOpsSummary');
+
+    const metrics = buildOutboxOpsMetrics(
+      [],
+      {
+        eventType: 'purchase_receipt_recorded',
+        consumerName: 'notification',
+        status: 'failed',
+      },
+      { displayFilters: true }
+    );
+
+    expect(metrics.selectedFilters).toEqual(['采购收货已登记', '通知', '失败']);
+  });
 });

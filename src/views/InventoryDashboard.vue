@@ -308,6 +308,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useInventoryDashboard } from '@/composables/useInventoryDashboard';
 import { ErrorCode } from '@/utils/error-codes';
 import { formatTimelineTime } from '@/utils/formatters';
+import { formatDomainEventType } from '@/utils/event-display';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppTableCodeChip from '@/components/ui/AppTableCodeChip.vue';
@@ -338,7 +339,7 @@ const formatCurrency = (value) => {
 
 /** 事件类型标签 */
 const getEventLabel = (eventType) => {
-  return t(`inventoryDashboard.movements.eventType.${eventType}`, eventType);
+  return t(`inventoryDashboard.movements.eventType.${eventType}`, formatDomainEventType(eventType));
 };
 
 /** 事件类型颜色 */
