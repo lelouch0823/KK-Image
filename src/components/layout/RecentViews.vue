@@ -38,7 +38,7 @@
           :title="item.title"
           @click="navigateTo(item)"
         >
-          <AppIcon :name="iconMap[item.type]" class="size-4 shrink-0 text-(--text-muted)" />
+          <AppIcon :name="getRecentViewIcon(item.type)" class="size-4 shrink-0 text-(--text-muted)" />
           <span
             class="min-w-0 flex-1 truncate text-(--text-secondary) group-hover:text-(--text-main)"
           >
@@ -58,6 +58,7 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useRecentViews } from '@/composables/useRecentViews';
+import { getAdminFeatureByEntityType, getAdminFeaturePath } from '@/config/admin-features';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
@@ -71,18 +72,8 @@ const isCollapsed = ref(false);
 // 最多显示 5 条
 const displayItems = computed(() => recentViews.value.slice(0, 5));
 
-// 类型 -> 图标映射
-const iconMap = {
-  order: 'clipboard-document-list',
-  product: 'cube',
-  customer: 'users',
-};
-
-// 类型 -> 路由路径映射
-const routeMap = {
-  order: '/admin/orders',
-  product: '/admin/products',
-  customer: '/admin/customers',
+const getRecentViewIcon = (type) => {
+  return getAdminFeatureByEntityType(type)?.icon || 'document';
 };
 
 /**
@@ -90,9 +81,9 @@ const routeMap = {
  * 通过 query 参数传递 id，由目标页面的 watch 处理打开详情弹窗
  */
 const navigateTo = (item) => {
-  const basePath = routeMap[item.type];
-  if (!basePath) return;
-  router.push({ path: basePath, query: { id: item.id } });
+  const feature = getAdminFeatureByEntityType(item.type);
+  if (!feature) return;
+  router.push({ path: getAdminFeaturePath(feature.key), query: { id: item.id } });
 };
 
 /**

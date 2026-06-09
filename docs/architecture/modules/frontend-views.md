@@ -7,7 +7,7 @@
 `src/views` 目录包含 kk-life 应用的主要页面视图组件，采用 Vue 3 Composition API 和 Vue Router 实现路由管理。
 
 ```
-Router (src/router/index.js)
+Router (src/router/index.ts)
     │
     ├── Public Routes (无需认证)
     │   ├── Login.vue → 登录页面
@@ -22,6 +22,19 @@ Router (src/router/index.js)
             ├── SpaceManager/ → 空间管理模块
             └── ... 更多管理页面
 ```
+
+管理端页面入口元数据不再全部手写在 `src/router/index.ts`。当前使用
+`src/config/admin-features.ts` 作为管理端 feature manifest，集中维护：
+
+- 路由 `path` / `name` / `component`
+- 页面标题 `titleKey`
+- 权限 `permission`
+- 侧边栏与命令面板图标、标签、搜索关键词
+- 最近访问实体类型到管理页面的映射
+
+`src/router/index.ts` 通过 `createAdminFeatureRoutes()` 生成 admin child routes；
+`Sidebar.vue`、`useCommandPalette.ts`、`RecentViews.vue` 和 AI context inference 通过
+manifest helper 消费同一份 feature 元数据。
 
 ---
 
@@ -187,6 +200,8 @@ provide('salesContext', {
 ### 4.1 完整路由配置
 
 ```javascript
+const adminFeatureRoutes = createAdminFeatureRoutes();
+
 const routes = [
   // 根路径重定向
   { path: '/', redirect: '/login' },
@@ -216,7 +231,9 @@ const routes = [
     component: AdminLayout,
     meta: { requiresAuth: true },
     children: [
-      /* 管理页面 */
+      { path: '', redirect: getAdminFeaturePath('dashboard') },
+      ...adminFeatureRoutes,
+      { path: 'forbidden', name: 'Forbidden', component: Forbidden },
     ],
   },
 ];

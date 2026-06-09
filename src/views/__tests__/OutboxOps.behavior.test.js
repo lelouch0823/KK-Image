@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ref } from 'vue';
+import { getAdminFeatureByKey } from '@/config/admin-features';
 import Sidebar from '@/components/layout/Sidebar.vue';
 
 const mocks = vi.hoisted(() => ({
@@ -150,11 +151,11 @@ describe('OutboxOps behavior', () => {
   });
 
   it('registers an admin outbox ops route with audit permission', () => {
-    const source = readFileSync(resolve(process.cwd(), 'src/router/index.ts'), 'utf8');
-
-    expect(source).toContain("path: 'outbox-ops'");
-    expect(source).toContain("titleKey: 'router.outbox_ops'");
-    expect(source).toContain("permission: 'audit:read'");
+    expect(getAdminFeatureByKey('outbox-ops')).toMatchObject({
+      path: 'outbox-ops',
+      titleKey: 'router.outbox_ops',
+      permission: 'audit:read',
+    });
   });
 
   it('shows the outbox ops menu item only for audit-capable users', async () => {

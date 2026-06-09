@@ -1,3 +1,5 @@
+import { inferAdminFeatureKeyFromPath } from '@/config/admin-features';
+
 export function normalizeString(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
@@ -5,10 +7,7 @@ export function normalizeString(value: unknown): string | null {
 }
 
 export function inferCurrentView(routePath: string = ''): string {
-  if (typeof routePath === 'string' && routePath.startsWith('/admin/')) {
-    return routePath.replace('/admin/', '');
-  }
-  return 'dashboard';
+  return inferAdminFeatureKeyFromPath(routePath);
 }
 
 export function inferAIEntityContext(

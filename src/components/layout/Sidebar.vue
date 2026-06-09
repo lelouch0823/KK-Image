@@ -181,6 +181,11 @@ import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import { useAccessControl } from '@/composables/useAccessControl';
 import { useToast } from '@/composables/useToast';
+import {
+  getAdminFeaturePath,
+  getSidebarAdminFeatures,
+  inferAdminFeatureKeyFromPath,
+} from '@/config/admin-features';
 import { getItem, setItem } from '@/utils/storage';
 import AppButton from '@/components/ui/AppButton.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
@@ -196,11 +201,7 @@ const { addToast } = useToast();
 
 // 当前视图 key (从路由路径推断)
 const currentView = computed(() => {
-  const path = route.path;
-  if (path.startsWith('/admin/')) {
-    return path.replace('/admin/', '');
-  }
-  return 'dashboard';
+  return inferAdminFeatureKeyFromPath(route.path);
 });
 
 // 移动端侧边栏状态
@@ -246,7 +247,7 @@ const closeSidebar = () => {
 
 // 菜单点击：使用 router 导航并关闭侧边栏
 const handleMenuClick = (key) => {
-  router.push(`/admin/${key}`);
+  router.push(getAdminFeaturePath(key));
   closeSidebar();
 };
 
@@ -254,102 +255,12 @@ const handleMenuClick = (key) => {
 defineExpose({ openSidebar });
 
 const menuItems = computed(() => [
-  {
-    key: 'dashboard',
-    label: t('sidebar.dashboard'),
-    icon: 'squares-2x2',
-    permission: 'stats:read',
-  },
-  {
-    key: 'files',
-    label: t('sidebar.files'),
-    icon: 'folder',
-    permission: 'files:read',
-  },
-  {
-    key: 'spaces',
-    label: t('sidebar.spaces'),
-    icon: 'rectangle-group',
-    permission: 'spaces:read',
-  },
-  {
-    key: 'products',
-    label: t('views.products'),
-    icon: 'cube',
-    permission: 'products:manage',
-  },
-  {
-    key: 'orders',
-    label: t('order.manage.title'),
-    icon: 'clipboard-document-list',
-    permission: 'orders:manage',
-  },
-  {
-    key: 'receivables',
-    label: t('order.receivables.title'),
-    icon: 'banknotes',
-    permission: 'orders:read',
-  },
-  {
-    key: 'goods-overview',
-    label: t('sidebar.goodsOverview'),
-    icon: 'building-storefront',
-    permission: 'products:manage',
-  },
-  {
-    key: 'inventory-dashboard',
-    label: t('sidebar.inventoryDashboard'),
-    icon: 'archive-box',
-    permission: 'products:manage',
-  },
-  {
-    key: 'purchase-orders',
-    label: t('purchaseOrder.title'),
-    icon: 'shopping-cart',
-    permission: 'products:manage',
-  },
-  {
-    key: 'stocktakes',
-    label: t('stocktake.title'),
-    icon: 'clipboard-document-check',
-    permission: 'products:manage',
-  },
-  {
-    key: 'customers',
-    label: t('customer.manage.title'),
-    icon: 'users',
-    permission: 'orders:manage',
-  },
-  {
-    key: 'salespersons',
-    label: t('salesperson.title'),
-    icon: 'briefcase',
-    permission: 'users:read',
-  },
-  {
-    key: 'stats',
-    label: t('sidebar.stats'),
-    icon: 'chart-bar',
-    permission: 'stats:read',
-  },
-  {
-    key: 'settings',
-    label: t('settings.title'),
-    icon: 'cog-8-tooth',
-    permission: 'admin:full',
-  },
-  {
-    key: 'audit-logs',
-    label: t('router.audit_logs'),
-    icon: 'document-text',
-    permission: 'audit:read',
-  },
-  {
-    key: 'outbox-ops',
-    label: t('router.outbox_ops'),
-    icon: 'arrow-path',
-    permission: 'audit:read',
-  },
+  ...getSidebarAdminFeatures().map((feature) => ({
+    key: feature.key,
+    label: t(feature.labelKey),
+    icon: feature.icon,
+    permission: feature.permission,
+  })),
 ]);
 
 // 过滤包含用户对应权限的菜单

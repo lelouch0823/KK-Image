@@ -4,6 +4,7 @@ import 'nprogress/nprogress.css';
 import { useAuth } from '@/composables/useAuth';
 import { useAccessControl } from '@/composables/useAccessControl';
 import { useI18n } from '@/composables/useI18n';
+import { createAdminFeatureRoutes, getAdminFeaturePath } from '@/config/admin-features';
 import { APP_NAME } from '@/utils/constants';
 
 // 懒加载组件
@@ -15,6 +16,7 @@ const Sales = () => import('@/views/Sales.vue');
 
 const DASHBOARD_ROUTE_NAME = 'Dashboard';
 const FORBIDDEN_ROUTE_NAME = 'Forbidden';
+const adminFeatureRoutes = createAdminFeatureRoutes();
 
 // 路由定义
 const routes: RouteRecordRaw[] = [
@@ -96,122 +98,9 @@ const routes: RouteRecordRaw[] = [
         children: [
             {
                 path: '', // /admin
-                redirect: '/admin/dashboard',
+                redirect: getAdminFeaturePath('dashboard'),
             },
-            {
-                path: 'dashboard',
-                name: 'Dashboard',
-                component: () => import('@/views/Dashboard.vue'),
-                meta: { titleKey: 'router.dashboard', permission: 'stats:read' },
-            },
-            {
-                path: 'files',
-                name: 'Files',
-                component: () => import('@/views/FileManager/index.vue'),
-                meta: { titleKey: 'router.file_management', permission: 'files:read' },
-            },
-            {
-                path: 'spaces',
-                name: 'Spaces',
-                component: () => import('@/views/SpaceManager/index.vue'),
-                meta: { titleKey: 'router.space_management', permission: 'spaces:read' },
-            },
-            {
-                path: 'salespersons',
-                name: 'Salespersons',
-                component: () => import('@/components/SalespersonManager.vue'), // 暂时兼容
-                meta: { titleKey: 'router.salesperson_management', permission: 'users:read' },
-            },
-            {
-                path: 'products',
-                name: 'Products',
-                component: () => import('@/components/ProductManager.vue'),
-                meta: { titleKey: 'router.product_management', permission: 'products:manage' },
-            },
-            {
-                path: 'orders',
-                name: 'Orders',
-                component: () => import('@/components/OrderManager.vue'), // 暂时兼容
-                meta: { titleKey: 'router.order_management', permission: 'orders:manage' },
-            },
-            {
-                path: 'goods-overview',
-                name: 'GoodsOverview',
-                component: () => import('@/views/GoodsOverview.vue'),
-                meta: { titleKey: 'router.goods_overview', permission: 'products:manage' },
-            },
-            {
-                path: 'inventory-dashboard',
-                name: 'InventoryDashboard',
-                component: () => import('@/views/InventoryDashboard.vue'),
-                meta: { titleKey: 'router.inventory_dashboard', permission: 'products:manage' },
-            },
-            {
-                path: 'purchase-orders',
-                name: 'PurchaseOrders',
-                component: () => import('@/views/PurchaseOrders.vue'),
-                meta: { titleKey: 'router.purchase_orders', permission: 'products:manage' },
-            },
-            {
-                path: 'stocktakes',
-                name: 'Stocktakes',
-                component: () => import('@/views/StocktakeManager.vue'),
-                meta: { titleKey: 'router.stocktakes', permission: 'products:manage' },
-            },
-            {
-                path: 'customers',
-                name: 'Customers',
-                component: () => import('@/views/Customers.vue'),
-                meta: { titleKey: 'router.customer_management', permission: 'orders:manage' },
-            },
-            {
-                path: 'stats',
-                name: 'Stats',
-                component: () => import('@/views/Stats.vue'),
-                meta: { titleKey: 'router.stats_analysis', permission: 'stats:read' },
-            },
-            {
-                path: 'receivables',
-                name: 'Receivables',
-                component: () => import('@/components/ReceivablesDashboard.vue'),
-                meta: { titleKey: 'router.receivables', permission: 'orders:read' },
-            },
-            {
-                path: 'reminders',
-                name: 'Reminders',
-                component: () => import('@/views/ReminderCenter.vue'),
-                meta: { titleKey: 'router.reminders', permission: 'notifications:read' },
-            },
-            {
-                path: 'settings',
-                name: 'Settings',
-                component: () => import('@/views/Settings.vue'),
-                meta: { titleKey: 'router.system_settings', permission: 'admin:full' },
-            },
-            {
-                path: 'audit-logs',
-                name: 'AuditLogs',
-                component: () => import('@/views/AuditLogs.vue'),
-                meta: { titleKey: 'router.audit_logs', permission: 'audit:read' },
-            },
-            {
-                path: 'outbox-ops',
-                name: 'OutboxOps',
-                component: () => import('@/views/OutboxOps.vue'),
-                meta: { titleKey: 'router.outbox_ops', permission: 'audit:read' },
-            },
-            {
-                path: 'erp-sync',
-                name: 'ErpSync',
-                component: () => import('@/views/ErpSync.vue'),
-                meta: { titleKey: 'router.erp_sync', permission: 'admin:full' },
-            },
-            {
-                path: 'oauth-apps',
-                name: 'OAuthApps',
-                component: () => import('@/views/OAuthApps.vue'),
-                meta: { titleKey: 'router.oauth_apps', permission: 'admin:full' },
-            },
+            ...adminFeatureRoutes,
             {
                 path: 'forbidden',
                 name: 'Forbidden',
@@ -323,7 +212,7 @@ router.beforeEach(async (to, from, next) => {
     // 2. 仅访客页面 (如登录页)
     else if (to.matched.some(record => record.meta.guest)) {
         if (isAuth) {
-            next({ path: '/admin/dashboard' });
+            next({ path: getAdminFeaturePath('dashboard') });
         } else {
             next();
         }

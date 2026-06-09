@@ -15,6 +15,11 @@ import { useRouter } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
 import { useAccessControl } from '@/composables/useAccessControl';
 import { useI18n } from '@/composables/useI18n';
+import {
+  getAdminFeatureByEntityType,
+  getAdminFeaturePath,
+  getCommandAdminFeatures,
+} from '@/config/admin-features';
 
 // ---------- 类型定义 ----------
 
@@ -85,124 +90,15 @@ export function useCommandPalette() {
   // ---------- 内置命令注册 ----------
 
   const builtinCommands = computed<CommandItem[]>(() => [
-    // 导航命令
-    {
-      id: 'nav-dashboard',
-      label: t('sidebar.dashboard'),
-      icon: 'squares-2x2',
-      category: 'navigation',
-      action: () => router.push('/admin/dashboard'),
-      permission: 'stats:read',
-      keywords: ['dashboard', '概览', '仪表盘'],
-    },
-    {
-      id: 'nav-files',
-      label: t('sidebar.files'),
-      icon: 'folder',
-      category: 'navigation',
-      action: () => router.push('/admin/files'),
-      permission: 'files:read',
-      keywords: ['files', '文件'],
-    },
-    {
-      id: 'nav-spaces',
-      label: t('sidebar.spaces'),
-      icon: 'rectangle-group',
-      category: 'navigation',
-      action: () => router.push('/admin/spaces'),
-      permission: 'spaces:read',
-      keywords: ['spaces', '共享空间'],
-    },
-    {
-      id: 'nav-products',
-      label: t('views.products'),
-      icon: 'cube',
-      category: 'navigation',
-      action: () => router.push('/admin/products'),
-      permission: 'products:manage',
-      keywords: ['products', '商品'],
-    },
-    {
-      id: 'nav-orders',
-      label: t('order.manage.title'),
-      icon: 'clipboard-document-list',
-      category: 'navigation',
-      action: () => router.push('/admin/orders'),
-      permission: 'orders:manage',
-      keywords: ['orders', '订单'],
-    },
-    {
-      id: 'nav-goods-overview',
-      label: t('sidebar.goodsOverview'),
-      icon: 'building-storefront',
-      category: 'navigation',
-      action: () => router.push('/admin/goods-overview'),
-      permission: 'products:manage',
-      keywords: ['goods', '订货总览'],
-    },
-    {
-      id: 'nav-purchase-orders',
-      label: t('purchaseOrder.title'),
-      icon: 'shopping-cart',
-      category: 'navigation',
-      action: () => router.push('/admin/purchase-orders'),
-      permission: 'products:manage',
-      keywords: ['purchase', '采购'],
-    },
-    {
-      id: 'nav-customers',
-      label: t('customer.manage.title'),
-      icon: 'users',
-      category: 'navigation',
-      action: () => router.push('/admin/customers'),
-      permission: 'orders:manage',
-      keywords: ['customers', '客户'],
-    },
-    {
-      id: 'nav-salespersons',
-      label: t('salesperson.title'),
-      icon: 'briefcase',
-      category: 'navigation',
-      action: () => router.push('/admin/salespersons'),
-      permission: 'users:read',
-      keywords: ['salespersons', '销售'],
-    },
-    {
-      id: 'nav-stats',
-      label: t('sidebar.stats'),
-      icon: 'chart-bar',
-      category: 'navigation',
-      action: () => router.push('/admin/stats'),
-      permission: 'stats:read',
-      keywords: ['stats', '统计'],
-    },
-    {
-      id: 'nav-settings',
-      label: t('settings.title'),
-      icon: 'cog-8-tooth',
-      category: 'navigation',
-      action: () => router.push('/admin/settings'),
-      permission: 'admin:full',
-      keywords: ['settings', '设置'],
-    },
-    {
-      id: 'nav-reminders',
-      label: t('router.reminders'),
-      icon: 'bell',
-      category: 'navigation',
-      action: () => router.push('/admin/reminders'),
-      permission: 'notifications:read',
-      keywords: ['reminders', '提醒'],
-    },
-    {
-      id: 'nav-audit-logs',
-      label: t('router.audit_logs'),
-      icon: 'document-text',
-      category: 'navigation',
-      action: () => router.push('/admin/audit-logs'),
-      permission: 'audit:read',
-      keywords: ['audit', '审计'],
-    },
+    ...getCommandAdminFeatures().map((feature) => ({
+      id: `nav-${feature.key}`,
+      label: t(feature.commandLabelKey || feature.labelKey),
+      icon: feature.icon,
+      category: 'navigation' as const,
+      action: () => router.push(getAdminFeaturePath(feature.key)),
+      permission: feature.permission,
+      keywords: feature.commandKeywords || [],
+    })),
     // 快捷操作
     {
       id: 'action-settings',
@@ -388,9 +284,8 @@ function getSubtitle(item: Record<string, unknown>, type: string): string {
 
 function getIcon(type: string): string {
   if (type === 'file') return 'photo';
-  if (type === 'product') return 'cube';
-  if (type === 'order') return 'clipboard-document-list';
-  if (type === 'customer') return 'users';
+  const feature = getAdminFeatureByEntityType(type);
+  if (feature) return feature.icon;
   return 'document';
 }
 
@@ -400,12 +295,12 @@ function navigateToEntity(
   router: ReturnType<typeof useRouter>
 ) {
   if (type === 'file') {
-    router.push('/admin/files');
-  } else if (type === 'product') {
-    router.push(`/admin/products`);
-  } else if (type === 'order') {
-    router.push('/admin/orders');
-  } else if (type === 'customer') {
-    router.push('/admin/customers');
+    router.push(getAdminFeaturePath('files'));
+    return;
+  }
+
+  const feature = getAdminFeatureByEntityType(type);
+  if (feature) {
+    router.push(getAdminFeaturePath(feature.key));
   }
 }
