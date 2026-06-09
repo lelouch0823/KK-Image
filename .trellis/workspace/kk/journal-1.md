@@ -118,3 +118,36 @@ Audited and tightened frontend UI polish, fixed remaining vue-tsc type failures,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: Docs architecture guidance refresh
+
+**Date**: 2026-06-09
+**Task**: Docs architecture guidance refresh
+**Branch**: `main`
+
+### Summary
+
+Reviewed and refreshed live docs after architecture modularization review. Updated Vue/Hono architecture guidance, admin feature registry documentation, projection-backed product inventory semantics, real API test profile wording, and backend product projection quality spec.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8f63d80d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
