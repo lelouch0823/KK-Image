@@ -24,6 +24,7 @@
 - [API 总览](API_REFERENCE.md)
 - [授权策略系统（OPA / Rego）](developer-guide/authz-policy-system.md)
 - [前端请求内核](architecture/frontend-request-core.md)
+- [商品与需求投影刷新模型](architecture/projection-refresh-model.md)
 - [后端性能基线](architecture/backend-performance-baseline.md)
 - [后端性能优化审查](architecture/backend-performance-optimization-review.md)
 - [后端性能优化实施计划](architecture/backend-performance-optimization-plan.md)
@@ -41,13 +42,15 @@
 ```bash
 pnpm dev:all
 pnpm test
-pnpm test:real-api:full-chain
+pnpm test:real-api:fast
 ```
 
 ## 说明
 
 - 根路径 `/` 默认重定向到 `/login`。
+- 当前 Web 前端是 Vue 3 + Vite；不要把管理端 shell 描述成 Flutter 或移动端 app shell。
+- 管理端 feature 的路由、权限、侧边栏、命令面板和最近访问映射以 `src/config/admin-features.ts` 为 source of truth；新增后台页面时先改 manifest，再让 router/sidebar/command/recent-view 消费 helper。
 - 当前默认对象存储为 R2；Telegram / S3 存储属于可选配置。
 - 当前后端是“`functions/lib/hono/app.js` 挂载的 Hono 主业务路由 + 少量文件式 public/cron 路由”并存，不要把仓库描述成纯文件式 Functions，也不要误写成所有接口都已迁入 Hono。
-- `pnpm test` 是默认仓库测试套件；`pnpm test:real-api:full-chain` 需要本地 Worker 健康启动，只能代表真实 API 链路验证，不是所有任务的默认必跑项。
+- `pnpm test` 是默认仓库测试套件；real API profile 都以 `REAL_API_BASE_URL` 指向的 Worker 为主，`fast` 只是较快 smoke 口径，部分销售链路会使用 direct in-process transport；`*:blackbox` profile 会禁用 direct 口径并按文件隔离，更适合高保真 HTTP 验收。
 - 历史计划、评审与 agent 过程正文已下沉到 `docs/archive/plans/`、`docs/archive/reviews/`、`docs/archive/superpowers/`；`docs/plans`、`docs/reviews`、`docs/superpowers` 现在只保留索引说明。

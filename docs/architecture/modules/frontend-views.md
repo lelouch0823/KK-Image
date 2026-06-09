@@ -36,6 +36,10 @@ Router (src/router/index.ts)
 `Sidebar.vue`、`useCommandPalette.ts`、`RecentViews.vue` 和 AI context inference 通过
 manifest helper 消费同一份 feature 元数据。
 
+新增或调整管理端页面时，优先修改 `src/config/admin-features.ts`。不要在 router、
+sidebar、command palette、recent-view 或 AI context inference 中再维护第二份 route/path/icon
+映射；这些消费者应只通过 manifest helper 读取。
+
 ---
 
 ## 2. 页面分类
@@ -53,21 +57,27 @@ manifest helper 消费同一份 feature 元数据。
 
 当前后台页面主要通过路由 `meta.permission` 做权限控制，而不是旧文档中的固定角色表。
 
-| 页面                 | 路径                     | 主要权限          | 功能描述             |
-| -------------------- | ------------------------ | ----------------- | -------------------- |
-| `Dashboard.vue`      | `/admin/dashboard`       | `stats:read`      | 管理仪表盘           |
-| `FileManager/`       | `/admin/files`           | `files:read`      | 文件管理             |
-| `SpaceManager/`      | `/admin/spaces`          | `spaces:read`     | 空间管理             |
-| `Products.vue`       | `/admin/products`        | `products:manage` | 商品管理             |
-| `Orders.vue`         | `/admin/orders`          | `orders:manage`   | 订单管理             |
-| `Salespersons.vue`   | `/admin/salespersons`    | `users:read`      | 销售人员管理         |
-| `GoodsOverview.vue`  | `/admin/goods-overview`  | `products:manage` | 缺口与订货总览       |
-| `PurchaseOrders.vue` | `/admin/purchase-orders` | `products:manage` | 采购单管理           |
-| `Customers.vue`      | `/admin/customers`       | `orders:manage`   | 客户管理             |
-| `Stats.vue`          | `/admin/stats`           | `stats:read`      | 统计分析             |
-| `Settings.vue`       | `/admin/settings`        | `admin:full`      | 系统设置             |
-| `AuditLogs.vue`      | `/admin/audit-logs`      | `audit:read`      | 审计日志             |
-| `OutboxOps.vue`      | `/admin/outbox-ops`      | `audit:read`      | Outbox / Replay 运维 |
+| Manifest key          | 路径                         | 主要权限             | 功能描述                     |
+| --------------------- | ---------------------------- | -------------------- | ---------------------------- |
+| `dashboard`           | `/admin/dashboard`           | `stats:read`         | 管理仪表盘                   |
+| `files`               | `/admin/files`               | `files:read`         | 文件管理                     |
+| `spaces`              | `/admin/spaces`              | `spaces:read`        | 空间管理                     |
+| `salespersons`        | `/admin/salespersons`        | `users:read`         | 销售人员管理                 |
+| `products`            | `/admin/products`            | `products:manage`    | 商品管理                     |
+| `orders`              | `/admin/orders`              | `orders:manage`      | 订单管理                     |
+| `goods-overview`      | `/admin/goods-overview`      | `products:manage`    | 缺口与订货总览               |
+| `inventory-dashboard` | `/admin/inventory-dashboard` | `products:manage`    | 库存仪表盘                   |
+| `purchase-orders`     | `/admin/purchase-orders`     | `products:manage`    | 采购单管理                   |
+| `stocktakes`          | `/admin/stocktakes`          | `products:manage`    | 库存盘点                     |
+| `customers`           | `/admin/customers`           | `orders:manage`      | 客户管理                     |
+| `stats`               | `/admin/stats`               | `stats:read`         | 统计分析                     |
+| `receivables`         | `/admin/receivables`         | `orders:read`        | 应收看板                     |
+| `reminders`           | `/admin/reminders`           | `notifications:read` | 提醒中心，默认不进 sidebar   |
+| `settings`            | `/admin/settings`            | `admin:full`         | 系统设置                     |
+| `audit-logs`          | `/admin/audit-logs`          | `audit:read`         | 审计日志                     |
+| `outbox-ops`          | `/admin/outbox-ops`          | `audit:read`         | Outbox / Replay 运维         |
+| `erp-sync`            | `/admin/erp-sync`            | `admin:full`         | ERP 同步，默认隐藏导航入口   |
+| `oauth-apps`          | `/admin/oauth-apps`          | `admin:full`         | OAuth 应用，默认隐藏导航入口 |
 
 ### 2.3 销售员门户子页面
 

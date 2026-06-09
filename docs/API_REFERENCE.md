@@ -92,6 +92,7 @@
 - 订单详情读模型默认包含 `lines`
 - 采购单详情读模型默认包含 `items` 与 `receipts`
 - 采购与履约进度优先来自 `order_lines`
+- 商品状态、价格和库存筛选优先来自 `product_projection` 的 active variant 聚合，不直接依赖 `products.status`
 - 关键写操作通过 durable outbox 异步驱动通知、缓存失效、Webhook 与补充审计
 
 ## 4. 本地联调
@@ -99,7 +100,8 @@
 ```bash
 pnpm dev:all
 pnpm test
-pnpm build
-pnpm start
-pnpm test:real-api:full-chain
+pnpm test:real-api:fast
 ```
+
+`pnpm test:real-api:fast` 需要 `pnpm dev:all` 或 `pnpm start` 提供可访问 Worker。需要本地 Worker / HTTP 高保真验收时，再运行 `pnpm build`、`pnpm start` 和
+`pnpm test:real-api:full-chain:blackbox`。

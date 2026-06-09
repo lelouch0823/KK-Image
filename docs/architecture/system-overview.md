@@ -4,6 +4,7 @@
 
 - 订单数据从“仅 `orders` 单记录驱动”升级为“`orders` 头信息 + `order_lines` 行级履约/采购模型”
 - 通知、缓存失效、Webhook 等副作用从同步直调升级为 durable outbox 驱动
+- 管理端 Web shell 使用 Vue Router + `src/config/admin-features.ts`，不是 Flutter shell registry
 
 ## 1. 整体架构
 
@@ -91,12 +92,25 @@ functions/
 └── api/cron/outbox.js              # outbox poller / 恢复入口
 ```
 
+前端管理端 shell 的 source of truth 是：
+
+```text
+src/config/admin-features.ts        # admin feature manifest
+src/router/index.ts                 # Vue Router shell，消费 manifest 生成 admin child routes
+src/components/layout/Sidebar.vue   # 侧边栏，消费 manifest helper
+src/composables/useCommandPalette.ts# 命令面板，消费 manifest helper
+src/components/layout/RecentViews.vue
+```
+
+新增管理端页面时，不应分别在 router、sidebar、command palette 和 recent-view 中重复维护路径、权限、图标和标签；先补 manifest，再让消费者读取同一份 feature metadata。
+
 ### 2.3 数据存储职责
 
 - `D1`：业务真相与读模型
   - 订单：`orders`, `order_lines`, `order_timeline`, `order_files`
   - 采购：`purchase_orders`, `purchase_order_items`, `purchase_receipts`, `purchase_receipt_reversals`
   - 库存：`inventory_ledger`, `inventory_balances`
+  - 商品读模型：`product_projection`, `variant_demand_projection`, `variant_snapshot_projection`
   - durable outbox：`domain_outbox`, `outbox_consumer_jobs`, `outbox_replay_runs`
 - `R2`：原始文件对象存储，CAS 去重
 
@@ -203,6 +217,17 @@ sequenceDiagram
 3. `ship` 时同步写入库存扣减与需求侧预留释放
 4. 发布 `order_line_fulfillment_updated`
 5. outbox `cache` consumer 刷新订单/通知/统计相关读模型
+
+### 4.4 商品投影与缓存刷新
+
+商品列表、销售端商品可见性、库存筛选和商品状态展示以变体聚合读模型为准：
+
+1. `product_variants.status = 'active'` 的数量决定商品是否显示为 active
+2. `ProductProjectionRefreshService` 刷新 `product_projection`
+3. 库存、需求、采购收货/冲销、商品归档和批量变体状态变更都会刷新受影响商品
+4. 商品缓存失效通过 durable outbox 发布 cache-only product event，payload 携带 `product_ids`
+
+因此，不要把 `products.status` 当作当前商品生命周期的唯一事实源；它只是历史兼容字段或旧数据上下文。
 
 ## 5. Outbox 架构
 

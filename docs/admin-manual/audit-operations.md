@@ -279,19 +279,21 @@ Body：
 
 ## 11. 标准本地回归
 
-对 outbox / Webhook / 通知整体链路做本地验收时，推荐直接跑：
+做真实 API 快速业务回归时，推荐先跑：
 
 ```bash
-pnpm dev:all
-pnpm test:real-api:full-chain
+pnpm build
+pnpm start
+pnpm test:real-api:fast
 ```
 
 这套命令会覆盖：
 
-- outbox 驱动的通知物化
-- 采购收货与冲销后的 Webhook 投递
 - 订单行履约命令触发的缓存刷新链路
-- 文件、商品、订单、采购、通知、Webhook 的真实串联
+- 文件、商品、订单、采购、公开分享和销售商品可用性等 smoke 链路
+
+如需对 outbox / Webhook / 通知整体链路做本地 Worker / HTTP 高保真验收，再运行 `pnpm build`、`pnpm start` 和
+`pnpm test:real-api:full-chain:blackbox`。
 
 ## 12. 与排除路由的关系
 

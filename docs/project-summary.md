@@ -34,6 +34,7 @@
 - 后端：Cloudflare Pages Functions + Hono
 - 数据：Cloudflare D1 + R2
 - 副作用：durable outbox 驱动通知、缓存失效、Webhook 和审计补充
+- 管理端 feature metadata：`src/config/admin-features.ts` 统一驱动路由、侧边栏、命令面板、最近访问和 AI context inference
 
 ## 3. 当前关键技术事实
 
@@ -66,7 +67,14 @@
 - 收货冲销
 - 手动重算成本分摊
 
-### 3.3 Outbox 架构
+### 3.3 商品投影架构
+
+- `product_projection` 聚合 active variant 的价格、库存、可用量、预警阈值和 active variant 数量
+- 商品读模型中的 `status` 从 active variant 聚合派生，不直接以 `products.status` 为准
+- `variant_demand_projection` 聚合规格需求，支撑订货总览与补货判断
+- 库存、需求、采购收货/冲销、商品归档和批量变体状态变化后，必须刷新受影响商品投影并发布 product cache event
+
+### 3.4 Outbox 架构
 
 关键领域事件统一写入：
 
@@ -84,11 +92,14 @@
 当前标准本地验证路径：
 
 ```bash
-pnpm dev:all
-pnpm test:real-api:full-chain
+pnpm test
+pnpm build
+pnpm start
+pnpm test:real-api:fast
 ```
 
-这套链路会一起验证文件、商品、订单、采购、通知、Webhook 和订单行履约动作。
+需要 Worker / HTTP 高保真验收时，再运行 `pnpm build`、`pnpm start` 和
+`pnpm test:real-api:full-chain:blackbox`。
 
 ## 4. 目录结构
 
@@ -97,9 +108,14 @@ kk-life/
 ├── src/
 │   ├── components/
 │   ├── composables/
-│   ├── modules/
-│   ├── pages/
+│   ├── config/
+│   ├── constants/
+│   ├── design-system/
+│   ├── layouts/
+│   ├── locales/
 │   ├── router/
+│   ├── styles/
+│   ├── utils/
 │   └── views/
 ├── functions/
 │   ├── lib/hono/              # Hono app、middleware、routes

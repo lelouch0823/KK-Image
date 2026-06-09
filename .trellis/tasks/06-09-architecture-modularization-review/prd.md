@@ -83,6 +83,8 @@ Do not do a large package/module split now. The repo already has meaningful back
 - `Sidebar.vue`, `useCommandPalette.ts`, `RecentViews.vue`, and AI context inference now consume manifest helpers instead of maintaining separate route/icon/permission maps.
 - Added `src/config/__tests__/admin-features.test.ts` to lock uniqueness, route generation, sidebar/command filtering, path inference, entity recent-view mapping, and frozen manifest behavior.
 - Documented the new convention in `.trellis/spec/frontend/directory-structure.md` and `docs/architecture/modules/frontend-views.md`.
+- Audited live `docs/` and refreshed navigation, architecture, developer/testing, API, quick-start, deployment, and admin-manual docs to reflect Vue 3 + Vite + Hono, admin feature manifest source of truth, product projection/cache/status ownership, and real API profile split.
+- Captured the product projection/status/cache contract in `.trellis/spec/backend/quality-guidelines.md` for future backend changes.
 - Backend Hono route manifest, product catalog layer direction cleanup, large view decomposition, and JS/TS source-of-truth clarification remain follow-up candidates.
 
 ## Acceptance Criteria (evolving)
@@ -92,6 +94,7 @@ Do not do a large package/module split now. The repo already has meaningful back
 - [x] 明确给出下一步建议和优先级。
 - [x] 不提出 Flutter 相关方案。
 - [x] P1 frontend admin feature manifest 已落地并有测试覆盖。
+- [x] live `docs/` 已按当前架构与测试口径完成审查更新。
 
 ## Definition of Done (team quality bar)
 

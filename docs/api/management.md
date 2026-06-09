@@ -98,6 +98,8 @@
 说明：
 
 - 当前仓库对外暴露的是商品和订货总览读模型
+- 商品列表里的 `status`、价格、库存和库存筛选来自 `product_projection` 的 active variant 聚合；不要把 `products.status` 当作当前商品可见性的唯一事实源
+- 批量变体状态变更会刷新受影响商品投影，并通过 outbox cache event 携带 `product_ids` 失效相关读模型
 - 文档里曾出现的 `GET /api/manage/inventory/ledger` 在当前代码中并不存在，不应继续依赖
 
 ### 采购单
@@ -164,7 +166,8 @@
 ```bash
 pnpm dev:all
 pnpm test
-pnpm build
-pnpm start
-pnpm test:real-api:full-chain
+pnpm test:real-api:fast
 ```
+
+`pnpm test:real-api:fast` 需要 `pnpm dev:all` 或 `pnpm start` 提供可访问 Worker。需要本地 Worker / HTTP 高保真验收时，再运行 `pnpm build`、`pnpm start` 和
+`pnpm test:real-api:full-chain:blackbox`。

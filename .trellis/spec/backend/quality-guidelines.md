@@ -270,6 +270,80 @@ return result;
 
 ---
 
+## Scenario: Product Projection Drives Product Status And Cache
+
+### 1. Scope / Trigger
+
+- Trigger: Backend changes that touch product status, variant status, inventory/demand writes, purchase receipt/reversal flows, product cache events, or sales product availability.
+- Applies to: `ProductRepository`, `ProductProjectionRepository`, `ProductProjectionRefreshService`, product manage routes, batch variant status routes, `InventoryService`, `DemandService`, and procurement receipt/reversal services.
+- Reason: Product list/detail/sales surfaces read projection-backed values. Updating only `products.status` or publishing variant ids as product cache ids leaves stale product status, stock, and sales visibility.
+
+### 2. Signatures
+
+- Read contract: product status in product list/detail is derived from `product_projection.active_variant_count`.
+- Refresh by product: `ProductProjectionRefreshService.refreshByProductIds(productIds, executionCtx?)`.
+- Refresh by variant: `ProductProjectionRefreshService.refreshByVariantIds(variantIds, executionCtx?)`.
+- Single refresh: `ProductProjectionRepository.refreshByProductId(productId)`.
+- Product cache event helper: `publishProductCacheEvent(c, eventType, productIds)`.
+- Batch variant status API: `POST /api/manage/products/batch/status` with `{ variantIds: string[], status: "active" | "archived" }`.
+
+### 3. Contracts
+
+- Product list/detail status must be computed from active variants:
+  `COALESCE(product_projection.active_variant_count, 0) > 0 -> "active"`, otherwise `"archived"`.
+- Do not use `products.status` as the source of truth for product list filters, sales visibility, price, stock, or availability.
+- Product status changes must update `product_variants.status`, touch `products.updated_at`, refresh product projection, and publish a product cache event.
+- Batch variant status changes must resolve affected `variantIds` to product ids before publishing cache events.
+- Product cache payloads use product ids: `product_id` for one product and `product_ids` for many products. Do not publish variant ids in these fields.
+- Inventory, demand, purchase receipt, and receipt reversal flows that change variant stock/availability/demand must refresh product projection for affected variants.
+- Metadata/media-only product writes may not change projection values, but must still publish product cache events.
+
+### 4. Validation & Error Matrix
+
+- Unknown product id on status update -> existing product route error contract.
+- Invalid status outside `"active" | "archived"` -> validation error before writes.
+- Batch variant status with unknown variant ids -> no product cache ids for missing variants; refresh only resolvable ids.
+- Projection refresh receives empty ids -> no-op.
+- Product cache event receives only variant ids -> test failure; cache consumer cannot invalidate product/space/sales read models consistently.
+
+### 5. Good/Base/Bad Cases
+
+- Good: archiving the last active variant refreshes `product_projection`, product list returns `status: "archived"`, and sales catalog hides it.
+- Base: archiving one of several active variants keeps product list `status: "active"` and recalculates min price/stock from remaining active variants.
+- Good: receipt reversal lowers available stock, refreshes product projection by variant id, and product detail reflects the rollback.
+- Bad: `UPDATE products SET status = "archived"` runs while variants remain active; product list and sales catalog disagree.
+- Bad: batch status publishes `product_ids: variantIds`; cache invalidation misses product detail and space/sales product payloads.
+
+### 6. Tests Required
+
+- Repository tests must assert product status filters and list rows derive status from `product_projection.active_variant_count`.
+- Product status route tests must assert projection refresh and product cache event publication after status changes.
+- Batch status route tests must assert variant ids are resolved to product ids before cache publication.
+- Inventory, demand, receipt, and reversal service tests must assert affected product projections are refreshed by variant id.
+- Real API or integration tests should cover sales product visibility after stock/status/receipt transitions when the change touches a user-facing path.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+await db.prepare('UPDATE products SET status = ? WHERE id = ?').bind(status, productId).run();
+await publishProductCacheEvent(c, 'product_batch_archived', variantIds);
+```
+
+#### Correct
+
+```js
+await db
+  .prepare('UPDATE product_variants SET status = ?, updated_at = ? WHERE product_id = ?')
+  .bind(nextVariantStatus, now, productId)
+  .run();
+await new ProductProjectionRefreshService(db).refreshByProductIds([productId], c.executionCtx);
+await publishProductCacheEvent(c, 'product_updated', [productId]);
+```
+
+---
+
 ## Scenario: Backend External Boundary And Archived Data Hardening
 
 ### 1. Scope / Trigger
@@ -380,7 +454,8 @@ await db.batch([
   lineUpdateStmt,
 ]);
 
-const lockReleaseCount = new Set(preparedReceipts.map((receipt) => receipt.purchaseOrderItemId)).size;
+const lockReleaseCount = new Set(preparedReceipts.map((receipt) => receipt.purchaseOrderItemId))
+  .size;
 if (countReceiptWriteStatements(preparedReceipts, { lockReleaseCount }) > 100) {
   throw new BadRequestError('本次收货包含的写入过多，请拆分后重试');
 }

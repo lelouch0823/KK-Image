@@ -170,24 +170,40 @@ functions/
 src/
 ├── components/
 ├── composables/
-├── modules/
-├── pages/
+├── config/
+├── constants/
+├── design-system/
+├── layouts/
+├── locales/
 ├── router/
+├── styles/
+├── utils/
 └── views/
 ```
 
 ## 6. 前端对接约定
 
+- 管理端 feature metadata 的 source of truth 是 `src/config/admin-features.ts`
+- `src/router/index.ts` 通过 `createAdminFeatureRoutes()` 生成 admin child routes
+- `Sidebar.vue`、`useCommandPalette.ts`、`RecentViews.vue` 和 AI context inference 应消费 manifest helper，不要维护第二份后台页面路径、权限或图标表
 - 订单详情读模型默认包含 `lines`
 - 采购单详情读模型默认包含 `items` 与 `receipts`
 - 采购收货与冲销通过显式命令接口提交，不通过“修改采购单状态”隐式表达
 - 若后端接口发布 durable outbox 事件，前端只依赖最终返回值和后续读模型刷新，不依赖同步副作用是否已完成
 
-## 7. 开发建议
+## 7. 商品与投影约定
+
+- 商品状态在读模型中由 `product_projection.active_variant_count` 派生
+- `ProductProjectionRefreshService` 是商品投影刷新入口
+- 库存、需求、采购收货/冲销和批量变体状态更新后，都必须刷新受影响商品投影
+- 商品缓存失效通过 outbox cache event 发布，批量变体状态更新必须携带 `product_ids`
+- 不要把 `products.status` 当作商品列表、筛选或销售端可见性的唯一事实源
+
+## 8. 开发建议
 
 - 订单/采购相关需求优先检查 `order_lines` 是否已经是正确事实来源
 - 新副作用优先接入 outbox，而不是在路由中直接调用
 - 大批量 D1 写入优先使用 chunked batch helper
 - 收货 / 冲销命令幂等优先使用 `CommandIdempotencyRepository` 的原子占位逻辑，不要回退到“先查再插”的竞争窗口实现
-- 本地默认验证优先跑 `pnpm test`；真实链路联调再补 `pnpm build`、`pnpm start` 和 `pnpm test:real-api:full-chain`
+- 本地默认验证优先跑 `pnpm test`；本地 Worker 启动后可补 `pnpm test:real-api:fast`；需要高保真 Worker / HTTP 验收时再补 `pnpm test:real-api:full-chain:blackbox`
 - 文档、测试、API 示例必须与 Hono 当前真实路由保持一致

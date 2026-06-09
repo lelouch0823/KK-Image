@@ -140,6 +140,7 @@ src/components/
 #### Sidebar 侧边栏
 
 - **功能**: 折叠导航、权限过滤菜单
+- **数据来源**: `src/config/admin-features.ts` 的 `getSidebarAdminFeatures()`，不要在组件内重新维护后台页面路径、权限或图标映射
 - **Expose**: `openSidebar()`
 
 ---

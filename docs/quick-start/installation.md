@@ -132,7 +132,7 @@ pnpm dev
 ```bash
 pnpm build
 pnpm start
-pnpm test:real-api:full-chain
+pnpm test:real-api:fast
 ```
 
 如果你要在本地保留黑盒 Worker / HTTP 验收口径，请使用：
@@ -140,10 +140,10 @@ pnpm test:real-api:full-chain
 ```bash
 pnpm build
 pnpm start
-pnpm test:real-api:blackbox
+pnpm test:real-api:full-chain:blackbox
 ```
 
-开始前请先确认：
+运行 real API profile 前请先确认：
 
 - `pnpm db:migrate:local` 已成功执行
 - `127.0.0.1:8080` 没有被残留 `workerd` / `wrangler pages dev` 占用
@@ -151,7 +151,7 @@ pnpm test:real-api:blackbox
 
 补充说明：
 
-- `pnpm test:real-api` / `pnpm test:real-api:fast` 偏向开发期快速回归。
+- `pnpm test:real-api` / `pnpm test:real-api:fast` 偏向开发期快速回归，仍需要 `REAL_API_BASE_URL` 指向可访问 Worker；部分销售链路会启用 direct transport。
 - `pnpm test:real-api:blackbox`、`pnpm test:real-api:coverage:blackbox`、`pnpm test:real-api:full-chain:blackbox` 偏向本地高保真验收。
 
 ## 9. 部署后验证

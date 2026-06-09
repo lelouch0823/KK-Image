@@ -18,7 +18,8 @@
 3. [API 路由](modules/api-routes.md)
 4. [页面视图](modules/frontend-views.md)
 5. [预订单创建链路](modules/preorder-creation-flow.md)
-6. [仓储层](modules/repository-layer.md)
+6. [商品与需求投影刷新模型](projection-refresh-model.md)
+7. [仓储层](modules/repository-layer.md)
 
 ## 模块索引
 
@@ -40,11 +41,13 @@
 
 ## 当前关键事实
 
+- Web 管理端是 Vue 3 + Vite，不是 Flutter。后台 feature metadata 的 source of truth 是 `src/config/admin-features.ts`。
 - 主业务 API 由 `functions/lib/hono/app.js` 挂载，不再以散落的文件式业务路由为主。
 - 但仓库不是“纯 Hono”结构；`functions/api/space/[token].js`、`functions/api/gallery/[token].js`、`functions/api/cron/*` 仍然是当前线上路径的一部分。
 - 订单域真实模型是 `orders + order_lines`，不是旧的单表订单模型。
+- 商品列表与销售端商品可见性以 active variant 聚合投影为准，不直接把 `products.status` 当作唯一事实源。
 - 采购、通知、Webhook、缓存刷新和 replay 都依赖 durable outbox，而不是主事务里的同步副作用。
-- 默认测试口径是 `pnpm test`；真实链路验证需要本地 Worker 启动后再跑 `pnpm test:real-api` 或 `pnpm test:real-api:full-chain`。
+- 默认测试口径是 `pnpm test`；本地 Worker 启动后，快速真实 API 回归用 `pnpm test:real-api:fast`，高保真 Worker / HTTP 验收用 `pnpm test:real-api:blackbox` 或 `pnpm test:real-api:full-chain:blackbox`。
 
 ## 相关文档
 

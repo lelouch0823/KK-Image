@@ -42,18 +42,20 @@ D1 / R2
 
 ## 3. Repository 清单
 
-| Repository                  | 文件                                                  | 职责描述                               | 主要表                                                                                       |
-| --------------------------- | ----------------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `FileRepository`            | `functions/repositories/FileRepository.js`            | 文件 CRUD、回收站、哈希复用            | `files`, `blobs`                                                                             |
-| `FolderRepository`          | `functions/repositories/FolderRepository.js`          | 文件夹层级                             | `folders`                                                                                    |
-| `OrderRepository`           | `functions/repositories/OrderRepository.js`           | 订单门面，统一暴露读写                 | `orders`, `order_lines`, `order_files`, `order_timeline`                                     |
-| `OrderStatsRepository`      | `functions/repositories/OrderStatsRepository.js`      | 订单统计                               | `orders` 及聚合                                                                              |
-| `PurchaseOrderRepository`   | `functions/repositories/PurchaseOrderRepository.js`   | 采购单主读写、采购单详情读模型         | `purchase_orders`, `purchase_order_items`, `purchase_receipts`, `purchase_receipt_reversals` |
-| `PurchaseReceiptRepository` | `functions/repositories/PurchaseReceiptRepository.js` | 收货事实写入与查询辅助                 | `purchase_receipts`                                                                          |
-| `GoodsOverviewRepository`   | `functions/repositories/GoodsOverviewRepository.js`   | 订货总览缺口、在途、筛选项             | `order_lines`, `orders`, `product_variants`, `inventory_balances`                            |
-| `NotificationRepository`    | `functions/repositories/NotificationRepository.js`    | 站内通知读写                           | `notifications`                                                                              |
-| `OutboxReplayRepository`    | `functions/repositories/OutboxReplayRepository.js`    | outbox 查询、事件详情、replay run 管理 | `domain_outbox`, `outbox_consumer_jobs`, `outbox_replay_runs`, `webhook_logs`                |
-| `SalespersonRepository`     | `functions/repositories/SalespersonRepository.js`     | 销售员、登录、token 重置               | `salespersons`                                                                               |
+| Repository                    | 文件                                                    | 职责描述                               | 主要表                                                                                       |
+| ----------------------------- | ------------------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `FileRepository`              | `functions/repositories/FileRepository.js`              | 文件 CRUD、回收站、哈希复用            | `files`, `blobs`                                                                             |
+| `FolderRepository`            | `functions/repositories/FolderRepository.js`            | 文件夹层级                             | `folders`                                                                                    |
+| `OrderRepository`             | `functions/repositories/OrderRepository.js`             | 订单门面，统一暴露读写                 | `orders`, `order_lines`, `order_files`, `order_timeline`                                     |
+| `OrderStatsRepository`        | `functions/repositories/OrderStatsRepository.js`        | 订单统计                               | `orders` 及聚合                                                                              |
+| `PurchaseOrderRepository`     | `functions/repositories/PurchaseOrderRepository.js`     | 采购单主读写、采购单详情读模型         | `purchase_orders`, `purchase_order_items`, `purchase_receipts`, `purchase_receipt_reversals` |
+| `PurchaseReceiptRepository`   | `functions/repositories/PurchaseReceiptRepository.js`   | 收货事实写入与查询辅助                 | `purchase_receipts`                                                                          |
+| `GoodsOverviewRepository`     | `functions/repositories/GoodsOverviewRepository.js`     | 订货总览缺口、在途、筛选项             | `order_lines`, `orders`, `product_variants`, `inventory_balances`                            |
+| `ProductRepository`           | `functions/repositories/ProductRepository.js`           | 商品主数据与聚合读模型                 | `products`, `product_variants`, `product_projection`, `inventory_balances`                   |
+| `ProductProjectionRepository` | `functions/repositories/ProductProjectionRepository.js` | 商品投影刷新                           | `product_projection`, `product_variants`, `inventory_balances`                               |
+| `NotificationRepository`      | `functions/repositories/NotificationRepository.js`      | 站内通知读写                           | `notifications`                                                                              |
+| `OutboxReplayRepository`      | `functions/repositories/OutboxReplayRepository.js`      | outbox 查询、事件详情、replay run 管理 | `domain_outbox`, `outbox_consumer_jobs`, `outbox_replay_runs`, `webhook_logs`                |
+| `SalespersonRepository`       | `functions/repositories/SalespersonRepository.js`       | 销售员、登录、token 重置               | `salespersons`                                                                               |
 
 ## 4. 订单仓储
 
@@ -143,9 +145,23 @@ OrderRepository
 
 这意味着订货总览不再依赖订单头数量做粗粒度统计。
 
-## 7. Outbox / Replay 仓储
+## 7. 商品投影仓储
 
-### 7.1 Outbox 数据
+商品列表不再通过每次请求对所有变体做全表聚合。当前路径是：
+
+- `ProductRepository` 读取 `product_projection`
+- `ProductProjectionRepository` 负责按 product id 或 variant id 刷新投影
+- 商品 status、价格、库存和库存筛选来自 active variant 聚合结果
+
+开发要求：
+
+- 不要把 `products.status` 当作商品列表和销售可见性的唯一事实源
+- 变体状态、库存或需求变化后，必须通过 `ProductProjectionRefreshService` 刷新受影响商品
+- 批量状态变更需要先解析 variant id 对应的 product id，再发布携带 `product_ids` 的缓存事件
+
+## 8. Outbox / Replay 仓储
+
+### 8.1 Outbox 数据
 
 当前 outbox 相关仓储主要围绕三张表：
 
@@ -153,7 +169,7 @@ OrderRepository
 - `outbox_consumer_jobs`
 - `outbox_replay_runs`
 
-### 7.2 OutboxReplayRepository
+### 8.2 OutboxReplayRepository
 
 `OutboxReplayRepository` 当前负责：
 
@@ -165,7 +181,7 @@ OrderRepository
 
 它是运维排障的重要支撑，而不是仅供测试使用的内部仓储。
 
-## 8. 与 Service 层的边界
+## 9. 与 Service 层的边界
 
 以下逻辑应该放在 Service 层，而不是 Repository：
 
@@ -182,15 +198,15 @@ OrderRepository
 - `PurchaseOrderService`
 - `OutboxReplayService`
 
-## 9. 常见读写模式
+## 10. 常见读写模式
 
-### 9.1 单条查询
+### 10.1 单条查询
 
 ```javascript
 await db.prepare('SELECT * FROM table WHERE id = ?').bind(id).first();
 ```
 
-### 9.2 列表查询
+### 10.2 列表查询
 
 ```javascript
 await db
@@ -199,7 +215,7 @@ await db
   .all();
 ```
 
-### 9.3 批量写入
+### 10.3 批量写入
 
 ```javascript
 const statements = rows.map((row) => db.prepare('INSERT ...').bind(...row));
@@ -208,7 +224,7 @@ await executeBatchChunks(db, statements);
 
 当前项目中，大量订单、采购或 outbox 写入时应优先使用 chunked batch helper，而不是默认一次性 `db.batch(...)`。
 
-## 10. 对开发者的要求
+## 11. 对开发者的要求
 
 - 订单相关需求先确认是否应该读写 `order_lines`
 - 采购详情相关需求先确认是否需要读 `receipts`

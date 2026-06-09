@@ -41,6 +41,14 @@
 - 采购单明细尽量绑定到具体 `variant`
 - 缺货判断、采购建议和库存统计都以规格级口径为准
 
+商品列表中的状态、价格、库存和库存筛选来自后台投影读模型。实际判断口径是：
+
+- 只要一个商品仍有 active 规格，它在商品读模型中就是 active
+- 所有规格都归档后，商品读模型会显示为 archived
+- 库存变化、收货/冲销、批量规格上下架后，系统会刷新商品投影和相关缓存
+
+因此，排查“商品状态不对”时，优先看规格状态和投影刷新，不要只看商品主表字段。
+
 ## 3. 订货总览怎么理解
 
 订货总览不是简单按订单头数量汇总，而是基于订单行剩余需求计算。
@@ -211,6 +219,7 @@
 - 记录收货：`POST /api/manage/purchase-orders/:id/receipts`
 - 收货冲销：`POST /api/manage/purchase-orders/:id/receipts/:receiptId/reversal`
 - 重新分摊成本：`POST /api/manage/purchase-orders/:id/allocate`
+- 批量规格上下架：`POST /api/manage/products/batch/status`
 - 订单行预留：`POST /api/manage/orders/:id/lines/:lineId/reserve`
 - 订单行释放：`POST /api/manage/orders/:id/lines/:lineId/release`
 - 订单行出货：`POST /api/manage/orders/:id/lines/:lineId/ship`

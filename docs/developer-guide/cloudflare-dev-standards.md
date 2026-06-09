@@ -31,4 +31,5 @@
 - 只调前端：`pnpm dev`
 - 联调 Pages Worker、D1、R2：`pnpm dev:all`
 - 默认仓库测试：`pnpm test`
-- 真实链路回归：`pnpm test:real-api:full-chain`
+- 快速真实 API 回归：Worker 启动后运行 `pnpm test:real-api:fast`
+- 高保真 Worker / HTTP 验收：`pnpm build` + `pnpm start` + `pnpm test:real-api:full-chain:blackbox`

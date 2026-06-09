@@ -44,14 +44,17 @@ pnpm dev
 ```bash
 pnpm test
 pnpm test:unit:run
-pnpm test:real-api:full-chain
+pnpm test:real-api:fast
+pnpm test:e2e
 ```
 
 测试口径：
 
 - `pnpm test` 是默认仓库测试套件。
 - `pnpm test:unit:run` 适合非交互、文件级验证。
-- `pnpm test:real-api:full-chain` 只在需要覆盖真实 Worker + D1 + 路由链路时补跑。
+- `pnpm test:real-api` / `pnpm test:real-api:fast` 是快速真实 API 业务回归，需要 `REAL_API_BASE_URL` 指向可访问 Worker；部分销售链路使用 direct in-process transport。
+- `pnpm test:real-api:blackbox`、`pnpm test:real-api:full-chain:blackbox` 是本地 Worker / HTTP 高保真验收口径，需要先 `pnpm build` + `pnpm start`。
+- `pnpm test:e2e` 走 Playwright；仓库已声明 `@playwright/test`，首次运行前按本地环境需要安装浏览器。
 
 ### 数据库迁移
 
@@ -66,4 +69,5 @@ pnpm db:migrate:prod:raw
 - `pnpm dev` 只启动 Vite，不会拉起本地 Pages Worker
 - 若要联调 Hono 路由、D1 和 R2，请使用 `pnpm dev:all`
 - 当前后端是 Hono 主业务路由加少量文件式 public/cron 路由并存
+- 管理端路由、侧边栏、命令面板、最近访问和 AI context inference 的 feature metadata 以 `src/config/admin-features.ts` 为准
 - 当前数据库名称与 `wrangler.toml` 保持一致，为 `kk-life-db`

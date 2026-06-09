@@ -28,20 +28,20 @@ pnpm dev:all
 pnpm test
 ```
 
-如果要验证真实 API 全链路：
+如果要做快速真实 API 业务回归：
 
 ```bash
 pnpm build
 pnpm start
-pnpm test:real-api:full-chain
+pnpm test:real-api:fast
 ```
 
-如果要保留本地黑盒 Worker / HTTP 口径，请改用：
+如果要保留本地黑盒 Worker / HTTP 高保真口径：
 
 ```bash
 pnpm build
 pnpm start
-pnpm test:real-api:blackbox
+pnpm test:real-api:full-chain:blackbox
 ```
 
 ### 生产部署
@@ -63,9 +63,9 @@ pnpm test:real-api:blackbox
 ## 验证口径提醒
 
 - `pnpm test` 代表默认仓库测试套件通过，不等于真实 API 链路已经验证。
-- `pnpm test:real-api` 默认是本地快速回归口径，不等于黑盒 HTTP 真实性验证。
+- `pnpm test:real-api` / `pnpm test:real-api:fast` 默认是本地快速回归口径，仍需要 `REAL_API_BASE_URL` 指向可访问 Worker；部分销售链路会使用 direct in-process transport，不等于黑盒 HTTP 真实性验证。
 - `pnpm test:real-api:blackbox` 与 `pnpm test:real-api:full-chain:blackbox` 更接近本地真实 Worker / HTTP 形态。
-- 所有 real API 套件都依赖本地 Worker 在 `127.0.0.1:8080` 正常启动，并且 `/api/v1/health` 可访问。
+- 跑 real API 前应确认本地 Worker 在 `127.0.0.1:8080` 正常启动，并且 `/api/v1/health` 可访问；只有显式 direct-only 单文件调试例外。
 
 ## 下一步阅读
 

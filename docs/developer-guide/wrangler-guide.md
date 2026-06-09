@@ -56,13 +56,21 @@ pnpm dev:all
 
 ### 真实 API 回归工作流
 
+快速业务回归（需要 Worker 已通过 `pnpm dev:all` 或 `pnpm start` 启动）：
+
+```bash
+pnpm test:real-api:fast
+```
+
+本地 Worker / HTTP 高保真验收：
+
 ```bash
 pnpm build
 pnpm start
-pnpm test:real-api:full-chain
+pnpm test:real-api:full-chain:blackbox
 ```
 
-运行前先确认：
+运行 blackbox profile 前先确认：
 
 - 8080 端口未被残留 `workerd` / `wrangler pages dev` 占用
 - `/api/v1/health` 可访问

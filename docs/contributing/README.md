@@ -28,14 +28,15 @@ pnpm dev
 pnpm lint
 pnpm test
 pnpm test:unit:run
-pnpm test:real-api:full-chain
+pnpm test:real-api:fast
 ```
 
 说明：
 
 - `pnpm test` 是默认仓库测试套件，会运行 unit + mocha。
 - `pnpm test:unit:run` 适合迭代期做定向、非交互式验证。
-- `pnpm test:real-api:full-chain` 只在改动触达真实 API 业务链路时补跑，不要把它和默认测试混为一谈。
+- `pnpm test:real-api:fast` 只在改动触达真实 API 业务链路时补跑，需要先通过 `pnpm dev:all` 或 `pnpm start` 提供可访问 Worker，不要把它和默认测试混为一谈。
+- `pnpm test:real-api:full-chain:blackbox` 是高保真 Worker / HTTP 验收口径，需要先 `pnpm build` + `pnpm start`。
 
 ## 4. 数据库相关
 

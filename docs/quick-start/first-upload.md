@@ -67,7 +67,7 @@
 pnpm test
 pnpm build
 pnpm start
-pnpm test:real-api:full-chain
+pnpm test:real-api:fast
 ```
 
 如果你要在本地补一轮高保真黑盒 Worker / HTTP 验收，请使用：
@@ -76,15 +76,15 @@ pnpm test:real-api:full-chain
 pnpm test
 pnpm build
 pnpm start
-pnpm test:real-api:blackbox
+pnpm test:real-api:full-chain:blackbox
 ```
 
 说明：
 
 - `pnpm test` 先验证默认仓库测试套件。
-- `pnpm test:real-api` / `pnpm test:real-api:fast` 偏向快速业务回归，不等于最高保真的本地 HTTP 验收。
+- `pnpm test:real-api` / `pnpm test:real-api:fast` 偏向快速业务回归，仍需要 `REAL_API_BASE_URL` 指向可访问 Worker，不等于最高保真的本地 HTTP 验收。
 - `pnpm test:real-api:blackbox` 与 `pnpm test:real-api:full-chain:blackbox` 更接近本地真实 Worker / HTTP 形态。
-- real API 测试前要保证本地 Worker 已启动且 `http://127.0.0.1:8080/api/v1/health` 正常。
+- 跑 real API 前要保证本地 Worker 已启动且 `http://127.0.0.1:8080/api/v1/health` 正常；只有显式 direct-only 单文件调试例外。
 
 ## 6. 常见问题
 
