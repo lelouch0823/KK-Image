@@ -302,7 +302,7 @@ describeIfRealApi('kk-life API v1 Tests', function () {
         },
         body: JSON.stringify({
           url: 'https://httpbin.org/post',
-          events: ['file.uploaded', 'file.deleted'],
+          events: ['file_uploaded', 'file_deleted'],
           secret: 'test-webhook-secret',
         }),
       });

@@ -228,6 +228,8 @@ describe('ProductRepository — SPU 重构', () => {
       expect(listSql).toContain('LEFT JOIN product_projection pp ON pp.product_id = p.id');
       expect(listSql).toContain('COALESCE(pp.min_price, 0) AS price');
       expect(listSql).toContain('COALESCE(pp.total_available, COALESCE(pp.total_stock, 0))');
+      expect(listSql).toContain('COALESCE(pp.active_variant_count, 0) > 0');
+      expect(listSql).not.toContain('p.status');
     });
 
     it('应支持组合品牌、分类、有库存和排序查询', async () => {
@@ -531,6 +533,22 @@ describe('ProductRepository — SPU 重构', () => {
       // SQL 应包含 spu =
       const updateCall = db.prepare.mock.calls.find((c) => c[0].includes('UPDATE'));
       expect(updateCall[0]).toContain('spu =');
+    });
+
+    it('应忽略 status 字段，避免写入 products.status', async () => {
+      db.prepare.mockImplementation((sql) => {
+        const stmt = createPreparedStatement(sql);
+        if (sql.includes('UPDATE products')) {
+          stmt.run.mockResolvedValue({ success: true, meta: { changes: 1 } });
+        }
+        return stmt;
+      });
+
+      const result = await repo.updateWithMeta('test-id', { status: 'archived', name: 'Desk' });
+      expect(result.success).toBe(true);
+      const updateCall = db.prepare.mock.calls.find((c) => c[0].includes('UPDATE products'));
+      expect(updateCall[0]).toContain('name =');
+      expect(updateCall[0]).not.toContain('status =');
     });
 
     it('应拒绝更新非法 currency', async () => {

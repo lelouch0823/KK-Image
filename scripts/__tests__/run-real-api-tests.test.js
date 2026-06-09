@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { resolveRealApiTestTimeoutMs } from '../../test/utils/manage-products-real-api.js';
 
 const SCRIPT_PATH = path.resolve(process.cwd(), 'scripts/run-real-api-tests.mjs');
 
@@ -62,8 +63,12 @@ describe('run-real-api-tests', () => {
         'test/uploads-real-api.test.js',
       ]);
       expect(env.REAL_API_SALES_DIRECT).toBe('1');
-      expect(env.BASE_URL).toBe('http://127.0.0.1:8080');
+      expect(env.REAL_API_BASE_URL).toBe('http://127.0.0.1:8080');
       expect(env.RUN_REAL_API_TESTS).toBe('1');
+      expect(env.BASIC_USER).toBe('admin');
+      expect(env.BASIC_PASS).toBe('123');
+      expect(env.JWT_SECRET).toBe('dev-secret-key-123');
+      expect(env.CRON_SECRET).toBe('dev-secret');
       return { code: 0 };
     });
 
@@ -153,7 +158,15 @@ describe('run-real-api-tests', () => {
     expect(result).toEqual({ code: 0, signal: null });
     expect(spawn).toHaveBeenCalledWith(
       '/node',
-      ['node_modules/vitest/vitest.mjs', '--maxWorkers', '1', 'a.test.js'],
+      [
+        'node_modules/vitest/vitest.mjs',
+        'run',
+        '--environment',
+        'node',
+        '--maxWorkers',
+        '1',
+        'a.test.js',
+      ],
       expect.objectContaining({
         stdio: 'inherit',
         env: expect.objectContaining({
@@ -162,5 +175,21 @@ describe('run-real-api-tests', () => {
         }),
       })
     );
+  });
+});
+
+describe('real API test utilities', () => {
+  it('resolves a positive REAL_API_TEST_TIMEOUT_MS override', () => {
+    expect(
+      resolveRealApiTestTimeoutMs(120000, {
+        REAL_API_TEST_TIMEOUT_MS: '300000',
+      })
+    ).toBe(300000);
+  });
+
+  it('falls back to the default timeout when override is missing or invalid', () => {
+    expect(resolveRealApiTestTimeoutMs(120000, {})).toBe(120000);
+    expect(resolveRealApiTestTimeoutMs(120000, { REAL_API_TEST_TIMEOUT_MS: '0' })).toBe(120000);
+    expect(resolveRealApiTestTimeoutMs(120000, { REAL_API_TEST_TIMEOUT_MS: 'bad' })).toBe(120000);
   });
 });

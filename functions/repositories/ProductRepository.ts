@@ -7,6 +7,7 @@ import { generateId } from '../api/utils/id.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { execute, query, queryFirst } from '../lib/db/query.js';
 import { checkFtsTable, sanitizeFts5Query } from '../api/utils/fts.js';
+import { ProductProjectionRepository } from './ProductProjectionRepository.js';
 import type { D1Database } from '../types/database.js';
 import type {
   Product,
@@ -81,7 +82,11 @@ export class ProductRepository {
                 COALESCE(pp.min_cost_price, 0) AS cost_price,
                 COALESCE(pp.total_stock, 0) AS stock_quantity,
                 COALESCE(pp.total_available, COALESCE(pp.total_stock, 0)) AS available_quantity,
-                COALESCE(pp.min_alert_threshold, 10) AS alert_threshold
+                COALESCE(pp.min_alert_threshold, 10) AS alert_threshold,
+                CASE
+                    WHEN COALESCE(pp.active_variant_count, 0) > 0 THEN 'active'
+                    ELSE 'archived'
+                END AS status
             FROM products p
             LEFT JOIN product_projection pp ON pp.product_id = p.id
             WHERE ${whereClause}
@@ -102,8 +107,11 @@ export class ProductRepository {
         const params: unknown[] = [];
 
         if (filters.status && !omit.includes('status')) {
-            clauses.push('p.status = ?');
-            params.push(filters.status);
+            if (filters.status === 'active') {
+                clauses.push('COALESCE(pp.active_variant_count, 0) > 0');
+            } else if (filters.status === 'archived' || filters.status === 'draft') {
+                clauses.push('COALESCE(pp.active_variant_count, 0) = 0');
+            }
         }
 
         if (filters.category && !omit.includes('category')) {
@@ -278,7 +286,6 @@ export class ProductRepository {
                 images: JSON.stringify(data.images || []),
                 specifications: JSON.stringify(data.specifications || {}),
                 options: JSON.stringify(data.options || []),
-                status: data.status || 'draft',
                 created_at: now,
                 updated_at: now
             };
@@ -379,12 +386,20 @@ export class ProductRepository {
         }
         const now = Date.now();
         try {
+            const nextVariantStatus = status === 'active' ? 'active' : 'archived';
             const result = await execute(
                 this.db,
-                'UPDATE products SET status = ?, updated_at = ? WHERE id = ?',
-                [status, now, id],
+                'UPDATE product_variants SET status = ?, updated_at = ? WHERE product_id = ?',
+                [nextVariantStatus, now, id],
                 { label: 'product.updateStatus' }
             );
+            await execute(
+                this.db,
+                'UPDATE products SET updated_at = ? WHERE id = ?',
+                [now, id],
+                { label: 'product.touchAfterStatus' }
+            );
+            await new ProductProjectionRepository(this.db).refreshByProductId(id);
             return {
                 success: result.success,
                 changes: hasChanges(result) ? (result.meta?.changes || 0) : 0,
@@ -480,7 +495,6 @@ export class ProductRepository {
                         images: JSON.stringify(productData.images || []),
                         specifications: JSON.stringify(productData.specifications || {}),
                         options: JSON.stringify(productData.options || []),
-                        status: productData.status || 'draft',
                         created_at: now,
                         updated_at: now,
                     };
@@ -556,7 +570,6 @@ export class ProductRepository {
         const allowedFields = [
             'name', 'spu', 'slug', 'category', 'brand', 'series',
             'currency', 'description', 'images', 'specifications', 'options',
-            'status',
         ];
 
         const updateData: Record<string, unknown> = {};
@@ -570,11 +583,6 @@ export class ProductRepository {
                 const normalizedCurrency = this.normalizeCurrency(value, { allowEmpty: false });
                 if (!normalizedCurrency) return { clause: null, values: null, error: 'Invalid currency code' };
                 updateData[key] = normalizedCurrency;
-            } else if (key === 'status') {
-                if (!ProductRepository.VALID_STATUSES.includes(value as string)) {
-                    return { clause: null, values: null, error: `Invalid status: ${value}. Valid values: ${ProductRepository.VALID_STATUSES.join(', ')}` };
-                }
-                updateData[key] = value;
             } else {
                 updateData[key] = value;
             }

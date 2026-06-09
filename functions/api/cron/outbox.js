@@ -115,6 +115,7 @@ export async function runOutboxPoller({
   let publishedCount = 0;
   let failedCount = 0;
   const state = {
+    env,
     invalidatedUrls: new Set(),
     allSalesTokens: null,
     salesTokensById: new Map(),

@@ -55,6 +55,9 @@ describe('route cache url helpers', () => {
     const c = createContext('https://example.com/api/manage/dashboard/overview');
     expect(getDashboardCacheUrls(c)).toContain('https://example.com/api/manage/dashboard/overview');
     expect(getManageStatsCacheUrls(c)).toContain('https://example.com/api/manage/stats');
+    expect(getManageStatsCacheUrls(c)).toContain(
+      'https://example.com/api/manage/stats/uploads?days=30'
+    );
     expect(getGoodsOverviewCacheUrls(c)).toContain(
       'https://example.com/api/manage/goods-overview?sort=shortage'
     );

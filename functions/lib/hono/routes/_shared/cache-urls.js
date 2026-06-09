@@ -162,7 +162,14 @@ export function getDashboardCacheUrls(c) {
 
 export function getManageStatsCacheUrls(c) {
   const origin = getOrigin(c);
-  return [`${origin}/api/manage/stats`];
+  return [
+    `${origin}/api/manage/stats`,
+    `${origin}/api/manage/stats/uploads`,
+    `${origin}/api/manage/stats/uploads?days=7`,
+    `${origin}/api/manage/stats/uploads?days=14`,
+    `${origin}/api/manage/stats/uploads?days=30`,
+    `${origin}/api/manage/stats/uploads?days=365`,
+  ];
 }
 
 export function getGoodsOverviewCacheUrls(c) {

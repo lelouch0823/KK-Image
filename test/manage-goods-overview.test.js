@@ -147,15 +147,15 @@ describe('Goods Overview API', () => {
       assert.strictEqual(res.status, 200);
       const body = await res.json();
       assert.strictEqual(body.success, true);
-      assert.strictEqual(body.data.items.length, 2);
-      assert.strictEqual(body.data.filters.categories[0], 'TestCat');
-      assert.strictEqual(body.data.filters.brands[0], 'TestBrand');
+      assert.strictEqual(body.data.length, 2);
+      assert.strictEqual(body.filters.categories[0], 'TestCat');
+      assert.strictEqual(body.filters.brands[0], 'TestBrand');
 
       // Should properly parse JSON images for first, fallback to [] for second
-      assert.deepStrictEqual(body.data.items[0].images, ['img1.jpg']);
-      assert.deepStrictEqual(body.data.items[1].images, []);
-      assert.strictEqual(body.data.items[0].variantLabel, 'Black / L');
-      assert.strictEqual(body.data.items[1].variantLabel, '-');
+      assert.deepStrictEqual(body.data[0].images, ['img1.jpg']);
+      assert.deepStrictEqual(body.data[1].images, []);
+      assert.strictEqual(body.data[0].variantLabel, 'Black / L');
+      assert.strictEqual(body.data[1].variantLabel, '-');
 
       // Check SQL queries
       assert.strictEqual(localMockEnv.DB.queries.length, 3);

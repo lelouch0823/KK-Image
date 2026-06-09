@@ -286,6 +286,9 @@ function createDbHarness({
   const variantDemandProjectionRefreshService = {
     refreshByVariantIds: vi.fn(async () => []),
   };
+  const productProjectionRefreshService = {
+    refreshByVariantIds: vi.fn(async () => []),
+  };
 
   return {
     db,
@@ -295,6 +298,7 @@ function createDbHarness({
     commandIdempotencyRepo,
     domainOutboxRepo,
     variantDemandProjectionRefreshService,
+    productProjectionRefreshService,
   };
 }
 
@@ -311,6 +315,7 @@ describe('OrderProcurementReceiptReversalService', () => {
       commandIdempotencyRepo: harness.commandIdempotencyRepo,
       domainOutboxRepo: harness.domainOutboxRepo,
       variantDemandProjectionRefreshService: harness.variantDemandProjectionRefreshService,
+      productProjectionRefreshService: harness.productProjectionRefreshService,
       now: () => 1710000000000,
     });
   });
@@ -357,6 +362,9 @@ describe('OrderProcurementReceiptReversalService', () => {
     ]);
     expect(harness.db.batch).toHaveBeenCalledTimes(1);
     expect(harness.variantDemandProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
+      'var-1',
+    ]);
+    expect(harness.productProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
       'var-1',
     ]);
   });

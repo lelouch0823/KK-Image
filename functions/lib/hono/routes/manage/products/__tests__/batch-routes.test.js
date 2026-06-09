@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   batchImport: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   scheduleProductCacheInvalidation: vi.fn(async () => []),
+  refreshProductProjectionByVariantIds: vi.fn(async () => undefined),
   commandReserve: vi.fn(),
   commandBuildDeleteStatement: vi.fn(),
   commandDeleteRun: vi.fn(async () => ({ meta: { changes: 1 } })),
@@ -19,6 +20,12 @@ vi.mock('../../../../../../services/ProductCatalogService.js', () => ({
   })),
   buildVariantMatchKey: vi.fn(),
   mergeIncomingWithExisting: vi.fn(),
+}));
+
+vi.mock('../../../../../../services/ProductProjectionRefreshService.js', () => ({
+  ProductProjectionRefreshService: vi.fn(() => ({
+    refreshByVariantIds: mocks.refreshProductProjectionByVariantIds,
+  })),
 }));
 
 vi.mock('../../../../_shared/audit-helpers.js', async () => {
@@ -243,6 +250,60 @@ describe('manage products batch route', () => {
       })
     );
     expect(mocks.batchImport).not.toHaveBeenCalled();
+  });
+
+  it('refreshes projections and publishes product ids for batch status changes', async () => {
+    const updateStatements = [];
+    const db = {
+      prepare: vi.fn((sql) => {
+        const stmt = {
+          sql,
+          params: [],
+          bind: vi.fn((...params) => {
+            stmt.params = params;
+            return stmt;
+          }),
+          all: vi.fn(async () => ({
+            results: [{ product_id: 'prod-1' }, { product_id: 'prod-2' }],
+          })),
+        };
+        if (sql.includes('UPDATE product_variants')) {
+          updateStatements.push(stmt);
+        }
+        return stmt;
+      }),
+      batch: vi.fn(async () => updateStatements.map(() => ({ success: true }))),
+    };
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/products/batch/status',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variantIds: ['var-1', 'var-2'], status: 'archived' }),
+      },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(db.batch).toHaveBeenCalledWith(updateStatements);
+    expect(mocks.refreshProductProjectionByVariantIds).toHaveBeenCalledWith(
+      ['var-1', 'var-2'],
+      expect.anything()
+    );
+    expect(mocks.scheduleProductCacheInvalidation).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        eventType: 'product_batch_archived',
+        productIds: ['prod-1', 'prod-2'],
+      }),
+      expect.objectContaining({
+        commandId: undefined,
+        correlationId: undefined,
+      })
+    );
   });
 
   it('retries batch-import side effects without rerunning the batch after cache publish failures', async () => {

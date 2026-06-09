@@ -17,6 +17,8 @@ vi.mock('../functions/api/[[route]].js', () => ({
 describe('direct-pages-real-api utils', () => {
   beforeEach(() => {
     vi.resetModules();
+    delete globalThis.__kkImageDirectPlatformProxyPromise;
+    delete globalThis.__kkImageDirectFallbackCaches;
     mocks.dispose.mockClear();
     mocks.getPlatformProxy.mockReset();
     mocks.onRequest.mockReset();
@@ -31,7 +33,7 @@ describe('direct-pages-real-api utils', () => {
     let invocation = 0;
 
     mocks.onRequest.mockImplementation(async ({ request, env, waitUntil }) => {
-      expect(env).toEqual({ DB: { name: 'test-db' } });
+      expect(env).toEqual(expect.objectContaining({ DB: { name: 'test-db' } }));
       invocation += 1;
 
       if (invocation === 1) {
@@ -97,5 +99,87 @@ describe('direct-pages-real-api utils', () => {
 
     expect(mocks.getPlatformProxy).toHaveBeenCalledTimes(1);
     expect(mocks.onRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it('overlays real API credentials from the current process onto the direct runtime env', async () => {
+    const originalBasicUser = process.env.BASIC_USER;
+    const originalBasicPass = process.env.BASIC_PASS;
+
+    try {
+      process.env.BASIC_USER = 'admin';
+      process.env.BASIC_PASS = '123';
+      vi.resetModules();
+
+      mocks.onRequest.mockImplementation(async ({ env }) => {
+        expect(env).toEqual(
+          expect.objectContaining({
+            DB: { name: 'test-db' },
+            BASIC_USER: 'admin',
+            BASIC_PASS: '123',
+          })
+        );
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      });
+
+      const { directPageRequest } = await import('./utils/direct-pages-real-api.js');
+      await directPageRequest('/api/v1/auth/login', {
+        method: 'POST',
+        body: { username: 'admin', password: '123' },
+      });
+    } finally {
+      if (originalBasicUser === undefined) {
+        delete process.env.BASIC_USER;
+      } else {
+        process.env.BASIC_USER = originalBasicUser;
+      }
+      if (originalBasicPass === undefined) {
+        delete process.env.BASIC_PASS;
+      } else {
+        process.env.BASIC_PASS = originalBasicPass;
+      }
+    }
+  });
+
+  it('installs platform caches while handling a direct request and restores the prior global', async () => {
+    const originalCaches = globalThis.caches;
+    const hadCaches = Object.prototype.hasOwnProperty.call(globalThis, 'caches');
+    const runtimeCaches = {
+      default: {
+        match: vi.fn(async () => undefined),
+        put: vi.fn(async () => undefined),
+        delete: vi.fn(async () => true),
+      },
+    };
+
+    try {
+      delete globalThis.caches;
+      vi.resetModules();
+      mocks.getPlatformProxy.mockResolvedValueOnce({
+        env: { DB: { name: 'test-db' } },
+        caches: runtimeCaches,
+        dispose: mocks.dispose,
+      });
+      mocks.onRequest.mockImplementation(async () => {
+        expect(globalThis.caches).toBe(runtimeCaches);
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      });
+
+      const { directPageRequest } = await import('./utils/direct-pages-real-api.js');
+      await directPageRequest('/api/sales/token/products');
+
+      expect(globalThis.caches).toBeUndefined();
+    } finally {
+      if (hadCaches) {
+        globalThis.caches = originalCaches;
+      } else {
+        delete globalThis.caches;
+      }
+    }
   });
 });

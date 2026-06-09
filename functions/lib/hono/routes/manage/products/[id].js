@@ -345,6 +345,7 @@ app.patch('/:id/status', zValidator('json', UpdateProductStatusSchema), async (c
   if (!result.success) {
     throw new BadRequestError(result.error || 'Status update failed');
   }
+  await publishProductCacheEvent(c, 'product_updated', [id]);
 
   scheduleAuditEvent(c, {
     domain: 'products',

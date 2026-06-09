@@ -83,7 +83,7 @@ describe('OrderStatusHeader', () => {
       },
     });
 
-    expect(wrapper.text()).toContain('order.statuses.fulfilled');
-    expect(wrapper.text()).not.toContain('order.statuses.delivered');
+    expect(wrapper.text()).toContain('Fulfilled');
+    expect(wrapper.text()).not.toContain('Delivered');
   });
 });

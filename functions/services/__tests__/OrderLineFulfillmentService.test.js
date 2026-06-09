@@ -488,6 +488,54 @@ describe('OrderLineFulfillmentService', () => {
     ]);
   });
 
+  it('trusts the in-batch previous-write assertion when local D1 reports stale batch changes', async () => {
+    harness = createDbHarness({
+      orderLineRow: {
+        order_id: 'order-1',
+        order_no: 'SO-1',
+        salesperson_id: 'sales-1',
+        order_status: 'shipping',
+        line_id: 'line-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 4,
+        procured_qty: 4,
+        received_qty: 4,
+        reserved_qty: 0,
+        shipped_qty: 0,
+        cancelled_qty: 0,
+        display_status: 'ready',
+      },
+      inventoryBalanceRow: {
+        variant_id: 'var-1',
+        on_hand: 4,
+        reserved: 0,
+        available: 4,
+      },
+    });
+    harness.db.batch = vi.fn(async (statements = []) => {
+      harness.calls.batchedStatements.push(...statements);
+      return statements.map((_, index) => ({ meta: { changes: index === 0 ? 0 : 1 } }));
+    });
+    service = new OrderLineFulfillmentService(harness.db, {
+      allocationRepo: harness.allocationRepo,
+      inventoryService: harness.inventoryService,
+      domainOutboxRepo: harness.domainOutboxRepo,
+      variantDemandProjectionRefreshService: harness.variantDemandProjectionRefreshService,
+      now: () => 1710000000000,
+    });
+
+    await expect(
+      service.shipLine('order-1', 'line-1', { quantity: 1 }, { actorName: 'Admin' })
+    ).resolves.toEqual(
+      expect.objectContaining({
+        action: 'ship',
+        quantity: 1,
+      })
+    );
+    expect(harness.calls.batchedStatements[1].sql).toContain('json_extract');
+  });
+
   it('ships a line and releases demand-held inventory even without explicit line reservations', async () => {
     harness = createDbHarness({
       orderLineRow: {

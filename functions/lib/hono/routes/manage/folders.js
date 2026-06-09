@@ -173,13 +173,15 @@ app.post(
     const { env } = c;
     const { name, description, parentId, isPublic, password } = c.req.valid('json');
     const folderRepo = new FolderRepository(env.DB);
+    const trimmedName = name.trim();
+    const trimmedDescription = String(description || '').trim();
 
     if (parentId) {
       const parent = await folderRepo.findById(parentId);
       if (!parent) throw new BadRequestError(MSG.FOLDER.PARENT_NOT_FOUND);
     }
 
-    const hasConflict = await folderRepo.checkNameConflict(parentId, name.trim());
+    const hasConflict = await folderRepo.checkNameConflict(parentId, trimmedName);
     if (hasConflict)
       throw new ConflictError(MSG.FOLDER.NAME_CONFLICT || '当前目录下已存在同名文件夹');
 
@@ -190,8 +192,8 @@ app.post(
     await folderRepo.create({
       id: folderId,
       parentId: parentId || null,
-      name: name.trim(),
-      description: description.trim(),
+      name: trimmedName,
+      description: trimmedDescription,
       shareToken,
       isPublic,
       password: password || null,
@@ -218,8 +220,8 @@ app.post(
       severity: 'high',
       targetType: 'folder',
       targetId: folderId,
-      target_label: name.trim(),
-      summary: `Created folder ${name.trim()}`,
+      target_label: trimmedName,
+      summary: `Created folder ${trimmedName}`,
       metadata: { parentId: parentId || null, isPublic },
     });
 
@@ -228,8 +230,8 @@ app.post(
         success: true,
         data: {
           id: folderId,
-          name: name.trim(),
-          description: description.trim(),
+          name: trimmedName,
+          description: trimmedDescription,
           parentId,
           shareToken,
           isPublic,
@@ -277,7 +279,7 @@ app.put(
     }
 
     if (data.name !== undefined) updates.name = data.name.trim();
-    if (data.description !== undefined) updates.description = data.description.trim();
+    if (data.description !== undefined) updates.description = String(data.description || '').trim();
     if (data.isPublic !== undefined) updates.is_public = data.isPublic ? 1 : 0;
     if (data.password !== undefined) updates.password = data.password || null;
     if (data.parentId !== undefined) {

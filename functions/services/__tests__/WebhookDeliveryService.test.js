@@ -288,6 +288,53 @@ describe('WebhookDeliveryService', () => {
     expect(result.shouldRetry).toBe(true);
   });
 
+  it('allows loopback webhook URLs in development and test environments', async () => {
+    const webhookRepo = createWebhookRepoStub({
+      listActiveByEvent: vi.fn(async () => [
+        {
+          id: 'wh-local',
+          url: 'http://127.0.0.1:3005/webhook',
+          events: ['file_uploaded'],
+          secret: null,
+          headers: {},
+          enabled: true,
+        },
+      ]),
+    });
+    const fetchMock = vi.fn(async () => new Response('ok', { status: 200 }));
+    const service = new WebhookDeliveryService(
+      {},
+      {
+        env: { ENVIRONMENT: 'development' },
+        webhookRepo,
+        fetch: fetchMock,
+        signPayload: vi.fn(async () => 'sig-1'),
+        now: () => 1710000022222,
+      }
+    );
+
+    const result = await service.deliverDomainEvent({
+      event_id: 'evt-local',
+      event_type: 'file_uploaded',
+      aggregate_type: 'file',
+      aggregate_id: 'file-local',
+      payload_json: '{}',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://127.0.0.1:3005/webhook',
+      expect.objectContaining({ method: 'POST' })
+    );
+    expect(webhookRepo.logAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        webhookId: 'wh-local',
+        classification: 'delivered',
+        success: true,
+      })
+    );
+    expect(result.shouldRetry).toBe(false);
+  });
+
   it('binds the platform fetch before delivering outbox webhooks', async () => {
     const webhookRepo = createWebhookRepoStub({
       listActiveByEvent: vi.fn(async () => [

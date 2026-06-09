@@ -4,11 +4,12 @@ import {
   describeIfRealApi,
   getBearerToken,
   apiRequest,
+  resolveRealApiTestTimeoutMs,
   uniqueSeed,
 } from './utils/manage-products-real-api.js';
 
 describeIfRealApi('Manage Products Real API Workflow', function () {
-  vi.setConfig({ testTimeout: 120000 });
+  vi.setConfig({ testTimeout: resolveRealApiTestTimeoutMs(300000) });
 
   let productId = '';
   let colorDimensionId = '';

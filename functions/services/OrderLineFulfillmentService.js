@@ -84,10 +84,6 @@ function buildPreviousWriteAssertionStatement(db) {
   );
 }
 
-function batchResultChanges(result) {
-  return Number(result?.meta?.changes ?? result?.changes ?? 0);
-}
-
 function isPreviousWriteAssertionError(error) {
   return String(error?.message || error)
     .toLowerCase()
@@ -96,11 +92,7 @@ function isPreviousWriteAssertionError(error) {
 
 async function runGuardedBatch(db, statements, conflictMessage) {
   try {
-    const results = await db.batch(statements);
-    if (batchResultChanges(results?.[0]) !== 1) {
-      throw new ConflictError(conflictMessage);
-    }
-    return results;
+    return await db.batch(statements);
   } catch (error) {
     if (isPreviousWriteAssertionError(error)) {
       throw new ConflictError(conflictMessage);

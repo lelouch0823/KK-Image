@@ -5,6 +5,7 @@ import {
   apiRequest,
   uniqueSeed,
   waitFor,
+  processOutbox,
 } from './utils/manage-products-real-api.js';
 import { createWorkflowProduct } from './utils/order-procurement-real-api.js';
 import {
@@ -105,6 +106,8 @@ describeIfRealApi('Sales Files Real API', function () {
       );
       const rootFileId = rootUpload.json?.data?.id;
       assert.ok(rootFileId, 'sales root upload file id missing');
+
+      await processOutbox();
 
       const rootDelivery = await receiver.waitForDelivery(
         (item) =>

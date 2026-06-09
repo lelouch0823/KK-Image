@@ -7,6 +7,7 @@ import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 import { VariantDemandProjectionRefreshService } from './VariantDemandProjectionRefreshService.js';
+import { ProductProjectionRefreshService } from './ProductProjectionRefreshService.js';
 import { queryOrderLineCandidates } from './order-line-shared.js';
 import {
   acquireProcurementResourceLocks,
@@ -98,6 +99,8 @@ export class OrderProcurementDomainService {
       deps.domainOutboxRepo || new DomainOutboxRepository(db, { now: deps.now });
     this.variantDemandProjectionRefreshService =
       deps.variantDemandProjectionRefreshService || new VariantDemandProjectionRefreshService(db);
+    this.productProjectionRefreshService =
+      deps.productProjectionRefreshService || new ProductProjectionRefreshService(db);
     this.now = deps.now || (() => Date.now());
   }
 
@@ -565,6 +568,9 @@ export class OrderProcurementDomainService {
         throw new BadRequestError('采购单明细收货进度已变化，请刷新后重试');
       }
       await this.variantDemandProjectionRefreshService.refreshByVariantIds(
+        preparedReceipts.map((prepared) => prepared.poItem?.variant_id)
+      );
+      await this.productProjectionRefreshService.refreshByVariantIds(
         preparedReceipts.map((prepared) => prepared.poItem?.variant_id)
       );
       return response;

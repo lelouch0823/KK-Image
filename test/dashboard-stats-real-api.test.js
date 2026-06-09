@@ -6,6 +6,7 @@ import {
   multipartRequest,
   uniqueSeed,
   waitFor,
+  processOutbox,
 } from './utils/manage-products-real-api.js';
 import { createWorkflowProduct } from './utils/order-procurement-real-api.js';
 import { createAuthenticatedSalesSession } from './utils/sales-real-api.js';
@@ -114,6 +115,8 @@ describeIfRealApi('Dashboard Stats Real API', function () {
     });
     const uploadedFileId = uploaded.json?.data?.id;
     assert.ok(uploadedFileId, 'dashboard stats uploaded file id missing');
+
+    await processOutbox();
 
     await waitFor(
       async () => {

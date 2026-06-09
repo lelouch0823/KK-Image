@@ -179,10 +179,27 @@ export class OrderCreationService {
    */
   async prepareCreateOrder(salesperson, data) {
     const normalizedLines = this.normalizeOrderLines(data.lines);
+    if (normalizedLines.length === 0) {
+      normalizedLines.push({
+        name: String(data.name || '').trim(),
+        brand: String(data.brand || '').trim(),
+        category: String(data.category || '').trim(),
+        series: String(data.series || '').trim(),
+        sku: String(data.sku || '').trim(),
+        size: String(data.size || '').trim(),
+        color: String(data.color || '').trim(),
+        material: String(data.material || '').trim(),
+        remark: String(data.remark || '').trim(),
+        deadline: String(data.deadline || '').trim(),
+        quantity: Math.max(1, Math.trunc(Number(data.quantity || 1))),
+        productId: data.productId || null,
+        variantId: data.variantId ?? null,
+      });
+    }
     const primaryLine = normalizedLines[0] || null;
     const variantId = primaryLine ? (primaryLine.variantId ?? null) : (data.variantId ?? null);
 
-    const { snapshot } = await this.validateAndBuildSnapshot(
+    const { snapshot, normalizedVariantId } = await this.validateAndBuildSnapshot(
       primaryLine ? primaryLine.productId || null : data.productId || null,
       variantId,
       primaryLine || {
@@ -206,7 +223,7 @@ export class OrderCreationService {
       primaryLine,
       bindingSnapshot: snapshot,
       totalQuantity,
-      effectiveVariantId: variantId,
+      effectiveVariantId: normalizedVariantId,
     };
   }
 

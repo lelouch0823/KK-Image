@@ -10,6 +10,7 @@ const TEST_WEBHOOK_HEADER_KEYS = new Set([
   'x-test-seed',
   'x-line-seed',
   'x-retry-seed',
+  'x-reversal-seed',
   'x-terminal-seed',
   'x-full-chain-seed',
 ]);

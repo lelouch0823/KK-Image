@@ -12,7 +12,7 @@ export const REAL_API_RATE_LIMIT_BYPASS_HEADER = 'X-Test-Bypass-RateLimit';
 let REAL_API_ISOLATED_IP_COUNTER = 0;
 
 export function getBaseUrl() {
-  const configured = String(process.env.BASE_URL || '').trim();
+  const configured = String(process.env.REAL_API_BASE_URL || process.env.BASE_URL || '').trim();
   if (configured.startsWith('http://') || configured.startsWith('https://')) {
     return configured;
   }
@@ -113,25 +113,14 @@ export async function waitForRealApiRuntimeRecovery() {
  *
  * 注意：此函数是 POST 请求，会触发 loopback 重启。
  */
-export async function processOutbox({ maxRounds = 4 } = {}) {
+export async function processOutbox({ maxRounds = 4, timeoutMs = 30000, intervalMs = 1000 } = {}) {
   const cronSecret = process.env.CRON_SECRET || 'dev-secret';
   const url = `${getBaseUrl()}/api/cron/outbox`;
   const params = maxRounds ? `?maxRounds=${maxRounds}` : '';
+  const startedAt = Date.now();
 
-  const response = await fetch(`${url}${params}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${cronSecret}`,
-      ...withRealApiTestHeaders(),
-    },
-  });
-  const json = await response.json().catch(() => null);
-
-  // 503 表示 worker 正在重启，等待恢复后重试一次
-  if (response.status === 503) {
-    await waitForRealApiRuntimeRecovery();
-    const retryResponse = await fetch(`${url}${params}`, {
+  while (Date.now() - startedAt < timeoutMs) {
+    const response = await fetch(`${url}${params}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -139,29 +128,36 @@ export async function processOutbox({ maxRounds = 4 } = {}) {
         ...withRealApiTestHeaders(),
       },
     });
-    const retryJson = await retryResponse.json().catch(() => null);
-    if (retryResponse.status !== 200) {
-      throw new Error(
-        `processOutbox failed after retry: ${retryResponse.status} ${JSON.stringify(retryJson)}`
+    const json = await response.json().catch(() => null);
+
+    // 503 表示 worker 正在重启，等待恢复后重试。
+    if (response.status === 503) {
+      await waitForRealApiRuntimeRecovery();
+      continue;
+    }
+
+    if (response.status !== 200) {
+      throw new Error(`processOutbox failed: ${response.status} ${JSON.stringify(json)}`);
+    }
+
+    if (json?.data?.skipped) {
+      await sleep(intervalMs);
+      continue;
+    }
+
+    // 检查是否有事件处理失败
+    const data = json?.data;
+    if (data && Number(data.failed) > 0) {
+      console.warn(
+        `[processOutbox] ${data.failed} event(s) failed processing:`,
+        JSON.stringify(data.consumers)
       );
     }
-    return retryJson;
+
+    return json;
   }
 
-  if (response.status !== 200) {
-    throw new Error(`processOutbox failed: ${response.status} ${JSON.stringify(json)}`);
-  }
-
-  // 检查是否有事件处理失败
-  const data = json?.data;
-  if (data && Number(data.failed) > 0) {
-    console.warn(
-      `[processOutbox] ${data.failed} event(s) failed processing:`,
-      JSON.stringify(data.consumers)
-    );
-  }
-
-  return json;
+  throw new Error(`processOutbox timed out waiting for outbox poller to run after ${timeoutMs}ms`);
 }
 
 async function readResponsePayload(response) {
@@ -248,6 +244,14 @@ export const itSkipInLoopback =
 
 export const uniqueSeed = (prefix = 'wf') =>
   `${prefix}-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+
+export function resolveRealApiTestTimeoutMs(defaultMs = 120000, env = process.env) {
+  const configured = Number(env.REAL_API_TEST_TIMEOUT_MS);
+  if (Number.isFinite(configured) && configured > 0) {
+    return configured;
+  }
+  return defaultMs;
+}
 
 export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));

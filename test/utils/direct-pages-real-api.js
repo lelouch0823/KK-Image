@@ -2,9 +2,19 @@ import { getPlatformProxy } from 'wrangler';
 import { onRequest } from '../../functions/api/[[route]].js';
 
 const DIRECT_PLATFORM_PROXY_PROMISE_KEY = '__kkImageDirectPlatformProxyPromise';
+const DIRECT_ENV_OVERRIDE_KEYS = [
+  'BASIC_USER',
+  'BASIC_PASS',
+  'JWT_SECRET',
+  'CRON_SECRET',
+  'ENVIRONMENT',
+  'RUN_REAL_API_TESTS',
+  'ALLOW_LOCALHOST_WEBHOOKS',
+];
+const DIRECT_FALLBACK_CACHES_KEY = '__kkImageDirectFallbackCaches';
 
 function getDirectBaseUrl() {
-  const configured = String(process.env.BASE_URL || '').trim();
+  const configured = String(process.env.REAL_API_BASE_URL || process.env.BASE_URL || '').trim();
   if (configured.startsWith('http://') || configured.startsWith('https://')) {
     return configured;
   }
@@ -20,6 +30,64 @@ async function getDirectPlatformProxy() {
   }
 
   return globalThis[DIRECT_PLATFORM_PROXY_PROMISE_KEY];
+}
+
+function mergeDirectRuntimeEnv(runtimeEnv = {}) {
+  const env = { ...(runtimeEnv || {}) };
+  for (const key of DIRECT_ENV_OVERRIDE_KEYS) {
+    if (process.env[key] !== undefined) {
+      env[key] = process.env[key];
+    }
+  }
+  return env;
+}
+
+function cacheRequestKey(request) {
+  const url = typeof request === 'string' ? request : request?.url;
+  const accept =
+    typeof request === 'string'
+      ? ''
+      : (request?.headers?.get?.('Accept') ?? request?.headers?.get?.('accept') ?? '');
+  return `${url || ''}\n${accept || ''}`;
+}
+
+function createFallbackCaches() {
+  const store = new Map();
+  return {
+    default: {
+      async match(request) {
+        const response = store.get(cacheRequestKey(request));
+        return response ? response.clone() : undefined;
+      },
+      async put(request, response) {
+        store.set(cacheRequestKey(request), response.clone());
+      },
+      async delete(request) {
+        return store.delete(cacheRequestKey(request));
+      },
+    },
+  };
+}
+
+function getFallbackCaches() {
+  if (!globalThis[DIRECT_FALLBACK_CACHES_KEY]) {
+    globalThis[DIRECT_FALLBACK_CACHES_KEY] = createFallbackCaches();
+  }
+  return globalThis[DIRECT_FALLBACK_CACHES_KEY];
+}
+
+function installDirectCaches(runtime) {
+  const hadCaches = Object.prototype.hasOwnProperty.call(globalThis, 'caches');
+  const previousCaches = globalThis.caches;
+  globalThis.caches = runtime?.caches || previousCaches || getFallbackCaches();
+
+  return () => {
+    if (hadCaches) {
+      globalThis.caches = previousCaches;
+    } else {
+      delete globalThis.caches;
+    }
+  };
 }
 
 async function readResponsePayload(response) {
@@ -84,24 +152,30 @@ async function flushWaitUntilQueue(waitUntilQueue) {
 export async function directPageRequest(path, options = {}) {
   const runtime = await getDirectPlatformProxy();
   const waitUntilQueue = [];
-  const response = await onRequest({
-    request: buildDirectRequest(path, options),
-    env: runtime.env,
-    waitUntil(promise) {
-      waitUntilQueue.push(Promise.resolve(promise));
-    },
-  });
+  const restoreCaches = installDirectCaches(runtime);
 
-  if (options.flushWaitUntil) {
-    await flushWaitUntilQueue(waitUntilQueue);
+  try {
+    const response = await onRequest({
+      request: buildDirectRequest(path, options),
+      env: mergeDirectRuntimeEnv(runtime.env),
+      waitUntil(promise) {
+        waitUntilQueue.push(Promise.resolve(promise));
+      },
+    });
+
+    if (options.flushWaitUntil) {
+      await flushWaitUntilQueue(waitUntilQueue);
+    }
+
+    const payload = await readResponsePayload(response);
+    return {
+      response,
+      json: payload.json,
+      text: payload.text,
+    };
+  } finally {
+    restoreCaches();
   }
-
-  const payload = await readResponsePayload(response);
-  return {
-    response,
-    json: payload.json,
-    text: payload.text,
-  };
 }
 
 export async function disposeDirectPageRuntime() {

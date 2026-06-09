@@ -5,6 +5,8 @@ import {
   buildVariantMatchKey,
   mergeIncomingWithExisting,
 } from '../../../../../services/ProductCatalogService.js';
+import { ProductProjectionRefreshService } from '../../../../../services/ProductProjectionRefreshService.js';
+import { chunkArray } from '../../../../../lib/db/batch.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import {
@@ -37,6 +39,24 @@ export const auditRouteDeclarations = declareAuditRoutes([
 
 function buildBatchImportRequestFingerprint(body = {}) {
   return buildRequestFingerprint(body);
+}
+
+async function findProductIdsByVariantIds(db, variantIds = []) {
+  const productIds = new Set();
+  const ids = [...new Set((variantIds || []).filter(Boolean))];
+  for (const chunk of chunkArray(ids, 100)) {
+    const placeholders = chunk.map(() => '?').join(',');
+    const result = await db
+      .prepare(
+        `SELECT DISTINCT product_id FROM product_variants WHERE id IN (${placeholders}) AND product_id IS NOT NULL`
+      )
+      .bind(...chunk)
+      .all();
+    for (const row of result?.results || []) {
+      if (row?.product_id) productIds.add(row.product_id);
+    }
+  }
+  return [...productIds];
 }
 
 async function publishBatchImportCacheEvent(c, result, { commandId, correlationId } = {}) {
@@ -105,7 +125,6 @@ app.post('/status', zValidator('json', BatchVariantStatusSchema), async (c) => {
   const { variantIds, status } = c.req.valid('json');
 
   const now = Date.now();
-  const placeholders = variantIds.map(() => '?').join(',');
 
   // 批量更新变体状态
   const statements = [];
@@ -120,9 +139,14 @@ app.post('/status', zValidator('json', BatchVariantStatusSchema), async (c) => {
   }
 
   await env.DB.batch(statements);
+  const productIds = await findProductIdsByVariantIds(env.DB, variantIds);
+  await new ProductProjectionRefreshService(env.DB).refreshByVariantIds(
+    variantIds,
+    c.executionCtx
+  );
 
   // 发布缓存事件
-  await publishProductCacheEvent(c, `product_batch_${status}`, variantIds);
+  await publishProductCacheEvent(c, `product_batch_${status}`, productIds);
 
   const actionLabel = status === 'active' ? '上架' : '下架';
   scheduleAuditEvent(c, {

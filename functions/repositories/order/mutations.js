@@ -79,6 +79,15 @@ function normalizeGuardedOrderUpdateError(error) {
   throw error;
 }
 
+async function verifySingleRowStatusUpdate(db, result) {
+  const reportedChanges = result?.meta?.changes;
+  if (reportedChanges === undefined || reportedChanges === null) return true;
+  if (Number(reportedChanges) === 1) return true;
+
+  const changesRow = await db.prepare('SELECT changes() AS changes').first();
+  return Number(changesRow?.changes || 0) === 1;
+}
+
 async function executeGroupedBatchChunks(
   db,
   statementGroups = [],
@@ -1049,7 +1058,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
     )
     .bind(normalizedNextStatus, timestamp, id, currentOrder.status)
     .run();
-  if (Number(statusUpdateResult?.meta?.changes || 0) !== 1) {
+  if (!(await verifySingleRowStatusUpdate(db, statusUpdateResult))) {
     throw new ConflictError('order status was modified concurrently');
   }
 

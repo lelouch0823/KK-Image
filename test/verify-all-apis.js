@@ -395,7 +395,7 @@ async function runTests() {
   // Create Webhook
   const createHookRes = await request('POST', '/api/v1/webhooks', {
     url: 'https://example.com/hook',
-    events: ['file.uploaded'],
+    events: ['file_uploaded'],
   });
   assertStatus(createHookRes, 201, 'Create Webhook failed');
   const webhookId = createHookRes.data.data.id;

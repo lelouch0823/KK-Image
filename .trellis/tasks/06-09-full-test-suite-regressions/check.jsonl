@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Verify backend route/test changes against backend guidelines."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Quality check must validate regression coverage and current backend contracts."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Verify optional-field fixes do not change error semantics."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Verify frontend test assertion changes against frontend guidelines."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Quality check must cover frontend display-label test conventions."}

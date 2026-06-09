@@ -6,6 +6,7 @@ import { InventoryService } from './InventoryService.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { projectOrderLineStatus } from './OrderStatusProjectionService.js';
 import { VariantDemandProjectionRefreshService } from './VariantDemandProjectionRefreshService.js';
+import { ProductProjectionRefreshService } from './ProductProjectionRefreshService.js';
 import {
   acquireProcurementResourceLocks,
   buildProcurementResourceLockReleaseStatements,
@@ -54,6 +55,8 @@ export class OrderProcurementReceiptReversalService {
       deps.domainOutboxRepo || new DomainOutboxRepository(db, { now: deps.now });
     this.variantDemandProjectionRefreshService =
       deps.variantDemandProjectionRefreshService || new VariantDemandProjectionRefreshService(db);
+    this.productProjectionRefreshService =
+      deps.productProjectionRefreshService || new ProductProjectionRefreshService(db);
     this.now = deps.now || (() => Date.now());
   }
 
@@ -439,6 +442,7 @@ export class OrderProcurementReceiptReversalService {
     await this.variantDemandProjectionRefreshService.refreshByVariantIds([
       originalReceipt.variant_id,
     ]);
+    await this.productProjectionRefreshService.refreshByVariantIds([originalReceipt.variant_id]);
 
     return response;
   }

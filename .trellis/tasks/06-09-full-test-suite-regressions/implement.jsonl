@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend route and API contract regressions are in scope."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend tests and regression fixes must follow project quality scenarios."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Folder route optional-field handling must preserve API error behavior."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Existing frontend test assertion updates are part of this task."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend display-label regression tests must stay aligned with UI quality conventions."}

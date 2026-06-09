@@ -15,9 +15,20 @@ function classifyStatusCode(statusCode) {
 
 const DEFAULT_ENDPOINT_CONCURRENCY = 4;
 
+function shouldAllowLocalhostWebhook(env = {}) {
+  const environment = String(env?.ENVIRONMENT || '').toLowerCase();
+  return (
+    environment === 'development' ||
+    environment === 'test' ||
+    env?.RUN_REAL_API_TESTS === '1' ||
+    env?.ALLOW_LOCALHOST_WEBHOOKS === '1'
+  );
+}
+
 export class WebhookDeliveryService {
   constructor(db, deps = {}) {
     this.db = db;
+    this.env = deps.env || {};
     this.webhookRepo = deps.webhookRepo || new WebhookRepository(db);
     this.fetch = deps.fetch || globalThis.fetch?.bind(globalThis);
     this.signPayload = deps.signPayload || generateHmacSignature;
@@ -89,7 +100,9 @@ export class WebhookDeliveryService {
         const startedAt = this.now();
 
         try {
-          assertSafeExternalUrl(endpoint.url);
+          assertSafeExternalUrl(endpoint.url, {
+            allowLocalhost: shouldAllowLocalhostWebhook(this.env),
+          });
           const response = await this.fetch(endpoint.url, {
             method: 'POST',
             headers,

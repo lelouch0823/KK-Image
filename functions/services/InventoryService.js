@@ -6,6 +6,7 @@ import {
   appendInventoryLedgerEvent,
   projectInventoryBalances,
 } from './InventoryProjectionService.js';
+import { ProductProjectionRefreshService } from './ProductProjectionRefreshService.js';
 import { queryOrderLineCandidates, resolveOrderLineId } from './order-line-shared.js';
 
 const VALID_MUTATION_TYPES = new Set([
@@ -20,9 +21,11 @@ const VALID_MUTATION_TYPES = new Set([
 export { appendInventoryLedgerEvent, projectInventoryBalances };
 
 export class InventoryService {
-  constructor(db, variantRepo = new ProductVariantRepository(db)) {
+  constructor(db, variantRepo = new ProductVariantRepository(db), deps = {}) {
     this.db = db;
     this.variantRepo = variantRepo;
+    this.productProjectionRefreshService =
+      deps.productProjectionRefreshService || new ProductProjectionRefreshService(db);
   }
 
   async queryOrderLineCandidates(payload = {}, includeScopedFilters = true) {
@@ -160,6 +163,7 @@ export class InventoryService {
     if (typeof this.db?.prepare === 'function') {
       const { statements } = await this.buildMutationStatements(payload);
       await this.db.batch(statements);
+      await this.productProjectionRefreshService.refreshByVariantIds([mutation.variantId]);
     } else if (typeof this.variantRepo?.adjustStock === 'function') {
       await this.variantRepo.adjustStock(mutation.variantId, mutation.quantityDelta);
     } else {
@@ -182,6 +186,9 @@ export class InventoryService {
         statements.push(...built.statements);
       }
       await executeBatchChunks(this.db, statements);
+      await this.productProjectionRefreshService.refreshByVariantIds(
+        mutations.map((mutation) => mutation?.variantId)
+      );
     } else {
       for (const mutation of mutations) {
         await this.applyMutation(mutation);

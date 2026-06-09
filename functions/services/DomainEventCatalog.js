@@ -299,6 +299,14 @@ export const DOMAIN_EVENT_CATALOG = {
     version: 1,
     consumers: ['cache'],
   },
+  product_batch_active: {
+    version: 1,
+    consumers: ['cache'],
+  },
+  product_batch_archived: {
+    version: 1,
+    consumers: ['cache'],
+  },
   product_dimension_created: {
     version: 1,
     consumers: ['cache'],

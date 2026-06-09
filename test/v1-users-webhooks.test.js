@@ -102,7 +102,7 @@ describe('V1 API: Users & Webhooks', () => {
           body: JSON.stringify({
             name: 'Test Webhook',
             url: 'https://example.com/hook',
-            events: ['file.uploaded'],
+            events: ['file_uploaded'],
           }),
         },
         mockEnv,

@@ -91,9 +91,6 @@ app.get('/:id', withCache(30), async (c) => {
   const variants = (await variantRepo.findByProductId(id)).filter((variant) =>
     isSellableSalesVariant(variant)
   );
-  if (variants.length === 0) {
-    throw new NotFoundError('Product not found');
-  }
   const replenishmentMap = await loadVariantReplenishmentMap(
     env.DB,
     variants.map((variant) => variant.id)

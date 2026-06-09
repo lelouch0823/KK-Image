@@ -125,7 +125,13 @@ describe('DemandService', () => {
     const bind = vi.fn(() => ({ run }));
     const prepare = vi.fn(() => ({ bind }));
     const batch = vi.fn(async (stmts) => stmts.map(() => ({ meta: { changes: 1 } })));
-    const service = new DemandService({ prepare, batch });
+    const productProjectionRefreshService = {
+      refreshByVariantIds: vi.fn(async () => []),
+    };
+    const service = new DemandService(
+      { prepare, batch },
+      { productProjectionRefreshService }
+    );
 
     await service.syncOrderTransition({
       orderId: 'o-1',
@@ -138,6 +144,9 @@ describe('DemandService', () => {
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_balances'));
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_ledger'));
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_events'));
+    expect(productProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
+      'variant-1',
+    ]);
   });
 
   it('refreshes variant demand projection during demand-affecting transitions', async () => {
@@ -167,6 +176,42 @@ describe('DemandService', () => {
     );
   });
 
+  it('refreshes product projection after reservation availability changes', async () => {
+    const run = vi.fn(async () => ({ meta: { changes: 1 } }));
+    const db = {
+      prepare: vi.fn((sql) => {
+        const statement = {
+          bind: vi.fn(() => statement),
+          run,
+          all: vi.fn(async () => ({
+            results: sql.includes('SELECT DISTINCT product_id FROM product_variants')
+              ? [{ product_id: 'p-1' }]
+              : [],
+          })),
+          first: vi.fn(async () => null),
+        };
+        return statement;
+      }),
+      batch: vi.fn(async (stmts) => stmts.map(() => ({ meta: { changes: 1 } }))),
+    };
+    const productProjectionRefreshService = {
+      refreshByVariantIds: vi.fn(async () => []),
+    };
+    const service = new DemandService(db, { productProjectionRefreshService });
+
+    await service.syncOrderTransition({
+      orderId: 'o-1',
+      variantId: 'variant-1',
+      quantity: 3,
+      fromStatus: 'pending',
+      toStatus: 'confirmed',
+    });
+
+    expect(productProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
+      'variant-1',
+    ]);
+  });
+
   it('resolves order_line_id for reservation events when order context is supplied', async () => {
     const run = vi.fn(async () => ({ meta: { changes: 1 } }));
     let inventoryEventBindArgs = null;
@@ -193,7 +238,10 @@ describe('DemandService', () => {
       }),
       batch: vi.fn(async (stmts) => stmts.map(() => ({ meta: { changes: 1 } }))),
     };
-    const service = new DemandService(db);
+    const productProjectionRefreshService = {
+      refreshByVariantIds: vi.fn(async () => []),
+    };
+    const service = new DemandService(db, { productProjectionRefreshService });
 
     await service.syncOrderTransition({
       orderId: 'o-1',
@@ -209,6 +257,9 @@ describe('DemandService', () => {
     expect(inventoryEventBindArgs[2]).toBe('line-1');
     expect(inventoryEventBindArgs[5]).toBe('order');
     expect(inventoryEventBindArgs[6]).toBe('o-1');
+    expect(productProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
+      'variant-1',
+    ]);
   });
 
   it('rejects ambiguous multi-line demand events without an explicit orderLineId', async () => {

@@ -9,7 +9,7 @@ export async function webhookOutboxEvent({ db, event, state }) {
   const serviceKey = 'WebhookDeliveryService';
   const services = state?.services || {};
   if (!services[serviceKey]) {
-    services[serviceKey] = new WebhookDeliveryService(db);
+    services[serviceKey] = new WebhookDeliveryService(db, { env: state?.env || {} });
     if (state) state.services = services;
   }
   const service = services[serviceKey];

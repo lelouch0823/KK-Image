@@ -77,6 +77,8 @@ export function isProductCacheEvent(eventType) {
     'product_replaced',
     'product_archived',
     'product_batch_imported',
+    'product_batch_active',
+    'product_batch_archived',
     'product_dimension_created',
     'product_dimension_updated',
     'product_dimension_archived',

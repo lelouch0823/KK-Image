@@ -6,6 +6,7 @@ import {
   apiRequest,
   multipartRequest,
   waitFor,
+  processOutbox,
 } from './utils/manage-products-real-api.js';
 import {
   cleanupTestManageWebhooks,
@@ -76,6 +77,8 @@ describeIfRealApi('Uploads Real API', function () {
       const manageFileId = manageUpload.json?.data?.id;
       assert.ok(manageFileId, 'manage upload file id missing');
 
+      await processOutbox();
+
       const manageDelivery = await receiver.waitForDelivery(
         (item) =>
           item.body?.event_type === 'file_uploaded' && item.body?.aggregate?.id === manageFileId,
@@ -138,6 +141,8 @@ describeIfRealApi('Uploads Real API', function () {
       );
       const salesFileId = salesUpload.json?.data?.id;
       assert.ok(salesFileId, 'sales upload file id missing');
+
+      await processOutbox();
 
       const salesDelivery = await receiver.waitForDelivery(
         (item) =>

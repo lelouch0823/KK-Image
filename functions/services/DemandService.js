@@ -1,6 +1,7 @@
 import { generateId } from '../api/utils/id.js';
 import { BadRequestError } from '../lib/hono/errors.js';
 import { VariantDemandProjectionRepository } from '../repositories/VariantDemandProjectionRepository.js';
+import { ProductProjectionRefreshService } from './ProductProjectionRefreshService.js';
 import { queryOrderLineCandidates, resolveOrderLineId } from './order-line-shared.js';
 
 const DEMAND_ACTIVE_STATUSES = new Set(['confirmed', 'production', 'shipping', 'arrived']);
@@ -10,9 +11,11 @@ const SHIPMENT_PREP_STATUSES = new Set(['shipping', 'fulfilled', 'delivered']);
 const SHIPMENT_CONSUME_STATUSES = new Set(['fulfilled', 'delivered']);
 
 export class DemandService {
-  constructor(db) {
+  constructor(db, deps = {}) {
     this.db = db;
     this.projectionRepo = new VariantDemandProjectionRepository(db);
+    this.productProjectionRefreshService =
+      deps.productProjectionRefreshService || new ProductProjectionRefreshService(db);
   }
 
   async queryOrderLineCandidates(payload = {}, includeScopedFilters = true) {
@@ -127,6 +130,7 @@ export class DemandService {
             timestamp
           ),
       ]);
+      await this.productProjectionRefreshService.refreshByVariantIds([payload.variantId]);
     }
 
     const fromStatus = String(payload?.fromStatus || '').trim();

@@ -653,7 +653,7 @@ describe('PurchaseOrders detail shell', () => {
 
     const wrapper = mountPurchaseOrdersShell();
 
-    expect(wrapper.get('[data-testid="purchase-order-detail-footer"]').text()).toContain('arrived');
+    expect(wrapper.get('[data-testid="purchase-order-detail-footer"]').text()).toContain('Arrived');
   });
 
   it('shows shortage-closure entry when ordered or shipping purchase orders still have receivable lines', () => {

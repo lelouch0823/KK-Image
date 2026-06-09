@@ -323,7 +323,7 @@ describe('sales routes resilience', () => {
     );
   });
 
-  it('returns 404 for active products with no sellable variants', async () => {
+  it('returns active product detail with empty variants when no sellable variants remain', async () => {
     mocks.productFindById.mockResolvedValue({
       id: 'p-archived-variants',
       status: 'active',
@@ -341,7 +341,14 @@ describe('sales routes resilience', () => {
       { waitUntil: vi.fn() }
     );
 
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(200);
+    const payload = await res.json();
+    expect(payload.data).toEqual(
+      expect.objectContaining({
+        id: 'p-archived-variants',
+        variants: [],
+      })
+    );
   });
 
   it('rejects order creation when bound variant is out of stock under sales policy', async () => {
@@ -429,6 +436,15 @@ describe('sales routes resilience', () => {
     expect(res.status).toBe(201);
     expect(mocks.orderCreate).toHaveBeenCalledWith(
       expect.objectContaining({
+        productId: 'p-1',
+        variantId: 'v-1',
+        lines: [
+          expect.objectContaining({
+            productId: 'p-1',
+            variantId: 'v-1',
+            quantity: 1,
+          }),
+        ],
         data: expect.objectContaining({
           category: 'Outerwear',
           sku: 'SKU-RED-M',

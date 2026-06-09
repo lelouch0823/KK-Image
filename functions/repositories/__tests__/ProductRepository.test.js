@@ -235,8 +235,38 @@ describe('ProductRepository', () => {
       await repo.listAvailableBrands({ status: 'active', category: '家具' });
 
       const brandParams = brandStmt.params;
-      expect(brandParams).toContain('active');
       expect(brandParams).toContain('家具');
+      expect(db.prepare.mock.calls[0][0]).toContain('COALESCE(pp.active_variant_count, 0) > 0');
+    });
+  });
+
+  describe('updateStatus', () => {
+    it('更新变体状态后刷新商品投影', async () => {
+      const db = {
+        prepare: vi.fn((sql) => {
+          const stmt = createStatement({
+            run: vi.fn(async () => ({ success: true, meta: { changes: 2 } })),
+          });
+          stmt.sql = sql;
+          return stmt;
+        }),
+        batch: vi.fn(async () => [{ success: true }, { success: true }]),
+      };
+      const repo = new ProductRepository(db);
+
+      const result = await repo.updateStatus('prod-1', 'archived');
+
+      expect(result.success).toBe(true);
+      expect(
+        db.prepare.mock.calls.some((call) => call[0].includes('UPDATE product_variants'))
+      ).toBe(true);
+      expect(
+        db.prepare.mock.calls.some((call) => call[0].includes('DELETE FROM product_projection'))
+      ).toBe(true);
+      expect(
+        db.prepare.mock.calls.some((call) => call[0].includes('INSERT INTO product_projection'))
+      ).toBe(true);
+      expect(db.batch).toHaveBeenCalledTimes(1);
     });
   });
 });

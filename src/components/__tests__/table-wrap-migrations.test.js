@@ -80,7 +80,8 @@ describe('high-risk table wrap migrations', () => {
     expect(orderPrintViewSource).toContain('OrderLineProcurementState');
     expect(orderLineProcurementStateSource).toContain('max-w-[8.5rem]');
     expect(orderLineProcurementStateSource).toContain('preset="line"');
-    expect(orderLineProcurementStateSource).toContain('normalizeProcurementStatus');
+    expect(orderLineProcurementStateSource).toContain('formatOrderProcurementStatusLabel');
+    expect(procurementBadgeSource).toContain('normalizeProcurementStatus');
     expect(orderListStatusStackSource).toContain("props.mode === 'manage'");
     expect(orderListStatusStackSource).toContain("return 'items-center text-center'");
     expect(orderListStatusStackSource).toContain("return 'items-end text-right'");

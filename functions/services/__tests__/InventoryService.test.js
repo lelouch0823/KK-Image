@@ -91,7 +91,10 @@ describe('InventoryService', () => {
         statements.map(() => ({ success: true, meta: { changes: 1 } }))
       ),
     };
-    service = new InventoryService(db, variantRepo);
+    const productProjectionRefreshService = {
+      refreshByVariantIds: vi.fn(async () => []),
+    };
+    service = new InventoryService(db, variantRepo, { productProjectionRefreshService });
 
     await service.applyMutation({
       type: 'order_shipment',
@@ -103,6 +106,9 @@ describe('InventoryService', () => {
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_balances'));
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_ledger'));
     expect(prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO inventory_events'));
+    expect(productProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
+      'variant-1',
+    ]);
   });
 
   it('batches DB-backed mutations instead of running each statement serially in applyBatch', async () => {
@@ -123,7 +129,10 @@ describe('InventoryService', () => {
         return statement;
       }),
     };
-    service = new InventoryService(db, variantRepo);
+    const productProjectionRefreshService = {
+      refreshByVariantIds: vi.fn(async () => []),
+    };
+    service = new InventoryService(db, variantRepo, { productProjectionRefreshService });
 
     const result = await service.applyBatch([
       { type: 'purchase_arrival', variantId: 'variant-1', quantityDelta: 5 },
@@ -137,6 +146,10 @@ describe('InventoryService', () => {
     expect(db.batch).toHaveBeenCalledTimes(1);
     expect(db.batch.mock.calls[0][0]).toHaveLength(8);
     expect(run).not.toHaveBeenCalled();
+    expect(productProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
+      'variant-1',
+      'variant-2',
+    ]);
   });
 
   it('resolves order_line_id and preserves source refs in inventory_events when order context is supplied', async () => {
@@ -170,7 +183,10 @@ describe('InventoryService', () => {
         return statement;
       }),
     };
-    service = new InventoryService(db, variantRepo);
+    const productProjectionRefreshService = {
+      refreshByVariantIds: vi.fn(async () => []),
+    };
+    service = new InventoryService(db, variantRepo, { productProjectionRefreshService });
 
     await service.applyMutation({
       type: 'order_shipment',
@@ -187,6 +203,9 @@ describe('InventoryService', () => {
     expect(inventoryEventBindArgs[2]).toBe('line-1');
     expect(inventoryEventBindArgs[6]).toBe('order');
     expect(inventoryEventBindArgs[7]).toBe('o-1');
+    expect(productProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
+      'variant-1',
+    ]);
   });
 
   it('rejects ambiguous multi-line order context without an explicit orderLineId', async () => {

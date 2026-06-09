@@ -148,7 +148,15 @@ export function createVitestSpawner(options = {}) {
     return new Promise((resolve) => {
       const child = spawnImpl(
         nodeExecPath,
-        ['node_modules/vitest/vitest.mjs', '--maxWorkers', '1', ...files],
+        [
+          'node_modules/vitest/vitest.mjs',
+          'run',
+          '--environment',
+          'node',
+          '--maxWorkers',
+          '1',
+          ...files,
+        ],
         {
           stdio: 'inherit',
           env: {
@@ -171,8 +179,12 @@ export async function runRealApiCli(options = {}) {
   const writeStderr = options.writeStderr || ((text) => process.stderr.write(text));
   const killProcess = options.killProcess || ((pid, signal) => process.kill(pid, signal));
   const sharedEnv = {
-    BASE_URL: env.BASE_URL || 'http://127.0.0.1:8080',
+    REAL_API_BASE_URL: env.REAL_API_BASE_URL || env.BASE_URL || 'http://127.0.0.1:8080',
     RUN_REAL_API_TESTS: env.RUN_REAL_API_TESTS || '1',
+    BASIC_USER: env.BASIC_USER || 'admin',
+    BASIC_PASS: env.BASIC_PASS || '123',
+    JWT_SECRET: env.JWT_SECRET || 'dev-secret-key-123',
+    CRON_SECRET: env.CRON_SECRET || 'dev-secret',
   };
 
   const { requestedProfile, selectedProfile, overrideFiles, selectedFiles } = resolveRealApiProfile(
