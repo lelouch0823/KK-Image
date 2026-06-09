@@ -52,6 +52,7 @@
 - `/api/v1/webhooks`
 - `/api/v1/health`
 - `/api/v1/health/info`
+- `/api/v1/api-docs`
 
 ## 响应约定
 

@@ -11,7 +11,7 @@
 - 登录页：`/login`
 - 后台首页：`/admin`
 - 当前后台采用 `/admin/*` 单页路由，不再使用旧版独立后台页模型
-- 本手册覆盖仪表盘、文件、空间、商品、订单、采购、客户、销售员、统计、设置、审计日志等日常模块
+- 本手册覆盖仪表盘、文件、空间、商品、库存、订单、采购、客户、销售员、统计、设置、审计日志等日常模块
 - Outbox replay 等高风险运维动作继续以 [审计与 Outbox 运维手册](audit-operations.md) 为准
 
 ## 2. 登录与导航
@@ -94,7 +94,17 @@
 - 导出汇总结果给采购或供应链同事
 - 如果订单多但不清楚先买什么，先看这页再开采购单
 
-## 9. 采购单管理
+## 9. 库存仪表盘与盘点
+
+库存相关入口包括 `/admin/inventory-dashboard` 和 `/admin/stocktakes`：
+
+- 库存仪表盘用于看低库存、零库存、库存价值和近期变动
+- 库存盘点用于创建盘点单、录入实际数量并执行库存调整
+- 这两个入口都受 `products:manage` 权限控制
+
+日常库存异常排查时，先看库存仪表盘定位 SKU，再用盘点单形成可审计调整。
+
+## 10. 采购单管理
 
 ![采购单管理](../assets/admin-manual/07-purchase-orders.png)
 
@@ -107,7 +117,7 @@
 
 采购与库存事实流转请结合 [商品与库存管理](product-inventory.md) 阅读。
 
-## 10. 客户管理
+## 11. 客户管理
 
 ![客户管理](../assets/admin-manual/08-customers.png)
 
@@ -120,7 +130,7 @@
 
 详细操作流见 [订单与客户操作手册](order-and-customer-operations.md)。
 
-## 11. 销售员管理
+## 12. 销售员管理
 
 ![销售员管理](../assets/admin-manual/09-salespersons.png)
 
@@ -133,7 +143,17 @@
 
 配套接口和 token 说明见 [销售人员管理](sales-management.md)。
 
-## 12. 统计分析
+## 13. 应收看板
+
+应收看板入口为 `/admin/receivables`，用于从订单金额与付款记录聚合未收款：
+
+- 查看应收汇总和账龄分析
+- 识别欠款客户和高风险订单
+- 与订单详情里的付款记录联动排查
+
+它属于财务观察面，不替代订单详情里的付款记录维护。
+
+## 14. 统计分析
 
 ![统计分析](../assets/admin-manual/10-stats.png)
 
@@ -145,7 +165,7 @@
 
 详细操作流见 [统计与系统设置](stats-and-settings.md)。
 
-## 13. 系统设置
+## 15. 系统设置
 
 ![系统设置](../assets/admin-manual/11-settings.png)
 
@@ -154,12 +174,13 @@
 - 核对系统开关、环境项与基础运行状态
 - 检查 AI、通知、存储等能力是否启用
 - 配置变更后，建议立即回到相关业务页做一次实际验证
+- 默认隐藏入口还包括 `/admin/erp-sync` 和 `/admin/oauth-apps`，用于 ERP 集成和 OAuth 应用管理
 
 高风险配置变更应先在预览环境验证，再进入生产。
 
 详细操作流见 [统计与系统设置](stats-and-settings.md)。
 
-## 14. 审计日志
+## 16. 审计日志
 
 ![审计日志](../assets/admin-manual/12-audit-logs.png)
 
@@ -172,7 +193,7 @@
 
 详细筛选与 replay 流程见 [审计与 Outbox 运维手册](audit-operations.md)。
 
-## 15. Outbox 运维
+## 17. Outbox 运维
 
 ![Outbox 运维](../assets/admin-manual/13-outbox-ops.png)
 
@@ -184,7 +205,7 @@ Outbox 运维入口为 `/admin/outbox-ops`，主要用于处理副作用链路�
 
 这部分属于高风险运维动作，使用规范请直接参考 [审计与 Outbox 运维手册](audit-operations.md)。
 
-## 16. 推荐日常操作顺序
+## 18. 推荐日常操作顺序
 
 1. 先看仪表盘，确认今天的待处理重点。
 2. 需要补图片或资料时，先处理文件与空间。
@@ -192,7 +213,7 @@ Outbox 运维入口为 `/admin/outbox-ops`，主要用于处理副作用链路�
 4. 需要补业务档案时，处理客户和销售员信息。
 5. 出现异常、争议或副作用故障时，查看审计日志与 Outbox 运维页。
 
-## 17. 手册配套文档
+## 19. 手册配套文档
 
 - [商品与库存管理](product-inventory.md)
 - [销售人员管理](sales-management.md)

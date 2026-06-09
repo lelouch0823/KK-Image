@@ -12,6 +12,7 @@
 - `GET /api/manage/orders/stats`
 - `GET /api/manage/stats`
 - `GET /api/manage/stats/uploads`
+- `GET /api/manage/inventory-dashboard`
 
 ## 2. 文件与共享空间
 
@@ -20,11 +21,31 @@
 - `GET /api/manage/files`
 - `POST /api/manage/upload`
 - `POST /api/v1/files/check-hash`
+- `GET /api/manage/utils/check-hash`
 
 说明：
 
 - 文件秒传预检位于 `/api/v1/files/check-hash`，不是旧文档中的 `/api/manage/check-hash`
 - 管理端上传接口支持 `orderId`、`spaceId`、`context` 等 query 参数
+- `/api/manage/utils/check-hash` 是后台辅助检查入口，受 `files:write` 权限保护
+
+### 文件夹、相册与分享
+
+- `GET /api/manage/folders`
+- `GET /api/manage/folders/:id`
+- `POST /api/manage/folders`
+- `PUT /api/manage/folders/:id`
+- `DELETE /api/manage/folders/:id`
+- `PUT /api/manage/folders/:id/share`
+- `POST /api/manage/folders/:id/upload`
+- `GET /api/manage/albums`
+- `GET /api/manage/albums/:id`
+- `POST /api/manage/albums`
+- `PUT /api/manage/albums/:id`
+- `DELETE /api/manage/albums/:id`
+- `POST /api/manage/albums/:id/files`
+- `DELETE /api/manage/albums/:id/files`
+- `GET /api/manage/shares`
 
 ### 共享空间相关
 
@@ -33,6 +54,19 @@
 - `GET /api/manage/spaces/:id`
 - `PUT /api/manage/spaces/:id`
 - `DELETE /api/manage/spaces/:id`
+
+### 搜索与标签
+
+- `GET /api/manage/search?q=keyword`
+- `GET /api/manage/tags`
+- `GET /api/manage/tags/suggest?q=keyword`
+- `POST /api/manage/tags`
+- `POST /api/manage/tags/assign`
+- `DELETE /api/manage/tags/assign`
+
+### 当前用户
+
+- `GET /api/manage/user`
 
 ## 3. 订单管理
 
@@ -44,6 +78,17 @@
 - `PATCH /api/manage/orders/:id/status`
 - `POST /api/manage/orders/:id/comment`
 - `POST /api/manage/orders/batch`
+
+### 订单付款
+
+- `GET /api/manage/orders/:id/payments`
+- `POST /api/manage/orders/:id/payments`
+- `DELETE /api/manage/orders/:id/payments/:paymentId`
+
+说明：
+
+- 付款记录用于应收看板与订单详情的已收 / 未收展示
+- 订单已归档后不能新增或删除付款记录
 
 ### 订单行履约命令
 
@@ -91,6 +136,30 @@
 - `GET /api/manage/products/:id/variants`
 - `POST /api/manage/products/:id/variants`
 
+### 分类
+
+- `GET /api/manage/categories`
+- `GET /api/manage/categories?mode=tree`
+- `POST /api/manage/categories`
+- `GET /api/manage/categories/:id`
+- `PATCH /api/manage/categories/:id`
+- `DELETE /api/manage/categories/:id`
+- `GET /api/manage/categories/:id/products`
+- `POST /api/manage/categories/:id/products`
+- `GET /api/manage/categories/product/:productId`
+- `POST /api/manage/categories/product/:productId`
+
+### 库存仪表盘与盘点
+
+- `GET /api/manage/inventory-dashboard`
+- `GET /api/manage/stocktakes`
+- `POST /api/manage/stocktakes`
+- `GET /api/manage/stocktakes/:id`
+- `PATCH /api/manage/stocktakes/:id`
+- `POST /api/manage/stocktakes/:id/items`
+- `POST /api/manage/stocktakes/:id/adjust`
+- `POST /api/manage/stocktakes/:id/cancel`
+
 ### 订货总览
 
 - `GET /api/manage/goods-overview`
@@ -126,7 +195,63 @@
 - 收货、冲销和 shortage closure 都属于显式命令接口
 - 收货 / 冲销 / 成本分摊等副作用由 durable outbox 异步驱动
 
-## 6. Webhook、通知、审计与运维
+### 应收
+
+- `GET /api/manage/receivables`
+
+说明：
+
+- 应收看板由订单金额、付款记录和未收余额聚合得到。
+
+## 6. 设置、集成、Webhook、通知、审计与运维
+
+### AI
+
+- `POST /api/manage/ai/chat`
+- `POST /api/manage/ai/stream`
+- `POST /api/manage/ai/report`
+
+### 设置与功能开关
+
+- `GET /api/manage/settings`
+- `POST /api/manage/settings/batch`
+- `PUT /api/manage/settings/:key`
+- `POST /api/manage/settings/ai/models`
+- `POST /api/manage/settings/ai/test`
+- `GET /api/manage/settings/ai/health`
+- `GET /api/manage/feature-flags`
+- `POST /api/manage/feature-flags`
+- `PATCH /api/manage/feature-flags/:key`
+
+### ERP 同步
+
+- `GET /api/manage/erp-sync/connections`
+- `POST /api/manage/erp-sync/connections`
+- `GET /api/manage/erp-sync/connections/:id`
+- `PUT /api/manage/erp-sync/connections/:id`
+- `DELETE /api/manage/erp-sync/connections/:id`
+- `POST /api/manage/erp-sync/connections/:id/test`
+- `POST /api/manage/erp-sync/connections/:id/sync`
+- `POST /api/manage/erp-sync/connections/:id/webhook`
+- `GET /api/manage/erp-sync/logs`
+- `GET /api/manage/erp-sync/connections/:id/stats`
+- `GET /api/manage/erp-sync/connections/:id/mappings`
+
+### OAuth 应用
+
+- `GET /api/manage/oauth/apps`
+- `POST /api/manage/oauth/apps`
+- `GET /api/manage/oauth/apps/:id`
+- `PUT /api/manage/oauth/apps/:id`
+- `DELETE /api/manage/oauth/apps/:id`
+- `POST /api/manage/oauth/apps/:id/regenerate-secret`
+- `GET /api/manage/oauth/apps/:id/tokens`
+- `POST /api/manage/oauth/apps/:id/revoke-tokens`
+- `GET /api/manage/oauth/authorize`
+- `POST /api/manage/oauth/authorize`
+- `POST /api/manage/oauth/token`
+- `POST /api/manage/oauth/revoke`
+- `GET /api/manage/oauth/userinfo`
 
 ### Webhook
 
@@ -155,6 +280,20 @@
 - `GET /api/manage/outbox/:eventId`
 - `POST /api/manage/audit-replay/dry-run`
 - `POST /api/manage/audit-replay/execute`
+
+### 备份与回收站
+
+- `GET /api/manage/backups`
+- `POST /api/manage/backups`
+- `GET /api/manage/backups/:filename`
+- `POST /api/manage/backups/:filename/validate`
+- `POST /api/manage/backups/:filename/dry-run`
+- `POST /api/manage/backups/:filename/restore`
+- `DELETE /api/manage/backups/:filename`
+- `GET /api/manage/trash`
+- `POST /api/manage/trash/restore`
+- `POST /api/manage/trash/delete`
+- `DELETE /api/manage/trash/empty`
 
 管理端页面对应：
 

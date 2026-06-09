@@ -103,7 +103,14 @@ pnpm install
 
 ## 7. 测试与验证
 
-核心验证命令：
+从仓库根目录验证：
+
+```bash
+pnpm test:minisales
+pnpm typecheck:minisales
+```
+
+进入 `minisales/` 后验证：
 
 ```bash
 pnpm test:unit
@@ -113,6 +120,7 @@ pnpm typecheck
 定向回归：
 
 ```bash
+cd minisales
 pnpm test:unit -- tests/unit/pages/order-detail-controller.test.ts
 pnpm test:unit -- tests/unit/pages/sales-stats-controller.test.ts tests/unit/pages/spaces-controller.test.ts
 ```

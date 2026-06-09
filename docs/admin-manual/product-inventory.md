@@ -6,7 +6,9 @@
 
 - 商品管理：`/admin/products`
 - 订货总览：`/admin/goods-overview`
+- 库存仪表盘：`/admin/inventory-dashboard`
 - 采购单：`/admin/purchase-orders`
+- 库存盘点：`/admin/stocktakes`
 
 ![商品管理](../assets/admin-manual/04-products.png)
 
@@ -23,6 +25,7 @@
 3. 按缺口创建或更新采购单。
 4. 到货后记录收货、处理部分到货或冲销。
 5. 回到订单页确认行级履约进度是否已同步推进。
+6. 库存异常时，用库存仪表盘定位 SKU，再用盘点单执行可审计调整。
 
 这个顺序能减少“先建采购、后补商品资料”导致的数据不一致。
 
@@ -196,7 +199,25 @@
 - 查订单行出货异常，先对照 `order_shipment` 与 `inventory_released`
 - 对账时优先确认“事实流水是否正确”，再判断是否是展示投影问题
 
-## 9. 常见排查
+## 9. 库存仪表盘与盘点
+
+库存仪表盘用于观察当前库存读模型：
+
+- 低库存 / 零库存 SKU
+- 库存总价值
+- 近期库存变动
+- 近 30 天出库排行
+
+库存盘点用于把人工盘点结果落成可追溯调整：
+
+1. 创建盘点单。
+2. 系统按当前库存填充盘点明细。
+3. 录入实际数量和差异原因。
+4. 执行调整，调整结果进入库存事实链路。
+
+不要直接把盘点单理解成“改库存表”。盘点调整仍应通过库存服务形成事实记录和后续读模型刷新。
+
+## 10. 常见排查
 
 ### 为什么采购单已经到货了，但订单只显示部分到货？
 
@@ -210,15 +231,21 @@
 
 因为系统采用“事实追加”模式，冲销会保留历史并新增回滚事实，方便审计和追溯。
 
-## 10. 相关接口与页面
+## 11. 相关接口与页面
 
 - 商品管理：`/admin/products`
 - 订货总览：`/admin/goods-overview`
+- 库存仪表盘：`/admin/inventory-dashboard`
 - 采购单：`/admin/purchase-orders`
+- 库存盘点：`/admin/stocktakes`
 - 采购单详情：`GET /api/manage/purchase-orders/:id`
 - 记录收货：`POST /api/manage/purchase-orders/:id/receipts`
 - 收货冲销：`POST /api/manage/purchase-orders/:id/receipts/:receiptId/reversal`
 - 重新分摊成本：`POST /api/manage/purchase-orders/:id/allocate`
+- 库存仪表盘：`GET /api/manage/inventory-dashboard`
+- 盘点单列表 / 创建：`GET /api/manage/stocktakes`、`POST /api/manage/stocktakes`
+- 盘点明细更新：`POST /api/manage/stocktakes/:id/items`
+- 盘点调整：`POST /api/manage/stocktakes/:id/adjust`
 - 批量规格上下架：`POST /api/manage/products/batch/status`
 - 订单行预留：`POST /api/manage/orders/:id/lines/:lineId/reserve`
 - 订单行释放：`POST /api/manage/orders/:id/lines/:lineId/release`

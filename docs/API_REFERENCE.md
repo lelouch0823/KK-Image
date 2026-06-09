@@ -32,22 +32,38 @@
 
 - `GET /api/manage/dashboard/overview`
 - `GET /api/manage/stats`
+- `GET /api/manage/inventory-dashboard`
 - `GET /api/manage/orders`
 - `GET /api/manage/orders/:id`
 - `POST /api/manage/orders`
 - `PATCH /api/manage/orders/:id/status`
+- `GET /api/manage/orders/:id/payments`
+- `POST /api/manage/orders/:id/payments`
+- `DELETE /api/manage/orders/:id/payments/:paymentId`
 - `POST /api/manage/orders/:id/lines/:lineId/reserve`
 - `POST /api/manage/orders/:id/lines/:lineId/release`
 - `POST /api/manage/orders/:id/lines/:lineId/ship`
 - `POST /api/manage/orders/:id/lines/:lineId/unship`
 - `POST /api/manage/orders/:id/lines/:lineId/return`
 - `GET /api/manage/products`
+- `GET /api/manage/categories`
 - `GET /api/manage/goods-overview`
 - `GET /api/manage/purchase-orders`
+- `GET /api/manage/stocktakes`
+- `POST /api/manage/stocktakes`
 - `POST /api/manage/purchase-orders/:id/receipts`
 - `POST /api/manage/purchase-orders/:id/receipts/:receiptId/reversal`
 - `POST /api/manage/purchase-orders/:id/shortage-closures`
 - `POST /api/manage/purchase-orders/:id/allocate`
+- `GET /api/manage/receivables`
+- `GET /api/manage/backups`
+- `POST /api/manage/backups`
+- `POST /api/manage/backups/:filename/validate`
+- `POST /api/manage/backups/:filename/dry-run`
+- `POST /api/manage/backups/:filename/restore`
+- `GET /api/manage/trash`
+- `POST /api/manage/trash/restore`
+- `POST /api/manage/trash/delete`
 - `GET /api/manage/outbox`
 - `POST /api/manage/audit-replay/dry-run`
 - `POST /api/manage/audit-replay/execute`
@@ -55,6 +71,15 @@
 - `GET /api/manage/audit-logs/export`
 - `GET /api/manage/webhooks`
 - `POST /api/manage/webhooks/:id/test`
+- `GET /api/manage/settings`
+- `POST /api/manage/settings/ai/models`
+- `POST /api/manage/settings/ai/test`
+- `GET /api/manage/settings/ai/health`
+- `GET /api/manage/feature-flags`
+- `GET /api/manage/erp-sync/connections`
+- `GET /api/manage/oauth/apps`
+- `POST /api/manage/oauth/token`
+- `POST /api/manage/oauth/revoke`
 
 ### 销售端
 
@@ -93,6 +118,8 @@
 - 采购单详情读模型默认包含 `items` 与 `receipts`
 - 采购与履约进度优先来自 `order_lines`
 - 商品状态、价格和库存筛选优先来自 `product_projection` 的 active variant 聚合，不直接依赖 `products.status`
+- 订单付款记录驱动应收看板，订单归档后禁止继续新增 / 删除付款记录
+- 备份恢复接口当前以 validate、dry-run 和受控恢复摘要为主，生产环境不会直接执行破坏性恢复
 - 关键写操作通过 durable outbox 异步驱动通知、缓存失效、Webhook 与补充审计
 
 ## 4. 本地联调

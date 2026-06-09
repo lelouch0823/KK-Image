@@ -53,4 +53,4 @@ pnpm test:real-api:fast
 - 当前默认对象存储为 R2；Telegram / S3 存储属于可选配置。
 - 当前后端是“`functions/lib/hono/app.js` 挂载的 Hono 主业务路由 + 少量文件式 public/cron 路由”并存，不要把仓库描述成纯文件式 Functions，也不要误写成所有接口都已迁入 Hono。
 - `pnpm test` 是默认仓库测试套件；real API profile 都以 `REAL_API_BASE_URL` 指向的 Worker 为主，`fast` 只是较快 smoke 口径，部分销售链路会使用 direct in-process transport；`*:blackbox` profile 会禁用 direct 口径并按文件隔离，更适合高保真 HTTP 验收。
-- 历史计划、评审与 agent 过程正文已下沉到 `docs/archive/plans/`、`docs/archive/reviews/`、`docs/archive/superpowers/`；`docs/plans`、`docs/reviews`、`docs/superpowers` 现在只保留索引说明。
+- 历史计划、评审与大部分 agent 过程正文已下沉到 `docs/archive/plans/`、`docs/archive/reviews/`、`docs/archive/superpowers/`；`docs/plans`、`docs/reviews` 只保留索引说明，`docs/superpowers` 如仍有少量计划 / 规格正文，也只代表当次任务上下文，不是当前产品或工程规范的 source of truth。

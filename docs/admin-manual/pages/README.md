@@ -13,17 +13,22 @@
 - [商品管理](products.md)
 - [订单管理](orders.md)
 - [订货总览](goods-overview.md)
+- [库存仪表盘](inventory-dashboard.md)
 - [采购单管理](purchase-orders.md)
+- [库存盘点](stocktakes.md)
 - [客户管理](customers.md)
+- [应收看板](receivables.md)
 - [提醒中心](reminders.md)
 - [统计分析](stats.md)
 - [系统设置](settings.md)
 - [审计日志](audit-logs.md)
 - [Outbox 运维](outbox-ops.md)
+- [ERP 同步](erp-sync.md)
+- [OAuth 应用](oauth-apps.md)
 
 ## 说明
 
-- 本目录覆盖当前所有后台业务页。
+- 本目录覆盖 `src/config/admin-features.ts` 中注册的管理端业务页；部分页面默认不在侧边栏显示，但仍可通过路由、权限或后续入口访问。
 - `forbidden`、`not-found` 之类状态页不单独写业务教程。
 - 如果你想看跨页面工作流，请先读 [管理端使用手册（带截图）](../admin-console-guide.md)。
 - 如果你想看模块级规则，请继续参考 [商品与库存管理](../product-inventory.md)、[销售人员管理](../sales-management.md)、[审计与 Outbox 运维手册](../audit-operations.md) 等专题文档。
