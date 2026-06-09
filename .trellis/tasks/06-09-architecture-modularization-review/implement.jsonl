@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend guidelines for any admin feature manifest or shell registry implementation."}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend guidelines for any Hono route manifest or product catalog layer cleanup."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "This task is driven by repeated feature metadata and shared contract placement."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Product catalog route/service/repository direction requires cross-layer review."}
+{"file": "docs/architecture/system-overview.md", "reason": "Current architecture baseline and durable outbox context."}
+{"file": "docs/architecture/modules/frontend-views.md", "reason": "Frontend shell and route/view baseline."}
+{"file": "docs/architecture/modules/frontend-composables.md", "reason": "Composables and state ownership baseline."}
+{"file": "docs/architecture/modules/api-routes.md", "reason": "Hono route shell baseline."}
+{"file": "docs/architecture/modules/repository-layer.md", "reason": "Repository/service direction baseline."}

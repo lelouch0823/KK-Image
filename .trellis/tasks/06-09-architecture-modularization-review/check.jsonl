@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Check frontend shell/feature-manifest changes against project guidelines."}
+{"file": ".trellis/spec/backend/index.md", "reason": "Check backend route/service/repository changes against project guidelines."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Verify repeated metadata was consolidated without introducing shallow wrappers."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Verify layer direction remains correct across route/service/repository changes."}
+{"file": "docs/architecture/system-overview.md", "reason": "Validate architectural claims against current baseline."}
+{"file": "docs/architecture/modules/frontend-views.md", "reason": "Validate frontend route/view shell changes."}
+{"file": "docs/architecture/modules/api-routes.md", "reason": "Validate Hono route shell changes."}
+{"file": "docs/architecture/modules/repository-layer.md", "reason": "Validate repository/service responsibility boundaries."}
