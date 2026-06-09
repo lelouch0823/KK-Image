@@ -102,6 +102,7 @@ describe('OrderManager line-level statuses', () => {
           OrderCreateModal: { template: '<div />' },
           OrderEditModal: { template: '<div />' },
           OrderWorkflowModal: { template: '<div />' },
+          OrderReturnDialog: { template: '<div />' },
           ConfirmDialog: { template: '<div />' },
           DestructiveConfirmModal: { template: '<div />' },
         },
