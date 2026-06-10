@@ -11,6 +11,8 @@ export async function onRequestPost(context) {
             return authResponse;
         }
 
+        validateTelegramConfig(env);
+
         const clonedRequest = request.clone();
         const formData = await clonedRequest.formData();
 
@@ -21,8 +23,6 @@ export async function onRequestPost(context) {
         if (!uploadFile) {
             throw new Error('No file uploaded');
         }
-
-        validateTelegramConfig(env);
 
         const fileName = uploadFile.name;
         const fileExtension = fileName.split('.').pop().toLowerCase();
@@ -252,7 +252,7 @@ function plainTextResponse(reason, init) {
         headers: {
             'Content-Type': 'text/plain;charset=UTF-8',
             'Cache-Control': 'no-store',
-            'Content-Length': reason.length,
+            'Content-Length': new TextEncoder().encode(reason).length,
         },
     });
 }
