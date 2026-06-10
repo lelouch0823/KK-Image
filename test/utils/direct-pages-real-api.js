@@ -76,10 +76,11 @@ function getFallbackCaches() {
   return globalThis[DIRECT_FALLBACK_CACHES_KEY];
 }
 
-function installDirectCaches(runtime) {
+// 始终使用内存 fallback 缓存而非 runtime.caches，保证 direct 模式下缓存行为确定、可断言
+function installDirectCaches() {
   const hadCaches = Object.prototype.hasOwnProperty.call(globalThis, 'caches');
   const previousCaches = globalThis.caches;
-  globalThis.caches = runtime?.caches || previousCaches || getFallbackCaches();
+  globalThis.caches = getFallbackCaches();
 
   return () => {
     if (hadCaches) {
@@ -152,7 +153,7 @@ async function flushWaitUntilQueue(waitUntilQueue) {
 export async function directPageRequest(path, options = {}) {
   const runtime = await getDirectPlatformProxy();
   const waitUntilQueue = [];
-  const restoreCaches = installDirectCaches(runtime);
+  const restoreCaches = installDirectCaches();
 
   try {
     const response = await onRequest({

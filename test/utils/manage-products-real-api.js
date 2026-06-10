@@ -183,10 +183,8 @@ async function readResponsePayload(response) {
   return { json, text };
 }
 
-function shouldFlushDirectWaitUntil(method) {
-  if (!isDirectRealApiTransportEnabled()) return false;
-  const normalizedMethod = String(method || 'GET').toUpperCase();
-  return normalizedMethod !== 'GET' && normalizedMethod !== 'HEAD';
+function shouldFlushDirectWaitUntil() {
+  return isDirectRealApiTransportEnabled();
 }
 
 export async function jsonRequest(path, { method = 'GET', headers = {}, body } = {}) {
@@ -196,7 +194,7 @@ export async function jsonRequest(path, { method = 'GET', headers = {}, body } =
       method,
       headers,
       body,
-      flushWaitUntil: shouldFlushDirectWaitUntil(method),
+      flushWaitUntil: shouldFlushDirectWaitUntil(),
     });
   }
 
@@ -462,6 +460,41 @@ function buildMultipartPayload(fields, headers = {}) {
   };
 }
 
+function toDirectMultipartBlob(value, contentType) {
+  if (typeof Blob !== 'undefined' && value instanceof Blob) {
+    return value;
+  }
+  if (value instanceof ArrayBuffer || ArrayBuffer.isView(value) || typeof value === 'string') {
+    return new Blob([value], { type: contentType || 'application/octet-stream' });
+  }
+  return new Blob([String(value ?? '')], { type: contentType || 'application/octet-stream' });
+}
+
+function appendDirectMultipartField(formData, key, value) {
+  if (value === undefined || value === null) return;
+
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    Object.prototype.hasOwnProperty.call(value, 'value')
+  ) {
+    const contentType = value.contentType || 'application/octet-stream';
+    const filename = value.filename || 'upload.bin';
+    formData.append(key, toDirectMultipartBlob(value.value, contentType), filename);
+    return;
+  }
+
+  formData.append(key, String(value));
+}
+
+function buildDirectMultipartPayload(fields) {
+  const formData = new globalThis.FormData();
+  for (const [key, value] of Object.entries(fields || {})) {
+    appendDirectMultipartField(formData, key, value);
+  }
+  return formData;
+}
+
 export async function multipartRequest(
   path,
   {
@@ -479,6 +512,47 @@ export async function multipartRequest(
     ...withRealApiTestHeaders(extraHeaders || {}),
   };
   if (finalAuth) baseHeaders.Authorization = finalAuth;
+
+  if (isDirectRealApiTransportEnabled()) {
+    const { directPageRequest } = await import('./direct-pages-real-api.js');
+    let response = null;
+    let json = null;
+    let text = null;
+
+    do {
+      const payload = await directPageRequest(path, {
+        method,
+        headers: baseHeaders,
+        body: buildDirectMultipartPayload(fields),
+        flushWaitUntil: true,
+      });
+      response = payload.response;
+      json = payload.json;
+      text = payload.text;
+
+      const shouldRetryRateLimit = response.status === 429;
+      if (!shouldRetryRateLimit) {
+        break;
+      }
+
+      attempts += 1;
+      if (attempts >= 4) {
+        break;
+      }
+
+      await sleep(getRetryDelayMs(response, json, attempts - 1));
+    } while (true);
+
+    if (expectedStatus !== undefined) {
+      assert.strictEqual(
+        response.status,
+        expectedStatus,
+        `Unexpected status for ${method} ${path}: ${response.status}, body=${JSON.stringify(json ?? text ?? null)}`
+      );
+    }
+
+    return { response, json };
+  }
 
   let response = null;
   let json = null;
