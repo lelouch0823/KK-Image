@@ -3,6 +3,9 @@ export declare function getPurchaseOrderCancelledQty(record?: Record<string, unk
 export declare function getPurchaseOrderOrderedQty(record?: Record<string, unknown>): number;
 export declare function getPurchaseOrderOutstandingQty(record?: Record<string, unknown>): number;
 export declare function getPurchaseOrderReceivedQty(record?: Record<string, unknown>): number;
+export declare function createReceiptProgressSummaryBuilder(
+  ctx: { t: (key: string, fallback?: string) => string }
+): (record?: Record<string, any>) => string;
 
-// 运行时 re-export
-export * from '../../shared/utils/purchase-order-projection.js';
+// 运行时 re-export（.js 文件包含实际实现）
+export * from './purchase-order-progress.js';

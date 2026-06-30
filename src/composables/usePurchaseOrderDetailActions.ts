@@ -3,7 +3,7 @@ import {
   normalizeDecimal,
   normalizeNullableDecimal,
   normalizeReceiptQty,
-} from '@/views/purchase-orders/drafts';
+} from '@/utils/purchase-order-constraints';
 
 interface DetailData {
   id: string;

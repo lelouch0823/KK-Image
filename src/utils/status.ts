@@ -1,4 +1,4 @@
-import { getStatusTone, getToneClasses } from '@/design-system/toneContract';
+import { getStatusTone, getToneClasses } from '@/utils/tone-contract';
 
 export const STATUS_OPTIONS: string[] = [
   'pending',

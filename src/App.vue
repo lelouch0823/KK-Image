@@ -40,8 +40,10 @@ import KeyboardShortcutsHelp from '@/components/ui/KeyboardShortcutsHelp.vue';
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts';
 import { useCommandPalette } from '@/composables/useCommandPalette';
 import { useI18n } from '@/composables/useI18n';
+import { setHttpTranslator } from '@/utils/http-core';
 
 const { t } = useI18n();
+setHttpTranslator(t);
 const { register, unregister, attachListener, detachListener } = useKeyboardShortcuts();
 const { toggle: toggleCommandPalette } = useCommandPalette();
 

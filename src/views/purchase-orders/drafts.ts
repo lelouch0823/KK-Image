@@ -1,19 +1,8 @@
-export function normalizeReceiptQty(value: unknown): number {
-  const numeric = Number(value || 0);
-  if (!Number.isFinite(numeric)) return 0;
-  return Math.max(0, Math.trunc(numeric));
-}
+// 从 utils 重新导出，保持向后兼容
+export { normalizeReceiptQty, normalizeDecimal, normalizeNullableDecimal } from '@/utils/purchase-order-constraints';
+export { getSuggestionOrderIds } from '@/utils/purchase-order-request';
 
-export function normalizeDecimal(value: unknown, fallback: number = 0): number {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : fallback;
-}
-
-export function normalizeNullableDecimal(value: unknown): number | null {
-  if (value === '' || value === null || value === undefined) return null;
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
-}
+import { normalizeReceiptQty } from '@/utils/purchase-order-constraints';
 
 export function isReceiptDraftInvalid(entry: Record<string, unknown> = {}): boolean {
   return normalizeReceiptQty(entry.received_qty) > Number(entry.max_receivable || 0);
@@ -34,8 +23,3 @@ export const buildSuggestionMeta = (suggestion: Record<string, unknown>): string
   const brand = String(suggestion?.brand || '').trim();
   return [sku || '-', brand || '-'].join(' · ');
 };
-
-export function getSuggestionOrderIds(suggestion: Record<string, unknown> = {}): string[] {
-  const orderIds = Array.isArray(suggestion.order_ids) ? suggestion.order_ids : [];
-  return [...new Set(orderIds.filter((id): id is string => typeof id === 'string' && id.length > 0))];
-}

@@ -103,6 +103,7 @@ import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { resolvePrimaryProductImageSrc } from './image-resolver';
 import { formatProductStatusLabel } from '@/utils/display-labels';
+import { resolveDisplayStock, resolveAlertThreshold } from '@/utils/product-display';
 
 const { t } = useI18n();
 defineProps({
@@ -118,14 +119,6 @@ defineProps({
 defineEmits(['view', 'edit', 'share']);
 
 const getMainImageSrc = (product) => resolvePrimaryProductImageSrc(product);
-
-const resolveDisplayStock = (product) =>
-  Number(product?.available_quantity ?? product?.available ?? product?.stock_quantity ?? 0);
-
-const resolveAlertThreshold = (product) => {
-  const numeric = Number(product?.alert_threshold);
-  return Number.isFinite(numeric) ? numeric : 10;
-};
 
 const getStatusVariant = (status) => {
   switch (status) {

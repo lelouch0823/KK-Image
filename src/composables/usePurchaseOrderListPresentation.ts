@@ -1,5 +1,5 @@
 import { computed, type ComputedRef } from 'vue';
-import { createReceiptProgressSummaryBuilder } from '@/views/purchase-orders/progress';
+import { createReceiptProgressSummaryBuilder } from '@/utils/purchase-order-progress';
 
 interface StatCard {
   key: string;

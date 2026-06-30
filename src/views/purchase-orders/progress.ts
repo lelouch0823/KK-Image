@@ -1,25 +1,7 @@
-import {
-  getPurchaseOrderCancelledQty,
-  getPurchaseOrderOrderedQty,
-  getPurchaseOrderOutstandingQty,
-  getPurchaseOrderReceivedQty,
-} from '@/utils/purchase-order-progress';
+// 从 utils 重新导出，保持向后兼容
+export { createReceiptProgressSummaryBuilder } from '@/utils/purchase-order-progress';
 
 const toProgressNumber = (value: unknown): number => Number(value || 0);
-
-export const createReceiptProgressSummaryBuilder = ({ t }: { t: (key: string, fallback?: string) => string }) => (record: Record<string, any> = {}): string => {
-  const ordered = getPurchaseOrderOrderedQty(record);
-  const received = getPurchaseOrderReceivedQty(record);
-  const cancelled = getPurchaseOrderCancelledQty(record);
-  const outstanding = getPurchaseOrderOutstandingQty(record);
-
-  const parts = [`${t('purchaseOrder.progress.receivedPrefix', '已到')} ${received} / ${ordered}`];
-  if (cancelled > 0) {
-    parts.push(`${t('purchaseOrder.progress.cancelledPrefix', '取消')} ${cancelled}`);
-  }
-  parts.push(`${t('purchaseOrder.progress.outstandingPrefix', '待收')} ${outstanding}`);
-  return parts.join(' · ');
-};
 
 export const createReceiptMetaBuilder = ({ t, formatDate }: { t: (key: string, fallback?: string) => string; formatDate: (ts: unknown) => string }) => (record: Record<string, any> = {}): string => {
   const parts: string[] = [];

@@ -4,10 +4,15 @@ import { describe, expect, it } from 'vitest';
 
 describe('product inventory projection consumers', () => {
   it('ProductTable prefers projection-backed available quantity fields', () => {
+    // resolveDisplayStock 已提取到 product-display.ts
+    const utilPath = path.resolve(process.cwd(), 'src/utils/product-display.ts');
+    const utilSource = fs.readFileSync(utilPath, 'utf8');
+    expect(utilSource).toContain('available_quantity');
+
+    // ProductTable.vue 通过导入使用
     const filePath = path.resolve(process.cwd(), 'src/components/product/ProductTable.vue');
     const source = fs.readFileSync(filePath, 'utf8');
-
-    expect(source).toContain('available_quantity');
+    expect(source).toContain('product-display');
   });
 
   it('ProductDetail prefers projection-backed available quantity fields', () => {

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex max-h-[80vh] w-80 flex-col overflow-hidden rounded-lg border border-(--border-color) bg-(--bg-card) shadow-xl sm:w-96"
+    class="flex max-h-[80vh] w-80 flex-col overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) shadow-xl sm:w-96"
   >
     <!-- Header -->
     <div
@@ -76,7 +76,7 @@
                 variant="ghost"
                 size="sm"
                 class="text-primary !hidden !size-6 !rounded-full !p-0 group-hover:!inline-flex hover:!bg-(--bg-hover)"
-                title="标记为已读"
+                :title="t('notification.markAsRead', '标记为已读')"
                 @click.stop="markAsRead(item.id)"
               >
                 <template #icon-left>
@@ -124,22 +124,8 @@ onMounted(async () => {
 });
 
 // 处理可能的 JSON 格式翻译包
-const renderText = (val) => {
-  if (!val) return '';
-  if (val.startsWith('{')) {
-    try {
-      const data = JSON.parse(val);
-      if (data.key) {
-        return t(data.key, data);
-      }
-    } catch (_e) {
-      return val;
-    }
-  }
-  // 如果是 key 则翻译，翻译不到则返回原值
-  const translated = t(val);
-  return translated === val ? val : translated;
-};
+import { renderNotificationText } from '@/utils/notification-text';
+const renderText = (val) => renderNotificationText(t, val);
 
 const handleClick = async (item) => {
   if (item.is_read === 0 && canWriteNotifications.value) {

@@ -77,7 +77,6 @@ const salesOrderEntry = computed(() => salesOrderMode.value || 'legacy');
 
 const submitProgress = ref({ step: '', current: 0, total: 0 });
 
-const LOCKED_FIELDS = ORDER_BOUND_SNAPSHOT_FIELDS;
 const COLOR_LABELS = ['color', '颜色', '顏色'];
 const MATERIAL_LABELS = ['material', '材质', '材質'];
 
@@ -89,7 +88,7 @@ const productFetchError = ref('');
 const submitError = ref('');
 const productBindingKey = ref(0);
 
-const disabledFields = computed(() => (boundProduct.value ? LOCKED_FIELDS : []));
+const disabledFields = computed(() => (boundProduct.value ? ORDER_BOUND_SNAPSHOT_FIELDS : []));
 
 const applyInitialPrefill = (data) => {
   if (!boundProduct.value) {

@@ -220,6 +220,7 @@ import { useBreakpoints, breakpointsTailwind } from '@vueuse/core';
 import { resolvePrimaryProductImageSrc } from './image-resolver';
 import { getProductStatusVariant } from '@/utils/product-status';
 import { formatProductStatusLabel } from '@/utils/display-labels';
+import { resolveDisplayStock, resolveAlertThreshold } from '@/utils/product-display';
 
 const { t } = useI18n();
 defineProps({
@@ -288,14 +289,6 @@ const columns = computed(() => [
 // Column `key` is mostly for slot naming.
 
 const getMainImageSrc = (product) => resolvePrimaryProductImageSrc(product);
-
-const resolveDisplayStock = (product) =>
-  Number(product?.available_quantity ?? product?.available ?? product?.stock_quantity ?? 0);
-
-const resolveAlertThreshold = (product) => {
-  const numeric = Number(product?.alert_threshold);
-  return Number.isFinite(numeric) ? numeric : 10;
-};
 
 const getStockColor = (p) => {
   const qty = resolveDisplayStock(p);

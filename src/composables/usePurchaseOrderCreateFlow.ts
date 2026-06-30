@@ -1,7 +1,7 @@
 import { computed, type ComputedRef } from 'vue';
 import { reconcileVariantSelection } from '@/utils/purchase-order-variant-selection';
-import { getSuggestionOrderIds } from '@/views/purchase-orders/drafts';
 import {
+  getSuggestionOrderIds,
   buildCreatePurchaseItemsPayload,
   getCreateFlowSourceItems,
   getExistingBrands,
@@ -9,7 +9,7 @@ import {
   getSelectedVariantIdsForPicker,
   getShortageItems,
   getTotalCreateQty,
-} from '@/views/purchase-orders/create-flow';
+} from '@/utils/purchase-order-request';
 
 interface OrderDraft {
   product_id: string | null;

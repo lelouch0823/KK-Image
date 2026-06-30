@@ -39,3 +39,23 @@ export function validateOrderQuantity(quantity: unknown, constraints: OrderConst
     suggestedQuantity: getSuggestedOrderQuantity(qty, { moq, orderStep, packSize }),
   };
 }
+
+/** 将值转为有限数字，非有限时返回 fallback */
+export function normalizeDecimal(value: unknown, fallback: number = 0): number {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+/** 将值转为有限数字或 null（空值返回 null） */
+export function normalizeNullableDecimal(value: unknown): number | null {
+  if (value === '' || value === null || value === undefined) return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+/** 将值转为非负整数（收货数量专用） */
+export function normalizeReceiptQty(value: unknown): number {
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.max(0, Math.trunc(numeric));
+}

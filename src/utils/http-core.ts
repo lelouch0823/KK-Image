@@ -9,6 +9,15 @@ import { AppError } from './app-error';
 
 const DEFAULT_TIMEOUT = 30000; // 30 秒
 
+// 翻译函数注入（避免 utils 层依赖 composable）
+type TranslateFn = (key: string, fallback?: string) => string;
+let _t: TranslateFn | null = null;
+
+/** 注入翻译函数，应在应用初始化时调用 */
+export function setHttpTranslator(t: TranslateFn): void {
+  _t = t;
+}
+
 /**
  * 发送 HTTP 请求
  *
@@ -47,7 +56,7 @@ export async function request(
   } catch (error: unknown) {
     // 将 AbortError（超时触发）转为更友好的错误格式
     if (error instanceof Error && error.name === 'AbortError' && shouldTimeout) {
-      const err = new AppError('请求超时', 0);
+      const err = new AppError(_t ? _t('http.timeout', '请求超时') : '请求超时', 0);
       err.code = 'TIMEOUT';
       throw err;
     }

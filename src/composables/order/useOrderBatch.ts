@@ -233,7 +233,7 @@ export function useOrderBatch(
             <html>
             <head>
                 <meta charset="utf-8">
-                <title>订单打印</title>
+                <title>${t('order.print.title', '订单打印')}</title>
                 <style>
                     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; }
                     h1 { font-size: 18px; margin-bottom: 16px; }
@@ -248,17 +248,17 @@ export function useOrderBatch(
                 </style>
             </head>
             <body>
-                <h1>订单列表</h1>
-                <p class="meta">打印时间: ${new Date().toLocaleString()} | 共 ${orders.length} 个订单</p>
+                <h1>${t('order.print.orderList', '订单列表')}</h1>
+                <p class="meta">${t('order.print.printTime', '打印时间')}: ${new Date().toLocaleString()} | ${`共 ${orders.length} 个订单`}</p>
                 <table>
                     <thead>
                         <tr>
-                            <th>订单编号</th>
-                            <th>商品名称</th>
-                            <th>状态</th>
-                            <th>数量</th>
-                            <th>销售员</th>
-                            <th>创建时间</th>
+                            <th>${t('order.print.orderNo', '订单编号')}</th>
+                            <th>${t('order.print.productName', '商品名称')}</th>
+                            <th>${t('order.print.status', '状态')}</th>
+                            <th>${t('order.print.quantity', '数量')}</th>
+                            <th>${t('order.print.salesperson', '销售员')}</th>
+                            <th>${t('order.print.createdAt', '创建时间')}</th>
                         </tr>
                     </thead>
                     <tbody>

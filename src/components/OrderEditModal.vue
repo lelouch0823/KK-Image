@@ -268,9 +268,8 @@ const canEditQuantity = computed(() =>
 );
 
 // 绑定商品后锁定的字段
-const LOCKED_FIELDS = ORDER_BOUND_SNAPSHOT_FIELDS;
 const disabledFields = computed(() => {
-  const fields = boundProduct.value ? [...LOCKED_FIELDS] : [];
+  const fields = boundProduct.value ? [...ORDER_BOUND_SNAPSHOT_FIELDS] : [];
   if (!canEditQuantity.value) fields.push('quantity');
   return fields;
 });
