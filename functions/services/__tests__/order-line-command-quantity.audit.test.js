@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const ROOT = process.cwd();
 const TARGETS = [
   {
-    file: path.join(ROOT, 'functions', 'services', 'OrderLineFulfillmentService.js'),
+    file: path.join(ROOT, 'functions', 'services', 'OrderLineFulfillmentService', 'index.js'),
     helperName: 'normalizeQuantity',
   },
   {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BadRequestError } from '../../lib/hono/errors.js';
-import { OrderLineFulfillmentService } from '../OrderLineFulfillmentService.js';
+import { OrderLineFulfillmentService } from '../OrderLineFulfillmentService/index.js';
 
 function createDbHarness({
   orderLineRow = {

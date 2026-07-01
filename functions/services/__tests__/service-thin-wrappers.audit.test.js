@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { DemandService } from '../DemandService.js';
-import { OrderLineFulfillmentService } from '../OrderLineFulfillmentService.js';
+import { OrderLineFulfillmentService } from '../OrderLineFulfillmentService/index.js';
 import { OrderProcurementDomainService } from '../OrderProcurementDomainService.js';
 import { OrderProcurementReceiptReversalService } from '../OrderProcurementReceiptReversalService.js';
 import { PurchaseOrderShortageClosureService } from '../PurchaseOrderShortageClosureService.js';

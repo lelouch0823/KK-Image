@@ -29,7 +29,7 @@ describe('procurement architecture guards', () => {
   });
 
   it('refreshes demand projections through the shared refresh service instead of direct repo writes', () => {
-    const fulfillmentSource = readSource('functions/services/OrderLineFulfillmentService.js');
+    const fulfillmentSource = readSource('functions/services/OrderLineFulfillmentService/index.js');
     const receiptSource = readSource('functions/services/OrderProcurementDomainService.js');
     const reversalSource = readSource(
       'functions/services/OrderProcurementReceiptReversalService.js'
