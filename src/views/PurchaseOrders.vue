@@ -307,16 +307,11 @@ import {
   ref,
   reactive,
   computed,
-  onActivated,
-  onDeactivated,
-  onMounted,
-  onUnmounted,
-  watch,
 } from 'vue';
 
 // 文件预览统一走公开文件路由，避免子组件各自拼接路径。
 const getFileUrl = (id) => `/file/${id}`;
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { usePurchaseOrders } from '@/composables/usePurchaseOrders';
 import { usePurchaseOrderModals } from '@/composables/usePurchaseOrderModals';
@@ -327,7 +322,6 @@ import { usePurchaseOrderDetailPresentation } from '@/composables/usePurchaseOrd
 import { usePurchaseOrderSuggestionPresentation } from '@/composables/usePurchaseOrderSuggestionPresentation';
 import { useToast } from '@/composables/useToast';
 import { useFormDraft } from '@/composables/useFormDraft';
-import { useAI } from '@/composables/useAI';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import { CURRENCY_OPTIONS } from '@/constants/currency';
 import { validateOrderQuantity } from '@/utils/purchase-order-constraints';
@@ -337,13 +331,8 @@ import {
 } from '@/utils/purchase-order-progress';
 import { formatCurrency as formatMoney } from '@/utils/formatters';
 import { formatDate } from '@/utils/formatters';
-import { createReceiptMetaBuilder, hasReceiptMeta } from '@/views/purchase-orders/progress';
-import {
-  createPurchaseOrderSteps,
-  getStepIconClasses,
-  getStepperProgress,
-  isStepCompleted,
-} from '@/views/purchase-orders/stepper';
+import { createReceiptMetaBuilder } from '@/views/purchase-orders/progress';
+import { createPurchaseOrderSteps } from '@/views/purchase-orders/stepper';
 import {
   buildSuggestionMeta,
   buildSuggestionVariantLabel,
@@ -366,6 +355,8 @@ import AppButton from '@/components/ui/AppButton.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import { ErrorCode } from '@/utils/error-codes';
+import { usePurchaseOrderPageLifecycle } from '@/views/purchase-orders/usePurchaseOrderPageLifecycle';
+import { createDetailHelpers } from '@/views/purchase-orders/detailHelpers';
 
 // 页面级基础依赖：国际化、路由、toast、AI 上下文、刷新总线。
 const { t } = useI18n();
@@ -401,9 +392,7 @@ const {
 } = usePurchaseOrders();
 
 const route = useRoute();
-const router = useRouter();
 const { addToast } = useToast();
-const { setContext } = useAI();
 const { subscribeModule } = useAppRefreshBus();
 
 // 纯 UI/模态状态统一收拢在 modal composable，避免页面本体被局部开关淹没。
@@ -439,7 +428,6 @@ const createForm = reactive({
 const poItems = reactive([]);
 const selectedSuggestions = ref([]);
 const detailRequestId = ref('');
-let stopPurchaseOrdersRefreshSubscription = null;
 
 // 采购单草稿自动保存
 const poDraftDataSource = reactive({
@@ -694,21 +682,16 @@ const {
 });
 
 // 详情抽屉需要的一组展示 helper 集中打包传入，避免子组件直接依赖页面外部实现。
-const detailHelpers = {
+const detailHelpers = createDetailHelpers({
   formatInteger,
   formatPurchaseCurrency,
   formatDate,
-  formatDateTime: formatDate,
   getProgressStatusLabel,
   getProgressStatusVariant,
   buildReceiptProgressSummary,
   buildReceiptMeta,
-  getStepperProgress,
-  getStepIconClasses,
-  isStepCompleted,
-  hasReceiptMeta,
   canReverseReceipt,
-};
+});
 
 const normalizeDetailItemUpdateValue = (field, value) => {
   if (field !== 'quantity' && field !== 'unit_cost') return value;
@@ -738,119 +721,26 @@ const handleDetailRemoveItem = async (itemId) => {
   }
 };
 
-// 页面挂载后订阅采购单模块刷新事件。
-// 只有在未打开抽屉时才静默刷新 overview，避免打断用户正在编辑的上下文。
-onMounted(() => {
-  stopPurchaseOrdersRefreshSubscription = subscribeModule('purchaseOrders', async () => {
-    if (!showCreateModal.value && !showDetail.value) {
-      await loadPurchaseOrderOverview();
-    }
-  });
-});
-
-// keep-alive 激活时重新拉取概览。
-// 如果 URL 上带了 id，则自动恢复详情抽屉。
-onActivated(async () => {
-  await loadPurchaseOrderOverview();
-
-  if (route.query.id) {
-    const targetId = route.query.id;
-    openDetail(targetId);
-  }
-});
-
-// 详情抽屉关闭时，负责清理路由 query 和各种明细弹层状态。
-watch(showDetail, (isOpen) => {
-  if (!isOpen && route.query.id) {
-    const newQuery = { ...route.query };
-    delete newQuery.id;
-    router.replace({ path: route.path, query: newQuery });
-  }
-  if (!isOpen) {
-    resetCostModalState();
-    resetReceiptModalState();
-    resetReceiptReversalState();
-  }
-});
-
-// 智能建议每次打开都重新清空勾选并拉取，关闭时也做清理，避免脏选择遗留。
-watch(showSuggestions, (v) => {
-  if (v) {
-    selectedSuggestions.value = [];
-    loadSuggestions();
-    return;
-  }
-  selectedSuggestions.value = [];
-});
-
-// 采购单创建弹窗关闭时清除草稿（创建成功或取消后表单已被重置）
-watch(showCreateModal, (isOpen) => {
-  if (!isOpen && hasPoDraft.value) {
-    clearPoDraft();
-  }
-});
-
-const detailFocusedVariantId = computed(() => getDetailFocusedVariantId(detail.value));
-
-// 把当前采购上下文同步到 AI：
-// 商品选择器优先，其次是显式商品详情，再其次是详情抽屉聚焦的变体，最后才回退到路由 query。
-watch(
-  [
-    showProductPicker,
-    selectedVariantIdsForPicker,
-    viewProductId,
-    showDetail,
-    detailFocusedVariantId,
-    () => route.query.variantId,
-  ],
-  ([pickerOpen, selectedVariantIds, productId, detailOpen, detailVariantId, routeVariantId]) => {
-    if (pickerOpen) {
-      setContext({
-        selectedId: selectedVariantIds[0] || null,
-        selectedType: 'variant',
-      });
-      return;
-    }
-    if (productId) {
-      setContext({
-        selectedId: productId,
-        selectedType: 'product',
-      });
-      return;
-    }
-    if (detailOpen && detailVariantId) {
-      setContext({
-        selectedId: detailVariantId,
-        selectedType: 'variant',
-      });
-      return;
-    }
-    if (typeof routeVariantId === 'string' && routeVariantId.trim()) {
-      setContext({
-        selectedId: routeVariantId.trim(),
-        selectedType: 'variant',
-      });
-      return;
-    }
-    setContext({
-      selectedId: null,
-      selectedType: null,
-    });
-  }
-);
-
-// 页面失活时清空 AI 上下文，避免其它页面继承采购单的上下文对象。
-onDeactivated(() => {
-  setContext({
-    selectedId: null,
-    selectedType: null,
-  });
-});
-
-// 页面销毁时显式退订刷新总线，避免重复订阅。
-onUnmounted(() => {
-  stopPurchaseOrdersRefreshSubscription?.();
-  stopPurchaseOrdersRefreshSubscription = null;
+// 生命周期、订阅与 AI 上下文同步全部下沉到独立 composable。
+usePurchaseOrderPageLifecycle({
+  subscribeModule,
+  loadPurchaseOrderOverview,
+  loadSuggestions,
+  openDetail,
+  showDetail,
+  showCreateModal,
+  showSuggestions,
+  showProductPicker,
+  viewProductId,
+  selectedVariantIdsForPicker,
+  selectedSuggestions,
+  detail,
+  getDetailFocusedVariantId,
+  hasPoDraft,
+  clearPoDraft,
+  resetCostModalState,
+  resetReceiptModalState,
+  resetReceiptReversalState,
 });
 </script>
 
