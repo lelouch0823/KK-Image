@@ -5,6 +5,8 @@
  * 提供跨模块的统计数据查询，供 AI 助手使用。
  */
 
+import { MS_PER_DAY } from '../api/utils/constants.js';
+
 export class SystemStatsRepository {
   constructor(db) {
     this.db = db;
@@ -22,7 +24,7 @@ export class SystemStatsRepository {
           `SELECT COUNT(*) as count FROM customers 
            WHERE created_at >= ?`
         )
-        .bind(Date.now() - 7 * 24 * 60 * 60 * 1000) // 最近7天
+        .bind(Date.now() - 7 * MS_PER_DAY) // 最近7天
         .first(),
     ]);
 

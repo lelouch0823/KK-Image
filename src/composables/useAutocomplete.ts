@@ -1,5 +1,6 @@
 import { ref, watch, onUnmounted, type Ref } from 'vue';
 import { useAuth } from '@/composables/useAuth';
+import { useI18n } from '@/composables/useI18n';
 
 interface AutocompleteOptions<T = unknown> {
   /** 搜索 API 路径，如 '/api/manage/customers/suggest' */
@@ -26,6 +27,7 @@ export function useAutocomplete<T = unknown>(options: AutocompleteOptions<T>) {
   const { fetchUrl, minChars = 2, debounce = 300, mapItem } = options;
 
   const { authFetch } = useAuth();
+  const { t } = useI18n();
 
   const suggestions: Ref<SuggestionItem<T>[]> = ref([]);
   const loading = ref(false);
@@ -76,7 +78,7 @@ export function useAutocomplete<T = unknown>(options: AutocompleteOptions<T>) {
       // 忽略被取消的请求
       if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('Autocomplete fetch error:', err);
-      error.value = (err as Error).message || '搜索失败';
+      error.value = (err as Error).message || t('autocomplete.searchFailed', '搜索失败');
       suggestions.value = [];
     } finally {
       loading.value = false;

@@ -142,7 +142,7 @@ const props = defineProps({
       completion: {
         status: 'empty',
         tone: 'neutral',
-        label: '空白行',
+        label: '',
       },
     }),
   },
@@ -155,7 +155,7 @@ const isBindingLocked = computed(() =>
   Boolean(props.modelValue.productId || props.modelValue.variantId)
 );
 const status = computed(() => props.state?.completion?.status || 'empty');
-const statusLabel = computed(() => props.state?.completion?.label || '空白行');
+const statusLabel = computed(() => props.state?.completion?.label || t('order.form.blankLine', '空白行'));
 const cardTone = computed(() => props.state?.completion?.tone || 'neutral');
 const statusBadgeClass = computed(() => {
   if (status.value === 'ready') {

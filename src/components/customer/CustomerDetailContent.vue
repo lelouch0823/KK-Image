@@ -295,11 +295,12 @@
         <div v-if="currentTab === 'tags'" class="space-y-4">
           <!-- 添加标签 -->
           <div class="flex gap-2">
-            <input
+            <AppInput
               v-model="newTagName"
               type="text"
               :placeholder="t('customer.detail.tagInputPlaceholder')"
-              class="flex-1 rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) placeholder-(--text-muted) focus:border-(--color-primary) focus:outline-none focus:ring-1 focus:ring-(--color-primary)"
+              size="sm"
+              class="flex-1"
               @keydown.enter="handleAddTag"
             />
             <AppButton
@@ -378,20 +379,18 @@
           <AppCard padding="p-4">
             <div class="space-y-3">
               <div class="flex items-center gap-2">
-                <select
+                <Select
                   v-model="newCommType"
-                  class="rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none focus:ring-1 focus:ring-(--color-primary)"
-                >
-                  <option v-for="opt in commTypeOptions" :key="opt.value" :value="opt.value">
-                    {{ opt.label }}
-                  </option>
-                </select>
+                  :options="commTypeOptions"
+                  size="sm"
+                />
               </div>
-              <textarea
+              <AppInput
                 v-model="newCommContent"
+                textarea
                 :placeholder="t('customer.detail.communicationPlaceholder')"
                 rows="3"
-                class="w-full rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) placeholder-(--text-muted) focus:border-(--color-primary) focus:outline-none focus:ring-1 focus:ring-(--color-primary)"
+                size="sm"
               />
               <div class="flex justify-end">
                 <AppButton
@@ -495,6 +494,8 @@ import ActionBar from '@/design-system/composed/ActionBar.vue';
 import MetricTile from '@/design-system/composed/MetricTile.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppCard from '@/components/ui/AppCard.vue';
+import AppInput from '@/components/ui/AppInput.vue';
+import Select from '@/components/ui/Select.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';

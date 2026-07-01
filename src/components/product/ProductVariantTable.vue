@@ -189,7 +189,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
-import { hasEntries } from '@/utils/object-utils';
+import { formatVariantName } from '@/utils/product';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
@@ -282,9 +282,4 @@ const parseNumberInput = (rawValue) => {
   return Number.isFinite(numberValue) ? numberValue : rawValue;
 };
 
-const formatVariantName = (optionsValues) => {
-  if (!hasEntries(optionsValues)) return 'Default';
-  const keys = Object.keys(optionsValues).sort();
-  return keys.map((key) => optionsValues[key]).join(' · ');
-};
 </script>

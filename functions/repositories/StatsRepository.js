@@ -4,6 +4,7 @@
  */
 
 import { chinaDateExpr } from '../lib/db/date-sql.js';
+import { MS_PER_DAY } from '../api/utils/constants.js';
 
 export class StatsRepository {
   constructor(db) {
@@ -14,7 +15,7 @@ export class StatsRepository {
    * 获取系统核心统计数据
    */
   async getGlobalStats(todayStart) {
-    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const thirtyDaysAgo = Date.now() - 30 * MS_PER_DAY;
 
     const [
       counts,

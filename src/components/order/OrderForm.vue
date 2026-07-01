@@ -511,7 +511,8 @@ const handleSubmit = async () => {
       addToast({
         message: t(
           'order.form.pendingLines',
-          `还有 ${summaryMetrics.value.pendingLineCount} 行待完善`
+          '还有 {count} 行待完善',
+          { count: summaryMetrics.value.pendingLineCount }
         ),
         type: 'warning',
       });

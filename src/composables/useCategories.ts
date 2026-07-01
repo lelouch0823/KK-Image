@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import { useResource, type ApiResponse } from './useResource';
+import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 
 /** 分类节点 */
@@ -22,6 +23,7 @@ export interface CategoryPayload {
 }
 
 export function useCategories() {
+  const { t } = useI18n();
   const resource = useResource<CategoryNode>(API.MANAGE_CATEGORIES);
   const categories = ref<CategoryNode[]>([]);
   const tree = ref<CategoryNode[]>([]);
@@ -39,10 +41,10 @@ export function useCategories() {
       if (res.success) {
         categories.value = (res.data as CategoryNode[]) || [];
       } else {
-        error.value = res.error || '加载分类失败';
+        error.value = res.error || t('category.loadFailed', '加载分类失败');
       }
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : '加载分类失败';
+      error.value = e instanceof Error ? e.message : t('category.loadFailed', '加载分类失败');
     } finally {
       loading.value = false;
     }
@@ -59,10 +61,10 @@ export function useCategories() {
       if (res.success) {
         tree.value = (res.data as CategoryNode[]) || [];
       } else {
-        error.value = res.error || '加载分类树失败';
+        error.value = res.error || t('category.loadTreeFailed', '加载分类树失败');
       }
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : '加载分类树失败';
+      error.value = e instanceof Error ? e.message : t('category.loadTreeFailed', '加载分类树失败');
     } finally {
       loading.value = false;
     }
@@ -81,10 +83,10 @@ export function useCategories() {
         await loadCategories();
         return res.data as CategoryNode;
       }
-      error.value = res.error || '创建分类失败';
+      error.value = res.error || t('category.createFailed', '创建分类失败');
       return null;
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : '创建分类失败';
+      error.value = e instanceof Error ? e.message : t('category.createFailed', '创建分类失败');
       return null;
     }
   };
@@ -102,10 +104,10 @@ export function useCategories() {
         await loadCategories();
         return true;
       }
-      error.value = res.error || '更新分类失败';
+      error.value = res.error || t('category.updateFailed', '更新分类失败');
       return false;
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : '更新分类失败';
+      error.value = e instanceof Error ? e.message : t('category.updateFailed', '更新分类失败');
       return false;
     }
   };
@@ -122,10 +124,10 @@ export function useCategories() {
         await loadCategories();
         return true;
       }
-      error.value = res.error || '删除分类失败';
+      error.value = res.error || t('category.deleteFailed', '删除分类失败');
       return false;
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : '删除分类失败';
+      error.value = e instanceof Error ? e.message : t('category.deleteFailed', '删除分类失败');
       return false;
     }
   };

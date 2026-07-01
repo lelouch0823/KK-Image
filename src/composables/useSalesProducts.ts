@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { useAuth } from '@/composables/useAuth';
+import type { PaginationMeta } from '@/composables/useResource';
 import { API } from '@/utils/constants';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 
@@ -10,14 +11,6 @@ interface SalesProduct {
   sku?: string;
   price?: number;
   image?: string;
-  [key: string]: unknown;
-}
-
-/** 分页元数据接口 */
-interface PaginationMeta {
-  total: number;
-  page: number;
-  limit: number;
   [key: string]: unknown;
 }
 

@@ -4,7 +4,7 @@ import {
   getPurchaseOrderOutstandingQty,
   getPurchaseOrderReceivedQty,
   projectPurchaseOrderDisplayStatus,
-} from '../services/purchase-order-projection.js';
+} from '../../shared/utils/purchase-order-projection.js';
 
 export function toNumber(value) {
   const n = Number(value);

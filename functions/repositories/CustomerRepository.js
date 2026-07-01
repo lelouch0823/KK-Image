@@ -3,6 +3,7 @@ import { safeJsonParse } from '../api/utils/json.js';
 import { hasChanges } from '../api/utils/result.js';
 import { buildSetClause } from '../api/utils/sql.js';
 import { checkFtsTable, sanitizeFts5Query } from '../api/utils/fts.js';
+import { MS_PER_DAY } from '../api/utils/constants.js';
 /**
  * 客户仓库
  * 处理客户的 CRUD 和数据转换
@@ -268,7 +269,7 @@ export class CustomerRepository {
             .first();
         const now = Date.now();
         const lastOrderAt = stats.last_order_at || null;
-        const recencyDays = lastOrderAt ? Math.floor((now - lastOrderAt) / (24 * 60 * 60 * 1000)) : null;
+        const recencyDays = lastOrderAt ? Math.floor((now - lastOrderAt) / MS_PER_DAY) : null;
         return {
             orderCount: stats.order_count || 0,
             firstOrderAt: stats.first_order_at || null,
@@ -344,7 +345,7 @@ export class CustomerRepository {
         for (const row of results) {
             const orderCount = row.order_count || 0;
             const lastOrderAt = row.last_order_at || null;
-            const recencyDays = lastOrderAt ? Math.floor((now - lastOrderAt) / (24 * 60 * 60 * 1000)) : null;
+            const recencyDays = lastOrderAt ? Math.floor((now - lastOrderAt) / MS_PER_DAY) : null;
             const segment = classifyRfmSegment(orderCount, recencyDays);
             segmentMap.set(row.customer_id, { segment, orderCount, lastOrderAt, recencyDays });
         }

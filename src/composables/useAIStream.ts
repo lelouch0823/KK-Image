@@ -238,7 +238,7 @@ export function useAIStream() {
             isStreaming.value = true;
 
             if (!response.body) {
-                throw new Error('响应体为空，无法读取流数据');
+                throw new Error(t('ai.streamEmptyBody', '响应体为空，无法读取流数据'));
             }
             const reader = response.body.getReader();
             const decoder = new TextDecoder();

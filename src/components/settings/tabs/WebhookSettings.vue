@@ -80,15 +80,12 @@
 
       <!-- 筛选栏 -->
       <div class="mb-4 flex flex-wrap items-center gap-2">
-        <select
+        <Select
           v-model="logFilter.success"
-          class="bg-(--bg-input) border-(--border-color) text-primary rounded-lg border px-3 py-1.5 text-sm"
+          :options="logFilterOptions"
+          size="sm"
           @change="loadLogs"
-        >
-          <option value="">{{ t('settings.webhooks.allStatus', '全部状态') }}</option>
-          <option value="1">{{ t('settings.webhooks.success', '成功') }}</option>
-          <option value="0">{{ t('settings.webhooks.failed', '失败') }}</option>
-        </select>
+        />
         <AppButton variant="ghost" size="sm" @click="loadLogs">
           <template #icon-left>
             <AppIcon name="arrow-path" class="size-4" />
@@ -194,13 +191,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import SettingsSection from '@/components/settings/SettingsSection.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import Select from '@/components/ui/Select.vue';
 import { formatDate } from '@/utils/formatters';
 import { formatDomainEventType } from '@/utils/event-display';
 
@@ -221,6 +219,12 @@ const logFilter = ref({
   limit: 20,
   offset: 0,
 });
+
+const logFilterOptions = computed(() => [
+  { value: '', label: t('settings.webhooks.allStatus', '全部状态') },
+  { value: '1', label: t('settings.webhooks.success', '成功') },
+  { value: '0', label: t('settings.webhooks.failed', '失败') },
+]);
 
 function formatWebhookEventList(events = []) {
   if (!events.length) return t('settings.webhooks.allEvents', '所有事件');

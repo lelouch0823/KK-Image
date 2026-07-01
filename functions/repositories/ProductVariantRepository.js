@@ -4,7 +4,7 @@ import { parseRepoPagination } from '../api/utils/pagination.js';
 import { hasChanges } from '../api/utils/result.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
-const D1_MAX_IN_CLAUSE_SIZE = 98;
+import { D1_MAX_IN_CLAUSE_SIZE } from '../api/utils/constants.js';
 const normalizeAlertThreshold = (value, fallback = 10) => {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : fallback;

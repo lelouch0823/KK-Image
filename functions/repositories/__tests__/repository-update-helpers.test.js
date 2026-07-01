@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CustomerRepository } from '../CustomerRepository.ts';
+import { CustomerRepository } from '../CustomerRepository.js';
 import { SalespersonRepository } from '../SalespersonRepository.js';
 import { FileRepository } from '../FileRepository.js';
 

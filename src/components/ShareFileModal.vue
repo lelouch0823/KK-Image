@@ -9,7 +9,7 @@
     <div>
       <!-- File Info -->
       <div
-        class="mb-6 flex items-center gap-3 rounded-lg border border-(--border-color) bg-(--bg-muted) p-3"
+        class="mb-6 flex items-center gap-3 rounded-2xl border border-(--border-color) bg-(--bg-muted) p-3"
       >
         <div class="rounded-md border border-(--border-color) bg-(--bg-card) p-2 shadow-sm">
           <AppImage

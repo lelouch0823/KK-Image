@@ -3,6 +3,7 @@ import { FolderRepository } from '../repositories/FolderRepository.js';
 import { OrderStatsRepository } from '../repositories/OrderStatsRepository.js';
 import { StatsRepository } from '../repositories/StatsRepository.js';
 import { SystemStatsProjectionRepository } from '../repositories/SystemStatsProjectionRepository.js';
+import { MS_PER_DAY } from '../api/utils/constants.js';
 
 export const STATS_PROJECTION_SCOPES = {
   MANAGE_STATS: 'manage.stats',
@@ -33,7 +34,7 @@ export class SystemStatsProjectionRefreshService {
   async refreshManageStats() {
     const generatedAt = new Date(this.now()).toISOString();
     const todayStart = getChinaDayStart();
-    const ninetyDaysAgo = todayStart - 89 * 24 * 60 * 60 * 1000;
+    const ninetyDaysAgo = todayStart - 89 * MS_PER_DAY;
 
     const [
       data,
@@ -104,9 +105,9 @@ export class SystemStatsProjectionRefreshService {
   async refreshDashboardOverview() {
     const generatedAt = new Date(this.now()).toISOString();
     const todayStartTimestamp = getChinaDayStart();
-    const weekStartTimestamp = todayStartTimestamp - 6 * 24 * 60 * 60 * 1000;
-    const lastWeekStartTimestamp = weekStartTimestamp - 7 * 24 * 60 * 60 * 1000;
-    const thirtyDaysAgo = todayStartTimestamp - 29 * 24 * 60 * 60 * 1000;
+    const weekStartTimestamp = todayStartTimestamp - 6 * MS_PER_DAY;
+    const lastWeekStartTimestamp = weekStartTimestamp - 7 * MS_PER_DAY;
+    const thirtyDaysAgo = todayStartTimestamp - 29 * MS_PER_DAY;
     const now = this.now();
 
     const [

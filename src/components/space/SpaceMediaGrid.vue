@@ -13,7 +13,7 @@
       >
         <AppImage
           :src="imgSrc"
-          :alt="`商品图 ${index + 1}`"
+          :alt="t('space.mediaGrid.productImageN', '商品图 {n}', { n: index + 1 })"
           class="size-full opacity-90 transition-opacity hover:opacity-100"
           fit="cover"
           rounded="none"
@@ -41,7 +41,7 @@
         <AppImage
           v-if="isImageFile(file)"
           :src="file.url"
-          :alt="file.name || '空间文件'"
+          :alt="file.name || t('space.mediaGrid.spaceFile', '空间文件')"
           :blurhash="file.blurhash"
           class="size-full"
           fit="cover"

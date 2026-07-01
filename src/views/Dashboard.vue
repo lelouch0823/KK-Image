@@ -19,7 +19,6 @@
           <PermissionDeniedState
             :reason="dashboardError"
             home-to="/admin/forbidden"
-            home-text="查看权限说明"
             @retry="fetchDashboardData"
           />
         </div>

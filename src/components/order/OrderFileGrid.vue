@@ -11,7 +11,7 @@
         >
           <AppImage
             :src="file.url"
-            :alt="file.name || '订单文件'"
+            :alt="file.name || t('order.files', '订单文件')"
             :blurhash="file.blurhash"
             fit="cover"
             class="size-full"

@@ -45,7 +45,7 @@
           <AppImage
             v-if="row.mainImage"
             :src="row.mainImage"
-            :alt="row.productName || '商品图片'"
+            :alt="row.productName || t('order.productImage', '商品图片')"
             :blurhash="row.mainImageBlurhash"
             fit="cover"
             class="size-full"

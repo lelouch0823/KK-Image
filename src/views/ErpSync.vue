@@ -11,18 +11,19 @@
 
     <template #content>
       <!-- 加载状态 -->
-      <div v-if="loading" class="flex items-center justify-center py-12">
-        <AppIcon name="spinner" class="size-6 animate-spin text-(--text-muted)" />
-        <span class="ml-2 text-(--text-muted)">{{ t('erpSync.loading') }}</span>
+      <div v-if="loading" class="space-y-4">
+        <Skeleton v-for="i in 3" :key="i" class="h-28 rounded-2xl" />
       </div>
 
       <!-- 空状态 -->
       <div
         v-else-if="connections.length === 0"
-        class="flex flex-col items-center justify-center py-12"
+        class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8"
       >
-        <AppIcon name="cloud-arrow-up" class="size-12 text-(--text-muted)" />
-        <p class="mt-3 text-(--text-muted)">{{ t('erpSync.empty') }}</p>
+        <EmptyState
+          icon="cloud-arrow-up"
+          :title="t('erpSync.empty')"
+        />
       </div>
 
       <!-- 连接列表 -->
@@ -30,22 +31,15 @@
         <div
           v-for="conn in connections"
           :key="conn.id"
-          class="rounded-lg border border-(--border-color) bg-(--bg-card) p-4"
+          class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1">
               <div class="flex items-center gap-2">
                 <h3 class="text-sm font-medium text-(--text-main)">{{ conn.name }}</h3>
-                <span
-                  :class="[
-                    'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                    conn.enabled
-                      ? 'bg-success/10 text-success'
-                      : 'bg-(--color-muted-bg) text-(--text-muted)',
-                  ]"
-                >
+                <StatusBadge :variant="conn.enabled ? 'success' : 'neutral'" :outline="!conn.enabled">
                   {{ conn.enabled ? t('erpSync.enabled') : t('erpSync.status') }}
-                </span>
+                </StatusBadge>
                 <span class="rounded bg-(--bg-hover) px-1.5 py-0.5 text-xs text-(--text-muted)">
                   {{ translatedLabel('erpSync.adapter', conn.adapterType) }}
                 </span>
@@ -203,16 +197,11 @@
             <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{
               t('erpSync.adapterType')
             }}</label>
-            <select
+            <Select
               v-model="form.adapterType"
-              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
-            >
-              <option value="generic">{{ t('erpSync.adapter.generic') }}</option>
-              <option value="rest">{{ t('erpSync.adapter.rest') }}</option>
-              <option value="kingdee">{{ t('erpSync.adapter.kingdee') }}</option>
-              <option value="yonyou">{{ t('erpSync.adapter.yonyou') }}</option>
-              <option value="sap">{{ t('erpSync.adapter.sap') }}</option>
-            </select>
+              :options="adapterTypeOptions"
+              size="sm"
+            />
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{
@@ -229,14 +218,11 @@
             <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{
               t('erpSync.authType')
             }}</label>
-            <select
+            <Select
               v-model="form.authType"
-              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
-            >
-              <option value="api_key">{{ t('erpSync.auth.api_key') }}</option>
-              <option value="basic">{{ t('erpSync.auth.basic') }}</option>
-              <option value="oauth2">{{ t('erpSync.auth.oauth2') }}</option>
-            </select>
+              :options="authTypeOptions"
+              size="sm"
+            />
           </div>
           <div v-if="form.authType === 'api_key'">
             <label class="mb-1 block text-xs font-medium text-(--text-muted)">API Key</label>
@@ -265,14 +251,11 @@
             <label class="mb-1 block text-xs font-medium text-(--text-muted)">{{
               t('erpSync.syncDirection')
             }}</label>
-            <select
+            <Select
               v-model="form.syncDirection"
-              class="w-full rounded border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm text-(--text-main) focus:border-(--color-primary) focus:outline-none"
-            >
-              <option value="bidirectional">{{ t('erpSync.direction.bidirectional') }}</option>
-              <option value="push">{{ t('erpSync.direction.push') }}</option>
-              <option value="pull">{{ t('erpSync.direction.pull') }}</option>
-            </select>
+              :options="syncDirectionOptions"
+              size="sm"
+            />
           </div>
         </div>
         <template #footer>
@@ -302,7 +285,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { request } from '@/utils/http-core';
@@ -310,8 +293,12 @@ import ManagementListShell from '@/design-system/patterns/ManagementListShell.vu
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
+import Select from '@/components/ui/Select.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
 import { formatDate } from '@/utils/formatters';
 import { formatReadableLabel } from '@/utils/event-display';
 
@@ -338,6 +325,26 @@ const form = ref({
   credentials: { apiKey: '', username: '', password: '' },
   syncDirection: 'bidirectional',
 });
+
+const adapterTypeOptions = computed(() => [
+  { value: 'generic', label: t('erpSync.adapter.generic') },
+  { value: 'rest', label: t('erpSync.adapter.rest') },
+  { value: 'kingdee', label: t('erpSync.adapter.kingdee') },
+  { value: 'yonyou', label: t('erpSync.adapter.yonyou') },
+  { value: 'sap', label: t('erpSync.adapter.sap') },
+]);
+
+const authTypeOptions = computed(() => [
+  { value: 'api_key', label: t('erpSync.auth.api_key') },
+  { value: 'basic', label: t('erpSync.auth.basic') },
+  { value: 'oauth2', label: t('erpSync.auth.oauth2') },
+]);
+
+const syncDirectionOptions = computed(() => [
+  { value: 'bidirectional', label: t('erpSync.direction.bidirectional') },
+  { value: 'push', label: t('erpSync.direction.push') },
+  { value: 'pull', label: t('erpSync.direction.pull') },
+]);
 
 function resetForm() {
   form.value = {

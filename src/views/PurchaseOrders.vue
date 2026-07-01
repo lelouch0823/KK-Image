@@ -1,18 +1,14 @@
 <template>
   <div class="space-y-6">
     <!-- 无采购单读取权限时，直接展示权限说明并提供重试入口。 -->
-    <div
+    <PermissionDeniedState
       v-if="errorCode === ErrorCode.FORBIDDEN"
-      class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8"
-    >
-      <PermissionDeniedState
-        :title="t('purchaseOrder.permissionDenied')"
-        :description="error || t('purchaseOrder.permissionDeniedDesc')"
-        home-to="/admin/forbidden"
-        :home-text="t('common.viewDetails')"
-        @retry="loadList"
-      />
-    </div>
+      :title="t('purchaseOrder.permissionDenied')"
+      :description="error || t('purchaseOrder.permissionDeniedDesc')"
+      home-to="/admin/forbidden"
+      :home-text="t('common.viewDetails')"
+      @retry="loadList"
+    />
     <template v-else>
       <!-- 列表页主壳：统一承载标题、操作区、内容区。 -->
       <ManagementListShell

@@ -19,7 +19,7 @@
     <button
       v-if="clearable && modelValue"
       type="button"
-      aria-label="清除搜索"
+      :aria-label="t('common.clearSearch', '清除搜索')"
       class="absolute top-1/2 right-2 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center p-1 text-(--text-muted) transition-colors hover:text-(--text-main)"
       @click="clear"
     >
@@ -30,7 +30,10 @@
 
 <script setup>
 import { useId } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 import AppIcon from '@/components/ui/AppIcon.vue';
+
+const { t } = useI18n();
 
 const props = defineProps({
   modelValue: {

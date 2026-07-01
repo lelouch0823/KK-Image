@@ -52,7 +52,7 @@
               { label: t('product.import.ignore', '忽略 (Ignore)'), value: '' },
               ...fileHeaders.map((h) => ({ label: h, value: h })),
             ]"
-            placeholder="选择对应列"
+            :placeholder="t('product.import.selectColumn', '选择对应列')"
             @update:model-value="updateMapping(field.key, $event)"
           />
         </div>

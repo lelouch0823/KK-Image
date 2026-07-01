@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ProductRepository } from '../ProductRepository.ts';
+import { ProductRepository } from '../ProductRepository.js';
 import { clearFtsCache } from '../../api/utils/fts.js';
 
 /** 创建语句 mock（含 first/all/run） */

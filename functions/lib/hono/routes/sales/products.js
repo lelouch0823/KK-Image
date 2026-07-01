@@ -28,7 +28,10 @@ function isSellableSalesVariant(variant = {}) {
 /**
  * GET / - 销售端商品列表（只返回可售商品）
  */
-app.get('/', withCache(20), async (c) => {
+app.get(
+  '/',
+  withCache(20, { condition: (c) => !String(c.req.query('search') || '').trim() }),
+  async (c) => {
   const { env } = c;
   const { page, limit } = parsePagination(c, { limit: 12 });
   const search = c.req.query('search') || '';
@@ -69,7 +72,8 @@ app.get('/', withCache(20), async (c) => {
       totalPages: Math.ceil(resolvedTotal / (result.limit ?? limit)),
     },
   });
-});
+  }
+);
 
 /**
  * GET /:id - 销售端商品详情（含可选变体）

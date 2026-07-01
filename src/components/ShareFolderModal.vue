@@ -9,7 +9,7 @@
     <div>
       <!-- Folder Info -->
       <div
-        class="mb-6 flex items-center gap-3 rounded-lg border border-(--border-color) bg-(--bg-muted) p-3"
+        class="mb-6 flex items-center gap-3 rounded-2xl border border-(--border-color) bg-(--bg-muted) p-3"
       >
         <div class="rounded-md bg-(--bg-card) p-2 shadow-sm">
           <AppIcon name="folder-solid" class="text-warning size-6" />
@@ -25,7 +25,7 @@
       <!-- 🔧 NEW: 显示已有分享链接 -->
       <div
         v-if="existingShareUrl && !shareUrl"
-        class="border-info/20 bg-info-bg mb-6 rounded-lg border p-4"
+        class="border-info/20 bg-info-bg mb-6 rounded-2xl border p-4"
       >
         <div class="mb-2 flex items-center justify-between">
           <span class="text-info-text text-sm font-medium">{{ t('share.existingLink') }}</span>

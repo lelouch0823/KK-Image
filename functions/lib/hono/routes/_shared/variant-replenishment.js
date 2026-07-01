@@ -1,6 +1,5 @@
 import { chunkArray } from '../../../db/batch.js';
-
-const D1_MAX_IN_CLAUSE_SIZE = 100;
+import { D1_MAX_IN_CLAUSE_SIZE } from '../../../../api/utils/constants.js';
 
 export async function loadVariantReplenishmentMap(db, variantIds = []) {
   const normalizedIds = [...new Set((variantIds || []).filter(Boolean))];

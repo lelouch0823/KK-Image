@@ -87,7 +87,7 @@
       <AppImage
         v-if="lightbox.file && isImage(lightbox.file)"
         :src="lightbox.file.url"
-        :alt="lightbox.file.name || '空间图片'"
+        :alt="lightbox.file.name || t('space.masonry.spaceImage', '空间图片')"
         :blurhash="lightbox.file.blurhash"
         fit="contain"
         class="size-full max-h-screen max-w-screen p-4"

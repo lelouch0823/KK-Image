@@ -48,7 +48,7 @@ describe('storeFile - Duplicate Handling', () => {
   const file = new File(['content'], 'test.png', { type: 'image/png' });
   // Polyfill arrayBuffer
   if (!file.arrayBuffer) {
-    file.arrayBuffer = async () => new ArrayBuffer(0);
+    file.arrayBuffer = async () => new TextEncoder().encode('content').buffer;
   }
   // Polyfill stream
   if (!file.stream) {
@@ -120,6 +120,9 @@ describe('storeFile - Duplicate Handling', () => {
 
     expect(result.name).toBe('test.png');
     expect(mockCreate).toHaveBeenCalled();
+    expect(env.R2_BUCKET.put).toHaveBeenCalled();
+    const putBody = env.R2_BUCKET.put.mock.calls[0][1];
+    expect(putBody.byteLength).toBe(file.size);
   });
 
   it('rejects caller-provided contentHash values that are not SHA-256 hex', async () => {

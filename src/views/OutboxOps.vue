@@ -1,21 +1,17 @@
 <template>
-  <div
+  <PermissionDeniedState
     v-if="errorCode === ErrorCode.FORBIDDEN"
-    class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8"
-  >
-    <PermissionDeniedState
-      :title="t('outboxOps.permissionDenied', 'Outbox 运维权限不足')"
-      :description="
-        error ||
-        t(
-          'outboxOps.permissionDeniedDesc',
-          '当前账号没有 outbox 运维读取权限，请联系管理员分配 audit:read。'
-        )
-      "
-      required-permission="audit:read"
-      @retry="fetchEvents"
-    />
-  </div>
+    :title="t('outboxOps.permissionDenied', 'Outbox 运维权限不足')"
+    :description="
+      error ||
+      t(
+        'outboxOps.permissionDeniedDesc',
+        '当前账号没有 outbox 运维读取权限，请联系管理员分配 audit:read。'
+      )
+    "
+    required-permission="audit:read"
+    @retry="fetchEvents"
+  />
   <ManagementListShell
     v-else
     :title="t('outboxOps.title', 'Outbox 运维')"

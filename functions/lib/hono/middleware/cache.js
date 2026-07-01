@@ -34,11 +34,11 @@ function createCacheRequest(url, accept = 'application/json') {
 }
 
 export function withCache(ttlSeconds = 60, options = {}) {
-  const { etagMode = 'off' } = options;
+  const { etagMode = 'off', condition = () => true } = options;
 
   return async (c, next) => {
     // 仅缓存 GET 请求
-    if (c.req.method !== 'GET') {
+    if (c.req.method !== 'GET' || !condition(c)) {
       return next();
     }
 

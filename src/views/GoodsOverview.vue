@@ -1,17 +1,13 @@
 <template>
   <div class="space-y-6">
-    <div
+    <PermissionDeniedState
       v-if="errorCode === ErrorCode.FORBIDDEN"
-      class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8"
-    >
-      <PermissionDeniedState
-        :title="t('goodsOverview.permissionDenied')"
-        :description="error || t('goodsOverview.permissionDeniedDesc')"
-        home-to="/admin/forbidden"
-        :home-text="t('common.viewDetails')"
-        @retry="init"
-      />
-    </div>
+      :title="t('goodsOverview.permissionDenied')"
+      :description="error || t('goodsOverview.permissionDeniedDesc')"
+      home-to="/admin/forbidden"
+      :home-text="t('common.viewDetails')"
+      @retry="init"
+    />
     <template v-else>
       <ManagementListShell
         :title="t('sidebar.goodsOverview')"
@@ -72,26 +68,9 @@
           </div>
           <template v-else>
             <!-- ===== 管道概览卡片：骨架屏 or 真实数据 ===== -->
-            <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <StatGroup :columns="4">
               <template v-if="loading && !summary">
-                <!-- 骨架卡片 x4 -->
-                <div
-                  v-for="i in 4"
-                  :key="'sk-card-' + i"
-                  class="relative overflow-hidden rounded-2xl bg-(--bg-card) p-4 shadow-none sm:p-5"
-                >
-                  <div class="flex items-start justify-between">
-                    <div class="flex-1 space-y-3">
-                      <div class="skeleton-shimmer h-3.5 w-16 rounded bg-(--bg-muted)" />
-                      <div class="skeleton-shimmer h-8 w-12 rounded bg-(--bg-muted)" />
-                    </div>
-                    <div class="skeleton-shimmer size-9 rounded-xl bg-(--bg-muted) sm:size-10" />
-                  </div>
-                  <div class="mt-3 flex items-center gap-2">
-                    <div class="skeleton-shimmer h-3 w-20 rounded bg-(--bg-muted)" />
-                    <div class="skeleton-shimmer h-3 w-12 rounded bg-(--bg-muted)" />
-                  </div>
-                </div>
+                <Skeleton v-for="i in 4" :key="'sk-card-' + i" template="stat-card" />
               </template>
 
               <template v-else-if="summary">
@@ -159,15 +138,15 @@
                   </template>
                 </MetricTile>
               </template>
-            </div>
+            </StatGroup>
 
             <!-- ===== 总需求 + 缺货摘要：骨架屏 or 真实数据 ===== -->
             <SummaryStrip v-if="loading && !summary" flat>
-              <div class="skeleton-shimmer h-5 w-28 rounded bg-(--bg-muted)" />
+              <Skeleton width="7rem" height="5" />
               <div class="h-5 w-px bg-(--border-color)"></div>
-              <div class="skeleton-shimmer h-5 w-24 rounded bg-(--bg-muted)" />
+              <Skeleton width="6rem" height="5" />
               <div class="h-5 w-px bg-(--border-color)"></div>
-              <div class="skeleton-shimmer h-5 w-24 rounded bg-(--bg-muted)" />
+              <Skeleton width="6rem" height="5" />
             </SummaryStrip>
             <SummaryStrip v-else-if="summary" flat>
               <div class="flex items-center gap-2">
@@ -463,10 +442,12 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppCheckbox from '@/components/ui/AppCheckbox.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import FilterSelect from '@/design-system/composed/FilterSelect.vue';
 import MetricTile from '@/design-system/composed/MetricTile.vue';
+import StatGroup from '@/design-system/composed/StatGroup.vue';
 import SummaryStrip from '@/design-system/composed/SummaryStrip.vue';
 import FloatingSelectionBar from '@/design-system/composed/FloatingSelectionBar.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
@@ -519,7 +500,7 @@ const handleBatchStatusChange = async (status) => {
   const variantIds = selectedItems.value.map((item) => item.variantId).filter(Boolean);
 
   if (variantIds.length === 0) {
-    addToast({ message: '请选择包含规格的商品', type: 'error' });
+    addToast({ message: t('goodsOverview.toast.selectProductWithVariant', '请选择包含规格的商品'), type: 'error' });
     return;
   }
 
@@ -753,7 +734,7 @@ const handleCreatePO = async () => {
     if (firstSelectedVariantId) query.variantId = firstSelectedVariantId;
     router.push({ name: 'PurchaseOrders', query });
   } else {
-    addToast({ type: 'error', message: result.error || '生成采购单失败' });
+    addToast({ type: 'error', message: result.error || t('goodsOverview.toast.poCreateFailed', '生成采购单失败') });
   }
 };
 
@@ -786,31 +767,3 @@ onDeactivated(() => {
 });
 </script>
 
-<style scoped>
-.skeleton-shimmer {
-  position: relative;
-  overflow: hidden;
-}
-.skeleton-shimmer::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent 0%, var(--bg-card) 50%, transparent 100%);
-  animation: shimmer 1.8s infinite;
-}
-[data-theme='light'] .skeleton-shimmer::after {
-  background: linear-gradient(90deg, transparent 0%, var(--bg-muted) 50%, transparent 100%);
-}
-@keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .skeleton-shimmer::after {
-    animation: none;
-    display: none;
-  }
-}
-</style>

@@ -199,7 +199,7 @@ defineEmits(['openSidebar']);
 
 const route = useRoute();
 // 从路由 meta 获取页面标题
-const viewTitle = computed(() => route.meta?.title || '管理后台');
+const viewTitle = computed(() => route.meta?.title || t('common.adminPanel', '管理后台'));
 const { t } = useI18n();
 const { searchQuery } = useSearch();
 const {

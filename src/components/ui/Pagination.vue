@@ -1,5 +1,5 @@
 <template>
-  <nav v-if="totalPages > 1" class="flex justify-center" :class="containerClass" aria-label="分页">
+  <nav v-if="totalPages > 1" class="flex justify-center" :class="containerClass" :aria-label="t('common.pagination', '分页')">
     <div class="flex gap-1">
       <!-- 上一页 -->
       <button
@@ -7,7 +7,7 @@
         :disabled="currentPage === 1"
         class="text-secondary rounded-md px-3 py-1 text-sm transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-30"
         :class="{ 'text-(--text-muted)': currentPage === 1 }"
-        aria-label="上一页"
+        :aria-label="t('common.prevPage', '上一页')"
         @click="goToPage(currentPage - 1)"
       >
         <AppIcon name="chevron-left" class="size-4" />
@@ -33,7 +33,7 @@
         :disabled="currentPage === totalPages"
         class="text-secondary rounded-md px-3 py-1 text-sm transition-colors hover:bg-(--bg-hover) disabled:cursor-not-allowed disabled:opacity-30"
         :class="{ 'text-(--text-muted)': currentPage === totalPages }"
-        aria-label="下一页"
+        :aria-label="t('common.nextPage', '下一页')"
         @click="goToPage(currentPage + 1)"
       >
         <AppIcon name="chevron-right" class="size-4" />
@@ -44,7 +44,10 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 import AppIcon from '@/components/ui/AppIcon.vue';
+
+const { t } = useI18n();
 
 const props = defineProps({
   currentPage: {

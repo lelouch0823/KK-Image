@@ -266,3 +266,17 @@ export const formatCurrency = (amount: number | string | null | undefined, curre
     maximumFractionDigits: 2,
   }).format(num);
 };
+
+/**
+ * 格式化金额（万为单位压缩显示，适用于大额统计场景）
+ * @param value - 金额
+ * @param prefix - 可选前缀（如 '¥'）
+ * @returns 格式化后的金额字符串，>=10000 显示为 X.X万
+ */
+export const formatCurrencyCompact = (value: number | string | null | undefined, prefix: string = ''): string => {
+  if (value == null) return '-';
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '-';
+  if (Math.abs(num) >= 10000) return `${prefix}${(num / 10000).toFixed(1)}万`;
+  return `${prefix}${num.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+};

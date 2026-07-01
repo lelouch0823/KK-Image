@@ -1,15 +1,11 @@
 <template>
-  <div
+  <PermissionDeniedState
     v-if="errorCode === ErrorCode.FORBIDDEN"
-    class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8"
-  >
-    <PermissionDeniedState
-      :title="t('auditLogs.permissionDenied')"
-      :description="error || t('auditLogs.permissionDeniedDesc')"
-      required-permission="audit:read"
-      @retry="fetchLogs"
-    />
-  </div>
+    :title="t('auditLogs.permissionDenied')"
+    :description="error || t('auditLogs.permissionDeniedDesc')"
+    required-permission="audit:read"
+    @retry="fetchLogs"
+  />
   <div v-else-if="error" class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8">
     <PermissionDeniedState
       :title="t('auditLogs.loadFailed')"

@@ -1,4 +1,5 @@
 import { generateId, generateShareToken, hashPassword, verifyPassword, passwordHashNeedsMigration, now } from '../api/utils/id.js';
+import { MS_PER_DAY } from '../api/utils/constants.js';
 import { parseRepoPagination } from '../api/utils/pagination.js';
 import { hasChanges } from '../api/utils/result.js';
 import { buildSetClause } from '../api/utils/sql.js';
@@ -296,7 +297,7 @@ export class SalespersonRepository {
         let timeFilter = '';
         const bindings = [];
         if (days && [7, 30, 90].includes(days)) {
-            const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+            const cutoff = Date.now() - days * MS_PER_DAY;
             timeFilter = 'AND o.created_at >= ?';
             bindings.push(cutoff);
         }

@@ -12,11 +12,11 @@ import { inClause } from '../../api/utils/sql.js';
 import { assertOrderStatusTransition } from '../../api/utils/order-state-machine.js';
 import { chunkArray, executeBatchChunks } from '../../lib/db/batch.js';
 import { BadRequestError, ConflictError } from '../../lib/hono/errors.js';
-import { projectOrderLineStatus } from '../../services/OrderStatusProjectionService.js';
+import { projectOrderLineStatus } from '../../api/utils/order-projection.js';
 import {
   getPrefetchedOrderLineState,
   prefetchOrderLineStates,
-} from '../../services/order-procurement/order-line-prefetch.js';
+} from './line-prefetch.js';
 import { createOrderPayloadUpsertStatement, deriveOrderSummaryFields } from './payloads.js';
 import { normalizeOrderStatus, normalizeSnapshotText } from './helpers.js';
 

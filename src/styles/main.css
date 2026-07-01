@@ -143,34 +143,6 @@
 }
 
 @layer components {
-  /* 基础按钮样式 - Enhanced Interaction */
-  .btn {
-    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-all active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed;
-    transition-duration: 150ms;
-    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .btn-primary {
-    @apply bg-primary text-white dark:text-surface hover:bg-primary-hover focus-visible:ring-primary shadow-sm hover:shadow-md;
-  }
-
-  .btn-secondary {
-    @apply bg-surface border border-border text-secondary-text hover:bg-surface-hover focus-visible:ring-border shadow-sm hover:shadow-md;
-  }
-
-  .btn-danger {
-    @apply bg-danger-bg text-danger-text border border-danger-border hover:bg-danger/20 focus-visible:ring-danger/30;
-  }
-
-  .btn-ghost {
-    @apply text-secondary-text hover:text-main hover:bg-surface-hover;
-  }
-
-  /* 基础输入框 */
-  .input {
-    @apply w-full h-10 px-3 text-sm border border-border rounded-lg bg-surface dark:bg-surface-muted focus:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all shadow-sm;
-  }
-
   /* Premium date picker styling */
   input[type='date'] {
     position: relative;

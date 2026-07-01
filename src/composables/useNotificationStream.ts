@@ -84,7 +84,7 @@ export function useNotificationStream(config: NotificationStreamConfig = {}): No
       if (requestId !== streamRequestId) return;
 
       if (!result.success) {
-        error.value = result.error || '轮询失败';
+        error.value = result.error || t('notification.pollFailed', '轮询失败');
         return;
       }
 
@@ -128,7 +128,7 @@ export function useNotificationStream(config: NotificationStreamConfig = {}): No
         return;
       }
 
-      error.value = e instanceof Error ? e.message : '轮询请求失败';
+      error.value = e instanceof Error ? e.message : t('notification.pollRequestFailed', '轮询请求失败');
       console.error('[NotificationStream] 轮询失败:', e);
     }
   };

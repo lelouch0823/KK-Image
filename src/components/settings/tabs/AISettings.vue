@@ -145,7 +145,7 @@
                 :key="`selected-${model}`"
                 draggable="true"
                 data-testid="selected-model-card"
-                class="group rounded-lg border border-(--border-color) bg-(--bg-muted) p-2.5 text-xs text-(--text-main) transition-colors hover:border-primary/30 hover:bg-(--bg-hover)"
+                class="group rounded-2xl border border-(--border-color) bg-(--bg-muted) p-2.5 text-xs text-(--text-main) transition-colors hover:border-primary/30 hover:bg-(--bg-hover)"
                 @dragstart="onDragStart(index)"
                 @dragover.prevent
                 @drop.prevent="onDrop(index)"
@@ -366,7 +366,7 @@
               <div
                 v-for="item in healthStats"
                 :key="`health-${item.model}`"
-                class="rounded-lg border border-(--border-color) bg-(--bg-muted) px-2.5 py-2 text-xs"
+                class="rounded-2xl border border-(--border-color) bg-(--bg-muted) px-2.5 py-2 text-xs"
               >
                 <p class="truncate font-mono text-xs text-(--text-main)">{{ item.model }}</p>
                 <div

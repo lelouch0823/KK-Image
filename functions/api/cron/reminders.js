@@ -10,6 +10,7 @@ import { isCronAuthorized } from '../utils/cron-auth.js';
 import { DomainOutboxPublisher } from '../../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from './outbox.js';
 import { inClause } from '../utils/sql.js';
+import { MS_PER_DAY } from '../utils/constants.js';
 
 async function listExistingIdempotencyKeys(db, idempotencyKeys = []) {
   const keys = [...new Set((idempotencyKeys || []).filter(Boolean))];
@@ -66,7 +67,7 @@ export async function onRequest(context) {
   try {
     const orderRepo = new OrderRepository(env.DB);
     const now = Date.now();
-    const ONE_DAY = 24 * 60 * 60 * 1000;
+    const ONE_DAY = MS_PER_DAY;
     const THREE_DAYS = 3 * ONE_DAY;
 
     const outboxEvents = [];

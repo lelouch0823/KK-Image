@@ -1,8 +1,7 @@
 import { hasChanges } from '../api/utils/result.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { hydratePurchaseItemSnapshots } from './purchase-order-item-snapshots.js';
-
-const D1_MAX_IN_CLAUSE_SIZE = 100;
+import { D1_MAX_IN_CLAUSE_SIZE } from '../api/utils/constants.js';
 
 export async function addPurchaseOrderItems({ db, poId, items }) {
   if (!items || items.length === 0) return [];

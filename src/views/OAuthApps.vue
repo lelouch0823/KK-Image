@@ -11,15 +11,19 @@
 
     <template #content>
       <!-- 加载状态 -->
-      <div v-if="loading" class="flex items-center justify-center py-12">
-        <AppIcon name="spinner" class="size-6 animate-spin text-(--text-muted)" />
-        <span class="ml-2 text-(--text-muted)">{{ t('oauth.loading') }}</span>
+      <div v-if="loading" class="space-y-4">
+        <Skeleton v-for="i in 3" :key="i" class="h-24 rounded-2xl" />
       </div>
 
       <!-- 空状态 -->
-      <div v-else-if="clients.length === 0" class="flex flex-col items-center justify-center py-12">
-        <AppIcon name="key" class="size-12 text-(--text-muted)" />
-        <p class="mt-3 text-(--text-muted)">{{ t('oauth.empty') }}</p>
+      <div
+        v-else-if="clients.length === 0"
+        class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8"
+      >
+        <EmptyState
+          icon="key"
+          :title="t('oauth.empty')"
+        />
       </div>
 
       <!-- 应用列表 -->
@@ -27,22 +31,15 @@
         <div
           v-for="client in clients"
           :key="client.id"
-          class="rounded-lg border border-(--border-color) bg-(--bg-card) p-4"
+          class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-4"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1">
               <div class="flex items-center gap-2">
                 <h3 class="text-sm font-medium text-(--text-main)">{{ client.name }}</h3>
-                <span
-                  :class="[
-                    'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                    client.enabled
-                      ? 'bg-success/10 text-success'
-                      : 'bg-(--color-muted-bg) text-(--text-muted)',
-                  ]"
-                >
+                <StatusBadge :variant="client.enabled ? 'success' : 'neutral'" :outline="!client.enabled">
                   {{ client.enabled ? t('oauth.enabled') : t('oauth.enabled') }}
-                </span>
+                </StatusBadge>
               </div>
               <p v-if="client.description" class="mt-1 text-xs text-(--text-muted)">
                 {{ client.description }}
@@ -237,7 +234,7 @@
         </div>
 
         <!-- 创建成功后显示密钥 -->
-        <div v-if="createdSecret" class="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-3">
+        <div v-if="createdSecret" class="mt-4 rounded-2xl border border-warning/30 bg-warning/5 p-3">
           <p class="text-xs font-medium text-warning">{{ t('oauth.secretWarning') }}</p>
           <div class="mt-2 flex items-center gap-2">
             <code
@@ -311,6 +308,9 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
 import { formatDate } from '@/utils/formatters';
 
 const { t } = useI18n();

@@ -120,8 +120,8 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
-import { hasEntries } from '@/utils/object-utils';
 import { useToast } from '@/composables/useToast';
+import { formatVariantName } from '@/utils/product';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
@@ -308,15 +308,6 @@ const saveChanges = async () => {
     });
     return false;
   }
-};
-
-// 格式化变体名称
-const formatVariantName = (optionsValues) => {
-  if (!hasEntries(optionsValues)) return 'Default';
-  return Object.keys(optionsValues)
-    .sort()
-    .map((key) => optionsValues[key])
-    .join(' · ');
 };
 
 // 格式化价格

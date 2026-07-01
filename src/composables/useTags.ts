@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { useAuth } from '@/composables/useAuth';
+import { useI18n } from '@/composables/useI18n';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 
 /** 标签接口 */
@@ -28,6 +29,7 @@ let fetchRequestId = 0;
 
 export function useTags() {
     const { authFetch } = useAuth();
+    const { t } = useI18n();
 
     const fetchTags = async (): Promise<void> => {
         const requestId = ++fetchRequestId;
@@ -46,7 +48,7 @@ export function useTags() {
             if (requestId !== fetchRequestId) return;
             console.error('Failed to fetch tags', err);
             errorCode.value = classifyError(err);
-            error.value = extractErrorMessage(err, '加载标签失败');
+            error.value = extractErrorMessage(err, t('tag.loadFailed', '加载标签失败'));
         } finally {
             if (requestId === fetchRequestId) {
                 loadingTags.value = false;
@@ -86,7 +88,7 @@ export function useTags() {
         } catch (err: unknown) {
             console.error('Failed to assign tag', err);
             errorCode.value = classifyError(err);
-            error.value = extractErrorMessage(err, '分配标签失败');
+            error.value = extractErrorMessage(err, t('tag.assignFailed', '分配标签失败'));
             throw err;
         }
     };
@@ -102,7 +104,7 @@ export function useTags() {
         } catch (err: unknown) {
             console.error('Failed to remove tag', err);
             errorCode.value = classifyError(err);
-            error.value = extractErrorMessage(err, '移除标签失败');
+            error.value = extractErrorMessage(err, t('tag.removeFailed', '移除标签失败'));
             throw err;
         }
     };

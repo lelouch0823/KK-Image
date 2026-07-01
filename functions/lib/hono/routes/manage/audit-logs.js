@@ -2,17 +2,12 @@ import { Hono } from 'hono';
 import { safeJsonParse } from '../../../../api/utils/json.js';
 import { escapeCSV } from '../../../../api/utils/csv.js';
 import { requirePermission } from '../../middleware/auth.js';
+import { parsePagination } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { AuditAlertService } from '../../../../services/AuditAlertService.js';
 
 const app = new Hono();
 const EXPORT_LIMIT = 5000;
-
-function parseIntParam(value, fallback, { min = 1, max = 100 } = {}) {
-  const parsed = Number.parseInt(String(value ?? fallback), 10);
-  if (!Number.isFinite(parsed)) return fallback;
-  return Math.min(max, Math.max(min, parsed));
-}
 
 function normalizeRow(row) {
   return {
@@ -135,10 +130,8 @@ function buildAuditCsv(rows = []) {
  */
 app.get('/', requirePermission('audit:read'), async (c) => {
   const { env } = c;
-  const page = parseIntParam(c.req.query('page'), 1);
-  const pageSize = parseIntParam(c.req.query('pageSize'), 50, { min: 1, max: 100 });
+  const { page, limit, offset } = parsePagination(c, { page: 1, limit: 50 });
   const { whereClause, bindings, filters } = buildAuditLogFilters(c);
-  const offset = (page - 1) * pageSize;
 
   // 查询总数
   const countResult = await env.DB.prepare(
@@ -154,7 +147,7 @@ app.get('/', requirePermission('audit:read'), async (c) => {
        ORDER BY created_at DESC
        LIMIT ? OFFSET ?`
   )
-    .bind(...bindings, pageSize, offset)
+    .bind(...bindings, limit, offset)
     .all();
 
   scheduleAuditEvent(c, {
@@ -164,7 +157,7 @@ app.get('/', requirePermission('audit:read'), async (c) => {
     severity: 'normal',
     targetType: 'audit_log',
     summary: `Read audit logs page ${page}`,
-    metadata: { ...filters, page, pageSize, count: (results || []).length },
+    metadata: { ...filters, page, limit, count: (results || []).length },
   });
 
   return c.json({
@@ -172,9 +165,9 @@ app.get('/', requirePermission('audit:read'), async (c) => {
     data: (results || []).map(normalizeRow),
     pagination: {
       page,
-      limit: pageSize,
+      limit,
       total: countResult?.total || 0,
-      totalPages: Math.ceil((countResult?.total || 0) / pageSize),
+      totalPages: Math.ceil((countResult?.total || 0) / limit),
     },
   });
 });

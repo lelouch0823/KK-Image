@@ -148,6 +148,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
 import { Chart } from '@/utils/chart-setup';
+import { withAlpha, getDashboardChartPalette } from '@/utils/dashboard-charts';
 import SurfaceSection from '@/design-system/composed/SurfaceSection.vue';
 import StatsChartWrapper from './StatsChartWrapper.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -219,47 +220,12 @@ const selectSort = (value) => {
   loadRanking();
 };
 
-const readCssColorChain = (tokens, fallback = '') => {
-  if (typeof document === 'undefined') return fallback;
-  const style = getComputedStyle(document.documentElement);
-  return tokens.map((token) => style.getPropertyValue(token).trim()).find(Boolean) || fallback;
-};
-
-const hexToRgb = (color) => {
-  const value = color.replace('#', '').trim();
-  if (value.length !== 6) return null;
-  const parsed = Number.parseInt(value, 16);
-  if (Number.isNaN(parsed)) return null;
-  return `${(parsed >> 16) & 255}, ${(parsed >> 8) & 255}, ${parsed & 255}`;
-};
-
-const colorToRgb = (color, fallback) => {
-  if (!color) return fallback;
-  if (color.startsWith('#')) return hexToRgb(color) || fallback;
-  const matched = color.match(/\d+/g);
-  if (!matched || matched.length < 3) return fallback;
-  return matched.slice(0, 3).join(', ');
-};
-
-const withAlpha = (color, alpha, fallback = '0, 0, 0') =>
-  `rgba(${colorToRgb(color, fallback)}, ${alpha})`;
-
 const renderChart = () => {
   if (!chartRef.value || ranking.value.length === 0) return;
 
   if (chartInstance) chartInstance.destroy();
 
-  const palette = {
-    primary: readCssColorChain(['--color-primary', '--color-chart-1'], 'rgb(0, 0, 0)'),
-    info: readCssColorChain(['--color-info', '--color-chart-2'], 'rgb(0, 0, 0)'),
-    success: readCssColorChain(['--color-success', '--color-chart-3'], 'rgb(0, 0, 0)'),
-    warning: readCssColorChain(['--color-warning', '--color-chart-4'], 'rgb(0, 0, 0)'),
-    danger: readCssColorChain(['--color-danger', '--color-chart-5'], 'rgb(0, 0, 0)'),
-    textSecondary: readCssColorChain(['--text-secondary'], 'rgb(0, 0, 0)'),
-    bgCard: readCssColorChain(['--bg-card'], 'rgb(255, 255, 255)'),
-    border: readCssColorChain(['--border-color'], 'rgb(0, 0, 0)'),
-    textMain: readCssColorChain(['--text-main'], 'rgb(0, 0, 0)'),
-  };
+  const palette = getDashboardChartPalette();
 
   const ctx = chartRef.value.getContext('2d');
   const data = ranking.value.slice(0, 10); // Top 10 for chart
@@ -303,7 +269,7 @@ const renderChart = () => {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),
+          backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
           titleColor: palette.textMain,
           bodyColor: palette.textSecondary,
           borderColor: palette.border,

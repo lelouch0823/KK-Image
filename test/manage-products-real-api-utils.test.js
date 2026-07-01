@@ -265,6 +265,87 @@ describe('manage-products-real-api utils', () => {
     );
   });
 
+  it('flushes waitUntil for direct GET requests so cache assertions are deterministic', async () => {
+    process.env.REAL_API_TRANSPORT = 'direct';
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const directPageRequest = vi.fn().mockResolvedValue({
+      response: createJsonResponse(200, { success: true, data: { totalOrders: 0 } }),
+      json: { success: true, data: { totalOrders: 0 } },
+      text: null,
+    });
+    vi.doMock('./utils/direct-pages-real-api.js', () => ({
+      directPageRequest,
+    }));
+
+    const realApiUtils = await loadRealApiUtils();
+    await realApiUtils.apiRequest('/api/sales/access-token/stats', {
+      authHeader: 'Bearer sales-jwt',
+      expectedStatus: 200,
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(directPageRequest).toHaveBeenCalledWith(
+      '/api/sales/access-token/stats',
+      expect.objectContaining({
+        method: 'GET',
+        flushWaitUntil: true,
+        headers: expect.objectContaining({
+          Authorization: 'Bearer sales-jwt',
+        }),
+      })
+    );
+  });
+
+  it('routes multipart requests through direct pages transport when REAL_API_TRANSPORT=direct', async () => {
+    process.env.REAL_API_TRANSPORT = 'direct';
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const directPageRequest = vi.fn().mockResolvedValue({
+      response: createJsonResponse(200, { success: true, data: { id: 'file-1' } }),
+      json: { success: true, data: { id: 'file-1' } },
+      text: null,
+    });
+    vi.doMock('./utils/direct-pages-real-api.js', () => ({
+      directPageRequest,
+    }));
+
+    const realApiUtils = await loadRealApiUtils();
+    const result = await realApiUtils.multipartRequest('/api/manage/upload', {
+      bearerToken: 'token-123',
+      expectedStatus: 200,
+      fields: {
+        file: {
+          value: 'direct-upload-body',
+          filename: 'direct-upload.txt',
+          contentType: 'text/plain',
+        },
+        note: 'direct multipart',
+      },
+    });
+
+    expect(result.json?.data?.id).toBe('file-1');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(directPageRequest).toHaveBeenCalledWith(
+      '/api/manage/upload',
+      expect.objectContaining({
+        method: 'POST',
+        flushWaitUntil: true,
+        headers: expect.objectContaining({
+          Authorization: 'Bearer token-123',
+        }),
+      })
+    );
+    const body = directPageRequest.mock.calls[0][1].body;
+    expect(body).toBeInstanceOf(FormData);
+    expect(body.get('note')).toBe('direct multipart');
+    const file = body.get('file');
+    expect(file).toBeInstanceOf(File);
+    expect(file.name).toBe('direct-upload.txt');
+    expect(file.type).toBe('text/plain');
+    expect(file.size).toBe('direct-upload-body'.length);
+  });
+
   it('uses direct pages transport for admin login when REAL_API_TRANSPORT=direct', async () => {
     process.env.REAL_API_TRANSPORT = 'direct';
     const fetchMock = vi.fn();

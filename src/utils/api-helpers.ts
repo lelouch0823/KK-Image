@@ -7,6 +7,7 @@
 
 import { ErrorCode } from './error-codes';
 import { AppError, isAppError } from './app-error';
+import type { ApiResponse } from '@/composables/useResource';
 
 /**
  * addToast / showToast 回调函数类型
@@ -103,6 +104,66 @@ export function withTimeout(promise: Promise<unknown>, ms: number = 30000): Prom
       }, ms);
     }),
   ]);
+}
+
+/**
+ * 封装 API 调用的标准模式：fetch + JSON 解析 + 成功/失败 toast
+ *
+ * 消除 composable 中重复的 try/catch + json.success 判断 + addToast 模式。
+ * 成功时返回 data，失败时返回 null。
+ *
+ * @param action - API 调用函数（返回 Promise<Response>）
+ * @param options - 配置项
+ * @returns 成功时返回 data，失败时返回 null
+ *
+ * @example
+ * const data = await apiAction<PurchaseOrder>(
+ *   () => authFetch(API_URL, { method: 'POST', body }),
+ *   { successMessage: t('purchaseOrder.toast.created'), addToast }
+ * );
+ */
+export async function apiAction<T = unknown>(
+  action: () => Promise<Response>,
+  options: {
+    successMessage?: string;
+    errorMessage?: string;
+    onSuccess?: (data: T) => void;
+    onError?: (error: Error) => void;
+    addToast?: AddToastFn;
+    showToast?: boolean; // 默认 true
+  } = {}
+): Promise<T | null> {
+  const { successMessage, errorMessage, onSuccess, onError, addToast, showToast = true } = options;
+  try {
+    const res = await action();
+    const json = (await res.json()) as ApiResponse;
+
+    if (json.success) {
+      if (showToast && addToast && successMessage) {
+        addToast({ message: successMessage, type: 'success' });
+      }
+      // data 为 undefined/null 时回退到整个 json 对象，确保成功时返回非 null 值
+      const data = (json.data !== undefined ? json.data : json) as T;
+      onSuccess?.(data);
+      return data;
+    } else {
+      const errMsg = json.error || errorMessage || '操作失败';
+      if (showToast && addToast) {
+        addToast({ message: errMsg, type: 'error' });
+      }
+      onError?.(new Error(errMsg));
+      return null;
+    }
+  } catch (e: unknown) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    console.error(errorMessage || 'API call failed:', err);
+    if (showToast && addToast) {
+      const errMsg = err.message || errorMessage || '操作失败';
+      addToast({ message: errMsg, type: 'error' });
+    }
+    onError?.(err);
+    return null;
+  }
 }
 
 /**

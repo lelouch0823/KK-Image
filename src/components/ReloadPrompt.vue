@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="offlineReady || needRefresh"
-    class="fixed right-4 bottom-4 z-[100] max-w-sm rounded-lg border border-(--border-color) bg-(--bg-card) p-4 shadow-lg"
+    class="fixed right-4 bottom-4 z-[100] max-w-sm rounded-2xl border border-(--border-color) bg-(--bg-card) p-4 shadow-lg"
     role="alert"
   >
     <div class="flex items-start gap-4">

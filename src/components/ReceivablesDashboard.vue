@@ -56,7 +56,7 @@
               {{ bucket.totalPaid }}
             </div>
             <div class="w-16 text-right text-xs text-(--text-secondary)">
-              {{ bucket.orderCount }} 单
+              {{ t('receivables.orderCount', '{count} 单', { count: bucket.orderCount }) }}
             </div>
           </div>
         </div>

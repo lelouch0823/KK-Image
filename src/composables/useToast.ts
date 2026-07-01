@@ -52,6 +52,7 @@ export function useToast() {
   const success = (message: string, duration?: number): string => showToast(message, 'success', duration);
   const error = (message: string, duration?: number): string => showToast(message, 'error', duration);
   const warning = (message: string, duration?: number): string => showToast(message, 'warning', duration);
+  const info = (message: string, duration?: number): string => showToast(message, 'info', duration);
 
   return {
     toasts,
@@ -61,5 +62,6 @@ export function useToast() {
     success,
     error,
     warning,
+    info,
   };
 }

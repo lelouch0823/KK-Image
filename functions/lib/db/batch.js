@@ -3,7 +3,7 @@
  * 提供事务性批量插入、更新、删除操作
  */
 
-const D1_MAX_BATCH_SIZE = 100;
+import { D1_MAX_BATCH_SIZE } from '../../api/utils/constants.js';
 
 export function chunkArray(items = [], chunkSize = D1_MAX_BATCH_SIZE) {
   if (!Array.isArray(items) || items.length === 0) return [];

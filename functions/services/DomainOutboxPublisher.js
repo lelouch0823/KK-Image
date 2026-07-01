@@ -2,8 +2,7 @@ import { executeBatchChunks } from '../lib/db/batch.js';
 import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { runOutboxPoller } from '../api/cron/outbox.js';
-
-const D1_MAX_BATCH_SIZE = 100;
+import { D1_MAX_BATCH_SIZE } from '../api/utils/constants.js';
 
 export class DomainOutboxPublisher {
   constructor(db, deps = {}) {

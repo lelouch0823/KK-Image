@@ -565,7 +565,7 @@ const openDetail = (customer) => {
   viewingCustomer.value = customer;
   showDetailPanel.value = true;
   // 记录最近访问
-  addRecentView('customer', customer.id, customer.name || `客户 ${customer.id}`);
+  addRecentView('customer', customer.id, customer.name || t('customer.fallbackName', '客户 {id}', { id: customer.id }));
 };
 
 const handleFormSubmit = async (formData) => {

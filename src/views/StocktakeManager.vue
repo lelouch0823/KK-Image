@@ -63,20 +63,20 @@
           </div>
 
           <!-- 加载中 -->
-          <div v-if="loadingList" class="py-12 text-center text-secondary">
-            <div
-              class="mx-auto size-8 animate-spin rounded-full border-2 border-primary border-t-transparent"
-            />
+          <div v-if="loadingList" class="space-y-4">
+            <Skeleton v-for="i in 5" :key="i" class="h-16 rounded-2xl" />
           </div>
 
           <!-- 空状态 -->
           <div
             v-else-if="stocktakes.length === 0"
-            class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-12 text-center"
+            class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8"
           >
-            <AppIcon name="clipboard-document-check" class="mx-auto size-12 text-(--text-muted)" />
-            <p class="mt-4 text-lg font-medium text-(--text-main)">{{ t('stocktake.empty') }}</p>
-            <p class="mt-1 text-sm text-secondary">{{ t('stocktake.emptyHint') }}</p>
+            <EmptyState
+              icon="clipboard-document-check"
+              :title="t('stocktake.empty')"
+              :description="t('stocktake.emptyHint')"
+            />
           </div>
 
           <!-- 列表表格 -->
@@ -91,12 +91,9 @@
             @row-click="(row) => openDetail(row.id)"
           >
             <template #cell-status="{ row }">
-              <span
-                class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                :class="statusClass(row.status)"
-              >
+              <StatusBadge :variant="statusTone(row.status)">
                 {{ formatStocktakeStatusLabel(t, row.status) }}
-              </span>
+              </StatusBadge>
             </template>
             <template #cell-itemCount="{ row }">
               <span class="text-(--text-main)">{{ row.itemCount }}</span>
@@ -359,6 +356,9 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import Skeleton from '@/components/ui/Skeleton.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
 import { formatDate } from '@/utils/formatters';
 import { formatStocktakeStatusLabel } from '@/utils/display-labels';
 

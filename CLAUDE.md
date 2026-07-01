@@ -6,7 +6,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 KK-Image (kk-life) is a full-stack Cloudflare-native management system for products, sales, orders, and reservations, powered by Pages, D1, R2, and KV. It also includes a WeChat miniprogram sub-app (`minisales/`).
 
-**Language**: Use Chinese (中文) for all communication and code comments.
+**Language**: Use Chinese (中文) for all communication and code comments。
+
+## 行为准则
+
+### 先思考再编码
+- 不确定时先问，不要假设
+- 存在多种方案时，列出选项让开发者选择
+- 发现更简单的方案时主动提出
+
+### 简洁优先
+- 只写被要求的功能，不做多余抽象
+- 单次使用的代码不需要抽象层
+- 自检：资深工程师会觉得过度复杂吗？是就简化
+
+### 精准修改
+- 只改必须改的，不顺手重构相邻代码
+- 保持现有代码风格，即使你偏好不同写法
+- 只清理自己引入的死代码，已有的提一下但不删
+
+### 目标驱动
+- 多步骤任务先列计划，每步带验证方式
+- "添加验证" → "先写测试，再让测试通过"
+- "修复 bug" → "先写复现测试，再修复"
 
 ## Commands
 
@@ -116,43 +138,12 @@ functions/lib/hono/routes/
 - **KV**: Image URL metadata cache (`img_url` binding)
 - **Multi-storage**: Supports R2, Telegram, and S3-compatible backends with fallback chain
 
-### Key Directories
-```
-src/
-├── components/     # Reusable Vue components
-├── composables/    # Composition functions (useToast, useApi, etc.)
-├── config/         # App configuration
-├── constants/      # Shared constants
-├── design-system/  # UI patterns, tone contract, composed components
-├── layouts/        # Layout components
-├── locales/        # i18n translations
-├── router/         # Vue Router configuration
-├── styles/         # Global styles / Tailwind config
-├── utils/          # Frontend utilities
-└── views/          # Page-level Vue components
+### 其他顶层目录
 
-functions/
-├── api/            # Legacy file-based API routes (migrating to Hono)
-├── lib/hono/       # Hono API framework
-│   ├── routes/     # Route handlers (manage/, sales/, v1/)
-│   ├── middleware/  # Auth, OPA, validation middleware
-│   ├── schemas/    # Zod validation schemas
-│   └── _shared/    # Shared Hono utilities
-├── repositories/   # D1 data access layer (Repository pattern)
-├── services/       # Business logic services
-│   ├── consumers/  # Domain Outbox consumers (audit, cache, notification, webhook)
-│   ├── AIService.js           # AI service (refactored into orchestrator/preparer)
-│   ├── OrderCreationService.js # Order creation/update logic
-│   └── ...
-├── storage/        # Multi-storage provider abstraction
-├── lib/            # Shared libraries (auth, crypto, OPA)
-└── utils/          # Backend utilities
-
-migrations/         # D1 SQL migration files (0001_*.sql, 0002_*.sql, ...)
-minisales/          # WeChat miniprogram sub-app (TypeScript)
-scripts/            # QA, deploy, and utility scripts
-policy/             # OPA authorization policies (.rego)
-```
+- `migrations/` — D1 SQL 迁移文件 (0001_\*.sql, 0002_\*.sql, ...)
+- `minisales/` — 微信小程序子应用 (TypeScript)
+- `scripts/` — QA、部署和工具脚本
+- `policy/` — OPA 授权策略 (.rego)
 
 ## Code Conventions
 
@@ -187,6 +178,30 @@ policy/             # OPA authorization policies (.rego)
 - OPA policies for fine-grained authorization (`policy/authz.rego`)
 - Sentry for error monitoring (`@sentry/cloudflare`)
 - Backend APIs must validate permissions via middleware context
+
+## 常见陷阱 (Gotchas)
+
+- **Domain Outbox loopback 限制**: 本地开发时 `waitUntil` 回调会在 worker 重启时被杀掉，导致 outbox 事件丢失。测试时用 `processOutbox()` 手动触发
+- **Hono 迁移中**: `functions/api/` 是旧路由，新功能必须放 `functions/lib/hono/routes/`
+- **Tailwind v4**: 使用 `@tailwindcss/vite` 插件，不是 PostCSS 方式。不要写 raw CSS
+- **D1 batch 操作**: 多条 SQL 必须用 `env.DB.batch()`，不要逐条执行
+- **测试环境**: real-api 测试需要先启动 wrangler dev server（loopback 模式），或用 `REAL_API_TRANSPORT=direct`（CI/CD）
+- **outbox 清理**: real-api 测试后需手动清理 outbox：`curl -X POST "http://127.0.0.1:8080/api/cron/outbox?maxRounds=8&force=true" -H "Authorization: Bearer dev-secret"`
+
+## 测试策略
+
+| 测试类型 | 命令 | 何时使用 |
+|----------|------|----------|
+| 单元测试 | `pnpm test:unit:run` | 改了工具函数、composables、repositories |
+| 集成测试 | `pnpm test` | 改了 API 路由、服务层 |
+| Real API 测试 | `pnpm test:real-api` | 改了完整业务流程、需要验证端到端 |
+| OPA 策略测试 | `pnpm authz:policy:test` | 改了授权策略 |
+| QA 冒烟测试 | `pnpm qa:admin-flows` | 改了管理端业务流程 |
+
+- 改了后端代码 → 至少跑 `pnpm test:unit:run`
+- 改了前端代码 → 至少跑 `pnpm lint`
+- 改了数据库相关 → 跑 `pnpm test` (包含 integration)
+- 部署前 → `pnpm deploy:check`
 
 ## Environment Variables
 

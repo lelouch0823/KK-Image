@@ -17,7 +17,7 @@ import {
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
-import { handleApiError } from '@/utils/api-helpers';
+import { handleApiError, apiAction } from '@/utils/api-helpers';
 
 // ============================================================
 // 类型定义
@@ -324,27 +324,14 @@ export function usePurchaseOrders() {
   // ─── 创建 ────────────────────────────────────────────
 
   const createPO = async (data: Record<string, unknown>): Promise<PurchaseOrder | null> => {
-    try {
-      const res = await authFetch(API.MANAGE_PURCHASE_ORDERS, {
+    return apiAction<PurchaseOrder>(
+      () => authFetch(API.MANAGE_PURCHASE_ORDERS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      });
-      const json = await res.json() as ApiResponse;
-
-      if (json.success) {
-        addToast({ message: t('purchaseOrder.toast.created'), type: 'success' });
-        return json.data as PurchaseOrder;
-      } else {
-        addToast({ message: json.error || '', type: 'error' });
-        return null;
-      }
-    } catch (e: unknown) {
-      console.error('createPO failed:', e);
-      const err = e as Error;
-      addToast({ message: err.message, type: 'error' });
-      return null;
-    }
+      }),
+      { successMessage: t('purchaseOrder.toast.created'), addToast }
+    );
   };
 
   /**
@@ -378,28 +365,23 @@ export function usePurchaseOrders() {
   // ─── 更新 ────────────────────────────────────────────
 
   const updatePO = async (id: string, updates: Record<string, unknown>): Promise<boolean> => {
-    try {
-      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_BY_ID(id), {
+    const result = await apiAction<PurchaseOrderDetail>(
+      () => authFetch(API.MANAGE_PURCHASE_ORDER_BY_ID(id), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
-      });
-      const json = await res.json() as ApiResponse;
-
-      if (json.success) {
-        if (canWriteThroughDetail(id)) {
-          detail.value = json.data as PurchaseOrderDetail;
-        }
-        addToast({ message: t('purchaseOrder.toast.updated'), type: 'success' });
-        return true;
-      } else {
-        addToast({ message: json.error || '', type: 'error' });
-        return false;
+      }),
+      {
+        successMessage: t('purchaseOrder.toast.updated'),
+        addToast,
+        onSuccess: (data) => {
+          if (canWriteThroughDetail(id)) {
+            detail.value = data;
+          }
+        },
       }
-    } catch (e: unknown) {
-      console.error('updatePO failed:', e);
-      return false;
-    }
+    );
+    return result !== null;
   };
 
   // ─── 状态变更 ────────────────────────────────────────
@@ -480,22 +462,13 @@ export function usePurchaseOrders() {
   };
 
   const removeItem = async (poId: string, itemId: string): Promise<boolean> => {
-    try {
-      const res = await authFetch(API.MANAGE_PURCHASE_ORDER_ITEM(poId, itemId), {
+    const result = await apiAction(
+      () => authFetch(API.MANAGE_PURCHASE_ORDER_ITEM(poId, itemId), {
         method: 'DELETE',
-      });
-      const json = await res.json() as ApiResponse;
-
-      if (json.success) {
-        addToast({ message: t('purchaseOrder.toast.itemRemoved'), type: 'success' });
-        return true;
-      }
-      addToast({ message: json.error || '', type: 'error' });
-      return false;
-    } catch (e: unknown) {
-      console.error('removeItem failed:', e);
-      return false;
-    }
+      }),
+      { successMessage: t('purchaseOrder.toast.itemRemoved'), addToast }
+    );
+    return result !== null;
   };
 
   const recordReceipts = async (poId: string, payload: RecordReceiptsPayload): Promise<unknown> => {

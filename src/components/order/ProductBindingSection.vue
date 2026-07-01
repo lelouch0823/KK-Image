@@ -23,7 +23,7 @@
             <AppImage
               v-if="boundProduct.mainImage"
               :src="boundProduct.mainImage"
-              :alt="boundProduct.name || '商品图片'"
+              :alt="boundProduct.name || t('product.binding.productImage', '商品图片')"
               fit="cover"
               class="size-full cursor-pointer object-cover transition-transform hover:scale-105"
               @click="openLightbox"
@@ -330,12 +330,16 @@ const TEXT_LIMITS = Object.freeze({
   optionLabel: 24,
 });
 const availabilityTextMap = computed(() => ({
-  available: '可下单',
-  low_stock: '低库存',
+  available: t('product.binding.availability.available', '可下单'),
+  low_stock: t('product.binding.availability.lowStock', '低库存'),
   disabled_out_of_stock:
-    normalizedVariantSelectPolicy.value === 'in_stock_only' ? '缺货（不可下单）' : '缺货（可预订）',
+    normalizedVariantSelectPolicy.value === 'in_stock_only'
+      ? t('product.binding.availability.outOfStockNoOrder', '缺货（不可下单）')
+      : t('product.binding.availability.outOfStockPreorder', '缺货（可预订）'),
   disabled_archived:
-    normalizedVariantSelectPolicy.value === 'all' ? '已停用（可选）' : '已停用（不可下单）',
+    normalizedVariantSelectPolicy.value === 'all'
+      ? t('product.binding.availability.archivedOptional', '已停用（可选）')
+      : t('product.binding.availability.archivedNoOrder', '已停用（不可下单）'),
 }));
 const COLOR_LABELS = ['color', '颜色', '顏色'];
 const COLOR_VALUE_MAP = {

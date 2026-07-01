@@ -1,6 +1,5 @@
 import { chunkArray } from '../lib/db/batch.js';
-
-const D1_CHUNK_SIZE = 100;
+import { D1_CHUNK_SIZE } from '../api/utils/constants.js';
 const ACTIVE_STATUS_SQL = "('confirmed', 'production', 'shipping', 'arrived')";
 const REMAINING_DEMAND_EXPR = 'MAX(ol.ordered_qty - ol.cancelled_qty - ol.shipped_qty, 0)';
 

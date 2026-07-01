@@ -86,7 +86,7 @@
               total: importStats.total,
             })
           }}
-          ({{ processedChunk }}/{{ totalChunk }} 批次)
+          ({{ processedChunk }}/{{ totalChunk }} {{ t('product.import.batch', '批次') }})
         </span>
         <span class="font-medium text-(--text-main)"> {{ progressPercent }}% </span>
       </div>
@@ -110,7 +110,7 @@
     "
   >
     <p class="font-medium">
-      {{ importResult.success && importResult.count > 0 ? '导入完成！' : '导入失败' }}
+      {{ importResult.success && importResult.count > 0 ? t('product.import.importComplete', '导入完成！') : t('product.import.importFailed', '导入失败') }}
     </p>
     <ul class="mt-2 list-disc space-y-1 pl-4 text-xs">
       <template v-if="importResult.summary">
@@ -135,9 +135,9 @@
           {{ importResult.summary.conflicts }}
         </li>
       </template>
-      <li v-else>成功: {{ importResult.count }}</li>
+      <li v-else>{{ t('product.import.success', '成功') }}: {{ importResult.count }}</li>
       <li v-if="importResult.failed > 0" class="text-danger mt-1">
-        失败: {{ importResult.failed }} (查看控制台获取详细日志)
+        {{ t('product.import.failed', '失败') }}: {{ importResult.failed }} ({{ t('product.import.checkConsole', '查看控制台获取详细日志') }})
       </li>
     </ul>
   </div>

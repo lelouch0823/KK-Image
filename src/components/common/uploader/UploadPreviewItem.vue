@@ -15,7 +15,7 @@
   >
     <AppImage
       :src="file.url"
-      :alt="file.name || '上传文件'"
+      :alt="file.name || t('uploader.uploadFile', '上传文件')"
       :lazy="false"
       class="pointer-events-none size-full"
     />
@@ -63,9 +63,13 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/composables/useI18n';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+
+const { t } = useI18n();
+
 defineProps({
   file: { type: Object, required: true },
   index: { type: Number, required: true },

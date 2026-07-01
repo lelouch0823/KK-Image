@@ -4,7 +4,7 @@
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
           <span class="bg-primary/12 text-primary rounded-full px-2.5 py-1 text-xs font-medium"
-            >Step 2 · 确认预览</span
+            >Step 2 · {{ t('ai.actionPreview.step2', '确认预览') }}</span
           >
           <span
             class="rounded-full bg-(--bg-card) px-2.5 py-1 text-xs font-medium text-(--text-secondary)"
@@ -12,9 +12,9 @@
           >
         </div>
         <p class="mt-3 text-sm font-semibold text-(--text-main)">{{ titleText }}</p>
-        <p class="mt-1 text-sm text-(--text-secondary)">请确认以下信息后再创建。</p>
+        <p class="mt-1 text-sm text-(--text-secondary)">{{ t('ai.actionPreview.confirmHint', '请确认以下信息后再创建。') }}</p>
       </div>
-      <AppButton size="sm" class="shrink-0 !rounded-xl" text="确认创建" @click="$emit('confirm')" />
+      <AppButton size="sm" class="shrink-0 !rounded-xl" :text="t('ai.actionPreview.confirmCreate', '确认创建')" @click="$emit('confirm')" />
     </div>
 
     <div class="mt-4 space-y-4">
@@ -50,7 +50,7 @@
                 <p class="mt-1 text-sm leading-6 font-medium text-(--text-main)">{{ row.value }}</p>
               </div>
               <div v-if="row.meta" class="shrink-0 text-right">
-                <p class="text-xs text-(--text-secondary)">单价</p>
+                <p class="text-xs text-(--text-secondary)">{{ t('ai.actionPreview.unitPrice', '单价') }}</p>
                 <p class="mt-1 text-sm font-medium text-(--text-main)">{{ row.meta }}</p>
               </div>
             </div>
@@ -63,8 +63,11 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
 import { formatSummaryValue } from '@/utils/event-display';
+
+const { t } = useI18n();
 
 defineEmits(['confirm']);
 
@@ -75,17 +78,17 @@ const props = defineProps({
   },
 });
 
-const titleText = computed(() => props.action?.title || '创建预览');
+const titleText = computed(() => props.action?.title || t('ai.actionPreview.createPreview', '创建预览'));
 const entityType = computed(() => String(props.action?.entityType || '').trim());
 const summary = computed(() => props.action?.summary || {});
 const ENTITY_LABELS = {
-  order: '订单',
-  purchase_order: '采购单',
-  product: '商品',
-  customer: '客户',
-  salesperson: '销售员',
+  order: t('ai.actionPreview.entity.order', '订单'),
+  purchase_order: t('ai.actionPreview.entity.purchaseOrder', '采购单'),
+  product: t('ai.actionPreview.entity.product', '商品'),
+  customer: t('ai.actionPreview.entity.customer', '客户'),
+  salesperson: t('ai.actionPreview.entity.salesperson', '销售员'),
 };
-const entityLabel = computed(() => ENTITY_LABELS[entityType.value] || '记录');
+const entityLabel = computed(() => ENTITY_LABELS[entityType.value] || t('ai.actionPreview.entity.record', '记录'));
 
 function toText(value) {
   return formatSummaryValue(value);
@@ -99,25 +102,25 @@ function buildGridSection(title, entries) {
 }
 
 function resolvePurchaseItemLabel(item) {
-  return toText(item.variant_query || item.product_name || item.variant_name || '已选择商品');
+  return toText(item.variant_query || item.product_name || item.variant_name || t('ai.actionPreview.selectedProduct', '已选择商品'));
 }
 
 function buildItemsSection(items = []) {
   if (!Array.isArray(items) || items.length === 0) return null;
   return {
-    title: '采购明细',
+    title: t('ai.actionPreview.purchaseDetails', '采购明细'),
     layout: 'list',
     rows: items
       .map((item, index) => ({
         key: `${item.product_id || item.variant_id || item.variant_query || 'item'}-${index}`,
-        label: `明细 ${index + 1}`,
+        label: t('ai.actionPreview.detailN', '明细 {n}', { n: index + 1 }),
         value: resolvePurchaseItemLabel(item),
         meta:
           item.unit_cost !== undefined && item.unit_cost !== null ? toText(item.unit_cost) : null,
       }))
       .map((row, index) => ({
         ...row,
-        value: `${row.value}${items[index]?.quantity ? ` · 数量 ${items[index].quantity}` : ''}`,
+        value: `${row.value}${items[index]?.quantity ? ` · ${t('ai.actionPreview.quantity', '数量')} ${items[index].quantity}` : ''}`,
       })),
   };
 }
@@ -125,70 +128,70 @@ function buildItemsSection(items = []) {
 const sections = computed(() => {
   if (entityType.value === 'order') {
     return [
-      buildGridSection('核心信息', [
-        ['商品', summary.value.productName],
-        ['销售员', summary.value.salespersonId],
+      buildGridSection(t('ai.actionPreview.coreInfo', '核心信息'), [
+        [t('ai.actionPreview.product', '商品'), summary.value.productName],
+        [t('ai.actionPreview.salesperson', '销售员'), summary.value.salespersonId],
       ]),
-      buildGridSection('规格与数量', [
-        ['数量', summary.value.quantity],
-        ['颜色', summary.value.color],
-        ['尺码', summary.value.size],
-        ['材质', summary.value.material],
+      buildGridSection(t('ai.actionPreview.specAndQty', '规格与数量'), [
+        [t('ai.actionPreview.quantity', '数量'), summary.value.quantity],
+        [t('ai.actionPreview.color', '颜色'), summary.value.color],
+        [t('ai.actionPreview.size', '尺码'), summary.value.size],
+        [t('ai.actionPreview.material', '材质'), summary.value.material],
       ]),
-      buildGridSection('补充说明', [
-        ['备注', summary.value.remark],
-        ['交期', summary.value.deadline],
-        ['状态', summary.value.status],
+      buildGridSection(t('ai.actionPreview.supplementary', '补充说明'), [
+        [t('ai.actionPreview.remark', '备注'), summary.value.remark],
+        [t('ai.actionPreview.deadline', '交期'), summary.value.deadline],
+        [t('ai.actionPreview.status', '状态'), summary.value.status],
       ]),
     ].filter(Boolean);
   }
 
   if (entityType.value === 'purchase_order') {
     return [
-      buildGridSection('创建方式', [
-        ['模式', summary.value.mode],
-        ['备注', summary.value.remark],
-        ['币种', summary.value.currency],
+      buildGridSection(t('ai.actionPreview.createMethod', '创建方式'), [
+        [t('ai.actionPreview.mode', '模式'), summary.value.mode],
+        [t('ai.actionPreview.remark', '备注'), summary.value.remark],
+        [t('ai.actionPreview.currency', '币种'), summary.value.currency],
       ]),
       buildItemsSection(summary.value.items),
-      buildGridSection('费用信息', [
-        ['分摊方式', summary.value.allocation_method],
-        ['预计运费', summary.value.estimated_shipping_cost],
-        ['预计关税', summary.value.estimated_tariff_cost],
+      buildGridSection(t('ai.actionPreview.feeInfo', '费用信息'), [
+        [t('ai.actionPreview.allocationMethod', '分摊方式'), summary.value.allocation_method],
+        [t('ai.actionPreview.estimatedShipping', '预计运费'), summary.value.estimated_shipping_cost],
+        [t('ai.actionPreview.estimatedTariff', '预计关税'), summary.value.estimated_tariff_cost],
       ]),
     ].filter(Boolean);
   }
 
   if (entityType.value === 'product') {
     return [
-      buildGridSection('基础信息', [
-        ['商品名称', summary.value.name],
+      buildGridSection(t('ai.actionPreview.basicInfo', '基础信息'), [
+        [t('ai.actionPreview.productName', '商品名称'), summary.value.name],
         ['SPU', summary.value.spu],
-        ['品牌', summary.value.brand],
-        ['分类', summary.value.category],
-        ['币种', summary.value.currency],
+        [t('ai.actionPreview.brand', '品牌'), summary.value.brand],
+        [t('ai.actionPreview.category', '分类'), summary.value.category],
+        [t('ai.actionPreview.currency', '币种'), summary.value.currency],
       ]),
-      buildGridSection('规格结构', [
+      buildGridSection(t('ai.actionPreview.specStructure', '规格结构'), [
         [
-          '规格维度',
+          t('ai.actionPreview.specDimensions', '规格维度'),
           Array.isArray(summary.value.dimensions)
-            ? `${summary.value.dimensions.length} 个维度`
-            : '0 个维度',
+            ? t('ai.actionPreview.nDimensions', '{n} 个维度', { n: summary.value.dimensions.length })
+            : t('ai.actionPreview.nDimensions', '{n} 个维度', { n: 0 }),
         ],
-        ['变体数量', Array.isArray(summary.value.variants) ? summary.value.variants.length : 0],
+        [t('ai.actionPreview.variantCount', '变体数量'), Array.isArray(summary.value.variants) ? summary.value.variants.length : 0],
       ]),
       Array.isArray(summary.value.variants) && summary.value.variants.length > 0
         ? {
-            title: '变体样本',
+            title: t('ai.actionPreview.variantSamples', '变体样本'),
             layout: 'list',
             rows: summary.value.variants.slice(0, 3).map((variant, index) => ({
               key: `variant-${index}`,
-              label: `变体 ${index + 1}`,
+              label: t('ai.actionPreview.variantN', '变体 {n}', { n: index + 1 }),
               value:
                 Object.entries(variant.options_values || {})
                   .map(([, item]) => item)
                   .filter(Boolean)
-                  .join(' / ') || '未命名变体',
+                  .join(' / ') || t('ai.actionPreview.unnamedVariant', '未命名变体'),
               meta: variant.price !== undefined ? toText(variant.price) : null,
             })),
           }
@@ -198,7 +201,7 @@ const sections = computed(() => {
 
   return [
     buildGridSection(
-      '预览信息',
+      t('ai.actionPreview.previewInfo', '预览信息'),
       Object.entries(summary.value).map(([key, value]) => [key, value])
     ),
   ].filter(Boolean);

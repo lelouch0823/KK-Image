@@ -23,15 +23,11 @@
         <label class="mb-1 block text-sm font-medium text-(--text-main)">
           {{ t('product.categoryTree.parent') }}
         </label>
-        <select
+        <Select
           v-model="form.parent_id"
-          class="w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 py-2 text-sm text-(--text-main)"
-        >
-          <option :value="null">{{ t('product.categoryTree.root') }}</option>
-          <option v-for="opt in parentOptions" :key="opt.value" :value="opt.value">
-            {{ opt.label }}
-          </option>
-        </select>
+          :options="[{ value: null, label: t('product.categoryTree.root') }, ...parentOptions]"
+          size="sm"
+        />
       </div>
 
       <!-- 排序 -->
@@ -67,6 +63,7 @@ import { useI18n } from '@/composables/useI18n';
 import Modal from '@/components/ui/Modal.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import Select from '@/components/ui/Select.vue';
 
 const { t } = useI18n();
 

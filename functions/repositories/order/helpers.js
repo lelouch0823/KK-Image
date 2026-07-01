@@ -9,7 +9,7 @@
 
 import { parseJsonObject } from '../../api/utils/json.js';
 import { toNonNegativeNumber } from '../../api/utils/number.js';
-import { projectOrderLineStatus } from '../../services/OrderStatusProjectionService.js';
+import { projectOrderLineStatus } from '../../api/utils/order-projection.js';
 
 export function normalizeOrderStatus(status) {
   const normalized = String(status || '')

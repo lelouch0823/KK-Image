@@ -173,7 +173,7 @@
       <!-- 分类树面板 -->
       <div
         v-if="categoryTree.length > 0 || categoryLoading"
-        class="mb-4 rounded-lg border border-(--border-color) bg-(--bg-card) p-3"
+        class="mb-4 rounded-2xl border border-(--border-color) bg-(--bg-card) p-3"
       >
         <CategoryTree
           :nodes="categoryTree"
@@ -639,7 +639,7 @@ const handleView = async (product) => {
   viewingProduct.value = decorateProductPreview(product);
   showDetailModal.value = true;
   // 记录最近访问
-  addRecentView('product', product.id, product.name || `商品 ${product.id}`);
+  addRecentView('product', product.id, product.name || t('product.fallbackName', '商品 {id}', { id: product.id }));
 };
 
 const handleShare = async (product) => {

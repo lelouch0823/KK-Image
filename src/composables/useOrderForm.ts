@@ -161,12 +161,12 @@ function isMeaningfulLine(line: OrderLine = createEmptyOrderLine()): boolean {
   );
 }
 
-function getLineCompletionState(line: OrderLine = createEmptyOrderLine()): LineCompletionState {
+function getLineCompletionState(line: OrderLine = createEmptyOrderLine(), t: (key: string, fallback?: string) => string = (_key, fallback) => fallback ?? ''): LineCompletionState {
   if (!isMeaningfulLine(line)) {
     return {
       status: 'empty',
       tone: 'neutral',
-      label: '空白行',
+      label: t('order.form.blankLine', '空白行'),
       isMeaningful: false,
       isSubmittable: false,
     };
@@ -176,7 +176,7 @@ function getLineCompletionState(line: OrderLine = createEmptyOrderLine()): LineC
     return {
       status: 'ready',
       tone: line.productId || line.variantId ? 'success' : 'info',
-      label: line.productId || line.variantId ? '已绑定' : '手工填写',
+      label: line.productId || line.variantId ? t('order.form.bound', '已绑定') : t('order.form.manualEntry', '手工填写'),
       isMeaningful: true,
       isSubmittable: true,
     };
@@ -185,8 +185,8 @@ function getLineCompletionState(line: OrderLine = createEmptyOrderLine()): LineC
   return {
     status: 'pending',
     tone: 'warning',
-    label: '待完善',
-    message: '请填写商品名称或绑定商品',
+    label: t('order.form.pending', '待完善'),
+    message: t('order.form.pendingMessage', '请填写商品名称或绑定商品'),
     isMeaningful: true,
     isSubmittable: false,
   };
@@ -235,7 +235,7 @@ export function useOrderForm(options: OrderFormOptions = {}) {
       const normalized = normalizeOrderLine(line, form);
       return {
         line: normalized,
-        completion: getLineCompletionState(normalized),
+        completion: getLineCompletionState(normalized, t),
       };
     })
   );

@@ -37,8 +37,7 @@ import {
   projectPurchaseOrderItemStatus,
   toNonNegativeInt,
 } from './purchase-order-projection.js';
-
-const D1_MAX_BATCH_SIZE = 100;
+import { D1_MAX_BATCH_SIZE } from '../api/utils/constants.js';
 const RECEIPT_FINALIZE_STATEMENT_COUNT = 2;
 const RECEIPT_BASE_EVENT_WRITE_COUNT =
   1 + getDomainEventDefinition('purchase_receipt_recorded').consumers.length;

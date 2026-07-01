@@ -15,7 +15,7 @@
       <article
         v-for="entry in entries"
         :key="entry.id"
-        class="rounded-lg border border-(--border-color) bg-(--bg-muted)/55 p-3"
+        class="rounded-2xl border border-(--border-color) bg-(--bg-muted)/55 p-3"
       >
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">

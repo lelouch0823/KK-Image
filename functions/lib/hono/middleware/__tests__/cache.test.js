@@ -102,4 +102,34 @@ describe('cache middleware helpers', () => {
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({ success: true, items: ['tagA'] });
   });
+
+  it('skips cache writes when a request does not satisfy the cache condition', async () => {
+    const app = new Hono();
+    const waitUntil = vi.fn();
+    app.get(
+      '/products',
+      withCache(60, { condition: (c) => !String(c.req.query('search') || '').trim() }),
+      (c) => c.json({ success: true })
+    );
+
+    const searched = await app.request(
+      'https://example.com/products?search=tee',
+      undefined,
+      {},
+      { waitUntil, passThroughOnException: vi.fn() }
+    );
+
+    expect(searched.status).toBe(200);
+    expect(searched.headers.get('X-Cache')).toBeNull();
+    expect(waitUntil).not.toHaveBeenCalled();
+
+    await app.request(
+      'https://example.com/products',
+      undefined,
+      {},
+      { waitUntil, passThroughOnException: vi.fn() }
+    );
+
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+  });
 });

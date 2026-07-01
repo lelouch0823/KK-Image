@@ -2,8 +2,7 @@ import { PurchaseOrderRepository } from '../repositories/PurchaseOrderRepository
 import { BadRequestError } from '../lib/hono/errors.js';
 import { chunkArray } from '../lib/db/batch.js';
 import { validateOrderQuantity } from './purchase-order-constraints.js';
-
-const D1_MAX_IN_CLAUSE_SIZE = 100;
+import { D1_MAX_IN_CLAUSE_SIZE } from '../api/utils/constants.js';
 
 function normalizeComparableQuantity(value, fallback = 1) {
   const normalized = Number.parseInt(String(value ?? '').trim(), 10);

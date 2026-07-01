@@ -136,7 +136,7 @@
               <AppImage
                 v-if="variant.image"
                 :src="getFileUrl(variant.image)"
-                :alt="variant.product_name || '商品图片'"
+                :alt="variant.product_name || t('product.picker.productImage', '商品图片')"
                 fit="cover"
                 class="size-full"
               />

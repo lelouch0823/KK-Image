@@ -253,9 +253,9 @@ export function useGoodsOverview() {
      * 从选中变体创建采购单
      */
     const createPOFromSelected = async (): Promise<POResult> => {
-        if (selectedItems.value.length === 0) return { success: false, error: '请选择变体' };
+        if (selectedItems.value.length === 0) return { success: false, error: t('goodsOverview.selectVariants', '请选择变体') };
         if (selectedItems.value.some((item) => Number(item?.shortage || 0) <= 0)) {
-            return { success: false, error: '仅可为存在缺货的变体创建采购单' };
+            return { success: false, error: t('goodsOverview.onlyShortageVariants', '仅可为存在缺货的变体创建采购单') };
         }
 
         isCreatingPO.value = true;
@@ -303,12 +303,12 @@ export function useGoodsOverview() {
                     clearSelection();
                     return { success: true, data: retryJson.data };
                 }
-                return { success: false, error: retryJson.error || '生成失败' };
+                return { success: false, error: retryJson.error || t('goodsOverview.createFailed', '生成失败') };
             }
-            return { success: false, error: json.error || '生成失败' };
+            return { success: false, error: json.error || t('goodsOverview.createFailed', '生成失败') };
         } catch (e: unknown) {
             console.error('createPOFromSelected failed:', e);
-            const message = e instanceof Error ? e.message : '生成失败';
+            const message = e instanceof Error ? e.message : t('goodsOverview.createFailed', '生成失败');
             return { success: false, error: message };
         } finally {
             isCreatingPO.value = false;

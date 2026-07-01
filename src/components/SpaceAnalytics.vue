@@ -21,7 +21,7 @@
     <!-- Error State -->
     <div
       v-else-if="error"
-      class="rounded-lg border border-(--color-danger-bg)/50 bg-(--color-danger-bg) p-4 text-center text-(--color-danger-text)"
+      class="rounded-2xl border border-(--color-danger-bg)/50 bg-(--color-danger-bg) p-4 text-center text-(--color-danger-text)"
     >
       {{ error }}
     </div>

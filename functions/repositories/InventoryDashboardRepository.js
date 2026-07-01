@@ -9,6 +9,7 @@
 
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
 import { parseJsonObject } from '../api/utils/json.js';
+import { MS_PER_DAY } from '../api/utils/constants.js';
 
 export class InventoryDashboardRepository {
   constructor(db) {
@@ -186,7 +187,7 @@ export class InventoryDashboardRepository {
     const safeDays = Math.max(Number(days) || 30, 1);
     const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 50);
     // 使用当前时间戳减去天数（毫秒）
-    const cutoff = Date.now() - safeDays * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - safeDays * MS_PER_DAY;
 
     const { results } = await this.db
       .prepare(

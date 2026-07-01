@@ -1,5 +1,6 @@
 import { ref, watch, onScopeDispose } from 'vue';
 import { useAuth } from '@/composables/useAuth';
+import { useI18n } from '@/composables/useI18n';
 import { extractErrorMessage } from '@/utils/api-helpers';
 
 interface SearchResponse {
@@ -17,7 +18,7 @@ let sharedSearchTimeout: ReturnType<typeof setTimeout> | null = null;
 let watcherRefCount = 0;
 let stopSharedWatch: (() => void) | null = null;
 
-const performSearch = async (query: string, authFetch: (url: string) => Promise<Response>): Promise<void> => {
+const performSearch = async (query: string, authFetch: (url: string) => Promise<Response>, t: (key: string, fallback?: string) => string): Promise<void> => {
     if (!query) {
         searchResults.value = [];
         searchError.value = null;
@@ -36,7 +37,7 @@ const performSearch = async (query: string, authFetch: (url: string) => Promise<
         }
     } catch (err: unknown) {
         console.error('Search failed', err);
-        searchError.value = extractErrorMessage(err, '搜索失败');
+        searchError.value = extractErrorMessage(err, t('search.failed', '搜索失败'));
         searchResults.value = [];
     } finally {
         isSearching.value = false;
@@ -45,6 +46,7 @@ const performSearch = async (query: string, authFetch: (url: string) => Promise<
 
 export function useSearch() {
     const { authFetch } = useAuth();
+    const { t } = useI18n();
 
     // 引用计数：确保 watch 只注册一次，所有组件卸载后才清理
     watcherRefCount++;
@@ -52,7 +54,7 @@ export function useSearch() {
         stopSharedWatch = watch(searchQuery, (newVal: string) => {
             if (sharedSearchTimeout) clearTimeout(sharedSearchTimeout);
             sharedSearchTimeout = setTimeout(() => {
-                performSearch(newVal, authFetch);
+                performSearch(newVal, authFetch, t);
             }, 400);
         });
     }
@@ -73,6 +75,6 @@ export function useSearch() {
         searchResults,
         isSearching,
         searchError,
-        performSearch: (query: string) => performSearch(query, authFetch),
+        performSearch: (query: string) => performSearch(query, authFetch, t),
     };
 }

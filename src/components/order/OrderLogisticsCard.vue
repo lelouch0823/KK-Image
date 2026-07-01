@@ -26,14 +26,11 @@
         <label class="text-secondary text-xs font-medium">
           {{ t('order.logistics.carrier', '快递公司') }}
         </label>
-        <select
+        <Select
           v-model="editForm.carrier"
-          class="bg-(--bg-input) border-(--border-color) text-primary w-full rounded-lg border px-3 py-2 text-sm"
-        >
-          <option v-for="c in carriers" :key="c.code" :value="c.code">
-            {{ c.name }}
-          </option>
-        </select>
+          :options="carrierOptions"
+          size="sm"
+        />
       </div>
       <div class="space-y-1">
         <label class="text-secondary text-xs font-medium">
@@ -133,6 +130,7 @@ import { useAuth } from '@/composables/useAuth';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
+import Select from '@/components/ui/Select.vue';
 import { formatDate } from '@/utils/formatters';
 import { formatReadableLabel } from '@/utils/event-display';
 
@@ -166,6 +164,10 @@ const carrierName = computed(() => {
   const found = carriers.value.find((c) => c.code === carrier.value);
   return found?.name || formatReadableLabel(carrier.value);
 });
+
+const carrierOptions = computed(() =>
+  carriers.value.map((c) => ({ value: c.code, label: c.name }))
+);
 
 async function loadTracking() {
   if (!props.orderId) return;

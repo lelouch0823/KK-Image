@@ -13,7 +13,7 @@ import { StocktakeRepository } from '../../../../repositories/StocktakeRepositor
 import { InventoryService } from '../../../../services/InventoryService.js';
 import { NotFoundError, BadRequestError } from '../../errors.js';
 import { requirePermission } from '../../middleware/auth.js';
-import { requireEntity } from '../../_shared/route-helpers.js';
+import { parsePagination, requireEntity } from '../../_shared/route-helpers.js';
 import {
   CreateStocktakeSchema,
   UpdateStocktakeSchema,
@@ -31,8 +31,7 @@ app.use('*', requirePermission('products:manage'));
 app.get('/', async (c) => {
   const { env } = c;
   const status = c.req.query('status');
-  const page = Number(c.req.query('page')) || 1;
-  const limit = Number(c.req.query('limit')) || 20;
+  const { page, limit } = parsePagination(c, { page: 1, limit: 20 });
 
   const repo = new StocktakeRepository(env.DB);
   const result = await repo.list({ status, page, limit });
@@ -40,9 +39,7 @@ app.get('/', async (c) => {
   return c.json({
     success: true,
     data: result.items,
-    total: result.total,
-    page,
-    limit,
+    pagination: { page, limit, total: result.total, totalPages: Math.ceil(result.total / limit) },
   });
 });
 

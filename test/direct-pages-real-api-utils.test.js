@@ -143,16 +143,23 @@ describe('direct-pages-real-api utils', () => {
     }
   });
 
-  it('installs platform caches while handling a direct request and restores the prior global', async () => {
+  it('installs deterministic fallback caches while handling direct requests', async () => {
     const originalCaches = globalThis.caches;
     const hadCaches = Object.prototype.hasOwnProperty.call(globalThis, 'caches');
     const runtimeCaches = {
       default: {
-        match: vi.fn(async () => undefined),
-        put: vi.fn(async () => undefined),
-        delete: vi.fn(async () => true),
+        match: vi.fn(async () => {
+          throw new Error('runtime cache should not be used by direct real-api tests');
+        }),
+        put: vi.fn(async () => {
+          throw new Error('runtime cache should not be used by direct real-api tests');
+        }),
+        delete: vi.fn(async () => {
+          throw new Error('runtime cache should not be used by direct real-api tests');
+        }),
       },
     };
+    let invocation = 0;
 
     try {
       delete globalThis.caches;
@@ -162,18 +169,37 @@ describe('direct-pages-real-api utils', () => {
         caches: runtimeCaches,
         dispose: mocks.dispose,
       });
-      mocks.onRequest.mockImplementation(async () => {
-        expect(globalThis.caches).toBe(runtimeCaches);
-        return new Response(JSON.stringify({ success: true }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
+      mocks.onRequest.mockImplementation(async ({ waitUntil }) => {
+        invocation += 1;
+        expect(globalThis.caches).not.toBe(runtimeCaches);
+
+        const cacheKey = new Request('http://127.0.0.1:8080/direct-cache', {
+          headers: { Accept: 'application/json' },
         });
+        const cached = await globalThis.caches.default.match(cacheKey);
+
+        if (invocation === 1) {
+          expect(cached).toBeUndefined();
+          waitUntil(
+            globalThis.caches.default.put(
+              cacheKey,
+              new Response('cached-body', { headers: { 'Content-Type': 'text/plain' } })
+            )
+          );
+          return new Response('fresh-body');
+        }
+
+        expect(await cached.text()).toBe('cached-body');
+        return new Response('hit-body');
       });
 
       const { directPageRequest } = await import('./utils/direct-pages-real-api.js');
+      await directPageRequest('/api/sales/token/products', { flushWaitUntil: true });
       await directPageRequest('/api/sales/token/products');
 
       expect(globalThis.caches).toBeUndefined();
+      expect(runtimeCaches.default.match).not.toHaveBeenCalled();
+      expect(runtimeCaches.default.put).not.toHaveBeenCalled();
     } finally {
       if (hadCaches) {
         globalThis.caches = originalCaches;

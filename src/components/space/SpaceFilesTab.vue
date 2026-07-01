@@ -82,7 +82,7 @@
           <AppImage
             v-if="file.mimeType?.startsWith('image/')"
             :src="file.url"
-            :alt="file.name || '空间图片'"
+            :alt="file.name || t('space.spaceImages', '空间图片')"
             :blurhash="file.blurhash"
             class="size-full"
             fit="cover"

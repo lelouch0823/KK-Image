@@ -1,3 +1,5 @@
+import { useI18n } from '@/composables/useI18n';
+
 interface StreamFailureClassification {
   category: string;
   retainActionCard: boolean;
@@ -5,12 +7,13 @@ interface StreamFailureClassification {
 }
 
 export function classifyStreamFailure(payload: Record<string, any> = {}): StreamFailureClassification {
+  const { t } = useI18n();
   const type = String(payload?.type || '').trim();
   if (type === 'tool_round_exhausted') {
     return {
       category: 'tool_error',
       retainActionCard: true,
-      userMessage: '当前请求过于复杂，建议缩小范围后重试。',
+      userMessage: t('ai.streamError.toolRoundExhausted', '当前请求过于复杂，建议缩小范围后重试。'),
     };
   }
 
@@ -18,7 +21,7 @@ export function classifyStreamFailure(payload: Record<string, any> = {}): Stream
     return {
       category: 'action_error',
       retainActionCard: true,
-      userMessage: String(payload?.message || '当前操作未完成，请调整后重试。'),
+      userMessage: String(payload?.message || t('ai.streamError.actionFailed', '当前操作未完成，请调整后重试。')),
     };
   }
 
@@ -26,7 +29,7 @@ export function classifyStreamFailure(payload: Record<string, any> = {}): Stream
     return {
       category: 'network_error',
       retainActionCard: true,
-      userMessage: String(payload?.message || '网络异常，请稍后重试。'),
+      userMessage: String(payload?.message || t('ai.streamError.networkError', '网络异常，请稍后重试。')),
     };
   }
 
@@ -34,7 +37,7 @@ export function classifyStreamFailure(payload: Record<string, any> = {}): Stream
     return {
       category: 'model_error',
       retainActionCard: true,
-      userMessage: String(payload?.message || '模型响应异常，请稍后重试。'),
+      userMessage: String(payload?.message || t('ai.streamError.modelError', '模型响应异常，请稍后重试。')),
     };
   }
 
@@ -42,7 +45,7 @@ export function classifyStreamFailure(payload: Record<string, any> = {}): Stream
     return {
       category: 'input_error',
       retainActionCard: true,
-      userMessage: String(payload?.message || '输入内容无效，请调整后重试。'),
+      userMessage: String(payload?.message || t('ai.streamError.inputError', '输入内容无效，请调整后重试。')),
     };
   }
 

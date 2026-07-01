@@ -28,8 +28,7 @@ import {
   getPurchaseOrderOutstandingQty,
   getPurchaseOrderReceivedQty,
 } from './purchase-order-projection.js';
-
-const D1_MAX_IN_CLAUSE_SIZE = 100;
+import { D1_MAX_IN_CLAUSE_SIZE } from '../api/utils/constants.js';
 
 function buildPurchaseOrderShell(po = {}, items = []) {
   return {

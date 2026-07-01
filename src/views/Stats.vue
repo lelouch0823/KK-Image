@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-(--bg-page) px-6 py-8 text-(--text-main) sm:px-10">
+  <div class="text-(--text-main)">
     <DashboardShell :title="t('stats.statusOverview')" :description="t('ai.subtitle')">
       <template #actions>
         <AppButton
@@ -48,55 +48,38 @@
         </div>
 
         <div v-else-if="stats" class="grid gap-6">
-          <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <AppStatCard
+          <StatGroup :columns="3">
+            <MetricTile
               :label="t('stats.totalFiles')"
               :value="stats.storage?.totalFiles"
-              variant="info"
+              icon="document-text"
+              tone="info"
+              flat
             >
-              <template #icon>
-                <AppIcon name="document-text" class="size-6" />
+              <template #meta>
+                <StatusBadge variant="success" class="!px-2 !py-0.5">
+                  +{{ formatNumber(stats.storage?.todayUploads) }}
+                </StatusBadge>
+                <span>{{ t('dashboard.todayOrders') }}</span>
               </template>
-              <template #footer>
-                <div class="flex items-center gap-2 text-sm font-medium text-(--text-secondary)">
-                  <StatusBadge variant="success" class="!px-2 !py-0.5">
-                    +{{ formatNumber(stats.storage?.todayUploads) }}
-                  </StatusBadge>
-                  {{ t('dashboard.todayOrders') }}
-                </div>
-              </template>
-            </AppStatCard>
+            </MetricTile>
 
-            <AppStatCard
+            <MetricTile
               :label="t('stats.totalStorage')"
               :value="formatSize(stats.storage?.totalSize)"
-              variant="success"
-            >
-              <template #icon>
-                <AppIcon name="database" class="size-6" />
-              </template>
-              <template #footer>
-                <div class="text-sm font-medium text-(--text-secondary)">
-                  {{ t('stats.totalStorage') }}
-                </div>
-              </template>
-            </AppStatCard>
+              icon="database"
+              tone="success"
+              flat
+            />
 
-            <AppStatCard
+            <MetricTile
               :label="t('stats.monthVisits')"
               :value="stats.traffic?.monthTotal"
-              variant="primary"
-            >
-              <template #icon>
-                <AppIcon name="eye" class="size-6" />
-              </template>
-              <template #footer>
-                <div class="text-sm font-medium text-(--text-secondary)">
-                  {{ t('stats.trafficTrend') }}
-                </div>
-              </template>
-            </AppStatCard>
-          </div>
+              icon="eye"
+              tone="primary"
+              flat
+            />
+          </StatGroup>
 
           <SurfaceSection
             :title="t('stats.businessOverview', 'Business Overview')"
@@ -140,21 +123,21 @@
           >
             <MetricTile
               :label="t('stats.totalRevenue')"
-              :value="formatCurrency(stats.profit?.totalRevenue)"
+              :value="formatCurrencyCompact(stats.profit?.totalRevenue)"
               icon="banknotes"
               tone="primary"
               flat
             />
             <MetricTile
               :label="t('stats.totalCost')"
-              :value="formatCurrency(stats.profit?.totalCost)"
+              :value="formatCurrencyCompact(stats.profit?.totalCost)"
               icon="shopping-cart"
               tone="warning"
               flat
             />
             <MetricTile
               :label="t('stats.totalProfit')"
-              :value="formatCurrency(stats.profit?.totalProfit)"
+              :value="formatCurrencyCompact(stats.profit?.totalProfit)"
               icon="chart-bar"
               :tone="(stats.profit?.totalProfit ?? 0) >= 0 ? 'success' : 'danger'"
               flat
@@ -324,11 +307,10 @@ import { ref, computed, onMounted, onActivated, nextTick, onUnmounted } from 'vu
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
-import { formatSize } from '@/utils/formatters';
+import { formatSize, formatCurrencyCompact } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import { Chart } from '@/utils/chart-setup';
 import 'chartjs-adapter-date-fns';
-import AppStatCard from '@/components/ui/AppStatCard.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import Skeleton from '@/components/ui/Skeleton.vue';
@@ -336,6 +318,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import MetricTile from '@/design-system/composed/MetricTile.vue';
+import StatGroup from '@/design-system/composed/StatGroup.vue';
 import SurfaceSection from '@/design-system/composed/SurfaceSection.vue';
 import DashboardShell from '@/design-system/patterns/DashboardShell.vue';
 import StatsChartWrapper from '@/views/stats/StatsChartWrapper.vue';
@@ -343,53 +326,10 @@ import SalesRanking from '@/views/stats/SalesRanking.vue';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 import { formatFileTypeLabel } from '@/utils/display-labels';
-
-const readCssColor = (token, fallback) => {
-  if (typeof document === 'undefined') return fallback;
-  return getComputedStyle(document.documentElement).getPropertyValue(token).trim() || fallback;
-};
-const readCssColorChain = (tokens, fallback = '') => {
-  if (typeof document === 'undefined') return fallback;
-  const style = getComputedStyle(document.documentElement);
-  return tokens.map((token) => style.getPropertyValue(token).trim()).find(Boolean) || fallback;
-};
-const DEFAULT_RGB_CHANNELS = '0, 0, 0';
-
-const hexToRgb = (color) => {
-  const value = color.replace('#', '').trim();
-  if (value.length !== 6) return null;
-  const parsed = Number.parseInt(value, 16);
-  if (Number.isNaN(parsed)) return null;
-  return `${(parsed >> 16) & 255}, ${(parsed >> 8) & 255}, ${parsed & 255}`;
-};
-
-const colorToRgb = (color, fallback) => {
-  if (!color) return fallback;
-  if (color.startsWith('#')) return hexToRgb(color) || fallback;
-  const matched = color.match(/\d+/g);
-  if (!matched || matched.length < 3) return fallback;
-  return matched.slice(0, 3).join(', ');
-};
-
-const withAlpha = (color, alpha, fallback = DEFAULT_RGB_CHANNELS) =>
-  `rgba(${colorToRgb(color, fallback)}, ${alpha})`;
-
-const getChartPalette = () => {
-  return {
-    primary: readCssColorChain(['--color-primary', '--color-chart-1'], 'rgb(0, 0, 0)'),
-    success: readCssColorChain(['--color-success', '--color-chart-3'], 'rgb(0, 0, 0)'),
-    warning: readCssColorChain(['--color-warning', '--color-chart-4'], 'rgb(0, 0, 0)'),
-    danger: readCssColorChain(['--color-danger', '--color-chart-5'], 'rgb(0, 0, 0)'),
-    info: readCssColorChain(['--color-info', '--color-chart-2'], 'rgb(0, 0, 0)'),
-    border: readCssColor('--border-color', 'rgb(0, 0, 0)'),
-    textMain: readCssColor('--text-main', 'rgb(0, 0, 0)'),
-    textSecondary: readCssColor('--text-secondary', 'rgb(0, 0, 0)'),
-    bgCard: readCssColor('--bg-card', 'rgb(255, 255, 255)'),
-  };
-};
+import { withAlpha, getDashboardChartPalette } from '@/utils/dashboard-charts';
 
 const configureChartDefaults = () => {
-  const palette = getChartPalette();
+  const palette = getDashboardChartPalette();
   Chart.defaults.color = palette.textSecondary;
   Chart.defaults.borderColor = withAlpha(palette.border, 0.7);
 };
@@ -434,16 +374,10 @@ const formatNumber = (num) => {
   return num?.toString() || '0';
 };
 
-// 格式化货币
-const formatCurrency = (num) => {
-  if (num == null || !Number.isFinite(num)) return '-';
-  if (Math.abs(num) >= 10000) return (num / 10000).toFixed(1) + '万';
-  return num.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-};
 
 const createCharts = () => {
   if (!stats.value) return;
-  const palette = getChartPalette();
+  const palette = getDashboardChartPalette();
 
   // Destroy Old
   if (trendChartInstance) trendChartInstance.destroy();
@@ -484,7 +418,7 @@ const createCharts = () => {
             pointRadius: 0,
             pointHoverRadius: 6,
             pointBackgroundColor: palette.info,
-            pointBorderColor: palette.bgCard,
+            pointBorderColor: palette.bgElevated,
             pointBorderWidth: 2,
           },
         ],
@@ -495,7 +429,7 @@ const createCharts = () => {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),
+            backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
             titleColor: palette.textMain,
             bodyColor: palette.textSecondary,
             borderColor: palette.border,
@@ -570,7 +504,7 @@ const createCharts = () => {
             },
           },
           tooltip: {
-            backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),
+            backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
             borderColor: palette.border,
             borderWidth: 1,
           },
@@ -604,7 +538,7 @@ const createCharts = () => {
             pointRadius: 0,
             pointHoverRadius: 5,
             pointBackgroundColor: palette.primary,
-            pointBorderColor: palette.bgCard,
+            pointBorderColor: palette.bgElevated,
             pointBorderWidth: 2,
           },
         ],
@@ -615,7 +549,7 @@ const createCharts = () => {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),
+            backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
             titleColor: palette.textMain,
             bodyColor: palette.textSecondary,
             borderColor: palette.border,
@@ -681,7 +615,7 @@ const createCharts = () => {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),
+            backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
             titleColor: palette.textMain,
             bodyColor: palette.textSecondary,
             borderColor: palette.border,
@@ -712,7 +646,7 @@ const createCharts = () => {
     salespersonChartInstance = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: data.map((item) => item.name || '未知'),
+        labels: data.map((item) => item.name || t('common.unknown', '未知')),
         datasets: [
           {
             label: t('stats.orderCount'),
@@ -730,7 +664,7 @@ const createCharts = () => {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),
+            backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
             titleColor: palette.textMain,
             bodyColor: palette.textSecondary,
             borderColor: palette.border,
@@ -810,7 +744,7 @@ const createCharts = () => {
             },
           },
           tooltip: {
-            backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),
+            backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
             titleColor: palette.textMain,
             bodyColor: palette.textSecondary,
             borderColor: palette.border,
@@ -867,7 +801,7 @@ const createCharts = () => {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: withAlpha(palette.bgCard, 0.92, '255, 255, 255'),
+            backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
             titleColor: palette.textMain,
             bodyColor: palette.textSecondary,
             borderColor: palette.border,

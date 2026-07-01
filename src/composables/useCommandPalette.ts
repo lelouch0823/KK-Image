@@ -107,7 +107,7 @@ export function useCommandPalette() {
       category: 'actions',
       action: () => router.push('/admin/settings'),
       permission: 'admin:full',
-      keywords: ['settings', '设置'],
+      keywords: ['settings', t('sidebar.settings', '设置')],
     },
   ]);
 

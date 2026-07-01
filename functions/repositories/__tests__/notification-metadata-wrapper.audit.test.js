@@ -3,7 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const ROOT = process.cwd();
-const TARGET = path.join(ROOT, 'functions', 'repositories', 'NotificationRepository.ts');
+const TARGET = path.join(ROOT, 'functions', 'repositories', 'NotificationRepository.js');
 
 describe('notification metadata wrapper audit', () => {
   it('keeps thin parseMetadata wrappers out of NotificationRepository', () => {
@@ -12,7 +12,7 @@ describe('notification metadata wrapper audit', () => {
 
     if (source.includes('function parseMetadata(')) {
       offenders.push(
-        'functions/repositories/NotificationRepository.ts: still defines parseMetadata'
+        'functions/repositories/NotificationRepository.js: still defines parseMetadata'
       );
     }
 

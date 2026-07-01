@@ -28,14 +28,14 @@
             class="border-warning/30 bg-warning text-(--text-inverse) hover:border-warning hover:bg-warning/90 hover:text-(--text-inverse)"
             @click="$emit('retry')"
           >
-            重新尝试
+            {{ t('common.retry', '重新尝试') }}
           </AppButton>
           <RouterLink
             v-if="showHome"
             :to="homeTo"
             class="cursor-pointer rounded-lg border border-warning/25 bg-(--bg-card) px-3 py-1.5 text-sm font-medium text-(--color-warning-text) transition-colors hover:bg-warning/10 focus-visible:ring-2 focus-visible:ring-warning/30 focus-visible:outline-none"
           >
-            {{ homeText }}
+            {{ homeTextValue }}
           </RouterLink>
         </div>
       </div>
@@ -46,8 +46,11 @@
 <script setup>
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
+import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+
+const { t } = useI18n();
 
 const props = defineProps({
   title: {
@@ -80,17 +83,29 @@ const props = defineProps({
   },
   homeText: {
     type: String,
-    default: '查看权限说明',
+    default: '',
   },
 });
 
 defineEmits(['retry']);
 
-const titleText = computed(() => props.title || '访问受限');
+const titleText = computed(() => props.title || t('permissionDenied.title', '访问受限'));
 const descriptionText = computed(
-  () => props.description || '当前账号缺少访问该资源所需权限，请联系管理员分配权限后重试。'
+  () =>
+    props.description ||
+    t(
+      'permissionDenied.description',
+      '当前账号缺少访问该资源所需权限，请联系管理员分配权限后重试。'
+    )
 );
-const reasonText = computed(
-  () => props.reason || (props.requiredPermission ? `需要权限：${props.requiredPermission}` : '')
+const reasonText = computed(() => {
+  if (props.reason) return props.reason;
+  if (props.requiredPermission) {
+    return `${t('permissionDenied.requiredPermission', '需要权限：')}${props.requiredPermission}`;
+  }
+  return '';
+});
+const homeTextValue = computed(
+  () => props.homeText || t('permissionDenied.viewPermissionDetails', '查看权限说明')
 );
 </script>

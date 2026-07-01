@@ -5,8 +5,7 @@ import {
   buildLivePurchaseItemSnapshot,
   normalizePurchaseItemSnapshotSpecs,
 } from './purchase-order-snapshot.js';
-
-const D1_MAX_IN_CLAUSE_SIZE = 100;
+import { D1_MAX_IN_CLAUSE_SIZE } from '../api/utils/constants.js';
 
 export async function loadOrderLineSnapshotMap({ db, items = [] }) {
   const orderIds = [

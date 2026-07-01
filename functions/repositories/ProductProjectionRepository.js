@@ -1,6 +1,5 @@
 import { chunkArray } from '../lib/db/batch.js';
-
-const D1_CHUNK_SIZE = 100;
+import { D1_CHUNK_SIZE } from '../api/utils/constants.js';
 
 /**
  * 商品投影表 Repository

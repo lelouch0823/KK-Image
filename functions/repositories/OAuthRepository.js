@@ -1,6 +1,7 @@
 import { generatePrefixedId } from '../_shared/utils.js';
 import { parseJsonArray } from '../api/utils/json.js';
 import { buildSetClause } from '../api/utils/sql.js';
+import { MS_PER_DAY } from '../api/utils/constants.js';
 
 /**
  * 计算字符串的 SHA-256 哈希（hex 编码）
@@ -171,7 +172,7 @@ export class OAuthRepository {
     accessToken,
     refreshToken,
     expiresInMs = 3600000,
-    refreshExpiresInMs = 86400000,
+    refreshExpiresInMs = MS_PER_DAY,
   }) {
     const id = this.tokenIdFactory();
     const timestamp = this.now();

@@ -164,7 +164,7 @@ describe('manage audit log routes', () => {
     app.route('/api/manage/audit-logs', auditLogsApp);
 
     const res = await app.request(
-      'http://localhost/api/manage/audit-logs?page=2&pageSize=25&result=denied',
+      'http://localhost/api/manage/audit-logs?page=2&limit=25&result=denied',
       { method: 'GET' },
       { DB: createDb() },
       { waitUntil: vi.fn() }
@@ -181,7 +181,7 @@ describe('manage audit log routes', () => {
         targetType: 'audit_log',
         metadata: expect.objectContaining({
           page: 2,
-          pageSize: 25,
+          limit: 25,
           count: 1,
           result: 'denied',
         }),

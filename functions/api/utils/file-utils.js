@@ -215,10 +215,11 @@ export async function storeFile(env, file, options = {}) {
   // ── 3. 哈希计算 ──
   // 调用方提供的 hash 只作为 CAS hint；CAS 使用服务端计算并校验后的 SHA-256。
   let contentHash = null;
+  let fileBuffer = null;
   if (normalizedInputHash || fileSize < 50 * 1024 * 1024) {
     try {
-      const buffer = await file.arrayBuffer();
-      contentHash = await sha256Hex(buffer);
+      fileBuffer = await file.arrayBuffer();
+      contentHash = await sha256Hex(fileBuffer);
       if (normalizedInputHash && contentHash !== normalizedInputHash) {
         throw new Error('contentHash does not match file content');
       }
@@ -272,7 +273,7 @@ export async function storeFile(env, file, options = {}) {
     storageKey =
       contentHash || `fallback-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
 
-    await env.R2_BUCKET.put(storageKey, file.stream(), {
+    await env.R2_BUCKET.put(storageKey, fileBuffer || file.stream(), {
       httpMetadata: { contentType: mimeType },
     });
 

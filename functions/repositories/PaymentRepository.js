@@ -9,6 +9,7 @@
  */
 
 import { generateId, now } from '../api/utils/id.js';
+import { MS_PER_DAY } from '../api/utils/constants.js';
 
 export class PaymentRepository {
   /**
@@ -211,7 +212,7 @@ export class PaymentRepository {
   async getAgingAnalysis(options = {}) {
     const { customerId, salespersonId } = options;
     const nowTimestamp = now();
-    const dayMs = 24 * 60 * 60 * 1000;
+    const dayMs = MS_PER_DAY;
 
     let whereClause = "WHERE o.archived_at IS NULL AND o.status NOT IN ('void', 'rejected')";
     const params = [

@@ -1,18 +1,14 @@
 <template>
   <div class="space-y-6">
     <!-- 权限不足状态 -->
-    <div
+    <PermissionDeniedState
       v-if="errorCode === ErrorCode.FORBIDDEN"
-      class="rounded-2xl border border-(--border-color) bg-(--bg-card) p-8"
-    >
-      <PermissionDeniedState
-        :title="t('inventoryDashboard.permissionDenied')"
-        :description="error || t('inventoryDashboard.permissionDeniedDesc')"
-        home-to="/admin/forbidden"
-        :home-text="t('common.viewDetails')"
-        @retry="init"
-      />
-    </div>
+      :title="t('inventoryDashboard.permissionDenied')"
+      :description="error || t('inventoryDashboard.permissionDeniedDesc')"
+      home-to="/admin/forbidden"
+      :home-text="t('common.viewDetails')"
+      @retry="init"
+    />
 
     <template v-else>
       <DashboardShell
@@ -62,7 +58,7 @@
               />
               <MetricTile
                 :label="t('inventoryDashboard.summary.inventoryValue')"
-                :value="formatCurrency(data.summary.totalInventoryValue)"
+                :value="formatCurrencyCompact(data.summary.totalInventoryValue, '¥')"
                 icon="banknotes"
                 tone="success"
                 flat
@@ -307,7 +303,7 @@ import { computed, onActivated } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useInventoryDashboard } from '@/composables/useInventoryDashboard';
 import { ErrorCode } from '@/utils/error-codes';
-import { formatTimelineTime } from '@/utils/formatters';
+import { formatTimelineTime, formatCurrencyCompact } from '@/utils/formatters';
 import { formatDomainEventType } from '@/utils/event-display';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppTable from '@/components/ui/AppTable.vue';
@@ -328,14 +324,6 @@ const showRequestErrorState = computed(
   () => !loading.value && Boolean(error.value) && errorCode.value !== ErrorCode.FORBIDDEN
 );
 
-/** 格式化货币（万为单位） */
-const formatCurrency = (value) => {
-  if (value == null || value === undefined) return '-';
-  if (value >= 10000) {
-    return `¥${(value / 10000).toFixed(1)}万`;
-  }
-  return `¥${value.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-};
 
 /** 事件类型标签 */
 const getEventLabel = (eventType) => {

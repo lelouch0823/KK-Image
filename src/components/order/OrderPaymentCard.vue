@@ -38,20 +38,20 @@
     </div>
 
     <!-- 添加付款表单 -->
-    <div v-if="showAddForm" class="mb-4 rounded-lg border border-(--border-color) p-4">
+    <div v-if="showAddForm" class="mb-4 rounded-2xl border border-(--border-color) p-4">
       <div class="space-y-3">
         <!-- 金额 -->
         <div>
           <label class="mb-1 block text-xs text-(--text-secondary)">
             {{ t('order.payment.amount') }} <span class="text-danger">*</span>
           </label>
-          <input
+          <AppInput
             v-model.number="form.amount"
             type="number"
             min="0"
             step="0.01"
             :placeholder="t('order.payment.amountPlaceholder')"
-            class="w-full rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm"
+            size="sm"
           />
         </div>
 
@@ -60,14 +60,11 @@
           <label class="mb-1 block text-xs text-(--text-secondary)">
             {{ t('order.payment.method') }}
           </label>
-          <select
+          <Select
             v-model="form.method"
-            class="w-full rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm"
-          >
-            <option v-for="method in paymentMethods" :key="method.value" :value="method.value">
-              {{ method.label }}
-            </option>
-          </select>
+            :options="paymentMethods"
+            size="sm"
+          />
         </div>
 
         <!-- 参考编号 -->
@@ -75,11 +72,11 @@
           <label class="mb-1 block text-xs text-(--text-secondary)">
             {{ t('order.payment.referenceNo') }}
           </label>
-          <input
+          <AppInput
             v-model="form.referenceNo"
             type="text"
             :placeholder="t('order.payment.referenceNoPlaceholder')"
-            class="w-full rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm"
+            size="sm"
           />
         </div>
 
@@ -88,11 +85,12 @@
           <label class="mb-1 block text-xs text-(--text-secondary)">
             {{ t('order.payment.notes') }}
           </label>
-          <textarea
+          <AppInput
             v-model="form.notes"
+            textarea
             rows="2"
             :placeholder="t('order.payment.notesPlaceholder')"
-            class="w-full rounded-lg border border-(--border-color) bg-(--bg-input) px-3 py-2 text-sm"
+            size="sm"
           />
         </div>
 
@@ -176,6 +174,8 @@ import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { usePayments } from '@/composables/usePayments';
 import AppButton from '@/components/ui/AppButton.vue';
+import AppInput from '@/components/ui/AppInput.vue';
+import Select from '@/components/ui/Select.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import { formatDate } from '@/utils/formatters';
 import { formatReadableLabel } from '@/utils/event-display';
