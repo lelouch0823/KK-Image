@@ -118,7 +118,7 @@ vi.mock('../../../_shared/audit-helpers.js', async () => {
   };
 });
 
-import productByIdApp from '../[id].js';
+import productByIdApp from '../[id]/index.js';
 
 function createApp() {
   const app = new Hono();

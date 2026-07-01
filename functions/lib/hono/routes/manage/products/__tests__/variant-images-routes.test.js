@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 import productsIndexApp from '../index.js';
-import productsDetailApp from '../[id].js';
+import productsDetailApp from '../[id]/index.js';
 
 const mockProductRepo = {
   findById: vi.fn(),

@@ -35,7 +35,7 @@ import manageUploadRoutes from './routes/manage/upload.js';
 import manageBackupsRoutes from './routes/manage/backups.js';
 import manageSettingsRoutes from './routes/manage/settings.js';
 import manageProductsRoutes from './routes/manage/products/index.js'; // NEW
-import manageProductDetailRoutes from './routes/manage/products/[id].js'; // NEW
+import manageProductDetailRoutes from './routes/manage/products/[id]/index.js'; // NEW
 import salesRoutes from './routes/sales.js';
 import manageNotificationsRoutes from './routes/manage/notifications.js';
 import manageAiRoutes from './routes/manage/ai.js';
@@ -44,7 +44,7 @@ import manageSearchRoutes from './routes/manage/search.js'; // NEW
 import manageTagsRoutes from './routes/manage/tags.js'; // NEW
 import manageAuditLogsRoutes from './routes/manage/audit-logs.js'; // NEW
 import manageGoodsOverviewRoutes from './routes/manage/goods-overview.js'; // NEW: 订货总览
-import managePurchaseOrdersRoutes from './routes/manage/purchase-orders.js'; // NEW: 采购单管理
+import managePurchaseOrdersRoutes from './routes/manage/purchase-orders/index.js'; // NEW: 采购单管理
 import manageWebhooksRoutes from './routes/manage/webhooks.js';
 import manageOutboxRoutes from './routes/manage/outbox.js';
 import manageAuditReplayRoutes from './routes/manage/audit-replay.js';
