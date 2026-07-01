@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "组件拆分规范"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "composable 设计规范"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "前端目录结构"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "质量标准"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "类型安全规范"}
