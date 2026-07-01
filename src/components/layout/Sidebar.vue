@@ -87,13 +87,7 @@
           size="sm"
           block
           :title="isCollapsed ? item.label : ''"
-          class="mb-1 !h-auto !justify-start !px-3 !py-2.5 text-sm font-medium transition-all duration-200"
-          :class="[
-            currentView === item.key
-              ? 'text-primary bg-primary/8 font-semibold shadow-sm border-l-2 border-primary -ml-0.5 pl-[14px]'
-              : 'text-secondary hover:text-main hover:bg-(--bg-hover) border-l-2 border-transparent -ml-0.5 pl-[14px]',
-            isCollapsed ? '!justify-center !border-l-0 !ml-0 !pl-3' : '',
-          ]"
+          :class="menuItemClass(item.key)"
           @click="handleMenuClick(item.key)"
         >
           <template #icon-left>
@@ -232,6 +226,17 @@ watch(
   { immediate: true }
 );
 
+// 菜单项样式
+const menuItemClass = (key) => {
+  const isActive = currentView.value === key;
+  const base = 'mb-1 !h-auto !justify-start !px-3 !py-2.5 text-sm font-medium transition-all duration-200 border-l-2 -ml-0.5 pl-[14px]';
+  const active = isActive
+    ? 'text-primary bg-primary/8 font-semibold shadow-sm border-primary'
+    : 'text-secondary hover:text-main hover:bg-(--bg-hover) border-transparent';
+  const collapsed = isCollapsed.value ? '!justify-center !border-l-0 !ml-0 !pl-3' : '';
+  return [base, active, collapsed];
+};
+
 const toggleCollapse = () => {
   isCollapsed.value = !isCollapsed.value;
   setItem(STORAGE_KEY, isCollapsed.value.toString());
@@ -301,8 +306,8 @@ const confirmLogout = async () => {
 .fade-slide-enter-active,
 .fade-slide-leave-active {
   transition:
-    opacity 200ms var(--ease-out-expo),
-    transform 200ms var(--ease-out-expo);
+    opacity var(--transition-smooth),
+    transform var(--transition-smooth);
 }
 
 .fade-slide-enter-from,

@@ -28,9 +28,13 @@
     --border-info: rgba(59, 130, 246, 0.3);
 
     --color-success-bg: rgba(16, 185, 129, 0.2);
+    --color-success-text: #6ee7b7;
     --color-warning-bg: rgba(245, 158, 11, 0.2);
+    --color-warning-text: #fcd34d;
     --color-danger-bg: rgba(239, 68, 68, 0.2);
+    --color-danger-text: #fca5a5;
     --color-info-bg: rgba(59, 130, 246, 0.2);
+    --color-info-text: #93c5fd;
     --color-purple-bg: rgba(139, 92, 246, 0.2);
     --color-cyan-bg: rgba(6, 182, 212, 0.2);
 

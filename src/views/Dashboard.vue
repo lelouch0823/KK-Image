@@ -409,6 +409,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useOrders } from '@/composables/useOrders';
 import { useClipboard } from '@/composables/useClipboard';
 import { useAI } from '@/composables/useAI';
+import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import ShareManagementModal from '@/components/ShareManagementModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
 import OrderWorkflowModal from '@/components/order/OrderWorkflowModal.vue';
@@ -448,6 +449,7 @@ const { t } = useI18n();
 const { getOrder, addComment } = useOrders();
 const { copyShareLink } = useClipboard();
 const { setContext } = useAI();
+const { subscribeModule } = useAppRefreshBus();
 const isRefreshing = ref(false);
 const dashboardLoading = ref(true);
 const lastUpdatedTime = ref(new Date().toLocaleTimeString());
@@ -807,16 +809,22 @@ const destroyCharts = () => {
   }
 };
 
+let unsubscribeRefresh = null;
+
 onMounted(async () => {
   await fetchDashboardData();
+  // 订阅 Header 刷新按钮事件
+  unsubscribeRefresh = subscribeModule('', () => fetchDashboardData());
 });
 
 onBeforeUnmount(() => {
   destroyCharts();
+  unsubscribeRefresh?.();
 });
 
 onActivated(() => {
-  fetchDashboardData();
+  // 避免与 onMounted 重复：仅在非首次激活时重新获取
+  if (!dashboardLoading.value) fetchDashboardData();
 });
 
 watch([showDetailModal, viewingOrder], ([isOpen, order]) => {

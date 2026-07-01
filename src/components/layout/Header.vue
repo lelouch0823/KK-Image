@@ -191,6 +191,7 @@ import { useAI } from '@/composables/useAI';
 import { useAccessControl } from '@/composables/useAccessControl';
 import { useTheme } from '@/composables/useTheme';
 import { useCommandPalette } from '@/composables/useCommandPalette';
+import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
@@ -218,6 +219,7 @@ const { isOpen, toggle: toggleAI } = useAI();
 const { hasPermission, loadPermissions } = useAccessControl();
 const { isDark, toggleTheme } = useTheme();
 const { open: openCommandPalette } = useCommandPalette();
+const { publishRefresh } = useAppRefreshBus();
 
 const showNotifications = ref(false);
 const notificationRef = ref(null);
@@ -248,7 +250,8 @@ const toggleNotifications = () => {
 };
 
 const handleRefresh = () => {
-  window.location.reload();
+  // 空 module 表示全局刷新，各视图通过 subscribeModule('', handler) 订阅
+  publishRefresh({ module: '' });
 };
 
 onMounted(async () => {

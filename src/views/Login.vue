@@ -299,7 +299,7 @@ onMounted(() => {
 });
 </script>
 
-<style>
+<style scoped>
 /* 背景 - 柔和的双色渐变 */
 .bg-pattern {
   background-image:
@@ -322,8 +322,10 @@ onMounted(() => {
 .animate-scale-in {
   animation: scaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+</style>
 
-/* 转场动画 - 使用 expo 缓动 */
+<style>
+/* 转场动画 - 使用 expo 缓动（需全局，Vue transition 类名不受 scoped 约束） */
 .fade-slide-up-enter-active,
 .fade-slide-up-leave-active {
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);

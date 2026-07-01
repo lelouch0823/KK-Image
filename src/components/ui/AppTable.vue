@@ -23,7 +23,8 @@
       <div
         ref="parentRef"
         class="overflow-x-auto"
-        :class="{ 'max-h-[600px] overflow-y-auto': virtual }"
+        :class="{ 'overflow-y-auto': virtual }"
+        :style="virtual ? { maxHeight: virtualHeight } : undefined"
       >
         <table class="w-full text-left text-sm" :style="{ tableLayout }">
           <thead
@@ -250,6 +251,10 @@ const props = defineProps({
   virtual: {
     type: Boolean,
     default: false,
+  },
+  virtualHeight: {
+    type: String,
+    default: '600px', // 虚拟滚动容器最大高度
   },
   estimateSize: {
     type: Number,
