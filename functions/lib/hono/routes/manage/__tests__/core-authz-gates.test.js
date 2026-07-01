@@ -4,7 +4,7 @@ import { Hono } from 'hono';
 import customersApp from '../customers.js';
 import salespersonsApp from '../salespersons.js';
 import settingsApp from '../settings.js';
-import purchaseOrdersApp from '../purchase-orders.js';
+import purchaseOrdersApp from '../purchase-orders/index.js';
 import aiApp from '../ai.js';
 import utilsApp from '../utils.js';
 import filesApp from '../files.js';

@@ -399,8 +399,9 @@ describe('audit runtime alignment', () => {
       };
     });
 
-    const mod = await import('../../routes/manage/purchase-orders.js');
-    const declaration = mod.auditRouteDeclarations.find(
+    const mod = await import('../../routes/manage/purchase-orders/index.js');
+    const receiptsMod = await import('../../routes/manage/purchase-orders/receipts.js');
+    const declaration = receiptsMod.auditRouteDeclarations.find(
       (item) => item.method === 'POST' && item.path === '/:id/receipts/:receiptId/reversal'
     );
     const harness = createAuditRuntimeHarness();

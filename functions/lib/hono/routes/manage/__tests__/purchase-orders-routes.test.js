@@ -121,7 +121,7 @@ vi.mock('../../../../../api/cron/outbox.js', () => ({
   runOutboxPoller: mocks.runOutboxPoller,
 }));
 
-import purchaseOrdersApp from '../purchase-orders.js';
+import purchaseOrdersApp from '../purchase-orders/index.js';
 
 function createDb({
   variantRows = [],

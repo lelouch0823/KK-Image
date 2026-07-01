@@ -5,10 +5,10 @@ import { describe, expect, it } from 'vitest';
 const ROOT = process.cwd();
 const TARGETS = [
   {
-    file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'manage', 'purchase-orders.js'),
+    file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'manage', 'purchase-orders', 'index.js'),
     signature: 'async function requirePurchaseOrder(',
     label:
-      'functions/lib/hono/routes/manage/purchase-orders.js: still defines requirePurchaseOrder',
+      'functions/lib/hono/routes/manage/purchase-orders/index.js: still defines requirePurchaseOrder',
   },
   {
     file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'manage', 'albums.js'),
@@ -26,9 +26,9 @@ const TARGETS = [
     label: 'functions/lib/hono/routes/manage/files.js: still defines requireFile',
   },
   {
-    file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'manage', 'orders', 'detail.js'),
+    file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'manage', 'orders', 'detail', 'index.js'),
     signature: 'async function requireOrder(',
-    label: 'functions/lib/hono/routes/manage/orders/detail.js: still defines requireOrder',
+    label: 'functions/lib/hono/routes/manage/orders/detail/index.js: still defines requireOrder',
   },
   {
     file: path.join(ROOT, 'functions', 'lib', 'hono', 'routes', 'v1', 'files.js'),
