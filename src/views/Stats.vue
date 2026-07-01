@@ -48,156 +48,23 @@
         </div>
 
         <div v-else-if="stats" class="grid gap-6">
-          <StatGroup :columns="3">
-            <MetricTile
-              :label="t('stats.totalFiles')"
-              :value="stats.storage?.totalFiles"
-              icon="document-text"
-              tone="info"
-              flat
-            >
-              <template #meta>
-                <StatusBadge variant="success" class="!px-2 !py-0.5">
-                  +{{ formatNumber(stats.storage?.todayUploads) }}
-                </StatusBadge>
-                <span>{{ t('dashboard.todayOrders') }}</span>
-              </template>
-            </MetricTile>
+          <StatsMetricSections
+            :stats="stats"
+            :set-profit-trend-ref="setProfitTrendChartRef"
+            :set-profit-by-product-ref="setProfitByProductChartRef"
+          />
 
-            <MetricTile
-              :label="t('stats.totalStorage')"
-              :value="formatSize(stats.storage?.totalSize)"
-              icon="database"
-              tone="success"
-              flat
-            />
+          <StatsTrafficSection
+            :set-trend-ref="setTrendChartRef"
+            :set-type-ref="setTypeChartRef"
+          />
 
-            <MetricTile
-              :label="t('stats.monthVisits')"
-              :value="stats.traffic?.monthTotal"
-              icon="eye"
-              tone="primary"
-              flat
-            />
-          </StatGroup>
-
-          <SurfaceSection
-            :title="t('stats.businessOverview', 'Business Overview')"
-            body-class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4"
-          >
-            <MetricTile
-              :label="t('stats.totalOrders', 'Total Orders')"
-              :value="formatNumber(stats.business?.totalOrders)"
-              icon="clipboard-document-list"
-              tone="primary"
-              flat
-            />
-            <MetricTile
-              :label="t('stats.pendingOrders', 'Pending Orders')"
-              :value="formatNumber(stats.business?.pendingOrders)"
-              icon="clock"
-              tone="warning"
-              flat
-            />
-            <MetricTile
-              :label="t('stats.fulfilledOrders', 'Fulfilled Orders')"
-              :value="formatNumber(stats.business?.fulfilledOrders)"
-              icon="check-circle"
-              tone="success"
-              flat
-            />
-            <MetricTile
-              :label="t('stats.activeSalespersons', 'Active Salespersons')"
-              :value="formatNumber(stats.business?.activeSalespersons)"
-              icon="users"
-              tone="info"
-              flat
-            />
-          </SurfaceSection>
-
-          <!-- 利润概览 -->
-          <SurfaceSection
-            v-if="stats.profit"
-            :title="t('stats.profitOverview')"
-            body-class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4"
-          >
-            <MetricTile
-              :label="t('stats.totalRevenue')"
-              :value="formatCurrencyCompact(stats.profit?.totalRevenue)"
-              icon="banknotes"
-              tone="primary"
-              flat
-            />
-            <MetricTile
-              :label="t('stats.totalCost')"
-              :value="formatCurrencyCompact(stats.profit?.totalCost)"
-              icon="shopping-cart"
-              tone="warning"
-              flat
-            />
-            <MetricTile
-              :label="t('stats.totalProfit')"
-              :value="formatCurrencyCompact(stats.profit?.totalProfit)"
-              icon="chart-bar"
-              :tone="(stats.profit?.totalProfit ?? 0) >= 0 ? 'success' : 'danger'"
-              flat
-            />
-            <MetricTile
-              :label="t('stats.profitMargin')"
-              :value="stats.profit?.margin != null ? stats.profit.margin + '%' : '-'"
-              icon="presentation-chart-line"
-              :tone="(stats.profit?.margin ?? 0) >= 0 ? 'success' : 'danger'"
-              flat
-            />
-          </SurfaceSection>
-
-          <!-- 利润趋势图 -->
-          <div
-            v-if="stats.charts?.profitTrend?.length"
-            class="grid grid-cols-1 gap-6 lg:grid-cols-3"
-          >
-            <StatsChartWrapper class="lg:col-span-2" :title="t('stats.profitTrend')">
-              <canvas ref="profitTrendChartRef"></canvas>
-            </StatsChartWrapper>
-
-            <StatsChartWrapper :title="t('stats.profitByProduct')">
-              <canvas ref="profitByProductChartRef"></canvas>
-            </StatsChartWrapper>
-          </div>
-
-          <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <StatsChartWrapper class="lg:col-span-2" :title="t('stats.trafficTrend')">
-              <canvas ref="trendChartRef"></canvas>
-            </StatsChartWrapper>
-
-            <StatsChartWrapper :title="t('stats.fileTypes')">
-              <canvas ref="typeChartRef"></canvas>
-            </StatsChartWrapper>
-          </div>
-
-          <!-- 销售趋势图 (90天) -->
-          <StatsChartWrapper :title="t('stats.salesTrend')">
-            <template #actions>
-              <StatusBadge variant="neutral" outline>
-                {{ stats.charts?.salesTrend?.length || 0 }} {{ t('stats.date') }}
-              </StatusBadge>
-            </template>
-            <canvas ref="salesTrendChartRef"></canvas>
-          </StatsChartWrapper>
-
-          <!-- 热销排行 + 销售员业绩 -->
-          <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <StatsChartWrapper :title="t('stats.topProducts')">
-              <canvas ref="topProductsChartRef"></canvas>
-            </StatsChartWrapper>
-
-            <StatsChartWrapper :title="t('stats.salespersonPerformance')">
-              <canvas ref="salespersonChartRef"></canvas>
-            </StatsChartWrapper>
-          </div>
-
-          <!-- 销售业绩排行榜 -->
-          <SalesRanking />
+          <StatsSalesSection
+            :stats="stats"
+            :set-sales-trend-ref="setSalesTrendChartRef"
+            :set-top-products-ref="setTopProductsChartRef"
+            :set-salesperson-ref="setSalespersonChartRef"
+          />
 
           <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <SurfaceSection :title="t('stats.topSpaces')" body-class="space-y-4">
@@ -307,7 +174,7 @@ import { ref, computed, onMounted, onActivated, nextTick, onUnmounted } from 'vu
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
-import { formatSize, formatCurrencyCompact } from '@/utils/formatters';
+import { formatSize } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import 'chartjs-adapter-date-fns';
 import AppTable from '@/components/ui/AppTable.vue';
@@ -317,11 +184,11 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import MetricTile from '@/design-system/composed/MetricTile.vue';
-import StatGroup from '@/design-system/composed/StatGroup.vue';
 import SurfaceSection from '@/design-system/composed/SurfaceSection.vue';
 import DashboardShell from '@/design-system/patterns/DashboardShell.vue';
-import StatsChartWrapper from '@/views/stats/StatsChartWrapper.vue';
-import SalesRanking from '@/views/stats/SalesRanking.vue';
+import StatsMetricSections from '@/views/stats/StatsMetricSections.vue';
+import StatsTrafficSection from '@/views/stats/StatsTrafficSection.vue';
+import StatsSalesSection from '@/views/stats/StatsSalesSection.vue';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 import { formatFileTypeLabel } from '@/utils/display-labels';
@@ -351,6 +218,16 @@ const topProductsChartRef = ref(null);
 const salespersonChartRef = ref(null);
 const profitTrendChartRef = ref(null);
 const profitByProductChartRef = ref(null);
+
+// Canvas ref setter 函数——Vue 3 会自动解包作为 prop 传递的 Ref 对象，
+// 导致子组件模板中看到的是 null 而非 Ref。传递函数可避免此问题。
+const setTrendChartRef = (el) => { trendChartRef.value = el; };
+const setTypeChartRef = (el) => { typeChartRef.value = el; };
+const setSalesTrendChartRef = (el) => { salesTrendChartRef.value = el; };
+const setTopProductsChartRef = (el) => { topProductsChartRef.value = el; };
+const setSalespersonChartRef = (el) => { salespersonChartRef.value = el; };
+const setProfitTrendChartRef = (el) => { profitTrendChartRef.value = el; };
+const setProfitByProductChartRef = (el) => { profitByProductChartRef.value = el; };
 
 const largeFilesColumns = computed(() => [
   { key: 'index', label: '#', width: '60px' },
