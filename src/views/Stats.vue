@@ -309,7 +309,6 @@ import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
 import { formatSize, formatCurrencyCompact } from '@/utils/formatters';
 import { API } from '@/utils/constants';
-import { Chart } from '@/utils/chart-setup';
 import 'chartjs-adapter-date-fns';
 import AppTable from '@/components/ui/AppTable.vue';
 import AppButton from '@/components/ui/AppButton.vue';
@@ -326,13 +325,12 @@ import SalesRanking from '@/views/stats/SalesRanking.vue';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
 import { formatFileTypeLabel } from '@/utils/display-labels';
-import { withAlpha, getDashboardChartPalette } from '@/utils/dashboard-charts';
+import {
+  configureChartDefaults,
+  formatNumber,
+  createAllCharts,
+} from '@/composables/useStatsCharts';
 
-const configureChartDefaults = () => {
-  const palette = getDashboardChartPalette();
-  Chart.defaults.color = palette.textSecondary;
-  Chart.defaults.borderColor = withAlpha(palette.border, 0.7);
-};
 configureChartDefaults();
 
 const { addToast } = useToast();
@@ -344,6 +342,8 @@ const loading = ref(true);
 const error = ref('');
 const errorCode = ref(null);
 const stats = ref(null);
+
+// Chart canvas refs
 const trendChartRef = ref(null);
 const typeChartRef = ref(null);
 const salesTrendChartRef = ref(null);
@@ -352,14 +352,6 @@ const salespersonChartRef = ref(null);
 const profitTrendChartRef = ref(null);
 const profitByProductChartRef = ref(null);
 
-let trendChartInstance = null;
-let typeChartInstance = null;
-let salesTrendChartInstance = null;
-let topProductsChartInstance = null;
-let salespersonChartInstance = null;
-let profitTrendChartInstance = null;
-let profitByProductChartInstance = null;
-
 const largeFilesColumns = computed(() => [
   { key: 'index', label: '#', width: '60px' },
   { key: 'name', label: t('stats.fileName') },
@@ -367,469 +359,21 @@ const largeFilesColumns = computed(() => [
   { key: 'size', label: t('stats.fileSize'), align: 'right' },
 ]);
 
-// 格式化数字
-const formatNumber = (num) => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-  return num?.toString() || '0';
+const chartRefs = {
+  trendChartRef,
+  typeChartRef,
+  salesTrendChartRef,
+  topProductsChartRef,
+  salespersonChartRef,
+  profitTrendChartRef,
+  profitByProductChartRef,
 };
 
-
 const createCharts = () => {
-  if (!stats.value) return;
-  const palette = getDashboardChartPalette();
-
-  // Destroy Old
-  if (trendChartInstance) trendChartInstance.destroy();
-  if (typeChartInstance) typeChartInstance.destroy();
-  if (salesTrendChartInstance) salesTrendChartInstance.destroy();
-  if (topProductsChartInstance) topProductsChartInstance.destroy();
-  if (salespersonChartInstance) salespersonChartInstance.destroy();
-  if (profitTrendChartInstance) profitTrendChartInstance.destroy();
-  if (profitByProductChartInstance) profitByProductChartInstance.destroy();
-
-  // 1. Traffic Trend Chart
-  if (trendChartRef.value) {
-    const ctx = trendChartRef.value.getContext('2d');
-    const dailyData = stats.value.traffic?.daily || {};
-
-    // Safety check: if no data, ensure we don't error out
-    const labels = Object.keys(dailyData);
-    const data = Object.values(dailyData);
-
-    // Gradient Fill
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, withAlpha(palette.info, 0.4));
-    gradient.addColorStop(1, withAlpha(palette.info, 0));
-
-    trendChartInstance = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: t('stats.monthVisits'),
-            data: data,
-            borderColor: palette.info,
-            backgroundColor: gradient,
-            borderWidth: 3,
-            fill: true,
-            tension: 0.4, // Smooth curve
-            pointRadius: 0,
-            pointHoverRadius: 6,
-            pointBackgroundColor: palette.info,
-            pointBorderColor: palette.bgElevated,
-            pointBorderWidth: 2,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
-            titleColor: palette.textMain,
-            bodyColor: palette.textSecondary,
-            borderColor: palette.border,
-            borderWidth: 1,
-            padding: 12,
-            displayColors: false,
-          },
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { maxTicksLimit: 7, color: palette.textSecondary },
-          },
-          y: {
-            border: { display: false },
-            grid: { color: withAlpha(palette.border, 0.4), opacity: 0.1 },
-            beginAtZero: true,
-            ticks: { color: palette.textSecondary },
-          },
-        },
-        interaction: { intersect: false, mode: 'index' },
-      },
-    });
-  }
-
-  // 2. File Type Chart
-  if (typeChartRef.value) {
-    const ctx = typeChartRef.value.getContext('2d');
-    const fileTypes = stats.value.health?.fileTypes || [];
-    const typeData = fileTypes.slice(0, 5).map((i) => ({ ...i })); // Shallow copy to avoid mutation issues
-
-    // Calculate 'Other' only if we have more than 5 types
-    if (fileTypes.length > 5) {
-      const otherCount = fileTypes.slice(5).reduce((acc, cur) => acc + (cur.count || 0), 0);
-      if (otherCount > 0) {
-        typeData.push({ type: 'Other', count: otherCount });
-      }
-    }
-
-    typeChartInstance = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: typeData.map((i) => formatFileTypeLabel(i.type)),
-        datasets: [
-          {
-            data: typeData.map((i) => i.count),
-            backgroundColor: [
-              palette.info,
-              palette.success,
-              palette.primary,
-              palette.warning,
-              palette.danger,
-              palette.textSecondary,
-            ],
-            borderWidth: 0,
-            hoverOffset: 10,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '75%',
-        plugins: {
-          legend: {
-            position: 'right',
-            labels: {
-              usePointStyle: true,
-              padding: 20,
-              color: palette.textSecondary,
-              font: { size: 12 },
-            },
-          },
-          tooltip: {
-            backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
-            borderColor: palette.border,
-            borderWidth: 1,
-          },
-        },
-      },
-    });
-  }
-
-  // 3. 销售趋势折线图 (90天)
-  if (salesTrendChartRef.value && stats.value.charts?.salesTrend) {
-    const ctx = salesTrendChartRef.value.getContext('2d');
-    const data = stats.value.charts.salesTrend;
-
-    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, withAlpha(palette.primary, 0.3));
-    gradient.addColorStop(1, withAlpha(palette.primary, 0));
-
-    salesTrendChartInstance = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: data.map((item) => item.date?.slice(5) || ''),
-        datasets: [
-          {
-            label: t('stats.orderCount'),
-            data: data.map((item) => item.orderCount || 0),
-            borderColor: palette.primary,
-            backgroundColor: gradient,
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 0,
-            pointHoverRadius: 5,
-            pointBackgroundColor: palette.primary,
-            pointBorderColor: palette.bgElevated,
-            pointBorderWidth: 2,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
-            titleColor: palette.textMain,
-            bodyColor: palette.textSecondary,
-            borderColor: palette.border,
-            borderWidth: 1,
-            padding: 12,
-            displayColors: false,
-          },
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { maxTicksLimit: 10, color: palette.textSecondary, font: { size: 11 } },
-          },
-          y: {
-            border: { display: false },
-            grid: { color: withAlpha(palette.border, 0.4) },
-            beginAtZero: true,
-            ticks: { color: palette.textSecondary, font: { size: 11 } },
-          },
-        },
-        interaction: { intersect: false, mode: 'index' },
-      },
-    });
-  }
-
-  // 4. 热销商品排行 (水平条形图)
-  if (topProductsChartRef.value && stats.value.charts?.topProducts) {
-    const ctx = topProductsChartRef.value.getContext('2d');
-    const data = stats.value.charts.topProducts;
-
-    topProductsChartInstance = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: data.map((item) => {
-          const name = item.productName || '';
-          return name.length > 12 ? name.slice(0, 12) + '...' : name;
-        }),
-        datasets: [
-          {
-            label: t('stats.orderCount'),
-            data: data.map((item) => item.orderCount || 0),
-            backgroundColor: [
-              withAlpha(palette.primary, 0.8),
-              withAlpha(palette.info, 0.8),
-              withAlpha(palette.success, 0.8),
-              withAlpha(palette.warning, 0.8),
-              withAlpha(palette.danger, 0.7),
-              withAlpha(palette.primary, 0.6),
-              withAlpha(palette.info, 0.6),
-              withAlpha(palette.success, 0.6),
-              withAlpha(palette.warning, 0.6),
-              withAlpha(palette.danger, 0.5),
-            ],
-            borderWidth: 0,
-            borderRadius: 4,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        indexAxis: 'y',
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
-            titleColor: palette.textMain,
-            bodyColor: palette.textSecondary,
-            borderColor: palette.border,
-            borderWidth: 1,
-          },
-        },
-        scales: {
-          x: {
-            border: { display: false },
-            grid: { color: withAlpha(palette.border, 0.3) },
-            beginAtZero: true,
-            ticks: { color: palette.textSecondary, font: { size: 11 } },
-          },
-          y: {
-            grid: { display: false },
-            ticks: { color: palette.textSecondary, font: { size: 11 } },
-          },
-        },
-      },
-    });
-  }
-
-  // 5. 销售员业绩柱状图
-  if (salespersonChartRef.value && stats.value.charts?.salespersonStats) {
-    const ctx = salespersonChartRef.value.getContext('2d');
-    const data = stats.value.charts.salespersonStats;
-
-    salespersonChartInstance = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: data.map((item) => item.name || t('common.unknown', '未知')),
-        datasets: [
-          {
-            label: t('stats.orderCount'),
-            data: data.map((item) => item.orderCount || 0),
-            backgroundColor: withAlpha(palette.info, 0.7),
-            borderWidth: 0,
-            borderRadius: 4,
-            hoverBackgroundColor: withAlpha(palette.info, 0.9),
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
-            titleColor: palette.textMain,
-            bodyColor: palette.textSecondary,
-            borderColor: palette.border,
-            borderWidth: 1,
-          },
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { color: palette.textSecondary, font: { size: 11 } },
-          },
-          y: {
-            border: { display: false },
-            grid: { color: withAlpha(palette.border, 0.3) },
-            beginAtZero: true,
-            ticks: { color: palette.textSecondary, font: { size: 11 } },
-          },
-        },
-      },
-    });
-  }
-
-  // 6. 利润趋势图 (Revenue + Cost + Profit)
-  if (profitTrendChartRef.value && stats.value.charts?.profitTrend?.length) {
-    const ctx = profitTrendChartRef.value.getContext('2d');
-    const data = stats.value.charts.profitTrend;
-
-    profitTrendChartInstance = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: data.map((item) => item.date?.slice(5) || ''),
-        datasets: [
-          {
-            label: t('stats.revenue'),
-            data: data.map((item) => item.revenue || 0),
-            borderColor: palette.primary,
-            backgroundColor: 'transparent',
-            borderWidth: 2,
-            tension: 0.4,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-          },
-          {
-            label: t('stats.cost'),
-            data: data.map((item) => item.cost || 0),
-            borderColor: palette.warning,
-            backgroundColor: 'transparent',
-            borderWidth: 2,
-            tension: 0.4,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-          },
-          {
-            label: t('stats.profit'),
-            data: data.map((item) => item.profit || 0),
-            borderColor: palette.success,
-            backgroundColor: withAlpha(palette.success, 0.15),
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: {
-              usePointStyle: true,
-              padding: 16,
-              color: palette.textSecondary,
-              font: { size: 11 },
-            },
-          },
-          tooltip: {
-            backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
-            titleColor: palette.textMain,
-            bodyColor: palette.textSecondary,
-            borderColor: palette.border,
-            borderWidth: 1,
-            padding: 12,
-          },
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { maxTicksLimit: 10, color: palette.textSecondary, font: { size: 11 } },
-          },
-          y: {
-            border: { display: false },
-            grid: { color: withAlpha(palette.border, 0.3) },
-            ticks: { color: palette.textSecondary, font: { size: 11 } },
-          },
-        },
-        interaction: { intersect: false, mode: 'index' },
-      },
-    });
-  }
-
-  // 7. 商品利润排行 (水平条形图)
-  if (profitByProductChartRef.value && stats.value.charts?.profitByProduct?.length) {
-    const ctx = profitByProductChartRef.value.getContext('2d');
-    const data = stats.value.charts.profitByProduct;
-
-    profitByProductChartInstance = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: data.map((item) => {
-          const name = item.productName || '';
-          return name.length > 10 ? name.slice(0, 10) + '...' : name;
-        }),
-        datasets: [
-          {
-            label: t('stats.profit'),
-            data: data.map((item) => item.profit || 0),
-            backgroundColor: data.map((item) =>
-              (item.profit || 0) >= 0
-                ? withAlpha(palette.success, 0.7)
-                : withAlpha(palette.danger, 0.7)
-            ),
-            borderWidth: 0,
-            borderRadius: 4,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        indexAxis: 'y',
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: withAlpha(palette.bgElevated, 0.92, '255, 255, 255'),
-            titleColor: palette.textMain,
-            bodyColor: palette.textSecondary,
-            borderColor: palette.border,
-            borderWidth: 1,
-          },
-        },
-        scales: {
-          x: {
-            border: { display: false },
-            grid: { color: withAlpha(palette.border, 0.3) },
-            ticks: { color: palette.textSecondary, font: { size: 11 } },
-          },
-          y: {
-            grid: { display: false },
-            ticks: { color: palette.textSecondary, font: { size: 11 } },
-          },
-        },
-      },
-    });
-  }
+  createAllCharts(stats.value, chartRefs, t);
 };
 
 const loadStats = async () => {
-  // Prevent concurrent loads if already loading (except initial true state)
-  // Logic: If already loading and stats are null, it's the initial load.
-  // If loading is true but called again, we can let it slide to debounce, or blocking?
-  // Simplest for double-fetch fix: The caller should check loading.
-
   loading.value = true;
   error.value = '';
   errorCode.value = null;
@@ -840,21 +384,16 @@ const loadStats = async () => {
     const json = await response.json();
     stats.value = json.data || json;
 
-    // Smooth chart rendering
     await nextTick();
-    // Wrap createCharts in try-catch to prevent UI crash
     try {
       setTimeout(createCharts, 100);
     } catch (chartErr) {
       console.warn('Charts failed to render:', chartErr);
     }
-
-    // addToast({ message: t('stats.refreshSuccess'), type: 'success' });
   } catch (err) {
     console.error(err);
     const code = classifyError(err);
     errorCode.value = code;
-    // Don't clear stats if refresh fails, just show error toast
     if (!isAuthError(code)) {
       if (!stats.value) {
         error.value = t('stats.loadError');
@@ -870,18 +409,16 @@ const loadStats = async () => {
 
 onMounted(() => {
   loadStats();
-  const timer = setInterval(loadStats, 300000); // 5 min
+  const timer = setInterval(loadStats, 300000);
   onUnmounted(() => clearInterval(timer));
 });
 
 onActivated(() => {
-  // Fix double invoke: Only load if not already loading and no data
   if (!stats.value && !loading.value) {
     loadStats();
   }
 });
 
-// Watch for theme changes to update charts
 if (typeof window !== 'undefined') {
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
@@ -897,7 +434,6 @@ if (typeof window !== 'undefined') {
 </script>
 
 <style scoped>
-/* Keyframes available via Tailwind v4 usually, but adding explicit for reliability */
 @keyframes fade-in-up {
   from {
     opacity: 0;
