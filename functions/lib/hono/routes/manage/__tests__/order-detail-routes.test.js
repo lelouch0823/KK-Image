@@ -140,7 +140,7 @@ vi.mock('../../../../../api/utils/order-utils.js', () => ({
   processOrderUpdate: mocks.processOrderUpdate,
 }));
 
-import detailApp from '../orders/detail.js';
+import detailApp from '../orders/detail/index.js';
 
 function createApp(
   user = { id: 'u-1', name: 'Admin', type: 'admin', permissions: ['admin:full'] }

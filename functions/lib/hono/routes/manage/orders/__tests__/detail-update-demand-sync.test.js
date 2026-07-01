@@ -69,7 +69,7 @@ vi.mock('../../../../../../api/utils/order-utils.js', () => ({
   processOrderUpdate: mocks.processOrderUpdate,
 }));
 
-import detailRoutesApp from '../detail.js';
+import detailRoutesApp from '../detail/index.js';
 
 function createApp() {
   const app = new Hono();

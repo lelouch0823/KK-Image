@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   runOutboxPoller: vi.fn(async () => ({ claimed: 0, published: 0, failed: 0 })),
 }));
 
-vi.mock('../../../../../../services/OrderLineFulfillmentService.js', () => ({
+vi.mock('../../../../../../services/OrderLineFulfillmentService/index.js', () => ({
   OrderLineFulfillmentService: vi.fn(() => ({
     reserveLine: mocks.reserveLine,
     releaseLine: mocks.releaseLine,

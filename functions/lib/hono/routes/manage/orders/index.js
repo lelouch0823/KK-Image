@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import listRoutes from './list.js';
 import createRoutes from './create.js';
 import lineRoutes from './lines.js';
-import detailRoutes from './detail.js';
+import detailRoutes from './detail/index.js';
 import paymentRoutes from './payments.js';
 import { requirePermission } from '../../../middleware/auth.js';
 
