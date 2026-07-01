@@ -1,5 +1,5 @@
 // useProductForm - ProductCreateModal 的表单状态与逻辑层
-import { ref, reactive, computed, watch, type Ref, type ComputedRef } from 'vue';
+import { ref, reactive, computed, watch, type ComputedRef } from 'vue';
 import { useProducts } from '@/composables/useProducts';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
@@ -37,95 +37,21 @@ import {
   createActionErrorMessageResolver,
   createProductFormSubmitHandler,
 } from '@/composables/product-form/submission.js';
+import type {
+  ProductOption,
+  ProductVariant,
+  ProductForm,
+  DimensionArchiveWizard,
+  ValueArchiveWizard,
+  ImageObject,
+  TrackedDimension,
+  UseProductFormOptions,
+} from './product-form/product-form-types';
 
 export {
   buildVariantSyncSummaryMessage,
   detectIncompleteVariant,
 } from '@/composables/product-form/helpers.js';
-
-interface ProductOption {
-  id: string | null;
-  name: string;
-  values: string[];
-  inputValue: string;
-  archivedValues: Array<{ id: string; value: string; status: string }>;
-  metaMap?: Record<string, unknown>;
-  [key: string]: unknown;
-}
-
-interface ProductVariant {
-  id?: string;
-  sku: string;
-  barcode?: string;
-  supplier_sku?: string;
-  price?: number;
-  cost_price?: number;
-  stock_quantity?: number;
-  alert_threshold?: number;
-  status: string;
-  options_values: Record<string, string>;
-  images?: string[];
-  _clientKey?: string;
-  _incomplete?: boolean;
-  [key: string]: unknown;
-}
-
-interface ProductForm {
-  name: string;
-  description: string;
-  brand: string;
-  series: string;
-  category: string;
-  currency: string;
-  spu: string;
-  slug: string;
-  images: string[];
-  options: ProductOption[];
-  variants: ProductVariant[];
-  [key: string]: unknown;
-}
-
-interface DimensionArchiveWizard {
-  open: boolean;
-  step: number;
-  optionIndex: number;
-  optionId: string;
-  affectedVariantsCount: number;
-  sampleVariants: unknown[];
-  mode: string;
-  loading: boolean;
-}
-
-interface ValueArchiveWizard {
-  open: boolean;
-  optionIndex: number;
-  valueIndex: number;
-  valueId: string;
-  valueLabel: string;
-  affectedVariantsCount: number;
-  sampleVariants: unknown[];
-  loading: boolean;
-}
-
-interface ImageObject {
-  id: string;
-  url: string;
-}
-
-interface TrackedDimension {
-  id: string;
-  name?: string;
-  status?: string;
-  values?: Array<{ id?: string; value: string; status?: string; [key: string]: unknown }>;
-  [key: string]: unknown;
-}
-
-interface UseProductFormOptions {
-  editMode: Ref<boolean>;
-  initialData: Ref<Record<string, unknown> | null>;
-  modelValue?: Ref<boolean> | null;
-  emit: (event: string, ...args: unknown[]) => void;
-}
 
 /**
  * useProductForm - 商品创建/编辑表单的 composable
