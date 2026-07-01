@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { OrderLineCommandSchema } from '../../../schemas/order.js';
 import { BadRequestError, NotFoundError } from '../../../errors.js';
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
-import { OrderLineFulfillmentService } from '../../../../../services/OrderLineFulfillmentService.js';
+import { OrderLineFulfillmentService } from '../../../../../services/OrderLineFulfillmentService/index.js';
 import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
 import { parsePositiveLineCommandQuantity } from '../../../../../services/order-line-shared.js';
