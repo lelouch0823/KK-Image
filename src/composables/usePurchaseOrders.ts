@@ -18,140 +18,17 @@ import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import { handleApiError, apiAction } from '@/utils/api-helpers';
-
-// ============================================================
-// 类型定义
-// ============================================================
-
-/** 采购单列表项 */
-interface PurchaseOrder {
-  id: string;
-  poNo: string;
-  status: string;
-  displayStatus?: string;
-  remark?: string;
-  currency?: string;
-  allocationMethod?: string;
-  estimatedShippingCost?: number;
-  estimatedTariffCost?: number;
-  itemCount?: number;
-  orderedQty?: number;
-  receivedQty?: number;
-  cancelledQty?: number;
-  outstandingQty?: number;
-  totalGoodsCost?: number;
-  receiptCount?: number;
-  createdAt?: number;
-  updatedAt?: number;
-  [key: string]: unknown;
-}
-
-/** 采购单明细项 */
-interface PurchaseOrderItem {
-  id: string;
-  poId: string;
-  productId: string | null;
-  variantId: string | null;
-  preOrderId?: string | null;
-  snapshotName?: string;
-  snapshotSku?: string;
-  snapshotSpecs?: string;
-  snapshotImage?: string | null;
-  snapshotBrand?: string;
-  productName?: string;
-  productSku?: string;
-  productBrand?: string;
-  variantSku?: string;
-  variantOptions?: string;
-  quantity: number;
-  unitCost?: number;
-  receivedQty?: number;
-  cancelledQty?: number;
-  receiptCount?: number;
-  lastReceivedAt?: number;
-  customerOrderNo?: string;
-  [key: string]: unknown;
-}
-
-/** 采购单收货记录 */
-interface PurchaseReceipt {
-  id: string;
-  purchaseOrderId: string;
-  purchaseOrderItemId: string;
-  productId: string | null;
-  variantId: string | null;
-  receivedQty: number;
-  reversedQty?: number;
-  reversalCount?: number;
-  lastReversedAt?: number;
-  availableReversalQty?: number;
-  isReversed?: boolean;
-  receivedAt?: number;
-  createdAt?: number;
-  [key: string]: unknown;
-}
-
-/** 采购单详情（含明细和收货记录） */
-interface PurchaseOrderDetail extends PurchaseOrder {
-  items: PurchaseOrderItem[];
-  receipts: PurchaseReceipt[];
-  [key: string]: unknown;
-}
-
-/** 采购单统计数据 */
-interface PurchaseOrderStats {
-  totalOrders?: number;
-  totalValue?: number;
-  pendingOrders?: number;
-  completedOrders?: number;
-  [key: string]: unknown;
-}
-
-/** 采购单智能建议 */
-interface PurchaseOrderSuggestion {
-  id: string;
-  type?: string;
-  message?: string;
-  productId?: string;
-  variantId?: string;
-  quantity?: number;
-  [key: string]: unknown;
-}
-
-/** 状态颜色配置 */
-interface StatusStyleConfig {
-  label: string;
-  color: string;
-  bg: string;
-}
-
-/** 添加明细载荷 */
-interface AddItemsPayload {
-  productId?: string;
-  variantId?: string;
-  quantity?: number;
-  unitCost?: number;
-  [key: string]: unknown;
-}
-
-/** 收货登记载荷 */
-interface RecordReceiptsPayload {
-  items?: { itemId: string; quantity: number }[];
-  [key: string]: unknown;
-}
-
-/** 缺口关闭载荷 */
-interface CloseShortagesPayload {
-  items?: { itemId: string; closeQty?: number }[];
-  [key: string]: unknown;
-}
-
-/** 创建结果 */
-interface CreateResult {
-  detailLoaded: boolean;
-  listLoaded: boolean;
-  statsLoaded: boolean;
-}
+import type {
+  PurchaseOrder,
+  PurchaseOrderDetail,
+  PurchaseOrderStats,
+  PurchaseOrderSuggestion,
+  StatusStyleConfig,
+  AddItemsPayload,
+  RecordReceiptsPayload,
+  CloseShortagesPayload,
+  CreateResult,
+} from './purchase-order/purchase-order-types';
 
 export function usePurchaseOrders() {
   const { addToast } = useToast();
@@ -334,9 +211,6 @@ export function usePurchaseOrders() {
     );
   };
 
-  /**
-   * 从客户订单快速创建采购单
-   */
   const createFromOrders = async (orderIds: string[], poData: Record<string, unknown> = {}): Promise<PurchaseOrder | null> => {
     const uniqueOrderIds = [...new Set((orderIds || []).filter(Boolean))];
     try {
@@ -629,7 +503,6 @@ export function usePurchaseOrders() {
       console.error('loadStats failed:', e);
       const err = e as Error & { status?: number };
       const status = Number(err?.status || 0);
-      // 统计接口权限应只影响统计模块，不应覆盖列表权限态（避免整页误封）
       if (status === 401 || status === 403) {
         stats.value = null;
         return false;
