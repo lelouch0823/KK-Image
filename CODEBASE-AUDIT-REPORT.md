@@ -343,3 +343,121 @@
 | 3 | usePurchaseOrders.ts | 707 | ~280 (主文件) | 中 | 类型定义 + CRUD 可独立提取 |
 | 4 | useProductForm.ts | 660 | ~350 (主文件) | 中 | 已有 6 个子模块，进一步拆分空间有限 |
 | 5 | PurchaseOrders.vue | 903 | ~750 (主文件) | 低 | 已高度拆分，仅需微调 |
+
+### 后端大文件拆分建议
+
+> 以下 5 个文件是 `functions/` 下行数最多的生产文件（不含测试）。
+
+### [F6] order/mutations.js (1293 行) — `functions/repositories/order/mutations.js`
+
+- **职责分析**：
+  - 工具/辅助函数（unread字段映射、归档断言、断言语句、行状态快照、数量规范化、行构建、文件权限校验等）：~270 行
+  - 订单创建 `create`：~120 行
+  - 订单数据更新 `updateData`、`updateComposite`：~305 行
+  - 状态变更 `updateStatus`、`batchUpdateStatus`：~155 行
+  - 文件关联更新 `updateFiles`：~20 行
+  - 已读/未读标记 `markAsRead`、`setUnread`：~20 行
+  - 归档/恢复 `archive`、`restore`：~55 行
+  - 级联删除 `deleteWithRelations`：~20 行
+  - 兼容层（compat line progress/snapshot，与 order_lines 同步的旧逻辑）：~165 行
+- **拆分方案**：
+  - `functions/repositories/order/mutation-helpers.js` — 纯无副作用工具函数（unread映射、归档断言、断言语句、行规范化、快照构建、文件权限校验、batch执行），约 270 行
+  - `functions/repositories/order/mutations-lifecycle.js` — 归档/恢复/级联删除/已读标记（`archive`、`restore`、`deleteWithRelations`、`markAsRead`、`setUnread`），约 95 行
+  - `functions/repositories/order/mutations.js` — 保留核心写操作（`create`、`updateData`、`updateComposite`、`updateStatus`、`updateFiles`、`batchUpdateStatus`），约 770 行
+- **复杂度**：中
+- **理由**：工具函数和生命周期操作与核心 CRUD 逻辑耦合度低，拆出后 mutations.js 仍保留 770 行但职责更聚焦。兼容层目前与 updateComposite/updateStatus 紧密交织，不建议强行拆分。
+
+### [F7] products/[id].js (1264 行) — `functions/lib/hono/routes/manage/products/[id].js`
+
+- **职责分析**：
+  - 幂等辅助函数 + 归档专用辅助：~125 行
+  - 错误分类工具函数：~25 行
+  - 声明 + 中间件 + 常量：~145 行
+  - 商品详情 GET `/:id`：~45 行
+  - 商品状态 PATCH `/:id/status`：~35 行
+  - 规格维度 CRUD（create/update/archive/restore/values/impact）：~330 行
+  - 变体图片 CRUD（add/sort/primary/delete）：~220 行
+  - 价格规则 CRUD（get/upsert/delete）：~90 行
+  - 商品更新 PATCH `/:id`：~55 行
+  - 商品替换 PUT `/:id`：~55 行
+  - 商品归档 DELETE `/:id`（含幂等恢复/审计）：~135 行
+- **拆分方案**：
+  - `functions/lib/hono/routes/manage/products/[id]/dimensions.js` — 规格维度相关路由（create/update/archive/values/restore/impact），约 330 行
+  - `functions/lib/hono/routes/manage/products/[id]/variant-images.js` — 变体图片路由（add/sort/primary/delete），约 220 行
+  - `functions/lib/hono/routes/manage/products/[id]/price-rules.js` — 价格规则路由（get/upsert/delete），约 90 行
+  - `functions/lib/hono/routes/manage/products/[id]/index.js` — 商品主体路由（详情/状态更新/patch/put/archive），约 400 行
+- **复杂度**：高
+- **理由**：4 个完全独立的子资源域（dimensions、variant-images、price-rules、product core），互相无数据依赖。拆分后 Hono 需要用 `app.route()` 挂载子路由。维度和图片路由各自有大量重复的幂等+审计模式，拆分后可进一步提取公共模式。
+
+### [F8] purchase-orders.js (1193 行) — `functions/lib/hono/routes/manage/purchase-orders.js`
+
+- **职责分析**：
+  - 声明 + 辅助函数（幂等、fingerprint、验证等）：~285 行
+  - 列表/统计/建议/详情（GET routes）：~60 行
+  - 收货 + 收货冲销 + 缺口关闭（POST receipts/reversal/shortage-closures）：~155 行
+  - 创建 + 从订单创建（POST /, POST /from-orders）：~215 行
+  - 更新 + 状态变更（PUT /:id, PATCH /:id/status）：~155 行
+  - 明细操作（POST items, PATCH item, DELETE item）：~130 行
+  - 成本分摊（POST /:id/allocate）：~25 行
+- **拆分方案**：
+  - `functions/lib/hono/routes/manage/purchase-orders/helpers.js` — 幂等键、fingerprint构建、校验辅助、审计声明，约 250 行
+  - `functions/lib/hono/routes/manage/purchase-orders/items.js` — 明细 CRUD（POST items, PATCH item, DELETE item），约 130 行
+  - `functions/lib/hono/routes/manage/purchase-orders/receipts.js` — 收货、收货冲销、缺口关闭，约 155 行
+  - `functions/lib/hono/routes/manage/purchase-orders/index.js` — 列表/统计/建议/详情/创建/更新/状态变更/成本分摊，约 500 行
+- **复杂度**：中
+- **理由**：辅助函数占文件 24%，与多个路由共享，适合独立为 helpers。明细操作和收货操作是独立的子资源域，各路由间无交叉依赖。
+
+### [F9] orders/detail.js (995 行) — `functions/lib/hono/routes/manage/orders/detail.js`
+
+- **职责分析**：
+  - 辅助函数（行规范化、状态断言、outbox调度等）：~135 行
+  - 声明 + 中间件 + 常量：~95 行
+  - 订单详情 GET `/:id`（含文件/时间轴/支付/利润聚合）：~65 行
+  - 物流查询 GET `/:id/logistics` + 更新 PATCH `/:id/logistics`：~80 行
+  - 订单修改 PATCH `/:id`（含绑定验证、行规范化、需求同步）：~250 行
+  - 状态变更 PATCH `/:id/status`：~120 行
+  - 确认送达 POST `/:id/delivery-confirmation`：~80 行
+  - 添加备注 POST `/:id/comment`：~60 行
+  - 归档/恢复/删除（archive/restore/delete）：~95 行
+- **拆分方案**：
+  - `functions/lib/hono/routes/manage/orders/detail/helpers.js` — 行规范化、状态断言、outbox调度、admin actor等，约 135 行
+  - `functions/lib/hono/routes/manage/orders/detail/logistics.js` — 物流查询+更新（GET/PATCH `/:id/logistics`），约 80 行
+  - `functions/lib/hono/routes/manage/orders/detail/mutations.js` — 订单修改+状态变更（PATCH `/:id`, PATCH `/:id/status`），约 370 行
+  - `functions/lib/hono/routes/manage/orders/detail/lifecycle.js` — 送达确认+备注+归档+恢复+删除，约 295 行
+  - `functions/lib/hono/routes/manage/orders/detail/index.js` — 详情查询 + 路由挂载，约 80 行
+- **复杂度**：中
+- **理由**：PATCH `/:id` 是文件中最复杂的路由（250 行），包含绑定验证、行水合、需求同步等逻辑，与 PATCH `/:id/status` 共享状态断言，适合放在同一 mutations.js。物流和生命周期操作是完全独立的子域。
+
+### [F10] OrderLineFulfillmentService.js (847 行) — `functions/services/OrderLineFulfillmentService.js`
+
+- **职责分析**：
+  - 模块级工具函数（数量计算、return reason、断言、batch执行）：~100 行
+  - 构造函数 + 需求投影刷新：~25 行
+  - 行预留 `reserveLine`：~60 行
+  - 行释放 `releaseLine`：~70 行
+  - 行发货 `shipLine`：~115 行
+  - 行撤销发货 `unshipLine`：~70 行
+  - 行退货 `returnLine`：~90 行
+  - 查询/断言方法（requireOrderLine、assertVariantBacked、assertUnshipAllowed、assertReturnAllowed、getReturnedQuantity、deriveNextOrderDeliveryStatus）：~90 行
+  - 状态构建方法（buildNextLineState、buildOrderTouchStatement）：~20 行
+  - 发货台账 + 库存变动声明（buildShipmentLedgerStatement、buildReservationMovementStatements）：~100 行
+  - Outbox + 命令结果构建（buildOutboxStatements、buildCommandResult）：~75 行
+- **拆分方案**：
+  - `functions/services/order-line-fulfillment/validators.js` — 查询/断言方法（requireOrderLine、assertVariantBacked、assertUnshipAllowed、assertReturnAllowed、getReturnedQuantity、deriveNextOrderDeliveryStatus），约 90 行
+  - `functions/services/order-line-fulfillment/statement-builders.js` — 发货台账、库存变动、outbox、命令结果构建（buildShipmentLedgerStatement、buildReservationMovementStatements、buildOutboxStatements、buildCommandResult），约 175 行
+  - `functions/services/order-line-fulfillment/index.js` — 类定义 + 5个命令方法 + 构造函数，约 460 行
+  - `functions/services/order-line-fulfillment/helpers.js` — 模块级工具函数（getRemainingLineQuantity、getReadyLineQuantity 等），约 100 行
+- **复杂度**：中
+- **理由**：5 个命令方法共享大量基础设施（断言、batch执行、outbox构建、状态投影），将基础设施提取为独立模块后，主类聚焦于业务流程编排。validators 和 statement-builders 被所有命令方法共同依赖，提取后可独立测试。
+
+### 后端拆分优先级总结
+
+| 优先级 | 文件 | 当前行数 | 建议拆分后 | 复杂度 | 理由 |
+|--------|------|----------|------------|--------|------|
+| 1 | order/mutations.js | 1293 | ~770 (主文件) | 中 | 最大文件，helpers 提取收益高 |
+| 2 | products/[id].js | 1264 | ~400 (index.js) | 高 | 4 个独立子资源域，拆后结构清晰 |
+| 3 | purchase-orders.js | 1193 | ~500 (index.js) | 中 | helpers + items/receipts 可独立 |
+| 4 | orders/detail.js | 995 | ~80 (index.js) | 中 | 按职责层拆为 5 个文件 |
+| 5 | OrderLineFulfillmentService.js | 847 | ~460 (index.js) | 中 | validators + builders 提取 |
+
+**共同模式**：这 5 个文件都存在"辅助函数/工具代码占总行数 15-25%"的问题，优先提取 helpers 模块收益最高。路由文件适合按子资源域拆分为目录结构，服务文件适合按职责层（验证/声明构建/业务编排）拆分。
