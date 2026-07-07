@@ -155,6 +155,7 @@ import Modal from '@/components/ui/Modal.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import SpaceFilesTab from './space/SpaceFilesTab.vue';
 import SpaceSettingsTab from './space/SpaceSettingsTab.vue';
+import { openInNewTab } from '@/utils/browser';
 import { formatReadableLabel } from '@/utils/event-display';
 
 const props = defineProps({
@@ -282,7 +283,7 @@ const removeFile = async (fileId) => {
 
 const openPreview = () => {
   if (spaceData.value?.shareToken) {
-    window.open(`/space/${spaceData.value.shareToken}`, '_blank');
+    openInNewTab(`/space/${spaceData.value.shareToken}`);
   } else {
     addToast({ message: t('spaceManager.pleasePublicFirst'), type: 'warning' });
   }

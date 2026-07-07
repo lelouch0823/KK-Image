@@ -78,6 +78,7 @@
             v-if="isAdminMode"
             :href="`/admin/products?edit=${boundProduct.id}`"
             target="_blank"
+            rel="noopener noreferrer"
             data-testid="edit-product"
             class="hover:bg-primary/10 hover:text-primary inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg p-2 text-(--text-muted) transition-colors"
             :title="t('product.action.edit')"

@@ -518,7 +518,11 @@ describe('AIChatWidget behavior', () => {
       })
     );
     expect(globalThis.URL.createObjectURL).toHaveBeenCalledTimes(1);
-    expect(globalThis.open).toHaveBeenCalledWith('blob:report', '_blank');
+    expect(globalThis.open).toHaveBeenCalledWith(
+      'blob:report',
+      '_blank',
+      'noopener,noreferrer'
+    );
     expect(mocks.addToast).toHaveBeenCalledWith({
       message: 'ai.reportGenerated',
       type: 'success',

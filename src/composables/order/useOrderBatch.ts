@@ -4,6 +4,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
 import { escapeHtml } from '@/utils/html';
+import { openWritableNewTab } from '@/utils/browser';
 
 interface ConfirmDialogData {
     show: boolean;
@@ -197,7 +198,7 @@ export function useOrderBatch(
             const printContent = generatePrintContent(orders);
 
             // 打开新窗口并打印
-            const printWindow = window.open('', '_blank');
+            const printWindow = openWritableNewTab();
             if (printWindow) {
                 printWindow.document.write(printContent);
                 printWindow.document.close();

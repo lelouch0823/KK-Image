@@ -162,7 +162,7 @@
                         : 'border-(--border-color) bg-(--bg-card) hover:border-(--border-hover)',
                     ]"
                     @click.stop="toggleSelect(file)"
-                    @dblclick="window.open(file.url, '_blank')"
+                    @dblclick="openInNewTab(file.url)"
                     @contextmenu.prevent.stop="openContextMenu($event, file, 'file')"
                   >
                     <div class="flex flex-col items-center">
@@ -304,6 +304,7 @@ import { useAccessControl } from '@/composables/useAccessControl';
 import { useFileDrag } from '@/composables/file-manager/useFileDrag';
 import { useFileSelection } from '@/composables/file-manager/useFileSelection';
 import { useFileNavigation } from '@/composables/file-manager/useFileNavigation';
+import { openInNewTab } from '@/utils/browser';
 import { ErrorCode } from '@/utils/error-codes';
 
 const { addToast } = useToast();
@@ -703,7 +704,7 @@ const openContextMenu = (e, item, type) => {
     {
       label: t('fileManager.contextMenu.open'),
       icon: Icons.open,
-      action: () => (type === 'folder' ? navigateTo(item.id) : window.open(item.url, '_blank')),
+      action: () => (type === 'folder' ? navigateTo(item.id) : openInNewTab(item.url)),
     },
   ];
 
@@ -730,7 +731,7 @@ const openContextMenu = (e, item, type) => {
     menuItems.push({
       label: t('fileManager.contextMenu.download'),
       icon: Icons.download,
-      action: () => window.open(item.url, '_blank'),
+      action: () => openInNewTab(item.url),
     });
   } else if (canManageFolders.value) {
     // Folder actions

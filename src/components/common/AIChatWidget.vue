@@ -222,6 +222,7 @@ import { useAIStream } from '@/composables/useAIStream';
 import { useImageCompression } from '@/composables/useImageCompression';
 import { useToast } from '@/composables/useToast';
 import { useRequestAdapters } from '@/composables/useRequestAdapters';
+import { openInNewTab } from '@/utils/browser';
 import { inferCurrentView, inferAIEntityContext } from '@/components/common/ai/context-inference';
 import AIChatActionPanel from '@/components/common/ai/AIChatActionPanel.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
@@ -628,7 +629,7 @@ const generateReport = async () => {
     // 创建 Blob URL 并在新窗口打开
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    openInNewTab(url);
 
     // 延迟释放 URL
     setTimeout(() => URL.revokeObjectURL(url), 60000);

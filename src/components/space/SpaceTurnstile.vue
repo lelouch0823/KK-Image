@@ -40,6 +40,7 @@
         <a
           href="https://www.cloudflare.com/products/turnstile/"
           target="_blank"
+          rel="noopener noreferrer"
           class="text-primary hover:underline"
           >Cloudflare Turnstile</a
         >

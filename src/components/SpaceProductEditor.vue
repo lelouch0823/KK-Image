@@ -339,6 +339,7 @@ import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAccessControl } from '@/composables/useAccessControl';
 import { ROUTES } from '@/utils/constants';
+import { openInNewTab } from '@/utils/browser';
 
 import { useUploadQueue } from '@/composables/useUploadQueue';
 
@@ -580,7 +581,7 @@ const saveChanges = async () => {
 
 const openPreview = () => {
   if (props.space.shareToken) {
-    window.open(ROUTES.SPACE(props.space.shareToken), '_blank');
+    openInNewTab(ROUTES.SPACE(props.space.shareToken));
   } else {
     addToast({ message: t('spaceManager.saveFirst'), type: 'warning' });
   }

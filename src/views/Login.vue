@@ -145,7 +145,7 @@
         <a
           href="https://github.com/cf-pages/KK-Image"
           target="_blank"
-          rel="noopener"
+          rel="noopener noreferrer"
           class="hover:text-primary inline-flex items-center gap-1 transition-colors"
         >
           <AppIcon name="github" class="size-4" />
