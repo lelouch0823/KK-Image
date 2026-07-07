@@ -96,4 +96,46 @@ describe('useAuth Composable Full Coverage', () => {
     expect(auth.isAuthenticated.value).toBe(false);
     expect(auth.currentUser.value).toBe(null);
   });
+
+  it('authFetch merges caller and logout abort signals while preserving timeout options', async () => {
+    vi.resetModules();
+    let capturedOptions;
+    const requestMock = vi.fn((_url, options) => {
+      capturedOptions = options;
+      return new Promise((_resolve, reject) => {
+        options.signal.addEventListener('abort', () => {
+          const err = new Error('Abort');
+          err.name = 'AbortError';
+          reject(err);
+        });
+      });
+    });
+    vi.doMock('@/utils/http-core', () => ({ request: requestMock }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ success: true }),
+      })
+    );
+
+    const { useAuth: isolatedUseAuth } = await import('../useAuth');
+    const auth = isolatedUseAuth();
+    const caller = new AbortController();
+    const pending = auth.authFetch('/api/protected', {
+      signal: caller.signal,
+      timeout: 123,
+    });
+
+    await Promise.resolve();
+
+    expect(capturedOptions.timeout).toBe(123);
+    expect(capturedOptions.signal).not.toBe(caller.signal);
+    expect(capturedOptions.signal.aborted).toBe(false);
+
+    await auth.logout();
+
+    expect(capturedOptions.signal.aborted).toBe(true);
+    await expect(pending).rejects.toThrow('Abort');
+  });
 });

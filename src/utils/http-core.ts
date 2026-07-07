@@ -18,6 +18,15 @@ export function setHttpTranslator(t: TranslateFn): void {
   _t = t;
 }
 
+function abortControllerWithReason(controller: AbortController, reason?: unknown): void {
+  if (controller.signal.aborted) return;
+  try {
+    controller.abort(reason);
+  } catch {
+    controller.abort();
+  }
+}
+
 /**
  * 发送 HTTP 请求
  *
@@ -32,16 +41,32 @@ export async function request(
 ): Promise<Response> {
   const { timeout = DEFAULT_TIMEOUT, ...fetchOptions } = options;
 
-  // 如果调用者已提供 signal，不包装超时（避免冲突）
-  const shouldTimeout = !fetchOptions.signal && timeout > 0;
+  const shouldTimeout = timeout > 0;
+  const callerSignal = fetchOptions.signal;
 
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   let abortController: AbortController | undefined;
+  let removeCallerAbortListener: (() => void) | undefined;
+  let didTimeout = false;
 
   if (shouldTimeout) {
     abortController = new AbortController();
+    if (callerSignal) {
+      const abortFromCaller = (): void => {
+        abortControllerWithReason(abortController as AbortController, callerSignal.reason);
+      };
+      if (callerSignal.aborted) {
+        abortFromCaller();
+      } else {
+        callerSignal.addEventListener('abort', abortFromCaller, { once: true });
+        removeCallerAbortListener = () => callerSignal.removeEventListener('abort', abortFromCaller);
+      }
+    }
     fetchOptions.signal = abortController.signal;
-    timeoutId = setTimeout(() => abortController?.abort(), timeout);
+    timeoutId = setTimeout(() => {
+      didTimeout = true;
+      abortController?.abort();
+    }, timeout);
   }
 
   try {
@@ -55,7 +80,7 @@ export async function request(
     return res;
   } catch (error: unknown) {
     // 将 AbortError（超时触发）转为更友好的错误格式
-    if (error instanceof Error && error.name === 'AbortError' && shouldTimeout) {
+    if (error instanceof Error && error.name === 'AbortError' && didTimeout) {
       const err = new AppError(_t ? _t('http.timeout', '请求超时') : '请求超时', 0);
       err.code = 'TIMEOUT';
       throw err;
@@ -63,5 +88,6 @@ export async function request(
     throw error;
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
+    removeCallerAbortListener?.();
   }
 }

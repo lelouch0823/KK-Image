@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { effectScope } from 'vue';
 import { useNotifications } from '../useNotifications';
 
 const mockAuthFetch = vi.fn();
@@ -13,6 +14,10 @@ describe('useNotifications authz handling', () => {
     const store = useNotifications();
     store.stopPolling();
     store.setAdminMode();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('marks permission denied when notifications API returns 403', async () => {
@@ -118,5 +123,72 @@ describe('useNotifications authz handling', () => {
     expect(store.initialized.value).toBe(false);
     expect(store.permissionDenied.value).toBe(false);
     expect(store.permissionDeniedReason.value).toBe('');
+  });
+
+  it('keeps owner-started polling active when a transient consumer unmounts', async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+    mockAuthFetch.mockResolvedValue({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { list: [], unreadCount: 0 },
+        }),
+    });
+
+    const ownerScope = effectScope();
+    let ownerStore;
+    ownerScope.run(() => {
+      ownerStore = useNotifications();
+      ownerStore.startPolling(1000);
+    });
+    expect(mockAuthFetch).toHaveBeenCalledTimes(1);
+
+    const transientScope = effectScope();
+    transientScope.run(() => {
+      useNotifications();
+    });
+    transientScope.stop();
+
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(mockAuthFetch).toHaveBeenCalledTimes(2);
+
+    ownerScope.stop();
+  });
+
+  it('lets a mode-switching owner replace and stop an existing poller', async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+    mockAuthFetch.mockResolvedValue({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { list: [], unreadCount: 0 },
+        }),
+    });
+
+    const adminScope = effectScope();
+    adminScope.run(() => {
+      const adminStore = useNotifications();
+      adminStore.setAdminMode();
+      adminStore.startPolling(1000);
+    });
+    expect(mockAuthFetch).toHaveBeenCalledTimes(1);
+
+    const salesScope = effectScope();
+    salesScope.run(() => {
+      const salesStore = useNotifications();
+      salesStore.setSalesMode('sales-token-a');
+      salesStore.startPolling(1000);
+    });
+    expect(mockAuthFetch).toHaveBeenCalledTimes(2);
+
+    salesScope.stop();
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(mockAuthFetch).toHaveBeenCalledTimes(2);
+
+    adminScope.stop();
   });
 });

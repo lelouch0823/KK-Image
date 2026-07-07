@@ -29,6 +29,46 @@ const isLoading: Ref<boolean> = ref(true);
 // 全局 AbortController，用于管理所有认证相关的请求
 let abortController = new AbortController();
 
+function abortControllerWithReason(controller: AbortController, reason?: unknown): void {
+  if (controller.signal.aborted) return;
+  try {
+    controller.abort(reason);
+  } catch {
+    controller.abort();
+  }
+}
+
+function mergeAbortSignals(signals: Array<AbortSignal | null | undefined>): {
+  signal?: AbortSignal;
+  cleanup: () => void;
+} {
+  const activeSignals = signals.filter((signal): signal is AbortSignal => Boolean(signal));
+  if (activeSignals.length === 0) {
+    return { cleanup: () => {} };
+  }
+  if (activeSignals.length === 1) {
+    return { signal: activeSignals[0], cleanup: () => {} };
+  }
+
+  const controller = new AbortController();
+  const cleanupCallbacks: Array<() => void> = [];
+
+  activeSignals.forEach((signal) => {
+    const abortFromSignal = (): void => abortControllerWithReason(controller, signal.reason);
+    if (signal.aborted) {
+      abortFromSignal();
+      return;
+    }
+    signal.addEventListener('abort', abortFromSignal, { once: true });
+    cleanupCallbacks.push(() => signal.removeEventListener('abort', abortFromSignal));
+  });
+
+  return {
+    signal: controller.signal,
+    cleanup: () => cleanupCallbacks.forEach((cleanup) => cleanup()),
+  };
+}
+
 /**
  * 获取认证相关功能
  * @returns 认证相关的状态和方法
@@ -85,6 +125,7 @@ export function useAuth() {
    * @returns fetch 响应
    */
   const authFetch = async (url: string, options: RequestInit & { timeout?: number } = {}): Promise<Response> => {
+    const { signal, cleanup } = mergeAbortSignals([options.signal, abortController.signal]);
     // 确保携带凭证 (Cookie) 并绑定 signal
     const opts = {
       ...options,
@@ -92,8 +133,7 @@ export function useAuth() {
       headers: {
         ...options.headers,
       },
-      // 如果调用者没有提供 signal，则使用全局 controller 的 signal
-      signal: options.signal || abortController.signal,
+      signal,
     };
 
     try {
@@ -110,6 +150,8 @@ export function useAuth() {
         throw error;
       }
       throw error;
+    } finally {
+      cleanup();
     }
   };
 

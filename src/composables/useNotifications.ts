@@ -1,4 +1,4 @@
-import { ref, onScopeDispose } from 'vue';
+import { ref, onScopeDispose, getCurrentScope } from 'vue';
 import { API } from '@/utils/constants';
 import { useAuth } from '@/composables/useAuth';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
@@ -35,6 +35,7 @@ const permissionDenied = ref<boolean>(false);
 const permissionDeniedReason = ref<string>('');
 const lastNotificationTime = ref<number>(Date.now()); // SOTA: Signal for auto-refresh
 let pollInterval: ReturnType<typeof setInterval> | null = null;
+let pollingOwner: symbol | null = null;
 let notificationRequestId = 0;
 
 // 模式和 token 配置
@@ -49,12 +50,24 @@ export function useNotifications() {
   const { authFetch } = useAuth();
   const { publishRefresh } = useAppRefreshBus();
   const { t } = useI18n();
+  const ownerId = Symbol('notifications-poll-owner');
+
+  const stopActivePolling = (): void => {
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      pollInterval = null;
+    }
+    pollingOwner = null;
+  };
 
   /**
    * 设置销售端模式
    * @param token - 销售端访问 token
    */
   const setSalesMode = (token: string): void => {
+    if (currentMode !== 'sales' || salesToken !== token) {
+      stopActivePolling();
+    }
     notificationRequestId += 1;
     currentMode = 'sales';
     salesToken = token;
@@ -70,6 +83,9 @@ export function useNotifications() {
    * 设置管理端模式
    */
   const setAdminMode = (): void => {
+    if (currentMode !== 'admin' || salesToken !== null) {
+      stopActivePolling();
+    }
     notificationRequestId += 1;
     currentMode = 'admin';
     salesToken = null;
@@ -139,7 +155,7 @@ export function useNotifications() {
         permissionDeniedReason.value = (typeof errObj.data === 'object' && errObj.data !== null && 'error' in (errObj.data as Record<string, unknown>))
           ? String((errObj.data as Record<string, unknown>).error)
           : (errObj.message as string) || t('common.error.forbidden');
-        stopPolling();
+        stopActivePolling();
         return false;
       }
       console.error('Failed to fetch notifications', e);
@@ -192,6 +208,7 @@ export function useNotifications() {
    */
   const startPolling = (interval: number = 10000): void => {
     if (pollInterval) return;
+    pollingOwner = ownerId;
 
     const checkAndFetch = (): void => {
       if (!document.hidden) {
@@ -207,16 +224,16 @@ export function useNotifications() {
    * 停止轮询
    */
   const stopPolling = (): void => {
-    if (pollInterval) {
-      clearInterval(pollInterval);
-      pollInterval = null;
-    }
+    if (pollingOwner !== ownerId) return;
+    stopActivePolling();
   };
 
   // 组件卸载时自动停止轮询
-  onScopeDispose(() => {
-    stopPolling();
-  });
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopPolling();
+    });
+  }
 
   return {
     notifications,
