@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend spec index for final verification."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Quality-check checklist for protected requests, design-system conventions, SFC syntax, and Chart.js helper behavior."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Type-safety checklist for root vue-tsc verification."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "State-management checklist for global polling ownership."}
+{"file": ".trellis/spec/guides/index.md", "reason": "Shared review guide index for cross-layer and reuse checks."}

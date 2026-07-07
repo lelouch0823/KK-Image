@@ -216,3 +216,137 @@ charts.salesTrendChart = new Chart(
 - Keep `.vue` scripts plain JavaScript; put TypeScript helper types in `.ts` utility files.
 - Reuse shared display helpers such as `formatOrderStatusLabel` for chart labels instead of duplicating enum maps in the view.
 - Add focused utility tests for chart series shaping, status labels, color fallbacks, and responsive config differences.
+
+---
+
+## Convention: Auth Request Abort Signals Preserve Timeouts
+
+**What**: Protected frontend requests must keep both logout abort behavior and request timeout behavior active, even when a caller supplies its own `AbortSignal`.
+
+**Why**: Passing a caller signal straight through `authFetch()` can bypass global logout cancellation or disable the timeout path in `request()`. That leaves protected requests alive after logout or allows hung requests to wait forever.
+
+**Required behavior**:
+
+```ts
+await authFetch('/api/manage/example', {
+  signal: localAbortController.signal,
+  timeout: 30000,
+});
+```
+
+The request must abort when any of these happens:
+
+- The caller aborts `localAbortController`.
+- Logout aborts the shared auth controller.
+- The configured timeout expires.
+
+**Checklist**:
+
+- Compose caller and auth/logout signals before calling `request()`.
+- In `request()`, compose the supplied signal with the timeout controller instead of skipping timeout when `options.signal` exists.
+- Convert only timeout-triggered aborts to `AppError` with `code = 'TIMEOUT'`; preserve caller/logout aborts as abort errors.
+- Add focused tests for timeout-with-signal and logout-with-caller-signal behavior when changing request wrappers.
+
+---
+
+## Convention: Protected APIs Use Auth Request Wrappers
+
+**What**: Admin/protected frontend calls to `/api/manage/*` or other cookie-authenticated routes must go through `authFetch`, `authFetchJson`, or a composable that wraps them.
+
+**Why**: Direct `fetch()` can bypass shared 401 auth-state reset, timeout behavior, abort handling, and protected-fetch QA guards.
+
+**Required pattern**:
+
+```js
+const { authFetchJson } = useAuth();
+const result = await authFetchJson('/api/manage/products');
+```
+
+**Forbidden pattern**:
+
+```js
+await fetch('/api/manage/products', { credentials: 'include' });
+```
+
+**Checklist**:
+
+- Use direct `fetch()` only for public/token endpoints or documented browser-only fetches.
+- Run `pnpm qa:check-direct-protected-fetch` after touching request code.
+- Add a focused component/composable test when migrating direct protected calls to wrappers.
+
+---
+
+## Scenario: PWA Runtime Cache Excludes Private APIs
+
+### 1. Scope / Trigger
+
+- Trigger: Any change to `vite.config.js` Workbox `runtimeCaching`, service-worker registration, or frontend API cache policy.
+
+### 2. Signatures
+
+- Config surface: `VitePWA({ workbox: { runtimeCaching: [...] } })`.
+- Protected endpoint classes: `/api/manage/*`, `/api/v1/auth/*`, `/api/notifications*`, and other cookie-authenticated user/admin data.
+
+### 3. Contracts
+
+- Private API responses must not be cached by the service worker.
+- Runtime caches may include static assets and explicitly public, share-token-safe resources only.
+- If a public API is cached, its route pattern must be narrow and documented in the same change.
+
+### 4. Validation & Error Matrix
+
+- Broad `/\/api\/.*$/` runtime cache -> reject in review.
+- Cache-first/network-first private API route -> reject in review.
+- Narrow public route with bounded TTL and tests -> acceptable.
+
+### 5. Good/Base/Bad Cases
+
+- Good: cache `/file/*` or an explicitly public immutable endpoint with a short TTL and a test.
+- Base: no API runtime caching.
+- Bad: cache every `/api/*` response for five minutes.
+
+### 6. Tests Required
+
+- Add or update a config test asserting private API routes are not present in Workbox runtime caches.
+- Run `pnpm build` after PWA config changes.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+{ urlPattern: /\/api\/.*$/i, handler: 'NetworkFirst' }
+```
+
+#### Correct
+
+```js
+// No broad API cache. Add only narrow public endpoint patterns when needed.
+runtimeCaching: [/* static/public-only entries */]
+```
+
+---
+
+## Convention: New Tabs Use Noopener Protection
+
+**What**: New browser tabs/windows opened from app code must use `noopener,noreferrer` semantics.
+
+**Why**: User-controlled file/share/report URLs opened with `_blank` can otherwise retain access to `window.opener`.
+
+**Required pattern**:
+
+```ts
+openInNewTab(url);
+```
+
+or for anchors:
+
+```vue
+<a :href="url" target="_blank" rel="noopener noreferrer">...</a>
+```
+
+**Checklist**:
+
+- Search for `window.open` and `target="_blank"` when adding new tab behavior.
+- Prefer the shared browser helper for imperative opens.
+- Add a helper test when changing new-tab security behavior.
