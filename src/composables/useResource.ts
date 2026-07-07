@@ -3,6 +3,7 @@ import { useAuth } from './useAuth';
 import { useToast } from './useToast';
 import { useI18n } from './useI18n';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
+import type { ResourceItem, ApiResponse, PaginationMeta } from '@/utils/api-types';
 
 // Re-export from shared types
 export type { ResourceItem, ApiResponse, PaginationMeta } from '@/utils/api-types';

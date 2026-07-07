@@ -1,5 +1,29 @@
 import { hasEntries } from '@/utils/object-utils';
 
+export interface MappedImportRow {
+  name?: string;
+  spu?: string;
+  currency?: string;
+  category?: string;
+  brand?: string;
+  series?: string;
+  description?: string;
+  sku?: string;
+  variant_code?: string;
+  product_code?: string;
+  barcode?: string;
+  supplier_sku?: string;
+  status?: string;
+  price?: number;
+  cost_price?: number;
+  stock_quantity?: number;
+  alert_threshold?: number;
+  image_url?: string;
+  options_values?: Record<string, string>;
+  __rowNumber?: number;
+  [key: string]: unknown;
+}
+
 // --- Constants ---
 export const NUMERIC_FIELDS = new Set(['price', 'cost_price', 'stock_quantity', 'alert_threshold']);
 export const PRODUCT_FIELDS = new Set([
@@ -42,9 +66,9 @@ export const normalizeCurrency = (value) => {
   return /^[A-Z]{3}$/.test(raw) ? raw : undefined;
 };
 
-export const sanitizeOptionsValues = (value) => {
+export const sanitizeOptionsValues = (value: unknown): Record<string, string> | undefined => {
   if (!value || typeof value !== 'object') return undefined;
-  const next = Object.entries(value).reduce((acc, [k, v]) => {
+  const next = Object.entries(value).reduce<Record<string, string>>((acc, [k, v]) => {
     const key = String(k || '').trim();
     const val = String(v || '').trim();
     if (key && val) acc[key] = val;
@@ -53,8 +77,8 @@ export const sanitizeOptionsValues = (value) => {
   return hasEntries(next) ? next : undefined;
 };
 
-export const sanitizeMappedRow = (row) => {
-  const clean = {};
+export const sanitizeMappedRow = (row?: Record<string, unknown> | null): MappedImportRow => {
+  const clean: MappedImportRow = {};
   Object.entries(row || {}).forEach(([key, raw]) => {
     if (key === 'options_values') return;
     if (NUMERIC_FIELDS.has(key)) {
@@ -101,10 +125,10 @@ export const createPreprocessStats = () => ({
   normalizedRows: 0,
 });
 
-export const createValidationReport = (issues) => {
+export const createValidationReport = (issues: unknown[]) => {
   const list = Array.isArray(issues) ? issues : [];
-  const byCode = list.reduce((acc, issue) => {
-    const code = String(issue?.code || 'unknown');
+  const byCode = list.reduce<Record<string, number>>((acc, issue) => {
+    const code = String((issue as { code?: unknown })?.code || 'unknown');
     acc[code] = (acc[code] || 0) + 1;
     return acc;
   }, {});
@@ -116,7 +140,7 @@ export const createValidationReport = (issues) => {
 };
 
 // --- Row Validators ---
-export const isMeaningfulRow = (item) => {
+export const isMeaningfulRow = (item?: Record<string, unknown> | null) => {
   const keys = Object.keys(item || {});
   if (keys.length === 0) return false;
   if (keys.length === 1 && keys[0] === 'status') return false;

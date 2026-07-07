@@ -8,6 +8,7 @@ import SubspaceList from '@/components/SubspaceList.vue';
 
 const mocks = vi.hoisted(() => ({
   authFetch: vi.fn(),
+  authFetchJson: vi.fn(),
   addToast: vi.fn(),
   loadPayments: vi.fn(),
   addPayment: vi.fn(),
@@ -24,7 +25,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/composables/useAuth', () => ({
-  useAuth: () => ({ authFetch: mocks.authFetch }),
+  useAuth: () => ({ authFetch: mocks.authFetch, authFetchJson: mocks.authFetchJson }),
 }));
 
 vi.mock('@/composables/useToast', () => ({
@@ -140,20 +141,17 @@ describe('readable fallback labels', () => {
   });
 
   it('renders unknown product price rule types as readable labels', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        data: {
-          'variant-1': [
-            {
-              id: 'rule-1',
-              variant_id: 'variant-1',
-              price_type: 'regional_special_price',
-              price: 99,
-            },
-          ],
-        },
-      }),
+    mocks.authFetchJson.mockResolvedValue({
+      data: {
+        'variant-1': [
+          {
+            id: 'rule-1',
+            variant_id: 'variant-1',
+            price_type: 'regional_special_price',
+            price: 99,
+          },
+        ],
+      },
     });
 
     const wrapper = mount(PriceRuleManager, {

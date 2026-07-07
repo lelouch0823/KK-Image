@@ -8,16 +8,29 @@ import {
   createValidationReport,
   VALID_VARIANT_STATUSES,
 } from '@/utils/import-validators';
+import type { MappedImportRow } from '@/utils/import-validators';
+
+interface SpecConfig {
+  id: string;
+  name: string;
+  column: string;
+}
+
+interface ValidationIssue {
+  row: number;
+  code: string;
+  message: string;
+}
 
 export function useImportParsing({ t, addToast, workflow }) {
   const fileName = ref('');
   const fileSize = ref('');
-  const fileHeaders = ref([]);
-  const rawFileRows = ref([]);
-  const fieldMapping = ref({});
-  const specConfigs = ref([]);
+  const fileHeaders = ref<string[]>([]);
+  const rawFileRows = ref<unknown[][]>([]);
+  const fieldMapping = ref<Record<string, string>>({});
+  const specConfigs = ref<SpecConfig[]>([]);
   const importMode = ref('safe_merge');
-  const parsedItems = ref([]);
+  const parsedItems = ref<MappedImportRow[]>([]);
   const preprocessStats = ref(createPreprocessStats());
   const mappingValidationReport = ref(null);
 
@@ -185,7 +198,7 @@ export function useImportParsing({ t, addToast, workflow }) {
 
       if (jsonData.length === 0) throw new Error('Empty file');
 
-      const headers = jsonData[0];
+      const headers = (jsonData[0] || []).map((header) => String(header || ''));
       fileHeaders.value = headers;
 
       // Auto-match logic
@@ -222,7 +235,7 @@ export function useImportParsing({ t, addToast, workflow }) {
           ? detectedSpecs.slice(0, 3)
           : [createSpecConfig(SPEC_PRESETS[0], '')];
 
-      rawFileRows.value = jsonData.slice(1);
+      rawFileRows.value = jsonData.slice(1) as unknown[][];
 
       if (!workflow.isFileParseActive(requestId)) return;
       workflow.currentStep.value = 3;
@@ -292,12 +305,12 @@ export function useImportParsing({ t, addToast, workflow }) {
 
     const nextPreprocessStats = createPreprocessStats();
     nextPreprocessStats.sourceRows = rawFileRows.value.length;
-    const validationIssues = [];
+    const validationIssues: ValidationIssue[] = [];
 
     const mappedData = rawFileRows.value
       .map((row, idx) => {
         const rowNumber = idx + 2;
-        const item = {};
+        const item: MappedImportRow = {};
         SYSTEM_FIELDS.forEach((field) => {
           const headerName = fieldMapping.value[field.key];
           if (headerName) {
@@ -318,7 +331,7 @@ export function useImportParsing({ t, addToast, workflow }) {
         item.status = item.status ? String(item.status).trim() : 'active';
 
         if (activeSpecs.length > 0) {
-          const optionsValues = {};
+          const optionsValues: Record<string, string> = {};
           activeSpecs.forEach((spec) => {
             const colIndex = fileHeaders.value.indexOf(spec.column);
             if (colIndex < 0) return;
@@ -361,7 +374,7 @@ export function useImportParsing({ t, addToast, workflow }) {
         cleaned.__rowNumber = rowNumber;
         return cleaned;
       })
-      .filter(Boolean);
+      .filter((item): item is MappedImportRow => Boolean(item));
 
     const nameMissingCount = mappedData.filter((item) => !String(item.name || '').trim()).length;
     if (nameMissingCount > 0) {
@@ -449,7 +462,7 @@ export function useImportParsing({ t, addToast, workflow }) {
       }
       acc.get(name).push(item);
       return acc;
-    }, new Map());
+    }, new Map<string, MappedImportRow[]>());
 
     const duplicateNameWithoutSpu = Array.from(blankSpuRowsByName.entries()).filter(
       ([, rows]) => rows.length > 1

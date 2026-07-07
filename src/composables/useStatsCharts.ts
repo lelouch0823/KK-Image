@@ -105,7 +105,7 @@ export function createAllCharts(stats, chartRefs, t) {
           x: { grid: { display: false }, ticks: { maxTicksLimit: 7, color: palette.textSecondary } },
           y: {
             border: { display: false },
-            grid: { color: withAlpha(palette.border, 0.4), opacity: 0.1 },
+            grid: { color: withAlpha(palette.border, 0.4) },
             beginAtZero: true,
             ticks: { color: palette.textSecondary },
           },

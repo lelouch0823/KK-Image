@@ -121,6 +121,7 @@
 import { ref, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
 import { formatVariantName } from '@/utils/product';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -129,6 +130,7 @@ import { formatReadableLabel } from '@/utils/event-display';
 
 const { t } = useI18n();
 const { addToast } = useToast();
+const { authFetch, authFetchJson } = useAuth();
 
 const props = defineProps({
   productId: {
@@ -155,13 +157,8 @@ const loadPriceRules = async () => {
   if (!props.productId) return;
   loading.value = true;
   try {
-    const response = await fetch(`/api/manage/products/${props.productId}/prices`, {
-      credentials: 'include',
-    });
-    if (response.ok) {
-      const result = await response.json();
-      priceRules.value = result.data || {};
-    }
+    const result = await authFetchJson(`/api/manage/products/${props.productId}/prices`);
+    priceRules.value = result.data || {};
   } catch {
     // 加载价格规则失败，静默处理
   } finally {
@@ -239,21 +236,18 @@ const deleteRule = async (rule) => {
 
   // 已存在的规则需要调用 API 删除
   try {
-    const response = await fetch(`/api/manage/products/${props.productId}/prices/${rule.id}`, {
+    await authFetch(`/api/manage/products/${props.productId}/prices/${rule.id}`, {
       method: 'DELETE',
-      credentials: 'include',
     });
-    if (response.ok) {
-      const rules = priceRules.value[rule.variant_id] || [];
-      const index = rules.indexOf(rule);
-      if (index > -1) {
-        rules.splice(index, 1);
-      }
-      addToast({
-        type: 'success',
-        message: t('product.price_rules.delete_success', '价格规则已删除'),
-      });
+    const rules = priceRules.value[rule.variant_id] || [];
+    const index = rules.indexOf(rule);
+    if (index > -1) {
+      rules.splice(index, 1);
     }
+    addToast({
+      type: 'success',
+      message: t('product.price_rules.delete_success', '价格规则已删除'),
+    });
   } catch {
     addToast({
       type: 'error',
@@ -283,24 +277,20 @@ const saveChanges = async () => {
   if (rulesToSave.length === 0) return true;
 
   try {
-    const response = await fetch(`/api/manage/products/${props.productId}/prices`, {
+    await authFetch(`/api/manage/products/${props.productId}/prices`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify({ rules: rulesToSave }),
     });
 
-    if (response.ok) {
-      // 更新本地数据
-      await loadPriceRules();
-      addToast({
-        type: 'success',
-        message: t('product.price_rules.save_success', '价格规则已保存'),
-      });
-      emit('update');
-      return true;
-    }
-    return false;
+    // 更新本地数据
+    await loadPriceRules();
+    addToast({
+      type: 'success',
+      message: t('product.price_rules.save_success', '价格规则已保存'),
+    });
+    emit('update');
+    return true;
   } catch {
     addToast({
       type: 'error',
