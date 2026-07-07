@@ -1,13 +1,7 @@
 import { BadRequestError, NotFoundError } from '../lib/hono/errors.js';
 import { OrderRepository } from '../repositories/OrderRepository.js';
-
-function normalizeOrderStatus(status) {
-  const normalized = String(status || '')
-    .trim()
-    .toLowerCase();
-  if (normalized === 'delivered') return 'fulfilled';
-  return normalized;
-}
+import { normalizeOrderStatus } from '../api/utils/order-state-machine.js';
+import { toNonNegativeInt } from '../api/utils/number.js';
 
 function normalizeDeliveryStatus(status) {
   const normalized = String(status || '')
@@ -31,10 +25,6 @@ function normalizeFulfillmentStatus(status) {
     return normalized;
   }
   return '';
-}
-
-function toNonNegativeInt(value) {
-  return Math.max(0, Number(value) || 0);
 }
 
 function deriveFulfillmentStatus(order = {}) {
@@ -63,11 +53,14 @@ export class OrderDeliveryService {
     const note = String(payload?.note || '').trim();
     const actorName = options.actorName || null;
 
-    await this.orderRepo.markDelivered(orderId, {
+    const result = await this.orderRepo.markDelivered(orderId, {
       timestamp,
       deliveredBy: actorName,
       note,
     });
+    if ((result?.changes || 0) !== 1) {
+      throw new BadRequestError('订单已归档，请先恢复后再修改');
+    }
 
     return {
       orderId,

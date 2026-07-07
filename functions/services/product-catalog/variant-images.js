@@ -1,6 +1,6 @@
 import { VariantImageRepository } from '../../repositories/VariantImageRepository.js';
-import { archiveVariantImagesByFolder } from '../../lib/hono/routes/manage/products/variant-image-folders.js';
-import { resolveVariantImageSyncPlan } from '../../lib/hono/routes/manage/products/variant-image-sync.js';
+import { archiveVariantImagesByFolder } from '../_shared/variant-image-folders.js';
+import { resolveVariantImageSyncPlan } from '../_shared/variant-image-sync.js';
 import { BadRequestError } from '../../lib/hono/errors.js';
 
 export async function syncCatalogVariantImages({

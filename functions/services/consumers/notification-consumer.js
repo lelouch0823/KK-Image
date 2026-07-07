@@ -8,7 +8,7 @@ import { NotificationRepository } from '../../repositories/NotificationRepositor
 import {
   getOrderNotificationCacheUrls,
   getManageNotificationCacheUrls,
-} from '../../lib/hono/routes/_shared/cache-urls.js';
+} from '../_shared/cache-urls.js';
 import {
   createCacheContext,
   getMemoizedSalespersonAccessTokens,

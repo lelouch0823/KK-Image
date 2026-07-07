@@ -16,6 +16,7 @@ function createDbHarness({
     shipped_qty: 2,
     cancelled_qty: 0,
   },
+  markDeliveredResult = { meta: { changes: 1 } },
 } = {}) {
   const calls = {
     batchedStatements: [],
@@ -31,7 +32,7 @@ function createDbHarness({
           return statement;
         }),
         first: vi.fn(async () => null),
-        run: vi.fn(async () => ({ meta: { changes: 1 } })),
+        run: vi.fn(async () => markDeliveredResult),
       };
 
       if (sql.includes('FROM orders o') && sql.includes('LEFT JOIN order_lines ol')) {
@@ -82,6 +83,23 @@ describe('OrderDeliveryService', () => {
     expect(harness.db.prepare).toHaveBeenCalledWith(
       expect.stringContaining("SET delivery_status = 'delivered'")
     );
+  });
+
+  it('rejects delivery confirmation when the active-order update writes no row', async () => {
+    harness = createDbHarness({
+      markDeliveredResult: { meta: { changes: 0 } },
+    });
+    service = new OrderDeliveryService(harness.db, {
+      now: () => 1710000000000,
+    });
+
+    await expect(
+      service.confirmDelivery(
+        'order-1',
+        { note: 'signed by lobby desk' },
+        { actorName: 'Admin' }
+      )
+    ).rejects.toThrow(new BadRequestError('订单已归档，请先恢复后再修改'));
   });
 
   it('rejects confirmation before the order is fully fulfilled and shipped', async () => {

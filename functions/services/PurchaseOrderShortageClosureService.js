@@ -234,6 +234,7 @@ export class PurchaseOrderShortageClosureService {
           timestamp,
           {
             guardProjectionState: true,
+            guardActiveOrder: true,
           }
         ),
         buildPreviousWriteAssertionStatement(this.db)

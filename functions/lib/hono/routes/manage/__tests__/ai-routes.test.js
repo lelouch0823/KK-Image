@@ -1,12 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 
-const { callAI, callAIStream, callAIAuto, parseSSEChunk, executeAITool } = vi.hoisted(() => ({
+const {
+  callAI,
+  callAIStream,
+  callAIAuto,
+  parseSSEChunk,
+  executeAITool,
+  filterAIToolsForUser,
+} = vi.hoisted(() => ({
   callAI: vi.fn(),
   callAIStream: vi.fn(),
   callAIAuto: vi.fn(),
   parseSSEChunk: vi.fn(),
   executeAITool: vi.fn(),
+  filterAIToolsForUser: vi.fn((tools) => tools),
 }));
 
 vi.mock('../../../../../utils/ai-utils.js', () => ({
@@ -19,6 +27,7 @@ vi.mock('../../../../../utils/ai-utils.js', () => ({
 
 vi.mock('../../../../../utils/ai-tool-executor.js', () => ({
   executeAITool,
+  filterAIToolsForUser,
 }));
 
 // Mock AIConfigManager to avoid SettingsRepository dependency issues in tests
@@ -48,7 +57,7 @@ function createDbWithSettingsRows(rows = []) {
   let boundParams = [];
 
   return {
-    prepare: vi.fn((sql) => {
+    prepare: vi.fn((_sql) => {
       // 重置绑定参数
       boundParams = [];
 
@@ -86,6 +95,7 @@ function createSSEReadable(events) {
 describe('manage ai routes - variant tool integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    filterAIToolsForUser.mockImplementation((tools) => tools);
 
     // Setup AIConfigManager mock to return config values from DB rows
     AIConfigManager.mockImplementation(function (db, env) {

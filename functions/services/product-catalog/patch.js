@@ -1,9 +1,9 @@
 import {
   normalizeVariantDimensionKeys,
   normalizeVariantExternalCodes,
-} from '../../lib/hono/routes/manage/products/variant-normalizers.js';
+} from '../_shared/variant-normalizers.js';
 import { BadRequestError } from '../../lib/hono/errors.js';
-import { validateProductPayload } from '../../lib/hono/routes/manage/products/product-schema.js';
+import { validateProductPayload } from '../_shared/product-schema.js';
 import {
   assignGeneratedSkuForPatchVariants,
   hasVariantOptionSelections,
@@ -172,6 +172,7 @@ export async function executeProductCatalogPatch({
       changes: result.changes,
       variantSync: variantSync || undefined,
       variantsUpdated,
+      dimensionsUpdated,
     };
   }
 
@@ -180,6 +181,7 @@ export async function executeProductCatalogPatch({
       changes: 0,
       variantSync: variantSync || undefined,
       variantsUpdated: false,
+      dimensionsUpdated: false,
     };
   }
 

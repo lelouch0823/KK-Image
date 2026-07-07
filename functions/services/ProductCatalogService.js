@@ -107,7 +107,12 @@ export class ProductCatalogService {
       isVariantSyncValidationError,
     });
 
-    if (result.changes > 0 || result.variantsUpdated || result.variantSync) {
+    if (
+      result.changes > 0 ||
+      result.variantsUpdated ||
+      result.variantSync ||
+      result.dimensionsUpdated
+    ) {
       // 刷新商品投影表
       const { ProductProjectionRefreshService } =
         await import('./ProductProjectionRefreshService.js');

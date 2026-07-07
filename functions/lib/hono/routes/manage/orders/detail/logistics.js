@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { LogisticsUpdateSchema } from '../../../../schemas/order.js';
 import { OrderRepository } from '../../../../../../repositories/OrderRepository.js';
 import { MSG } from '../../../../../../_shared/utils.js';
-import { NotFoundError } from '../../../../errors.js';
+import { BadRequestError, NotFoundError } from '../../../../errors.js';
 import { requireEntity } from '../../../../_shared/route-helpers.js';
 import { LogisticsService } from '../../../../../../services/LogisticsService.js';
 import { scheduleAuditEvent } from '../../../../_shared/audit-helpers.js';
@@ -64,9 +64,14 @@ app.patch('/:id/logistics', zValidator('json', LogisticsUpdateSchema), async (c)
   currentData.trackingNo = trackingNo;
   currentData.carrier = carrier;
 
-  await env.DB.prepare('UPDATE orders SET current_data = ?, updated_at = ? WHERE id = ?')
+  const updateResult = await env.DB.prepare(
+    'UPDATE orders SET current_data = ?, updated_at = ? WHERE id = ? AND archived_at IS NULL'
+  )
     .bind(JSON.stringify(currentData), Date.now(), id)
     .run();
+  if ((updateResult?.meta?.changes || 0) !== 1) {
+    throw new BadRequestError('订单已归档，请先恢复后再修改');
+  }
 
   // 记录到时间轴
   await orderRepo.timelineRepo.addTimelineEntry(id, {

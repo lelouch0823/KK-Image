@@ -24,13 +24,13 @@ import {
   getSalesOrderCacheUrls,
   getSalesProductCacheUrls,
   getSalesSpaceCacheUrls,
-} from '../../lib/hono/routes/_shared/cache-urls.js';
+} from '../_shared/cache-urls.js';
 import { getProductCacheUrls } from '../../lib/hono/middleware/cache.js';
 import {
   getV1FileCacheUrls,
   getV1FolderCacheUrls,
   getV1FolderDetailCacheUrls,
-} from '../../lib/hono/routes/v1/cache-urls.js';
+} from '../_shared/v1-cache-urls.js';
 import {
   asArray,
   getMemoizedAllSalespersonAccessTokens,

@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 
 const mocks = vi.hoisted(() => ({
   createManagedOrder: vi.fn(),
+  completeManagedOrderCreateSideEffects: vi.fn(),
   publishOrderCreatedByAdmin: vi.fn(),
   repoBatchUpdateStatus: vi.fn(),
   repoFindById: vi.fn(),
@@ -20,6 +21,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../create-order.js', () => ({
   createManagedOrder: mocks.createManagedOrder,
+  completeManagedOrderCreateSideEffects: mocks.completeManagedOrderCreateSideEffects,
   publishOrderCreatedByAdmin: mocks.publishOrderCreatedByAdmin,
 }));
 
@@ -114,6 +116,7 @@ describe('manage order create routes', () => {
     vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => mocks.randomUUID());
     mocks.randomUUID.mockReturnValue('generated-order-idempotency-key');
     mocks.createManagedOrder.mockResolvedValue({ id: 'order-1', orderNo: 'SO-1' });
+    mocks.completeManagedOrderCreateSideEffects.mockResolvedValue(undefined);
     mocks.publishOrderCreatedByAdmin.mockResolvedValue([]);
     mocks.repoBatchUpdateStatus.mockResolvedValue(undefined);
     mocks.repoFindById.mockResolvedValue({
@@ -333,7 +336,12 @@ describe('manage order create routes', () => {
     );
     mocks.createManagedOrder.mockRejectedValueOnce(
       Object.assign(new Error('demand sync failed after persist'), {
-        partialResult: { id: 'order-partial-1', orderNo: 'SO-PARTIAL-1' },
+        partialResult: {
+          id: 'order-partial-1',
+          orderNo: 'SO-PARTIAL-1',
+          salespersonId: 'sales-1',
+          fileIds: ['file-1', 'file-2'],
+        },
       })
     );
 
@@ -362,6 +370,21 @@ describe('manage order create routes', () => {
     expect(first.status).toBe(500);
     expect(second.status).toBe(201);
     expect(mocks.createManagedOrder).toHaveBeenCalledTimes(1);
+    expect(mocks.completeManagedOrderCreateSideEffects).toHaveBeenCalledTimes(1);
+    expect(mocks.completeManagedOrderCreateSideEffects).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        id: 'order-partial-1',
+        orderNo: 'SO-PARTIAL-1',
+        salespersonId: 'sales-1',
+        fileIds: ['file-1', 'file-2'],
+      }),
+      expect.objectContaining({
+        user: expect.objectContaining({ id: 'admin-1' }),
+        commandId: 'cmd-order-partial-1',
+        correlationId: 'cmd-order-partial-1',
+      })
+    );
     expect(mocks.publishOrderCreatedByAdmin).toHaveBeenCalledTimes(1);
     expect(mocks.commandBuildFinalizeStatement).toHaveBeenCalledWith(
       'cmd-order-partial-1',
@@ -371,7 +394,7 @@ describe('manage order create routes', () => {
     expect(mocks.commandBuildDeleteStatement).not.toHaveBeenCalled();
     expect(await second.json()).toEqual({
       success: true,
-      data: { id: 'order-partial-1', orderNo: 'SO-PARTIAL-1' },
+      data: { id: 'order-partial-1', orderNo: 'SO-PARTIAL-1', salespersonId: 'sales-1' },
     });
   });
 
@@ -428,6 +451,12 @@ describe('manage order create routes', () => {
         }),
       })
     );
+    mocks.createManagedOrder.mockResolvedValueOnce({
+      id: 'order-1',
+      orderNo: 'SO-1',
+      salespersonId: 'sales-1',
+      fileIds: ['file-retry-1'],
+    });
     mocks.publishOrderCreatedByAdmin
       .mockRejectedValueOnce(new Error('publish failed'))
       .mockResolvedValueOnce([]);
@@ -457,12 +486,30 @@ describe('manage order create routes', () => {
     expect(first.status).toBe(500);
     expect(second.status).toBe(201);
     expect(mocks.createManagedOrder).toHaveBeenCalledTimes(1);
+    expect(mocks.completeManagedOrderCreateSideEffects).toHaveBeenCalledTimes(1);
+    expect(mocks.completeManagedOrderCreateSideEffects).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        id: 'order-1',
+        orderNo: 'SO-1',
+        salespersonId: 'sales-1',
+        fileIds: ['file-retry-1'],
+      }),
+      expect.objectContaining({
+        commandId: 'cmd-order-retry-1',
+        correlationId: 'cmd-order-retry-1',
+      })
+    );
     expect(mocks.publishOrderCreatedByAdmin).toHaveBeenCalledTimes(2);
     expect(mocks.commandBuildFinalizeStatement).toHaveBeenCalledWith(
       'cmd-order-retry-1',
       expect.objectContaining({ id: 'order-1' }),
       'failed'
     );
+    expect(await second.json()).toEqual({
+      success: true,
+      data: { id: 'order-1', orderNo: 'SO-1', salespersonId: 'sales-1' },
+    });
   });
 
   it('retries order-create finalize failures without generating duplicate create events', async () => {

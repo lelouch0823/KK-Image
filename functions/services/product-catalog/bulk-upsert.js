@@ -1,4 +1,4 @@
-import { normalizeVariantDimensionKeys } from '../../lib/hono/routes/manage/products/variant-normalizers.js';
+import { normalizeVariantDimensionKeys } from '../_shared/variant-normalizers.js';
 import {
   buildCatalogRollbackPayload,
   buildProductRollbackPayload,

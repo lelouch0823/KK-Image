@@ -246,12 +246,15 @@ export class OrderProcurementReceiptReversalService {
         received_qty: nextOrderLineReceivedQty,
       };
       nextOrderLine.display_status = projectOrderLineStatus(nextOrderLine);
+      guardedStatementIndexes.push(statements.length);
       statements.push(
         buildOrderLineProjectionStatement(this.db, nextOrderLine, orderLine, timestamp, {
           writeMode: 'received_only',
           guardProjectionState: true,
+          guardActiveOrder: true,
         })
       );
+      statements.push(buildPreviousWriteAssertionStatement(this.db));
 
       const aggregate = await queryCompatibilityProcurementAggregate(
         this.db,
@@ -263,6 +266,7 @@ export class OrderProcurementReceiptReversalService {
       };
       nextProcurementStatus = projectCompatibilityProcurementStatus(nextAggregate);
 
+      guardedStatementIndexes.push(statements.length);
       statements.push(
         buildCompatibilityOrderProcurementStatusStatement(
           this.db,
@@ -271,6 +275,7 @@ export class OrderProcurementReceiptReversalService {
           timestamp
         )
       );
+      statements.push(buildPreviousWriteAssertionStatement(this.db));
     }
 
     statements.push(

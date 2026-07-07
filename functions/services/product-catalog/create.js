@@ -1,9 +1,9 @@
 import {
   normalizeVariantDimensionKeys,
   normalizeVariantExternalCodes,
-} from '../../lib/hono/routes/manage/products/variant-normalizers.js';
+} from '../_shared/variant-normalizers.js';
 import { BadRequestError, ConflictError } from '../../lib/hono/errors.js';
-import { validateProductPayload } from '../../lib/hono/routes/manage/products/product-schema.js';
+import { validateProductPayload } from '../_shared/product-schema.js';
 import { cleanupCreatedCatalogRecords } from './maintenance.js';
 import { syncCatalogVariantImages } from './variant-images.js';
 

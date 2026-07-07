@@ -1,7 +1,7 @@
 import { generateId } from '../../api/utils/id.js';
-import { normalizeVariantExternalCodes } from '../../lib/hono/routes/manage/products/variant-normalizers.js';
+import { normalizeVariantExternalCodes } from '../_shared/variant-normalizers.js';
 import { BadRequestError } from '../../lib/hono/errors.js';
-import { validateProductPayload } from '../../lib/hono/routes/manage/products/product-schema.js';
+import { validateProductPayload } from '../_shared/product-schema.js';
 import { assertBatchItem, IMPORT_MODE, normalizeImportMode } from './batch-import.js';
 import { preloadBatchImportExistingState, chunkBatchImportItems } from './preload-existing.js';
 import { executeBulkProductImportUpsert } from './bulk-upsert.js';

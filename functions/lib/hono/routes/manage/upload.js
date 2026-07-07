@@ -53,6 +53,16 @@ app.post('/', requirePermission('files:write'), async (c) => {
     }
   }
 
+  if (orderId) {
+    let hasOrderManagePermission = false;
+    const permissionResponse = await requirePermission('orders:manage')(c, async () => {
+      hasOrderManagePermission = true;
+    });
+    if (!hasOrderManagePermission) {
+      return permissionResponse;
+    }
+  }
+
   if (normalizedContext === 'product' || normalizedContext === 'variant') {
     const { ensureProductFolder } = await import('../../../../api/utils/folder-utils.js');
     folderId = await ensureProductFolder(env);

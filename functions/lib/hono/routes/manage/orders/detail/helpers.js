@@ -3,7 +3,6 @@ import { canTransitionOrderStatus } from '../../../../../../api/utils/order-stat
 import { BadRequestError } from '../../../../errors.js';
 import { assertForceStatusTransitionAllowed } from '../authz-helpers.js';
 import { buildOrderBindingSnapshot } from '../../../../../../api/utils/order-binding-snapshot.js';
-import { runOutboxPoller } from '../../../../../../api/cron/outbox.js';
 
 export const ADMIN_EDITABLE_FIELDS = [
   'status',
@@ -125,12 +124,5 @@ export async function assertStatusTransitionAllowed({
   await assertForceStatusTransitionAllowed(c, user, reason);
 }
 
-export function scheduleOutboxProcessing(c, workerId) {
-  c.executionCtx.waitUntil(
-    runOutboxPoller({
-      env: c.env,
-      requestUrl: c.req.url,
-      workerId,
-    })
-  );
-}
+/** 重新导出，保持 detail 子模块的导入路径不变 */
+export { scheduleOutboxProcessing } from '../../../_shared/outbox-helpers.js';

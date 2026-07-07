@@ -399,9 +399,15 @@ describe('OrderProcurementReceiptReversalService', () => {
         (statement) =>
           statement.sql.includes('UPDATE order_lines') &&
           statement.sql.includes('AND received_qty = ?') &&
-          statement.sql.includes('AND cancelled_qty = ?')
+          statement.sql.includes('AND cancelled_qty = ?') &&
+          statement.sql.includes('EXISTS (SELECT 1 FROM orders') &&
+          statement.sql.includes('archived_at IS NULL')
       )
     ).toBe(true);
+    const orderLineIndex = finalStatements.findIndex((statement) =>
+      statement.sql.includes('UPDATE order_lines')
+    );
+    expect(finalStatements[orderLineIndex + 1].sql).toContain('json_extract');
     expect(
       finalStatements.some((statement) =>
         statement.sql.includes('INSERT INTO purchase_receipt_reversals')
@@ -718,9 +724,14 @@ describe('OrderProcurementReceiptReversalService', () => {
     expect(poItemUpdate?.params.slice(0, 2)).toEqual([5, 'partially_received']);
   });
 
-  it('does not fail the reversal after source facts commit when a linked-order projection reports zero guarded changes', async () => {
+  it('rejects the reversal when a linked-order projection guard reports zero changes', async () => {
     const projectionHarness = createDbHarness({
-      batchResults: [{ meta: { changes: 1 } }, { meta: { changes: 1 } }, { meta: { changes: 0 } }],
+      batchResults: [
+        { meta: { changes: 1 } },
+        { meta: { changes: 1 } },
+        { meta: { changes: 1 } },
+        { meta: { changes: 0 } },
+      ],
     });
     const projectionService = new OrderProcurementReceiptReversalService(projectionHarness.db, {
       purchaseReceiptRepo: projectionHarness.purchaseReceiptRepo,
@@ -741,13 +752,7 @@ describe('OrderProcurementReceiptReversalService', () => {
           idempotencyKey: 'idem-1',
         }
       )
-    ).resolves.toEqual(
-      expect.objectContaining({
-        purchase_order_id: 'po-1',
-        receipt_id: 'receipt-1',
-        reversal_qty: 5,
-      })
-    );
+    ).rejects.toBeInstanceOf(BadRequestError);
   });
 
   it('still emits reversal outbox events when the original receipt has no variant inventory mutation', async () => {
@@ -849,7 +854,6 @@ describe('OrderProcurementReceiptReversalService', () => {
           record.updated_at
         )
     );
-    const originalRun = lockedHarness.db.prepare.mock.results[0]?.value?.run;
     const lockedService = new OrderProcurementReceiptReversalService(lockedHarness.db, {
       purchaseReceiptRepo: lockedHarness.purchaseReceiptRepo,
       inventoryService: lockedHarness.inventoryService,

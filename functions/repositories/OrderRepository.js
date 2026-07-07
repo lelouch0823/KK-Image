@@ -238,8 +238,11 @@ export class OrderRepository {
       WHERE id = ? AND archived_at IS NULL
     `;
     const stmt = this.db.prepare(sql).bind(timestamp, deliveredBy, note, timestamp, id);
-    await stmt.run();
-    return { params: [timestamp, deliveredBy, note, timestamp, id] };
+    const result = await stmt.run();
+    return {
+      params: [timestamp, deliveredBy, note, timestamp, id],
+      changes: result?.meta?.changes || 0,
+    };
   }
 
   /**

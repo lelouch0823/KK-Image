@@ -227,6 +227,7 @@ export class OrderProcurementDomainService {
     const results = [];
     const outboxEvents = [];
     const purchaseItemGuardResultIndexes = [];
+    const orderProjectionGuardResultIndexes = [];
     const preparedReceipts = [];
     let receiptItemLocks = [];
     let sequenceInCommand = 1;
@@ -405,9 +406,14 @@ export class OrderProcurementDomainService {
           };
           nextLineState.display_status = projectOrderLineStatus(nextLineState);
           orderLineStates.set(nextLineState.id, nextLineState);
+          orderProjectionGuardResultIndexes.push(statements.length);
           statements.push(
-            buildOrderLineProjectionStatement(this.db, nextLineState, nextLineState, timestamp)
+            buildOrderLineProjectionStatement(this.db, nextLineState, currentLineState, timestamp, {
+              guardProjectionState: true,
+              guardActiveOrder: true,
+            })
           );
+          statements.push(buildPreviousWriteAssertionStatement(this.db));
 
           const currentAggregate =
             orderAggregateStates.get(poItem.pre_order_id) ||
@@ -424,6 +430,7 @@ export class OrderProcurementDomainService {
           orderAggregateStates.set(poItem.pre_order_id, nextAggregate);
 
           const nextProcurementStatus = projectCompatibilityProcurementStatus(nextAggregate);
+          orderProjectionGuardResultIndexes.push(statements.length);
           statements.push(
             buildCompatibilityOrderProcurementStatusStatement(
               this.db,
@@ -432,10 +439,10 @@ export class OrderProcurementDomainService {
               timestamp,
               {
                 excludeTerminalStatuses: true,
-                requireStatusChange: true,
               }
             )
           );
+          statements.push(buildPreviousWriteAssertionStatement(this.db));
 
           orderLineStates.set(`${nextLineState.id}:outbox`, {
             nextProcurementStatus,
@@ -563,7 +570,10 @@ export class OrderProcurementDomainService {
       const hasGuardMismatch = purchaseItemGuardResultIndexes.some(
         (resultIndex) => (writeResults?.[resultIndex]?.meta?.changes || 0) !== 1
       );
-      if (hasGuardMismatch) {
+      const hasOrderProjectionGuardMismatch = orderProjectionGuardResultIndexes.some(
+        (resultIndex) => (writeResults?.[resultIndex]?.meta?.changes || 0) !== 1
+      );
+      if (hasGuardMismatch || hasOrderProjectionGuardMismatch) {
         throw new BadRequestError('采购单明细收货进度已变化，请刷新后重试');
       }
       await this.variantDemandProjectionRefreshService.refreshByVariantIds(

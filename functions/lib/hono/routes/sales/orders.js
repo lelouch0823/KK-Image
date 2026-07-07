@@ -13,7 +13,7 @@ import { NotFoundError, ForbiddenError } from '../../errors.js';
 import { withCache } from '../../middleware/cache.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
-import { runOutboxPoller } from '../../../../api/cron/outbox.js';
+import { scheduleOutboxProcessing } from '../_shared/outbox-helpers.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
 import {
   listOrderReturnHistory,
@@ -69,16 +69,6 @@ export const auditRouteDeclarations = declareAuditRoutes([
 ]);
 
 // H16: 删除局部 onError，由全局 errorHandler 统一处理（含 traceId、Sentry、审计）
-
-function scheduleOutboxProcessing(c, workerId) {
-  c.executionCtx.waitUntil(
-    runOutboxPoller({
-      env: c.env,
-      requestUrl: c.req.url,
-      workerId,
-    })
-  );
-}
 
 /**
  * GET / - 获取订单列表

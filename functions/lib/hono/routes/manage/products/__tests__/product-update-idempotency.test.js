@@ -352,6 +352,40 @@ describe('manage product update routes idempotency', () => {
     );
   });
 
+  it('publishes product cache invalidation for dimensions-only product patch results', async () => {
+    mocks.patchProduct.mockResolvedValueOnce({
+      changes: 0,
+      variantSync: undefined,
+      variantsUpdated: false,
+      dimensionsUpdated: true,
+    });
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/products/prod-1',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dimensions: [{ name: 'Color', values: [{ value: 'Red' }] }],
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.scheduleProductCacheInvalidation).toHaveBeenCalledTimes(1);
+    expect(mocks.scheduleProductCacheInvalidation).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        eventType: 'product_updated',
+        productIds: ['prod-1'],
+      }),
+      expect.anything()
+    );
+  });
+
   it('replays the original product put response for the same Idempotency-Key', async () => {
     const app = createApp();
     const storedResponses = new Map();

@@ -5,10 +5,11 @@ import { Hono } from 'hono';
 const mocks = vi.hoisted(() => ({
   ensureProductFolder: vi.fn(),
   ensureSpaceFolder: vi.fn(),
+  ensureOrderFolder: vi.fn(),
   storeFile: vi.fn(),
   scheduleAuditEvent: vi.fn(),
   publishDomainEventsAndPoll: vi.fn(async () => []),
-  currentPermissions: ['files:write', 'spaces:manage'],
+  currentPermissions: ['files:write', 'spaces:manage', 'orders:manage'],
 }));
 
 vi.mock('../../../middleware/auth.js', () => ({
@@ -45,6 +46,7 @@ vi.mock('../../../_shared/domain-outbox.js', () => ({
 }));
 
 vi.mock('../../../../../api/utils/folder-utils.js', () => ({
+  ensureOrderFolder: mocks.ensureOrderFolder,
   ensureProductFolder: mocks.ensureProductFolder,
   ensureSpaceFolder: mocks.ensureSpaceFolder,
 }));
@@ -63,9 +65,10 @@ function createApp() {
 describe('manage upload route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.currentPermissions = ['files:write', 'spaces:manage'];
+    mocks.currentPermissions = ['files:write', 'spaces:manage', 'orders:manage'];
     mocks.ensureProductFolder.mockResolvedValue('folder-products');
     mocks.ensureSpaceFolder.mockResolvedValue('folder-space-1');
+    mocks.ensureOrderFolder.mockResolvedValue('folder-order-1');
     mocks.storeFile.mockResolvedValue({
       id: 'file-1',
       storageKey: 'storage-1',
@@ -83,6 +86,9 @@ describe('manage upload route', () => {
       prepare: vi.fn((sql) => ({
         bind: vi.fn((...args) => ({
           first: vi.fn(async () => {
+            if (sql.includes('FROM orders WHERE id = ?')) {
+              return { order_no: 'SO-1' };
+            }
             if (sql.includes('FROM spaces WHERE id = ?')) {
               return { name: 'Space A', parent_id: 'parent-1', product_id: 'prod-1' };
             }
@@ -208,6 +214,25 @@ describe('manage upload route', () => {
     expect(res.status).toBe(403);
     expect(mocks.storeFile).not.toHaveBeenCalled();
     expect(db.insertRun).not.toHaveBeenCalled();
+  }, 15000);
+
+  it('requires orders:manage before uploading into an order folder', async () => {
+    mocks.currentPermissions = ['files:write'];
+    const app = createApp();
+    const db = createDb();
+    const formData = new FormData();
+    formData.append('file', new Blob(['mock-image'], { type: 'image/png' }), 'order.png');
+
+    const res = await app.request(
+      'http://localhost/api/manage/upload?orderId=order-1',
+      { method: 'POST', body: formData },
+      { DB: db },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(403);
+    expect(mocks.ensureOrderFolder).not.toHaveBeenCalled();
+    expect(mocks.storeFile).not.toHaveBeenCalled();
   }, 15000);
 
   it('rejects uploads for unknown spaces before persisting files', async () => {

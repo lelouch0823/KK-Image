@@ -491,6 +491,39 @@ describe('OrderProcurementDomainService', () => {
     );
   });
 
+  it('guards linked order projections against archived parent orders before outbox finalize', async () => {
+    await service.recordPurchaseOrderReceipts(
+      'po-1',
+      {
+        items: [{ purchase_order_item_id: 'poi-1', received_qty: 3, note: 'ok' }],
+      },
+      {
+        idempotencyKey: 'idem-1',
+      }
+    );
+
+    const finalStatements = harness.calls.batchedStatements;
+    const orderLineIndex = finalStatements.findIndex((statement) =>
+      statement.sql.includes('UPDATE order_lines')
+    );
+    const orderStatusIndex = finalStatements.findIndex(
+      (statement) =>
+        statement.sql.includes('UPDATE orders') &&
+        statement.sql.includes('SET procurement_status = ?')
+    );
+    const firstOutboxIndex = finalStatements.findIndex((statement) =>
+      statement.sql.includes('INSERT INTO domain_outbox')
+    );
+
+    expect(orderLineIndex).toBeGreaterThanOrEqual(0);
+    expect(finalStatements[orderLineIndex].sql).toContain('EXISTS (SELECT 1 FROM orders');
+    expect(finalStatements[orderLineIndex].sql).toContain('archived_at IS NULL');
+    expect(finalStatements[orderLineIndex + 1].sql).toContain('json_extract');
+    expect(orderStatusIndex).toBeGreaterThanOrEqual(0);
+    expect(finalStatements[orderStatusIndex + 1].sql).toContain('json_extract');
+    expect(firstOutboxIndex).toBeGreaterThan(orderStatusIndex + 1);
+  });
+
   it('stores and replays the original response for the same purchase_order_id + idempotency_key', async () => {
     harness.commandIdempotencyRepo.reserveReceiptCommand.mockResolvedValueOnce({
       existing: true,
@@ -719,6 +752,78 @@ describe('OrderProcurementDomainService', () => {
     );
     expect(orderUpdateStatement.params[0]).toBe('partially_arrived');
     expect(orderUpdateStatement.params[2]).toBe('o-1');
+  });
+
+  it('does not require a status change when receipt keeps procurement_status unchanged', async () => {
+    const unchangedHarness = createDbHarness({
+      orderLineAggregateRow: {
+        ordered_qty: 10,
+        procured_qty: 10,
+        received_qty: 1,
+        cancelled_qty: 0,
+      },
+      orderLineProgressRow: {
+        id: 'line-1',
+        order_id: 'o-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 10,
+        procured_qty: 10,
+        received_qty: 1,
+        reserved_qty: 0,
+        shipped_qty: 0,
+        cancelled_qty: 0,
+      },
+      matchingOrderLines: [
+        {
+          id: 'line-1',
+          order_id: 'o-1',
+          product_id: 'prod-1',
+          variant_id: 'var-1',
+          ordered_qty: 10,
+          procured_qty: 10,
+          received_qty: 1,
+          reserved_qty: 0,
+          shipped_qty: 0,
+          cancelled_qty: 0,
+        },
+      ],
+    });
+    const unchangedService = new OrderProcurementDomainService(unchangedHarness.db, {
+      purchaseReceiptRepo: unchangedHarness.purchaseReceiptRepo,
+      inventoryService: unchangedHarness.inventoryService,
+      commandIdempotencyRepo: unchangedHarness.commandIdempotencyRepo,
+      domainOutboxRepo: unchangedHarness.domainOutboxRepo,
+      variantDemandProjectionRefreshService: unchangedHarness.variantDemandProjectionRefreshService,
+      productProjectionRefreshService: unchangedHarness.productProjectionRefreshService,
+      now: () => 1710000000000,
+    });
+
+    await expect(
+      unchangedService.recordPurchaseOrderReceipts(
+        'po-1',
+        {
+          items: [{ purchase_order_item_id: 'poi-1', received_qty: 1 }],
+        },
+        {
+          idempotencyKey: 'idem-1',
+        }
+      )
+    ).resolves.toEqual(expect.objectContaining({ receipt_count: 1 }));
+
+    const statusUpdates = unchangedHarness.calls.batchedStatements.filter(
+      (statement) =>
+        statement.sql.includes('UPDATE orders') &&
+        statement.sql.includes('SET procurement_status = ?')
+    );
+    expect(statusUpdates).toHaveLength(1);
+    expect(statusUpdates[0].sql).toContain('archived_at IS NULL');
+    expect(statusUpdates[0].sql).not.toContain('COALESCE(procurement_status');
+    expect(
+      unchangedHarness.calls.outboxEvents.some(
+        (event) => event.event_type === 'order_procurement_progressed'
+      )
+    ).toBe(true);
   });
 
   it('projects compatibility procurement_status as arrived after full receipts', async () => {

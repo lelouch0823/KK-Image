@@ -251,6 +251,8 @@ describe('PurchaseOrderShortageClosureService', () => {
     const orderLineUpdateStatement = flattenedStatements.find((statement) =>
       statement.sql.includes('UPDATE order_lines')
     );
+    expect(orderLineUpdateStatement.sql).toContain('EXISTS (SELECT 1 FROM orders');
+    expect(orderLineUpdateStatement.sql).toContain('archived_at IS NULL');
     expect(orderLineUpdateStatement.params).toEqual([
       10,
       7,

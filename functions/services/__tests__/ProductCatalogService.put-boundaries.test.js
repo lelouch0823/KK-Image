@@ -217,12 +217,13 @@ describe('ProductCatalogService putProduct boundaries', () => {
         reactivated: 0,
       },
       variantsUpdated: true,
+      dimensionsUpdated: false,
     });
     expect(mockProductRepo.updateWithMeta).toHaveBeenCalledTimes(1);
     expect(mockVariantRepo.syncVariants).toHaveBeenCalledTimes(1);
   });
 
-  it('syncs dimensions even when patch payload does not include variants', async () => {
+  it('refreshes projection and invalidates cache when only dimensions change', async () => {
     const service = new ProductCatalogService({});
     const syncDimensionsSpy = vi.spyOn(service, 'syncDimensionsFromPayload').mockResolvedValue([
       {
@@ -264,7 +265,21 @@ describe('ProductCatalogService putProduct boundaries', () => {
       changes: 0,
       variantSync: undefined,
       variantsUpdated: false,
+      dimensionsUpdated: true,
     });
+    expect(mockProjectionRefresh.refreshByProductId).toHaveBeenCalledWith(
+      'p1',
+      expect.anything(),
+      { strict: true }
+    );
+    expect(scheduleProductCacheInvalidation).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        eventType: 'product_updated',
+        productIds: ['p1'],
+      }),
+      expect.anything()
+    );
   });
 
   it('batchImport still preserves rollback semantics under chunk preload', async () => {

@@ -1,6 +1,7 @@
 import { CommandIdempotencyRepository } from '../../../../../repositories/CommandIdempotencyRepository.js';
 import { scheduleProductCacheInvalidation } from './cache-helpers.js';
 import { BadRequestError } from '../../../errors.js';
+import { getIdempotencyKey as _getIdempotencyKey } from '../../_shared/outbox-helpers.js';
 import {
   cleanupReservedCommand,
   parseStoredResponse,
@@ -8,10 +9,8 @@ import {
   resolveReservationOwnership,
 } from '../../../../../services/order-procurement-shared.js';
 
-export function getIdempotencyKey(c) {
-  const requestKey = String(c.req.header('Idempotency-Key') || '').trim();
-  return requestKey || crypto.randomUUID();
-}
+/** 重新导出规范版本，保持 idempotency-helpers 模块对外接口不变 */
+export const getIdempotencyKey = _getIdempotencyKey;
 
 function normalizeRequestFingerprintValue(value) {
   if (Array.isArray(value)) {

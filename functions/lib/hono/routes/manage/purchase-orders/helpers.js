@@ -13,6 +13,7 @@ import { NotFoundError, BadRequestError } from '../../../errors.js';
 import { requireEntity } from '../../../_shared/route-helpers.js';
 import { validateOrderQuantity } from '../../../../../services/purchase-order-constraints.js';
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
+import { getIdempotencyKey as _getIdempotencyKey } from '../../_shared/outbox-helpers.js';
 import {
   parseStoredResponse,
   replayReservedCommand,
@@ -73,10 +74,8 @@ export async function requireCompletedPurchaseOrder(repo, poId, actionLabel) {
   return po;
 }
 
-export function getIdempotencyKey(c) {
-  const requestKey = String(c.req.header('Idempotency-Key') || '').trim();
-  return requestKey || crypto.randomUUID();
-}
+/** 重新导出规范版本，保持 purchase-orders 模块对外接口不变 */
+export const getIdempotencyKey = _getIdempotencyKey;
 
 export function requireMutationSuccess(success, message) {
   if (!success) throw new NotFoundError(message);

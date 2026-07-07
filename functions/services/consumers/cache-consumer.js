@@ -12,7 +12,7 @@ import {
   getOrderNotificationCacheUrls,
   getPurchaseOrderCacheUrls,
   getOrderAnalyticsCacheUrls,
-} from '../../lib/hono/routes/_shared/cache-urls.js';
+} from '../_shared/cache-urls.js';
 import {
   createBaseContext,
   createCacheContext,

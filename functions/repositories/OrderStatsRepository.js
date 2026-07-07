@@ -497,9 +497,40 @@ export class OrderStatsRepository {
     return `FROM orders o
       INNER JOIN order_lines ol ON ol.order_id = o.id
       LEFT JOIN product_variants pv ON pv.id = ol.variant_id
-      LEFT JOIN purchase_order_items poi ON poi.pre_order_id = ol.order_id
-        AND poi.product_id = ol.product_id
-        AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))`;
+      LEFT JOIN (
+        SELECT
+          order_line_id,
+          pre_order_id,
+          product_id,
+          variant_id,
+          CASE
+            WHEN COALESCE(SUM(quantity), 0) > 0 THEN SUM(quantity * COALESCE(unit_cost, 0)) / SUM(quantity)
+            ELSE MAX(unit_cost)
+          END AS unit_cost,
+          CASE
+            WHEN COALESCE(SUM(quantity), 0) > 0 THEN SUM(quantity * COALESCE(allocated_freight, 0)) / SUM(quantity)
+            ELSE MAX(allocated_freight)
+          END AS allocated_freight,
+          CASE
+            WHEN COALESCE(SUM(quantity), 0) > 0 THEN SUM(quantity * COALESCE(allocated_tariff, 0)) / SUM(quantity)
+            ELSE MAX(allocated_tariff)
+          END AS allocated_tariff
+        FROM purchase_order_items
+        GROUP BY order_line_id, pre_order_id, product_id, variant_id
+      ) poi ON (
+        poi.order_line_id = ol.id
+        OR (
+          poi.order_line_id IS NULL
+          AND poi.pre_order_id = ol.order_id
+          AND poi.product_id = ol.product_id
+          AND (poi.variant_id = ol.variant_id OR (poi.variant_id IS NULL AND ol.variant_id IS NULL))
+          AND NOT EXISTS (
+            SELECT 1
+            FROM purchase_order_items modern_poi
+            WHERE modern_poi.order_line_id = ol.id
+          )
+        )
+      )`;
   }
 
   /**

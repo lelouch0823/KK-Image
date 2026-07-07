@@ -11,6 +11,72 @@ function createStatement(result = {}) {
 }
 
 describe('PaymentRepository receivable amounts', () => {
+  it('creates payments with an active-order and remaining-balance guard in the insert statement', async () => {
+    const run = vi.fn(async () => ({ meta: { changes: 1 } }));
+    const statement = {
+      bind: vi.fn(() => ({ run })),
+    };
+    const db = { prepare: vi.fn(() => statement) };
+    const repo = new PaymentRepository(db);
+
+    const payment = await repo.createIfWithinRemaining({
+      orderId: 'order-1',
+      amount: 80,
+      method: 'bank',
+      referenceNo: 'R-1',
+      notes: 'partial',
+      createdBy: 'admin-1',
+    });
+
+    const sql = db.prepare.mock.calls[0][0];
+    expect(sql).toContain('INSERT INTO payments');
+    expect(sql).toContain('SELECT');
+    expect(sql).toContain('orders');
+    expect(sql).toContain('archived_at IS NULL');
+    expect(sql).toContain("status NOT IN ('void', 'rejected')");
+    expect(sql).toContain('COALESCE(SUM(p.amount), 0) + ? <=');
+    expect(sql).toContain('order_amounts.total_amount');
+    expect(statement.bind).toHaveBeenCalledWith(
+      expect.any(String),
+      'order-1',
+      80,
+      'bank',
+      'R-1',
+      'partial',
+      expect.any(Number),
+      'admin-1',
+      'order-1',
+      80
+    );
+    expect(payment).toEqual(
+      expect.objectContaining({
+        orderId: 'order-1',
+        amount: 80,
+        method: 'bank',
+        referenceNo: 'R-1',
+        notes: 'partial',
+        createdBy: 'admin-1',
+      })
+    );
+  });
+
+  it('returns null when the guarded payment insert writes no row', async () => {
+    const run = vi.fn(async () => ({ meta: { changes: 0 } }));
+    const db = {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({ run })),
+      })),
+    };
+    const repo = new PaymentRepository(db);
+
+    await expect(
+      repo.createIfWithinRemaining({
+        orderId: 'order-1',
+        amount: 120,
+      })
+    ).resolves.toBeNull();
+  });
+
   it('calculates order amount from order lines and variant prices', async () => {
     const statement = createStatement({ total: 240 });
     const db = { prepare: vi.fn(() => statement) };

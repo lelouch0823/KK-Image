@@ -437,7 +437,7 @@ export class OrderLineFulfillmentService {
     const statements = [
       this.db
         .prepare(
-          'UPDATE orders SET delivery_status = ?, updated_at = ? WHERE id = ? AND delivery_status = ?'
+          'UPDATE orders SET delivery_status = ?, updated_at = ? WHERE id = ? AND archived_at IS NULL AND delivery_status = ?'
         )
         .bind(nextOrderDeliveryStatus, timestamp, orderId, line.delivery_status),
       buildPreviousWriteAssertionStatement(this.db),

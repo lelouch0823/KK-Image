@@ -17,7 +17,7 @@ export class PaymentRepository {
    * @param {D1Database} db - Cloudflare D1 数据库实例
    * @param {object} [deps={}] - 依赖注入
    */
-  constructor(db, deps = {}) {
+  constructor(db, _deps = {}) {
     this.db = db;
   }
 
@@ -78,6 +78,64 @@ export class PaymentRepository {
       )
       .bind(id, orderId, amount, method, referenceNo, notes, timestamp, createdBy)
       .run();
+
+    return {
+      id,
+      orderId,
+      amount,
+      method,
+      referenceNo,
+      notes,
+      receivedAt: timestamp,
+      createdBy,
+    };
+  }
+
+  /**
+   * 添加付款记录，并在同一条写入 SQL 中断言订单仍可付款且不会超付。
+   * @param {Object} params
+   * @returns {Promise<Object|null>} 创建成功返回付款记录，guard 未命中返回 null
+   */
+  async createIfWithinRemaining({
+    orderId,
+    amount,
+    method = 'cash',
+    referenceNo = null,
+    notes = null,
+    createdBy = null,
+  }) {
+    const id = generateId();
+    const timestamp = now();
+
+    const result = await this.db
+      .prepare(
+        `INSERT INTO payments (id, order_id, amount, method, reference_no, notes, received_at, created_by)
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?
+         WHERE EXISTS (
+           SELECT 1
+           FROM (
+             SELECT
+               o.id AS order_id,
+               COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS total_amount
+             FROM orders o
+             LEFT JOIN order_lines ol ON ol.order_id = o.id
+             LEFT JOIN product_variants pv ON ol.variant_id = pv.id
+             WHERE o.id = ?
+               AND o.archived_at IS NULL
+               AND o.status NOT IN ('void', 'rejected')
+             GROUP BY o.id
+           ) order_amounts
+           LEFT JOIN payments p ON p.order_id = order_amounts.order_id
+           GROUP BY order_amounts.order_id, order_amounts.total_amount
+           HAVING COALESCE(SUM(p.amount), 0) + ? <= order_amounts.total_amount
+         )`
+      )
+      .bind(id, orderId, amount, method, referenceNo, notes, timestamp, createdBy, orderId, amount)
+      .run();
+
+    if ((result?.meta?.changes || 0) !== 1) {
+      return null;
+    }
 
     return {
       id,

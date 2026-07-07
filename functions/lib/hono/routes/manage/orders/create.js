@@ -9,11 +9,16 @@ import { MSG, ORDER_STATUSES } from '../../../../../_shared/utils.js';
 import { BadRequestError } from '../../../errors.js';
 import { assertForceStatusTransitionAllowed } from './authz-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from './error-helpers.js';
-import { createManagedOrder, publishOrderCreatedByAdmin } from './create-order.js';
+import {
+  completeManagedOrderCreateSideEffects,
+  createManagedOrder,
+  publishOrderCreatedByAdmin,
+} from './create-order.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
+import { getIdempotencyKey } from '../../_shared/outbox-helpers.js';
 import {
   cleanupReservedCommand,
   parseStoredResponse,
@@ -70,11 +75,6 @@ function assertValidBatchStatusAction(normalizedAction, normalizedStatus) {
   }
 }
 
-function getIdempotencyKey(c) {
-  const requestKey = String(c.req.header('Idempotency-Key') || '').trim();
-  return requestKey || crypto.randomUUID();
-}
-
 function normalizeOrderCreateFingerprintValue(value) {
   if (Array.isArray(value)) {
     return value.map((item) => normalizeOrderCreateFingerprintValue(item));
@@ -102,6 +102,11 @@ function buildOrderCreateRequestFingerprint(body = {}) {
 function getCreateCommandScopeKey(c) {
   const actorId = String(c.get('user')?.id || 'anonymous').trim() || 'anonymous';
   return `${ORDER_CREATE_COMMAND_TYPE}:${actorId}`;
+}
+
+function sanitizeOrderCreateResponse(response = {}) {
+  const { fileIds: _fileIds, ...publicResponse } = response || {};
+  return publicResponse;
 }
 
 async function reserveOrderCreateCommand(c, { requestFingerprint }) {
@@ -164,6 +169,11 @@ app.post('/', zValidator('json', CreateAdminOrderSchema), async (c) => {
   }
 
   if (resume) {
+    await completeManagedOrderCreateSideEffects(c, resume, {
+      user: c.get('user'),
+      commandId: reservation.record?.command_id,
+      correlationId: reservation.record?.command_id,
+    });
     await publishOrderCreatedByAdmin(c, {
       orderId: resume.id,
       orderNo: resume.orderNo,
@@ -172,10 +182,11 @@ app.post('/', zValidator('json', CreateAdminOrderSchema), async (c) => {
       commandId: reservation.record?.command_id,
       correlationId: reservation.record?.command_id,
     });
+    const responseData = sanitizeOrderCreateResponse(resume);
     await commandIdempotencyRepo
-      .buildFinalizeStatement(reservation.record?.command_id, resume)
+      .buildFinalizeStatement(reservation.record?.command_id, responseData)
       .run();
-    return c.json({ success: true, data: resume }, 201);
+    return c.json({ success: true, data: responseData }, 201);
   }
 
   const ownsReservation = resolveReservationOwnership(reservation);
@@ -193,8 +204,9 @@ app.post('/', zValidator('json', CreateAdminOrderSchema), async (c) => {
       commandId: reservation.record?.command_id,
       correlationId: reservation.record?.command_id,
     });
+    const responseData = sanitizeOrderCreateResponse(result);
     await commandIdempotencyRepo
-      .buildFinalizeStatement(reservation.record?.command_id, result)
+      .buildFinalizeStatement(reservation.record?.command_id, responseData)
       .run();
   } catch (error) {
     const partialResult = result || error?.partialResult || null;
@@ -227,7 +239,7 @@ app.post('/', zValidator('json', CreateAdminOrderSchema), async (c) => {
     target_label: result?.orderNo || result?.id || null,
     summary: `Created order ${result?.orderNo || result?.id || ''}`.trim(),
   });
-  return c.json({ success: true, data: result }, 201);
+  return c.json({ success: true, data: sanitizeOrderCreateResponse(result) }, 201);
 });
 
 /**

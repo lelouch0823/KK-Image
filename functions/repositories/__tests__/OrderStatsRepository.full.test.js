@@ -32,6 +32,28 @@ describe('OrderStatsRepository full coverage', () => {
     expect(mocks.queryFirst).toHaveBeenCalledWith(db, 'SELECT 2', ['b'], { label: 'label.b' });
   });
 
+  it('builds profit SQL with line-aware purchase item joins', async () => {
+    const repo = new OrderStatsRepository({});
+    mocks.queryFirst.mockResolvedValueOnce({
+      total_revenue: 200,
+      total_cost: 120,
+      orders_with_cost: 1,
+      total_orders: 1,
+    });
+
+    await repo.getProfitSummary();
+
+    const [, sql, params, options] = mocks.queryFirst.mock.calls[0];
+    expect(params).toEqual([]);
+    expect(options).toEqual({ label: 'order.stats.profitSummary' });
+    expect(sql).toContain('poi.order_line_id = ol.id');
+    expect(sql).toContain('poi.order_line_id IS NULL');
+    expect(sql).toContain('NOT EXISTS');
+    expect(sql).toContain('modern_poi.order_line_id = ol.id');
+    expect(sql).toContain('poi.pre_order_id = ol.order_id');
+    expect(sql).toContain('poi.product_id = ol.product_id');
+  });
+
   it('maps recent pending orders with parsed names and defaults the limit', async () => {
     const repo = new OrderStatsRepository({});
     mocks.query.mockResolvedValueOnce({

@@ -17,7 +17,7 @@ import { PurchaseOrderService } from '../services/PurchaseOrderService.js';
 import { SalespersonRepository } from '../repositories/SalespersonRepository.js';
 import { DomainOutboxPublisher } from '../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../api/cron/outbox.js';
-import { scheduleProductCacheInvalidation } from '../lib/hono/routes/manage/products/cache-helpers.js';
+import { scheduleProductCacheInvalidation } from '../services/_shared/cache-invalidation.js';
 import { evaluateActionPermission } from '../lib/authz/index.js';
 
 function buildAIEventCommandId(prefix, sessionId) {

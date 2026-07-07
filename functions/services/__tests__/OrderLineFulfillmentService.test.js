@@ -1011,6 +1011,7 @@ describe('OrderLineFulfillmentService', () => {
     );
     statements = harness.calls.batchedStatements;
     expect(statements[0].sql).toContain('UPDATE orders SET delivery_status = ?');
+    expect(statements[0].sql).toContain('archived_at IS NULL');
     expect(statements[0].sql).toContain('AND delivery_status = ?');
     expect(statements[1].sql).toContain('json_extract');
     expect(

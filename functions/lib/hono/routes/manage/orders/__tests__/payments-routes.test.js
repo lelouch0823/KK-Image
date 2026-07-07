@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   paymentGetTotalPaid: vi.fn(),
   paymentGetOrderAmount: vi.fn(),
   paymentCreate: vi.fn(),
+  paymentCreateIfWithinRemaining: vi.fn(),
 }));
 
 vi.mock('../../../../../../repositories/OrderRepository.js', () => ({
@@ -23,6 +24,7 @@ vi.mock('../../../../../../repositories/PaymentRepository.js', () => ({
     getTotalPaid: mocks.paymentGetTotalPaid,
     getOrderAmount: mocks.paymentGetOrderAmount,
     create: mocks.paymentCreate,
+    createIfWithinRemaining: mocks.paymentCreateIfWithinRemaining,
   })),
 }));
 
@@ -64,6 +66,7 @@ describe('manage order payment routes', () => {
     mocks.paymentGetTotalPaid.mockResolvedValue(40);
     mocks.paymentGetOrderAmount.mockResolvedValue(200);
     mocks.paymentCreate.mockResolvedValue({ id: 'pay-1', amount: 150 });
+    mocks.paymentCreateIfWithinRemaining.mockResolvedValue({ id: 'pay-1', amount: 150 });
   });
 
   it('summarizes receivable amount from order monetary total instead of order quantity', async () => {
@@ -91,12 +94,31 @@ describe('manage order payment routes', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(mocks.paymentCreate).toHaveBeenCalledWith(
+    expect(mocks.paymentCreateIfWithinRemaining).toHaveBeenCalledWith(
       expect.objectContaining({
         orderId: 'order-1',
         amount: 150,
       })
     );
+    expect(mocks.paymentCreate).not.toHaveBeenCalled();
+  });
+
+  it('rejects when the atomic payment insert detects a stale remaining balance', async () => {
+    mocks.paymentCreateIfWithinRemaining.mockResolvedValueOnce(null);
+
+    const response = await app.request(
+      '/api/manage/orders/order-1/payments',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: 150, method: 'cash' }),
+      },
+      { DB: {} }
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.paymentCreateIfWithinRemaining).toHaveBeenCalledTimes(1);
+    expect(mocks.paymentCreate).not.toHaveBeenCalled();
   });
 
   it('does not return payment data for archived orders', async () => {
@@ -136,5 +158,6 @@ describe('manage order payment routes', () => {
 
     expect(response.status).toBe(400);
     expect(mocks.paymentCreate).not.toHaveBeenCalled();
+    expect(mocks.paymentCreateIfWithinRemaining).not.toHaveBeenCalled();
   });
 });

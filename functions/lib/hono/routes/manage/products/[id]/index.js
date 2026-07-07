@@ -263,10 +263,15 @@ app.patch('/:id', zValidator('json', UpdateProductSchema), async (c) => {
         message: 'Product updated',
         changes: result.changes,
         variantSync: result.variantSync,
+        dimensionsUpdated: result.dimensionsUpdated,
       };
     },
     publish: async ({ responseBody, reservation }) => {
-      if (Number(responseBody?.changes || 0) > 0 || responseBody?.variantSync) {
+      if (
+        Number(responseBody?.changes || 0) > 0 ||
+        responseBody?.variantSync ||
+        responseBody?.dimensionsUpdated
+      ) {
         await publishProductCacheEvent(c, 'product_updated', [id], {
           commandId: reservation.record?.command_id,
           correlationId: reservation.record?.command_id,
@@ -322,10 +327,15 @@ app.put('/:id', zValidator('json', UpdateProductSchema), async (c) => {
         message: 'Product updated',
         changes: result.changes,
         variantSync: result.variantSync,
+        dimensionsUpdated: result.dimensionsUpdated,
       };
     },
     publish: async ({ responseBody, reservation }) => {
-      if (Number(responseBody?.changes || 0) > 0 || responseBody?.variantSync) {
+      if (
+        Number(responseBody?.changes || 0) > 0 ||
+        responseBody?.variantSync ||
+        responseBody?.dimensionsUpdated
+      ) {
         await publishProductCacheEvent(c, 'product_replaced', [id], {
           commandId: reservation.record?.command_id,
           correlationId: reservation.record?.command_id,

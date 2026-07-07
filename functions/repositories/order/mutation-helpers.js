@@ -9,6 +9,7 @@
 
 import { generateId, now } from '../../api/utils/id.js';
 import { inClause } from '../../api/utils/sql.js';
+import { toNonNegativeInt } from '../../api/utils/number.js';
 import { BadRequestError } from '../../lib/hono/errors.js';
 import { chunkArray, executeBatchChunks } from '../../lib/db/batch.js';
 import { projectOrderLineStatus } from '../../api/utils/order-projection.js';
@@ -273,10 +274,6 @@ export async function findOrderLineIdByOrderId(db, orderId, prefetchedStates = n
   const row = await getOrderLineState(db, orderId, prefetchedStates);
   if (!row?.id || Number(row.line_count ?? 1) !== 1) return null;
   return row.id || null;
-}
-
-export function toNonNegativeInt(value) {
-  return Math.max(0, Math.trunc(Number(value) || 0));
 }
 
 // ── 文件权限校验 ────────────────────────────────────────────────────

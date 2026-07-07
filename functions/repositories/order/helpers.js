@@ -9,15 +9,11 @@
 
 import { parseJsonObject } from '../../api/utils/json.js';
 import { toNonNegativeNumber } from '../../api/utils/number.js';
+import { normalizeOrderStatus as _normalizeOrderStatus } from '../../api/utils/order-state-machine.js';
 import { projectOrderLineStatus } from '../../api/utils/order-projection.js';
 
-export function normalizeOrderStatus(status) {
-  const normalized = String(status || '')
-    .trim()
-    .toLowerCase();
-  if (normalized === 'delivered') return 'fulfilled';
-  return normalized || 'pending';
-}
+/** 重新导出规范版本，保持 helpers 模块对外接口不变 */
+export const normalizeOrderStatus = _normalizeOrderStatus;
 
 function normalizeExplicitFulfillmentStatus(status) {
   const normalized = String(status || '')

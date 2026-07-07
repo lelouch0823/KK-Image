@@ -103,7 +103,7 @@ app.post('/:id/payments', zValidator('json', CreatePaymentSchema), async (c) => 
     throw new BadRequestError(`付款金额超过订单剩余未付金额 ${remaining}`);
   }
 
-  const payment = await paymentRepo.create({
+  const payment = await paymentRepo.createIfWithinRemaining({
     orderId,
     amount: body.amount,
     method: body.method,
@@ -111,6 +111,9 @@ app.post('/:id/payments', zValidator('json', CreatePaymentSchema), async (c) => 
     notes: body.notes,
     createdBy: user?.id || 'admin',
   });
+  if (!payment) {
+    throw new BadRequestError('付款金额超过订单剩余未付金额或订单已不可修改，请刷新后重试');
+  }
 
   return c.json({
     success: true,
