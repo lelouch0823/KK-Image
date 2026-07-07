@@ -16,7 +16,7 @@
             data-testid="purchase-order-detail-status-chip"
             :variant="getStatusVariant(detail.status)"
           >
-            {{ formatPurchaseOrderStatusLabel(detail.status) }}
+            {{ formatPurchaseOrderStatusLabel(detail.status, statusConfig) }}
           </StatusBadge>
           <template
             v-if="
@@ -64,7 +64,7 @@
 
 <script setup>
 import StatusBadge from '@/components/ui/StatusBadge.vue';
-import { formatReadableLabel } from '@/utils/event-display';
+import { formatPurchaseOrderStatusLabel } from '@/utils/display-labels';
 
 const getStatusVariant = (status) => {
   if (['draft', 'cancelled'].includes(status)) return 'default';
@@ -97,7 +97,4 @@ const props = defineProps({
   },
 });
 
-function formatPurchaseOrderStatusLabel(status) {
-  return props.statusConfig[status]?.label || formatReadableLabel(status);
-}
 </script>

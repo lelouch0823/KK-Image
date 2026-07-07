@@ -4,28 +4,8 @@ import { useToast } from './useToast';
 import { useI18n } from './useI18n';
 import { ErrorCode, isAuthError } from '@/utils/error-codes';
 
-/** 通用资源项基础约束：必须可索引访问 */
-export interface ResourceItem {
-    [key: string]: unknown;
-}
-
-/** API 通用响应结构 */
-export interface ApiResponse {
-    success: boolean;
-    data?: unknown;
-    error?: string;
-    message?: string;
-    pagination?: PaginationMeta;
-    [key: string]: unknown;
-}
-
-/** 分页元数据 */
-export interface PaginationMeta {
-    page?: number;
-    limit?: number;
-    total?: number;
-    totalPages?: number;
-}
+// Re-export from shared types
+export type { ResourceItem, ApiResponse, PaginationMeta } from '@/utils/api-types';
 
 /** 缓存条目结构 */
 interface CacheEntry {

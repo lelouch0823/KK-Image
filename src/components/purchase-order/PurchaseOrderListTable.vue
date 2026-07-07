@@ -44,7 +44,7 @@
           :variant="getListStatusVariant(po.status)"
           class="ring-1 ring-(--border-color)/40"
         >
-          {{ formatPurchaseOrderStatusLabel(po.status) }}
+          {{ formatPurchaseOrderStatusLabel(po.status, statusConfig) }}
         </StatusBadge>
         <template v-if="po.display_status || po.ordered_qty || po.received_qty || po.cancelled_qty">
           <StatusBadge
@@ -93,7 +93,7 @@
 import AppTable from '@/components/ui/AppTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import { useI18n } from '@/composables/useI18n';
-import { formatReadableLabel } from '@/utils/event-display';
+import { formatPurchaseOrderStatusLabel } from '@/utils/display-labels';
 
 const props = defineProps({
   columns: {
@@ -146,7 +146,4 @@ defineEmits(['row-click']);
 
 const { t } = useI18n();
 
-function formatPurchaseOrderStatusLabel(status) {
-  return props.statusConfig[status]?.label || formatReadableLabel(status);
-}
 </script>

@@ -175,8 +175,8 @@
   <OrderWorkflowModal
     v-model:show="showDetailModal"
     :order="viewingOrder"
-    :hydrating="loadingDetail"
-    :hydration-error="detailError"
+    :hydrating="detailHydrating"
+    :hydration-error="detailHydrationError"
     :commenting="commenting"
     @close="closeDetail"
     @retry="() => viewingOrder?.id && viewOrder(viewingOrder)"
@@ -199,6 +199,7 @@
 import { ref, computed, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useOrders } from '@/composables/useOrders';
+import { useOrderDetailViewer } from '@/composables/useOrderDetailViewer';
 import ActionBar from '@/design-system/composed/ActionBar.vue';
 import StatePanel from '@/design-system/composed/StatePanel.vue';
 import AppButton from '@/components/ui/AppButton.vue';
@@ -231,86 +232,17 @@ const handleModalVisibilityChange = (nextVisible) => {
 const searchQuery = ref('');
 const selected = ref([]);
 
-const showDetailModal = ref(false);
-const loadingDetail = ref(false);
-const viewingOrder = ref(null);
-const commenting = ref(false);
-const detailError = ref('');
-let detailRequestId = 0;
-
-const invalidateDetailRequests = () => {
-  detailRequestId += 1;
-  loadingDetail.value = false;
-};
-
-const viewOrder = async (order) => {
-  const requestId = ++detailRequestId;
-  showDetailModal.value = true;
-  loadingDetail.value = true;
-  detailError.value = '';
-  viewingOrder.value = order ? { ...order } : null;
-
-  try {
-    const fullOrder = await getOrder(order.id);
-    if (requestId !== detailRequestId || !showDetailModal.value) return;
-    if (fullOrder) {
-      viewingOrder.value = fullOrder;
-    } else {
-      detailError.value = t('common.loadFailed');
-    }
-  } catch (_e) {
-    if (requestId !== detailRequestId || !showDetailModal.value) return;
-    detailError.value = t('common.networkError');
-  } finally {
-    if (requestId === detailRequestId) {
-      loadingDetail.value = false;
-    }
-  }
-};
-
-const refreshOrderDetail = async () => {
-  if (viewingOrder.value) {
-    const requestId = ++detailRequestId;
-    loadingDetail.value = true;
-    detailError.value = '';
-    try {
-      const fullOrder = await getOrder(viewingOrder.value.id);
-      if (requestId !== detailRequestId || !showDetailModal.value) return;
-      if (fullOrder) {
-        viewingOrder.value = fullOrder;
-      } else {
-        detailError.value = t('common.loadFailed');
-      }
-    } catch (_e) {
-      if (requestId !== detailRequestId || !showDetailModal.value) return;
-      detailError.value = t('common.networkError');
-    } finally {
-      if (requestId === detailRequestId) {
-        loadingDetail.value = false;
-      }
-    }
-  }
-};
-
-const closeDetail = () => {
-  invalidateDetailRequests();
-  showDetailModal.value = false;
-  detailError.value = '';
-  viewingOrder.value = null;
-};
-
-const handleComment = async (comment) => {
-  if (!viewingOrder.value || !comment.trim() || commenting.value) return;
-  commenting.value = true;
-  try {
-    const success = await addComment(viewingOrder.value.id, comment);
-    if (success) {
-      await refreshOrderDetail();
-    }
-  } finally {
-    commenting.value = false;
-  }
-};
+const {
+  showDetailModal,
+  viewingOrder,
+  detailHydrating,
+  detailHydrationError,
+  commenting,
+  viewOrder,
+  closeDetail,
+  refreshOrderDetail,
+  handleComment,
+} = useOrderDetailViewer({ getOrder, addComment });
 
 const normalizeOrderProgressStatus = (order) =>
   String(

@@ -142,7 +142,7 @@ describe('Dashboard order detail workflow', () => {
     const wrapper = createWrapper();
     const pending = wrapper.vm.viewOrder({ id: 'o-3', orderNo: 'SO-3' });
 
-    wrapper.vm.closeDetailModal();
+    wrapper.vm.closeDetail();
 
     resolveOrder({ id: 'o-3', orderNo: 'SO-3', currentData: { name: 'Late Detail' } });
     await pending;

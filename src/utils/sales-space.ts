@@ -1,4 +1,5 @@
 import { parseJsonArray, parseJsonObject } from '@/utils/json.js';
+import { toFiniteNumber } from '@/utils/number';
 
 /** 归一化后的空间文件 */
 export interface NormalizedSpaceFile {
@@ -98,11 +99,6 @@ function pickFirstString(values: unknown[], fallback: string = ''): string {
     }
   }
   return fallback;
-}
-
-function toFiniteNumber(value: unknown, fallback: number = 0): number {
-  const next = Number(value);
-  return Number.isFinite(next) ? next : fallback;
 }
 
 function resolveFilePath(path: unknown, storageKey?: unknown): string {

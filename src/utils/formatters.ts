@@ -268,6 +268,21 @@ export const formatCurrency = (amount: number | string | null | undefined, curre
 };
 
 /**
+ * 格式化金额（无货币符号，0-2 位小数）
+ * @param value - 金额
+ * @returns 格式化后的金额字符串
+ */
+export const formatAmount = (value: number | string | null | undefined): string => {
+  if (value == null) return '-';
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '-';
+  return num.toLocaleString('zh-CN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+};
+
+/**
  * 格式化金额（万为单位压缩显示，适用于大额统计场景）
  * @param value - 金额
  * @param prefix - 可选前缀（如 '¥'）

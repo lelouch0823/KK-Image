@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue';
 import { hasEntries } from '@/utils/object-utils';
-import { PRODUCT_FIELDS } from '@/components/product/import/import-validators';
+import { PRODUCT_FIELDS } from '@/utils/import-validators';
 
 const CHUNK_SIZE = 200;
 

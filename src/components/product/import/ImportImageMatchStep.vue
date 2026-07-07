@@ -99,7 +99,7 @@
 import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppIcon from '@/components/ui/AppIcon.vue';
-import { getItemMatchKey } from './match-keys';
+import { getItemMatchKey } from '@/utils/import-match-keys';
 
 const props = defineProps({
   parsedItems: {

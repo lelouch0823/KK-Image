@@ -152,8 +152,9 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { useMobileDetect } from '@/composables/useMobileDetect';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import Select from '@/components/ui/Select.vue';
 import AppFilterBar from '@/components/ui/AppFilterBar.vue';
@@ -210,24 +211,7 @@ defineEmits(['update:filters', 'search', 'export', 'create', 'show-stats']);
 const { t } = useI18n();
 
 // 移动端检测 (sm breakpoint = 640px)
-const isMobile = ref(false);
-let mediaQuery = null;
-
-const updateMobile = (e) => {
-  isMobile.value = !e.matches;
-};
-
-onMounted(() => {
-  mediaQuery = window.matchMedia('(min-width: 640px)');
-  isMobile.value = !mediaQuery.matches;
-  mediaQuery.addEventListener('change', updateMobile);
-});
-
-onUnmounted(() => {
-  if (mediaQuery) {
-    mediaQuery.removeEventListener('change', updateMobile);
-  }
-});
+const { isMobile } = useMobileDetect(640);
 
 const salespersonOptions = computed(() => [
   {

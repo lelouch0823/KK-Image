@@ -1,6 +1,7 @@
-export function toNonNegativeInt(value) {
-  return Math.max(0, Math.trunc(Number(value) || 0));
-}
+import { toNonNegativeInt as _toNonNegativeInt } from '../../functions/api/utils/number.js';
+
+/** 重新导出规范版本，保持 purchase-order-projection 模块对外接口不变 */
+export const toNonNegativeInt = _toNonNegativeInt;
 
 export function getPurchaseOrderOrderedQty(record = {}) {
   if (record.quantity != null) return toNonNegativeInt(record.quantity);

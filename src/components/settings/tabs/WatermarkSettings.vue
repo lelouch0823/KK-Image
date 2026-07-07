@@ -120,17 +120,15 @@ import AppInput from '@/components/ui/AppInput.vue';
 import AppSlider from '@/components/ui/AppSlider.vue';
 import AppSelect from '@/components/ui/Select.vue';
 import ActionBar from '@/design-system/composed/ActionBar.vue';
-import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
-import { useAuth } from '@/composables/useAuth';
 import { useWatermarkSettings } from '@/composables/useWatermarkSettings';
+import { useSettingsBatchSave } from '@/composables/useSettingsBatchSave';
 
 const { t } = useI18n();
-const { addToast } = useToast();
-const { authFetch } = useAuth();
 const { loadSettings, watermarkSettings } = useWatermarkSettings();
-
-const saving = ref(false);
+const { saving, saveSettings: batchSave } = useSettingsBatchSave(() => {
+  Object.assign(watermarkSettings.value, form);
+});
 
 const form = reactive({
   WATERMARK_ENABLED: 'false',
@@ -163,42 +161,15 @@ const loadCurrentSettings = async () => {
   form.WATERMARK_SIZE_RATIO = watermarkSettings.value.WATERMARK_SIZE_RATIO;
 };
 
-const saveSettings = async () => {
-  try {
-    saving.value = true;
-    const settingsToSave = [
-      { key: 'WATERMARK_ENABLED', value: form.WATERMARK_ENABLED, category: 'watermark' },
-      { key: 'WATERMARK_TEXT', value: form.WATERMARK_TEXT, category: 'watermark' },
-      { key: 'WATERMARK_POSITION', value: form.WATERMARK_POSITION, category: 'watermark' },
-      { key: 'WATERMARK_OPACITY', value: String(form.WATERMARK_OPACITY), category: 'watermark' },
-      { key: 'WATERMARK_COLOR', value: form.WATERMARK_COLOR, category: 'watermark' },
-      {
-        key: 'WATERMARK_SIZE_RATIO',
-        value: String(form.WATERMARK_SIZE_RATIO),
-        category: 'watermark',
-      },
-    ];
-
-    const res = await authFetch('/api/manage/settings/batch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings: settingsToSave }),
-    });
-
-    const json = await res.json();
-    if (json.success) {
-      addToast({ message: t('settings.success', 'Settings saved successfully'), type: 'success' });
-      // update local memory immediately
-      Object.assign(watermarkSettings.value, form);
-    } else {
-      throw new Error(json.error || t('settings.saveFailed', 'Save failed'));
-    }
-  } catch (e) {
-    addToast({ type: 'error', message: e.message });
-  } finally {
-    saving.value = false;
-  }
-};
+const saveSettings = () =>
+  batchSave([
+    { key: 'WATERMARK_ENABLED', value: form.WATERMARK_ENABLED, category: 'watermark' },
+    { key: 'WATERMARK_TEXT', value: form.WATERMARK_TEXT, category: 'watermark' },
+    { key: 'WATERMARK_POSITION', value: form.WATERMARK_POSITION, category: 'watermark' },
+    { key: 'WATERMARK_OPACITY', value: String(form.WATERMARK_OPACITY), category: 'watermark' },
+    { key: 'WATERMARK_COLOR', value: form.WATERMARK_COLOR, category: 'watermark' },
+    { key: 'WATERMARK_SIZE_RATIO', value: String(form.WATERMARK_SIZE_RATIO), category: 'watermark' },
+  ]);
 
 onMounted(() => {
   loadCurrentSettings();

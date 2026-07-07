@@ -208,17 +208,15 @@ import AppCard from '@/components/ui/AppCard.vue';
 import AppColorInput from '@/components/ui/AppColorInput.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import ActionBar from '@/design-system/composed/ActionBar.vue';
-import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
-import { useAuth } from '@/composables/useAuth';
 import { usePrintTemplate } from '@/composables/usePrintTemplate';
+import { useSettingsBatchSave } from '@/composables/useSettingsBatchSave';
 
 const { t } = useI18n();
-const { addToast } = useToast();
-const { authFetch } = useAuth();
 const { loadSettings, printTemplateSettings, DEFAULT_SETTINGS } = usePrintTemplate();
-
-const saving = ref(false);
+const { saving, saveSettings: batchSave } = useSettingsBatchSave(() => {
+  Object.assign(printTemplateSettings.value, form);
+});
 const logoError = ref(false);
 
 const form = reactive({
@@ -250,46 +248,16 @@ const loadCurrentSettings = async () => {
   form.PRINT_TEMPLATE_ACCENT_COLOR = printTemplateSettings.value.PRINT_TEMPLATE_ACCENT_COLOR;
 };
 
-const saveSettings = async () => {
-  try {
-    saving.value = true;
-    const settingsToSave = [
-      { key: 'PRINT_COMPANY_NAME', value: form.PRINT_COMPANY_NAME, category: 'printTemplate' },
-      { key: 'PRINT_COMPANY_LOGO', value: form.PRINT_COMPANY_LOGO, category: 'printTemplate' },
-      {
-        key: 'PRINT_COMPANY_ADDRESS',
-        value: form.PRINT_COMPANY_ADDRESS,
-        category: 'printTemplate',
-      },
-      { key: 'PRINT_COMPANY_PHONE', value: form.PRINT_COMPANY_PHONE, category: 'printTemplate' },
-      { key: 'PRINT_FOOTER_TEXT', value: form.PRINT_FOOTER_TEXT, category: 'printTemplate' },
-      { key: 'PRINT_SHOW_QR_CODE', value: form.PRINT_SHOW_QR_CODE, category: 'printTemplate' },
-      {
-        key: 'PRINT_TEMPLATE_ACCENT_COLOR',
-        value: form.PRINT_TEMPLATE_ACCENT_COLOR,
-        category: 'printTemplate',
-      },
-    ];
-
-    const res = await authFetch('/api/manage/settings/batch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings: settingsToSave }),
-    });
-
-    const json = await res.json();
-    if (json.success) {
-      addToast({ message: t('settings.success', 'Settings saved successfully'), type: 'success' });
-      Object.assign(printTemplateSettings.value, form);
-    } else {
-      throw new Error(json.error || t('settings.saveFailed', 'Save failed'));
-    }
-  } catch (e) {
-    addToast({ type: 'error', message: e.message });
-  } finally {
-    saving.value = false;
-  }
-};
+const saveSettings = () =>
+  batchSave([
+    { key: 'PRINT_COMPANY_NAME', value: form.PRINT_COMPANY_NAME, category: 'printTemplate' },
+    { key: 'PRINT_COMPANY_LOGO', value: form.PRINT_COMPANY_LOGO, category: 'printTemplate' },
+    { key: 'PRINT_COMPANY_ADDRESS', value: form.PRINT_COMPANY_ADDRESS, category: 'printTemplate' },
+    { key: 'PRINT_COMPANY_PHONE', value: form.PRINT_COMPANY_PHONE, category: 'printTemplate' },
+    { key: 'PRINT_FOOTER_TEXT', value: form.PRINT_FOOTER_TEXT, category: 'printTemplate' },
+    { key: 'PRINT_SHOW_QR_CODE', value: form.PRINT_SHOW_QR_CODE, category: 'printTemplate' },
+    { key: 'PRINT_TEMPLATE_ACCENT_COLOR', value: form.PRINT_TEMPLATE_ACCENT_COLOR, category: 'printTemplate' },
+  ]);
 
 onMounted(() => {
   loadCurrentSettings();

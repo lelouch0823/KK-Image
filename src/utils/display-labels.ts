@@ -1,5 +1,7 @@
 import { formatReadableLabel } from './event-display';
 
+export { formatReadableLabel };
+
 type TranslateFn = (key: string, fallback?: string) => string;
 
 const CUSTOMER_SEGMENT_KEYS: Record<string, string> = {
@@ -101,4 +103,12 @@ export function formatFileTypeLabel(type: unknown): string {
   if (FILE_SUBTYPE_LABELS[subtype]) return FILE_SUBTYPE_LABELS[subtype];
 
   return formatReadableLabel(subtype.replace(/^vnd[.-]/, '').replace(/^x[.-]/, ''));
+}
+
+export function formatPurchaseOrderStatusLabel(
+  status: unknown,
+  statusConfig: Record<string, { label?: string }> = {},
+): string {
+  const raw = String(status || '').trim();
+  return statusConfig[raw]?.label || formatReadableLabel(raw);
 }

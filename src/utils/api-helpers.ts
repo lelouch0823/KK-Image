@@ -7,7 +7,7 @@
 
 import { ErrorCode } from './error-codes';
 import { AppError, isAppError } from './app-error';
-import type { ApiResponse } from '@/composables/useResource';
+import type { ApiResponse } from '@/utils/api-types';
 
 /**
  * addToast / showToast 回调函数类型

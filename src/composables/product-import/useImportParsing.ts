@@ -1,13 +1,13 @@
 import { ref } from 'vue';
 import { hasEntries } from '@/utils/object-utils';
-import { extractInternalCodes } from '@/components/product/import/match-keys';
+import { extractInternalCodes } from '@/utils/import-match-keys';
 import {
   sanitizeMappedRow,
   isMeaningfulRow,
   createPreprocessStats,
   createValidationReport,
   VALID_VARIANT_STATUSES,
-} from '@/components/product/import/import-validators';
+} from '@/utils/import-validators';
 
 export function useImportParsing({ t, addToast, workflow }) {
   const fileName = ref('');

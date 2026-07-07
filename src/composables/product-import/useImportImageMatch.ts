@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue';
 import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
-import { getItemMatchKey } from '@/components/product/import/match-keys';
+import { getItemMatchKey } from '@/utils/import-match-keys';
 
 export function useImportImageMatch({ t, addToast, parsedItems, workflow }) {
   const { authFetch } = useAuth();

@@ -385,7 +385,7 @@
       :hydrating="detailHydrating"
       :hydration-error="detailHydrationError"
       :commenting="commenting"
-      @close="closeDetailModal"
+      @close="closeDetail"
       @retry="() => viewingOrder?.id && viewOrder(viewingOrder)"
       @refresh="refreshOrderDetail"
       @comment="handleComment"
@@ -407,6 +407,7 @@ import { useRouter } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
 import { useI18n } from '@/composables/useI18n';
 import { useOrders } from '@/composables/useOrders';
+import { useOrderDetailViewer } from '@/composables/useOrderDetailViewer';
 import { useClipboard } from '@/composables/useClipboard';
 import { useAI } from '@/composables/useAI';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
@@ -552,14 +553,8 @@ const showShareManager = ref(false);
 const showEditShare = ref(false);
 const editingFolder = ref(null);
 
-const showDetailModal = ref(false);
-const viewingOrder = ref(null);
-const commenting = ref(false);
-const detailHydrating = ref(false);
-const detailHydrationError = ref('');
 const salesTrendChartRef = ref(null);
 const statusDistributionChartRef = ref(null);
-let detailRequestId = 0;
 
 const confirmData = ref({
   show: false,
@@ -577,88 +572,6 @@ const charts = {
 };
 
 // Order Management
-const viewOrder = async (order) => {
-  const requestId = ++detailRequestId;
-  viewingOrder.value = order ? { ...order } : null;
-  showDetailModal.value = true;
-  detailHydrationError.value = '';
-  detailHydrating.value = true;
-  try {
-    const fullOrder = await getOrder(order.id);
-    if (requestId !== detailRequestId || !showDetailModal.value) return false;
-    if (fullOrder) {
-      viewingOrder.value = fullOrder;
-      return true;
-    }
-    detailHydrationError.value = t('common.loadFailed');
-    return false;
-  } catch (_e) {
-    if (requestId !== detailRequestId || !showDetailModal.value) return false;
-    detailHydrationError.value = t('common.networkError');
-    return false;
-  } finally {
-    if (requestId === detailRequestId) {
-      detailHydrating.value = false;
-    }
-  }
-};
-
-const closeDetailModal = () => {
-  detailRequestId += 1;
-  showDetailModal.value = false;
-  viewingOrder.value = null;
-  detailHydrationError.value = '';
-  detailHydrating.value = false;
-  fetchDashboardData();
-};
-
-const refreshOrderDetail = async () => {
-  if (viewingOrder.value) {
-    const requestId = ++detailRequestId;
-    detailHydrationError.value = '';
-    detailHydrating.value = true;
-    try {
-      const fullOrder = await getOrder(viewingOrder.value.id);
-      if (requestId !== detailRequestId || !showDetailModal.value) return;
-      if (fullOrder) {
-        viewingOrder.value = fullOrder;
-      } else {
-        detailHydrationError.value = t('common.loadFailed');
-      }
-    } catch (_e) {
-      if (requestId !== detailRequestId || !showDetailModal.value) return;
-      detailHydrationError.value = t('common.networkError');
-    } finally {
-      if (requestId === detailRequestId) {
-        detailHydrating.value = false;
-      }
-    }
-  }
-  fetchDashboardData();
-
-  // Reload the order detail to show new comments if we are still viewing
-  if (viewingOrder.value) {
-    const requestId = ++detailRequestId;
-    const fullOrder = await getOrder(viewingOrder.value.id);
-    if (requestId !== detailRequestId || !showDetailModal.value) return;
-    if (fullOrder) viewingOrder.value = fullOrder;
-  }
-};
-
-const handleComment = async (comment) => {
-  if (!viewingOrder.value || !comment.trim() || commenting.value) return;
-
-  commenting.value = true;
-  try {
-    const success = await addComment(viewingOrder.value.id, comment);
-    if (success) {
-      await refreshOrderDetail();
-    }
-  } finally {
-    commenting.value = false;
-  }
-};
-
 // Data Fetching
 let fetchPromise = null;
 
@@ -706,6 +619,33 @@ const fetchDashboardData = async () => {
     return await fetchPromise;
   } finally {
     fetchPromise = null;
+  }
+};
+
+// Order Detail Viewer
+const {
+  showDetailModal,
+  viewingOrder,
+  detailHydrating,
+  detailHydrationError,
+  commenting,
+  viewOrder,
+  closeDetail,
+  refreshOrderDetail: refreshOrderDetailBase,
+  handleComment,
+} = useOrderDetailViewer({
+  getOrder,
+  addComment,
+  onClose: fetchDashboardData,
+});
+
+const refreshOrderDetail = async () => {
+  await refreshOrderDetailBase();
+  fetchDashboardData();
+  // 刷新仪表盘数据后重新加载订单详情以显示新评论
+  if (viewingOrder.value) {
+    const fullOrder = await getOrder(viewingOrder.value.id);
+    if (fullOrder) viewingOrder.value = fullOrder;
   }
 };
 

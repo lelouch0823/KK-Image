@@ -247,8 +247,8 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
-import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
+import { useSettingsBatchSave } from '@/composables/useSettingsBatchSave';
 import SettingsSection from '@/components/settings/SettingsSection.vue';
 import AppCard from '@/components/ui/AppCard.vue';
 import AppInput from '@/components/ui/AppInput.vue';
@@ -256,10 +256,8 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const { t } = useI18n();
-const { addToast } = useToast();
 const { authFetch } = useAuth();
-
-const saving = ref(false);
+const { saving, saveSettings: batchSave } = useSettingsBatchSave();
 
 const channels = ref({
   wechat_work: { url: '', enabled: true },
@@ -298,49 +296,34 @@ async function loadSettings() {
 }
 
 async function saveSettings() {
-  saving.value = true;
-  try {
-    const settings = [];
-    for (const [key, ch] of Object.entries(channels.value)) {
-      const upperKey = key.toUpperCase();
-      settings.push({
-        key: `NOTIFY_WEBHOOK_${upperKey}_URL`,
-        value: ch.url,
-        category: 'notifications',
-      });
-      settings.push({
-        key: `NOTIFY_WEBHOOK_${upperKey}_ENABLED`,
-        value: String(ch.enabled),
-        category: 'notifications',
-      });
-    }
-
-    // 邮件设置
+  const settings = [];
+  for (const [key, ch] of Object.entries(channels.value)) {
+    const upperKey = key.toUpperCase();
     settings.push({
-      key: 'EMAIL_ENABLED',
-      value: String(emailConfig.value.enabled),
-      category: 'email',
+      key: `NOTIFY_WEBHOOK_${upperKey}_URL`,
+      value: ch.url,
+      category: 'notifications',
     });
     settings.push({
-      key: 'EMAIL_FROM',
-      value: emailConfig.value.from,
-      category: 'email',
+      key: `NOTIFY_WEBHOOK_${upperKey}_ENABLED`,
+      value: String(ch.enabled),
+      category: 'notifications',
     });
-
-    const response = await authFetch('/api/manage/settings/batch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings }),
-    });
-    const res = await response.json();
-    if (res.success) {
-      addToast(t('settings.success'), 'success');
-    }
-  } catch (_err) {
-    addToast(t('settings.saveFailed'), 'error');
-  } finally {
-    saving.value = false;
   }
+
+  // 邮件设置
+  settings.push({
+    key: 'EMAIL_ENABLED',
+    value: String(emailConfig.value.enabled),
+    category: 'email',
+  });
+  settings.push({
+    key: 'EMAIL_FROM',
+    value: emailConfig.value.from,
+    category: 'email',
+  });
+
+  await batchSave(settings);
 }
 
 onMounted(loadSettings);

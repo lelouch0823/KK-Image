@@ -1,5 +1,6 @@
 import { formatOrderStatusLabel } from './display-labels';
 import { getStatusVariant } from './status';
+import { toFiniteNumber } from './number';
 
 type TranslateFn = (key: string, fallback?: string) => string;
 
@@ -123,11 +124,6 @@ function getStyle(root?: CssReaderRoot): CSSStyleDeclaration | null {
 
 function normalizeChartItems(data: unknown): DashboardChartItem[] {
   return Array.isArray(data) ? data : [];
-}
-
-function toFiniteNumber(value: unknown): number {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : 0;
 }
 
 function toShortDateLabel(value: unknown): string {

@@ -19,13 +19,13 @@
       <div class="rounded-lg bg-(--bg-secondary) p-3 text-center">
         <div class="text-xs text-(--text-secondary)">{{ t('order.profit.revenue') }}</div>
         <div class="text-primary mt-1 text-lg font-semibold">
-          {{ formatCurrency(profit.revenue) }}
+          {{ formatAmount(profit.revenue) }}
         </div>
       </div>
       <div class="rounded-lg bg-(--bg-secondary) p-3 text-center">
         <div class="text-xs text-(--text-secondary)">{{ t('order.profit.cost') }}</div>
         <div class="mt-1 text-lg font-semibold text-(--text-main)">
-          {{ formatCurrency(profit.cost) }}
+          {{ formatAmount(profit.cost) }}
         </div>
       </div>
       <div class="rounded-lg bg-(--bg-secondary) p-3 text-center">
@@ -34,7 +34,7 @@
           class="mt-1 text-lg font-semibold"
           :class="profit.profit >= 0 ? 'text-success' : 'text-danger'"
         >
-          {{ formatCurrency(profit.profit) }}
+          {{ formatAmount(profit.profit) }}
         </div>
       </div>
     </div>
@@ -88,13 +88,13 @@
           <div>
             <span class="text-(--text-secondary)">{{ t('order.profit.unitPrice') }}</span>
             <span class="ml-1 text-(--text-main)">{{
-              line.unitPrice != null ? formatCurrency(line.unitPrice) : '-'
+              line.unitPrice != null ? formatAmount(line.unitPrice) : '-'
             }}</span>
           </div>
           <div>
             <span class="text-(--text-secondary)">{{ t('order.profit.unitCost') }}</span>
             <span class="ml-1 text-(--text-main)">{{
-              line.unitCost != null ? formatCurrency(line.unitCost) : t('order.profit.costMissing')
+              line.unitCost != null ? formatAmount(line.unitCost) : t('order.profit.costMissing')
             }}</span>
           </div>
           <div class="text-right">
@@ -103,7 +103,7 @@
               class="ml-1 font-medium"
               :class="line.profit >= 0 ? 'text-success' : 'text-danger'"
             >
-              {{ formatCurrency(line.profit) }}
+              {{ formatAmount(line.profit) }}
             </span>
           </div>
         </div>
@@ -127,6 +127,7 @@ import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { formatOrderCostSourceLabel } from '@/utils/display-labels';
+import { formatAmount } from '@/utils/formatters';
 
 const props = defineProps({
   profit: {
@@ -137,14 +138,6 @@ const props = defineProps({
 
 const { t } = useI18n();
 const showBreakdown = ref(false);
-
-function formatCurrency(value) {
-  if (value == null || !Number.isFinite(value)) return '-';
-  return value.toLocaleString('zh-CN', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
-}
 
 function costSourceClass(source) {
   switch (source) {

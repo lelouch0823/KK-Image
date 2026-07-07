@@ -416,15 +416,16 @@ import ActionBar from '@/design-system/composed/ActionBar.vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
+import { useSettingsBatchSave } from '@/composables/useSettingsBatchSave';
 import { inferModelSupportsVision } from '@/utils/ai-model-capabilities';
 
 const { t } = useI18n();
 const { addToast } = useToast();
 const { authFetch } = useAuth();
+const { saving, saveSettings: batchSave } = useSettingsBatchSave();
 
 const showKey = ref(false);
 const loading = ref(true);
-const saving = ref(false);
 const modelFetching = ref(false);
 const testing = ref(false);
 const availableModels = ref([]);
@@ -468,39 +469,14 @@ const fetchSettings = async () => {
   }
 };
 
-const saveSettings = async () => {
-  try {
-    saving.value = true;
-    const settingsToSave = [
-      { key: 'AI_API_URL', value: form.AI_API_URL, category: 'ai' },
-      { key: 'AI_API_KEY', value: form.AI_API_KEY, category: 'ai' },
-      { key: 'AI_MODELS', value: form.AI_MODELS, category: 'ai' },
-      {
-        key: 'AI_DYNAMIC_FALLBACK_ENABLED',
-        value: String(form.AI_DYNAMIC_FALLBACK_ENABLED),
-        category: 'ai',
-      },
-      { key: 'AI_MODEL_HEALTH_WINDOW', value: String(form.AI_MODEL_HEALTH_WINDOW), category: 'ai' },
-    ];
-
-    const res = await authFetch('/api/manage/settings/batch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings: settingsToSave }),
-    });
-
-    const json = await res.json();
-    if (json.success) {
-      addToast({ message: t('settings.ai.saveSuccess', 'AI settings saved'), type: 'success' });
-    } else {
-      throw new Error(json.error || t('settings.ai.saveFailed'));
-    }
-  } catch (e) {
-    addToast({ type: 'error', message: e.message });
-  } finally {
-    saving.value = false;
-  }
-};
+const saveSettings = () =>
+  batchSave([
+    { key: 'AI_API_URL', value: form.AI_API_URL, category: 'ai' },
+    { key: 'AI_API_KEY', value: form.AI_API_KEY, category: 'ai' },
+    { key: 'AI_MODELS', value: form.AI_MODELS, category: 'ai' },
+    { key: 'AI_DYNAMIC_FALLBACK_ENABLED', value: String(form.AI_DYNAMIC_FALLBACK_ENABLED), category: 'ai' },
+    { key: 'AI_MODEL_HEALTH_WINDOW', value: String(form.AI_MODEL_HEALTH_WINDOW), category: 'ai' },
+  ]);
 
 const splitModels = (value) =>
   String(value || '')
