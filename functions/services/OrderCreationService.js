@@ -6,7 +6,17 @@
 
 import { validateProductVariantBinding } from '../api/utils/validation.js';
 import { buildOrderBindingSnapshot } from '../api/utils/order-binding-snapshot.js';
-import { syncOrderDemandTransitions } from '../api/utils/order-demand-sync.js';
+import {
+  syncOrderDemandTransitions,
+  syncOrderDemandTransitionsByLines,
+} from '../api/utils/order-demand-sync.js';
+import {
+  canTransitionOrderStatus,
+  normalizeOrderStatus,
+} from '../api/utils/order-state-machine.js';
+import { generateId, generateOrderNo, MSG, ORDER_STATUSES } from '../_shared/utils.js';
+import { BadRequestError } from '../lib/hono/errors.js';
+import { OrderRepository } from '../repositories/OrderRepository.js';
 import { DemandService } from './DemandService.js';
 import { DomainOutboxPublisher } from './DomainOutboxPublisher.js';
 
@@ -36,6 +46,16 @@ const SALES_EDITABLE_FIELDS = Object.freeze([
   'deadline',
   'quantity',
 ]);
+
+function attachPartialResult(error, partialResult) {
+  if (!error || typeof error !== 'object') {
+    return Object.assign(new Error(String(error || 'Order create failed')), { partialResult });
+  }
+  if (!error.partialResult) {
+    error.partialResult = partialResult;
+  }
+  return error;
+}
 
 export class OrderCreationService {
   /**
@@ -303,5 +323,175 @@ export class OrderCreationService {
   /** 返回绑定快照覆盖字段列表 */
   getBoundSnapshotFields() {
     return SALES_BOUND_SNAPSHOT_FIELDS;
+  }
+
+  /**
+   * 管理端创建订单（核心业务逻辑）
+   * 不包含缓存失效和领域事件发布（由调用方负责）
+   * @param {Object} body - 请求体
+   * @param {Object} user - 当前用户
+   * @returns {Promise<{id: string, orderNo: string, salespersonId: string}>}
+   */
+  async createManagedOrder(body, user = {}) {
+    const rawLines = Array.isArray(body.lines) ? body.lines.filter(Boolean) : [];
+    if ((!body.productName && rawLines.length === 0) || !body.salespersonId) {
+      throw new BadRequestError('Product Name and Salesperson are required');
+    }
+
+    const orderRepo = new OrderRepository(this.db);
+    const orderId = generateId();
+    const orderNo = generateOrderNo();
+    const normalizedLines = rawLines.map((line) => ({
+      name: String(line.name || line.productName || '').trim(),
+      brand: String(line.brand || '').trim(),
+      category: String(line.category || '').trim(),
+      series: String(line.series || '').trim(),
+      sku: String(line.sku || '').trim(),
+      size: String(line.size || '').trim(),
+      color: String(line.color || '').trim(),
+      material: String(line.material || '').trim(),
+      remark: String(line.remark || '').trim(),
+      deadline: String(line.deadline || '').trim(),
+      quantity: Math.max(1, Math.trunc(Number(line.quantity || 1))),
+      productId: line.productId || null,
+      variantId: line.variantId ?? null,
+    }));
+    const hydratedLines = [];
+    for (const line of normalizedLines) {
+      const binding = await validateProductVariantBinding(
+        this.db,
+        line.productId || null,
+        line.variantId ?? null,
+        { checkActive: true }
+      );
+      const boundSnapshot = buildOrderBindingSnapshot({
+        product: binding.product,
+        variant: binding.variant,
+        fallback: line,
+      });
+      hydratedLines.push({
+        ...line,
+        name: boundSnapshot.name,
+        brand: boundSnapshot.brand,
+        category: boundSnapshot.category,
+        series: boundSnapshot.series,
+        sku: boundSnapshot.sku,
+        size: boundSnapshot.size,
+        color: boundSnapshot.color,
+        material: boundSnapshot.material,
+        productId: binding.normalizedProductId,
+        variantId: binding.normalizedVariantId,
+      });
+    }
+    const primaryLine = hydratedLines[0] || null;
+    const variantId = primaryLine ? (primaryLine.variantId ?? null) : (body.variantId ?? null);
+    const binding = await validateProductVariantBinding(
+      this.db,
+      primaryLine ? primaryLine.productId || null : body.productId || null,
+      variantId,
+      { checkActive: true }
+    );
+    const boundSnapshot = buildOrderBindingSnapshot({
+      product: binding.product,
+      variant: binding.variant,
+      fallback: primaryLine || {
+        name: body.productName,
+        brand: body.brand,
+        category: body.category,
+        series: body.series,
+        sku: body.sku,
+        size: body.size,
+        color: body.color,
+        material: body.material,
+      },
+    });
+    const totalQuantity =
+      hydratedLines.length > 0
+        ? hydratedLines.reduce((sum, line) => sum + line.quantity, 0)
+        : body.quantity || 1;
+
+    if (body.status && !ORDER_STATUSES.includes(body.status)) {
+      throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
+    }
+    if (body.status) {
+      const normalizedStatus = normalizeOrderStatus(body.status);
+      if (normalizedStatus !== 'pending' && !canTransitionOrderStatus('pending', normalizedStatus)) {
+        throw new BadRequestError(MSG.ORDER.INVALID_STATUS);
+      }
+    }
+
+    const nextStatus = body.status || 'pending';
+
+    const createdOrder = await orderRepo.create({
+      id: orderId,
+      orderNo,
+      salespersonId: body.salespersonId,
+      customerId: body.customerId || null,
+      data: {
+        name: boundSnapshot.name,
+        brand: boundSnapshot.brand,
+        category: boundSnapshot.category,
+        series: boundSnapshot.series,
+        sku: boundSnapshot.sku,
+        size: boundSnapshot.size,
+        color: boundSnapshot.color,
+        material: boundSnapshot.material,
+        remark: body.remark || '',
+        deadline: body.deadline || '',
+      },
+      quantity: totalQuantity,
+      status: nextStatus,
+      productId: hydratedLines.length > 1 ? null : primaryLine?.productId || body.productId || null,
+      variantId: hydratedLines.length > 1 ? null : variantId,
+      lines: hydratedLines,
+      mainImageId: body.fileIds?.[0] || null,
+      fileIds: body.fileIds || [],
+      timeline: {
+        actionType: 'created',
+        actorType: 'admin',
+        actorId: user?.id || 'admin',
+        actorName: user?.name || 'Admin',
+        comment: 'Admin created order',
+      },
+    });
+    const persistedOrderId = createdOrder?.id || orderId;
+    const persistedOrderNo = createdOrder?.orderNo || orderNo;
+    const partialResult = {
+      id: persistedOrderId,
+      orderNo: persistedOrderNo,
+      salespersonId: body.salespersonId,
+      fileIds: Array.isArray(body.fileIds) ? body.fileIds.filter(Boolean) : [],
+    };
+
+    // 同步需求变更
+    try {
+      const persistedOrderDetail =
+        typeof orderRepo.findById === 'function' ? await orderRepo.findById(persistedOrderId) : null;
+      const persistedLines = Array.isArray(persistedOrderDetail?.lines)
+        ? persistedOrderDetail.lines
+        : [];
+      const demandLines = persistedLines.length > 0 ? persistedLines : hydratedLines;
+      const demandPrimaryLine = demandLines[0] || primaryLine;
+
+      await syncOrderDemandTransitionsByLines(this.demandService, {
+        orderId: persistedOrderId,
+        previousStatus: null,
+        nextStatus,
+        previousLines: [],
+        nextLines: demandLines,
+        previousFallback: {},
+        nextFallback: {
+          productId:
+            demandLines.length === 1 ? demandPrimaryLine?.productId || body.productId || null : null,
+          variantId: demandLines.length === 1 ? (demandPrimaryLine?.variantId ?? variantId) : null,
+          quantity: totalQuantity,
+        },
+      });
+    } catch (error) {
+      console.error('Order demand sync failed (managed create):', error);
+      throw attachPartialResult(error, partialResult);
+    }
+
+    return partialResult;
   }
 }

@@ -113,7 +113,12 @@ export function buildOrderLineProjectionStatement(
   nextOrderLine,
   expectedOrderLine,
   timestamp,
-  { writeMode = 'full_projection', guardProjectionState = false, expectedDisplayStatus = null } = {}
+  {
+    writeMode = 'full_projection',
+    guardProjectionState = false,
+    expectedDisplayStatus = null,
+    guardActiveOrder = false,
+  } = {}
 ) {
   const whereClauses = ['id = ? AND order_id = ?'];
   const setClauses =
@@ -167,6 +172,12 @@ export function buildOrderLineProjectionStatement(
       toNonNegativeInt(expectedOrderLine.procured_qty),
       toNonNegativeInt(expectedOrderLine.reserved_qty),
       toNonNegativeInt(expectedOrderLine.shipped_qty)
+    );
+  }
+
+  if (guardActiveOrder) {
+    whereClauses.push(
+      'AND EXISTS (SELECT 1 FROM orders o WHERE o.id = order_lines.order_id AND o.archived_at IS NULL)'
     );
   }
 

@@ -64,7 +64,7 @@ export function buildGuardedLineProjectionStatement(db, line, nextLineState, tim
       order_id: line.order_id,
     },
     timestamp,
-    { guardProjectionState: true }
+    { guardProjectionState: true, guardActiveOrder: true }
   );
 }
 

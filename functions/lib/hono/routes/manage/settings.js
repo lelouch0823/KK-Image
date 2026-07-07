@@ -8,7 +8,6 @@ import { requirePermission } from '../../middleware/auth.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { assertSafeExternalUrl, buildSafeExternalFetchOptions } from '../../_shared/url-security.js';
-import { withCache } from '../../middleware/cache.js';
 import {
   BatchSettingsSchema,
   UpdateSettingSchema,
@@ -36,6 +35,11 @@ export const auditRouteDeclarations = declareAuditRoutes([
   },
 ]);
 app.use('*', requirePermission('admin:full'));
+
+function setSettingsNoStoreHeaders(c) {
+  c.header('Cache-Control', 'private, no-store, max-age=0');
+  c.header('Vary', 'Authorization, Cookie');
+}
 
 const normalizeApiBaseUrl = (rawUrl = '') => {
   const trimmed = String(rawUrl || '')
@@ -99,7 +103,8 @@ const extractModelIds = (payload) => {
 };
 
 // 获取所有设置
-app.get('/', withCache(120), async (c) => {
+app.get('/', async (c) => {
+  setSettingsNoStoreHeaders(c);
   const repo = new SettingsRepository(c.env.DB);
   const grouped = await repo.getAllGrouped();
 

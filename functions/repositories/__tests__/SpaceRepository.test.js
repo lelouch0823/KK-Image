@@ -50,6 +50,22 @@ describe('SpaceRepository', () => {
   });
 
   describe('findByProductId', () => {
+    it('derives product status from product_projection active variant counts', async () => {
+      const mockAll = vi.fn().mockResolvedValue({ results: [] });
+      const mockBind = vi.fn().mockReturnValue({ all: mockAll });
+      const mockPrepare = vi.fn().mockReturnValue({ bind: mockBind });
+      const mockDb = { prepare: mockPrepare };
+
+      const repo = new SpaceRepository(mockDb);
+
+      await repo.findByProductId('prod123');
+
+      const sql = mockPrepare.mock.calls[0][0];
+      expect(sql).toContain('LEFT JOIN product_projection pp ON pp.product_id = p.id');
+      expect(sql).toContain('COALESCE(pp.active_variant_count, 0) > 0');
+      expect(sql).not.toContain('NULL as p_status');
+    });
+
     it('should return spaces linked to a specific product ID', async () => {
       // Setup mock DB
       const mockResults = [

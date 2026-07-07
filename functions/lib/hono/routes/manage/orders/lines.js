@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { OrderLineCommandSchema } from '../../../schemas/order.js';
 import { BadRequestError, NotFoundError } from '../../../errors.js';
-import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { OrderLineFulfillmentService } from '../../../../../services/OrderLineFulfillmentService/index.js';
 import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
 import { OrderRepository } from '../../../../../repositories/OrderRepository.js';
@@ -9,6 +8,7 @@ import { parsePositiveLineCommandQuantity } from '../../../../../services/order-
 import { OrderTimelineRepository } from '../../../../../repositories/OrderTimelineRepository.js';
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
+import { scheduleOutboxProcessing } from '../../_shared/outbox-helpers.js';
 import { MSG } from '../../../../../_shared/utils.js';
 
 const app = new Hono();
@@ -56,16 +56,6 @@ export const auditRouteDeclarations = declareAuditRoutes([
     targetType: 'order',
   },
 ]);
-
-function scheduleOutboxProcessing(c, workerId) {
-  c.executionCtx.waitUntil(
-    runOutboxPoller({
-      env: c.env,
-      requestUrl: c.req.url,
-      workerId,
-    })
-  );
-}
 
 function assertOrderIsActiveForMutation(order) {
   if (order?.archivedAt || order?.archived_at) {
@@ -119,7 +109,12 @@ async function handleLineCommand(c, action, executor) {
   const orderId = c.req.param('id');
   const lineId = c.req.param('lineId');
   const user = c.get('user');
-  const rawBody = await c.req.json();
+  let rawBody;
+  try {
+    rawBody = await c.req.json();
+  } catch {
+    throw new BadRequestError('Invalid JSON body');
+  }
   // 校验请求体
   const parsed = OrderLineCommandSchema.safeParse(rawBody);
   if (!parsed.success) {

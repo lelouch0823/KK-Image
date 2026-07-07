@@ -241,6 +241,26 @@ describe('ProductRepository', () => {
   });
 
   describe('updateStatus', () => {
+    it('rejects unsupported draft status instead of archiving variants', async () => {
+      const db = {
+        prepare: vi.fn(),
+        batch: vi.fn(),
+      };
+      const repo = new ProductRepository(db);
+
+      const result = await repo.updateStatus('prod-1', 'draft');
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: false,
+          changes: 0,
+          error: expect.stringContaining('Invalid status: draft'),
+        })
+      );
+      expect(db.prepare).not.toHaveBeenCalled();
+      expect(db.batch).not.toHaveBeenCalled();
+    });
+
     it('更新变体状态后刷新商品投影', async () => {
       const db = {
         prepare: vi.fn((sql) => {
@@ -267,6 +287,17 @@ describe('ProductRepository', () => {
         db.prepare.mock.calls.some((call) => call[0].includes('INSERT INTO product_projection'))
       ).toBe(true);
       expect(db.batch).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('buildProductFilterClause', () => {
+    it('does not map unsupported draft filters to archived products', async () => {
+      const db = { prepare: vi.fn() };
+      const repo = new ProductRepository(db);
+
+      const result = await repo.buildProductFilterClause({ status: 'draft' });
+
+      expect(result).toEqual({ clause: '1=1', params: [] });
     });
   });
 });

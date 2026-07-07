@@ -24,8 +24,8 @@ import {
   createAITraceRecord,
   createAIUsageDailyRecord,
 } from '../ai/telemetry.js';
-import { createManagedOrder } from '../lib/hono/routes/manage/orders/create-order.js';
-import { createManagedProduct } from '../lib/hono/routes/manage/products/create-product.js';
+import { OrderCreationService } from './OrderCreationService.js';
+import { ProductCatalogService } from './ProductCatalogService.js';
 import { executeToolCalls, createStreamToolExecutor } from './ai-tool-orchestrator.js';
 import { prepareAIRequest } from './ai-request-preparer.js';
 import {
@@ -34,6 +34,7 @@ import {
   logInjectionTelemetry,
   estimateUsageTokens,
 } from './ai-telemetry-helpers.js';
+import { filterAIToolsForUser } from '../utils/ai-tool-executor.js';
 
 export class AIService {
   constructor(db, deps = {}) {
@@ -53,6 +54,7 @@ export class AIService {
 
   /** @private 尝试处理 action */
   async _tryHandleAction({ latestUserText, clientContext, user, c, runtimeEnv }) {
+    const orderCreationService = new OrderCreationService(this.db);
     const actionService = createAIActionService();
     return actionService.handleTurn({
       text: latestUserText,
@@ -62,8 +64,21 @@ export class AIService {
         c,
         env: { ...runtimeEnv, DB: this.db },
         user,
-        createManagedOrder,
-        createManagedProduct,
+        createManagedOrder: async (ctx, body, usr, options) => {
+          const result = await orderCreationService.createManagedOrder(body, usr);
+          if (Array.isArray(result?.fileIds) && result.fileIds.length > 0) {
+            await orderCreationService.archiveFiles(
+              ctx?.env || c?.env || { ...runtimeEnv, DB: this.db },
+              result.fileIds,
+              result.orderNo
+            );
+          }
+          return result;
+        },
+        createManagedProduct: async (ctx, body, options) => {
+          const service = new ProductCatalogService(this.db);
+          return service.createProduct(ctx, body, options);
+        },
         repos: { productRepo: this.repos.productRepo, variantRepo: this.repos.variantRepo },
       },
     });
@@ -212,7 +227,8 @@ export class AIService {
     }
 
     // 常规 AI 调用
-    const tools = visionFirst || safetyCheck.disableTools ? [] : AI_TOOLS;
+    const tools =
+      visionFirst || safetyCheck.disableTools ? [] : await filterAIToolsForUser(AI_TOOLS, user);
     let response = await callAI(messages, tools, envWithSignal);
     requestContext.addSpan(
       createAISpanRecord({
@@ -234,7 +250,11 @@ export class AIService {
     // 工具调用循环
     if (response.choices[0].message.tool_calls) {
       messages.push(response.choices[0].message);
-      await executeToolCalls(messages, response.choices[0].message.tool_calls, this.repos);
+      await executeToolCalls(messages, response.choices[0].message.tool_calls, {
+        ...this.repos,
+        authzUser: user,
+        enforcePermissions: true,
+      });
       response = await callAI(messages, [], envWithSignal);
       requestContext.addSpan(
         createAISpanRecord({
@@ -361,8 +381,13 @@ export class AIService {
     }
 
     // 常规流式调用
-    const executeTool = createStreamToolExecutor(this.repos);
-    const tools = visionFirst || safetyCheck.disableTools ? [] : AI_TOOLS;
+    const executeTool = createStreamToolExecutor({
+      ...this.repos,
+      authzUser: user,
+      enforcePermissions: true,
+    });
+    const tools =
+      visionFirst || safetyCheck.disableTools ? [] : await filterAIToolsForUser(AI_TOOLS, user);
     let messages = [...ctx.messages];
     const streamResult = await callAIStream(messages, tools, envWithSignal);
     requestContext.addSpan(
@@ -392,7 +417,7 @@ export class AIService {
       initialResult: streamResult,
       initialMessages: messages,
       runtimeEnv: envWithSignal,
-      tools: AI_TOOLS,
+      tools,
       callAIStream,
       parseSSEChunk,
       emit: async (event) => {

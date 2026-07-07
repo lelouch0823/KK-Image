@@ -91,6 +91,13 @@ async function publishProductArchivedCacheEvent(c, productId, { commandId, corre
   await publishProductCacheEvent(c, 'product_archived', [productId], { commandId, correlationId });
 }
 
+async function refreshProductProjectionStrict(c, productId) {
+  const { ProductProjectionRefreshService } =
+    await import('../../../../../../services/ProductProjectionRefreshService.js');
+  const refreshService = new ProductProjectionRefreshService(c.env.DB);
+  await refreshService.refreshByProductId(productId, c.executionCtx, { strict: true });
+}
+
 function buildProductArchiveStoredResponse({
   productId,
   response,
@@ -209,6 +216,7 @@ app.patch('/:id/status', zValidator('json', UpdateProductStatusSchema), async (c
   if (!result.success) {
     throw new BadRequestError(result.error || 'Status update failed');
   }
+  await refreshProductProjectionStrict(c, id);
   await publishProductCacheEvent(c, 'product_updated', [id]);
 
   scheduleAuditEvent(c, {
@@ -371,6 +379,7 @@ app.delete('/:id', async (c) => {
       await auditRepo.createBatch(storedArchive.variantAuditEvents);
       storedArchive.variantAuditPersisted = true;
     }
+    await refreshProductProjectionStrict(c, storedArchive?.productId || id);
     await publishProductArchivedCacheEvent(c, storedArchive?.productId || id, {
       commandId: reservation.record?.command_id,
       correlationId: reservation.record?.command_id,
@@ -435,10 +444,7 @@ app.delete('/:id', async (c) => {
     }
 
     // 刷新商品投影表，确保归档状态立即生效
-    const { ProductProjectionRefreshService } =
-      await import('../../../../../../services/ProductProjectionRefreshService.js');
-    const refreshService = new ProductProjectionRefreshService(env.DB);
-    await refreshService.refreshByProductId(id, c.executionCtx);
+    await refreshProductProjectionStrict(c, id);
 
     await publishProductArchivedCacheEvent(c, id, {
       commandId: reservation.record?.command_id,

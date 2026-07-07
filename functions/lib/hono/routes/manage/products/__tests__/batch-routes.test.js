@@ -291,7 +291,8 @@ describe('manage products batch route', () => {
     expect(db.batch).toHaveBeenCalledWith(updateStatements);
     expect(mocks.refreshProductProjectionByVariantIds).toHaveBeenCalledWith(
       ['var-1', 'var-2'],
-      expect.anything()
+      expect.anything(),
+      { strict: true }
     );
     expect(mocks.scheduleProductCacheInvalidation).toHaveBeenCalledWith(
       expect.anything(),

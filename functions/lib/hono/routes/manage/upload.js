@@ -78,12 +78,25 @@ app.post('/', requirePermission('files:write'), async (c) => {
     folderId = await ensureSpaceFolder(env, targetSpace.name);
   }
 
-  const result = await storeFile(env, file, {
-    contentHash,
-    originalHash,
-    folderId,
-    createdBy: user.id || 'admin',
-  });
+  let result;
+  try {
+    result = await storeFile(env, file, {
+      contentHash,
+      originalHash,
+      folderId,
+      createdBy: user.id || 'admin',
+    });
+  } catch (error) {
+    const message = String(error?.message || error || '');
+    if (
+      message === 'Invalid contentHash' ||
+      message === 'Invalid originalHash' ||
+      message === 'contentHash does not match file content'
+    ) {
+      throw new BadRequestError(message);
+    }
+    throw error;
+  }
   const uploadedFileId = result?.file?.id || result?.id || null;
 
   // 如果传了 spaceId，则将文件关联到该空间

@@ -224,7 +224,7 @@ app.patch(
         const { ProductProjectionRefreshService } =
           await import('../../../../../../services/ProductProjectionRefreshService.js');
         const refreshService = new ProductProjectionRefreshService(env.DB);
-        await refreshService.refreshByProductId(productId, c.executionCtx);
+        await refreshService.refreshByProductId(productId, c.executionCtx, { strict: true });
 
         return { success: true, data: { dimension: archivedDimension, effect } };
       },

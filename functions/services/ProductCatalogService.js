@@ -2,7 +2,7 @@ import { ProductRepository } from '../repositories/ProductRepository.js';
 import { ProductVariantRepository } from '../repositories/ProductVariantRepository.js';
 import { ProductDimensionRepository } from '../repositories/ProductDimensionRepository.js';
 import { VariantAuditRepository } from '../repositories/VariantAuditRepository.js';
-import { scheduleProductCacheInvalidation } from '../lib/hono/routes/manage/products/cache-helpers.js';
+import { scheduleProductCacheInvalidation } from './_shared/cache-invalidation.js';
 import { NotFoundError } from '../lib/hono/errors.js';
 import { executeProductCatalogCreate } from './product-catalog/create.js';
 import { syncProductCatalogDimensions } from './product-catalog/dimensions.js';
@@ -65,7 +65,7 @@ export class ProductCatalogService {
       const { ProductProjectionRefreshService } =
         await import('./ProductProjectionRefreshService.js');
       const refreshService = new ProductProjectionRefreshService(this.db);
-      await refreshService.refreshByProductId(product.id, c.executionCtx);
+      await refreshService.refreshByProductId(product.id, c.executionCtx, { strict: true });
     }
 
     if (!skipCacheInvalidation) {
@@ -112,7 +112,7 @@ export class ProductCatalogService {
       const { ProductProjectionRefreshService } =
         await import('./ProductProjectionRefreshService.js');
       const refreshService = new ProductProjectionRefreshService(this.db);
-      await refreshService.refreshByProductId(productId, c.executionCtx);
+      await refreshService.refreshByProductId(productId, c.executionCtx, { strict: true });
 
       if (!skipCacheInvalidation) {
         await scheduleProductCacheInvalidation(
@@ -156,7 +156,7 @@ export class ProductCatalogService {
       const { ProductProjectionRefreshService } =
         await import('./ProductProjectionRefreshService.js');
       const refreshService = new ProductProjectionRefreshService(this.db);
-      await refreshService.refreshByProductIds(result.productIds, c.executionCtx);
+      await refreshService.refreshByProductIds(result.productIds, c.executionCtx, { strict: true });
     }
 
     if (result.success && !skipCacheInvalidation) {

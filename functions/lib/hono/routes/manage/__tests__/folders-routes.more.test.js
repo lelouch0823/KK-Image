@@ -234,7 +234,7 @@ describe('manage folders routes extra coverage', () => {
           password: '1234',
         }),
       },
-      { DB: {} },
+      { DB: {}, JWT_SECRET: 'jwt-secret' },
       { waitUntil: vi.fn() }
     );
 
@@ -247,9 +247,10 @@ describe('manage folders routes extra coverage', () => {
         description: 'desc',
         shareToken: 'share-token-new',
         isPublic: true,
-        password: '1234',
+        password: expect.stringMatching(/^pbkdf2\$sha256\$/),
       })
     );
+    expect(mocks.create.mock.calls.at(-1)[0].password).not.toBe('1234');
   });
 
   it('updates folders, regenerates share tokens, and rejects self moves', async () => {

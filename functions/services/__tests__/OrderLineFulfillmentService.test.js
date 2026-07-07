@@ -536,7 +536,7 @@ describe('OrderLineFulfillmentService', () => {
     expect(harness.calls.batchedStatements[1].sql).toContain('json_extract');
   });
 
-  it('ships a line and releases demand-held inventory even without explicit line reservations', async () => {
+  it('ships unreserved available stock without releasing reserved inventory', async () => {
     harness = createDbHarness({
       orderLineRow: {
         order_id: 'order-1',
@@ -557,8 +557,8 @@ describe('OrderLineFulfillmentService', () => {
       inventoryBalanceRow: {
         variant_id: 'var-1',
         on_hand: 5,
-        reserved: 5,
-        available: 0,
+        reserved: 0,
+        available: 5,
       },
       activeAllocations: [],
     });
@@ -584,9 +584,15 @@ describe('OrderLineFulfillmentService', () => {
       })
     );
     const sqlBatch = harness.calls.batchedStatements.map((statement) => statement.sql).join('\n');
-    expect(sqlBatch).toContain('INSERT INTO inventory_balances');
     expect(sqlBatch).toContain('INSERT INTO inventory_ledger');
     expect(sqlBatch).toContain('INSERT INTO inventory_events');
+    expect(
+      harness.calls.batchedStatements.some(
+        (statement) =>
+          statement.sql.includes('INSERT INTO inventory_ledger') &&
+          statement.params.includes('inventory_released')
+      )
+    ).toBe(false);
     expect(harness.calls.allocationReleases).toEqual([]);
     expect(harness.inventoryService.buildMutationStatements).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1013,6 +1019,108 @@ describe('OrderLineFulfillmentService', () => {
     expect(
       statements.findIndex((statement) => statement.sql.includes('INSERT INTO order_returns'))
     ).toBeGreaterThan(1);
+  });
+
+  it('guards line projection writes against archived parent orders before side effects', async () => {
+    await service.shipLine('order-1', 'line-1', { quantity: 1 }, { actorName: 'Admin' });
+
+    const statements = harness.calls.batchedStatements;
+    expect(statements[0].sql).toContain('UPDATE order_lines');
+    expect(statements[0].sql).toContain('archived_at IS NULL');
+    expect(statements[1].sql).toContain('json_extract');
+    expect(
+      statements.findIndex((statement) => statement.sql.includes('INSERT INTO inventory_ledger'))
+    ).toBeGreaterThan(1);
+  });
+
+  it('rejects shipping unreserved quantity when all available stock is reserved elsewhere', async () => {
+    harness = createDbHarness({
+      orderLineRow: {
+        order_id: 'order-1',
+        order_no: 'SO-1',
+        salesperson_id: 'sales-1',
+        order_status: 'shipping',
+        line_id: 'line-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 2,
+        procured_qty: 2,
+        received_qty: 2,
+        reserved_qty: 0,
+        shipped_qty: 0,
+        cancelled_qty: 0,
+        display_status: 'ready',
+      },
+      inventoryBalanceRow: {
+        variant_id: 'var-1',
+        on_hand: 10,
+        reserved: 10,
+        available: 0,
+      },
+    });
+    service = new OrderLineFulfillmentService(harness.db, {
+      allocationRepo: harness.allocationRepo,
+      inventoryService: harness.inventoryService,
+      domainOutboxRepo: harness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await expect(
+      service.shipLine('order-1', 'line-1', { quantity: 1 }, { actorName: 'Admin' })
+    ).rejects.toThrow(/available stock/i);
+
+    expect(harness.db.batch).not.toHaveBeenCalled();
+    expect(harness.inventoryService.buildMutationStatements).not.toHaveBeenCalled();
+  });
+
+  it('only releases reservations consumed by the shipped quantity', async () => {
+    harness = createDbHarness({
+      orderLineRow: {
+        order_id: 'order-1',
+        order_no: 'SO-1',
+        salesperson_id: 'sales-1',
+        order_status: 'shipping',
+        line_id: 'line-1',
+        product_id: 'prod-1',
+        variant_id: 'var-1',
+        ordered_qty: 4,
+        procured_qty: 4,
+        received_qty: 4,
+        reserved_qty: 2,
+        shipped_qty: 0,
+        cancelled_qty: 0,
+        display_status: 'ready',
+      },
+      inventoryBalanceRow: {
+        variant_id: 'var-1',
+        on_hand: 10,
+        reserved: 10,
+        available: 0,
+      },
+      activeAllocations: [{ id: 'alloc-1', allocated_qty: 2, released_qty: 0, status: 'active' }],
+    });
+    service = new OrderLineFulfillmentService(harness.db, {
+      allocationRepo: harness.allocationRepo,
+      inventoryService: harness.inventoryService,
+      domainOutboxRepo: harness.domainOutboxRepo,
+      now: () => 1710000000000,
+    });
+
+    await expect(
+      service.shipLine('order-1', 'line-1', { quantity: 3 }, { actorName: 'Admin' })
+    ).rejects.toThrow(/available stock/i);
+
+    expect(harness.db.batch).not.toHaveBeenCalled();
+
+    await service.shipLine('order-1', 'line-1', { quantity: 2 }, { actorName: 'Admin' });
+
+    const releaseLedger = harness.calls.batchedStatements.find(
+      (statement) =>
+        statement.sql.includes('INSERT INTO inventory_ledger') &&
+        statement.params.includes('inventory_released')
+    );
+    expect(releaseLedger?.params).toContain(-2);
+    expect(releaseLedger?.params).not.toContain(-3);
   });
 
   it('rejects returns without a valid reason code', async () => {

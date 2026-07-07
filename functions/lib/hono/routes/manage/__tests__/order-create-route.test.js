@@ -341,6 +341,46 @@ describe('manage order create route', () => {
     );
   });
 
+  it('surfaces managed order demand sync failure with a recoverable partial result', async () => {
+    mocks.validateProductVariantBinding
+      .mockResolvedValueOnce({
+        normalizedProductId: 'p-1',
+        normalizedVariantId: 'v-1',
+        product: { id: 'p-1', name: 'Line A' },
+        variant: { id: 'v-1', sku: 'SKU-A' },
+      })
+      .mockResolvedValueOnce({
+        normalizedProductId: 'p-1',
+        normalizedVariantId: 'v-1',
+        product: { id: 'p-1', name: 'Line A' },
+        variant: { id: 'v-1', sku: 'SKU-A' },
+      });
+    mocks.syncOrderTransition.mockRejectedValueOnce(new Error('demand sync failed'));
+
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          salespersonId: 'sales-1',
+          status: 'confirmed',
+          lines: [{ productName: 'Line A', quantity: 2, productId: 'p-1', variantId: 'v-1' }],
+        }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(500);
+    expect(mocks.commandBuildFinalizeStatement).toHaveBeenCalledWith(
+      'cmd-order-1',
+      expect.objectContaining({ id: 'order-1', orderNo: 'SO-1001' }),
+      'failed'
+    );
+  });
+
   it('enqueues order-created side effects through outbox instead of inline notifications', async () => {
     const waitUntil = vi.fn();
     const app = createApp();

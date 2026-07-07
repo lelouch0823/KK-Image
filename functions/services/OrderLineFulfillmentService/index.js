@@ -216,6 +216,13 @@ export class OrderLineFulfillmentService {
 
     const currentReserved = toNonNegativeInt(line.reserved_qty);
     const reservedConsumed = Math.min(currentReserved, quantity);
+    const unreservedQuantity = Math.max(quantity - reservedConsumed, 0);
+    if (unreservedQuantity > toNonNegativeInt(inventory.available)) {
+      throw new BadRequestError(
+        `ship quantity exceeds available stock: ${toNonNegativeInt(inventory.available) + reservedConsumed}`
+      );
+    }
+
     const timestamp = this.now();
     const nextLineState = buildNextLineState(line, {
       reserved_qty: Math.max(currentReserved - reservedConsumed, 0),
@@ -242,20 +249,22 @@ export class OrderLineFulfillmentService {
       }
     }
 
-    const releaseMovement = buildReservationMovementStatements(this.db, this.uuid, {
-      variantId: line.variant_id,
-      orderId,
-      lineId,
-      quantityDelta: -quantity,
-      eventType: 'inventory_released',
-      timestamp,
-      metadata: {
-        action: 'ship',
-        actorName: options.actorName || null,
-        reservedConsumed,
-      },
-    });
-    sideEffectStatements.push(...releaseMovement.statements);
+    if (reservedConsumed > 0) {
+      const releaseMovement = buildReservationMovementStatements(this.db, this.uuid, {
+        variantId: line.variant_id,
+        orderId,
+        lineId,
+        quantityDelta: -reservedConsumed,
+        eventType: 'inventory_released',
+        timestamp,
+        metadata: {
+          action: 'ship',
+          actorName: options.actorName || null,
+          reservedConsumed,
+        },
+      });
+      sideEffectStatements.push(...releaseMovement.statements);
+    }
 
     const shipment = await this.inventoryService.buildMutationStatements({
       type: 'order_shipment',

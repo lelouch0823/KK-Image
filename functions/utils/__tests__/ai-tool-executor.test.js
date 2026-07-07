@@ -1,7 +1,48 @@
 import { describe, it, expect, vi } from 'vitest';
-import { executeAITool } from '../ai-tool-executor.js';
+import { executeAITool, filterAIToolsForUser } from '../ai-tool-executor.js';
 
 describe('executeAITool - variant aware tools', () => {
+  it('denies order and purchase tools when the AI subject only has stats access', async () => {
+    const orderRepo = {
+      listForAdmin: vi.fn().mockResolvedValue({ items: [{ id: 'o1' }], total: 1 }),
+    };
+    const purchaseOrderRepo = {
+      list: vi.fn().mockResolvedValue({ items: [{ id: 'po1' }], total: 1 }),
+    };
+    const viewer = { id: 'viewer', role: 'viewer', permissions: ['stats:read'] };
+
+    await expect(
+      executeAITool(
+        'searchOrders',
+        {},
+        { orderRepo, authzUser: viewer, enforcePermissions: true }
+      )
+    ).resolves.toEqual({ error: true, message: 'AI tool permission denied' });
+    await expect(
+      executeAITool(
+        'searchPurchaseOrders',
+        {},
+        { purchaseOrderRepo, authzUser: viewer, enforcePermissions: true }
+      )
+    ).resolves.toEqual({ error: true, message: 'AI tool permission denied' });
+
+    expect(orderRepo.listForAdmin).not.toHaveBeenCalled();
+    expect(purchaseOrderRepo.list).not.toHaveBeenCalled();
+  });
+
+  it('filters advertised AI tools by subject permissions', async () => {
+    const tools = [
+      { type: 'function', function: { name: 'getOrderStats' } },
+      { type: 'function', function: { name: 'searchOrders' } },
+      { type: 'function', function: { name: 'searchProducts' } },
+    ];
+    const viewer = { id: 'viewer', role: 'viewer', permissions: ['stats:read'] };
+
+    const filtered = await filterAIToolsForUser(tools, viewer);
+
+    expect(filtered.map((tool) => tool.function.name)).toEqual(['getOrderStats']);
+  });
+
   it('searchProducts defaults to active catalog scope', async () => {
     const productRepo = {
       search: vi.fn().mockResolvedValue({

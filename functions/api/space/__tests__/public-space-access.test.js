@@ -490,7 +490,9 @@ describe('public space access api', () => {
 
     const prepare = vi.fn((sql) => {
       if (sql.includes('WHERE s.share_token = ?')) {
-        expect(sql).toContain('NULL as p_status');
+        expect(sql).toContain('LEFT JOIN product_projection pp ON pp.product_id = p.id');
+        expect(sql).toContain('COALESCE(pp.active_variant_count, 0) > 0');
+        expect(sql).not.toContain('NULL as p_status');
         expect(sql).toContain('pv.status as pv_status');
         return { bind: () => ({ first }) };
       }
@@ -498,7 +500,9 @@ describe('public space access api', () => {
         return { bind: () => ({ all: filesAll }) };
       }
       if (sql.includes('WHERE s.parent_id = ? AND s.is_public = 1')) {
-        expect(sql).toContain('NULL as p_status');
+        expect(sql).toContain('LEFT JOIN product_projection pp ON pp.product_id = p.id');
+        expect(sql).toContain('COALESCE(pp.active_variant_count, 0) > 0');
+        expect(sql).not.toContain('NULL as p_status');
         expect(sql).toContain('pv.status as pv_status');
         return { bind: () => ({ all: subspacesAll }) };
       }

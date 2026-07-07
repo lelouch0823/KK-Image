@@ -15,7 +15,9 @@ export function toNumber(value, fallback = 0) {
  * @returns {number} 非负数值（最小为 0）
  */
 export function toNonNegativeInt(value) {
-  return Math.max(0, Number(value) || 0);
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) return 0;
+  return Math.max(0, Math.trunc(numberValue));
 }
 
 /**

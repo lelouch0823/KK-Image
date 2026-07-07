@@ -142,7 +142,8 @@ app.post('/status', zValidator('json', BatchVariantStatusSchema), async (c) => {
   const productIds = await findProductIdsByVariantIds(env.DB, variantIds);
   await new ProductProjectionRefreshService(env.DB).refreshByVariantIds(
     variantIds,
-    c.executionCtx
+    c.executionCtx,
+    { strict: true }
   );
 
   // 发布缓存事件

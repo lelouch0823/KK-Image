@@ -19,6 +19,7 @@ import { requireEntity } from '../../_shared/route-helpers.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishSingleDomainEventAndPoll } from '../../_shared/domain-outbox.js';
+import { encodeSharePasswordForStorage } from '../../../../api/utils/id.js';
 import {
   CreateFolderSchema,
   UpdateFolderSchema,
@@ -187,6 +188,7 @@ app.post(
 
     const folderId = generateId();
     const shareToken = isPublic ? generateShareToken() : null;
+    const pepper = env.PASSWORD_PEPPER || env.JWT_SECRET;
     const nowMs = Date.now();
 
     await folderRepo.create({
@@ -196,7 +198,7 @@ app.post(
       description: trimmedDescription,
       shareToken,
       isPublic,
-      password: password || null,
+      password: await encodeSharePasswordForStorage(password, pepper),
       createdAt: nowMs,
       updatedAt: nowMs,
     });
@@ -281,7 +283,10 @@ app.put(
     if (data.name !== undefined) updates.name = data.name.trim();
     if (data.description !== undefined) updates.description = String(data.description || '').trim();
     if (data.isPublic !== undefined) updates.is_public = data.isPublic ? 1 : 0;
-    if (data.password !== undefined) updates.password = data.password || null;
+    if (data.password !== undefined) {
+      const pepper = env.PASSWORD_PEPPER || env.JWT_SECRET;
+      updates.password = await encodeSharePasswordForStorage(data.password, pepper);
+    }
     if (data.parentId !== undefined) {
       if (data.parentId) {
         const isDescendant = await folderRepo.isDescendantOrSelf(folderId, data.parentId);

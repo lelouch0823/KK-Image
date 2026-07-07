@@ -4,6 +4,31 @@
  */
 import { DateUtils } from '../api/utils/date.js';
 import { buildVariantDisplayName } from '../lib/utils/variant-meta.js';
+import { evaluateActionPermission } from '../lib/authz/index.js';
+
+const AI_TOOL_PERMISSIONS = Object.freeze({
+  getOrderStats: 'stats:read',
+  getCustomerStats: 'stats:read',
+  getSpaceStats: 'stats:read',
+  getSalespersonStats: 'stats:read',
+  getFileStats: 'stats:read',
+  getRecentPendingOrders: 'orders:manage',
+  searchOrders: 'orders:manage',
+  getOrderDetail: 'orders:manage',
+  getCustomerOrders: 'orders:manage',
+  searchCustomers: 'orders:manage',
+  getCustomerDetail: 'orders:manage',
+  searchProducts: 'products:manage',
+  searchVariants: 'products:manage',
+  getProductDetail: 'products:manage',
+  getVariantDetail: 'products:manage',
+  getGoodsOverviewSummary: 'products:manage',
+  getGoodsOverviewList: 'products:manage',
+  searchPurchaseOrders: 'products:manage',
+  getPurchaseOrderDetail: 'products:manage',
+  getPurchaseStats: 'products:manage',
+  getPurchaseSuggestions: 'products:manage',
+});
 
 function parseLimit(input, defaultLimit = 10, maxLimit = 20) {
   const n = Number.parseInt(String(input ?? ''), 10);
@@ -47,6 +72,27 @@ function withPagingMeta({ items, total, limit, page = 1, scope = {} }) {
   };
 }
 
+export function getAIToolRequiredPermission(name) {
+  return AI_TOOL_PERMISSIONS[name] || null;
+}
+
+export async function canUseAITool(name, user) {
+  const permission = getAIToolRequiredPermission(name);
+  if (!permission) return false;
+  return evaluateActionPermission({ user, permission });
+}
+
+export async function filterAIToolsForUser(tools = [], user = null) {
+  const entries = await Promise.all(
+    (Array.isArray(tools) ? tools : []).map(async (tool) => {
+      const name = tool?.function?.name;
+      if (!name) return null;
+      return (await canUseAITool(name, user)) ? tool : null;
+    })
+  );
+  return entries.filter(Boolean);
+}
+
 /**
  * 执行 AI 工具调用
  * @param {string} name - 工具名称
@@ -55,6 +101,13 @@ function withPagingMeta({ items, total, limit, page = 1, scope = {} }) {
  * @returns {Promise<any>} 工具执行结果
  */
 export async function executeAITool(name, args, repos) {
+  if (repos?.enforcePermissions) {
+    const allowed = await canUseAITool(name, repos.authzUser || null);
+    if (!allowed) {
+      return { error: true, message: 'AI tool permission denied' };
+    }
+  }
+
   const {
     orderStatsRepo,
     systemStatsRepo,

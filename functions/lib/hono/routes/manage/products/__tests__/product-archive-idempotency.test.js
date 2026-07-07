@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   commandDeleteRun: vi.fn(async () => ({ meta: { changes: 1 } })),
   commandBuildFinalizeStatement: vi.fn(),
   commandFinalizeRun: vi.fn(async () => ({ meta: { changes: 1 } })),
+  refreshProductProjectionByProductId: vi.fn(async () => undefined),
   dbPrepare: vi.fn(),
   dbBind: vi.fn(),
   dbRun: vi.fn(async () => ({ meta: { changes: 1 } })),
@@ -67,6 +68,12 @@ vi.mock('../../../../../../services/ProductCatalogService.js', () => ({
       throw new Error('not implemented in archive idempotency test');
     }
   },
+}));
+
+vi.mock('../../../../../../services/ProductProjectionRefreshService.js', () => ({
+  ProductProjectionRefreshService: vi.fn(() => ({
+    refreshByProductId: mocks.refreshProductProjectionByProductId,
+  })),
 }));
 
 vi.mock('../../../../middleware/auth.js', () => ({
@@ -129,6 +136,7 @@ describe('manage product archive route idempotency', () => {
     ]);
     mocks.auditCreateBatch.mockResolvedValue([]);
     mocks.scheduleProductCacheInvalidation.mockResolvedValue([]);
+    mocks.refreshProductProjectionByProductId.mockResolvedValue(undefined);
     mocks.commandReserve.mockResolvedValue({
       existing: false,
       ownsReservation: true,
@@ -257,6 +265,31 @@ describe('manage product archive route idempotency', () => {
       })
     );
     expect(mocks.dbRun).not.toHaveBeenCalled();
+    expect(mocks.scheduleProductCacheInvalidation).not.toHaveBeenCalled();
+  });
+
+  it('does not publish archive cache events when strict projection refresh fails', async () => {
+    const app = createApp();
+    mocks.refreshProductProjectionByProductId.mockRejectedValueOnce(new Error('projection failed'));
+
+    const res = await app.request(
+      'http://localhost/api/manage/products/prod-1',
+      {
+        method: 'DELETE',
+        headers: {
+          'Idempotency-Key': 'archive-projection-failure-1',
+        },
+      },
+      { DB: createEnvDb() },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(500);
+    expect(mocks.refreshProductProjectionByProductId).toHaveBeenCalledWith(
+      'prod-1',
+      expect.anything(),
+      { strict: true }
+    );
     expect(mocks.scheduleProductCacheInvalidation).not.toHaveBeenCalled();
   });
 

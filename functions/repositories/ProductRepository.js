@@ -9,7 +9,7 @@ import { checkFtsTable, sanitizeFts5Query } from '../api/utils/fts.js';
 import { ProductProjectionRepository } from './ProductProjectionRepository.js';
 export class ProductRepository {
     /** 商品生命周期状态常量 */
-    static VALID_STATUSES = Object.freeze(['draft', 'active', 'archived']);
+    static VALID_STATUSES = Object.freeze(['active', 'archived']);
     static PRODUCT_SORT_FIELDS = Object.freeze({
         price: 'price',
         stock: 'available_quantity',
@@ -86,7 +86,7 @@ export class ProductRepository {
             if (filters.status === 'active') {
                 clauses.push('COALESCE(pp.active_variant_count, 0) > 0');
             }
-            else if (filters.status === 'archived' || filters.status === 'draft') {
+            else if (filters.status === 'archived') {
                 clauses.push('COALESCE(pp.active_variant_count, 0) = 0');
             }
         }

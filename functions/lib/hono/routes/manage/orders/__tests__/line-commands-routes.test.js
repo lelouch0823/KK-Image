@@ -273,6 +273,32 @@ describe('manage order line command routes', () => {
     expect(mocks.reserveLine).not.toHaveBeenCalled();
   });
 
+  it('returns typed 400 for malformed JSON line commands without side effects', async () => {
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/lines/line-1/reserve',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{ bad',
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual(
+      expect.objectContaining({
+        error: expect.stringMatching(/invalid json/i),
+      })
+    );
+    expect(mocks.orderFindById).not.toHaveBeenCalled();
+    expect(mocks.reserveLine).not.toHaveBeenCalled();
+    expect(mocks.addTimelineEntry).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
+  });
+
   it('rejects line commands on archived orders before fulfillment side effects', async () => {
     mocks.orderFindById.mockResolvedValueOnce({
       id: 'order-1',

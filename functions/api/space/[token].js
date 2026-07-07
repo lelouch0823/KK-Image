@@ -97,7 +97,14 @@ async function getSpaceData(
                WHERE counted_sf.space_id = s.id
                  AND (counted_f.is_deleted IS NULL OR counted_f.is_deleted = 0)) as file_count,
               f.storage_key as cover_storage_key,
-              p.spu as p_sku, NULL as p_status, p.brand as p_brand, p.series as p_series,
+              p.spu as p_sku,
+              CASE
+                WHEN s.product_id IS NULL THEN NULL
+                WHEN p.id IS NULL THEN 'archived'
+                WHEN COALESCE(pp.active_variant_count, 0) > 0 THEN 'active'
+                ELSE 'archived'
+              END as p_status,
+              p.brand as p_brand, p.series as p_series,
               (
                 SELECT json_group_object(pd.id, pd.name)
                 FROM product_dimensions pd
@@ -118,6 +125,7 @@ async function getSpaceData(
        FROM spaces s
        LEFT JOIN files f ON s.cover_file_id = f.id AND (f.is_deleted IS NULL OR f.is_deleted = 0)
        LEFT JOIN products p ON s.product_id = p.id
+       LEFT JOIN product_projection pp ON pp.product_id = p.id
        LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
        WHERE s.parent_id = ?${subspacesVisibilityFilter}
        ORDER BY s.sort_order ASC, s.name ASC`
@@ -293,7 +301,14 @@ export async function onRequestGet(context) {
     const space = await env.DB.prepare(
       `
         SELECT s.*,
-            p.spu as p_sku, NULL as p_status, p.brand as p_brand, p.series as p_series,
+            p.spu as p_sku,
+            CASE
+              WHEN s.product_id IS NULL THEN NULL
+              WHEN p.id IS NULL THEN 'archived'
+              WHEN COALESCE(pp.active_variant_count, 0) > 0 THEN 'active'
+              ELSE 'archived'
+            END as p_status,
+            p.brand as p_brand, p.series as p_series,
             (
               SELECT json_group_object(pd.id, pd.name)
               FROM product_dimensions pd
@@ -313,6 +328,7 @@ export async function onRequestGet(context) {
             ) as display_image_id
         FROM spaces s
         LEFT JOIN products p ON s.product_id = p.id
+        LEFT JOIN product_projection pp ON pp.product_id = p.id
         LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
         WHERE s.share_token = ?
     `
@@ -390,7 +406,14 @@ export async function onRequestPost(context) {
     const space = await env.DB.prepare(
       `
         SELECT s.*,
-            p.spu as p_sku, NULL as p_status, p.brand as p_brand, p.series as p_series,
+            p.spu as p_sku,
+            CASE
+              WHEN s.product_id IS NULL THEN NULL
+              WHEN p.id IS NULL THEN 'archived'
+              WHEN COALESCE(pp.active_variant_count, 0) > 0 THEN 'active'
+              ELSE 'archived'
+            END as p_status,
+            p.brand as p_brand, p.series as p_series,
             (
               SELECT json_group_object(pd.id, pd.name)
               FROM product_dimensions pd
@@ -410,6 +433,7 @@ export async function onRequestPost(context) {
             ) as display_image_id
         FROM spaces s
         LEFT JOIN products p ON s.product_id = p.id
+        LEFT JOIN product_projection pp ON pp.product_id = p.id
         LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
         WHERE s.share_token = ?
     `

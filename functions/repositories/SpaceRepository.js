@@ -34,7 +34,12 @@ export class SpaceRepository {
         return `
           p.id as p_bound_id,
           p.spu as p_sku,
-          NULL as p_status,
+          CASE
+            WHEN s.product_id IS NULL THEN NULL
+            WHEN p.id IS NULL THEN 'archived'
+            WHEN COALESCE(pp.active_variant_count, 0) > 0 THEN 'active'
+            ELSE 'archived'
+          END as p_status,
           p.brand as p_brand,
           p.series as p_series,
           (
@@ -87,6 +92,7 @@ export class SpaceRepository {
         return `
         LEFT JOIN files f ON s.cover_file_id = f.id
         LEFT JOIN products p ON s.product_id = p.id
+        LEFT JOIN product_projection pp ON pp.product_id = p.id
         LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
       `;
     }
@@ -149,6 +155,7 @@ export class SpaceRepository {
               ${this._productProjectionSQL()}
             FROM spaces s
             LEFT JOIN products p ON s.product_id = p.id
+            LEFT JOIN product_projection pp ON pp.product_id = p.id
             LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
             WHERE s.id = ?
         `).bind(id).first();
@@ -432,9 +439,7 @@ export class SpaceRepository {
                 ${this._variantImageProjectionSQL()}
             FROM spaces s
             ${this._spaceFileCountJoinSQL()}
-            LEFT JOIN files f ON s.cover_file_id = f.id
-            LEFT JOIN products p ON s.product_id = p.id
-            LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
+            ${this._spaceProductJoinsSQL()}
             WHERE s.parent_id IS NULL
               AND ${this._nonExpiredSpaceWhereClause('s')}
               AND (
@@ -462,9 +467,7 @@ export class SpaceRepository {
                 ${this._productProjectionSQL()},
                 ${this._variantImageProjectionSQL()}
             FROM spaces s
-            LEFT JOIN files f ON s.cover_file_id = f.id
-            LEFT JOIN products p ON s.product_id = p.id
-            LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
+            ${this._spaceProductJoinsSQL()}
             WHERE s.id = ?
               AND ${this._nonExpiredSpaceWhereClause('s')}
               AND (s.share_mode = 'all'

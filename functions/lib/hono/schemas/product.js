@@ -110,7 +110,7 @@ export const UpdateProductSchema = z
  */
 export const UpdateProductStatusSchema = z
   .object({
-    status: z.enum(['draft', 'active', 'archived']),
+    status: z.enum(['active', 'archived']),
   })
   .strict();
 

@@ -236,4 +236,22 @@ describe('manage upload route', () => {
     expect(mocks.storeFile).not.toHaveBeenCalled();
     expect(mocks.publishDomainEventsAndPoll).not.toHaveBeenCalled();
   }, 15000);
+
+  it('returns 400 when caller-provided contentHash is invalid', async () => {
+    mocks.storeFile.mockRejectedValueOnce(new Error('Invalid contentHash'));
+    const app = createApp();
+    const formData = new FormData();
+    formData.append('file', new Blob(['mock-image'], { type: 'image/png' }), 'bad-hash.png');
+
+    const res = await app.request(
+      'http://localhost/api/manage/upload?contentHash=not-a-sha256',
+      { method: 'POST', body: formData },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+    const json = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(json.error).toBe('Invalid contentHash');
+  }, 15000);
 });

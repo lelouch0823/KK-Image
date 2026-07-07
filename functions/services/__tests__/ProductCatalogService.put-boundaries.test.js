@@ -104,15 +104,16 @@ vi.mock('../../repositories/VariantImageRepository.js', () => ({
   },
 }));
 
-vi.mock('../../lib/hono/routes/manage/products/cache-helpers.js', () => ({
+vi.mock('../_shared/cache-invalidation.js', () => ({
   scheduleProductCacheInvalidation: vi.fn(async () => {}),
 }));
 
-vi.mock('../../lib/hono/routes/manage/products/variant-image-folders.js', () => ({
+vi.mock('../_shared/variant-image-folders.js', () => ({
   archiveVariantImagesByFolder: vi.fn(async () => {}),
 }));
 
 import { BadRequestError } from '../../lib/hono/errors.js';
+import { scheduleProductCacheInvalidation } from '../_shared/cache-invalidation.js';
 import { ProductCatalogService } from '../ProductCatalogService.js';
 
 describe('ProductCatalogService putProduct boundaries', () => {
@@ -321,7 +322,29 @@ describe('ProductCatalogService putProduct boundaries', () => {
     expect(result.success).toBe(true);
     expect(mockProjectionRefresh.refreshByProductIds).toHaveBeenCalledWith(
       ['p-created-1'],
-      expect.anything()
+      expect.anything(),
+      { strict: true }
     );
+  });
+
+  it('blocks product cache invalidation when strict projection refresh fails', async () => {
+    const service = new ProductCatalogService({});
+    mockProjectionRefresh.refreshByProductId.mockRejectedValueOnce(new Error('projection failed'));
+
+    await expect(
+      service.patchProduct(
+        { env: {}, executionCtx: { waitUntil: vi.fn() } },
+        'p1',
+        { name: 'Updated Tee' },
+        { skipCacheInvalidation: false }
+      )
+    ).rejects.toThrow('projection failed');
+
+    expect(mockProjectionRefresh.refreshByProductId).toHaveBeenCalledWith(
+      'p1',
+      expect.anything(),
+      { strict: true }
+    );
+    expect(scheduleProductCacheInvalidation).not.toHaveBeenCalled();
   });
 });

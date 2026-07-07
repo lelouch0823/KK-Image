@@ -110,6 +110,7 @@ export function getProductCacheUrls(c) {
   return [
     `${baseUrl}/api/manage/products`,
     `${baseUrl}/api/manage/products?page=1&limit=20`,
+    `${baseUrl}/api/manage/products/filters`,
     `${baseUrl}/api/manage/products/variants`,
     `${baseUrl}/api/manage/products/variants?page=1&limit=50`,
     `${baseUrl}/api/manage/products/variants?search=&page=1&limit=50`,
