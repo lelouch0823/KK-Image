@@ -21,7 +21,7 @@ graph TD
     Service --> D1
     Route --> R2[(R2)]
     Outbox --> D1
-    Poller[runOutboxPoller] --> Consumers[cache / notification / webhook / audit]
+    Poller[runOutboxPoller] --> Consumers[cache / notification / webhook / audit / email / channel-notify / read-model-refresher]
 ```
 
 ## 2. 目录结构
@@ -35,7 +35,9 @@ functions/lib/hono/
 │   ├── sales-auth.js
 │   ├── errorHandler.js
 │   ├── rateLimit.js
-│   └── cache.js
+│   ├── cache.js
+│   ├── traceId.js
+│   └── ai-rate-limit.js
 ├── schemas/
 └── routes/
     ├── manage/
@@ -46,7 +48,9 @@ functions/lib/hono/
 采购、订单和 outbox 运维相关路由集中在：
 
 - `routes/manage/orders/`
-- `routes/manage/purchase-orders.js`
+- `routes/manage/purchase-orders/`
+- `routes/manage/products/`
+- `routes/manage/spaces/`
 - `routes/manage/outbox.js`
 - `routes/manage/audit-replay.js`
 
@@ -61,40 +65,76 @@ functions/lib/hono/
 
 ```text
 /api
-├── /gallery/:token
-├── /space/:token
+├── /gallery/:token          (文件式 Function)
+├── /space/:token            (文件式 Function)
 ├── /v1
+│   ├── /api-docs
 │   ├── /auth
-│   ├── /health
+│   ├── /cache-urls
 │   ├── /files
 │   ├── /folders
-│   ├── /users
+│   ├── /health
 │   ├── /permissions
+│   ├── /users
 │   └── /webhooks
 ├── /manage
-│   ├── /orders
-│   ├── /products
-│   ├── /goods-overview
-│   ├── /purchase-orders
-│   ├── /notifications
-│   ├── /customers
-│   ├── /salespersons
-│   ├── /spaces
-│   ├── /folders
-│   ├── /files
-│   ├── /tags
+│   ├── /ai
+│   ├── /albums
 │   ├── /audit-logs
-│   ├── /outbox
 │   ├── /audit-replay
-│   └── ...
+│   ├── /backups
+│   ├── /categories
+│   ├── /customers
+│   ├── /dashboard
+│   ├── /erp-sync
+│   ├── /feature-flags
+│   ├── /files
+│   ├── /folders
+│   ├── /goods-overview
+│   ├── /inventory-dashboard
+│   ├── /notifications
+│   ├── /oauth
+│   ├── /orders/
+│   │   ├── (CRUD + status + comment)
+│   │   ├── /:id/lines/:lineId/* (行级履约命令)
+│   │   └── /:id/payments
+│   ├── /outbox
+│   ├── /products/
+│   │   ├── (CRUD + batch)
+│   │   ├── /export
+│   │   └── /currency
+│   ├── /purchase-orders/
+│   │   ├── (CRUD + status)
+│   │   ├── /:id/items
+│   │   ├── /:id/receipts
+│   │   └── /:id/receipts/:receiptId/reversal
+│   ├── /receivables
+│   ├── /salespersons
+│   ├── /search
+│   ├── /settings
+│   ├── /shares
+│   ├── /spaces/
+│   │   ├── (CRUD)
+│   │   ├── /:id/files
+│   │   └── /:id/subspaces
+│   ├── /stats
+│   ├── /stocktakes
+│   ├── /tags
+│   ├── /trash
+│   ├── /upload
+│   ├── /user
+│   ├── /utils
+│   └── /webhooks
 └── /sales
     ├── /wechat-login
     └── /:token
         ├── /auth
-        ├── /bind-wechat
-        ├── /stats
-        ├── /upload
-        └── /orders
+        ├── /files
+        ├── /notifications
+        ├── /orders
+        ├── /products
+        ├── /profile
+        └── /spaces
 ```
 
 ## 4. 中间件执行顺序

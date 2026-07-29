@@ -113,23 +113,25 @@ pnpm deploy:verify    # Post-deploy verification
 ```
 functions/lib/hono/routes/
 ├── manage/          # Admin management APIs
-│   ├── orders/      # Order CRUD + workflow
-│   ├── products/    # Product management
-│   ├── spaces/      # Space/subspace management
-│   ├── files.js     # File management
-│   ├── customers.js # Customer management
-│   ├── dashboard.js # Dashboard data
-│   └── ...
+│   ├── orders/      # Order CRUD + line fulfillment
+│   ├── products/    # Product CRUD + batch + export
+│   ├── purchase-orders/  # PO + items + receipts
+│   ├── spaces/      # Space/subspace CRUD
+│   ├── ai.js, albums.js, audit-logs.js, audit-replay.js
+│   ├── backups.js, categories.js, customers.js, dashboard.js
+│   ├── erp-sync.js, feature-flags.js, files.js, folders.js
+│   ├── goods-overview.js, inventory-dashboard.js
+│   ├── notifications.js, oauth.js, outbox.js, receivables.js
+│   ├── salespersons.js, search.js, settings.js, shares.js
+│   ├── stats.js, stocktakes.js, tags.js, trash.js
+│   ├── upload.js, user.js, utils.js, webhooks.js
 ├── sales/           # Salesperson APIs
-│   ├── orders.js
-│   ├── products.js
-│   ├── files.js
-│   └── ...
+│   ├── auth.js, files.js, notifications.js
+│   ├── orders.js, products.js, profile.js, spaces.js
 └── v1/              # Public/versioned APIs
-    ├── files.js
-    ├── folders.js
-    ├── webhooks.js
-    └── ...
+    ├── api-docs.js, auth.js, cache-urls.js
+    ├── files.js, folders.js, health.js
+    ├── permissions.js, users.js, webhooks.js
 ```
 
 ### Storage Architecture
@@ -162,7 +164,7 @@ functions/lib/hono/routes/
 
 ### Domain Outbox Pattern
 - Events published to `domain_outbox` table via `DomainOutboxPublisher`
-- Consumers process events: audit, cache, notification, webhook
+- Consumers process events: audit, cache, notification, webhook, email, channel-notify, read-model-refresher
 - Poller triggered via `c.executionCtx.waitUntil(runOutboxPoller(...))` or `/api/cron/outbox`
 - **Loopback limitation**: In local dev, `waitUntil` callbacks are killed on worker restart
 

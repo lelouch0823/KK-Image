@@ -4,19 +4,19 @@
 
 Current foundation layer lives in `src/components/ui`.
 
-Core contracts:
+Core contracts (32 components in `src/components/ui/`):
 
-- `AppButton`
-- `AppInput`
-- `AppCard`
-- `AppTable`
-- `Modal`
-- `ConfirmDialog`
-- `StatusBadge`
-- `EmptyState`
-- `PermissionDeniedState`
-- `Skeleton`
-- `Tooltip`
+**Controls**: `AppButton`, `AppInput`, `AppCheckbox`, `AppColorInput`, `AppSlider`, `Select`, `AutocompleteInput`, `SearchInput`, `AppFilterBar`
+
+**Display**: `AppCard`, `AppTable`, `AppTableCodeChip`, `AppTableStatusPill`, `AppTableTextStack`, `AppStatCard`, `StatusBadge`, `StatusSelector`
+
+**Media**: `AppIcon`, `AppImage`, `Lightbox`
+
+**Overlay**: `Modal`, `ConfirmDialog`, `ContextMenu`, `CommandPalette`
+
+**Feedback**: `ToastContainer`, `Skeleton`, `Tooltip`, `UploadProgress`
+
+**State**: `EmptyState`, `PermissionDeniedState`, `Pagination`, `KeyboardShortcutsHelp`
 
 Supporting contracts:
 

@@ -42,20 +42,70 @@ D1 / R2
 
 ## 3. Repository 清单
 
-| Repository                    | 文件                                                    | 职责描述                               | 主要表                                                                                       |
-| ----------------------------- | ------------------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `FileRepository`              | `functions/repositories/FileRepository.js`              | 文件 CRUD、回收站、哈希复用            | `files`, `blobs`                                                                             |
-| `FolderRepository`            | `functions/repositories/FolderRepository.js`            | 文件夹层级                             | `folders`                                                                                    |
-| `OrderRepository`             | `functions/repositories/OrderRepository.js`             | 订单门面，统一暴露读写                 | `orders`, `order_lines`, `order_files`, `order_timeline`                                     |
-| `OrderStatsRepository`        | `functions/repositories/OrderStatsRepository.js`        | 订单统计                               | `orders` 及聚合                                                                              |
-| `PurchaseOrderRepository`     | `functions/repositories/PurchaseOrderRepository.js`     | 采购单主读写、采购单详情读模型         | `purchase_orders`, `purchase_order_items`, `purchase_receipts`, `purchase_receipt_reversals` |
-| `PurchaseReceiptRepository`   | `functions/repositories/PurchaseReceiptRepository.js`   | 收货事实写入与查询辅助                 | `purchase_receipts`                                                                          |
-| `GoodsOverviewRepository`     | `functions/repositories/GoodsOverviewRepository.js`     | 订货总览缺口、在途、筛选项             | `order_lines`, `orders`, `product_variants`, `inventory_balances`                            |
-| `ProductRepository`           | `functions/repositories/ProductRepository.js`           | 商品主数据与聚合读模型                 | `products`, `product_variants`, `product_projection`, `inventory_balances`                   |
-| `ProductProjectionRepository` | `functions/repositories/ProductProjectionRepository.js` | 商品投影刷新                           | `product_projection`, `product_variants`, `inventory_balances`                               |
-| `NotificationRepository`      | `functions/repositories/NotificationRepository.js`      | 站内通知读写                           | `notifications`                                                                              |
-| `OutboxReplayRepository`      | `functions/repositories/OutboxReplayRepository.js`      | outbox 查询、事件详情、replay run 管理 | `domain_outbox`, `outbox_consumer_jobs`, `outbox_replay_runs`, `webhook_logs`                |
-| `SalespersonRepository`       | `functions/repositories/SalespersonRepository.js`       | 销售员、登录、token 重置               | `salespersons`                                                                               |
+| Repository | 职责描述 |
+| --- | --- |
+| `ActionSessionRepository` | 操作会话管理 |
+| `AlbumRepository` | 相册管理 |
+| `AuditLogRepository` | 审计日志 |
+| `BlobRepository` | 二进制对象元数据 |
+| `CategoryRepository` | 商品分类 |
+| `CommandIdempotencyRepository` | 命令幂等性 |
+| `CustomerRepository` | 客户管理 |
+| `DomainOutboxRepository` | 领域事件发布 |
+| `ErpSyncRepository` | ERP 同步 |
+| `FileRepository` | 文件 CRUD、回收站、哈希复用 |
+| `FolderRepository` | 文件夹层级 |
+| `GoodsOverviewRepository` | 订货总览缺口、在途 |
+| `InventoryDashboardRepository` | 库存仪表盘 |
+| `InventoryEventRepository` | 库存事件 |
+| `InventoryRepository` | 库存余额 |
+| `NotificationRepository` | 站内通知 |
+| `OAuthRepository` | OAuth 应用 |
+| `OrderLineAllocationRepository` | 订单行分配 |
+| `OrderLineRepository` | 订单行读写 |
+| `OrderRepository` | 订单门面（orders + order_lines + order_files + order_timeline） |
+| `OrderStatsRepository` | 订单统计 |
+| `OrderTimelineRepository` | 订单时间轴 |
+| `OutboxReplayRepository` | outbox 查询与 replay |
+| `OutboxRuntimeStateRepository` | outbox 运行时状态 |
+| `PaymentRepository` | 支付记录 |
+| `PriceRuleRepository` | 价格规则 |
+| `ProductDimensionRepository` | 商品规格维度 |
+| `ProductProjectionRepository` | 商品投影刷新 |
+| `ProductRepository` | 商品主数据与聚合读模型 |
+| `ProductVariantRepository` | 商品变体 |
+| `ProfitRepository` | 利润分析 |
+| `PurchaseOrderRepository` | 采购单主读写 |
+| `PurchaseReceiptRepository` | 收货事实写入 |
+| `PurchaseSuggestionRepository` | 采购建议 |
+| `SalespersonRepository` | 销售员、登录、token |
+| `SearchRepository` | 全局搜索 |
+| `SettingsRepository` | 系统设置 |
+| `SpaceRepository` | 空间管理 |
+| `StatsRepository` | 统计分析 |
+| `StocktakeRepository` | 库存盘点 |
+| `StorageMirrorRepository` | 存储镜像 |
+| `SystemStatsProjectionRepository` | 系统统计投影 |
+| `SystemStatsRepository` | 系统统计 |
+| `TagRepository` | 标签管理 |
+| `UserRepository` | 用户管理 |
+| `VariantAuditRepository` | 变体审计 |
+| `VariantDemandProjectionRepository` | 变体需求投影 |
+| `VariantImageRepository` | 变体图片 |
+| `VariantSnapshotProjectionRepository` | 变体快照投影 |
+| `WebhookRepository` | Webhook 管理 |
+
+采购单子模块（`functions/repositories/` 下）：
+
+| 文件 | 职责 |
+| --- | --- |
+| `purchase-order-item-mutations.js` | 采购单明细写入 |
+| `purchase-order-item-snapshots.js` | 采购单明细快照 |
+| `purchase-order-links.js` | 采购单关联 |
+| `purchase-order-numbering.js` | 采购单编号 |
+| `purchase-order-queries.js` | 采购单查询 |
+| `purchase-order-read-model.js` | 采购单读模型 |
+| `purchase-order-snapshot.js` | 采购单快照 |
 
 ## 4. 订单仓储
 
