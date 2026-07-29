@@ -46,7 +46,7 @@
         <!-- Description -->
         <div v-if="album.description" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <p
-            class="rounded-xl border border-(--border-color) bg-(--bg-muted) p-4 text-sm text-(--text-secondary)"
+            class="rounded-2xl border border-(--border-color) bg-(--bg-muted) p-4 text-sm text-(--text-secondary)"
           >
             {{ album.description }}
           </p>
@@ -60,7 +60,7 @@
             <div
               v-for="(file, index) in album.files"
               :key="file.id"
-              class="group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-muted) shadow-sm transition-colors hover:border-(--border-hover) hover:shadow-md"
+              class="group relative aspect-square cursor-pointer overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-muted) shadow-sm transition-colors hover:border-(--border-hover) hover:shadow-md"
               @click="openFile(file, index)"
             >
               <!-- 图片 -->

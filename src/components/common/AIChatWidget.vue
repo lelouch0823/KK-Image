@@ -645,11 +645,10 @@ const generateReport = async () => {
 </script>
 
 <style>
+@reference "tailwindcss";
+
 .markdown-body {
-  font-size: 0.875rem;
-  line-height: 1.6;
-  color: var(--text-main);
-  word-break: break-word;
+  @apply text-sm leading-relaxed text-(--text-main) break-words;
 }
 .markdown-body > *:first-child {
   margin-top: 0;
@@ -663,39 +662,29 @@ const generateReport = async () => {
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-  color: var(--text-main);
-  font-weight: 600;
-  margin-top: 1.5em;
-  margin-bottom: 0.75em;
-  line-height: 1.3;
+  @apply text-(--text-main) font-semibold leading-snug mt-6 mb-3;
 }
 .markdown-body h1 {
-  font-size: 1.25em;
+  @apply text-[1.25em];
 }
 .markdown-body h2 {
-  font-size: 1.15em;
+  @apply text-[1.15em];
 }
 .markdown-body h3 {
-  font-size: 1.05em;
+  @apply text-[1.05em];
 }
 .markdown-body p {
-  margin-top: 0;
-  margin-bottom: 0.75em;
+  @apply mt-0 mb-3;
 }
 .markdown-body a {
-  color: var(--color-info);
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.2s;
+  @apply text-(--color-info) no-underline border-b border-transparent transition-[border-color] duration-200;
 }
 .markdown-body a:hover {
-  border-bottom-color: var(--color-info);
+  @apply border-b-(--color-info);
 }
 .markdown-body ul,
 .markdown-body ol {
-  padding-left: 1.5em;
-  margin-top: 0;
-  margin-bottom: 0.75em;
+  @apply pl-6 mt-0 mb-3;
 }
 .markdown-body ul {
   list-style-type: disc;
@@ -704,72 +693,35 @@ const generateReport = async () => {
   list-style-type: decimal;
 }
 .markdown-body li {
-  margin-bottom: 0.25em;
+  @apply mb-1;
 }
 .markdown-body li > p {
-  margin-bottom: 0.25em;
+  @apply mb-1;
 }
 .markdown-body blockquote {
-  margin: 0 0 0.75em 0;
-  padding: 0.5em 1em;
-  color: var(--text-secondary);
-  border-left: 3px solid varprimary;
-  background-color: color-mix(in srgb, varprimary 5%, transparent);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  @apply my-0 mb-3 py-2 px-4 text-(--text-secondary) border-l-[3px] border-l-(--color-primary) bg-(--color-primary)/5 rounded-r-(--radius-sm);
 }
 .markdown-body blockquote p:last-child {
   margin-bottom: 0;
 }
 .markdown-body code {
-  color: var(--text-main);
-  background-color: var(--bg-muted);
-  padding: 0.2em 0.4em;
-  border-radius: var(--radius-sm);
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
-    monospace;
-  font-size: 0.85em;
+  @apply text-(--text-main) bg-(--bg-muted) py-[0.2em] px-[0.4em] rounded-(--radius-sm) font-mono text-[0.85em];
 }
 .markdown-body pre {
-  background-color: var(--bg-muted);
-  padding: 1em;
-  border-radius: var(--radius-lg);
-  overflow-x: auto;
-  margin-top: 0;
-  margin-bottom: 0.75em;
-  border: 1px solid var(--border-color);
-  box-shadow: inset 0 1px 2px var(--shadow-sm);
+  @apply bg-(--bg-muted) p-4 rounded-(--radius-lg) overflow-x-auto mt-0 mb-3 border border-(--border-color) shadow-[inset_0_1px_2px_var(--shadow-sm)];
 }
 .markdown-body pre code {
-  color: var(--text-main);
-  background-color: transparent;
-  padding: 0;
-  font-size: 0.85em;
-  border-radius: 0;
-  white-space: pre;
-  word-break: normal;
+  @apply text-(--text-main) bg-transparent p-0 text-[0.85em] rounded-none whitespace-pre break-normal;
 }
 .markdown-body table {
-  width: 100%;
-  max-width: 100%;
-  border-collapse: collapse;
-  margin-top: 0;
-  margin-bottom: 0.75em;
-  display: block;
-  overflow-x: auto;
-  white-space: nowrap;
+  @apply w-full max-w-full border-collapse mt-0 mb-3 block overflow-x-auto whitespace-nowrap;
 }
 .markdown-body th,
 .markdown-body td {
-  padding: 0.5em 0.75em;
-  border: 1px solid var(--border-color);
-  font-size: 0.85em;
+  @apply py-2 px-3 border border-(--border-color) text-[0.85em];
 }
 .markdown-body th {
-  font-weight: 600;
-  background-color: var(--bg-muted);
-  color: var(--text-secondary);
-  text-align: left;
+  @apply font-semibold bg-(--bg-muted) text-(--text-secondary) text-left;
 }
 .markdown-body tr:nth-child(2n) {
   background-color: color-mix(in srgb, var(--bg-muted) 30%, transparent);

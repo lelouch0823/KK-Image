@@ -72,7 +72,7 @@
                 <div
                   v-for="(space, index) in stats.traffic?.topSpaces"
                   :key="space.id"
-                  class="group flex items-center justify-between rounded-xl border border-(--border-color) bg-(--bg-muted)/40 p-4 transition-colors hover:border-(--border-hover) hover:bg-(--bg-hover)"
+                  class="group flex items-center justify-between rounded-2xl border border-(--border-color) bg-(--bg-muted)/40 p-4 transition-colors hover:border-(--border-hover) hover:bg-(--bg-hover)"
                 >
                   <div class="flex min-w-0 items-center gap-4">
                     <StatusBadge :variant="index === 0 ? 'warning' : 'neutral'">

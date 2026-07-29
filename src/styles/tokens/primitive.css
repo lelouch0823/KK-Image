@@ -61,6 +61,14 @@
     --ring-offset: 2px;
     --ring-opacity: 0.5;
 
+    /* 字号 scale（与 Tailwind type scale 一致） */
+    --text-[10px]: 0.625rem;
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+
     /* Shimmer 动画 */
     --shimmer-from: rgba(0, 0, 0, 0.04);
     --shimmer-to: rgba(0, 0, 0, 0.02);

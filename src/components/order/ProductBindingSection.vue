@@ -118,7 +118,7 @@
               {{ getDimensionLabelDisplay(dimension) }}
             </label>
             <span
-              class="max-w-[48%] truncate text-right text-xs text-(--text-secondary) sm:text-[13px]"
+              class="max-w-[48%] truncate text-right text-xs text-(--text-secondary) sm:text-sm"
               :title="selectedOptions[dimension] || ''"
             >
               {{ t('order.binding.selectedLabel') }}:
@@ -518,7 +518,7 @@ const buildColorSwatchStyle = (rawValue) => {
     .trim()
     .toLowerCase();
   const isHex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value);
-  const color = isHex ? value : COLOR_VALUE_MAP[value] || '#94a3b8';
+  const color = isHex ? value : COLOR_VALUE_MAP[value] || 'var(--text-muted)';
   return { backgroundColor: color };
 };
 

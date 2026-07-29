@@ -7,7 +7,7 @@
     <div
       v-for="folder in folders"
       :key="folder.id"
-      class="group relative cursor-pointer rounded-xl border p-3 transition-all hover:shadow-md active:scale-[0.98] sm:p-4"
+      class="group relative cursor-pointer rounded-2xl border p-3 transition-all hover:shadow-md active:scale-[0.98] sm:p-4"
       :class="[
         selectedIds.has(folder.id)
           ? 'border-primary bg-primary/10 ring-primary ring-1 dark:bg-primary/20'

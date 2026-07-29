@@ -10,8 +10,7 @@
     >
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-[200] flex items-start justify-center px-4 pt-[20vh]"
-        :style="{ backgroundColor: 'var(--color-overlay-dim)' }"
+        class="fixed inset-0 z-[200] flex items-start justify-center bg-(--color-overlay-dim) px-4 pt-[20vh]"
         @click.self="close"
       >
         <transition
@@ -27,43 +26,31 @@
             role="dialog"
             aria-modal="true"
             :aria-label="t('commandPalette.placeholder')"
-            class="w-full max-w-2xl overflow-hidden rounded-xl border shadow-2xl"
-            :style="{
-              backgroundColor: 'var(--color-modal-bg)',
-              borderColor: 'var(--border-color)',
-            }"
+            class="w-full max-w-2xl overflow-hidden rounded-xl border border-(--border-color) bg-(--color-modal-bg) shadow-2xl"
             @keydown="handleKeydown"
           >
             <!-- 搜索输入框 -->
             <div
-              class="flex items-center gap-3 border-b px-4 py-3"
-              :style="{ borderColor: 'var(--border-color)' }"
+              class="flex items-center gap-3 border-b border-(--border-color) px-4 py-3"
             >
               <AppIcon
                 name="magnifying-glass"
-                class="size-5 shrink-0"
+                class="size-5 shrink-0 text-(--text-muted)"
                 :class="isSearching ? 'animate-pulse' : ''"
-                :style="{ color: 'var(--text-muted)' }"
               />
               <input
                 ref="searchInput"
                 v-model="query"
                 type="text"
                 :placeholder="t('commandPalette.placeholder')"
-                class="flex-1 bg-transparent text-sm outline-none placeholder:opacity-50"
-                :style="{ color: 'var(--text-main)' }"
+                class="flex-1 bg-transparent text-sm text-(--text-main) outline-none placeholder:opacity-50"
                 @keydown.down.prevent="moveDown"
                 @keydown.up.prevent="moveUp"
                 @keydown.enter.prevent="executeSelected"
                 @keydown.escape.prevent="close"
               />
               <kbd
-                class="hidden rounded border px-1.5 py-0.5 text-xs font-medium sm:inline-block"
-                :style="{
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--text-muted)',
-                  backgroundColor: 'var(--bg-muted)',
-                }"
+                class="hidden rounded border border-(--border-color) bg-(--bg-muted) px-1.5 py-0.5 text-xs font-medium text-(--text-muted) sm:inline-block"
               >
                 ESC
               </kbd>
@@ -81,13 +68,12 @@
               >
                 <AppIcon
                   name="magnifying-glass"
-                  class="mb-3 size-10"
-                  :style="{ color: 'var(--text-muted)' }"
+                  class="mb-3 size-10 text-(--text-muted)"
                 />
-                <p class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">
+                <p class="text-sm font-medium text-(--text-secondary)">
                   {{ t('commandPalette.noResults') }}
                 </p>
-                <p class="mt-1 text-xs" :style="{ color: 'var(--text-muted)' }">
+                <p class="mt-1 text-xs text-(--text-muted)">
                   {{ t('commandPalette.noResultsDesc') }}
                 </p>
               </div>
@@ -97,11 +83,7 @@
                 <template v-for="(group, groupIndex) in groupedResults" :key="group.category">
                   <!-- 分组标题 -->
                   <div
-                    class="sticky top-0 z-10 px-4 py-1.5 text-xs font-medium tracking-wider uppercase"
-                    :style="{
-                      backgroundColor: 'var(--bg-muted)',
-                      color: 'var(--text-muted)',
-                    }"
+                    class="sticky top-0 z-10 bg-(--bg-muted) px-4 py-1.5 text-xs font-medium tracking-wider text-(--text-muted) uppercase"
                   >
                     {{ t(`commandPalette.categories.${group.category}`) }}
                   </div>
@@ -110,39 +92,27 @@
                     v-for="(item, itemIndex) in group.items"
                     :key="item.id"
                     type="button"
-                    class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors"
-                    :style="{
-                      color: 'var(--text-main)',
-                      backgroundColor:
-                        getGlobalIndex(groupIndex, itemIndex) === selectedIndex
-                          ? 'var(--bg-active)'
-                          : 'transparent',
-                    }"
+                    class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-(--text-main) transition-colors"
+                    :class="getGlobalIndex(groupIndex, itemIndex) === selectedIndex ? 'bg-(--bg-active)' : 'bg-transparent'"
                     @click="handleItemClick(item)"
                     @mouseenter="selectedIndex = getGlobalIndex(groupIndex, itemIndex)"
                   >
                     <AppIcon
                       :name="item.icon"
-                      class="size-5 shrink-0"
-                      :style="{ color: 'var(--text-secondary)' }"
+                      class="size-5 shrink-0 text-(--text-secondary)"
                     />
                     <div class="min-w-0 flex-1">
                       <div class="truncate font-medium">{{ item.title }}</div>
                       <div
                         v-if="item.subtitle"
-                        class="truncate text-xs"
-                        :style="{ color: 'var(--text-muted)' }"
+                        class="truncate text-xs text-(--text-muted)"
                       >
                         {{ item.subtitle }}
                       </div>
                     </div>
                     <span
                       v-if="item.badge"
-                      class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
-                      :style="{
-                        backgroundColor: 'var(--bg-secondary)',
-                        color: 'var(--text-secondary)',
-                      }"
+                      class="shrink-0 rounded-full bg-(--bg-secondary) px-2 py-0.5 text-xs font-medium text-(--text-secondary)"
                     >
                       {{ item.badge }}
                     </span>
@@ -153,23 +123,16 @@
 
             <!-- 底部提示 -->
             <div
-              class="flex items-center gap-4 border-t px-4 py-2 text-xs"
-              :style="{
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-muted)',
-                backgroundColor: 'var(--bg-muted)',
-              }"
+              class="flex items-center gap-4 border-t border-(--border-color) bg-(--bg-muted) px-4 py-2 text-xs text-(--text-muted)"
             >
               <span class="flex items-center gap-1">
                 <kbd
-                  class="inline-block rounded border px-1 py-0.5 text-xs"
-                  :style="{ borderColor: 'var(--border-color)' }"
+                  class="inline-block rounded border border-(--border-color) px-1 py-0.5 text-xs"
                 >
                   &uarr;
                 </kbd>
                 <kbd
-                  class="inline-block rounded border px-1 py-0.5 text-xs"
-                  :style="{ borderColor: 'var(--border-color)' }"
+                  class="inline-block rounded border border-(--border-color) px-1 py-0.5 text-xs"
                 >
                   &darr;
                 </kbd>
@@ -177,8 +140,7 @@
               </span>
               <span class="flex items-center gap-1">
                 <kbd
-                  class="inline-block rounded border px-1 py-0.5 text-xs"
-                  :style="{ borderColor: 'var(--border-color)' }"
+                  class="inline-block rounded border border-(--border-color) px-1 py-0.5 text-xs"
                 >
                   &crarr;
                 </kbd>
@@ -186,8 +148,7 @@
               </span>
               <span class="flex items-center gap-1">
                 <kbd
-                  class="inline-block rounded border px-1 py-0.5 text-xs"
-                  :style="{ borderColor: 'var(--border-color)' }"
+                  class="inline-block rounded border border-(--border-color) px-1 py-0.5 text-xs"
                 >
                   Esc
                 </kbd>

@@ -143,8 +143,7 @@
             </h4>
           </div>
           <div
-            class="overflow-hidden rounded border border-(--border-color) bg-white p-4"
-            style="font-size: 12px; max-width: 400px"
+            class="max-w-[400px] overflow-hidden rounded border border-(--border-color) bg-white p-4 text-xs"
           >
             <div
               class="flex items-start justify-between border-b-2 pb-2"

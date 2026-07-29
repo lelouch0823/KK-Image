@@ -22,7 +22,7 @@
         <div
           v-for="i in 6"
           :key="i"
-          class="overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card)"
+          class="overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card)"
         >
           <Skeleton container-class="aspect-video w-full rounded-none" />
           <div class="space-y-3 p-4">
@@ -60,7 +60,7 @@
         <div
           v-for="space in spaces"
           :key="space.id"
-          class="group cursor-pointer overflow-hidden rounded-xl border border-(--border-color) bg-(--bg-card) transition-all hover:border-(--border-hover) hover:shadow-sm"
+          class="group cursor-pointer overflow-hidden rounded-2xl border border-(--border-color) bg-(--bg-card) transition-all hover:border-(--border-hover) hover:shadow-sm"
           @click="openSpaceDetail(space)"
         >
           <div

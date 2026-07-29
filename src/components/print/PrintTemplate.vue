@@ -94,17 +94,8 @@ const footerGeneratedText = computed(() =>
     display: block !important;
     width: 100%;
     color: black;
-    font-family:
-      ui-sans-serif,
-      system-ui,
-      -apple-system,
-      BlinkMacSystemFont,
-      'Segoe UI',
-      Roboto,
-      'Helvetica Neue',
-      Arial,
-      sans-serif;
-    font-size: 14px;
+    font-family: var(--font-family-sans);
+    font-size: var(--text-sm);
     line-height: 1.5;
   }
 
@@ -130,7 +121,7 @@ const footerGeneratedText = computed(() =>
   }
 
   .print-company-name {
-    font-size: 20px;
+    font-size: var(--text-xl);
     font-weight: 700;
     letter-spacing: 0.05em;
     color: v-bind('settings.accentColor');
@@ -138,14 +129,14 @@ const footerGeneratedText = computed(() =>
   }
 
   .print-company-info {
-    font-size: 12px;
-    color: #6b7280;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
     margin-top: 2px;
   }
 
   .print-header-right {
     text-align: right;
-    font-size: 13px;
+    font-size: var(--text-sm);
   }
 
   .print-title-section {
@@ -153,20 +144,20 @@ const footerGeneratedText = computed(() =>
     align-items: baseline;
     justify-content: space-between;
     margin-bottom: 16px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 8px;
   }
 
   .print-doc-title {
-    font-size: 16px;
+    font-size: var(--text-base);
     font-weight: 700;
     color: v-bind('settings.accentColor');
     margin: 0;
   }
 
   .print-doc-meta {
-    font-size: 12px;
-    color: #6b7280;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
   }
 
   .print-body {
@@ -178,11 +169,11 @@ const footerGeneratedText = computed(() =>
     bottom: 0;
     left: 0;
     width: 100%;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--border-color);
     padding-top: 6px;
     text-align: center;
-    font-size: 10px;
-    color: #9ca3af;
+    font-size: var(--text-[10px]);
+    color: var(--text-muted);
     background: white;
   }
 

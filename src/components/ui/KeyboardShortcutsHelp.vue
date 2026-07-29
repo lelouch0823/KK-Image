@@ -5,8 +5,7 @@
       <div v-for="group in groupedShortcuts" :key="group.category" class="px-6 py-4">
         <!-- 分类标题 -->
         <h3
-          class="mb-3 text-xs font-semibold uppercase tracking-wider"
-          :style="{ color: 'var(--text-muted)' }"
+          class="mb-3 text-xs font-semibold tracking-wider text-(--text-muted) uppercase"
         >
           {{ group.label }}
         </h3>
@@ -18,7 +17,7 @@
             :key="shortcut.id"
             class="flex items-center justify-between"
           >
-            <span class="text-sm" :style="{ color: 'var(--text-main)' }">
+            <span class="text-sm text-(--text-main)">
               {{ shortcut.description }}
             </span>
             <div class="flex items-center gap-1">
@@ -26,15 +25,13 @@
               <kbd
                 v-for="mod in getModifiers(shortcut)"
                 :key="mod"
-                class="inline-flex h-6 min-w-[24px] items-center justify-center rounded bg-(--bg-muted) px-1.5 text-xs font-mono"
-                :style="{ color: 'var(--text-secondary)' }"
+                class="inline-flex h-6 min-w-[24px] items-center justify-center rounded bg-(--bg-muted) px-1.5 font-mono text-xs text-(--text-secondary)"
               >
                 {{ mod }}
               </kbd>
               <!-- 主键 -->
               <kbd
-                class="inline-flex h-6 min-w-[24px] items-center justify-center rounded bg-(--bg-muted) px-1.5 text-xs font-mono"
-                :style="{ color: 'var(--text-secondary)' }"
+                class="inline-flex h-6 min-w-[24px] items-center justify-center rounded bg-(--bg-muted) px-1.5 font-mono text-xs text-(--text-secondary)"
               >
                 {{ formatKey(shortcut.key) }}
               </kbd>
@@ -47,7 +44,7 @@
     <!-- 底部提示 -->
     <template #footer>
       <div class="flex w-full items-center justify-between">
-        <p class="text-xs" :style="{ color: 'var(--text-muted)' }">
+        <p class="text-xs text-(--text-muted)">
           {{ t('keyboardShortcuts.description') }}
         </p>
         <AppButton variant="ghost" size="sm" @click="close">
