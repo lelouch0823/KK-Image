@@ -51,6 +51,62 @@ Supporting contracts:
 - Module-local dialog and drawer chrome
 - Summary, metric, and multi-region status surfaces that combine layout structure with tone rendering
 
+## Design Token System
+
+All styling must use the three-tier token architecture in `src/styles/tokens/`. No hardcoded hex colors, font sizes, or inline `:style` for static token values.
+
+### Token Layers
+
+| Layer | File | Purpose |
+|-------|------|---------|
+| Primitive | `tokens/primitive.css` | Raw palette, radii, shadows, font-size scale |
+| Semantic | `tokens/semantic.css` | Light-mode contextual aliases (bg/border/text) |
+| Dark Theme | `tokens/themes.css` | `.dark` overrides for all semantic tokens |
+| Motion | `tokens/motion.css` | Transition timing tokens |
+| Charts | `tokens/charts.css` | Chart color palette |
+
+### Font-Size Scale
+
+| Token | Value | Tailwind |
+|-------|-------|----------|
+| `--text-[10px]` | 0.625rem | `text-[10px]` |
+| `--text-xs` | 0.75rem | `text-xs` |
+| `--text-sm` | 0.875rem | `text-sm` |
+| `--text-base` | 1rem | `text-base` |
+| `--text-lg` | 1.125rem | `text-lg` |
+| `--text-xl` | 1.25rem | `text-xl` |
+
+### Required Pattern
+
+```vue
+<!-- ✅ Tailwind utility with token reference -->
+<div class="bg-(--bg-card) text-(--text-main) border-(--border-color)">
+
+<!-- ❌ Inline style with static token -->
+<div :style="{ backgroundColor: 'var(--bg-card)' }">
+
+<!-- ❌ Hardcoded hex -->
+<div style="color: #6b7280">
+```
+
+### Border-Radius Convention
+
+- Card-level containers: `rounded-2xl`
+- Smaller elements (icons, badges, buttons): `rounded-lg` / `rounded-xl`
+
+### Legitimate Inline `:style`
+
+- Dynamic computed values (progress bars, virtual scroll, drag position)
+- User-configured values (print accent color, custom themes)
+- CSS calculations that depend on runtime data
+
+### Checklist
+
+- Search for `:style` bindings — static token references must be Tailwind utility classes
+- Search for hex color literals — replace with token references
+- Verify card containers use `rounded-2xl`
+- Run `pnpm qa:check-design-system` after styling changes
+
 ## Enforcement
 
 - If a domain needs a control capability that foundation does not expose, extend foundation first.
