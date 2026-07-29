@@ -326,7 +326,7 @@
       :message="confirmData.message"
       :type="confirmData.type"
       :loading="confirmData.loading"
-      @confirm="confirmData.onConfirm"
+      @confirm="handleConfirm"
     />
   </Modal>
 </template>
@@ -364,6 +364,7 @@ import {
   resolveSelectedVariantMainImageSrc,
 } from '@/utils/product-image.js';
 import { normalizeVariantOptions } from '@/utils/variant-meta';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 
 const props = defineProps({
   space: { type: Object, required: true },
@@ -400,14 +401,7 @@ let mediaRefreshRequestId = 0;
 let registeredRefreshKey = '';
 
 // 确认弹窗状态
-const confirmData = ref({
-  show: false,
-  title: '',
-  message: '',
-  type: 'primary',
-  loading: false,
-  onConfirm: () => {},
-});
+const { confirmData, askConfirm, handleConfirm } = useConfirmDialog();
 
 const form = ref({
   name: '',
@@ -645,25 +639,17 @@ const addFiles = async (fileIds) => {
 };
 
 const removeFile = (fileId) => {
-  confirmData.value = {
-    show: true,
+  askConfirm({
     title: t('common.confirm'),
     message: t('spaceManager.removeFileConfirm'),
     type: 'danger',
-    loading: false,
     onConfirm: async () => {
-      confirmData.value.loading = true;
-      try {
-        const removed = await removeFilesFromSpace(props.space.id, [fileId]);
-        if (!removed) return;
-        await refreshMediaState();
-        emit('updated');
-        confirmData.value.show = false;
-      } finally {
-        confirmData.value.loading = false;
-      }
+      const removed = await removeFilesFromSpace(props.space.id, [fileId]);
+      if (!removed) return;
+      await refreshMediaState();
+      emit('updated');
     },
-  };
+  });
 };
 
 const setCover = (file) => {

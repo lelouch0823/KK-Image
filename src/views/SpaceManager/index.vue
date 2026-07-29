@@ -211,7 +211,7 @@
       :message="confirmData.message"
       :type="confirmData.type"
       :loading="confirmData.loading"
-      @confirm="confirmData.onConfirm"
+      @confirm="handleConfirm"
     />
   </ManagementListShell>
 </template>
@@ -237,6 +237,7 @@ import Tooltip from '@/components/ui/Tooltip.vue';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import { ErrorCode } from '@/utils/error-codes';
 import { formatReadableLabel } from '@/utils/event-display';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 
 const { spaces, loading, error, errorCode, loadSpaces, deleteSpace } = useSpaces();
 const { t } = useI18n();
@@ -249,14 +250,7 @@ const selectedSpace = ref(null);
 const canManageSpaces = ref(false);
 
 // 确认弹窗状态
-const confirmData = ref({
-  show: false,
-  title: '',
-  message: '',
-  type: 'primary',
-  loading: false,
-  onConfirm: () => {},
-});
+const { confirmData, askConfirm, handleConfirm } = useConfirmDialog();
 
 const openCreateModal = () => {
   if (!canManageSpaces.value) return;
@@ -286,23 +280,15 @@ const manageSpace = (space) => {
 
 const confirmDelete = (space) => {
   if (!canManageSpaces.value) return;
-  confirmData.value = {
-    show: true,
+  askConfirm({
     title: t('common.delete'),
     message: t('spaceManager.deleteSpaceConfirm', { name: space.name }),
     type: 'danger',
-    loading: false,
     onConfirm: async () => {
-      confirmData.value.loading = true;
-      try {
-        const deleted = await deleteSpace(space.id);
-        if (!deleted) return;
-        confirmData.value.show = false;
-      } finally {
-        confirmData.value.loading = false;
-      }
+      const deleted = await deleteSpace(space.id);
+      if (!deleted) return;
     },
-  };
+  });
 };
 
 const onSpaceCreated = () => {

@@ -145,6 +145,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppCard from '@/components/ui/AppCard.vue';
 import Modal from '@/components/ui/Modal.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import { formatDate, toDateShort } from '@/utils/formatters';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useProducts } from '@/composables/useProducts';
@@ -292,7 +293,7 @@ async function getXLSXStyle() {
 }
 
 const createBlobFromRows = async (rows) => {
-  const date = new Date().toISOString().slice(0, 10);
+  const date = toDateShort();
   if (form.format === 'csv') {
     const csv = buildCsvContent(rows, EXPORT_COLUMNS);
     return {
@@ -301,7 +302,7 @@ const createBlobFromRows = async (rows) => {
     };
   }
   const wb = await buildExcelWorkbook(rows, EXPORT_COLUMNS, {
-    generatedAt: new Date().toISOString(),
+    generatedAt: formatDate(Date.now()),
     scopeLabel:
       form.scope === 'filtered'
         ? t('product.exportModal.scope_filtered', '当前筛选结果')

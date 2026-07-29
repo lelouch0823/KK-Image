@@ -98,7 +98,7 @@
           :message="confirmData.message"
           :type="confirmData.type"
           :loading="confirmData.loading"
-          @confirm="confirmData.onConfirm"
+          @confirm="handleConfirm"
         />
       </template>
     </template>
@@ -126,6 +126,7 @@ import SalespersonTable from './salesperson/SalespersonTable.vue';
 import SalespersonCards from './salesperson/SalespersonCards.vue';
 import SalespersonForm from './salesperson/SalespersonForm.vue';
 import SalespersonDetailModal from './salesperson/SalespersonDetailModal.vue';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 
 const {
   salespersons,
@@ -158,14 +159,7 @@ const { clearSelection, getRowClass, handleCreated, selectItem } = useManagedLis
 const canManageSalespersons = ref(false);
 
 // 确认弹窗状态
-const confirmData = ref({
-  show: false,
-  title: '',
-  message: '',
-  type: 'primary',
-  loading: false,
-  onConfirm: () => {},
-});
+const { confirmData, askConfirm, handleConfirm } = useConfirmDialog();
 
 const currentPage = computed({
   get: () => pagination.page,
@@ -273,47 +267,31 @@ const handleSubmit = async (formData) => {
 const confirmDelete = (person) => {
   if (person.orderCount > 0) return;
 
-  confirmData.value = {
-    show: true,
+  askConfirm({
     title: t('common.delete'),
     message: t('salesperson.deleteConfirm').replace('{name}', person.name),
     type: 'danger',
-    loading: false,
     onConfirm: async () => {
-      confirmData.value.loading = true;
-      try {
-        const success = await deleteSalesperson(person.id);
-        if (success) {
-          refreshCurrentList(true);
-          confirmData.value.show = false;
-        }
-      } finally {
-        confirmData.value.loading = false;
+      const success = await deleteSalesperson(person.id);
+      if (success) {
+        refreshCurrentList(true);
       }
     },
-  };
+  });
 };
 
 // 重置访问链接
 const handleResetToken = () => {
   if (!editingSalesperson.value) return;
 
-  confirmData.value = {
-    show: true,
+  askConfirm({
     title: t('salesperson.resetLink'),
     message: t('salesperson.resetLinkConfirm'),
     type: 'danger',
-    loading: false,
     onConfirm: async () => {
-      confirmData.value.loading = true;
-      try {
-        await resetToken(editingSalesperson.value.id);
-        confirmData.value.show = false;
-      } finally {
-        confirmData.value.loading = false;
-      }
+      await resetToken(editingSalesperson.value.id);
     },
-  };
+  });
 };
 
 // 查看销售订单 - 跳转到订单管理页面并筛选该销售

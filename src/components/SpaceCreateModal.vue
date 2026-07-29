@@ -129,6 +129,7 @@ import Modal from '@/components/ui/Modal.vue';
 import ProductBindingSection from '@/components/order/ProductBindingSection.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { resolveSelectedVariantMainImageSrc } from '@/utils/product-image.js';
+import { formatDateOnly } from '@/utils/formatters';
 
 const props = defineProps({
   parentId: { type: String, default: null }, // 如果提供则为创建子空间
@@ -287,7 +288,7 @@ onMounted(() => {
       didBindInitialProduct &&
       (form.value.name === props.initialProduct.name || !form.value.name)
     ) {
-      const dateStr = new Date().toLocaleDateString();
+      const dateStr = formatDateOnly(Date.now());
       form.value.name = `${props.initialProduct.name} - ${dateStr}`;
     }
   }

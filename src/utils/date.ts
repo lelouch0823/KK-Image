@@ -34,4 +34,13 @@ export class DateUtils {
     static getBeijingDayEnd(timestamp: number = Date.now()): number {
         return DateUtils.getBeijingDayStart(timestamp) + 86400000 - 1;
     }
+
+    /**
+     * 获取北京时间的 YYYY-MM-DD 日期字符串
+     * @param timestamp - 时间戳（默认当前时间）
+     * @returns YYYY-MM-DD
+     */
+    static getBeijingDateStr(timestamp: number = Date.now()): string {
+        return new Date(timestamp + TZ_OFFSET).toISOString().slice(0, 10);
+    }
 }

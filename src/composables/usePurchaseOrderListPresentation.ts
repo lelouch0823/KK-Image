@@ -1,5 +1,6 @@
 import { computed, type ComputedRef } from 'vue';
 import { createReceiptProgressSummaryBuilder } from '@/utils/purchase-order-progress';
+import { formatAmount } from '@/utils/formatters';
 
 interface StatCard {
   key: string;
@@ -42,7 +43,7 @@ interface UsePurchaseOrderListPresentationOptions {
   t: (key: string, fallback?: string) => string;
 }
 
-const formatInteger = (value: number | undefined): string => Number(value || 0).toLocaleString('zh-CN');
+const formatInteger = (value: number | undefined): string => formatAmount(value || 0);
 
 const getListStatusVariant = (status: string): string => {
   if (['draft', 'cancelled'].includes(status)) return 'default';

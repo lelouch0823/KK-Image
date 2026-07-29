@@ -323,6 +323,7 @@ import OutboxReplayPanel from '@/components/outbox/OutboxReplayPanel.vue';
 import { buildOutboxOpsMetrics } from '@/components/outbox/outboxOpsSummary';
 import { ErrorCode } from '@/utils/error-codes';
 import { formatConsumerStatus } from '@/utils/event-display';
+import { formatDate } from '@/utils/formatters';
 
 const { t } = useI18n();
 const healthOps = useOutboxOps();
@@ -474,7 +475,7 @@ function formatMetricValue(value) {
   if (!value) return '-';
 
   try {
-    return new Date(value).toLocaleString();
+    return formatDate(value);
   } catch {
     return String(value);
   }

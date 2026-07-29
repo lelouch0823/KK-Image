@@ -112,7 +112,7 @@
     :message="confirmData.message"
     :type="confirmData.type"
     :loading="confirmData.loading"
-    @confirm="confirmData.onConfirm"
+    @confirm="handleConfirm"
   />
 </template>
 
@@ -131,6 +131,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppTableCodeChip from '@/components/ui/AppTableCodeChip.vue';
 import AppTableTextStack from '@/components/ui/AppTableTextStack.vue';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -150,14 +151,7 @@ const total = ref(0);
 const totalPages = ref(1);
 
 // 确认弹窗状态
-const confirmData = ref({
-  show: false,
-  title: '',
-  message: '',
-  type: 'primary',
-  loading: false,
-  onConfirm: () => {},
-});
+const { confirmData, askConfirm, handleConfirm } = useConfirmDialog();
 
 const columns = computed(() => [
   { key: 'name', label: t('share.table.name'), width: '240px', minWidth: '240px' },
@@ -216,34 +210,25 @@ const copyLink = async (item) => {
 };
 
 const revokeShare = (item) => {
-  confirmData.value = {
-    show: true,
+  askConfirm({
     title: t('common.confirm'),
     message: t('common.cancelShareConfirm', { name: item.name }),
     type: 'danger',
     onConfirm: async () => {
-      confirmData.value.loading = true;
-      try {
-        const res = await authFetchJson(API.FOLDER_BY_ID(item.id), {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isPublic: false, shareToken: null }),
-        });
+      const res = await authFetchJson(API.FOLDER_BY_ID(item.id), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: false, shareToken: null }),
+      });
 
-        if (res.success) {
-          success(t('common.shareRevoked'));
-          fetchShares();
-          confirmData.value.show = false;
-        } else {
-          error(res.message);
-        }
-      } catch (_e) {
-        error(t('common.operationFailed'));
-      } finally {
-        confirmData.value.loading = false;
+      if (res.success) {
+        success(t('common.shareRevoked'));
+        fetchShares();
+      } else {
+        error(res.message);
       }
     },
-  };
+  });
 };
 
 const editShare = (item) => {

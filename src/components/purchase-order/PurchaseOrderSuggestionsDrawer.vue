@@ -96,14 +96,14 @@
                 class="rounded-full bg-(--bg-muted) px-2.5 py-1 font-mono tabular-nums text-(--text-secondary)"
               >
                 {{ t('purchaseOrder.suggestions.cost') }} ¥{{
-                  (s.variant_cost_price || s.cost_price || 0).toFixed(2)
+                  formatAmount(s.variant_cost_price || s.cost_price || 0)
                 }}
               </span>
               <span
                 class="bg-primary/8 text-primary rounded-full px-2.5 py-1 font-mono tabular-nums"
               >
                 {{ t('purchaseOrder.suggestions.suggested') }} ¥{{
-                  (s.suggested_purchase_price || s.cost_price || 0).toFixed(2)
+                  formatAmount(s.suggested_purchase_price || s.cost_price || 0)
                 }}
               </span>
               <span
@@ -111,7 +111,7 @@
                 class="font-mono tabular-nums text-(--text-secondary)"
               >
                 {{ t('purchaseOrder.suggestions.recent') }} ¥{{
-                  Number(s.last_purchase_price).toFixed(2)
+                  formatAmount(s.last_purchase_price)
                 }}
               </span>
               <span
@@ -125,7 +125,7 @@
                       : 'text-(--text-secondary)'
                 "
               >
-                Δ {{ s.price_delta > 0 ? '+' : '' }}{{ Number(s.price_delta).toFixed(2) }}
+                Δ {{ s.price_delta > 0 ? '+' : '' }}{{ formatAmount(s.price_delta) }}
               </span>
             </div>
           </div>
@@ -160,6 +160,7 @@ import AppCard from '@/components/ui/AppCard.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import Modal from '@/components/ui/Modal.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import { formatAmount } from '@/utils/formatters';
 
 const props = defineProps({
   show: { type: Boolean, default: false },

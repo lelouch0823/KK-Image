@@ -197,6 +197,7 @@
  */
 
 import { ref, computed, watch } from 'vue';
+import { useSearchState } from '@/composables/useSearchState';
 import { useI18n } from '@/composables/useI18n';
 import { useOrders } from '@/composables/useOrders';
 import { useOrderDetailViewer } from '@/composables/useOrderDetailViewer';

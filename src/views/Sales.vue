@@ -171,6 +171,7 @@ import { useOrders } from '@/composables/useOrders';
 import { useSalesOrderStateMachine } from '@/composables/sales/useSalesOrderStateMachine';
 import { useNotifications } from '@/composables/useNotifications';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
+import { useSearchState } from '@/composables/useSearchState';
 import OrderLogin from '@/components/order/OrderLogin.vue';
 import SalesNotificationList from '@/components/order/SalesNotificationList.vue';
 import AppErrorBoundary from '@/components/common/AppErrorBoundary.vue';
@@ -277,7 +278,7 @@ const prefillData = ref(null); // Shared state for duplicating order
 let authRequestId = 0;
 
 // 搜索状态（共享给子组件）
-const searchQuery = ref('');
+const { searchQuery } = useSearchState();
 
 // Provide context to child views
 provide('salesContext', {

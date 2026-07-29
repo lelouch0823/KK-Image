@@ -62,6 +62,7 @@
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { getToneClasses, normalizeTone } from '@/design-system/toneContract';
+import { formatAmount } from '@/utils/formatters';
 
 const { t } = useI18n();
 
@@ -81,7 +82,7 @@ const resolvedTone = computed(() => normalizeTone(props.variant || 'neutral'));
 
 const formattedValue = computed(() => {
   if (typeof props.value === 'number') {
-    return props.value.toLocaleString();
+    return formatAmount(props.value);
   }
   return props.value;
 });

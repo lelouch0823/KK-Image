@@ -155,7 +155,7 @@
                 <span
                   class="shrink-0 rounded-full bg-(--bg-page) px-2 py-0.5 font-mono text-xs font-semibold text-(--text-secondary)"
                 >
-                  ¥{{ Number(variant.unit_cost || 0).toFixed(2) }}
+                  {{ formatCurrency(variant.unit_cost || 0) }}
                 </span>
               </div>
               <div class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-(--text-secondary)">
@@ -217,6 +217,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useSearchState } from '@/composables/useSearchState';
 import { useDebounceFn } from '@vueuse/core';
 import { useI18n } from '@/composables/useI18n';
 import { hasEntries } from '@/utils/object-utils';
@@ -231,6 +232,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import Modal from '@/components/ui/Modal.vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+import { formatCurrency } from '@/utils/formatters';
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -249,7 +251,7 @@ const handleModalVisibilityChange = (nextVisible) => {
   }
 };
 
-const searchQuery = ref('');
+const { searchQuery } = useSearchState();
 const variants = ref([]);
 const loading = ref(false);
 const errorMessage = ref('');

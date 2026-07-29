@@ -5,6 +5,7 @@ import { useAuth } from '@/composables/useAuth';
 import { API } from '@/utils/constants';
 import { escapeHtml } from '@/utils/html';
 import { openWritableNewTab } from '@/utils/browser';
+import { toDateShort, formatDate, formatDateOnly } from '@/utils/formatters';
 
 interface ConfirmDialogData {
     show: boolean;
@@ -156,7 +157,7 @@ export function useOrderBatch(
             const filenameMatch = disposition && disposition.match(/filename="?(.+)"?/);
             link.download = filenameMatch
                 ? filenameMatch[1]
-                : `orders_${new Date().toISOString().slice(0, 10)}.csv`;
+                : `orders_${toDateShort()}.csv`;
 
             document.body.appendChild(link);
             link.click();
@@ -225,7 +226,7 @@ export function useOrderBatch(
                 <td>${escapeHtml(t(`order.statuses.${order.status}`, order.status))}</td>
                 <td>${escapeHtml(String(order.quantity || 1))}</td>
                 <td>${escapeHtml(order.salespersonName || '-')}</td>
-                <td>${escapeHtml(order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-')}</td>
+                <td>${escapeHtml(order.createdAt ? formatDateOnly(order.createdAt) : '-')}</td>
             </tr>
         `).join('');
 
@@ -250,7 +251,7 @@ export function useOrderBatch(
             </head>
             <body>
                 <h1>${t('order.print.orderList', '订单列表')}</h1>
-                <p class="meta">${t('order.print.printTime', '打印时间')}: ${new Date().toLocaleString()} | ${`共 ${orders.length} 个订单`}</p>
+                <p class="meta">${t('order.print.printTime', '打印时间')}: ${formatDate(Date.now())} | ${`共 ${orders.length} 个订单`}</p>
                 <table>
                     <thead>
                         <tr>

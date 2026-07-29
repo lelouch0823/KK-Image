@@ -478,7 +478,7 @@
       :message="confirmData.message"
       :type="confirmData.type"
       :loading="confirmData.loading"
-      @confirm="confirmData.onConfirm"
+      @confirm="handleConfirm"
     />
   </div>
 </template>
@@ -501,6 +501,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 import {
   formatCustomerSegmentDescription,
   formatCustomerSegmentLabel,
@@ -535,14 +536,7 @@ const newCommType = ref('note');
 const newCommContent = ref('');
 const addingComm = ref(false);
 
-const confirmData = ref({
-  show: false,
-  title: '',
-  message: '',
-  type: 'primary',
-  loading: false,
-  onConfirm: () => {},
-});
+const { confirmData, askConfirm, handleConfirm } = useConfirmDialog();
 
 const tabs = computed(() => [
   { key: 'overview', name: t('customer.detail.overview') },
@@ -791,37 +785,28 @@ const handleRemoveTag = async (tagName) => {
 };
 
 const handleDelete = () => {
-  confirmData.value = {
-    show: true,
+  askConfirm({
     title: t('common.delete'),
     message: t('customer.manage.deleteConfirm'),
     type: 'danger',
     onConfirm: confirmDelete,
-  };
+  });
 };
 
 const confirmDelete = async () => {
   if (!props.customer?.id) return;
 
-  confirmData.value.loading = true;
-  try {
-    const res = await authFetch(`${API.MANAGE_CUSTOMER}/${props.customer.id}`, {
-      method: 'DELETE',
-    });
-    const result = await res.json();
+  const res = await authFetch(`${API.MANAGE_CUSTOMER}/${props.customer.id}`, {
+    method: 'DELETE',
+  });
+  const result = await res.json();
 
-    if (result.success) {
-      addToast({ message: t('common.deleteSuccess'), type: 'success' });
-      confirmData.value.show = false;
-      emit('close');
-      emit('refresh');
-    } else {
-      addToast({ message: result.message, type: 'error' });
-    }
-  } catch (_e) {
-    addToast({ message: t('common.networkError'), type: 'error' });
-  } finally {
-    confirmData.value.loading = false;
+  if (result.success) {
+    addToast({ message: t('common.deleteSuccess'), type: 'success' });
+    emit('close');
+    emit('refresh');
+  } else {
+    addToast({ message: result.message, type: 'error' });
   }
 };
 

@@ -301,6 +301,7 @@
 import { ref, onMounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
+import { useClipboard } from '@/composables/useClipboard';
 import { request } from '@/utils/http-core';
 import ManagementListShell from '@/design-system/patterns/ManagementListShell.vue';
 import AppButton from '@/components/ui/AppButton.vue';
@@ -316,6 +317,7 @@ import { formatDate } from '@/utils/formatters';
 const { t } = useI18n();
 const { addToast } = useToast();
 
+const { copy: copyToClipboard } = useClipboard();
 const clients = ref([]);
 const loading = ref(true);
 const tokens = ref([]);
@@ -473,11 +475,6 @@ async function confirmRevoke() {
   }
 }
 
-function copyToClipboard(text) {
-  navigator.clipboard.writeText(text).then(() => {
-    addToast({ type: 'success', message: t('oauth.copySuccess') });
-  });
-}
 
 onMounted(loadClients);
 </script>

@@ -140,7 +140,7 @@
                   {{ space.name }}
                 </h4>
                 <div class="mt-0.5 flex items-center gap-2 text-xs text-(--text-secondary)">
-                  <span>{{ new Date(space.createdAt).toLocaleDateString() }}</span>
+                  <span>{{ formatDateOnly(space.createdAt) }}</span>
                   <span v-if="space.viewCount !== undefined"
                     >&bull; {{ space.viewCount }} views</span
                   >
@@ -431,6 +431,7 @@ import {
 } from '@/utils/product-image.js';
 import { isCatalogActiveVariant } from '@/utils/product-variants.js';
 import { formatReadableLabel } from '@/utils/event-display';
+import { formatDateOnly } from '@/utils/formatters';
 
 const props = defineProps({
   product: {

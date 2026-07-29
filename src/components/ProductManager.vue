@@ -277,7 +277,7 @@
       :message="confirmData.message"
       :type="confirmData.type"
       :loading="confirmData.loading"
-      @confirm="confirmData.onConfirm"
+      @confirm="handleConfirm"
     />
   </ManagementListShell>
 </template>
@@ -291,6 +291,7 @@ import { useAI } from '@/composables/useAI';
 import { useToast } from '@/composables/useToast';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import { useManagedListSelection } from '@/composables/useManagedListSelection';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 const ProductStats = defineAsyncComponent(() => import('./product/ProductStats.vue'));
 import ProductFilters from './product/ProductFilters.vue';
 import ProductTable from './product/ProductTable.vue';
@@ -397,14 +398,11 @@ const handleCategoryEdit = (category) => {
 };
 
 const handleCategoryDelete = async (category) => {
-  confirmData.value = {
-    show: true,
+  askConfirm({
     title: t('product.categoryTree.delete'),
     message: t('product.categoryTree.delete_confirm', { name: category.name }),
     type: 'danger',
-    loading: false,
     onConfirm: async () => {
-      confirmData.value.loading = true;
       const success = await deleteCategoryApi(category.id);
       if (success) {
         addToast({ type: 'success', message: t('common.action.delete_success', '删除成功') });
@@ -415,10 +413,8 @@ const handleCategoryDelete = async (category) => {
           reloadProducts({ page: 1 });
         }
       }
-      confirmData.value.show = false;
-      confirmData.value.loading = false;
     },
-  };
+  });
 };
 
 const handleCategoryFormSubmit = async (payload) => {
@@ -454,14 +450,7 @@ const isEditMode = ref(false);
 const editingProduct = ref(null);
 const viewingProduct = ref(null);
 const sharingProduct = ref(null);
-const confirmData = ref({
-  show: false,
-  title: '',
-  message: '',
-  type: 'danger',
-  loading: false,
-  onConfirm: async () => {},
-});
+const { confirmData, askConfirm, handleConfirm } = useConfirmDialog();
 const queryEditInitializing = ref(false);
 const queryEditError = ref('');
 let stopProductsRefreshSubscription = null;
@@ -708,50 +697,32 @@ const handleModalSuccess = async (createdProduct = null) => {
 };
 
 const handleDelete = (product) => {
-  confirmData.value = {
-    show: true,
+  askConfirm({
     title: t('common.delete'),
     message: t('product.action.delete_confirm_message', { name: product.name }),
     type: 'danger',
-    loading: false,
     onConfirm: async () => {
-      confirmData.value.loading = true;
-      try {
-        await deleteProduct(product.id);
-        await reloadProducts();
-        confirmData.value.show = false;
-      } finally {
-        confirmData.value.loading = false;
-      }
+      await deleteProduct(product.id);
+      await reloadProducts();
     },
-  };
+  });
 };
 
 const handleStatusChange = ({ product, status }) => {
   const statusLabel = formatProductStatusLabel(t, status);
-  confirmData.value = {
-    show: true,
+  askConfirm({
     title: t('product.action.status_change_title', '状态变更'),
     message: t('product.action.status_change_confirm', { name: product.name, status: statusLabel }),
     type: status === 'archived' ? 'warning' : 'info',
-    loading: false,
     onConfirm: async () => {
-      confirmData.value.loading = true;
-      try {
-        await updateProductStatus(product.id, status);
-        addToast({
-          type: 'success',
-          message: t('product.action.status_change_success', { status: statusLabel }),
-        });
-        await reloadProducts();
-        confirmData.value.show = false;
-      } catch (err) {
-        addToast({ type: 'error', message: err?.message || t('common.error.operation_failed') });
-      } finally {
-        confirmData.value.loading = false;
-      }
+      await updateProductStatus(product.id, status);
+      addToast({
+        type: 'success',
+        message: t('product.action.status_change_success', { status: statusLabel }),
+      });
+      await reloadProducts();
     },
-  };
+  });
 };
 
 const handleExport = () => {

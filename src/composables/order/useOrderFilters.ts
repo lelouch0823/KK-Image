@@ -4,11 +4,7 @@ import { API } from '@/utils/constants';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAuth } from '@/composables/useAuth';
-
-function formatBeijingDate(timestamp: number): string {
-    if (!timestamp) return '';
-    return new Date(Number(timestamp) + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
+import { toDateShort } from '@/utils/formatters';
 
 export function useOrderFilters(loadOrders: (params: Record<string, unknown>) => void) {
     const { t } = useI18n();
@@ -94,8 +90,8 @@ export function useOrderFilters(loadOrders: (params: Record<string, unknown>) =>
             if (filterState.value.procurementStatus) params.set('procurementStatus', filterState.value.procurementStatus);
             if (filterState.value.deliveryStatus) params.set('deliveryStatus', filterState.value.deliveryStatus);
             if (filterState.value.search) params.set('search', filterState.value.search);
-            if (filterDateRange.value.start > 0) params.set('from', formatBeijingDate(filterDateRange.value.start));
-            if (filterDateRange.value.end > 0) params.set('to', formatBeijingDate(filterDateRange.value.end));
+            if (filterDateRange.value.start > 0) params.set('from', DateUtils.getBeijingDateStr(filterDateRange.value.start));
+            if (filterDateRange.value.end > 0) params.set('to', DateUtils.getBeijingDateStr(filterDateRange.value.end));
 
             const url = `${API.MANAGE_ORDER_EXPORT}?${params.toString()}`;
             const response = await authFetch(url);
@@ -109,7 +105,7 @@ export function useOrderFilters(loadOrders: (params: Record<string, unknown>) =>
             const filenameMatch = disposition && disposition.match(/filename="?(.+)"?/);
             link.download = filenameMatch
                 ? filenameMatch[1]
-                : `orders_${new Date().toISOString().slice(0, 10)}.csv`;
+                : `orders_${toDateShort()}.csv`;
 
             document.body.appendChild(link);
             link.click();

@@ -126,6 +126,34 @@ export const isPdf = (file: string | FileLike | null | undefined): boolean => {
 };
 
 /**
+ * 格式化纯日期（无时分秒）
+ * @param timestamp - 时间戳
+ * @param locale - 语言区域 (默认 zh-CN)
+ * @returns 格式化后的日期字符串
+ */
+export const formatDateOnly = (
+  timestamp: number | string | null | undefined,
+  locale: string = 'zh-CN',
+): string => {
+  if (!timestamp) return '-';
+  const date = new Date(Number(timestamp));
+  return date.toLocaleDateString(locale, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+};
+
+/**
+ * 获取 YYYY-MM-DD 格式的日期字符串（用于文件名等场景）
+ * @param timestamp - 时间戳（默认当前时间）
+ * @returns YYYY-MM-DD 字符串
+ */
+export const toDateShort = (timestamp: number = Date.now()): string => {
+  return new Date(timestamp).toISOString().slice(0, 10);
+};
+
+/**
  * 格式化相对时间 (刚刚, x分钟前, x小时前, 或日期)
  * @param timestamp - 时间戳
  * @param t - i18n t function

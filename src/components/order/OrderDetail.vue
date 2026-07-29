@@ -173,7 +173,7 @@
         :message="confirmData.message"
         :type="confirmData.type"
         :loading="confirmData.loading"
-        @confirm="confirmData.onConfirm"
+        @confirm="handleConfirm"
       />
     </div>
 
@@ -227,6 +227,7 @@ const OrderEditModal = defineAsyncComponent(() => import('../OrderEditModal.vue'
 import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import Lightbox from '@/components/ui/Lightbox.vue';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 import {
   buildOrderDetailDisplayData,
   isMultilineOrder,
@@ -282,14 +283,7 @@ const markReadError = ref('');
 const { token: salesToken } = useSalesToken();
 
 // 确认弹窗状态
-const confirmData = ref({
-  show: false,
-  title: '',
-  message: '',
-  type: 'primary',
-  loading: false,
-  onConfirm: () => {},
-});
+const { confirmData, askConfirm, handleConfirm } = useConfirmDialog();
 
 // 清除红点
 const markAsRead = async () => {
@@ -403,37 +397,28 @@ const handlePreview = (file) => {
 };
 
 const handleVoid = () => {
-  confirmData.value = {
-    show: true,
+  askConfirm({
     title: t('common.confirm'),
     message: t('common.confirmVoid'),
     type: 'danger',
     onConfirm: executeVoid,
-  };
+  });
 };
 
 const executeVoid = async () => {
   if (!salesToken.value) return;
 
-  confirmData.value.loading = true;
-  try {
-    const res = await requestSales(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {
-      method: 'DELETE',
-      token: salesToken.value,
-    });
-    const result = await res.json();
+  const res = await requestSales(API.SALES_ORDER_DETAIL(salesToken.value, props.order.id), {
+    method: 'DELETE',
+    token: salesToken.value,
+  });
+  const result = await res.json();
 
-    if (result.success) {
-      addToast({ message: t('common.success'), type: 'success' });
-      confirmData.value.show = false;
-      emit('refresh');
-    } else {
-      addToast({ message: result.message, type: 'error' });
-    }
-  } catch (_e) {
-    addToast({ message: t('common.networkError'), type: 'error' });
-  } finally {
-    confirmData.value.loading = false;
+  if (result.success) {
+    addToast({ message: t('common.success'), type: 'success' });
+    emit('refresh');
+  } else {
+    addToast({ message: result.message, type: 'error' });
   }
 };
 

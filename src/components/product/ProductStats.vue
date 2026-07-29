@@ -37,6 +37,7 @@ import { computed, ref, watch } from 'vue';
 import { useProducts } from '@/composables/useProducts';
 import { useI18n } from '@/composables/useI18n';
 import MetricTile from '@/design-system/composed/MetricTile.vue';
+import { formatAmount, formatCurrencyCompact } from '@/utils/formatters';
 
 const props = defineProps({
   filters: {
@@ -109,7 +110,7 @@ const loadAllStatsProducts = async (requestId) => {
 };
 
 const totalFormatted = computed(() => {
-  return Number(statsTotal.value || 0).toLocaleString();
+  return formatAmount(statsTotal.value || 0);
 });
 
 const lowStockCount = computed(() => {
@@ -124,7 +125,7 @@ const valueFormatted = computed(() => {
     (acc, p) => acc + (p.cost_price || 0) * (p.stock_quantity || 0),
     0
   );
-  return total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return formatCurrencyCompact(total);
 });
 
 watch(

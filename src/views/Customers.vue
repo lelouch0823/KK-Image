@@ -372,7 +372,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onActivated, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onActivated, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { onClickOutside } from '@vueuse/core';
 import { useI18n } from '@/composables/useI18n';
@@ -380,7 +380,9 @@ import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { useAI } from '@/composables/useAI';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
-import { formatDate } from '@/utils/formatters';
+import { usePagination } from '@/composables/usePagination';
+import { useSearchState } from '@/composables/useSearchState';
+import { formatDate, toDateShort } from '@/utils/formatters';
 import { API } from '@/utils/constants';
 import { useManagedListSelection } from '@/composables/useManagedListSelection';
 import SearchInput from '@/components/ui/SearchInput.vue';
@@ -418,13 +420,8 @@ const loading = ref(false);
 const error = ref('');
 const errorCode = ref(null);
 const customers = ref([]);
-const searchQuery = ref('');
-const pagination = reactive({
-  page: 1,
-  limit: 20,
-  total: 0,
-  totalPages: 1,
-});
+const { searchQuery } = useSearchState();
+const { pagination, setFromResponse, resetToFirst } = usePagination();
 
 const showFormModal = ref(false);
 const editingId = ref(null);
@@ -515,9 +512,7 @@ const loadCustomers = async (params = {}) => {
 
     if (result.success) {
       customers.value = result.data;
-      pagination.total = result.pagination.total;
-      pagination.totalPages = result.pagination.totalPages;
-      pagination.page = result.pagination.page;
+      setFromResponse(result.pagination);
       return;
     }
     if ((result.error || result.message || '').includes('权限不足')) {
@@ -540,7 +535,7 @@ const loadCustomers = async (params = {}) => {
 };
 
 const handleSearch = () => {
-  pagination.page = 1;
+  resetToFirst();
   loadCustomers();
 };
 
@@ -600,9 +595,7 @@ const handleFormSubmit = async (formData) => {
 
       await handleCreated({
         createdId: result.data?.id,
-        resetToFirstPage: () => {
-          pagination.page = 1;
-        },
+        resetToFirstPage: resetToFirst,
         reload: () => loadCustomers({ page: 1 }),
         getItems: () => customers.value,
         openDetail,
@@ -689,7 +682,7 @@ const handleBatchExport = async () => {
     const filenameMatch = disposition && disposition.match(/filename="?(.+)"?/);
     link.download = filenameMatch
       ? filenameMatch[1]
-      : `customers_${new Date().toISOString().slice(0, 10)}.csv`;
+      : `customers_${toDateShort()}.csv`;
 
     document.body.appendChild(link);
     link.click();
@@ -727,7 +720,7 @@ const handleExport = async (format) => {
     const filenameMatch = disposition && disposition.match(/filename="?(.+)"?/);
     link.download = filenameMatch
       ? filenameMatch[1]
-      : `customers_${new Date().toISOString().slice(0, 10)}.${format}`;
+      : `customers_${toDateShort()}.${format}`;
 
     document.body.appendChild(link);
     link.click();

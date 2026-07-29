@@ -14,18 +14,7 @@
 import { generateId, now } from '../api/utils/id.js';
 import { parseJsonObject } from '../api/utils/json.js';
 import { executeBatchChunks } from '../lib/db/batch.js';
-function isMissingColumnError(error, columns = []) {
-    const message = String(error?.message || error || '').toLowerCase();
-    if (!message.includes('no such column'))
-        return false;
-    if (!columns || columns.length === 0)
-        return true;
-    return columns.some((column) => message.includes(String(column).toLowerCase()));
-}
-function isUniqueConstraintError(error) {
-    const message = String(error?.message || error || '').toLowerCase();
-    return message.includes('unique constraint failed') || message.includes('constraint failed');
-}
+import { isMissingColumnError, isUniqueConstraintError } from '../lib/db/errors.js';
 export class NotificationRepository {
     db;
     columnExistsCache = new Map();

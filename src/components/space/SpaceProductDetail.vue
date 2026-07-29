@@ -392,7 +392,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { isImage, isPdf, formatSize } from '@/utils/formatters';
+import { isImage, isPdf, formatSize, formatCurrency } from '@/utils/formatters';
 import { useBatchDownload } from '@/composables/useBatchDownload';
 import { useI18n } from '@/composables/useI18n';
 import { useResponsive } from '@/composables/useResponsive';
@@ -510,7 +510,7 @@ const prevImage = () => {
 };
 
 const formatPrice = (price) => {
-  return Number(price).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
+  return formatCurrency(price);
 };
 
 // Touch Handling

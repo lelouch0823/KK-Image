@@ -123,6 +123,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { formatVariantName } from '@/utils/product';
+import { formatAmount } from '@/utils/formatters';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppInput from '@/components/ui/AppInput.vue';
@@ -302,7 +303,7 @@ const saveChanges = async () => {
 
 // 格式化价格
 const formatPrice = (price) => {
-  return Number(price || 0).toFixed(2);
+  return formatAmount(price || 0);
 };
 
 // 格式化日期为 input[type=date] 格式

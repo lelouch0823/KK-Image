@@ -287,21 +287,21 @@
               <!-- 入货成本 -->
               <template #cell-avgUnitCost="{ row: item }">
                 <span class="font-mono text-(--text-secondary)">
-                  {{ item.avgUnitCost > 0 ? '¥' + item.avgUnitCost.toFixed(2) : '-' }}
+                  {{ item.avgUnitCost > 0 ? formatCurrency(item.avgUnitCost) : '-' }}
                 </span>
               </template>
 
               <!-- 运费分摊 -->
               <template #cell-avgFreight="{ row: item }">
                 <span class="font-mono text-(--text-secondary)">
-                  {{ item.avgFreight > 0 ? '¥' + item.avgFreight.toFixed(2) : '-' }}
+                  {{ item.avgFreight > 0 ? formatCurrency(item.avgFreight) : '-' }}
                 </span>
               </template>
 
               <!-- 到岸成本 -->
               <template #cell-landedCost="{ row: item }">
                 <span v-if="item.landedCost > 0" class="font-mono font-semibold text-(--text-main)"
-                  >¥{{ item.landedCost.toFixed(2) }}</span
+                  >{{ formatCurrency(item.landedCost) }}</span
                 >
                 <span v-else class="text-(--text-muted)">-</span>
               </template>
@@ -454,6 +454,7 @@ import ManagementListShell from '@/design-system/patterns/ManagementListShell.vu
 import AppTableCodeChip from '@/components/ui/AppTableCodeChip.vue';
 import AppTableStatusPill from '@/components/ui/AppTableStatusPill.vue';
 import { resolvePrimaryProductImageSrc } from '@/components/product/image-resolver';
+import { formatCurrency } from '@/utils/formatters';
 
 const { t } = useI18n();
 const { addToast } = useToast();

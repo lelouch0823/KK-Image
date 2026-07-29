@@ -52,6 +52,7 @@
 import { computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { usePrintTemplate } from '@/composables/usePrintTemplate';
+import { formatDate } from '@/utils/formatters';
 
 const props = defineProps({
   /** 文档标题 */
@@ -77,7 +78,7 @@ const settings = computed(() => {
 const footerGeneratedText = computed(() =>
   t('print.generatedBy', '由 {name} 系统生成 · {date}', {
     name: settings.value.companyName || 'KK-Image',
-    date: new Date().toLocaleString(),
+    date: formatDate(Date.now()),
   })
 );
 </script>

@@ -164,7 +164,7 @@
       :message="confirmData.message"
       :type="confirmData.type"
       :loading="confirmData.loading"
-      @confirm="confirmData.onConfirm"
+      @confirm="handleConfirm"
     />
   </div>
 </template>
@@ -179,6 +179,7 @@ import Select from '@/components/ui/Select.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import { formatDate } from '@/utils/formatters';
 import { formatReadableLabel } from '@/utils/event-display';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 
 const props = defineProps({
   orderId: { type: String, required: true },
@@ -195,14 +196,7 @@ const { payments, summary, loading, adding, loadPayments, addPayment, deletePaym
 );
 
 const showAddForm = ref(false);
-const confirmData = ref({
-  show: false,
-  title: '',
-  message: '',
-  type: 'warning',
-  loading: false,
-  onConfirm: () => {},
-});
+const { confirmData, askConfirm, handleConfirm } = useConfirmDialog();
 const form = ref({
   amount: 0,
   method: 'cash',
@@ -293,24 +287,16 @@ async function handleSubmit() {
  * 删除付款记录
  */
 async function handleDelete(paymentId) {
-  confirmData.value = {
-    show: true,
+  askConfirm({
     title: t('common.confirmTitle'),
     message: t('order.payment.deleteConfirm'),
     type: 'warning',
-    loading: false,
     onConfirm: async () => {
-      confirmData.value.loading = true;
-      try {
-        const success = await deletePayment(paymentId);
-        if (success) {
-          emit('payment-changed');
-        }
-        confirmData.value.show = false;
-      } finally {
-        confirmData.value.loading = false;
+      const success = await deletePayment(paymentId);
+      if (success) {
+        emit('payment-changed');
       }
     },
-  };
+  });
 }
 </script>

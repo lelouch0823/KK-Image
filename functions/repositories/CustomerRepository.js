@@ -3,6 +3,7 @@ import { safeJsonParse } from '../api/utils/json.js';
 import { hasChanges } from '../api/utils/result.js';
 import { buildSetClause } from '../api/utils/sql.js';
 import { checkFtsTable, sanitizeFts5Query } from '../api/utils/fts.js';
+import { isUniqueConstraintError } from '../lib/db/errors.js';
 import { MS_PER_DAY } from '../api/utils/constants.js';
 /**
  * 客户仓库
@@ -389,7 +390,7 @@ export class CustomerRepository {
         }
         catch (e) {
             // UNIQUE 约束冲突 → 标签已存在，忽略
-            if (e instanceof Error && e.message?.includes('UNIQUE'))
+            if (isUniqueConstraintError(e))
                 return null;
             throw e;
         }

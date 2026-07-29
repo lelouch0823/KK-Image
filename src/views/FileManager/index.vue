@@ -248,7 +248,7 @@
           :message="confirmData.message"
           :type="confirmData.type"
           :loading="confirmData.loading"
-          @confirm="confirmData.onConfirm"
+          @confirm="handleConfirm"
         />
 
         <!-- Context Menu -->
@@ -306,6 +306,7 @@ import { useFileSelection } from '@/composables/file-manager/useFileSelection';
 import { useFileNavigation } from '@/composables/file-manager/useFileNavigation';
 import { openInNewTab } from '@/utils/browser';
 import { ErrorCode } from '@/utils/error-codes';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 
 const { addToast } = useToast();
 const { addFiles, registerFolderRefresh, unregisterFolderRefresh } = useUploadQueue();
@@ -383,14 +384,7 @@ const canDeleteFolders = ref(false);
 const canMoveFiles = ref(false);
 
 // Confirm Dialog State
-const confirmData = ref({
-  show: false,
-  title: '',
-  message: '',
-  type: 'primary',
-  loading: false,
-  onConfirm: () => {},
-});
+const { confirmData, askConfirm, handleConfirm } = useConfirmDialog();
 
 // Context Menu State
 const contextMenuData = ref({
@@ -431,24 +425,16 @@ const handleBatchDelete = () => {
   if (!canDeleteFiles.value) return;
   if (selectedIds.value.size === 0) return;
 
-  confirmData.value = {
-    show: true,
+  askConfirm({
     title: t('common.delete'),
     message: t('fileManager.deleteConfirm', { count: selectedIds.value.size }),
     type: 'danger',
-    loading: false,
     onConfirm: async () => {
-      confirmData.value.loading = true;
-      try {
-        const ids = Array.from(selectedIds.value);
-        await batchDeleteFiles(ids);
-        selectedIds.value.clear();
-        confirmData.value.show = false;
-      } finally {
-        confirmData.value.loading = false;
-      }
+      const ids = Array.from(selectedIds.value);
+      await batchDeleteFiles(ids);
+      selectedIds.value.clear();
     },
-  };
+  });
 };
 
 const handleBatchMove = () => {

@@ -329,8 +329,7 @@ import {
   getPurchaseOrderOutstandingQty,
   getPurchaseOrderReceivedQty,
 } from '@/utils/purchase-order-progress';
-import { formatCurrency as formatMoney } from '@/utils/formatters';
-import { formatDate } from '@/utils/formatters';
+import { formatCurrency as formatMoney, formatAmount, formatDate } from '@/utils/formatters';
 import { createReceiptMetaBuilder } from '@/views/purchase-orders/progress';
 import { createPurchaseOrderSteps } from '@/views/purchase-orders/stepper';
 import {
@@ -502,7 +501,7 @@ const currencyOptions = computed(() =>
   }))
 );
 
-const formatInteger = (value) => Number(value || 0).toLocaleString('zh-CN');
+const formatInteger = (value) => formatAmount(value || 0);
 
 const formatPurchaseCurrency = (value, currency = 'CNY') => {
   if (value === undefined || value === null || value === '') return '-';

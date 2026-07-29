@@ -390,14 +390,6 @@
       @refresh="refreshOrderDetail"
       @comment="handleComment"
     />
-    <ConfirmDialog
-      v-model="confirmData.show"
-      :title="confirmData.title"
-      :message="confirmData.message"
-      :type="confirmData.type"
-      :loading="confirmData.loading"
-      @confirm="confirmData.onConfirm"
-    />
   </div>
 </template>
 
@@ -414,7 +406,6 @@ import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
 import ShareManagementModal from '@/components/ShareManagementModal.vue';
 import ShareFolderModal from '@/components/ShareFolderModal.vue';
 import OrderWorkflowModal from '@/components/order/OrderWorkflowModal.vue';
-import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import PermissionDeniedState from '@/components/ui/PermissionDeniedState.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -437,6 +428,7 @@ import StatGroup from '@/design-system/composed/StatGroup.vue';
 import { Chart } from '@/utils/chart-setup';
 import { ErrorCode } from '@/utils/error-codes';
 import { classifyError, extractErrorMessage } from '@/utils/api-helpers';
+import { formatCurrencyCompact } from '@/utils/formatters';
 import {
   buildSalesTrendChartConfig,
   buildStatusDistributionChartConfig,
@@ -486,8 +478,7 @@ const dashboardDescription = computed(() => {
 // 格式化利润值
 const formatProfitValue = (num) => {
   if (num == null || !Number.isFinite(num)) return '-';
-  if (Math.abs(num) >= 10000) return (num / 10000).toFixed(1) + '万';
-  return num.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return formatCurrencyCompact(num);
 };
 
 const summaryCards = computed(() => [
@@ -555,15 +546,6 @@ const editingFolder = ref(null);
 
 const salesTrendChartRef = ref(null);
 const statusDistributionChartRef = ref(null);
-
-const confirmData = ref({
-  show: false,
-  title: '',
-  message: '',
-  type: 'primary',
-  loading: false,
-  onConfirm: () => {},
-});
 
 // Chart Instances
 const charts = {

@@ -155,7 +155,7 @@
       :message="confirmData.message"
       :type="confirmData.type"
       :loading="confirmData.loading"
-      @confirm="confirmData.onConfirm"
+      @confirm="handleConfirm"
     />
   </div>
 </template>
@@ -173,6 +173,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import AppImage from '@/components/ui/AppImage.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 import { formatReadableLabel } from '@/utils/event-display';
+import { useConfirmDialog } from '@/composables/useConfirmDialog';
 
 const props = defineProps({
   spaceId: { type: String, required: true },
@@ -192,14 +193,7 @@ const showCreateModal = ref(false);
 let loadRequestId = 0;
 
 // 确认弹窗状态
-const confirmData = ref({
-  show: false,
-  title: '',
-  message: '',
-  type: 'primary',
-  loading: false,
-  onConfirm: () => {},
-});
+const { confirmData, askConfirm, handleConfirm } = useConfirmDialog();
 
 const getTemplateLabel = (template) =>
   t(`spaceManager.templates.${template || 'custom'}`, formatReadableLabel(template || 'custom'));
@@ -228,25 +222,17 @@ const copyLink = async (sub) => {
 
 const deleteSubspace = (sub) => {
   if (!props.canManage) return;
-  confirmData.value = {
-    show: true,
+  askConfirm({
     title: t('common.delete'),
     message: t('spaceManager.deleteSpaceConfirm', { name: sub.name }),
     type: 'danger',
-    loading: false,
     onConfirm: async () => {
-      confirmData.value.loading = true;
-      try {
-        const deleted = await deleteSpace(sub.id);
-        if (!deleted) return;
-        await loadData();
-        emit('updated');
-        confirmData.value.show = false;
-      } finally {
-        confirmData.value.loading = false;
-      }
+      const deleted = await deleteSpace(sub.id);
+      if (!deleted) return;
+      await loadData();
+      emit('updated');
     },
-  };
+  });
 };
 
 const onSubspaceCreated = async () => {
