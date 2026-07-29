@@ -93,23 +93,25 @@ Access-Control-Allow-Headers: Content-Type, Authorization, X-API-Key
 
 ### 安全响应头
 
-通过 `_headers` 文件配置：
+通过 `public/_headers` 文件配置：
 
 ```
+# 全局
 Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-Content-Security-Policy: default-src 'self' 'unsafe-inline' ...
+
+# HTML 页面
 X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
+X-Frame-Options: SAMEORIGIN
 X-XSS-Protection: 1; mode=block
+Referrer-Policy: strict-origin-when-cross-origin
+
+# 静态资源
+Cache-Control: public, max-age=31536000, immutable
 ```
 
 ### 速率限制
 
-| 接口类型 | 限制         |
-| -------- | ------------ |
-| 上传接口 | 60 次/分钟   |
-| 访问接口 | 1000 次/分钟 |
-| 管理接口 | 100 次/分钟  |
+速率限制通过 Hono 中间件（`functions/lib/hono/middleware/rateLimit.js`）实现，不在 `_headers` 文件中配置。
 
 ## 🔒 数据保护
 

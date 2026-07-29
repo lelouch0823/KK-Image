@@ -93,7 +93,7 @@ pnpm deploy:verify    # Post-deploy verification
 ## Architecture
 
 ### Frontend (`src/`)
-- **Framework**: Vue 3 with `<script setup>` syntax + Vite (SPA, single entry `src/main.js`)
+- **Framework**: Vue 3 with `<script setup>` syntax + Vite (SPA, single entry `src/main.ts`)
 - **Styling**: Tailwind CSS v4 (via `@tailwindcss/vite` plugin) — no raw CSS
 - **State**: Vue Composition API + Composables in `src/composables/`
 - **Routing**: Vue Router with views in `src/views/`

@@ -187,18 +187,20 @@ graph TB
 
 ## 6. CSS变量主题系统
 
+详见 `src/styles/tokens/` 下的三层 Token 架构（primitive → semantic → dark theme）。
+
 ```css
 :root {
-  --color-primary: #3b82f6;
+  --color-primary: #ec5b13;
   --color-danger: #ef4444;
-  --bg-page: #f8fafc;
+  --bg-page: #fafaf9;
   --bg-card: #ffffff;
-  --text-main: #1e293b;
+  --text-main: #1c1917;
 }
 
-:root.dark {
-  --bg-page: #0f172a;
-  --bg-card: #1e293b;
+.dark {
+  --bg-page: #0c0a09;
+  --bg-card: #1c1917;
   --text-main: #f1f5f9;
 }
 ```
