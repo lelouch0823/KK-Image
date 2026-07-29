@@ -350,3 +350,61 @@ or for anchors:
 - Search for `window.open` and `target="_blank"` when adding new tab behavior.
 - Prefer the shared browser helper for imperative opens.
 - Add a helper test when changing new-tab security behavior.
+
+---
+
+## Convention: Design Tokens — No Hardcoded Values
+
+**What**: All frontend styling must use the design token system (`src/styles/tokens/`) and Tailwind utility classes. No hardcoded hex colors, font sizes, or inline `:style` bindings for static token values.
+
+**Why**: Hardcoded values bypass the three-tier token architecture (primitive → semantic → dark theme), break dark mode, and make system-wide style changes impossible.
+
+**Token Architecture**:
+
+| Layer | File | Purpose |
+|-------|------|---------|
+| Primitive | `tokens/primitive.css` | Raw palette, radii, shadows, font-size scale |
+| Semantic | `tokens/semantic.css` | Light-mode contextual aliases (bg/border/text) |
+| Dark Theme | `tokens/themes.css` | `.dark` overrides for all semantic tokens |
+| Motion | `tokens/motion.css` | Transition timing tokens |
+| Charts | `tokens/charts.css` | Chart color palette |
+
+**Required pattern**:
+
+```vue
+<!-- ✅ Tailwind utility with token reference -->
+<div class="bg-(--bg-card) text-(--text-main) border-(--border-color)">
+
+<!-- ❌ Inline style with static token -->
+<div :style="{ backgroundColor: 'var(--bg-card)', color: 'var(--text-main)' }">
+
+<!-- ❌ Hardcoded hex -->
+<div style="color: #6b7280">
+```
+
+**Font-size tokens** (registered in `primitive.css`):
+
+| Token | Value | Tailwind |
+|-------|-------|----------|
+| `--text-[10px]` | 0.625rem | `text-[10px]` |
+| `--text-xs` | 0.75rem | `text-xs` |
+| `--text-sm` | 0.875rem | `text-sm` |
+| `--text-base` | 1rem | `text-base` |
+| `--text-lg` | 1.125rem | `text-lg` |
+| `--text-xl` | 1.25rem | `text-xl` |
+
+**Border-radius convention**: Card-level containers use `rounded-2xl`. Smaller elements (icons, badges, buttons) use `rounded-lg` or `rounded-xl` as appropriate.
+
+**Legitimate inline `:style`** (allowed):
+
+- Dynamic computed values (progress bars, virtual scroll, drag position)
+- User-configured values (print accent color, custom themes)
+- CSS calculations that depend on runtime data
+
+**Checklist**:
+
+- Search for `:style` bindings — static token references must be Tailwind utility classes.
+- Search for hex color literals (`#xxx`, `#xxxxxx`) — replace with token references.
+- Search for `text-[Npx]` arbitrary values — use standard scale or register a new token.
+- Verify card containers use `rounded-2xl`.
+- Run `pnpm qa:check-design-system` after styling changes.
