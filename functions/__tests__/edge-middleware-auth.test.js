@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   verifyJWT: vi.fn(),
+  isAdminAuthenticated: vi.fn(),
 }));
 
 vi.mock('../api/utils/auth.js', async () => {
@@ -9,6 +10,7 @@ vi.mock('../api/utils/auth.js', async () => {
   return {
     ...actual,
     verifyJWT: mocks.verifyJWT,
+    isAdminAuthenticated: mocks.isAdminAuthenticated,
   };
 });
 
@@ -21,7 +23,8 @@ import { onRequest } from '../_middleware.js';
 describe('edge middleware admin auth cookie parsing', () => {
   it('accepts quoted ADMIN_AUTH cookie token on admin pages', async () => {
     const next = vi.fn(async () => new Response('ok', { status: 200 }));
-    mocks.verifyJWT.mockResolvedValue({ id: 'admin-1' });
+    // 页面守卫现在通过 isAdminAuthenticated（含令牌类型校验）判断
+    mocks.isAdminAuthenticated.mockResolvedValue(true);
 
     const context = {
       request: new Request('https://example.com/admin', {
@@ -37,6 +40,6 @@ describe('edge middleware admin auth cookie parsing', () => {
 
     expect(res.status).toBe(200);
     expect(next).toHaveBeenCalledTimes(1);
-    expect(mocks.verifyJWT).toHaveBeenCalledWith('jwt.edge.token', context.env);
+    expect(mocks.isAdminAuthenticated).toHaveBeenCalledWith(context.request, context.env);
   });
 });

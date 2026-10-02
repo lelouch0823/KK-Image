@@ -337,12 +337,17 @@ export class ProductRepository {
         const now = Date.now();
         try {
             const nextVariantStatus = status === 'active' ? 'active' : 'archived';
-            const result = await execute(this.db, 'UPDATE product_variants SET status = ?, updated_at = ? WHERE product_id = ?', [nextVariantStatus, now, id], { label: 'product.updateStatus' });
-            await execute(this.db, 'UPDATE products SET updated_at = ? WHERE id = ?', [now, id], { label: 'product.touchAfterStatus' });
+            // 变体状态与商品 touch 合并到单个 batch 原子执行，
+            // 避免中途失败让投影里的 active_variant_count 与实际变体状态脱节
+            const batchResults = await executeBatchChunks(this.db, [
+                this.db.prepare('UPDATE product_variants SET status = ?, updated_at = ? WHERE product_id = ?').bind(nextVariantStatus, now, id),
+                this.db.prepare('UPDATE products SET updated_at = ? WHERE id = ?').bind(now, id),
+            ]);
+            const variantChanges = Number(batchResults?.[0]?.meta?.changes || 0);
             await new ProductProjectionRepository(this.db).refreshByProductId(id);
             return {
-                success: result.success,
-                changes: hasChanges(result) ? (result.meta?.changes || 0) : 0,
+                success: true,
+                changes: variantChanges,
             };
         }
         catch (e) {

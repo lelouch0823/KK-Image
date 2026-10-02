@@ -44,10 +44,11 @@ app.get('/', async (c) => {
 
 /**
  * GET /api/v1/health/info - API 信息
+ *
+ * 该端点位于公开前缀（/api/v1/health/*）之下，供探活与接入方识别使用；
+ * 不暴露构建指纹（commit SHA / 分支名），避免为针对性攻击提供部署情报。
  */
 app.get('/info', async (c) => {
-  const { env } = c;
-
   const apiInfo = {
     name: 'kk-life API',
     version: '2.0.0',
@@ -71,14 +72,6 @@ app.get('/info', async (c) => {
     },
     timestamp: new Date().toISOString(),
   };
-
-  // 添加构建信息
-  if (env.CF_PAGES_COMMIT_SHA) {
-    apiInfo.build = {
-      commit: env.CF_PAGES_COMMIT_SHA,
-      branch: env.CF_PAGES_BRANCH || 'unknown',
-    };
-  }
 
   return c.json(apiInfo);
 });

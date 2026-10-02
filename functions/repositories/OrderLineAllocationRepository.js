@@ -106,21 +106,36 @@ export class OrderLineAllocationRepository {
 
   buildReleaseStatement(allocation, quantity, options = {}) {
     const releaseQty = Math.max(0, Number(quantity) || 0);
-    const currentReleasedQty = Math.max(0, Number(allocation?.released_qty) || 0);
-    const allocatedQty = Math.max(0, Number(allocation?.allocated_qty) || 0);
-    const nextReleasedQty = Math.min(allocatedQty, currentReleasedQty + releaseQty);
     const timestamp = options.now ?? options.released_at ?? Date.now();
-    const status = nextReleasedQty >= allocatedQty ? 'released' : 'active';
 
+    // released_qty 在 SQL 内做相对累加（而非回写 JS 预计算的绝对值）：
+    // 两个并发部分释放各自基于同一快照计算会互相覆盖（丢失更新），
+    // 相对更新 + MIN 封顶保证并发安全；status 由 CASE 与 released_qty 同步推导
     return this.db
       .prepare(
         `UPDATE order_line_allocations
-         SET released_qty = ?,
-             released_at = ?,
-             status = ?,
+         SET released_qty = MIN(COALESCE(allocated_qty, 0), COALESCE(released_qty, 0) + ?),
+             released_at = CASE
+               WHEN MIN(COALESCE(allocated_qty, 0), COALESCE(released_qty, 0) + ?) >= COALESCE(allocated_qty, 0)
+                 THEN ?
+               ELSE COALESCE(released_at, ?)
+             END,
+             status = CASE
+               WHEN MIN(COALESCE(allocated_qty, 0), COALESCE(released_qty, 0) + ?) >= COALESCE(allocated_qty, 0)
+                 THEN 'released'
+               ELSE 'active'
+             END,
              updated_at = ?
          WHERE id = ?`
       )
-      .bind(nextReleasedQty, timestamp, status, options.updated_at ?? timestamp, allocation.id);
+      .bind(
+        releaseQty,
+        releaseQty,
+        timestamp,
+        timestamp,
+        releaseQty,
+        options.updated_at ?? timestamp,
+        allocation.id
+      );
   }
 }

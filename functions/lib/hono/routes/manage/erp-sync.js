@@ -65,7 +65,8 @@ const CreateConnectionSchema = z
 const UpdateConnectionSchema = z
   .object({
     name: z.string().min(1).optional(),
-    adapterType: z.string().optional(),
+    // 与创建 schema 的枚举一致，防止写入不受支持的适配器类型破坏 testConnection/syncAll
+    adapterType: z.enum(['generic', 'rest', 'kingdee', 'yonyou', 'sap']).optional(),
     baseUrl: z.string().url().optional(),
     authType: z.enum(['api_key', 'oauth2', 'basic']).optional(),
     credentials: z.record(z.string()).optional(),

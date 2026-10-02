@@ -119,6 +119,8 @@ export async function publishAndSchedulePoll(
       env: c.env,
       requestUrl: c.req?.url || 'unknown://publish',
       workerId: workerId || `outbox:${Date.now()}`,
+    }).catch((err) => {
+      console.error('[Outbox] Background poller failed:', err?.message || err);
     })
   );
   return published;

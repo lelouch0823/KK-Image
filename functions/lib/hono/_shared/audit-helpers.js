@@ -124,6 +124,13 @@ export function shouldAuditRequest(method, path = '') {
 }
 
 export function getAuditScheduler(c) {
+  // 审计失败绝不能影响主请求或让 waitUntil 产生未处理拒绝：
+  // 统一在调度器边界附加 catch，所有调用方（errorHandler、authMiddleware、
+  // requirePermission、scheduleAuditEvent）自动获得容错。
+  const withRejectionGuard = (promise) =>
+    Promise.resolve(promise).catch((error) => {
+      console.error('[Audit] Failed to record audit event:', error);
+    });
   let executionCtx = null;
   try {
     executionCtx = c?.executionCtx;
@@ -131,10 +138,10 @@ export function getAuditScheduler(c) {
     executionCtx = null;
   }
   if (executionCtx?.waitUntil) {
-    return (promise) => executionCtx.waitUntil(promise);
+    return (promise) => executionCtx.waitUntil(withRejectionGuard(promise));
   }
   return async (promise) => {
-    await promise;
+    await withRejectionGuard(promise);
   };
 }
 

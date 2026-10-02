@@ -22,7 +22,9 @@ function createPreparedStatement(
 function createMockDb({ pendingJobs = [], staleJobs = [], availableJobsCount = null } = {}) {
   return {
     prepare: vi.fn((sql) => {
-      if (sql.includes('FROM outbox_consumer_jobs jobs') && sql.includes('jobs.status IN')) {
+      // 认领查询的 WHERE 子句结构可能随状态机演化（如增加 attempt 上限过滤），
+      // 匹配固定的 SELECT 骨架而不是具体的状态过滤表达式
+      if (sql.includes('FROM outbox_consumer_jobs jobs') && sql.includes('ORDER BY jobs.available_at')) {
         return createPreparedStatement(sql, {
           allResult: {
             results: [...pendingJobs, ...staleJobs],

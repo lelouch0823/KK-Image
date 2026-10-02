@@ -1,6 +1,10 @@
 import { executeBatchChunks } from '../lib/db/batch.js';
 import { execute, query, queryFirst } from '../lib/db/query.js';
 
+// 单个任务的最大重试次数：超过后不再自动认领（保持 failed 状态供人工排查/重放），
+// 防止永久失败的消费者（如持续 5xx 的 webhook 端点）以 60 秒退避无限重试
+export const OUTBOX_MAX_ATTEMPTS = 20;
+
 export class DomainOutboxDispatchService {
   constructor(db, deps = {}) {
     this.db = db;
@@ -26,12 +30,13 @@ export class DomainOutboxDispatchService {
          JOIN domain_outbox evt ON evt.id = jobs.event_id
          WHERE jobs.consumer_name = ?
            AND (
-             (jobs.status IN ('pending', 'failed') AND jobs.available_at <= ?)
+             (jobs.status = 'pending' AND jobs.available_at <= ?)
+             OR (jobs.status = 'failed' AND jobs.available_at <= ? AND jobs.attempt_count < ${OUTBOX_MAX_ATTEMPTS})
              OR (jobs.status = 'processing' AND COALESCE(jobs.leased_until, 0) < ?)
            )
          ORDER BY jobs.available_at ASC, jobs.created_at ASC
          LIMIT ?`,
-      [consumerName, nowTs, nowTs, limit],
+      [consumerName, nowTs, nowTs, nowTs, limit],
       { label: 'outbox.claimJobs.select' }
     );
 
@@ -50,11 +55,12 @@ export class DomainOutboxDispatchService {
          WHERE id = ?
            AND consumer_name = ?
            AND (
-             (status IN ('pending', 'failed') AND available_at <= ?)
+             (status = 'pending' AND available_at <= ?)
+             OR (status = 'failed' AND available_at <= ? AND attempt_count < ${OUTBOX_MAX_ATTEMPTS})
              OR (status = 'processing' AND COALESCE(leased_until, 0) < ?)
            )`
         )
-        .bind(workerId, leasedUntil, nowTs, job.id, consumerName, nowTs, nowTs)
+        .bind(workerId, leasedUntil, nowTs, job.id, consumerName, nowTs, nowTs, nowTs)
     );
 
     const claimResults = await executeBatchChunks(this.db, statements);
@@ -115,9 +121,10 @@ export class DomainOutboxDispatchService {
       this.db,
       `SELECT COUNT(*) AS total
          FROM outbox_consumer_jobs
-         WHERE (status IN ('pending', 'failed') AND available_at <= ?)
+         WHERE (status = 'pending' AND available_at <= ?)
+            OR (status = 'failed' AND available_at <= ? AND attempt_count < ${OUTBOX_MAX_ATTEMPTS})
             OR (status = 'processing' AND COALESCE(leased_until, 0) < ?)`,
-      [nowTs, nowTs],
+      [nowTs, nowTs, nowTs],
       { label: 'outbox.countAvailableJobs' }
     );
 

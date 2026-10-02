@@ -252,7 +252,6 @@ export class PaymentRepository {
     return {
       orderCount: summary?.order_count ?? 0,
       totalAmount,
-      totalQuantity: totalAmount,
       totalPaid,
       totalOutstanding: totalAmount - totalPaid,
       aging,
@@ -379,7 +378,6 @@ export class PaymentRepository {
       customerCompany: row.customer_company,
       orderCount: row.order_count,
       totalAmount: row.total_amount,
-      totalQuantity: row.total_amount,
       totalPaid: row.total_paid,
       outstanding: row.total_amount - row.total_paid,
     }));

@@ -286,7 +286,16 @@ describe('ProductRepository', () => {
       expect(
         db.prepare.mock.calls.some((call) => call[0].includes('INSERT INTO product_projection'))
       ).toBe(true);
-      expect(db.batch).toHaveBeenCalledTimes(1);
+      // 第 1 次 batch：变体状态 + 商品 touch 原子执行；第 2 次 batch：投影重建
+      expect(db.batch).toHaveBeenCalledTimes(2);
+      const firstBatch = db.batch.mock.calls[0][0];
+      expect(firstBatch).toHaveLength(2);
+      expect(firstBatch.map((stmt) => stmt.sql)).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('UPDATE product_variants'),
+          expect.stringContaining('UPDATE products'),
+        ])
+      );
     });
   });
 

@@ -19,6 +19,7 @@ import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { getIdempotencyKey } from '../../_shared/outbox-helpers.js';
+import { buildRequestFingerprint, getCommandScopeKey } from '../../_shared/command-idempotency.js';
 import {
   cleanupReservedCommand,
   parseStoredResponse,
@@ -75,34 +76,10 @@ function assertValidBatchStatusAction(normalizedAction, normalizedStatus) {
   }
 }
 
-function normalizeOrderCreateFingerprintValue(value) {
-  if (Array.isArray(value)) {
-    return value.map((item) => normalizeOrderCreateFingerprintValue(item));
-  }
+// 指纹归一化与作用域键使用共享实现（与采购单/商品/行级命令保持一致）
+const buildOrderCreateRequestFingerprint = (body = {}) => buildRequestFingerprint(body);
 
-  if (value && typeof value === 'object') {
-    return Object.keys(value)
-      .sort()
-      .reduce((acc, key) => {
-        const normalized = normalizeOrderCreateFingerprintValue(value[key]);
-        if (normalized !== undefined) {
-          acc[key] = normalized;
-        }
-        return acc;
-      }, {});
-  }
-
-  return value;
-}
-
-function buildOrderCreateRequestFingerprint(body = {}) {
-  return JSON.stringify(normalizeOrderCreateFingerprintValue(body));
-}
-
-function getCreateCommandScopeKey(c) {
-  const actorId = String(c.get('user')?.id || 'anonymous').trim() || 'anonymous';
-  return `${ORDER_CREATE_COMMAND_TYPE}:${actorId}`;
-}
+const getCreateCommandScopeKey = (c) => getCommandScopeKey(c, ORDER_CREATE_COMMAND_TYPE);
 
 function sanitizeOrderCreateResponse(response = {}) {
   const { fileIds: _fileIds, ...publicResponse } = response || {};

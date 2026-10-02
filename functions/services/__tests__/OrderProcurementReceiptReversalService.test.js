@@ -233,6 +233,10 @@ function createDbHarness({
     buildDeleteStatement: vi.fn((commandId) =>
       db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId)
     ),
+    // stale 锁接管：harness 默认无可接管的过期锁（changes: 0 → 直接走冲突路径）
+    buildStealStaleLockStatement: vi.fn(() => ({
+      run: vi.fn(async () => ({ meta: { changes: 0 } })),
+    })),
   };
 
   const domainOutboxRepo = {

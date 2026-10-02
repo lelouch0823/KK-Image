@@ -5,7 +5,7 @@ export const DOMAIN_EVENT_CATALOG = {
   },
   order_created_by_sales: {
     version: 1,
-    consumers: ['cache', 'notification', 'webhook'],
+    consumers: ['cache', 'notification', 'webhook', 'emailNotify'],
   },
   order_updated_by_admin: {
     version: 1,
@@ -17,7 +17,7 @@ export const DOMAIN_EVENT_CATALOG = {
   },
   order_status_changed_by_admin: {
     version: 1,
-    consumers: ['cache', 'notification'],
+    consumers: ['cache', 'notification', 'emailNotify'],
   },
   order_status_changed_by_sales: {
     version: 1,
@@ -57,7 +57,7 @@ export const DOMAIN_EVENT_CATALOG = {
   },
   order_delivery_confirmed: {
     version: 1,
-    consumers: ['cache', 'notification'],
+    consumers: ['cache', 'notification', 'emailNotify'],
   },
   order_return_created: {
     version: 1,

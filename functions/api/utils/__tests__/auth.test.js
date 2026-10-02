@@ -163,18 +163,26 @@ describe('Auth Utils 100% Coverage Final', () => {
 
   describe('authenticateAdmin & isAdminAuthenticated', () => {
     it('should authenticate via Bearer and handle invalid cases', async () => {
-      const token = await generateJWT({ id: 'admin' }, env);
+      // 管理端判定要求令牌携带 admin/user 类型（防止销售端/分享令牌被当作管理员）
+      const token = await generateJWT({ id: 'admin', type: 'admin' }, env);
       const req = new Request('https://api.test', {
         headers: { Authorization: `Bearer ${token}` },
       });
       expect(await isAdminAuthenticated(req, env)).toBe(true);
+
+      // 无类型令牌（遗留 'jwt'）不再被视为管理员
+      const legacyToken = await generateJWT({ id: 'admin-legacy' }, env);
+      const legacyReq = new Request('https://api.test', {
+        headers: { Authorization: `Bearer ${legacyToken}` },
+      });
+      expect(await isAdminAuthenticated(legacyReq, env)).toBe(false);
 
       const req2 = new Request('https://api.test');
       expect(await isAdminAuthenticated(req2, env)).toBe(false);
     });
 
     it('accepts quoted admin auth cookie token', async () => {
-      const token = await generateJWT({ id: 'admin-quoted' }, env);
+      const token = await generateJWT({ id: 'admin-quoted', type: 'admin' }, env);
       const req = new Request('https://api.test', {
         headers: { Cookie: `${ADMIN_AUTH_COOKIE}="${token}"` },
       });

@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   cacheConsumer: vi.fn(async () => {}),
   notificationConsumer: vi.fn(async () => {}),
   webhookConsumer: vi.fn(async () => {}),
+  emailNotifyConsumer: vi.fn(async () => {}),
 }));
 
 vi.mock('../../utils/cron-auth.js', async () => {
@@ -49,6 +50,7 @@ vi.mock('../../../services/DomainOutboxConsumers.js', () => ({
     cache: mocks.cacheConsumer,
     notification: mocks.notificationConsumer,
     webhook: mocks.webhookConsumer,
+    emailNotify: mocks.emailNotifyConsumer,
   },
 }));
 
@@ -105,7 +107,8 @@ describe('cron outbox poller', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([]);
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([]);
   });
 
   it('runs the outbox poller and returns processed counts', async () => {
@@ -213,7 +216,9 @@ describe('cron outbox poller', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([]);
+      .mockResolvedValue([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([]);
 
     mocks.auditConsumer.mockImplementation(async ({ job }) => {
       started.push(job.id);
@@ -297,7 +302,8 @@ describe('cron outbox poller', () => {
           event_type: 'order_procurement_progressed',
           payload_json: '{}',
         },
-      ]);
+      ])
+      .mockResolvedValue([]);
 
     const result = await runOutboxPoller({
       env: { DB: {} },
@@ -315,7 +321,8 @@ describe('cron outbox poller', () => {
         backlog: 0,
       })
     );
-    expect(mocks.claimJobs).toHaveBeenCalledTimes(4);
+    // 请求路径轮数上限为 1：5 个活跃消费者各认领一次
+    expect(mocks.claimJobs).toHaveBeenCalledTimes(5);
     expect(mocks.claimJobs).toHaveBeenNthCalledWith(
       1,
       'audit',
@@ -374,6 +381,7 @@ describe('cron outbox poller', () => {
         cache: { claimed: 0, published: 0, failed: 0 },
         notification: { claimed: 0, published: 0, failed: 0 },
         webhook: { claimed: 0, published: 0, failed: 0 },
+        emailNotify: { claimed: 0, published: 0, failed: 0 },
       },
     });
     expect(mocks.claimJobs).not.toHaveBeenCalled();

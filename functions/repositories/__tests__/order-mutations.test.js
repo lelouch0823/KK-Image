@@ -915,37 +915,42 @@ describe('Order Mutations SQL Binding', () => {
     });
 
     it('updateStatus stops before compatibility side effects when the status CAS fails', async () => {
-      db.all.mockResolvedValueOnce({
-        results: [
-          {
-            order_id: 'o-stale',
-            id: 'line-stale',
-            ordered_qty: 1,
-            procured_qty: 0,
-            received_qty: 0,
-            reserved_qty: 0,
-            shipped_qty: 0,
-            cancelled_qty: 0,
-            line_count: 1,
-            total_ordered_qty: 1,
-            total_shipped_qty: 0,
-            total_cancelled_qty: 0,
-            row_num: 1,
-          },
-        ],
+      // 状态更新与行进度重写现已合并到单个原子批次：
+      // 使用顺序守卫 mock 模拟 D1 批次内 changes() 断言语句，CAS 失败时整批回滚
+      const guardDb = createSequentialGuardDb({
+        orderUpdateChanges: 0,
+        allHandler: async () => ({
+          results: [
+            {
+              order_id: 'o-stale',
+              id: 'line-stale',
+              ordered_qty: 1,
+              procured_qty: 0,
+              received_qty: 0,
+              reserved_qty: 0,
+              shipped_qty: 0,
+              cancelled_qty: 0,
+              line_count: 1,
+              total_ordered_qty: 1,
+              total_shipped_qty: 0,
+              total_cancelled_qty: 0,
+              row_num: 1,
+            },
+          ],
+        }),
+        firstHandler: async () => ({ status: 'pending', variant_id: null, quantity: 1 }),
       });
-      db.first.mockResolvedValueOnce({ status: 'pending', variant_id: null, quantity: 1 });
-      db.run.mockResolvedValueOnce({ meta: { changes: 0 } });
 
-      await expect(updateStatus(db, 'o-stale', 'confirmed', 'admin')).rejects.toMatchObject({
+      await expect(updateStatus(guardDb, 'o-stale', 'confirmed', 'admin')).rejects.toMatchObject({
         statusCode: 409,
       });
 
-      const lineUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) =>
-        sql.includes('UPDATE order_lines')
-      );
-      expect(lineUpdateIndex).toBe(-1);
-      expect(db.batch).not.toHaveBeenCalled();
+      // 批次因断言失败而抛错：order_lines 的兼容性写入与状态更新同批，随批次原子回滚
+      expect(guardDb.batch).toHaveBeenCalledTimes(1);
+      const batchStatements = guardDb.batch.mock.calls[0][0];
+      expect(
+        batchStatements.some((stmt) => String(stmt?.sql || '').includes('UPDATE order_lines'))
+      ).toBe(true);
     });
 
     it('batchUpdateStatus persists fulfilled when legacy delivered input is requested', async () => {

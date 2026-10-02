@@ -33,7 +33,7 @@ export class StatsRepository {
                     (SELECT COALESCE(SUM(size), 0) FROM files) as total_size,
                     (SELECT COUNT(DISTINCT mime_type) FROM files) as type_count,
                     (SELECT COUNT(*) FROM files WHERE created_at >= ?) as today_uploads,
-                    (SELECT COUNT(*) FROM folders WHERE id != "root") as folder_count,
+                    (SELECT COUNT(*) FROM folders WHERE id != 'root') as folder_count,
                     (SELECT COUNT(*) FROM albums) as album_count,
                     (SELECT COUNT(*) FROM spaces) as space_count`
         )

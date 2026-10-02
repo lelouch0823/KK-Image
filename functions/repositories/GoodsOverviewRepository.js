@@ -74,6 +74,9 @@ function buildInventorySql() {
   `;
 }
 
+// 列表行数上限：请求无分页参数，硬上限防御极端目录规模下的无界响应
+export const GOODS_OVERVIEW_MAX_ROWS = 2000;
+
 export class GoodsOverviewRepository {
   constructor(db) {
     this.db = db;
@@ -196,12 +199,18 @@ export class GoodsOverviewRepository {
       GROUP BY vdp.variant_id
       ${havingClause}
       ORDER BY ${orderBy}
+      LIMIT ?
     `;
 
     const { results } = await this.db
       .prepare(sql)
-      .bind(...bindParams)
+      .bind(...bindParams, GOODS_OVERVIEW_MAX_ROWS)
       .all();
+    if ((results || []).length >= GOODS_OVERVIEW_MAX_ROWS) {
+      console.warn(
+        `[GoodsOverview] result capped at ${GOODS_OVERVIEW_MAX_ROWS} rows — consider pagination`
+      );
+    }
     return (results || []).map((row) => this._mapItem(row));
   }
 

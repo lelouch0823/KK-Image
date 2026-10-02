@@ -46,8 +46,12 @@ export class VariantSnapshotProjectionRefreshService {
 
   async refreshAll() {
     const timestamp = this.now();
-    await this.db.prepare('DELETE FROM variant_snapshot_projection').run();
-    await this.db.prepare(buildProjectionInsertSql()).bind(timestamp).run();
+    // DELETE 与 INSERT 放入同一 batch 原子执行：
+    // 分开执行会让并发读者在两语句之间看到空投影
+    await this.db.batch([
+      this.db.prepare('DELETE FROM variant_snapshot_projection'),
+      this.db.prepare(buildProjectionInsertSql()).bind(timestamp),
+    ]);
   }
 
   async refreshByVariantIds(variantIds = []) {
@@ -58,14 +62,14 @@ export class VariantSnapshotProjectionRefreshService {
 
     const timestamp = this.now();
     const placeholders = inClause(normalizedIds);
-    await this.db
-      .prepare(`DELETE FROM variant_snapshot_projection WHERE variant_id IN ${placeholders}`)
-      .bind(...normalizedIds)
-      .run();
-    await this.db
-      .prepare(buildProjectionInsertSql(` AND ol.variant_id IN ${placeholders}`))
-      .bind(timestamp, ...normalizedIds)
-      .run();
+    await this.db.batch([
+      this.db
+        .prepare(`DELETE FROM variant_snapshot_projection WHERE variant_id IN ${placeholders}`)
+        .bind(...normalizedIds),
+      this.db
+        .prepare(buildProjectionInsertSql(` AND ol.variant_id IN ${placeholders}`))
+        .bind(timestamp, ...normalizedIds),
+    ]);
 
     return normalizedIds;
   }

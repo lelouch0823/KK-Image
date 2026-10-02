@@ -214,12 +214,21 @@ export async function storeFile(env, file, options = {}) {
 
   // ── 3. 哈希计算 ──
   // 调用方提供的 hash 只作为 CAS hint；CAS 使用服务端计算并校验后的 SHA-256。
+  // 优先用 DigestStream 流式哈希：arrayBuffer 会把整个文件再复制一份进内存
+  //（Workers isolate 上限 128MB，大文件 + clientHash 组合会直接 OOM）
   let contentHash = null;
   let fileBuffer = null;
   if (normalizedInputHash || fileSize < 50 * 1024 * 1024) {
     try {
-      fileBuffer = await file.arrayBuffer();
-      contentHash = await sha256Hex(fileBuffer);
+      if (typeof crypto !== 'undefined' && typeof crypto.DigestStream === 'function') {
+        const digestStream = new crypto.DigestStream('SHA-256');
+        await file.stream().pipeTo(digestStream);
+        contentHash = await sha256Hex(await digestStream.digest);
+      } else {
+        // Node 测试环境回退：一次性读取
+        fileBuffer = await file.arrayBuffer();
+        contentHash = await sha256Hex(fileBuffer);
+      }
       if (normalizedInputHash && contentHash !== normalizedInputHash) {
         throw new Error('contentHash does not match file content');
       }
@@ -273,7 +282,9 @@ export async function storeFile(env, file, options = {}) {
     storageKey =
       contentHash || `fallback-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
 
-    await env.R2_BUCKET.put(storageKey, fileBuffer || file.stream(), {
+    // file 是内存 backed 的 Blob：直接传给 R2（自带长度），
+    // 避免 arrayBuffer 再复制一份；DigestStream 路径下 fileBuffer 恒为 null
+    await env.R2_BUCKET.put(storageKey, fileBuffer || file, {
       httpMetadata: { contentType: mimeType },
     });
 

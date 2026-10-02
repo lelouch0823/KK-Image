@@ -2,6 +2,7 @@ import './utils/mocks.js';
 import { app } from '../functions/lib/hono/app.js';
 import { generateJWT } from '../functions/api/utils/auth.js';
 import { MockKVNamespace } from './utils/mocks.js';
+import { GOODS_OVERVIEW_MAX_ROWS } from '../functions/repositories/GoodsOverviewRepository.js';
 import assert from 'assert';
 
 const mockExecutionCtx = {
@@ -162,7 +163,8 @@ describe('Goods Overview API', () => {
       const mainQuery = localMockEnv.DB.queries[0];
       assert.ok(mainQuery.query.includes('ORDER BY shortage DESC, total_demand DESC'));
       assert.ok(mainQuery.query.includes('HAVING total_demand > 0'));
-      assert.deepStrictEqual(mainQuery.bindings, []);
+      // 列表现在带服务端行数上限（LIMIT 绑定在最后）
+      assert.deepStrictEqual(mainQuery.bindings, [GOODS_OVERVIEW_MAX_ROWS]);
     });
 
     it('should apply shortageOnly=1, sort=demand and filters', async () => {
@@ -181,7 +183,7 @@ describe('Goods Overview API', () => {
       assert.ok(mainQuery.query.includes('HAVING shortage > 0'));
       assert.ok(mainQuery.query.includes('snapshot_category'));
       assert.ok(mainQuery.query.includes('snapshot_brand'));
-      assert.deepStrictEqual(mainQuery.bindings, ['Cat1', 'Brand1']);
+      assert.deepStrictEqual(mainQuery.bindings, ['Cat1', 'Brand1', GOODS_OVERVIEW_MAX_ROWS]);
     });
 
     it('should apply sort=name', async () => {

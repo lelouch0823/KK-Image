@@ -138,11 +138,18 @@ export function resolveManageFolderUrls({ ctx, payload }) {
 }
 
 export function resolveManageFileUrls({ ctx, baseUrl, payload }) {
+  // file_uploaded 的载荷是嵌套结构 { file: { id, folder_id, ... } }，
+  // 其余文件事件是扁平的 { file_id, folder_ids } —— 两种形态都归一化支持
+  const nestedFile = payload.file || null;
+  const fileId = payload.file_id || nestedFile?.id || null;
+  const folderIds = asArray(
+    payload.folder_ids || payload.folder_id || nestedFile?.folder_id || nestedFile?.folderId
+  );
   const urls = new Set([
     ...getManageFileCacheUrls(ctx),
-    ...getManageFolderDetailCacheUrls(ctx, asArray(payload.folder_ids || payload.folder_id)),
+    ...getManageFolderDetailCacheUrls(ctx, folderIds),
   ]);
-  if (payload.file_id) urls.add(`${baseUrl}/api/manage/files/${payload.file_id}`);
+  if (fileId) urls.add(`${baseUrl}/api/manage/files/${fileId}`);
   return [...urls];
 }
 

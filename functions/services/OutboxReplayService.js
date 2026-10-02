@@ -3,7 +3,7 @@ import { DOMAIN_OUTBOX_CONSUMERS } from './DomainOutboxConsumers.js';
 import { DOMAIN_EVENT_CATALOG } from './DomainEventCatalog.js';
 import { OutboxReplayRepository } from '../repositories/OutboxReplayRepository.js';
 
-const REPLAYABLE_CONSUMERS = new Set(['audit', 'cache', 'notification', 'webhook']);
+const REPLAYABLE_CONSUMERS = new Set(['audit', 'cache', 'notification', 'webhook', 'emailNotify']);
 
 export class OutboxReplayService {
   constructor(db, deps = {}) {

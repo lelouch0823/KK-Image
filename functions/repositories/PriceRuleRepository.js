@@ -206,6 +206,25 @@ export class PriceRuleRepository {
   }
 
   /**
+   * 删除价格规则（范围约束：规则必须挂在指定商品名下的变体上），
+   * 防止跨商品按规则 id 误删/越权删除
+   * @param {string} id 规则 ID
+   * @param {string} productId 商品 ID
+   * @returns {Promise<boolean>}
+   */
+  async deleteScoped(id, productId) {
+    const result = await this.db
+      .prepare(
+        `DELETE FROM price_rules
+         WHERE id = ?
+           AND variant_id IN (SELECT id FROM product_variants WHERE product_id = ?)`
+      )
+      .bind(id, productId)
+      .run();
+    return Number(result?.meta?.changes || 0) > 0;
+  }
+
+  /**
    * 删除变体的所有价格规则
    * @param {string} variantId
    * @returns {Promise<number>} 删除数量

@@ -105,10 +105,14 @@ describe('OrderLineAllocationRepository', () => {
       { now }
     );
 
+    // released_qty 改为 SQL 内相对累加（MIN 封顶），绑定的是增量而非预计算绝对值，
+    // 避免并发部分释放基于同一快照互相覆盖（丢失更新）
+    expect(statement.sql).toContain('MIN(COALESCE(allocated_qty, 0), COALESCE(released_qty, 0) + ?)');
+    expect(statement.sql).toContain("ELSE 'active'");
     const bindArgs = statement.bind.mock.calls[0];
-    expect(bindArgs[0]).toBe(3);
-    expect(bindArgs[2]).toBe('active');
-    expect(bindArgs[4]).toBe('alloc-1');
+    expect(bindArgs[0]).toBe(2);
+    expect(bindArgs[4]).toBe(2);
+    expect(bindArgs[6]).toBe('alloc-1');
   });
 
   it('marks allocations released when the remaining quantity is fully released', () => {
@@ -127,9 +131,11 @@ describe('OrderLineAllocationRepository', () => {
       { now }
     );
 
+    // 达到 allocated_qty 时由 CASE 表达式在 SQL 内推导为 released
+    expect(statement.sql).toContain("THEN 'released'");
     const bindArgs = statement.bind.mock.calls[0];
-    expect(bindArgs[0]).toBe(5);
-    expect(bindArgs[1]).toBe(now);
-    expect(bindArgs[2]).toBe('released');
+    expect(bindArgs[0]).toBe(4);
+    expect(bindArgs[2]).toBe(now);
+    expect(bindArgs[6]).toBe('alloc-1');
   });
 });

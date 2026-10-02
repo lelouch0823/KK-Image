@@ -10,6 +10,11 @@ export const STATS_PROJECTION_SCOPES = {
   DASHBOARD_OVERVIEW: 'manage.dashboard.overview',
 };
 
+// 全量聚合刷新的最小间隔：统计投影由读端 60s/20s 缓存兜底，
+// 事件风暴（批量上传、导入）中每次事件都触发全表聚合纯属浪费。
+// 投影在窗口内的短暂陈旧由缓存 TTL 对齐兜底。
+const MIN_REFRESH_INTERVAL_MS = 5_000;
+
 export class SystemStatsProjectionRefreshService {
   constructor(db, deps = {}) {
     this.db = db;
@@ -22,6 +27,14 @@ export class SystemStatsProjectionRefreshService {
   }
 
   async refresh(scope) {
+    // 节流：投影在最小间隔内已刷新则跳过本轮全量聚合
+    if (this.projectionRepo && typeof this.projectionRepo.get === 'function') {
+      const existing = await this.projectionRepo.get(scope);
+      if (existing?.updatedAt && this.now() - existing.updatedAt < MIN_REFRESH_INTERVAL_MS) {
+        return { skipped: true, scope, updatedAt: existing.updatedAt };
+      }
+    }
+
     if (scope === STATS_PROJECTION_SCOPES.MANAGE_STATS) {
       return this.refreshManageStats();
     }

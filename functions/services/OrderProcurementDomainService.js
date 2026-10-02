@@ -576,18 +576,22 @@ export class OrderProcurementDomainService {
       if (hasGuardMismatch || hasOrderProjectionGuardMismatch) {
         throw new BadRequestError('采购单明细收货进度已变化，请刷新后重试');
       }
-      await this.variantDemandProjectionRefreshService.refreshByVariantIds(
-        preparedReceipts.map((prepared) => prepared.poItem?.variant_id)
-      );
-      await this.productProjectionRefreshService.refreshByVariantIds(
-        preparedReceipts.map((prepared) => prepared.poItem?.variant_id)
-      );
+      // 提交（batch）已成功完成。投影刷新若在此处抛错会进入下面的 catch，
+      // 导致已提交的幂等记录被 cleanupReservedCommand 删除 —— 客户端用同一
+      // Idempotency-Key 重试就会重复收货。因此刷新失败只记录，不参与回滚：
+      // 需求投影会在下一次相关事件时自愈。
+      await this.refreshProjectionsAfterReceiptCommit(preparedReceipts);
       return response;
     } catch (error) {
-      await releaseProcurementResourceLocks({
-        commandIdempotencyRepo: this.commandIdempotencyRepo,
-        lockRecords: receiptItemLocks,
-      });
+      // 释放锁失败不应吞掉原始错误，也不应跳过幂等预留的清理
+      try {
+        await releaseProcurementResourceLocks({
+          commandIdempotencyRepo: this.commandIdempotencyRepo,
+          lockRecords: receiptItemLocks,
+        });
+      } catch (releaseError) {
+        console.error('[OrderProcurement] Failed to release resource locks:', releaseError);
+      }
       await cleanupReservedCommand({
         commandIdempotencyRepo: this.commandIdempotencyRepo,
         db: this.db,
@@ -598,6 +602,23 @@ export class OrderProcurementDomainService {
         throw new BadRequestError('采购单明细收货进度已变化，请刷新后重试');
       }
       throw error;
+    }
+  }
+
+  /**
+   * 提交后的投影刷新（尽力而为，失败不影响已提交的收货结果）
+   * @private
+   */
+  async refreshProjectionsAfterReceiptCommit(preparedReceipts) {
+    const variantIds = preparedReceipts.map((prepared) => prepared.poItem?.variant_id);
+    try {
+      await this.variantDemandProjectionRefreshService.refreshByVariantIds(variantIds);
+      await this.productProjectionRefreshService.refreshByVariantIds(variantIds);
+    } catch (refreshError) {
+      console.error(
+        '[OrderProcurement] Post-commit projection refresh failed (command stays committed):',
+        refreshError
+      );
     }
   }
 }

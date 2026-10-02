@@ -356,14 +356,14 @@ describe('PurchaseOrderRepository safety guards', () => {
         };
         return statement;
       }
-      if (sql.includes('SELECT id, name FROM product_dimensions')) {
+      if (sql.includes('FROM product_dimensions')) {
         const statement = {
           bind: vi.fn(() => statement),
           all: vi.fn(async () => ({
             results: [
-              { id: 'dim-color', name: '颜色' },
-              { id: 'dim-material', name: '材质' },
-              { id: 'dim-size', name: '尺码' },
+              { id: 'dim-color', name: '颜色', product_id: 'prod-1' },
+              { id: 'dim-material', name: '材质', product_id: 'prod-1' },
+              { id: 'dim-size', name: '尺码', product_id: 'prod-1' },
             ],
           })),
         };

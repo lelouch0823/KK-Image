@@ -204,10 +204,14 @@ export const BatchVariantStatusSchema = z
  */
 export const BatchImportProductSchema = z
   .object({
-    products: z.array(z.record(z.unknown())).min(1).max(1000).optional(),
-    // 支持其他批量导入格式，使用 passthrough 允许额外字段
+    // ProductCatalogService.batchImport 实际消费 items + import_mode；
+    // 显式定义真实契约并移除 passthrough，避免未知字段穿透验证边界
+    items: z.array(z.record(z.unknown())).min(1).max(500),
+    // 不加 default：导入模式的兜底归一化由服务层 normalizeImportMode 负责，
+    // schema 保持校验后的 body 与原始请求一致（幂等指纹依赖这一稳定性）
+    import_mode: z.enum(['safe_merge', 'replace']).optional(),
   })
-  .passthrough();
+  .strict();
 
 /**
  * 批量更新价格规则 Schema (POST /:id/prices)

@@ -25,7 +25,9 @@ app.get('/check-hash', async (c) => {
       },
     });
   } else {
-    return c.json({ success: true, data: { exists: false } }, 404);
+    // "未命中" 是正常查询结果而非错误：返回 200 与 exists:false，
+    // 消除 success:true 与 HTTP 404 的自相矛盾
+    return c.json({ success: true, data: { exists: false } });
   }
 });
 

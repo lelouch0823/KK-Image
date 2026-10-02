@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { chunkArray } from '../../../../lib/db/batch.js';
+import { D1_MAX_IN_CLAUSE_SIZE } from '../../../../api/utils/constants.js';
 import { zValidator } from '@hono/zod-validator';
 import { CustomerRepository } from '../../../../repositories/CustomerRepository.js';
 import { MSG } from '../../../../_shared/utils.js';
@@ -342,29 +344,61 @@ app.post('/import/confirm', zValidator('json', ImportConfirmSchema), async (c) =
   let skipped = 0;
   const statements = [];
 
-  for (const row of rows) {
-    // 重复检测：按 phone 或 name+company
-    let existing = null;
-    if (row.phone) {
-      const { results } = await env.DB.prepare(
-        'SELECT id FROM customers WHERE phone = ? AND phone != "" LIMIT 1'
-      )
-        .bind(row.phone)
-        .all();
-      if (results.length > 0) existing = results[0];
-    }
-    if (!existing && row.name && row.company) {
-      const { results } = await env.DB.prepare(
-        'SELECT id FROM customers WHERE name = ? AND company = ? AND company != "" LIMIT 1'
-      )
-        .bind(row.name, row.company)
-        .all();
-      if (results.length > 0) existing = results[0];
-    }
+  // 重复检测一次批量完成：对本批出现的 phone / (name, company) 候选键做分块 IN 查询，
+  // 避免旧行为（每行最多 2 次串行 SELECT）在千行导入时产生上千次数据库往返
+  const phones = [...new Set(rows.map((row) => String(row.phone || '').trim()).filter(Boolean))];
+  const nameCompanyPairs = [
+    ...new Set(
+      rows
+        .filter((row) => row.name && row.company)
+        .map((row) => `${row.name}\u0000${row.company}`)
+    ),
+  ].map((combined) => {
+    const [name, company] = combined.split('\u0000');
+    return { name, company };
+  });
 
-    if (existing) {
+  const duplicatePhoneSet = new Set();
+  for (const phoneChunk of chunkArray(phones, D1_MAX_IN_CLAUSE_SIZE)) {
+    if (phoneChunk.length === 0) continue;
+    const placeholders = phoneChunk.map(() => '?').join(',');
+    const { results } = await env.DB.prepare(
+      `SELECT phone FROM customers WHERE phone IN (${placeholders}) AND phone != ""`
+    )
+      .bind(...phoneChunk)
+      .all();
+    for (const row of results || []) duplicatePhoneSet.add(String(row.phone || '').trim());
+  }
+
+  const duplicatePairSet = new Set();
+  for (const pairChunk of chunkArray(nameCompanyPairs, D1_MAX_IN_CLAUSE_SIZE)) {
+    if (pairChunk.length === 0) continue;
+    // SQLite 3.15+ 行值语法：(name, company) IN (VALUES (?, ?), (?, ?))
+    const { results } = await env.DB.prepare(
+      `SELECT name, company FROM customers
+       WHERE company != ""
+         AND (name, company) IN (VALUES ${pairChunk.map(() => '(?, ?)').join(',')})`
+    )
+      .bind(...pairChunk.flatMap((pair) => [pair.name, pair.company]))
+      .all();
+    for (const row of results || []) {
+      duplicatePairSet.add(`${String(row.name)}\u0000${String(row.company)}`);
+    }
+  }
+
+  for (const row of rows) {
+    // 重复判定与旧逻辑一致：先按 phone，再按 name+company
+    const phoneKey = String(row.phone || '').trim();
+    if (phoneKey && duplicatePhoneSet.has(phoneKey)) {
       skipped += 1;
       continue;
+    }
+    if (row.name && row.company) {
+      const pairKey = `${row.name}\u0000${row.company}`;
+      if (duplicatePairSet.has(pairKey)) {
+        skipped += 1;
+        continue;
+      }
     }
 
     const id = crypto.randomUUID();
@@ -729,10 +763,12 @@ app.post('/:id/communications', zValidator('json', CreateCommunicationSchema), a
  */
 app.delete('/:id/communications/:commId', async (c) => {
   const { env } = c;
+  const customerId = c.req.param('id');
   const commId = c.req.param('commId');
 
   const repo = new CustomerRepository(env.DB);
-  const deleted = await repo.deleteCommunication(commId);
+  // 带客户范围约束的删除：防止跨客户按 id 误删/越权删除
+  const deleted = await repo.deleteCommunicationScoped(customerId, commId);
 
   if (!deleted) throw new NotFoundError('沟通记录不存在');
 

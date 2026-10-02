@@ -39,16 +39,17 @@ async function findOrderLines(db, orderId) {
       FROM order_lines ol
       LEFT JOIN (
           SELECT
-              order_line_id,
-              COALESCE(SUM(quantity), 0) AS returned_qty
-          FROM order_returns
-          WHERE status != 'cancelled'
-          GROUP BY order_line_id
+              r.order_line_id,
+              COALESCE(SUM(r.quantity), 0) AS returned_qty
+          FROM order_returns r
+          WHERE r.status != 'cancelled'
+            AND r.order_line_id IN (SELECT id FROM order_lines WHERE order_id = ?)
+          GROUP BY r.order_line_id
       ) orq ON orq.order_line_id = ol.id
       WHERE ol.order_id = ?
       ORDER BY ol.created_at ASC
       `,
-    [orderId],
+    [orderId, orderId],
     { label: 'order.find.lines' }
   );
 

@@ -4,7 +4,8 @@ import { hasChanges } from '../api/utils/result.js';
 import { buildSetClause } from '../api/utils/sql.js';
 import { checkFtsTable, sanitizeFts5Query } from '../api/utils/fts.js';
 import { isUniqueConstraintError } from '../lib/db/errors.js';
-import { MS_PER_DAY } from '../api/utils/constants.js';
+import { D1_MAX_IN_CLAUSE_SIZE, MS_PER_DAY } from '../api/utils/constants.js';
+import { chunkArray } from '../lib/db/batch.js';
 /**
  * 客户仓库
  * 处理客户的 CRUD 和数据转换
@@ -36,11 +37,16 @@ export class CustomerRepository {
     async findByIds(ids) {
         if (!ids.length)
             return [];
-        const placeholders = ids.map(() => '?').join(',');
-        const { results } = await this.db
-            .prepare(`SELECT * FROM customers WHERE id IN (${placeholders})`)
-            .bind(...ids)
-            .all();
+        // D1 绑定参数上限为 100，超过必须分块查询（批量导出接口允许上万个 id）
+        const results = [];
+        for (const idChunk of chunkArray(ids, D1_MAX_IN_CLAUSE_SIZE)) {
+            const placeholders = idChunk.map(() => '?').join(',');
+            const { results: chunkResults } = await this.db
+                .prepare(`SELECT * FROM customers WHERE id IN (${placeholders})`)
+                .bind(...idChunk)
+                .all();
+            results.push(...chunkResults);
+        }
         return results.map((customer) => {
             if (customer.tags) {
                 const parsedTags = safeJsonParse(customer.tags, customer.tags);
@@ -327,9 +333,12 @@ export class CustomerRepository {
     async getBatchRfmSegments(ids) {
         if (!ids.length)
             return new Map();
-        const placeholders = ids.map(() => '?').join(',');
-        const { results } = await this.db
-            .prepare(`
+        // 分块查询，避免超出 D1 绑定参数上限（导出路径会传入全量客户 id）
+        const results = [];
+        for (const idChunk of chunkArray(ids, D1_MAX_IN_CLAUSE_SIZE)) {
+            const placeholders = idChunk.map(() => '?').join(',');
+            const { results: chunkResults } = await this.db
+                .prepare(`
           SELECT
             c.id AS customer_id,
             COUNT(o.id) AS order_count,
@@ -339,8 +348,10 @@ export class CustomerRepository {
           WHERE c.id IN (${placeholders})
           GROUP BY c.id
         `)
-            .bind(...ids)
-            .all();
+                .bind(...idChunk)
+                .all();
+            results.push(...chunkResults);
+        }
         const now = Date.now();
         const segmentMap = new Map();
         for (const row of results) {
@@ -470,6 +481,20 @@ export class CustomerRepository {
         const result = await this.db
             .prepare('DELETE FROM customer_communications WHERE id = ?')
             .bind(id)
+            .run();
+        return hasChanges(result);
+    }
+
+    /**
+     * 删除指定客户的沟通记录（范围约束：记录必须属于该客户）
+     * @param customerId 客户 ID
+     * @param id 沟通记录 ID
+     * @returns 是否成功删除
+     */
+    async deleteCommunicationScoped(customerId, id) {
+        const result = await this.db
+            .prepare('DELETE FROM customer_communications WHERE id = ? AND customer_id = ?')
+            .bind(id, customerId)
             .run();
         return hasChanges(result);
     }

@@ -30,6 +30,8 @@ export function isManageFolderCacheEvent(eventType) {
 export function isManageFileCacheEvent(eventType) {
   return [
     'file_created',
+    // 上传事件同样需要失效管理端文件列表/详情缓存（此前遗漏导致上传后列表展示滞后）
+    'file_uploaded',
     'file_updated',
     'file_deleted',
     'file_batch_deleted',

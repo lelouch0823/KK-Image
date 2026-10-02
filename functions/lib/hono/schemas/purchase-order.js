@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+/** 采购单各批量明细数组的统一上限（防止无界数组放大为超长请求 / 无界 D1 batch） */
+export const PO_ITEMS_MAX = 500;
+
 /**
  * 采购单明细项 Schema（创建/添加共用）
  */
@@ -24,7 +27,7 @@ export const CreatePurchaseOrderSchema = z
     allocation_method: z.string().max(50).optional(),
     estimated_shipping_cost: z.number().nonnegative().optional(),
     estimated_tariff_cost: z.number().nonnegative().optional(),
-    items: z.array(PurchaseOrderItemSchema).optional(),
+    items: z.array(PurchaseOrderItemSchema).max(PO_ITEMS_MAX).optional(),
   })
   .strict();
 
@@ -68,7 +71,7 @@ const ReceiptItemSchema = z
  */
 export const PurchaseOrderReceiptSchema = z
   .object({
-    items: z.array(ReceiptItemSchema).min(1, '至少一条收货明细'),
+    items: z.array(ReceiptItemSchema).min(1, '至少一条收货明细').max(PO_ITEMS_MAX),
   })
   .strict();
 
@@ -96,7 +99,7 @@ const ShortageClosureItemSchema = z
  */
 export const ShortageClosureSchema = z
   .object({
-    items: z.array(ShortageClosureItemSchema).min(1, '至少一条关闭明细'),
+    items: z.array(ShortageClosureItemSchema).min(1, '至少一条关闭明细').max(PO_ITEMS_MAX),
   })
   .strict();
 
@@ -106,7 +109,10 @@ export const ShortageClosureSchema = z
  */
 export const CreateFromOrdersSchema = z
   .object({
-    order_ids: z.array(z.union([z.string(), z.null()])).min(1, '请至少选择一个预订单'),
+    order_ids: z
+      .array(z.union([z.string(), z.null()]))
+      .min(1, '请至少选择一个预订单')
+      .max(PO_ITEMS_MAX),
     remark: z.string().max(1000).optional(),
     allocation_method: z.string().max(50).optional(),
     estimated_shipping_cost: z.number().nonnegative().optional(),
@@ -119,7 +125,7 @@ export const CreateFromOrdersSchema = z
  */
 export const AddPurchaseOrderItemsSchema = z
   .object({
-    items: z.array(PurchaseOrderItemSchema).min(1, '请提供至少一条明细项'),
+    items: z.array(PurchaseOrderItemSchema).min(1, '请提供至少一条明细项').max(PO_ITEMS_MAX),
   })
   .strict();
 

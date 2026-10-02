@@ -7,7 +7,6 @@
  * @module routes/manage/purchase-orders/helpers
  */
 
-import { CommandIdempotencyRepository } from '../../../../../repositories/CommandIdempotencyRepository.js';
 import { DomainOutboxPublisher } from '../../../../../services/DomainOutboxPublisher.js';
 import { NotFoundError, BadRequestError } from '../../../errors.js';
 import { requireEntity } from '../../../_shared/route-helpers.js';
@@ -15,9 +14,9 @@ import { validateOrderQuantity } from '../../../../../services/purchase-order-co
 import { runOutboxPoller } from '../../../../../api/cron/outbox.js';
 import { getIdempotencyKey as _getIdempotencyKey } from '../../_shared/outbox-helpers.js';
 import {
-  parseStoredResponse,
-  replayReservedCommand,
-} from '../../../../../services/order-procurement-shared.js';
+  reserveCommandForRoute as _reserveCommandForRoute,
+  getCommandScopeKey,
+} from '../../_shared/command-idempotency.js';
 import { isDuplicateOutboxIdempotencyError } from '../products/idempotency-helpers.js';
 
 export const PURCHASE_ORDER_CREATE_COMMAND_TYPE = 'purchase_order_create';
@@ -156,59 +155,20 @@ export function buildPurchaseOrderCreateFromOrdersRequestFingerprint(orderIds = 
   });
 }
 
-export function getCreateCommandScopeKey(c, suffix) {
-  const actorId = String(c.get('user')?.id || 'anonymous').trim() || 'anonymous';
-  return `${suffix}:${actorId}`;
-}
+// 作用域键与预留协议复用共享实现（与订单/商品/行级命令保持一致）
+export const getCreateCommandScopeKey = (c, suffix) => getCommandScopeKey(c, suffix);
 
 export async function reserveCreateCommand(
   c,
   { commandType, scopeKey, requestFingerprint, mismatchMessage, inFlightMessage }
 ) {
-  const commandIdempotencyRepo = new CommandIdempotencyRepository(c.env.DB);
-  const idempotencyKey = getIdempotencyKey(c);
-  const reservation = await commandIdempotencyRepo.reserveCommand(
+  return _reserveCommandForRoute(c, {
     commandType,
     scopeKey,
-    idempotencyKey,
-    requestFingerprint
-  );
-
-  if (reservation?.existing) {
-    if (reservation.record?.request_fingerprint !== requestFingerprint) {
-      throw new BadRequestError(mismatchMessage);
-    }
-
-    const storedResponse = parseStoredResponse(reservation.record?.response_json);
-    if (reservation.record?.status === 'failed' && storedResponse) {
-      return {
-        replay: null,
-        resume: storedResponse,
-        reservation,
-        commandIdempotencyRepo,
-        idempotencyKey,
-      };
-    }
-
-    return {
-      replay: replayReservedCommand(reservation, requestFingerprint, {
-        mismatchMessage,
-        inFlightMessage,
-      }),
-      resume: null,
-      reservation,
-      commandIdempotencyRepo,
-      idempotencyKey,
-    };
-  }
-
-  return {
-    replay: null,
-    resume: null,
-    reservation,
-    commandIdempotencyRepo,
-    idempotencyKey,
-  };
+    requestFingerprint,
+    mismatchMessage,
+    inFlightMessage,
+  });
 }
 
 export async function validateExistingItemQuantityUpdate(db, item, nextQuantity) {

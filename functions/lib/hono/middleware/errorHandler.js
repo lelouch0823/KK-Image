@@ -1,3 +1,4 @@
+import { AppError } from '../errors.js';
 import {
   getAuditScheduler,
   getRequestAuditContext,
@@ -46,7 +47,12 @@ export function errorHandler(err, c) {
   };
 
   const status = err.statusCode || statusMap[err.name] || 500;
-  const message = status === 500 && !err.statusCode ? 'Internal Server Error' : err.message;
+  // AppError 体系的 message 是面向客户端的业务文案；其余未预期异常一律隐藏细节，
+  // 防止内部错误信息（如驱动层异常文本）泄露给调用方。
+  const isAppError = err instanceof AppError || err.statusCode || statusMap[err.name];
+  const message =
+    status >= 500 && !isAppError ? 'Internal Server Error' : err.message || 'Internal Server Error';
+  const errorCode = isAppError ? err.code || err.name : 'INTERNAL_ERROR';
 
   if (shouldAuditRequest(c.req.method, c.req.path) && c.env?.DB && !c.get('auditFailureRecorded')) {
     const auditContext = getRequestAuditContext(c);
@@ -68,7 +74,7 @@ export function errorHandler(err, c) {
         metadata: {
           path: c.req.path,
           method: c.req.method,
-          error_code: err.code || err.name || 'INTERNAL_ERROR',
+          error_code: errorCode,
           status,
         },
         ip: auditContext.ip_address,
@@ -81,7 +87,7 @@ export function errorHandler(err, c) {
     {
       success: false,
       error: message,
-      code: err.code || err.name || 'INTERNAL_ERROR',
+      code: errorCode,
       ...(traceId && { traceId }),
       // M06: 仅在明确配置为开发环境时才泄露堆栈，默认不泄露
       ...(c.env?.ENVIRONMENT === 'development' && { stack: err.stack }),

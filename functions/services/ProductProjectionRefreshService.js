@@ -19,9 +19,14 @@ export class ProductProjectionRefreshService {
       return promiseFactory();
     }
 
-    const promise = promiseFactory().catch((err) => {
-      console.error(logMessage, err.message);
-    });
+    // Promise.resolve().then(...) 保证 promiseFactory 的同步抛错也会进入 catch：
+    // 若直接 promiseFactory().catch(...)，工厂在返回 promise 前抛出（如 db 不可用）
+    // 会同步逃逸并中断主流程 —— 投影刷新本应是尽力而为的后台任务
+    const promise = Promise.resolve()
+      .then(promiseFactory)
+      .catch((err) => {
+        console.error(logMessage, err?.message || err);
+      });
     if (ctx?.waitUntil) {
       ctx.waitUntil(promise);
     }

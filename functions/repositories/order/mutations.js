@@ -24,8 +24,8 @@ import {
   ARCHIVED_ORDER_MUTATION_MESSAGE,
   assertOrderIsActiveForMutation,
   buildPreviousWriteAssertionStatement,
+  isPreviousWriteAssertionError,
   normalizeGuardedOrderUpdateError,
-  verifySingleRowStatusUpdate,
   executeGroupedBatchChunks,
   getUnreadOtherField,
   extractDeadlineDate,
@@ -219,7 +219,9 @@ export async function updateData(
   // SOTA: Fix update quantity column from JSON
   if (newData.quantity !== undefined) {
     colsToUpdate.push('quantity = ?');
-    params.push(newData.quantity);
+    // 与行级路径保持一致：请求 JSON 中的数量可能是字符串（如 "5"），
+    // 直接绑定会让 SQLite 动态类型把文本存入 INTEGER 列
+    params.push(normalizeQuantity(newData.quantity));
   }
 
   if (productId !== undefined) {
@@ -522,7 +524,9 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
   }
   // 注意：库存变更已迁移至行级命令 (lines.js)，此处不再处理 order-level stock delta
 
-  const statusUpdateResult = await db
+  // 状态更新与行进度重写合并到单个 batch，保证原子性：
+  // 若分开执行，中途崩溃会让 orders.status 与 order_lines 计数出现持久化不一致
+  const statusUpdateStatement = db
     .prepare(
       `
       UPDATE orders
@@ -530,11 +534,7 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
       WHERE id = ? AND status = ? AND archived_at IS NULL
       `
     )
-    .bind(normalizedNextStatus, timestamp, id, currentOrder.status)
-    .run();
-  if (!(await verifySingleRowStatusUpdate(db, statusUpdateResult))) {
-    throw new ConflictError('order status was modified concurrently');
-  }
+    .bind(normalizedNextStatus, timestamp, id, currentOrder.status);
 
   const lineProgressStatement = await buildCompatibilityLineProgressStatement(
     db,
@@ -544,7 +544,21 @@ export async function updateStatus(db, id, newStatus, actorType, options = {}) {
     timestamp,
     orderLineStates
   );
-  await executeBatchChunks(db, [lineProgressStatement]);
+
+  try {
+    await executeBatchChunks(db, [
+      statusUpdateStatement,
+      buildPreviousWriteAssertionStatement(db),
+      lineProgressStatement,
+    ]);
+  } catch (error) {
+    // 单订单路径在读取时已排除归档状态，断言失败只可能是并发修改了 status：
+    // 语义上属于冲突（409），而不是批量路径的"已归档"提示
+    if (isPreviousWriteAssertionError(error)) {
+      throw new ConflictError('order status was modified concurrently');
+    }
+    throw error;
+  }
   return { success: true, meta: { changes: 1 } };
 }
 
@@ -619,15 +633,17 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
     const order = orderMap.get(id);
     const statements = [];
     // 注意：库存变更已迁移至行级命令 (lines.js)，此处不再处理 order-level stock delta
-
+    // WHERE status = ? 为乐观锁守卫：若状态已被并发修改则 changes=0，
+    // 同批次的断言语句会失败并回滚，防止绕过状态机校验的非法跃迁
     statements.push(
       db
         .prepare(
           `
-          UPDATE orders SET status = ?, unread_by_sales = 1, updated_at = ? WHERE id = ? AND archived_at IS NULL
+          UPDATE orders SET status = ?, unread_by_sales = 1, updated_at = ?
+          WHERE id = ? AND status = ? AND archived_at IS NULL
           `
         )
-        .bind(normalizedNextStatus, timestamp, id)
+        .bind(normalizedNextStatus, timestamp, id, order?.status ?? null)
     );
     statements.push(buildPreviousWriteAssertionStatement(db));
     statements.push(
@@ -651,6 +667,9 @@ export async function batchUpdateStatus(db, timelineRepo, ids, newStatus, timeli
   try {
     await executeGroupedBatchChunks(db, statementGroups);
   } catch (error) {
-    normalizeGuardedOrderUpdateError(error);
+    // 批量路径的守卫失败既可能是并发修改状态，也可能是订单被归档，提示需要覆盖两种情形
+    normalizeGuardedOrderUpdateError(error, {
+      message: '订单状态已变化或已归档，请刷新后重试',
+    });
   }
 }

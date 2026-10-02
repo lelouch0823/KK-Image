@@ -227,8 +227,11 @@ app.get('/authorize', zValidator('query', AuthorizeQuerySchema), async (c) => {
 
 /**
  * POST /authorize - 用户确认授权，生成授权码
+ *
+ * 与应用管理一致要求 admin:full：该端点会代表用户签发授权码，
+ * 任何已认证主体（含低权限角色）都不应能随意铸造。
  */
-app.post('/authorize', zValidator('json', AuthorizeSchema), async (c) => {
+app.post('/authorize', requirePermission('admin:full'), zValidator('json', AuthorizeSchema), async (c) => {
   const body = c.req.valid('json');
   const userId = c.get('user')?.id || c.get('user')?.sub;
   if (!userId) return c.json({ success: false, error: 'unauthorized' }, 401);
@@ -242,7 +245,19 @@ app.post('/authorize', zValidator('json', AuthorizeSchema), async (c) => {
     return c.json({ success: false, error: 'invalid_redirect_uri' }, 400);
   }
 
+  // 范围子集校验：与 GET /authorize 一致，禁止请求超出客户端注册范围的权限
   const requestedScopes = body.scope ? body.scope.split(' ') : client.scopes;
+  const invalidScopes = requestedScopes.filter((s) => !client.scopes.includes(s));
+  if (invalidScopes.length > 0) {
+    return c.json(
+      {
+        success: false,
+        error: 'invalid_scope',
+        error_description: `无效的权限范围: ${invalidScopes.join(', ')}`,
+      },
+      400
+    );
+  }
   const { code } = await repo.createAuthorizationCode({
     clientId: body.client_id,
     userId,

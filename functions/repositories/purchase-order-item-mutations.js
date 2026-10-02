@@ -1,7 +1,7 @@
 import { hasChanges } from '../api/utils/result.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
 import { hydratePurchaseItemSnapshots } from './purchase-order-item-snapshots.js';
-import { D1_MAX_IN_CLAUSE_SIZE } from '../api/utils/constants.js';
+import { D1_MAX_IN_CLAUSE_SIZE, D1_MAX_BATCH_SIZE } from '../api/utils/constants.js';
 
 export async function addPurchaseOrderItems({ db, poId, items }) {
   if (!items || items.length === 0) return [];
@@ -51,7 +51,8 @@ export async function addPurchaseOrderItems({ db, poId, items }) {
 
   let insertedCount = 0;
   try {
-    for (const chunk of chunkArray(statements, D1_MAX_IN_CLAUSE_SIZE)) {
+    // 这里分块的是语句数量（batch 容量），不是 IN 子句的绑定参数数量
+    for (const chunk of chunkArray(statements, D1_MAX_BATCH_SIZE)) {
       await executeBatchChunks(db, chunk);
       insertedCount += chunk.length;
     }

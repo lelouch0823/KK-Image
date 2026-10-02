@@ -14,23 +14,13 @@ import { parseJsonArray } from '../utils/json.js';
 import { getFileUrl } from '../utils/url.js';
 import { projectSpaceTemplateData } from '../../lib/hono/routes/manage/spaces/transformers.js';
 import {
-  checkLoginLockout,
-  recordLoginFailure,
-  clearLoginFailures,
-} from '../../lib/hono/middleware/rateLimit.js';
+  authorizePublicPasswordAttempt,
+  recordPublicPasswordFailure,
+  clearPublicPasswordFailures,
+} from '../utils/share-guard.js';
 
 const PUBLIC_SHARE_FILE_TTL_SECONDS = 15 * 60;
 const PUBLIC_SHARE_CACHE_CONTROL = `public, max-age=${PUBLIC_SHARE_FILE_TTL_SECONDS}, stale-while-revalidate=0`;
-
-function getRateLimitKv(env) {
-  return env.RATE_LIMIT_KV || env.KV || null;
-}
-
-function getClientIp(request) {
-  return (
-    request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown'
-  );
-}
 
 async function buildSignedFileUrl(env, fileRef, shareType, shareToken) {
   if (!env?.JWT_SECRET) {
@@ -263,33 +253,6 @@ async function recordSpaceAccess(spaceId, request, env) {
     ),
     env.DB.prepare('UPDATE spaces SET view_count = view_count + 1 WHERE id = ?').bind(spaceId),
   ]);
-}
-
-async function authorizePublicPasswordAttempt(env, request, identifier) {
-  const kv = getRateLimitKv(env);
-  const status = await checkLoginLockout(kv, getClientIp(request), identifier);
-  if (status.unavailable) {
-    return error('Public share protection unavailable', 503);
-  }
-  if (status.locked) {
-    return error(MSG.AUTH.TOO_MANY_ATTEMPTS || 'Too many attempts', 429);
-  }
-  return null;
-}
-
-async function recordPublicPasswordFailure(env, request, identifier) {
-  const kv = getRateLimitKv(env);
-  const status = await recordLoginFailure(kv, getClientIp(request), identifier);
-  if (status.unavailable) {
-    return error('Public share protection unavailable', 503);
-  }
-  return null;
-}
-
-async function clearPublicPasswordFailures(env, request, identifier) {
-  const kv = getRateLimitKv(env);
-  if (!kv) return;
-  await clearLoginFailures(kv, getClientIp(request), identifier);
 }
 
 export async function onRequestGet(context) {

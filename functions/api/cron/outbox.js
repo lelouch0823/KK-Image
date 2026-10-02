@@ -1,17 +1,81 @@
 import { success, error } from '../utils/response.js';
 import { isCronAuthorized } from '../utils/cron-auth.js';
-import { DomainOutboxDispatchService } from '../../services/DomainOutboxDispatchService.js';
+import {
+  DomainOutboxDispatchService,
+  OUTBOX_MAX_ATTEMPTS,
+} from '../../services/DomainOutboxDispatchService.js';
 import { DOMAIN_OUTBOX_CONSUMERS } from '../../services/DomainOutboxConsumers.js';
 import { runConcurrent } from '../../lib/async/runConcurrent.js';
 import { OutboxRuntimeStateRepository } from '../../repositories/OutboxRuntimeStateRepository.js';
 
-const ACTIVE_CONSUMERS = ['audit', 'cache', 'notification', 'webhook'];
+// emailNotify 消费者已在 DomainEventCatalog 中为订单类事件注册：
+// 邮件未配置（EMAIL_ENABLED 关闭）时 EmailService 会优雅降级为 no-op
+const ACTIVE_CONSUMERS = ['audit', 'cache', 'notification', 'webhook', 'emailNotify'];
 const DEFAULT_JOB_CONCURRENCY = 4;
 const DEFAULT_MAX_ROUNDS = 4;
 const DEFAULT_CLAIM_BATCH_SIZE = 50;
 const REQUEST_JOB_CONCURRENCY = 1;
 const REQUEST_MAX_ROUNDS = 1;
 const REQUEST_CLAIM_BATCH_SIZE = 10;
+
+// ── 保留策略 ────────────────────────────────────────────────
+// 已发布任务与陈旧失败任务定期清理，防止 outbox_consumer_jobs / domain_outbox
+// 随写操作无限增长（每个事件产生 1 + N 消费者行）。AI 请求遥测同样按期清理。
+const OUTBOX_RETENTION_DAYS = 7;
+const AI_TRACE_RETENTION_DAYS = 30;
+// 请求路径触发的轮询按概率执行清理，避免每次写操作都付出 DELETE 代价
+const REQUEST_PATH_CLEANUP_PROBABILITY = 0.02;
+
+async function runOutboxRetentionCleanup(db, nowTs) {
+  const outboxCutoff = nowTs - OUTBOX_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  const traceCutoff = nowTs - AI_TRACE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
+  // 1) 已发布任务：保留 7 天后删除
+  // 2) 已达重试上限的失败任务：同样按期清理（保留策略见 DomainOutboxDispatchService）
+  const jobsDeleted = await db
+    .prepare(
+      `DELETE FROM outbox_consumer_jobs
+       WHERE (status = 'published' AND processed_at IS NOT NULL AND processed_at < ?)
+          OR (status = 'failed' AND attempt_count >= ${OUTBOX_MAX_ATTEMPTS} AND updated_at < ?)`
+    )
+    .bind(outboxCutoff, outboxCutoff)
+    .run();
+
+  // 3) 无剩余消费者任务的事件本体（jobs 表对 event 有 ON DELETE CASCADE，反之不会）
+  const eventsDeleted = await db
+    .prepare(
+      `DELETE FROM domain_outbox
+       WHERE created_at < ?
+         AND NOT EXISTS (
+           SELECT 1 FROM outbox_consumer_jobs j WHERE j.event_id = domain_outbox.id
+         )`
+    )
+    .bind(outboxCutoff)
+    .run();
+
+  // 4) AI 请求遥测（30 天）与其 span
+  await db
+    .prepare('DELETE FROM ai_request_spans WHERE created_at < ?')
+    .bind(traceCutoff)
+    .run();
+  const tracesDeleted = await db
+    .prepare('DELETE FROM ai_request_traces WHERE created_at < ?')
+    .bind(traceCutoff)
+    .run();
+
+  const jobsCount = Number(jobsDeleted?.meta?.changes || 0);
+  const eventsCount = Number(eventsDeleted?.meta?.changes || 0);
+  if (jobsCount + eventsCount > 0) {
+    console.log(
+      `[OutboxRetention] removed ${jobsCount} consumer jobs, ${eventsCount} events (cutoff=${outboxCutoff})`
+    );
+  }
+  return {
+    jobsDeleted: jobsCount,
+    eventsDeleted: eventsCount,
+    aiTracesDeleted: Number(tracesDeleted?.meta?.changes || 0),
+  };
+}
 
 async function processOutboxJob({
   consumerName,
@@ -165,6 +229,17 @@ export async function runOutboxPoller({
       rounds += 1;
     }
 
+    // 保留策略清理：cron 路径每次执行；请求路径按低概率执行（避免热路径 DELETE 开销）。
+    // 清理是尽力而为的维护任务，失败不中断轮询主流程
+    let retention = null;
+    if (!isRequestPathRun || Math.random() < REQUEST_PATH_CLEANUP_PROBABILITY) {
+      try {
+        retention = await runOutboxRetentionCleanup(env.DB, nowTs);
+      } catch (cleanupError) {
+        console.error('[OutboxRetention] Cleanup failed:', cleanupError?.message || cleanupError);
+      }
+    }
+
     const backlog = await dispatchService.countAvailableJobs(nowTs);
     await runtimeStateRepo.finishLease({
       scope: lease.scope,
@@ -185,6 +260,7 @@ export async function runOutboxPoller({
       skipped: false,
       backlog,
       consumers: consumerStats,
+      ...(retention && { retention }),
     };
   } catch (error) {
     await runtimeStateRepo.finishLease({

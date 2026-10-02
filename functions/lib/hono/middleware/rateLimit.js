@@ -163,6 +163,11 @@ export async function rateLimitMiddleware(c, next) {
 
 /**
  * 自定义限流规则工厂
+ *
+ * 与全局限流一致的内存优先策略：
+ * - 内存计数立即可见，消除 KV 读-改-写竞态（并发请求不再全部读到相同的旧计数）
+ * - KV 仅用于跨 isolate 合并（定期异步同步），读失败不阻塞请求
+ * - KV 不可用时退化为单 isolate 内存限流，而非完全放行
  * @param {Object} options - 配置选项
  */
 export function rateLimit(options = {}) {
@@ -170,29 +175,76 @@ export function rateLimit(options = {}) {
 
   return async (c, next) => {
     const kv = getRateLimitKv(c.env);
-    if (!kv) return next(); // KV 不可用时放行
-
     const ip = resolveRequestIp(c.req);
-    const windowKey = Math.floor(Date.now() / window);
+    const now = Date.now();
+    const windowKey = Math.floor(now / window);
     const key = `${keyPrefix}:${ip}:${windowKey}`;
 
-    const current = parseInt((await kv.get(key)) || '0', 10);
+    // 1. 内存快速检查（零网络往返）
+    let entry = memoryCounters.get(key);
+    if (!entry) {
+      if (memoryCounters.size >= MAX_MEMORY_ENTRIES) {
+        cleanupExpiredEntries(now);
+        if (memoryCounters.size >= MAX_MEMORY_ENTRIES) {
+          console.warn(`[RateLimit] Memory map full (${memoryCounters.size}), falling back to KV`);
+          if (kv) {
+            try {
+              const kvCount = parseInt((await kv.get(key)) || '0', 10);
+              if (kvCount >= max) {
+                return c.json({ success: false, error: 'Rate limit exceeded' }, 429);
+              }
+              await kv.put(key, String(kvCount + 1), {
+                expirationTtl: Math.ceil(window / 1000) * 2,
+              });
+            } catch (err) {
+              console.error('[RateLimit] KV fallback error:', err.message);
+            }
+          }
+          return next();
+        }
+      }
+      entry = { count: 0, lastSync: 0 };
+      memoryCounters.set(key, entry);
+    }
 
-    if (current >= max) {
+    // 2. 惰性清理过期窗口
+    if (memoryCounters.size > 1000) {
+      cleanupExpiredEntries(now);
+    }
+
+    // 3. 跨 isolate 合并（定期异步，读失败降级为本地计数）
+    const needsKVMerge = kv && (entry.lastSync === 0 || now - entry.lastSync > SYNC_INTERVAL_MS);
+    if (needsKVMerge) {
+      try {
+        const kvCount = parseInt((await kv.get(key)) || '0', 10);
+        if (kvCount > entry.count) {
+          entry.count = kvCount;
+        }
+      } catch (err) {
+        console.error('[RateLimit] KV read error:', err.message);
+      }
+    }
+
+    // 4. 检查限制
+    if (entry.count >= max) {
       return c.json({ success: false, error: 'Rate limit exceeded' }, 429);
     }
 
-    try {
-      c.executionCtx.waitUntil(
-        kv.put(key, String(current + 1), { expirationTtl: Math.ceil(window / 1000) * 2 })
-      );
-
-      return next();
-    } catch (err) {
-      // KV 故障时降级放行
-      console.error('[RateLimit] Error:', err.message);
-      return next();
+    // 5. 内存递增（立即生效）+ 异步同步到 KV
+    entry.count++;
+    if (kv && now - entry.lastSync > SYNC_INTERVAL_MS) {
+      entry.lastSync = now;
+      const putPromise = Promise.resolve(
+        kv.put(key, String(entry.count), { expirationTtl: Math.ceil(window / 1000) * 2 })
+      ).catch((err) => {
+        console.error('[RateLimit] KV sync error:', err.message);
+      });
+      if (c.executionCtx?.waitUntil) {
+        c.executionCtx.waitUntil(putPromise);
+      }
     }
+
+    return next();
   };
 }
 
@@ -211,6 +263,17 @@ export const LOGIN_LOCKOUT_CONFIG = {
 };
 
 /**
+ * 规范化锁定键中的用户名：trim + 小写，防止 "Admin"/" admin" 等变体绕过按账户锁定。
+ * （SQLite 的 = 比较区分大小写，但攻击者无法确定目标账户的精确大小写形式，
+ * 统一按小写归一化可确保同一账户的所有变体共享同一锁定预算。）
+ */
+function normalizeLockoutUsername(username) {
+  return String(username || '')
+    .trim()
+    .toLowerCase();
+}
+
+/**
  * 检查登录是否被锁定
  * @param {Object} kv - KV 存储
  * @param {string} ip - 客户端 IP
@@ -220,7 +283,7 @@ export const LOGIN_LOCKOUT_CONFIG = {
 export async function checkLoginLockout(kv, ip, username) {
   if (!kv) return { locked: false, unavailable: true, remaining: 0, retryAfter: 0 };
 
-  const key = `login_lockout:${ip}:${username || 'unknown'}`;
+  const key = `login_lockout:${ip}:${normalizeLockoutUsername(username) || 'unknown'}`;
 
   try {
     const data = await kv.get(key, { type: 'json' });
@@ -262,7 +325,7 @@ export async function checkLoginLockout(kv, ip, username) {
 export async function recordLoginFailure(kv, ip, username, executionCtx) {
   if (!kv) return { locked: false, unavailable: true, remaining: 0, retryAfter: 0 };
 
-  const key = `login_lockout:${ip}:${username || 'unknown'}`;
+  const key = `login_lockout:${ip}:${normalizeLockoutUsername(username) || 'unknown'}`;
 
   try {
     const data = await kv.get(key, { type: 'json' });
@@ -327,7 +390,7 @@ export async function recordLoginFailure(kv, ip, username, executionCtx) {
 export async function clearLoginFailures(kv, ip, username, executionCtx) {
   if (!kv) return;
 
-  const key = `login_lockout:${ip}:${username || 'unknown'}`;
+  const key = `login_lockout:${ip}:${normalizeLockoutUsername(username) || 'unknown'}`;
 
   try {
     const deletePromise = kv.delete(key);

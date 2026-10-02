@@ -8,57 +8,17 @@ import { success, error } from '../utils/response.js';
 import { MSG } from '../utils/messages.js';
 import { generateScopedAccessToken } from '../utils/auth.js';
 import {
-  checkLoginLockout,
-  recordLoginFailure,
-  clearLoginFailures,
-} from '../../lib/hono/middleware/rateLimit.js';
+  authorizePublicPasswordAttempt,
+  recordPublicPasswordFailure,
+  clearPublicPasswordFailures,
+} from '../utils/share-guard.js';
 import { verifySharePassword } from '../utils/id.js';
 
 const PUBLIC_SHARE_FILE_TTL_SECONDS = 15 * 60;
 const PUBLIC_SHARE_CACHE_CONTROL = `public, max-age=${PUBLIC_SHARE_FILE_TTL_SECONDS}, stale-while-revalidate=0`;
 
-function getClientIp(request) {
-  return (
-    request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown'
-  );
-}
-
-function getRateLimitKv(env) {
-  return env.RATE_LIMIT_KV || env.KV || null;
-}
-
 function buildShareLockoutKey(prefix, token) {
   return `${prefix}:${token}`;
-}
-
-async function authorizePublicPasswordAttempt(env, request, identifier) {
-  const kv = getRateLimitKv(env);
-  const ip = getClientIp(request);
-  const status = await checkLoginLockout(kv, ip, identifier);
-  if (status.unavailable) {
-    return error('Public share protection unavailable', 503);
-  }
-  if (status.locked) {
-    return error(MSG.AUTH.TOO_MANY_ATTEMPTS || 'Too many attempts', 429);
-  }
-  return null;
-}
-
-async function recordPublicPasswordFailure(env, request, identifier) {
-  const kv = getRateLimitKv(env);
-  const ip = getClientIp(request);
-  const status = await recordLoginFailure(kv, ip, identifier);
-  if (status.unavailable) {
-    return error('Public share protection unavailable', 503);
-  }
-  return null;
-}
-
-async function clearPublicPasswordFailures(env, request, identifier) {
-  const kv = getRateLimitKv(env);
-  const ip = getClientIp(request);
-  if (!kv) return;
-  await clearLoginFailures(kv, ip, identifier);
 }
 
 async function createSharedFileUrlBuilder(env, shareType, shareToken) {

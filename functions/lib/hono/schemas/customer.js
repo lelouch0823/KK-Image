@@ -1,4 +1,7 @@
 import { z } from 'zod';
+
+/** 单次导入的行数上限（防止无界请求放大为海量数据库往返） */
+export const CUSTOMER_IMPORT_MAX_ROWS = 1000;
 import { MSG } from '../../../_shared/utils.js';
 
 /** 创建客户 */
@@ -38,21 +41,24 @@ export const AddTagSchema = z
   .strict();
 
 /** 导入客户确认 */
-export const ImportConfirmSchema = z.object({
-  rows: z
-    .array(
-      z.object({
-        name: z.string().min(1).max(100),
-        phone: z.string().max(30).optional().default(''),
-        company: z.string().max(200).optional().default(''),
-        email: z.string().max(200).optional().default(''),
-        address: z.string().max(500).optional().default(''),
-        tags: z.array(z.string()).optional().default([]),
-        remark: z.string().max(2000).optional().default(''),
-      })
-    )
-    .min(1, '请提供至少一条客户数据'),
-});
+export const ImportConfirmSchema = z
+  .object({
+    rows: z
+      .array(
+        z.object({
+          name: z.string().min(1).max(100),
+          phone: z.string().max(30).optional().default(''),
+          company: z.string().max(200).optional().default(''),
+          email: z.string().max(200).optional().default(''),
+          address: z.string().max(500).optional().default(''),
+          tags: z.array(z.string()).optional().default([]),
+          remark: z.string().max(2000).optional().default(''),
+        })
+      )
+      .min(1, '请提供至少一条客户数据')
+      .max(CUSTOMER_IMPORT_MAX_ROWS, '单次导入最多 1000 条客户数据'),
+  })
+  .strict();
 
 /** 沟通类型枚举 */
 export const COMMUNICATION_TYPES = ['note', 'call', 'email', 'meeting', 'wechat'];

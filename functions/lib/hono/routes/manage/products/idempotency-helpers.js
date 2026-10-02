@@ -1,45 +1,21 @@
-import { CommandIdempotencyRepository } from '../../../../../repositories/CommandIdempotencyRepository.js';
 import { scheduleProductCacheInvalidation } from './cache-helpers.js';
-import { BadRequestError } from '../../../errors.js';
 import { getIdempotencyKey as _getIdempotencyKey } from '../../_shared/outbox-helpers.js';
 import {
+  buildRequestFingerprint as _buildRequestFingerprint,
+  getCommandScopeKey as _getCommandScopeKey,
+  reserveCommandForRoute as _reserveCommandForRoute,
+} from '../../_shared/command-idempotency.js';
+import {
   cleanupReservedCommand,
-  parseStoredResponse,
-  replayReservedCommand,
   resolveReservationOwnership,
 } from '../../../../../services/order-procurement-shared.js';
 
 /** 重新导出规范版本，保持 idempotency-helpers 模块对外接口不变 */
 export const getIdempotencyKey = _getIdempotencyKey;
 
-function normalizeRequestFingerprintValue(value) {
-  if (Array.isArray(value)) {
-    return value.map((item) => normalizeRequestFingerprintValue(item));
-  }
-
-  if (value && typeof value === 'object') {
-    return Object.keys(value)
-      .sort()
-      .reduce((acc, key) => {
-        const normalized = normalizeRequestFingerprintValue(value[key]);
-        if (normalized !== undefined) {
-          acc[key] = normalized;
-        }
-        return acc;
-      }, {});
-  }
-
-  return value;
-}
-
-export function buildRequestFingerprint(scope = {}) {
-  return JSON.stringify(normalizeRequestFingerprintValue(scope));
-}
-
-export function getCommandScopeKey(c, commandType) {
-  const actorId = String(c.get('user')?.id || 'anonymous').trim() || 'anonymous';
-  return `${commandType}:${actorId}`;
-}
+// 通用实现（指纹归一化 / 作用域键 / 预留协议）已提取至 routes/_shared/command-idempotency.js
+export const buildRequestFingerprint = _buildRequestFingerprint;
+export const getCommandScopeKey = _getCommandScopeKey;
 
 export function isDuplicateOutboxIdempotencyError(error) {
   const message = String(error?.message || error || '').toLowerCase();
@@ -79,47 +55,12 @@ export async function reserveProductCommand(
   c,
   { commandType, requestFingerprint, mismatchMessage, inFlightMessage }
 ) {
-  const commandIdempotencyRepo = new CommandIdempotencyRepository(c.env.DB);
-  const idempotencyKey = getIdempotencyKey(c);
-  const reservation = await commandIdempotencyRepo.reserveCommand(
+  return _reserveCommandForRoute(c, {
     commandType,
-    getCommandScopeKey(c, commandType),
-    idempotencyKey,
-    requestFingerprint
-  );
-
-  if (reservation?.existing) {
-    if (reservation.record?.request_fingerprint !== requestFingerprint) {
-      throw new BadRequestError(mismatchMessage || '同一个幂等键不能提交不同请求');
-    }
-
-    const storedResponse = parseStoredResponse(reservation.record?.response_json);
-    if (reservation.record?.status === 'failed' && storedResponse) {
-      return {
-        replay: null,
-        resume: storedResponse,
-        reservation,
-        commandIdempotencyRepo,
-      };
-    }
-
-    return {
-      replay: replayReservedCommand(reservation, requestFingerprint, {
-        mismatchMessage,
-        inFlightMessage,
-      }),
-      resume: null,
-      reservation,
-      commandIdempotencyRepo,
-    };
-  }
-
-  return {
-    replay: null,
-    resume: null,
-    reservation,
-    commandIdempotencyRepo,
-  };
+    requestFingerprint,
+    mismatchMessage,
+    inFlightMessage,
+  });
 }
 
 export async function runIdempotentCommand(
@@ -136,6 +77,8 @@ export async function runIdempotentCommand(
     mapDomainError = null,
   }
 ) {
+  // 产品域特有：publish 在"提交响应"之前执行（缓存失效必须与命令提交同生共死），
+  // resume 路径也需要重放 publish —— 因此保留本地实现，仅复用共享的预留协议
   const { replay, resume, reservation, commandIdempotencyRepo } = await reserveProductCommand(c, {
     commandType,
     requestFingerprint,

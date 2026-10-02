@@ -20,7 +20,12 @@ function normalizeCacheUrl(url) {
 
 function normalizeAcceptHeader(accept) {
   const normalized = String(accept || '').trim();
-  if (!normalized || normalized === '*/*') {
+  // API 响应均为 JSON：任何"接受 JSON"的 Accept 变体（含浏览器/axios 默认的
+  // "application/json, text/plain, */*"）都归一化为同一个缓存键。
+  // 此前仅归一化空值与 '*/*'，其他变体会产生独立缓存条目，而失效逻辑
+  // 只删除两种固定形态 —— 这些条目在 TTL 内永远无法被主动失效。
+  const jsonMatch = /application\/[\w.+-]*json/i.test(normalized) || normalized === '*/*';
+  if (!normalized || jsonMatch) {
     return 'application/json';
   }
   return normalized;
@@ -68,7 +73,9 @@ export function withCache(ttlSeconds = 60, options = {}) {
 
     // 仅缓存成功响应
     if (c.res && c.res.ok) {
-      c.res.headers.set('Cache-Control', `public, max-age=${ttlSeconds}`);
+      // private：这些端点都在认证/权限门之后，禁止浏览器/共享代理缓存副本；
+      // 边缘侧仍由上方显式 cache.put 控制（Cache API 不受该头影响）
+      c.res.headers.set('Cache-Control', `private, max-age=${ttlSeconds}`);
       c.res.headers.set('X-Cache', 'MISS');
 
       if (etagMode === 'body-hash') {
@@ -145,7 +152,7 @@ export function conditionalCache(options = {}) {
 
     if (c.res?.ok) {
       const response = c.res.clone();
-      response.headers.set('Cache-Control', `public, max-age=${ttl}`);
+      response.headers.set('Cache-Control', `private, max-age=${ttl}`);
       c.executionCtx.waitUntil(cache.put(cacheKey, response));
     }
   };

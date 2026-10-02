@@ -16,6 +16,57 @@ function getReceivedAllocationQty(item = {}) {
   return Math.max(toNumber(item.received_qty), 0);
 }
 
+/**
+ * 按已收货金额（unit_cost × received_qty）比例把总额分配到各明细，
+ * 以"分"为整数单位做最大余额法，保证分配之和与总额精确相等。
+ * @param {Array<Object>} items 采购单明细
+ * @param {number} total 待分配总额
+ * @returns {Map<string, number>} itemId -> 分摊金额
+ */
+function distributeByValue(items, total) {
+  const result = new Map();
+  const totalCents = Math.round(Number(total) || 0);
+  const eligible = items.filter((item) => getReceivedAllocationQty(item) > 0);
+  if (eligible.length === 0 || totalCents === 0) {
+    for (const item of items) result.set(item.id, 0);
+    if (totalCents === 0) return result;
+  }
+
+  const weights = eligible.map(
+    (item) => (Number(item.unit_cost) || 0) * getReceivedAllocationQty(item)
+  );
+  const weightSum = weights.reduce((sum, w) => sum + w, 0);
+  if (!(weightSum > 0)) {
+    for (const item of items) result.set(item.id, 0);
+    return result;
+  }
+
+  const rawCents = weights.map((w) => (w / weightSum) * totalCents);
+  const baseCents = rawCents.map((v) => Math.floor(v));
+  let remainder = totalCents - baseCents.reduce((sum, c) => sum + c, 0);
+  const order = rawCents
+    .map((value, idx) => ({ idx, fraction: value - Math.floor(value) }))
+    .sort((a, b) => b.fraction - a.fraction);
+
+  const cents = [...baseCents];
+  for (let i = 0; remainder > 0 && i < order.length; i++, remainder--) {
+    cents[order[i].idx] += 1;
+  }
+  // 兜底：浮点极端情况下余量可能超出明细数，循环均摊剩余部分
+  let cursor = 0;
+  while (remainder > 0) {
+    cents[order[cursor % order.length].idx] += 1;
+    remainder -= 1;
+    cursor += 1;
+  }
+
+  eligible.forEach((item, idx) => result.set(item.id, cents[idx] / 100));
+  for (const item of items) {
+    if (!result.has(item.id)) result.set(item.id, 0);
+  }
+  return result;
+}
+
 function requireCompletedPurchaseOrderForAllocation(po) {
   if (po?.status !== 'completed') {
     throw new BadRequestError('仅已结算采购单允许执行成本分摊');
@@ -70,33 +121,30 @@ export class CostAllocationService {
         // 回退到按件数分摊
         allocations = this._allocateByQuantity(items, shippingCost, tariffCost);
       } else {
-        allocations = items.map((item) => {
-          const receivedQty = getReceivedAllocationQty(item);
-          if (receivedQty <= 0) {
-            return {
-              id: item.id,
-              allocated_freight: 0,
-              allocated_tariff: 0,
-            };
-          }
-
-          const valueRatio = ((Number(item.unit_cost) || 0) * receivedQty) / totalValue;
-          return {
-            id: item.id,
-            allocated_freight: Math.round(((shippingCost * valueRatio) / receivedQty) * 100) / 100,
-            allocated_tariff: Math.round(((tariffCost * valueRatio) / receivedQty) * 100) / 100,
-          };
-        });
+        // 以"分"为单位做最大余额法分配，保证 Σ(allocated_freight) == shippingCost、
+        // Σ(allocated_tariff) == tariffCost 精确成立
+        // （旧实现按单价四舍五入，Σ(单价×数量) 与总额存在累计舍入漂移）
+        const freightByItem = distributeByValue(items, shippingCost);
+        const tariffByItem = distributeByValue(items, tariffCost);
+        allocations = items.map((item) => ({
+          id: item.id,
+          allocated_freight: freightByItem.get(item.id) || 0,
+          allocated_tariff: tariffByItem.get(item.id) || 0,
+        }));
       }
     } else {
       // --- 按件数平均分摊 (默认) ---
       allocations = this._allocateByQuantity(items, shippingCost, tariffCost);
     }
 
+    // 记录本次分摊前各明细已有的分摊额（来自上一次分摊运行），
+    // 用于下方 MAC 重算时反解出"未含运费/关税"的存量成本
     const previousAllocations = items.map((item) => ({
       id: item.id,
+      variant_id: item.variant_id,
       allocated_freight: Number(item.allocated_freight) || 0,
       allocated_tariff: Number(item.allocated_tariff) || 0,
+      receivedQty: getReceivedAllocationQty(item),
     }));
 
     const allocationById = new Map(allocations.map((allocation) => [allocation.id, allocation]));
@@ -139,6 +187,17 @@ export class CostAllocationService {
 
     // 2. MAC 成本更新语句
     const macTimestamp = Date.now();
+    // 汇总每个变体此前已计入 cost_price 的分摊总额（上一次分摊运行的影响）
+    const previousCostByVariant = new Map();
+    for (const prev of previousAllocations) {
+      if (!prev.variant_id || prev.receivedQty <= 0) continue;
+      const prevCost = (prev.allocated_freight + prev.allocated_tariff) * prev.receivedQty;
+      if (prevCost <= 0) continue;
+      previousCostByVariant.set(
+        prev.variant_id,
+        (previousCostByVariant.get(prev.variant_id) || 0) + prevCost
+      );
+    }
     for (const [variantId, input] of macInputsByVariant.entries()) {
       const variantBefore =
         typeof this.variantRepo.findById === 'function'
@@ -155,7 +214,19 @@ export class CostAllocationService {
       const denominator = preArrivalQty + safeArrivedQty;
       if (denominator <= 0) continue;
 
-      const nextCost = (preArrivalQty * currentCost + Number(input.totalCost || 0)) / denominator;
+      // 重复分摊时 currentCost 已包含上一次运行的运费/关税影响：
+      // 先按上次的影响额反解出"未含分摊费用"的存量单价，再以新分摊额重算，
+      // 避免重跑分摊把成本逐次推高（两次分摊之间若无出入库，反解是精确的）
+      const previousTotalCost = previousCostByVariant.get(variantId) || 0;
+      let baselineCost = currentCost;
+      if (previousTotalCost > 0 && preArrivalQty > 0) {
+        baselineCost = Math.max(
+          0,
+          (currentCost * denominator - previousTotalCost) / preArrivalQty
+        );
+      }
+
+      const nextCost = (preArrivalQty * baselineCost + Number(input.totalCost || 0)) / denominator;
       allStatements.push(
         this.db
           .prepare('UPDATE product_variants SET cost_price = ?, updated_at = ? WHERE id = ?')

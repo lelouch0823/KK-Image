@@ -300,18 +300,24 @@ export class FolderRepository {
     const ids = descendantIds.map((r) => r.id);
     if (ids.length === 0) return;
 
-    // 构建批量删除语句
+    // 先删文件再删文件夹（引用顺序），且使用默认批次大小：
+    // 之前按 (files, folders) 成对、每 2 条一个批次提交，中途失败会留下被撕裂的子树；
+    // 默认批次下 ≤49 个子目录的常见情形可在单个原子 batch 内完成
     const statements = [];
     for (const idChunk of chunkArray(ids, 98)) {
       statements.push(
         this.db
           .prepare(`DELETE FROM files WHERE folder_id IN ${inClause(idChunk)}`)
-          .bind(...idChunk),
+          .bind(...idChunk)
+      );
+    }
+    for (const idChunk of chunkArray(ids, 98)) {
+      statements.push(
         this.db.prepare(`DELETE FROM folders WHERE id IN ${inClause(idChunk)}`).bind(...idChunk)
       );
     }
 
-    await executeBatchChunks(this.db, statements, 2);
+    await executeBatchChunks(this.db, statements);
   }
 
   /**

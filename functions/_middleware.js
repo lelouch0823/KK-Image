@@ -1,5 +1,5 @@
 import { sentryPagesPlugin } from '@sentry/cloudflare';
-import { verifyJWT, extractAdminAuthToken, ADMIN_AUTH_COOKIE } from './api/utils/auth.js';
+import { isAdminAuthenticated, ADMIN_AUTH_COOKIE } from './api/utils/auth.js';
 
 /**
  * Edge Middleware - 组合 Sentry 监控 + JWT 验证
@@ -31,26 +31,18 @@ export const onRequest = [
       return next();
     }
 
-    // 从 Cookie 中提取 JWT Token
-    const token = extractAdminAuthToken(request, { includeBearer: false });
-
-    if (!token) {
-      return Response.redirect(`${url.origin}/login`, 302);
-    }
-
-    // 验证 JWT
-    try {
-      await verifyJWT(token, env);
+    // 验证 JWT（isAdminAuthenticated 同时校验令牌类型，防止销售端/分享令牌进入管理后台）
+    const isAdmin = await isAdminAuthenticated(request, env);
+    if (isAdmin) {
       return next();
-    } catch (_error) {
-      // Token valid check failed, clear cookie
-      return new Response(null, {
-        status: 302,
-        headers: {
-          Location: `${url.origin}/login`,
-          'Set-Cookie': `${ADMIN_AUTH_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`,
-        },
-      });
     }
+    // Token 校验失败，清除 Cookie 并重定向到登录页
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: `${url.origin}/login`,
+        'Set-Cookie': `${ADMIN_AUTH_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`,
+      },
+    });
   },
 ];

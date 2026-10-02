@@ -19,6 +19,8 @@ import {
 import { parsePagination } from '../../../_shared/route-helpers.js';
 import { escapeCSV } from '../../../../../api/utils/csv.js';
 import { withCache } from '../../../middleware/cache.js';
+import { chunkArray } from '../../../../../lib/db/batch.js';
+import { D1_MAX_IN_CLAUSE_SIZE } from '../../../../../api/utils/constants.js';
 import {
   ORDER_LINE_PRIMARY_SNAPSHOT_JOIN,
   ORDER_LINE_STATUS_AGGREGATE_JOIN,
@@ -150,8 +152,12 @@ app.get('/export', async (c) => {
   const bindParams = [];
 
   // 如果指定了 IDs，优先使用 IDs 筛选
+  // 分块拼装 OR 组，避免 ids 数量超过 D1 绑定参数上限（100）导致 500
   if (ids.length > 0) {
-    whereClause += ` AND o.id IN (${ids.map(() => '?').join(', ')})`;
+    const idGroups = chunkArray(ids, D1_MAX_IN_CLAUSE_SIZE)
+      .map((chunk) => `o.id IN (${chunk.map(() => '?').join(', ')})`)
+      .join(' OR ');
+    whereClause += ` AND (${idGroups})`;
     bindParams.push(...ids);
   }
 

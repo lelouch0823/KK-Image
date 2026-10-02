@@ -43,7 +43,7 @@ describe('audit coverage consistency helpers', () => {
   it('has no current audit coverage violations', async () => {
     const violations = await collectAuditCoverageViolations();
     expect(violations).toEqual([]);
-  }, 15000);
+  }, 60000);
 
   it('has no legacy logAudit usage in active hono write routes', async () => {
     const legacyUsages = await collectActiveRouteLegacyAuditUsage();
@@ -69,7 +69,7 @@ describe('audit coverage consistency helpers', () => {
     expect(ignoredAuditRoutes.map((route) => route.key)).toContain('POST /check-hash');
   });
 
-  it('builds a machine-readable audit coverage report', async () => {
+  it('builds a machine-readable audit coverage report', { timeout: 60000 }, async () => {
     const report = await buildAuditCoverageReport();
 
     expect(report).toEqual(

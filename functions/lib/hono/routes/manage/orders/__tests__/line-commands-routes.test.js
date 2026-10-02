@@ -50,6 +50,23 @@ vi.mock('../../../../_shared/audit-helpers.js', async () => {
   };
 });
 
+// 行级命令现走命令幂等协议（reserve -> execute -> finalize）
+vi.mock('../../../../../../repositories/CommandIdempotencyRepository.js', () => ({
+  CommandIdempotencyRepository: vi.fn(() => ({
+    reserveCommand: vi.fn(async () => ({
+      existing: false,
+      ownsReservation: true,
+      record: { command_id: 'cmd-line-test' },
+    })),
+    buildFinalizeStatement: vi.fn(() => ({
+      run: vi.fn(async () => ({ meta: { changes: 1 } })),
+    })),
+    buildDeleteStatement: vi.fn(() => ({
+      run: vi.fn(async () => ({ meta: { changes: 1 } })),
+    })),
+  })),
+}));
+
 vi.mock('../../../../../../api/cron/outbox.js', () => ({
   runOutboxPoller: mocks.runOutboxPoller,
 }));
@@ -323,5 +340,67 @@ describe('manage order line command routes', () => {
     expect(mocks.shipLine).not.toHaveBeenCalled();
     expect(mocks.addTimelineEntry).not.toHaveBeenCalled();
     expect(mocks.publish).not.toHaveBeenCalled();
+  });
+
+  it('replays the stored ship response for a retried Idempotency-Key without re-executing the command', async () => {
+    // 回归：此前行级命令无幂等保护，网络超时重发同一 ship 请求会二次扣减库存
+    const storedResponse = {
+      order_id: 'order-1',
+      order_line_id: 'line-1',
+      action: 'ship',
+      quantity: 1,
+    };
+    let reserveCallCount = 0;
+    const { CommandIdempotencyRepository } = await import(
+      '../../../../../../repositories/CommandIdempotencyRepository.js'
+    );
+    CommandIdempotencyRepository.mockImplementation(() => ({
+      reserveCommand: vi.fn(async (_commandType, _scopeKey, idempotencyKey, fingerprint) => {
+        reserveCallCount += 1;
+        if (reserveCallCount === 1) {
+          return { existing: false, ownsReservation: true, record: { command_id: 'cmd-line-1' } };
+        }
+        // 第二次请求：同一幂等键的命令已提交，返回已存储的响应
+        return {
+          existing: true,
+          ownsReservation: false,
+          record: {
+            command_id: 'cmd-line-1',
+            idempotency_key: idempotencyKey,
+            request_fingerprint: fingerprint,
+            response_json: JSON.stringify(storedResponse),
+            status: 'committed',
+          },
+        };
+      }),
+      buildFinalizeStatement: vi.fn(() => ({
+        run: vi.fn(async () => ({ meta: { changes: 1 } })),
+      })),
+      buildDeleteStatement: vi.fn(() => ({
+        run: vi.fn(async () => ({ meta: { changes: 1 } })),
+      })),
+    }));
+
+    const app = createApp();
+    const request = () =>
+      app.request(
+        'http://localhost/api/manage/orders/order-1/lines/line-1/ship',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'ship-key-1' },
+          body: JSON.stringify({ quantity: 1 }),
+        },
+        { DB: {} },
+        { waitUntil: vi.fn() }
+      );
+
+    const first = await request();
+    const second = await request();
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(await second.json()).toEqual(await first.clone().json());
+    // 关键断言：发货命令只执行一次
+    expect(mocks.shipLine).toHaveBeenCalledTimes(1);
   });
 });

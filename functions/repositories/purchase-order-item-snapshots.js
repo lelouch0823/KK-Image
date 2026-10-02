@@ -85,10 +85,8 @@ export async function loadLivePurchaseItemSnapshotMap({ db, items = [] }) {
 
   const productIds = [...new Set(liveRows.map((row) => row.product_id).filter(Boolean))];
   const dimensionRepo = new ProductDimensionRepository(db);
-  const dimensionMapByProductId = new Map();
-  for (const productId of productIds) {
-    dimensionMapByProductId.set(productId, await dimensionRepo.getDimensionMap(productId));
-  }
+  // 使用批量版本避免 N+1 查询（每个商品一次查询会在多商品采购单上放大延迟）
+  const dimensionMapByProductId = await dimensionRepo.getDimensionMapByProductIds(productIds);
 
   const snapshotMap = new Map();
   for (const row of liveRows) {

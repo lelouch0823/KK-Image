@@ -33,6 +33,10 @@ app.get('/:eventId', requirePermission('audit:read'), async (c) => {
   const repo = new OutboxReplayRepository(c.env.DB);
   const detail = await repo.getEventDetail(c.req.param('eventId'));
 
+  if (!detail) {
+    return c.json({ success: false, error: 'Event not found' }, 404);
+  }
+
   return c.json({
     success: true,
     data: detail,

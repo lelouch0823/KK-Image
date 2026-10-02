@@ -220,11 +220,12 @@ app.patch(
         }
         const archivedDimension = await dimensionRepo.archiveDimension(productId, dimensionId);
 
-        // 刷新商品投影表
+        // 刷新商品投影表：投影是最终一致的派生数据，刷新失败不应让已完成的
+        // 归档操作报错（失败会被记录并通过后续事件重试），保持拆分前的非严格模式
         const { ProductProjectionRefreshService } =
           await import('../../../../../../services/ProductProjectionRefreshService.js');
         const refreshService = new ProductProjectionRefreshService(env.DB);
-        await refreshService.refreshByProductId(productId, c.executionCtx, { strict: true });
+        await refreshService.refreshByProductId(productId, c.executionCtx);
 
         return { success: true, data: { dimension: archivedDimension, effect } };
       },

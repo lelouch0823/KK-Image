@@ -75,20 +75,11 @@ export function isPreviousWriteAssertionError(error) {
     .includes('malformed json');
 }
 
-export function normalizeGuardedOrderUpdateError(error) {
+export function normalizeGuardedOrderUpdateError(error, { message } = {}) {
   if (isPreviousWriteAssertionError(error)) {
-    throw new BadRequestError(ARCHIVED_ORDER_MUTATION_MESSAGE);
+    throw new BadRequestError(message || ARCHIVED_ORDER_MUTATION_MESSAGE);
   }
   throw error;
-}
-
-export async function verifySingleRowStatusUpdate(db, result) {
-  const reportedChanges = result?.meta?.changes;
-  if (reportedChanges === undefined || reportedChanges === null) return true;
-  if (Number(reportedChanges) === 1) return true;
-
-  const changesRow = await db.prepare('SELECT changes() AS changes').first();
-  return Number(changesRow?.changes || 0) === 1;
 }
 
 // ── 批量执行 ────────────────────────────────────────────────────────

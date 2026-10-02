@@ -15,8 +15,11 @@ const app = new Hono();
 
 /**
  * GET /manage/receivables - 应收账款汇总和账龄分析
+ *
+ * 使用 orders:manage（与订单路由一致）：policy 中 orders:read 未授予任何角色，
+ * 若用 orders:read 会导致 manager/sales 角色无法访问本应可见的应收数据。
  */
-app.get('/', requirePermission('orders:read'), async (c) => {
+app.get('/', requirePermission('orders:manage'), async (c) => {
   const { env } = c;
   const paymentRepo = new PaymentRepository(env.DB);
 

@@ -11,6 +11,41 @@ import { loadVariantReplenishmentMap } from '../_shared/variant-replenishment.js
 
 const app = new Hono();
 
+// 销售端商品详情白名单：内部采购/成本/补货运营字段（cost_price、
+// suggested_purchase_price、alert_threshold、supplier_sku 等）不应对销售端暴露，
+// 小程序端也从不消费这些字段（字段清单对齐 minisales normalize/product.ts）
+const SALES_PRODUCT_FIELDS = [
+  'id',
+  'name',
+  'sku',
+  'spu',
+  'brand',
+  'series',
+  'category',
+  'images',
+  'status',
+  'specifications',
+];
+const SALES_VARIANT_FIELDS = [
+  'id',
+  'product_id',
+  'sku',
+  'status',
+  'options_values',
+  'image_id',
+  'stock_quantity',
+];
+
+function pickSalesFields(source = {}, fields = []) {
+  const result = {};
+  for (const field of fields) {
+    if (source[field] !== undefined) {
+      result[field] = source[field];
+    }
+  }
+  return result;
+}
+
 function isSellableSalesVariant(variant = {}) {
   if (variant?.status !== 'active') return false;
   const availableQuantity = Number(
@@ -109,7 +144,8 @@ app.get('/:id', withCache(30), async (c) => {
     dimensions.map((dimension) => [dimension.id, dimension.name])
   );
 
-  product.variants = await Promise.all(
+  const safeProduct = pickSalesFields(product, SALES_PRODUCT_FIELDS);
+  safeProduct.variants = await Promise.all(
     variants.map(async (variant) => {
       const images = await variantImageRepo.listByVariant({
         productId: id,
@@ -121,7 +157,7 @@ app.get('/:id', withCache(30), async (c) => {
         replenishment_po_count: 0,
       };
       return {
-        ...variant,
+        ...pickSalesFields(variant, SALES_VARIANT_FIELDS),
         images,
         primaryImage: primary?.image_id || variant.image_id || null,
         replenishment_quantity: replenishment.replenishment_quantity,
@@ -132,10 +168,10 @@ app.get('/:id', withCache(30), async (c) => {
       };
     })
   );
-  product.dimensions = dimensions;
-  product.dimension_map = dimensionMap;
+  safeProduct.dimensions = dimensions;
+  safeProduct.dimension_map = dimensionMap;
 
-  return c.json({ success: true, data: product });
+  return c.json({ success: true, data: safeProduct });
 });
 
 export default app;

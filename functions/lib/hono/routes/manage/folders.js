@@ -458,11 +458,13 @@ app.post('/:id/upload', requirePermission('files:write'), async (c) => {
     () => new NotFoundError(MSG.FOLDER.NOT_FOUND)
   );
 
-  // 2. 获取上传文件
+  // 2. 获取上传文件（与 upload.js 一致：校验字段是文件对象而非字符串）
   const formData = await c.req.parseBody();
   const uploadFile = formData['file'];
 
-  if (!uploadFile) throw new BadRequestError(MSG.COMMON.UPLOAD_NO_FILE);
+  if (!uploadFile || typeof uploadFile === 'string') {
+    throw new BadRequestError(MSG.COMMON.UPLOAD_NO_FILE);
+  }
 
   // 3. 获取前端提供的哈希（如果有）
   const url = new URL(c.req.url);
@@ -497,6 +499,7 @@ app.post('/:id/upload', requirePermission('files:write'), async (c) => {
       payload: {
         file: {
           id: result.id,
+          folder_id: result.folderId ?? folderId ?? null,
           filename: result.name,
           size: result.size,
           type: result.type,

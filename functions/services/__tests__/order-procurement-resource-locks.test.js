@@ -8,6 +8,7 @@ function createCommandIdempotencyRepo({ insertResults = [] } = {}) {
   const calls = {
     insertRecords: [],
     deletedCommandIds: [],
+    stolenLocks: [],
   };
 
   const repo = {
@@ -21,6 +22,13 @@ function createCommandIdempotencyRepo({ insertResults = [] } = {}) {
       run: vi.fn(async () => {
         calls.deletedCommandIds.push(commandId);
         return { meta: { changes: 1 } };
+      }),
+    })),
+    // stale 接管：默认无可接管的过期锁（changes: 0）
+    buildStealStaleLockStatement: vi.fn(({ scopeKey } = {}) => ({
+      run: vi.fn(async () => {
+        calls.stolenLocks.push(scopeKey);
+        return { meta: { changes: 0 } };
       }),
     })),
   };

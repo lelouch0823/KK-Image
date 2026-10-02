@@ -275,6 +275,9 @@ app.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const orderRepo = new OrderRepository(env.DB);
   const order = await orderRepo.findById(id);
+  if (!order) {
+    throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+  }
   await orderRepo.deleteOrderCascading(id);
   const publisher = new DomainOutboxPublisher(env.DB);
   await publisher.publish([

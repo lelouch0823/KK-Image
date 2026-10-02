@@ -67,11 +67,14 @@ export async function publishDomainEventsAndPoll(
   const publishedEvents = await publisher.publish(events, publishOptions);
 
   if (await shouldSchedulePoller(c, events, publishedEvents, publishOptions)) {
+    // 自带 catch，防止 poller 失败成为未处理拒绝
     c.executionCtx.waitUntil(
       runOutboxPoller({
         env: c.env,
         requestUrl: c.req.url,
         workerId,
+      }).catch((err) => {
+        console.error('[Outbox] Background poller failed:', err?.message || err);
       })
     );
   }

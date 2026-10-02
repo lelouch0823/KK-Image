@@ -98,6 +98,26 @@ export class CommandIdempotencyRepository {
     return this.db.prepare('DELETE FROM command_idempotency WHERE command_id = ?').bind(commandId);
   }
 
+  /**
+   * 构建删除过期资源锁的语句（stale steal）。
+   *
+   * 仅删除仍处于 in_flight 且 updated_at 早于 staleBefore 的记录：
+   * 资源锁在持有进程崩溃后无人释放（正常完成的锁与业务写入同批次删除），
+   * 若无自愈机制会永久阻塞该资源的后续命令。由调用方传入时间下限。
+   */
+  buildStealStaleLockStatement({ commandType, scopeKey, idempotencyKey, staleBefore }) {
+    return this.db
+      .prepare(
+        `DELETE FROM command_idempotency
+         WHERE command_type = ?
+           AND scope_key = ?
+           AND idempotency_key = ?
+           AND status = 'in_flight'
+           AND updated_at < ?`
+      )
+      .bind(commandType, scopeKey, idempotencyKey, staleBefore);
+  }
+
   buildFinalizeStatement(commandId, responseJson, status = 'committed') {
     const timestamp = this.now();
 

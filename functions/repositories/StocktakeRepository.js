@@ -310,17 +310,7 @@ export class StocktakeRepository {
   async adjustInventory(stocktakeId, options = {}) {
     if (!stocktakeId) throw new Error('stocktakeId is required');
 
-    const stocktake = await this.db
-      .prepare('SELECT status FROM stocktakes WHERE id = ?')
-      .bind(stocktakeId)
-      .first();
-
-    if (!stocktake) throw new Error('盘点单不存在');
-    if (stocktake.status !== 'counting') {
-      throw new Error('盘点单状态不允许调整库存');
-    }
-
-    // 获取有差异的明细
+    // 先读取有差异的明细，尽量缩短 CAS 认领与库存写入之间的崩溃窗口
     const { results: items = [] } = await this.db
       .prepare(
         `
@@ -332,22 +322,31 @@ export class StocktakeRepository {
       .bind(stocktakeId)
       .all();
 
-    if (items.length === 0) {
-      // 没有差异，直接标记为已完成
-      await this.db
-        .prepare("UPDATE stocktakes SET status = 'adjusted', completed_at = ? WHERE id = ?")
-        .bind(now(), stocktakeId)
-        .run();
-      return { adjustedCount: 0, totalDelta: 0 };
+    // CAS 认领：仅当盘点单仍处于 counting 状态时才允许调整，
+    // 防止并发/重试请求重复执行 applyBatch 造成库存被调整两次
+    const claimResult = await this.db
+      .prepare(
+        "UPDATE stocktakes SET status = 'adjusted', completed_at = ? WHERE id = ? AND status = 'counting'"
+      )
+      .bind(now(), stocktakeId)
+      .run();
+
+    if (Number(claimResult?.meta?.changes || 0) !== 1) {
+      const stocktake = await this.db
+        .prepare('SELECT status FROM stocktakes WHERE id = ?')
+        .bind(stocktakeId)
+        .first();
+      if (!stocktake) throw new Error('盘点单不存在');
+      throw new Error('盘点单状态不允许调整库存');
     }
 
-    const timestamp = now();
     // 通过 DI 工厂函数创建 InventoryService，避免 Repository 直接依赖 Service
     const inventoryService = this._InventoryServiceFactory
       ? this._InventoryServiceFactory(this.db)
       : null;
 
     if (!inventoryService) {
+      await this._revertAdjustmentClaim(stocktakeId);
       throw new Error('InventoryServiceFactory is required for inventory adjustment');
     }
 
@@ -360,18 +359,31 @@ export class StocktakeRepository {
       referenceId: stocktakeId,
       metadata: { source: 'stocktake', stocktakeId },
     }));
-    await inventoryService.applyBatch(mutations);
 
-    // 更新盘点单状态
-    await this.db
-      .prepare("UPDATE stocktakes SET status = 'adjusted', completed_at = ? WHERE id = ?")
-      .bind(timestamp, stocktakeId)
-      .run();
+    try {
+      // applyBatch 是单个 D1 batch，原子执行
+      await inventoryService.applyBatch(mutations);
+    } catch (error) {
+      // 调整失败时回滚认领状态，允许修正后重试（并发重复已被 CAS 排除）
+      await this._revertAdjustmentClaim(stocktakeId);
+      throw error;
+    }
 
     return {
       adjustedCount: items.length,
       totalDelta: items.reduce((sum, item) => sum + Math.abs(item.difference), 0),
     };
+  }
+
+  /**
+   * 回滚 adjustInventory 的 CAS 状态认领（仅当仍处于 adjusted 时）
+   * @private
+   */
+  async _revertAdjustmentClaim(stocktakeId) {
+    await this.db
+      .prepare("UPDATE stocktakes SET status = 'counting', completed_at = NULL WHERE id = ? AND status = 'adjusted'")
+      .bind(stocktakeId)
+      .run();
   }
 
   /**

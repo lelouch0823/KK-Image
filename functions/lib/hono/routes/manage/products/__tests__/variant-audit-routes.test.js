@@ -121,6 +121,16 @@ vi.mock('../../../../../../repositories/ProductDimensionRepository.js', () => ({
   },
 }));
 
+// 路由拆分后 PATCH/DELETE 走 ProductCatalogService -> 投影刷新（真实服务会触碰 db mock）
+vi.mock('../../../../../../services/ProductProjectionRefreshService.js', () => ({
+  ProductProjectionRefreshService: class {
+    refreshByProductId = vi.fn(async () => undefined);
+    refreshByProductIds = vi.fn(async () => undefined);
+    refreshByVariantIds = vi.fn(async () => undefined);
+    refreshAll = vi.fn(async () => undefined);
+  },
+}));
+
 vi.mock('../../../../../../api/utils/folder-utils.js', () => ({
   ensureVariantFolder: (...args) => mockFolderUtils.ensureVariantFolder(...args),
   moveFilesToFolder: (...args) => mockFolderUtils.moveFilesToFolder(...args),

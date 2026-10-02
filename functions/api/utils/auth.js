@@ -237,9 +237,9 @@ async function getValidApiKey(apiKey, env) {
     console.error('Failed to get API keys from D1:', error);
   }
 
-  // 如果 KV/D1 中没有，使用环境变量中的默认 API Key
+  // 如果 KV/D1 中没有，使用环境变量中的默认 API Key（常量时间比较，防止时序侧信道）
   const defaultApiKey = env.DEFAULT_API_KEY;
-  if (defaultApiKey && apiKey === defaultApiKey) {
+  if (defaultApiKey && cryptoTimingSafeCompare(apiKey, defaultApiKey)) {
     return {
       id: 'default',
       key: defaultApiKey,
@@ -365,6 +365,20 @@ export async function authenticateAdmin(request, env) {
 export { cryptoTimingSafeCompare as timingSafeCompare };
 
 /**
+ * 判断 JWT 载荷是否代表管理端身份。
+ *
+ * 同一个 JWT_SECRET 会签发多种令牌（admin/user 管理端、salesperson 销售端、
+ * public_file_access 公开分享），仅凭签名通过不足以判定管理员身份 ——
+ * 必须显式校验 type，否则销售人员/分享令牌将被当作管理员放行。
+ * 遗留令牌（type 缺失或 'jwt'）与 Hono authMiddleware 的策略保持一致：拒绝。
+ * @param {{ type?: string }} user - verifyJWT 返回的规范化载荷
+ * @returns {boolean}
+ */
+export function isAdminUserContext(user) {
+  return user?.type === 'admin' || user?.type === 'user';
+}
+
+/**
  * 检查请求是否来自已认证管理员（无抛错版本）
  * @param {Request} request
  * @param {Object} env
@@ -374,8 +388,8 @@ export async function isAdminAuthenticated(request, env) {
   try {
     const token = extractAdminAuthToken(request);
     if (!token) return false;
-    await verifyJWT(token, env);
-    return true;
+    const user = await verifyJWT(token, env);
+    return isAdminUserContext(user);
   } catch {
     return false;
   }

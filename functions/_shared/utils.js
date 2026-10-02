@@ -46,6 +46,7 @@ export {
   verifyTurnstile,
   timingSafeCompare,
   isAdminAuthenticated,
+  isAdminUserContext,
   verifyApiKey,
 } from '../api/utils/auth.js';
 

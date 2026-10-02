@@ -2,6 +2,10 @@ import { executeBatchChunks } from '../lib/db/batch.js';
 import { BadRequestError } from '../lib/hono/errors.js';
 
 const RESOURCE_LOCK_IDEMPOTENCY_KEY = '__resource_lock__';
+// 锁的 stale 窗口：持有进程崩溃后遗留的孤儿锁在该窗口后可被后续命令接管。
+// 正常完成的锁随业务写入同批次删除，不会存活到窗口期；收货命令本身在秒级完成，
+// 10 分钟的窗口对正常并发是安全的。
+const RESOURCE_LOCK_STALE_MS = 10 * 60 * 1000;
 const RESOURCE_LOCK_DEFINITIONS = {
   purchase_order_item: {
     commandType: 'purchase_receipt_item_lock',
@@ -81,7 +85,28 @@ export async function acquireProcurementResourceLocks({
       created_at: timestamp,
       updated_at: timestamp,
     };
-    const insertResult = await commandIdempotencyRepo.buildInsertStatement(lockRecord).run();
+    let insertResult = await commandIdempotencyRepo.buildInsertStatement(lockRecord).run();
+
+    if (Number(insertResult?.meta?.changes || 0) !== 1) {
+      // 插入冲突：可能是并发命令持锁，也可能是进程崩溃遗留的孤儿锁。
+      // 先尝试接管超过 stale 窗口的 in_flight 锁（自愈），接管成功则重试一次插入；
+      // 仍失败则回滚本次已获取的锁并报告冲突。
+      const stealResult = await commandIdempotencyRepo
+        .buildStealStaleLockStatement({
+          commandType: definition.commandType,
+          scopeKey: resourceId,
+          idempotencyKey: RESOURCE_LOCK_IDEMPOTENCY_KEY,
+          staleBefore: timestamp - RESOURCE_LOCK_STALE_MS,
+        })
+        .run();
+
+      if (Number(stealResult?.meta?.changes || 0) === 1) {
+        console.warn(
+          `[ProcurementLock] Stole stale lock (${resourceType}=${resourceId}, older than ${RESOURCE_LOCK_STALE_MS}ms)`
+        );
+        insertResult = await commandIdempotencyRepo.buildInsertStatement(lockRecord).run();
+      }
+    }
 
     if (Number(insertResult?.meta?.changes || 0) !== 1) {
       await releaseProcurementResourceLocks({

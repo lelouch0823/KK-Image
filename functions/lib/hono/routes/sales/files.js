@@ -92,6 +92,7 @@ app.post('/upload', async (c) => {
       payload: {
         file: {
           id: result.id,
+          folder_id: result.folderId ?? null,
           filename: result.name || file?.name || '',
           size: result.size ?? file?.size ?? 0,
           type: result.type || file?.type || 'application/octet-stream',

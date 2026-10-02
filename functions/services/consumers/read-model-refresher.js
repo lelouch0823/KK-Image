@@ -20,14 +20,20 @@ import { shouldRefreshDashboardProjection, shouldRefreshManageStatsProjection } 
  * @returns {string|null}
  */
 function getVariantSnapshotRefreshTarget(eventType, event, payload) {
-  if (eventType === 'order_created_by_admin' || eventType === 'order_created_by_sales') {
-    return `variant:order:${event?.aggregate_id || payload?.order_id || ''}`;
-  }
+  const orderId = String(event?.aggregate_id || payload?.order_id || '');
+  // 创建/更新：订单行仍然存在，按订单增量刷新其关联变体即可。
+  // 此前更新走 variant:all —— 每次订单编辑都全表 DELETE+INSERT 重建投影，
+  // 开销随 order_lines 总量线性增长，是热路径上最大的性能放大器之一
   if (
-    ['order_updated_by_admin', 'order_updated_by_sales', 'order_deleted_by_admin'].includes(
-      eventType
-    )
+    ['order_created_by_admin', 'order_created_by_sales'].includes(eventType) ||
+    eventType === 'order_updated_by_admin' ||
+    eventType === 'order_updated_by_sales'
   ) {
+    return orderId ? `variant:order:${orderId}` : null;
+  }
+  // 删除：级联删除后已无法从 order_lines 反查受影响变体，
+  // 保留全量刷新以保证投影不残留已删订单的快照（低频管理操作）
+  if (eventType === 'order_deleted_by_admin') {
     return 'variant:all';
   }
   return null;

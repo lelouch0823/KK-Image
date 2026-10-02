@@ -5,6 +5,17 @@ import {
 } from '../../lib/hono/routes/manage/products/batch.js';
 import { ProductCatalogService } from '../../services/ProductCatalogService.js';
 
+// batchImport 以 strict 模式调用投影刷新（有独立测试锁定该行为）；
+// 本测试关注导入编排逻辑，用 db:{} 环境无法执行真实刷新，故替换为桩服务
+vi.mock('../../services/ProductProjectionRefreshService.js', () => ({
+  ProductProjectionRefreshService: class {
+    refreshByProductId = vi.fn(async () => undefined);
+    refreshByProductIds = vi.fn(async () => undefined);
+    refreshByVariantIds = vi.fn(async () => undefined);
+    refreshAll = vi.fn(async () => undefined);
+  },
+}));
+
 describe('Product Import Variant Merge Logic', () => {
   it('exposes batch import orchestration on ProductCatalogService', () => {
     const service = new ProductCatalogService({});

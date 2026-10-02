@@ -121,7 +121,9 @@ app.get('/', zValidator('query', FileQuerySchema), withCache(30), async (c) => {
   const safeSort = ALLOWED_SORT_COLUMNS[sort] || 'created_at';
   const safeOrder = order === 'asc' ? 'ASC' : 'DESC';
 
-  let sql = 'SELECT * FROM files WHERE 1=1';
+  // 列表只取展示所需列（对齐 FileRepository.list 的窄列集），避免拖出 content_hash 等宽列
+  let sql =
+    'SELECT id, folder_id, name, original_name, mime_type, size, storage_key, status, created_at FROM files WHERE 1=1';
   const bindings = [];
 
   if (folderId) {

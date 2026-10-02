@@ -18,16 +18,19 @@ export const UpdateCategorySchema = z
   })
   .strict();
 
+/** 单次批量关联的条目上限，防止无界数组放大为无界 D1 batch */
+const CATEGORY_BATCH_MAX_ITEMS = 1000;
+
 /** 设置分类下的商品 */
 export const SetCategoryProductsSchema = z
   .object({
-    product_ids: z.array(z.string().min(1)),
+    product_ids: z.array(z.string().min(1)).max(CATEGORY_BATCH_MAX_ITEMS),
   })
   .strict();
 
 /** 设置商品的分类 */
 export const SetProductCategoriesSchema = z
   .object({
-    category_ids: z.array(z.string().min(1)),
+    category_ids: z.array(z.string().min(1)).max(CATEGORY_BATCH_MAX_ITEMS),
   })
   .strict();

@@ -10,6 +10,7 @@ import {
   hashPassword,
   verifyPassword,
   passwordHashNeedsMigration,
+  timingSafeCompare,
 } from '../../../_shared/utils.js';
 import { parseJsonArray } from '../../../api/utils/json.js';
 import {
@@ -208,8 +209,13 @@ export async function generateSalesToken(c, salesperson) {
  * @returns {Promise<Object|null>} 用户对象或 null
  */
 export async function authenticateAdminUser(env, username, password) {
-  // 1. 检查 Root Admin
-  if (username === env.BASIC_USER && password === env.BASIC_PASS) {
+  // 1. 检查 Root Admin（常量时间比较，防止时序侧信道探测超级用户口令）
+  if (
+    env.BASIC_USER &&
+    env.BASIC_PASS &&
+    timingSafeCompare(String(username), String(env.BASIC_USER)) &&
+    timingSafeCompare(String(password), String(env.BASIC_PASS))
+  ) {
     return {
       id: username,
       name: 'Administrator',

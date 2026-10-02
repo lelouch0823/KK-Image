@@ -9,6 +9,7 @@ import { OrderTimelineRepository } from '../../../../../repositories/OrderTimeli
 import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import { scheduleAuditEvent } from '../../../_shared/audit-helpers.js';
 import { scheduleOutboxProcessing } from '../../_shared/outbox-helpers.js';
+import { runIdempotentCommand, buildRequestFingerprint } from '../../_shared/command-idempotency.js';
 import { MSG } from '../../../../../_shared/utils.js';
 
 const app = new Hono();
@@ -137,70 +138,75 @@ async function handleLineCommand(c, action, executor) {
   if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
   assertOrderIsActiveForMutation(order);
 
-  const data = await executor(service, orderId, lineId, payload, {
-    actorId: user?.id || null,
-    actorName: user?.name || 'Admin',
-  });
+  // 行级命令（发货/退货等）直接驱动库存与台账，重试必须幂等：
+  // 无幂等保护时网络超时重发同一 ship 请求会二次扣减库存并重复记账
+  return runIdempotentCommand(c, {
+    commandType: `order_line_${action}`,
+    requestFingerprint: buildRequestFingerprint({ orderId, lineId, payload }),
+    mismatchMessage: '同一个幂等键不能提交不同的行级操作请求',
+    inFlightMessage: '当前幂等键对应的行级操作仍在处理中',
+    execute: async () =>
+      executor(service, orderId, lineId, payload, {
+        actorId: user?.id || null,
+        actorName: user?.name || 'Admin',
+      }),
+    onSuccess: async (data) => {
+      const timelineComment = buildTimelineComment({
+        action,
+        lineId,
+        quantity,
+        reason: body?.reason,
+        note: body?.note,
+      });
+      if (timelineComment) {
+        await timelineRepo.addTimelineEntry(orderId, {
+          actionType: 'comment',
+          actorType: 'admin',
+          actorId: user?.id || null,
+          actorName: user?.name || 'Admin',
+          comment: timelineComment,
+        });
+      }
 
-  const timelineComment = buildTimelineComment({
-    action,
-    lineId,
-    quantity,
-    reason: body?.reason,
-    note: body?.note,
-  });
-  if (timelineComment) {
-    await timelineRepo.addTimelineEntry(orderId, {
-      actionType: 'comment',
-      actorType: 'admin',
-      actorId: user?.id || null,
-      actorName: user?.name || 'Admin',
-      comment: timelineComment,
-    });
-  }
+      const followupEvents = buildFollowupDomainEvents({
+        action,
+        orderId,
+        lineId,
+        quantity,
+        body,
+        actorName: user?.name || 'Admin',
+        order: action === 'return' ? order : null,
+      });
+      if (followupEvents.length > 0) {
+        await publisher.publish(followupEvents);
+      }
 
-  const followupEvents = buildFollowupDomainEvents({
-    action,
-    orderId,
-    lineId,
-    quantity,
-    body,
-    actorName: user?.name || 'Admin',
-    order: action === 'return' ? order : null,
-  });
-  if (followupEvents.length > 0) {
-    await publisher.publish(followupEvents);
-  }
-
-  scheduleAuditEvent(c, {
-    domain: 'orders',
-    action:
-      action === 'reserve'
-        ? 'order.line.reserve'
-        : action === 'release'
-          ? 'order.line.release'
-          : action === 'ship'
-            ? 'order.line.ship'
-            : action === 'unship'
-              ? 'order.line.unship'
-              : 'order.line.return',
-    result: 'success',
-    severity: 'high',
-    targetType: 'order',
-    targetId: orderId,
-    summary: `${user?.name || 'Admin'} executed ${action} on order line ${lineId}`,
-    metadata: {
-      orderLineId: lineId,
-      quantity,
-      action,
-      ...(body?.reason ? { reason: body.reason } : {}),
+      scheduleAuditEvent(c, {
+        domain: 'orders',
+        action:
+          action === 'reserve'
+            ? 'order.line.reserve'
+            : action === 'release'
+              ? 'order.line.release'
+              : action === 'ship'
+                ? 'order.line.ship'
+                : action === 'unship'
+                  ? 'order.line.unship'
+                  : 'order.line.return',
+        result: 'success',
+        severity: 'high',
+        targetType: 'order',
+        targetId: orderId,
+        summary: `${user?.name || 'Admin'} executed ${action} on order line ${lineId}`,
+        metadata: {
+          orderLineId: lineId,
+          quantity,
+          action,
+          ...(body?.reason ? { reason: body.reason } : {}),
+        },
+      });
+      scheduleOutboxProcessing(c, `order-line-${action}:${orderId}:${lineId}`);
     },
-  });
-  scheduleOutboxProcessing(c, `order-line-${action}:${orderId}:${lineId}`);
-
-  return c.json({
-    success: true,
-    data,
   });
 }
 

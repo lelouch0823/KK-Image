@@ -96,7 +96,7 @@ describe('manage products batch route', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: [] }),
+        body: JSON.stringify({ items: [{ name: 'P1' }] }),
       },
       { DB: {} },
       { waitUntil: vi.fn() }
@@ -131,7 +131,7 @@ describe('manage products batch route', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: [] }),
+        body: JSON.stringify({ items: [{ name: 'P1' }] }),
       },
       { DB: {} },
       { waitUntil: vi.fn() }

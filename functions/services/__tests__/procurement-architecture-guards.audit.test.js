@@ -48,8 +48,12 @@ describe('procurement architecture guards', () => {
       'functions/services/OrderProcurementReceiptReversalService.js'
     );
 
-    expect(countOccurrences(reversalSource, /guardedStatementIndexes\.push\(/g)).toBe(1);
+    // 3 处守卫分别钉在：PO 明细 received_qty、order_lines 投影、兼容采购聚合投影 ——
+    // 均为冲销自身的事实的写入；通知/缓存等派生副作用禁止参与成功守卫
+    expect(countOccurrences(reversalSource, /guardedStatementIndexes\.push\(/g)).toBe(3);
     expect(reversalSource).toContain('buildPurchaseOrderItemReceivedQtyStatement');
+    expect(reversalSource).toContain('buildOrderLineProjectionStatement');
+    expect(reversalSource).toContain('buildCompatibilityOrderProcurementStatusStatement');
     expect(reversalSource).not.toContain('notificationGuardResultIndexes');
     expect(reversalSource).not.toContain('cacheGuardResultIndexes');
   });

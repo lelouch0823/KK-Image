@@ -80,14 +80,12 @@ app.use(
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean);
-      // 未配置白名单时记录警告（仅首次）
-      if (allowed.length === 0) {
-        console.warn('[CORS] CORS_ORIGINS 未配置，当前使用首个白名单域名作为默认值');
-      }
-      // 无 Origin 头时返回第一个白名单域名（而非 '*'）
-      if (!origin) return allowed.length > 0 ? allowed[0] : '*';
-      // 匹配白名单
-      return allowed.includes(origin) ? origin : allowed[0];
+      // 未配置白名单：放行所有来源（无凭据的 CORS 场景）
+      if (allowed.length === 0) return '*';
+      // 无 Origin 头：非浏览器/同源请求，ACO 头无实际意义
+      if (!origin) return '*';
+      // 未知来源：不返回 Access-Control-Allow-Origin（Hono 对 falsy 返回值跳过该头）
+      return allowed.includes(origin) ? origin : null;
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],

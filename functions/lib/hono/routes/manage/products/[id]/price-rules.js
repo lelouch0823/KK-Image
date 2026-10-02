@@ -109,7 +109,8 @@ app.delete('/:id/prices/:ruleId', async (c) => {
   const product = await ensureProductExists(productRepo, productId);
 
   const priceRuleRepo = new PriceRuleRepository(env.DB);
-  const deleted = await priceRuleRepo.delete(ruleId);
+  // 范围约束删除：规则必须属于路径中的商品（与 POST 路径的归属校验对齐）
+  const deleted = await priceRuleRepo.deleteScoped(ruleId, productId);
 
   if (!deleted) {
     throw new NotFoundError('Price rule not found');

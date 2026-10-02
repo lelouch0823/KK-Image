@@ -90,7 +90,7 @@ describe('repository batch safety hardening', () => {
     expect(moveCalls).toHaveLength(3);
   });
 
-  it('FolderRepository.deleteRecursive chunks descendant deletes', async () => {
+  it('FolderRepository.deleteRecursive deletes files before folders with bounded IN chunks', async () => {
     const db = {
       prepare: vi.fn((sql) => {
         const statement = createStatement(sql);
@@ -107,7 +107,13 @@ describe('repository batch safety hardening', () => {
 
     await repo.deleteRecursive('folder-root');
 
-    expect(db.batch).toHaveBeenCalledTimes(3);
-    expect(db.batch.mock.calls.map(([batch]) => batch.length)).toEqual([2, 2, 2]);
+    // 205 个子目录 → 3 个 IN 分块 × (files + folders) = 6 条语句；
+    // 默认批次大小（100）下合并为单个原子 batch，且文件删除先于文件夹删除
+    expect(db.batch).toHaveBeenCalledTimes(1);
+    const batchStatements = db.batch.mock.calls[0][0];
+    expect(batchStatements).toHaveLength(6);
+    const sqls = batchStatements.map((stmt) => stmt.sql);
+    expect(sqls.slice(0, 3).every((sql) => sql.includes('DELETE FROM files'))).toBe(true);
+    expect(sqls.slice(3).every((sql) => sql.includes('DELETE FROM folders'))).toBe(true);
   });
 });

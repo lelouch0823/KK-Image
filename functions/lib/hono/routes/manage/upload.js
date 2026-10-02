@@ -152,6 +152,7 @@ app.post('/', requirePermission('files:write'), async (c) => {
         payload: {
           file: {
             id: uploadedFileId,
+            folder_id: result?.folderId ?? folderId ?? null,
             filename: result?.name || file.name,
             size: result?.size ?? file.size ?? 0,
             type: result?.type || file.type || 'application/octet-stream',

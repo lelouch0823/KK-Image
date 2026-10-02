@@ -107,6 +107,16 @@ vi.mock('../../../../../../repositories/CommandIdempotencyRepository.js', () => 
   })),
 }));
 
+// 路由拆分后走 ProductCatalogService -> 投影刷新（真实服务会触碰 db mock）
+vi.mock('../../../../../../services/ProductProjectionRefreshService.js', () => ({
+  ProductProjectionRefreshService: class {
+    refreshByProductId = vi.fn(async () => undefined);
+    refreshByProductIds = vi.fn(async () => undefined);
+    refreshByVariantIds = vi.fn(async () => undefined);
+    refreshAll = vi.fn(async () => undefined);
+  },
+}));
+
 vi.mock('../../../../middleware/cache.js', () => ({
   withCache: () => async (_c, next) => await next(),
   invalidateCache: vi.fn(),

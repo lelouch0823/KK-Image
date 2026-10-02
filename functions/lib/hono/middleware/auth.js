@@ -127,6 +127,18 @@ export async function authMiddleware(c, next) {
         401
       );
     }
+    // 防御纵深：管理端与 V1 端点仅接受管理类令牌。
+    // 同一 JWT_SECRET 也会签发销售端（salesperson）与公开分享（public_file_access）令牌，
+    // 仅靠 OPA 权限校验兜底，一旦某个 manage 端点漏配 requirePermission 即成越权入口。
+    // type 缺失视为遗留 'jwt'（由 isLegacyJwtContext 决定去留）。
+    if (path.startsWith('/api/manage/') || path.startsWith('/api/v1/')) {
+      const tokenType = payload.type || 'jwt';
+      const adminTokenTypes = ['admin', 'user', 'api_key', 'jwt'];
+      if (!adminTokenTypes.includes(tokenType)) {
+        recordUnauthorizedAttempt('forbidden_token_type');
+        return c.json({ success: false, error: MSG.AUTH.FORBIDDEN }, 403);
+      }
+    }
     c.set('user', payload);
     return next();
   } catch (err) {

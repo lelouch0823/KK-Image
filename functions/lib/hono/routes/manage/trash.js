@@ -9,6 +9,8 @@ import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishDomainEventsAndPoll } from '../../_shared/domain-outbox.js';
 import { withCache } from '../../middleware/cache.js';
+import { chunkArray } from '../../../../lib/db/batch.js';
+import { D1_MAX_IN_CLAUSE_SIZE } from '../../../../api/utils/constants.js';
 import { RestoreSchema, DeleteTrashSchema } from '../../schemas/trash.js';
 
 const app = new Hono();
@@ -155,13 +157,17 @@ app.post(
 
     // 1. 永久删除文件
     if (fileIds.length > 0) {
-      // 获取 R2 存储键
-      const placeholders = fileIds.map(() => '?').join(',');
-      const { results } = await env.DB.prepare(
-        `SELECT storage_key, content_hash FROM files WHERE id IN (${placeholders})`
-      )
-        .bind(...fileIds)
-        .all();
+      // 获取 R2 存储键（分块查询，避免超出 D1 绑定参数上限）
+      const results = [];
+      for (const idChunk of chunkArray(fileIds, D1_MAX_IN_CLAUSE_SIZE)) {
+        const placeholders = idChunk.map(() => '?').join(',');
+        const { results: chunkResults } = await env.DB.prepare(
+          `SELECT storage_key, content_hash FROM files WHERE id IN (${placeholders})`
+        )
+          .bind(...idChunk)
+          .all();
+        results.push(...chunkResults);
+      }
 
       // 从 R2/CAS 删除
       await Promise.all(

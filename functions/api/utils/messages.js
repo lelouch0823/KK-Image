@@ -16,6 +16,7 @@ export const MSG = {
     VERIFY_SUCCESS: '验证通过',
     VERIFY_ERROR: '验证服务错误',
     MISSING_TOKEN: '缺少验证令牌',
+    INVALID_TOKEN: '无效的验证令牌',
     UNCONFIGURED: '认证未配置',
     USERNAME_EXISTS: '用户名已存在',
     CANNOT_DELETE_SELF: '不能删除自己的账户',
