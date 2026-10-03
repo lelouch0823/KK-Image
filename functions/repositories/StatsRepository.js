@@ -29,11 +29,11 @@ export class StatsRepository {
       this.db
         .prepare(
           `SELECT 
-                    (SELECT COUNT(*) FROM files) as total_files,
-                    (SELECT COALESCE(SUM(size), 0) FROM files) as total_size,
-                    (SELECT COUNT(DISTINCT mime_type) FROM files) as type_count,
-                    (SELECT COUNT(*) FROM files WHERE created_at >= ?) as today_uploads,
-                    (SELECT COUNT(*) FROM folders WHERE id != 'root') as folder_count,
+                    (SELECT COUNT(*) FROM files WHERE (is_deleted = 0 OR is_deleted IS NULL)) as total_files,
+                    (SELECT COALESCE(SUM(size), 0) FROM files WHERE (is_deleted = 0 OR is_deleted IS NULL)) as total_size,
+                    (SELECT COUNT(DISTINCT mime_type) FROM files WHERE (is_deleted = 0 OR is_deleted IS NULL)) as type_count,
+                    (SELECT COUNT(*) FROM files WHERE created_at >= ? AND (is_deleted = 0 OR is_deleted IS NULL)) as today_uploads,
+                    (SELECT COUNT(*) FROM folders WHERE id != 'root' AND (is_deleted = 0 OR is_deleted IS NULL)) as folder_count,
                     (SELECT COUNT(*) FROM albums) as album_count,
                     (SELECT COUNT(*) FROM spaces) as space_count`
         )
@@ -42,7 +42,7 @@ export class StatsRepository {
       this.db
         .prepare(
           `SELECT id, name, size, mime_type as type, created_at 
-                FROM files ORDER BY created_at DESC LIMIT 10`
+                FROM files WHERE (is_deleted = 0 OR is_deleted IS NULL) ORDER BY created_at DESC LIMIT 10`
         )
         .all(),
       // Status counts
@@ -51,6 +51,7 @@ export class StatsRepository {
           `
                 SELECT status, COUNT(*) as count 
                 FROM files 
+                WHERE (is_deleted = 0 OR is_deleted IS NULL)
                 GROUP BY status
             `
         )
@@ -61,7 +62,7 @@ export class StatsRepository {
                     mime_type as type,
                     COUNT(*) as count,
                     COALESCE(SUM(size), 0) as size
-                FROM files GROUP BY mime_type ORDER BY count DESC`
+                FROM files WHERE (is_deleted = 0 OR is_deleted IS NULL) GROUP BY mime_type ORDER BY count DESC`
         )
         .all(),
       this.db

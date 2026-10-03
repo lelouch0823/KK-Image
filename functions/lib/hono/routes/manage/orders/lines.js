@@ -56,6 +56,14 @@ export const auditRouteDeclarations = declareAuditRoutes([
     severity: 'high',
     targetType: 'order',
   },
+  {
+    method: 'POST',
+    path: '/:id/lines/:lineId/returns/:returnId/cancel',
+    domain: 'orders',
+    action: 'order.line.return.cancel',
+    severity: 'high',
+    targetType: 'order',
+  },
 ]);
 
 function assertOrderIsActiveForMutation(order) {
@@ -63,6 +71,10 @@ function assertOrderIsActiveForMutation(order) {
     throw new BadRequestError(ARCHIVED_ORDER_MUTATION_MESSAGE);
   }
 }
+
+// 作废/拒绝订单禁止新的库存类行级命令（B-H1）：void 订单补发货会造成
+// "已作废订单产生出库"的账实分裂；release 保留为遗留预留的清理出口
+const ORDER_STATUS_BLOCKED_COMMANDS = new Set(['reserve', 'ship', 'unship', 'return']);
 
 function buildTimelineComment({ action, lineId, quantity, reason = '', note = '' }) {
   if (action === 'ship') return `订单行 ${lineId} 出货 ${quantity} 件`;
@@ -137,6 +149,11 @@ async function handleLineCommand(c, action, executor) {
   const order = await orderRepo.findById(orderId);
   if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
   assertOrderIsActiveForMutation(order);
+  if (ORDER_STATUS_BLOCKED_COMMANDS.has(action) && ['void', 'rejected'].includes(order.status)) {
+    throw new BadRequestError(
+      `订单状态为 ${order.status}，不允许执行 ${action} 操作；请先恢复订单状态`
+    );
+  }
 
   // 行级命令（发货/退货等）直接驱动库存与台账，重试必须幂等：
   // 无幂等保护时网络超时重发同一 ship 请求会二次扣减库存并重复记账
@@ -239,5 +256,50 @@ app.post('/:id/lines/:lineId/return', async (c) =>
     service.returnLine(orderId, lineId, payload, options)
   )
 );
+
+/**
+ * POST /:id/lines/:lineId/returns/:returnId/cancel - 冲正退货（B-M2）
+ * 误退货无法在系统内冲正的问题：反向库存事件扣回实物，
+ * 退货记录置为 cancelled，returned_qty 聚合随之恢复。
+ */
+app.post('/:id/lines/:lineId/returns/:returnId/cancel', async (c) => {
+  const orderId = c.req.param('id');
+  const lineId = c.req.param('lineId');
+  const returnId = c.req.param('returnId');
+  const user = c.get('user');
+
+  const service = new OrderLineFulfillmentService(c.env.DB);
+  const orderRepo = new OrderRepository(c.env.DB);
+  const order = await orderRepo.findById(orderId);
+  if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
+  assertOrderIsActiveForMutation(order);
+
+  return runIdempotentCommand(c, {
+    commandType: 'order_line_return_cancel',
+    requestFingerprint: buildRequestFingerprint({ orderId, lineId, returnId }),
+    mismatchMessage: '同一个幂等键不能提交不同的退货冲正请求',
+    inFlightMessage: '当前幂等键对应的退货冲正仍在处理中',
+    execute: async () => {
+      const result = await service.cancelReturn(orderId, lineId, returnId, {
+        actorId: user?.id || null,
+        actorName: user?.name || 'Admin',
+      });
+      return { success: true, data: result };
+    },
+    onSuccess: async () => {
+      scheduleAuditEvent(c, {
+        domain: 'orders',
+        action: 'order.line.return.cancel',
+        result: 'success',
+        severity: 'high',
+        targetType: 'order',
+        targetId: orderId,
+        summary: `${user?.name || 'Admin'} cancelled return ${returnId} on order line ${lineId}`,
+        metadata: { orderLineId: lineId, orderReturnId: returnId },
+      });
+      scheduleOutboxProcessing(c, `order-line-return-cancel:${orderId}:${lineId}`);
+    },
+  });
+});
 
 export default app;

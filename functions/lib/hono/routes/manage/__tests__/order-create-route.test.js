@@ -37,6 +37,13 @@ vi.mock('../../../../../repositories/CommandIdempotencyRepository.js', () => ({
 
 vi.mock('../../../../../api/utils/validation.js', () => ({
   validateProductVariantBinding: mocks.validateProductVariantBinding,
+  // 批量校验委托给单条 mock：保持既有测试桩语义（逐对调用、顺序一致）
+  validateProductVariantBindingsBatch: async (db, bindings, options) =>
+    Promise.all(
+      (bindings || []).map((binding) =>
+        mocks.validateProductVariantBinding(db, binding.productId, binding.variantId, options)
+      )
+    ),
 }));
 
 vi.mock('../../../_shared/route-helpers.js', async (importOriginal) => {
@@ -264,11 +271,15 @@ describe('manage order create route', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(mocks.validateProductVariantBinding).toHaveBeenCalledTimes(2);
+    // P-M1 批量校验：两行绑定 + 主行绑定（同批次提交，失败先于持久化）
+    expect(mocks.validateProductVariantBinding).toHaveBeenCalledTimes(3);
     expect(mocks.validateProductVariantBinding).toHaveBeenNthCalledWith(1, {}, 'p-1', 'v-1', {
       checkActive: true,
     });
     expect(mocks.validateProductVariantBinding).toHaveBeenNthCalledWith(2, {}, 'p-2', 'v-2', {
+      checkActive: true,
+    });
+    expect(mocks.validateProductVariantBinding).toHaveBeenNthCalledWith(3, {}, 'p-1', 'v-1', {
       checkActive: true,
     });
     expect(mocks.orderCreate).not.toHaveBeenCalled();

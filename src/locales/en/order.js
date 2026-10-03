@@ -345,6 +345,12 @@ export default {
   payment: {
     title: 'Payments',
     addPayment: 'Add Payment',
+    addRefund: 'Refund',
+    refundTitle: 'Add Refund',
+    refundSuccess: 'Refund recorded',
+    refundConfirm: 'Delete this refund record?',
+    refundable: 'Refundable',
+    refundBadge: 'Refund',
     amount: 'Amount',
     amountPlaceholder: 'Enter payment amount',
     method: 'Method',

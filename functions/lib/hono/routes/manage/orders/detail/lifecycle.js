@@ -221,6 +221,15 @@ app.post('/:id/archive', async (c) => {
   const order = await orderRepo.findById(id);
   if (!order) throw new NotFoundError(MSG.ORDER.NOT_FOUND);
 
+  // B-H2：存在活跃预留时拒绝归档——归档后行级 release 命令被
+  // order_lines 的活跃订单守卫拒绝，预留将永久无法回收
+  const progress = await orderRepo.getLineProgressTotals(id);
+  if (progress.reserved_qty > 0) {
+    throw new BadRequestError(
+      `订单存在 ${progress.reserved_qty} 件预留库存，请先释放预留后再归档`
+    );
+  }
+
   await orderRepo.archive(id, user?.id || null);
 
   scheduleAuditEvent(c, {
@@ -278,6 +287,17 @@ app.delete('/:id', async (c) => {
   if (!order) {
     throw new NotFoundError(MSG.ORDER.NOT_FOUND);
   }
+
+  // B-M1：彻底删除不可逆且不做库存补偿——已发货/已预留的履约事实必须
+  // 先经 void 流转清理（void 会释放预留、拒绝已发货订单），此处兜底拒绝
+  const progress = await orderRepo.getLineProgressTotals(id);
+  if (progress.shipped_qty > 0 || progress.reserved_qty > 0) {
+    throw new BadRequestError(
+      `订单存在履约进度（已发货 ${progress.shipped_qty} 件 / 预留 ${progress.reserved_qty} 件），` +
+        '无法彻底删除；请先作废订单并释放预留'
+    );
+  }
+
   await orderRepo.deleteOrderCascading(id);
   const publisher = new DomainOutboxPublisher(env.DB);
   await publisher.publish([
@@ -290,6 +310,10 @@ app.delete('/:id', async (c) => {
         order_no: order?.orderNo || id,
         salesperson_id: order?.salespersonId || null,
         actor_name: user?.name || 'Admin',
+        // 行已级联删除，变体清单只能在删除前采集（P-M4：消费端据此做增量刷新）
+        variant_ids: (order?.lines || [])
+          .map((line) => line?.variantId || line?.variant_id || null)
+          .filter(Boolean),
       },
     },
   ]);

@@ -56,12 +56,35 @@ export function getCommandScopeKey(c, commandType) {
  * 为当前请求预留命令幂等记录
  * @returns {{ replay: Object|null, resume: Object|null, reservation: Object, commandIdempotencyRepo: Object }}
  */
+/**
+ * 缺失幂等键时是否允许降级（随机键 = 不保护）。
+ * ALLOW_MISSING_IDEMPOTENCY_KEY=false 时，requireIdempotencyKey 的命令
+ * （资金/库存类）必须携带显式 Idempotency-Key，否则 400。
+ * 默认放行以兼容存量客户端；前端统一注入幂等键后可在生产收紧为 false。
+ */
+function isMissingKeyAllowed(env) {
+  return String(env?.ALLOW_MISSING_IDEMPOTENCY_KEY ?? 'true').toLowerCase() !== 'false';
+}
+
 export async function reserveCommandForRoute(
   c,
-  { commandType, scopeKey, requestFingerprint, mismatchMessage, inFlightMessage }
+  {
+    commandType,
+    scopeKey,
+    requestFingerprint,
+    mismatchMessage,
+    inFlightMessage,
+    requireIdempotencyKey = false,
+  }
 ) {
   const commandIdempotencyRepo = new CommandIdempotencyRepository(c.env.DB);
-  const idempotencyKey = String(c.req.header('Idempotency-Key') || '').trim() || crypto.randomUUID();
+  const rawIdempotencyKey = String(c.req.header('Idempotency-Key') || '').trim();
+  if (!rawIdempotencyKey && requireIdempotencyKey && !isMissingKeyAllowed(c.env)) {
+    throw new BadRequestError(
+      `${commandType} 为资金/库存类命令，必须携带 Idempotency-Key 请求头以保证重试幂等`
+    );
+  }
+  const idempotencyKey = rawIdempotencyKey || crypto.randomUUID();
   const reservation = await commandIdempotencyRepo.reserveCommand(
     commandType,
     scopeKey || getCommandScopeKey(c, commandType),
@@ -120,6 +143,7 @@ export async function runIdempotentCommand(
     execute,
     onSuccess = null,
     mapDomainError = null,
+    requireIdempotencyKey = false,
   }
 ) {
   const { replay, resume, reservation, commandIdempotencyRepo } = await reserveCommandForRoute(c, {
@@ -128,6 +152,7 @@ export async function runIdempotentCommand(
     requestFingerprint,
     mismatchMessage,
     inFlightMessage,
+    requireIdempotencyKey,
   });
 
   if (replay) {

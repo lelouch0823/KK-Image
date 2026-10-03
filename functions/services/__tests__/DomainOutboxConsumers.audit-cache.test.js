@@ -181,16 +181,15 @@ describe('DomainOutboxConsumers audit and cache', () => {
     });
 
     expect(mocks.invalidateCache).toHaveBeenCalledTimes(1);
-    const urls = mocks.invalidateCache.mock.calls[0][0];
-    expect(urls).toEqual(
+    const scopes = mocks.invalidateCache.mock.calls.flatMap((c) => c[0]);
+    expect(scopes).toEqual(
       expect.arrayContaining([
-        'https://kk.example.com/api/manage/purchase-orders/po-1',
-        'https://kk.example.com/api/manage/orders',
-        'https://kk.example.com/api/manage/goods-overview',
-        'https://kk.example.com/api/manage/goods-overview/summary',
+        'api:manage:purchase-orders',
+        'api:manage:orders',
+        'api:manage:goods-overview'
       ])
     );
-    expect(new Set(urls).size).toBe(urls.length);
+    expect(new Set(scopes).size).toBe(scopes.length);
   });
 
   it('invalidates purchase-order detail cache for replayed order procurement events using payload purchase_order_id', async () => {
@@ -210,9 +209,11 @@ describe('DomainOutboxConsumers audit and cache', () => {
       baseUrl: 'https://kk.example.com',
     });
 
-    const urls = mocks.invalidateCache.mock.calls.at(-1)[0];
-    expect(urls).toEqual(
-      expect.arrayContaining(['https://kk.example.com/api/manage/purchase-orders/po-3'])
+    const scopes = mocks.invalidateCache.mock.calls.at(-1)[0];
+    expect(scopes).toEqual(
+      expect.arrayContaining([
+        'api:manage:purchase-orders'
+      ])
     );
   });
 
@@ -235,12 +236,11 @@ describe('DomainOutboxConsumers audit and cache', () => {
       baseUrl: 'https://kk.example.com',
     });
 
-    const urls = mocks.invalidateCache.mock.calls.at(-1)[0];
-    expect(urls).toEqual(
+    const scopes = mocks.invalidateCache.mock.calls.at(-1)[0];
+    expect(scopes).toEqual(
       expect.arrayContaining([
-        'https://kk.example.com/api/sales/sales-token-3/orders',
-        'https://kk.example.com/api/sales/sales-token-3/orders?limit=20&page=1',
-        'https://kk.example.com/api/manage/notifications',
+        'api:sales:sales-token-3',
+        'api:manage:notifications'
       ])
     );
   });
@@ -262,9 +262,9 @@ describe('DomainOutboxConsumers audit and cache', () => {
 
     expect(mocks.invalidateCache).toHaveBeenCalledWith(
       expect.arrayContaining([
-        'https://kk.example.com/api/manage/customers',
-        'https://kk.example.com/api/manage/customers?limit=20&page=1',
-      ])
+        'api:manage:customers'
+      ]),
+      null
     );
   });
 
@@ -288,9 +288,9 @@ describe('DomainOutboxConsumers audit and cache', () => {
 
     expect(mocks.invalidateCache).toHaveBeenCalledWith(
       expect.arrayContaining([
-        'https://kk.example.com/api/sales/sales-token-1/orders',
-        'https://kk.example.com/api/sales/sales-token-1/orders?limit=20&page=1',
-      ])
+        'api:sales:sales-token-1'
+      ]),
+      null
     );
   });
 
@@ -316,13 +316,12 @@ describe('DomainOutboxConsumers audit and cache', () => {
 
     expect(mocks.invalidateCache).toHaveBeenCalledWith(
       expect.arrayContaining([
-        'https://kk.example.com/api/manage/orders',
-        'https://kk.example.com/api/manage/orders/stats',
-        'https://kk.example.com/api/manage/goods-overview',
-        'https://kk.example.com/api/manage/notifications',
-        'https://kk.example.com/api/sales/sales-token-line/orders',
-        'https://kk.example.com/api/sales/sales-token-line/notifications',
-      ])
+        'api:manage:orders',
+        'api:manage:goods-overview',
+        'api:manage:notifications',
+        'api:sales:sales-token-line'
+      ]),
+      null
     );
   });
 
@@ -361,11 +360,10 @@ describe('DomainOutboxConsumers audit and cache', () => {
 
     expect(mocks.invalidateCache).toHaveBeenCalledWith(
       expect.arrayContaining([
-        'https://kk.example.com/api/sales/sales-token-order/products',
-        'https://kk.example.com/api/sales/sales-token-order/products/product-1',
-        'https://kk.example.com/api/sales/sales-token-peer/products',
-        'https://kk.example.com/api/sales/sales-token-peer/products/product-1',
-      ])
+        'api:sales:sales-token-order',
+        'api:sales:sales-token-peer'
+      ]),
+      null
     );
   });
 
@@ -387,11 +385,10 @@ describe('DomainOutboxConsumers audit and cache', () => {
 
     expect(mocks.invalidateCache).toHaveBeenCalledWith(
       expect.arrayContaining([
-        'https://kk.example.com/api/v1/files',
-        'https://kk.example.com/api/v1/folders/folder-1',
-        'https://kk.example.com/api/v1/folders/folder-2',
-        'https://kk.example.com/api/v1/files/file-1',
-      ])
+        'api:v1:files',
+        'api:v1:folders'
+      ]),
+      null
     );
   });
 
@@ -424,9 +421,10 @@ describe('DomainOutboxConsumers audit and cache', () => {
     expect(mocks.refreshSystemStats).toHaveBeenCalledWith('manage.dashboard.overview');
     expect(mocks.invalidateCache).toHaveBeenCalledWith(
       expect.arrayContaining([
-        'https://kk.example.com/api/manage/stats',
-        'https://kk.example.com/api/manage/dashboard/overview',
-      ])
+        'api:manage:stats',
+        'api:manage:dashboard'
+      ]),
+      null
     );
   });
 
@@ -448,12 +446,10 @@ describe('DomainOutboxConsumers audit and cache', () => {
 
     expect(mocks.invalidateCache).toHaveBeenCalledWith(
       expect.arrayContaining([
-        'https://kk.example.com/api/v1/folders',
-        'https://kk.example.com/api/v1/folders?parentId=null',
-        'https://kk.example.com/api/v1/folders/folder-parent-1',
-        'https://kk.example.com/api/manage/shares',
-        'https://kk.example.com/api/manage/shares?limit=20&page=1',
-      ])
+        'api:v1:folders',
+        'api:manage:shares'
+      ]),
+      null
     );
   });
 
@@ -477,12 +473,10 @@ describe('DomainOutboxConsumers audit and cache', () => {
 
     expect(mocks.invalidateCache).toHaveBeenCalledWith(
       expect.arrayContaining([
-        'https://kk.example.com/api/manage/spaces',
-        'https://kk.example.com/api/manage/spaces/space-1',
-        'https://kk.example.com/api/manage/spaces/product/product-1',
-        'https://kk.example.com/api/sales/sales-token-2/spaces',
-        'https://kk.example.com/api/sales/sales-token-2/spaces/space-1',
-      ])
+        'api:manage:spaces',
+        'api:sales:sales-token-2'
+      ]),
+      null
     );
   });
 
@@ -505,11 +499,10 @@ describe('DomainOutboxConsumers audit and cache', () => {
 
     expect(mocks.invalidateCache).toHaveBeenCalledWith(
       expect.arrayContaining([
-        'https://kk.example.com/api/manage/products',
-        'https://kk.example.com/api/manage/products/variants',
-        'https://kk.example.com/api/sales/sales-token-3/products',
-        'https://kk.example.com/api/sales/sales-token-3/products/product-1',
-      ])
+        'api:manage:products',
+        'api:sales:sales-token-3'
+      ]),
+      null
     );
   });
 
@@ -546,14 +539,13 @@ describe('DomainOutboxConsumers audit and cache', () => {
 
     expect(mocks.invalidateCache).toHaveBeenCalledWith(
       expect.arrayContaining([
-        'https://kk.example.com/api/manage/purchase-orders/po-11',
-        'https://kk.example.com/api/manage/orders',
-        'https://kk.example.com/api/manage/products',
-        'https://kk.example.com/api/manage/spaces/product/product-11',
-        'https://kk.example.com/api/sales/sales-token-receipt/products',
-        'https://kk.example.com/api/sales/sales-token-receipt/products/product-11',
-        'https://kk.example.com/api/sales/sales-token-receipt/spaces/space-product-1',
-      ])
+        'api:manage:purchase-orders',
+        'api:manage:orders',
+        'api:manage:products',
+        'api:manage:spaces',
+        'api:sales:sales-token-receipt'
+      ]),
+      null
     );
   });
 
@@ -596,15 +588,11 @@ describe('DomainOutboxConsumers audit and cache', () => {
 
     expect(mocks.invalidateCache).toHaveBeenCalledWith(
       expect.arrayContaining([
-        'https://kk.example.com/api/manage/products',
-        'https://kk.example.com/api/manage/spaces/product/product-12',
-        'https://kk.example.com/api/manage/spaces/space-product-12',
-        'https://kk.example.com/api/manage/spaces/space-parent-12',
-        'https://kk.example.com/api/manage/spaces/space-parent-12/subspaces',
-        'https://kk.example.com/api/sales/sales-token-inventory/products/product-12',
-        'https://kk.example.com/api/sales/sales-token-inventory/spaces/space-product-12',
-        'https://kk.example.com/api/sales/sales-token-inventory/spaces/space-parent-12',
-      ])
+        'api:manage:products',
+        'api:manage:spaces',
+        'api:sales:sales-token-inventory'
+      ]),
+      null
     );
   });
 
@@ -640,17 +628,10 @@ describe('DomainOutboxConsumers audit and cache', () => {
     expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('FROM spaces'));
     expect(mocks.invalidateCache).toHaveBeenCalledWith(
       expect.arrayContaining([
-        'https://kk.example.com/api/manage/spaces',
-        'https://kk.example.com/api/manage/spaces/product/product-9',
-        'https://kk.example.com/api/manage/spaces/space-top-1',
-        'https://kk.example.com/api/manage/spaces/space-child-1',
-        'https://kk.example.com/api/manage/spaces/space-parent-1',
-        'https://kk.example.com/api/manage/spaces/space-parent-1/subspaces',
-        'https://kk.example.com/api/sales/sales-token-4/spaces',
-        'https://kk.example.com/api/sales/sales-token-4/spaces/space-top-1',
-        'https://kk.example.com/api/sales/sales-token-4/spaces/space-child-1',
-        'https://kk.example.com/api/sales/sales-token-4/spaces/space-parent-1',
-      ])
+        'api:manage:spaces',
+        'api:sales:sales-token-4'
+      ]),
+      null
     );
   });
 
@@ -705,15 +686,16 @@ describe('DomainOutboxConsumers audit and cache', () => {
       baseUrl: 'https://kk.example.com',
     });
 
-    const urls = mocks.invalidateCache.mock.calls.at(-1)[0];
-    expect(urls).toEqual(
+    const scopes = mocks.invalidateCache.mock.calls.at(-1)[0];
+    expect(scopes).toEqual(
       expect.arrayContaining([
-        'https://kk.example.com/api/sales/sales-token-fresh/spaces',
-        'https://kk.example.com/api/sales/sales-token-fresh/spaces/space-top-2',
+        'api:sales:sales-token-fresh'
       ])
     );
-    expect(urls).not.toEqual(
-      expect.arrayContaining(['https://kk.example.com/api/sales/sales-token-stale/spaces'])
+    expect(scopes).not.toEqual(
+      expect.arrayContaining([
+        'api:sales:sales-token-stale'
+      ])
     );
   });
 });

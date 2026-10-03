@@ -74,21 +74,22 @@ describe('backup utils', () => {
             };
           }
 
-          if (sql.includes('SELECT * FROM "orders"')) {
+          if (sql.includes('FROM "orders"')) {
             return {
-              bind: vi.fn((limit, offset) => ({
+              // P-M3 keyset 翻页：bind(lastRowid, limit)，首页游标为 0
+              bind: vi.fn((lastRowid, limit) => ({
                 all: vi.fn(async () => ({
-                  results: offset === 0 ? [{ id: 1 }, { id: 2 }] : [],
+                  results: lastRowid === 0 ? [{ id: 1, __rk: 1 }, { id: 2, __rk: 2 }] : [],
                 })),
               })),
             };
           }
 
-          if (sql.includes('SELECT * FROM "customers"')) {
+          if (sql.includes('FROM "customers"')) {
             return {
-              bind: vi.fn((limit, offset) => ({
+              bind: vi.fn((lastRowid, limit) => ({
                 all: vi.fn(async () => ({
-                  results: offset === 0 ? [{ id: 'c-1' }] : [],
+                  results: lastRowid === 0 ? [{ id: 'c-1', __rk: 1 }] : [],
                 })),
               })),
             };
@@ -156,11 +157,11 @@ describe('backup utils', () => {
             };
           }
 
-          if (sql.includes('SELECT * FROM "orders"')) {
+          if (sql.includes('FROM "orders"')) {
             return {
-              bind: vi.fn((_limit, offset) => ({
+              bind: vi.fn((lastRowid, _limit) => ({
                 all: vi.fn(async () => ({
-                  results: offset === 0 ? [{ id: 1 }] : [],
+                  results: lastRowid === 0 ? [{ id: 1, __rk: 1 }] : [],
                 })),
               })),
             };

@@ -199,38 +199,38 @@ export class CostAllocationService {
       );
     }
     for (const [variantId, input] of macInputsByVariant.entries()) {
-      const variantBefore =
-        typeof this.variantRepo.findById === 'function'
-          ? await this.variantRepo.findById(variantId)
-          : await this.db
-              .prepare('SELECT stock_quantity, cost_price FROM product_variants WHERE id = ?')
-              .bind(variantId)
-              .first();
-
-      const currentStockQty = Math.max(0, Number(variantBefore?.stock_quantity) || 0);
-      const currentCost = Number(variantBefore?.cost_price) || 0;
       const safeArrivedQty = Math.max(0, Number(input.quantity) || 0);
-      const preArrivalQty = Math.max(currentStockQty - safeArrivedQty, 0);
-      const denominator = preArrivalQty + safeArrivedQty;
-      if (denominator <= 0) continue;
-
-      // 重复分摊时 currentCost 已包含上一次运行的运费/关税影响：
-      // 先按上次的影响额反解出"未含分摊费用"的存量单价，再以新分摊额重算，
-      // 避免重跑分摊把成本逐次推高（两次分摊之间若无出入库，反解是精确的）
+      const totalCost = Number(input.totalCost || 0);
       const previousTotalCost = previousCostByVariant.get(variantId) || 0;
-      let baselineCost = currentCost;
-      if (previousTotalCost > 0 && preArrivalQty > 0) {
-        baselineCost = Math.max(
-          0,
-          (currentCost * denominator - previousTotalCost) / preArrivalQty
-        );
-      }
+      const denominator = safeArrivedQty; // 加上 max(stock - arrived, 0) 即 SQL 内 MAX(stock, arrived)
+      if (denominator <= 0 && totalCost <= 0) continue;
 
-      const nextCost = (preArrivalQty * baselineCost + Number(input.totalCost || 0)) / denominator;
+      // C-M4：MAC 重算改为单语句原子更新——stock_quantity/cost_price 在语句
+      // 执行时读取（并发出入库后的最新值），不再 batch 外读快照后覆盖写。
+      // 重复分摊仍按上次影响额反解基线（与原语义一致，反解同样在语句内完成）
       allStatements.push(
         this.db
-          .prepare('UPDATE product_variants SET cost_price = ?, updated_at = ? WHERE id = ?')
-          .bind(nextCost, macTimestamp, variantId)
+          .prepare(
+            `UPDATE product_variants
+             SET cost_price = (
+                   (
+                     CASE
+                       WHEN MAX(stock_quantity - ?, 0) > 0 AND ? > 0
+                         THEN MAX(0, (cost_price * MAX(stock_quantity, ?) - ?) / MAX(stock_quantity - ?, 0))
+                       ELSE MAX(cost_price, 0)
+                     END
+                   ) * MAX(stock_quantity - ?, 0) + ?
+                 ) / MAX(stock_quantity, ?),
+               updated_at = ?
+             WHERE id = ?`
+          )
+          .bind(
+            safeArrivedQty, previousTotalCost,
+            safeArrivedQty, previousTotalCost, safeArrivedQty,
+            safeArrivedQty, totalCost,
+            safeArrivedQty,
+            macTimestamp, variantId
+          )
       );
     }
 

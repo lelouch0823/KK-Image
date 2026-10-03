@@ -54,9 +54,7 @@ function createDbForAllocateCosts(poRecord) {
         if (sql.includes('UPDATE purchase_order_items SET allocated_freight')) {
           return itemUpdateStmt;
         }
-        if (
-          sql.includes('UPDATE product_variants SET cost_price = ?, updated_at = ? WHERE id = ?')
-        ) {
+        if (sql.includes('UPDATE product_variants') && sql.includes('SET cost_price')) {
           return variantRollbackStmt;
         }
         throw new Error(`Unexpected SQL: ${sql}`);
@@ -120,7 +118,7 @@ describe('moving average cost workflow', () => {
       expect.stringContaining('UPDATE purchase_order_items SET allocated_freight')
     );
     expect(db.prepare).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE product_variants SET cost_price')
+      expect.stringContaining('SET cost_price')
     );
   });
 
@@ -168,7 +166,7 @@ describe('moving average cost workflow', () => {
       expect.stringContaining('UPDATE purchase_order_items SET allocated_freight')
     );
     expect(db.prepare).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE product_variants SET cost_price')
+      expect.stringContaining('SET cost_price')
     );
   });
 
@@ -217,7 +215,7 @@ describe('moving average cost workflow', () => {
       expect.stringContaining('UPDATE purchase_order_items SET allocated_freight')
     );
     expect(db.prepare).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE product_variants SET cost_price')
+      expect.stringContaining('SET cost_price')
     );
   });
 
@@ -266,7 +264,7 @@ describe('moving average cost workflow', () => {
       expect.stringContaining('UPDATE purchase_order_items SET allocated_freight')
     );
     expect(db.prepare).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE product_variants SET cost_price')
+      expect.stringContaining('SET cost_price')
     );
   });
 

@@ -1,5 +1,6 @@
 // 认证工具模块 - 处理 API Key 和 JWT 认证
 import { parseJsonArray, safeJsonParse } from './json.js';
+import { assertProductionSecret } from './secret-guard.js';
 import {
   base64UrlEncode,
   base64UrlDecode,
@@ -161,6 +162,10 @@ export async function verifyJWT(token, env) {
     throw new Error(MSG.AUTH.JWT_SECRET_MISSING);
   }
 
+  // S-H1：生产环境拒绝使用仓库默认/弱密钥校验令牌（fail-closed），
+  // 防止攻击者用公开默认值自签管理员 JWT
+  assertProductionSecret(env, 'JWT_SECRET', env.JWT_SECRET);
+
   try {
     const payload = await SimpleJWT.decode(token, env.JWT_SECRET);
 
@@ -183,6 +188,9 @@ export async function generateJWT(user, env, expiresIn = 3600) {
   if (!env.JWT_SECRET) {
     throw new Error(MSG.AUTH.JWT_SECRET_MISSING);
   }
+
+  // S-H1：默认/弱密钥禁止在生产签发令牌（含 salesperson/文件签名 URL 等全部类型）
+  assertProductionSecret(env, 'JWT_SECRET', env.JWT_SECRET);
 
   const now = Math.floor(Date.now() / 1000);
 
@@ -273,11 +281,13 @@ function createTimeoutSignal(timeoutMs = DEFAULT_TURNSTILE_TIMEOUT_MS) {
 }
 
 // 验证 Cloudflare Turnstile
-export async function verifyTurnstile(token, secret) {
+export async function verifyTurnstile(token, secret, { remoteIp = null, expectedHostname = null } = {}) {
   const url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
   const formData = new FormData();
   formData.append('secret', secret);
   formData.append('response', token);
+  // S-L3：绑定解题者 IP，收窄令牌重放窗口
+  if (remoteIp) formData.append('remoteip', remoteIp);
   const signal = createTimeoutSignal();
 
   try {
@@ -287,7 +297,14 @@ export async function verifyTurnstile(token, secret) {
       ...(signal ? { signal } : {}),
     });
     const outcome = await result.json();
-    return outcome.success;
+    if (!outcome.success) return false;
+    // S-L3：校验 hostname 与请求站点一致，防止其他站点签发的令牌跨站重放
+    // （两侧均去掉端口；siteverify 未返回 hostname 时跳过）
+    if (expectedHostname && outcome.hostname) {
+      const stripPort = (host) => String(host).split(':')[0];
+      if (stripPort(outcome.hostname) !== stripPort(expectedHostname)) return false;
+    }
+    return true;
   } catch (err) {
     console.error('Turnstile verification failed:', err);
     return false;

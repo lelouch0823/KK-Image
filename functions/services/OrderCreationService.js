@@ -4,7 +4,10 @@
  * @module services/OrderCreationService
  */
 
-import { validateProductVariantBinding } from '../api/utils/validation.js';
+import {
+  validateProductVariantBinding,
+  validateProductVariantBindingsBatch,
+} from '../api/utils/validation.js';
 import { buildOrderBindingSnapshot } from '../api/utils/order-binding-snapshot.js';
 import {
   syncOrderDemandTransitions,
@@ -356,20 +359,35 @@ export class OrderCreationService {
       productId: line.productId || null,
       variantId: line.variantId ?? null,
     }));
-    const hydratedLines = [];
-    for (const line of normalizedLines) {
-      const binding = await validateProductVariantBinding(
-        this.db,
-        line.productId || null,
-        line.variantId ?? null,
-        { checkActive: true }
-      );
+    // P-M1：批量校验全部行绑定（2 条 IN 查询替代逐行 2N+2 次往返）
+    const batchBindings = await validateProductVariantBindingsBatch(
+      this.db,
+      [
+        ...normalizedLines.map((line) => ({
+          productId: line.productId || null,
+          variantId: line.variantId ?? null,
+        })),
+        // 主行绑定（primaryLine 或 body 级）也在同一批内完成
+        {
+          productId:
+            normalizedLines[0]?.productId || body.productId || null,
+          variantId:
+            normalizedLines[0]?.variantId ?? body.variantId ?? null,
+        },
+      ],
+      { checkActive: true }
+    );
+    const lineBindings = batchBindings.slice(0, normalizedLines.length);
+    const primaryBinding = batchBindings[batchBindings.length - 1];
+
+    const hydratedLines = normalizedLines.map((line, index) => {
+      const binding = lineBindings[index];
       const boundSnapshot = buildOrderBindingSnapshot({
         product: binding.product,
         variant: binding.variant,
         fallback: line,
       });
-      hydratedLines.push({
+      return {
         ...line,
         name: boundSnapshot.name,
         brand: boundSnapshot.brand,
@@ -381,16 +399,10 @@ export class OrderCreationService {
         material: boundSnapshot.material,
         productId: binding.normalizedProductId,
         variantId: binding.normalizedVariantId,
-      });
-    }
+      };
+    });
     const primaryLine = hydratedLines[0] || null;
-    const variantId = primaryLine ? (primaryLine.variantId ?? null) : (body.variantId ?? null);
-    const binding = await validateProductVariantBinding(
-      this.db,
-      primaryLine ? primaryLine.productId || null : body.productId || null,
-      variantId,
-      { checkActive: true }
-    );
+    const binding = primaryBinding;
     const boundSnapshot = buildOrderBindingSnapshot({
       product: binding.product,
       variant: binding.variant,
@@ -442,7 +454,7 @@ export class OrderCreationService {
       quantity: totalQuantity,
       status: nextStatus,
       productId: hydratedLines.length > 1 ? null : primaryLine?.productId || body.productId || null,
-      variantId: hydratedLines.length > 1 ? null : variantId,
+      variantId: hydratedLines.length > 1 ? null : primaryBinding?.normalizedVariantId ?? null,
       lines: hydratedLines,
       mainImageId: body.fileIds?.[0] || null,
       fileIds: body.fileIds || [],
@@ -483,7 +495,8 @@ export class OrderCreationService {
         nextFallback: {
           productId:
             demandLines.length === 1 ? demandPrimaryLine?.productId || body.productId || null : null,
-          variantId: demandLines.length === 1 ? (demandPrimaryLine?.variantId ?? variantId) : null,
+          variantId:
+            demandLines.length === 1 ? (demandPrimaryLine?.variantId ?? primaryBinding?.normalizedVariantId ?? null) : null,
           quantity: totalQuantity,
         },
       });

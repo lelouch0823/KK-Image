@@ -114,3 +114,19 @@ export async function queryDerivedDeliveryStatus(db, orderId, addedReturnedQty) 
   if (returnedQty > 0) return 'partially_returned';
   return 'delivered';
 }
+
+/**
+ * 查询退货记录（退货冲正用）
+ */
+export async function queryOrderReturn(db, orderId, lineId, returnId) {
+  if (!orderId || !lineId || !returnId) return null;
+  const row = await db
+    .prepare(
+      `SELECT id, order_id, order_line_id, variant_id, quantity, status, reason, note
+       FROM order_returns
+       WHERE id = ? AND order_id = ? AND order_line_id = ?`
+    )
+    .bind(returnId, orderId, lineId)
+    .first();
+  return row || null;
+}

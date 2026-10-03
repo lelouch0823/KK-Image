@@ -29,7 +29,7 @@ export class PaymentRepository {
   async findByOrder(orderId) {
     const { results } = await this.db
       .prepare(
-        `SELECT id, order_id, amount, method, reference_no, notes, received_at, created_by
+        `SELECT id, order_id, amount, type, method, reference_no, notes, received_at, created_by
          FROM payments
          WHERE order_id = ?
          ORDER BY received_at DESC`
@@ -41,6 +41,7 @@ export class PaymentRepository {
       id: row.id,
       orderId: row.order_id,
       amount: row.amount,
+      type: row.type || 'payment',
       method: row.method,
       referenceNo: row.reference_no,
       notes: row.notes,
@@ -73,8 +74,8 @@ export class PaymentRepository {
 
     await this.db
       .prepare(
-        `INSERT INTO payments (id, order_id, amount, method, reference_no, notes, received_at, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO payments (id, order_id, amount, type, method, reference_no, notes, received_at, created_by)
+         VALUES (?, ?, ?, 'payment', ?, ?, ?, ?, ?)`
       )
       .bind(id, orderId, amount, method, referenceNo, notes, timestamp, createdBy)
       .run();
@@ -83,6 +84,7 @@ export class PaymentRepository {
       id,
       orderId,
       amount,
+      type: 'payment',
       method,
       referenceNo,
       notes,
@@ -109,8 +111,8 @@ export class PaymentRepository {
 
     const result = await this.db
       .prepare(
-        `INSERT INTO payments (id, order_id, amount, method, reference_no, notes, received_at, created_by)
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?
+        `INSERT INTO payments (id, order_id, amount, type, method, reference_no, notes, received_at, created_by)
+         SELECT ?, ?, ?, 'payment', ?, ?, ?, ?, ?
          WHERE EXISTS (
            SELECT 1
            FROM (
@@ -141,6 +143,7 @@ export class PaymentRepository {
       id,
       orderId,
       amount,
+      type: 'payment',
       method,
       referenceNo,
       notes,
@@ -150,14 +153,109 @@ export class PaymentRepository {
   }
 
   /**
-   * 删除付款记录
+   * 删除付款记录（冲正手段）。按 (id, order_id) 条件删除，
+   * 避免先查后删的竞态窗口（审查 C-L5）。
    * @param {string} id - 付款记录 ID
+   * @param {string} orderId - 归属订单 ID（防跨订单误删）
    * @returns {Promise<boolean>}
    */
-  async delete(id) {
-    const result = await this.db.prepare('DELETE FROM payments WHERE id = ?').bind(id).run();
+  async delete(id, orderId = null) {
+    const statement = orderId
+      ? this.db.prepare('DELETE FROM payments WHERE id = ? AND order_id = ?').bind(id, orderId)
+      : this.db.prepare('DELETE FROM payments WHERE id = ?').bind(id);
+    const result = await statement.run();
 
     return result.meta?.changes > 0;
+  }
+
+  /**
+   * 添加退款记录（负额），并在同一条写入 SQL 中断言退款不超过可退净额。
+   * 退款不限制订单状态——作废/驳回订单已收款项仍必须可退（B-M9）。
+   * @param {Object} params
+   * @returns {Promise<Object|null>} 创建成功返回退款记录，guard 未命中返回 null
+   */
+  async createRefundIfWithinPaid({
+    orderId,
+    amount,
+    method = 'cash',
+    referenceNo = null,
+    notes = null,
+    createdBy = null,
+  }) {
+    const id = generateId();
+    const timestamp = now();
+    const refundAmount = -Math.abs(Number(amount) || 0);
+
+    const result = await this.db
+      .prepare(
+        `INSERT INTO payments (id, order_id, amount, type, method, reference_no, notes, received_at, created_by)
+         SELECT ?, ?, ?, 'refund', ?, ?, ?, ?, ?
+         WHERE EXISTS (
+           SELECT 1 FROM orders o WHERE o.id = ?
+         ) AND EXISTS (
+           SELECT 1
+           FROM (
+             SELECT COALESCE(SUM(p.amount), 0) AS net_paid
+             FROM payments p
+             WHERE p.order_id = ?
+           ) net
+           WHERE net.net_paid + ? >= 0
+         )`
+      )
+      .bind(
+        id,
+        orderId,
+        refundAmount,
+        method,
+        referenceNo,
+        notes,
+        timestamp,
+        createdBy,
+        orderId,
+        orderId,
+        refundAmount
+      )
+      .run();
+
+    if ((result?.meta?.changes || 0) !== 1) {
+      return null;
+    }
+
+    return {
+      id,
+      orderId,
+      amount: refundAmount,
+      type: 'refund',
+      method,
+      referenceNo,
+      notes,
+      receivedAt: timestamp,
+      createdBy,
+    };
+  }
+
+  /**
+   * 订单收款汇总：正额收款、退款（绝对值）、净已付。
+   * @param {string} orderId
+   */
+  async getPaymentSummary(orderId) {
+    const row = await this.db
+      .prepare(
+        `SELECT
+           COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) AS paid,
+           COALESCE(SUM(CASE WHEN amount < 0 THEN -amount ELSE 0 END), 0) AS refunded,
+           COALESCE(SUM(amount), 0) AS net_paid
+         FROM payments
+         WHERE order_id = ?`
+      )
+      .bind(orderId)
+      .first();
+
+    return {
+      paid: Number(row?.paid) || 0,
+      refunded: Number(row?.refunded) || 0,
+      netPaid: Number(row?.net_paid) || 0,
+    };
   }
 
   /**

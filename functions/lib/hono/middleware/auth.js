@@ -92,10 +92,11 @@ export async function authMiddleware(c, next) {
       } catch (err) {
         console.error('API Key Verification Failed:', err);
         recordUnauthorizedAttempt('invalid_api_key');
+        // S-L1：对外固定文案，内部错误细节只进日志，避免辅助侦察
         return c.json(
           {
             success: false,
-            error: `${MSG.AUTH.INVALID_TOKEN}: ${err.message}`,
+            error: MSG.AUTH.INVALID_TOKEN,
           },
           401
         );
@@ -144,10 +145,11 @@ export async function authMiddleware(c, next) {
   } catch (err) {
     console.error('JWT Verification Failed:', err);
     recordUnauthorizedAttempt('invalid_jwt');
+    // S-L1：不回显内部校验错误原文（区分过期/无效/缺 secret 等状态）
     return c.json(
       {
         success: false,
-        error: `${MSG.AUTH.EXPIRED} (${err.message})`,
+        error: MSG.AUTH.EXPIRED,
       },
       401
     );

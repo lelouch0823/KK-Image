@@ -93,6 +93,17 @@ export class DomainOutboxDispatchService {
   async markFailed(job, error, nowTs = this.now()) {
     const attemptCount = Number(job?.attempt_count || 0) + 1;
     const nextAvailableAt = nowTs + this.retryBackoffMs(attemptCount);
+    const errorMessage = String(error?.message || error || 'unknown outbox consumer error');
+
+    // B-L4：任务耗尽全部重试（进入死信）时写入管理员通知，
+    // 避免持续失败的投递静默丢失，只能靠 7 天保留期销毁证据
+    if (attemptCount >= OUTBOX_MAX_ATTEMPTS) {
+      try {
+        await this.notifyDeadLetter(job, errorMessage);
+      } catch (notifyError) {
+        console.error('[outbox] dead-letter notification failed:', notifyError);
+      }
+    }
 
     return execute(
       this.db,
@@ -105,15 +116,28 @@ export class DomainOutboxDispatchService {
              leased_until = NULL,
              updated_at = ?
          WHERE id = ?`,
-      [
-        nextAvailableAt,
-        String(error?.message || error || 'unknown outbox consumer error'),
-        attemptCount,
-        nowTs,
-        job?.id,
-      ],
+      [nextAvailableAt, errorMessage, attemptCount, nowTs, job?.id],
       { label: 'outbox.markFailed' }
     );
+  }
+
+  /**
+   * 死信告警：写入 notifications 表（admin 收件箱），带 dedupeKey 幂等
+   * @private
+   */
+  async notifyDeadLetter(job, errorMessage) {
+    if (!this.db || typeof this.db.prepare !== 'function') return;
+    const { NotificationRepository } = await import('../repositories/NotificationRepository.js');
+    const notificationRepo = new NotificationRepository(this.db);
+    await notificationRepo.createFromDomainEvent({
+      receiver: 'admin',
+      type: 'system',
+      title: 'Outbox 任务投递失败（已耗尽重试）',
+      content: `事件 ${job?.event_type || job?.event_id || 'unknown'} 消费任务 ${job?.consumer_name || ''} 在 ${OUTBOX_MAX_ATTEMPTS} 次尝试后失败：${errorMessage}`.slice(0, 500),
+      sourceConsumer: 'outbox',
+      sourceEventId: job?.event_id || job?.id || null,
+      dedupeKey: `outbox_dead_letter:${job?.id || 'unknown'}`,
+    });
   }
 
   async countAvailableJobs(nowTs = this.now()) {

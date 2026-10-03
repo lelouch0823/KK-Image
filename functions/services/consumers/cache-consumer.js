@@ -47,7 +47,7 @@ async function resolveExpandedCacheUrls({ db, event, baseUrl, payload, state }) 
 
 // ─── 主入口 ───────────────────────────────────────────────
 
-export async function invalidateReceiptCaches({ db, event, baseUrl, state }) {
+export async function invalidateReceiptCaches({ db, env, event, baseUrl, state }) {
   if (!baseUrl) {
     console.warn('[cache-consumer] baseUrl is missing, skipping cache invalidation', {
       eventType: event?.event_type,
@@ -103,13 +103,13 @@ export async function invalidateReceiptCaches({ db, event, baseUrl, state }) {
       urls.push(url);
     }
 
-    await invalidateCacheOnce([...new Set(urls)], state);
+    await invalidateCacheOnce([...new Set(urls)], state, env || state?.env);
     return;
   }
 
   const expandedUrls = await resolveExpandedCacheUrls({ db, event, baseUrl, payload, state });
   if (expandedUrls.length > 0 || projectionUrls.length > 0) {
-    await invalidateCacheOnce([...new Set([...expandedUrls, ...projectionUrls])], state);
+    await invalidateCacheOnce([...new Set([...expandedUrls, ...projectionUrls])], state, env || state?.env);
     return;
   }
 
@@ -121,5 +121,5 @@ export async function invalidateReceiptCaches({ db, event, baseUrl, state }) {
     ...projectionUrls,
   ];
 
-  await invalidateCacheOnce([...new Set(urls)], state);
+  await invalidateCacheOnce([...new Set(urls)], state, env || state?.env);
 }

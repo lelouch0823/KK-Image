@@ -32,7 +32,9 @@ export async function prefetchOrderLineStates(db, orderIds = []) {
             ROW_NUMBER() OVER (
               PARTITION BY order_id
               ORDER BY created_at ASC, id ASC
-            ) AS row_num
+            ) AS row_num,
+            COALESCE(SUM(reserved_qty) OVER (PARTITION BY order_id), 0) AS total_reserved_qty,
+            COALESCE(SUM(received_qty) OVER (PARTITION BY order_id), 0) AS total_received_qty
          FROM order_lines
          WHERE order_id IN ${inClause(idChunk)}`
       )

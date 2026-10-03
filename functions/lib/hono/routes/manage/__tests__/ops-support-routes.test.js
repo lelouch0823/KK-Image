@@ -286,8 +286,18 @@ describe('manage ops support audit routes', () => {
     mocks.folderFindTrash.mockResolvedValue([{ id: 'folder-1', deleted_at: 1 }]);
     const r2Delete = vi.fn(async () => undefined);
     const app = createApp('/api/manage/trash', trashApp);
+    // B-M6 镜像清理与文件夹文件枚举需要 DB 句柄：提供最小链式 mock（无镜像数据）
+    const chainable = () => {
+      const statement = {
+        bind: vi.fn(() => statement),
+        all: vi.fn(async () => ({ results: [] })),
+        first: vi.fn(async () => null),
+        run: vi.fn(async () => ({ meta: { changes: 0 } })),
+      };
+      return statement;
+    };
     const env = {
-      DB: {},
+      DB: { prepare: vi.fn(() => chainable()) },
       R2_BUCKET: { delete: r2Delete },
     };
 

@@ -140,5 +140,5 @@ export async function getAllSalespersonAccessTokens(db) {
  * @param {string|string[]} urls - 待失效 URL
  */
 export function scheduleCacheInvalidation(c, urls) {
-  c.executionCtx.waitUntil(invalidateCache(urls));
+  c.executionCtx.waitUntil(invalidateCache(urls, c.env));
 }

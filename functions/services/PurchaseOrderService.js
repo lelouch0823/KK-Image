@@ -13,6 +13,11 @@
 import { PurchaseOrderRepository } from '../repositories/PurchaseOrderRepository.js';
 import { ProductVariantRepository } from '../repositories/ProductVariantRepository.js';
 import { VariantDemandProjectionRepository } from '../repositories/VariantDemandProjectionRepository.js';
+import { CommandIdempotencyRepository } from '../repositories/CommandIdempotencyRepository.js';
+import {
+  acquireProcurementResourceLocks,
+  releaseProcurementResourceLocks,
+} from './order-procurement-resource-locks.js';
 import { parseJsonArray, parseJsonObject } from '../api/utils/json.js';
 import { NotFoundError, BadRequestError } from '../lib/hono/errors.js';
 import { chunkArray, executeBatchChunks } from '../lib/db/batch.js';
@@ -117,6 +122,8 @@ export class PurchaseOrderService {
     this.demandService = deps.demandService || new DemandService(db);
     this.demandProjectionRepo =
       deps.demandProjectionRepo || new VariantDemandProjectionRepository(db);
+    this.commandIdempotencyRepo =
+      deps.commandIdempotencyRepo || new CommandIdempotencyRepository(db);
 
     // 子服务注入（支持外部覆盖，方便测试）
     this.costAllocationService =
@@ -185,10 +192,44 @@ export class PurchaseOrderService {
     }
 
     // 3. 级联更新预订单采购状态（不再修改订单主状态）
+    // B-M4：取消时把此前被置为 'ordered' 的订单采购状态回滚为 'none'，
+    // 否则订单侧永远显示"已下单未到货"的脏状态
     let cascadedOrders = 0;
     let changedOrderIds = [];
     let changedOrderStatuses = [];
+    const isCancellation = newStatus === 'cancelled';
     const targetProcurementStatus = ['ordered', 'shipping'].includes(newStatus) ? 'ordered' : null;
+
+    if (isCancellation) {
+      const linkedOrderIds = await this.repo.getLinkedOrderIds(poId);
+      if (linkedOrderIds.length > 0) {
+        const now = Date.now();
+        for (const orderIdChunk of chunkArray(linkedOrderIds, D1_MAX_IN_CLAUSE_SIZE)) {
+          const stmts = orderIdChunk.map((orderId) =>
+            this.db
+              .prepare(
+                `UPDATE orders
+               SET procurement_status = 'none', updated_at = ?
+               WHERE id = ?
+                 AND archived_at IS NULL
+                 AND status NOT IN ('fulfilled', 'delivered', 'void')
+                 AND COALESCE(procurement_status, 'none') = 'ordered'`
+              )
+              .bind(now, orderId)
+          );
+          const results = await this.db.batch(stmts);
+          const changedChunkIds = orderIdChunk.filter(
+            (_orderId, index) => (results[index]?.meta?.changes || 0) > 0
+          );
+          cascadedOrders += changedChunkIds.length;
+          changedOrderIds.push(...changedChunkIds);
+        }
+        changedOrderStatuses = changedOrderIds.map((orderId) => ({
+          orderId,
+          procurementStatus: 'none',
+        }));
+      }
+    }
 
     if (targetProcurementStatus) {
       const linkedOrderIds = await this.repo.getLinkedOrderIds(poId);
@@ -385,6 +426,17 @@ export class PurchaseOrderService {
       throw new BadRequestError(`以下预订单不存在或已不再可采购: ${missingOrderIds.join(', ')}`);
     }
 
+    // C-M2：锁定全部预订单——并发 createFromOrders 同一订单时第二个请求
+    // 在锁上冲突，消除绑定校验 check-then-act 的竞态窗口
+    const lockRecords = await acquireProcurementResourceLocks({
+      commandIdempotencyRepo: this.commandIdempotencyRepo,
+      resourceType: 'pre_order',
+      resourceIds: orders.map((order) => order.id),
+      timestamp: Date.now(),
+      commandId: crypto.randomUUID(),
+    });
+
+    try {
     const activeBindings =
       typeof this.repo.findActiveBindingsByPreOrderIds === 'function'
         ? await this.repo.findActiveBindingsByPreOrderIds(orders.map((order) => order.id))
@@ -430,7 +482,19 @@ export class PurchaseOrderService {
     }
 
     // 4. 返回完整的采购单
-    return (await this.repo.findById(po.id)) || buildPurchaseOrderShell(po, items);
+    const result = (await this.repo.findById(po.id)) || buildPurchaseOrderShell(po, items);
+    await releaseProcurementResourceLocks({
+      commandIdempotencyRepo: this.commandIdempotencyRepo,
+      lockRecords,
+    });
+    return result;
+    } catch (error) {
+      await releaseProcurementResourceLocks({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        lockRecords,
+      });
+      throw error;
+    }
   }
 
   // ─── 内部工具 ──────────────────────────────────────────

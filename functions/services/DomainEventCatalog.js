@@ -111,6 +111,10 @@ export const DOMAIN_EVENT_CATALOG = {
     version: 1,
     consumers: ['audit', 'cache', 'notification', 'webhook'],
   },
+  order_procurement_shortage_closed: {
+    version: 1,
+    consumers: ['audit', 'cache', 'notification', 'webhook'],
+  },
   purchase_receipt_reversed: {
     version: 1,
     consumers: ['audit', 'cache', 'notification', 'webhook'],

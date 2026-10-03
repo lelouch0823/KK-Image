@@ -127,6 +127,7 @@ export function shouldRefreshDashboardProjection(eventType) {
 export function createPollerState() {
   return {
     invalidatedUrls: new Set(),
+    invalidatedScopes: new Set(),
     allSalesTokens: null,
     salesTokensById: new Map(),
     refreshedReadModels: new Set(),
@@ -227,27 +228,31 @@ export async function getMemoizedAllSalespersonAccessTokens(db, state) {
   return await tokensPromise;
 }
 
-export async function invalidateCacheOnce(urls, state) {
+export async function invalidateCacheOnce(urls, state, env = null) {
+  // P-H1：URL 列表仅用于推导失效 scope；scope 去重后代际递增一次。
+  // URL 级去重（invalidatedUrls）被 scope 级去重取代——
+  // 同 scope 的几百个 URL 归并为一次 KV 写
+  const { scopesFromUrls } = await import('../../lib/hono/_shared/cache-generation.js');
+  const scopes = scopesFromUrls([...new Set((urls || []).filter(Boolean))]);
+  if (scopes.length === 0) return [];
+
   const sharedState = getPollerState(state);
-  const uniqueUrls = [...new Set((urls || []).filter(Boolean))];
   if (!sharedState) {
-    if (uniqueUrls.length > 0) {
-      await invalidateCache(uniqueUrls);
-    }
-    return uniqueUrls;
+    await invalidateCache(scopes, env);
+    return scopes;
   }
 
-  const freshUrls = uniqueUrls.filter((url) => {
-    if (sharedState.invalidatedUrls.has(url)) {
+  const freshScopes = scopes.filter((scope) => {
+    if (sharedState.invalidatedScopes.has(scope)) {
       return false;
     }
-    sharedState.invalidatedUrls.add(url);
+    sharedState.invalidatedScopes.add(scope);
     return true;
   });
 
-  if (freshUrls.length > 0) {
-    await invalidateCache(freshUrls);
+  if (freshScopes.length > 0) {
+    await invalidateCache(freshScopes, env);
   }
 
-  return freshUrls;
+  return freshScopes;
 }

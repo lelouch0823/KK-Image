@@ -65,7 +65,10 @@ app.post('/login', loginRateLimitMiddleware, zValidator('json', LoginSchema), as
     if (!turnstileToken) {
       return c.json({ success: false, error: MSG.AUTH.VERIFY_FAILED }, 400);
     }
-    const isValid = await verifyTurnstile(turnstileToken, turnstileSecret);
+    const isValid = await verifyTurnstile(turnstileToken, turnstileSecret, {
+      remoteIp: c.req.header('CF-Connecting-IP') || null,
+      expectedHostname: c.req.header('Host') || null,
+    });
     if (!isValid) {
       return c.json({ success: false, error: MSG.AUTH.VERIFY_FAILED }, 400);
     }

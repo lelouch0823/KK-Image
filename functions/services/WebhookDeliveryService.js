@@ -84,6 +84,28 @@ export class WebhookDeliveryService {
           : await this.webhookRepo.getLatestAttempt?.(endpoint.id, deliveryKey);
         const attemptNumber = Number(latestAttempt?.attempt_number || 0) + 1;
         const payload = this.buildEnvelope(event);
+
+        // C-M5：原子认领本次尝试——租约过期双跑时两个 worker 得到相同
+        // attempt_number，唯一索引保证只有一个认领成功，另一个跳过
+        const claim = await this.webhookRepo.claimDeliveryAttempt?.({
+          webhookId: endpoint.id,
+          eventId: payload.event_id,
+          eventType: payload.event_type,
+          payload,
+          deliveryKey,
+          attemptNumber,
+        });
+        if (claim === undefined) {
+          // 测试/旧仓储实现未提供 claim：保持既有行为
+        } else if (!claim) {
+          return {
+            webhookId: endpoint.id,
+            deliveryKey,
+            attemptNumber,
+            skipped: true,
+            classification: 'claimed_elsewhere',
+          };
+        }
         const body = JSON.stringify(payload);
         const headers = {
           'Content-Type': 'application/json',
@@ -116,7 +138,7 @@ export class WebhookDeliveryService {
           const responseText = (await response.text()).substring(0, 2000);
           const nextRetryAt = classification === 'retryable' ? this.now() + 60_000 : null;
 
-          await this.webhookRepo.logAttempt({
+          const attemptResult = {
             webhookId: endpoint.id,
             eventId: payload.event_id,
             eventType: payload.event_type,
@@ -129,7 +151,12 @@ export class WebhookDeliveryService {
             classification,
             nextRetryAt,
             success,
-          });
+          };
+          if (claim) {
+            await this.webhookRepo.completeDeliveryAttempt({ logId: claim.logId, ...attemptResult });
+          } else {
+            await this.webhookRepo.logAttempt(attemptResult);
+          }
 
           return {
             webhookId: endpoint.id,
@@ -142,7 +169,7 @@ export class WebhookDeliveryService {
           const durationMs = Math.max(this.now() - startedAt, 0);
           const nextRetryAt = this.now() + 60_000;
 
-          await this.webhookRepo.logAttempt({
+          const attemptFailure = {
             webhookId: endpoint.id,
             eventId: payload.event_id,
             eventType: payload.event_type,
@@ -155,7 +182,12 @@ export class WebhookDeliveryService {
             classification: 'retryable',
             nextRetryAt,
             success: false,
-          });
+          };
+          if (claim) {
+            await this.webhookRepo.completeDeliveryAttempt({ logId: claim.logId, ...attemptFailure });
+          } else {
+            await this.webhookRepo.logAttempt(attemptFailure);
+          }
 
           return {
             webhookId: endpoint.id,

@@ -6,6 +6,7 @@
  */
 
 import { AppError } from './app-error';
+import { injectIdempotencyKey } from './idempotency';
 
 const DEFAULT_TIMEOUT = 30000; // 30 秒
 
@@ -40,6 +41,10 @@ export async function request(
   options: RequestInit & { timeout?: number } = {}
 ): Promise<Response> {
   const { timeout = DEFAULT_TIMEOUT, ...fetchOptions } = options;
+
+  // 变更请求默认注入幂等键（调用方显式提供的键优先）：
+  // 传输层重放/上层重试时服务端可凭键去重或返回首次结果
+  fetchOptions.headers = injectIdempotencyKey(fetchOptions.headers, fetchOptions.method);
 
   const shouldTimeout = timeout > 0;
   const callerSignal = fetchOptions.signal;

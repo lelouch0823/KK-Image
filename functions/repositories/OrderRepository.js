@@ -289,4 +289,32 @@ export class OrderRepository {
   async deleteOrderCascading(id) {
     return mutations.deleteWithRelations(this.db, id);
   }
+
+  /**
+   * 聚合订单行的履约进度（reserved/shipped/received/cancelled）。
+   * 供终态守卫使用：归档前不允许存在预留（B-H2），
+   * 彻底删除前不允许存在已发货/已预留的履约事实（B-M1）。
+   * @param {string} orderId
+   * @returns {Promise<{reserved_qty: number, shipped_qty: number, received_qty: number, cancelled_qty: number}>}
+   */
+  async getLineProgressTotals(orderId) {
+    const row = await this.db
+      .prepare(
+        `SELECT
+            COALESCE(SUM(reserved_qty), 0) AS reserved_qty,
+            COALESCE(SUM(shipped_qty), 0) AS shipped_qty,
+            COALESCE(SUM(received_qty), 0) AS received_qty,
+            COALESCE(SUM(cancelled_qty), 0) AS cancelled_qty
+         FROM order_lines
+         WHERE order_id = ?`
+      )
+      .bind(orderId)
+      .first();
+    return {
+      reserved_qty: Number(row?.reserved_qty) || 0,
+      shipped_qty: Number(row?.shipped_qty) || 0,
+      received_qty: Number(row?.received_qty) || 0,
+      cancelled_qty: Number(row?.cancelled_qty) || 0,
+    };
+  }
 }

@@ -3,7 +3,6 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { OAuthRepository, hashSecret } from '../../../../repositories/OAuthRepository.js';
 import { requirePermission } from '../../middleware/auth.js';
-import { generatePrefixedId } from '../../../../_shared/utils.js';
 import { rateLimit } from '../../middleware/rateLimit.js';
 import { timingSafeCompare } from '../../../../api/utils/crypto.js';
 
@@ -316,9 +315,10 @@ app.post('/token', oauthTokenRateLimit, zValidator('json', TokenSchema), async (
       );
     }
 
-    const accessToken = generatePrefixedId('at_');
+    // 令牌原文仅在本次响应中出现一次，服务端只存哈希（S-M1/S-L8）
+    const accessToken = repo.generateAccessTokenValue();
     const refreshToken = client.grantTypes.includes('refresh_token')
-      ? generatePrefixedId('rt_')
+      ? repo.generateRefreshTokenValue()
       : null;
 
     const token = await repo.createToken({
@@ -346,6 +346,19 @@ app.post('/token', oauthTokenRateLimit, zValidator('json', TokenSchema), async (
       );
     }
 
+    // S-L7：已吊销令牌被再次提交视为泄露信号，吊销该 client 全部令牌
+    const reuseDetected = await repo.detectAndContainRefreshTokenReuse(body.refresh_token);
+    if (reuseDetected) {
+      return c.json(
+        {
+          success: false,
+          error: 'invalid_grant',
+          error_description: '刷新令牌已被使用或泄露，已吊销该应用全部令牌',
+        },
+        401
+      );
+    }
+
     const existingToken = await repo.getTokenByRefreshToken(body.refresh_token);
     if (!existingToken || existingToken.clientId !== body.client_id) {
       return c.json(
@@ -354,18 +367,27 @@ app.post('/token', oauthTokenRateLimit, zValidator('json', TokenSchema), async (
       );
     }
 
-    // 撤销旧令牌
-    await repo.revokeToken(existingToken.accessToken);
-
-    const accessToken = generatePrefixedId('at_');
-    const refreshToken = generatePrefixedId('rt_');
-    const token = await repo.createToken({
-      clientId: body.client_id,
-      userId: existingToken.userId,
-      scopes: existingToken.scopes,
-      accessToken,
-      refreshToken,
-    });
+    // C-M1：吊销旧令牌与签发新令牌在同一 batch 原子完成，
+    // 并发刷新同一 refresh_token 只有一个能成功
+    const accessToken = repo.generateAccessTokenValue();
+    const refreshToken = repo.generateRefreshTokenValue();
+    let rotation;
+    try {
+      rotation = await repo.rotateRefreshToken({
+        rawRefreshToken: body.refresh_token,
+        clientId: body.client_id,
+        userId: existingToken.userId,
+        scopes: existingToken.scopes,
+        newAccessToken: accessToken,
+        newRefreshToken: refreshToken,
+      });
+    } catch (_error) {
+      return c.json(
+        { success: false, error: 'invalid_grant', error_description: '刷新令牌已被并发使用' },
+        400
+      );
+    }
+    const token = rotation.token;
 
     return c.json({
       access_token: token.accessToken,

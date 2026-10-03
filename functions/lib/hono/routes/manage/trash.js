@@ -5,6 +5,8 @@ import { getFileUrl, MSG } from '../../../../_shared/utils.js';
 import { FileRepository } from '../../../../repositories/FileRepository.js';
 import { FolderRepository } from '../../../../repositories/FolderRepository.js';
 import { decrementRefCount } from '../../../../api/utils/blob-utils.js';
+import { StorageMirrorRepository } from '../../../../repositories/StorageMirrorRepository.js';
+import { getStorageProvider } from '../../../../storage/index.js';
 import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishDomainEventsAndPoll } from '../../_shared/domain-outbox.js';
@@ -12,6 +14,29 @@ import { withCache } from '../../middleware/cache.js';
 import { chunkArray } from '../../../../lib/db/batch.js';
 import { D1_MAX_IN_CLAUSE_SIZE } from '../../../../api/utils/constants.js';
 import { RestoreSchema, DeleteTrashSchema } from '../../schemas/trash.js';
+
+/**
+ * B-M6：彻底删除时同步清理 storage_mirrors 记录与镜像副本。
+ * 镜像子系统当前未在生产启用（无写入方），但清理逻辑必须先行到位：
+ * 一旦镜像启用，遗漏清理即成"已删文件仍可从镜像 GET"的数据泄漏。
+ * R2 删除失败时中止 DB 删除并抛错（避免孤儿对象 + 台账消失的不可逆组合）。
+ */
+async function purgeStorageMirrors(env, fileIds) {
+  if (!fileIds?.length) return;
+  const mirrorRepo = new StorageMirrorRepository(env.DB);
+  for (const fileId of fileIds) {
+    const mirrors = await mirrorRepo.findByFileId(fileId);
+    for (const mirror of mirrors) {
+      const provider = getStorageProvider(env, mirror.provider);
+      if (provider && mirror.provider_file_id) {
+        await provider.delete(mirror.provider_file_id).catch((err) =>
+          console.warn('[Trash] mirror delete failed:', mirror.provider, err?.message)
+        );
+      }
+    }
+    await env.DB.prepare('DELETE FROM storage_mirrors WHERE file_id = ?').bind(fileId).run();
+  }
+}
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
@@ -169,18 +194,24 @@ app.post(
         results.push(...chunkResults);
       }
 
-      // 从 R2/CAS 删除
+      // 从 R2/CAS 删除；B-M6：R2 删除失败不再"警告后继续删 DB"——
+      // 那会产生孤儿对象且文件台账消失，物理泄漏不可追溯
       await Promise.all(
         results.map(async (f) => {
           if (f.content_hash) {
             await decrementRefCount(env, f.content_hash);
           } else if (env.R2_BUCKET && f.storage_key) {
-            await env.R2_BUCKET.delete(f.storage_key).catch((err) =>
-              console.warn('[Trash] R2 delete failed:', err.message)
-            );
+            try {
+              await env.R2_BUCKET.delete(f.storage_key);
+            } catch (err) {
+              throw new Error(`R2 对象删除失败（${f.storage_key}）：${err?.message || err}`);
+            }
           }
         })
       );
+
+      // 清理镜像副本与记录（幂等：无镜像时为 no-op）
+      await purgeStorageMirrors(env, fileIds);
 
       // 从数据库删除
       await fileRepo.deleteBatch(fileIds);
@@ -199,6 +230,13 @@ app.post(
             )
           );
         }
+        // B-M6：文件夹内文件的镜像记录一并清理
+        const { results: folderFileRows } = await env.DB.prepare(
+          `SELECT id FROM files WHERE folder_id = ?`
+        )
+          .bind(folderId)
+          .all();
+        await purgeStorageMirrors(env, (folderFileRows || []).map((row) => row.id));
         await folderRepo.deleteRecursive(folderId);
       }
     }
@@ -235,13 +273,16 @@ app.delete('/empty', requirePermission('files:delete'), async (c) => {
         if (f.content_hash) {
           await decrementRefCount(env, f.content_hash);
         } else if (env.R2_BUCKET && f.storage_key) {
-          await env.R2_BUCKET.delete(f.storage_key).catch((err) =>
-            console.warn('[Trash] R2 delete failed:', err.message)
-          );
+          try {
+            await env.R2_BUCKET.delete(f.storage_key);
+          } catch (err) {
+            throw new Error(`R2 对象删除失败（${f.storage_key}）：${err?.message || err}`);
+          }
         }
       })
     );
     const fileIds = files.map((f) => f.id);
+    await purgeStorageMirrors(env, fileIds);
     await fileRepo.deleteBatch(fileIds);
   }
 

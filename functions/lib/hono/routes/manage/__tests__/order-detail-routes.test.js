@@ -37,6 +37,13 @@ vi.mock('../../../../../repositories/OrderRepository.js', () => ({
     setUnread: mocks.setUnread,
     updateStatus: mocks.updateStatus,
     deleteOrderCascading: mocks.deleteOrderCascading,
+    // B-M1 终态守卫查询
+    getLineProgressTotals: vi.fn(async () => ({
+      reserved_qty: 0,
+      shipped_qty: 0,
+      received_qty: 0,
+      cancelled_qty: 0,
+    })),
     timelineRepo: { addTimelineEntry: vi.fn() },
   })),
 }));

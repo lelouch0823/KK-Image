@@ -317,6 +317,13 @@ export async function updateComposite(
     status !== undefined ? normalizeOrderStatus(status) || status : undefined;
   const orderLineStates = await prefetchOrderLineStates(db, [id]);
   const primaryOrderLineState = getPrefetchedOrderLineState(orderLineStates, id);
+  // 读取当前状态基线：既用于状态机校验，也作为 UPDATE 的乐观锁守卫（C-H3）——
+  // 校验与写入之间的并发状态翻转会使 changes()=0、断言语句失败并回滚整个 batch，
+  // 堵住"陈旧读通过校验后覆盖写"的状态机绕过窗口
+  const currentOrder = await db
+    .prepare('SELECT status, variant_id, quantity FROM orders WHERE id = ?')
+    .bind(id)
+    .first();
   const rawLines = Array.isArray(newData?.lines) ? newData.lines.filter(Boolean) : [];
   const hasExplicitLines =
     explicitLineMutation === undefined
@@ -351,10 +358,6 @@ export async function updateComposite(
 
   if (status !== undefined) {
     await assertOrderStatusCompatibleWithLines(db, id, normalizedStatus, orderLineStates);
-    const currentOrder = await db
-      .prepare('SELECT status, variant_id, quantity FROM orders WHERE id = ?')
-      .bind(id)
-      .first();
     if (currentOrder?.status) {
       assertOrderStatusTransition(currentOrder.status, normalizedStatus, { forceStatusTransition });
     }
@@ -407,9 +410,18 @@ export async function updateComposite(
   }
 
   params.push(id);
+  // 状态守卫：涉及状态变更或行结构重写时，以读取到的状态基线做乐观锁
+  //（C-H3）；纯字段编辑（备注/文件等）不依赖状态不变量，保持宽松
+  const guardStatus = status !== undefined || hasExplicitLines;
+  const guardClause = guardStatus ? ' AND status = ?' : '';
+  if (guardStatus) {
+    params.push(currentOrder?.status ?? null);
+  }
   statements.push(
     db
-      .prepare(`UPDATE orders SET ${colsToUpdate.join(', ')} WHERE id = ? AND archived_at IS NULL`)
+      .prepare(
+        `UPDATE orders SET ${colsToUpdate.join(', ')} WHERE id = ? AND archived_at IS NULL${guardClause}`
+      )
       .bind(...params)
   );
   statements.push(buildPreviousWriteAssertionStatement(db));
@@ -425,6 +437,19 @@ export async function updateComposite(
   );
 
   if (hasExplicitLines) {
+    // C-H3：结构化重写 = DELETE 全部行后重插（履约计数清零、allocation/shipment
+    // 级联蒸发）。任何行存在履约进度时必须拒绝，否则并发发货会被"重插后
+    // shipped_qty=0"无声吞掉，进而二次发货、重复扣库存。有进度的订单只能
+    // 通过行级命令（unship/release）清理后再做结构编辑
+    if (
+      Number(primaryOrderLineState?.total_shipped_qty) > 0 ||
+      Number(primaryOrderLineState?.total_reserved_qty) > 0 ||
+      Number(primaryOrderLineState?.total_received_qty) > 0
+    ) {
+      throw new ConflictError(
+        '订单行存在履约进度（已收货/已预留/已发货），不能整单重构；请使用行级命令调整'
+      );
+    }
     const lineStatus =
       normalizeOrderStatus(normalizedStatus || effectiveData?.status || 'pending') || 'pending';
     statements.push(db.prepare('DELETE FROM order_lines WHERE order_id = ?').bind(id));

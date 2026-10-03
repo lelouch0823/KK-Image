@@ -43,11 +43,31 @@ export function appendOrderSummaryProgressStatusFilter(whereClause, bindParams, 
     )`;
 }
 
+/**
+ * 交付状态过滤（P-H3）：
+ * 投影行存在时直接命中物化列 order_summary.effective_delivery_status
+ * （0072 触发器写入的值与查询期 CASE 语义一致，可走
+ * idx_order_summary_projection_effective_delivery_status 索引）；
+ * 投影行缺失（LEFT JOIN 未命中）时回退到 orders 基表列推导。
+ * 原"整段 CASE 包裹 = ?"的写法使索引永远无法使用，带此过滤的
+ * 列表退化为全表扫描。
+ */
 export function appendOrderSummaryDeliveryStatusFilter(whereClause, bindParams, deliveryStatus) {
   if (!deliveryStatus) return whereClause;
 
-  bindParams.push(deliveryStatus);
-  return `${whereClause} AND ${ORDER_SUMMARY_EFFECTIVE_DELIVERY_STATUS_SQL} = ?`;
+  const fallbackExpr = `
+        CASE
+            WHEN LOWER(TRIM(COALESCE(o.delivery_status, ''))) IN ('not_shipped', 'in_transit', 'delivered', 'partially_returned', 'returned')
+                THEN LOWER(TRIM(o.delivery_status))
+            WHEN COALESCE(o.delivered_at, 0) > 0 THEN 'delivered'
+            ELSE 'not_shipped'
+        END`;
+
+  bindParams.push(deliveryStatus, deliveryStatus);
+  return `${whereClause} AND (
+        order_summary.effective_delivery_status = ?
+        OR (order_summary.order_id IS NULL AND ${fallbackExpr} = ?)
+    )`;
 }
 
 export function appendOrderSummaryProductSearchFilter(whereClause, bindParams, search) {

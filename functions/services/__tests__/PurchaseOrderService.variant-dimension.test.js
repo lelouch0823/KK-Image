@@ -5,7 +5,10 @@ function createDbForSuggestions(results) {
   const stmt = {
     bind: vi.fn(() => stmt),
     all: vi.fn(async () => ({ results })),
-  };
+    first: vi.fn(async () => null),
+      run: vi.fn(async () => ({ meta: { changes: 1 } })),
+      batch: vi.fn(async () => []),
+    };
   return {
     prepare: vi.fn(() => stmt),
   };
@@ -64,6 +67,9 @@ describe('PurchaseOrderService variant dimension', () => {
     const stmt = {
       bind: vi.fn(() => stmt),
       all: mockAll,
+      first: vi.fn(async () => null),
+      run: vi.fn(async () => ({ meta: { changes: 1 } })),
+      batch: vi.fn(async () => []),
     };
     const db = { prepare: vi.fn(() => stmt) };
     const service = new PurchaseOrderService(db);
@@ -87,6 +93,8 @@ describe('PurchaseOrderService variant dimension', () => {
     const db = {
       prepare: vi.fn((sql) => ({
         bind: (..._args) => ({
+          first: vi.fn(async () => null),
+          run: vi.fn(async () => ({ meta: { changes: 1 } })),
           all: vi.fn(async () => ({
             results: sql.includes('FROM order_lines ol')
               ? [
@@ -167,6 +175,8 @@ describe('PurchaseOrderService variant dimension', () => {
             queryBinds.push(args);
           }
           return {
+            first: vi.fn(async () => null),
+            run: vi.fn(async () => ({ meta: { changes: 1 } })),
             all: vi.fn(async () => ({
               results: sql.includes('FROM orders o')
                 ? args.map((orderId) => ({
@@ -218,6 +228,8 @@ describe('PurchaseOrderService variant dimension', () => {
               queryBinds.push(args);
             }
             return {
+              first: vi.fn(async () => null),
+              run: vi.fn(async () => ({ meta: { changes: 1 } })),
               all: vi.fn(async () => ({
                 results: [
                   {
@@ -268,6 +280,9 @@ describe('PurchaseOrderService variant dimension', () => {
           },
         ],
       })),
+      first: vi.fn(async () => null),
+      run: vi.fn(async () => ({ meta: { changes: 1 } })),
+      batch: vi.fn(async () => []),
     };
     const db = { prepare: vi.fn(() => stmt) };
     const service = new PurchaseOrderService(db);
@@ -309,6 +324,9 @@ describe('PurchaseOrderService variant dimension', () => {
           },
         ],
       })),
+      first: vi.fn(async () => null),
+      run: vi.fn(async () => ({ meta: { changes: 1 } })),
+      batch: vi.fn(async () => []),
     };
     const db = { prepare: vi.fn(() => stmt) };
     const service = new PurchaseOrderService(db);
@@ -338,6 +356,8 @@ describe('PurchaseOrderService variant dimension', () => {
             queryBinds.push(args);
           }
           return {
+            first: vi.fn(async () => null),
+            run: vi.fn(async () => ({ meta: { changes: 1 } })),
             all: vi.fn(async () => ({
               results: sql.includes('FROM orders o')
                 ? [
@@ -392,6 +412,9 @@ describe('PurchaseOrderService variant dimension', () => {
           },
         ],
       })),
+      first: vi.fn(async () => null),
+      run: vi.fn(async () => ({ meta: { changes: 1 } })),
+      batch: vi.fn(async () => []),
     };
     const db = { prepare: vi.fn(() => stmt) };
     const service = new PurchaseOrderService(db);
@@ -428,6 +451,9 @@ describe('PurchaseOrderService variant dimension', () => {
           },
         ],
       })),
+      first: vi.fn(async () => null),
+      run: vi.fn(async () => ({ meta: { changes: 1 } })),
+      batch: vi.fn(async () => []),
     };
     const db = { prepare: vi.fn(() => stmt) };
     const service = new PurchaseOrderService(db);
@@ -513,6 +539,9 @@ describe('PurchaseOrderService variant dimension', () => {
           },
         ],
       })),
+      first: vi.fn(async () => null),
+      run: vi.fn(async () => ({ meta: { changes: 1 } })),
+      batch: vi.fn(async () => []),
     };
     const db = { prepare: vi.fn(() => stmt) };
     const service = new PurchaseOrderService(db);
@@ -600,6 +629,9 @@ describe('PurchaseOrderService variant dimension', () => {
           },
         ],
       })),
+      first: vi.fn(async () => null),
+      run: vi.fn(async () => ({ meta: { changes: 1 } })),
+      batch: vi.fn(async () => []),
     };
     const db = { prepare: vi.fn(() => stmt) };
     const service = new PurchaseOrderService(db);
@@ -661,7 +693,7 @@ describe('PurchaseOrderService variant dimension', () => {
   });
 
   it('does not increment inventory when a purchase order transitions to arrived', async () => {
-    const stmt = { bind: vi.fn(() => stmt) };
+    const stmt = { bind: vi.fn(() => stmt), all: vi.fn(async () => ({ results: [] })), first: vi.fn(async () => null), run: vi.fn(async () => ({ meta: { changes: 1 } })), batch: vi.fn(async () => []) };
     const db = { prepare: vi.fn(() => stmt), batch: vi.fn() };
     const service = new PurchaseOrderService(db);
     service.repo = {
@@ -686,7 +718,7 @@ describe('PurchaseOrderService variant dimension', () => {
   });
 
   it('does not cascade procurement_status when arriving without direct inventory mutations', async () => {
-    const stmt = { bind: vi.fn(() => stmt) };
+    const stmt = { bind: vi.fn(() => stmt), all: vi.fn(async () => ({ results: [] })), first: vi.fn(async () => null), run: vi.fn(async () => ({ meta: { changes: 1 } })), batch: vi.fn(async () => []) };
     const sqlCalls = [];
     const db = {
       prepare: vi.fn((sql) => {

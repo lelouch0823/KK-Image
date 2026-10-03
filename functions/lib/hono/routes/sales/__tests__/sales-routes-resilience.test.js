@@ -133,12 +133,15 @@ const createProductsTestApp = () => {
 };
 
 const createDbMock = () => ({
-  prepare: vi.fn(() => ({
-    bind: vi.fn(() => ({
+  prepare: vi.fn(() => {
+    const statement = {
+      bind: vi.fn(() => statement),
       all: vi.fn(async () => ({ results: [] })),
       first: vi.fn(async () => null),
-    })),
-  })),
+      run: vi.fn(async () => ({ meta: { changes: 1 } })),
+    };
+    return statement;
+  }),
 });
 
 describe('sales routes resilience', () => {
@@ -187,7 +190,7 @@ describe('sales routes resilience', () => {
           fileIds: [],
         }),
       },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil: vi.fn() }
     );
 
@@ -251,7 +254,7 @@ describe('sales routes resilience', () => {
           fileIds: [],
         }),
       },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil: vi.fn() }
     );
 
@@ -284,7 +287,7 @@ describe('sales routes resilience', () => {
           fileIds: [],
         }),
       },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil: vi.fn() }
     );
 
@@ -377,7 +380,7 @@ describe('sales routes resilience', () => {
           fileIds: [],
         }),
       },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil: vi.fn() }
     );
 
@@ -429,7 +432,7 @@ describe('sales routes resilience', () => {
           fileIds: [],
         }),
       },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil: vi.fn() }
     );
 
@@ -528,7 +531,7 @@ describe('sales routes resilience', () => {
           fileIds: [],
         }),
       },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil: vi.fn() }
     );
 
@@ -553,7 +556,7 @@ describe('sales routes resilience', () => {
     const emptyRes = await app.request(
       'http://localhost/api/sales/token-1/products?page=1&limit=12',
       {},
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil: vi.fn() }
     );
 
@@ -572,7 +575,7 @@ describe('sales routes resilience', () => {
     const errRes = await app.request(
       'http://localhost/api/sales/token-1/products?page=1&limit=12',
       {},
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil: vi.fn() }
     );
 
@@ -712,7 +715,7 @@ describe('sales routes resilience', () => {
     const res = await app.request(
       'http://localhost/api/sales/token-1/orders/o-1',
       { method: 'GET' },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil }
     );
 
@@ -747,7 +750,7 @@ describe('sales routes resilience', () => {
     const res = await app.request(
       'http://localhost/api/sales/token-1/orders/o-1/read',
       { method: 'PATCH' },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil }
     );
 
@@ -776,7 +779,7 @@ describe('sales routes resilience', () => {
     const res = await app.request(
       'http://localhost/api/sales/token-1/orders/other-order/read',
       { method: 'PATCH' },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil: vi.fn() }
     );
 
@@ -800,7 +803,7 @@ describe('sales routes resilience', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ comment: 'need review' }),
       },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil: vi.fn() }
     );
 
@@ -839,7 +842,7 @@ describe('sales routes resilience', () => {
           fileIds: [],
         }),
       },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil }
     );
 
@@ -878,7 +881,7 @@ describe('sales routes resilience', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ updates: { remark: 'next' }, reason: 'customer changed' }),
       },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil }
     );
 
@@ -937,7 +940,7 @@ describe('sales routes resilience', () => {
           },
         }),
       },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil: vi.fn() }
     );
 
@@ -981,7 +984,7 @@ describe('sales routes resilience', () => {
           },
         }),
       },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil: vi.fn() }
     );
 
@@ -1026,7 +1029,7 @@ describe('sales routes resilience', () => {
           updates: { remark: 'next' },
         }),
       },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil: vi.fn() }
     );
 
@@ -1061,7 +1064,7 @@ describe('sales routes resilience', () => {
           updates: { remark: 'manual order now' },
         }),
       },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil: vi.fn() }
     );
 
@@ -1089,7 +1092,7 @@ describe('sales routes resilience', () => {
     const res = await app.request(
       'http://localhost/api/sales/token-1/orders/o-1',
       { method: 'DELETE' },
-      { DB: { prepare: vi.fn() } },
+      { DB: createDbMock() },
       { waitUntil }
     );
 

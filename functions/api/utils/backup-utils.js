@@ -29,25 +29,28 @@ async function* createBackupJsonChunks(env, tableNames, metadataJson) {
     )},"rows":[`;
     yield tablePrefix;
 
-    let offset = 0;
     let hasRows = false;
     const quotedTable = quoteSqlIdentifier(table);
+    // P-M3：rowid keyset 翻页——OFFSET 深翻页对大表是 O(n²) 扫描，
+    // 单调 rowid 游标每页都是索引点查
+    let lastRowid = 0;
 
     while (true) {
       const { results } = await env.DB.prepare(
-        `SELECT * FROM ${quotedTable} LIMIT ? OFFSET ?`
+        `SELECT * FROM (SELECT *, rowid AS __rk FROM ${quotedTable} WHERE rowid > ? ORDER BY rowid LIMIT ?)`
       )
-        .bind(BACKUP_PAGE_LIMIT, offset)
+        .bind(lastRowid, BACKUP_PAGE_LIMIT)
         .all();
 
       if (!results || results.length === 0) break;
 
       for (const row of results) {
-        yield `${hasRows ? ',' : ''}${JSON.stringify(row)}`;
+        const { __rk, ...rowData } = row;
+        if (Number(__rk) > lastRowid) lastRowid = Number(__rk);
+        yield `${hasRows ? ',' : ''}${JSON.stringify(rowData)}`;
         hasRows = true;
       }
 
-      offset += BACKUP_PAGE_LIMIT;
       if (results.length < BACKUP_PAGE_LIMIT) break;
     }
 

@@ -22,7 +22,11 @@ function collectDirectStockWritePaths() {
     /UPDATE\s+product_variants[\s\S]*?SET\s+stock_quantity\s*=/i,
     /stock_quantity\s*=\s*MAX\(0,\s*stock_quantity\s*\+/i,
   ];
-  const allowedSuffixes = new Set([path.join('functions', 'services', 'InventoryService.js')]);
+  const allowedSuffixes = new Set([
+    path.join('functions', 'services', 'InventoryService.js'),
+    // 库存写入的共享构建器（InventoryService 内部实现的一部分，收敛后的唯一写入点）
+    path.join('functions', 'services', '_shared', 'inventory-write-statements.js'),
+  ]);
 
   return files.flatMap((file) => {
     const relativePath = path.relative(root, file);

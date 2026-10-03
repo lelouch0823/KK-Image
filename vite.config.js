@@ -92,7 +92,20 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // P-H5：预缓存只收 entry + vue 核心依赖；路由级 chunk（xlsx/pdf/chart
+        // 等重库）走 runtimeCaching 的 StaleWhileRevalidate，避免首访用户
+        // 在登录页就后台下载全部 4.6MB 产物
+        globPatterns: [
+          'index.html',
+          'manifest.webmanifest',
+          'assets/vue-vendor-*.js',
+          'assets/index-*.js',
+          'assets/index-*.css',
+          'registerSW.js',
+          'pwa-192x192.png',
+          'pwa-512x512.png',
+          'favicon.ico'
+        ],
         cleanupOutdatedCaches: true,
         runtimeCaching: pwaRuntimeCaching
       },
@@ -116,6 +129,7 @@ export default defineConfig({
           'vue-vendor': ['vue', 'vue-router', '@vueuse/core'],
           'chart-vendor': ['chart.js', 'vue-chartjs', 'chartjs-adapter-date-fns'],
           'xlsx-vendor': ['xlsx'],
+          'xlsx-style-vendor': ['xlsx-js-style'],
           'pdf-vendor': ['html2pdf.js']
         },
         // 静态资源文件名

@@ -231,7 +231,7 @@ function shouldMaterializeNotification(eventType) {
 
 // ─── 主入口 ───────────────────────────────────────────────
 
-export async function notifyOutboxEvent({ db, event, baseUrl, state }) {
+export async function notifyOutboxEvent({ db, env, event, baseUrl, state }) {
   if (!shouldMaterializeNotification(event?.event_type)) {
     return {
       skipped: true,
@@ -281,7 +281,7 @@ export async function notifyOutboxEvent({ db, event, baseUrl, state }) {
       recipient.receiver === 'sales'
         ? getOrderNotificationCacheUrls(ctx, { salesTokens })
         : getManageNotificationCacheUrls(ctx);
-    await invalidateCacheOnce(urls, state);
+    await invalidateCacheOnce(urls, state, env || state?.env);
   }
 
   return result;

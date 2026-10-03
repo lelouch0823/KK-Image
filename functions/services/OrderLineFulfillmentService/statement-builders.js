@@ -1,6 +1,10 @@
 import { toNonNegativeInt } from '../../api/utils/number.js';
 import { getDomainEventDefinition } from '../DomainEventCatalog.js';
 import { projectOrderLineStatus } from '../OrderStatusProjectionService.js';
+import {
+  buildBalanceDeltaUpsertStatement,
+  buildGuardedHoldUpsertStatement,
+} from '../_shared/inventory-write-statements.js';
 
 export function buildNextLineState(line, overrides = {}) {
   const next = {
@@ -67,16 +71,23 @@ export function buildReservationMovementStatements(db, uuidFn, {
   return {
     inventoryEventId,
     statements: [
-      db
-        .prepare(
-          `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
-           VALUES (?, 0, ?, 0, ?)
-           ON CONFLICT(variant_id) DO UPDATE SET
-             reserved = MAX(0, inventory_balances.reserved + ?),
-             available = MAX(0, inventory_balances.on_hand - MAX(0, inventory_balances.reserved + ?)),
-             updated_at = excluded.updated_at`
-        )
-        .bind(variantId, Math.max(quantityDelta, 0), timestamp, quantityDelta, quantityDelta),
+      // 行级预留是硬预留：持有可能力守卫（on_hand - reserved >= 增量），
+      // 两个并发 reserve 同时通过 batch 外容量检查时由 WHERE 谓词 + changes()
+      // 断言仲裁（审查 C-H2）；释放（负增量）由 CHECK(reserved >= 0) 兜底
+      ...(quantityDelta > 0
+        ? buildGuardedHoldUpsertStatement(db, {
+            variantId,
+            reservedDelta: quantityDelta,
+            timestamp,
+          })
+        : [
+            buildBalanceDeltaUpsertStatement(db, {
+              variantId,
+              onHandDelta: 0,
+              reservedDelta: quantityDelta,
+              timestamp,
+            }),
+          ]),
       db
         .prepare(
           `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)

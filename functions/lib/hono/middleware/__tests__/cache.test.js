@@ -27,23 +27,37 @@ describe('cache middleware helpers', () => {
     vi.clearAllMocks();
   });
 
-  it('invalidates cache entries created with the json Accept header key', async () => {
-    await invalidateCache('https://example.com/api/manage/customers?limit=20&page=1');
+  it('invalidates by bumping the scope generation instead of URL deletes', async () => {
+    const putMock = vi.fn(async () => undefined);
+    globalThis.caches.default.put = putMock;
+    const env = {
+      KV: {
+        get: vi.fn(async () => null),
+        put: putMock,
+      },
+    };
 
-    expect(deleteMock).toHaveBeenCalledWith(expect.any(Request));
+    // 多个 URL 属同一 resource scope → 归并为一次代际递增
+    await invalidateCache(
+      [
+        'https://example.com/api/manage/customers?limit=20&page=1',
+        'https://example.com/api/manage/customers?page=2&limit=20',
+      ],
+      env
+    );
 
-    const request = deleteMock.mock.calls[0][0];
-    expect(request.url).toBe('https://example.com/api/manage/customers?limit=20&page=1');
-    expect(request.headers.get('Accept')).toBe('application/json');
+    expect(putMock).toHaveBeenCalledTimes(1);
+    expect(putMock.mock.calls[0][0]).toBe('cache:gen:api:manage:customers');
+    // 代际失效不再做 URL 级 cache.delete（P-H1）
+    expect(deleteMock).not.toHaveBeenCalled();
   });
 
   it('normalizes query parameter ordering for cache invalidation keys', async () => {
-    await invalidateCache('https://example.com/api/manage/customers?page=1&limit=20');
-
-    expect(deleteMock).toHaveBeenCalledWith(expect.any(Request));
-
-    const request = deleteMock.mock.calls[0][0];
-    expect(request.url).toBe('https://example.com/api/manage/customers?limit=20&page=1');
+    // 不同 query 顺序同属一个 scope：推导结果一致
+    const { scopeFromUrl } = await import('../../_shared/cache-generation.js');
+    expect(scopeFromUrl('https://example.com/api/manage/customers?limit=20&page=1')).toBe(
+      scopeFromUrl('https://example.com/api/manage/customers?page=1&limit=20')
+    );
   });
 
   it('does not hash response bodies when default cache mode is used', async () => {

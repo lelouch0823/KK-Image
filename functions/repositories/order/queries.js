@@ -178,7 +178,8 @@ export async function findApproachingDeadline(db, startDate, endDate) {
     `
       SELECT o.id, o.order_no, o.salesperson_id, o.deadline_date
       FROM orders o
-      WHERE o.status IN ('confirmed', 'in_progress')
+      WHERE o.status IN ('confirmed', 'production', 'shipping', 'arrived')
+        AND o.archived_at IS NULL
         AND o.deadline_date IS NOT NULL
         AND o.deadline_date BETWEEN ? AND ?
       ORDER BY o.deadline_date ASC, o.created_at ASC
@@ -237,9 +238,11 @@ export async function listBySalesperson(
     }
   }
 
+  // P-H2 配套：销售端筛选全部只引用 o.*（status/search/FTS 均不涉及投影列），
+  // COUNT 无需 join 投影表——1:1 join 使结果不变，只是白白多扫一张表
   const countResult = await queryFirst(
     db,
-    `SELECT COUNT(*) as total FROM orders o ${ORDER_SUMMARY_PROJECTION_JOIN} ${where}`,
+    `SELECT COUNT(*) as total FROM orders o ${where}`,
     params,
     { label: 'order.listBySalesperson.count' }
   );
@@ -337,15 +340,21 @@ export async function listForAdmin(
     whereClause += ` AND o.status IN (${statusValues.map(() => '?').join(', ')})`;
     bindParams.push(...statusValues);
   }
+  // 计数是否引用投影列：procurementStatus/deliveryStatus/LIKE 搜索依赖
+  // order_summary，其余筛选只涉及 o.*；无投影筛选时 COUNT 跳过该 1:1 join
+  let countUsesProjection = false;
+
   if (procurementStatus) {
     whereClause = appendOrderSummaryProgressStatusFilter(
       whereClause,
       bindParams,
       procurementStatus
     );
+    countUsesProjection = true;
   }
   if (deliveryStatus) {
     whereClause = appendOrderSummaryDeliveryStatusFilter(whereClause, bindParams, deliveryStatus);
+    countUsesProjection = true;
   }
   if (startTime > 0) {
     whereClause += ' AND o.created_at >= ?';
@@ -366,12 +375,16 @@ export async function listForAdmin(
       }
     } else {
       whereClause = appendOrderSummaryProductSearchFilter(whereClause, bindParams, search);
+      countUsesProjection = true;
     }
   }
 
+  const countFrom = countUsesProjection
+    ? `FROM orders o ${ORDER_SUMMARY_PROJECTION_JOIN}`
+    : 'FROM orders o';
   const countResult = await queryFirst(
     db,
-    `SELECT COUNT(*) as total FROM orders o ${ORDER_SUMMARY_PROJECTION_JOIN} WHERE ${whereClause}`,
+    `SELECT COUNT(*) as total ${countFrom} WHERE ${whereClause}`,
     bindParams,
     { label: 'order.listForAdmin.count' }
   );

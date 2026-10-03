@@ -236,6 +236,18 @@ export class OrderProcurementDomainService {
       statements.push(commandReservation.insertStatement);
     }
 
+    // C-L1：batch 内首条语句守卫 PO 状态——batch 外的 requirePurchaseOrder
+    // 是 check-then-act，并发把 PO 转为 completed/cancelled 后在途收货
+    // 仍会写入；条件 UPDATE + 断言让整个 batch 回滚
+    statements.push(
+      this.db
+        .prepare(
+          "UPDATE purchase_orders SET updated_at = ? WHERE id = ? AND status IN ('ordered', 'shipping')"
+        )
+        .bind(this.now(), poId),
+      buildPreviousWriteAssertionStatement(this.db)
+    );
+
     for (const entry of items) {
       const normalizedEntry = normalizeReceiptEntry(entry);
       const purchaseOrderItemId = normalizedEntry.purchase_order_item_id;
@@ -492,6 +504,7 @@ export class OrderProcurementDomainService {
               variant_id: poItem.variant_id,
               quantity_delta: receivedQty,
               purchase_receipt_id: receiptId,
+              // C-L2：只携带 delta——batch 外读到的绝对值在并发下可能已陈旧
               on_hand_after: nextInventory.on_hand,
               available_after: nextInventory.available,
             }),

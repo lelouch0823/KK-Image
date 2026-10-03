@@ -1,5 +1,7 @@
 import { BadRequestError } from '../lib/hono/errors.js';
 import { CommandIdempotencyRepository } from '../repositories/CommandIdempotencyRepository.js';
+import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.js';
+import { getDomainEventDefinition } from './DomainEventCatalog.js';
 import { VariantDemandProjectionRefreshService } from './VariantDemandProjectionRefreshService.js';
 import {
   computePurchaseOrderRemainingReceivable,
@@ -36,6 +38,9 @@ export class PurchaseOrderShortageClosureService {
     this.db = db;
     this.commandIdempotencyRepo =
       deps.commandIdempotencyRepo || new CommandIdempotencyRepository(db, { now: deps.now });
+    this.domainOutboxRepo =
+      deps.domainOutboxRepo || new DomainOutboxRepository(db, { now: deps.now });
+    this.uuid = deps.uuid || (() => crypto.randomUUID());
     this.variantDemandProjectionRefreshService =
       deps.variantDemandProjectionRefreshService || new VariantDemandProjectionRefreshService(db);
     this.now = deps.now || (() => Date.now());
@@ -291,7 +296,51 @@ export class PurchaseOrderShortageClosureService {
       commandId: commandReservation.record?.command_id,
       response,
     });
-    const allStatements = statements.concat(orderStatements, finalizeStatements);
+
+    // B-M5：短缺关闭是订单采购状态的实质变化，与冲销/收货一样在同一 batch
+    // 内写事务性发件箱，保证下游（通知/webhook/审计）至少一次可见
+    const commandId = commandReservation.record?.command_id || this.uuid();
+    const outboxEvents = [];
+    let sequenceInCommand = 1;
+    const pushShortageClosedEvent = (aggregateType, aggregateId, extraPayload) => {
+      outboxEvents.push({
+        id: this.uuid(),
+        command_id: commandId,
+        sequence_in_command: sequenceInCommand++,
+        event_type: 'order_procurement_shortage_closed',
+        event_version: 1,
+        aggregate_type: aggregateType,
+        aggregate_id: aggregateId,
+        correlation_id: commandId,
+        causation_id: commandId,
+        idempotency_key: `${commandId}:${aggregateId}:order_procurement_shortage_closed`,
+        payload_json: JSON.stringify({
+          purchase_order_id: poId,
+          closed_count: results.length,
+          close_qty_total: results.reduce((sum, item) => sum + item.close_qty, 0),
+          ...extraPayload,
+        }),
+        occurred_at: timestamp,
+      });
+    };
+
+    for (const orderId of orderAggregateTransitions.keys()) {
+      pushShortageClosedEvent('order', orderId, {
+        order_id: orderId,
+        order_procurement_status_after: orderNextProcurementStatuses.get(orderId) || null,
+      });
+    }
+    if (outboxEvents.length === 0) {
+      // 无关联订单（纯采购明细关闭）也要让下游可见
+      pushShortageClosedEvent('purchase_order', poId, {});
+    }
+
+    const outboxStatements = this.domainOutboxRepo.buildInsertStatements(
+      outboxEvents,
+      (event) => getDomainEventDefinition(event.event_type).consumers
+    );
+
+    const allStatements = statements.concat(orderStatements, outboxStatements, finalizeStatements);
     let cleanedUpReservation = false;
     const cleanupReservation = async () => {
       if (cleanedUpReservation) return;
@@ -330,7 +379,7 @@ export class PurchaseOrderShortageClosureService {
         throw new BadRequestError('关联订单采购进度已变化，请刷新后重试');
       }
 
-      const finalizeOffset = orderOffset + orderStatements.length;
+      const finalizeOffset = orderOffset + orderStatements.length + outboxStatements.length;
       for (let index = 0; index < finalizeStatements.length; index += 1) {
         if ((batchResults[finalizeOffset + index]?.meta?.changes || 0) !== 1) {
           await cleanupReservation();

@@ -132,6 +132,59 @@ export class WebhookRepository {
     return true;
   }
 
+  /**
+   * 认领一次投递尝试（C-M5）：INSERT OR IGNORE 凭
+   * (webhook_id, delivery_key, attempt_number) 唯一索引原子判赢。
+   * 认领成功的行即该次尝试的日志行，发送完成后经 completeDeliveryAttempt 回填。
+   * @returns {Promise<{logId: string}|null>} null 表示该尝试已被并发 worker 认领
+   */
+  async claimDeliveryAttempt(input) {
+    const logId = this.logIdFactory();
+    const result = await this.db
+      .prepare(
+        `INSERT OR IGNORE INTO webhook_logs (
+          id, webhook_id, event, payload, status_code, response, duration_ms, success,
+          event_id, delivery_key, attempt_number, classification, next_retry_at, created_at
+        ) VALUES (?, ?, ?, ?, NULL, NULL, NULL, 0, ?, ?, ?, 'in_flight', NULL, ?)`
+      )
+      .bind(
+        logId,
+        input.webhookId,
+        input.eventType,
+        input.payload == null ? null : JSON.stringify(input.payload),
+        input.eventId ?? null,
+        input.deliveryKey ?? null,
+        Number(input.attemptNumber) || 1,
+        this.now()
+      )
+      .run();
+
+    if (Number(result?.meta?.changes || 0) !== 1) return null;
+    return { logId };
+  }
+
+  /**
+   * 回填认领行的发送结果
+   */
+  async completeDeliveryAttempt({ logId, statusCode, response, durationMs, classification, nextRetryAt, success }) {
+    await this.db
+      .prepare(
+        `UPDATE webhook_logs
+         SET status_code = ?, response = ?, duration_ms = ?, classification = ?, next_retry_at = ?, success = ?
+         WHERE id = ?`
+      )
+      .bind(
+        statusCode ?? null,
+        response ?? null,
+        durationMs ?? null,
+        classification ?? null,
+        nextRetryAt ?? null,
+        success ? 1 : 0,
+        logId
+      )
+      .run();
+  }
+
   async logAttempt(input) {
     const record = {
       id: this.logIdFactory(),

@@ -96,7 +96,21 @@ describe('sales order create route', () => {
           fileIds: ['file-1', 'file-2'],
         }),
       },
-      { DB: {} },
+      {
+        DB: {
+          prepare: () => ({
+            bind: () => ({
+              all: async () => ({ results: [] }),
+              first: async () => null,
+              run: async () => ({ meta: { changes: 1 } }),
+            }),
+            all: async () => ({ results: [] }),
+            first: async () => null,
+            run: async () => ({ meta: { changes: 1 } }),
+          }),
+          batch: async () => [],
+        },
+      },
       { waitUntil: vi.fn() }
     );
 

@@ -8,6 +8,11 @@ import {
 } from './InventoryProjectionService.js';
 import { ProductProjectionRefreshService } from './ProductProjectionRefreshService.js';
 import { queryOrderLineCandidates, resolveOrderLineId } from './order-line-shared.js';
+import {
+  buildBalanceDeltaUpsertStatement,
+  buildVariantStockDeltaStatement,
+  normalizeInventoryWriteError,
+} from './_shared/inventory-write-statements.js';
 
 const VALID_MUTATION_TYPES = new Set([
   'purchase_received',
@@ -17,6 +22,7 @@ const VALID_MUTATION_TYPES = new Set([
   'order_shipment',
   'order_unshipment',
   'order_return_restock',
+  'order_return_cancelled',
 ]);
 export { appendInventoryLedgerEvent, projectInventoryBalances };
 
@@ -94,30 +100,20 @@ export class InventoryService {
       inventoryEventId,
       timestamp,
       statements: [
-        this.db
-          .prepare(
-            `UPDATE product_variants
-           SET stock_quantity = MAX(0, stock_quantity + ?), updated_at = ?
-           WHERE id = ?`
-          )
-          .bind(mutation.quantityDelta, timestamp, mutation.variantId),
-        this.db
-          .prepare(
-            `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
-           VALUES (?, MAX(0, ?), 0, MAX(0, ?), ?)
-           ON CONFLICT(variant_id) DO UPDATE SET
-             on_hand = MAX(0, inventory_balances.on_hand + ?),
-             available = MAX(0, MAX(0, inventory_balances.on_hand + ?) - inventory_balances.reserved),
-             updated_at = excluded.updated_at`
-          )
-          .bind(
-            mutation.variantId,
-            mutation.quantityDelta,
-            mutation.quantityDelta,
-            timestamp,
-            mutation.quantityDelta,
-            mutation.quantityDelta
-          ),
+        // 负增量带下限守卫（changes()=0 → 断言语句失败 → batch 回滚）；
+        // 不做 MAX(0,…) 钳制——负库存必须失败而不是静默归零
+        buildVariantStockDeltaStatement(this.db, {
+          variantId: mutation.variantId,
+          quantityDelta: mutation.quantityDelta,
+          timestamp,
+        }).statement,
+        // 余额相对增量，越限由 0099 CHECK 约束拒绝；available 恒等重算
+        buildBalanceDeltaUpsertStatement(this.db, {
+          variantId: mutation.variantId,
+          onHandDelta: mutation.quantityDelta,
+          reservedDelta: 0,
+          timestamp,
+        }),
         this.db
           .prepare(
             `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)
@@ -162,7 +158,12 @@ export class InventoryService {
     const mutation = this.validateMutation(payload);
     if (typeof this.db?.prepare === 'function') {
       const { statements } = await this.buildMutationStatements(payload);
-      await this.db.batch(statements);
+      try {
+        await this.db.batch(statements);
+      } catch (error) {
+        // 余额越限（0099 CHECK）→ 409；负的 variant 增量由 WHERE 下限守卫拦截
+        throw normalizeInventoryWriteError(error, '库存不足，操作已回滚');
+      }
       await this.productProjectionRefreshService.refreshByVariantIds([mutation.variantId]);
     } else if (typeof this.variantRepo?.adjustStock === 'function') {
       await this.variantRepo.adjustStock(mutation.variantId, mutation.quantityDelta);
@@ -185,7 +186,11 @@ export class InventoryService {
         const built = await this.buildMutationStatements(mutation);
         statements.push(...built.statements);
       }
-      await executeBatchChunks(this.db, statements);
+      try {
+        await executeBatchChunks(this.db, statements);
+      } catch (error) {
+        throw normalizeInventoryWriteError(error, '库存不足，操作已回滚');
+      }
       await this.productProjectionRefreshService.refreshByVariantIds(
         mutations.map((mutation) => mutation?.variantId)
       );

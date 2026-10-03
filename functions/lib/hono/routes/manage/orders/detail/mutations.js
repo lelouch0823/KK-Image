@@ -9,6 +9,7 @@ import { requireEntity } from '../../../../_shared/route-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from '../error-helpers.js';
 import { DemandService } from '../../../../../../services/DemandService.js';
 import { DomainOutboxPublisher } from '../../../../../../services/DomainOutboxPublisher.js';
+import { maybeReleaseLineReservations } from '../../../../../../services/order-terminal-cleanup.js';
 import {
   syncOrderDemandTransitions,
   syncOrderDemandTransitionsByLines,
@@ -282,6 +283,11 @@ app.patch('/:id', zValidator('json', UpdateAdminOrderSchema), async (c) => {
   }
 
   updatedOrder = updatedOrder || (await orderRepo.findById(id));
+  // 终态清算：void/rejected 时释放行级预留（B-H1，与 DemandService 订单级释放互补）
+  await maybeReleaseLineReservations(env.DB, id, order.status, nextStatus, {
+    actorId: actor.id,
+    actorName: actor.name,
+  });
   scheduleAuditEvent(c, {
     domain: 'orders',
     action: 'order.update',
@@ -373,6 +379,12 @@ app.patch('/:id/status', zValidator('json', UpdateOrderStatusSchema), async (c) 
         variantId: order.variantId,
       });
     }
+
+    // 终态清算：void/rejected 时释放行级预留（B-H1，与 DemandService 订单级释放互补）
+    await maybeReleaseLineReservations(env.DB, id, oldStatus, status, {
+      actorId: actor.id,
+      actorName: actor.name,
+    });
 
     // 记录状态变更到时间轴
     await repo.timelineRepo.addTimelineEntry(id, {

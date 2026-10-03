@@ -319,12 +319,23 @@ export class NotificationRepository {
      * @private
      */
     async _checkColumnExists(columnName) {
+        // P-M6：schema 探测结果提升为模块级缓存——每次请求 new repo 实例，
+        // 实例级缓存等于每请求一次探测查询；schema 在运行期不变
+        if (!NotificationRepository._schemaColumnCache) {
+            NotificationRepository._schemaColumnCache = new Map();
+        }
+        if (NotificationRepository._schemaColumnCache.has(columnName)) {
+            return NotificationRepository._schemaColumnCache.get(columnName);
+        }
         if (this.columnExistsCache.has(columnName)) {
-            return this.columnExistsCache.get(columnName);
+            const cached = this.columnExistsCache.get(columnName);
+            NotificationRepository._schemaColumnCache.set(columnName, cached);
+            return cached;
         }
         try {
             await this.db.prepare(`SELECT ${columnName} FROM notifications LIMIT 1`).first();
             this.columnExistsCache.set(columnName, true);
+            NotificationRepository._schemaColumnCache.set(columnName, true);
             return true;
         }
         catch (error) {
@@ -332,6 +343,7 @@ export class NotificationRepository {
                 console.warn('[NotificationRepository] _checkColumnExists unexpected error:', error?.message);
             }
             this.columnExistsCache.set(columnName, false);
+            NotificationRepository._schemaColumnCache.set(columnName, false);
             return false;
         }
     }

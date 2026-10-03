@@ -93,8 +93,8 @@ describe('DomainOutboxConsumers notifications', () => {
     expect(mocks.invalidateCache).toHaveBeenCalledTimes(1);
     expect(mocks.invalidateCache.mock.calls[0][0]).toEqual(
       expect.arrayContaining([
-        'https://kk.example.com/api/manage/notifications',
-        'https://kk.example.com/api/manage/notifications?limit=20',
+        'api:manage:notifications',
+        'api:manage:notifications',
       ])
     );
   });

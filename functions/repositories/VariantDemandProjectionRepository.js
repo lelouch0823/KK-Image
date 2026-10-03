@@ -86,14 +86,16 @@ export class VariantDemandProjectionRepository {
 
     for (const idChunk of chunkArray(normalizedIds, D1_CHUNK_SIZE)) {
       const placeholders = idChunk.map(() => '?').join(',');
-      await this.db
-        .prepare(`DELETE FROM variant_demand_projection WHERE variant_id IN (${placeholders})`)
-        .bind(...idChunk)
-        .run();
-
-      await this.db
-        .prepare(
-          `
+      // DELETE 与 INSERT 必须在同一个 D1 batch（原子）：分开执行时，
+      // 中途失败会让并发读者看到空投影，且两个并发刷新会交错触发 PK 冲突
+      // （审查 C-M7，与 VariantSnapshotProjectionRefreshService 同范式）
+      await this.db.batch([
+        this.db
+          .prepare(`DELETE FROM variant_demand_projection WHERE variant_id IN (${placeholders})`)
+          .bind(...idChunk),
+        this.db
+          .prepare(
+            `
                 INSERT INTO variant_demand_projection (
                     variant_id,
                     confirmed_qty,
@@ -107,9 +109,9 @@ export class VariantDemandProjectionRepository {
                 )
                 ${buildRefreshSelectSql(`AND ol.variant_id IN (${placeholders})`)}
             `
-        )
-        .bind(...idChunk)
-        .run();
+          )
+          .bind(...idChunk),
+      ]);
     }
   }
 }

@@ -5,6 +5,8 @@
  * @module services/ErpSyncService
  */
 import { ErpAdapterFactory } from './ErpAdapter.js';
+import { OutboxRuntimeStateRepository } from '../repositories/OutboxRuntimeStateRepository.js';
+import { hashSecret } from '../repositories/OAuthRepository.js';
 import { timingSafeCompare } from '../api/utils/crypto.js';
 
 function createWebhookError(message, statusCode = 400) {
@@ -53,23 +55,43 @@ export class ErpSyncService {
     if (!connection) throw new Error('连接不存在');
     if (!connection.enabled) throw new Error('连接已禁用');
 
-    const syncDirection = direction || connection.syncDirection;
-    const results = {};
-
-    for (const entityType of entityTypes) {
-      try {
-        results[entityType] = await this._syncEntity(connection, entityType, syncDirection);
-      } catch (err) {
-        results[entityType] = { success: false, error: err.message };
-      }
+    // C-M3：同步运行租约——两个 cron/管理员并发触发同一连接时第二个直接失败，
+    // 防止同一批实体被推送 ERP 两次、同步状态互相覆盖。租约 5 分钟自动过期自愈。
+    const leaseRepo = new OutboxRuntimeStateRepository(this.db, {
+      scope: `erp_sync:${connectionId}`,
+      leaseMs: 5 * 60 * 1000,
+      minRunIntervalMs: 0,
+    });
+    const lease = await leaseRepo.tryAcquire({ workerId: `erp-sync:${connectionId}` });
+    if (!lease) {
+      throw new Error('该连接的同步已在进行中，请稍后重试');
     }
 
-    const allSuccess = Object.values(results).every((r) => r.success !== false);
-    const anyFailed = Object.values(results).some((r) => r.success === false);
-    const status = allSuccess ? 'success' : anyFailed ? 'failed' : 'partial';
-    await this.erpRepo.updateSyncStatus(connectionId, { status });
+    try {
+      const syncDirection = direction || connection.syncDirection;
+      const results = {};
 
-    return { status, results };
+      for (const entityType of entityTypes) {
+        try {
+          results[entityType] = await this._syncEntity(connection, entityType, syncDirection);
+        } catch (err) {
+          results[entityType] = { success: false, error: err.message };
+        }
+      }
+
+      const allSuccess = Object.values(results).every((r) => r.success !== false);
+      const anyFailed = Object.values(results).some((r) => r.success === false);
+      const status = allSuccess ? 'success' : anyFailed ? 'failed' : 'partial';
+      await this.erpRepo.updateSyncStatus(connectionId, { status });
+
+      return { status, results };
+    } finally {
+      try {
+        await leaseRepo.finishLease({ scope: lease.scope, leaseToken: lease.leaseToken });
+      } catch (releaseError) {
+        console.error('[ErpSync] Failed to finish sync lease:', releaseError);
+      }
+    }
   }
 
   /**
@@ -258,6 +280,23 @@ export class ErpSyncService {
     const { entity_type, entity_id, action, data } = payload;
     if (!entity_type || !entity_id) {
       throw new Error('缺少必要字段: entity_type, entity_id');
+    }
+
+    // C-M3：webhook 事件去重——ERP 重发同一事件时直接幂等应答。
+    // 事件键优先取 payload.event_id，缺失时用请求体哈希（同内容重发=同键）。
+    // 无 DB 句柄（测试/降级装配）时跳过去重。
+    if (typeof this.db?.prepare === 'function') {
+      const eventKey =
+        String(payload.event_id || '').trim() || (await hashSecret(`${connectionId}:${rawBody}`));
+      const dedupeResult = await this.db
+        .prepare(
+          'INSERT OR IGNORE INTO erp_webhook_events (id, connection_id, event_key, created_at) VALUES (?, ?, ?, ?)'
+        )
+        .bind(crypto.randomUUID(), connectionId, eventKey, Date.now())
+        .run();
+      if (Number(dedupeResult?.meta?.changes || 0) !== 1) {
+        return { duplicate: true, event_key: eventKey };
+      }
     }
 
     const logId = await this.erpRepo.createSyncLog({

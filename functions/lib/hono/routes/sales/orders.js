@@ -22,6 +22,8 @@ import {
 import { processOrderUpdate } from '../../../../api/utils/order-utils.js';
 import { OrderTimelineRepository } from '../../../../repositories/OrderTimelineRepository.js';
 import { OrderCreationService } from '../../../../services/OrderCreationService.js';
+import { maybeReleaseLineReservations } from '../../../../services/order-terminal-cleanup.js';
+import { runIdempotentCommand, buildRequestFingerprint } from '../_shared/command-idempotency.js';
 
 const app = new Hono();
 
@@ -110,94 +112,108 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
   const orderRepo = new OrderRepository(env.DB);
   const service = new OrderCreationService(env.DB);
 
-  const orderId = generateId();
-  const orderNo = generateOrderNo();
+  // 建单为资金/库存上游命令：幂等键保护，网络重发不会产生重复订单（审查 C-H4）
+  let createdVariantId = null;
+  return runIdempotentCommand(c, {
+    commandType: 'sales_order_create',
+    scopeKey: `sales_order_create:${salesperson.id}`,
+    requestFingerprint: buildRequestFingerprint({ salespersonId: salesperson.id, data }),
+    mismatchMessage: '同一个幂等键不能提交不同的销售订单请求',
+    inFlightMessage: '当前幂等键对应的销售订单请求仍在处理中',
+    successStatus: 201,
+    execute: async () => {
+      const orderId = generateId();
+      const orderNo = generateOrderNo();
 
-  // 业务逻辑：规范化 + 绑定验证 + 快照构建
-  const { normalizedLines, bindingSnapshot, totalQuantity, effectiveVariantId } =
-    await service.prepareCreateOrder(salesperson, data);
-  const primaryLine = normalizedLines[0] || null;
+      // 业务逻辑：规范化 + 绑定验证 + 快照构建
+      const { normalizedLines, bindingSnapshot, totalQuantity, effectiveVariantId } =
+        await service.prepareCreateOrder(salesperson, data);
+      createdVariantId = effectiveVariantId;
+      const primaryLine = normalizedLines[0] || null;
 
-  // 1. 创建订单（事务）
-  const createdOrder = await orderRepo.create({
-    id: orderId,
-    orderNo,
-    salespersonId: salesperson.id,
-    enforceSalesFileScope: true,
-    data: {
-      name: bindingSnapshot.name,
-      size: bindingSnapshot.size,
-      color: bindingSnapshot.color,
-      material: bindingSnapshot.material,
-      remark: data.remark,
-      deadline: data.deadline,
-      brand: bindingSnapshot.brand,
-      category: bindingSnapshot.category,
-      series: bindingSnapshot.series,
-      sku: bindingSnapshot.sku,
+      // 1. 创建订单（事务）
+      const createdOrder = await orderRepo.create({
+        id: orderId,
+        orderNo,
+        salespersonId: salesperson.id,
+        enforceSalesFileScope: true,
+        data: {
+          name: bindingSnapshot.name,
+          size: bindingSnapshot.size,
+          color: bindingSnapshot.color,
+          material: bindingSnapshot.material,
+          remark: data.remark,
+          deadline: data.deadline,
+          brand: bindingSnapshot.brand,
+          category: bindingSnapshot.category,
+          series: bindingSnapshot.series,
+          sku: bindingSnapshot.sku,
+        },
+        quantity: totalQuantity,
+        mainImageId: data.fileIds[0] || null,
+        fileIds: data.fileIds,
+        productId:
+          normalizedLines.length === 1
+            ? primaryLine?.productId || data.productId || null
+            : data.productId || null,
+        variantId: normalizedLines.length === 1 ? effectiveVariantId : null,
+        lines: normalizedLines,
+        timeline: {
+          actionType: 'created',
+          actorType: 'salesperson',
+          actorId: salesperson.id,
+          actorName: salesperson.name,
+        },
+      });
+      const persistedOrderId = createdOrder?.id || orderId;
+      const persistedOrderNo = createdOrder?.orderNo || orderNo;
+
+      // 2. 需求同步
+      await service.syncDemand(
+        persistedOrderId,
+        'pending',
+        totalQuantity,
+        normalizedLines.length === 1 ? effectiveVariantId : null
+      );
+
+      // 3. 文件归档
+      await service.archiveFiles(env, data.fileIds, persistedOrderNo);
+
+      return { success: true, data: { id: persistedOrderId, orderNo: persistedOrderNo } };
     },
-    quantity: totalQuantity,
-    mainImageId: data.fileIds[0] || null,
-    fileIds: data.fileIds,
-    productId:
-      normalizedLines.length === 1
-        ? primaryLine?.productId || data.productId || null
-        : data.productId || null,
-    variantId: normalizedLines.length === 1 ? effectiveVariantId : null,
-    lines: normalizedLines,
-    timeline: {
-      actionType: 'created',
-      actorType: 'salesperson',
-      actorId: salesperson.id,
-      actorName: salesperson.name,
+    onSuccess: async (responseBody) => {
+      const { id: persistedOrderId, orderNo: persistedOrderNo } = responseBody.data;
+      await service.publishEvents([
+        {
+          event_type: 'order_created_by_sales',
+          aggregate_type: 'order',
+          aggregate_id: persistedOrderId,
+          payload: {
+            order_id: persistedOrderId,
+            order_no: persistedOrderNo,
+            salesperson_id: salesperson.id,
+            actor_name: salesperson.name,
+          },
+        },
+      ]);
+      scheduleOutboxProcessing(c, `sales-order-create:${persistedOrderId}`);
+      scheduleAuditEvent(c, {
+        domain: 'sales-orders',
+        action: 'sales.order.create',
+        result: 'success',
+        severity: 'high',
+        targetType: 'order',
+        targetId: persistedOrderId,
+        target_label: persistedOrderNo,
+        summary: `${salesperson.name} created order ${persistedOrderNo}`,
+        metadata: {
+          salespersonId: salesperson.id,
+          productId: data.productId || null,
+          variantId: createdVariantId,
+        },
+      });
     },
   });
-  const persistedOrderId = createdOrder?.id || orderId;
-  const persistedOrderNo = createdOrder?.orderNo || orderNo;
-
-  // 2. 需求同步
-  await service.syncDemand(
-    persistedOrderId,
-    'pending',
-    totalQuantity,
-    normalizedLines.length === 1 ? effectiveVariantId : null
-  );
-
-  // 3. 文件归档
-  await service.archiveFiles(env, data.fileIds, persistedOrderNo);
-
-  // 4. 发布领域事件
-  await service.publishEvents([
-    {
-      event_type: 'order_created_by_sales',
-      aggregate_type: 'order',
-      aggregate_id: persistedOrderId,
-      payload: {
-        order_id: persistedOrderId,
-        order_no: persistedOrderNo,
-        salesperson_id: salesperson.id,
-        actor_name: salesperson.name,
-      },
-    },
-  ]);
-  scheduleOutboxProcessing(c, `sales-order-create:${persistedOrderId}`);
-  scheduleAuditEvent(c, {
-    domain: 'sales-orders',
-    action: 'sales.order.create',
-    result: 'success',
-    severity: 'high',
-    targetType: 'order',
-    targetId: persistedOrderId,
-    target_label: persistedOrderNo,
-    summary: `${salesperson.name} created order ${persistedOrderNo}`,
-    metadata: {
-      salespersonId: salesperson.id,
-      productId: data.productId || null,
-      variantId: effectiveVariantId,
-    },
-  });
-
-  return c.json({ success: true, data: { id: persistedOrderId, orderNo: persistedOrderNo } }, 201);
 });
 
 /**
@@ -359,6 +375,12 @@ app.patch('/:id', zValidator('json', UpdateSalesOrderSchema), async (c) => {
     nextVariantId,
   });
 
+  // 终态清算：void/rejected 时释放行级预留（B-H1，与订单级释放互补）
+  await maybeReleaseLineReservations(env.DB, orderId, order.status, nextStatus, {
+    actorId: salesperson.id,
+    actorName: salesperson.name,
+  });
+
   if (['rejected', 'void'].includes(order.status)) {
     await orderRepo.updateStatus(orderId, 'pending', 'sales');
   }
@@ -401,6 +423,11 @@ app.delete('/:id', async (c) => {
 
   const service = new OrderCreationService(env.DB);
   await service.syncDemand(orderId, 'void', order.quantity, order.variantId);
+  // 终态清算：释放行级预留（B-H1，与订单级预留释放互补）
+  await maybeReleaseLineReservations(env.DB, orderId, order.status, 'void', {
+    actorId: salesperson.id,
+    actorName: salesperson.name,
+  });
 
   // SOTA: 记录时间轴
   const tplRepo = new OrderTimelineRepository(env.DB);

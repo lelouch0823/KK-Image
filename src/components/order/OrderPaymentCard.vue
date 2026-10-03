@@ -3,13 +3,24 @@
     <!-- 标题栏 -->
     <div class="mb-4 flex items-center justify-between">
       <h3 class="text-primary text-sm font-medium">{{ t('order.payment.title') }}</h3>
-      <AppButton v-if="!showAddForm" variant="link" size="sm" @click="showAddForm = true">
-        {{ t('order.payment.addPayment') }}
-      </AppButton>
+      <div class="flex items-center gap-3">
+        <AppButton
+          v-if="!showAddForm && summary.paid > summary.refunded"
+          variant="link"
+          size="sm"
+          class="text-danger hover:text-danger/80"
+          @click="openForm('refund')"
+        >
+          {{ t('order.payment.addRefund') }}
+        </AppButton>
+        <AppButton v-if="!showAddForm" variant="link" size="sm" @click="openForm('payment')">
+          {{ t('order.payment.addPayment') }}
+        </AppButton>
+      </div>
     </div>
 
     <!-- 付款汇总 -->
-    <div class="mb-4 grid grid-cols-3 gap-3">
+    <div class="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
       <div class="rounded-lg bg-(--bg-secondary) p-3 text-center">
         <div class="text-xs text-(--text-secondary)">{{ t('order.payment.orderAmount') }}</div>
         <div class="text-primary mt-1 text-lg font-semibold">{{ summary.orderAmount }}</div>
@@ -17,6 +28,12 @@
       <div class="rounded-lg bg-(--bg-secondary) p-3 text-center">
         <div class="text-xs text-(--text-secondary)">{{ t('order.payment.totalPaid') }}</div>
         <div class="text-success mt-1 text-lg font-semibold">{{ summary.totalPaid }}</div>
+      </div>
+      <div class="rounded-lg bg-(--bg-secondary) p-3 text-center">
+        <div class="text-xs text-(--text-secondary)">{{ t('order.payment.refundable') }}</div>
+        <div class="text-primary mt-1 text-lg font-semibold">
+          {{ Math.max(summary.paid - summary.refunded, 0) }}
+        </div>
       </div>
       <div class="rounded-lg bg-(--bg-secondary) p-3 text-center">
         <div class="text-xs text-(--text-secondary)">{{ t('order.payment.outstanding') }}</div>
@@ -37,8 +54,11 @@
       <p class="text-sm text-(--text-main)">{{ t('order.payment.outstandingWarning') }}</p>
     </div>
 
-    <!-- 添加付款表单 -->
+    <!-- 添加付款/退款表单 -->
     <div v-if="showAddForm" class="mb-4 rounded-2xl border border-(--border-color) p-4">
+      <div class="mb-3 text-sm font-medium" :class="formMode === 'refund' ? 'text-danger' : 'text-primary'">
+        {{ formMode === 'refund' ? t('order.payment.refundTitle') : t('order.payment.addPayment') }}
+      </div>
       <div class="space-y-3">
         <!-- 金额 -->
         <div>
@@ -122,7 +142,18 @@
       >
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
-            <span class="text-primary font-medium">{{ payment.amount }}</span>
+            <span
+              class="font-medium"
+              :class="payment.type === 'refund' || Number(payment.amount) < 0 ? 'text-danger' : 'text-primary'"
+            >
+              {{ payment.amount }}
+            </span>
+            <span
+              v-if="payment.type === 'refund' || Number(payment.amount) < 0"
+              class="rounded bg-(--color-danger-bg, rgba(220,38,38,0.1)) px-2 py-0.5 text-xs text-danger"
+            >
+              {{ t('order.payment.refundBadge') }}
+            </span>
             <span class="rounded bg-(--bg-secondary) px-2 py-0.5 text-xs text-(--text-secondary)">
               {{ getMethodLabel(payment.method) }}
             </span>
@@ -191,11 +222,11 @@ const emit = defineEmits(['payment-changed']);
 
 const { t } = useI18n();
 
-const { payments, summary, loading, adding, loadPayments, addPayment, deletePayment } = usePayments(
-  computed(() => props.orderId)
-);
+const { payments, summary, loading, adding, loadPayments, addPayment, refundPayment, deletePayment } =
+  usePayments(computed(() => props.orderId));
 
 const showAddForm = ref(false);
+const formMode = ref<'payment' | 'refund'>('payment');
 const { confirmData, askConfirm, handleConfirm } = useConfirmDialog();
 const form = ref({
   amount: 0,
@@ -203,6 +234,11 @@ const form = ref({
   referenceNo: '',
   notes: '',
 });
+
+function openForm(mode) {
+  formMode.value = mode;
+  showAddForm.value = true;
+}
 
 // 付款方式选项
 const paymentMethods = computed(() => [
@@ -215,7 +251,10 @@ const paymentMethods = computed(() => [
 
 // 表单验证
 const isValid = computed(() => {
-  return form.value.amount > 0 && form.value.amount <= summary.value.outstanding;
+  if (form.value.amount <= 0) return false;
+  return formMode.value === 'refund'
+    ? form.value.amount <= Math.max(summary.value.paid - summary.value.refunded, 0)
+    : form.value.amount <= summary.value.outstanding;
 });
 
 // 初始化数据
@@ -256,6 +295,7 @@ function getMethodLabel(method) {
  */
 function cancelAdd() {
   showAddForm.value = false;
+  formMode.value = 'payment';
   form.value = {
     amount: 0,
     method: 'cash',
@@ -270,12 +310,14 @@ function cancelAdd() {
 async function handleSubmit() {
   if (!isValid.value) return;
 
-  const success = await addPayment({
+  const payload = {
     amount: form.value.amount,
     method: form.value.method,
     referenceNo: form.value.referenceNo || undefined,
     notes: form.value.notes || undefined,
-  });
+  };
+  const success =
+    formMode.value === 'refund' ? await refundPayment(payload) : await addPayment(payload);
 
   if (success) {
     cancelAdd();

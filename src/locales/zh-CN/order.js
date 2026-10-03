@@ -328,6 +328,12 @@ export default {
   payment: {
     title: '付款记录',
     addPayment: '添加付款',
+    addRefund: '退款',
+    refundTitle: '添加退款',
+    refundSuccess: '退款记录已添加',
+    refundConfirm: '确定要删除这条退款记录吗？',
+    refundable: '可退金额',
+    refundBadge: '退款',
     amount: '金额',
     amountPlaceholder: '请输入付款金额',
     method: '付款方式',

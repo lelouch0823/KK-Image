@@ -29,6 +29,8 @@ export interface Payment {
 export interface PaymentSummary {
   orderAmount: number;
   totalPaid: number;
+  paid: number;
+  refunded: number;
   outstanding: number;
 }
 
@@ -47,6 +49,8 @@ export function usePayments(orderId: Ref<string | null>) {
   const summary = ref<PaymentSummary>({
     orderAmount: 0,
     totalPaid: 0,
+    paid: 0,
+    refunded: 0,
     outstanding: 0,
   });
   const loading = ref(false);
@@ -111,6 +115,42 @@ export function usePayments(orderId: Ref<string | null>) {
   }
 
   /**
+   * 添加退款记录（负额入账，服务端按可退净额校验）
+   */
+  async function refundPayment(params: {
+    amount: number;
+    method: string;
+    referenceNo?: string;
+    notes?: string;
+  }): Promise<boolean> {
+    if (!orderId.value) return false;
+
+    adding.value = true;
+    try {
+      const res = await authFetch(API.MANAGE_ORDER_REFUNDS(orderId.value), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        addToast({ message: t('order.payment.refundSuccess'), type: 'success' });
+        await loadPayments();
+        return true;
+      } else {
+        addToast({ message: data.error || t('common.operationFailed'), type: 'error' });
+        return false;
+      }
+    } catch {
+      addToast({ message: t('common.networkError'), type: 'error' });
+      return false;
+    } finally {
+      adding.value = false;
+    }
+  }
+
+  /**
    * 删除付款记录
    */
   async function deletePayment(paymentId: string): Promise<boolean> {
@@ -144,6 +184,7 @@ export function usePayments(orderId: Ref<string | null>) {
     adding,
     loadPayments,
     addPayment,
+    refundPayment,
     deletePayment,
   };
 }

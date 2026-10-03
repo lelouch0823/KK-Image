@@ -5,6 +5,7 @@
  */
 
 import { sha256Hex } from '../../../_shared/utils.js';
+import { bumpCacheGeneration, getCacheGeneration, scopeFromUrl, scopesFromUrls } from '../_shared/cache-generation.js';
 
 function normalizeCacheUrl(url) {
   const normalized = new URL(url);
@@ -31,11 +32,26 @@ function normalizeAcceptHeader(accept) {
   return normalized;
 }
 
-function createCacheRequest(url, accept = 'application/json') {
+function createCacheRequest(url, accept = 'application/json', { generation = null, actorDigest = null } = {}) {
+  const headers = { Accept: normalizeAcceptHeader(accept) };
+  // P-H1：代际号入键——失效 = 递增代际，无需逐 URL delete
+  if (generation != null) headers['X-Cache-Gen'] = generation;
+  // S-L6：身份摘要入键——Cache API 为 colo 级共享，键不含身份时
+  // 按用户过滤的 GET 一旦上缓存即成跨用户泄露
+  if (actorDigest) headers['X-Cache-Actor'] = actorDigest;
   return new Request(normalizeCacheUrl(url), {
     method: 'GET',
-    headers: { Accept: normalizeAcceptHeader(accept) },
+    headers,
   });
+}
+
+/** 认证主体摘要（无主体时返回 null，键退化为全局共享） */
+async function getActorDigest(c) {
+  const user = typeof c?.get === 'function' ? c.get('user') : null;
+  const identity = user?.id || user?.sub || null;
+  if (!identity) return null;
+  const hex = await sha256Hex(String(identity));
+  return hex.substring(0, 16);
 }
 
 export function withCache(ttlSeconds = 60, options = {}) {
@@ -48,7 +64,15 @@ export function withCache(ttlSeconds = 60, options = {}) {
     }
 
     const cache = caches.default;
-    const cacheKey = createCacheRequest(c.req.url, c.req.header('Accept'));
+    const scope = scopeFromUrl(c.req.url);
+    const [generation, actorDigest] = await Promise.all([
+      getCacheGeneration(c.env, scope),
+      getActorDigest(c),
+    ]);
+    const cacheKey = createCacheRequest(c.req.url, c.req.header('Accept'), {
+      generation,
+      actorDigest,
+    });
 
     // 尝试从缓存获取
     const cached = await cache.match(cacheKey);
@@ -95,16 +119,14 @@ export function withCache(ttlSeconds = 60, options = {}) {
  * 缓存失效工具
  * @param {string|string[]} urls - 要失效的 URL 或 URL 数组
  */
-export async function invalidateCache(urls) {
-  const cache = caches.default;
+export async function invalidateCache(urls, env = null) {
   const urlArray = Array.isArray(urls) ? urls : [urls];
+  if (urlArray.length === 0) return;
 
-  await Promise.all(
-    urlArray.flatMap((url) => [
-      cache.delete(createCacheRequest(url)),
-      cache.delete(createCacheRequest(url, '*/*')),
-    ])
-  );
+  // P-H1：失效改为按 scope 递增代际（单次 KV 写/ scope）。
+  // 旧实现按 URL 双写 cache.delete，订单事件可产生数百个 subrequest
+  // 并在失败重试时正反馈放大；代际失效与 URL 数量解耦。
+  await bumpCacheGeneration(env, scopesFromUrls(urlArray));
 }
 
 /**

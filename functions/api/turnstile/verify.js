@@ -30,18 +30,38 @@ function getClientIp(request) {
   );
 }
 
-function checkRateLimit(request, env = {}) {
+/**
+ * 限流（S-L4）：配置了 KV 时用 KV 计数（跨 isolate 共享预算），
+ * 未配置 KV 时回退进程内 Map（单 isolate 有效）。
+ * KV 计数为近似限流（并发计数可能少记），对验证端点足够。
+ */
+async function checkRateLimit(request, env = {}) {
   const maxAttempts = Math.max(1, Number(env.TURNSTILE_RATE_LIMIT_MAX) || DEFAULT_RATE_LIMIT_MAX);
   const windowMs = Math.max(
     1000,
     Number(env.TURNSTILE_RATE_LIMIT_WINDOW_MS) || DEFAULT_RATE_LIMIT_WINDOW_MS
   );
   const now = Date.now();
-  const key = getClientIp(request);
-  const bucket = rateLimitBuckets.get(key);
+  const ip = getClientIp(request);
 
+  if (env?.KV) {
+    const windowStart = Math.floor(now / windowMs) * windowMs;
+    const kvKey = `turnstile:rl:${ip}:${windowStart}`;
+    try {
+      const current = Number((await env.KV.get(kvKey)) || 0);
+      if (current >= maxAttempts) return false;
+      await env.KV.put(kvKey, String(current + 1), {
+        expirationTtl: Math.ceil(windowMs / 1000) + 1,
+      });
+      return true;
+    } catch (err) {
+      console.error('Turnstile KV rate limit failed, falling back to memory:', err);
+    }
+  }
+
+  const bucket = rateLimitBuckets.get(ip);
   if (!bucket || bucket.resetAt <= now) {
-    rateLimitBuckets.set(key, { count: 1, resetAt: now + windowMs });
+    rateLimitBuckets.set(ip, { count: 1, resetAt: now + windowMs });
     return true;
   }
 
@@ -62,7 +82,7 @@ function createTimeoutSignal(timeoutMs) {
 export async function onRequestPost(context) {
   const { request, env } = context;
 
-  if (!checkRateLimit(request, env)) {
+  if (!(await checkRateLimit(request, env))) {
     return error('Too many verification attempts', 429);
   }
 

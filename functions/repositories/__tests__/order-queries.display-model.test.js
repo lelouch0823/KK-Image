@@ -532,7 +532,10 @@ describe('order queries display model compatibility', () => {
 
     await listForAdmin(db, { page: 1, limit: 20 });
 
-    expect(db.prepare.mock.calls[0][0]).toContain('order_summary_projection');
+    // P-H2 配套优化：无投影筛选时 COUNT 连 1:1 投影 join 都不需要
+    expect(db.prepare.mock.calls[0][0]).toBe(
+      'SELECT COUNT(*) as total FROM orders o WHERE 1=1 AND o.archived_at IS NULL'
+    );
     expect(db.prepare.mock.calls[0][0]).not.toContain('order_line_agg');
     expect(db.prepare.mock.calls[0][0]).not.toContain('order_line_snapshot');
   });

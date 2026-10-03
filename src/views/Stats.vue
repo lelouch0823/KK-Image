@@ -286,7 +286,12 @@ const loadStats = async () => {
 
 onMounted(() => {
   loadStats();
-  const timer = setInterval(loadStats, 300000);
+  // P-L3：后台标签页暂停轮询，避免不可见时持续打重统计接口
+  const timer = setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      loadStats();
+    }
+  }, 300000);
   onUnmounted(() => clearInterval(timer));
 });
 

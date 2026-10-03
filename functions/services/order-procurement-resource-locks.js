@@ -15,6 +15,12 @@ const RESOURCE_LOCK_DEFINITIONS = {
     commandType: 'purchase_receipt_reversal_lock',
     conflictMessage: '收货记录冲销进度已变化，请刷新后重试',
   },
+  // C-M2：从预订单创建采购单时锁定预订单，防止并发 createFromOrders
+  // 对同一预订单双重建单（check-then-act 的绑定校验挡不住并发窗口）
+  pre_order: {
+    commandType: 'purchase_pre_order_lock',
+    conflictMessage: '该预订单正在被其他采购操作处理，请刷新后重试',
+  },
 };
 
 function normalizeResourceIds(resourceIds = []) {

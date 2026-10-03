@@ -67,47 +67,45 @@ class WorkflowDb {
 
         if (
           sql.includes('INSERT INTO inventory_balances') &&
-          sql.includes('on_hand = MAX(0, inventory_balances.on_hand + ?)')
+          sql.includes('on_hand = inventory_balances.on_hand + ?')
         ) {
-          const [variantId, insertOnHand, _insertAvailable, _updatedAt, delta] = stmt.params;
-          const current = db.state.balances.get(variantId) || {
-            on_hand: 0,
-            reserved: 0,
-            available: 0,
-          };
-          const nextOnHand = Math.max(0, current.on_hand + Number(delta || 0));
-          const next = {
-            on_hand: current.on_hand === 0 ? Number(insertOnHand || 0) : nextOnHand,
-            reserved: current.reserved,
-            available: Math.max(
-              (current.on_hand === 0 ? Number(insertOnHand || 0) : nextOnHand) - current.reserved,
-              0
-            ),
-          };
+          // 模拟真实 UPSERT：无行时取 VALUES 基线，有行时应用相对增量
+          // （迁移 0099 后语句形态，语义与共享构建器一致）
+          const [variantId, insertOnHand, insertReserved, _insertAvailable] = stmt.params;
+          const [onHandDelta, reservedDelta] = stmt.params.slice(5, 7);
+          const current = db.state.balances.get(variantId) || null;
+          const next = current
+            ? {
+                on_hand: current.on_hand + Number(onHandDelta || 0),
+                reserved: current.reserved + Number(reservedDelta || 0),
+              }
+            : {
+                on_hand: Number(insertOnHand || 0),
+                reserved: Number(insertReserved || 0),
+              };
+          next.available = Math.max(next.on_hand - next.reserved, 0);
           db.state.balances.set(variantId, next);
           return { meta: { changes: 1 } };
         }
 
         if (
           sql.includes('INSERT INTO inventory_balances') &&
-          sql.includes('reserved = MAX(0, inventory_balances.reserved + ?)')
+          sql.includes('reserved = inventory_balances.reserved + ?')
         ) {
-          const [variantId, insertReserved, _updatedAt, delta] = stmt.params;
-          const current = db.state.balances.get(variantId) || {
-            on_hand: 0,
-            reserved: 0,
-            available: 0,
-          };
-          const nextReserved = Math.max(0, current.reserved + Number(delta || 0));
-          const next = {
-            on_hand: current.on_hand,
-            reserved: current.reserved === 0 ? Number(insertReserved || 0) : nextReserved,
-            available: Math.max(
-              current.on_hand -
-                (current.reserved === 0 ? Number(insertReserved || 0) : nextReserved),
-              0
-            ),
-          };
+          // 订单级预留 UPSERT（共享构建器形态）：相对增量 + available 钳制重算
+          const [variantId, insertOnHand, insertReserved, _insertAvailable] = stmt.params;
+          const [onHandDelta, reservedDelta] = stmt.params.slice(5, 7);
+          const current = db.state.balances.get(variantId) || null;
+          const next = current
+            ? {
+                on_hand: current.on_hand + Number(onHandDelta || 0),
+                reserved: current.reserved + Number(reservedDelta || 0),
+              }
+            : {
+                on_hand: Number(insertOnHand || 0),
+                reserved: Number(insertReserved || 0),
+              };
+          next.available = Math.max(next.on_hand - next.reserved, 0);
           db.state.balances.set(variantId, next);
           return { meta: { changes: 1 } };
         }

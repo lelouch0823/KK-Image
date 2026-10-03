@@ -1,6 +1,7 @@
 import { BadRequestError, ConflictError } from '../../lib/hono/errors.js';
 import { toNonNegativeInt } from '../../api/utils/number.js';
 import { buildOrderLineProjectionStatement } from '../order-line-shared.js';
+import { normalizeInventoryWriteError } from '../_shared/inventory-write-statements.js';
 
 export function getRemainingLineQuantity(line) {
   return Math.max(
@@ -87,6 +88,10 @@ export async function runGuardedBatch(db, statements, conflictMessage) {
     if (isPreviousWriteAssertionError(error)) {
       throw new ConflictError(conflictMessage);
     }
-    throw error;
+    // 库存余额越限（0099 CHECK 约束）→ 409，防止把约束错误当 500 暴露
+    throw normalizeInventoryWriteError(
+      error,
+      '库存不足或预留越限，操作已回滚'
+    );
   }
 }

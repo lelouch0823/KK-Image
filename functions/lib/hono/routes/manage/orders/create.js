@@ -30,6 +30,7 @@ import {
   syncOrderDemandTransitions,
   syncOrderDemandTransitionsByLines,
 } from '../../../../../api/utils/order-demand-sync.js';
+import { maybeReleaseLineReservations } from '../../../../../services/order-terminal-cleanup.js';
 
 const app = new Hono();
 const ORDER_CREATE_COMMAND_TYPE = 'order_create';
@@ -321,6 +322,11 @@ app.post('/batch', zValidator('json', BatchCreateOrderSchema), async (c) => {
             nextVariantId: detail.variantId,
           });
         }
+
+        // 终态清算：void/rejected 时释放行级预留（B-H1，与订单级释放互补）
+        await maybeReleaseLineReservations(env.DB, order.id, order.status, normalizedStatus, {
+          actorName,
+        });
       }
     }
 

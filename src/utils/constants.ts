@@ -115,6 +115,7 @@ export const API = {
 
   // 订单付款记录 API
   MANAGE_ORDER_PAYMENTS: (id: string | number) => `/api/manage/orders/${id}/payments`,
+  MANAGE_ORDER_REFUNDS: (id: string | number) => `/api/manage/orders/${id}/refunds`,
   MANAGE_ORDER_PAYMENT_DELETE: (id: string | number, paymentId: string) => `/api/manage/orders/${id}/payments/${paymentId}`,
 
   // 应收账款 API

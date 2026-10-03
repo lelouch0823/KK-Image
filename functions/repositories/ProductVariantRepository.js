@@ -78,8 +78,8 @@ export class ProductVariantRepository {
                      VALUES (?, ?, 0, ?, ?)
                      ON CONFLICT(variant_id) DO UPDATE SET
                         on_hand = excluded.on_hand,
-                        available = excluded.available,
-                        updated_at = excluded.updated_at`).bind(id, Number(v.stock_quantity) || 0, Number(v.stock_quantity) || 0, timestamp));
+                        available = excluded.on_hand - inventory_balances.reserved,
+                        updated_at = excluded.updated_at`).bind(id, Math.max(Number(v.stock_quantity) || 0, 0), Math.max(Number(v.stock_quantity) || 0, 0), timestamp));
             const stockQuantity = Number(v.stock_quantity) || 0;
             // 应用层计算 variant_code（与数据库 trigger trg_variants_generate_variant_code 一致）
             const variant_code = 'V' + id.replace(/-/g, '').toUpperCase().slice(0, 12);

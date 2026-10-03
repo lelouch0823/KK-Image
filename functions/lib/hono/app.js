@@ -80,8 +80,10 @@ app.use(
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean);
-      // 未配置白名单：放行所有来源（无凭据的 CORS 场景）
-      if (allowed.length === 0) return '*';
+      // S-M3：未配置白名单时默认不放行跨域（同源请求本就不需要 CORS 头）。
+      // 仅 development 环境放行所有来源，生产必须显式配置 CORS_ORIGINS
+      const isDev = String(c.env?.ENVIRONMENT || '').toLowerCase() !== 'production';
+      if (allowed.length === 0) return isDev ? '*' : null;
       // 无 Origin 头：非浏览器/同源请求，ACO 头无实际意义
       if (!origin) return '*';
       // 未知来源：不返回 Access-Control-Allow-Origin（Hono 对 falsy 返回值跳过该头）

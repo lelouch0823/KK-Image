@@ -5,7 +5,7 @@
  * 客户端打包下载多个文件为 ZIP
  */
 import { ref, type Ref } from 'vue';
-import JSZip from 'jszip';
+import type { JSZipMetadata } from 'jszip';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 
@@ -33,6 +33,8 @@ export function useBatchDownload() {
     downloadProgress.value = 0;
 
     try {
+      // P-L2：按需动态加载 jszip（97KB），访客打开分享页不再强制下载
+      const { default: JSZip } = await import('jszip');
       const zip = new JSZip();
       let completed = 0;
       let successfulDownloads = 0;
@@ -63,7 +65,7 @@ export function useBatchDownload() {
       // 生成 ZIP
       const content = await zip.generateAsync(
         { type: 'blob' },
-        (metadata: JSZip.JSZipMetadata) => {
+        (metadata: JSZipMetadata) => {
           downloadProgress.value = 50 + Math.floor(metadata.percent / 2);
         }
       );

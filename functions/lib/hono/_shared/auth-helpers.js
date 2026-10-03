@@ -4,6 +4,8 @@
  * @module lib/hono/_shared/auth-helpers
  */
 
+import { assertProductionSecret, isProductionEnv } from '../../../api/utils/secret-guard.js';
+
 import {
   generateJWT,
   MSG,
@@ -209,6 +211,14 @@ export async function generateSalesToken(c, salesperson) {
  * @returns {Promise<Object|null>} 用户对象或 null
  */
 export async function authenticateAdminUser(env, username, password) {
+  // S-H1：生产环境拒绝默认/弱管理员口令（与 wrangler.toml 提交值比对）
+  assertProductionSecret(env, 'BASIC_PASS', env.BASIC_PASS, { minLength: 12 });
+  if (isProductionEnv(env) && !env.PASSWORD_PEPPER && env.JWT_SECRET) {
+    // 密码 pepper 回退到 JWT_SECRET 时给出显式告警（不阻断——阻断会使
+    // 已按旧口径存储的口令全部失效，应配置 PASSWORD_PEPPER 后平滑迁移）
+    console.error('[Security] PASSWORD_PEPPER 未配置，口令哈希正在回退使用 JWT_SECRET 作为 pepper');
+  }
+
   // 1. 检查 Root Admin（常量时间比较，防止时序侧信道探测超级用户口令）
   if (
     env.BASIC_USER &&

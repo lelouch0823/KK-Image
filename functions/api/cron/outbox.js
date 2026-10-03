@@ -10,7 +10,9 @@ import { OutboxRuntimeStateRepository } from '../../repositories/OutboxRuntimeSt
 
 // emailNotify 消费者已在 DomainEventCatalog 中为订单类事件注册：
 // 邮件未配置（EMAIL_ENABLED 关闭）时 EmailService 会优雅降级为 no-op
-const ACTIVE_CONSUMERS = ['audit', 'cache', 'notification', 'webhook', 'emailNotify'];
+// B-L3：从消费者注册表派生白名单，消除"注册表与 cron 白名单"双源漂移——
+// 新增消费者（如 channelNotify）注册即可被执行，无需同步维护本清单
+const ACTIVE_CONSUMERS = Object.keys(DOMAIN_OUTBOX_CONSUMERS);
 const DEFAULT_JOB_CONCURRENCY = 4;
 const DEFAULT_MAX_ROUNDS = 4;
 const DEFAULT_CLAIM_BATCH_SIZE = 50;
@@ -22,6 +24,9 @@ const REQUEST_CLAIM_BATCH_SIZE = 10;
 // 已发布任务与陈旧失败任务定期清理，防止 outbox_consumer_jobs / domain_outbox
 // 随写操作无限增长（每个事件产生 1 + N 消费者行）。AI 请求遥测同样按期清理。
 const OUTBOX_RETENTION_DAYS = 7;
+// B-L4：耗尽重试的死信任务保留 30 天——保留期从"7 天内送达"的投递保证
+// 退化为"7 天"的窗口太短，外部端点恢复后无法重放
+const OUTBOX_DEAD_LETTER_RETENTION_DAYS = 30;
 const AI_TRACE_RETENTION_DAYS = 30;
 // 请求路径触发的轮询按概率执行清理，避免每次写操作都付出 DELETE 代价
 const REQUEST_PATH_CLEANUP_PROBABILITY = 0.02;
@@ -29,16 +34,17 @@ const REQUEST_PATH_CLEANUP_PROBABILITY = 0.02;
 async function runOutboxRetentionCleanup(db, nowTs) {
   const outboxCutoff = nowTs - OUTBOX_RETENTION_DAYS * 24 * 60 * 60 * 1000;
   const traceCutoff = nowTs - AI_TRACE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  const deadLetterCutoff = nowTs - OUTBOX_DEAD_LETTER_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
   // 1) 已发布任务：保留 7 天后删除
-  // 2) 已达重试上限的失败任务：同样按期清理（保留策略见 DomainOutboxDispatchService）
+  // 2) 已达重试上限的死信任务：保留 30 天（B-L4），期间支持操作员重放
   const jobsDeleted = await db
     .prepare(
       `DELETE FROM outbox_consumer_jobs
        WHERE (status = 'published' AND processed_at IS NOT NULL AND processed_at < ?)
           OR (status = 'failed' AND attempt_count >= ${OUTBOX_MAX_ATTEMPTS} AND updated_at < ?)`
     )
-    .bind(outboxCutoff, outboxCutoff)
+    .bind(outboxCutoff, deadLetterCutoff)
     .run();
 
   // 3) 无剩余消费者任务的事件本体（jobs 表对 event 有 ON DELETE CASCADE，反之不会）

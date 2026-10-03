@@ -96,8 +96,8 @@ export class SystemStatsRepository {
    */
   async getFileStats() {
     const [totalResult, sizeResult, typeResult] = await Promise.all([
-      this.db.prepare('SELECT COUNT(*) as count FROM files').first(),
-      this.db.prepare('SELECT COALESCE(SUM(size), 0) as totalSize FROM files').first(),
+      this.db.prepare('SELECT COUNT(*) as count FROM files WHERE (is_deleted = 0 OR is_deleted IS NULL)').first(),
+      this.db.prepare('SELECT COALESCE(SUM(size), 0) as totalSize FROM files WHERE (is_deleted = 0 OR is_deleted IS NULL)').first(),
       this.db
         .prepare(
           `SELECT 
@@ -110,6 +110,7 @@ export class SystemStatsRepository {
              END as type,
              COUNT(*) as count
            FROM files
+           WHERE (is_deleted = 0 OR is_deleted IS NULL)
            GROUP BY type`
         )
         .all(),

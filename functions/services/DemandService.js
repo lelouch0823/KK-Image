@@ -2,6 +2,7 @@ import { generateId } from '../api/utils/id.js';
 import { BadRequestError } from '../lib/hono/errors.js';
 import { VariantDemandProjectionRepository } from '../repositories/VariantDemandProjectionRepository.js';
 import { ProductProjectionRefreshService } from './ProductProjectionRefreshService.js';
+import { buildBalanceDeltaUpsertStatement, normalizeInventoryWriteError } from './_shared/inventory-write-statements.js';
 import { queryOrderLineCandidates, resolveOrderLineId } from './order-line-shared.js';
 
 const DEMAND_ACTIVE_STATUSES = new Set(['confirmed', 'production', 'shipping', 'arrived']);
@@ -77,23 +78,16 @@ export class DemandService {
       });
       const eventType = reservationDelta > 0 ? 'reservation_hold' : 'reservation_release';
 
-      await this.db.batch([
-        this.db
-          .prepare(
-            `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
-           VALUES (?, 0, ?, 0, ?)
-           ON CONFLICT(variant_id) DO UPDATE SET
-             reserved = MAX(0, inventory_balances.reserved + ?),
-             available = MAX(0, inventory_balances.on_hand - MAX(0, inventory_balances.reserved + ?)),
-             updated_at = excluded.updated_at`
-          )
-          .bind(
-            payload.variantId,
-            Math.max(reservationDelta, 0),
-            timestamp,
-            reservationDelta,
-            reservationDelta
-          ),
+      try {
+        await this.db.batch([
+        // 订单状态机预留走共享余额构建器：相对增量 + available 重算，
+        // 越限（如超预留释放、预留超过可用）由 0099 CHECK 约束拒绝并回滚
+        buildBalanceDeltaUpsertStatement(this.db, {
+          variantId: payload.variantId,
+          onHandDelta: 0,
+          reservedDelta: reservationDelta,
+          timestamp,
+        }),
         this.db
           .prepare(
             `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)
@@ -129,7 +123,11 @@ export class DemandService {
             timestamp,
             timestamp
           ),
-      ]);
+        ]);
+      } catch (error) {
+        // 预留越限（0099 CHECK）→ 409，订单状态转换入口据此提示
+        throw normalizeInventoryWriteError(error, '库存预留越限，操作已回滚');
+      }
       await this.productProjectionRefreshService.refreshByVariantIds([payload.variantId]);
     }
 

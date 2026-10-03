@@ -331,13 +331,13 @@ export class FolderRepository {
     } = parseRepoPagination({ page, limit }, { defaultPage: 1, defaultLimit: 20, maxLimit: 100 });
 
     const totalResult = await this.db
-      .prepare('SELECT COUNT(*) as total FROM folders WHERE share_token IS NOT NULL')
+      .prepare('SELECT COUNT(*) as total FROM folders WHERE share_token IS NOT NULL AND (is_deleted = 0 OR is_deleted IS NULL)')
       .first();
     const total = totalResult?.total || 0;
 
     const { results } = await this.db
       .prepare(
-        'SELECT * FROM folders WHERE share_token IS NOT NULL ORDER BY updated_at DESC LIMIT ? OFFSET ?'
+        'SELECT * FROM folders WHERE share_token IS NOT NULL AND (is_deleted = 0 OR is_deleted IS NULL) ORDER BY updated_at DESC LIMIT ? OFFSET ?'
       )
       .bind(safeLimit, offset)
       .all();

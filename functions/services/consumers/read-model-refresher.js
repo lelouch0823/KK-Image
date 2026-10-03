@@ -31,9 +31,16 @@ function getVariantSnapshotRefreshTarget(eventType, event, payload) {
   ) {
     return orderId ? `variant:order:${orderId}` : null;
   }
-  // 删除：级联删除后已无法从 order_lines 反查受影响变体，
-  // 保留全量刷新以保证投影不残留已删订单的快照（低频管理操作）
+  // 删除：路由在级联删除前已把受影响 variant_ids 快照进事件 payload
+  // （见 orders/detail/lifecycle.js），按变体增量刷新，避免全表重建（P-M4）；
+  // 老格式事件（无 payload）回退全量刷新保证投影不残留已删订单的快照
   if (eventType === 'order_deleted_by_admin') {
+    const variantIds = Array.isArray(payload?.variant_ids)
+      ? payload.variant_ids.filter(Boolean).map(String)
+      : [];
+    if (variantIds.length > 0) {
+      return `variant:ids:${variantIds.join(',')}`;
+    }
     return 'variant:all';
   }
   return null;
@@ -86,6 +93,10 @@ export async function refreshReadModels({ db, event, state }) {
       } else if (target === 'variant:all') {
         state.services.variantSnapshot ||= new VariantSnapshotProjectionRefreshService(db);
         await state.services.variantSnapshot.refreshAll();
+      } else if (target.startsWith('variant:ids:')) {
+        const variantIds = target.replace('variant:ids:', '').split(',').filter(Boolean);
+        state.services.variantSnapshot ||= new VariantSnapshotProjectionRefreshService(db);
+        await state.services.variantSnapshot.refreshByVariantIds(variantIds);
       } else if (target.startsWith('variant:order:')) {
         state.services.variantSnapshot ||= new VariantSnapshotProjectionRefreshService(db);
         await state.services.variantSnapshot.refreshByOrderId(target.replace('variant:order:', ''));
