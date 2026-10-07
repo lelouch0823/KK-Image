@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   __resetTurnstileRateLimitForTest,
+  onRequestGet,
   onRequestPost,
 } from '../verify.js';
+import { generateJWT } from '../../utils/auth.js';
 
 function request(body, headers = {}) {
   return new Request('https://example.com/api/turnstile/verify', {
@@ -86,5 +88,68 @@ describe('turnstile verify function', () => {
 
     expect(lastResponse.status).toBe(429);
     expect(await json(lastResponse)).toMatchObject({ success: false });
+  });
+});
+
+describe('turnstile verify GET config', () => {
+  const env = {
+    JWT_SECRET: 'turnstile-get-test-secret-not-in-prod',
+    TURNSTILE_SITE_KEY: 'site-key',
+    TURNSTILE_SECRET_KEY: 'secret',
+  };
+
+  function getRequest(cookieValue) {
+    return new Request('https://example.com/api/turnstile/verify', {
+      headers: cookieValue ? { Cookie: `ADMIN_AUTH=${cookieValue}` } : {},
+    });
+  }
+
+  async function getConfig(token, user) {
+    const cookieValue = token ? await generateJWT(user, env) : null;
+    const response = await onRequestGet({ request: getRequest(cookieValue), env });
+    return (await response.json()).data;
+  }
+
+  it('does not treat a salesperson token as admin and keeps the widget enabled', async () => {
+    const config = await getConfig(
+      true,
+      { id: 'sp-1', name: 'Sales', type: 'salesperson' }
+    );
+
+    expect(config).toMatchObject({ isAdmin: false, enabled: true, siteKey: 'site-key' });
+  });
+
+  it('does not treat a public_file_access token as admin', async () => {
+    const token = await generateJWT(
+      { id: 'share-1', name: 'Share', type: 'public_file_access' },
+      env
+    );
+    const response = await onRequestGet({ request: getRequest(token), env });
+    const config = (await response.json()).data;
+
+    expect(config).toMatchObject({ isAdmin: false, enabled: true, siteKey: 'site-key' });
+  });
+
+  it('treats an admin token as admin and disables the widget', async () => {
+    const token = await generateJWT({ id: 'admin-1', name: 'Admin', type: 'admin' }, env);
+    const response = await onRequestGet({ request: getRequest(token), env });
+    const config = (await response.json()).data;
+
+    expect(config).toMatchObject({ isAdmin: true, enabled: false, siteKey: null });
+  });
+
+  it('treats a legacy type-less token as non-admin', async () => {
+    const token = await generateJWT({ id: 'legacy-1', name: 'Legacy', type: undefined }, env);
+    const response = await onRequestGet({ request: getRequest(token), env });
+    const config = (await response.json()).data;
+
+    expect(config).toMatchObject({ isAdmin: false, enabled: true });
+  });
+
+  it('reports non-admin when no token is presented', async () => {
+    const response = await onRequestGet({ request: getRequest(null), env });
+    const config = (await response.json()).data;
+
+    expect(config).toMatchObject({ isAdmin: false, enabled: true });
   });
 });

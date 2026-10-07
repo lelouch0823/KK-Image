@@ -82,6 +82,42 @@ export function normalizeGuardedOrderUpdateError(error, { message } = {}) {
   throw error;
 }
 
+// ── 行履约进度守卫 ──────────────────────────────────────────────────
+
+export const ORDER_LINE_PROGRESS_REWRITE_CONFLICT_MESSAGE =
+  '订单行存在履约进度（已收货/已预留/已发货），不能整单重构；请使用行级命令调整';
+
+/** 订单行是否存在履约进度（收货/预留/发货任一数量大于 0） */
+export function hasOrderLineFulfillmentProgress(state) {
+  return (
+    Number(state?.total_shipped_qty) > 0 ||
+    Number(state?.total_reserved_qty) > 0 ||
+    Number(state?.total_received_qty) > 0
+  );
+}
+
+/**
+ * 结构化重写行前的 batch 内断言语句：执行时以 DB 内的权威数据复核该订单
+ * 不存在履约进度。batch 外的预读与 batch 执行之间并发的行级命令（如 shipLine）
+ * 提交的进度对预读不可见，若不复核会被随后的 DELETE 无声清零；断言命中时
+ * 解析 'not-json' 抛错使整个 batch 回滚（与 buildPreviousWriteAssertionStatement
+ * 同一 malformed JSON 断言模式）
+ */
+export function buildNoFulfillmentProgressAssertionStatement(db, orderId) {
+  return db
+    .prepare(
+      `SELECT json_extract(
+         CASE WHEN NOT EXISTS (
+           SELECT 1 FROM order_lines
+           WHERE order_id = ?
+             AND (shipped_qty > 0 OR reserved_qty > 0 OR received_qty > 0)
+         ) THEN '{}' ELSE 'not-json' END,
+         '$'
+       ) AS guard_ok`
+    )
+    .bind(orderId);
+}
+
 // ── 批量执行 ────────────────────────────────────────────────────────
 
 export async function executeGroupedBatchChunks(

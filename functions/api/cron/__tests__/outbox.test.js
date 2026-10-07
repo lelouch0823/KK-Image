@@ -28,14 +28,18 @@ vi.mock('../../utils/cron-auth.js', async () => {
   };
 });
 
-vi.mock('../../../services/DomainOutboxDispatchService.js', () => ({
-  DomainOutboxDispatchService: vi.fn(() => ({
-    claimJobs: mocks.claimJobs,
-    countAvailableJobs: mocks.countAvailableJobs,
-    markPublished: mocks.markPublished,
-    markFailed: mocks.markFailed,
-  })),
-}));
+vi.mock('../../../services/DomainOutboxDispatchService.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    DomainOutboxDispatchService: vi.fn(() => ({
+      claimJobs: mocks.claimJobs,
+      countAvailableJobs: mocks.countAvailableJobs,
+      markPublished: mocks.markPublished,
+      markFailed: mocks.markFailed,
+    })),
+  };
+});
 
 vi.mock('../../../repositories/OutboxRuntimeStateRepository.js', () => ({
   OutboxRuntimeStateRepository: vi.fn(() => ({
@@ -386,5 +390,76 @@ describe('cron outbox poller', () => {
     });
     expect(mocks.claimJobs).not.toHaveBeenCalled();
     expect(mocks.finishLease).not.toHaveBeenCalled();
+  });
+
+  it('passes poller state created by the shared factory (no field drift)', async () => {
+    // 回归：runOutboxPoller 曾用手工字面量构造 state，漏掉 invalidatedScopes
+    // 只能靠 getPollerState 兜底；现在必须与 createPollerState 工厂完全一致
+    let observedState = null;
+    mocks.claimJobs.mockReset();
+    mocks.claimJobs
+      .mockResolvedValueOnce([
+        {
+          id: 'job-audit-1',
+          consumer_name: 'audit',
+          event_id: 'evt-1',
+          event_type: 'v1_file_deleted',
+          payload_json: '{}',
+        },
+      ])
+      .mockResolvedValue([]);
+    mocks.auditConsumer.mockImplementation(async ({ state }) => {
+      observedState = state;
+    });
+
+    await runOutboxPoller({
+      env: { DB: {} },
+      requestUrl: 'https://kk.example.com/api/cron/outbox',
+    });
+
+    expect(observedState).not.toBeNull();
+    expect(observedState.invalidatedScopes).toBeInstanceOf(Set);
+    expect(observedState.invalidatedUrls).toBeInstanceOf(Set);
+    expect(observedState.allSalesTokens).toBeNull();
+    expect(observedState.salesTokensById).toBeInstanceOf(Map);
+    expect(observedState.refreshedReadModels).toBeInstanceOf(Set);
+    expect(observedState.readModelRefreshes).toBeInstanceOf(Map);
+    expect(observedState.services).toEqual({});
+  });
+
+  it('cleans up expired terminal command idempotency records during retention', async () => {
+    // 回归：command_idempotency 终态记录此前无任何清理，无限累积。
+    // 保留期清理只删过期 committed/failed，in_flight 交给 stale 接管自愈
+    const statements = [];
+    const retentionDb = {
+      prepare: (sql) => {
+        const statement = {
+          sql,
+          params: [],
+          bind: (...params) => {
+            statement.params = params;
+            return statement;
+          },
+          run: async () => ({ success: true, meta: { changes: 2 } }),
+        };
+        statements.push(statement);
+        return statement;
+      },
+    };
+
+    const { runOutboxRetentionCleanup } = await import('../outbox.js');
+    const result = await runOutboxRetentionCleanup(retentionDb, 1710000000000, {
+      COMMAND_IDEMPOTENCY_RETENTION_DAYS: '3',
+    });
+
+    const commandStatement = statements.find((entry) =>
+      entry.sql.includes('DELETE FROM command_idempotency')
+    );
+    expect(commandStatement).toBeTruthy();
+    expect(commandStatement.sql).toContain("status IN ('committed', 'failed')");
+    expect(commandStatement.sql).toContain('updated_at < ?');
+    // 保留期环境变量生效：默认 7 天，这里配置 3 天
+    expect(commandStatement.params).toEqual([1710000000000 - 3 * 24 * 60 * 60 * 1000]);
+    expect(result.commandIdempotencyDeleted).toBe(2);
   });
 });

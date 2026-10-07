@@ -22,8 +22,11 @@ import {
   ORDER_SHIPPED_VOID_GUARD_ERROR,
   ORDER_DELIVERED_COMPLETENESS_ERROR,
   ARCHIVED_ORDER_MUTATION_MESSAGE,
+  ORDER_LINE_PROGRESS_REWRITE_CONFLICT_MESSAGE,
   assertOrderIsActiveForMutation,
   buildPreviousWriteAssertionStatement,
+  buildNoFulfillmentProgressAssertionStatement,
+  hasOrderLineFulfillmentProgress,
   isPreviousWriteAssertionError,
   normalizeGuardedOrderUpdateError,
   executeGroupedBatchChunks,
@@ -441,17 +444,15 @@ export async function updateComposite(
     // 级联蒸发）。任何行存在履约进度时必须拒绝，否则并发发货会被"重插后
     // shipped_qty=0"无声吞掉，进而二次发货、重复扣库存。有进度的订单只能
     // 通过行级命令（unship/release）清理后再做结构编辑
-    if (
-      Number(primaryOrderLineState?.total_shipped_qty) > 0 ||
-      Number(primaryOrderLineState?.total_reserved_qty) > 0 ||
-      Number(primaryOrderLineState?.total_received_qty) > 0
-    ) {
-      throw new ConflictError(
-        '订单行存在履约进度（已收货/已预留/已发货），不能整单重构；请使用行级命令调整'
-      );
+    if (hasOrderLineFulfillmentProgress(primaryOrderLineState)) {
+      throw new ConflictError(ORDER_LINE_PROGRESS_REWRITE_CONFLICT_MESSAGE);
     }
     const lineStatus =
       normalizeOrderStatus(normalizedStatus || effectiveData?.status || 'pending') || 'pending';
+    // 窄竞态守卫：上面的预读与 batch 执行之间，并发的行级命令（如 shipLine）
+    // 提交的进度对预读不可见。batch 内断言语句在执行时以权威数据复核，
+    // 命中进度即抛错回滚整个 batch，DELETE 不会执行
+    statements.push(buildNoFulfillmentProgressAssertionStatement(db, id));
     statements.push(db.prepare('DELETE FROM order_lines WHERE order_id = ?').bind(id));
     normalizedLines.forEach((line) => {
       statements.push(
@@ -513,6 +514,15 @@ export async function updateComposite(
   try {
     await executeBatchChunks(db, statements);
   } catch (error) {
+    // 行进度断言与状态守卫失败同样表现为 malformed JSON 断言错误，无法从错误
+    // 本身区分：以执行时的权威行进度复核，仍有进度时按履约冲突（409）报错，
+    // 否则维持状态守卫的既有语义
+    if (isPreviousWriteAssertionError(error) && hasExplicitLines) {
+      const freshStates = await prefetchOrderLineStates(db, [id]);
+      if (hasOrderLineFulfillmentProgress(getPrefetchedOrderLineState(freshStates, id))) {
+        throw new ConflictError(ORDER_LINE_PROGRESS_REWRITE_CONFLICT_MESSAGE);
+      }
+    }
     normalizeGuardedOrderUpdateError(error);
   }
   return { success: true };

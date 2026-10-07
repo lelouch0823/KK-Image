@@ -156,12 +156,15 @@ async function handleLineCommand(c, action, executor) {
   }
 
   // 行级命令（发货/退货等）直接驱动库存与台账，重试必须幂等：
-  // 无幂等保护时网络超时重发同一 ship 请求会二次扣减库存并重复记账
+  // 无幂等保护时网络超时重发同一 ship 请求会二次扣减库存并重复记账。
+  // requireIdempotencyKey：非前端客户端（ERP/脚本）缺键时按
+  // ALLOW_MISSING_IDEMPOTENCY_KEY 开关语义拒绝/放行（与 payments 一致）
   return runIdempotentCommand(c, {
     commandType: `order_line_${action}`,
     requestFingerprint: buildRequestFingerprint({ orderId, lineId, payload }),
     mismatchMessage: '同一个幂等键不能提交不同的行级操作请求',
     inFlightMessage: '当前幂等键对应的行级操作仍在处理中',
+    requireIdempotencyKey: true,
     execute: async () =>
       executor(service, orderId, lineId, payload, {
         actorId: user?.id || null,
@@ -279,6 +282,7 @@ app.post('/:id/lines/:lineId/returns/:returnId/cancel', async (c) => {
     requestFingerprint: buildRequestFingerprint({ orderId, lineId, returnId }),
     mismatchMessage: '同一个幂等键不能提交不同的退货冲正请求',
     inFlightMessage: '当前幂等键对应的退货冲正仍在处理中',
+    requireIdempotencyKey: true,
     execute: async () => {
       const result = await service.cancelReturn(orderId, lineId, returnId, {
         actorId: user?.id || null,

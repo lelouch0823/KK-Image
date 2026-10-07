@@ -74,13 +74,27 @@ describe('Blob Utils', () => {
       expect(env.R2_BUCKET.delete).toHaveBeenCalledWith('hash1');
     });
 
-    it('should handle R2 deletion failure gracefully', async () => {
+    it('should propagate R2 deletion failure and keep the blob record for retry', async () => {
       env.DB.batch.mockResolvedValueOnce([{ success: true }, { results: [{ ref_count: 0 }] }]);
-      env.DB.run.mockResolvedValueOnce({ success: true });
       env.R2_BUCKET.delete.mockRejectedValueOnce(new Error('R2 Error'));
 
+      await expect(decrementRefCount(env, 'hash1')).rejects.toThrow('R2 Error');
+
+      // R2 删除先于记录删除执行：失败时 blob 行尚未删除，可重试
+      expect(env.DB.prepare).not.toHaveBeenCalledWith(
+        expect.stringContaining('DELETE FROM blobs')
+      );
+    });
+
+    it('should tolerate missing R2 objects when ref_count reaches zero', async () => {
+      // R2 delete 幂等：对象不存在时正常成功（不抛错）
+      env.DB.batch.mockResolvedValueOnce([{ success: true }, { results: [{ ref_count: 0 }] }]);
+      env.DB.run.mockResolvedValueOnce({ success: true });
+
       const deleted = await decrementRefCount(env, 'hash1');
+
       expect(deleted).toBe(true);
+      expect(env.R2_BUCKET.delete).toHaveBeenCalledWith('hash1');
     });
 
     it('should just decrement ref_count if not last reference', async () => {

@@ -34,6 +34,14 @@ export function getManageFolderCacheUrls(c, parentIds = []) {
 }
 
 /**
+ * 获取 manage/trash 回收站列表的缓存 URL
+ * restore/purge 变更回收站内容后需失效该 scope（否则只能等 TTL 过期）
+ */
+export function getManageTrashCacheUrls(c) {
+  return [`${getOrigin(c)}/api/manage/trash`];
+}
+
+/**
  * 获取 manage/folders/:id 的缓存 URL
  */
 export function getManageFolderDetailCacheUrls(c, parentIds = []) {

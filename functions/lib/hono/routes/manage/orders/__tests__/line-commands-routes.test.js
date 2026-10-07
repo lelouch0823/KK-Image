@@ -403,4 +403,49 @@ describe('manage order line command routes', () => {
     // 关键断言：发货命令只执行一次
     expect(mocks.shipLine).toHaveBeenCalledTimes(1);
   });
+
+  it('rejects line commands without an Idempotency-Key when ALLOW_MISSING_IDEMPOTENCY_KEY=false', async () => {
+    // 行级命令是库存类命令：生产收紧开关后缺键必须 400（与 payments 语义一致），
+    // 防止 ERP/脚本超时重发造成二次扣库存
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/lines/line-1/ship',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 1 }),
+      },
+      { DB: {}, ALLOW_MISSING_IDEMPOTENCY_KEY: 'false' },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual(
+      expect.objectContaining({
+        error: expect.stringContaining('Idempotency-Key'),
+      })
+    );
+    expect(mocks.shipLine).not.toHaveBeenCalled();
+    expect(mocks.addTimelineEntry).not.toHaveBeenCalled();
+  });
+
+  it('allows line commands without an Idempotency-Key under the default relaxed switch', async () => {
+    // 默认放行（随机键 = 不保护）以兼容存量客户端
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1/lines/line-1/ship',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 1 }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.shipLine).toHaveBeenCalledTimes(1);
+  });
 });

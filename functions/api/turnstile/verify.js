@@ -146,15 +146,13 @@ export async function onRequestPost(context) {
 export async function onRequestGet(context) {
   const { env, request } = context;
 
-  // 检查是否为已认证管理员
+  // 检查是否为已认证管理员：isAdminAuthenticated 会显式校验令牌类型，
+  // 仅凭签名通过不足以判定——salesperson/public_file_access 等令牌
+  // 同样由 JWT_SECRET 签发，不能据此关闭 widget 下发
   let isAdmin = false;
   try {
-    const { verifyJWT, extractRequestToken } = await import('../utils/auth.js');
-    const token = extractRequestToken(request, { cookieName: 'ADMIN_AUTH', includeBearer: false });
-    if (token) {
-      await verifyJWT(token, env);
-      isAdmin = true;
-    }
+    const { isAdminAuthenticated } = await import('../utils/auth.js');
+    isAdmin = await isAdminAuthenticated(request, env);
   } catch {
     // 未登录或 token 无效
   }

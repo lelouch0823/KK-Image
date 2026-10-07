@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { OAuthRepository, hashSecret } from '../../../../repositories/OAuthRepository.js';
+import { isPreviousWriteAssertionError } from '../../../../services/order-procurement-shared.js';
 import { requirePermission } from '../../middleware/auth.js';
 import { rateLimit } from '../../middleware/rateLimit.js';
 import { timingSafeCompare } from '../../../../api/utils/crypto.js';
@@ -381,10 +382,21 @@ app.post('/token', oauthTokenRateLimit, zValidator('json', TokenSchema), async (
         newAccessToken: accessToken,
         newRefreshToken: refreshToken,
       });
-    } catch (_error) {
+    } catch (error) {
+      // 并发轮换败者：changes() 断言失败意味着共享令牌已被赢家吊销，
+      // 属于"令牌已被使用"信号——走重用检测分支（吊销该 client 全部令牌），
+      // 保证败者收到与重用一致的拒绝；其余错误原样上抛，不误伤令牌族
+      if (!isPreviousWriteAssertionError(error)) {
+        throw error;
+      }
+      await repo.detectAndContainRefreshTokenReuse(body.refresh_token);
       return c.json(
-        { success: false, error: 'invalid_grant', error_description: '刷新令牌已被并发使用' },
-        400
+        {
+          success: false,
+          error: 'invalid_grant',
+          error_description: '刷新令牌已被使用或泄露，已吊销该应用全部令牌',
+        },
+        401
       );
     }
     const token = rotation.token;

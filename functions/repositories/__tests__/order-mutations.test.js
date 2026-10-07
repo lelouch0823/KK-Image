@@ -54,8 +54,7 @@ function createSequentialGuardDb({
   orderUpdateChanges = 0,
   allHandler = async () => ({ results: [] }),
   firstHandler = async () => null,
-} = {}) {
-  const executedSql = [];
+} = {}) {  const executedSql = [];
 
   const db = {
     executedSql,
@@ -100,6 +99,77 @@ function createSequentialGuardDb({
         results.push({ success: true, meta: { changes: 1 } });
       }
 
+      return results;
+    }),
+  };
+
+  return db;
+}
+
+/**
+ * 行重写进度守卫 mock：prefetch（batch 外）返回进度为 0 的行，
+ * 模拟"预读之后、batch 执行之前"并发行级命令提交 shipped_qty 的窄竞态。
+ * shippedAtExecution > 0 时，batch 内的无进度断言语句解析 'not-json' 抛错。
+ */
+function createLineRewriteGuardDb({ shippedAtExecution = 0 } = {}) {
+  const executedSql = [];
+  let allCallCount = 0;
+
+  const progressRow = {
+    order_id: 'o-progress',
+    id: 'line-1',
+    ordered_qty: 1,
+    procured_qty: 0,
+    received_qty: 0,
+    reserved_qty: 0,
+    shipped_qty: shippedAtExecution,
+    cancelled_qty: 0,
+    line_count: 1,
+    total_ordered_qty: 1,
+    total_shipped_qty: shippedAtExecution,
+    total_reserved_qty: 0,
+    total_received_qty: 0,
+    total_cancelled_qty: 0,
+    row_num: 1,
+  };
+
+  const db = {
+    executedSql,
+    prepare: vi.fn((sql) => {
+      const statement = {
+        sql: String(sql || ''),
+        params: [],
+        bind: vi.fn((...params) => {
+          statement.params = params;
+          return statement;
+        }),
+        first: vi.fn(async () => null),
+        all: vi.fn(async () => {
+          allCallCount += 1;
+          // 首次 all() 是 batch 外的预读（进度 0）；后续 all() 是 batch 抛错后
+          // 的权威复核——此时并发行级命令已提交进度
+          return allCallCount === 1
+            ? { results: [] }
+            : { results: [{ ...progressRow }] };
+        }),
+        run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
+      };
+      return statement;
+    }),
+    batch: vi.fn(async (statements = []) => {
+      const results = [];
+      for (const statement of statements) {
+        const sql = String(statement?.sql || '');
+        if (
+          sql.includes('NOT EXISTS') &&
+          sql.includes('shipped_qty > 0') &&
+          shippedAtExecution > 0
+        ) {
+          throw new Error('malformed JSON');
+        }
+        executedSql.push(sql);
+        results.push({ success: true, meta: { changes: 1 } });
+      }
       return results;
     }),
   };
@@ -760,6 +830,86 @@ describe('Order Mutations SQL Binding', () => {
       expect(lineInsertStatements[1].params[4]).toBe('Line B');
       expect(lineInsertStatements[1].params[5]).toBe('SKU-B');
       expect(lineInsertStatements[1].params[8]).toBe(3);
+    });
+
+    it('updateComposite rejects a structural rewrite up front when prefetched lines carry fulfillment progress', async () => {
+      const guardDb = createBatchAwareDb({
+        allHandler: async (statement) => ({
+          results: isOrderLinePrefetchSql(statement.sql)
+            ? [
+                {
+                  order_id: 'o-progress',
+                  id: 'line-1',
+                  ordered_qty: 1,
+                  procured_qty: 0,
+                  received_qty: 0,
+                  reserved_qty: 1,
+                  shipped_qty: 0,
+                  cancelled_qty: 0,
+                  line_count: 1,
+                  total_ordered_qty: 1,
+                  total_shipped_qty: 0,
+                  total_reserved_qty: 1,
+                  total_received_qty: 0,
+                  total_cancelled_qty: 0,
+                  row_num: 1,
+                },
+              ]
+            : [],
+        }),
+      });
+
+      await expect(
+        updateComposite(guardDb, {
+          id: 'o-progress',
+          actorType: 'admin',
+          newData: { lines: [{ name: 'Line A', sku: 'SKU-A', quantity: 2 }] },
+        })
+      ).rejects.toMatchObject({ statusCode: 409 });
+
+      expect(guardDb.batch).not.toHaveBeenCalled();
+    });
+
+    it('updateComposite keeps the no-progress assertion in the batch before rewriting lines', async () => {
+      const guardDb = createLineRewriteGuardDb({ shippedAtExecution: 0 });
+
+      await updateComposite(guardDb, {
+        id: 'o-progress',
+        actorType: 'admin',
+        newData: { lines: [{ name: 'Line A', sku: 'SKU-A', quantity: 2 }] },
+      });
+
+      const assertionIndex = guardDb.executedSql.findIndex(
+        (sql) => sql.includes('NOT EXISTS') && sql.includes('shipped_qty > 0')
+      );
+      const deleteIndex = guardDb.executedSql.findIndex((sql) =>
+        sql.includes('DELETE FROM order_lines')
+      );
+      expect(assertionIndex).toBeGreaterThanOrEqual(0);
+      expect(deleteIndex).toBeGreaterThanOrEqual(0);
+      expect(assertionIndex).toBeLessThan(deleteIndex);
+    });
+
+    it('updateComposite rolls back and reports a conflict when fulfillment progress lands between prefetch and batch execution', async () => {
+      // 预读时进度为 0（通过校验），batch 执行时并发的 shipLine 已提交
+      // shipped_qty=2：断言语句解析 'not-json' 抛错，整个 batch 回滚——
+      // DELETE FROM order_lines 不会执行，shipped_qty 不会被无声清零
+      const guardDb = createLineRewriteGuardDb({ shippedAtExecution: 2 });
+
+      await expect(
+        updateComposite(guardDb, {
+          id: 'o-progress',
+          actorType: 'admin',
+          newData: { lines: [{ name: 'Line A', sku: 'SKU-A', quantity: 2 }] },
+        })
+      ).rejects.toMatchObject({ statusCode: 409 });
+
+      expect(
+        guardDb.executedSql.some((sql) => sql.includes('DELETE FROM order_lines'))
+      ).toBe(false);
+      expect(
+        guardDb.executedSql.some((sql) => sql.includes('INSERT INTO order_lines'))
+      ).toBe(false);
     });
 
     it('updateComposite persists salesperson reassignment on the order header', async () => {

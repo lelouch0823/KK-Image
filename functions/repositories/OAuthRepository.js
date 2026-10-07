@@ -308,6 +308,13 @@ export class OAuthRepository {
       )
       .bind(timestamp, hashed, rawRefreshToken);
 
+    // batch + changes() 断言守卫（与库存/资金写入同一模式）：条件吊销未命中
+    // （并发轮换的败者，令牌已被赢家吊销）时 changes()=0，断言语句解析
+    // 'not-json' 抛错使整个 batch 回滚——新令牌行不会插入，不会出现两套有效令牌
+    const revokeChangesAssertion = this.db.prepare(
+      "SELECT json_extract(CASE WHEN changes() = 1 THEN '{}' ELSE 'not-json' END, '$') AS guard_ok"
+    );
+
     const insertStatement = this.db
       .prepare(
         `INSERT INTO oauth_tokens (id, access_token, refresh_token, client_id, user_id, scopes, expires_at, refresh_expires_at, created_at)
@@ -325,7 +332,7 @@ export class OAuthRepository {
         timestamp
       );
 
-    await this.db.batch([revokeStatement, insertStatement]);
+    await this.db.batch([revokeStatement, revokeChangesAssertion, insertStatement]);
 
     return {
       token: { accessToken: newAccessToken, refreshToken: newRefreshToken, expiresAt, scopes },

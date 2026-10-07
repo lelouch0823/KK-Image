@@ -861,6 +861,35 @@ describe('sales routes resilience', () => {
     expect(waitUntil).toHaveBeenCalled();
   });
 
+  it('rejects salesperson create without an Idempotency-Key when ALLOW_MISSING_IDEMPOTENCY_KEY=false', async () => {
+    // 销售建单三步（建单 → 需求同步 → 归档）非原子，缺键重跑会产生重复订单；
+    // 生产收紧开关后缺键必须 400（与 payments 语义一致）
+    const app = createOrdersTestApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Shoes',
+          quantity: 1,
+          fileIds: [],
+        }),
+      },
+      { DB: createDbMock(), ALLOW_MISSING_IDEMPOTENCY_KEY: 'false' },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual(
+      expect.objectContaining({
+        error: expect.stringContaining('Idempotency-Key'),
+      })
+    );
+    expect(mocks.orderCreate).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
+  });
+
   it('enqueues deferred order-update side effects through outbox for salesperson patch', async () => {
     mocks.orderFindByIdAndSalesperson.mockResolvedValue({
       id: 'o-1',

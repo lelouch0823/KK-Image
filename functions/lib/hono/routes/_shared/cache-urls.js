@@ -7,6 +7,7 @@ export {
   getManageFileDetailCacheUrls,
   getManageFolderCacheUrls,
   getManageFolderDetailCacheUrls,
+  getManageTrashCacheUrls,
   getManageNotificationCacheUrls,
   getManageCustomerCacheUrls,
   getManageShareCacheUrls,

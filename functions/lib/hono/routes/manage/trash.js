@@ -11,6 +11,8 @@ import { scheduleAuditEvent } from '../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../_shared/audit-route-contract.js';
 import { publishDomainEventsAndPoll } from '../../_shared/domain-outbox.js';
 import { withCache } from '../../middleware/cache.js';
+import { scheduleCacheInvalidation } from '../../_shared/route-helpers.js';
+import { getManageTrashCacheUrls } from '../_shared/cache-urls.js';
 import { chunkArray } from '../../../../lib/db/batch.js';
 import { D1_MAX_IN_CLAUSE_SIZE } from '../../../../api/utils/constants.js';
 import { RestoreSchema, DeleteTrashSchema } from '../../schemas/trash.js';
@@ -152,6 +154,9 @@ app.post(
       outboxEvents,
       `manage-trash-restore:${fileIds.length}:${folderIds.length}`
     );
+    // 还原/彻底删除都会改变回收站列表内容，失效 trash scope 缓存
+    //（restore 对文件/文件夹主列表的失效由 outbox 的 cache consumer 负责）
+    scheduleCacheInvalidation(c, getManageTrashCacheUrls(c));
     scheduleAuditEvent(c, {
       domain: 'trash',
       action: 'trash.restore',
@@ -222,12 +227,16 @@ app.post(
       for (const folderId of folderIds) {
         const storageKeys = await folderRepo.getAllStorageKeysRecursive(folderId);
         if (env.R2_BUCKET && storageKeys.length > 0) {
+          // B-M6：与文件分支对齐——R2 删除失败必须中止 DB 删除，
+          // 否则 deleteRecursive 清掉台账后失败对象成永久孤儿
           await Promise.all(
-            storageKeys.map((key) =>
-              env.R2_BUCKET.delete(key).catch((err) =>
-                console.warn('[Trash] R2 delete failed:', err.message)
-              )
-            )
+            storageKeys.map(async (key) => {
+              try {
+                await env.R2_BUCKET.delete(key);
+              } catch (err) {
+                throw new Error(`R2 对象删除失败（${key}）：${err?.message || err}`);
+              }
+            })
           );
         }
         // B-M6：文件夹内文件的镜像记录一并清理
@@ -240,6 +249,8 @@ app.post(
         await folderRepo.deleteRecursive(folderId);
       }
     }
+    // 彻底删除清空了回收站条目，失效 trash scope 缓存
+    scheduleCacheInvalidation(c, getManageTrashCacheUrls(c));
     scheduleAuditEvent(c, {
       domain: 'trash',
       action: 'trash.delete',
@@ -295,17 +306,23 @@ app.delete('/empty', requirePermission('files:delete'), async (c) => {
 
       const storageKeys = await folderRepo.getAllStorageKeysRecursive(folder.id);
       if (env.R2_BUCKET && storageKeys.length > 0) {
+        // B-M6：与文件分支对齐——R2 删除失败必须中止 DB 删除，
+        // 否则 deleteRecursive 清掉台账后失败对象成永久孤儿
         await Promise.all(
-          storageKeys.map((key) =>
-            env.R2_BUCKET.delete(key).catch((err) =>
-              console.warn('[Trash] R2 delete failed:', err.message)
-            )
-          )
+          storageKeys.map(async (key) => {
+            try {
+              await env.R2_BUCKET.delete(key);
+            } catch (err) {
+              throw new Error(`R2 对象删除失败（${key}）：${err?.message || err}`);
+            }
+          })
         );
       }
       await folderRepo.deleteRecursive(folder.id);
     }
   }
+  // 清空回收站后失效 trash scope 缓存
+  scheduleCacheInvalidation(c, getManageTrashCacheUrls(c));
   scheduleAuditEvent(c, {
     domain: 'trash',
     action: 'trash.empty',

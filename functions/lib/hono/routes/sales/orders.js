@@ -112,7 +112,9 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
   const orderRepo = new OrderRepository(env.DB);
   const service = new OrderCreationService(env.DB);
 
-  // 建单为资金/库存上游命令：幂等键保护，网络重发不会产生重复订单（审查 C-H4）
+  // 建单为资金/库存上游命令：幂等键保护，网络重发不会产生重复订单（审查 C-H4）。
+  // requireIdempotencyKey：缺键时按 ALLOW_MISSING_IDEMPOTENCY_KEY 开关语义拒绝/放行
+  // （与 payments 一致）；三步执行（建单 → 需求同步 → 归档）非原子，重跑会产生重复订单
   let createdVariantId = null;
   return runIdempotentCommand(c, {
     commandType: 'sales_order_create',
@@ -121,6 +123,7 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
     mismatchMessage: '同一个幂等键不能提交不同的销售订单请求',
     inFlightMessage: '当前幂等键对应的销售订单请求仍在处理中',
     successStatus: 201,
+    requireIdempotencyKey: true,
     execute: async () => {
       const orderId = generateId();
       const orderNo = generateOrderNo();

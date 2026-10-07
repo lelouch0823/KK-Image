@@ -5,6 +5,7 @@ import {
   OUTBOX_MAX_ATTEMPTS,
 } from '../../services/DomainOutboxDispatchService.js';
 import { DOMAIN_OUTBOX_CONSUMERS } from '../../services/DomainOutboxConsumers.js';
+import { createPollerState } from '../../services/consumers/_shared.js';
 import { runConcurrent } from '../../lib/async/runConcurrent.js';
 import { OutboxRuntimeStateRepository } from '../../repositories/OutboxRuntimeStateRepository.js';
 
@@ -28,13 +29,21 @@ const OUTBOX_RETENTION_DAYS = 7;
 // 退化为"7 天"的窗口太短，外部端点恢复后无法重放
 const OUTBOX_DEAD_LETTER_RETENTION_DAYS = 30;
 const AI_TRACE_RETENTION_DAYS = 30;
+// 命令幂等终态记录（committed/failed）保留期：in_flight 由 stale 接管自愈，
+// 终态记录只服务于同键重放，过期即可清理（审查 M2）
+const COMMAND_IDEMPOTENCY_RETENTION_DAYS = 7;
 // 请求路径触发的轮询按概率执行清理，避免每次写操作都付出 DELETE 代价
 const REQUEST_PATH_CLEANUP_PROBABILITY = 0.02;
 
-async function runOutboxRetentionCleanup(db, nowTs) {
+export async function runOutboxRetentionCleanup(db, nowTs, env = null) {
   const outboxCutoff = nowTs - OUTBOX_RETENTION_DAYS * 24 * 60 * 60 * 1000;
   const traceCutoff = nowTs - AI_TRACE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
   const deadLetterCutoff = nowTs - OUTBOX_DEAD_LETTER_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  const commandRetentionDays = Math.max(
+    1,
+    Number(env?.COMMAND_IDEMPOTENCY_RETENTION_DAYS) || COMMAND_IDEMPOTENCY_RETENTION_DAYS
+  );
+  const commandCutoff = nowTs - commandRetentionDays * 24 * 60 * 60 * 1000;
 
   // 1) 已发布任务：保留 7 天后删除
   // 2) 已达重试上限的死信任务：保留 30 天（B-L4），期间支持操作员重放
@@ -69,17 +78,30 @@ async function runOutboxRetentionCleanup(db, nowTs) {
     .bind(traceCutoff)
     .run();
 
+  // 5) 命令幂等终态记录（committed/failed）：仅清理超过保留期的终态行，
+  //    in_flight 记录由 stale 接管机制自愈，不在此删除
+  const commandsDeleted = await db
+    .prepare(
+      `DELETE FROM command_idempotency
+       WHERE status IN ('committed', 'failed')
+         AND updated_at < ?`
+    )
+    .bind(commandCutoff)
+    .run();
+
   const jobsCount = Number(jobsDeleted?.meta?.changes || 0);
   const eventsCount = Number(eventsDeleted?.meta?.changes || 0);
-  if (jobsCount + eventsCount > 0) {
+  const commandsCount = Number(commandsDeleted?.meta?.changes || 0);
+  if (jobsCount + eventsCount + commandsCount > 0) {
     console.log(
-      `[OutboxRetention] removed ${jobsCount} consumer jobs, ${eventsCount} events (cutoff=${outboxCutoff})`
+      `[OutboxRetention] removed ${jobsCount} consumer jobs, ${eventsCount} events, ${commandsCount} command idempotency records (cutoff=${outboxCutoff})`
     );
   }
   return {
     jobsDeleted: jobsCount,
     eventsDeleted: eventsCount,
     aiTracesDeleted: Number(tracesDeleted?.meta?.changes || 0),
+    commandIdempotencyDeleted: commandsCount,
   };
 }
 
@@ -184,15 +206,8 @@ export async function runOutboxPoller({
   let claimedCount = 0;
   let publishedCount = 0;
   let failedCount = 0;
-  const state = {
-    env,
-    invalidatedUrls: new Set(),
-    allSalesTokens: null,
-    salesTokensById: new Map(),
-    refreshedReadModels: new Set(),
-    readModelRefreshes: new Map(),
-    services: {},
-  };
+  // 共享状态一律由工厂函数创建（避免字面量漂移漏字段，如 invalidatedScopes）
+  const state = createPollerState();
 
   try {
     while (rounds < resolvedMaxRounds) {
@@ -240,7 +255,7 @@ export async function runOutboxPoller({
     let retention = null;
     if (!isRequestPathRun || Math.random() < REQUEST_PATH_CLEANUP_PROBABILITY) {
       try {
-        retention = await runOutboxRetentionCleanup(env.DB, nowTs);
+        retention = await runOutboxRetentionCleanup(env.DB, nowTs, env);
       } catch (cleanupError) {
         console.error('[OutboxRetention] Cleanup failed:', cleanupError?.message || cleanupError);
       }

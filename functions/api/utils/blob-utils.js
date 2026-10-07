@@ -80,18 +80,17 @@ export async function decrementRefCount(env, hash) {
   if (!blob) return false;
 
   if (blob.ref_count <= 0) {
-    // 引用计数归零，清除 blob 记录和 R2 对象
+    // 引用计数归零，清除 R2 对象和 blob 记录
+    // R2 删除必须先于记录删除且失败时向上抛出：若先删记录、R2 失败被吞掉，
+    // 重试会因 blob 行缺失跳过 R2 删除，对象永久成为孤儿。
+    // R2 delete 幂等（对象不存在时成功），不改变"对象不存在可容忍"的语义
+    if (env.R2_BUCKET) {
+      await env.R2_BUCKET.delete(hash);
+    }
+
     await env.DB.prepare('DELETE FROM blobs WHERE content_hash = ? AND ref_count <= 0')
       .bind(hash)
       .run();
-
-    if (env.R2_BUCKET) {
-      try {
-        await env.R2_BUCKET.delete(hash);
-      } catch (e) {
-        console.error('Failed to delete R2 object:', hash, e);
-      }
-    }
     return true;
   }
 
