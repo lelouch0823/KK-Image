@@ -223,6 +223,7 @@ import { useImageCompression } from '@/composables/useImageCompression';
 import { useToast } from '@/composables/useToast';
 import { useRequestAdapters } from '@/composables/useRequestAdapters';
 import { openInNewTab } from '@/utils/browser';
+import { sanitizeReportHtml } from '@/utils/report-html';
 import { inferCurrentView, inferAIEntityContext } from '@/components/common/ai/context-inference';
 import AIChatActionPanel from '@/components/common/ai/AIChatActionPanel.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
@@ -626,8 +627,9 @@ const generateReport = async () => {
       throw new Error('No HTML content received');
     }
 
-    // 创建 Blob URL 并在新窗口打开
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    // 先消毒再创建 Blob URL：blob: 继承应用 origin，未消毒 HTML 等同以应用身份执行注入脚本
+    const safeHtml = sanitizeReportHtml(html);
+    const blob = new Blob([safeHtml], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     openInNewTab(url);
 

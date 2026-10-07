@@ -30,6 +30,54 @@ describe('useAuth Composable Full Coverage', () => {
     expect(result).toBe(false);
   });
 
+  it('checkAuth resolves and resets isLoading when the request hangs until timeout', async () => {
+    vi.useFakeTimers();
+    // 模拟一个永不 resolve 的请求，仅在 abort signal 触发时 reject
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url, options = {}) =>
+          new Promise((_resolve, reject) => {
+            options.signal?.addEventListener('abort', () => {
+              const err = new Error('Aborted');
+              err.name = 'AbortError';
+              reject(err);
+            });
+          })
+      )
+    );
+
+    const { checkAuth } = useAuth();
+    const pending = checkAuth();
+    expect(isLoading.value).toBe(true);
+
+    // http-core 默认 30s 超时触发中止，守卫不再被永久阻塞
+    await vi.advanceTimersByTimeAsync(30000);
+    await expect(pending).resolves.toBe(false);
+    expect(isLoading.value).toBe(false);
+    expect(isAuthenticated.value).toBe(false);
+
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('checkAuth treats a non-2xx response as unauthenticated', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        json: vi.fn().mockResolvedValue({}),
+      })
+    );
+    isAuthenticated.value = true;
+    const { checkAuth } = useAuth();
+    await expect(checkAuth()).resolves.toBe(false);
+    expect(isAuthenticated.value).toBe(false);
+    expect(currentUser.value).toBe(null);
+  });
+
   it('authFetch should handle 401 and reset state', async () => {
     vi.stubGlobal(
       'fetch',

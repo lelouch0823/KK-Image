@@ -1,4 +1,6 @@
 import { ref } from 'vue';
+import { useToast } from './useToast';
+import { useI18n } from './useI18n';
 
 /**
  * 确认对话框状态管理 composable
@@ -30,7 +32,16 @@ interface ConfirmState {
   onConfirm: () => Promise<void> | void;
 }
 
+/** 带状态信息的错误对象 */
+interface ErrorWithData extends Error {
+  status?: number;
+  data?: { error?: string };
+}
+
 export function useConfirmDialog() {
+  const { addToast } = useToast();
+  const { t } = useI18n();
+
   const confirmData = ref<ConfirmState>({
     show: false,
     title: '',
@@ -52,13 +63,24 @@ export function useConfirmDialog() {
     };
   };
 
-  /** 执行确认回调（带 loading 状态管理） */
+  /** 执行确认回调（带 loading 状态管理）
+   *
+   * 回调抛错时兜底提示并保持弹窗打开（避免失败被静默吞掉、用户误以为成功），
+   * 仅成功路径才关闭弹窗。
+   */
   const handleConfirm = async () => {
     confirmData.value.loading = true;
     try {
       await confirmData.value.onConfirm();
-    } finally {
       confirmData.value.show = false;
+    } catch (e: unknown) {
+      const err = e as ErrorWithData | null;
+      console.error('Confirm dialog action failed:', e);
+      addToast({
+        message: err?.data?.error || err?.message || t('common.operationFailed'),
+        type: 'error',
+      });
+    } finally {
       confirmData.value.loading = false;
     }
   };

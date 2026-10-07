@@ -78,12 +78,18 @@ export function useResource<T extends ResourceItem = ResourceItem>(apiEndpoint: 
         totalPages: 1,
     });
 
+    // 列表加载专用 controller：loadItems 开始时中止上一次列表请求
     let abortController = new AbortController();
+    // 变更类请求（create/update/delete/rawRequest）专用 controller：
+    // 与列表加载彻底隔离，避免列表刷新中止在途变更（UI 回滚但服务端可能已成功）；
+    // 仅在组件卸载时中止
+    let mutationAbortController = new AbortController();
 
     // 仅在存在活动 effect scope 时注册清理，避免在普通函数上下文触发 Vue 警告
     if (getCurrentScope()) {
         onScopeDispose(() => {
             abort();
+            abortMutations();
         });
     }
 
@@ -291,7 +297,7 @@ export function useResource<T extends ResourceItem = ResourceItem>(apiEndpoint: 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
-                signal: abortController.signal,
+                signal: mutationAbortController.signal,
             }).then(r => r.json() as Promise<ApiResponse>);
 
             if (res.success) {
@@ -304,6 +310,7 @@ export function useResource<T extends ResourceItem = ResourceItem>(apiEndpoint: 
             }
         } catch (e: unknown) {
             const err = e as ErrorWithStatus;
+            // 变更请求与列表加载隔离，仅会随组件卸载被中止：静默结束即可
             if (err.name === 'AbortError') return null;
             addToast({ message: t('common.networkError'), type: 'error' });
             return null;
@@ -332,7 +339,7 @@ export function useResource<T extends ResourceItem = ResourceItem>(apiEndpoint: 
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updates),
-                signal: abortController.signal,
+                signal: mutationAbortController.signal,
             }).then(r => r.json() as Promise<ApiResponse>);
 
             if (res.success) {
@@ -349,6 +356,7 @@ export function useResource<T extends ResourceItem = ResourceItem>(apiEndpoint: 
             }
         } catch (e: unknown) {
             const err = e as ErrorWithStatus;
+            // 变更请求与列表加载隔离，仅会随组件卸载被中止：此时回滚乐观更新即可
             if (err.name === 'AbortError') return false;
             // 3. 失败回滚 (仅当有旧值时)
             if (oldItem && idx !== -1) {
@@ -379,7 +387,7 @@ export function useResource<T extends ResourceItem = ResourceItem>(apiEndpoint: 
         try {
             const res = await authFetch(`${apiEndpoint}/${id}`, {
                 method: 'DELETE',
-                signal: abortController.signal,
+                signal: mutationAbortController.signal,
             }).then(r => r.json() as Promise<ApiResponse>);
 
             if (res.success) {
@@ -395,6 +403,7 @@ export function useResource<T extends ResourceItem = ResourceItem>(apiEndpoint: 
             }
         } catch (e: unknown) {
             const err = e as ErrorWithStatus;
+            // 变更请求与列表加载隔离，仅会随组件卸载被中止：此时回滚乐观删除即可
             if (err.name === 'AbortError') return false;
             // 3. 失败回滚
             items.value.splice(idx, 0, oldItem as T);
@@ -405,10 +414,17 @@ export function useResource<T extends ResourceItem = ResourceItem>(apiEndpoint: 
     };
 
     /**
-     * 取消所有正在进行的请求
+     * 取消正在进行的列表加载请求
      */
     const abort = (): void => {
         abortController.abort();
+    };
+
+    /**
+     * 取消正在进行的变更类请求（仅在组件卸载时调用）
+     */
+    const abortMutations = (): void => {
+        mutationAbortController.abort();
     };
 
     /**
@@ -422,7 +438,8 @@ export function useResource<T extends ResourceItem = ResourceItem>(apiEndpoint: 
                 'Content-Type': 'application/json',
                 ...(options.headers || {}),
             },
-            signal: abortController.signal
+            // rawRequest 常用于变更类操作（如状态变更），与列表加载隔离
+            signal: mutationAbortController.signal
         });
         return res.json() as Promise<ApiResponse>;
     };

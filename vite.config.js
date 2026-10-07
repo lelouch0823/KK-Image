@@ -37,21 +37,10 @@ export const pwaRuntimeCaching = [
         statuses: [0, 200]
       }
     }
-  },
-  {
-    urlPattern: /\/file\/.*$/i,
-    handler: 'StaleWhileRevalidate',
-    options: {
-      cacheName: 'file-cache',
-      expiration: {
-        maxEntries: 200,
-        maxAgeSeconds: 60 * 60 * 24 * 7
-      },
-      cacheableResponse: {
-        statuses: [0, 200]
-      }
-    }
   }
+  // 注意：/file/ 路由需要管理员 cookie / 销售 JWT / 分享 token 鉴权，
+  // 禁止添加任何运行时缓存规则——缓存会让登出/换账号后仍可读到旧内容，
+  // 且权限回收或文件删除后 SWR 会先回 stale 响应。
 ];
 
 export default defineConfig({

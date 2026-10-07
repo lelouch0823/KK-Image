@@ -64,6 +64,68 @@ describe('useResource Composable Full Coverage', () => {
     // Since it's internal we don't directly verify controller, but we can verify it doesn't crash
   });
 
+  it('loadItems starting mid-flight does not abort an in-flight updateItem', async () => {
+    let resolveList;
+    let resolveUpdate;
+    mockAuthFetch
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveUpdate = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveList = resolve;
+          })
+      );
+
+    const resource = useResource('/api/mutation-isolation', { cache: false });
+    resource.items.value = [{ id: 1, name: 'old' }];
+
+    // 变更先发出，随后列表刷新（旧实现会中止共享 signal，把在途变更一起取消）
+    const updatePending = resource.updateItem(1, { name: 'new' });
+    const listPending = resource.loadItems({}, true);
+
+    resolveList({ json: () => Promise.resolve({ success: true, data: [] }) });
+    await expect(listPending).resolves.toBe(true);
+
+    // 列表刷新完成后，在途变更仍应正常完成，而不是被 AbortError 静默吞掉
+    resolveUpdate({ json: () => Promise.resolve({ success: true }) });
+    await expect(updatePending).resolves.toBe(true);
+    expect(mockAddToast).toHaveBeenCalledWith({ message: 'common.updated', type: 'success' });
+  });
+
+  it('loadItems starting mid-flight does not abort an in-flight rawRequest mutation', async () => {
+    let resolveList;
+    let resolveMutation;
+    mockAuthFetch
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveMutation = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveList = resolve;
+          })
+      );
+
+    const resource = useResource('/api/raw-isolation', { cache: false });
+
+    const mutationPending = resource.rawRequest('/1/status', { method: 'PATCH', body: '{}' });
+    const listPending = resource.loadItems({}, true);
+
+    resolveList({ json: () => Promise.resolve({ success: true, data: [] }) });
+    await expect(listPending).resolves.toBe(true);
+
+    resolveMutation({ json: () => Promise.resolve({ success: true }) });
+    await expect(mutationPending).resolves.toMatchObject({ success: true });
+  });
+
   it('rawRequest should use subPath correctly', async () => {
     mockAuthFetch.mockResolvedValue({ json: () => Promise.resolve({ data: 'ok' }) });
     const { rawRequest } = useResource(apiEndpoint);

@@ -81,7 +81,9 @@ export function useAuth() {
   const checkAuth = async (): Promise<boolean> => {
     try {
       isLoading.value = true;
-      const response = await fetch(API.USER, {
+      // 走 http-core 的 request() 以获得 30s 默认超时，
+      // 避免路由守卫被一个永久挂起的请求阻塞
+      const response = await request(API.USER, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -90,13 +92,11 @@ export function useAuth() {
         signal: abortController.signal,
       });
 
-      if (response.ok) {
-        const result: AuthApiResponse = await response.json();
-        if (result.success) {
-          isAuthenticated.value = true;
-          currentUser.value = result.data ?? null;
-          return true;
-        }
+      const result: AuthApiResponse = await response.json();
+      if (result.success) {
+        isAuthenticated.value = true;
+        currentUser.value = result.data ?? null;
+        return true;
       }
 
       // 认证失败
@@ -109,7 +109,14 @@ export function useAuth() {
         console.debug('Auth check aborted');
         return false;
       }
-      console.error('Auth check failed:', error);
+      const status =
+        typeof error === 'object' && error !== null && 'status' in error
+          ? Number((error as Record<string, unknown>).status)
+          : NaN;
+      // 401 属于未登录的常规路径，不作为异常告警
+      if (status !== 401) {
+        console.error('Auth check failed:', error);
+      }
       isAuthenticated.value = false;
       currentUser.value = null;
       return false;

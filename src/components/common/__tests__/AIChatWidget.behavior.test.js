@@ -540,4 +540,38 @@ describe('AIChatWidget behavior', () => {
 
     vi.useRealTimers();
   });
+
+  it('sanitizes report html before opening it as a blob url', async () => {
+    mocks.requestAuth.mockResolvedValueOnce({
+      json: () =>
+        Promise.resolve({
+          data: {
+            html: '<html><head><style>p{color:red}</style></head><body><h1>报告</h1><script>alert(document.cookie)</script><img src="x" onerror="alert(1)"><a href="javascript:alert(1)">x</a></body></html>',
+          },
+        }),
+    });
+
+    const wrapper = createWrapper();
+
+    await wrapper.vm.generateReport();
+    await flushPromises();
+
+    expect(globalThis.URL.createObjectURL).toHaveBeenCalledTimes(1);
+    const blob = globalThis.URL.createObjectURL.mock.calls[0][0];
+    const rendered = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(blob);
+    });
+
+    // 服务端 HTML 必须先消毒才能进 blob: URL（继承应用 origin）
+    expect(rendered).not.toContain('<script');
+    expect(rendered).not.toContain('alert(document.cookie)');
+    expect(rendered).not.toContain('onerror');
+    expect(rendered).not.toContain('javascript:');
+    expect(rendered).toContain('Content-Security-Policy');
+    expect(rendered).toContain('<style>');
+    expect(rendered).toContain('<h1>报告</h1>');
+  });
 });

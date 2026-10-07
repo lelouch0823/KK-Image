@@ -34,9 +34,13 @@ const initialized = ref<boolean>(false);
 const permissionDenied = ref<boolean>(false);
 const permissionDeniedReason = ref<string>('');
 const lastNotificationTime = ref<number>(Date.now()); // SOTA: Signal for auto-refresh
-let pollInterval: ReturnType<typeof setInterval> | null = null;
+let pollTimer: ReturnType<typeof setTimeout> | null = null;
 let pollingOwner: symbol | null = null;
+let consecutivePollFailures = 0;
 let notificationRequestId = 0;
+
+/** 轮询失败退避封顶（5 分钟） */
+const POLL_BACKOFF_MAX_MS = 5 * 60 * 1000;
 
 // 模式和 token 配置
 let currentMode: 'admin' | 'sales' = 'admin';
@@ -53,11 +57,12 @@ export function useNotifications() {
   const ownerId = Symbol('notifications-poll-owner');
 
   const stopActivePolling = (): void => {
-    if (pollInterval) {
-      clearInterval(pollInterval);
-      pollInterval = null;
+    if (pollTimer) {
+      clearTimeout(pollTimer);
+      pollTimer = null;
     }
     pollingOwner = null;
+    consecutivePollFailures = 0;
   };
 
   /**
@@ -203,21 +208,52 @@ export function useNotifications() {
   };
 
   /**
+   * 按当前退避状态排定下一轮轮询
+   * @param interval - 基础轮询间隔 (毫秒)
+   * @param delay - 本次排定的延迟
+   * @param owner - 启动本次轮询周期的所有者（防止过期周期重新排程）
+   */
+  const scheduleNextPoll = (interval: number, delay: number, owner: symbol): void => {
+    if (pollingOwner !== owner) return;
+    pollTimer = setTimeout(() => {
+      pollTimer = null;
+      void runPollCycle(interval, owner);
+    }, delay);
+  };
+
+  /**
+   * 执行一轮轮询并根据结果决定下一轮间隔：
+   * 成功复位为基础间隔；失败按 2^n 指数退避（封顶 POLL_BACKOFF_MAX_MS）；
+   * 轮询期间被停止（403 停止语义 / stopPolling）则不再排程。
+   * 首轮（isInitial）不做隐藏跳过，保证 startPolling 后立即发起首次请求
+   */
+  const runPollCycle = async (interval: number, owner: symbol, isInitial = false): Promise<void> => {
+    if (!isInitial && document.hidden) {
+      // 页面隐藏时跳过本轮，保持基础节奏
+      scheduleNextPoll(interval, interval, owner);
+      return;
+    }
+    const ok = await fetchNotifications();
+    if (pollingOwner !== owner) return;
+    if (ok) {
+      consecutivePollFailures = 0;
+      scheduleNextPoll(interval, interval, owner);
+    } else {
+      consecutivePollFailures += 1;
+      const delay = Math.min(interval * 2 ** consecutivePollFailures, POLL_BACKOFF_MAX_MS);
+      scheduleNextPoll(interval, delay, owner);
+    }
+  };
+
+  /**
    * 启动轮询更新通知
-   * @param interval - 轮询间隔 (毫秒)
+   * @param interval - 基础轮询间隔 (毫秒)
    */
   const startPolling = (interval: number = 10000): void => {
-    if (pollInterval) return;
+    if (pollingOwner) return;
     pollingOwner = ownerId;
-
-    const checkAndFetch = (): void => {
-      if (!document.hidden) {
-        fetchNotifications();
-      }
-    };
-
-    fetchNotifications(); // Initial fetch
-    pollInterval = setInterval(checkAndFetch, interval);
+    consecutivePollFailures = 0;
+    void runPollCycle(interval, ownerId, true);
   };
 
   /**

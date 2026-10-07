@@ -1,4 +1,4 @@
-import { ref, onScopeDispose } from 'vue';
+import { ref, onScopeDispose, getCurrentScope } from 'vue';
 import { useAuth } from '@/composables/useAuth';
 import { useNotifications } from '@/composables/useNotifications';
 import { useToast } from '@/composables/useToast';
@@ -163,10 +163,12 @@ export function useNotificationStream(config: NotificationStreamConfig = {}): No
     isPolling.value = false;
   };
 
-  // 组件卸载时自动停止
-  onScopeDispose(() => {
-    stop();
-  });
+  // 组件卸载时自动停止（与 useNotifications 保持一致，存在活动 effect scope 时才注册）
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stop();
+    });
+  }
 
   return {
     isPolling,

@@ -179,12 +179,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useSearch } from '@/composables/useSearch';
 import { useNotifications } from '@/composables/useNotifications';
-import { useNotificationStream } from '@/composables/useNotificationStream';
 import NotificationList from '@/components/common/NotificationList.vue';
 import { onClickOutside } from '@vueuse/core';
 import { useAI } from '@/composables/useAI';
@@ -192,6 +191,7 @@ import { useAccessControl } from '@/composables/useAccessControl';
 import { useTheme } from '@/composables/useTheme';
 import { useCommandPalette } from '@/composables/useCommandPalette';
 import { useAppRefreshBus } from '@/composables/useAppRefreshBus';
+import { useToast } from '@/composables/useToast';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
@@ -204,6 +204,7 @@ const viewTitle = computed(() => route.meta?.title || t('common.adminPanel', '�
 const { t } = useI18n();
 const { searchQuery } = useSearch();
 const {
+  notifications,
   unreadCount,
   startPolling,
   stopPolling,
@@ -211,9 +212,21 @@ const {
   permissionDenied,
   permissionDeniedReason,
 } = useNotifications();
-const { start: startStream, stop: stopStream } = useNotificationStream({
-  pollInterval: 30000,
-  showToast: true,
+// 单一通知轮询路径：startPolling（全量列表 + 未读数 + 权限处理）是唯一的自动轮询，
+// 不再并行启动 useNotificationStream 的 /poll 轮询（同一资源双倍请求）；
+// 新通知提醒改为监听未读数增长
+const { addToast } = useToast();
+let lastSeenUnreadCount = -1;
+watch(unreadCount, (count) => {
+  // 首次载入（lastSeenUnreadCount 仍为 -1）只记录基线，不提醒
+  if (lastSeenUnreadCount >= 0 && count > lastSeenUnreadCount) {
+    const latest = notifications.value[0];
+    addToast({
+      message: latest?.title || t('notification.newFeedback'),
+      type: 'info',
+    });
+  }
+  lastSeenUnreadCount = count;
 });
 const { isOpen, toggle: toggleAI } = useAI();
 const { hasPermission, loadPermissions } = useAccessControl();
@@ -259,11 +272,9 @@ onMounted(async () => {
   canUseAI.value = hasPermission('stats:read');
   setAdminMode();
   startPolling();
-  startStream();
 });
 
 onUnmounted(() => {
   stopPolling();
-  stopStream();
 });
 </script>
