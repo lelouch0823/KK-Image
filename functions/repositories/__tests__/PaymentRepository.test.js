@@ -34,7 +34,11 @@ describe('PaymentRepository receivable amounts', () => {
     expect(sql).toContain('orders');
     expect(sql).toContain('archived_at IS NULL');
     expect(sql).toContain("status NOT IN ('void', 'rejected')");
-    expect(sql).toContain('COALESCE(SUM(p.amount), 0) + ? <=');
+    // B9：净额（ordered - cancelled）× 单价快照（unit_price 回退当前售价）
+    expect(sql).toContain('COALESCE(ol.unit_price, pv.price, 0)');
+    expect(sql).toContain('ol.cancelled_qty');
+    // B10：浮点边界舍入到 2 位小数后再比较，杜绝 1 分级漂移误判
+    expect(sql).toContain('HAVING ROUND(COALESCE(SUM(p.amount), 0) + ?, 2) <= ROUND(order_amounts.total_amount, 2)');
     expect(sql).toContain('order_amounts.total_amount');
     expect(statement.bind).toHaveBeenCalledWith(
       expect.any(String),

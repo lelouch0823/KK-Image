@@ -114,10 +114,13 @@ export function useSpaces() {
 
   /**
    * 添加文件到空间
+   *
+   * F1：不再发送 section 字段——后端 SpaceAddFilesSchema 是 .strict()，
+   * 多余字段会 400。支持传对象 { fileIds, folderIds }（后端递归展开文件夹）。
    */
-  const addFilesToSpace = async (spaceId: string, fileIds: string[] | AddFilesPayload, section: string = 'default'): Promise<boolean> => {
+  const addFilesToSpace = async (spaceId: string, fileIds: string[] | AddFilesPayload): Promise<boolean> => {
     try {
-      const body = Array.isArray(fileIds) ? { fileIds, section } : { ...fileIds, section }; // 支持传对象 { fileIds, folderIds }
+      const body = Array.isArray(fileIds) ? { fileIds } : { fileIds: fileIds.fileIds, folderIds: fileIds.folderIds };
 
       const res = await authFetch(API.SPACE_FILES(spaceId), {
         method: 'POST',

@@ -177,7 +177,8 @@ export async function updateSalesOrder(
         method: 'PATCH' as SalesRequestOptions['method'],
         data: {
             updates: input.updates,
-            reason: input.reason || '',
+            // F10：reason 是 min(1) 校验——为空时省略字段而不是发送空串
+            ...(input.reason ? { reason: input.reason } : {}),
             ...(input.fileIds ? { fileIds: input.fileIds } : {}),
             ...(input.productId !== undefined ? { productId: input.productId } : {}),
             ...(input.variantId !== undefined ? { variantId: input.variantId } : {}),

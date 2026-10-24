@@ -10,6 +10,7 @@
 import { generateId, now } from '../../api/utils/id.js';
 import { assertOrderStatusTransition } from '../../api/utils/order-state-machine.js';
 import { chunkArray, executeBatchChunks } from '../../lib/db/batch.js';
+import { D1_MAX_BATCH_SIZE } from '../../api/utils/constants.js';
 import { BadRequestError, ConflictError } from '../../lib/hono/errors.js';
 import {
   getPrefetchedOrderLineState,
@@ -175,8 +176,26 @@ export async function create(
     if (stmt) batchStatements.push(stmt);
   }
 
+  // B17：跨块非原子（executeBatchChunks 每块独立事务），大订单中途失败会留下
+  // "订单已建、行不全"的悬挂——超限直接拒绝，与收货命令 countReceiptWriteStatements
+  // 的做法一致。开销：订单 1 + 明细 N + payload 1 + 文件 F + 时间轴 ≤1 条语句
+  assertSingleBatchAtomicity(batchStatements.length, '订单创建');
   await executeBatchChunks(db, batchStatements);
   return { id, orderNo };
+}
+
+/**
+ * B17：组合写入（订单头 + 行 + 文件）必须落在单个 D1 batch 内才算原子。
+ * 超限直接拒绝（400），不静默分块——分块失败会产生"头已写、行不全"的
+ * 悬挂数据，且无事务可回滚。
+ */
+function assertSingleBatchAtomicity(statementCount, operationLabel) {
+  if (statementCount > D1_MAX_BATCH_SIZE) {
+    throw new BadRequestError(
+      `${operationLabel}内容过大（${statementCount} 条写入语句超出单事务上限 ${D1_MAX_BATCH_SIZE}），` +
+        '请减少订单明细或附件数量后提交'
+    );
+  }
 }
 
 /**
@@ -511,6 +530,8 @@ export async function updateComposite(
     });
   }
 
+  // B17：与 create() 同理，组合更新必须单事务原子
+  assertSingleBatchAtomicity(statements.length, '订单更新');
   try {
     await executeBatchChunks(db, statements);
   } catch (error) {

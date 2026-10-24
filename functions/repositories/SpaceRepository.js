@@ -280,8 +280,10 @@ export class SpaceRepository {
      * @param fileIds 文件 ID 列表
      */
     async addFiles(spaceId, fileIds) {
+        // INSERT OR IGNORE：space_files 有 UNIQUE(space_id, file_id)，
+        // 重复添加（含 folderIds 展开后与已选文件的交集）幂等跳过而非报错
         const statements = fileIds.map((fileId, index) => this.db
-            .prepare('INSERT INTO space_files (space_id, file_id, sort_order, added_at) VALUES (?, ?, ?, ?)')
+            .prepare('INSERT OR IGNORE INTO space_files (space_id, file_id, sort_order, added_at) VALUES (?, ?, ?, ?)')
             .bind(spaceId, fileId, index, Date.now()));
         await executeBatchChunks(this.db, statements);
         // Update space updated_at

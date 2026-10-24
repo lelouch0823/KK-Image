@@ -289,44 +289,67 @@ app.post('/batch', zValidator('json', BatchCreateOrderSchema), async (c) => {
 
     if (orders && orders.length > 0) {
       const demandService = new DemandService(env.DB);
+      // B11：单订单的同步/清算失败不得中断其余订单——状态已由
+      // batchUpdateStatus 全量提交，中途抛错会让后续订单的需求预留
+      // 永久滞留。逐单捕获、记录失败明细，最终随响应返回供人工重试
+      const syncFailures = [];
       for (const order of orders) {
-        const detail = await repo.findById(order.id);
-        if (!detail) continue;
+        try {
+          const detail = await repo.findById(order.id);
+          if (!detail) continue;
 
-        if (Array.isArray(detail.lines) && detail.lines.length > 1) {
-          await syncOrderDemandTransitionsByLines(demandService, {
-            orderId: order.id,
-            previousStatus: order.status,
-            nextStatus: normalizedStatus,
-            previousLines: detail.lines,
-            nextLines: detail.lines,
-            previousFallback: {
-              productId: detail.productId,
-              variantId: detail.variantId,
-              quantity: detail.quantity,
-            },
-            nextFallback: {
-              productId: detail.productId,
-              variantId: detail.variantId,
-              quantity: detail.quantity,
-            },
+          if (Array.isArray(detail.lines) && detail.lines.length > 1) {
+            await syncOrderDemandTransitionsByLines(demandService, {
+              orderId: order.id,
+              previousStatus: order.status,
+              nextStatus: normalizedStatus,
+              previousLines: detail.lines,
+              nextLines: detail.lines,
+              previousFallback: {
+                productId: detail.productId,
+                variantId: detail.variantId,
+                quantity: detail.quantity,
+              },
+              nextFallback: {
+                productId: detail.productId,
+                variantId: detail.variantId,
+                quantity: detail.quantity,
+              },
+            });
+          } else {
+            await syncOrderDemandTransitions(demandService, {
+              orderId: order.id,
+              previousStatus: order.status,
+              nextStatus: normalizedStatus,
+              previousQuantity: detail.quantity,
+              nextQuantity: detail.quantity,
+              previousVariantId: detail.variantId,
+              nextVariantId: detail.variantId,
+            });
+          }
+
+          // 终态清算：void/rejected 时释放行级预留（B-H1，与订单级释放互补）
+          await maybeReleaseLineReservations(env.DB, order.id, order.status, normalizedStatus, {
+            actorName,
           });
-        } else {
-          await syncOrderDemandTransitions(demandService, {
+        } catch (error) {
+          console.error(
+            `[batchUpdateStatus] post-commit sync failed for order ${order.id}:`,
+            error
+          );
+          syncFailures.push({
             orderId: order.id,
-            previousStatus: order.status,
-            nextStatus: normalizedStatus,
-            previousQuantity: detail.quantity,
-            nextQuantity: detail.quantity,
-            previousVariantId: detail.variantId,
-            nextVariantId: detail.variantId,
+            orderNo: order.order_no || null,
+            error: String(error?.message || error),
           });
         }
-
-        // 终态清算：void/rejected 时释放行级预留（B-H1，与订单级释放互补）
-        await maybeReleaseLineReservations(env.DB, order.id, order.status, normalizedStatus, {
-          actorName,
-        });
+      }
+      if (syncFailures.length > 0) {
+        console.warn(
+          `[batchUpdateStatus] ${syncFailures.length}/${orders.length} orders failed post-commit sync`,
+          syncFailures
+        );
+        c.set('batchSyncFailures', syncFailures);
       }
     }
 
@@ -372,9 +395,18 @@ app.post('/batch', zValidator('json', BatchCreateOrderSchema), async (c) => {
     },
   });
 
+  // B11：状态已提交但部分订单的预留同步失败时，明确告知调用方
+  //（success 仍为 true——状态变更本身已生效，失败的是补偿性同步）
+  const batchSyncFailures = c.get('batchSyncFailures') || [];
   return c.json({
     success: true,
     message: MSG.ORDER.BATCH_RESULT.replace('{valid}', normalizedIds.length),
+    ...(batchSyncFailures.length > 0
+      ? {
+          warning: `${batchSyncFailures.length} 个订单的库存预留同步失败，请重试或人工核对`,
+          syncFailures: batchSyncFailures,
+        }
+      : {}),
   });
 });
 

@@ -185,6 +185,17 @@ export class CommandIdempotencyRepository {
       .bind(commandType, scopeKey, idempotencyKey, staleBefore);
   }
 
+  /**
+   * 构建命令终结语句（B15 守卫：仅 in_flight 可终结）。
+   *
+   * 不带状态条件的旧形态存在两个问题：
+   * 1. 执行超过 staleMs 的命令被接管重跑后，旧进程的 finalize 会命中
+   *    接管者新插入的记录吗？不会（command_id 不同）——但会静默 0 命中，
+   *    双执行的痕迹完全丢失；加上 status 条件后，调用方可通过
+   *    meta.changes === 0 感知"记录已被接管/已终结"并输出告警；
+   * 2. 已 committed 的记录理论上不可再被改写，状态条件在数据库层
+   *    固化这一不变量。
+   */
   buildFinalizeStatement(commandId, responseJson, status = 'committed') {
     const timestamp = this.now();
 
@@ -194,7 +205,8 @@ export class CommandIdempotencyRepository {
          SET response_json = ?,
              status = ?,
              updated_at = ?
-         WHERE command_id = ?`
+         WHERE command_id = ?
+           AND status = 'in_flight'`
       )
       .bind(
         responseJson == null ? null : JSON.stringify(responseJson),

@@ -13,6 +13,36 @@ function classifyStatusCode(statusCode) {
   return 'retryable';
 }
 
+/**
+ * 流式读取响应体前缀（B14）。
+ *
+ * response.text() 会把整个 body 缓冲进内存再做 substring——恶意/异常
+ * 端点返回超大响应会打爆 Worker 内存。此处按流分块解码，读满上限
+ * 字符即 cancel；无流（mock/异常运行时）时回退 text() 截断。
+ */
+async function readBodyPrefix(response, maxChars) {
+  try {
+    const reader = response?.body?.getReader?.();
+    if (!reader) {
+      return (await response.text()).substring(0, maxChars);
+    }
+    const decoder = new TextDecoder();
+    let text = '';
+    while (text.length < maxChars) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      text += decoder.decode(value, { stream: true });
+    }
+    if (text.length >= maxChars) {
+      await reader.cancel().catch(() => {});
+      return text.slice(0, maxChars);
+    }
+    return text + decoder.decode();
+  } catch {
+    return '';
+  }
+}
+
 const DEFAULT_ENDPOINT_CONCURRENCY = 4;
 
 function shouldAllowLocalhostWebhook(env = {}) {
@@ -134,8 +164,9 @@ export class WebhookDeliveryService {
           const durationMs = Math.max(this.now() - startedAt, 0);
           const classification = classifyStatusCode(response.status);
           const success = classification === 'delivered';
-          // 限制响应体读取长度，避免读取过大响应体
-          const responseText = (await response.text()).substring(0, 2000);
+          // B14：流式截断读取——response.text() 会把整个响应体缓冲进内存，
+          // 恶意/异常端点返回超大 body 会打爆 Worker；读满上限即 cancel 流
+          const responseText = await readBodyPrefix(response, 2000);
           const nextRetryAt = classification === 'retryable' ? this.now() + 60_000 : null;
 
           const attemptResult = {

@@ -205,8 +205,9 @@ describe('OrderLineCommandPanel', () => {
     expect(wrapper.get('[data-testid="line-command-return"]').attributes('disabled')).toBeDefined();
   });
 
-  it('disables return until delivery has been confirmed', async () => {
-    const wrapper = mount(OrderLineCommandPanel, {
+  it('disables return until delivery has been confirmed (F3: fulfilled 放行对齐后端)', async () => {
+    // 后端 assertReturnAllowed：orderStatus === 'fulfilled' 等同已交付直接放行
+    const fulfilledWrapper = mount(OrderLineCommandPanel, {
       props: {
         orderStatus: 'fulfilled',
         deliveryStatus: 'in_transit',
@@ -222,8 +223,51 @@ describe('OrderLineCommandPanel', () => {
         },
       },
     });
+    expect(
+      fulfilledWrapper.get('[data-testid="line-command-return"]').attributes('disabled')
+    ).toBeUndefined();
 
-    expect(wrapper.get('[data-testid="line-command-return"]').attributes('disabled')).toBeDefined();
+    // 未到 fulfilled 且交付未确认：禁止退回
+    const inTransitWrapper = mount(OrderLineCommandPanel, {
+      props: {
+        orderStatus: 'shipping',
+        deliveryStatus: 'in_transit',
+        line: {
+          id: 'line-5c',
+          variantId: 'var-5',
+          orderedQuantity: 5,
+          receivedQuantity: 5,
+          reservedQuantity: 0,
+          shippedQuantity: 2,
+          returnedQuantity: 0,
+          cancelledQuantity: 0,
+        },
+      },
+    });
+    expect(
+      inTransitWrapper.get('[data-testid="line-command-return"]').attributes('disabled')
+    ).toBeDefined();
+
+    // F3：部分退货后仍可继续退（partially_returned 不再拦截）
+    const partiallyReturnedWrapper = mount(OrderLineCommandPanel, {
+      props: {
+        orderStatus: 'delivered',
+        deliveryStatus: 'partially_returned',
+        line: {
+          id: 'line-5d',
+          variantId: 'var-5',
+          orderedQuantity: 5,
+          receivedQuantity: 5,
+          reservedQuantity: 0,
+          shippedQuantity: 5,
+          returnedQuantity: 2,
+          cancelledQuantity: 0,
+        },
+      },
+    });
+    expect(
+      partiallyReturnedWrapper.get('[data-testid="line-command-return"]').attributes('disabled')
+    ).toBeUndefined();
   });
 
   it('caps return quantity by shipped minus already returned quantity', async () => {

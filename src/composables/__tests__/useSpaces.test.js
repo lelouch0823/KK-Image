@@ -143,18 +143,20 @@ describe('useSpaces Composable', () => {
 
     const { addFilesToSpace, removeFilesFromSpace, reorderSpaceFiles } = useSpaces();
 
-    await expect(addFilesToSpace('space-1', ['file-1', 'file-2'], 'hero')).resolves.toBe(true);
+    // F1：不再发送 section（后端 .strict() schema 会 400）；
+    // folderIds 由后端递归展开为文件
+    await expect(addFilesToSpace('space-1', ['file-1', 'file-2'])).resolves.toBe(true);
     expect(mockAuthFetch).toHaveBeenNthCalledWith(
       1,
       '/api/spaces/space-1/files',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ fileIds: ['file-1', 'file-2'], section: 'hero' }),
+        body: JSON.stringify({ fileIds: ['file-1', 'file-2'] }),
       })
     );
 
     await expect(
-      addFilesToSpace('space-1', { fileIds: ['file-3'], folderIds: ['folder-1'] }, 'detail')
+      addFilesToSpace('space-1', { fileIds: ['file-3'], folderIds: ['folder-1'] })
     ).resolves.toBe(true);
     expect(mockAuthFetch).toHaveBeenNthCalledWith(
       2,
@@ -164,7 +166,6 @@ describe('useSpaces Composable', () => {
         body: JSON.stringify({
           fileIds: ['file-3'],
           folderIds: ['folder-1'],
-          section: 'detail',
         }),
       })
     );

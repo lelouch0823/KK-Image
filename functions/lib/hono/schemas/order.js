@@ -65,6 +65,9 @@ export const UpdateAdminOrderSchema = z
     productId: z.string().nullable().optional(),
     variantId: z.string().nullable().optional(),
     force: z.boolean().optional(),
+    // F12：乐观并发控制——调用方回传读取时的 updated_at，不匹配则 409，
+    // 防止两个管理员同时编辑同一订单互相静默覆盖（last-write-wins）
+    expectedUpdatedAt: z.number().int().nonnegative().nullable().optional(),
   })
   .strict();
 

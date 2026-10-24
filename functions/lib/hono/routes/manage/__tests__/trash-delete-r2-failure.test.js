@@ -120,6 +120,7 @@ describe('trash delete/empty R2 failure semantics (B-M6)', () => {
 
   describe('POST /delete', () => {
     it('aborts before deleteRecursive when a folder R2 object fails to delete', async () => {
+      mocks.folderFindById.mockResolvedValue({ id: 'folder-a', deleted_at: 100 });
       mocks.folderGetAllStorageKeysRecursive.mockResolvedValue(['folders/a/1.png', 'folders/a/2.png']);
       const r2 = createR2({ failOn: 'folders/a/2.png' });
       const env = { DB: createEnvDb(), R2_BUCKET: r2 };
@@ -141,10 +142,10 @@ describe('trash delete/empty R2 failure semantics (B-M6)', () => {
       expect(mocks.scheduleAuditEvent).not.toHaveBeenCalled();
     });
 
-    it('aborts before deleteBatch when a plain file R2 object fails to delete', async () => {
+    it('claims the DB row first, then surfaces R2 failure (resumable retry, B13)', async () => {
       const r2 = createR2({ failOn: 'files/1.png' });
       const env = {
-        DB: createEnvDb({ fileRows: [{ storage_key: 'files/1.png', content_hash: null }] }),
+        DB: createEnvDb({ fileRows: [{ id: 'file-1', storage_key: 'files/1.png', content_hash: null, deleted_at: 1 }] }),
         R2_BUCKET: r2,
       };
 
@@ -159,14 +160,18 @@ describe('trash delete/empty R2 failure semantics (B-M6)', () => {
         executionCtx
       );
 
+      // B13：行删除是认领（重试时 SELECT 不再返回该行，天然幂等）；
+      // R2 失败向上抛出，对象泄漏方向保守（可对账），不产生
+      // "对象已删、行仍在 → 重试双重扣减引用"的旧风险
       expect(res.status).toBe(500);
-      expect(mocks.fileDeleteBatch).not.toHaveBeenCalled();
+      expect(mocks.fileDeleteBatch).toHaveBeenCalledWith(['file-1']);
+      expect(r2.delete).toHaveBeenCalledWith('files/1.png');
     });
 
-    it('aborts before deleteBatch when the CAS blob R2 object fails to delete', async () => {
+    it('claims the DB row first, then surfaces blob refcount failure (B13)', async () => {
       mocks.decrementRefCount.mockRejectedValue(new Error('R2 internal error'));
       const env = {
-        DB: createEnvDb({ fileRows: [{ storage_key: 'hash-1', content_hash: 'hash-1' }] }),
+        DB: createEnvDb({ fileRows: [{ id: 'file-1', storage_key: 'hash-1', content_hash: 'hash-1', deleted_at: 1 }] }),
         R2_BUCKET: createR2(),
       };
 
@@ -182,14 +187,40 @@ describe('trash delete/empty R2 failure semantics (B-M6)', () => {
       );
 
       expect(res.status).toBe(500);
+      expect(mocks.fileDeleteBatch).toHaveBeenCalledWith(['file-1']);
+    });
+
+    it('silently skips active (non-trashed) file ids — trash-only lifecycle guard (B5)', async () => {
+      const r2 = createR2();
+      const env = {
+        // SELECT 的 deleted_at IS NOT NULL 过滤在真实 DB 生效；mock 直接
+        // 返回空（模拟活跃 id 被过滤后的结果）
+        DB: createEnvDb({ fileRows: [] }),
+        R2_BUCKET: r2,
+      };
+
+      const res = await createApp().request(
+        'http://localhost/api/manage/trash/delete',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileIds: ['file-1'], folderIds: [] }),
+        },
+        env,
+        executionCtx
+      );
+
+      expect(res.status).toBe(200);
       expect(mocks.fileDeleteBatch).not.toHaveBeenCalled();
+      expect(r2.delete).not.toHaveBeenCalled();
     });
 
     it('keeps deleting DB records when R2 objects are missing (idempotent delete)', async () => {
+      mocks.folderFindById.mockResolvedValue({ id: 'folder-a', deleted_at: 100 });
       const r2 = createR2();
       const env = {
         DB: createEnvDb({
-          fileRows: [{ storage_key: 'files/gone.png', content_hash: null }],
+          fileRows: [{ id: 'file-1', storage_key: 'files/gone.png', content_hash: null, deleted_at: 1 }],
           folderFileIds: ['file-1'],
         }),
         R2_BUCKET: r2,
@@ -213,8 +244,10 @@ describe('trash delete/empty R2 failure semantics (B-M6)', () => {
   });
 
   describe('DELETE /empty', () => {
-    it('aborts before deleteBatch when a trashed file R2 object fails to delete', async () => {
-      mocks.fileFindTrash.mockResolvedValue([{ id: 'file-1', storage_key: 'files/1.png' }]);
+    it('claims DB rows first, then surfaces R2 failure (resumable retry, B13)', async () => {
+      mocks.fileFindTrash.mockResolvedValue([
+        { id: 'file-1', storage_key: 'files/1.png', content_hash: null, deleted_at: 1 },
+      ]);
       const r2 = createR2({ failOn: '*' });
       const env = { DB: createEnvDb(), R2_BUCKET: r2 };
 
@@ -226,13 +259,13 @@ describe('trash delete/empty R2 failure semantics (B-M6)', () => {
       );
 
       expect(res.status).toBe(500);
-      expect(mocks.fileDeleteBatch).not.toHaveBeenCalled();
+      expect(mocks.fileDeleteBatch).toHaveBeenCalledWith(['file-1']);
       expect(mocks.scheduleAuditEvent).not.toHaveBeenCalled();
     });
 
     it('aborts before deleteRecursive when a trashed folder R2 object fails to delete', async () => {
       mocks.folderFindTrash.mockResolvedValue([{ id: 'folder-a' }]);
-      mocks.folderFindById.mockResolvedValue({ id: 'folder-a' });
+      mocks.folderFindById.mockResolvedValue({ id: 'folder-a', deleted_at: 100 });
       mocks.folderGetAllStorageKeysRecursive.mockResolvedValue(['folders/a/1.png']);
       const r2 = createR2({ failOn: 'folders/a/1.png' });
       const env = { DB: createEnvDb(), R2_BUCKET: r2 };
@@ -283,7 +316,7 @@ describe('trash cache invalidation', () => {
 
   it('schedules trash-scope invalidation after a successful delete', async () => {
     const env = {
-      DB: createEnvDb({ fileRows: [{ storage_key: 'files/1.png', content_hash: null }] }),
+      DB: createEnvDb({ fileRows: [{ id: 'file-1', storage_key: 'files/1.png', content_hash: null, deleted_at: 1 }] }),
       R2_BUCKET: createR2(),
     };
 

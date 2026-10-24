@@ -129,6 +129,7 @@
                   v-if="selectedVariantKey"
                   v-model="variantImagesForUploader"
                   :upload-endpoint="API.MANAGE_UPLOAD"
+                  :check-hash-endpoint="API.CHECK_HASH"
                   :max-files="10"
                   context="variant"
                   :deferred="false"

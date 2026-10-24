@@ -10,6 +10,7 @@ import { ProductProjectionRefreshService } from './ProductProjectionRefreshServi
 import { queryOrderLineCandidates, resolveOrderLineId } from './order-line-shared.js';
 import {
   buildBalanceDeltaUpsertStatement,
+  buildChangesAssertionStatement,
   buildVariantStockDeltaStatement,
   normalizeInventoryWriteError,
 } from './_shared/inventory-write-statements.js';
@@ -90,6 +91,12 @@ export class InventoryService {
     const ledgerId = generateId();
     const inventoryEventId = generateId();
 
+    const stockDeltaStatement = buildVariantStockDeltaStatement(this.db, {
+      variantId: mutation.variantId,
+      quantityDelta: mutation.quantityDelta,
+      timestamp,
+    });
+
     return {
       mutation,
       orderLineId,
@@ -100,13 +107,11 @@ export class InventoryService {
       inventoryEventId,
       timestamp,
       statements: [
-        // 负增量带下限守卫（changes()=0 → 断言语句失败 → batch 回滚）；
-        // 不做 MAX(0,…) 钳制——负库存必须失败而不是静默归零
-        buildVariantStockDeltaStatement(this.db, {
-          variantId: mutation.variantId,
-          quantityDelta: mutation.quantityDelta,
-          timestamp,
-        }).statement,
+        // 负增量带下限守卫；紧随 changes() 断言：谓词不满足时 UPDATE 命中
+        // 0 行，没有断言的话 batch 会静默通过，product_variants.stock_quantity
+        // 与 inventory_balances.on_hand 在两表基线漂移时永久背离（审查 B12）
+        stockDeltaStatement.statement,
+        ...(stockDeltaStatement.guarded ? [buildChangesAssertionStatement(this.db)] : []),
         // 余额相对增量，越限由 0099 CHECK 约束拒绝；available 恒等重算
         buildBalanceDeltaUpsertStatement(this.db, {
           variantId: mutation.variantId,
@@ -173,6 +178,16 @@ export class InventoryService {
       );
     }
     return mutation;
+  }
+
+  /**
+   * 刷新变体的商品投影。供绕过 applyBatch、自行按块执行语句的调用方
+   * （如盘点调整的项级幂等路径）在全部块提交后统一刷新。
+   */
+  async refreshProjections(variantIds = []) {
+    const ids = [...new Set((variantIds || []).filter(Boolean))];
+    if (ids.length === 0) return;
+    await this.productProjectionRefreshService.refreshByVariantIds(ids);
   }
 
   async applyBatch(mutations = []) {

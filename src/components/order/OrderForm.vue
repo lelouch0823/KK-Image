@@ -49,6 +49,7 @@
         :label="t('order.form.uploadImages')"
         :hint="t('order.form.uploadHint')"
         :upload-endpoint="uploadEndpoint"
+        :check-hash-endpoint="checkHashEndpoint"
         :deferred="true"
       />
 
@@ -366,6 +367,7 @@ const {
   isValid: isFormValid,
   progressText,
   uploadEndpoint,
+  checkHashEndpoint,
   nameSuggestions,
   brandSuggestions,
   seriesSuggestions,

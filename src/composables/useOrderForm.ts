@@ -229,6 +229,10 @@ export function useOrderForm(options: OrderFormOptions = {}) {
     }
     return API.SALES_UPLOAD(salesToken.value || '');
   });
+  // F8：check-hash 只有管理端接口；销售端无对应端点，传空跳过预检查
+  const checkHashEndpoint: ComputedRef<string> = computed(() =>
+    options.isSalesMode === false ? API.CHECK_HASH : ''
+  );
 
   const normalizedLineStates: ComputedRef<NormalizedLineState[]> = computed(() =>
     lines.value.map((line) => {
@@ -447,6 +451,7 @@ export function useOrderForm(options: OrderFormOptions = {}) {
     isValid,
     progressText,
     uploadEndpoint,
+    checkHashEndpoint,
     nameSuggestions,
     brandSuggestions,
     seriesSuggestions,

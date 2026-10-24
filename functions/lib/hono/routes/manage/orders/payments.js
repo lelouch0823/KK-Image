@@ -60,9 +60,19 @@ function assertOrderIsActiveForMutation(order) {
   }
 }
 
+// 金额约束：最多两位小数（审查 B10）。金额以 REAL 存储传输，入口限制
+// 小数位可在浮点累加边界（收款上限/退款净额守卫已 ROUND 到分）之外，
+// 杜绝 0.001 这类 sub-cent 输入在多次累加后产生可见漂移
+const moneyAmount = z
+  .number()
+  .positive('金额必须大于 0')
+  .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, {
+    message: '金额最多两位小数',
+  });
+
 // 付款记录创建 Schema
 const CreatePaymentSchema = z.object({
-  amount: z.number().positive('金额必须大于 0'),
+  amount: moneyAmount,
   method: z.enum(PAYMENT_METHODS).default('cash'),
   referenceNo: z.string().max(100).optional().nullable(),
   notes: z.string().max(500).optional().nullable(),
@@ -70,7 +80,7 @@ const CreatePaymentSchema = z.object({
 
 // 退款 Schema（退款以负额入账，amount 为正数输入）
 const CreateRefundSchema = z.object({
-  amount: z.number().positive('退款金额必须大于 0'),
+  amount: moneyAmount,
   method: z.enum(PAYMENT_METHODS).default('cash'),
   referenceNo: z.string().max(100).optional().nullable(),
   notes: z.string().max(500).optional().nullable(),

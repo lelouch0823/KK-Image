@@ -92,6 +92,7 @@
             ref="uploaderRef"
             v-model="uploadedFiles"
             :upload-endpoint="uploadEndpoint"
+            :check-hash-endpoint="checkHashEndpoint"
             :max-files="9"
             deferred
           />
@@ -696,6 +697,11 @@ const uploadEndpoint = computed(() => {
   }
   return orderId ? `${API.MANAGE_UPLOAD}?orderId=${orderId}` : API.MANAGE_UPLOAD;
 });
+
+// F8：check-hash 仅有管理端接口；销售端传空跳过预检查（否则必 401）
+const checkHashEndpoint = computed(() =>
+  props.mode === 'sales' ? '' : API.CHECK_HASH
+);
 
 const isValid = computed(() => {
   if (!hasChanges.value) return false;

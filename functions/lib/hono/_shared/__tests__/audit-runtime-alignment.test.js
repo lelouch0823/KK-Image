@@ -538,6 +538,8 @@ describe('audit runtime alignment', () => {
         syncDemand: vi.fn(async () => undefined),
         archiveFiles: vi.fn(async () => undefined),
         publishEvents: vi.fn(async () => []),
+        // F6：主图回填解析（服务契约扩展）
+        resolveBoundMainImageFileId: vi.fn(async () => null),
       })),
     }));
     vi.doMock('../../../../api/cron/outbox.js', () => ({

@@ -385,7 +385,14 @@ export async function assertOrderStatusCompatibleWithLines(
     throw new BadRequestError(ORDER_DELIVERED_COMPLETENESS_ERROR);
   }
 
-  if (normalizedStatus === 'void' && shippedQty > 0) {
+  // void 与 rejected 同为"取消类"终态（DemandService.DEMAND_RELEASE_STATUSES）：
+  // 已发货的履约事实不可被静默取消——rejected 若放行，deriveCompatibilityLineState
+  // 会把 cancelled_qty 抬到 ordered 而行上仍保留 shipped_qty，进度自相矛盾
+  //（审查 B6）
+  if (
+    (normalizedStatus === 'void' || normalizedStatus === 'rejected') &&
+    shippedQty > 0
+  ) {
     throw new BadRequestError(ORDER_SHIPPED_VOID_GUARD_ERROR);
   }
 }
@@ -575,6 +582,7 @@ export function buildOrderLineInsertStatement(db, { orderId, line, status, mainI
             order_id,
             product_id,
             variant_id,
+            unit_price,
             snapshot_name,
             snapshot_sku,
             snapshot_specs,
@@ -589,13 +597,16 @@ export function buildOrderLineInsertStatement(db, { orderId, line, status, mainI
             created_at,
             updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, (SELECT price FROM product_variants WHERE id = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `
     )
     .bind(
       orderLineId,
       orderId,
       line.productId,
+      line.variantId || null,
+      // 单价快照（迁移 0106）：下单时点的变体售价，后续改价不追溯影响
+      // 该订单的应收/收款上限与收入统计（审查 B9）
       line.variantId || null,
       line.data.name || '',
       line.data.sku || null,

@@ -412,14 +412,15 @@ describe('Order Mutations SQL Binding', () => {
       expect(bindArgs[1]).toBe(params.id); // order_id
       expect(bindArgs[2]).toBe(params.productId);
       expect(bindArgs[3]).toBe(params.variantId);
-      expect(bindArgs[4]).toBe(params.data.name);
-      expect(bindArgs[5]).toBe(params.data.sku);
-      expect(bindArgs[7]).toBe(params.mainImageId);
-      expect(bindArgs[8]).toBe(3);
-      expect(bindArgs[9]).toBe(0);
-      expect(bindArgs[14]).toBe('unprocured');
+      expect(bindArgs[4]).toBe(params.variantId); // unit_price 快照子查询参数
+      expect(bindArgs[5]).toBe(params.data.name);
+      expect(bindArgs[6]).toBe(params.data.sku);
+      expect(bindArgs[8]).toBe(params.mainImageId);
+      expect(bindArgs[9]).toBe(3);
+      expect(bindArgs[10]).toBe(0);
+      expect(bindArgs[15]).toBe('unprocured');
 
-      const snapshotSpecs = JSON.parse(bindArgs[6]);
+      const snapshotSpecs = JSON.parse(bindArgs[7]);
       expect(snapshotSpecs).toEqual({
         category: 'Outerwear',
         size: 'L',
@@ -447,7 +448,7 @@ describe('Order Mutations SQL Binding', () => {
       const orderLineBindArgs = db.bind.mock.calls[1];
 
       expect(orderBindArgs[8]).toBe(1);
-      expect(orderLineBindArgs[8]).toBe(1);
+      expect(orderLineBindArgs[9]).toBe(1); // ordered_qty（unit_price 快照占位后移）
     });
 
     it('seeds arrived orders with ready line progress instead of unprocured defaults', async () => {
@@ -463,33 +464,53 @@ describe('Order Mutations SQL Binding', () => {
       await create(db, timelineRepo, params);
 
       const orderLineBindArgs = db.bind.mock.calls[1];
-      expect(orderLineBindArgs[8]).toBe(2);
+      // 索引整体后移 1 位：unit_price 快照占位插在 variant_id（索引 3）之后
       expect(orderLineBindArgs[9]).toBe(2);
       expect(orderLineBindArgs[10]).toBe(2);
-      expect(orderLineBindArgs[11]).toBe(0);
+      expect(orderLineBindArgs[11]).toBe(2);
       expect(orderLineBindArgs[12]).toBe(0);
       expect(orderLineBindArgs[13]).toBe(0);
-      expect(orderLineBindArgs[14]).toBe('ready');
+      expect(orderLineBindArgs[14]).toBe(0);
+      expect(orderLineBindArgs[15]).toBe('ready');
     });
 
-    it('chunks large order create batches into D1-safe sizes when many files are attached', async () => {
+    it('rejects order create payloads that exceed a single atomic D1 batch (B17)', async () => {
       const batchDb = createBatchAwareDb();
       const fileIds = Array.from({ length: 205 }, (_, index) => `file-${index + 1}`);
 
+      // 跨块非原子（每块独立事务）会在中途失败时留下"订单已建、行不全"
+      // 的悬挂；B17 起超限直接拒绝，不再静默分块
+      await expect(
+        create(batchDb, timelineRepo, {
+          id: 'o-many-files',
+          orderNo: 'no-many-files',
+          salespersonId: 's-1',
+          data: { name: 'Many Files' },
+          status: 'pending',
+          quantity: 1,
+          fileIds,
+        })
+      ).rejects.toThrow(/单事务上限/);
+
+      expect(batchDb.batch).not.toHaveBeenCalled();
+    });
+
+    it('still writes large-but-within-limit create batches as one atomic batch', async () => {
+      const batchDb = createBatchAwareDb();
+      const fileIds = Array.from({ length: 90 }, (_, index) => `file-${index + 1}`);
+
       await create(batchDb, timelineRepo, {
-        id: 'o-many-files',
-        orderNo: 'no-many-files',
+        id: 'o-ok-files',
+        orderNo: 'no-ok-files',
         salespersonId: 's-1',
-        data: { name: 'Many Files' },
+        data: { name: 'OK Files' },
         status: 'pending',
         quantity: 1,
         fileIds,
       });
 
-      expect(batchDb.batch).toHaveBeenCalledTimes(3);
-      expect(
-        Math.max(...batchDb.batchCalls.map((statements) => statements.length))
-      ).toBeLessThanOrEqual(100);
+      expect(batchDb.batch).toHaveBeenCalledTimes(1);
+      expect(batchDb.batchCalls[0].length).toBeLessThanOrEqual(100);
     });
 
     it('creates multiple order_lines rows and rolls total quantity into the order header when lines are provided', async () => {
@@ -518,12 +539,13 @@ describe('Order Mutations SQL Binding', () => {
       );
 
       expect(lineInsertStatements).toHaveLength(2);
-      expect(lineInsertStatements[0].params[4]).toBe('Line A');
-      expect(lineInsertStatements[0].params[5]).toBe('SKU-A');
-      expect(lineInsertStatements[0].params[8]).toBe(2);
-      expect(lineInsertStatements[1].params[4]).toBe('Line B');
-      expect(lineInsertStatements[1].params[5]).toBe('SKU-B');
-      expect(lineInsertStatements[1].params[8]).toBe(3);
+      // params 索引后移 1：unit_price 快照占位插在 variant_id（索引 3）之后
+      expect(lineInsertStatements[0].params[5]).toBe('Line A');
+      expect(lineInsertStatements[0].params[6]).toBe('SKU-A');
+      expect(lineInsertStatements[0].params[9]).toBe(2);
+      expect(lineInsertStatements[1].params[5]).toBe('Line B');
+      expect(lineInsertStatements[1].params[6]).toBe('SKU-B');
+      expect(lineInsertStatements[1].params[9]).toBe(3);
     });
   });
 
@@ -824,12 +846,13 @@ describe('Order Mutations SQL Binding', () => {
       expect(deleteLineStatement).toBeTruthy();
       expect(deleteLineStatement.params).toEqual(['o-multi-update']);
       expect(lineInsertStatements).toHaveLength(2);
-      expect(lineInsertStatements[0].params[4]).toBe('Line A');
-      expect(lineInsertStatements[0].params[5]).toBe('SKU-A');
-      expect(lineInsertStatements[0].params[8]).toBe(2);
-      expect(lineInsertStatements[1].params[4]).toBe('Line B');
-      expect(lineInsertStatements[1].params[5]).toBe('SKU-B');
-      expect(lineInsertStatements[1].params[8]).toBe(3);
+      // params 索引后移 1：unit_price 快照占位插在 variant_id（索引 3）之后
+      expect(lineInsertStatements[0].params[5]).toBe('Line A');
+      expect(lineInsertStatements[0].params[6]).toBe('SKU-A');
+      expect(lineInsertStatements[0].params[9]).toBe(2);
+      expect(lineInsertStatements[1].params[5]).toBe('Line B');
+      expect(lineInsertStatements[1].params[6]).toBe('SKU-B');
+      expect(lineInsertStatements[1].params[9]).toBe(3);
     });
 
     it('updateComposite rejects a structural rewrite up front when prefetched lines carry fulfillment progress', async () => {

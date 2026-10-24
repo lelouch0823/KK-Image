@@ -1,10 +1,6 @@
 import { toNonNegativeInt } from '../../api/utils/number.js';
 import { getDomainEventDefinition } from '../DomainEventCatalog.js';
 import { projectOrderLineStatus } from '../OrderStatusProjectionService.js';
-import {
-  buildBalanceDeltaUpsertStatement,
-  buildGuardedHoldUpsertStatement,
-} from '../_shared/inventory-write-statements.js';
 
 export function buildNextLineState(line, overrides = {}) {
   const next = {
@@ -56,85 +52,10 @@ export function buildShipmentLedgerStatement(db, uuidFn, {
     );
 }
 
-export function buildReservationMovementStatements(db, uuidFn, {
-  variantId,
-  orderId,
-  lineId,
-  quantityDelta,
-  eventType,
-  timestamp,
-  metadata = {},
-}) {
-  const ledgerId = uuidFn();
-  const inventoryEventId = uuidFn();
-
-  return {
-    inventoryEventId,
-    statements: [
-      // 行级预留是硬预留：持有可能力守卫（on_hand - reserved >= 增量），
-      // 两个并发 reserve 同时通过 batch 外容量检查时由 WHERE 谓词 + changes()
-      // 断言仲裁（审查 C-H2）；释放（负增量）由 CHECK(reserved >= 0) 兜底
-      ...(quantityDelta > 0
-        ? buildGuardedHoldUpsertStatement(db, {
-            variantId,
-            reservedDelta: quantityDelta,
-            timestamp,
-          })
-        : [
-            buildBalanceDeltaUpsertStatement(db, {
-              variantId,
-              onHandDelta: 0,
-              reservedDelta: quantityDelta,
-              timestamp,
-            }),
-          ]),
-      db
-        .prepare(
-          `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        )
-        .bind(
-          ledgerId,
-          variantId,
-          eventType,
-          quantityDelta,
-          'order_line',
-          lineId,
-          timestamp,
-          JSON.stringify({
-            orderId,
-            lineId,
-            ...metadata,
-          }),
-          timestamp
-        ),
-      db
-        .prepare(
-          `INSERT INTO inventory_events (
-            id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta,
-            source_type, source_id, metadata, occurred_at, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        )
-        .bind(
-          inventoryEventId,
-          variantId,
-          lineId,
-          null,
-          eventType,
-          quantityDelta,
-          'order_line',
-          lineId,
-          JSON.stringify({
-            orderId,
-            lineId,
-            ...metadata,
-          }),
-          timestamp,
-          timestamp
-        ),
-    ],
-  };
-}
+// 历史上的 buildReservationMovementStatements（行级预留直接写
+// inventory_balances.reserved）已随"单一写入者模型"审查修复删除：
+// 该池现由 DemandService 独占写入，行级 ship/reserve 不再触碰，
+// 否则 pending 订单释放未持有过的份额会把池打成负数（0099 CHECK）。
 
 export function buildOutboxStatements(domainOutboxRepo, uuidFn, {
   order,

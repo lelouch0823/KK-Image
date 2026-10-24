@@ -1,4 +1,4 @@
-import { ref, onScopeDispose } from 'vue';
+import { ref, computed, onScopeDispose } from 'vue';
 import { useToast } from './useToast';
 import { useAuth } from './useAuth';
 import { useI18n } from './useI18n';
@@ -81,6 +81,27 @@ export function useFileManager() {
   const breadcrumbs = ref<Breadcrumb[]>([]);
   const selectedFiles = ref<FileItem[]>([]);
 
+  // F4：根目录文件分页（子文件夹接口返回全量，根目录走分页列表接口）。
+  // 旧行为：根目录不带分页参数请求，后端默认 limit=20，第 21 个文件起
+  // 在管理端"消失"（数据仍在，被当作丢文件报障）
+  const ROOT_FILES_PAGE_SIZE = 100;
+  const rootFilesPage = ref<number>(1);
+  const rootFilesTotal = ref<number>(0);
+  const loadingMoreRootFiles = ref<boolean>(false);
+  const hasMoreRootFiles = computed<boolean>(
+    () => currentFolder.value === null && files.value.length < rootFilesTotal.value
+  );
+
+  const loadMoreRootFiles = async (): Promise<void> => {
+    if (loadingMoreRootFiles.value || !hasMoreRootFiles.value) return;
+    loadingMoreRootFiles.value = true;
+    try {
+      await loadFolderData(null, { silent: true, page: rootFilesPage.value + 1, append: true });
+    } finally {
+      loadingMoreRootFiles.value = false;
+    }
+  };
+
   const resolveErrorCode = (status: number, _message: string = ''): string | null => {
     const code = classifyError({ status });
     if (code === ErrorCode.FORBIDDEN || code === ErrorCode.UNAUTHORIZED) return code;
@@ -127,6 +148,8 @@ export function useFileManager() {
    */
   const loadFolderData = async (folderId: string | null = null, options: Record<string, unknown> = {}): Promise<void> => {
     const { silent = false } = options;
+    const isRootLoadMore = Boolean(options.append);
+    const rootPage = isRootLoadMore ? Number(options.page) || 1 : 1;
 
     if (!silent) {
       loading.value = true;
@@ -134,6 +157,7 @@ export function useFileManager() {
       errorCode.value = null;
       selectedFiles.value = [];
     }
+    if (folderId && isRootLoadMore) return; // 追加模式只对根目录有意义
 
     // 取消之前的请求
     if (abortController) {
@@ -159,9 +183,12 @@ export function useFileManager() {
         breadcrumbs.value = [];
 
         // 根目录：文件读取必须成功，文件夹列表按权限降级
+        // F4：带分页参数请求（默认后端 limit=20，会在管理端"丢"文件）
         const [foldersRes, filesRes] = await Promise.allSettled([
           authFetch(API.FOLDERS, { signal: abortController.signal }).then((r) => r.json()),
-          authFetch(API.FILES, { signal: abortController.signal }).then((r) => r.json()),
+          authFetch(`${API.FILES}?limit=${ROOT_FILES_PAGE_SIZE}&page=${rootPage}`, {
+            signal: abortController.signal,
+          }).then((r) => r.json()),
         ]);
 
         if (foldersRes.status === 'rejected' && foldersRes.reason instanceof Error && foldersRes.reason.name === 'AbortError') return;
@@ -187,7 +214,16 @@ export function useFileManager() {
         }
 
         if (filesRes.status === 'fulfilled' && filesRes.value && typeof filesRes.value === 'object' && 'success' in filesRes.value && (filesRes.value as ApiResponse).success) {
-          files.value = normalizeFileList((filesRes.value as ApiResponse).data);
+          const pageFiles = normalizeFileList((filesRes.value as ApiResponse).data);
+          const pagination = (filesRes.value as ApiResponse).pagination as { total?: number } | undefined;
+          rootFilesTotal.value = Number(pagination?.total ?? pageFiles.length) || pageFiles.length;
+          rootFilesPage.value = rootPage;
+          if (isRootLoadMore) {
+            const seen = new Set(files.value.map((f) => f.id));
+            files.value = [...files.value, ...pageFiles.filter((f) => !seen.has(f.id))];
+          } else {
+            files.value = pageFiles;
+          }
         } else {
           const status = filesRes.status === 'fulfilled' ? 0 : (typeof filesRes.reason === 'object' && filesRes.reason !== null && 'status' in filesRes.reason) ? Number((filesRes.reason as Record<string, unknown>).status) : 0;
           const msg = filesRes.status === 'fulfilled'
@@ -320,6 +356,11 @@ export function useFileManager() {
     files,
     breadcrumbs,
     selectedFiles,
+    // F4：根目录分页
+    hasMoreRootFiles,
+    loadingMoreRootFiles,
+    rootFilesTotal,
+    loadMoreRootFiles,
 
     loadFolderData,
     createFolder,

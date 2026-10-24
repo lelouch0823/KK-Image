@@ -6,6 +6,7 @@
  */
 
 import { parseJsonObject } from '../api/utils/json.js';
+import { ORDER_LINE_NET_AMOUNT_SQL } from '../api/utils/order-amount-sql.js';
 import { chinaDateExpr, chinaDateExprAliased, chinaHourExpr } from '../lib/db/date-sql.js';
 import { query, queryFirst } from '../lib/db/query.js';
 import {
@@ -555,7 +556,7 @@ export class OrderStatsRepository {
     const result = await this.runQueryFirst(
       `
       SELECT
-        COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS total_revenue,
+        COALESCE(SUM(${ORDER_LINE_NET_AMOUNT_SQL}), 0) AS total_revenue,
         COALESCE(SUM(ol.ordered_qty * (${costExpr})), 0) AS total_cost,
         COUNT(DISTINCT CASE
           WHEN (${costExpr}) > 0
@@ -598,7 +599,7 @@ export class OrderStatsRepository {
       `
       SELECT
         ${chinaDateExprAliased('o')} AS date,
-        COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS revenue,
+        COALESCE(SUM(${ORDER_LINE_NET_AMOUNT_SQL}), 0) AS revenue,
         COALESCE(SUM(ol.ordered_qty * (${costExpr})), 0) AS cost
       ${joinClause}
       WHERE o.archived_at IS NULL
@@ -636,7 +637,7 @@ export class OrderStatsRepository {
       `
       SELECT
         ol.snapshot_name AS product_name,
-        COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS revenue,
+        COALESCE(SUM(${ORDER_LINE_NET_AMOUNT_SQL}), 0) AS revenue,
         COALESCE(SUM(ol.ordered_qty * (${costExpr})), 0) AS cost,
         COUNT(*) AS order_count
       ${joinClause}

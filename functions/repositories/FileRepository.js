@@ -52,6 +52,41 @@ export class FileRepository {
   }
 
   /**
+   * 递归收集文件夹（含全部子文件夹）内的文件 ID（F1：空间"按文件夹添加"）。
+   *
+   * 与 FolderRepository.getAllStorageKeysRecursive 同构的递归 CTE，但返回
+   * 文件 ID 而非存储键。folderIds 分块查询以遵守 D1 绑定参数上限，
+   * 单次收集上限 500 个文件防御异常目录树。
+   * @param {string[]} folderIds
+   * @returns {Promise<string[]>}
+   */
+  async findIdsByFoldersRecursive(folderIds) {
+    const ids = [];
+    for (const folderChunk of chunkArray(folderIds || [], 20)) {
+      const placeholders = folderChunk.map(() => '?').join(',');
+      const { results } = await this.db
+        .prepare(
+          `WITH RECURSIVE descendant_folders AS (
+             SELECT id FROM folders WHERE id IN (${placeholders}) AND is_deleted = 0
+             UNION ALL
+             SELECT f.id FROM folders f
+             JOIN descendant_folders df ON f.parent_id = df.id
+             WHERE f.is_deleted = 0
+           )
+           SELECT f.id FROM files f
+           WHERE f.folder_id IN (SELECT id FROM descendant_folders)
+             AND f.is_deleted = 0
+           LIMIT 500`
+        )
+        .bind(...folderChunk)
+        .all();
+      ids.push(...(results || []).map((row) => row.id));
+      if (ids.length >= 500) break;
+    }
+    return ids;
+  }
+
+  /**
    * 创建文件记录
    * @param {Object} data
    * @returns {Promise<{ id: string }>}

@@ -80,7 +80,11 @@ export function buildCreatePayload({ form, uploads, boundProduct }: BuildCreateP
 }
 
 export function canSubmitOrderForm(uploads: OrderFormUpload[]): boolean {
-  return !(uploads || []).some((item) => item.status === 'loading');
+  // F11：与 Web 端（useOrderForm isValid 要求至少 1 张已上传图）对齐——
+  // 后端 schema 允许 0 图，但小程序放行会让无图订单直接流入管理端
+  const hasUploadInFlight = (uploads || []).some((item) => item.status === 'loading');
+  if (hasUploadInFlight) return false;
+  return (uploads || []).some((item) => item.status === 'done' && item.id);
 }
 
 export function buildFormPrefillState(form: OrderFormState, prefill: FormPrefillInput) {

@@ -11,6 +11,7 @@ import { assertAdminFull } from '../authz-helpers.js';
 import { requireEntity } from '../../../../_shared/route-helpers.js';
 import { OrderDeliveryService } from '../../../../../../services/OrderDeliveryService.js';
 import { DomainOutboxPublisher } from '../../../../../../services/DomainOutboxPublisher.js';
+import { ORDER_RESERVATION_ACTIVE_STATUSES } from '../../../../../../api/utils/constants.js';
 import { scheduleAuditEvent } from '../../../../_shared/audit-helpers.js';
 import { declareAuditRoutes } from '../../../../_shared/audit-route-contract.js';
 import {
@@ -230,6 +231,15 @@ app.post('/:id/archive', async (c) => {
     );
   }
 
+  // 订单级需求预留同样阻止归档：归档后状态机入口被 assertOrderIsActiveForMutation
+  // 拒绝，DemandService 的终态释放不可达，hold 永久泄漏（审查 B8）
+  if (ORDER_RESERVATION_ACTIVE_STATUSES.has(order.status)) {
+    throw new BadRequestError(
+      `订单处于 ${order.status} 状态，仍持有库存需求预留，无法归档；` +
+        '请先将订单流转至终态（作废/完成）释放预留后再归档'
+    );
+  }
+
   await orderRepo.archive(id, user?.id || null);
 
   scheduleAuditEvent(c, {
@@ -295,6 +305,16 @@ app.delete('/:id', async (c) => {
     throw new BadRequestError(
       `订单存在履约进度（已发货 ${progress.shipped_qty} 件 / 预留 ${progress.reserved_qty} 件），` +
         '无法彻底删除；请先作废订单并释放预留'
+    );
+  }
+
+  // 订单级需求预留（inventory_balances.reserved）不体现在行级进度上：
+  // 预留活跃的订单被硬删除后 hold 永久泄漏、可用库存长期被低估
+  //（审查 B8）。与 B-M1 同理：先经 void 释放预留再删除
+  if (ORDER_RESERVATION_ACTIVE_STATUSES.has(order.status)) {
+    throw new BadRequestError(
+      `订单处于 ${order.status} 状态，仍持有库存需求预留，无法彻底删除；` +
+        '请先将订单作废（void）释放预留后再删除'
     );
   }
 

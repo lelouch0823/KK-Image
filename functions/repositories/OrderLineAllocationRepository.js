@@ -104,6 +104,45 @@ export class OrderLineAllocationRepository {
     }));
   }
 
+  /**
+   * 按订单列出全部活跃 allocation（跨行）。
+   *
+   * 终态清算（releaseAllLineReservations）以此为权威来源而非
+   * order_lines.reserved_qty > 0：终态兼容语句可能在同 batch 内已把
+   * reserved_qty 清零，按行查询会漏掉仍活跃的 allocation（审查 B7）。
+   */
+  async listActiveByOrder(orderId) {
+    const { results } = await this.db
+      .prepare(
+        `SELECT
+            a.id,
+            a.order_line_id,
+            a.variant_id,
+            a.inventory_event_id,
+            a.allocated_qty,
+            a.released_qty,
+            a.status,
+            a.allocated_at,
+            a.released_at,
+            a.created_at,
+            a.updated_at
+         FROM order_line_allocations a
+         JOIN order_lines ol ON ol.id = a.order_line_id
+         WHERE ol.order_id = ?
+           AND a.status = 'active'
+           AND COALESCE(a.allocated_qty, 0) > COALESCE(a.released_qty, 0)
+         ORDER BY a.allocated_at ASC, a.created_at ASC`
+      )
+      .bind(orderId)
+      .all();
+
+    return (results || []).map((row) => ({
+      ...row,
+      allocated_qty: Number(row.allocated_qty || 0),
+      released_qty: Number(row.released_qty || 0),
+    }));
+  }
+
   buildReleaseStatement(allocation, quantity, options = {}) {
     const releaseQty = Math.max(0, Number(quantity) || 0);
     const timestamp = options.now ?? options.released_at ?? Date.now();

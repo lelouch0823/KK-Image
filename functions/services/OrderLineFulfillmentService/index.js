@@ -35,7 +35,6 @@ import {
   buildNextLineState,
   buildOrderTouchStatement,
   buildShipmentLedgerStatement,
-  buildReservationMovementStatements,
   buildOutboxStatements,
   buildCommandResult,
 } from './statement-builders.js';
@@ -79,38 +78,85 @@ export class OrderLineFulfillmentService {
    *
    * 订单状态机迁移只释放 DemandService 的订单级预留（inventory_balances.reserved
    * 中按订单数量记账的部分）；行级 reserve 命令产生的 order_lines.reserved_qty、
-   * order_line_allocations 与对应余额份额必须在此逐行释放，否则进入终态后
+   * order_line_allocations 必须在此逐行释放，否则进入终态后
    * releaseLine 因行/订单守卫而永久不可达，预留成为死库存（审查 B-H1）。
    *
-   * 逐行复用 releaseLine（自带守卫、allocation 释放、台账与 outbox 事件）；
+   * 以活跃 allocation 为准（而非 reserved_qty > 0）：终态兼容语句可能在同
+   * batch 内已把单行订单的 reserved_qty 清零（审查 B7），若按 reserved_qty
+   * 查询会漏掉这些行，allocation 永久滞留 active（审查 B-H1 的残留路径）。
    * 单行失败不阻塞其余行的清算（best-effort），失败原因记录日志供对账。
    */
   async releaseAllLineReservations(orderId, options = {}) {
-    const lines = await this.db
-      .prepare(
-        `SELECT id, variant_id, reserved_qty
-         FROM order_lines
-         WHERE order_id = ? AND reserved_qty > 0`
-      )
-      .bind(orderId)
-      .all();
+    const allocations = await this.allocationRepo.listActiveByOrder(orderId);
+    if (!allocations || allocations.length === 0) return [];
 
+    const lineIds = [...new Set(allocations.map((allocation) => allocation.order_line_id))];
     const results = [];
-    for (const line of lines?.results || []) {
+    for (const lineId of lineIds) {
       try {
-        const result = await this.releaseLine(orderId, line.id, {
-          quantity: toNonNegativeInt(line.reserved_qty),
-        }, options);
-        results.push({ order_line_id: line.id, released: true, result });
+        const result = await this.releaseLineAllocationsForTerminal(orderId, lineId, options);
+        results.push({ order_line_id: lineId, released: true, result });
       } catch (error) {
         console.error(
-          `releaseAllLineReservations: failed to release line ${line.id} of order ${orderId}:`,
+          `releaseAllLineReservations: failed to release line ${lineId} of order ${orderId}:`,
           error
         );
-        results.push({ order_line_id: line.id, released: false, error: String(error?.message || error) });
+        results.push({ order_line_id: lineId, released: false, error: String(error?.message || error) });
       }
     }
     return results;
+  }
+
+  /**
+   * 终态清算单行：释放该行全部活跃 allocation，并把 reserved_qty 归零。
+   *
+   * 与 releaseLine 的区别：不要求 quantity ≤ 当前 reserved_qty——兼容语句
+   * 可能已把 reserved_qty 清零而 allocation 仍活跃；reserved_qty 仅按
+   * min(当前值, 清算量) 递减，避免把已被并发命令改小的值打成负数。
+   * @private
+   */
+  async releaseLineAllocationsForTerminal(orderId, lineId, options = {}) {
+    const line = await this.requireOrderLine(orderId, lineId);
+    const activeAllocations = await this.allocationRepo.listActiveByOrderLine(lineId);
+    const totalRemaining = activeAllocations.reduce(
+      (sum, allocation) => sum + getAllocationRemaining(allocation),
+      0
+    );
+    if (totalRemaining <= 0) {
+      return { quantity: 0, allocationsReleased: 0 };
+    }
+
+    const timestamp = this.now();
+    const currentReserved = toNonNegativeInt(line.reserved_qty);
+    const quantityToRelease = Math.min(currentReserved, totalRemaining);
+    const nextLineState = buildNextLineState(line, {
+      reserved_qty: Math.max(currentReserved - quantityToRelease, 0),
+    });
+
+    const statements = [
+      buildGuardedLineProjectionStatement(this.db, line, nextLineState, timestamp),
+      buildPreviousWriteAssertionStatement(this.db),
+      ...activeAllocations.map((allocation) =>
+        this.allocationRepo.buildReleaseStatement(allocation, getAllocationRemaining(allocation), {
+          now: timestamp,
+          updated_at: timestamp,
+        })
+      ),
+      buildOrderTouchStatement(this.db, orderId, timestamp),
+      ...buildOutboxStatements(this.domainOutboxRepo, this.uuid, {
+        order: line,
+        orderId,
+        lineId,
+        action: 'release',
+        quantity: totalRemaining,
+        nextLineState,
+        timestamp,
+        actorName: options.actorName || null,
+      }),
+    ];
+
+    await runGuardedBatch(this.db, statements, 'order line was modified concurrently');
+    return { quantity: totalRemaining, allocationsReleased: activeAllocations.length };
   }
 
   async requireOrderLine(orderId, lineId) {
@@ -302,22 +348,13 @@ export class OrderLineFulfillmentService {
       }
     }
 
-    if (reservedConsumed > 0) {
-      const releaseMovement = buildReservationMovementStatements(this.db, this.uuid, {
-        variantId: line.variant_id,
-        orderId,
-        lineId,
-        quantityDelta: -reservedConsumed,
-        eventType: 'inventory_released',
-        timestamp,
-        metadata: {
-          action: 'ship',
-          actorName: options.actorName || null,
-          reservedConsumed,
-        },
-      });
-      sideEffectStatements.push(...releaseMovement.statements);
-    }
+    // 行级命令不触碰 inventory_balances.reserved（单一写入者模型，审查 B1）：
+    // 该池的唯一写入者是 DemandService 的订单级 hold/release 对。若 shipLine
+    // 在此释放 reservedConsumed，pending 订单（从未持有订单级 hold）会把池
+    // 打成负数触发 0099 CHECK；confirmed 订单则会在终态被 DemandService
+    // 再次全量释放，双重释放同样越限——两条路径都会让预留记账永久损坏。
+    // 行级预留的容量约束由 reserve 时的 available 预检 + ship 时的
+    // on_hand 守卫增量（inventoryService.buildMutationStatements）共同保证。
 
     const shipment = await this.inventoryService.buildMutationStatements({
       type: 'order_shipment',

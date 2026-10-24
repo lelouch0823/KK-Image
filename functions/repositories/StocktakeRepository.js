@@ -10,6 +10,7 @@
 
 import { generateId, now } from '../api/utils/id.js';
 import { executeBatchChunks } from '../lib/db/batch.js';
+import { D1_MAX_BATCH_SIZE } from '../api/utils/constants.js';
 
 export class StocktakeRepository {
   /**
@@ -310,34 +311,45 @@ export class StocktakeRepository {
   async adjustInventory(stocktakeId, options = {}) {
     if (!stocktakeId) throw new Error('stocktakeId is required');
 
-    // 先读取有差异的明细，尽量缩短 CAS 认领与库存写入之间的崩溃窗口
-    const { results: items = [] } = await this.db
+    const ADJUST_CLAIM_STALE_MS = 10 * 60 * 1000;
+    const claimTimestamp = now();
+
+    // 只读取尚未调整的有差异明细：adjusted_at 是项级幂等标记（审查 B3），
+    // 上次运行中途失败的盘点单重试时，已提交块的项不会再次调整
+    const { results: pendingItems = [] } = await this.db
       .prepare(
         `
-      SELECT si.variant_id, si.system_qty, si.actual_qty, si.difference
+      SELECT si.id AS item_id, si.variant_id, si.system_qty, si.actual_qty, si.difference
       FROM stocktake_items si
       WHERE si.stocktake_id = ? AND si.actual_qty IS NOT NULL AND si.difference != 0
+        AND si.adjusted_at IS NULL
     `
       )
       .bind(stocktakeId)
       .all();
 
-    // CAS 认领：仅当盘点单仍处于 counting 状态时才允许调整，
-    // 防止并发/重试请求重复执行 applyBatch 造成库存被调整两次
+    // CAS 认领：status 为 counting 且无进行中的认领（或认领超时——上个
+    // 执行进程崩溃后允许接管）。status 在全部项完成后才置 'adjusted'，
+    // 中途失败保持 'counting'，如实反映"部分已调整、可断点续跑"
     const claimResult = await this.db
       .prepare(
-        "UPDATE stocktakes SET status = 'adjusted', completed_at = ? WHERE id = ? AND status = 'counting'"
+        `UPDATE stocktakes
+         SET adjusting_at = ?
+         WHERE id = ?
+           AND status = 'counting'
+           AND (adjusting_at IS NULL OR adjusting_at < ?)`
       )
-      .bind(now(), stocktakeId)
+      .bind(claimTimestamp, stocktakeId, claimTimestamp - ADJUST_CLAIM_STALE_MS)
       .run();
-
     if (Number(claimResult?.meta?.changes || 0) !== 1) {
       const stocktake = await this.db
         .prepare('SELECT status FROM stocktakes WHERE id = ?')
         .bind(stocktakeId)
         .first();
       if (!stocktake) throw new Error('盘点单不存在');
-      throw new Error('盘点单状态不允许调整库存');
+      if (stocktake.status === 'adjusted') throw new Error('盘点单已完成调整');
+      if (stocktake.status !== 'counting') throw new Error('盘点单状态不允许调整库存');
+      throw new Error('盘点调整正在执行中，请稍后重试');
     }
 
     // 通过 DI 工厂函数创建 InventoryService，避免 Repository 直接依赖 Service
@@ -346,43 +358,97 @@ export class StocktakeRepository {
       : null;
 
     if (!inventoryService) {
-      await this._revertAdjustmentClaim(stocktakeId);
+      await this._clearAdjustingClaim(stocktakeId, claimTimestamp);
       throw new Error('InventoryServiceFactory is required for inventory adjustment');
     }
 
-    // 通过 InventoryService 统一处理库存变更（更新 product_variants、inventory_balances、inventory_ledger、inventory_events）
-    const mutations = items.map((item) => ({
-      type: 'manual_adjustment',
-      variantId: item.variant_id,
-      quantityDelta: item.difference,
-      referenceType: 'stocktake',
-      referenceId: stocktakeId,
-      metadata: { source: 'stocktake', stocktakeId },
-    }));
+    if (pendingItems.length > 0) {
+      // 每项：库存写入（variants/balances/ledger/events）+ adjusted_at 标记
+      // 打包成组；按 item 边界切块（块大小 ≤ D1 batch 上限），块内原子、
+      // 块间按项续跑——单块失败不影响已提交的块，这是对旧实现
+      // "executeBatchChunks 按语句数盲目切块 + 失败回滚允许整单重放"的
+      // 系统性修正（审查 B3：重放会把已调整项再调一遍，库存双倍偏移）
+      const itemGroups = [];
+      for (const item of pendingItems) {
+        const built = await inventoryService.buildMutationStatements({
+          type: 'manual_adjustment',
+          variantId: item.variant_id,
+          quantityDelta: item.difference,
+          referenceType: 'stocktake',
+          referenceId: stocktakeId,
+          metadata: { source: 'stocktake', stocktakeId },
+        });
+        itemGroups.push({
+          item,
+          statements: [
+            ...built.statements,
+            this.db
+              .prepare(
+                'UPDATE stocktake_items SET adjusted_at = ? WHERE id = ? AND adjusted_at IS NULL'
+              )
+              .bind(claimTimestamp, item.item_id),
+          ],
+        });
+      }
 
-    try {
-      // applyBatch 是单个 D1 batch，原子执行
-      await inventoryService.applyBatch(mutations);
-    } catch (error) {
-      // 调整失败时回滚认领状态，允许修正后重试（并发重复已被 CAS 排除）
-      await this._revertAdjustmentClaim(stocktakeId);
-      throw error;
+      let appliedCount = 0;
+      try {
+        let chunk = [];
+        let chunkItemCount = 0;
+        const flushChunk = async () => {
+          if (chunk.length === 0) return;
+          await this.db.batch(chunk);
+          appliedCount += chunkItemCount;
+          chunk = [];
+          chunkItemCount = 0;
+        };
+        for (const group of itemGroups) {
+          if (chunk.length + group.statements.length > D1_MAX_BATCH_SIZE) {
+            await flushChunk();
+          }
+          chunk.push(...group.statements);
+          chunkItemCount += 1;
+        }
+        await flushChunk();
+        await inventoryService.refreshProjections(
+          pendingItems.map((item) => item.variant_id).filter(Boolean)
+        );
+      } catch (error) {
+        // 不回滚已完成项（项级标记保证幂等）：释放认领，重试从剩余项续跑
+        await this._clearAdjustingClaim(stocktakeId, claimTimestamp);
+        throw new Error(
+          `盘点调整部分完成（${appliedCount}/${pendingItems.length} 项）：` +
+            `${error?.message || error}。重试将从剩余未调整项继续，已调整项不会重复计入`
+        );
+      }
+    }
+
+    // 全部项已应用（或本就无待调整项）：才把状态推进到 adjusted
+    const finalizeResult = await this.db
+      .prepare(
+        "UPDATE stocktakes SET status = 'adjusted', completed_at = ?, adjusting_at = NULL WHERE id = ? AND status = 'counting'"
+      )
+      .bind(now(), stocktakeId)
+      .run();
+    if (Number(finalizeResult?.meta?.changes || 0) !== 1) {
+      throw new Error('盘点单状态在调整过程中被并发修改，请核对明细后重试');
     }
 
     return {
-      adjustedCount: items.length,
-      totalDelta: items.reduce((sum, item) => sum + Math.abs(item.difference), 0),
+      adjustedCount: pendingItems.length,
+      totalDelta: pendingItems.reduce((sum, item) => sum + Math.abs(item.difference), 0),
     };
   }
 
   /**
-   * 回滚 adjustInventory 的 CAS 状态认领（仅当仍处于 adjusted 时）
+   * 释放 adjustInventory 的执行认领（仅清除自己设置的 adjusting_at，
+   * 不会误清并发接管者的新认领）
    * @private
    */
-  async _revertAdjustmentClaim(stocktakeId) {
+  async _clearAdjustingClaim(stocktakeId, claimTimestamp) {
     await this.db
-      .prepare("UPDATE stocktakes SET status = 'counting', completed_at = NULL WHERE id = ? AND status = 'adjusted'")
-      .bind(stocktakeId)
+      .prepare('UPDATE stocktakes SET adjusting_at = NULL WHERE id = ? AND adjusting_at = ?')
+      .bind(stocktakeId, claimTimestamp)
       .run();
   }
 

@@ -71,6 +71,7 @@ vi.mock('../../../middleware/cache.js', () => ({
 vi.mock('../../_shared/cache-urls.js', () => ({
   getManageNotificationCacheUrls: vi.fn(() => ['http://localhost/api/manage/notifications']),
   getManageTagCacheUrls: vi.fn(() => ['http://localhost/api/manage/tags']),
+  getManageTrashCacheUrls: vi.fn(() => ['http://localhost/api/manage/trash']),
 }));
 
 vi.mock('../../../_shared/route-helpers.js', async () => {
@@ -307,7 +308,6 @@ describe('manage ops support audit routes', () => {
       env,
       { waitUntil: vi.fn() }
     );
-
     expect(res.status).toBe(200);
     expect(mocks.fileDeleteBatch).toHaveBeenCalledWith(['file-1']);
     expect(mocks.scheduleAuditEvent).toHaveBeenCalledWith(

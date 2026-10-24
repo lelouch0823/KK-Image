@@ -1,9 +1,11 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
 import { DOMAIN_EVENT_CATALOG } from '../DomainEventCatalog.js';
 
-const ROOT_DIR = '/home/bjw/Code/KK-Image/functions';
+// 从测试文件位置推导 functions 根目录，避免硬编码绝对路径（在其它机器上 ENOENT）
+const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const IGNORED_DIRS = new Set(['__tests__']);
 
 function walkJsFiles(dir, acc = []) {

@@ -453,4 +453,6 @@ export default {
     totalProfit: 'Total Profit',
     avgMargin: 'Avg Margin',
   },
+  // F5: shown when the oldest items are dropped after hitting the list cap
+  listTruncatedHint: 'List display limit reached — use search to find older orders',
 };

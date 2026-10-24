@@ -33,16 +33,22 @@ export const CreatePurchaseOrderSchema = z
 
 /**
  * 更新采购单 Schema (PUT /:id)
+ *
+ * F2：remark / actual_*_cost 允许显式 null（清空语义——成本弹窗把
+ * "未填写"表达为 null，旧 optional() 不收 null 会 400）。null 与
+ * undefined 语义不同：null = 置空，undefined = 不修改。
  */
 export const UpdatePurchaseOrderSchema = z
   .object({
-    remark: z.string().max(1000).optional(),
+    remark: z.string().max(1000).nullable().optional(),
     currency: z.string().max(10).optional(),
     allocation_method: z.string().max(50).optional(),
     estimated_shipping_cost: z.number().nonnegative().optional(),
     estimated_tariff_cost: z.number().nonnegative().optional(),
-    actual_shipping_cost: z.number().nonnegative().optional(),
-    actual_tariff_cost: z.number().nonnegative().optional(),
+    actual_shipping_cost: z.number().nonnegative().nullable().optional(),
+    actual_tariff_cost: z.number().nonnegative().nullable().optional(),
+    // F12：乐观并发控制（语义同订单 PATCH）
+    expectedUpdatedAt: z.number().int().nonnegative().nullable().optional(),
   })
   .strict();
 

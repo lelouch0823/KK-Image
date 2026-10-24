@@ -64,6 +64,17 @@ export const ORDER_FILTER_STATUSES = [
   'void',
 ];
 
+// 预留活跃状态：订单处于这些状态时，inventory_balances.reserved 持有该
+// 订单的订单级需求预留（DemandService 进入 +qty / 离开 -qty）。硬删除、
+// 归档等旁路操作必须先经 void 流转释放预留，否则预留成为无法回收的死账
+//（审查 B8）。单一真源：DemandService 与订单 lifecycle 路由共用
+export const ORDER_RESERVATION_ACTIVE_STATUSES = new Set([
+  'confirmed',
+  'production',
+  'shipping',
+  'arrived',
+]);
+
 export const ORDER_DELIVERY_STATUSES = [
   'not_shipped',
   'in_transit',

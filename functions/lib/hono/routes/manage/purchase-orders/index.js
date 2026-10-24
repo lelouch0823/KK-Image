@@ -17,7 +17,7 @@ import {
   validatePurchaseOrderPreOrderBinding,
   validatePurchaseOrderVariantItems,
 } from '../../../../../services/purchase-order-item-validation.js';
-import { NotFoundError } from '../../../errors.js';
+import { NotFoundError, ConflictError } from '../../../errors.js';
 import { withCache } from '../../../middleware/cache.js';
 import { requirePermission } from '../../../middleware/auth.js';
 import { requireEntity } from '../../../_shared/route-helpers.js';
@@ -397,7 +397,14 @@ app.put('/:id', zValidator('json', UpdatePurchaseOrderSchema), async (c) => {
     () => new NotFoundError('采购单不存在')
   );
 
-  const updated = await repo.update(c.req.param('id'), body);
+  // F12：乐观并发控制——expectedUpdatedAt 与库中 updated_at 不匹配则 409。
+  // null/缺省 = 不启用（旧客户端兼容）
+  const { expectedUpdatedAt, ...updates } = body;
+  if (expectedUpdatedAt != null && Number(currentPo.updated_at || 0) !== Number(expectedUpdatedAt)) {
+    throw new ConflictError('采购单已被其他用户修改，请刷新后重试（乐观并发冲突）');
+  }
+
+  const updated = await repo.update(c.req.param('id'), updates);
   requireMutationSuccess(updated, '未找到采购单或无有效字段更新');
 
   let po = await requireEntity(

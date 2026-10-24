@@ -42,15 +42,20 @@ describe('OrderLineRepository', () => {
     expect(db.prepare.mock.results[0].value.run).toHaveBeenCalledTimes(1);
     const bindArgs = db.prepare.mock.results[0].value.bind.mock.calls[0];
     expect(db.prepare.mock.calls[0][0]).toContain('INSERT INTO order_lines');
+    // unit_price 占位（变体价格快照子查询）插在 variant_id 之后：索引 4 起整体后移
+    expect(db.prepare.mock.calls[0][0]).toContain(
+      '(SELECT price FROM product_variants WHERE id = ?)'
+    );
     expect(bindArgs[0]).toBe('line-123');
     expect(bindArgs[1]).toBe('order-1');
-    expect(bindArgs[4]).toBe('Radiant Shirt');
-    expect(bindArgs[5]).toBe('RS-01');
-    expect(bindArgs[6]).toBe(JSON.stringify({ color: 'red', size: 'M' }));
-    expect(bindArgs[7]).toBe('https://cdn.example/radiant');
-    expect(bindArgs[8]).toBe(5);
-    expect(bindArgs[14]).toBe('unprocured');
-    expect(bindArgs[15]).toBe(now);
+    expect(bindArgs[4]).toBe(null); // unit_price 快照：无 variant_id 时为 NULL
+    expect(bindArgs[5]).toBe('Radiant Shirt');
+    expect(bindArgs[6]).toBe('RS-01');
+    expect(bindArgs[7]).toBe(JSON.stringify({ color: 'red', size: 'M' }));
+    expect(bindArgs[8]).toBe('https://cdn.example/radiant');
+    expect(bindArgs[9]).toBe(5);
+    expect(bindArgs[15]).toBe('unprocured');
     expect(bindArgs[16]).toBe(now);
+    expect(bindArgs[17]).toBe(now);
   });
 });

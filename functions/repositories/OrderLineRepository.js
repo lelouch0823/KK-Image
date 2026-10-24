@@ -20,6 +20,7 @@ export class OrderLineRepository {
           order_id,
           product_id,
           variant_id,
+          unit_price,
           snapshot_name,
           snapshot_sku,
           snapshot_specs,
@@ -33,12 +34,13 @@ export class OrderLineRepository {
           display_status,
           created_at,
           updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ) VALUES (?, ?, ?, ?, (SELECT price FROM product_variants WHERE id = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         id,
         payload.order_id,
         payload.product_id || null,
+        payload.variant_id || null,
         payload.variant_id || null,
         payload.snapshot_name,
         payload.snapshot_sku || null,

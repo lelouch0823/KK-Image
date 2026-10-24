@@ -62,6 +62,9 @@ const props = defineProps({
   maxFiles: { type: Number, default: 9 },
   readonly: Boolean,
   uploadEndpoint: { type: String, default: '' },
+  // F8：秒传预检查端点。空 = 当前上传端点没有对应的 check-hash
+  // 接口（如销售端），跳过预检查直接上传
+  checkHashEndpoint: { type: String, default: '' },
   deferred: { type: Boolean, default: false },
   context: { type: String, default: '' }, // e.g. 'product', 'order'
   gridClass: { type: String, default: 'grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5' },
@@ -112,8 +115,9 @@ const { compressImage, getFileHash } = useImageCompression();
  * @returns {Promise<{exists: boolean, file?: object}>}
  */
 const checkOriginalHash = async (originalHash) => {
+  if (!props.checkHashEndpoint) return { exists: false };
   try {
-    const response = await requestAuth(API.CHECK_HASH, {
+    const response = await requestAuth(props.checkHashEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ original_hash: originalHash }),
@@ -180,19 +184,24 @@ const handleFileSelect = async (e) => {
     try {
       originalHash = await getFileHash(file);
 
-      // 预检查：如果原始文件已存在，直接秒传
-      const checkResult = await checkOriginalHash(originalHash);
-      if (checkResult.exists && checkResult.file) {
-        instantCount++;
-        newFiles.push({
-          id: checkResult.file.id,
-          url: checkResult.file.url,
-          hash: null,
-          originalHash,
-          instantUpload: true,
-        });
-        addToast({ message: t('upload.instantUploadSuccess'), type: 'success' });
-        continue; // 跳过压缩和上传
+      // F8：预检查只在提供了 check-hash 端点时进行。销售端上传走
+      // SALES_UPLOAD（销售 token 鉴权），而 CHECK_HASH 固定指向管理端
+      // 接口——销售端调用必然 401/403，产生无效请求与审计噪音
+      //（且会误翻同浏览器管理员会话的登录态），秒传降级为直接上传
+      if (props.checkHashEndpoint) {
+        const checkResult = await checkOriginalHash(originalHash);
+        if (checkResult.exists && checkResult.file) {
+          instantCount++;
+          newFiles.push({
+            id: checkResult.file.id,
+            url: checkResult.file.url,
+            hash: null,
+            originalHash,
+            instantUpload: true,
+          });
+          addToast({ message: t('upload.instantUploadSuccess'), type: 'success' });
+          continue; // 跳过压缩和上传
+        }
       }
     } catch (e) {
       console.warn('[ImageUploader] Pre-check error:', e);

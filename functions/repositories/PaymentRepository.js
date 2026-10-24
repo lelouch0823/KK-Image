@@ -9,6 +9,7 @@
  */
 
 import { generateId, now } from '../api/utils/id.js';
+import { ORDER_LINE_NET_AMOUNT_SQL } from '../api/utils/order-amount-sql.js';
 import { MS_PER_DAY } from '../api/utils/constants.js';
 
 export class PaymentRepository {
@@ -118,7 +119,7 @@ export class PaymentRepository {
            FROM (
              SELECT
                o.id AS order_id,
-               COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS total_amount
+               COALESCE(SUM(${ORDER_LINE_NET_AMOUNT_SQL}), 0) AS total_amount
              FROM orders o
              LEFT JOIN order_lines ol ON ol.order_id = o.id
              LEFT JOIN product_variants pv ON ol.variant_id = pv.id
@@ -129,7 +130,7 @@ export class PaymentRepository {
            ) order_amounts
            LEFT JOIN payments p ON p.order_id = order_amounts.order_id
            GROUP BY order_amounts.order_id, order_amounts.total_amount
-           HAVING COALESCE(SUM(p.amount), 0) + ? <= order_amounts.total_amount
+           HAVING ROUND(COALESCE(SUM(p.amount), 0) + ?, 2) <= ROUND(order_amounts.total_amount, 2)
          )`
       )
       .bind(id, orderId, amount, method, referenceNo, notes, timestamp, createdBy, orderId, amount)
@@ -199,7 +200,7 @@ export class PaymentRepository {
              FROM payments p
              WHERE p.order_id = ?
            ) net
-           WHERE net.net_paid + ? >= 0
+           WHERE ROUND(net.net_paid + ?, 2) >= 0
          )`
       )
       .bind(
@@ -280,7 +281,7 @@ export class PaymentRepository {
   async getOrderAmount(orderId) {
     const row = await this.db
       .prepare(
-        `SELECT COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS total
+        `SELECT COALESCE(SUM(${ORDER_LINE_NET_AMOUNT_SQL}), 0) AS total
          FROM order_lines ol
          LEFT JOIN product_variants pv ON ol.variant_id = pv.id
          WHERE ol.order_id = ?`
@@ -320,7 +321,7 @@ export class PaymentRepository {
         `WITH order_amounts AS (
            SELECT
              o.id AS order_id,
-             COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS total_amount
+             COALESCE(SUM(${ORDER_LINE_NET_AMOUNT_SQL}), 0) AS total_amount
            FROM orders o
            LEFT JOIN order_lines ol ON ol.order_id = o.id
            LEFT JOIN product_variants pv ON ol.variant_id = pv.id
@@ -441,7 +442,7 @@ export class PaymentRepository {
            SELECT
              o.id AS order_id,
              o.customer_id,
-             COALESCE(SUM(ol.ordered_qty * COALESCE(pv.price, 0)), 0) AS total_amount
+             COALESCE(SUM(${ORDER_LINE_NET_AMOUNT_SQL}), 0) AS total_amount
            FROM orders o
            LEFT JOIN order_lines ol ON ol.order_id = o.id
            LEFT JOIN product_variants pv ON ol.variant_id = pv.id

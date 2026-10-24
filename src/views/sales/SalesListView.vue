@@ -54,6 +54,10 @@
         class="py-4 text-center text-sm text-(--text-secondary)"
       >
         {{ t('common.total') }} {{ pagination?.total || orders.length }} {{ t('common.items') }}
+        <!-- F5：超过列表上限后最早条目被移出——明示而非静默截断 -->
+        <div v-if="listTruncated" class="mt-1 text-xs">
+          {{ t('order.listTruncatedHint') }}
+        </div>
       </div>
     </div>
   </div>
@@ -79,6 +83,7 @@ const {
   loading = ref(false),
   loadOrders = async () => {},
   pagination = { page: 1, totalPages: 1, total: 0 },
+  listTruncated = ref(false),
   searchQuery = ref(''),
   salesOrderMode = ref('legacy'),
   salesOrderStateMachine = null,

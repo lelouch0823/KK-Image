@@ -153,7 +153,17 @@ app.post('/', zValidator('json', CreateOrderSchema), async (c) => {
           sku: bindingSnapshot.sku,
         },
         quantity: totalQuantity,
-        mainImageId: data.fileIds[0] || null,
+        // F6：绑定商品但未上传图片时回填商品/变体主图（与商品目录展示
+        // 口径一致），避免订单缩略图缺失；仅单行绑定订单回填
+        mainImageId:
+          data.fileIds[0] ||
+          (normalizedLines.length === 1
+            ? await service.resolveBoundMainImageFileId({
+                variantId: effectiveVariantId,
+                productId: primaryLine?.productId || data.productId || null,
+              })
+            : null) ||
+          null,
         fileIds: data.fileIds,
         productId:
           normalizedLines.length === 1

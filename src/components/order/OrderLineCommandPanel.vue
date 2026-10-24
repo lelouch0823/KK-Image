@@ -210,10 +210,13 @@ const unshipBlockedByDeliveryStatus = computed(
     orderStatusNormalized.value === 'delivered' ||
     ['delivered', 'partially_returned', 'returned'].includes(deliveryStatusNormalized.value)
 );
+// F3：与后端 assertReturnAllowed 完全对齐——fulfilled 等同已交付放行；
+// 交付状态含 partially_returned（旧列表漏掉它，第一次部分退货后
+// 剩余可退数量在 UI 内成为死路，而后端本允许继续退）
 const returnAllowedByOrderStatus = computed(
   () =>
-    orderStatusNormalized.value === 'delivered' ||
-    ['delivered', 'returned'].includes(deliveryStatusNormalized.value)
+    orderStatusNormalized.value === 'fulfilled' ||
+    ['delivered', 'partially_returned', 'returned'].includes(deliveryStatusNormalized.value)
 );
 
 const limits = computed(() => {

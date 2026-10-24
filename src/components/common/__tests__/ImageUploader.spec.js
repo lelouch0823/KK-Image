@@ -68,6 +68,8 @@ describe('ImageUploader.vue', () => {
       props: {
         modelValue: [],
         uploadEndpoint: '/api/manage/upload',
+        // F8 后预检查由端点 prop 驱动：默认模拟管理端上下文（有 check-hash）
+        checkHashEndpoint: '/api/manage/files/check-hash',
         ...props,
       },
       global: {

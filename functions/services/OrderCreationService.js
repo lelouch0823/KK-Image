@@ -74,6 +74,56 @@ export class OrderCreationService {
   }
 
   /**
+   * F6：解析绑定商品/变体的主图文件 ID（仅未删除文件）。
+   *
+   * 解析链与商品目录展示口径一致：variant_images(is_primary) →
+   * variant_images(sort_order) → product_variants.image_id →
+   * products.images[0]。订单创建时 fileIds 为空且绑定了变体/商品，
+   * 用此回填 mainImageId，避免订单缩略图缺失。
+   * @returns {Promise<string|null>}
+   */
+  async resolveBoundMainImageFileId({ variantId = null, productId = null } = {}) {
+    if (!variantId && !productId) return null;
+    try {
+      const row = await this.db
+        .prepare(
+          `SELECT COALESCE(
+             (SELECT vi.image_id FROM variant_images vi
+              WHERE vi.variant_id = ? AND vi.is_primary = 1
+              ORDER BY vi.sort_order ASC, vi.created_at ASC LIMIT 1),
+             (SELECT vi.image_id FROM variant_images vi
+              WHERE vi.variant_id = ?
+              ORDER BY vi.sort_order ASC, vi.created_at ASC LIMIT 1),
+             (SELECT pv.image_id FROM product_variants pv WHERE pv.id = ?),
+             (SELECT CASE
+                       WHEN p.images IS NOT NULL AND json_valid(p.images)
+                            AND json_array_length(p.images) > 0
+                       THEN json_extract(p.images, '$[0]')
+                    END
+             FROM products p WHERE p.id = ?)
+           ) AS candidate_file_id`
+        )
+        .bind(variantId, variantId, variantId, productId)
+        .first();
+      const candidate = row?.candidate_file_id;
+      if (!candidate) return null;
+      const fileRow = await this.db
+        .prepare('SELECT id FROM files WHERE id = ? AND (is_deleted IS NULL OR is_deleted = 0)')
+        .bind(candidate)
+        .first();
+      return fileRow?.id || null;
+    } catch (error) {
+      // 尽力而为的回填：解析失败不阻断建单（主图缺失可接受，
+      // 建单主流程失败不可接受）
+      console.warn(
+        `[OrderCreationService] main image resolution failed (variant=${variantId}, product=${productId}):`,
+        error?.message || error
+      );
+      return null;
+    }
+  }
+
+  /**
    * 规范化订单行数据
    * @param {Array} lines - 原始订单行数组
    * @returns {Array} 规范化后的订单行
@@ -434,6 +484,19 @@ export class OrderCreationService {
 
     const nextStatus = body.status || 'pending';
 
+    // F6：绑定商品但未上传图片时回填商品/变体主图——前端把商品主图仅作
+    // 展示 URL（无文件 id），不回填则订单 mainImageId 为 null，列表/详情
+    // 缩略图缺失，与下单时所见图不一致。仅单行绑定订单回填。
+    const boundSingleLine =
+      hydratedLines.length === 1 &&
+      Boolean(primaryBinding?.normalizedVariantId || primaryLine?.productId || body.productId);
+    const resolvedMainImageId = boundSingleLine
+      ? await this.resolveBoundMainImageFileId({
+          variantId: primaryBinding?.normalizedVariantId ?? null,
+          productId: primaryLine?.productId || body.productId || null,
+        })
+      : null;
+
     const createdOrder = await orderRepo.create({
       id: orderId,
       orderNo,
@@ -456,7 +519,7 @@ export class OrderCreationService {
       productId: hydratedLines.length > 1 ? null : primaryLine?.productId || body.productId || null,
       variantId: hydratedLines.length > 1 ? null : primaryBinding?.normalizedVariantId ?? null,
       lines: hydratedLines,
-      mainImageId: body.fileIds?.[0] || null,
+      mainImageId: body.fileIds?.[0] || resolvedMainImageId || null,
       fileIds: body.fileIds || [],
       timeline: {
         actionType: 'created',

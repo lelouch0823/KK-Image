@@ -157,6 +157,13 @@ export function usePurchaseOrderDetailActions({
 
     costSubmitting.value = true;
     try {
+      // F12：乐观并发控制——弹窗打开时快照了 detail，保存时若已被他人
+      // 修改则后端 409（updatePO 已透传冲突提示）；无快照时间戳时省略字段
+      const detailSnapshot = detail.value as {
+        updatedAt?: number | null;
+        updated_at?: number | null;
+      };
+      const expectedUpdatedAt = detailSnapshot.updatedAt ?? detailSnapshot.updated_at ?? null;
       const saved = await updatePO(detail.value.id, {
         remark: String(costDraft.remark || '').trim() || null,
         currency:
@@ -168,6 +175,7 @@ export function usePurchaseOrderDetailActions({
         estimated_tariff_cost: normalizeDecimal(costDraft.estimated_tariff_cost, 0),
         actual_shipping_cost: normalizeNullableDecimal(costDraft.actual_shipping_cost),
         actual_tariff_cost: normalizeNullableDecimal(costDraft.actual_tariff_cost),
+        ...(expectedUpdatedAt != null ? { expectedUpdatedAt } : {}),
       });
       if (!saved) return;
 

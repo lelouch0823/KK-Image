@@ -215,7 +215,8 @@ describe('useOrders extra coverage', () => {
     await expect(getOrder('order-2')).resolves.toBeNull();
     await expect(getOrder('order-3')).resolves.toBeNull();
     expect(mocks.addToast).toHaveBeenCalledWith({ message: 'missing', type: 'error' });
-    expect(mocks.addToast).toHaveBeenCalledWith({ message: 'common.networkError', type: 'error' });
+    // F7：错误 message 透传（Error('network down')），仅在无具体原因时回退网络错误文案
+    expect(mocks.addToast).toHaveBeenCalledWith({ message: 'network down', type: 'error' });
   });
 
   it('rolls back failed order updates and status changes', async () => {

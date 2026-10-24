@@ -59,6 +59,7 @@
               :label="t('product.form.media')"
               :hint="t('product.form.media_help')"
               :upload-endpoint="API.MANAGE_UPLOAD"
+              :check-hash-endpoint="API.CHECK_HASH"
               :max-files="10"
               context="product"
             />
@@ -177,6 +178,7 @@
                   :label="t('product.form.media')"
                   :hint="t('product.form.media_help')"
                   :upload-endpoint="API.MANAGE_UPLOAD"
+              :check-hash-endpoint="API.CHECK_HASH"
                   :max-files="10"
                   context="product"
                 />

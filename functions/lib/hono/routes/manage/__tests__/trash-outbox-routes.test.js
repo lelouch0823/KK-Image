@@ -53,18 +53,20 @@ import trashApp from '../trash.js';
 describe('manage trash outbox routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // B5：restore 只作用于回收站内条目，fixture 需带 deleted_at
     mocks.fileFindByIds.mockResolvedValue([
-      { id: 'file-1', folder_id: 'folder-a' },
-      { id: 'file-2', folder_id: 'root' },
+      { id: 'file-1', folder_id: 'folder-a', deleted_at: 100 },
+      { id: 'file-2', folder_id: 'root', deleted_at: 100 },
     ]);
     mocks.fileRestoreBatch.mockResolvedValue(undefined);
     mocks.folderFindById
-      .mockResolvedValueOnce({ id: 'folder-a', parent_id: 'root', name: 'Folder A', is_deleted: 1 })
+      .mockResolvedValueOnce({ id: 'folder-a', parent_id: 'root', name: 'Folder A', is_deleted: 1, deleted_at: 100 })
       .mockResolvedValueOnce({
         id: 'folder-b',
         parent_id: 'folder-a',
         name: 'Folder B',
         is_deleted: 1,
+        deleted_at: 100,
       });
     mocks.folderRestore.mockResolvedValue(undefined);
   });

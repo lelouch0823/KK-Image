@@ -151,7 +151,11 @@ app.get('/', zValidator('query', FileQuerySchema), withCache(30), async (c) => {
     bindings.push(isPublic ? 1 : 0);
   }
 
-  const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as total');
+  // F4：count 语句单独构造——列表 SELECT 是窄列集，旧实现
+  // sql.replace('SELECT *', …) 是 no-op，countSql 与列表 SQL 相同，
+  // countResult.total 恒为 undefined（分页 total 恒 0）
+  const whereClause = sql.slice(sql.indexOf('WHERE'));
+  const countSql = `SELECT COUNT(*) as total FROM files ${whereClause}`;
   const countResult = await env.DB.prepare(countSql)
     .bind(...bindings)
     .first();

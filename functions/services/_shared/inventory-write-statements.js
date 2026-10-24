@@ -13,8 +13,18 @@
  *    一致推导（available = MAX(on_hand - reserved, 0)，展示层钳制语义），
  *    并发请求各自以读到的行状态为基线做相对增量，由 CHECK/谓词仲裁，
  *    无需 check-then-act；
- * 4. 写入者收敛：InventoryService（库存事件）、行级履约（预留移动）、
- *    DemandService（订单状态机预留）共用同一构建器，语义不再漂移。
+ * 4. 写入者收敛：InventoryService（库存事件）、DemandService（订单状态机预留）
+ *    共用同一构建器，语义不再漂移；
+ *    inventory_balances.reserved 的唯一写入者是 DemandService（单一写入者
+ *    模型，审查 B1）：行级 reserve/ship/release 命令一律不触碰该池——
+ *    行级 ship 释放从未持有的份额会把池打成负数（0099 CHECK），confirmed
+ *    订单还会被终态全量释放双重扣减；行级预留的容量约束由 reserve 时的
+ *    available 预检 + ship 时的 on_hand 守卫增量保证；
+ * 5. 需求预留释放钳位（buildBalanceReservedClampedReleaseStatement）：
+ *    历史漂移（预留记账修复前的数据）可能让 release 越限，若严格失败会
+ *    造成"订单状态已提交但预留无法释放"的卡死；释放路径钳位到 0 并由
+ *    调用方（DemandService）记录实际释放量与漂移告警，自愈式收敛。
+ *    这是本模块唯一的钳位例外，on_hand 仍严格拒绝负值。
  *
  * 失败语义：越限写入抛出 SQLite 约束错误 → 调用方通过
  * normalizeInventoryWriteError / runGuardedBatch 映射为 ConflictError。
@@ -114,6 +124,37 @@ export function buildBalanceDeltaUpsertStatement(db, {
       onHandDelta,
       reservedDelta
     );
+}
+
+/**
+ * 需求预留钳位释放 UPSERT（仅负 reservedDelta）。
+ *
+ * reserved 钳位到下限 0 而不是让 CHECK 失败：DemandService 的订单级释放
+ * 是状态机补偿路径（状态更新已提交后执行），严格失败会让订单停留
+ * "状态已变、预留未释放"的中间态；钳位 + 实际释放量台账可自愈历史
+ * 漂移。调用方应在同一 batch 前后 SELECT reserved 以计算实际释放量，
+ * 实际值 ≠ 请求值时输出漂移告警供对账。
+ *
+ * @returns {D1PreparedStatement}
+ */
+export function buildBalanceReservedClampedReleaseStatement(db, {
+  variantId,
+  reservedDelta,
+  timestamp,
+}) {
+  if (reservedDelta >= 0) {
+    throw new Error('buildBalanceReservedClampedReleaseStatement requires a negative reservedDelta');
+  }
+  return db
+    .prepare(
+      `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
+       VALUES (?, 0, MAX(0 + ?, 0), MAX(0 - MAX(0 + ?, 0), 0), ?)
+       ON CONFLICT(variant_id) DO UPDATE SET
+         reserved = MAX(inventory_balances.reserved + ?, 0),
+         available = MAX(inventory_balances.on_hand - MAX(inventory_balances.reserved + ?, 0), 0),
+         updated_at = excluded.updated_at`
+    )
+    .bind(variantId, reservedDelta, reservedDelta, timestamp, reservedDelta, reservedDelta);
 }
 
 /**

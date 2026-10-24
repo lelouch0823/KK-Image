@@ -12,6 +12,7 @@ import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { API } from '@/utils/constants';
 import { useAuth } from '@/composables/useAuth';
+import { extractErrorMessage } from '@/utils/api-helpers';
 
 /** 付款记录接口 */
 export interface Payment {
@@ -106,8 +107,8 @@ export function usePayments(orderId: Ref<string | null>) {
         addToast({ message: data.error || t('common.operationFailed'), type: 'error' });
         return false;
       }
-    } catch {
-      addToast({ message: t('common.networkError'), type: 'error' });
+    } catch (e: unknown) {
+      addToast({ message: extractErrorMessage(e, t('common.networkError')), type: 'error' });
       return false;
     } finally {
       adding.value = false;
@@ -142,8 +143,8 @@ export function usePayments(orderId: Ref<string | null>) {
         addToast({ message: data.error || t('common.operationFailed'), type: 'error' });
         return false;
       }
-    } catch {
-      addToast({ message: t('common.networkError'), type: 'error' });
+    } catch (e: unknown) {
+      addToast({ message: extractErrorMessage(e, t('common.networkError')), type: 'error' });
       return false;
     } finally {
       adding.value = false;
@@ -171,8 +172,8 @@ export function usePayments(orderId: Ref<string | null>) {
         addToast({ message: data.error || t('common.operationFailed'), type: 'error' });
         return false;
       }
-    } catch {
-      addToast({ message: t('common.networkError'), type: 'error' });
+    } catch (e: unknown) {
+      addToast({ message: extractErrorMessage(e, t('common.networkError')), type: 'error' });
       return false;
     }
   }

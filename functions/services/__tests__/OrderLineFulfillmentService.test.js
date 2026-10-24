@@ -107,6 +107,7 @@ function createDbHarness({
         );
     }),
     listActiveByOrderLine: vi.fn(async () => activeAllocations),
+    listActiveByOrder: vi.fn(async () => activeAllocations),
     buildReleaseStatement: vi.fn((allocation, quantity, options = {}) => {
       calls.allocationReleases.push({
         allocationId: allocation.id,
@@ -1115,13 +1116,26 @@ describe('OrderLineFulfillmentService', () => {
 
     await service.shipLine('order-1', 'line-1', { quantity: 2 }, { actorName: 'Admin' });
 
+    // 单一写入者模型（审查 B1）：shipLine 只消耗行级 allocation 记账
+    //（reservedConsumed=2，不超发货量 3），不触碰 inventory_balances.reserved
+    // ——该池由 DemandService 独占写入，行级释放会造成 pending 订单池变负、
+    // confirmed 订单终态双重释放
+    expect(harness.calls.allocationReleases).toEqual([
+      expect.objectContaining({ allocationId: 'alloc-1', quantity: 2 }),
+    ]);
     const releaseLedger = harness.calls.batchedStatements.find(
       (statement) =>
         statement.sql.includes('INSERT INTO inventory_ledger') &&
         statement.params.includes('inventory_released')
     );
-    expect(releaseLedger?.params).toContain(-2);
-    expect(releaseLedger?.params).not.toContain(-3);
+    expect(releaseLedger).toBeUndefined();
+    // 出库写 on_hand（inventoryService）合法；不得出现任何预留事件/台账
+    const reservationEvents = harness.calls.batchedStatements.filter(
+      (statement) =>
+        statement.params.includes('inventory_released') ||
+        statement.params.includes('reservation_release')
+    );
+    expect(reservationEvents).toEqual([]);
   });
 
   it('rejects returns without a valid reason code', async () => {

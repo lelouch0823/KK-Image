@@ -144,7 +144,13 @@ describe('InventoryService', () => {
       totalQty: 7,
     });
     expect(db.batch).toHaveBeenCalledTimes(1);
-    expect(db.batch.mock.calls[0][0]).toHaveLength(8);
+    // 每个变更 4 条语句 + 负增量（variant-2）追加 1 条 changes() 断言（B12）= 9
+    expect(db.batch.mock.calls[0][0]).toHaveLength(9);
+    expect(
+      db.batch.mock.calls[0][0].some((statement) =>
+        statement.sql.includes("json_extract(CASE WHEN changes() = 1")
+      )
+    ).toBe(true);
     expect(run).not.toHaveBeenCalled();
     expect(productProjectionRefreshService.refreshByVariantIds).toHaveBeenCalledWith([
       'variant-1',

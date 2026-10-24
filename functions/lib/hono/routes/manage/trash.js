@@ -40,6 +40,33 @@ async function purgeStorageMirrors(env, fileIds) {
   }
 }
 
+/**
+ * B13：按块"先删台账行、后清对象"地永久删除回收站文件。
+ *
+ * 行删除是每个文件的认领：重试时查询/列表不再返回已删除的行，天然幂等。
+ * 对象清理（blob 引用扣减 / 直连 R2 删除）放在行删除之后——清理失败只会
+ * 留下保守方向的引用泄漏（对象多留、可对账），不会出现旧实现
+ * "对象已删、台账仍在"的重试双重扣减（共享 blob 的其它文件被连坐删除）
+ * 或"台账已删、对象泄漏且不可追溯"的静默丢失。
+ */
+async function permanentlyDeleteTrashedFiles(env, fileRepo, files) {
+  for (const fileChunk of chunkArray(files, 20)) {
+    await fileRepo.deleteBatch(fileChunk.map((f) => f.id));
+    await purgeStorageMirrors(env, fileChunk.map((f) => f.id));
+    for (const f of fileChunk) {
+      if (f.content_hash) {
+        await decrementRefCount(env, f.content_hash);
+      } else if (env.R2_BUCKET && f.storage_key) {
+        try {
+          await env.R2_BUCKET.delete(f.storage_key);
+        } catch (err) {
+          throw new Error(`R2 对象删除失败（${f.storage_key}）：${err?.message || err}`);
+        }
+      }
+    }
+  }
+}
+
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
   {
@@ -116,17 +143,27 @@ app.post(
 
     const fileRepo = new FileRepository(env.DB);
     const folderRepo = new FolderRepository(env.DB);
-    const [filesToRestore, foldersToRestore] = await Promise.all([
+    const [filesFetched, foldersFetched] = await Promise.all([
       fileIds.length > 0 ? fileRepo.findByIds(fileIds) : [],
       folderIds.length > 0 ? Promise.all(folderIds.map((id) => folderRepo.findById(id))) : [],
     ]);
 
-    if (fileIds.length > 0) {
-      await fileRepo.restoreBatch(fileIds);
+    // B5：只还原确实在回收站内的条目。活跃条目混入时静默跳过——
+    // restoreBatch 对未删除行虽是无害 no-op，但 outbox 事件与审计计数
+    // 必须与实际还原的条目一致，且防止把"还原"当作探测/扰动活跃数据的入口
+    const filesToRestore = (filesFetched || []).filter(
+      (file) => file?.deleted_at !== null && file?.deleted_at !== undefined
+    );
+    const foldersToRestore = (foldersFetched || []).filter(
+      (folder) => folder && folder.deleted_at !== null && folder.deleted_at !== undefined
+    );
+
+    if (filesToRestore.length > 0) {
+      await fileRepo.restoreBatch(filesToRestore.map((file) => file.id));
     }
 
-    if (folderIds.length > 0) {
-      await Promise.all(folderIds.map((id) => folderRepo.restore(id)));
+    if (foldersToRestore.length > 0) {
+      await Promise.all(foldersToRestore.map((folder) => folderRepo.restore(folder.id)));
     }
 
     const outboxEvents = [
@@ -139,7 +176,7 @@ app.post(
           folder_ids: [file.folder_id],
         },
       })),
-      ...foldersToRestore.filter(Boolean).map((folder) => ({
+      ...foldersToRestore.map((folder) => ({
         event_type: 'v1_folder_updated',
         aggregate_type: 'folder',
         aggregate_id: folder.id,
@@ -152,7 +189,7 @@ app.post(
     await publishDomainEventsAndPoll(
       c,
       outboxEvents,
-      `manage-trash-restore:${fileIds.length}:${folderIds.length}`
+      `manage-trash-restore:${filesToRestore.length}:${foldersToRestore.length}`
     );
     // 还原/彻底删除都会改变回收站列表内容，失效 trash scope 缓存
     //（restore 对文件/文件夹主列表的失效由 outbox 的 cache consumer 负责）
@@ -163,8 +200,8 @@ app.post(
       result: 'success',
       severity: 'high',
       targetType: 'trash',
-      summary: `Restored ${fileIds.length + folderIds.length} trash items`,
-      metadata: { fileCount: fileIds.length, folderCount: folderIds.length },
+      summary: `Restored ${filesToRestore.length + foldersToRestore.length} trash items`,
+      metadata: { fileCount: filesToRestore.length, folderCount: foldersToRestore.length },
     });
 
     return c.json({ success: true, message: MSG.COMMON.RESTORE_SUCCESS || 'Restore successful' });
@@ -187,44 +224,30 @@ app.post(
 
     // 1. 永久删除文件
     if (fileIds.length > 0) {
-      // 获取 R2 存储键（分块查询，避免超出 D1 绑定参数上限）
-      const results = [];
+      // B5：只删除确实在回收站内的文件（deleted_at IS NOT NULL）。无此过滤时
+      // 传入活跃文件 id 可绕过"先进回收站、冷静期"生命周期直接物理删除线上文件
+      const trashedFiles = [];
       for (const idChunk of chunkArray(fileIds, D1_MAX_IN_CLAUSE_SIZE)) {
         const placeholders = idChunk.map(() => '?').join(',');
         const { results: chunkResults } = await env.DB.prepare(
-          `SELECT storage_key, content_hash FROM files WHERE id IN (${placeholders})`
+          `SELECT id, storage_key, content_hash FROM files WHERE id IN (${placeholders}) AND deleted_at IS NOT NULL`
         )
           .bind(...idChunk)
           .all();
-        results.push(...chunkResults);
+        trashedFiles.push(...chunkResults);
       }
 
-      // 从 R2/CAS 删除；B-M6：R2 删除失败不再"警告后继续删 DB"——
-      // 那会产生孤儿对象且文件台账消失，物理泄漏不可追溯
-      await Promise.all(
-        results.map(async (f) => {
-          if (f.content_hash) {
-            await decrementRefCount(env, f.content_hash);
-          } else if (env.R2_BUCKET && f.storage_key) {
-            try {
-              await env.R2_BUCKET.delete(f.storage_key);
-            } catch (err) {
-              throw new Error(`R2 对象删除失败（${f.storage_key}）：${err?.message || err}`);
-            }
-          }
-        })
-      );
-
-      // 清理镜像副本与记录（幂等：无镜像时为 no-op）
-      await purgeStorageMirrors(env, fileIds);
-
-      // 从数据库删除
-      await fileRepo.deleteBatch(fileIds);
+      // B13：分块"先删台账行、后清对象"（见 permanentlyDeleteTrashedFiles），
+      // 重试天然从剩余行续跑，不会对已处理文件重复扣减 blob 引用
+      await permanentlyDeleteTrashedFiles(env, fileRepo, trashedFiles);
     }
 
-    // 2. 永久删除文件夹
+    // 2. 永久删除文件夹（仅回收站内的文件夹，B5）
     if (folderIds.length > 0) {
       for (const folderId of folderIds) {
+        const folder = await folderRepo.findById(folderId);
+        if (!folder || folder.deleted_at === null || folder.deleted_at === undefined) continue;
+
         const storageKeys = await folderRepo.getAllStorageKeysRecursive(folderId);
         if (env.R2_BUCKET && storageKeys.length > 0) {
           // B-M6：与文件分支对齐——R2 删除失败必须中止 DB 删除，
@@ -277,24 +300,10 @@ app.delete('/empty', requirePermission('files:delete'), async (c) => {
   // 1. 获取所有回收站项目
   const [files, folders] = await Promise.all([fileRepo.findTrash(), folderRepo.findTrash()]);
 
-  // 2. 删除文件 (R2 + DB)
+  // 2. 删除文件 (R2 + DB)：findTrash 只返回回收站内条目（B5 语义），
+  // 删除模式与 /delete 一致（B13：先删台账行、后清对象、分块可重试）
   if (files.length > 0) {
-    await Promise.all(
-      files.map(async (f) => {
-        if (f.content_hash) {
-          await decrementRefCount(env, f.content_hash);
-        } else if (env.R2_BUCKET && f.storage_key) {
-          try {
-            await env.R2_BUCKET.delete(f.storage_key);
-          } catch (err) {
-            throw new Error(`R2 对象删除失败（${f.storage_key}）：${err?.message || err}`);
-          }
-        }
-      })
-    );
-    const fileIds = files.map((f) => f.id);
-    await purgeStorageMirrors(env, fileIds);
-    await fileRepo.deleteBatch(fileIds);
+    await permanentlyDeleteTrashedFiles(env, fileRepo, files);
   }
 
   // 3. 递归删除文件夹及其内容

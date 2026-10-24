@@ -201,7 +201,17 @@
                 @share="handleShareFile"
                 @delete="handleDeleteFile"
                 @select="toggleSelect"
-                @context-menu="(e, file) => openContextMenu(e, file, 'file')"
+                @context-menu="(e, file) => openContextMenu($event, file, 'file')"
+              />
+            </div>
+
+            <!-- F4：根目录分页加载（后端列表接口分页，子文件夹为全量语义不显示） -->
+            <div v-if="hasMoreRootFiles" class="mt-6 flex justify-center">
+              <AppButton
+                variant="secondary"
+                :text="loadingMoreRootFiles ? t('common.loading') : t('common.loadMore')"
+                :disabled="loadingMoreRootFiles"
+                @click="loadMoreRootFiles"
               />
             </div>
           </div>
@@ -332,6 +342,10 @@ const {
   isImage,
   error,
   errorCode,
+  hasMoreRootFiles,
+  loadingMoreRootFiles,
+  rootFilesTotal,
+  loadMoreRootFiles,
 } = useFileManager();
 
 const { searchQuery, searchResults } = useSearch();

@@ -17,53 +17,76 @@ function getReceivedAllocationQty(item = {}) {
 }
 
 /**
- * 按已收货金额（unit_cost × received_qty）比例把总额分配到各明细，
- * 以"分"为整数单位做最大余额法，保证分配之和与总额精确相等。
- * @param {Array<Object>} items 采购单明细
- * @param {number} total 待分配总额
- * @returns {Map<string, number>} itemId -> 分摊金额
+ * 以"分"为整数单位的最大余额法：把 totalCents 按权重比例分配到各明细，
+ * 保证 Σ(分得的分数) === totalCents 精确成立（审查 B2 修复的核心不变量）。
+ * @param {Array<Object>} items 参与分配的明细
+ * @param {number} totalCents 待分配总额（分）
+ * @param {(item: Object) => number} weightOf 权重函数
+ * @returns {number[]} 每明细分得的"分"数（与 items 索引对齐）
  */
-function distributeByValue(items, total) {
-  const result = new Map();
-  const totalCents = Math.round(Number(total) || 0);
-  const eligible = items.filter((item) => getReceivedAllocationQty(item) > 0);
-  if (eligible.length === 0 || totalCents === 0) {
-    for (const item of items) result.set(item.id, 0);
-    if (totalCents === 0) return result;
-  }
-
-  const weights = eligible.map(
-    (item) => (Number(item.unit_cost) || 0) * getReceivedAllocationQty(item)
-  );
+function distributeCentsByWeight(items, totalCents, weightOf) {
+  const weights = items.map((item) => Math.max(Number(weightOf(item)) || 0, 0));
   const weightSum = weights.reduce((sum, w) => sum + w, 0);
-  if (!(weightSum > 0)) {
-    for (const item of items) result.set(item.id, 0);
-    return result;
-  }
+  if (!(weightSum > 0) || totalCents === 0) return weights.map(() => 0);
 
-  const rawCents = weights.map((w) => (w / weightSum) * totalCents);
-  const baseCents = rawCents.map((v) => Math.floor(v));
-  let remainder = totalCents - baseCents.reduce((sum, c) => sum + c, 0);
-  const order = rawCents
+  const raw = weights.map((w) => (w / weightSum) * totalCents);
+  const base = raw.map((v) => Math.floor(v));
+  let remainder = totalCents - base.reduce((sum, c) => sum + c, 0);
+  const order = raw
     .map((value, idx) => ({ idx, fraction: value - Math.floor(value) }))
     .sort((a, b) => b.fraction - a.fraction);
 
-  const cents = [...baseCents];
   for (let i = 0; remainder > 0 && i < order.length; i++, remainder--) {
-    cents[order[i].idx] += 1;
+    base[order[i].idx] += 1;
   }
   // 兜底：浮点极端情况下余量可能超出明细数，循环均摊剩余部分
   let cursor = 0;
   while (remainder > 0) {
-    cents[order[cursor % order.length].idx] += 1;
+    base[order[cursor % order.length].idx] += 1;
     remainder -= 1;
     cursor += 1;
   }
+  return base;
+}
 
-  eligible.forEach((item, idx) => result.set(item.id, cents[idx] / 100));
-  for (const item of items) {
-    if (!result.has(item.id)) result.set(item.id, 0);
-  }
+/**
+ * 把明细分得的"分"换算为单件金额（元）。
+ *
+ * purchase_order_items.allocated_freight / allocated_tariff 的列语义是
+ * "分摊后的单件运费/关税"（migration 0035），MAC 重算按
+ * (unit_cost + allocated_freight + allocated_tariff) × received_qty 计入，
+ * 因此分摊结果必须写到单件粒度：Σ(perUnit_i × qty_i) === 总额。
+ * @param {number} cents 明细分得的分数
+ * @param {number} qty 明细已收货件数（>0，由调用方保证）
+ * @returns {number} 单件金额（元）
+ */
+function centsToPerUnitYuan(cents, qty) {
+  return cents / Math.max(qty, 1) / 100;
+}
+
+/**
+ * 按已收货金额（unit_cost × received_qty）比例把总额分配到各明细，
+ * 返回单件金额：Σ(单件分摊 × 已收货数量) 与总额精确相等（分粒度）。
+ * @param {Array<Object>} items 采购单明细
+ * @param {number} total 待分配总额（元）
+ * @returns {Map<string, number>} itemId -> 单件分摊金额（元）
+ */
+function distributePerUnitByValue(items, total) {
+  const result = new Map();
+  // 元 → 分必须显式 ×100：total 以元传入，漏乘会把分摊额缩小 100 倍（审查 B2）
+  const totalCents = Math.round((Number(total) || 0) * 100);
+  const eligible = items.filter((item) => getReceivedAllocationQty(item) > 0);
+  for (const item of items) result.set(item.id, 0);
+  if (eligible.length === 0 || totalCents === 0) return result;
+
+  const cents = distributeCentsByWeight(
+    eligible,
+    totalCents,
+    (item) => (Number(item.unit_cost) || 0) * getReceivedAllocationQty(item)
+  );
+  eligible.forEach((item, idx) => {
+    result.set(item.id, centsToPerUnitYuan(cents[idx], getReceivedAllocationQty(item)));
+  });
   return result;
 }
 
@@ -121,11 +144,12 @@ export class CostAllocationService {
         // 回退到按件数分摊
         allocations = this._allocateByQuantity(items, shippingCost, tariffCost);
       } else {
-        // 以"分"为单位做最大余额法分配，保证 Σ(allocated_freight) == shippingCost、
-        // Σ(allocated_tariff) == tariffCost 精确成立
-        // （旧实现按单价四舍五入，Σ(单价×数量) 与总额存在累计舍入漂移）
-        const freightByItem = distributeByValue(items, shippingCost);
-        const tariffByItem = distributeByValue(items, tariffCost);
+        // 以"分"为单位做最大余额法分配，保证
+        // Σ(单件 allocated_freight × received_qty) == shippingCost、
+        // Σ(单件 allocated_tariff × received_qty) == tariffCost 精确成立
+        // （列语义是单件运费/关税，写入前换算到单件粒度——审查 B2）
+        const freightByItem = distributePerUnitByValue(items, shippingCost);
+        const tariffByItem = distributePerUnitByValue(items, tariffCost);
         allocations = items.map((item) => ({
           id: item.id,
           allocated_freight: freightByItem.get(item.id) || 0,
@@ -242,46 +266,37 @@ export class CostAllocationService {
   }
 
   /**
-   * 按件数平均分摊（最大余额法，确保分摊总额与实际费用一致）
+   * 按件数分摊（最大余额法，单件粒度）
+   *
+   * 权重是每明细的已收货件数（不是明细条数）：1 条 qty=10 与 1 条 qty=1
+   * 的运费必须按 10:1 而非 1:1 分配，否则 Σ(单件 × 数量) 会放大/缩小总额
+   * （审查 B2）。Σ(单件 allocated_freight × received_qty) 与运费总额精确相等。
    */
   _allocateByQuantity(items, shippingCost, tariffCost) {
-    const totalQty = items.reduce((sum, item) => sum + getReceivedAllocationQty(item), 0);
-    if (totalQty === 0) {
-      return items.map((item) => ({
-        id: item.id,
-        allocated_freight: 0,
-        allocated_tariff: 0,
-      }));
-    }
+    const zero = () => items.map((item) => ({ id: item.id, allocated_freight: 0, allocated_tariff: 0 }));
+    const eligible = items.filter((item) => getReceivedAllocationQty(item) > 0);
+    if (eligible.length === 0) return zero();
 
-    // 最大余额法：先按 floor 分配，再将余数按小数部分从大到小分配
-    const distribute = (total, itemsWithQty) => {
-      const cents = Math.round(total * 100);
-      const baseCents = Math.floor(cents / itemsWithQty.length);
-      const remainder = cents % itemsWithQty.length;
-
-      // 按小数余量排序，余量大的优先多分 1 分
-      const indexed = itemsWithQty.map((item, idx) => ({
-        idx,
-        qty: getReceivedAllocationQty(item),
-        fraction: total / itemsWithQty.length - baseCents / 100,
-      }));
-      indexed.sort((a, b) => b.fraction - a.fraction);
-
-      const resultCents = new Array(itemsWithQty.length).fill(baseCents);
-      for (let i = 0; i < remainder; i++) {
-        resultCents[indexed[i].idx] += 1;
-      }
-      return resultCents.map((c) => c / 100);
+    const distribute = (total) => {
+      const totalCents = Math.round((Number(total) || 0) * 100);
+      const cents = distributeCentsByWeight(eligible, totalCents, (item) =>
+        getReceivedAllocationQty(item)
+      );
+      return new Map(
+        eligible.map((item, idx) => [
+          item.id,
+          centsToPerUnitYuan(cents[idx], getReceivedAllocationQty(item)),
+        ])
+      );
     };
 
-    const freightAllocations = distribute(shippingCost, items);
-    const tariffAllocations = distribute(tariffCost, items);
+    const freightAllocations = distribute(shippingCost);
+    const tariffAllocations = distribute(tariffCost);
 
-    return items.map((item, idx) => ({
+    return items.map((item) => ({
       id: item.id,
-      allocated_freight: getReceivedAllocationQty(item) > 0 ? freightAllocations[idx] : 0,
-      allocated_tariff: getReceivedAllocationQty(item) > 0 ? tariffAllocations[idx] : 0,
+      allocated_freight: freightAllocations.get(item.id) || 0,
+      allocated_tariff: tariffAllocations.get(item.id) || 0,
     }));
   }
 }

@@ -195,6 +195,7 @@ const {
   getSalesOrder,
   addSalesComment,
   salesPagination: ordersPagination,
+  listTruncated: ordersListTruncated,
 } = useOrders();
 
 const { t } = useI18n();
@@ -289,6 +290,7 @@ provide('salesContext', {
   loadOrders: (page, append, search = searchQuery.value) =>
     salesOrderStateMachine.loadOrders({ page, append, search }),
   pagination: ordersPagination,
+  listTruncated: ordersListTruncated,
   prefillData,
   setPrefillData: (data) => {
     prefillData.value = data;

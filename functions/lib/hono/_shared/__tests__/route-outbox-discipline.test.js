@@ -1,8 +1,14 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
 
-const ROUTES_DIR = '/home/bjw/Code/KK-Image/functions/lib/hono/routes';
+// 从测试文件位置推导 routes 根目录，避免硬编码绝对路径（在其它机器上 ENOENT）
+const ROUTES_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../routes'
+);
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../..');
 const IGNORED_DIRS = new Set(['__tests__']);
 
 function walkRouteFiles(dir, acc = []) {
@@ -27,7 +33,7 @@ describe('route outbox discipline guard', () => {
     for (const file of walkRouteFiles(ROUTES_DIR)) {
       const source = fs.readFileSync(file, 'utf8');
       if (source.includes('invalidateCache(')) {
-        offenders.push(path.relative('/home/bjw/Code/KK-Image', file));
+        offenders.push(path.relative(REPO_ROOT, file));
       }
     }
 

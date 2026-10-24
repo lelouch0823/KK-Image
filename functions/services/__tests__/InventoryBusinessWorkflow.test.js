@@ -65,6 +65,31 @@ class WorkflowDb {
           return { meta: { changes: 1 } };
         }
 
+        // DemandService 钳位释放前后读取实际 reserved（漂移检测）：
+        // batch 内的 SELECT 走 run()，返回单行 results
+        if (sql.includes('SELECT reserved FROM inventory_balances')) {
+          const balance = db.state.balances.get(stmt.params[0]) || { on_hand: 0, reserved: 0 };
+          return { results: [{ reserved: balance.reserved }] };
+        }
+
+        if (
+          sql.includes('INSERT INTO inventory_balances') &&
+          sql.includes('reserved = MAX(inventory_balances.reserved + ?, 0)')
+        ) {
+          // 需求预留钳位释放 UPSERT（共享构建器形态）：reserved 钳位到 0、
+          // on_hand 不变、available 重算；无行时以 0 基线钳位
+          const [variantId] = stmt.params;
+          const reservedDelta = Number(stmt.params[4] || 0);
+          const current = db.state.balances.get(variantId) || { on_hand: 0, reserved: 0 };
+          const next = {
+            on_hand: current.on_hand,
+            reserved: Math.max(Number(current.reserved || 0) + reservedDelta, 0),
+          };
+          next.available = Math.max(next.on_hand - next.reserved, 0);
+          db.state.balances.set(variantId, next);
+          return { meta: { changes: 1 } };
+        }
+
         if (
           sql.includes('INSERT INTO inventory_balances') &&
           sql.includes('on_hand = inventory_balances.on_hand + ?')

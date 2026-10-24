@@ -54,18 +54,28 @@ describe('Blob Utils', () => {
 
   describe('incrementRefCount', () => {
     it('should call update ref_count', async () => {
+      env.DB.run.mockResolvedValueOnce({ meta: { changes: 1 } });
       await incrementRefCount(env, 'h1');
       expect(env.DB.prepare).toHaveBeenCalledWith(
         expect.stringContaining('UPDATE blobs SET ref_count = ref_count + 1')
       );
     });
+
+    it('returns false when the blob row was concurrently deleted (claim failed)', async () => {
+      // 认领失败（changes()=0）：调用方必须放弃秒传、走完整上传兜底（审查 B4）
+      env.DB.run.mockResolvedValueOnce({ meta: { changes: 0 } });
+      await expect(incrementRefCount(env, 'h1')).resolves.toBe(false);
+    });
   });
 
   describe('decrementRefCount', () => {
-    it('should decrement ref_count and delete if last reference', async () => {
+    it('should decrement ref_count, claim-delete the row, then delete R2 object', async () => {
       // batch 返回: [updateResult, selectResult]
-      env.DB.batch.mockResolvedValueOnce([{ success: true }, { results: [{ ref_count: 0 }] }]);
-      env.DB.run.mockResolvedValueOnce({ success: true });
+      env.DB.batch.mockResolvedValueOnce([
+        { success: true },
+        { results: [{ ref_count: 0, size: 100, mime_type: 'image/png' }] },
+      ]);
+      env.DB.run.mockResolvedValueOnce({ meta: { changes: 1 } });
 
       const deleted = await decrementRefCount(env, 'hash1');
 
@@ -74,22 +84,44 @@ describe('Blob Utils', () => {
       expect(env.R2_BUCKET.delete).toHaveBeenCalledWith('hash1');
     });
 
-    it('should propagate R2 deletion failure and keep the blob record for retry', async () => {
-      env.DB.batch.mockResolvedValueOnce([{ success: true }, { results: [{ ref_count: 0 }] }]);
+    it('should skip object deletion when a concurrent upload revived the row (claim miss)', async () => {
+      // SELECT 观察到 ref_count=0 后、认领 DELETE 前被并发秒传复活（0→1）：
+      // 认领 changes()=0，必须跳过 R2 删除，否则新引用指向已删对象（审查 B4）
+      env.DB.batch.mockResolvedValueOnce([
+        { success: true },
+        { results: [{ ref_count: 0, size: 100, mime_type: 'image/png' }] },
+      ]);
+      env.DB.run.mockResolvedValueOnce({ meta: { changes: 0 } });
+
+      const deleted = await decrementRefCount(env, 'hash1');
+
+      expect(deleted).toBe(false);
+      expect(env.R2_BUCKET.delete).not.toHaveBeenCalled();
+    });
+
+    it('should re-create a tombstone row for retry when R2 deletion fails', async () => {
+      env.DB.batch.mockResolvedValueOnce([
+        { success: true },
+        { results: [{ ref_count: 0, size: 100, mime_type: 'image/png' }] },
+      ]);
+      env.DB.run.mockResolvedValueOnce({ meta: { changes: 1 } });
       env.R2_BUCKET.delete.mockRejectedValueOnce(new Error('R2 Error'));
 
       await expect(decrementRefCount(env, 'hash1')).rejects.toThrow('R2 Error');
 
-      // R2 删除先于记录删除执行：失败时 blob 行尚未删除，可重试
-      expect(env.DB.prepare).not.toHaveBeenCalledWith(
-        expect.stringContaining('DELETE FROM blobs')
+      // 行已认领删除；R2 失败后以 ref_count=0 重建墓碑行保留重试入口
+      expect(env.DB.prepare).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT OR IGNORE INTO blobs')
       );
     });
 
     it('should tolerate missing R2 objects when ref_count reaches zero', async () => {
       // R2 delete 幂等：对象不存在时正常成功（不抛错）
-      env.DB.batch.mockResolvedValueOnce([{ success: true }, { results: [{ ref_count: 0 }] }]);
-      env.DB.run.mockResolvedValueOnce({ success: true });
+      env.DB.batch.mockResolvedValueOnce([
+        { success: true },
+        { results: [{ ref_count: 0, size: 100, mime_type: 'image/png' }] },
+      ]);
+      env.DB.run.mockResolvedValueOnce({ meta: { changes: 1 } });
 
       const deleted = await decrementRefCount(env, 'hash1');
 

@@ -4,7 +4,7 @@ import { UpdateAdminOrderSchema, UpdateOrderStatusSchema } from '../../../../sch
 import { OrderRepository } from '../../../../../../repositories/OrderRepository.js';
 import { validateProductVariantBinding } from '../../../../../../api/utils/validation.js';
 import { MSG, ORDER_STATUSES } from '../../../../../../_shared/utils.js';
-import { NotFoundError, BadRequestError } from '../../../../errors.js';
+import { NotFoundError, BadRequestError, ConflictError } from '../../../../errors.js';
 import { requireEntity } from '../../../../_shared/route-helpers.js';
 import { isInsufficientStockError, isInvalidStatusTransitionError } from '../error-helpers.js';
 import { DemandService } from '../../../../../../services/DemandService.js';
@@ -66,6 +66,15 @@ app.patch('/:id', zValidator('json', UpdateAdminOrderSchema), async (c) => {
     () => new NotFoundError(MSG.ORDER.NOT_FOUND)
   );
   assertOrderIsActiveForMutation(order);
+
+  // F12：乐观并发控制——调用方回传读取时的 updatedAt，已被他人修改则 409。
+  // null/缺省 = 不启用（幂等重放与旧客户端兼容）
+  const expectedUpdatedAt = body?.expectedUpdatedAt;
+  if (expectedUpdatedAt != null && Number(order.updatedAt || 0) !== Number(expectedUpdatedAt)) {
+    throw new ConflictError(
+      '订单已被其他用户修改，请刷新后重试（乐观并发冲突）'
+    );
+  }
 
   const { updates: updatesFromBody, reason, fileIds, productId, variantId } = body;
   const forceStatusTransition = Boolean(body?.force);

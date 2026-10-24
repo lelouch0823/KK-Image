@@ -271,9 +271,14 @@ export async function storeFile(env, file, options = {}) {
   if (contentHash) {
     const existingBlob = await getBlobByHash(env, contentHash);
     if (existingBlob) {
-      await incrementRefCount(env, contentHash);
-      storageKey = contentHash;
-      isInstantUpload = true;
+      // 认领检查（审查 B4）：getBlobByHash 与 increment 之间行可能被并发
+      // 清理删除（ref 归零 → 认领删除）。认领失败必须走完整上传兜底，
+      // 否则新建 files 记录的 content_hash 会指向已删除的 R2 对象
+      const claimed = await incrementRefCount(env, contentHash);
+      if (claimed) {
+        storageKey = contentHash;
+        isInstantUpload = true;
+      }
     }
   }
 

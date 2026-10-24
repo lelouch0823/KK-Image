@@ -449,4 +449,6 @@ export default {
     saveSuccess: '物流信息已更新',
     saveFailed: '保存物流信息失败',
   },
+  // F5：列表达到上限后最早条目被移出时的提示
+  listTruncatedHint: '已达列表显示上限，更早的订单请使用搜索定位',
 };

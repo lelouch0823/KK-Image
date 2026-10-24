@@ -10,6 +10,7 @@ import { useI18n } from './useI18n';
 import { useSalesOrderApi } from '@/composables/sales/useSalesOrderApi';
 import { API, SALES_ORDER_PAGE_SIZE } from '@/utils/constants';
 import { handleApiError } from '@/utils/api-helpers';
+import { extractErrorMessage } from '@/utils/api-helpers';
 
 // ============================================================
 // 类型定义
@@ -142,6 +143,9 @@ const sharedSalesResource = useResource<OrderListItem>('/api/sales/__shared__/or
 });
 const salespersons = ref<Salesperson[]>([]);
 const statuses = ref<StatusOption[]>([]);
+// F5：无限滚动超过 MAX_ITEMS 后最早的条目被移出列表——置位提示，
+// 避免"页脚显示共 N 条、实际看不到"的静默截断被当成丢数据
+const listTruncated = ref(false);
 const procurementStatuses = ref<StatusOption[]>([]);
 const deliveryStatuses = ref<StatusOption[]>([]);
 let manageListRequestId = 0;
@@ -199,12 +203,18 @@ export function useOrders() {
         // 追加模式：合并新数据，限制最大长度
         if (append) {
           const combined = [...resource.items.value, ...res.data];
-          resource.items.value = combined.length > MAX_ITEMS
-            ? combined.slice(-MAX_ITEMS)
-            : combined;
+          if (combined.length > MAX_ITEMS) {
+            // F5：截断 earliest 条目时置位提示——页脚 total 与可见条数
+            // 不符会让用户以为更早的订单丢了；提示用户用搜索定位
+            listTruncated.value = true;
+            resource.items.value = combined.slice(-MAX_ITEMS);
+          } else {
+            resource.items.value = combined;
+          }
         } else {
           // 替换模式：直接赋值
           resource.items.value = res.data;
+          listTruncated.value = false;
         }
 
         // 提取额外数据（元数据几乎不随分页变化，仅在缺失时加载）
@@ -266,8 +276,8 @@ export function useOrders() {
         addToast({ message: res.message || '', type: 'error' });
         return null;
       }
-    } catch (_e: unknown) {
-      addToast({ message: t('common.networkError'), type: 'error' });
+    } catch (e: unknown) {
+      addToast({ message: extractErrorMessage(e, t('common.networkError')), type: 'error' });
       return null;
     }
   };
@@ -289,6 +299,10 @@ export function useOrders() {
       if (fileIds) body.fileIds = fileIds;
       if (productId !== undefined) body.productId = productId;
       if (variantId !== undefined) body.variantId = variantId;
+      // F12：乐观并发控制——携带读取时点的 updatedAt，被他人修改则后端 409
+      const current = idx !== -1 ? resource.items.value[idx] : null;
+      const expectedUpdatedAt = (current as { updatedAt?: number | null } | null)?.updatedAt;
+      if (expectedUpdatedAt != null) body.expectedUpdatedAt = expectedUpdatedAt;
 
       const res = await authFetch(API.MANAGE_ORDER_UPDATE(id), {
         method: 'PATCH',
@@ -308,10 +322,10 @@ export function useOrders() {
         addToast({ message: res.message || '', type: 'error' });
         return false;
       }
-    } catch (_e: unknown) {
+    } catch (e: unknown) {
       // 回滚
       if (idx !== -1 && oldItem) resource.items.value[idx] = oldItem;
-      addToast({ message: t('common.networkError'), type: 'error' });
+      addToast({ message: extractErrorMessage(e, t('common.networkError')), type: 'error' });
       return false;
     }
   };
@@ -344,10 +358,10 @@ export function useOrders() {
         addToast({ message: res.message || '', type: 'error' });
         return false;
       }
-    } catch (_e: unknown) {
+    } catch (e: unknown) {
       // 回滚
       if (idx !== -1 && oldItem) resource.items.value[idx] = oldItem;
-      addToast({ message: t('common.networkError'), type: 'error' });
+      addToast({ message: extractErrorMessage(e, t('common.networkError')), type: 'error' });
       return false;
     }
   };
@@ -367,8 +381,8 @@ export function useOrders() {
 
       addToast({ message: res.error || res.message || t('common.operationFailed'), type: 'error' });
       return false;
-    } catch (_e: unknown) {
-      addToast({ message: t('common.networkError'), type: 'error' });
+    } catch (e: unknown) {
+      addToast({ message: extractErrorMessage(e, t('common.networkError')), type: 'error' });
       return false;
     }
   };
@@ -432,8 +446,8 @@ export function useOrders() {
 
       addToast({ message: res.error || res.message || t('common.operationFailed'), type: 'error' });
       return false;
-    } catch (_e: unknown) {
-      addToast({ message: t('common.networkError'), type: 'error' });
+    } catch (e: unknown) {
+      addToast({ message: extractErrorMessage(e, t('common.networkError')), type: 'error' });
       return false;
     }
   };
@@ -457,8 +471,8 @@ export function useOrders() {
         addToast({ message: res.message || '', type: 'error' });
         return false;
       }
-    } catch (_e: unknown) {
-      addToast({ message: t('common.networkError'), type: 'error' });
+    } catch (e: unknown) {
+      addToast({ message: extractErrorMessage(e, t('common.networkError')), type: 'error' });
       return false;
     }
   };
@@ -513,11 +527,15 @@ export function useOrders() {
       const nextOrders = Array.isArray(result.data) ? result.data : [];
       if (append) {
         const combined = [...salesResource.items.value, ...nextOrders as OrderListItem[]];
-        salesResource.items.value = combined.length > MAX_ITEMS
-          ? combined.slice(-MAX_ITEMS)
-          : combined;
+        if (combined.length > MAX_ITEMS) {
+          listTruncated.value = true;
+          salesResource.items.value = combined.slice(-MAX_ITEMS);
+        } else {
+          salesResource.items.value = combined;
+        }
       } else {
         salesResource.items.value = nextOrders as OrderListItem[];
+        listTruncated.value = false;
       }
 
       if (result.pagination) {
@@ -612,8 +630,8 @@ export function useOrders() {
         addToast({ message: res.message || '', type: 'error' });
         return null;
       }
-    } catch (_e: unknown) {
-      addToast({ message: t('common.networkError'), type: 'error' });
+    } catch (e: unknown) {
+      addToast({ message: extractErrorMessage(e, t('common.networkError')), type: 'error' });
       return null;
     }
   };
@@ -625,6 +643,7 @@ export function useOrders() {
     salesOrders: salesResource.items,
     salespersons,
     statuses,
+    listTruncated,
     procurementStatuses,
     deliveryStatuses,
     pagination: resource.pagination,
